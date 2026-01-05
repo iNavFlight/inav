@@ -1215,6 +1215,46 @@ static bool handleIncoming_COMMAND_INT(void)
                 mavlinkSendMessage();
             }
         } else {
+#ifdef USE_BARO
+            if (msg.command == MAV_CMD_DO_CHANGE_ALTITUDE) {
+                const float altitudeMeters = msg.param1;
+                const uint8_t frame = (uint8_t)msg.frame;
+
+                geoAltitudeDatumFlag_e datum;
+                switch (frame) {
+                case MAV_FRAME_GLOBAL:
+                case MAV_FRAME_GLOBAL_INT:
+                    datum = NAV_WP_MSL_DATUM;
+                    break;
+                case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+                case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+                    datum = NAV_WP_TAKEOFF_DATUM;
+                    break;
+                default:
+                    mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                                 msg.command,
+                                                 MAV_RESULT_UNSUPPORTED,
+                                                 0,
+                                                 0,
+                                                 mavRecvMsg.sysid,
+                                                 mavRecvMsg.compid);
+                    mavlinkSendMessage();
+                    return true;
+                }
+
+                const int32_t targetAltitudeCm = (int32_t)lrintf(altitudeMeters * 100.0f);
+                const bool accepted = navigationSetAltitudeTargetWithDatum(datum, targetAltitudeCm);
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                             msg.command,
+                                             accepted ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED,
+                                             0,
+                                             0,
+                                             mavRecvMsg.sysid,
+                                             mavRecvMsg.compid);
+                mavlinkSendMessage();
+                return true;
+            }
+#endif
             mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                         msg.command,
                                         MAV_RESULT_UNSUPPORTED,
@@ -1225,45 +1265,6 @@ static bool handleIncoming_COMMAND_INT(void)
             mavlinkSendMessage();
         }
         return true;
-#ifdef USE_BARO
-    } else if (msg.command == MAV_CMD_DO_CHANGE_ALTITUDE) {
-        const float altitudeMeters = msg.param1;
-        const uint8_t frame = (uint8_t)msg.frame;
-
-        geoAltitudeDatumFlag_e datum;
-        switch (frame) {
-        case MAV_FRAME_GLOBAL:
-        case MAV_FRAME_GLOBAL_INT:
-            datum = NAV_WP_MSL_DATUM;
-            break;
-        case MAV_FRAME_GLOBAL_RELATIVE_ALT:
-        case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
-            datum = NAV_WP_TAKEOFF_DATUM;
-            break;
-        default:
-            mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
-                                         msg.command,
-                                         MAV_RESULT_UNSUPPORTED,
-                                         0,
-                                         0,
-                                         mavRecvMsg.sysid,
-                                         mavRecvMsg.compid);
-            mavlinkSendMessage();
-            return true;
-        }
-
-        const int32_t targetAltitudeCm = (int32_t)lrintf(altitudeMeters * 100.0f);
-        const bool accepted = navigationSetAltitudeTargetWithDatum(datum, targetAltitudeCm);
-        mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
-                                     msg.command,
-                                     accepted ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED,
-                                     0,
-                                     0,
-                                     mavRecvMsg.sysid,
-                                     mavRecvMsg.compid);
-        mavlinkSendMessage();
-        return true;
-#endif
     }
     return false;
 }
