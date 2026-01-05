@@ -145,12 +145,6 @@ INAV uses maintenance branches for active development and releases. The `master`
 - New features that require coordinated firmware and configurator updates
 - Changes here will be included in the next major version release (e.g., 10.0)
 
-#### Master Branch
-
-The `master` branch receives periodic merges from the current version maintenance branch (e.g., maintenance-9.x). It serves as a mirror of the current version and a safety net - if a contributor accidentally branches from master, they won't pull in breaking changes from the next major version branch.
-
-**Master is NOT a target for pull requests** - contributors should target the appropriate maintenance branch.
-
 ### Choosing the Right Target Branch
 
 When creating a pull request, target the appropriate branch:
