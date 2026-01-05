@@ -10,7 +10,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 3
+**JSON file rev: 4
 **
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
@@ -413,7 +413,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8722 - MSP2_INAV_GEOZONE_VERTEX](#msp2_inav_geozone_vertex)  
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
 [8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
-[8725 - MSP2_INAV_ALT_TARGET](#msp2_inav_alt_target)  
+[8725 - MSP2_INAV_SET_ALT_TARGET](#msp2_inav_set_alt_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 
@@ -4495,25 +4495,21 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 **Notes:** Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).
 
-## <a id="msp2_inav_alt_target"></a>`MSP2_INAV_ALT_TARGET (8725 / 0x2215)`
-**Description:** Get or set the active altitude hold target using updateClimbRateToAltitudeController.  
-#### Variant: `get`
-
-**Description:** Get current altitude target  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Default internal reference altitude datum `NAV_WP_TAKEOFF_DATUM` |
-| `altitudeTarget` | `int32_t` | 4 | cm | Current altitude target (`posControl.desiredState.pos.z`) |
-
-#### Variant: `set`
-
-**Description:** Set new altitude target  
 ## <a id="msp2_inav_set_gvar"></a>`MSP2_INAV_SET_GVAR (8724 / 0x2214)`
 **Description:** Sets the specified Global Variable (GVAR) to the provided value.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `gvarIndex` | `uint8_t` | 1 | Index | Index of the Global Variable to set |
+| `value` | `int32_t` | 4 | - | New value to store (clamped to configured min/max by `gvSet()`) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.
+
+## <a id="msp2_inav_set_alt_target"></a>`MSP2_INAV_SET_ALT_TARGET (8725 / 0x2215)`
+**Description:** Set the active altitude hold target using updateClimbRateToAltitudeController.  
   
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
@@ -4523,14 +4519,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 **Reply Payload:** **None**  
 
-
-**Notes:** Empty request payload returns the current altitude target with datum. Sending a 5-byte payload sets a new target: 1 byte datum, 4 bytes altitude. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).
-| `gvarIndex` | `uint8_t` | 1 | Index | Index of the Global Variable to set |
-| `value` | `int32_t` | 4 | - | New value to store (clamped to configured min/max by `gvSet()`) |
-
-**Reply Payload:** **None**  
-
-**Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.
+**Notes:** Set new altitude target. Requires 5-byte payload (datum + target) and is set-only. Valid only in NAV or ALTHOLD modes. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).
 
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  

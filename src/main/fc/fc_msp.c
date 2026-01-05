@@ -4130,31 +4130,19 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #endif
 
 #ifdef USE_BARO
-    case MSP2_INAV_ALT_TARGET:
-    {
-        if (dataSize == 0) {
-            sbufWriteU8(dst, NAV_WP_TAKEOFF_DATUM);
-            sbufWriteU32(dst, (uint32_t)lrintf(posControl.desiredState.pos.z));
-            *ret = MSP_RESULT_ACK;
-            break;
-        }
-
+    case MSP2_INAV_SET_ALT_TARGET:
         if (dataSize != (sizeof(int32_t) + sizeof(uint8_t))) {
             *ret = MSP_RESULT_ERROR;
             break;
         }
 
-        const uint8_t datumFlag = sbufReadU8(src);
-        const int32_t targetAltitudeCm = (int32_t)sbufReadU32(src);
-
-        if (!navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)datumFlag, targetAltitudeCm)) {
-            *ret = MSP_RESULT_ERROR;
+        if (navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)sbufReadU8(src), (int32_t)sbufReadU32(src))) {
+            *ret = MSP_RESULT_ACK;
             break;
         }
 
-        *ret = MSP_RESULT_ACK;
+        *ret = MSP_RESULT_ERROR;
         break;
-    }
 #endif
 
 #ifdef USE_SIMULATOR

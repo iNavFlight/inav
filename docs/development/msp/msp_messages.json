@@ -10852,6 +10852,32 @@
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.",
         "description": "Sets the specified Global Variable (GVAR) to the provided value."
     },
+    "MSP2_INAV_SET_ALT_TARGET": {
+        "code": 8725,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "altitudeDatum",
+                    "ctype": "uint8_t",
+                    "desc": "Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet)",
+                    "units": "",
+                    "enum": "geoAltitudeDatumFlag_e"
+                },
+                {
+                    "name": "altitudeTarget",
+                    "ctype": "int32_t",
+                    "desc": "Desired altitude target according to reference datum",
+                    "units": "cm"
+                }
+            ]
+        },
+        "reply": {
+            "payload": null
+        },
+        "notes": "Set new altitude target. Requires 5-byte payload (datum + target) and is set-only. Valid only in NAV or ALTHOLD modes. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).",
+        "description": "Set the active altitude hold target using updateClimbRateToAltitudeController."
+    },
     "MSP2_INAV_FULL_LOCAL_POSE": {
         "code": 8736,
         "mspv": 2,
