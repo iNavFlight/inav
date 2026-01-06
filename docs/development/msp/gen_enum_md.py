@@ -62,7 +62,7 @@ def is_plain_int_literal(expr: str) -> Optional[int]:
 
 # ---------- Parsing regexes ----------
 
-RE_ENUM_START   = re.compile(r'^\s*typedef\s+enum\s*\{')
+RE_ENUM_START   = re.compile(r'^\s*typedef\s+enum(?:\s+[A-Za-z_]\w*)?\s*\{')
 RE_ENUM_END     = re.compile(r'^\s*\}\s*([A-Za-z_]\w*)\s*;')
 RE_LINE_COMMENT = re.compile(r'^\s*//\s*(.+?)\s*$')
 
