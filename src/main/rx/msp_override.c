@@ -55,6 +55,7 @@ static bool rxFailsafe = true;
 
 static timeMs_t rxDataFailurePeriod;
 static timeMs_t rxDataRecoveryPeriod;
+static timeMs_t lastAxisOverrideAt = 0;
 static timeMs_t validRxDataReceivedAt = 0;
 static timeMs_t validRxDataFailedAt = 0;
 
@@ -140,7 +141,29 @@ bool mspOverrideIsInFailsafe(void)
 
 static bool mspFlightAxisOverridesEnabled(void)
 {
-    return IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe();
+    bool enabled;
+    if (rxConfig()->receiverType == RX_TYPE_MSP) {
+        enabled = IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && rxIsReceivingSignal() && rxAreFlightChannelsValid();
+    } else {
+        enabled = IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe();
+    }
+
+    const timeMs_t nowMs = millis();
+    const timeMs_t overrideTimeoutMs = PERIOD_RXDATA_FAILURE + failsafeConfig()->failsafe_delay * MILLIS_PER_TENTH_SECOND;
+    const bool freshOverride = lastAxisOverrideAt && (nowMs - lastAxisOverrideAt) <= overrideTimeoutMs;
+    enabled = enabled && freshOverride;
+
+    if (!enabled) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            mspFlightAxisOverride[axis].angleTargetActive = 0;
+            mspFlightAxisOverride[axis].rateTargetActive = 0;
+            mspFlightAxisOverride[axis].angleTarget = 0;
+            mspFlightAxisOverride[axis].rateTarget = 0;
+        }
+        lastAxisOverrideAt = 0;
+    }
+
+    return enabled;
 }
 
 bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
@@ -262,6 +285,8 @@ int16_t mspOverrideGetRawChannelValue(unsigned channelNumber)
 
 void mspOverrideSetFlightAxisAngleOverride(uint8_t overrideMask, int16_t roll, int16_t pitch, int16_t yaw)
 {
+    lastAxisOverrideAt = millis();
+
     const int16_t rollTarget = constrain(roll, -pidProfile()->max_angle_inclination[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]);
     const int16_t pitchTarget = constrain(pitch, -pidProfile()->max_angle_inclination[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]);
     const int16_t yawTarget = constrain(yaw, 0, 3600);
@@ -277,6 +302,8 @@ void mspOverrideSetFlightAxisAngleOverride(uint8_t overrideMask, int16_t roll, i
 
 void mspOverrideSetFlightAxisRateOverride(uint8_t overrideMask, int16_t roll, int16_t pitch, int16_t yaw)
 {
+    lastAxisOverrideAt = millis();
+
     const int16_t rollTarget = constrain(roll, -2000, 2000);
     const int16_t pitchTarget = constrain(pitch, -2000, 2000);
     const int16_t yawTarget = constrain(yaw, -2000, 2000);
