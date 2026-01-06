@@ -10,7 +10,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 5
+**JSON file rev: 6
 **
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
@@ -416,6 +416,10 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8725 - MSP2_INAV_SET_ALT_TARGET](#msp2_inav_set_alt_target)  
 [8726 - MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE](#msp2_inav_flight_axis_angle_override)  
 [8727 - MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE](#msp2_inav_flight_axis_rate_override)  
+[8728 - MSP2_INAV_SET_LOCAL_TARGET](#msp2_inav_set_local_target)  
+[8729 - MSP2_INAV_LOCAL_TARGET](#msp2_inav_local_target)  
+[8730 - MSP2_INAV_SET_GLOBAL_TARGET](#msp2_inav_set_global_target)  
+[8731 - MSP2_INAV_NAV_TARGET](#msp2_inav_nav_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 
@@ -2478,7 +2482,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 **Reply Payload:** **None**  
 
-**Notes:** Expects 2 bytes. Calls `updateHeadingHoldTarget()`.
+**Notes:** Expects 2 bytes. Calls `updateHeadingHoldTarget()`. Also synchronizes navigation yaw targets (including cruise/course) when NAV is controlling yaw.
 
 ## <a id="msp_set_servo_configuration"></a>`MSP_SET_SERVO_CONFIGURATION (212 / 0xd4)`
 **Description:** Sets the configuration for a single servo (legacy format).  
@@ -4516,7 +4520,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
-| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
 | `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum |
 
 **Reply Payload:** **None**  
@@ -4552,6 +4556,70 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Reply Payload:** **None**  
 
 **Notes:** Expects 7 bytes. Overrides rate targets just before control is applied, bypassing stick-derived setpoints.
+
+## <a id="msp2_inav_set_local_target"></a>`MSP2_INAV_SET_LOCAL_TARGET (8728 / 0x2218)`
+**Description:** Sets local-coordinate poshold target.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `posX` | `int32_t` | 4 | cm | Desired X in local NEU frame |
+| `posY` | `int32_t` | 4 | cm | Desired Y in local NEU frame |
+| `posZ` | `int32_t` | 4 | cm | Desired Z in local NEU frame (up-positive). Omit this field to leave Z unchanged. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Local frame is NEU. 8-byte payload (X,Y) leaves Z unchanged; 12-byte payload (X,Y,Z) updates Z. Requires GCSNAV/offboard to be active and a valid guided poshold; updates the navigation desired position via `setDesiredPosition()`.
+
+## <a id="msp2_inav_local_target"></a>`MSP2_INAV_LOCAL_TARGET (8729 / 0x2219)`
+**Description:** Returns the current navigation desired state (position, velocity, yaw, and climb rate).  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `posX` | `int32_t` | 4 | cm | Desired X in local NEU frame (`posControl.desiredState.pos.x`) |
+| `posY` | `int32_t` | 4 | cm | Desired Y in local NEU frame (`posControl.desiredState.pos.y`) |
+| `posZ` | `int32_t` | 4 | cm | Desired Z in local NEU frame (`posControl.desiredState.pos.z`, up-positive) |
+| `velX` | `int16_t` | 2 | cm/s | Desired X velocity (`posControl.desiredState.vel.x`) |
+| `velY` | `int16_t` | 2 | cm/s | Desired Y velocity (`posControl.desiredState.vel.y`) |
+| `velZ` | `int16_t` | 2 | cm/s | Desired Z velocity (`posControl.desiredState.vel.z`) |
+| `yaw` | `int32_t` | 4 | centi-degrees | Desired heading (`posControl.desiredState.yaw`) |
+| `climbRate` | `int16_t` | 2 | cm/s | Desired climb rate demand (`posControl.desiredState.climbRateDemand`) |
+
+**Notes:** Local frame is NEU. Mirrors `posControl.desiredState` (position, velocity, yaw, climb rate) used by the position controller.
+
+## <a id="msp2_inav_set_global_target"></a>`MSP2_INAV_SET_GLOBAL_TARGET (8730 / 0x221a)`
+**Description:** Sets desired GCS Nav position with global coordinates (WP 254/GOTO).  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `latitude` | `int32_t` | 4 | deg * 1e7 | Latitude coordinate |
+| `longitude` | `int32_t` | 4 | deg * 1e7 | Longitude coordinate |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum (0 keeps current altitude) |
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged.
+
+## <a id="msp2_inav_nav_target"></a>`MSP2_INAV_NAV_TARGET (8731 / 0x221b)`
+**Description:** Returns the current navigation desired global target (lat/lon/alt, heading, climb rate).  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `latTarget` | `int32_t` | 4 | 1e-7 deg | Latitude in degrees * 1e7 |
+| `lonTarget` | `int32_t` | 4 | 1e-7 deg | Longitude in degrees * 1e7 |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target (takeoff datum, cm) as used by altitude/position hold |
+| `headingTarget` | `uint16_t` | 2 | degrees | Current heading-hold target (`getHeadingHoldTarget()`), wrapped to 0–359.99 |
+| `climbRate` | `int16_t` | 2 | cm/s | Desired climb rate demand (`posControl.desiredState.climbRateDemand`) |
+
+**Notes:** Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome).
 
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  

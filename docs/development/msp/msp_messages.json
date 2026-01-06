@@ -10978,7 +10978,7 @@
         },
         "reply": null,
         "variable_len": true,
-        "notes": "Local frame is NEU. 8-byte payload (X,Y) leaves Z unchanged; 12-byte payload (X,Y,Z) updates Z. Command is accepted only when GCSNAV/offboard is active.",
+        "notes": "Local frame is NEU. 8-byte payload (X,Y) leaves Z unchanged; 12-byte payload (X,Y,Z) updates Z. Requires GCSNAV/offboard to be active and a valid guided poshold; updates the navigation desired position via `setDesiredPosition()`.",
         "description": "Sets local-coordinate poshold target."
     },
     "MSP2_INAV_LOCAL_TARGET": {
@@ -11037,7 +11037,7 @@
                 }
             ]
         },
-        "notes": "Local frame is NEU. Provides the current desired state used by the position controller.",
+        "notes": "Local frame is NEU. Mirrors `posControl.desiredState` (position, velocity, yaw, climb rate) used by the position controller.",
         "description": "Returns the current navigation desired state (position, velocity, yaw, and climb rate)."
     },
     "MSP2_INAV_SET_GLOBAL_TARGET": {
@@ -11060,7 +11060,7 @@
                 {
                     "name": "altitudeTarget",
                     "ctype": "int32_t",
-                    "desc": "Desired altitude target according to reference datum",
+                    "desc": "Desired altitude target according to reference datum (0 keeps current altitude)",
                     "units": "cm"
                 },
                 {
@@ -11073,7 +11073,7 @@
             ]
         },
         "reply": null,
-        "notes": "Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Datum other than TAKEOFF is rejected until implemented.",
+        "notes": "Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged.",
         "description": "Sets desired GCS Nav position with global coordinates (WP 254/GOTO)."
     },
     "MSP2_INAV_NAV_TARGET": {
@@ -11085,13 +11085,13 @@
                 {
                     "name": "latTarget",
                     "ctype": "int32_t",
-                    "desc": "Latitude in degrees * 1e7 (`posControl.desiredState.posLat` equivalent)",
+                    "desc": "Latitude in degrees * 1e7",
                     "units": "1e-7 deg"
                 },
                 {
                     "name": "lonTarget",
                     "ctype": "int32_t",
-                    "desc": "Longitude in degrees * 1e7 (`posControl.desiredState.posLon` equivalent)",
+                    "desc": "Longitude in degrees * 1e7",
                     "units": "1e-7 deg"
                 },
                 {
@@ -11114,7 +11114,7 @@
                 }
             ]
         },
-        "notes": "Altitude target is reported in the takeoff datum frame. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome).",
+        "notes": "Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome).",
         "description": "Returns the current navigation desired global target (lat/lon/alt, heading, climb rate)."
     },
     "MSP2_INAV_FULL_LOCAL_POSE": {
