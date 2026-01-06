@@ -10,7 +10,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 6
+**JSON file rev: 4
 **
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
@@ -4558,7 +4558,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Notes:** Expects 7 bytes. Overrides rate targets just before control is applied, bypassing stick-derived setpoints.
 
 ## <a id="msp2_inav_set_local_target"></a>`MSP2_INAV_SET_LOCAL_TARGET (8728 / 0x2218)`
-**Description:** Sets local-coordinate poshold target.  
+**Description:** Sets a body-frame offset target relative to the current vehicle position.  
   
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
@@ -4569,7 +4569,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 **Reply Payload:** **None**  
 
-**Notes:** Local frame is NEU. 8-byte payload (X,Y) leaves Z unchanged; 12-byte payload (X,Y,Z) updates Z. Requires GCSNAV/offboard to be active and a valid guided poshold; updates the navigation desired position via `setDesiredPosition()`.
+**Notes:** Offsets are in the vehicle body frame (forward/right/up, cm) and are rotated into the NEU frame using the current yaw, applied relative to current position. Z offset is always provided; Z=0 keeps current altitude, non-zero offsets are relative to current altitude. Requires GCSNAV/offboard to be active and a valid guided poshold; updates the navigation desired position via `setDesiredPosition()`.
 
 ## <a id="msp2_inav_local_target"></a>`MSP2_INAV_LOCAL_TARGET (8729 / 0x2219)`
 **Description:** Returns the current navigation desired state (position, velocity, yaw, and climb rate).  

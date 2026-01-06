@@ -4181,7 +4181,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #endif
 
     case MSP2_INAV_SET_LOCAL_TARGET:
-        if (!(dataSize == 2 * sizeof(int32_t) || dataSize == 3 * sizeof(int32_t)) || !isGCSValid()) {
+        if (dataSize != 3 * sizeof(int32_t) || !isGCSValid()) {
             *ret = MSP_RESULT_ERROR;
             break;
         }
@@ -4189,15 +4189,26 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         {
             fpVector3_t targetPos = posControl.desiredState.pos;
 
-            targetPos.x = (int32_t)sbufReadU32(src);
-            targetPos.y = (int32_t)sbufReadU32(src);
+            const navEstimatedPosVel_t *actual = navGetCurrentActualPositionAndVelocity();
+            const float offsetBodyX = (float)(int32_t)sbufReadU32(src);
+            const float offsetBodyY = (float)(int32_t)sbufReadU32(src);
+            const float offsetBodyZ = (float)(int32_t)sbufReadU32(src);
+
+            const float cosYaw = posControl.actualState.cosYaw;
+            const float sinYaw = posControl.actualState.sinYaw;
+
+            // Rotate body-frame offsets into NEU and apply relative to current position
+            const float offsetN = offsetBodyX * cosYaw - offsetBodyY * sinYaw;
+            const float offsetE = offsetBodyX * sinYaw + offsetBodyY * cosYaw;
+
+            targetPos.x = actual->pos.x + offsetN;
+            targetPos.y = actual->pos.y + offsetE;
 
             navSetWaypointFlags_t updateMask = NAV_POS_UPDATE_XY;
-
-            if (dataSize == 3 * sizeof(int32_t)) {
-                targetPos.z = (int32_t)sbufReadU32(src);
-                updateMask |= NAV_POS_UPDATE_Z;
+            if (offsetBodyZ != 0.0f) {
+                targetPos.z = actual->pos.z + offsetBodyZ;
             }
+            updateMask |= NAV_POS_UPDATE_Z;
 
             setDesiredPosition(&targetPos, posControl.desiredState.yaw, updateMask);
             *ret = MSP_RESULT_ACK;

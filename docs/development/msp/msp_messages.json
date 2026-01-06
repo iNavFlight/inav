@@ -10978,8 +10978,8 @@
         },
         "reply": null,
         "variable_len": true,
-        "notes": "Local frame is NEU. 8-byte payload (X,Y) leaves Z unchanged; 12-byte payload (X,Y,Z) updates Z. Requires GCSNAV/offboard to be active and a valid guided poshold; updates the navigation desired position via `setDesiredPosition()`.",
-        "description": "Sets local-coordinate poshold target."
+        "notes": "Offsets are in the vehicle body frame (forward/right/up, cm) and are rotated into the NEU frame using the current yaw, applied relative to current position. Z offset is always provided; Z=0 keeps current altitude, non-zero offsets are relative to current altitude. Requires GCSNAV/offboard to be active and a valid guided poshold; updates the navigation desired position via `setDesiredPosition()`.",
+        "description": "Sets a body-frame offset target relative to the current vehicle position."
     },
     "MSP2_INAV_LOCAL_TARGET": {
         "code": 8729,
