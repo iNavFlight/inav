@@ -10,7 +10,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 4
+**JSON file rev: 5
 **
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
@@ -414,6 +414,8 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
 [8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
 [8725 - MSP2_INAV_SET_ALT_TARGET](#msp2_inav_set_alt_target)  
+[8726 - MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE](#msp2_inav_flight_axis_angle_override)  
+[8727 - MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE](#msp2_inav_flight_axis_rate_override)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 
@@ -4520,6 +4522,36 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Reply Payload:** **None**  
 
 **Notes:** Set new altitude target. Requires 5-byte payload (datum + target) and is set-only. Valid only in NAV or ALTHOLD modes. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).
+
+## <a id="msp2_inav_flight_axis_angle_override"></a>`MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE (8726 / 0x2216)`
+**Description:** Enables or disables a flight-axis angle override for the selected axis.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `overrideMask` | `uint8_t` | 1 | Bitmask | Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis. |
+| `angleTargetRoll` | `int16_t` | 2 | deci-degrees | Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits |
+| `angleTargetPitch` | `int16_t` | 2 | deci-degrees | Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits |
+| `angleTargetYaw` | `int16_t` | 2 | deci-degrees | Angle target in deci-degrees. Yaw clamped to 0–3600. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Uses the same override path as logic conditions and bypasses stick-derived angle targets.
+
+## <a id="msp2_inav_flight_axis_rate_override"></a>`MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE (8727 / 0x2217)`
+**Description:** Enables or disables a flight-axis rate override for the selected axis.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `overrideMask` | `uint8_t` | 1 | Bitmask | Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis. |
+| `rateTargetRoll` | `int16_t` | 2 | deg/s | Rate target, clamped to ±2000 |
+| `rateTargetPitch` | `int16_t` | 2 | deg/s | Rate target, clamped to ±2000 |
+| `rateTargetYaw` | `int16_t` | 2 | deg/s | Rate target, clamped to ±2000 |
+
+**Reply Payload:** **None**  
+
+**Notes:** Expects 7 bytes. Overrides rate targets just before control is applied, bypassing stick-derived setpoints.
 
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  

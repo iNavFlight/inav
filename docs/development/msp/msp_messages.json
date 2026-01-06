@@ -10878,6 +10878,78 @@
         "notes": "Set new altitude target. Requires 5-byte payload (datum + target) and is set-only. Valid only in NAV or ALTHOLD modes. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).",
         "description": "Set the active altitude hold target using updateClimbRateToAltitudeController."
     },
+    "MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE": {
+        "code": 8726,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "overrideMask",
+                    "ctype": "uint8_t",
+                    "desc": "Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis.",
+                    "units": "Bitmask",
+                    "bitmask": true
+                },
+                {
+                    "name": "angleTargetRoll",
+                    "ctype": "int16_t",
+                    "desc": "Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits",
+                    "units": "deci-degrees"
+                },
+                {
+                    "name": "angleTargetPitch",
+                    "ctype": "int16_t",
+                    "desc": "Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits",
+                    "units": "deci-degrees"
+                },
+                {
+                    "name": "angleTargetYaw",
+                    "ctype": "int16_t",
+                    "desc": "Angle target in deci-degrees. Yaw clamped to 0–3600.",
+                    "units": "deci-degrees"
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Uses the same override path as logic conditions and bypasses stick-derived angle targets.",
+        "description": "Enables or disables a flight-axis angle override for the selected axis."
+    },
+    "MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE": {
+        "code": 8727,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "overrideMask",
+                    "ctype": "uint8_t",
+                    "desc": "Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis.",
+                    "units": "Bitmask",
+                    "bitmask": true
+                },
+                {
+                    "name": "rateTargetRoll",
+                    "ctype": "int16_t",
+                    "desc": "Rate target, clamped to ±2000",
+                    "units": "deg/s"
+                },
+                {
+                    "name": "rateTargetPitch",
+                    "ctype": "int16_t",
+                    "desc": "Rate target, clamped to ±2000",
+                    "units": "deg/s"
+                },
+                {
+                    "name": "rateTargetYaw",
+                    "ctype": "int16_t",
+                    "desc": "Rate target, clamped to ±2000",
+                    "units": "deg/s"
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Expects 7 bytes. Overrides rate targets just before control is applied, bypassing stick-derived setpoints.",
+        "description": "Enables or disables a flight-axis rate override for the selected axis."
+    },
     "MSP2_INAV_FULL_LOCAL_POSE": {
         "code": 8736,
         "mspv": 2,
