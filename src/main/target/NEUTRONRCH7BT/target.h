@@ -139,6 +139,11 @@
 #define SDCARD_SDIO_DEVICE      SDIODEV_1
 #define SDCARD_SDIO_4BIT
 
+#if defined(USE_SDCARD) && defined(USE_SDCARD_SDIO) && defined(USE_BARO)
+#define USE_TERRAIN //only SDIO is supported
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8 // 2048 bytes = 1 grid block
+#endif
+
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** ADC *****************************

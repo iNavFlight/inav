@@ -84,6 +84,8 @@
 #include "flight/wind_estimator.h"
 #include "sensors/temperature.h"
 
+#include "terrain/terrain.h"
+
 
 #if defined(ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT)
 #define DEFAULT_BLACKBOX_DEVICE     BLACKBOX_DEVICE_FLASH
@@ -2308,7 +2310,11 @@ void blackboxUpdate(timeUs_t currentTimeUs)
 
 static bool canUseBlackboxWithCurrentConfiguration(void)
 {
-    return feature(FEATURE_BLACKBOX);
+    return feature(FEATURE_BLACKBOX)
+#ifdef USE_TERRAIN
+    && terrainConfig()->terrainEnabled == false && blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD
+#endif
+    ;
 }
 
 BlackboxState getBlackboxState(void)

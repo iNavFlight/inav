@@ -164,13 +164,18 @@
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
 #define SERIALRX_UART           SERIAL_PORT_USART6
 
-// *************** SDIO SD BLACKBOX*******************
+// *************** SDIO SD BLACKBOX AND TERRAIN *******************
 #define USE_SDCARD
 #define USE_SDCARD_SDIO
 #define SDCARD_SDIO_DEVICE      SDIODEV_1
 #define SDCARD_SDIO_4BIT
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+
+#if defined(USE_SDCARD) && defined(USE_SDCARD_SDIO) && defined(USE_BARO)
+#define USE_TERRAIN //only SDIO is supported
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8 // 2048 bytes = 1 grid block
+#endif
 
 // *************** ADC *****************************
 #define USE_ADC

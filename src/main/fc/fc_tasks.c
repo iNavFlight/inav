@@ -95,6 +95,8 @@
 #include "telemetry/telemetry.h"
 #include "telemetry/sbus2.h"
 
+#include "terrain/terrain.h"
+
 #include "config/feature.h"
 
 #if defined(SITL_BUILD)
@@ -369,6 +371,9 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_RX, true);
 #ifdef USE_GPS
     setTaskEnabled(TASK_GPS, feature(FEATURE_GPS));
+#endif
+#ifdef USE_TERRAIN
+    setTaskEnabled(TASK_TERRAIN, terrainConfig()->terrainEnabled);
 #endif
 #ifdef USE_MAG
     setTaskEnabled(TASK_COMPASS, sensors(SENSOR_MAG));
@@ -757,6 +762,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = geozoneUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(5),
         .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_TERRAIN
+    [TASK_TERRAIN] = {
+        .taskName = "TERRAIN",
+        .taskFunc = terrainUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(TERRAIN_TASK_RATE_HZ),
+        .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
 

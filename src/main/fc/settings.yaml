@@ -4501,3 +4501,13 @@ groups:
         field: noWayHomeAction
         table: geozone_rth_no_way_home
         type: uint8_t
+  - name: PG_TERRAIN_CONFIG
+    type: terrainConfig_t
+    headers: ["terrain/terrain.h"]
+    condition: USE_TERRAIN
+    members:
+      - name: terrain_enabled
+        description: "Enable load terrain data from SD card"
+        default_value: OFF
+        field: terrainEnabled
+        type: bool

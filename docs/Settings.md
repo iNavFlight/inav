@@ -6372,6 +6372,16 @@ Which aux channel to use to change serial output & baud rate (MSP / Telemetry). 
 
 ---
 
+### terrain_enabled
+
+Enable load terrain data from SD card
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### thr_comp_weight
 
 Weight used for the throttle compensation based on battery voltage. See the [battery documentation](Battery.md#automatic-throttle-compensation-based-on-battery-voltage)
