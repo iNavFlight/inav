@@ -127,5 +127,9 @@
 #define MSP2_INAV_SET_ALT_TARGET                0x2215
 #define MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE    0x2216
 #define MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE     0x2217
+#define MSP2_INAV_SET_LOCAL_TARGET              0x2218
+#define MSP2_INAV_LOCAL_TARGET                  0x2219
+#define MSP2_INAV_SET_GLOBAL_TARGET             0x221A
+#define MSP2_INAV_NAV_TARGET                    0x221B
 
 #define MSP2_INAV_FULL_LOCAL_POSE               0x2220
