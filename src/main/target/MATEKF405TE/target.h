@@ -63,12 +63,23 @@
 #define SPI2_MISO_PIN   	    PC2
 #define SPI2_MOSI_PIN   	    PC3
 
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
+#define USE_BARO_BMP280
+#define USE_BARO_MS5611
+#define USE_BARO_DPS310
+#define USE_BARO_SPL06
+
 #if defined(MATEKF405TE_SD)
 #   define USE_SDCARD
 #   define USE_SDCARD_SPI
 #   define SDCARD_SPI_BUS          BUS_SPI2
 #   define SDCARD_CS_PIN           PC1
 #   define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#   if defined(USE_SDCARD) && defined(USE_BARO)
+#     define USE_TERRAIN
+#     define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
+#   endif
 #else
 #   define USE_FLASHFS
 #   define USE_FLASH_M25P16
@@ -82,13 +93,6 @@
 #define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB7
-
-#define USE_BARO
-#define BARO_I2C_BUS            BUS_I2C1
-#define USE_BARO_BMP280
-#define USE_BARO_MS5611
-#define USE_BARO_DPS310
-#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

@@ -65,6 +65,11 @@
 #define SDCARD_CS_PIN           PC9
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
+#if defined(USE_SDCARD) && defined(USE_BARO)
+#define USE_TERRAIN
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
+#endif
+
 // *************** UART *****************************
 #define USE_VCP
 
