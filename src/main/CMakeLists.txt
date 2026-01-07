@@ -298,6 +298,8 @@ main_sources(COMMON_SRC
     fc/firmware_update.h
     fc/firmware_update_common.c
     fc/firmware_update_common.h
+    fc/motor_locate.c
+    fc/motor_locate.h
     fc/multifunction.c
     fc/multifunction.h
     fc/rc_smoothing.c

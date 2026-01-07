@@ -27,9 +27,17 @@
 #define MAX_PWM_OUTPUTS (MAX_PWM_OUTPUT_PORTS)
 #endif
 typedef enum {
+    DSHOT_CMD_MOTOR_STOP = 0,
+    DSHOT_CMD_BEACON1 = 1,
+    DSHOT_CMD_BEACON2 = 2,
+    DSHOT_CMD_BEACON3 = 3,
+    DSHOT_CMD_BEACON4 = 4,
+    DSHOT_CMD_BEACON5 = 5,
     DSHOT_CMD_SPIN_DIRECTION_NORMAL = 20,
     DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
 } dshotCommands_e;
+
+#define DSHOT_CMD_ALL_MOTORS 255
 
 typedef struct {
     dshotCommands_e cmd;
@@ -61,6 +69,7 @@ void pwmWriteBeeper(bool onoffBeep);
 void beeperPwmInit(ioTag_t tag, uint16_t frequency);
 
 void sendDShotCommand(dshotCommands_e cmd);
+void sendDShotCommandToMotor(uint8_t motorIndex, dshotCommands_e cmd);
 void initDShotCommands(void);
 
 uint32_t getEscUpdateFrequency(void);
