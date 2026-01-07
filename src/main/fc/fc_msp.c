@@ -1731,12 +1731,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #ifdef USE_DSHOT
     case MSP2_INAV_MOTOR_LOCATE:
         {
-            // Motor locate requires 1 byte: motor index
+            // Motor locate requires 1 byte: motor index (255 = stop)
             if (dataSize < 1) {
                 return MSP_RESULT_ERROR;
             }
             uint8_t motorIndex = sbufReadU8(src);
-            bool success = motorLocateStart(motorIndex);
+            bool success;
+            if (motorIndex == 255) {
+                motorLocateStop();
+                success = true;
+            } else {
+                success = motorLocateStart(motorIndex);
+            }
             sbufWriteU8(dst, success ? 1 : 0);
         }
         break;
