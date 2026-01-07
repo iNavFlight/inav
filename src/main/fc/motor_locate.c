@@ -43,13 +43,11 @@ typedef enum {
     LOCATE_STATE_IDLE,
     LOCATE_STATE_JERK,
     LOCATE_STATE_JERK_PAUSE,
-    LOCATE_STATE_BEEP1_ON,
-    LOCATE_STATE_BEEP1_OFF,
-    LOCATE_STATE_BEEP2_ON,
-    LOCATE_STATE_BEEP2_OFF,
-    LOCATE_STATE_BEEP3_ON,
-    LOCATE_STATE_BEEP3_PAUSE,
+    LOCATE_STATE_BEEP_ON,
+    LOCATE_STATE_BEEP_OFF,
 } motorLocateState_e;
+
+#define LOCATE_NUM_BEEPS 4
 
 // Global flag for fast inline check in FAST_CODE path
 bool motorLocateActive = false;
@@ -57,11 +55,13 @@ bool motorLocateActive = false;
 static struct {
     motorLocateState_e state;
     uint8_t motorIndex;
+    uint8_t beepCount;
     timeUs_t stateStartTime;
     timeUs_t cycleStartTime;
 } locateState = {
     .state = LOCATE_STATE_IDLE,
     .motorIndex = 0,
+    .beepCount = 0,
     .stateStartTime = 0,
     .cycleStartTime = 0,
 };
@@ -94,6 +94,7 @@ bool motorLocateStart(uint8_t motorIndex)
 
     timeUs_t now = micros();
     locateState.motorIndex = motorIndex;
+    locateState.beepCount = 0;
     locateState.cycleStartTime = now;
     transitionToState(LOCATE_STATE_JERK, now);
     motorLocateActive = true;
@@ -125,50 +126,47 @@ static timeUs_t getStateDuration(motorLocateState_e state)
             return LOCATE_JERK_DURATION_US;
         case LOCATE_STATE_JERK_PAUSE:
             return LOCATE_JERK_PAUSE_US;
-        case LOCATE_STATE_BEEP1_ON:
-        case LOCATE_STATE_BEEP2_ON:
-        case LOCATE_STATE_BEEP3_ON:
+        case LOCATE_STATE_BEEP_ON:
             return LOCATE_BEEP_ON_US;
-        case LOCATE_STATE_BEEP1_OFF:
-        case LOCATE_STATE_BEEP2_OFF:
-            return LOCATE_BEEP_OFF_US;
-        case LOCATE_STATE_BEEP3_PAUSE:
-            return LOCATE_JERK_PAUSE_US;
+        case LOCATE_STATE_BEEP_OFF:
+            return (locateState.beepCount >= LOCATE_NUM_BEEPS - 1) ? LOCATE_JERK_PAUSE_US : LOCATE_BEEP_OFF_US;
         default:
             return 0;
     }
 }
 
-static motorLocateState_e getNextState(motorLocateState_e state)
+static motorLocateState_e advanceToNextState(motorLocateState_e state)
 {
     switch (state) {
-        case LOCATE_STATE_JERK:        return LOCATE_STATE_JERK_PAUSE;
-        case LOCATE_STATE_JERK_PAUSE:  return LOCATE_STATE_BEEP1_ON;
-        case LOCATE_STATE_BEEP1_ON:    return LOCATE_STATE_BEEP1_OFF;
-        case LOCATE_STATE_BEEP1_OFF:   return LOCATE_STATE_BEEP2_ON;
-        case LOCATE_STATE_BEEP2_ON:    return LOCATE_STATE_BEEP2_OFF;
-        case LOCATE_STATE_BEEP2_OFF:   return LOCATE_STATE_BEEP3_ON;
-        case LOCATE_STATE_BEEP3_ON:    return LOCATE_STATE_BEEP3_PAUSE;
-        case LOCATE_STATE_BEEP3_PAUSE: return LOCATE_STATE_JERK;  // Loop back
-        default:                       return LOCATE_STATE_IDLE;
+        case LOCATE_STATE_JERK:
+            return LOCATE_STATE_JERK_PAUSE;
+        case LOCATE_STATE_JERK_PAUSE:
+            locateState.beepCount = 0;
+            return LOCATE_STATE_BEEP_ON;
+        case LOCATE_STATE_BEEP_ON:
+            return LOCATE_STATE_BEEP_OFF;
+        case LOCATE_STATE_BEEP_OFF:
+            if (++locateState.beepCount >= LOCATE_NUM_BEEPS) {
+                return LOCATE_STATE_JERK;
+            }
+            return LOCATE_STATE_BEEP_ON;
+        default:
+            return LOCATE_STATE_IDLE;
     }
 }
 
 static uint16_t getMotorValueForState(motorLocateState_e state, uint8_t motorIdx, uint8_t targetMotorIdx)
 {
-    // All motors except target get MOTOR_STOP
     if (motorIdx != targetMotorIdx) {
         return DSHOT_CMD_MOTOR_STOP;
     }
 
-    // Target motor value depends on state
     switch (state) {
         case LOCATE_STATE_JERK:
             return LOCATE_JERK_THROTTLE;
-        case LOCATE_STATE_BEEP1_ON:
-        case LOCATE_STATE_BEEP2_ON:
-        case LOCATE_STATE_BEEP3_ON:
-            return DSHOT_CMD_BEACON1;
+        case LOCATE_STATE_BEEP_ON:
+            // Ascending tones help humans locate sound using multiple hearing mechanisms
+            return DSHOT_CMD_BEACON1 + locateState.beepCount;
         default:
             return DSHOT_CMD_MOTOR_STOP;
     }
@@ -177,6 +175,12 @@ static uint16_t getMotorValueForState(motorLocateState_e state, uint8_t motorIdx
 bool motorLocateUpdate(void)
 {
     if (locateState.state == LOCATE_STATE_IDLE) {
+        return false;
+    }
+
+    // Immediately stop if aircraft becomes armed
+    if (ARMING_FLAG(ARMED)) {
+        motorLocateStop();
         return false;
     }
 
@@ -191,7 +195,7 @@ bool motorLocateUpdate(void)
     // Check for state transition
     timeUs_t stateDuration = getStateDuration(locateState.state);
     if (cmpTimeUs(now, locateState.stateStartTime) >= stateDuration) {
-        transitionToState(getNextState(locateState.state), now);
+        transitionToState(advanceToNextState(locateState.state), now);
     }
 
     // Apply motor values for current state
