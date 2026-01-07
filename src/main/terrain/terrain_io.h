@@ -35,7 +35,6 @@
 typedef enum {
     TERRAIN_IO_IDLE,
     TERRAIN_IO_CHANGE_DIR,
-    TERRAIN_IO_CHANGE_DIR_PENDING, //wait state in async, waiting to call callback
     TERRAIN_IO_OPEN_FILE,
     TERRAIN_IO_OPEN_FILE_PENDING, //wait state in async, waiting to call callback
     TERRAIN_IO_SEEK,
@@ -64,6 +63,9 @@ typedef struct {
     gridIoBlock_t ioBlock; // 2048 bytes because block in disk is exactly 2048 bytes
     afatfsFilePtr_t datFile;
     terrainIoFileOpenStatus_t fileOpenStatus[TERRAIN_IO_MAX_FILE_OPEN_STATUS];
+    uint32_t bytesRead;
+    uint32_t readsZeroBytesCount;
+    timeMs_t openFileStartTimeMs;
 } terrainIoState_t;
 
 

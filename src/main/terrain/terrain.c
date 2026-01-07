@@ -33,6 +33,8 @@
 #include "terrain_utils.h"
 #include "terrain_io.h"
 
+#include "common/utils.h"
+
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 

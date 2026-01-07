@@ -615,7 +615,7 @@ void init(void)
 
 #ifdef USE_SDCARD
 
-#if !defined(USE_SDCARD_SDIO) || !defined(USE_TERRAIN)
+#ifdef USE_TERRAIN
     if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD)
 #endif
     {
