@@ -68,8 +68,12 @@ pitot_t pitot = {.lastMeasurementUs = 0, .lastSeenHealthyMs = 0};
 // Pitot sensor validation state
 static bool pitotHardwareFailed = false;
 static uint16_t pitotFailureCounter = 0;
-#define PITOT_FAILURE_THRESHOLD 100  // 1 second at 100Hz (sustained failure required)
-#define PITOT_RECOVERY_THRESHOLD 50   // 0.5 seconds of good readings to recover
+static uint16_t pitotRecoveryCounter = 0;
+#define PITOT_FAILURE_THRESHOLD 20   // 0.2 seconds at 100Hz - fast detection per LOG00002 analysis
+#define PITOT_RECOVERY_THRESHOLD 200 // 2 seconds of consecutive good readings to recover
+
+// Forward declaration for GPS-based airspeed fallback
+static float getVirtualAirspeedEstimate(void);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 2);
 
@@ -314,9 +318,18 @@ void pitotUpdate(void)
 
 /*
  * Airspeed estimate in cm/s
+ * Returns hardware pitot if valid, GPS-based virtual airspeed if pitot failed,
+ * or raw pitot value as last resort
  */
 float getAirspeedEstimate(void)
 {
+    // If hardware pitot has failed validation, use GPS-based virtual airspeed
+    if (pitotHardwareFailed) {
+        float virtualAirspeed = getVirtualAirspeedEstimate();
+        if (virtualAirspeed > 0.0f) {
+            return virtualAirspeed;
+        }
+    }
     return pitot.airSpeed;
 }
 
@@ -447,22 +460,28 @@ bool pitotValidForAirspeed(void)
             // Declare failure after sustained implausible readings
             if (pitotFailureCounter >= PITOT_FAILURE_THRESHOLD) {
                 pitotHardwareFailed = true;
+                pitotRecoveryCounter = 0;  // Start recovery tracking
             }
 
-            // Recovery: require sustained good readings to clear failure
-            if (pitotHardwareFailed && isPitotReadingPlausible()) {
-                if (pitotFailureCounter > 0) {
-                    pitotFailureCounter--;
-                }
-                if (pitotFailureCounter <= (PITOT_FAILURE_THRESHOLD - PITOT_RECOVERY_THRESHOLD)) {
-                    pitotHardwareFailed = false;  // Sensor has recovered
-                    pitotFailureCounter = 0;
+            // Recovery: require sustained consecutive good readings to clear failure
+            if (pitotHardwareFailed) {
+                if (isPitotReadingPlausible()) {
+                    pitotRecoveryCounter++;
+                    if (pitotRecoveryCounter >= PITOT_RECOVERY_THRESHOLD) {
+                        pitotHardwareFailed = false;  // Sensor has recovered
+                        pitotFailureCounter = 0;
+                        pitotRecoveryCounter = 0;
+                    }
+                } else {
+                    // Bad reading resets recovery progress
+                    pitotRecoveryCounter = 0;
                 }
             }
         } else {
             // Reset on disarm for next flight
             pitotHardwareFailed = false;
             pitotFailureCounter = 0;
+            pitotRecoveryCounter = 0;
         }
 
         // If pitot has failed sanity checks, require GPS fix (like virtual pitot)
