@@ -26,6 +26,9 @@ class InavSimulate:
         
         self.imu = Imu()
         self._enable_imu_noise = True  # Always add a bit of noise to avoid stale detection
+        
+        # Socket receive buffer for handling partial/multiple messages
+        self._rx_buffer = ""
 
         self.Nav = sutil.NavProj(
             46.631361,
@@ -244,25 +247,50 @@ class InavSimulate:
     
     
     def rx(self, conn:socket.socket):
+        """
+        Receive motor commands from INAV via socket.
+        Uses a buffer to handle partial messages and ensure we process complete lines.
+        """
+        # Make socket non-blocking to avoid hanging
+        conn.setblocking(False)
         
-        data = conn.recv(1024)  # receive up to 1024 bytes
-        if not data:
+        try:
+            # Try to receive data
+            data = conn.recv(1024)
+            if data:
+                self._rx_buffer += data.decode("utf-8", errors="ignore")
+                print(f"Received data: {data}")
+        except BlockingIOError:
+            # No data available, that's ok
+            pass
+        except Exception as e:
+            print(f"Error receiving data: {e}")
             return
         
-        GAIN = 800.0
-        
-        line = data.decode("utf-8").strip() 
-        vals = line.split(";")
-        if len(vals) >= 4:
-            self.cmd_motor_speeds[0] = GAIN * float(vals[3])   # Motor FL
-            self.cmd_motor_speeds[1] = GAIN * float(vals[1])   # Motor FR
-            self.cmd_motor_speeds[2] = GAIN * float(vals[0])   # Motor RR
-            self.cmd_motor_speeds[3] = GAIN * float(vals[2])   # Motor RL
+        # Process complete lines from buffer
+        while "\n" in self._rx_buffer:
+            line, self._rx_buffer = self._rx_buffer.split("\n", 1)
+            line = line.strip()
+
+            if not line:
+                continue
             
-            self.cmd_motor_speeds[0] *= 1.000   
-            self.cmd_motor_speeds[1] *= 1.000     
-            self.cmd_motor_speeds[2] *= 1.001    
-            self.cmd_motor_speeds[3] *= 1.001   
+            GAIN = 800.0
+            vals = line.split(";")
+            
+            if len(vals) >= 4:
+                try:
+                    self.cmd_motor_speeds[0] = GAIN * float(vals[3])   # Motor FL
+                    self.cmd_motor_speeds[1] = GAIN * float(vals[1])   # Motor FR
+                    self.cmd_motor_speeds[2] = GAIN * float(vals[0])   # Motor RR
+                    self.cmd_motor_speeds[3] = GAIN * float(vals[2])   # Motor RL
+                    
+                    self.cmd_motor_speeds[0] *= 1.000   
+                    self.cmd_motor_speeds[1] *= 1.000     
+                    self.cmd_motor_speeds[2] *= 1.001    
+                    self.cmd_motor_speeds[3] *= 1.001
+                except (ValueError, IndexError) as e:
+                    print(f"Error parsing motor speeds: {e}, line: {line}")   
     
     
     def tx(self, conn:socket.socket):

@@ -27,11 +27,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <pthread.h>
 #include <errno.h>
 #include <math.h>
@@ -156,6 +158,12 @@ int init_fgear_socket(char* ip, int port) {
         return 1;
     }
 
+    // Disable Nagle's algorithm for low-latency sending
+    int tcp_opt = 1;
+    if (setsockopt(connFd, IPPROTO_TCP, TCP_NODELAY, &tcp_opt, sizeof(tcp_opt)) < 0) {
+        perror("setsockopt TCP_NODELAY");
+    }
+
     char clientIP[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &clientAddr.sin_addr, clientIP, sizeof(clientIP));
     printf("Connection established with %s:%d\n", clientIP, ntohs(clientAddr.sin_port));
@@ -204,6 +212,12 @@ int init_fgear_client(const char* server_ip, int server_port) {
         perror("connect");
         close(sockfd);
         return -1;
+    }
+
+    // Disable Nagle's algorithm for low-latency sending
+    int tcp_opt = 1;
+    if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &tcp_opt, sizeof(tcp_opt)) < 0) {
+        perror("setsockopt TCP_NODELAY");
     }
 
     printf("Connected to server %s:%d\n", server_ip, server_port);
