@@ -1,0 +1,2210 @@
+# dump
+
+# version
+# INAV/MATEKF405SE 8.0.1 Mar 28 2025 / 09:55:06 (ae47bcba) 
+# GCC-13.2.1 20231009
+
+# start the command batch
+batch start
+
+# resources
+
+# Timer overrides
+timer_output_mode 0 AUTO
+timer_output_mode 1 AUTO
+timer_output_mode 2 AUTO
+timer_output_mode 3 AUTO
+timer_output_mode 4 AUTO
+timer_output_mode 5 AUTO
+timer_output_mode 6 AUTO
+timer_output_mode 7 AUTO
+timer_output_mode 8 AUTO
+timer_output_mode 9 AUTO
+timer_output_mode 10 AUTO
+timer_output_mode 11 AUTO
+timer_output_mode 12 AUTO
+timer_output_mode 13 AUTO
+
+# Outputs [servo]
+servo 0 1000 2000 1500 100
+servo 1 1000 2000 1500 100
+servo 2 1000 2000 1500 100
+servo 3 1000 2000 1500 100
+servo 4 850 2075 1350 100
+servo 5 850 2120 1550 100
+servo 6 1000 2000 1500 100
+servo 7 1000 2000 1500 100
+servo 8 1000 2000 1500 100
+servo 9 1000 2000 1500 100
+servo 10 1000 2000 1500 100
+servo 11 1000 2000 1500 100
+servo 12 1000 2000 1500 100
+servo 13 1000 2000 1500 100
+servo 14 1000 2000 1500 100
+servo 15 1000 2000 1500 100
+servo 16 1000 2000 1500 100
+servo 17 1000 2000 1500 100
+
+# safehome
+safehome 0 0 0 0
+safehome 1 0 0 0
+safehome 2 0 0 0
+safehome 3 0 0 0
+safehome 4 0 0 0
+safehome 5 0 0 0
+safehome 6 0 0 0
+safehome 7 0 0 0
+
+# Fixed Wing Approach
+fwapproach 0 0 0 0 0 0 0
+fwapproach 1 0 0 0 0 0 0
+fwapproach 2 0 0 0 0 0 0
+fwapproach 3 0 0 0 0 0 0
+fwapproach 4 0 0 0 0 0 0
+fwapproach 5 0 0 0 0 0 0
+fwapproach 6 0 0 0 0 0 0
+fwapproach 7 0 0 0 0 0 0
+fwapproach 8 0 0 0 0 0 0
+fwapproach 9 0 0 0 0 0 0
+fwapproach 10 0 0 0 0 0 0
+fwapproach 11 0 0 0 0 0 0
+fwapproach 12 0 0 0 0 0 0
+fwapproach 13 0 0 0 0 0 0
+fwapproach 14 0 0 0 0 0 0
+fwapproach 15 0 0 0 0 0 0
+fwapproach 16 0 0 0 0 0 0
+
+# geozone
+geozone 0 0 0 0 0 0 0 0
+geozone 1 0 0 0 0 0 0 0
+geozone 2 0 0 0 0 0 0 0
+geozone 3 0 0 0 0 0 0 0
+geozone 4 0 0 0 0 0 0 0
+geozone 5 0 0 0 0 0 0 0
+geozone 6 0 0 0 0 0 0 0
+geozone 7 0 0 0 0 0 0 0
+geozone 8 0 0 0 0 0 0 0
+geozone 9 0 0 0 0 0 0 0
+geozone 10 0 0 0 0 0 0 0
+geozone 11 0 0 0 0 0 0 0
+geozone 12 0 0 0 0 0 0 0
+geozone 13 0 0 0 0 0 0 0
+geozone 14 0 0 0 0 0 0 0
+geozone 15 0 0 0 0 0 0 0
+geozone 16 0 0 0 0 0 0 0
+geozone 17 0 0 0 0 0 0 0
+geozone 18 0 0 0 0 0 0 0
+geozone 19 0 0 0 0 0 0 0
+geozone 20 0 0 0 0 0 0 0
+geozone 21 0 0 0 0 0 0 0
+geozone 22 0 0 0 0 0 0 0
+geozone 23 0 0 0 0 0 0 0
+geozone 24 0 0 0 0 0 0 0
+geozone 25 0 0 0 0 0 0 0
+geozone 26 0 0 0 0 0 0 0
+geozone 27 0 0 0 0 0 0 0
+geozone 28 0 0 0 0 0 0 0
+geozone 29 0 0 0 0 0 0 0
+geozone 30 0 0 0 0 0 0 0
+geozone 31 0 0 0 0 0 0 0
+geozone 32 0 0 0 0 0 0 0
+geozone 33 0 0 0 0 0 0 0
+geozone 34 0 0 0 0 0 0 0
+geozone 35 0 0 0 0 0 0 0
+geozone 36 0 0 0 0 0 0 0
+geozone 37 0 0 0 0 0 0 0
+geozone 38 0 0 0 0 0 0 0
+geozone 39 0 0 0 0 0 0 0
+geozone 40 0 0 0 0 0 0 0
+geozone 41 0 0 0 0 0 0 0
+geozone 42 0 0 0 0 0 0 0
+geozone 43 0 0 0 0 0 0 0
+geozone 44 0 0 0 0 0 0 0
+geozone 45 0 0 0 0 0 0 0
+geozone 46 0 0 0 0 0 0 0
+geozone 47 0 0 0 0 0 0 0
+geozone 48 0 0 0 0 0 0 0
+geozone 49 0 0 0 0 0 0 0
+geozone 50 0 0 0 0 0 0 0
+geozone 51 0 0 0 0 0 0 0
+geozone 52 0 0 0 0 0 0 0
+geozone 53 0 0 0 0 0 0 0
+geozone 54 0 0 0 0 0 0 0
+geozone 55 0 0 0 0 0 0 0
+geozone 56 0 0 0 0 0 0 0
+geozone 57 0 0 0 0 0 0 0
+geozone 58 0 0 0 0 0 0 0
+geozone 59 0 0 0 0 0 0 0
+geozone 60 0 0 0 0 0 0 0
+geozone 61 0 0 0 0 0 0 0
+geozone 62 0 0 0 0 0 0 0
+
+# geozone vertices
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+geozone vertex -1 0 0 0
+
+# features
+feature -THR_VBAT_COMP
+feature -VBAT
+feature -TX_PROF_SEL
+feature -BAT_PROF_AUTOSWITCH
+feature -GEOZONE
+feature -SOFTSERIAL
+feature -GPS
+feature -RPM_FILTERS
+feature -TELEMETRY
+feature -CURRENT_METER
+feature -REVERSIBLE_MOTORS
+feature -RSSI_ADC
+feature -LED_STRIP
+feature -DASHBOARD
+feature -BLACKBOX
+feature -TRANSPONDER
+feature -AIRMODE
+feature -SUPEREXPO
+feature -VTX
+feature -PWM_OUTPUT_ENABLE
+feature -OSD
+feature -FW_LAUNCH
+feature -FW_AUTOTRIM
+feature VBAT
+feature TX_PROF_SEL
+feature SOFTSERIAL
+feature GPS
+feature TELEMETRY
+feature CURRENT_METER
+feature BLACKBOX
+feature AIRMODE
+feature PWM_OUTPUT_ENABLE
+feature OSD
+
+# beeper
+beeper RUNTIME_CALIBRATION
+beeper HW_FAILURE
+beeper RX_LOST
+beeper RX_LOST_LANDING
+beeper DISARMING
+beeper ARMING
+beeper ARMING_GPS_FIX
+beeper BAT_CRIT_LOW
+beeper BAT_LOW
+beeper GPS_STATUS
+beeper RX_SET
+beeper ACTION_SUCCESS
+beeper ACTION_FAIL
+beeper READY_BEEP
+beeper MULTI_BEEPS
+beeper DISARM_REPEAT
+beeper ARMED
+beeper SYSTEM_INIT
+beeper ON_USB
+beeper LAUNCH_MODE
+beeper LAUNCH_MODE_LOW_THROTTLE
+beeper LAUNCH_MODE_IDLE_START
+beeper CAM_CONNECTION_OPEN
+beeper CAM_CONNECTION_CLOSED
+
+# blackbox
+blackbox NAV_ACC
+blackbox NAV_POS
+blackbox NAV_PID
+blackbox MAG
+blackbox ACC
+blackbox ATTI
+blackbox RC_DATA
+blackbox RC_COMMAND
+blackbox MOTORS
+blackbox -GYRO_RAW
+blackbox -PEAKS_R
+blackbox -PEAKS_P
+blackbox -PEAKS_Y
+blackbox SERVOS
+
+# Receiver: Channel map
+map AETR
+
+# Ports
+serial 20 1 115200 115200 0 115200
+serial 0 1 115200 115200 0 115200
+serial 1 64 115200 115200 0 115200
+serial 2 0 115200 115200 0 115200
+serial 3 0 230400 115200 0 115200
+serial 4 0 115200 115200 0 115200
+serial 5 1 230400 115200 0 115200
+serial 30 0 115200 115200 0 115200
+
+# LEDs
+led 0 0,0::C:0
+led 1 0,0::C:0
+led 2 0,0::C:0
+led 3 0,0::C:0
+led 4 0,0::C:0
+led 5 0,0::C:0
+led 6 0,0::C:0
+led 7 0,0::C:0
+led 8 0,0::C:0
+led 9 0,0::C:0
+led 10 0,0::C:0
+led 11 0,0::C:0
+led 12 0,0::C:0
+led 13 0,0::C:0
+led 14 0,0::C:0
+led 15 0,0::C:0
+led 16 0,0::C:0
+led 17 0,0::C:0
+led 18 0,0::C:0
+led 19 0,0::C:0
+led 20 0,0::C:0
+led 21 0,0::C:0
+led 22 0,0::C:0
+led 23 0,0::C:0
+led 24 0,0::C:0
+led 25 0,0::C:0
+led 26 0,0::C:0
+led 27 0,0::C:0
+led 28 0,0::C:0
+led 29 0,0::C:0
+led 30 0,0::C:0
+led 31 0,0::C:0
+led 32 0,0::C:0
+led 33 0,0::C:0
+led 34 0,0::C:0
+led 35 0,0::C:0
+led 36 0,0::C:0
+led 37 0,0::C:0
+led 38 0,0::C:0
+led 39 0,0::C:0
+led 40 0,0::C:0
+led 41 0,0::C:0
+led 42 0,0::C:0
+led 43 0,0::C:0
+led 44 0,0::C:0
+led 45 0,0::C:0
+led 46 0,0::C:0
+led 47 0,0::C:0
+led 48 0,0::C:0
+led 49 0,0::C:0
+led 50 0,0::C:0
+led 51 0,0::C:0
+led 52 0,0::C:0
+led 53 0,0::C:0
+led 54 0,0::C:0
+led 55 0,0::C:0
+led 56 0,0::C:0
+led 57 0,0::C:0
+led 58 0,0::C:0
+led 59 0,0::C:0
+led 60 0,0::C:0
+led 61 0,0::C:0
+led 62 0,0::C:0
+led 63 0,0::C:0
+led 64 0,0::C:0
+led 65 0,0::C:0
+led 66 0,0::C:0
+led 67 0,0::C:0
+led 68 0,0::C:0
+led 69 0,0::C:0
+led 70 0,0::C:0
+led 71 0,0::C:0
+led 72 0,0::C:0
+led 73 0,0::C:0
+led 74 0,0::C:0
+led 75 0,0::C:0
+led 76 0,0::C:0
+led 77 0,0::C:0
+led 78 0,0::C:0
+led 79 0,0::C:0
+led 80 0,0::C:0
+led 81 0,0::C:0
+led 82 0,0::C:0
+led 83 0,0::C:0
+led 84 0,0::C:0
+led 85 0,0::C:0
+led 86 0,0::C:0
+led 87 0,0::C:0
+led 88 0,0::C:0
+led 89 0,0::C:0
+led 90 0,0::C:0
+led 91 0,0::C:0
+led 92 0,0::C:0
+led 93 0,0::C:0
+led 94 0,0::C:0
+led 95 0,0::C:0
+led 96 0,0::C:0
+led 97 0,0::C:0
+led 98 0,0::C:0
+led 99 0,0::C:0
+led 100 0,0::C:0
+led 101 0,0::C:0
+led 102 0,0::C:0
+led 103 0,0::C:0
+led 104 0,0::C:0
+led 105 0,0::C:0
+led 106 0,0::C:0
+led 107 0,0::C:0
+led 108 0,0::C:0
+led 109 0,0::C:0
+led 110 0,0::C:0
+led 111 0,0::C:0
+led 112 0,0::C:0
+led 113 0,0::C:0
+led 114 0,0::C:0
+led 115 0,0::C:0
+led 116 0,0::C:0
+led 117 0,0::C:0
+led 118 0,0::C:0
+led 119 0,0::C:0
+led 120 0,0::C:0
+led 121 0,0::C:0
+led 122 0,0::C:0
+led 123 0,0::C:0
+led 124 0,0::C:0
+led 125 0,0::C:0
+led 126 0,0::C:0
+led 127 0,0::C:0
+
+# LED color
+color 0 0,0,0
+color 1 0,255,255
+color 2 0,0,255
+color 3 30,0,255
+color 4 60,0,255
+color 5 90,0,255
+color 6 120,0,255
+color 7 150,0,255
+color 8 180,0,255
+color 9 210,0,255
+color 10 240,0,255
+color 11 270,0,255
+color 12 300,0,255
+color 13 330,0,255
+color 14 0,0,0
+color 15 0,0,0
+
+# LED mode_color
+mode_color 0 0 1
+mode_color 0 1 11
+mode_color 0 2 2
+mode_color 0 3 13
+mode_color 0 4 10
+mode_color 0 5 3
+mode_color 1 0 5
+mode_color 1 1 11
+mode_color 1 2 3
+mode_color 1 3 13
+mode_color 1 4 10
+mode_color 1 5 3
+mode_color 2 0 10
+mode_color 2 1 11
+mode_color 2 2 4
+mode_color 2 3 13
+mode_color 2 4 10
+mode_color 2 5 3
+mode_color 3 0 8
+mode_color 3 1 11
+mode_color 3 2 4
+mode_color 3 3 13
+mode_color 3 4 10
+mode_color 3 5 3
+mode_color 4 0 7
+mode_color 4 1 11
+mode_color 4 2 3
+mode_color 4 3 13
+mode_color 4 4 10
+mode_color 4 5 3
+mode_color 5 0 9
+mode_color 5 1 11
+mode_color 5 2 2
+mode_color 5 3 13
+mode_color 5 4 10
+mode_color 5 5 3
+mode_color 6 0 6
+mode_color 6 1 10
+mode_color 6 2 1
+mode_color 6 3 0
+mode_color 6 4 0
+mode_color 6 5 2
+mode_color 6 6 3
+mode_color 6 7 6
+mode_color 6 8 1
+
+# Modes [aux]
+aux 0 0 0 1875 2100
+aux 1 1 1 1300 1700
+aux 2 2 1 1775 2100
+aux 3 11 3 1700 2100
+aux 4 3 3 1700 2100
+aux 5 5 2 1500 1800
+aux 6 35 2 1800 2100
+aux 7 0 0 900 900
+aux 8 0 0 900 900
+aux 9 0 0 900 900
+aux 10 0 0 900 900
+aux 11 0 0 900 900
+aux 12 0 0 900 900
+aux 13 0 0 900 900
+aux 14 0 0 900 900
+aux 15 0 0 900 900
+aux 16 0 0 900 900
+aux 17 0 0 900 900
+aux 18 0 0 900 900
+aux 19 0 0 900 900
+aux 20 0 0 900 900
+aux 21 0 0 900 900
+aux 22 0 0 900 900
+aux 23 0 0 900 900
+aux 24 0 0 900 900
+aux 25 0 0 900 900
+aux 26 0 0 900 900
+aux 27 0 0 900 900
+aux 28 0 0 900 900
+aux 29 0 0 900 900
+aux 30 0 0 900 900
+aux 31 0 0 900 900
+aux 32 0 0 900 900
+aux 33 0 0 900 900
+aux 34 0 0 900 900
+aux 35 0 0 900 900
+aux 36 0 0 900 900
+aux 37 0 0 900 900
+aux 38 0 0 900 900
+aux 39 0 0 900 900
+
+# Adjustments [adjrange]
+adjrange 0 0 0 900 900 0 0
+adjrange 1 0 0 900 900 0 0
+adjrange 2 0 0 900 900 0 0
+adjrange 3 0 0 900 900 0 0
+adjrange 4 0 0 900 900 0 0
+adjrange 5 0 0 900 900 0 0
+adjrange 6 0 0 900 900 0 0
+adjrange 7 0 0 900 900 0 0
+adjrange 8 0 0 900 900 0 0
+adjrange 9 0 0 900 900 0 0
+adjrange 10 0 0 900 900 0 0
+adjrange 11 0 0 900 900 0 0
+adjrange 12 0 0 900 900 0 0
+adjrange 13 0 0 900 900 0 0
+adjrange 14 0 0 900 900 0 0
+adjrange 15 0 0 900 900 0 0
+adjrange 16 0 0 900 900 0 0
+adjrange 17 0 0 900 900 0 0
+adjrange 18 0 0 900 900 0 0
+adjrange 19 0 0 900 900 0 0
+
+# Receiver rxrange
+rxrange 0 1000 2000
+rxrange 1 1000 2000
+rxrange 2 1000 2000
+rxrange 3 1000 2000
+
+# temp_sensor
+temp_sensor 0 0 0 0 0 0 
+temp_sensor 1 0 0 0 0 0 
+temp_sensor 2 0 0 0 0 0 
+temp_sensor 3 0 0 0 0 0 
+temp_sensor 4 0 0 0 0 0 
+temp_sensor 5 0 0 0 0 0 
+temp_sensor 6 0 0 0 0 0 
+temp_sensor 7 0 0 0 0 0 
+
+# Mission Control Waypoints [wp]
+#wp 0 invalid
+wp 0 0 0 0 0 0 0 0 0
+wp 1 0 0 0 0 0 0 0 0
+wp 2 0 0 0 0 0 0 0 0
+wp 3 0 0 0 0 0 0 0 0
+wp 4 0 0 0 0 0 0 0 0
+wp 5 0 0 0 0 0 0 0 0
+wp 6 0 0 0 0 0 0 0 0
+wp 7 0 0 0 0 0 0 0 0
+wp 8 0 0 0 0 0 0 0 0
+wp 9 0 0 0 0 0 0 0 0
+wp 10 0 0 0 0 0 0 0 0
+wp 11 0 0 0 0 0 0 0 0
+wp 12 0 0 0 0 0 0 0 0
+wp 13 0 0 0 0 0 0 0 0
+wp 14 0 0 0 0 0 0 0 0
+wp 15 0 0 0 0 0 0 0 0
+wp 16 0 0 0 0 0 0 0 0
+wp 17 0 0 0 0 0 0 0 0
+wp 18 0 0 0 0 0 0 0 0
+wp 19 0 0 0 0 0 0 0 0
+wp 20 0 0 0 0 0 0 0 0
+wp 21 0 0 0 0 0 0 0 0
+wp 22 0 0 0 0 0 0 0 0
+wp 23 0 0 0 0 0 0 0 0
+wp 24 0 0 0 0 0 0 0 0
+wp 25 0 0 0 0 0 0 0 0
+wp 26 0 0 0 0 0 0 0 0
+wp 27 0 0 0 0 0 0 0 0
+wp 28 0 0 0 0 0 0 0 0
+wp 29 0 0 0 0 0 0 0 0
+wp 30 0 0 0 0 0 0 0 0
+wp 31 0 0 0 0 0 0 0 0
+wp 32 0 0 0 0 0 0 0 0
+wp 33 0 0 0 0 0 0 0 0
+wp 34 0 0 0 0 0 0 0 0
+wp 35 0 0 0 0 0 0 0 0
+wp 36 0 0 0 0 0 0 0 0
+wp 37 0 0 0 0 0 0 0 0
+wp 38 0 0 0 0 0 0 0 0
+wp 39 0 0 0 0 0 0 0 0
+wp 40 0 0 0 0 0 0 0 0
+wp 41 0 0 0 0 0 0 0 0
+wp 42 0 0 0 0 0 0 0 0
+wp 43 0 0 0 0 0 0 0 0
+wp 44 0 0 0 0 0 0 0 0
+wp 45 0 0 0 0 0 0 0 0
+wp 46 0 0 0 0 0 0 0 0
+wp 47 0 0 0 0 0 0 0 0
+wp 48 0 0 0 0 0 0 0 0
+wp 49 0 0 0 0 0 0 0 0
+wp 50 0 0 0 0 0 0 0 0
+wp 51 0 0 0 0 0 0 0 0
+wp 52 0 0 0 0 0 0 0 0
+wp 53 0 0 0 0 0 0 0 0
+wp 54 0 0 0 0 0 0 0 0
+wp 55 0 0 0 0 0 0 0 0
+wp 56 0 0 0 0 0 0 0 0
+wp 57 0 0 0 0 0 0 0 0
+wp 58 0 0 0 0 0 0 0 0
+wp 59 0 0 0 0 0 0 0 0
+wp 60 0 0 0 0 0 0 0 0
+wp 61 0 0 0 0 0 0 0 0
+wp 62 0 0 0 0 0 0 0 0
+wp 63 0 0 0 0 0 0 0 0
+wp 64 0 0 0 0 0 0 0 0
+wp 65 0 0 0 0 0 0 0 0
+wp 66 0 0 0 0 0 0 0 0
+wp 67 0 0 0 0 0 0 0 0
+wp 68 0 0 0 0 0 0 0 0
+wp 69 0 0 0 0 0 0 0 0
+wp 70 0 0 0 0 0 0 0 0
+wp 71 0 0 0 0 0 0 0 0
+wp 72 0 0 0 0 0 0 0 0
+wp 73 0 0 0 0 0 0 0 0
+wp 74 0 0 0 0 0 0 0 0
+wp 75 0 0 0 0 0 0 0 0
+wp 76 0 0 0 0 0 0 0 0
+wp 77 0 0 0 0 0 0 0 0
+wp 78 0 0 0 0 0 0 0 0
+wp 79 0 0 0 0 0 0 0 0
+wp 80 0 0 0 0 0 0 0 0
+wp 81 0 0 0 0 0 0 0 0
+wp 82 0 0 0 0 0 0 0 0
+wp 83 0 0 0 0 0 0 0 0
+wp 84 0 0 0 0 0 0 0 0
+wp 85 0 0 0 0 0 0 0 0
+wp 86 0 0 0 0 0 0 0 0
+wp 87 0 0 0 0 0 0 0 0
+wp 88 0 0 0 0 0 0 0 0
+wp 89 0 0 0 0 0 0 0 0
+wp 90 0 0 0 0 0 0 0 0
+wp 91 0 0 0 0 0 0 0 0
+wp 92 0 0 0 0 0 0 0 0
+wp 93 0 0 0 0 0 0 0 0
+wp 94 0 0 0 0 0 0 0 0
+wp 95 0 0 0 0 0 0 0 0
+wp 96 0 0 0 0 0 0 0 0
+wp 97 0 0 0 0 0 0 0 0
+wp 98 0 0 0 0 0 0 0 0
+wp 99 0 0 0 0 0 0 0 0
+wp 100 0 0 0 0 0 0 0 0
+wp 101 0 0 0 0 0 0 0 0
+wp 102 0 0 0 0 0 0 0 0
+wp 103 0 0 0 0 0 0 0 0
+wp 104 0 0 0 0 0 0 0 0
+wp 105 0 0 0 0 0 0 0 0
+wp 106 0 0 0 0 0 0 0 0
+wp 107 0 0 0 0 0 0 0 0
+wp 108 0 0 0 0 0 0 0 0
+wp 109 0 0 0 0 0 0 0 0
+wp 110 0 0 0 0 0 0 0 0
+wp 111 0 0 0 0 0 0 0 0
+wp 112 0 0 0 0 0 0 0 0
+wp 113 0 0 0 0 0 0 0 0
+wp 114 0 0 0 0 0 0 0 0
+wp 115 0 0 0 0 0 0 0 0
+wp 116 0 0 0 0 0 0 0 0
+wp 117 0 0 0 0 0 0 0 0
+wp 118 0 0 0 0 0 0 0 0
+wp 119 0 0 0 0 0 0 0 0
+
+# OSD [osd_layout]
+osd_layout 0 0 23 0 V
+osd_layout 0 1 12 0 V
+osd_layout 0 2 0 0 H
+osd_layout 0 3 8 6 H
+osd_layout 0 4 8 6 H
+osd_layout 0 5 23 8 H
+osd_layout 0 6 23 9 H
+osd_layout 0 7 13 12 V
+osd_layout 0 8 20 2 H
+osd_layout 0 9 1 2 V
+osd_layout 0 10 8 6 H
+osd_layout 0 11 2 3 V
+osd_layout 0 12 1 4 V
+osd_layout 0 13 23 1 H
+osd_layout 0 14 0 11 V
+osd_layout 0 15 1 0 V
+osd_layout 0 16 2 10 H
+osd_layout 0 17 2 11 H
+osd_layout 0 18 2 12 H
+osd_layout 0 19 15 1 H
+osd_layout 0 20 18 12 H
+osd_layout 0 21 0 12 H
+osd_layout 0 22 14 11 H
+osd_layout 0 23 1 1 H
+osd_layout 0 24 12 2 H
+osd_layout 0 25 23 5 H
+osd_layout 0 26 24 7 H
+osd_layout 0 27 3 5 H
+osd_layout 0 28 23 11 V
+osd_layout 0 29 23 12 H
+osd_layout 0 30 1 13 V
+osd_layout 0 31 0 10 H
+osd_layout 0 32 12 1 H
+osd_layout 0 33 6 2 H
+osd_layout 0 34 18 2 H
+osd_layout 0 35 1 5 H
+osd_layout 0 36 1 5 H
+osd_layout 0 37 1 6 H
+osd_layout 0 38 1 7 H
+osd_layout 0 39 1 5 H
+osd_layout 0 40 1 2 H
+osd_layout 0 41 1 8 H
+osd_layout 0 42 1 7 H
+osd_layout 0 43 0 0 H
+osd_layout 0 44 0 0 H
+osd_layout 0 45 0 0 H
+osd_layout 0 46 3 6 H
+osd_layout 0 47 3 7 H
+osd_layout 0 48 23 7 H
+osd_layout 0 49 23 6 H
+osd_layout 0 50 0 0 H
+osd_layout 0 51 12 2 H
+osd_layout 0 52 12 2 H
+osd_layout 0 53 12 1 H
+osd_layout 0 54 12 1 H
+osd_layout 0 55 1 8 H
+osd_layout 0 56 2 12 H
+osd_layout 0 57 2 12 H
+osd_layout 0 58 2 12 H
+osd_layout 0 59 2 12 H
+osd_layout 0 60 2 12 H
+osd_layout 0 61 2 12 H
+osd_layout 0 62 2 10 H
+osd_layout 0 63 2 11 H
+osd_layout 0 64 2 12 H
+osd_layout 0 65 2 12 H
+osd_layout 0 66 2 12 H
+osd_layout 0 67 2 12 H
+osd_layout 0 68 2 12 H
+osd_layout 0 69 2 12 H
+osd_layout 0 70 2 12 H
+osd_layout 0 71 2 12 H
+osd_layout 0 72 2 12 H
+osd_layout 0 73 2 12 H
+osd_layout 0 74 2 12 H
+osd_layout 0 75 2 12 H
+osd_layout 0 76 2 12 H
+osd_layout 0 77 2 12 H
+osd_layout 0 78 0 0 H
+osd_layout 0 79 2 12 H
+osd_layout 0 80 2 12 H
+osd_layout 0 81 2 12 H
+osd_layout 0 82 2 12 H
+osd_layout 0 83 2 12 H
+osd_layout 0 84 2 12 H
+osd_layout 0 85 23 1 H
+osd_layout 0 86 19 2 H
+osd_layout 0 87 19 3 H
+osd_layout 0 88 19 4 H
+osd_layout 0 89 19 5 H
+osd_layout 0 90 19 6 H
+osd_layout 0 91 19 7 H
+osd_layout 0 92 19 8 H
+osd_layout 0 93 19 9 H
+osd_layout 0 94 19 10 H
+osd_layout 0 95 19 11 H
+osd_layout 0 96 0 0 H
+osd_layout 0 97 0 12 H
+osd_layout 0 98 0 0 H
+osd_layout 0 99 0 0 H
+osd_layout 0 100 12 4 H
+osd_layout 0 101 12 5 H
+osd_layout 0 102 12 6 H
+osd_layout 0 103 12 7 H
+osd_layout 0 104 0 0 H
+osd_layout 0 105 3 5 H
+osd_layout 0 106 1 2 H
+osd_layout 0 107 1 3 H
+osd_layout 0 108 2 12 H
+osd_layout 0 109 23 12 H
+osd_layout 0 110 23 10 H
+osd_layout 0 111 24 9 H
+osd_layout 0 112 24 10 H
+osd_layout 0 113 1 1 H
+osd_layout 0 114 1 2 H
+osd_layout 0 115 1 3 H
+osd_layout 0 116 1 4 H
+osd_layout 0 117 0 0 H
+osd_layout 0 118 0 0 H
+osd_layout 0 119 0 0 H
+osd_layout 0 120 0 0 H
+osd_layout 0 121 3 4 H
+osd_layout 0 122 3 5 H
+osd_layout 0 123 3 6 H
+osd_layout 0 124 23 2 H
+osd_layout 0 125 0 0 H
+osd_layout 0 126 0 0 H
+osd_layout 0 127 0 0 H
+osd_layout 0 128 0 0 H
+osd_layout 0 129 0 10 H
+osd_layout 0 130 2 7 H
+osd_layout 0 131 2 8 H
+osd_layout 0 132 2 9 H
+osd_layout 0 133 2 10 H
+osd_layout 0 134 0 0 H
+osd_layout 0 135 0 0 H
+osd_layout 0 136 0 0 H
+osd_layout 0 137 0 0 H
+osd_layout 0 138 0 0 H
+osd_layout 0 139 0 0 H
+osd_layout 0 140 12 3 H
+osd_layout 0 141 12 3 H
+osd_layout 0 142 20 3 H
+osd_layout 0 143 0 0 H
+osd_layout 0 144 1 4 H
+osd_layout 0 145 1 3 H
+osd_layout 0 146 20 3 H
+osd_layout 0 147 0 0 H
+osd_layout 0 148 0 0 H
+osd_layout 0 149 0 0 H
+osd_layout 0 150 2 7 H
+osd_layout 0 151 2 8 H
+osd_layout 0 152 2 10 H
+osd_layout 0 153 0 0 H
+osd_layout 0 154 0 0 H
+osd_layout 0 155 0 0 H
+osd_layout 0 156 0 0 H
+osd_layout 0 157 0 0 H
+osd_layout 0 158 0 0 H
+osd_layout 0 159 23 11 H
+osd_layout 0 160 24 11 H
+osd_layout 0 161 24 12 H
+osd_layout 0 162 24 13 H
+osd_layout 0 163 0 0 H
+osd_layout 0 164 0 0 H
+osd_layout 0 165 0 0 H
+osd_layout 0 166 0 0 H
+osd_layout 1 0 23 0 H
+osd_layout 1 1 12 0 H
+osd_layout 1 2 0 0 H
+osd_layout 1 3 8 6 H
+osd_layout 1 4 8 6 H
+osd_layout 1 5 23 8 H
+osd_layout 1 6 23 9 H
+osd_layout 1 7 13 12 H
+osd_layout 1 8 20 2 H
+osd_layout 1 9 1 2 H
+osd_layout 1 10 8 6 H
+osd_layout 1 11 2 3 H
+osd_layout 1 12 1 4 H
+osd_layout 1 13 23 1 H
+osd_layout 1 14 0 11 H
+osd_layout 1 15 1 0 H
+osd_layout 1 16 2 10 H
+osd_layout 1 17 2 11 H
+osd_layout 1 18 2 12 H
+osd_layout 1 19 15 1 H
+osd_layout 1 20 18 12 H
+osd_layout 1 21 0 12 H
+osd_layout 1 22 14 11 H
+osd_layout 1 23 1 1 H
+osd_layout 1 24 12 2 H
+osd_layout 1 25 23 5 H
+osd_layout 1 26 24 7 H
+osd_layout 1 27 3 5 H
+osd_layout 1 28 23 11 H
+osd_layout 1 29 23 12 H
+osd_layout 1 30 1 13 H
+osd_layout 1 31 0 10 H
+osd_layout 1 32 12 1 H
+osd_layout 1 33 6 2 H
+osd_layout 1 34 18 2 H
+osd_layout 1 35 1 5 H
+osd_layout 1 36 1 5 H
+osd_layout 1 37 1 6 H
+osd_layout 1 38 1 7 H
+osd_layout 1 39 1 5 H
+osd_layout 1 40 1 2 H
+osd_layout 1 41 1 8 H
+osd_layout 1 42 1 7 H
+osd_layout 1 43 0 0 H
+osd_layout 1 44 0 0 H
+osd_layout 1 45 0 0 H
+osd_layout 1 46 3 6 H
+osd_layout 1 47 3 7 H
+osd_layout 1 48 23 7 H
+osd_layout 1 49 23 6 H
+osd_layout 1 50 0 0 H
+osd_layout 1 51 12 2 H
+osd_layout 1 52 12 2 H
+osd_layout 1 53 12 1 H
+osd_layout 1 54 12 1 H
+osd_layout 1 55 1 8 H
+osd_layout 1 56 2 12 H
+osd_layout 1 57 2 12 H
+osd_layout 1 58 2 12 H
+osd_layout 1 59 2 12 H
+osd_layout 1 60 2 12 H
+osd_layout 1 61 2 12 H
+osd_layout 1 62 2 10 H
+osd_layout 1 63 2 11 H
+osd_layout 1 64 2 12 H
+osd_layout 1 65 2 12 H
+osd_layout 1 66 2 12 H
+osd_layout 1 67 2 12 H
+osd_layout 1 68 2 12 H
+osd_layout 1 69 2 12 H
+osd_layout 1 70 2 12 H
+osd_layout 1 71 2 12 H
+osd_layout 1 72 2 12 H
+osd_layout 1 73 2 12 H
+osd_layout 1 74 2 12 H
+osd_layout 1 75 2 12 H
+osd_layout 1 76 2 12 H
+osd_layout 1 77 2 12 H
+osd_layout 1 78 0 0 H
+osd_layout 1 79 2 12 H
+osd_layout 1 80 2 12 H
+osd_layout 1 81 2 12 H
+osd_layout 1 82 2 12 H
+osd_layout 1 83 2 12 H
+osd_layout 1 84 2 12 H
+osd_layout 1 85 23 1 H
+osd_layout 1 86 19 2 H
+osd_layout 1 87 19 3 H
+osd_layout 1 88 19 4 H
+osd_layout 1 89 19 5 H
+osd_layout 1 90 19 6 H
+osd_layout 1 91 19 7 H
+osd_layout 1 92 19 8 H
+osd_layout 1 93 19 9 H
+osd_layout 1 94 19 10 H
+osd_layout 1 95 19 11 H
+osd_layout 1 96 0 0 H
+osd_layout 1 97 0 12 H
+osd_layout 1 98 0 0 H
+osd_layout 1 99 0 0 H
+osd_layout 1 100 12 4 H
+osd_layout 1 101 12 5 H
+osd_layout 1 102 12 6 H
+osd_layout 1 103 12 7 H
+osd_layout 1 104 0 0 H
+osd_layout 1 105 3 5 H
+osd_layout 1 106 1 2 H
+osd_layout 1 107 1 3 H
+osd_layout 1 108 2 12 H
+osd_layout 1 109 23 12 H
+osd_layout 1 110 23 10 H
+osd_layout 1 111 24 9 H
+osd_layout 1 112 24 10 H
+osd_layout 1 113 1 1 H
+osd_layout 1 114 1 2 H
+osd_layout 1 115 1 3 H
+osd_layout 1 116 1 4 H
+osd_layout 1 117 0 0 H
+osd_layout 1 118 0 0 H
+osd_layout 1 119 0 0 H
+osd_layout 1 120 0 0 H
+osd_layout 1 121 3 4 H
+osd_layout 1 122 3 5 H
+osd_layout 1 123 3 6 H
+osd_layout 1 124 23 2 H
+osd_layout 1 125 0 0 H
+osd_layout 1 126 0 0 H
+osd_layout 1 127 0 0 H
+osd_layout 1 128 0 0 H
+osd_layout 1 129 0 10 H
+osd_layout 1 130 2 7 H
+osd_layout 1 131 2 8 H
+osd_layout 1 132 2 9 H
+osd_layout 1 133 2 10 H
+osd_layout 1 134 0 0 H
+osd_layout 1 135 0 0 H
+osd_layout 1 136 0 0 H
+osd_layout 1 137 0 0 H
+osd_layout 1 138 0 0 H
+osd_layout 1 139 0 0 H
+osd_layout 1 140 12 3 H
+osd_layout 1 141 12 3 H
+osd_layout 1 142 20 3 H
+osd_layout 1 143 0 0 H
+osd_layout 1 144 1 4 H
+osd_layout 1 145 1 3 H
+osd_layout 1 146 20 3 H
+osd_layout 1 147 0 0 H
+osd_layout 1 148 0 0 H
+osd_layout 1 149 0 0 H
+osd_layout 1 150 2 7 H
+osd_layout 1 151 2 8 H
+osd_layout 1 152 2 10 H
+osd_layout 1 153 0 0 H
+osd_layout 1 154 0 0 H
+osd_layout 1 155 0 0 H
+osd_layout 1 156 0 0 H
+osd_layout 1 157 0 0 H
+osd_layout 1 158 0 0 H
+osd_layout 1 159 23 11 H
+osd_layout 1 160 24 11 H
+osd_layout 1 161 24 12 H
+osd_layout 1 162 24 13 H
+osd_layout 1 163 0 0 H
+osd_layout 1 164 0 0 H
+osd_layout 1 165 0 0 H
+osd_layout 1 166 0 0 H
+osd_layout 2 0 23 0 H
+osd_layout 2 1 12 0 H
+osd_layout 2 2 0 0 H
+osd_layout 2 3 8 6 H
+osd_layout 2 4 8 6 H
+osd_layout 2 5 23 8 H
+osd_layout 2 6 23 9 H
+osd_layout 2 7 13 12 H
+osd_layout 2 8 20 2 H
+osd_layout 2 9 1 2 H
+osd_layout 2 10 8 6 H
+osd_layout 2 11 2 3 H
+osd_layout 2 12 1 4 H
+osd_layout 2 13 23 1 H
+osd_layout 2 14 0 11 H
+osd_layout 2 15 1 0 H
+osd_layout 2 16 2 10 H
+osd_layout 2 17 2 11 H
+osd_layout 2 18 2 12 H
+osd_layout 2 19 15 1 H
+osd_layout 2 20 18 12 H
+osd_layout 2 21 0 12 H
+osd_layout 2 22 14 11 H
+osd_layout 2 23 1 1 H
+osd_layout 2 24 12 2 H
+osd_layout 2 25 23 5 H
+osd_layout 2 26 24 7 H
+osd_layout 2 27 3 5 H
+osd_layout 2 28 23 11 H
+osd_layout 2 29 23 12 H
+osd_layout 2 30 1 13 H
+osd_layout 2 31 0 10 H
+osd_layout 2 32 12 1 H
+osd_layout 2 33 6 2 H
+osd_layout 2 34 18 2 H
+osd_layout 2 35 1 5 H
+osd_layout 2 36 1 5 H
+osd_layout 2 37 1 6 H
+osd_layout 2 38 1 7 H
+osd_layout 2 39 1 5 H
+osd_layout 2 40 1 2 H
+osd_layout 2 41 1 8 H
+osd_layout 2 42 1 7 H
+osd_layout 2 43 0 0 H
+osd_layout 2 44 0 0 H
+osd_layout 2 45 0 0 H
+osd_layout 2 46 3 6 H
+osd_layout 2 47 3 7 H
+osd_layout 2 48 23 7 H
+osd_layout 2 49 23 6 H
+osd_layout 2 50 0 0 H
+osd_layout 2 51 12 2 H
+osd_layout 2 52 12 2 H
+osd_layout 2 53 12 1 H
+osd_layout 2 54 12 1 H
+osd_layout 2 55 1 8 H
+osd_layout 2 56 2 12 H
+osd_layout 2 57 2 12 H
+osd_layout 2 58 2 12 H
+osd_layout 2 59 2 12 H
+osd_layout 2 60 2 12 H
+osd_layout 2 61 2 12 H
+osd_layout 2 62 2 10 H
+osd_layout 2 63 2 11 H
+osd_layout 2 64 2 12 H
+osd_layout 2 65 2 12 H
+osd_layout 2 66 2 12 H
+osd_layout 2 67 2 12 H
+osd_layout 2 68 2 12 H
+osd_layout 2 69 2 12 H
+osd_layout 2 70 2 12 H
+osd_layout 2 71 2 12 H
+osd_layout 2 72 2 12 H
+osd_layout 2 73 2 12 H
+osd_layout 2 74 2 12 H
+osd_layout 2 75 2 12 H
+osd_layout 2 76 2 12 H
+osd_layout 2 77 2 12 H
+osd_layout 2 78 0 0 H
+osd_layout 2 79 2 12 H
+osd_layout 2 80 2 12 H
+osd_layout 2 81 2 12 H
+osd_layout 2 82 2 12 H
+osd_layout 2 83 2 12 H
+osd_layout 2 84 2 12 H
+osd_layout 2 85 23 1 H
+osd_layout 2 86 19 2 H
+osd_layout 2 87 19 3 H
+osd_layout 2 88 19 4 H
+osd_layout 2 89 19 5 H
+osd_layout 2 90 19 6 H
+osd_layout 2 91 19 7 H
+osd_layout 2 92 19 8 H
+osd_layout 2 93 19 9 H
+osd_layout 2 94 19 10 H
+osd_layout 2 95 19 11 H
+osd_layout 2 96 0 0 H
+osd_layout 2 97 0 12 H
+osd_layout 2 98 0 0 H
+osd_layout 2 99 0 0 H
+osd_layout 2 100 12 4 H
+osd_layout 2 101 12 5 H
+osd_layout 2 102 12 6 H
+osd_layout 2 103 12 7 H
+osd_layout 2 104 0 0 H
+osd_layout 2 105 3 5 H
+osd_layout 2 106 1 2 H
+osd_layout 2 107 1 3 H
+osd_layout 2 108 2 12 H
+osd_layout 2 109 23 12 H
+osd_layout 2 110 23 10 H
+osd_layout 2 111 24 9 H
+osd_layout 2 112 24 10 H
+osd_layout 2 113 1 1 H
+osd_layout 2 114 1 2 H
+osd_layout 2 115 1 3 H
+osd_layout 2 116 1 4 H
+osd_layout 2 117 0 0 H
+osd_layout 2 118 0 0 H
+osd_layout 2 119 0 0 H
+osd_layout 2 120 0 0 H
+osd_layout 2 121 3 4 H
+osd_layout 2 122 3 5 H
+osd_layout 2 123 3 6 H
+osd_layout 2 124 23 2 H
+osd_layout 2 125 0 0 H
+osd_layout 2 126 0 0 H
+osd_layout 2 127 0 0 H
+osd_layout 2 128 0 0 H
+osd_layout 2 129 0 10 H
+osd_layout 2 130 2 7 H
+osd_layout 2 131 2 8 H
+osd_layout 2 132 2 9 H
+osd_layout 2 133 2 10 H
+osd_layout 2 134 0 0 H
+osd_layout 2 135 0 0 H
+osd_layout 2 136 0 0 H
+osd_layout 2 137 0 0 H
+osd_layout 2 138 0 0 H
+osd_layout 2 139 0 0 H
+osd_layout 2 140 12 3 H
+osd_layout 2 141 12 3 H
+osd_layout 2 142 20 3 H
+osd_layout 2 143 0 0 H
+osd_layout 2 144 1 4 H
+osd_layout 2 145 1 3 H
+osd_layout 2 146 20 3 H
+osd_layout 2 147 0 0 H
+osd_layout 2 148 0 0 H
+osd_layout 2 149 0 0 H
+osd_layout 2 150 2 7 H
+osd_layout 2 151 2 8 H
+osd_layout 2 152 2 10 H
+osd_layout 2 153 0 0 H
+osd_layout 2 154 0 0 H
+osd_layout 2 155 0 0 H
+osd_layout 2 156 0 0 H
+osd_layout 2 157 0 0 H
+osd_layout 2 158 0 0 H
+osd_layout 2 159 23 11 H
+osd_layout 2 160 24 11 H
+osd_layout 2 161 24 12 H
+osd_layout 2 162 24 13 H
+osd_layout 2 163 0 0 H
+osd_layout 2 164 0 0 H
+osd_layout 2 165 0 0 H
+osd_layout 2 166 0 0 H
+osd_layout 3 0 23 0 H
+osd_layout 3 1 12 0 H
+osd_layout 3 2 0 0 H
+osd_layout 3 3 8 6 H
+osd_layout 3 4 8 6 H
+osd_layout 3 5 23 8 H
+osd_layout 3 6 23 9 H
+osd_layout 3 7 13 12 H
+osd_layout 3 8 20 2 H
+osd_layout 3 9 1 2 H
+osd_layout 3 10 8 6 H
+osd_layout 3 11 2 3 H
+osd_layout 3 12 1 4 H
+osd_layout 3 13 23 1 H
+osd_layout 3 14 0 11 H
+osd_layout 3 15 1 0 H
+osd_layout 3 16 2 10 H
+osd_layout 3 17 2 11 H
+osd_layout 3 18 2 12 H
+osd_layout 3 19 15 1 H
+osd_layout 3 20 18 12 H
+osd_layout 3 21 0 12 H
+osd_layout 3 22 14 11 H
+osd_layout 3 23 1 1 H
+osd_layout 3 24 12 2 H
+osd_layout 3 25 23 5 H
+osd_layout 3 26 24 7 H
+osd_layout 3 27 3 5 H
+osd_layout 3 28 23 11 H
+osd_layout 3 29 23 12 H
+osd_layout 3 30 1 13 H
+osd_layout 3 31 0 10 H
+osd_layout 3 32 12 1 H
+osd_layout 3 33 6 2 H
+osd_layout 3 34 18 2 H
+osd_layout 3 35 1 5 H
+osd_layout 3 36 1 5 H
+osd_layout 3 37 1 6 H
+osd_layout 3 38 1 7 H
+osd_layout 3 39 1 5 H
+osd_layout 3 40 1 2 H
+osd_layout 3 41 1 8 H
+osd_layout 3 42 1 7 H
+osd_layout 3 43 0 0 H
+osd_layout 3 44 0 0 H
+osd_layout 3 45 0 0 H
+osd_layout 3 46 3 6 H
+osd_layout 3 47 3 7 H
+osd_layout 3 48 23 7 H
+osd_layout 3 49 23 6 H
+osd_layout 3 50 0 0 H
+osd_layout 3 51 12 2 H
+osd_layout 3 52 12 2 H
+osd_layout 3 53 12 1 H
+osd_layout 3 54 12 1 H
+osd_layout 3 55 1 8 H
+osd_layout 3 56 2 12 H
+osd_layout 3 57 2 12 H
+osd_layout 3 58 2 12 H
+osd_layout 3 59 2 12 H
+osd_layout 3 60 2 12 H
+osd_layout 3 61 2 12 H
+osd_layout 3 62 2 10 H
+osd_layout 3 63 2 11 H
+osd_layout 3 64 2 12 H
+osd_layout 3 65 2 12 H
+osd_layout 3 66 2 12 H
+osd_layout 3 67 2 12 H
+osd_layout 3 68 2 12 H
+osd_layout 3 69 2 12 H
+osd_layout 3 70 2 12 H
+osd_layout 3 71 2 12 H
+osd_layout 3 72 2 12 H
+osd_layout 3 73 2 12 H
+osd_layout 3 74 2 12 H
+osd_layout 3 75 2 12 H
+osd_layout 3 76 2 12 H
+osd_layout 3 77 2 12 H
+osd_layout 3 78 0 0 H
+osd_layout 3 79 2 12 H
+osd_layout 3 80 2 12 H
+osd_layout 3 81 2 12 H
+osd_layout 3 82 2 12 H
+osd_layout 3 83 2 12 H
+osd_layout 3 84 2 12 H
+osd_layout 3 85 23 1 H
+osd_layout 3 86 19 2 H
+osd_layout 3 87 19 3 H
+osd_layout 3 88 19 4 H
+osd_layout 3 89 19 5 H
+osd_layout 3 90 19 6 H
+osd_layout 3 91 19 7 H
+osd_layout 3 92 19 8 H
+osd_layout 3 93 19 9 H
+osd_layout 3 94 19 10 H
+osd_layout 3 95 19 11 H
+osd_layout 3 96 0 0 H
+osd_layout 3 97 0 12 H
+osd_layout 3 98 0 0 H
+osd_layout 3 99 0 0 H
+osd_layout 3 100 12 4 H
+osd_layout 3 101 12 5 H
+osd_layout 3 102 12 6 H
+osd_layout 3 103 12 7 H
+osd_layout 3 104 0 0 H
+osd_layout 3 105 3 5 H
+osd_layout 3 106 1 2 H
+osd_layout 3 107 1 3 H
+osd_layout 3 108 2 12 H
+osd_layout 3 109 23 12 H
+osd_layout 3 110 23 10 H
+osd_layout 3 111 24 9 H
+osd_layout 3 112 24 10 H
+osd_layout 3 113 1 1 H
+osd_layout 3 114 1 2 H
+osd_layout 3 115 1 3 H
+osd_layout 3 116 1 4 H
+osd_layout 3 117 0 0 H
+osd_layout 3 118 0 0 H
+osd_layout 3 119 0 0 H
+osd_layout 3 120 0 0 H
+osd_layout 3 121 3 4 H
+osd_layout 3 122 3 5 H
+osd_layout 3 123 3 6 H
+osd_layout 3 124 23 2 H
+osd_layout 3 125 0 0 H
+osd_layout 3 126 0 0 H
+osd_layout 3 127 0 0 H
+osd_layout 3 128 0 0 H
+osd_layout 3 129 0 10 H
+osd_layout 3 130 2 7 H
+osd_layout 3 131 2 8 H
+osd_layout 3 132 2 9 H
+osd_layout 3 133 2 10 H
+osd_layout 3 134 0 0 H
+osd_layout 3 135 0 0 H
+osd_layout 3 136 0 0 H
+osd_layout 3 137 0 0 H
+osd_layout 3 138 0 0 H
+osd_layout 3 139 0 0 H
+osd_layout 3 140 12 3 H
+osd_layout 3 141 12 3 H
+osd_layout 3 142 20 3 H
+osd_layout 3 143 0 0 H
+osd_layout 3 144 1 4 H
+osd_layout 3 145 1 3 H
+osd_layout 3 146 20 3 H
+osd_layout 3 147 0 0 H
+osd_layout 3 148 0 0 H
+osd_layout 3 149 0 0 H
+osd_layout 3 150 2 7 H
+osd_layout 3 151 2 8 H
+osd_layout 3 152 2 10 H
+osd_layout 3 153 0 0 H
+osd_layout 3 154 0 0 H
+osd_layout 3 155 0 0 H
+osd_layout 3 156 0 0 H
+osd_layout 3 157 0 0 H
+osd_layout 3 158 0 0 H
+osd_layout 3 159 23 11 H
+osd_layout 3 160 24 11 H
+osd_layout 3 161 24 12 H
+osd_layout 3 162 24 13 H
+osd_layout 3 163 0 0 H
+osd_layout 3 164 0 0 H
+osd_layout 3 165 0 0 H
+osd_layout 3 166 0 0 H
+
+# Programming: logic
+logic 0 1 -1 2 1 7 0 2000 0
+logic 1 1 0 38 0 1 5 0 0
+logic 2 0 -1 0 0 0 0 0 0
+logic 3 0 -1 0 0 0 0 0 0
+logic 4 0 -1 0 0 0 0 0 0
+logic 5 0 -1 0 0 0 0 0 0
+logic 6 0 -1 0 0 0 0 0 0
+logic 7 0 -1 0 0 0 0 0 0
+logic 8 0 -1 0 0 0 0 0 0
+logic 9 0 -1 0 0 0 0 0 0
+logic 10 0 -1 0 0 0 0 0 0
+logic 11 0 -1 0 0 0 0 0 0
+logic 12 0 -1 0 0 0 0 0 0
+logic 13 0 -1 0 0 0 0 0 0
+logic 14 0 -1 0 0 0 0 0 0
+logic 15 0 -1 0 0 0 0 0 0
+logic 16 0 -1 0 0 0 0 0 0
+logic 17 0 -1 0 0 0 0 0 0
+logic 18 0 -1 0 0 0 0 0 0
+logic 19 0 -1 0 0 0 0 0 0
+logic 20 0 -1 0 0 0 0 0 0
+logic 21 0 -1 0 0 0 0 0 0
+logic 22 0 -1 0 0 0 0 0 0
+logic 23 0 -1 0 0 0 0 0 0
+logic 24 0 -1 0 0 0 0 0 0
+logic 25 0 -1 0 0 0 0 0 0
+logic 26 0 -1 0 0 0 0 0 0
+logic 27 0 -1 0 0 0 0 0 0
+logic 28 0 -1 0 0 0 0 0 0
+logic 29 0 -1 0 0 0 0 0 0
+logic 30 0 -1 0 0 0 0 0 0
+logic 31 0 -1 0 0 0 0 0 0
+logic 32 0 -1 0 0 0 0 0 0
+logic 33 0 -1 0 0 0 0 0 0
+logic 34 0 -1 0 0 0 0 0 0
+logic 35 0 -1 0 0 0 0 0 0
+logic 36 0 -1 0 0 0 0 0 0
+logic 37 0 -1 0 0 0 0 0 0
+logic 38 0 -1 0 0 0 0 0 0
+logic 39 0 -1 0 0 0 0 0 0
+logic 40 0 -1 0 0 0 0 0 0
+logic 41 0 -1 0 0 0 0 0 0
+logic 42 0 -1 0 0 0 0 0 0
+logic 43 0 -1 0 0 0 0 0 0
+logic 44 0 -1 0 0 0 0 0 0
+logic 45 0 -1 0 0 0 0 0 0
+logic 46 0 -1 0 0 0 0 0 0
+logic 47 0 -1 0 0 0 0 0 0
+logic 48 0 -1 0 0 0 0 0 0
+logic 49 0 -1 0 0 0 0 0 0
+logic 50 0 -1 0 0 0 0 0 0
+logic 51 0 -1 0 0 0 0 0 0
+logic 52 0 -1 0 0 0 0 0 0
+logic 53 0 -1 0 0 0 0 0 0
+logic 54 0 -1 0 0 0 0 0 0
+logic 55 0 -1 0 0 0 0 0 0
+logic 56 0 -1 0 0 0 0 0 0
+logic 57 0 -1 0 0 0 0 0 0
+logic 58 0 -1 0 0 0 0 0 0
+logic 59 0 -1 0 0 0 0 0 0
+logic 60 0 -1 0 0 0 0 0 0
+logic 61 0 -1 0 0 0 0 0 0
+logic 62 0 -1 0 0 0 0 0 0
+logic 63 0 -1 0 0 0 0 0 0
+
+# Programming: global variables
+gvar 0 0 -32768 32767
+gvar 1 0 -32768 32767
+gvar 2 0 -32768 32767
+gvar 3 0 -32768 32767
+gvar 4 0 -32768 32767
+gvar 5 0 -32768 32767
+gvar 6 0 -32768 32767
+gvar 7 0 -32768 32767
+
+# Programming: PID controllers
+pid 0 0 0 0 0 0 0 0 0 0
+pid 1 0 0 0 0 0 0 0 0 0
+pid 2 0 0 0 0 0 0 0 0 0
+pid 3 0 0 0 0 0 0 0 0 0
+
+# OSD: custom elements
+osd_custom_elements 0 0 0 0 0 0 0 0 0 ""
+osd_custom_elements 1 0 0 0 0 0 0 0 0 ""
+osd_custom_elements 2 0 0 0 0 0 0 0 0 ""
+osd_custom_elements 3 0 0 0 0 0 0 0 0 ""
+osd_custom_elements 4 0 0 0 0 0 0 0 0 ""
+osd_custom_elements 5 0 0 0 0 0 0 0 0 ""
+osd_custom_elements 6 0 0 0 0 0 0 0 0 ""
+osd_custom_elements 7 0 0 0 0 0 0 0 0 ""
+
+# master
+set looptime = 500
+set gyro_anti_aliasing_lpf_hz = 250
+set gyro_lulu_enabled = OFF
+set gyro_lulu_sample_count = 3
+set gyro_main_lpf_hz = 80
+set gyro_filter_mode = STATIC
+set gyro_dyn_lpf_min_hz = 200
+set gyro_dyn_lpf_max_hz = 500
+set gyro_dyn_lpf_curve_expo = 5
+set dynamic_gyro_notch_enabled = ON
+set dynamic_gyro_notch_q = 250
+set dynamic_gyro_notch_min_hz = 60
+set dynamic_gyro_notch_mode = 3D
+set dynamic_gyro_notch_3d_q = 200
+set setpoint_kalman_enabled = ON
+set setpoint_kalman_q = 200
+set init_gyro_cal = ON
+set gyro_zero_x = 9
+set gyro_zero_y = -6
+set gyro_zero_z = 0
+set ins_gravity_cmss =  978.030
+set gyro_adaptive_filter_target =  3.500
+set gyro_adaptive_filter_min_hz = 20
+set gyro_adaptive_filter_max_hz = 150
+set gyro_adaptive_filter_std_lpf_hz =  2.000
+set gyro_adaptive_filter_hpf_hz =  10.000
+set gyro_adaptive_filter_integrator_threshold_high =  4.000
+set gyro_adaptive_filter_integrator_threshold_low = -2.000
+set vbat_adc_channel = 1
+set rssi_adc_channel = 3
+set current_adc_channel = 2
+set airspeed_adc_channel = 0
+set acc_notch_hz = 0
+set acc_notch_cutoff = 1
+set acc_hardware = ICM42605
+set acc_lpf_hz = 15
+set acc_lpf_type = BIQUAD
+set acczero_x = -3
+set acczero_y = 0
+set acczero_z = -4
+set accgain_x = 4086
+set accgain_y = 4085
+set accgain_z = 4087
+set rangefinder_hardware = MSP
+set rangefinder_median_filter = OFF
+set opflow_hardware = MSP
+set opflow_scale =  10.500
+set align_opflow = CW0FLIP
+set align_mag = CW270FLIP
+set mag_hardware = NONE
+set mag_declination = 0
+set magzero_x = 0
+set magzero_y = 0
+set magzero_z = 0
+set maggain_x = 601
+set maggain_y = 827
+set maggain_z = 48
+set mag_calibration_time = 30
+set align_mag_roll = 0
+set align_mag_pitch = 0
+set align_mag_yaw = 0
+set baro_hardware = SPL06
+set baro_cal_tolerance = 150
+set pitot_hardware = NONE
+set pitot_lpf_milli_hz = 350
+set pitot_scale =  1.000
+set receiver_type = SERIAL
+set min_check = 1100
+set max_check = 1900
+set rssi_source = AUTO
+set rssi_channel = 0
+set rssi_min = 0
+set rssi_max = 100
+set sbus_sync_interval = 3000
+set rc_filter_lpf_hz = 50
+set rc_filter_auto = ON
+set rc_filter_smoothing_factor = 30
+set serialrx_provider = CRSF
+set serialrx_inverted = OFF
+set spektrum_sat_bind = 0
+set srxl2_unit_id = 1
+set srxl2_baud_fast = ON
+set rx_min_usec = 885
+set rx_max_usec = 2115
+set serialrx_halfduplex = AUTO
+set blackbox_rate_num = 1
+set blackbox_rate_denom = 2
+set blackbox_device = SDCARD
+set sdcard_detect_inverted = OFF
+set min_command = 1000
+set motor_pwm_rate = 16000
+set motor_pwm_protocol = STANDARD
+set motor_poles = 14
+set failsafe_delay = 5
+set failsafe_recovery_delay = 5
+set failsafe_off_delay = 200
+set failsafe_throttle_low_delay = 0
+set failsafe_procedure = LAND
+set failsafe_stick_threshold = 50
+set failsafe_fw_roll_angle = -200
+set failsafe_fw_pitch_angle = 100
+set failsafe_fw_yaw_rate = -45
+set failsafe_min_distance = 0
+set failsafe_min_distance_procedure = DROP
+set failsafe_mission_delay = 0
+set failsafe_gps_fix_estimation_delay = 7
+set align_board_roll = 0
+set align_board_pitch = 0
+set align_board_yaw = 1800
+set vbat_meter_type = ADC
+set vbat_scale = 1100
+set battery_capacity_unit = MAH
+set current_meter_scale = 150
+set current_meter_offset = 0
+set current_meter_type = ADC
+set bat_voltage_src = RAW
+set cruise_power = 0
+set idle_power = 0
+set rth_energy_margin = 5
+set thr_comp_weight =  1.000
+set 3d_deadband_low = 1406
+set 3d_deadband_high = 1514
+set 3d_neutral = 1460
+set servo_protocol = PWM
+set servo_center_pulse = 1500
+set servo_pwm_rate = 50
+set servo_lpf_hz = 20
+set flaperon_throw_offset = 200
+set tri_unarmed_servo = ON
+set servo_autotrim_rotation_limit = 15
+set reboot_character = 82
+set ahrs_dcm_kp = 2000
+set ahrs_dcm_ki = 50
+set ahrs_dcm_kp_mag = 2000
+set ahrs_dcm_ki_mag = 50
+set small_angle = 180
+set ahrs_acc_ignore_rate = 15
+set ahrs_acc_ignore_slope = 5
+set ahrs_gps_yaw_windcomp = ON
+set ahrs_inertia_comp_method = ADAPTIVE
+set ahrs_gps_yaw_weight = 100
+set fixed_wing_auto_arm = OFF
+set disarm_always = ON
+set switch_disarm_delay = 250
+set prearm_timeout = 10000
+set applied_defaults = 3
+set rpm_gyro_filter_enabled = OFF
+set rpm_gyro_harmonics = 1
+set rpm_gyro_min_hz = 100
+set rpm_gyro_q = 500
+set gps_provider = MSP
+set gps_sbas_mode = NONE
+set gps_dyn_model = AIR_2G
+set gps_auto_config = ON
+set gps_auto_baud = ON
+set gps_auto_baud_max_supported = 230400
+set gps_ublox_use_galileo = OFF
+set gps_ublox_use_beidou = OFF
+set gps_ublox_use_glonass = OFF
+set gps_min_sats = 6
+set gps_ublox_nav_hz = 10
+set deadband = 2
+set yaw_deadband = 2
+set pos_hold_deadband = 10
+set alt_hold_deadband = 50
+set 3d_deadband_throttle = 50
+set airmode_type = STICK_CENTER_ONCE
+set airmode_throttle_threshold = 1150
+set fw_autotune_min_stick = 50
+set fw_autotune_rate_adjustment = AUTO
+set fw_autotune_max_rate_deflection = 90
+set inav_auto_mag_decl = ON
+set inav_gravity_cal_tolerance = 5
+set inav_allow_dead_reckoning = OFF
+set inav_allow_gps_fix_estimation = OFF
+set inav_reset_altitude = FIRST_ARM
+set inav_reset_home = FIRST_ARM
+set inav_max_surface_altitude = 200
+set inav_w_z_surface_p =  3.500
+set inav_w_z_surface_v =  6.100
+set inav_w_xy_flow_p =  1.000
+set inav_w_xy_flow_v =  2.000
+set inav_w_z_baro_p =  0.350
+set inav_w_z_baro_v =  0.100
+set inav_w_z_gps_p =  0.200
+set inav_w_z_gps_v =  0.100
+set inav_w_xy_gps_p =  1.000
+set inav_w_xy_gps_v =  2.000
+set inav_w_z_res_v =  0.500
+set inav_w_xy_res_v =  0.500
+set inav_w_acc_bias =  0.010
+set inav_max_eph_epv =  1000.000
+set inav_baro_epv =  100.000
+set inav_default_alt_sensor = GPS
+set nav_disarm_on_landing = ON
+set nav_land_detect_sensitivity = 5
+set nav_landing_bump_detection = OFF
+set nav_mc_inverted_crash_detection = 0
+set nav_mc_althold_throttle = STICK
+set nav_extra_arming_safety = ALLOW_BYPASS
+set nav_user_control_mode = ATTI
+set nav_position_timeout = 5
+set nav_wp_load_on_boot = OFF
+set nav_wp_radius = 800
+set nav_wp_enforce_altitude = 500
+set nav_wp_max_safe_distance = 500
+set nav_wp_mission_restart = RESUME
+set nav_wp_multi_mission_index = 1
+set nav_fw_wp_tracking_accuracy = 0
+set nav_fw_wp_tracking_max_angle = 60
+set nav_fw_wp_turn_smoothing = OFF
+set nav_auto_speed = 500
+set nav_min_ground_speed = 7
+set nav_max_auto_speed = 1000
+set nav_manual_speed = 750
+set nav_land_minalt_vspd = 50
+set nav_land_maxalt_vspd = 200
+set nav_land_slowdown_minalt = 500
+set nav_land_slowdown_maxalt = 2000
+set nav_emerg_landing_speed = 500
+set nav_min_rth_distance = 500
+set nav_overrides_motor_stop = ALL_NAV
+set nav_fw_soaring_motor_stop = OFF
+set nav_fw_soaring_pitch_deadband = 5
+set nav_rth_climb_first = ON
+set nav_rth_climb_first_stage_mode = AT_LEAST
+set nav_rth_climb_first_stage_altitude = 0
+set nav_rth_climb_ignore_emerg = OFF
+set nav_rth_tail_first = OFF
+set nav_rth_allow_landing = FS_ONLY
+set nav_rth_fs_landing_delay = 0
+set nav_rth_alt_mode = AT_LEAST
+set nav_rth_alt_control_override = OFF
+set nav_rth_abort_threshold = 50000
+set nav_max_terrain_follow_alt = 100
+set nav_max_altitude = 0
+set nav_rth_altitude = 500
+set nav_rth_home_altitude = 500
+set nav_rth_linear_descent_start_distance = 0
+set nav_rth_use_linear_descent = OFF
+set nav_rth_trackback_mode = OFF
+set nav_rth_trackback_distance = 500
+set safehome_max_distance = 20000
+set safehome_usage_mode = RTH
+set nav_mission_planner_reset = ON
+set nav_cruise_yaw_rate = 60
+set nav_mc_bank_angle = 35
+set nav_mc_auto_climb_rate = 500
+set nav_mc_manual_climb_rate = 200
+set nav_auto_disarm_delay = 1000
+set nav_mc_braking_speed_threshold = 100
+set nav_mc_braking_disengage_speed = 75
+set nav_mc_braking_timeout = 2000
+set nav_mc_braking_boost_factor = 100
+set nav_mc_braking_boost_timeout = 750
+set nav_mc_braking_boost_speed_threshold = 150
+set nav_mc_braking_boost_disengage_speed = 100
+set nav_mc_braking_bank_angle = 40
+set nav_mc_pos_deceleration_time = 120
+set nav_mc_pos_expo = 10
+set nav_mc_wp_slowdown = ON
+set nav_fw_bank_angle = 35
+set nav_fw_auto_climb_rate = 500
+set nav_fw_manual_climb_rate = 300
+set nav_fw_climb_angle = 20
+set nav_fw_dive_angle = 15
+set nav_fw_pitch2thr_smoothing = 6
+set fw_min_throttle_down_pitch = 0
+set nav_fw_pitch2thr_threshold = 50
+set nav_fw_loiter_radius = 7500
+set fw_loiter_direction = RIGHT
+set nav_fw_cruise_speed = 0
+set nav_fw_control_smoothness = 2
+set nav_fw_land_dive_angle = 2
+set nav_fw_launch_velocity = 300
+set nav_fw_launch_accel = 1863
+set nav_fw_launch_max_angle = 45
+set nav_fw_launch_detect_time = 40
+set nav_fw_launch_idle_motor_delay = 0
+set nav_fw_launch_wiggle_to_wake_idle = 0
+set nav_fw_launch_motor_delay = 100
+set nav_fw_launch_spinup_time = 100
+set nav_fw_launch_end_time = 3000
+set nav_fw_launch_min_time = 0
+set nav_fw_launch_timeout = 5000
+set nav_fw_launch_max_altitude = 5000
+set nav_fw_launch_climb_angle = 25
+set nav_fw_launch_manual_throttle = OFF
+set nav_fw_launch_land_abort_deadband = 100
+set nav_fw_allow_manual_thr_increase = OFF
+set nav_use_fw_yaw_control = OFF
+set nav_fw_yaw_deadband = 0
+set telemetry_switch = OFF
+set telemetry_inverted = OFF
+set frsky_pitch_roll = OFF
+set frsky_use_legacy_gps_mode_sensor_ids = OFF
+set report_cell_voltage = OFF
+set hott_alarm_sound_interval = 5
+set telemetry_halfduplex = ON
+set smartport_fuel_unit = MAH
+set ibus_telemetry_type = 0
+set ltm_update_rate = NORMAL
+set sim_ground_station_number = 
+set sim_pin = 0000
+set sim_transmit_interval = 60
+set sim_transmit_flags = 2
+set acc_event_threshold_high = 0
+set acc_event_threshold_low = 0
+set acc_event_threshold_neg_x = 0
+set sim_low_altitude = -32767
+set mavlink_ext_status_rate = 2
+set mavlink_rc_chan_rate = 1
+set mavlink_pos_rate = 2
+set mavlink_extra1_rate = 2
+set mavlink_extra2_rate = 2
+set mavlink_extra3_rate = 1
+set mavlink_version = 2
+set mavlink_min_txbuffer = 33
+set mavlink_radio_type = GENERIC
+set osd_telemetry = OFF
+set osd_video_system = AUTO
+set osd_row_shiftdown = 0
+set osd_msp_displayport_fullframe_interval = 10
+set osd_units = METRIC
+set osd_stats_energy_unit = MAH
+set osd_stats_page_auto_swap_time = 3
+set osd_stats_show_metric_efficiency = OFF
+set osd_rssi_alarm = 20
+set osd_time_alarm = 10
+set osd_alt_alarm = 100
+set osd_dist_alarm = 1000
+set osd_neg_alt_alarm = 5
+set osd_current_alarm = 0
+set osd_gforce_alarm =  5.000
+set osd_gforce_axis_alarm_min = -5.000
+set osd_gforce_axis_alarm_max =  5.000
+set osd_imu_temp_alarm_min = -200
+set osd_imu_temp_alarm_max = 600
+set osd_esc_temp_alarm_max = 900
+set osd_esc_temp_alarm_min = -200
+set osd_baro_temp_alarm_min = -200
+set osd_baro_temp_alarm_max = 600
+set osd_snr_alarm = 4
+set osd_link_quality_alarm = 70
+set osd_rssi_dbm_alarm = 0
+set osd_rssi_dbm_max = -30
+set osd_rssi_dbm_min = -120
+set osd_temp_label_align = LEFT
+set osd_airspeed_alarm_min =  0.000
+set osd_airspeed_alarm_max =  0.000
+set osd_ahi_reverse_roll = OFF
+set osd_ahi_max_pitch = 20
+set osd_crosshairs_style = DEFAULT
+set osd_crsf_lq_format = TYPE1
+set osd_horizon_offset = 0
+set osd_camera_uptilt = 0
+set osd_ahi_camera_uptilt_comp = OFF
+set osd_camera_fov_h = 135
+set osd_camera_fov_v = 85
+set osd_hud_margin_h = 3
+set osd_hud_margin_v = 3
+set osd_hud_homing = OFF
+set osd_hud_homepoint = OFF
+set osd_hud_radar_disp = 0
+set osd_hud_radar_range_min = 3
+set osd_hud_radar_range_max = 4000
+set osd_hud_radar_alt_difference_display_time = 3
+set osd_hud_radar_distance_display_time = 3
+set osd_radar_peers_display_time = 3
+set osd_hud_wp_disp = 0
+set osd_left_sidebar_scroll = NONE
+set osd_right_sidebar_scroll = NONE
+set osd_sidebar_scroll_arrows = OFF
+set osd_main_voltage_decimals = 1
+set osd_decimals_altitude = 3
+set osd_decimals_distance = 3
+set osd_coordinate_digits = 9
+set osd_adsb_distance_warning = 20000
+set osd_adsb_distance_alert = 3000
+set osd_adsb_ignore_plane_above_me_limit = 0
+set osd_estimations_wind_compensation = ON
+set osd_estimations_wind_mps = OFF
+set osd_failsafe_switch_layout = OFF
+set osd_plus_code_digits = 11
+set osd_plus_code_short = 0
+set osd_ahi_style = DEFAULT
+set osd_force_grid = OFF
+set osd_ahi_bordered = OFF
+set osd_ahi_width = 132
+set osd_ahi_height = 162
+set osd_ahi_vertical_offset = -18
+set osd_sidebar_horizontal_offset = 0
+set osd_left_sidebar_scroll_step = 0
+set osd_right_sidebar_scroll_step = 0
+set osd_sidebar_height = 3
+set osd_ahi_pitch_interval = 0
+set osd_home_position_arm_screen = ON
+set osd_pan_servo_index = 0
+set osd_pan_servo_pwm2centideg = 0
+set osd_pan_servo_offcentre_warning = 10
+set osd_pan_servo_indicator_show_degrees = OFF
+set osd_esc_rpm_precision = 3
+set osd_mah_precision = 4
+set osd_use_pilot_logo = OFF
+set osd_inav_to_pilot_logo_spacing = 8
+set osd_arm_screen_display_time = 1500
+set osd_system_msg_display_time = 1000
+set osd_highlight_djis_missing_font_symbols = ON
+set enable_broken_o4_workaround = OFF
+set osd_switch_indicator_zero_name = FLAP
+set osd_switch_indicator_one_name = GEAR
+set osd_switch_indicator_two_name = CAM
+set osd_switch_indicator_three_name = LIGT
+set osd_switch_indicator_zero_channel = 5
+set osd_switch_indicator_one_channel = 5
+set osd_switch_indicator_two_channel = 5
+set osd_switch_indicator_three_channel = 5
+set osd_switch_indicators_align_left = ON
+set osd_speed_source = GROUND
+set i2c_speed = 400KHZ
+set debug_mode = FLOW
+set throttle_tilt_comp_str = 0
+set name = 
+set pilot_name = 
+set mode_range_logic_operator = OR
+set stats = OFF
+set stats_total_time = 0
+set stats_total_dist = 0
+set stats_total_energy = 0
+set tz_offset = 0
+set tz_automatic_dst = OFF
+set display_force_sw_blink = OFF
+set vtx_halfduplex = ON
+set vtx_smartaudio_early_akk_workaround = ON
+set vtx_smartaudio_alternate_softserial_method = ON
+set vtx_softserial_shortstop = OFF
+set vtx_smartaudio_stopbits = 2
+set vtx_band = 1
+set vtx_channel = 1
+set vtx_power = 1
+set vtx_low_power_disarm = OFF
+set vtx_pit_mode_chan = 1
+set vtx_max_power_override = 0
+set vtx_frequency_group = FREQUENCYGROUP_5G8
+set log_level = ERROR
+set log_topics = 0
+set esc_sensor_listen_only = OFF
+set smartport_master_halfduplex = ON
+set smartport_master_inverted = OFF
+set dji_use_name_for_messages = ON
+set dji_esc_temp_source = ESC
+set dji_message_speed_source = 3D
+set dji_rssi_source = RSSI
+set dji_use_adjustments = OFF
+set dji_cn_alternating_duration = 30
+set dshot_beeper_enabled = ON
+set dshot_beeper_tone = 1
+set beeper_pwm_mode = OFF
+set limit_pi_p = 100
+set limit_pi_i = 100
+set limit_attn_filter_cutoff =  1.200
+set led_pin_pwm_mode = SHARED_LOW
+set osd_joystick_enabled = OFF
+set osd_joystick_down = 0
+set osd_joystick_up = 48
+set osd_joystick_left = 63
+set osd_joystick_right = 28
+set osd_joystick_enter = 75
+set nav_fw_land_approach_length = 35000
+set nav_fw_land_final_approach_pitch2throttle_mod = 100
+set nav_fw_land_glide_alt = 200
+set nav_fw_land_flare_alt = 150
+set nav_fw_land_glide_pitch = 0
+set nav_fw_land_flare_pitch = 8
+set nav_fw_land_max_tailwind = 140
+set gimbal_pan_channel = 0
+set gimbal_roll_channel = 0
+set gimbal_tilt_channel = 0
+set gimbal_sensitivity = 0
+set gimbal_pan_trim = 0
+set gimbal_tilt_trim = 0
+set gimbal_roll_trim = 0
+set gimbal_serial_single_uart = OFF
+set headtracker_type = NONE
+set headtracker_pan_ratio =  1.000
+set headtracker_tilt_ratio =  1.000
+set headtracker_roll_ratio =  1.000
+set geozone_detection_distance = 50000
+set geozone_avoid_altitude_range = 5000
+set geozone_safe_altitude_distance = 1000
+set geozone_safehome_as_inclusive = OFF
+set geozone_safehome_zone_action = NONE
+set geozone_mr_stop_distance = 15000
+set geozone_no_way_home_action = RTH
+
+# control_profile
+control_profile 1
+
+set mc_p_pitch = 33
+set mc_i_pitch = 57
+set mc_d_pitch = 24
+set mc_cd_pitch = 80
+set mc_p_roll = 26
+set mc_i_roll = 43
+set mc_d_roll = 20
+set mc_cd_roll = 73
+set mc_p_yaw = 37
+set mc_i_yaw = 30
+set mc_d_yaw = 10
+set mc_cd_yaw = 40
+set mc_p_level = 8
+set mc_i_level = 15
+set mc_d_level = 55
+set fw_p_pitch = 15
+set fw_i_pitch = 5
+set fw_d_pitch = 5
+set fw_ff_pitch = 80
+set fw_p_roll = 15
+set fw_i_roll = 3
+set fw_d_roll = 7
+set fw_ff_roll = 50
+set fw_p_yaw = 50
+set fw_i_yaw = 0
+set fw_d_yaw = 20
+set fw_ff_yaw = 255
+set fw_p_level = 20
+set fw_i_level = 5
+set fw_d_level = 75
+set max_angle_inclination_rll = 300
+set max_angle_inclination_pit = 300
+set dterm_lpf_hz = 60
+set dterm_lpf_type = PT2
+set yaw_lpf_hz = 0
+set fw_reference_airspeed =  1500.000
+set fw_turn_assist_yaw_gain =  1.000
+set fw_turn_assist_pitch_gain =  0.400
+set fw_yaw_iterm_freeze_bank_angle = 0
+set iterm_windup = 50
+set pid_iterm_limit_percent = 33
+set rate_accel_limit_roll_pitch = 0
+set rate_accel_limit_yaw = 10000
+set heading_hold_rate_limit = 45
+set nav_mc_pos_z_p = 50
+set nav_mc_vel_z_p = 100
+set nav_mc_vel_z_i = 50
+set nav_mc_vel_z_d = 10
+set nav_mc_pos_xy_p = 65
+set nav_mc_vel_xy_p = 40
+set nav_mc_vel_xy_i = 15
+set nav_mc_vel_xy_d = 100
+set nav_mc_vel_xy_ff = 40
+set nav_mc_heading_p = 60
+set nav_mc_vel_xy_dterm_lpf_hz =  2.000
+set nav_mc_vel_xy_dterm_attenuation = 90
+set nav_mc_vel_xy_dterm_attenuation_start = 10
+set nav_mc_vel_xy_dterm_attenuation_end = 60
+set nav_fw_pos_z_p = 25
+set nav_fw_pos_z_i = 5
+set nav_fw_pos_z_d = 8
+set nav_fw_pos_z_ff = 10
+set nav_fw_alt_control_response = 40
+set nav_fw_pos_xy_p = 55
+set nav_fw_pos_xy_i = 5
+set nav_fw_pos_xy_d = 8
+set nav_fw_heading_p = 60
+set nav_fw_pos_hdg_p = 30
+set nav_fw_pos_hdg_i = 2
+set nav_fw_pos_hdg_d = 0
+set nav_fw_pos_hdg_pidsum_limit = 350
+set mc_iterm_relax = RP
+set mc_iterm_relax_cutoff = 15
+set d_boost_min =  1.000
+set d_boost_max =  1.000
+set d_boost_max_at_acceleration =  7500.000
+set d_boost_gyro_delta_lpf_hz = 80
+set antigravity_gain =  1.000
+set antigravity_accelerator =  1.000
+set antigravity_cutoff_lpf_hz = 15
+set pid_type = AUTO
+set mc_cd_lpf_hz = 30
+set fw_level_pitch_trim =  0.000
+set smith_predictor_strength =  0.500
+set smith_predictor_delay =  1.768
+set smith_predictor_lpf_hz = 50
+set fw_level_pitch_gain =  5.000
+set fw_iterm_lock_time_max_ms = 500
+set fw_iterm_lock_rate_threshold = 40
+set fw_iterm_lock_engage_threshold = 10
+set thr_mid = 50
+set thr_expo = 0
+set tpa_rate = 0
+set tpa_breakpoint = 1500
+set tpa_on_yaw = OFF
+set fw_tpa_time_constant = 1500
+set rc_expo = 55
+set rc_yaw_expo = 55
+set roll_rate = 17
+set pitch_rate = 17
+set yaw_rate = 10
+set manual_rc_expo = 35
+set manual_rc_yaw_expo = 20
+set manual_roll_rate = 100
+set manual_pitch_rate = 100
+set manual_yaw_rate = 100
+set fpv_mix_degrees = 0
+set rate_dynamics_center_sensitivity = 100
+set rate_dynamics_end_sensitivity = 100
+set rate_dynamics_center_correction = 10
+set rate_dynamics_end_correction = 10
+set rate_dynamics_center_weight = 0
+set rate_dynamics_end_weight = 0
+set ez_enabled = OFF
+set ez_filter_hz = 90
+set ez_axis_ratio = 130
+set ez_response = 75
+set ez_damping = 100
+set ez_stability = 100
+set ez_aggressiveness = 75
+set ez_rate = 50
+set ez_expo = 100
+set ez_snappiness = 0
+
+# mixer_profile
+mixer_profile 1
+
+set motor_direction_inverted = OFF
+set platform_type = TRICOPTER
+set has_flaps = OFF
+set model_preview_type = 1
+set motorstop_on_low = OFF
+set mixer_pid_profile_linking = OFF
+set mixer_automated_switch = OFF
+set mixer_switch_trans_timer = 0
+set tailsitter_orientation_offset = OFF
+
+# Mixer: motor mixer
+
+mmix reset
+
+mmix 0  0.700  0.000  1.333  0.000
+mmix 1  1.000 -1.000 -0.667  0.000
+mmix 2  1.000  1.000 -0.667  0.000
+
+# Mixer: servo mixer
+smix reset
+
+smix 0 4 2 60 0 -1
+smix 1 5 2 55 0 -1
+smix 2 4 29 80 0 -1
+smix 3 5 29 -80 0 -1
+
+# battery_profile
+battery_profile 1
+
+set bat_cells = 0
+set vbat_cell_detect_voltage = 425
+set vbat_max_cell_voltage = 420
+set vbat_min_cell_voltage = 330
+set vbat_warning_cell_voltage = 350
+set battery_capacity = 0
+set battery_capacity_warning = 0
+set battery_capacity_critical = 0
+set controlrate_profile = 0
+set throttle_scale =  1.000
+set throttle_idle =  5.000
+set turtle_mode_power_factor = 55
+set failsafe_throttle = 1000
+set nav_mc_hover_thr = 1600
+set nav_fw_cruise_thr = 1400
+set nav_fw_min_thr = 1200
+set nav_fw_max_thr = 1700
+set nav_fw_pitch2thr = 10
+set nav_fw_launch_thr = 1700
+set nav_fw_launch_idle_thr = 1000
+set limit_cont_current = 0
+set limit_burst_current = 0
+set limit_burst_current_time = 0
+set limit_burst_current_falldown_time = 0
+set limit_cont_power = 0
+set limit_burst_power = 0
+set limit_burst_power_time = 0
+set limit_burst_power_falldown_time = 0
+
+# save configuration
+save
+
+# end the command batch
+batch end
+
+# 
