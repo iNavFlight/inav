@@ -21,6 +21,8 @@ timer_output_mode 7 SERVOS
 timer_output_mode 11 SERVOS
 
 # Outputs [servo]
+servo 1 1115 1960 1960 100
+servo 2 1115 2000 1115 100
 servo 3 1325 1825 1625 100
 servo 4 1220 1720 1420 100
 servo 5 1230 2050 1660 -100
@@ -69,10 +71,11 @@ blackbox SERVOS
 aux 0 0 0 1875 2100
 aux 1 1 1 1300 1700
 aux 2 2 1 1775 2100
-aux 3 12 1 900 1250
-aux 4 3 3 1700 2100
-aux 5 5 2 1500 1800
-aux 6 35 2 1800 2100
+aux 3 3 3 1700 2100
+aux 4 5 2 1500 1800
+aux 5 35 2 1800 2100
+aux 6 62 3 1725 2100
+aux 7 63 3 1275 1675
 
 # Adjustments [adjrange]
 
@@ -86,6 +89,7 @@ aux 6 35 2 1800 2100
 # OSD [osd_layout]
 
 # Programming: logic
+logic 0 1 -1 2 1 7 0 2000 0
 
 # Programming: global variables
 
@@ -99,9 +103,9 @@ set dynamic_gyro_notch_q = 250
 set dynamic_gyro_notch_min_hz = 73
 set dynamic_gyro_notch_mode = 3D
 set setpoint_kalman_q = 200
-set gyro_zero_x = 10
-set gyro_zero_y = -6
-set ins_gravity_cmss =  983.009
+set gyro_zero_x = 11
+set gyro_zero_y = -5
+set ins_gravity_cmss =  984.741
 set gyro_adaptive_filter_min_hz = 20
 set acc_hardware = ICM42605
 set acczero_x = -3
@@ -197,7 +201,6 @@ set rc_yaw_expo = 70
 set roll_rate = 60
 set pitch_rate = 60
 set yaw_rate = 50
-set ez_enabled = ON
 
 # control_profile
 control_profile 3
@@ -251,6 +254,8 @@ smix 3 5 2 50 0 -1
 smix 4 6 1 -85 0 -1
 smix 5 6 2 50 0 -1
 smix 6 7 2 30 0 -1
+smix 7 1 38 -44 0 -1
+smix 8 2 38 45 0 -1
 
 # mixer_profile
 mixer_profile 2
@@ -263,15 +268,17 @@ set mixer_pid_profile_linking = ON
 
 mmix reset
 
-mmix 0  1.000  1.000 -0.667  0.000
-mmix 1  1.000 -1.000 -0.667  0.000
-mmix 2  1.000  0.000  1.333  0.000
+mmix 0  1.000  0.500 -0.340  0.000
+mmix 1  1.000 -0.500 -0.340  0.000
+mmix 2  0.750  0.000  0.670  0.000
 
 # Mixer: servo mixer
 smix reset
 
-smix 0 1 2 -50 0 -1
-smix 1 2 2 -50 0 -1
+smix 0 1 2 -20 0 -1
+smix 1 2 2 -20 0 -1
+smix 2 1 29 -88 0 -1
+smix 3 2 29 90 0 -1
 
 # battery_profile
 battery_profile 1
