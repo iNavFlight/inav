@@ -446,7 +446,7 @@ static float calculateFixedWingAirspeedTPAFactor(void){
     const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
     const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
     float tpaFactor= powf(referenceAirspeed/airspeed, currentControlProfile->throttle.apa_pow/100.0f);
-    tpaFactor= constrainf(tpaFactor, 0.3f, 1.5f);
+    tpaFactor= constrainf(tpaFactor, 0.3f, 2.0f);
     return tpaFactor;
 }
 
