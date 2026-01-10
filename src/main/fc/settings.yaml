@@ -1411,7 +1411,7 @@ groups:
         default_value: OFF
       - name: fw_tpa_time_constant
         description: "TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. See **PID Attenuation and scaling** Wiki for full details."
-        default_value: 1500
+        default_value: 2000
         field: throttle.fixedWingTauMs
         min: 0
         max: 5000
