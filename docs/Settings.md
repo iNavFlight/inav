@@ -6012,16 +6012,6 @@ SBUS sync interval in us. Default value is 3000us. Lower values may cause issues
 
 ---
 
-### sdcard_detect_inverted
-
-This setting drives the way SD card is detected in card slot. On some targets (AnyFC F7 clone) different card slot was used and depending of hardware revision ON or OFF setting might be required. If card is not detected, change this value.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| _target default_ |  |  |
-
----
-
 ### serialrx_halfduplex
 
 Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire.

@@ -817,12 +817,6 @@ groups:
         default_value: :target
         field: device
         table: blackbox_device
-      - name: sdcard_detect_inverted
-        description: "This setting drives the way SD card is detected in card slot. On some targets (AnyFC F7 clone) different card slot was used and depending of hardware revision ON or OFF setting might be required. If card is not detected, change this value."
-        default_value: :target
-        field: invertedCardDetection
-        condition: USE_SDCARD
-        type: bool
       - name: blackbox_arm_control
         description: "Determines behaviour of logging in relation to Arm state. For settings from 0 to 60 logging will start on Arm with the setting determining how long logging will continue after disarm in seconds, i.e. set to 0 to stop logging at disarm or 10 to stop logging 10s after disarm. Set to -1 to start logging from boot up until power off (Use with caution - mainly for debugging and best used with BLACKBOX mode)."
         default_value: 0
