@@ -10,7 +10,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 3
+**JSON file rev: 4
 **
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
@@ -413,6 +413,13 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8722 - MSP2_INAV_GEOZONE_VERTEX](#msp2_inav_geozone_vertex)  
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
 [8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
+[8725 - MSP2_INAV_SET_ALT_TARGET](#msp2_inav_set_alt_target)  
+[8726 - MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE](#msp2_inav_flight_axis_angle_override)  
+[8727 - MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE](#msp2_inav_flight_axis_rate_override)  
+[8728 - MSP2_INAV_SET_LOCAL_TARGET](#msp2_inav_set_local_target)  
+[8729 - MSP2_INAV_LOCAL_TARGET](#msp2_inav_local_target)  
+[8730 - MSP2_INAV_SET_GLOBAL_TARGET](#msp2_inav_set_global_target)  
+[8731 - MSP2_INAV_NAV_TARGET](#msp2_inav_nav_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 
@@ -2475,7 +2482,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 **Reply Payload:** **None**  
 
-**Notes:** Expects 2 bytes. Calls `updateHeadingHoldTarget()`.
+**Notes:** Expects 2 bytes. Calls `updateHeadingHoldTarget()`. Also synchronizes navigation yaw targets (including cruise/course) when NAV is controlling yaw.
 
 ## <a id="msp_set_servo_configuration"></a>`MSP_SET_SERVO_CONFIGURATION (212 / 0xd4)`
 **Description:** Sets the configuration for a single servo (legacy format).  
@@ -4506,6 +4513,113 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Reply Payload:** **None**  
 
 **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.
+
+## <a id="msp2_inav_set_alt_target"></a>`MSP2_INAV_SET_ALT_TARGET (8725 / 0x2215)`
+**Description:** Set the active altitude hold target using updateClimbRateToAltitudeController.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum |
+
+**Reply Payload:** **None**  
+
+**Notes:** Set new altitude target. Requires 5-byte payload (datum + target) and is set-only. Valid only in NAV or ALTHOLD modes. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).
+
+## <a id="msp2_inav_flight_axis_angle_override"></a>`MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE (8726 / 0x2216)`
+**Description:** Enables or disables a flight-axis angle override for the selected axis.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `overrideMask` | `uint8_t` | 1 | Bitmask | Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis. |
+| `angleTargetRoll` | `int16_t` | 2 | deci-degrees | Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits |
+| `angleTargetPitch` | `int16_t` | 2 | deci-degrees | Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits |
+| `angleTargetYaw` | `int16_t` | 2 | deci-degrees | Angle target in deci-degrees. Yaw clamped to 0–3600. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Uses the same override path as logic conditions and bypasses stick-derived angle targets.
+
+## <a id="msp2_inav_flight_axis_rate_override"></a>`MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE (8727 / 0x2217)`
+**Description:** Enables or disables a flight-axis rate override for the selected axis.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `overrideMask` | `uint8_t` | 1 | Bitmask | Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis. |
+| `rateTargetRoll` | `int16_t` | 2 | deg/s | Rate target, clamped to ±2000 |
+| `rateTargetPitch` | `int16_t` | 2 | deg/s | Rate target, clamped to ±2000 |
+| `rateTargetYaw` | `int16_t` | 2 | deg/s | Rate target, clamped to ±2000 |
+
+**Reply Payload:** **None**  
+
+**Notes:** Expects 7 bytes. Overrides rate targets just before control is applied, bypassing stick-derived setpoints.
+
+## <a id="msp2_inav_set_local_target"></a>`MSP2_INAV_SET_LOCAL_TARGET (8728 / 0x2218)`
+**Description:** Sets a body-frame offset target relative to the current vehicle position.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `posX` | `int32_t` | 4 | cm | Desired X in local NEU frame |
+| `posY` | `int32_t` | 4 | cm | Desired Y in local NEU frame |
+| `posZ` | `int32_t` | 4 | cm | Desired Z in local NEU frame (up-positive). Omit this field to leave Z unchanged. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Offsets are in the vehicle body frame (forward/right/up, cm) and are rotated into the NEU frame using the current yaw, applied relative to current position. Z offset is always provided; Z=0 keeps current altitude, non-zero offsets are relative to current altitude. Requires GCSNAV/offboard to be active and a valid guided poshold; updates the navigation desired position via `setDesiredPosition()`.
+
+## <a id="msp2_inav_local_target"></a>`MSP2_INAV_LOCAL_TARGET (8729 / 0x2219)`
+**Description:** Returns the current navigation desired state (position, velocity, yaw, and climb rate).  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `posX` | `int32_t` | 4 | cm | Desired X in local NEU frame (`posControl.desiredState.pos.x`) |
+| `posY` | `int32_t` | 4 | cm | Desired Y in local NEU frame (`posControl.desiredState.pos.y`) |
+| `posZ` | `int32_t` | 4 | cm | Desired Z in local NEU frame (`posControl.desiredState.pos.z`, up-positive) |
+| `velX` | `int16_t` | 2 | cm/s | Desired X velocity (`posControl.desiredState.vel.x`) |
+| `velY` | `int16_t` | 2 | cm/s | Desired Y velocity (`posControl.desiredState.vel.y`) |
+| `velZ` | `int16_t` | 2 | cm/s | Desired Z velocity (`posControl.desiredState.vel.z`) |
+| `yaw` | `int32_t` | 4 | centi-degrees | Desired heading (`posControl.desiredState.yaw`) |
+| `climbRate` | `int16_t` | 2 | cm/s | Desired climb rate demand (`posControl.desiredState.climbRateDemand`) |
+
+**Notes:** Local frame is NEU. Mirrors `posControl.desiredState` (position, velocity, yaw, climb rate) used by the position controller.
+
+## <a id="msp2_inav_set_global_target"></a>`MSP2_INAV_SET_GLOBAL_TARGET (8730 / 0x221a)`
+**Description:** Sets desired GCS Nav position with global coordinates (WP 254/GOTO).  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `latitude` | `int32_t` | 4 | deg * 1e7 | Latitude coordinate |
+| `longitude` | `int32_t` | 4 | deg * 1e7 | Longitude coordinate |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum (0 keeps current altitude) |
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged.
+
+## <a id="msp2_inav_nav_target"></a>`MSP2_INAV_NAV_TARGET (8731 / 0x221b)`
+**Description:** Returns the current navigation desired global target (lat/lon/alt, heading, climb rate).  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `latTarget` | `int32_t` | 4 | 1e-7 deg | Latitude in degrees * 1e7 |
+| `lonTarget` | `int32_t` | 4 | 1e-7 deg | Longitude in degrees * 1e7 |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target (takeoff datum, cm) as used by altitude/position hold |
+| `headingTarget` | `uint16_t` | 2 | degrees | Current heading-hold target (`getHeadingHoldTarget()`), wrapped to 0–359.99 |
+| `climbRate` | `int16_t` | 2 | cm/s | Desired climb rate demand (`posControl.desiredState.climbRateDemand`) |
+
+**Notes:** Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome).
 
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  

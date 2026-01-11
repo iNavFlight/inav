@@ -729,7 +729,8 @@ typedef enum {
 
 typedef enum {
     NAV_WP_TAKEOFF_DATUM,
-    NAV_WP_MSL_DATUM
+    NAV_WP_MSL_DATUM,
+    NAV_WP_TERRAIN_DATUM
 } geoAltitudeDatumFlag_e;
 
 // geoSetOrigin stores the location provided in llh as a GPS origin in the
@@ -779,6 +780,7 @@ bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
 bool navigationIsExecutingAnEmergencyLanding(void);
 bool navigationIsControllingAltitude(void);
+bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm);
 /* Returns true if navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */

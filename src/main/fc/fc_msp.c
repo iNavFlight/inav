@@ -113,6 +113,7 @@
 
 #include "rx/rx.h"
 #include "rx/msp.h"
+#include "rx/msp_override.h"
 #include "rx/srxl2.h"
 #include "rx/crsf.h"
 
@@ -1960,9 +1961,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_HEAD:
-        if (sbufReadU16Safe(&tmp_u16, src))
-            updateHeadingHoldTarget(tmp_u16);
-        else
+        if (sbufReadU16Safe(&tmp_u16, src)) {
+            const int32_t headingCentidegrees = wrap_36000(DEGREES_TO_CENTIDEGREES(tmp_u16));
+            updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(headingCentidegrees));
+
+            if (navGetCurrentStateFlags() & NAV_CTL_YAW) {
+                posControl.desiredState.yaw = headingCentidegrees;
+                posControl.cruise.course = headingCentidegrees;
+                posControl.cruise.previousCourse = headingCentidegrees;
+            }
+        } else
             return MSP_RESULT_ERROR;
         break;
 
@@ -2402,6 +2410,33 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 return MSP_RESULT_ERROR;
             }
             gvSet(gvarIndex, gvarValue);
+        }
+        break;
+#endif
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    case MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE:
+        if (dataSize != 7) {
+            return MSP_RESULT_ERROR;
+        }
+        {
+            const uint8_t overrideMask = sbufReadU8(src);
+            const int16_t rollTarget = (int16_t)sbufReadU16(src);
+            const int16_t pitchTarget = (int16_t)sbufReadU16(src);
+            const int16_t yawTarget = (int16_t)sbufReadU16(src);
+            mspOverrideSetFlightAxisAngleOverride(overrideMask, rollTarget, pitchTarget, yawTarget);
+        }
+        break;
+
+    case MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE:
+        if (dataSize != 7) {
+            return MSP_RESULT_ERROR;
+        }
+        {
+            const uint8_t overrideMask = sbufReadU8(src);
+            const int16_t rollTarget = (int16_t)sbufReadU16(src);
+            const int16_t pitchTarget = (int16_t)sbufReadU16(src);
+            const int16_t yawTarget = (int16_t)sbufReadU16(src);
+            mspOverrideSetFlightAxisRateOverride(overrideMask, rollTarget, pitchTarget, yawTarget);
         }
         break;
 #endif
@@ -4175,6 +4210,127 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = mspFcGeozoneVerteciesOutCommand(dst, src);
         break;
 #endif
+
+#ifdef USE_BARO
+    case MSP2_INAV_SET_ALT_TARGET:
+        if (dataSize != (sizeof(int32_t) + sizeof(uint8_t))) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        if (navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)sbufReadU8(src), (int32_t)sbufReadU32(src))) {
+            *ret = MSP_RESULT_ACK;
+            break;
+        }
+
+        *ret = MSP_RESULT_ERROR;
+        break;
+#endif
+
+    case MSP2_INAV_SET_LOCAL_TARGET:
+        if (dataSize != 3 * sizeof(int32_t) || !isGCSValid()) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        {
+            fpVector3_t targetPos = posControl.desiredState.pos;
+
+            const navEstimatedPosVel_t *actual = navGetCurrentActualPositionAndVelocity();
+            const float offsetBodyX = (float)(int32_t)sbufReadU32(src);
+            const float offsetBodyY = (float)(int32_t)sbufReadU32(src);
+            const float offsetBodyZ = (float)(int32_t)sbufReadU32(src);
+
+            const float cosYaw = posControl.actualState.cosYaw;
+            const float sinYaw = posControl.actualState.sinYaw;
+
+            // Rotate body-frame offsets into NEU and apply relative to current position
+            const float offsetN = offsetBodyX * cosYaw - offsetBodyY * sinYaw;
+            const float offsetE = offsetBodyX * sinYaw + offsetBodyY * cosYaw;
+
+            targetPos.x = actual->pos.x + offsetN;
+            targetPos.y = actual->pos.y + offsetE;
+
+            navSetWaypointFlags_t updateMask = NAV_POS_UPDATE_XY;
+            if (offsetBodyZ != 0.0f) {
+                targetPos.z = actual->pos.z + offsetBodyZ;
+            }
+            updateMask |= NAV_POS_UPDATE_Z;
+
+            setDesiredPosition(&targetPos, posControl.desiredState.yaw, updateMask);
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
+
+    case MSP2_INAV_LOCAL_TARGET:
+        sbufWriteU32(dst, lrintf(posControl.desiredState.pos.x));
+        sbufWriteU32(dst, lrintf(posControl.desiredState.pos.y));
+        sbufWriteU32(dst, lrintf(posControl.desiredState.pos.z));
+        sbufWriteU16(dst, (int16_t)lrintf(posControl.desiredState.vel.x));
+        sbufWriteU16(dst, (int16_t)lrintf(posControl.desiredState.vel.y));
+        sbufWriteU16(dst, (int16_t)lrintf(posControl.desiredState.vel.z));
+        sbufWriteU32(dst, posControl.desiredState.yaw);
+        sbufWriteU16(dst, posControl.desiredState.climbRateDemand);
+        *ret = MSP_RESULT_ACK;
+        break;
+
+    case MSP2_INAV_SET_GLOBAL_TARGET:
+        if (dataSize != (3 * sizeof(int32_t) + sizeof(uint8_t)) || !isGCSValid()) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        {
+            gpsLocation_t targetLlh;
+            targetLlh.lat = (int32_t)sbufReadU32(src);
+            targetLlh.lon = (int32_t)sbufReadU32(src);
+            targetLlh.alt = (int32_t)sbufReadU32(src);
+
+            const geoAltitudeDatumFlag_e datumFlag = (geoAltitudeDatumFlag_e)sbufReadU8(src);
+
+            if (datumFlag == NAV_WP_TERRAIN_DATUM) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+
+            fpVector3_t targetPos;
+            if (!geoConvertGeodeticToLocal(&targetPos, &posControl.gpsOrigin, &targetLlh, waypointMissionAltConvMode(datumFlag))) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+
+            navSetWaypointFlags_t updateMask = NAV_POS_UPDATE_XY;
+
+            if (targetLlh.alt != 0) {
+                updateMask |= NAV_POS_UPDATE_Z;
+            }
+
+            setDesiredPosition(&targetPos, posControl.desiredState.yaw, updateMask);
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
+
+    case MSP2_INAV_NAV_TARGET:
+        if (!posControl.gpsOrigin.valid) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        {
+            gpsLocation_t targetLlh;
+            geoConvertLocalToGeodetic(&targetLlh, &posControl.gpsOrigin, &posControl.desiredState.pos);
+
+            sbufWriteU32(dst, targetLlh.lat);
+            sbufWriteU32(dst, targetLlh.lon);
+            sbufWriteU32(dst, lrintf(posControl.desiredState.pos.z));
+
+            const uint16_t headingTarget = CENTIDEGREES_TO_DEGREES(wrap_36000(DEGREES_TO_CENTIDEGREES(getHeadingHoldTarget())));
+            sbufWriteU16(dst, headingTarget);
+            sbufWriteU16(dst, posControl.desiredState.climbRateDemand);
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
+
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
         tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version

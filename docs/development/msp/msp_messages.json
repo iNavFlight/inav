@@ -5332,20 +5332,20 @@
     "MSP_SET_HEAD": {
         "code": 211,
         "mspv": 1,
-        "request": {
-            "payload": [
-                {
-                    "name": "heading",
-                    "ctype": "uint16_t",
-                    "desc": "Target heading (0-359)",
-                    "units": "degrees"
-                }
-            ]
-        },
-        "reply": null,
-        "notes": "Expects 2 bytes. Calls `updateHeadingHoldTarget()`.",
-        "description": "Sets the target heading for the heading hold controller (e.g., during MAG mode)."
+    "request": {
+      "payload": [
+        {
+          "name": "heading",
+          "ctype": "uint16_t",
+          "desc": "Target heading (0-359)",
+          "units": "degrees"
+        }
+      ]
     },
+    "reply": null,
+    "notes": "Expects 2 bytes. Calls `updateHeadingHoldTarget()`. Also synchronizes navigation yaw targets (including cruise/course) when NAV is controlling yaw.",
+    "description": "Sets the target heading for the heading hold controller (e.g., during MAG mode)."
+  },
     "MSP_SET_SERVO_CONFIGURATION": {
         "code": 212,
         "mspv": 1,
@@ -10851,6 +10851,271 @@
         "reply": null,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.",
         "description": "Sets the specified Global Variable (GVAR) to the provided value."
+    },
+    "MSP2_INAV_SET_ALT_TARGET": {
+        "code": 8725,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "altitudeDatum",
+                    "ctype": "uint8_t",
+                    "desc": "Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet)",
+                    "units": "",
+                    "enum": "geoAltitudeDatumFlag_e"
+                },
+                {
+                    "name": "altitudeTarget",
+                    "ctype": "int32_t",
+                    "desc": "Desired altitude target according to reference datum",
+                    "units": "cm"
+                }
+            ]
+        },
+        "reply": {
+            "payload": null
+        },
+        "notes": "Set new altitude target. Requires 5-byte payload (datum + target) and is set-only. Valid only in NAV or ALTHOLD modes. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).",
+        "description": "Set the active altitude hold target using updateClimbRateToAltitudeController."
+    },
+    "MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE": {
+        "code": 8726,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "overrideMask",
+                    "ctype": "uint8_t",
+                    "desc": "Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis.",
+                    "units": "Bitmask",
+                    "bitmask": true
+                },
+                {
+                    "name": "angleTargetRoll",
+                    "ctype": "int16_t",
+                    "desc": "Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits",
+                    "units": "deci-degrees"
+                },
+                {
+                    "name": "angleTargetPitch",
+                    "ctype": "int16_t",
+                    "desc": "Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits",
+                    "units": "deci-degrees"
+                },
+                {
+                    "name": "angleTargetYaw",
+                    "ctype": "int16_t",
+                    "desc": "Angle target in deci-degrees. Yaw clamped to 0–3600.",
+                    "units": "deci-degrees"
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Uses the same override path as logic conditions and bypasses stick-derived angle targets.",
+        "description": "Enables or disables a flight-axis angle override for the selected axis."
+    },
+    "MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE": {
+        "code": 8727,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "overrideMask",
+                    "ctype": "uint8_t",
+                    "desc": "Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis.",
+                    "units": "Bitmask",
+                    "bitmask": true
+                },
+                {
+                    "name": "rateTargetRoll",
+                    "ctype": "int16_t",
+                    "desc": "Rate target, clamped to ±2000",
+                    "units": "deg/s"
+                },
+                {
+                    "name": "rateTargetPitch",
+                    "ctype": "int16_t",
+                    "desc": "Rate target, clamped to ±2000",
+                    "units": "deg/s"
+                },
+                {
+                    "name": "rateTargetYaw",
+                    "ctype": "int16_t",
+                    "desc": "Rate target, clamped to ±2000",
+                    "units": "deg/s"
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Expects 7 bytes. Overrides rate targets just before control is applied, bypassing stick-derived setpoints.",
+        "description": "Enables or disables a flight-axis rate override for the selected axis."
+    },
+    "MSP2_INAV_SET_LOCAL_TARGET": {
+        "code": 8728,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "posX",
+                    "ctype": "int32_t",
+                    "desc": "Desired X in local NEU frame",
+                    "units": "cm"
+                },
+                {
+                    "name": "posY",
+                    "ctype": "int32_t",
+                    "desc": "Desired Y in local NEU frame",
+                    "units": "cm"
+                },
+                {
+                    "name": "posZ",
+                    "ctype": "int32_t",
+                    "desc": "Desired Z in local NEU frame (up-positive). Omit this field to leave Z unchanged.",
+                    "units": "cm",
+                    "optional": true
+                }
+            ]
+        },
+        "reply": null,
+        "variable_len": true,
+        "notes": "Offsets are in the vehicle body frame (forward/right/up, cm) and are rotated into the NEU frame using the current yaw, applied relative to current position. Z offset is always provided; Z=0 keeps current altitude, non-zero offsets are relative to current altitude. Requires GCSNAV/offboard to be active and a valid guided poshold; updates the navigation desired position via `setDesiredPosition()`.",
+        "description": "Sets a body-frame offset target relative to the current vehicle position."
+    },
+    "MSP2_INAV_LOCAL_TARGET": {
+        "code": 8729,
+        "mspv": 2,
+        "request": null,
+        "reply": {
+            "payload": [
+                {
+                    "name": "posX",
+                    "ctype": "int32_t",
+                    "desc": "Desired X in local NEU frame (`posControl.desiredState.pos.x`)",
+                    "units": "cm"
+                },
+                {
+                    "name": "posY",
+                    "ctype": "int32_t",
+                    "desc": "Desired Y in local NEU frame (`posControl.desiredState.pos.y`)",
+                    "units": "cm"
+                },
+                {
+                    "name": "posZ",
+                    "ctype": "int32_t",
+                    "desc": "Desired Z in local NEU frame (`posControl.desiredState.pos.z`, up-positive)",
+                    "units": "cm"
+                },
+                {
+                    "name": "velX",
+                    "ctype": "int16_t",
+                    "desc": "Desired X velocity (`posControl.desiredState.vel.x`)",
+                    "units": "cm/s"
+                },
+                {
+                    "name": "velY",
+                    "ctype": "int16_t",
+                    "desc": "Desired Y velocity (`posControl.desiredState.vel.y`)",
+                    "units": "cm/s"
+                },
+                {
+                    "name": "velZ",
+                    "ctype": "int16_t",
+                    "desc": "Desired Z velocity (`posControl.desiredState.vel.z`)",
+                    "units": "cm/s"
+                },
+                {
+                    "name": "yaw",
+                    "ctype": "int32_t",
+                    "desc": "Desired heading (`posControl.desiredState.yaw`)",
+                    "units": "centi-degrees"
+                },
+                {
+                    "name": "climbRate",
+                    "ctype": "int16_t",
+                    "desc": "Desired climb rate demand (`posControl.desiredState.climbRateDemand`)",
+                    "units": "cm/s"
+                }
+            ]
+        },
+        "notes": "Local frame is NEU. Mirrors `posControl.desiredState` (position, velocity, yaw, climb rate) used by the position controller.",
+        "description": "Returns the current navigation desired state (position, velocity, yaw, and climb rate)."
+    },
+    "MSP2_INAV_SET_GLOBAL_TARGET": {
+        "code": 8730,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "latitude",
+                    "ctype": "int32_t",
+                    "desc": "Latitude coordinate",
+                    "units": "deg * 1e7"
+                },
+                {
+                    "name": "longitude",
+                    "ctype": "int32_t",
+                    "desc": "Longitude coordinate",
+                    "units": "deg * 1e7"
+                },
+                {
+                    "name": "altitudeTarget",
+                    "ctype": "int32_t",
+                    "desc": "Desired altitude target according to reference datum (0 keeps current altitude)",
+                    "units": "cm"
+                },
+                {
+                    "name": "altitudeDatum",
+                    "ctype": "uint8_t",
+                    "desc": "Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet)",
+                    "units": "",
+                    "enum": "geoAltitudeDatumFlag_e"
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged.",
+        "description": "Sets desired GCS Nav position with global coordinates (WP 254/GOTO)."
+    },
+    "MSP2_INAV_NAV_TARGET": {
+        "code": 8731,
+        "mspv": 2,
+        "request": null,
+        "reply": {
+            "payload": [
+                {
+                    "name": "latTarget",
+                    "ctype": "int32_t",
+                    "desc": "Latitude in degrees * 1e7",
+                    "units": "1e-7 deg"
+                },
+                {
+                    "name": "lonTarget",
+                    "ctype": "int32_t",
+                    "desc": "Longitude in degrees * 1e7",
+                    "units": "1e-7 deg"
+                },
+                {
+                    "name": "altitudeTarget",
+                    "ctype": "int32_t",
+                    "desc": "Desired altitude target (takeoff datum, cm) as used by altitude/position hold",
+                    "units": "cm"
+                },
+                {
+                    "name": "headingTarget",
+                    "ctype": "uint16_t",
+                    "desc": "Current heading-hold target (`getHeadingHoldTarget()`), wrapped to 0–359.99",
+                    "units": "degrees"
+                },
+                {
+                    "name": "climbRate",
+                    "ctype": "int16_t",
+                    "desc": "Desired climb rate demand (`posControl.desiredState.climbRateDemand`)",
+                    "units": "cm/s"
+                }
+            ]
+        },
+        "notes": "Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome).",
+        "description": "Returns the current navigation desired global target (lat/lon/alt, heading, climb rate)."
     },
     "MSP2_INAV_FULL_LOCAL_POSE": {
         "code": 8736,
