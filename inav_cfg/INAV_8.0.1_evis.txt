@@ -27,7 +27,7 @@ servo 3 1325 1825 1625 100
 servo 4 1220 1720 1420 100
 servo 5 1230 2050 1660 -100
 servo 6 1000 1850 1420 -100
-servo 7 1400 2000 1700 100
+servo 7 1300 1850 1600 100
 
 # safehome
 
@@ -38,12 +38,13 @@ servo 7 1400 2000 1700 100
 # geozone vertices
 
 # features
+feature BLACKBOX
 feature PWM_OUTPUT_ENABLE
 
 # beeper
 
 # blackbox
-blackbox -NAV_ACC
+blackbox NAV_ACC
 blackbox NAV_POS
 blackbox NAV_PID
 blackbox MAG
@@ -75,8 +76,8 @@ aux 1 1 1 1725 2100
 aux 2 12 1 900 1250
 aux 3 5 2 1500 1800
 aux 4 35 2 1800 2100
-aux 5 62 3 1300 2100
-aux 6 63 3 1300 1650
+aux 5 62 3 1350 2100
+aux 6 63 3 1350 1650
 
 # Adjustments [adjrange]
 
@@ -105,9 +106,9 @@ set dynamic_gyro_notch_min_hz = 73
 set dynamic_gyro_notch_mode = 3D
 set setpoint_kalman_q = 200
 set gyro_zero_x = 8
-set gyro_zero_y = -5
-set gyro_zero_z = 3
-set ins_gravity_cmss =  984.395
+set gyro_zero_y = -6
+set gyro_zero_z = -2
+set ins_gravity_cmss =  983.260
 set gyro_adaptive_filter_min_hz = 20
 set acc_hardware = ICM42605
 set acczero_x = -3
@@ -147,9 +148,11 @@ control_profile 1
 set fw_p_pitch = 20
 set fw_d_pitch = 2
 set fw_ff_pitch = 100
-set fw_p_yaw = 69
-set fw_d_yaw = 2
+set fw_p_yaw = 79
+set fw_i_yaw = 17
+set fw_d_yaw = 7
 set fw_ff_yaw = 100
+set fw_p_level = 30
 set rc_expo = 30
 set rc_yaw_expo = 30
 set roll_rate = 18
@@ -163,20 +166,20 @@ set rate_dynamics_end_weight = 10
 # control_profile
 control_profile 2
 
-set mc_p_pitch = 33
-set mc_i_pitch = 57
-set mc_d_pitch = 24
+set mc_p_pitch = 41
+set mc_i_pitch = 60
+set mc_d_pitch = 26
 set mc_cd_pitch = 80
-set mc_p_roll = 26
-set mc_i_roll = 43
-set mc_d_roll = 20
-set mc_cd_roll = 73
-set mc_p_yaw = 37
-set mc_i_yaw = 30
-set mc_d_yaw = 10
-set mc_cd_yaw = 40
-set mc_p_level = 8
-set mc_d_level = 55
+set mc_p_roll = 23
+set mc_i_roll = 13
+set mc_d_roll = 7
+set mc_cd_roll = 53
+set mc_p_yaw = 56
+set mc_i_yaw = 20
+set mc_d_yaw = 16
+set mc_cd_yaw = 25
+set mc_p_level = 12
+set mc_d_level = 65
 set fw_p_pitch = 15
 set fw_i_pitch = 5
 set fw_d_pitch = 5
@@ -188,6 +191,9 @@ set fw_p_yaw = 50
 set fw_i_yaw = 0
 set fw_d_yaw = 20
 set fw_ff_yaw = 255
+set max_angle_inclination_pit = 300
+set fw_level_pitch_trim =  2.000
+set yaw_rate = 15
 set ez_rate = 50
 
 # control_profile
@@ -261,12 +267,12 @@ mmix 2  1.000  0.000  1.330  0.000
 # Mixer: servo mixer
 smix reset
 
-smix 0 1 2 -20 0 -1
-smix 1 2 2 -20 0 -1
-smix 2 1 29 -83 0 -1
-smix 3 2 29 85 0 -1
-smix 4 1 38 -44 0 -1
-smix 5 2 38 45 0 -1
+smix 0 1 2 -15 0 -1
+smix 1 2 2 -15 0 -1
+smix 2 1 29 -83 100 -1
+smix 3 2 29 85 100 -1
+smix 4 1 38 14 50 -1
+smix 5 2 38 -16 50 -1
 
 # battery_profile
 battery_profile 1
@@ -284,8 +290,8 @@ battery_profile 3
 set throttle_idle =  5.000
 
 # restore original profile selection
-control_profile 1
-mixer_profile 1
+control_profile 2
+mixer_profile 2
 battery_profile 1
 
 # save configuration
