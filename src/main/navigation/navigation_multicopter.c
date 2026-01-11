@@ -148,6 +148,11 @@ bool adjustMulticopterAltitudeFromRCInput(void)
                 (getMaxThrottle() - altHoldThrottleRCZero) :
                 (altHoldThrottleRCZero - getThrottleIdleValue());
 
+            // Defensive check - should never trigger with valid configuration
+            if (limitValue <= 0) {
+                limitValue = 1;  // Prevent division by zero/negative
+            }
+
             int16_t rcClimbRate = ABS(rcThrottleAdjustment) * navConfig()->mc.max_manual_climb_rate / limitValue;
             updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
 
