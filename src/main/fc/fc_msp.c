@@ -183,6 +183,7 @@ typedef enum {
 
 static uint8_t mspPassthroughMode;
 static uint8_t mspPassthroughArgument;
+static bool mspRebootBootloader;
 
 static serialPort_t *mspFindPassthroughSerialPort(void)
  {
@@ -260,7 +261,23 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
 static void mspRebootFn(serialPort_t *serialPort)
 {
     UNUSED(serialPort);
-    fcReboot(false);
+    fcReboot(mspRebootBootloader);
+}
+
+static void mspFcRebootCommand(sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
+{
+    const unsigned int dataSize = sbufBytesRemaining(src);
+
+    // Read optional bootloader flag (backwards compatible)
+    if (dataSize >= 1) {
+        mspRebootBootloader = (sbufReadU8(src) != 0);  // 0 = normal, non-zero = DFU
+    } else {
+        mspRebootBootloader = false;  // Legacy behavior: normal reboot
+    }
+
+    if (mspPostProcessFn) {
+        *mspPostProcessFn = mspRebootFn;
+    }
 }
 
 static void serializeSDCardSummaryReply(sbuf_t *dst)
@@ -1455,14 +1472,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gpsConfigMutable()->gpsMinSats);                // 1
         sbufWriteU8(dst, 1);    // 1   inav_use_gps_velned ON/OFF
 
-        break;
-
-    case MSP_REBOOT:
-        if (!ARMING_FLAG(ARMED)) {
-            if (mspPostProcessFn) {
-                *mspPostProcessFn = mspRebootFn;
-            }
-        }
         break;
 
     case MSP_WP_GETINFO:
@@ -4465,6 +4474,13 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     } else if (cmdMSP == MSP_SET_PASSTHROUGH) {
         mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
+    } else if (cmdMSP == MSP_REBOOT) {
+        if (!ARMING_FLAG(ARMED)) {
+            mspFcRebootCommand(src, mspPostProcessFn);
+            ret = MSP_RESULT_ACK;
+        } else {
+            ret = MSP_RESULT_ERROR;
+        }
     } else {
         if (!mspFCProcessInOutCommand(cmdMSP, dst, src, &ret)) {
             ret = mspFcProcessInCommand(cmdMSP, src);
