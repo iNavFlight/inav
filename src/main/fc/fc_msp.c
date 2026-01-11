@@ -183,7 +183,6 @@ typedef enum {
 
 static uint8_t mspPassthroughMode;
 static uint8_t mspPassthroughArgument;
-static bool mspRebootBootloader;
 
 static serialPort_t *mspFindPassthroughSerialPort(void)
  {
@@ -258,10 +257,16 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
     }
 }
 
-static void mspRebootFn(serialPort_t *serialPort)
+static void mspRebootNormalFn(serialPort_t *serialPort)
 {
     UNUSED(serialPort);
-    fcReboot(mspRebootBootloader);
+    fcReboot(false);
+}
+
+static void mspRebootDfuFn(serialPort_t *serialPort)
+{
+    UNUSED(serialPort);
+    fcReboot(true);
 }
 
 static mspResult_e mspFcRebootCommand(sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
@@ -273,15 +278,16 @@ static mspResult_e mspFcRebootCommand(sbuf_t *src, mspPostProcessFnPtr *mspPostP
         return MSP_RESULT_ERROR;
     }
 
-    // Read optional bootloader flag (backwards compatible)
-    if (dataSize == 1) {
-        mspRebootBootloader = (sbufReadU8(src) != 0);  // 0 = normal, non-zero = DFU
-    } else {
-        mspRebootBootloader = false;  // Legacy behavior: normal reboot
-    }
-
+    // Determine reboot type and set appropriate post-process function
     if (mspPostProcessFn) {
-        *mspPostProcessFn = mspRebootFn;
+        if (dataSize == 1) {
+            // Read bootloader flag: 0 = normal, non-zero = DFU
+            const bool bootloaderMode = (sbufReadU8(src) != 0);
+            *mspPostProcessFn = bootloaderMode ? mspRebootDfuFn : mspRebootNormalFn;
+        } else {
+            // Legacy behavior: no parameter means normal reboot
+            *mspPostProcessFn = mspRebootNormalFn;
+        }
     }
 
     return MSP_RESULT_ACK;
