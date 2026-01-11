@@ -264,12 +264,17 @@ static void mspRebootFn(serialPort_t *serialPort)
     fcReboot(mspRebootBootloader);
 }
 
-static void mspFcRebootCommand(sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
+static mspResult_e mspFcRebootCommand(sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
 {
     const unsigned int dataSize = sbufBytesRemaining(src);
 
+    // Validate payload size: 0 or 1 byte only
+    if (dataSize > 1) {
+        return MSP_RESULT_ERROR;
+    }
+
     // Read optional bootloader flag (backwards compatible)
-    if (dataSize >= 1) {
+    if (dataSize == 1) {
         mspRebootBootloader = (sbufReadU8(src) != 0);  // 0 = normal, non-zero = DFU
     } else {
         mspRebootBootloader = false;  // Legacy behavior: normal reboot
@@ -278,6 +283,8 @@ static void mspFcRebootCommand(sbuf_t *src, mspPostProcessFnPtr *mspPostProcessF
     if (mspPostProcessFn) {
         *mspPostProcessFn = mspRebootFn;
     }
+
+    return MSP_RESULT_ACK;
 }
 
 static void serializeSDCardSummaryReply(sbuf_t *dst)
@@ -4476,8 +4483,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
         ret = MSP_RESULT_ACK;
     } else if (cmdMSP == MSP_REBOOT) {
         if (!ARMING_FLAG(ARMED)) {
-            mspFcRebootCommand(src, mspPostProcessFn);
-            ret = MSP_RESULT_ACK;
+            ret = mspFcRebootCommand(src, mspPostProcessFn);
         } else {
             ret = MSP_RESULT_ERROR;
         }
