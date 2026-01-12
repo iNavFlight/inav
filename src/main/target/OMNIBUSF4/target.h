@@ -17,6 +17,11 @@
 
 #pragma once
 
+//OMNIBUSF4PRO_MPOSD = OMNIBUSF4PRO_LEDSTRIPM5 and MPOSD on adc rssi pin for openipc camera
+#ifdef OMNIBUSF4PRO_MPOSD
+#define OMNIBUSF4PRO_LEDSTRIPM5
+#endif
+
 //Same target as OMNIBUSF4PRO with LED strip in M5
 #ifdef OMNIBUSF4PRO_LEDSTRIPM5
 #define OMNIBUSF4PRO
@@ -146,6 +151,11 @@
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
 
+#if defined(OMNIBUSF4PRO_MPOSD)
+#define USE_UART4
+#define UART4_TX_PIN            PA0
+#endif
+
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
@@ -242,6 +252,7 @@
   #define USE_FLASH_M25P16
 #endif
 
+#if !defined(OMNIBUSF4PRO_MPOSD)
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
@@ -255,6 +266,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
+#endif
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
