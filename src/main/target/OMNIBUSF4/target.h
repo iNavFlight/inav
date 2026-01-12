@@ -257,8 +257,10 @@
 #ifdef DYSF4PRO
     #define ADC_CHANNEL_3_PIN               PC3
 #else
-  #if !defined(USE_MPOSD_ON_PA0)
-    #define ADC_CHANNEL_3_PIN PA0
+  #if defined(USE_MPOSD_ON_PA0)
+    #define ADC_CHANNEL_3_PIN               NONE
+  #else
+    #define ADC_CHANNEL_3_PIN               PA0
   #endif
 #endif
 
