@@ -22,46 +22,56 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include "target/SITL/sim/xplane.h"
+
+#include <arpa/inet.h>
+#include <errno.h>
+#include <math.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include <sys/types.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <errno.h>
-#include <math.h>
 
-#include "platform.h"
-
-#include "target.h"
-#include "target/SITL/sim/xplane.h"
-#include "target/SITL/sim/simHelper.h"
-#include "fc/runtime_config.h"
-#include "drivers/time.h"
+#include "common/maths.h"
+#include "common/utils.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/barometer/barometer_fake.h"
-#include "sensors/battery_sensor_fake.h"
-#include "sensors/acceleration.h"
-#include "drivers/pitotmeter/pitotmeter_fake.h"
 #include "drivers/compass/compass_fake.h"
+#include "drivers/pitotmeter/pitotmeter_fake.h"
 #include "drivers/rangefinder/rangefinder_virtual.h"
-#include "io/rangefinder.h"
-#include "common/utils.h"
-#include "common/maths.h"
+#include "drivers/time.h"
+#include "fc/runtime_config.h"
+#include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
-#include "flight/imu.h"
 #include "io/gps.h"
+#include "io/rangefinder.h"
+#include "platform.h"
 #include "rx/sim.h"
+#include "sensors/acceleration.h"
+#include "sensors/battery_sensor_fake.h"
+#include "target.h"
+#include "target/SITL/sim/simHelper.h"
 
 #define XP_PORT 49000
 #define XPLANE_JOYSTICK_AXIS_COUNT 8
+#define XITL_DREF_VERSION 2
 
+typedef enum
+{
+    DISCONNECTED,
+    CONNECTING,
+    INIT_CONNECTION,
+    CONNECTED,
+} connectionState_t;
+
+static connectionState_t connectionState = CONNECTING;
 
 static uint8_t pwmMapping[XP_MAX_PWM_OUTS];
 static uint8_t mappingCount;
@@ -70,8 +80,9 @@ static struct sockaddr_storage serverAddr;
 static socklen_t serverAddrLen;
 static int sockFd;
 static pthread_t listenThread;
-static bool initialized = false;
 static bool useImu = false;
+
+
 
 static float lattitude = 0;
 static float longitude = 0;
@@ -93,11 +104,27 @@ static float gyro_x = 0;
 static float gyro_y = 0;
 static float gyro_z = 0;
 static float barometer = 0;
-static bool  hasJoystick = false;
+static bool hasJoystick = false;
 static float joystickRaw[XPLANE_JOYSTICK_AXIS_COUNT];
+
+// INAV-XITL specific variables
+static int inavXitlDrefVersion = 0;
+static int numSats = 16;
+static int fixType = GPS_FIX_3D;
+static float magX = 0;
+static float magY = 0;
+static float magZ = 0;
+static int32_t rangefinderAltitude = -1;  // cm
+static float batteryVoltage = 12.6f;
+static float batteryCurrent = 0;
+static uint16_t rssi = 0;
+static bool failsafe = false;
 
 typedef enum
 {
+    DREF_XITL_DataRef_Version,
+
+    // Common and XPLane DREFs
     DREF_LATITUDE,
     DREF_LONGITUDE,
     DREF_ELEVATION,
@@ -128,25 +155,41 @@ typedef enum
     DREF_JOYSTICK_VALUES_CH6,
     DREF_JOYSTICK_VALUES_CH7,
     DREF_JOYSTICK_VALUES_CH8,
+
+    // INAV-XITL DREFs
+    DREF_XITL_HEARTBEAT,
+    DREF_XITL_NUM_SATS,
+    DREF_XITL_FIX_TYPE,
+    DREF_XITL_MAG_X,
+    DREF_XITL_MAG_Y,
+    DREF_XITL_MAG_Z,
+    DREF_XITL_RANGEFINDER,
+    DREF_XITL_BATTERY_VOLTAGE,
+    DREF_XITL_BATTERY_CURRENT,
+    DREF_XITL_RSSI,
+    DREF_XITL_FAILSAFE,
+    
+    DREF_LAST
 } dref_t;
 
-uint32_t xint2uint32 (uint8_t * buf)
+uint32_t xint2uint32(uint8_t* buf)
 {
-        return buf[3] << 24 | buf [2] << 16 | buf [1] << 8 | buf [0];
+    return buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0];
 }
 
-float xflt2float (uint8_t * buf)
+float xflt2float(uint8_t* buf)
 {
-        union {
-                float f;
-                uint32_t i;
-        } v;
+    union
+    {
+        float f;
+        uint32_t i;
+    } v;
 
-        v.i = xint2uint32 (buf);
-        return v.f;
+    v.i = xint2uint32(buf);
+    return v.f;
 }
 
-static void registerDref(dref_t id, char* dref, uint32_t freq)
+static bool registerDref(dref_t id, char* dref, uint32_t freq)
 {
     char buf[413];
     memset(buf, 0, sizeof(buf));
@@ -156,7 +199,8 @@ static void registerDref(dref_t id, char* dref, uint32_t freq)
     memcpy(buf + 9, &id, 4);
     memcpy(buf + 13, dref, strlen(dref) + 1);
 
-    sendto(sockFd, (void*)buf, sizeof(buf), 0, (struct sockaddr*)&serverAddr, serverAddrLen);
+    ssize_t sentBytes = sendto(sockFd, (void*)buf, sizeof(buf), 0, (struct sockaddr*)&serverAddr, serverAddrLen);
+    return (sentBytes >= 0);
 }
 
 static void sendDref(char* dref, float value)
@@ -167,250 +211,421 @@ static void sendDref(char* dref, float value)
     memset(buf + 9, ' ', sizeof(buf) - 9);
     strcpy(buf + 9, dref);
 
-    sendto(sockFd, (void*)buf, sizeof(buf), 0, (struct sockaddr*)&serverAddr, serverAddrLen);
+    ssize_t sentBytes = sendto(sockFd, (void*)buf, sizeof(buf), 0, (struct sockaddr*)&serverAddr, serverAddrLen);
+    if (sentBytes < 0) {
+        connectionState = DISCONNECTED;
+    }
 }
 
-static void* listenWorker(void* arg)
+static void registerXplaneDrefs(int32_t freq)
 {
-    UNUSED(arg);
+    // GPS
+    registerDref(DREF_LATITUDE, "sim/flightmodel/position/latitude", freq);
+    registerDref(DREF_LONGITUDE, "sim/flightmodel/position/longitude", freq);
+    registerDref(DREF_ELEVATION, "sim/flightmodel/position/elevation", freq);
+    registerDref(DREF_AGL, "sim/flightmodel/position/y_agl", freq);
+    registerDref(DREF_LOCAL_VX, "sim/flightmodel/position/local_vx", freq);
+    registerDref(DREF_LOCAL_VY, "sim/flightmodel/position/local_vy", freq);
+    registerDref(DREF_LOCAL_VZ, "sim/flightmodel/position/local_vz", freq);
 
+    // Speed
+    registerDref(DREF_GROUNDSPEED, "sim/flightmodel/position/groundspeed", freq);
+    registerDref(DREF_TRUE_AIRSPEED, "sim/flightmodel/position/true_airspeed", freq);
+}
+
+static void registerInavXitlDrefs(int32_t freq)
+{
+    // GPS
+    registerDref(DREF_XITL_NUM_SATS, "inav_xitl/gps/numSats", freq);
+    registerDref(DREF_XITL_FIX_TYPE, "inav_xitl/gps/fix", freq);
+    registerDref(DREF_LATITUDE, "inav_xitl/gps/latitude", freq);
+    registerDref(DREF_LONGITUDE, "inav_xitl/gps/longitude", freq);
+    registerDref(DREF_ELEVATION, "inav_xitl/gps/elevation", freq);
+    registerDref(DREF_LOCAL_VX, "inav_xitl/gps/velocities[0]", freq);
+    registerDref(DREF_LOCAL_VY, "inav_xitl/gps/velocities[1]", freq);
+    registerDref(DREF_LOCAL_VZ, "inav_xitl/gps/velocities[2]", freq);
+
+    // Speed
+    registerDref(DREF_GROUNDSPEED, "inav_xitl/gps/groundspeed", freq);
+    registerDref(DREF_TRUE_AIRSPEED, "inav_xitl/sensors/airspeed", freq);
+    registerDref(DREF_XITL_MAG_X, "inav_xitl/sensors/magnetometer[0]", freq);
+    registerDref(DREF_XITL_MAG_Y, "inav_xitl/sensors/magnetometer[1]", freq);
+    registerDref(DREF_XITL_MAG_Z, "inav_xitl/sensors/magnetometer[2]", freq);
+    registerDref(DREF_XITL_RANGEFINDER, "inav_xitl/sensors/rangefinder", freq);
+
+    // Battery
+    registerDref(DREF_XITL_BATTERY_VOLTAGE, "inav_xitl/sensors/battery_voltage", freq);
+    registerDref(DREF_XITL_BATTERY_CURRENT, "inav_xitl/sensors/battery_current", freq);
+
+    // RC
+    registerDref(DREF_XITL_RSSI, "inav_xitl/rc/rssi", freq);
+    registerDref(DREF_XITL_FAILSAFE, "inav_xitl/rc/failsafe", freq);
+}
+
+static void registerCommonDrefs(int32_t freq)
+{
+    registerDref(DREF_XITL_DataRef_Version, "inav_xitl/plugin/xitlDrefVersion",
+                 freq);
+    registerDref(DREF_POS_PHI, "sim/flightmodel/position/phi", freq);
+    registerDref(DREF_POS_THETA, "sim/flightmodel/position/theta", freq);
+    registerDref(DREF_POS_PSI, "sim/flightmodel/position/psi", freq);
+    registerDref(DREF_POS_HPATH, "sim/flightmodel/position/hpath", freq);
+    registerDref(DREF_FORCE_G_AXI1, "sim/flightmodel/forces/g_axil", freq);
+    registerDref(DREF_FORCE_G_SIDE, "sim/flightmodel/forces/g_side", freq);
+    registerDref(DREF_FORCE_G_NRML, "sim/flightmodel/forces/g_nrml", freq);
+
+    registerDref(DREF_POS_P, "sim/flightmodel/position/P", freq);
+    registerDref(DREF_POS_Q, "sim/flightmodel/position/Q", freq);
+    registerDref(DREF_POS_R, "sim/flightmodel/position/R", freq);
+
+    registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", freq);
+    registerDref(DREF_HAS_JOYSTICK, "sim/joystick/has_joystick", freq);
+    registerDref(DREF_JOYSTICK_VALUES_PITCH, "sim/joystick/joy_mapped_axis_value[1]", freq);
+    registerDref(DREF_JOYSTICK_VALUES_ROll, "sim/joystick/joy_mapped_axis_value[2]", freq);
+    registerDref(DREF_JOYSTICK_VALUES_YAW, "sim/joystick/joy_mapped_axis_value[3]", freq);
+    // Abusing cowl flaps for other channels
+    registerDref(DREF_JOYSTICK_VALUES_THROTTLE, "sim/joystick/joy_mapped_axis_value[57]", freq);
+    registerDref(DREF_JOYSTICK_VALUES_CH5, "sim/joystick/joy_mapped_axis_value[58]", freq);
+    registerDref(DREF_JOYSTICK_VALUES_CH6, "sim/joystick/joy_mapped_axis_value[59]", freq);
+    registerDref(DREF_JOYSTICK_VALUES_CH7, "sim/joystick/joy_mapped_axis_value[60]", freq);
+    registerDref(DREF_JOYSTICK_VALUES_CH8, "sim/joystick/joy_mapped_axis_value[61]", freq);
+}
+
+static bool receiveSingleDref(dref_t in_dref, float* value)
+{
     uint8_t buf[1024];
     struct sockaddr_storage remoteAddr;
     socklen_t slen = sizeof(remoteAddr);
     int recvLen;
 
-    while (true)
-    {
+    recvLen = recvfrom(sockFd, buf, sizeof(buf), 0, (struct sockaddr*)&remoteAddr, &slen);
+    if (recvLen < 0 && errno != EWOULDBLOCK) {
+        return false;
+    }
 
-        float motorValue = 0;
-        float yokeValues[3] = { 0 };
-        int y = 0;
-        for (int i = 0; i < mappingCount; i++) {
-            if (y > 2) {
+    if (strncmp((char*)buf, "RREF", 4) != 0) {
+        return false;
+    }
+
+    for (int i = 5; i < recvLen; i += 8) {
+        dref_t dref = (dref_t)xint2uint32(&buf[i]);
+        if (dref == in_dref) {
+            *value = xflt2float(&(buf[i + 4]));
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void exchangeDataWithXPlane(void)
+{
+    uint8_t buf[1024];
+    struct sockaddr_storage remoteAddr;
+    socklen_t slen = sizeof(remoteAddr);
+    int recvLen;
+
+    float motorValue = 0;
+    float yokeValues[3] = {0};
+    int y = 0;
+    for (int i = 0; i < mappingCount; i++) {
+        if (y > 2) {
+            break;
+        }
+        if (pwmMapping[i] & 0x80) {  // Motor
+            motorValue = PWM_TO_FLOAT_0_1(motor[pwmMapping[i] & 0x7f]);
+        } else {
+            yokeValues[y] = PWM_TO_FLOAT_MINUS_1_1(servo[pwmMapping[i]]);
+            y++;
+        }
+    }
+
+    sendDref("sim/operation/override/override_joystick", 1);
+    if (inavXitlDrefVersion >= XITL_DREF_VERSION) {
+        sendDref("inav_xitl/plugin/heartbeat", 1.0f);
+        // Do not send motor value in Sitl mode, INAV XITL sets throttle itself
+    } else if (inavXitlDrefVersion < XITL_DREF_VERSION) {
+        sendDref("sim/cockpit2/engine/actuators/throttle_ratio_all",motorValue);
+    }
+
+    sendDref("sim/joystick/yoke_roll_ratio", yokeValues[0]);
+    sendDref("sim/joystick/yoke_pitch_ratio", yokeValues[1]);
+    sendDref("sim/joystick/yoke_heading_ratio", yokeValues[2]);
+    sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[0]", 0);
+    sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[1]", 0);
+    sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[2]", 0);
+    sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[3]", 0);
+    sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[4]", 0);
+
+    recvLen = recvfrom(sockFd, buf, sizeof(buf), 0,
+                       (struct sockaddr*)&remoteAddr, &slen);
+    if (recvLen < 0 && errno != EWOULDBLOCK) {
+        return;
+    } else if (recvLen == 0 || (recvLen == -1 && errno == ECONNRESET)) {
+        connectionState = DISCONNECTED;
+        return;
+    }
+
+    if (strncmp((char*)buf, "RREF", 4) != 0) {
+        return;
+    }
+
+    for (int i = 5; i < recvLen; i += 8) {
+        dref_t dref = (dref_t)xint2uint32(&buf[i]);
+        float value = xflt2float(&(buf[i + 4]));
+
+        switch (dref) {
+            case DREF_LATITUDE:
+                lattitude = value;
                 break;
-            }
-            if (pwmMapping[i] & 0x80) { // Motor
-                motorValue = PWM_TO_FLOAT_0_1(motor[pwmMapping[i] & 0x7f]);
-            } else {
-                yokeValues[y] = PWM_TO_FLOAT_MINUS_1_1(servo[pwmMapping[i]]);
-                y++;
-            }
+
+            case DREF_LONGITUDE:
+                longitude = value;
+                break;
+
+            case DREF_ELEVATION:
+                elevation = value;
+                break;
+
+            case DREF_AGL:
+                agl = value;
+                break;
+
+            case DREF_LOCAL_VX:
+                local_vx = value;
+                break;
+
+            case DREF_LOCAL_VY:
+                local_vy = value;
+                break;
+
+            case DREF_LOCAL_VZ:
+                local_vz = value;
+                break;
+
+            case DREF_GROUNDSPEED:
+                groundspeed = value;
+                break;
+
+            case DREF_TRUE_AIRSPEED:
+                airspeed = value;
+                break;
+
+            case DREF_POS_PHI:
+                roll = value;
+                break;
+
+            case DREF_POS_THETA:
+                pitch = value;
+                break;
+
+            case DREF_POS_PSI:
+                yaw = value;
+                break;
+
+            case DREF_POS_HPATH:
+                hpath = value;
+                break;
+
+            case DREF_FORCE_G_AXI1:
+                accel_x = value;
+                break;
+
+            case DREF_FORCE_G_SIDE:
+                accel_y = value;
+                break;
+
+            case DREF_FORCE_G_NRML:
+                accel_z = value;
+                break;
+
+            case DREF_POS_P:
+                gyro_x = value;
+                break;
+
+            case DREF_POS_Q:
+                gyro_y = value;
+                break;
+
+            case DREF_POS_R:
+                gyro_z = value;
+                break;
+
+            case DREF_POS_BARO_CURRENT_INHG:
+                barometer = value;
+                break;
+
+            case DREF_HAS_JOYSTICK:
+                hasJoystick = value >= 1 ? true : false;
+                break;
+
+            case DREF_JOYSTICK_VALUES_ROll:
+                joystickRaw[0] = value;
+                break;
+
+            case DREF_JOYSTICK_VALUES_PITCH:
+                joystickRaw[1] = value;
+                break;
+
+            case DREF_JOYSTICK_VALUES_THROTTLE:
+                joystickRaw[2] = value;
+                break;
+
+            case DREF_JOYSTICK_VALUES_YAW:
+                joystickRaw[3] = value;
+                break;
+
+            case DREF_JOYSTICK_VALUES_CH5:
+                joystickRaw[4] = value;
+                break;
+
+            case DREF_JOYSTICK_VALUES_CH6:
+                joystickRaw[5] = value;
+                break;
+
+            case DREF_JOYSTICK_VALUES_CH7:
+                joystickRaw[6] = value;
+                break;
+
+            case DREF_JOYSTICK_VALUES_CH8:
+                joystickRaw[7] = value;
+                break;
+
+            case DREF_XITL_NUM_SATS:
+                numSats = (int)value;
+                break;
+
+            case DREF_XITL_FIX_TYPE:
+                fixType = (int)value;
+                break;
+
+            case DREF_XITL_MAG_X:
+                magX = value;
+                break;
+
+            case DREF_XITL_MAG_Y:
+                magY = value;
+                break;
+
+            case DREF_XITL_MAG_Z:
+                magZ = value;
+                break;
+
+            case DREF_XITL_RANGEFINDER:
+                rangefinderAltitude = (int32_t)value;
+                break;
+
+            case DREF_XITL_BATTERY_VOLTAGE:
+                batteryVoltage = value;
+                break;
+
+            case DREF_XITL_BATTERY_CURRENT:
+                batteryCurrent = value;
+                break;
+
+            case DREF_XITL_RSSI:
+                rssi = (uint16_t)value;
+                break;
+
+            case DREF_XITL_FAILSAFE:
+                failsafe = value >= 1 ? true : false;
+                break;
+
+            default:
+                break;
         }
+    }
 
-        sendDref("sim/operation/override/override_joystick", 1);
-        sendDref("sim/cockpit2/engine/actuators/throttle_ratio_all", motorValue);
-        sendDref("sim/joystick/yoke_roll_ratio", yokeValues[0]);
-        sendDref("sim/joystick/yoke_pitch_ratio", yokeValues[1]);
-        sendDref("sim/joystick/yoke_heading_ratio", yokeValues[2]);
-        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[0]", 0);
-        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[1]", 0);
-        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[2]", 0);
-        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[3]", 0);
-        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[4]", 0);
+    if (hpath < 0) {
+        hpath += 3600;
+    }
 
-        recvLen = recvfrom(sockFd, buf, sizeof(buf), 0, (struct sockaddr*)&remoteAddr, &slen);
-        if (recvLen < 0 && errno != EWOULDBLOCK) {
-            continue;
+    if (yaw < 0) {
+        yaw += 3600;
+    }
+
+    if (hasJoystick) {
+        uint16_t channelValues[XPLANE_JOYSTICK_AXIS_COUNT];
+        channelValues[0] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[0]);
+        channelValues[1] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[1]);
+        channelValues[2] = FLOAT_0_1_TO_PWM(joystickRaw[2]);
+        channelValues[3] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[3]);
+        channelValues[4] = FLOAT_0_1_TO_PWM(joystickRaw[4]);
+        channelValues[5] = FLOAT_0_1_TO_PWM(joystickRaw[5]);
+        channelValues[6] = FLOAT_0_1_TO_PWM(joystickRaw[6]);
+        channelValues[7] = FLOAT_0_1_TO_PWM(joystickRaw[7]);
+
+        rxSimSetChannelValue(channelValues, XPLANE_JOYSTICK_AXIS_COUNT);
+    }
+
+    gpsFakeSet(
+        fixType, 
+        numSats, 
+        (int32_t)roundf(lattitude * 10000000),
+        (int32_t)roundf(longitude * 10000000),
+        (int32_t)roundf(elevation * 100),
+        (int16_t)roundf(groundspeed * 100), (int16_t)roundf(hpath * 10),
+        0,  //(int16_t)roundf(-local_vz * 100),
+        0,  //(int16_t)roundf(local_vx * 100),
+        0,  //(int16_t)roundf(-local_vy * 100),
+        0
+    );
+
+    if (inavXitlDrefVersion >= XITL_DREF_VERSION) {
+        if (rangefinderAltitude == 0xff) {
+            fakeRangefindersSetData(-1);
+        } else {
+            fakeRangefindersSetData(rangefinderAltitude);
         }
-
-        if (strncmp((char*)buf, "RREF", 4) != 0) {
-            continue;
-        }
-
-        for (int i = 5; i < recvLen; i += 8) {
-            dref_t dref = (dref_t)xint2uint32(&buf[i]);
-            float value = xflt2float(&(buf[i + 4]));
-
-            switch (dref)
-            {
-                case DREF_LATITUDE:
-                    lattitude = value;
-                    break;
-
-                case DREF_LONGITUDE:
-                    longitude = value;
-                    break;
-
-                case DREF_ELEVATION:
-                    elevation = value;
-                    break;
-
-                case DREF_AGL:
-                    agl = value;
-                    break;
-
-                case DREF_LOCAL_VX:
-                    local_vx = value;
-                    break;
-
-                case DREF_LOCAL_VY:
-                    local_vy = value;
-                    break;
-
-                case DREF_LOCAL_VZ:
-                    local_vz = value;
-                    break;
-
-                case DREF_GROUNDSPEED:
-                    groundspeed = value;
-                    break;
-
-                case DREF_TRUE_AIRSPEED:
-                    airspeed = value;
-                    break;
-
-                case DREF_POS_PHI:
-                    roll = value;
-                    break;
-
-                case DREF_POS_THETA:
-                    pitch = value;
-                    break;
-
-                case DREF_POS_PSI:
-                    yaw = value;
-                    break;
-
-                case DREF_POS_HPATH:
-                    hpath = value;
-                    break;
-
-                case DREF_FORCE_G_AXI1:
-                    accel_x = value;
-                    break;
-
-                case DREF_FORCE_G_SIDE:
-                    accel_y = value;
-                    break;
-
-                case DREF_FORCE_G_NRML:
-                    accel_z = value;
-                    break;
-
-                case DREF_POS_P:
-                    gyro_x = value;
-                    break;
-
-                case DREF_POS_Q:
-                    gyro_y = value;
-                    break;
-
-                case DREF_POS_R:
-                    gyro_z = value;
-                    break;
-
-                case DREF_POS_BARO_CURRENT_INHG:
-                    barometer = value;
-                    break;
-
-                case DREF_HAS_JOYSTICK:
-                    hasJoystick = value >= 1 ? true : false;
-                    break;
-
-                case DREF_JOYSTICK_VALUES_ROll:
-                    joystickRaw[0] = value;
-                    break;
-
-                case DREF_JOYSTICK_VALUES_PITCH:
-                    joystickRaw[1] = value;
-                    break;
-
-                case DREF_JOYSTICK_VALUES_THROTTLE:
-                    joystickRaw[2] = value;
-                    break;
-
-                case DREF_JOYSTICK_VALUES_YAW:
-                    joystickRaw[3] = value;
-                    break;
-
-                case DREF_JOYSTICK_VALUES_CH5:
-                    joystickRaw[4] = value;
-                    break;
-
-                case DREF_JOYSTICK_VALUES_CH6:
-                    joystickRaw[5] = value;
-                    break;
-
-                case DREF_JOYSTICK_VALUES_CH7:
-                    joystickRaw[6] = value;
-                    break;
-
-                case DREF_JOYSTICK_VALUES_CH8:
-                    joystickRaw[7] = value;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        if (hpath < 0) {
-            hpath += 3600;
-        }
-
-        if (yaw < 0){
-            yaw += 3600;
-        }
-
-        if (hasJoystick) {
-            uint16_t channelValues[XPLANE_JOYSTICK_AXIS_COUNT];
-            channelValues[0] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[0]);
-            channelValues[1] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[1]);
-            channelValues[2] = FLOAT_0_1_TO_PWM(joystickRaw[2]);
-            channelValues[3] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[3]);
-            channelValues[4] = FLOAT_0_1_TO_PWM(joystickRaw[4]);
-            channelValues[5] = FLOAT_0_1_TO_PWM(joystickRaw[5]);
-            channelValues[6] = FLOAT_0_1_TO_PWM(joystickRaw[6]);
-            channelValues[7] = FLOAT_0_1_TO_PWM(joystickRaw[7]);
-
-            rxSimSetChannelValue(channelValues, XPLANE_JOYSTICK_AXIS_COUNT);
-        }
-
-        gpsFakeSet(
-            GPS_FIX_3D,
-            16,
-            (int32_t)roundf(lattitude * 10000000),
-            (int32_t)roundf(longitude * 10000000),
-            (int32_t)roundf(elevation * 100),
-            (int16_t)roundf(groundspeed * 100),
-            (int16_t)roundf(hpath * 10),
-            0, //(int16_t)roundf(-local_vz * 100),
-            0, //(int16_t)roundf(local_vx * 100),
-            0, //(int16_t)roundf(-local_vy * 100),
-            0
-        );
-
+    } else if (inavXitlDrefVersion < XITL_DREF_VERSION) {
+        // Use AGL from X-Plane as rangefinder input
         const int32_t altitideOverGround = (int32_t)roundf(agl * 100);
-        if (altitideOverGround > 0 && altitideOverGround <= RANGEFINDER_VIRTUAL_MAX_RANGE_CM) {
+        if (altitideOverGround > 0 &&
+            altitideOverGround <= RANGEFINDER_VIRTUAL_MAX_RANGE_CM) {
             fakeRangefindersSetData(altitideOverGround);
         } else {
             fakeRangefindersSetData(-1);
         }
+    }
 
-        const int16_t roll_inav = roll * 10;
-        const int16_t pitch_inav = -pitch * 10;
-        const int16_t yaw_inav = yaw * 10;
+    const int16_t roll_inav = roll * 10;
+    const int16_t pitch_inav = -pitch * 10;
+    const int16_t yaw_inav = yaw * 10;
 
-        if (!useImu) {
-            imuSetAttitudeRPY(roll_inav, pitch_inav, yaw_inav);
-            imuUpdateAttitude(micros());
-        }
+    if (!useImu) {
+        imuSetAttitudeRPY(roll_inav, pitch_inav, yaw_inav);
+        imuUpdateAttitude(micros());
+    }
 
-        fakeAccSet(
-            constrainToInt16(-accel_x * GRAVITY_MSS * 1000.0f),
-            constrainToInt16(accel_y * GRAVITY_MSS * 1000.0f),
-            constrainToInt16(accel_z * GRAVITY_MSS * 1000.0f)
+    fakeAccSet(
+        constrainToInt16(-accel_x * GRAVITY_MSS * 1000.0f),
+        constrainToInt16(accel_y * GRAVITY_MSS * 1000.0f),
+        constrainToInt16(accel_z * GRAVITY_MSS * 1000.0f)
+    );
+
+    fakeGyroSet(
+        constrainToInt16(gyro_x * 16.0f),
+        constrainToInt16(-gyro_y * 16.0f),
+        constrainToInt16(-gyro_z * 16.0f)
+    );
+
+    fakePitotSetAirspeed(airspeed * 100.0f);
+
+    fakeBaroSet((int32_t)roundf(barometer * 3386.39f),
+                DEGREES_TO_CENTIDEGREES(21));
+
+    if (inavXitlDrefVersion >= XITL_DREF_VERSION) {
+        fakeBattSensorSetVbat(batteryVoltage * 100);
+        fakeBattSensorSetAmperage(batteryCurrent * 100);
+        rxSimSetRssi(rssi);
+        rxSimSetFailsafe(failsafe);
+
+        fakeMagSet(
+            constrainToInt16(magX * 1024.0f),
+            constrainToInt16(magY * 1024.0f),
+            constrainToInt16(magZ * 1024.0f)
         );
-
-        fakeGyroSet(
-            constrainToInt16(gyro_x * 16.0f),
-            constrainToInt16(-gyro_y * 16.0f),
-            constrainToInt16(-gyro_z * 16.0f)
-        );
-
-        fakeBaroSet((int32_t)roundf(barometer * 3386.39f), DEGREES_TO_CENTIDEGREES(21));
-        fakePitotSetAirspeed(airspeed * 100.0f);
-
+    } else if (inavXitlDrefVersion >= XITL_DREF_VERSION) {
         fakeBattSensorSetVbat(16.8f * 100);
 
         fpQuaternion_t quat;
@@ -425,32 +640,82 @@ static void* listenWorker(void* arg)
             constrainToInt16(north.y * 1024.0f),
             constrainToInt16(north.z * 1024.0f)
         );
-
-        if (!initialized) {
-            ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
-            // Aircraft can wobble on the runway and prevents calibration of the accelerometer
-            ENABLE_STATE(ACCELEROMETER_CALIBRATED);
-            initialized = true;
-        }
-
-        unlockMainPID();
     }
+
+    unlockMainPID();
+}
+
+static void* listenWorker(void* arg)
+{
+    UNUSED(arg);
+
+    while (connectionState != DISCONNECTED) {
+        switch (connectionState) {
+            case CONNECTING:
+
+                
+                // First register all DREFs with 0 freq to clear previous ones
+                registerCommonDrefs(0);
+                registerInavXitlDrefs(0);
+                registerXplaneDrefs(0);
+
+                registerCommonDrefs(100);
+
+                float inavXitlDrefVersionF = 0;
+                // Wait to determine connection type and test if X-PLane is present
+                if (receiveSingleDref(DREF_XITL_DataRef_Version, &inavXitlDrefVersionF)) {
+                    inavXitlDrefVersion = (int)inavXitlDrefVersionF;
+                    connectionState = INIT_CONNECTION;
+                    break;
+                }
+                delay(100);
+                break;
+
+            case INIT_CONNECTION: {
+                if (inavXitlDrefVersion >= XITL_DREF_VERSION) {
+                    registerInavXitlDrefs(100);
+                    printf("[SIM] X-Plane INAV-XITL plugin detected. DataRef version %d.\n", inavXitlDrefVersion);
+                } else {
+                    registerXplaneDrefs(100);
+                }
+                // Get valid data to initialize sensors
+                exchangeDataWithXPlane();
+
+                ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
+                // Aircraft can wobble on the runway and prevents
+                // calibration of the accelerometer
+                ENABLE_STATE(ACCELEROMETER_CALIBRATED);
+                connectionState = CONNECTED;
+                
+                break;
+            }
+            case CONNECTED:
+                exchangeDataWithXPlane();
+                break;
+            default:
+                break;
+        }
+    }
+
+    fprintf(stderr, "[SOCKET] X-Plane connection lost.\n");
+    exit(0);
 
     return NULL;
 }
 
-
-bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool imu)
+bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount,
+                   bool imu)
 {
     memcpy(pwmMapping, mapping, mapCount);
     mappingCount = mapCount;
     useImu = imu;
+    connectionState = CONNECTING;
 
     if (port == 0) {
-        port = XP_PORT; // use default port
+        port = XP_PORT;  // use default port
     }
 
-    if(lookupAddress(ip, port, SOCK_DGRAM, (struct sockaddr*)&serverAddr, &serverAddrLen) != 0) {
+    if (lookupAddress(ip, port, SOCK_DGRAM, (struct sockaddr*)&serverAddr, &serverAddrLen) != 0) {
         return false;
     }
 
@@ -458,21 +723,21 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
     if (sockFd < 0) {
         return false;
     } else {
-	char addrbuf[IPADDRESS_PRINT_BUFLEN];
-        char *nptr = prettyPrintAddress((struct sockaddr *)&serverAddr, addrbuf, IPADDRESS_PRINT_BUFLEN );
+        char addrbuf[IPADDRESS_PRINT_BUFLEN];
+        char* nptr = prettyPrintAddress((struct sockaddr*)&serverAddr, addrbuf, IPADDRESS_PRINT_BUFLEN);
         if (nptr != NULL) {
             fprintf(stderr, "[SOCKET] xplane address = %s, fd=%d\n", nptr, sockFd);
         }
     }
 
     struct timeval tv;
-        tv.tv_sec = 1;
-        tv.tv_usec = 0;
-        if (setsockopt(sockFd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    if (setsockopt(sockFd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tv, sizeof(struct timeval))) {
         return false;
     }
 
-    if (setsockopt(sockFd, SOL_SOCKET, SO_SNDTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
+    if (setsockopt(sockFd, SOL_SOCKET, SO_SNDTIMEO, (struct timeval*)&tv, sizeof(struct timeval))) {
         return false;
     }
 
@@ -480,37 +745,7 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
         return false;
     }
 
-    while (!initialized) {
-        registerDref(DREF_LATITUDE, "sim/flightmodel/position/latitude", 100);
-        registerDref(DREF_LONGITUDE, "sim/flightmodel/position/longitude", 100);
-        registerDref(DREF_ELEVATION, "sim/flightmodel/position/elevation", 100);
-        registerDref(DREF_AGL, "sim/flightmodel/position/y_agl", 100);
-        registerDref(DREF_LOCAL_VX, "sim/flightmodel/position/local_vx", 100);
-        registerDref(DREF_LOCAL_VY, "sim/flightmodel/position/local_vy", 100);
-        registerDref(DREF_LOCAL_VZ, "sim/flightmodel/position/local_vz", 100);
-        registerDref(DREF_GROUNDSPEED, "sim/flightmodel/position/groundspeed", 100);
-        registerDref(DREF_TRUE_AIRSPEED, "sim/flightmodel/position/true_airspeed", 100);
-        registerDref(DREF_POS_PHI, "sim/flightmodel/position/phi", 100);
-        registerDref(DREF_POS_THETA, "sim/flightmodel/position/theta", 100);
-        registerDref(DREF_POS_PSI, "sim/flightmodel/position/psi", 100);
-        registerDref(DREF_POS_HPATH, "sim/flightmodel/position/hpath", 100);
-        registerDref(DREF_FORCE_G_AXI1, "sim/flightmodel/forces/g_axil", 100);
-        registerDref(DREF_FORCE_G_SIDE, "sim/flightmodel/forces/g_side", 100);
-        registerDref(DREF_FORCE_G_NRML, "sim/flightmodel/forces/g_nrml", 100);
-        registerDref(DREF_POS_P, "sim/flightmodel/position/P", 100);
-        registerDref(DREF_POS_Q, "sim/flightmodel/position/Q", 100);
-        registerDref(DREF_POS_R, "sim/flightmodel/position/R", 100);
-        registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", 100);
-        registerDref(DREF_HAS_JOYSTICK, "sim/joystick/has_joystick", 100);
-        registerDref(DREF_JOYSTICK_VALUES_PITCH, "sim/joystick/joy_mapped_axis_value[1]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_ROll, "sim/joystick/joy_mapped_axis_value[2]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_YAW, "sim/joystick/joy_mapped_axis_value[3]", 100);
-        // Abusing cowl flaps for other channels
-        registerDref(DREF_JOYSTICK_VALUES_THROTTLE, "sim/joystick/joy_mapped_axis_value[57]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_CH5, "sim/joystick/joy_mapped_axis_value[58]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_CH6, "sim/joystick/joy_mapped_axis_value[59]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_CH7, "sim/joystick/joy_mapped_axis_value[60]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_CH8, "sim/joystick/joy_mapped_axis_value[61]", 100);
+    while (connectionState != CONNECTED) {
         delay(250);
     }
 
