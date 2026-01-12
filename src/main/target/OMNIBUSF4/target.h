@@ -266,7 +266,7 @@
 
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
-#if defined(OMNIBUSF4PRO_MPOSD)
+#if defined(USE_MPOSD_ON_PA0)
   #define RSSI_ADC_CHANNEL                ADC_CHN_NONE
 #else
   #define RSSI_ADC_CHANNEL                ADC_CHN_3
