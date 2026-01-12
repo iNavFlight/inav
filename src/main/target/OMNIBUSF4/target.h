@@ -21,6 +21,7 @@
 #ifdef OMNIBUSF4PRO_MPOSD
 #define OMNIBUSF4PRO
 #define OMNIBUSF4PRO_LEDSTRIPM5
+#define USE_MPOSD_ON_PA0
 #endif
 
 //Same target as OMNIBUSF4V3 with softserial in M5 and M6
