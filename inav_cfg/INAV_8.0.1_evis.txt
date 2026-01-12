@@ -107,10 +107,10 @@ set dynamic_gyro_notch_q = 250
 set dynamic_gyro_notch_min_hz = 73
 set dynamic_gyro_notch_mode = 3D
 set setpoint_kalman_q = 200
-set gyro_zero_x = 9
+set gyro_zero_x = 10
 set gyro_zero_y = -5
 set gyro_zero_z = -2
-set ins_gravity_cmss =  984.342
+set ins_gravity_cmss =  984.713
 set gyro_adaptive_filter_min_hz = 20
 set acc_hardware = ICM42605
 set acczero_x = -3
@@ -135,14 +135,18 @@ set current_meter_scale = 150
 set small_angle = 180
 set applied_defaults = 3
 set airmode_type = STICK_CENTER_ONCE
-set nav_wp_radius = 800
+set nav_wp_radius = 500
 set nav_wp_max_safe_distance = 500
+set nav_fw_wp_tracking_accuracy = 3
 set nav_rth_allow_landing = FS_ONLY
 set nav_rth_altitude = 5000
 set nav_fw_control_smoothness = 2
 set nav_fw_launch_motor_delay = 100
 set nav_fw_launch_max_altitude = 5000
 set nav_fw_launch_climb_angle = 25
+
+set servo_pwm_rate = 100
+set servo_lpf_hz = 25
 
 # control_profile
 control_profile 1
@@ -285,6 +289,7 @@ smix 9 2 38 -75 100 -1
 battery_profile 1
 
 set throttle_idle =  10.000
+set nav_mc_hover_thr = 1600
 
 # battery_profile
 battery_profile 2
@@ -297,8 +302,8 @@ battery_profile 3
 set throttle_idle =  5.000
 
 # restore original profile selection
-control_profile 1
-mixer_profile 1
+control_profile 2
+mixer_profile 2
 battery_profile 1
 
 # save configuration
