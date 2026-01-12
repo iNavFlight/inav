@@ -253,7 +253,7 @@
   #define USE_FLASH_M25P16
 #endif
 
-#if !defined(OMNIBUSF4PRO_MPOSD)
+
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
@@ -261,13 +261,15 @@
 #ifdef DYSF4PRO
     #define ADC_CHANNEL_3_PIN               PC3
 #else
-    #define ADC_CHANNEL_3_PIN               PA0
+    #if !defined(OMNIBUSF4PRO_MPOSD)
+        #define ADC_CHANNEL_3_PIN               PA0
+    #endif
 #endif
 
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
-#endif
+
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
