@@ -154,6 +154,7 @@
 #if defined(OMNIBUSF4PRO_MPOSD)
 #define USE_UART4
 #define UART4_TX_PIN            PA0
+#define UART4_RX_PIN            NONE
 #endif
 
 #define USE_UART6
