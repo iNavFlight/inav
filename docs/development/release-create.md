@@ -208,6 +208,25 @@ gh release list --repo iNavFlight/inav-nightly --limit 5
 gh release download <nightly-tag> --repo iNavFlight/inav-nightly --pattern "*.hex"
 ```
 
+#### Building Firmware Locally (if needed)
+
+**⚠️ Important:** Always use Release mode when building firmware for releases to save disk space:
+
+```bash
+cd inav
+mkdir build-release
+cd build-release
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# Build all official release targets
+make release
+
+# Or build specific targets
+make MATEKF405 MATEKF722
+```
+
+**Disk usage:** Release mode uses ~4-6 GB vs ~109 GB for default RelWithDebInfo mode (96% reduction). The debug symbols are stripped from final `.hex` files anyway, so Release mode produces identical output.
+
 #### Renaming Firmware Files
 
 Remove CI suffix and add RC number for RC releases:
