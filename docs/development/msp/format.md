@@ -39,7 +39,7 @@
 **reply**: null or dict of data received\
 **variable_len**: Optional boolean, if true, message does not have a predefined fixed length and needs appropriate handling\
 **variants**: Optional special case, message has different cases of reply/request. Key/description is not a strict expression or code; just a readable condition\
-**not_implemented**: Optional special case, message is not implemented\
+**not_implemented**: Optional special case, message is not implemented (never or deprecated)\
 **notes**: String with details of message
 
 ## Data dict fields:
