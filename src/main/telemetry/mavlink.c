@@ -335,6 +335,9 @@ static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum)
 
 static void mavlinkSetStreamRate(uint8_t streamNum, uint8_t rate)
 {
+    if (streamNum >= MAXSTREAMS) {
+        return;
+    }
     mavRates[streamNum] = rate;
     mavTicks[streamNum] = 0;
 }
@@ -560,10 +563,84 @@ static const mavlinkModeDescriptor_t copterModes[] = {
     { COPTER_MODE_DRIFT,      "DRIFT" },
 };
 
-static void mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint8_t count, uint8_t currentCustom)
+static bool mavlinkPlaneModeIsConfigured(uint8_t customMode)
 {
+    switch ((APM_PLANE_MODE)customMode) {
+        case PLANE_MODE_MANUAL:
+            return isModeActivationConditionPresent(BOXMANUAL);
+        case PLANE_MODE_ACRO:
+            return true;
+        case PLANE_MODE_STABILIZE:
+            return isModeActivationConditionPresent(BOXHORIZON) ||
+                isModeActivationConditionPresent(BOXANGLEHOLD);
+        case PLANE_MODE_FLY_BY_WIRE_A:
+            return isModeActivationConditionPresent(BOXANGLE);
+        case PLANE_MODE_FLY_BY_WIRE_B:
+            return isModeActivationConditionPresent(BOXNAVALTHOLD);
+        case PLANE_MODE_CRUISE:
+            return isModeActivationConditionPresent(BOXNAVCRUISE);
+        case PLANE_MODE_AUTO:
+            return isModeActivationConditionPresent(BOXNAVWP);
+        case PLANE_MODE_RTL:
+            return isModeActivationConditionPresent(BOXNAVRTH);
+        case PLANE_MODE_LOITER:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD);
+        case PLANE_MODE_GUIDED:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD) &&
+                isModeActivationConditionPresent(BOXGCSNAV);
+        case PLANE_MODE_TAKEOFF:
+            return isModeActivationConditionPresent(BOXNAVLAUNCH);
+        default:
+            return false;
+    }
+}
+
+static bool mavlinkCopterModeIsConfigured(uint8_t customMode)
+{
+    switch ((APM_COPTER_MODE)customMode) {
+        case COPTER_MODE_ACRO:
+            return true;
+        case COPTER_MODE_STABILIZE:
+            return isModeActivationConditionPresent(BOXANGLE) ||
+                isModeActivationConditionPresent(BOXHORIZON) ||
+                isModeActivationConditionPresent(BOXANGLEHOLD);
+        case COPTER_MODE_ALT_HOLD:
+            return isModeActivationConditionPresent(BOXNAVALTHOLD);
+        case COPTER_MODE_POSHOLD:
+        case COPTER_MODE_GUIDED:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD);
+        case COPTER_MODE_RTL:
+            return isModeActivationConditionPresent(BOXNAVRTH);
+        case COPTER_MODE_AUTO:
+            return isModeActivationConditionPresent(BOXNAVWP);
+        case COPTER_MODE_THROW:
+            return isModeActivationConditionPresent(BOXNAVLAUNCH);
+        default:
+            return false;
+    }
+}
+
+static void mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint8_t count, uint8_t currentCustom,
+    bool (*isModeConfigured)(uint8_t customMode))
+{
+    uint8_t availableCount = 0;
     for (uint8_t i = 0; i < count; i++) {
-        const uint8_t modeIndex = i + 1;
+        if (isModeConfigured(modes[i].customMode)) {
+            availableCount++;
+        }
+    }
+
+    if (availableCount == 0) {
+        return;
+    }
+
+    uint8_t modeIndex = 0;
+    for (uint8_t i = 0; i < count; i++) {
+        if (!isModeConfigured(modes[i].customMode)) {
+            continue;
+        }
+
+        modeIndex++;
         const uint8_t stdMode = MAV_STANDARD_MODE_NON_STANDARD;
         const uint32_t properties = 0;
 
@@ -571,7 +648,7 @@ static void mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint
             mavSystemId,
             mavComponentId,
             &mavSendMsg,
-            count,
+            availableCount,
             modeIndex,
             stdMode,
             modes[i].customMode,
@@ -981,11 +1058,11 @@ void mavlinkSendAttitude(void)
         // yaw Yaw angle (rad)
         RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(attitude.values.yaw)),
         // rollspeed Roll angular speed (rad/s)
-        gyro.gyroADCf[FD_ROLL],
+        DEGREES_TO_RADIANS(gyro.gyroADCf[FD_ROLL]),
         // pitchspeed Pitch angular speed (rad/s)
-        gyro.gyroADCf[FD_PITCH],
+        DEGREES_TO_RADIANS(gyro.gyroADCf[FD_PITCH]),
         // yawspeed Yaw angular speed (rad/s)
-        gyro.gyroADCf[FD_YAW]);
+        DEGREES_TO_RADIANS(gyro.gyroADCf[FD_YAW]));
 
     mavlinkSendMessage();
 }
@@ -1864,10 +1941,10 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t ackTargetSystem
                             uint8_t currentCustom;
                             if (mixerConfig()->platformType == PLATFORM_AIRPLANE || STATE(FIXED_WING_LEGACY)) {
                                 currentCustom = (uint8_t)inavToArduPlaneMap(flm);
-                                mavlinkSendAvailableModes(planeModes, ARRAYLEN(planeModes), currentCustom);
+                                mavlinkSendAvailableModes(planeModes, ARRAYLEN(planeModes), currentCustom, mavlinkPlaneModeIsConfigured);
                             } else {
                                 currentCustom = (uint8_t)inavToArduCopterMap(flm);
-                                mavlinkSendAvailableModes(copterModes, ARRAYLEN(copterModes), currentCustom);
+                                mavlinkSendAvailableModes(copterModes, ARRAYLEN(copterModes), currentCustom, mavlinkCopterModeIsConfigured);
                             }
                             sent = true;
                         }
@@ -1959,7 +2036,8 @@ static bool handleIncoming_COMMAND_LONG(void)
     mavlink_command_long_t msg;
     mavlink_msg_command_long_decode(&mavRecvMsg, &msg);
 
-    return handleIncoming_COMMAND(msg.target_system, mavRecvMsg.sysid, mavRecvMsg.compid, msg.command, msg.confirmation, msg.param1, msg.param2, msg.param3, msg.param4, msg.param5, msg.param6, msg.param7);
+    // COMMAND_LONG has no frame field; location commands are WGS84 global by definition.
+    return handleIncoming_COMMAND(msg.target_system, mavRecvMsg.sysid, mavRecvMsg.compid, msg.command, MAV_FRAME_GLOBAL, msg.param1, msg.param2, msg.param3, msg.param4, msg.param5, msg.param6, msg.param7);
 }
 
 static bool handleIncoming_MISSION_ITEM_INT(void)
