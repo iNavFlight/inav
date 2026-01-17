@@ -4201,27 +4201,32 @@ static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_
 
 static mspResult_e mspProcessSimulatorCommand(sbuf_t *dst, sbuf_t *src, const int dataSize)
 {
+    if (dataSize < 2) {
+        return MSP_RESULT_ERROR;
+    }
+
     const uint8_t simMspVersion = sbufReadU8(src); // Get the Simulator MSP version
-    // Check the MSP version of simulator
     if (simMspVersion != SIMULATOR_MSP_VERSION_2 && simMspVersion != SIMULATOR_MSP_VERSION_3) {
         return MSP_RESULT_ERROR;
     }
-    
-    // Backward compatibility for HITL Plugin 1.X
-    simulatorData.flags = sbufReadU8(src);
 
     if (simMspVersion == SIMULATOR_MSP_VERSION_3) {
-        simulatorData.flags |= ((uint16_t)sbufReadU8(src)) << 8;
+        if (dataSize < 3) {
+            return MSP_RESULT_ERROR;
+        }
+        simulatorData.flags = sbufReadU16(src);
+    } else {
+        simulatorData.flags = sbufReadU8(src);
     }
-    
-    // In case of SITL mode, we do not read any input from the simulator (done vis DREFs)
+
+    const int remainingPayload = (int)sbufBytesRemaining(src);
+
     if (!SIMULATOR_HAS_OPTION(HITL_SITL_MODE)) {
-        // Check if simulator is disabled and was previously enabled (flags != 0)
         if (!SIMULATOR_HAS_OPTION(HITL_ENABLE) && simulatorData.flags) {
             fcReboot(false);
             return MSP_RESULT_NO_REPLY;
         } else {
-            readMspSimulatorValues(src, dataSize, simMspVersion);
+            readMspSimulatorValues(src, remainingPayload, simMspVersion);
         }
     }
 

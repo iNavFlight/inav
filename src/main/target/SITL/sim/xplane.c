@@ -303,7 +303,7 @@ static bool receiveSingleDref(dref_t in_dref, float* value)
         return false;
     }
 
-    if (strncmp((char*)buf, "RREF", 4) != 0) {
+    if (recvLen < 5 || strncmp((char*)buf, "RREF", 4) != 0) {
         return false;
     }
 
@@ -572,12 +572,12 @@ static void exchangeDataWithXPlane(void)
     );
 
     if (inavXitlDrefVersion >= XITL_DREF_VERSION) {
-        if (rangefinderAltitude == 0xff) {
+        if (rangefinderAltitude == 0xffff) {
             fakeRangefindersSetData(-1);
         } else {
             fakeRangefindersSetData(rangefinderAltitude);
         }
-    } else if (inavXitlDrefVersion < XITL_DREF_VERSION) {
+    } else {
         // Use AGL from X-Plane as rangefinder input
         const int32_t altitideOverGround = (int32_t)roundf(agl * 100);
         if (altitideOverGround > 0 &&
@@ -625,7 +625,7 @@ static void exchangeDataWithXPlane(void)
             constrainToInt16(magY * 1024.0f),
             constrainToInt16(magZ * 1024.0f)
         );
-    } else if (inavXitlDrefVersion >= XITL_DREF_VERSION) {
+    } else {
         fakeBattSensorSetVbat(16.8f * 100);
 
         fpQuaternion_t quat;
@@ -653,7 +653,6 @@ static void* listenWorker(void* arg)
         switch (connectionState) {
             case CONNECTING:
 
-                
                 // First register all DREFs with 0 freq to clear previous ones
                 registerCommonDrefs(0);
                 registerInavXitlDrefs(0);
