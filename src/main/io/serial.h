@@ -139,6 +139,18 @@ PG_DECLARE(serialConfig_t, serialConfig);
 
 typedef void serialConsumer(uint8_t);
 
+// Hayes escape sequence detection state: [1s silence]+++[1s silence]
+// https://en.wikipedia.org/wiki/Escape_sequence#Modem_control
+typedef struct escapeSequenceState_s {
+    uint32_t lastCharTime;
+    uint32_t lastPlusTime;
+    uint8_t count;
+} escapeSequenceState_t;
+
+void escapeSequenceInit(escapeSequenceState_t *state);
+void escapeSequenceProcessChar(escapeSequenceState_t *state, uint8_t c, uint32_t now);
+bool escapeSequenceCheckGuard(escapeSequenceState_t *state, uint32_t now);
+
 //
 // configuration
 //
