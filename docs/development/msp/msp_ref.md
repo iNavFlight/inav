@@ -10,7 +10,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 2**
+**JSON file rev: 4**
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -66,7 +66,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 **reply**: null or dict of data received\
 **variable_len**: Optional boolean, if true, message does not have a predefined fixed length and needs appropriate handling\
 **variants**: Optional special case, message has different cases of reply/request. Key/description is not a strict expression or code; just a readable condition\
-**not_implemented**: Optional special case, message is not implemented\
+**not_implemented**: Optional special case, message is not implemented (never or deprecated)\
 **notes**: String with details of message
 
 ## Data dict fields:
@@ -411,6 +411,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8721 - MSP2_INAV_SET_GEOZONE](#msp2_inav_set_geozone)  
 [8722 - MSP2_INAV_GEOZONE_VERTEX](#msp2_inav_geozone_vertex)  
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
+[8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 
@@ -3803,7 +3804,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Notes:** Expects 7 bytes. Returns error if index invalid. Calls `loadCustomServoMixer()`.
 
 ## <a id="msp2_inav_logic_conditions"></a>`MSP2_INAV_LOGIC_CONDITIONS (8226 / 0x2022)`
-**Description:** Retrieves the configuration of all defined Logic Conditions.  
+**Description:** Retrieves the configuration of all defined Logic Conditions. Requires `USE_PROGRAMMING_FRAMEWORK`. See `logicCondition_t` structure.  
 
 **Request Payload:** **None**  
   
@@ -3819,7 +3820,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 | `operandBValue` | `int32_t` | 4 | - | Value/ID of the second operand |
 | `flags` | `uint8_t` | 1 | Bitmask | Bitmask: Condition flags (`logicConditionFlags_e`) |
 
-**Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. See `logicCondition_t` structure.
+**Notes:** Deprecated, causes buffer overflow for 14*64 bytes
 
 ## <a id="msp2_inav_set_logic_conditions"></a>`MSP2_INAV_SET_LOGIC_CONDITIONS (8227 / 0x2023)`
 **Description:** Sets the configuration for a single Logic Condition by its index.  
@@ -4491,6 +4492,19 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 
 **Notes:** Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).
+
+## <a id="msp2_inav_set_gvar"></a>`MSP2_INAV_SET_GVAR (8724 / 0x2214)`
+**Description:** Sets the specified Global Variable (GVAR) to the provided value.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `gvarIndex` | `uint8_t` | 1 | Index | Index of the Global Variable to set |
+| `value` | `int32_t` | 4 | - | New value to store (clamped to configured min/max by `gvSet()`) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.
 
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  

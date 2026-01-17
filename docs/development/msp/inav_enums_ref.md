@@ -7,6 +7,7 @@
 - [accelerationSensor_e](#enum-accelerationsensor_e)
 - [accEvent_t](#enum-accevent_t)
 - [adcChannel_e](#enum-adcchannel_e)
+- [ADCDevice](#enum-adcdevice)
 - [adcFunction_e](#enum-adcfunction_e)
 - [adjustmentFunction_e](#enum-adjustmentfunction_e)
 - [adjustmentMode_e](#enum-adjustmentmode_e)
@@ -41,7 +42,9 @@
 - [beeperMode_e](#enum-beepermode_e)
 - [biquadFilterType_e](#enum-biquadfiltertype_e)
 - [blackboxBufferReserveStatus_e](#enum-blackboxbufferreservestatus_e)
+- [BlackboxDevice](#enum-blackboxdevice)
 - [blackboxFeatureMask_e](#enum-blackboxfeaturemask_e)
+- [BlackboxState](#enum-blackboxstate)
 - [bmi270Register_e](#enum-bmi270register_e)
 - [bootLogEventCode_e](#enum-bootlogeventcode_e)
 - [bootLogFlags_e](#enum-bootlogflags_e)
@@ -62,6 +65,7 @@
 - [currentSensor_e](#enum-currentsensor_e)
 - [devHardwareType_e](#enum-devhardwaretype_e)
 - [deviceFlags_e](#enum-deviceflags_e)
+- [disarmReason_t](#enum-disarmreason_t)
 - [displayCanvasBitmapOption_t](#enum-displaycanvasbitmapoption_t)
 - [displayCanvasColor_e](#enum-displaycanvascolor_e)
 - [displayCanvasOutlineType_e](#enum-displaycanvasoutlinetype_e)
@@ -89,6 +93,11 @@
 - [flashPartitionType_e](#enum-flashpartitiontype_e)
 - [flashType_e](#enum-flashtype_e)
 - [flight_dynamics_index_t](#enum-flight_dynamics_index_t)
+- [FlightLogEvent](#enum-flightlogevent)
+- [FlightLogFieldCondition](#enum-flightlogfieldcondition)
+- [FlightLogFieldEncoding](#enum-flightlogfieldencoding)
+- [FlightLogFieldPredictor](#enum-flightlogfieldpredictor)
+- [FlightLogFieldSign](#enum-flightlogfieldsign)
 - [flightModeFlags_e](#enum-flightmodeflags_e)
 - [flightModeForTelemetry_e](#enum-flightmodefortelemetry_e)
 - [flyingPlatformType_e](#enum-flyingplatformtype_e)
@@ -133,6 +142,7 @@
 - [hottEamAlarm2Flag_e](#enum-hotteamalarm2flag_e)
 - [hottState_e](#enum-hottstate_e)
 - [hsvColorComponent_e](#enum-hsvcolorcomponent_e)
+- [I2CDevice](#enum-i2cdevice)
 - [I2CSpeed](#enum-i2cspeed)
 - [i2cState_t](#enum-i2cstate_t)
 - [i2cTransferDirection_t](#enum-i2ctransferdirection_t)
@@ -152,6 +162,7 @@
 - [logicConditionsGlobalFlags_t](#enum-logicconditionsglobalflags_t)
 - [logicFlightModeOperands_e](#enum-logicflightmodeoperands_e)
 - [logicFlightOperands_e](#enum-logicflightoperands_e)
+- [logicOperandType_e](#enum-logicoperandtype_e)
 - [logicOperation_e](#enum-logicoperation_e)
 - [logicWaypointOperands_e](#enum-logicwaypointoperands_e)
 - [logTopic_e](#enum-logtopic_e)
@@ -232,12 +243,16 @@
 - [pinLabel_e](#enum-pinlabel_e)
 - [pitotSensor_e](#enum-pitotsensor_e)
 - [pollType_e](#enum-polltype_e)
+- [portMode_t](#enum-portmode_t)
+- [portOptions_t](#enum-portoptions_t)
 - [portSharing_e](#enum-portsharing_e)
 - [pwmInitError_e](#enum-pwminiterror_e)
 - [quadrant_e](#enum-quadrant_e)
 - [QUADSPIClockDivider_e](#enum-quadspiclockdivider_e)
+- [QUADSPIDevice](#enum-quadspidevice)
 - [quadSpiMode_e](#enum-quadspimode_e)
 - [rangefinderType_e](#enum-rangefindertype_e)
+- [rc_alias_e](#enum-rc_alias_e)
 - [RCDEVICE_5key_connection_event_e](#enum-rcdevice_5key_connection_event_e)
 - [rcdevice_5key_simulation_operation_e](#enum-rcdevice_5key_simulation_operation_e)
 - [rcdevice_camera_control_opeation_e](#enum-rcdevice_camera_control_opeation_e)
@@ -289,6 +304,7 @@
 - [smartportFuelUnit_e](#enum-smartportfuelunit_e)
 - [softSerialPortIndex_e](#enum-softserialportindex_e)
 - [SPIClockSpeed_e](#enum-spiclockspeed_e)
+- [SPIDevice](#enum-spidevice)
 - [Srxl2BindRequest](#enum-srxl2bindrequest)
 - [Srxl2BindType](#enum-srxl2bindtype)
 - [Srxl2ControlDataCommand](#enum-srxl2controldatacommand)
@@ -385,6 +401,21 @@
 | `ADC_CHN_6` | 6 |  |
 | `ADC_CHN_MAX` | ADC_CHN_6 |  |
 | `ADC_CHN_COUNT` |  |  |
+
+---
+## <a id="enum-adcdevice"></a>`ADCDevice`
+
+> Source: ../../../src/main/drivers/adc_impl.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `ADCINVALID` | -1 |  |
+| `ADCDEV_1` | 0 |  |
+| `ADCDEV_2` | (1) | STM32F4 || STM32F7 || STM32H7 |
+| `ADCDEV_3` | (2) | STM32F4 || STM32F7 || STM32H7 |
+| `ADCDEV_MAX` | ADCDEV_3 | STM32F4 || STM32F7 || STM32H7 |
+| `ADCDEV_MAX` | ADCDEV_1 | NOT(STM32F4 || STM32F7 || STM32H7) |
+| `ADCDEV_COUNT` | ADCDEV_MAX + 1 |  |
 
 ---
 ## <a id="enum-adcfunction_e"></a>`adcFunction_e`
@@ -921,6 +952,19 @@
 | `BLACKBOX_RESERVE_PERMANENT_FAILURE` | 2 |  |
 
 ---
+## <a id="enum-blackboxdevice"></a>`BlackboxDevice`
+
+> Source: ../../../src/main/blackbox/blackbox_io.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BLACKBOX_DEVICE_SERIAL` | 0 |  |
+| `BLACKBOX_DEVICE_FLASH` | 1 | USE_FLASHFS |
+| `BLACKBOX_DEVICE_SDCARD` | 2 | USE_SDCARD |
+| `BLACKBOX_DEVICE_FILE` | 3 | SITL_BUILD |
+| `BLACKBOX_DEVICE_END` | 4 |  |
+
+---
 ## <a id="enum-blackboxfeaturemask_e"></a>`blackboxFeatureMask_e`
 
 > Source: ../../../src/main/blackbox/blackbox.h
@@ -941,6 +985,26 @@
 | `BLACKBOX_FEATURE_GYRO_PEAKS_PITCH` | 1 << 11 |  |
 | `BLACKBOX_FEATURE_GYRO_PEAKS_YAW` | 1 << 12 |  |
 | `BLACKBOX_FEATURE_SERVOS` | 1 << 13 |  |
+
+---
+## <a id="enum-blackboxstate"></a>`BlackboxState`
+
+> Source: ../../../src/main/blackbox/blackbox.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BLACKBOX_STATE_DISABLED` | 0 |  |
+| `BLACKBOX_STATE_STOPPED` | 1 |  |
+| `BLACKBOX_STATE_PREPARE_LOG_FILE` | 2 |  |
+| `BLACKBOX_STATE_SEND_HEADER` | 3 |  |
+| `BLACKBOX_STATE_SEND_MAIN_FIELD_HEADER` | 4 |  |
+| `BLACKBOX_STATE_SEND_GPS_H_HEADER` | 5 |  |
+| `BLACKBOX_STATE_SEND_GPS_G_HEADER` | 6 |  |
+| `BLACKBOX_STATE_SEND_SLOW_HEADER` | 7 |  |
+| `BLACKBOX_STATE_SEND_SYSINFO` | 8 |  |
+| `BLACKBOX_STATE_PAUSED` | 9 |  |
+| `BLACKBOX_STATE_RUNNING` | 10 |  |
+| `BLACKBOX_STATE_SHUTTING_DOWN` | 11 |  |
 
 ---
 ## <a id="enum-bmi270register_e"></a>`bmi270Register_e`
@@ -1385,7 +1449,7 @@
 | `DEVHW_MS4525` | 49 |  |
 | `DEVHW_DLVR` | 50 |  |
 | `DEVHW_M25P16` | 51 |  |
-| `DEVHW_W25N01G` | 52 |  |
+| `DEVHW_W25N` | 52 |  |
 | `DEVHW_UG2864` | 53 |  |
 | `DEVHW_SDCARD` | 54 |  |
 | `DEVHW_IRLOCK` | 55 |  |
@@ -1402,6 +1466,23 @@
 | `DEVFLAGS_USE_RAW_REGISTERS` | (1 << 0) |  |
 | `DEVFLAGS_USE_MANUAL_DEVICE_SELECT` | (1 << 1) |  |
 | `DEVFLAGS_SPI_MODE_0` | (1 << 2) |  |
+
+---
+## <a id="enum-disarmreason_t"></a>`disarmReason_t`
+
+> Source: ../../../src/main/fc/fc_core.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISARM_NONE` | 0 |  |
+| `DISARM_TIMEOUT` | 1 |  |
+| `DISARM_STICKS` | 2 |  |
+| `DISARM_SWITCH_3D` | 3 |  |
+| `DISARM_SWITCH` | 4 |  |
+| `DISARM_FAILSAFE` | 6 |  |
+| `DISARM_NAVIGATION` | 7 |  |
+| `DISARM_LANDING` | 8 |  |
+| `DISARM_REASON_COUNT` | 9 |  |
 
 ---
 ## <a id="enum-displaycanvasbitmapoption_t"></a>`displayCanvasBitmapOption_t`
@@ -1777,6 +1858,137 @@
 | `FD_ROLL` | 0 |  |
 | `FD_PITCH` | 1 |  |
 | `FD_YAW` | 2 |  |
+
+---
+## <a id="enum-flightlogevent"></a>`FlightLogEvent`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_EVENT_SYNC_BEEP` | 0 |  |
+| `FLIGHT_LOG_EVENT_INFLIGHT_ADJUSTMENT` | 13 |  |
+| `FLIGHT_LOG_EVENT_LOGGING_RESUME` | 14 |  |
+| `FLIGHT_LOG_EVENT_FLIGHTMODE` | 30 |  |
+| `FLIGHT_LOG_EVENT_IMU_FAILURE` | 40 |  |
+| `FLIGHT_LOG_EVENT_LOG_END` | 255 |  |
+
+---
+## <a id="enum-flightlogfieldcondition"></a>`FlightLogFieldCondition`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_FIELD_CONDITION_ALWAYS` | 0 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_MOTORS` | 1 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1` | 2 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_2` | 3 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_3` | 4 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_4` | 5 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_5` | 6 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_6` | 7 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_7` | 8 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_8` | 9 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_SERVOS` | 10 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1` | 11 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_2` | 12 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_3` | 13 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_4` | 14 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_5` | 15 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_6` | 16 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_7` | 17 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_8` | 18 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_9` | 19 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_10` | 20 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_11` | 21 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_12` | 22 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_13` | 23 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_14` | 24 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_15` | 25 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_16` | 26 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_17` | 27 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_18` | 28 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_19` | 29 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_20` | 30 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_21` | 31 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_22` | 32 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_23` | 33 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_24` | 34 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_25` | 35 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_26` | 36 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_MAG` | 37 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_BARO` | 38 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_PITOT` | 39 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_VBAT` | 40 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AMPERAGE` | 41 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_SURFACE` | 42 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_FIXED_WING_NAV` | 43 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_MC_NAV` | 44 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_RSSI` | 45 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0` | 46 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1` | 47 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_2` | 48 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NOT_LOGGING_EVERY_FRAME` | 49 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_DEBUG` | 50 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NAV_ACC` | 51 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NAV_POS` | 52 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NAV_PID` | 53 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_ACC` | 54 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_ATTITUDE` | 55 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_RC_DATA` | 56 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND` | 57 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW` | 58 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL` | 59 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH` | 60 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW` | 61 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 62 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_FIRST` | FLIGHT_LOG_FIELD_CONDITION_ALWAYS |  |
+| `FLIGHT_LOG_FIELD_CONDITION_LAST` | FLIGHT_LOG_FIELD_CONDITION_NEVER |  |
+
+---
+## <a id="enum-flightlogfieldencoding"></a>`FlightLogFieldEncoding`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_FIELD_ENCODING_SIGNED_VB` | 0 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_UNSIGNED_VB` | 1 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_NEG_14BIT` | 3 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_TAG8_8SVB` | 6 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_TAG2_3S32` | 7 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_TAG8_4S16` | 8 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_NULL` | 9 |  |
+
+---
+## <a id="enum-flightlogfieldpredictor"></a>`FlightLogFieldPredictor`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_FIELD_PREDICTOR_0` | 0 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_PREVIOUS` | 1 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_STRAIGHT_LINE` | 2 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_AVERAGE_2` | 3 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_MINTHROTTLE` | 4 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_MOTOR_0` | 5 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_INC` | 6 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_HOME_COORD` | 7 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_1500` | 8 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_VBATREF` | 9 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_LAST_MAIN_FRAME_TIME` | 10 |  |
+
+---
+## <a id="enum-flightlogfieldsign"></a>`FlightLogFieldSign`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_FIELD_UNSIGNED` | 0 |  |
+| `FLIGHT_LOG_FIELD_SIGNED` | 1 |  |
 
 ---
 ## <a id="enum-flightmodeflags_e"></a>`flightModeFlags_e`
@@ -2372,6 +2584,21 @@
 | `HSV_VALUE` | 2 |  |
 
 ---
+## <a id="enum-i2cdevice"></a>`I2CDevice`
+
+> Source: ../../../src/main/drivers/bus_i2c.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `I2CINVALID` | -1 |  |
+| `I2CDEV_EMULATED` | -1 |  |
+| `I2CDEV_1` | 0 |  |
+| `I2CDEV_2` | 1 |  |
+| `I2CDEV_3` | 2 |  |
+| `I2CDEV_4` | (3) | USE_I2C_DEVICE_4 |
+| `I2CDEV_COUNT` | 4 |  |
+
+---
 ## <a id="enum-i2cspeed"></a>`I2CSpeed`
 
 > Source: ../../../src/main/drivers/bus_i2c.h
@@ -2843,6 +3070,24 @@
 | `LOGIC_CONDITION_OPERAND_FLIGHT_MIN_GROUND_SPEED` | 46 |  |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED` | 47 |  |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION` | 48 |  |
+| `LOGIC_CONDITION_OPERAND_FLIGHT_RELATIVE_WIND_OFFSET` | 49 |  |
+
+---
+## <a id="enum-logicoperandtype_e"></a>`logicOperandType_e`
+
+> Source: ../../../src/main/programming/logic_condition.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `LOGIC_CONDITION_OPERAND_TYPE_VALUE` | 0 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL` | 1 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_FLIGHT` | 2 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_FLIGHT_MODE` | 3 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_LC` | 4 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_GVAR` | 5 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_PID` | 6 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS` | 7 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_LAST` | 8 |  |
 
 ---
 ## <a id="enum-logicoperation_e"></a>`logicOperation_e`
@@ -4301,6 +4546,39 @@
 | `PT_INACTIVE_ID` | 1 |  |
 
 ---
+## <a id="enum-portmode_t"></a>`portMode_t`
+
+> Source: ../../../src/main/drivers/serial.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MODE_RX` | 1 << 0 |  |
+| `MODE_TX` | 1 << 1 |  |
+| `MODE_RXTX` | MODE_RX | MODE_TX |  |
+
+---
+## <a id="enum-portoptions_t"></a>`portOptions_t`
+
+> Source: ../../../src/main/drivers/serial.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SERIAL_NOT_INVERTED` | 0 << 0 |  |
+| `SERIAL_INVERTED` | 1 << 0 |  |
+| `SERIAL_STOPBITS_1` | 0 << 1 |  |
+| `SERIAL_STOPBITS_2` | 1 << 1 |  |
+| `SERIAL_PARITY_NO` | 0 << 2 |  |
+| `SERIAL_PARITY_EVEN` | 1 << 2 |  |
+| `SERIAL_UNIDIR` | 0 << 3 |  |
+| `SERIAL_BIDIR` | 1 << 3 |  |
+| `SERIAL_BIDIR_OD` | 0 << 4 |  |
+| `SERIAL_BIDIR_PP` | 1 << 4 |  |
+| `SERIAL_BIDIR_NOPULL` | 1 << 5 |  |
+| `SERIAL_BIDIR_UP` | 0 << 5 |  |
+| `SERIAL_LONGSTOP` | 0 << 6 |  |
+| `SERIAL_SHORTSTOP` | 1 << 6 |  |
+
+---
 ## <a id="enum-portsharing_e"></a>`portSharing_e`
 
 > Source: ../../../src/main/io/serial.h
@@ -4358,6 +4636,16 @@
 | `QUADSPI_CLOCK_ULTRAFAST` | 1 |  |
 
 ---
+## <a id="enum-quadspidevice"></a>`QUADSPIDevice`
+
+> Source: ../../../src/main/drivers/bus_quadspi.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `QUADSPIINVALID` | -1 |  |
+| `QUADSPIDEV_1` | 0 |  |
+
+---
 ## <a id="enum-quadspimode_e"></a>`quadSpiMode_e`
 
 > Source: ../../../src/main/drivers/bus_quadspi.h
@@ -4387,6 +4675,48 @@
 | `RANGEFINDER_TERARANGER_EVO` | 9 |  |
 | `RANGEFINDER_USD1_V0` | 10 |  |
 | `RANGEFINDER_NANORADAR` | 11 |  |
+
+---
+## <a id="enum-rc_alias_e"></a>`rc_alias_e`
+
+> Source: ../../../src/main/fc/rc_controls.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `ROLL` | 0 |  |
+| `PITCH` | 1 |  |
+| `YAW` | 2 |  |
+| `THROTTLE` | 3 |  |
+| `AUX1` | 4 |  |
+| `AUX2` | 5 |  |
+| `AUX3` | 6 |  |
+| `AUX4` | 7 |  |
+| `AUX5` | 8 |  |
+| `AUX6` | 9 |  |
+| `AUX7` | 10 |  |
+| `AUX8` | 11 |  |
+| `AUX9` | 12 |  |
+| `AUX10` | 13 |  |
+| `AUX11` | 14 |  |
+| `AUX12` | 15 |  |
+| `AUX13` | 16 |  |
+| `AUX14` | 17 |  |
+| `AUX15` | (18) | USE_34CHANNELS |
+| `AUX16` | (19) | USE_34CHANNELS |
+| `AUX17` | (20) | USE_34CHANNELS |
+| `AUX18` | (21) | USE_34CHANNELS |
+| `AUX19` | (22) | USE_34CHANNELS |
+| `AUX20` | (23) | USE_34CHANNELS |
+| `AUX21` | (24) | USE_34CHANNELS |
+| `AUX22` | (25) | USE_34CHANNELS |
+| `AUX23` | (26) | USE_34CHANNELS |
+| `AUX24` | (27) | USE_34CHANNELS |
+| `AUX25` | (28) | USE_34CHANNELS |
+| `AUX26` | (29) | USE_34CHANNELS |
+| `AUX27` | (30) | USE_34CHANNELS |
+| `AUX28` | (31) | USE_34CHANNELS |
+| `AUX29` | (32) | USE_34CHANNELS |
+| `AUX30` | (33) | USE_34CHANNELS |
 
 ---
 ## <a id="enum-rcdevice_5key_connection_event_e"></a>`RCDEVICE_5key_connection_event_e`
@@ -4740,7 +5070,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4751,7 +5081,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5128,6 +5458,19 @@
 | `SPI_CLOCK_STANDARD` | 2 |  |
 | `SPI_CLOCK_FAST` | 3 |  |
 | `SPI_CLOCK_ULTRAFAST` | 4 |  |
+
+---
+## <a id="enum-spidevice"></a>`SPIDevice`
+
+> Source: ../../../src/main/drivers/bus_spi.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SPIINVALID` | -1 |  |
+| `SPIDEV_1` | 0 |  |
+| `SPIDEV_2` | 1 |  |
+| `SPIDEV_3` | 2 |  |
+| `SPIDEV_4` | 3 |  |
 
 ---
 ## <a id="enum-srxl2bindrequest"></a>`Srxl2BindRequest`

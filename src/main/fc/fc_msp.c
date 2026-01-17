@@ -257,10 +257,40 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
     }
 }
 
-static void mspRebootFn(serialPort_t *serialPort)
+static void mspRebootNormalFn(serialPort_t *serialPort)
 {
     UNUSED(serialPort);
     fcReboot(false);
+}
+
+static void mspRebootDfuFn(serialPort_t *serialPort)
+{
+    UNUSED(serialPort);
+    fcReboot(true);
+}
+
+static mspResult_e mspFcRebootCommand(sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
+{
+    const unsigned int dataSize = sbufBytesRemaining(src);
+
+    // Validate payload size: 0 or 1 byte only
+    if (dataSize > 1) {
+        return MSP_RESULT_ERROR;
+    }
+
+    // Determine reboot type and set appropriate post-process function
+    if (mspPostProcessFn) {
+        if (dataSize == 1) {
+            // Read bootloader flag: 0 = normal, non-zero = DFU
+            const bool bootloaderMode = (sbufReadU8(src) != 0);
+            *mspPostProcessFn = bootloaderMode ? mspRebootDfuFn : mspRebootNormalFn;
+        } else {
+            // Legacy behavior: no parameter means normal reboot
+            *mspPostProcessFn = mspRebootNormalFn;
+        }
+    }
+
+    return MSP_RESULT_ACK;
 }
 
 static void serializeSDCardSummaryReply(sbuf_t *dst)
@@ -355,6 +385,8 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
  */
 static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
 {
+    UNUSED(mspPostProcessFn);
+
     switch (cmdMSP) {
     case MSP_API_VERSION:
         sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
@@ -562,6 +594,29 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_LOGIC_CONDITIONS_STATUS:
         for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
             sbufWriteU32(dst, logicConditionGetValue(i));
+        }
+        break;
+    case MSP2_INAV_LOGIC_CONDITIONS_CONFIGURED:
+        {
+            // Returns 8-byte bitmask where bit N = 1 if logic condition N is configured (non-default)
+            uint64_t mask = 0;
+            for (int i = 0; i < MIN(MAX_LOGIC_CONDITIONS, 64); i++) {
+                const logicCondition_t *lc = logicConditions(i);
+                // Check if any field differs from default reset values
+                bool isConfigured = (lc->enabled != 0) ||
+                                    (lc->activatorId != -1) ||
+                                    (lc->operation != 0) ||
+                                    (lc->operandA.type != LOGIC_CONDITION_OPERAND_TYPE_VALUE) ||
+                                    (lc->operandA.value != 0) ||
+                                    (lc->operandB.type != LOGIC_CONDITION_OPERAND_TYPE_VALUE) ||
+                                    (lc->operandB.value != 0) ||
+                                    (lc->flags != 0);
+                if (isConfigured) {
+                    mask |= ((uint64_t)1 << i);
+                }
+            }
+            sbufWriteU32(dst, (uint32_t)(mask & 0xFFFFFFFF));        // Lower 32 bits
+            sbufWriteU32(dst, (uint32_t)((mask >> 32) & 0xFFFFFFFF)); // Upper 32 bits
         }
         break;
     case MSP2_INAV_GVAR_STATUS:
@@ -1432,14 +1487,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gpsConfigMutable()->gpsMinSats);                // 1
         sbufWriteU8(dst, 1);    // 1   inav_use_gps_velned ON/OFF
 
-        break;
-
-    case MSP_REBOOT:
-        if (!ARMING_FLAG(ARMED)) {
-            if (mspPostProcessFn) {
-                *mspPostProcessFn = mspRebootFn;
-            }
-        }
         break;
 
     case MSP_WP_GETINFO:
@@ -2339,6 +2386,23 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             programmingPidsMutable(tmp_u8)->gains.FF = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_INAV_SET_GVAR:
+        if (dataSize != 5) {
+            return MSP_RESULT_ERROR;
+        }
+        {
+            uint8_t gvarIndex;
+            if (!sbufReadU8Safe(&gvarIndex, src)) {
+                return MSP_RESULT_ERROR;
+            }
+            const int32_t gvarValue = (int32_t)sbufReadU32(src);
+            if (gvarIndex >= MAX_GLOBAL_VARIABLES) {
+                return MSP_RESULT_ERROR;
+            }
+            gvSet(gvarIndex, gvarValue);
+        }
         break;
 #endif
     case MSP2_COMMON_SET_MOTOR_MIXER:
@@ -4425,6 +4489,12 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     } else if (cmdMSP == MSP_SET_PASSTHROUGH) {
         mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
+    } else if (cmdMSP == MSP_REBOOT) {
+        if (!ARMING_FLAG(ARMED)) {
+            ret = mspFcRebootCommand(src, mspPostProcessFn);
+        } else {
+            ret = MSP_RESULT_ERROR;
+        }
     } else {
         if (!mspFCProcessInOutCommand(cmdMSP, dst, src, &ret)) {
             ret = mspFcProcessInCommand(cmdMSP, src);

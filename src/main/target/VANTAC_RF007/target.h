@@ -18,12 +18,12 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "F7C5"
+#define TARGET_BOARD_IDENTIFIER "F7B5"
 
-#define USBD_PRODUCT_STRING  "NEXUSX"
+#define USBD_PRODUCT_STRING  "VANTAC_RF007"
 
-#define LED0                    PC10
-#define LED1                    PC11
+#define LED0                    PC14
+#define LED1                    PC15
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -32,41 +32,43 @@
 #define SPI1_MOSI_PIN           PA7
 
 #define USE_IMU_ICM42605 // is actually ICM42688P
-#define IMU_ICM42605_ALIGN     CW180_DEG
+#define IMU_ICM42605_ALIGN     CW90_DEG
 #define ICM42605_CS_PIN        PA4
-#define ICM42605_EXTI_PIN      PB8
+#define ICM42605_EXTI_PIN      PB2
 #define ICM42605_SPI_BUS       BUS_SPI1
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
-#define USE_I2C_DEVICE_3
-#define I2C3_SCL                PA8
-#define I2C3_SDA                PC9
-
-//#define USE_I2C_DEVICE_1 // clashes with UART1
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL                PB8
+#define I2C1_SDA                PB9
+// alternate pin assignment
+// clashes with UART1
+// also won't allow the built-in barometer to be used
 //#define I2C1_SCL                PB6
 //#define I2C1_SDA                PB7
 
 #define USE_I2C_DEVICE_2 // clashes with UART3
 #define I2C2_SCL                PB10
 #define I2C2_SDA                PB11
+#define EXTERNAL_I2C BUS_I2C2
 #define I2C_DEVICE_2_SHARES_UART3
-#define DEFAULT_I2C BUS_I2C2
 
 #define USE_BARO
-#define BARO_I2C_BUS            BUS_I2C3
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_SPL06
+#define SPL06_I2C_ADDR 119
 
 #define USE_MAG
-#define MAG_I2C_BUS             DEFAULT_I2C
+#define MAG_I2C_BUS             EXTERNAL_I2C
 #define USE_MAG_ALL
 
-#define TEMPERATURE_I2C_BUS     DEFAULT_I2C
+#define TEMPERATURE_I2C_BUS     EXTERNAL_I2C
 
-#define PITOT_I2C_BUS           DEFAULT_I2C
+#define PITOT_I2C_BUS           EXTERNAL_I2C
 
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     DEFAULT_I2C
+#define RANGEFINDER_I2C_BUS     EXTERNAL_I2C
 
 // *************** SPI2 Blackbox *******************
 #define USE_SPI_DEVICE_2
@@ -75,23 +77,23 @@
 #define SPI2_MOSI_PIN           PB15
 
 #define USE_FLASHFS
-#define USE_FLASH_W25N02K
-#define W25N02K_SPI_BUS          BUS_SPI2
-#define W25N02K_CS_PIN           PB12
+#define USE_FLASH_W25N01G
+#define W25N01G_SPI_BUS          BUS_SPI2
+#define W25N01G_CS_PIN           PB12
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // *************** UART *****************************
 #define USE_VCP
 
 #define USE_UART1 // clashes with I2C1
-#define UART1_TX_PIN            PB6 // pin labelled "AUX"
+#define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PB7 // pin labelled "SBUS"
 
 #define USE_UART2
 #define UART2_TX_PIN            PA2 // pin labelled as "RPM"
 #define UART2_RX_PIN            PA3 // pin labelled as "TLM"
 
-#define USE_UART3
+#define USE_UART3 // clashes with I2C2
 // port labelled "C"
 #define UART3_TX_PIN            PB10
 #define UART3_RX_PIN            PB11
@@ -102,19 +104,14 @@
 #define UART4_RX_PIN            PA1
 
 #define USE_UART5
-// port for NEXUS XR internal ELRS receiver
+// port internal receiver
 #define UART5_TX_PIN            PC12
 #define UART5_RX_PIN            PD2
 
-#define USE_UART6
-// port labelled "B"
-#define UART6_TX_PIN            PC6
-#define UART6_RX_PIN            PC7
-
-#define SERIAL_PORT_COUNT       7
+#define SERIAL_PORT_COUNT       6
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
-#define SERIALRX_PROVIDER       SERIALRX_CRSF
+#define SERIALRX_PROVIDER       SERIALRX_FBUS
 #define SERIALRX_UART           SERIAL_PORT_USART5
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_BARO)
@@ -132,13 +129,7 @@
 //BEC ADC is ADC_CHN_2
 //BUS ADC is ADC_CHN_1
 
-#define VBAT_SCALE_DEFAULT          2474
-
-// *************** PINIO ***************************
-#define USE_PINIO
-#define USE_PINIOBOX
-#define PINIO1_PIN                  PC8 // enable pin for internal ELRS receiver
-#define PINIO1_FLAGS				PINIO_FLAGS_INVERTED // turn on by default
+#define VBAT_SCALE_DEFAULT          2464
 
 #define DEFAULT_FEATURES                (FEATURE_TELEMETRY | FEATURE_VBAT | FEATURE_TX_PROF_SEL)
 
@@ -157,3 +148,4 @@
 #define USE_SMARTPORT_MASTER // no internal current sensor, enable SMARTPORT_MASTER so external ones can be used
 
 #define USE_DSHOT_DMAR
+
