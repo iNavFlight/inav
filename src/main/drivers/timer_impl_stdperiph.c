@@ -519,3 +519,23 @@ void impl_timerPWMStopDMA(TCH_t * tch)
     tch->dmaState = TCH_DMA_IDLE;
     TIM_Cmd(tch->timHw->tim, ENABLE);
 }
+
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
+{
+    if (!tch->dma || !tch->dma->ref) {
+        return;
+    }
+
+    // Temporarily disable DMA while modifying configuration
+    DMA_Cmd(tch->dma->ref, DISABLE);
+
+    // Modify the DMA mode
+    if (circular) {
+        tch->dma->ref->CR |= DMA_SxCR_CIRC;  // Set circular bit
+    } else {
+        tch->dma->ref->CR &= ~DMA_SxCR_CIRC; // Clear circular bit
+    }
+
+    // Re-enable DMA
+    DMA_Cmd(tch->dma->ref, ENABLE);
+}

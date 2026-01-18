@@ -580,3 +580,26 @@ void impl_timerPWMStopDMA(TCH_t * tch)
 
     HAL_TIM_Base_Start(tch->timCtx->timHandle);
 }
+
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
+{
+    if (!tch->dma || !tch->dma->dma) {
+        return;
+    }
+
+    const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
+    DMA_TypeDef *dmaBase = tch->dma->dma;
+
+    // Temporarily disable DMA while modifying configuration
+    LL_DMA_DisableStream(dmaBase, streamLL);
+
+    // Modify the DMA mode
+    if (circular) {
+        LL_DMA_SetMode(dmaBase, streamLL, LL_DMA_MODE_CIRCULAR);
+    } else {
+        LL_DMA_SetMode(dmaBase, streamLL, LL_DMA_MODE_NORMAL);
+    }
+
+    // Re-enable DMA
+    LL_DMA_EnableStream(dmaBase, streamLL);
+}

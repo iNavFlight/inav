@@ -420,7 +420,21 @@ void processDelayedSave(void)
         saveState = SAVESTATE_NONE;
     } else if (saveState == SAVESTATE_SAVEONLY) {
         suspendRxSignal();
+
+        // Prevent ESC spinup during settings save
+        // Switch to circular mode first
+        pwmSetMotorDMACircular(true);
+        // Force motor updates to latch current (zero) throttle into circular DMA buffer
+        pwmCompleteMotorUpdate();
+        delayMicroseconds(200);
+        pwmCompleteMotorUpdate();
+        delayMicroseconds(200);
+        pwmCompleteMotorUpdate();
+
         writeEEPROM();
+
+        pwmSetMotorDMACircular(false);
+
         resumeRxSignal();
         saveState = SAVESTATE_NONE;
     }
