@@ -33,6 +33,7 @@
 
 #include "drivers/system.h"
 #include "drivers/flash.h"
+#include "drivers/pwm_output.h"
 
 #include "fc/config.h"
 
@@ -321,6 +322,16 @@ static bool writeSettingsToEEPROM(void)
 
 void writeConfigToEEPROM(void)
 {
+    // Prevent ESC spinup during settings save using circular DMA
+    pwmSetMotorDMACircular(true);
+
+    // Force motor updates to latch current (zero) throttle into circular DMA buffer
+    pwmCompleteMotorUpdate();
+    delayMicroseconds(200);
+    pwmCompleteMotorUpdate();
+    delayMicroseconds(200);
+    pwmCompleteMotorUpdate();
+
     bool success = false;
     // write it
     for (int attempt = 0; attempt < 3 && !success; attempt++) {
@@ -332,6 +343,9 @@ void writeConfigToEEPROM(void)
 #endif
         }
     }
+
+    // Restore normal DMA mode
+    pwmSetMotorDMACircular(false);
 
     if (success && isEEPROMContentValid()) {
         return;
