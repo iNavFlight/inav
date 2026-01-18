@@ -526,16 +526,19 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
         return;
     }
 
-    // Temporarily disable DMA while modifying configuration
-    DMA_Cmd(tch->dma->ref, DISABLE);
+    // Protect DMA reconfiguration from interrupt interference
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        // Temporarily disable DMA while modifying configuration
+        DMA_Cmd(tch->dma->ref, DISABLE);
 
-    // Modify the DMA mode
-    if (circular) {
-        tch->dma->ref->CR |= DMA_SxCR_CIRC;  // Set circular bit
-    } else {
-        tch->dma->ref->CR &= ~DMA_SxCR_CIRC; // Clear circular bit
+        // Modify the DMA mode
+        if (circular) {
+            tch->dma->ref->CR |= DMA_SxCR_CIRC;  // Set circular bit
+        } else {
+            tch->dma->ref->CR &= ~DMA_SxCR_CIRC; // Clear circular bit
+        }
+
+        // Re-enable DMA
+        DMA_Cmd(tch->dma->ref, ENABLE);
     }
-
-    // Re-enable DMA
-    DMA_Cmd(tch->dma->ref, ENABLE);
 }

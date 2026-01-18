@@ -407,3 +407,26 @@ void impl_timerPWMStopDMA(TCH_t * tch)
     tch->dmaState = TCH_DMA_IDLE;
     tmr_counter_enable(tch->timHw->tim, TRUE);
 }
+
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
+{
+    if (!tch->dma || !tch->dma->ref) {
+        return;
+    }
+
+    // Protect DMA reconfiguration from interrupt interference
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        // Temporarily disable DMA while modifying configuration
+        dma_channel_enable(tch->dma->ref, FALSE);
+
+        // Modify the DMA loop mode (AT32's equivalent of circular mode)
+        if (circular) {
+            tch->dma->ref->ctrl_bit.lm = TRUE;  // Enable loop mode
+        } else {
+            tch->dma->ref->ctrl_bit.lm = FALSE; // Disable loop mode
+        }
+
+        // Re-enable DMA
+        dma_channel_enable(tch->dma->ref, TRUE);
+    }
+}
