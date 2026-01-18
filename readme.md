@@ -51,6 +51,20 @@ Fly safe, fly smart with INAV 7.1 and a compass by your side!
 * [INAV Discord Server](https://discord.gg/peg2hhbYwN)
 * [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
 
+## Downloads
+
+### INAV Configurator
+
+**Get the latest version:** **[Download INAV Configurator](https://github.com/iNavFlight/inav-configurator/releases/latest)** - Available for Windows, macOS, and Linux
+
+The INAV Configurator is the official desktop application for configuring your INAV flight controller. Choose your platform from the Assets section on the releases page.
+
+### INAV Firmware
+
+**Get the latest firmware:** **[Download INAV Firmware](https://github.com/iNavFlight/inav/releases/latest)**
+
+Download the latest INAV flight controller firmware. Flash it to your flight controller using the configurator.
+
 ## Features
 
 * Runs on the most popular F4, AT32, F7 and H7 flight controllers
