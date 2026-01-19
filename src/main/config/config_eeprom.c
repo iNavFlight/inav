@@ -322,6 +322,7 @@ static bool writeSettingsToEEPROM(void)
 
 void writeConfigToEEPROM(void)
 {
+#if !defined(SITL_BUILD)
     // Prevent ESC spinup during settings save using circular DMA
     pwmSetMotorDMACircular(true);
 
@@ -331,6 +332,7 @@ void writeConfigToEEPROM(void)
     pwmCompleteMotorUpdate();
     delayMicroseconds(200);
     pwmCompleteMotorUpdate();
+#endif
 
     bool success = false;
     // write it
@@ -344,8 +346,10 @@ void writeConfigToEEPROM(void)
         }
     }
 
+#if !defined(SITL_BUILD)
     // Restore normal DMA mode
     pwmSetMotorDMACircular(false);
+#endif
 
     if (success && isEEPROMContentValid()) {
         return;
