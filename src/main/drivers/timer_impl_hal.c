@@ -590,10 +590,26 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
     const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
     DMA_TypeDef *dmaBase = tch->dma->dma;
 
+    // Save the current transfer count before disabling
+    uint32_t dataLength = LL_DMA_GetDataLength(dmaBase, streamLL);
+
     // Protect DMA reconfiguration from interrupt interference
     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
-        // Temporarily disable DMA while modifying configuration
+        // Disable timer DMA request first to stop new transfer triggers
+        LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+
+        // Disable the DMA stream
         LL_DMA_DisableStream(dmaBase, streamLL);
+
+        // CRITICAL: Wait for stream to actually become disabled
+        // The EN bit doesn't clear immediately, especially if transfer is in progress
+        uint32_t timeout = 10000;
+        while (LL_DMA_IsEnabledStream(dmaBase, streamLL) && timeout--) {
+            __NOP();
+        }
+
+        // Clear any pending transfer complete flags
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
 
         // Modify the DMA mode
         if (circular) {
@@ -602,7 +618,16 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
             LL_DMA_SetMode(dmaBase, streamLL, LL_DMA_MODE_NORMAL);
         }
 
-        // Re-enable DMA
+        // Reload the transfer count (required after mode change)
+        // If dataLength was 0 (transfer completed), keep it at 0 - the next motor update will reload it
+        if (dataLength > 0) {
+            LL_DMA_SetDataLength(dmaBase, streamLL, dataLength);
+        }
+
+        // Re-enable DMA stream
         LL_DMA_EnableStream(dmaBase, streamLL);
+
+        // Re-enable timer DMA requests
+        LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
     }
 }
