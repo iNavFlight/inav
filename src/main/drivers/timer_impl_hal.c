@@ -608,6 +608,13 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
             __NOP();
         }
 
+        // If timeout occurred, DMA stream is still enabled - abort reconfiguration
+        if (timeout == 0 && LL_DMA_IsEnabledStream(dmaBase, streamLL)) {
+            // Re-enable timer DMA request and return to avoid unstable state
+            LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+            return;
+        }
+
         // Clear any pending transfer complete flags
         DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
 

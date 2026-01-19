@@ -531,6 +531,19 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
         // Temporarily disable DMA while modifying configuration
         DMA_Cmd(tch->dma->ref, DISABLE);
 
+        // Wait for DMA stream to actually be disabled
+        // The EN bit doesn't clear immediately, especially if transfer is in progress
+        uint32_t timeout = 10000;
+        while ((tch->dma->ref->CR & DMA_SxCR_EN) && timeout--) {
+            __NOP();
+        }
+
+        // If timeout occurred, DMA stream is still enabled - abort reconfiguration
+        if (timeout == 0 && (tch->dma->ref->CR & DMA_SxCR_EN)) {
+            DMA_Cmd(tch->dma->ref, ENABLE); // Re-enable and return
+            return;
+        }
+
         // Modify the DMA mode
         if (circular) {
             tch->dma->ref->CR |= DMA_SxCR_CIRC;  // Set circular bit
