@@ -619,9 +619,8 @@ void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer
     portOptions_t currentOptions = right->options;
     uint32_t currentBaudRate = right->baudRate;
     bool leftIsVcp = (left->identifier == SERIAL_PORT_USB_VCP);
-#endif
-
     uint32_t lastMirrorTime = 0;
+#endif
 
     static escapeSequenceState_t escapeSequenceState;
     escapeSequenceInit(&escapeSequenceState);
