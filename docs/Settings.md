@@ -1734,11 +1734,11 @@ Which SBAS mode to be used
 
 ### gps_ublox_nav_hz
 
-Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
+Navigation update rate for UBLOX receivers. M9 modules limit satellite tracking to 16 satellites at 10Hz or higher, but use 32 satellites below 10Hz for better accuracy. M10 modules work well at 8Hz with 3 constellations. Some M10 devices with high-performance clock can do up to 25Hz with 4 constellations. 8Hz is a safe, accurate default for M8/M9/M10.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 5 | 200 |
+| 8 | 5 | 200 |
 
 ---
 
@@ -1748,7 +1748,7 @@ Enable use of Beidou satellites. This is at the expense of other regional conste
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -1758,7 +1758,7 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
