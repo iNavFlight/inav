@@ -413,7 +413,8 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
 [8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
-[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
+[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)
+[12289 - MSP2_RX_BIND](#msp2_rx_bind)
 
 ## <a id="msp_api_version"></a>`MSP_API_VERSION (1 / 0x1)`
 **Description:** Provides the MSP protocol version and the INAV API version.  
@@ -4534,4 +4535,13 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Reply Payload:** **None**  
 
 **Notes:** Requires `rxConfig()->receiverType == RX_TYPE_SERIAL`. Requires `USE_SERIALRX_CRSF` or `USE_SERIALRX_SRXL2`. Calls `crsfBind()` or `srxl2Bind()` respectively. Returns error if receiver type or provider is not supported for binding.
+
+## <a id="msp2_rx_bind"></a>`MSP2_RX_BIND (12289 / 0x3001)`
+**Description:** Initiates binding for MSP receivers (mLRS).
+
+**Request Payload:** **None**
+
+**Reply Payload:** **None**
+
+**Notes:** Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.
 
