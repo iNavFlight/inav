@@ -432,7 +432,6 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
             return;
         }
 
-        // Modify the DMA loop mode (AT32's equivalent of circular mode)
         if (circular) {
             tch->dma->ref->ctrl_bit.lm = TRUE;  // Enable loop mode
         } else {

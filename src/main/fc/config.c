@@ -420,7 +420,7 @@ void processDelayedSave(void)
         saveState = SAVESTATE_NONE;
     } else if (saveState == SAVESTATE_SAVEONLY) {
         suspendRxSignal();
-        writeEEPROM();  // Circular DMA protection is inside writeConfigToEEPROM()
+        writeEEPROM();
         resumeRxSignal();
         saveState = SAVESTATE_NONE;
     }
