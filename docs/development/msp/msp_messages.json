@@ -4896,6 +4896,12 @@
                     "ctype": "uint16_t",
                     "desc": "Estimated Vertical Position Accuracy (`gpsSol.epv`)",
                     "units": "cm"
+                },
+                {
+                    "name": "hwVersion",
+                    "ctype": "uint32_t",
+                    "desc": "GPS hardware version (`gpsState.hwVersion`). Values: 500=UBLOX5, 600=UBLOX6, 700=UBLOX7, 800=UBLOX8, 900=UBLOX9, 1000=UBLOX10, 0=UNKNOWN",
+                    "units": "Version code"
                 }
             ]
         },
