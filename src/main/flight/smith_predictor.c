@@ -34,8 +34,7 @@
 #include "flight/smith_predictor.h"
 #include "build/debug.h"
 
-float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sample) {
-    UNUSED(axis);
+float smithPredictorApply(smithPredictor_t *predictor, float sample) {
     if (predictor->enabled) {
         predictor->data[predictor->idx] = sample;
 
@@ -46,7 +45,7 @@ float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sampl
 
         // filter the delayed data to help reduce the overall noise this prediction adds
         float delayed = pt1FilterApply(&predictor->smithPredictorFilter, predictor->data[predictor->idx]);
-        float delayCompensatedSample = predictor->smithPredictorStrength * (sample - delayed);
+        float delayCompensatedSample = predictor->measurementSmithPredictor * (sample - delayed);
 
         sample += delayCompensatedSample;
     }
@@ -58,7 +57,7 @@ void smithPredictorInit(smithPredictor_t *predictor, float delay, float strength
         predictor->enabled = true;
         predictor->samples = (delay * 1000) / looptime;
         predictor->idx = 0;
-        predictor->smithPredictorStrength = strength;
+        predictor->measurementSmithPredictor = strength;
         pt1FilterInit(&predictor->smithPredictorFilter, filterLpfHz, US2S(looptime));
     } else {
         predictor->enabled = false;

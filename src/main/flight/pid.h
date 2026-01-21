@@ -152,11 +152,14 @@ typedef struct pidProfile_s {
     uint8_t fwAltControlResponseFactor;
     bool fwAltControlUsePos;
 #ifdef USE_SMITH_PREDICTOR
-    float smithPredictorStrength;
-    float smithPredictorDelay;
-    uint16_t smithPredictorFilterHz;
-#endif
+    float measurementSmithPredictor;
+    float measurementSmithPredictorDelay;
+    uint16_t measurementSmithPredictorFilterHz;
 
+    float dtermSmithPredictor;
+    float dtermSmithPredictorDelay;
+    uint16_t dtermSmithPredictorFilterHz;
+#endif
 
     uint16_t fwItermLockTimeMaxMs;
     uint8_t fwItermLockRateLimit;
