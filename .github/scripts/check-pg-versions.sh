@@ -59,8 +59,8 @@ check_file_for_pg_changes() {
     local file=$1
     local diff_output=$(git diff $BASE_COMMIT..$HEAD_COMMIT -- "$file")
 
-    # Check if file contains PG_REGISTER (in either old or new version)
-    if ! echo "$diff_output" | grep -q "PG_REGISTER"; then
+    # Check if file contains PG_REGISTER in current version
+    if ! git show $HEAD_COMMIT:"$file" 2>/dev/null | grep -q "PG_REGISTER"; then
         return 0
     fi
 
@@ -93,26 +93,25 @@ check_file_for_pg_changes() {
 
             echo "    📋 Found: $struct_type (version $version)"
 
-            # Check if this struct's typedef was modified
+            # Check if this struct's typedef was modified in ANY changed file
             local struct_pattern="typedef struct ${struct_type%_t}_s"
-            # Isolate struct body from diff, remove comments and empty lines, then check for remaining changes
-            local struct_body_diff=$(echo "$diff_output" | sed -n "/${struct_pattern}/,/\}.*${struct_type};/p")
+            local struct_body_diff=""
+            local struct_found_in=""
 
-            # If struct not found in current file, check corresponding .h or .c file
-            if [ -z "$struct_body_diff" ]; then
-                local companion_file=""
-                if [[ "$file" == *.c ]]; then
-                    companion_file="${file%.c}.h"
-                elif [[ "$file" == *.h ]]; then
-                    companion_file="${file%.h}.c"
-                fi
+            # Search all changed files for this struct definition
+            while IFS= read -r changed_file; do
+                [ -z "$changed_file" ] && continue
 
-                if [ -n "$companion_file" ] && git diff --name-only $BASE_COMMIT..$HEAD_COMMIT | grep -q "^${companion_file}$"; then
-                    echo "    🔍 Struct not in $file, checking $companion_file"
-                    local companion_diff=$(git diff $BASE_COMMIT..$HEAD_COMMIT -- "$companion_file")
-                    struct_body_diff=$(echo "$companion_diff" | sed -n "/${struct_pattern}/,/\}.*${struct_type};/p")
+                local file_diff=$(git diff $BASE_COMMIT..$HEAD_COMMIT -- "$changed_file")
+                local struct_in_file=$(echo "$file_diff" | sed -n "/${struct_pattern}/,/\}.*${struct_type};/p")
+
+                if [ -n "$struct_in_file" ]; then
+                    struct_body_diff="$struct_in_file"
+                    struct_found_in="$changed_file"
+                    echo "    🔍 Found struct definition in $changed_file"
+                    break
                 fi
-            fi
+            done <<< "$CHANGED_FILES"
 
             local struct_changes=$(echo "$struct_body_diff" | grep -E "^[-+]" \
                 | grep -v -E "^[-+]\s*(typedef struct|}|//|\*)" \
@@ -121,42 +120,48 @@ check_file_for_pg_changes() {
                 | tr -d '[:space:]')
 
             if [ -n "$struct_changes" ]; then
-                echo "    ⚠️  Struct definition modified"
+                echo "    ⚠️  Struct definition modified in $struct_found_in"
 
-                # Check if version was incremented in this diff
+                # Check if version was incremented in PG_REGISTER
                 local old_version=$(echo "$diff_output" | grep "^-.*PG_REGISTER.*$struct_type" | grep -oP ',\s*\K\d+(?=\s*\))' || echo "")
                 local new_version=$(echo "$diff_output" | grep "^+.*PG_REGISTER.*$struct_type" | grep -oP ',\s*\K\d+(?=\s*\))' || echo "")
 
+                # Find line number of PG_REGISTER for error reporting
+                local line_num=$(git show $HEAD_COMMIT:"$file" | grep -n "PG_REGISTER.*$struct_type" | cut -d: -f1 | head -1)
+
                 if [ -n "$old_version" ] && [ -n "$new_version" ]; then
+                    # PG_REGISTER was modified - check if version increased
                     if [ "$new_version" -le "$old_version" ]; then
                         echo "    ❌ Version NOT incremented ($old_version → $new_version)"
-
-                        # Find line number of PG_REGISTER
-                        local line_num=$(git show $HEAD_COMMIT:"$file" | grep -n "PG_REGISTER.*$struct_type" | cut -d: -f1 | head -1)
-
-                        # Add to issues list
                         cat >> $ISSUES_FILE << EOF
 ### \`$struct_type\` ($file:$line_num)
-- **Struct modified:** Field changes detected
+- **Struct modified:** Field changes detected in $struct_found_in
 - **Version status:** ❌ Not incremented (version $version)
-- **Recommendation:** Review changes and increment version if needed
+- **Recommendation:** Increment version from $old_version to $(($old_version + 1))
 
 EOF
                     else
                         echo "    ✅ Version incremented ($old_version → $new_version)"
                     fi
-                elif [ -z "$old_version" ] || [ -z "$new_version" ]; then
-                    # Couldn't determine version change, but struct was modified
-                    echo "    ⚠️  Could not determine if version was incremented"
-
-                    local line_num=$(git show $HEAD_COMMIT:"$file" | grep -n "PG_REGISTER.*$struct_type" | cut -d: -f1 | head -1)
-
+                elif [ -z "$old_version" ] && [ -z "$new_version" ]; then
+                    # PG_REGISTER wasn't modified but struct was - THIS IS THE BUG!
+                    echo "    ❌ PG_REGISTER not modified, version still $version"
                     cat >> $ISSUES_FILE << EOF
 ### \`$struct_type\` ($file:$line_num)
-- **Struct modified:** Field changes detected
-- **Version status:** ⚠️  Unable to verify version increment
+- **Struct modified:** Field changes detected in $struct_found_in
+- **Version status:** ❌ Not incremented (still version $version)
+- **Recommendation:** Increment version to $(($version + 1)) in $file
+
+EOF
+                else
+                    # One exists but not the other - unusual edge case
+                    echo "    ⚠️  Unusual version change pattern detected"
+                    cat >> $ISSUES_FILE << EOF
+### \`$struct_type\` ($file:$line_num)
+- **Struct modified:** Field changes detected in $struct_found_in
+- **Version status:** ⚠️ Unusual change pattern (old: ${old_version:-none}, new: ${new_version:-none})
 - **Current version:** $version
-- **Recommendation:** Verify version was incremented if struct layout changed
+- **Recommendation:** Manually verify version increment
 
 EOF
                 fi
@@ -167,10 +172,45 @@ EOF
     done <<< "$pg_registers"
 }
 
-# Check each changed file
+# Build list of files to check (changed files + companions with PG_REGISTER)
+echo "🔍 Building file list including companions with PG_REGISTER..."
+FILES_TO_CHECK=""
+ALREADY_ADDED=""
+
 while IFS= read -r file; do
-    check_file_for_pg_changes "$file"
+    [ -z "$file" ] && continue
+
+    # Add this file to check list
+    if ! echo "$ALREADY_ADDED" | grep -qw "$file"; then
+        FILES_TO_CHECK="$FILES_TO_CHECK$file"$'\n'
+        ALREADY_ADDED="$ALREADY_ADDED $file"
+    fi
+
+    # Determine companion file (.c <-> .h)
+    local companion=""
+    if [[ "$file" == *.c ]]; then
+        companion="${file%.c}.h"
+    elif [[ "$file" == *.h ]]; then
+        companion="${file%.h}.c"
+    fi
+
+    # If companion exists and contains PG_REGISTER, add it to check list
+    if [ -n "$companion" ]; then
+        if git show $HEAD_COMMIT:"$companion" 2>/dev/null | grep -q "PG_REGISTER"; then
+            if ! echo "$ALREADY_ADDED" | grep -qw "$companion"; then
+                echo "  📎 Adding $companion (companion of $file with PG_REGISTER)"
+                FILES_TO_CHECK="$FILES_TO_CHECK$companion"$'\n'
+                ALREADY_ADDED="$ALREADY_ADDED $companion"
+            fi
+        fi
+    fi
 done <<< "$CHANGED_FILES"
+
+# Check each file (including companions)
+while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    check_file_for_pg_changes "$file"
+done <<< "$FILES_TO_CHECK"
 
 # Check if any issues were found
 if [ -s $ISSUES_FILE ]; then
