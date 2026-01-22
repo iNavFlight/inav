@@ -752,14 +752,11 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     estimationPredict(&ctx);
 
     /* Correction stage: Z */
-    const bool estZCorrectOk =
-        estimationCalculateCorrection_Z(&ctx);
+    const bool estZCorrectOk = estimationCalculateCorrection_Z(&ctx);
 
     /* Correction stage: XY: GPS, FLOW */
     // FIXME: Handle transition from FLOW to GPS and back - seamlessly fly indoor/outdoor
-    const bool estXYCorrectOk =
-        estimationCalculateCorrection_XY_GPS(&ctx) ||
-        estimationCalculateCorrection_XY_FLOW(&ctx);
+    const bool estXYCorrectOk = estimationCalculateCorrection_XY_GPS(&ctx) || estimationCalculateCorrection_XY_FLOW(&ctx);
 
     // If we can't apply correction or accuracy is off the charts - decay velocity to zero
     if (!estXYCorrectOk || ctx.newEPH > max_eph_epv) {
@@ -778,7 +775,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     // Constrain corrections to prevent instability
     for (uint8_t axis = 0; axis < 3; axis++) {
         ctx.estPosCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -INAV_EST_CORR_LIMIT_VALUE, INAV_EST_CORR_LIMIT_VALUE);
-        ctx.estVelCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -INAV_EST_CORR_LIMIT_VALUE, INAV_EST_CORR_LIMIT_VALUE);
+        ctx.estVelCorr.v[axis] = constrainf(ctx.estVelCorr.v[axis], -INAV_EST_CORR_LIMIT_VALUE, INAV_EST_CORR_LIMIT_VALUE);
     }
 
     // Apply corrections
