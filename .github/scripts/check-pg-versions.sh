@@ -97,6 +97,23 @@ check_file_for_pg_changes() {
             local struct_pattern="typedef struct ${struct_type%_t}_s"
             # Isolate struct body from diff, remove comments and empty lines, then check for remaining changes
             local struct_body_diff=$(echo "$diff_output" | sed -n "/${struct_pattern}/,/\}.*${struct_type};/p")
+
+            # If struct not found in current file, check corresponding .h or .c file
+            if [ -z "$struct_body_diff" ]; then
+                local companion_file=""
+                if [[ "$file" == *.c ]]; then
+                    companion_file="${file%.c}.h"
+                elif [[ "$file" == *.h ]]; then
+                    companion_file="${file%.h}.c"
+                fi
+
+                if [ -n "$companion_file" ] && git diff --name-only $BASE_COMMIT..$HEAD_COMMIT | grep -q "^${companion_file}$"; then
+                    echo "    🔍 Struct not in $file, checking $companion_file"
+                    local companion_diff=$(git diff $BASE_COMMIT..$HEAD_COMMIT -- "$companion_file")
+                    struct_body_diff=$(echo "$companion_diff" | sed -n "/${struct_pattern}/,/\}.*${struct_type};/p")
+                fi
+            fi
+
             local struct_changes=$(echo "$struct_body_diff" | grep -E "^[-+]" \
                 | grep -v -E "^[-+]\s*(typedef struct|}|//|\*)" \
                 | sed -E 's://.*$::' \
