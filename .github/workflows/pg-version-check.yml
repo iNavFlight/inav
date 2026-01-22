@@ -49,7 +49,7 @@ jobs:
         with:
           script: |
             // Use the captured output from the previous step
-            const output = `${{ steps.pg_check.outputs.output }}`;
+            const output = '${{ steps.pg_check.outputs.output }}';
             let issuesContent = '';
 
             try {
@@ -73,29 +73,23 @@ jobs:
               issuesContent = '*Unable to extract detailed issues*';
             }
 
-            const commentBody = `## ⚠️ Parameter Group Version Check
-
-The following parameter groups may need version increments:
-
-${issuesContent}
-
-**Why this matters:**
-Modifying PG struct fields without incrementing the version can cause settings corruption when users flash new firmware. The \`pgLoad()\` function validates versions and will use defaults if there's a mismatch, preventing corruption.
-
-**When to increment the version:**
-- ✅ Adding/removing fields
-- ✅ Changing field types or sizes
-- ✅ Reordering fields
-- ✅ Adding/removing packing attributes
-- ❌ Only changing default values in \`PG_RESET_TEMPLATE\`
-- ❌ Only changing comments
-
-**Reference:**
-- [Parameter Group Documentation](../docs/development/parameter_groups/)
-- Example: [PR #11236](https://github.com/iNavFlight/inav/pull/11236) (field removal requiring version increment)
-
----
-*This is an automated check. False positives are possible. If you believe the version increment is not needed, please explain in a comment.*`;
+            const commentBody = '## ⚠️ Parameter Group Version Check\n\n' +
+              'The following parameter groups may need version increments:\n\n' +
+              issuesContent + '\n\n' +
+              '**Why this matters:**\n' +
+              'Modifying PG struct fields without incrementing the version can cause settings corruption when users flash new firmware. The `pgLoad()` function validates versions and will use defaults if there\'s a mismatch, preventing corruption.\n\n' +
+              '**When to increment the version:**\n' +
+              '- ✅ Adding/removing fields\n' +
+              '- ✅ Changing field types or sizes\n' +
+              '- ✅ Reordering fields\n' +
+              '- ✅ Adding/removing packing attributes\n' +
+              '- ❌ Only changing default values in `PG_RESET_TEMPLATE`\n' +
+              '- ❌ Only changing comments\n\n' +
+              '**Reference:**\n' +
+              '- [Parameter Group Documentation](../docs/development/parameter_groups/)\n' +
+              '- Example: [PR #11236](https://github.com/iNavFlight/inav/pull/11236) (field removal requiring version increment)\n\n' +
+              '---\n' +
+              '*This is an automated check. False positives are possible. If you believe the version increment is not needed, please explain in a comment.*';
 
             try {
               // Check if we already commented
