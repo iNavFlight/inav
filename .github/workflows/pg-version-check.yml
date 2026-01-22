@@ -31,8 +31,14 @@ jobs:
         id: pg_check
         run: |
           set +e  # Don't fail the workflow, just capture exit code
-          bash .github/scripts/check-pg-versions.sh
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          # Run script and capture output. Exit code 1 is expected for issues.
+          # The output is captured and encoded to be passed between steps.
+          output=$(bash .github/scripts/check-pg-versions.sh 2>&1)
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
+          echo "output<<EOF" >> $GITHUB_OUTPUT
+          echo "$output" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         env:
           GITHUB_BASE_REF: ${{ github.base_ref }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
@@ -42,16 +48,11 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-
-            // Find the issues file (created by the script)
-            const { execSync } = require('child_process');
+            // Use the captured output from the previous step
+            const output = `${{ steps.pg_check.outputs.output }}`;
             let issuesContent = '';
 
             try {
-              // Re-run script to get issues output
-              const output = execSync('bash .github/scripts/check-pg-versions.sh 2>&1 || true', { encoding: 'utf-8' });
-
               // Extract issues from output (everything after the warning line)
               const lines = output.split('\n');
               let capturing = false;

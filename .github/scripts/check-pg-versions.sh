@@ -95,7 +95,13 @@ check_file_for_pg_changes() {
 
             # Check if this struct's typedef was modified
             local struct_pattern="typedef struct ${struct_type%_t}_s"
-            local struct_changes=$(echo "$diff_output" | grep -A50 "$struct_pattern" | grep -E "^[-+]" | grep -v "^[-+]typedef struct" | grep -v "^[-+]}" | grep -v "^[-+]//" | grep -v "^[-+] \*" || true)
+            # Isolate struct body from diff, remove comments and empty lines, then check for remaining changes
+            local struct_body_diff=$(echo "$diff_output" | sed -n "/${struct_pattern}/,/\}.*${struct_type};/p")
+            local struct_changes=$(echo "$struct_body_diff" | grep -E "^[-+]" \
+                | grep -v -E "^[-+]\s*(typedef struct|}|//|\*)" \
+                | sed -E 's://.*$::' \
+                | sed -E 's:/\*.*\*/::' \
+                | tr -d '[:space:]')
 
             if [ -n "$struct_changes" ]; then
                 echo "    ⚠️  Struct definition modified"
@@ -145,9 +151,9 @@ EOF
 }
 
 # Check each changed file
-for file in $CHANGED_FILES; do
+while IFS= read -r file; do
     check_file_for_pg_changes "$file"
-done
+done <<< "$CHANGED_FILES"
 
 # Check if any issues were found
 if [ -s $ISSUES_FILE ]; then
