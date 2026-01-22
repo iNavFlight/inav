@@ -625,8 +625,8 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     if (ctx->newFlags & EST_GPS_Z_VALID && (wGps || !(ctx->newFlags & EST_Z_VALID))) {
         // Reset current estimate to GPS altitude if estimate not valid (used for GPS and Baro)
         if (!(ctx->newFlags & EST_Z_VALID)) {
-            ctx->estPosCorr.z += posEstimator.gps.pos.z - posEstimator.est.pos.z;
-            ctx->estVelCorr.z += posEstimator.gps.vel.z - posEstimator.est.vel.z;
+            posEstimator.est.pos.z = posEstimator.gps.pos.z;
+            posEstimator.est.vel.z = posEstimator.gps.vel.z;
             ctx->newEPV = posEstimator.gps.epv;
         }
         else {
@@ -660,10 +660,10 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
     if (ctx->newFlags & EST_GPS_XY_VALID) {
         /* If GPS is valid and our estimate is NOT valid - reset it to GPS coordinates and velocity */
         if (!(ctx->newFlags & EST_XY_VALID)) {
-            ctx->estPosCorr.x += posEstimator.gps.pos.x - posEstimator.est.pos.x;
-            ctx->estPosCorr.y += posEstimator.gps.pos.y - posEstimator.est.pos.y;
-            ctx->estVelCorr.x += posEstimator.gps.vel.x - posEstimator.est.vel.x;
-            ctx->estVelCorr.y += posEstimator.gps.vel.y - posEstimator.est.vel.y;
+            posEstimator.est.pos.x = posEstimator.gps.pos.x;
+            posEstimator.est.pos.y = posEstimator.gps.pos.y;
+            posEstimator.est.vel.x = posEstimator.gps.vel.x;
+            posEstimator.est.vel.y = posEstimator.gps.vel.y;
             ctx->newEPH = posEstimator.gps.eph;
         }
         else {
@@ -739,6 +739,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     /* Calculate new EPH and EPV for the case we didn't update position */
     ctx.newEPH = posEstimator.est.eph * ((posEstimator.est.eph <= max_eph_epv) ? 1.0f + ctx.dt : 1.0f);
     ctx.newEPV = posEstimator.est.epv * ((posEstimator.est.epv <= max_eph_epv) ? 1.0f + ctx.dt : 1.0f);
+
     ctx.newFlags = calculateCurrentValidityFlags(currentTimeUs);
     vectorZero(&ctx.estPosCorr);
     vectorZero(&ctx.estVelCorr);
@@ -762,16 +763,23 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
 
     // If we can't apply correction or accuracy is off the charts - decay velocity to zero
     if (!estXYCorrectOk || ctx.newEPH > max_eph_epv) {
-        ctx.estVelCorr.x = (0.0f - posEstimator.est.vel.x) * positionEstimationConfig()->w_xy_res_v * ctx.dt;
-        ctx.estVelCorr.y = (0.0f - posEstimator.est.vel.y) * positionEstimationConfig()->w_xy_res_v * ctx.dt;
+        ctx.estVelCorr.x = -posEstimator.est.vel.x * positionEstimationConfig()->w_xy_res_v * ctx.dt;
+        ctx.estVelCorr.y = -posEstimator.est.vel.y * positionEstimationConfig()->w_xy_res_v * ctx.dt;
     }
 
     if (!estZCorrectOk || ctx.newEPV > max_eph_epv) {
-        ctx.estVelCorr.z = (0.0f - posEstimator.est.vel.z) * positionEstimationConfig()->w_z_res_v * ctx.dt;
+        ctx.estVelCorr.z = -posEstimator.est.vel.z * positionEstimationConfig()->w_z_res_v * ctx.dt;
     }
+
     // Boost the corrections based on accWeight
     vectorScale(&ctx.estPosCorr, &ctx.estPosCorr, 1.0f / posEstimator.imu.accWeightFactor);
     vectorScale(&ctx.estVelCorr, &ctx.estVelCorr, 1.0f / posEstimator.imu.accWeightFactor);
+
+    // Constrain corrections to prevent instability
+    for (uint8_t axis = 0; axis < 3; axis++) {
+        ctx.estPosCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -INAV_EST_CORR_LIMIT_VALUE, INAV_EST_CORR_LIMIT_VALUE);
+        ctx.estVelCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -INAV_EST_CORR_LIMIT_VALUE, INAV_EST_CORR_LIMIT_VALUE);
+    }
 
     // Apply corrections
     vectorAdd(&posEstimator.est.pos, &posEstimator.est.pos, &ctx.estPosCorr);
@@ -794,8 +802,8 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     estimationCalculateGroundCourse(currentTimeUs);
 
     /* Update uncertainty */
-    posEstimator.est.eph = ctx.newEPH;
-    posEstimator.est.epv = ctx.newEPV;
+    posEstimator.est.eph = constrainf(ctx.newEPH, 0.0f, 2.0f * max_eph_epv);
+    posEstimator.est.epv = constrainf(ctx.newEPV, 0.0f, 2.0f * max_eph_epv);
 
     // Keep flags for further usage
     posEstimator.flags = ctx.newFlags;
@@ -873,8 +881,6 @@ bool isEstimatedAglTrusted(void) {
  */
 void initializePositionEstimator(void)
 {
-    int axis;
-
     posEstimator.est.eph = positionEstimationConfig()->max_eph_epv + 0.001f;
     posEstimator.est.epv = positionEstimationConfig()->max_eph_epv + 0.001f;
 
@@ -893,7 +899,7 @@ void initializePositionEstimator(void)
 
     restartGravityCalibration();
 
-    for (axis = 0; axis < 3; axis++) {
+    for (uint8_t axis = 0; axis < 3; axis++) {
         posEstimator.imu.accelBias.v[axis] = 0;
         posEstimator.est.pos.v[axis] = 0;
         posEstimator.est.vel.v[axis] = 0;
