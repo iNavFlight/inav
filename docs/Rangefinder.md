@@ -97,6 +97,8 @@ Surface mode enables terrain following on **multirotors only** by maintaining co
 set nav_max_terrain_follow_alt = 100    # Max altitude in Surface mode (cm)
 ```
 
+**Important:** Always set `nav_max_terrain_follow_alt` **less than** `inav_max_surface_altitude` to prevent attempting to use the sensor beyond its reliable range. For example, if your rangefinder is reliable up to 200cm, set `inav_max_surface_altitude = 200` and `nav_max_terrain_follow_alt = 100` (or lower).
+
 **Note:** Surface mode is NOT available on fixed wing aircraft.
 
 ## Connections
@@ -149,7 +151,8 @@ See wiki for optical flow setup: https://github.com/iNavFlight/inav/wiki/Optic-F
 **Surface mode not working:**
 - Verify SURFACE mode is enabled via switch
 - Check rangefinder is providing valid data
-- Ensure within `inav_max_surface_altitude` range
+- Ensure altitude is below `nav_max_terrain_follow_alt` (operational limit)
+- Ensure altitude is within sensor's reliable range (set by `inav_max_surface_altitude`)
 - Confirm platform is multirotor (fixed wings not supported)
 
 ## References
