@@ -1,0 +1,49 @@
+# PG Struct Size Database
+# Format: struct_type size version
+# Generated from: build_sitl/bin/SITL.elf
+# Date: 2026-01-23 04:53:01 UTC
+
+adcChannelConfig_t               4 0
+armingConfig_t                   6 3
+barometerConfig_t                8 5
+batteryMetersConfig_t           36 2
+beeperConfig_t                  12 2
+blackboxConfig_t                16 4
+compassConfig_t                 32 6
+displayConfig_t                  1 0
+djiOsdConfig_t                   6 3
+ezTuneSettings_t                12 1
+failsafeConfig_t                22 3
+featureConfig_t                  4 0
+generalSettings_t                1 0
+geozone_config_t                20 0
+gimbalConfig_t                  10 1
+gimbalSerialConfig_t             1 0
+gpsConfig_t                     32 5
+gyroConfig_t                    28 12
+headTrackerConfig_t             16 1
+imuConfig_t                     16 2
+logConfig_t                      8 0
+modeActivationOperatorConfig_t   4 0
+motorConfig_t                   10 11
+navConfig_t                    156 7
+navFwAutolandConfig_t           16 0
+opticalFlowConfig_t              8 2
+osdCommonConfig_t                4 0
+osdConfig_t                    168 15
+pidAutotuneConfig_t             10 2
+pidProfile_t                   292 11
+pitotmeterConfig_t               8 2
+positionEstimationConfig_t      72 8
+powerLimitsConfig_t              8 1
+rangefinderConfig_t              2 3
+rcControlsConfig_t              10 4
+reversibleMotorsConfig_t         6 0
+rxConfig_t                      36 13
+servoConfig_t                   12 3
+statsConfig_t                   20 2
+systemConfig_t                  39 7
+telemetryConfig_t               64 8
+timeConfig_t                     4 1
+vtxConfig_t                     55 4
+vtxSettingsConfig_t             12 2
