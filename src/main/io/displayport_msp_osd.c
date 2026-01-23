@@ -139,31 +139,6 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
     return sent;
 }
 
-static uint8_t determineHDZeroOsdMode(void)
-{
-    if (cmsInMenu) {
-        return HD_5018;
-    }
-
-    // Check if all visible widgets are in the center 30x16 chars of the canvas.
-    int activeLayout = osdGetActiveLayout(NULL);
-    osd_items_e index = 0;
-    do {
-        index = osdIncElementIndex(index);
-        uint16_t pos = osdLayoutsConfig()->item_pos[activeLayout][index];
-        if (OSD_VISIBLE(pos)) {
-            uint8_t elemPosX = OSD_X(pos);
-            uint8_t elemPosY = OSD_Y(pos);
-            if (!osdItemIsFixed(index) && (elemPosX < 10 || elemPosX > 39 || elemPosY == 0 || elemPosY == 17)) {
-                return HD_5018;
-            }
-        }
-    } while (index > 0);
-
-    return HD_3016;
-}
-
-
 uint8_t setAttrPage(uint8_t origAttr, uint8_t page)
 {
         return (origAttr & ~DISPLAYPORT_MSP_ATTR_FONTPAGE_MASK) | (page & DISPLAYPORT_MSP_ATTR_FONTPAGE_MASK);
@@ -181,10 +156,6 @@ uint8_t setAttrVersion(uint8_t origAttr, uint8_t version)
 
 static int setDisplayMode(displayPort_t *displayPort)
 {
-    if (osdVideoSystem == VIDEO_SYSTEM_HDZERO) {
-        currentOsdMode = determineHDZeroOsdMode(); // Can change between layouts
-    }
-
     uint8_t subcmd[] = { MSP_DP_OPTIONS, 0, currentOsdMode }; // Font selection, mode (SD/HD)
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
