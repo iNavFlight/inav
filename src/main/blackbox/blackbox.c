@@ -987,7 +987,7 @@ static void writeIntraframe(void)
         blackboxWriteSignedVBArray(blackboxCurrent->debug, DEBUG32_VALUE_COUNT);
     }
 
-    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MOTORS)) {
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1)) {
         //Motors can be below minthrottle when disarmed, but that doesn't happen much
         blackboxWriteUnsignedVB(blackboxCurrent->motor[0] - getThrottleIdleValue());
 
@@ -1254,7 +1254,7 @@ static void writeInterframe(void)
         blackboxWriteArrayUsingAveragePredictor32(offsetof(blackboxMainState_t, debug), DEBUG32_VALUE_COUNT);
     }
 
-    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MOTORS)) {
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1)) {
         blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, motor),     getMotorCount());
     }
 
