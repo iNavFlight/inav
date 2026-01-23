@@ -132,7 +132,13 @@
 #define PG_GEOZONE_CONFIG 1042
 #define PG_GEOZONES 1043
 #define PG_GEOZONE_VERTICES 1044
+#ifdef USE_MZTC
+#define PG_MZTC_CAMERA_CONFIG 1045
+#define PG_MZTC_OSD_CONFIG 1046
+#define PG_INAV_END PG_MZTC_OSD_CONFIG
+#else
 #define PG_INAV_END PG_GEOZONE_VERTICES
+#endif
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047
