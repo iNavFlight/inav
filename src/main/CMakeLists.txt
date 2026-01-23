@@ -163,6 +163,13 @@ main_sources(COMMON_SRC
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
 
+    drivers/dronecan/libcanard/canard.c
+    drivers/dronecan/libcanard/canard.h
+    drivers/dronecan/libcanard/canard_stm32_driver.c
+    drivers/dronecan/libcanard/canard_stm32_driver.h
+    drivers/dronecan/dronecan.c
+    drivers/dronecan/dronecan.h
+
     drivers/display.c
     drivers/display.h
     drivers/display_canvas.c

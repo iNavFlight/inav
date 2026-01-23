@@ -28,7 +28,7 @@ set(STM32H7_HAL_SRC
 #    stm32h7xx_hal_eth.c
 #    stm32h7xx_hal_eth_ex.c
     stm32h7xx_hal_exti.c
-#    stm32h7xx_hal_fdcan.c
+    stm32h7xx_hal_fdcan.c
     stm32h7xx_hal_flash.c
     stm32h7xx_hal_flash_ex.c
     stm32h7xx_hal_gfxmmu.c

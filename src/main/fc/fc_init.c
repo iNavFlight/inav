@@ -128,6 +128,8 @@
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
 
+#include "drivers/dronecan/dronecan.h"
+
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
@@ -283,6 +285,10 @@ void init(void)
     timerInit();  // timer must be initialized before any channel is allocated
 
     serialInit(feature(FEATURE_SOFTSERIAL));
+
+#ifdef USE_DRONECAN
+    dronecanInit();
+#endif
 
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
