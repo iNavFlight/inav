@@ -119,6 +119,7 @@ int8_t radarGetNearestPOI(void)
  * Type = 0 : Home point
  * Type = 1 : Radar POI, P1: Relative heading, P2: Signal, P3 Cardinal direction
  * Type = 2 : Waypoint, P1: WP number, P2: 1=WP+1, 2=WP+2, 3=WP+3
+ * Type = 3 : Flight direction
  */
 void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, uint8_t poiType, uint16_t poiSymbol, int16_t poiP1, int16_t poiP2)
 {
@@ -222,7 +223,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 
     // Distance
 
-    if (poiType > 0 && 
+    if (poiType > 0 && poiType != 3 && 
         ((millis() / 1000) % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time) < (osdConfig()->hud_radar_alt_difference_display_time % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time)))
        ) { // For Radar and WPs, display the difference in altitude, then distance. Time is pilot defined
         altc = poiAltitude;
@@ -292,11 +293,13 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         }
     }
 
-    osdHudWrite(poi_x - 1, poi_y + 1, buff[0], 1);
-    osdHudWrite(poi_x , poi_y + 1, buff[1], 1);
-    osdHudWrite(poi_x + 1, poi_y + 1, buff[2], 1);
-    if (poiType == 1) {
-        osdHudWrite(poi_x + 2, poi_y + 1, buff[3], 1);
+    if (poiType != 3){
+        osdHudWrite(poi_x - 1, poi_y + 1, buff[0], 1);
+        osdHudWrite(poi_x , poi_y + 1, buff[1], 1);
+        osdHudWrite(poi_x + 1, poi_y + 1, buff[2], 1);
+        if (poiType == 1) {
+            osdHudWrite(poi_x + 2, poi_y + 1, buff[3], 1);
+        }
     }
 }
 
