@@ -143,9 +143,15 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             /* Set velocity proportional to stick movement
              * Scale from altHoldThrottleRCZero to maxthrottle or minthrottle to altHoldThrottleRCZero */
 
-            // Calculate max up or min down limit value scaled for deadband
-            int16_t limitValue = rcThrottleAdjustment > 0 ? getMaxThrottle() : getThrottleIdleValue();
-            limitValue = applyDeadbandRescaled(limitValue - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
+            // Calculate max up or min down limit value (raw range, deadband already applied to rcThrottleAdjustment)
+            int16_t limitValue = rcThrottleAdjustment > 0 ?
+                (getMaxThrottle() - altHoldThrottleRCZero) :
+                (altHoldThrottleRCZero - getThrottleIdleValue());
+
+            // Defensive check - should never trigger with valid configuration
+            if (limitValue <= 0) {
+                limitValue = 1;  // Prevent division by zero/negative
+            }
 
             int16_t rcClimbRate = ABS(rcThrottleAdjustment) * navConfig()->mc.max_manual_climb_rate / limitValue;
             updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
