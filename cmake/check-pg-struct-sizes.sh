@@ -60,8 +60,20 @@ while read -r struct_type current_size; do
     db_entry=$(grep "^$struct_type " "$DB_FILE" 2>/dev/null || echo "")
 
     if [ -z "$db_entry" ]; then
-        # New struct not in database
-        echo "  ℹ️  New: $struct_type (${current_size}B)"
+        # New struct not in database - add it automatically
+        current_version=$(get_pg_version "$struct_type")
+
+        if [ -z "$current_version" ]; then
+            echo "  ⚠️  Warning: Cannot find PG version for new struct $struct_type" >&2
+            echo "  ℹ️  New: $struct_type (${current_size}B) - skipping (no PG_REGISTER found)"
+            continue
+        fi
+
+        echo "  ➕ New: $struct_type (${current_size}B, v$current_version)"
+
+        # Add to database
+        printf "%-30s %3s %s\n" "$struct_type" "$current_size" "$current_version" >> "$DB_FILE"
+        UPDATED="$UPDATED\n  • $struct_type: NEW (${current_size}B, v$current_version)"
         continue
     fi
 

@@ -18,8 +18,7 @@ fi
 echo "Extracting PG struct sizes from $ELF_FILE using nm..." >&2
 
 # Detect architecture for correct nm command
-ARCH=$(file "$ELF_FILE" | grep -o "x86-64\|ARM" || echo "unknown")
-if [[ "$ARCH" == "ARM" ]]; then
+if command -v arm-none-eabi-nm &> /dev/null && [[ $(file "$ELF_FILE") == *"ARM"* ]]; then
     NM_CMD="arm-none-eabi-nm"
 else
     NM_CMD="nm"
