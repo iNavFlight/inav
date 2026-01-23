@@ -1005,8 +1005,8 @@
                     // Start polling for serial messages
                     startSerialPolling();
                 };
-                wasmScriptTag.onerror = () => {
-                    addConsoleLine('Failed to load WASM script', 'error');
+                wasmScriptTag.onerror = (e) => {
+                    addConsoleLine('Failed to load WASM script: ' + e.message, 'error');
                     setStatus('Error', 'error');
                     document.getElementById('startBtn').disabled = false;
                 };

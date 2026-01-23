@@ -862,7 +862,7 @@ static void cmsTraverseGlobalExit(const CMS_Menu *pMenu)
 
 long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 {
-#if defined(SITL_BUILD) || defined(WASM_BUILD) || defined(WASM_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
     unsigned long exitType = (uintptr_t)ptr;   
 #else
     int exitType = (int)ptr;  

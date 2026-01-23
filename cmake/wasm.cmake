@@ -31,19 +31,30 @@ main_sources(WASM_COMMON_SRC_EXCLUDES
 main_sources(WASM_SRC
     config/config_streamer_file.c
     drivers/serial_ex.c
+    drivers/serial_tcp.c
+    drivers/serial_tcp.h
+    target/SITL/sim/xplane.c
+    target/SITL/sim/realFlight.c
+    target/SITL/sim/simple_soap_client.c
+    target/SITL/sim/simHelper.c
 )
 
 # Emscripten linkage options
 set(WASM_LINK_OPTIONS
     -sWASM=1
     -sINVOKE_RUN=0
-    -lidbfs.js
+    -sWASMFS=1
+    -lwebsocket.js
     -sFORCE_FILESYSTEM=1
     -sASSERTIONS=0
+    -sASYNCIFY=1
     -pthread
+    -lwebsocket.js
+    -sPROXY_POSIX_SOCKETS
+    -sPROXY_TO_PTHREAD
     -sALLOW_TABLE_GROWTH=1
     -sPTHREAD_POOL_SIZE=10
-    -sEXPORTED_FUNCTIONS=['_main','_wasmExit','_malloc','_free','_wasmFilesystemInitialized','_fcScheduler','_inavSerialExSend','_inavSerialExConnect','_inavSerialExDisconnect','_serialExHasMessages','_serialExGetMessage']
+    -sEXPORTED_FUNCTIONS=['_main','_wasmExit','_malloc','_free','_fcScheduler','_inavSerialExSend','_inavSerialExConnect','_inavSerialExDisconnect','_serialExHasMessages','_serialExGetMessage']
     -sEXPORTED_RUNTIME_METHODS=['cwrap','ccall','callMain','addFunction','HEAP8','HEAPU8','HEAPU16','wasmMemory','FS']
 )
 

@@ -27,6 +27,9 @@
 #include <stdio.h>
 #include <errno.h>
 
+#if defined(WASM_BUILD)
+#include <emscripten.h>
+#endif
 
 #define FLASH_PAGE_SIZE  (0x400)
 
@@ -53,7 +56,7 @@ bool configFileSetPath(char* path)
         if (lastBackslash != NULL && lastBackslash > lastSlash) {
             filename = lastBackslash + 1;
         }
-        snprintf(eepromPath, sizeof(eepromPath), "%s/%s", IDBFS_MOUNT, filename);
+        snprintf(eepromPath, sizeof(eepromPath), "%s/%s", MOUNT_POINT, filename);
 #endif
     return true;
 }
@@ -77,14 +80,15 @@ void config_streamer_impl_unlock(void)
             fprintf(stderr,"[EEPROM] Loaded '%s' (%ld of %ld bytes)\n", eepromPath, size, sizeof(eepromData));
             streamerLocked = false;
         } else {
-            fprintf(stderr, "[EEPROM] Failed to load '%s'\n", eepromPath);
+            fprintf(stderr, "[EEPROM] Failed to load '%s': %s\n", eepromPath, strerror(errno));
         }
     } else {
         printf("[EEPROM] Created '%s', size = %ld\n", eepromPath, sizeof(eepromData));
         streamerLocked = false;
         if ((eepromFd = fopen(eepromPath, "w+")) == NULL) {
-            fprintf(stderr, "[EEPROM] Failed to create '%s'\n", eepromPath);
+            fprintf(stderr, "[EEPROM] Failed to create '%s': %s\n", eepromPath, strerror(errno));
             streamerLocked = true;
+            return;
         }
         if (fwrite(eepromData, sizeof(eepromData), 1, eepromFd) != 1) {
             fprintf(stderr, "[EEPROM] Write failed: %s\n", strerror(errno));

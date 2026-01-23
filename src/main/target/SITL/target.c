@@ -42,6 +42,9 @@
 
 #if defined(WASM_BUILD)
 #include <emscripten.h>
+#include <emscripten/posix_socket.h>
+#include <emscripten/threading.h>
+#include <emscripten/wasmfs.h>
 #endif
 
 #include <platform.h>
@@ -63,8 +66,6 @@
 
 #include "target/SITL/serial_proxy.h"
 
-
-
 // More dummys
 const int timerHardwareCount = 0;
 timerHardware_t timerHardware[1];
@@ -84,12 +85,22 @@ static int simPort = 0;
 static char **c_argv;
 
 #if defined(WASM_BUILD)
+#define WASM_DEFAULT_PROXY_PORT 8081
+#define WARM_PROXY_CONNECT_TIMEOUT_MS 5000
+#define WEBSOCKET_READY_STATE_OPEN 1
 
-static bool wasmFilesystemReady = false;
+static int wasmProxyPort = WASM_DEFAULT_PROXY_PORT;
+static EMSCRIPTEN_WEBSOCKET_T bridgeSocket = 0;
+bool wasmProxyConnected = false;
+
 static pthread_t wasmMainThread;
 static wasmMainThreadType wasmMainThreadWorker = NULL;
 static bool wasmMainWorkerThreadStarted = false;
+
+void wasmExit(void);
 #endif
+
+uint32_t millis(void);
 
 static void printVersion(void) {
     
@@ -121,12 +132,42 @@ void systemInit(void) {
         exit(1);
     }
 
+    
+#if defined(WASM_BUILD)
+    // Init emscripten socket bridge
+    char url[64];
+    snprintf(url, sizeof(url), "ws://localhost:%d", wasmProxyPort);
+    bridgeSocket = emscripten_init_websocket_to_posix_socket_bridge(url);
+    uint16_t readyState = 0;
+    const uint32_t start = millis();
+    do {
+        emscripten_websocket_get_ready_state(bridgeSocket, &readyState);
+        emscripten_thread_sleep(100);
+    } while((readyState != WEBSOCKET_READY_STATE_OPEN && millis() - start < WARM_PROXY_CONNECT_TIMEOUT_MS));
+
+    if (readyState != WEBSOCKET_READY_STATE_OPEN) {
+        fprintf(stderr, "[SOCKET] Warning: Unable to connect to socket proxy on port %d. Network connection may be unavailable.\n", wasmProxyPort);
+    } else {
+        fprintf(stderr, "[SOCKET] Connected to socket proxy on port %d\n", wasmProxyPort);
+        wasmProxyConnected = true;
+    }
+
+#endif
+
     if (sitlSim != SITL_SIM_NONE) {
+#if defined(WASM_BUILD)
+        if (!wasmProxyConnected) {
+            fprintf(stderr, "[SIM] Simulator connection requires a working socket proxy. Simulator interface disabled.\n");
+            sitlSim = SITL_SIM_NONE;
+        } else {
+#endif
         fprintf(stderr, "[SIM] Waiting for connection...\n");
+#if defined(WASM_BUILD)
+        }
+#endif
     }
 
     switch (sitlSim) {
-#ifdef SITL_BUILD
         case SITL_SIM_REALFLIGHT:
             if (mappingCount > RF_MAX_PWM_OUTS) {
                 fprintf(stderr, "[SIM] Mapping error. RealFligt supports a maximum of %i PWM outputs.", RF_MAX_PWM_OUTS);
@@ -151,7 +192,7 @@ void systemInit(void) {
                 fprintf(stderr, "[SIM] Connection with X-PLane NOT established.\n");
             }
             break;
-#endif
+
         default:
           fprintf(stderr, "[SIM] No interface specified. Configurator only.\n");
           break;
@@ -228,7 +269,7 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--simip=[ip]                   IP-Address oft the simulator host. If not specified localhost (127.0.0.1) is used.\n");
     fprintf(stderr, "--simport=[port]               Port oft the simulator host.\n");
     fprintf(stderr, "--useimu                       Use IMU sensor data from the simulator instead of using attitude data from the simulator directly (experimental, not recommended).\n");
-#ifdef SITL_BUILD
+#if defined(SITL_BUILD)
     fprintf(stderr, "--serialuart=[uart]            UART number on which serial receiver is configured in SITL, f.e. 3 for UART3\n");
     fprintf(stderr, "--serialport=[serialport]      Host's serial port to which serial receiver/proxy FC is connected, f.e. COM3, /dev/ttyACM3\n");
     fprintf(stderr, "--baudrate=[baudrate]          Serial receiver baudrate (default: 115200).\n");
@@ -236,11 +277,14 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--parity=[Even|None|Odd]       Serial receiver parity (default: None).\n");
     fprintf(stderr, "--fcproxy                      Use inav/betaflight FC as a proxy for serial receiver.\n");
     fprintf(stderr, "--tcpbaseport=[port]           Base TCP port for UART sockets (default: 5760)\n");
-#endif  
-    fprintf(stderr, "--chanmap=[mapstring]          Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
+#endif
+    fprintf(stderr, "--chanmap=[mapstring]          Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");    
     fprintf(stderr, "                               The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
     fprintf(stderr, "                               For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
     fprintf(stderr, "                               --chanmap=M01-01,S01-02,S02-03\n");
+#if defined(WASM_BUILD)
+    fprintf(stderr, "--proxyPort=[port]            Port on which the websocket proxy server is listening (default: 8081)\n");
+#endif
 }
 
 void parseArguments(int argc, char *argv[])
@@ -261,7 +305,7 @@ void parseArguments(int argc, char *argv[])
             {"help", no_argument, 0, 'h'},
             {"path", required_argument, 0, 'e'},
             {"version", no_argument, 0, 'v'},
-#ifdef SITL_BUILD
+#if defined(SITL_BUILD)
             {"serialuart", required_argument, 0, '0'},
             {"serialport", required_argument, 0, '1'},
             {"baudrate", required_argument, 0, '2'},
@@ -269,6 +313,8 @@ void parseArguments(int argc, char *argv[])
             {"parity", required_argument, 0, '4'},
             {"fcproxy", no_argument, 0, '5'},
             {"tcpbaseport", required_argument, 0, '6'},
+#elif defined(WASM_BUILD)
+            {"proxyPort", required_argument, 0, '7'},
 #endif
             {NULL, 0, NULL, 0}
         };
@@ -312,7 +358,7 @@ void parseArguments(int argc, char *argv[])
             case 'v':
                 printVersion();
                 exit(0);
-#ifdef SITL_BUILD
+#if defined(SITL_BUILD)
             case '0':
                 serialUartIndex = atoi(optarg);
                 if ( (serialUartIndex<1) || (serialUartIndex>8) ) {
@@ -366,6 +412,18 @@ void parseArguments(int argc, char *argv[])
                 tcpBasePort = (uint16_t)basePort;
                 break;
             }
+#elif defined(WASM_BUILD)
+            case '7':
+            {   
+                char *endptr = NULL;
+                long proxyPort = strtol(optarg, &endptr, 10);
+                if ((endptr == NULL) || (*endptr != '\0') || proxyPort <= 0 || proxyPort > UINT16_MAX) {
+                    fprintf(stderr, "[proxyPort] Invalid argument\n.");
+                    exit(0);
+                }
+                wasmProxyPort = (int)proxyPort;
+                break;
+            }
 #endif
             default:
                 printCmdLineOptions();
@@ -408,12 +466,22 @@ uint32_t millis(void) {
 
 void delayMicroseconds(timeUs_t us)
 {
+ #if defined(SITL_BUILD)
     usleep(us);
+#elif defined(WASM_BUILD)
+    // very short delays are only used in hardware drivers
+    // and not relevant in WASM/SITL simulation
+    UNUSED(us);
+ #endif
 }
 
 void delay(timeMs_t ms)
 {
+#if defined(SITL_BUILD)
     delayMicroseconds(ms * 1000UL);
+#elif defined(WASM_BUILD)
+    emscripten_sleep(ms);
+#endif
 }
 
 void systemReset(void)
@@ -435,7 +503,11 @@ void systemReset(void)
 void systemResetToBootloader(void)
 {
     fprintf(stderr, "[SYSTEM] Reset to bootloader\n");
+#if defined(SITL_BUILD)
     exit(0);
+#elif defined(WASM_BUILD)
+    wasmExit();
+#endif
 }
 
 void failureMode(failureMode_e mode) {
@@ -581,68 +653,35 @@ char *prettyPrintAddress(struct sockaddr* p, char *outbuf, size_t buflen)
 
 #if defined(WASM_BUILD)
 
-void wasmFilesystemInitialized(void)
-{
-    wasmFilesystemReady = true;
-}
-
 void wasmMainLoop(void) 
 {
-    // Only start scheduler after filesystem is initialized
-    if (wasmFilesystemReady) {
-        if (!wasmMainWorkerThreadStarted && wasmMainThreadWorker != NULL) {
-            /*
-            * In Webassembly/emscripten, a classic infinite loop cannot be used, as otherwise the entire browser tab freezes. 
-            * The main loop emscripten_set_main_loop() runs too slowly (max approx. 60 Hz/FPS), 
-            * so the main loop must run in a separate thread (pthread -> in emscripten a wrapper around web worker) 
-            * that can ‘rev up’ to full speed.
-            */
-            int err = pthread_create(&wasmMainThread, NULL, wasmMainThreadWorker, NULL);
-            if (err != 0) {
-                fprintf(stderr, "[SYSTEM] Failed to start WASM scheduler thread %s\n", strerror(err));
-                wasmExit();
-            };
-            wasmMainWorkerThreadStarted = true;
-        }
+    if (!wasmMainWorkerThreadStarted && wasmMainThreadWorker != NULL) {
+        /*
+        * In Webassembly/emscripten, a classic infinite loop cannot be used, as otherwise the entire browser tab freezes. 
+        * The main loop emscripten_set_main_loop() runs too slowly (max approx. 60 Hz/FPS), 
+        * so the main loop must run in a separate thread (pthread -> in emscripten a wrapper around web worker) 
+        * that can ‘rev up’ to full speed (ca. 1 kHz or more, depending on the host CPU and browser capabilities).
+        * Here we start that main worker thread.
+        */
+        int err = pthread_create(&wasmMainThread, NULL, wasmMainThreadWorker, NULL);
+        if (err != 0) {
+            fprintf(stderr, "[SYSTEM] Failed to start WASM scheduler thread %s\n", strerror(err));
+            wasmExit();
+        };
+        wasmMainWorkerThreadStarted = true;
     }
 }
 
 void wasmInitFilesystem(void)
 {
-    const char *idbfsMount = IDBFS_MOUNT;
-    // Filesystem initialization must be done in JS context
-    EM_ASM({
-        // Prevent browser from sleeping / throttling when tab is inactive
-        if (typeof Module['noExitRuntime'] === 'undefined') {
-            Module['noExitRuntime'] = true;
-        }
-        const mount = UTF8ToString($0);
-        console.log('Initializing filesystem at', mount);
-        
-        if (typeof indexedDB === 'undefined') {
-            console.warn('IndexedDB not available, using in-memory filesystem');
-            FS.mkdir(mount);
-            Module._wasmFilesystemInitialized();
-        } else {
-            try {
-                FS.mkdir(mount);
-                FS.mount(IDBFS, { autoPersist: true}, mount);
-                FS.syncfs(true, function (err) {
-                    if (err) {
-                        console.error('Error syncing filesystem from persistent storage:', err);
-                    } else {
-                        console.log('Filesystem synced from persistent storage.');
-                    }
-                    Module._wasmFilesystemInitialized();
-                });
-            } catch (e) {
-                console.error('Failed to mount IDBFS:', e);
-                console.warn('Using in-memory filesystem fallback');
-                FS.mkdir(mount);
-                Module._wasmFilesystemInitialized();
-            }
-        }
-    }, (int)idbfsMount);
+    // Must be done in main thread
+    const char *idbfsMount = MOUNT_POINT;
+    const backend_t backend = wasmfs_create_opfs_backend();
+    int res = wasmfs_create_directory(idbfsMount, 0777, backend);
+    if (res < 0) {
+        fprintf(stderr, "[FILESYSTEM] Failed to create IDBFS mount directory '%s': %s\n", idbfsMount, strerror(-res));
+        fprintf(stderr, "[FILESYSTEM] Using in-memory filesystem fallback, eeprom file will not be persistent\n");
+    }
 }
 
 void wasmStart(wasmMainThreadType thread)
@@ -652,10 +691,15 @@ void wasmStart(wasmMainThreadType thread)
     emscripten_set_main_loop(wasmMainLoop, 0, false);
 }
 
-
 void wasmExit(void)
 {
    emscripten_force_exit(1);
 }
+
+bool isSocketProxyConnected(void) 
+{ 
+    return wasmProxyConnected; 
+}
+
 
 #endif

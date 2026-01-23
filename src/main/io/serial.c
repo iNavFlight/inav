@@ -40,7 +40,7 @@
 #include "drivers/serial_uart.h"
 #endif
 
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
 #include "drivers/serial_tcp.h"
 #endif
 
@@ -336,12 +336,15 @@ bool doesConfigurationUsePort(serialPortIdentifier_e identifier)
 
 #if defined(SITL_BUILD) || defined(WASM_BUILD)
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
-{
-#if defined(SITL_BUILD)
-    return tcpOpen(USARTx, callback, rxCallbackData, baudRate, mode, options);
-#elif defined(WASM_BUILD)
-    return serialExInit(USARTx, callback, rxCallbackData, baudRate, mode, options);
+{   
+#if defined(WASM_BUILD)
+    if (USARTx == USART1) {
+        return serialExInit(USARTx, callback, rxCallbackData, baudRate, mode, options);
+    } else if (!isSocketProxyConnected()) {
+        return NULL;
+    }
 #endif
+    return tcpOpen(USARTx, callback, rxCallbackData, baudRate, mode, options);
 }
 #endif
 

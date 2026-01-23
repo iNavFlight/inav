@@ -29,7 +29,7 @@
 
 #include "platform.h"
 
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
 
 #include <sys/socket.h>
 #include <fcntl.h>
@@ -38,6 +38,12 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/tcp.h>
+
+#if defined(WASM_BUILD)
+#include <emscripten.h>
+#include <emscripten/websocket.h>
+#include <emscripten/threading.h>
+#endif
 
 #include "common/utils.h"
 
@@ -52,8 +58,7 @@ uint16_t tcpBasePort = TCP_BASE_PORT_DEFAULT;
 static void *tcpReceiveThread(void* arg)
 {
     tcpPort_t *port = (tcpPort_t*)arg;
-    while(tcpReceive(port) >= 0)
-        ;
+    while(tcpReceive(port) >= 0) { ; };
     return NULL;
 }
 static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
@@ -77,12 +82,12 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
         fprintf(stderr, "[SOCKET] Unable to create tcp socket\n");
         return NULL;
     }
-    int err = 0;
+
 #ifdef __CYGWIN__
     // Sadly necesary to enforce dual-stack behaviour on Windows networking ,,,
     if (((struct sockaddr*)&port->sockAddress)->sa_family == AF_INET6) {
         int v6only=0;
-        err = setsockopt(port->socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only));
+        int err = setsockopt(port->socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only));
         if (err != 0) {
             fprintf(stderr,"[SOCKET] setting V6ONLY=false: %s\n", strerror(errno));
         }
@@ -90,14 +95,21 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 #endif
 
     int one = 1;
-    err = setsockopt(port->socketFd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
-    err = setsockopt(port->socketFd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    err = fcntl(port->socketFd, F_SETFL, fcntl(port->socketFd, F_GETFL, 0) | O_NONBLOCK);
-
+    setsockopt(port->socketFd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+    setsockopt(port->socketFd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+    
+#if defined(SITL_BUILD)
+    // fcntl is not fully supported in Emscripten/WASM
+    int err = fcntl(port->socketFd, F_SETFL, fcntl(port->socketFd, F_GETFL, 0) | O_NONBLOCK);
     if (err < 0){
-        fprintf(stderr, "[SOCKET] Unable to set socket options\n");
+        fprintf(stderr, "[SOCKET] Unable to set socket options: %s\n", strerror(errno));
         return NULL;
     }
+#elif defined(WASM_BUILD)
+    // For WASM, fcntl and many socket options are not supported in Emscripten
+    // The basic options (TCP_NODELAY, SO_REUSEADDR) set above should be sufficient
+    // Threading and event loop handle the async I/O
+#endif
 
     port->isClientConnected = false;
     port->isInitalized = true;
@@ -142,6 +154,7 @@ int tcpReceive(tcpPort_t *port)
     char addrbuf[IPADDRESS_PRINT_BUFLEN];
     if (!port->isClientConnected) {
 
+#if defined(SITL_BUILD)
         fd_set fds;
 
         FD_ZERO(&fds);
@@ -151,10 +164,17 @@ int tcpReceive(tcpPort_t *port)
             fprintf(stderr, "[SOCKET] Unable to wait for connection.\n");
             return -1;
         }
-
+#endif
         socklen_t addrLen = sizeof(struct sockaddr_storage);
         port->clientSocketFd = accept(port->socketFd,(struct sockaddr*)&port->clientAddress, &addrLen);
-        if (port->clientSocketFd < 1) {
+        if (port->clientSocketFd < 0) {
+#if defined(WASM_BUILD)
+            // No select() available under wasm/emscripten, so we need to handle EWOULDBLOCK here
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                emscripten_thread_sleep(10);
+                return 0;
+            }
+#endif
             fprintf(stderr, "[SOCKET] Can't accept connection.\n");
             return -1;
         }
@@ -175,7 +195,11 @@ int tcpReceive(tcpPort_t *port)
         if (addrptr != NULL) {
             fprintf(stderr, "[SOCKET] %s disconnected from UART%d\n", addrptr, port->id);
         }
+#if defined(SITL_BUILD)
         close(port->clientSocketFd);
+#elif defined(WASM_BUILD)
+        shutdown(port->clientSocketFd, SHUT_RDWR);
+#endif
         memset(&port->clientAddress, 0, sizeof(port->clientAddress));
         port->isClientConnected = false;
         return 0;
@@ -260,10 +284,12 @@ void tcpWrite(serialPort_t *instance, uint8_t ch)
 {
     tcpWritBuf(instance, (void*)&ch, 1);
 
+#if defined(SITL_BUILD)
     int index = getTcpPortIndex(instance);
     if ( !serialFCProxy && serialProxyIsConnected() && (index == (serialUartIndex-1)) ) {
             serialProxyWriteData( (unsigned char *)&ch, 1);
     }
+#endif
 }
 
 uint32_t tcpTotalRxBytesWaiting(const serialPort_t *instance)

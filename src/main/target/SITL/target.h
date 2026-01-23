@@ -41,7 +41,7 @@ typedef void *(*wasmMainThreadType)(void *);
 #define TARGET_BOARD_IDENTIFIER "WASM"
 #define USBD_PRODUCT_STRING  "Webassembly"
 
-#define IDBFS_MOUNT "/inav_data"
+#define MOUNT_POINT "/inav_data"
 
 #endif
 
@@ -226,7 +226,8 @@ extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);
 extern char *prettyPrintAddress(struct sockaddr*, char*, size_t);
 
 #if defined(WASM_BUILD)
-void wasmFilesystemInitialized(void);
 void wasmStart(wasmMainThreadType);
 void wasmExit(void);
+
+extern bool isSocketProxyConnected(void);
 #endif
