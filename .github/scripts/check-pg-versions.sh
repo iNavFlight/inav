@@ -187,7 +187,7 @@ while IFS= read -r file; do
     fi
 
     # Determine companion file (.c <-> .h)
-    local companion=""
+    companion=""
     if [[ "$file" == *.c ]]; then
         companion="${file%.c}.h"
     elif [[ "$file" == *.h ]]; then
