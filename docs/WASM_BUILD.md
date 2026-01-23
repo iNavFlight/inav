@@ -41,18 +41,6 @@ emcc --version
 
 ## Building WASM
 
-### Quick Start
-
-From the repository root:
-
-```bash
-./build_wasm.sh Release    # Optimized build
-# or
-./build_wasm.sh Debug      # Debug build with symbols
-```
-
-### Manual Build
-
 ```bash
 # Create build directory
 mkdir -p build/wasm
@@ -92,7 +80,7 @@ The build generates:
 
 - **`inav_X.X.X_WASM.js`** - JavaScript loader and interface
 - **`inav_X.X.X_WASM.wasm`** - WebAssembly binary module
-- **`inav_X.X.X_WASM.data`** - Optional data files (if any)
+- **`index.html`** - Simple Debugger HTML to test and debug without INAV-Configurator (Web-Version)
 
 ## Project Structure
 
@@ -188,14 +176,6 @@ Module._free(ptr);
 var data = new Uint8Array(Module.HEAPU8.buffer, ptr, 100);
 ```
 
-## Sensor Simulation
-
-The WASM target uses fake sensors by default. To inject simulated data:
-
-1. **MSP Protocol**: Send simulated sensor data via MSP commands
-2. **Direct Memory**: Modify sensor structures in WASM memory
-3. **JSON Input**: Parse simulation scenario files
-
 ## Debugging
 
 ### Enable Debug Symbols
@@ -207,7 +187,11 @@ make WASM
 
 ### Browser Debugging
 
-In modern browsers (Chrome, Firefox, Edge):
+To debug the webassembly using Chome Dev-Tools: https://developer.chrome.com/docs/devtools/wasm?hl=de
+
+**Tip for Windows users:**
+As recommended by INAV and SITL, it is best to use WSL. If a test server is running in WSL, it can be accessed normally via the browser in Windows on localhost, only the DWARF/Webassembly debugger cannot access the source maps.
+As a workaround, mount a folder in WSL as a network drive in Windows (e.g. WSL installation name: Ubuntu -> `\wsl$\Ubuntu` as network path, drive X:) and then set a path replacement in the settings of the "C/C++ Dev Tools Support extension": ´/home/user´ -> `X:\home\user`
 
 1. Open DevTools (F12)
 2. Go to Sources tab
@@ -269,21 +253,6 @@ gzip -k inav_*.wasm
    ```
 3. Enable CORS if necessary
 4. Optional: Compress with gzip
-
-### Docker Container
-
-```dockerfile
-FROM emscripten/emsdk:latest
-
-WORKDIR /src
-COPY . .
-
-RUN ./build_wasm.sh Release
-
-FROM nginx:latest
-COPY --from=0 /src/build/wasm/inav_*.js /usr/share/nginx/html/
-COPY --from=0 /src/build/wasm/inav_*.wasm /usr/share/nginx/html/
-```
 
 ## Troubleshooting
 
@@ -349,4 +318,3 @@ In `cmake/wasm.cmake`, modify exported functions:
 - [Emscripten Documentation](https://emscripten.org/docs/)
 - [WebAssembly Specification](https://webassembly.org/)
 - [Emscripten Best Practices](https://emscripten.org/docs/optimizing/Optimizing-Code.html)
-- [INAV GitHub Repository](https://github.com/iNavFlight/inav)
