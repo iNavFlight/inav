@@ -7,6 +7,9 @@ X-Plane is not a model flight simulator, but is based on real world data and is 
 ## Aircraft
 It is recommended to use the "AR Wing" of the INAV HITL project: https://github.com/RomanLut/INAV-X-Plane-HITL
 
+## INAV Plugin
+For advanced SITL featues (like OSD, virtual RX, simulated hardware failures, power train simulation) you can use the [INAV-X-Plane-XITL plugin](https://github.com/Scavanger/INAV-X-Plane-XITL)
+
 ## General settings
 In Settings / Network select "Accept incoming connections".
 The port can be found under "UDP PORTS", "Port we receive on". If no connection is established, the port can be changed.

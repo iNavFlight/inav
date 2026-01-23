@@ -633,6 +633,12 @@ void currentMeterUpdate(timeUs_t timeDelta)
             break;
     }
 
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) && SIMULATOR_HAS_OPTION(HITL_CURRENT_SENSOR)) {
+        amperage = ((uint16_t)simulatorData.current) * 10;
+    }
+#endif
+
     // Clamp amperage to positive values
     amperage = MAX(0, amperage);
 

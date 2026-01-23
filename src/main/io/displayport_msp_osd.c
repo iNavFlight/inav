@@ -273,6 +273,8 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
  */
 static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
+    vtxActive = SIMULATOR_HAS_OPTION(HITL_SITL_MODE);
+    
     static uint8_t counter = 0;
 
     if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) { // 62.5Hz

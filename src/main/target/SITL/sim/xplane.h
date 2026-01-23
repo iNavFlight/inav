@@ -23,6 +23,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define XP_MAX_PWM_OUTS 4
 
