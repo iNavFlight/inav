@@ -35,7 +35,6 @@
 #include "target.h"
 #include "target/SITL/sim/realFlight.h"
 #include "target/SITL/sim/simple_soap_client.h"
-#include "target/SITL/sim/xplane.h"
 #include "target/SITL/sim/simHelper.h"
 #include "fc/runtime_config.h"
 #include "drivers/time.h"

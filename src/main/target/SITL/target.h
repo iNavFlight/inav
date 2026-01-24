@@ -31,8 +31,21 @@
 
 #include <platform.h>
 
+#if defined(SITL_BUILD)
 #define TARGET_BOARD_IDENTIFIER "SITL"
 #define USBD_PRODUCT_STRING  "SITL"
+#elif defined(WASM_BUILD)
+
+typedef void *(*wasmMainThreadType)(void *);
+
+#define TARGET_BOARD_IDENTIFIER "WASM"
+#define USBD_PRODUCT_STRING  "Webassembly"
+
+#define MOUNT_POINT "/inav_data"
+
+#endif
+
+
 
 #define REQUIRE_PRINTF_LONG_SUPPORT
 
@@ -83,6 +96,10 @@
 #define USE_GEOZONE
 #define MAX_GEOZONES_IN_CONFIG 63
 #define MAX_VERTICES_IN_CONFIG 126
+
+#ifdef WASM_BUILD
+#undef USE_BLACKBOX
+#endif
 
 #undef USE_GYRO_KALMAN // Strange behaviour under x86/x64 ?!?
 #undef USE_VCP
@@ -207,3 +224,10 @@ extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);
 
 #define IPADDRESS_PRINT_BUFLEN (INET6_ADDRSTRLEN + 16)
 extern char *prettyPrintAddress(struct sockaddr*, char*, size_t);
+
+#if defined(WASM_BUILD)
+void wasmStart(wasmMainThreadType);
+void wasmExit(void);
+
+extern bool isSocketProxyConnected(void);
+#endif

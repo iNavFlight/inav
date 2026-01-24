@@ -23,6 +23,6 @@
 
 void targetConfiguration(void)
 {  
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].msp_baudrateIndex = BAUD_115200;
 }

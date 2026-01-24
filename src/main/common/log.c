@@ -20,7 +20,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#if defined(SEMIHOSTING) || defined(SITL_BUILD)
+#if defined(SEMIHOSTING) || defined(SITL_BUILD)  || defined(WASM_BUILD)
 #include <stdio.h>
 #endif
 
@@ -45,6 +45,10 @@
 #include "msp/msp.h"
 #include "msp/msp_serial.h"
 #include "msp/msp_protocol.h"
+
+#if defined(WASM_BUILD)
+#include <emscripten/console.h>
+#endif
 
 #if defined(USE_LOG)
 
@@ -131,6 +135,11 @@ static void logPrint(const char *buf, size_t size)
         fputc(buf[ii], stdout);
     }
 #endif
+
+#if defined(WASM_BUILD)
+    emscripten_console_log(buf);
+#endif
+
     SD(printf("%s\n", buf));
     if (logPort) {
         // Send data via UART (if configured & connected - a safeguard against zombie VCP)

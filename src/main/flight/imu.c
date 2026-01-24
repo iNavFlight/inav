@@ -924,7 +924,7 @@ float calculateCosTiltAngle(void)
     return 1.0f - 2.0f * sq(orientation.q1) - 2.0f * sq(orientation.q2);
 }
 
-#if defined(SITL_BUILD) || defined (USE_SIMULATOR)
+#if defined(SITL_BUILD) || defined(WASM_BUILD) || defined (USE_SIMULATOR)
 
 void imuSetAttitudeRPY(int16_t roll, int16_t pitch, int16_t yaw)
 {

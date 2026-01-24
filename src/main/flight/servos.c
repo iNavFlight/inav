@@ -280,7 +280,7 @@ void writeServos(void)
 {
     filterServos();
 
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     int servoIndex = 0;
     bool zeroServoValue = false;
 
@@ -680,8 +680,10 @@ void processContinuousServoAutotrim(const float dT)
     DEBUG_SET(DEBUG_AUTOTRIM, 6, servoParams(5)->middle);
     DEBUG_SET(DEBUG_AUTOTRIM, 1, servoMiddleUpdateCount);
     DEBUG_SET(DEBUG_AUTOTRIM, 3, MAX(RADIANS_TO_DEGREES(rotRateMagnitudeFiltered), targetRateMagnitudeFiltered));
+#ifdef USE_BLACKBOX
     DEBUG_SET(DEBUG_AUTOTRIM, 5, axisPID_I[FD_ROLL]);
     DEBUG_SET(DEBUG_AUTOTRIM, 7, axisPID_I[FD_PITCH]);
+#endif
 }
 
 void processServoAutotrim(const float dT) {

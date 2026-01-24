@@ -1652,7 +1652,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_OUTPUT_MAPPING_EXT:
         for (uint8_t i = 0; i < timerHardwareCount; ++i)
             if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
-                #if defined(SITL_BUILD)
+                #if defined(SITL_BUILD) || defined(WASM_BUILD)
                 sbufWriteU8(dst, i);
                 #else
                 sbufWriteU8(dst, timer2id(timerHardware[i].tim));
@@ -1663,19 +1663,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP2_INAV_OUTPUT_MAPPING_EXT2:
         {
-            #if !defined(SITL_BUILD) && defined(WS2811_PIN)
+            #if !(defined(SITL_BUILD) || defined(WASM_BUILD)) && defined(WS2811_PIN)
             ioTag_t led_tag = IO_TAG(WS2811_PIN);
             #endif
             for (uint8_t i = 0; i < timerHardwareCount; ++i)
 
                 if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
-                    #if defined(SITL_BUILD)
+                    #if defined(SITL_BUILD) || defined(WASM_BUILD)
                     sbufWriteU8(dst, i);
                     #else
                     sbufWriteU8(dst, timer2id(timerHardware[i].tim));
                     #endif
                     sbufWriteU32(dst, timerHardware[i].usageFlags);
-                    #if defined(SITL_BUILD) || !defined(WS2811_PIN)
+                    #if defined(SITL_BUILD) || defined(WASM_BUILD) || !defined(WS2811_PIN)
                     sbufWriteU8(dst, 0);
                     #else
                     // Extra label to help identify repurposed PINs.
@@ -3920,154 +3920,6 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
     return true;
 }
 
-#ifdef USE_SIMULATOR
-bool isOSDTypeSupportedBySimulator(void)
-{
-#ifdef USE_OSD
-    displayPort_t *osdDisplayPort = osdGetDisplayPort();
-	return (!!osdDisplayPort && !!osdDisplayPort->vTable->readChar);
-#else
-    return false;
-#endif
-}
-
-void mspWriteSimulatorOSD(sbuf_t *dst)
-{
-	//RLE encoding
-	//scan displayBuffer iteratively
-	//no more than 80+3+2 bytes output in single run
-	//0 and 255 are special symbols
-	//255 [char] - font bank switch
-	//0 [flags,count] [char] - font bank switch, blink switch and character repeat
-    //original 0 is sent as 32
-    //original 0xff, 0x100 and 0x1ff are forcibly sent inside command 0
-
-	static uint8_t osdPos_y = 0;
-	static uint8_t osdPos_x = 0;
-
-    //indicate new format hitl 1.4.0
-	sbufWriteU8(dst, 255);
-
-	if (isOSDTypeSupportedBySimulator())
-	{
-		displayPort_t *osdDisplayPort = osdGetDisplayPort();
-
-		sbufWriteU8(dst, osdDisplayPort->rows);
-		sbufWriteU8(dst, osdDisplayPort->cols);
-
-		sbufWriteU8(dst, osdPos_y);
-		sbufWriteU8(dst, osdPos_x);
-
-		int bytesCount = 0;
-
-		uint16_t c = 0;
-		textAttributes_t attr = 0;
-		bool highBank = false;
-		bool blink = false;
-		int count = 0;
-
-		int processedRows = osdDisplayPort->rows;
-
-		while (bytesCount < 80) //whole response should be less 155 bytes at worst.
-		{
-			bool blink1;
-			uint16_t lastChar = 0;
-
-			count = 0;
-			while ( true )
-			{
-				displayReadCharWithAttr(osdDisplayPort, osdPos_x, osdPos_y, &c, &attr);
-				if (c == 0) c = 32;
-
-				//REVIEW: displayReadCharWithAttr() should return mode with _TEXT_ATTRIBUTES_BLINK_BIT !
-				//for max7456 it returns mode with MAX7456_MODE_BLINK instead (wrong)
-				//because max7456ReadChar() does not decode from MAX7456_MODE_BLINK to _TEXT_ATTRIBUTES_BLINK_BIT
-				//it should!
-
-				//bool blink2 = TEXT_ATTRIBUTES_HAVE_BLINK(attr);
-				bool blink2 = attr & (1<<4); //MAX7456_MODE_BLINK
-
-				if (count == 0)
-				{
-					lastChar = c;
-					blink1 = blink2;
-				}
-				else if ((lastChar != c) || (blink2 != blink1) || (count == 63))
-				{
-					break;
-				}
-
-				count++;
-
-				osdPos_x++;
-				if (osdPos_x == osdDisplayPort->cols)
-				{
-					osdPos_x = 0;
-					osdPos_y++;
-					processedRows--;
-					if (osdPos_y == osdDisplayPort->rows)
-					{
-						osdPos_y = 0;
-					}
-				}
-			}
-
-			uint8_t cmd = 0;
-            uint8_t lastCharLow = (uint8_t)(lastChar & 0xff);
-			if (blink1 != blink)
-			{
-				cmd |= 128;//switch blink attr
-				blink = blink1;
-			}
-
-			bool highBank1 = lastChar > 255;
-			if (highBank1 != highBank)
-			{
-				cmd |= 64;//switch bank attr
-				highBank = highBank1;
-			}
-
-			if (count == 1 && cmd == 64)
-			{
-				sbufWriteU8(dst, 255);  //short command for bank switch with char following
-				sbufWriteU8(dst, lastChar & 0xff);
-				bytesCount += 2;
-			}
-			else if ((count > 2) || (cmd !=0) || (lastChar == 255) || (lastChar == 0x100) || (lastChar == 0x1ff))
-			{
-				cmd |= count;  //long command for blink/bank switch and symbol repeat
-				sbufWriteU8(dst, 0);
-				sbufWriteU8(dst, cmd);
-				sbufWriteU8(dst, lastCharLow);
-				bytesCount += 3;
-			}
-			else if (count == 2)  //cmd == 0 here
-			{
-				sbufWriteU8(dst, lastCharLow);
-				sbufWriteU8(dst, lastCharLow);
-				bytesCount+=2;
-			}
-			else
-			{
-				sbufWriteU8(dst, lastCharLow);
-				bytesCount++;
-			}
-
-			if ( processedRows <= 0 )
-			{
-				break;
-			}
-		}
-		sbufWriteU8(dst, 0);  //command 0 with length=0 -> stop
-		sbufWriteU8(dst, 0);
-	}
-	else
-	{
-		sbufWriteU8(dst, 0);
-	}
-}
-#endif
-
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {
     uint8_t tmp_u8;
@@ -4347,7 +4199,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         sbufWriteU16(dst, attitude.values.pitch);
         sbufWriteU16(dst, attitude.values.yaw);
 
-        mspWriteSimulatorOSD(dst);
+        osdWriteSimulator(dst);
 
         *ret = MSP_RESULT_ACK;
         break;

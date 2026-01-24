@@ -18,6 +18,8 @@
 #pragma once
 
 #include "common/time.h"
+#include "common/streambuf.h"
+
 
 #include "config/parameter_group.h"
 
@@ -597,3 +599,8 @@ int16_t osdGetPanServoOffset(void);
  * @return osd text attributes (Blink, Inverted, Solid)
  */
 textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenteredText);
+
+#ifdef USE_SIMULATOR
+bool isOSDTypeSupportedBySimulator(void);
+void osdWriteSimulator(sbuf_t *dst);
+#endif
