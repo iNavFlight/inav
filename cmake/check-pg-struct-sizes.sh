@@ -54,34 +54,16 @@ echo "🔍 Checking PG struct sizes against database ($ARCH)..."
 
 echo "🔍 Checking PG struct sizes against database..."
 
-# Extract current sizes
+# Extract current sizes and versions
 TEMP_CURRENT=$(mktemp)
 "$SCRIPT_DIR/extract-pg-sizes-nm.sh" "$ELF_FILE" 2>/dev/null > "$TEMP_CURRENT"
-
-# Function to get PG version from source code
-get_pg_version() {
-    local struct_type=$1
-
-    # Remove _t suffix to get config name
-    # e.g., blackboxConfig_t -> blackboxConfig
-    local config_name="${struct_type%_t}"
-
-    # Search for PG_REGISTER in source files
-    # Format: PG_REGISTER_WITH_RESET_TEMPLATE(type, name, pgn, version)
-    #     or: PG_REGISTER_WITH_RESET_FN(type, name, pgn, version)
-    #     or: PG_REGISTER(type, name, pgn, version)
-    local version=$(grep -rh "PG_REGISTER.*$config_name" src/main --include="*.c" 2>/dev/null | \
-        grep -oP 'PG_REGISTER[^(]*\([^,]+,[^,]+,[^,]+,\s*\K\d+' | head -1)
-
-    echo "$version"
-}
 
 FAILED=0
 ISSUES=""
 UPDATED=""
 
 # Check each struct in current binary
-while read -r struct_type current_size; do
+while read -r struct_type current_size current_version; do
     [ -z "$struct_type" ] && continue
 
     # Look up in database
@@ -89,8 +71,6 @@ while read -r struct_type current_size; do
 
     if [ -z "$db_entry" ]; then
         # New struct not in database - add it automatically
-        current_version=$(get_pg_version "$struct_type")
-
         if [ -z "$current_version" ]; then
             echo "  ⚠️  Warning: Cannot find PG version for new struct $struct_type" >&2
             echo "  ℹ️  New: $struct_type (${current_size}B) - skipping (no PG_REGISTER found)"
@@ -110,8 +90,6 @@ while read -r struct_type current_size; do
 
     if [ "$current_size" != "$db_size" ]; then
         # Size changed - check if version was incremented
-        current_version=$(get_pg_version "$struct_type")
-
         if [ -z "$current_version" ]; then
             echo "  ⚠️  Warning: Cannot find PG version for $struct_type" >&2
             continue
