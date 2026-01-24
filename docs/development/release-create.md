@@ -35,10 +35,11 @@ Version numbers are set in:
 ### Code Readiness
 
 - [ ] All planned PRs merged
-- [ ] CI passing on master branch
+- [ ] CI passing on target branch
 - [ ] No critical open issues blocking release
 - [ ] Version numbers updated in both repositories
 - [ ] SITL binaries updated in configurator
+- [ ] **PG struct validation passed** (see [PG Validation](#pg-parameter-group-validation))
 
 ### Documentation
 
@@ -52,38 +53,41 @@ Version numbers are set in:
 1. Verify release readiness
    ├── All PRs merged
    ├── CI passing
-   └── Version numbers updated
+   ├── Version numbers updated
+   └── PG struct validation passed
 
 2. Update SITL binaries in Configurator
    ├── Download from nightly or build for each platform
    └── Commit updated binaries to configurator repo
 
-3. Create tags
-   ├── inav: git tag <version>
-   └── inav-configurator: git tag <version>
-
-4. Generate changelog
+3. Generate changelog
    ├── List PRs since last tag
    ├── Categorize changes
    └── Format release notes
 
-5. Download/build artifacts
+4. Download/build artifacts
    ├── Firmware: from nightly builds
    └── Configurator: from CI artifacts
 
-6. Create draft releases
+5. Create draft releases
    ├── Upload firmware artifacts
    ├── Upload configurator artifacts
    └── Add release notes
 
-7. Review and publish
+6. Testing and review
+   ├── Test artifacts on hardware
    ├── Maintainer review
+   └── Address any issues
+
+7. Tag and publish
+   ├── Create git tags (inav and inav-configurator)
+   ├── Push tags to trigger final builds
    └── Publish releases
 ```
 
 ## Updating SITL Binaries
 
-SITL binaries must be updated before tagging the configurator. They are stored in:
+SITL binaries must be updated in the configurator repository before release. They are stored in:
 ```
 inav-configurator/resources/public/sitl/
 ├── linux/
@@ -119,7 +123,9 @@ git add resources/public/sitl/
 git commit -m "Update SITL binaries for <version>"
 ```
 
-## Tagging
+## Tagging and Publishing
+
+**IMPORTANT:** Tags should only be created AFTER testing artifacts and confirming the release is ready to publish.
 
 ### Check Latest Tags
 
@@ -135,18 +141,20 @@ git fetch --tags
 git tag --sort=-v:refname | head -10
 ```
 
-### Create New Tags
+### Create and Push Tags (Final Step Before Publishing)
+
+Only create tags after artifacts are tested and draft release is reviewed:
 
 ```bash
 # Firmware
 cd inav
-git checkout master && git pull
+git pull
 git tag -a <version> -m "INAV <version>"
 git push origin <version>
 
 # Configurator
 cd inav-configurator
-git checkout master && git pull
+git pull
 git tag -a <version> -m "INAV Configurator <version>"
 git push origin <version>
 ```
@@ -193,6 +201,20 @@ git log $LAST_TAG..HEAD --oneline --merges
 **Firmware:** https://github.com/iNavFlight/inav/compare/<prev-tag>...<new-tag>
 **Configurator:** https://github.com/iNavFlight/inav-configurator/compare/<prev-tag>...<new-tag>
 ```
+
+## PG (Parameter Group) Validation
+
+**Run before creating tags to prevent EEPROM corruption bugs:**
+
+```bash
+cd inav
+./cmake/validate-pg-for-release.sh
+```
+THis builds one target and checks that the parameter group structs haven't been changed without updating their version numbers.
+
+**✅ Pass:** Proceed with release
+**❌ Fail:** Create hotfix PR to increment PG version in affected struct's `PG_REGISTER` macro, then re-run
+
 
 ## Downloading Release Artifacts
 
