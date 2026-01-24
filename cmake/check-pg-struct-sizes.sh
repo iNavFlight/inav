@@ -23,34 +23,17 @@ if [ ! -f "$ELF_FILE" ]; then
     exit 1
 fi
 
-# Detect architecture from ELF file
-ARCH=$(file "$ELF_FILE" | grep -oE "(ARM|x86-64|x86_64)" | head -1 | tr '[:upper:]' '[:lower:]' | sed 's/x86-64/x86_64/')
-
-if [ -z "$ARCH" ]; then
-    echo "⚠️  Warning: Cannot detect architecture from $ELF_FILE" >&2
-    echo "   Skipping validation." >&2
-    exit 0
-fi
-
-# Select architecture-specific database
-if [ "$ARCH" = "arm" ]; then
-    DB_FILE="$SCRIPT_DIR/pg_struct_sizes.arm.db"
-elif [ "$ARCH" = "x86_64" ]; then
-    DB_FILE="$SCRIPT_DIR/pg_struct_sizes.x86_64.db"
-else
-    echo "⚠️  Warning: Unsupported architecture: $ARCH" >&2
-    echo "   Skipping validation." >&2
-    exit 0
-fi
+# Use reference database (based on SPEEDYBEEF745AIO)
+DB_FILE="$SCRIPT_DIR/pg_struct_sizes.reference.db"
 
 if [ ! -f "$DB_FILE" ]; then
     echo "⚠️  Warning: PG struct sizes database not found: $DB_FILE" >&2
-    echo "   Run: $SCRIPT_DIR/extract-pg-sizes-nm.sh $ELF_FILE > $DB_FILE" >&2
+    echo "   Run: $SCRIPT_DIR/extract-pg-sizes-nm.sh <reference-target.elf> > $DB_FILE" >&2
     echo "   Skipping validation." >&2
     exit 0
 fi
 
-echo "🔍 Checking PG struct sizes against database ($ARCH)..."
+echo "🔍 Checking PG struct sizes against reference database..."
 
 # Extract current sizes and versions
 TEMP_CURRENT=$(mktemp)
