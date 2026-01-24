@@ -52,8 +52,6 @@ fi
 
 echo "🔍 Checking PG struct sizes against database ($ARCH)..."
 
-echo "🔍 Checking PG struct sizes against database..."
-
 # Extract current sizes and versions
 TEMP_CURRENT=$(mktemp)
 "$SCRIPT_DIR/extract-pg-sizes-nm.sh" "$ELF_FILE" 2>/dev/null > "$TEMP_CURRENT"
