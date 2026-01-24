@@ -53,6 +53,7 @@
 #include "usbd_cdc.h"
 #include "usbd_cdc_interface.h"
 #include "stdbool.h"
+#include <string.h>
 #include "drivers/time.h"
 #include "drivers/nvic.h"
 #include "build/atomic.h"
@@ -61,6 +62,7 @@
 /* Private define ------------------------------------------------------------*/
 #define APP_RX_DATA_SIZE  4096
 #define APP_TX_DATA_SIZE  4096
+#define USB_RX_STALL_THRESHOLD 128  // Must be >= max USB packet size (64)
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -72,16 +74,26 @@ USBD_CDC_LineCodingTypeDef LineCoding =
   0x08    /* nb. of bits 8*/
 };
 
-uint8_t UserRxBuffer[APP_RX_DATA_SIZE];/* Received Data over USB are stored in this buffer */
+/*
+    APP RX is the circular buffer for data that is received from the USB device (host)
+    to the APP (flight controller).
+*/
+uint8_t AppRxBuffer[APP_RX_DATA_SIZE];
+volatile uint32_t AppRxPtrIn = 0;
+/* Increment this buffer position or roll it back to
+ start address when writing received data
+ in the buffer APP_Rx_Buffer. */
+volatile uint32_t AppRxPtrOut = 0;
+static volatile bool packetReceiveStalled;
+
+uint8_t UsbRxBuffer[64]; /* Small buffer for USB hardware to write into */
+
 uint8_t UserTxBuffer[APP_TX_DATA_SIZE];/* Received Data over UART (CDC interface) are stored in this buffer */
 uint32_t BuffLength;
 uint32_t UserTxBufPtrIn = 0;/* Increment this pointer or roll it back to
-                               start address when data are received over USART */
+                                start address when data are received over USART */
 uint32_t UserTxBufPtrOut = 0; /* Increment this pointer or roll it back to
                                  start address when data are sent over USB */
-
-uint32_t rxAvailable = 0;
-uint8_t* rxBuffPtr = NULL;
 
 /* TIM handler declaration */
 TIM_HandleTypeDef  TimHandle;
@@ -146,10 +158,18 @@ static int8_t CDC_Itf_Init(void)
 
   /*##-5- Set Application Buffers ############################################*/
   USBD_CDC_SetTxBuffer(&USBD_Device, UserTxBuffer, 0);
-  USBD_CDC_SetRxBuffer(&USBD_Device, UserRxBuffer);
+  USBD_CDC_SetRxBuffer(&USBD_Device, UsbRxBuffer);
 
   ctrlLineStateCb = NULL;
   baudRateCb = NULL;
+  
+  // Reset RX flow control state
+  AppRxPtrIn = 0;
+  AppRxPtrOut = 0;
+  packetReceiveStalled = false;
+  
+  // Prepare to receive first packet
+  USBD_CDC_ReceivePacket(&USBD_Device);
 
   return (USBD_OK);
 }
@@ -286,20 +306,45 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   * @brief  CDC_Itf_DataRx
   *         Data received over USB OUT endpoint are sent over CDC interface
   *         through this function.
-  * @param  Buf: Buffer of data to be transmitted
+  *
+  *         @note
+  *         This function will block any OUT packet reception on USB endpoint
+  *         until exiting this function. If you exit this function before transfer
+  *         is complete on CDC interface (ie. using DMA controller) it will result
+  *         in receiving more data while previous ones are still not sent.
+  *
+  * @param  Buf: Buffer of data to be received
   * @param  Len: Number of data received (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
 static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len)
 {
-    rxAvailable = *Len;
-    rxBuffPtr = Buf;
-    if (!rxAvailable) {
-        // Received an empty packet, trigger receiving the next packet.
-        // This will happen after a packet that's exactly 64 bytes is received.
-        // The USB protocol requires that an empty (0 byte) packet immediately follow.
+    // Copy received data to ring buffer, handling wrap-around
+    uint32_t len = *Len;
+    uint32_t ptrIn = AppRxPtrIn;
+    uint32_t tailRoom = APP_RX_DATA_SIZE - ptrIn;
+
+    if (len <= tailRoom) {
+        // Data fits without wrapping
+        memcpy(&AppRxBuffer[ptrIn], Buf, len);
+        ptrIn = (ptrIn + len) % APP_RX_DATA_SIZE;
+    } else {
+        // Data wraps around - copy in two parts
+        memcpy(&AppRxBuffer[ptrIn], Buf, tailRoom);
+        memcpy(&AppRxBuffer[0], Buf + tailRoom, len - tailRoom);
+        ptrIn = len - tailRoom;
+    }
+    AppRxPtrIn = ptrIn;
+
+    // Check if we have room for another packet; if not, stall
+    uint32_t free = (APP_RX_DATA_SIZE + AppRxPtrOut - ptrIn - 1) % APP_RX_DATA_SIZE;
+    if (free <= USB_RX_STALL_THRESHOLD) {
+        packetReceiveStalled = true;
+        return USBD_FAIL;  // Don't arm next receive
+    } else {
         USBD_CDC_ReceivePacket(&USBD_Device);
     }
+
     return (USBD_OK);
 }
 
@@ -373,27 +418,52 @@ static void Error_Handler(void)
   /* Add your own code here */
 }
 
+/*******************************************************************************
+ * Function Name  : Receive DATA .
+ * Description    : Copy received USB data from the ring buffer to the application buffer
+ * Input          : None.
+ * Output         : None.
+ * Return         : None.
+ *******************************************************************************/
 uint32_t CDC_Receive_DATA(uint8_t* recvBuf, uint32_t len)
 {
-    uint32_t count = 0;
-    if ( (rxBuffPtr != NULL))
-    {
-        while ((rxAvailable > 0) && count < len)
-        {
-            recvBuf[count] = rxBuffPtr[0];
-            rxBuffPtr++;
-            rxAvailable--;
-            count++;
-            if (rxAvailable < 1)
-                USBD_CDC_ReceivePacket(&USBD_Device);
+    uint32_t available = (AppRxPtrIn + APP_RX_DATA_SIZE - AppRxPtrOut) % APP_RX_DATA_SIZE;
+    uint32_t count = (len < available) ? len : available;
+    uint32_t ptrOut = AppRxPtrOut;
+    uint32_t tailRoom = APP_RX_DATA_SIZE - ptrOut;
+
+    if (count == 0) {
+        return 0;
+    }
+
+    if (count <= tailRoom) {
+        // Data is contiguous
+        memcpy(recvBuf, &AppRxBuffer[ptrOut], count);
+        ptrOut = (ptrOut + count) % APP_RX_DATA_SIZE;
+    } else {
+        // Data wraps around
+        memcpy(recvBuf, &AppRxBuffer[ptrOut], tailRoom);
+        memcpy(recvBuf + tailRoom, &AppRxBuffer[0], count - tailRoom);
+        ptrOut = count - tailRoom;
+    }
+    AppRxPtrOut = ptrOut;
+
+    // If stalled, check if we have room to resume receiving
+    if (packetReceiveStalled) {
+        uint32_t free = (APP_RX_DATA_SIZE + AppRxPtrOut - AppRxPtrIn - 1) % APP_RX_DATA_SIZE;
+        if (free > USB_RX_STALL_THRESHOLD) {
+            packetReceiveStalled = false;
+            USBD_CDC_ReceivePacket(&USBD_Device);
         }
     }
+
     return count;
 }
 
 uint32_t CDC_Receive_BytesAvailable(void)
 {
-    return rxAvailable;
+    /* return the bytes available in the receive circular buffer */
+    return (AppRxPtrIn + APP_RX_DATA_SIZE - AppRxPtrOut) % APP_RX_DATA_SIZE;
 }
 
 uint32_t CDC_Send_FreeBytes(void)
@@ -471,6 +541,30 @@ uint8_t usbIsConnected(void)
 uint32_t CDC_BaudRate(void)
 {
     return LineCoding.bitrate;
+}
+
+/*******************************************************************************
+ * Function Name  : CDC_StopBits.
+ * Description    : Get the current stop bits setting
+ * Input          : None.
+ * Output         : None.
+ * Return         : Stop bits (0=1, 1=1.5, 2=2)
+ *******************************************************************************/
+uint8_t CDC_StopBits(void)
+{
+    return LineCoding.format;
+}
+
+/*******************************************************************************
+ * Function Name  : CDC_Parity.
+ * Description    : Get the current parity setting
+ * Input          : None.
+ * Output         : None.
+ * Return         : Parity (0=none, 1=odd, 2=even, 3=mark, 4=space)
+ *******************************************************************************/
+uint8_t CDC_Parity(void)
+{
+    return LineCoding.paritytype;
 }
 
 /*******************************************************************************

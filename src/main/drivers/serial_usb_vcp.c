@@ -256,4 +256,21 @@ uint32_t usbVcpGetBaudRate(serialPort_t *instance)
     return CDC_BaudRate();
 }
 
+portOptions_t usbVcpGetLineCoding(void)
+{
+    portOptions_t options = SERIAL_NOT_INVERTED;
+
+    // stop bits: CDC format 0=1 stop, 2=2 stop (1.5 not supported)
+    if (CDC_StopBits() == 2) {
+        options |= SERIAL_STOPBITS_2;
+    }
+
+    // parity: CDC 0=none, 2=even (odd parity not supported in INAV)
+    if (CDC_Parity() == 2) {
+        options |= SERIAL_PARITY_EVEN;
+    }
+
+    return options;
+}
+
 #endif
