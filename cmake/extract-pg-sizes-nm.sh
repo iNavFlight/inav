@@ -35,9 +35,10 @@ $NM_CMD --print-size "$ELF_FILE" 2>/dev/null | grep "pgResetTemplate_" | \
         # Convert hex size to decimal
         size_dec=$((16#$size_hex))
 
-        # Find corresponding struct type from PG_REGISTER
-        struct_type=$(grep -rh "PG_REGISTER.*$config_name" src/main --include="*.c" 2>/dev/null | \
-            grep -oP 'PG_REGISTER[^(]*\(\K[^,]+' | head -1)
+        # Find corresponding struct type and version from PG_REGISTER
+        pg_register_line=$(grep -rh "PG_REGISTER.*$config_name" src/main --include="*.c" 2>/dev/null | head -1)
+
+        struct_type=$(echo "$pg_register_line" | grep -oP 'PG_REGISTER[^(]*\(\K[^,]+' | head -1)
 
         if [ -z "$struct_type" ]; then
             # Fallback: convert config name to struct type
@@ -45,5 +46,12 @@ $NM_CMD --print-size "$ELF_FILE" 2>/dev/null | grep "pgResetTemplate_" | \
             struct_type="${config_name}_t"
         fi
 
-        printf "%-30s %s\n" "$struct_type" "$size_dec"
+        # Extract PG version (4th parameter in PG_REGISTER)
+        version=$(echo "$pg_register_line" | grep -oP 'PG_REGISTER[^(]*\([^,]+,[^,]+,[^,]+,\s*\K\d+' | head -1)
+
+        if [ -z "$version" ]; then
+            version="0"
+        fi
+
+        printf "%-30s %3s %s\n" "$struct_type" "$size_dec" "$version"
     done | sort -u

@@ -8,13 +8,39 @@
 
 set -euo pipefail
 
+# Validate arguments
+if [ $# -ne 1 ]; then
+    echo "Error: Missing required argument" >&2
+    echo "Usage: $0 <elf_file>" >&2
+    exit 2
+fi
+
 ELF_FILE=$1
 SCRIPT_DIR=$(dirname "$0")
-DB_FILE="$SCRIPT_DIR/pg_struct_sizes.db"
 
 if [ ! -f "$ELF_FILE" ]; then
     echo "Error: ELF file not found: $ELF_FILE" >&2
     exit 1
+fi
+
+# Detect architecture from ELF file
+ARCH=$(file "$ELF_FILE" | grep -oE "(ARM|x86-64|x86_64)" | head -1 | tr '[:upper:]' '[:lower:]' | sed 's/x86-64/x86_64/')
+
+if [ -z "$ARCH" ]; then
+    echo "⚠️  Warning: Cannot detect architecture from $ELF_FILE" >&2
+    echo "   Skipping validation." >&2
+    exit 0
+fi
+
+# Select architecture-specific database
+if [ "$ARCH" = "arm" ]; then
+    DB_FILE="$SCRIPT_DIR/pg_struct_sizes.arm.db"
+elif [ "$ARCH" = "x86_64" ]; then
+    DB_FILE="$SCRIPT_DIR/pg_struct_sizes.x86_64.db"
+else
+    echo "⚠️  Warning: Unsupported architecture: $ARCH" >&2
+    echo "   Skipping validation." >&2
+    exit 0
 fi
 
 if [ ! -f "$DB_FILE" ]; then
@@ -23,6 +49,8 @@ if [ ! -f "$DB_FILE" ]; then
     echo "   Skipping validation." >&2
     exit 0
 fi
+
+echo "🔍 Checking PG struct sizes against database ($ARCH)..."
 
 echo "🔍 Checking PG struct sizes against database..."
 
@@ -99,7 +127,7 @@ while read -r struct_type current_size; do
             echo "  ✅ $struct_type: size changed ${db_size}B → ${current_size}B with version increment v$db_version → v$current_version"
 
             # Update database entry with new size and version
-            sed -i "s/^$struct_type  *[0-9]* *[0-9]*$/$(printf "%-30s %3s %s" "$struct_type" "$current_size" "$current_version")/" "$DB_FILE"
+            sed -i "s|^$struct_type[[:space:]]\+[0-9]\+[[:space:]]\+[0-9]\+$|$(printf "%-30s %3s %s" "$struct_type" "$current_size" "$current_version")|" "$DB_FILE"
             UPDATED="$UPDATED\n  • $struct_type: ${db_size}B → ${current_size}B (v$db_version → v$current_version)"
         fi
     else

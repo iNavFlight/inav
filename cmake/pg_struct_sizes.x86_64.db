@@ -1,8 +1,3 @@
-# PG Struct Size Database
-# Format: struct_type size version
-# Generated from: build_sitl/bin/SITL.elf
-# Date: 2026-01-23 04:53:01 UTC
-
 adcChannelConfig_t               4 0
 armingConfig_t                   6 3
 barometerConfig_t                8 5

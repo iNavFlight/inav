@@ -108,7 +108,7 @@ function(setup_firmware_target exe name)
 
     # Add PG struct size validation
     add_custom_command(TARGET ${exe} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/cmake/check-pg-struct-sizes.sh $<TARGET_FILE:${exe}>
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} bash ${CMAKE_SOURCE_DIR}/cmake/check-pg-struct-sizes.sh $<TARGET_FILE:${exe}>
         COMMENT "Validating PG struct sizes for ${name}"
         VERBATIM
     )
