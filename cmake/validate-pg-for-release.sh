@@ -57,11 +57,13 @@ echo "🔨 Building reference target: $REFERENCE_TARGET..."
 echo "   (This may take a few minutes on first build)"
 echo ""
 
-if ! make "$REFERENCE_TARGET.elf" > /tmp/pg-validation-build.log 2>&1; then
-    echo "❌ Build failed. See /tmp/pg-validation-build.log for details" >&2
-    tail -30 /tmp/pg-validation-build.log >&2
+BUILD_LOG=$(mktemp)
+if ! make "$REFERENCE_TARGET.elf" > "$BUILD_LOG" 2>&1; then
+    echo "❌ Build failed. See $BUILD_LOG for details" >&2
+    tail -30 "$BUILD_LOG" >&2
     exit 2
 fi
+rm -f "$BUILD_LOG"
 
 ELF_FILE="$BUILD_DIR/bin/$REFERENCE_TARGET.elf"
 
