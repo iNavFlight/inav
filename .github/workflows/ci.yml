@@ -1,277 +1,33 @@
-name: Build firmware
-# Don't enable CI on push, just on PR. If you
-# are working on the main repo and want to trigger
-# a CI build submit a draft PR.
+name: Build iNav for MATEKH743
+
 on:
   push:
-    branches:
-      - '!maintenance-8.x.x'
+    branches: [ main ]
   pull_request:
-    paths:
-      - 'src/**'
-      - '.github/**'
-      - 'cmake/**'
-      - 'lib/**'
-      - 'docs/Settings.md'
-      - 'CMakeLists.txt'
-      - '*.sh'
-
-  workflow_call:
-    #inputs:
-    #  release_build:
-    #   description: 'Specifies if it is a build that should include commit hash in hex file names or not'
-    #   default: false
-    #   required: false
-    #   type: boolean
-
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-        matrix:
-          id: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get -y install ninja-build
-      - name: Setup environment
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-        run: |
-          # This is the hash of the commit for the PR
-          # when the action is triggered by PR, empty otherwise
-          COMMIT_ID=${{ github.event.pull_request.head.sha }}
-          # This is the hash of the commit when triggered by push
-          # but the hash of refs/pull/<n>/merge, which is different
-          # from the hash of the latest commit in the PR, that's
-          # why we try github.event.pull_request.head.sha first
-          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
-          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
-      - uses: actions/cache@v4
-        with:
-          path: downloads
-          key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
-      - name: Build targets (${{ matrix.id }})
-        run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -DMAIN_COMPILE_OPTIONS=-pipe -G Ninja .. && ninja -j${{ env.NUM_CORES }} ci
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: matrix-${{ env.BUILD_NAME }}.${{ matrix.id }}
-          path: ./build/*.hex
-          retention-days: 1
+    - name: Checkout source
+      uses: actions/checkout@v4
 
-  upload-artifacts:
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup environment
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-        run: |
-          # This is the hash of the commit for the PR
-          # when the action is triggered by PR, empty otherwise
-          COMMIT_ID=${{ github.event.pull_request.head.sha }}
-          # This is the hash of the commit when triggered by push
-          # but the hash of refs/pull/<n>/merge, which is different
-          # from the hash of the latest commit in the PR, that's
-          # why we try github.event.pull_request.head.sha first
-          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
-          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: matrix-inav-*
-          merge-multiple: true
-          path: binaries
-      - name: Build target list
-        run: |
-          ls -1 binaries/*.hex | cut -d/ -f2 > targets.txt
-      - name: Upload firmware images
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.BUILD_NAME }}
-          path: binaries/*.hex
-      - name: Upload firmware images
-        uses: actions/upload-artifact@v4
-        with:
-          name: targets
-          path: targets.txt
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake ninja-build gcc-arm-none-eabi python3
 
-  build-SITL-Linux-arm64:
-    runs-on: ubuntu-22.04-arm
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get -y install ninja-build
-      - name: Setup environment
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-        run: |
-          # This is the hash of the commit for the PR
-          # when the action is triggered by PR, empty otherwise
-          COMMIT_ID=${{ github.event.pull_request.head.sha }}
-          # This is the hash of the commit when triggered by push
-          # but the hash of refs/pull/<n>/merge, which is different
-          # from the hash of the latest commit in the PR, that's
-          # why we try github.event.pull_request.head.sha first
-          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
-          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
-      - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j${{ env.NUM_CORES }}
-      - name: Strip version number
-        run: |
-          for f in build_SITL/*_SITL; do
-            mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
-          done
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.BUILD_NAME }}_SITL-Linux-aarch64
-          path: ./build_SITL/*_SITL
+    - name: Configure build for MATEKH743
+      run: cmake -B build -G Ninja -D TARGET=MATEKH743 .
 
-  build-SITL-Linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get -y install ninja-build
-      - name: Setup environment
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-        run: |
-          # This is the hash of the commit for the PR
-          # when the action is triggered by PR, empty otherwise
-          COMMIT_ID=${{ github.event.pull_request.head.sha }}
-          # This is the hash of the commit when triggered by push
-          # but the hash of refs/pull/<n>/merge, which is different
-          # from the hash of the latest commit in the PR, that's
-          # why we try github.event.pull_request.head.sha first
-          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
-          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
-      - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j${{ env.NUM_CORES }}
-      - name: Strip version number
-        run: |
-          for f in build_SITL/*_SITL; do
-            mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
-          done
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.BUILD_NAME }}_SITL-Linux
-          path: ./build_SITL/*_SITL
+    - name: Compile firmware
+      run: cmake --build build
 
-  build-SITL-Mac:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          brew install ruby
-
-      - name: Setup environment
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-        run: |
-          # This is the hash of the commit for the PR
-          # when the action is triggered by PR, empty otherwise
-          COMMIT_ID=${{ github.event.pull_request.head.sha }}
-          # This is the hash of the commit when triggered by push
-          # but the hash of refs/pull/<n>/merge, which is different
-          # from the hash of the latest commit in the PR, that's
-          # why we try github.event.pull_request.head.sha first
-          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
-          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
-      - name: Build SITL
-        run: |
-          mkdir -p build_SITL && cd build_SITL
-          cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -G Ninja ..
-          ninja -j4
-      - name: Strip version number
-        run: |
-          for f in build_SITL/*_SITL; do
-            mv -v $f $(echo $f | sed -Ee 's/_[0-9]+\.[0-9]+\.[0-9]+//')
-          done
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.BUILD_NAME }}_SITL-MacOS
-          path: ./build_SITL/*_SITL
-
-  build-SITL-Windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: C:\tools\cygwin\bin\bash.exe -o igncr '{0}'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Cygwin
-        uses: egor-tensin/setup-cygwin@v4
-        with:
-          packages: cmake ruby ninja gcc-g++ rubygems
-      - name: Setup environment
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-        run: |
-          # This is the hash of the commit for the PR
-          # when the action is triggered by PR, empty otherwise
-          COMMIT_ID=${{ github.event.pull_request.head.sha }}
-          # This is the hash of the commit when triggered by push
-          # but the hash of refs/pull/<n>/merge, which is different
-          # from the hash of the latest commit in the PR, that's
-          # why we try github.event.pull_request.head.sha first
-          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$( grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }' )
-          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
-          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-
-      - name: Build SITL
-        run: gem install getoptlong && mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
-      - name: Strip version number
-        run: |
-          for f in ./build_SITL/*_SITL.exe; do
-            mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
-          done
-      - name: Copy cygwin1.dll
-        run: cp /bin/cygwin1.dll ./build_SITL/
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.BUILD_NAME }}_SITL-WIN
-          path: |
-            ./build_SITL/*.exe
-            ./build_SITL/cygwin1.dll
-
-  test:
-    #needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get -y install ninja-build
-      - name: Run Tests
-        run: mkdir -p build && cd build && cmake -DTOOLCHAIN=none -G Ninja .. && ninja check
+    - name: Upload firmware artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: firmware-MATEKH743
+        path: build/**/*.bin
