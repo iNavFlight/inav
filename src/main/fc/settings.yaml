@@ -4501,3 +4501,15 @@ groups:
         field: noWayHomeAction
         table: geozone_rth_no_way_home
         type: uint8_t
+  - name: PG_TRAMP_TABLE_O_RIDE
+    type: vtxTrampPwOverride_t
+    headers: ["io/vtx_tramp.h"]
+    condition: USE_VTX_TRAMP && USE_VTX_CONTROL
+    members:
+      - name: vtx_pw_override_mw
+        type: int16_t
+        description: "Overrides default tramp VTX power level with user defined value in mw"
+        default_value: -1
+        field: vtxPwOverrideMw
+        min: -1
+        max: UINT16_MAX
