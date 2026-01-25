@@ -145,6 +145,7 @@
 #define USE_FW_AUTOLAND
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_LOG
+#define USE_BOOTLOG 2048
 #define USE_STATS
 #define USE_CMS
 #define CMS_MENU_OSD

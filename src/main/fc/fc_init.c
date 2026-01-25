@@ -286,9 +286,6 @@ void init(void)
 
     serialInit(feature(FEATURE_SOFTSERIAL));
 
-#ifdef USE_DRONECAN
-    dronecanInit();
-#endif
 
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
@@ -308,6 +305,10 @@ void init(void)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
+#endif
+
+#ifdef USE_DRONECAN
+    dronecanInit();
 #endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
