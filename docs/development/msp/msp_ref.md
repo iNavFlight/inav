@@ -4539,9 +4539,17 @@ For current generation code, see [documentation project](https://github.com/xznh
 ## <a id="msp2_rx_bind"></a>`MSP2_RX_BIND (12289 / 0x3001)`
 **Description:** Initiates binding for MSP receivers (mLRS).
 
-**Request Payload:** **None**
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `port_id` | `uint8_t` | 1 | Port ID |
+| `reserved_for_custom_use` | `uint8_t[3]` | 3 | Reserved for custom use |
 
-**Reply Payload:** **None**
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `port_id` | `uint8_t` | 1 | Port ID |
+| `reserved_for_custom_use` | `uint8_t[3]` | 3 | Reserved for custom use |
 
 **Notes:** Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.
 

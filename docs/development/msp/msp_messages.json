@@ -10929,8 +10929,42 @@
     "MSP2_RX_BIND": {
         "code": 12289,
         "mspv": 2,
-        "request": null,
-        "reply": null,
+        "request": {
+            "payload": [
+                {
+                    "name": "port_id",
+                    "ctype": "uint8_t",
+                    "desc": "Port ID",
+                    "units": ""
+                },
+                {
+                    "name": "reserved_for_custom_use",
+                    "ctype": "uint8_t",
+                    "desc": "Reserved for custom use",
+                    "units": "",
+                    "array": true,
+                    "array_size": 3
+                }
+            ]
+        },
+        "reply": {
+            "payload": [
+                {
+                    "name": "port_id",
+                    "ctype": "uint8_t",
+                    "desc": "Port ID",
+                    "units": ""
+                },
+                {
+                    "name": "reserved_for_custom_use",
+                    "ctype": "uint8_t",
+                    "desc": "Reserved for custom use",
+                    "units": "",
+                    "array": true,
+                    "array_size": 3
+                }
+            ]
+        },
         "notes": "Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.",
         "description": "Initiates binding for MSP receivers (mLRS)."
     }
