@@ -1,0 +1,28 @@
+name: Manual Build 7.1.2 Matek
+
+on:
+  workflow_dispatch: # Это активирует кнопку запуска
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi ruby ninja-build cmake
+
+      - name: Build
+        run: |
+          mkdir build && cd build
+          cmake -G Ninja -DTARGET=MATEKH743 ..
+          ninja MATEKH743
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: MATEKH743-7GHz-HEX
+          path: build/*.hex
