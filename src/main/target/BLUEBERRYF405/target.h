@@ -19,7 +19,7 @@
 #define USE_TARGET_CONFIG
 
 #   define TARGET_BOARD_IDENTIFIER "BlueBerry"
-#   define USBD_PRODUCT_STRING  "BLUEDERRYF405"
+#   define USBD_PRODUCT_STRING  "BLUEBERRYF405"
 
 #define LED0                    PA14  //Blue
 #define LED1                    PA13  //Green

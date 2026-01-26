@@ -1,1 +1,1 @@
-target_stm32f405xg(BLUEDERRYF405)
+target_stm32f405xg(BLUEBERRYF405)
