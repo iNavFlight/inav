@@ -473,7 +473,7 @@ void fcTasksInit(void)
 #endif
 
 #ifdef USE_DRONECAN
-    setTaskEnabled(TASK_DRONECAN, true);
+ //   setTaskEnabled(TASK_DRONECAN, true);
 #endif
 
 }

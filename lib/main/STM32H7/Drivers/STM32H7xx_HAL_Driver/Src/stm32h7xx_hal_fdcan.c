@@ -181,6 +181,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
+#include "common/log.h"
 
 #if defined(FDCAN1)
 
@@ -538,6 +539,8 @@ HAL_StatusTypeDef HAL_FDCAN_Init(FDCAN_HandleTypeDef *hfdcan)
   {
     /* Select between Tx FIFO and Tx Queue operation modes */
     SET_BIT(hfdcan->Instance->TXBC, hfdcan->Init.TxFifoQueueMode);
+    LOG_DEBUG(SYSTEM, "TXBC: %lu", hfdcan->Instance->TXBC);
+    LOG_DEBUG(SYSTEM, "TxFifoQueueMode %lu", hfdcan->Init.TxFifoQueueMode);
   }
 
   /* Configure Tx element size */
@@ -6092,6 +6095,7 @@ static HAL_StatusTypeDef FDCAN_CalcultateRamBlockAddresses(FDCAN_HandleTypeDef *
 {
   uint32_t RAMcounter;
   uint32_t StartAddress;
+  LOG_DEBUG (SYSTEM, "In Calculate RAM Block Addresses");
 
   StartAddress = hfdcan->Init.MessageRAMOffset;
 
@@ -6135,13 +6139,19 @@ static HAL_StatusTypeDef FDCAN_CalcultateRamBlockAddresses(FDCAN_HandleTypeDef *
 
   /* Tx buffer list start address */
   StartAddress += (hfdcan->Init.TxEventsNbr * 2U);
+    LOG_DEBUG(SYSTEM, "StartAddress %x", StartAddress);
+    LOG_DEBUG(SYSTEM, "TBSA: %x", FDCAN_TXBC_TBSA);
+    LOG_DEBUG(SYSTEM, "TBSA Pos: %x", FDCAN_TXBC_TBSA_Pos);
+    LOG_DEBUG(SYSTEM, "Instance: %x", hfdcan->Instance);
+    LOG_DEBUG(SYSTEM, "Initial TXBC: %x", READ_REG(hfdcan->Instance->TXBC));
   MODIFY_REG(hfdcan->Instance->TXBC, FDCAN_TXBC_TBSA, (StartAddress << FDCAN_TXBC_TBSA_Pos));
-
+    LOG_DEBUG(SYSTEM, "TXBC: %x", READ_REG(hfdcan->Instance->TXBC));
   /* Dedicated Tx buffers number */
   MODIFY_REG(hfdcan->Instance->TXBC, FDCAN_TXBC_NDTB, (hfdcan->Init.TxBuffersNbr << FDCAN_TXBC_NDTB_Pos));
-
+    LOG_DEBUG(SYSTEM, "TXBC: %lu", hfdcan->Instance->TXBC);
   /* Tx FIFO/queue elements number */
   MODIFY_REG(hfdcan->Instance->TXBC, FDCAN_TXBC_TFQS, (hfdcan->Init.TxFifoQueueElmtsNbr << FDCAN_TXBC_TFQS_Pos));
+    LOG_DEBUG(SYSTEM, "TXBC: %lu", hfdcan->Instance->TXBC);
 
   hfdcan->msgRam.StandardFilterSA = SRAMCAN_BASE + (hfdcan->Init.MessageRAMOffset * 4U);
   hfdcan->msgRam.ExtendedFilterSA = hfdcan->msgRam.StandardFilterSA + (hfdcan->Init.StdFiltersNbr * 4U);

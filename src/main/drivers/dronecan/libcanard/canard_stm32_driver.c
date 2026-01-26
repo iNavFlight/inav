@@ -5,6 +5,8 @@
  *      Author: Roni Kant
  */
 
+#include "common/log.h"
+#include "common/time.h"
 #include "canard.h"
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_def.h"
@@ -110,11 +112,14 @@ int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* c
 	memcpy(TxData, tx_frame->data, TxHeader.DataLength);
 
 	if (HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &TxHeader, TxData) == HAL_OK) {
-//		printf("Successfully sent message with id: %lu \n", TxHeader.Identifier);
+		LOG_DEBUG(SYSTEM, "Successfully sent message with id: %lu \n", TxHeader.Identifier);
 		return 1;
 	}
 
-//	printf("Failed at adding message with id: %lu to Tx Fifo", TxHeader.Identifier);
+	LOG_DEBUG(SYSTEM, "Failed at adding message with id: %lu to Tx Fifo", TxHeader.Identifier);
+    LOG_DEBUG(SYSTEM, "TXBC: %lu", hfdcan->Instance->TXBC );
+    LOG_DEBUG(SYSTEM, "CAN Channel %lu", hfdcan->Instance);
+    
 	// This might be for many reasons including the Tx Fifo being full, the error can be read from hfdcan->ErrorCode
 	return 0;
 }

@@ -307,9 +307,6 @@ void init(void)
     logInit();
 #endif
 
-#ifdef USE_DRONECAN
-    dronecanInit();
-#endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     gvInit();
@@ -529,6 +526,10 @@ void init(void)
 
 #ifdef USE_EZ_TUNE
     ezTuneUpdate();
+#endif
+
+#ifdef USE_DRONECAN
+    dronecanInit();
 #endif
 
 #ifndef USE_GEOZONE

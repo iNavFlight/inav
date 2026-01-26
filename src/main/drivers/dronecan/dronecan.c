@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
-
+#include <inttypes.h>
 #include "dronecan_msgs.h"
 #include "nodesettings.h"
 
@@ -306,17 +306,26 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 void processCanardTxQueue(FDCAN_HandleTypeDef *hfdcan) {
 	// Transmitting
-
+//    LOG_DEBUG(SYSTEM, "In transmit Queue");
 	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;) 
     {
-		const int16_t tx_res = canardSTM32Transmit(hfdcan, tx_frame);
+        LOG_DEBUG(SYSTEM, "Found transmit frame");
+		FDCAN_ProtocolStatusTypeDef protocolStatus = {};
+
+        HAL_FDCAN_GetProtocolStatus(hfdcan, &protocolStatus);
+        LOG_DEBUG(SYSTEM, "BusOff: %i", protocolStatus.BusOff);
+        LOG_DEBUG(SYSTEM, "ErrorPassive: %i", protocolStatus.ErrorPassive);
+        const int16_t tx_res = canardSTM32Transmit(hfdcan, tx_frame);
 
 		if (tx_res < 0) {
 			LOG_DEBUG(SYSTEM, "Transmit error %d\n", tx_res);
 		} else if (tx_res > 0) {
 			LOG_DEBUG(SYSTEM, "Successfully transmitted message\n");
 		}
-
+        else
+        {
+            LOG_DEBUG(SYSTEM, "hfderror %"PRIu32", TX Fifo Free: %d", hfdcan->ErrorCode, HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1));
+        }
 		// Pop canardTxQueue either way
 		canardPopTxQueue(&canard);
 	}
@@ -423,7 +432,11 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.DataTimeSeg2 = 1;
   hfdcan1.Init.StdFiltersNbr = 0;
   hfdcan1.Init.ExtFiltersNbr = 1;
-  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+  hfdcan1.Init.TxFifoQueueElmtsNbr = 5;
+  hfdcan1.Init.TxEventsNbr = 5;
+  hfdcan1.Init.TxBuffersNbr = 5;
+  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_QUEUE_OPERATION;
+  hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
   LOG_DEBUG(SYSTEM, "In CAN Init");
 
   if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
@@ -433,15 +446,15 @@ static void MX_FDCAN1_Init(void)
   }
   /* USER CODE BEGIN FDCAN1_Init 2 */
   if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
-	LOG_DEBUG(SYSTEM, "1");
+	LOG_DEBUG(SYSTEM, "Failed Activate Notification");
 	Error_Handler();
   }
   if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
-    LOG_DEBUG(SYSTEM, "2");
+    LOG_DEBUG(SYSTEM, "Failed Config Filter");
     Error_Handler();
   }
   if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
-    LOG_DEBUG(SYSTEM, "3");
+    LOG_DEBUG(SYSTEM, "Failed to Start");
     Error_Handler();
   }
 
