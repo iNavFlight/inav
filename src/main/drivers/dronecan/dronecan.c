@@ -439,6 +439,24 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
   LOG_DEBUG(SYSTEM, "In CAN Init");
 
+  GPIO_InitTypeDef gpio_init_structure;
+
+  /* Enable FDCAN clock */
+  __HAL_RCC_FDCAN_CLK_ENABLE();
+  /* Enable GPIOs clock */
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+
+  /* Common GPIO configuration */
+  gpio_init_structure.Mode      = GPIO_MODE_AF_PP;
+  gpio_init_structure.Pull      = GPIO_PULLUP;
+  gpio_init_structure.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+  gpio_init_structure.Alternate = GPIO_AF9_FDCAN1;
+
+  /* GPIOD configuration */
+  gpio_init_structure.Pin   = GPIO_PIN_0 | GPIO_PIN_1;
+
+  HAL_GPIO_Init(GPIOD, &gpio_init_structure);
+
   if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
   {
     LOG_DEBUG(SYSTEM, "Failed CAN Init");
@@ -458,6 +476,7 @@ static void MX_FDCAN1_Init(void)
     Error_Handler();
   }
 
+  LOG_DEBUG(SYSTEM, "hfderror %"PRIu32", TX Fifo Free: %d", hfdcan1.ErrorCode, HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1));
   /* USER CODE END FDCAN1_Init 2 */
 
 }
