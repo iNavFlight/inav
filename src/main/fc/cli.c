@@ -3629,7 +3629,8 @@ static void cliBindMspRx(char *cmdline)
         return;
     }
 
-    int sent = mspSerialPushPort(MSP2_RX_BIND, NULL, 0, mspPort, MSP_V2_NATIVE); // this is sent as a response
+    uint8_t payload[4] = { portIndex, 0, 0, 0 };
+    int sent = mspSerialPushPort(MSP2_RX_BIND, payload, sizeof(payload), mspPort, MSP_V2_NATIVE); // this is sent as a response
     if (sent > 0) {
         cliPrintLinef("Sent MSP2_RX_BIND to serial port %d", portIndex);
     } else {
