@@ -300,37 +300,30 @@ void crsfSensorEncodeEscRpm(telemetrySensor_t *sensor, sbuf_t *buf)
         const escSensorData_t *escState = getEscTelemetry(i);
         crsfSerialize24BE(buf, escState->rpm & 0xFFFFFF);
     }
+
+    //protection to send empty frame
+    if(motorCount == 0) {
+        crsfSerialize24BE(buf, 0x000000);
+    }
 }
 
 void crsfSensorEncodeEscTemp(telemetrySensor_t *sensor, sbuf_t *buf)
 {
     UNUSED(sensor);
     uint8_t motorCount = MAX(getMotorCount(), 1); //must send at least one motor, to avoid CRSF frame shifting
-    motorCount = MIN(getMotorCount(), CRSF_PAYLOAD_SIZE_MAX / 3); // 3 bytes per RPM value
+    motorCount = MIN(getMotorCount(), CRSF_PAYLOAD_SIZE_MAX / 3); // 2 bytes per Temp value
     motorCount = MIN(motorCount, MAX_SUPPORTED_MOTORS); // ensure we don't exceed available ESC telemetry data
 
     for (uint8_t i = 0; i < motorCount; i++) {
         const escSensorData_t *escState = getEscTelemetry(i);
         crsfSerialize16BE(buf, escState->temperature & 0xFFFF);
     }
-}
 
-void crsfSensorEncodeEscTemperature(telemetrySensor_t *sensor, sbuf_t *buf)
-{
-    UNUSED(sensor);
-
-    uint8_t motorCount = MAX(getMotorCount(), 1); //must send at least one motor, to avoid CRSF frame shifting
-    motorCount = MIN(getMotorCount(), CRSF_PAYLOAD_SIZE_MAX / 3); // 3 bytes per RPM value
-    motorCount = MIN(motorCount, MAX_SUPPORTED_MOTORS); // ensure we don't exceed available ESC telemetry data
-
-    for (uint8_t i = 0; i < motorCount; i++) {
-        const escSensorData_t *escState = getEscTelemetry(i);
-        uint32_t rpm = (escState) ? (escState->temperature * 10) & 0xFFFFFF : TEMPERATURE_INVALID_VALUE;
-        crsfSerialize24BE(buf, rpm);
+    //protection to send empty frame
+    if(motorCount == 0) {
+        crsfSerialize16BE(buf, 0x0000);
     }
-
 }
-
 #endif // USE_CUSTOM_TELEMETRY
 
 ///////////////////////////////////////////////////////////////////////////////////////////
