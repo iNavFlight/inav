@@ -1602,7 +1602,7 @@ static bool handleIncoming_MISSION_ITEM(void)
             wp.alt = (int32_t)(msg.z * 100.0f);
             wp.p1 = 0;
             wp.p2 = 0;
-            wp.p3 = 0;
+            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(msg.frame) ? NAV_WP_ALTMODE : 0;
             setWaypoint(255, &wp);
 
             mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
