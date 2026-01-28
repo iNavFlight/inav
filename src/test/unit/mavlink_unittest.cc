@@ -408,6 +408,31 @@ TEST(MavlinkTelemetryTest, MissionItemIntSingleItemAcksAccepted)
     EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
 }
 
+TEST(MavlinkTelemetryTest, MissionItemIntGuidedWhileArmedUpdatesWaypoint)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &msg,
+        1, MAV_COMP_ID_MISSIONPLANNER, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 2, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypoint.lat, 375000000);
+    EXPECT_EQ(lastWaypoint.lon, -1222500000);
+    EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
+    EXPECT_EQ(lastWaypoint.p3, 0);
+}
+
 TEST(MavlinkTelemetryTest, MissionRequestListSendsCount)
 {
     initMavlinkTestState();
