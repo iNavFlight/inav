@@ -1597,7 +1597,7 @@ static bool handleIncoming_MISSION_ITEM(void)
             wp.alt = (int32_t)(msg.z * 100.0f);
             wp.p1 = 0;
             wp.p2 = 0;
-            wp.p3 = 0;
+            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(msg.frame) ? NAV_WP_ALTMODE : 0;
             setWaypoint(255, &wp);
 
             mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
@@ -1827,7 +1827,7 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t ackTargetSystem
                     wp.p1 = 0;
                 }
                 wp.p2 = 0;
-                wp.p3 = 0;
+                wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
                 wp.flag = 0;
 
                 setWaypoint(255, &wp);
@@ -2147,7 +2147,7 @@ static bool handleIncoming_SET_POSITION_TARGET_GLOBAL_INT(void)
         wp.alt = (int32_t)(msg.alt * 100.0f);
         wp.p1 = 0;
         wp.p2 = 0;
-        wp.p3 = 0;
+        wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
         wp.flag = 0;
 
         setWaypoint(255, &wp);
