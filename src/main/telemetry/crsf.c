@@ -289,6 +289,7 @@ void crsfSensorEncodeLatLong(telemetrySensor_t *sensor, sbuf_t *buf)
     crsfSerialize32BE(buf, gpsSol.llh.lon);
 }
 
+#ifdef USE_ESC_SENSOR
 void crsfSensorEncodeEscRpm(telemetrySensor_t *sensor, sbuf_t *buf)
 {
     UNUSED(sensor);
@@ -324,6 +325,7 @@ void crsfSensorEncodeEscTemp(telemetrySensor_t *sensor, sbuf_t *buf)
         crsfSerialize16BE(buf, 0x0000);
     }
 }
+#endif // USE_ESC_SENSOR
 #endif // USE_CUSTOM_TELEMETRY
 
 ///////////////////////////////////////////////////////////////////////////////////////////
