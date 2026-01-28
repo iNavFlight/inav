@@ -1454,7 +1454,7 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
             wp.action = NAV_WP_ACTION_JUMP;
             wp.p1 = (int16_t)lrintf(param1 + 1.0f);
             wp.p2 = (int16_t)lrintf(param2);
-            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(msg.frame) ? NAV_WP_ALTMODE : 0;
+            wp.p3 = 0;
             break;
 
         case MAV_CMD_DO_SET_ROI:
