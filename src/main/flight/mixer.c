@@ -39,6 +39,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
+#include "fc/motor_locate.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
@@ -369,6 +370,12 @@ static void applyTurtleModeToMotors(void) {
 void FAST_CODE writeMotors(void)
 {
 #if !defined(SITL_BUILD)
+#ifdef USE_DSHOT
+    if (motorLocateActive && motorLocateUpdate()) {
+        return;
+    }
+#endif
+
     for (int i = 0; i < motorCount; i++) {
         uint16_t motorValue;
 #ifdef USE_DSHOT

@@ -68,6 +68,7 @@
 #include "fc/fc_msp.h"
 #include "fc/fc_msp_box.h"
 #include "fc/firmware_update.h"
+#include "fc/motor_locate.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -1747,6 +1748,26 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
                 sbufWriteDataSafe(dst, escState, sizeof(escSensorData_t));
             }
+        }
+        break;
+#endif
+
+#ifdef USE_DSHOT
+    case MSP2_INAV_MOTOR_LOCATE:
+        {
+            // Motor locate requires 1 byte: motor index (255 = stop)
+            if (dataSize < 1) {
+                return MSP_RESULT_ERROR;
+            }
+            uint8_t motorIndex = sbufReadU8(src);
+            bool success;
+            if (motorIndex == 255) {
+                motorLocateStop();
+                success = true;
+            } else {
+                success = motorLocateStart(motorIndex);
+            }
+            sbufWriteU8(dst, success ? 1 : 0);
         }
         break;
 #endif
