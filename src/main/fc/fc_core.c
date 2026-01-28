@@ -203,6 +203,13 @@ static void updateArmingStatus(void)
     if (ARMING_FLAG(ARMED)) {
         LED0_ON;
     } else {
+
+        // Check if the power on arming grace time has elapsed
+        if ((isArmingDisabledReason() & ARMING_DISABLED_BOOT_GRACE_TIME)  && (millis() >= 3000)) {
+            // If so, unset the grace time arming disable flag
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_BOOT_GRACE_TIME);
+        }
+
         /* CHECK: Run-time calibration */
         static bool calibratingFinishedBeep = false;
         if (areSensorsCalibrating()) {

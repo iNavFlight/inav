@@ -153,6 +153,11 @@
 #define USE_TELEMETRY_SMARTPORT
 #define USE_TELEMETRY_CRSF
 #define USE_TELEMETRY_JETIEXBUS
+
+#if defined(USE_TELEMETRY_SMARTPORT) || defined(USE_TELEMETRY_CRSF)
+#define USE_CUSTOM_TELEMETRY
+#endif
+
 // These are rather exotic serial protocols
 #define USE_RX_MSP
 #define USE_MSP_RC_OVERRIDE
@@ -222,6 +227,8 @@
     #define SKIP_CLI_COMMAND_HELP
     #undef USE_SERIALRX_SPEKTRUM
     #undef USE_TELEMETRY_SRXL
+    #undef USE_CUSTOM_TELEMETRY
+    #undef USE_ADSB
 #endif
 
 #define USE_EZ_TUNE

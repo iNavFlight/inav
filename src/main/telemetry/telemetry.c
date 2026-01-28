@@ -17,7 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
+#include <limits.h>
 
 #include "platform.h"
 
@@ -26,6 +26,7 @@
 #include "build/debug.h"
 
 #include "common/utils.h"
+#include "common/maths.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -51,18 +52,18 @@
 #include "telemetry/ibus.h"
 #include "telemetry/crsf.h"
 #include "telemetry/srxl.h"
-#include "telemetry/sbus2.h"
 #include "telemetry/sim.h"
 #include "telemetry/ghst.h"
+#include "telemetry/sbus2.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 8);
+
+PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, /*version*/9);
 
 PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .telemetry_switch = SETTING_TELEMETRY_SWITCH_DEFAULT,
     .telemetry_inverted = SETTING_TELEMETRY_INVERTED_DEFAULT,
     .frsky_pitch_roll = SETTING_FRSKY_PITCH_ROLL_DEFAULT,
-    .frsky_use_legacy_gps_mode_sensor_ids = SETTING_FRSKY_USE_LEGACY_GPS_MODE_SENSOR_IDS_DEFAULT,
     .report_cell_voltage = SETTING_REPORT_CELL_VOLTAGE_DEFAULT,
     .hottAlarmSoundInterval = SETTING_HOTT_ALARM_SOUND_INTERVAL_DEFAULT,
     .halfDuplex = SETTING_TELEMETRY_HALFDUPLEX_DEFAULT,
@@ -98,7 +99,25 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
         .min_txbuff = SETTING_MAVLINK_MIN_TXBUFFER_DEFAULT,
         .radio_type = SETTING_MAVLINK_RADIO_TYPE_DEFAULT,
         .sysid = SETTING_MAVLINK_SYSID_DEFAULT
-    }
+    },
+#ifdef USE_TELEMETRY_CRSF
+    .crsf_telemetry_link_rate = SETTING_CRSF_TELEMETRY_LINK_RATE_DEFAULT,
+    .crsf_telemetry_link_ratio = SETTING_CRSF_TELEMETRY_LINK_RATIO_DEFAULT,
+#ifdef USE_CUSTOM_TELEMETRY
+    .crsf_telemetry_mode = SETTING_CRSF_TELEMETRY_MODE_DEFAULT,
+#endif //USE_CUSTOM_TELEMETRY
+#endif //USE_TELEMETRY_CRSF
+
+#if defined(USE_TELEMETRY_SMARTPORT) && defined(USE_CUSTOM_TELEMETRY)
+#if !defined(SETTING_SMARTPORT_TELEMETRY_MODE_DEFAULT)  // SITL
+    .smartport_telemetry_mode = 0,
+#else
+    .smartport_telemetry_mode = SETTING_SMARTPORT_TELEMETRY_MODE_DEFAULT,
+#endif
+#endif // USE_TELEMETRY_SMARTPORT USE_CUSTOM_TELEMETRY
+#ifdef USE_CUSTOM_TELEMETRY
+    .telemetry_sensors =  { 0x0,  }, // all sensors enabled by default
+#endif
 );
 
 void telemetryInit(void)
@@ -220,7 +239,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
 #endif
 
 #if defined(USE_TELEMETRY_SMARTPORT)
-    handleSmartPortTelemetry();
+    handleSmartPortTelemetry(currentTimeUs);
 #endif
 
 #if defined(USE_TELEMETRY_LTM)
@@ -259,4 +278,84 @@ void telemetryProcess(timeUs_t currentTimeUs)
 #endif
 }
 
+
+/** Telemetry scheduling framework **/
+static telemetryScheduler_t sch = { 0, };
+
+void telemetryScheduleUpdate(timeUs_t currentTime)
+{
+    timeDelta_t delta = cmpTimeUs(currentTime, sch.update_time);
+
+    for (int i = 0; i < sch.sensor_count; i++) {
+        telemetrySensor_t * sensor = &sch.sensors[i];
+        if (sensor->active) {
+            int value = telemetrySensorValue(sensor->sensor_id);
+            if (sensor->ratio_den)
+                value = value * sensor->ratio_num / sensor->ratio_den;
+            sensor->update |= (value != sensor->value);
+            sensor->value = value;
+
+            const int interval = (sensor->update) ? sensor->fast_interval : sensor->slow_interval;
+            sensor->bucket += delta * 1000 / interval;
+            sensor->bucket = constrain(sensor->bucket, sch.min_level, sch.max_level);
+        }
+    }
+
+    sch.update_time = currentTime;
+}
+
+telemetrySensor_t * telemetryScheduleNext(void)
+{
+    int index = sch.start_index;
+
+    for (int i = 0; i < sch.sensor_count; i++) {
+        index = (index + 1) % sch.sensor_count;
+        telemetrySensor_t * sensor = &sch.sensors[index];
+        if (sensor->active && sensor->bucket >= 0)
+            return sensor;
+    }
+
+    return NULL;
+}
+
+void telemetryScheduleAdd(telemetrySensor_t * sensor)
+{
+    if (sensor) {
+        sensor->bucket = 0;
+        sensor->value = 0;
+        sensor->update = true;
+        sensor->active = true;
+    }
+}
+
+void telemetryScheduleCommit(telemetrySensor_t * sensor)
+{
+    if (sensor) {
+        sensor->bucket = constrain(sensor->bucket - sch.quanta, sch.min_level, sch.max_level);
+        sensor->update = false;
+
+        sch.start_index = sensor->index;
+    }
+}
+
+void telemetryScheduleInit(telemetrySensor_t * sensors, size_t count)
+{
+    sch.sensors = sensors;
+    sch.sensor_count = count;
+
+    sch.update_time = 0;
+    sch.start_index = 0;
+
+    sch.quanta = 1000000;
+    sch.max_level = 500000;
+    sch.min_level = -1500000;
+
+    for (unsigned int i = 0; i < count; i++) {
+        telemetrySensor_t * sensor = &sch.sensors[i];
+        sensor->index = i;
+    }
+}
+
 #endif
+
+

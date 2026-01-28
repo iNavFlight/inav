@@ -19,6 +19,7 @@
 
 #include "common/time.h"
 #include "rx/crsf.h"
+#include "telemetry/sensors.h"
 
 #define CRSF_MSP_RX_BUF_SIZE 128
 #define CRSF_MSP_TX_BUF_SIZE 128

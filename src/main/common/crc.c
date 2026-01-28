@@ -143,3 +143,17 @@ uint8_t crc8_sum_update(uint8_t crc, const void *data, uint32_t length)
     }
     return crc;
 }
+
+// Fowler–Noll–Vo hash function; see https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
+uint32_t fnv_update(uint32_t hash, const void *data, uint32_t length)
+{
+    const uint8_t *ptr = data;
+    const uint8_t *pend = ptr + length;
+
+    while (ptr != pend) {
+        hash *= FNV_PRIME;
+        hash ^= *ptr++;
+    }
+
+    return hash;
+}
