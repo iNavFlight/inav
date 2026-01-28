@@ -465,6 +465,8 @@ main_sources(COMMON_SRC
     sensors/sensors.c
     sensors/temperature.c
     sensors/temperature.h
+    sensors/rotor.c
+    sensors/rotor.h
 
     blackbox/blackbox.c
     blackbox/blackbox.h

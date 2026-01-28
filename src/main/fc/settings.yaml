@@ -107,7 +107,7 @@ tables:
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
   - name: platform_type
-    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
+    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT", "BOOMERANG"]
   - name: tz_automatic_dst
     values: ["OFF", "EU", "USA"]
     enum: tz_automatic_dst_e
