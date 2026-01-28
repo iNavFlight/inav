@@ -17,10 +17,13 @@
 
 #pragma once
 
-//Same target as OMNIBUSF4PRO with LED strip in M5
-#ifdef OMNIBUSF4PRO_LEDSTRIPM5
+// OMNIBUSF4PRO_MPOSD: OMNIBUSF4PRO with LED strip on M5 and MPOSD on PA0 (OpenIPC).
+#ifdef OMNIBUSF4PRO_MPOSD
 #define OMNIBUSF4PRO
+#define OMNIBUSF4PRO_LEDSTRIPM5
+#define USE_MPOSD_ON_PA0
 #endif
+
 //Same target as OMNIBUSF4V3 with softserial in M5 and M6
 #if defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
 #define OMNIBUSF4V3
@@ -146,6 +149,11 @@
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
 
+#if defined(USE_MPOSD_ON_PA0)
+#define USE_UART4
+#define UART4_TX_PIN PA0
+#endif
+
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
@@ -249,12 +257,20 @@
 #ifdef DYSF4PRO
     #define ADC_CHANNEL_3_PIN               PC3
 #else
+  #if defined(USE_MPOSD_ON_PA0)
+    #define ADC_CHANNEL_3_PIN               NONE
+  #else
     #define ADC_CHANNEL_3_PIN               PA0
+  #endif
 #endif
 
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
-#define RSSI_ADC_CHANNEL                ADC_CHN_3
+#if defined(USE_MPOSD_ON_PA0)
+  #define RSSI_ADC_CHANNEL                ADC_CHN_NONE
+#else
+  #define RSSI_ADC_CHANNEL                ADC_CHN_3
+#endif
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
