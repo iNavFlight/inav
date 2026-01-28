@@ -72,6 +72,7 @@ extern "C" {
 #pragma GCC diagnostic pop
 
     void mavlinkSendAttitude(void);
+    void mavlinkSendBatteryTemperatureStatusText(void);
 
     PG_REGISTER(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
     PG_REGISTER(rxConfig_t, rxConfig, PG_RX_CONFIG, 0);
@@ -214,6 +215,7 @@ TEST(MavlinkTelemetryTest, CommandLongRepositionUsesGlobalFrameAndParams)
     EXPECT_EQ(lastWaypoint.lat, (int32_t)(37.5f * 1e7f));
     EXPECT_EQ(lastWaypoint.lon, (int32_t)(-122.25f * 1e7f));
     EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
+    EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
     EXPECT_EQ(lastWaypoint.p1, 123);
 }
 
@@ -276,6 +278,7 @@ TEST(MavlinkTelemetryTest, CommandIntRepositionScalesCoordinates)
     EXPECT_EQ(lastWaypoint.lat, 375000000);
     EXPECT_NEAR((double)lastWaypoint.lon, -1222500000.0, 100.0);
     EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
+    EXPECT_EQ(lastWaypoint.p3, 0);
     EXPECT_EQ(lastWaypoint.p1, 45);
 }
 
@@ -425,6 +428,28 @@ TEST(MavlinkTelemetryTest, MissionRequestSendsWaypoint)
     EXPECT_NEAR(item.z, 12.34f, 1e-4f);
 }
 
+TEST(MavlinkTelemetryTest, LegacyGuidedMissionItemUsesAbsoluteAltitude)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_item_pack(
+        42, 200, &msg,
+        1, MAV_COMP_ID_MISSIONPLANNER, 0,
+        MAV_FRAME_GLOBAL,
+        MAV_CMD_NAV_WAYPOINT, 2, 1,
+        0, 0, 0, 0,
+        37.5f, -122.25f, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
+}
+
 TEST(MavlinkTelemetryTest, ParamRequestListRespondsWithEmptyParam)
 {
     initMavlinkTestState();
@@ -467,6 +492,26 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntSetsWaypoint)
     EXPECT_EQ(lastWaypoint.lat, 375000000);
     EXPECT_EQ(lastWaypoint.lon, -1222500000);
     EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
+    EXPECT_EQ(lastWaypoint.p3, 0);
+}
+
+TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntUsesAbsoluteAltitude)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_global_int_pack(
+        42, 200, &msg,
+        0, 1, MAV_COMP_ID_MISSIONPLANNER,
+        MAV_FRAME_GLOBAL_INT, 0,
+        375000000, -1222500000, 12.3f,
+        0, 0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
 }
 
 TEST(MavlinkTelemetryTest, RequestDataStreamStopsStream)
@@ -529,6 +574,56 @@ TEST(MavlinkTelemetryTest, RequestDataStreamStopsStream)
 
     EXPECT_EQ(interval.message_id, MAVLINK_MSG_ID_RC_CHANNELS);
     EXPECT_EQ(interval.interval_us, -1);
+}
+
+TEST(MavlinkTelemetryTest, RequestProtocolVersionUsesConfiguredVersion)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(
+        42, 200, &msg,
+        1, MAV_COMP_ID_MISSIONPLANNER,
+        MAV_CMD_REQUEST_PROTOCOL_VERSION,
+        0,
+        0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t versionMsg;
+    ASSERT_TRUE(popTxMessage(&versionMsg));
+    ASSERT_EQ(versionMsg.msgid, MAVLINK_MSG_ID_PROTOCOL_VERSION);
+
+    mavlink_protocol_version_t version;
+    mavlink_msg_protocol_version_decode(&versionMsg, &version);
+
+    EXPECT_EQ(version.version, 200);
+    EXPECT_EQ(version.min_version, 200);
+    EXPECT_EQ(version.max_version, 200);
+}
+
+TEST(MavlinkTelemetryTest, BatteryStatusDoesNotSendExtendedSysState)
+{
+    initMavlinkTestState();
+
+    mavlinkSendBatteryTemperatureStatusText();
+
+    mavlink_status_t status;
+    memset(&status, 0, sizeof(status));
+    mavlink_message_t msg;
+    bool sawExtSysState = false;
+
+    for (size_t i = 0; i < serialTxLen; i++) {
+        if (mavlink_parse_char(0, serialTxBuffer[i], &msg, &status) == MAVLINK_FRAMING_OK) {
+            if (msg.msgid == MAVLINK_MSG_ID_EXTENDED_SYS_STATE) {
+                sawExtSysState = true;
+                break;
+            }
+        }
+    }
+
+    EXPECT_FALSE(sawExtSysState);
 }
 
 TEST(MavlinkTelemetryTest, RadioStatusUpdatesRxLinkStats)
