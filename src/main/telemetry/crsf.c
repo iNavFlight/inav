@@ -312,7 +312,7 @@ void crsfSensorEncodeEscTemp(telemetrySensor_t *sensor, sbuf_t *buf)
 {
     UNUSED(sensor);
     uint8_t motorCount = MAX(getMotorCount(), 1); //must send at least one motor, to avoid CRSF frame shifting
-    motorCount = MIN(getMotorCount(), CRSF_PAYLOAD_SIZE_MAX / 3); // 2 bytes per Temp value
+    motorCount = MIN(getMotorCount(), CRSF_PAYLOAD_SIZE_MAX / 2); // 2 bytes per Temp value
     motorCount = MIN(motorCount, MAX_SUPPORTED_MOTORS); // ensure we don't exceed available ESC telemetry data
 
     for (uint8_t i = 0; i < motorCount; i++) {
