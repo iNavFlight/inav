@@ -215,7 +215,7 @@ TEST(MavlinkTelemetryTest, CommandLongRepositionUsesGlobalFrameAndParams)
     EXPECT_EQ(lastWaypoint.lat, (int32_t)(37.5f * 1e7f));
     EXPECT_EQ(lastWaypoint.lon, (int32_t)(-122.25f * 1e7f));
     EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
-    EXPECT_EQ(lastWaypoint.p3, 0);
+    EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
     EXPECT_EQ(lastWaypoint.p1, 123);
 }
 
@@ -465,7 +465,7 @@ TEST(MavlinkTelemetryTest, MissionRequestSendsWaypoint)
     EXPECT_NEAR(item.z, 12.34f, 1e-4f);
 }
 
-TEST(MavlinkTelemetryTest, LegacyGuidedMissionItemUsesRelativeAltitude)
+TEST(MavlinkTelemetryTest, LegacyGuidedMissionItemUsesAbsoluteAltitude)
 {
     initMavlinkTestState();
     ENABLE_ARMING_FLAG(ARMED);
@@ -484,7 +484,7 @@ TEST(MavlinkTelemetryTest, LegacyGuidedMissionItemUsesRelativeAltitude)
     handleMAVLinkTelemetry(1000);
 
     EXPECT_EQ(setWaypointCalls, 1);
-    EXPECT_EQ(lastWaypoint.p3, 0);
+    EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
 }
 
 TEST(MavlinkTelemetryTest, ParamRequestListRespondsWithEmptyParam)
@@ -532,7 +532,7 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntSetsWaypoint)
     EXPECT_EQ(lastWaypoint.p3, 0);
 }
 
-TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntUsesRelativeAltitude)
+TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntUsesAbsoluteAltitude)
 {
     initMavlinkTestState();
 
@@ -548,7 +548,7 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntUsesRelativeAltitude)
     handleMAVLinkTelemetry(1000);
 
     EXPECT_EQ(setWaypointCalls, 1);
-    EXPECT_EQ(lastWaypoint.p3, 0);
+    EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
 }
 
 TEST(MavlinkTelemetryTest, RequestDataStreamStopsStream)

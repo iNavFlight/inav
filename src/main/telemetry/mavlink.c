@@ -1408,7 +1408,7 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
                 wp.alt = coordinateFrame ? (int32_t)(altMeters * 100.0f) : 0;
                 wp.p1 = 0; // Land if non-zero
                 wp.p2 = 0;
-                wp.p3 = 0;
+                wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
                 break;
             }
 
@@ -1448,7 +1448,7 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
             wp.action = NAV_WP_ACTION_JUMP;
             wp.p1 = (int16_t)lrintf(param1 + 1.0f);
             wp.p2 = (int16_t)lrintf(param2);
-            wp.p3 = 0;
+            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(msg.frame) ? NAV_WP_ALTMODE : 0;
             break;
 
         case MAV_CMD_DO_SET_ROI:
@@ -2146,7 +2146,7 @@ static bool handleIncoming_SET_POSITION_TARGET_GLOBAL_INT(void)
         wp.alt = (int32_t)(msg.alt * 100.0f);
         wp.p1 = 0;
         wp.p2 = 0;
-        wp.p3 = 0;
+        wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
         wp.flag = 0;
 
         setWaypoint(255, &wp);
