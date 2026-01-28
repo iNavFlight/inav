@@ -1118,16 +1118,18 @@ void mavlinkSendHeartbeat(void)
 {
     uint8_t mavModes = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 
-    uint8_t mavSystemType = mavlinkGetVehicleType();
-
     flightModeForTelemetry_e flm = getFlightModeForTelemetry();
     uint8_t mavCustomMode;
+    uint8_t mavSystemType;
 
-    if (STATE(FIXED_WING_LEGACY) || mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    const bool isPlane = (STATE(FIXED_WING_LEGACY) || mixerConfig()->platformType == PLATFORM_AIRPLANE);
+    if (isPlane) {
         mavCustomMode = (uint8_t)inavToArduPlaneMap(flm);
+        mavSystemType = MAV_TYPE_FIXED_WING;
     }
     else {
         mavCustomMode = (uint8_t)inavToArduCopterMap(flm);
+        mavSystemType = mavlinkGetVehicleType();
     }
 
     const bool manualInputAllowed = !(flm == FLM_MISSION || flm == FLM_RTH || flm == FLM_FAILSAFE);
