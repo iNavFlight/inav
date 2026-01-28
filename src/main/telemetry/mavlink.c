@@ -1548,19 +1548,18 @@ static bool handleIncoming_MISSION_COUNT(void)
 
     // Check if this message is for us
     if (msg.target_system == mavSystemId) {
+        if (ARMING_FLAG(ARMED)) {
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
+            mavlinkSendMessage();
+            return true;
+        }
         if (msg.count <= NAV_MAX_WAYPOINTS) {
             incomingMissionWpCount = msg.count; // We need to know how many items to request
             incomingMissionWpSequence = 0;
             mavlink_msg_mission_request_int_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, incomingMissionWpSequence, MAV_MISSION_TYPE_MISSION);
             mavlinkSendMessage();
             return true;
-        }
-        else if (ARMING_FLAG(ARMED)) {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
-            mavlinkSendMessage();
-            return true;
-        }
-        else {
+        } else {
             mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_NO_SPACE, MAV_MISSION_TYPE_MISSION, 0);
             mavlinkSendMessage();
             return true;

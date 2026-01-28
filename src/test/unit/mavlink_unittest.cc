@@ -330,6 +330,43 @@ TEST(MavlinkTelemetryTest, MissionCountRequestsFirstItem)
     EXPECT_EQ(req.mission_type, MAV_MISSION_TYPE_MISSION);
 }
 
+TEST(MavlinkTelemetryTest, MissionCountWhileArmedIsRejected)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &msg,
+        1, MAV_COMP_ID_MISSIONPLANNER, 1, MAV_MISSION_TYPE_MISSION, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_status_t status;
+    memset(&status, 0, sizeof(status));
+    mavlink_message_t outMsg;
+    bool sawAck = false;
+    bool sawRequest = false;
+
+    for (size_t i = 0; i < serialTxLen; i++) {
+        if (mavlink_parse_char(0, serialTxBuffer[i], &outMsg, &status) == MAVLINK_FRAMING_OK) {
+            if (outMsg.msgid == MAVLINK_MSG_ID_MISSION_ACK) {
+                mavlink_mission_ack_t ack;
+                mavlink_msg_mission_ack_decode(&outMsg, &ack);
+                EXPECT_EQ(ack.type, MAV_MISSION_ERROR);
+                sawAck = true;
+            }
+            if (outMsg.msgid == MAVLINK_MSG_ID_MISSION_REQUEST_INT) {
+                sawRequest = true;
+            }
+        }
+    }
+
+    EXPECT_TRUE(sawAck);
+    EXPECT_FALSE(sawRequest);
+}
+
 TEST(MavlinkTelemetryTest, MissionItemIntSingleItemAcksAccepted)
 {
     initMavlinkTestState();
