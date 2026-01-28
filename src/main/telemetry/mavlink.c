@@ -1254,8 +1254,6 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
     mavlinkSendMessage();
 
-    mavlinkSendExtendedSysState();
-
 // FIXME - Status text is limited to boards with USE_OSD
 #ifdef USE_OSD
     char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = {" "};
