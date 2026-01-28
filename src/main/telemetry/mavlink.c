@@ -473,14 +473,15 @@ static void mavlinkSendProtocolVersion(void)
 
     uint8_t specHash[8] = {0};
     uint8_t libHash[8] = {0};
+    const uint16_t protocolVersion = (uint16_t)telemetryConfig()->mavlink.version * 100;
 
     mavlink_msg_protocol_version_pack(
         mavSystemId,
         mavComponentId,
         &mavSendMsg,
-        MAVLINK_VERSION,
-        MAVLINK_VERSION,
-        MAVLINK_VERSION,
+        protocolVersion,
+        protocolVersion,
+        protocolVersion,
         specHash,
         libHash);
 
