@@ -579,7 +579,9 @@ static bool mavlinkPlaneModeIsConfigured(uint8_t customMode)
         case PLANE_MODE_FLY_BY_WIRE_B:
             return isModeActivationConditionPresent(BOXNAVALTHOLD);
         case PLANE_MODE_CRUISE:
-            return isModeActivationConditionPresent(BOXNAVCRUISE);
+            return isModeActivationConditionPresent(BOXNAVCRUISE) ||
+                (isModeActivationConditionPresent(BOXNAVCOURSEHOLD) &&
+                isModeActivationConditionPresent(BOXNAVALTHOLD));
         case PLANE_MODE_AUTO:
             return isModeActivationConditionPresent(BOXNAVWP);
         case PLANE_MODE_RTL:
@@ -608,14 +610,18 @@ static bool mavlinkCopterModeIsConfigured(uint8_t customMode)
         case COPTER_MODE_ALT_HOLD:
             return isModeActivationConditionPresent(BOXNAVALTHOLD);
         case COPTER_MODE_POSHOLD:
-        case COPTER_MODE_GUIDED:
             return isModeActivationConditionPresent(BOXNAVPOSHOLD);
+        case COPTER_MODE_GUIDED:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD) &&
+                isModeActivationConditionPresent(BOXGCSNAV);
         case COPTER_MODE_RTL:
             return isModeActivationConditionPresent(BOXNAVRTH);
         case COPTER_MODE_AUTO:
             return isModeActivationConditionPresent(BOXNAVWP);
         case COPTER_MODE_THROW:
             return isModeActivationConditionPresent(BOXNAVLAUNCH);
+        case COPTER_MODE_BRAKE:
+            return isModeActivationConditionPresent(BOXBRAKING);
         default:
             return false;
     }
