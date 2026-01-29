@@ -30,12 +30,12 @@ void PrintCanStatus(void)
     FDCAN_ErrorCountersTypeDef errorCounters;
     HAL_FDCAN_GetErrorCounters (&hfdcan1, &errorCounters);
     
-    // LOG_DEBUG(SYSTEM, "CAN Status:\n");
-    // LOG_DEBUG(SYSTEM, "  Last Error Code: %lu\n", (status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos);
-    // LOG_DEBUG(SYSTEM, "  Activity: %s\n", (status & FDCAN_PSR_ACT) ? "Active" : "Inactive");
-    // LOG_DEBUG(SYSTEM, "  Error Passive: %s\n", (status & FDCAN_PSR_EP) ? "Yes" : "No");
-    // LOG_DEBUG(SYSTEM, "  Warning Status: %s\n", (status & FDCAN_PSR_EW) ? "Yes" : "No");
-    // LOG_DEBUG(SYSTEM, "  Bus Off: %s\n", (status & FDCAN_PSR_BO) ? "Yes" : "No");
+    LOG_DEBUG(SYSTEM, "CAN Status:\n");
+    LOG_DEBUG(SYSTEM, "  Last Error Code: %lu\n", (status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos);
+    LOG_DEBUG(SYSTEM, "  Activity: %s\n", (status & FDCAN_PSR_ACT) ? "Active" : "Inactive");
+    LOG_DEBUG(SYSTEM, "  Error Passive: %s\n", (status & FDCAN_PSR_EP) ? "Yes" : "No");
+    LOG_DEBUG(SYSTEM, "  Warning Status: %s\n", (status & FDCAN_PSR_EW) ? "Yes" : "No");
+    LOG_DEBUG(SYSTEM, "  Bus Off: %s\n", (status & FDCAN_PSR_BO) ? "Yes" : "No");
     LOG_DEBUG(SYSTEM, "Tx Error Count: %lu", errorCounters.TxErrorCnt);
     LOG_DEBUG(SYSTEM, "Rx Error Count: %lu", errorCounters.RxErrorCnt);
 }
@@ -68,48 +68,48 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
 
-	printf("Node health: %ud Node Mode: %ud\n", nodeStatus.health, nodeStatus.mode);
+	LOG_DEBUG(SYSTEM, "Node health: %ud Node Mode: %ud\n", nodeStatus.health, nodeStatus.mode);
 
-	printf("Node Health ");
+	LOG_DEBUG(SYSTEM, "Node Health ");
 
 	switch (nodeStatus.health) {
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
-		printf("OK\n");
+		LOG_DEBUG(SYSTEM, "OK\n");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
-		printf("WARNING\n");
+		LOG_DEBUG(SYSTEM, "WARNING\n");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
-		printf("ERROR\n");
+		LOG_DEBUG(SYSTEM, "ERROR\n");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
-		printf("CRITICAL\n");
+		LOG_DEBUG(SYSTEM, "CRITICAL\n");
 		break;
 	default:
-		printf("UNKNOWN?\n");
+		LOG_DEBUG(SYSTEM, "UNKNOWN?\n");
 		break;
 	}
 
-	printf("Node Mode ");
+	LOG_DEBUG(SYSTEM, "Node Mode ");
 
 	switch(nodeStatus.mode) {
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
-		printf("OPERATIONAL\n");
+		LOG_DEBUG(SYSTEM, "OPERATIONAL\n");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
-		printf("INITIALIZATION\n");
+		LOG_DEBUG(SYSTEM, "INITIALIZATION\n");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
-		printf("MAINTENANCE\n");
+		LOG_DEBUG(SYSTEM, "MAINTENANCE\n");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
-		printf("SOFTWARE UPDATE\n");
+		LOG_DEBUG(SYSTEM, "SOFTWARE UPDATE\n");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
-		printf("OFFLINE\n");
+		LOG_DEBUG(SYSTEM, "OFFLINE\n");
 		break;
 	default:
-		printf("UNKNOWN?\n");
+		LOG_DEBUG(SYSTEM, "UNKNOWN?\n");
 		break;
 	}
 }
@@ -185,7 +185,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	pkt.status = node_status;
 
 	// fill in your major and minor firmware version
-	pkt.software_version.major = 1;
+	pkt.software_version.major = 9;
 	pkt.software_version.minor = 0;
 	pkt.software_version.optional_field_flags = 0;
 	pkt.software_version.vcs_commit = 0; // should put git hash in here
@@ -197,7 +197,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	// just setting all 16 bytes to 1 for testing
 	getUniqueID(pkt.hardware_version.unique_id);
 
-	strncpy((char*)pkt.name.data, "ESCNode", sizeof(pkt.name.data));
+	strncpy((char*)pkt.name.data, "Inav", sizeof(pkt.name.data));
 	pkt.name.len = strnlen((char*)pkt.name.data, sizeof(pkt.name.data));
 
 	uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
@@ -325,7 +325,6 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 void processCanardTxQueue(FDCAN_HandleTypeDef *hfdcan) {
 	// Transmitting
-//    LOG_DEBUG(SYSTEM, "In transmit Queue");
 	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;) 
     {
         LOG_DEBUG(SYSTEM, "Found transmit frame");
@@ -340,11 +339,10 @@ void processCanardTxQueue(FDCAN_HandleTypeDef *hfdcan) {
 			LOG_DEBUG(SYSTEM, "Transmit error %d\n", tx_res);
 		} else if (tx_res > 0) {
 			LOG_DEBUG(SYSTEM, "Successfully transmitted message\n");
-            LOG_DEBUG(SYSTEM, "TX Fifo Free: %lu", HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1));
 		}
         else
         {
-            LOG_DEBUG(SYSTEM, "hfderror %"PRIu32", TX Fifo Free: %lu", hfdcan->ErrorCode, HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1));
+            LOG_DEBUG(SYSTEM, "hfderror %"PRIu32"", hfdcan->ErrorCode);
         }
 		// Pop canardTxQueue either way
 		canardPopTxQueue(&canard);
@@ -395,25 +393,7 @@ void dronecanInit(void)
 	  LOG_DEBUG(SYSTEM, "Node ID is 0, this node is anonymous and can't transmit most messaged. Please update this in node_settings.h\n");
  }
  PrintCanStatus();
-//  while (1)
-//  {
-    /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-//	processCanardTxQueue(&hfdcan1);
-
-//	const uint64_t ts = HAL_GetTick();
-
-//	if (ts >= next_1hz_service_at) {
-//		next_1hz_service_at += 1000ULL;
-//		process1HzTasks(ts);
-//	}
-//	if (ts >= next_50hz_service_at) {
-//		next_50hz_service_at += 1000000ULL/50U;
-//		send_ESCStatus();
-//	}
-
-//  }
 }
 
 /**
@@ -438,12 +418,12 @@ static void MX_FDCAN1_Init(void)
   sFilterConfig.FilterID2 = 0x0;
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
-  //hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV22;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
   hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
   hfdcan1.Init.AutoRetransmission = DISABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
+  // TODO:: Calculate these dynamically based on clock speed and desired baudrate
   hfdcan1.Init.NominalPrescaler = 8;
   hfdcan1.Init.NominalSyncJumpWidth = 1;
   hfdcan1.Init.NominalTimeSeg1 = 12;
@@ -452,17 +432,16 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.DataSyncJumpWidth = 1;
   hfdcan1.Init.DataTimeSeg1 = 1;
   hfdcan1.Init.DataTimeSeg2 = 1;
+
   hfdcan1.Init.StdFiltersNbr = 0;
   hfdcan1.Init.ExtFiltersNbr = 1;
-  hfdcan1.Init.TxFifoQueueElmtsNbr = 20;
-  hfdcan1.Init.TxEventsNbr = 5;
+  hfdcan1.Init.TxFifoQueueElmtsNbr = 32;
+  hfdcan1.Init.TxEventsNbr = 0;
   hfdcan1.Init.TxBuffersNbr = 5;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_QUEUE_OPERATION;
   hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
   LOG_DEBUG(SYSTEM, "In CAN Init");
- 
-  
-  
+   
   /** Initializes the peripherals clock
   */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
@@ -477,67 +456,32 @@ static void MX_FDCAN1_Init(void)
     /* Enable FDCAN clock */
     __HAL_RCC_FDCAN_CLK_ENABLE();
   
-    MX_GPIO_Init();
+    MX_GPIO_Init();  // Set up the pins for CAN and optional listen only mode
 
     LOG_DEBUG(SYSTEM, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
     LOG_DEBUG(SYSTEM, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
-  if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
-  {
-    LOG_DEBUG(SYSTEM, "Failed CAN Init");
-    Error_Handler();
-  }
-  /* USER CODE BEGIN FDCAN1_Init 2 */
-  if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
-	LOG_DEBUG(SYSTEM, "Failed Activate Notification");
-	Error_Handler();
-  }
-  if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
-    LOG_DEBUG(SYSTEM, "Failed Config Filter");
-    Error_Handler();
-  }
-  if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
-    LOG_DEBUG(SYSTEM, "Failed to Start");
-    Error_Handler();
-  }
-  HAL_FDCAN_StateTypeDef hFDcanState;
-  hFDcanState = HAL_FDCAN_GetState(&hfdcan1);
-  LOG_DEBUG(SYSTEM, "HFDState %x", hFDcanState);
-  LOG_DEBUG(SYSTEM, "hfderror %"PRIu32", TX Fifo Free: %lu", hfdcan1.ErrorCode, HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1));
+    if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
+    {
+        LOG_DEBUG(SYSTEM, "Failed CAN Init");
+        Error_Handler();
+    }
+    /* USER CODE BEGIN FDCAN1_Init 2 */
+    if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
+	    LOG_DEBUG(SYSTEM, "Failed Activate Notification");
+	    Error_Handler();
+    }
+    if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
+        LOG_DEBUG(SYSTEM, "Failed Config Filter");
+        Error_Handler();
+    }
+    if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
+        LOG_DEBUG(SYSTEM, "Failed to Start");
+        Error_Handler();
+    }
+  
   /* USER CODE END FDCAN1_Init 2 */
 
 }
-
-/**
-  * @brief ICACHE Initialization Function
-  * @param None
-  * @retval None
-  */
-// static void MX_ICACHE_Init(void)
-// {
-
-//   /* USER CODE BEGIN ICACHE_Init 0 */
-
-//   /* USER CODE END ICACHE_Init 0 */
-
-//   /* USER CODE BEGIN ICACHE_Init 1 */
-
-//   /* USER CODE END ICACHE_Init 1 */
-
-//   /** Enable instruction cache in 1-way (direct mapped cache)
-//   */
-//   if (HAL_ICACHE_ConfigAssociativityMode(ICACHE_1WAY) != HAL_OK)
-//   {
-//     Error_Handler();
-//   }
-//   if (HAL_ICACHE_Enable() != HAL_OK)
-//   {
-//     Error_Handler();
-//   }
-//   /* USER CODE BEGIN ICACHE_Init 2 */
-
-//   /* USER CODE END ICACHE_Init 2 */
-
-// }
 
 /**
   * @brief GPIO Initialization Function
@@ -546,18 +490,17 @@ static void MX_FDCAN1_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  /* GPIO Ports Clock Enable */
+    /* GPIO Ports Clock Enable */
   
-  __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
 
-  /**FDCAN1 GPIO Configuration
-    PD0     ------> FDCAN1_RX
-    PD1     ------> FDCAN1_TX
-    */
+    /**FDCAN1 GPIO Configuration
+        PD0     ------> FDCAN1_RX
+        PD1     ------> FDCAN1_TX
+        PD3     ------> CANPhy Listen Only
+        */
     GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -576,43 +519,7 @@ static void MX_GPIO_Init(void)
     GPIO_InitStructCANSilent.Pull = GPIO_NOPULL;
     GPIO_InitStructCANSilent.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStructCANSilent);
-  /*Configure GPIO pin : UCPD_FLT_Pin */
-//   GPIO_InitStruct.Pin = UCPD_FLT_Pin;
-//   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-//   GPIO_InitStruct.Pull = GPIO_NOPULL;
-//   HAL_GPIO_Init(UCPD_FLT_GPIO_Port, &GPIO_InitStruct);
-
-//   /*Configure GPIO pin : LED_GREEN_Pin */
-//   GPIO_InitStruct.Pin = LED_GREEN_Pin;
-//   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-//   GPIO_InitStruct.Pull = GPIO_NOPULL;
-//   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-//   HAL_GPIO_Init(LED_GREEN_GPIO_Port, &GPIO_InitStruct);
-
-//   /*Configure GPIO pin : LED_RED_Pin */
-//   GPIO_InitStruct.Pin = LED_RED_Pin;
-//   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-//   GPIO_InitStruct.Pull = GPIO_NOPULL;
-//   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-//   HAL_GPIO_Init(LED_RED_GPIO_Port, &GPIO_InitStruct);
-
-//   /*Configure GPIO pins : UCPD_DBN_Pin LED_BLUE_Pin */
-//   GPIO_InitStruct.Pin = UCPD_DBN_Pin|LED_BLUE_Pin;
-//   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-//   GPIO_InitStruct.Pull = GPIO_NOPULL;
-//   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-//   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
 }
-
-// /* USER CODE BEGIN 4 */
-// int __io_putchar(int ch)
-// {
-// 	return ITM_SendChar(ch);
-// }
-// /* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.

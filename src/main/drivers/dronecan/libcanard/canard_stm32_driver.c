@@ -116,9 +116,7 @@ int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* c
 		return 1;
 	}
 
-	LOG_DEBUG(SYSTEM, "Failed at adding message with id: %lu to Tx Fifo", TxHeader.Identifier);
-    LOG_DEBUG(SYSTEM, "TXBC: %lu", hfdcan->Instance->TXBC );
-    LOG_DEBUG(SYSTEM, "CAN Channel %lu", hfdcan->Instance);
+	LOG_DEBUG(SYSTEM, "Failed at adding message with id: %lu to Tx Queue", TxHeader.Identifier);
     
 	// This might be for many reasons including the Tx Fifo being full, the error can be read from hfdcan->ErrorCode
 	return 0;
