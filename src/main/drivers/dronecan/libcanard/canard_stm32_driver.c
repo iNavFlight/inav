@@ -35,9 +35,9 @@ int16_t canardSTM32Recieve(FDCAN_HandleTypeDef *hfdcan, uint32_t RxLocation, Can
 
 	if (HAL_FDCAN_GetRxMessage(hfdcan, RxLocation, &RxHeader, RxData) == HAL_OK) {
 
-		//	printf("Received message: ID=%lu, DLC=%lu\n", RxHeader.Identifier, RxHeader.DataLength);
-		//
-		//	printf("0x");
+		LOG_DEBUG(SYSTEM, "Received message: ID=%lu, DLC=%lu\n", RxHeader.Identifier, RxHeader.DataLength);
+		
+		LOG_BUF_DEBUG(SYSTEM, RxData, RxHeader.DataLength);
 		//	for (int i = 0; i < RxHeader.DataLength; i++) {
 		//		printf("%02x", RxData[i]);
 		//	}

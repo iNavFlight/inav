@@ -18,7 +18,7 @@ FDCAN_HandleTypeDef hfdcan1;
 CanardInstance canard;
 uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
-//static void MX_ICACHE_Init(void);
+
 static void MX_FDCAN1_Init(void);
 static void MX_GPIO_Init(void);
 void Error_Handler(void);
@@ -40,21 +40,21 @@ void PrintCanStatus(void)
     LOG_DEBUG(SYSTEM, "Rx Error Count: %lu", errorCounters.RxErrorCnt);
 }
 
-/* void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
+ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
 	// Receiving
 	CanardCANFrame rx_frame;
 
 	const uint64_t timestamp = HAL_GetTick() * 1000ULL;
 	const int16_t rx_res = canardSTM32Recieve(hfdcan, FDCAN_RX_FIFO0, &rx_frame);
-
+    LOG_DEBUG(SYSTEM, "Received a fram");
 	if (rx_res < 0) {
-		printf("Receive error %d\n", rx_res);
+		LOG_DEBUG(SYSTEM, "Receive error %d\n", rx_res);
 	}
 	else if (rx_res > 0)        // Success - process the frame
 	{
 		canardHandleRxFrame(&canard, &rx_frame, timestamp);
 	}
-} */
+} 
 
 // NOTE: All canard handlers and senders are based on this reference: https://dronecan.github.io/Specification/7._List_of_standard_data_types/
 // Alternatively, you can look at the corresponding generated header file in the dsdlc_generated folder
@@ -249,6 +249,15 @@ void send_NodeStatus(void) {
 }
 
 // Canard Util
+/*
+ This callback is invoked by the library when it detects beginning of a new transfer on the bus that can be received
+ by the local node.
+ If the callback returns true, the library will receive the transfer.
+ If the callback returns false, the library will ignore the transfer.
+ All transfers that are addressed to other nodes are always ignored.
+
+ This function must fill in the out_data_type_signature to be the signature of the message.
+ */
 
 bool shouldAcceptTransfer(const CanardInstance *ins,
                                  uint64_t *out_data_type_signature,
@@ -285,7 +294,9 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
 	return false;
 }
 
-
+/*
+ This callback is invoked by the library when a new message or request or response is received.
+*/
 void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 	// switch on data type ID to pass to the right handler function
     LOG_DEBUG(SYSTEM, "Transfer type: %du, Transfer ID: %du \n", transfer->transfer_type, transfer->data_type_id);
@@ -412,10 +423,11 @@ static void MX_FDCAN1_Init(void)
   FDCAN_FilterTypeDef sFilterConfig;
   sFilterConfig.IdType = FDCAN_EXTENDED_ID;
   sFilterConfig.FilterIndex = 0;
-  sFilterConfig.FilterType = FDCAN_FILTER_MASK;
-  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  sFilterConfig.FilterID1 = 0x01;
-  sFilterConfig.FilterID2 = 0x0;
+  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
+  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXBUFFER;
+  sFilterConfig.FilterID1 = 0x1401557F;
+  sFilterConfig.FilterID2 = 0x1FFFFFFF;
+  sFilterConfig.RxBufferIndex = 0;
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
@@ -425,14 +437,17 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.ProtocolException = DISABLE;
   // TODO:: Calculate these dynamically based on clock speed and desired baudrate
   hfdcan1.Init.NominalPrescaler = 8;
-  hfdcan1.Init.NominalSyncJumpWidth = 1;
+  hfdcan1.Init.NominalSyncJumpWidth = 8;
   hfdcan1.Init.NominalTimeSeg1 = 12;
   hfdcan1.Init.NominalTimeSeg2 = 2;
-  hfdcan1.Init.DataPrescaler = 1;
-  hfdcan1.Init.DataSyncJumpWidth = 1;
-  hfdcan1.Init.DataTimeSeg1 = 1;
-  hfdcan1.Init.DataTimeSeg2 = 1;
-
+//   hfdcan1.Init.DataPrescaler = 1;
+//   hfdcan1.Init.DataSyncJumpWidth = 1;
+//   hfdcan1.Init.DataTimeSeg1 = 1;
+//   hfdcan1.Init.DataTimeSeg2 = 1;
+  hfdcan1.Init.RxFifo0ElmtsNbr = 30;
+  hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
+  hfdcan1.Init.RxBuffersNbr = 1;
+  hfdcan1.Init.RxBufferSize = FDCAN_DATA_BYTES_8;
   hfdcan1.Init.StdFiltersNbr = 0;
   hfdcan1.Init.ExtFiltersNbr = 1;
   hfdcan1.Init.TxFifoQueueElmtsNbr = 32;
@@ -557,17 +572,30 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 {
     static timeUs_t lastPrintTimeUs = 0;
     static timeUs_t next_1hz_service_at = 0;
-    processCanardTxQueue(&hfdcan1);
+    CanardCANFrame rx_frame;
 
+    processCanardTxQueue(&hfdcan1);
+    if (HAL_FDCAN_IsRxBufferMessageAvailable(&hfdcan1, 0))
+    {
+        LOG_DEBUG(SYSTEM, "Received a message");
+
+	    const uint64_t timestamp = HAL_GetTick() * 1000ULL;
+	    const int16_t rx_res = canardSTM32Recieve(&hfdcan1, FDCAN_RX_BUFFER0, &rx_frame);
+        
+	    if (rx_res < 0) {
+		    LOG_DEBUG(SYSTEM, "Receive error %d\n", rx_res);
+	    }
+	    else if (rx_res > 0)        // Success - process the frame
+	    {
+		    canardHandleRxFrame(&canard, &rx_frame, timestamp);
+	    }
+    }
     if (currentTimeUs >= next_1hz_service_at) 
     {
 		next_1hz_service_at += 1000000ULL;
 		process1HzTasks(currentTimeUs);
+        LOG_DEBUG(SYSTEM, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, 0));
     }
-    if ((currentTimeUs - lastPrintTimeUs) > 500000)
-    {
-        lastPrintTimeUs = currentTimeUs;
-        LOG_DEBUG(SYSTEM, "In dronecanUpdate");
-    }
+     
 }
 
