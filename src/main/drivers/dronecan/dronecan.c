@@ -21,24 +21,6 @@ FDCAN_HandleTypeDef hfdcan1;
 CanardInstance canard;
 uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
-/*** Hardware definitions ***/
-const dronecanHardware_t dronecanHardware[] = {
-#if defined(CAN1_RX)
-    { .ioTag = IO_TAG(CAN1_RX), .ioMode = IOCFG_AF_PP, .alternate = GPIO_AF9_FDCAN1 },
-#endif
-
-#if defined(CAN1_TX)
-    { .ioTag = IO_TAG(CAN1_TX), .ioMode = IOCFG_AF_PP, .alternate = GPIO_AF9_FDCAN1 },
-#endif
-
-#if defined(CAN1_STANDBY)
-    { .ioTag = IO_TAG(CAN1_STANDBY), .ioMode = IOCFG_OUT_PP, .alternate = 0 },
-#endif
-
-};
-
-const int dronecanHardwareCount = ARRAYLEN(dronecanHardware);
-
 
 static void MX_FDCAN1_Init(void);
 static void MX_GPIO_Init(void);
@@ -526,50 +508,21 @@ static void MX_FDCAN1_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
+   // Set up the Rx and Tx pins for CAN1 and if present, the standby or listen only pin.
 
-    /* GPIO Ports Clock Enable */
-  
-    __HAL_RCC_GPIOD_CLK_ENABLE();
-
-    if (dronecanHardwareCount == 0) {
-        return;
-    }
- //   IO_t io = IOGetByTag(IO_TAG(CAN1_TX));
     IOInit(IOGetByTag(IO_TAG(CAN1_TX)), OWNER_DRONECAN, RESOURCE_CAN_TX, 0);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
     IOInit(IOGetByTag(IO_TAG(CAN1_RX)), OWNER_DRONECAN, RESOURCE_CAN_RX, 0);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
 
-    // if (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) {
-    //         pinioRuntime[i].inverted = true;
-    //         IOHi(io);
-    //     } else {
-    //         pinioRuntime[i].inverted = false;
-    //         IOLo(io);
-    /**FDCAN1 GPIO Configuration
-        PD0     ------> FDCAN1_RX
-        PD1     ------> FDCAN1_TX
-        PD3     ------> CANPhy Listen Only
-        */
-    // GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
-    // GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    // GPIO_InitStruct.Pull = GPIO_NOPULL;
-    // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    // GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
-    // HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-    GPIO_InitTypeDef GPIO_InitStructCANSilent = {0};
-  
-    /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3, GPIO_PIN_RESET);
-
-    /*Configure GPIO pin : PD3 */
-    GPIO_InitStructCANSilent.Pin = GPIO_PIN_3;
-    GPIO_InitStructCANSilent.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStructCANSilent.Pull = GPIO_NOPULL;
-    GPIO_InitStructCANSilent.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOD, &GPIO_InitStructCANSilent);
+ #ifdef CAN1_STANDBY
+    // Initialize the standby or listen only pin.  Set default state to enable CAN.  
+    // TODO: Tie the pin state to a configuration option so we can turn CAN on and off.
+    
+    IOInit(IOGetByTag(IO_TAG(CAN1_STANDBY)), OWNER_DRONECAN, RESOURCE_CAN_STANDBY, 0);
+    IOConfigGPIO(IOGetByTag(IO_TAG(CAN1_STANDBY)), IOCFG_OUT_PP);  // Do any boards use pullups, external/internal?
+    IOLo(IOGetByTag(IO_TAG(CAN1_STANDBY)));
+#endif
 }
 
 /**
