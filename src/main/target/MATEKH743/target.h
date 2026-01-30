@@ -167,7 +167,7 @@
 // *************** CANBUS ****************************
 #define USE_DRONECAN
 #define CAN1_RX                 PD0
-#define CAN1_TX                 PD1
+#define CAN1_TX                 PD1 
 #define CAN1_STANDBY            PD3
 
 // *************** SDIO SD BLACKBOX*******************

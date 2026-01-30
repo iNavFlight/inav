@@ -1,6 +1,8 @@
+#include "platform.h"
 #include "common/log.h"
 #include "common/time.h"
 #include <stdint.h>
+#include "drivers/io_types.h"
 #include "drivers/io.h"
 #include "libcanard/canard_stm32_driver.h"
 #include "libcanard/canard.h"
@@ -530,17 +532,32 @@ static void MX_GPIO_Init(void)
   
     __HAL_RCC_GPIOD_CLK_ENABLE();
 
+    if (dronecanHardwareCount == 0) {
+        return;
+    }
+ //   IO_t io = IOGetByTag(IO_TAG(CAN1_TX));
+    IOInit(IOGetByTag(IO_TAG(CAN1_TX)), OWNER_DRONECAN, RESOURCE_CAN_TX, 0);
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
+    IOInit(IOGetByTag(IO_TAG(CAN1_RX)), OWNER_DRONECAN, RESOURCE_CAN_RX, 0);
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
+
+    // if (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) {
+    //         pinioRuntime[i].inverted = true;
+    //         IOHi(io);
+    //     } else {
+    //         pinioRuntime[i].inverted = false;
+    //         IOLo(io);
     /**FDCAN1 GPIO Configuration
         PD0     ------> FDCAN1_RX
         PD1     ------> FDCAN1_TX
         PD3     ------> CANPhy Listen Only
         */
-    GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
-    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+    // GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
+    // GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    // GPIO_InitStruct.Pull = GPIO_NOPULL;
+    // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    // GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
+    // HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
     GPIO_InitTypeDef GPIO_InitStructCANSilent = {0};
   
