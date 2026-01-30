@@ -168,7 +168,7 @@
 #define USE_DRONECAN
 #define CAN1_RX                 PD0
 #define CAN1_TX                 PD1
-// PD3 GPIO_CAN1_SILENT OUTPUT PUSHPULL SPEED_LOW LOW GPIO(70)
+#define CAN1_STANDBY            PD3
 
 // *************** SDIO SD BLACKBOX*******************
 #define USE_SDCARD

@@ -1,6 +1,7 @@
 #include "common/log.h"
 #include "common/time.h"
 #include <stdint.h>
+#include "drivers/io.h"
 #include "libcanard/canard_stm32_driver.h"
 #include "libcanard/canard.h"
 #include "dronecan.h"
@@ -18,6 +19,24 @@ FDCAN_HandleTypeDef hfdcan1;
 CanardInstance canard;
 uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
+/*** Hardware definitions ***/
+const dronecanHardware_t dronecanHardware[] = {
+#if defined(CAN1_RX)
+    { .ioTag = IO_TAG(CAN1_RX), .ioMode = IOCFG_AF_PP, .alternate = GPIO_AF9_FDCAN1 },
+#endif
+
+#if defined(CAN1_TX)
+    { .ioTag = IO_TAG(CAN1_TX), .ioMode = IOCFG_AF_PP, .alternate = GPIO_AF9_FDCAN1 },
+#endif
+
+#if defined(CAN1_STANDBY)
+    { .ioTag = IO_TAG(CAN1_STANDBY), .ioMode = IOCFG_OUT_PP, .alternate = 0 },
+#endif
+
+};
+
+const int dronecanHardwareCount = ARRAYLEN(dronecanHardware);
+
 
 static void MX_FDCAN1_Init(void);
 static void MX_GPIO_Init(void);
@@ -426,7 +445,7 @@ static void MX_FDCAN1_Init(void)
   sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
   sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXBUFFER;
   sFilterConfig.FilterID1 = 0x1401557F;
-  sFilterConfig.FilterID2 = 0x1FFFFFFF;
+  sFilterConfig.FilterID2 = 0x1FFFFFFFU;
   sFilterConfig.RxBufferIndex = 0;
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
