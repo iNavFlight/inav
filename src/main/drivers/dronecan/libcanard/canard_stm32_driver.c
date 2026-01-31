@@ -35,9 +35,9 @@ int16_t canardSTM32Recieve(FDCAN_HandleTypeDef *hfdcan, uint32_t RxLocation, Can
 
 	if (HAL_FDCAN_GetRxMessage(hfdcan, RxLocation, &RxHeader, RxData) == HAL_OK) {
 
-		LOG_DEBUG(SYSTEM, "Received message: ID=%lu, DLC=%lu\n", RxHeader.Identifier, RxHeader.DataLength);
+		//LOG_DEBUG(SYSTEM, "Received message: ID=%lu, DLC=%lu", RxHeader.Identifier, RxHeader.DataLength);
 		
-		LOG_BUF_DEBUG(SYSTEM, RxData, RxHeader.DataLength);
+		//LOG_BUF_DEBUG(SYSTEM, RxData, RxHeader.DataLength);
 		//	for (int i = 0; i < RxHeader.DataLength; i++) {
 		//		printf("%02x", RxData[i]);
 		//	}
@@ -112,7 +112,7 @@ int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* c
 	memcpy(TxData, tx_frame->data, TxHeader.DataLength);
 
 	if (HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &TxHeader, TxData) == HAL_OK) {
-		LOG_DEBUG(SYSTEM, "Successfully sent message with id: %lu \n", TxHeader.Identifier);
+		LOG_DEBUG(SYSTEM, "Successfully sent message with id: %lu", TxHeader.Identifier);
 		return 1;
 	}
 

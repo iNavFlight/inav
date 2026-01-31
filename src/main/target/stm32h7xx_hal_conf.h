@@ -168,6 +168,8 @@
 #define  USE_RTOS                     0
 #define  USE_SD_TRANSCEIVER           0U               /*!< use uSD Transceiver */
 
+#define USE_HAL_FDCAN_REGISTER_CALLBACKS    1U         /* Enable FDCAN callbacks*/
+
 /* ########################### Ethernet Configuration ######################### */
 #define ETH_TX_DESC_CNT         4  /* number of Ethernet Tx DMA descriptors */
 #define ETH_RX_DESC_CNT         4  /* number of Ethernet Rx DMA descriptors */

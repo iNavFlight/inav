@@ -7,6 +7,7 @@
 #include "libcanard/canard_stm32_driver.h"
 #include "libcanard/canard.h"
 #include "dronecan.h"
+#include "stm32h7xx_hal_fdcan.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -40,32 +41,34 @@ void PrintCanStatus(void)
     uint32_t status = hfdcan1.Instance->PSR;
     FDCAN_ErrorCountersTypeDef errorCounters;
     HAL_FDCAN_GetErrorCounters (&hfdcan1, &errorCounters);
-    
-    LOG_DEBUG(SYSTEM, "CAN Status:\n");
-    LOG_DEBUG(SYSTEM, "  Last Error Code: %lu\n", (status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos);
-    LOG_DEBUG(SYSTEM, "  Activity: %s\n", (status & FDCAN_PSR_ACT) ? "Active" : "Inactive");
-    LOG_DEBUG(SYSTEM, "  Error Passive: %s\n", (status & FDCAN_PSR_EP) ? "Yes" : "No");
-    LOG_DEBUG(SYSTEM, "  Warning Status: %s\n", (status & FDCAN_PSR_EW) ? "Yes" : "No");
-    LOG_DEBUG(SYSTEM, "  Bus Off: %s\n", (status & FDCAN_PSR_BO) ? "Yes" : "No");
+
+    LOG_DEBUG(SYSTEM, "CAN Status:");
+    LOG_DEBUG(SYSTEM, "  Last Error Code: %lu", (status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos);
+    LOG_DEBUG(SYSTEM, "  Activity: %s", (status & FDCAN_PSR_ACT) ? "Active" : "Inactive");
+    LOG_DEBUG(SYSTEM, "  Error Passive: %s", (status & FDCAN_PSR_EP) ? "Yes" : "No");
+    LOG_DEBUG(SYSTEM, "  Warning Status: %s", (status & FDCAN_PSR_EW) ? "Yes" : "No");
+    LOG_DEBUG(SYSTEM, "  Bus Off: %s", (status & FDCAN_PSR_BO) ? "Yes" : "No");
     LOG_DEBUG(SYSTEM, "Tx Error Count: %lu", errorCounters.TxErrorCnt);
     LOG_DEBUG(SYSTEM, "Rx Error Count: %lu", errorCounters.RxErrorCnt);
 }
 
  void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
 	// Receiving
-	CanardCANFrame rx_frame;
+	UNUSED(RxFifo0ITs);
+    CanardCANFrame rx_frame;
 
 	const uint64_t timestamp = HAL_GetTick() * 1000ULL;
 	const int16_t rx_res = canardSTM32Recieve(hfdcan, FDCAN_RX_FIFO0, &rx_frame);
-    LOG_DEBUG(SYSTEM, "Received a fram");
+    LOG_DEBUG(SYSTEM, "Received a frame in callback");
 	if (rx_res < 0) {
-		LOG_DEBUG(SYSTEM, "Receive error %d\n", rx_res);
+		LOG_DEBUG(SYSTEM, "Receive error %d", rx_res);
 	}
 	else if (rx_res > 0)        // Success - process the frame
 	{
+        LOG_DEBUG(SYSTEM, "In Callback");
 		canardHandleRxFrame(&canard, &rx_frame, timestamp);
 	}
-} 
+}
 
 bool droneCANComputeTimings(const uint32_t target_bitrate, struct Timings *out_timings)
 {
@@ -172,18 +175,18 @@ bool droneCANComputeTimings(const uint32_t target_bitrate, struct Timings *out_t
      *     return (1+ts1+1)/(1+ts1+1+ts2+1)
      *
      */
-    if ((target_bitrate != (pclk / (prescaler * (1 + solution.bs1 + solution.bs2)))) || !((solution.bs1 >= 1) && (solution.bs1 <= MaxBS1) && (solution.bs2 >= 1) && (solution.bs2 <= MaxBS2))) 
+    if ((target_bitrate != (pclk / (prescaler * (1 + solution.bs1 + solution.bs2)))) || !((solution.bs1 >= 1) && (solution.bs1 <= MaxBS1) && (solution.bs2 >= 1) && (solution.bs2 <= MaxBS2)))
     {
         return false;
     }
 
     LOG_DEBUG(SYSTEM, "Timings: quanta/bit: %d, sample point location: %f%%",
-          (int)(1 + solution.bs1 + solution.bs2), (float)(solution.sample_point_permill) / 10.F);
+          (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / 10.F);
 
     out_timings->prescaler = (uint16_t)(prescaler);
-    out_timings->sjw = 8;                                        // Which means one
-    out_timings->bs1 = (uint8_t)(solution.bs1);
-    out_timings->bs2 = (uint8_t)(solution.bs2);
+    out_timings->sjw = 8;                        // Not happy with this value, but 1MBPs with unshielded cable?
+    out_timings->bs1 = (uint8_t)(solution.bs1);  // The HAL takes care of the 1 bs offset in the register so don't remove it here like AP does.
+    out_timings->bs2 = (uint8_t)(solution.bs2);  // The HAL takes care of the 1 bs offset in the register so don't remove it here like AP does.
 
     return true;
 }
@@ -193,31 +196,32 @@ bool droneCANComputeTimings(const uint32_t target_bitrate, struct Timings *out_t
 // Canard Handlers ( Many have code copied from libcanard esc_node example: https://github.com/dronecan/libcanard/blob/master/examples/ESCNode/esc_node.c )
 
 void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
-	struct uavcan_protocol_NodeStatus nodeStatus;
+	UNUSED(ins);
+    struct uavcan_protocol_NodeStatus nodeStatus;
 
 	if (uavcan_protocol_NodeStatus_decode(transfer, &nodeStatus)) {
 		return;
 	}
 
-	LOG_DEBUG(SYSTEM, "Node health: %ud Node Mode: %ud\n", nodeStatus.health, nodeStatus.mode);
-
+//	LOG_DEBUG(SYSTEM, "Node health: %u", nodeStatus.health);
+//    LOG_DEBUG(SYSTEM, "Node Mode: %u", nodeStatus.mode);
 	LOG_DEBUG(SYSTEM, "Node Health ");
 
 	switch (nodeStatus.health) {
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
-		LOG_DEBUG(SYSTEM, "OK\n");
+		LOG_DEBUG(SYSTEM, "OK");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
-		LOG_DEBUG(SYSTEM, "WARNING\n");
+		LOG_DEBUG(SYSTEM, "WARNING");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
-		LOG_DEBUG(SYSTEM, "ERROR\n");
+		LOG_DEBUG(SYSTEM, "ERROR");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
-		LOG_DEBUG(SYSTEM, "CRITICAL\n");
+		LOG_DEBUG(SYSTEM, "CRITICAL");
 		break;
 	default:
-		LOG_DEBUG(SYSTEM, "UNKNOWN?\n");
+		LOG_DEBUG(SYSTEM, "UNKNOWN?");
 		break;
 	}
 
@@ -225,22 +229,22 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 	switch(nodeStatus.mode) {
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
-		LOG_DEBUG(SYSTEM, "OPERATIONAL\n");
+		LOG_DEBUG(SYSTEM, "OPERATIONAL");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
-		LOG_DEBUG(SYSTEM, "INITIALIZATION\n");
+		LOG_DEBUG(SYSTEM, "INITIALIZATION");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
-		LOG_DEBUG(SYSTEM, "MAINTENANCE\n");
+		LOG_DEBUG(SYSTEM, "MAINTENANCE");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
-		LOG_DEBUG(SYSTEM, "SOFTWARE UPDATE\n");
+		LOG_DEBUG(SYSTEM, "SOFTWARE UPDATE");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
-		LOG_DEBUG(SYSTEM, "OFFLINE\n");
+		LOG_DEBUG(SYSTEM, "OFFLINE");
 		break;
 	default:
-		LOG_DEBUG(SYSTEM, "UNKNOWN?\n");
+		LOG_DEBUG(SYSTEM, "UNKNOWN?");
 		break;
 	}
 }
@@ -305,7 +309,7 @@ void getUniqueID(uint8_t id[16]) {
 
 // TODO: All the data in here is temporary for testing. If actually need to send valid data, edit accordingly.
 void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
-	printf("GetNodeInfo request from %d\n", transfer->source_node_id);
+	printf("GetNodeInfo request from %d", transfer->source_node_id);
 
 	uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
 	struct uavcan_protocol_GetNodeInfoResponse pkt;
@@ -376,7 +380,7 @@ void send_NodeStatus(void) {
                     CANARD_TRANSFER_PRIORITY_LOW,
                     buffer,
                     len);
-    PrintCanStatus();
+    // PrintCanStatus();
 }
 
 // Canard Util
@@ -396,7 +400,9 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
                                  CanardTransferType transfer_type,
                                  uint8_t source_node_id)
 {
-	if (transfer_type == CanardTransferTypeRequest) {
+	UNUSED(ins);
+    UNUSED(source_node_id);
+    if (transfer_type == CanardTransferTypeRequest) {
 	// check if we want to handle a specific service request
 		switch (data_type_id) {
 		case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
@@ -413,12 +419,12 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
 	if (transfer_type == CanardTransferTypeBroadcast) {
 		// see if we want to handle a specific broadcast packet
 		switch (data_type_id) {
-		
+
 		case UAVCAN_PROTOCOL_NODESTATUS_ID: {
 			*out_data_type_signature = UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE;
 			return true;
 		}
-		
+
 		}
 	}
 	// we don't want any other messages
@@ -430,14 +436,13 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
 */
 void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 	// switch on data type ID to pass to the right handler function
-    LOG_DEBUG(SYSTEM, "Transfer type: %du, Transfer ID: %du \n", transfer->transfer_type, transfer->data_type_id);
+    LOG_DEBUG(SYSTEM, "Transfer type: %u, Transfer ID: %u ", transfer->transfer_type, transfer->data_type_id);
 	LOG_DEBUG(SYSTEM, "0x");
-    LOG_BUFFER_ERROR(SYSTEM, transfer->payload_head, transfer->payload_len);
+    //LOG_BUFFER_ERROR(SYSTEM, transfer->payload_head, transfer->payload_len);
 	//	for (int i = 0; i < transfer->payload_len; i++) {
 	//		LOG_DEBUG(SYSTEM,"%02x", transfer->payload_head[i]);
 	//	}
 
-	//	LOG_DEBUG(SYSTEM, "\n");
 	if (transfer->transfer_type == CanardTransferTypeRequest) {
 		// check if we want to handle a specific service request
 		switch (transfer->data_type_id) {
@@ -454,12 +459,12 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 	if (transfer->transfer_type == CanardTransferTypeBroadcast) {
 		// check if we want to handle a specific broadcast message
 		switch (transfer->data_type_id) {
-		
+
 		case UAVCAN_PROTOCOL_NODESTATUS_ID: {
 			handle_NodeStatus(ins, transfer);
 			break;
 		}
-		
+
 		}
 	}
 }
@@ -467,20 +472,20 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 void processCanardTxQueue(FDCAN_HandleTypeDef *hfdcan) {
 	// Transmitting
-	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;) 
+	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
     {
-        LOG_DEBUG(SYSTEM, "Found transmit frame");
-		FDCAN_ProtocolStatusTypeDef protocolStatus = {};
+        // LOG_DEBUG(SYSTEM, "Found transmit frame");
+		// FDCAN_ProtocolStatusTypeDef protocolStatus = {};
 
-        HAL_FDCAN_GetProtocolStatus(hfdcan, &protocolStatus);
-        LOG_DEBUG(SYSTEM, "BusOff: %lu", protocolStatus.BusOff);
-        LOG_DEBUG(SYSTEM, "ErrorPassive: %lu", protocolStatus.ErrorPassive);
+        // HAL_FDCAN_GetProtocolStatus(hfdcan, &protocolStatus);
+        // LOG_DEBUG(SYSTEM, "BusOff: %lu", protocolStatus.BusOff);
+        // LOG_DEBUG(SYSTEM, "ErrorPassive: %lu", protocolStatus.ErrorPassive);
         const int16_t tx_res = canardSTM32Transmit(hfdcan, tx_frame);
 
 		if (tx_res < 0) {
-			LOG_DEBUG(SYSTEM, "Transmit error %d\n", tx_res);
+			LOG_DEBUG(SYSTEM, "Transmit error %d", tx_res);
 		} else if (tx_res > 0) {
-			LOG_DEBUG(SYSTEM, "Successfully transmitted message\n");
+			// LOG_DEBUG(SYSTEM, "Successfully transmitted message");
 		}
         else
         {
@@ -489,13 +494,13 @@ void processCanardTxQueue(FDCAN_HandleTypeDef *hfdcan) {
 		// Pop canardTxQueue either way
 		canardPopTxQueue(&canard);
 	}
-    
+
 }
 
 /*
   This function is called at 1 Hz rate from the main loop.
 */
-void process1HzTasks(timeUs_t timestamp_usec) 
+void process1HzTasks(timeUs_t timestamp_usec)
 {
    /*
       Purge transfers that are no longer transmitted. This can free up some memory
@@ -511,8 +516,8 @@ void process1HzTasks(timeUs_t timestamp_usec)
 void dronecanInit(void)
 {
     LOG_DEBUG(SYSTEM, "dronecan Init");
-  
-  MX_FDCAN1_Init();    
+
+  MX_FDCAN1_Init();
   /*
    Initializing the Libcanard instance.
    */
@@ -531,9 +536,9 @@ void dronecanInit(void)
  if (NODE_ID > 0) {
 	  canardSetLocalNodeID(&canard, NODE_ID);
  } else {
-	  LOG_DEBUG(SYSTEM, "Node ID is 0, this node is anonymous and can't transmit most messaged. Please update this in node_settings.h\n");
+	  LOG_DEBUG(SYSTEM, "Node ID is 0, this node is anonymous and can't transmit most messaged. Please update this in node_settings.h");
  }
- PrintCanStatus();
+ // PrintCanStatus();
 
 }
 
@@ -556,11 +561,11 @@ static void MX_FDCAN1_Init(void)
   FDCAN_FilterTypeDef sFilterConfig;
   sFilterConfig.IdType = FDCAN_EXTENDED_ID;
   sFilterConfig.FilterIndex = 0;
-  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
-  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXBUFFER;
-  sFilterConfig.FilterID1 = 0x1401557F;
+  sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
+  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+  sFilterConfig.FilterID1 = 0x0; //0x1401557F;
   sFilterConfig.FilterID2 = 0x1FFFFFFFU;
-  sFilterConfig.RxBufferIndex = 0;
+  // sFilterConfig.RxBufferIndex = 0;
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
@@ -568,14 +573,14 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.AutoRetransmission = DISABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
-  
+
   droneCANComputeTimings(500000, &out_timings);
 
   hfdcan1.Init.NominalPrescaler = out_timings.prescaler;
   hfdcan1.Init.NominalSyncJumpWidth = out_timings.sjw;
   hfdcan1.Init.NominalTimeSeg1 = out_timings.bs1;
   hfdcan1.Init.NominalTimeSeg2 = out_timings.bs2;
-  LOG_DEBUG(SYSTEM, "Prescaler: %lu, SJW: %lu, BS1: %lu, BS2: %lu", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
+  LOG_DEBUG(SYSTEM, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
   hfdcan1.Init.RxFifo0ElmtsNbr = 30;
   hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
@@ -586,10 +591,10 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.TxFifoQueueElmtsNbr = 32;
   hfdcan1.Init.TxEventsNbr = 0;
   hfdcan1.Init.TxBuffersNbr = 5;
-  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_QUEUE_OPERATION;
+  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
   LOG_DEBUG(SYSTEM, "In CAN Init");
-   
+
   /** Initializes the peripherals clock
   */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
@@ -601,7 +606,7 @@ static void MX_FDCAN1_Init(void)
 
     /* FDCAN1 clock enable */
     __HAL_RCC_FDCAN_CLK_ENABLE();
-   
+
     MX_GPIO_Init();  // Set up the pins for CAN and optional listen only mode
 
     LOG_DEBUG(SYSTEM, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
@@ -612,21 +617,26 @@ static void MX_FDCAN1_Init(void)
         Error_Handler();
     }
     /* USER CODE BEGIN FDCAN1_Init 2 */
-    if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
-	    LOG_DEBUG(SYSTEM, "Failed Activate Notification");
-	    Error_Handler();
-    }
     if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
         LOG_DEBUG(SYSTEM, "Failed Config Filter");
         Error_Handler();
     }
+    if (HAL_FDCAN_ConfigInterruptLines(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, FDCAN_INTERRUPT_LINE0) != HAL_OK ) {
+        LOG_DEBUG(SYSTEM, "Failed to config FDCAN interrupt lines");
+        Error_Handler();
+    }
+    if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
+	    LOG_DEBUG(SYSTEM, "Failed Activate Notification");
+	    Error_Handler();
+    }
+    if (HAL_FDCAN_RegisterRxFifo0Callback(&hfdcan1, HAL_FDCAN_RxFifo0Callback) != HAL_OK) {
+        LOG_DEBUG(SYSTEM, "Failed to register callback");
+    }
+    HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE);
     if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
         LOG_DEBUG(SYSTEM, "Failed to Start");
         Error_Handler();
     }
-  
-  /* USER CODE END FDCAN1_Init 2 */
-
 }
 
 /**
@@ -644,9 +654,9 @@ static void MX_GPIO_Init(void)
     IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
 
  #ifdef CAN1_STANDBY
-    // Initialize the standby or listen only pin.  Set default state to enable CAN.  
+    // Initialize the standby or listen only pin.  Set default state to enable CAN.
     // TODO: Tie the pin state to a configuration option so we can turn CAN on and off.
-    
+
     IOInit(IOGetByTag(IO_TAG(CAN1_STANDBY)), OWNER_DRONECAN, RESOURCE_CAN_STANDBY, 0);
     IOConfigGPIO(IOGetByTag(IO_TAG(CAN1_STANDBY)), IOCFG_OUT_PP);  // Do any boards use pullups, external/internal?
     IOLo(IOGetByTag(IO_TAG(CAN1_STANDBY)));
@@ -687,32 +697,33 @@ void Error_Handler(void)
 
 void dronecanUpdate(timeUs_t currentTimeUs)
 {
-    static timeUs_t lastPrintTimeUs = 0;
     static timeUs_t next_1hz_service_at = 0;
     CanardCANFrame rx_frame;
 
     processCanardTxQueue(&hfdcan1);
-    if (HAL_FDCAN_IsRxBufferMessageAvailable(&hfdcan1, 0))
+    // if (HAL_FDCAN_IsRxBufferMessageAvailable(&hfdcan1, 0))
+    if ((HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) > 0))
     {
-        LOG_DEBUG(SYSTEM, "Received a message");
-
+        //LOG_DEBUG(SYSTEM, "Received a message");
+        LOG_DEBUG(SYSTEM, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0));
 	    const uint64_t timestamp = HAL_GetTick() * 1000ULL;
-	    const int16_t rx_res = canardSTM32Recieve(&hfdcan1, FDCAN_RX_BUFFER0, &rx_frame);
-        
+	    const int16_t rx_res = canardSTM32Recieve(&hfdcan1, FDCAN_RX_FIFO0, &rx_frame);
+
 	    if (rx_res < 0) {
-		    LOG_DEBUG(SYSTEM, "Receive error %d\n", rx_res);
+		    LOG_DEBUG(SYSTEM, "Receive error %d", rx_res);
 	    }
 	    else if (rx_res > 0)        // Success - process the frame
 	    {
+            LOG_DEBUG(SYSTEM, "Polling receive");
 		    canardHandleRxFrame(&canard, &rx_frame, timestamp);
 	    }
     }
-    if (currentTimeUs >= next_1hz_service_at) 
+    if (currentTimeUs >= next_1hz_service_at)
     {
 		next_1hz_service_at += 1000000ULL;
 		process1HzTasks(currentTimeUs);
-        LOG_DEBUG(SYSTEM, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, 0));
+        
     }
-     
+
 }
 
