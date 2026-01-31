@@ -64,7 +64,7 @@
 #define DSHOT_COMMAND_DELAY_US 1000
 #define DSHOT_COMMAND_INTERVAL_US 10000
 #define DSHOT_COMMAND_QUEUE_LENGTH 8
-#define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
+#define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommandWithMotor_t)
 #endif
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
@@ -397,11 +397,23 @@ void pwmRequestMotorTelemetry(int motorIndex)
 
 #ifdef USE_DSHOT
 void sendDShotCommand(dshotCommands_e cmd) {
-    circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &cmd);
+    dshotCommandWithMotor_t cmdWithMotor = {
+        .cmd = cmd,
+        .motorIndex = 0xFF  // 0xFF = all motors
+    };
+    circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &cmdWithMotor);
+}
+
+void sendDShotCommandToMotor(uint8_t motorIndex, dshotCommands_e cmd) {
+    dshotCommandWithMotor_t cmdWithMotor = {
+        .cmd = cmd,
+        .motorIndex = motorIndex
+    };
+    circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &cmdWithMotor);
 }
 
 void initDShotCommands(void) {
-    circularBufferInit(&commandsCircularBuffer, commandsBuff,DHSOT_COMMAND_QUEUE_SIZE, sizeof(dshotCommands_e));
+    circularBufferInit(&commandsCircularBuffer, commandsBuff, DHSOT_COMMAND_QUEUE_SIZE, sizeof(dshotCommandWithMotor_t));
 
     currentExecutingCommand.remainingRepeats = 0;
 }
@@ -422,17 +434,17 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
 }
 
 static bool executeDShotCommands(void){
-    
+
     timeUs_t tNow = micros();
 
     if(currentExecutingCommand.remainingRepeats == 0) {
        const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
         if (isTherePendingCommands && (tNow - lastCommandSent > DSHOT_COMMAND_INTERVAL_US)){
             //Load the command
-            dshotCommands_e cmd;
+            dshotCommandWithMotor_t cmd;
             circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &cmd);
             currentExecutingCommand.cmd = cmd;
-            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);
+            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd.cmd);
             commandPostDelay = DSHOT_COMMAND_INTERVAL_US;
         } else {
             if (commandPostDelay) {
@@ -443,14 +455,28 @@ static bool executeDShotCommands(void){
             }
 
             return true;
-        }  
+        }
     }
-    for (uint8_t i = 0; i < getMotorCount(); i++) {
-         motors[i].requestTelemetry = true;
-         motors[i].value = currentExecutingCommand.cmd;
+
+    // Apply command to specific motor or all motors
+    uint8_t motorCount = getMotorCount();
+    if (currentExecutingCommand.cmd.motorIndex == 0xFF) {
+        // All motors
+        for (uint8_t i = 0; i < motorCount; i++) {
+            motors[i].requestTelemetry = true;
+            motors[i].value = currentExecutingCommand.cmd.cmd;
+        }
+    } else {
+        // Specific motor only
+        uint8_t targetMotor = currentExecutingCommand.cmd.motorIndex;
+        if (targetMotor < motorCount) {
+            motors[targetMotor].requestTelemetry = true;
+            motors[targetMotor].value = currentExecutingCommand.cmd.cmd;
+        }
     }
+
     if (tNow - lastCommandSent >= DSHOT_COMMAND_DELAY_US) {
-        currentExecutingCommand.remainingRepeats--; 
+        currentExecutingCommand.remainingRepeats--;
         lastCommandSent = tNow;
         return true;
     } else {

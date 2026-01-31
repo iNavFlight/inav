@@ -1728,26 +1728,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
 
-#ifdef USE_DSHOT
-    case MSP2_INAV_MOTOR_LOCATE:
-        {
-            // Motor locate requires 1 byte: motor index (255 = stop)
-            if (dataSize < 1) {
-                return MSP_RESULT_ERROR;
-            }
-            uint8_t motorIndex = sbufReadU8(src);
-            bool success;
-            if (motorIndex == 255) {
-                motorLocateStop();
-                success = true;
-            } else {
-                success = motorLocateStart(motorIndex);
-            }
-            sbufWriteU8(dst, success ? 1 : 0);
-        }
-        break;
-#endif
-
 #ifdef USE_EZ_TUNE
 
     case MSP2_INAV_EZ_TUNE:
@@ -3674,6 +3654,29 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
+
+#ifdef USE_DSHOT
+    case MSP2_INAV_MOTOR_LOCATE:
+        {
+            // Motor locate requires 1 byte: motor index (255 = stop)
+            if (dataSize < 1) {
+                return MSP_RESULT_ERROR;
+            }
+            uint8_t motorIndex = sbufReadU8(src);
+            bool success;
+            if (motorIndex == 255) {
+                motorLocateStop();
+                // success = true;
+            } else {
+			  motorLocateStart(motorIndex);
+                // success = motorLocateStart(motorIndex);
+            }
+            // sbufWriteU8(dst, success ? 1 : 0);
+        }
+        break;
+#endif
+
+
     default:
         return MSP_RESULT_ERROR;
     }
@@ -4064,6 +4067,8 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 	}
 }
 #endif
+
+
 
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {

@@ -39,6 +39,11 @@ typedef enum {
 
 typedef struct {
     dshotCommands_e cmd;
+    uint8_t motorIndex;  // 0-7 for specific motor, 0xFF for all motors
+} dshotCommandWithMotor_t;
+
+typedef struct {
+    dshotCommandWithMotor_t cmd;
     int remainingRepeats;
 } currentExecutingCommand_t;
 
@@ -67,6 +72,7 @@ void pwmWriteBeeper(bool onoffBeep);
 void beeperPwmInit(ioTag_t tag, uint16_t frequency);
 
 void sendDShotCommand(dshotCommands_e cmd);
+void sendDShotCommandToMotor(uint8_t motorIndex, dshotCommands_e cmd);
 void initDShotCommands(void);
 
 uint32_t getEscUpdateFrequency(void);

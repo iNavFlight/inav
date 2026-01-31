@@ -29,11 +29,11 @@
 #include "fc/runtime_config.h"
 
 // Timing constants (in microseconds)
-#define LOCATE_JERK_DURATION_US     100000  // 100ms motor jerk
-#define LOCATE_JERK_PAUSE_US        100000  // 100ms pause after jerk
-#define LOCATE_BEEP_ON_US            80000  // 80ms beep on
-#define LOCATE_BEEP_OFF_US           80000  // 80ms beep off
-#define LOCATE_CYCLE_DURATION_US   2000000  // 2 seconds total cycle
+#define LOCATE_JERK_DURATION_US       10000 // 10ms motor jerk (safety: minimal movement)
+#define LOCATE_JERK_PAUSE_US          10000 // 10ms pause after jerk
+#define LOCATE_BEEP_ON_US             80000 // 80ms beep on
+#define LOCATE_BEEP_OFF_US            80000 // 80ms beep off
+#define LOCATE_CYCLE_DURATION_US     2000000 // 2000ms total cycle
 
 // Motor throttle for jerk (~12% throttle)
 // DShot range: 48 (0%) to 2047 (100%)
@@ -117,6 +117,12 @@ static void transitionToState(motorLocateState_e newState, timeUs_t now)
 {
     locateState.state = newState;
     locateState.stateStartTime = now;
+
+    // Send beacon command once when entering BEEP_ON state
+    if (newState == LOCATE_STATE_BEEP_ON) {
+        dshotCommands_e beaconCmd = DSHOT_CMD_BEACON1 + locateState.beepCount;
+        sendDShotCommandToMotor(locateState.motorIndex, beaconCmd);
+    }
 }
 
 static timeUs_t getStateDuration(motorLocateState_e state)
@@ -155,23 +161,6 @@ static motorLocateState_e advanceToNextState(motorLocateState_e state)
     }
 }
 
-static uint16_t getMotorValueForState(motorLocateState_e state, uint8_t motorIdx, uint8_t targetMotorIdx)
-{
-    if (motorIdx != targetMotorIdx) {
-        return DSHOT_CMD_MOTOR_STOP;
-    }
-
-    switch (state) {
-        case LOCATE_STATE_JERK:
-            return LOCATE_JERK_THROTTLE;
-        case LOCATE_STATE_BEEP_ON:
-            // Ascending tones help humans locate sound using multiple hearing mechanisms
-            return DSHOT_CMD_BEACON1 + locateState.beepCount;
-        default:
-            return DSHOT_CMD_MOTOR_STOP;
-    }
-}
-
 bool motorLocateUpdate(void)
 {
     if (locateState.state == LOCATE_STATE_IDLE) {
@@ -193,16 +182,33 @@ bool motorLocateUpdate(void)
     }
 
     // Check for state transition
-    timeUs_t stateDuration = getStateDuration(locateState.state);
+    timeDelta_t stateDuration = getStateDuration(locateState.state);
     if (cmpTimeUs(now, locateState.stateStartTime) >= stateDuration) {
         transitionToState(advanceToNextState(locateState.state), now);
     }
 
     // Apply motor values for current state
     uint8_t motorCount = getMotorCount();
-    for (uint8_t i = 0; i < motorCount; i++) {
-        uint16_t value = getMotorValueForState(locateState.state, i, locateState.motorIndex);
-        pwmWriteMotor(i, value);
+
+    if (locateState.state == LOCATE_STATE_JERK) {
+        // For jerk state, use direct PWM write with throttle value
+        pwmWriteMotor(locateState.motorIndex, LOCATE_JERK_THROTTLE);
+        // Set all other motors to stop
+        for (uint8_t i = 0; i < motorCount; i++) {
+            if (i != locateState.motorIndex) {
+                pwmWriteMotor(i, DSHOT_CMD_MOTOR_STOP);
+            }
+        }
+    } else if (locateState.state == LOCATE_STATE_BEEP_ON || locateState.state == LOCATE_STATE_BEEP_OFF) {
+        // For beep states, beacon command already sent, just keep motors stopped
+        for (uint8_t i = 0; i < motorCount; i++) {
+            pwmWriteMotor(i, DSHOT_CMD_MOTOR_STOP);
+        }
+    } else {
+        // For other states (pause, etc.), ensure all motors stopped
+        for (uint8_t i = 0; i < motorCount; i++) {
+            pwmWriteMotor(i, DSHOT_CMD_MOTOR_STOP);
+        }
     }
 
     return true;
