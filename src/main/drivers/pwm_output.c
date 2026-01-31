@@ -64,7 +64,7 @@
 #define DSHOT_COMMAND_DELAY_US 1000
 #define DSHOT_COMMAND_INTERVAL_US 10000
 #define DSHOT_COMMAND_QUEUE_LENGTH 8
-#define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommandWithMotor_t)
+#define DSHOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommandWithMotor_t)
 #endif
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
@@ -122,7 +122,7 @@ static timeUs_t lastCommandSent = 0;
 static timeUs_t commandPostDelay = 0;
     
 static circularBuffer_t commandsCircularBuffer;
-static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
+static uint8_t commandsBuff[DSHOT_COMMAND_QUEUE_SIZE];
 static currentExecutingCommand_t currentExecutingCommand;
 #endif
 
@@ -413,7 +413,7 @@ void sendDShotCommandToMotor(uint8_t motorIndex, dshotCommands_e cmd) {
 }
 
 void initDShotCommands(void) {
-    circularBufferInit(&commandsCircularBuffer, commandsBuff, DHSOT_COMMAND_QUEUE_SIZE, sizeof(dshotCommandWithMotor_t));
+    circularBufferInit(&commandsCircularBuffer, commandsBuff, DSHOT_COMMAND_QUEUE_SIZE, sizeof(dshotCommandWithMotor_t));
 
     currentExecutingCommand.remainingRepeats = 0;
 }

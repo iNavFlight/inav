@@ -3658,7 +3658,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_DSHOT
     case MSP2_INAV_MOTOR_LOCATE:
         {
-            // Motor locate requires 1 byte: motor index (255 = stop)
+            /* Motor locate requires 1 byte: motor index (255 = stop) */
             if (dataSize < 1) {
                 return MSP_RESULT_ERROR;
             }
