@@ -28,16 +28,13 @@
 #include "fc/motor_locate.h"
 #include "fc/runtime_config.h"
 
-// Timing constants (in microseconds)
-#define LOCATE_JERK_DURATION_US       10000 // 10ms motor jerk (safety: minimal movement)
-#define LOCATE_JERK_PAUSE_US          10000 // 10ms pause after jerk
-#define LOCATE_BEEP_ON_US             80000 // 80ms beep on
-#define LOCATE_BEEP_OFF_US            80000 // 80ms beep off
-#define LOCATE_CYCLE_DURATION_US     2000000 // 2000ms total cycle
+#define LOCATE_JERK_DURATION_US       20000
+#define LOCATE_JERK_PAUSE_US          20000
+#define LOCATE_BEEP_ON_US             80000
+#define LOCATE_BEEP_OFF_US            80000
+#define LOCATE_CYCLE_DURATION_US     2000000
 
-// Motor throttle for jerk (~12% throttle)
-// DShot range: 48 (0%) to 2047 (100%)
-#define LOCATE_JERK_THROTTLE    288  // 48 + (1999 * 0.12) ≈ 288
+#define LOCATE_JERK_THROTTLE    288  // ~12% throttle: 48 + (1999 * 0.12)
 
 typedef enum {
     LOCATE_STATE_IDLE,
@@ -49,7 +46,6 @@ typedef enum {
 
 #define LOCATE_NUM_BEEPS 4
 
-// Global flag for fast inline check in FAST_CODE path
 bool motorLocateActive = false;
 
 static struct {
@@ -118,7 +114,6 @@ static void transitionToState(motorLocateState_e newState, timeUs_t now)
     locateState.state = newState;
     locateState.stateStartTime = now;
 
-    // Send beacon command once when entering BEEP_ON state
     if (newState == LOCATE_STATE_BEEP_ON) {
         dshotCommands_e beaconCmd = DSHOT_CMD_BEACON1 + locateState.beepCount;
         sendDShotCommandToMotor(locateState.motorIndex, beaconCmd);
@@ -191,21 +186,13 @@ bool motorLocateUpdate(void)
     uint8_t motorCount = getMotorCount();
 
     if (locateState.state == LOCATE_STATE_JERK) {
-        // For jerk state, use direct PWM write with throttle value
         pwmWriteMotor(locateState.motorIndex, LOCATE_JERK_THROTTLE);
-        // Set all other motors to stop
         for (uint8_t i = 0; i < motorCount; i++) {
             if (i != locateState.motorIndex) {
                 pwmWriteMotor(i, DSHOT_CMD_MOTOR_STOP);
             }
         }
-    } else if (locateState.state == LOCATE_STATE_BEEP_ON || locateState.state == LOCATE_STATE_BEEP_OFF) {
-        // For beep states, beacon command already sent, just keep motors stopped
-        for (uint8_t i = 0; i < motorCount; i++) {
-            pwmWriteMotor(i, DSHOT_CMD_MOTOR_STOP);
-        }
     } else {
-        // For other states (pause, etc.), ensure all motors stopped
         for (uint8_t i = 0; i < motorCount; i++) {
             pwmWriteMotor(i, DSHOT_CMD_MOTOR_STOP);
         }

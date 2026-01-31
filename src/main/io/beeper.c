@@ -48,6 +48,7 @@
 #ifdef USE_DSHOT
 #include "drivers/pwm_output.h"
 #include "fc/fc_core.h"
+#include "fc/motor_locate.h"
 #include "flight/mixer.h"
 static timeUs_t lastDshotBeeperCommandTimeUs;
 #endif
@@ -314,6 +315,12 @@ void beeperGpsStatus(void)
  */
 void beeperUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_DSHOT
+    if (motorLocateActive && motorLocateUpdate()) {
+        return;
+    }
+#endif
+
     // If beeper option from AUX switch has been selected
     if (IS_RC_MODE_ACTIVE(BOXBEEPERON)) {
 #ifdef USE_GPS

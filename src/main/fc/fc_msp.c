@@ -3663,15 +3663,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 return MSP_RESULT_ERROR;
             }
             uint8_t motorIndex = sbufReadU8(src);
-            bool success;
             if (motorIndex == 255) {
                 motorLocateStop();
-                // success = true;
             } else {
-			  motorLocateStart(motorIndex);
-                // success = motorLocateStart(motorIndex);
+                motorLocateStart(motorIndex);
             }
-            // sbufWriteU8(dst, success ? 1 : 0);
         }
         break;
 #endif
