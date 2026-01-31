@@ -21,11 +21,19 @@ FDCAN_HandleTypeDef hfdcan1;
 CanardInstance canard;
 uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
-
+struct Timings {
+        uint16_t prescaler;
+        uint8_t sjw;
+        uint8_t bs1;
+        uint8_t bs2;
+};
 static void MX_FDCAN1_Init(void);
 static void MX_GPIO_Init(void);
 void Error_Handler(void);
 void PrintCanStatus(void);
+bool droneCANComputeTimings(const uint32_t target_bitrate, struct Timings*out_timings);
+
+// TODO: Handle bus off events and recover
 
 void PrintCanStatus(void)
 {
@@ -59,6 +67,126 @@ void PrintCanStatus(void)
 	}
 } 
 
+bool droneCANComputeTimings(const uint32_t target_bitrate, struct Timings *out_timings)
+{
+    if (target_bitrate < 1) {
+        return false;
+    }
+
+    /*
+     * Hardware configuration
+     */
+    const uint32_t pclk = HAL_RCC_GetPCLK1Freq();
+
+    static const int MaxBS1 = 16;
+    static const int MaxBS2 = 8;
+
+    /*
+     * Ref. "Automatic Baudrate Detection in CANopen Networks", U. Koppe, MicroControl GmbH & Co. KG
+     *      CAN in Automation, 2003
+     *
+     * According to the source, optimal quanta per bit are:
+     *   Bitrate        Optimal Maximum
+     *   1000 kbps      8       10
+     *   500  kbps      16      17
+     *   250  kbps      16      17
+     *   125  kbps      16      17
+     */
+    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
+    LOG_DEBUG(SYSTEM, "Baudrate: %lu", target_bitrate);
+    LOG_DEBUG(SYSTEM, "Max Quanta per bit: %i", max_quanta_per_bit);
+
+    static const int MaxSamplePointLocation = 900;
+
+    /*
+     * Computing (prescaler * BS):
+     *   BITRATE = 1 / (PRESCALER * (1 / PCLK) * (1 + BS1 + BS2))       -- See the Reference Manual
+     *   BITRATE = PCLK / (PRESCALER * (1 + BS1 + BS2))                 -- Simplified
+     * let:
+     *   BS = 1 + BS1 + BS2                                             -- Number of time quanta per bit
+     *   PRESCALER_BS = PRESCALER * BS
+     * ==>
+     *   PRESCALER_BS = PCLK / BITRATE
+     */
+    const uint32_t prescaler_bs = pclk / target_bitrate;
+    LOG_DEBUG(SYSTEM, "Prescaler BS product: %lu", prescaler_bs);
+     /*
+     * Searching for such prescaler value so that the number of quanta per bit is highest.
+     */
+    uint8_t bs1_bs2_sum = (uint8_t)(max_quanta_per_bit - 1);
+
+    while ((prescaler_bs % (1 + bs1_bs2_sum)) != 0) {
+        if (bs1_bs2_sum <= 2) {
+            return false;          // No solution
+        }
+        bs1_bs2_sum--;
+    }
+
+    const uint32_t prescaler = prescaler_bs / (1 + bs1_bs2_sum);
+    if ((prescaler < 1U) || (prescaler > 1024U)) {
+        return false;              // No solution
+    }
+    LOG_DEBUG(SYSTEM, "Prescaler: %lu", prescaler);
+
+      /*
+     * Now we have a constraint: (BS1 + BS2) == bs1_bs2_sum.
+     * We need to find the values so that the sample point is as close as possible to the optimal value.
+     *
+     *   Solve[(1 + bs1)/(1 + bs1 + bs2) == 7/8, bs2]  (* Where 7/8 is 0.875, the recommended sample point location *)
+     *   {{bs2 -> (1 + bs1)/7}}
+     *
+     * Hence:
+     *   bs2 = (1 + bs1) / 7
+     *   bs1 = (7 * bs1_bs2_sum - 1) / 8
+     *
+     * Sample point location can be computed as follows:
+     *   Sample point location = (1 + bs1) / (1 + bs1 + bs2)
+     *
+     * Since the optimal solution is so close to the maximum, we prepare two solutions, and then pick the best one:
+     *   - With rounding to nearest
+     *   - With rounding to zero
+     */
+    struct BsPair {
+        uint8_t bs1;
+        uint8_t bs2;
+        uint16_t sample_point_permill
+    } solution;
+
+    // First attempt with rounding to nearest
+    solution.bs1 = (uint8_t)(((7 * bs1_bs2_sum - 1) + 4) / 8);
+    solution.bs2 = (uint8_t)(bs1_bs2_sum - solution.bs1);
+    solution.sample_point_permill = (uint16_t)(1000 * (1 + solution.bs1) / (1 + solution.bs1 + solution.bs2));
+
+    if (solution.sample_point_permill > MaxSamplePointLocation) {
+        // Second attempt with rounding to zero
+        solution.bs1 = (uint8_t)((7 * bs1_bs2_sum - 1) / 8);
+        solution.bs2 = (uint8_t)(bs1_bs2_sum - solution.bs1);
+        solution.sample_point_permill = (uint16_t)(1000 * (1 + solution.bs1) / (1 + solution.bs1 + solution.bs2));
+    }
+     /*
+     * Final validation
+     * Helpful Python:
+     * def sample_point_from_btr(x):
+     *     assert 0b0011110010000000111111000000000 & x == 0
+     *     ts2,ts1,brp = (x>>20)&7, (x>>16)&15, x&511
+     *     return (1+ts1+1)/(1+ts1+1+ts2+1)
+     *
+     */
+    if ((target_bitrate != (pclk / (prescaler * (1 + solution.bs1 + solution.bs2)))) || !((solution.bs1 >= 1) && (solution.bs1 <= MaxBS1) && (solution.bs2 >= 1) && (solution.bs2 <= MaxBS2))) 
+    {
+        return false;
+    }
+
+    LOG_DEBUG(SYSTEM, "Timings: quanta/bit: %d, sample point location: %f%%",
+          (int)(1 + solution.bs1 + solution.bs2), (float)(solution.sample_point_permill) / 10.F);
+
+    out_timings->prescaler = (uint16_t)(prescaler);
+    out_timings->sjw = 8;                                        // Which means one
+    out_timings->bs1 = (uint8_t)(solution.bs1);
+    out_timings->bs2 = (uint8_t)(solution.bs2);
+
+    return true;
+}
 // NOTE: All canard handlers and senders are based on this reference: https://dronecan.github.io/Specification/7._List_of_standard_data_types/
 // Alternatively, you can look at the corresponding generated header file in the dsdlc_generated folder
 
@@ -382,10 +510,9 @@ void process1HzTasks(timeUs_t timestamp_usec)
 
 void dronecanInit(void)
 {
-  LOG_DEBUG(SYSTEM, "dronecan Init");
+    LOG_DEBUG(SYSTEM, "dronecan Init");
   
-  MX_FDCAN1_Init();
- 
+  MX_FDCAN1_Init();    
   /*
    Initializing the Libcanard instance.
    */
@@ -418,11 +545,14 @@ void dronecanInit(void)
 static void MX_FDCAN1_Init(void)
 {
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+    struct Timings out_timings;
+
   /* USER CODE BEGIN FDCAN1_Init 0 */
 
   /* USER CODE END FDCAN1_Init 0 */
 
   /* USER CODE BEGIN FDCAN1_Init 1 */
+
   FDCAN_FilterTypeDef sFilterConfig;
   sFilterConfig.IdType = FDCAN_EXTENDED_ID;
   sFilterConfig.FilterIndex = 0;
@@ -438,15 +568,15 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.AutoRetransmission = DISABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
-  // TODO:: Calculate these dynamically based on clock speed and desired baudrate
-  hfdcan1.Init.NominalPrescaler = 8;
-  hfdcan1.Init.NominalSyncJumpWidth = 8;
-  hfdcan1.Init.NominalTimeSeg1 = 12;
-  hfdcan1.Init.NominalTimeSeg2 = 2;
-//   hfdcan1.Init.DataPrescaler = 1;
-//   hfdcan1.Init.DataSyncJumpWidth = 1;
-//   hfdcan1.Init.DataTimeSeg1 = 1;
-//   hfdcan1.Init.DataTimeSeg2 = 1;
+  
+  droneCANComputeTimings(500000, &out_timings);
+
+  hfdcan1.Init.NominalPrescaler = out_timings.prescaler;
+  hfdcan1.Init.NominalSyncJumpWidth = out_timings.sjw;
+  hfdcan1.Init.NominalTimeSeg1 = out_timings.bs1;
+  hfdcan1.Init.NominalTimeSeg2 = out_timings.bs2;
+  LOG_DEBUG(SYSTEM, "Prescaler: %lu, SJW: %lu, BS1: %lu, BS2: %lu", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
+
   hfdcan1.Init.RxFifo0ElmtsNbr = 30;
   hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
   hfdcan1.Init.RxBuffersNbr = 1;
@@ -471,9 +601,7 @@ static void MX_FDCAN1_Init(void)
 
     /* FDCAN1 clock enable */
     __HAL_RCC_FDCAN_CLK_ENABLE();
-    /* Enable FDCAN clock */
-    __HAL_RCC_FDCAN_CLK_ENABLE();
-  
+   
     MX_GPIO_Init();  // Set up the pins for CAN and optional listen only mode
 
     LOG_DEBUG(SYSTEM, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
