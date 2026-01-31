@@ -609,32 +609,24 @@ static void MX_FDCAN1_Init(void)
 
     MX_GPIO_Init();  // Set up the pins for CAN and optional listen only mode
 
-    LOG_DEBUG(SYSTEM, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
-    LOG_DEBUG(SYSTEM, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
+    // LOG_DEBUG(SYSTEM, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
+    // LOG_DEBUG(SYSTEM, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
     if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
     {
-        LOG_DEBUG(SYSTEM, "Failed CAN Init");
+        LOG_ERROR(SYSTEM, "Failed CAN Init");
         Error_Handler();
     }
     /* USER CODE BEGIN FDCAN1_Init 2 */
     if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
-        LOG_DEBUG(SYSTEM, "Failed Config Filter");
+        LOG_ERROR(SYSTEM, "Failed Config Filter");
         Error_Handler();
     }
-    if (HAL_FDCAN_ConfigInterruptLines(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, FDCAN_INTERRUPT_LINE0) != HAL_OK ) {
-        LOG_DEBUG(SYSTEM, "Failed to config FDCAN interrupt lines");
+    if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
+        LOG_ERROR(SYSTEM, "Failed to config FDCAN filter");
         Error_Handler();
     }
-    if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
-	    LOG_DEBUG(SYSTEM, "Failed Activate Notification");
-	    Error_Handler();
-    }
-    if (HAL_FDCAN_RegisterRxFifo0Callback(&hfdcan1, HAL_FDCAN_RxFifo0Callback) != HAL_OK) {
-        LOG_DEBUG(SYSTEM, "Failed to register callback");
-    }
-    HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE);
     if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
-        LOG_DEBUG(SYSTEM, "Failed to Start");
+        LOG_ERROR(SYSTEM, "Failed to Start");
         Error_Handler();
     }
 }
@@ -699,10 +691,12 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 {
     static timeUs_t next_1hz_service_at = 0;
     CanardCANFrame rx_frame;
+    int numMessagesToProcess = 0;
 
     processCanardTxQueue(&hfdcan1);
-    // if (HAL_FDCAN_IsRxBufferMessageAvailable(&hfdcan1, 0))
-    if ((HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) > 0))
+
+    // numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); 
+    for (numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); numMessagesToProcess > 0; numMessagesToProcess--)
     {
         //LOG_DEBUG(SYSTEM, "Received a message");
         LOG_DEBUG(SYSTEM, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0));
@@ -714,9 +708,9 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 	    }
 	    else if (rx_res > 0)        // Success - process the frame
 	    {
-            LOG_DEBUG(SYSTEM, "Polling receive");
 		    canardHandleRxFrame(&canard, &rx_frame, timestamp);
 	    }
+        numMessagesToProcess--;
     }
     if (currentTimeUs >= next_1hz_service_at)
     {
