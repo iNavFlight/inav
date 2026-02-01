@@ -782,6 +782,26 @@ Re-purpose the craft name field for messages.
 
 ---
 
+### dronecan_bitrate_kbps
+
+The speed of the CANbus network in kbps. Set all devices to the same speed. 
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 |  |  |
+
+---
+
+### dronecan_node_id
+
+Unique identifier for this device. Valid values are 1 to 127. 126 and 127 are reserved for diagnostic tools.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 1 | 127 |
+
+---
+
 ### dshot_beeper_enabled
 
 Whether using DShot motors as beepers is enabled
