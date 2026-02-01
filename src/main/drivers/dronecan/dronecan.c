@@ -2,6 +2,10 @@
 #include "common/log.h"
 #include "common/time.h"
 #include <stdint.h>
+#include "fc/settings.h"
+
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "libcanard/canard_stm32_driver.h"
 #include "libcanard/canard.h"
@@ -41,6 +45,13 @@ void PrintCanStatus(void)
     LOG_DEBUG(SYSTEM, "Tx Error Count: %lu", errorCounters.TxErrorCnt);
     LOG_DEBUG(SYSTEM, "Rx Error Count: %lu", errorCounters.RxErrorCnt);
 }
+
+PG_REGISTER_WITH_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig, PG_DRONECAN_CONFIG, 0);
+
+PG_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig,
+    .nodeID = SETTING_DRONECAN_NODE_ID_DEFAULT,
+    .bitRateKbps = SETTING_DRONECAN_BITRATE_KBPS_DEFAULT
+);
 
 // NOTE: All canard handlers and senders are based on this reference: https://dronecan.github.io/Specification/7._List_of_standard_data_types/
 // Alternatively, you can look at the corresponding generated header file in the dsdlc_generated folder
@@ -368,8 +379,31 @@ void process1HzTasks(timeUs_t timestamp_usec)
 void dronecanInit(void)
 {
     LOG_DEBUG(SYSTEM, "dronecan Init");
+    uint32_t bitrate = 500000; // At least define 500000
 
-    canardSTM32_FDCAN1_Init(&hfdcan1);
+    switch (dronecanConfig()->bitRateKbps){
+        case DRONECAN_BITRATE_125KBPS:
+            bitrate = 125000;
+            break;
+
+        case DRONECAN_BITRATE_250KBPS:
+            bitrate = 250000;
+            break;
+        
+        case DRONECAN_BITRATE_500KBPS:
+            bitrate = 500000;
+            break;
+
+        case DRONECAN_BITRATE_1000KBPS:
+            bitrate = 1000000;
+            break;
+
+        case DRONECAN_BITRATE_COUNT:
+            LOG_ERROR(SYSTEM, "Undefined bitrate set in configuration. 500kbps selected");
+            bitrate = 500000;
+            break;
+    }
+    canardSTM32_FDCAN1_Init(&hfdcan1, bitrate);
     /*
     Initializing the Libcanard instance.
     */
@@ -385,8 +419,8 @@ void dronecanInit(void)
 
     // Could use DNA (Dynamic Node Allocation) by following example in esc_node.c but that requires a lot of setup and I'm not too sure of what advantage it brings
     // Instead, set a different NODE_ID for each device on the CAN bus by configuring node_settings
-    if (NODE_ID > 0) {
-	      canardSetLocalNodeID(&canard, NODE_ID);
+    if (dronecanConfig()->nodeID > 0) {
+	      canardSetLocalNodeID(&canard, dronecanConfig()->nodeID);
     } else {
 	      LOG_DEBUG(SYSTEM, "Node ID is 0, this node is anonymous and can't transmit most messaged. Please update this in node_settings.h");
     }

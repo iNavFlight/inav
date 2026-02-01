@@ -215,6 +215,9 @@ tables:
   - name: osd_adsb_warning_style
     values: [ "COMPACT", "EXTENDED" ]
     enum: osd_adsb_warning_style_e
+  - name: dronecan_bitrate_table
+    values: [ '125', '250', '500', '1000']
+    enum: dronecanBitRate_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -4500,4 +4503,21 @@ groups:
         default_value: RTH
         field: noWayHomeAction
         table: geozone_rth_no_way_home
+        type: uint8_t
+  - name: PG_DRONECAN_CONFIG
+    type: dronecanConfig_t
+    headers: ["drivers/dronecan/dronecan.h"]
+    condition: USE_DRONECAN
+    members:
+      - name: dronecan_node_id
+        description: "Unique identifier for this device. Valid values are 1 to 127. 126 and 127 are reserved for diagnostic tools."
+        default_value: 1
+        field: nodeID
+        min: 1
+        max: 127
+      - name: dronecan_bitrate_kbps
+        description: "The speed of the CANbus network in kbps. Set all devices to the same speed. "
+        default_value: "500"
+        field: bitRateKbps
+        table: dronecan_bitrate_table
         type: uint8_t

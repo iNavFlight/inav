@@ -139,7 +139,7 @@ int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* c
   * @param None
   * @retval None
   */
-void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1)
+void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
 {
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
     struct Timings out_timings;
@@ -166,7 +166,7 @@ void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1)
   hfdcan1->Init.TransmitPause = DISABLE;
   hfdcan1->Init.ProtocolException = DISABLE;
 
-  canard_stm32ComputeTimings(500000, &out_timings);
+  canard_stm32ComputeTimings(bitrate, &out_timings);
 
   hfdcan1->Init.NominalPrescaler = out_timings.prescaler;
   hfdcan1->Init.NominalSyncJumpWidth = out_timings.sjw;

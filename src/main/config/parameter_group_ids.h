@@ -132,6 +132,7 @@
 #define PG_GEOZONE_CONFIG 1042
 #define PG_GEOZONES 1043
 #define PG_GEOZONE_VERTICES 1044
+#define PG_DRONECAN_CONFIG 1045
 #define PG_INAV_END PG_GEOZONE_VERTICES
 
 // OSD configuration (subject to change)
