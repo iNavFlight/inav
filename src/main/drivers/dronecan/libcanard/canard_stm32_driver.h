@@ -13,6 +13,8 @@
 #include "stm32h7xx_hal_fdcan.h"
 #include "canard.h"
 
+void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1);
+
 int16_t canardSTM32Recieve(FDCAN_HandleTypeDef *hfdcan, uint32_t RxLocation, CanardCANFrame *const rx_frame);
 int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* const tx_frame);
 
