@@ -3904,6 +3904,13 @@ groups:
         field: osd_switch_indicators_align_left
         type: bool
         default_value: ON
+      - name: multifunction_warning_cycle_time
+        description: "Cycle time for display of full multifunction warning messages [s]. Full warnings will be displayed for 5s on a rolling cycle using this setting with only the total number of warnings indicated otherwise. Warnings will always be displayed in full if set to 0."
+        field: multifunction_warning_cycle_time
+        min: 0
+        max: 60
+        default_value: 30
+
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]
