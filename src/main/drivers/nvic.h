@@ -15,6 +15,7 @@
 #define NVIC_PRIO_USB                       5
 #define NVIC_PRIO_SERIALUART                5
 #define NVIC_PRIO_VCP                       7
+#define NVIC_PRIO_CAN                       15
 
 
 #if defined(AT32F43x)
