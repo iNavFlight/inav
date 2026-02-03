@@ -6535,16 +6535,17 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     const batteryState_e batteryVoltageState = checkBatteryVoltageState();
     warningCondition = batteryVoltageState == BATTERY_CRITICAL || batteryVoltageState == BATTERY_WARNING;
     if (osdCheckWarning(warningCondition, warningFlagID, &warningsCount)) {
-        messages[messageCount++] = batteryVoltageState == BATTERY_CRITICAL ? "VBATT CRIT" : "VBATT LOW ";
+        messages[messageCount++] = batteryVoltageState == BATTERY_CRITICAL ? "VBATT LAND" : "VBATT LOW ";
     }
 
     // Low Battery Capacity
-    const batteryState_e batteryState = getBatteryState();
-    warningCondition = batteryState == BATTERY_CRITICAL || batteryState == BATTERY_WARNING;
-    if (osdCheckWarning(warningCondition, warningFlagID, &warningsCount)) {
-        messages[messageCount++] = batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT LOW !";
+    if (batteryUsesCapacityThresholds()) {
+        const batteryState_e batteryState = getBatteryState();
+        warningCondition = batteryState == BATTERY_CRITICAL || batteryState == BATTERY_WARNING;
+        if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
+            messages[messageCount++] = batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT LOW  ";
+        }
     }
-
 #if defined(USE_GPS)
     // GPS Fix and Failure
     if (feature(FEATURE_GPS)) {
