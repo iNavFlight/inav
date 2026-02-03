@@ -162,7 +162,7 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mlx90393.h
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
-    
+
     drivers/dronecan/libcanard/canard.c
     drivers/dronecan/libcanard/canard.h
     drivers/dronecan/libcanard/canard_stm32_driver.c
@@ -661,6 +661,7 @@ main_sources(COMMON_SRC
     io/gps_ublox.c
     io/gps_ublox_utils.c
     io/gps_msp.c
+    io/gps_dronecan.c
     io/gps_fake.c
     io/gps_private.h
     io/ledstrip.c

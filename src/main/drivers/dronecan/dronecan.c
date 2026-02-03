@@ -3,6 +3,8 @@
 #include "common/time.h"
 #include <stdint.h>
 #include "fc/settings.h"
+#include "build/version.h"
+#include "io/gps.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -111,6 +113,48 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		break;
 	}
 }
+
+void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
+	UNUSED(ins);
+    struct uavcan_equipment_gnss_Auxiliary gnssAuxiliary;
+
+	if (uavcan_equipment_gnss_Auxiliary_decode(transfer, &gnssAuxiliary)) {
+		return;
+	}
+    LOG_DEBUG(SYSTEM, "GNSS Auxiliary: Num Sats: %d, HDOP %.2f", gnssAuxiliary.sats_used, gnssAuxiliary.hdop);
+}
+
+void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
+	UNUSED(ins);
+    struct uavcan_equipment_gnss_Fix gnssFix;
+
+	if (uavcan_equipment_gnss_Fix_decode(transfer, &gnssFix)) {
+		return;
+	}
+    dronecanGPSReceiveGNSSFix(&gnssFix);
+    LOG_DEBUG(SYSTEM, "GNSS Fix: Longitude: %lld, Latitude %lld", gnssFix.longitude_deg_1e8, gnssFix.latitude_deg_1e8);
+}
+
+void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
+	UNUSED(ins);
+    struct uavcan_equipment_gnss_Fix2 gnssFix2;
+
+	if (uavcan_equipment_gnss_Fix2_decode(transfer, &gnssFix2)) {
+		return;
+	}
+    dronecanGPSReceiveGNSSFix2(&gnssFix2);
+    LOG_DEBUG(SYSTEM, "GNSS Fix2: Longitude: %lld, Latitude %lld", gnssFix2.longitude_deg_1e8, gnssFix2.latitude_deg_1e8);
+}
+
+void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
+	UNUSED(ins);
+    struct uavcan_equipment_gnss_RTCMStream gnssRTCMStream;
+
+	if (uavcan_equipment_gnss_RTCMStream_decode(transfer, &gnssRTCMStream)) {
+		return;
+	}
+    LOG_DEBUG(SYSTEM, "GNSS RTCM");
+}
 /*
 void handle_NotifyState(CanardInstance *ins, CanardRxTransfer *transfer) {
 	struct ardupilot_indication_NotifyState notifyState;
@@ -183,10 +227,10 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	pkt.status = node_status;
 
 	// fill in your major and minor firmware version
-	pkt.software_version.major = 9;
-	pkt.software_version.minor = 0;
-	pkt.software_version.optional_field_flags = 0;
-	pkt.software_version.vcs_commit = 0; // should put git hash in here
+	pkt.software_version.major = FC_VERSION_MAJOR;
+	pkt.software_version.minor = FC_VERSION_MINOR;
+	pkt.software_version.optional_field_flags = FC_VERSION_PATCH_LEVEL;
+	pkt.software_version.vcs_commit = shortGitRevision; // should put git hash in here
 
 	// should fill in hardware version
 	pkt.hardware_version.major = 1;
@@ -195,7 +239,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	// just setting all 16 bytes to 1 for testing
 	getUniqueID(pkt.hardware_version.unique_id);
 
-	strncpy((char*)pkt.name.data, "Inav", sizeof(pkt.name.data));
+	strncpy((char*)pkt.name.data, FC_FIRMWARE_NAME, sizeof(pkt.name.data));
 	pkt.name.len = strnlen((char*)pkt.name.data, sizeof(pkt.name.data));
 
 	uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
@@ -287,7 +331,22 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
 			*out_data_type_signature = UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE;
 			return true;
 		}
-
+        case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_AUXILIARY_SIGNATURE;
+            return true;
+        }
+        case UAVCAN_EQUIPMENT_GNSS_FIX_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_FIX_SIGNATURE;
+            return true;
+        }
+        case UAVCAN_EQUIPMENT_GNSS_FIX2_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_FIX2_SIGNATURE;
+            return true;
+        }
+        case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_SIGNATURE;
+            return true;
+        }
 		}
 	}
 	// we don't want any other messages
@@ -328,6 +387,23 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 			break;
 		}
 
+        case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID: {
+            handle_GNSSAuxiliary(ins, transfer);
+            break;
+        }
+        case UAVCAN_EQUIPMENT_GNSS_FIX_ID: {
+            handle_GNSSFix(ins, transfer);
+            break;
+        }
+        case UAVCAN_EQUIPMENT_GNSS_FIX2_ID: {
+            handle_GNSSFix2(ins, transfer);
+            break;
+        }
+        case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID: {
+            handle_GNSSRCTMStream(ins, transfer);
+            break;
+        }
+
 		}
 	}
 }
@@ -338,11 +414,11 @@ void processCanardTxQueue(FDCAN_HandleTypeDef *hfdcan) {
 	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
     {
         // LOG_DEBUG(SYSTEM, "Found transmit frame");
-		// FDCAN_ProtocolStatusTypeDef protocolStatus = {};
+		FDCAN_ProtocolStatusTypeDef protocolStatus = {};
 
-        // HAL_FDCAN_GetProtocolStatus(hfdcan, &protocolStatus);
-        // LOG_DEBUG(SYSTEM, "BusOff: %lu", protocolStatus.BusOff);
-        // LOG_DEBUG(SYSTEM, "ErrorPassive: %lu", protocolStatus.ErrorPassive);
+         HAL_FDCAN_GetProtocolStatus(hfdcan, &protocolStatus);
+         LOG_DEBUG(SYSTEM, "BusOff: %lu", protocolStatus.BusOff);
+         LOG_DEBUG(SYSTEM, "ErrorPassive: %lu", protocolStatus.ErrorPassive);
         const int16_t tx_res = canardSTM32Transmit(hfdcan, tx_frame);
 
 		if (tx_res < 0) {
@@ -453,7 +529,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 
     processCanardTxQueue(&hfdcan1);
 
-    // numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); 
+    numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); 
     for (numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); numMessagesToProcess > 0; numMessagesToProcess--)
     {
         //LOG_DEBUG(SYSTEM, "Received a message");
@@ -479,3 +555,37 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 
 }
 
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
+{
+    CanardCANFrame rx_frame;
+        HAL_NVIC_DisableIRQ(FDCAN1_IT0_IRQn);  // Enable FDCAN1 interrupt line 0
+
+    if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET)
+    {
+        // if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+        // {
+        //     Error_Handler();
+        // }
+        
+        //LOG_DEBUG(SYSTEM, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(hfdcan, FDCAN_RX_FIFO0));
+	    //const uint64_t timestamp = HAL_GetTick() * 1000ULL;
+	    //const int16_t rx_res = canardSTM32Recieve(hfdcan, FDCAN_RX_FIFO0, &rx_frame);
+
+	    // if (rx_res < 0) {
+		//   //  LOG_DEBUG(SYSTEM, "Receive error %d", rx_res);
+	    // }
+	    // else if (rx_res > 0)        // Success - process the frame
+	    // {
+		//     //canardHandleRxFrame(&canard, &rx_frame, timestamp);
+	    // }
+        // numMessagesToProcess--;
+    }
+        
+        // Reactivate notification
+        if (HAL_FDCAN_DeactivateNotification(hfdcan, 
+            FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != HAL_OK)
+        {
+           // Error_Handler();
+        }
+    
+}
