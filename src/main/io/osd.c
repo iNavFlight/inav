@@ -6603,7 +6603,6 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     if (messageCount) {
         message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];    // display each warning on 1s cycle
         strcpy(buff, message);
-        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
     } else if (warningsCount) {
         buff[0] = SYM_ALERT;
         tfp_sprintf(buff + 1, "%u        ", warningsCount);
