@@ -9,8 +9,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 
 
-**JSON file rev: 4
-**
+**JSON file rev: 4**
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
