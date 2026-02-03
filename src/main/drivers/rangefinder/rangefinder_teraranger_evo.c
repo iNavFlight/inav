@@ -62,12 +62,17 @@
 static struct {
     int32_t     teraRangerMeasurementCm;
     uint8_t     dataBuff[3];
-} teraRangerEvo = {};
+} teraRangerEvo = {
+    .teraRangerMeasurementCm = RANGEFINDER_NO_NEW_DATA,
+    .dataBuff = { 0 },
+};
 
-
+static void triggerNewReading(rangefinderDev_t *rangefinder){
+    busWrite(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, 0x00); //request to next measure, scheduler is much slower than 500uS to we need to wait between write and read
+}
 
 static void teraRangerInit(rangefinderDev_t *rangefinder){
-    busWrite(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, 0x00); //request measure to be data prepared for first call of teraRangerUpdate
+    triggerNewReading(rangefinder);
 }
 
 static bool deviceDetect(busDevice_t * busDev){
@@ -93,12 +98,14 @@ void teraRangerUpdate(rangefinderDev_t *rangefinder){
     if (busReadBuf(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, teraRangerEvo.dataBuff, 3)) {
         if (!checkCrc()) {
             teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_NO_NEW_DATA;
+            triggerNewReading(rangefinder);
             return;
         }
 
         const int32_t teraRangerMeasurementMM = ((int32_t)teraRangerEvo.dataBuff[0] << 8 | (int32_t)teraRangerEvo.dataBuff[1]);
         if (teraRangerMeasurementMM == TERARANGER_EVO_VALUE_TOO_CLOSE || teraRangerMeasurementMM == TERARANGER_EVO_VALUE_OUT_OF_RANGE) {
             teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
+            triggerNewReading(rangefinder);
             return;
         }
 
@@ -107,7 +114,7 @@ void teraRangerUpdate(rangefinderDev_t *rangefinder){
         teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_HARDWARE_FAILURE;
     }
 
-    busWrite(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, 0x00); //request to next measure, scheduler is much slower than 500uS to we need to wait between write and read
+    triggerNewReading(rangefinder);
 }
 
 
