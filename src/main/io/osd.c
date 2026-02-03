@@ -6543,7 +6543,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         const batteryState_e batteryState = getBatteryState();
         warningCondition = batteryState == BATTERY_CRITICAL || batteryState == BATTERY_WARNING;
         if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
-            messages[messageCount++] = batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT LOW  ";
+            messages[messageCount++] = batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT DYING";
         }
     }
 #if defined(USE_GPS)
