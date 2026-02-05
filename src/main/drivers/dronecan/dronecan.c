@@ -27,6 +27,11 @@ FDCAN_HandleTypeDef hfdcan1;
 CanardInstance canard;
 uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
+enum dronecanState_e {
+    STATE_DRONECAN_INIT,
+    STATE_DRONECAN_NORMAL,
+    STATE_DRONECAN_BUS_OFF
+};
 
 void PrintCanStatus(void);
 
@@ -524,68 +529,61 @@ void dronecanInit(void)
 void dronecanUpdate(timeUs_t currentTimeUs)
 {
     static timeUs_t next_1hz_service_at = 0;
+    static timeUs_t busoffTimeUs = 0;
     CanardCANFrame rx_frame;
     int numMessagesToProcess = 0;
+    static enum dronecanState_e dronecanState = STATE_DRONECAN_INIT;
+    FDCAN_ProtocolStatusTypeDef protocolStatus = {};
 
-    processCanardTxQueue(&hfdcan1);
+    switch(dronecanState) {
+        case STATE_DRONECAN_INIT:
+            dronecanState = STATE_DRONECAN_NORMAL;
+            break;
 
-    numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); 
-    for (numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); numMessagesToProcess > 0; numMessagesToProcess--)
-    {
-        //LOG_DEBUG(SYSTEM, "Received a message");
-        LOG_DEBUG(SYSTEM, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0));
-	    const uint64_t timestamp = HAL_GetTick() * 1000ULL;
-	    const int16_t rx_res = canardSTM32Recieve(&hfdcan1, FDCAN_RX_FIFO0, &rx_frame);
+        case STATE_DRONECAN_NORMAL:
+            processCanardTxQueue(&hfdcan1);
 
-	    if (rx_res < 0) {
-		    LOG_DEBUG(SYSTEM, "Receive error %d", rx_res);
-	    }
-	    else if (rx_res > 0)        // Success - process the frame
-	    {
-		    canardHandleRxFrame(&canard, &rx_frame, timestamp);
-	    }
-        numMessagesToProcess--;
-    }
-    if (currentTimeUs >= next_1hz_service_at)
-    {
-		next_1hz_service_at += 1000000ULL;
-		process1HzTasks(currentTimeUs);
+            numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); 
+            for (numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); numMessagesToProcess > 0; numMessagesToProcess--)
+            {
+                //LOG_DEBUG(SYSTEM, "Received a message");
+                LOG_DEBUG(SYSTEM, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0));
+	            const uint64_t timestamp = HAL_GetTick() * 1000ULL;
+	            const int16_t rx_res = canardSTM32Recieve(&hfdcan1, FDCAN_RX_FIFO0, &rx_frame);
+
+	            if (rx_res < 0) {
+		            LOG_DEBUG(SYSTEM, "Receive error %d", rx_res);
+	            }
+	            else if (rx_res > 0)        // Success - process the frame
+	            {
+		            canardHandleRxFrame(&canard, &rx_frame, timestamp);
+	            }
+                numMessagesToProcess--;
+            }
+            if (currentTimeUs >= next_1hz_service_at)
+            {
+		        next_1hz_service_at += 1000000ULL;
+		        process1HzTasks(currentTimeUs);
         
+            }
+
+            HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocolStatus);
+            if(protocolStatus.BusOff != 0) {
+                dronecanState = STATE_DRONECAN_BUS_OFF;
+                busoffTimeUs = currentTimeUs;
+            }
+            break;
+
+        case STATE_DRONECAN_BUS_OFF:
+            if(currentTimeUs > (busoffTimeUs + 100000)) { // Wait 100 mS
+                CLEAR_BIT(hfdcan1.Instance->CCCR, FDCAN_CCCR_INIT);  // Clear INIT bit to recover from Bus-Off
+                busoffTimeUs = currentTimeUs;
+            }
+            HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocolStatus);
+            if(protocolStatus.BusOff == 0) {
+                dronecanState = STATE_DRONECAN_NORMAL;
+            }
+            break;
     }
-
-}
-
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
-{
-    CanardCANFrame rx_frame;
-        HAL_NVIC_DisableIRQ(FDCAN1_IT0_IRQn);  // Enable FDCAN1 interrupt line 0
-
-    if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET)
-    {
-        // if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
-        // {
-        //     Error_Handler();
-        // }
-        
-        //LOG_DEBUG(SYSTEM, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(hfdcan, FDCAN_RX_FIFO0));
-	    //const uint64_t timestamp = HAL_GetTick() * 1000ULL;
-	    //const int16_t rx_res = canardSTM32Recieve(hfdcan, FDCAN_RX_FIFO0, &rx_frame);
-
-	    // if (rx_res < 0) {
-		//   //  LOG_DEBUG(SYSTEM, "Receive error %d", rx_res);
-	    // }
-	    // else if (rx_res > 0)        // Success - process the frame
-	    // {
-		//     //canardHandleRxFrame(&canard, &rx_frame, timestamp);
-	    // }
-        // numMessagesToProcess--;
-    }
-        
-        // Reactivate notification
-        if (HAL_FDCAN_DeactivateNotification(hfdcan, 
-            FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != HAL_OK)
-        {
-           // Error_Handler();
-        }
     
 }

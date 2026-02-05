@@ -12,8 +12,7 @@
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_def.h"
 #include "stm32h7xx_hal_fdcan.h"
-// #include "stm32h7xx_hal_conf.h"
-#include "drivers/nvic.h"
+
 #include <string.h>
 #include <stdint.h>
 
@@ -47,14 +46,6 @@ int16_t canardSTM32Recieve(FDCAN_HandleTypeDef *hfdcan, uint32_t RxLocation, Can
 	uint8_t RxData[8];
 
 	if (HAL_FDCAN_GetRxMessage(hfdcan, RxLocation, &RxHeader, RxData) == HAL_OK) {
-
-		//LOG_DEBUG(SYSTEM, "Received message: ID=%lu, DLC=%lu", RxHeader.Identifier, RxHeader.DataLength);
-		
-		//LOG_BUF_DEBUG(SYSTEM, RxData, RxHeader.DataLength);
-		//	for (int i = 0; i < RxHeader.DataLength; i++) {
-		//		printf("%02x", RxData[i]);
-		//	}
-		//	printf("\n");
 
 		// Process ID to canard format
 		rx_frame->id = RxHeader.Identifier;
@@ -202,9 +193,6 @@ void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
 
     canard_stm32_GPIO_Init();  // Set up the pins for CAN and optional listen only mode
     
-    HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, NVIC_PRIO_CAN, NVIC_PRIO_CAN);
-    HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);  // Enable FDCAN1 interrupt line 0
-    
     // LOG_DEBUG(SYSTEM, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
     // LOG_DEBUG(SYSTEM, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
     if (HAL_FDCAN_Init(hfdcan1) != HAL_OK)
@@ -221,20 +209,12 @@ void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
         LOG_ERROR(SYSTEM, "Failed to config FDCAN filter");
         Error_Handler();
     }
+
     if (HAL_FDCAN_Start(hfdcan1) != HAL_OK) {
         LOG_ERROR(SYSTEM, "Failed to Start");
         Error_Handler();
     }
-    // Activate notifications
-    //  if (HAL_FDCAN_ActivateNotification(hfdcan1, 
-    //     FDCAN_IT_RX_FIFO0_NEW_MESSAGE |
-    // //     FDCAN_IT_ERROR_WARNING | 
-    //  //    FDCAN_IT_ERROR_PASSIVE | 
-    //      FDCAN_IT_BUS_OFF, 0) != HAL_OK)
-    //  {
-    //     LOG_ERROR(SYSTEM, "Failed to start interrupts");
-    //     //     Error_Handler();
-    //  }
+
 }
 
 /**
@@ -396,34 +376,3 @@ void Error_Handler(void)
 //   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-void HAL_FDCAN_ErrorStatusCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t ErrorStatusITs)
-{
-    // HAL_FDCAN_DeactivateNotification(hfdcan, ErrorStatusITs);
-
-    // if(ErrorStatusITs & FDCAN_IT_ERROR_WARNING)
-    // {
-    //     LOG_ERROR(SYSTEM, "CAN in Warning state");
-    // }
-    
-    // if(ErrorStatusITs & FDCAN_IT_ERROR_PASSIVE)
-    // {
-    //     LOG_ERROR(SYSTEM, "CAN in ERROR PASSIVE state");
-    // }
-    
-    /* UART Over-Run interrupt occurred -----------------------------------------*/
-    //if ((__HAL_FDCAN_GET_IT(hfdcan, FDCAN_IT_ERROR_PASSIVE) != RESET)) {
-        __HAL_FDCAN_CLEAR_IT(hfdcan, FDCAN_IT_ERROR_PASSIVE | FDCAN_IT_BUS_OFF);
-    //}
-    // if(ErrorStatusITs & FDCAN_IT_BUS_OFF)
-    //{
-    //     // Handle bus off state
-    //      HAL_FDCAN_Stop(hfdcan); 
-    //      LOG_ERROR(SYSTEM, "CAN in BUS OFF state");
-
-    //      HAL_Delay(100);
-    //      HAL_FDCAN_Start(hfdcan);
-    // // }
-}
-
-
