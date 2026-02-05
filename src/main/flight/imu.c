@@ -703,19 +703,20 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
     //fixed wing only
     static float lastspeed = -1.0f;
     float currentspeed = 0;
+#ifdef USE_PITOT
+    if (pitotValidForAirspeed())
+    {
+        // second choice is pitot
+		currentspeed = getAirspeedEstimate();
+        *acc_ignore_slope_multipiler = 4.0f;
+    }
+    else
+#endif
     if (isGPSTrustworthy()){
         //first speed choice is gps
         currentspeed = GPS3DspeedFiltered;
         *acc_ignore_slope_multipiler = 4.0f;
     }
-#ifdef USE_PITOT
-    else if (sensors(SENSOR_PITOT) && pitotIsHealthy())
-    {
-        // second choice is pitot
-		currentspeed = getAirspeedEstimate();
-        *acc_ignore_slope_multipiler = 2.0f;
-    }
-#endif
     else
     {
         //third choice is fixedWingReferenceAirspeed
