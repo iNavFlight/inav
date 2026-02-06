@@ -235,7 +235,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	pkt.software_version.major = FC_VERSION_MAJOR;
 	pkt.software_version.minor = FC_VERSION_MINOR;
 	pkt.software_version.optional_field_flags = FC_VERSION_PATCH_LEVEL;
-	pkt.software_version.vcs_commit = shortGitRevision; // should put git hash in here
+	pkt.software_version.vcs_commit = 0; // shortGitRevision; // need to convert string to integer put git hash in here
 
 	// should fill in hardware version
 	pkt.hardware_version.major = 1;
