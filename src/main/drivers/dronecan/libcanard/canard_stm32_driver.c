@@ -25,7 +25,6 @@ struct Timings {
 
 static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Timings*out_timings);
 static void canard_stm32_GPIO_Init(void);
-void Error_Handler(void);
 
 /**
   * @brief  Process CAN message from RxLocation FIFO into rx_frame
@@ -128,10 +127,12 @@ int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* c
 
 /**
   * @brief FDCAN1 Initialization Function
-  * @param None
-  * @retval None
+  * @param  hfdcan pointer to an FDCAN_HandleTypeDef structure that contains
+  *         the configuration information for the specified FDCAN.
+  * @param  bitrate desired bitrate to run the CAN network at.
+  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
-void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
+int16_t canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
 {
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
     struct Timings out_timings;
@@ -197,24 +198,24 @@ void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
     // LOG_DEBUG(CAN, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
     if (HAL_FDCAN_Init(hfdcan1) != HAL_OK)
     {
-        LOG_ERROR(SYSTEM, "Failed CAN Init");
-        Error_Handler();
+        LOG_ERROR(CAN, "Failed CAN Init");
+        return -CANARD_ERROR_INTERNAL;
     }
     /* USER CODE BEGIN FDCAN1_Init 2 */
     if (HAL_FDCAN_ConfigFilter(hfdcan1, &sFilterConfig) != HAL_OK) {
-        LOG_ERROR(SYSTEM, "Failed Config Filter");
-        Error_Handler();
+        LOG_ERROR(CAN, "Failed Config Filter");
+        return -CANARD_ERROR_INTERNAL;
     }
     if (HAL_FDCAN_ConfigGlobalFilter(hfdcan1, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
-        LOG_ERROR(SYSTEM, "Failed to config FDCAN filter");
-        Error_Handler();
+        LOG_ERROR(CAN, "Failed to config FDCAN filter");
+        return -CANARD_ERROR_INTERNAL;
     }
 
     if (HAL_FDCAN_Start(hfdcan1) != HAL_OK) {
-        LOG_ERROR(SYSTEM, "Failed to Start");
-        Error_Handler();
+        LOG_ERROR(CAN, "Failed to Start");
+        return -CANARD_ERROR_INTERNAL;
     }
-
+    return CANARD_OK;
 }
 
 /**
@@ -352,7 +353,7 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
     }
 
     LOG_DEBUG(CAN, "Timings: quanta/bit: %d, sample point location: %f%%",
-          (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / 10.F);
+          (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / (double)(10.0));
 
     out_timings->prescaler = (uint16_t)(prescaler);
     out_timings->sjw = 8;                        // Not happy with this value, but 1MBPs with unshielded cable?
@@ -362,17 +363,3 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
     return true;
 }
 
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-//   __disable_irq();
-//   while (1)
-//   {
-//   }
-  /* USER CODE END Error_Handler_Debug */
-}

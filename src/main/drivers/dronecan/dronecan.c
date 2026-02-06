@@ -484,7 +484,7 @@ void dronecanInit(void)
             bitrate = 500000;
             break;
     }
-    canardSTM32_FDCAN1_Init(&hfdcan1, bitrate);
+    canardSTM32_FDCAN1_Init(&hfdcan1, bitrate);  // TODO: Handle error and disable CAN if this call fails.
     /*
     Initializing the Libcanard instance.
     */
@@ -503,10 +503,8 @@ void dronecanInit(void)
     if (dronecanConfig()->nodeID > 0) {
 	      canardSetLocalNodeID(&canard, dronecanConfig()->nodeID);
     } else {
-	      LOG_DEBUG(CAN, "Node ID is 0, this node is anonymous and can't transmit most messaged. Please update this in node_settings.h");
+	      LOG_DEBUG(CAN, "Node ID is 0, this node is anonymous and can't transmit most messages. Please update this in config");
     }
-    // PrintCanStatus();
-
 }
 
 #ifdef  USE_FULL_ASSERT
