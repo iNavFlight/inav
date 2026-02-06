@@ -116,11 +116,11 @@ int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* c
 	memcpy(TxData, tx_frame->data, TxHeader.DataLength);
 
 	if (HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &TxHeader, TxData) == HAL_OK) {
-		// LOG_DEBUG(SYSTEM, "Successfully sent message with id: %lu", TxHeader.Identifier);
+		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", TxHeader.Identifier);
 		return 1;
 	}
 
-	LOG_DEBUG(SYSTEM, "Failed at adding message with id: %lu to Tx Queue", TxHeader.Identifier);
+	LOG_DEBUG(CAN, "Failed at adding message with id: %lu to Tx Queue", TxHeader.Identifier);
     
 	// This might be for many reasons including the Tx Fifo being full, the error can be read from hfdcan->ErrorCode
 	return 0;
@@ -164,7 +164,7 @@ void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
   hfdcan1->Init.NominalSyncJumpWidth = out_timings.sjw;
   hfdcan1->Init.NominalTimeSeg1 = out_timings.bs1;
   hfdcan1->Init.NominalTimeSeg2 = out_timings.bs2;
-  LOG_DEBUG(SYSTEM, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
+  LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
   hfdcan1->Init.RxFifo0ElmtsNbr = 30;
   hfdcan1->Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
@@ -177,7 +177,7 @@ void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
   hfdcan1->Init.TxBuffersNbr = 5;
   hfdcan1->Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   hfdcan1->Init.TxElmtSize = FDCAN_DATA_BYTES_8;
-  LOG_DEBUG(SYSTEM, "In CAN Init");
+  LOG_DEBUG(CAN, "In CAN Init");
 
   /** Initializes the peripherals clock
   */
@@ -185,7 +185,7 @@ void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
     PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
-      LOG_DEBUG(SYSTEM, "Unable to configure peripheral clock");
+      LOG_DEBUG(CAN, "Unable to configure peripheral clock");
     }
 
     /* FDCAN1 clock enable */
@@ -193,8 +193,8 @@ void canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
 
     canard_stm32_GPIO_Init();  // Set up the pins for CAN and optional listen only mode
     
-    // LOG_DEBUG(SYSTEM, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
-    // LOG_DEBUG(SYSTEM, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
+    // LOG_DEBUG(CAN, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
+    // LOG_DEBUG(CAN, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
     if (HAL_FDCAN_Init(hfdcan1) != HAL_OK)
     {
         LOG_ERROR(SYSTEM, "Failed CAN Init");
@@ -267,8 +267,8 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
      *   125  kbps      16      17
      */
     const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
-    LOG_DEBUG(SYSTEM, "Baudrate: %lu", target_bitrate);
-    LOG_DEBUG(SYSTEM, "Max Quanta per bit: %i", max_quanta_per_bit);
+    LOG_DEBUG(CAN, "Baudrate: %lu", target_bitrate);
+    LOG_DEBUG(CAN, "Max Quanta per bit: %i", max_quanta_per_bit);
 
     static const int MaxSamplePointLocation = 900;
 
@@ -283,7 +283,7 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
      *   PRESCALER_BS = PCLK / BITRATE
      */
     const uint32_t prescaler_bs = pclk / target_bitrate;
-    LOG_DEBUG(SYSTEM, "Prescaler BS product: %lu", prescaler_bs);
+    LOG_DEBUG(CAN, "Prescaler BS product: %lu", prescaler_bs);
      /*
      * Searching for such prescaler value so that the number of quanta per bit is highest.
      */
@@ -300,7 +300,7 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
     if ((prescaler < 1U) || (prescaler > 1024U)) {
         return false;              // No solution
     }
-    LOG_DEBUG(SYSTEM, "Prescaler: %lu", prescaler);
+    LOG_DEBUG(CAN, "Prescaler: %lu", prescaler);
 
       /*
      * Now we have a constraint: (BS1 + BS2) == bs1_bs2_sum.
@@ -351,7 +351,7 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
         return false;
     }
 
-    LOG_DEBUG(SYSTEM, "Timings: quanta/bit: %d, sample point location: %f%%",
+    LOG_DEBUG(CAN, "Timings: quanta/bit: %d, sample point location: %f%%",
           (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / 10.F);
 
     out_timings->prescaler = (uint16_t)(prescaler);

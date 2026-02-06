@@ -43,14 +43,14 @@ void PrintCanStatus(void)
     FDCAN_ErrorCountersTypeDef errorCounters;
     HAL_FDCAN_GetErrorCounters (&hfdcan1, &errorCounters);
 
-    LOG_DEBUG(SYSTEM, "CAN Status:");
-    LOG_DEBUG(SYSTEM, "  Last Error Code: %lu", (status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos);
-    LOG_DEBUG(SYSTEM, "  Activity: %s", (status & FDCAN_PSR_ACT) ? "Active" : "Inactive");
-    LOG_DEBUG(SYSTEM, "  Error Passive: %s", (status & FDCAN_PSR_EP) ? "Yes" : "No");
-    LOG_DEBUG(SYSTEM, "  Warning Status: %s", (status & FDCAN_PSR_EW) ? "Yes" : "No");
-    LOG_DEBUG(SYSTEM, "  Bus Off: %s", (status & FDCAN_PSR_BO) ? "Yes" : "No");
-    LOG_DEBUG(SYSTEM, "Tx Error Count: %lu", errorCounters.TxErrorCnt);
-    LOG_DEBUG(SYSTEM, "Rx Error Count: %lu", errorCounters.RxErrorCnt);
+    LOG_DEBUG(CAN, "CAN Status:");
+    LOG_DEBUG(CAN, "  Last Error Code: %lu", (status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos);
+    LOG_DEBUG(CAN, "  Activity: %s", (status & FDCAN_PSR_ACT) ? "Active" : "Inactive");
+    LOG_DEBUG(CAN, "  Error Passive: %s", (status & FDCAN_PSR_EP) ? "Yes" : "No");
+    LOG_DEBUG(CAN, "  Warning Status: %s", (status & FDCAN_PSR_EW) ? "Yes" : "No");
+    LOG_DEBUG(CAN, "  Bus Off: %s", (status & FDCAN_PSR_BO) ? "Yes" : "No");
+    LOG_DEBUG(CAN, "Tx Error Count: %lu", errorCounters.TxErrorCnt);
+    LOG_DEBUG(CAN, "Rx Error Count: %lu", errorCounters.RxErrorCnt);
 }
 
 PG_REGISTER_WITH_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig, PG_DRONECAN_CONFIG, 0);
@@ -73,48 +73,48 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
 
-//	LOG_DEBUG(SYSTEM, "Node health: %u", nodeStatus.health);
-//    LOG_DEBUG(SYSTEM, "Node Mode: %u", nodeStatus.mode);
-	LOG_DEBUG(SYSTEM, "Node Health ");
+//	LOG_DEBUG(CAN, "Node health: %u", nodeStatus.health);
+//    LOG_DEBUG(CAN, "Node Mode: %u", nodeStatus.mode);
+	LOG_DEBUG(CAN, "Node Health ");
 
 	switch (nodeStatus.health) {
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
-		LOG_DEBUG(SYSTEM, "OK");
+		LOG_DEBUG(CAN, "OK");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
-		LOG_DEBUG(SYSTEM, "WARNING");
+		LOG_DEBUG(CAN, "WARNING");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
-		LOG_DEBUG(SYSTEM, "ERROR");
+		LOG_DEBUG(CAN, "ERROR");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
-		LOG_DEBUG(SYSTEM, "CRITICAL");
+		LOG_DEBUG(CAN, "CRITICAL");
 		break;
 	default:
-		LOG_DEBUG(SYSTEM, "UNKNOWN?");
+		LOG_DEBUG(CAN, "UNKNOWN?");
 		break;
 	}
 
-	LOG_DEBUG(SYSTEM, "Node Mode ");
+	LOG_DEBUG(CAN, "Node Mode ");
 
 	switch(nodeStatus.mode) {
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
-		LOG_DEBUG(SYSTEM, "OPERATIONAL");
+		LOG_DEBUG(CAN, "OPERATIONAL");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
-		LOG_DEBUG(SYSTEM, "INITIALIZATION");
+		LOG_DEBUG(CAN, "INITIALIZATION");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
-		LOG_DEBUG(SYSTEM, "MAINTENANCE");
+		LOG_DEBUG(CAN, "MAINTENANCE");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
-		LOG_DEBUG(SYSTEM, "SOFTWARE UPDATE");
+		LOG_DEBUG(CAN, "SOFTWARE UPDATE");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
-		LOG_DEBUG(SYSTEM, "OFFLINE");
+		LOG_DEBUG(CAN, "OFFLINE");
 		break;
 	default:
-		LOG_DEBUG(SYSTEM, "UNKNOWN?");
+		LOG_DEBUG(CAN, "UNKNOWN?");
 		break;
 	}
 }
@@ -126,7 +126,7 @@ void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
 	if (uavcan_equipment_gnss_Auxiliary_decode(transfer, &gnssAuxiliary)) {
 		return;
 	}
-    LOG_DEBUG(SYSTEM, "GNSS Auxiliary: Num Sats: %d, HDOP %.2f", gnssAuxiliary.sats_used, gnssAuxiliary.hdop);
+    LOG_DEBUG(CAN, "GNSS Auxiliary: Num Sats: %d, HDOP %.2f", gnssAuxiliary.sats_used, gnssAuxiliary.hdop);
 }
 
 void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -137,7 +137,7 @@ void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
     dronecanGPSReceiveGNSSFix(&gnssFix);
-    LOG_DEBUG(SYSTEM, "GNSS Fix: Longitude: %lld, Latitude %lld", gnssFix.longitude_deg_1e8, gnssFix.latitude_deg_1e8);
+    LOG_DEBUG(CAN, "GNSS Fix: Longitude: %lld, Latitude %lld", gnssFix.longitude_deg_1e8, gnssFix.latitude_deg_1e8);
 }
 
 void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -148,7 +148,7 @@ void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
     dronecanGPSReceiveGNSSFix2(&gnssFix2);
-    LOG_DEBUG(SYSTEM, "GNSS Fix2: Longitude: %lld, Latitude %lld", gnssFix2.longitude_deg_1e8, gnssFix2.latitude_deg_1e8);
+    LOG_DEBUG(CAN, "GNSS Fix2: Longitude: %lld, Latitude %lld", gnssFix2.longitude_deg_1e8, gnssFix2.latitude_deg_1e8);
 }
 
 void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -158,7 +158,7 @@ void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
 	if (uavcan_equipment_gnss_RTCMStream_decode(transfer, &gnssRTCMStream)) {
 		return;
 	}
-    LOG_DEBUG(SYSTEM, "GNSS RTCM");
+    LOG_DEBUG(CAN, "GNSS RTCM");
 }
 /*
 void handle_NotifyState(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -269,7 +269,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 void send_NodeStatus(void) {
     uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
 
-    LOG_DEBUG(SYSTEM, "Sending Node Status");
+    LOG_DEBUG(CAN, "Sending Node Status");
     node_status.uptime_sec = HAL_GetTick() / 1000UL;
     node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
     node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
@@ -363,11 +363,11 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
 */
 void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 	// switch on data type ID to pass to the right handler function
-    LOG_DEBUG(SYSTEM, "Transfer type: %u, Transfer ID: %u ", transfer->transfer_type, transfer->data_type_id);
-	LOG_DEBUG(SYSTEM, "0x");
+    LOG_DEBUG(CAN, "Transfer type: %u, Transfer ID: %u ", transfer->transfer_type, transfer->data_type_id);
+	LOG_DEBUG(CAN, "0x");
     //LOG_BUFFER_ERROR(SYSTEM, transfer->payload_head, transfer->payload_len);
 	//	for (int i = 0; i < transfer->payload_len; i++) {
-	//		LOG_DEBUG(SYSTEM,"%02x", transfer->payload_head[i]);
+	//		LOG_DEBUG(CAN,"%02x", transfer->payload_head[i]);
 	//	}
 
 	if (transfer->transfer_type == CanardTransferTypeRequest) {
@@ -418,22 +418,22 @@ void processCanardTxQueue(FDCAN_HandleTypeDef *hfdcan) {
 	// Transmitting
 	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
     {
-        // LOG_DEBUG(SYSTEM, "Found transmit frame");
+        // LOG_DEBUG(CAN, "Found transmit frame");
 		FDCAN_ProtocolStatusTypeDef protocolStatus = {};
 
          HAL_FDCAN_GetProtocolStatus(hfdcan, &protocolStatus);
-         LOG_DEBUG(SYSTEM, "BusOff: %lu", protocolStatus.BusOff);
-         LOG_DEBUG(SYSTEM, "ErrorPassive: %lu", protocolStatus.ErrorPassive);
+         LOG_DEBUG(CAN, "BusOff: %lu", protocolStatus.BusOff);
+         LOG_DEBUG(CAN, "ErrorPassive: %lu", protocolStatus.ErrorPassive);
         const int16_t tx_res = canardSTM32Transmit(hfdcan, tx_frame);
 
 		if (tx_res < 0) {
-			LOG_DEBUG(SYSTEM, "Transmit error %d", tx_res);
+			LOG_DEBUG(CAN, "Transmit error %d", tx_res);
 		} else if (tx_res > 0) {
-			// LOG_DEBUG(SYSTEM, "Successfully transmitted message");
+			// LOG_DEBUG(CAN, "Successfully transmitted message");
 		}
         else
         {
-            LOG_DEBUG(SYSTEM, "hfderror %"PRIu32"", hfdcan->ErrorCode);
+            LOG_DEBUG(CAN, "hfderror %"PRIu32"", hfdcan->ErrorCode);
         }
 		// Pop canardTxQueue either way
 		canardPopTxQueue(&canard);
@@ -459,7 +459,7 @@ void process1HzTasks(timeUs_t timestamp_usec)
 
 void dronecanInit(void)
 {
-    LOG_DEBUG(SYSTEM, "dronecan Init");
+    LOG_DEBUG(CAN, "dronecan Init");
     uint32_t bitrate = 500000; // At least define 500000
 
     switch (dronecanConfig()->bitRateKbps){
@@ -488,7 +488,7 @@ void dronecanInit(void)
     /*
     Initializing the Libcanard instance.
     */
-    LOG_DEBUG(SYSTEM, "canardInit");
+    LOG_DEBUG(CAN, "canardInit");
     canardInit(&canard,
 	    	   memory_pool,
 			   sizeof(memory_pool),
@@ -503,7 +503,7 @@ void dronecanInit(void)
     if (dronecanConfig()->nodeID > 0) {
 	      canardSetLocalNodeID(&canard, dronecanConfig()->nodeID);
     } else {
-	      LOG_DEBUG(SYSTEM, "Node ID is 0, this node is anonymous and can't transmit most messaged. Please update this in node_settings.h");
+	      LOG_DEBUG(CAN, "Node ID is 0, this node is anonymous and can't transmit most messaged. Please update this in node_settings.h");
     }
     // PrintCanStatus();
 
@@ -546,13 +546,13 @@ void dronecanUpdate(timeUs_t currentTimeUs)
             numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); 
             for (numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); numMessagesToProcess > 0; numMessagesToProcess--)
             {
-                //LOG_DEBUG(SYSTEM, "Received a message");
-                LOG_DEBUG(SYSTEM, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0));
+                //LOG_DEBUG(CAN, "Received a message");
+                LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0));
 	            const uint64_t timestamp = HAL_GetTick() * 1000ULL;
 	            const int16_t rx_res = canardSTM32Recieve(&hfdcan1, FDCAN_RX_FIFO0, &rx_frame);
 
 	            if (rx_res < 0) {
-		            LOG_DEBUG(SYSTEM, "Receive error %d", rx_res);
+		            LOG_DEBUG(CAN, "Receive error %d", rx_res);
 	            }
 	            else if (rx_res > 0)        // Success - process the frame
 	            {
