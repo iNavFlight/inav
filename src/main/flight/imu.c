@@ -704,7 +704,7 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
     static float lastspeed = -1.0f;
     float currentspeed = 0;
 #ifdef USE_PITOT
-    if (pitotValidForAirspeed())
+    if (pitotGetValidForAirspeed())
     {
         // second choice is pitot
 		currentspeed = getAirspeedEstimate();
