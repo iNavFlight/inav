@@ -9,6 +9,7 @@
 #include "common/time.h"
 #include "drivers/io.h"
 #include "canard.h"
+
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_def.h"
 #include "stm32h7xx_hal_fdcan.h"

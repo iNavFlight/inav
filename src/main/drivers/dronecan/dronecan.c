@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "fc/settings.h"
 #include "build/version.h"
+#if defined(USE_DRONECAN) && !defined(SITL_BUILD)
+
 #include "io/gps.h"
 
 #include "config/parameter_group.h"
@@ -12,7 +14,6 @@
 #include "libcanard/canard_stm32_driver.h"
 #include "libcanard/canard.h"
 #include "dronecan.h"
-#include "stm32h7xx_hal_fdcan.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -32,26 +33,6 @@ enum dronecanState_e {
     STATE_DRONECAN_NORMAL,
     STATE_DRONECAN_BUS_OFF
 };
-
-void PrintCanStatus(void);
-
-// TODO: Handle bus off events and recover
-
-void PrintCanStatus(void)
-{
-    uint32_t status = hfdcan1.Instance->PSR;
-    FDCAN_ErrorCountersTypeDef errorCounters;
-    HAL_FDCAN_GetErrorCounters (&hfdcan1, &errorCounters);
-
-    LOG_DEBUG(CAN, "CAN Status:");
-    LOG_DEBUG(CAN, "  Last Error Code: %lu", (status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos);
-    LOG_DEBUG(CAN, "  Activity: %s", (status & FDCAN_PSR_ACT) ? "Active" : "Inactive");
-    LOG_DEBUG(CAN, "  Error Passive: %s", (status & FDCAN_PSR_EP) ? "Yes" : "No");
-    LOG_DEBUG(CAN, "  Warning Status: %s", (status & FDCAN_PSR_EW) ? "Yes" : "No");
-    LOG_DEBUG(CAN, "  Bus Off: %s", (status & FDCAN_PSR_BO) ? "Yes" : "No");
-    LOG_DEBUG(CAN, "Tx Error Count: %lu", errorCounters.TxErrorCnt);
-    LOG_DEBUG(CAN, "Rx Error Count: %lu", errorCounters.RxErrorCnt);
-}
 
 PG_REGISTER_WITH_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig, PG_DRONECAN_CONFIG, 0);
 
@@ -126,7 +107,7 @@ void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
 	if (uavcan_equipment_gnss_Auxiliary_decode(transfer, &gnssAuxiliary)) {
 		return;
 	}
-    LOG_DEBUG(CAN, "GNSS Auxiliary: Num Sats: %d, HDOP %.2f", gnssAuxiliary.sats_used, gnssAuxiliary.hdop);
+    LOG_DEBUG(CAN, "GNSS Auxiliary: Num Sats: %d, HDOP %.2f", gnssAuxiliary.sats_used, (double)gnssAuxiliary.hdop);
 }
 
 void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -585,3 +566,4 @@ void dronecanUpdate(timeUs_t currentTimeUs)
     }
     
 }
+#endif
