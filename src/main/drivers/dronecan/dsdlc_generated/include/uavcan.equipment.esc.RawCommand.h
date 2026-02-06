@@ -1,7 +1,7 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
+#include <drivers/dronecan/libcanard/canard.h>
 
 
 #define UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_MAX_SIZE 36

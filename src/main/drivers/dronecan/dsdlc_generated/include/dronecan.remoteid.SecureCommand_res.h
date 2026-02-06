@@ -1,7 +1,7 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
+#include <drivers/dronecan/libcanard/canard.h>
 
 
 #define DRONECAN_REMOTEID_SECURECOMMAND_RESPONSE_MAX_SIZE 230

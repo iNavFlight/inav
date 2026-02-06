@@ -1,7 +1,7 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
+#include <drivers/dronecan/libcanard/canard.h>
 
 
 #define UAVCAN_EQUIPMENT_DEVICE_TEMPERATURE_MAX_SIZE 5

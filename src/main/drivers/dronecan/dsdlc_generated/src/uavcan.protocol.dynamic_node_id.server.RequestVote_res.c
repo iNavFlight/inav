@@ -1,5 +1,5 @@
 #define CANARD_DSDLC_INTERNAL
-#include <uavcan.protocol.dynamic_node_id.server.RequestVote_res.h>
+#include "uavcan.protocol.dynamic_node_id.server.RequestVote_res.h"
 #include <string.h>
 
 #ifdef CANARD_DSDLC_TEST_BUILD

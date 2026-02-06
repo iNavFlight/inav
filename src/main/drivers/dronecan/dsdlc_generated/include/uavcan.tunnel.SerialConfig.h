@@ -1,7 +1,7 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
+#include <drivers/dronecan/libcanard/canard.h>
 
 
 #define UAVCAN_TUNNEL_SERIALCONFIG_MAX_SIZE 8

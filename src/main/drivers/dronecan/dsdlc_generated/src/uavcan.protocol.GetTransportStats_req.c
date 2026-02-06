@@ -1,6 +1,6 @@
 #define CANARD_DSDLC_INTERNAL
-#include <uavcan.protocol.GetTransportStats_req.h>
-#include <uavcan.protocol.GetTransportStats_res.h>
+#include "uavcan.protocol.GetTransportStats_req.h"
+#include "uavcan.protocol.GetTransportStats_res.h"
 #include <string.h>
 
 #ifdef CANARD_DSDLC_TEST_BUILD

@@ -1,5 +1,5 @@
 #define CANARD_DSDLC_INTERNAL
-#include <uavcan.protocol.dynamic_node_id.server.Discovery.h>
+#include "uavcan.protocol.dynamic_node_id.server.Discovery.h"
 #include <string.h>
 
 #ifdef CANARD_DSDLC_TEST_BUILD

@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.equipment.ice.reciprocating.CylinderStatus.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.equipment.ice.reciprocating.CylinderStatus.h"
 
 
 #define UAVCAN_EQUIPMENT_ICE_RECIPROCATING_STATUS_MAX_SIZE 196

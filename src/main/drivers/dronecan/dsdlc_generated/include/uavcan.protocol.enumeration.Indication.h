@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.protocol.param.NumericValue.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.protocol.param.NumericValue.h"
 
 
 #define UAVCAN_PROTOCOL_ENUMERATION_INDICATION_MAX_SIZE 102

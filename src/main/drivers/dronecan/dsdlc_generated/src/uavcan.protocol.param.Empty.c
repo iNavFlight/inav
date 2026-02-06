@@ -1,5 +1,5 @@
 #define CANARD_DSDLC_INTERNAL
-#include <uavcan.protocol.param.Empty.h>
+#include "uavcan.protocol.param.Empty.h"
 #include <string.h>
 
 #ifdef CANARD_DSDLC_TEST_BUILD

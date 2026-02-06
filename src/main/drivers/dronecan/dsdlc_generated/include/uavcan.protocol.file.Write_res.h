@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.protocol.file.Error.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.protocol.file.Error.h"
 
 
 #define UAVCAN_PROTOCOL_FILE_WRITE_RESPONSE_MAX_SIZE 2

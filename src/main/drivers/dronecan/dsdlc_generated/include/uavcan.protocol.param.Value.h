@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.protocol.param.Empty.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.protocol.param.Empty.h"
 
 
 #define UAVCAN_PROTOCOL_PARAM_VALUE_MAX_SIZE 130

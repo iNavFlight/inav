@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.equipment.indication.RGB565.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.equipment.indication.RGB565.h"
 
 
 #define UAVCAN_EQUIPMENT_INDICATION_SINGLELIGHTCOMMAND_MAX_SIZE 3

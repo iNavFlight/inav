@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.Timestamp.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.Timestamp.h"
 
 
 #define DRONECAN_PROTOCOL_GLOBALTIME_MAX_SIZE 7

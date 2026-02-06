@@ -1,9 +1,9 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.CoarseOrientation.h>
-#include <uavcan.Timestamp.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.CoarseOrientation.h"
+#include "uavcan.Timestamp.h"
 
 
 #define UAVCAN_EQUIPMENT_RANGE_SENSOR_MEASUREMENT_MAX_SIZE 15

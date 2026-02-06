@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.protocol.dynamic_node_id.server.Entry.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.protocol.dynamic_node_id.server.Entry.h"
 
 
 #define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_APPENDENTRIES_REQUEST_MAX_SIZE 32

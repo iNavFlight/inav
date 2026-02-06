@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.Timestamp.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.Timestamp.h"
 
 
 #define UAVCAN_EQUIPMENT_GNSS_FIX_MAX_SIZE 79

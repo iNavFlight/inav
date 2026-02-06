@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.protocol.debug.LogLevel.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.protocol.debug.LogLevel.h"
 
 
 #define UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_MAX_SIZE 123

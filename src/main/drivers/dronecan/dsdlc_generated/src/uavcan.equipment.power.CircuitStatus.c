@@ -1,5 +1,5 @@
 #define CANARD_DSDLC_INTERNAL
-#include <uavcan.equipment.power.CircuitStatus.h>
+#include "uavcan.equipment.power.CircuitStatus.h"
 #include <string.h>
 
 #ifdef CANARD_DSDLC_TEST_BUILD

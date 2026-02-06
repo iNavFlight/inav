@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.equipment.camera_gimbal.Mode.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.equipment.camera_gimbal.Mode.h"
 
 
 #define UAVCAN_EQUIPMENT_CAMERA_GIMBAL_ANGULARCOMMAND_MAX_SIZE 10

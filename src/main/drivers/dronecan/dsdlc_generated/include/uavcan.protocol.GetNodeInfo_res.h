@@ -1,10 +1,10 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.protocol.HardwareVersion.h>
-#include <uavcan.protocol.NodeStatus.h>
-#include <uavcan.protocol.SoftwareVersion.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.protocol.HardwareVersion.h"
+#include "uavcan.protocol.NodeStatus.h"
+#include "uavcan.protocol.SoftwareVersion.h"
 
 
 #define UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE 377

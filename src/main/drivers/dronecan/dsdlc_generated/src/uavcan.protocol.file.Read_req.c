@@ -1,6 +1,6 @@
 #define CANARD_DSDLC_INTERNAL
-#include <uavcan.protocol.file.Read_req.h>
-#include <uavcan.protocol.file.Read_res.h>
+#include "uavcan.protocol.file.Read_req.h"
+#include "uavcan.protocol.file.Read_res.h"
 #include <string.h>
 
 #ifdef CANARD_DSDLC_TEST_BUILD

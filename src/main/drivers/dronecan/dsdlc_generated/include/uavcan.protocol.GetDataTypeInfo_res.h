@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.protocol.DataTypeKind.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.protocol.DataTypeKind.h"
 
 
 #define UAVCAN_PROTOCOL_GETDATATYPEINFO_RESPONSE_MAX_SIZE 93

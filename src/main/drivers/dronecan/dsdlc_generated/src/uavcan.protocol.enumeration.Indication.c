@@ -1,5 +1,5 @@
 #define CANARD_DSDLC_INTERNAL
-#include <uavcan.protocol.enumeration.Indication.h>
+#include "uavcan.protocol.enumeration.Indication.h"
 #include <string.h>
 
 #ifdef CANARD_DSDLC_TEST_BUILD

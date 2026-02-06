@@ -1,5 +1,5 @@
 #define CANARD_DSDLC_INTERNAL
-#include <uavcan.equipment.air_data.StaticTemperature.h>
+#include "uavcan.equipment.air_data.StaticTemperature.h"
 #include <string.h>
 
 #ifdef CANARD_DSDLC_TEST_BUILD

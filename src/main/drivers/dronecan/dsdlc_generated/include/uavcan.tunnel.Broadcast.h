@@ -1,8 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <canard.h>
-#include <uavcan.tunnel.Protocol.h>
+#include <drivers/dronecan/libcanard/canard.h>
+#include "uavcan.tunnel.Protocol.h"
 
 
 #define UAVCAN_TUNNEL_BROADCAST_MAX_SIZE 63

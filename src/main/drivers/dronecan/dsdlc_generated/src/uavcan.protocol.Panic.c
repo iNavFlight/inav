@@ -1,5 +1,5 @@
 #define CANARD_DSDLC_INTERNAL
-#include <uavcan.protocol.Panic.h>
+#include "uavcan.protocol.Panic.h"
 #include <string.h>
 
 #ifdef CANARD_DSDLC_TEST_BUILD
