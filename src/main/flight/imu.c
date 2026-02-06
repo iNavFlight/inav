@@ -706,14 +706,14 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
 #ifdef USE_PITOT
     if (pitotGetValidForAirspeed())
     {
-        // second choice is pitot
+        // first choice is airspeed
 		currentspeed = getAirspeedEstimate();
         *acc_ignore_slope_multipiler = 4.0f;
     }
     else
 #endif
     if (isGPSTrustworthy()){
-        //first speed choice is gps
+        // second choice is gps
         currentspeed = GPS3DspeedFiltered;
         *acc_ignore_slope_multipiler = 4.0f;
     }
