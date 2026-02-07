@@ -326,7 +326,7 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
     struct BsPair {
         uint8_t bs1;
         uint8_t bs2;
-        uint16_t sample_point_permill
+        uint16_t sample_point_permill;
     } solution;
 
     // First attempt with rounding to nearest
