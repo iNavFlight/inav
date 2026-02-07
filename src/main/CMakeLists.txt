@@ -168,7 +168,6 @@ main_sources(COMMON_SRC
     drivers/dronecan/libcanard/canard_stm32_driver.h
     drivers/dronecan/dronecan.c
     drivers/dronecan/dronecan.h
-    drivers/dronecan/nodesettings.h
     
     drivers/dronecan/dsdlc_generated/src/dronecan.protocol.CanStats.c                                
     drivers/dronecan/dsdlc_generated/src/dronecan.protocol.FlexDebug.c                               

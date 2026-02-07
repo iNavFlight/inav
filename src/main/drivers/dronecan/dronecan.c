@@ -19,7 +19,6 @@
 #include <string.h>
 #include <inttypes.h>
 #include "dronecan_msgs.h"
-#include "nodesettings.h"
 
 /* Private variables ---------------------------------------------------------*/
 
