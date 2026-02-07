@@ -40,24 +40,20 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}
 
-	CAN_RxHeaderTypeDef RxHeader;
-	uint8_t RxData[8];
-
-	if (HAL_CAN_GetRxMessage(&hcan1, CAN_FIFO0, 100) == HAL_OK) {  // Wheres the data?
+	if (HAL_CAN_Receive(&hcan1, CAN_FIFO0, 100) == HAL_OK) {  // Wheres the data?
+        rx_frame->id = hcan1.pRxMsg->ExtId;
 
 		// Process ID to canard format
-		rx_frame->id = RxHeader.Identifier;
-
-		if (RxHeader.IdType == FDCAN_EXTENDED_ID) { // canard will only process the message if it is extended ID
-			rx_frame->id |= CANARD_CAN_FRAME_EFF;
+		if (hcan1.pRxMsg->IDE == CAN_ID_EXT) { // canard will only process the message if it is extended ID
+            rx_frame->id |= CANARD_CAN_FRAME_EFF;
 		}
 
-		if (RxHeader.RxFrameType == FDCAN_REMOTE_FRAME) { // canard won't process the message if it is a remote frame
+		if (hcan1.pRxMsg->RTR == CAN_RTR_REMOTE) { // canard won't process the message if it is a remote frame
 			rx_frame->id |= CANARD_CAN_FRAME_RTR;
 		}
 
-		rx_frame->data_len = RxHeader.DataLength;
-		memcpy(rx_frame->data, RxData, RxHeader.DataLength);
+		rx_frame->data_len = hcan1.pRxMsg->DLC;
+		memcpy(rx_frame->data, hcan1.pRxMsg->Data, hcan1.pRxMsg->DLC);
 
 		// assume a single interface
 		rx_frame->iface_id = 0;
@@ -71,13 +67,11 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
 
 /**
   * @brief  Process tx_frame CAN message into Tx FIFO/Queue and transmit it
-  * @param  hfdcan pointer to an FDCAN_HandleTypeDef structure that contains
-  *         the configuration information for the specified FDCAN.
   * @param  tx_frame pointer to a CanardCANFrame structure that contains the CAN message to
   * 		transmit.
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
-int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* const tx_frame) {
+int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	if (tx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}
@@ -86,39 +80,31 @@ int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* c
 		return -CANARD_ERROR_INVALID_ARGUMENT; // unsupported frame format
 	}
 
-	FDCAN_TxHeaderTypeDef TxHeader;
-	uint8_t TxData[8];
-
 	// Process canard id to STM FDCAN header format
 	if (tx_frame->id & CANARD_CAN_FRAME_EFF) {
-		TxHeader.IdType = FDCAN_EXTENDED_ID;
-		TxHeader.Identifier = tx_frame->id & CANARD_CAN_EXT_ID_MASK;
+		hcan1.pTxMsg->IDE = CAN_ID_EXT;
+		hcan1.pTxMsg->ExtId = tx_frame->id & CANARD_CAN_EXT_ID_MASK;
 	} else {
-		TxHeader.IdType = FDCAN_STANDARD_ID;
-		TxHeader.Identifier = tx_frame->id & CANARD_CAN_STD_ID_MASK;
+		hcan1.pTxMsg->IDE = CAN_ID_STD;
+		hcan1.pTxMsg->StdId = tx_frame->id & CANARD_CAN_STD_ID_MASK;
 	}
 
-	TxHeader.DataLength = tx_frame->data_len;
+	hcan1.pTxMsg->DLC = tx_frame->data_len;
 
 	if (tx_frame->id & CANARD_CAN_FRAME_RTR) {
-		TxHeader.TxFrameType = FDCAN_REMOTE_FRAME;
+		hcan1.pTxMsg->RTR = CAN_RTR_REMOTE;
 	} else {
-		TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+		hcan1.pTxMsg->RTR = CAN_RTR_DATA;
 	}
 
-	TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE; // unsure about this one
-	TxHeader.BitRateSwitch = FDCAN_BRS_OFF; // Disabling FDCAN (using CAN 2.0)
-	TxHeader.FDFormat = FDCAN_CLASSIC_CAN; // Disabling FDCAN (using CAN 2.0)
-	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // unsure about this one
-	TxHeader.MessageMarker = 0; // unsure about this one
-	memcpy(TxData, tx_frame->data, TxHeader.DataLength);
+	memcpy(hcan1.pTxMsg->Data, tx_frame->data, tx_frame->data_len);
 
-	if (HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &TxHeader, TxData) == HAL_OK) {
+	if (HAL_CAN_Transmit(&hcan1, 100) == HAL_OK) {
 		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", TxHeader.Identifier);
 		return 1;
 	}
 
-	LOG_DEBUG(CAN, "Failed at adding message with id: %lu to Tx Queue", TxHeader.Identifier);
+	LOG_DEBUG(CAN, "Failed at adding message with id: %lu to Tx Queue", tx_frame->id);
     
 	// This might be for many reasons including the Tx Fifo being full, the error can be read from hfdcan->ErrorCode
 	return 0;
@@ -137,7 +123,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     struct Timings out_timings;
 
      /* CAN1 clock enable */
-    __HAL_RCC_CANx_CLK_ENABLE();
+    __HAL_RCC_CAN1_CLK_ENABLE();
 
 
     // /* CAN1 interrupt Init */
@@ -145,35 +131,39 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     // HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
     // /* USER CODE BEGIN CAN1_MspInit 1 */
 
-  FDCAN_FilterTypeDef sFilterConfig;
-  sFilterConfig.IdType = FDCAN_EXTENDED_ID;
-  sFilterConfig.FilterIndex = 0;
-  sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
-  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  sFilterConfig.FilterID1 = 0x0; //0x1401557F;
-  sFilterConfig.FilterID2 = 0x1FFFFFFFU;
-  // sFilterConfig.RxBufferIndex = 0;
+    CAN_FilterConfTypeDef sFilterConfig;
+    sFilterConfig.FilterIdHigh = 0;
+    sFilterConfig.FilterIdLow  = 0;
+    sFilterConfig.FilterMaskIdHigh = 0;
+    sFilterConfig.FilterMaskIdLow = 0;
+    sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+    sFilterConfig.FilterNumber = 0;
+    sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+    sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+    sFilterConfig.FilterActivation = ENABLE;
+    sFilterConfig.BankNumber = 0;
+  
     hcan1.Instance = CAN1;
     hcan1.Init.Mode = CAN_MODE_NORMAL;
-    hcan1.Init.TimeTriggeredMode = DISABLE;
-    hcan1.Init.AutoBusOff = ENABLE;
-    hcan1.Init.AutoWakeUp = DISABLE;
-    hcan1.Init.AutoRetransmission = DISABLE;
-    hcan1.Init.ReceiveFifoLocked = DISABLE;
-    hcan1.Init.TransmitFifoPriority = DISABLE;
+    hcan1.Init.TTCM = DISABLE;
+    hcan1.Init.ABOM = ENABLE;
+    hcan1.Init.AWUM = DISABLE;
+    hcan1.Init.NART = DISABLE;
+    hcan1.Init.RFLM = DISABLE;
+    hcan1.Init.TXFP = DISABLE;
   
     canardSTM32ComputeTimings(bitrate, &out_timings);
 
     hcan1.Init.Prescaler = out_timings.prescaler;
-    hcan1.Init.SyncJumpWidth = out_timings.sjw;
-    hcan1.Init.TimeSeg1 = out_timings.bs1;
-    hcan1.Init.TimeSeg2 = out_timings.bs2;
+    hcan1.Init.SJW = out_timings.sjw;
+    hcan1.Init.BS1 = out_timings.bs1;
+    hcan1.Init.BS2 = out_timings.bs2;
     LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
-    hcan1.Init.StdFiltersNbr = 0;
-    hcan1.Init.ExtFiltersNbr = 1;
-    hcan1.Init.TxFifoQueueElmtsNbr = 32;
-    LOG_DEBUG(CAN, "In CAN Init");
+    // hcan1.Init.StdFiltersNbr = 0;
+    // hcan1.Init.ExtFiltersNbr = 1;
+    // hcan1.Init.TxFifoQueueElmtsNbr = 32;
+    // LOG_DEBUG(CAN, "In CAN Init");
 
     /** Initializes the peripherals clock
     */
@@ -194,19 +184,16 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         return -CANARD_ERROR_INTERNAL;
     }
     /* USER CODE BEGIN FDCAN1_Init 2 */
-    if (HAL_CAN_ConfigFilter(hcan1, &sFilterConfig) != HAL_OK) {
+    if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
     }
-    // if (HAL_FDCAN_ConfigGlobalFilter(hfdcan1, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
-    //     LOG_ERROR(CAN, "Failed to config FDCAN filter");
+    
+    //Don't need to explicitly start the CAN driver in v1.2.2
+    // if (HAL_CAN_Start(hcan1) != HAL_OK) {
+    //     LOG_ERROR(CAN, "Failed to Start");
     //     return -CANARD_ERROR_INTERNAL;
     // }
-
-    if (HAL_CAN_Start(hcan1) != HAL_OK) {
-        LOG_ERROR(CAN, "Failed to Start");
-        return -CANARD_ERROR_INTERNAL;
-    }
     return CANARD_OK;
 }
 
@@ -357,3 +344,11 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     return true;
 }
 
+int32_t canardSTM32GetRxFifoFillLevel(void){
+    return (__HAL_CAN_MSG_PENDING(&hcan1, CAN_FIFO0));
+}
+
+void canardSTM32RecoverFromBusOff(void){
+    // Auto recover from bus off is enabled
+    // CLEAR_BIT(hcan1.Instance->CCCR, FDCAN_CCCR_INIT);  // Clear INIT bit to recover from Bus-Off
+}
