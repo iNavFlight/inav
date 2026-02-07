@@ -21,6 +21,10 @@
 #include "config/config_streamer.h"
 #include "common/utils.h"
 
+#ifdef __EMSCRIPTEN__
+#include "target/SITL/wasm_eeprom_bridge.h"
+#endif
+
 #if defined(CONFIG_IN_RAM)
 
 static bool streamerLocked = true;
@@ -33,6 +37,11 @@ void config_streamer_impl_unlock(void)
 void config_streamer_impl_lock(void)
 {
     streamerLocked = true;
+
+#ifdef __EMSCRIPTEN__
+    // Notify JavaScript that EEPROM was saved so it can persist to IndexedDB
+    wasmNotifyEepromSaved();
+#endif
 }
 
 int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer_align_type_t *buffer)

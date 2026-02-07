@@ -44,6 +44,8 @@ else()
         target/SITL/wasm_pg_runtime.h
         target/SITL/wasm_stubs.c
         target/SITL/wasm_msp_bridge.c
+        target/SITL/wasm_eeprom_bridge.c
+        target/SITL/wasm_eeprom_bridge.h
         target/SITL/serial_wasm.c
         target/SITL/serial_wasm.h
     )
@@ -129,8 +131,8 @@ if(${TOOLCHAIN} STREQUAL "wasm")
         -sASYNCIFY=1
         -sWEBSOCKET_URL="ws://localhost:5771"
         -sFORCE_FILESYSTEM=1
-        -sEXPORTED_FUNCTIONS=_main,_serialWriteByte,_serialReadByte,_serialAvailable,_serialGetRxDroppedBytes,_serialGetTxDroppedBytes,_malloc,_free
-        -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,UTF8ToString,stringToUTF8,lengthBytesUTF8,getValue,setValue
+        -sEXPORTED_FUNCTIONS=_main,_serialWriteByte,_serialReadByte,_serialAvailable,_serialGetRxDroppedBytes,_serialGetTxDroppedBytes,_wasmGetEepromPtr,_wasmGetEepromSize,_wasmReloadConfig,_wasmIsEepromValid,_malloc,_free
+        -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,UTF8ToString,stringToUTF8,lengthBytesUTF8,getValue,setValue,HEAPU8,callMain
         -gsource-map                                      # Generate .wasm.map for browser debugging
         -lidbfs.js
     )
