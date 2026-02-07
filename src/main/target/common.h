@@ -197,8 +197,6 @@
 #define USE_HEADTRACKER_SERIAL
 #define USE_HEADTRACKER_MSP
 
-#define USE_DRONECAN
-
 #if defined(STM32F7) || defined(STM32H7)
 // needs bi-direction inverter, not available on F4 hardware.
 #define USE_TELEMETRY_SBUS2
