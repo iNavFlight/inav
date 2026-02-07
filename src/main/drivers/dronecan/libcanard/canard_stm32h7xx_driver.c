@@ -16,7 +16,7 @@
 
 #include <string.h>
 #include <stdint.h>
-
+#ifdef USE_DRONECAN
 struct Timings {
         uint16_t prescaler;
         uint8_t sjw;
@@ -363,4 +363,4 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
 
     return true;
 }
-
+#endif //USE_DRONECAN
