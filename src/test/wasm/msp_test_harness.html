@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INAV SITL WASM Test Harness - Phase 5</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4ec9b0;
+            border-bottom: 2px solid #4ec9b0;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #9cdcfe;
+            margin-top: 30px;
+        }
+        .status {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #3e3e42;
+        }
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        .status-label {
+            color: #9cdcfe;
+        }
+        .status-value {
+            color: #ce9178;
+        }
+        .status-value.success {
+            color: #4ec9b0;
+        }
+        .status-value.error {
+            color: #f48771;
+        }
+        .console {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+            margin: 20px 0;
+        }
+        .console-line {
+            margin: 2px 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .console-line.info {
+            color: #9cdcfe;
+        }
+        .console-line.success {
+            color: #4ec9b0;
+        }
+        .console-line.error {
+            color: #f48771;
+        }
+        .console-line.warning {
+            color: #dcdcaa;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        button:disabled {
+            background: #3e3e42;
+            cursor: not-allowed;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .msp-section {
+            background: #252526;
+            border: 1px solid #4ec9b0;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚁 INAV SITL WebAssembly Test Harness - Phase 5</h1>
+
+        <div class="status">
+            <h2>System Status</h2>
+            <div class="status-item">
+                <span class="status-label">WASM Support:</span>
+                <span class="status-value" id="wasm-support">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Module Status:</span>
+                <span class="status-value" id="module-status">Not Loaded</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Scheduler:</span>
+                <span class="status-value" id="scheduler-status">Not Running</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">MSP Bridge:</span>
+                <span class="status-value" id="msp-status">Not Ready</span>
+            </div>
+        </div>
+
+        <div class="msp-section">
+            <h2>MSP Communication Test (Phase 5)</h2>
+            <div class="controls">
+                <button onclick="testMSP_API_VERSION()" id="msp-api-btn" disabled>Test MSP_API_VERSION</button>
+                <button onclick="testMSP_FC_VARIANT()" id="msp-variant-btn" disabled>Test MSP_FC_VARIANT</button>
+                <button onclick="testMSP_General()" id="msp-general-btn" disabled>Test General MSP Handler</button>
+                <button onclick="testMSP_STATUS()" id="msp-status-btn" disabled>Test MSP_STATUS (Real Data)</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h2>System Controls</h2>
+            <button onclick="clearConsole()">Clear Console</button>
+        </div>
+
+        <div class="console" id="console">
+            <div class="console-line info">INAV SITL WASM Test Harness v2.0 - Phase 5 (MSP Integration)</div>
+            <div class="console-line info">Testing direct MSP function calls from JavaScript</div>
+            <div class="console-line info">===================================================================</div>
+        </div>
+    </div>
+
+    <script>
+        var Module = {
+            preRun: [],
+            postRun: [],
+            print: function(text) {
+                addConsoleLog(text, 'info');
+            },
+            printErr: function(text) {
+                addConsoleLog(text, 'error');
+            },
+            setStatus: function(text) {
+                addConsoleLog('[Emscripten] ' + text, 'info');
+            },
+            onRuntimeInitialized: function() {
+                addConsoleLog('[✓] Emscripten runtime initialized', 'success');
+                updateStatus('module-status', 'Loaded', true);
+                updateStatus('scheduler-status', 'Running', true);
+
+                addConsoleLog('[ℹ] SITL main() is now running via emscripten_set_main_loop()', 'info');
+                addConsoleLog('[✓] Scheduler running in browser event loop', 'success');
+
+                // Check if MSP functions are available
+                checkMSPBridge();
+            }
+        };
+
+        function checkMSPBridge() {
+            try {
+                // Check if our exported MSP functions exist
+                const hasMSPProcess = typeof Module._wasm_msp_process_command === 'function';
+                const hasMSPAPIVer = typeof Module._wasm_msp_get_api_version === 'function';
+                const hasMSPVariant = typeof Module._wasm_msp_get_fc_variant === 'function';
+
+                if (hasMSPProcess && hasMSPAPIVer && hasMSPVariant) {
+                    addConsoleLog('[✓] MSP bridge functions found and exported', 'success');
+                    updateStatus('msp-status', 'Ready', true);
+
+                    // Enable MSP test buttons
+                    document.getElementById('msp-api-btn').disabled = false;
+                    document.getElementById('msp-variant-btn').disabled = false;
+                    document.getElementById('msp-general-btn').disabled = false;
+                    document.getElementById('msp-status-btn').disabled = false;
+
+                    addConsoleLog('[ℹ] Phase 5 Complete: MSP integration ready for testing!', 'success');
+                } else {
+                    addConsoleLog('[✗] MSP bridge functions not found', 'error');
+                    addConsoleLog(`    _wasm_msp_process_command: ${hasMSPProcess}`, 'error');
+                    addConsoleLog(`    _wasm_msp_get_api_version: ${hasMSPAPIVer}`, 'error');
+                    addConsoleLog(`    _wasm_msp_get_fc_variant: ${hasMSPVariant}`, 'error');
+                    updateStatus('msp-status', 'Error - Functions Missing', false);
+                }
+            } catch (e) {
+                addConsoleLog('[✗] Error checking MSP bridge: ' + e.message, 'error');
+                updateStatus('msp-status', 'Error', false);
+            }
+        }
+
+        function testMSP_API_VERSION() {
+            addConsoleLog('[→] Testing MSP_API_VERSION (convenience function)...', 'info');
+            try {
+                const apiVersion = Module._wasm_msp_get_api_version();
+                const major = (apiVersion >> 8) & 0xFF;
+                const minor = apiVersion & 0xFF;
+                addConsoleLog(`[✓] API Version: ${major}.${minor}`, 'success');
+            } catch (e) {
+                addConsoleLog('[✗] MSP_API_VERSION failed: ' + e.message, 'error');
+            }
+        }
+
+        function testMSP_FC_VARIANT() {
+            addConsoleLog('[→] Testing MSP_FC_VARIANT (convenience function)...', 'info');
+            try {
+                const variantPtr = Module._wasm_msp_get_fc_variant();
+                const variant = Module.UTF8ToString(variantPtr);
+                addConsoleLog(`[✓] FC Variant: ${variant}`, 'success');
+            } catch (e) {
+                addConsoleLog('[✗] MSP_FC_VARIANT failed: ' + e.message, 'error');
+            }
+        }
+
+        function testMSP_General() {
+            addConsoleLog('[→] Testing general MSP handler (wasm_msp_process_command)...', 'info');
+            try {
+                // Allocate buffers in WASM memory
+                const replyBufferSize = 256;
+                const replyBuffer = Module._malloc(replyBufferSize);
+
+                // Test MSP_API_VERSION (cmd=1) using general handler
+                addConsoleLog('[ℹ] Calling wasm_msp_process_command(1, null, 0, buffer, 256)...', 'info');
+                const replyLen = Module._wasm_msp_process_command(1, 0, 0, replyBuffer, replyBufferSize);
+
+                if (replyLen > 0) {
+                    // Read reply data from WASM heap using getValue
+                    const replyData = new Uint8Array(replyLen);
+                    for (let i = 0; i < replyLen; i++) {
+                        replyData[i] = Module.getValue(replyBuffer + i, 'i8') & 0xFF;
+                    }
+                    addConsoleLog(`[✓] Reply length: ${replyLen} bytes`, 'success');
+                    addConsoleLog(`[ℹ] Reply data: [${Array.from(replyData).join(', ')}]`, 'info');
+
+                    if (replyLen >= 3) {
+                        const protocolVer = replyData[0];
+                        const apiMajor = replyData[1];
+                        const apiMinor = replyData[2];
+                        addConsoleLog(`[✓] Protocol: ${protocolVer}, API: ${apiMajor}.${apiMinor}`, 'success');
+                    }
+                } else if (replyLen === 0) {
+                    addConsoleLog('[ℹ] No reply (MSP_RESULT_NO_REPLY)', 'warning');
+                } else {
+                    addConsoleLog(`[✗] MSP error: ${replyLen}`, 'error');
+                }
+
+                // Free buffer
+                Module._free(replyBuffer);
+                addConsoleLog('[✓] General MSP handler test complete', 'success');
+            } catch (e) {
+                addConsoleLog('[✗] General MSP test failed: ' + e.message, 'error');
+            }
+        }
+
+        function testMSP_STATUS() {
+            addConsoleLog('[→] Testing MSP_STATUS (101) - Real FC data...', 'info');
+            try {
+                const MSP_STATUS = 101;
+                const replyBufferSize = 256;
+                const replyBuffer = Module._malloc(replyBufferSize);
+
+                addConsoleLog('[ℹ] Calling wasm_msp_process_command(101, null, 0, buffer, 256)...', 'info');
+                const replyLen = Module._wasm_msp_process_command(MSP_STATUS, 0, 0, replyBuffer, replyBufferSize);
+
+                if (replyLen > 0) {
+                    // Read reply data from WASM heap
+                    const replyData = new Uint8Array(replyLen);
+                    for (let i = 0; i < replyLen; i++) {
+                        replyData[i] = Module.getValue(replyBuffer + i, 'i8') & 0xFF;
+                    }
+                    addConsoleLog(`[✓] Reply length: ${replyLen} bytes`, 'success');
+                    addConsoleLog(`[ℹ] Reply data: [${Array.from(replyData).join(', ')}]`, 'info');
+
+                    // Parse MSP_STATUS response
+                    // cycleTime (uint16), i2cErrorCount (uint16), sensorStatus (uint16), flightModeFlags (uint32), configProfileIndex (uint8)
+                    if (replyLen >= 11) {
+                        const cycleTime = replyData[0] | (replyData[1] << 8);
+                        const i2cErrors = replyData[2] | (replyData[3] << 8);
+                        const sensors = replyData[4] | (replyData[5] << 8);
+                        const flightMode = replyData[6] | (replyData[7] << 8) | (replyData[8] << 16) | (replyData[9] << 24);
+                        const profile = replyData[10];
+
+                        addConsoleLog(`[✓] Cycle Time: ${cycleTime} µs`, 'success');
+                        addConsoleLog(`[ℹ] I2C Errors: ${i2cErrors}`, 'info');
+                        addConsoleLog(`[ℹ] Sensors: 0x${sensors.toString(16).toUpperCase()}`, 'info');
+                        addConsoleLog(`[ℹ] Flight Mode Flags: 0x${flightMode.toString(16).toUpperCase()}`, 'info');
+                        addConsoleLog(`[ℹ] Config Profile: ${profile}`, 'info');
+                    }
+                } else if (replyLen === 0) {
+                    addConsoleLog('[ℹ] No reply (MSP_RESULT_NO_REPLY)', 'warning');
+                } else {
+                    addConsoleLog(`[✗] MSP error: ${replyLen}`, 'error');
+                }
+
+                Module._free(replyBuffer);
+                addConsoleLog('[✓] MSP_STATUS test complete', 'success');
+            } catch (e) {
+                addConsoleLog('[✗] MSP_STATUS test failed: ' + e.message, 'error');
+            }
+        }
+
+        function updateStatus(elementId, value, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.textContent = value;
+            element.className = 'status-value ' + (isSuccess ? 'success' : 'error');
+        }
+
+        function addConsoleLog(text, type = 'info') {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toTimeString().split(' ')[0];
+            const line = document.createElement('div');
+            line.className = 'console-line ' + type;
+            line.textContent = `[${timestamp}] ${text}`;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function clearConsole() {
+            const console = document.getElementById('console');
+            console.innerHTML = '<div class="console-line info">Console cleared.</div>';
+        }
+
+        // Check WASM support
+        if (typeof WebAssembly === 'object') {
+            updateStatus('wasm-support', 'Yes', true);
+            addConsoleLog('[✓] WebAssembly supported', 'success');
+        } else {
+            updateStatus('wasm-support', 'No', false);
+            addConsoleLog('[✗] WebAssembly not supported!', 'error');
+        }
+    </script>
+
+    <!-- Load Emscripten-generated JavaScript -->
+    <script async src="bin/SITL.elf"></script>
+</body>
+</html>
