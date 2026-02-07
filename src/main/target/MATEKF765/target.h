@@ -160,6 +160,12 @@
   #define SERIAL_PORT_COUNT       10
 #endif
 
+#if defined(MATEKF765SE)
+  #define USE_DRONECAN
+  #define CAN1_RX                 PD0
+  #define CAN1_TX                 PD1
+#endif
+
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6

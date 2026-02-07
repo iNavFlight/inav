@@ -77,6 +77,8 @@ main_sources(STM32F7_SRC
     drivers/serial_uart_stm32f7xx.c
     drivers/serial_uart_hal.c
     drivers/sdcard/sdmmc_sdio_hal.c
+    drivers/dronecan/libcanard/canard_stm32f7xx_driver.c
+
 )
 
 main_sources(STM32F7_MSC_SRC
