@@ -378,6 +378,7 @@ void resetEEPROM(void)
     resetConfigs();
 }
 
+#ifndef __EMSCRIPTEN__
 void ensureEEPROMContainsValidData(void)
 {
     if (isEEPROMContentValid()) {
@@ -388,6 +389,7 @@ void ensureEEPROMContainsValidData(void)
     writeEEPROM();
     resumeRxSignal();
 }
+#endif
 
 /*
  * Used to save the EEPROM and notify the user with beeps and OSD notifications.

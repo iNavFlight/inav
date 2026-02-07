@@ -31,6 +31,11 @@
 #include "target/SITL/serial_proxy.h"
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include "target/SITL/wasm_msp_bridge.h"
+#endif
+
 
 #ifdef SOFTSERIAL_LOOPBACK
 serialPort_t *loopbackPort;
@@ -58,6 +63,16 @@ static void processLoopback(void)
 #endif
 }
 
+#ifdef __EMSCRIPTEN__
+// WASM: Main loop iteration function (called by browser event loop)
+static void mainLoopIteration(void)
+{
+    wasmMspProcess();  // Process WASM MSP serial port
+    scheduler();
+    processLoopback();
+}
+#endif
+
 #if defined(SITL_BUILD)
 int main(int argc, char *argv[])
 {
@@ -69,6 +84,14 @@ int main(void)
     init();
     loopbackInit();
 
+#ifdef __EMSCRIPTEN__
+    // WASM: Use Emscripten's cooperative main loop
+    // This yields control back to browser after each iteration
+    // 0 = run as fast as possible (browser will use requestAnimationFrame)
+    // 1 = simulate infinite loop (never return from main)
+    emscripten_set_main_loop(mainLoopIteration, 0, 1);
+#else
+    // Native: Traditional infinite loop
     while (true) {
 #if defined(SITL_BUILD)
         serialProxyProcess();
@@ -76,4 +99,5 @@ int main(void)
         scheduler();
         processLoopback();
     }
+#endif
 }
