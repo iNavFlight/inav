@@ -51,11 +51,18 @@
 #include "drivers/timer.h"
 #include "drivers/serial.h"
 #include "drivers/serial_tcp.h"
+#include "drivers/serial_websocket.h"
 #include "config/config_streamer.h"
 #include "build/version.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
+#ifndef SKIP_SIMULATOR
 #include "target/SITL/sim/realFlight.h"
 #include "target/SITL/sim/xplane.h"
+#endif
 
 #include "target/SITL/serial_proxy.h"
 
@@ -101,6 +108,7 @@ void systemInit(void) {
         exit(1);
     }
 
+#ifndef SKIP_SIMULATOR
     if (sitlSim != SITL_SIM_NONE) {
         fprintf(stderr, "[SIM] Waiting for connection...\n");
     }
@@ -135,6 +143,9 @@ void systemInit(void) {
           break;
     }
 
+#else
+    fprintf(stderr, "[SIM] Simulator disabled for WASM build. Configurator only.\n");
+#endif
     rescheduleTask(TASK_SERIAL, SITL_SERIAL_TASK_US);
 }
 
@@ -250,6 +261,7 @@ void parseArguments(int argc, char *argv[])
             break;
 
         switch (c) {
+#ifndef SKIP_SIMULATOR
             case 's':
                 if (strcmp(optarg, "rf") == 0) {
                     sitlSim = SITL_SIM_REALFLIGHT;
@@ -277,9 +289,12 @@ void parseArguments(int argc, char *argv[])
                 simIp = optarg;
                 break;
             case 'e':
+#endif
+#if defined(CONFIG_IN_FILE)
                 if (!configFileSetPath(optarg)){
                     fprintf(stderr, "[EEPROM] Invalid path, using eeprom file in program directory\n.");
                 }
+#endif
                 break;
             case 'v':
                 printVersion();
@@ -389,6 +404,26 @@ void delay(timeMs_t ms)
 
 void systemReset(void)
 {
+#ifdef __EMSCRIPTEN__
+    fprintf(stderr, "[SYSTEM] Reset requested - notifying JavaScript and exiting WASM\n");
+
+    // Step 1: Notify JavaScript to reload the page
+    // This uses IPC to tell Electron's main process to reload
+    EM_ASM({
+        if (typeof Module !== 'undefined' && Module.wasmRequestReboot) {
+            console.log('[WASM] Calling Module.wasmRequestReboot()');
+            Module.wasmRequestReboot();
+        } else {
+            console.error('[WASM] Module.wasmRequestReboot not available');
+        }
+    });
+
+    // Step 2: Exit WASM cleanly using emscripten_force_exit()
+    // This requires -sASYNCIFY=1 build flag (like Scavanger's implementation)
+    // It allows JavaScript event loop to continue after we exit
+    fprintf(stderr, "[SYSTEM] Calling emscripten_force_exit()\n");
+    emscripten_force_exit(0);
+#else
     fprintf(stderr, "[SYSTEM] Reset\n");
 #if defined(__CYGWIN__) || defined(__APPLE__) || GCC_MAJOR < 12
     for(int j = 3; j < 1024; j++) {
@@ -399,6 +434,7 @@ void systemReset(void)
 #endif
     serialProxyClose();
     execvp(c_argv[0], c_argv); // restart
+#endif
 }
 
 void systemResetToBootloader(void)
@@ -409,9 +445,15 @@ void systemResetToBootloader(void)
 
 void failureMode(failureMode_e mode) {
     fprintf(stderr, "[SYSTEM] Failure mode %d\n", mode);
+#ifdef __EMSCRIPTEN__
+    // WASM: Don't loop forever - just log and continue
+    // The config will be reset to defaults
+    fprintf(stderr, "[SYSTEM] WASM: Continuing despite failure mode (config will use defaults)\n");
+#else
     while (true) {
         delay(1000);
     };
+#endif
 }
 
 // Even more dummys and stubs
