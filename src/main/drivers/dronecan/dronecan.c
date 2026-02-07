@@ -22,8 +22,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-FDCAN_HandleTypeDef hfdcan1;
-
 CanardInstance canard;
 uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
@@ -53,8 +51,6 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
 
-//	LOG_DEBUG(CAN, "Node health: %u", nodeStatus.health);
-//    LOG_DEBUG(CAN, "Node Mode: %u", nodeStatus.mode);
 	LOG_DEBUG(CAN, "Node Health ");
 
 	switch (nodeStatus.health) {
@@ -394,17 +390,11 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 }
 
 
-void processCanardTxQueue(FDCAN_HandleTypeDef *hfdcan) {
+void processCanardTxQueue(void) {
 	// Transmitting
 	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
     {
-        // LOG_DEBUG(CAN, "Found transmit frame");
-		FDCAN_ProtocolStatusTypeDef protocolStatus = {};
-
-         HAL_FDCAN_GetProtocolStatus(hfdcan, &protocolStatus);
-         LOG_DEBUG(CAN, "BusOff: %lu", protocolStatus.BusOff);
-         LOG_DEBUG(CAN, "ErrorPassive: %lu", protocolStatus.ErrorPassive);
-        const int16_t tx_res = canardSTM32Transmit(hfdcan, tx_frame);
+        const int16_t tx_res = canardSTM32Transmit(tx_frame);
 
 		if (tx_res < 0) {
 			LOG_DEBUG(CAN, "Transmit error %d", tx_res);
@@ -413,7 +403,7 @@ void processCanardTxQueue(FDCAN_HandleTypeDef *hfdcan) {
 		}
         else
         {
-            LOG_DEBUG(CAN, "hfderror %"PRIu32"", hfdcan->ErrorCode);
+            LOG_DEBUG(CAN, "hfderror transmitting.");
         }
 		// Pop canardTxQueue either way
 		canardPopTxQueue(&canard);
@@ -464,7 +454,7 @@ void dronecanInit(void)
             bitrate = 500000;
             break;
     }
-    canardSTM32_FDCAN1_Init(&hfdcan1, bitrate);  // TODO: Handle error and disable CAN if this call fails.
+    canardSTM32CAN1_Init(bitrate);  // TODO: Handle error and disable CAN if this call fails.
     /*
     Initializing the Libcanard instance.
     */
@@ -511,7 +501,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
     CanardCANFrame rx_frame;
     int numMessagesToProcess = 0;
     static enum dronecanState_e dronecanState = STATE_DRONECAN_INIT;
-    FDCAN_ProtocolStatusTypeDef protocolStatus = {};
+    canardProtocolStatus_t protocolStatus = {};
 
     switch(dronecanState) {
         case STATE_DRONECAN_INIT:
@@ -519,15 +509,14 @@ void dronecanUpdate(timeUs_t currentTimeUs)
             break;
 
         case STATE_DRONECAN_NORMAL:
-            processCanardTxQueue(&hfdcan1);
+            processCanardTxQueue();
 
-            numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); 
-            for (numMessagesToProcess = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0); numMessagesToProcess > 0; numMessagesToProcess--)
+            for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
             {
                 //LOG_DEBUG(CAN, "Received a message");
-                LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0));
+                LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", canardSTM32GetRxFifoFillLevel());
 	            const uint64_t timestamp = HAL_GetTick() * 1000ULL;
-	            const int16_t rx_res = canardSTM32Recieve(&hfdcan1, FDCAN_RX_FIFO0, &rx_frame);
+	            const int16_t rx_res = canardSTM32Recieve(&rx_frame);
 
 	            if (rx_res < 0) {
 		            LOG_DEBUG(CAN, "Receive error %d", rx_res);
@@ -545,7 +534,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
         
             }
 
-            HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocolStatus);
+            canardSTM32GetProtocolStatus(&protocolStatus);
             if(protocolStatus.BusOff != 0) {
                 dronecanState = STATE_DRONECAN_BUS_OFF;
                 busoffTimeUs = currentTimeUs;
@@ -554,10 +543,10 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 
         case STATE_DRONECAN_BUS_OFF:
             if(currentTimeUs > (busoffTimeUs + 100000)) { // Wait 100 mS
-                CLEAR_BIT(hfdcan1.Instance->CCCR, FDCAN_CCCR_INIT);  // Clear INIT bit to recover from Bus-Off
+                canardSTM32RecoverFromBusOff();
                 busoffTimeUs = currentTimeUs;
             }
-            HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocolStatus);
+            canardSTM32GetProtocolStatus(&protocolStatus);
             if(protocolStatus.BusOff == 0) {
                 dronecanState = STATE_DRONECAN_NORMAL;
             }

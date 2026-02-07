@@ -9,6 +9,7 @@
 #include "common/time.h"
 #include "drivers/io.h"
 #include "canard.h"
+#include "canard_stm32_driver.h"
 
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_def.h"
@@ -24,8 +25,10 @@ struct Timings {
         uint8_t bs2;
 };
 
-static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Timings*out_timings);
-static void canard_stm32_GPIO_Init(void);
+static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings*out_timings);
+static void canardSTM32GPIO_Init(void);
+
+static FDCAN_HandleTypeDef hfdcan1;
 
 /**
   * @brief  Process CAN message from RxLocation FIFO into rx_frame
@@ -37,7 +40,7 @@ static void canard_stm32_GPIO_Init(void);
   * 		stored.
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
-int16_t canardSTM32Recieve(FDCAN_HandleTypeDef *hfdcan, uint32_t RxLocation, CanardCANFrame *const rx_frame) {
+int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
 	if (rx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}
@@ -45,7 +48,7 @@ int16_t canardSTM32Recieve(FDCAN_HandleTypeDef *hfdcan, uint32_t RxLocation, Can
 	FDCAN_RxHeaderTypeDef RxHeader;
 	uint8_t RxData[8];
 
-	if (HAL_FDCAN_GetRxMessage(hfdcan, RxLocation, &RxHeader, RxData) == HAL_OK) {
+	if (HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK) {
 
 		// Process ID to canard format
 		rx_frame->id = RxHeader.Identifier;
@@ -73,13 +76,11 @@ int16_t canardSTM32Recieve(FDCAN_HandleTypeDef *hfdcan, uint32_t RxLocation, Can
 
 /**
   * @brief  Process tx_frame CAN message into Tx FIFO/Queue and transmit it
-  * @param  hfdcan pointer to an FDCAN_HandleTypeDef structure that contains
-  *         the configuration information for the specified FDCAN.
   * @param  tx_frame pointer to a CanardCANFrame structure that contains the CAN message to
   * 		transmit.
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
-int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* const tx_frame) {
+int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	if (tx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}
@@ -115,7 +116,7 @@ int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* c
 	TxHeader.MessageMarker = 0; // unsure about this one
 	memcpy(TxData, tx_frame->data, TxHeader.DataLength);
 
-	if (HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &TxHeader, TxData) == HAL_OK) {
+	if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) == HAL_OK) {
 		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", TxHeader.Identifier);
 		return 1;
 	}
@@ -127,13 +128,11 @@ int16_t canardSTM32Transmit(FDCAN_HandleTypeDef *hfdcan, const CanardCANFrame* c
 }
 
 /**
-  * @brief FDCAN1 Initialization Function
-  * @param  hfdcan pointer to an FDCAN_HandleTypeDef structure that contains
-  *         the configuration information for the specified FDCAN.
+  * @brief CAN1 Initialization Function
   * @param  bitrate desired bitrate to run the CAN network at.
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
-int16_t canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
+int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 {
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
     struct Timings out_timings;
@@ -153,32 +152,32 @@ int16_t canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
   sFilterConfig.FilterID2 = 0x1FFFFFFFU;
   // sFilterConfig.RxBufferIndex = 0;
   /* USER CODE END FDCAN1_Init 1 */
-  hfdcan1->Instance = FDCAN1;
-  hfdcan1->Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
-  hfdcan1->Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan1->Init.AutoRetransmission = DISABLE;
-  hfdcan1->Init.TransmitPause = DISABLE;
-  hfdcan1->Init.ProtocolException = DISABLE;
+  hfdcan1.Instance = FDCAN1;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
+  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
+  hfdcan1.Init.AutoRetransmission = DISABLE;
+  hfdcan1.Init.TransmitPause = DISABLE;
+  hfdcan1.Init.ProtocolException = DISABLE;
 
-  canard_stm32ComputeTimings(bitrate, &out_timings);
+  canardSTM32ComputeTimings(bitrate, &out_timings);
 
-  hfdcan1->Init.NominalPrescaler = out_timings.prescaler;
-  hfdcan1->Init.NominalSyncJumpWidth = out_timings.sjw;
-  hfdcan1->Init.NominalTimeSeg1 = out_timings.bs1;
-  hfdcan1->Init.NominalTimeSeg2 = out_timings.bs2;
+  hfdcan1.Init.NominalPrescaler = out_timings.prescaler;
+  hfdcan1.Init.NominalSyncJumpWidth = out_timings.sjw;
+  hfdcan1.Init.NominalTimeSeg1 = out_timings.bs1;
+  hfdcan1.Init.NominalTimeSeg2 = out_timings.bs2;
   LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
-  hfdcan1->Init.RxFifo0ElmtsNbr = 30;
-  hfdcan1->Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
-  hfdcan1->Init.RxBuffersNbr = 1;
-  hfdcan1->Init.RxBufferSize = FDCAN_DATA_BYTES_8;
-  hfdcan1->Init.StdFiltersNbr = 0;
-  hfdcan1->Init.ExtFiltersNbr = 1;
-  hfdcan1->Init.TxFifoQueueElmtsNbr = 32;
-  hfdcan1->Init.TxEventsNbr = 0;
-  hfdcan1->Init.TxBuffersNbr = 5;
-  hfdcan1->Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-  hfdcan1->Init.TxElmtSize = FDCAN_DATA_BYTES_8;
+  hfdcan1.Init.RxFifo0ElmtsNbr = 30;
+  hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
+  hfdcan1.Init.RxBuffersNbr = 1;
+  hfdcan1.Init.RxBufferSize = FDCAN_DATA_BYTES_8;
+  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.ExtFiltersNbr = 1;
+  hfdcan1.Init.TxFifoQueueElmtsNbr = 32;
+  hfdcan1.Init.TxEventsNbr = 0;
+  hfdcan1.Init.TxBuffersNbr = 5;
+  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+  hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
   LOG_DEBUG(CAN, "In CAN Init");
 
   /** Initializes the peripherals clock
@@ -193,26 +192,26 @@ int16_t canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
     /* FDCAN1 clock enable */
     __HAL_RCC_FDCAN_CLK_ENABLE();
 
-    canard_stm32_GPIO_Init();  // Set up the pins for CAN and optional listen only mode
+    canardSTM32GPIO_Init();  // Set up the pins for CAN and optional listen only mode
     
     // LOG_DEBUG(CAN, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
     // LOG_DEBUG(CAN, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
-    if (HAL_FDCAN_Init(hfdcan1) != HAL_OK)
+    if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
     {
         LOG_ERROR(CAN, "Failed CAN Init");
         return -CANARD_ERROR_INTERNAL;
     }
     /* USER CODE BEGIN FDCAN1_Init 2 */
-    if (HAL_FDCAN_ConfigFilter(hfdcan1, &sFilterConfig) != HAL_OK) {
+    if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
     }
-    if (HAL_FDCAN_ConfigGlobalFilter(hfdcan1, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
+    if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
         LOG_ERROR(CAN, "Failed to config FDCAN filter");
         return -CANARD_ERROR_INTERNAL;
     }
 
-    if (HAL_FDCAN_Start(hfdcan1) != HAL_OK) {
+    if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
         LOG_ERROR(CAN, "Failed to Start");
         return -CANARD_ERROR_INTERNAL;
     }
@@ -224,7 +223,7 @@ int16_t canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
   * @param None
   * @retval None
   */
-static void canard_stm32_GPIO_Init(void)
+static void canardSTM32GPIO_Init(void)
 {
    // Set up the Rx and Tx pins for CAN1 and if present, the standby or listen only pin.
 #if defined(CAN1_TX) && defined(CAN1_RX)
@@ -244,7 +243,7 @@ static void canard_stm32_GPIO_Init(void)
     IOLo(IOGetByTag(IO_TAG(CAN1_STANDBY)));
 #endif
 }
-static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Timings *out_timings)
+static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings *out_timings)
 {
     if (target_bitrate < 1) {
         return false;
@@ -365,3 +364,20 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
     return true;
 }
 
+void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
+	FDCAN_ProtocolStatusTypeDef protocolStatus = {};
+
+    HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocolStatus);
+    pProtocolStat->BusOff = protocolStatus.BusOff;
+    pProtocolStat->ErrorPassive = protocolStatus.ErrorPassive;
+    LOG_DEBUG(CAN, "BusOff: %lu", protocolStatus.BusOff);
+    LOG_DEBUG(CAN, "ErrorPassive: %lu", protocolStatus.ErrorPassive);
+}
+
+int32_t canardSTM32GetRxFifoFillLevel(void){
+    return (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0));
+}
+
+void canardSTM32RecoverFromBusOff(void){
+    CLEAR_BIT(hfdcan1.Instance->CCCR, FDCAN_CCCR_INIT);  // Clear INIT bit to recover from Bus-Off
+}
