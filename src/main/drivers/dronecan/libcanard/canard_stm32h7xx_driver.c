@@ -16,7 +16,7 @@
 
 #include <string.h>
 #include <stdint.h>
-#ifdef USE_DRONECAN
+
 struct Timings {
         uint16_t prescaler;
         uint8_t sjw;
@@ -227,11 +227,13 @@ int16_t canardSTM32_FDCAN1_Init(FDCAN_HandleTypeDef *hfdcan1, uint32_t bitrate)
 static void canard_stm32_GPIO_Init(void)
 {
    // Set up the Rx and Tx pins for CAN1 and if present, the standby or listen only pin.
-
+#if defined(CAN1_TX) && defined(CAN1_RX)
     IOInit(IOGetByTag(IO_TAG(CAN1_TX)), OWNER_DRONECAN, RESOURCE_CAN_TX, 0);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
     IOInit(IOGetByTag(IO_TAG(CAN1_RX)), OWNER_DRONECAN, RESOURCE_CAN_RX, 0);
     IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
+#endif
+
 
  #ifdef CAN1_STANDBY
     // Initialize the standby or listen only pin.  Set default state to enable CAN.
@@ -242,7 +244,6 @@ static void canard_stm32_GPIO_Init(void)
     IOLo(IOGetByTag(IO_TAG(CAN1_STANDBY)));
 #endif
 }
-
 static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Timings *out_timings)
 {
     if (target_bitrate < 1) {
@@ -363,4 +364,4 @@ static bool canard_stm32ComputeTimings(const uint32_t target_bitrate, struct Tim
 
     return true;
 }
-#endif //USE_DRONECAN
+
