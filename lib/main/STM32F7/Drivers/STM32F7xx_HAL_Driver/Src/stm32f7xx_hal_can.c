@@ -353,6 +353,7 @@ HAL_StatusTypeDef HAL_CAN_Init(CAN_HandleTypeDef* hcan)
   */
 HAL_StatusTypeDef HAL_CAN_ConfigFilter(CAN_HandleTypeDef* hcan, CAN_FilterConfTypeDef* sFilterConfig)
 {
+  UNUSED(hcan);  
   uint32_t filternbrbitpos = 0;
   CAN_TypeDef *can_ip;
   
