@@ -1040,7 +1040,7 @@
         "FEATURE_PWM_OUTPUT_ENABLE": "1 << 28",
         "FEATURE_OSD": "1 << 29",
         "FEATURE_FW_LAUNCH": "1 << 30",
-        "FEATURE_FW_AUTOTRIM": "1 << 31"
+        "FEATURE_FW_AUTOTRIM": "1U << 31"
     },
     "filterType_e": {
         "_source": "inav/src/main/common/filter.h",
@@ -3829,7 +3829,7 @@
         "THR_HI": "(2 << (2 * THROTTLE))"
     },
     "systemState_e": {
-        "_source": "inav/src/main/fc/fc_init.h",
+        "_source": "inav/src/main/fc/fc_init.c",
         "SYSTEM_STATE_INITIALISING": "0",
         "SYSTEM_STATE_CONFIG_LOADED": "(1 << 0)",
         "SYSTEM_STATE_SENSORS_READY": "(1 << 1)",
