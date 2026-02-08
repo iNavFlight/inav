@@ -188,14 +188,6 @@ void taskUpdateCompass(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_ADSB
-void taskAdsb(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
-    adsbTtlClean(currentTimeUs);
-}
-#endif
-
 #ifdef USE_BARO
 void taskUpdateBaro(timeUs_t currentTimeUs)
 {
@@ -566,7 +558,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         [TASK_ADSB] = {
         .taskName = "ADSB",
         .taskFunc = taskAdsb,
-        .desiredPeriod = TASK_PERIOD_HZ(1),      // ADSB is updated at 1 Hz
+        .desiredPeriod = TASK_PERIOD_MS(500),      // ADSB is updated at 1 Hz
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
