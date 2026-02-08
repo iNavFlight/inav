@@ -153,6 +153,10 @@ extern "C" {
 #define CANARD_TRANSFER_PAYLOAD_LEN_BITS            10U
 #define CANARD_MAX_TRANSFER_PAYLOAD_LEN             ((1U << CANARD_TRANSFER_PAYLOAD_LEN_BITS) - 1U)
 
+#ifdef SITL_BUILD
+#define CANARD_64_BIT 1
+#endif
+
 #ifndef CANARD_64_BIT
 #ifdef __WORDSIZE
 #define CANARD_64_BIT (__WORDSIZE == 64)
