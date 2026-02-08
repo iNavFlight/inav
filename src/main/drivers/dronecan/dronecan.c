@@ -178,18 +178,7 @@ void handle_RawCommand(CanardInstance *ins, CanardRxTransfer *transfer)
 //    printf("Throttle: %f \n", rawCommand.cmd.data[ESC_INDEX]/8192.0);
 }
 */
-/*
-  get a 16 byte unique ID for this node, this should be based on the CPU unique ID or other unique ID
- */
-void getUniqueID(uint8_t id[16]) {
-    uint32_t HALUniqueIDs[3];
-    // Make Unique ID out of the 96-bit STM32 UID and fill the rest with 0s
-    memset(id, 0, 16);
-    HALUniqueIDs[0] = HAL_GetUIDw0();
-    HALUniqueIDs[1] = HAL_GetUIDw1();
-    HALUniqueIDs[2] = HAL_GetUIDw2();
-    memcpy(id, HALUniqueIDs, 12);
-}
+
 
 /*
   handle a GetNodeInfo request
@@ -218,7 +207,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	pkt.hardware_version.minor = 0;
 
 	// just setting all 16 bytes to 1 for testing
-	getUniqueID(pkt.hardware_version.unique_id);
+	canardSTM32GetUniqueID(pkt.hardware_version.unique_id);
 
 	strncpy((char*)pkt.name.data, FC_FIRMWARE_NAME, sizeof(pkt.name.data));
 	pkt.name.len = strnlen((char*)pkt.name.data, sizeof(pkt.name.data));

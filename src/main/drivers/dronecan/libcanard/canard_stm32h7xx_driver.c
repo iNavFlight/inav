@@ -381,3 +381,16 @@ int32_t canardSTM32GetRxFifoFillLevel(void){
 void canardSTM32RecoverFromBusOff(void){
     CLEAR_BIT(hfdcan1.Instance->CCCR, FDCAN_CCCR_INIT);  // Clear INIT bit to recover from Bus-Off
 }
+
+/*
+  get a 16 byte unique ID for this node, this should be based on the CPU unique ID or other unique ID
+ */
+void canardSTM32GetUniqueID(uint8_t id[16]) {
+    uint32_t HALUniqueIDs[3];
+    // Make Unique ID out of the 96-bit STM32 UID and fill the rest with 0s
+    memset(id, 0, 16);
+    HALUniqueIDs[0] = HAL_GetUIDw0();
+    HALUniqueIDs[1] = HAL_GetUIDw1();
+    HALUniqueIDs[2] = HAL_GetUIDw2();
+    memcpy(id, HALUniqueIDs, 12);
+}

@@ -352,3 +352,16 @@ void canardSTM32RecoverFromBusOff(void){
     // Auto recover from bus off is enabled
     // CLEAR_BIT(hcan1.Instance->CCCR, FDCAN_CCCR_INIT);  // Clear INIT bit to recover from Bus-Off
 }
+
+/*
+  get a 16 byte unique ID for this node, this should be based on the CPU unique ID or other unique ID
+ */
+void canardSTM32GetUniqueID(uint8_t id[16]) {
+    uint32_t HALUniqueIDs[3];
+    // Make Unique ID out of the 96-bit STM32 UID and fill the rest with 0s
+    memset(id, 0, 16);
+    HALUniqueIDs[0] = HAL_GetDEVID();
+    HALUniqueIDs[1] = 0;
+    HALUniqueIDs[2] = 0;
+    memcpy(id, HALUniqueIDs, 12);
+}
