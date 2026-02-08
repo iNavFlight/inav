@@ -7,13 +7,14 @@
 
 #ifndef INC_CANARD_STM32_DRIVER_H_
 #define INC_CANARD_STM32_DRIVER_H_
-#ifdef USE_DRONECAN
 #include "canard.h"
 
 typedef struct {
     uint32_t BusOff;
     uint32_t ErrorPassive;
 } canardProtocolStatus_t;
+
+#ifdef USE_DRONECAN
 
 int16_t canardSTM32CAN1_Init(uint32_t bitrate);
 
