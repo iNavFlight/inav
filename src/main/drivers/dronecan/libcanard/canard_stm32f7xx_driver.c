@@ -9,6 +9,7 @@
 #include "common/time.h"
 #include "drivers/io.h"
 #include "canard.h"
+#include "canard_stm32_driver.h"
 
 #include "stm32f7xx_hal.h"
 #include "stm32f7xx_hal_def.h"
@@ -342,6 +343,14 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     out_timings->bs2 = (uint8_t)(solution.bs2);  // The HAL takes care of the 1 bs offset in the register so don't remove it here like AP does.
 
     return true;
+}
+
+void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
+
+    pProtocolStat->BusOff = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
+    pProtocolStat->ErrorPassive = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_EPV);
+    LOG_DEBUG(CAN, "BusOff: %lu", pProtocolStat->BusOff);
+    LOG_DEBUG(CAN, "ErrorPassive: %lu", pProtocolStat->ErrorPassive);
 }
 
 int32_t canardSTM32GetRxFifoFillLevel(void){
