@@ -673,6 +673,7 @@
     "MSP_POSITION_ESTIMATION_CONFIG": {
         "code": 16,
         "mspv": 1,
+        "replaced_by": ["MSP2_COMMON_SETTING"],
         "request": null,
         "reply": {
             "payload": [
@@ -727,6 +728,7 @@
     "MSP_SET_POSITION_ESTIMATION_CONFIG": {
         "code": 17,
         "mspv": 1,
+        "replaced_by": ["MSP2_COMMON_SET_SETTING"],
         "request": {
             "payload": [
                 {
@@ -2426,6 +2428,7 @@
     "MSP_OSD_CONFIG": {
         "code": 84,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_OSD_LAYOUTS", "MSP2_INAV_OSD_ALARMS", "MSP2_INAV_OSD_PREFERENCES"],
         "request": null,
         "reply": {
             "payload": [
@@ -2504,6 +2507,7 @@
     "MSP_SET_OSD_CONFIG": {
         "code": 85,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_OSD_SET_LAYOUT_ITEM", "MSP2_INAV_OSD_SET_ALARMS", "MSP2_INAV_OSD_SET_PREFERENCES"],
         "request": null,
         "reply": null,
         "notes": "Requires `USE_OSD`. Distinguishes formats based on the first byte. Format 1 requires at least 10 bytes. Format 2 requires 3 bytes. Triggers an OSD redraw. See `MSP2_INAV_OSD_SET_*` for more advanced control.",
@@ -3134,6 +3138,7 @@
     "MSP_FILTER_CONFIG": {
         "code": 92,
         "mspv": 1,
+        "replaced_by": ["MSP2_COMMON_SETTING"],
         "request": null,
         "reply": {
             "payload": [
@@ -3217,6 +3222,7 @@
     "MSP_SET_FILTER_CONFIG": {
         "code": 93,
         "mspv": 1,
+        "replaced_by": ["MSP2_COMMON_SET_SETTING"],
         "request": {
             "payload": [
                 {
@@ -3293,6 +3299,7 @@
     "MSP_PID_ADVANCED": {
         "code": 94,
         "mspv": 1,
+        "replaced_by": ["MSP_INAV_PID"],
         "request": null,
         "reply": {
             "payload": [
@@ -3370,6 +3377,7 @@
     "MSP_SET_PID_ADVANCED": {
         "code": 95,
         "mspv": 1,
+        "replaced_by": ["MSP_SET_INAV_PID"],
         "request": {
             "payload": [
                 {
@@ -3914,6 +3922,7 @@
     "MSP_ANALOG": {
         "code": 110,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_ANALOG"],
         "request": null,
         "reply": {
             "payload": [
@@ -4039,6 +4048,7 @@
     "MSP_MISC": {
         "code": 114,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_MISC"],
         "request": null,
         "reply": {
             "payload": [
@@ -4168,6 +4178,7 @@
     "MSP_PIDNAMES": {
         "code": 117,
         "mspv": 1,
+        "replaced_by": [],
         "request": null,
         "reply": {
             "payload": [
@@ -5135,6 +5146,7 @@
     "MSP_SET_MISC": {
         "code": 207,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_SET_MISC"],
         "request": {
             "payload": [
                 {
@@ -5588,6 +5600,7 @@
     "MSP_SERVO_MIX_RULES": {
         "code": 241,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_SERVO_MIXER"],
         "request": null,
         "reply": {
             "payload": [
@@ -5644,6 +5657,7 @@
     "MSP_SET_SERVO_MIX_RULE": {
         "code": 242,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_SET_SERVO_MIXER"],
         "request": {
             "payload": [
                 {
