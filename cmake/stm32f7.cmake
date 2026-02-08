@@ -7,6 +7,7 @@ set(STM32F7_HAL_SRC
     stm32f7xx_hal.c
     stm32f7xx_hal_adc.c
     stm32f7xx_hal_adc_ex.c
+    stm32f7xx_hal_can.c
     stm32f7xx_hal_cortex.c
     stm32f7xx_hal_dac.c
     stm32f7xx_hal_dac_ex.c
