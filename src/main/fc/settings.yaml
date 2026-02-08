@@ -3690,6 +3690,12 @@ groups:
         field: adsb_warning_style
         type: uint8_t
         condition: USE_ADSB
+      - name: osd_adsb_calculation_use_cpa
+        description: "Use CPA (Closest Point of Approach) method for ADS-B traffic distance and collision risk calculation instead of instantaneous distance."
+        default_value: OFF
+        field: adsb_calculation_use_cpa
+        type: bool
+        condition: USE_ADSB
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
         default_value: ON
