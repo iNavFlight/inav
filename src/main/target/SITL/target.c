@@ -135,21 +135,29 @@ void systemInit(void) {
     
 #if defined(WASM_BUILD)
     // Init emscripten socket bridge
-    char url[64];
-    snprintf(url, sizeof(url), "ws://localhost:%d", wasmProxyPort);
-    bridgeSocket = emscripten_init_websocket_to_posix_socket_bridge(url);
-    uint16_t readyState = 0;
-    const uint32_t start = millis();
-    do {
-        emscripten_websocket_get_ready_state(bridgeSocket, &readyState);
-        emscripten_thread_sleep(100);
-    } while((readyState != WEBSOCKET_READY_STATE_OPEN && millis() - start < WARM_PROXY_CONNECT_TIMEOUT_MS));
-
-    if (readyState != WEBSOCKET_READY_STATE_OPEN) {
-        fprintf(stderr, "[SOCKET] Warning: Unable to connect to socket proxy on port %d. Network connection may be unavailable.\n", wasmProxyPort);
+    
+    if (wasmProxyPort == 0) {
+        fprintf(stderr, "[SOCKET] Network functions disabled.\n");
     } else {
-        fprintf(stderr, "[SOCKET] Connected to socket proxy on port %d\n", wasmProxyPort);
-        wasmProxyConnected = true;
+        fprintf(stderr, "[SOCKET] Initializing network socket proxy on port %d...\n", wasmProxyPort);
+    
+        char url[64];
+        snprintf(url, sizeof(url), "ws://localhost:%d", wasmProxyPort);
+        bridgeSocket = emscripten_init_websocket_to_posix_socket_bridge(url);
+        uint16_t readyState = 0;
+        const uint32_t start = millis();
+        do {
+            emscripten_websocket_get_ready_state(bridgeSocket, &readyState);
+            emscripten_thread_sleep(100);
+        } while((readyState != WEBSOCKET_READY_STATE_OPEN && millis() - start < WARM_PROXY_CONNECT_TIMEOUT_MS));
+
+        if (readyState != WEBSOCKET_READY_STATE_OPEN) {
+            fprintf(stderr, "[SOCKET] Warning: Unable to connect to socket proxy on port %d. Network connection may be unavailable.\n", wasmProxyPort);
+            sitlSim = SITL_SIM_NONE;
+        } else {
+            fprintf(stderr, "[SOCKET] Connected to socket proxy on port %d\n", wasmProxyPort);
+            wasmProxyConnected = true;
+        }
     }
 
 #endif
@@ -283,7 +291,7 @@ void printCmdLineOptions(void)
     fprintf(stderr, "                               For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
     fprintf(stderr, "                               --chanmap=M01-01,S01-02,S02-03\n");
 #if defined(WASM_BUILD)
-    fprintf(stderr, "--proxyPort=[port]            Port on which the websocket proxy server is listening (default: 8081)\n");
+    fprintf(stderr, "--proxyPort=[port]            Port on which the websocket proxy server is listening (default: 8081). Set to 0 to disable network functions.\n");
 #endif
 }
 
@@ -417,7 +425,7 @@ void parseArguments(int argc, char *argv[])
             {   
                 char *endptr = NULL;
                 long proxyPort = strtol(optarg, &endptr, 10);
-                if ((endptr == NULL) || (*endptr != '\0') || proxyPort <= 0 || proxyPort > UINT16_MAX) {
+                if ((endptr == NULL) || (*endptr != '\0') || proxyPort < 0 || proxyPort > UINT16_MAX) {
                     fprintf(stderr, "[proxyPort] Invalid argument\n.");
                     exit(0);
                 }
@@ -486,6 +494,12 @@ void delay(timeMs_t ms)
 
 void systemReset(void)
 {
+// In WASM we just exit to let the JS host reload everything
+#if defined(WASM_BUILD)
+    emscripten_force_exit(1); // 1 indicates a reset
+    return;
+#endif
+    
     fprintf(stderr, "[SYSTEM] Reset\n");
 #if defined(__CYGWIN__) || defined(__APPLE__) || GCC_MAJOR < 12
     for(int j = 3; j < 1024; j++) {
@@ -688,18 +702,17 @@ void wasmStart(wasmMainThreadType thread)
 {
     wasmMainThreadWorker = thread;
     wasmInitFilesystem();
-    emscripten_set_main_loop(wasmMainLoop, 0, false);
+    emscripten_set_main_loop(wasmMainLoop, 0, true);
 }
 
 void wasmExit(void)
 {
-   emscripten_force_exit(1);
+   emscripten_force_exit(0);
 }
 
 bool isSocketProxyConnected(void) 
 { 
     return wasmProxyConnected; 
 }
-
 
 #endif

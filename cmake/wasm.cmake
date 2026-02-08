@@ -41,10 +41,14 @@ main_sources(WASM_SRC
 
 # Emscripten linkage options
 set(WASM_LINK_OPTIONS
+    -sEXPORT_NAME='inavSITLModule'
+    -sMODULARIZE=1
+    -sEXPORT_ES6=1
+    -sENVIRONMENT=['web','worker']
+    -sNO_EXIT_RUNTIME=0
     -sWASM=1
     -sINVOKE_RUN=0
     -sWASMFS=1
-    -lwebsocket.js
     -sFORCE_FILESYSTEM=1
     -sASSERTIONS=0
     -sASYNCIFY=1
@@ -54,8 +58,11 @@ set(WASM_LINK_OPTIONS
     -sPROXY_TO_PTHREAD
     -sALLOW_TABLE_GROWTH=1
     -sPTHREAD_POOL_SIZE=10
-    -sEXPORTED_FUNCTIONS=['_main','_wasmExit','_malloc','_free','_fcScheduler','_inavSerialExSend','_inavSerialExConnect','_inavSerialExDisconnect','_serialExHasMessages','_serialExGetMessage']
-    -sEXPORTED_RUNTIME_METHODS=['cwrap','ccall','callMain','addFunction','HEAP8','HEAPU8','HEAPU16','wasmMemory','FS']
+    -sEXPORTED_FUNCTIONS=['_main','_wasmExit','_malloc','_free','_fcScheduler','_inavSerialExSend','_inavSerialExConnect','_inavSerialExDisconnect','_serialExGetPendingPort','_serialExGetMessage']
+    -sEXPORTED_RUNTIME_METHODS=['cwrap','ccall','callMain','addFunction','HEAP8','HEAPU8','HEAPU16','HEAPU32','wasmMemory','FS']
+    -sSINGLE_FILE=0
+    -O2
+    -gsource-map
 )
 
 
@@ -146,8 +153,7 @@ function (target_wasm name)
         COMMAND ${CMAKE_COMMAND} -E copy ${emscripten_output_js} ${wasm_filename}
         COMMAND ${CMAKE_COMMAND} -E copy ${emscripten_output_wasm} ${wasm_wasm_file}
         COMMAND ${CMAKE_COMMAND} -E copy ${html_file} ${output_index_html}
-        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/fix_wasm_filename.cmake --arg ${wasm_filename} ${wasm_basename}
-        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/fix_wasm_html.cmake --arg ${output_index_html} ${wasm_basename}.js ${FIRMWARE_VERSION}
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/fix_wasm_build_files.cmake --arg ${wasm_filename} ${output_index_html} ${wasm_basename} ${wasm_basename}.js ${FIRMWARE_VERSION}
         DEPENDS ${exe_target}
         COMMENT "Processing WebAssembly output: ${name}"
     )

@@ -83,7 +83,7 @@ void config_streamer_impl_unlock(void)
             fprintf(stderr, "[EEPROM] Failed to load '%s': %s\n", eepromPath, strerror(errno));
         }
     } else {
-        printf("[EEPROM] Created '%s', size = %ld\n", eepromPath, sizeof(eepromData));
+        fprintf(stderr, "[EEPROM] Created '%s', size = %ld\n", eepromPath, sizeof(eepromData));
         streamerLocked = false;
         if ((eepromFd = fopen(eepromPath, "w+")) == NULL) {
             fprintf(stderr, "[EEPROM] Failed to create '%s': %s\n", eepromPath, strerror(errno));
@@ -120,7 +120,6 @@ int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer
 
     if ((c->address >= (uintptr_t)eepromData) && (c->address < (uintptr_t)ARRAYEND(eepromData))) {
         *((uint32_t*)c->address) = *buffer;
-        fprintf(stderr, "[EEPROM] Program word  %p = %08x\n", (void*)c->address, *((uint32_t*)c->address));
     } else {
         fprintf(stderr, "[EEPROM] Program word %p out of range!\n", (void*)c->address);
     }

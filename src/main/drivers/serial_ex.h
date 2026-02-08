@@ -21,32 +21,30 @@
 /*
  * SERIAL_EX - Extended Serial Interface for WebAssembly
  *
- * This module provides an extended serial communication interface that emulates
- * serial port functionality through function calls and callbacks, making serial
- * communication available within WebAssembly (WASM) builds where traditional
- * serial hardware access is not possible.
+ * Thread-safe message queue for inter-thread communication between:
+ * - Main INAV thread (pthread/Worker)
+ * - JavaScript main thread
  *
- * Key Features:
- * - Emulates serial port behavior via callback-based API
- * - Integrates with INAV's serial port abstraction layer
- * - Provides bidirectional communication: send() and receive()
- * - Can be extended with JavaScript bridges for web-based connectivity
- * - Optional proxy mechanism for tunneling to real TCP connections
+ * Supports two serial modes:
+ * 1. MSP Mode: Binary protocol with structured messages (< 256 bytes)
+ * 2. CLI Mode: Raw text input/output (up to 2 KB chunks)
  *
- * Usage Pattern:
- * 1. Application calls serialExInit() to create a virtual serial port
- * 2. Data transmission: inavSerialExSend() pushes data out
- * 3. Data reception: inavSerialExReceive() injects received data (called from JS)
- * 4. Callbacks: Received data triggers the registered rxCallback for processing
+ * Architecture:
+ * - INAV writes outgoing data to serialExWritBuf() (running in pthread)
+ * - Data is enqueued in thread-safe circular message queue
+ * - messagePendingPort flag is set to indicate availability
+ * - JavaScript polls serialExGetPendingPort() every 10ms
+ * - When data available, JavaScript calls serialExGetMessage() to retrieve it
  *
- * WebAssembly Integration:
- * - JavaScript layer can register receive callbacks via cwrap/ccall
- * - Allows web-based UI to exchange data with the flight controller
- * - Can interface with proxy scripts (e.g., Node.js) for TCP connectivity
+ * Queue Configuration:
+ * - SERIAL_EX_MAX_MSG_SIZE: 256 bytes
+ * - SERIAL_EX_QUEUE_SIZE: 4096 slots (efficient memory usage)
  *
- * Proxy Architecture (Optional):
- * INAV WASM <-> JavaScript bridge <-> Proxy script (Node.js/Python) <-> Real TCP/Serial
- * This enables remote connectivity without requiring direct hardware access in the browser.
+ * Thread Safety:
+ * - Write index only updated by C code (pthread context)
+ * - Read index only updated by JavaScript (main thread context)
+ * - No races: independent readers/writers
+ * - Flag-based signaling (volatile atomic reads)
  */
 
 #pragma once
@@ -74,3 +72,12 @@ serialPort_t *serialExInit(USART_TypeDef *USARTx, serialReceiveCallbackPtr callb
 bool inavSerialExSend(int portIndex, const uint8_t* buffer, int recvSize );
 bool inavSerialExConnect(int portIndex);
 bool inavSerialExDisconnect(int portIndex);
+
+// Check for pending messages (non-blocking poll)
+// Returns port index if messages available, or UINT32_MAX if none
+// JavaScript polls this every 10ms to check for new messages
+uint32_t serialExGetPendingPort(void);
+
+// Retrieve next message from queue
+// Called by JavaScript when serialExGetPendingPort() indicates messages available
+bool serialExGetMessage(uint8_t* outPortIndex, uint8_t* outData, uint16_t* outLength);

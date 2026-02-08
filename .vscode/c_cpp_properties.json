@@ -15,8 +15,8 @@
                 ]
             },
             "intelliSenseMode": "gcc-arm",
-            "cStandard": "c11",
-            "cppStandard": "c++11",
+            "cStandard": "c23",
+            "cppStandard": "c++23",
             "defines": [
                 "USE_OSD",
                 "USE_GYRO_NOTCH_1",

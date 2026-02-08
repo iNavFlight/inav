@@ -18,6 +18,32 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * SERIAL_EX - Extended Serial Interface for WebAssembly (Polling-Based Architecture)
+ *
+ * Thread-Safe Message Queue for inter-thread communication:
+ * - Main INAV thread (pthread) writes outgoing serial data to queue
+ * - JavaScript main thread reads from queue at regular intervals
+ *
+ * Architecture:
+ * 1. C thread: serialExWritBuf() -> serialExEnqueueMessage() -> sets messagePendingPort flag
+ * 2. JavaScript: polls serialExGetPendingPort() every 10ms (via setInterval)
+ * 3. When flag set: calls serialExGetMessage() to retrieve all pending messages
+ *
+ * Thread Safety:
+ * - Circular queue with independent read/write indices
+ * - Write index: only modified by C code (pthread)
+ * - Read index: only modified by JavaScript (main thread)
+ * - No race conditions: separate writers and readers
+ * - Flag (messagePendingPort): volatile, atomically readable
+ *
+ * Performance:
+ * - 10ms polling = 100 Hz (efficient for WASM)
+ * - No callback overhead (synchronous polling)
+ * - Low CPU usage (only when data available)
+ * - Thread-safe without locks or mutexes
+ */
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -37,10 +63,10 @@
 #include "serial_ex.h"
 
 // Message queue for thread-safe communication
-// Increased to 256 bytes to handle larger MSP messages
-// MSP responses can include sensor data, attitude info, etc.
-#define SERIAL_EX_QUEUE_SIZE 256
-#define SERIAL_EX_MAX_MSG_SIZE 256
+// Supports both MSP (small structured messages) and CLI (large text chunks)
+// MSP mode: smaller binary messages (typically < 256 bytes)
+#define SERIAL_EX_QUEUE_SIZE 4096        // Number of message slots in queue
+#define SERIAL_EX_MAX_MSG_SIZE 256      // Max bytes per message 
 
 typedef struct {
     uint8_t portIndex;
@@ -58,12 +84,26 @@ static const struct serialPortVTable serialExVTable[];
 static exPort_t serialExPorts[SERIAL_PORT_COUNT];
 static SerialExMessageQueue messageQueue = {0};
 
+// Flag to signal that messages are pending for this port
+// JavaScript polls serialExGetPendingPort() every 10ms to check this
+static volatile uint32_t messagePendingPort = UINT32_MAX;  // UINT32_MAX = no messages pending
+
+// Check if messages are pending (non-blocking poll for JS to call)
+// JavaScript checks this every 10ms via setInterval
+// Returns the port index if messages available, or UINT32_MAX if none
+uint32_t serialExGetPendingPort(void)
+{
+    return messagePendingPort;
+}
+
 // Queue-based message sending for thread-safe communication
 // Fragments large messages across multiple queue entries if needed
+// Sets messagePendingPort flag so JavaScript polling will detect new messages
 static void serialExEnqueueMessage(uint8_t portIndex, const uint8_t* data, uint16_t length)
 {
     uint16_t remaining = length;
     uint16_t offset = 0;
+    bool firstChunk = true;
     
     // Fragment large messages into smaller chunks
     while (remaining > 0) {
@@ -86,19 +126,19 @@ static void serialExEnqueueMessage(uint8_t portIndex, const uint8_t* data, uint1
         // Update write index (atomic-like operation for single write)
         messageQueue.writeIdx = nextIdx;
         
+        // Signal that messages are available for this port (on first chunk only)
+        // Set volatile flag that JavaScript polls every 10ms
+        if (firstChunk) {
+            messagePendingPort = portIndex;
+            firstChunk = false;
+        }
+        
         // Move to next chunk
         remaining -= chunkSize;
         offset += chunkSize;
     }
 }
 
-// Exported function to check if messages are pending
-bool serialExHasMessages(void)
-{
-    return messageQueue.readIdx != messageQueue.writeIdx;
-}
-
-// Exported function to retrieve next message
 bool serialExGetMessage(uint8_t* outPortIndex, uint8_t* outData, uint16_t* outLength)
 {
     if (messageQueue.readIdx == messageQueue.writeIdx) {
