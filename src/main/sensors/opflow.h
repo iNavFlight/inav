@@ -53,6 +53,7 @@ typedef struct opflow_s {
 
     opflowQuality_e flowQuality;
     timeUs_t        lastValidUpdate;
+    float           updateDt;
     bool            isHwHealty;
     float           flowRate[2];    // optical flow angular rate in rad/sec measured about the X and Y body axis
     float           bodyRate[2];    // body inertial angular rate in rad/sec measured about the X and Y body axis
