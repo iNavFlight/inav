@@ -773,9 +773,10 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     vectorScale(&ctx.estVelCorr, &ctx.estVelCorr, 1.0f / posEstimator.imu.accWeightFactor);
 
     // Constrain corrections to prevent instability
+    const float corrLimit = INAV_EST_CORR_LIMIT_VALUE * ctx.dt;
     for (uint8_t axis = 0; axis < 3; axis++) {
-        ctx.estPosCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -INAV_EST_CORR_LIMIT_VALUE, INAV_EST_CORR_LIMIT_VALUE);
-        ctx.estVelCorr.v[axis] = constrainf(ctx.estVelCorr.v[axis], -INAV_EST_CORR_LIMIT_VALUE, INAV_EST_CORR_LIMIT_VALUE);
+        ctx.estPosCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -corrLimit, corrLimit);
+        ctx.estVelCorr.v[axis] = constrainf(ctx.estVelCorr.v[axis], -corrLimit, corrLimit);
     }
 
     // Apply corrections
