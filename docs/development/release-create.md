@@ -320,11 +320,11 @@ gh api repos/iNavFlight/inav-configurator/git/refs -f ref="refs/heads/maintenanc
 
 ### Branch Usage
 
-- **X.x bugfixes** → PR to maintenance-X.x
-- **Breaking changes** → PR to maintenance-(X+1).x
-- **Non-breaking features** → PR to master
+- **Changes maintaining backward compatibility** → PR to maintenance-X.x (e.g., maintenance-9.x)
+- **Breaking changes** (MSP protocol, settings structure) → PR to maintenance-(X+1).x (e.g., maintenance-10.x)
+- **Master** → NOT a PR target (receives merges only)
 
-Lower version branches are periodically merged into higher version branches (e.g., maintenance-9.x → maintenance-10.x → master).
+Lower version branches are periodically merged into higher version branches (e.g., maintenance-9.x → master → maintenance-10.x).
 
 ## Hotfix Releases
 
