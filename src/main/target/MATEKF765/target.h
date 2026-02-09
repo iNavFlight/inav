@@ -164,6 +164,7 @@
   #define USE_DRONECAN
   #define CAN1_RX                 PD0
   #define CAN1_TX                 PD1
+  #define CAN1_STANDBY            PD3
 #endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL

@@ -455,8 +455,6 @@ void dronecanInit(void)
 			   shouldAcceptTransfer,
 			   NULL);
 
-    // uint64_t next_50hz_service_at = HAL_GetTick();
-
     // Could use DNA (Dynamic Node Allocation) by following example in esc_node.c but that requires a lot of setup and I'm not too sure of what advantage it brings
     // Instead, set a different NODE_ID for each device on the CAN bus by configuring node_settings
     if (dronecanConfig()->nodeID > 0) {
@@ -500,22 +498,22 @@ void dronecanUpdate(timeUs_t currentTimeUs)
         case STATE_DRONECAN_NORMAL:
             processCanardTxQueue();
 
-            for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
-            {
-                //LOG_DEBUG(CAN, "Received a message");
-                LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", canardSTM32GetRxFifoFillLevel());
-	            const uint64_t timestamp = HAL_GetTick() * 1000ULL;
-	            const int16_t rx_res = canardSTM32Recieve(&rx_frame);
+             for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
+             {
+                 //LOG_DEBUG(CAN, "Received a message");
+                 LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", canardSTM32GetRxFifoFillLevel());
+	             const uint64_t timestamp = HAL_GetTick() * 1000ULL;
+	             const int16_t rx_res = canardSTM32Recieve(&rx_frame);
 
-	            if (rx_res < 0) {
-		            LOG_DEBUG(CAN, "Receive error %d", rx_res);
-	            }
-	            else if (rx_res > 0)        // Success - process the frame
-	            {
-		            canardHandleRxFrame(&canard, &rx_frame, timestamp);
-	            }
-                numMessagesToProcess--;
-            }
+	             if (rx_res < 0) {
+		             LOG_DEBUG(CAN, "Receive error %d", rx_res);
+	             }
+	             else if (rx_res > 0)        // Success - process the frame
+	             {
+		             canardHandleRxFrame(&canard, &rx_frame, timestamp);
+	             }
+                 numMessagesToProcess--;
+             }
             if (currentTimeUs >= next_1hz_service_at)
             {
 		        next_1hz_service_at += 1000000ULL;

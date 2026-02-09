@@ -37,7 +37,11 @@ static CAN_HandleTypeDef hcan1;
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
 int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
-	if (rx_frame == NULL) {
+	CanRxMsgTypeDef rxMsg;
+
+    hcan1.pRxMsg = &rxMsg;
+    
+    if (rx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}
 
@@ -73,7 +77,10 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
-	if (tx_frame == NULL) {
+	CanTxMsgTypeDef txMsg = {};
+    uint32_t returnCode;
+
+    if (tx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}
 
@@ -83,32 +90,35 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 
 	// Process canard id to STM FDCAN header format
 	if (tx_frame->id & CANARD_CAN_FRAME_EFF) {
-		hcan1.pTxMsg->IDE = CAN_ID_EXT;
-		hcan1.pTxMsg->ExtId = tx_frame->id & CANARD_CAN_EXT_ID_MASK;
+		txMsg.IDE = CAN_ID_EXT;
+		txMsg.ExtId = tx_frame->id & CANARD_CAN_EXT_ID_MASK;
 	} else {
-		hcan1.pTxMsg->IDE = CAN_ID_STD;
-		hcan1.pTxMsg->StdId = tx_frame->id & CANARD_CAN_STD_ID_MASK;
+		txMsg.IDE = CAN_ID_STD;
+		txMsg.StdId = tx_frame->id & CANARD_CAN_STD_ID_MASK;
 	}
 
-	hcan1.pTxMsg->DLC = tx_frame->data_len;
+	txMsg.DLC = tx_frame->data_len;
 
 	if (tx_frame->id & CANARD_CAN_FRAME_RTR) {
-		hcan1.pTxMsg->RTR = CAN_RTR_REMOTE;
+		txMsg.RTR = CAN_RTR_REMOTE;
 	} else {
-		hcan1.pTxMsg->RTR = CAN_RTR_DATA;
+		txMsg.RTR = CAN_RTR_DATA;
 	}
 
-	memcpy(hcan1.pTxMsg->Data, tx_frame->data, tx_frame->data_len);
+	memcpy(txMsg.Data, tx_frame->data, tx_frame->data_len);
 
-	if (HAL_CAN_Transmit(&hcan1, 100) == HAL_OK) {
-		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", TxHeader.Identifier);
+    hcan1.pTxMsg = &txMsg;
+
+	returnCode = HAL_CAN_Transmit(&hcan1, 100);
+    if( returnCode == HAL_OK) {
+		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", tx_frame->id);
 		return 1;
 	}
 
-	LOG_DEBUG(CAN, "Failed at adding message with id: %lu to Tx Queue", tx_frame->id);
+	LOG_DEBUG(CAN, "Failed at adding message with id: %lu to Tx Queue.  Error: %lu", tx_frame->id, returnCode);
     
 	// This might be for many reasons including the Tx Fifo being full, the error can be read from hfdcan->ErrorCode
-	return 0;
+	return 1;
 }
 
 /**
@@ -156,9 +166,9 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     canardSTM32ComputeTimings(bitrate, &out_timings);
 
     hcan1.Init.Prescaler = out_timings.prescaler;
-    hcan1.Init.SJW = out_timings.sjw;
-    hcan1.Init.BS1 = out_timings.bs1;
-    hcan1.Init.BS2 = out_timings.bs2;
+    hcan1.Init.SJW = (out_timings.sjw << CAN_BTR_SJW_Pos);  // Shift the SJW value over to the correct position in the BTR
+    hcan1.Init.BS1 = (out_timings.bs1 << CAN_BTR_TS1_Pos);  // Shift the bs1 value over to the correct position in the BTR
+    hcan1.Init.BS2 = (out_timings.bs2 << CAN_BTR_TS2_Pos);  // Shift the bs2 value over to the correct position in the BTR
     LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
     // hcan1.Init.StdFiltersNbr = 0;
@@ -179,7 +189,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     
     // LOG_DEBUG(CAN, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
     // LOG_DEBUG(CAN, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
-     if (HAL_CAN_Init(&hcan1) != HAL_OK)
+    if (HAL_CAN_Init(&hcan1) != HAL_OK)
     {
         LOG_ERROR(CAN, "Failed CAN Init");
         return -CANARD_ERROR_INTERNAL;
@@ -226,6 +236,7 @@ static void canardSTM32GPIO_Init(void)
 }
 static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings *out_timings)
 {
+    
     if (target_bitrate < 1) {
         return false;
     }
@@ -249,10 +260,10 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   250  kbps      16      17
      *   125  kbps      16      17
      */
-    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
+    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 18;
     LOG_DEBUG(CAN, "Baudrate: %lu", target_bitrate);
     LOG_DEBUG(CAN, "Max Quanta per bit: %i", max_quanta_per_bit);
-
+    LOG_DEBUG(CAN, "Pclk1: %lu", pclk);
     static const int MaxSamplePointLocation = 900;
 
     /*
@@ -338,9 +349,9 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
           (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / (double)(10.0));
 
     out_timings->prescaler = (uint16_t)(prescaler);
-    out_timings->sjw = 8;                        // Not happy with this value, but 1MBPs with unshielded cable?
-    out_timings->bs1 = (uint8_t)(solution.bs1);  // The HAL takes care of the 1 bs offset in the register so don't remove it here like AP does.
-    out_timings->bs2 = (uint8_t)(solution.bs2);  // The HAL takes care of the 1 bs offset in the register so don't remove it here like AP does.
+    out_timings->sjw = 3;                        // Not happy with this value, but 1MBPs with unshielded cable?
+    out_timings->bs1 = (uint8_t)(solution.bs1)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
+    out_timings->bs2 = (uint8_t)(solution.bs2)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
 
     return true;
 }
@@ -349,8 +360,8 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
 
     pProtocolStat->BusOff = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
     pProtocolStat->ErrorPassive = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_EPV);
-    LOG_DEBUG(CAN, "BusOff: %lu", pProtocolStat->BusOff);
-    LOG_DEBUG(CAN, "ErrorPassive: %lu", pProtocolStat->ErrorPassive);
+    // LOG_DEBUG(CAN, "BusOff: %lu", pProtocolStat->BusOff);
+    // LOG_DEBUG(CAN, "ErrorPassive: %lu", pProtocolStat->ErrorPassive);
 }
 
 int32_t canardSTM32GetRxFifoFillLevel(void){
