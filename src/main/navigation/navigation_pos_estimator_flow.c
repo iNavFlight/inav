@@ -77,9 +77,8 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
         return true;
     }
     posEstimator.flow.updateDt = opflow.updateDt;
-
+    opflow.updateDt = 0.0f;
     const float dt = posEstimator.flow.updateDt;
-    const float corrLimit = INAV_EST_CORR_LIMIT_VALUE * dt;
 
     // Calculate linear velocity based on angular velocity and altitude
     // Technically we should calculate arc length here, but for fast sampling this is accurate enough
@@ -97,8 +96,8 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
     const float flowVelYInnov = flowVel.y - posEstimator.est.vel.y;
 
     const float w_xy_flow_v = positionEstimationConfig()->w_xy_flow_v;
-    ctx->estVelCorr.x = constrainf(flowVelXInnov * w_xy_flow_v * dt, -corrLimit, corrLimit);
-    ctx->estVelCorr.y = constrainf(flowVelYInnov * w_xy_flow_v * dt, -corrLimit, corrLimit);
+    ctx->estVelCorr.x = flowVelXInnov * w_xy_flow_v * dt;
+    ctx->estVelCorr.y = flowVelYInnov * w_xy_flow_v * dt;
 
     // Calculate position correction if possible/allowed
     if ((ctx->newFlags & EST_GPS_XY_VALID)) {
@@ -114,8 +113,8 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
         const float flowResidualY = posEstimator.est.flowCoordinates[Y] - posEstimator.est.pos.y;
 
         const float w_xy_flow_p = positionEstimationConfig()->w_xy_flow_p;
-        ctx->estPosCorr.x = constrainf(flowResidualX * w_xy_flow_p * dt, -corrLimit, corrLimit);
-        ctx->estPosCorr.y = constrainf(flowResidualY * w_xy_flow_p * dt, -corrLimit, corrLimit);
+        ctx->estPosCorr.x = flowResidualX * w_xy_flow_p * dt;
+        ctx->estPosCorr.y = flowResidualY * w_xy_flow_p * dt;
 
         ctx->newEPH = updateEPE(posEstimator.est.eph, dt, calc_length_pythagorean_2D(flowResidualX, flowResidualY), w_xy_flow_p);
     }
