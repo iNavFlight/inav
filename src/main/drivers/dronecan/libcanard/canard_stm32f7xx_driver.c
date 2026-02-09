@@ -29,6 +29,8 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
 static void canardSTM32GPIO_Init(void);
 
 static CAN_HandleTypeDef hcan1;
+CanRxMsgTypeDef rxMsg;
+
 
 /**
   * @brief  Process CAN message from RxLocation FIFO into rx_frame
@@ -37,35 +39,32 @@ static CAN_HandleTypeDef hcan1;
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
 int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
-	CanRxMsgTypeDef rxMsg;
 
     hcan1.pRxMsg = &rxMsg;
-    
+
     if (rx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}
 
 	if (HAL_CAN_Receive(&hcan1, CAN_FIFO0, 100) == HAL_OK) {  // Wheres the data?
-        rx_frame->id = hcan1.pRxMsg->ExtId;
+        rx_frame->id = rxMsg.ExtId;
 
 		// Process ID to canard format
-		if (hcan1.pRxMsg->IDE == CAN_ID_EXT) { // canard will only process the message if it is extended ID
+		if (rxMsg.IDE == CAN_ID_EXT) { // canard will only process the message if it is extended ID
             rx_frame->id |= CANARD_CAN_FRAME_EFF;
 		}
 
-		if (hcan1.pRxMsg->RTR == CAN_RTR_REMOTE) { // canard won't process the message if it is a remote frame
+		if (rxMsg.RTR == CAN_RTR_REMOTE) { // canard won't process the message if it is a remote frame
 			rx_frame->id |= CANARD_CAN_FRAME_RTR;
 		}
 
-		rx_frame->data_len = hcan1.pRxMsg->DLC;
-		memcpy(rx_frame->data, hcan1.pRxMsg->Data, hcan1.pRxMsg->DLC);
+		rx_frame->data_len = rxMsg.DLC;
+		memcpy(rx_frame->data, rxMsg.Data, rxMsg.DLC);
 
 		// assume a single interface
 		rx_frame->iface_id = 0;
-
 		return 1;
 	}
-
 	// Either no CAN msg to be read, or an error that can be read from hfdcan->ErrorCode
 	return 0;
 }
