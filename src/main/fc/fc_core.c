@@ -595,7 +595,10 @@ void tryArm(void)
     }
 
     if (!ARMING_FLAG(ARMED)) {
-        beeperConfirmationBeeps(1);
+        // Only beep if blocked by something other than DShot beeper guard delay to avoid feedback loop
+        if (armingFlags & ~ARMING_DISABLED_DSHOT_BEEPER) {
+            beeperConfirmationBeeps(1);
+        }
     }
 }
 

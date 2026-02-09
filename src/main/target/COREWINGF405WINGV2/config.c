@@ -30,20 +30,12 @@
 #include "fc/fc_msp_box.h"
 #include "io/serial.h"
 #include "io/piniobox.h"
-#include "sensors/gyro.h"
 
 void targetConfiguration(void)
 {
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART7)].functionMask = FUNCTION_RX_SERIAL;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART3)].functionMask = FUNCTION_GPS;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = FUNCTION_RX_SERIAL;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].functionMask = FUNCTION_GPS;
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].msp_baudrateIndex = BAUD_115200;
-    //pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
 
-#ifdef USE_DYNAMIC_FILTERS
-    // Disable dynamic notch filter by default (performance optimization for wing)
-    // This board is performance-constrained and wing aircraft typically don't need
-    // dynamic notch filtering (designed for multirotor motor noise)
-    gyroConfigMutable()->dynamicGyroNotchEnabled = 0;
-#endif
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
 }

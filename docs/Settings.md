@@ -434,11 +434,11 @@ Max Antigravity gain. `1` means Antigravity is disabled, `2` means Iterm is allo
 
 ### apa_pow
 
-Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. pid_multiplier = (referenceAirspeed/airspeed)**(apa_pow/100). Set to 0 will disable this feature and use throttle based PID attenuation;
+Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. Scales P/D/FF with airspeed (I-term scaled less aggressively). Gains range from 30% (high speed) to 150% (low speed). Set to 0 to disable and use throttle-based attenuation. Recommended: 120 for aircraft with validated pitot sensor.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 120 | 0 | 200 |
+| 0 | 0 | 200 |
 
 ---
 
@@ -1478,7 +1478,7 @@ TPA smoothing and delay time constant to reflect non-instant speed/throttle resp
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1500 | 0 | 5000 |
+| 2000 | 0 | 5000 |
 
 ---
 

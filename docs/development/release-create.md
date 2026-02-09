@@ -98,10 +98,11 @@ Version numbers are set in:
 ### Code Readiness
 
 - [ ] All planned PRs merged
-- [ ] CI passing on master branch
+- [ ] CI passing on target branch
 - [ ] No critical open issues blocking release
 - [ ] Version numbers updated in both repositories
 - [ ] SITL binaries updated in configurator
+- [ ] **PG struct validation passed** (see [PG Validation](#pg-parameter-group-validation))
 
 ### Documentation
 
@@ -117,7 +118,8 @@ Version numbers are set in:
 1. Verify firmware release readiness
    ├── All PRs merged to firmware repo
    ├── Version numbers updated
-   └── CI passing on firmware target commit
+   ├── CI passing on firmware target commit
+   └── PG struct validation passed
 
 2. Download firmware artifacts FIRST
    ├── Download firmware hex files from CI
@@ -154,7 +156,7 @@ Version numbers are set in:
    ├── Upload verified artifacts
    └── Add release notes
 
-7. Review and publish
+8. Review and publish
    ├── Final review of draft releases
    ├── Maintainer approval
    └── Publish releases
@@ -162,7 +164,7 @@ Version numbers are set in:
 
 ## Updating SITL Binaries
 
-SITL binaries must be updated before tagging the configurator. They are stored in:
+SITL binaries must be updated in the configurator repository before release. They are stored in:
 ```
 inav-configurator/resources/public/sitl/
 ├── linux/
@@ -269,7 +271,9 @@ If glibc > 2.35, the binary will fail on Ubuntu 22.04 with:
 
 The `extraResource` config in `forge.config.js` copies `resources/public/sitl` to `resources/sitl` in packaged builds.
 
-## Tagging
+## Tagging and Publishing
+
+**IMPORTANT:** Tags should only be created AFTER testing artifacts and confirming the release is ready to publish.
 
 ### Check Latest Tags
 
@@ -285,18 +289,20 @@ git fetch --tags
 git tag --sort=-v:refname | head -10
 ```
 
-### Create New Tags
+### Create and Push Tags (Final Step Before Publishing)
+
+Only create tags after artifacts are tested and draft release is reviewed:
 
 ```bash
 # Firmware
 cd inav
-git checkout master && git pull
+git pull
 git tag -a <version> -m "INAV <version>"
 git push origin <version>
 
 # Configurator
 cd inav-configurator
-git checkout master && git pull
+git pull
 git tag -a <version> -m "INAV Configurator <version>"
 git push origin <version>
 ```
@@ -343,6 +349,20 @@ git log $LAST_TAG..HEAD --oneline --merges
 **Firmware:** https://github.com/iNavFlight/inav/compare/<prev-tag>...<new-tag>
 **Configurator:** https://github.com/iNavFlight/inav-configurator/compare/<prev-tag>...<new-tag>
 ```
+
+## PG (Parameter Group) Validation
+
+**Run before creating tags to prevent EEPROM corruption bugs:**
+
+```bash
+cd inav
+./cmake/validate-pg-for-release.sh
+```
+THis builds one target and checks that the parameter group structs haven't been changed without updating their version numbers.
+
+**✅ Pass:** Proceed with release
+**❌ Fail:** Create hotfix PR to increment PG version in affected struct's `PG_REGISTER` macro, then re-run
+
 
 ## Downloading Release Artifacts
 
@@ -470,11 +490,11 @@ gh api repos/iNavFlight/inav-configurator/git/refs -f ref="refs/heads/maintenanc
 
 ### Branch Usage
 
-- **X.x bugfixes** → PR to maintenance-X.x
-- **Breaking changes** → PR to maintenance-(X+1).x
-- **Non-breaking features** → PR to master
+- **Changes maintaining backward compatibility** → PR to maintenance-X.x (e.g., maintenance-9.x)
+- **Breaking changes** (MSP protocol, settings structure) → PR to maintenance-(X+1).x (e.g., maintenance-10.x)
+- **Master** → NOT a PR target (receives merges only)
 
-Lower version branches are periodically merged into higher version branches (e.g., maintenance-9.x → maintenance-10.x → master).
+Lower version branches are periodically merged into higher version branches (e.g., maintenance-9.x → master → maintenance-10.x).
 
 ## Hotfix Releases
 
