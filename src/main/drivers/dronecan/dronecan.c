@@ -7,6 +7,7 @@
 #if defined(USE_DRONECAN) && !defined(SITL_BUILD)
 
 #include "io/gps.h"
+#include "sensors/battery_sensor_dronecan.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -51,46 +52,46 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
 
-	LOG_DEBUG(CAN, "Node Health ");
+	// LOG_DEBUG(CAN, "Node Health ");
 
 	switch (nodeStatus.health) {
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
-		LOG_DEBUG(CAN, "OK");
+		// LOG_DEBUG(CAN, "OK");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
-		LOG_DEBUG(CAN, "WARNING");
+		// LOG_DEBUG(CAN, "WARNING");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
-		LOG_DEBUG(CAN, "ERROR");
+		// LOG_DEBUG(CAN, "ERROR");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
-		LOG_DEBUG(CAN, "CRITICAL");
+		// LOG_DEBUG(CAN, "CRITICAL");
 		break;
 	default:
-		LOG_DEBUG(CAN, "UNKNOWN?");
+		// LOG_DEBUG(CAN, "UNKNOWN?");
 		break;
 	}
 
-	LOG_DEBUG(CAN, "Node Mode ");
+	// LOG_DEBUG(CAN, "Node Mode ");
 
 	switch(nodeStatus.mode) {
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
-		LOG_DEBUG(CAN, "OPERATIONAL");
+		// LOG_DEBUG(CAN, "OPERATIONAL");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
-		LOG_DEBUG(CAN, "INITIALIZATION");
+		// LOG_DEBUG(CAN, "INITIALIZATION");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
-		LOG_DEBUG(CAN, "MAINTENANCE");
+		// LOG_DEBUG(CAN, "MAINTENANCE");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
-		LOG_DEBUG(CAN, "SOFTWARE UPDATE");
+		// LOG_DEBUG(CAN, "SOFTWARE UPDATE");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
-		LOG_DEBUG(CAN, "OFFLINE");
+		// LOG_DEBUG(CAN, "OFFLINE");
 		break;
 	default:
-		LOG_DEBUG(CAN, "UNKNOWN?");
+		// LOG_DEBUG(CAN, "UNKNOWN?");
 		break;
 	}
 }
@@ -136,49 +137,17 @@ void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
 	}
     LOG_DEBUG(CAN, "GNSS RTCM");
 }
-/*
-void handle_NotifyState(CanardInstance *ins, CanardRxTransfer *transfer) {
-	struct ardupilot_indication_NotifyState notifyState;
 
-	if (ardupilot_indication_NotifyState_decode(transfer, &notifyState)) {
+void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
+	UNUSED(ins);
+    struct uavcan_equipment_power_BatteryInfo batteryInfo;
+
+	if (uavcan_equipment_power_BatteryInfo_decode(transfer, &batteryInfo)) {
 		return;
 	}
-
-	uint32_t nl = notifyState.vehicle_state & 0xFFFFFFFF;  // ignoring the last 32 bits for printing since the highest vehicle_state value right now is 23 even though they're allowed to be up to 64bit unsigned integer
-
-	printf("Vehicle State: %lu ", nl);
-
-	if (notifyState.aux_data.len > 0) {
-		printf("Aux Data: 0x");
-
-		for (int i = 0; i < notifyState.aux_data.len; i++) {
-			printf("%02x", notifyState.aux_data.data[i]);
-		}
-	}
-
-	printf("\n");
-
+    dronecanBatterySensorReceiveInfo(&batteryInfo);
+    LOG_DEBUG(CAN, "Battery Info");
 }
-*/
-/*
-  handle a ESC RawCommand request
-*/
-/*
-void handle_RawCommand(CanardInstance *ins, CanardRxTransfer *transfer)
-{
-    struct uavcan_equipment_esc_RawCommand rawCommand;
-    if (uavcan_equipment_esc_RawCommand_decode(transfer, &rawCommand)) {
-        return;
-    }
-    // see if it is for us
-    if (rawCommand.cmd.len <= ESC_INDEX) {
-        return;
-    }
-    // convert throttle to -1.0 to 1.0 range
-//    printf("Throttle: %f \n", rawCommand.cmd.data[ESC_INDEX]/8192.0);
-}
-*/
-
 
 /*
   handle a GetNodeInfo request
@@ -234,7 +203,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 void send_NodeStatus(void) {
     uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
 
-    LOG_DEBUG(CAN, "Sending Node Status");
+    // LOG_DEBUG(CAN, "Sending Node Status");
     node_status.uptime_sec = HAL_GetTick() / 1000UL;
     node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
     node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
@@ -285,7 +254,7 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
 		case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
 			*out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_REQUEST_SIGNATURE;
 			return true;
-		}
+		    }
 		}
 	}
 	if (transfer_type == CanardTransferTypeResponse) {
@@ -315,6 +284,10 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
         }
         case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID: {
             *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_SIGNATURE;
+            return true;
+        }
+        case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_POWER_BATTERYINFO_SIGNATURE;
             return true;
         }
 		}
@@ -352,29 +325,32 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 		// check if we want to handle a specific broadcast message
 		switch (transfer->data_type_id) {
 
-		case UAVCAN_PROTOCOL_NODESTATUS_ID: {
-			handle_NodeStatus(ins, transfer);
-			break;
-		}
+            case UAVCAN_PROTOCOL_NODESTATUS_ID: 
+                handle_NodeStatus(ins, transfer);
+                break;
+            
 
-        case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID: {
-            handle_GNSSAuxiliary(ins, transfer);
-            break;
+            case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID: 
+                handle_GNSSAuxiliary(ins, transfer);
+                break;
+            
+            case UAVCAN_EQUIPMENT_GNSS_FIX_ID: 
+                handle_GNSSFix(ins, transfer);
+                break;
+            
+            case UAVCAN_EQUIPMENT_GNSS_FIX2_ID: 
+                handle_GNSSFix2(ins, transfer);
+                break;
+            
+            case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID: 
+                handle_GNSSRCTMStream(ins, transfer);
+                break;
+            
+            case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID:
+                LOG_DEBUG(CAN, "Battery Info");
+                handle_BatteryInfo(ins, transfer);
+                break;
         }
-        case UAVCAN_EQUIPMENT_GNSS_FIX_ID: {
-            handle_GNSSFix(ins, transfer);
-            break;
-        }
-        case UAVCAN_EQUIPMENT_GNSS_FIX2_ID: {
-            handle_GNSSFix2(ins, transfer);
-            break;
-        }
-        case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID: {
-            handle_GNSSRCTMStream(ins, transfer);
-            break;
-        }
-
-		}
 	}
 }
 
@@ -464,23 +440,6 @@ void dronecanInit(void)
     }
 }
 
-#ifdef  USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-// void assert_failed(uint8_t *file, uint32_t line)
-// {
-//   /* USER CODE BEGIN 6 */
-//   /* User can add his own implementation to report the file name and line number,
-//      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-//   /* USER CODE END 6 */
-// }
-#endif /* USE_FULL_ASSERT */
-
 void dronecanUpdate(timeUs_t currentTimeUs)
 {
     static timeUs_t next_1hz_service_at = 0;
@@ -489,6 +448,8 @@ void dronecanUpdate(timeUs_t currentTimeUs)
     int numMessagesToProcess = 0;
     static enum dronecanState_e dronecanState = STATE_DRONECAN_INIT;
     canardProtocolStatus_t protocolStatus = {};
+    uint64_t timestamp;
+    int16_t rx_res;
 
     switch(dronecanState) {
         case STATE_DRONECAN_INIT:
@@ -501,9 +462,9 @@ void dronecanUpdate(timeUs_t currentTimeUs)
              for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
              {
                  //LOG_DEBUG(CAN, "Received a message");
-                 LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", canardSTM32GetRxFifoFillLevel());
-	             const uint64_t timestamp = HAL_GetTick() * 1000ULL;
-	             const int16_t rx_res = canardSTM32Recieve(&rx_frame);
+                 //LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", canardSTM32GetRxFifoFillLevel());
+	            timestamp = HAL_GetTick() * 1000ULL;
+	            rx_res = canardSTM32Recieve(&rx_frame);
 
 	             if (rx_res < 0) {
 		             LOG_DEBUG(CAN, "Receive error %d", rx_res);
@@ -538,6 +499,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
                 dronecanState = STATE_DRONECAN_NORMAL;
             }
             break;
+    
     }
     
 }
