@@ -552,6 +552,11 @@ static void SD_StartBlockTransfert(uint32_t* pBuffer, uint32_t BlockSize, uint32
     int dmaTimeout = 10000;
     while ((pDMA->CR & DMA_SxCR_EN) && dmaTimeout-- > 0);
 
+    if (pDMA->CR & DMA_SxCR_EN) {
+        SD_Handle.TransferError = SD_DATA_TIMEOUT;
+        return;
+    }
+
     pDMA->NDTR = (uint32_t) (BlockSize * NumberOfBlocks) / 4;                                       // Configure DMA Stream data length
     pDMA->M0AR = (uint32_t) pBuffer;                                                                // Configure DMA Stream memory address
 
