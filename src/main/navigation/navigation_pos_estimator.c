@@ -580,52 +580,53 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     }
 
     if (ctx->newFlags & EST_BARO_VALID && wBaro) {
-        if (!posEstimator.baro.updateDt) {
-            return true;
-        }
-        const float dt = posEstimator.baro.updateDt;
+        if (posEstimator.baro.updateDt) {
+            ctx->applyCorrections = true;
+            const float dt = posEstimator.baro.updateDt;
 
-        bool isAirCushionEffectDetected = false;
-        static float baroGroundAlt = 0.0f;
+            bool isAirCushionEffectDetected = false;
+            static float baroGroundAlt = 0.0f;
 
-        if (STATE(MULTIROTOR)) {
-            static bool isBaroGroundValid = false;
+            if (STATE(MULTIROTOR)) {
+                static bool isBaroGroundValid = false;
 
-            if (!ARMING_FLAG(ARMED)) {
-                baroGroundAlt = posEstimator.baro.alt;
-                isBaroGroundValid = true;
-            }
-            else if (isBaroGroundValid) {
-                // We might be experiencing air cushion effect during takeoff - use sonar or baro ground altitude to detect it
-                if (isMulticopterThrottleAboveMidHover()) {
-                    // Disable ground effect detection at lift off when est alt and baro alt converge. Always disable if baro alt > 1m.
-                    isBaroGroundValid = fabsf(posEstimator.est.pos.z - posEstimator.baro.alt) > 20.0f && posEstimator.baro.alt < 100.0f;
+                if (!ARMING_FLAG(ARMED)) {
+                    baroGroundAlt = posEstimator.baro.alt;
+                    isBaroGroundValid = true;
                 }
+                else if (isBaroGroundValid) {
+                    // We might be experiencing air cushion effect during takeoff - use sonar or baro ground altitude to detect it
+                    if (isMulticopterThrottleAboveMidHover()) {
+                        // Disable ground effect detection at lift off when est alt and baro alt converge. Always disable if baro alt > 1m.
+                        isBaroGroundValid = fabsf(posEstimator.est.pos.z - posEstimator.baro.alt) > 20.0f && posEstimator.baro.alt < 100.0f;
+                    }
 
-                isAirCushionEffectDetected = (isEstimatedAglTrusted() && posEstimator.surface.alt < 20.0f) || posEstimator.baro.alt < baroGroundAlt + 20.0f;
+                    isAirCushionEffectDetected = (isEstimatedAglTrusted() && posEstimator.surface.alt < 20.0f) ||
+                                                 posEstimator.baro.alt < baroGroundAlt + 20.0f;
+                }
             }
-        }
 
-        // Altitude
-        float baroAltResidual = wBaro * ((isAirCushionEffectDetected ? baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.z);
+            // Altitude
+            float baroAltResidual = wBaro * ((isAirCushionEffectDetected ? baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.z);
 
-        // Disable alt pos correction at point of lift off if ground effect active
-        if (isAirCushionEffectDetected && isMulticopterThrottleAboveMidHover()) {
-            baroAltResidual = 0.0f;
-        }
+            // Disable alt pos correction at point of lift off if ground effect active
+            if (isAirCushionEffectDetected && isMulticopterThrottleAboveMidHover()) {
+                baroAltResidual = 0.0f;
+            }
 
-        const float baroVelZResidual = isAirCushionEffectDetected ? 0.0f : wBaro * (posEstimator.baro.baroAltRate - posEstimator.est.vel.z);
-        const float w_z_baro_p = positionEstimationConfig()->w_z_baro_p;
-        const float w_z_baro_v = positionEstimationConfig()->w_z_baro_v;
+            const float baroVelZResidual = isAirCushionEffectDetected ? 0.0f : wBaro * (posEstimator.baro.baroAltRate - posEstimator.est.vel.z);
+            const float w_z_baro_p = positionEstimationConfig()->w_z_baro_p;
+            const float w_z_baro_v = positionEstimationConfig()->w_z_baro_v;
 
-        ctx->estPosCorr.z = baroAltResidual * w_z_baro_p * dt;
-        ctx->estVelCorr.z = baroVelZResidual * w_z_baro_v * dt;
+            ctx->estPosCorr.z = baroAltResidual * w_z_baro_p * dt;
+            ctx->estVelCorr.z = baroVelZResidual * w_z_baro_v * dt;
 
-        ctx->newEPV = updateEPE(posEstimator.est.epv, dt, MAX(posEstimator.baro.epv, fabsf(baroAltResidual)), w_z_baro_p);
+            ctx->newEPV = updateEPE(posEstimator.est.epv, dt, MAX(posEstimator.baro.epv, fabsf(baroAltResidual)), w_z_baro_p);
 
-        // Accelerometer bias
-        if (!isAirCushionEffectDetected) {
-            ctx->accBiasCorr.z = dt * (baroAltResidual * sq(w_z_baro_p) + baroVelZResidual * sq(w_z_baro_v));
+            // Accelerometer bias
+            if (!isAirCushionEffectDetected) {
+                ctx->accBiasCorr.z = dt * (baroAltResidual * sq(w_z_baro_p) + baroVelZResidual * sq(w_z_baro_v));
+            }
         }
 
         correctOK = ARMING_FLAG(WAS_EVER_ARMED);    // No correction until first armed
@@ -639,6 +640,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             ctx->newEPV = posEstimator.gps.epv;
         }
         else if (posEstimator.gps.updateDt) {
+            ctx->applyCorrections = true;
             const float dt = posEstimator.gps.updateDt;
 
             // Altitude
@@ -650,7 +652,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             ctx->estPosCorr.z += gpsAltResidual * w_z_gps_p * dt;
             ctx->estVelCorr.z += gpsVelZResidual * w_z_gps_v * dt;
 
-            ctx->newEPV = updateEPE(posEstimator.est.epv, dt, MAX(posEstimator.gps.epv, fabsf(gpsAltResidual)), w_z_gps_p);
+            ctx->newEPV = updateEPE(ctx->newEPV, dt, MAX(posEstimator.gps.epv, fabsf(gpsAltResidual)), w_z_gps_p);
 
             // Accelerometer bias
             ctx->accBiasCorr.z += dt * (gpsAltResidual * sq(w_z_gps_p) + gpsVelZResidual * sq(w_z_gps_v));
@@ -664,7 +666,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     ctx->estVelCorr.z *= 2.0f / (wGps + wBaro);
     ctx->accBiasCorr.z *= 2.0f / (wGps + wBaro);
 
-    return ctx->applyCorrections = correctOK;
+    return correctOK;
 }
 
 static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
@@ -679,6 +681,7 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
             ctx->newEPH = posEstimator.gps.eph;
         }
         else if (posEstimator.gps.updateDt) {
+            ctx->applyCorrections = true;
             const float dt = posEstimator.gps.updateDt;
 
             const float gpsPosXResidual = posEstimator.gps.pos.x - posEstimator.est.pos.x;
@@ -707,8 +710,6 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
 
             /* Adjust EPH */
             ctx->newEPH = updateEPE(posEstimator.est.eph, dt, MAX(posEstimator.gps.eph, gpsPosResidualMag), w_xy_gps_p);
-
-            ctx->applyCorrections = true;
         }
 
         return true;
@@ -786,6 +787,8 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     }
 
     if (ctx.applyCorrections) {
+        ctx.applyCorrections = false;
+
         float maxUpdateDt = MAX(posEstimator.gps.updateDt, posEstimator.baro.updateDt);
         maxUpdateDt = MAX(maxUpdateDt, posEstimator.flow.updateDt);
 
