@@ -1068,6 +1068,8 @@ HAL_StatusTypeDef HAL_CAN_Receive_IT(CAN_HandleTypeDef* hcan, uint8_t FIFONumber
   /* Set CAN error code to none */
   hcan->ErrorCode = HAL_CAN_ERROR_NONE;
 
+   /* Process unlocked */
+  __HAL_UNLOCK(hcan);
   /* Enable interrupts: */
   /*  - Enable Error warning Interrupt */
   /*  - Enable Error passive Interrupt */

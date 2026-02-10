@@ -18,6 +18,8 @@
 #include <string.h>
 #include <stdint.h>
 
+#define RX_BUFFER_SIZE 32
+
 struct Timings {
         uint16_t prescaler;
         uint8_t sjw;
@@ -25,12 +27,60 @@ struct Timings {
         uint8_t bs2;
 };
 
+static struct RxBuffer_t {
+    uint8_t writeIndex;
+    uint8_t readIndex;
+    CanRxMsgTypeDef rxMsg[RX_BUFFER_SIZE];
+} RxBuffer;
+
 static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings*out_timings);
 static void canardSTM32GPIO_Init(void);
 
 static CAN_HandleTypeDef hcan1;
 CanRxMsgTypeDef rxMsg;
 
+uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, CanRxMsgTypeDef *rxMsg) {
+    uint8_t next;
+    CanRxMsgTypeDef *pCurrentRxMsg;
+
+    next = rxBuf->writeIndex + 1;
+    if(next >= RX_BUFFER_SIZE){
+        next = 0;
+    }
+
+    if(next == rxBuf->readIndex) {
+        return -1;  // rxBuf is full
+    }
+    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->writeIndex];
+    memcpy(pCurrentRxMsg, rxMsg, sizeof(CanRxMsgTypeDef));
+    rxBuf->writeIndex = next;
+    return 0;
+}
+
+uint8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, CanRxMsgTypeDef *rxMsg) {
+    uint8_t next;
+    CanRxMsgTypeDef *pCurrentRxMsg;
+
+    if(rxBuf->writeIndex == rxBuf->readIndex){
+        return -1;  // Nothing to read
+    }
+
+    next = rxBuf->readIndex + 1;
+    if (next >= RX_BUFFER_SIZE){
+        next = 0;
+    }
+    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->readIndex];
+    memcpy(rxMsg, pCurrentRxMsg, sizeof(CanRxMsgTypeDef));
+    rxBuf->readIndex = next;
+    return 0;
+}
+
+uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
+    if(rxBuf->writeIndex < rxBuf->readIndex)
+        return((rxBuf->writeIndex + RX_BUFFER_SIZE) - rxBuf->readIndex);
+    
+    return (rxBuf->writeIndex - rxBuf->readIndex);
+}
 
 /**
   * @brief  Process CAN message from RxLocation FIFO into rx_frame
@@ -39,27 +89,26 @@ CanRxMsgTypeDef rxMsg;
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
 int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
-
-    hcan1.pRxMsg = &rxMsg;
+    CanRxMsgTypeDef canRxFrame;
 
     if (rx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}
 
-	if (HAL_CAN_Receive(&hcan1, CAN_FIFO0, 100) == HAL_OK) {  // Wheres the data?
-        rx_frame->id = rxMsg.ExtId;
+	if (rxBufferPopFrame(&RxBuffer, &canRxFrame) == 0) {  // Wheres the data?
+        rx_frame->id = canRxFrame.ExtId;
 
 		// Process ID to canard format
-		if (rxMsg.IDE == CAN_ID_EXT) { // canard will only process the message if it is extended ID
+		if (canRxFrame.IDE == CAN_ID_EXT) { // canard will only process the message if it is extended ID
             rx_frame->id |= CANARD_CAN_FRAME_EFF;
 		}
 
-		if (rxMsg.RTR == CAN_RTR_REMOTE) { // canard won't process the message if it is a remote frame
+		if (canRxFrame.RTR == CAN_RTR_REMOTE) { // canard won't process the message if it is a remote frame
 			rx_frame->id |= CANARD_CAN_FRAME_RTR;
 		}
 
-		rx_frame->data_len = rxMsg.DLC;
-		memcpy(rx_frame->data, rxMsg.Data, rxMsg.DLC);
+		rx_frame->data_len = canRxFrame.DLC;
+		memcpy(rx_frame->data, canRxFrame.Data, canRxFrame.DLC);
 
 		// assume a single interface
 		rx_frame->iface_id = 0;
@@ -137,8 +186,8 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 
 
     // /* CAN1 interrupt Init */
-    // HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
-    // HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
     // /* USER CODE BEGIN CAN1_MspInit 1 */
 
     CAN_FilterConfTypeDef sFilterConfig;
@@ -193,12 +242,18 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed CAN Init");
         return -CANARD_ERROR_INTERNAL;
     }
+    hcan1.pRxMsg = &rxMsg;  // Set up a buffer to receive into
+
     /* USER CODE BEGIN FDCAN1_Init 2 */
     if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
     }
-    
+    if (HAL_CAN_Receive_IT(&hcan1, CAN_FIFO0) != HAL_OK)
+    {
+        LOG_ERROR(CAN, "Failed to enable interrupts");
+        return -CANARD_ERROR_INTERNAL;
+    }
     //Don't need to explicitly start the CAN driver in v1.2.2
     // if (HAL_CAN_Start(hcan1) != HAL_OK) {
     //     LOG_ERROR(CAN, "Failed to Start");
@@ -364,7 +419,7 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
 }
 
 int32_t canardSTM32GetRxFifoFillLevel(void){
-    return (__HAL_CAN_MSG_PENDING(&hcan1, CAN_FIFO0));
+    return rxBufferNumMessages(&RxBuffer);
 }
 
 void canardSTM32RecoverFromBusOff(void){
@@ -383,4 +438,17 @@ void canardSTM32GetUniqueID(uint8_t id[16]) {
     HALUniqueIDs[1] = 0;
     HALUniqueIDs[2] = 0;
     memcpy(id, HALUniqueIDs, 12);
+}
+
+void CAN1_RX0_IRQHandler(void) {
+      HAL_CAN_IRQHandler(&hcan1);
+}
+
+void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef * hcan) {
+
+    rxBufferPushFrame(&RxBuffer, hcan1.pRxMsg);
+	
+    __HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
+
+    //return HAL_OK;
 }

@@ -302,7 +302,7 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
 void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 	// switch on data type ID to pass to the right handler function
     LOG_DEBUG(CAN, "Transfer type: %u, Transfer ID: %u ", transfer->transfer_type, transfer->data_type_id);
-	LOG_DEBUG(CAN, "0x");
+	//LOG_DEBUG(CAN, "0x");
     //LOG_BUFFER_ERROR(SYSTEM, transfer->payload_head, transfer->payload_len);
 	//	for (int i = 0; i < transfer->payload_len; i++) {
 	//		LOG_DEBUG(CAN,"%02x", transfer->payload_head[i]);

@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "platform.h"
+#include <math.h>
 
 #if defined(USE_DRONECAN)
 
