@@ -299,7 +299,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
         posEstimator.baro.epv = positionEstimationConfig()->baro_epv;
         posEstimator.baro.lastUpdateTime = currentTimeUs;
 
-        if (baroDtUs <= MS2US(INAV_BARO_TIMEOUT_MS)) {
+        if (baroDtUs > 0 && baroDtUs <= MS2US(INAV_BARO_TIMEOUT_MS)) {
             const float baroDtSec = US2S(baroDtUs);
             posEstimator.baro.updateDt = baroDtSec;
 

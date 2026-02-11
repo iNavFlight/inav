@@ -33,7 +33,6 @@
 #define INAV_GPS_ACCEPTANCE_EPE             500.0f  // 5m acceptance radius
 
 #define INAV_ACC_BIAS_ACCEPTANCE_VALUE      (GRAVITY_CMSS * 0.25f)   // Max accepted bias correction of 0.25G - unlikely we are going to be that much off anyway
-#define INAV_EST_CORR_LIMIT_VALUE           4000.0f
 
 #define INAV_EST_CORR_LIMIT_VALUE           4000.0f   // Sanity constraint limit for pos/vel estimate correction value (max 40m correction per s)
 
