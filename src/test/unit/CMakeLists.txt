@@ -34,6 +34,29 @@ set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
 set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular_queue.c")
 
+# DroneCAN tests - headers in separate include/ dir, no auto .h transform needed
+set_property(SOURCE dronecan_messages_unittest.cc PROPERTY depends
+    "drivers/dronecan/libcanard/canard.c")
+set_property(SOURCE dronecan_messages_unittest.cc PROPERTY extra_sources
+    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix2.c"
+    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix.c"
+    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Auxiliary.c"
+    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.power.BatteryInfo.c"
+    "drivers/dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
+    "drivers/dronecan/dsdlc_generated/src/uavcan.Timestamp.c"
+    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.gnss.ECEFPositionVelocity.c")
+set_property(SOURCE dronecan_messages_unittest.cc PROPERTY extra_includes
+    "drivers/dronecan/dsdlc_generated/include")
+set_property(SOURCE dronecan_messages_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0)
+
+# Libcanard core tests - CANARD_INTERNAL= makes static functions accessible
+set_property(SOURCE canard_unittest.cc PROPERTY depends
+    "drivers/dronecan/libcanard/canard.c")
+set_property(SOURCE canard_unittest.cc PROPERTY extra_includes
+    "drivers/dronecan/libcanard"
+    "drivers/dronecan/dsdlc_generated/include")
+set_property(SOURCE canard_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0 CANARD_INTERNAL=)
+
 set_property(SOURCE osd_unittest.cc PROPERTY depends "io/osd_utils.c" "io/displayport_msp_osd.c" "common/typeconversion.c")
 set_property(SOURCE osd_unittest.cc PROPERTY definitions OSD_UNIT_TEST USE_MSP_DISPLAYPORT DISABLE_MSP_BF_COMPAT)
 
@@ -56,10 +79,23 @@ function(unit_test src)
         list(APPEND test_definitions ${defs})
     endif()
     list(TRANSFORM deps PREPEND "${MAIN_DIR}/")
+    # Handle extra_sources property for files that don't need .h transform (e.g., DSDL generated)
+    get_property(extra_srcs SOURCE ${src} PROPERTY extra_sources)
+    if (extra_srcs)
+        list(TRANSFORM extra_srcs PREPEND "${MAIN_DIR}/")
+        list(APPEND deps ${extra_srcs})
+    endif()
     add_executable(${name} ${src} ${deps})
     set(gen_name ${name}_gen)
     get_generated_files_dir(gen ${gen_name})
-    target_include_directories(${name} PRIVATE . ${MAIN_DIR} ${gen})
+    # Handle extra_includes property for additional include directories (e.g., DSDL generated headers)
+    get_property(extra_incs SOURCE ${src} PROPERTY extra_includes)
+    if (extra_incs)
+        list(TRANSFORM extra_incs PREPEND "${MAIN_DIR}/")
+        target_include_directories(${name} PRIVATE . ${MAIN_DIR} ${gen} ${extra_incs})
+    else()
+        target_include_directories(${name} PRIVATE . ${MAIN_DIR} ${gen})
+    endif()
     target_compile_definitions(${name} PRIVATE ${test_definitions})
     target_compile_options(${name} PRIVATE -pthread -Wall -Wextra -Wno-extern-c-compat -ggdb3 -O0)
     enable_settings(${name} ${gen_name} OUTPUTS setting_files SETTINGS_CXX g++)
