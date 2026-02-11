@@ -11,6 +11,7 @@ DroneCAN (formerly UAVCAN v0) is a lightweight protocol designed for reliable co
 | Battery Current | Supported | Current sensing from DroneCAN battery monitors |
 | Parameter Get/Set | Planned | Remote parameter configuration |
 | ESC Control | Planned | Motor control via DroneCAN ESCs |
+| Dynamic Node Assignment | Planned | Manage node IDs dynamically to minimize first time configuration |
 
 ## Supported Hardware
 
@@ -40,6 +41,8 @@ save
 | `dronecan_node_id` | 1-127 | 10 | CAN node ID for the flight controller |
 | `dronecan_bitrate` | 125KBPS, 250KBPS, 500KBPS, 1000KBPS | 1000KBPS | CAN bus bitrate |
 
+All peripherals need to have the node ID and the bitrate set manually through the dronecan_gui for now.  You can use your flight controller as a CAN interface by loading an Ardupilot image on it.  Once the set up is complete, you can reflash it to Inav.
+
 ### GPS via DroneCAN
 
 To use a DroneCAN GPS receiver:
@@ -49,7 +52,7 @@ set gps_provider = DRONECAN
 save
 ```
 
-The flight controller will automatically receive GPS data from any DroneCAN GNSS device on the bus.
+The flight controller will automatically receive GPS data from any DroneCAN GNSS device on the bus.  GPS configuration needs to be set using dronecan_gui to enable additional satellite networks.
 
 ### Battery Monitoring via DroneCAN
 
@@ -78,6 +81,7 @@ Connect the CAN bus lines between your flight controller and DroneCAN peripheral
 
 | Signal | Description |
 |--------|-------------|
+| 4v5 | Power supply for peripheral (see dronecan specification for limitations) |
 | CAN_H | CAN High (dominant high) |
 | CAN_L | CAN Low (dominant low) |
 | GND | Ground reference |
@@ -129,8 +133,8 @@ INAV processes the following DroneCAN message types:
 
 DroneCAN devices compatible with INAV include:
 
-- **GPS:** ARK GPS, Holybro DroneCAN GPS, mRo Location One
-- **Battery Monitors:** Various DroneCAN-compatible power modules
+- **GPS:** (not tested) ARK GPS, Holybro DroneCAN GPS, mRo Location One
+- **Battery Monitors:** Matek CAN-L4-BM, Various DroneCAN-compatible power modules
 
 For the latest compatibility information, check the INAV Discord or GitHub discussions.
 
