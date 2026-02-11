@@ -726,6 +726,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
 
     /* Calculate dT */
     ctx.dt = US2S(currentTimeUs - posEstimator.est.lastUpdateTime);
+    ctx.dt = constrainf(ctx.dt, 0.0f, 1.0f);   // Sanity check: limit to 1 second to handle timer wraparound or initialization
     posEstimator.est.lastUpdateTime = currentTimeUs;
 
     /* If IMU is not ready we can't estimate anything */
@@ -769,14 +770,21 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     }
 
     // Boost the corrections based on accWeight
-    vectorScale(&ctx.estPosCorr, &ctx.estPosCorr, 1.0f / posEstimator.imu.accWeightFactor);
-    vectorScale(&ctx.estVelCorr, &ctx.estVelCorr, 1.0f / posEstimator.imu.accWeightFactor);
+    if (posEstimator.imu.accWeightFactor > 0.001f) {
+        vectorScale(&ctx.estPosCorr, &ctx.estPosCorr, 1.0f / posEstimator.imu.accWeightFactor);
+        vectorScale(&ctx.estVelCorr, &ctx.estVelCorr, 1.0f / posEstimator.imu.accWeightFactor);
+    }
 
-    // Constrain corrections to prevent instability
+    // Constrain corrections to prevent instability. Zero out NaN since constrainf cannot catch it.
     const float corrLimit = INAV_EST_CORR_LIMIT_VALUE * ctx.dt;
     for (uint8_t axis = 0; axis < 3; axis++) {
-        ctx.estPosCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -corrLimit, corrLimit);
-        ctx.estVelCorr.v[axis] = constrainf(ctx.estVelCorr.v[axis], -corrLimit, corrLimit);
+        if (isnan(ctx.estPosCorr.v[axis]) || isnan(ctx.estVelCorr.v[axis])) {
+            ctx.estPosCorr.v[axis] = 0.0f;
+            ctx.estVelCorr.v[axis] = 0.0f;
+        } else {
+            ctx.estPosCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -corrLimit, corrLimit);
+            ctx.estVelCorr.v[axis] = constrainf(ctx.estVelCorr.v[axis], -corrLimit, corrLimit);
+        }
     }
 
     // Apply corrections
@@ -786,14 +794,13 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     /* Correct accelerometer bias */
     const float w_acc_bias = positionEstimationConfig()->w_acc_bias;
     if (w_acc_bias > 0.0f) {
-        /* Correct accel bias */
-        posEstimator.imu.accelBias.x += ctx.accBiasCorr.x * w_acc_bias * ctx.dt;
-        posEstimator.imu.accelBias.y += ctx.accBiasCorr.y * w_acc_bias * ctx.dt;
-        posEstimator.imu.accelBias.z += ctx.accBiasCorr.z * w_acc_bias * ctx.dt;
-
-        posEstimator.imu.accelBias.x = constrainf(posEstimator.imu.accelBias.x, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
-        posEstimator.imu.accelBias.y = constrainf(posEstimator.imu.accelBias.y, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
-        posEstimator.imu.accelBias.z = constrainf(posEstimator.imu.accelBias.z, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
+        /* Correct accel bias - discard NaN to prevent permanent bias corruption */
+        for (uint8_t axis = 0; axis < 3; axis++) {
+            if (!isnan(ctx.accBiasCorr.v[axis])) {
+                posEstimator.imu.accelBias.v[axis] += ctx.accBiasCorr.v[axis] * w_acc_bias * ctx.dt;
+            }
+            posEstimator.imu.accelBias.v[axis] = constrainf(posEstimator.imu.accelBias.v[axis], -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
+        }
     }
 
     /* Update ground course */
