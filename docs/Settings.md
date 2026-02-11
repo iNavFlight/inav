@@ -788,7 +788,7 @@ The speed of the CANbus network in kbps. Set all devices to the same speed.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 500 |  |  |
+| 1000 |  |  |
 
 ---
 
@@ -6604,7 +6604,7 @@ Maximum voltage per cell in 0.01V units, default is 4.20V
 
 ### vbat_meter_type
 
-Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running.
+Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus.
 
 | Default | Min | Max |
 | --- | --- | --- |

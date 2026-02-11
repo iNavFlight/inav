@@ -36,7 +36,7 @@ tables:
     values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CAN"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
@@ -982,7 +982,7 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running."
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus."
         condition: USE_ADC
         default_value: ADC
         field: voltage.type
@@ -4517,7 +4517,7 @@ groups:
         max: 127
       - name: dronecan_bitrate_kbps
         description: "The speed of the CANbus network in kbps. Set all devices to the same speed. "
-        default_value: "500"
+        default_value: "1000"
         field: bitRateKbps
         table: dronecan_bitrate_table
         type: uint8_t

@@ -65,6 +65,9 @@
 #if defined(USE_SMARTPORT_MASTER)
 #include "io/smartport_master.h"
 #endif
+#if defined(USE_DRONECAN)
+#include "sensors/battery_sensor_dronecan.h"
+#endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
@@ -169,7 +172,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
     }
 }
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 3);
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
@@ -305,6 +308,13 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
         }
         break;
 #endif
+
+#if defined(USE_DRONECAN)
+    case VOLTAGE_SENSOR_CAN:
+        vbat = dronecanBattSensorGetVBat();
+        break;
+#endif
+
     case VOLTAGE_SENSOR_NONE:
         default:
             vbat = 0;
