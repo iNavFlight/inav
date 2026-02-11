@@ -775,14 +775,17 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         vectorScale(&ctx.estVelCorr, &ctx.estVelCorr, 1.0f / posEstimator.imu.accWeightFactor);
     }
 
-    // Constrain corrections to prevent instability. Zero out NaN since constrainf cannot catch it.
+    // Constrain corrections to prevent instability. Discard non-finite values (NaN/Inf) since constrainf cannot catch NaN.
     const float corrLimit = INAV_EST_CORR_LIMIT_VALUE * ctx.dt;
     for (uint8_t axis = 0; axis < 3; axis++) {
-        if (isnan(ctx.estPosCorr.v[axis]) || isnan(ctx.estVelCorr.v[axis])) {
+        if (!isfinite(ctx.estPosCorr.v[axis])) {
             ctx.estPosCorr.v[axis] = 0.0f;
-            ctx.estVelCorr.v[axis] = 0.0f;
         } else {
             ctx.estPosCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -corrLimit, corrLimit);
+        }
+        if (!isfinite(ctx.estVelCorr.v[axis])) {
+            ctx.estVelCorr.v[axis] = 0.0f;
+        } else {
             ctx.estVelCorr.v[axis] = constrainf(ctx.estVelCorr.v[axis], -corrLimit, corrLimit);
         }
     }
@@ -794,12 +797,16 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     /* Correct accelerometer bias */
     const float w_acc_bias = positionEstimationConfig()->w_acc_bias;
     if (w_acc_bias > 0.0f) {
-        /* Correct accel bias - discard NaN to prevent permanent bias corruption */
+        /* Correct accel bias - discard non-finite values to prevent permanent bias corruption */
         for (uint8_t axis = 0; axis < 3; axis++) {
-            if (!isnan(ctx.accBiasCorr.v[axis])) {
+            if (isfinite(ctx.accBiasCorr.v[axis])) {
                 posEstimator.imu.accelBias.v[axis] += ctx.accBiasCorr.v[axis] * w_acc_bias * ctx.dt;
             }
-            posEstimator.imu.accelBias.v[axis] = constrainf(posEstimator.imu.accelBias.v[axis], -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
+            if (!isfinite(posEstimator.imu.accelBias.v[axis])) {
+                posEstimator.imu.accelBias.v[axis] = 0.0f;
+            } else {
+                posEstimator.imu.accelBias.v[axis] = constrainf(posEstimator.imu.accelBias.v[axis], -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
+            }
         }
     }
 
