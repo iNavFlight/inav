@@ -632,6 +632,11 @@ void currentMeterUpdate(timeUs_t timeDelta)
             }
             break;
 #endif
+#if defined(USE_DRONECAN)
+        case CURRENT_SENSOR_CAN:
+            amperage = dronecanBattSensorGetAmperage();
+            break;
+#endif
 #if defined(USE_FAKE_BATT_SENSOR)
         case CURRENT_SENSOR_FAKE:
             amperage = fakeBattSensorGetAmerperage();
