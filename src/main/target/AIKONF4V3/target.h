@@ -131,8 +131,8 @@
 
 // *************** ADC *****************************
 #define USE_ADC
-#define ADC_INSTANCE            ADC3
-#define ADC3_DMA_STREAM         DMA2_Stream1
+#define ADC_INSTANCE            ADC1
+#define ADC1_DMA_STREAM         DMA2_Stream0
 
 #define ADC_CHANNEL_1_PIN       PC1
 #define ADC_CHANNEL_2_PIN       PC2
@@ -146,6 +146,7 @@
 #define USE_PINIO
 #define USE_PINIOBOX
 #define PINIO1_PIN              PB7     // 10V BEC
+#define PINIO1_FLAGS            PINIO_FLAGS_INVERTED
 #define PINIO2_PIN              PB3     // Camera control
 
 // *************** LED STRIP ************************
