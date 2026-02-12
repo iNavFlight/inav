@@ -49,6 +49,7 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
     struct uavcan_protocol_NodeStatus nodeStatus;
 
 	if (uavcan_protocol_NodeStatus_decode(transfer, &nodeStatus)) {
+		LOG_DEBUG(CAN, "NodeStatus decode failed");
 		return;
 	}
 
@@ -101,9 +102,10 @@ void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
     struct uavcan_equipment_gnss_Auxiliary gnssAuxiliary;
 
 	if (uavcan_equipment_gnss_Auxiliary_decode(transfer, &gnssAuxiliary)) {
+		LOG_DEBUG(CAN, "GNSSAuxiliary decode failed");
 		return;
 	}
-    LOG_DEBUG(CAN, "GNSS Auxiliary: Num Sats: %d, HDOP %.2f", gnssAuxiliary.sats_used, (double)gnssAuxiliary.hdop);
+    LOG_DEBUG(CAN, "GNSS Auxiliary: Sats=%d HDOP=%.1f", gnssAuxiliary.sats_used, (double)gnssAuxiliary.hdop);
 }
 
 void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -111,10 +113,11 @@ void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
     struct uavcan_equipment_gnss_Fix gnssFix;
 
 	if (uavcan_equipment_gnss_Fix_decode(transfer, &gnssFix)) {
+		LOG_DEBUG(CAN, "GNSSFix decode failed");
 		return;
 	}
     dronecanGPSReceiveGNSSFix(&gnssFix);
-    LOG_DEBUG(CAN, "GNSS Fix: Longitude: %lld, Latitude %lld", gnssFix.longitude_deg_1e8, gnssFix.latitude_deg_1e8);
+    LOG_DEBUG(CAN, "GNSS Fix received");
 }
 
 void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -122,10 +125,11 @@ void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
     struct uavcan_equipment_gnss_Fix2 gnssFix2;
 
 	if (uavcan_equipment_gnss_Fix2_decode(transfer, &gnssFix2)) {
+		LOG_DEBUG(CAN, "GNSSFix2 decode failed");
 		return;
 	}
     dronecanGPSReceiveGNSSFix2(&gnssFix2);
-    LOG_DEBUG(CAN, "GNSS Fix2: Longitude: %lld, Latitude %lld", gnssFix2.longitude_deg_1e8, gnssFix2.latitude_deg_1e8);
+    LOG_DEBUG(CAN, "GNSS Fix2 received");
 }
 
 void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -133,6 +137,7 @@ void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
     struct uavcan_equipment_gnss_RTCMStream gnssRTCMStream;
 
 	if (uavcan_equipment_gnss_RTCMStream_decode(transfer, &gnssRTCMStream)) {
+		LOG_DEBUG(CAN, "RTCMStream decode failed");
 		return;
 	}
     LOG_DEBUG(CAN, "GNSS RTCM");
@@ -143,6 +148,7 @@ void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
     struct uavcan_equipment_power_BatteryInfo batteryInfo;
 
 	if (uavcan_equipment_power_BatteryInfo_decode(transfer, &batteryInfo)) {
+		LOG_DEBUG(CAN, "BatteryInfo decode failed");
 		return;
 	}
     dronecanBatterySensorReceiveInfo(&batteryInfo);
@@ -201,7 +207,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
   up in the DroneCAN GUI tool and in the flight controller logs
  */
 void send_NodeStatus(void) {
-    uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
+    uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
 
     // LOG_DEBUG(CAN, "Sending Node Status");
     node_status.uptime_sec = HAL_GetTick() / 1000UL;
