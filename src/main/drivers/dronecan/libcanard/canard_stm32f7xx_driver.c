@@ -434,9 +434,9 @@ void canardSTM32GetUniqueID(uint8_t id[16]) {
     uint32_t HALUniqueIDs[3];
     // Make Unique ID out of the 96-bit STM32 UID and fill the rest with 0s
     memset(id, 0, 16);
-    HALUniqueIDs[0] = HAL_GetUIDw0();
-    HALUniqueIDs[1] = HAL_GetUIDw1();
-    HALUniqueIDs[2] = HAL_GetUIDw2();
+    HALUniqueIDs[0] = *(uint32_t *)UID_BASE;
+    HALUniqueIDs[1] = *(uint32_t *)(UID_BASE + 4);
+    HALUniqueIDs[2] = *(uint32_t *)(UID_BASE + 8);
     memcpy(id, HALUniqueIDs, 12);
 }
 
