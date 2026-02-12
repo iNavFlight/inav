@@ -363,15 +363,14 @@ void processCanardTxQueue(void) {
 
 		if (tx_res < 0) {
 			LOG_DEBUG(CAN, "Transmit error %d", tx_res);
+			canardPopTxQueue(&canard);  // Error - discard frame
 		} else if (tx_res > 0) {
 			// LOG_DEBUG(CAN, "Successfully transmitted message");
+			canardPopTxQueue(&canard);  // Success - remove from queue
+		} else {
+			// tx_res == 0: TX FIFO full, retry later
+			break;
 		}
-        else
-        {
-            LOG_DEBUG(CAN, "hfderror transmitting.");
-        }
-		// Pop canardTxQueue either way
-		canardPopTxQueue(&canard);
 	}
 
 }
@@ -453,6 +452,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 
     switch(dronecanState) {
         case STATE_DRONECAN_INIT:
+            next_1hz_service_at = currentTimeUs + 1000000ULL;  // First 1Hz tick in 1 second
             dronecanState = STATE_DRONECAN_NORMAL;
             break;
 
@@ -473,7 +473,6 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 	             {
 		             canardHandleRxFrame(&canard, &rx_frame, timestamp);
 	             }
-                 numMessagesToProcess--;
              }
             if (currentTimeUs >= next_1hz_service_at)
             {

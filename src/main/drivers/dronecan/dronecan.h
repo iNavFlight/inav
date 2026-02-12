@@ -1,4 +1,7 @@
+#pragma once
+
 #include "common/time.h"
+#include "config/parameter_group.h"
 
 void dronecanInit(void);
 void dronecanUpdate(timeUs_t currentTimeUs);

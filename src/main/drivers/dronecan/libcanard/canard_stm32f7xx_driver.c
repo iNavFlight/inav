@@ -164,9 +164,9 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	}
 
 	LOG_DEBUG(CAN, "Failed at adding message with id: %lu to Tx Queue.  Error: %lu", tx_frame->id, returnCode);
-    
-	// This might be for many reasons including the Tx Fifo being full, the error can be read from hfdcan->ErrorCode
-	return 1;
+
+	// TX failed (FIFO full or other error) - return 0 to signal retry needed
+	return 0;
 }
 
 /**
@@ -434,9 +434,9 @@ void canardSTM32GetUniqueID(uint8_t id[16]) {
     uint32_t HALUniqueIDs[3];
     // Make Unique ID out of the 96-bit STM32 UID and fill the rest with 0s
     memset(id, 0, 16);
-    HALUniqueIDs[0] = HAL_GetDEVID();
-    HALUniqueIDs[1] = 0;
-    HALUniqueIDs[2] = 0;
+    HALUniqueIDs[0] = HAL_GetUIDw0();
+    HALUniqueIDs[1] = HAL_GetUIDw1();
+    HALUniqueIDs[2] = HAL_GetUIDw2();
     memcpy(id, HALUniqueIDs, 12);
 }
 
