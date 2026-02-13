@@ -1,10 +1,11 @@
 #include "platform.h"
 #include "common/log.h"
 #include "common/time.h"
+#include "drivers/time.h"
 #include <stdint.h>
 #include "fc/settings.h"
 #include "build/version.h"
-#if defined(USE_DRONECAN) && !defined(SITL_BUILD)
+#if defined(USE_DRONECAN)
 
 #include "io/gps.h"
 #include "sensors/battery_sensor_dronecan.h"
@@ -168,7 +169,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 	memset(&pkt, 0, sizeof(pkt));
 
-	node_status.uptime_sec = HAL_GetTick() / 1000ULL;
+	node_status.uptime_sec = millis() / 1000ULL;
 	pkt.status = node_status;
 
 	// fill in your major and minor firmware version
@@ -210,7 +211,7 @@ void send_NodeStatus(void) {
     uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
 
     // LOG_DEBUG(CAN, "Sending Node Status");
-    node_status.uptime_sec = HAL_GetTick() / 1000UL;
+    node_status.uptime_sec = millis() / 1000UL;
     node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
     node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
     node_status.sub_mode = 0;
@@ -469,7 +470,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
              {
                  //LOG_DEBUG(CAN, "Received a message");
                  //LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", canardSTM32GetRxFifoFillLevel());
-	            timestamp = HAL_GetTick() * 1000ULL;
+	            timestamp = millis() * 1000ULL;
 	            rx_res = canardSTM32Recieve(&rx_frame);
 
 	             if (rx_res < 0) {
