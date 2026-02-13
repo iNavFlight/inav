@@ -48,8 +48,8 @@ uint16_t dronecanBattSensorGetAmperage(void)
 
 void dronecanBatterySensorReceiveInfo(struct uavcan_equipment_power_BatteryInfo *pbatteryInfo)
 {
-    dronecanVbat = (uint16_t)round(pbatteryInfo->voltage * 100.0F);
-    dronecanAmperage = (uint16_t)round(pbatteryInfo->current * 100.0F);
+    dronecanVbat = (uint16_t)roundf(pbatteryInfo->voltage * 100.0F);
+    dronecanAmperage = (uint16_t)roundf(pbatteryInfo->current * 100.0F);
 };
 
 #endif
