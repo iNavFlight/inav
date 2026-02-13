@@ -10,3 +10,4 @@ target_stm32f405xg(OMNIBUSF4V3_S6_SS)
 # except for an inverter on UART6.
 target_stm32f405xg(OMNIBUSF4V3)
 target_stm32f405xg(OMNIBUSF4V3_ICM SKIP_RELEASES)
+target_stm32f405xg(OMNIBUSF4V3_ICM HSE_MHZ 8 SKIP_RELEASES)
