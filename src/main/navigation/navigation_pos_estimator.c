@@ -354,7 +354,7 @@ static bool gravityCalibrationComplete(void)
 static void updateIMUEstimationWeight(const float dt)
 {
     static float acc_clip_factor = 1.0f;
-    // If accelerometer measurement is clipped - drop the acc weight to 0.3
+    // If accelerometer measurement is clipped - drop the acc weight to 0.5
     // and gradually restore weight back to 1.0 over time
     if (accIsClipped()) {
         acc_clip_factor = 0.5f;
