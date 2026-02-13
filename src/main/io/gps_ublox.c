@@ -1228,14 +1228,15 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
                 gpsState.lastCapaPoolMs = millis();
 
+                // MON-class messages respond with data, not ACK/NAK - wait on response data
                 if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN)
                 {
                     pollVersion();
-                    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+                    ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
                 }
 
                 pollGnssCapabilities();
-                ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+                ptWaitTimeout((gpsState.lastCapaUpdMs > gpsState.lastCapaPoolMs), GPS_CFG_CMD_TIMEOUT_MS);
             }
         }
     }
