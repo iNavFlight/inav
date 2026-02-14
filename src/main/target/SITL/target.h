@@ -27,7 +27,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+
+#ifdef __linux__
 #include <sys/socket.h>
+#endif
 
 #include <platform.h>
 
