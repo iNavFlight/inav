@@ -11,11 +11,11 @@
 
 extern "C" {
 #include "drivers/dronecan/libcanard/canard.h"
-#include "drivers/dronecan/dsdlc_generated/include/uavcan.equipment.gnss.Fix2.h"
-#include "drivers/dronecan/dsdlc_generated/include/uavcan.equipment.gnss.Fix.h"
-#include "drivers/dronecan/dsdlc_generated/include/uavcan.equipment.gnss.Auxiliary.h"
-#include "drivers/dronecan/dsdlc_generated/include/uavcan.equipment.power.BatteryInfo.h"
-#include "drivers/dronecan/dsdlc_generated/include/uavcan.protocol.NodeStatus.h"
+#include "uavcan.equipment.gnss.Fix2.h"
+#include "uavcan.equipment.gnss.Fix.h"
+#include "uavcan.equipment.gnss.Auxiliary.h"
+#include "uavcan.equipment.power.BatteryInfo.h"
+#include "uavcan.protocol.NodeStatus.h"
 }
 
 #include "gtest/gtest.h"
