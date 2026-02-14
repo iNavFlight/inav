@@ -27,10 +27,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-
-#ifdef __linux__
 #include <sys/socket.h>
-#endif
 
 #include <platform.h>
 
@@ -208,10 +205,7 @@ extern bool lockMainPID(void);
 extern void unlockMainPID(void);
 extern void parseArguments(int argc, char *argv[]);
 extern char *strnstr(const char *s, const char *find, size_t slen);
-
-#ifdef __linux__
 extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);
 
 #define IPADDRESS_PRINT_BUFLEN (INET6_ADDRSTRLEN + 16)
 extern char *prettyPrintAddress(struct sockaddr*, char*, size_t);
-#endif
