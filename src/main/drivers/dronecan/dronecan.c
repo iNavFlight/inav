@@ -425,11 +425,15 @@ void dronecanInit(void)
             bitrate = 500000;
             break;
     }
-    canardSTM32CAN1_Init(bitrate);  // TODO: Handle error and disable CAN if this call fails.
+    if(canardSTM32CAN1_Init(bitrate) != 1)
+    {
+        LOG_ERROR(CAN, "Unable to initialize the CAN peripheral");
+        // TODO: Notify the user that CAN does not work and disable the peripheral
+        return;
+    }  
     /*
     Initializing the Libcanard instance.
     */
-    LOG_DEBUG(CAN, "canardInit");
     canardInit(&canard,
 	    	   memory_pool,
 			   sizeof(memory_pool),

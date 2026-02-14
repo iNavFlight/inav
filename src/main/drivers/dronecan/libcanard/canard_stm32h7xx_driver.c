@@ -114,7 +114,15 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	TxHeader.FDFormat = FDCAN_CLASSIC_CAN; // Disabling FDCAN (using CAN 2.0)
 	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // unsure about this one
 	TxHeader.MessageMarker = 0; // unsure about this one
-	memcpy(TxData, tx_frame->data, TxHeader.DataLength);
+    if (TxHeader.DataLength <= sizeof(TxData))
+    {
+	    memcpy(TxData, tx_frame->data, TxHeader.DataLength);
+    }
+    else
+    {
+        LOG_ERROR(CAN, "Data to transmit is larger than 8 byte frame size");
+        return -CANARD_ERROR_INVALID_ARGUMENT;
+    }
 
 	if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) == HAL_OK) {
 		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", TxHeader.Identifier);
@@ -136,66 +144,70 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 {
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
     struct Timings out_timings;
+    int16_t ErrorCode = 1;
 
-  /* USER CODE BEGIN FDCAN1_Init 0 */
+    /* USER CODE BEGIN FDCAN1_Init 0 */
 
-  /* USER CODE END FDCAN1_Init 0 */
+    /* USER CODE END FDCAN1_Init 0 */
 
-  /* USER CODE BEGIN FDCAN1_Init 1 */
+    /* USER CODE BEGIN FDCAN1_Init 1 */
 
-  FDCAN_FilterTypeDef sFilterConfig;
-  sFilterConfig.IdType = FDCAN_EXTENDED_ID;
-  sFilterConfig.FilterIndex = 0;
-  sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
-  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  sFilterConfig.FilterID1 = 0x0; //0x1401557F;
-  sFilterConfig.FilterID2 = 0x1FFFFFFFU;
-  // sFilterConfig.RxBufferIndex = 0;
-  /* USER CODE END FDCAN1_Init 1 */
-  hfdcan1.Instance = FDCAN1;
-  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
-  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan1.Init.AutoRetransmission = DISABLE;
-  hfdcan1.Init.TransmitPause = DISABLE;
-  hfdcan1.Init.ProtocolException = DISABLE;
+    FDCAN_FilterTypeDef sFilterConfig;
+    sFilterConfig.IdType = FDCAN_EXTENDED_ID;
+    sFilterConfig.FilterIndex = 0;
+    sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
+    sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+    sFilterConfig.FilterID1 = 0x0; 
+    sFilterConfig.FilterID2 = 0x1FFFFFFFU;
+    /* USER CODE END FDCAN1_Init 1 */
+    hfdcan1.Instance = FDCAN1;
+    hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
+    hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
+    hfdcan1.Init.AutoRetransmission = DISABLE;
+    hfdcan1.Init.TransmitPause = DISABLE;
+    hfdcan1.Init.ProtocolException = DISABLE;
 
-  canardSTM32ComputeTimings(bitrate, &out_timings);
+    ErrorCode = canardSTM32ComputeTimings(bitrate, &out_timings);
+    if (ErrorCode != 1)
+    {
+        LOG_ERROR(CAN, "Unable to calculate timings, Error Code:%d", ErrorCode);
+        return -CANARD_ERROR_INTERNAL;
+    }
 
-  hfdcan1.Init.NominalPrescaler = out_timings.prescaler;
-  hfdcan1.Init.NominalSyncJumpWidth = out_timings.sjw;
-  hfdcan1.Init.NominalTimeSeg1 = out_timings.bs1;
-  hfdcan1.Init.NominalTimeSeg2 = out_timings.bs2;
-  LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
+    hfdcan1.Init.NominalPrescaler = out_timings.prescaler;
+    hfdcan1.Init.NominalSyncJumpWidth = out_timings.sjw;
+    hfdcan1.Init.NominalTimeSeg1 = out_timings.bs1;
+    hfdcan1.Init.NominalTimeSeg2 = out_timings.bs2;
+    LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
-  hfdcan1.Init.RxFifo0ElmtsNbr = 30;
-  hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
-  hfdcan1.Init.RxBuffersNbr = 1;
-  hfdcan1.Init.RxBufferSize = FDCAN_DATA_BYTES_8;
-  hfdcan1.Init.StdFiltersNbr = 0;
-  hfdcan1.Init.ExtFiltersNbr = 1;
-  hfdcan1.Init.TxFifoQueueElmtsNbr = 32;
-  hfdcan1.Init.TxEventsNbr = 0;
-  hfdcan1.Init.TxBuffersNbr = 5;
-  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-  hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
-  LOG_DEBUG(CAN, "In CAN Init");
+    hfdcan1.Init.RxFifo0ElmtsNbr = 30;
+    hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
+    hfdcan1.Init.RxBuffersNbr = 1;
+    hfdcan1.Init.RxBufferSize = FDCAN_DATA_BYTES_8;
+    hfdcan1.Init.StdFiltersNbr = 0;
+    hfdcan1.Init.ExtFiltersNbr = 1;
+    hfdcan1.Init.TxFifoQueueElmtsNbr = 32;
+    hfdcan1.Init.TxEventsNbr = 0;
+    hfdcan1.Init.TxBuffersNbr = 5;
+    hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+    hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
+    LOG_DEBUG(CAN, "In CAN Init");
 
-  /** Initializes the peripherals clock
-  */
+    /** Initializes the peripherals clock
+    */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
     PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
       LOG_DEBUG(CAN, "Unable to configure peripheral clock");
+      return -CANARD_ERROR_INTERNAL;
     }
 
     /* FDCAN1 clock enable */
     __HAL_RCC_FDCAN_CLK_ENABLE();
 
     canardSTM32GPIO_Init();  // Set up the pins for CAN and optional listen only mode
-    
-    // LOG_DEBUG(CAN, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
-    // LOG_DEBUG(CAN, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
+       
     if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
     {
         LOG_ERROR(CAN, "Failed CAN Init");
