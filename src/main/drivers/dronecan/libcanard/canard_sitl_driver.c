@@ -48,13 +48,16 @@ static char can_interface_name[IFNAMSIZ] = DRONECAN_SITL_INTERFACE;
 
 // Forward declarations
 static int16_t sitlCANInitStub(uint32_t bitrate);
-static int16_t sitlCANInitSocketCAN(uint32_t bitrate);
 static int16_t sitlCANReceiveStub(CanardCANFrame *const rx_frame);
-static int16_t sitlCANReceiveSocketCAN(CanardCANFrame *const rx_frame);
 static int16_t sitlCANTransmitStub(const CanardCANFrame* const tx_frame);
-static int16_t sitlCANTransmitSocketCAN(const CanardCANFrame* const tx_frame);
 static void sitlCANGetStatsStub(canardProtocolStatus_t *pProtocolStat);
+
+#ifdef __linux__
+static int16_t sitlCANInitSocketCAN(uint32_t bitrate);
+static int16_t sitlCANReceiveSocketCAN(CanardCANFrame *const rx_frame);
+static int16_t sitlCANTransmitSocketCAN(const CanardCANFrame* const tx_frame);
 static void sitlCANGetStatsSocketCAN(canardProtocolStatus_t *pProtocolStat);
+#endif
 
 /**
  * @brief Initialize CAN interface with SocketCAN (Linux) or stub fallback
