@@ -38,15 +38,15 @@ set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular
 set_property(SOURCE dronecan_messages_unittest.cc PROPERTY depends
     "drivers/dronecan/libcanard/canard.c")
 set_property(SOURCE dronecan_messages_unittest.cc PROPERTY extra_sources
-    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix2.c"
-    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix.c"
-    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Auxiliary.c"
-    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.power.BatteryInfo.c"
-    "drivers/dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
-    "drivers/dronecan/dsdlc_generated/src/uavcan.Timestamp.c"
-    "drivers/dronecan/dsdlc_generated/src/uavcan.equipment.gnss.ECEFPositionVelocity.c")
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix2.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Auxiliary.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.power.BatteryInfo.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.Timestamp.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.ECEFPositionVelocity.c")
 set_property(SOURCE dronecan_messages_unittest.cc PROPERTY extra_includes
-    "drivers/dronecan/dsdlc_generated/include")
+    "../../lib/main/Dronecan/dsdlc_generated/include")
 set_property(SOURCE dronecan_messages_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0)
 
 # Libcanard core tests - CANARD_INTERNAL= makes static functions accessible
@@ -54,7 +54,7 @@ set_property(SOURCE canard_unittest.cc PROPERTY depends
     "drivers/dronecan/libcanard/canard.c")
 set_property(SOURCE canard_unittest.cc PROPERTY extra_includes
     "drivers/dronecan/libcanard"
-    "drivers/dronecan/dsdlc_generated/include")
+    "../../lib/main/Dronecan/dsdlc_generated/include")
 set_property(SOURCE canard_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0 CANARD_INTERNAL=)
 
 set_property(SOURCE osd_unittest.cc PROPERTY depends "io/osd_utils.c" "io/displayport_msp_osd.c" "common/typeconversion.c")
