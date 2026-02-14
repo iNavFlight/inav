@@ -51,7 +51,7 @@
 #include "io/gps_private.h"
 #include "drivers/dronecan/dronecan.h"
 
-#include "dronecan_msgs.h"
+#include <dronecan_msgs.h>
 
 static bool newDataReady;
 

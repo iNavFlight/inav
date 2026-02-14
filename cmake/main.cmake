@@ -3,7 +3,7 @@ set(MAIN_INCLUDE_DIRS
     "${MAIN_SRC_DIR}"
     "${MAIN_LIB_DIR}/main/MAVLink"
     "${MAIN_SRC_DIR}/drivers/dronecan/libcanard"
-    "${MAIN_SRC_DIR}/drivers/dronecan/dsdlc_generated/include"
+    "${DSDLC_GENERATED_DIRS}"
 )
 
 set(MAIN_DEFINITIONS

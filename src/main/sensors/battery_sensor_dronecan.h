@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "drivers/dronecan/dsdlc_generated/include/dronecan_msgs.h"
+#include <dronecan_msgs.h>
 
 uint16_t dronecanBattSensorGetVBat(void);
 uint16_t dronecanBattSensorGetAmperage(void);

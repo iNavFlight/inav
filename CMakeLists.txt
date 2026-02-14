@@ -37,6 +37,7 @@ get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 string(SUBSTRING ${GIT_SHA1} 0 8 GIT_REV)
 
 # Load settings related functions, so the tests can use them
+include(dsdlc_generated)
 include(main)
 include(settings)
 

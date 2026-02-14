@@ -1,5 +1,5 @@
 
-set(DSDLC_GENERATED_DIR "${MAIN_LIB_DIR}/main/dsdlc_generated")
+set(DSDLC_GENERATED_DIR "${MAIN_LIB_DIR}/main/Dronecan/dsdlc_generated")
 
 set(DSDLC_GENERATED_SRC
     dronecan.protocol.CanStats.c                                
@@ -123,10 +123,10 @@ set(DSDLC_GENERATED_SRC
     uavcan.tunnel.Targetted.c
 )
 
-list(TRANSFORM DSDLC_GENERATED_SRC PREPEND "${DSDLC_GENERATED_DIR}/Src/")
+list(TRANSFORM DSDLC_GENERATED_SRC PREPEND "${DSDLC_GENERATED_DIR}/src/")
 
 set(DSDLC_GENERATED_DIRS
-    ${DSDLC_GENERATED_DIR}/Include
+    ${DSDLC_GENERATED_DIR}/include
 )
 
 

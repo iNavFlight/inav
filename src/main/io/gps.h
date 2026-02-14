@@ -21,7 +21,7 @@
 #include <time.h>
 
 #include "config/parameter_group.h"
-#include "drivers/dronecan/dsdlc_generated/include/dronecan_msgs.h"
+#include <dronecan_msgs.h>
 
 #include "common/time.h"
 
