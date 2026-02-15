@@ -5332,20 +5332,20 @@
     "MSP_SET_HEAD": {
         "code": 211,
         "mspv": 1,
-    "request": {
-      "payload": [
-        {
-          "name": "heading",
-          "ctype": "uint16_t",
-          "desc": "Target heading (0-359)",
-          "units": "degrees"
-        }
-      ]
+        "request": {
+            "payload": [
+                {
+                "name": "heading",
+                "ctype": "uint16_t",
+                "desc": "Target heading (0-359)",
+                "units": "degrees"
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Expects 2 bytes. Calls `updateHeadingHoldTarget()`. Also synchronizes navigation yaw targets (including cruise/course) when NAV is controlling yaw.",
+        "description": "Sets the target heading for the heading hold controller (e.g., during MAG mode)."
     },
-    "reply": null,
-    "notes": "Expects 2 bytes. Calls `updateHeadingHoldTarget()`. Also synchronizes navigation yaw targets (including cruise/course) when NAV is controlling yaw.",
-    "description": "Sets the target heading for the heading hold controller (e.g., during MAG mode)."
-  },
     "MSP_SET_SERVO_CONFIGURATION": {
         "code": 212,
         "mspv": 1,
