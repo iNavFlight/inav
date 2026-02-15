@@ -83,13 +83,13 @@ void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix
 
     gpsSolDRV.fixType   = gpsMapFixType(pgnssFix->status);
     gpsSolDRV.numSat    = pgnssFix->sats_used;
-    gpsSolDRV.llh.lon   = pgnssFix->longitude_deg_1e8;
-    gpsSolDRV.llh.lat   = pgnssFix->latitude_deg_1e8;
-    gpsSolDRV.llh.alt   = pgnssFix->height_msl_mm;
-    gpsSolDRV.velNED[X] = pgnssFix->ned_velocity[0]; // Dronecan is North, East, Down
-    gpsSolDRV.velNED[Y] = pgnssFix->ned_velocity[1];
-    gpsSolDRV.velNED[Z] = pgnssFix->ned_velocity[2];
-    gpsSolDRV.groundSpeed = calc_length_pythagorean_2D((float)pgnssFix->ned_velocity[0], (float)pgnssFix->ned_velocity[1]);
+    gpsSolDRV.llh.lon   = pgnssFix->longitude_deg_1e8 / 10; // convert to deg_1e7
+    gpsSolDRV.llh.lat   = pgnssFix->latitude_deg_1e8 / 10; // convert to deg_1e7
+    gpsSolDRV.llh.alt   = pgnssFix->height_msl_mm / 10; // convert to cm
+    gpsSolDRV.velNED[X] = pgnssFix->ned_velocity[0] * 100; // Dronecan is North, East, Down
+    gpsSolDRV.velNED[Y] = pgnssFix->ned_velocity[1] * 100;
+    gpsSolDRV.velNED[Z] = pgnssFix->ned_velocity[2] * 100;
+    gpsSolDRV.groundSpeed = calc_length_pythagorean_2D((float)pgnssFix->ned_velocity[0], (float)pgnssFix->ned_velocity[1]) * 100;
     float groundCourse = atan2_approx(pgnssFix->ned_velocity[1], pgnssFix->ned_velocity[0]); // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
     if (groundCourse < 0) {
         groundCourse += 2 * M_PIf;
@@ -97,7 +97,8 @@ void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix
     gpsSolDRV.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
     // TODO where to get EPH gpsSolDRV.eph = gpsConstrainEPE(pgnssFix-> / 10);
     // TODO where to get EPV gpsSolDRV.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
-    gpsSolDRV.hdop = gpsConstrainHDOP(pgnssFix->pdop);
+    if(pgnssFix->pdop > 0)
+        gpsSolDRV.hdop = gpsConstrainHDOP(pgnssFix->pdop * 100);  // Only update if populated
     gpsSolDRV.flags.validVelNE = true;
     gpsSolDRV.flags.validVelD = true;
     gpsSolDRV.flags.validEPE = false;
@@ -122,13 +123,13 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
 
     gpsSolDRV.fixType   = gpsMapFixType(pgnssFix2->status);
     gpsSolDRV.numSat    = pgnssFix2->sats_used;
-    gpsSolDRV.llh.lon   = pgnssFix2->longitude_deg_1e8;
-    gpsSolDRV.llh.lat   = pgnssFix2->latitude_deg_1e8;
-    gpsSolDRV.llh.alt   = pgnssFix2->height_msl_mm;
-    gpsSolDRV.velNED[X] = pgnssFix2->ned_velocity[0]; // Dronecan is North, East, Down
-    gpsSolDRV.velNED[Y] = pgnssFix2->ned_velocity[1];
-    gpsSolDRV.velNED[Z] = pgnssFix2->ned_velocity[2];
-    gpsSolDRV.groundSpeed = calc_length_pythagorean_2D((float)pgnssFix2->ned_velocity[0], (float)pgnssFix2->ned_velocity[1]);
+    gpsSolDRV.llh.lon   = pgnssFix2->longitude_deg_1e8 / 10; // convert to deg_1e7
+    gpsSolDRV.llh.lat   = pgnssFix2->latitude_deg_1e8 / 10; // convert to deg_1e7
+    gpsSolDRV.llh.alt   = pgnssFix2->height_msl_mm / 10; // convert to cm
+    gpsSolDRV.velNED[X] = pgnssFix2->ned_velocity[0] * 100; // Dronecan is North, East, Down
+    gpsSolDRV.velNED[Y] = pgnssFix2->ned_velocity[1] * 100;
+    gpsSolDRV.velNED[Z] = pgnssFix2->ned_velocity[2] * 100;
+    gpsSolDRV.groundSpeed = calc_length_pythagorean_2D((float)pgnssFix2->ned_velocity[0], (float)pgnssFix2->ned_velocity[1]) * 100;
     float groundCourse = atan2_approx(pgnssFix2->ned_velocity[1], pgnssFix2->ned_velocity[0]); // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
     if (groundCourse < 0) {
         groundCourse += 2 * M_PIf;
@@ -136,7 +137,8 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
     gpsSolDRV.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
     // TODO where to get EPH gpsSolDRV.eph = gpsConstrainEPE(pgnssFix-> / 10);
     // TODO where to get EPV gpsSolDRV.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
-    gpsSolDRV.hdop = gpsConstrainHDOP(pgnssFix2->pdop);
+    if (pgnssFix2->pdop > 0)
+        gpsSolDRV.hdop = gpsConstrainHDOP(pgnssFix2->pdop * 100); // Only update if valid.
     gpsSolDRV.flags.validVelNE = true;
     gpsSolDRV.flags.validVelD = true;
     gpsSolDRV.flags.validEPE = false;
