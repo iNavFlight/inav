@@ -2,11 +2,12 @@ name: Build pre-release
 # Don't enable CI on push, just on PR. If you
 # are working on the main repo and want to trigger
 # a CI build submit a draft PR.
-on: 
+on:
   push:
     branches:
       - master
       - maintenance-8.x.x
+      - maintenance-9.x
     paths:
       - 'src/**'
       - '.github/**'

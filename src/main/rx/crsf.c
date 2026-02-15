@@ -160,6 +160,11 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
     // full frame length includes the length of the address and framelength fields
     const int fullFrameLength = crsfFramePosition < 3 ? 5 : crsfFrame.frame.frameLength + CRSF_FRAME_LENGTH_ADDRESS + CRSF_FRAME_LENGTH_FRAMELENGTH;
 
+    if (fullFrameLength > CRSF_FRAME_SIZE_MAX) {
+        crsfFramePosition = 0;
+        return;
+    }
+
     if (crsfFramePosition < fullFrameLength) {
         crsfFrame.bytes[crsfFramePosition++] = (uint8_t)c;
         crsfFrameDone = crsfFramePosition < fullFrameLength ? false : true;

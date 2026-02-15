@@ -22,28 +22,11 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#include "platform.h"
-
-#include "fc/fc_msp_box.h"
-#include "io/serial.h"
-#include "io/piniobox.h"
-#include "sensors/gyro.h"
+#include <platform.h>
+#include "drivers/pwm_mapping.h"
 
 void targetConfiguration(void)
 {
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART7)].functionMask = FUNCTION_RX_SERIAL;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART3)].functionMask = FUNCTION_GPS;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].msp_baudrateIndex = BAUD_115200;
-    //pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
-
-#ifdef USE_DYNAMIC_FILTERS
-    // Disable dynamic notch filter by default (performance optimization for wing)
-    // This board is performance-constrained and wing aircraft typically don't need
-    // dynamic notch filtering (designed for multirotor motor noise)
-    gyroConfigMutable()->dynamicGyroNotchEnabled = 0;
-#endif
+  // default "ESC" pin to be a motor
+  timerOverridesMutable(timer2id(TIM1))->outputMode = OUTPUT_MODE_MOTORS;
 }

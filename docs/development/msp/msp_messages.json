@@ -9056,6 +9056,7 @@
     "MSP2_INAV_LOGIC_CONDITIONS": {
         "code": 8226,
         "mspv": 2,
+        "not_implemented": true,
         "request": null,
         "reply": {
             "payload": [
@@ -9115,8 +9116,8 @@
             "repeating": "MAX_LOGIC_CONDITIONS"
         },
         "variable_len": "MAX_LOGIC_CONDITIONS",
-        "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. See `logicCondition_t` structure.",
-        "description": "Retrieves the configuration of all defined Logic Conditions."
+        "notes": "Deprecated, causes buffer overflow for 14*64 bytes",
+        "description": "Retrieves the configuration of all defined Logic Conditions. Requires `USE_PROGRAMMING_FRAMEWORK`. See `logicCondition_t` structure."
     },
     "MSP2_INAV_SET_LOGIC_CONDITIONS": {
         "code": 8227,

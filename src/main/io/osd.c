@@ -6568,6 +6568,16 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         }
     }
 #endif
+
+#if defined(USE_PITOT)
+    // Pitot sensor validation failure (blocked/failed pitot tube)
+    if (sensors(SENSOR_PITOT) && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL) {
+        if (osdCheckWarning(pitotHasFailed(), warningFlagID <<= 1, &warningsCount)) {
+            messages[messageCount++] = "PITOT FAIL";
+        }
+    }
+#endif
+
     // Vibration levels   TODO - needs better vibration measurement to be useful
     // const float vibrationLevel = accGetVibrationLevel();
     // warningCondition = vibrationLevel > 1.5f;

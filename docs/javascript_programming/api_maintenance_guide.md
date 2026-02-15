@@ -56,6 +56,7 @@ module.exports = {
     }
   }
 };
+
 ```
 
 ## What Uses These Definitions
@@ -103,6 +104,7 @@ module.exports = {
     }
   }
 };
+
 ```
 
 **2. Update `inav_constants.js` (if needed):**
@@ -119,6 +121,7 @@ const FLIGHT_PARAM_NAMES = {
   // ... existing names ...
   [FLIGHT_PARAM.COMPASS_HEADING]: 'compassHeading'
 };
+
 ```
 
 **3. That's it!**
@@ -159,6 +162,7 @@ module.exports = {
     }
   }
 };
+
 ```
 
 **2. Update `inav_constants.js`:**
@@ -168,6 +172,7 @@ const OPERATION = {
   // ... existing operations ...
   OVERRIDE_VTX_FREQUENCY: 50
 };
+
 ```
 
 **3. Update `codegen.js` (manual):**
@@ -176,7 +181,7 @@ Add code generation logic:
 
 ```javascript
 // In generateAction() method
-if (stmt.target === 'override.vtx.frequency') {
+if (stmt.target === 'inav.override.vtx.frequency') {
   return this.pushLogicCommand(
     OPERATION.OVERRIDE_VTX_FREQUENCY,
     { type: OPERAND_TYPE.VALUE, value: 0 },
@@ -184,6 +189,7 @@ if (stmt.target === 'override.vtx.frequency') {
     activatorId
   );
 }
+
 ```
 
 ## Adding a New Top-Level API Object
@@ -218,6 +224,7 @@ module.exports = {
   
   // ... more sensors
 };
+
 ```
 
 **2. Update `js/transpiler/api/definitions/index.js`:**
@@ -226,16 +233,17 @@ module.exports = {
 'use strict';
 
 module.exports = {
-  flight: require('./flight.js'),
-  override: require('./override.js'),
+  flight: require('./inav.flight.js'),
+  override: require('./inav.override.js'),
   rc: require('./rc.js'),
   gvar: require('./gvar.js'),
-  waypoint: require('./waypoint.js'),
+  waypoint: require('./inav.waypoint.js'),
   pid: require('./pid.js'),
   helpers: require('./helpers.js'),
   events: require('./events.js'),
   sensors: require('./sensors.js')  // ADD THIS
 };
+
 ```
 
 **3. Update TypeScript types in `types.js` generation:**
@@ -245,6 +253,7 @@ The type generator should automatically pick it up, but verify:
 ```javascript
 // In generateTypeDefinitions()
 dts += generateInterfaceFromDefinition('sensors', apiDefinitions.sensors);
+
 ```
 
 ## Validation Checklist
@@ -271,7 +280,6 @@ After modifying definitions:
 ```javascript
 // 1. Test semantic analysis
 const code = `
-const { sensors } = inav;
 if (sensors.acc) {
   // ...
 }
@@ -288,6 +296,7 @@ const dts = generateTypeDefinitions(apiDefinitions);
 
 // 3. Test in Monaco Editor
 // Open configurator, verify autocomplete shows new properties
+
 ```
 
 ## Common Mistakes
@@ -300,11 +309,12 @@ this.inavAPI = {
     properties: ['homeDistance', 'newProperty']  // Hard-coded!
   }
 };
+
 ```
 
 ### ✅ Right: Edit definition file
 ```javascript
-// DO THIS in flight.js:
+// DO THIS in inav.flight.js:
 module.exports = {
   newProperty: {
     type: 'number',
@@ -312,6 +322,7 @@ module.exports = {
     // ...
   }
 };
+
 ```
 
 ### ❌ Wrong: Duplicating definitions
@@ -324,6 +335,7 @@ const FLIGHT_PARAMS = {
 
 // analyzer.js - NO!
 properties: ['homeDistance']
+
 ```
 
 ### ✅ Right: Use centralized definitions
@@ -331,6 +343,7 @@ properties: ['homeDistance']
 // DO THIS - import from definitions
 const apiDefinitions = require('./../api/definitions/index.js');
 const flightDef = apiDefinitions.flight;
+
 ```
 
 ## File Dependencies
@@ -378,6 +391,7 @@ this.inavAPI = {
 // After (using definitions)
 const apiDefinitions = require('./../api/definitions/index.js');
 this.inavAPI = this.buildAPIStructure(apiDefinitions);
+
 ```
 
 ## Summary
