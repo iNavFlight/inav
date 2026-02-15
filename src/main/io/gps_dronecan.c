@@ -40,6 +40,7 @@
 #include "common/gps_conversion.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/log.h"
 
 #include "drivers/serial.h"
 #include "drivers/time.h"
@@ -54,6 +55,8 @@
 #include <dronecan_msgs.h>
 
 static bool newDataReady;
+static uint16_t lastHDOP = 9999;
+static uint16_t lastVDOP = 9999;
 
 void gpsRestartDronecan(void)
 {
@@ -97,8 +100,11 @@ void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix
     gpsSolDRV.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
     // TODO where to get EPH gpsSolDRV.eph = gpsConstrainEPE(pgnssFix-> / 10);
     // TODO where to get EPV gpsSolDRV.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
-    if(pgnssFix->pdop > 0)
+    if(pgnssFix->pdop > 0){
         gpsSolDRV.hdop = gpsConstrainHDOP(pgnssFix->pdop * 100);  // Only update if populated
+    } else if((9999 > lastHDOP) && (lastHDOP> 0)) {
+        gpsSolDRV.hdop = lastHDOP;
+    }
     gpsSolDRV.flags.validVelNE = true;
     gpsSolDRV.flags.validVelD = true;
     gpsSolDRV.flags.validEPE = false;
@@ -137,8 +143,13 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
     gpsSolDRV.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
     // TODO where to get EPH gpsSolDRV.eph = gpsConstrainEPE(pgnssFix-> / 10);
     // TODO where to get EPV gpsSolDRV.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
-    if (pgnssFix2->pdop > 0)
+    LOG_DEBUG(CAN, "Last HDOP %d", lastHDOP);
+    if (pgnssFix2->pdop > 0){
         gpsSolDRV.hdop = gpsConstrainHDOP(pgnssFix2->pdop * 100); // Only update if valid.
+    } else if((9999 > lastHDOP) && (lastHDOP > 0)) {
+        LOG_DEBUG(CAN, "Updating gpsSolDRV");
+        gpsSolDRV.hdop = lastHDOP;
+    }
     gpsSolDRV.flags.validVelNE = true;
     gpsSolDRV.flags.validVelD = true;
     gpsSolDRV.flags.validEPE = false;
@@ -161,5 +172,8 @@ void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliar
 {
     UNUSED(pgnssAux);
     // No useful information I think...  Placeholder until after testing.
+    lastVDOP = pgnssAux->vdop * 100;
+    lastHDOP = pgnssAux->hdop * 100;
+    
 }
 #endif

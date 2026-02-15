@@ -106,6 +106,7 @@ void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
 		LOG_DEBUG(CAN, "GNSSAuxiliary decode failed");
 		return;
 	}
+    dronecanGPSReceiveGNSSAuxiliary(&gnssAuxiliary);
     LOG_DEBUG(CAN, "GNSS Auxiliary: Sats=%d HDOP=%.1f", gnssAuxiliary.sats_used, (double)gnssAuxiliary.hdop);
 }
 
