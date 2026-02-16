@@ -208,49 +208,40 @@ adsbVehicle_t *findVehicleForWarning(uint32_t warningDistanceCm, int32_t maxVert
 adsbVehicle_t *findVehicleForAlert(uint32_t alertDistanceCm, uint32_t warningDistanceCm, int32_t maxVerticalDistance) {
     adsbVehicle_t *best = NULL;
     int32_t bestTimeToAlert = INT32_MAX;
+    uint32_t bestDist = UINT32_MAX;
 
     for (uint8_t i = 0; i < MAX_ADSB_VEHICLES; i++) {
-
         adsbVehicle_t *vehicle = &adsbVehiclesDictionary[i];
         int32_t timeToAlert = -1;
 
-        //only active vehicles
         if (vehicle->ttl == 0 || !vehicle->calculatedVehicleValues.valid) {
             continue;
         }
 
-        //it's too high
         if (vehicle->calculatedVehicleValues.verticalDistance > 0 && maxVerticalDistance > 0 &&
             vehicle->calculatedVehicleValues.verticalDistance > maxVerticalDistance) {
             continue;
         }
 
-        // Case 1: already inside the alert circle (inclusive boundary)
         if (vehicle->calculatedVehicleValues.dist <= alertDistanceCm) {
             timeToAlert = 0;
-        }
-        // Case 2: inside the warning circle and CPA enters the alert circle
-        else if (osdConfig()->adsb_calculation_use_cpa &&
-                 vehicle->calculatedVehicleValues.dist <= warningDistanceCm &&
-                 vehicle->calculatedVehicleValues.meetPointTime >= 0 &&
-                 vehicle->calculatedVehicleValues.meetPointDistance > 0)
-        {
-
-            const uint32_t meetPointDistanceCm = ((uint32_t)vehicle->calculatedVehicleValues.meetPointDistance) * 100u; //cn
-
+        } else if (osdConfig()->adsb_calculation_use_cpa &&
+                   vehicle->calculatedVehicleValues.dist <= warningDistanceCm &&
+                   vehicle->calculatedVehicleValues.meetPointTime >= 0 &&
+                   vehicle->calculatedVehicleValues.meetPointDistance > 0) {
+            const uint32_t meetPointDistanceCm = ((uint32_t)vehicle->calculatedVehicleValues.meetPointDistance) * 100u;
             if (meetPointDistanceCm > alertDistanceCm) {
                 continue;
             }
-
             timeToAlert = vehicle->calculatedVehicleValues.meetPointTime;
-        }
-        else {
+        } else {
             continue;
         }
 
-        if (best == NULL || timeToAlert < bestTimeToAlert) {
+        if (best == NULL || timeToAlert < bestTimeToAlert || (timeToAlert == bestTimeToAlert && vehicle->calculatedVehicleValues.dist < bestDist)) {
             best = vehicle;
             bestTimeToAlert = timeToAlert;
+            bestDist = vehicle->calculatedVehicleValues.dist;
         }
     }
 
