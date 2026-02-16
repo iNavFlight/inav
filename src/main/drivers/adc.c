@@ -26,7 +26,7 @@
 #include "common/utils.h"
 
 #include "drivers/adc.h"
-#if defined(USE_ADC) && !defined(SITL_BUILD)
+#if defined(USE_ADC) && !defined(SITL_BUILD) && !defined(RP2350)
 #include "drivers/io.h"
 
 #include "drivers/adc_impl.h"

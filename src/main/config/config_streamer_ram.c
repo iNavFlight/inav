@@ -17,6 +17,7 @@
 
 #include <string.h>
 #include "platform.h"
+#include "common/utils.h"
 #include "drivers/system.h"
 #include "config/config_streamer.h"
 

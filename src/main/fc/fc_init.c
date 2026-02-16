@@ -25,7 +25,9 @@
 #include "blackbox/blackbox_io.h"
 
 #include "build/assert.h"
+#if !defined(SITL_BUILD) && !defined(RP2350)
 #include "build/atomic.h"
+#endif
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -209,7 +211,7 @@ void init(void)
     // Initialize system and CPU clocks to their initial values
     systemInit();
 
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
     __enable_irq();
 #endif
 
@@ -257,7 +259,7 @@ void init(void)
     latchActiveFeatures();
 
     ledInit(false);
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
     EXTIInit();
 #endif
 
@@ -319,7 +321,7 @@ void init(void)
     if (!STATE(ALTITUDE_CONTROL)) {
         featureClear(FEATURE_AIRMODE);
     }
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
     // Initialize motor and servo outpus
     if (pwmMotorAndServoInit()) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
@@ -742,7 +744,7 @@ void init(void)
     powerLimiterInit();
 #endif
 
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 #endif

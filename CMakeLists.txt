@@ -92,6 +92,7 @@ endif()
 include(stm32)
 include(at32)
 include(sitl)
+include(rp2350)
 
 add_subdirectory(src)
 
