@@ -3909,7 +3909,7 @@ groups:
         field: multifunction_warning_cycle_time
         min: 0
         max: 60
-        default_value: 30
+        default_value: 5
 
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t

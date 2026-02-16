@@ -3098,7 +3098,7 @@ Cycle time for display of full multifunction warning messages [s]. Full warnings
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 0 | 60 |
+| 5 | 0 | 60 |
 
 ---
 
