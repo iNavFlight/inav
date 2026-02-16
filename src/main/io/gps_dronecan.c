@@ -107,7 +107,16 @@ void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix
     }
     gpsSolDRV.flags.validVelNE = true;
     gpsSolDRV.flags.validVelD = true;
-    gpsSolDRV.flags.validEPE = false;
+    gpsSolDRV.flags.validEPE = false;  // assume invalid unless the covariance is filled in.
+    if (pgnssFix->position_covariance.len >= 6) {
+        float var_x = pgnssFix->position_covariance.data[0];  // meters²
+        float var_y = pgnssFix->position_covariance.data[2];  // meters²
+        float var_z = pgnssFix->position_covariance.data[5];  // meters²
+
+        gpsSolDRV.eph = gpsConstrainEPE((uint32_t)(sqrtf(var_x + var_y) * 100));  // cm
+        gpsSolDRV.epv = gpsConstrainEPE((uint32_t)(sqrtf(var_z) * 100));          // cm
+        gpsSolDRV.flags.validEPE = true;
+    } 
 
     // gpsSolDRV.time.year   = pkt->year;
     // gpsSolDRV.time.month  = pkt->month;
@@ -152,8 +161,16 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
     }
     gpsSolDRV.flags.validVelNE = true;
     gpsSolDRV.flags.validVelD = true;
-    gpsSolDRV.flags.validEPE = false;
+    gpsSolDRV.flags.validEPE = false;  // assume invalid unless the covariance is filled in.
+    if (pgnssFix2->covariance.len >= 6) {
+        float var_x = pgnssFix2->covariance.data[0];  // meters²
+        float var_y = pgnssFix2->covariance.data[2];  // meters²
+        float var_z = pgnssFix2->covariance.data[5];  // meters²
 
+        gpsSolDRV.eph = gpsConstrainEPE((uint32_t)(sqrtf(var_x + var_y) * 100));  // cm
+        gpsSolDRV.epv = gpsConstrainEPE((uint32_t)(sqrtf(var_z) * 100));          // cm
+        gpsSolDRV.flags.validEPE = true;
+    } 
     // gpsSolDRV.time.year   = pkt->year;
     // gpsSolDRV.time.month  = pkt->month;
     // gpsSolDRV.time.day    = pkt->day;
