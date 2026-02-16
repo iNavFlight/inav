@@ -32,6 +32,8 @@ typedef struct controlConfig_s {
         bool dynPID_on_YAW;
         uint16_t pa_breakpoint;                // Breakpoint where TPA is activated
         uint16_t fixedWingTauMs;               // Time constant of airplane TPA PT1-filter
+        uint16_t apa_pow;                     // Use airspeed instead of throttle position for TPA calculation,0 to disable
+        uint8_t tpa_pitch_compensation;      // Pitch angle based throttle compensation for fixed wing
     } throttle;
 
     struct {
