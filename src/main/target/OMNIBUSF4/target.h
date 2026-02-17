@@ -77,9 +77,9 @@
 
   // Soporte para ICM42688P (tu placa)
   #define USE_IMU_ICM42688P
-  #define IMU_ICM42688P_ALIGN      CW180_DEG
-  #define ICM42688P_CS_PIN         PA4
-  #define ICM42688P_SPI_BUS        BUS_SPI1
+#define IMU_ICM42688P_ALIGN      CW180_DEG
+#define ICM42688P_CS_PIN         PA4
+#define ICM42688P_SPI_BUS        BUS_SPI1
 #endif
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
