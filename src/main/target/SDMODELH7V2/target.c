@@ -40,7 +40,6 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8, CH4, PC9,  TIM_USE_OUTPUT_AUTO, 0, 7),   // M8
 
     DEF_TIM(TIM4, CH1, PD12, TIM_USE_LED,         0, 14),  // LED strip
-    DEF_TIM(TIM1, CH1, PE9,  TIM_USE_ANY,         0, 12),  // Camera control
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
