@@ -20,6 +20,7 @@ import re
 from pathlib import Path
 from typing import List, Optional
 import json
+import argparse
 
 # ---------- Helpers ----------
 
@@ -249,7 +250,7 @@ def parse_files(paths: List[Path]) -> List[EnumDef]:
 
 # ---------- Markdown rendering ----------
 
-def render_markdown(enums: List[EnumDef]) -> str:
+def render_markdown(enums: List[EnumDef], build: dict) -> str:
     jsonfile = {}
     out = []
     out.append("# Enumerations\n")
@@ -277,19 +278,39 @@ def render_markdown(enums: List[EnumDef]) -> str:
         if '_source' in jsonfile[e.name]:
             jsonfile[e.name]['_source'] = jsonfile[e.name]['_source'].replace('../../../src', 'inav/src')
         out.append("")
-    # While we're at it, chuck this all into a JSON file
-    Path("inav_enums.json").write_text(json.dumps(jsonfile,indent=4), encoding="utf-8")
+    wrapped = {
+        "build": build,
+        "enums": jsonfile,
+    }
+    Path("inav_enums.json").write_text(json.dumps(wrapped, indent=4), encoding="utf-8")
     return "\n".join(out)
 
 # ---------- Main ----------
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Generate enum markdown/json from all_enums.h")
+    parser.add_argument("--fc-version-major", required=True, type=int)
+    parser.add_argument("--fc-version-minor", required=True, type=int)
+    parser.add_argument("--fc-version-patch-level", required=True, type=int)
+    parser.add_argument("--git-revision", required=True)
+    args = parser.parse_args()
+
     path = Path("all_enums.h")
     if not path.exists():
         print(f"Error: {path} not found", file=sys.stderr)
         return 1
     enums = parse_files([path])
-    md = render_markdown(enums)
+    md = render_markdown(
+        enums,
+        {
+            "fc_version": {
+                "major": args.fc_version_major,
+                "minor": args.fc_version_minor,
+                "patch": args.fc_version_patch_level,
+            },
+            "git_revision": args.git_revision,
+        },
+    )
     Path("inav_enums_ref.md").write_text(md, encoding="utf-8")
     return 0
 

@@ -9,8 +9,21 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
+**When To Regenerate**
 
-**JSON file rev: 4**
+Run `docs/development/msp/gen_docs.sh` whenever MSP docs inputs change:
+- `msp_messages.json` message content/schema updates
+- source enum changes under `src/main` that affect `inav_enums.json`
+- `format.md` or this header template (`docs_v2_header.md`) changes
+
+By default the script removes temporary generated headers. Use `--keep_headers` only when you need them.
+
+**Versioning Rule**
+
+When the MSP JSON specification changes, bump `msp_messages.json` version:
+- breaking schema/compatibility change: increment `version.major`, reset `minor` and `patch`
+- backward-compatible schema extension: increment `version.minor`, reset `patch`
+- message/content/docs-only update inside current schema: increment `version.patch`
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -28,36 +41,50 @@ For current generation code, see [documentation project](https://github.com/xznh
 # Format:
 ## JSON format example:
 ```
-    "MSP_API_VERSION": {
-        "code": 1,
-        "mspv": 1,
-        "request": null,
-        "reply": {
-            "payload": [
-                {
-                    "name": "mspProtocolVersion",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
-                },
-                {
-                    "name": "apiVersionMajor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
-                },
-                {
-                    "name": "apiVersionMinor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
-                }
-            ],
-        },
-        "notes": "Used by configurators to check compatibility.",
-        "description": "Provides the MSP protocol version and the INAV API version."
+{
+    "version": {
+        "major": 2,
+        "minor": 0,
+        "patch": 0
     },
+    "messages": {
+        "MSP_API_VERSION": {
+            "code": 1,
+            "mspv": 1,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "mspProtocolVersion",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
+                    },
+                    {
+                        "name": "apiVersionMajor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
+                    },
+                    {
+                        "name": "apiVersionMinor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
+                    }
+                ]
+            },
+            "notes": "Used by configurators to check compatibility.",
+            "description": "Provides the MSP protocol version and the INAV API version."
+        },
+        "...": {}
+    }
+}
 ```
+## Top-level fields:
+**version**: JSON spec version (`major.minor.patch`)\
+**messages**: Dictionary keyed by MSP message name
+
 ## Message fields:
 **name**: MSP message name\
 **code**: Integer message code\
