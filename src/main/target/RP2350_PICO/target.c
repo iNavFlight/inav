@@ -40,50 +40,8 @@
 
 const int timerHardwareCount = 0;
 timerHardware_t timerHardware[1];
-uint32_t SystemCoreClock = 150000000; // 150 MHz RP2350
 
-// Called from startup_rp2350.s (uppercase)
-void SystemInit(void) { }
-
-void systemInit(void)
-{
-    // Stub - M1 does nothing
-}
-
-timeUs_t micros(void)
-{
-    return 0; // Stub
-}
-
-uint64_t microsISR(void)
-{
-    return 0; // Stub
-}
-
-uint32_t millis(void)
-{
-    return 0; // Stub
-}
-
-void delayMicroseconds(timeUs_t us)
-{
-    UNUSED(us);
-}
-
-void delay(timeMs_t ms)
-{
-    UNUSED(ms);
-}
-
-void systemReset(void)
-{
-    while (1) {}
-}
-
-void systemResetToBootloader(void)
-{
-    while (1) {}
-}
+// --- Functions still stubbed (no real hardware driver yet) ---
 
 void failureMode(failureMode_e mode)
 {
@@ -106,15 +64,9 @@ const char *getPwmInitErrorMessage(void)
     return "No error";
 }
 
-void IOConfigGPIO(IO_t io, ioConfig_t cfg)
-{
-    UNUSED(io);
-    UNUSED(cfg);
-}
-
 void timerInit(void)
 {
-    // NOP
+    // NOP — no hardware timers configured yet
 }
 
 bool isMPUSoftReset(void)
@@ -147,7 +99,7 @@ uint8_t timer2id(const HAL_Timer_t *tim)
     return 0;
 }
 
-// UART stub (no UART driver for RP2350 M1)
+// UART stub (no UART driver for RP2350 yet)
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallback,
                         void *rxCallbackData, uint32_t baudRate,
                         portMode_t mode, portOptions_t options)
@@ -161,7 +113,7 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
     return NULL;
 }
 
-// CMSIS DSP stubs (DSP library not compiled for RP2350 M1)
+// CMSIS DSP stubs (DSP library not compiled for RP2350)
 arm_status arm_rfft_fast_init_f32(arm_rfft_fast_instance_f32 *S, uint16_t fftLen)
 {
     UNUSED(S);

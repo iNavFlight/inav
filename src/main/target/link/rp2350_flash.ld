@@ -1,6 +1,8 @@
 /*
  * Linker script for RP2350 (Raspberry Pi Pico 2)
  *
+ * Compatible with both Pico SDK crt0.S and INAV sections.
+ *
  * Memory layout:
  *   FLASH:        4032K XIP flash (0x10000000)
  *   FLASH_CONFIG: 64K   settings storage (0x103F0000)
@@ -20,8 +22,9 @@ MEMORY
 
 ENTRY(_entry_point)
 
-/* Stack at top of RAM */
-_estack = ORIGIN(RAM) + LENGTH(RAM);
+/* Stack — SDK uses __StackTop/__StackLimit, INAV uses _estack */
+__StackTop = ORIGIN(RAM) + LENGTH(RAM);
+_estack = __StackTop;
 
 /* Config storage */
 __config_start = ORIGIN(FLASH_CONFIG);
@@ -40,19 +43,27 @@ SECTIONS
     ASSERT(__boot2_end__ - __boot2_start__ == 256,
         "ERROR: boot2 section must be exactly 256 bytes")
 
-    /* Vector table */
-    .isr_vector :
+    /* Vector table — SDK crt0.S uses .vectors */
+    .vectors :
     {
-        . = ALIGN(4);
+        . = ALIGN(256);
         PROVIDE(isr_vector_table_base = .);
+        KEEP(*(.vectors))
         KEEP(*(.isr_vector))
         . = ALIGN(4);
+    } > FLASH
+
+    /* SDK reset handler code */
+    .reset :
+    {
+        KEEP(*(.reset))
     } > FLASH
 
     /* Program code */
     .text :
     {
         . = ALIGN(4);
+        *(.time_critical*)
         *(.text)
         *(.text*)
         *(.rodata)
@@ -66,6 +77,7 @@ SECTIONS
 
         . = ALIGN(4);
         _etext = .;
+        __etext = .;
     } > FLASH
 
     .ARM.extab : { *(.ARM.extab* .gnu.linkonce.armextab.*) } > FLASH
@@ -123,23 +135,44 @@ SECTIONS
         PROVIDE_HIDDEN (__busdev_registry_end = .);
     } > FLASH
 
-    _sidata = .;
+    /* SDK binary info */
+    .binary_info :
+    {
+        __binary_info_start = .;
+        KEEP(*(.binary_info.keep.*))
+        __binary_info_end = .;
+    } > FLASH
+
+    _sidata = LOADADDR(.data);
 
     /* Initialized data - loaded from flash, runs from RAM */
     .data :
     {
         . = ALIGN(4);
         _sdata = .;
+        __data_start__ = .;
         *(.data)
         *(.data*)
+        *(.time_critical*)
+        *(.after_data.*)
 
         . = ALIGN(4);
         _edata = .;
+        __data_end__ = .;
     } > RAM AT> FLASH
+
+    /* SDK mutex array */
+    .mutex_array (NOLOAD) :
+    {
+        . = ALIGN(4);
+        __mutex_array_start = .;
+        KEEP(*(SORT(.mutex_array.*)))
+        __mutex_array_end = .;
+    } > RAM
 
     /* Uninitialized data */
     . = ALIGN(4);
-    .bss :
+    .bss (NOLOAD) :
     {
         _sbss = .;
         __bss_start__ = _sbss;
@@ -155,29 +188,37 @@ SECTIONS
     /* Heap and stack check */
     _Min_Heap_Size = 0x400;
     _Min_Stack_Size = 0x800;
-    _heap_stack_end = ORIGIN(RAM) + LENGTH(RAM) - 8;
-    _heap_stack_begin = _heap_stack_end - _Min_Stack_Size - _Min_Heap_Size;
-    . = _heap_stack_begin;
-    ._user_heap_stack :
+
+    .heap (NOLOAD) :
     {
         . = ALIGN(4);
         PROVIDE ( end = . );
         PROVIDE ( _end = . );
-        . = . + _Min_Heap_Size;
-        . = . + _Min_Stack_Size;
-        . = ALIGN(4);
-    } > RAM = 0xa5
+        __end__ = .;
+        PROVIDE( __HeapLimit = __StackLimit );
+    } > RAM
+
+    /* Stack limit — checked by SDK malloc/sbrk for heap/stack collision */
+    __StackLimit = __StackTop - _Min_Stack_Size;
 
     /* Scratch memory for multicore */
     .scratch_x :
     {
+        __scratch_x_start__ = .;
         *(.scratch_x.*)
-    } > SCRATCH_X
+        . = ALIGN(4);
+        __scratch_x_end__ = .;
+    } > SCRATCH_X AT> FLASH
+    __scratch_x_source__ = LOADADDR(.scratch_x);
 
     .scratch_y :
     {
+        __scratch_y_start__ = .;
         *(.scratch_y.*)
-    } > SCRATCH_Y
+        . = ALIGN(4);
+        __scratch_y_end__ = .;
+    } > SCRATCH_Y AT> FLASH
+    __scratch_y_source__ = LOADADDR(.scratch_y);
 
     /DISCARD/ :
     {

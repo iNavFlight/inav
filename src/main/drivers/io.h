@@ -88,7 +88,19 @@
 #define IOCFG_IN_FLOATING    IO_CONFIG(GPIO_MODE_INPUT,  GPIO_DRIVE_STRENGTH_MODERATE, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_NONE)
 #define IOCFG_IPU_25         IO_CONFIG(GPIO_MODE_INPUT,  GPIO_DRIVE_STRENGTH_MODERATE, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_UP)
 
-#elif defined(UNIT_TEST) || defined(SITL_BUILD) || defined(RP2350)
+#elif defined(RP2350)
+
+// RP2350 IO config encoding: bit 0 = direction (1=output), bit 5 = pullup, bit 6 = pulldown
+# define IOCFG_OUT_PP         0x01
+# define IOCFG_OUT_OD         0x01
+# define IOCFG_AF_PP          0x01
+# define IOCFG_AF_OD          0x01
+# define IOCFG_AF_OD_UP       0x21
+# define IOCFG_IPD            0x40
+# define IOCFG_IPU            0x20
+# define IOCFG_IN_FLOATING    0x00
+
+#elif defined(UNIT_TEST) || defined(SITL_BUILD)
 
 # define IOCFG_OUT_PP         0
 # define IOCFG_OUT_OD         0

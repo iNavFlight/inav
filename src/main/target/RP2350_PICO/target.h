@@ -31,7 +31,17 @@
 #define TARGET_BOARD_IDENTIFIER "RP2P"
 #define USBD_PRODUCT_STRING  "RP2350_PICO"
 
-// RAM-based config (M1 stub - will move to flash-based later)
+// Onboard LED — GPIO 25 = Port B, pin 9 (25 - 16 = 9)
+#define PICO_LED_PIN 25
+#define LED0 PB9
+
+// GPIO port mapping for RP2350:
+//   Port A (gpioid 0) = GPIO 0-15
+//   Port B (gpioid 1) = GPIO 16-29
+#define TARGET_IO_PORTA 0xFFFF
+#define TARGET_IO_PORTB 0x3FFF
+
+// RAM-based config (will move to flash-based later)
 #define CONFIG_IN_RAM
 #define EEPROM_SIZE     32768
 
@@ -86,8 +96,6 @@
 #define LED_STRIP_TIMER 1
 #define SOFTSERIAL_1_TIMER 2
 #define SOFTSERIAL_2_TIMER 3
-
-#define DEFIO_NO_PORTS
 
 extern uint32_t SystemCoreClock;
 
