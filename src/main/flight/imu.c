@@ -113,8 +113,6 @@ STATIC_FASTRAM pt1Filter_t HeadVecEFFilterY;
 STATIC_FASTRAM pt1Filter_t HeadVecEFFilterZ;
 FASTRAM fpVector3_t HeadVecEFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
 
-STATIC_FASTRAM float GPS3DspeedFiltered=0.0f;
-STATIC_FASTRAM pt1Filter_t GPS3DspeedFilter;
 
 FASTRAM bool gpsHeadingInitialized;
 
@@ -210,8 +208,6 @@ void imuInit(void)
     pt1FilterReset(&HeadVecEFFilterX, 0);
     pt1FilterReset(&HeadVecEFFilterY, 0);
     pt1FilterReset(&HeadVecEFFilterZ, 0);
-    // Initialize 3d speed filter
-    pt1FilterReset(&GPS3DspeedFilter, 0);
 }
 
 void imuSetMagneticDeclination(float declinationDeg)
@@ -667,9 +663,6 @@ static void imuCalculateFilters(float dT)
     HeadVecEFFiltered.y = pt1FilterApply4(&HeadVecEFFilterY, rMat[1][0], IMU_ROTATION_LPF, dT);
     HeadVecEFFiltered.z = pt1FilterApply4(&HeadVecEFFilterZ, rMat[2][0], IMU_ROTATION_LPF, dT);
 
-    //anti aliasing
-    float GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X],gpsSol.velNED[Y],gpsSol.velNED[Z]);
-    GPS3DspeedFiltered = pt1FilterApply4(&GPS3DspeedFilter, GPS3Dspeed, IMU_ROTATION_LPF, dT);
 }
 
 static void imuCalculateGPSacceleration(fpVector3_t *vEstAccelEF,fpVector3_t *vEstcentrifugalAccelBF, float *acc_ignore_slope_multipiler)
@@ -705,6 +698,14 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
     float currentspeed = 0;
     if (isGPSTrustworthy()){
         //first speed choice is gps
+        static bool lastGPSHeartbeat;
+        static pt1Filter_t GPS3DspeedFilter;
+        static float GPS3DspeedFiltered = 0.0f;
+        if (gpsSol.flags.gpsHeartbeat != lastGPSHeartbeat) {
+            lastGPSHeartbeat = gpsSol.flags.gpsHeartbeat;
+            float GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
+            GPS3DspeedFiltered = pt1FilterApply4(&GPS3DspeedFilter, GPS3Dspeed, IMU_ROTATION_LPF, dT);
+        }
         currentspeed = GPS3DspeedFiltered;
         *acc_ignore_slope_multipiler = 4.0f;
     }
