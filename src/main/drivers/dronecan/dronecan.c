@@ -3,8 +3,11 @@
 #include "common/time.h"
 #include "drivers/time.h"
 #include <stdint.h>
+#include <stdlib.h>
 #include "fc/settings.h"
 #include "build/version.h"
+#include "sensors/diagnostics.h"
+#include "fc/runtime_config.h"
 #if defined(USE_DRONECAN)
 
 #include "io/gps.h"
@@ -177,7 +180,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	pkt.software_version.major = FC_VERSION_MAJOR;
 	pkt.software_version.minor = FC_VERSION_MINOR;
 	pkt.software_version.optional_field_flags = FC_VERSION_PATCH_LEVEL;
-	pkt.software_version.vcs_commit = 0; // shortGitRevision; // need to convert string to integer put git hash in here
+	pkt.software_version.vcs_commit = strtoul(shortGitRevision, NULL, 16); // need to convert string to integer put git hash in here
 
 	// should fill in hardware version
 	pkt.hardware_version.major = 1;
@@ -213,12 +216,18 @@ void send_NodeStatus(void) {
 
     // LOG_DEBUG(CAN, "Sending Node Status");
     node_status.uptime_sec = millis() / 1000UL;
-    node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
-    node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
-    node_status.sub_mode = 0;
+    if(isHardwareHealthy()){
+        node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
+    }
+    else {
+        node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL;
+    }
+    
+    node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;  // Indicates that node is able to communicate over CAN, not that it is in flight.
+    node_status.sub_mode = 0; // Not currently used in dronecan
 
     // put whatever you like in here for display in GUI
-    node_status.vendor_specific_status_code = 1234;
+    node_status.vendor_specific_status_code = armingFlags;
 
     uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
 
