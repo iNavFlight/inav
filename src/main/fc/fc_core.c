@@ -177,7 +177,7 @@ bool areSensorsCalibrating(void)
     return false;
 }
 
-int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
+int16_t FAST_CODE getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
     int16_t stickDeflection = 0;
 
