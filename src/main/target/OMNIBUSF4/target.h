@@ -69,12 +69,20 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
+
+
 #if defined(OMNIBUSF4V3_ICM)
+  // Driver base para ICM42605 (necesario para compilar el driver)
   #define USE_IMU_ICM42605
-  #define IMU_ICM42605_ALIGN      CW180_DEG
-  #define ICM42605_CS_PIN         PA4
-  #define ICM42605_SPI_BUS        BUS_SPI1
+
+  // Soporte para ICM42688P (tu placa)
+  #define USE_IMU_ICM42688P
+  #define IMU_ICM42688P_ALIGN      CW180_DEG
+  #define ICM42688P_CS_PIN         PA4
+  #define ICM42688P_SPI_BUS        BUS_SPI1
 #endif
+
+
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
   #define USE_IMU_MPU6000
