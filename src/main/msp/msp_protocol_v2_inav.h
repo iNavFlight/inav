@@ -111,6 +111,8 @@
 #define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
 
 #define MSP2_ADSB_VEHICLE_LIST                  0x2090
+#define MSP2_ADSB_LIMITS                        0x2091
+#define MSP2_ADSB_WARNING_VEHICLE_ICAO          0x2092
 
 #define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
 #define MSP2_INAV_CUSTOM_OSD_ELEMENT            0x2101
@@ -126,3 +128,4 @@
 #define MSP2_INAV_SET_GVAR                      0x2214
 
 #define MSP2_INAV_FULL_LOCAL_POSE               0x2220
+

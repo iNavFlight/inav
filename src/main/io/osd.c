@@ -2266,7 +2266,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             uint8_t buffIndexFirstLine = 0;
             uint8_t arrowIndexIndex = 0;
-            bool alert = true;
+            bool isAlert = true;
 
             adsbVehicle_t *vehicle = NULL;
 
@@ -2279,7 +2279,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
                 if(vehicle == NULL) {
                     vehicle = findVehicleForWarning(METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning), METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
-                    alert = false;
+                    isAlert = false;
                 }
             }
 
@@ -2307,7 +2307,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 buffIndexFirstLine += osdConfig()->decimals_altitude + 2;
                 //////////////////////////////////////////////////////
 
-                if (alert) {
+                if (isAlert) {
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                 }
 
