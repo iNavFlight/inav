@@ -10,7 +10,11 @@
 // MCU selection — RP2040 DCD works for both RP2040 and RP2350
 #define CFG_TUSB_MCU OPT_MCU_RP2040
 
-// USB device mode
+// USB device mode on rhport 0 — must be set so tusb_init() calls tud_init(0).
+// Without this, TUD_OPT_RHPORT is undefined and tusb_init() skips tud_init,
+// leaving the USB hardware controller disabled.
+#define CFG_TUSB_RHPORT0_MODE OPT_MODE_DEVICE
+
 #define CFG_TUD_ENABLED 1
 #define CFG_TUH_ENABLED 0
 

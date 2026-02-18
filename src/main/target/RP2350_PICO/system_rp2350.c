@@ -17,15 +17,49 @@
 #include "drivers/system.h"
 
 #include "hardware/clocks.h"
+#include "hardware/gpio.h"
 #include "hardware/timer.h"
 #include "hardware/watchdog.h"
 #include "hardware/structs/m33.h"
 #include "pico/stdlib.h"
 #include "pico/unique_id.h"
 #include "pico/bootrom.h"
+#include "pico/runtime_init.h"
+#include "tusb.h"
 
 // SystemCoreClock — updated by systemInit from SDK clock tree
 uint32_t SystemCoreClock = 150000000;
+
+// ── Pre-init diagnostic blinks (run inside runtime_run_initializers) ──────────
+// Each blinks LED a distinct number of times so we can see how far boot gets.
+//
+// Pattern (pauses between groups help distinguish them):
+//   1 blink  → "00150": after EARLY_RESETS  — GPIO/SIO accessible
+//   2 blinks → "00650": after POST_CLOCK_RESETS — clocks, coprocessors, aeabi done
+//
+// If neither fires, crash is in BSS/data copy, bootrom_reset, or early_resets.
+
+#define DIAG_LED_PIN 25
+
+static void diagRawBlink(int n)
+{
+    // gpio_init is safe after EARLY_RESETS ("00100") releases IOBANK0
+    gpio_init(DIAG_LED_PIN);
+    gpio_set_dir(DIAG_LED_PIN, GPIO_OUT);
+    for (int i = 0; i < n; i++) {
+        gpio_put(DIAG_LED_PIN, 1);
+        busy_wait_us_32(200000);  // 200 ms — no sleep_ms needed (timer always-on)
+        gpio_put(DIAG_LED_PIN, 0);
+        busy_wait_us_32(200000);
+    }
+    busy_wait_us_32(600000);  // gap between groups
+}
+
+static void diagPreInit_postEarlyResets(void) { diagRawBlink(1); }
+PICO_RUNTIME_INIT_FUNC_RUNTIME(diagPreInit_postEarlyResets, "00150");
+
+static void diagPreInit_postClocks(void) { diagRawBlink(2); }
+PICO_RUNTIME_INIT_FUNC_RUNTIME(diagPreInit_postClocks, "00650");
 
 // DWT cycle counter — Cortex-M33 Data Watchpoint and Trace
 #define DWT_CTRL   (m33_hw->dwt_ctrl)
@@ -44,14 +78,37 @@ void SystemInit(void)
     DWT_CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
+// Debug blink: n short pulses on onboard LED (GPIO 25)
+static void debugBlink(int n)
+{
+    gpio_init(25);
+    gpio_set_dir(25, GPIO_OUT);
+    for (int i = 0; i < n; i++) {
+        gpio_put(25, 1);
+        sleep_ms(150);
+        gpio_put(25, 0);
+        sleep_ms(150);
+    }
+    sleep_ms(500);
+}
+
 void systemInit(void)
 {
+    // DEBUG: 2 blinks = systemInit() reached (before stdio/USB)
+    debugBlink(2);
+
     // SDK runtime already initialized clocks, GPIO, etc. via crt0 → runtime_init
     // We just need to update our SystemCoreClock variable
     SystemCoreClock = clock_get_hz(clk_sys);
 
-    // Initialize USB stdio (printf over USB CDC)
+    // tusb_init() must be called before stdio_init_all() because
+    // LIB_TINYUSB_DEVICE=1 (from CFG_TUD_ENABLED in tusb_config.h) causes
+    // PICO_STDIO_USB_ENABLE_TINYUSB_INIT=0, so stdio_usb_init() skips it.
+    tusb_init();
     stdio_init_all();
+
+    // DEBUG: 3 blinks = stdio_init_all() returned (USB init did not crash)
+    debugBlink(3);
 
     printf("INAV RP2350 booting...\n");
 }

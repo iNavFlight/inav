@@ -209,7 +209,9 @@ set(RP2350_DEFINITIONS
     PICO_RP2350=1
     PICO_RP2350A=1
     PICO_32BIT=1
-    PICO_RP2040=0
+    # Do NOT define PICO_RP2040 at all — even PICO_RP2040=0 counts as "defined"
+    # for #ifdef/#elif defined() checks in the Pico SDK assembly (embedded_start_block.inc.S),
+    # which would cause the IMAGE_DEF to declare RP2040 chip type instead of RP2350.
     PICO_CONFIG_HEADER=pico_sdk_config.h
     PICO_NO_FPGA_CHECK=1
     PICO_FLASH_SIZE_BYTES=4194304
@@ -341,14 +343,15 @@ function(target_rp2350 name)
     )
 
     # Generate .uf2 output (for BOOTSEL drag-and-drop flashing)
+    # Use picotool which correctly handles the RP2350 IMAGE_DEF metadata block.
     set(uf2_filename ${CMAKE_BINARY_DIR}/${binary_name}.uf2)
     add_custom_command(TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E env python3
-            ${CMAKE_SOURCE_DIR}/src/utils/elf2uf2.py
-            ${bin_filename} ${uf2_filename}
-            --base-addr 0x10000000 --family-id 0xe48bff59
+        COMMAND picotool uf2 convert
+            $<TARGET_FILE:${exe_target}>
+            ${uf2_filename}
+            --family rp2350-arm-s
         BYPRODUCTS ${uf2_filename}
-        COMMENT "Generating ${binary_name}.uf2"
+        COMMENT "Generating ${binary_name}.uf2 via picotool"
     )
 
     setup_firmware_target(${exe_target} ${name} ${ARGN})

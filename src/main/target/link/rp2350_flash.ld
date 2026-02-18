@@ -32,25 +32,21 @@ __config_end = ORIGIN(FLASH_CONFIG) + LENGTH(FLASH_CONFIG);
 
 SECTIONS
 {
-    /* Boot2 stage 2 bootloader - must be first 256 bytes */
-    .boot2 :
-    {
-        __boot2_start__ = .;
-        KEEP (*(.boot2))
-        __boot2_end__ = .;
+    .flash_begin : {
+        __flash_binary_start = .;
     } > FLASH
 
-    ASSERT(__boot2_end__ - __boot2_start__ == 256,
-        "ERROR: boot2 section must be exactly 256 bytes")
-
-    /* Vector table — SDK crt0.S uses .vectors */
-    .vectors :
+    /* Vector table — SDK crt0.S uses .vectors, followed by the picobin
+       IMAGE_DEF block that the RP2350 ROM bootloader requires to execute
+       the image. Without .embedded_block, the ROM stays in mass storage. */
+    .text_boot :
     {
-        . = ALIGN(256);
-        PROVIDE(isr_vector_table_base = .);
-        KEEP(*(.vectors))
-        KEEP(*(.isr_vector))
-        . = ALIGN(4);
+        __logical_binary_start = .;
+        KEEP (*(.vectors))
+        KEEP (*(.binary_info_header))
+        __binary_info_header_end = .;
+        KEEP (*(.embedded_block))
+        __embedded_block_end = .;
     } > FLASH
 
     /* SDK reset handler code */
@@ -58,6 +54,18 @@ SECTIONS
     {
         KEEP(*(.reset))
     } > FLASH
+
+    /* Optional stage-2 XIP setup function (not needed for normal flash boot
+       on RP2350, but must be <= 256 bytes if present) */
+    .boot2 :
+    {
+        __boot2_start__ = .;
+        KEEP (*(.boot2))
+        __boot2_end__ = .;
+    } > FLASH
+
+    ASSERT(__boot2_end__ - __boot2_start__ <= 256,
+        "ERROR: boot2 XIP setup function must be no more than 256 bytes")
 
     /* Program code */
     .text :
@@ -77,7 +85,6 @@ SECTIONS
 
         . = ALIGN(4);
         _etext = .;
-        __etext = .;
     } > FLASH
 
     .ARM.extab : { *(.ARM.extab* .gnu.linkonce.armextab.*) } > FLASH
@@ -141,11 +148,17 @@ SECTIONS
         __binary_info_start = .;
         KEEP(*(.binary_info.keep.*))
         __binary_info_end = .;
+        /* Pad to 4-byte boundary so that .data's LMA (= LOADADDR(.data)) is
+           4-byte aligned.  crt0.S copies .data with ldmia which requires
+           word-aligned addresses; a misaligned source triggers a HardFault. */
+        . = ALIGN(4);
     } > FLASH
 
-    _sidata = LOADADDR(.data);
-
-    /* Initialized data - loaded from flash, runs from RAM */
+    /* Initialized data — loaded from flash, runs from RAM.
+       SDK mutex_array goes here so mutex_t structs are copied to RAM at boot
+       and can be written by mutex_init(). Placing mutex_array in flash-only
+       would prevent mutex_init from storing the spin_lock pointer, leaving
+       spin_lock=NULL and causing an infinite spin on ROM address 0x00000000. */
     .data :
     {
         . = ALIGN(4);
@@ -157,17 +170,31 @@ SECTIONS
         *(.after_data.*)
 
         . = ALIGN(4);
+        PROVIDE_HIDDEN (__mutex_array_start = .);
+        KEEP(*(SORT(.mutex_array.*)))
+        KEEP(*(.mutex_array))
+        PROVIDE_HIDDEN (__mutex_array_end = .);
+
+        . = ALIGN(4);
         _edata = .;
         __data_end__ = .;
     } > RAM AT> FLASH
 
-    /* SDK mutex array */
-    .mutex_array (NOLOAD) :
+    /* __etext is (for backwards compatibility) the name of the .data init source pointer.
+       crt0.S uses __etext to find where to copy .data from — it must equal LOADADDR(.data),
+       NOT the end of .text (which comes earlier, before pg_registry/busdev_registry sections). */
+    __etext = LOADADDR(.data);
+    _sidata  = LOADADDR(.data);
+
+    /* RAM interrupt vector table.
+       Cortex-M33 VTOR requires alignment to next power-of-2 >= table size.
+       RP2350 has 16 + 52 = 68 exceptions × 4 bytes = 272 bytes → 512-byte alignment.
+       Without this, the hardware clears VTOR[8:0] (shifts by -0x40), making
+       irq_set_exclusive_handler read the wrong entry and hard-assert. */
+    .ram_vector_table (NOLOAD) :
     {
-        . = ALIGN(4);
-        __mutex_array_start = .;
-        KEEP(*(SORT(.mutex_array.*)))
-        __mutex_array_end = .;
+        . = ALIGN(512);
+        *(.ram_vector_table)
     } > RAM
 
     /* Uninitialized data */
@@ -178,6 +205,9 @@ SECTIONS
         __bss_start__ = _sbss;
         *(.bss)
         *(SORT_BY_ALIGNMENT(.bss*))
+        /* INAV "fast RAM" BSS — no separate fast RAM on RP2350; flatten here so
+           crt0's __bss_start__/__bss_end__ loop zeros it like any other BSS. */
+        *(.fastram_bss*)
         *(COMMON)
 
         . = ALIGN(4);
@@ -219,6 +249,13 @@ SECTIONS
         __scratch_y_end__ = .;
     } > SCRATCH_Y AT> FLASH
     __scratch_y_source__ = LOADADDR(.scratch_y);
+
+    /* End picobin block — closes the block loop started by .embedded_block.
+       Must be at the end of flash so the ROM can find both ends. */
+    .flash_end : {
+        KEEP(*(.embedded_end_block*))
+        PROVIDE(__flash_binary_end = .);
+    } > FLASH =0xaa
 
     /DISCARD/ :
     {
