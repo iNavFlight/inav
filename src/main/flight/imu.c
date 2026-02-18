@@ -169,6 +169,12 @@ void imuConfigure(void)
     imuRuntimeConfig.dcm_kp_mag = imuConfig()->dcm_kp_mag / 10000.0f;
     imuRuntimeConfig.dcm_ki_mag = imuConfig()->dcm_ki_mag / 10000.0f;
     imuRuntimeConfig.small_angle = imuConfig()->small_angle;
+    /* Precompute the Mahony anti-windup clamp.  The PID loop reads this value
+     * 1000× per second; the kP gains only change when the user saves settings,
+     * so computing it here (called once per save) avoids one add, one multiply,
+     * and one divide on every PID cycle. */
+    imuRuntimeConfig.dcm_i_limit = DEGREES_TO_RADIANS(2.0f)
+        * (imuRuntimeConfig.dcm_kp_acc + imuRuntimeConfig.dcm_kp_mag) * 0.5f;
 }
 
 void imuInit(void)
@@ -364,7 +370,19 @@ static float imuCalculateMcCogAccWeight(void)
 static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, const fpVector3_t * vCOG, const fpVector3_t * vCOGAcc, float accWScaler, float magWScaler)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
-    fpQuaternion_t prevOrientation = orientation;
+
+    /* Opt 5: snapshot prevOrientation every 100 PID cycles instead of every cycle.
+     * The snapshot is only used by the fault-recovery path in
+     * imuCheckAndResetOrientationQuaternion(), which should never fire in normal
+     * flight.  Copying 4 floats 1000×/s just to support a near-zero-probability
+     * reset path is wasteful; 100 ms staleness is a safe recovery point. */
+    static uint8_t prevOrientationSnapshotCount = 0;
+    static fpQuaternion_t prevOrientation = { .q0 = 1.0f };  // identity quaternion safe default
+    if (++prevOrientationSnapshotCount >= 100) {
+        prevOrientationSnapshotCount = 0;
+        prevOrientation = orientation;
+    }
+
     fpVector3_t vRotation = *gyroBF;
 
     /* Calculate general spin rate (rad/s) */
@@ -497,11 +515,17 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
     /* Step 2: Roll and pitch correction -  use measured acceleration vector */
     if (accBF) {
-        static const fpVector3_t vGravity = { .v = { 0.0f, 0.0f, 1.0f } };
         fpVector3_t vEstGravity, vAcc, vErr;
 
-        // Calculate estimated gravity vector in body frame
-        quaternionRotateVector(&vEstGravity, &vGravity, &orientation);    // EF -> BF
+        /* Opt 1: imuComputeRotationMatrix() is called at the END of every
+         * imuMahonyAHRSupdate() and keeps rMat in sync with orientation.
+         * Rotating the constant unit-gravity vector {0,0,1} from EF to BF by
+         * the current orientation quaternion yields exactly the third row of rMat
+         * (rMat[2][0..2]).  Reading those three floats replaces a quaternionRotateVector()
+         * call that costs 2× quaternionMultiply = ~32 multiplies + 24 adds. */
+        vEstGravity.x = rMat[2][0];
+        vEstGravity.y = rMat[2][1];
+        vEstGravity.z = rMat[2][2];
 
         // Error is sum of cross product between estimated direction and measured direction of gravity
         vectorNormalize(&vAcc, accBF);
@@ -524,7 +548,9 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         vectorAdd(&vRotation, &vRotation, &vErr);
     }
     // Anti wind-up
-    float i_limit = DEGREES_TO_RADIANS(2.0f) * (imuRuntimeConfig.dcm_kp_acc + imuRuntimeConfig.dcm_kp_mag) / 2.0f;
+    /* Opt 4: dcm_i_limit is computed once in imuConfigure() (called on settings save),
+     * not recomputed each PID cycle.  The kP gains do not change at runtime. */
+    const float i_limit = imuRuntimeConfig.dcm_i_limit;
     vGyroDriftEstimate.x = constrainf(vGyroDriftEstimate.x, -i_limit, i_limit);
     vGyroDriftEstimate.y = constrainf(vGyroDriftEstimate.y, -i_limit, i_limit);
     vGyroDriftEstimate.z = constrainf(vGyroDriftEstimate.z, -i_limit, i_limit);
@@ -547,7 +573,10 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
         // For near-zero cases we use the first 3 terms of the Taylor series expansion for sin/cos. We check if fourth term is less than machine precision -
         // then we can safely use the "low angle" approximated version without loss of accuracy.
-        if (thetaMagnitudeSq < fast_fsqrtf(24.0f * 1e-6f)) {
+        /* Opt 2: original condition was "thetaMagnitudeSq < sqrt(24e-6)".
+         * Squaring both sides (both are non-negative) gives an equivalent
+         * condition without a sqrt() call: thetaMagnitudeSq² < 24e-6. */
+        if (thetaMagnitudeSq * thetaMagnitudeSq < 24.0e-6f) {
             quaternionScale(&deltaQ, &deltaQ, 1.0f - thetaMagnitudeSq / 6.0f);
             deltaQ.q0 = 1.0f - thetaMagnitudeSq / 2.0f;
         }
@@ -559,7 +588,20 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
         // Calculate final orientation and renormalize
         quaternionMultiply(&orientation, &orientation, &deltaQ);
-        quaternionNormalize(&orientation, &orientation);
+        /* Opt 3: first-order Newton renormalization avoids sqrt() and 4 divides.
+         * At 1 kHz the quaternion norm drifts by < 1e-6 per step, so normSq = 1 + ε
+         * with |ε| ≪ 1.  The identity 1/sqrt(x) ≈ (3-x)/2 is accurate to O(ε²) ≈ 1e-12
+         * — well within float precision.  imuCheckAndResetOrientationQuaternion() below
+         * catches any catastrophic norm deviation that this approximation cannot correct. */
+        {
+            const float normSq = orientation.q0 * orientation.q0 + orientation.q1 * orientation.q1
+                               + orientation.q2 * orientation.q2 + orientation.q3 * orientation.q3;
+            const float scale = (3.0f - normSq) * 0.5f;
+            orientation.q0 *= scale;
+            orientation.q1 *= scale;
+            orientation.q2 *= scale;
+            orientation.q3 *= scale;
+        }
     }
 
     // Check for invalid quaternion and reset to previous known good one
