@@ -184,10 +184,6 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
      /* CAN1 clock enable */
     __HAL_RCC_CAN1_CLK_ENABLE();
 
-
-    // /* CAN1 interrupt Init */
-    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
     // /* USER CODE BEGIN CAN1_MspInit 1 */
 
     CAN_FilterConfTypeDef sFilterConfig;
@@ -259,6 +255,12 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     //     LOG_ERROR(CAN, "Failed to Start");
     //     return -CANARD_ERROR_INTERNAL;
     // }
+
+    // Enable interrupt only after all initialization succeeds
+    // (if any previous step failed, we return early without enabling IRQ)
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
+
     return CANARD_OK;
 }
 
