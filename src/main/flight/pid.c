@@ -117,6 +117,7 @@ typedef struct {
     smithPredictor_t smithPredictor;
 
     fwPidAttenuation_t attenuation;
+    uint16_t pidSumLimit;
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -861,7 +862,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float
 
     applyItermLimiting(pidState);
 
-    const uint16_t limit = getPidSumLimit(pidState->axis);
+    const uint16_t limit = pidState->pidSumLimit;
 
     if (pidProfile()->pidItermLimitPercent != 0){
         float itermLimit = limit * pidProfile()->pidItermLimitPercent * 0.01f;
@@ -927,7 +928,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
      */
     const float newCDTerm = rateTargetDeltaFiltered * pidState->kCD;
 
-    const uint16_t limit = getPidSumLimit(pidState->axis);
+    const uint16_t limit = pidState->pidSumLimit;
 
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
@@ -1376,6 +1377,7 @@ void pidInit(void)
     #endif
 
         pidState[axis].axis = axis;
+        pidState[axis].pidSumLimit = getPidSumLimit(axis);
         if (axis == FD_YAW) {
             if (yawLpfHz) {
                 pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) pt1FilterApply4;

@@ -390,10 +390,25 @@ static void processPilotAndFailSafeActions(float dT)
         failsafeApplyControlInput();
     }
     else {
-        // Compute ROLL PITCH and YAW command
-        rcCommand[ROLL] = getAxisRcCommand(rxGetChannelValue(ROLL), FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[PITCH] = getAxisRcCommand(rxGetChannelValue(PITCH), FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[YAW] = -getAxisRcCommand(rxGetChannelValue(YAW), FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcYawExpo8 : currentControlProfile->stabilized.rcYawExpo8, rcControlsConfig()->yaw_deadband);
+        // Compute ROLL PITCH and YAW command.
+        // Only recompute when the RX task has delivered new data (~50 Hz).
+        {
+            static int16_t cachedCmd[3] = {0, 0, 0};
+            if (isRXDataNew) {
+                cachedCmd[ROLL]  = getAxisRcCommand(rxGetChannelValue(ROLL),
+                    FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8,
+                    rcControlsConfig()->deadband);
+                cachedCmd[PITCH] = getAxisRcCommand(rxGetChannelValue(PITCH),
+                    FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8,
+                    rcControlsConfig()->deadband);
+                cachedCmd[YAW]   = -getAxisRcCommand(rxGetChannelValue(YAW),
+                    FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcYawExpo8 : currentControlProfile->stabilized.rcYawExpo8,
+                    rcControlsConfig()->yaw_deadband);
+            }
+            rcCommand[ROLL]  = cachedCmd[ROLL];
+            rcCommand[PITCH] = cachedCmd[PITCH];
+            rcCommand[YAW]   = cachedCmd[YAW];
+        }
 
         // Apply manual control rates
         if (FLIGHT_MODE(MANUAL_MODE)) {
@@ -418,8 +433,10 @@ static void processPilotAndFailSafeActions(float dT)
         //Compute THROTTLE command
         rcCommand[THROTTLE] = throttleStickMixedValue();
 
-        // Signal updated rcCommand values to Failsafe system
-        failsafeUpdateRcCommandValues();
+        // Signal updated rcCommand values to Failsafe system when new RC data arrived
+        if (isRXDataNew) {
+            failsafeUpdateRcCommandValues();
+        }
 
         if (FLIGHT_MODE(HEADFREE_MODE)) {
             const float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
