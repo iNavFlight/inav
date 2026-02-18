@@ -637,6 +637,168 @@ CAN bus must have 120Ω termination at each end. Without proper termination:
 
 ---
 
+## Error Recovery and Graceful Disable
+
+### Safe Initialization
+
+The DroneCAN driver initialization sequence in `dronecanInit()` and `dronecanSTM32Initializexx()` has been designed with failure safety in mind:
+
+**Initialization Order:**
+1. Memory pool allocation
+2. CAN hardware setup (GPIO, clock, HAL initialization)
+3. CAN filter configuration
+4. RX message queue setup
+5. **Interrupt enable** ← Moved to END of init sequence
+
+**Critical Safety Fix:** The CAN interrupt (e.g., `CAN1_RX0_IRQn`) is enabled ONLY after all initialization steps complete successfully. If any step fails (steps 1-4), the function returns an error code without enabling interrupts, preventing spurious interrupts on unconfigured hardware.
+
+### Graceful Disable Behavior
+
+If DroneCAN is disabled via CLI (`set dronecan_enabled = 0`), the driver cleanly disables the CAN interface:
+
+```c
+void dronecanDisable(void) {
+    // Disable interrupt first (prevents spurious interrupts)
+    HAL_NVIC_DisableIRQ(CAN1_RX0_IRQn);
+
+    // Clean up TX queue (discard pending messages)
+    while (canardPeekTxQueue(&canard) != NULL) {
+        canardPopTxQueue(&canard);
+    }
+
+    // Stop CAN hardware (enters sleep mode)
+    HAL_CAN_Stop(&hcan1);
+
+    // Mark as disabled
+    dronecanInitialized = false;
+}
+```
+
+**Benefits:**
+- No messages stuck in TX queue
+- No sporadic CAN activity after disable
+- CAN bus remains stable for other potential users
+- Can re-enable without hardware issues
+
+### Error Recovery
+
+The driver implements automatic error recovery for common CAN bus faults:
+
+#### Bus-Off Recovery
+
+When the CAN bus enters "bus-off" state (due to excessive errors), the STM32 CAN controller automatically recovers after transmitting 128 error frames. The driver detects this:
+
+```c
+void dronecanUpdate(void) {
+    // Check for bus-off condition
+    if (hcan1.State == HAL_CAN_STATE_BUS_OFF) {
+        // Bus-off detected - wait for automatic recovery
+        // No manual intervention needed
+        LOG_INFO(CAN, "Bus-off detected, recovering...");
+    }
+}
+```
+
+**Typical Causes:**
+- Wiring problems (CAN_H/CAN_L swapped)
+- Termination resistor issues
+- Transceiver failures
+- High electrical noise
+
+**Prevention:**
+1. Verify CAN bus wiring and termination
+2. Check transceiver power supply (3.3V)
+3. Reduce message rates if experiencing high error rates
+4. Electrically isolate CAN bus from noisy power supplies
+
+#### Incomplete Initialization Handling
+
+If hardware initialization fails partway through (e.g., GPIO allocation fails, clock not enabled), the function safely aborts:
+
+```c
+int8_t dronecanInit(...) {
+    // Setup step 1
+    if (setupGPIO() != 0) {
+        return DRONECAN_INIT_FAILED;  // Abort - no interrupt enabled
+    }
+
+    // Setup step 2
+    if (setupHALCAN() != 0) {
+        return DRONECAN_INIT_FAILED;  // Abort - no interrupt enabled
+    }
+
+    // ... more setup steps ...
+
+    // Enable interrupt ONLY after all steps succeed
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
+
+    return DRONECAN_INIT_OK;
+}
+```
+
+**Why This Matters:**
+- If enabled early, interrupt fires on unconfigured hardware → crash
+- If enabled late (after failure), flight controller continues safely
+- Previous versions had race condition → now fixed
+
+#### Runtime Error Handling
+
+The `dronecanUpdate()` function handles runtime errors gracefully:
+
+```c
+void dronecanUpdate(void) {
+    if (!dronecanInitialized) {
+        return;  // Not initialized, skip
+    }
+
+    // Process RX messages
+    canardUpdate(&canard);  // May encounter decode errors
+
+    // Process TX queue
+    processCanardTxQueue();
+
+    // If bus goes offline, driver continues
+    // Waits for automatic recovery or manual restart
+}
+```
+
+**Fault Tolerance:**
+- Single message decode error doesn't affect others
+- TX queue backpressure handled (graceful wait)
+- Bus-off state doesn't crash flight controller
+- Can survive transceiver power loss and recovery
+
+### Node Status Broadcasting
+
+The driver broadcasts periodic node status to other CAN nodes, enabling network monitoring:
+
+```c
+void broadcastNodeStatus(void) {
+    struct uavcan_protocol_NodeStatus status;
+    status.uptime_sec = ++uptime;
+    status.health = getHealthStatus();
+    status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
+
+    // Broadcast every 1 second
+    canardBroadcast(&canard,
+                    UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
+                    UAVCAN_PROTOCOL_NODESTATUS_ID,
+                    &transfer_id,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    buffer,
+                    len);
+}
+```
+
+**Enables:**
+- Network topology visualization
+- Health monitoring of flight controller
+- DroneCAN GUI integration
+- Future dynamic node ID assignment
+
+---
+
 ## References
 
 ### UAVCAN Protocol Resources
@@ -675,6 +837,7 @@ CAN bus must have 120Ω termination at each end. Without proper termination:
 
 | Date | Version | Changes |
 |---|---|---|
+| 2026-02-18 | 1.1 | Added error recovery, graceful disable behavior, and safe initialization documentation |
 | 2026-02-16 | 1.0 | Initial version - handler-based architecture documentation |
 
 ---

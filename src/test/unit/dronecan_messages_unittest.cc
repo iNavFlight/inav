@@ -531,3 +531,260 @@ TEST(DroneCANConstants, DataTypeIDs)
     EXPECT_EQ(UAVCAN_EQUIPMENT_GNSS_FIX2_ID, 1063);
     EXPECT_EQ(UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID, 1092);
 }
+
+// ===========================================================================
+// Error Handling Tests (Enhanced Coverage)
+// ===========================================================================
+
+TEST_F(DroneCANMessageTest, GNSSFix2_ZeroPayload)
+{
+    // Test with empty transfer (zero payload length)
+    CanardRxTransfer transfer = makeTransfer(0);
+    struct uavcan_equipment_gnss_Fix2 rx_msg;
+    memset(&rx_msg, 0, sizeof(rx_msg));
+
+    // Decode should fail gracefully with zero payload
+    bool result = uavcan_equipment_gnss_Fix2_decode(&transfer, &rx_msg);
+
+    // Result may be true (failed decode) or false depending on decoder implementation
+    // The important thing is it doesn't crash
+    (void)result;
+}
+
+TEST_F(DroneCANMessageTest, GNSSFix2_TruncatedBuffer)
+{
+    // Create a valid message, then truncate the encoded payload
+    struct uavcan_equipment_gnss_Fix2 tx_msg;
+    memset(&tx_msg, 0, sizeof(tx_msg));
+
+    tx_msg.latitude_deg_1e8 = 377749000;
+    tx_msg.longitude_deg_1e8 = -1224194000;
+    tx_msg.height_msl_mm = 16000;
+    tx_msg.sats_used = 12;
+    tx_msg.status = UAVCAN_EQUIPMENT_GNSS_FIX2_STATUS_3D_FIX;
+
+    uint32_t full_encoded_len = uavcan_equipment_gnss_Fix2_encode(&tx_msg, buffer
+#if CANARD_ENABLE_TAO_OPTION
+        , false
+#endif
+    );
+    EXPECT_GT(full_encoded_len, 5u);
+
+    // Test with each truncation point
+    for (uint32_t len = 1; len < full_encoded_len; len++) {
+        CanardRxTransfer transfer = makeTransfer(len);
+        struct uavcan_equipment_gnss_Fix2 rx_msg;
+        memset(&rx_msg, 0, sizeof(rx_msg));
+
+        // Should not crash, may return true/false
+        bool result = uavcan_equipment_gnss_Fix2_decode(&transfer, &rx_msg);
+        (void)result;
+    }
+}
+
+TEST_F(DroneCANMessageTest, BatteryInfo_NegativeCurrentAndTemperature)
+{
+    // Test with negative current (discharging) and cold temperatures
+    struct uavcan_equipment_power_BatteryInfo tx_msg;
+    memset(&tx_msg, 0, sizeof(tx_msg));
+
+    tx_msg.voltage = 14.0f;
+    tx_msg.current = -50.0f;  // Negative current (discharging)
+    tx_msg.temperature = -40.0f;  // Cold ambient temperature
+    tx_msg.state_of_charge_pct = 50;
+    tx_msg.battery_id = 0;
+
+    uint32_t encoded_len = uavcan_equipment_power_BatteryInfo_encode(&tx_msg, buffer
+#if CANARD_ENABLE_TAO_OPTION
+        , false
+#endif
+    );
+
+    EXPECT_GT(encoded_len, 0u);
+
+    CanardRxTransfer transfer = makeTransfer(encoded_len);
+    struct uavcan_equipment_power_BatteryInfo rx_msg;
+    memset(&rx_msg, 0, sizeof(rx_msg));
+
+    bool result = uavcan_equipment_power_BatteryInfo_decode(&transfer, &rx_msg);
+    EXPECT_FALSE(result);
+
+    // Verify sign is preserved (approximately)
+    EXPECT_LT(rx_msg.current, 0.0f);
+    EXPECT_LT(rx_msg.temperature, 0.0f);
+}
+
+TEST_F(DroneCANMessageTest, BatteryInfo_StateOfChargePercentBoundaries)
+{
+    // Test SOC percentage boundaries (0%, 50%, 100%, max 127 for 7-bit field)
+    uint8_t soc_values[] = {0, 1, 50, 100, 127};
+
+    for (uint8_t soc : soc_values) {
+        struct uavcan_equipment_power_BatteryInfo tx_msg;
+        memset(&tx_msg, 0, sizeof(tx_msg));
+
+        tx_msg.voltage = 12.0f;
+        tx_msg.state_of_charge_pct = soc;
+        tx_msg.state_of_health_pct = 100;
+
+        memset(buffer, 0, sizeof(buffer));
+        uint32_t encoded_len = uavcan_equipment_power_BatteryInfo_encode(&tx_msg, buffer
+#if CANARD_ENABLE_TAO_OPTION
+            , false
+#endif
+        );
+
+        CanardRxTransfer transfer = makeTransfer(encoded_len);
+        struct uavcan_equipment_power_BatteryInfo rx_msg;
+        memset(&rx_msg, 0, sizeof(rx_msg));
+
+        EXPECT_FALSE(uavcan_equipment_power_BatteryInfo_decode(&transfer, &rx_msg));
+        EXPECT_EQ(rx_msg.state_of_charge_pct, soc);
+    }
+}
+
+TEST_F(DroneCANMessageTest, NodeStatus_UptimeMaxValues)
+{
+    // Test with maximum uptime value (32-bit field)
+    struct uavcan_protocol_NodeStatus tx_msg;
+    memset(&tx_msg, 0, sizeof(tx_msg));
+
+    tx_msg.uptime_sec = 0xFFFFFFFFu;  // Maximum uint32 value
+    tx_msg.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
+    tx_msg.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
+    tx_msg.vendor_specific_status_code = 0xFFFF;  // Maximum vendor status
+
+    uint32_t encoded_len = uavcan_protocol_NodeStatus_encode(&tx_msg, buffer
+#if CANARD_ENABLE_TAO_OPTION
+        , false
+#endif
+    );
+
+    EXPECT_GT(encoded_len, 0u);
+
+    CanardRxTransfer transfer = makeTransfer(encoded_len);
+    struct uavcan_protocol_NodeStatus rx_msg;
+    memset(&rx_msg, 0, sizeof(rx_msg));
+
+    bool result = uavcan_protocol_NodeStatus_decode(&transfer, &rx_msg);
+    EXPECT_FALSE(result);
+    EXPECT_EQ(rx_msg.uptime_sec, 0xFFFFFFFFu);
+    EXPECT_EQ(rx_msg.vendor_specific_status_code, 0xFFFF);
+}
+
+TEST_F(DroneCANMessageTest, GNSSFix_ZeroCovarianceLength)
+{
+    // Test Fix message with covariance length field edge cases
+    struct uavcan_equipment_gnss_Fix tx_msg;
+    memset(&tx_msg, 0, sizeof(tx_msg));
+
+    tx_msg.status = UAVCAN_EQUIPMENT_GNSS_FIX_STATUS_3D_FIX;
+    tx_msg.sats_used = 5;
+    tx_msg.position_covariance.len = 0;
+    tx_msg.velocity_covariance.len = 0;
+
+    uint32_t encoded_len = uavcan_equipment_gnss_Fix_encode(&tx_msg, buffer
+#if CANARD_ENABLE_TAO_OPTION
+        , false
+#endif
+    );
+
+    EXPECT_GT(encoded_len, 0u);
+    EXPECT_LE(encoded_len, UAVCAN_EQUIPMENT_GNSS_FIX_MAX_SIZE);
+
+    CanardRxTransfer transfer = makeTransfer(encoded_len);
+    struct uavcan_equipment_gnss_Fix rx_msg;
+    memset(&rx_msg, 0, sizeof(rx_msg));
+
+    EXPECT_FALSE(uavcan_equipment_gnss_Fix_decode(&transfer, &rx_msg));
+    EXPECT_EQ(rx_msg.position_covariance.len, 0);
+    EXPECT_EQ(rx_msg.velocity_covariance.len, 0);
+}
+
+TEST_F(DroneCANMessageTest, GNSSAuxiliary_ZeroDOPValues)
+{
+    // Test Auxiliary message with all zero DOP values (perfect geometry)
+    struct uavcan_equipment_gnss_Auxiliary tx_msg;
+    memset(&tx_msg, 0, sizeof(tx_msg));
+
+    tx_msg.gdop = 0.0f;
+    tx_msg.pdop = 0.0f;
+    tx_msg.hdop = 0.0f;
+    tx_msg.vdop = 0.0f;
+    tx_msg.tdop = 0.0f;
+    tx_msg.ndop = 0.0f;
+    tx_msg.edop = 0.0f;
+    tx_msg.sats_visible = 0;
+    tx_msg.sats_used = 0;
+
+    uint32_t encoded_len = uavcan_equipment_gnss_Auxiliary_encode(&tx_msg, buffer
+#if CANARD_ENABLE_TAO_OPTION
+        , false
+#endif
+    );
+
+    EXPECT_GT(encoded_len, 0u);
+
+    CanardRxTransfer transfer = makeTransfer(encoded_len);
+    struct uavcan_equipment_gnss_Auxiliary rx_msg;
+    memset(&rx_msg, 0, sizeof(rx_msg));
+
+    EXPECT_FALSE(uavcan_equipment_gnss_Auxiliary_decode(&transfer, &rx_msg));
+    EXPECT_EQ(rx_msg.sats_visible, 0);
+    EXPECT_EQ(rx_msg.sats_used, 0);
+}
+
+TEST_F(DroneCANMessageTest, GNSSFix2_MaxSatellites)
+{
+    // Test with maximum satellites count (63 for 6-bit field)
+    struct uavcan_equipment_gnss_Fix2 tx_msg;
+    memset(&tx_msg, 0, sizeof(tx_msg));
+
+    tx_msg.latitude_deg_1e8 = 0;
+    tx_msg.longitude_deg_1e8 = 0;
+    tx_msg.sats_used = 63;  // Maximum for 6-bit field
+    tx_msg.status = UAVCAN_EQUIPMENT_GNSS_FIX2_STATUS_3D_FIX;
+
+    uint32_t encoded_len = uavcan_equipment_gnss_Fix2_encode(&tx_msg, buffer
+#if CANARD_ENABLE_TAO_OPTION
+        , false
+#endif
+    );
+
+    CanardRxTransfer transfer = makeTransfer(encoded_len);
+    struct uavcan_equipment_gnss_Fix2 rx_msg;
+    memset(&rx_msg, 0, sizeof(rx_msg));
+
+    EXPECT_FALSE(uavcan_equipment_gnss_Fix2_decode(&transfer, &rx_msg));
+    EXPECT_EQ(rx_msg.sats_used, 63);
+}
+
+TEST_F(DroneCANMessageTest, TransferBufferRoundtrip)
+{
+    // Test that multiple consecutive encodes/decodes work correctly
+    // This tests buffer reuse and any potential state issues
+    for (int i = 0; i < 10; i++) {
+        struct uavcan_equipment_gnss_Fix2 tx_msg;
+        memset(&tx_msg, 0, sizeof(tx_msg));
+
+        tx_msg.latitude_deg_1e8 = 377749000 + i * 1000;
+        tx_msg.longitude_deg_1e8 = -1224194000 + i * 1000;
+        tx_msg.sats_used = 5 + (i % 15);  // Vary between 5-20
+        tx_msg.status = UAVCAN_EQUIPMENT_GNSS_FIX2_STATUS_3D_FIX;
+
+        memset(buffer, 0xFF, sizeof(buffer));  // Fill with pattern
+        uint32_t encoded_len = uavcan_equipment_gnss_Fix2_encode(&tx_msg, buffer
+#if CANARD_ENABLE_TAO_OPTION
+            , false
+#endif
+        );
+
+        CanardRxTransfer transfer = makeTransfer(encoded_len);
+        struct uavcan_equipment_gnss_Fix2 rx_msg;
+        memset(&rx_msg, 0, sizeof(rx_msg));
+
+        EXPECT_FALSE(uavcan_equipment_gnss_Fix2_decode(&transfer, &rx_msg));
+        EXPECT_EQ(rx_msg.latitude_deg_1e8, tx_msg.latitude_deg_1e8);
+        EXPECT_EQ(rx_msg.sats_used, tx_msg.sats_used);
+    }
+}

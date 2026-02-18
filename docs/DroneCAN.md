@@ -73,6 +73,228 @@ save
 
 Both voltage and current come from the same DroneCAN BatteryInfo message, so they update together when using a DroneCAN battery monitor.
 
+## Configuration Examples
+
+### Example 1: GPS Only Setup
+
+Use a DroneCAN GPS without battery monitoring:
+
+```
+# Enable DroneCAN interface
+set dronecan_node_id = 10
+set dronecan_bitrate = 1000KBPS
+
+# Configure GPS
+set gps_provider = DRONECAN
+
+# Disable battery monitoring from DroneCAN
+set bat_voltage_src = ADC
+set current_meter_type = NONE
+
+save
+```
+
+**Result:** Flight controller receives GPS data from DroneCAN GPS receiver on node ID 1-127 (auto-detected).
+
+---
+
+### Example 2: Battery Monitoring Only
+
+Use DroneCAN for battery voltage and current without GPS:
+
+```
+# Enable DroneCAN interface
+set dronecan_node_id = 10
+set dronecan_bitrate = 1000KBPS
+
+# Configure battery monitoring
+set bat_voltage_src = CAN
+feature CURRENT_METER
+set current_meter_type = CAN
+
+# Keep GPS on other source
+set gps_provider = UBLOX
+
+save
+```
+
+**Result:** Flight controller receives battery voltage and current from DroneCAN BatteryInfo messages.
+
+---
+
+### Example 3: GPS + Battery Combined
+
+Use DroneCAN for both GPS and battery monitoring:
+
+```
+# Enable DroneCAN interface
+set dronecan_node_id = 10
+set dronecan_bitrate = 1000KBPS
+
+# Configure GPS
+set gps_provider = DRONECAN
+
+# Configure battery monitoring
+set bat_voltage_src = CAN
+feature CURRENT_METER
+set current_meter_type = CAN
+
+save
+```
+
+**Result:** Single CAN bus provides both GPS and battery data. Simplifies hardware setup significantly.
+
+**Note:** The GPS and battery monitor must be configured as separate DroneCAN nodes with different node IDs (e.g., GPS on node 1, battery monitor on node 2).
+
+---
+
+### Example 4: Multi-Node DroneCAN Network
+
+Setting up multiple DroneCAN peripherals on a single CAN bus:
+
+```
+# Flight Controller Configuration
+set dronecan_node_id = 10           # Flight controller = node 10
+set dronecan_bitrate = 1000KBPS
+
+# Configure GPS (from node 1)
+set gps_provider = DRONECAN
+
+# Configure battery monitor (from node 2)
+set bat_voltage_src = CAN
+feature CURRENT_METER
+set current_meter_type = CAN
+
+save
+```
+
+**Peripheral Configuration (using dronecan_gui or similar tool):**
+- **GPS Receiver:** Node ID = 1, Bitrate = 1000 KBPS
+- **Battery Monitor:** Node ID = 2, Bitrate = 1000 KBPS
+- **Potential Future Peripheral:** Node ID = 3, etc.
+
+**CAN Bus Layout:**
+```
+   [FC: Node 10]
+        |
+        +-- CAN_H/CAN_L
+        |
+   [GPS: Node 1] ----+---- [Battery: Node 2]
+        |                       |
+       120R                     120R
+   (termination)           (termination)
+```
+
+**Important:** Each node must have a unique ID (1-127). Don't assign two devices the same node ID.
+
+---
+
+### Example 5: SITL Simulation
+
+Testing DroneCAN configuration without hardware:
+
+```bash
+# Build and run SITL
+make SITL_TARGET=F405_OHMINIV2
+
+# In SITL console, configure DroneCAN:
+set dronecan_node_id = 10
+set dronecan_bitrate = 1000KBPS
+set gps_provider = DRONECAN
+set bat_voltage_src = CAN
+save
+```
+
+**Note:** SITL includes a virtual CAN bus for testing. To send simulated DroneCAN messages:
+
+1. Connect SITL to external DroneCAN simulator or
+2. Use `candump` and `cansend` tools to inject test messages
+3. Monitor responses with `candump can0`
+
+---
+
+### Example 6: Hardware-Specific Setup for MATEKH743
+
+The MATEKH743 has integrated FDCAN peripheral:
+
+```
+# MATEKH743 with DroneCAN
+set dronecan_node_id = 10
+set dronecan_bitrate = 1000KBPS
+
+# GPS configuration
+set gps_provider = DRONECAN
+
+# Battery monitoring (if using DroneCAN BMS)
+set bat_voltage_src = CAN
+feature CURRENT_METER
+set current_meter_type = CAN
+
+# Save and reboot
+save
+```
+
+**Wiring for MATEKH743:**
+- Use the **CAN 1** port on the board
+- Connect to DroneCAN GPS on CAN_H/CAN_L
+- Connect to DroneCAN battery monitor on same CAN bus
+- Add 120Ω termination resistors at both ends
+
+---
+
+### Example 7: Hardware-Specific Setup for MATEKF765SE
+
+The MATEKF765SE has STM32F765 with bxCAN:
+
+```
+# MATEKF765SE with DroneCAN
+set dronecan_node_id = 10
+set dronecan_bitrate = 1000KBPS
+
+# Note: F7 boards may have bitrate limitations
+# If you experience issues, try 500KBPS
+# set dronecan_bitrate = 500KBPS
+
+# GPS configuration
+set gps_provider = DRONECAN
+
+# Battery monitoring
+set bat_voltage_src = CAN
+feature CURRENT_METER
+set current_meter_type = CAN
+
+save
+```
+
+**Wiring for MATEKF765SE:**
+- Use the **CAN 1** port on the board
+- F7 boards support both 500 KBPS and 1000 KBPS
+- If you have range issues, try lower bitrate
+
+---
+
+### Configuration Verification
+
+After setting up DroneCAN, verify configuration:
+
+```
+# Check DroneCAN settings
+set dronecan_node_id
+set dronecan_bitrate
+set gps_provider
+set bat_voltage_src
+set current_meter_type
+```
+
+**Expected Output for GPS + Battery:**
+```
+dronecan_node_id = 10
+dronecan_bitrate = 1000KBPS
+gps_provider = DRONECAN
+bat_voltage_src = CAN
+current_meter_type = CAN
+```
+
 ## Hardware Setup
 
 ### Wiring
