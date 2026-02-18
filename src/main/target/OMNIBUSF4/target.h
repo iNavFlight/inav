@@ -70,10 +70,6 @@
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 #if defined(OMNIBUSF4V3_ICM)
-  #define USE_IMU_ICM42605
-  #define IMU_ICM42605_ALIGN      CW180_DEG
-  #define ICM42605_CS_PIN         PA4
-  #define ICM42605_SPI_BUS        BUS_SPI1
 
   // Soporte para ICM42688P (tu placa)
   #define USE_IMU_ICM42688P
