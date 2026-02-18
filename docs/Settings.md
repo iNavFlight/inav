@@ -4482,6 +4482,16 @@ Optical flow module scale factor
 
 ---
 
+### osd_adsb_calculation_use_cpa
+
+Use CPA (Closest Point of Approach) method for ADS-B traffic distance and collision risk calculation instead of instantaneous distance.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_adsb_distance_alert
 
 Distance inside which ADSB data flashes for proximity warning
