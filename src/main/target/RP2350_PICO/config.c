@@ -19,7 +19,14 @@
 #include <platform.h>
 
 #include "config/config_master.h"
+#include "sensors/gyro.h"
 
 void targetConfiguration(void)
 {
+#ifdef USE_DYNAMIC_FILTERS
+    // Disable dynamic notch filter by default (performance optimization for wing)
+    // This board is performance-constrained and wing aircraft typically don't need
+    // dynamic notch filtering (designed for multirotor motor noise)
+    gyroConfigMutable()->dynamicGyroNotchEnabled = 0;
+#endif
 }

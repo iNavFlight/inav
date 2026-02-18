@@ -71,7 +71,6 @@ SECTIONS
     .text :
     {
         . = ALIGN(4);
-        *(.time_critical*)
         *(.text)
         *(.text*)
         *(.rodata)

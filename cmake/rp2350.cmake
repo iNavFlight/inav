@@ -35,6 +35,7 @@ main_sources(RP2350_COMMON_SRC_EXCLUDES
 main_sources(RP2350_SRC
     config/config_streamer_ram.c
     drivers/io_rp2350.c
+    drivers/serial_usb_vcp_rp2350.c
 )
 
 # --- Pico SDK sources ---

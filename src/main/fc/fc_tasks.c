@@ -349,10 +349,16 @@ void fcTasksInit(void)
 {
     schedulerInit();
 
+#ifdef RP2350
+    // Run GYRO/PID at 1kHz. Default (250µs/4kHz) causes starvation when GYRO
+    // occasionally exceeds its period; 1000µs gives comfortable headroom.
+    rescheduleTask(TASK_PID, 1000);
+    rescheduleTask(TASK_GYRO, 1000);
+#else
     rescheduleTask(TASK_PID, getLooptime());
-    setTaskEnabled(TASK_PID, true);
-
     rescheduleTask(TASK_GYRO, getGyroLooptime());
+#endif
+    setTaskEnabled(TASK_PID, true);
     setTaskEnabled(TASK_GYRO, true);
 
     setTaskEnabled(TASK_AUX, true);

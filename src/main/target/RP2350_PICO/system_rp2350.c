@@ -22,6 +22,7 @@
 #include "hardware/watchdog.h"
 #include "hardware/structs/m33.h"
 #include "pico/stdlib.h"
+#include "pico/time.h"
 #include "pico/unique_id.h"
 #include "pico/bootrom.h"
 #include "pico/runtime_init.h"
@@ -92,6 +93,15 @@ static void debugBlink(int n)
     sleep_ms(500);
 }
 
+static bool usb_task_timer_cb(repeating_timer_t *rt)
+{
+    (void)rt;
+    tud_task();
+    return true;
+}
+
+static repeating_timer_t usb_task_timer;
+
 void systemInit(void)
 {
     // DEBUG: 2 blinks = systemInit() reached (before stdio/USB)
@@ -105,6 +115,11 @@ void systemInit(void)
     // LIB_TINYUSB_DEVICE=1 (from CFG_TUD_ENABLED in tusb_config.h) causes
     // PICO_STDIO_USB_ENABLE_TINYUSB_INIT=0, so stdio_usb_init() skips it.
     tusb_init();
+
+    // Drive USB regardless of scheduler state: fire tud_task() every 1 ms
+    // from a hardware alarm (same approach pico_stdio_usb uses internally).
+    add_repeating_timer_ms(-1, usb_task_timer_cb, NULL, &usb_task_timer);
+
     stdio_init_all();
 
     // DEBUG: 3 blinks = stdio_init_all() returned (USB init did not crash)

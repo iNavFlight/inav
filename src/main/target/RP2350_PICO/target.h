@@ -48,7 +48,7 @@
 #define USE_UART1
 #define USE_UART2
 
-#define SERIAL_PORT_COUNT 2
+#define SERIAL_PORT_COUNT 3  // VCP + UART1 + UART2
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_MSP
 #define DEFAULT_FEATURES        (FEATURE_GPS)
@@ -67,7 +67,7 @@
 #define USE_OSD
 
 #undef USE_DASHBOARD
-#undef USE_VCP
+#define USE_VCP
 #undef USE_PPM
 #undef USE_PWM
 #undef USE_LED_STRIP
@@ -90,6 +90,14 @@
 #undef USE_GYRO_KALMAN
 #undef USE_I2C
 #undef USE_SPI
+
+// FAST_CODE: place hot functions in SRAM (copied from flash at boot) to avoid
+// XIP cache pressure on the large PID/scheduler/gyro code path.
+// common.h defines FAST_CODE without a #ifndef guard, so we must #undef first.
+// The linker script (rp2350_flash.ld) places .time_critical* in .data > RAM AT> FLASH
+// so these symbols are automatically copied to SRAM by crt0 at boot.
+#undef FAST_CODE
+#define FAST_CODE __attribute__((section(".time_critical.inav")))
 
 #define TARGET_FLASH_SIZE 4096
 
