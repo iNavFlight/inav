@@ -44,7 +44,7 @@ float nullFilterApply4(void *filter, float input, float f_cut, float dt)
 
 // PT1 Low Pass filter
 
-static float pt1ComputeRC(const float f_cut)
+static float FAST_CODE pt1ComputeRC(const float f_cut)
 {
     return 1.0f / (2.0f * M_PIf * f_cut);
 }
