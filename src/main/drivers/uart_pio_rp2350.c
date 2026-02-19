@@ -328,9 +328,6 @@ static uartPort_t *piouartInit(piouartDevice_t *s, uint sm_tx, uint sm_rx,
     if (options & SERIAL_INVERTED) {
         gpio_set_inover(rx_pin, GPIO_OVERRIDE_INVERT);
         gpio_set_outover(tx_pin, GPIO_OVERRIDE_INVERT);
-    } else {
-        gpio_set_inover(rx_pin, GPIO_OVERRIDE_NORMAL);
-        gpio_set_outover(tx_pin, GPIO_OVERRIDE_NORMAL);
     }
 
     return &s->port;
