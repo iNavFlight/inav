@@ -38,6 +38,7 @@ main_sources(RP2350_SRC
     drivers/serial_usb_vcp_rp2350.c
     drivers/serial_uart_rp2350.c
     drivers/uart_pio_rp2350.c
+    drivers/pwm_output_rp2350.c
 )
 
 # --- Pico SDK sources ---

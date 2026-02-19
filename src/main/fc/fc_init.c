@@ -321,16 +321,14 @@ void init(void)
     if (!STATE(ALTITUDE_CONTROL)) {
         featureClear(FEATURE_AIRMODE);
     }
-#if !defined(SITL_BUILD) && !defined(RP2350)
-    // Initialize motor and servo outpus
+#if !defined(SITL_BUILD)
+    // Initialize motor and servo outputs
     if (pwmMotorAndServoInit()) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
     }
     else {
         ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
     }
-#else
-    DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
 #endif
     systemState |= SYSTEM_STATE_MOTORS_READY;
 

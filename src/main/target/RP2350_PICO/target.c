@@ -50,21 +50,6 @@ void failureMode(failureMode_e mode)
     while (1) {}
 }
 
-uint32_t getEscUpdateFrequency(void)
-{
-    return 400;
-}
-
-pwmInitError_e getPwmInitError(void)
-{
-    return PWM_INIT_ERROR_NONE;
-}
-
-const char *getPwmInitErrorMessage(void)
-{
-    return "No error";
-}
-
 void timerInit(void)
 {
     // NOP — no hardware timers configured yet
@@ -73,24 +58,6 @@ void timerInit(void)
 bool isMPUSoftReset(void)
 {
     return false;
-}
-
-// PWM output stubs (pwm_output.c is guarded out for RP2350)
-void pwmWriteMotor(uint8_t index, uint16_t value)
-{
-    UNUSED(index);
-    UNUSED(value);
-}
-
-void pwmShutdownPulsesForAllMotors(uint8_t motorCount)
-{
-    UNUSED(motorCount);
-}
-
-void pwmWriteServo(uint8_t index, uint16_t value)
-{
-    UNUSED(index);
-    UNUSED(value);
 }
 
 // Timer stub (timer.c is excluded from build)

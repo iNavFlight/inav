@@ -52,6 +52,14 @@
 
 #define SERIAL_PORT_COUNT 5  // VCP + UART1 + UART2 + UART3 + UART4
 
+// DShot motor output via PIO0 (1 SM per motor, max 4 motors)
+// GP8–11 are dedicated to motors; GP4–7 are reserved for SPI0 (future M5).
+#define USE_DSHOT
+#define MOTOR1_PIN  8   /* GP8  — PIO0 SM0 DShot */
+#define MOTOR2_PIN  9   /* GP9  — PIO0 SM1 DShot */
+#define MOTOR3_PIN 10   /* GP10 — PIO0 SM2 DShot */
+#define MOTOR4_PIN 11   /* GP11 — PIO0 SM3 DShot */
+
 /*
  * Hardware UART pin assignments for Raspberry Pi Pico 2 — Option C layout.
  *
