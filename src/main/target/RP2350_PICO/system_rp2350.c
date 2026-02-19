@@ -29,7 +29,7 @@
 #include "tusb.h"
 
 // SystemCoreClock — updated by systemInit from SDK clock tree
-uint32_t SystemCoreClock = 150000000;
+uint32_t SystemCoreClock = 192000000;
 
 // ── Pre-init diagnostic blinks (run inside runtime_run_initializers) ──────────
 // Each blinks LED a distinct number of times so we can see how far boot gets.
@@ -106,6 +106,14 @@ void systemInit(void)
 {
     // DEBUG: 2 blinks = systemInit() reached (before stdio/USB)
     debugBlink(2);
+
+    // Raise sys clock from SDK default (150 MHz) to 192 MHz.
+    // The USB PLL is independent (clk_usb stays at 48 MHz from pll_usb) so
+    // TinyUSB CDC is unaffected. The hardware timer (clk_timer, derived from
+    // clk_ref at 12 MHz) is also unaffected, so micros() stays accurate.
+    // Must be called before tusb_init() / stdio_init_all() so those see the
+    // final clock rate.
+    set_sys_clock_khz(192000, true);
 
     // SDK runtime already initialized clocks, GPIO, etc. via crt0 → runtime_init
     // We just need to update our SystemCoreClock variable

@@ -264,14 +264,23 @@ vs 150 MHz default that is a 28% raw clock increase, which directly reduces the 
 of every instruction. Code that is already in SRAM benefits fully (no XIP factor).
 XIP-resident code also benefits because the QSPI clock scales proportionally.
 
-**Implementation:** In `system_rp2350.c` (or wherever `set_sys_clock_khz` / PLL init is
-called), change the clock target from 150 MHz (default pico-sdk) to 192 MHz.
+**Implementation:** Call `set_sys_clock_khz(192000, true)` at the top of `systemInit()`
+in `system_rp2350.c`, before `tusb_init()` and `stdio_init_all()`. Update the initial
+`SystemCoreClock` constant from 150000000 to 192000000.
 
-Verify: check `clock_get_hz(clk_sys)` returns 192000000. Confirm USB CDC still works
-(USB PLL is independent of sys PLL; TinyUSB should not be affected).
+The USB PLL is independent (clk_usb stays at 48 MHz from pll_usb) so TinyUSB CDC is
+unaffected. The hardware timer (clk_timer, from clk_ref at 12 MHz) is also independent,
+so `micros()` stays accurate.
 
-**Expected gain:** All task timings scale by 150/192 = 0.781×.
-At 503 µs avg: 503 × (150/192) ≈ **393 µs** — a further ~110 µs reduction.
+**Measured result:**
+- PID avg: 503 µs → 360 µs  (-143 µs, -28%)
+- PID max: 1181 µs → 833 µs
+- Better than theoretical 503 × (150/192) = 393 µs; SRAM-resident code benefits
+  extra since it has zero cache-miss penalty at any clock speed.
+
+**Cumulative from 710 µs baseline: 360 µs (-350 µs, -49%)**
+
+**Status: DONE** ✓
 
 ---
 
