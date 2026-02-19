@@ -47,8 +47,33 @@
 
 #define USE_UART1
 #define USE_UART2
+#define USE_UART3
+#define USE_UART4
 
-#define SERIAL_PORT_COUNT 3  // VCP + UART1 + UART2
+#define SERIAL_PORT_COUNT 5  // VCP + UART1 + UART2 + UART3 + UART4
+
+/*
+ * Hardware UART pin assignments for Raspberry Pi Pico 2 — Option C layout.
+ *
+ * UART1 (INAV) → RP2350 uart0: GP0/1
+ * UART2 (INAV) → RP2350 uart1: GP2/3   ← GP4/5 are uart0, NOT uart1
+ * UART3 (INAV) → PIO1 SM0(TX)+SM1(RX): GP12/13
+ * UART4 (INAV) → PIO1 SM2(TX)+SM3(RX): GP14/15
+ *
+ * GP4–7 are reserved for SPI0 (gyro + flash, future M5/M6).
+ * GP8–11 are reserved for DShot motors on PIO0 (future M8).
+ * PIO2 SM0 is reserved for WS2812 LED strip; SMs 1–3 spare.
+ */
+#define UART1_TX_PIN  0   /* GPIO0  — uart0 TX  (MSP / configurator) */
+#define UART1_RX_PIN  1   /* GPIO1  — uart0 RX */
+#define UART2_TX_PIN  2   /* GPIO2  — uart1 TX  (receiver: CRSF/SBUS) */
+#define UART2_RX_PIN  3   /* GPIO3  — uart1 RX  (HW inversion, no external inverter) */
+/* PIO1: UART3 on SM0(TX)+SM1(RX), UART4 on SM2(TX)+SM3(RX) */
+/* PIO2 is reserved for RGB LED strip (SM0) and future UART5/6 (SMs 1–3) */
+#define UART3_TX_PIN 12   /* GPIO12 — PIO1 SM0 TX  (GPS) */
+#define UART3_RX_PIN 13   /* GPIO13 — PIO1 SM1 RX */
+#define UART4_TX_PIN 14   /* GPIO14 — PIO1 SM2 TX  (telemetry / extra) */
+#define UART4_RX_PIN 15   /* GPIO15 — PIO1 SM3 RX */
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_MSP
 #define DEFAULT_FEATURES        (FEATURE_GPS)

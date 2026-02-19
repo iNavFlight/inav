@@ -36,6 +36,7 @@
 #include "drivers/timer.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
+#include "drivers/serial_uart_impl.h"
 #include "arm_math.h"
 
 const int timerHardwareCount = 0;
@@ -99,18 +100,20 @@ uint8_t timer2id(const HAL_Timer_t *tim)
     return 0;
 }
 
-// UART stub (no UART driver for RP2350 yet)
+// UART dispatch — hardware UARTs 1-2 via RP2350 PL011, PIO UARTs 3-4 via PIO1
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallback,
                         void *rxCallbackData, uint32_t baudRate,
                         portMode_t mode, portOptions_t options)
 {
-    UNUSED(USARTx);
-    UNUSED(rxCallback);
-    UNUSED(rxCallbackData);
-    UNUSED(baudRate);
-    UNUSED(mode);
-    UNUSED(options);
-    return NULL;
+    uartPort_t *s = NULL;
+    if (USARTx == USART1) { s = serialUART1(baudRate, mode, options); }
+    if (USARTx == USART2) { s = serialUART2(baudRate, mode, options); }
+    if (USARTx == USART3) { s = serialUART3(baudRate, mode, options); }
+    if (USARTx == USART4) { s = serialUART4(baudRate, mode, options); }
+    if (!s) { return NULL; }
+    s->port.rxCallback     = rxCallback;
+    s->port.rxCallbackData = rxCallbackData;
+    return (serialPort_t *)s;
 }
 
 // CMSIS DSP stubs (DSP library not compiled for RP2350)

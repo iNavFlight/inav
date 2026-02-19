@@ -36,6 +36,8 @@ main_sources(RP2350_SRC
     config/config_streamer_ram.c
     drivers/io_rp2350.c
     drivers/serial_usb_vcp_rp2350.c
+    drivers/serial_uart_rp2350.c
+    drivers/uart_pio_rp2350.c
 )
 
 # --- Pico SDK sources ---
@@ -68,6 +70,8 @@ set(PICO_SDK_SOURCES
     ${PICO_SDK_SRC_DIR}/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c
     ${PICO_SDK_SRC_DIR}/rp2_common/hardware_vreg/vreg.c
     ${PICO_SDK_SRC_DIR}/rp2_common/hardware_xip_cache/xip_cache.c
+    ${PICO_SDK_SRC_DIR}/rp2_common/hardware_uart/uart.c
+    ${PICO_SDK_SRC_DIR}/rp2_common/hardware_pio/pio.c
 
     # Sync / time / util
     ${PICO_SDK_SRC_DIR}/common/hardware_claim/claim.c
