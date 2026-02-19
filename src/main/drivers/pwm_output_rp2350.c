@@ -333,13 +333,21 @@ bool pwmMotorAndServoInit(void)
     dshotProgramOffset = (uint)offset;
 
     /*
-     * DShot 600 bit period = 1.667 µs = DSHOT_BIT_PERIOD PIO cycles.
-     * clkdiv = (1.667 µs / DSHOT_BIT_PERIOD) × (clk_sys_hz / 1 000 000)
-     *        = bit_period_us / cycle_count × sys_clk_MHz
-     * At 192 MHz: clkdiv = 8.0 exactly.
+     * Bit period varies by protocol; the PIO program always uses DSHOT_BIT_PERIOD
+     * (40) cycles per bit.  Adjust clkdiv so one PIO cycle equals the required
+     * nanoseconds for the selected speed:
+     *   DShot 150: 6.667 µs / 40 = 166.7 ns/cycle → clkdiv = 32.0 @ 192 MHz
+     *   DShot 300: 3.333 µs / 40 =  83.3 ns/cycle → clkdiv = 16.0 @ 192 MHz
+     *   DShot 600: 1.667 µs / 40 =  41.7 ns/cycle → clkdiv =  8.0 @ 192 MHz
      */
+    float bitPeriodUs;
+    switch (initProtocol) {
+        case PWM_TYPE_DSHOT150: bitPeriodUs = 6.666667f; break;
+        case PWM_TYPE_DSHOT300: bitPeriodUs = 3.333333f; break;
+        default:                bitPeriodUs = 1.666667f; break; /* DShot 600 */
+    }
     float clocks_per_us = (float)clock_get_hz(clk_sys) / 1000000.0f;
-    float clkdiv = (1.666667f / (float)DSHOT_BIT_PERIOD) * clocks_per_us;
+    float clkdiv = (bitPeriodUs / (float)DSHOT_BIT_PERIOD) * clocks_per_us;
 
     for (uint i = 0; i < motorCount; i++) {
         int sm = pio_claim_unused_sm(pio0, false);
