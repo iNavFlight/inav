@@ -136,7 +136,7 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .gps_yaw_weight = SETTING_AHRS_GPS_YAW_WEIGHT_DEFAULT
 );
 
-STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
+STATIC_UNIT_TESTED RP2350_FAST_CODE void imuComputeRotationMatrix(void)
 {
     float q1q1 = orientation.q1 * orientation.q1;
     float q2q2 = orientation.q2 * orientation.q2;
@@ -367,7 +367,7 @@ static float imuCalculateMcCogAccWeight(void)
     return wCoGAcc;
 }
 
-static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, const fpVector3_t * vCOG, const fpVector3_t * vCOGAcc, float accWScaler, float magWScaler)
+static RP2350_FAST_CODE void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, const fpVector3_t * vCOG, const fpVector3_t * vCOGAcc, float accWScaler, float magWScaler)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
@@ -611,7 +611,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     imuComputeRotationMatrix();
 }
 
-STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
+STATIC_UNIT_TESTED RP2350_FAST_CODE void imuUpdateEulerAngles(void)
 {
 #ifdef USE_SIMULATOR
 	if ((ARMING_FLAG(SIMULATOR_MODE_HITL) && !SIMULATOR_HAS_OPTION(HITL_USE_IMU)) || (ARMING_FLAG(SIMULATOR_MODE_SITL) && imuUpdated)) {
@@ -799,7 +799,7 @@ void imuUpdateTailSitter(void)
     lastTailSitter = STATE(TAILSITTER);
 }
 
-static void imuCalculateEstimatedAttitude(float dT)
+static RP2350_FAST_CODE void imuCalculateEstimatedAttitude(float dT)
 {
 #if defined(USE_MAG)
     const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy();

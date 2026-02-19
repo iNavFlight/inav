@@ -99,6 +99,12 @@
 #undef FAST_CODE
 #define FAST_CODE __attribute__((section(".time_critical.inav")))
 
+// RP2350_FAST_CODE: like FAST_CODE but only active on RP2350.
+// Used for functions too large for F7 ITCM (e.g. imuMahonyAHRSupdate ~2 KB)
+// that would overflow F7 ITCM if marked plain FAST_CODE.
+#undef RP2350_FAST_CODE
+#define RP2350_FAST_CODE FAST_CODE
+
 #define TARGET_FLASH_SIZE 4096
 
 #define LED_STRIP_TIMER 1
