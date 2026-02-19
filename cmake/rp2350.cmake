@@ -33,7 +33,7 @@ main_sources(RP2350_COMMON_SRC_EXCLUDES
 
 # INAV platform-specific sources
 main_sources(RP2350_SRC
-    config/config_streamer_ram.c
+    config/config_streamer_rp2350.c
     drivers/io_rp2350.c
     drivers/serial_usb_vcp_rp2350.c
     drivers/serial_uart_rp2350.c

@@ -41,8 +41,9 @@
 #define TARGET_IO_PORTA 0xFFFF
 #define TARGET_IO_PORTB 0x3FFF
 
-// RAM-based config (will move to flash-based later)
-#define CONFIG_IN_RAM
+// Flash-based config storage in FLASH_CONFIG region (0x103F0000, 64 KB)
+// __config_start / __config_end are defined in rp2350_flash.ld.
+#define CONFIG_IN_FLASH
 #define EEPROM_SIZE     32768
 
 #define USE_UART1
