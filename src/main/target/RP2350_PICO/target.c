@@ -42,6 +42,16 @@
 const int timerHardwareCount = 0;
 timerHardware_t timerHardware[1];
 
+// Motor GPIO pin assignments for PIO0 DShot output.
+// Analogous to timerHardware[] on STM32: target-specific pin routing data.
+//   M1 → GP8  (PIO0 SM0)
+//   M2 → GP9  (PIO0 SM1)
+//   M3 → GP10 (PIO0 SM2)
+//   M4 → GP11 (PIO0 SM3)
+// GP4–7 reserved for SPI0 (future M5/M6).
+const uint8_t rp2350MotorPins[] = {8, 9, 10, 11};
+const int     rp2350MotorPinCount = 4;
+
 // --- Functions still stubbed (no real hardware driver yet) ---
 
 void failureMode(failureMode_e mode)

@@ -290,16 +290,15 @@ bool pwmMotorAndServoInit(void)
         return true;
     }
 
+    /* Motor pin assignments are target data, defined in target.c */
+    extern const uint8_t rp2350MotorPins[];
+    extern const int     rp2350MotorPinCount;
+
     uint motorCount = (uint)getMotorCount();
-    if (motorCount > DSHOT_MAX_MOTORS) {
+    if (motorCount > DSHOT_MAX_MOTORS || motorCount > (uint)rp2350MotorPinCount) {
         rp2350PwmError = PWM_INIT_ERROR_TOO_MANY_MOTORS;
         return false;
     }
-
-    /* Motor pins: M1..M4 come from target.h defines */
-    static const uint motorPins[DSHOT_MAX_MOTORS] = {
-        MOTOR1_PIN, MOTOR2_PIN, MOTOR3_PIN, MOTOR4_PIN,
-    };
 
     /*
      * Determine PIO GPIO base.  The RP2350 PIO accesses a 32-pin window
@@ -310,7 +309,7 @@ bool pwmMotorAndServoInit(void)
      */
     int pinMin = 48, pinMax = -1;
     for (uint i = 0; i < motorCount; i++) {
-        int p = (int)motorPins[i];
+        int p = (int)rp2350MotorPins[i];
         if (p < pinMin) pinMin = p;
         if (p > pinMax) pinMax = p;
     }
@@ -349,7 +348,7 @@ bool pwmMotorAndServoInit(void)
             return false;
         }
 
-        uint pin = motorPins[i];
+        uint pin = rp2350MotorPins[i];
 
         pio_sm_config cfg = dshotGetDefaultConfig(dshotProgramOffset);
         sm_config_set_set_pins(&cfg, pin, 1);
