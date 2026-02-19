@@ -29,4 +29,10 @@ void targetConfiguration(void)
     // dynamic notch filtering (designed for multirotor motor noise)
     gyroConfigMutable()->dynamicGyroNotchEnabled = 0;
 #endif
+
+    // Run PID at 1 kHz. The RP2350 PID loop averages ~360 µs at 192 MHz; the
+    // 500 µs default looptime leaves insufficient headroom when GPS/nav tasks
+    // are active. 1000 µs gives comfortable margin without affecting control
+    // quality (INAV's fixed-wing tuning is designed for 1 kHz).
+    gyroConfigMutable()->looptime = 1000;
 }
