@@ -188,8 +188,8 @@ uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t option
     s->port.port.baudRate     = baudRate;
     s->port.port.mode         = mode;
     s->port.port.options      = options;
-    s->port.port.rxBuffer     = (uint8_t *)s->rxBuffer;
-    s->port.port.txBuffer     = (uint8_t *)s->txBuffer;
+    s->port.port.rxBuffer     = s->rxBuffer;
+    s->port.port.txBuffer     = s->txBuffer;
     s->port.port.rxBufferSize = sizeof(s->rxBuffer);
     s->port.port.txBufferSize = sizeof(s->txBuffer);
     s->port.port.rxBufferHead = 0;
@@ -198,8 +198,8 @@ uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t option
     s->port.port.txBufferTail = 0;
 
     uart_init(uart0, baudRate);
-    gpio_set_function(s->tx_pin, GPIO_FUNC_UART);
-    gpio_set_function(s->rx_pin, GPIO_FUNC_UART);
+    if (mode & MODE_TX) { gpio_set_function(s->tx_pin, GPIO_FUNC_UART); }
+    if (mode & MODE_RX) { gpio_set_function(s->rx_pin, GPIO_FUNC_UART); }
 
     rp2350UartHwConfigure(s);
 
@@ -237,8 +237,8 @@ uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t option
     s->port.port.baudRate     = baudRate;
     s->port.port.mode         = mode;
     s->port.port.options      = options;
-    s->port.port.rxBuffer     = (uint8_t *)s->rxBuffer;
-    s->port.port.txBuffer     = (uint8_t *)s->txBuffer;
+    s->port.port.rxBuffer     = s->rxBuffer;
+    s->port.port.txBuffer     = s->txBuffer;
     s->port.port.rxBufferSize = sizeof(s->rxBuffer);
     s->port.port.txBufferSize = sizeof(s->txBuffer);
     s->port.port.rxBufferHead = 0;
@@ -247,8 +247,8 @@ uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t option
     s->port.port.txBufferTail = 0;
 
     uart_init(uart1, baudRate);
-    gpio_set_function(s->tx_pin, GPIO_FUNC_UART);
-    gpio_set_function(s->rx_pin, GPIO_FUNC_UART);
+    if (mode & MODE_TX) { gpio_set_function(s->tx_pin, GPIO_FUNC_UART); }
+    if (mode & MODE_RX) { gpio_set_function(s->rx_pin, GPIO_FUNC_UART); }
 
     rp2350UartHwConfigure(s);
 

@@ -56,7 +56,7 @@
  * Hardware UART pin assignments for Raspberry Pi Pico 2 — Option C layout.
  *
  * UART1 (INAV) → RP2350 uart0: GP0/1
- * UART2 (INAV) → RP2350 uart1: GP2/3   ← GP4/5 are uart0, NOT uart1
+ * UART2 (INAV) → RP2350 uart1: GP2/3
  * UART3 (INAV) → PIO1 SM0(TX)+SM1(RX): GP12/13
  * UART4 (INAV) → PIO1 SM2(TX)+SM3(RX): GP14/15
  *

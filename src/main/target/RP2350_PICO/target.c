@@ -106,10 +106,10 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
                         portMode_t mode, portOptions_t options)
 {
     uartPort_t *s = NULL;
-    if (USARTx == USART1) { s = serialUART1(baudRate, mode, options); }
-    if (USARTx == USART2) { s = serialUART2(baudRate, mode, options); }
-    if (USARTx == USART3) { s = serialUART3(baudRate, mode, options); }
-    if (USARTx == USART4) { s = serialUART4(baudRate, mode, options); }
+    if      (USARTx == USART1) { s = serialUART1(baudRate, mode, options); }
+    else if (USARTx == USART2) { s = serialUART2(baudRate, mode, options); }
+    else if (USARTx == USART3) { s = serialUART3(baudRate, mode, options); }
+    else if (USARTx == USART4) { s = serialUART4(baudRate, mode, options); }
     if (!s) { return NULL; }
     s->port.rxCallback     = rxCallback;
     s->port.rxCallbackData = rxCallbackData;

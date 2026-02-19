@@ -46,6 +46,9 @@
  * RX FIFO data layout: the RX SM shifts in bits MSB-first, so each received
  * byte lands in bits [31:24] of the 32-bit FIFO word. Read with >> 24.
  *
+ * Signal inversion (SBUS) is done via gpio_set_inover/outover — no external
+ * inverter required.
+ *
  * Pin assignments are defined in target.h:
  *   UART3_TX_PIN / UART3_RX_PIN
  *   UART4_TX_PIN / UART4_RX_PIN
@@ -272,35 +275,32 @@ static void piouartIrqHandler(piouartDevice_t *s)
     }
 }
 
-/* ── UART3 (INAV) → PIO1 SM0 (TX) + SM1 (RX) ───────────────────────────── */
+/* ── piouartInit — shared init for UART3 and UART4 ──────────────────────── */
 
-#ifdef USE_UART3
-
-static piouartDevice_t piouart0Device;
-
-static void pio1Irq0Handler(void)
-{
-    piouartIrqHandler(&piouart0Device);
-}
-
+/*
+ * piouartInit is NOT inside any #ifdef USE_UARTn guard so that it compiles
+ * whenever USE_UART3 or USE_UART4 (or both) are defined.  Placing it inside
+ * the USE_UART3 guard would cause a linker error if only USE_UART4 is defined.
+ */
 static uartPort_t *piouartInit(piouartDevice_t *s, uint sm_tx, uint sm_rx,
                                 uint tx_pin, uint rx_pin, int irq_index,
-                                uint32_t baudRate, portMode_t mode)
+                                uint32_t baudRate, portMode_t mode,
+                                portOptions_t options)
 {
-    s->sm_tx      = sm_tx;
-    s->sm_rx      = sm_rx;
-    s->tx_pin     = tx_pin;
-    s->rx_pin     = rx_pin;
-    s->irq_index  = irq_index;
+    s->sm_tx       = sm_tx;
+    s->sm_rx       = sm_rx;
+    s->tx_pin      = tx_pin;
+    s->rx_pin      = rx_pin;
+    s->irq_index   = irq_index;
     s->rx_intr_bit = sm_rxnempty_bits[sm_rx];
     s->tx_intr_bit = sm_txnfull_bits[sm_tx];
 
     s->port.port.vTable       = &pioUartVTable;
     s->port.port.baudRate     = baudRate;
     s->port.port.mode         = mode;
-    s->port.port.options      = 0;
-    s->port.port.rxBuffer     = (uint8_t *)s->rxBuffer;
-    s->port.port.txBuffer     = (uint8_t *)s->txBuffer;
+    s->port.port.options      = options;
+    s->port.port.rxBuffer     = s->rxBuffer;
+    s->port.port.txBuffer     = s->txBuffer;
     s->port.port.rxBufferSize = sizeof(s->rxBuffer);
     s->port.port.txBufferSize = sizeof(s->txBuffer);
     s->port.port.rxBufferHead = 0;
@@ -320,18 +320,40 @@ static uartPort_t *piouartInit(piouartDevice_t *s, uint sm_tx, uint sm_rx,
     uart_tx_program_init(pio1, sm_tx, (uint)txProgramOffset, tx_pin, baudRate);
     uart_rx_program_init(pio1, sm_rx, (uint)rxProgramOffset, rx_pin, baudRate);
 
+    /*
+     * GPIO signal inversion — replaces the external inverter that STM32 targets
+     * require for SBUS (100000 baud, 8E2, inverted).  RP2350 can invert any GPIO
+     * input/output in hardware.
+     */
+    if (options & SERIAL_INVERTED) {
+        gpio_set_inover(rx_pin, GPIO_OVERRIDE_INVERT);
+        gpio_set_outover(tx_pin, GPIO_OVERRIDE_INVERT);
+    } else {
+        gpio_set_inover(rx_pin, GPIO_OVERRIDE_NORMAL);
+        gpio_set_outover(tx_pin, GPIO_OVERRIDE_NORMAL);
+    }
+
     return &s->port;
+}
+
+/* ── UART3 (INAV) → PIO1 SM0 (TX) + SM1 (RX) ───────────────────────────── */
+
+#ifdef USE_UART3
+
+static piouartDevice_t piouart0Device;
+
+static void pio1Irq0Handler(void)
+{
+    piouartIrqHandler(&piouart0Device);
 }
 
 uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
-    UNUSED(options);
-
     uartPort_t *p = piouartInit(&piouart0Device,
                                 0 /* sm_tx */, 1 /* sm_rx */,
                                 UART3_TX_PIN, UART3_RX_PIN,
                                 0 /* irq_index = PIO1_IRQ0 */,
-                                baudRate, mode);
+                                baudRate, mode, options);
 
     irq_set_exclusive_handler(PIO1_IRQ_0, pio1Irq0Handler);
     irq_set_enabled(PIO1_IRQ_0, true);
@@ -360,13 +382,11 @@ static void pio1Irq1Handler(void)
 
 uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
-    UNUSED(options);
-
     uartPort_t *p = piouartInit(&piouart1Device,
                                 2 /* sm_tx */, 3 /* sm_rx */,
                                 UART4_TX_PIN, UART4_RX_PIN,
                                 1 /* irq_index = PIO1_IRQ1 */,
-                                baudRate, mode);
+                                baudRate, mode, options);
 
     irq_set_exclusive_handler(PIO1_IRQ_1, pio1Irq1Handler);
     irq_set_enabled(PIO1_IRQ_1, true);
@@ -433,7 +453,13 @@ static void pioUartSetBaudRate(serialPort_t *instance, uint32_t baudRate)
     piouartDevice_t *s = (piouartDevice_t *)instance;
     s->port.port.baudRate = baudRate;
 
-    /* Reinitialise both SMs with new clock divider */
+    /*
+     * Reinitialise both SMs with new clock divider.  pio_sm_clear_fifos() is
+     * called internally by uart_tx/rx_program_init → pio_sm_init, so any bytes
+     * queued in the TX ring buffer but not yet pushed to the PIO FIFO will still
+     * be sent, but bytes already in the hardware FIFO are discarded.  Callers
+     * that need a clean switch (e.g. GPS auto-baud) should drain the port first.
+     */
     pio_sm_set_enabled(pio1, s->sm_tx, false);
     pio_sm_set_enabled(pio1, s->sm_rx, false);
     uart_tx_program_init(pio1, s->sm_tx, (uint)txProgramOffset, s->tx_pin, baudRate);
@@ -457,11 +483,17 @@ static void pioUartSetMode(serialPort_t *instance, portMode_t mode)
 
 static void pioUartSetOptions(serialPort_t *instance, portOptions_t options)
 {
-    /* PIO programs currently support 8N1 only. Options are stored but not
-     * applied to the PIO SM configuration (which has no format registers).
-     * Inversion via gpio_set_inover/outover could be added here if needed. */
     piouartDevice_t *s = (piouartDevice_t *)instance;
     s->port.port.options = options;
+
+    /* Apply GPIO signal inversion — same mechanism as piouartInit */
+    if (options & SERIAL_INVERTED) {
+        gpio_set_inover(s->rx_pin, GPIO_OVERRIDE_INVERT);
+        gpio_set_outover(s->tx_pin, GPIO_OVERRIDE_INVERT);
+    } else {
+        gpio_set_inover(s->rx_pin, GPIO_OVERRIDE_NORMAL);
+        gpio_set_outover(s->tx_pin, GPIO_OVERRIDE_NORMAL);
+    }
 }
 
 #endif /* USE_UART3 || USE_UART4 */
