@@ -527,11 +527,11 @@ const acc_extremes_t* accGetMeasuredExtremes(void)
 
 float accGetMeasuredMaxG(void)
 {
-    return acc.maxG;
+    return fast_fsqrtf(acc.maxGSq);
 }
 
 void resetGForceStats(void) {
-    acc.maxG = 0.0f;
+    acc.maxGSq = 0.0f;
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         acc.extremes[axis].min = 100;
@@ -610,8 +610,8 @@ void updateAccExtremes(void)
         if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
     }
 
-    float gforce = calc_length_pythagorean_3D(acc.accADCf[X], acc.accADCf[Y], acc.accADCf[Z]);
-    if (gforce > acc.maxG) acc.maxG = gforce;
+    float gforceSq = sq(acc.accADCf[X]) + sq(acc.accADCf[Y]) + sq(acc.accADCf[Z]);
+    if (gforceSq > acc.maxGSq) acc.maxGSq = gforceSq;
 }
 
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)

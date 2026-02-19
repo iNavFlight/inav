@@ -174,11 +174,12 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         wind[Y] = (groundVelocitySum[Y] - V * (sintheta * fuselageDirectionSum[X] + costheta * fuselageDirectionSum[Y])) * 0.5f;// equation 11
         wind[Z] = (groundVelocitySum[Z] - V * fuselageDirectionSum[Z]) * 0.5f;// equation 12
 
-        float prevWindLength = calc_length_pythagorean_3D(estimatedWind[X], estimatedWind[Y], estimatedWind[Z]);
-        float windLength = calc_length_pythagorean_3D(wind[X], wind[Y], wind[Z]);
+        float prevWindSq = sq(estimatedWind[X]) + sq(estimatedWind[Y]) + sq(estimatedWind[Z]);
+        float windSq = sq(wind[X]) + sq(wind[Y]) + sq(wind[Z]);
 
         //is this really needed? The reason it is here might be above equation was wrong in early implementations
-        if (windLength < prevWindLength + 4000) {
+        // Equivalent to: sqrt(windSq) < sqrt(prevWindSq) + 4000
+        if (windSq < sq(fast_fsqrtf(prevWindSq) + 4000.0f)) {
             // TODO: Better filtering
             estimatedWind[X] = estimatedWind[X] * 0.98f + wind[X] * 0.02f;
             estimatedWind[Y] = estimatedWind[Y] * 0.98f + wind[Y] * 0.02f;

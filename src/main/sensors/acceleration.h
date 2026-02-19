@@ -62,7 +62,7 @@ typedef struct acc_s {
     uint32_t accClipCount;
     bool isClipped;
     acc_extremes_t extremes[XYZ_AXIS_COUNT];
-    float maxG;
+    float maxGSq;
 } acc_t;
 
 extern acc_t acc;
