@@ -7,7 +7,9 @@
 #ifndef _TUSB_CONFIG_H
 #define _TUSB_CONFIG_H
 
-// MCU selection — RP2040 DCD works for both RP2040 and RP2350
+// MCU selection — OPT_MCU_RP2040 is correct for both RP2040 and RP2350 in
+// TinyUSB 0.15/0.16 (shipped with Pico SDK 2.x).  OPT_MCU_RP2350 was added
+// in TinyUSB 0.17; update this when the SDK dependency is bumped.
 #define CFG_TUSB_MCU OPT_MCU_RP2040
 
 // USB device mode on rhport 0 — must be set so tusb_init() calls tud_init(0).

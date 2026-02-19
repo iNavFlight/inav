@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <platform.h>
 #include "target.h"
@@ -32,13 +33,13 @@
 uint32_t SystemCoreClock = 192000000;
 
 // ── Pre-init diagnostic blinks (run inside runtime_run_initializers) ──────────
-// Each blinks LED a distinct number of times so we can see how far boot gets.
-//
-// Pattern (pauses between groups help distinguish them):
-//   1 blink  → "00150": after EARLY_RESETS  — GPIO/SIO accessible
+// Enable by defining RP2350_DIAG_BLINK at compile time (e.g. in CMakeLists.txt).
+// When active, blinks the onboard LED during early boot so a debugger-less board
+// can show how far initialisation reached:
+//   1 blink → "00150": after EARLY_RESETS  — GPIO/SIO accessible
 //   2 blinks → "00650": after POST_CLOCK_RESETS — clocks, coprocessors, aeabi done
-//
-// If neither fires, crash is in BSS/data copy, bootrom_reset, or early_resets.
+// If neither fires, the crash is in BSS/data copy, bootrom_reset, or early_resets.
+#ifdef RP2350_DIAG_BLINK
 
 #define DIAG_LED_PIN 25
 
@@ -62,6 +63,8 @@ PICO_RUNTIME_INIT_FUNC_RUNTIME(diagPreInit_postEarlyResets, "00150");
 static void diagPreInit_postClocks(void) { diagRawBlink(2); }
 PICO_RUNTIME_INIT_FUNC_RUNTIME(diagPreInit_postClocks, "00650");
 
+#endif // RP2350_DIAG_BLINK
+
 // DWT cycle counter — Cortex-M33 Data Watchpoint and Trace
 #define DWT_CTRL   (m33_hw->dwt_ctrl)
 #define DWT_CYCCNT (m33_hw->dwt_cyccnt)
@@ -79,20 +82,6 @@ void SystemInit(void)
     DWT_CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
-// Debug blink: n short pulses on onboard LED (GPIO 25)
-static void debugBlink(int n)
-{
-    gpio_init(25);
-    gpio_set_dir(25, GPIO_OUT);
-    for (int i = 0; i < n; i++) {
-        gpio_put(25, 1);
-        sleep_ms(150);
-        gpio_put(25, 0);
-        sleep_ms(150);
-    }
-    sleep_ms(500);
-}
-
 static bool usb_task_timer_cb(repeating_timer_t *rt)
 {
     (void)rt;
@@ -104,9 +93,6 @@ static repeating_timer_t usb_task_timer;
 
 void systemInit(void)
 {
-    // DEBUG: 2 blinks = systemInit() reached (before stdio/USB)
-    debugBlink(2);
-
     // Raise sys clock from SDK default (150 MHz) to 192 MHz.
     // The USB PLL is independent (clk_usb stays at 48 MHz from pll_usb) so
     // TinyUSB CDC is unaffected. The hardware timer (clk_timer, derived from
@@ -126,14 +112,12 @@ void systemInit(void)
 
     // Drive USB regardless of scheduler state: fire tud_task() every 1 ms
     // from a hardware alarm (same approach pico_stdio_usb uses internally).
-    add_repeating_timer_ms(-1, usb_task_timer_cb, NULL, &usb_task_timer);
+    if (!add_repeating_timer_ms(-1, usb_task_timer_cb, NULL, &usb_task_timer)) {
+        // Alarm pool exhausted — USB CDC will not receive background servicing.
+        // Nothing useful to do here; continue boot without functional USB.
+    }
 
     stdio_init_all();
-
-    // DEBUG: 3 blinks = stdio_init_all() returned (USB init did not crash)
-    debugBlink(3);
-
-    printf("INAV RP2350 booting...\n");
 }
 
 // --- Timing functions ---
@@ -205,12 +189,8 @@ void getUniqueId(uint8_t *id)
 {
     pico_unique_board_id_t board_id;
     pico_get_unique_board_id(&board_id);
-    // INAV expects 12 bytes (U_ID_0/1/2 = 3x uint32_t)
-    // Pico has 8 bytes — pad with zeros
-    for (int i = 0; i < 8; i++) {
-        id[i] = board_id.id[i];
-    }
-    for (int i = 8; i < 12; i++) {
-        id[i] = 0;
-    }
+    // INAV expects 12 bytes (U_ID_0/1/2 = 3x uint32_t).
+    // Pico has 8 bytes — copy and pad with zeros.
+    memcpy(id, board_id.id, 8);
+    memset(id + 8, 0, 4);
 }

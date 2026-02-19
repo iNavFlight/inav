@@ -85,11 +85,9 @@ static uint32_t usbVcpAvailable(const serialPort_t *instance)
 static uint8_t usbVcpRead(serialPort_t *instance)
 {
     UNUSED(instance);
-
-    uint8_t ch;
-    while (!tud_cdc_available()) {
-        tud_task();
-    }
+    // Callers must check serialRxBytesWaiting() > 0 before calling serialRead().
+    // Do not spin here — spinning would block the cooperative scheduler.
+    uint8_t ch = 0;
     tud_cdc_read(&ch, 1);
     return ch;
 }

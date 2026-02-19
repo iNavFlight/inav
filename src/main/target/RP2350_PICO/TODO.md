@@ -358,30 +358,18 @@ Depends on TODO 5 (RP2350_FAST_CODE macro must exist before this can be applied)
 
 ## TODO 7 — Architecture / Code Review
 
-Run the INAV code review agent over all RP2350-specific changes made so far.
+**Status: DONE** ✓
 
-**Scope:** All files added or modified for this port:
-- `src/main/target/RP2350_PICO/` (entire directory)
-- `src/main/fc/fc_tasks.c` (`#ifdef RP2350` block)
-- `src/main/target/link/rp2350_flash.ld` (once FAST_CODE fix is applied)
-
-**What to look for:**
-
-*Small-scale (line-level):*
-- Style consistency with surrounding INAV code
-- Any undefined behaviour, off-by-one, or type issues
-- Missing or incorrect `#ifdef` guards
-
-*Big-picture (architecture):*
-- Are there simpler / more direct ways to achieve the same result with fewer changes
-  to existing INAV code?
-- Does the `#ifdef RP2350` in `fc_tasks.c` fit INAV's patterns, or is there a cleaner
-  hook (e.g. `targetConfiguration()`, a `TARGET_GYRO_LOOPTIME` define, etc.)?
-- Is the `tud_task()` repeating-timer approach in `system_rp2350.c` the right place,
-  or should it be driven differently (e.g. from `taskSerial` or a dedicated USB task)?
-- Could any of the "fake sensor" / stub approach be done with fewer custom files by
-  reusing existing SITL stubs more directly?
-- Any other patterns that deviate unnecessarily from how other INAV targets work?
+Fixes applied (commit below):
+- `serial_usb_vcp_rp2350.c`: removed blocking spin-loop from `usbVcpRead()`; callers
+  must check `serialRxBytesWaiting() > 0` before calling `serialRead()`.
+- `system_rp2350.c`: removed `debugBlink()` function (caused 1.5 s boot delay);
+  pre-init PICO_RUNTIME_INIT blinks gated behind `#ifdef RP2350_DIAG_BLINK`.
+- `system_rp2350.c`: checked `add_repeating_timer_ms()` return value.
+- `system_rp2350.c`: replaced two-loop `getUniqueId()` with `memcpy` + `memset`.
+- `io_rp2350.c`: `IO_GPIOPortIdx()` now returns `IO_Pin(io) >> 4` (port 1 for GPIO 16+).
+- `imu.c`: `prevOrientation` snapshot interval reduced 100 → 10 cycles (100 ms → 10 ms).
+- `tusb_config.h`: added TinyUSB version note to the OPT_MCU_RP2040 comment.
 
 ---
 

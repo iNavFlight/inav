@@ -100,7 +100,7 @@ int IO_GPIOPortIdx(IO_t io)
     if (!io) {
         return -1;
     }
-    return 0;
+    return IO_Pin(io) >> 4;
 }
 
 int IO_GPIOPinIdx(IO_t io)

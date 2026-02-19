@@ -371,14 +371,15 @@ static RP2350_FAST_CODE void imuMahonyAHRSupdate(float dt, const fpVector3_t * g
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
-    /* Opt 5: snapshot prevOrientation every 100 PID cycles instead of every cycle.
+    /* Opt 5: snapshot prevOrientation every 10 PID cycles instead of every cycle.
      * The snapshot is only used by the fault-recovery path in
      * imuCheckAndResetOrientationQuaternion(), which should never fire in normal
      * flight.  Copying 4 floats 1000×/s just to support a near-zero-probability
-     * reset path is wasteful; 100 ms staleness is a safe recovery point. */
+     * reset path is wasteful; 10 ms staleness gives a fresh recovery point
+     * while reducing copy overhead by 10×. */
     static uint8_t prevOrientationSnapshotCount = 0;
     static fpQuaternion_t prevOrientation = { .q0 = 1.0f };  // identity quaternion safe default
-    if (++prevOrientationSnapshotCount >= 100) {
+    if (++prevOrientationSnapshotCount >= 10) {
         prevOrientationSnapshotCount = 0;
         prevOrientation = orientation;
     }
