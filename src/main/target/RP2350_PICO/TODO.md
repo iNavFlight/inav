@@ -144,50 +144,26 @@ gyroUpdate(), and anything in scheduler.c/gyro.c/pid.c tagged FAST_CODE or NOINL
 
 ## TODO 2 — Test removing the gyro rate override in fc_tasks.c
 
-**Background:** An `#ifdef RP2350` block in `fc_tasks.c` hard-codes GYRO and PID task
-periods to 1000 µs (1 kHz):
+**Result:** Confirmed removable. With FAST_CODE + 192 MHz, GYRO averages 18 µs
+(max 80 µs) — well within any reasonable period. No starvation without the block.
 
-```c
-#ifdef RP2350
-    rescheduleTask(TASK_PID, 1000);
-    rescheduleTask(TASK_GYRO, 1000);
-#else
-    rescheduleTask(TASK_PID, getLooptime());
-    rescheduleTask(TASK_GYRO, getGyroLooptime());
-#endif
-```
+PID still needs 1 kHz explicitly: the default looptime (500 µs) causes 86% avg
+system load at 2 kHz; GPS/nav tasks would push it over the edge. Handled by TODO 3.
 
-**Why it was added:** GYRO max execution time exceeded its period at the default 250 µs,
-causing `forcedRealTimeTask=true` in every scheduler iteration, starving all other tasks.
-Reduced to 1000 µs; GYRO avg is now 15 µs with occasional max of ~343 µs.
-
-**Why it might not be needed after FAST_CODE fix:** Once FAST_CODE → .time_critical
-puts the gyro filter pipeline in SRAM, GYRO avg should drop well below 250 µs. The
-standard `getGyroLooptime()` path (which returns 250 µs) would then work correctly.
-
-**Test plan:**
-1. Apply FAST_CODE fix (TODO 1) first.
-2. Remove the `#ifdef RP2350` block from `fc_tasks.c`.
-3. Build and flash.
-4. Check Configurator task tab: if GYRO/PID still running and TASK_SERIAL/SYSTEM still
-   running (not starved), the override is no longer needed.
-5. If starvation returns (TASK_SERIAL avgload 0%, averageSystemLoadPercent = 0), revert
-   and keep the override.
-
-**Location:** `src/main/fc/fc_tasks.c`, function `fcTasksInit()`, lines ~352–362.
+**Status: DONE** ✓ — `#ifdef RP2350` block removed from `fc_tasks.c`.
 
 ---
 
 ## TODO 3 — Loop rate 1 kHz via targetConfiguration (clean-up)
 
-The current `#ifdef RP2350` hack in fc_tasks.c bypasses `getGyroLooptime()`. The proper
-INAV pattern (matching other fixed-wing targets) is:
-1. Guard `TASK_GYRO_LOOPTIME` in `config.h` with `#ifndef` so target.h can override it.
-2. Define `#define TASK_GYRO_LOOPTIME 1000` in target.h.
-3. Add `gyroConfigMutable()->looptime = 1000;` in `config.c` → `targetConfiguration()`.
-4. Remove the `#ifdef RP2350` block from fc_tasks.c entirely.
+Set `gyroConfigMutable()->looptime = 1000` in `targetConfiguration()` in
+`src/main/target/RP2350_PICO/config.c`. Both tasks now use the standard
+`getLooptime()` / `getGyroLooptime()` path in `fcTasksInit()`.
 
-Only worth doing after TODO 2 confirms whether the rate override is still needed at all.
+Result: PID 993 Hz (39% avg load), GYRO 1088 Hz at natural rate, total 47% avg —
+identical behaviour to the old `#ifdef` approach without the non-standard override.
+
+**Status: DONE** ✓
 
 ---
 
