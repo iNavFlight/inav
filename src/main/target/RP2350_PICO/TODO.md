@@ -257,6 +257,50 @@ visible at the definition site and degrades gracefully on all other targets to a
 
 ---
 
+## TODO 10 — Set default clock to 192 MHz
+
+**Why:** The RP2350 supports up to 200+ MHz with default SoC configuration. At 192 MHz
+vs 150 MHz default that is a 28% raw clock increase, which directly reduces the µs cost
+of every instruction. Code that is already in SRAM benefits fully (no XIP factor).
+XIP-resident code also benefits because the QSPI clock scales proportionally.
+
+**Implementation:** In `system_rp2350.c` (or wherever `set_sys_clock_khz` / PLL init is
+called), change the clock target from 150 MHz (default pico-sdk) to 192 MHz.
+
+Verify: check `clock_get_hz(clk_sys)` returns 192000000. Confirm USB CDC still works
+(USB PLL is independent of sys PLL; TinyUSB should not be affected).
+
+**Expected gain:** All task timings scale by 150/192 = 0.781×.
+At 503 µs avg: 503 × (150/192) ≈ **393 µs** — a further ~110 µs reduction.
+
+---
+
+## TODO 11 — RP2350_FAST_CODE for updatePositionEstimator hot path
+
+**Why:** `updatePositionEstimator` runs every 1 kHz PID cycle from QSPI flash.
+Drill-down profiling showed it costs ~115 µs total:
+  - `updateIMUTopic` (~65 µs): body frame → earth frame accel transform + calibration
+  - `updateEstimatedTopic` (~20 µs): EKF-style state estimation step
+  - `publishEstimatedTopic` (~30 µs of slot, but timer-gated at ~50 Hz — not full cost)
+
+**Implementation:** Mark `RP2350_FAST_CODE`:
+- `updatePositionEstimator` in `navigation_pos_estimator.c` — tiny wrapper, 76 B
+- `updateIMUTopic` — dominant cost, 692 B
+- `updateIMUEstimationWeight` — callee of above, 236 B
+- `updateEstimatedTopic` — second-largest nav cost, 1324 B
+- `imuTransformVectorBodyToEarth` in `imu.c` — hot callee of updateIMUTopic, 48 B
+
+Note: `publishEstimatedTopic` (992 B) was skipped — its body only runs at 50 Hz
+(timer-gated), so XIP pressure from it is negligible at 1 kHz.
+
+**Measured result:**
+- PID avg: 546 µs → 503 µs  (-43 µs, -8%)
+- PID max: 1055 µs → 1181 µs  (max is noisy; avg is the reliable metric)
+
+**Status: DONE** ✓
+
+---
+
 ## TODO 9 — RP2350_FAST_CODE for pilot/throttle hot path
 
 **Why:** `processPilotAndFailSafeActions` runs every PID cycle (1 kHz) from QSPI flash.

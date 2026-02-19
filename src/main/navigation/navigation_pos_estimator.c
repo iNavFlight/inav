@@ -351,7 +351,7 @@ static bool gravityCalibrationComplete(void)
 
 #define ACC_VIB_FACTOR_S 1.0f
 #define ACC_VIB_FACTOR_E 3.0f
-static void updateIMUEstimationWeight(const float dt)
+static RP2350_FAST_CODE void updateIMUEstimationWeight(const float dt)
 {
     static float acc_clip_factor = 1.0f;
     // If accelerometer measurement is clipped - drop the acc weight to 0.3
@@ -370,7 +370,7 @@ static void updateIMUEstimationWeight(const float dt)
     DEBUG_SET(DEBUG_VIBE, 4, posEstimator.imu.accWeightFactor * 1000);
 }
 
-static void updateIMUTopic(timeUs_t currentTimeUs)
+static RP2350_FAST_CODE void updateIMUTopic(timeUs_t currentTimeUs)
 {
     const float dt = US2S(currentTimeUs - posEstimator.imu.lastUpdateTime);
     posEstimator.imu.lastUpdateTime = currentTimeUs;
@@ -718,7 +718,7 @@ static void estimationCalculateGroundCourse(timeUs_t currentTimeUs)
  * Calculate next estimate using IMU and apply corrections from reference sensors (GPS, BARO etc)
  *  Function is called at main loop rate
  */
-static void updateEstimatedTopic(timeUs_t currentTimeUs)
+static RP2350_FAST_CODE void updateEstimatedTopic(timeUs_t currentTimeUs)
 {
     estimationContext_t ctx;
 
@@ -911,7 +911,7 @@ void initializePositionEstimator(void)
  * Update estimator
  *  Update rate: loop rate (>100Hz)
  */
-void updatePositionEstimator(void)
+RP2350_FAST_CODE void updatePositionEstimator(void)
 {
     static bool isInitialized = false;
 

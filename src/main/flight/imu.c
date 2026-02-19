@@ -224,7 +224,7 @@ void imuSetMagneticDeclination(float declinationDeg)
     vCorrectedMagNorth.z = 0;
 }
 
-void imuTransformVectorBodyToEarth(fpVector3_t * v)
+RP2350_FAST_CODE void imuTransformVectorBodyToEarth(fpVector3_t * v)
 {
     // From body frame to earth frame
     quaternionRotateVectorInv(v, v, &orientation);
