@@ -31,15 +31,15 @@
  *
  * Flash is XIP-mapped starting at XIP_BASE (0x10000000), so the region is
  * directly readable as normal memory.  Writes use the Pico SDK flash APIs:
- *   flash_range_erase()  — erases in 4 KB (FLASH_SECTOR_SIZE) chunks
- *   flash_range_program() — programs in 256-byte (FLASH_PAGE_SIZE) chunks
+ *   flash_range_erase()   -- erases in 4 KB (FLASH_SECTOR_SIZE) chunks
+ *   flash_range_program() -- programs in 256-byte (FLASH_PAGE_SIZE) chunks
  *
  * Both APIs take an offset from the start of flash (not the XIP address) and
  * MUST be called with interrupts disabled.  Multicore safety (M12) is deferred;
  * for now disabling interrupts is sufficient because core1 is not started.
  *
  * The config_streamer interface calls config_streamer_impl_write_word() once
- * per CONFIG_STREAMER_BUFFER_SIZE (4 bytes) — smaller than the 256-byte flash
+ * per CONFIG_STREAMER_BUFFER_SIZE (4 bytes) -- smaller than the 256-byte flash
  * page.  We accumulate writes in a static page buffer and flush to flash when
  * the page is full.  The final partial page is flushed in
  * config_streamer_impl_lock(), which is called by config_streamer_finish().
@@ -49,25 +49,25 @@
 #include "platform.h"
 #include "config/config_streamer.h"
 
-#ifdef RP2350
+#if defined(RP2350) && defined(CONFIG_IN_FLASH)
 
 #include "hardware/flash.h"
 #include "hardware/sync.h"
 
-/* Flash start in the XIP address space */
-#define RP2350_XIP_BASE           0x10000000u
-
-/* RP2350 flash erase/program constraints */
-#define RP2350_FLASH_PAGE_SIZE    256u   /* minimum program unit */
-#define RP2350_FLASH_SECTOR_SIZE  4096u  /* minimum erase unit  */
+/*
+ * Use the SDK's own canonical macros (defined in hardware/flash.h):
+ *   XIP_BASE         = 0x10000000  (flash start in XIP address space)
+ *   FLASH_PAGE_SIZE  = 256         (minimum program unit)
+ *   FLASH_SECTOR_SIZE = 4096       (minimum erase unit)
+ */
 
 /* One-page write buffer.  Filled word-by-word; programmed to flash when full.
  * Initialised to 0xFF (erased state) so partial last pages are padded cleanly. */
-static uint8_t  pageBuffer[RP2350_FLASH_PAGE_SIZE];
-static uint32_t pageBufferBase;   /* flash offset (from XIP_BASE) of pageBuffer[0] */
-static uint32_t pageBufferUsed;   /* bytes filled so far in pageBuffer */
+static uint8_t  pageBuffer[FLASH_PAGE_SIZE];
+static uint32_t pageBufferBase;  /* flash offset (from XIP_BASE) of pageBuffer[0] */
+static uint32_t pageBufferUsed;  /* bytes filled so far in pageBuffer */
 
-/* ── Helper: program the current page buffer to flash ──────────────────────── */
+/* --- Helper: program the current page buffer to flash ---------------------- */
 
 static void flushPageBuffer(void)
 {
@@ -75,41 +75,47 @@ static void flushPageBuffer(void)
         return;
     }
     /* Pad any unfilled tail with 0xFF (erased value) before programming */
-    if (pageBufferUsed < RP2350_FLASH_PAGE_SIZE) {
+    if (pageBufferUsed < FLASH_PAGE_SIZE) {
         memset(pageBuffer + pageBufferUsed, 0xFF,
-               RP2350_FLASH_PAGE_SIZE - pageBufferUsed);
+               FLASH_PAGE_SIZE - pageBufferUsed);
     }
 
     uint32_t ints = save_and_disable_interrupts();
-    flash_range_program(pageBufferBase, pageBuffer, RP2350_FLASH_PAGE_SIZE);
+    flash_range_program(pageBufferBase, pageBuffer, FLASH_PAGE_SIZE);
     restore_interrupts(ints);
 
     /* Advance to next page and reset buffer */
-    pageBufferBase += RP2350_FLASH_PAGE_SIZE;
-    memset(pageBuffer, 0xFF, RP2350_FLASH_PAGE_SIZE);
+    pageBufferBase += FLASH_PAGE_SIZE;
+    memset(pageBuffer, 0xFF, FLASH_PAGE_SIZE);
     pageBufferUsed = 0;
 }
 
-/* ── config_streamer interface ─────────────────────────────────────────────── */
+/* --- config_streamer interface ---------------------------------------------- */
 
 /*
  * Called once at the start of a save operation.
- * Erases the entire config region so every byte is 0xFF before programming.
+ *
+ * Erases the entire config region up front rather than sector-by-sector as
+ * each boundary is crossed (as STM32 drivers do).  The eager-erase strategy
+ * ensures the XIP cache sees a fully erased region before any programming
+ * begins, avoiding stale cache lines from a previous partial write.
+ *
  * Interrupts are disabled for the duration of the erase.
  *
  * TODO M12 (multicore): replace with flash_safe_execute() when core1 is active.
  */
 void config_streamer_impl_unlock(void)
 {
-    uint32_t flashOffset = (uint32_t)&__config_start - RP2350_XIP_BASE;
-    uint32_t eraseSize   = (uint32_t)&__config_end   - (uint32_t)&__config_start;
+    uint32_t flashOffset = (uint32_t)(uintptr_t)&__config_start - XIP_BASE;
+    uint32_t eraseSize   = (uint32_t)(uintptr_t)&__config_end
+                         - (uint32_t)(uintptr_t)&__config_start;
 
     uint32_t ints = save_and_disable_interrupts();
     flash_range_erase(flashOffset, eraseSize);
     restore_interrupts(ints);
 
     /* Initialise page buffer at the start of the config region */
-    memset(pageBuffer, 0xFF, RP2350_FLASH_PAGE_SIZE);
+    memset(pageBuffer, 0xFF, FLASH_PAGE_SIZE);
     pageBufferBase = flashOffset;
     pageBufferUsed = 0;
 }
@@ -136,25 +142,25 @@ int config_streamer_impl_write_word(config_streamer_t *c,
         return c->err;
     }
 
-    uint32_t flashOffset  = (uint32_t)c->address - RP2350_XIP_BASE;
+    uint32_t flashOffset  = (uint32_t)(uintptr_t)c->address - XIP_BASE;
     uint32_t offsetInPage = flashOffset - pageBufferBase;
+
+    /* Guard against a caller bug or unexpected rewind of c->address */
+    if (offsetInPage >= FLASH_PAGE_SIZE) {
+        c->err = -1;
+        return c->err;
+    }
 
     memcpy(pageBuffer + offsetInPage, buffer, CONFIG_STREAMER_BUFFER_SIZE);
     pageBufferUsed = offsetInPage + CONFIG_STREAMER_BUFFER_SIZE;
 
-    /* Program when we have a complete page */
-    if (pageBufferUsed == RP2350_FLASH_PAGE_SIZE) {
-        uint32_t ints = save_and_disable_interrupts();
-        flash_range_program(pageBufferBase, pageBuffer, RP2350_FLASH_PAGE_SIZE);
-        restore_interrupts(ints);
-
-        pageBufferBase += RP2350_FLASH_PAGE_SIZE;
-        memset(pageBuffer, 0xFF, RP2350_FLASH_PAGE_SIZE);
-        pageBufferUsed = 0;
+    /* Program and advance when we have a complete page */
+    if (pageBufferUsed == FLASH_PAGE_SIZE) {
+        flushPageBuffer();
     }
 
     c->address += CONFIG_STREAMER_BUFFER_SIZE;
     return 0;
 }
 
-#endif /* RP2350 */
+#endif /* RP2350 && CONFIG_IN_FLASH */
