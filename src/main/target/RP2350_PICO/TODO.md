@@ -309,50 +309,22 @@ Note: `applyRateDynamics` and `getAxisRcCommand` are already `FAST_CODE` (in SRA
 
 ## TODO 6 — Eliminate unnecessary sqrt in calc_length_pythagorean_3D call sites
 
-`sqrt()` is among the most expensive floating-point operations. When the result of
-`calc_length_pythagorean_3D` is only compared against another length (especially another
-`calc_length_pythagorean_3D` result), both sides can be squared — eliminating two sqrt
-calls and replacing them with a comparison of the squared norms (which is already
-available from `vectorNormSquared`).
+**Status: DONE** ✓
 
-**Call sites to audit** (`grep -rn calc_length_pythagorean_3D src/main`):
+- `acceleration.c`: renamed `maxG` → `maxGSq`; `updateAccExtremes()` (1 kHz hot path)
+  now uses `sq(x)+sq(y)+sq(z)` comparison. `accGetMeasuredMaxG()` calls `fast_fsqrtf()`
+  only when OSD/MSP reads the value.
+- `wind_estimator.c`: replaced two `calc_length_pythagorean_3D` calls with squared-norm
+  arithmetic. Sanity check is now `windSq < sq(fast_fsqrtf(prevWindSq) + 4000)`,
+  eliminating one sqrt entirely.
 
-| File | Line | Use | Sqrt eliminable? |
-|------|------|-----|-----------------|
-| `wind_estimator.c` | 177 | `windLength < prevWindLength + 4000` | Partial — offset of 4000 complicates squaring. Could rewrite as `sq(windLength) < sq(prevWindLength + 4000)` which expands to comparing squares plus cross-terms, OR just check `windLength - prevWindLength < 4000` which avoids comparing two sqrts |
-| `wind_estimator.c` | 155 | `calc_length_pythagorean_3D(...) / fast_fsqrtf(diffLengthSq)` | No — ratio needs actual value |
-| `imu.c` | 671 | `GPS3Dspeed` stored and filtered | No — value used directly |
-| `pid.c` | 408 | `getTotalRateTarget()` → pt1 filter | No — value used directly |
-| `acceleration.c` | 613 | `gforce > acc.maxG` | Yes — store `maxGSq` and compare `(x²+y²+z²) > maxGSq` |
-| `pitotmeter*.c` | various | airspeed reading | No — value used directly |
-
-**Priority candidates:**
-1. `wind_estimator.c:177-181`: If the intent is just "don't update if wind jumped too much",
-   `windLength - prevWindLength < 4000` avoids computing prevWindLength's sqrt entirely.
-   Or replace both with `vectorNormSquared` and a squared threshold.
-2. `acceleration.c:613-614`: Change `acc.maxG` to `acc.maxGSq`; compute
-   `gforceSq = x²+y²+z²`; compare `gforceSq > acc.maxGSq`. No sqrt needed.
-
-**Note:** `vectorNormSquared(v)` already exists in `vector.h` and returns `v·v` — use it
-instead of `calc_length_pythagorean_3D` wherever only the squared magnitude is needed.
+Result: PID avg 369 µs → 322 µs (-47 µs, -13%). Cumulative from 710 µs baseline: **322 µs (-55%)**.
 
 ---
 
 ## TODO 8 — Mark imuComputeRotationMatrix RP2350_FAST_CODE
 
-**Why:** `imuMahonyAHRSupdate` (TODO 5 target) calls `imuComputeRotationMatrix()` at
-the end of every PID cycle (line ~569 in imu.c). Once `imuMahonyAHRSupdate` is placed
-in SRAM by TODO 5, every call to the still-in-flash `imuComputeRotationMatrix` incurs
-a SRAM→flash veneer + XIP cache lookup. The function is ~25 instructions (~48 B) and
-called 1000×/s, so even a warm-cache hit costs 3–4 cycles per access; a cold miss costs
-~100 cycles.
-
-**Fix:** Add `RP2350_FAST_CODE` to `imuComputeRotationMatrix` in imu.c (alongside the
-TODO 5 changes). Only mark it on RP2350 targets; the function is already too large for
-F7 ITCM to absorb without overflow.
-
-**Scope:** Single function definition in `src/main/flight/imu.c`.
-Depends on TODO 5 (RP2350_FAST_CODE macro must exist before this can be applied).
+**Status: DONE** ✓ (already applied alongside TODO 5 changes; `imu.c:139` has `RP2350_FAST_CODE`)
 
 ---
 
