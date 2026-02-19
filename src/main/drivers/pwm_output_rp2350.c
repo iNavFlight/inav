@@ -74,7 +74,8 @@
  * Copyright (c) 2021-2024 Betaflight contributors.  GPL-3.0.
  *
  * Bit period = DSHOT_BIT_PERIOD (40) PIO cycles.  The SM clock divider is set
- * so one PIO cycle ≈ 1.667 µs / 40 ≈ 41.67 ns at 150 MHz.
+ * so one PIO cycle ≈ 1.667 µs / 40 ≈ 41.67 ns at the configured system clock
+ * (currently 192 MHz → clkdiv = 8.0 exactly).
  *
  * Signal encoding (non-bidirectional):
  *   '1' bit → pin HIGH for 30 cycles then LOW for 10
@@ -170,7 +171,7 @@ void pwmWriteMotor(uint8_t index, uint16_t value)
 
 void pwmShutdownPulsesForAllMotors(uint8_t motorCount)
 {
-    for (uint8_t i = 0; i < motorCount && i < (uint8_t)dshotMotorCount; i++) {
+    for (uint8_t i = 0; i < motorCount && i < dshotMotorCount; i++) {
         dshotMotors[i].value = 0;
     }
     if (dshotInitialized) {
@@ -203,6 +204,8 @@ void pwmCompleteMotorUpdate(void)
         }
 
         uint16_t packet = prepareDshotPacket(value, telemetry);
+        /* Discard any stale packet left in the FIFO from a missed cycle */
+        pio_sm_drain_tx_fifo(pio0, dshotMotors[i].sm);
         /* PIO discards top 16 bits ("out y, 16") — packet in lower half */
         pio_sm_put(pio0, dshotMotors[i].sm, (uint32_t)packet);
         dshotMotors[i].requestTelemetry = false;
@@ -276,6 +279,10 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
  */
 bool pwmMotorAndServoInit(void)
 {
+    if (dshotInitialized) {
+        return true;  /* already initialized — pio_add_program has limited space */
+    }
+
     initProtocol = motorConfig()->motorPwmProtocol;
 
     if (!isMotorProtocolDshot()) {
@@ -295,9 +302,11 @@ bool pwmMotorAndServoInit(void)
     };
 
     /*
-     * Determine PIO GPIO base.  All motor pins must lie in the same
-     * 16-pin bank (0-15 → base 0, 16-31 → base 16, 32-47 → base 32).
-     * Pins spanning multiple banks are not supported by the RP2350 PIO.
+     * Determine PIO GPIO base.  The RP2350 PIO accesses a 32-pin window
+     * starting at a base that must be a multiple of 16.  All motor pins
+     * must fall within [base, base+31].  If any pin exceeds GP31, the
+     * base must be ≥16.  Pins spanning a range wider than 32 are not
+     * supported.
      */
     int pinMin = 48, pinMax = -1;
     for (uint i = 0; i < motorCount; i++) {
@@ -326,7 +335,9 @@ bool pwmMotorAndServoInit(void)
 
     /*
      * DShot 600 bit period = 1.667 µs = DSHOT_BIT_PERIOD PIO cycles.
-     * clkdiv = (1.667 µs / DSHOT_BIT_PERIOD) × clk_sys_hz
+     * clkdiv = (1.667 µs / DSHOT_BIT_PERIOD) × (clk_sys_hz / 1 000 000)
+     *        = bit_period_us / cycle_count × sys_clk_MHz
+     * At 192 MHz: clkdiv = 8.0 exactly.
      */
     float clocks_per_us = (float)clock_get_hz(clk_sys) / 1000000.0f;
     float clkdiv = (1.666667f / (float)DSHOT_BIT_PERIOD) * clocks_per_us;
