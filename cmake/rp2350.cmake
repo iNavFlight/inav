@@ -14,7 +14,7 @@ set(RP2350_CMSIS_DSP_INCLUDE_DIR "${RP2350_CMSIS_DSP_DIR}/Include")
 
 # NOTE: CMSIS DSP sources are NOT compiled for RP2350.
 # The bundled CMSIS DSP (arm_math.h) predates ARMv8-M and conflicts with
-# the newer CMSIS Core headers. DSP functions are stubbed in target.c.
+# the newer CMSIS Core headers. DSP functions are stubbed in system_rp2350.c.
 # The DSP include dir is still needed for arm_math.h type definitions.
 
 # Sources to exclude from COMMON_SRC (same as SITL + additional STM32-specific)
@@ -35,6 +35,8 @@ main_sources(RP2350_COMMON_SRC_EXCLUDES
 main_sources(RP2350_SRC
     config/config_streamer_rp2350.c
     drivers/io_rp2350.c
+    drivers/system_rp2350.c
+    drivers/timer_rp2350.c
     drivers/serial_usb_vcp_rp2350.c
     drivers/serial_uart_rp2350.c
     drivers/uart_pio_rp2350.c
