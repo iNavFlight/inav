@@ -1,8 +1,9 @@
 /*
- * RP2350 system functions for INAV — Milestone 2
+ * RP2350 system functions for INAV
  *
- * Real implementations of timing, reset, and system init
- * using the Pico SDK hardware abstraction.
+ * Processor-level implementations of timing, reset, system init, and
+ * CMSIS DSP stubs shared by all RP2350 boards.
+ * Analogous to drivers/system_stm32f7xx.c on F7 targets.
  */
 
 #include <stdint.h>
@@ -11,8 +12,8 @@
 #include <string.h>
 
 #include <platform.h>
-#include "target.h"
 
+#include "arm_math.h"
 #include "common/time.h"
 #include "common/utils.h"
 #include "drivers/system.h"
@@ -193,4 +194,73 @@ void getUniqueId(uint8_t *id)
     // Pico has 8 bytes — copy and pad with zeros.
     memcpy(id, board_id.id, 8);
     memset(id + 8, 0, 4);
+}
+
+// --- CMSIS DSP stubs ---
+//
+// The bundled CMSIS DSP library predates ARMv8-M and conflicts with the newer
+// CMSIS Core headers required by the Pico SDK.  INAV common code that calls
+// these functions is compiled for RP2350, so we provide empty stubs here.
+// Analogous to SITL's stubs in target/SITL/target.c.
+
+arm_status arm_rfft_fast_init_f32(arm_rfft_fast_instance_f32 *S, uint16_t fftLen)
+{
+    UNUSED(S);
+    UNUSED(fftLen);
+    return ARM_MATH_SUCCESS;
+}
+
+void arm_cfft_radix8by4_f32(arm_cfft_instance_f32 *S, float32_t *p1)
+{
+    UNUSED(S);
+    UNUSED(p1);
+}
+
+void arm_bitreversal_32(uint32_t *pSrc, const uint16_t bitRevLen,
+                         const uint16_t *pBitRevTable)
+{
+    UNUSED(pSrc);
+    UNUSED(bitRevLen);
+    UNUSED(pBitRevTable);
+}
+
+void stage_rfft_f32(arm_rfft_fast_instance_f32 *S, float32_t *p, float32_t *pOut)
+{
+    UNUSED(S);
+    UNUSED(p);
+    UNUSED(pOut);
+}
+
+void arm_cmplx_mag_f32(float32_t *pSrc, float32_t *pDst, uint32_t numSamples)
+{
+    UNUSED(pSrc);
+    UNUSED(pDst);
+    UNUSED(numSamples);
+}
+
+void arm_mult_f32(float32_t *pSrcA, float32_t *pSrcB,
+                   float32_t *pDst, uint32_t blockSize)
+{
+    UNUSED(pSrcA);
+    UNUSED(pSrcB);
+    UNUSED(pDst);
+    UNUSED(blockSize);
+}
+
+void arm_sub_f32(float32_t *pSrcA, float32_t *pSrcB,
+                  float32_t *pDst, uint32_t blockSize)
+{
+    UNUSED(pSrcA);
+    UNUSED(pSrcB);
+    UNUSED(pDst);
+    UNUSED(blockSize);
+}
+
+void arm_scale_f32(float32_t *pSrc, float32_t scale,
+                    float32_t *pDst, uint32_t blockSize)
+{
+    UNUSED(pSrc);
+    UNUSED(scale);
+    UNUSED(pDst);
+    UNUSED(blockSize);
 }
