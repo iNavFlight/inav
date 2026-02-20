@@ -540,6 +540,23 @@ bool pwmMotorAndServoInit(void)
         }
     }
 
+    /* ── Resolve timerHardware usageFlags ────────────────────────────── */
+    /* STM32's pwm_mapping.c updates usageFlags after resolving AUTO so    */
+    /* that MSP2_INAV_OUTPUT_MAPPING_EXT2 reports the actual assignment.   */
+    /* Do the same here: replace AUTO with the resolved MOTOR or SERVO     */
+    /* flag so the configurator displays outputs in the correct order.     */
+    for (int i = 0; i < timerHardwareCount; i++) {
+        uint8_t sid = timer2id(timerHardware[i].tim);
+        if (sid >= HARDWARE_TIMER_DEFINITION_COUNT) {
+            continue;
+        }
+        if (sliceAssign[sid] == SLICE_AS_MOTOR) {
+            timerHardware[i].usageFlags = TIM_USE_MOTOR;
+        } else if (sliceAssign[sid] == SLICE_AS_SERVO) {
+            timerHardware[i].usageFlags = TIM_USE_SERVO;
+        }
+    }
+
     /* ── Commit counts ────────────────────────────────────────────────── */
 
     if (dshot) {
