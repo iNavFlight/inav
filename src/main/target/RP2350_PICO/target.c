@@ -30,6 +30,7 @@
 #include "target.h"
 
 #include "common/utils.h"
+#include "drivers/io.h"
 #include "drivers/system.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -39,27 +40,52 @@
 #include "drivers/serial_uart_impl.h"
 #include "arm_math.h"
 
-const int timerHardwareCount = 0;
-timerHardware_t timerHardware[1];
+/*
+ * RP2350 PWM slice group identifiers.
+ *
+ * Each TIM_TypeDef instance identifies one hardware PWM slice.  Both
+ * channels (A = even GPIO, B = odd GPIO) on a slice share the same
+ * clkdiv/wrap registers and must run at the same update rate — the same
+ * constraint as STM32 timer channels.
+ *
+ * timerHardware[] maps GPIO pins to these slice IDs so the Configurator
+ * can show output groups and allow the user to force a group to motors,
+ * servos, or auto via MSP2_INAV_TIMER_OUTPUT_MODE.
+ */
+TIM_TypeDef rp2350Pwm4 = { NULL };  /* PWM slice 4: GP8/GP9   */
+TIM_TypeDef rp2350Pwm5 = { NULL };  /* PWM slice 5: GP10/GP11 */
+TIM_TypeDef rp2350Pwm8 = { NULL };  /* PWM slice 8: GP16/GP17 */
+TIM_TypeDef rp2350Pwm9 = { NULL };  /* PWM slice 9: GP18/GP19 */
 
-// Motor GPIO pin assignments for PIO0 DShot output.
-// Analogous to timerHardware[] on STM32: target-specific pin routing data.
-//   M1 → GP8  (PIO0 SM0)
-//   M2 → GP9  (PIO0 SM1)
-//   M3 → GP10 (PIO0 SM2)
-//   M4 → GP11 (PIO0 SM3)
-// GP4–7 reserved for SPI0 (gyro + flash); future motors 5/6 would use SPI1 pins.
-const uint8_t rp2350MotorPins[] = {8, 9, 10, 11};
-const int     rp2350MotorPinCount = 4;
-
-// Servo GPIO pin assignments for hardware PWM slices.
-//   S1 → GP16  (PWM slice 0, ch A)
-//   S2 → GP17  (PWM slice 0, ch B)
-//   S3 → GP18  (PWM slice 1, ch A)
-//   S4 → GP19  (PWM slice 1, ch B)
-// GP16–19 are free of UARTs, SPI, PIO assignments.
-const uint8_t rp2350ServoPins[] = {16, 17, 18, 19};
-const int     rp2350ServoPinCount = 4;
+/*
+ * Output mapping table — 8 GPIO pins in 4 slice groups.
+ *
+ * All entries use TIM_USE_OUTPUT_AUTO so pwmMotorAndServoInit() assigns
+ * them as motors or servos based on getMotorCount() and any
+ * timerOverrides() the user has set in the Configurator.
+ *
+ * Field order matches timerHardware_t (non-AT32 build):
+ *   tim, tag, channelIndex, output, ioMode, alternateFunction, usageFlags, dmaTag
+ *
+ * Port A (gpioid 0) = GPIO 0–15; Port B (gpioid 1) = GPIO 16–29.
+ *   GP8  = PA8   GP9  = PA9   GP10 = PA10  GP11 = PA11
+ *   GP16 = PB0   GP17 = PB1   GP18 = PB2   GP19 = PB3
+ */
+timerHardware_t timerHardware[] = {
+    /* slice 4 — motor group 1 */
+    DEF_TIM(TIM4, CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP8  */
+    DEF_TIM(TIM4, CH2, PA9,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP9  */
+    /* slice 5 — motor group 2 */
+    DEF_TIM(TIM5, CH1, PA10, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP10 */
+    DEF_TIM(TIM5, CH2, PA11, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP11 */
+    /* slice 8 — flexible group 1 */
+    DEF_TIM(TIM8, CH1, PB0,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP16 */
+    DEF_TIM(TIM8, CH2, PB1,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP17 */
+    /* slice 9 — flexible group 2 */
+    DEF_TIM(TIM9, CH1, PB2,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP18 */
+    DEF_TIM(TIM9, CH2, PB3,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP19 */
+};
+const int timerHardwareCount = 8;
 
 // --- Functions still stubbed (no real hardware driver yet) ---
 
@@ -79,11 +105,14 @@ bool isMPUSoftReset(void)
     return false;
 }
 
-// Timer stub (timer.c is excluded from build)
+// Timer stub (timer.c is excluded from build) — returns 0–3 per slice group.
 uint8_t timer2id(const HAL_Timer_t *tim)
 {
-    UNUSED(tim);
-    return 0;
+    if (tim == TIM4) return 0;
+    if (tim == TIM5) return 1;
+    if (tim == TIM8) return 2;
+    if (tim == TIM9) return 3;
+    return (uint8_t)-1;
 }
 
 // UART dispatch — hardware UARTs 1-2 via RP2350 PL011, PIO UARTs 3-4 via PIO1

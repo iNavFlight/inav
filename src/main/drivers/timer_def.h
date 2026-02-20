@@ -109,6 +109,20 @@
     #include "timer_def_at32f43x.h"
 #elif defined(SITL_BUILD)
 #elif defined(RP2350)
+/*
+ * RP2350 DEF_TIM — same 6-parameter signature as STM32 so existing scripts
+ * and tooling that parse timerHardware[] tables work unchanged.
+ *
+ * Parameters:
+ *   tim    — PWM slice pointer macro (e.g. RP2350_PWM4), analogous to TIM4
+ *   ch     — channel token: CH1 (= slice channel A) or CH2 (= slice channel B)
+ *   pin    — GPIO name in INAV port notation (e.g. PA8 for GP8, PB0 for GP16)
+ *   usage  — TIM_USE_* flags (typically TIM_USE_OUTPUT_AUTO)
+ *   flags  — accepted but unused on RP2350 (no N-channel outputs); pass 0
+ *   dmavar — accepted but unused on RP2350 (no DMA-driven PWM); pass 0
+ */
+#define DEF_TIM(tim, ch, pin, usage, flags, dmavar) \
+    { tim, IO_TAG(pin), DEF_TIM_CHNL_ ## ch, 0, 0, 0, usage, 0 }
 #else
     #error "Unknown CPU defined"
 #endif

@@ -42,7 +42,7 @@
 
 #include "platform.h"
 
-#if defined(USE_UART1) || defined(USE_UART2)
+#if defined(USE_UART1) || defined(USE_UART2) || defined(USE_UART3) || defined(USE_UART4)
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -51,6 +51,7 @@
 
 #include "common/utils.h"
 
+#include "drivers/io.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
 #include "drivers/serial_uart_impl.h"
@@ -61,6 +62,12 @@
 
 #define RP2350_UART_RX_BUFFER_SIZE 256
 #define RP2350_UART_TX_BUFFER_SIZE 256
+
+/* Convert INAV ioTag_t to RP2350 raw GPIO number. */
+static inline uint ioTagToGpioNum(ioTag_t tag)
+{
+    return (uint)(DEFIO_TAG_GPIOID(tag) * 16 + DEFIO_TAG_PIN(tag));
+}
 
 /*
  * Per-UART device state.
@@ -181,8 +188,8 @@ uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t option
     rp2350UartDevice_t *s = &uart0Device;
 
     s->dev    = uart0;
-    s->tx_pin = UART1_TX_PIN;
-    s->rx_pin = UART1_RX_PIN;
+    s->tx_pin = ioTagToGpioNum(IO_TAG(UART1_TX_PIN));
+    s->rx_pin = ioTagToGpioNum(IO_TAG(UART1_RX_PIN));
 
     s->port.port.vTable       = &rp2350UartVTable;
     s->port.port.baudRate     = baudRate;
@@ -230,8 +237,8 @@ uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t option
     rp2350UartDevice_t *s = &uart1Device;
 
     s->dev    = uart1;
-    s->tx_pin = UART2_TX_PIN;
-    s->rx_pin = UART2_RX_PIN;
+    s->tx_pin = ioTagToGpioNum(IO_TAG(UART2_TX_PIN));
+    s->rx_pin = ioTagToGpioNum(IO_TAG(UART2_RX_PIN));
 
     s->port.port.vTable       = &rp2350UartVTable;
     s->port.port.baudRate     = baudRate;
@@ -343,10 +350,36 @@ static void rp2350UartSetOptions(serialPort_t *instance, portOptions_t options)
 
 void uartGetPortPins(UARTDevice_e device, serialPortPins_t *pins)
 {
-    /* RP2350 does not use the resource-management pin system */
-    UNUSED(device);
-    pins->txPin = IO_TAG(NONE);
-    pins->rxPin = IO_TAG(NONE);
+    switch (device) {
+#ifdef USE_UART1
+    case UARTDEV_1:
+        pins->txPin = IO_TAG(UART1_TX_PIN);
+        pins->rxPin = IO_TAG(UART1_RX_PIN);
+        break;
+#endif
+#ifdef USE_UART2
+    case UARTDEV_2:
+        pins->txPin = IO_TAG(UART2_TX_PIN);
+        pins->rxPin = IO_TAG(UART2_RX_PIN);
+        break;
+#endif
+#ifdef USE_UART3
+    case UARTDEV_3:
+        pins->txPin = IO_TAG(UART3_TX_PIN);
+        pins->rxPin = IO_TAG(UART3_RX_PIN);
+        break;
+#endif
+#ifdef USE_UART4
+    case UARTDEV_4:
+        pins->txPin = IO_TAG(UART4_TX_PIN);
+        pins->rxPin = IO_TAG(UART4_RX_PIN);
+        break;
+#endif
+    default:
+        pins->txPin = IO_TAG(NONE);
+        pins->rxPin = IO_TAG(NONE);
+        break;
+    }
 }
 
 void uartClearIdleFlag(uartPort_t *s)
@@ -362,4 +395,4 @@ void uartClearIdleFlag(uartPort_t *s)
  */
 const struct serialPortVTable uartVTable[1] = { { 0 } };
 
-#endif /* USE_UART1 || USE_UART2 */
+#endif /* USE_UART1 || USE_UART2 || USE_UART3 || USE_UART4 */

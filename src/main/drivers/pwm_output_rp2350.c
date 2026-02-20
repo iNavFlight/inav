@@ -57,9 +57,11 @@
 
 #include "common/utils.h"
 
+#include "drivers/io_def.h"
 #include "drivers/io_types.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
+#include "drivers/timer.h"
 
 #include "flight/mixer.h"
 
@@ -111,6 +113,10 @@ static const struct pio_program dshotProgram = {
     .instructions = dshotProgramInstructions,
     .length       = 13,
     .origin       = -1,
+    .pio_version  = 0,
+#if PICO_PIO_VERSION > 0
+    .used_gpio_ranges = 0x0,
+#endif
 };
 
 static inline pio_sm_config dshotGetDefaultConfig(uint offset)
@@ -146,7 +152,7 @@ static pwmInitError_e          rp2350PwmError = PWM_INIT_ERROR_NONE;
 /*
  * Non-DShot motor protocols (Standard PWM, Oneshot125, Brushed, etc.) use
  * the same RP2350 hardware PWM peripheral as servos, on the motor GPIO pins
- * already defined in rp2350MotorPins[] (GP8–GP11, slices 4–5).
+ * assigned from timerHardware[] (GP8–GP11 / slices 4–5 by default).
  *
  * Update rate 400 Hz → period = 2.5 ms; with 1 µs/tick: wrap = 2499.
  * pwm_set_gpio_level(pin, us) writes pulse width in µs directly.
@@ -336,11 +342,49 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
     return IOTAG_NONE;
 }
 
+/* ── GPIO helpers ────────────────────────────────────────────────────────── */
+
+/*
+ * Convert an INAV ioTag_t to the raw RP2350 GPIO number.
+ *
+ * ioTag_t encoding: ((gpioid + 1) << 4) | pin
+ *   gpioid 0 → Port A (GPIO 0–15)
+ *   gpioid 1 → Port B (GPIO 16–29)
+ *
+ * So GPIO number = gpioid * 16 + pin
+ *   PA8  (GPIO 8)  → gpioid=0, pin=8  → 0*16+8  = 8
+ *   PB0  (GPIO 16) → gpioid=1, pin=0  → 1*16+0  = 16
+ */
+static inline uint ioTagToGpioNum(ioTag_t tag)
+{
+    return (uint)(DEFIO_TAG_GPIOID(tag) * 16 + DEFIO_TAG_PIN(tag));
+}
+
 /* ── Motor and servo initialisation ─────────────────────────────────────────
+ *
+ * Iterates timerHardware[] (populated in target.c) to assign each GPIO
+ * to motor or servo output.  The assignment for each PWM slice is decided
+ * once (when the first pin of that slice is processed) based on:
+ *
+ *   timerOverrides(sliceId)->outputMode
+ *     OUTPUT_MODE_MOTORS  → whole slice is motor output
+ *     OUTPUT_MODE_SERVOS  → whole slice is servo output
+ *     OUTPUT_MODE_AUTO    → motor if motors still needed, servo otherwise
+ *
+ * Both channels on a slice always receive the same assignment because they
+ * share clkdiv/wrap registers and must run at the same update rate.
  *
  * Called from fc_init.c after the mixer has been configured, so
  * getMotorCount() returns the correct value.
  */
+
+/* Per-slice assignment state (only used inside pwmMotorAndServoInit) */
+typedef enum {
+    SLICE_UNASSIGNED = 0,
+    SLICE_AS_MOTOR,
+    SLICE_AS_SERVO,
+} sliceAssign_e;
+
 bool pwmMotorAndServoInit(void)
 {
     if (dshotInitialized || motorPwmInitialized) {
@@ -348,155 +392,164 @@ bool pwmMotorAndServoInit(void)
     }
 
     initProtocol = motorConfig()->motorPwmProtocol;
-
+    bool dshot   = isMotorProtocolDshot();
     uint motorCount = (uint)getMotorCount();
-    if (motorCount > DSHOT_MAX_MOTORS || motorCount > (uint)rp2350MotorPinCount) {
-        rp2350PwmError = PWM_INIT_ERROR_TOO_MANY_MOTORS;
-        return false;
-    }
 
-    if (!isMotorProtocolDshot()) {
-        /* ── Standard PWM / Oneshot / Brushed motor init ─────────────────
-         *
-         * Use hardware PWM on the motor GPIO pins (rp2350MotorPins[]).
-         * 400 Hz: wrap = 2499 at 1 µs/tick; pwm_set_gpio_level(pin, us).
+    /* ── DShot: load PIO program once ────────────────────────────────── */
+
+    float dshotClkdiv = 0.0f;
+    if (dshot) {
+        /*
+         * RP2350 PIO GPIO base: the only legal values are 0 (GP0–GP31) or 16
+         * (GP16–GP47).  RP2350 has GPIOs 0–29 so base=0 always covers all pins.
          */
-        float clkdiv_motor = (float)clock_get_hz(clk_sys) / 1000000.0f;
-        uint32_t motorSliceInitMask = 0;
-
-        for (uint i = 0; i < motorCount; i++) {
-            uint pin = rp2350MotorPins[i];
-            gpio_set_function(pin, GPIO_FUNC_PWM);
-
-            uint slice = pwm_gpio_to_slice_num(pin);
-            /* GP8/GP9 share a slice, GP10/GP11 share a slice — init each only once */
-            if (!(motorSliceInitMask & (1u << slice))) {
-                pwm_config cfg = pwm_get_default_config();
-                pwm_config_set_clkdiv(&cfg, clkdiv_motor);
-                pwm_config_set_wrap(&cfg, MOTOR_PWM_WRAP);
-                pwm_init(slice, &cfg, false);
-                motorSliceInitMask |= (1u << slice);
-            }
-            pwm_set_gpio_level(pin, MOTOR_MIN_US); /* minimum throttle at boot */
-            pwm_set_enabled(slice, true);
-
-            motorPwmPins[i] = (uint8_t)pin;
-        }
-        motorPwmCount       = (uint8_t)motorCount;
-        motorPwmInitialized = true;
-
-        /* Fall through to servo init below */
-        goto servo_init;
-    }
-
-    /* ── DShot motor init (PIO) ────────────────────────────────────────── */
-
-    /*
-     * RP2350 PIO GPIO base: the only legal values are 0 (GP0–GP31) or 16
-     * (GP16–GP47).  RP2350 has GPIOs 0–29 so base=0 always covers all pins.
-     * pico-sdk pio_set_gpio_base() returns PICO_OK on success or an error code;
-     * treat failure as a fatal init error.
-     */
-    if (pio_set_gpio_base(pio0, 0u) != PICO_OK) {
-        rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
-        return false;
-    }
-
-    int offset = pio_add_program(pio0, &dshotProgram);
-    if (offset < 0) {
-        rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
-        return false;
-    }
-    dshotProgramOffset = (uint)offset;
-
-    /*
-     * Bit period varies by protocol; the PIO program always uses DSHOT_BIT_PERIOD
-     * (40) cycles per bit.  Adjust clkdiv so one PIO cycle equals the required
-     * nanoseconds for the selected speed:
-     *   DShot 150: 6.667 µs / 40 = 166.7 ns/cycle → clkdiv = 32.0 @ 192 MHz
-     *   DShot 300: 3.333 µs / 40 =  83.3 ns/cycle → clkdiv = 16.0 @ 192 MHz
-     *   DShot 600: 1.667 µs / 40 =  41.7 ns/cycle → clkdiv =  8.0 @ 192 MHz
-     */
-    float bitPeriodUs;
-    switch (initProtocol) {
-        case PWM_TYPE_DSHOT150: bitPeriodUs = 6.666667f; break;
-        case PWM_TYPE_DSHOT300: bitPeriodUs = 3.333333f; break;
-        default:                bitPeriodUs = 1.666667f; break; /* DShot 600 */
-    }
-    float clocks_per_us = (float)clock_get_hz(clk_sys) / 1000000.0f;
-    float clkdiv = (bitPeriodUs / (float)DSHOT_BIT_PERIOD) * clocks_per_us;
-
-    for (uint i = 0; i < motorCount; i++) {
-        int sm = pio_claim_unused_sm(pio0, false);
-        if (sm < 0) {
+        if (pio_set_gpio_base(pio0, 0u) != PICO_OK) {
             rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
             return false;
         }
-
-        uint pin = rp2350MotorPins[i];
-
-        pio_sm_config cfg = dshotGetDefaultConfig(dshotProgramOffset);
-        sm_config_set_set_pins(&cfg, pin, 1);
-        pio_gpio_init(pio0, pin);
-        pio_sm_set_consecutive_pindirs(pio0, (uint)sm, pin, 1, true);
-        gpio_set_pulls(pin, false, true);           /* pulldown — idle low */
-        sm_config_set_out_shift(&cfg, false, false, 32); /* left shift, no autopull */
-        sm_config_set_fifo_join(&cfg, PIO_FIFO_JOIN_TX);
-        sm_config_set_clkdiv(&cfg, clkdiv);
-        if (pio_sm_init(pio0, (uint)sm, dshotProgramOffset, &cfg) != PICO_OK) {
+        int offset = pio_add_program(pio0, &dshotProgram);
+        if (offset < 0) {
             rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
             return false;
         }
-        pio_sm_set_enabled(pio0, (uint)sm, true);
+        dshotProgramOffset = (uint)offset;
 
-        dshotMotors[i].pin              = pin;
-        dshotMotors[i].sm               = (uint)sm;
-        dshotMotors[i].value            = 0;
-        dshotMotors[i].requestTelemetry = false;
+        /*
+         * Bit period varies by protocol; the PIO program uses DSHOT_BIT_PERIOD
+         * (40) cycles per bit.  Adjust clkdiv so one PIO cycle equals the
+         * required nanoseconds for the selected speed:
+         *   DShot 150: 6.667 µs / 40 = 166.7 ns/cycle → clkdiv = 32.0 @ 192 MHz
+         *   DShot 300: 3.333 µs / 40 =  83.3 ns/cycle → clkdiv = 16.0 @ 192 MHz
+         *   DShot 600: 1.667 µs / 40 =  41.7 ns/cycle → clkdiv =  8.0 @ 192 MHz
+         */
+        float bitPeriodUs;
+        switch (initProtocol) {
+            case PWM_TYPE_DSHOT150: bitPeriodUs = 6.666667f; break;
+            case PWM_TYPE_DSHOT300: bitPeriodUs = 3.333333f; break;
+            default:                bitPeriodUs = 1.666667f; break; /* DShot 600 */
+        }
+        float clocks_per_us = (float)clock_get_hz(clk_sys) / 1000000.0f;
+        dshotClkdiv = (bitPeriodUs / (float)DSHOT_BIT_PERIOD) * clocks_per_us;
     }
 
-    dshotMotorCount  = motorCount;
-    dshotInitialized = true;
+    /* ── Shared hardware-PWM clock divider (1 µs/tick) ───────────────── */
 
-servo_init:
-    /* ── Servo PWM init — hardware PWM slices ──────────────────────────── */
+    float clkdiv = (float)clock_get_hz(clk_sys) / 1000000.0f;
 
-    uint maxServos = (uint)rp2350ServoPinCount;
-    if (maxServos > RP2350_MAX_SERVOS) {
-        maxServos = RP2350_MAX_SERVOS;
+    /* ── Slice assignment tracking ────────────────────────────────────── */
+
+    sliceAssign_e sliceAssign[HARDWARE_TIMER_DEFINITION_COUNT];
+    for (int s = 0; s < HARDWARE_TIMER_DEFINITION_COUNT; s++) {
+        sliceAssign[s] = SLICE_UNASSIGNED;
     }
 
-    /*
-     * At 192 MHz: clkdiv = 192 → 1 MHz tick (1 µs per tick)
-     * Wrap = 19999 → 20 ms period = 50 Hz
-     * pwm_set_gpio_level(pin, us) sets pulse width directly in µs.
-     *
-     * Adjacent servo pins share a hardware PWM slice (GP16/17 → slice A,
-     * GP18/19 → slice B, etc.).  pwm_init() resets the entire slice including
-     * any channel level already written for the partner pin, so we must call
-     * pwm_init() only once per slice; the second pin just sets its level.
-     */
-    float clkdiv_servo = (float)clock_get_hz(clk_sys) / 1000000.0f;
+    uint32_t motorSliceInitMask = 0;
     uint32_t servoSliceInitMask = 0;
+    uint motorIdx = 0;
+    uint servoIdx = 0;
 
-    for (uint i = 0; i < maxServos; i++) {
-        uint pin = rp2350ServoPins[i];
-        gpio_set_function(pin, GPIO_FUNC_PWM);
+    /* ── Main assignment loop ─────────────────────────────────────────── */
 
-        uint slice = pwm_gpio_to_slice_num(pin);
-        if (!(servoSliceInitMask & (1u << slice))) {
-            pwm_config cfg = pwm_get_default_config();
-            pwm_config_set_clkdiv(&cfg, clkdiv_servo);
-            pwm_config_set_wrap(&cfg, SERVO_PWM_WRAP);
-            pwm_init(slice, &cfg, false);        /* configure slice once, don't start yet */
-            servoSliceInitMask |= (1u << slice);
+    for (int i = 0; i < timerHardwareCount; i++) {
+        const timerHardware_t *timHw = &timerHardware[i];
+        uint8_t sliceId = timer2id(timHw->tim);
+        if (sliceId >= HARDWARE_TIMER_DEFINITION_COUNT) {
+            continue;  /* safety: unknown slice */
         }
-        pwm_set_gpio_level(pin, SERVO_DEFAULT_US); /* center pulse before enabling */
-        pwm_set_enabled(slice, true);
+        uint gpio = ioTagToGpioNum(timHw->tag);
 
-        servoHwPins[i] = (uint8_t)pin;
+        /* First pin on this slice: determine assignment for the whole slice */
+        if (sliceAssign[sliceId] == SLICE_UNASSIGNED) {
+            uint8_t mode = timerOverrides(sliceId)->outputMode;
+            if (mode == OUTPUT_MODE_MOTORS) {
+                sliceAssign[sliceId] = SLICE_AS_MOTOR;
+            } else if (mode == OUTPUT_MODE_SERVOS) {
+                sliceAssign[sliceId] = SLICE_AS_SERVO;
+            } else {
+                /* AUTO: motor if we still need motors, servo otherwise */
+                sliceAssign[sliceId] = (motorIdx < motorCount) ? SLICE_AS_MOTOR
+                                                                : SLICE_AS_SERVO;
+            }
+        }
+
+        if (sliceAssign[sliceId] == SLICE_AS_MOTOR) {
+            if (motorIdx >= DSHOT_MAX_MOTORS) {
+                rp2350PwmError = PWM_INIT_ERROR_TOO_MANY_MOTORS;
+                return false;
+            }
+            if (dshot) {
+                /* ── DShot motor via PIO ─────────────────────────────── */
+                int sm = pio_claim_unused_sm(pio0, false);
+                if (sm < 0) {
+                    rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
+                    return false;
+                }
+                pio_sm_config cfg = dshotGetDefaultConfig(dshotProgramOffset);
+                sm_config_set_set_pins(&cfg, gpio, 1);
+                pio_gpio_init(pio0, gpio);
+                pio_sm_set_consecutive_pindirs(pio0, (uint)sm, gpio, 1, true);
+                gpio_set_pulls(gpio, false, true);            /* pulldown — idle low */
+                sm_config_set_out_shift(&cfg, false, false, 32); /* left shift, no autopull */
+                sm_config_set_fifo_join(&cfg, PIO_FIFO_JOIN_TX);
+                sm_config_set_clkdiv(&cfg, dshotClkdiv);
+                if (pio_sm_init(pio0, (uint)sm, dshotProgramOffset, &cfg) != PICO_OK) {
+                    rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
+                    return false;
+                }
+                pio_sm_set_enabled(pio0, (uint)sm, true);
+
+                dshotMotors[motorIdx].pin              = gpio;
+                dshotMotors[motorIdx].sm               = (uint)sm;
+                dshotMotors[motorIdx].value            = 0;
+                dshotMotors[motorIdx].requestTelemetry = false;
+            } else {
+                /* ── Standard hardware-PWM motor ─────────────────────── */
+                gpio_set_function(gpio, GPIO_FUNC_PWM);
+                uint slice = pwm_gpio_to_slice_num(gpio);
+                /* Init each slice only once — both channels share clkdiv/wrap */
+                if (!(motorSliceInitMask & (1u << slice))) {
+                    pwm_config cfg = pwm_get_default_config();
+                    pwm_config_set_clkdiv(&cfg, clkdiv);
+                    pwm_config_set_wrap(&cfg, MOTOR_PWM_WRAP);
+                    pwm_init(slice, &cfg, false);
+                    motorSliceInitMask |= (1u << slice);
+                }
+                pwm_set_gpio_level(gpio, MOTOR_MIN_US); /* minimum throttle at boot */
+                pwm_set_enabled(slice, true);
+                motorPwmPins[motorIdx] = (uint8_t)gpio;
+            }
+            motorIdx++;
+
+        } else { /* SLICE_AS_SERVO */
+            if (servoIdx >= RP2350_MAX_SERVOS) {
+                continue;  /* silently skip: more pins than servo slots */
+            }
+            gpio_set_function(gpio, GPIO_FUNC_PWM);
+            uint slice = pwm_gpio_to_slice_num(gpio);
+            /* Init each slice only once — both channels share clkdiv/wrap */
+            if (!(servoSliceInitMask & (1u << slice))) {
+                pwm_config cfg = pwm_get_default_config();
+                pwm_config_set_clkdiv(&cfg, clkdiv);
+                pwm_config_set_wrap(&cfg, SERVO_PWM_WRAP);
+                pwm_init(slice, &cfg, false);
+                servoSliceInitMask |= (1u << slice);
+            }
+            pwm_set_gpio_level(gpio, SERVO_DEFAULT_US); /* center pulse before enabling */
+            pwm_set_enabled(slice, true);
+            servoHwPins[servoIdx++] = (uint8_t)gpio;
+        }
     }
-    servoCount       = (uint8_t)maxServos;
+
+    /* ── Commit counts ────────────────────────────────────────────────── */
+
+    if (dshot) {
+        dshotMotorCount  = motorIdx;
+        dshotInitialized = true;
+    } else {
+        motorPwmCount       = (uint8_t)motorIdx;
+        motorPwmInitialized = true;
+    }
+    servoCount       = (uint8_t)servoIdx;
     servoInitialized = true;
 
     return true;

@@ -64,6 +64,7 @@
 #include "build/build_config.h"
 #include "common/utils.h"
 
+#include "drivers/io.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
 #include "drivers/serial_uart_impl.h"
@@ -119,6 +120,12 @@ static const struct pio_program uart_rx_program = {
 };
 
 /* ── Program init helpers ────────────────────────────────────────────────── */
+
+/* Convert INAV ioTag_t to RP2350 raw GPIO number. */
+static inline uint ioTagToGpioNum(ioTag_t tag)
+{
+    return (uint)(DEFIO_TAG_GPIOID(tag) * 16 + DEFIO_TAG_PIN(tag));
+}
 
 static void uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin, uint baud)
 {
@@ -236,8 +243,9 @@ static void piouartIrqHandler(piouartDevice_t *s)
     if (*ints & s->rx_intr_bit) {
         while (!pio_sm_is_rx_fifo_empty(pio1, s->sm_rx)) {
             /*
-             * RX data is left-justified in the 32-bit FIFO word because the ISR
-             * shifts right (data enters from the MSB side).  Extract with >> 24.
+             * With shift_right=true and push_threshold=32, 8 bits shift into
+             * the top of the ISR so the byte sits in bits [31:24] — left-
+             * justified.  Use >> 24 to extract.
              */
             uint8_t ch = (uint8_t)(pio1->rxf[s->sm_rx] >> 24);
             if (s->port.port.rxCallback) {
@@ -348,7 +356,8 @@ uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t option
 {
     uartPort_t *p = piouartInit(&piouart0Device,
                                 0 /* sm_tx */, 1 /* sm_rx */,
-                                UART3_TX_PIN, UART3_RX_PIN,
+                                ioTagToGpioNum(IO_TAG(UART3_TX_PIN)),
+                                ioTagToGpioNum(IO_TAG(UART3_RX_PIN)),
                                 0 /* irq_index = PIO1_IRQ0 */,
                                 baudRate, mode, options);
 
@@ -381,7 +390,8 @@ uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t option
 {
     uartPort_t *p = piouartInit(&piouart1Device,
                                 2 /* sm_tx */, 3 /* sm_rx */,
-                                UART4_TX_PIN, UART4_RX_PIN,
+                                ioTagToGpioNum(IO_TAG(UART4_TX_PIN)),
+                                ioTagToGpioNum(IO_TAG(UART4_RX_PIN)),
                                 1 /* irq_index = PIO1_IRQ1 */,
                                 baudRate, mode, options);
 

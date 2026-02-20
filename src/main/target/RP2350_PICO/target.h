@@ -31,9 +31,7 @@
 #define TARGET_BOARD_IDENTIFIER "RP2P"
 #define USBD_PRODUCT_STRING  "RP2350_PICO"
 
-// Onboard LED — GPIO 25 = Port B, pin 9 (25 - 16 = 9)
-#define PICO_LED_PIN 25
-#define LED0 PB9
+#define LED0 PB9   // GPIO 25 (Port B pin 9)
 
 // GPIO port mapping for RP2350:
 //   Port A (gpioid 0) = GPIO 0-15
@@ -53,18 +51,22 @@
 
 #define SERIAL_PORT_COUNT 5  // VCP + UART1 + UART2 + UART3 + UART4
 
-// DShot motor output via PIO0 (1 SM per motor, max 4 motors)
-// GP8–11 are dedicated to motors 1–4; GP4–7 are reserved for SPI0 (gyro + flash).
-// Motor GPIO pin assignments are in target.c (rp2350MotorPins[]).
+// DShot motor output via PIO0 (1 SM per motor, up to 4 motors).
+// GP8–11 default to motors 1–4; GP4–7 are reserved for SPI0 (gyro + flash).
+// Motor/servo GPIO assignments come from timerHardware[] in target.c.
 
-// Servo PWM output via hardware PWM slices (GP16–GP19).
+// Servo PWM output via hardware PWM slices (GP16–GP19 by default).
 // 50 Hz, 1000–2000 µs pulse width. GP16–19 are free from other peripherals.
 
-// ADC channel defaults (RP2350A: ADC0=GPIO26, ADC1=GPIO27, ADC2=GPIO28)
-// These set the power-on defaults; they can be overridden in the configurator.
-#define VBAT_ADC_CHANNEL           ADC_CHN_1   /* GPIO26 — battery voltage */
-#define CURRENT_METER_ADC_CHANNEL  ADC_CHN_2   /* GPIO27 — current sensor  */
-#define RSSI_ADC_CHANNEL           ADC_CHN_3   /* GPIO28 — RSSI voltage    */
+// ADC inputs are hardware-fixed on RP2350A: ADC0–3 map only to GPIO26–29.
+// ADC_CHANNEL_N_PIN cannot be changed without a board respin.
+#define ADC_CHANNEL_1_PIN          PB10  /* GPIO 26 — battery voltage  */
+#define ADC_CHANNEL_2_PIN          PB11  /* GPIO 27 — current sensor   */
+#define ADC_CHANNEL_3_PIN          PB12  /* GPIO 28 — RSSI voltage     */
+
+#define VBAT_ADC_CHANNEL           ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL  ADC_CHN_2
+#define RSSI_ADC_CHANNEL           ADC_CHN_3
 #define USE_DSHOT
 
 /*
@@ -79,16 +81,16 @@
  * GP8–11 are reserved for DShot motors on PIO0 (future M8).
  * PIO2 SM0 is reserved for WS2812 LED strip; SMs 1–3 spare.
  */
-#define UART1_TX_PIN  0   /* GPIO0  — uart0 TX  (MSP / configurator) */
-#define UART1_RX_PIN  1   /* GPIO1  — uart0 RX */
-#define UART2_TX_PIN  2   /* GPIO2  — uart1 TX  (receiver: CRSF/SBUS) */
-#define UART2_RX_PIN  3   /* GPIO3  — uart1 RX  (HW inversion, no external inverter) */
+#define UART1_TX_PIN  PA0   /* GPIO0  — uart0 TX  (MSP / configurator) */
+#define UART1_RX_PIN  PA1   /* GPIO1  — uart0 RX */
+#define UART2_TX_PIN  PA2   /* GPIO2  — uart1 TX  (receiver: CRSF/SBUS) */
+#define UART2_RX_PIN  PA3   /* GPIO3  — uart1 RX  (HW inversion, no external inverter) */
 /* PIO1: UART3 on SM0(TX)+SM1(RX), UART4 on SM2(TX)+SM3(RX) */
 /* PIO2 is reserved for RGB LED strip (SM0) and future UART5/6 (SMs 1–3) */
-#define UART3_TX_PIN 12   /* GPIO12 — PIO1 SM0 TX  (GPS) */
-#define UART3_RX_PIN 13   /* GPIO13 — PIO1 SM1 RX */
-#define UART4_TX_PIN 14   /* GPIO14 — PIO1 SM2 TX  (telemetry / extra) */
-#define UART4_RX_PIN 15   /* GPIO15 — PIO1 SM3 RX */
+#define UART3_TX_PIN  PA12  /* GPIO12 — PIO1 SM0 TX  (GPS) */
+#define UART3_RX_PIN  PA13  /* GPIO13 — PIO1 SM1 RX */
+#define UART4_TX_PIN  PA14  /* GPIO14 — PIO1 SM2 TX  (telemetry / extra) */
+#define UART4_RX_PIN  PA15  /* GPIO15 — PIO1 SM3 RX */
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_MSP
 #define DEFAULT_FEATURES        (FEATURE_GPS)
@@ -153,14 +155,6 @@
 
 extern uint32_t SystemCoreClock;
 
-/* Motor pin routing for PIO0 DShot — defined in target.c */
-extern const uint8_t rp2350MotorPins[];
-extern const int     rp2350MotorPinCount;
-
-/* Servo pin routing for hardware PWM slices — defined in target.c */
-extern const uint8_t rp2350ServoPins[];
-extern const int     rp2350ServoPinCount;
-
 #define U_ID_0 0
 #define U_ID_1 1
 #define U_ID_2 2
@@ -170,6 +164,21 @@ typedef struct
 {
     void* dummy;
 } TIM_TypeDef;
+
+/* RP2350 PWM slice "timers" — one TIM_TypeDef per slice, used as group IDs.
+ * Analogous to TIM1/TIM3/… on STM32; pins sharing a slice must run at the
+ * same update rate.  Defined in target.c. */
+extern TIM_TypeDef rp2350Pwm4;  /* slice 4: GP8/GP9   — motors 1-2 by default */
+extern TIM_TypeDef rp2350Pwm5;  /* slice 5: GP10/GP11 — motors 3-4 by default */
+extern TIM_TypeDef rp2350Pwm8;  /* slice 8: GP16/GP17 — flexible              */
+extern TIM_TypeDef rp2350Pwm9;  /* slice 9: GP18/GP19 — flexible              */
+
+/* On RP2350, TIMn = PWM slice n (slice = gpio / 2; A/B channels share clkdiv/wrap).
+ * GP8–GP9 → slice 4, GP10–GP11 → slice 5, GP16–GP17 → slice 8, GP18–GP19 → slice 9. */
+#define TIM4 (&rp2350Pwm4)
+#define TIM5 (&rp2350Pwm5)
+#define TIM8 (&rp2350Pwm8)
+#define TIM9 (&rp2350Pwm9)
 
 typedef struct
 {
@@ -227,6 +236,7 @@ typedef struct
 #define USART7 ((USART_TypeDef *)0x0007)
 #define USART8 ((USART_TypeDef *)0x0008)
 
+/* Aliases for code that uses UARTx names rather than USARTx names. */
 #define UART4 ((USART_TypeDef *)0x0004)
 #define UART5 ((USART_TypeDef *)0x0005)
 #define UART7 ((USART_TypeDef *)0x0007)
