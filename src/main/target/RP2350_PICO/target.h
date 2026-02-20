@@ -93,7 +93,7 @@
 #define UART4_RX_PIN  PA15  /* GPIO15 — PIO1 SM3 RX */
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_MSP
-#define DEFAULT_FEATURES        (FEATURE_GPS)
+#define DEFAULT_FEATURES        (FEATURE_GPS | FEATURE_VBAT)
 
 // Fake sensors for M1 stub build
 #define USE_ADC
