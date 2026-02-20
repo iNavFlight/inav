@@ -596,6 +596,20 @@ typedef struct {
     uint8_t flag;
 } navWaypoint_t;
 
+/* Navigation ROI - single general-purpose region of interest.
+ * Distinct from mission SET_POI and ESP32 radar POIs.
+ * flag: 0 = empty, 1 = MSP-set volatile, 2 = EEPROM persistent (future branch). */
+typedef struct {
+    int32_t lat;        // 1e-7 deg
+    int32_t lon;        // 1e-7 deg
+    int32_t alt;        // cm
+    int16_t p1;         // user-defined
+    int16_t p2;         // user-defined
+    uint8_t p3;         // geoAltitudeDatumFlag_e bit value
+    uint8_t action;     // user-defined
+    uint8_t flag;       // 0/1/2
+} navROI_t;
+
 typedef struct {
     navWaypointHeadings_e  mode;
     uint32_t heading; // fixed heading * 100 (SET_HEAD)
@@ -761,6 +775,11 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void navigationSetLoiterRadiusOverride(uint32_t loiterRadiusCm);
 uint32_t navigationGetLoiterRadiusOverride(void);
 uint32_t navigationGetLoiterRadius(void);
+void navSetROI(const navROI_t *roi);
+void navGetROI(navROI_t *roi);
+void navClearROI(void);
+bool navROIIsSet(void);
+bool navGotoROI(void); // set guided desired position from active ROI
 void resetWaypointList(void);
 bool navSetActiveWaypointIndex(uint8_t index);  // MSP2_INAV_SET_WP_INDEX: jump to WP during active mission
 bool navSetCruiseHeading(int32_t headingCd);    // MSP2_INAV_SET_CRUISE_HEADING: set cruise/course-hold heading (centidegrees)

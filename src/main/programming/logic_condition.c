@@ -721,6 +721,78 @@ static int logicConditionGetAutoTransitionTargetStabilizedOperandValue(flight_dy
 }
 #endif
 
+static int logicConditionGetROIOperandValue(int operand)
+{
+    if (!navROIIsSet()) {
+        return 0;
+    }
+
+    navROI_t roi;
+    navGetROI(&roi);
+
+    gpsLocation_t roiGps;
+    roiGps.lat = roi.lat;
+    roiGps.lon = roi.lon;
+    roiGps.alt = roi.alt;
+
+    fpVector3_t roiLocal;
+    const geoAltitudeConversionMode_e altConv = waypointMissionAltConvMode((geoAltitudeDatumFlag_e)roi.p3);
+    const bool roiLocalValid = geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiGps, altConv);
+
+    switch (operand) {
+        case LOGIC_CONDITION_OPERAND_ROI_ACTIVE:
+            return 1;
+
+        case LOGIC_CONDITION_OPERAND_ROI_DISTANCE:
+            if (roiLocalValid) {
+                const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+                const float dx = roiLocal.x - posvel->pos.x;
+                const float dy = roiLocal.y - posvel->pos.y;
+                const float dz = roiLocal.z - posvel->pos.z;
+                return calc_length_pythagorean_3D(dx, dy, dz) / 100.0f;
+            }
+            return 0;
+
+        case LOGIC_CONDITION_OPERAND_ROI_GROUND_DISTANCE:
+            return roiLocalValid ? calculateDistanceToDestination(&roiLocal) / 100 : 0;
+
+        case LOGIC_CONDITION_OPERAND_ROI_ALTITUDE:
+            if (geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiGps, GEO_ALT_RELATIVE)) {
+                return roiLocal.z;
+            }
+            return roi.alt;
+
+        case LOGIC_CONDITION_OPERAND_ROI_BEARING:
+            return roiLocalValid ? calculateBearingToDestination(&roiLocal) : 0;
+
+        case LOGIC_CONDITION_OPERAND_ROI_ELEVATION:
+            if (roiLocalValid) {
+                const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+                const float groundDistanceCm = calculateDistanceToDestination(&roiLocal);
+                const float altitudeDiffCm = roiLocal.z - posvel->pos.z;
+                if (groundDistanceCm > 0.0f) {
+                    return RADIANS_TO_DEGREES(atan2_approx(altitudeDiffCm, groundDistanceCm));
+                }
+            }
+            return 0;
+
+        case LOGIC_CONDITION_OPERAND_ROI_PARAM1:
+            return roi.p1;
+
+        case LOGIC_CONDITION_OPERAND_ROI_PARAM2:
+            return roi.p2;
+
+        case LOGIC_CONDITION_OPERAND_ROI_PARAM3:
+            return roi.p3;
+
+        case LOGIC_CONDITION_OPERAND_ROI_ACTION:
+            return roi.action;
+
+        default:
+            return 0;
+    }
+}
+
 static int logicConditionGetFlightOperandValue(int operand) {
 
     switch (operand) {
@@ -1149,6 +1221,10 @@ int32_t logicConditionGetOperandValue(logicOperandType_e type, int operand) {
 
         case LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS:
             retVal = logicConditionGetWaypointOperandValue(operand);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_TYPE_ROI:
+            retVal = logicConditionGetROIOperandValue(operand);
             break;
 
         default:

@@ -3061,6 +3061,25 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                 }
             }
+
+            if (navROIIsSet()) {
+                navROI_t roi;
+                navGetROI(&roi);
+
+                gpsLocation_t roiGps;
+                roiGps.lat = roi.lat;
+                roiGps.lon = roi.lon;
+                roiGps.alt = roi.alt;
+
+                fpVector3_t roiLocal;
+                if (geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiGps, waypointMissionAltConvMode((geoAltitudeDatumFlag_e)roi.p3))) {
+                    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+                    osdHudDrawPoi(calculateDistanceToDestination(&roiLocal) / 100,
+                        osdGetHeadingAngle(calculateBearingToDestination(&roiLocal) / 100),
+                        (int32_t)((roiLocal.z - posvel->pos.z) / 100),
+                        2, SYM_WAYPOINT, 'R', 0);
+                }
+            }
         }
 
         return true;
