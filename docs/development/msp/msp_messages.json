@@ -11934,9 +11934,9 @@
                         "units": ""
                     },
                     {
-                        "name": "p3",
+                        "name": "alt_datum",
                         "ctype": "uint8_t",
-                        "desc": "ROI altitude datum bitfield (`posControl.roi.p3`)",
+                        "desc": "ROI altitude datum bitfield (`posControl.roi.alt_datum`)",
                         "units": "bitfield"
                     },
                     {
@@ -11992,7 +11992,7 @@
                         "units": ""
                     },
                     {
-                        "name": "p3",
+                        "name": "alt_datum",
                         "ctype": "uint8_t",
                         "desc": "ROI altitude datum bitfield",
                         "units": "bitfield"

@@ -2159,7 +2159,7 @@ static void mspFcNavROIOutCommand(sbuf_t *dst)
     sbufWriteU32(dst, (uint32_t)roi.alt);
     sbufWriteU16(dst, (uint16_t)roi.p1);
     sbufWriteU16(dst, (uint16_t)roi.p2);
-    sbufWriteU8(dst, roi.p3);
+    sbufWriteU8(dst, roi.alt_datum);
     sbufWriteU8(dst, roi.action);
     sbufWriteU8(dst, roi.flag);
 }
@@ -2176,7 +2176,7 @@ static mspResult_e mspFcNavROIInCommand(sbuf_t *src)
     roi.alt = (int32_t)sbufReadU32(src);
     roi.p1 = (int16_t)sbufReadU16(src);
     roi.p2 = (int16_t)sbufReadU16(src);
-    roi.p3 = sbufReadU8(src);
+    roi.alt_datum = sbufReadU8(src);
     roi.action = sbufReadU8(src);
     roi.flag = sbufReadU8(src);
 

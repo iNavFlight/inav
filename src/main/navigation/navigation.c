@@ -5586,7 +5586,7 @@ bool navGotoROI(void)
     roiLLH.alt = posControl.roi.alt;
 
     fpVector3_t roiLocal;
-    const geoAltitudeConversionMode_e altConv = waypointMissionAltConvMode((geoAltitudeDatumFlag_e)posControl.roi.p3);
+    const geoAltitudeConversionMode_e altConv = waypointMissionAltConvMode((geoAltitudeDatumFlag_e)posControl.roi.alt_datum);
 
     if (!geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiLLH, altConv)) {
         return false;

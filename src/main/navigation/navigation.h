@@ -605,7 +605,7 @@ typedef struct {
     int32_t alt;        // cm
     int16_t p1;         // user-defined
     int16_t p2;         // user-defined
-    uint8_t p3;         // geoAltitudeDatumFlag_e bit value
+    uint8_t alt_datum;  // geoAltitudeDatumFlag_e bit value
     uint8_t action;     // user-defined
     uint8_t flag;       // 0/1/2
 } navROI_t;

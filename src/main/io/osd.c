@@ -3072,7 +3072,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 roiGps.alt = roi.alt;
 
                 fpVector3_t roiLocal;
-                if (geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiGps, waypointMissionAltConvMode((geoAltitudeDatumFlag_e)roi.p3))) {
+                if (geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiGps, waypointMissionAltConvMode((geoAltitudeDatumFlag_e)roi.alt_datum))) {
                     const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
                     osdHudDrawPoi(calculateDistanceToDestination(&roiLocal) / 100,
                         osdGetHeadingAngle(calculateBearingToDestination(&roiLocal) / 100),

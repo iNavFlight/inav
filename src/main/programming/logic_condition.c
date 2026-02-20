@@ -736,7 +736,7 @@ static int logicConditionGetROIOperandValue(int operand)
     roiGps.alt = roi.alt;
 
     fpVector3_t roiLocal;
-    const geoAltitudeConversionMode_e altConv = waypointMissionAltConvMode((geoAltitudeDatumFlag_e)roi.p3);
+    const geoAltitudeConversionMode_e altConv = waypointMissionAltConvMode((geoAltitudeDatumFlag_e)roi.alt_datum);
     const bool roiLocalValid = geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiGps, altConv);
 
     switch (operand) {
@@ -757,10 +757,7 @@ static int logicConditionGetROIOperandValue(int operand)
             return roiLocalValid ? calculateDistanceToDestination(&roiLocal) / 100 : 0;
 
         case LOGIC_CONDITION_OPERAND_ROI_ALTITUDE:
-            if (geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiGps, GEO_ALT_RELATIVE)) {
-                return roiLocal.z;
-            }
-            return roi.alt;
+            return roiLocalValid ? roiLocal.z : roi.alt;
 
         case LOGIC_CONDITION_OPERAND_ROI_BEARING:
             return roiLocalValid ? calculateBearingToDestination(&roiLocal) : 0;
@@ -782,8 +779,8 @@ static int logicConditionGetROIOperandValue(int operand)
         case LOGIC_CONDITION_OPERAND_ROI_PARAM2:
             return roi.p2;
 
-        case LOGIC_CONDITION_OPERAND_ROI_PARAM3:
-            return roi.p3;
+        case LOGIC_CONDITION_OPERAND_ROI_ALT_DATUM:
+            return roi.alt_datum;
 
         case LOGIC_CONDITION_OPERAND_ROI_ACTION:
             return roi.action;
