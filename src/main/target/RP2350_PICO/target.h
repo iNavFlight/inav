@@ -168,14 +168,18 @@ typedef struct
 /* RP2350 PWM slice "timers" — one TIM_TypeDef per slice, used as group IDs.
  * Analogous to TIM1/TIM3/… on STM32; pins sharing a slice must run at the
  * same update rate.  Defined in drivers/timer_rp2350.c. */
-extern TIM_TypeDef rp2350Pwm4;   /* slice 4:  GP8/GP9   — motors 1-2  */
-extern TIM_TypeDef rp2350Pwm5;   /* slice 5:  GP10/GP11 — motors 3-4  */
-extern TIM_TypeDef rp2350Pwm10;  /* slice 10: GP20/GP21 — servos       */
+extern TIM_TypeDef rp2350Pwm4;   /* slice 4:  GP8/GP9   — motors 1-2              */
+extern TIM_TypeDef rp2350Pwm5;   /* slice 5:  GP10/GP11 — motors 3-4              */
+extern TIM_TypeDef rp2350Pwm6;   /* slice 6:  GP12/GP13 — servos (dual-use UART3) */
+extern TIM_TypeDef rp2350Pwm7;   /* slice 7:  GP14/GP15 — servos (dual-use UART4) */
+extern TIM_TypeDef rp2350Pwm10;  /* slice 10: GP20/GP21 — servos (dedicated)      */
 
 /* On RP2350, TIMn = PWM slice n (slice = gpio / 2; A/B channels share clkdiv/wrap).
- * GP8–GP9 → slice 4, GP10–GP11 → slice 5, GP20–GP21 → slice 10. */
+ * GP8/9→slice4, GP10/11→slice5, GP12/13→slice6, GP14/15→slice7, GP20/21→slice10. */
 #define TIM4  (&rp2350Pwm4)
 #define TIM5  (&rp2350Pwm5)
+#define TIM6  (&rp2350Pwm6)
+#define TIM7  (&rp2350Pwm7)
 #define TIM10 (&rp2350Pwm10)
 
 typedef struct
