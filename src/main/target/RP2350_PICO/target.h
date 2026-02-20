@@ -112,7 +112,9 @@
 #define USE_VCP
 #undef USE_PPM
 #undef USE_PWM
-#undef USE_LED_STRIP
+#define USE_LED_STRIP
+#define WS2811_PIN         PB6    /* GP22 — free from flash/I2C/UART/SPI */
+#define PIO_LEDSTRIP_INDEX 2      /* PIO2 SM0 — reserved for WS2812       */
 #undef USE_MSP_OVER_TELEMETRY
 #undef USE_TELEMETRY_FRSKY_HUB
 #undef USE_TELEMETRY_HOTT

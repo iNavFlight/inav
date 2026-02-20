@@ -29,6 +29,8 @@ main_sources(RP2350_COMMON_SRC_EXCLUDES
     drivers/accgyro/accgyro_mpu.c
     drivers/display_ug2864hsweg01.c
     io/displayport_oled.c
+    # LED strip: replaced by light_ws2811strip_rp2350.c (PIO2+DMA, no timer/DMA abstraction)
+    drivers/light_ws2811strip.c
 )
 
 # INAV platform-specific sources
@@ -42,6 +44,7 @@ main_sources(RP2350_SRC
     drivers/uart_pio_rp2350.c
     drivers/pwm_output_rp2350.c
     drivers/adc_rp2350.c
+    drivers/light_ws2811strip_rp2350.c
 )
 
 # --- Pico SDK sources ---
