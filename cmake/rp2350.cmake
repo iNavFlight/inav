@@ -39,6 +39,7 @@ main_sources(RP2350_SRC
     drivers/serial_uart_rp2350.c
     drivers/uart_pio_rp2350.c
     drivers/pwm_output_rp2350.c
+    drivers/adc_rp2350.c
 )
 
 # --- Pico SDK sources ---
@@ -73,6 +74,8 @@ set(PICO_SDK_SOURCES
     ${PICO_SDK_SRC_DIR}/rp2_common/hardware_xip_cache/xip_cache.c
     ${PICO_SDK_SRC_DIR}/rp2_common/hardware_uart/uart.c
     ${PICO_SDK_SRC_DIR}/rp2_common/hardware_pio/pio.c
+    ${PICO_SDK_SRC_DIR}/rp2_common/hardware_adc/adc.c
+    ${PICO_SDK_SRC_DIR}/rp2_common/hardware_dma/dma.c
 
     # Sync / time / util
     ${PICO_SDK_SRC_DIR}/common/hardware_claim/claim.c

@@ -48,9 +48,18 @@ timerHardware_t timerHardware[1];
 //   M2 → GP9  (PIO0 SM1)
 //   M3 → GP10 (PIO0 SM2)
 //   M4 → GP11 (PIO0 SM3)
-// GP4–7 reserved for SPI0 (future M5/M6).
+// GP4–7 reserved for SPI0 (gyro + flash); future motors 5/6 would use SPI1 pins.
 const uint8_t rp2350MotorPins[] = {8, 9, 10, 11};
 const int     rp2350MotorPinCount = 4;
+
+// Servo GPIO pin assignments for hardware PWM slices.
+//   S1 → GP16  (PWM slice 0, ch A)
+//   S2 → GP17  (PWM slice 0, ch B)
+//   S3 → GP18  (PWM slice 1, ch A)
+//   S4 → GP19  (PWM slice 1, ch B)
+// GP16–19 are free of UARTs, SPI, PIO assignments.
+const uint8_t rp2350ServoPins[] = {16, 17, 18, 19};
+const int     rp2350ServoPinCount = 4;
 
 // --- Functions still stubbed (no real hardware driver yet) ---
 

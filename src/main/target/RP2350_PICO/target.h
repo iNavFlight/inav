@@ -54,8 +54,17 @@
 #define SERIAL_PORT_COUNT 5  // VCP + UART1 + UART2 + UART3 + UART4
 
 // DShot motor output via PIO0 (1 SM per motor, max 4 motors)
-// GP8–11 are dedicated to motors; GP4–7 are reserved for SPI0 (future M5).
+// GP8–11 are dedicated to motors 1–4; GP4–7 are reserved for SPI0 (gyro + flash).
 // Motor GPIO pin assignments are in target.c (rp2350MotorPins[]).
+
+// Servo PWM output via hardware PWM slices (GP16–GP19).
+// 50 Hz, 1000–2000 µs pulse width. GP16–19 are free from other peripherals.
+
+// ADC channel defaults (RP2350A: ADC0=GPIO26, ADC1=GPIO27, ADC2=GPIO28)
+// These set the power-on defaults; they can be overridden in the configurator.
+#define VBAT_ADC_CHANNEL           ADC_CHN_1   /* GPIO26 — battery voltage */
+#define CURRENT_METER_ADC_CHANNEL  ADC_CHN_2   /* GPIO27 — current sensor  */
+#define RSSI_ADC_CHANNEL           ADC_CHN_3   /* GPIO28 — RSSI voltage    */
 #define USE_DSHOT
 
 /*
@@ -143,6 +152,14 @@
 #define SOFTSERIAL_2_TIMER 3
 
 extern uint32_t SystemCoreClock;
+
+/* Motor pin routing for PIO0 DShot — defined in target.c */
+extern const uint8_t rp2350MotorPins[];
+extern const int     rp2350MotorPinCount;
+
+/* Servo pin routing for hardware PWM slices — defined in target.c */
+extern const uint8_t rp2350ServoPins[];
+extern const int     rp2350ServoPinCount;
 
 #define U_ID_0 0
 #define U_ID_1 1

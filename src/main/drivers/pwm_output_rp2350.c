@@ -66,6 +66,7 @@
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
+#include "hardware/pwm.h"
 
 /* ── Pre-assembled DShot 600 PIO program ─────────────────────────────────────
  *
@@ -140,6 +141,45 @@ static uint         dshotProgramOffset;
 static motorPwmProtocolTypes_e initProtocol = PWM_TYPE_STANDARD;
 static pwmInitError_e          rp2350PwmError = PWM_INIT_ERROR_NONE;
 
+/* ── Standard-PWM motor state ────────────────────────────────────────────── */
+
+/*
+ * Non-DShot motor protocols (Standard PWM, Oneshot125, Brushed, etc.) use
+ * the same RP2350 hardware PWM peripheral as servos, on the motor GPIO pins
+ * already defined in rp2350MotorPins[] (GP8–GP11, slices 4–5).
+ *
+ * Update rate 400 Hz → period = 2.5 ms; with 1 µs/tick: wrap = 2499.
+ * pwm_set_gpio_level(pin, us) writes pulse width in µs directly.
+ * The INAV motor value passed to pwmWriteMotor() is already in µs (1000–2000).
+ */
+#define MOTOR_PWM_WRAP   2499u   /* 2.5 ms period = 400 Hz at 1 µs/tick */
+#define MOTOR_MIN_US     1000u
+#define MOTOR_MAX_US     2000u
+
+static uint8_t motorPwmPins[DSHOT_MAX_MOTORS];
+static uint8_t motorPwmCount       = 0;
+static bool    motorPwmInitialized = false;
+static bool    motorPwmEnabled     = true;
+
+/* ── Servo state ─────────────────────────────────────────────────────────── */
+
+/*
+ * Servo PWM via hardware PWM slices (NOT PIO — different from DShot motors).
+ * 8 slices × 2 channels = 16 possible servo outputs.
+ *
+ * Timing: clkdiv = sysHz / 1_000_000 → 1 µs per tick; wrap = 19999 → 50 Hz.
+ * pwm_set_gpio_level(pin, us) sets pulse width directly in microseconds.
+ */
+#define RP2350_MAX_SERVOS    8u
+#define SERVO_PWM_WRAP       19999u   /* 20 ms period = 50 Hz at 1 µs/tick */
+#define SERVO_MIN_US         750u
+#define SERVO_MAX_US         2250u
+#define SERVO_DEFAULT_US     1500u    /* center pulse */
+
+static uint8_t servoHwPins[RP2350_MAX_SERVOS];
+static uint8_t servoCount     = 0;
+static bool    servoInitialized = false;
+
 /* Pending DShot command (e.g. spin direction).  Commands are sent 10×. */
 static dshotCommands_e pendingCmd     = 0;
 static int             pendingCmdReps = 0;
@@ -149,38 +189,49 @@ static int             pendingCmdReps = 0;
 static uint16_t prepareDshotPacket(uint16_t value, bool requestTelemetry)
 {
     uint16_t packet = ((uint16_t)(value << 1)) | (requestTelemetry ? 1u : 0u);
-    int csum = 0;
-    int csum_data = packet;
+    uint16_t csum = 0;
+    uint16_t csum_data = packet;
     for (int i = 0; i < 3; i++) {
         csum ^= csum_data;
         csum_data >>= 4;
     }
-    csum &= 0xf;
-    return (packet << 4) | (uint16_t)csum;
+    csum &= 0xfu;
+    return (packet << 4) | csum;
 }
 
 /* ── Motor output API ────────────────────────────────────────────────────── */
 
 void pwmWriteMotor(uint8_t index, uint16_t value)
 {
-    if (!dshotInitialized || !dshotEnabled || index >= dshotMotorCount) {
-        return;
+    if (dshotInitialized) {
+        if (dshotEnabled && index < dshotMotorCount) {
+            dshotMotors[index].value = value;
+        }
+    } else if (motorPwmInitialized && motorPwmEnabled && index < motorPwmCount) {
+        /* value=0 means disarmed; output minimum throttle pulse */
+        uint16_t us = (value == 0) ? MOTOR_MIN_US
+                                   : (uint16_t)constrain(value, MOTOR_MIN_US, MOTOR_MAX_US);
+        pwm_set_gpio_level(motorPwmPins[index], us);
     }
-    dshotMotors[index].value = value;
 }
 
 void pwmShutdownPulsesForAllMotors(uint8_t motorCount)
 {
-    for (uint8_t i = 0; i < motorCount && i < dshotMotorCount; i++) {
-        dshotMotors[i].value = 0;
-    }
     if (dshotInitialized) {
+        for (uint8_t i = 0; i < motorCount && i < dshotMotorCount; i++) {
+            dshotMotors[i].value = 0;
+        }
         pwmCompleteMotorUpdate();
+    } else if (motorPwmInitialized) {
+        for (uint8_t i = 0; i < motorCount && i < motorPwmCount; i++) {
+            pwm_set_gpio_level(motorPwmPins[i], MOTOR_MIN_US);
+        }
     }
 }
 
 void pwmCompleteMotorUpdate(void)
 {
+    /* Standard PWM: pwm_set_gpio_level() takes effect immediately — no work needed */
     if (!dshotInitialized || !dshotEnabled || dshotMotorCount == 0) {
         return;
     }
@@ -221,8 +272,21 @@ void pwmCompleteMotorUpdate(void)
 
 /* ── Motor enable / disable ──────────────────────────────────────────────── */
 
-void pwmDisableMotors(void) { dshotEnabled = false; }
-void pwmEnableMotors(void)  { dshotEnabled = true;  }
+void pwmDisableMotors(void)
+{
+    dshotEnabled    = false;
+    motorPwmEnabled = false;
+    /* Drive all standard-PWM motor pins to minimum throttle immediately */
+    for (uint i = 0; i < motorPwmCount; i++) {
+        pwm_set_gpio_level(motorPwmPins[i], MOTOR_MIN_US);
+    }
+}
+
+void pwmEnableMotors(void)
+{
+    dshotEnabled    = true;
+    motorPwmEnabled = true;
+}
 
 /* ── Protocol queries ────────────────────────────────────────────────────── */
 
@@ -279,20 +343,11 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
  */
 bool pwmMotorAndServoInit(void)
 {
-    if (dshotInitialized) {
-        return true;  /* already initialized — pio_add_program has limited space */
+    if (dshotInitialized || motorPwmInitialized) {
+        return true;  /* already initialized */
     }
 
     initProtocol = motorConfig()->motorPwmProtocol;
-
-    if (!isMotorProtocolDshot()) {
-        /* Non-DShot protocols not yet implemented — succeed as a no-op */
-        return true;
-    }
-
-    /* Motor pin assignments are target data, defined in target.c */
-    extern const uint8_t rp2350MotorPins[];
-    extern const int     rp2350MotorPinCount;
 
     uint motorCount = (uint)getMotorCount();
     if (motorCount > DSHOT_MAX_MOTORS || motorCount > (uint)rp2350MotorPinCount) {
@@ -300,30 +355,52 @@ bool pwmMotorAndServoInit(void)
         return false;
     }
 
-    /*
-     * Determine PIO GPIO base.  The RP2350 PIO accesses a 32-pin window
-     * starting at a base that must be a multiple of 16.  All motor pins
-     * must fall within [base, base+31].  If any pin exceeds GP31, the
-     * base must be ≥16.  Pins spanning a range wider than 32 are not
-     * supported.
-     */
-    int pinMin = 48, pinMax = -1;
-    for (uint i = 0; i < motorCount; i++) {
-        int p = (int)rp2350MotorPins[i];
-        if (p < pinMin) pinMin = p;
-        if (p > pinMax) pinMax = p;
-    }
-    int pioBase = 0;
-    if (pinMax >= 32) {
-        if (pinMin < 16) {
-            rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
-            return false;
+    if (!isMotorProtocolDshot()) {
+        /* ── Standard PWM / Oneshot / Brushed motor init ─────────────────
+         *
+         * Use hardware PWM on the motor GPIO pins (rp2350MotorPins[]).
+         * 400 Hz: wrap = 2499 at 1 µs/tick; pwm_set_gpio_level(pin, us).
+         */
+        float clkdiv_motor = (float)clock_get_hz(clk_sys) / 1000000.0f;
+        uint32_t motorSliceInitMask = 0;
+
+        for (uint i = 0; i < motorCount; i++) {
+            uint pin = rp2350MotorPins[i];
+            gpio_set_function(pin, GPIO_FUNC_PWM);
+
+            uint slice = pwm_gpio_to_slice_num(pin);
+            /* GP8/GP9 share a slice, GP10/GP11 share a slice — init each only once */
+            if (!(motorSliceInitMask & (1u << slice))) {
+                pwm_config cfg = pwm_get_default_config();
+                pwm_config_set_clkdiv(&cfg, clkdiv_motor);
+                pwm_config_set_wrap(&cfg, MOTOR_PWM_WRAP);
+                pwm_init(slice, &cfg, false);
+                motorSliceInitMask |= (1u << slice);
+            }
+            pwm_set_gpio_level(pin, MOTOR_MIN_US); /* minimum throttle at boot */
+            pwm_set_enabled(slice, true);
+
+            motorPwmPins[i] = (uint8_t)pin;
         }
-        pioBase = 16;
+        motorPwmCount       = (uint8_t)motorCount;
+        motorPwmInitialized = true;
+
+        /* Fall through to servo init below */
+        goto servo_init;
     }
 
-    /* GPIO base must be set before adding the PIO program */
-    pio_set_gpio_base(pio0, (uint)pioBase);
+    /* ── DShot motor init (PIO) ────────────────────────────────────────── */
+
+    /*
+     * RP2350 PIO GPIO base: the only legal values are 0 (GP0–GP31) or 16
+     * (GP16–GP47).  RP2350 has GPIOs 0–29 so base=0 always covers all pins.
+     * pico-sdk pio_set_gpio_base() returns PICO_OK on success or an error code;
+     * treat failure as a fatal init error.
+     */
+    if (pio_set_gpio_base(pio0, 0u) != PICO_OK) {
+        rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
+        return false;
+    }
 
     int offset = pio_add_program(pio0, &dshotProgram);
     if (offset < 0) {
@@ -366,7 +443,10 @@ bool pwmMotorAndServoInit(void)
         sm_config_set_out_shift(&cfg, false, false, 32); /* left shift, no autopull */
         sm_config_set_fifo_join(&cfg, PIO_FIFO_JOIN_TX);
         sm_config_set_clkdiv(&cfg, clkdiv);
-        pio_sm_init(pio0, (uint)sm, dshotProgramOffset, &cfg);
+        if (pio_sm_init(pio0, (uint)sm, dshotProgramOffset, &cfg) != PICO_OK) {
+            rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
+            return false;
+        }
         pio_sm_set_enabled(pio0, (uint)sm, true);
 
         dshotMotors[i].pin              = pin;
@@ -377,6 +457,48 @@ bool pwmMotorAndServoInit(void)
 
     dshotMotorCount  = motorCount;
     dshotInitialized = true;
+
+servo_init:
+    /* ── Servo PWM init — hardware PWM slices ──────────────────────────── */
+
+    uint maxServos = (uint)rp2350ServoPinCount;
+    if (maxServos > RP2350_MAX_SERVOS) {
+        maxServos = RP2350_MAX_SERVOS;
+    }
+
+    /*
+     * At 192 MHz: clkdiv = 192 → 1 MHz tick (1 µs per tick)
+     * Wrap = 19999 → 20 ms period = 50 Hz
+     * pwm_set_gpio_level(pin, us) sets pulse width directly in µs.
+     *
+     * Adjacent servo pins share a hardware PWM slice (GP16/17 → slice A,
+     * GP18/19 → slice B, etc.).  pwm_init() resets the entire slice including
+     * any channel level already written for the partner pin, so we must call
+     * pwm_init() only once per slice; the second pin just sets its level.
+     */
+    float clkdiv_servo = (float)clock_get_hz(clk_sys) / 1000000.0f;
+    uint32_t servoSliceInitMask = 0;
+
+    for (uint i = 0; i < maxServos; i++) {
+        uint pin = rp2350ServoPins[i];
+        gpio_set_function(pin, GPIO_FUNC_PWM);
+
+        uint slice = pwm_gpio_to_slice_num(pin);
+        if (!(servoSliceInitMask & (1u << slice))) {
+            pwm_config cfg = pwm_get_default_config();
+            pwm_config_set_clkdiv(&cfg, clkdiv_servo);
+            pwm_config_set_wrap(&cfg, SERVO_PWM_WRAP);
+            pwm_init(slice, &cfg, false);        /* configure slice once, don't start yet */
+            servoSliceInitMask |= (1u << slice);
+        }
+        pwm_set_gpio_level(pin, SERVO_DEFAULT_US); /* center pulse before enabling */
+        pwm_set_enabled(slice, true);
+
+        servoHwPins[i] = (uint8_t)pin;
+    }
+    servoCount       = (uint8_t)maxServos;
+    servoInitialized = true;
+
     return true;
 }
 
@@ -409,16 +531,30 @@ const char *getPwmInitErrorMessage(void)
         [PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS] = "Not enough servo outputs",
         [PWM_INIT_ERROR_TIMER_INIT_FAILED]        = "Motor init failed",
     };
+    if ((size_t)rp2350PwmError >= ARRAYLEN(msgs) || !msgs[rp2350PwmError]) {
+        return "Unknown error";
+    }
     return msgs[rp2350PwmError];
 }
 
-/* ── Servo / beeper stubs (hardware not yet implemented) ─────────────────── */
+/* ── Servo output ────────────────────────────────────────────────────────── */
 
 void pwmWriteServo(uint8_t index, uint16_t value)
 {
-    UNUSED(index);
-    UNUSED(value);
+    if (!servoInitialized || index >= servoCount) {
+        return;
+    }
+    /*
+     * value=0 means "disarm / center" — output center pulse.
+     * Non-zero values are pulse widths in µs, clamped to servo range.
+     * At 1 µs/tick, pwm_set_gpio_level(pin, us) sets the pulse directly.
+     */
+    uint16_t us = (value == 0) ? SERVO_DEFAULT_US
+                               : (uint16_t)constrain(value, SERVO_MIN_US, SERVO_MAX_US);
+    pwm_set_gpio_level(servoHwPins[index], us);
 }
+
+/* ── Beeper stubs (hardware not yet implemented) ─────────────────────────── */
 
 void pwmWriteBeeper(bool onoffBeep)
 {

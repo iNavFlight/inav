@@ -242,6 +242,9 @@ uint16_t adcGetChannel(uint8_t channel)
 
 #else // USE_ADC
 
+/* RP2350 provides its own full implementation in adc_rp2350.c */
+#if !defined(RP2350)
+
 bool adcIsFunctionAssigned(uint8_t function)
 {
     UNUSED(function);
@@ -258,4 +261,6 @@ uint16_t adcGetChannel(uint8_t channel)
     UNUSED(channel);
     return 0;
 }
-#endif
+
+#endif /* !RP2350 */
+#endif /* USE_ADC */
