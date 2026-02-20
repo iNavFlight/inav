@@ -66,7 +66,7 @@ typedef uint32_t timCNT_t;
 #elif defined(SITL_BUILD)
 #define HARDWARE_TIMER_DEFINITION_COUNT 0
 #elif defined(RP2350)
-#define HARDWARE_TIMER_DEFINITION_COUNT 4
+#define HARDWARE_TIMER_DEFINITION_COUNT 3
 #else
 #error "Unknown CPU defined"
 #endif

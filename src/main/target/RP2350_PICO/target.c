@@ -40,7 +40,7 @@
 #include "drivers/serial_uart_impl.h"
 
 /*
- * Output mapping table — 8 GPIO pins in 4 slice groups.
+ * Output mapping table — 6 GPIO pins in 3 slice groups.
  *
  * All entries use TIM_USE_OUTPUT_AUTO so pwmMotorAndServoInit() assigns
  * them as motors or servos based on getMotorCount() and any
@@ -51,23 +51,21 @@
  *
  * Port A (gpioid 0) = GPIO 0–15; Port B (gpioid 1) = GPIO 16–29.
  *   GP8  = PA8   GP9  = PA9   GP10 = PA10  GP11 = PA11
- *   GP16 = PB0   GP17 = PB1   GP18 = PB2   GP19 = PB3
+ *   GP20 = PB4   GP21 = PB5
+ * GP16-19 are reserved: Flash CS (GP16), Beeper (GP17), I2C1 SDA/SCL (GP18/19).
  */
 timerHardware_t timerHardware[] = {
-    /* slice 4 — motor group 1 */
-    DEF_TIM(TIM4, CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP8  */
-    DEF_TIM(TIM4, CH2, PA9,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP9  */
-    /* slice 5 — motor group 2 */
-    DEF_TIM(TIM5, CH1, PA10, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP10 */
-    DEF_TIM(TIM5, CH2, PA11, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP11 */
-    /* slice 8 — flexible group 1 */
-    DEF_TIM(TIM8, CH1, PB0,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP16 */
-    DEF_TIM(TIM8, CH2, PB1,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP17 */
-    /* slice 9 — flexible group 2 */
-    DEF_TIM(TIM9, CH1, PB2,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP18 */
-    DEF_TIM(TIM9, CH2, PB3,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP19 */
+    /* slice 4 — motor group (GP8/GP9) */
+    DEF_TIM(TIM4,  CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP8  */
+    DEF_TIM(TIM4,  CH2, PA9,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP9  */
+    /* slice 5 — motor group (GP10/GP11) */
+    DEF_TIM(TIM5,  CH1, PA10, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP10 */
+    DEF_TIM(TIM5,  CH2, PA11, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP11 */
+    /* slice 10 — servo group (GP20/GP21; GP16-19 reserved for SPI flash/beeper/I2C) */
+    DEF_TIM(TIM10, CH1, PB4,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP20 */
+    DEF_TIM(TIM10, CH2, PB5,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP21 */
 };
-const int timerHardwareCount = 8;
+const int timerHardwareCount = 6;
 
 void failureMode(failureMode_e mode)
 {

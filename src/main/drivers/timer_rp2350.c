@@ -36,7 +36,7 @@
  * instances contain no real register content — only their addresses matter,
  * used as unique group identifiers by timer2id() and pwmMotorAndServoInit().
  *
- * The TIM4/TIM5/TIM8/TIM9 pointer macros and extern declarations are in
+ * The TIM4/TIM5/TIM10 pointer macros and extern declarations are in
  * target.h (board header) for now; when a second RP2350 board is added they
  * should move to a shared drivers/timer_rp2350.h.
  */
@@ -54,10 +54,9 @@
  * Both channels (A = even GPIO, B = odd GPIO) on a slice share clkdiv/wrap,
  * so they must run at the same update rate — same constraint as STM32 timers.
  */
-TIM_TypeDef rp2350Pwm4 = { NULL };  /* slice 4: GP8/GP9   (8/2 = 4)   */
-TIM_TypeDef rp2350Pwm5 = { NULL };  /* slice 5: GP10/GP11 (10/2 = 5)  */
-TIM_TypeDef rp2350Pwm8 = { NULL };  /* slice 8: GP16/GP17 (16/2 = 8)  */
-TIM_TypeDef rp2350Pwm9 = { NULL };  /* slice 9: GP18/GP19 (18/2 = 9)  */
+TIM_TypeDef rp2350Pwm4  = { NULL };  /* slice 4:  GP8/GP9   (8/2 = 4)    motors 1-2 */
+TIM_TypeDef rp2350Pwm5  = { NULL };  /* slice 5:  GP10/GP11 (10/2 = 5)   motors 3-4 */
+TIM_TypeDef rp2350Pwm10 = { NULL };  /* slice 10: GP20/GP21 (20/2 = 10)  servos     */
 
 void timerInit(void)
 {
@@ -67,9 +66,8 @@ void timerInit(void)
 /* Returns the 0-based slice index for use as a timerOverrides() array index. */
 uint8_t timer2id(const HAL_Timer_t *tim)
 {
-    if (tim == TIM4) return 0;
-    if (tim == TIM5) return 1;
-    if (tim == TIM8) return 2;
-    if (tim == TIM9) return 3;
+    if (tim == TIM4)  return 0;
+    if (tim == TIM5)  return 1;
+    if (tim == TIM10) return 2;
     return (uint8_t)-1;
 }
