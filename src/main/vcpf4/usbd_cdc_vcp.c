@@ -186,7 +186,16 @@ uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
 
 uint32_t CDC_Send_FreeBytes(void)
 {
-    return APP_RX_DATA_SIZE - CDC_Receive_BytesAvailable();
+    // Calculate free space in APP_Rx_Buffer (outbound to host)
+    // Using correct circular buffer math with volatile pointers
+    uint32_t ptr_in = APP_Rx_ptr_in;
+    uint32_t ptr_out = APP_Rx_ptr_out;
+
+    if (ptr_out > ptr_in) {
+        return ptr_out - ptr_in - 1;
+    } else {
+        return APP_RX_DATA_SIZE + ptr_out - ptr_in - 1;
+    }
 }
 
 /**
