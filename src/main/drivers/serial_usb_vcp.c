@@ -52,7 +52,8 @@ USBD_HandleTypeDef USBD_Device;
 static vcpPort_t vcpPort;
 
 // Track DTR (Data Terminal Ready) state - indicates if host has COM port open
-static volatile bool cdcPortOpened = false;
+// Default to true - assume connected until host explicitly clears DTR
+static volatile bool cdcPortOpened = true;
 
 static void cdcCtrlLineStateCallback(void *context, uint16_t ctrlLineState)
 {
