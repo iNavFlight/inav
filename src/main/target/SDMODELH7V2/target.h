@@ -135,9 +135,6 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL        ADC_CHN_3
 
-// BF DEFAULT_VOLTAGE_METER_SCALE=109, BF DEFAULT_CURRENT_METER_SCALE=168
-// INAV uses a different scaling formula; these values approximate the same
-// physical measurement. Users should calibrate via the configurator.
 #define VBAT_SCALE_DEFAULT      1090
 #define CURRENT_METER_SCALE     168
 
@@ -147,10 +144,18 @@
 // *************** PINIO *****************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN              PE13
+
+// VTX power
+#define PINIO1_PIN              PB11
 #define PINIO1_FLAGS            PINIO_FLAGS_INVERTED
-#define PINIO2_PIN              PB11
+
+// Cam pin
+#define PINIO2_PIN              PE9
 #define PINIO2_FLAGS            PINIO_FLAGS_INVERTED
+
+// Bluetooth (off on arm)
+#define PINIO3_PIN              PE13
+#define PINIO3_FLAGS            PINIO_FLAGS_INVERTED
 
 // *************** LED STRIP *************************
 #define USE_LED_STRIP

@@ -30,6 +30,7 @@ void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
     pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+    pinioBoxConfigMutable()->permanentId[2] = findBoxByActiveBoxId(BOXARM)->permanentId;
 
     // UART2 is connected to an onboard Bluetooth module (not user-accessible)
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART2)].functionMask = FUNCTION_MSP;
