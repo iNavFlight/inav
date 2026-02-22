@@ -175,6 +175,7 @@ void onNewGPSData(void)
     static int32_t previousLon;
     static int32_t previousAlt;
     static bool isFirstGPSUpdate = true;
+    static bool originAltitudeCorrectionIsActive = true;
 
     gpsLocation_t newLLH;
     const timeUs_t currentTimeUs = micros();
@@ -219,6 +220,15 @@ void onNewGPSData(void)
         else if (shouldResetReferenceAltitude()) {
             /* If we were never armed - keep altitude at zero */
             geoSetOrigin(&posControl.gpsOrigin, &newLLH, GEO_ORIGIN_RESET_ALTITUDE);
+        }
+        else if (ARMING_FLAG(ARMED) && originAltitudeCorrectionIsActive) {
+            /* Continue updating gps origin altitude after arming if gps epv exceeds max limit
+             * correcting back to takeoff altitude using estimated altitude */
+            if (posEstimator.gps.epv >= positionEstimationConfig()->max_eph_epv) {
+                posControl.gpsOrigin.alt = newLLH.alt - posEstimator.est.pos.z;
+            } else {
+                originAltitudeCorrectionIsActive = false;
+            }
         }
 
         if (posControl.gpsOrigin.valid) {
