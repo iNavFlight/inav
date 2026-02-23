@@ -273,7 +273,7 @@
 #define MSP_SET_NAV_CONFIG       215    //in message          Sets nav config parameters - write to the eeprom
 #define MSP_SET_3D               217    //in message          Settings needed for reversible ESCs
 #define MSP_SET_RC_DEADBAND      218    //in message          deadbands for yaw alt pitch roll
-#define MSP_SET_RESET_CURR_PID   219    //in message          resetting the current pid profile to defaults
+#define MSP_SET_RESET_CURR_PID   219    //in message          resetting the current PID profile to defaults
 #define MSP_SET_SENSOR_ALIGNMENT 220    //in message          set the orientation of the acc,gyro,mag
 #define MSP_SET_LED_STRIP_MODECOLOR 221 //in  message         Set LED strip mode_color settings
 

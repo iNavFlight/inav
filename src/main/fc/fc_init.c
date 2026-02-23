@@ -89,6 +89,7 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 #include "fc/firmware_update.h"
+#include "fc/stats.h"
 
 #include "io/mztc_camera.h"
 #include "io/osd/mztc_camera_osd.h"
@@ -754,6 +755,8 @@ void init(void)
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 #endif
+
+    statsInit();
 
     systemState |= SYSTEM_STATE_READY;
 }

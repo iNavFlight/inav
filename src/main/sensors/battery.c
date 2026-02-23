@@ -36,7 +36,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 #include "fc/stats.h"
@@ -61,6 +61,9 @@
 
 #if defined(USE_FAKE_BATT_SENSOR)
 #include "sensors/battery_sensor_fake.h"
+#endif
+#if defined(USE_SMARTPORT_MASTER)
+#include "io/smartport_master.h"
 #endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
@@ -120,7 +123,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                 .critical = SETTING_BATTERY_CAPACITY_CRITICAL_DEFAULT,
             },
 
-            .controlRateProfile = 0,
+            .controlProfile = 0,
 
             .motor = {
                 .throttleIdle = SETTING_THROTTLE_IDLE_DEFAULT,
@@ -245,8 +248,8 @@ void setBatteryProfile(uint8_t profileIndex)
         profileIndex = 0;
     }
     currentBatteryProfile = batteryProfiles(profileIndex);
-    if ((currentBatteryProfile->controlRateProfile > 0) && (currentBatteryProfile->controlRateProfile < MAX_CONTROL_RATE_PROFILE_COUNT)) {
-        setConfigProfile(currentBatteryProfile->controlRateProfile - 1);
+    if ((currentBatteryProfile->controlProfile > 0) && (currentBatteryProfile->controlProfile <= MAX_CONTROL_PROFILE_COUNT)) {
+        setConfigProfile(currentBatteryProfile->controlProfile - 1);
     }
 }
 
@@ -289,6 +292,17 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 #if defined(USE_FAKE_BATT_SENSOR)
     case VOLTAGE_SENSOR_FAKE:
         vbat = fakeBattSensorGetVBat();
+        break;
+#endif
+
+#if defined(USE_SMARTPORT_MASTER)
+    case VOLTAGE_SENSOR_SMARTPORT:
+        int16_t * smartportVoltageData = smartportMasterGetVoltageData();
+        if (smartportVoltageData) {
+            vbat = *smartportVoltageData;
+        } else {
+            vbat = 0;
+        }
         break;
 #endif
     case VOLTAGE_SENSOR_NONE:
@@ -598,7 +612,16 @@ void currentMeterUpdate(timeUs_t timeDelta)
             }
             break;
 #endif
-
+#if defined(USE_SMARTPORT_MASTER)
+        case CURRENT_SENSOR_SMARTPORT:
+            int16_t * smartportCurrentData = smartportMasterGetCurrentData();
+            if (smartportCurrentData) {
+                amperage = *smartportCurrentData;
+            } else {
+                amperage = 0;
+            }
+            break;
+#endif
 #if defined(USE_FAKE_BATT_SENSOR)
         case CURRENT_SENSOR_FAKE:
             amperage = fakeBattSensorGetAmerperage();

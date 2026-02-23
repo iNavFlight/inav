@@ -176,13 +176,12 @@
 #define SYM_FLIGHT_HOURS_REMAINING  0xDB  // 219 Flight time (hours) remaining
 #define SYM_GROUND_COURSE           0xDC  // 220 Ground course
 #define SYM_ALERT                   0xDD  // 221 General alert symbol
+#define SYM_MIN_GROUND_SPEED        0xDE  // 222 Minimum Ground Speed
 #define SYM_TERRAIN_FOLLOWING       0xFB  // 251 Terrain following (also Alt adjust)
 #define SYM_CROSS_TRACK_ERROR       0xFC  // 252 Cross track error
-#define SYM_ADSB                    0xFD  // 253 ADBS
+#define SYM_ADSB                    0xFD  // 253 ADSB
 #define SYM_BLACKBOX                0xFE  // 254 Blackbox
 
-
-#define SYM_ADSB                    0xFD // 253 ADSB
 
 #define SYM_LOGO_START              0x101 // 257 to 297, INAV logo
 #define SYM_LOGO_WIDTH              10
@@ -236,6 +235,10 @@
 #define SYM_ODOMETER                0x168 // 360 Odometer
 #define SYM_RX_BAND                 0x169 // 361 RX Band
 #define SYM_RX_MODE                 0x16A // 362 RX Mode
+
+#define SYM_THR_GAUGE_EMPTY         0x16B // 363 Throttle gauge empty
+#define SYM_THR_GAUGE_HALF          0x16C // 364 Throttle gauge 1 step
+#define SYM_THR_GAUGE_FULL          0x16D // 365 Throttle gauge 2 steps
 
 #define SYM_AH_CH_TYPE3             0x190 // 400 to 402, crosshair 3
 #define SYM_AH_CH_TYPE4             0x193 // 403 to 405, crosshair 4
