@@ -353,6 +353,7 @@ HAL_StatusTypeDef HAL_CAN_Init(CAN_HandleTypeDef* hcan)
   */
 HAL_StatusTypeDef HAL_CAN_ConfigFilter(CAN_HandleTypeDef* hcan, CAN_FilterConfTypeDef* sFilterConfig)
 {
+  UNUSED(hcan);  
   uint32_t filternbrbitpos = 0;
   CAN_TypeDef *can_ip;
   
@@ -1067,6 +1068,8 @@ HAL_StatusTypeDef HAL_CAN_Receive_IT(CAN_HandleTypeDef* hcan, uint8_t FIFONumber
   /* Set CAN error code to none */
   hcan->ErrorCode = HAL_CAN_ERROR_NONE;
 
+   /* Process unlocked */
+  __HAL_UNLOCK(hcan);
   /* Enable interrupts: */
   /*  - Enable Error warning Interrupt */
   /*  - Enable Error passive Interrupt */

@@ -91,9 +91,15 @@ Configure the current meter type using the `current_meter_type` settings here:
 
 | Value | Sensor Type            |
 | ----- | ---------------------- |
-| 0     | None                   |
-| 1     | ADC/hardware sensor    |
-| 2     | Virtual sensor         |
+| NONE  | Disabled               |
+| ADC   | ADC/hardware sensor    |
+| VIRTUAL | Virtual sensor (estimated from throttle) |
+| FAKE  | Fake sensor (for testing) |
+| ESC   | ESC telemetry          |
+| SMARTPORT | SmartPort telemetry |
+| CAN   | DroneCAN battery monitor |
+
+See [DroneCAN](DroneCAN.md) for information on using DroneCAN battery monitors.
 
 Configure capacity using the `battery_capacity` setting, in mAh units.
 

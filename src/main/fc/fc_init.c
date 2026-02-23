@@ -128,6 +128,8 @@
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
 
+#include "drivers/dronecan/dronecan.h"
+
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
@@ -284,6 +286,7 @@ void init(void)
 
     serialInit(feature(FEATURE_SOFTSERIAL));
 
+
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
@@ -303,6 +306,7 @@ void init(void)
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
 #endif
+
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     gvInit();
@@ -522,6 +526,10 @@ void init(void)
 
 #ifdef USE_EZ_TUNE
     ezTuneUpdate();
+#endif
+
+#ifdef USE_DRONECAN
+    dronecanInit();
 #endif
 
 #ifndef USE_GEOZONE

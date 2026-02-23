@@ -54,6 +54,7 @@
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
 #define USE_GPS_PROTO_MSP
+#define USE_GPS_PROTO_DRONECAN
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
 #define USE_GPS_FIX_ESTIMATION
@@ -145,6 +146,7 @@
 #define USE_FW_AUTOLAND
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_LOG
+#define USE_BOOTLOG 2048
 #define USE_STATS
 #define USE_CMS
 #define CMS_MENU_OSD

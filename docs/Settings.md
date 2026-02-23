@@ -634,7 +634,7 @@ This sets the output voltage to current scaling for the current sensor in 0.1 mV
 
 ### current_meter_type
 
-ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
+ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -779,6 +779,26 @@ Re-purpose the craft name field for messages.
 | Default | Min | Max |
 | --- | --- | --- |
 | ON | OFF | ON |
+
+---
+
+### dronecan_bitrate_kbps
+
+The speed of the CANbus network in kbps. Set all devices to the same speed. 
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 |  |  |
+
+---
+
+### dronecan_node_id
+
+Unique identifier for this device. Valid values are 1 to 127. 126 and 127 are reserved for diagnostic tools.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 1 | 127 |
 
 ---
 
@@ -6584,7 +6604,7 @@ Maximum voltage per cell in 0.01V units, default is 4.20V
 
 ### vbat_meter_type
 
-Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running.
+Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus.
 
 | Default | Min | Max |
 | --- | --- | --- |

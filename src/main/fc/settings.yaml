@@ -33,16 +33,16 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "CAN"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CAN"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
     enum: imu_inertia_comp_method_e
   - name: gps_provider
-    values: ["UBLOX", "MSP", "FAKE"]
+    values: ["UBLOX", "MSP", "FAKE", "DRONECAN"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "SPAN", "NONE"]
@@ -215,6 +215,9 @@ tables:
   - name: osd_adsb_warning_style
     values: [ "COMPACT", "EXTENDED" ]
     enum: osd_adsb_warning_style_e
+  - name: dronecan_bitrate_table
+    values: [ '125', '250', '500', '1000']
+    enum: dronecanBitRate_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -979,7 +982,7 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running."
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus."
         condition: USE_ADC
         default_value: ADC
         field: voltage.type
@@ -1011,7 +1014,7 @@ groups:
         min: -32768
         max: 32767
       - name: current_meter_type
-        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
+        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
         default_value: "ADC"
         field: current.type
         table: current_sensor
@@ -4500,4 +4503,21 @@ groups:
         default_value: RTH
         field: noWayHomeAction
         table: geozone_rth_no_way_home
+        type: uint8_t
+  - name: PG_DRONECAN_CONFIG
+    type: dronecanConfig_t
+    headers: ["drivers/dronecan/dronecan.h"]
+    condition: USE_DRONECAN
+    members:
+      - name: dronecan_node_id
+        description: "Unique identifier for this device. Valid values are 1 to 127. 126 and 127 are reserved for diagnostic tools."
+        default_value: 1
+        field: nodeID
+        min: 1
+        max: 127
+      - name: dronecan_bitrate_kbps
+        description: "The speed of the CANbus network in kbps. Set all devices to the same speed. "
+        default_value: "1000"
+        field: bitRateKbps
+        table: dronecan_bitrate_table
         type: uint8_t

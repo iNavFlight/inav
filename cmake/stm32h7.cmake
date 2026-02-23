@@ -28,7 +28,7 @@ set(STM32H7_HAL_SRC
 #    stm32h7xx_hal_eth.c
 #    stm32h7xx_hal_eth_ex.c
     stm32h7xx_hal_exti.c
-#    stm32h7xx_hal_fdcan.c
+    stm32h7xx_hal_fdcan.c
     stm32h7xx_hal_flash.c
     stm32h7xx_hal_flash_ex.c
     stm32h7xx_hal_gfxmmu.c
@@ -162,6 +162,8 @@ main_sources(STM32H7_SRC
     drivers/serial_uart_hal.c
     drivers/sdio.h
     drivers/sdcard/sdmmc_sdio_hal.c
+    drivers/dronecan/libcanard/canard_stm32h7xx_driver.c
+
 )
 
 main_sources(STM32H7_MSC_SRC
