@@ -79,11 +79,7 @@ typedef enum
 #define U_ID_2 (*(uint32_t*)0x1fff7a18)
 
 #elif defined(RP2350)
-// RP2350 (Raspberry Pi Pico 2) - Cortex-M33
-// Platform headers provided by target.h dummy types
-#define U_ID_0 0
-#define U_ID_1 1
-#define U_ID_2 2
+#include "rp2350.h"
 
 #endif
 

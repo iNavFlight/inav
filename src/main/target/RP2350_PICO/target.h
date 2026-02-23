@@ -24,10 +24,6 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-
 #define TARGET_BOARD_IDENTIFIER "RP2P"
 #define USBD_PRODUCT_STRING  "RP2350_PICO"
 
@@ -95,15 +91,25 @@
 #define DEFAULT_RX_FEATURE      FEATURE_RX_MSP
 #define DEFAULT_FEATURES        (FEATURE_GPS | FEATURE_VBAT)
 
-// Fake sensors for M1 stub build
 #define USE_ADC
 #define USE_IMU_FAKE
-#define USE_FAKE_BARO
-#define USE_FAKE_MAG
+#define USE_BARO
+#define USE_BARO_ALL
 #define USE_GPS_FAKE
 #define USE_PITOT_FAKE
 #define USE_RANGEFINDER_FAKE
 #define USE_RX_SIM
+
+#define USE_I2C
+#define USE_I2C_DEVICE_1
+#define I2C1_SDA              PB2   /* GPIO18 — i2c1 SDA */
+#define I2C1_SCL              PB3   /* GPIO19 — i2c1 SCL */
+#define DEFAULT_I2C_BUS       BUS_I2C1
+#define MAG_I2C_BUS           DEFAULT_I2C_BUS
+#define BARO_I2C_BUS          DEFAULT_I2C_BUS
+
+#define USE_MAG
+#define USE_MAG_ALL
 
 #define USE_MSP_OSD
 #define USE_OSD
@@ -132,8 +138,13 @@
 #undef USE_SERIAL_4WAY_SK_BOOTLOADER
 #undef USE_ADAPTIVE_FILTER
 #undef USE_GYRO_KALMAN
-#undef USE_I2C
-#undef USE_SPI
+
+// SPI0 — gyro + flash: GP4 (MISO/PA4), GP6 (SCK/PA6), GP7 (MOSI/PA7)
+#define USE_SPI
+#define USE_SPI_DEVICE_1
+#define SPI1_SCK_PIN          PA6   /* GPIO6  — spi0 SCK  */
+#define SPI1_MISO_PIN         PA4   /* GPIO4  — spi0 MISO */
+#define SPI1_MOSI_PIN         PA7   /* GPIO7  — spi0 MOSI */
 
 // FAST_CODE: place hot functions in SRAM (copied from flash at boot) to avoid
 // XIP cache pressure on the large PID/scheduler/gyro code path.
@@ -155,18 +166,6 @@
 #define SOFTSERIAL_1_TIMER 2
 #define SOFTSERIAL_2_TIMER 3
 
-extern uint32_t SystemCoreClock;
-
-#define U_ID_0 0
-#define U_ID_1 1
-#define U_ID_2 2
-
-// Dummy type definitions (same pattern as SITL)
-typedef struct
-{
-    void* dummy;
-} TIM_TypeDef;
-
 /* RP2350 PWM slice "timers" — one TIM_TypeDef per slice, used as group IDs.
  * Analogous to TIM1/TIM3/… on STM32; pins sharing a slice must run at the
  * same update rate.  Defined in drivers/timer_rp2350.c. */
@@ -183,65 +182,3 @@ extern TIM_TypeDef rp2350Pwm10;  /* slice 10: GP20/GP21 — servos (dedicated)  
 #define TIM6  (&rp2350Pwm6)
 #define TIM7  (&rp2350Pwm7)
 #define TIM10 (&rp2350Pwm10)
-
-typedef struct
-{
-    void* dummy;
-} TIM_OCInitTypeDef;
-
-typedef struct {
-    void* dummy;
-} DMA_TypeDef;
-
-typedef struct {
-    void* dummy;
-} DMA_Channel_TypeDef;
-
-typedef struct
-{
-    void* dummy;
-} SPI_TypeDef;
-
-typedef struct
-{
-    void* dummy;
-} I2C_TypeDef;
-
-typedef enum {RESET = 0, SET = !RESET} FlagStatus, ITStatus;
-typedef enum {DISABLE = 0, ENABLE = !DISABLE} FunctionalState;
-typedef enum {TEST_IRQ = 0 } IRQn_Type;
-typedef enum {
-    EXTI_Trigger_Rising = 0x08,
-    EXTI_Trigger_Falling = 0x0C,
-    EXTI_Trigger_Rising_Falling = 0x10
-} EXTITrigger_TypeDef;
-
-typedef struct
-{
-  uint32_t IDR;
-  uint32_t ODR;
-  uint32_t BSRR;
-  uint32_t BRR;
-} GPIO_TypeDef;
-
-#define GPIOA_BASE ((intptr_t)0x0001)
-
-typedef struct
-{
-    uint32_t dummy;
-} USART_TypeDef;
-
-#define USART1 ((USART_TypeDef *)0x0001)
-#define USART2 ((USART_TypeDef *)0x0002)
-#define USART3 ((USART_TypeDef *)0x0003)
-#define USART4 ((USART_TypeDef *)0x0004)
-#define USART5 ((USART_TypeDef *)0x0005)
-#define USART6 ((USART_TypeDef *)0x0006)
-#define USART7 ((USART_TypeDef *)0x0007)
-#define USART8 ((USART_TypeDef *)0x0008)
-
-/* Aliases for code that uses UARTx names rather than USARTx names. */
-#define UART4 ((USART_TypeDef *)0x0004)
-#define UART5 ((USART_TypeDef *)0x0005)
-#define UART7 ((USART_TypeDef *)0x0007)
-#define UART8 ((USART_TypeDef *)0x0008)

@@ -138,6 +138,12 @@ uint32_t millis(void)
     return (uint32_t)(time_us_64() / 1000ULL);
 }
 
+void delayNanos(timeDelta_t ns)
+{
+    if (ns <= 0) return;
+    busy_wait_us_32(((uint32_t)ns + 999U) / 1000U);
+}
+
 void delayMicroseconds(timeUs_t us)
 {
     busy_wait_us_32((uint32_t)us);

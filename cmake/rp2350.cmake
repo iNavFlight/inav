@@ -31,6 +31,10 @@ main_sources(RP2350_COMMON_SRC_EXCLUDES
     io/displayport_oled.c
     # LED strip: replaced by light_ws2811strip_rp2350.c (PIO2+DMA, no timer/DMA abstraction)
     drivers/light_ws2811strip.c
+    # I2C: replaced by bus_i2c_rp2350.c (Pico SDK blocking API; HAL version needs STM32 HAL)
+    drivers/bus_i2c_hal.c
+    # SPI: replaced by bus_spi_rp2350.c (Pico SDK blocking API; HAL/LL version needs STM32 HAL)
+    drivers/bus_spi_hal_ll.c
 )
 
 # INAV platform-specific sources
@@ -45,6 +49,8 @@ main_sources(RP2350_SRC
     drivers/pwm_output_rp2350.c
     drivers/adc_rp2350.c
     drivers/light_ws2811strip_rp2350.c
+    drivers/bus_i2c_rp2350.c
+    drivers/bus_spi_rp2350.c
 )
 
 # --- Pico SDK sources ---
@@ -81,6 +87,8 @@ set(PICO_SDK_SOURCES
     ${PICO_SDK_SRC_DIR}/rp2_common/hardware_pio/pio.c
     ${PICO_SDK_SRC_DIR}/rp2_common/hardware_adc/adc.c
     ${PICO_SDK_SRC_DIR}/rp2_common/hardware_dma/dma.c
+    ${PICO_SDK_SRC_DIR}/rp2_common/hardware_i2c/i2c.c
+    ${PICO_SDK_SRC_DIR}/rp2_common/hardware_spi/spi.c
 
     # Sync / time / util
     ${PICO_SDK_SRC_DIR}/common/hardware_claim/claim.c
