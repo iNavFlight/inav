@@ -72,7 +72,6 @@
  * power-of-2 boundary ≥ buffer size for the DMA ring mode (2^ADC_RING_BITS = 8 bytes). */
 static volatile uint16_t adcDmaBuf[ADC_RR_COUNT] __attribute__((aligned(1u << ADC_RING_BITS)));
 
-/* Function → adcChannel_e mapping; ADC_CHN_NONE if not assigned */
 static adcChannel_e adcFunctionMap[ADC_FUNCTION_COUNT];
 
 static bool adcReady = false;
@@ -123,7 +122,6 @@ uint16_t adcGetChannel(uint8_t function)
 
 void adcInit(drv_adc_config_t *init)
 {
-    /* Store function → channel mapping */
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
         adcFunctionMap[i] = (adcChannel_e)init->adcFunctionChannel[i];
     }

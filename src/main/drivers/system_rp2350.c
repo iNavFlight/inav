@@ -17,6 +17,7 @@
 #include "common/time.h"
 #include "common/utils.h"
 #include "drivers/system.h"
+#include "drivers/persistent.h"
 
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
@@ -94,6 +95,8 @@ static repeating_timer_t usb_task_timer;
 
 void systemInit(void)
 {
+    persistentObjectInit();
+
     // Raise sys clock from SDK default (150 MHz) to 192 MHz.
     // The USB PLL is independent (clk_usb stays at 48 MHz from pll_usb) so
     // TinyUSB CDC is unaffected. The hardware timer (clk_timer, derived from
@@ -103,7 +106,6 @@ void systemInit(void)
     set_sys_clock_khz(192000, true);
 
     // SDK runtime already initialized clocks, GPIO, etc. via crt0 → runtime_init
-    // We just need to update our SystemCoreClock variable
     SystemCoreClock = clock_get_hz(clk_sys);
 
     // tusb_init() must be called before stdio_init_all() because

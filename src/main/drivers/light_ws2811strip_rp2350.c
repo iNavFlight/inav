@@ -173,7 +173,7 @@ void ws2811LedStripInit(void)
     const ioTag_t tag = IO_TAG(WS2811_PIN);
     const uint gpio   = (uint)(DEFIO_TAG_GPIOID(tag) * 16 + DEFIO_TAG_PIN(tag));
 
-    ledStripPio = PIO_INSTANCE(PIO_LEDSTRIP_INDEX);   /* PIO2 */
+    ledStripPio = PIO_INSTANCE(PIO_LEDSTRIP_INDEX);
 
     /* For pins 32..47 the GPIO base must be shifted (RP2350B only).
      * GP22 is < 32 so this is a no-op on Pico 2, but keep it for portability. */
@@ -192,7 +192,6 @@ void ws2811LedStripInit(void)
     }
     ledStripSm = (uint)sm;
 
-    /* Configure PIO state machine */
     pio_gpio_init(ledStripPio, gpio);
     pio_sm_set_consecutive_pindirs(ledStripPio, ledStripSm, gpio, 1, true);
 
@@ -211,7 +210,6 @@ void ws2811LedStripInit(void)
     pio_sm_init(ledStripPio, ledStripSm, offset, &c);
     pio_sm_set_enabled(ledStripPio, ledStripSm, true);
 
-    /* Claim and configure DMA channel */
     const int dma_ch = dma_claim_unused_channel(false);
     if (dma_ch < 0) {
         return;
@@ -264,7 +262,6 @@ void ws2811UpdateStrip(void)
                     | ((uint32_t)rgb->rgb.b <<  8);
     }
 
-    /* Start DMA transfer */
     dma_channel_set_read_addr((uint)ledStripDmaCh, led_data, false);
     dma_channel_set_trans_count((uint)ledStripDmaCh, WS2811_LED_STRIP_LENGTH, false);
     dma_channel_start((uint)ledStripDmaCh);

@@ -53,7 +53,6 @@ static const uint8_t ioDefUsedOffset[1] = {0};
 
 ioRec_t ioRecs[DEFIO_IO_USED_COUNT];
 
-// Convert port index + pin-within-port to raw GPIO number
 static inline uint8_t portPinToGpio(unsigned port, unsigned pin)
 {
     return (uint8_t)(port * 16 + pin);
@@ -127,8 +126,6 @@ uint32_t IO_EXTI_Line(IO_t io)
     return 0;
 }
 
-// --- GPIO read/write via Pico SDK ---
-
 bool IORead(IO_t io)
 {
     if (!io) {
@@ -169,8 +166,6 @@ void IOToggle(IO_t io)
     gpio_put(IO_Pin(io), !gpio_get(IO_Pin(io)));
 }
 
-// --- Pin ownership ---
-
 void IOInit(IO_t io, resourceOwner_e owner, resourceType_e resource, uint8_t index)
 {
     if (!io) {
@@ -206,8 +201,6 @@ resourceType_e IOGetResource(IO_t io)
     return ioRec->resource;
 }
 
-// --- GPIO configuration ---
-
 void IOConfigGPIO(IO_t io, ioConfig_t cfg)
 {
     if (!io) {
@@ -232,8 +225,6 @@ void IOConfigGPIOAF(IO_t io, ioConfig_t cfg, uint8_t af)
     UNUSED(af);
     IOConfigGPIO(io, cfg);
 }
-
-// --- Tag-based lookup ---
 
 IO_t IOGetByTag(ioTag_t tag)
 {

@@ -324,7 +324,6 @@ static uartPort_t *piouartInit(piouartDevice_t *s, uint sm_tx, uint sm_rx,
         rxProgramOffset = pio_add_program(pio1, &uart_rx_program);
     }
 
-    /* Initialise state machines */
     uart_tx_program_init(pio1, sm_tx, (uint)txProgramOffset, tx_pin, baudRate);
     uart_rx_program_init(pio1, sm_rx, (uint)rxProgramOffset, rx_pin, baudRate);
 
@@ -418,7 +417,6 @@ static void pioUartWrite(serialPort_t *instance, uint8_t ch)
     s->port.port.txBufferHead =
         (s->port.port.txBufferHead + 1) % s->port.port.txBufferSize;
 
-    /* Enable TX FIFO-not-full interrupt to drain the ring buffer */
     pio_set_irqn_source_enabled(pio1, (uint)s->irq_index,
         pio_get_tx_fifo_not_full_interrupt_source(s->sm_tx), true);
 }
@@ -493,7 +491,6 @@ static void pioUartSetOptions(serialPort_t *instance, portOptions_t options)
     piouartDevice_t *s = (piouartDevice_t *)instance;
     s->port.port.options = options;
 
-    /* Apply GPIO signal inversion — same mechanism as piouartInit */
     if (options & SERIAL_INVERTED) {
         gpio_set_inover(s->rx_pin, GPIO_OVERRIDE_INVERT);
         gpio_set_outover(s->tx_pin, GPIO_OVERRIDE_INVERT);

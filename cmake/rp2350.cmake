@@ -51,6 +51,7 @@ main_sources(RP2350_SRC
     drivers/light_ws2811strip_rp2350.c
     drivers/bus_i2c_rp2350.c
     drivers/bus_spi_rp2350.c
+    drivers/persistent_rp2350.c
 )
 
 # --- Pico SDK sources ---

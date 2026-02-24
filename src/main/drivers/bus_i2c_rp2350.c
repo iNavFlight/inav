@@ -54,7 +54,6 @@
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
 
-/* Timeout for any single I2C operation (µs) */
 #define RP2350_I2C_TIMEOUT_US   10000U   /* 10 ms — generous for 100–800 kHz */
 
 /*
@@ -76,7 +75,6 @@ static const uint32_t speedToBaud[] = {
 static uint32_t i2cBaudrate  = 400000U;
 static uint16_t i2cErrorCount = 0;
 
-/* Per-device runtime state */
 typedef struct {
     i2c_inst_t *hw;
     bool        initialised;
@@ -96,7 +94,6 @@ static i2c_inst_t *gpioToI2cHw(uint gpio)
     return ((gpio / 2u) & 1u) ? i2c1 : i2c0;
 }
 
-/* Convert INAV ioTag_t to RP2350 GPIO number */
 static inline uint ioTagToGpio(ioTag_t tag)
 {
     return (uint)(DEFIO_TAG_GPIOID(tag) * 16u + DEFIO_TAG_PIN(tag));

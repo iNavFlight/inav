@@ -254,7 +254,6 @@ void pwmCompleteMotorUpdate(void)
         uint16_t value = dshotMotors[i].value;
         bool telemetry = dshotMotors[i].requestTelemetry;
 
-        /* Inject pending command instead of throttle value */
         if (pendingCmdReps > 0) {
             value    = (uint16_t)pendingCmd;
             telemetry = true;
@@ -268,7 +267,6 @@ void pwmCompleteMotorUpdate(void)
         dshotMotors[i].requestTelemetry = false;
     }
 
-    /* Restart all SMs on the same system-clock cycle */
     pio_enable_sm_mask_in_sync(pio0, motorMask);
 
     if (pendingCmdReps > 0) {
@@ -282,7 +280,6 @@ void pwmDisableMotors(void)
 {
     dshotEnabled    = false;
     motorPwmEnabled = false;
-    /* Drive all standard-PWM motor pins to minimum throttle immediately */
     for (uint i = 0; i < motorPwmCount; i++) {
         pwm_set_gpio_level(motorPwmPins[i], MOTOR_MIN_US);
     }
@@ -514,7 +511,7 @@ bool pwmMotorAndServoInit(void)
                     pwm_init(slice, &cfg, false);
                     motorSliceInitMask |= (1u << slice);
                 }
-                pwm_set_gpio_level(gpio, MOTOR_MIN_US); /* minimum throttle at boot */
+                pwm_set_gpio_level(gpio, MOTOR_MIN_US);
                 pwm_set_enabled(slice, true);
                 motorPwmPins[motorIdx] = (uint8_t)gpio;
             }

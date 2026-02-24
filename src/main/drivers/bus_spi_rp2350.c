@@ -74,7 +74,6 @@ static const uint32_t spiClockFreq[] = {
     [SPI_CLOCK_ULTRAFAST]     = 40000000,   /* 40 MHz — RP2350 at 150 MHz easily supports this */
 };
 
-/* Per-device runtime state */
 typedef struct {
     spi_inst_t       *hw;
     uint              gpio_sck;
@@ -97,7 +96,6 @@ static spi_inst_t *gpioToSpiHw(uint gpio)
     return ((gpio >> 3u) & 1u) ? spi1 : spi0;
 }
 
-/* Convert INAV ioTag_t to RP2350 GPIO number */
 static inline uint ioTagToGpio(ioTag_t tag)
 {
     return (uint)(DEFIO_TAG_GPIOID(tag) * 16u + DEFIO_TAG_PIN(tag));
@@ -155,7 +153,6 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
     const uint gpioMosi = ioTagToGpio(mosiTag);
     spi_inst_t *hw      = gpioToSpiHw(gpioSck);
 
-    /* Assign GPIO functions */
     gpio_set_function(gpioSck,  GPIO_FUNC_SPI);
     gpio_set_function(gpioMosi, GPIO_FUNC_SPI);
     gpio_set_function(gpioMiso, GPIO_FUNC_SPI);
