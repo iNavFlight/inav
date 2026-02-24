@@ -263,11 +263,10 @@ static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
                 } else if (failsafePhase() == FAILSAFE_LANDING) {
                     return COPTER_MODE_LAND;
                 } else {
-                    // There is no valid mapping to ArduCopter
-                    return COPTER_MODE_ENUM_END;
+                    return COPTER_MODE_RTL;
                 }
             }
-        default:                return COPTER_MODE_ENUM_END;
+        default:                return COPTER_MODE_STABILIZE;
     }
 }
 
@@ -294,21 +293,39 @@ static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_MISSION:       return PLANE_MODE_AUTO;
         case FLM_CRUISE:        return PLANE_MODE_CRUISE;
         case FLM_LAUNCH:        return PLANE_MODE_TAKEOFF;
-        case FLM_FAILSAFE:
+        case FLM_FAILSAFE: //failsafePhase_e
             {
                 if (failsafePhase() == FAILSAFE_RETURN_TO_HOME) {
                     return PLANE_MODE_RTL;
                 }
                 else if (failsafePhase() == FAILSAFE_LANDING) {
-                    return PLANE_MODE_AUTO;
+                    return PLANE_MODE_AUTOLAND;
                 }
                 else {
-                    // There is no valid mapping to ArduPlane
-                    return PLANE_MODE_ENUM_END;
+                    return PLANE_MODE_RTL;
                 }
             }
-        default:                return PLANE_MODE_ENUM_END;
+        default:                return PLANE_MODE_MANUAL;
     }
+}
+
+typedef struct mavlinkModeSelection_s {
+    flightModeForTelemetry_e flightMode;
+    uint8_t customMode;
+} mavlinkModeSelection_t;
+
+static mavlinkModeSelection_t selectMavlinkMode(bool isPlane)
+{
+    mavlinkModeSelection_t modeSelection;
+    modeSelection.flightMode = getFlightModeForTelemetry();
+
+    if (isPlane) {
+        modeSelection.customMode = (uint8_t)inavToArduPlaneMap(modeSelection.flightMode);
+    } else {
+        modeSelection.customMode = (uint8_t)inavToArduCopterMap(modeSelection.flightMode);
+    }
+
+    return modeSelection;
 }
 
 static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum)
@@ -586,11 +603,11 @@ static bool mavlinkPlaneModeIsConfigured(uint8_t customMode)
             return isModeActivationConditionPresent(BOXNAVWP);
         case PLANE_MODE_RTL:
             return isModeActivationConditionPresent(BOXNAVRTH);
-        case PLANE_MODE_LOITER:
-            return isModeActivationConditionPresent(BOXNAVPOSHOLD);
         case PLANE_MODE_GUIDED:
             return isModeActivationConditionPresent(BOXNAVPOSHOLD) &&
                 isModeActivationConditionPresent(BOXGCSNAV);
+        case PLANE_MODE_LOITER:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD);
         case PLANE_MODE_TAKEOFF:
             return isModeActivationConditionPresent(BOXNAVLAUNCH);
         default:
@@ -609,11 +626,11 @@ static bool mavlinkCopterModeIsConfigured(uint8_t customMode)
                 isModeActivationConditionPresent(BOXANGLEHOLD);
         case COPTER_MODE_ALT_HOLD:
             return isModeActivationConditionPresent(BOXNAVALTHOLD);
-        case COPTER_MODE_POSHOLD:
-            return isModeActivationConditionPresent(BOXNAVPOSHOLD);
         case COPTER_MODE_GUIDED:
             return isModeActivationConditionPresent(BOXNAVPOSHOLD) &&
                 isModeActivationConditionPresent(BOXGCSNAV);
+        case COPTER_MODE_POSHOLD:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD);
         case COPTER_MODE_RTL:
             return isModeActivationConditionPresent(BOXNAVRTH);
         case COPTER_MODE_AUTO:
@@ -1124,17 +1141,15 @@ void mavlinkSendHeartbeat(void)
 {
     uint8_t mavModes = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 
-    flightModeForTelemetry_e flm = getFlightModeForTelemetry();
-    uint8_t mavCustomMode;
-    uint8_t mavSystemType;
-
     const bool isPlane = (STATE(FIXED_WING_LEGACY) || mixerConfig()->platformType == PLATFORM_AIRPLANE);
+    const mavlinkModeSelection_t modeSelection = selectMavlinkMode(isPlane);
+    flightModeForTelemetry_e flm = modeSelection.flightMode;
+    uint8_t mavCustomMode = modeSelection.customMode;
+    uint8_t mavSystemType;
     if (isPlane) {
-        mavCustomMode = (uint8_t)inavToArduPlaneMap(flm);
         mavSystemType = MAV_TYPE_FIXED_WING;
     }
     else {
-        mavCustomMode = (uint8_t)inavToArduCopterMap(flm);
         mavSystemType = mavlinkGetVehicleType();
     }
 
@@ -1943,34 +1958,27 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t ackTargetSystem
                         break;
                     case MAVLINK_MSG_ID_AVAILABLE_MODES:
                         {
-                            flightModeForTelemetry_e flm = getFlightModeForTelemetry();
-                            uint8_t currentCustom;
-                            if (mixerConfig()->platformType == PLATFORM_AIRPLANE || STATE(FIXED_WING_LEGACY)) {
-                                currentCustom = (uint8_t)inavToArduPlaneMap(flm);
-                                mavlinkSendAvailableModes(planeModes, ARRAYLEN(planeModes), currentCustom, mavlinkPlaneModeIsConfigured);
+                            const bool isPlane = mixerConfig()->platformType == PLATFORM_AIRPLANE || STATE(FIXED_WING_LEGACY);
+                            const mavlinkModeSelection_t modeSelection = selectMavlinkMode(isPlane);
+                            if (isPlane) {
+                                mavlinkSendAvailableModes(planeModes, ARRAYLEN(planeModes), modeSelection.customMode, mavlinkPlaneModeIsConfigured);
                             } else {
-                                currentCustom = (uint8_t)inavToArduCopterMap(flm);
-                                mavlinkSendAvailableModes(copterModes, ARRAYLEN(copterModes), currentCustom, mavlinkCopterModeIsConfigured);
+                                mavlinkSendAvailableModes(copterModes, ARRAYLEN(copterModes), modeSelection.customMode, mavlinkCopterModeIsConfigured);
                             }
                             sent = true;
                         }
                         break;
                     case MAVLINK_MSG_ID_CURRENT_MODE:
                         {
-                            flightModeForTelemetry_e flm = getFlightModeForTelemetry();
-                            uint8_t currentCustom;
-                            if (mixerConfig()->platformType == PLATFORM_AIRPLANE || STATE(FIXED_WING_LEGACY)) {
-                                currentCustom = (uint8_t)inavToArduPlaneMap(flm);
-                            } else {
-                                currentCustom = (uint8_t)inavToArduCopterMap(flm);
-                            }
+                            const bool isPlane = mixerConfig()->platformType == PLATFORM_AIRPLANE || STATE(FIXED_WING_LEGACY);
+                            const mavlinkModeSelection_t modeSelection = selectMavlinkMode(isPlane);
                             mavlink_msg_current_mode_pack(
                                 mavSystemId,
                                 mavComponentId,
                                 &mavSendMsg,
                                 MAV_STANDARD_MODE_NON_STANDARD,
-                                currentCustom,
-                                currentCustom);
+                                modeSelection.customMode,
+                                modeSelection.customMode);
                             mavlinkSendMessage();
                             sent = true;
                         }
