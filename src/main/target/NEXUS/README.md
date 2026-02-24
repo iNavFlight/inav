@@ -31,7 +31,7 @@ For the Nexus-X and Nexus-XR, use the `NEXUSX` target instead.
 | Internal ELRS RX | None | RP4TD-M on UART5 |
 | PINIO1 (RX power) | None | PC8 |
 | UART1 pins | PA9/PA10 | PB6/PB7 |
-| Voltage input | 5-12.6V | 3.6-70V |
+| Voltage sense | Vin ADC only (5-12.6V) | EXT-V input (3.6-70V) |
 | Servo outputs | 5 | 7 default (9 max) |
 | Rotorflight target | NEXUS_F7 | NEXUSX |
 
@@ -68,8 +68,11 @@ For the Nexus-X and Nexus-XR, use the `NEXUSX` target instead.
 
 | Channel | Pin | Divider | Usage |
 |---------|-----|---------|-------|
-| BUS | PC2 | 320 | External battery voltage (mapped as VBAT) |
+| BUS | PC2 | 320 | Vin rail, 5-12.6V (mapped as VBAT) |
 | BEC | PC1 | 160 | 5V BEC rail monitoring |
+
+Note: Unlike the Nexus-X/XR, the OG Nexus has no dedicated EXT-V
+high-voltage battery sense input. VBAT monitors the board input power.
 
 ### Connector Pinouts
 
@@ -88,8 +91,8 @@ For the Nexus-X and Nexus-XR, use the `NEXUSX` target instead.
 **Port C (UART3 / I2C2):**
 1. GND
 2. 5V
-3. SCL/TX (PB10)
-4. SDA/RX (PB11)
+3. SDA/TX (PB11)
+4. SCL/RX (PB10)
 
 **ESC Header:**
 - Signal: PB6 (TIM4_CH1 PWM)
@@ -113,15 +116,17 @@ For a 5-channel elevon glider like the Kunai:
 - [x] MCU boots, LEDs active (PC14, PC15)
 - [x] USB CDC enumeration and iNAV CLI
 - [x] IMU (gyro + accel) detected and responding
-- [x] iNAV Configurator 9.0 connects, 3D model tracks board movement
-- [ ] Barometer (SPL06 on I2C1) — fixed bus assignment, needs retest
-- [ ] VBAT ADC (PC2) — fixed pin assignment, needs retest
-- [ ] BEC ADC (PC1) — needs test
-- [ ] Gyro alignment (CW90) — fixed, needs retest
-- [ ] All servo outputs — need test
-- [ ] CRSF receiver on UART4 — needs test
-- [ ] Blackbox logging — needs test
-- [ ] VBAT scale calibration with multimeter
+- [x] Gyro alignment (CW90) confirmed
+- [x] Accelerometer working
+- [x] Barometer (SPL06 on I2C1) working
+- [x] VBAT ADC (PC2) working (scale 320)
+- [x] All UART ports (1-4, 6) verified
+- [x] UART4 CRSF receiver working (TX/RX swap confirmed)
+- [x] DShot on all motor outputs
+- [x] Servo outputs working
+- [x] Blackbox logging working
+- [x] LEDs working
+- [x] I2C2 bus working
 
 ## Building
 

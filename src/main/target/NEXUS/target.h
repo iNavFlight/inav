@@ -129,19 +129,18 @@
 
 
 /* ---- ADC ---- */
-// From Rotorflight dump:
-//   ADC_BEC = PC1, divider 160 (BEC 5V rail monitoring)
-//   ADC_BUS = PC2, divider 320 (external battery voltage)
-// Map BUS voltage as VBAT for iNAV since that's the flight battery
+// OG Nexus has no EXT-V input (unlike X/XR which has a dedicated
+// high-voltage sense on PC0). Only two ADC channels:
+//   ADC_BUS = PC2, divider 320 (Vin rail, 5-12.6V)
+//   ADC_BEC = PC1, divider 160 (BEC 5V rail)
+// Map Vin as VBAT since it's the primary power input
 #define USE_ADC
 #define ADC_INSTANCE            ADC1
-#define ADC_CHANNEL_1_PIN       PC2   // BUS voltage (external battery)
+#define ADC_CHANNEL_1_PIN       PC2   // Vin (input power rail)
 #define VBAT_ADC_CHANNEL        ADC_CHN_1
-#define ADC_CHANNEL_2_PIN       PC1   // BEC voltage (5V rail)
-// VBAT scale: Rotorflight vbus_divider = 320
-// iNAV scale = divider * ~3.44 (ADC ref / resolution factor)
-// Start with 1100, calibrate with multimeter
-#define VBAT_SCALE_DEFAULT      1100
+#define ADC_CHANNEL_2_PIN       PC1   // BEC 5V rail
+// VBAT scale: hardware-verified value (divider ratio ~320)
+#define VBAT_SCALE_DEFAULT      320
 
 /* ---- Sensors ---- */
 #define SENSORS_SET             (SENSOR_ACC | SENSOR_BARO)
