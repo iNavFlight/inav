@@ -169,6 +169,12 @@ void systemReset(void)
     while (1) {}
 }
 
+void systemResetRequest(uint32_t requestId)
+{
+    persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, requestId);
+    systemReset();
+}
+
 void systemResetToBootloader(void)
 {
     rom_reset_usb_boot(0, 0);

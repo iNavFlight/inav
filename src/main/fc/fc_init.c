@@ -742,7 +742,7 @@ void init(void)
     powerLimiterInit();
 #endif
 
-#if !defined(SITL_BUILD) && !defined(RP2350)
+#ifndef SITL_BUILD
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 #endif
