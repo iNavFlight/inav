@@ -591,6 +591,7 @@ CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet
 | OFF | OFF | ON |
 
 ---
+
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
