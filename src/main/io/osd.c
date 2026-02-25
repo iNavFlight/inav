@@ -6140,7 +6140,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         /* Messages array - use ADD_MSG() for bounds-safe access. */
         const char *messages[7];
         unsigned messageCount = 0;
-        #define ADD_MSG(msg) if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg)
+        #define ADD_MSG(msg) do { if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg); } while(0)
 
         const char *failsafeInfoMessage = NULL;
         const char *invertedInfoMessage = NULL;
@@ -6527,7 +6527,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     /* --- WARNINGS --- */
     const char *messages[7];
     uint8_t messageCount = 0;
-    #define ADD_MSG(msg) if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg)
+    #define ADD_MSG(msg) do { if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg); } while(0)
     bool warningCondition = false;
     warningsCount = 0;
     uint8_t warningFlagID = 1;
