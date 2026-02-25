@@ -120,6 +120,7 @@ These chips are also supported:
 * Winbond W25Q64 - 64 Mbit / 8 MByte
 * Micron N25Q0128 - 128 Mbit / 16 MByte
 * Winbond W25Q128 - 128 Mbit / 16 MByte
+* Puya PY25Q128HA - 128 Mbit / 16 MByte
 * Winbond W25N01  - 1 Gbit / 128 MByte
 * Winbond W25N02  - 2 Gbit / 256 MByte
 
@@ -165,13 +166,36 @@ The CLI command `blackbox` allows setting which Blackbox fields are recorded to 
 * `PEAKS_R` - Roll axis noise peak
 * `PEAKS_P` - Pitch axis noise peak
 * `PEAKS_Y` - Yaw axis noise peak
+* `SERVOS` - Servo outputs (for planes, tris, etc.)
 
 Usage:
 
 * `blackbox` currently enabled Blackbox fields
 * `blackbox list` all available fields
 * `blackbox -MOTORS` disable MOTORS logging
-* `blackbox MOTOR` enable MOTORS logging
+* `blackbox MOTORS` enable MOTORS logging
+
+### Debug Mode Logging
+
+In addition to the standard blackbox fields above, INAV supports logging debug values for troubleshooting and analysis via the `debug_mode` setting. When a debug mode is active, it populates 8 debug values (`debug[0]` through `debug[7]`) with mode-specific data that gets logged to the blackbox.
+
+Available debug modes include:
+- `FLOW_RAW` - Optical flow sensor raw data (useful for sensor alignment)
+- `LANDING` - Landing mode debugging
+- `POS_EST` - Position estimation debugging
+- `GPS` - GPS debugging
+- `ALTITUDE` - Altitude estimation debugging
+- And 20+ other modes for specific subsystems
+
+To use debug mode logging:
+```
+set debug_mode = FLOW_RAW    # Enable a specific debug mode
+set debug_mode = NONE        # Disable debug mode (default)
+```
+
+You can view current debug values in the CLI with the `debug` command, or display them in real-time on your OSD using the `OSD_DEBUG` element.
+
+For technical details on debug logging and blackbox internals, see the [Blackbox Internals](development/Blackbox%20Internals.md) documentation.
 
 ## Usage
 

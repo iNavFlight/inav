@@ -257,10 +257,40 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
     }
 }
 
-static void mspRebootFn(serialPort_t *serialPort)
+static void mspRebootNormalFn(serialPort_t *serialPort)
 {
     UNUSED(serialPort);
     fcReboot(false);
+}
+
+static void mspRebootDfuFn(serialPort_t *serialPort)
+{
+    UNUSED(serialPort);
+    fcReboot(true);
+}
+
+static mspResult_e mspFcRebootCommand(sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
+{
+    const unsigned int dataSize = sbufBytesRemaining(src);
+
+    // Validate payload size: 0 or 1 byte only
+    if (dataSize > 1) {
+        return MSP_RESULT_ERROR;
+    }
+
+    // Determine reboot type and set appropriate post-process function
+    if (mspPostProcessFn) {
+        if (dataSize == 1) {
+            // Read bootloader flag: 0 = normal, non-zero = DFU
+            const bool bootloaderMode = (sbufReadU8(src) != 0);
+            *mspPostProcessFn = bootloaderMode ? mspRebootDfuFn : mspRebootNormalFn;
+        } else {
+            // Legacy behavior: no parameter means normal reboot
+            *mspPostProcessFn = mspRebootNormalFn;
+        }
+    }
+
+    return MSP_RESULT_ACK;
 }
 
 static void serializeSDCardSummaryReply(sbuf_t *dst)
@@ -355,6 +385,8 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
  */
 static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
 {
+    UNUSED(mspPostProcessFn);
+
     switch (cmdMSP) {
     case MSP_API_VERSION:
         sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
@@ -1457,14 +1489,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
         break;
 
-    case MSP_REBOOT:
-        if (!ARMING_FLAG(ARMED)) {
-            if (mspPostProcessFn) {
-                *mspPostProcessFn = mspRebootFn;
-            }
-        }
-        break;
-
     case MSP_WP_GETINFO:
         sbufWriteU8(dst, 0);                        // Reserved for waypoint capabilities
         sbufWriteU8(dst, NAV_MAX_WAYPOINTS);        // Maximum number of waypoints supported
@@ -1526,6 +1550,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, vtxDevice->capability.bandCount);
                 sbufWriteU8(dst, vtxDevice->capability.channelCount);
                 sbufWriteU8(dst, vtxDevice->capability.powerCount);
+
+                uint8_t minPowerIndex = 1;
+                if (deviceType == VTXDEV_MSP) {
+                    minPowerIndex = 0;
+                }
+                sbufWriteU8(dst, minPowerIndex);
             }
             else {
                 sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
@@ -4465,6 +4495,12 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     } else if (cmdMSP == MSP_SET_PASSTHROUGH) {
         mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
+    } else if (cmdMSP == MSP_REBOOT) {
+        if (!ARMING_FLAG(ARMED)) {
+            ret = mspFcRebootCommand(src, mspPostProcessFn);
+        } else {
+            ret = MSP_RESULT_ERROR;
+        }
     } else {
         if (!mspFCProcessInOutCommand(cmdMSP, dst, src, &ret)) {
             ret = mspFcProcessInCommand(cmdMSP, src);

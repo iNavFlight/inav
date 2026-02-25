@@ -62,6 +62,13 @@
 #define BMI270_SPI_BUS          MPU6000_SPI_BUS
 #define BMI270_CS_PIN           MPU6000_CS_PIN
 
+#ifdef OMNIBUSF4V3_ICM
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW180_DEG
+#define ICM42605_CS_PIN         PA4
+#define ICM42605_SPI_BUS        BUS_SPI1
+#endif
+
 #define USE_MAG
 #define MAG_I2C_BUS             I2C_EXT_BUS
 #define USE_MAG_ALL

@@ -88,7 +88,6 @@
 
 #define USE_SPI_DEVICE_1
 
-
 #define USE_SPI_DEVICE_3
 #define SPI3_NSS_PIN          PB3
 #define SPI3_SCK_PIN            PC10
@@ -137,4 +136,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
-
