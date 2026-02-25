@@ -6,7 +6,8 @@
  *
  * Key differences from Nexus-X/XR:
  *   - IMU EXTI on PA15 (X/XR uses PB8)
- *   - IMU alignment CW90 (X/XR uses CW180)
+ *   - IMU alignment CW180 (Rotorflight uses CW90 with a different
+ *     board orientation reference; iNAV uses the arrow on the case)
  *   - Flash is W25N01G 128MB (X/XR uses W25N02K 256MB)
  *   - No internal ELRS receiver (X/XR has RP4TD-M on UART5)
  *   - No PINIO1 receiver power gate
@@ -48,7 +49,7 @@
 /* ---- IMU: ICM-42688-P ---- */
 // iNAV uses ICM42605 driver which is register-compatible with ICM42688P
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW90_DEG
+#define IMU_ICM42605_ALIGN      CW180_DEG
 #define ICM42605_CS_PIN         PA4
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_EXTI_PIN       PA15
