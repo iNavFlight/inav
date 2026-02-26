@@ -1215,7 +1215,7 @@ static bool handleIncoming_COMMAND_INT(void)
                 mavlinkSendMessage();
             }
         } else {
-#ifdef USE_BARO
+#ifdef USE_GPS
             if (msg.command == MAV_CMD_DO_CHANGE_ALTITUDE) {
                 const float altitudeMeters = msg.param1;
                 const uint8_t frame = (uint8_t)msg.frame;
