@@ -1,0 +1,42 @@
+# INAV PR Build Server – example crontab entries
+#
+# Install with:
+#   crontab -e
+# Then paste (and edit paths to suit your installation).
+#
+# Assumes:
+#   - The INAV repo lives at /opt/inav
+#   - The server lives at /opt/inav/pr-build-server
+#   - Python 3 is at /usr/bin/python3
+#   - bash is at /bin/bash
+#   - GITHUB_TOKEN is set in the environment or in a secrets file
+
+# ── 1. Update PR list four times a day ───────────────────────────────────────
+#
+#  Fetches open pull requests from GitHub and writes data/prs.json.
+#  The web UI picks up the new file on the next page load.
+#
+#  To authenticate (avoids the 60 req/hr unauthenticated limit):
+#    Create a fine-grained personal access token with read-only "Pull requests"
+#    permission and set GITHUB_TOKEN in the environment or a .env file.
+
+0 0,6,12,18 * * * GITHUB_TOKEN=ghp_YOURTOKEN /usr/bin/python3 /opt/inav/pr-build-server/scripts/update_prs.py >> /opt/inav/pr-build-server/logs/update_prs.log 2>&1
+
+# ── 2. Pre-build base objects once a day (at 02:30) ──────────────────────────
+#
+#  Pulls the latest maintenance-9.x, runs cmake, and builds a seed target
+#  (MATEKF405SE by default).  This warms the compiler object cache so that
+#  subsequent PR builds only recompile files changed by the PR and target-
+#  specific files.
+#
+#  The script is a no-op if the build is already up to date for the current
+#  HEAD of maintenance-9.x.
+
+30 2 * * * /bin/bash /opt/inav/pr-build-server/scripts/prebuild.sh >> /opt/inav/pr-build-server/logs/prebuild.log 2>&1
+
+# ── 3. (Optional) Auto-start the server on reboot ────────────────────────────
+#
+#  Use your system's init system (systemd, OpenRC, etc.) instead if available.
+#  This is a simple fallback using @reboot.
+
+@reboot /usr/bin/python3 /opt/inav/pr-build-server/server.py --host 0.0.0.0 --port 8080 >> /opt/inav/pr-build-server/logs/server.log 2>&1 &

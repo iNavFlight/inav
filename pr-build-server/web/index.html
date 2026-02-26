@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INAV PR Firmware Builder</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <img src="inav-logo.svg" alt="INAV" class="logo" onerror="this.style.display='none'">
+      <div>
+        <h1>INAV PR Firmware Builder</h1>
+        <p class="subtitle">Build and download firmware from open pull requests</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ── PR & Target Selection ── -->
+    <section class="card" id="select-card">
+      <h2>1. Select a Pull Request</h2>
+
+      <div class="pr-meta" id="pr-list-meta"></div>
+
+      <div class="field-group">
+        <label for="pr-filter">Filter PRs:</label>
+        <input type="text" id="pr-filter" placeholder="Search by number, title or author…" autocomplete="off">
+      </div>
+
+      <div class="field-group">
+        <label for="pr-select">Pull Request:</label>
+        <select id="pr-select" size="1">
+          <option value="">— Loading pull requests… —</option>
+        </select>
+      </div>
+
+      <div id="pr-info" class="pr-info hidden"></div>
+
+      <h2>2. Select a Target</h2>
+
+      <div class="field-group inline">
+        <label>
+          <input type="checkbox" id="show-all-targets">
+          Show targets marked SKIP_RELEASES
+        </label>
+      </div>
+
+      <div class="field-group">
+        <label for="target-filter">Filter targets:</label>
+        <input type="text" id="target-filter" placeholder="Search by name or MCU…" autocomplete="off">
+      </div>
+
+      <div class="field-group">
+        <label for="target-select">Target:</label>
+        <select id="target-select" size="1">
+          <option value="">— Loading targets… —</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="mcu-badge">MCU:</label>
+        <span id="mcu-badge" class="badge">—</span>
+      </div>
+
+      <button id="build-btn" class="btn-primary" disabled>Build Firmware</button>
+    </section>
+
+    <!-- ── Build Status ── -->
+    <section class="card hidden" id="status-card">
+      <h2>Build Status</h2>
+      <div id="status-area">
+        <div class="progress-wrap">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <p id="status-phase" class="status-phase">—</p>
+        <p id="status-message" class="status-message">—</p>
+        <p id="status-meta" class="status-meta"></p>
+      </div>
+
+      <div id="download-area" class="hidden">
+        <a id="download-link" class="btn-download" href="#">
+          ⬇ Download .hex
+        </a>
+        <button class="btn-secondary" id="view-log-btn">View Build Log</button>
+        <button class="btn-secondary" id="new-build-btn">Start New Build</button>
+      </div>
+
+      <div id="error-area" class="hidden">
+        <p class="error-text" id="error-text"></p>
+        <button class="btn-secondary" id="retry-log-btn">View Build Log</button>
+        <button class="btn-secondary" id="retry-build-btn">Try Again</button>
+      </div>
+    </section>
+
+    <!-- ── Build Log Modal ── -->
+    <div id="log-modal" class="modal hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>Build Log</h3>
+          <button class="modal-close" id="log-close">✕</button>
+        </div>
+        <pre id="log-content" class="log-content">Loading…</pre>
+      </div>
+    </div>
+
+    <!-- ── Queue Status ── -->
+    <section class="card" id="queue-card">
+      <h2>Server Queue</h2>
+      <div id="queue-info">
+        <span id="queue-active">Active: —</span>
+        <span id="queue-pending">Pending: —</span>
+        <span id="queue-updated"></span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Source on <a href="https://github.com/iNavFlight/inav" target="_blank" rel="noopener">GitHub</a>
+      &bull; PR list refreshes every 6 hours via cron
+      &bull; Builds may take several minutes
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

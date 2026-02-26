@@ -1,0 +1,1027 @@
+[
+  {
+    "name": "AETH743Basic",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "AIKONF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "AIKONF7",
+    "mcu": "STM32F722",
+    "skip_releases": true
+  },
+  {
+    "name": "AIRBOTF4",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "AIRBOTF7",
+    "mcu": "STM32F722",
+    "skip_releases": true
+  },
+  {
+    "name": "ALIENFLIGHTF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "ALIENFLIGHTNGF7",
+    "mcu": "STM32F722",
+    "skip_releases": true
+  },
+  {
+    "name": "ANYFC",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "ANYFCF7",
+    "mcu": "STM32F745",
+    "skip_releases": false
+  },
+  {
+    "name": "ANYFCM7",
+    "mcu": "STM32F722",
+    "skip_releases": true
+  },
+  {
+    "name": "AOCODARCF405AIO",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "AOCODARCF4V2",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "AOCODARCF4V3",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "AOCODARCF722AIO",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "AOCODARCF7DUAL",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "AOCODARCF7MINI",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "AOCODARCH7DUAL",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "ASGARD32F4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "ASGARD32F7",
+    "mcu": "STM32F722",
+    "skip_releases": true
+  },
+  {
+    "name": "ATOMRCF405NAVI",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "ATOMRCF405NAVI_DELUX",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "ATOMRCF405V2",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "AXISFLYINGF7PRO",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "BEEROTORF4",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "BETAFLIGHTF4",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "BETAFPVF411",
+    "mcu": "STM32F411",
+    "skip_releases": true
+  },
+  {
+    "name": "BETAFPVF435",
+    "mcu": "Unknown",
+    "skip_releases": true
+  },
+  {
+    "name": "BETAFPVF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "BLACKPILL_F411",
+    "mcu": "STM32F411",
+    "skip_releases": true
+  },
+  {
+    "name": "BLUEBERRYF435WING",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "BLUEJAYF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "BOTWINGF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "BOTWINGF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "BRAHMA_F405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "BRAHMA_F722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "BROTHERHOBBYF405V3",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "BROTHERHOBBYH743",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "CADDXF4_AIO_ELRS",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "CLRACINGF4AIR",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "COLIBRI",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "CORVON405V2",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "CORVON743V1",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "DAKEFPVF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "DAKEFPVF435",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "DAKEFPVF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "DAKEFPVF722X8",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "DAKEFPVH743",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "DAKEFPVH743PRO",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "DALRCF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "DALRCF722DUAL",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "F4BY",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "FF_F35_LIGHTNING",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "FF_FORTINIF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "FF_PIKOF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "FIREWORKSV2",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "FISHDRONEF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "FLASHHOBBYF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "FLASHHOBBYF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYCOLORF4",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYCOLORF7MINI",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYCOLORF7V2",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYINGRCF4WINGMINI_NOT_RECOMMENDED",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYSPARKF4V4",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYWOOF405PRO",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYWOOF405S_AIO",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "FLYWOOF411",
+    "mcu": "STM32F411",
+    "skip_releases": true
+  },
+  {
+    "name": "FLYWOOF722PRO",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYWOOF745",
+    "mcu": "STM32F745",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYWOOF7DUAL",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "FLYWOOH743PRO",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "FOXEERF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "FOXEERF405V2",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "FOXEERF722DUAL",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "FOXEERF722V4",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "FOXEERF745AIO",
+    "mcu": "STM32F745",
+    "skip_releases": false
+  },
+  {
+    "name": "FOXEERH743",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "FRSKYF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "FRSKYPILOT",
+    "mcu": "STM32F765",
+    "skip_releases": false
+  },
+  {
+    "name": "FRSKY_ROVERF7",
+    "mcu": "STM32F722",
+    "skip_releases": true
+  },
+  {
+    "name": "FURYF4OSD",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "GEPRCF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "GEPRCF405_BT_HD",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "GEPRCF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "GEPRCF722_BT_HD",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "GEPRCF745_BT_HD",
+    "mcu": "STM32F745",
+    "skip_releases": false
+  },
+  {
+    "name": "GEPRC_F722_AIO",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "GEPRC_TAKER_H743",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "HAKRCF405D",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "HAKRCF405V2",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "HAKRCF411D",
+    "mcu": "STM32F411",
+    "skip_releases": true
+  },
+  {
+    "name": "HAKRCF722V2",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "HAKRCKD722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "HAPPYMODELF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "HGLRCF405V2",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "HGLRCF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "HUMMINGBIRD_FC305",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "IFLIGHTF4_SUCCEXD",
+    "mcu": "STM32F411",
+    "skip_releases": true
+  },
+  {
+    "name": "IFLIGHTF4_TWING",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "IFLIGHTF7_TWING",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "IFLIGHT_2RAW_H743",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "IFLIGHT_BLITZ_ATF435",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "IFLIGHT_BLITZ_F722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "IFLIGHT_BLITZ_F722_X1",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "IFLIGHT_BLITZ_F7_AIO",
+    "mcu": "STM32F745",
+    "skip_releases": true
+  },
+  {
+    "name": "IFLIGHT_BLITZ_F7_PRO",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "IFLIGHT_BLITZ_H7_PRO",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "IFLIGHT_H743_AIO_V2",
+    "mcu": "STM32H743",
+    "skip_releases": true
+  },
+  {
+    "name": "IFLIGHT_JBF7PRO",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "JHEF405PRO",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "JHEH7AIO",
+    "mcu": "STM32H743",
+    "skip_releases": true
+  },
+  {
+    "name": "JHEMCUF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "JHEMCUF405WING",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "JHEMCUF435",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "JHEMCUF435AIO",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "JHEMCUF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "JHEMCUF745",
+    "mcu": "STM32F745",
+    "skip_releases": false
+  },
+  {
+    "name": "JHEMCUH743HD",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "KAKUTEF4",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "KAKUTEF4WING",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "KAKUTEF7",
+    "mcu": "STM32F745",
+    "skip_releases": false
+  },
+  {
+    "name": "KAKUTEF7MINIV3",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "KAKUTEH7",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "KAKUTEH7WING",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "KROOZX",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "MAMBAF405US",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "MAMBAF405_2022A",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "MAMBAF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "MAMBAF722_2022A",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "MAMBAF722_WING",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "MAMBAF722_X8",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "MAMBAH743",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "MATEKF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "MATEKF405CAN",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "MATEKF405SE",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "MATEKF405TE",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "MATEKF411",
+    "mcu": "STM32F411",
+    "skip_releases": true
+  },
+  {
+    "name": "MATEKF411SE",
+    "mcu": "STM32F411",
+    "skip_releases": true
+  },
+  {
+    "name": "MATEKF411TE",
+    "mcu": "STM32F411",
+    "skip_releases": true
+  },
+  {
+    "name": "MATEKF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "MATEKF722PX",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "MATEKF722SE",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "MATEKF765",
+    "mcu": "STM32F765",
+    "skip_releases": false
+  },
+  {
+    "name": "MATEKH743",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "MICOAIR405MINI",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "MICOAIR405V2",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "MICOAIR743",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "MICOAIR743AIO",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "MICOAIR743V2",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "NEUTRONRCF435MINI",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "NEUTRONRCF435SE",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "NEUTRONRCF435WING",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "NEUTRONRCH7BT",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "NEXUSX",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "NOX",
+    "mcu": "STM32F411",
+    "skip_releases": true
+  },
+  {
+    "name": "OMNIBUSF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "OMNIBUSF7",
+    "mcu": "STM32F745",
+    "skip_releases": false
+  },
+  {
+    "name": "OMNIBUSF7NXT",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "ORBITF435",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "ORBITH743",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "PIXRACER",
+    "mcu": "STM32F427",
+    "skip_releases": false
+  },
+  {
+    "name": "PRINCIPIOTF7",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "RADIOLINKF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "RADIOLINKF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "RADIX",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "REVO",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "RUSH_BLADE_F7",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "SAGEATF4",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "SDMODELH7V1",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "SEQUREH7",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "SKYSTARSF405HD",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SKYSTARSF405V2",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SKYSTARSF405WING",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SKYSTARSF722HD",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "SKYSTARSH743HD",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "SPARKY2",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "SPEDIXF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEDIXF722",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "SPEEDYBEEF405AIO",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF405MINI",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF405V3",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF405V4",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF405WING",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF405WINGV2",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF7",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF745AIO",
+    "mcu": "STM32F745",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF7MINI",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF7V2",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "SPEEDYBEEF7V3",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "SPRACINGF4EVO",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "SPRACINGF7DUAL",
+    "mcu": "STM32F722",
+    "skip_releases": true
+  },
+  {
+    "name": "TAKERF722SE",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "TBS_LUCID_FC",
+    "mcu": "Unknown",
+    "skip_releases": false
+  },
+  {
+    "name": "TBS_LUCID_H7",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "TBS_LUCID_H7_WING",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "TBS_LUCID_H7_WING_MINI",
+    "mcu": "STM32H743",
+    "skip_releases": false
+  },
+  {
+    "name": "TMOTORF7",
+    "mcu": "STM32F722",
+    "skip_releases": true
+  },
+  {
+    "name": "TMOTORF7V2",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "TMOTORVELOXF7V2",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "TUNERCF405",
+    "mcu": "STM32F405",
+    "skip_releases": false
+  },
+  {
+    "name": "VANTAC_RF007",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "WARPF7",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  },
+  {
+    "name": "YUPIF4",
+    "mcu": "STM32F405",
+    "skip_releases": true
+  },
+  {
+    "name": "YUPIF7",
+    "mcu": "STM32F722",
+    "skip_releases": true
+  },
+  {
+    "name": "ZEEZF7",
+    "mcu": "STM32F722",
+    "skip_releases": false
+  }
+]
