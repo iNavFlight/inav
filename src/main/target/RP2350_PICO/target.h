@@ -68,19 +68,23 @@
 /*
  * Hardware UART pin assignments for Raspberry Pi Pico 2 — Option C layout.
  *
- * UART1 (INAV) → RP2350 uart0: GP0/1
- * UART2 (INAV) → RP2350 uart1: GP2/3
+ * UART1 (INAV) → RP2350 uart0: GP0/1   (F2 = UART0 TX/RX)
+ * UART2 (INAV) → RP2350 uart1: GP6/7   (F11 = UART1 TX/RX via GPIO_FUNC_UART_AUX)
  * UART3 (INAV) → PIO1 SM0(TX)+SM1(RX): GP8/9
  * UART4 (INAV) → PIO1 SM2(TX)+SM3(RX): GP14/15
  *
- * GP4–7 are reserved for SPI0 (gyro + flash, future M5/M6).
+ * GP2/3 carry SPI0 SCK/MOSI (F1); GP4 SPI0 MISO, GP5 SPI0 CSn.
  * GP10–13 are reserved for DShot motors on PIO0.
  * PIO2 SM0 is reserved for WS2812 LED strip; SMs 1–3 spare.
+ *
+ * Note: GP6/7 use GPIO function F11 (GPIO_FUNC_UART_AUX), not F2.
+ * See RP2350 datasheet Table 3: F2 on GP6/7 is UART1 CTS/RTS (flow
+ * control only); F11 is UART1 TX/RX.  The driver uses UART_FUNCSEL_NUM().
  */
 #define UART1_TX_PIN  PA0   /* GPIO0  — uart0 TX  (MSP / configurator) */
 #define UART1_RX_PIN  PA1   /* GPIO1  — uart0 RX */
-#define UART2_TX_PIN  PA2   /* GPIO2  — uart1 TX  (receiver: CRSF/SBUS) */
-#define UART2_RX_PIN  PA3   /* GPIO3  — uart1 RX  (HW inversion, no external inverter) */
+#define UART2_TX_PIN  PA6   /* GPIO6  — uart1 TX  (receiver: CRSF/SBUS, F11=UART_AUX) */
+#define UART2_RX_PIN  PA7   /* GPIO7  — uart1 RX  (HW inversion, no external inverter) */
 /* PIO1: UART3 on SM0(TX)+SM1(RX), UART4 on SM2(TX)+SM3(RX) */
 /* PIO2 is reserved for RGB LED strip (SM0) and future UART5/6 (SMs 1–3) */
 #define UART3_TX_PIN  PA8   /* GPIO8  — PIO1 SM0 TX  (GPS) */
@@ -139,12 +143,13 @@
 #undef USE_ADAPTIVE_FILTER
 #undef USE_GYRO_KALMAN
 
-// SPI0 — gyro + flash: GP4 (MISO/PA4), GP6 (SCK/PA6), GP7 (MOSI/PA7)
+// SPI0 — gyro + flash: GP2 (SCK/PA2), GP3 (MOSI/PA3), GP4 (MISO/PA4)
+// GP2/3 freed from UART2 (moved to GP6/7); GP6/7 freed from SPI.
 #define USE_SPI
 #define USE_SPI_DEVICE_1
-#define SPI1_SCK_PIN          PA6   /* GPIO6  — spi0 SCK  */
+#define SPI1_SCK_PIN          PA2   /* GPIO2  — spi0 SCK  */
 #define SPI1_MISO_PIN         PA4   /* GPIO4  — spi0 MISO */
-#define SPI1_MOSI_PIN         PA7   /* GPIO7  — spi0 MOSI */
+#define SPI1_MOSI_PIN         PA3   /* GPIO3  — spi0 MOSI */
 
 // FAST_CODE: place hot functions in SRAM (copied from flash at boot) to avoid
 // XIP cache pressure on the large PID/scheduler/gyro code path.
