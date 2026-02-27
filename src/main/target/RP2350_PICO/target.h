@@ -48,7 +48,7 @@
 #define SERIAL_PORT_COUNT 5  // VCP + UART1 + UART2 + UART3 + UART4
 
 // DShot motor output via PIO0 (1 SM per motor, up to 4 motors).
-// GP8–11 default to motors 1–4; GP4–7 are reserved for SPI0 (gyro + flash).
+// GP10–13 default to motors 1–4; GP4–7 are reserved for SPI0 (gyro + flash).
 // Motor/servo GPIO assignments come from timerHardware[] in target.c.
 
 // Servo PWM output via hardware PWM slices (GP16–GP19 by default).
@@ -70,11 +70,11 @@
  *
  * UART1 (INAV) → RP2350 uart0: GP0/1
  * UART2 (INAV) → RP2350 uart1: GP2/3
- * UART3 (INAV) → PIO1 SM0(TX)+SM1(RX): GP12/13
+ * UART3 (INAV) → PIO1 SM0(TX)+SM1(RX): GP8/9
  * UART4 (INAV) → PIO1 SM2(TX)+SM3(RX): GP14/15
  *
  * GP4–7 are reserved for SPI0 (gyro + flash, future M5/M6).
- * GP8–11 are reserved for DShot motors on PIO0 (future M8).
+ * GP10–13 are reserved for DShot motors on PIO0.
  * PIO2 SM0 is reserved for WS2812 LED strip; SMs 1–3 spare.
  */
 #define UART1_TX_PIN  PA0   /* GPIO0  — uart0 TX  (MSP / configurator) */
@@ -83,8 +83,8 @@
 #define UART2_RX_PIN  PA3   /* GPIO3  — uart1 RX  (HW inversion, no external inverter) */
 /* PIO1: UART3 on SM0(TX)+SM1(RX), UART4 on SM2(TX)+SM3(RX) */
 /* PIO2 is reserved for RGB LED strip (SM0) and future UART5/6 (SMs 1–3) */
-#define UART3_TX_PIN  PA12  /* GPIO12 — PIO1 SM0 TX  (GPS) */
-#define UART3_RX_PIN  PA13  /* GPIO13 — PIO1 SM1 RX */
+#define UART3_TX_PIN  PA8   /* GPIO8  — PIO1 SM0 TX  (GPS) */
+#define UART3_RX_PIN  PA9   /* GPIO9  — PIO1 SM1 RX */
 #define UART4_TX_PIN  PA14  /* GPIO14 — PIO1 SM2 TX  (telemetry / extra) */
 #define UART4_RX_PIN  PA15  /* GPIO15 — PIO1 SM3 RX */
 
@@ -169,9 +169,9 @@
 /* RP2350 PWM slice "timers" — one TIM_TypeDef per slice, used as group IDs.
  * Analogous to TIM1/TIM3/… on STM32; pins sharing a slice must run at the
  * same update rate.  Defined in drivers/timer_rp2350.c. */
-extern TIM_TypeDef rp2350Pwm4;   /* slice 4:  GP8/GP9   — motors 1-2              */
-extern TIM_TypeDef rp2350Pwm5;   /* slice 5:  GP10/GP11 — motors 3-4              */
-extern TIM_TypeDef rp2350Pwm6;   /* slice 6:  GP12/GP13 — servos (dual-use UART3) */
+extern TIM_TypeDef rp2350Pwm4;   /* slice 4:  GP8/GP9   — servos (dual-use UART3) */
+extern TIM_TypeDef rp2350Pwm5;   /* slice 5:  GP10/GP11 — motors 1-2              */
+extern TIM_TypeDef rp2350Pwm6;   /* slice 6:  GP12/GP13 — motors 3-4              */
 extern TIM_TypeDef rp2350Pwm7;   /* slice 7:  GP14/GP15 — servos (dual-use UART4) */
 extern TIM_TypeDef rp2350Pwm10;  /* slice 10: GP20/GP21 — servos (dedicated)      */
 
