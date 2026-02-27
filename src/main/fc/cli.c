@@ -4800,6 +4800,9 @@ static void cliUbloxPrintSatelites(char *arg)
         }
         cliPrintLinefeed();
     }
+    // Print MON-RF noisePerMS if available
+    cliPrintLinef("MON-RF noisePerMS: %u", gpsGetMonRfNoisePerMs());
+    cliPrintLinef("MON-RF CW Suppression: %u", gpsGetMonRfCWSuppression());
 }
 #endif
 

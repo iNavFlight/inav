@@ -67,6 +67,7 @@
 #include "io/adsb.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/gps_ublox.h"
 #include "io/osd.h"
 #include "io/osd_common.h"
 #include "io/osd_hud.h"
@@ -2258,6 +2259,65 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, digits, false);
             break;
         }
+
+    case OSD_GPS_EXTRA_STATS:
+        {
+            gpsSetOsdMonRfWidgetEnabled(true);
+            
+            // Collect satellite stats grouped by GNSS ID: 0,2,3,6
+            uint8_t stats[4][2] = { {0,0}, {0,0}, {0,0}, {0,0} }; // [group][0]=total, [group][1]=good
+            for (int i = 0; i < UBLOX_MAX_SIGNALS; ++i) {
+                const ubx_nav_sig_info *sat = gpsGetUbloxSatelite(i);
+                if (sat == NULL) continue;
+                int g = -1;
+                switch (sat->gnssId) {
+                    case 0: g = 0; break; // GPS
+                    case 2: g = 1; break; // GALILEO
+                    case 3: g = 2; break; // BEIDOU
+                    case 6: g = 3; break; // GLONASS
+                    default: g = -1; break;
+                }
+                if (g < 0) continue;
+
+                if (sat->quality > UBLOX_SIG_QUALITY_SEARCHING && stats[g][0] < 255) { // Sat is visible
+                    stats[g][0]++;
+                }
+
+                if (sat->quality >= UBLOX_SIG_QUALITY_CODE_LOCK_TIME_SYNC && stats[g][1] < 255) { // Sat is good enough for navigation
+                    stats[g][1]++;
+                }
+            }
+
+            // Write directly to display using displayWriteChar so large symbol indices are handled correctly.
+            int x = elemPosX;
+            for (int g = 0; g < 4; ++g) {
+                uint8_t total = stats[g][0];
+                uint8_t good = stats[g][1];
+
+                // Hex nibble for total (cap at F)
+                char hexc;
+                if (total > 15) hexc = 'F';
+                else if (total < 10) hexc = '0' + total;
+                else hexc = 'A' + (total - 10);
+                displayWriteChar(osdDisplayPort, x++, elemPosY, (uint8_t)hexc);
+
+                // HUD signal icon based on number of good satellites (cap at 4)
+                uint8_t goodClamped = good > 4 ? 4 : good;
+                uint16_t sym = SYM_HUD_SIGNAL_0 + goodClamped;
+                displayWriteChar(osdDisplayPort, x++, elemPosY, sym);
+            }
+
+            // always show RF noise after the stats
+            {
+                uint8_t noise = gpsGetMonRfNoisePerMs();
+                char noiseBuff[4];
+                noiseBuff[0] = SYM_SNR;
+                tfp_sprintf(&noiseBuff[1], (noise > 99) ? "%02X" : "%02u", noise);
+                displayWrite(osdDisplayPort, x, elemPosY, noiseBuff);
+            }
+
+            return true; // already drawn
+        }
 #ifdef USE_ADSB
         case OSD_ADSB_WARNING:
         {
@@ -4195,7 +4255,7 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
 
     if (!feature(FEATURE_GPS)) {
         if (elementIndex == OSD_GPS_HDOP || elementIndex == OSD_TRIP_DIST || elementIndex == OSD_3D_SPEED || elementIndex == OSD_MISSION ||
-            elementIndex == OSD_AZIMUTH || elementIndex == OSD_BATTERY_REMAINING_CAPACITY || elementIndex == OSD_EFFICIENCY_MAH_PER_KM) {
+            elementIndex == OSD_AZIMUTH || elementIndex == OSD_BATTERY_REMAINING_CAPACITY || elementIndex == OSD_EFFICIENCY_MAH_PER_KM || elementIndex == OSD_GPS_EXTRA_STATS ) {
             elementIndex++;
         }
         if (elementIndex == OSD_HEADING_GRAPH && !sensors(SENSOR_MAG)) {
@@ -4454,7 +4514,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
     osdLayoutsConfig->item_pos[0][OSD_MISSION] = OSD_POS(0, 10);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SATS] = OSD_POS(0, 11) | OSD_VISIBLE_FLAG;
-    osdLayoutsConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
+    osdLayoutsConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);    
+    osdLayoutsConfig->item_pos[0][OSD_GPS_EXTRA_STATS] = OSD_POS(3, 11);
 
     osdLayoutsConfig->item_pos[0][OSD_GPS_LAT] = OSD_POS(0, 12);
     // Put this on top of the latitude, since it's very unlikely
