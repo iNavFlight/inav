@@ -1756,7 +1756,7 @@
 | `FEATURE_PWM_OUTPUT_ENABLE` | 1 << 28 |  |
 | `FEATURE_OSD` | 1 << 29 |  |
 | `FEATURE_FW_LAUNCH` | 1 << 30 |  |
-| `FEATURE_FW_AUTOTRIM` | 1 << 31 |  |
+| `FEATURE_FW_AUTOTRIM` | 1U << 31 |  |
 
 ---
 ## <a id="enum-filtertype_e"></a>`filterType_e`
@@ -5629,7 +5629,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.c
+> Source: ../../../src/main/fc/fc_init.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5643,7 +5643,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.h
+> Source: ../../../src/main/fc/fc_init.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
