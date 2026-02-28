@@ -43,19 +43,11 @@
 #include "drivers/timer.h"
 #include "drivers/light_ws2811strip.h"
 
-#include "config/parameter_group_ids.h"
-#include "fc/settings.h"
 #include "fc/runtime_config.h"
 
 #define WS2811_PERIOD (WS2811_TIMER_HZ / WS2811_CARRIER_HZ)
 #define WS2811_BIT_COMPARE_1 ((WS2811_PERIOD * 2) / 3)
 #define WS2811_BIT_COMPARE_0 (WS2811_PERIOD / 3)
-
-PG_REGISTER_WITH_RESET_TEMPLATE(ledPinConfig_t, ledPinConfig, PG_LEDPIN_CONFIG, 0);
-
-PG_RESET_TEMPLATE(ledPinConfig_t, ledPinConfig,
-    .led_pin_pwm_mode = SETTING_LED_PIN_PWM_MODE_DEFAULT
-);
 
 static DMA_RAM timerDMASafeType_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 
@@ -138,11 +130,8 @@ void ws2811LedStripInit(void)
         return;
     }
 
-    // Zero out DMA buffer
+    // Zero out DMA buffer — LED pin idles LOW between WS2812 bursts
     memset(&ledStripDMABuffer, 0, sizeof(ledStripDMABuffer));
-    if (ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_SHARED_HIGH) {
-        ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE-1] = 255;
-    }
     ws2811Initialised = true;
 
     ws2811UpdateStrip();
@@ -199,5 +188,9 @@ void ws2811UpdateStrip(void)
     timerPWMStartDMA(ws2811TCH);
 }
 
+void ws2811SetIdleHigh(bool high)
+{
+    ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE - 1] = high ? 255 : 0;
+}
 
 #endif

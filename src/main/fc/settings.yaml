@@ -189,9 +189,6 @@ tables:
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
     enum: navMcAltHoldThrottle_e
-  - name: led_pin_pwm_mode
-    values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
-    enum: led_pin_pwm_mode_e
   - name: gyro_filter_mode
     values: ["OFF", "STATIC", "DYNAMIC", "ADAPTIVE"]
     enum: gyroFilterType_e
@@ -4263,17 +4260,6 @@ groups:
         default_value: 1.2
         field: attnFilterCutoff
         max: 100
-
-  - name: PG_LEDPIN_CONFIG
-    type: ledPinConfig_t
-    headers: ["drivers/light_ws2811strip.h"]
-    members:
-      - name: led_pin_pwm_mode
-        condition: USE_LED_STRIP
-        description: "PWM mode of LED pin."
-        default_value: "SHARED_LOW"
-        field: led_pin_pwm_mode
-        table: led_pin_pwm_mode
 
   - name: PG_OSD_JOYSTICK_CONFIG
     type: osdJoystickConfig_t

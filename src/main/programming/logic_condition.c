@@ -58,6 +58,7 @@
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
+#include "drivers/light_ws2811strip.h"
 #include "drivers/pinio.h"
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 4);
@@ -508,7 +509,15 @@ static int logicConditionCompute(
 
 #ifdef USE_PINIO
         case LOGIC_CONDITION_PINIO_PWM:
-            // operandA = PINIO channel index (0-3), operandB = duty cycle (0-100)
+            // operandA = channel, operandB = duty cycle (0-100)
+            // Channels 0..PINIO_COUNT-1 = hardware PINIO (PWM capable)
+            // Channel PINIO_COUNT = LED strip idle level (binary: >0 = HIGH)
+#ifdef USE_LED_STRIP
+            if (operandA == PINIO_COUNT) {
+                ws2811SetIdleHigh(operandB > 0);
+                return operandB;
+            }
+#endif
             pinioSetDuty(operandA, (uint8_t)constrain(operandB, 0, 100));
             return operandB;
             break;

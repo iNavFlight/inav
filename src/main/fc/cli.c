@@ -58,6 +58,7 @@ bool cliMode = false;
 #include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
+#include "drivers/light_ws2811strip.h"
 #include "drivers/pinio.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/persistent.h"
@@ -69,8 +70,6 @@ bool cliMode = false;
 #include "drivers/time.h"
 #include "drivers/usb_msc.h"
 #include "drivers/vtx_common.h"
-#include "drivers/light_ws2811strip.h"
-
 #include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -2171,22 +2170,48 @@ static void cliModeColor(char *cmdline)
 #endif // USE_LED_STRIP
 
 #ifdef USE_PINIO
-static void cliLedPinPWM(char *cmdline)
+static void cliPinioPwm(char *cmdline)
 {
-    int i;
+    int channel = 0;
+    int duty;
 
     if (isEmpty(cmdline)) {
         pinioSetDuty(0, 0);
-        cliPrintLine("PWM stopped");
-    } else {
-        i = fastA2I(cmdline);
-        if (i < 0 || i > 100) {
-            cliPrintLine("Error: duty must be 0-100");
-            return;
-        }
-        pinioSetDuty(0, (uint8_t)i);
-        cliPrintLinef("PWM started: %d%%", i);
+        cliPrintLine("PWM stopped on channel 0");
+        return;
     }
+
+    // Find second argument (space-separated)
+    char *dutyStr = strchr(cmdline, ' ');
+    if (dutyStr) {
+        // Two args: channel duty
+        channel = fastA2I(cmdline);
+        dutyStr++;
+        duty = fastA2I(dutyStr);
+    } else {
+        // One arg: duty on channel 0
+        duty = fastA2I(cmdline);
+    }
+
+    if (channel < 0 || channel > PINIO_COUNT) {
+        cliPrintLinef("Error: channel must be 0-%d", PINIO_COUNT);
+        return;
+    }
+    if (duty < 0 || duty > 100) {
+        cliPrintLine("Error: duty must be 0-100");
+        return;
+    }
+
+#ifdef USE_LED_STRIP
+    if (channel == PINIO_COUNT) {
+        ws2811SetIdleHigh(duty > 0);
+        cliPrintLinef("LED idle %s", duty > 0 ? "HIGH" : "LOW");
+        return;
+    }
+#endif
+
+    pinioSetDuty(channel, (uint8_t)duty);
+    cliPrintLinef("PWM ch %d: %d%%", channel, duty);
 }
 #endif // USE_PINIO
 
@@ -4894,7 +4919,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
 #endif
 #ifdef USE_PINIO
-    CLI_COMMAND_DEF("ledpinpwm", "set PINIO PWM duty on channel 0, 0..100", "[<duty>]\r\n", cliLedPinPWM),
+    CLI_COMMAND_DEF("piniopwm", "set PINIO PWM duty cycle", "[<channel>] <duty>\r\n", cliPinioPwm),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
