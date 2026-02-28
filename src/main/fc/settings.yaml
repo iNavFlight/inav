@@ -4278,13 +4278,19 @@ groups:
   - name: PG_OSD_JOYSTICK_CONFIG
     type: osdJoystickConfig_t
     headers: ["io/osd_joystick.h"]
-    condition: USE_RCDEVICE && USE_LED_STRIP
+    condition: USE_RCDEVICE && USE_PINIO
     members:
       - name: osd_joystick_enabled
         description: "Enable OSD Joystick emulation"
         default_value: OFF
         field: osd_joystick_enabled
         type: bool
+      - name: osd_joystick_pinio_channel
+        description: "PINIO channel index (0-3) for the camera OSD control pin"
+        default_value: 0
+        field: pinio_channel
+        min: 0
+        max: 3
       - name: osd_joystick_down
         description: "PWM value for DOWN key"
         default_value: 0

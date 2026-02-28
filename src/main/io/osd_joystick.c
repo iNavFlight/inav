@@ -17,7 +17,7 @@
 #include "fc/runtime_config.h"
 
 #include "drivers/time.h"
-#include "drivers/light_ws2811strip.h"
+#include "drivers/pinio.h"
 
 #include "io/serial.h"
 #include "io/rcdevice.h"
@@ -25,13 +25,14 @@
 #include "osd_joystick.h"
 
 #ifdef USE_RCDEVICE
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdJoystickConfig_t, osdJoystickConfig, PG_OSD_JOYSTICK_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdJoystickConfig_t, osdJoystickConfig, PG_OSD_JOYSTICK_CONFIG, 1);
 
 PG_RESET_TEMPLATE(osdJoystickConfig_t, osdJoystickConfig,
     .osd_joystick_enabled = SETTING_OSD_JOYSTICK_ENABLED_DEFAULT,
+    .pinio_channel = SETTING_OSD_JOYSTICK_PINIO_CHANNEL_DEFAULT,
     .osd_joystick_down = SETTING_OSD_JOYSTICK_DOWN_DEFAULT,
     .osd_joystick_up = SETTING_OSD_JOYSTICK_UP_DEFAULT,
     .osd_joystick_left = SETTING_OSD_JOYSTICK_LEFT_DEFAULT,
@@ -45,28 +46,29 @@ bool osdJoystickEnabled(void) {
 
 
 void osdJoystickSimulate5KeyButtonPress(uint8_t operation) {
+    const int ch = osdJoystickConfig()->pinio_channel;
     switch (operation) {
         case RCDEVICE_CAM_KEY_ENTER:
-            ledPinStartPWM( osdJoystickConfig()->osd_joystick_enter );
+            pinioSetDuty(ch, osdJoystickConfig()->osd_joystick_enter);
             break;
         case RCDEVICE_CAM_KEY_LEFT:
-            ledPinStartPWM( osdJoystickConfig()->osd_joystick_left );
+            pinioSetDuty(ch, osdJoystickConfig()->osd_joystick_left);
             break;
         case RCDEVICE_CAM_KEY_UP:
-            ledPinStartPWM( osdJoystickConfig()->osd_joystick_up );
+            pinioSetDuty(ch, osdJoystickConfig()->osd_joystick_up);
             break;
         case RCDEVICE_CAM_KEY_RIGHT:
-            ledPinStartPWM( osdJoystickConfig()->osd_joystick_right );
+            pinioSetDuty(ch, osdJoystickConfig()->osd_joystick_right);
             break;
         case RCDEVICE_CAM_KEY_DOWN:
-            ledPinStartPWM( osdJoystickConfig()->osd_joystick_down );
+            pinioSetDuty(ch, osdJoystickConfig()->osd_joystick_down);
             break;
     }
 }
 
 
 void osdJoystickSimulate5KeyButtonRelease(void) {
-    ledPinStopPWM();
+    pinioSetDuty(osdJoystickConfig()->pinio_channel, 0);
 }
 
 

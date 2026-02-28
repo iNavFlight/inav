@@ -232,6 +232,10 @@ static void timerHardwareOverride(timerHardware_t * timer) {
             timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO);
             timer->usageFlags |= TIM_USE_LED;
             break;
+        case OUTPUT_MODE_PINIO:
+            // Clear motor/servo/LED flags so pinioInit() can claim this timer
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED);
+            break;
     }
 }
 

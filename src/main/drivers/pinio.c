@@ -65,6 +65,7 @@ const int pinioHardwareCount = ARRAYLEN(pinioHardware);
 /*** Runtime configuration ***/
 typedef struct pinioRuntime_s {
     IO_t io;
+    TCH_t *tch;     // Non-NULL when pin is configured in PWM mode
     bool inverted;
     bool state;
 } pinioRuntime_t;
@@ -84,6 +85,32 @@ void pinioInit(void)
             continue;
         }
 
+        // If the pin has a timer and is unclaimed, configure it as a PWM output.
+        // pwmMotorAndServoInit() runs before pinioInit(), so claimed motor/servo pins
+        // are already owned and the OWNER_FREE check correctly skips them.
+        const timerHardware_t *timHw = timerGetByTag(pinioHardware[i].ioTag, TIM_USE_ANY);
+        if (timHw && IOGetOwner(io) == OWNER_FREE) {
+            TCH_t *tch = timerGetTCH(timHw);
+            if (tch) {
+                IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(i));
+                IOConfigGPIOAF(io, IOCFG_AF_PP, timHw->alternateFunction);
+                // period=100 means CCR value is directly the duty percentage (0–100);
+                // 2.4 MHz / 100 = 24 kHz PWM, above audible range
+                timerConfigBase(tch, 100, 2400000);
+                timerPWMConfigChannel(tch, 0);
+                timerPWMStart(tch);
+                timerEnable(tch);
+                pinioRuntime[i].tch = tch;
+                pinioRuntime[i].io = io;
+                pinioRuntime[i].inverted = (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) != 0;
+                pinioRuntime[i].state = false;
+                // Start in the "off" state: HIGH if inverted, LOW if normal
+                *timerCCR(tch) = pinioRuntime[i].inverted ? 100 : 0;
+                continue;
+            }
+        }
+
+        // GPIO fallback: no timer available or pin already claimed
         IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(i));
         IOConfigGPIO(io, pinioHardware[i].ioMode);
 
@@ -102,13 +129,38 @@ void pinioInit(void)
 
 void pinioSet(int index, bool newState)
 {
+    if (index < 0 || index >= pinioHardwareCount) {
+        return;
+    }
+
     if (!pinioRuntime[index].io) {
         return;
     }
 
     if (newState != pinioRuntime[index].state) {
-        IOWrite(pinioRuntime[index].io, newState ^ pinioRuntime[index].inverted);
+        if (pinioRuntime[index].tch) {
+            *timerCCR(pinioRuntime[index].tch) = (newState ^ pinioRuntime[index].inverted) ? 100 : 0;
+        } else {
+            IOWrite(pinioRuntime[index].io, newState ^ pinioRuntime[index].inverted);
+        }
         pinioRuntime[index].state = newState;
     }
+}
+
+void pinioSetDuty(int index, uint8_t duty)
+{
+    if (index < 0 || index >= pinioHardwareCount) {
+        return;
+    }
+
+    if (!pinioRuntime[index].tch) {
+        return;
+    }
+
+    // Clamp to valid range and apply inversion
+    if (duty > 100) {
+        duty = 100;
+    }
+    *timerCCR(pinioRuntime[index].tch) = pinioRuntime[index].inverted ? (100 - duty) : duty;
 }
 #endif
