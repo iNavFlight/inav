@@ -528,6 +528,7 @@ typedef struct osdConfig_s {
 #ifndef DISABLE_MSP_DJI_COMPAT
     bool            highlight_djis_missing_characters;  // If enabled, show question marks where there is no character in DJI's font to represent an OSD element symbol
 #endif
+
     bool            enable_broken_o4_workaround;        // If enabled, override STATUS/STATUS_EX messages to work around DJI's broken O4 air unit MSP DisplayPort implementation
 #ifdef USE_ADSB
     uint16_t                    adsb_distance_warning;                     // in metres
@@ -540,6 +541,10 @@ typedef struct osdConfig_s {
     uint8_t geozoneDistanceWarning;                     // Distance to fence or action
     bool geozoneDistanceType;                            // Shows a countdown timer or distance to fence/action
 #endif
+
+    uint8_t         map2d_vmargin; // Vertical lines margin for 2D map (lines where nothing will be drawn)
+    uint8_t         map2d_hmargin; // Horizontal lines margin for 2D map
+    int16_t         map2d_ref_line_heading; // Reference line heading (0 to 360, -1 to disable)
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
