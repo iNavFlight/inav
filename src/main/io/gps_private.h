@@ -50,6 +50,12 @@ typedef struct {
     gpsBaudRate_e   baudrateIndex;
     gpsBaudRate_e   autoBaudrateIndex;      // Driver internal use (for autoBaud)
     uint8_t         autoConfigStep;         // Driver internal use (for autoConfig)
+    struct
+    {
+        uint8_t pvt : 1;
+        uint8_t sig : 1;
+        uint8_t sat : 1;
+    } flags;
 
     timeMs_t        lastStateSwitchMs;
     timeMs_t        lastLastMessageMs;

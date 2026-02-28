@@ -65,12 +65,49 @@ static inline uint16_t mavlink_msg_gps_rtcm_data_pack(uint8_t system_id, uint8_t
     mavlink_gps_rtcm_data_t packet;
     packet.flags = flags;
     packet.len = len;
-    mav_array_memcpy(packet.data, data, sizeof(uint8_t)*180);
+    mav_array_assign_uint8_t(packet.data, data, 180);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN);
 #endif
 
     msg->msgid = MAVLINK_MSG_ID_GPS_RTCM_DATA;
     return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_GPS_RTCM_DATA_MIN_LEN, MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN, MAVLINK_MSG_ID_GPS_RTCM_DATA_CRC);
+}
+
+/**
+ * @brief Pack a gps_rtcm_data message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param flags  LSB: 1 means message is fragmented, next 2 bits are the fragment ID, the remaining 5 bits are used for the sequence ID. Messages are only to be flushed to the GPS when the entire message has been reconstructed on the autopilot. The fragment ID specifies which order the fragments should be assembled into a buffer, while the sequence ID is used to detect a mismatch between different buffers. The buffer is considered fully reconstructed when either all 4 fragments are present, or all the fragments before the first fragment with a non full payload is received. This management is used to ensure that normal GPS operation doesn't corrupt RTCM data, and to recover from a unreliable transport delivery order.
+ * @param len [bytes] data length
+ * @param data  RTCM message (may be fragmented)
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_gps_rtcm_data_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint8_t flags, uint8_t len, const uint8_t *data)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN];
+    _mav_put_uint8_t(buf, 0, flags);
+    _mav_put_uint8_t(buf, 1, len);
+    _mav_put_uint8_t_array(buf, 2, data, 180);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN);
+#else
+    mavlink_gps_rtcm_data_t packet;
+    packet.flags = flags;
+    packet.len = len;
+    mav_array_memcpy(packet.data, data, sizeof(uint8_t)*180);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_GPS_RTCM_DATA;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_GPS_RTCM_DATA_MIN_LEN, MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN, MAVLINK_MSG_ID_GPS_RTCM_DATA_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_GPS_RTCM_DATA_MIN_LEN, MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN);
+#endif
 }
 
 /**
@@ -98,7 +135,7 @@ static inline uint16_t mavlink_msg_gps_rtcm_data_pack_chan(uint8_t system_id, ui
     mavlink_gps_rtcm_data_t packet;
     packet.flags = flags;
     packet.len = len;
-    mav_array_memcpy(packet.data, data, sizeof(uint8_t)*180);
+    mav_array_assign_uint8_t(packet.data, data, 180);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN);
 #endif
 
@@ -134,6 +171,20 @@ static inline uint16_t mavlink_msg_gps_rtcm_data_encode_chan(uint8_t system_id, 
 }
 
 /**
+ * @brief Encode a gps_rtcm_data struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param gps_rtcm_data C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_gps_rtcm_data_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_gps_rtcm_data_t* gps_rtcm_data)
+{
+    return mavlink_msg_gps_rtcm_data_pack_status(system_id, component_id, _status, msg,  gps_rtcm_data->flags, gps_rtcm_data->len, gps_rtcm_data->data);
+}
+
+/**
  * @brief Send a gps_rtcm_data message
  * @param chan MAVLink channel to send the message
  *
@@ -155,7 +206,7 @@ static inline void mavlink_msg_gps_rtcm_data_send(mavlink_channel_t chan, uint8_
     mavlink_gps_rtcm_data_t packet;
     packet.flags = flags;
     packet.len = len;
-    mav_array_memcpy(packet.data, data, sizeof(uint8_t)*180);
+    mav_array_assign_uint8_t(packet.data, data, 180);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_GPS_RTCM_DATA, (const char *)&packet, MAVLINK_MSG_ID_GPS_RTCM_DATA_MIN_LEN, MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN, MAVLINK_MSG_ID_GPS_RTCM_DATA_CRC);
 #endif
 }
@@ -176,7 +227,7 @@ static inline void mavlink_msg_gps_rtcm_data_send_struct(mavlink_channel_t chan,
 
 #if MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
@@ -194,7 +245,7 @@ static inline void mavlink_msg_gps_rtcm_data_send_buf(mavlink_message_t *msgbuf,
     mavlink_gps_rtcm_data_t *packet = (mavlink_gps_rtcm_data_t *)msgbuf;
     packet->flags = flags;
     packet->len = len;
-    mav_array_memcpy(packet->data, data, sizeof(uint8_t)*180);
+    mav_array_assign_uint8_t(packet->data, data, 180);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_GPS_RTCM_DATA, (const char *)packet, MAVLINK_MSG_ID_GPS_RTCM_DATA_MIN_LEN, MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN, MAVLINK_MSG_ID_GPS_RTCM_DATA_CRC);
 #endif
 }

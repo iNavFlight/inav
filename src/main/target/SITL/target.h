@@ -74,8 +74,15 @@
 
 #define USE_MSP_OSD
 #define USE_OSD
+#define USE_SERIAL_GIMBAL
+#define USE_HEADTRACKER
+#define USE_HEADTRACKER_SERIAL
+#define USE_HEADTRACKER_MSP
 
 #undef USE_DASHBOARD
+#define USE_GEOZONE
+#define MAX_GEOZONES_IN_CONFIG 63
+#define MAX_VERTICES_IN_CONFIG 126
 
 #undef USE_GYRO_KALMAN // Strange behaviour under x86/x64 ?!?
 #undef USE_VCP

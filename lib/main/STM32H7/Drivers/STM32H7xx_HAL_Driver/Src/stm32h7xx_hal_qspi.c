@@ -14,6 +14,17 @@
   *           + Errors management and abort functionality
   *
   *
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
   @verbatim
  ===============================================================================
                         ##### How to use this driver #####
@@ -24,7 +35,7 @@
     [..]
       (#) As prerequisite, fill in the HAL_QSPI_MspInit() :
         (++) Enable QuadSPI clock interface with __HAL_RCC_QSPI_CLK_ENABLE().
-        (++) Reset QuadSPI IP with __HAL_RCC_QSPI_FORCE_RESET() and __HAL_RCC_QSPI_RELEASE_RESET().
+        (++) Reset QuadSPI Peripheral with __HAL_RCC_QSPI_FORCE_RESET() and __HAL_RCC_QSPI_RELEASE_RESET().
         (++) Enable the clocks for the QuadSPI GPIOS with __HAL_RCC_GPIOx_CLK_ENABLE().
         (++) Configure these QuadSPI pins in alternate mode using HAL_GPIO_Init().
         (++) If interrupt mode is used, enable and configure QuadSPI global
@@ -64,7 +75,7 @@
          (++) In polling mode, the output of the function is done when the transfer is complete.
          (++) In interrupt mode, HAL_QSPI_FifoThresholdCallback() will be called when the fifo threshold
              is reached and HAL_QSPI_RxCpltCallback() will be called when the transfer is complete.
-         (++) In DMA mode,HAL_QSPI_RxCpltCallback() will be called when the transfer is complete.
+	     (++) In DMA mode,HAL_QSPI_RxCpltCallback() will be called when the transfer is complete.
 
     *** Auto-polling functional mode ***
     ====================================
@@ -90,24 +101,24 @@
     *** MDMA functional mode ***
     ====================================
     [..]
-      (#) Configure the SourceInc and DestinationInc of MDMA paramters in the HAL_QSPI_MspInit() function :
-         (++) MDMA settings for write operation : 
-          (+) The DestinationInc should be MDMA_DEST_INC_DISABLE  
-          (+) The SourceInc must be a value of @ref MDMA_Source_increment_mode (Except the MDMA_SRC_INC_DOUBLEWORD).
-          (+) The SourceDataSize must be a value of @ref MDMA Source data size (Except the MDMA_SRC_DATASIZE_DOUBLEWORD) 
-              aligned with @ref MDMA_Source_increment_mode .
-          (+) The DestDataSize must be a value of @ref MDMA Destination data size (Except the MDMA_DEST_DATASIZE_DOUBLEWORD) 
-         (++) MDMA settings for read operation : 
-          (+) The SourceInc should be MDMA_SRC_INC_DISABLE  
-          (+) The DestinationInc must be a value of @ref MDMA_Destination_increment_mode (Except the MDMA_DEST_INC_DOUBLEWORD).
-          (+) The SourceDataSize must be a value of @ref MDMA Source data size (Except the MDMA_SRC_DATASIZE_DOUBLEWORD) .
-          (+) The DestDataSize must be a value of @ref MDMA Destination data size (Except the MDMA_DEST_DATASIZE_DOUBLEWORD)
-              aligned with @ref MDMA_Destination_increment_mode.
+      (#) Configure the SourceInc and DestinationInc of MDMA parameters in the HAL_QSPI_MspInit() function :
+         (++) MDMA settings for write operation :
+          (+) The DestinationInc should be MDMA_DEST_INC_DISABLE
+          (+) The SourceInc must be a value of MDMA_Source_increment_mode (Except the MDMA_SRC_INC_DOUBLEWORD).
+          (+) The SourceDataSize must be a value of MDMA Source data size (Except the MDMA_SRC_DATASIZE_DOUBLEWORD)
+              aligned with MDMA_Source_increment_mode .
+          (+) The DestDataSize must be a value of MDMA Destination data size (Except the MDMA_DEST_DATASIZE_DOUBLEWORD)
+         (++) MDMA settings for read operation :
+          (+) The SourceInc should be MDMA_SRC_INC_DISABLE
+          (+) The DestinationInc must be a value of MDMA_Destination_increment_mode (Except the MDMA_DEST_INC_DOUBLEWORD).
+          (+) The SourceDataSize must be a value of MDMA Source data size (Except the MDMA_SRC_DATASIZE_DOUBLEWORD) .
+          (+) The DestDataSize must be a value of MDMA Destination data size (Except the MDMA_DEST_DATASIZE_DOUBLEWORD)
+              aligned with MDMA_Destination_increment_mode.
          (++)The buffer Transfer Length (BufferTransferLength) = number of bytes in the FIFO (FifoThreshold) of the Quadspi.
-      (#)In case of wrong MDMA setting 
-        (++) For write operation : 
+      (#)In case of wrong MDMA setting
+        (++) For write operation :
          (+) If the DestinationInc is different to MDMA_DEST_INC_DISABLE , it will be disabled by the HAL_QSPI_Transmit_DMA().
-        (++) For read operation : 
+        (++) For read operation :
          (+) If the SourceInc is not set to MDMA_SRC_INC_DISABLE , it will be disabled by the HAL_QSPI_Receive_DMA().
 
     *** Memory-mapped functional mode ***
@@ -132,12 +143,12 @@
     =================================================
     [..]
       (#) HAL_QSPI_GetError() function gives the error raised during the last operation.
-      (#) HAL_QSPI_Abort() and HAL_QSPI_AbortIT() functions aborts any on-going operation and
+      (#) HAL_QSPI_Abort() and HAL_QSPI_Abort_IT() functions aborts any on-going operation and
           flushes the fifo :
          (++) In polling mode, the output of the function is done when the transfer
               complete bit is set and the busy bit cleared.
          (++) In interrupt mode, HAL_QSPI_AbortCpltCallback() will be called when
-              the transfer complete bi is set.
+              the transfer complete bit is set.
 
     *** Control functions ***
     =========================
@@ -146,6 +157,7 @@
       (#) HAL_QSPI_SetTimeout() function configures the timeout value used in the driver.
       (#) HAL_QSPI_SetFifoThreshold() function configures the threshold on the Fifo of the QSPI IP.
       (#) HAL_QSPI_GetFifoThreshold() function gives the current of the Fifo's threshold
+      (#) HAL_QSPI_SetFlashID() function configures the index of the flash memory to be accessed.
 
     *** Callback registration ***
     =============================================
@@ -153,7 +165,7 @@
       The compilation define  USE_HAL_QSPI_REGISTER_CALLBACKS when set to 1
       allows the user to configure dynamically the driver callbacks.
 
-      Use Functions @ref HAL_QSPI_RegisterCallback() to register a user callback,
+      Use Functions HAL_QSPI_RegisterCallback() to register a user callback,
       it allows to register following callbacks:
         (+) ErrorCallback : callback when error occurs.
         (+) AbortCpltCallback : callback when abort is completed.
@@ -168,8 +180,8 @@
       This function takes as parameters the HAL peripheral handle, the Callback ID
       and a pointer to the user callback function.
 
-      Use function @ref HAL_QSPI_UnRegisterCallback() to reset a callback to the default
-      weak (surcharged) function. It allows to reset following callbacks:
+      Use function HAL_QSPI_UnRegisterCallback() to reset a callback to the default
+      weak (overridden) function. It allows to reset following callbacks:
         (+) ErrorCallback : callback when error occurs.
         (+) AbortCpltCallback : callback when abort is completed.
         (+) FifoThresholdCallback : callback when the fifo threshold is reached.
@@ -182,12 +194,12 @@
         (+) MspDeInitCallback  : QSPI MspDeInit.
       This function) takes as parameters the HAL peripheral handle and the Callback ID.
 
-      By default, after the @ref HAL_QSPI_Init and if the state is HAL_QSPI_STATE_RESET
-      all callbacks are reset to the corresponding legacy weak (surcharged) functions.
+      By default, after the HAL_QSPI_Init and if the state is HAL_QSPI_STATE_RESET
+      all callbacks are reset to the corresponding legacy weak (overridden) functions.
       Exception done for MspInit and MspDeInit callbacks that are respectively
-      reset to the legacy weak (surcharged) functions in the @ref HAL_QSPI_Init
-      and @ref  HAL_QSPI_DeInit only when these callbacks are null (not registered beforehand).
-      If not, MspInit or MspDeInit are not null, the @ref HAL_QSPI_Init and @ref HAL_QSPI_DeInit
+      reset to the legacy weak (overridden) functions in the HAL_QSPI_Init
+      and  HAL_QSPI_DeInit only when these callbacks are null (not registered beforehand).
+      If not, MspInit or MspDeInit are not null, the HAL_QSPI_Init and HAL_QSPI_DeInit
       keep and use the user MspInit/MspDeInit callbacks (registered beforehand)
 
       Callbacks can be registered/unregistered in READY state only.
@@ -195,12 +207,12 @@
       in READY or RESET state, thus registered (user) MspInit/DeInit callbacks can be used
       during the Init/DeInit.
       In that case first register the MspInit/MspDeInit user callbacks
-      using @ref HAL_QSPI_RegisterCallback before calling @ref HAL_QSPI_DeInit
-      or @ref HAL_QSPI_Init function.
+      using HAL_QSPI_RegisterCallback before calling HAL_QSPI_DeInit
+      or HAL_QSPI_Init function.
 
       When The compilation define USE_HAL_QSPI_REGISTER_CALLBACKS is set to 0 or
       not defined, the callback registering feature is not available
-      and weak (surcharged) callbacks are used.
+      and weak (overridden) callbacks are used.
 
     *** Workarounds linked to Silicon Limitation ***
     ====================================================
@@ -210,34 +222,22 @@
 
   @endverbatim
   ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
   */
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 
+#if defined(QUADSPI)
+
 /** @addtogroup STM32H7xx_HAL_Driver
   * @{
   */
-
-#ifdef HAL_QSPI_MODULE_ENABLED
-
-#if defined(QUADSPI)
 
 /** @defgroup QSPI QSPI
   * @brief QSPI HAL module driver
   * @{
   */
+#ifdef HAL_QSPI_MODULE_ENABLED
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -245,7 +245,7 @@
 /** @defgroup QSPI_Private_Constants QSPI Private Constants
   * @{
   */
-#define QSPI_FUNCTIONAL_MODE_INDIRECT_WRITE ((uint32_t)0x00000000)          /*!<Indirect write mode*/
+#define QSPI_FUNCTIONAL_MODE_INDIRECT_WRITE 0x00000000U                     /*!<Indirect write mode*/
 #define QSPI_FUNCTIONAL_MODE_INDIRECT_READ  ((uint32_t)QUADSPI_CCR_FMODE_0) /*!<Indirect read mode*/
 #define QSPI_FUNCTIONAL_MODE_AUTO_POLLING   ((uint32_t)QUADSPI_CCR_FMODE_1) /*!<Automatic polling mode*/
 #define QSPI_FUNCTIONAL_MODE_MEMORY_MAPPED  ((uint32_t)QUADSPI_CCR_FMODE)   /*!<Memory-mapped mode*/
@@ -300,7 +300,7 @@ static void QSPI_Config(QSPI_HandleTypeDef *hqspi, QSPI_CommandTypeDef *cmd, uin
 /**
   * @brief Initialize the QSPI mode according to the specified parameters
   *        in the QSPI_InitTypeDef and initialize the associated handle.
-  * @param hqspi: QSPI handle
+  * @param hqspi QSPI handle
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_QSPI_Init(QSPI_HandleTypeDef *hqspi)
@@ -329,13 +329,8 @@ HAL_StatusTypeDef HAL_QSPI_Init(QSPI_HandleTypeDef *hqspi)
     assert_param(IS_QSPI_FLASH_ID(hqspi->Init.FlashID));
   }
 
-  /* Process locked */
-  __HAL_LOCK(hqspi);
-
   if(hqspi->State == HAL_QSPI_STATE_RESET)
   {
-    /* Allocate lock resource and initialize it */
-    hqspi->Lock = HAL_UNLOCKED;
 
 #if (USE_HAL_QSPI_REGISTER_CALLBACKS == 1)
     /* Reset Callback pointers in HAL_QSPI_STATE_RESET only */
@@ -359,8 +354,9 @@ HAL_StatusTypeDef HAL_QSPI_Init(QSPI_HandleTypeDef *hqspi)
     /* Init the low level hardware : GPIO, CLOCK */
     HAL_QSPI_MspInit(hqspi);
 #endif
+
     /* Configure the default timeout for the QSPI memory access */
-    HAL_QSPI_SetTimeout(hqspi, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
+    HAL_QSPI_SetTimeout(hqspi, HAL_QSPI_TIMEOUT_DEFAULT_VALUE);
   }
 
   /* Configure QSPI FIFO Threshold */
@@ -392,16 +388,13 @@ HAL_StatusTypeDef HAL_QSPI_Init(QSPI_HandleTypeDef *hqspi)
     hqspi->State = HAL_QSPI_STATE_READY;
   }
 
-  /* Release Lock */
-  __HAL_UNLOCK(hqspi);
-
   /* Return function status */
   return status;
 }
 
 /**
   * @brief De-Initialize the QSPI peripheral.
-  * @param hqspi: QSPI handle
+  * @param hqspi QSPI handle
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_QSPI_DeInit(QSPI_HandleTypeDef *hqspi)
@@ -411,9 +404,6 @@ HAL_StatusTypeDef HAL_QSPI_DeInit(QSPI_HandleTypeDef *hqspi)
   {
     return HAL_ERROR;
   }
-
-  /* Process locked */
-  __HAL_LOCK(hqspi);
 
   /* Disable the QSPI Peripheral Clock */
   __HAL_QSPI_DISABLE(hqspi);
@@ -437,15 +427,12 @@ HAL_StatusTypeDef HAL_QSPI_DeInit(QSPI_HandleTypeDef *hqspi)
   /* Initialize the QSPI state */
   hqspi->State = HAL_QSPI_STATE_RESET;
 
-  /* Release Lock */
-  __HAL_UNLOCK(hqspi);
-
   return HAL_OK;
 }
 
 /**
   * @brief Initialize the QSPI MSP.
-  * @param hqspi: QSPI handle
+  * @param hqspi QSPI handle
   * @retval None
   */
 __weak void HAL_QSPI_MspInit(QSPI_HandleTypeDef *hqspi)
@@ -460,7 +447,7 @@ __weak void HAL_QSPI_MspInit(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief DeInitialize the QSPI MSP.
-  * @param hqspi: QSPI handle
+  * @param hqspi QSPI handle
   * @retval None
   */
 __weak void HAL_QSPI_MspDeInit(QSPI_HandleTypeDef *hqspi)
@@ -499,7 +486,7 @@ __weak void HAL_QSPI_MspDeInit(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief Handle QSPI interrupt request.
-  * @param hqspi: QSPI handle
+  * @param hqspi QSPI handle
   * @retval None
   */
 void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
@@ -509,7 +496,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
   uint32_t itsource = READ_REG(hqspi->Instance->CR);
 
   /* QSPI Fifo Threshold interrupt occurred ----------------------------------*/
-  if(((flag & QSPI_FLAG_FT) == QSPI_FLAG_FT) && ((itsource & QSPI_IT_FT) == QSPI_IT_FT))
+  if(((flag & QSPI_FLAG_FT) != 0U) && ((itsource & QSPI_IT_FT) != 0U))
   {
     data_reg = &hqspi->Instance->DR;
 
@@ -521,7 +508,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
         if (hqspi->TxXferCount > 0U)
         {
           /* Fill the FIFO until the threshold is reached */
-          *(__IO uint8_t *)data_reg = *hqspi->pTxBuffPtr;
+          *((__IO uint8_t *)data_reg) = *hqspi->pTxBuffPtr;
           hqspi->pTxBuffPtr++;
           hqspi->TxXferCount--;
         }
@@ -542,7 +529,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
         if (hqspi->RxXferCount > 0U)
         {
           /* Read the FIFO until the threshold is reached */
-          *hqspi->pRxBuffPtr = *(__IO uint8_t *)data_reg;
+          *hqspi->pRxBuffPtr = *((__IO uint8_t *)data_reg);
           hqspi->pRxBuffPtr++;
           hqspi->RxXferCount--;
         }
@@ -559,6 +546,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
     {
       /* Nothing to do */
     }
+
     /* FIFO Threshold callback */
 #if (USE_HAL_QSPI_REGISTER_CALLBACKS == 1)
     hqspi->FifoThresholdCallback(hqspi);
@@ -568,7 +556,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
   }
 
   /* QSPI Transfer Complete interrupt occurred -------------------------------*/
-  else if(((flag & QSPI_FLAG_TC) == QSPI_FLAG_TC) && ((itsource & QSPI_IT_TC) == QSPI_IT_TC))
+  else if(((flag & QSPI_FLAG_TC) != 0U) && ((itsource & QSPI_IT_TC) != 0U))
   {
     /* Clear interrupt */
     WRITE_REG(hqspi->Instance->FCR, QSPI_FLAG_TC);
@@ -579,14 +567,16 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
     /* Transfer complete callback */
     if(hqspi->State == HAL_QSPI_STATE_BUSY_INDIRECT_TX)
     {
-      if (READ_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN) != 0U)
+      if ((hqspi->Instance->CR & QUADSPI_CR_DMAEN) != 0U)
       {
-        /* Disable the DMA transfer by clearing the DMAEN bit in the QSPI CR register */
+        /* Disable using MDMA by clearing DMAEN, note that DMAEN bit is "reserved"
+           but no impact on H7 HW and it minimize the cost in the footprint */
         CLEAR_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
 
         /* Disable the MDMA channel */
         __HAL_MDMA_DISABLE(hqspi->hmdma);
       }
+
 
       /* Change state of QSPI */
       hqspi->State = HAL_QSPI_STATE_READY;
@@ -600,9 +590,10 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
     }
     else if(hqspi->State == HAL_QSPI_STATE_BUSY_INDIRECT_RX)
     {
-      if (READ_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN) != 0U)
+      if ((hqspi->Instance->CR & QUADSPI_CR_DMAEN) != 0U)
       {
-        /* Disable the DMA transfer by clearing the DMAEN bit in the QSPI CR register */
+        /* Disable using MDMA by clearing DMAEN, note that DMAEN bit is "reserved"
+           but no impact on H7 HW and it minimize the cost in the footprint */
         CLEAR_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
 
         /* Disable the MDMA channel */
@@ -616,7 +607,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
           if (hqspi->RxXferCount > 0U)
           {
             /* Read the last data received in the FIFO until it is empty */
-            *hqspi->pRxBuffPtr = *(__IO uint8_t *)data_reg;
+            *hqspi->pRxBuffPtr = *((__IO uint8_t *)data_reg);
             hqspi->pRxBuffPtr++;
             hqspi->RxXferCount--;
           }
@@ -627,6 +618,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
           }
         }
       }
+
 
       /* Change state of QSPI */
       hqspi->State = HAL_QSPI_STATE_READY;
@@ -688,7 +680,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
   }
 
   /* QSPI Status Match interrupt occurred ------------------------------------*/
-  else if(((flag & QSPI_FLAG_SM)== QSPI_FLAG_SM) && ((itsource & QSPI_IT_SM) == QSPI_IT_SM))
+  else if(((flag & QSPI_FLAG_SM) != 0U) && ((itsource & QSPI_IT_SM) != 0U))
   {
     /* Clear interrupt */
     WRITE_REG(hqspi->Instance->FCR, QSPI_FLAG_SM);
@@ -712,7 +704,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
   }
 
   /* QSPI Transfer Error interrupt occurred ----------------------------------*/
-  else if(((flag & QSPI_FLAG_TE) == QSPI_FLAG_TE) && ((itsource & QSPI_IT_TE) == QSPI_IT_TE))
+  else if(((flag & QSPI_FLAG_TE) != 0U) && ((itsource & QSPI_IT_TE) != 0U))
   {
     /* Clear interrupt */
     WRITE_REG(hqspi->Instance->FCR, QSPI_FLAG_TE);
@@ -723,9 +715,10 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
     /* Set error code */
     hqspi->ErrorCode |= HAL_QSPI_ERROR_TRANSFER;
 
-    if (READ_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN) != 0U)
+    if ((hqspi->Instance->CR & QUADSPI_CR_DMAEN) != 0U)
     {
-      /* Disable the DMA transfer by clearing the DMAEN bit in the QSPI CR register */
+      /* Disable using MDMA by clearing DMAEN, note that DMAEN bit is "reserved"
+         but no impact on H7 HW and it minimize the cost in the footprint */
       CLEAR_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
 
       /* Disable the MDMA channel */
@@ -761,7 +754,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
   }
 
   /* QSPI Timeout interrupt occurred -----------------------------------------*/
-  else if(((flag & QSPI_FLAG_TO) == QSPI_FLAG_TO) && ((itsource & QSPI_IT_TO) == QSPI_IT_TO))
+  else if(((flag & QSPI_FLAG_TO) != 0U) && ((itsource & QSPI_IT_TO) != 0U))
   {
     /* Clear interrupt */
     WRITE_REG(hqspi->Instance->FCR, QSPI_FLAG_TO);
@@ -773,6 +766,7 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
     HAL_QSPI_TimeOutCallback(hqspi);
 #endif
   }
+
    else
   {
    /* Nothing to do */
@@ -781,9 +775,9 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief Set the command configuration.
-  * @param hqspi: QSPI handle
+  * @param hqspi QSPI handle
   * @param cmd : structure that contains the command configuration information
-  * @param Timeout : Timeout duration
+  * @param Timeout Timeout duration
   * @note   This function is used only in Indirect Read or Write Modes
   * @retval HAL status
   */
@@ -849,7 +843,6 @@ HAL_StatusTypeDef HAL_QSPI_Command(QSPI_HandleTypeDef *hqspi, QSPI_CommandTypeDe
           /* Update QSPI state */
           hqspi->State = HAL_QSPI_STATE_READY;
         }
-
       }
       else
       {
@@ -872,8 +865,8 @@ HAL_StatusTypeDef HAL_QSPI_Command(QSPI_HandleTypeDef *hqspi, QSPI_CommandTypeDe
 
 /**
   * @brief Set the command configuration in interrupt mode.
-  * @param hqspi: QSPI handle
-  * @param cmd : structure that contains the command configuration information
+  * @param hqspi QSPI handle
+  * @param cmd structure that contains the command configuration information
   * @note   This function is used only in Indirect Read or Write Modes
   * @retval HAL status
   */
@@ -971,9 +964,9 @@ HAL_StatusTypeDef HAL_QSPI_Command_IT(QSPI_HandleTypeDef *hqspi, QSPI_CommandTyp
 
 /**
   * @brief Transmit an amount of data in blocking mode.
-  * @param hqspi: QSPI handle
-  * @param pData: pointer to data buffer
-  * @param Timeout : Timeout duration
+  * @param hqspi QSPI handle
+  * @param pData pointer to data buffer
+  * @param Timeout Timeout duration
   * @note   This function is used only in Indirect Write Mode
   * @retval HAL status
   */
@@ -1013,7 +1006,7 @@ HAL_StatusTypeDef HAL_QSPI_Transmit(QSPI_HandleTypeDef *hqspi, uint8_t *pData, u
           break;
         }
 
-        *(__IO uint8_t *)data_reg = *hqspi->pTxBuffPtr;
+        *((__IO uint8_t *)data_reg) = *hqspi->pTxBuffPtr;
         hqspi->pTxBuffPtr++;
         hqspi->TxXferCount--;
       }
@@ -1054,9 +1047,9 @@ HAL_StatusTypeDef HAL_QSPI_Transmit(QSPI_HandleTypeDef *hqspi, uint8_t *pData, u
 
 /**
   * @brief Receive an amount of data in blocking mode.
-  * @param hqspi: QSPI handle
-  * @param pData: pointer to data buffer
-  * @param Timeout : Timeout duration
+  * @param hqspi QSPI handle
+  * @param pData pointer to data buffer
+  * @param Timeout Timeout duration
   * @note   This function is used only in Indirect Read Mode
   * @retval HAL status
   */
@@ -1100,7 +1093,7 @@ HAL_StatusTypeDef HAL_QSPI_Receive(QSPI_HandleTypeDef *hqspi, uint8_t *pData, ui
           break;
         }
 
-        *hqspi->pRxBuffPtr = *(__IO uint8_t *)data_reg;
+        *hqspi->pRxBuffPtr = *((__IO uint8_t *)data_reg);
         hqspi->pRxBuffPtr++;
         hqspi->RxXferCount--;
       }
@@ -1114,6 +1107,7 @@ HAL_StatusTypeDef HAL_QSPI_Receive(QSPI_HandleTypeDef *hqspi, uint8_t *pData, ui
         {
           /* Clear Transfer Complete bit */
           __HAL_QSPI_CLEAR_FLAG(hqspi, QSPI_FLAG_TC);
+
         }
       }
 
@@ -1139,8 +1133,8 @@ HAL_StatusTypeDef HAL_QSPI_Receive(QSPI_HandleTypeDef *hqspi, uint8_t *pData, ui
 
 /**
   * @brief  Send an amount of data in non-blocking mode with interrupt.
-  * @param  hqspi: QSPI handle
-  * @param  pData: pointer to data buffer
+  * @param  hqspi QSPI handle
+  * @param  pData pointer to data buffer
   * @note   This function is used only in Indirect Write Mode
   * @retval HAL status
   */
@@ -1199,8 +1193,8 @@ HAL_StatusTypeDef HAL_QSPI_Transmit_IT(QSPI_HandleTypeDef *hqspi, uint8_t *pData
 
 /**
   * @brief  Receive an amount of data in non-blocking mode with interrupt.
-  * @param  hqspi: QSPI handle
-  * @param  pData: pointer to data buffer
+  * @param  hqspi QSPI handle
+  * @param  pData pointer to data buffer
   * @note   This function is used only in Indirect Read Mode
   * @retval HAL status
   */
@@ -1263,18 +1257,15 @@ HAL_StatusTypeDef HAL_QSPI_Receive_IT(QSPI_HandleTypeDef *hqspi, uint8_t *pData)
 
 /**
   * @brief  Send an amount of data in non-blocking mode with DMA.
-  * @param  hqspi: QSPI handle
-  * @param  pData: pointer to data buffer
+  * @param  hqspi QSPI handle
+  * @param  pData pointer to data buffer
   * @note   This function is used only in Indirect Write Mode
-  * @note   If MDMA peripheral access is configured as halfword, the number
-  *         of data and the fifo threshold should be aligned on halfword
-  * @note   If MDMA peripheral access is configured as word, the number
-  *         of data and the fifo threshold should be aligned on word
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_QSPI_Transmit_DMA(QSPI_HandleTypeDef *hqspi, uint8_t *pData)
 {
   HAL_StatusTypeDef status = HAL_OK;
+  uint32_t data_size = (READ_REG(hqspi->Instance->DLR) + 1U);
 
   /* Process locked */
   __HAL_LOCK(hqspi);
@@ -1286,64 +1277,76 @@ HAL_StatusTypeDef HAL_QSPI_Transmit_DMA(QSPI_HandleTypeDef *hqspi, uint8_t *pDat
 
     if(pData != NULL )
     {
+      /* Configure counters of the handle */
+      hqspi->TxXferCount = data_size;
 
-      /* Update state */
-      hqspi->State = HAL_QSPI_STATE_BUSY_INDIRECT_TX;
+        /* Update state */
+        hqspi->State = HAL_QSPI_STATE_BUSY_INDIRECT_TX;
 
-      /* Clear interrupt */
-      __HAL_QSPI_CLEAR_FLAG(hqspi, (QSPI_FLAG_TE | QSPI_FLAG_TC));
+        /* Clear interrupt */
+        __HAL_QSPI_CLEAR_FLAG(hqspi, (QSPI_FLAG_TE | QSPI_FLAG_TC));
 
-      /* Configure counters and size of the handle */
-      hqspi->TxXferCount = READ_REG(hqspi->Instance->DLR) + 1U;
-      hqspi->TxXferSize = READ_REG(hqspi->Instance->DLR) + 1U;
-      hqspi->pTxBuffPtr = pData;
+        /* Configure size and pointer of the handle */
+        hqspi->TxXferSize = hqspi->TxXferCount;
+        hqspi->pTxBuffPtr = pData;
 
-      /* Configure QSPI: CCR register with functional mode as indirect write */
-      MODIFY_REG(hqspi->Instance->CCR, QUADSPI_CCR_FMODE, QSPI_FUNCTIONAL_MODE_INDIRECT_WRITE);
+        /* Configure QSPI: CCR register with functional mode as indirect write */
+        MODIFY_REG(hqspi->Instance->CCR, QUADSPI_CCR_FMODE, QSPI_FUNCTIONAL_MODE_INDIRECT_WRITE);
 
-      /* Set the QSPI MDMA transfer complete callback */
-      hqspi->hmdma->XferCpltCallback = QSPI_DMATxCplt;
+        /* Set the QSPI MDMA transfer complete callback */
+        hqspi->hmdma->XferCpltCallback = QSPI_DMATxCplt;
 
-      /* Set the MDMA error callback */
-      hqspi->hmdma->XferErrorCallback = QSPI_DMAError;
+        /* Set the MDMA error callback */
+        hqspi->hmdma->XferErrorCallback = QSPI_DMAError;
 
-      /* Clear the MDMA abort callback */
-      hqspi->hmdma->XferAbortCallback = NULL;
-      
-      /* In Transmit mode , the MDMA destination is the QSPI DR register : Force the MDMA Destination Increment to disable */
-      MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_DINC | MDMA_CTCR_DINCOS) ,MDMA_DEST_INC_DISABLE);
-      
-      /* Update MDMA configuration with the correct SourceInc field for Write operation */
-      if (hqspi->hmdma->Init.SourceDataSize == MDMA_SRC_DATASIZE_BYTE)
-      {
-        MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_SINC | MDMA_CTCR_SINCOS) , MDMA_SRC_INC_BYTE);
-      }
-      else if (hqspi->hmdma->Init.SourceDataSize == MDMA_SRC_DATASIZE_HALFWORD)
-      {
-        MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_SINC | MDMA_CTCR_SINCOS) , MDMA_SRC_INC_HALFWORD);
-      }
-      else if (hqspi->hmdma->Init.SourceDataSize == MDMA_SRC_DATASIZE_WORD)
-      {
-        MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_SINC | MDMA_CTCR_SINCOS) , MDMA_SRC_INC_WORD);
-      }
-      else   
-      {
-        /* in case of incorrect source data size */
-        hqspi->ErrorCode |= HAL_QSPI_ERROR_DMA;
-        status = HAL_ERROR;
-      }
+        /* Clear the MDMA abort callback */
+        hqspi->hmdma->XferAbortCallback = NULL;
 
-      /* Enable the QSPI transfer error and complete Interrupts : Workaround for QSPI low kernel clock frequency */
-      __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TE |QSPI_IT_TC);            
-      
-      /* Enable the QSPI transmit MDMA */
-      if(HAL_MDMA_Start_IT(hqspi->hmdma, (uint32_t)pData, (uint32_t)&hqspi->Instance->DR, hqspi->TxXferSize, 1) == HAL_OK)
-      {
-        /* Process unlocked */
-        __HAL_UNLOCK(hqspi);
+        /* In Transmit mode , the MDMA destination is the QSPI DR register : Force the MDMA Destination Increment to disable */
+        MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_DINC | MDMA_CTCR_DINCOS) ,MDMA_DEST_INC_DISABLE);
 
-        /* Enable the MDMA transfer by setting the DMAEN bit not needed for MDMA*/
-      }
+        /* Update MDMA configuration with the correct SourceInc field for Write operation */
+        if (hqspi->hmdma->Init.SourceDataSize == MDMA_SRC_DATASIZE_BYTE)
+        {
+          MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_SINC | MDMA_CTCR_SINCOS) , MDMA_SRC_INC_BYTE);
+        }
+        else if (hqspi->hmdma->Init.SourceDataSize == MDMA_SRC_DATASIZE_HALFWORD)
+        {
+          MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_SINC | MDMA_CTCR_SINCOS) , MDMA_SRC_INC_HALFWORD);
+        }
+        else if (hqspi->hmdma->Init.SourceDataSize == MDMA_SRC_DATASIZE_WORD)
+        {
+          MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_SINC | MDMA_CTCR_SINCOS) , MDMA_SRC_INC_WORD);
+        }
+        else
+        {
+          /* in case of incorrect source data size */
+          hqspi->ErrorCode |= HAL_QSPI_ERROR_DMA;
+          status = HAL_ERROR;
+        }
+
+        /* Enable the QSPI transmit MDMA */
+        if (HAL_MDMA_Start_IT(hqspi->hmdma, (uint32_t)pData, (uint32_t)&hqspi->Instance->DR, hqspi->TxXferSize, 1) == HAL_OK)
+        {
+          /* Process unlocked */
+          __HAL_UNLOCK(hqspi);
+
+          /* Enable the QSPI transfer error Interrupt */
+          __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TE);
+
+          /* Enable using MDMA by setting DMAEN, note that DMAEN bit is "reserved"
+             but no impact on H7 HW and it minimize the cost in the footprint */
+          SET_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
+        }
+        else
+        {
+          status = HAL_ERROR;
+          hqspi->ErrorCode |= HAL_QSPI_ERROR_DMA;
+          hqspi->State = HAL_QSPI_STATE_READY;
+
+          /* Process unlocked */
+          __HAL_UNLOCK(hqspi);
+        }
     }
     else
     {
@@ -1367,8 +1370,8 @@ HAL_StatusTypeDef HAL_QSPI_Transmit_DMA(QSPI_HandleTypeDef *hqspi, uint8_t *pDat
 
 /**
   * @brief  Receive an amount of data in non-blocking mode with DMA.
-  * @param  hqspi: QSPI handle
-  * @param  pData: pointer to data buffer.
+  * @param  hqspi QSPI handle
+  * @param  pData pointer to data buffer.
   * @note   This function is used only in Indirect Read Mode
   * @retval HAL status
   */
@@ -1376,6 +1379,7 @@ HAL_StatusTypeDef HAL_QSPI_Receive_DMA(QSPI_HandleTypeDef *hqspi, uint8_t *pData
 {
   HAL_StatusTypeDef status = HAL_OK;
   uint32_t addr_reg = READ_REG(hqspi->Instance->AR);
+  uint32_t data_size = (READ_REG(hqspi->Instance->DLR) + 1U);
 
   /* Process locked */
   __HAL_LOCK(hqspi);
@@ -1387,39 +1391,30 @@ HAL_StatusTypeDef HAL_QSPI_Receive_DMA(QSPI_HandleTypeDef *hqspi, uint8_t *pData
 
     if(pData != NULL )
     {
+      /* Configure counters of the handle */
+      hqspi->RxXferCount = data_size;
+        /* Update state */
+        hqspi->State = HAL_QSPI_STATE_BUSY_INDIRECT_RX;
 
-      /* Update state */
-      hqspi->State = HAL_QSPI_STATE_BUSY_INDIRECT_RX;
+        /* Clear interrupt */
+        __HAL_QSPI_CLEAR_FLAG(hqspi, (QSPI_FLAG_TE | QSPI_FLAG_TC));
 
-      /* Clear interrupt */
-      __HAL_QSPI_CLEAR_FLAG(hqspi, (QSPI_FLAG_TE | QSPI_FLAG_TC));
+        /* Configure size and pointer of the handle */
+        hqspi->RxXferSize = hqspi->RxXferCount;
+        hqspi->pRxBuffPtr = pData;
 
-      /* Configure counters and size of the handle */
-      hqspi->RxXferCount = READ_REG(hqspi->Instance->DLR) + 1U;
-      hqspi->RxXferSize = READ_REG(hqspi->Instance->DLR) + 1U;
-      hqspi->pRxBuffPtr = pData;
+        /* Set the QSPI MDMA transfer complete callback */
+        hqspi->hmdma->XferCpltCallback = QSPI_DMARxCplt;
 
-      /* Set the QSPI DMA transfer complete callback */
-      hqspi->hmdma->XferCpltCallback = QSPI_DMARxCplt;
+        /* Set the MDMA error callback */
+        hqspi->hmdma->XferErrorCallback = QSPI_DMAError;
 
-      /* Set the MDMA error callback */
-      hqspi->hmdma->XferErrorCallback = QSPI_DMAError;
+        /* Clear the MDMA abort callback */
+        hqspi->hmdma->XferAbortCallback = NULL;
 
-      /* Clear the MDMA abort callback */
-      hqspi->hmdma->XferAbortCallback = NULL;
-
-
-      /* QSPI need to be configured to indirect mode before starting
-         the MDMA to avoid primatury triggering for the MDMA transfert */
-      /* Configure QSPI: CCR register with functional as indirect read */
-      MODIFY_REG(hqspi->Instance->CCR, QUADSPI_CCR_FMODE, QSPI_FUNCTIONAL_MODE_INDIRECT_READ);
-
-      /* Start the transfer by re-writing the address in AR register */
-      WRITE_REG(hqspi->Instance->AR, addr_reg);
-        
       /* In Receive mode , the MDMA source is the QSPI DR register : Force the MDMA Source Increment to disable */
       MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_SINC | MDMA_CTCR_SINCOS) , MDMA_SRC_INC_DISABLE);
-      
+
       /* Update MDMA configuration with the correct DestinationInc field for read operation */
       if (hqspi->hmdma->Init.DestDataSize == MDMA_DEST_DATASIZE_BYTE)
       {
@@ -1433,27 +1428,44 @@ HAL_StatusTypeDef HAL_QSPI_Receive_DMA(QSPI_HandleTypeDef *hqspi, uint8_t *pData
       {
         MODIFY_REG(hqspi->hmdma->Instance->CTCR, (MDMA_CTCR_DINC | MDMA_CTCR_DINCOS) , MDMA_DEST_INC_WORD);
       }
-      else 
+      else
       {
        /* in case of incorrect destination data size */
         hqspi->ErrorCode |= HAL_QSPI_ERROR_DMA;
         status = HAL_ERROR;
-      }            
-      
-      /* Enable the MDMA */
-      if (HAL_MDMA_Start_IT(hqspi->hmdma, (uint32_t)&hqspi->Instance->DR, (uint32_t)pData, hqspi->RxXferSize, 1) == HAL_OK)
-      {
-        /* Process unlocked */
-        __HAL_UNLOCK(hqspi);
-
-        /* Enable the QSPI transfer error Interrupt */
-        __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TE);
-
-        /* Enable the MDMA transfer by setting the DMAEN bit not needed for MDMA*/
       }
+          /* Configure QSPI: CCR register with functional as indirect read */
+          MODIFY_REG(hqspi->Instance->CCR, QUADSPI_CCR_FMODE, QSPI_FUNCTIONAL_MODE_INDIRECT_READ);
+
+          /* Start the transfer by re-writing the address in AR register */
+          WRITE_REG(hqspi->Instance->AR, addr_reg);
+
+        /* Enable the MDMA */
+        if (HAL_MDMA_Start_IT(hqspi->hmdma, (uint32_t)&hqspi->Instance->DR, (uint32_t)pData, hqspi->RxXferSize, 1) == HAL_OK)
+        {
+          /* Process unlocked */
+          __HAL_UNLOCK(hqspi);
+
+          /* Enable the QSPI transfer error Interrupt */
+          __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TE);
+
+          /* Enable using MDMA by setting DMAEN, note that DMAEN bit is "reserved"
+             but no impact on H7 HW and it minimize the cost in the footprint */
+          SET_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
+        }
+        else
+        {
+          status = HAL_ERROR;
+          hqspi->ErrorCode |= HAL_QSPI_ERROR_DMA;
+          hqspi->State = HAL_QSPI_STATE_READY;
+
+          /* Process unlocked */
+          __HAL_UNLOCK(hqspi);
+        }
     }
     else
     {
+      hqspi->ErrorCode |= HAL_QSPI_ERROR_INVALID_PARAM;
       status = HAL_ERROR;
 
       /* Process unlocked */
@@ -1473,10 +1485,10 @@ HAL_StatusTypeDef HAL_QSPI_Receive_DMA(QSPI_HandleTypeDef *hqspi, uint8_t *pData
 
 /**
   * @brief  Configure the QSPI Automatic Polling Mode in blocking mode.
-  * @param  hqspi: QSPI handle
-  * @param  cmd: structure that contains the command configuration information.
-  * @param  cfg: structure that contains the polling configuration information.
-  * @param  Timeout : Timeout duration
+  * @param  hqspi QSPI handle
+  * @param  cmd structure that contains the command configuration information.
+  * @param  cfg structure that contains the polling configuration information.
+  * @param  Timeout Timeout duration
   * @note   This function is used only in Automatic Polling Mode
   * @retval HAL status
   */
@@ -1574,9 +1586,9 @@ HAL_StatusTypeDef HAL_QSPI_AutoPolling(QSPI_HandleTypeDef *hqspi, QSPI_CommandTy
 
 /**
   * @brief  Configure the QSPI Automatic Polling Mode in non-blocking mode.
-  * @param  hqspi: QSPI handle
-  * @param  cmd: structure that contains the command configuration information.
-  * @param  cfg: structure that contains the polling configuration information.
+  * @param  hqspi QSPI handle
+  * @param  cmd structure that contains the command configuration information.
+  * @param  cfg structure that contains the polling configuration information.
   * @note   This function is used only in Automatic Polling Mode
   * @retval HAL status
   */
@@ -1678,9 +1690,9 @@ HAL_StatusTypeDef HAL_QSPI_AutoPolling_IT(QSPI_HandleTypeDef *hqspi, QSPI_Comman
 
 /**
   * @brief  Configure the Memory Mapped mode.
-  * @param  hqspi: QSPI handle
-  * @param  cmd: structure that contains the command configuration information.
-  * @param  cfg: structure that contains the memory mapped configuration information.
+  * @param  hqspi QSPI handle
+  * @param  cmd structure that contains the command configuration information.
+  * @param  cfg structure that contains the memory mapped configuration information.
   * @note   This function is used only in Memory mapped Mode
   * @retval HAL status
   */
@@ -1733,9 +1745,9 @@ HAL_StatusTypeDef HAL_QSPI_MemoryMapped(QSPI_HandleTypeDef *hqspi, QSPI_CommandT
     if (status == HAL_OK)
     {
       /* Configure QSPI: CR register with timeout counter enable */
-      MODIFY_REG(hqspi->Instance->CR, QUADSPI_CR_TCEN, cfg->TimeOutActivation);
+    MODIFY_REG(hqspi->Instance->CR, QUADSPI_CR_TCEN, cfg->TimeOutActivation);
 
-      if (cfg->TimeOutActivation == QSPI_TIMEOUT_COUNTER_ENABLE)
+    if (cfg->TimeOutActivation == QSPI_TIMEOUT_COUNTER_ENABLE)
       {
         assert_param(IS_QSPI_TIMEOUT_PERIOD(cfg->TimeOutPeriod));
 
@@ -1767,7 +1779,7 @@ HAL_StatusTypeDef HAL_QSPI_MemoryMapped(QSPI_HandleTypeDef *hqspi, QSPI_CommandT
 
 /**
   * @brief  Transfer Error callback.
-  * @param  hqspi: QSPI handle
+  * @param  hqspi QSPI handle
   * @retval None
   */
 __weak void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi)
@@ -1782,7 +1794,7 @@ __weak void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief  Abort completed callback.
-  * @param  hqspi: QSPI handle
+  * @param  hqspi QSPI handle
   * @retval None
   */
 __weak void HAL_QSPI_AbortCpltCallback(QSPI_HandleTypeDef *hqspi)
@@ -1797,7 +1809,7 @@ __weak void HAL_QSPI_AbortCpltCallback(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief  Command completed callback.
-  * @param  hqspi: QSPI handle
+  * @param  hqspi QSPI handle
   * @retval None
   */
 __weak void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi)
@@ -1812,7 +1824,7 @@ __weak void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief  Rx Transfer completed callback.
-  * @param  hqspi: QSPI handle
+  * @param  hqspi QSPI handle
   * @retval None
   */
 __weak void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi)
@@ -1827,10 +1839,10 @@ __weak void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief  Tx Transfer completed callback.
-  * @param  hqspi: QSPI handle
+  * @param  hqspi QSPI handle
   * @retval None
   */
- __weak void HAL_QSPI_TxCpltCallback(QSPI_HandleTypeDef *hqspi)
+__weak void HAL_QSPI_TxCpltCallback(QSPI_HandleTypeDef *hqspi)
 {
   /* Prevent unused argument(s) compilation warning */
   UNUSED(hqspi);
@@ -1843,7 +1855,7 @@ __weak void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief  FIFO Threshold callback.
-  * @param  hqspi: QSPI handle
+  * @param  hqspi QSPI handle
   * @retval None
   */
 __weak void HAL_QSPI_FifoThresholdCallback(QSPI_HandleTypeDef *hqspi)
@@ -1858,7 +1870,7 @@ __weak void HAL_QSPI_FifoThresholdCallback(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief  Status Match callback.
-  * @param  hqspi: QSPI handle
+  * @param  hqspi QSPI handle
   * @retval None
   */
 __weak void HAL_QSPI_StatusMatchCallback(QSPI_HandleTypeDef *hqspi)
@@ -1873,7 +1885,7 @@ __weak void HAL_QSPI_StatusMatchCallback(QSPI_HandleTypeDef *hqspi)
 
 /**
   * @brief  Timeout callback.
-  * @param  hqspi: QSPI handle
+  * @param  hqspi QSPI handle
   * @retval None
   */
 __weak void HAL_QSPI_TimeOutCallback(QSPI_HandleTypeDef *hqspi)
@@ -1888,9 +1900,9 @@ __weak void HAL_QSPI_TimeOutCallback(QSPI_HandleTypeDef *hqspi)
 #if (USE_HAL_QSPI_REGISTER_CALLBACKS == 1)
 /**
   * @brief  Register a User QSPI Callback
-  *         To be used instead of the weak (surcharged) predefined callback
-  * @param hqspi : QSPI handle
-  * @param CallbackId : ID of the callback to be registered
+  *         To be used to override the weak predefined callback
+  * @param hqspi QSPI handle
+  * @param CallbackId ID of the callback to be registered
   *        This parameter can be one of the following values:
   *          @arg @ref HAL_QSPI_ERROR_CB_ID          QSPI Error Callback ID
   *          @arg @ref HAL_QSPI_ABORT_CB_ID          QSPI Abort Callback ID
@@ -1902,7 +1914,7 @@ __weak void HAL_QSPI_TimeOutCallback(QSPI_HandleTypeDef *hqspi)
   *          @arg @ref HAL_QSPI_TIMEOUT_CB_ID        QSPI Timeout Callback ID
   *          @arg @ref HAL_QSPI_MSP_INIT_CB_ID       QSPI MspInit callback ID
   *          @arg @ref HAL_QSPI_MSP_DEINIT_CB_ID     QSPI MspDeInit callback ID
-  * @param pCallback : pointer to the Callback function
+  * @param pCallback pointer to the Callback function
   * @retval status
   */
 HAL_StatusTypeDef HAL_QSPI_RegisterCallback (QSPI_HandleTypeDef *hqspi, HAL_QSPI_CallbackIDTypeDef CallbackId, pQSPI_CallbackTypeDef pCallback)
@@ -1994,9 +2006,9 @@ HAL_StatusTypeDef HAL_QSPI_RegisterCallback (QSPI_HandleTypeDef *hqspi, HAL_QSPI
 
 /**
   * @brief  Unregister a User QSPI Callback
-  *         QSPI Callback is redirected to the weak (surcharged) predefined callback
-  * @param hqspi : QSPI handle
-  * @param CallbackId : ID of the callback to be unregistered
+  *         QSPI Callback is redirected to the weak predefined callback
+  * @param hqspi QSPI handle
+  * @param CallbackId ID of the callback to be unregistered
   *        This parameter can be one of the following values:
   *          @arg @ref HAL_QSPI_ERROR_CB_ID          QSPI Error Callback ID
   *          @arg @ref HAL_QSPI_ABORT_CB_ID          QSPI Abort Callback ID
@@ -2115,10 +2127,10 @@ HAL_StatusTypeDef HAL_QSPI_UnRegisterCallback (QSPI_HandleTypeDef *hqspi, HAL_QS
 
 /**
   * @brief  Return the QSPI handle state.
-  * @param  hqspi: QSPI handle
+  * @param  hqspi QSPI handle
   * @retval HAL state
   */
-HAL_QSPI_StateTypeDef HAL_QSPI_GetState(QSPI_HandleTypeDef *hqspi)
+HAL_QSPI_StateTypeDef HAL_QSPI_GetState(const QSPI_HandleTypeDef *hqspi)
 {
   /* Return QSPI handle state */
   return hqspi->State;
@@ -2126,17 +2138,17 @@ HAL_QSPI_StateTypeDef HAL_QSPI_GetState(QSPI_HandleTypeDef *hqspi)
 
 /**
 * @brief  Return the QSPI error code.
-* @param  hqspi: QSPI handle
+* @param  hqspi QSPI handle
 * @retval QSPI Error Code
 */
-uint32_t HAL_QSPI_GetError(QSPI_HandleTypeDef *hqspi)
+uint32_t HAL_QSPI_GetError(const QSPI_HandleTypeDef *hqspi)
 {
   return hqspi->ErrorCode;
 }
 
 /**
 * @brief  Abort the current transmission.
-* @param  hqspi: QSPI handle
+* @param  hqspi QSPI handle
 * @retval HAL status
 */
 HAL_StatusTypeDef HAL_QSPI_Abort(QSPI_HandleTypeDef *hqspi)
@@ -2150,9 +2162,10 @@ HAL_StatusTypeDef HAL_QSPI_Abort(QSPI_HandleTypeDef *hqspi)
     /* Process unlocked */
     __HAL_UNLOCK(hqspi);
 
-    if (READ_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN) != 0U)
+    if ((hqspi->Instance->CR & QUADSPI_CR_DMAEN) != 0U)
     {
-      /* Disable the DMA transfer by clearing the DMAEN bit in the QSPI CR register */
+      /* Disable using MDMA by clearing DMAEN, note that DMAEN bit is "reserved"
+         but no impact on H7 HW and it minimize the cost in the footprint */
       CLEAR_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
 
       /* Abort MDMA */
@@ -2163,21 +2176,32 @@ HAL_StatusTypeDef HAL_QSPI_Abort(QSPI_HandleTypeDef *hqspi)
       }
     }
 
-    /* Configure QSPI: CR register with Abort request */
-    SET_BIT(hqspi->Instance->CR, QUADSPI_CR_ABORT);
-
-    /* Wait until TC flag is set to go back in idle state */
-    status = QSPI_WaitFlagStateUntilTimeout(hqspi, QSPI_FLAG_TC, SET, tickstart, hqspi->Timeout);
-
-    if(status == HAL_OK)
+    if (__HAL_QSPI_GET_FLAG(hqspi, QSPI_FLAG_BUSY) != RESET)
     {
-      __HAL_QSPI_CLEAR_FLAG(hqspi, QSPI_FLAG_TC);
+      /* Configure QSPI: CR register with Abort request */
+      SET_BIT(hqspi->Instance->CR, QUADSPI_CR_ABORT);
+      
+      /* Wait until TC flag is set to go back in idle state */
+      status = QSPI_WaitFlagStateUntilTimeout(hqspi, QSPI_FLAG_TC, SET, tickstart, hqspi->Timeout);
+      
+      if (status == HAL_OK)
+      {
+        __HAL_QSPI_CLEAR_FLAG(hqspi, QSPI_FLAG_TC);
+        
+        /* Wait until BUSY flag is reset */
+        status = QSPI_WaitFlagStateUntilTimeout(hqspi, QSPI_FLAG_BUSY, RESET, tickstart, hqspi->Timeout);
+      }
 
-      /* Wait until BUSY flag is reset */
-      status = QSPI_WaitFlagStateUntilTimeout(hqspi, QSPI_FLAG_BUSY, RESET, tickstart, hqspi->Timeout);
+      if (status == HAL_OK)
+      {
+        /* Reset functional mode configuration to indirect write mode by default */
+        CLEAR_BIT(hqspi->Instance->CCR, QUADSPI_CCR_FMODE);
+        
+        /* Update state */
+        hqspi->State = HAL_QSPI_STATE_READY;
+      }
     }
-
-    if (status == HAL_OK)
+    else
     {
       /* Update state */
       hqspi->State = HAL_QSPI_STATE_READY;
@@ -2189,7 +2213,7 @@ HAL_StatusTypeDef HAL_QSPI_Abort(QSPI_HandleTypeDef *hqspi)
 
 /**
 * @brief  Abort the current transmission (non-blocking function)
-* @param  hqspi: QSPI handle
+* @param  hqspi QSPI handle
 * @retval HAL status
 */
 HAL_StatusTypeDef HAL_QSPI_Abort_IT(QSPI_HandleTypeDef *hqspi)
@@ -2208,39 +2232,53 @@ HAL_StatusTypeDef HAL_QSPI_Abort_IT(QSPI_HandleTypeDef *hqspi)
     /* Disable all interrupts */
     __HAL_QSPI_DISABLE_IT(hqspi, (QSPI_IT_TO | QSPI_IT_SM | QSPI_IT_FT | QSPI_IT_TC | QSPI_IT_TE));
 
-    if (READ_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN) != 0U)
+    if ((hqspi->Instance->CR & QUADSPI_CR_DMAEN) != 0U)
     {
-      /* Disable the DMA transfer by clearing the DMAEN bit in the QSPI CR register */
+      /* Disable using MDMA by clearing DMAEN, note that DMAEN bit is "reserved"
+         but no impact on H7 HW and it minimize the cost in the footprint */
       CLEAR_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
 
       /* Abort MDMA channel */
       hqspi->hmdma->XferAbortCallback = QSPI_DMAAbortCplt;
       if (HAL_MDMA_Abort_IT(hqspi->hmdma) != HAL_OK)
       {
-        /* Set error code to DMA */
-        hqspi->ErrorCode |= HAL_QSPI_ERROR_DMA;
+        /* Change state of QSPI */
+        hqspi->State = HAL_QSPI_STATE_READY;
 
-        status = HAL_ERROR;
+        /* Abort Complete callback */
+#if (USE_HAL_QSPI_REGISTER_CALLBACKS == 1)
+        hqspi->AbortCpltCallback(hqspi);
+#else
+        HAL_QSPI_AbortCpltCallback(hqspi);
+#endif
       }
     }
     else
     {
-      /* Clear interrupt */
-      __HAL_QSPI_CLEAR_FLAG(hqspi, QSPI_FLAG_TC);
-
-      /* Enable the QSPI Transfer Complete Interrupt */
-      __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TC);
-
-      /* Configure QSPI: CR register with Abort request */
-      SET_BIT(hqspi->Instance->CR, QUADSPI_CR_ABORT);
+      if (__HAL_QSPI_GET_FLAG(hqspi, QSPI_FLAG_BUSY) != RESET)
+      {
+        /* Clear interrupt */
+        __HAL_QSPI_CLEAR_FLAG(hqspi, QSPI_FLAG_TC);
+        
+        /* Enable the QSPI Transfer Complete Interrupt */
+        __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TC);
+        
+        /* Configure QSPI: CR register with Abort request */
+        SET_BIT(hqspi->Instance->CR, QUADSPI_CR_ABORT);
+      }    
+      else
+      {
+        /* Change state of QSPI */
+        hqspi->State = HAL_QSPI_STATE_READY;
+      }
     }
   }
   return status;
 }
 
 /** @brief Set QSPI timeout.
-  * @param  hqspi: QSPI handle.
-  * @param  Timeout: Timeout for the QSPI memory access.
+  * @param  hqspi QSPI handle.
+  * @param  Timeout Timeout for the QSPI memory access.
   * @retval None
   */
 void HAL_QSPI_SetTimeout(QSPI_HandleTypeDef *hqspi, uint32_t Timeout)
@@ -2249,8 +2287,8 @@ void HAL_QSPI_SetTimeout(QSPI_HandleTypeDef *hqspi, uint32_t Timeout)
 }
 
 /** @brief Set QSPI Fifo threshold.
-  * @param  hqspi: QSPI handle.
-  * @param  Threshold: Threshold of the Fifo (value between 1 and 16).
+  * @param  hqspi QSPI handle.
+  * @param  Threshold Threshold of the Fifo (value between 1 and 16).
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_QSPI_SetFifoThreshold(QSPI_HandleTypeDef *hqspi, uint32_t Threshold)
@@ -2282,17 +2320,17 @@ HAL_StatusTypeDef HAL_QSPI_SetFifoThreshold(QSPI_HandleTypeDef *hqspi, uint32_t 
 }
 
 /** @brief Get QSPI Fifo threshold.
-  * @param  hqspi: QSPI handle.
+  * @param  hqspi QSPI handle.
   * @retval Fifo threshold (value between 1 and 16)
   */
-uint32_t HAL_QSPI_GetFifoThreshold(QSPI_HandleTypeDef *hqspi)
+uint32_t HAL_QSPI_GetFifoThreshold(const QSPI_HandleTypeDef *hqspi)
 {
   return ((READ_BIT(hqspi->Instance->CR, QUADSPI_CR_FTHRES) >> QUADSPI_CR_FTHRES_Pos) + 1U);
 }
 
 /** @brief  Set FlashID.
-  * @param  hqspi : QSPI handle.
-  * @param  FlashID : Index of the flash memory to be accessed.
+  * @param  hqspi QSPI handle.
+  * @param  FlashID Index of the flash memory to be accessed.
   *                   This parameter can be a value of @ref QSPI_Flash_Select.
   * @note   The FlashID is ignored when dual flash mode is enabled.
   * @retval HAL status
@@ -2332,13 +2370,21 @@ HAL_StatusTypeDef HAL_QSPI_SetFlashID(QSPI_HandleTypeDef *hqspi, uint32_t FlashI
   */
 
 /**
+  * @}
+  */
+
+/** @defgroup QSPI_Private_Functions QSPI Private Functions
+  * @{
+  */
+
+/**
   * @brief  DMA QSPI receive process complete callback.
-  * @param  hmdma: MDMA handle
+  * @param  hmdma MDMA handle
   * @retval None
   */
 static void QSPI_DMARxCplt(MDMA_HandleTypeDef *hmdma)
 {
-  QSPI_HandleTypeDef* hqspi = ( QSPI_HandleTypeDef* )((MDMA_HandleTypeDef* )hmdma)->Parent;
+  QSPI_HandleTypeDef* hqspi = (QSPI_HandleTypeDef*)(hmdma->Parent);
   hqspi->RxXferCount = 0U;
 
   /* Enable the QSPI transfer complete Interrupt */
@@ -2347,12 +2393,12 @@ static void QSPI_DMARxCplt(MDMA_HandleTypeDef *hmdma)
 
 /**
   * @brief  DMA QSPI transmit process complete callback.
-  * @param  hmdma: MDMA handle
+  * @param  hmdma MDMA handle
   * @retval None
   */
 static void QSPI_DMATxCplt(MDMA_HandleTypeDef *hmdma)
 {
-  QSPI_HandleTypeDef* hqspi = ( QSPI_HandleTypeDef* )((MDMA_HandleTypeDef* )hmdma)->Parent;
+  QSPI_HandleTypeDef* hqspi = (QSPI_HandleTypeDef*)(hmdma->Parent);
   hqspi->TxXferCount = 0U;
 
   /* Enable the QSPI transfer complete Interrupt */
@@ -2361,18 +2407,19 @@ static void QSPI_DMATxCplt(MDMA_HandleTypeDef *hmdma)
 
 /**
   * @brief  DMA QSPI communication error callback.
-  * @param  hmdma: MDMA handle
+  * @param  hmdma MDMA handle
   * @retval None
   */
 static void QSPI_DMAError(MDMA_HandleTypeDef *hmdma)
 {
-  QSPI_HandleTypeDef* hqspi = ( QSPI_HandleTypeDef* )((MDMA_HandleTypeDef* )hmdma)->Parent;
+  QSPI_HandleTypeDef* hqspi = ( QSPI_HandleTypeDef* )(hmdma->Parent);
 
   hqspi->RxXferCount = 0U;
   hqspi->TxXferCount = 0U;
   hqspi->ErrorCode   |= HAL_QSPI_ERROR_DMA;
 
-  /* Disable the MDMA transfer by clearing the DMAEN bit in the QSPI CR register */
+  /* Disable using MDMA by clearing DMAEN, note that DMAEN bit is "reserved"
+     but no impact on H7 HW and it minimize the cost in the footprint */
   CLEAR_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
 
   /* Abort the QSPI */
@@ -2382,12 +2429,12 @@ static void QSPI_DMAError(MDMA_HandleTypeDef *hmdma)
 
 /**
   * @brief  MDMA QSPI abort complete callback.
-  * @param  hmdma: MDMA handle
+  * @param  hmdma MDMA handle
   * @retval None
   */
 static void QSPI_DMAAbortCplt(MDMA_HandleTypeDef *hmdma)
 {
-  QSPI_HandleTypeDef* hqspi = ( QSPI_HandleTypeDef* )((MDMA_HandleTypeDef* )hmdma)->Parent;
+  QSPI_HandleTypeDef* hqspi = ( QSPI_HandleTypeDef* )(hmdma->Parent);
 
   hqspi->RxXferCount = 0U;
   hqspi->TxXferCount = 0U;
@@ -2418,13 +2465,14 @@ static void QSPI_DMAAbortCplt(MDMA_HandleTypeDef *hmdma)
 #endif
   }
 }
+
 /**
   * @brief  Wait for a flag state until timeout.
-  * @param  hqspi: QSPI handle
-  * @param  Flag: Flag checked
-  * @param  State: Value of the flag expected
-  * @param  Tickstart: Tick start value
-  * @param  Timeout: Duration of the timeout
+  * @param  hqspi QSPI handle
+  * @param  Flag Flag checked
+  * @param  State Value of the flag expected
+  * @param  Tickstart Tick start value
+  * @param  Timeout Duration of the timeout
   * @retval HAL status
   */
 static HAL_StatusTypeDef QSPI_WaitFlagStateUntilTimeout(QSPI_HandleTypeDef *hqspi, uint32_t Flag,
@@ -2450,9 +2498,9 @@ static HAL_StatusTypeDef QSPI_WaitFlagStateUntilTimeout(QSPI_HandleTypeDef *hqsp
 
 /**
   * @brief  Configure the communication registers.
-  * @param  hqspi: QSPI handle
-  * @param  cmd: structure that contains the command configuration information
-  * @param  FunctionalMode: functional mode to configured
+  * @param  hqspi QSPI handle
+  * @param  cmd structure that contains the command configuration information
+  * @param  FunctionalMode functional mode to configured
   *           This parameter can be one of the following values:
   *            @arg QSPI_FUNCTIONAL_MODE_INDIRECT_WRITE: Indirect write mode
   *            @arg QSPI_FUNCTIONAL_MODE_INDIRECT_READ: Indirect read mode
@@ -2502,6 +2550,9 @@ static void QSPI_Config(QSPI_HandleTypeDef *hqspi, QSPI_CommandTypeDef *cmd, uin
                                          cmd->AlternateBytesSize | cmd->AlternateByteMode |
                                          cmd->AddressMode | cmd->InstructionMode |
                                          cmd->Instruction | FunctionalMode));
+
+        /* Clear AR register */
+        CLEAR_REG(hqspi->Instance->AR);
       }
     }
     else
@@ -2529,6 +2580,9 @@ static void QSPI_Config(QSPI_HandleTypeDef *hqspi, QSPI_CommandTypeDef *cmd, uin
                                          cmd->DataMode | (cmd->DummyCycles << QUADSPI_CCR_DCYC_Pos) |
                                          cmd->AlternateByteMode | cmd->AddressMode |
                                          cmd->InstructionMode | cmd->Instruction | FunctionalMode));
+
+        /* Clear AR register */
+        CLEAR_REG(hqspi->Instance->AR);
       }
     }
   }
@@ -2563,6 +2617,9 @@ static void QSPI_Config(QSPI_HandleTypeDef *hqspi, QSPI_CommandTypeDef *cmd, uin
                                          cmd->DataMode | (cmd->DummyCycles << QUADSPI_CCR_DCYC_Pos) |
                                          cmd->AlternateBytesSize | cmd->AlternateByteMode |
                                          cmd->AddressMode | cmd->InstructionMode | FunctionalMode));
+
+        /* Clear AR register */
+        CLEAR_REG(hqspi->Instance->AR);
       }
     }
     else
@@ -2592,6 +2649,9 @@ static void QSPI_Config(QSPI_HandleTypeDef *hqspi, QSPI_CommandTypeDef *cmd, uin
                                            cmd->DataMode | (cmd->DummyCycles << QUADSPI_CCR_DCYC_Pos) |
                                            cmd->AlternateByteMode | cmd->AddressMode |
                                            cmd->InstructionMode | FunctionalMode));
+
+          /* Clear AR register */
+          CLEAR_REG(hqspi->Instance->AR);
         }
       }
     }
@@ -2606,16 +2666,13 @@ static void QSPI_Config(QSPI_HandleTypeDef *hqspi, QSPI_CommandTypeDef *cmd, uin
   * @}
   */
 
-/**
-  * @}
-  */
-
-#endif /* QUADSPI */
-
 #endif /* HAL_QSPI_MODULE_ENABLED */
+/**
+  * @}
+  */
 
 /**
   * @}
   */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+#endif /* defined(QUADSPI) */

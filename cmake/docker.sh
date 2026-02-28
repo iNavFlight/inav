@@ -11,7 +11,7 @@ initialize_cmake() {
 }
 
 # Check if CMake has never been initialized
-if [ ! -f Makefile ]; then
+if [ ! -f build.ninja ]; then
     initialize_cmake
 fi
 

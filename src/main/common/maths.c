@@ -123,6 +123,15 @@ int32_t wrap_18000(int32_t angle)
     return angle;
 }
 
+int16_t wrap_180(int16_t angle)
+{
+    if (angle > 180)
+        angle -= 360;
+    if (angle < -180)
+        angle += 360;
+    return angle;
+}
+
 int32_t wrap_36000(int32_t angle)
 {
     if (angle >= 36000)

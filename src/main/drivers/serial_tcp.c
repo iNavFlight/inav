@@ -47,6 +47,7 @@
 
 static const struct serialPortVTable tcpVTable[];
 static tcpPort_t tcpPorts[SERIAL_PORT_COUNT];
+uint16_t tcpBasePort = TCP_BASE_PORT_DEFAULT;
 
 static void *tcpReceiveThread(void* arg)
 {
@@ -66,7 +67,7 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
         return NULL;
     }
 
-    uint16_t tcpPort = BASE_IP_ADDRESS + id - 1;
+    uint16_t tcpPort = tcpBasePort + id - 1;
     if (lookupAddress(NULL, tcpPort, SOCK_STREAM, (struct sockaddr*)&port->sockAddress, &sockaddrlen) != 0) {
             return NULL;
     }
@@ -317,6 +318,12 @@ void tcpSetMode(serialPort_t *instance, portMode_t mode)
     UNUSED(mode);
 }
 
+void tcpSetOptions(serialPort_t *instance, portOptions_t options)
+{
+    UNUSED(instance);
+    UNUSED(options);
+}
+
 static const struct serialPortVTable tcpVTable[] = {
     {
         .serialWrite = tcpWrite,
@@ -326,6 +333,7 @@ static const struct serialPortVTable tcpVTable[] = {
         .serialSetBaudRate = tcpSetBaudRate,
         .isSerialTransmitBufferEmpty = isTcpTransmitBufferEmpty,
         .setMode = tcpSetMode,
+        .setOptions = tcpSetOptions,
         .isConnected = tcpIsConnected,
         .writeBuf = tcpWritBuf,
         .beginWrite = NULL,

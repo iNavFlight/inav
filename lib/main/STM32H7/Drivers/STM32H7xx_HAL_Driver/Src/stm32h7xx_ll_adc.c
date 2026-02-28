@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -208,6 +207,7 @@
 
 /* Check of parameters for configuration of ADC hierarchical scope:           */
 /* ADC group injected                                                         */
+#if defined(STM32H745xx) || defined(STM32H745xG) || defined(STM32H742xx) || defined(STM32H743xx) || defined(STM32H747xG) || defined(STM32H747xx) || defined(STM32H750xx) || defined(STM32H753xx) || defined(STM32H755xx) || defined(STM32H757xx)
 #define IS_LL_ADC_INJ_TRIG_SOURCE(__INJ_TRIG_SOURCE__)                         \
   (   ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_SOFTWARE)                      \
    || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM1_TRGO)                 \
@@ -232,6 +232,30 @@
    || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_LPTIM2_OUT)                \
    || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_LPTIM3_OUT)                \
   )
+#else
+#define IS_LL_ADC_INJ_TRIG_SOURCE(__INJ_TRIG_SOURCE__)                         \
+  (   ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_SOFTWARE)                      \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM1_TRGO)                 \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM1_CH4)                  \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM2_TRGO)                 \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM2_CH1)                  \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM3_CH4)                  \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM4_TRGO)                 \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_EXTI_LINE15)               \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM8_CH4)                  \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM1_TRGO2)                \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM8_TRGO)                 \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM8_TRGO2)                \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM3_CH3)                  \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM3_TRGO)                 \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM3_CH1)                  \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM6_TRGO)                 \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_TIM15_TRGO)                \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_LPTIM1_OUT)                \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_LPTIM2_OUT)                \
+   || ((__INJ_TRIG_SOURCE__) == LL_ADC_INJ_TRIG_EXT_LPTIM3_OUT)                \
+  )
+#endif
 
 #define IS_LL_ADC_INJ_TRIG_EXT_EDGE(__INJ_TRIG_EXT_EDGE__)                     \
   (   ((__INJ_TRIG_EXT_EDGE__) == LL_ADC_INJ_TRIG_EXT_RISING)                  \
@@ -317,7 +341,7 @@
   *         the same ADC common instance to their default reset values.
   * @note   This function is performing a hard reset, using high level
   *         clock source RCC ADC reset.
-  *         Caution: On this STM32 serie, if several ADC instances are available
+  *         Caution: On this STM32 series, if several ADC instances are available
   *         on the selected device, RCC ADC reset will reset
   *         all ADC instances belonging to the common ADC instance.
   *         To de-initialize only 1 ADC instance, use
@@ -328,12 +352,12 @@
   *          - SUCCESS: ADC common registers are de-initialized
   *          - ERROR: not applicable
   */
-ErrorStatus LL_ADC_CommonDeInit(ADC_Common_TypeDef *ADCxy_COMMON)
+ErrorStatus LL_ADC_CommonDeInit(const ADC_Common_TypeDef *ADCxy_COMMON)
 {
   /* Check the parameters */
   assert_param(IS_ADC_COMMON_INSTANCE(ADCxy_COMMON));
 
-  if(ADCxy_COMMON == ADC12_COMMON)
+  if (ADCxy_COMMON == ADC12_COMMON)
   {
     /* Force reset of ADC clock (core clock) */
     LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_ADC12);
@@ -387,7 +411,7 @@ ErrorStatus LL_ADC_CommonInit(ADC_Common_TypeDef *ADCxy_COMMON, LL_ADC_CommonIni
 
   /* Note: Hardware constraint (refer to description of functions             */
   /*       "LL_ADC_SetCommonXXX()" and "LL_ADC_SetMultiXXX()"):               */
-  /*       On this STM32 serie, setting of these features is conditioned to   */
+  /*       On this STM32 series, setting of these features is conditioned to   */
   /*       ADC state:                                                         */
   /*       All ADC instances of the ADC common group must be disabled.        */
   if (__LL_ADC_IS_ENABLED_ALL_COMMON_INSTANCE(ADCxy_COMMON) == 0UL)
@@ -468,7 +492,7 @@ void LL_ADC_CommonStructInit(LL_ADC_CommonInitTypeDef *ADC_CommonInitStruct)
   *         is in an unknown state.
   *         In this case, perform a hard reset using high level
   *         clock source RCC ADC reset.
-  *         Caution: On this STM32 serie, if several ADC instances are available
+  *         Caution: On this STM32 series, if several ADC instances are available
   *         on the selected device, RCC ADC reset will reset
   *         all ADC instances belonging to the common ADC instance.
   *         Refer to function @ref LL_ADC_CommonDeInit().
@@ -489,11 +513,6 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
   /* Disable ADC instance if not already disabled.                            */
   if (LL_ADC_IsEnabled(ADCx) == 1UL)
   {
-    /* Set ADC group regular trigger source to SW start to ensure to not      */
-    /* have an external trigger event occurring during the conversion stop    */
-    /* ADC disable process.                                                   */
-    LL_ADC_REG_SetTriggerSource(ADCx, LL_ADC_REG_TRIG_SOFTWARE);
-
     /* Stop potential ADC conversion on going on ADC group regular.           */
     if (LL_ADC_REG_IsConversionOngoing(ADCx) != 0UL)
     {
@@ -502,11 +521,6 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
         LL_ADC_REG_StopConversion(ADCx);
       }
     }
-
-    /* Set ADC group injected trigger source to SW start to ensure to not     */
-    /* have an external trigger event occurring during the conversion stop    */
-    /* ADC disable process.                                                   */
-    LL_ADC_INJ_SetTriggerSource(ADCx, LL_ADC_INJ_TRIG_SOFTWARE);
 
     /* Stop potential ADC conversion on going on ADC group injected.          */
     if (LL_ADC_INJ_IsConversionOngoing(ADCx) != 0UL)
@@ -608,19 +622,19 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
 
     /* Reset register CFGR */
     CLEAR_BIT(ADCx->CFGR,
-              (  ADC_CFGR_AWD1CH  | ADC_CFGR_JAUTO   | ADC_CFGR_JAWD1EN
+              (ADC_CFGR_AWD1CH  | ADC_CFGR_JAUTO   | ADC_CFGR_JAWD1EN
                | ADC_CFGR_AWD1EN  | ADC_CFGR_AWD1SGL | ADC_CFGR_JQM
                | ADC_CFGR_JDISCEN | ADC_CFGR_DISCNUM | ADC_CFGR_DISCEN
                | ADC_CFGR_AUTDLY  | ADC_CFGR_CONT    | ADC_CFGR_OVRMOD
                | ADC_CFGR_EXTEN   | ADC_CFGR_EXTSEL  | ADC_CFGR_RES
-               | ADC_CFGR_DMNGT  )
+               | ADC_CFGR_DMNGT)
              );
 
     SET_BIT(ADCx->CFGR, ADC_CFGR_JQDIS);
 
     /* Reset register CFGR2 */
     CLEAR_BIT(ADCx->CFGR2,
-              (  ADC_CFGR2_LSHIFT  | ADC_CFGR2_OVSR    | ADC_CFGR2_RSHIFT1
+              (ADC_CFGR2_LSHIFT  | ADC_CFGR2_OVSR    | ADC_CFGR2_RSHIFT1
                | ADC_CFGR2_RSHIFT4 | ADC_CFGR2_RSHIFT3 | ADC_CFGR2_RSHIFT2
                | ADC_CFGR2_RSHIFT1 | ADC_CFGR2_ROVSM   | ADC_CFGR2_TROVS
                | ADC_CFGR2_OVSS    | ADC_CFGR2_JOVSE | ADC_CFGR2_ROVSE)
@@ -642,6 +656,29 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
              );
 
     /* Reset register TR1 */
+#if defined(ADC_VER_V5_V90)
+    if (ADCx == ADC3)
+    {
+      /* Reset register TR1 */
+      MODIFY_REG(ADCx->LTR1_TR1, ADC3_TR1_AWDFILT | ADC3_TR1_HT1 | ADC3_TR1_LT1, ADC3_TR1_HT1);
+
+      /* Reset register TR2 */
+      MODIFY_REG(ADCx->HTR1_TR2, ADC3_TR2_HT2 | ADC3_TR2_LT2, ADC3_TR2_HT2);
+
+      /* Reset register TR3 */
+      MODIFY_REG(ADCx->RES1_TR3, ADC3_TR3_HT3 | ADC3_TR3_LT3, ADC3_TR3_HT3);
+    }
+    else
+    {
+      CLEAR_BIT(ADCx->LTR1_TR1, ADC_LTR_LT);
+      SET_BIT(ADCx->HTR1_TR2, ADC_HTR_HT);
+
+      CLEAR_BIT(ADCx->LTR2_DIFSEL, ADC_LTR_LT);
+      SET_BIT(ADCx->HTR2_CALFACT, ADC_HTR_HT);
+      CLEAR_BIT(ADCx->LTR3_RES10, ADC_LTR_LT);
+      SET_BIT(ADCx->HTR3_RES11, ADC_HTR_HT);
+    }
+#else
     CLEAR_BIT(ADCx->LTR1, ADC_LTR_LT);
     SET_BIT(ADCx->HTR1, ADC_HTR_HT);
 
@@ -649,6 +686,7 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
     SET_BIT(ADCx->HTR2, ADC_HTR_HT);
     CLEAR_BIT(ADCx->LTR3, ADC_LTR_LT);
     SET_BIT(ADCx->HTR3, ADC_HTR_HT);
+#endif
 
     /* Reset register SQR1 */
     CLEAR_BIT(ADCx->SQR1,
@@ -701,6 +739,25 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
     CLEAR_BIT(ADCx->AWD3CR, ADC_AWD3CR_AWD3CH);
 
     /* Reset register DIFSEL */
+#if defined(ADC_VER_V5_V90)
+    if (ADCx == ADC3)
+    {
+      CLEAR_BIT(ADCx->LTR2_DIFSEL, ADC_DIFSEL_DIFSEL);
+
+      /* Reset register CALFACT */
+      CLEAR_BIT(ADCx->HTR2_CALFACT, ADC_CALFACT_CALFACT_D | ADC_CALFACT_CALFACT_S);
+    }
+    else
+    {
+      CLEAR_BIT(ADCx->DIFSEL_RES12, ADC_DIFSEL_DIFSEL);
+
+      /* Reset register CALFACT */
+      CLEAR_BIT(ADCx->CALFACT_RES13, ADC_CALFACT_CALFACT_D | ADC_CALFACT_CALFACT_S);
+
+      /* Reset register CALFACT2 */
+      CLEAR_BIT(ADCx->CALFACT2_RES14, ADC_CALFACT2_LINCALFACT);
+    }
+#else
     CLEAR_BIT(ADCx->DIFSEL, ADC_DIFSEL_DIFSEL);
 
     /* Reset register CALFACT */
@@ -708,16 +765,17 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
 
     /* Reset register CALFACT2 */
     CLEAR_BIT(ADCx->CALFACT2, ADC_CALFACT2_LINCALFACT);
+#endif
   }
   else
   {
     /* ADC instance is in an unknown state */
     /* Need to performing a hard reset of ADC instance, using high level      */
     /* clock source RCC ADC reset.                                            */
-    /* Caution: On this STM32 serie, if several ADC instances are available   */
+    /* Caution: On this STM32 series, if several ADC instances are available   */
     /*          on the selected device, RCC ADC reset will reset              */
     /*          all ADC instances belonging to the common ADC instance.       */
-    /* Caution: On this STM32 serie, if several ADC instances are available   */
+    /* Caution: On this STM32 series, if several ADC instances are available   */
     /*          on the selected device, RCC ADC reset will reset              */
     /*          all ADC instances belonging to the common ADC instance.       */
     status = ERROR;
@@ -779,6 +837,19 @@ ErrorStatus LL_ADC_Init(ADC_TypeDef *ADCx, LL_ADC_InitTypeDef *ADC_InitStruct)
     /*    - Set ADC data resolution                                           */
     /*    - Set ADC conversion data alignment                                 */
     /*    - Set ADC low power mode                                            */
+#if defined(ADC_VER_V5_V90)
+    if(ADCx==ADC3)
+    {
+      MODIFY_REG(ADCx->CFGR,
+                 ADC3_CFGR_RES
+                 | ADC_CFGR_AUTDLY
+                 ,
+                 ((__LL_ADC12_RESOLUTION_TO_ADC3(ADC_InitStruct->Resolution)  & (ADC_CFGR_RES_1 | ADC_CFGR_RES_0)) << 1UL)
+                 | ADC_InitStruct->LowPowerMode
+                );
+    }
+    else
+    {
     MODIFY_REG(ADCx->CFGR,
                ADC_CFGR_RES
                | ADC_CFGR_AUTDLY
@@ -786,6 +857,16 @@ ErrorStatus LL_ADC_Init(ADC_TypeDef *ADCx, LL_ADC_InitTypeDef *ADC_InitStruct)
                ADC_InitStruct->Resolution
                | ADC_InitStruct->LowPowerMode
               );
+    }
+#else
+    MODIFY_REG(ADCx->CFGR,
+               ADC_CFGR_RES
+               | ADC_CFGR_AUTDLY
+               ,
+               ADC_InitStruct->Resolution
+               | ADC_InitStruct->LowPowerMode
+              );
+#endif
 
     MODIFY_REG(ADCx->CFGR2, ADC_CFGR2_LSHIFT, ADC_InitStruct->LeftBitShift);
   }
@@ -856,6 +937,11 @@ ErrorStatus LL_ADC_REG_Init(ADC_TypeDef *ADCx, LL_ADC_REG_InitTypeDef *ADC_REG_I
   if (ADC_REG_InitStruct->SequencerLength != LL_ADC_REG_SEQ_SCAN_DISABLE)
   {
     assert_param(IS_LL_ADC_REG_SEQ_SCAN_DISCONT_MODE(ADC_REG_InitStruct->SequencerDiscont));
+
+    /* ADC group regular continuous mode and discontinuous mode                 */
+    /* can not be enabled simultenaeously                                       */
+    assert_param((ADC_REG_InitStruct->ContinuousMode == LL_ADC_REG_CONV_SINGLE)
+                 || (ADC_REG_InitStruct->SequencerDiscont == LL_ADC_REG_SEQ_DISCONT_DISABLE));
   }
   assert_param(IS_LL_ADC_REG_CONTINUOUS_MODE(ADC_REG_InitStruct->ContinuousMode));
   assert_param(IS_LL_ADC_REG_DATA_TRANSFER_MODE(ADC_REG_InitStruct->DataTransferMode));
@@ -874,7 +960,7 @@ ErrorStatus LL_ADC_REG_Init(ADC_TypeDef *ADCx, LL_ADC_REG_InitTypeDef *ADC_REG_I
     /*    - Set ADC group regular conversion data transfer: no transfer or    */
     /*      transfer by DMA, and DMA requests mode                            */
     /*    - Set ADC group regular overrun behavior                            */
-    /* Note: On this STM32 serie, ADC trigger edge is set to value 0x0 by     */
+    /* Note: On this STM32 series, ADC trigger edge is set to value 0x0 by     */
     /*       setting of trigger source to SW start.                           */
     if (ADC_REG_InitStruct->SequencerLength != LL_ADC_REG_SEQ_SCAN_DISABLE)
     {
@@ -934,7 +1020,7 @@ void LL_ADC_REG_StructInit(LL_ADC_REG_InitTypeDef *ADC_REG_InitStruct)
 {
   /* Set ADC_REG_InitStruct fields to default values */
   /* Set fields of ADC group regular */
-  /* Note: On this STM32 serie, ADC trigger edge is set to value 0x0 by       */
+  /* Note: On this STM32 series, ADC trigger edge is set to value 0x0 by       */
   /*       setting of trigger source to SW start.                             */
   ADC_REG_InitStruct->TriggerSource    = LL_ADC_REG_TRIG_SOFTWARE;
   ADC_REG_InitStruct->SequencerLength  = LL_ADC_REG_SEQ_SCAN_DISABLE;
@@ -1001,7 +1087,7 @@ ErrorStatus LL_ADC_INJ_Init(ADC_TypeDef *ADCx, LL_ADC_INJ_InitTypeDef *ADC_INJ_I
     /*    - Set ADC group injected sequencer discontinuous mode               */
     /*    - Set ADC group injected conversion trigger: independent or         */
     /*      from ADC group regular                                            */
-    /* Note: On this STM32 serie, ADC trigger edge is set to value 0x0 by     */
+    /* Note: On this STM32 series, ADC trigger edge is set to value 0x0 by     */
     /*       setting of trigger source to SW start.                           */
     if (ADC_INJ_InitStruct->SequencerLength != LL_ADC_REG_SEQ_SCAN_DISABLE)
     {
@@ -1077,4 +1163,3 @@ void LL_ADC_INJ_StructInit(LL_ADC_INJ_InitTypeDef *ADC_INJ_InitStruct)
 
 #endif /* USE_FULL_LL_DRIVER */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -41,10 +41,10 @@ void secondaryDynamicGyroNotchFiltersInit(secondaryDynamicGyroNotchState_t *stat
     }
 
     state->dynNotchQ = gyroConfig()->dynamicGyroNotch3dQ / 100.0f;
-    state->enabled = gyroConfig()->dynamicGyroNotchMode != DYNAMIC_NOTCH_MODE_2D;
+    state->enabled = gyroConfig()->dynamicGyroNotchEnabled && gyroConfig()->dynamicGyroNotchMode != DYNAMIC_NOTCH_MODE_2D;
     state->looptime = getLooptime();
 
-    if (gyroConfig()->dynamicGyroNotchMode == DYNAMIC_NOTCH_MODE_3D) {
+    if (state->enabled) {
         /* 
          * Enable ROLL filter
          */

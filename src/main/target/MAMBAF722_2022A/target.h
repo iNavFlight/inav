@@ -23,6 +23,7 @@
 
 #define TARGET_BOARD_IDENTIFIER         "M72B"
 #define USBD_PRODUCT_STRING             "MAMBAF722_2022B"
+#define USE_DSHOT_DMAR
 
 #else
 

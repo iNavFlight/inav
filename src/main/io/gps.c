@@ -102,13 +102,6 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
     { false, 0, NULL, NULL },
 #endif
 
-    /* UBLOX7PLUS binary */
-#ifdef USE_GPS_PROTO_UBLOX
-    { false, MODE_RXTX, &gpsRestartUBLOX, &gpsHandleUBLOX },
-#else
-    { false, 0,  NULL, NULL },
-#endif
-
     /* MSP GPS */
 #ifdef USE_GPS_PROTO_MSP
     { true, 0, &gpsRestartMSP, &gpsHandleMSP },
@@ -399,11 +392,13 @@ void gpsProcessNewSolutionData(bool timeout)
     // Update time
     gpsUpdateTime();
 
-    // Update timeout
-    gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
+    if (!timeout) {
+        // Update timeout
+        gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
 
-    // Update statistics
-    gpsStats.lastMessageDt = gpsState.lastMessageMs - gpsState.lastLastMessageMs;
+        // Update statistics
+        gpsStats.lastMessageDt = gpsState.lastMessageMs - gpsState.lastLastMessageMs;
+    }
     gpsSol.flags.hasNewData = true;
 
     // Toggle heartbeat

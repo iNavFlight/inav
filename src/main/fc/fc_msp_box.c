@@ -43,6 +43,9 @@
 
 #include "telemetry/telemetry.h"
 
+#include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
+
 #define BOX_SUFFIX ';'
 #define BOX_SUFFIX_LEN 1
 
@@ -102,6 +105,10 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXMIXERPROFILE,     .boxName = "MIXER PROFILE 2",   .permanentId = 62 },
     { .boxId = BOXMIXERTRANSITION,  .boxName = "MIXER TRANSITION",  .permanentId = 63 },
     { .boxId = BOXANGLEHOLD,        .boxName = "ANGLE HOLD",        .permanentId = 64 },
+    { .boxId = BOXGIMBALTLOCK,      .boxName = "GIMBAL LEVEL TILT", .permanentId = 65 },
+    { .boxId = BOXGIMBALRLOCK,      .boxName = "GIMBAL LEVEL ROLL", .permanentId = 66 },
+    { .boxId = BOXGIMBALCENTER,     .boxName = "GIMBAL CENTER",     .permanentId = 67 },
+    { .boxId = BOXGIMBALHTRK,       .boxName = "GIMBAL HEADTRACKER", .permanentId = 68 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -358,6 +365,19 @@ void initActiveBoxIds(void)
     ADD_ACTIVE_BOX(BOXMIXERPROFILE);
     ADD_ACTIVE_BOX(BOXMIXERTRANSITION);
 #endif
+
+#ifdef USE_SERIAL_GIMBAL
+    if (gimbalCommonIsEnabled()) {
+        ADD_ACTIVE_BOX(BOXGIMBALTLOCK);
+        ADD_ACTIVE_BOX(BOXGIMBALRLOCK);
+        ADD_ACTIVE_BOX(BOXGIMBALCENTER);
+    }
+#endif
+#ifdef USE_HEADTRACKER
+    if(headTrackerConfig()->devType != HEADTRACKER_NONE) {
+        ADD_ACTIVE_BOX(BOXGIMBALHTRK);
+    }
+#endif
 }
 
 #define IS_ENABLED(mask) ((mask) == 0 ? 0 : 1)
@@ -431,6 +451,21 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)), BOXMIXERTRANSITION);
 #endif
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANGLEHOLD)),       BOXANGLEHOLD);
+
+#ifdef USE_SERIAL_GIMBAL
+    if(IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
+        CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)), BOXGIMBALCENTER);
+#ifdef USE_HEADTRACKER
+    } else if (headTrackerCommonIsReady(headTrackerCommonDevice()) && IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)) {
+        CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)), BOXGIMBALHTRK);
+#endif
+    } else {
+        CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALTLOCK) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)),     BOXGIMBALTLOCK);
+        CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALRLOCK) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)),     BOXGIMBALRLOCK);
+        CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALHTRK) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)),     BOXGIMBALRLOCK);
+    }
+#endif
+
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {

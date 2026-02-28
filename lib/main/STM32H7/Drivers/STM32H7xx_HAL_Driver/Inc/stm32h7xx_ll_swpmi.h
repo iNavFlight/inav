@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -64,24 +63,30 @@ typedef struct
   uint32_t VoltageClass;           /*!< Specifies the SWP Voltage Class.
                                         This parameter can be a value of @ref SWPMI_LL_EC_VOLTAGE_CLASS
 
-                                        This feature can be modified afterwards using unitary function @ref LL_SWPMI_SetVoltageClass. */
+                                        This feature can be modified afterwards using unitary
+                                        function @ref LL_SWPMI_SetVoltageClass. */
 
   uint32_t BitRatePrescaler;       /*!< Specifies the SWPMI bitrate prescaler.
-                                        This parameter must be a number between Min_Data=0 and Max_Data=255U.
+                                        This parameter must be a number between Min_Data=0
+                                        and Max_Data=255U.
 
-                                        The value can be calculated thanks to helper macro @ref __LL_SWPMI_CALC_BITRATE_PRESCALER
+                                        The value can be calculated thanks to helper
+                                        macro @ref __LL_SWPMI_CALC_BITRATE_PRESCALER
 
-                                        This feature can be modified afterwards using unitary function @ref LL_SWPMI_SetBitRatePrescaler. */
+                                        This feature can be modified afterwards using unitary
+                                        function @ref LL_SWPMI_SetBitRatePrescaler. */
 
   uint32_t TxBufferingMode;        /*!< Specifies the transmission buffering mode.
                                         This parameter can be a value of @ref SWPMI_LL_EC_SW_BUFFER_TX
 
-                                        This feature can be modified afterwards using unitary function @ref LL_SWPMI_SetTransmissionMode. */
+                                        This feature can be modified afterwards using
+                                        unitary function @ref LL_SWPMI_SetTransmissionMode. */
 
   uint32_t RxBufferingMode;        /*!< Specifies the reception buffering mode.
                                         This parameter can be a value of @ref SWPMI_LL_EC_SW_BUFFER_RX
 
-                                        This feature can be modified afterwards using unitary function @ref LL_SWPMI_SetReceptionMode. */
+                                        This feature can be modified afterwards using
+                                        unitary function @ref LL_SWPMI_SetReceptionMode. */
 } LL_SWPMI_InitTypeDef;
 
 /**
@@ -267,7 +272,7 @@ __STATIC_INLINE void LL_SWPMI_SetReceptionMode(SWPMI_TypeDef *SWPMIx, uint32_t R
   *         @arg @ref LL_SWPMI_SW_BUFFER_RX_SINGLE
   *         @arg @ref LL_SWPMI_SW_BUFFER_RX_MULTI
   */
-__STATIC_INLINE uint32_t LL_SWPMI_GetReceptionMode(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_GetReceptionMode(const SWPMI_TypeDef *SWPMIx)
 {
   return (uint32_t)(READ_BIT(SWPMIx->CR, SWPMI_CR_RXMODE));
 }
@@ -295,7 +300,7 @@ __STATIC_INLINE void LL_SWPMI_SetTransmissionMode(SWPMI_TypeDef *SWPMIx, uint32_
   *         @arg @ref LL_SWPMI_SW_BUFFER_TX_SINGLE
   *         @arg @ref LL_SWPMI_SW_BUFFER_TX_MULTI
   */
-__STATIC_INLINE uint32_t LL_SWPMI_GetTransmissionMode(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_GetTransmissionMode(const SWPMI_TypeDef *SWPMIx)
 {
   return (uint32_t)(READ_BIT(SWPMIx->CR, SWPMI_CR_TXMODE));
 }
@@ -352,7 +357,7 @@ __STATIC_INLINE void LL_SWPMI_DisableTransceiver(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledTransceiver(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledTransceiver(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->CR, SWPMI_CR_SWPEN) == (SWPMI_CR_SWPEN)) ? 1UL : 0UL);
 }
@@ -382,7 +387,7 @@ __STATIC_INLINE void LL_SWPMI_Activate(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActivated(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActivated(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->CR, SWPMI_CR_SWPACT) == (SWPMI_CR_SWPACT)) ? 1UL : 0UL);
 }
@@ -429,7 +434,7 @@ __STATIC_INLINE void LL_SWPMI_SetBitRatePrescaler(SWPMI_TypeDef *SWPMIx, uint32_
   * @param  SWPMIx SWPMI Instance
   * @retval A number between Min_Data=0 and Max_Data=255U
   */
-__STATIC_INLINE uint32_t LL_SWPMI_GetBitRatePrescaler(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_GetBitRatePrescaler(const SWPMI_TypeDef *SWPMIx)
 {
   return (uint32_t)(READ_BIT(SWPMIx->BRR, SWPMI_BRR_BR));
 }
@@ -456,7 +461,7 @@ __STATIC_INLINE void LL_SWPMI_SetVoltageClass(SWPMI_TypeDef *SWPMIx, uint32_t Vo
   *         @arg @ref LL_SWPMI_VOLTAGE_CLASS_C
   *         @arg @ref LL_SWPMI_VOLTAGE_CLASS_B
   */
-__STATIC_INLINE uint32_t LL_SWPMI_GetVoltageClass(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_GetVoltageClass(const SWPMI_TypeDef *SWPMIx)
 {
   return (uint32_t)(READ_BIT(SWPMIx->OR, SWPMI_OR_CLASS));
 }
@@ -475,7 +480,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_GetVoltageClass(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBF(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBF(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXBFF) == (SWPMI_ISR_RXBFF)) ? 1UL : 0UL);
 }
@@ -486,7 +491,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBF(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXBE(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXBE(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_TXBEF) == (SWPMI_ISR_TXBEF)) ? 1UL : 0UL);
 }
@@ -497,7 +502,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXBE(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBER(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBER(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXBERF) == (SWPMI_ISR_RXBERF)) ? 1UL : 0UL);
 }
@@ -508,7 +513,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXBER(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXOVR(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXOVR(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXOVRF) == (SWPMI_ISR_RXOVRF)) ? 1UL : 0UL);
 }
@@ -519,7 +524,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXOVR(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXUNR(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXUNR(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_TXUNRF) == (SWPMI_ISR_TXUNRF)) ? 1UL : 0UL);
 }
@@ -531,7 +536,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXUNR(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXNE(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXNE(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_RXNE) == (SWPMI_ISR_RXNE)) ? 1UL : 0UL);
 }
@@ -543,7 +548,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RXNE(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXE(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXE(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_TXE) == (SWPMI_ISR_TXE)) ? 1UL : 0UL);
 }
@@ -555,7 +560,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TXE(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TC(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TC(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_TCF) == (SWPMI_ISR_TCF)) ? 1UL : 0UL);
 }
@@ -567,7 +572,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_TC(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SR(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SR(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_SRF) == (SWPMI_ISR_SRF)) ? 1UL : 0UL);
 }
@@ -578,7 +583,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SR(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SUSP(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SUSP(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_SUSP) == (SWPMI_ISR_SUSP)) ? 1UL : 0UL);
 }
@@ -589,7 +594,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_SUSP(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_DEACT(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_DEACT(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_DEACTF) == (SWPMI_ISR_DEACTF)) ? 1UL : 0UL);
 }
@@ -600,7 +605,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_DEACT(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RDYF(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsActiveFlag_RDYF(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->ISR, SWPMI_ISR_RDYF) == (SWPMI_ISR_RDYF)) ? 1UL : 0UL);
 }
@@ -927,7 +932,7 @@ __STATIC_INLINE void LL_SWPMI_DisableIT_RXBF(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RDY(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RDY(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_RDYIE) == (SWPMI_IER_RDYIE)) ? 1UL : 0UL);
 }
@@ -938,7 +943,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RDY(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_SR(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_SR(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_SRIE) == (SWPMI_IER_SRIE)) ? 1UL : 0UL);
 }
@@ -949,7 +954,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_SR(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TC(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TC(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_TCIE) == (SWPMI_IER_TCIE)) ? 1UL : 0UL);
 }
@@ -960,7 +965,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TC(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TX(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TX(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_TIE) == (SWPMI_IER_TIE)) ? 1UL : 0UL);
 }
@@ -971,7 +976,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TX(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RX(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RX(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_RIE) == (SWPMI_IER_RIE)) ? 1UL : 0UL);
 }
@@ -982,7 +987,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RX(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXUNR(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXUNR(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_TXUNRIE) == (SWPMI_IER_TXUNRIE)) ? 1UL : 0UL);
 }
@@ -993,7 +998,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXUNR(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXOVR(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXOVR(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_RXOVRIE) == (SWPMI_IER_RXOVRIE)) ? 1UL : 0UL);
 }
@@ -1004,7 +1009,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXOVR(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXBER(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXBER(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_RXBERIE) == (SWPMI_IER_RXBERIE)) ? 1UL : 0UL);
 }
@@ -1015,7 +1020,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXBER(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXBE(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXBE(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_TXBEIE) == (SWPMI_IER_TXBEIE)) ? 1UL : 0UL);
 }
@@ -1026,7 +1031,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_TXBE(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXBF(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledIT_RXBF(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->IER, SWPMI_IER_RXBFIE) == (SWPMI_IER_RXBFIE)) ? 1UL : 0UL);
 }
@@ -1067,7 +1072,7 @@ __STATIC_INLINE void LL_SWPMI_DisableDMAReq_RX(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledDMAReq_RX(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledDMAReq_RX(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->CR, SWPMI_CR_RXDMA) == (SWPMI_CR_RXDMA)) ? 1UL : 0UL);
 }
@@ -1100,7 +1105,7 @@ __STATIC_INLINE void LL_SWPMI_DisableDMAReq_TX(SWPMI_TypeDef *SWPMIx)
   * @param  SWPMIx SWPMI Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledDMAReq_TX(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_IsEnabledDMAReq_TX(const SWPMI_TypeDef *SWPMIx)
 {
   return ((READ_BIT(SWPMIx->CR, SWPMI_CR_TXDMA) == (SWPMI_CR_TXDMA)) ? 1UL : 0UL);
 }
@@ -1115,19 +1120,19 @@ __STATIC_INLINE uint32_t LL_SWPMI_IsEnabledDMAReq_TX(SWPMI_TypeDef *SWPMIx)
   *         @arg @ref LL_SWPMI_DMA_REG_DATA_RECEIVE
   * @retval Address of data register
   */
-__STATIC_INLINE uint32_t LL_SWPMI_DMA_GetRegAddr(SWPMI_TypeDef *SWPMIx, uint32_t Direction)
+__STATIC_INLINE uint32_t LL_SWPMI_DMA_GetRegAddr(const SWPMI_TypeDef *SWPMIx, uint32_t Direction)
 {
   uint32_t data_reg_addr;
 
   if (Direction == LL_SWPMI_DMA_REG_DATA_TRANSMIT)
   {
     /* return address of TDR register */
-    data_reg_addr = (uint32_t)&(SWPMIx->TDR);
+    data_reg_addr = (uint32_t) &(SWPMIx->TDR);
   }
   else
   {
     /* return address of RDR register */
-    data_reg_addr = (uint32_t)&(SWPMIx->RDR);
+    data_reg_addr = (uint32_t) &(SWPMIx->RDR);
   }
 
   return data_reg_addr;
@@ -1147,7 +1152,7 @@ __STATIC_INLINE uint32_t LL_SWPMI_DMA_GetRegAddr(SWPMI_TypeDef *SWPMIx, uint32_t
   * @param  SWPMIx SWPMI Instance
   * @retval Value between Min_Data=0x00 and Max_Data=0x1F
   */
-__STATIC_INLINE uint32_t LL_SWPMI_GetReceiveFrameLength(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_GetReceiveFrameLength(const SWPMI_TypeDef *SWPMIx)
 {
   return (uint32_t)(READ_BIT(SWPMIx->RFL, SWPMI_RFL_RFL));
 }
@@ -1211,8 +1216,8 @@ __STATIC_INLINE void LL_SWPMI_DisableTXBypass(SWPMI_TypeDef *SWPMIx)
   * @{
   */
 
-ErrorStatus LL_SWPMI_DeInit(SWPMI_TypeDef *SWPMIx);
-ErrorStatus LL_SWPMI_Init(SWPMI_TypeDef *SWPMIx, LL_SWPMI_InitTypeDef *SWPMI_InitStruct);
+ErrorStatus LL_SWPMI_DeInit(const SWPMI_TypeDef *SWPMIx);
+ErrorStatus LL_SWPMI_Init(SWPMI_TypeDef *SWPMIx, const LL_SWPMI_InitTypeDef *SWPMI_InitStruct);
 void        LL_SWPMI_StructInit(LL_SWPMI_InitTypeDef *SWPMI_InitStruct);
 
 /**
@@ -1238,5 +1243,3 @@ void        LL_SWPMI_StructInit(LL_SWPMI_InitTypeDef *SWPMI_InitStruct);
 #endif
 
 #endif /* STM32H7xx_LL_SWPMI_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

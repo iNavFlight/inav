@@ -185,6 +185,13 @@ void uartSetMode(serialPort_t *instance, portMode_t mode)
     uartReconfigure(uartPort);
 }
 
+void uartSetOptions(serialPort_t *instance, portOptions_t options)
+{
+    uartPort_t *uartPort = (uartPort_t *)instance;
+    uartPort->port.options = options;
+    uartReconfigure(uartPort);
+}
+
 uint32_t uartTotalRxBytesWaiting(const serialPort_t *instance)
 {
     uartPort_t *s = (uartPort_t*)instance;
@@ -266,6 +273,7 @@ const struct serialPortVTable uartVTable[] = {
         .serialSetBaudRate = uartSetBaudRate,
         .isSerialTransmitBufferEmpty = isUartTransmitBufferEmpty,
         .setMode = uartSetMode,
+        .setOptions = uartSetOptions,
         .isConnected = NULL,
         .writeBuf = NULL,
         .beginWrite = NULL,

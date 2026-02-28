@@ -214,6 +214,7 @@ bool bmi088AccDetect(accDev_t *acc)
 
     acc->initFn = bmi088AccInit;
     acc->readFn = bmi088AccRead;
+    acc->accAlign = acc->busDev->param;
 
     return true;
 }

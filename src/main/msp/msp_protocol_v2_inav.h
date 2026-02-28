@@ -46,6 +46,8 @@
 #define MSP2_INAV_OSD_PREFERENCES               0x2016
 #define MSP2_INAV_OSD_SET_PREFERENCES           0x2017
 
+#define MSP2_INAV_OSD_UPDATE_POSITION           0x2118
+
 #define MSP2_INAV_SELECT_BATTERY_PROFILE        0x2018
 
 #define MSP2_INAV_DEBUG                         0x2019
@@ -87,14 +89,18 @@
 
 #define MSP2_INAV_MISC2                         0x203A
 #define MSP2_INAV_LOGIC_CONDITIONS_SINGLE       0x203B
+#define MSP2_INAV_LOGIC_CONDITIONS_CONFIGURED   0x203C  // Returns 8-byte bitmask of non-default logic conditions
 
 #define MSP2_INAV_ESC_RPM                       0x2040
+#define MSP2_INAV_ESC_TELEM                     0x2041
 
 #define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
 #define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
 
 #define MSP2_INAV_FW_APPROACH                   0x204A
 #define MSP2_INAV_SET_FW_APPROACH               0x204B
+
+#define MSP2_INAV_GPS_UBLOX_COMMAND             0x2050
 
 #define MSP2_INAV_RATE_DYNAMICS                 0x2060
 #define MSP2_INAV_SET_RATE_DYNAMICS             0x2061
@@ -107,7 +113,16 @@
 #define MSP2_ADSB_VEHICLE_LIST                  0x2090
 
 #define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
-#define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2101
+#define MSP2_INAV_CUSTOM_OSD_ELEMENT            0x2101
+#define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2102
 
 #define MSP2_INAV_SERVO_CONFIG                  0x2200
 #define MSP2_INAV_SET_SERVO_CONFIG              0x2201
+
+#define MSP2_INAV_GEOZONE                       0x2210
+#define MSP2_INAV_SET_GEOZONE                   0x2211
+#define MSP2_INAV_GEOZONE_VERTEX                0x2212
+#define MSP2_INAV_SET_GEOZONE_VERTEX            0x2213
+#define MSP2_INAV_SET_GVAR                      0x2214
+
+#define MSP2_INAV_FULL_LOCAL_POSE               0x2220

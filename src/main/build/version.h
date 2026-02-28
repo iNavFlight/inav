@@ -18,7 +18,11 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 #define FC_VERSION_STRING STR(FC_VERSION_MAJOR) "." STR(FC_VERSION_MINOR) "." STR(FC_VERSION_PATCH_LEVEL)
+#ifndef FC_VERSION_TYPE
+#define FC_VERSION_TYPE ""
+#endif
 #define FC_FIRMWARE_NAME "INAV"
+
 
 #define MW_VERSION              231
 

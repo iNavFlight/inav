@@ -15,16 +15,45 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
-#include "platform.h"
-#include "drivers/system.h"
-#include "config/config_streamer.h"
+ #include <string.h>
+ #include "platform.h"
+ #include "drivers/system.h"
+ #include "config/config_streamer.h"
+ 
+ #if defined(STM32H7) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
 
-#if defined(STM32H7) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
+static uint32_t getFLASHBankForEEPROM(uint32_t address)
+{
+#ifdef DUAL_BANK
+    if (address < (FLASH_BASE + FLASH_BANK_SIZE)) {
+        return FLASH_BANK_1;
+    }
 
-#if defined(STM32H743xx)
+    return FLASH_BANK_2;
+#else
+    return FLASH_BANK_1;
+#endif
+}
+
+#if defined(STM32H7A3xx)
+static uint32_t getFLASHSectorForEEPROM(uint32_t address)
+{
+    uint32_t sector = 0;
+
+    if (address < (FLASH_BASE + FLASH_BANK_SIZE)) {
+        sector = (address - FLASH_BASE) / FLASH_SECTOR_SIZE;
+    } else {
+        sector = (address - (FLASH_BASE + FLASH_BANK_SIZE)) / FLASH_SECTOR_SIZE;
+    }
+
+    if (sector > FLASH_SECTOR_TOTAL) {
+        failureMode(FAILURE_FLASH_WRITE_FAILED);
+    }
+
+    return sector;
+}
+#elif defined(STM32H743xx)
 /* Sectors 0-7 of 128K each */
-#define FLASH_PAGE_SIZE     ((uint32_t)0x20000) // 128K sectors
 static uint32_t getFLASHSectorForEEPROM(uint32_t address)
 {
     if (address <= 0x0801FFFF)
@@ -49,9 +78,9 @@ static uint32_t getFLASHSectorForEEPROM(uint32_t address)
     }
 }
 #elif defined(STM32H750xx)
-#  error "STM32750xx only has one flash page which contains the bootloader, no spare flash pages available, use external storage for persistent config or ram for target testing"
+#error "STM32750xx only has one flash page which contains the bootloader, no spare flash pages available, use external storage for persistent config or ram for target testing"
 #else
-#  error "Unsupported CPU!"
+#error "Unsupported CPU!"
 #endif
 
 void config_streamer_impl_unlock(void)
@@ -70,30 +99,31 @@ int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer
         return c->err;
     }
 
-    if (c->address % FLASH_PAGE_SIZE == 0) {
+    if (c->address % FLASH_SECTOR_SIZE == 0) {
         FLASH_EraseInitTypeDef EraseInitStruct = {
-            .TypeErase     = FLASH_TYPEERASE_SECTORS,
-            .VoltageRange  = FLASH_VOLTAGE_RANGE_3, // 2.7-3.6V
-            .NbSectors     = 1,
-            .Banks         = FLASH_BANK_1
-        };
-        EraseInitStruct.Sector = getFLASHSectorForEEPROM(c->address);
+            .TypeErase = FLASH_TYPEERASE_SECTORS,
+#ifdef FLASH_VOLTAGE_RANGE_3
+            .VoltageRange = FLASH_VOLTAGE_RANGE_3,  // 2.7-3.6V
+#endif
+            .NbSectors = 1};
+         EraseInitStruct.Banks = getFLASHBankForEEPROM(c->address);
+         EraseInitStruct.Sector = getFLASHSectorForEEPROM(c->address);
 
-        uint32_t SECTORError;
-        const HAL_StatusTypeDef status = HAL_FLASHEx_Erase(&EraseInitStruct, &SECTORError);
-        if (status != HAL_OK) {
-            return -1;
-        }
-    }
+         uint32_t SECTORError;
+         const HAL_StatusTypeDef status = HAL_FLASHEx_Erase(&EraseInitStruct, &SECTORError);
+         if (status != HAL_OK) {
+             return -1;
+         }
+     }
 
-    // On H7 HAL_FLASH_Program takes data address, not the raw word value
-    const HAL_StatusTypeDef status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, c->address, (uint32_t)buffer);
-    if (status != HAL_OK) {
-        return -2;
-    }
+     // On H7 HAL_FLASH_Program takes data address, not the raw word value
+     const HAL_StatusTypeDef status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, c->address, (uint32_t)buffer);
+     if (status != HAL_OK) {
+         return -2;
+     }
 
-    c->address += CONFIG_STREAMER_BUFFER_SIZE;
-    return 0;
-}
+     c->address += CONFIG_STREAMER_BUFFER_SIZE;
+     return 0;
+ }
 
 #endif

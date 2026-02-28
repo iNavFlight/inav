@@ -1,10 +1,10 @@
 # INAV Programming Framework
 
-INAV Programming Framework (IPF) is a mechanism that allows you to to create 
+INAV Programming Framework (IPF) is a mechanism that allows you to to create
 custom functionality in INAV. You can choose for certain actions to be done,
 based on custom conditions you select.
 
-Logic conditions can be based on things such as RC channel values, switches, altitude, 
+Logic conditions can be based on things such as RC channel values, switches, altitude,
 distance, timers, etc. The conditions you create  can also make use of other conditions
 you've entered previously.
 The results can be used in:
@@ -23,6 +23,24 @@ INAV Programming Framework consists of:
 
 IPF can be edited using INAV Configurator user interface, or via CLI. To use COnfigurator, click the tab labeled
 "Programming". The various options shown in Configurator are described below.
+
+**Note:** IPF uses integer math. If your programming line returns a decimal, it will be truncated to an integer.  So if your math is `1` / `3` = , IPF will truncate the decimal and return `0`.
+
+## JavaScript-Based Programming (Alternative)
+
+INAV also supports a JavaScript-based programming interface that provides a more
+familiar syntax for those comfortable with JavaScript. The JavaScript code is transpiled
+(converted) into traditional logic conditions, so both methods ultimately use the same
+underlying system.
+
+See the [JavaScript Programming Guide](javascript_programming/JAVASCRIPT_PROGRAMMING_GUIDE.md)
+for complete documentation on using JavaScript to program your flight controller.
+
+**Benefits of JavaScript programming:**
+- Modern code editor with IntelliSense autocomplete
+- Real-time syntax validation and error messages
+- Familiar programming constructs (if statements, functions, variables)
+- Automatic conversion to logic conditions
 
 ## Logic Conditions
 
@@ -56,14 +74,13 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 9             | XOR                           | `true` if `Operand A` or `Operand B` is `true`, but not both |
 | 10            | NAND                          | `false` if `Operand A` and `Operand B` are both `true`|
 | 11            | NOR                           | `true` if `Operand A` and `Operand B` are both `false` |
-| 12            | NOT                           | The boolean opposite to `Operand A` |         
-| 13            | Sticky                        | `Operand A` is the activation operator, `Operand B` is the deactivation operator. After the activation is `true`, the operator will return `true` until Operand B is evaluated as `true`|         
+| 12            | NOT                           | The boolean opposite to `Operand A` |
+| 13            | Sticky                        | `Operand A` is the activation operator, `Operand B` is the deactivation operator. After the activation is `true`, the operator will return `true` until Operand B is evaluated as `true`|
 | 14            | Basic: Add                    | Add `Operand A` to `Operand B` and returns the result |
 | 15            | Basic: Subtract               | Substract `Operand B` from `Operand A` and returns the result |
 | 16            | Basic: Multiply               | Multiply `Operand A` by `Operand B` and returns the result |
-| 17            | Basic: Divide                 | Divide `Operand A` by `Operand B` and returns the result |
-| 18            | Set GVAR                      | Store value from `Operand B` into the Global Variable addressed by
-`Operand A`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
+| 17            | Basic: Divide                 | Divide `Operand A` by `Operand B` and returns the result. NOTE: If `Operand B` = `0`, the `Divide` operation will simply return `Operand A`|
+| 18            | Set GVAR                      | Store value from `Operand B` into the Global Variable addressed by `Operand A`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
 | 19            | Increase GVAR                 | Increase the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
 | 20            | Decrease GVAR                 | Decrease the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
 | 21            | Set IO Port                   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
@@ -74,7 +91,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 26            | Invert Roll                   | Inverts ROLL axis input for PID/PIFF controller |
 | 27            | Invert Pitch                  | Inverts PITCH axis input for PID/PIFF controller  |
 | 28            | Invert Yaw                    | Inverts YAW axis input for PID/PIFF controller |
-| 29            | Override Throttlw             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
+| 29            | Override Throttle             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
 | 30            | Set VTx Band                  | Sets VTX band. Accepted values are `1-5` |
 | 31            | Set VTx Channel               | Sets VTX channel. Accepted values are `1-8` |
 | 32            | Set OSD Layout                | Sets OSD layout. Accepted values are `0-3` |
@@ -86,20 +103,22 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 38            | Override RC Channel           | Overrides channel set by `Operand A` to value of `Operand B`. Note operand A should normally be set as a "Value", NOT as "Get RC Channel"|
 | 39            | Set Heading Target            | Sets heading-hold target to `Operand A`, in centidegrees. Value wraps-around. |
 | 40            | Modulo                        | Modulo. Divide `Operand A` by `Operand B` and returns the remainder |
-| 41            | Override Loiter Radius        | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
+| 41            | Override Loiter Radius        | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. Must be larger than the loiter radius set in the **Advanced Tuning**. |
 | 42            | Set Control Profile           | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
 | 43            | Use Lowest Value              | Finds the lowest value of `Operand A` and `Operand B` |
 | 44            | Use Highest Value             | Finds the highest value of `Operand A` and `Operand B` |
 | 45			| Flight Axis Angle Override	| Sets the target attitude angle for axis. In other words, when active, it enforces Angle mode (Heading Hold for Yaw) on this axis (Angle mode does not have to be active). `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the angle in degrees |
 | 46			| Flight Axis Rate Override	    | Sets the target rate (rotation speed) for axis. `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the rate in degrees per second |
 | 47            | Edge                          | Momentarily true when triggered by `Operand A`. `Operand A` is the activation operator [`boolean`], `Operand B` _(Optional)_ is the time for the edge to stay active [ms]. After activation, operator will return `true` until the time in Operand B is reached. If a pure momentary edge is wanted. Just leave `Operand B` as the default `Value: 0` setting. |
-| 48            | Delay                         | Delays activation after being triggered. This will return `true` when `Operand A` _is_ true, and the delay time in `Operand B` [ms] has been exceeded. |
+| 48            | Delay                         | Delays activation after being triggered. This will return `true` when `Operand A` _is_ true, and has been true for the last `Operand B` [ms]. |
 | 49            | Timer                         | A simple on - off timer. `true` for the duration of `Operand A` [ms]. Then `false` for the duration of `Operand B` [ms]. |
-| 50            | Delta (|A| >= B)              | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. |
+| 50            | Delta             | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. ( \|ΔA\| >= B )  |
 | 51            | Approx Equals (A ~ B)         | `true` if `Operand B` is within 1% of `Operand A`. |
-| 52            | LED Pin PWM                   | Value `Operand A` from [`0` : `100`] starts PWM generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes). |
+| 52            | LED Pin PWM                   | Value `Operand A` from [`0` : `100`] PWM / PINIO generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes). |
 | 53            | Disable GPS Sensor Fix        | Disables the GNSS sensor fix. For testing GNSS failure. |
 | 54            | Mag calibration               | Trigger a magnetometer calibration. |
+| 55            | Set Gimbal Sensitivity        | Scales `Operand A` from [`-16` : `15`]
+| 56            | Override Minimum Ground Speed | When active, sets the minimum ground speed to the value specified in `Operand A` [m/s]. Minimum allowed value is set in `nav_min_ground_speed`. Maximum value is `150` |
 
 ### Operands
 
@@ -147,7 +166,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 26            | Stabilized Pitch                      | Pitch PID controller output `[-500:500]` |
 | 27            | Stabilized Yaw                        | Yaw PID controller output `[-500:500]` |
 | 28            | 3D home distance [m]                  | 3D distance to home in `meters`. Calculated from Home distance and Altitude using Pythagorean theorem |
-| 29            | CRSF LQ                               | Link quality as returned by the CRSF protocol | 
+| 29            | CRSF LQ                               | Link quality as returned by the CRSF protocol |
 | 30            | CRSF SNR                              | SNR as returned by the CRSF protocol |
 | 31            | GPS Valid Fix                         | Boolean `0`/`1`. True when the GPS has a valid 3D Fix |
 | 32            | Loiter Radius [cm]                    | The current loiter radius in cm. |
@@ -161,6 +180,13 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 40            | Yaw [deg]                             | Current heading (yaw) in `degrees` |
 | 41            | FW Land Sate                          | Integer `1` - `5`, indicates the status of the FW landing, 0 Idle, 1 Downwind, 2 Base Leg, 3 Final Approach, 4 Glide, 5 Flare |
 | 42            | Current battery profile               | The active battery profile. Integer `[1..MAX_PROFILE_COUNT]` |
+| 43            | Flown Loiter Radius [m]               | The actual loiter radius flown by a fixed wing during hold modes, in `meters` |
+| 44            | Downlink Link Quality                 | |
+| 45            | Uplink RSSI [dBm]                     | |
+| 46            | Minimum Ground Speed [m/s]            | The current minimum ground speed allowed in navigation flight modes |
+| 47            | Horizontal Wind Speed [cm/s]          | Estimated wind speed. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
+| 48            | Wind Direction [deg]                  | Estimated wind direction. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
+| 49            | Relative Wind Offset [deg]            | The relative offset between the heading of the aircraft and the heading of the wind. 0 indicates flying directly into a headwing. Negative numbers are a left offset. For example, if -20° is shown, turning right will correct towards 0. If the wind estimator is unavailble or the wind estimation is invalid, 0 is returned |
 
 #### FLIGHT_MODE
 
@@ -183,7 +209,7 @@ The flight mode operands return `true` when the mode is active. These are modes 
 | 12            | USER 3            | `true` when the **USER 3** mode is active. |
 | 13            | USER 4            | `true` when the **USER 4** mode is active. |
 | 14            | Acro              | `true` when you are in the **Acro** flight mode. |
-| 15            | Waypoint Mission  | `true` when you are in the **WP Mission** flight mode. | 
+| 15            | Waypoint Mission  | `true` when you are in the **WP Mission** flight mode. |
 
 #### WAYPOINTS
 
@@ -216,7 +242,7 @@ The flight mode operands return `true` when the mode is active. These are modes 
 | JUMP          | 6     |
 | SET_HEAD      | 7     |
 | LAND          | 8     |
-    
+
 ### Flags
 
 All flags are reseted on ARM and DISARM event.
@@ -232,7 +258,14 @@ All flags are reseted on ARM and DISARM event.
 
 `gvar <index> <default value> <min> <max>`
 
+**Note:**  Global Variables (GVARs) are limited to integers between negative `-32768` and positive `32767`.
+
 ## Programming PID
+
+IPF makes a set of general user PIDFF controllers avaliable for use in your program.  These PIDFF controllers are not tied to any roll/pitch/yaw profiles or other controls.
+The output of these controllers can be used in an IPF program by using the `Programming PID` operand.
+The `<setpoint value>` of the controller is the target value for the controller to hit.  The `<measurement value>` is the measurement of the current value.  For instance, `<setpoint value>` could be the speed you want to go, and `<measurement value>` is the current speed.
+P, I, D, and FF values will need to be manually adjusted to determine the appropriate value for the program and controller.
 
 `pid <index> <enabled> <setpoint type> <setpoint value> <measurement type> <measurement value> <P gain> <I gain> <D gain> <FF gain>`
 
@@ -333,9 +366,15 @@ Steps:
 
 ## Common issues / questions about IPF
 
-One common mistake involves setting RC channel values. To override (set) the 
+One common mistake involves setting RC channel values. To override (set) the
 value of a specific RC channel, choose "Override RC value", then for operand A
 choose *value* and enter the channel number. Choosing "get RC value" is a common mistake,
 which does something other than what you probably want.
 
 ![screenshot of override an RC channel with a value](./assets/images/ipf_set_get_rc_channel.png)
+
+## Related Documentation
+
+- [JavaScript Programming Guide](javascript_programming/JAVASCRIPT_PROGRAMMING_GUIDE.md) - Alternative JavaScript-based syntax for programming logic conditions
+- [Operations Reference](javascript_programming/OPERATIONS_REFERENCE.md) - Complete reference for all supported operations in JavaScript
+- [Timer and Change Detection Examples](javascript_programming/TIMER_WHENCHANGED_EXAMPLES.md) - Practical examples for time-based patterns

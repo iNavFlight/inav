@@ -8,6 +8,17 @@
   *           + Initialization and de-initialization functions
   *           + IO operation functions
   *
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
   @verbatim
   ==============================================================================
                     ##### EXTI Peripheral features #####
@@ -32,34 +43,34 @@
         (++) Falling
 
     (+) Exti lines 0 to 15 are linked to gpio pin number 0 to 15. Gpio port can
-        be selected throught multiplexer.
+        be selected through multiplexer.
 
-    (+) PendClearSource used to set the D3 Smart Run Domain autoamtic pend clear soure.
+    (+) PendClearSource used to set the D3 Smart Run Domain autoamtic pend clear source.
         It is applicable for line with wkaeup target is Any (CPU1 , CPU2 and D3 smart run domain).
         Value can be one of the following:
-        (++)  EXTI_D3_PENDCLR_SRC_NONE : no pend clear source is selcted :
+        (++)  EXTI_D3_PENDCLR_SRC_NONE : no pend clear source is selected :
               In this case corresponding bit of D2PMRx register is set to 0
                 (+++) On a configurable Line : the D3 domain wakeup signal is
                       automatically cleared after after the Delay + Rising Edge detect
                 (+++) On a direct Line : the D3 domain wakeup signal is
                       cleared after the direct event input signal is cleared
 
-        (++)  EXTI_D3_PENDCLR_SRC_DMACH6 : no pend clear source is selcted :
+        (++)  EXTI_D3_PENDCLR_SRC_DMACH6 : no pend clear source is selected :
               In this case corresponding bit of D2PMRx register is set to 1
               and corresponding bits(2) of D3PCRxL/H is set to b00 :
                 DMA ch6 event selected as D3 domain pendclear source
 
-        (++)  EXTI_D3_PENDCLR_SRC_DMACH7 : no pend clear source is selcted :
+        (++)  EXTI_D3_PENDCLR_SRC_DMACH7 : no pend clear source is selected :
               In this case corresponding bit of D2PMRx register is set to 1
               and corresponding bits(2) of D3PCRxL/H is set to b01 :
                 DMA ch7 event selected as D3 domain pendclear source
 
-        (++)  EXTI_D3_PENDCLR_SRC_LPTIM4 : no pend clear source is selcted :
+        (++)  EXTI_D3_PENDCLR_SRC_LPTIM4 : no pend clear source is selected :
               In this case corresponding bit of D2PMRx register is set to 1
               and corresponding bits(2) of D3PCRxL/H is set to b10 :
                 LPTIM4 out selected as D3 domain pendclear source
 
-        (++)  EXTI_D3_PENDCLR_SRC_LPTIM5 : no pend clear source is selcted :
+        (++)  EXTI_D3_PENDCLR_SRC_LPTIM5 : no pend clear source is selected :
               In this case corresponding bit of D2PMRx register is set to 1
               and corresponding bits(2) of D3PCRxL/H is set to b11 :
                 LPTIM5 out selected as D3 domain pendclear source
@@ -87,7 +98,7 @@
         (++) Provide exiting handle as parameter.
         (++) Provide pointer on EXTI_ConfigTypeDef structure as second parameter.
 
-    (#) Clear Exti configuration of a dedicated line using HAL_EXTI_GetConfigLine().
+    (#) Clear Exti configuration of a dedicated line using HAL_EXTI_ClearConfigLine().
         (++) Provide exiting handle as parameter.
 
     (#) Register callback to treat Exti interrupts using HAL_EXTI_RegisterCallback().
@@ -98,23 +109,11 @@
 
     (#) Get interrupt pending bit using HAL_EXTI_GetPending().
 
-    (#) Clear interrupt pending bit using HAL_EXTI_GetPending().
+    (#) Clear interrupt pending bit using HAL_EXTI_ClearPending().
 
     (#) Generate software interrupt using HAL_EXTI_GenerateSWI().
 
   @endverbatim
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
   */
 
 /* Includes ------------------------------------------------------------------*/
@@ -440,6 +439,10 @@ HAL_StatusTypeDef HAL_EXTI_GetConfigLine(EXTI_HandleTypeDef *hexti, EXTI_ConfigT
   }
 #endif /*DUAL_CORE*/
 
+  /* Get default Trigger and GPIOSel configuration */
+  pExtiConfig->Trigger = EXTI_TRIGGER_NONE;
+  pExtiConfig->GPIOSel = 0x00U;
+
   /* 2] Get trigger for configurable lines : rising */
   if ((pExtiConfig->Line & EXTI_CONFIG) != 0x00U)
   {
@@ -450,10 +453,6 @@ HAL_StatusTypeDef HAL_EXTI_GetConfigLine(EXTI_HandleTypeDef *hexti, EXTI_ConfigT
     if ((regval & maskline) != 0x00U)
     {
       pExtiConfig->Trigger = EXTI_TRIGGER_RISING;
-    }
-    else
-    {
-      pExtiConfig->Trigger = EXTI_TRIGGER_NONE;
     }
 
     /* Get falling configuration */
@@ -472,29 +471,18 @@ HAL_StatusTypeDef HAL_EXTI_GetConfigLine(EXTI_HandleTypeDef *hexti, EXTI_ConfigT
       assert_param(IS_EXTI_GPIO_PIN(linepos));
 
       regval = SYSCFG->EXTICR[(linepos >> 2U) & 0x03UL];
-      pExtiConfig->GPIOSel = ((regval << (SYSCFG_EXTICR1_EXTI1_Pos * (3UL - (linepos & 0x03UL)))) >> 24U);
-    }
-    else
-    {
-      pExtiConfig->GPIOSel = 0x00U;
+      pExtiConfig->GPIOSel = (regval >> (SYSCFG_EXTICR1_EXTI1_Pos * (linepos & 0x03u))) & SYSCFG_EXTICR1_EXTI0;
     }
   }
-  else
-  {
-    pExtiConfig->Trigger = EXTI_TRIGGER_NONE;
-    pExtiConfig->GPIOSel = 0x00U;
-  }
+
+  /* Get default Pend Clear Source */
+  pExtiConfig->PendClearSource = EXTI_D3_PENDCLR_SRC_NONE;
 
   /* 3] Get D3 Pend Clear source */
   if ((pExtiConfig->Line & EXTI_TARGET_MASK) == EXTI_TARGET_MSK_ALL)
   {
     regaddr = (__IO uint32_t *)(&EXTI->D3PMR1 + (EXTI_CONFIG_OFFSET * offset));
-    if(((*regaddr) & linepos) == 0UL)
-    {
-      /* if PMR unset, then no pend clear source is used */
-      pExtiConfig->PendClearSource = EXTI_D3_PENDCLR_SRC_NONE;
-    }
-    else
+    if(((*regaddr) & linepos) != 0UL)
     {
       /* if wakeup target is any and PMR set, the read pend clear source from  D3PCRxL/H */
       if(linepos < 16UL)
@@ -511,11 +499,6 @@ HAL_StatusTypeDef HAL_EXTI_GetConfigLine(EXTI_HandleTypeDef *hexti, EXTI_ConfigT
       pExtiConfig->PendClearSource = 1UL + ((*regaddr & (pcrlinepos * pcrlinepos * 3UL)) / (pcrlinepos * pcrlinepos));
     }
   }
-  else
-  {
-    /* if line wakeup target is not any, then no pend clear source is used  */
-    pExtiConfig->PendClearSource = EXTI_D3_PENDCLR_SRC_NONE;
-  }
 
   return HAL_OK;
 }
@@ -526,7 +509,7 @@ HAL_StatusTypeDef HAL_EXTI_GetConfigLine(EXTI_HandleTypeDef *hexti, EXTI_ConfigT
   * @param  hexti Exti handle.
   * @retval HAL Status.
   */
-HAL_StatusTypeDef HAL_EXTI_ClearConfigLine(EXTI_HandleTypeDef *hexti)
+HAL_StatusTypeDef HAL_EXTI_ClearConfigLine(const EXTI_HandleTypeDef *hexti)
 {
   __IO uint32_t *regaddr;
   uint32_t regval;
@@ -699,7 +682,7 @@ HAL_StatusTypeDef HAL_EXTI_GetHandle(EXTI_HandleTypeDef *hexti, uint32_t ExtiLin
   * @param  hexti Exti handle.
   * @retval none.
   */
-void HAL_EXTI_IRQHandler(EXTI_HandleTypeDef *hexti)
+void HAL_EXTI_IRQHandler(const EXTI_HandleTypeDef *hexti)
 {
   __IO uint32_t *regaddr;
   uint32_t regval;
@@ -751,13 +734,16 @@ void HAL_EXTI_IRQHandler(EXTI_HandleTypeDef *hexti)
   *         This parameter is kept for compatibility with other series.
   * @retval 1 if interrupt is pending else 0.
   */
-uint32_t HAL_EXTI_GetPending(EXTI_HandleTypeDef *hexti, uint32_t Edge)
+uint32_t HAL_EXTI_GetPending(const EXTI_HandleTypeDef *hexti, uint32_t Edge)
 {
-  __IO uint32_t *regaddr;
+  const __IO uint32_t *regaddr;
   uint32_t regval;
   uint32_t linepos;
   uint32_t maskline;
   uint32_t offset;
+
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(Edge);
 
   /* Check parameters */
   assert_param(IS_EXTI_LINE(hexti->Line));
@@ -799,11 +785,14 @@ uint32_t HAL_EXTI_GetPending(EXTI_HandleTypeDef *hexti, uint32_t Edge)
   *         This parameter is kept for compatibility with other series.
   * @retval None.
   */
-void HAL_EXTI_ClearPending(EXTI_HandleTypeDef *hexti, uint32_t Edge)
+void HAL_EXTI_ClearPending(const EXTI_HandleTypeDef *hexti, uint32_t Edge)
 {
   __IO uint32_t *regaddr;
   uint32_t maskline;
   uint32_t offset;
+
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(Edge);
 
   /* Check parameters */
   assert_param(IS_EXTI_LINE(hexti->Line));
@@ -838,7 +827,7 @@ void HAL_EXTI_ClearPending(EXTI_HandleTypeDef *hexti, uint32_t Edge)
   * @param  hexti Exti handle.
   * @retval None.
   */
-void HAL_EXTI_GenerateSWI(EXTI_HandleTypeDef *hexti)
+void HAL_EXTI_GenerateSWI(const EXTI_HandleTypeDef *hexti)
 {
   __IO uint32_t *regaddr;
   uint32_t maskline;
@@ -874,4 +863,3 @@ void HAL_EXTI_GenerateSWI(EXTI_HandleTypeDef *hexti)
   * @}
   */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

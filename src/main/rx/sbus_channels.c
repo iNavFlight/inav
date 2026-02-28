@@ -26,15 +26,64 @@
 #include "common/utils.h"
 #include "common/maths.h"
 
+#include "build/debug.h"
+
 #include "rx/sbus_channels.h"
 
-#define SBUS_FLAG_CHANNEL_17        (1 << 0)
-#define SBUS_FLAG_CHANNEL_18        (1 << 1)
 
 #define SBUS_DIGITAL_CHANNEL_MIN 173
 #define SBUS_DIGITAL_CHANNEL_MAX 1812
 
 STATIC_ASSERT(SBUS_FRAME_SIZE == sizeof(sbusFrame_t), SBUS_FRAME_SIZE_doesnt_match_sbusFrame_t);
+
+uint8_t sbus26ChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannels_t *channels, bool highChannels)
+{
+    uint8_t offset = highChannels ? 16 : 0;
+    uint16_t *sbusChannelData = rxRuntimeConfig->channelData;
+    sbusChannelData[0 + offset] = channels->chan0;
+    sbusChannelData[1 + offset] = channels->chan1;
+    sbusChannelData[2 + offset] = channels->chan2;
+    sbusChannelData[3 + offset] = channels->chan3;
+    sbusChannelData[4 + offset] = channels->chan4;
+    sbusChannelData[5 + offset] = channels->chan5;
+    sbusChannelData[6 + offset] = channels->chan6;
+    sbusChannelData[7 + offset] = channels->chan7;
+    sbusChannelData[8 + offset] = channels->chan8;
+    sbusChannelData[9 + offset] = channels->chan9;
+    sbusChannelData[10 + offset] = channels->chan10;
+    sbusChannelData[11 + offset] = channels->chan11;
+    sbusChannelData[12 + offset] = channels->chan12;
+    sbusChannelData[13 + offset] = channels->chan13;
+    sbusChannelData[14 + offset] = channels->chan14;
+    sbusChannelData[15 + offset] = channels->chan15;
+
+    if (!highChannels) {
+        if (channels->flags & SBUS_FLAG_CHANNEL_DG1) {
+            sbusChannelData[32] = SBUS_DIGITAL_CHANNEL_MAX;
+        } else {
+            sbusChannelData[32] = SBUS_DIGITAL_CHANNEL_MIN;
+        }
+
+        if (channels->flags & SBUS_FLAG_CHANNEL_DG2) {
+            sbusChannelData[33] = SBUS_DIGITAL_CHANNEL_MAX;
+        } else {
+            sbusChannelData[33] = SBUS_DIGITAL_CHANNEL_MIN;
+        }
+    }
+
+    if (channels->flags & SBUS_FLAG_FAILSAFE_ACTIVE) {
+        // internal failsafe enabled and rx failsafe flag set
+        // RX *should* still be sending valid channel data, so use it.
+        return RX_FRAME_COMPLETE | RX_FRAME_FAILSAFE;
+    }
+
+    if (channels->flags & SBUS_FLAG_SIGNAL_LOSS) {
+        // The received data is a repeat of the last valid data so can be considered complete.
+        return RX_FRAME_COMPLETE | RX_FRAME_DROPPED;
+    }
+
+    return RX_FRAME_COMPLETE;
+}
 
 uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannels_t *channels)
 {
@@ -56,13 +105,13 @@ uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannel
     sbusChannelData[14] = channels->chan14;
     sbusChannelData[15] = channels->chan15;
 
-    if (channels->flags & SBUS_FLAG_CHANNEL_17) {
+    if (channels->flags & SBUS_FLAG_CHANNEL_DG1) {
         sbusChannelData[16] = SBUS_DIGITAL_CHANNEL_MAX;
     } else {
         sbusChannelData[16] = SBUS_DIGITAL_CHANNEL_MIN;
     }
 
-    if (channels->flags & SBUS_FLAG_CHANNEL_18) {
+    if (channels->flags & SBUS_FLAG_CHANNEL_DG2) {
         sbusChannelData[17] = SBUS_DIGITAL_CHANNEL_MAX;
     } else {
         sbusChannelData[17] = SBUS_DIGITAL_CHANNEL_MIN;

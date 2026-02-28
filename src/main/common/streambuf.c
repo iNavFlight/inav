@@ -98,6 +98,11 @@ uint8_t sbufReadU8(sbuf_t *src)
     return *src->ptr++;
 }
 
+int8_t sbufReadI8(sbuf_t *src)
+{
+    return *src->ptr++;
+}
+
 uint16_t sbufReadU16(sbuf_t *src)
 {
     uint16_t ret;

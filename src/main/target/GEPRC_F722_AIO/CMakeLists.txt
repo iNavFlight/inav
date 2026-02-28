@@ -1,1 +1,2 @@
 target_stm32f722xe(GEPRC_F722_AIO)
+target_stm32f722xe(GEPRC_F722_AIO_UART3)
