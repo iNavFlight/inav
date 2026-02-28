@@ -134,3 +134,8 @@
 #define MSP2_INAV_NAV_TARGET                    0x221B
 
 #define MSP2_INAV_FULL_LOCAL_POSE               0x2220
+
+
+#define MSP2_INAV_TELEMETRY_SENSORS             0x222A
+#define MSP2_INAV_SET_TELEMETRY_SENSORS         0x222B
+#define MSP2_INAV_SET_TELEMETRY_SENSOR          0x222C

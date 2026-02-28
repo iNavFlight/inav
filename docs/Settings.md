@@ -592,6 +592,36 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### crsf_telemetry_link_rate
+
+CRSF telemetry link rate
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 250 | 0 | 50000 |
+
+---
+
+### crsf_telemetry_link_ratio
+
+CRSF telemetry link ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 8 | 0 | 50000 |
+
+---
+
+### crsf_telemetry_mode
+
+Use extended custom or native telemetry sensors for CRSF
+
+| Default | Min | Max |
+| --- | --- | --- |
+| NATIVE |  |  |
+
+---
+
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
@@ -1195,16 +1225,6 @@ The tilt angle of the FPV camera in degrees, used by the FPV ANGLE MIX mode
 ### frsky_pitch_roll
 
 S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### frsky_use_legacy_gps_mode_sensor_ids
-
-S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GNSS (Tmp2). These are old IDs, deprecated, and will be removed in INAV 10.0. Tools and scripts using these IDs should be updated to use the new IDs of **470** for Modes and **480** for GNSS. Default: 'OFF'
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -6209,6 +6229,16 @@ _// TODO_
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### smartport_telemetry_mode
+
+Use legacy or standard telemetry sensors for SmartPort
+
+| Default | Min | Max |
+| --- | --- | --- |
+| LEGACY |  |  |
 
 ---
 

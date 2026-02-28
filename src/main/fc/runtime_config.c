@@ -58,7 +58,8 @@ const armingFlag_e armDisableReasonsChecklist[] = {
     ARMING_DISABLED_SERVO_AUTOTRIM,
     ARMING_DISABLED_OOM,
     ARMING_DISABLED_NO_PREARM,
-    ARMING_DISABLED_DSHOT_BEEPER
+    ARMING_DISABLED_DSHOT_BEEPER,
+    ARMING_DISABLED_BOOT_GRACE_TIME
 };
 
 armingFlag_e isArmingDisabledReason(void)
