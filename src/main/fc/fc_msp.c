@@ -55,6 +55,9 @@
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/pwm_mapping.h"
+#ifdef USE_PINIO
+#include "drivers/pinio.h"
+#endif
 #include "drivers/sdcard/sdcard.h"
 #include "drivers/serial.h"
 #include "drivers/system.h"
@@ -1681,12 +1684,28 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                     sbufWriteU8(dst, timer2id(timerHardware[i].tim));
                     #endif
                     sbufWriteU32(dst, timerHardware[i].usageFlags);
-                    #if defined(SITL_BUILD) || !defined(WS2811_PIN)
+                    #if defined(SITL_BUILD)
                     sbufWriteU8(dst, 0);
                     #else
-                    // Extra label to help identify repurposed PINs.
-                    // Eventually, we can try to add more labels for PPM pins, etc.
-                    sbufWriteU8(dst, timerHardware[i].tag == led_tag ? PIN_LABEL_LED : PIN_LABEL_NONE);
+                    {
+                        uint8_t specialLabel = PIN_LABEL_NONE;
+                        #if defined(WS2811_PIN)
+                        if (timerHardware[i].tag == led_tag) {
+                            specialLabel = PIN_LABEL_LED;
+                        }
+                        #endif
+                        #ifdef USE_PINIO
+                        if (specialLabel == PIN_LABEL_NONE) {
+                            for (int j = 0; j < pinioHardwareCount; j++) {
+                                if (timerHardware[i].tag == pinioHardware[j].ioTag) {
+                                    specialLabel = PIN_LABEL_PINIO_BASE + j;
+                                    break;
+                                }
+                            }
+                        }
+                        #endif
+                        sbufWriteU8(dst, specialLabel);
+                    }
                     #endif
             }
         }

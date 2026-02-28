@@ -48,10 +48,6 @@ void ws2811LedStripHardwareInit(void);
 void ws2811LedStripDMAEnable(void);
 bool ws2811LedStripDMAInProgress(void);
 
-//value 0...100
-void ledPinStartPWM(uint16_t value);
-void ledPinStopPWM(void);
-
 void ws2811UpdateStrip(void);
 
 void setLedHsv(uint16_t index, const hsvColor_t *color);

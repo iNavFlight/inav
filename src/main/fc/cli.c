@@ -58,6 +58,7 @@ bool cliMode = false;
 #include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
+#include "drivers/pinio.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/persistent.h"
 #include "drivers/sdcard/sdcard.h"
@@ -173,6 +174,7 @@ static const char * outputModeNames[] = {
     "MOTORS",
     "SERVOS",
     "LED",
+    "PINIO",
     NULL
 };
 
@@ -2168,20 +2170,28 @@ static void cliModeColor(char *cmdline)
     }
 }
 
+
+#endif // USE_LED_STRIP
+
+#ifdef USE_PINIO
 static void cliLedPinPWM(char *cmdline)
 {
     int i;
 
     if (isEmpty(cmdline)) {
-        ledPinStopPWM();
+        pinioSetDuty(0, 0);
         cliPrintLine("PWM stopped");
     } else {
         i = fastA2I(cmdline);
-        ledPinStartPWM(i);
-        cliPrintLinef("PWM started: %d%%",i);
+        if (i < 0 || i > 100) {
+            cliPrintLine("Error: duty must be 0-100");
+            return;
+        }
+        pinioSetDuty(0, (uint8_t)i);
+        cliPrintLinef("PWM started: %d%%", i);
     }
 }
-#endif
+#endif // USE_PINIO
 
 static void cliDelay(char* cmdLine) {
     int ms = 0;
@@ -3191,6 +3201,8 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_SERVOS;
                 } else if(!sl_strcasecmp("LED", tok)) {
                     mode = OUTPUT_MODE_LED;
+                } else if(!sl_strcasecmp("PINIO", tok)) {
+                    mode = OUTPUT_MODE_PINIO;
                 } else {
                     cliShowParseError();
                     return;
@@ -4919,7 +4931,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
-    CLI_COMMAND_DEF("ledpinpwm", "start/stop PWM on LED pin, 0..100 duty ratio", "[<value>]\r\n", cliLedPinPWM),
+#endif
+#ifdef USE_PINIO
+    CLI_COMMAND_DEF("ledpinpwm", "set PINIO PWM duty on channel 0, 0..100", "[<duty>]\r\n", cliLedPinPWM),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
@@ -4980,7 +4994,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
-    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
+    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS|LED|PINIO>]]", cliTimerOutputMode),
 };
 
 static void cliHelp(char *cmdline)
