@@ -4658,6 +4658,7 @@
     "MSP_STATUS_EX": {
         "code": 150,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_STATUS"],
         "request": null,
         "reply": {
             "payload": [
@@ -4715,7 +4716,7 @@
                 }
             ]
         },
-        "notes": "Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements.",
+        "notes": "Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements. The `accCalibAxisFlags` field is not present in `MSP2_INAV_STATUS` but is available via `MSP_CALIBRATION_DATA`.",
         "description": "Provides extended flight controller status, including CPU load, arming flags, and calibration status, in addition to `MSP_STATUS` fields."
     },
     "MSP_SENSOR_STATUS": {
