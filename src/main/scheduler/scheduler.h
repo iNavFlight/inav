@@ -119,6 +119,9 @@ typedef enum {
 #if defined(USE_SMARTPORT_MASTER)
     TASK_SMARTPORT_MASTER,
 #endif
+#if defined(USE_CRSF_SENSOR_INPUT)
+    TASK_CRSF_SENSOR,
+#endif
 #ifdef USE_IRLOCK
     TASK_IRLOCK,
 #endif

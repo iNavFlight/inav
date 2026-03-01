@@ -120,6 +120,7 @@
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/smartport_master.h"
+#include "io/crsf_sensor.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
@@ -296,6 +297,10 @@ void init(void)
 
 #if defined(USE_SMARTPORT_MASTER)
     smartportMasterInit();
+#endif
+
+#if defined(USE_CRSF_SENSOR_INPUT)
+    crsfSensorInputInit();
 #endif
 
 #if defined(USE_LOG)

@@ -109,6 +109,13 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
     { false, 0, NULL, NULL },
 #endif
 
+    /* CRSF GPS */
+#ifdef USE_GPS_PROTO_CRSF
+    { true, 0, &gpsRestartCRSF, &gpsHandleCRSF },
+#else
+    { false, 0, NULL, NULL },
+#endif
+
 #ifdef USE_GPS_FAKE
     {true, 0, &gpsFakeRestart, &gpsFakeHandle},
 #else

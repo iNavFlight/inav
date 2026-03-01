@@ -65,6 +65,9 @@
 #if defined(USE_SMARTPORT_MASTER)
 #include "io/smartport_master.h"
 #endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+#include "sensors/battery_sensor_crsf.h"
+#endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
@@ -302,6 +305,18 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             vbat = *smartportVoltageData;
         } else {
             vbat = 0;
+        }
+        break;
+#endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+    case VOLTAGE_SENSOR_CRSF:
+        {
+            int16_t *crsfVoltageData = crsfBatterySensorGetVoltageData();
+            if (crsfVoltageData) {
+                vbat = *crsfVoltageData;
+            } else {
+                vbat = 0;
+            }
         }
         break;
 #endif
@@ -619,6 +634,18 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 amperage = *smartportCurrentData;
             } else {
                 amperage = 0;
+            }
+            break;
+#endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+        case CURRENT_SENSOR_CRSF:
+            {
+                int16_t *crsfCurrentData = crsfBatterySensorGetCurrentData();
+                if (crsfCurrentData) {
+                    amperage = *crsfCurrentData;
+                } else {
+                    amperage = 0;
+                }
             }
             break;
 #endif

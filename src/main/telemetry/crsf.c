@@ -62,6 +62,8 @@
 #include "telemetry/telemetry.h"
 #include "telemetry/msp_shared.h"
 
+#include "io/crsf_sensor.h"
+
 
 #define CRSF_CYCLETIME_US                   100000  // 100ms, 10 Hz
 #define CRSF_DEVICEINFO_VERSION             0x01
@@ -240,7 +242,16 @@ static void crsfFrameVarioSensor(sbuf_t *dst)
     // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAME_VARIO_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_VARIO_SENSOR);
-    crsfSerialize16(dst, lrintf(getEstimatedActualVelocity(Z)));
+    int16_t vario;
+#ifdef USE_CRSF_SENSOR_INPUT
+    if (crsfSensorVarioIsValid()) {
+        vario = crsfSensorGetVario();
+    } else
+#endif
+    {
+        vario = lrintf(getEstimatedActualVelocity(Z));
+    }
+    crsfSerialize16(dst, vario);
 }
 
 /*
