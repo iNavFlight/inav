@@ -58,7 +58,6 @@
 typedef enum {          // defines are from hdzero code
     SD_3016,
     HD_5018,
-    HD_3016,           // Special HDZERO mode that just sends the centre 30x16 of the 50x18 canvas to the VRX
     HD_6022,           // added to support DJI wtfos 60x22 grid
     HD_5320            // added to support Avatar and BetaflightHD
 } resolutionType_e;
