@@ -3092,16 +3092,6 @@ Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this r
 
 ---
 
-### multifunction_warning_cycle_time
-
-Cycle time for display of full multifunction warning messages [s]. Full warnings will be displayed for 5s on a rolling cycle using this setting with only the total number of warnings indicated otherwise. Warnings will always be displayed in full if set to 0.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 5 | 0 | 60 |
-
----
-
 ### name
 
 Craft name

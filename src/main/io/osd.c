@@ -203,8 +203,9 @@ static bool fullRedraw = false;
 
 static uint8_t armState;
 
+// Multifunction
 static textAttributes_t osdGetMultiFunctionMessage(char *buff);
-static uint8_t osdWarningsFlags = 0;
+multiFunctionWarning_t multiFunctionWarning;
 
 typedef struct osdMapData_s {
     uint32_t scale;
@@ -4355,7 +4356,6 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .use_pilot_logo = SETTING_OSD_USE_PILOT_LOGO_DEFAULT,
     .inav_to_pilot_logo_spacing = SETTING_OSD_INAV_TO_PILOT_LOGO_SPACING_DEFAULT,
     .arm_screen_display_time = SETTING_OSD_ARM_SCREEN_DISPLAY_TIME_DEFAULT,
-    .multifunction_warning_cycle_time = SETTING_MULTIFUNCTION_WARNING_CYCLE_TIME_DEFAULT,
 
 #ifdef USE_WIND_ESTIMATOR
     .estimations_wind_compensation = SETTING_OSD_ESTIMATIONS_WIND_COMPENSATION_DEFAULT,
@@ -6406,49 +6406,35 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
     return elemAttr;
 }
 
-void osdResetWarningFlags(void)
+static bool osdCheckWarning(bool condition, uint8_t warningFlag)
 {
-    osdWarningsFlags = 0;
-}
-
-static bool osdCheckWarning(bool condition, uint8_t warningFlag, uint8_t *warningsCount)
-{
-#define WARNING_REDISPLAY_DURATION 5000;    // milliseconds
-
+    static timeMs_t newWarningEndTime = 0;
+    static uint8_t newWarningFlags = 0;  // bitfield
     const timeMs_t currentTimeMs = millis();
-    static timeMs_t warningDisplayStartTime = 0;
-    static timeMs_t redisplayStartTimeMs = 0;
-    static uint16_t osdWarningTimerDuration;
-    static uint8_t newWarningFlags;
 
+    /* New warnings dislayed individually for 10s with blinking after which
+     * all current warnings displayed without blinking on 1 second cycle */
     if (condition) {    // condition required to trigger warning
-        if (!(osdWarningsFlags & warningFlag)) {
-            osdWarningsFlags |= warningFlag;
+        if (!(multiFunctionWarning.osdWarningsFlags & warningFlag)) {  // check for new warnings
+            multiFunctionWarning.osdWarningsFlags |= warningFlag;
             newWarningFlags |= warningFlag;
-            redisplayStartTimeMs = 0;
+            newWarningEndTime = currentTimeMs + 10000;
+            multiFunctionWarning.newWarningActive = true;
         }
 #ifdef USE_DEV_TOOLS
         if (systemConfig()->groundTestMode) {
             return true;
         }
 #endif
-        /* Warnings displayed in full for set time before shrinking down to alert symbol with warning count only.
-         * All current warnings are redisplayed in full for 5s on a rolling cycle with time set by multifunction_warning_cycle_time.
-         * New warnings dislayed individually for 10s */
-        if (currentTimeMs > redisplayStartTimeMs) {
-            warningDisplayStartTime = currentTimeMs;
-            osdWarningTimerDuration = newWarningFlags ? 10000 : WARNING_REDISPLAY_DURATION;
-            redisplayStartTimeMs = currentTimeMs + osdWarningTimerDuration + S2MS(osdConfig()->multifunction_warning_cycle_time);
-        }
-
-        if (currentTimeMs - warningDisplayStartTime < osdWarningTimerDuration) {
-            return (newWarningFlags & warningFlag) || osdWarningTimerDuration == WARNING_REDISPLAY_DURATION;
+        if (currentTimeMs < newWarningEndTime) {
+            return (newWarningFlags & warningFlag);  // filter out new warnings excluding older warnings
         } else {
             newWarningFlags = 0;
+            multiFunctionWarning.newWarningActive = false;
         }
-        *warningsCount += 1;
-    } else if (osdWarningsFlags & warningFlag) {
-        osdWarningsFlags &= ~warningFlag;
+        return true;
+    } else if (multiFunctionWarning.osdWarningsFlags & warningFlag) {
+        multiFunctionWarning.osdWarningsFlags &= ~warningFlag;
     }
 
     return false;
@@ -6459,7 +6445,6 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     /* Message length limit 10 char max */
 
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
-    static uint8_t warningsCount;
     const char *message = NULL;
 
 #ifdef USE_MULTI_FUNCTIONS
@@ -6472,12 +6457,9 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         switch (selectedFunction) {
         case MULTI_FUNC_NONE:
         case MULTI_FUNC_1:
-            message = warningsCount ? "WARNINGS !" : "0 WARNINGS";
-            break;
-        case MULTI_FUNC_2:
             message = posControl.flags.manualEmergLandActive ? "ABORT LAND" : "EMERG LAND";
             break;
-        case MULTI_FUNC_3:
+        case MULTI_FUNC_2:
 #if defined(USE_SAFE_HOME)
             if (navConfig()->general.flags.safehome_usage_mode != SAFEHOME_USAGE_OFF) {
                 message = MULTI_FUNC_FLAG(MF_SUSPEND_SAFEHOMES) ? "USE SFHOME" : "SUS SFHOME";
@@ -6486,14 +6468,14 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
 #endif
             activeFunction++;
             FALLTHROUGH;
-        case MULTI_FUNC_4:
+        case MULTI_FUNC_3:
             if (navConfig()->general.flags.rth_trackback_mode != RTH_TRACKBACK_OFF) {
                 message = MULTI_FUNC_FLAG(MF_SUSPEND_TRACKBACK) ? "USE TKBACK" : "SUS TKBACK";
                 break;
             }
             activeFunction++;
             FALLTHROUGH;
-        case MULTI_FUNC_5:
+        case MULTI_FUNC_4:
 #ifdef USE_DSHOT
             if (STATE(MULTIROTOR)) {
                 message = MULTI_FUNC_FLAG(MF_TURTLE_MODE) ? "END TURTLE" : "USE TURTLE";
@@ -6502,7 +6484,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
 #endif
             activeFunction++;
             FALLTHROUGH;
-        case MULTI_FUNC_6:
+        case MULTI_FUNC_5:
             message = ARMING_FLAG(ARMED) ? "NOW ARMED " : "EMERG ARM ";
             break;
         case MULTI_FUNC_END:
@@ -6528,13 +6510,12 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     const char *messages[8];
     uint8_t messageCount = 0;
     bool warningCondition = false;
-    warningsCount = 0;
     uint8_t warningFlagID = 1;
 
     // Low Battery Voltage
     const batteryState_e batteryVoltageState = checkBatteryVoltageState();
     warningCondition = batteryVoltageState == BATTERY_CRITICAL || batteryVoltageState == BATTERY_WARNING;
-    if (osdCheckWarning(warningCondition, warningFlagID, &warningsCount)) {
+    if (osdCheckWarning(warningCondition, warningFlagID)) {
         messages[messageCount++] = batteryVoltageState == BATTERY_CRITICAL ? "VBATT LAND" : "VBATT LOW ";
     }
 
@@ -6542,14 +6523,14 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     if (batteryUsesCapacityThresholds()) {
         const batteryState_e batteryState = getBatteryState();
         warningCondition = batteryState == BATTERY_CRITICAL || batteryState == BATTERY_WARNING;
-        if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
+        if (osdCheckWarning(warningCondition, warningFlagID <<= 1)) {
             messages[messageCount++] = batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT DYING";
         }
     }
 #if defined(USE_GPS)
     // GPS Fix and Failure
     if (feature(FEATURE_GPS)) {
-        if (osdCheckWarning(!STATE(GPS_FIX), warningFlagID <<= 1, &warningsCount)) {
+        if (osdCheckWarning(!STATE(GPS_FIX), warningFlagID <<= 1)) {
             bool gpsFailed = getHwGPSStatus() == HW_SENSOR_UNAVAILABLE;
             messages[messageCount++] = gpsFailed ? "GPS FAILED" : "NO GPS FIX";
         }
@@ -6558,12 +6539,12 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     // RTH sanity (warning if RTH heads 200m further away from home than closest point)
     warningCondition = NAV_Status.state == MW_NAV_STATE_RTH_ENROUTE && !posControl.flags.rthTrackbackActive &&
                        (posControl.homeDistance - posControl.rthSanityChecker.minimalDistanceToHome) > 20000;
-    if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
+    if (osdCheckWarning(warningCondition, warningFlagID <<= 1)) {
         messages[messageCount++] = "RTH SANITY";
     }
 
     // Altitude sanity (warning if significant mismatch between estimated and GPS altitude)
-    if (osdCheckWarning(posControl.flags.gpsCfEstimatedAltitudeMismatch, warningFlagID <<= 1, &warningsCount)) {
+    if (osdCheckWarning(posControl.flags.gpsCfEstimatedAltitudeMismatch, warningFlagID <<= 1)) {
         messages[messageCount++] = "ALT SANITY";
     }
 #endif
@@ -6572,7 +6553,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     // Magnetometer failure
     if (requestedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
         hardwareSensorStatus_e magStatus = getHwCompassStatus();
-        if (osdCheckWarning(magStatus == HW_SENSOR_UNAVAILABLE || magStatus == HW_SENSOR_UNHEALTHY, warningFlagID <<= 1, &warningsCount)) {
+        if (osdCheckWarning(magStatus == HW_SENSOR_UNAVAILABLE || magStatus == HW_SENSOR_UNHEALTHY, warningFlagID <<= 1)) {
             messages[messageCount++] = "MAG FAILED";
         }
     }
@@ -6581,7 +6562,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
 #if defined(USE_PITOT)
     // Pitot sensor validation failure (blocked/failed pitot tube)
     if (sensors(SENSOR_PITOT) && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL) {
-        if (osdCheckWarning(pitotHasFailed(), warningFlagID <<= 1, &warningsCount)) {
+        if (osdCheckWarning(pitotHasFailed(), warningFlagID <<= 1)) {
             messages[messageCount++] = "PITOT FAIL";
         }
     }
@@ -6595,7 +6576,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     // }
 
 #ifdef USE_DEV_TOOLS
-    if (osdCheckWarning(systemConfig()->groundTestMode, warningFlagID <<= 1, &warningsCount)) {
+    if (osdCheckWarning(systemConfig()->groundTestMode, warningFlagID <<= 1)) {
         messages[messageCount++] = "GRD TEST !";
     }
 #endif
@@ -6603,9 +6584,9 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     if (messageCount) {
         message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];    // display each warning on 1s cycle
         strcpy(buff, message);
-    } else if (warningsCount) {
-        buff[0] = SYM_ALERT;
-        tfp_sprintf(buff + 1, "%u        ", warningsCount);
+        if (multiFunctionWarning.newWarningActive) {
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        }
     }
 
     return elemAttr;
