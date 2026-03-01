@@ -78,25 +78,24 @@ jobs:
       - name: Create PR release
         env:
           GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          SHORT_SHA: ${{ steps.info.outputs.short_sha }}
+          HEX_COUNT: ${{ steps.info.outputs.count }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
         run: |
-          PR_NUMBER="${{ steps.pr.outputs.number }}"
-          SHORT_SHA="${{ steps.info.outputs.short_sha }}"
-          COUNT="${{ steps.info.outputs.count }}"
-          PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
-
-          NOTES="Test build for [PR #${PR_NUMBER}](${PR_URL}) — commit \`${SHORT_SHA}\`
-
-**${COUNT} targets built.** Find your board's \`.hex\` file by name (e.g. \`MATEKF405SE.hex\`).
-
-> Development build for testing only. Use Full Chip Erase when flashing."
-
-          cd hexes
-          gh release create "pr-${PR_NUMBER}" *.hex \
+          PR_URL="https://github.com/${REPO}/pull/${PR_NUMBER}"
+          printf '%s\n\n%s\n\n%s\n' \
+            "Test build for [PR #${PR_NUMBER}](${PR_URL}) — commit \`${SHORT_SHA}\`" \
+            "**${HEX_COUNT} targets built.** Find your board's \`.hex\` file by name (e.g. \`MATEKF405SE.hex\`)." \
+            "> Development build for testing only. Use Full Chip Erase when flashing." \
+            > release-notes.md
+          gh release create "pr-${PR_NUMBER}" hexes/*.hex \
             --repo iNavFlight/pr-test-builds \
             --prerelease \
-            --target "${{ github.event.workflow_run.head_sha }}" \
+            --target "${HEAD_SHA}" \
             --title "PR #${PR_NUMBER} (${SHORT_SHA})" \
-            --notes "${NOTES}"
+            --notes-file release-notes.md
 
       - name: Post or update PR comment
         uses: actions/github-script@v7
