@@ -20,10 +20,11 @@ jobs:
     # Prevent concurrent runs for the same PR branch racing on the
     # release delete/create cycle.
     concurrency:
-      group: pr-test-build-${{ github.event.workflow_run.head_branch }}
+      group: pr-test-build-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
       cancel-in-progress: true
     permissions:
       actions: read          # to download artifacts from the triggering workflow run
+      issues: write          # github.rest.issues.* endpoints used to post PR comments
       pull-requests: write   # to post the PR comment
 
     steps:
@@ -93,6 +94,7 @@ jobs:
           gh release create "pr-${PR_NUMBER}" *.hex \
             --repo iNavFlight/pr-test-builds \
             --prerelease \
+            --target "${{ github.event.workflow_run.head_sha }}" \
             --title "PR #${PR_NUMBER} (${SHORT_SHA})" \
             --notes "${NOTES}"
 
@@ -104,7 +106,8 @@ jobs:
           HEX_COUNT: ${{ steps.info.outputs.count }}
         with:
           script: |
-            const prNumber = parseInt(process.env.PR_NUMBER);
+            const prNumber = parseInt(process.env.PR_NUMBER, 10);
+            if (isNaN(prNumber)) throw new Error(`Invalid PR number: ${process.env.PR_NUMBER}`);
             const shortSha  = process.env.SHORT_SHA;
             const count     = process.env.HEX_COUNT;
             const releaseUrl = `https://github.com/iNavFlight/pr-test-builds/releases/tag/pr-${prNumber}`;
