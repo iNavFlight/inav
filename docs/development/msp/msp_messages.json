@@ -2362,6 +2362,7 @@
     "MSP_BLACKBOX_CONFIG": {
         "code": 80,
         "mspv": 1,
+        "replaced_by": ["MSP2_BLACKBOX_CONFIG"],
         "request": null,
         "reply": {
             "payload": [
@@ -2401,6 +2402,7 @@
     "MSP_SET_BLACKBOX_CONFIG": {
         "code": 81,
         "mspv": 1,
+        "replaced_by": ["MSP2_SET_BLACKBOX_CONFIG"],
         "not_implemented": true,
         "request": null,
         "reply": null,
@@ -3607,6 +3609,7 @@
     "MSP_STATUS": {
         "code": 101,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_STATUS"],
         "request": null,
         "reply": {
             "payload": [
@@ -5817,6 +5820,7 @@
     "MSP_DEBUG": {
         "code": 254,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_DEBUG"],
         "request": null,
         "reply": {
             "payload": [

@@ -183,8 +183,8 @@
 
 #define MSP_SDCARD_SUMMARY              79 //out message         Get the state of the SD card
 
-#define MSP_BLACKBOX_CONFIG             80 //out message         Get blackbox settings
-#define MSP_SET_BLACKBOX_CONFIG         81 //in message          Set blackbox settings
+#define MSP_BLACKBOX_CONFIG             80 //DEPRECATED in INAV 9.1, use MSP2_BLACKBOX_CONFIG. Will be removed in INAV 10.0
+#define MSP_SET_BLACKBOX_CONFIG         81 //DEPRECATED in INAV 9.1, use MSP2_SET_BLACKBOX_CONFIG. Will be removed in INAV 10.0
 
 #define MSP_TRANSPONDER_CONFIG          82 //out message         Get transponder settings
 #define MSP_SET_TRANSPONDER_CONFIG      83 //in message          Set transponder settings
@@ -231,7 +231,7 @@
 // Multwii original MSP commands
 //
 
-#define MSP_STATUS               101    //out message         cycletime & errors_count & sensor present & box activation & current setting number
+#define MSP_STATUS               101    //DEPRECATED in INAV 9.1, use MSP2_INAV_STATUS. Will be removed in INAV 10.0
 #define MSP_RAW_IMU              102    //out message         9 DOF
 #define MSP_SERVO                103    //out message         servos
 #define MSP_MOTOR                104    //out message         motors
@@ -284,7 +284,7 @@
 #define MSP_RESERVE_1            251    //reserved for system usage
 #define MSP_RESERVE_2            252    //reserved for system usage
 #define MSP_DEBUGMSG             253    //out message         debug string buffer
-#define MSP_DEBUG                254    //out message         debug1,debug2,debug3,debug4
+#define MSP_DEBUG                254    //DEPRECATED in INAV 9.1, use MSP2_INAV_DEBUG. Will be removed in INAV 10.0
 #define MSP_V2_FRAME             255    //MSPv2 payload indicator
 
 // Additional commands that are not compatible with MultiWii
