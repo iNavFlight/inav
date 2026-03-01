@@ -288,7 +288,7 @@
 #define MSP_V2_FRAME             255    //MSPv2 payload indicator
 
 // Additional commands that are not compatible with MultiWii
-#define MSP_STATUS_EX            150    //out message         cycletime, errors_count, CPU load, sensor present etc
+#define MSP_STATUS_EX            150    //DEPRECATED in INAV 9.1, use MSP2_INAV_STATUS (accCalibAxisFlags available via MSP_CALIBRATION_DATA). Will be removed in INAV 10.0
 #define MSP_SENSOR_STATUS        151    //out message         Hardware sensor status
 #define MSP_UID                  160    //out message         Unique device ID
 #define MSP_GPSSVINFO            164    //out message         get Signal Strength (only U-Blox)
