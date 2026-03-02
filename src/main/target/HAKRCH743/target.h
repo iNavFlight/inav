@@ -22,6 +22,8 @@
 
 #define USE_TARGET_CONFIG
 
+#define USE_DSHOT_DMAR
+
 /*** Indicators ***/
 #define LED0                    PE3
 #define LED1                    PE4
@@ -31,7 +33,7 @@
 /*** SPI/I2C bus ***/
 #define USE_SPI
 #define USE_SPI_DEVICE_1
-#define SPI1_NSS1_PIN           PC15
+#define SPI1_NSS_PIN           PC15
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PD7
