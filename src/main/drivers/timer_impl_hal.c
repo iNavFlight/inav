@@ -536,12 +536,8 @@ void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
         __NOP();
     }
     if (LL_DMA_IsEnabledStream(dmaBase, streamLL)) {
-        // EN did not clear within the timeout (~140-230 us at 216 MHz). Any in-progress
-        // transfer has long since completed or been aborted, so no data corruption risk
-        // remains - but we cannot safely reconfigure the DMA registers this cycle.
-        // Skip this frame (ESC holds its last command) and mark the channel IDLE so
-        // StartDMA passes over it. EN will almost certainly have cleared by the next
-        // PrepareDMA call (~1-2 ms later), allowing normal operation to resume.
+        // EN did not clear - cannot reconfigure this cycle. Skip frame (ESC holds
+        // last command); EN should clear before the next call.
         tch->dmaState = TCH_DMA_IDLE;
         return;
     }
