@@ -35,6 +35,8 @@
 
 #pragma once
 
+#include "common/utils.h"
+
 // Resolves to SPI_PIN_AF_SPIn_Pxy, defined below for each valid pin.
 // If a pin is not in the table the build will fail with "undefined identifier",
 // which is preferable to silently applying the wrong AF.
