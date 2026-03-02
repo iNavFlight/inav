@@ -760,11 +760,11 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         return;
     }
 
-    /* Calculate new degraded EPH and EPV for the case we didn't update estimation from sensors - linear degradation in max 10s */
-    bool XYPosUpdateTimeout = US2MS(currentTimeUs) - lastXYSensorUpdateMs > 200;
-    ctx.newEPH = posEstimator.est.eph + ((posEstimator.est.eph <= max_eph_epv && XYPosUpdateTimeout) ? 100.0f * ctx.dt : 0.0f);
-    bool ZPosUpdateTimeout = US2MS(currentTimeUs) - lastZSensorUpdateMs > 200;
-    ctx.newEPV = posEstimator.est.epv + ((posEstimator.est.epv <= max_eph_epv && ZPosUpdateTimeout) ? 100.0f * ctx.dt : 0.0f);
+    /* Calculate new degraded EPH and EPV for the case we didn't update estimation from sensors for > 200ms - linear degradation in max 10s */
+    const bool XYPSensorUpdateTimeout = US2MS(currentTimeUs) - lastXYSensorUpdateMs > 200;
+    ctx.newEPH = posEstimator.est.eph + ((posEstimator.est.eph <= max_eph_epv && XYPSensorUpdateTimeout) ? 100.0f * ctx.dt : 0.0f);
+    const bool ZSensorUpdateTimeout = US2MS(currentTimeUs) - lastZSensorUpdateMs > 200;
+    ctx.newEPV = posEstimator.est.epv + ((posEstimator.est.epv <= max_eph_epv && ZSensorUpdateTimeout) ? 100.0f * ctx.dt : 0.0f);
 
     ctx.newFlags = calculateCurrentValidityFlags(currentTimeUs);
     vectorZero(&ctx.estPosCorr);
