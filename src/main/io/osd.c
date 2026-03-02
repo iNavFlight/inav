@@ -2924,7 +2924,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
             ) && isImuHeadingValid()) {
 
-            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
+            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0 || osdConfig()->hud_flight_direction) {
                     osdHudClear();
             }
 
@@ -2932,6 +2932,18 @@ static bool osdDrawSingleElement(uint8_t item)
 
             if (osdConfig()->hud_homepoint) { // Display the home point (H)
                 osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 0, SYM_HOME, 0 , 0);
+            }
+
+            // -------- POI : Flight direction
+
+            if (osdConfig()->hud_flight_direction) {
+                int vx = getEstimatedActualVelocity(X);  // in cm/s
+                int vy = getEstimatedActualVelocity(Y);  // in cm/s
+                int vz = getEstimatedActualVelocity(Z);  // in cm/s
+
+                float direction_deg = RADIANS_TO_DEGREES(atan2f((float)vy, (float)vx));
+                int altitude_relative = (vz / 100);
+                osdHudDrawPoi(1, (int16_t)direction_deg, altitude_relative, 3, SYM_ALERT, 0, 0);
             }
 
             // -------- POI : Nearby aircrafts from ESP32 radar
@@ -4317,6 +4329,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .hud_margin_v = SETTING_OSD_HUD_MARGIN_V_DEFAULT,
     .hud_homing = SETTING_OSD_HUD_HOMING_DEFAULT,
     .hud_homepoint = SETTING_OSD_HUD_HOMEPOINT_DEFAULT,
+    .hud_flight_direction = SETTING_OSD_HUD_FLIGHT_DIRECTION_DEFAULT,
     .hud_radar_disp = SETTING_OSD_HUD_RADAR_DISP_DEFAULT,
     .hud_radar_range_min = SETTING_OSD_HUD_RADAR_RANGE_MIN_DEFAULT,
     .hud_radar_range_max = SETTING_OSD_HUD_RADAR_RANGE_MAX_DEFAULT,
