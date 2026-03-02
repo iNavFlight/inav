@@ -528,6 +528,19 @@ void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
         DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
     }
 
+    // Wait for EN bit to actually clear before reconfiguring DMA registers.
+    // Per STM32F7 RM: writes to DMA_SxNDTR and DMA_SxM0AR are ignored while EN=1.
+    // The EN bit does not clear synchronously - hardware may still be completing an
+    // in-progress burst when software writes 0 to EN.
+    uint32_t timeout = 10000;
+    while (LL_DMA_IsEnabledStream(dmaBase, streamLL) && timeout--) {
+        __NOP();
+    }
+    if (LL_DMA_IsEnabledStream(dmaBase, streamLL)) {
+        // EN did not clear - skip reconfiguration to avoid silent data corruption.
+        return;
+    }
+
     LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferElementCount);
     LL_DMA_ConfigAddresses(dmaBase, streamLL, (uint32_t)tch->dmaBuffer, (uint32_t)impl_timerCCR(tch), LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
     LL_DMA_EnableIT_TC(dmaBase, streamLL);
