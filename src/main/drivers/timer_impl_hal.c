@@ -532,12 +532,13 @@ void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
     // Per STM32F7 RM: writes to DMA_SxNDTR and DMA_SxM0AR are ignored while EN=1.
     // The EN bit does not clear synchronously - hardware may still be completing an
     // in-progress burst when software writes 0 to EN.
-    uint32_t timeout = 10000;
-    while (LL_DMA_IsEnabledStream(dmaBase, streamLL) && timeout--) {
+    for (uint32_t timeout = 10000; timeout && LL_DMA_IsEnabledStream(dmaBase, streamLL); timeout--) {
         __NOP();
     }
     if (LL_DMA_IsEnabledStream(dmaBase, streamLL)) {
-        // EN did not clear - skip reconfiguration to avoid silent data corruption.
+        // EN did not clear - hardware fault. Set channel idle so it is skipped
+        // on the next StartDMA call rather than being left in an ambiguous state.
+        tch->dmaState = TCH_DMA_IDLE;
         return;
     }
 
