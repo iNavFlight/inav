@@ -549,10 +549,6 @@ bool ubloxVersionGT(uint8_t mj, uint8_t mn);
 bool ubloxVersionGTE(uint8_t mj, uint8_t mn);
 bool ubloxVersionE(uint8_t mj, uint8_t mn);
 
-#ifdef __cplusplus
-}
-#endif
-
 // MON-RF access Noise level
 uint8_t gpsGetMonRfNoisePerMs(void);
 // Called by OSD to enable/disable periodic MON-RF polling when widget is used
