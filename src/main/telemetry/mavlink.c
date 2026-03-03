@@ -172,7 +172,9 @@ static uint8_t mavRates[] = {
     [MAV_DATA_STREAM_POSITION] = 2,             // 2Hz
     [MAV_DATA_STREAM_EXTRA1] = 3,               // 3Hz
     [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz, HEARTBEATs are important
-    [MAV_DATA_STREAM_EXTRA3] = 1                // 1Hz
+    [MAV_DATA_STREAM_EXTRA3] = 1,               // 1Hz
+    [MAV_DATA_STREAM_SYSTEM_TIME] = 1,          // 1Hz
+    [MAV_DATA_STREAM_HEARTBEAT] = 1,            // 1Hz
 };
 
 #define MAXSTREAMS (sizeof(mavRates) / sizeof(mavRates[0]))
@@ -330,6 +332,7 @@ static void configureMAVLinkStreamRates(void)
     mavRates[MAV_DATA_STREAM_EXTRA1] = telemetryConfig()->mavlink.extra1_rate;
     mavRates[MAV_DATA_STREAM_EXTRA2] = telemetryConfig()->mavlink.extra2_rate;
     mavRates[MAV_DATA_STREAM_EXTRA3] = telemetryConfig()->mavlink.extra3_rate;
+    mavRates[MAV_DATA_STREAM_SYSTEM_TIME] = telemetryConfig()->mavlink.system_time_rate;
 }
 
 void checkMAVLinkTelemetryState(void)
@@ -704,52 +707,22 @@ void mavlinkSendAttitude(void)
     mavlinkSendMessage();
 }
 
-void mavlinkSendHUDAndHeartbeat(void)
+void mavlinkSendSystemTime(void)
 {
-    float mavAltitude = 0;
-    float mavGroundSpeed = 0;
-    float mavAirSpeed = 0;
-    float mavClimbRate = 0;
+    uint64_t timeUnixUsec = 0;
+    rtcTime_t rtcTime;
 
-#if defined(USE_GPS)
-    // use ground speed if source available
-    if (sensors(SENSOR_GPS)
-#ifdef USE_GPS_FIX_ESTIMATION
-            || STATE(GPS_ESTIMATED_FIX)
-#endif
-        ) {
-        mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
+    if (rtcGet(&rtcTime)) {
+        timeUnixUsec = (uint64_t)rtcTime * 1000ULL + (uint64_t)(micros() % 1000); // extrapolation to uS
+        //timeUnixUsec = (uint64_t)rtcTime * 1000ULL; // mS resolution
     }
-#endif
 
-#if defined(USE_PITOT)
-    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
-        mavAirSpeed = getAirspeedEstimate() / 100.0f;
-    }
-#endif
-
-    // select best source for altitude
-    mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
-    mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
-
-    int16_t thr = getThrottlePercent(osdUsingScaledThrottle());
-    mavlink_msg_vfr_hud_pack(mavSystemId, mavComponentId, &mavSendMsg,
-        // airspeed Current airspeed in m/s
-        mavAirSpeed,
-        // groundspeed Current ground speed in m/s
-        mavGroundSpeed,
-        // heading Current heading in degrees, in compass units (0..360, 0=north)
-        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
-        // throttle Current throttle setting in integer percent, 0 to 100
-        thr,
-        // alt Current altitude (MSL), in meters, if we have surface or baro use them, otherwise use GPS (less accurate)
-        mavAltitude,
-        // climb Current climb rate in meters/second
-        mavClimbRate);
-
+    mavlink_msg_system_time_pack(mavSystemId, mavComponentId, &mavSendMsg, timeUnixUsec, millis());
     mavlinkSendMessage();
+}
 
-
+void mavlinkSendHeartbeat(void)
+{
     uint8_t mavModes = MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
     if (ARMING_FLAG(ARMED))
         mavModes |= MAV_MODE_FLAG_SAFETY_ARMED;
@@ -821,16 +794,62 @@ void mavlinkSendHUDAndHeartbeat(void)
     }
 
     mavlink_msg_heartbeat_pack(mavSystemId, mavComponentId, &mavSendMsg,
-        // type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
-        mavSystemType,
-        // autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
-        mavType,
-        // base_mode System mode bitfield, see MAV_MODE_FLAGS ENUM in mavlink/include/mavlink_types.h
-        mavModes,
-        // custom_mode A bitfield for use for autopilot-specific flags.
-        mavCustomMode,
-        // system_status System status flag, see MAV_STATE ENUM
-        mavSystemState);
+            // type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
+                               mavSystemType,
+            // autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
+                               mavType,
+            // base_mode System mode bitfield, see MAV_MODE_FLAGS ENUM in mavlink/include/mavlink_types.h
+                               mavModes,
+            // custom_mode A bitfield for use for autopilot-specific flags.
+                               mavCustomMode,
+            // system_status System status flag, see MAV_STATE ENUM
+                               mavSystemState);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendHUD(void)
+{
+    float mavAltitude = 0;
+    float mavGroundSpeed = 0;
+    float mavAirSpeed = 0;
+    float mavClimbRate = 0;
+
+#if defined(USE_GPS)
+    // use ground speed if source available
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
+        mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
+    }
+#endif
+
+#if defined(USE_PITOT)
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        mavAirSpeed = getAirspeedEstimate() / 100.0f;
+    }
+#endif
+
+    // select best source for altitude
+    mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
+    mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
+
+    int16_t thr = getThrottlePercent(osdUsingScaledThrottle());
+    mavlink_msg_vfr_hud_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        // airspeed Current airspeed in m/s
+        mavAirSpeed,
+        // groundspeed Current ground speed in m/s
+        mavGroundSpeed,
+        // heading Current heading in degrees, in compass units (0..360, 0=north)
+        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
+        // throttle Current throttle setting in integer percent, 0 to 100
+        thr,
+        // alt Current altitude (MSL), in meters, if we have surface or baro use them, otherwise use GPS (less accurate)
+        mavAltitude,
+        // climb Current climb rate in meters/second
+        mavClimbRate);
 
     mavlinkSendMessage();
 }
@@ -952,11 +971,19 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
     }
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA2)) {
-        mavlinkSendHUDAndHeartbeat();
+        mavlinkSendHUD();
     }
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3)) {
         mavlinkSendBatteryTemperatureStatusText();
+    }
+
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_HEARTBEAT)) {
+        mavlinkSendHeartbeat();
+    }
+
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_SYSTEM_TIME)) {
+        mavlinkSendSystemTime();
     }
 
 }
