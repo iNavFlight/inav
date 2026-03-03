@@ -23,11 +23,19 @@
  */
 
 /*
- * RP2350 USB VCP serial driver for INAV — Milestone 4
+ * RP2350 USB VCP serial driver for INAV
  *
  * Implements INAV's serialPort_t vtable using TinyUSB CDC class.
  * TinyUSB is initialized in systemInit() via tusb_init(); background USB
- * event processing is driven by pico_stdio_usb's 1ms repeating alarm.
+ * event processing is driven by a 1ms repeating hardware alarm in systemInit().
+ *
+ * This file also provides the three mandatory TinyUSB descriptor callbacks
+ * (tud_descriptor_device_cb, tud_descriptor_configuration_cb,
+ * tud_descriptor_string_cb).  They were previously supplied by pico_stdio_usb's
+ * stdio_usb_descriptors.c, but that file is guarded by
+ * "#if !defined(LIB_TINYUSB_DEVICE)" and is therefore inactive now that we
+ * define LIB_TINYUSB_DEVICE=1 to prevent pico_stdio_usb from spawning a
+ * competing tud_task() timer.
  */
 
 #include <stdint.h>
@@ -86,7 +94,7 @@ static uint8_t usbVcpRead(serialPort_t *instance)
 {
     UNUSED(instance);
     // Callers must check serialRxBytesWaiting() > 0 before calling serialRead().
-    // Do not spin here — spinning would block the cooperative scheduler.
+    // Do not spin here — that would block the cooperative scheduler.
     uint8_t ch = 0;
     tud_cdc_read(&ch, 1);
     return ch;
@@ -220,6 +228,126 @@ uint32_t usbVcpGetBaudRate(serialPort_t *instance)
     cdc_line_coding_t coding;
     tud_cdc_get_line_coding(&coding);
     return coding.bit_rate;
+}
+
+// ── TinyUSB descriptor callbacks ─────────────────────────────────────────────
+//
+// These three callbacks are mandatory for TinyUSB device mode.  They were
+// previously provided by pico_stdio_usb/stdio_usb_descriptors.c, but that
+// file is compiled only when LIB_TINYUSB_DEVICE is NOT defined.  Since we
+// now define LIB_TINYUSB_DEVICE=1 (to stop pico_stdio_usb from spawning a
+// competing tud_task() timer), we must provide the callbacks here instead.
+//
+// USB identifiers:
+//   VID 0x2E8A = Raspberry Pi
+//   PID 0x000B = Pico 2 (RP2350) CDC serial application
+//   Product string from USBD_PRODUCT_STRING defined in target.h
+
+#include "pico/unique_id.h"
+
+#ifndef USBD_VID
+#define USBD_VID 0x2E8A  // Raspberry Pi
+#endif
+#ifndef USBD_PID
+#define USBD_PID 0x000B  // Pico 2 (RP2350) CDC application
+#endif
+#ifndef USBD_MANUFACTURER
+#define USBD_MANUFACTURER "Raspberry Pi"
+#endif
+// USBD_PRODUCT_STRING comes from target.h (e.g. "RP2350_PICO")
+#ifndef USBD_PRODUCT_STRING
+#define USBD_PRODUCT_STRING "INAV"
+#endif
+
+#define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
+
+#define USBD_ITF_CDC        0   // two interfaces: control + data
+#define USBD_ITF_MAX        2
+
+#define USBD_CDC_EP_CMD     0x81
+#define USBD_CDC_EP_OUT     0x02
+#define USBD_CDC_EP_IN      0x82
+#define USBD_CDC_CMD_MAX_SIZE   8
+#define USBD_CDC_IN_OUT_MAX_SIZE 64
+
+#define USBD_STR_LANGID     0x00
+#define USBD_STR_MANUF      0x01
+#define USBD_STR_PRODUCT    0x02
+#define USBD_STR_SERIAL     0x03
+#define USBD_STR_CDC        0x04
+
+static const tusb_desc_device_t usbd_desc_device = {
+    .bLength            = sizeof(tusb_desc_device_t),
+    .bDescriptorType    = TUSB_DESC_DEVICE,
+    .bcdUSB             = 0x0200,
+    .bDeviceClass       = TUSB_CLASS_MISC,
+    .bDeviceSubClass    = MISC_SUBCLASS_COMMON,
+    .bDeviceProtocol    = MISC_PROTOCOL_IAD,
+    .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor           = USBD_VID,
+    .idProduct          = USBD_PID,
+    .bcdDevice          = 0x0100,
+    .iManufacturer      = USBD_STR_MANUF,
+    .iProduct           = USBD_STR_PRODUCT,
+    .iSerialNumber      = USBD_STR_SERIAL,
+    .bNumConfigurations = 1,
+};
+
+static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
+    TUD_CONFIG_DESCRIPTOR(1, USBD_ITF_MAX, USBD_STR_LANGID, USBD_DESC_LEN,
+        0, 250),
+    TUD_CDC_DESCRIPTOR(USBD_ITF_CDC, USBD_STR_CDC, USBD_CDC_EP_CMD,
+        USBD_CDC_CMD_MAX_SIZE, USBD_CDC_EP_OUT, USBD_CDC_EP_IN,
+        USBD_CDC_IN_OUT_MAX_SIZE),
+};
+
+static char usbd_serial_str[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
+
+static const char *const usbd_desc_str[] = {
+    [USBD_STR_MANUF]   = USBD_MANUFACTURER,
+    [USBD_STR_PRODUCT] = USBD_PRODUCT_STRING,
+    [USBD_STR_SERIAL]  = usbd_serial_str,
+    [USBD_STR_CDC]     = "INAV MSP",
+};
+
+const uint8_t *tud_descriptor_device_cb(void)
+{
+    return (const uint8_t *)&usbd_desc_device;
+}
+
+const uint8_t *tud_descriptor_configuration_cb(uint8_t index)
+{
+    (void)index;
+    return usbd_desc_cfg;
+}
+
+#define USBD_DESC_STR_MAX 20
+
+const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t langid)
+{
+    (void)langid;
+    static uint16_t desc_str[USBD_DESC_STR_MAX];
+
+    if (!usbd_serial_str[0]) {
+        pico_get_unique_board_id_string(usbd_serial_str, sizeof(usbd_serial_str));
+    }
+
+    uint8_t len;
+    if (index == 0) {
+        desc_str[1] = 0x0409;  // English
+        len = 1;
+    } else {
+        if (index >= ARRAYLEN(usbd_desc_str) || !usbd_desc_str[index]) {
+            return NULL;
+        }
+        const char *str = usbd_desc_str[index];
+        for (len = 0; len < USBD_DESC_STR_MAX - 1 && str[len]; len++) {
+            desc_str[1 + len] = str[len];
+        }
+    }
+
+    desc_str[0] = (uint16_t)((TUSB_DESC_STRING << 8) | (2 * len + 2));
+    return desc_str;
 }
 
 #endif // USE_VCP

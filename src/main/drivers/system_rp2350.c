@@ -108,18 +108,22 @@ void systemInit(void)
     // SDK runtime already initialized clocks, GPIO, etc. via crt0 → runtime_init
     SystemCoreClock = clock_get_hz(clk_sys);
 
-    // tusb_init() must be called before stdio_init_all() because
-    // LIB_TINYUSB_DEVICE=1 (from CFG_TUD_ENABLED in tusb_config.h) causes
-    // PICO_STDIO_USB_ENABLE_TINYUSB_INIT=0, so stdio_usb_init() skips it.
+    // Initialize TinyUSB.  LIB_TINYUSB_DEVICE=1 is defined in cmake/rp2350.cmake so
+    // stdio_usb_init() (called via stdio_init_all() below) will skip its own tusb_init()
+    // and, critically, will not set up a competing tud_task() timer.
     tusb_init();
 
-    // Drive USB regardless of scheduler state: fire tud_task() every 1 ms
-    // from a hardware alarm (same approach pico_stdio_usb uses internally).
+    // Drive USB CDC from a dedicated 1ms hardware alarm so tud_task() runs even
+    // when the cooperative scheduler is busy (e.g. during long tasks or CLI mode).
+    // Only ONE caller of tud_task() exists: this timer.  pico_stdio_usb is disabled
+    // (LIB_PICO_STDIO_USB=0) so stdio_usb_init() registers no competing IRQ/alarm.
     if (!add_repeating_timer_ms(-1, usb_task_timer_cb, NULL, &usb_task_timer)) {
         // Alarm pool exhausted — USB CDC will not receive background servicing.
         // Nothing useful to do here; continue boot without functional USB.
     }
 
+    // stdio_init_all() is a no-op for USB (LIB_PICO_STDIO_USB=0 skips stdio_usb_init).
+    // Kept here in case UART stdio is re-enabled in the future.
     stdio_init_all();
 }
 

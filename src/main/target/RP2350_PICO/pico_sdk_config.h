@@ -18,7 +18,10 @@
 #define LIB_CMSIS_CORE 1
 #define LIB_PICO_PLATFORM_PANIC 1
 #define LIB_PICO_STDIO 1
-#define LIB_PICO_STDIO_USB 1
+// Disable USB stdio: INAV's serial_usb_vcp_rp2350.c owns CDC interface 0 exclusively.
+// If pico_stdio_usb is enabled, printf() writes to the same CDC TX FIFO as MSP responses,
+// mixing debug text into the MSP packet stream and causing the configurator to disconnect.
+#define LIB_PICO_STDIO_USB 0
 #define LIB_PICO_PRINTF 1
 #define LIB_PICO_PRINTF_PICO 1
 #define LIB_PICO_RUNTIME 1

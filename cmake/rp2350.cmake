@@ -238,6 +238,11 @@ set(RP2350_DEFINITIONS
     PICO_CONFIG_HEADER=pico_sdk_config.h
     PICO_NO_FPGA_CHECK=1
     PICO_FLASH_SIZE_BYTES=4194304
+    # Tell pico_stdio_usb that TinyUSB device mode is already linked by the application.
+    # Without this, stdio_usb_init() would call tusb_init() a second time AND set up its
+    # own low-priority IRQ + alarm to call tud_task(), racing with INAV's own 1ms timer.
+    # The race corrupts TinyUSB internal state, causing USB CDC to drop after a few seconds.
+    LIB_TINYUSB_DEVICE=1
     ${CORTEX_M33_DEFINITIONS}
 )
 
