@@ -1857,6 +1857,32 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t ackTargetSystem
                 mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
             }
             return true;
+#ifdef USE_BARO
+        case MAV_CMD_DO_CHANGE_ALTITUDE:
+            {
+                const float altitudeMeters = param1;
+                geoAltitudeDatumFlag_e datum;
+
+                switch (frame) {
+                case MAV_FRAME_GLOBAL:
+                case MAV_FRAME_GLOBAL_INT:
+                    datum = NAV_WP_MSL_DATUM;
+                    break;
+                case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+                case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+                    datum = NAV_WP_TAKEOFF_DATUM;
+                    break;
+                default:
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                const int32_t targetAltitudeCm = (int32_t)lrintf(altitudeMeters * 100.0f);
+                const bool accepted = navigationSetAltitudeTargetWithDatum(datum, targetAltitudeCm);
+                mavlinkSendCommandAck(command, accepted ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
+#endif
         case MAV_CMD_SET_MESSAGE_INTERVAL:
             {
                 uint8_t stream;
