@@ -87,6 +87,7 @@ const FLIGHT_PARAM = {
 };
 
 // ... exports
+
 ```
 
 ## Build Integration
@@ -109,21 +110,23 @@ This ensures constants are regenerated before each build.
 Currently, API definitions have hardcoded values:
 
 ```javascript
-// flight.js - WRONG (hardcoded)
+// inav.flight.js - WRONG (hardcoded)
 yaw: {
   inavOperand: { type: 2, value: 17 }  // Wrong value!
 }
+
 ```
 
 Change to reference constants:
 
 ```javascript
-// flight.js - CORRECT (references constants)
+// inav.flight.js - CORRECT (references constants)
 const { OPERAND_TYPE, FLIGHT_PARAM } = require('../../transpiler/inav_constants.js');
 
 yaw: {
   inavOperand: { type: OPERAND_TYPE.FLIGHT, value: FLIGHT_PARAM.ATTITUDE_YAW }
 }
+
 ```
 
 Benefits:

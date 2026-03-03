@@ -113,11 +113,11 @@ The INAV JavaScript Transpiler is a bidirectional JavaScript ↔ INAV Logic Cond
 
 **Input JavaScript:**
 ```javascript
-const { flight, override } = inav;
 
-if (flight.homeDistance > 100) {
-  override.vtx.power = 3;
+if (inav.flight.homeDistance > 100) {
+  inav.override.vtx.power = 3;
 }
+
 ```
 
 **Output INAV Commands:**
@@ -136,11 +136,11 @@ logic 1 1 0 25 0 0 0 50 0
 
 **Output JavaScript:**
 ```javascript
-const { flight, override } = inav;
 
-if (flight.cellVoltage < 350) {
-  override.throttleScale = 50;
+if (inav.flight.cellVoltage < 350) {
+  inav.override.throttleScale = 50;
 }
+
 ```
 
 ### Example 3: Full Round-Trip
@@ -148,13 +148,14 @@ if (flight.cellVoltage < 350) {
 **Original Code:**
 ```javascript
 on.arm({ delay: 1 }, () => {
-  gvar[0] = flight.yaw;
+  inav.gvar[0] = inav.flight.yaw;
 });
 
-if (flight.homeDistance > 500) {
-  override.vtx.power = 4;
-  override.throttleScale = 75;
+if (inav.flight.homeDistance > 500) {
+  inav.override.vtx.power = 4;
+  inav.override.throttleScale = 75;
 }
+
 ```
 
 **Transpiled → Saved to FC → Loaded from FC:**
@@ -162,16 +163,16 @@ if (flight.homeDistance > 500) {
 // INAV Logic Conditions - Decompiled to JavaScript
 // Note: Comments, variable names, and some structure may be lost
 
-const { flight, override, rc, gvar, on } = inav;
 
 on.arm({ delay: 1 }, () => {
-  gvar[0] = flight.yaw;
+  inav.gvar[0] = inav.flight.yaw;
 });
 
-if (flight.homeDistance > 500) {
-  override.vtx.power = 4;
-  override.throttleScale = 75;
+if (inav.flight.homeDistance > 500) {
+  inav.override.vtx.power = 4;
+  inav.override.throttleScale = 75;
 }
+
 ```
 
 ## Known Limitations

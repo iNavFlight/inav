@@ -45,7 +45,9 @@ void pgResetFn_controlProfiles(controlConfig_t *instance)
                 .dynPID = SETTING_TPA_RATE_DEFAULT,
                 .dynPID_on_YAW = SETTING_TPA_ON_YAW_DEFAULT,
                 .pa_breakpoint = SETTING_TPA_BREAKPOINT_DEFAULT,
-                .fixedWingTauMs = SETTING_FW_TPA_TIME_CONSTANT_DEFAULT
+                .fixedWingTauMs = SETTING_FW_TPA_TIME_CONSTANT_DEFAULT,
+                .apa_pow = SETTING_APA_POW_DEFAULT,
+                .tpa_pitch_compensation = SETTING_TPA_PITCH_COMPENSATION_DEFAULT
             },
 
             .stabilized = {

@@ -51,11 +51,10 @@ import { Transpiler } from './transpiler/index.js';
 import { Decompiler } from './transpiler/decompiler.js';
 
 const testCode = `
-const { flight, gvar } = inav;
 
 // Your test code here
-if (flight.altitude > 100) {
-  gvar[0] = 1;
+if (inav.flight.altitude > 100) {
+  inav.gvar[0] = 1;
 }
 `;
 
@@ -97,6 +96,7 @@ if (decompileResult.success) {
 } else {
   console.error('\n❌ Decompilation failed:', decompileResult.error);
 }
+
 ```
 
 ### Running Tests
@@ -120,42 +120,45 @@ When making changes, test these scenarios:
 
 ### 1. Basic Functionality
 ```javascript
-const { flight, gvar } = inav;
 
-if (flight.altitude > 100) {
-  gvar[0] = 1;
+if (inav.flight.altitude > 100) {
+  inav.gvar[0] = 1;
 }
+
 ```
 Expected: 2 commands (condition + action)
 
 ### 2. Error Handling
 ```javascript
 // Invalid syntax - should produce helpful error
-if (flight.invalidProperty > 100) {
-  gvar[0] = 1;
+if (inav.flight.invalidProperty > 100) {
+  inav.gvar[0] = 1;
 }
+
 ```
 Expected: Error with suggestion for correct property
 
 ### 3. Edge Cases
 ```javascript
 // Test boundary values
-if (rc[0].low) {  // Channel 0 (first)
-  gvar[0] = 1;
+if (inav.rc[0].low) {  // Channel 0 (first)
+  inav.gvar[0] = 1;
 }
 
-if (rc[17].high) {  // Channel 17 (last valid)
-  gvar[1] = 1;
+if (inav.rc[17].high) {  // Channel 17 (last valid)
+  inav.gvar[1] = 1;
 }
+
 ```
 Expected: Valid generation for both
 
 ### 4. Complex Combinations
 ```javascript
 // Test multiple operations together
-if (xor(rc[0].low, flight.armed)) {
-  gvar[0] = Math.max(100, flight.altitude);
+if (xor(inav.rc[0].low, inav.flight.armed)) {
+  inav.gvar[0] = Math.max(100, inav.flight.altitude);
 }
+
 ```
 Expected: Proper nesting of operations
 
@@ -205,6 +208,7 @@ const OPERATION = {
   FOOBAR: 99,  // Check this exists
   // ...
 };
+
 ```
 
 **2. Update Codegen**
@@ -223,6 +227,7 @@ case 'CallExpression': {
     return resultIndex;
   }
 }
+
 ```
 
 **3. Update Decompiler**
@@ -230,24 +235,26 @@ case 'CallExpression': {
 // In transpiler/decompiler.js
 case OPERATION.FOOBAR:
   return 'foobar()';
+
 ```
 
 **4. Update Analyzer (if needed)**
 ```javascript
 // In transpiler/analyzer.js
 // Add validation for foobar() usage
+
 ```
 
 **5. Test Round-Trip**
 ```javascript
 const testCode = `
-const { flight } = inav;
 
 if (foobar()) {
-  gvar[0] = 1;
+  inav.gvar[0] = 1;
 }
 `;
 // Run round-trip test...
+
 ```
 
 **6. Update Documentation**
