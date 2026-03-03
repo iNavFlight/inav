@@ -4242,33 +4242,46 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
     return elementIndex;
 }
 
-#define OSD_TIME_BUDGET_PERCENT 70
-
-static uint32_t osdCalculateSafeTimeBudget(void)
-{
-    uint32_t pidLooptimeUs = getLooptime();
-    uint32_t gyroLooptimeUs = getGyroLooptime();
-    uint32_t criticalLooptimeUs = MIN(pidLooptimeUs, gyroLooptimeUs);
-    uint32_t safeBudgetUs = (criticalLooptimeUs * OSD_TIME_BUDGET_PERCENT) / 100;
-
-    if (safeBudgetUs < 100) safeBudgetUs = 100;
-    if (safeBudgetUs > 2000) safeBudgetUs = 2000;
-
-    return safeBudgetUs;
-}
-
 void osdDrawNextElement(void)
 {
     static uint8_t elementIndex = 0;
-    // Flag for end of loop, also prevents infinite loop when no elements are enabled
-    uint8_t index = elementIndex;
-    do {
-        elementIndex = osdIncElementIndex(elementIndex);
-    } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
+    static uint8_t activeElements = 0;
+    static unsigned lastLayout = UINT_MAX;
+
+    // Recount visible elements on layout change
+    if (currentLayout != lastLayout) {
+        lastLayout = currentLayout;
+        activeElements = 0;
+        uint8_t idx = 0;
+        do {
+            idx = osdIncElementIndex(idx);
+            if (OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][idx])) {
+                activeElements++;
+            }
+        } while (idx > 0);
+    }
+
+    int8_t framerate_hz = osdConfig()->osd_framerate_hz;
+
+    uint8_t elementsPerCycle;
+    if (framerate_hz <= 0 || activeElements == 0) {
+        elementsPerCycle = 1; // legacy: one element per cycle
+    } else {
+        elementsPerCycle = ((uint16_t)activeElements * framerate_hz * 2 + 124) / 125;
+        if (elementsPerCycle < 1) elementsPerCycle = 1;
+        if (elementsPerCycle > activeElements) elementsPerCycle = activeElements;
+    }
+
+    for (uint8_t i = 0; i < elementsPerCycle; i++) {
+        uint8_t index = elementIndex;
+        do {
+            elementIndex = osdIncElementIndex(elementIndex);
+        } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
+    }
 
     // Draw artificial horizon + tracking telemetry last
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-    if (osdConfig()->telemetry>0){
+    if (osdConfig()->telemetry > 0) {
         osdDisplayTelemetry();
     }
 }
@@ -5992,40 +6005,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
             displayClearScreen(osdDisplayPort);
             fullRedraw = false;
         }
-
-        // Draw elements until time budget 
-        static uint8_t elementIndex = 0;
-        const uint32_t timeBudgetUs = osdCalculateSafeTimeBudget();
-        const uint32_t startUs = micros();
-        const uint8_t startElement = elementIndex;
-        uint8_t elementsDrawn = 0;
-
-        // Draw elements in round-robin fashion until time budget expires
-        do {
-            elementIndex = osdIncElementIndex(elementIndex);
-            osdDrawSingleElement(elementIndex);
-            elementsDrawn++;
-
-            const bool timeBudgetExceeded = (micros() - startUs) >= timeBudgetUs;
-            const bool completedFullCycle = (elementIndex == startElement);
-
-            if (timeBudgetExceeded || completedFullCycle) {
-                break;
-            }
-
-        } while (true);
-
-        const uint32_t actualTimeUs = micros() - startUs;
-        DEBUG_SET(DEBUG_OSD_REFRESH, 0, elementsDrawn);
-        DEBUG_SET(DEBUG_OSD_REFRESH, 1, actualTimeUs);
-        DEBUG_SET(DEBUG_OSD_REFRESH, 2, timeBudgetUs);
-        DEBUG_SET(DEBUG_OSD_REFRESH, 3, actualTimeUs >= timeBudgetUs);
-
-        osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-        if (osdConfig()->telemetry > 0) {
-            osdDisplayTelemetry();
-        }
-
+        osdDrawNextElement();
         displayHeartbeat(osdDisplayPort);
         displayCommitTransaction(osdDisplayPort);
 #ifdef OSD_CALLS_CMS
