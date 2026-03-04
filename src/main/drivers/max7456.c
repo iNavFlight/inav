@@ -293,7 +293,7 @@ static int max7456PrepareBuffer(uint8_t * buf, size_t bufsize, int bufPtr, uint8
     return bufPtr;
 }
 
-void max7456ApplyBusSpeed(void)
+static void max7456ApplyBusSpeed(void)
 {
 #if defined(MAX7456_SPI_SPEED)
     busSetSpeed(state.dev, MAX7456_SPI_SPEED);
@@ -304,19 +304,20 @@ void max7456ApplyBusSpeed(void)
 }
 
 // Used when standard DEVFLAGS_SPI_MODE_0 is omitted in common_hardware 
-void max7456SpiModeOverride(void)
+static void max7456SpiModeOverride(void)
 {
 #if defined(STM32H7) && defined(MAX7456_MANUAL_SPI_CONFIG)
-            SPI_TypeDef *maxSpiInstance = spiInstanceByDevice(state.dev->busdev.spi.spiBus);
-            if (!maxSpiInstance) return;
-            maxSpiInstance->CR1 &= ~SPI_CR1_SPE;
-            maxSpiInstance->CFG2 &= ~(SPI_CFG2_CPHA | SPI_CFG2_CPOL);
-
-            maxSpiInstance->CFG2 |= (SPI_CFG2_CPHA | SPI_CFG2_CPOL);
-            maxSpiInstance->CR1 |= SPI_CR1_SPE;
+    SPI_TypeDef *maxSpiInstance = spiInstanceByDevice(state.dev->busdev.spi.spiBus);
+    if (!maxSpiInstance){
+        return;
+    }
+    
+    maxSpiInstance->CR1 &= ~SPI_CR1_SPE;
+    maxSpiInstance->CFG2 &= ~(SPI_CFG2_CPHA | SPI_CFG2_CPOL);
+    maxSpiInstance->CFG2 |= (SPI_CFG2_CPHA | SPI_CFG2_CPOL);
+    maxSpiInstance->CR1 |= SPI_CR1_SPE;
 #endif
 }
-
 
 uint16_t max7456GetScreenSize(void)
 {
@@ -412,7 +413,6 @@ void max7456Init(const videoSystem_e videoSystem)
     }
 
     max7456ApplyBusSpeed();
-
     max7456SpiModeOverride(); 
 
     // force soft reset on Max7456
