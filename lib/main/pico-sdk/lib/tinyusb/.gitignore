@@ -1,0 +1,34 @@
+html
+latex
+*.d
+*.o
+*.P
+*.map
+*.axf
+*.bin
+*.jlink
+*.emSession
+*.elf
+*.ind
+.env
+.settings/
+.vscode/
+.gdb_history
+/examples/*/*/build*
+test_old/
+tests_obsolete/
+_build
+/examples/*/*/ses
+/examples/*/*/ozone
+/examples/obsolete
+hw/bsp/**/cubemx/*/
+.mxproject
+# coverity intermediate files
+cov-int
+# cppcheck build directories
+*-build-dir
+/_bin/
+__pycache__
+cmake-build-*
+sdkconfig
+.PVS-Studio
