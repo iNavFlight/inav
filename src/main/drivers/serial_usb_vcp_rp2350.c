@@ -26,8 +26,11 @@
  * RP2350 USB VCP serial driver for INAV
  *
  * Implements INAV's serialPort_t vtable using TinyUSB CDC class.
- * TinyUSB is initialized in systemInit() via tusb_init(); background USB
- * event processing is driven by a 1ms repeating hardware alarm in systemInit().
+ * TinyUSB is initialized in systemInit() via tusb_init(); USB event processing
+ * is driven exclusively by a 1ms repeating hardware alarm in systemInit().
+ * tud_task() must only be called from that single timer callback — calling it
+ * from foreground code while the timer IRQ can preempt creates re-entrancy
+ * that corrupts TinyUSB shared state.
  *
  * This file also provides the three mandatory TinyUSB descriptor callbacks
  * (tud_descriptor_device_cb, tud_descriptor_configuration_cb,
@@ -86,7 +89,6 @@ static bool isUsbVcpTransmitBufferEmpty(const serialPort_t *instance)
 static uint32_t usbVcpAvailable(const serialPort_t *instance)
 {
     UNUSED(instance);
-    tud_task();
     return tud_cdc_available();
 }
 
@@ -123,7 +125,6 @@ static void usbVcpWriteBuf(serialPort_t *instance, const void *data, int count)
             p += written;
         }
         tud_cdc_write_flush();
-        tud_task();
         if (millis() - start > USB_TIMEOUT) {
             break;
         }
@@ -152,7 +153,6 @@ static bool usbVcpFlush(vcpPort_t *port)
             p += written;
         }
         tud_cdc_write_flush();
-        tud_task();
         if (millis() - start > USB_TIMEOUT) {
             break;
         }
