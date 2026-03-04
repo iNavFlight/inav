@@ -526,6 +526,33 @@ static bool mavlinkFrameUsesAbsoluteAltitude(uint8_t frame)
     return frame == MAV_FRAME_GLOBAL || frame == MAV_FRAME_GLOBAL_INT;
 }
 
+static MAV_RESULT mavlinkSetAltitudeTargetFromFrame(uint8_t frame, float altitudeMeters)
+{
+#ifdef USE_BARO
+    geoAltitudeDatumFlag_e datum;
+
+    switch (frame) {
+    case MAV_FRAME_GLOBAL:
+    case MAV_FRAME_GLOBAL_INT:
+        datum = NAV_WP_MSL_DATUM;
+        break;
+    case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+    case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+        datum = NAV_WP_TAKEOFF_DATUM;
+        break;
+    default:
+        return MAV_RESULT_UNSUPPORTED;
+    }
+
+    const int32_t targetAltitudeCm = (int32_t)lrintf(altitudeMeters * 100.0f);
+    return navigationSetAltitudeTargetWithDatum(datum, targetAltitudeCm) ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED;
+#else
+    UNUSED(frame);
+    UNUSED(altitudeMeters);
+    return MAV_RESULT_UNSUPPORTED;
+#endif
+}
+
 static uint8_t navWaypointFrame(const navWaypoint_t *wp, bool useIntMessages)
 {
     switch (wp->action) {
@@ -1857,32 +1884,12 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t ackTargetSystem
                 mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
             }
             return true;
-#ifdef USE_BARO
         case MAV_CMD_DO_CHANGE_ALTITUDE:
             {
-                const float altitudeMeters = param1;
-                geoAltitudeDatumFlag_e datum;
-
-                switch (frame) {
-                case MAV_FRAME_GLOBAL:
-                case MAV_FRAME_GLOBAL_INT:
-                    datum = NAV_WP_MSL_DATUM;
-                    break;
-                case MAV_FRAME_GLOBAL_RELATIVE_ALT:
-                case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
-                    datum = NAV_WP_TAKEOFF_DATUM;
-                    break;
-                default:
-                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
-                    return true;
-                }
-
-                const int32_t targetAltitudeCm = (int32_t)lrintf(altitudeMeters * 100.0f);
-                const bool accepted = navigationSetAltitudeTargetWithDatum(datum, targetAltitudeCm);
-                mavlinkSendCommandAck(command, accepted ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                const MAV_RESULT result = mavlinkSetAltitudeTargetFromFrame(frame, param1);
+                mavlinkSendCommandAck(command, result, ackTargetSystem, ackTargetComponent);
                 return true;
             }
-#endif
         case MAV_CMD_SET_MESSAGE_INTERVAL:
             {
                 uint8_t stream;
@@ -2175,15 +2182,25 @@ static bool handleIncoming_REQUEST_DATA_STREAM(void)
         return false;
     }
 
-    if (msg.start_stop == 0) {
-        mavlinkSetStreamRate(msg.req_stream_id, 0);
+    uint8_t rate = 0;
+    if (msg.start_stop != 0) {
+        rate = (uint8_t)msg.req_message_rate;
+        if (rate > TELEMETRY_MAVLINK_MAXRATE) {
+            rate = TELEMETRY_MAVLINK_MAXRATE;
+        }
+    }
+
+    if (msg.req_stream_id == MAV_DATA_STREAM_ALL) {
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTENDED_STATUS, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_RC_CHANNELS, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_POSITION, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTRA1, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTRA2, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTRA3, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTENDED_SYS_STATE, rate);
         return true;
     }
 
-    uint8_t rate = (uint8_t)msg.req_message_rate;
-    if (rate > TELEMETRY_MAVLINK_MAXRATE) {
-        rate = TELEMETRY_MAVLINK_MAXRATE;
-    }
     mavlinkSetStreamRate(msg.req_stream_id, rate);
     return true;
 }
@@ -2196,11 +2213,31 @@ static bool handleIncoming_SET_POSITION_TARGET_GLOBAL_INT(void)
     if (msg.target_system != mavSystemId) {
         return false;
     }
+    if (msg.target_component != 0 && msg.target_component != mavComponentId) {
+        return false;
+    }
 
     uint8_t frame = msg.coordinate_frame;
     if (!mavlinkFrameIsSupported(frame,
+        MAV_FRAME_SUPPORTED_GLOBAL |
+        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
         MAV_FRAME_SUPPORTED_GLOBAL_INT |
         MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+        return true;
+    }
+
+    const uint16_t typeMask = msg.type_mask;
+    const bool xIgnored = (typeMask & POSITION_TARGET_TYPEMASK_X_IGNORE) != 0;
+    const bool yIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Y_IGNORE) != 0;
+    const bool zIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Z_IGNORE) != 0;
+
+    // Altitude-only SET_POSITION_TARGET_GLOBAL_INT mirrors MAV_CMD_DO_CHANGE_ALTITUDE semantics.
+    if (xIgnored && yIgnored && !zIgnored) {
+        mavlinkSetAltitudeTargetFromFrame(frame, msg.alt);
+        return true;
+    }
+
+    if (xIgnored || yIgnored) {
         return true;
     }
 
@@ -2209,7 +2246,7 @@ static bool handleIncoming_SET_POSITION_TARGET_GLOBAL_INT(void)
         wp.action = NAV_WP_ACTION_WAYPOINT;
         wp.lat = msg.lat_int;
         wp.lon = msg.lon_int;
-        wp.alt = (int32_t)(msg.alt * 100.0f);
+        wp.alt = zIgnored ? 0 : (int32_t)(msg.alt * 100.0f);
         wp.p1 = 0;
         wp.p2 = 0;
         wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
@@ -2225,7 +2262,9 @@ static bool handleIncoming_SET_POSITION_TARGET_GLOBAL_INT(void)
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
     mavlink_msg_rc_channels_override_decode(&mavRecvMsg, &msg);
-    // Don't check system ID because it's not configurable with systems like Crossfire
+    if (msg.target_system != mavSystemId) {
+        return false;
+    }
     mavlinkRxHandleMessage(&msg);
     return true;
 }
