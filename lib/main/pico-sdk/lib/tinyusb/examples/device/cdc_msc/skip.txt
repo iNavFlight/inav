@@ -1,3 +1,0 @@
-mcu:SAMD11
-family:espressif
-board:ch32v203g_r0_1v0
