@@ -296,7 +296,8 @@ static int max7456PrepareBuffer(uint8_t * buf, size_t bufsize, int bufPtr, uint8
 static void max7456ApplyBusSpeed(void)
 {
 #if defined(MAX7456_SPI_SPEED)
-    busSetSpeed(state.dev, MAX7456_SPI_SPEED);
+    busSpeed_e speed = (MAX7456_SPI_SPEED <= BUS_SPEED_ULTRAFAST) ? MAX7456_SPI_SPEED : BUS_SPEED_STANDARD;
+    busSetSpeed(state.dev, speed);
 #else
     // Default safe speed for MAX7456
     busSetSpeed(state.dev, BUS_SPEED_STANDARD);
@@ -311,11 +312,9 @@ static void max7456SpiModeOverride(void)
     if (!maxSpiInstance){
         return;
     }
-    
+   
     maxSpiInstance->CR1 &= ~SPI_CR1_SPE;
-    maxSpiInstance->CFG2 &= ~(SPI_CFG2_CPHA | SPI_CFG2_CPOL);
     maxSpiInstance->CFG2 |= (SPI_CFG2_CPHA | SPI_CFG2_CPOL);
-    maxSpiInstance->CR1 |= SPI_CR1_SPE;
 #endif
 }
 
