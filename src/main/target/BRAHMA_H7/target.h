@@ -34,7 +34,6 @@
 
 #define BEEPER                  PA15
 #define BEEPER_INVERTED
-// #define BEEPER_PWM_FREQUENCY    2000
 
 // *************** IMU generic ***********************
 #define USE_DUAL_GYRO
