@@ -97,70 +97,71 @@ typedef enum {
 } itermRelax_e;
 
 typedef struct pidProfile_s {
-    uint8_t pidControllerType;
+    // Fields ordered largest-to-smallest to eliminate alignment padding holes
     pidBank_t bank_fw;
     pidBank_t bank_mc;
-
-    uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
-    uint16_t dterm_lpf_hz;
-
-    uint8_t yaw_lpf_hz;
-
-    uint8_t heading_hold_rate_limit;        // Maximum rotation rate HEADING_HOLD mode can feed to yaw rate PID controller
-
-    uint8_t itermWindupPointPercent;        // Experimental ITerm windup threshold, percent of motor saturation
-
-    uint32_t axisAccelerationLimitYaw;          // Max rate of change of yaw angular rate setpoint (deg/s^2 = dps/s)
-    uint32_t axisAccelerationLimitRollPitch;    // Max rate of change of roll/pitch angular rate setpoint (deg/s^2 = dps/s)
-
-    int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
-
-    uint16_t pidItermLimitPercent;
 
     // Airplane-specific parameters
     float       fixedWingReferenceAirspeed;     // Reference tuning airspeed for the airplane - the speed for which PID gains are tuned
     float       fixedWingCoordinatedYawGain;    // This is the gain of the yaw rate required to keep the yaw rate consistent with the turn rate for a coordinated turn.
-    float       fixedWingCoordinatedPitchGain;    // This is the gain of the pitch rate to keep the pitch angle constant during coordinated turns.
-    uint16_t    fixedWingYawItermBankFreeze;       // Freeze yaw Iterm when bank angle is more than this many degrees
-
+    float       fixedWingCoordinatedPitchGain;  // This is the gain of the pitch rate to keep the pitch angle constant during coordinated turns.
     float       navVelXyDTermLpfHz;
-    uint8_t navVelXyDtermAttenuation;       // VEL_XY dynamic Dterm scale: Dterm will be attenuatedby this value (in percent) when UAV is traveling with more than navVelXyDtermAttenuationStart percents of max velocity
-    uint8_t navVelXyDtermAttenuationStart;  // VEL_XY dynamic Dterm scale: Dterm attenuation will begin at this percent of max velocity
-    uint8_t navVelXyDtermAttenuationEnd;    // VEL_XY dynamic Dterm scale: Dterm will be fully attenuated at this percent of max velocity
-    uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
-    uint8_t iterm_relax;                    // Enable iterm suppression during stick input
+    float       fixedWingLevelTrim;
+    float       fixedWingLevelTrimGain;
 
 #ifdef USE_D_BOOST
     float dBoostMin;
     float dBoostMax;
     float dBoostMaxAtAlleceleration;
-    uint8_t dBoostGyroDeltaLpfHz;
 #endif
 
 #ifdef USE_ANTIGRAVITY
     float antigravityGain;
     float antigravityAccelerator;
-    uint8_t antigravityCutoff;
 #endif
 
-    uint16_t navFwPosHdgPidsumLimit;
-    uint8_t controlDerivativeLpfHz;
-
-    float fixedWingLevelTrim;
-    float fixedWingLevelTrimGain;
-
-    uint8_t fwAltControlResponseFactor;
-    bool fwAltControlUsePos;
 #ifdef USE_SMITH_PREDICTOR
     float smithPredictorStrength;
     float smithPredictorDelay;
+#endif
+
+    uint32_t axisAccelerationLimitYaw;          // Max rate of change of yaw angular rate setpoint (deg/s^2 = dps/s)
+    uint32_t axisAccelerationLimitRollPitch;    // Max rate of change of roll/pitch angular rate setpoint (deg/s^2 = dps/s)
+
+    int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
+    uint16_t pidItermLimitPercent;
+    uint16_t    fixedWingYawItermBankFreeze;    // Freeze yaw Iterm when bank angle is more than this many degrees
+    uint16_t navFwPosHdgPidsumLimit;
+    uint16_t fwItermLockTimeMaxMs;
+    uint16_t dterm_lpf_hz;
+
+#ifdef USE_SMITH_PREDICTOR
     uint16_t smithPredictorFilterHz;
 #endif
 
-
-    uint16_t fwItermLockTimeMaxMs;
+    uint8_t pidControllerType;
+    uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
+    uint8_t yaw_lpf_hz;
+    uint8_t heading_hold_rate_limit;        // Maximum rotation rate HEADING_HOLD mode can feed to yaw rate PID controller
+    uint8_t itermWindupPointPercent;        // Experimental ITerm windup threshold, percent of motor saturation
+    uint8_t navVelXyDtermAttenuation;       // VEL_XY dynamic Dterm scale: Dterm will be attenuated by this value (in percent) when UAV is traveling with more than navVelXyDtermAttenuationStart percents of max velocity
+    uint8_t navVelXyDtermAttenuationStart;  // VEL_XY dynamic Dterm scale: Dterm attenuation will begin at this percent of max velocity
+    uint8_t navVelXyDtermAttenuationEnd;    // VEL_XY dynamic Dterm scale: Dterm will be fully attenuated at this percent of max velocity
+    uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
+    uint8_t iterm_relax;                    // Enable iterm suppression during stick input
+    uint8_t controlDerivativeLpfHz;
+    uint8_t fwAltControlResponseFactor;
+    bool    fwAltControlUsePos;
     uint8_t fwItermLockRateLimit;
     uint8_t fwItermLockEngageThreshold;
+
+#ifdef USE_D_BOOST
+    uint8_t dBoostGyroDeltaLpfHz;
+#endif
+
+#ifdef USE_ANTIGRAVITY
+    uint8_t antigravityCutoff;
+#endif
 
 } pidProfile_t;
 

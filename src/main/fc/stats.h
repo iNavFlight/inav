@@ -5,10 +5,10 @@
 typedef struct statsConfig_s {
     uint32_t stats_total_time; // [Seconds]
     uint32_t stats_total_dist; // [Metres]
-    uint16_t stats_flight_count;
 #ifdef USE_ADC
     uint32_t stats_total_energy; // deciWatt hour (x0.1Wh)
 #endif
+    uint16_t stats_flight_count;
     uint8_t  stats_enabled;
 } statsConfig_t;
 
