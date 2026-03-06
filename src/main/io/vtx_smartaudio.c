@@ -212,7 +212,7 @@ int saDacToPowerIndex(int dac)
 
 int saDbiToMw(uint16_t dbi) {
 
-    uint16_t mw = (uint16_t)powf(10.0f, (float)dbi / 10.0f);
+    uint16_t mw = (uint16_t)roundf(powf(10.0f, (float)dbi / 10.0f));
 
     if (dbi > 14) {
         // For powers greater than 25mW round up to a multiple of 50 to match expectations

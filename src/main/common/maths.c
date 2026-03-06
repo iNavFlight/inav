@@ -526,7 +526,7 @@ bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float resu
 }
 
 float gaussian(const float x, const float mu, const float sigma) {
-    return expf(-powf(x - mu, 2.0f) / (2.0f * powf(sigma, 2.0f)));
+    return expf(-((x - mu) * (x - mu)) / (2.0f * sigma * sigma));
 }
 
 float bellCurve(const float x, const float curveWidth)
