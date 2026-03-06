@@ -4385,7 +4385,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             break;
         }
 
-        if (navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)sbufReadU8(src), (int32_t)sbufReadU32(src))) {
+        uint8_t setAltDatum = (geoAltitudeDatumFlag_e)sbufReadU8(src);
+        int32_t setNewAlt = sbufReadU32(src);
+        if (navigationSetAltitudeTargetWithDatum(setAltDatum, setNewAlt)) {
             *ret = MSP_RESULT_ACK;
             break;
         }
