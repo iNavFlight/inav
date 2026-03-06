@@ -50,6 +50,17 @@ static void pgResetInstance(const pgRegistry_t *reg, uint8_t *base)
     const uint16_t regSize = pgSize(reg);
 
     memset(base, 0, regSize);
+#ifdef __EMSCRIPTEN__
+    // WASM: Can't use linker section boundaries (__pg_resetdata_start/end are stubs)
+    // Heuristic: In WASM, function table indices are small integers (< 4096),
+    // while data pointers are actual memory addresses (>= 4096 in Emscripten's layout).
+    // Reset templates are data; reset functions are function pointers.
+    if (reg->reset.ptr && (uintptr_t)reg->reset.ptr >= 4096) {
+        // Likely a data template pointer - use it
+        memcpy(base, reg->reset.ptr, regSize);
+    }
+    // Skip function pointer calls - they cause "table index out of bounds" in WASM
+#else
     if (reg->reset.ptr >= (void*)__pg_resetdata_start && reg->reset.ptr < (void*)__pg_resetdata_end) {
         // pointer points to resetdata section, to it is data template
         memcpy(base, reg->reset.ptr, regSize);
@@ -57,6 +68,7 @@ static void pgResetInstance(const pgRegistry_t *reg, uint8_t *base)
         // reset function, call it
         reg->reset.fn(base);
     }
+#endif
 }
 
 void pgReset(const pgRegistry_t* reg, int profileIndex)

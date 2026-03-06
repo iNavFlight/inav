@@ -331,9 +331,13 @@ bool doesConfigurationUsePort(serialPortIdentifier_e identifier)
 }
 
 #if defined(SITL_BUILD)
+#include "drivers/serial_websocket.h"
+
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
-    return tcpOpen(USARTx, callback, rxCallbackData, baudRate, mode, options);
+    // Use WebSocket as primary protocol for MSP
+    // TCP ports still available on 5760-5761 for direct connection
+    return wsOpen(USARTx, callback, rxCallbackData, baudRate, mode, options);
 }
 #endif
 

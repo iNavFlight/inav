@@ -19,6 +19,16 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include "target/SITL/wasm_pg_registry.h"
+// Debug logging disabled for production. Uncomment to enable:
+// #define WASM_DEBUG(msg) EM_ASM({ console.log('[WASM DEBUG] init: ' + UTF8ToString($0)); }, msg)
+#define WASM_DEBUG(msg) ((void)0)
+#else
+#define WASM_DEBUG(msg) ((void)0)
+#endif
+
 #include "platform.h"
 
 #include "blackbox/blackbox.h"
@@ -195,6 +205,7 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
+    WASM_DEBUG("init() started");
 #if defined(USE_FLASHFS)
     bool flashDeviceInitialized = false;
 #endif
@@ -205,9 +216,18 @@ void init(void)
 
     systemState = SYSTEM_STATE_INITIALISING;
     printfSupportInit();
+    WASM_DEBUG("after printfSupportInit");
 
     // Initialize system and CPU clocks to their initial values
     systemInit();
+    WASM_DEBUG("after systemInit");
+
+#ifdef __EMSCRIPTEN__
+    // WASM: Initialize PG registry before any PG_FOREACH usage
+    // Native builds use linker-defined sections; WASM needs explicit init
+    wasmPgRegistryInit();
+    WASM_DEBUG("after wasmPgRegistryInit");
+#endif
 
 #if !defined(SITL_BUILD)
     __enable_irq();
@@ -215,6 +235,7 @@ void init(void)
 
     // initialize IO (needed for all IO operations)
     IOInitGlobal();
+    WASM_DEBUG("after IOInitGlobal");
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
     detectHardwareRevision();
@@ -233,13 +254,19 @@ void init(void)
 
 #if defined(SITL_BUILD)
     serialProxyInit();
+    WASM_DEBUG("after serialProxyInit");
 #endif
 
     initEEPROM();
+    WASM_DEBUG("after initEEPROM");
     ensureEEPROMContainsValidData();
+    WASM_DEBUG("after ensureEEPROMContainsValidData");
     suspendRxSignal();
+    WASM_DEBUG("after suspendRxSignal");
     readEEPROM();
+    WASM_DEBUG("after readEEPROM");
     resumeRxSignal();
+    WASM_DEBUG("after resumeRxSignal");
 
 #ifdef USE_I2C
     i2cSetSpeed(systemConfig()->i2c_speed);
@@ -250,11 +277,13 @@ void init(void)
 #endif
 
     systemState |= SYSTEM_STATE_CONFIG_LOADED;
+    WASM_DEBUG("config loaded");
 
     debugMode = systemConfig()->debug_mode;
 
     // Latch active features to be used for feature() in the remainder of init().
     latchActiveFeatures();
+    WASM_DEBUG("after latchActiveFeatures");
 
     ledInit(false);
 #if !defined(SITL_BUILD)
@@ -281,13 +310,16 @@ void init(void)
 #endif
 
     timerInit();  // timer must be initialized before any channel is allocated
+    WASM_DEBUG("after timerInit");
 
     serialInit(feature(FEATURE_SOFTSERIAL));
+    WASM_DEBUG("after serialInit");
 
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
     mspSerialInit();
+    WASM_DEBUG("after mspSerialInit");
 
 #if defined(USE_DJI_HD_OSD)
     // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
@@ -479,6 +511,8 @@ void init(void)
 #endif
 
 #if defined(USE_GPS) || defined(USE_MAG)
+#ifndef __EMSCRIPTEN__
+    // Skip hardware init delays for WASM - no physical sensors, and delay() blocks the browser
     delay(500);
 
     /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
@@ -495,6 +529,7 @@ void init(void)
         LED0_OFF;
         LED1_OFF;
     }
+#endif
 #endif
 
     initBoardAlignment();
@@ -535,7 +570,10 @@ void init(void)
 
     systemState |= SYSTEM_STATE_SENSORS_READY;
 
+#ifndef __EMSCRIPTEN__
+    // Skip LED/beeper init sequence for WASM - no hardware, and delay() blocks the browser
     flashLedsAndBeep();
+#endif
 
     pidInitFilters();
 

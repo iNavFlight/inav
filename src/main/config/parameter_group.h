@@ -61,7 +61,16 @@ static inline uint16_t pgIsProfile(const pgRegistry_t* reg) {return (reg->size &
 
 #define PG_PACKED __attribute__((packed))
 
-#ifdef __APPLE__
+#ifdef __EMSCRIPTEN__
+// WASM builds use manual registry (linker script sections not supported)
+extern const pgRegistry_t* const __pg_registry_start;
+extern const pgRegistry_t* const __pg_registry_end;
+#define PG_REGISTER_ATTRIBUTES __attribute__ ((used, aligned(4)))
+
+extern const uint8_t* const __pg_resetdata_start;
+extern const uint8_t* const __pg_resetdata_end;
+#define PG_RESETDATA_ATTRIBUTES __attribute__ ((used, aligned(2)))
+#elif defined(__APPLE__)
 extern const pgRegistry_t __pg_registry_start[] __asm("section$start$__DATA$__pg_registry");
 extern const pgRegistry_t __pg_registry_end[] __asm("section$end$__DATA$__pg_registry");
 #define PG_REGISTER_ATTRIBUTES __attribute__ ((section("__DATA,__pg_registry"), used, aligned(8)))

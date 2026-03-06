@@ -37,6 +37,9 @@ function(enable_settings exe name)
     if(host STREQUAL TOOLCHAIN)
         set(USE_HOST_GCC "-g")
     endif()
+    if("wasm" STREQUAL TOOLCHAIN)
+        set(args_SETTINGS_CXX "em++")
+    endif()
     set(output ${dir}/${SETTINGS_GENERATED_H} ${dir}/${SETTINGS_GENERATED_C})
     add_custom_command(
         OUTPUT ${output}
