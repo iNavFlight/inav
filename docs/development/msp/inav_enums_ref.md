@@ -173,6 +173,7 @@
 - [ltm_modes_e](#enum-ltm_modes_e)
 - [ltmUpdateRate_e](#enum-ltmupdaterate_e)
 - [magSensor_e](#enum-magsensor_e)
+- [mavFrameSupportMask_e](#enum-mavframesupportmask_e)
 - [mavlinkAutopilotType_e](#enum-mavlinkautopilottype_e)
 - [mavlinkRadio_e](#enum-mavlinkradio_e)
 - [measurementSteps_e](#enum-measurementsteps_e)
@@ -3375,6 +3376,19 @@
 | `MAG_MAX` | MAG_FAKE |  |
 
 ---
+## <a id="enum-mavframesupportmask_e"></a>`mavFrameSupportMask_e`
+
+> Source: ../../../src/main/telemetry/mavlink.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MAV_FRAME_SUPPORTED_NONE` | 0 |  |
+| `MAV_FRAME_SUPPORTED_GLOBAL` | (1 << 0) |  |
+| `MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT` | (1 << 1) |  |
+| `MAV_FRAME_SUPPORTED_GLOBAL_INT` | (1 << 2) |  |
+| `MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT` | (1 << 3) |  |
+
+---
 ## <a id="enum-mavlinkautopilottype_e"></a>`mavlinkAutopilotType_e`
 
 > Source: ../../../src/main/telemetry/telemetry.h
@@ -5629,7 +5643,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.h
+> Source: ../../../src/main/fc/fc_init.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5643,7 +5657,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.c
+> Source: ../../../src/main/fc/fc_init.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|

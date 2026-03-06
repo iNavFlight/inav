@@ -2238,6 +2238,14 @@
         "MAG_FAKE": "16",
         "MAG_MAX": "MAG_FAKE"
     },
+    "mavFrameSupportMask_e": {
+        "_source": "inav/src/main/telemetry/mavlink.c",
+        "MAV_FRAME_SUPPORTED_NONE": "0",
+        "MAV_FRAME_SUPPORTED_GLOBAL": "(1 << 0)",
+        "MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT": "(1 << 1)",
+        "MAV_FRAME_SUPPORTED_GLOBAL_INT": "(1 << 2)",
+        "MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT": "(1 << 3)"
+    },
     "mavlinkAutopilotType_e": {
         "_source": "inav/src/main/telemetry/telemetry.h",
         "MAVLINK_AUTOPILOT_GENERIC": "0",
@@ -3831,7 +3839,7 @@
         "THR_HI": "(2 << (2 * THROTTLE))"
     },
     "systemState_e": {
-        "_source": "inav/src/main/fc/fc_init.c",
+        "_source": "inav/src/main/fc/fc_init.h",
         "SYSTEM_STATE_INITIALISING": "0",
         "SYSTEM_STATE_CONFIG_LOADED": "(1 << 0)",
         "SYSTEM_STATE_SENSORS_READY": "(1 << 1)",
