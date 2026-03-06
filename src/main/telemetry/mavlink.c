@@ -467,15 +467,20 @@ static void mavlinkSendAutopilotVersion(void)
     capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
     capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_GLOBAL_INT;
 
+    const uint32_t flightSwVersion =
+        ((uint32_t)ARDUPILOT_VERSION_MAJOR << 24) |
+        ((uint32_t)ARDUPILOT_VERSION_MINOR << 16) |
+        ((uint32_t)ARDUPILOT_VERSION_PATCH << 8);
+
     // Bare minimum: caps + IDs. Everything else 0 is fine.
     mavlink_msg_autopilot_version_pack(
         mavSystemId, 
         mavComponentId, 
         &mavSendMsg,
         capabilities,                // capabilities
-        ARDUPILOT_VERSION_MAJOR,                           // flight_sw_version
-        ARDUPILOT_VERSION_MINOR,                           // middleware_sw_version
-        ARDUPILOT_VERSION_PATCH,                           // os_sw_version
+        flightSwVersion,             // flight_sw_version
+        0,                           // middleware_sw_version
+        0,                           // os_sw_version
         0,                           // board_version
         0ULL,                        // flight_custom_version
         0ULL,                        // middleware_custom_version
@@ -1453,7 +1458,9 @@ static int incomingMissionWpSequence = 0;
 
 static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, uint16_t command, uint8_t autocontinue, uint16_t seq, float param1, float param2, float param3, float param4, int32_t lat, int32_t lon, float altMeters)
 {
-    if (autocontinue == 0) {
+    const bool lastMissionItem = incomingMissionWpCount > 0 && ((int)seq + 1 >= incomingMissionWpCount);
+
+    if (autocontinue == 0 && !lastMissionItem) {
         mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION, 0);
         mavlinkSendMessage();
         return true;
