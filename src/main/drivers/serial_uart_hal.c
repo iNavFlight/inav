@@ -52,6 +52,13 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
             uartPort->Handle.AdvancedInit.TxPinLevelInvert = UART_ADVFEATURE_TXINV_ENABLE;
         }
     }
+
+#ifdef USE_UART4_SWAP
+    if (uartPort->Handle.Instance == UART4) {
+        uartPort->Handle.AdvancedInit.AdvFeatureInit |= UART_ADVFEATURE_SWAP_INIT;
+        uartPort->Handle.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
+    }
+#endif
 }
 
 static void uartReconfigure(uartPort_t *uartPort)
