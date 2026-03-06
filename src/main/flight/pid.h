@@ -97,11 +97,10 @@ typedef enum {
 } itermRelax_e;
 
 typedef struct pidProfile_s {
-    // PID banks first (2-byte aligned, largest group)
+    // Fields ordered largest-to-smallest to eliminate alignment padding holes
     pidBank_t bank_fw;
     pidBank_t bank_mc;
 
-    // 4-byte fields grouped to avoid alignment holes
     // Airplane-specific parameters
     float       fixedWingReferenceAirspeed;     // Reference tuning airspeed for the airplane - the speed for which PID gains are tuned
     float       fixedWingCoordinatedYawGain;    // This is the gain of the yaw rate required to keep the yaw rate consistent with the turn rate for a coordinated turn.
@@ -129,7 +128,6 @@ typedef struct pidProfile_s {
     uint32_t axisAccelerationLimitYaw;          // Max rate of change of yaw angular rate setpoint (deg/s^2 = dps/s)
     uint32_t axisAccelerationLimitRollPitch;    // Max rate of change of roll/pitch angular rate setpoint (deg/s^2 = dps/s)
 
-    // 2-byte fields
     int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
     uint16_t pidItermLimitPercent;
     uint16_t    fixedWingYawItermBankFreeze;    // Freeze yaw Iterm when bank angle is more than this many degrees
@@ -141,7 +139,6 @@ typedef struct pidProfile_s {
     uint16_t smithPredictorFilterHz;
 #endif
 
-    // 1-byte fields grouped at end to avoid padding holes
     uint8_t pidControllerType;
     uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
     uint8_t yaw_lpf_hz;
