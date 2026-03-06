@@ -21,7 +21,7 @@
 #define MIN_FLIGHT_DISTANCE_M 30    // minimum distance flown for a flight to be registered [m]
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(statsConfig_t, statsConfig, PG_STATS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(statsConfig_t, statsConfig, PG_STATS_CONFIG, 3);
 
 PG_RESET_TEMPLATE(statsConfig_t, statsConfig,
     .stats_enabled = SETTING_STATS_DEFAULT,

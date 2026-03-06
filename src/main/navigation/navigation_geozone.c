@@ -124,7 +124,7 @@ static bool lockRTZ = false;
 
 geozone_t geozone;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(geozone_config_t, geoZoneConfig, PG_GEOZONE_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(geozone_config_t, geoZoneConfig, PG_GEOZONE_CONFIG, 1);
 
 PG_RESET_TEMPLATE(geozone_config_t, geoZoneConfig,
     .fenceDetectionDistance = SETTING_GEOZONE_DETECTION_DISTANCE_DEFAULT,
