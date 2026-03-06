@@ -101,7 +101,7 @@
 #define MAV_DATA_STREAM_EXTENDED_SYS_STATE     (MAV_DATA_STREAM_EXTRA3 + 1)
 #define ARDUPILOT_VERSION_MAJOR 4
 #define ARDUPILOT_VERSION_MINOR 6
-#define ARDUPILOT_VERSION_PATCH 3
+#define ARDUPILOT_VERSION_PATCH 0
 
 typedef enum {
     MAV_FRAME_SUPPORTED_NONE = 0,
@@ -204,7 +204,7 @@ static uint8_t mavRates[] = {
 
 static timeUs_t lastMavlinkMessage = 0;
 static uint8_t mavRatesConfigured[MAXSTREAMS];
-static uint8_t mavTicks[MAXSTREAMS];
+static timeUs_t mavStreamNextDue[MAXSTREAMS];
 static mavlink_message_t mavSendMsg;
 static mavlink_message_t mavRecvMsg;
 static mavlink_status_t mavRecvStatus;
@@ -328,25 +328,28 @@ static mavlinkModeSelection_t selectMavlinkMode(bool isPlane)
     return modeSelection;
 }
 
-static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum)
+static uint8_t mavlinkClampStreamRate(uint8_t rate)
 {
-    uint8_t rate = (uint8_t) mavRates[streamNum];
+    if (rate > TELEMETRY_MAVLINK_MAXRATE) {
+        return TELEMETRY_MAVLINK_MAXRATE;
+    }
+
+    return rate;
+}
+
+static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum, timeUs_t currentTimeUs)
+{
+    const uint8_t rate = mavlinkClampStreamRate(mavRates[streamNum]);
     if (rate == 0) {
         return 0;
     }
 
-    if (mavTicks[streamNum] == 0) {
-        // we're triggering now, setup the next trigger point
-        if (rate > TELEMETRY_MAVLINK_MAXRATE) {
-            rate = TELEMETRY_MAVLINK_MAXRATE;
-        }
-
-        mavTicks[streamNum] = (TELEMETRY_MAVLINK_MAXRATE / rate);
+    const timeUs_t intervalUs = 1000000UL / rate;
+    if ((mavStreamNextDue[streamNum] == 0) || (cmpTimeUs(currentTimeUs, mavStreamNextDue[streamNum]) >= 0)) {
+        mavStreamNextDue[streamNum] = currentTimeUs + intervalUs;
         return 1;
     }
 
-    // count down at TASK_RATE_HZ
-    mavTicks[streamNum]--;
     return 0;
 }
 
@@ -355,13 +358,13 @@ static void mavlinkSetStreamRate(uint8_t streamNum, uint8_t rate)
     if (streamNum >= MAXSTREAMS) {
         return;
     }
-    mavRates[streamNum] = rate;
-    mavTicks[streamNum] = 0;
+    mavRates[streamNum] = mavlinkClampStreamRate(rate);
+    mavStreamNextDue[streamNum] = 0;
 }
 
 static int32_t mavlinkStreamIntervalUs(uint8_t streamNum)
 {
-    uint8_t rate = mavRates[streamNum];
+    uint8_t rate = mavlinkClampStreamRate(mavRates[streamNum]);
     if (rate == 0) {
         return -1;
     }
@@ -461,6 +464,7 @@ static void mavlinkSendAutopilotVersion(void)
     capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
     capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_INT;
     capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
+    capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
     capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_GLOBAL_INT;
 
     // Bare minimum: caps + IDs. Everything else 0 is fine.
@@ -469,9 +473,9 @@ static void mavlinkSendAutopilotVersion(void)
         mavComponentId, 
         &mavSendMsg,
         capabilities,                // capabilities
-        0,                           // flight_sw_version. Setting this to actual Ardupilot version makes QGC not display modes anymore but "Unknown", except Guided is "GUIDED". Why?
-        0,                           // middleware_sw_version
-        0,                           // os_sw_version
+        ARDUPILOT_VERSION_MAJOR,                           // flight_sw_version
+        ARDUPILOT_VERSION_MINOR,                           // middleware_sw_version
+        ARDUPILOT_VERSION_PATCH,                           // os_sw_version
         0,                           // board_version
         0ULL,                        // flight_custom_version
         0ULL,                        // middleware_custom_version
@@ -551,6 +555,69 @@ static MAV_RESULT mavlinkSetAltitudeTargetFromFrame(uint8_t frame, float altitud
     UNUSED(altitudeMeters);
     return MAV_RESULT_UNSUPPORTED;
 #endif
+}
+
+static MAV_MISSION_RESULT mavlinkMissionResultFromCommandResult(MAV_RESULT result)
+{
+    switch (result) {
+    case MAV_RESULT_ACCEPTED:
+        return MAV_MISSION_ACCEPTED;
+    case MAV_RESULT_UNSUPPORTED:
+        return MAV_MISSION_UNSUPPORTED;
+    default:
+        return MAV_MISSION_ERROR;
+    }
+}
+
+static bool mavlinkHandleArmedGuidedMissionItem(uint8_t current, uint8_t frame, mavFrameSupportMask_e allowedFrames, int32_t latitudeE7, int32_t longitudeE7, float altitudeMeters)
+{
+    if (!isGCSValid()) {
+        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            mavRecvMsg.sysid, mavRecvMsg.compid,
+            MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
+        mavlinkSendMessage();
+        return true;
+    }
+
+    if (!mavlinkFrameIsSupported(frame, allowedFrames)) {
+        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            mavRecvMsg.sysid, mavRecvMsg.compid,
+            MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
+        mavlinkSendMessage();
+        return true;
+    }
+
+    if (current == 2) {
+        navWaypoint_t wp = {0};
+        wp.action = NAV_WP_ACTION_WAYPOINT;
+        wp.lat = latitudeE7;
+        wp.lon = longitudeE7;
+        wp.alt = (int32_t)lrintf(altitudeMeters * 100.0f);
+        wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+
+        setWaypoint(255, &wp);
+
+        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            mavRecvMsg.sysid, mavRecvMsg.compid,
+            MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION, 0);
+        mavlinkSendMessage();
+        return true;
+    }
+
+    if (current == 3) {
+        const MAV_RESULT result = mavlinkSetAltitudeTargetFromFrame(frame, altitudeMeters);
+        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            mavRecvMsg.sysid, mavRecvMsg.compid,
+            mavlinkMissionResultFromCommandResult(result), MAV_MISSION_TYPE_MISSION, 0);
+        mavlinkSendMessage();
+        return true;
+    }
+
+    mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        mavRecvMsg.sysid, mavRecvMsg.compid,
+        MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
+    mavlinkSendMessage();
+    return true;
 }
 
 static uint8_t navWaypointFrame(const navWaypoint_t *wp, bool useIntMessages)
@@ -1075,7 +1142,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         // [cm/s] Ground Y Speed (Longitude, positive east)
         getEstimatedActualVelocity(Y),
         // [cm/s] Ground Z Speed (Altitude, positive down)
-        getEstimatedActualVelocity(Z),
+        -getEstimatedActualVelocity(Z),
         // [cdeg] Vehicle heading (yaw angle) (0.0..359.99 degrees, 0=north)
         DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw)
     );
@@ -1184,7 +1251,7 @@ void mavlinkSendHeartbeat(void)
     if (manualInputAllowed) {
         mavModes |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
     }
-    if (flm == FLM_POSITION_HOLD) {
+    if (flm == FLM_POSITION_HOLD && isGCSValid()) {
         mavModes |= MAV_MODE_FLAG_GUIDED_ENABLED;
     }
     else if (flm == FLM_MISSION || flm == FLM_RTH ) {
@@ -1331,35 +1398,34 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
 void processMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
-    // is executed @ TELEMETRY_MAVLINK_MAXRATE rate
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTENDED_STATUS)) {
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTENDED_STATUS, currentTimeUs)) {
         mavlinkSendSystemStatus();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_RC_CHANNELS)) {
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_RC_CHANNELS, currentTimeUs)) {
         mavlinkSendRCChannelsAndRSSI();
     }
 
 #ifdef USE_GPS
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_POSITION)) {
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_POSITION, currentTimeUs)) {
         mavlinkSendPosition(currentTimeUs);
     }
 #endif
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA1)) {
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA1, currentTimeUs)) {
         mavlinkSendAttitude();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA2)) {
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA2, currentTimeUs)) {
         mavlinkSendVfrHud();
         mavlinkSendHeartbeat();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTENDED_SYS_STATE)) {
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTENDED_SYS_STATE, currentTimeUs)) {
         mavlinkSendExtendedSysState();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3)) {
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3, currentTimeUs)) {
         mavlinkSendBatteryTemperatureStatusText();
     }
 
@@ -1627,36 +1693,16 @@ static bool handleIncoming_MISSION_ITEM(void)
     }
 
     if (ARMING_FLAG(ARMED)) {
-        // Legacy Mission Planner GUIDED
-        if (isGCSValid() && (msg.command == MAV_CMD_NAV_WAYPOINT) && (msg.current == 2)) {
-            if (!(msg.frame == MAV_FRAME_GLOBAL)) {
-                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
-                    mavRecvMsg.sysid, mavRecvMsg.compid,
-                    MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
-                mavlinkSendMessage();
-                return true;
-            }
-
-            navWaypoint_t wp;
-            wp.action = NAV_WP_ACTION_WAYPOINT;
-            wp.lat = (int32_t)(msg.x * 1e7f);
-            wp.lon = (int32_t)(msg.y * 1e7f);
-            wp.alt = (int32_t)(msg.z * 100.0f);
-            wp.p1 = 0;
-            wp.p2 = 0;
-            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(msg.frame) ? NAV_WP_ALTMODE : 0;
-            setWaypoint(255, &wp);
-
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
-                mavRecvMsg.sysid, mavRecvMsg.compid,
-                MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION, 0);
-            mavlinkSendMessage();
-            return true;
-        } else {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
-            mavlinkSendMessage();
-            return true;
+        // Legacy Mission Planner/QGC guided item handling.
+        if (msg.command == MAV_CMD_NAV_WAYPOINT) {
+            return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
+                MAV_FRAME_SUPPORTED_GLOBAL | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT,
+                (int32_t)lrintf(msg.x * 1e7f), (int32_t)lrintf(msg.y * 1e7f), msg.z);
         }
+
+        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
+        mavlinkSendMessage();
+        return true;
     }
 
     return mavlinkHandleMissionItemCommon(false, msg.frame, msg.command, msg.autocontinue, msg.seq, msg.param1, msg.param2, msg.param3, msg.param4, (int32_t)(msg.x * 1e7f), (int32_t)(msg.y * 1e7f), msg.z);
@@ -1863,7 +1909,7 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t ackTargetSystem
             }
 
             if (isGCSValid()) {
-                navWaypoint_t wp;
+                navWaypoint_t wp = {0};
                 wp.action = NAV_WP_ACTION_WAYPOINT;
                 wp.lat = (int32_t)(latitudeDeg * 1e7f);
                 wp.lon = (int32_t)(longitudeDeg * 1e7f);
@@ -1886,7 +1932,7 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t ackTargetSystem
             return true;
         case MAV_CMD_DO_CHANGE_ALTITUDE:
             {
-                const MAV_RESULT result = mavlinkSetAltitudeTargetFromFrame(frame, param1);
+                const MAV_RESULT result = mavlinkSetAltitudeTargetFromFrame((uint8_t)lrintf(param2), param1);
                 mavlinkSendCommandAck(command, result, ackTargetSystem, ackTargetComponent);
                 return true;
             }
@@ -2097,35 +2143,15 @@ static bool handleIncoming_MISSION_ITEM_INT(void)
     }
 
     if (ARMING_FLAG(ARMED)) {
-        if (isGCSValid() && (msg.command == MAV_CMD_NAV_WAYPOINT) && (msg.current == 2)) {
-            if (!(msg.frame == MAV_FRAME_GLOBAL_INT || msg.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT)) {
-                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
-                    mavRecvMsg.sysid, mavRecvMsg.compid,
-                    MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
-                mavlinkSendMessage();
-                return true;
-            }
-
-            navWaypoint_t wp;
-            wp.action = NAV_WP_ACTION_WAYPOINT;
-            wp.lat = msg.x;
-            wp.lon = msg.y;
-            wp.alt = (int32_t)(msg.z * 100.0f);
-            wp.p1 = 0;
-            wp.p2 = 0;
-            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(msg.frame) ? NAV_WP_ALTMODE : 0;
-            setWaypoint(255, &wp);
-
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
-                mavRecvMsg.sysid, mavRecvMsg.compid,
-                MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION, 0);
-            mavlinkSendMessage();
-            return true;
-        } else {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
-            mavlinkSendMessage();
-            return true;
+        if (msg.command == MAV_CMD_NAV_WAYPOINT) {
+            return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
+                MAV_FRAME_SUPPORTED_GLOBAL_INT | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT,
+                msg.x, msg.y, msg.z);
         }
+
+        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
+        mavlinkSendMessage();
+        return true;
     }
 
     return mavlinkHandleMissionItemCommon(true, msg.frame, msg.command, msg.autocontinue, msg.seq, msg.param1, msg.param2, msg.param3, msg.param4, msg.x, msg.y, msg.z);
@@ -2233,7 +2259,9 @@ static bool handleIncoming_SET_POSITION_TARGET_GLOBAL_INT(void)
 
     // Altitude-only SET_POSITION_TARGET_GLOBAL_INT mirrors MAV_CMD_DO_CHANGE_ALTITUDE semantics.
     if (xIgnored && yIgnored && !zIgnored) {
-        mavlinkSetAltitudeTargetFromFrame(frame, msg.alt);
+        if (isGCSValid()) {
+            mavlinkSetAltitudeTargetFromFrame(frame, msg.alt);
+        }
         return true;
     }
 
@@ -2242,7 +2270,7 @@ static bool handleIncoming_SET_POSITION_TARGET_GLOBAL_INT(void)
     }
 
     if (isGCSValid()) {
-        navWaypoint_t wp;
+        navWaypoint_t wp = {0};
         wp.action = NAV_WP_ACTION_WAYPOINT;
         wp.lat = msg.lat_int;
         wp.lon = msg.lon_int;
@@ -2258,13 +2286,48 @@ static bool handleIncoming_SET_POSITION_TARGET_GLOBAL_INT(void)
     return true;
 }
 
+static bool handleIncoming_SET_POSITION_TARGET_LOCAL_NED(void)
+{
+    mavlink_set_position_target_local_ned_t msg;
+    mavlink_msg_set_position_target_local_ned_decode(&mavRecvMsg, &msg);
+
+    if (msg.target_system != mavSystemId) {
+        return false;
+    }
+    if (msg.target_component != 0 && msg.target_component != mavComponentId) {
+        return false;
+    }
+
+    if (msg.coordinate_frame != MAV_FRAME_LOCAL_OFFSET_NED) {
+        return true;
+    }
+
+    const uint16_t typeMask = msg.type_mask;
+    const bool xIgnored = (typeMask & POSITION_TARGET_TYPEMASK_X_IGNORE) != 0;
+    const bool yIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Y_IGNORE) != 0;
+    const bool zIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Z_IGNORE) != 0;
+
+    if (!isGCSValid() || zIgnored) {
+        return true;
+    }
+
+    if ((!xIgnored && fabsf(msg.x) > 0.01f) || (!yIgnored && fabsf(msg.y) > 0.01f)) {
+        return true;
+    }
+
+    const int32_t targetAltitudeCm = (int32_t)lrintf((float)getEstimatedActualPosition(Z) - (msg.z * 100.0f));
+    navigationSetAltitudeTargetWithDatum(NAV_WP_TAKEOFF_DATUM, targetAltitudeCm);
+
+    return true;
+}
+
 
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
     mavlink_msg_rc_channels_override_decode(&mavRecvMsg, &msg);
-    if (msg.target_system != mavSystemId) {
+    /*if (msg.target_system != mavSystemId) { // This caused a lot of headache, when enforced, it causes an rx failsafe when mavproxy turned on
         return false;
-    }
+    }*/
     mavlinkRxHandleMessage(&msg);
     return true;
 }
@@ -2398,6 +2461,8 @@ static bool processMAVLinkIncomingTelemetry(void)
                     handleIncoming_RC_CHANNELS_OVERRIDE();
                     // Don't set that we handled a message, otherwise RC channel packets will block telemetry messages
                     return false;
+                case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
+                    return handleIncoming_SET_POSITION_TARGET_LOCAL_NED();
                 case MAVLINK_MSG_ID_SET_POSITION_TARGET_GLOBAL_INT:
                     return handleIncoming_SET_POSITION_TARGET_GLOBAL_INT();
 #ifdef USE_ADSB
