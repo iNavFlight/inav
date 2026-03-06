@@ -233,8 +233,14 @@ PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_C
 
 static int i2a_len(int num, char *bf)
 {
-    i2a(num, bf);
-    return (int)strlen(bf);
+    char *start = bf;
+    if (num < 0) {
+        num = -num;
+        *bf++ = '-';
+    }
+    ui2a(num, 10, 0, bf);
+    while (*bf) bf++;
+    return (int)(bf - start);
 }
 
 static void osdFormatIntUnit(char *buff, int width, int value, char unit)
