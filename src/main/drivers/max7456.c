@@ -293,6 +293,31 @@ static int max7456PrepareBuffer(uint8_t * buf, size_t bufsize, int bufPtr, uint8
     return bufPtr;
 }
 
+static void max7456ApplyBusSpeed(void)
+{
+#if defined(MAX7456_SPI_SPEED)
+    busSpeed_e speed = (MAX7456_SPI_SPEED <= BUS_SPEED_ULTRAFAST) ? MAX7456_SPI_SPEED : BUS_SPEED_STANDARD;
+    busSetSpeed(state.dev, speed);
+#else
+    // Default safe speed for MAX7456
+    busSetSpeed(state.dev, BUS_SPEED_STANDARD);
+#endif
+}
+
+// Used when standard DEVFLAGS_SPI_MODE_0 is omitted in common_hardware 
+static void max7456SpiModeOverride(void)
+{
+#if defined(STM32H7) && defined(MAX7456_MANUAL_SPI_CONFIG)
+    SPI_TypeDef *maxSpiInstance = spiInstanceByDevice(state.dev->busdev.spi.spiBus);
+    if (!maxSpiInstance){
+        return;
+    }
+   
+    maxSpiInstance->CR1 &= ~SPI_CR1_SPE;
+    maxSpiInstance->CFG2 |= (SPI_CFG2_CPHA | SPI_CFG2_CPOL);
+#endif
+}
+
 uint16_t max7456GetScreenSize(void)
 {
     // Default to PAL while the display is not yet initialized. This
@@ -386,7 +411,8 @@ void max7456Init(const videoSystem_e videoSystem)
         return;
     }
 
-    busSetSpeed(state.dev, BUS_SPEED_STANDARD);
+    max7456ApplyBusSpeed();
+    max7456SpiModeOverride(); 
 
     // force soft reset on Max7456
     busWrite(state.dev, MAX7456ADD_VM0, MAX7456_RESET);
