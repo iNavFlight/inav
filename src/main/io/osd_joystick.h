@@ -2,11 +2,12 @@
 
 #include "config/parameter_group.h"
 
-#ifdef USE_RCDEVICE 
-#ifdef USE_LED_STRIP
+#ifdef USE_RCDEVICE
+#ifdef USE_PINIO
 
 typedef struct osdJoystickConfig_s {
     bool osd_joystick_enabled;
+    uint8_t pinio_channel;      // PINIO index for the cam-control output pin
     uint8_t osd_joystick_down;
     uint8_t osd_joystick_up;
     uint8_t osd_joystick_left;

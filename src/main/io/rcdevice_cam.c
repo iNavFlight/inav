@@ -49,7 +49,7 @@ bool waitingDeviceResponse = false;
 static bool isFeatureSupported(uint8_t feature)
 {
 #ifndef UNIT_TEST
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
     if (!rcdeviceIsEnabled() && osdJoystickEnabled() ) {
         return true;
     }
@@ -117,7 +117,7 @@ static void rcdeviceCameraControlProcess(void)
                 switchStates[switchIndex].isActivated = true;
             }
 #ifndef UNIT_TEST
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
             else if ((behavior1 != RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION) && osdJoystickEnabled()) {
                 switch (behavior1) {
                         case RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_WIFI_BTN:
@@ -137,7 +137,7 @@ static void rcdeviceCameraControlProcess(void)
             UNUSED(behavior1);
         } else {
 #ifndef UNIT_TEST
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
             if (osdJoystickEnabled() && switchStates[switchIndex].isActivated) {
                 osdJoystickSimulate5KeyButtonRelease();
             }
@@ -275,7 +275,7 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
                 waitingDeviceResponse = true;
             }
 #ifndef UNIT_TEST
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
             else if (osdJoystickEnabled()) {
                 osdJoystickSimulate5KeyButtonRelease();
                 isButtonPressed = false;
@@ -320,7 +320,7 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
                 waitingDeviceResponse = true;
             }
 #ifndef UNIT_TEST
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
             else if (osdJoystickEnabled()) {
                 if ( key == RCDEVICE_CAM_KEY_CONNECTION_OPEN ) {
                     rcdeviceInMenu = true;
