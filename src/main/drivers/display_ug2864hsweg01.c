@@ -199,17 +199,27 @@ void i2c_OLED_clear_display(void)
     i2c_OLED_send_cmd(0xa6);              // Set Normal Display
     i2c_OLED_send_cmd(0xae);              // Display OFF
     i2c_OLED_send_cmd(0x20);              // Set Memory Addressing Mode
-    i2c_OLED_send_cmd(0x00);              // Set Memory Addressing Mode to Horizontal addressing mode
-    i2c_OLED_send_cmd(0xb0);              // set page address to 0
-    i2c_OLED_send_cmd(0x40);              // Display start line register to 0
-    i2c_OLED_send_cmd(0);                 // Set low col address to 0
-    i2c_OLED_send_cmd(0x10);              // Set high col address to 0
-    for (uint16_t i = 0; i < 1024; i++) {  // fill the display's RAM with graphic... 128*64 pixel picture
-        i2c_OLED_send_byte(0x00);  // clear
+    i2c_OLED_send_cmd(0x02);              // Set Memory Addressing Mode to Page addressing mode
+    i2c_OLED_send_cmd(0x40);              // Set Display Start Line to 0
+
+    // Clear all 8 pages (0-7)
+    for (uint8_t page = 0; page < 8; page++) {
+        i2c_OLED_send_cmd(0xb0 + page);   // set page address
+        i2c_OLED_send_cmd(0x00);          // set low col address to 0
+        i2c_OLED_send_cmd(0x10);          // set high col address to 0
+
+        for (uint8_t col = 0; col < 128; col++) {
+            i2c_OLED_send_byte(0x00);      // clear
+        }
     }
-    i2c_OLED_send_cmd(0x81);              // Setup CONTRAST CONTROL, following byte is the contrast Value... always a 2 byte instruction
-    i2c_OLED_send_cmd(200);               // Here you can set the brightness 1 = dull, 255 is very bright
-    i2c_OLED_send_cmd(0xaf);              // display on
+
+    i2c_OLED_send_cmd(0xb0);              // Reset to page 0
+    i2c_OLED_send_cmd(0x00);              // Reset low col address to 0
+    i2c_OLED_send_cmd(0x10);              // Reset high col address to 0
+
+    i2c_OLED_send_cmd(0x81);              // Setup CONTRAST CONTROL
+    i2c_OLED_send_cmd(200);               // Contrast value
+    i2c_OLED_send_cmd(0xaf);              // Display ON
 }
 
 void i2c_OLED_clear_display_quick(void)
