@@ -32,7 +32,7 @@
 #define SPI1_MOSI_PIN           PA7
 
 #define USE_IMU_ICM42605 // is actually ICM42688P
-#define IMU_ICM42605_ALIGN     CW180_DEG
+#define IMU_ICM42605_ALIGN     CW0_DEG
 #define ICM42605_CS_PIN        PA4
 #define ICM42605_EXTI_PIN      PB8
 #define ICM42605_SPI_BUS       BUS_SPI1
