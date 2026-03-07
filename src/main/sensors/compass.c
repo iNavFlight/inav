@@ -381,7 +381,7 @@ void compassUpdate(timeUs_t currentTimeUs)
     static int16_t magPrev[XYZ_AXIS_COUNT];
     static int magAxisDeviation[XYZ_AXIS_COUNT];
 
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
     ENABLE_STATE(COMPASS_CALIBRATED);
 #else
     // Check magZero

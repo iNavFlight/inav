@@ -147,7 +147,7 @@ uint32_t IO_EXTI_Line(IO_t io)
     }
 #if defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(AT32F43x)
     return 1 << IO_GPIOPinIdx(io);
-#elif defined (SITL_BUILD)
+#elif defined (SITL_BUILD)  || defined(WASM_BUILD)
     return 0;
 #else
 # error "Unknown target type"

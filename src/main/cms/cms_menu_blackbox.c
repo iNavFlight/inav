@@ -81,7 +81,9 @@ static const OSD_Entry cmsx_menuBlackboxEntries[] =
 {
     OSD_LABEL_ENTRY("-- BLACKBOX --"),
     OSD_BOOL_FUNC_ENTRY("ENABLED", cmsx_Blackbox_Enabled),
+#ifdef USE_BLACKBOX
     OSD_SETTING_ENTRY("RATE DENOM", SETTING_BLACKBOX_RATE_DENOM),
+#endif
 
 #ifdef USE_FLASHFS
     OSD_FUNC_CALL_ENTRY("ERASE FLASH", cmsx_EraseFlash),

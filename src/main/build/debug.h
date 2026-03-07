@@ -82,7 +82,7 @@ typedef enum {
     DEBUG_COUNT // also update debugModeNames in cli.c
 } debugType_e;
 
-#ifdef SITL_BUILD
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
 #define SD(X) (X)
 #else
 #define SD(X)

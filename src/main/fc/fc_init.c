@@ -151,7 +151,7 @@
 
 #include "telemetry/telemetry.h"
 
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
 #include "target/SITL/serial_proxy.h"
 #endif
 
@@ -209,7 +209,7 @@ void init(void)
     // Initialize system and CPU clocks to their initial values
     systemInit();
 
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     __enable_irq();
 #endif
 
@@ -257,7 +257,7 @@ void init(void)
     latchActiveFeatures();
 
     ledInit(false);
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     EXTIInit();
 #endif
 
@@ -319,7 +319,7 @@ void init(void)
     if (!STATE(ALTITUDE_CONTROL)) {
         featureClear(FEATURE_AIRMODE);
     }
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     // Initialize motor and servo outpus
     if (pwmMotorAndServoInit()) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
@@ -742,7 +742,7 @@ void init(void)
     powerLimiterInit();
 #endif
 
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 #endif
@@ -751,3 +751,4 @@ void init(void)
 
     systemState |= SYSTEM_STATE_READY;
 }
+// change

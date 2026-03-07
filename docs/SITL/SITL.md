@@ -128,6 +128,18 @@ You also can use your plane/quad ( if receiver is powered from USB).
 
 In the SITL configuration, select "Receiver type: SIM" regardles of the kind of receiver used.
 
+### Webassembly
+> [!WARNING]>
+> SITL Webassembly is EXPERIMENTAL
+
+Due to restrictions in the browser environment, there are some changes and limitations:
+
+- Ports:
+  Serial Port 1 is not a TCP port, but a direct interface via function calls so that the web version of the Configurator can communicate directly with the Webassembly SITL. All other serial ports are TCP ports, as before, see next point.
+
+- TCP/UDP - Serial ports and simulator interface.
+  Websites cannot establish a direct connection via TCP and UDP, except for websockets. A locally running websocket to socket proxy server is required (e.g. from here: https://github.com/Scavanger/websocket_to_posix_proxy).
+  The WebAssembly checks for a running proxy server and, if no connection can be established, deactivates all network functions (TCP ‘UARTS’, simulator interface).
 
 ## OSD
 For the OSD the program INAV-Sim-OSD is available: https://github.com/Scavanger/INAV-SIM-OSD.

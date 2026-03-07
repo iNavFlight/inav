@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INAV WebAssembly Debugger</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ccc;
+        }
+
+        .status-indicator.loading {
+            background-color: #ffc107;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-indicator.success {
+            background-color: #28a745;
+        }
+
+        .status-indicator.error {
+            background-color: #dc3545;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #333;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: #f8f9fa;
+            transition: all 0.2s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 10px 16px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .button-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .console {
+            background: #1e1e1e;
+            color: #00ff00;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+            line-height: 1.5;
+            border: 1px solid #333;
+        }
+
+        .console-line {
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .console-line.info {
+            color: #00ff00;
+        }
+
+        .console-line.success {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .console-line.warning {
+            color: #ffff00;
+        }
+
+        .console-line.error {
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        .console-line.debug {
+            color: #88ccff;
+        }
+
+        .console-line.stdout {
+            color: #00ff00;
+        }
+
+        .console-line.stderr {
+            color: #ff6666;
+            font-weight: bold;
+        }
+
+        .memory-bar {
+            width: 100%;
+            height: 24px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .memory-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 16px 24px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 INAV WebAssembly Debugger</h1>
+            <p>Real-time testing and debugging interface for WASM flight controller modules</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Module Status Panel -->
+            <div class="card">
+                <h2>
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    Module Status
+                </h2>
+                <div class="info-box">
+                    <strong>Info:</strong> This panel displays the real-time status of the WASM module.
+                </div>
+                <div class="status-item">
+                    <span>Status</span>
+                    <span class="status-value" id="statusText">Initializing...</span>
+                </div>
+                <div class="status-item">
+                    <span>Memory Allocated</span>
+                    <span class="status-value" id="memoryText">0 MB</span>
+                </div>
+                <div class="status-item">
+                    <span>Build Type</span>
+                    <span class="status-value" id="buildTypeText">Debug</span>
+                </div>
+                <div style="margin-top: 12px;">
+                    <label>Memory Usage</label>
+                    <div class="memory-bar">
+                        <div class="memory-bar-fill" id="memoryBar" style="width: 0%">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="card">
+                <h2>⚙️ Control Panel</h2>
+                <div class="info-box">
+                    <strong>Info:</strong> Start/Stop the WebAssembly module and view its output.
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label for="argsInput" style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">
+                        Command Line Arguments
+                    </label>
+                    <input type="text" id="argsInput" placeholder="e.g., --path=test.bin" 
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; font-size: 13px;">
+                    <small style="color: #666; display: block; margin-top: 4px;">Arguments are saved automatically between sessions</small>
+                </div>
+                <button id="startBtn" class="button-success">▶ Start WASM</button>
+                <button id="stopBtn" class="button-secondary">⏹ Stop WASM</button>
+                <button id="clearBtn">🗑️ Clear Console</button>
+            </div>
+
+            <!-- MSP Test Panel -->
+            <div class="card">
+                <h2>📡 MSP Commands Test</h2>
+                <div class="info-box">
+                    <strong>Info:</strong> Test basic MSP commands to verify flight controller communication.
+                </div>
+                <button id="testMspApiVersion" class="button-success" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    🔍 MSP_API_VERSION (1)
+                </button>
+                <button id="testMspFcVariant" class="button-success" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    🔍 MSP_FC_VARIANT (2)
+                </button>
+                <button id="testMspBoardInfo" class="button-success" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                    🔍 MSP_BOARD_INFO (4)
+                </button>
+            </div>
+        </div>
+
+        <!-- Console Output -->
+        <div class="card">
+            <h2>📊 Console Output</h2>
+            <div class="console" id="console">
+                <div class="console-line info">[INFO] INAV WebAssembly Debugger loaded</div>
+                <div class="console-line info">[INFO] Waiting for WASM module...</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <strong id="inavVersion">INAV 8.0.0</strong> • WebAssembly Build Environment • <span id="timestamp">Ready</span>
+        </div>
+    </div>
+    <script>
+        
+        
+        // Console logging system
+        const consoleElement = document.getElementById('console');
+        const maxLines = 500;
+        let isSerialConnected = false;
+
+        function addConsoleLine(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            line.textContent = `[${type.toUpperCase()}] ${message}`;
+            consoleElement.appendChild(line);
+
+            // Auto-scroll to bottom
+            consoleElement.scrollTop = consoleElement.scrollHeight;
+
+            // Limit console lines
+            const lines = consoleElement.querySelectorAll('.console-line');
+            if (lines.length > maxLines) {
+                lines[0].remove();
+            }
+        }
+
+        // Status indicator
+        function setStatus(status, type = 'loading') {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            indicator.className = `status-indicator ${type}`;
+            statusText.textContent = status;
+            
+            if (type === 'success') {
+                addConsoleLine('Module loaded successfully', 'success');
+            } else if (type === 'error') {
+                addConsoleLine(`Error: ${status}`, 'error');
+            }
+        }
+
+        // Memory status update
+        function updateMemoryStatus() {
+            if (wasmModule && wasmModule._wasmMallinfo)
+            {
+                const ptr = wasmModule._wasmMallinfo('number');
+                const index = ptr / 4;
+                const area = wasmModule.HEAPU32[index + 0];
+                const ordblks = wasmModule.HEAPU32[index + 1];
+                const smblks = wasmModule.HEAPU32[index + 2];
+                const hblks = wasmModule.HEAPU32[index + 3];
+                const hblkhd = wasmModule.HEAPU32[index + 4];
+                const usmblks = wasmModule.HEAPU32[index + 5];
+                const fsmblks = wasmModule.HEAPU32[index + 6];
+                const uordblks = wasmModule.HEAPU32[index + 7];
+                const fordblks = wasmModule.HEAPU32[index + 8];
+                const keepcost = wasmModule.HEAPU32[index + 9];
+               console.log('Mallinfo ptr:', ptr);
+            }
+            if (navigator.deviceMemory) {
+                const totalMemory = navigator.deviceMemory * 1024; // Convert GB to MB
+                document.getElementById('memoryText').textContent = `${totalMemory} MB`;
+                document.getElementById('memoryBar').style.width = '45%';
+                document.getElementById('memoryBar').textContent = '45%';
+            }
+        }
+
+        // WASM Module management
+        let wasmRunning = false;
+        let stdoutBuffer = '';
+        let stderrBuffer = '';
+        let wasmModule = null;  // Track WASM module instance
+
+        // Load saved arguments from localStorage
+        function loadSavedArguments() {
+            const saved = localStorage.getItem('wasmArguments');
+            if (saved) {
+                document.getElementById('argsInput').value = saved;
+            }
+        }
+
+        // Save arguments to localStorage
+        function saveArguments() {
+            const args = document.getElementById('argsInput').value;
+            localStorage.setItem('wasmArguments', args);
+        }
+
+        // Parse command line arguments string into argv array
+        function parseArguments(argString) {
+            if (!argString || argString.trim() === '') {
+                return ['inav_WASM'];
+            }
+            
+            const args = ['inav_WASM'];
+            const parts = argString.trim().split(/\s+/);
+            args.push(...parts);
+            return args;
+        }
+
+        // Capture stdout output
+        function captureStdout(text) {
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                if (line.trim()) {
+                    addConsoleLine(`[stdout] ${line}`, 'stdout');
+                }
+            });
+        }
+
+        // Capture stderr output
+        function captureStderr(text) {
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                if (line.trim()) {
+                    addConsoleLine(`[stderr] ${line}`, 'stderr');
+                }
+            });
+        }
+
+        // ============================================
+        // MSP Protocol Implementation
+        // ============================================
+
+        // MSP Protocol Constants
+        const MSP_API_VERSION = 1;
+        const MSP_FC_VARIANT = 2;
+        const MSP_BOARD_INFO = 4;
+
+        // MSP Command Builder - creates a proper MSP v1 message
+        function buildMspMessage(command, payload = []) {
+            // MSP v1 frame: $M< [payload_size] [command] [payload...] [checksum]
+            const frameData = [command, ...payload];
+            const payloadSize = payload.length;
+
+            let checksum = 0;
+            for (const byte of frameData) {
+                checksum ^= byte;
+            }
+            
+            // Build complete message
+            const message = [
+                0x24, 0x4D, 0x3C,  // "$M<"
+                payloadSize,
+                ...frameData,
+                checksum
+            ];
+            
+            return message;
+        }
+
+        // MSP Message Parser - parses MSP v1 response frames
+        function parseMspMessage(data) {
+            if (data.length < 6) return null;
+            
+            // Check header: $M> for response (0x24 0x4D 0x3E)
+            if (data[0] !== 0x24 || data[1] !== 0x4D || data[2] !== 0x3E) {
+                return null;
+            }
+            
+            const payloadSize = data[3];
+            const command = data[4];
+            const payload = data.slice(5, 5 + payloadSize);
+            
+            // Verify checksum
+            let checksum = 0;
+            for (let i = 3; i < 5 + payloadSize; i++) {
+                checksum ^= data[i];
+            }
+            
+            if (checksum !== data[5 + payloadSize]) {
+                addConsoleLine('Checksum mismatch', 'error');
+                return null;
+            }
+            
+            return { command, payload };
+        }
+
+        // Format byte array as hex string
+        function formatPayload(payload) {
+            return Array.from(payload)
+                .map(b => '0x' + b.toString(16).padStart(2, '0'))
+                .join(' ');
+        }
+
+        // Test MSP Command
+        async function testMspCommand(commandId, commandName) {
+            if (!wasmModule) {
+                addConsoleLine('WASM module not loaded. Start it first.', 'error');
+                return;
+            }
+
+            try {
+                addConsoleLine(`\n📡 Testing ${commandName} (CMD: ${commandId})`, 'info');
+                addConsoleLine('─'.repeat(60), 'debug');
+                
+                // Build message
+                const message = buildMspMessage(commandId);
+                addConsoleLine(`TX: ${formatPayload(message)}`, 'debug');
+                addConsoleLine(`Message Structure:`, 'debug');
+                addConsoleLine(`  Header: "$M<" | Size: ${message[3]} | Cmd: ${message[4]} | Checksum: 0x${message[message.length-1].toString(16).padStart(2, '0')}`, 'debug');
+                addConsoleLine(`  Total Length: ${message.length} bytes`, 'debug');
+                
+                // Note: Full integration requires serial_ex to be exported from WASM
+                // Currently we demonstrate the message structure
+                addConsoleLine(`✓ Message prepared for transmission`, 'success');
+                addConsoleLine('─'.repeat(60), 'debug');
+                sendMSPMessage(message);
+                
+                
+            } catch (err) {
+                addConsoleLine(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        function sendMSPMessage(message) {
+            if (wasmModule && wasmModule._inavSerialExConnect) {
+                
+                if (!isSerialConnected) {
+                    addConsoleLine('Attempting to connect to serial_ex interface... (UART 1)', 'info');
+                    if (wasmModule._inavSerialExConnect(0)) {
+                        addConsoleLine('Connected to serial_ex interface', 'success');
+                        isSerialConnected = true;
+                    } else {
+                        addConsoleLine('Failed to connect to serial_ex interface', 'error');
+                        return;
+                    }
+                }
+                
+                
+                const len = message.length;
+                const ptr = wasmModule._malloc(len);
+                wasmModule.HEAPU8.set(new Uint8Array(message), ptr);
+                
+                if (wasmModule._inavSerialExSend(0, ptr, len)) {
+                    addConsoleLine('MSP message sent successfully', 'success');
+                } else {
+                    addConsoleLine('Failed to send MSP message', 'error');
+                }
+                wasmModule._free(ptr);
+
+                
+            } else {
+                addConsoleLine('serial_ex functions not available in WASM module', 'error');
+            }
+        }
+
+        // ============================================
+        // Event-Driven Message Handler for Serial Data
+        // ============================================
+
+        let serialMessageBuffer = [];
+        let mspReassemblyBuffer = [];  // Buffer for reassembling fragmented MSP messages
+        let messageCheckInterval = null;
+
+        /**
+         * Poll for pending messages from C code
+         * Called periodically (every 10ms) to check if messages are available
+         * This is more reliable than trying to use async_call in pthread context
+         */
+        function checkPendingMessages() {
+            if (!wasmModule || !wasmModule._serialExGetPendingPort) {
+                return;
+            }
+            
+            try {
+                // Check if messages are pending in C code
+                const pendingPort = wasmModule._serialExGetPendingPort();
+                
+                if (pendingPort !== 0xFFFFFFFF) {  // UINT32_MAX = 4294967295 = no messages
+                    // Messages available - process them
+                    processAvailableMessages();
+                }
+            } catch (err) {
+                addConsoleLine(`[Serial] Error checking pending messages: ${err.message}`, 'error');
+            }
+        }
+
+        /**
+         * Process all available messages from queue
+         */
+        function processAvailableMessages() {
+            if (!wasmModule || !wasmModule._serialExGetMessage) {
+                return;
+            }
+            
+            let messageCount = 0;
+            const maxMessages = 100; // Safety: max 100 messages per check
+            
+            while (messageCount < maxMessages) {
+                const message = getNextSerialMessage();
+                
+                if (!message) {
+                    break;
+                }
+                
+                messageCount++;
+                serialMessageBuffer.push(message);
+                
+                // Process message
+                handleSerialData(message.portId, message.data);
+            }
+        }
+
+        /**
+         * Safe wrapper for message retrieval from queue
+         * Supports both MSP (small messages) and CLI (up to 2 KB chunks)
+         */
+        function getNextSerialMessage() {
+            if (!wasmModule || !wasmModule._serialExGetMessage) {
+                return null;
+            }
+            
+            // Allocate memory for output parameters
+            // dataPtr needs 2048 bytes for CLI chunks, not just 64 bytes
+            const portIdPtr = wasmModule._malloc(1);
+            const dataPtr = wasmModule._malloc(2048);      // 2 KB for CLI support
+            const lengthPtr = wasmModule._malloc(2);
+            
+            try {
+                // Get message from queue
+                const hasMessage = wasmModule._serialExGetMessage(portIdPtr, dataPtr, lengthPtr);
+                
+                if (!hasMessage) {
+                    return null;
+                }
+                
+                // Read values
+                const portId = wasmModule.HEAPU8[portIdPtr];
+                const length = wasmModule.HEAPU16[lengthPtr / 2];
+                
+                // Copy data (important: don't just return a pointer)
+                const data = new Uint8Array(wasmModule.HEAPU8.buffer, dataPtr, length);
+                const dataCopy = new Uint8Array(data);
+                
+                return {
+                    portId: portId,
+                    data: dataCopy,
+                    length: length
+                };
+                
+            } finally {
+                // Always free memory
+                wasmModule._free(portIdPtr);
+                wasmModule._free(dataPtr);
+                wasmModule._free(lengthPtr);
+            }
+        }
+
+        /**
+         * Handle incoming serial data with MSP message reassembly
+         * MSP messages may be fragmented across multiple packets
+         */
+        function handleSerialData(portId, data) {
+            const hex = Array.from(data)
+                .map(b => '0x' + b.toString(16).padStart(2, '0'))
+                .join(' ');
+            
+            addConsoleLine(`[UART${portId + 1}] RX (${data.length} bytes): ${hex}`, 'success');
+            
+            // Add to reassembly buffer
+            mspReassemblyBuffer.push(...Array.from(data));
+            
+            // Try to parse complete MSP messages from buffer
+            processMSPReassemblyBuffer();
+        }
+
+        /**
+         * Process reassembly buffer to extract complete MSP messages
+         */
+        function processMSPReassemblyBuffer() {
+            while (mspReassemblyBuffer.length > 0) {
+                // Look for MSP frame start ($M>)
+                const startIdx = findMSPFrameStart(mspReassemblyBuffer);
+                
+                if (startIdx === -1) {
+                    // No frame start found, clear partial data
+                    if (mspReassemblyBuffer.length > 0) {
+                        // Keep last 2 bytes in case they're the start of $M>
+                        mspReassemblyBuffer = mspReassemblyBuffer.slice(Math.max(0, mspReassemblyBuffer.length - 2));
+                    }
+                    return;
+                }
+                
+                // Remove data before frame start
+                if (startIdx > 0) {
+                    mspReassemblyBuffer.splice(0, startIdx);
+                }
+                
+                // Need at least: $M> + size + cmd = 5 bytes
+                if (mspReassemblyBuffer.length < 5) {
+                    return;
+                }
+                
+                // Get frame size
+                const payloadSize = mspReassemblyBuffer[3];
+                const frameSize = 3 + 1 + 1 + payloadSize + 1;  // $M> + size + cmd + payload + checksum
+                
+                // Check if we have complete frame
+                if (mspReassemblyBuffer.length < frameSize) {
+                    return;  // Wait for more data
+                }
+                
+                // Extract frame
+                const frame = mspReassemblyBuffer.slice(0, frameSize);
+                
+                // Verify checksum
+                if (verifyMSPChecksum(frame)) {
+                    // Parse and display complete message
+                    parseMSPFrameFromData(new Uint8Array(frame));
+                    // Remove processed frame from buffer
+                    mspReassemblyBuffer.splice(0, frameSize);
+                } else {
+                    // Checksum failed, skip this byte and try again
+                    addConsoleLine(`[MSP] Checksum error, skipping byte at position 0`, 'warning');
+                    mspReassemblyBuffer.splice(0, 1);
+                }
+            }
+        }
+
+        /**
+         * Find position of MSP frame start ($M> = 0x24 0x4D 0x3E)
+         */
+        function findMSPFrameStart(buffer) {
+            for (let i = 0; i < buffer.length - 2; i++) {
+                if (buffer[i] === 0x24 && buffer[i+1] === 0x4D && buffer[i+2] === 0x3E) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        /**
+         * Verify MSP frame checksum
+         */
+        function verifyMSPChecksum(frame) {
+            if (frame.length < 6) {
+                return false;
+            }
+            
+            // Checksum is XOR of size, cmd, and payload
+            const payloadSize = frame[3];
+            let checksum = 0;
+            for (let i = 3; i < 5 + payloadSize; i++) {
+                checksum ^= frame[i];
+            }
+            
+            return checksum === frame[5 + payloadSize];
+        }
+
+        /**
+         * Parse complete MSP Response Frame
+         */
+        function parseMSPFrameFromData(data) {
+            if (data.length < 6) {
+                return;
+            }
+            
+            // Verify header
+            if (data[0] !== 0x24 || data[1] !== 0x4D || data[2] !== 0x3E) {
+                return;
+            }
+            
+            const payloadSize = data[3];
+            const command = data[4];
+            const payload = data.slice(5, 5 + payloadSize);
+            
+            const payloadHex = Array.from(payload)
+                .map(b => '0x' + b.toString(16).padStart(2, '0'))
+                .join(' ');
+            
+            addConsoleLine(`✓ [MSP Complete] CMD=${command}, Size=${payloadSize}, Data: ${payloadHex}`, 'info');
+            
+            // Parse specific MSP response types
+            parseSpecificMSPResponse(command, Array.from(payload));
+        }
+
+        /**
+         * Parse specific MSP response data
+         */
+        function parseSpecificMSPResponse(command, payload) {
+            const MSP_API_VERSION = 1;
+            const MSP_FC_VARIANT = 2;
+            const MSP_BOARD_INFO = 4;
+            
+            switch (command) {
+                case MSP_API_VERSION:
+                    if (payload.length >= 3) {
+                        const apiVersion = payload[0] + '.' + payload[1] + '.' + payload[2];
+                        addConsoleLine(`  API Version: ${apiVersion}`, 'debug');
+                    }
+                    break;
+                    
+                case MSP_FC_VARIANT:
+                    if (payload.length >= 4) {
+                        const variant = String.fromCharCode(...payload.slice(0, 4));
+                        addConsoleLine(`  FC Variant: ${variant}`, 'debug');
+                    }
+                    break;
+                    
+                case MSP_BOARD_INFO:
+                    if (payload.length >= 8) {
+                        const boardName = String.fromCharCode(...payload.slice(0, 8));
+                        addConsoleLine(`  Board: ${boardName}`, 'debug');
+                    }
+                    break;
+                    
+                default:
+                    break;
+            }
+        }
+
+        /**
+         * Start periodic message checking (every 10ms)
+         * This polls serialExGetPendingPort() to check for messages
+         * More reliable than emscripten_async_call in pthread context
+         */
+        function startSerialMessageMonitoring() {
+            if (messageCheckInterval !== null) {
+                return;
+            }
+            
+            if (!wasmModule || !wasmModule._serialExGetPendingPort) {
+                addConsoleLine('[Serial] Message monitoring not available', 'warning');
+                return;
+            }
+            
+            try {
+                // Check for pending messages every 10ms
+                messageCheckInterval = setInterval(checkPendingMessages, 10);
+                addConsoleLine('[Serial] Message monitoring started (polling every 10ms)', 'success');
+            } catch (err) {
+                addConsoleLine(`[Serial] Error starting message monitoring: ${err.message}`, 'error');
+            }
+        }
+
+        /**
+         * Stop periodic message checking
+         */
+        function stopSerialMessageMonitoring() {
+            if (messageCheckInterval !== null) {
+                clearInterval(messageCheckInterval);
+                messageCheckInterval = null;
+                addConsoleLine('[Serial] Message monitoring stopped', 'debug');
+            }
+        }
+
+        // Setup MSP Command Buttons
+        function setupMspButtons() {
+            const btnApiVersion = document.getElementById('testMspApiVersion');
+            const btnFcVariant = document.getElementById('testMspFcVariant');
+            const btnBoardInfo = document.getElementById('testMspBoardInfo');
+
+            if (btnApiVersion) {
+                btnApiVersion.addEventListener('click', () => {
+                    testMspCommand(MSP_API_VERSION, 'MSP_API_VERSION');
+                });
+            }
+
+            if (btnFcVariant) {
+                btnFcVariant.addEventListener('click', () => {
+                    testMspCommand(MSP_FC_VARIANT, 'MSP_FC_VARIANT');
+                });
+            }
+
+            if (btnBoardInfo) {
+                btnBoardInfo.addEventListener('click', () => {
+                    testMspCommand(MSP_BOARD_INFO, 'MSP_BOARD_INFO');
+                });
+            }
+        }
+
+        // Event listeners
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            if (wasmRunning) {
+                addConsoleLine('WASM module is already running', 'warning');
+                return;
+            }
+            
+            try {
+                // Save arguments before starting
+                saveArguments();
+                
+                const argString = document.getElementById('argsInput').value;
+                const argv = parseArguments(argString);
+                
+                addConsoleLine(`Starting WebAssembly module with arguments: ${JSON.stringify(argv)}`, 'info');
+                document.getElementById('startBtn').disabled = true;
+                setStatus('Loading...', 'loading');
+                
+                // Clean up any existing WASM module first
+                if (wasmModule) {
+                    wasmModule = null;
+                    addConsoleLine('Cleaned up previous WASM module', 'debug');
+                }
+                
+                // Import the WASM module (ES6 import with EXPORT_ES6=1 and MODULARIZE)
+                // The WASM.js file exports a factory function as default export
+                try {
+                    // Dynamic import with cache busting
+                    const moduleFactory = await import('./inav_WASM.js?t=' + Date.now());
+                    
+                    // Create Module configuration before calling the factory
+                    const Module = {
+                        arguments: argv,
+                        print: function(text) {
+                            captureStdout(text);
+                        },
+                        printErr: function(text) {
+                            captureStderr(text);
+                        },
+                        onAbort: function(what) {
+                            addConsoleLine(`WASM aborted: ${what}`, 'error');
+                            setStatus('Aborted', 'error');
+                            wasmRunning = false;
+                            document.getElementById('startBtn').disabled = false;
+                            document.getElementById('stopBtn').disabled = true;
+                        },
+                        locateFile: function(path, prefix) {
+                            // Make sure WASM file is loaded from the same directory
+                            return prefix + path;
+                        }
+                    };
+                    
+                    // Call the factory function with Module configuration
+                    // With MODULARIZE, the default export is a factory function that returns Promise<Module>
+                    // With pthread, initialization is asynchronous
+                    addConsoleLine('Initializing WASM module factory...', 'info');
+                    
+                    try {
+                        // The factory function returns a Promise that resolves with the Module instance
+                        wasmModule = await moduleFactory.default(Module);
+                        
+                        if (!wasmModule) {
+                            throw new Error('WASM module factory returned null/undefined');
+                        }
+                        
+                        addConsoleLine('WASM module instance created successfully', 'info');
+                        
+                        // With pthread + INVOKE_RUN=0, we need to manually call main
+                        // Wait a bit for pthread pool to initialize
+                        setTimeout(() => {
+                            try {
+                                addConsoleLine('Calling main() with argc=' + argv.length, 'info');
+                                wasmModule.callMain(argv);
+                                addConsoleLine('WASM main() started', 'info');
+                                wasmRunning = true;
+                                setStatus('Running', 'success');
+                                document.getElementById('stopBtn').disabled = false;
+                                startSerialMessageMonitoring();
+                            } catch (e) {
+                                addConsoleLine(`Error calling main(): ${e.message}`, 'error');
+                                setStatus('Error', 'error');
+                                wasmRunning = false;
+                            }
+                        }, 100);
+                    } catch (initError) {
+                        addConsoleLine(`Module initialization error: ${initError.message}`, 'error');
+                        setStatus('Error', 'error');
+                        document.getElementById('startBtn').disabled = false;
+                    }
+                    
+                } catch (importError) {
+                    addConsoleLine('Failed to load WASM module: ' + importError.message, 'error');
+                    setStatus('Error', 'error');
+                    document.getElementById('startBtn').disabled = false;
+                }
+                
+            } catch (error) {
+                addConsoleLine(`Error starting WASM: ${error.message}`, 'error');
+                setStatus('Error', 'error');
+                document.getElementById('startBtn').disabled = false;
+                wasmRunning = false;
+            }
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (!wasmRunning) {
+                addConsoleLine('WASM module is not running', 'warning');
+                return;
+            }
+            
+            addConsoleLine('Stopping WebAssembly module...', 'info');
+            
+            // Stop message monitoring
+            stopSerialMessageMonitoring();
+            
+            // Clean up WASM module
+            if (wasmModule){
+                try {
+                    // Try to call exit if available
+                    if (wasmModule._wasmExit) {
+                        wasmModule._wasmExit();
+                    }
+                } catch (e) {
+                    addConsoleLine(`Note: ${e.message}`, 'warning');
+                }
+            }
+            
+            // Reset Module object
+            wasmModule = null;
+            
+            // Clear reassembly buffer for clean restart
+            mspReassemblyBuffer = [];
+            
+            wasmRunning = false;
+            setStatus('Stopped', 'warning');
+            addConsoleLine('WebAssembly module stopped - ready to restart', 'success');
+            
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('startBtn').disabled = false;
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            consoleElement.innerHTML = '';
+            addConsoleLine('Console cleared', 'info');
+        });
+
+        // Auto-update timestamp
+        setInterval(() => {
+            document.getElementById('timestamp').textContent = new Date().toLocaleTimeString();
+            updateMemoryStatus();
+        }, 1000);
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            loadSavedArguments();
+            setupMspButtons();
+        });
+
+        // Initial log
+        addConsoleLine('Interface ready - waiting for page load', 'info');
+    </script>
+</body>
+</html>

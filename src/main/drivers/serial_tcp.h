@@ -51,7 +51,6 @@ typedef struct
     bool isClientConnected;
 } tcpPort_t;
 
-
 serialPort_t *tcpOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options);
 
 extern void tcpSend(tcpPort_t *port);

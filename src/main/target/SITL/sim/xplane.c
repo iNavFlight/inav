@@ -450,7 +450,8 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
         port = XP_PORT; // use default port
     }
 
-    if(lookupAddress(ip, port, SOCK_DGRAM, (struct sockaddr*)&serverAddr, &serverAddrLen) != 0) {
+    if (lookupAddress(ip, port, SOCK_DGRAM, (struct sockaddr*)&serverAddr, &serverAddrLen) != 0) {
+        fprintf(stderr, "[SOCKET] Unable to resolve X-Plane address %s:%d - %s\n", ip, port, strerror(errno));
         return false;
     }
 
@@ -465,6 +466,7 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
         }
     }
 
+#if !defined(WASM_BUILD)
     struct timeval tv;
         tv.tv_sec = 1;
         tv.tv_usec = 0;
@@ -475,6 +477,7 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
     if (setsockopt(sockFd, SOL_SOCKET, SO_SNDTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
         return false;
     }
+#endif
 
     if (pthread_create(&listenThread, NULL, listenWorker, NULL) < 0) {
         return false;

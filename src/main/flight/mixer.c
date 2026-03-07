@@ -264,7 +264,7 @@ void mixerResetDisarmedMotors(void)
         motor_disarmed[i] = motorZeroCommand;
     }
 }
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
 static uint16_t handleOutputScaling(
     int16_t input,          // Input value from the mixer
     int16_t stopThreshold,  // Threshold value to check if motor should be rotating or not
@@ -368,7 +368,7 @@ static void applyTurtleModeToMotors(void) {
 
 void FAST_CODE writeMotors(void)
 {
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     for (int i = 0; i < motorCount; i++) {
         uint16_t motorValue;
 #ifdef USE_DSHOT
@@ -467,7 +467,7 @@ void stopMotors(void)
 
 void stopPwmAllMotors(void)
 {
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     pwmShutdownPulsesForAllMotors(motorCount);
 #endif
 

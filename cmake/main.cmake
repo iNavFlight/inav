@@ -11,7 +11,7 @@ set(MAIN_DEFINITIONS
 
 
 # Can't check for OSX yet at this point
-if(SITL)
+if(SITL OR WASM)
     set(MAIN_COMPILE_OPTIONS
         -Wall
         -Wextra
@@ -96,7 +96,7 @@ function(setup_firmware_target exe name)
     get_property(targets GLOBAL PROPERTY VALID_TARGETS)
     list(APPEND targets ${name})
     set_property(GLOBAL PROPERTY VALID_TARGETS "${targets}")
-    if(NOT SITL)
+    if(NOT SITL AND NOT WASM)
         setup_openocd(${exe} ${name})
         setup_svd(${exe} ${name})
     endif()

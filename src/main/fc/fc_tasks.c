@@ -108,7 +108,6 @@ void taskHandleSerial(timeUs_t currentTimeUs)
     if (cliMode) {
         cliProcess();
     }
-
     // Allow MSP processing even if in CLI mode
     mspSerialProcess(ARMING_FLAG(ARMED) ? MSP_SKIP_NON_MSP_DATA : MSP_EVALUATE_NON_MSP_DATA, mspFcProcessCommand);
 
@@ -761,3 +760,18 @@ cfTask_t cfTasks[TASK_COUNT] = {
 #endif
 
 };
+
+// ============================================
+// WASM Scheduler Wrapper - for Web Worker
+// ============================================
+#ifdef WASM_BUILD
+/**
+ * Scheduler wrapper for WASM builds
+ * Exported to JavaScript for Web Worker execution
+ * Provides a single entry point for high-frequency scheduler calls
+ */
+void fcScheduler(void) {
+    scheduler();
+}
+#endif
+// another
