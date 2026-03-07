@@ -124,7 +124,7 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
     DEBUG_SET(DEBUG_FLOW, 2, posEstimator.est.flowCoordinates[X]);
     DEBUG_SET(DEBUG_FLOW, 3, posEstimator.est.flowCoordinates[Y]);
 
-    return ctx->applyCorrections = true;
+    return ctx->applyCorrectionsXY = true;
 #else
     UNUSED(ctx);
     return false;

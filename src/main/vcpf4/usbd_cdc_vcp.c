@@ -178,13 +178,24 @@ static uint16_t VCP_Ctrl(uint32_t Cmd, uint8_t* Buf, uint32_t Len)
  *******************************************************************************/
 uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
 {
-    VCP_DataTx(ptrBuffer, sendLength);
+    if (VCP_DataTx(ptrBuffer, sendLength) != USBD_OK) {
+        return 0;
+    }
     return sendLength;
 }
 
 uint32_t CDC_Send_FreeBytes(void)
 {
-    return APP_RX_DATA_SIZE - CDC_Receive_BytesAvailable();
+    // Calculate free space in APP_Rx_Buffer (outbound to host)
+    // Using correct circular buffer math with volatile pointers
+    uint32_t ptr_in = APP_Rx_ptr_in;
+    uint32_t ptr_out = APP_Rx_ptr_out;
+
+    if (ptr_out > ptr_in) {
+        return ptr_out - ptr_in - 1;
+    } else {
+        return APP_RX_DATA_SIZE + ptr_out - ptr_in - 1;
+    }
 }
 
 /**
@@ -194,18 +205,29 @@ uint32_t CDC_Send_FreeBytes(void)
  * @param  Len: Number of data to be sent (in bytes)
  * @retval Result of the operation: USBD_OK if all operations are OK else VCP_FAIL
  */
+#define VCP_WRITE_TIMEOUT_MS 50
+
 static uint16_t VCP_DataTx(const uint8_t* Buf, uint32_t Len)
 {
+    uint32_t start = millis();
+
     /*
         make sure that any paragraph end frame is not in play
         could just check for: USB_CDC_ZLP, but better to be safe
         and wait for any existing transmission to complete.
     */
-    while (USB_Tx_State != 0);
+    while (USB_Tx_State != 0) {
+        if (millis() - start > VCP_WRITE_TIMEOUT_MS) {
+            return USBD_FAIL;
+        }
+    }
 
     for (uint32_t i = 0; i < Len; i++) {
         // Stall if the ring buffer is full
         while (((APP_Rx_ptr_in + 1) % APP_RX_DATA_SIZE) == APP_Rx_ptr_out) {
+            if (millis() - start > VCP_WRITE_TIMEOUT_MS) {
+                return USBD_FAIL;
+            }
             delay(1);
         }
 
