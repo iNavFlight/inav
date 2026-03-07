@@ -67,7 +67,6 @@ typedef struct pinioRuntime_s {
     IO_t io;
     TCH_t *tch;     // Non-NULL when pin is configured in PWM mode
     bool inverted;
-    bool state;
 } pinioRuntime_t;
 
 static pinioRuntime_t pinioRuntime[PINIO_COUNT];
@@ -103,7 +102,6 @@ void pinioInit(void)
                 pinioRuntime[i].tch = tch;
                 pinioRuntime[i].io = io;
                 pinioRuntime[i].inverted = (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) != 0;
-                pinioRuntime[i].state = false;
                 // Start in the "off" state: HIGH if inverted, LOW if normal
                 *timerCCR(tch) = pinioRuntime[i].inverted ? 100 : 0;
                 continue;
@@ -123,27 +121,6 @@ void pinioInit(void)
         }
 
         pinioRuntime[i].io = io;
-        pinioRuntime[i].state = false;
-    }
-}
-
-void pinioSet(int index, bool newState)
-{
-    if (index < 0 || index >= pinioHardwareCount) {
-        return;
-    }
-
-    if (!pinioRuntime[index].io) {
-        return;
-    }
-
-    if (newState != pinioRuntime[index].state) {
-        if (pinioRuntime[index].tch) {
-            *timerCCR(pinioRuntime[index].tch) = (newState ^ pinioRuntime[index].inverted) ? 100 : 0;
-        } else {
-            IOWrite(pinioRuntime[index].io, newState ^ pinioRuntime[index].inverted);
-        }
-        pinioRuntime[index].state = newState;
     }
 }
 
@@ -153,14 +130,27 @@ void pinioSetDuty(int index, uint8_t duty)
         return;
     }
 
-    if (!pinioRuntime[index].tch) {
+    if (!pinioRuntime[index].io) {
         return;
     }
 
-    // Clamp to valid range and apply inversion
+    // Clamp to valid range
     if (duty > 100) {
         duty = 100;
     }
-    *timerCCR(pinioRuntime[index].tch) = pinioRuntime[index].inverted ? (100 - duty) : duty;
+
+    if (pinioRuntime[index].tch) {
+        // Timer-capable pin: set PWM duty cycle directly
+        *timerCCR(pinioRuntime[index].tch) = pinioRuntime[index].inverted ? (100 - duty) : duty;
+    } else {
+        // GPIO pin: treat as on/off (0 = off, any non-zero = on)
+        IOWrite(pinioRuntime[index].io, (duty > 0) ^ pinioRuntime[index].inverted);
+    }
+}
+
+// pinioSet is a convenience wrapper: on/off is just PWM at 100% or 0% duty
+void pinioSet(int index, bool newState)
+{
+    pinioSetDuty(index, newState ? 100 : 0);
 }
 #endif
