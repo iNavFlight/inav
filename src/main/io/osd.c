@@ -6514,11 +6514,11 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     bool warningCondition = false;
     uint8_t warningFlagID = 1;
 
-    // Low Battery
-    const batteryState_e batteryState = getBatteryState();
-    warningCondition = batteryState == BATTERY_CRITICAL || batteryState == BATTERY_WARNING;
-    if (osdCheckWarning(warningCondition, warningFlagID, &warningsCount)) {
-        ADD_MSG(batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT LOW !");
+    // Low Battery Voltage
+    const batteryState_e batteryVoltageState = checkBatteryVoltageState();
+    warningCondition = batteryVoltageState == BATTERY_CRITICAL || batteryVoltageState == BATTERY_WARNING;
+    if (osdCheckWarning(warningCondition, warningFlagID)) {
+        ADD_MSG(batteryVoltageState == BATTERY_CRITICAL ? "VBATT LAND" : "VBATT LOW ");
     }
 
     // Low Battery Capacity
@@ -6526,7 +6526,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         const batteryState_e batteryState = getBatteryState();
         warningCondition = batteryState == BATTERY_CRITICAL || batteryState == BATTERY_WARNING;
         if (osdCheckWarning(warningCondition, warningFlagID <<= 1)) {
-            messages[messageCount++] = batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT DYING";
+            ADD_MSG(batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT DYING");
         }
     }
 #if defined(USE_GPS)
@@ -6541,12 +6541,12 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     // RTH sanity (warning if RTH heads 200m further away from home than closest point)
     warningCondition = NAV_Status.state == MW_NAV_STATE_RTH_ENROUTE && !posControl.flags.rthTrackbackActive &&
                        (posControl.homeDistance - posControl.rthSanityChecker.minimalDistanceToHome) > 20000;
-    if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
+    if (osdCheckWarning(warningCondition, warningFlagID <<= 1)) {
         ADD_MSG("RTH SANITY");
     }
 
     // Altitude sanity (warning if significant mismatch between estimated and GPS altitude)
-    if (osdCheckWarning(posControl.flags.gpsCfEstimatedAltitudeMismatch, warningFlagID <<= 1, &warningsCount)) {
+    if (osdCheckWarning(posControl.flags.gpsCfEstimatedAltitudeMismatch, warningFlagID <<= 1)) {
         ADD_MSG("ALT SANITY");
     }
 #endif
@@ -6555,7 +6555,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     // Magnetometer failure
     if (requestedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
         hardwareSensorStatus_e magStatus = getHwCompassStatus();
-        if (osdCheckWarning(magStatus == HW_SENSOR_UNAVAILABLE || magStatus == HW_SENSOR_UNHEALTHY, warningFlagID <<= 1, &warningsCount)) {
+        if (osdCheckWarning(magStatus == HW_SENSOR_UNAVAILABLE || magStatus == HW_SENSOR_UNHEALTHY, warningFlagID <<= 1)) {
             ADD_MSG("MAG FAILED");
         }
     }
@@ -6564,7 +6564,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
 #if defined(USE_PITOT)
     // Pitot sensor validation failure (blocked/failed pitot tube)
     if (sensors(SENSOR_PITOT) && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL) {
-        if (osdCheckWarning(pitotHasFailed(), warningFlagID <<= 1, &warningsCount)) {
+        if (osdCheckWarning(pitotHasFailed(), warningFlagID <<= 1)) {
             ADD_MSG("PITOT FAIL");
         }
     }
@@ -6578,7 +6578,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     // }
 
 #ifdef USE_DEV_TOOLS
-    if (osdCheckWarning(systemConfig()->groundTestMode, warningFlagID <<= 1, &warningsCount)) {
+    if (osdCheckWarning(systemConfig()->groundTestMode, warningFlagID <<= 1)) {
         ADD_MSG("GRD TEST !");
     }
 #endif
