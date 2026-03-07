@@ -20,6 +20,7 @@ set(CMSIS_DSP_SRC
     BasicMathFunctions/arm_sub_f32.c
     BasicMathFunctions/arm_mult_f32.c
     BasicMathFunctions/arm_scale_f32.c
+    BasicMathFunctions/arm_offset_f32.c
     TransformFunctions/arm_rfft_fast_f32.c
     TransformFunctions/arm_cfft_f32.c
     TransformFunctions/arm_rfft_fast_init_f32.c
@@ -338,6 +339,11 @@ function(target_stm32)
 
     math(EXPR hse_value "${hse_mhz} * 1000000")
     list(APPEND target_definitions "HSE_VALUE=${hse_value}")
+
+    if (MSP_UART) 
+        list(APPEND target_definitions "MSP_UART=${MSP_UART}")
+    endif()
+
     if(args_COMPILE_DEFINITIONS)
         list(APPEND target_definitions ${args_COMPILE_DEFINITIONS})
     endif()

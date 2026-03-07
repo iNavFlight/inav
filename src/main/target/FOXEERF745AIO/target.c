@@ -25,12 +25,12 @@
 
 timerHardware_t timerHardware[] = {
 
-    DEF_TIM(TIM1,  CH1, PA8, TIM_USE_LED, 0, 0),      // LED STRIP - D(2, 6, 0)
-
     DEF_TIM(TIM3, CH1, PB4,  TIM_USE_MOTOR, 0, 0), // M1 - D(1, 4, 5)
     DEF_TIM(TIM3, CH2, PB5,  TIM_USE_MOTOR, 0, 0), // M2 - D(1, 5, 5)
     DEF_TIM(TIM3, CH4, PB1,  TIM_USE_MOTOR, 0, 0), // M3 - D(1, 2, 5)
     DEF_TIM(TIM3, CH3, PB0,  TIM_USE_MOTOR, 0, 0), // M4 - D(1, 7, 5)
+						   //
+    DEF_TIM(TIM1,  CH1, PA8, TIM_USE_LED, 0, 0),      // LED STRIP - D(2, 6, 0)
 
 };
 

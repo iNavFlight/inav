@@ -1,0 +1,25 @@
+name: Build firmware
+# Don't enable CI on push, just on PR. If you
+# are working on the main repo and want to trigger
+# a CI build submit a draft PR.
+on: 
+  pull_request:
+    paths-ignore:
+      - 'src/**'
+      - '.github/**'
+      - 'cmake/**'
+      - 'lib/**'
+      - 'docs/Settings.md'
+      - 'CMakeLists.txt'
+      - '*.sh'
+
+jobs:
+  test:
+    #needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get -y install ninja-build
+      - name: Run Tests
+        run: mkdir -p build && cd build && cmake -DTOOLCHAIN=none -G Ninja .. && ninja check

@@ -27,7 +27,7 @@
 
 #include "common/filter.h"
 #include "build/debug.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/rc_controls.h"
 #include "flight/pid.h"
 
@@ -199,11 +199,11 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
             pt1FilterInit(&samples[i].pt1ErrorHpfFilter, Q_TUNE_ERROR_HPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
 
             if (i == FD_ROLL) {
-                samples[i].rate = currentControlRateProfile->stabilized.rates[FD_ROLL] * 10.0f;
+                samples[i].rate = currentControlProfile->stabilized.rates[FD_ROLL] * 10.0f;
             } else if (i == FD_PITCH) {
-                samples[i].rate = currentControlRateProfile->stabilized.rates[FD_PITCH] * 10.0f;
+                samples[i].rate = currentControlProfile->stabilized.rates[FD_PITCH] * 10.0f;
             } else if (i == FD_YAW) {
-                samples[i].rate = currentControlRateProfile->stabilized.rates[FD_YAW] * 10.0f;
+                samples[i].rate = currentControlProfile->stabilized.rates[FD_YAW] * 10.0f;
             }
         }
 

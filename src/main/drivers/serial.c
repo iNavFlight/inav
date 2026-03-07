@@ -86,6 +86,11 @@ void serialSetMode(serialPort_t *instance, portMode_t mode)
     instance->vTable->setMode(instance, mode);
 }
 
+void serialSetOptions(serialPort_t *instance, portOptions_t options)
+{
+    instance->vTable->setOptions(instance, options);
+}
+
 void serialWriteBufShim(void *instance, const uint8_t *data, int count)
 {
     serialWriteBuf((serialPort_t *)instance, data, count);

@@ -59,6 +59,12 @@ More target options:
 * Note that in multirotor configuration, servos are not enabled on S5 and S6
 * Uses target **OMNIBUSF4V6**
 
+For the Omnibus V6 and the Fireworks V2 boards, run the following command in the CLI tab to select the correct accelerometer / gyro:
+
+set gyro_to_use = 1
+set acc_hardware = auto
+save
+
 
 ### [Omnibus F4 Pro](https://inavflight.com/shop/p/OMNIBUSF4PRO)
 

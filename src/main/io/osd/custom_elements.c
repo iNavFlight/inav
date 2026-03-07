@@ -33,6 +33,8 @@
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(osdCustomElement_t, MAX_CUSTOM_ELEMENTS, osdCustomElements, PG_OSD_CUSTOM_ELEMENTS_CONFIG, 1);
 
+static uint8_t prevLength[MAX_CUSTOM_ELEMENTS];
+
 void pgResetFn_osdCustomElements(osdCustomElement_t *instance)
 {
     for (int i = 0; i < MAX_CUSTOM_ELEMENTS; i++) {
@@ -68,29 +70,137 @@ uint8_t customElementDrawPart(char *buff, uint8_t customElementIndex, uint8_t cu
     const int customPartValue = osdCustomElements(customElementIndex)->part[customElementItemIndex].value;
 
     switch (customPartType) {
-        case CUSTOM_ELEMENT_TYPE_GV:
+        case CUSTOM_ELEMENT_TYPE_GV_1:
         {
-            osdFormatCentiNumber(buff, (int32_t) gvGet(customPartValue) * (int32_t) 100, 1, 0, 0, 6, false);
-            return 6;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_FLOAT:
-        {
-            osdFormatCentiNumber(buff, (int32_t) gvGet(customPartValue), 1, 2, 0, 6, false);
-            return 6;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_SMALL:
-        {
-            osdFormatCentiNumber(buff, (int32_t) ((gvGet(customPartValue) % 1000 ) * (int32_t) 100), 1, 0, 0, 3, false);
-            return 3;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_SMALL_FLOAT:
-        {
-            osdFormatCentiNumber(buff, (int32_t) ((gvGet(customPartValue) % 100)  * (int32_t) 10), 1, 1, 0, 2, false);
+            osdFormatCentiNumber(buff,(int32_t) (constrain(gvGet(customPartValue), -9, 9) * (int32_t) 100), 1, 0, 0, 2, false);
             return 2;
         }
+        case CUSTOM_ELEMENT_TYPE_GV_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99, 99) * (int32_t) 100), 1, 0, 0, 3, false);
+            return 3;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_3:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999) * (int32_t) 100), 1, 0, 0, 4, false);
+            return 4;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_4:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -9999, 9999) * (int32_t) 100), 1, 0, 0, 5, false);
+            return 5;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_5:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99999, 99999) * (int32_t) 100), 1, 0, 0, 6, false);
+            return 6;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_1_1:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
+            return 3;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_1_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999)), 1, 2, 0, 4, false);
+            return 4;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_2_1:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999) * (int32_t) 10), 1, 1, 0, 4, false);
+            return 4;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_2_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) constrain(gvGet(customPartValue), -9999, 9999), 1, 2, 0, 5, false);
+            return 5;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_3_1:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -9999, 9999) * (int32_t) 10), 1, 1, 0, 5, false);
+            return 5;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_3_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) constrain(gvGet(customPartValue), -99999, 99999), 1, 2, 0, 6, false);
+            return 6;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_4_1:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99999, 99999) * (int32_t) 10), 1, 1, 0, 6, false);
+            return 6;
+        }
+
+        case CUSTOM_ELEMENT_TYPE_LC_1:
+        {
+            osdFormatCentiNumber(buff,(int32_t) (constrain(logicConditionGetValue(customPartValue), -9, 9) * (int32_t) 100), 1, 0, 0, 2, false);
+            return 2;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99, 99) * (int32_t) 100), 1, 0, 0, 3, false);
+            return 3;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_3:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999) * (int32_t) 100), 1, 0, 0, 4, false);
+            return 4;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_4:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -9999, 9999) * (int32_t) 100), 1, 0, 0, 5, false);
+            return 5;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_5:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99999, 99999) * (int32_t) 100), 1, 0, 0, 6, false);
+            return 6;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_1_1:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
+            return 3;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_1_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999)), 1, 2, 0, 4, false);
+            return 4;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_2_1:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999) * (int32_t) 10), 1, 1, 0, 4, false);
+            return 4;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_2_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) constrain(logicConditionGetValue(customPartValue), -9999, 9999), 1, 2, 0, 5, false);
+            return 5;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_3_1:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -9999, 9999)  * (int32_t) 10), 1, 1, 0, 5, false);
+            return 5;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_3_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) constrain(logicConditionGetValue(customPartValue), -99999, 99999), 1, 2, 0, 6, false);
+            return 6;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_4_1:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99999, 99999) * (int32_t) 10), 1, 1, 0, 6, false);
+            return 6;
+        }
+        
+        
         case CUSTOM_ELEMENT_TYPE_ICON_GV:
         {
             *buff = (uint8_t)gvGet(customPartValue);
+            return 1;
+        }
+        case CUSTOM_ELEMENT_TYPE_ICON_LC:
+        {
+            *buff = (uint8_t)constrain(logicConditionGetValue(customPartValue), 1, 255);
             return 1;
         }
         case CUSTOM_ELEMENT_TYPE_ICON_STATIC:
@@ -120,8 +230,6 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
         return;
     }
 
-    static uint8_t prevLength[MAX_CUSTOM_ELEMENTS];
-
     uint8_t buffSeek = 0;
     const osdCustomElement_t* customElement = osdCustomElements(customElementIndex);
     if(isCustomelementVisible(customElement))
@@ -139,3 +247,6 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
     prevLength[customElementIndex] = buffSeek;
 }
 
+uint8_t customElementLength(uint8_t customElementIndex){
+    return prevLength[customElementIndex] ? prevLength[customElementIndex] : 1;
+}

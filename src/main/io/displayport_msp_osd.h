@@ -27,13 +27,25 @@
 #include "drivers/osd.h"
 #include "msp/msp_serial.h"
 
+// MSP displayport V2 attribute byte bit functions
+#define DISPLAYPORT_MSP_ATTR_FONTPAGE   0 // Select bank of 256 characters as per displayPortSeverity_e
+#define DISPLAYPORT_MSP_ATTR_BLINK      6 // Device local blink
+#define DISPLAYPORT_MSP_ATTR_VERSION    7 // Format indicator; must be zero for V2 (and V1)
+
+#define DISPLAYPORT_MSP_ATTR_FONTPAGE_MASK   0x3
+#define DISPLAYPORT_MSP_ATTR_BLINK_MASK      (1 << DISPLAYPORT_MSP_ATTR_BLINK)
+#define DISPLAYPORT_MSP_ATTR_VERSION_MASK    (1 << DISPLAYPORT_MSP_ATTR_VERSION)
+
 typedef struct displayPort_s displayPort_t;
 
 displayPort_t *mspOsdDisplayPortInit(const videoSystem_e videoSystem);
 void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn);
 mspPort_t *getMspOsdPort(void);
 
-// MSP displayport V2 attribute byte bit functions
-#define DISPLAYPORT_MSP_ATTR_FONTPAGE   0 // Select bank of 256 characters as per displayPortSeverity_e
-#define DISPLAYPORT_MSP_ATTR_BLINK      6 // Device local blink
-#define DISPLAYPORT_MSP_ATTR_VERSION    7 // Format indicator; must be zero for V2 (and V1)
+#define getAttrPage(attr) (attr & DISPLAYPORT_MSP_ATTR_FONTPAGE_MASK)
+#define getAttrBlink(attr) ((attr & DISPLAYPORT_MSP_ATTR_BLINK_MASK) >> DISPLAYPORT_MSP_ATTR_BLINK)
+#define getAttrVersion(attr) ((attr & DISPLAYPORT_MSP_ATTR_VERSION_MASK) >> DISPLAYPORT_MSP_ATTR_VERSION)
+
+uint8_t setAttrPage(uint8_t origAttr, uint8_t page);
+uint8_t setAttrBlink(uint8_t origAttr, uint8_t page);
+uint8_t setAttrVersion(uint8_t origAttr, uint8_t page);

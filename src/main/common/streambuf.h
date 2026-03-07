@@ -42,6 +42,7 @@ void sbufWriteU16BigEndian(sbuf_t *dst, uint16_t val);
 void sbufWriteU32BigEndian(sbuf_t *dst, uint32_t val);
 
 uint8_t sbufReadU8(sbuf_t *src);
+int8_t sbufReadI8(sbuf_t *src);
 uint16_t sbufReadU16(sbuf_t *src);
 uint32_t sbufReadU32(sbuf_t *src);
 void sbufReadData(const sbuf_t *dst, void *data, int len);

@@ -344,9 +344,9 @@ static void exchangeData(void)
         altitude,
         (int16_t)roundf(rfValues.m_groundspeed_MPS * 100),
         course,
-        0,//(int16_t)roundf(rfValues.m_velocityWorldV_MPS * 100), //not sure about the direction
-        0,//(int16_t)roundf(-rfValues.m_velocityWorldU_MPS * 100),
-        0,//(int16_t)roundf(rfValues.m_velocityWorldW_MPS * 100),
+        (int16_t)roundf(rfValues.m_velocityWorldV_MPS * 100), //direction seems ok
+        (int16_t)roundf(-rfValues.m_velocityWorldU_MPS * 100),//direction seems ok
+        (int16_t)roundf(rfValues.m_velocityWorldW_MPS * 100),//direction not sure
         0
     );
 

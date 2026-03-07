@@ -212,9 +212,9 @@ void ltm_sframe(sbuf_t *dst)
 void ltm_aframe(sbuf_t *dst)
 {
     sbufWriteU8(dst, 'A');
-    sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.pitch));
-    sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.roll));
-    sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+    sbufWriteU16(dst, (int16_t)DECIDEGREES_TO_DEGREES(attitude.values.pitch));
+    sbufWriteU16(dst, (int16_t)DECIDEGREES_TO_DEGREES(attitude.values.roll));
+    sbufWriteU16(dst, (int16_t)DECIDEGREES_TO_DEGREES(attitude.values.yaw));
 }
 
 #if defined(USE_GPS)

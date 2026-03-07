@@ -23,7 +23,7 @@ Unassigned slots have rangeStartStep == rangeEndStep. Each element contains the 
 
 | Data | Type | Notes |
 |------|------|-------|
-| permanentId | uint8 | See Modes.md for a definition of the permanent ids |
+| permanentId | uint8 | See [Modes in the wiki](https://github.com/iNavFlight/inav/wiki/Modes) for a definition of the permanent ids |
 | auxChannelIndex | uint8 | The Aux switch number (indexed from 0) |
 | rangeStartStep | uint8 | The start value for this element in 'blocks' of 25  where 0 == 900 and 48 == 2100 |
 | rangeEndStep | uint8 | The end value for this element in 'blocks' of 25 where 0 == 900 and 48 == 2100 |
@@ -45,7 +45,7 @@ sending this message for all auxiliary slots.
 | Data | Type | Notes |
 |------|------|-------|
 | sequence id | uint8 | A monotonically increasing ID, from 0 to the number of slots -1 |
-| permanentId | uint8 | See Modes.md for a definition of the permanent ids |
+| permanentId | uint8 | See [Modes in the wiki](https://github.com/iNavFlight/inav/wiki/Modes) for a definition of the permanent ids |
 | auxChannelIndex | uint8 | The Aux channel number (indexed from 0) |
 | rangeStartStep | uint8 | The start value for this element in 'blocks' of 25  where 0 == 900 and 48 == 2100 |
 | rangeEndStep | uint8 | The end value for this element in 'blocks' of 25 where 0 == 900 and 48 == 2100 |
@@ -157,5 +157,5 @@ INAV.
 
 See also
 --------
-Modes.md describes the user visible implementation for the INAV
+[The wiki](https://github.com/iNavFlight/inav/wiki/Modes) describes the user visible implementation for the INAV
 modes extension.

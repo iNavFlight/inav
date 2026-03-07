@@ -56,7 +56,6 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MOTOR,               0, 0), // ESC 7
     DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MOTOR,               0, 0), // ESC 8
 
-    DEF_TIM(TIM2,  CH2, PA1,  TIM_USE_LED,                 0, 0), // LED Strip
     // Additional 2 PWM channels available on UART3 RX/TX pins
     // However, when using led strip the timer cannot be used, but no code appears to prevent that right now
     DEF_TIM(TIM2,  CH3, PB10, TIM_USE_MOTOR,               0, 0), // Shared with UART3 TX PIN and SPI3 TX (OSD)
@@ -67,6 +66,9 @@ timerHardware_t timerHardware[] = {
     // However, when using transponder the timer cannot be used, but no code appears to prevent that right now
     DEF_TIM(TIM1,  CH2, PA9,  TIM_USE_SERVO | TIM_USE_PWM, 0, 1), // PWM 3
     DEF_TIM(TIM1,  CH3, PA10, TIM_USE_SERVO | TIM_USE_PWM, 0, 1), // PWM 4
+
+
+    DEF_TIM(TIM2,  CH2, PA1,  TIM_USE_LED,                 0, 0), // LED Strip
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

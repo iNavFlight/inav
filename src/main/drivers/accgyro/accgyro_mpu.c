@@ -50,21 +50,6 @@ static const gyroFilterAndRateConfig_t mpuGyroConfigs[] = {
     { GYRO_LPF_256HZ,   1000,   { MPU_DLPF_256HZ,   7  } },
     { GYRO_LPF_256HZ,    666,   { MPU_DLPF_256HZ,   11 } },
     { GYRO_LPF_256HZ,    500,   { MPU_DLPF_256HZ,   15 } },
-
-    { GYRO_LPF_188HZ,   1000,   { MPU_DLPF_188HZ,   0  } },
-    { GYRO_LPF_188HZ,    500,   { MPU_DLPF_188HZ,   1  } },
-
-    { GYRO_LPF_98HZ,    1000,   { MPU_DLPF_98HZ,    0  } },
-    { GYRO_LPF_98HZ,     500,   { MPU_DLPF_98HZ,    1  } },
-
-    { GYRO_LPF_42HZ,    1000,   { MPU_DLPF_42HZ,    0  } },
-    { GYRO_LPF_42HZ,     500,   { MPU_DLPF_42HZ,    1  } },
-
-    { GYRO_LPF_20HZ,    1000,   { MPU_DLPF_20HZ,    0  } },
-    { GYRO_LPF_20HZ,     500,   { MPU_DLPF_20HZ,    1  } },
-
-    { GYRO_LPF_10HZ,    1000,   { MPU_DLPF_10HZ,    0  } },
-    { GYRO_LPF_10HZ,     500,   { MPU_DLPF_10HZ,    1  } }
 };
 
 const gyroFilterAndRateConfig_t * mpuChooseGyroConfig(uint8_t desiredLpf, uint16_t desiredRateHz)

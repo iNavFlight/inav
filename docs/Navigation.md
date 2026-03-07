@@ -5,13 +5,13 @@ The navigation system in INAV is responsible for assisting the pilot allowing al
 ## NAV ALTHOLD mode - altitude hold
 
 Altitude hold requires a valid source of altitude - barometer, GPS or rangefinder. The best source is chosen automatically. 
-In this mode THROTTLE stick controls climb rate (vertical velocity). When pilot moves stick up - quad goes up, pilot moves stick down - quad descends, you keep stick at neutral position - quad hovers.
+In this mode THROTTLE stick controls climb rate (vertical velocity). When pilot moves stick up - aircraft goes up, pilot moves stick down - 
+aircraft descends, you keep stick at neutral position - aircraft maintains current altitude.
 
-By default, GPS is available as an altitude source for airplanes only. Multirotor requires barometer, unless *inav_use_gps_no_baro* is enabled.
 
 ### CLI parameters affecting ALTHOLD mode:
 * *nav_use_midthr_for_althold* - when set to "0", firmware will remember where your throttle stick was when ALTHOLD was activated - this will be considered neutral position. When set to "1" - 50% throttle will be considered neutral position.
-* *inav_use_gps_no_baro* - Multirotor only: enable althold based on GPS only, without baromemer installed. Default is OFF. 
+
 
 ### Related PIDs
 PIDs affecting altitude hold: ALT & VEL
@@ -25,12 +25,12 @@ Throttle tilt compensation attempts to maintain constant vertical thrust when co
 
 ## NAV POSHOLD mode - position hold
 
-Position hold requires GPS, accelerometer and compass sensors. Multirotor requires barometer, unless *inav_use_gps_no_baro* is enabled. Flight modes that require a compass (POSHOLD, RTH) are locked until compass is properly calibrated.
+Position hold requires GPS, accelerometer and compass sensors. Multirotor requires barometer, unless is enabled. Flight modes that require a compass (POSHOLD, RTH) are locked until compass is properly calibrated.
 When activated, this mode will attempt to keep copter where it is (based on GPS coordinates). From INAV 2.0, POSHOLD is a full 3D position hold. Heading hold in this mode is assumed and activated automatically.
 
 ### CLI parameters affecting POSHOLD mode:
 * *nav_user_control_mode* - can be set to "0" (GPS_ATTI) or "1" (GPS_CRUISE), controls how firmware will respond to roll/pitch stick movement. When in GPS_ATTI mode, right stick controls attitude, when it is released, new position is recorded and held. When in GPS_CRUISE mode right stick controls velocity and firmware calculates required attitude on its own.
-* *inav_use_gps_no_baro* - Multirotor only: enable althold based on GPS only, without baromemer installed. Default is OFF. 
+
  
 ### Related PIDs
 PIDs affecting position hold: POS, POSR
@@ -42,7 +42,7 @@ PID meaning:
 
 Home for RTH is the position where vehicle was first armed. This position may be offset by the CLI settings `nav_rth_home_offset_distance` and `nav_rth_home_offset_direction`. This position may also be overridden with Safehomes. RTH requires accelerometer, compass and GPS sensors.
 
-RTH requires barometer for multirotor, unless unless *inav_use_gps_no_baro* is enabled.
+RTH requires barometer for multirotor.
 
 RTH will maintain altitude during the return. When home is reached, a copter will attempt automated landing. An airplane will either loiter around the home position, or attempt an automated landing, depending on your settings.
 When deciding what altitude to maintain, RTH has 6 different modes of operation (controlled by *nav_rth_alt_mode* and *nav_rth_altitude* cli variables):

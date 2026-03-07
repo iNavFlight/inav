@@ -308,6 +308,12 @@ static void usbVcpSetMode(serialPort_t *instance, portMode_t mode)
     UNUSED(mode);
 }
 
+static void usbVcpSetOptions(serialPort_t *instance, portOptions_t options)
+{
+    UNUSED(instance);
+    UNUSED(options);
+}
+
 static bool isUsbVcpTransmitBufferEmpty(const serialPort_t *instance)
 {
     UNUSED(instance);
@@ -434,6 +440,7 @@ static const struct serialPortVTable usbVTable[] = {
         .serialSetBaudRate = usbVcpSetBaudRate,
         .isSerialTransmitBufferEmpty = isUsbVcpTransmitBufferEmpty,
         .setMode = usbVcpSetMode,
+        .setOptions = usbVcpSetOptions,
         .isConnected = usbVcpIsConnected,
         .writeBuf = usbVcpWriteBuf,
         .beginWrite = usbVcpBeginWrite,

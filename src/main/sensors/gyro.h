@@ -49,14 +49,15 @@ typedef enum {
 
 typedef enum {
     DYNAMIC_NOTCH_MODE_2D = 0,
-    DYNAMIC_NOTCH_MODE_R,
-    DYNAMIC_NOTCH_MODE_P,
-    DYNAMIC_NOTCH_MODE_Y,
-    DYNAMIC_NOTCH_MODE_RP,
-    DYNAMIC_NOTCH_MODE_RY,
-    DYNAMIC_NOTCH_MODE_PY,
     DYNAMIC_NOTCH_MODE_3D
 } dynamicGyroNotchMode_e;
+
+typedef enum {
+    GYRO_FILTER_MODE_OFF = 0,
+    GYRO_FILTER_MODE_STATIC = 1,
+    GYRO_FILTER_MODE_DYNAMIC = 2,
+    GYRO_FILTER_MODE_ADAPTIVE = 3
+} gyroFilterMode_e;
 
 typedef struct gyro_s {
     bool initialized;
@@ -70,15 +71,11 @@ extern dynamicGyroNotchState_t dynamicGyroNotchState;
 
 typedef struct gyroConfig_s {
     uint16_t looptime;                      // imu loop time in us
-    uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
     uint16_t  gyro_anti_aliasing_lpf_hz;
-    uint8_t  gyro_anti_aliasing_lpf_type;
 #ifdef USE_DUAL_GYRO
     uint8_t  gyro_to_use;
 #endif
     uint16_t gyro_main_lpf_hz;
-    uint8_t gyro_main_lpf_type;
-    uint8_t useDynamicLpf;
     uint16_t gyroDynamicLpfMinHz;
     uint16_t gyroDynamicLpfMaxHz;
     uint8_t gyroDynamicLpfCurveExpo;
@@ -96,6 +93,19 @@ typedef struct gyroConfig_s {
     bool init_gyro_cal_enabled;
     int16_t gyro_zero_cal[XYZ_AXIS_COUNT];
     float gravity_cmss_cal;
+#ifdef USE_ADAPTIVE_FILTER
+    float adaptiveFilterTarget;
+    uint16_t adaptiveFilterMinHz;
+    uint16_t adaptiveFilterMaxHz;
+    float adaptiveFilterStdLpfHz;
+    float adaptiveFilterHpfHz;
+    float adaptiveFilterIntegratorThresholdHigh;
+    float adaptiveFilterIntegratorThresholdLow;
+#endif
+    uint8_t gyroFilterMode;
+
+    uint8_t gyroLuluSampleCount;
+    bool gyroLuluEnabled;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

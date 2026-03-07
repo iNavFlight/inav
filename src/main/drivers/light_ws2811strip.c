@@ -124,6 +124,10 @@ void ws2811LedStripInit(void)
 {
     const timerHardware_t * timHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
 
+    if (!(timHw->usageFlags & TIM_USE_LED)) { // Check if it has not been reassigned
+        timHw = timerGetByUsageFlag(TIM_USE_LED); // Get first pin marked as LED
+    }
+
     if (timHw == NULL) {
         return;
     }
@@ -133,14 +137,14 @@ void ws2811LedStripInit(void)
         return;
     }
 
-    ws2811IO = IOGetByTag(IO_TAG(WS2811_PIN));
+    ws2811IO = IOGetByTag(timHw->tag); //IOGetByTag(IO_TAG(WS2811_PIN));
     IOInit(ws2811IO, OWNER_LED_STRIP, RESOURCE_OUTPUT, 0);
     IOConfigGPIOAF(ws2811IO, IOCFG_AF_PP_FAST, timHw->alternateFunction);
 
-    if ( ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_LOW ) {
+    if (ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_LOW) {
         ledConfigurePWM();
         *timerCCR(ws2811TCH) = 0;
-    } else if ( ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_HIGH ) {
+    } else if (ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_HIGH) {
         ledConfigurePWM();
         *timerCCR(ws2811TCH) = 100;
     } else {

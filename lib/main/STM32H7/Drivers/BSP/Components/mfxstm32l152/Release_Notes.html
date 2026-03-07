@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for MFXSTM32L152 Component Drivers</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<div class="card fluid">
+<div class="sectione dark">
+<center>
+<h1 id="release-notes-for-mfxstm32l152-component-drivers"><small>Release Notes for </small> <mark>MFXSTM32L152 Component Drivers</mark></h1>
+<p>Copyright © 2015 STMicroelectronics<br />
+</p>
+<a href="https://www.st.com" class="logo"><img src="_htmresc/st_logo.png" alt="ST logo" /></a>
+</center>
+</div>
+</div>
+<h1 id="license">License</h1>
+<p>This software component is licensed by ST under BSD 3-Clause license, the “License”; You may not use this component except in compliance with the License. You may obtain a copy of the License at:</p>
+<p><a href="https://opensource.org/licenses/BSD-3-Clause">https://opensource.org/licenses/BSD-3-Clause</a></p>
+<h1 id="purpose">Purpose</h1>
+<p>This driver provides a set of functions needed to drive MFXSTM32L152, IO Expander component</p>
+</div>
+<div class="col-sm-12 col-lg-8">
+<h1 id="update-history">Update History</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section5" checked aria-hidden="true"> <label for="collapse-section5" aria-hidden="true"><strong>V3.0.2 / 30-October-2019</strong></label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<ul>
+<li>Update st_logo.png inclusion path in Release notes.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section7" checked aria-hidden="true"> <label for="collapse-section7" aria-hidden="true">V3.0.1 / 18-June-2019</label>
+<div>
+<h2 id="main-changes-1">Main Changes</h2>
+<p>Update MFXSTM32L152_DeInit to avoid disabling IO bus that could be used by others components</p>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section6" checked aria-hidden="true"> <label for="collapse-section6" aria-hidden="true">V3.0.0 / 12-April-2019</label>
+<div>
+<h2 id="main-changes-2">Main Changes</h2>
+<h3 id="component-release">Component release</h3>
+<p>Official release of component drivers for MFXSTM32L152 in line with STM32Cube BSP drivers development guidelines (UM2298)</p>
+<h2 id="backward-compatibility">Backward Compatibility</h2>
+<p>This release breaks compatibility with previous versions.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p>STM32Cube BSP Common drivers V6.0.0</p>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section5" aria-hidden="true"> <label for="collapse-section5" aria-hidden="true">V2.0.1 / 02-June-2017</label>
+<div>
+<h2 id="main-changes-3">Main Changes</h2>
+<p>Update comments to be used for PDSC generation</p>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section4" aria-hidden="true"> <label for="collapse-section4" aria-hidden="true">V2.0.0 / 24-June-2015</label>
+<div>
+<h2 id="main-changes-4">Main Changes</h2>
+<p>Add Shunt management of MFXSTM32L152 component new mfxstm32l152_IDD_ConfigShuntNbLimit() and mfxstm32l152_IDD_GetShuntUsed() APIs Add mfxstm32l152_WriteReg() API Note: This release must be used with BSP Common driver V4.0.0 or later</p>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section3" aria-hidden="true"> <label for="collapse-section3" aria-hidden="true">V1.1.0 / 28-April-2015</label>
+<div>
+<h2 id="main-changes-5">Main Changes</h2>
+<p>mfxstm32l152_IO_Config(): remove unnecessary delay mfxstm32l152_TS_DetectTouch(): improve TouchScreen speed mfxstm32l152_IDD_Config(): add configuration of number of measure to be performed, with delay between 2 measures Note: This release must be used with BSP Common driver V3.0.0</p>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section2" aria-hidden="true"> <label for="collapse-section2" aria-hidden="true">V1.1.0 / 10-February-2015</label>
+<div>
+<h2 id="main-changes-6">Main Changes</h2>
+<p>Low Power management of MFXSTM32L152 component: New mfxstm32l152_DeInit() and mfxstm32l152_WakeUp() API mfxstm32l152_LowPower() API completed to be MFXSTM32L152 in Standby mode Note: This release must be used with BSP Common driver V2.2.0 or later</p>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section1" aria-hidden="true"> <label for="collapse-section1" aria-hidden="true">V1.0.0 / 5-February-2015</label>
+<div>
+<h2 id="main-changes-7">Main Changes</h2>
+<p>First official release of MFXSTM32L152 IO Expander component driver. Note: This release must be used with BSP Common driver V2.1.0 or later.</p>
+</div>
+</div>
+</div>
+</div>
+<footer class="sticky">
+For complete documentation on STM32 Microcontrollers , visit: <a href="http://www.st.com/STM32">http://www.st.com/STM32</a>
+</footer>
+</body>
+</html>

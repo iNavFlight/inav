@@ -47,7 +47,7 @@ function(arm_none_eabi_gcc_install)
         host_uname_machine(machine)
         if(machine STREQUAL "x86_64" OR machine STREQUAL "amd64")
             set(dist ${arm_none_eabi_darwin_amd64})
-        elseif(machine STREQUAL "aarch64")
+        elseif(machine STREQUAL "aarch64" OR machine STREQUAL "arm64")
             set(dist ${arm_none_eabi_darwin_aarch64})
         else()
             message("-- no precompiled ${arm_none_eabi_triplet} toolchain for machine ${machine}")
@@ -125,12 +125,23 @@ function(arm_none_eabi_gcc_check)
     if(NOT version)
         message("-- could not find ${prog}")
         arm_none_eabi_gcc_install()
+        gcc_get_version(version
+            TRIPLET ${arm_none_eabi_triplet}
+            PROGRAM_NAME prog
+            PROGRAM_PATH prog_path
+        )
         return()
     endif()
     message("-- found ${prog} ${version} at ${prog_path}")
     if(COMPILER_VERSION_CHECK AND NOT arm_none_eabi_gcc_version STREQUAL version)
         message("-- expecting ${prog} version ${arm_none_eabi_gcc_version}, but got version ${version} instead")
 	arm_none_eabi_gcc_install()
+        unset(gcc CACHE)
+        gcc_get_version(version
+            TRIPLET ${arm_none_eabi_triplet}
+            PROGRAM_NAME prog
+            PROGRAM_PATH prog_path
+        )
         return()
     endif()
 endfunction()

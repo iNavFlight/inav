@@ -37,7 +37,7 @@
 #include "flight/pid.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/rc_controls.h"
 #include "fc/settings.h"
 
@@ -222,9 +222,12 @@ static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- ALT&MAG --", profileIndexString),
 
+    OSD_SETTING_ENTRY("FW ALT RESPONSE", SETTING_NAV_FW_ALT_CONTROL_RESPONSE),
+
     OTHER_PIDFF_ENTRY("ALT P", &cmsx_pidPosZ.P),
     OTHER_PIDFF_ENTRY("ALT I", &cmsx_pidPosZ.I),
     OTHER_PIDFF_ENTRY("ALT D", &cmsx_pidPosZ.D),
+    OTHER_PIDFF_ENTRY("ALT FF", &cmsx_pidPosZ.FF),
 
     OTHER_PIDFF_ENTRY("VEL P", &cmsx_pidVelZ.P),
     OTHER_PIDFF_ENTRY("VEL I", &cmsx_pidVelZ.I),
@@ -422,7 +425,6 @@ static const CMS_Menu cmsx_menuProfileOther = {
 static const OSD_Entry cmsx_menuFilterPerProfileEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- FILTERING  --", profileIndexString),
-    OSD_SETTING_ENTRY("HARDWARE LPF", SETTING_GYRO_HARDWARE_LPF),
     OSD_SETTING_ENTRY("GYRO MAIN", SETTING_GYRO_MAIN_LPF_HZ),
     OSD_SETTING_ENTRY("DTERM LPF", SETTING_DTERM_LPF_HZ),
 #ifdef USE_DYNAMIC_FILTERS
@@ -490,7 +492,7 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     OSD_SUBMENU_ENTRY("MECHANICS",  &cmsx_menuMechanics),
 
     // Rate profile dependent
-    OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_RATE_PROFILE_COUNT, 1})),
+    OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_PROFILE_COUNT, 1})),
     OSD_SUBMENU_ENTRY("RATE", &cmsx_menuRateProfile),
     OSD_SUBMENU_ENTRY("MANU RATE", &cmsx_menuManualRateProfile),
 

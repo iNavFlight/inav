@@ -20,7 +20,7 @@
 #include "common/maths.h"
 #include "common/typeconversion.h"
 #include "drivers/osd_symbols.h"
-#include "io/displayport_msp_bf_compat.h"
+#include "io/displayport_msp_dji_compat.h"
 
 #if defined(USE_OSD) || defined(OSD_UNIT_TEST)
 
@@ -45,7 +45,7 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     int decimals = maxDecimals;
     bool negative = false;
     bool scaled = false;
-    bool explicitDecimal = isBfCompatibleVideoSystem(osdConfig());
+    bool explicitDecimal = isDJICompatibleVideoSystem(osdConfig());
 
     buff[length] = '\0';
 

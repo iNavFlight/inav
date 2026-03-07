@@ -89,6 +89,51 @@ static inline uint16_t mavlink_msg_trajectory_representation_bezier_pack(uint8_t
     mavlink_trajectory_representation_bezier_t packet;
     packet.time_usec = time_usec;
     packet.valid_points = valid_points;
+    mav_array_assign_float(packet.pos_x, pos_x, 5);
+    mav_array_assign_float(packet.pos_y, pos_y, 5);
+    mav_array_assign_float(packet.pos_z, pos_z, 5);
+    mav_array_assign_float(packet.delta, delta, 5);
+    mav_array_assign_float(packet.pos_yaw, pos_yaw, 5);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER;
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_MIN_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_CRC);
+}
+
+/**
+ * @brief Pack a trajectory_representation_bezier message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param valid_points  Number of valid control points (up-to 5 points are possible)
+ * @param pos_x [m] X-coordinate of bezier control points. Set to NaN if not being used
+ * @param pos_y [m] Y-coordinate of bezier control points. Set to NaN if not being used
+ * @param pos_z [m] Z-coordinate of bezier control points. Set to NaN if not being used
+ * @param delta [s] Bezier time horizon. Set to NaN if velocity/acceleration should not be incorporated
+ * @param pos_yaw [rad] Yaw. Set to NaN for unchanged
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_trajectory_representation_bezier_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint64_t time_usec, uint8_t valid_points, const float *pos_x, const float *pos_y, const float *pos_z, const float *delta, const float *pos_yaw)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN];
+    _mav_put_uint64_t(buf, 0, time_usec);
+    _mav_put_uint8_t(buf, 108, valid_points);
+    _mav_put_float_array(buf, 8, pos_x, 5);
+    _mav_put_float_array(buf, 28, pos_y, 5);
+    _mav_put_float_array(buf, 48, pos_z, 5);
+    _mav_put_float_array(buf, 68, delta, 5);
+    _mav_put_float_array(buf, 88, pos_yaw, 5);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN);
+#else
+    mavlink_trajectory_representation_bezier_t packet;
+    packet.time_usec = time_usec;
+    packet.valid_points = valid_points;
     mav_array_memcpy(packet.pos_x, pos_x, sizeof(float)*5);
     mav_array_memcpy(packet.pos_y, pos_y, sizeof(float)*5);
     mav_array_memcpy(packet.pos_z, pos_z, sizeof(float)*5);
@@ -98,7 +143,11 @@ static inline uint16_t mavlink_msg_trajectory_representation_bezier_pack(uint8_t
 #endif
 
     msg->msgid = MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER;
-    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_MIN_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_CRC);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_MIN_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_MIN_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN);
+#endif
 }
 
 /**
@@ -134,11 +183,11 @@ static inline uint16_t mavlink_msg_trajectory_representation_bezier_pack_chan(ui
     mavlink_trajectory_representation_bezier_t packet;
     packet.time_usec = time_usec;
     packet.valid_points = valid_points;
-    mav_array_memcpy(packet.pos_x, pos_x, sizeof(float)*5);
-    mav_array_memcpy(packet.pos_y, pos_y, sizeof(float)*5);
-    mav_array_memcpy(packet.pos_z, pos_z, sizeof(float)*5);
-    mav_array_memcpy(packet.delta, delta, sizeof(float)*5);
-    mav_array_memcpy(packet.pos_yaw, pos_yaw, sizeof(float)*5);
+    mav_array_assign_float(packet.pos_x, pos_x, 5);
+    mav_array_assign_float(packet.pos_y, pos_y, 5);
+    mav_array_assign_float(packet.pos_z, pos_z, 5);
+    mav_array_assign_float(packet.delta, delta, 5);
+    mav_array_assign_float(packet.pos_yaw, pos_yaw, 5);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN);
 #endif
 
@@ -174,6 +223,20 @@ static inline uint16_t mavlink_msg_trajectory_representation_bezier_encode_chan(
 }
 
 /**
+ * @brief Encode a trajectory_representation_bezier struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param trajectory_representation_bezier C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_trajectory_representation_bezier_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_trajectory_representation_bezier_t* trajectory_representation_bezier)
+{
+    return mavlink_msg_trajectory_representation_bezier_pack_status(system_id, component_id, _status, msg,  trajectory_representation_bezier->time_usec, trajectory_representation_bezier->valid_points, trajectory_representation_bezier->pos_x, trajectory_representation_bezier->pos_y, trajectory_representation_bezier->pos_z, trajectory_representation_bezier->delta, trajectory_representation_bezier->pos_yaw);
+}
+
+/**
  * @brief Send a trajectory_representation_bezier message
  * @param chan MAVLink channel to send the message
  *
@@ -203,11 +266,11 @@ static inline void mavlink_msg_trajectory_representation_bezier_send(mavlink_cha
     mavlink_trajectory_representation_bezier_t packet;
     packet.time_usec = time_usec;
     packet.valid_points = valid_points;
-    mav_array_memcpy(packet.pos_x, pos_x, sizeof(float)*5);
-    mav_array_memcpy(packet.pos_y, pos_y, sizeof(float)*5);
-    mav_array_memcpy(packet.pos_z, pos_z, sizeof(float)*5);
-    mav_array_memcpy(packet.delta, delta, sizeof(float)*5);
-    mav_array_memcpy(packet.pos_yaw, pos_yaw, sizeof(float)*5);
+    mav_array_assign_float(packet.pos_x, pos_x, 5);
+    mav_array_assign_float(packet.pos_y, pos_y, 5);
+    mav_array_assign_float(packet.pos_z, pos_z, 5);
+    mav_array_assign_float(packet.delta, delta, 5);
+    mav_array_assign_float(packet.pos_yaw, pos_yaw, 5);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER, (const char *)&packet, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_MIN_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_CRC);
 #endif
 }
@@ -228,7 +291,7 @@ static inline void mavlink_msg_trajectory_representation_bezier_send_struct(mavl
 
 #if MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
@@ -250,11 +313,11 @@ static inline void mavlink_msg_trajectory_representation_bezier_send_buf(mavlink
     mavlink_trajectory_representation_bezier_t *packet = (mavlink_trajectory_representation_bezier_t *)msgbuf;
     packet->time_usec = time_usec;
     packet->valid_points = valid_points;
-    mav_array_memcpy(packet->pos_x, pos_x, sizeof(float)*5);
-    mav_array_memcpy(packet->pos_y, pos_y, sizeof(float)*5);
-    mav_array_memcpy(packet->pos_z, pos_z, sizeof(float)*5);
-    mav_array_memcpy(packet->delta, delta, sizeof(float)*5);
-    mav_array_memcpy(packet->pos_yaw, pos_yaw, sizeof(float)*5);
+    mav_array_assign_float(packet->pos_x, pos_x, 5);
+    mav_array_assign_float(packet->pos_y, pos_y, 5);
+    mav_array_assign_float(packet->pos_z, pos_z, 5);
+    mav_array_assign_float(packet->delta, delta, 5);
+    mav_array_assign_float(packet->pos_yaw, pos_yaw, 5);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER, (const char *)packet, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_MIN_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN, MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_CRC);
 #endif
 }

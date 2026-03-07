@@ -35,7 +35,7 @@ typedef struct
 
 extern rth_trackback_t rth_trackback;
 
-bool rthTrackBackIsActive(void);
+bool rthTrackBackCanBeActivated(void);
 bool rthTrackBackSetNewPosition(void);
 void rthTrackBackUpdate(bool forceSaveTrackPoint);
 fpVector3_t *getRthTrackBackPosition(void);

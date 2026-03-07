@@ -20,6 +20,12 @@
 #include "drivers/io_types.h"
 #include "drivers/time.h"
 
+
+#if defined(WS2811_PIN)
+#define MAX_PWM_OUTPUTS (MAX_PWM_OUTPUT_PORTS + 1)
+#else
+#define MAX_PWM_OUTPUTS (MAX_PWM_OUTPUT_PORTS)
+#endif
 typedef enum {
     DSHOT_CMD_SPIN_DIRECTION_NORMAL = 20,
     DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,

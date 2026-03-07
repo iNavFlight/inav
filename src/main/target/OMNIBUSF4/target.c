@@ -41,15 +41,12 @@ timerHardware_t timerHardware[] = {
 #elif defined(OMNIBUSF4V3_S6_SS)
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO,                0, 0), // S5_OUT
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_ANY,                                                           0, 0), // S6_OUT SOFTSERIAL
-#elif defined(OMNIBUSF4PRO_LEDSTRIPM5)
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_LED,                                                           0, 0), // S5_OUT LED strip
-    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_OUTPUT_AUTO,                0, 0), // S6_OUT
 #else
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO | TIM_USE_LED,  0, 0), // S5_OUT MOTOR, SERVO or LED
+    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO,  0, 0), // S5_OUT MOTOR, SERVO or LED
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_OUTPUT_AUTO,                0, 0), // S6_OUT
 #endif
 
-#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3))
     DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED,                                                           0, 0), // LED strip for F4 V2 / F4-Pro-0X and later (RCD_CS for F4)
 #endif
 

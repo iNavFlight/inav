@@ -113,9 +113,9 @@ typedef enum {
     TIM_USE_MOTOR           = (1 << 2),     // Motor output
     TIM_USE_SERVO           = (1 << 3),     // Servo output
     TIM_USE_MC_CHNFW        = (1 << 4),     // Deprecated and not used after removal of CHANNEL_FORWARDING feature
-    //TIM_USE_FW_MOTOR        = (1 << 5),   // We no longer differentiate mc from fw on pwm allocation
-    //TIM_USE_FW_SERVO        = (1 << 6),
-    TIM_USE_LED             = (1 << 24),
+    //TIM_USE_FW_MOTOR      = (1 << 5),     // We no longer differentiate mc from fw on pwm allocation
+    //TIM_USE_FW_SERVO      = (1 << 6),
+    TIM_USE_LED             = (1 << 24),    // Remapping needs to be in the lower 8 bits.
     TIM_USE_BEEPER          = (1 << 25),
 } timerUsageFlag_e;
 
@@ -123,6 +123,7 @@ typedef enum {
 
 #define TIM_IS_MOTOR(flags) ((flags) & TIM_USE_MOTOR)
 #define TIM_IS_SERVO(flags) ((flags) & TIM_USE_SERVO)
+#define TIM_IS_LED(flags) ((flags) & TIM_USE_LED)
 
 #define TIM_IS_MOTOR_ONLY(flags) (TIM_IS_MOTOR(flags) && !TIM_IS_SERVO(flags))
 #define TIM_IS_SERVO_ONLY(flags) (!TIM_IS_MOTOR(flags) && TIM_IS_SERVO(flags))

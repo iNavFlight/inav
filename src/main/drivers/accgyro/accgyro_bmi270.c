@@ -134,15 +134,6 @@ static const gyroFilterAndRateConfig_t gyroConfigs[] = {
     { GYRO_LPF_256HZ,   3200,   { BMI270_BWP_OSR4 | BMI270_ODR_3200} },
     { GYRO_LPF_256HZ,   1600,   { BMI270_BWP_OSR2 | BMI270_ODR_1600} },
     { GYRO_LPF_256HZ,    800,   { BMI270_BWP_NORM | BMI270_ODR_800 } },
-
-    { GYRO_LPF_188HZ,    800,   { BMI270_BWP_OSR2 | BMI270_ODR_800 } },
-    { GYRO_LPF_188HZ,    400,   { BMI270_BWP_NORM | BMI270_ODR_400 } },
-
-    { GYRO_LPF_98HZ,     800,   { BMI270_BWP_OSR4   | BMI270_ODR_800 } },
-    { GYRO_LPF_98HZ,     400,   { BMI270_BWP_OSR2   | BMI270_ODR_400 } },
-
-    { GYRO_LPF_42HZ,     800,   { BMI270_BWP_OSR4   | BMI270_ODR_800 } },
-    { GYRO_LPF_42HZ,     400,   { BMI270_BWP_OSR4   | BMI270_ODR_400 } },
 };
 
 // Toggle the CS to switch the device into SPI mode.

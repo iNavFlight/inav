@@ -127,7 +127,7 @@ void applyRoverBoatPitchRollThrottleController(navigationFSMStateFlags_t navStat
                 rcCommand[YAW] = posControl.rcAdjustment[YAW];
             }
 
-            rcCommand[THROTTLE] = constrain(currentBatteryProfile->nav.fw.cruise_throttle, motorConfig()->mincommand, motorConfig()->maxthrottle);
+            rcCommand[THROTTLE] = constrain(currentBatteryProfile->nav.fw.cruise_throttle, motorConfig()->mincommand, getMaxThrottle());
         }
     }
 }

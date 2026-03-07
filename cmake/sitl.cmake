@@ -99,6 +99,10 @@ function (target_sitl name)
     math(EXPR hse_value "${hse_mhz} * 1000000")
     list(APPEND target_definitions "HSE_VALUE=${hse_value}")
 
+    if (MSP_UART) 
+        list(APPEND target_definitions "MSP_UART=${MSP_UART}")
+    endif()
+
     string(TOLOWER ${PROJECT_NAME} lowercase_project_name)
     set(binary_name ${lowercase_project_name}_${FIRMWARE_VERSION}_${name})
     if(DEFINED BUILD_SUFFIX AND NOT "" STREQUAL "${BUILD_SUFFIX}")
