@@ -226,6 +226,20 @@ void pwmEnableMotors(void)
     pwmMotorsEnabled = true;
 }
 
+void pwmSetMotorDMACircular(bool circular)
+{
+#ifdef USE_DSHOT
+    // Set DMA circular mode for all motor outputs
+    for (int i = 0; i < getMotorCount(); i++) {
+        if (motors[i].pwmPort && motors[i].pwmPort->tch) {
+            impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, circular);
+        }
+    }
+#else
+    UNUSED(circular);
+#endif
+}
+
 bool isMotorBrushed(uint16_t motorPwmRateHz)
 {
     return (motorPwmRateHz > 500);
