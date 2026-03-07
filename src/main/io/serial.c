@@ -509,6 +509,85 @@ void waitForSerialPortToFinishTransmitting(serialPort_t *serialPort)
     };
 }
 
+void escapeSequenceInit(escapeSequenceState_t *state)
+{
+    state->lastCharTime = 0;
+    state->lastPlusTime = 0;
+    state->count = 0;
+}
+
+void escapeSequenceProcessChar(escapeSequenceState_t *state, uint8_t c, uint32_t now)
+{
+    if (c == '+') {
+        if (state->count == 0) {
+            // First '+': check for leading guard interval
+            if (now - state->lastCharTime >= 1000) {
+                state->count = 1;
+                state->lastPlusTime = now;
+            }
+        } else if (state->count < 3) {
+            // Subsequent '+': must arrive within 1 second of previous '+'
+            if (now - state->lastPlusTime < 1000) {
+                state->count++;
+                state->lastPlusTime = now;
+            } else {
+                state->count = 0; // too much time between pluses
+            }
+        } else {
+            // More than 3 pluses - not a valid escape sequence
+            state->count = 0;
+        }
+    } else {
+        // Non-'+' character resets sequence
+        state->count = 0;
+    }
+    state->lastCharTime = now;
+}
+
+bool escapeSequenceCheckGuard(escapeSequenceState_t *state, uint32_t now)
+{
+    if (state->count == 3) {
+        if (now - state->lastPlusTime >= 1000) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool serialPassthroughTransfer(serialPort_t *src, serialPort_t *dst, serialConsumer *consumer, escapeSequenceState_t *escapeState, uint32_t now)
+{
+    uint8_t buf[64];
+    uint32_t available = serialRxBytesWaiting(src);
+    uint32_t free = serialTxBytesFree(dst);
+    uint32_t count = (available < free) ? available : free;
+    if (count > sizeof(buf)) {
+        count = sizeof(buf);
+    }
+
+    if (count > 0) {
+        LED0_ON;
+        serialBeginWrite(dst);
+        serialReadBuf(src, buf, count);
+        serialWriteBuf(dst, buf, count);
+        for (uint32_t i = 0; i < count; i++) {
+            consumer(buf[i]);
+            // Hayes escape sequence detection: [1s silence]+++[1s silence]
+            // https://en.wikipedia.org/wiki/Escape_sequence#Modem_control
+            if (escapeState) {
+                escapeSequenceProcessChar(escapeState, buf[i], now);
+            }
+        }
+        serialEndWrite(dst);
+        LED0_OFF;
+    } else {
+        if (escapeState) {
+            return escapeSequenceCheckGuard(escapeState, now);
+        }
+    }
+
+    return false;
+}
+
 #if defined(USE_GPS) || defined(USE_SERIAL_PASSTHROUGH)
 // Default data consumer for serialPassThrough.
 static void nopConsumer(uint8_t data)
@@ -535,32 +614,54 @@ void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer
     LED0_OFF;
     LED1_OFF;
 
+#ifdef USE_VCP
+    // Track current encoding applied to right port for VCP mirroring
+    portOptions_t currentOptions = right->options;
+    uint32_t currentBaudRate = right->baudRate;
+    bool leftIsVcp = (left->identifier == SERIAL_PORT_USB_VCP);
+    uint32_t lastMirrorTime = 0;
+#endif
+
+    static escapeSequenceState_t escapeSequenceState;
+    escapeSequenceInit(&escapeSequenceState);
+
     // Either port might be open in a mode other than MODE_RXTX. We rely on
     // serialRxBytesWaiting() to do the right thing for a TX only port. No
     // special handling is necessary OR performed.
     while (1) {
-        // TODO: maintain a timestamp of last data received. Use this to
-        // implement a guard interval and check for `+++` as an escape sequence
-        // to return to CLI command mode.
-        // https://en.wikipedia.org/wiki/Escape_sequence#Modem_control
-        if (serialRxBytesWaiting(left)) {
-            LED0_ON;
-            uint8_t c = serialRead(left);
-            // Make sure there is space in the tx buffer
-            while (!serialTxBytesFree(right));
-            serialWrite(right, c);
-            leftC(c);
-            LED0_OFF;
-         }
-         if (serialRxBytesWaiting(right)) {
-             LED0_ON;
-             uint8_t c = serialRead(right);
-             // Make sure there is space in the tx buffer
-             while (!serialTxBytesFree(left));
-             serialWrite(left, c);
-             rightC(c);
-             LED0_OFF;
-         }
+        uint32_t now = millis();
+#ifdef USE_VCP
+        // Mirror line coding from host PC to passthrough port (rate-limited to 15ms)
+        if (leftIsVcp) {
+            if (now - lastMirrorTime >= 15) {
+                lastMirrorTime = now;
+                uint32_t hostBaudRate = usbVcpGetBaudRate(left);
+                portOptions_t hostOptions = usbVcpGetLineCoding();
+
+                // apply baud rate change
+                if (hostBaudRate != currentBaudRate && hostBaudRate != 0) {
+                    serialSetBaudRate(right, hostBaudRate);
+                    currentBaudRate = hostBaudRate;
+                }
+
+                // apply encoding change (parity/stop bits)
+                if (hostOptions != currentOptions) {
+                    serialSetOptions(right, hostOptions);
+                    currentOptions = hostOptions;
+                }
+            }
+        }
+#endif
+
+        // Left (USB) to right (UART)
+        if (serialPassthroughTransfer(left, right, leftC, &escapeSequenceState, now)) {
+            return;
+        }
+
+        // Right (UART) to left (USB)
+        serialPassthroughTransfer(right, left, rightC, NULL, now);
      }
  }
  #endif
+
+
