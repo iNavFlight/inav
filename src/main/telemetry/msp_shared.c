@@ -68,19 +68,20 @@ void initSharedMsp(void)
     mspPackage.requestBuffer = (uint8_t *)&mspRxBuffer;
     mspPackage.requestPacket = &mspRxPacket;
     mspPackage.requestPacket->buf.ptr = mspPackage.requestBuffer;
-    mspPackage.requestPacket->buf.end = mspPackage.requestBuffer;
+    mspPackage.requestPacket->buf.end = mspPackage.requestBuffer + sizeof(mspRxBuffer);
 
     mspPackage.responseBuffer = (uint8_t *)&mspTxBuffer;
     mspPackage.responsePacket = &mspTxPacket;
     mspPackage.responsePacket->buf.ptr = mspPackage.responseBuffer;
-    mspPackage.responsePacket->buf.end = mspPackage.responseBuffer;
+    mspPackage.responsePacket->buf.end = mspPackage.responseBuffer + sizeof(mspTxBuffer);
 }
 
 static void processMspPacket(void)
 {
     mspPackage.responsePacket->cmd = 0;
     mspPackage.responsePacket->result = 0;
-    mspPackage.responsePacket->buf.end = mspPackage.responseBuffer;
+    mspPackage.responsePacket->buf.ptr = mspPackage.responseBuffer;
+    mspPackage.responsePacket->buf.end = mspPackage.responseBuffer + sizeof(mspTxBuffer);
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
     if (mspFcProcessCommand(mspPackage.requestPacket, mspPackage.responsePacket, &mspPostProcessFn) == MSP_RESULT_ERROR) {
@@ -217,7 +218,7 @@ bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
         }
         sbufWriteU8(payloadBuf, status);
 
-        const uint8_t size = sbufBytesRemaining(txBuf);
+        const uint16_t size = sbufBytesRemaining(txBuf);
         if (lastRequestVersion == 1) { // MSPv1
             sbufWriteU8(payloadBuf, size);
             sbufWriteU8(payloadBuf, mspPackage.responsePacket->cmd);
@@ -231,7 +232,7 @@ bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
         sbufWriteU8(payloadBuf, (seq++ & TELEMETRY_MSP_SEQ_MASK) | (lastRequestVersion << TELEMETRY_MSP_VER_SHIFT)); // header without 'start' flag
     }
 
-    const uint8_t bufferBytesRemaining = sbufBytesRemaining(txBuf);
+    const uint16_t bufferBytesRemaining = sbufBytesRemaining(txBuf);
     const uint8_t payloadBytesRemaining = sbufBytesRemaining(payloadBuf);
     uint8_t frame[payloadBytesRemaining];
 
