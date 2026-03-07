@@ -81,7 +81,6 @@ jobs:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           SHORT_SHA: ${{ steps.info.outputs.short_sha }}
           HEX_COUNT: ${{ steps.info.outputs.count }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           REPO: ${{ github.repository }}
         run: |
           PR_URL="https://github.com/${REPO}/pull/${PR_NUMBER}"
@@ -93,7 +92,6 @@ jobs:
           gh release create "pr-${PR_NUMBER}" hexes/*.hex \
             --repo iNavFlight/pr-test-builds \
             --prerelease \
-            --target "${HEAD_SHA}" \
             --title "PR #${PR_NUMBER} (${SHORT_SHA})" \
             --notes-file release-notes.md
 
