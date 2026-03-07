@@ -49,9 +49,9 @@ typedef struct currentSample_s {
 } currentSample_t;
 
 typedef enum {
-    Q_TUNE_STATE_HI_FREQ_OSCILLATION        = (1 << 0),
-    Q_TUNE_STATE_LOW_FREQ_OSCILLATION       = (1 << 1),
-    Q_TUNE_STATE_HI_FREQ_START              = (1 << 2),   // start of a high frequency oscillation    
+    Q_TUNE_STATE_HI_FREQ_OSCILLATION        = (1 << 0),     // 1
+    Q_TUNE_STATE_LOW_FREQ_OSCILLATION       = (1 << 1),     // 2
+    Q_TUNE_STATE_HI_FREQ_START              = (1 << 2),     // 4 start of a high frequency oscillation    
 } qTuneState_e;
 
 typedef struct samples_s {
@@ -115,6 +115,15 @@ static bool qTuneState(uint8_t data, qTuneState_e state) {
     return data & state;
 }
 
+/*
+ * High-frequency oscillation state machine (per axis):
+ * 1) Run only when throttle > 1200. If throttle <= 1200, clear START and OSCILLATION.
+ * 2) If peak frequency is below Q_TUNE_HI_FREQ_THRESHOLD, clear START and OSCILLATION.
+ * 3) If peak frequency is above threshold and START is not set:
+ *    START can be armed only after Q_TUNE_HI_FREQ_EVENT_PERIOD_US from the previous start time.
+ * 4) Once START is set and frequency stays above threshold:
+ *    set OSCILLATION after Q_TUNE_HI_FREQ_EVENT_THRESHOLD_US has elapsed.
+ */
 static void hiFrequencyDetector(samples_t * data, timeUs_t currentTimeUs) {
 
     /*
@@ -123,31 +132,35 @@ static void hiFrequencyDetector(samples_t * data, timeUs_t currentTimeUs) {
      * If a multitoror oscialltes on high throttle, it will oscillate on low as well
      * as it will start on high throttle. 
      */
-    if (rcCommand[THROTTLE] > 1200) {
-
-        if (
-            !qTuneState(data->state, Q_TUNE_STATE_HI_FREQ_START) && 
-            data->fftPeakFrequency >= Q_TUNE_HI_FREQ_THRESHOLD &&
-            currentTimeUs - data->hiFreqEvenStartUs > Q_TUNE_HI_FREQ_EVENT_PERIOD_US    // At least so many us between two events
-        ) {
-            // Osciallation started
-            qTuneEnableState(&data->state, Q_TUNE_STATE_HI_FREQ_START);
-            data->hiFreqEvenStartUs = currentTimeUs;
-        } else if (
-            qTuneState(data->state, Q_TUNE_STATE_HI_FREQ_START) && 
-            currentTimeUs - data->hiFreqEvenStartUs > Q_TUNE_HI_FREQ_EVENT_THRESHOLD_US
-        ) {
-            //Oscillation continues for at least Q_TUNE_HI_FREQ_EVENT_THRESHOLD_US us
-            qTuneEnableState(&data->state, Q_TUNE_STATE_HI_FREQ_OSCILLATION);
-        } else if (data->fftPeakFrequency < Q_TUNE_HI_FREQ_THRESHOLD) {
-            //Oscillation ended
-            qTuneDisableState(&data->state, Q_TUNE_STATE_HI_FREQ_START);
-            qTuneDisableState(&data->state, Q_TUNE_STATE_HI_FREQ_OSCILLATION);
-        }
-    
-    } else {
+    if (rcCommand[THROTTLE] <= 1200) {
         qTuneDisableState(&data->state, Q_TUNE_STATE_HI_FREQ_OSCILLATION);
         qTuneDisableState(&data->state, Q_TUNE_STATE_HI_FREQ_START);
+        return;
+    }
+
+    const bool frequencyAboveThreshold = data->fftPeakFrequency >= Q_TUNE_HI_FREQ_THRESHOLD;
+    if (!frequencyAboveThreshold) {
+        // Oscillation ended
+        qTuneDisableState(&data->state, Q_TUNE_STATE_HI_FREQ_START);
+        qTuneDisableState(&data->state, Q_TUNE_STATE_HI_FREQ_OSCILLATION);
+        return;
+    }
+
+    const bool hiFreqStarted = qTuneState(data->state, Q_TUNE_STATE_HI_FREQ_START);
+    const timeUs_t eventAgeUs = currentTimeUs - data->hiFreqEvenStartUs;
+
+    if (!hiFreqStarted) {
+        // Osciallation started
+        if (eventAgeUs > Q_TUNE_HI_FREQ_EVENT_PERIOD_US) {
+            qTuneEnableState(&data->state, Q_TUNE_STATE_HI_FREQ_START);
+            data->hiFreqEvenStartUs = currentTimeUs;
+        }
+        return;
+    }
+
+    // Oscillation continues for at least Q_TUNE_HI_FREQ_EVENT_THRESHOLD_US us
+    if (eventAgeUs > Q_TUNE_HI_FREQ_EVENT_THRESHOLD_US) {
+        qTuneEnableState(&data->state, Q_TUNE_STATE_HI_FREQ_OSCILLATION);
     }
 }
 
