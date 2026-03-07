@@ -35,6 +35,7 @@
 typedef enum {
     GPS_UBLOX = 0,
     GPS_MSP,
+    GPS_CRSF,
     GPS_FAKE,
     GPS_PROVIDER_COUNT
 } gpsProvider_e;
