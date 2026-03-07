@@ -1,20 +1,26 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of INAV Project.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Alternatively, the contents of this file may be used under the terms
+ * of the GNU General Public License Version 3, as described below:
+ *
+ * This file is free software: you may copy, redistribute and/or modify
+ * it under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see http://www.gnu.org/licenses/.
  */
-
 #pragma once
 
 #include <stdint.h>
@@ -30,6 +36,8 @@ typedef struct {
     int32_t dir;   // centidegrees direction to plane, pivot is inav FC
     uint32_t dist;              // horisontal distance to plane, cm, pivot is inav FC
     int32_t verticalDistance;   // vertical distance to plane, cm, pivot is inav FC
+    int32_t meetPointDistance;  // meters,  Closest point
+    int32_t meetPointTime;      // seconds, Time of the closest approach
 } adsbVehicleCalculatedValues_t;
 
 typedef struct {
@@ -58,11 +66,12 @@ typedef struct {
 
 void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal);
 bool adsbHeartbeat(void);
-adsbVehicle_t *findVehicleClosestLimit(int32_t maxVerticalDistance);
 adsbVehicle_t * findVehicle(uint8_t index);
 uint8_t getActiveVehiclesCount(void);
-void adsbTtlClean(timeUs_t currentTimeUs);
 adsbVehicleStatus_t* getAdsbStatus(void);
 adsbVehicleValues_t* getVehicleForFill(void);
 bool isEnvironmentOkForCalculatingADSBDistanceBearing(void);
-void recalculateVehicle(adsbVehicle_t* vehicle);
+void taskAdsb(timeUs_t currentTimeUs);
+
+adsbVehicle_t *findVehicleForWarning(uint32_t warningDistanceCm, int32_t maxVerticalDistance);
+adsbVehicle_t *findVehicleForAlert(uint32_t alertDistanceCm, uint32_t warningDistanceCm, int32_t maxVerticalDistance);

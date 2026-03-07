@@ -1041,6 +1041,49 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, 0);
         sbufWriteU32(dst, 0);
 #endif
+        break;
+    case MSP2_ADSB_LIMITS:
+#ifdef USE_ADSB
+        sbufWriteU16(dst, osdConfig()->adsb_distance_warning);
+        sbufWriteU16(dst, osdConfig()->adsb_distance_alert);
+        sbufWriteU16(dst, osdConfig()->adsb_ignore_plane_above_me_limit);
+#else
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+#endif
+        break;
+    case MSP2_ADSB_WARNING_VEHICLE_ICAO:
+#ifdef USE_ADSB
+        if(isEnvironmentOkForCalculatingADSBDistanceBearing()) {
+            adsbVehicle_t *vehicle = NULL;
+            bool isAlert = true;
+            vehicle = findVehicleForAlert(
+                    METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert),
+                    METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning),
+                    METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit)
+            );
+
+            if(vehicle == NULL) {
+                vehicle = findVehicleForWarning(METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning), METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
+                isAlert = false;
+            }
+
+            if(vehicle != NULL) {
+                sbufWriteU32(dst, vehicle->vehicleValues.icao);
+                sbufWriteU8(dst, isAlert ? 1 : 0);;
+            } else {
+                sbufWriteU32(dst, 0);
+                sbufWriteU8(dst, 0);;
+            }
+        } else {
+            sbufWriteU32(dst, 0);
+            sbufWriteU8(dst, 0);
+        }
+#else
+        sbufWriteU32(dst, 0);
+        sbufWriteU8(dst, 0);
+#endif
             break;
     case MSP_DEBUG:
         // output some useful QA statistics
