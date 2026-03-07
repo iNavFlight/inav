@@ -509,17 +509,16 @@ static int logicConditionCompute(
 
 #ifdef USE_PINIO
         case LOGIC_CONDITION_PINIO_PWM:
-            // operandA = channel, operandB = duty cycle (0-100)
-            // Channels 0..PINIO_COUNT-1 = hardware PINIO (PWM capable)
-            // Channel PINIO_COUNT = LED strip idle level (binary: >0 = HIGH)
+            // operandA = duty cycle (0-100), operandB = pin (0=LED pin, 1=USER1, 2=USER2, ...)
+            // operandB=0 preserves backward compatibility with old LED_PIN_PWM behavior
+            if (operandB == 0) {
 #ifdef USE_LED_STRIP
-            if (operandA == PINIO_COUNT) {
-                ws2811SetIdleHigh(operandB > 0);
-                return operandB;
-            }
+                ws2811SetIdleHigh(operandA > 0);
 #endif
-            pinioSetDuty(operandA, (uint8_t)constrain(operandB, 0, 100));
-            return operandB;
+                return operandA;
+            }
+            pinioSetDuty(operandB - 1, (uint8_t)constrain(operandA, 0, 100));
+            return operandA;
             break;
 #endif
 #ifdef USE_GPS_FIX_ESTIMATION
