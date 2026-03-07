@@ -71,6 +71,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `batch` | Start or end a batch of commands |
 | `battery_profile` | Change battery profile |
 | `beeper` | Show/set beeper (buzzer) [usage](Buzzer.md) |
+| `bind_msp_rx` | Initiate binding for MSP receivers (mLRS) |
 | `bind_rx` | Initiate binding for SRXL2 or CRSF receivers |
 | `blackbox` | Configure blackbox fields |
 | `bootlog` | Show init logs from [serial_printf_debugging](./development/serial_printf_debugging.md) |
