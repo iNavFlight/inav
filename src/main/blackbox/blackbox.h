@@ -54,11 +54,11 @@ typedef enum BlackboxState {
 } BlackboxState;
 
 typedef struct blackboxConfig_s {
+    uint32_t includeFlags;
     uint16_t rate_num;
     uint16_t rate_denom;
     uint8_t device;
     uint8_t invertedCardDetection;
-    uint32_t includeFlags;
     int8_t arm_control;
 } blackboxConfig_t;
 

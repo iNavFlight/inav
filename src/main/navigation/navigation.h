@@ -167,11 +167,11 @@ typedef struct geoZoneConfig_s
 typedef struct geozone_config_s
 {
     uint32_t fenceDetectionDistance;
+    uint32_t copterFenceStopDistance;
     uint16_t avoidAltitudeRange;
     uint16_t safeAltitudeDistance;
     bool nearestSafeHomeAsInclusivZone;
     uint8_t safeHomeFenceAction;
-    uint32_t copterFenceStopDistance;
     uint8_t noWayHomeAction;
 } geozone_config_t;
 
