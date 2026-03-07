@@ -41,6 +41,16 @@
 #define Q_TUNE_HI_FREQ_EVENT_THRESHOLD_US 150000 // If we have a high frequency event for longer than this, we do vibrate 
 #define Q_TUNE_HI_FREQ_EVENT_PERIOD_US 1000000 // Hi Freq event can happen only from time to time
 
+#define Q_TUNE_LOW_FREQ_MIN_HZ 0.3f
+#define Q_TUNE_LOW_FREQ_MAX_HZ 5.0f
+#define Q_TUNE_LOW_FREQ_DECIMATION 4
+#define Q_TUNE_LOW_FREQ_EFFECTIVE_HZ (Q_TUNE_UPDATE_RATE_HZ / Q_TUNE_LOW_FREQ_DECIMATION)
+#define Q_TUNE_LOW_FREQ_SETPOINT_RMS_MAX 0.06f
+#define Q_TUNE_LOW_FREQ_ERROR_ENERGY_MIN 0.020f
+#define Q_TUNE_LOW_FREQ_ITERM_ENERGY_MIN 0.010f
+#define Q_TUNE_LOW_FREQ_EVENT_THRESHOLD_US 600000
+#define Q_TUNE_LOW_FREQ_EVENT_PERIOD_US 2000000
+
 
 typedef struct currentSample_s {
     float setpoint;
@@ -52,6 +62,7 @@ typedef enum {
     Q_TUNE_STATE_HI_FREQ_OSCILLATION        = (1 << 0),     // 1
     Q_TUNE_STATE_LOW_FREQ_OSCILLATION       = (1 << 1),     // 2
     Q_TUNE_STATE_HI_FREQ_START              = (1 << 2),     // 4 start of a high frequency oscillation    
+    Q_TUNE_STATE_LOW_FREQ_START             = (1 << 3),     // 8 start of a low frequency oscillation
 } qTuneState_e;
 
 typedef struct samples_s {
@@ -60,10 +71,13 @@ typedef struct samples_s {
     timeUs_t lastExecution;
     uint16_t indexShort;
     uint16_t indexLong;
+    uint16_t decimationCounter;
     float rate;
     float setpointFiltered;
     float measurementFiltered;
     float error[Q_TUNE_SHORT_BUFFER_LENGTH];
+    float errorLong[Q_TUNE_LONG_BUFFER_LENGTH];
+    float setpointLong[Q_TUNE_LONG_BUFFER_LENGTH];
     float iTerm[Q_TUNE_LONG_BUFFER_LENGTH];
 
     pt1Filter_t setpointFilter;
@@ -85,12 +99,19 @@ typedef struct samples_s {
     float setpointDerivative;
 
     arm_rfft_fast_instance_f32 errorFft;
+    arm_rfft_fast_instance_f32 longWindowFft;
 
     float fftPeakFrequency;
     float fftPeakValue;
     float fftMean;
+
+    float lowFftPeakFrequency;
+    float lowFftPeakValue;
+    float lowFftBandMean;
+    float lowITermBandMean;
     
     timeUs_t hiFreqEvenStartUs;
+    timeUs_t lowFreqEvenStartUs;
 
 } samples_t;
 
@@ -113,6 +134,109 @@ static void qTuneDisableState(uint8_t *data, qTuneState_e state) {
 
 static bool qTuneState(uint8_t data, qTuneState_e state) {
     return data & state;
+}
+
+static void getSampleFrequencyInRange(
+    float *peakFrequency,
+    float *peakValue,
+    float *bandMean,
+    arm_rfft_fast_instance_f32 *structure,
+    float buffer[],
+    const uint16_t bufferLength,
+    const float minFrequency,
+    const float maxFrequency
+) {
+
+    float rfftOutput[bufferLength];
+    float magnitude[bufferLength];
+
+    arm_rfft_fast_f32(structure, buffer, rfftOutput, 0);
+    arm_cmplx_mag_f32(rfftOutput, magnitude, bufferLength / 2);
+
+    const float hzPerBin = (float)Q_TUNE_LOW_FREQ_EFFECTIVE_HZ / bufferLength;
+    uint16_t startBin = (uint16_t)ceilf(minFrequency / hzPerBin);
+    uint16_t endBin = (uint16_t)floorf(maxFrequency / hzPerBin);
+    const uint16_t lastBin = (bufferLength / 2) - 1;
+
+    if (startBin < 1) {
+        startBin = 1;
+    }
+    if (endBin > lastBin) {
+        endBin = lastBin;
+    }
+    if (startBin > endBin) {
+        *peakFrequency = 0.0f;
+        *peakValue = 0.0f;
+        *bandMean = 0.0f;
+        return;
+    }
+
+    float maxValue = 0.0f;
+    uint16_t maxBin = startBin;
+    float sum = 0.0f;
+
+    for (uint16_t bin = startBin; bin <= endBin; bin++) {
+        const float value = magnitude[bin];
+        sum += value;
+        if (value > maxValue) {
+            maxValue = value;
+            maxBin = bin;
+        }
+    }
+
+    const uint16_t bins = endBin - startBin + 1;
+    *peakFrequency = maxBin * hzPerBin;
+    *peakValue = maxValue;
+    *bandMean = sum / bins;
+}
+
+/*
+ * Low-frequency oscillation state machine (per axis):
+ * 1) Run only when throttle > 1200; otherwise clear START and OSCILLATION.
+ * 2) Candidate low-frequency oscillation requires:
+ *    - peak in [Q_TUNE_LOW_FREQ_MIN_HZ, Q_TUNE_LOW_FREQ_MAX_HZ]
+ *    - low setpoint activity (setpoint RMS below threshold)
+ *    - sufficient low-band error and I-term energy
+ * 3) START is rate-limited by Q_TUNE_LOW_FREQ_EVENT_PERIOD_US.
+ * 4) Once START is set and candidate persists, set OSCILLATION after
+ *    Q_TUNE_LOW_FREQ_EVENT_THRESHOLD_US.
+ */
+static void lowFrequencyDetector(samples_t *data, timeUs_t currentTimeUs)
+{
+    if (rcCommand[THROTTLE] <= 1200) {
+        qTuneDisableState(&data->state, Q_TUNE_STATE_LOW_FREQ_START);
+        qTuneDisableState(&data->state, Q_TUNE_STATE_LOW_FREQ_OSCILLATION);
+        return;
+    }
+
+    const bool inLowBand =
+        data->lowFftPeakFrequency >= Q_TUNE_LOW_FREQ_MIN_HZ &&
+        data->lowFftPeakFrequency <= Q_TUNE_LOW_FREQ_MAX_HZ;
+    const bool setpointQuiet = data->setpointRms <= Q_TUNE_LOW_FREQ_SETPOINT_RMS_MAX;
+    const bool hasErrorEnergy = data->lowFftBandMean >= Q_TUNE_LOW_FREQ_ERROR_ENERGY_MIN;
+    const bool hasITermEnergy = data->lowITermBandMean >= Q_TUNE_LOW_FREQ_ITERM_ENERGY_MIN;
+    const bool lowFreqCandidate = inLowBand && setpointQuiet && hasErrorEnergy && hasITermEnergy;
+
+    if (!lowFreqCandidate) {
+        qTuneDisableState(&data->state, Q_TUNE_STATE_LOW_FREQ_START);
+        qTuneDisableState(&data->state, Q_TUNE_STATE_LOW_FREQ_OSCILLATION);
+        return;
+    }
+
+    const bool lowFreqStarted = qTuneState(data->state, Q_TUNE_STATE_LOW_FREQ_START);
+    const timeUs_t eventAgeUs = currentTimeUs - data->lowFreqEvenStartUs;
+
+    if (!lowFreqStarted) {
+        if (eventAgeUs > Q_TUNE_LOW_FREQ_EVENT_PERIOD_US) {
+            qTuneEnableState(&data->state, Q_TUNE_STATE_LOW_FREQ_START);
+            data->lowFreqEvenStartUs = currentTimeUs;
+        }
+        return;
+    }
+
+    if (eventAgeUs > Q_TUNE_LOW_FREQ_EVENT_THRESHOLD_US) {
+        qTuneEnableState(&data->state, Q_TUNE_STATE_LOW_FREQ_OSCILLATION);
+    }
 }
 
 /*
@@ -200,11 +324,14 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
 
             arm_rfft_fast_init_f32(&samples[i].errorFft, Q_TUNE_SHORT_BUFFER_LENGTH);
+            arm_rfft_fast_init_f32(&samples[i].longWindowFft, Q_TUNE_LONG_BUFFER_LENGTH);
 
             samples[i].state = 0;
             samples[i].indexShort = 0;
             samples[i].indexLong = 0;
+            samples[i].decimationCounter = 0;
             samples[i].hiFreqEvenStartUs = 0;
+            samples[i].lowFreqEvenStartUs = 0;
             samples[i].lastExecution = 0;
 
             pt1FilterInit(&samples[i].setpointFilter, Q_TUNE_SETPOINT_LPF_HZ, Q_TUNE_UPDATE_US * 1e-6f);
@@ -236,19 +363,25 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
 
         samples_t *axisSample = &samples[i];
 
-        // Store and normalize iTerm
-        axisSample->iTerm[samples->indexLong] = sample->iTerm / axisSample->rate;
-
         // filter the data with normalized stepoint and measurement
         axisSample->setpointFiltered = pt1FilterApply(&axisSample->setpointFilter, sample->setpoint / axisSample->rate);
         axisSample->measurementFiltered = pt1FilterApply(&axisSample->measurementFilter, sample->measurement / axisSample->rate);
 
         // calculate the error
 
-        float error = axisSample->setpointFiltered - axisSample->measurementFiltered;
-        error = error - pt1FilterApply(&axisSample->pt1ErrorHpfFilter, error);  // Value - LPF = HPF
+        const float trackingError = axisSample->setpointFiltered - axisSample->measurementFiltered;
+        float error = trackingError - pt1FilterApply(&axisSample->pt1ErrorHpfFilter, trackingError);  // Value - LPF = HPF
 
         axisSample->error[axisSample->indexShort] = error;
+
+        // Low-frequency path uses decimation by 4
+        axisSample->decimationCounter++;
+        if (axisSample->decimationCounter >= Q_TUNE_LOW_FREQ_DECIMATION) {
+            axisSample->decimationCounter = 0;
+            axisSample->iTerm[axisSample->indexLong] = sample->iTerm / axisSample->rate;
+            axisSample->errorLong[axisSample->indexLong] = trackingError;
+            axisSample->setpointLong[axisSample->indexLong] = axisSample->setpointFiltered;
+        }
     
         // compute variance, RMS and other factors
         float out;
@@ -265,23 +398,57 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
         arm_std_f32(axisSample->iTerm, Q_TUNE_LONG_BUFFER_LENGTH, &out);
         axisSample->iTermStdDev = out;
 
+        arm_rms_f32(axisSample->setpointLong, Q_TUNE_LONG_BUFFER_LENGTH, &out);
+        axisSample->setpointRms = out;
+
         // Step 6 - calculate setpoint Derivative
         axisSample->setpointDerivative = axisSample->setpointFiltered - axisSample->setpointPrevious;
         axisSample->setpointPrevious = axisSample->setpointFiltered;
 
-        float dataBuffer[Q_TUNE_LONG_BUFFER_LENGTH];
+        float dataBufferShort[Q_TUNE_SHORT_BUFFER_LENGTH];
 
-        memcpy(dataBuffer, axisSample->error, sizeof(axisSample->error));
+        memcpy(dataBufferShort, axisSample->error, sizeof(axisSample->error));
         getSampleFrequency(
             &axisSample->fftPeakFrequency, 
             &axisSample->fftPeakValue,
             &axisSample->fftMean,
             &axisSample->errorFft, 
-            dataBuffer, 
-            Q_TUNE_LONG_BUFFER_LENGTH
+            dataBufferShort,
+            Q_TUNE_SHORT_BUFFER_LENGTH
         );
     
         hiFrequencyDetector(axisSample, currentTimeUs);
+
+        // Low-frequency FFT only on decimation boundary
+        if (axisSample->decimationCounter == 0) {
+            float dataBufferLong[Q_TUNE_LONG_BUFFER_LENGTH];
+
+            memcpy(dataBufferLong, axisSample->errorLong, sizeof(axisSample->errorLong));
+            getSampleFrequencyInRange(
+                &axisSample->lowFftPeakFrequency,
+                &axisSample->lowFftPeakValue,
+                &axisSample->lowFftBandMean,
+                &axisSample->longWindowFft,
+                dataBufferLong,
+                Q_TUNE_LONG_BUFFER_LENGTH,
+                Q_TUNE_LOW_FREQ_MIN_HZ,
+                Q_TUNE_LOW_FREQ_MAX_HZ
+            );
+
+            memcpy(dataBufferLong, axisSample->iTerm, sizeof(axisSample->iTerm));
+            getSampleFrequencyInRange(
+                &axisSample->measurementMean,
+                &axisSample->measurementStdDev,
+                &axisSample->lowITermBandMean,
+                &axisSample->longWindowFft,
+                dataBufferLong,
+                Q_TUNE_LONG_BUFFER_LENGTH,
+                Q_TUNE_LOW_FREQ_MIN_HZ,
+                Q_TUNE_LOW_FREQ_MAX_HZ
+            );
+
+            lowFrequencyDetector(axisSample, currentTimeUs);
+        }
     
     }
 
@@ -301,7 +468,9 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         samples[i].indexShort = (samples[i].indexShort + 1) % Q_TUNE_SHORT_BUFFER_LENGTH;
-        samples[i].indexLong = (samples[i].indexLong + 1) % Q_TUNE_LONG_BUFFER_LENGTH;
+        if (samples[i].decimationCounter == 0) {
+            samples[i].indexLong = (samples[i].indexLong + 1) % Q_TUNE_LONG_BUFFER_LENGTH;
+        }
     }
 }
 
