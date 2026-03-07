@@ -265,7 +265,7 @@ void qTuneProcessTask(timeUs_t currentTimeUs) {
             &axisSample->fftMean,
             &axisSample->errorFft, 
             dataBuffer, 
-            Q_TUNE_SHORT_BUFFER_LENGTH
+            Q_TUNE_LONG_BUFFER_LENGTH
         );
     
         hiFrequencyDetector(axisSample, currentTimeUs);
