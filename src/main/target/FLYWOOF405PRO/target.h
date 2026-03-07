@@ -152,6 +152,12 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
+// *************** PINIO ***********************
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN              PD6
+#define PINIO2_PIN              PC8
+
 // *************** LED2812 ************************
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA9

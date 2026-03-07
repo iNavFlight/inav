@@ -31,4 +31,8 @@ void targetConfiguration(void)
 
     timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
     timerOverridesMutable(timer2id(TIM2))->outputMode = OUTPUT_MODE_MOTORS;
+
+    // Pinio Box params as per manufacturer specification
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
 }
