@@ -38,8 +38,8 @@ typedef struct smithPredictor_s {
     uint8_t idx;
     float data[MAX_SMITH_SAMPLES + 1];
     pt1Filter_t smithPredictorFilter;
-    float smithPredictorStrength;
+    float measurementSmithPredictor;
 } smithPredictor_t;
 
-float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sample);
+float smithPredictorApply(smithPredictor_t *predictor, float sample);
 void smithPredictorInit(smithPredictor_t *predictor, float delay, float strength, uint16_t filterLpfHz, uint32_t looptime);

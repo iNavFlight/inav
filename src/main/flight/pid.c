@@ -114,7 +114,8 @@ typedef struct {
 
     pt3Filter_t rateTargetFilter;
 
-    smithPredictor_t smithPredictor;
+    smithPredictor_t measurementSmithPredictor;
+    smithPredictor_t dtermSmithPredictor;
 
     fwPidAttenuation_t attenuation;
 } pidState_t;
@@ -310,9 +311,13 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fwAltControlResponseFactor = SETTING_NAV_FW_ALT_CONTROL_RESPONSE_DEFAULT,
         .fwAltControlUsePos = SETTING_NAV_FW_ALT_USE_POSITION_DEFAULT,
 #ifdef USE_SMITH_PREDICTOR
-        .smithPredictorStrength = SETTING_SMITH_PREDICTOR_STRENGTH_DEFAULT,
-        .smithPredictorDelay = SETTING_SMITH_PREDICTOR_DELAY_DEFAULT,
-        .smithPredictorFilterHz = SETTING_SMITH_PREDICTOR_LPF_HZ_DEFAULT,
+        .measurementSmithPredictor = SETTING_GYRO_PREDICTOR_STRENGTH_DEFAULT,
+        .measurementSmithPredictorDelay = SETTING_GYRO_PREDICTOR_DELAY_DEFAULT,
+        .measurementSmithPredictorFilterHz = SETTING_GYRO_PREDICTOR_LPF_HZ_DEFAULT,
+
+        .dtermSmithPredictor = SETTING_DTERM_PREDICTOR_STRENGTH_DEFAULT,
+        .dtermSmithPredictorDelay = SETTING_DTERM_PREDICTOR_DELAY_DEFAULT,
+        .dtermSmithPredictorFilterHz = SETTING_DTERM_PREDICTOR_LPF_HZ_DEFAULT,
 #endif
         .fwItermLockTimeMaxMs = SETTING_FW_ITERM_LOCK_TIME_MAX_MS_DEFAULT,
         .fwItermLockRateLimit = SETTING_FW_ITERM_LOCK_RATE_THRESHOLD_DEFAULT,
@@ -353,24 +358,40 @@ bool pidInitFilters(void)
 
 #ifdef USE_SMITH_PREDICTOR
     smithPredictorInit(
-        &pidState[FD_ROLL].smithPredictor,
-        pidProfile()->smithPredictorDelay,
-        pidProfile()->smithPredictorStrength,
-        pidProfile()->smithPredictorFilterHz,
+        &pidState[FD_ROLL].measurementSmithPredictor,
+        pidProfile()->measurementSmithPredictorDelay,
+        pidProfile()->measurementSmithPredictor,
+        pidProfile()->measurementSmithPredictorFilterHz,
         getLooptime()
     );
     smithPredictorInit(
-        &pidState[FD_PITCH].smithPredictor,
-        pidProfile()->smithPredictorDelay,
-        pidProfile()->smithPredictorStrength,
-        pidProfile()->smithPredictorFilterHz,
+        &pidState[FD_PITCH].measurementSmithPredictor,
+        pidProfile()->measurementSmithPredictorDelay,
+        pidProfile()->measurementSmithPredictor,
+        pidProfile()->measurementSmithPredictorFilterHz,
         getLooptime()
     );
     smithPredictorInit(
-        &pidState[FD_YAW].smithPredictor,
-        pidProfile()->smithPredictorDelay,
-        pidProfile()->smithPredictorStrength,
-        pidProfile()->smithPredictorFilterHz,
+        &pidState[FD_YAW].measurementSmithPredictor,
+        pidProfile()->measurementSmithPredictorDelay,
+        pidProfile()->measurementSmithPredictor,
+        pidProfile()->measurementSmithPredictorFilterHz,
+        getLooptime()
+    );
+
+    // Dterm Smith predictor on ROLL and PITCH only
+    smithPredictorInit(
+        &pidState[FD_ROLL].dtermSmithPredictor,
+        pidProfile()->dtermSmithPredictorDelay,
+        pidProfile()->dtermSmithPredictor,
+        pidProfile()->dtermSmithPredictorFilterHz,
+        getLooptime()
+    );
+    smithPredictorInit(
+        &pidState[FD_PITCH].dtermSmithPredictor,
+        pidProfile()->dtermSmithPredictorDelay,
+        pidProfile()->dtermSmithPredictor,
+        pidProfile()->dtermSmithPredictorFilterHz,
         getLooptime()
     );
 #endif
@@ -783,8 +804,13 @@ static float dTermProcess(pidState_t *pidState, float currentRateTarget, float d
 
         // Calculate derivative
         newDTerm =  delta * (pidState->kD * dT_inv) * applyDBoost(pidState, currentRateTarget, dT, dT_inv);
+
+        //Apply D-term smith predictor
+#ifdef USE_SMITH_PREDICTOR
+        newDTerm = smithPredictorApply(&pidState->dtermSmithPredictor, newDTerm);
+#endif
     }
-    return(newDTerm);
+    return newDTerm;
 }
 
 static void applyItermLimiting(pidState_t *pidState) {
@@ -1268,7 +1294,7 @@ void FAST_CODE pidController(float dT)
 #endif
 
 #ifdef USE_SMITH_PREDICTOR
-        pidState[axis].gyroRate = applySmithPredictor(axis, &pidState[axis].smithPredictor, pidState[axis].gyroRate);
+        pidState[axis].gyroRate = smithPredictorApply(&pidState[axis].measurementSmithPredictor, pidState[axis].gyroRate);
 #endif
     }
 
