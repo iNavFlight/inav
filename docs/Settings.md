@@ -2332,16 +2332,6 @@ Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened w
 
 ---
 
-### led_pin_pwm_mode
-
-PWM mode of LED pin.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| SHARED_LOW |  |  |
-
----
-
 ### limit_attn_filter_cutoff
 
 Throttle attenuation PI control output filter cutoff frequency
@@ -5069,6 +5059,16 @@ PWM value for LEFT key
 | Default | Min | Max |
 | --- | --- | --- |
 | 63 | 0 | 100 |
+
+---
+
+### osd_joystick_pinio_channel
+
+PINIO channel index (0-3) for the camera OSD control pin
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
 
 ---
 
