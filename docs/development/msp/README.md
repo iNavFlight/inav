@@ -8,8 +8,21 @@ For details on the structure of MSP, see [The wiki page](https://github.com/iNav
 For list of enums, see [Enum documentation page](https://github.com/iNavFlight/inav/wiki/Enums-reference)
 
 
+**When To Regenerate**
 
-**JSON file rev: 4**
+Run `docs/development/msp/gen_docs.sh` whenever MSP docs inputs change:
+- `msp_messages.json` message content/schema updates
+- source enum changes under `src/main` that affect `inav_enums.json`
+- `format.md` or this header template (`docs_v2_header.md`) changes
+
+By default the script removes temporary generated headers. Use `--keep_headers` only when you need them.
+
+**Versioning Rule**
+
+When the MSP JSON specification changes, bump `msp_messages.json` version:
+- breaking schema/compatibility change: increment `version.major`, reset `minor` and `patch`
+- backward-compatible schema extension: increment `version.minor`, reset `patch`
+- message/content/docs-only update inside current schema: increment `version.patch`
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -27,36 +40,50 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 # Format:
 ## JSON format example:
 ```
-    "MSP_API_VERSION": {
-        "code": 1,
-        "mspv": 1,
-        "request": null,
-        "reply": {
-            "payload": [
-                {
-                    "name": "mspProtocolVersion",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
-                },
-                {
-                    "name": "apiVersionMajor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
-                },
-                {
-                    "name": "apiVersionMinor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
-                }
-            ],
-        },
-        "notes": "Used by configurators to check compatibility.",
-        "description": "Provides the MSP protocol version and the INAV API version."
+{
+    "version": {
+        "major": 2,
+        "minor": 0,
+        "patch": 0
     },
+    "messages": {
+        "MSP_API_VERSION": {
+            "code": 1,
+            "mspv": 1,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "mspProtocolVersion",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
+                    },
+                    {
+                        "name": "apiVersionMajor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
+                    },
+                    {
+                        "name": "apiVersionMinor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
+                    }
+                ]
+            },
+            "notes": "Used by configurators to check compatibility.",
+            "description": "Provides the MSP protocol version and the INAV API version."
+        },
+        "...": {}
+    }
+}
 ```
+## Top-level fields:
+**version**: JSON spec version (`major.minor.patch`)\
+**messages**: Dictionary keyed by MSP message name
+
 ## Message fields:
 **name**: MSP message name\
 **code**: Integer message code\
@@ -66,6 +93,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 **variable_len**: Optional boolean, if true, message does not have a predefined fixed length and needs appropriate handling\
 **variants**: Optional special case, message has different cases of reply/request. Key/description is not a strict expression or code; just a readable condition\
 **not_implemented**: Optional special case, message is not implemented (never or deprecated)\
+**replaced_by**: Optional array of MSP message names that replace this command. Present when a command is deprecated and scheduled for removal. Empty array if no replacement is needed\
 **notes**: String with details of message
 
 ## Data dict fields:
@@ -2212,7 +2240,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 | `armingFlags` | `uint16_t` | 2 | Bitmask | Bitmask: Flight controller arming flags (`armingFlags`). Note: Truncated to 16 bits |
 | `accCalibAxisFlags` | `uint8_t` | 1 | Bitmask | Bitmask: Accelerometer calibrated axes flags (`accGetCalibrationAxisFlags()`) |
 
-**Notes:** Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements.
+**Notes:** Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements. The `accCalibAxisFlags` field is not present in `MSP2_INAV_STATUS` but is available via `MSP_CALIBRATION_DATA`.
 
 ## <a id="msp_sensor_status"></a>`MSP_SENSOR_STATUS (151 / 0x97)`
 **Description:** Provides the hardware status for each individual sensor system.  

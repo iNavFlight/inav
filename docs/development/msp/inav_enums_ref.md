@@ -2925,7 +2925,8 @@
 | `LED_MODE_ANGLE` | 3 |  |
 | `LED_MODE_MAG` | 4 |  |
 | `LED_MODE_BARO` | 5 |  |
-| `LED_SPECIAL` | 6 |  |
+| `LED_MODE_LOITER` | 6 |  |
+| `LED_SPECIAL` | 7 |  |
 
 ---
 ## <a id="enum-ledoverlayid_e"></a>`ledOverlayId_e`
@@ -3533,8 +3534,7 @@
 | `MULTI_FUNC_3` | 3 |  |
 | `MULTI_FUNC_4` | 4 |  |
 | `MULTI_FUNC_5` | 5 |  |
-| `MULTI_FUNC_6` | 6 |  |
-| `MULTI_FUNC_END` | 7 |  |
+| `MULTI_FUNC_END` | 6 |  |
 
 ---
 ## <a id="enum-multifunctionflags_e"></a>`multiFunctionFlags_e`
@@ -4821,9 +4821,8 @@
 |---|---:|---|
 | `SD_3016` | 0 |  |
 | `HD_5018` | 1 |  |
-| `HD_3016` | 2 |  |
-| `HD_6022` | 3 |  |
-| `HD_5320` | 4 |  |
+| `HD_6022` | 2 |  |
+| `HD_5320` | 3 |  |
 
 ---
 ## <a id="enum-resourceowner_e"></a>`resourceOwner_e`
@@ -5629,7 +5628,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.h
+> Source: ../../../src/main/fc/fc_init.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5643,7 +5642,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.c
+> Source: ../../../src/main/fc/fc_init.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
