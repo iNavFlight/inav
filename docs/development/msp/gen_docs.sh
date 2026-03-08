@@ -28,8 +28,7 @@ echo gen_enum_md.py
 python gen_enum_md.py \
   --fc-version-major "$FC_VERSION_MAJOR" \
   --fc-version-minor "$FC_VERSION_MINOR" \
-  --fc-version-patch-level "$FC_VERSION_PATCH_LEVEL" \
-  --git-revision "$GIT_REVISION"
+  --fc-version-patch-level "$FC_VERSION_PATCH_LEVEL"
 if [[ "$KEEP_HEADERS" -eq 0 ]]; then
   rm all_enums.h
 fi

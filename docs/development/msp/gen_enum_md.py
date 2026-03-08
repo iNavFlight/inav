@@ -292,7 +292,6 @@ def main() -> int:
     parser.add_argument("--fc-version-major", required=True, type=int)
     parser.add_argument("--fc-version-minor", required=True, type=int)
     parser.add_argument("--fc-version-patch-level", required=True, type=int)
-    parser.add_argument("--git-revision", required=True)
     args = parser.parse_args()
 
     path = Path("all_enums.h")
@@ -308,7 +307,6 @@ def main() -> int:
                 "minor": args.fc_version_minor,
                 "patch": args.fc_version_patch_level,
             },
-            "git_revision": args.git_revision,
         },
     )
     Path("inav_enums_ref.md").write_text(md, encoding="utf-8")

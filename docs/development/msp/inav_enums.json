@@ -4,8 +4,7 @@
             "major": 9,
             "minor": 0,
             "patch": 1
-        },
-        "git_revision": "9102dd9c"
+        }
     },
     "enums": {
         "accelerationSensor_e": {
