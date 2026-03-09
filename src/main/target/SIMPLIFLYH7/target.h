@@ -21,7 +21,7 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "SFH7"
-#define USBD_PRODUCT_STRING  "SIMPLIFLYH7"
+#define USBD_PRODUCT_STRING  "SIMPLIFLYH743"
 
 #define LED0                PD1
 
@@ -122,8 +122,8 @@
 
 // *************** ADC *****************************
 #define USE_ADC
-#define ADC_INSTANCE                ADC1
 #define ADC_INSTANCE                ADC3
+
 
 #define ADC_CHANNEL_1_PIN           PC2
 #define ADC_CHANNEL_2_PIN           PC0
