@@ -34,6 +34,7 @@ All ADSB receivers which can send Mavlink [ADSB_VEHICLE](https://mavlink.io/en/m
 * [PINGRX](https://uavionix.com/product/pingrx-pro/) (not tested)
 * [TT-SC1](https://www.aerobits.pl/product/aero/) (tested)
 * [ADSBee1090](https://pantsforbirds.com/adsbee-1090/) (tested)
+* [SoftRf](https://github.com/lyusupov/SoftRF/wiki/Nano-Edition) (not tested)
 
 ## TT-SC1 settings
 * download software for ADSB TT-SC1 from https://www.aerobits.pl/product/aero/ , file Micro_ADSB_App-vX.XX.X_win_setup.zip and install it
@@ -62,4 +63,15 @@ AT+SETTINGS=SAVE
 ``
 * in INAV configurator ports TAB set telemetry MAVLINK, and baudrate 115200
 * https://pantsforbirds.com/adsbee-1090/quick-start/
+
+## SoftRF settings
+SoftRF needs more mavlink messages than other receivers, in INAV cli set correct mavlink output. 
+```
+set mavlink_version = 1
+set mavlink_system_type_rate = 5
+set mavlink_pos_rate = 2
+save
+```
+Baud rate for softRF is 57600. INAV supports only mandatory messages for softRF. 
+Messages MAVLINK_MSG_ID_SYS_STATUS, MAVLINK_MSG_ID_VFR_HUD, MAVLINK_MSG_ID_ATTITUDE are not supported.
 
