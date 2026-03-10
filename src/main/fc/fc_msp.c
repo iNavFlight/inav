@@ -1675,6 +1675,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             #if !defined(SITL_BUILD) && defined(WS2811_PIN)
             ioTag_t led_tag = IO_TAG(WS2811_PIN);
             #endif
+            #ifdef USE_PINIO
+            int nextPinioIndex = pinioHardwareCount;
+            #endif
             for (uint8_t i = 0; i < timerHardwareCount; ++i)
 
                 if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
@@ -1702,6 +1705,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                                     break;
                                 }
                             }
+                        }
+                        // Timer-override PINIO pins: assign next USER index (up to PINIO_COUNT)
+                        if (specialLabel == PIN_LABEL_NONE && (timerHardware[i].usageFlags & TIM_USE_PINIO) && nextPinioIndex < PINIO_COUNT) {
+                            specialLabel = PIN_LABEL_PINIO_BASE + nextPinioIndex;
+                            nextPinioIndex++;
                         }
                         #endif
                         sbufWriteU8(dst, specialLabel);
