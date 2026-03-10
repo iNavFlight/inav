@@ -332,7 +332,6 @@ static void configureMAVLinkStreamRates(void)
     mavRates[MAV_DATA_STREAM_EXTRA1] = telemetryConfig()->mavlink.extra1_rate;
     mavRates[MAV_DATA_STREAM_EXTRA2] = telemetryConfig()->mavlink.extra2_rate;
     mavRates[MAV_DATA_STREAM_EXTRA3] = telemetryConfig()->mavlink.extra3_rate;
-    mavRates[MAV_DATA_STREAM_SYSTEM_TIME] = telemetryConfig()->mavlink.system_time_rate;
 }
 
 void checkMAVLinkTelemetryState(void)

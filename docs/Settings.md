@@ -2742,16 +2742,6 @@ MAVLink System ID
 
 ---
 
-### mavlink_system_time_rate
-
-Rate of the system time message for MAVLink telemetry
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1 | 0 | 255 |
-
----
-
 ### mavlink_version
 
 Version of MAVLink to use

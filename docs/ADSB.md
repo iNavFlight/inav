@@ -68,7 +68,6 @@ AT+SETTINGS=SAVE
 SoftRF needs more mavlink messages than other receivers, in INAV cli set correct mavlink output. 
 ```
 set mavlink_version = 1
-set mavlink_system_type_rate = 5
 set mavlink_pos_rate = 2
 save
 ```

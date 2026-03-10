@@ -3272,13 +3272,6 @@ groups:
         min: 0
         max: 255
         default_value: 1
-      - name: mavlink_system_time_rate
-        description: "Rate of the system time message for MAVLink telemetry"
-        field: mavlink.system_time_rate
-        type: uint8_t
-        min: 0
-        max: 255
-        default_value: 1
       - name: mavlink_version
         field: mavlink.version
         description: "Version of MAVLink to use"
