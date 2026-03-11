@@ -225,7 +225,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 15);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 3);
 
 void osdStartedSaveProcess(void) {
@@ -2267,18 +2267,24 @@ static bool osdDrawSingleElement(uint8_t item)
 
             uint8_t buffIndexFirstLine = 0;
             uint8_t arrowIndexIndex = 0;
-            adsbVehicle_t *vehicle = findVehicleClosestLimit(METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
-            if (vehicle != NULL) {
-                recalculateVehicle(vehicle);
+            bool isAlert = true;
+
+            adsbVehicle_t *vehicle = NULL;
+
+            if(isEnvironmentOkForCalculatingADSBDistanceBearing()){
+                vehicle = findVehicleForAlert(
+                        METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert),
+                        METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning),
+                        METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit)
+                );
+
+                if(vehicle == NULL) {
+                    vehicle = findVehicleForWarning(METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning), METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
+                    isAlert = false;
+                }
             }
 
-            if (
-                    vehicle != NULL
-                    && (vehicle->calculatedVehicleValues.dist > 0
-                    && vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning))
-                    && isEnvironmentOkForCalculatingADSBDistanceBearing()
-
-            ) {
+            if (vehicle != NULL) {
                 adsbLengthForClearFirstLine = 11;
 
                 buff[buffIndexFirstLine++] = SYM_ADSB;
@@ -2302,7 +2308,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 buffIndexFirstLine += osdConfig()->decimals_altitude + 2;
                 //////////////////////////////////////////////////////
 
-                if (vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert)) {
+                if (isAlert) {
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                 }
 
@@ -4282,6 +4288,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .adsb_distance_alert = SETTING_OSD_ADSB_DISTANCE_ALERT_DEFAULT,
     .adsb_ignore_plane_above_me_limit = SETTING_OSD_ADSB_IGNORE_PLANE_ABOVE_ME_LIMIT_DEFAULT,
     .adsb_warning_style = SETTING_OSD_ADSB_WARNING_STYLE_DEFAULT,
+    .adsb_calculation_use_cpa = SETTING_OSD_ADSB_CALCULATION_USE_CPA_DEFAULT,
 #endif
 #if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
     .snr_alarm = SETTING_OSD_SNR_ALARM_DEFAULT,

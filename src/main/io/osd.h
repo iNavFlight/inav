@@ -533,7 +533,8 @@ typedef struct osdConfig_s {
     uint16_t                    adsb_distance_warning;                     // in metres
     uint16_t                    adsb_distance_alert;                       // in metres
     uint16_t                    adsb_ignore_plane_above_me_limit;          // in metres
-    osd_adsb_warning_style_e    adsb_warning_style;       // adsb warning element style, one or two lines
+    osd_adsb_warning_style_e    adsb_warning_style;                        // adsb warning element style, one or two lines
+    bool                        adsb_calculation_use_cpa;                  // adsb calculation type, the closest or the closest approach
 #endif
     uint8_t  radar_peers_display_time;                  // in seconds
 #ifdef USE_GEOZONE
