@@ -29,6 +29,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #include "platform.h"
 
@@ -4271,6 +4272,10 @@ void osdDrawNextElement(void)
         if (elementsPerCycle < 1) elementsPerCycle = 1;
         if (elementsPerCycle > activeElements) elementsPerCycle = activeElements;
     }
+
+    DEBUG_SET(DEBUG_OSD_REFRESH, 0, elementsPerCycle);
+    DEBUG_SET(DEBUG_OSD_REFRESH, 1, activeElements);
+    DEBUG_SET(DEBUG_OSD_REFRESH, 2, framerate_hz);
 
     for (uint8_t i = 0; i < elementsPerCycle; i++) {
         uint8_t index = elementIndex;
