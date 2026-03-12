@@ -167,6 +167,8 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
 simulatorData_t simulatorData = {
     .flags = 0,
     .debugIndex = 0,
-    .vbat = 0
+    .vbat = 0,
+    .current = 0,
+    .rangefinder = 0
 };
 #endif

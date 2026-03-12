@@ -18,7 +18,7 @@ INAV SITL communicates for sensor data and control directly with the correspondi
 
 AS SITL is still an inav software, but running on PC, it is possible to use HITL interface for communication.
 
-INAV-X-Plane-HITL plugin https://github.com/RomanLut/INAV-X-Plane-HITL can be used with SITL.
+[INAV-X-Plane-HITL](https://github.com/RomanLut/INAV-X-Plane-HITL) or [INAV-X-Plane-XITL](https://github.com/Scavanger/INAV-X-Plane-XITL) plugin can be used with SITL.
 
 ## Sensors
 The following sensors are emulated:
