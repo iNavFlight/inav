@@ -65,21 +65,24 @@ const int pinioHardwareCount = ARRAYLEN(pinioHardware);
 /*** Runtime configuration ***/
 typedef struct pinioRuntime_s {
     IO_t io;
-    TCH_t *tch;     // Non-NULL when pin is configured in PWM mode
+    TCH_t *tch;         // Non-NULL when pin is configured in PWM mode
     bool inverted;
+    uint8_t duty;       // Timer mode: duty level (0–100) applied by pinioSet(true);
+                        // updated by pinioSetDuty(). Defaults to 100 so a mode box
+                        // activating with no programming framework condition gives full on.
 } pinioRuntime_t;
 
 static pinioRuntime_t pinioRuntime[PINIO_COUNT];
+static int pinioRuntimeCount = 0;
 
 void pinioInit(void)
 {
-    if (pinioHardwareCount == 0) {
-        return;
-    }
+    int runtimeCount = 0;
 
-    for (int i = 0; i < pinioHardwareCount; i++) {
+    // Pass 1: target-defined PINIO pins from pinioHardware[] (PINIO1_PIN–PINIO4_PIN).
+    // These may be GPIO-only pads or timer-capable pads; timer is preferred when available.
+    for (int i = 0; i < pinioHardwareCount && runtimeCount < PINIO_COUNT; i++) {
         IO_t io = IOGetByTag(pinioHardware[i].ioTag);
-
         if (!io) {
             continue;
         }
@@ -91,7 +94,7 @@ void pinioInit(void)
         if (timHw && IOGetOwner(io) == OWNER_FREE) {
             TCH_t *tch = timerGetTCH(timHw);
             if (tch) {
-                IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(i));
+                IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(runtimeCount));
                 IOConfigGPIOAF(io, IOCFG_AF_PP, timHw->alternateFunction);
                 // period=100 means CCR value is directly the duty percentage (0–100);
                 // 2.4 MHz / 100 = 24 kHz PWM, above audible range
@@ -99,34 +102,71 @@ void pinioInit(void)
                 timerPWMConfigChannel(tch, 0);
                 timerPWMStart(tch);
                 timerEnable(tch);
-                pinioRuntime[i].tch = tch;
-                pinioRuntime[i].io = io;
-                pinioRuntime[i].inverted = (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) != 0;
+                pinioRuntime[runtimeCount].tch = tch;
+                pinioRuntime[runtimeCount].io = io;
+                pinioRuntime[runtimeCount].inverted = (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) != 0;
+                pinioRuntime[runtimeCount].duty = 100; // default: mode box on = full on
                 // Start in the "off" state: HIGH if inverted, LOW if normal
-                *timerCCR(tch) = pinioRuntime[i].inverted ? 100 : 0;
+                *timerCCR(tch) = pinioRuntime[runtimeCount].inverted ? 100 : 0;
+                runtimeCount++;
                 continue;
             }
         }
 
-        // GPIO fallback: no timer available or pin already claimed
-        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(i));
+        // GPIO fallback: no timer available or pin already claimed by another subsystem
+        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(runtimeCount));
         IOConfigGPIO(io, pinioHardware[i].ioMode);
-
         if (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) {
-            pinioRuntime[i].inverted = true;
+            pinioRuntime[runtimeCount].inverted = true;
             IOHi(io);
         } else {
-            pinioRuntime[i].inverted = false;
+            pinioRuntime[runtimeCount].inverted = false;
             IOLo(io);
         }
-
-        pinioRuntime[i].io = io;
+        pinioRuntime[runtimeCount].io = io;
+        runtimeCount++;
     }
+
+    // Pass 2: timer outputs assigned to PINIO mode via the mixer (TIM_USE_PINIO flag).
+    // These pins are NOT pre-defined in target.h; the user assigns them in the configurator.
+    // pwmMotorAndServoInit() left them unclaimed; we pick them up here in timerHardware[] order.
+    for (int i = 0; i < timerHardwareCount && runtimeCount < PINIO_COUNT; i++) {
+        const timerHardware_t *timHw = &timerHardware[i];
+        if (!TIM_IS_PINIO(timHw->usageFlags)) {
+            continue;
+        }
+
+        IO_t io = IOGetByTag(timHw->tag);
+        if (!io || IOGetOwner(io) != OWNER_FREE) {
+            // Skip invalid pins and pins already claimed by Pass 1
+            continue;
+        }
+
+        TCH_t *tch = timerGetTCH(timHw);
+        if (!tch) {
+            continue;
+        }
+
+        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(runtimeCount));
+        IOConfigGPIOAF(io, IOCFG_AF_PP, timHw->alternateFunction);
+        timerConfigBase(tch, 100, 2400000);
+        timerPWMConfigChannel(tch, 0);
+        timerPWMStart(tch);
+        timerEnable(tch);
+        pinioRuntime[runtimeCount].tch = tch;
+        pinioRuntime[runtimeCount].io = io;
+        pinioRuntime[runtimeCount].inverted = false;
+        pinioRuntime[runtimeCount].duty = 100; // default: mode box on = full on
+        *timerCCR(tch) = 0;
+        runtimeCount++;
+    }
+
+    pinioRuntimeCount = runtimeCount;
 }
 
 void pinioSetDuty(int index, uint8_t duty)
 {
-    if (index < 0 || index >= pinioHardwareCount) {
+    if (index < 0 || index >= pinioRuntimeCount) {
         return;
     }
 
@@ -140,7 +180,7 @@ void pinioSetDuty(int index, uint8_t duty)
     }
 
     if (pinioRuntime[index].tch) {
-        // Timer-capable pin: set PWM duty cycle directly
+        pinioRuntime[index].duty = duty;
         *timerCCR(pinioRuntime[index].tch) = pinioRuntime[index].inverted ? (100 - duty) : duty;
     } else {
         // GPIO pin: treat as on/off (0 = off, any non-zero = on)
@@ -148,9 +188,25 @@ void pinioSetDuty(int index, uint8_t duty)
     }
 }
 
-// pinioSet is a convenience wrapper: on/off is just PWM at 100% or 0% duty
+// pinioSet is called by PINIOBOX when an RC mode is assigned to this channel.
+// For GPIO channels: drives the pin high or low directly.
+// For timer channels: active = output at stored duty level (set by pinioSetDuty,
+// defaults to 100%); inactive = output at 0%. This integrates mode-box on/off
+// with programming-framework duty control: the mode box gates the output, and
+// pinioSetDuty() sets the level applied when the gate is open.
+// Channels with no mode box assigned are never called from PINIOBOX, so the
+// programming framework retains exclusive uninterrupted control in that case.
 void pinioSet(int index, bool newState)
 {
-    pinioSetDuty(index, newState ? 100 : 0);
+    if (index < 0 || index >= pinioRuntimeCount || !pinioRuntime[index].io) {
+        return;
+    }
+
+    if (pinioRuntime[index].tch) {
+        uint8_t duty = newState ? pinioRuntime[index].duty : 0;
+        *timerCCR(pinioRuntime[index].tch) = pinioRuntime[index].inverted ? (100 - duty) : duty;
+    } else {
+        IOWrite(pinioRuntime[index].io, newState ^ pinioRuntime[index].inverted);
+    }
 }
 #endif
