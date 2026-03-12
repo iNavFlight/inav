@@ -4104,35 +4104,31 @@ groups:
     members:
       - name: pinio_box1
         field: permanentId[0]
-        description: "Mode assignment for PINIO#1"
-        default_value: "target specific"
+        description: "Mode box assignment for PINIO channel 1"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER1
         type: uint8_t
       - name: pinio_box2
         field: permanentId[1]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 2"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER2
         type: uint8_t
       - name: pinio_box3
         field: permanentId[2]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 3"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER3
         type: uint8_t
       - name: pinio_box4
         field: permanentId[3]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 4"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER4
         type: uint8_t
 
   - name: PG_LOG_CONFIG
