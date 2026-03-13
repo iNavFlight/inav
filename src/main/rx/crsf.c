@@ -29,6 +29,7 @@
 #include "common/crc.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/log.h"
 
 #include "drivers/time.h"
 #include "drivers/serial.h"
@@ -329,13 +330,25 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         return false;
     }
 
+    portOptions_t options = CRSF_PORT_OPTIONS | (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0);
+
+#if defined(NEXUSX)
+    if ((portConfig->identifier == SERIAL_PORT_USART3) || // Port C
+        (portConfig->identifier == SERIAL_PORT_USART4) || // Port A
+        (portConfig->identifier == SERIAL_PORT_USART6))   // Port B
+    {
+      LOG_DEBUG(SERIAL, "crsfRxInit rxtx swap");
+      options |= SERIAL_RXTX_SWAP;
+    }
+#endif
+
     serialPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         crsfDataReceive,
         NULL,
         CRSF_BAUDRATE,
         CRSF_PORT_MODE,
-        CRSF_PORT_OPTIONS | (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
+        options
         );
 
     return serialPort != NULL;
