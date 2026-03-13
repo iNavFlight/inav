@@ -4842,6 +4842,16 @@ Force OSD to work in grid mode even if the OSD device supports pixel level acces
 
 ---
 
+### osd_framerate_hz
+
+Target refresh rate for OSD elements in Hz. Each element is redrawn at approximately this rate. Values above 10 Hz provide no visible improvement for typical flight data but increase CPU load. Artificial horizon and telemetry are always updated every cycle regardless of this setting. Set to -1 for legacy behavior (one element per frame).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| -1 | -1 | 15 |
+
+---
+
 ### osd_gforce_alarm
 
 Value above which the OSD g force indicator will blink (g)
