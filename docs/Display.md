@@ -44,6 +44,10 @@ Links to displays:
 
 The banggood.com display is the cheapest at the time of writing and will correctly send I2C ACK signals.
 
+### SSD1315 OLED displays
+
+SSD1315 is newer generation drop in replacement for SSD1306. Tested and working unit is bought from https://www.aliexpress.com/item/1005006901360788.html
+
 #### Crius CO-16
 
 This display is best avoided but will work if you modify it.
