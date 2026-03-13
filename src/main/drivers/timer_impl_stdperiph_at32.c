@@ -407,3 +407,38 @@ void impl_timerPWMStopDMA(TCH_t * tch)
     tch->dmaState = TCH_DMA_IDLE;
     tmr_counter_enable(tch->timHw->tim, TRUE);
 }
+
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
+{
+    if (!tch->dma || !tch->dma->ref) {
+        return;
+    }
+
+    // Protect DMA reconfiguration from interrupt interference
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        // Temporarily disable DMA while modifying configuration
+        dma_channel_enable(tch->dma->ref, FALSE);
+
+        // Wait for DMA channel to actually be disabled
+        // The enable bit doesn't clear immediately, especially if transfer is in progress
+        uint32_t timeout = 10000;
+        while (tch->dma->ref->ctrl_bit.chen && timeout--) {
+            __NOP();
+        }
+
+        // If timeout occurred, DMA channel is still enabled - abort reconfiguration
+        if (timeout == 0 && tch->dma->ref->ctrl_bit.chen) {
+            dma_channel_enable(tch->dma->ref, TRUE); // Re-enable and return
+            return;
+        }
+
+        if (circular) {
+            tch->dma->ref->ctrl_bit.lm = TRUE;  // Enable loop mode
+        } else {
+            tch->dma->ref->ctrl_bit.lm = FALSE; // Disable loop mode
+        }
+
+        // Re-enable DMA
+        dma_channel_enable(tch->dma->ref, TRUE);
+    }
+}

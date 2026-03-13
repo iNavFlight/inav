@@ -580,3 +580,61 @@ void impl_timerPWMStopDMA(TCH_t * tch)
 
     HAL_TIM_Base_Start(tch->timCtx->timHandle);
 }
+
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
+{
+    if (!tch->dma || !tch->dma->dma) {
+        return;
+    }
+
+    const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
+    DMA_TypeDef *dmaBase = tch->dma->dma;
+
+    // Save the current transfer count before disabling
+    uint32_t dataLength = LL_DMA_GetDataLength(dmaBase, streamLL);
+
+    // Protect DMA reconfiguration from interrupt interference
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        // Disable timer DMA request first to stop new transfer triggers
+        LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+
+        // Disable the DMA stream
+        LL_DMA_DisableStream(dmaBase, streamLL);
+
+        // CRITICAL: Wait for stream to actually become disabled
+        // The EN bit doesn't clear immediately, especially if transfer is in progress
+        uint32_t timeout = 10000;
+        while (LL_DMA_IsEnabledStream(dmaBase, streamLL) && timeout--) {
+            __NOP();
+        }
+
+        // If timeout occurred, DMA stream is still enabled - abort reconfiguration
+        if (timeout == 0 && LL_DMA_IsEnabledStream(dmaBase, streamLL)) {
+            // Re-enable timer DMA request and return to avoid unstable state
+            LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+            return;
+        }
+
+        // Clear any pending transfer complete flags
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
+
+        // Modify the DMA mode
+        if (circular) {
+            LL_DMA_SetMode(dmaBase, streamLL, LL_DMA_MODE_CIRCULAR);
+        } else {
+            LL_DMA_SetMode(dmaBase, streamLL, LL_DMA_MODE_NORMAL);
+        }
+
+        // Reload the transfer count (required after mode change)
+        // If dataLength was 0 (transfer completed), keep it at 0 - the next motor update will reload it
+        if (dataLength > 0) {
+            LL_DMA_SetDataLength(dmaBase, streamLL, dataLength);
+        }
+
+        // Re-enable DMA stream
+        LL_DMA_EnableStream(dmaBase, streamLL);
+
+        // Re-enable timer DMA requests
+        LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+    }
+}
