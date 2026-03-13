@@ -58,7 +58,6 @@
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
-#include "drivers/light_ws2811strip.h"
 #include "drivers/pinio.h"
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 4);
@@ -509,17 +508,9 @@ static int logicConditionCompute(
 
 #ifdef USE_PINIO
         case LOGIC_CONDITION_PINIO_PWM:
-            // operandA = duty cycle (0-100), operandB = pin (0=LED pin, 1=USER1, 2=USER2, ...)
-            // operandB=0 preserves backward compatibility with old LED_PIN_PWM behavior
-            if (operandB == 0) {
-#ifdef USE_LED_STRIP
-                ws2811SetIdleHigh(operandA > 0);
-#endif
-                return operandA;
-            }
-            pinioSetDuty(operandB - 1, (uint8_t)constrain(operandA, 0, 100));
+            // operandA = duty cycle (0-100), operandB = channel (0=LED idle, 1-4=PINIO)
+            pinioSetDuty(operandB, (uint8_t)constrain(operandA, 0, 100));
             return operandA;
-            break;
 #endif
 #ifdef USE_GPS_FIX_ESTIMATION
         case LOGIC_CONDITION_DISABLE_GPS_FIX:

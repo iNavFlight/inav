@@ -28,6 +28,9 @@
 #include "common/memory.h"
 #include "drivers/io.h"
 #include "drivers/pinio.h"
+#ifdef USE_LED_STRIP
+#include "drivers/light_ws2811strip.h"
+#endif
 
 // CCR = duty% directly; 2.4 MHz / 100 = 24 kHz PWM, above audible range
 #define PINIO_PWM_PERIOD    100
@@ -74,8 +77,9 @@ const int pinioHardwareCount = ARRAYLEN(pinioHardware);
 /*** Runtime configuration ***/
 typedef struct pinioRuntime_s {
     IO_t io;
-    TCH_t *tch;         // Non-NULL when pin is configured in PWM mode
+    volatile timCCR_t *ccr; // Cached CCR register pointer (NULL for GPIO-only pins)
     bool inverted;
+    bool active;        // Mode box state; defaults to true (no RC channel = always active)
     uint8_t duty;       // Timer mode: duty level (0–100) applied by pinioSet(true);
                         // updated by pinioSetDuty(). Defaults to 100 so a mode box
                         // activating with no programming framework condition gives full on.
@@ -97,11 +101,12 @@ static bool pinioInitTimerPWM(int slot, IO_t io, const timerHardware_t *timHw, b
     timerPWMConfigChannel(tch, 0);
     timerPWMStart(tch);
     timerEnable(tch);
-    pinioRuntime[slot].tch = tch;
+    pinioRuntime[slot].ccr = timerCCR(tch);
     pinioRuntime[slot].io = io;
     pinioRuntime[slot].inverted = inverted;
+    pinioRuntime[slot].active = true;
     pinioRuntime[slot].duty = 100; // default: mode box on = full on
-    *timerCCR(tch) = pinioEffectiveDuty(0, inverted); // start off
+    *pinioRuntime[slot].ccr = pinioEffectiveDuty(0, inverted); // start off
     return true;
 }
 
@@ -155,17 +160,31 @@ void pinioInit(void)
     pinioRuntimeCount = runtimeCount;
 }
 
+int pinioGetRuntimeCount(void)
+{
+    return pinioRuntimeCount;
+}
+
 void pinioSetDuty(int index, uint8_t duty)
 {
+#ifdef USE_LED_STRIP
+    if (index == 0) {
+        ws2811SetIdleHigh(duty > 0);
+        return;
+    }
+#endif
+    index--;  // user-facing 1-4 → runtime 0-3
     if ((unsigned)index >= (unsigned)pinioRuntimeCount) {
         return;
     }
     if (duty > 100) {
         duty = 100;
     }
-    if (pinioRuntime[index].tch) {
+    if (pinioRuntime[index].ccr) {
         pinioRuntime[index].duty = duty;
-        *timerCCR(pinioRuntime[index].tch) = pinioEffectiveDuty(duty, pinioRuntime[index].inverted);
+        if (pinioRuntime[index].active) {
+            *pinioRuntime[index].ccr = pinioEffectiveDuty(duty, pinioRuntime[index].inverted);
+        }
     } else {
         IOWrite(pinioRuntime[index].io, (duty > 0) ^ pinioRuntime[index].inverted);
     }
@@ -182,9 +201,10 @@ void pinioSet(int index, bool newState)
     if ((unsigned)index >= (unsigned)pinioRuntimeCount) {
         return;
     }
-    if (pinioRuntime[index].tch) {
+    if (pinioRuntime[index].ccr) {
+        pinioRuntime[index].active = newState;
         uint8_t duty = newState ? pinioRuntime[index].duty : 0;
-        *timerCCR(pinioRuntime[index].tch) = pinioEffectiveDuty(duty, pinioRuntime[index].inverted);
+        *pinioRuntime[index].ccr = pinioEffectiveDuty(duty, pinioRuntime[index].inverted);
     } else {
         IOWrite(pinioRuntime[index].io, newState ^ pinioRuntime[index].inverted);
     }

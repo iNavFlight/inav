@@ -5574,41 +5574,41 @@ Pilot name
 
 ### pinio_box1
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 1
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER1` | 0 | 255 |
 
 ---
 
 ### pinio_box2
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 2
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER2` | 0 | 255 |
 
 ---
 
 ### pinio_box3
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 3
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER3` | 0 | 255 |
 
 ---
 
 ### pinio_box4
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 4
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER4` | 0 | 255 |
 
 ---
 

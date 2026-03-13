@@ -46,7 +46,7 @@ bool osdJoystickEnabled(void) {
 
 
 void osdJoystickSimulate5KeyButtonPress(uint8_t operation) {
-    const int ch = osdJoystickConfig()->pinio_channel;
+    const int ch = osdJoystickConfig()->pinio_channel + 1; // setting is 0-indexed, pinioSetDuty is 1-indexed
     switch (operation) {
         case RCDEVICE_CAM_KEY_ENTER:
             pinioSetDuty(ch, osdJoystickConfig()->osd_joystick_enter);
@@ -68,7 +68,7 @@ void osdJoystickSimulate5KeyButtonPress(uint8_t operation) {
 
 
 void osdJoystickSimulate5KeyButtonRelease(void) {
-    pinioSetDuty(osdJoystickConfig()->pinio_channel, 0);
+    pinioSetDuty(osdJoystickConfig()->pinio_channel + 1, 0);
 }
 
 

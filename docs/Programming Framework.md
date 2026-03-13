@@ -114,7 +114,7 @@ for complete documentation on using JavaScript to program your flight controller
 | 49            | Timer                         | A simple on - off timer. `true` for the duration of `Operand A` [ms]. Then `false` for the duration of `Operand B` [ms]. |
 | 50            | Delta             | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. ( \|ΔA\| >= B )  |
 | 51            | Approx Equals (A ~ B)         | `true` if `Operand B` is within 1% of `Operand A`. |
-| 52            | PINIO PWM                     | `Operand A` = channel (0-3 for PINIO hardware, 4 for LED strip idle level). `Operand B` = duty cycle (0-100). Channels 0-3 support full PWM; channel 4 is binary (>0 = HIGH). See [PINIO PWM](PINIO%20PWM.md). |
+| 52            | PINIO PWM                     | `Operand A` = duty cycle (0-100). `Operand B` = channel (0 for LED strip idle level, 1-4 for PINIO channels). Channels 1-4 support full PWM; channel 0 is binary (>0 = HIGH). See [PINIO PWM](PINIO%20PWM.md). |
 | 53            | Disable GPS Sensor Fix        | Disables the GNSS sensor fix. For testing GNSS failure. |
 | 54            | Mag calibration               | Trigger a magnetometer calibration. |
 | 55            | Set Gimbal Sensitivity        | Scales `Operand A` from [`-16` : `15`]

@@ -2173,45 +2173,36 @@ static void cliModeColor(char *cmdline)
 #endif // USE_LED_STRIP
 
 #ifdef USE_PINIO
+// Channel numbering: 0 = LED strip idle level, 1-4 = PINIO channels (matches programming framework)
 static void cliPinioPwm(char *cmdline)
 {
     int channel = 0;
     int duty;
 
     if (isEmpty(cmdline)) {
-        pinioSetDuty(0, 0);
-        cliPrintLine("PWM stopped on channel 0");
+        pinioSetDuty(1, 0);
+        cliPrintLine("PWM stopped on PINIO 1");
         return;
     }
 
-    // Find second argument (space-separated)
-    char *dutyStr = strchr(cmdline, ' ');
+    const char *dutyStr = nextArg(cmdline);
     if (dutyStr) {
-        // Two args: channel duty
         channel = fastA2I(cmdline);
-        dutyStr++;
         duty = fastA2I(dutyStr);
     } else {
-        // One arg: duty on channel 0
+        // One arg: duty on channel 0 (LED idle, backward compat with old LED_PIN_PWM)
         duty = fastA2I(cmdline);
     }
 
-    if (channel < 0 || channel > PINIO_COUNT) {
-        cliPrintLinef("Error: channel must be 0-%d", PINIO_COUNT);
+    const int maxChannel = MAX(pinioGetRuntimeCount(), PINIO_COUNT);
+    if (channel < 0 || channel > maxChannel) {
+        cliShowArgumentRangeError("channel", 0, maxChannel);
         return;
     }
     if (duty < 0 || duty > 100) {
-        cliPrintLine("Error: duty must be 0-100");
+        cliShowArgumentRangeError("duty", 0, 100);
         return;
     }
-
-#ifdef USE_LED_STRIP
-    if (channel == PINIO_COUNT) {
-        ws2811SetIdleHigh(duty > 0);
-        cliPrintLinef("LED idle %s", duty > 0 ? "HIGH" : "LOW");
-        return;
-    }
-#endif
 
     pinioSetDuty(channel, (uint8_t)duty);
     cliPrintLinef("PWM ch %d: %d%%", channel, duty);

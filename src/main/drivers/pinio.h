@@ -41,3 +41,4 @@ extern const int pinioHardwareCount;
 void pinioInit(void);
 void pinioSet(int index, bool newState);
 void pinioSetDuty(int index, uint8_t duty);
+int pinioGetRuntimeCount(void);
