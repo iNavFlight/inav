@@ -92,7 +92,7 @@ cmake -DCOMPILER_VERSION_CHECK=OFF ..
 
 `cmake` will generate a number of files in your `build` directory, including a cache of generated build settings `CMakeCache.txt` and a `Makefile`.
 
-## Bulding the firmware
+## Building the firmware
 
 Once `cmake` has generated the `build/Makefile`, this `Makfile` (with `make`) is used to build the firmware, again from the `build` directory. It is not necessary to re-run `cmake` unless the INAV cmake configuration is changed (i.e. a new release) or you wish to swap between the ARM SDK compiler and a distro or other external compiler.
 
@@ -101,7 +101,7 @@ The generated `Makefile` uses different a target selection mechanism from the ol
 Typically, to build a single target, just pass the target name to `make`; note that unlike earlier releases, `make` without a target specified will build **all** targets.
 
 ```
-# Build the MATEKF405 firmware
+# Build the MATEKF405 firmware (includes debug symbols by default)
 make MATEKF405
 ```
 
@@ -111,6 +111,31 @@ One can also build multiple targets from a single `make` command:
 # parallel build using all but 1 CPU core
 make -j $(($(nproc)-1)) MATEKF405 MATEKF722
 ```
+
+### Building All Targets or Release Builds
+
+**⚠️ Important for CI or building many targets:** By default, INAV builds with `-DCMAKE_BUILD_TYPE=RelWithDebInfo`, which includes maximum debug symbols. When building all ~100 targets, this uses **~109 GB of disk space**. The debug symbols are automatically stripped from the final `.hex` files, so they provide no benefit for production builds.
+
+**For production builds, CI, or when building many targets, use Release mode:**
+
+```bash
+cd inav
+mkdir build-release
+cd build-release
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# Build specific targets
+make MATEKF405
+
+# Or build all official release targets
+make release
+```
+
+**Disk usage comparison:**
+- `RelWithDebInfo` (default): ~109 GB for all targets
+- `Release`: ~4-6 GB for all targets (96% reduction)
+
+The final `.hex` and `.bin` files are identical in both cases.
 
 The resultant hex file are in the `build` directory.
 
