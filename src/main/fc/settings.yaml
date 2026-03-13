@@ -189,9 +189,6 @@ tables:
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
     enum: navMcAltHoldThrottle_e
-  - name: led_pin_pwm_mode
-    values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
-    enum: led_pin_pwm_mode_e
   - name: gyro_filter_mode
     values: ["OFF", "STATIC", "DYNAMIC", "ADAPTIVE"]
     enum: gyroFilterType_e
@@ -4107,35 +4104,31 @@ groups:
     members:
       - name: pinio_box1
         field: permanentId[0]
-        description: "Mode assignment for PINIO#1"
-        default_value: "target specific"
+        description: "Mode box assignment for PINIO channel 1"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER1
         type: uint8_t
       - name: pinio_box2
         field: permanentId[1]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 2"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER2
         type: uint8_t
       - name: pinio_box3
         field: permanentId[2]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 3"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER3
         type: uint8_t
       - name: pinio_box4
         field: permanentId[3]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 4"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER4
         type: uint8_t
 
   - name: PG_LOG_CONFIG
@@ -4265,27 +4258,22 @@ groups:
         field: attnFilterCutoff
         max: 100
 
-  - name: PG_LEDPIN_CONFIG
-    type: ledPinConfig_t
-    headers: ["drivers/light_ws2811strip.h"]
-    members:
-      - name: led_pin_pwm_mode
-        condition: USE_LED_STRIP
-        description: "PWM mode of LED pin."
-        default_value: "SHARED_LOW"
-        field: led_pin_pwm_mode
-        table: led_pin_pwm_mode
-
   - name: PG_OSD_JOYSTICK_CONFIG
     type: osdJoystickConfig_t
     headers: ["io/osd_joystick.h"]
-    condition: USE_RCDEVICE && USE_LED_STRIP
+    condition: USE_RCDEVICE && USE_PINIO
     members:
       - name: osd_joystick_enabled
         description: "Enable OSD Joystick emulation"
         default_value: OFF
         field: osd_joystick_enabled
         type: bool
+      - name: osd_joystick_pinio_channel
+        description: "PINIO channel index (0-3) for the camera OSD control pin"
+        default_value: 0
+        field: pinio_channel
+        min: 0
+        max: 3
       - name: osd_joystick_down
         description: "PWM value for DOWN key"
         default_value: 0

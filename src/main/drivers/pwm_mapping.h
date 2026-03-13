@@ -55,7 +55,8 @@ typedef enum {
 
 typedef enum {
     PIN_LABEL_NONE = 0,
-    PIN_LABEL_LED
+    PIN_LABEL_LED,
+    PIN_LABEL_PINIO_BASE = 2    // values 2..5 = USER1..USER4 (add channel index 0-3)
 } pinLabel_e;
 
 typedef enum {

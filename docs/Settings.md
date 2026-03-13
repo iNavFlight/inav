@@ -2332,16 +2332,6 @@ Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened w
 
 ---
 
-### led_pin_pwm_mode
-
-PWM mode of LED pin.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| SHARED_LOW |  |  |
-
----
-
 ### limit_attn_filter_cutoff
 
 Throttle attenuation PI control output filter cutoff frequency
@@ -5072,6 +5062,16 @@ PWM value for LEFT key
 
 ---
 
+### osd_joystick_pinio_channel
+
+PINIO channel index (0-3) for the camera OSD control pin
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
+
+---
+
 ### osd_joystick_right
 
 PWM value for RIGHT key
@@ -5574,41 +5574,41 @@ Pilot name
 
 ### pinio_box1
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 1
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER1` | 0 | 255 |
 
 ---
 
 ### pinio_box2
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 2
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER2` | 0 | 255 |
 
 ---
 
 ### pinio_box3
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 3
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER3` | 0 | 255 |
 
 ---
 
 ### pinio_box4
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 4
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER4` | 0 | 255 |
 
 ---
 

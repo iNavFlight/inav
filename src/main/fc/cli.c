@@ -58,6 +58,8 @@ bool cliMode = false;
 #include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
+#include "drivers/light_ws2811strip.h"
+#include "drivers/pinio.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/persistent.h"
 #include "drivers/sdcard/sdcard.h"
@@ -68,8 +70,6 @@ bool cliMode = false;
 #include "drivers/time.h"
 #include "drivers/usb_msc.h"
 #include "drivers/vtx_common.h"
-#include "drivers/light_ws2811strip.h"
-
 #include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -105,6 +105,9 @@ bool cliMode = false;
 #include "rx/spektrum.h"
 #include "rx/srxl2.h"
 #include "rx/crsf.h"
+
+#include "msp/msp_serial.h"
+#include "msp/msp_protocol_v2_common.h"
 
 #include "scheduler/scheduler.h"
 
@@ -170,6 +173,7 @@ static const char * outputModeNames[] = {
     "MOTORS",
     "SERVOS",
     "LED",
+    "PINIO",
     NULL
 };
 
@@ -2165,20 +2169,45 @@ static void cliModeColor(char *cmdline)
     }
 }
 
-static void cliLedPinPWM(char *cmdline)
+
+#endif // USE_LED_STRIP
+
+#ifdef USE_PINIO
+// Channel numbering: 0 = LED strip idle level, 1-4 = PINIO channels (matches programming framework)
+static void cliPinioPwm(char *cmdline)
 {
-    int i;
+    int channel = 0;
+    int duty;
 
     if (isEmpty(cmdline)) {
-        ledPinStopPWM();
-        cliPrintLine("PWM stopped");
-    } else {
-        i = fastA2I(cmdline);
-        ledPinStartPWM(i);
-        cliPrintLinef("PWM started: %d%%",i);
+        pinioSetDuty(1, 0);
+        cliPrintLine("PWM stopped on PINIO 1");
+        return;
     }
+
+    const char *dutyStr = nextArg(cmdline);
+    if (dutyStr) {
+        channel = fastA2I(cmdline);
+        duty = fastA2I(dutyStr);
+    } else {
+        // One arg: duty on channel 0 (LED idle, backward compat with old LED_PIN_PWM)
+        duty = fastA2I(cmdline);
+    }
+
+    const int maxChannel = MAX(pinioGetRuntimeCount(), PINIO_COUNT);
+    if (channel < 0 || channel > maxChannel) {
+        cliShowArgumentRangeError("channel", 0, maxChannel);
+        return;
+    }
+    if (duty < 0 || duty > 100) {
+        cliShowArgumentRangeError("duty", 0, 100);
+        return;
+    }
+
+    pinioSetDuty(channel, (uint8_t)duty);
+    cliPrintLinef("PWM ch %d: %d%%", channel, duty);
 }
-#endif
+#endif // USE_PINIO
 
 static void cliDelay(char* cmdLine) {
     int ms = 0;
@@ -3188,6 +3217,8 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_SERVOS;
                 } else if(!sl_strcasecmp("LED", tok)) {
                     mode = OUTPUT_MODE_LED;
+                } else if(!sl_strcasecmp("PINIO", tok)) {
+                    mode = OUTPUT_MODE_PINIO;
                 } else {
                     cliShowParseError();
                     return;
@@ -3599,6 +3630,41 @@ void cliRxBind(char *cmdline){
     }
 }
 #endif
+
+static void cliBindMspRx(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        cliShowParseError();
+        return;
+    }
+
+    int portIndex = fastA2I(cmdline);
+
+    if (portIndex < 0 || portIndex > 7) {
+        cliShowArgumentRangeError("port", 0, 7);
+        return;
+    }
+
+    serialPortUsage_t *portUsage = findSerialPortUsageByIdentifier(portIndex);
+    if (!portUsage || !portUsage->serialPort) {
+        cliPrintErrorLinef("Serial port %d is not open", portIndex);
+        return;
+    }
+
+    mspPort_t *mspPort = mspSerialPortFind(portUsage->serialPort);
+    if (!mspPort) {
+        cliPrintErrorLinef("Serial port %d is not configured for MSP", portIndex);
+        return;
+    }
+
+    uint8_t payload[4] = { portIndex, 0, 0, 0 };
+    int sent = mspSerialPushPort(MSP2_RX_BIND, payload, sizeof(payload), mspPort, MSP_V2_NATIVE); // this is sent as a response
+    if (sent > 0) {
+        cliPrintLinef("Sent MSP2_RX_BIND to serial port %d", portIndex);
+    } else {
+        cliPrintErrorLinef("Failed to send MSP2_RX_BIND to serial port %d", portIndex);
+    }
+}
 
 static void cliExit(char *cmdline)
 {
@@ -4829,6 +4895,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif
+    CLI_COMMAND_DEF("bind_msp_rx", "initiate binding for MSP receivers (mLRS)", "<port>", cliBindMspRx),
 #if defined (USE_SERIALRX_SRXL2)
     CLI_COMMAND_DEF("bind_rx", "initiate binding for RX SPI or SRXL2", NULL, cliRxBind),
 #endif
@@ -4880,7 +4947,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
-    CLI_COMMAND_DEF("ledpinpwm", "start/stop PWM on LED pin, 0..100 duty ratio", "[<value>]\r\n", cliLedPinPWM),
+#endif
+#ifdef USE_PINIO
+    CLI_COMMAND_DEF("piniopwm", "set PINIO PWM duty cycle", "[<channel>] <duty>\r\n", cliPinioPwm),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
@@ -4941,7 +5010,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
-    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
+    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS|LED|PINIO>]]", cliTimerOutputMode),
 };
 
 static void cliHelp(char *cmdline)

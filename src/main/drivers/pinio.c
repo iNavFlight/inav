@@ -28,6 +28,18 @@
 #include "common/memory.h"
 #include "drivers/io.h"
 #include "drivers/pinio.h"
+#ifdef USE_LED_STRIP
+#include "drivers/light_ws2811strip.h"
+#endif
+
+// CCR = duty% directly; 2.4 MHz / 100 = 24 kHz PWM, above audible range
+#define PINIO_PWM_PERIOD    100
+#define PINIO_PWM_BASE_HZ   2400000
+
+static inline uint8_t pinioEffectiveDuty(uint8_t duty, bool inverted)
+{
+    return inverted ? (100 - duty) : duty;
+}
 
 /*** Hardware definitions ***/
 const pinioHardware_t pinioHardware[] = {
@@ -65,50 +77,136 @@ const int pinioHardwareCount = ARRAYLEN(pinioHardware);
 /*** Runtime configuration ***/
 typedef struct pinioRuntime_s {
     IO_t io;
+    volatile timCCR_t *ccr; // Cached CCR register pointer (NULL for GPIO-only pins)
     bool inverted;
-    bool state;
+    bool active;        // Mode box state; defaults to true (no RC channel = always active)
+    uint8_t duty;       // Timer mode: duty level (0–100) applied by pinioSet(true);
+                        // updated by pinioSetDuty(). Defaults to 100 so a mode box
+                        // activating with no programming framework condition gives full on.
 } pinioRuntime_t;
 
 static pinioRuntime_t pinioRuntime[PINIO_COUNT];
+static int pinioRuntimeCount = 0;
+
+// Configure one PINIO runtime slot in PWM mode. Returns false if no TCH available.
+static bool pinioInitTimerPWM(int slot, IO_t io, const timerHardware_t *timHw, bool inverted)
+{
+    TCH_t *tch = timerGetTCH(timHw);
+    if (!tch) {
+        return false;
+    }
+    IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(slot));
+    IOConfigGPIOAF(io, IOCFG_AF_PP, timHw->alternateFunction);
+    timerConfigBase(tch, PINIO_PWM_PERIOD, PINIO_PWM_BASE_HZ);
+    timerPWMConfigChannel(tch, 0);
+    timerPWMStart(tch);
+    timerEnable(tch);
+    pinioRuntime[slot].ccr = timerCCR(tch);
+    pinioRuntime[slot].io = io;
+    pinioRuntime[slot].inverted = inverted;
+    pinioRuntime[slot].active = true;
+    pinioRuntime[slot].duty = 100; // default: mode box on = full on
+    *pinioRuntime[slot].ccr = pinioEffectiveDuty(0, inverted); // start off
+    return true;
+}
 
 void pinioInit(void)
 {
-    if (pinioHardwareCount == 0) {
-        return;
-    }
+    int runtimeCount = 0;
 
-    for (int i = 0; i < pinioHardwareCount; i++) {
+    // Pass 1: target-defined PINIO pins (PINIO1_PIN–PINIO4_PIN in target.h).
+    // Timer-capable pins are configured as PWM; GPIO-only pins fall back to IOWrite.
+    // pwmMotorAndServoInit() runs before pinioInit(), so motor/servo pins are already
+    // owned and the OWNER_FREE check correctly skips dual-assigned pads.
+    for (int i = 0; i < pinioHardwareCount && runtimeCount < PINIO_COUNT; i++) {
         IO_t io = IOGetByTag(pinioHardware[i].ioTag);
-
         if (!io) {
             continue;
         }
 
-        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(i));
-        IOConfigGPIO(io, pinioHardware[i].ioMode);
-
-        if (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) {
-            pinioRuntime[i].inverted = true;
-            IOHi(io);
-        } else {
-            pinioRuntime[i].inverted = false;
-            IOLo(io);
+        bool inverted = (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) != 0;
+        const timerHardware_t *timHw = timerGetByTag(pinioHardware[i].ioTag, TIM_USE_ANY);
+        if (timHw && IOGetOwner(io) == OWNER_FREE && pinioInitTimerPWM(runtimeCount, io, timHw, inverted)) {
+            runtimeCount++;
+            continue;
         }
 
-        pinioRuntime[i].io = io;
-        pinioRuntime[i].state = false;
+        // GPIO fallback: no timer available or pin already claimed
+        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(runtimeCount));
+        IOConfigGPIO(io, pinioHardware[i].ioMode);
+        pinioRuntime[runtimeCount].inverted = inverted;
+        pinioRuntime[runtimeCount].io = io;
+        inverted ? IOHi(io) : IOLo(io);
+        runtimeCount++;
+    }
+
+    // Pass 2: timer outputs assigned PINIO mode via the mixer (TIM_USE_PINIO flag).
+    // These pins have no PINIO_N_PIN target definition; the user assigns them in the
+    // configurator. pwmMotorAndServoInit() left them unclaimed; pick them up here.
+    for (int i = 0; i < timerHardwareCount && runtimeCount < PINIO_COUNT; i++) {
+        const timerHardware_t *timHw = &timerHardware[i];
+        if (!TIM_IS_PINIO(timHw->usageFlags)) {
+            continue;
+        }
+        IO_t io = IOGetByTag(timHw->tag);
+        if (!io || IOGetOwner(io) != OWNER_FREE) {
+            continue;
+        }
+        if (pinioInitTimerPWM(runtimeCount, io, timHw, false)) {
+            runtimeCount++;
+        }
+    }
+
+    pinioRuntimeCount = runtimeCount;
+}
+
+int pinioGetRuntimeCount(void)
+{
+    return pinioRuntimeCount;
+}
+
+void pinioSetDuty(int index, uint8_t duty)
+{
+#ifdef USE_LED_STRIP
+    if (index == 0) {
+        ws2811SetIdleHigh(duty > 0);
+        return;
+    }
+#endif
+    index--;  // user-facing 1-4 → runtime 0-3
+    if ((unsigned)index >= (unsigned)pinioRuntimeCount) {
+        return;
+    }
+    if (duty > 100) {
+        duty = 100;
+    }
+    if (pinioRuntime[index].ccr) {
+        pinioRuntime[index].duty = duty;
+        if (pinioRuntime[index].active) {
+            *pinioRuntime[index].ccr = pinioEffectiveDuty(duty, pinioRuntime[index].inverted);
+        }
+    } else {
+        IOWrite(pinioRuntime[index].io, (duty > 0) ^ pinioRuntime[index].inverted);
     }
 }
 
+// pinioSet is called by PINIOBOX when an RC mode box is assigned to this channel.
+// For GPIO channels: drives the pin high or low directly.
+// For timer channels: active = output at stored duty (set by pinioSetDuty, default 100%);
+// inactive = 0%. The stored duty is NOT modified, so deactivating and reactivating the
+// mode box restores the programmed level. Channels with no mode box assigned are never
+// called from PINIOBOX, giving the programming framework exclusive uninterrupted control.
 void pinioSet(int index, bool newState)
 {
-    if (!pinioRuntime[index].io) {
+    if ((unsigned)index >= (unsigned)pinioRuntimeCount) {
         return;
     }
-
-    if (newState != pinioRuntime[index].state) {
+    if (pinioRuntime[index].ccr) {
+        pinioRuntime[index].active = newState;
+        uint8_t duty = newState ? pinioRuntime[index].duty : 0;
+        *pinioRuntime[index].ccr = pinioEffectiveDuty(duty, pinioRuntime[index].inverted);
+    } else {
         IOWrite(pinioRuntime[index].io, newState ^ pinioRuntime[index].inverted);
-        pinioRuntime[index].state = newState;
     }
 }
 #endif

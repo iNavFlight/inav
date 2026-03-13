@@ -71,6 +71,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `batch` | Start or end a batch of commands |
 | `battery_profile` | Change battery profile |
 | `beeper` | Show/set beeper (buzzer) [usage](Buzzer.md) |
+| `bind_msp_rx` | Initiate binding for MSP receivers (mLRS) |
 | `bind_rx` | Initiate binding for SRXL2 or CRSF receivers |
 | `blackbox` | Configure blackbox fields |
 | `bootlog` | Show init logs from [serial_printf_debugging](./development/serial_printf_debugging.md) |
@@ -99,6 +100,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `msc` | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information. |
 | `osd_layout` | Get or set the layout of OSD items |
 | `pid` | Configurable PID controllers |
+| `piniopwm` | Set PINIO PWM duty cycle. See [PINIO PWM](PINIO%20PWM.md) |
 | `play_sound` | `<index>`, or none for next item |
 | `control_profile` | Change profile |
 | `resource` | View currently used resources |

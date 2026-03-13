@@ -71,6 +71,15 @@ uint8_t serialRead(serialPort_t *instance)
     return instance->vTable->serialRead(instance);
 }
 
+uint32_t serialReadBuf(serialPort_t *instance, uint8_t *data, uint32_t maxLen)
+{
+    uint32_t count = 0;
+    while (count < maxLen && serialRxBytesWaiting(instance)) {
+        data[count++] = instance->vTable->serialRead(instance);
+    }
+    return count;
+}
+
 void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     instance->vTable->serialSetBaudRate(instance, baudRate);
