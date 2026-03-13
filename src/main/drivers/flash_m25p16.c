@@ -99,9 +99,10 @@ struct {
     // Winbond W25Q128_DTR
     // Datasheet: https://www.winbond.com/resource-files/w25q128jv%20dtr%20revb%2011042016.pdf
     {0xEF7018, 256, 256},
-    // Puya PY25Q128HA
+    // Puya PY25Q128
     // Datasheet: https://www.puyasemi.com/cpzx3/info_271_itemid_87.html
-    {0x856018, 256, 256},
+    {0x856018, 256, 256}, // PY25Q128H
+    {0x852018, 256, 256}, // PY25Q128HA
     // Winbond W25Q256
     // Datasheet: https://www.winbond.com/resource-files/w25q256jv%20spi%20revb%2009202016.pdf
     {0xEF4019, 512, 256},
