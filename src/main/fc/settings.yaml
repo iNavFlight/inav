@@ -3298,6 +3298,10 @@ groups:
         min: 1
         max: 255
         default_value: 1
+      - name: crsf_use_legacy_baro_packet
+        description: "CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'"
+        default_value: OFF
+        type: bool
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
