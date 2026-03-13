@@ -87,8 +87,8 @@ static void uartReconfigure(uartPort_t *uartPort)
 
     usartConfigurePinInversion(uartPort);
 
-    if (uartPort->port.options & SERIAL_RXTX_SWAP) {
-      debug[0] = 1;
+    if (uartPort->port.options & SERIAL_RXTX_SWAP)
+    {
       SET_BIT(uartPort->USARTx->CR2, USART_CR2_SWAP);
     }
 
