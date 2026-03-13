@@ -1757,12 +1757,12 @@ groups:
         type: uint8_t
       - name: gps_ublox_use_galileo
         description: "Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]."
-        default_value: OFF
+        default_value: ON
         field: ubloxUseGalileo
         type: bool
       - name: gps_ublox_use_beidou
         description: "Enable use of Beidou satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON]."
-        default_value: OFF
+        default_value: ON
         field: ubloxUseBeidou
         type: bool
       - name: gps_ublox_use_glonass
@@ -1777,8 +1777,8 @@ groups:
         min: 5
         max: 10
       - name: gps_ublox_nav_hz
-        description: "Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer."
-        default_value: 10
+        description: "Navigation update rate for UBLOX receivers. M9 modules limit satellite tracking to 16 satellites at 10Hz or higher, but use 32 satellites below 10Hz for better accuracy. M10 modules work well at 8Hz with 3 constellations. Some M10 devices with high-performance clock can do up to 25Hz with 4 constellations. 8Hz is a safe, accurate default for M8/M9/M10."
+        default_value: 8
         field: ubloxNavHz
         type: uint8_t
         min: 5
