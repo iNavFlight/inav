@@ -837,10 +837,15 @@ bool isMulticopterLandingDetected(void)
     /* Basic condition to start looking for landing
      * Detection active during Failsafe only if throttle below mid hover throttle
      * and WP mission not active (except landing states).
-     * Also active in non autonomous flight modes but only when thottle low */
-    bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
-                          || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && !isMulticopterThrottleAboveMidHover())
-                          || (!navigationIsFlyingAutonomousMode() && throttleStickIsLow());
+     * Also active in non autonomous flight modes but only when thottle low.
+     * Throttle low detection only allowed during Surface if AGL trusted and below 10cm */
+    bool throttleLowCheckAllowed = !navigationIsFlyingAutonomousMode();
+    if (posControl.flags.isTerrainFollowEnabled) {
+        throttleLowCheckAllowed = throttleLowCheckAllowed && posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z < 10.0f;
+    }
+    bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG)) ||
+                          (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && !isMulticopterThrottleAboveMidHover()) ||
+                          (throttleLowCheckAllowed && throttleStickIsLow());
 
     static timeMs_t landingDetectorStartedAt;
 
