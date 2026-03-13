@@ -4275,7 +4275,8 @@ void osdDrawNextElement(void)
 
     DEBUG_SET(DEBUG_OSD_REFRESH, 0, elementsPerCycle);
     DEBUG_SET(DEBUG_OSD_REFRESH, 1, activeElements);
-    DEBUG_SET(DEBUG_OSD_REFRESH, 2, framerate_hz);
+    DEBUG_SET(DEBUG_OSD_REFRESH, 2, elementIndex);
+    DEBUG_SET(DEBUG_OSD_REFRESH, 3, framerate_hz);
 
     for (uint8_t i = 0; i < elementsPerCycle; i++) {
         uint8_t index = elementIndex;
