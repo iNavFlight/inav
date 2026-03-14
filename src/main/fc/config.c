@@ -131,6 +131,13 @@ PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
                   .pwmMode = SETTING_BEEPER_PWM_MODE_DEFAULT,
 );
 
+PG_REGISTER_WITH_RESET_TEMPLATE(crsfRxPortConfig_t, crsfRxPortConfig, PG_CRSFRXPORT_CONFIG, 1);
+
+PG_RESET_TEMPLATE(crsfRxPortConfig_t, crsfRxPortConfig,
+                  .swap = 0,
+                  .preferred_swap = 0
+);
+
 PG_REGISTER_WITH_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig, PG_ADC_CHANNEL_CONFIG, 0);
 
 PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
