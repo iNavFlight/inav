@@ -2697,6 +2697,8 @@ static void cliPid(char *cmdline) {
             programmingPidsMutable(i)->gains.D = args[D_GAIN];
             programmingPidsMutable(i)->gains.FF = args[FF_GAIN];
 
+            programmingPidInit();
+
             cliPid("");
         } else {
             cliShowParseError();
