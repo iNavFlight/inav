@@ -3904,6 +3904,7 @@ groups:
         field: osd_switch_indicators_align_left
         type: bool
         default_value: ON
+
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]

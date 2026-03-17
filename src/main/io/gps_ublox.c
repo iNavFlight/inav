@@ -549,7 +549,7 @@ static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
     if (bufferLength > 13 && (!strncmp(proto, "PROTVER=", 8) || !strncmp(proto, "PROTVER ", 8))) {
         proto+=8;
 
-        float ver = atof(proto);
+        float ver = fastA2F(proto);
 
         gpsState.swVersionMajor = (uint8_t)ver;
         gpsState.swVersionMinor = (uint8_t)((ver - gpsState.swVersionMajor) * 100.0f);

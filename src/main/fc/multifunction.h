@@ -26,6 +26,13 @@
 
 #include <stdbool.h>
 
+typedef struct multiFunctionWarning_s {
+    uint8_t osdWarningsFlags;  // bitfield
+    bool newWarningActive;
+} multiFunctionWarning_t;
+
+extern multiFunctionWarning_t multiFunctionWarning;
+
 #ifdef USE_MULTI_FUNCTIONS
 
 extern uint8_t multiFunctionFlags;
@@ -47,7 +54,6 @@ typedef enum {
     MULTI_FUNC_3,
     MULTI_FUNC_4,
     MULTI_FUNC_5,
-    MULTI_FUNC_6,
     MULTI_FUNC_END,
 } multi_function_e;
 

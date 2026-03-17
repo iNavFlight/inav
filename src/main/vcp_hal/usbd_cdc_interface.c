@@ -415,6 +415,8 @@ uint32_t CDC_Send_FreeBytes(void)
  * @param  sendLength: Number of data to be sent (in bytes)
  * @retval Bytes sent
  */
+#define VCP_WRITE_TIMEOUT_MS 50
+
 uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
 {
 #if defined(STM32H7)
@@ -423,13 +425,22 @@ uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
     USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)USBD_Device.pCDC_ClassData;
 #endif
 
-    while (hcdc->TxState != 0);
+    uint32_t start = millis();
+
+    while (hcdc->TxState != 0) {
+        if (millis() - start > VCP_WRITE_TIMEOUT_MS) {
+            return 0;
+        }
+    }
 
     for (uint32_t i = 0; i < sendLength; i++)
     {
         UserTxBuffer[UserTxBufPtrIn] = ptrBuffer[i];
         UserTxBufPtrIn = (UserTxBufPtrIn + 1) % APP_TX_DATA_SIZE;
         while (CDC_Send_FreeBytes() == 0) {
+            if (millis() - start > VCP_WRITE_TIMEOUT_MS) {
+                return i;  // Return partial count
+            }
             delay(1);
         }
     }

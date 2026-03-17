@@ -107,6 +107,16 @@ jobs:
         with:
           name: targets
           path: targets.txt
+      - name: Save PR number
+        if: github.event_name == 'pull_request'
+        run: echo "${{ github.event.pull_request.number }}" > pr_number.txt
+      - name: Upload PR number
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-number
+          path: pr_number.txt
+          retention-days: 1
 
   build-SITL-Linux-arm64:
     runs-on: ubuntu-22.04-arm

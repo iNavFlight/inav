@@ -425,6 +425,16 @@ void servoMixer(float dT)
 	simulatorData.input[INPUT_STABILIZED_THROTTLE] = input[INPUT_STABILIZED_THROTTLE];
 #endif
 
+    /*
+     * When disarmed, force throttle inputs to minimum so the mixer pipeline
+     * computes the correct safe servo position accounting for servo reversal
+     * and negative mixer weights.
+     */
+    if (!ARMING_FLAG(ARMED)) {
+        input[INPUT_STABILIZED_THROTTLE] = -500;
+        input[INPUT_RC_THROTTLE] = -500;
+    }
+
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servo[i] = 0;
     }
@@ -487,19 +497,6 @@ void servoMixer(float dT)
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
     }
 
-    /*
-     * When not armed, apply servo low position to all outputs that include a throttle or stabilizet throttle in the mix
-     */
-    if (!ARMING_FLAG(ARMED)) {
-        for (int i = 0; i < servoRuleCount; i++) {
-            const uint8_t target = currentServoMixer[i].targetChannel;
-            const uint8_t from = currentServoMixer[i].inputSource;
-
-            if (from == INPUT_STABILIZED_THROTTLE || from == INPUT_RC_THROTTLE) {
-                servo[target] = motorConfig()->mincommand;
-            }
-        }
-    }
 }
 
 #define SERVO_AUTOTRIM_TIMER_MS     2000
