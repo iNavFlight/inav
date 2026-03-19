@@ -319,6 +319,12 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
     if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
         TCH_t * tch = (TCH_t *)descriptor->userParam;
 
+        // In circular mode, let DMA keep running - don't disable the stream
+        if (tch->dmaState == TCH_DMA_CIRCULAR) {
+            DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
+            return;
+        }
+
         // If it was ACTIVE - switch to IDLE
         if (tch->dmaState == TCH_DMA_ACTIVE) {
             tch->dmaState = TCH_DMA_IDLE;
@@ -512,6 +518,46 @@ void impl_pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength
     //LL_TIM_EnableDMAReq_UPDATE(burstDmaTimer->timer);
     LL_TIM_EnableDMAReq_CCx(burstDmaTimer->timer, burstDmaTimer->burstRequestSource);
 }
+
+void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, uint32_t dmaBufferSize)
+{
+    if (!tch->dma || !tch->dma->dma) {
+        return;
+    }
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        LL_TIM_DisableDMAReq_CCx(burstDmaTimer->timer, burstDmaTimer->burstRequestSource);
+        LL_DMA_DisableStream(burstDmaTimer->dma, burstDmaTimer->streamLL);
+
+        uint32_t timeout = 10000;
+        while (LL_DMA_IsEnabledStream(burstDmaTimer->dma, burstDmaTimer->streamLL) && timeout--) {
+            __NOP();
+        }
+
+        if (timeout == 0 && LL_DMA_IsEnabledStream(burstDmaTimer->dma, burstDmaTimer->streamLL)) {
+            LL_TIM_EnableDMAReq_CCx(burstDmaTimer->timer, burstDmaTimer->burstRequestSource);
+            return;
+        }
+
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
+
+        if (circular) {
+            LL_DMA_SetMode(burstDmaTimer->dma, burstDmaTimer->streamLL, LL_DMA_MODE_CIRCULAR);
+            LL_DMA_SetDataLength(burstDmaTimer->dma, burstDmaTimer->streamLL, dmaBufferSize);
+            LL_DMA_DisableIT_TC(burstDmaTimer->dma, burstDmaTimer->streamLL);
+            tch->dmaState = TCH_DMA_CIRCULAR;
+        } else {
+            LL_DMA_SetMode(burstDmaTimer->dma, burstDmaTimer->streamLL, LL_DMA_MODE_NORMAL);
+            LL_DMA_EnableIT_TC(burstDmaTimer->dma, burstDmaTimer->streamLL);
+            tch->dmaState = TCH_DMA_IDLE;
+        }
+
+        __DSB();
+
+        LL_DMA_EnableStream(burstDmaTimer->dma, burstDmaTimer->streamLL);
+        LL_TIM_EnableDMAReq_CCx(burstDmaTimer->timer, burstDmaTimer->burstRequestSource);
+    }
+}
 #endif
 
 void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
@@ -581,7 +627,7 @@ void impl_timerPWMStopDMA(TCH_t * tch)
     HAL_TIM_Base_Start(tch->timCtx->timHandle);
 }
 
-void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferSize)
 {
     if (!tch->dma || !tch->dma->dma) {
         return;
@@ -590,51 +636,42 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular)
     const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
     DMA_TypeDef *dmaBase = tch->dma->dma;
 
-    // Save the current transfer count before disabling
-    uint32_t dataLength = LL_DMA_GetDataLength(dmaBase, streamLL);
-
-    // Protect DMA reconfiguration from interrupt interference
     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
-        // Disable timer DMA request first to stop new transfer triggers
+        // Stop new transfer triggers before reconfiguring
         LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
-
-        // Disable the DMA stream
         LL_DMA_DisableStream(dmaBase, streamLL);
 
-        // CRITICAL: Wait for stream to actually become disabled
-        // The EN bit doesn't clear immediately, especially if transfer is in progress
-        uint32_t timeout = 10000;
+        // STM32H7 RM: poll EN bit until stream is actually disabled
+        uint32_t timeout = 10000; // ~20us at 480MHz, well above worst-case disable latency
         while (LL_DMA_IsEnabledStream(dmaBase, streamLL) && timeout--) {
             __NOP();
         }
 
-        // If timeout occurred, DMA stream is still enabled - abort reconfiguration
         if (timeout == 0 && LL_DMA_IsEnabledStream(dmaBase, streamLL)) {
-            // Re-enable timer DMA request and return to avoid unstable state
             LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
             return;
         }
 
-        // Clear any pending transfer complete flags
         DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
 
-        // Modify the DMA mode
         if (circular) {
             LL_DMA_SetMode(dmaBase, streamLL, LL_DMA_MODE_CIRCULAR);
+            // Circular mode requires non-zero NDTR (STM32H7 RM constraint)
+            LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferSize);
+            // Disable TC interrupt — in circular mode, TC fires every cycle
+            // and the IRQ handler would otherwise disable the stream
+            LL_DMA_DisableIT_TC(dmaBase, streamLL);
+            tch->dmaState = TCH_DMA_CIRCULAR;
         } else {
             LL_DMA_SetMode(dmaBase, streamLL, LL_DMA_MODE_NORMAL);
+            LL_DMA_EnableIT_TC(dmaBase, streamLL);
+            tch->dmaState = TCH_DMA_IDLE;
         }
 
-        // Reload the transfer count (required after mode change)
-        // If dataLength was 0 (transfer completed), keep it at 0 - the next motor update will reload it
-        if (dataLength > 0) {
-            LL_DMA_SetDataLength(dmaBase, streamLL, dataLength);
-        }
+        // Ensure register writes are visible to DMA before re-enabling
+        __DSB();
 
-        // Re-enable DMA stream
         LL_DMA_EnableStream(dmaBase, streamLL);
-
-        // Re-enable timer DMA requests
         LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
     }
 }

@@ -323,15 +323,10 @@ static bool writeSettingsToEEPROM(void)
 void writeConfigToEEPROM(void)
 {
 #if !defined(SITL_BUILD) && defined(USE_DSHOT)
-    // Prevent ESC spinup during settings save using circular DMA
+    // Enable circular DMA so hardware keeps repeating zero-throttle DShot
+    // packets during flash writes (which block the CPU for 20-200ms).
+    // Without this, ESCs lose signal and may spin up or reboot.
     pwmSetMotorDMACircular(true);
-
-    // Force motor updates to latch current (zero) throttle into circular DMA buffer
-    pwmCompleteMotorUpdate();
-    delayMicroseconds(200);
-    pwmCompleteMotorUpdate();
-    delayMicroseconds(200);
-    pwmCompleteMotorUpdate();
 #endif
 
     bool success = false;
@@ -347,7 +342,6 @@ void writeConfigToEEPROM(void)
     }
 
 #if !defined(SITL_BUILD) && defined(USE_DSHOT)
-    // Restore normal DMA mode
     pwmSetMotorDMACircular(false);
 #endif
 
