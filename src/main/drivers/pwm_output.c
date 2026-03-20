@@ -126,8 +126,11 @@ static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
 static currentExecutingCommand_t currentExecutingCommand;
 
 static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry);
+#ifndef USE_DSHOT_DMAR
 static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet);
+#else
 static void loadDmaBufferDshotStride(timerDMASafeType_t *dmaBuffer, int stride, uint16_t packet);
+#endif
 
 #ifdef USE_DSHOT_DMAR
 burstDmaTimer_t burstDmaTimers[MAX_DMA_TIMERS];
