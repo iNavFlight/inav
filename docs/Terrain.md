@@ -32,8 +32,19 @@ read issues during flight and is considered the recommended method for preparing
 To generate elevation maps, use the terrain generator web tool available at https://terrain.ardupilot.org/
 
 In iNav, **only 30 m resolution (SRTM1)** is currently supported, so this option must be selected during data generation.
-The generated files are then copied to the SD card into the appropriate directory structure.
+The generated files are then copied to the SD card into the root directory structure.
 
+For example
+```
+SDCARD:\
+├── N47E014.DAT
+├── N47E015.DAT
+├── N47E016.DAT
+├── N49E015.DAT
+├── N49E016.DAT
+├── N49E017.DAT
+└── N50E016.DAT
+```
 Copying can be done via **iNav MSC (Mass Storage Class)**, but this method is very slow, so using an **external SD card reader**
 is strongly recommended. Before copying the data, the file **`FREESPAC.E`** must be deleted from the root directory of the SD
 card. iNav uses this file to track available disk space, and without deleting it, the card may appear to be full. After the
@@ -66,7 +77,7 @@ stability and reliability of the terrain feature.
 - **H7/F4 flight controller** with SD card required
 - Format SD card using [SD Memory Card Formatter](https://www.sdcard.org/downloads/formatter/sd-memory-card-formatter-for-windows-download/) (max 4 GB partition)
 - Generate terrain data at https://terrain.ardupilot.org/ — select **SRTM1 (30 m)**
-- Delete `FREESPAC.E` from SD card root before copying files (use external card reader, not MSC)
+- Delete `FREESPAC.E` from SD card root before copying files to ROOT of SDCARD (use external card reader, not MSC)
 - Enable via CLI: `set terrain_enabled = ON` + `save`
 - Enable **Rangefinder distance** OSD element to see altitude above terrain
 - ⚠️ Displayed value is **informational only** — not used for navigation or altitude control
