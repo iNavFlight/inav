@@ -23,7 +23,7 @@
 
 #define LED_MAX_STRIP_LENGTH           128
 #define LED_CONFIGURABLE_COLOR_COUNT   16
-#define LED_MODE_COUNT                  6
+#define LED_MODE_COUNT                  7
 #define LED_DIRECTION_COUNT             6
 #define LED_BASEFUNCTION_COUNT          8
 #define LED_OVERLAY_COUNT               7
@@ -79,6 +79,7 @@ typedef enum {
     LED_MODE_ANGLE,
     LED_MODE_MAG,
     LED_MODE_BARO,
+    LED_MODE_LOITER,
     LED_SPECIAL
 } ledModeIndex_e;
 

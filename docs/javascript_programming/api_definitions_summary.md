@@ -204,13 +204,15 @@ Once these files are created:
 const apiDefinitions = require('./../api/definitions/index.js');
 this.inavAPI = this.buildAPIStructure(apiDefinitions);
 // No code changes needed!
+
 ```
 
 ### 2. Decompiler Auto-Updates
 ```javascript
 // decompiler.js automatically maps operands
 this.operandToProperty = this.buildOperandMapping(apiDefinitions);
-// Decompiles FLIGHT(40) → flight.compassHeading automatically
+// Decompiles FLIGHT(40) → inav.flight.compassHeading automatically
+
 ```
 
 ### 3. TypeScript Auto-Generation
@@ -218,6 +220,7 @@ this.operandToProperty = this.buildOperandMapping(apiDefinitions);
 // types.js generates Monaco definitions
 const dts = generateTypeDefinitions(apiDefinitions);
 // IntelliSense shows all properties automatically
+
 ```
 
 ### 4. Adding New Properties
@@ -230,6 +233,7 @@ newSensor: {
   desc: 'New sensor value',
   inavOperand: { type: 2, value: 50 }
 }
+
 ```
 
 2. Done! Everything updates automatically:

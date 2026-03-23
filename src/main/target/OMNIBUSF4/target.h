@@ -30,6 +30,8 @@
 #define TARGET_BOARD_IDENTIFIER "OBSD"
 #elif defined(OMNIBUSF4V3)
 #define TARGET_BOARD_IDENTIFIER "OB43"
+#elif defined(OMNIBUSF4V3_ICM)
+#define TARGET_BOARD_IDENTIFIER "OB4I"
 #elif defined(DYSF4PRO)
 #define TARGET_BOARD_IDENTIFIER "DYS4"
 #elif defined(DYSF4PROV2)
@@ -67,7 +69,14 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4V3_ICM)
+  #define USE_IMU_ICM42605
+  #define IMU_ICM42605_ALIGN      CW180_DEG
+  #define ICM42605_CS_PIN         PA4
+  #define ICM42605_SPI_BUS        BUS_SPI1
+#endif
+
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
   #define USE_IMU_MPU6000
   #define IMU_MPU6000_ALIGN       CW270_DEG
 #else
@@ -75,8 +84,8 @@
   #define IMU_MPU6000_ALIGN       CW180_DEG
 #endif
 
-// Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+// Support for OMNIBUS F4 PRO CORNER - it has MPU6500/ICM20608 instead of MPU6000
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
   #define MPU6500_CS_PIN          MPU6000_CS_PIN
   #define MPU6500_SPI_BUS         MPU6000_SPI_BUS
   #define USE_IMU_MPU6500
@@ -97,7 +106,7 @@
 
 #define USE_BARO
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
   #define USE_BARO_BMP280
   #define BMP280_SPI_BUS        BUS_SPI3
   #define BMP280_CS_PIN         PB3 // v1
@@ -121,7 +130,7 @@
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
 #define USE_UART_INVERTER
 #endif
 
@@ -140,12 +149,12 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
-#if defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
   #define INVERTER_PIN_UART6_RX PC8
   #define INVERTER_PIN_UART6_TX PC9
 #endif
 
-#if defined(OMNIBUSF4V3) && !(defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
+#if (defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)) && !(defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC6     // shared with UART6 TX
 #define SOFTSERIAL_1_TX_PIN     PC6     // shared with UART6 TX
@@ -193,7 +202,7 @@
 
 #define USE_SPI_DEVICE_1
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
   #define USE_SPI_DEVICE_2
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
@@ -202,7 +211,7 @@
 #endif
 
 #define USE_SPI_DEVICE_3
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
   #define SPI3_NSS_PIN          PA15
 #else
   #define SPI3_NSS_PIN          PB3
@@ -215,7 +224,7 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
   #define USE_SDCARD
   #define USE_SDCARD_SPI
@@ -250,7 +259,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_LED_STRIP
-#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
   #define WS2811_PIN                   PB6
 #else
   #define WS2811_PIN                   PA1

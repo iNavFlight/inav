@@ -7,11 +7,9 @@ For details on the structure of MSP, see [The wiki page](https://github.com/iNav
 
 For list of enums, see [Enum documentation page](https://github.com/iNavFlight/inav/wiki/Enums-reference)
 
-For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 3
-**
+**JSON file rev: 4**
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -67,7 +65,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 **reply**: null or dict of data received\
 **variable_len**: Optional boolean, if true, message does not have a predefined fixed length and needs appropriate handling\
 **variants**: Optional special case, message has different cases of reply/request. Key/description is not a strict expression or code; just a readable condition\
-**not_implemented**: Optional special case, message is not implemented\
+**not_implemented**: Optional special case, message is not implemented (never or deprecated)\
 **notes**: String with details of message
 
 ## Data dict fields:
@@ -414,7 +412,8 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
 [8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
-[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
+[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)
+[12289 - MSP2_RX_BIND](#msp2_rx_bind)
 
 ## <a id="msp_api_version"></a>`MSP_API_VERSION (1 / 0x1)`
 **Description:** Provides the MSP protocol version and the INAV API version.  
@@ -3805,7 +3804,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Notes:** Expects 7 bytes. Returns error if index invalid. Calls `loadCustomServoMixer()`.
 
 ## <a id="msp2_inav_logic_conditions"></a>`MSP2_INAV_LOGIC_CONDITIONS (8226 / 0x2022)`
-**Description:** Retrieves the configuration of all defined Logic Conditions.  
+**Description:** Retrieves the configuration of all defined Logic Conditions. Requires `USE_PROGRAMMING_FRAMEWORK`. See `logicCondition_t` structure.  
 
 **Request Payload:** **None**  
   
@@ -3821,7 +3820,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 | `operandBValue` | `int32_t` | 4 | - | Value/ID of the second operand |
 | `flags` | `uint8_t` | 1 | Bitmask | Bitmask: Condition flags (`logicConditionFlags_e`) |
 
-**Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. See `logicCondition_t` structure.
+**Notes:** Deprecated, causes buffer overflow for 14*64 bytes
 
 ## <a id="msp2_inav_set_logic_conditions"></a>`MSP2_INAV_SET_LOGIC_CONDITIONS (8227 / 0x2023)`
 **Description:** Sets the configuration for a single Logic Condition by its index.  
@@ -4535,4 +4534,21 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Reply Payload:** **None**  
 
 **Notes:** Requires `rxConfig()->receiverType == RX_TYPE_SERIAL`. Requires `USE_SERIALRX_CRSF` or `USE_SERIALRX_SRXL2`. Calls `crsfBind()` or `srxl2Bind()` respectively. Returns error if receiver type or provider is not supported for binding.
+
+## <a id="msp2_rx_bind"></a>`MSP2_RX_BIND (12289 / 0x3001)`
+**Description:** Initiates binding for MSP receivers (mLRS).
+
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `port_id` | `uint8_t` | 1 | Port ID |
+| `reserved_for_custom_use` | `uint8_t[3]` | 3 | Reserved for custom use |
+
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `port_id` | `uint8_t` | 1 | Port ID |
+| `reserved_for_custom_use` | `uint8_t[3]` | 3 | Reserved for custom use |
+
+**Notes:** Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.
 

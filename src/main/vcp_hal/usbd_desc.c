@@ -91,6 +91,24 @@ USBD_DescriptorsTypeDef VCP_Desc = {
   USBD_VCP_InterfaceStrDescriptor,
 };
 
+#ifdef USE_USB_MSC
+/* MSC-specific descriptor functions */
+static uint8_t *USBD_MSC_DeviceDescriptorCallback(USBD_SpeedTypeDef speed, uint16_t *length);
+static uint8_t *USBD_MSC_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
+static uint8_t *USBD_MSC_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
+static uint8_t *USBD_MSC_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
+
+USBD_DescriptorsTypeDef MSC_Desc = {
+  USBD_MSC_DeviceDescriptorCallback,
+  USBD_VCP_LangIDStrDescriptor,           // Reuse VCP LangID
+  USBD_VCP_ManufacturerStrDescriptor,     // Reuse VCP Manufacturer
+  USBD_MSC_ProductStrDescriptor,          // MSC-specific
+  USBD_VCP_SerialStrDescriptor,           // Reuse VCP Serial
+  USBD_MSC_ConfigStrDescriptor,           // MSC-specific
+  USBD_MSC_InterfaceStrDescriptor,        // MSC-specific
+};
+#endif
+
 /* USB Standard Device Descriptor */
 #if defined ( __ICCARM__ ) /*!< IAR Compiler */
   #pragma data_alignment=4
@@ -338,4 +356,77 @@ static void IntToUnicode (uint32_t value , uint8_t *pbuf , uint8_t len)
     pbuf[ 2* idx + 1] = 0;
   }
 }
+
+#ifdef USE_USB_MSC
+/**
+  * @brief  Returns the MSC device descriptor.
+  * @param  speed: Current device speed
+  * @param  length: Pointer to data length variable
+  * @retval Pointer to descriptor buffer
+  */
+static uint8_t *USBD_MSC_DeviceDescriptorCallback(USBD_SpeedTypeDef speed, uint16_t *length)
+{
+  (void)speed;
+  *length = sizeof(USBD_MSC_DeviceDesc);
+  return (uint8_t*)USBD_MSC_DeviceDesc;
+}
+
+/**
+  * @brief  Returns the MSC product string descriptor.
+  * @param  speed: Current device speed
+  * @param  length: Pointer to data length variable
+  * @retval Pointer to descriptor buffer
+  */
+static uint8_t *USBD_MSC_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
+{
+  if (speed == USBD_SPEED_HIGH)
+  {
+    USBD_GetString((uint8_t *)"STM32 Mass Storage in HS Mode", USBD_StrDesc, length);
+  }
+  else
+  {
+    USBD_GetString((uint8_t *)"STM32 Mass Storage in FS Mode", USBD_StrDesc, length);
+  }
+  return USBD_StrDesc;
+}
+
+/**
+  * @brief  Returns the MSC configuration string descriptor.
+  * @param  speed: Current device speed
+  * @param  length: Pointer to data length variable
+  * @retval Pointer to descriptor buffer
+  */
+static uint8_t *USBD_MSC_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
+{
+  if (speed == USBD_SPEED_HIGH)
+  {
+    USBD_GetString((uint8_t *)"MSC Config", USBD_StrDesc, length);
+  }
+  else
+  {
+    USBD_GetString((uint8_t *)"MSC Config", USBD_StrDesc, length);
+  }
+  return USBD_StrDesc;
+}
+
+/**
+  * @brief  Returns the MSC interface string descriptor.
+  * @param  speed: Current device speed
+  * @param  length: Pointer to data length variable
+  * @retval Pointer to descriptor buffer
+  */
+static uint8_t *USBD_MSC_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
+{
+  if (speed == USBD_SPEED_HIGH)
+  {
+    USBD_GetString((uint8_t *)"MSC Interface", USBD_StrDesc, length);
+  }
+  else
+  {
+    USBD_GetString((uint8_t *)"MSC Interface", USBD_StrDesc, length);
+  }
+  return USBD_StrDesc;
+}
+#endif /* USE_USB_MSC */
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

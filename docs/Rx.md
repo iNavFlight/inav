@@ -185,12 +185,18 @@ set rssi_channel = 0
 
 Setting these values differently may have an adverse effects on RSSI readings.
 
-#### CLI Bind Command
+#### CLI Bind Commands
 
 This command will put the receiver into bind mode without the need to reboot the FC as it was required with the older `spektrum_sat_bind` command.
 
 ```
 bind_rx
+```
+
+This command will send a bind request to an MSP receiver on the specified port.
+
+```
+bind_msp_rx <port>
 ```
 
 ## MultiWii serial protocol (MSP RX)

@@ -1361,6 +1361,11 @@ groups:
         default_value: 15
         min: 1
         max: 60
+      - name: servo_autotrim_iterm_rate_limit
+        description: "Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`."
+        default_value: 2
+        min: 0
+        max: 50
 
   - name: PG_CONTROL_PROFILES
     type: controlConfig_t
@@ -1380,10 +1385,10 @@ groups:
         min: 0
         max: 100
       - name: apa_pow
-        description: "Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. pid_multiplier = (referenceAirspeed/airspeed)**(apa_pow/100). Set to 0 will disable this feature and use throttle based PID attenuation;"
+        description: "Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. Scales P/D/FF with airspeed (I-term scaled less aggressively). Gains range from 30% (high speed) to 150% (low speed). Set to 0 to disable and use throttle-based attenuation. Recommended: 120 for aircraft with validated pitot sensor."
         type: uint16_t
         field: throttle.apa_pow
-        default_value: 120
+        default_value: 0
         min: 0
         max: 200
       - name: tpa_rate
@@ -1411,7 +1416,7 @@ groups:
         default_value: OFF
       - name: fw_tpa_time_constant
         description: "TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. See **PID Attenuation and scaling** Wiki for full details."
-        default_value: 1500
+        default_value: 2000
         field: throttle.fixedWingTauMs
         min: 0
         max: 5000
@@ -1757,12 +1762,12 @@ groups:
         type: uint8_t
       - name: gps_ublox_use_galileo
         description: "Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]."
-        default_value: OFF
+        default_value: ON
         field: ubloxUseGalileo
         type: bool
       - name: gps_ublox_use_beidou
         description: "Enable use of Beidou satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON]."
-        default_value: OFF
+        default_value: ON
         field: ubloxUseBeidou
         type: bool
       - name: gps_ublox_use_glonass
@@ -1777,8 +1782,8 @@ groups:
         min: 5
         max: 10
       - name: gps_ublox_nav_hz
-        description: "Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer."
-        default_value: 10
+        description: "Navigation update rate for UBLOX receivers. M9 modules limit satellite tracking to 16 satellites at 10Hz or higher, but use 32 satellites below 10Hz for better accuracy. M10 modules work well at 8Hz with 3 constellations. Some M10 devices with high-performance clock can do up to 25Hz with 4 constellations. 8Hz is a safe, accurate default for M8/M9/M10."
+        default_value: 8
         field: ubloxNavHz
         type: uint8_t
         min: 5
@@ -3904,6 +3909,7 @@ groups:
         field: osd_switch_indicators_align_left
         type: bool
         default_value: ON
+
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]

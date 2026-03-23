@@ -1,20 +1,26 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of INAV.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Alternatively, the contents of this file may be used under the terms
+ * of the GNU General Public License Version 3, as described below:
+ *
+ * This file is free software: you may copy, redistribute and/or modify
+ * it under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see http://www.gnu.org/licenses/.
  */
-
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -23,6 +29,9 @@
 #include "common/maths.h"
 
 #if defined(USE_RANGEFINDER) && defined(USE_RANGEFINDER_TERARANGER_EVO_I2C)
+
+//MANUAL
+//https://www.mouser.lt/datasheet/2/944/User_Manual_for_TeraRanger_Evo_single_point_distan-1729051.pdf?srsltid=AfmBOork4pNRMVMmnZ12zIk3yt79aeE066Hq5VpcBHv4wAnv-FSBLAKc
 
 #include "build/build_config.h"
 
@@ -49,42 +58,21 @@
 #define TERARANGER_EVO_VALUE_TOO_CLOSE                0x0000
 #define TERARANGER_EVO_VALUE_OUT_OF_RANGE             0xffff
 
-static      int16_t     minimumReadingIntervalMs = 50;
-            uint8_t     triggerValue[0];
-volatile    int32_t     teraRangerMeasurementCm;
-static      uint32_t    timeOfLastMeasurementMs;
-static      uint8_t     dataBuff[3];
+
+static struct {
+    int32_t     teraRangerMeasurementCm;
+    uint8_t     dataBuff[3];
+} teraRangerEvo = {
+    .teraRangerMeasurementCm = RANGEFINDER_NO_NEW_DATA,
+    .dataBuff = { 0 },
+};
+
+static void triggerNewReading(rangefinderDev_t *rangefinder){
+    busWrite(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, 0x00); //request to next measure, scheduler is much slower than 500uS to we need to wait between write and read
+}
 
 static void teraRangerInit(rangefinderDev_t *rangefinder){
-    busWriteBuf(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, triggerValue, 1);
-}
-
-void teraRangerUpdate(rangefinderDev_t *rangefinder){
-    if (busReadBuf(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, dataBuff, 3)) {
-        teraRangerMeasurementCm = MILLIMETERS_TO_CENTIMETERS(((int32_t)dataBuff[0] << 8 | (int32_t)dataBuff[1]));
-
-        if(dataBuff[2] == crc8_update(0, &dataBuff, 2)){
-            if (teraRangerMeasurementCm == TERARANGER_EVO_VALUE_TOO_CLOSE || teraRangerMeasurementCm == TERARANGER_EVO_VALUE_OUT_OF_RANGE) {
-                teraRangerMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
-            }
-        }
-    } else {
-        teraRangerMeasurementCm = RANGEFINDER_HARDWARE_FAILURE;
-    }
-
-    const timeMs_t timeNowMs = millis();
-    if (timeNowMs > timeOfLastMeasurementMs + minimumReadingIntervalMs) {
-        // measurement repeat interval should be greater than minimumReadingIntervalMs
-        // to avoid interference between connective measurements.
-        timeOfLastMeasurementMs = timeNowMs;
-        busWriteBuf(rangefinder->busDev, TERARANGER_EVO_I2C_ADDRESS, triggerValue, 1);
-    }
-}
-
-
-int32_t teraRangerGetDistance(rangefinderDev_t *rangefinder){
-    UNUSED(rangefinder);
-    return teraRangerMeasurementCm;
+    triggerNewReading(rangefinder);
 }
 
 static bool deviceDetect(busDevice_t * busDev){
@@ -100,6 +88,39 @@ static bool deviceDetect(busDevice_t * busDev){
     };
 
     return false;
+}
+
+static bool checkCrc(void){
+    return teraRangerEvo.dataBuff[2] == crc8_update(0, teraRangerEvo.dataBuff, 2);
+}
+
+void teraRangerUpdate(rangefinderDev_t *rangefinder){
+    if (busReadBuf(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, teraRangerEvo.dataBuff, 3)) {
+        if (!checkCrc()) {
+            teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_NO_NEW_DATA;
+            triggerNewReading(rangefinder);
+            return;
+        }
+
+        const int32_t teraRangerMeasurementMM = ((int32_t)teraRangerEvo.dataBuff[0] << 8 | (int32_t)teraRangerEvo.dataBuff[1]);
+        if (teraRangerMeasurementMM == TERARANGER_EVO_VALUE_TOO_CLOSE || teraRangerMeasurementMM == TERARANGER_EVO_VALUE_OUT_OF_RANGE) {
+            teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
+            triggerNewReading(rangefinder);
+            return;
+        }
+
+        teraRangerEvo.teraRangerMeasurementCm = MILLIMETERS_TO_CENTIMETERS(teraRangerMeasurementMM);
+    } else {
+        teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_HARDWARE_FAILURE;
+    }
+
+    triggerNewReading(rangefinder);
+}
+
+
+int32_t teraRangerGetDistance(rangefinderDev_t *rangefinder){
+    UNUSED(rangefinder);
+    return teraRangerEvo.teraRangerMeasurementCm;
 }
 
 bool teraRangerDetect(rangefinderDev_t *rangefinder){

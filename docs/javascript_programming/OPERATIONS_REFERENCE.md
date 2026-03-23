@@ -24,24 +24,25 @@ All INAV logic condition operations supported by the firmware are now fully impl
 
 ```javascript
 // XOR - true when exactly one condition is true
-if (xor(flight.armed, flight.mode.failsafe)) {
+if (xor(inav.flight.armed, inav.flight.mode.failsafe)) {
   // One or the other, but not both
 }
 
 // NAND - false only when both are true
-if (nand(flight.armed, gvar[0] > 100)) {
+if (nand(inav.flight.armed, inav.gvar[0] > 100)) {
   // Not both conditions true
 }
 
 // NOR - true only when both are false
-if (nor(flight.mode.failsafe, flight.mode.rth)) {
+if (nor(inav.flight.mode.failsafe, inav.flight.mode.rth)) {
   // Neither failsafe nor RTH active
 }
 
 // Approximate equality with tolerance
-if (approxEqual(flight.altitude, 1000, 50)) {
+if (approxEqual(inav.flight.altitude, 1000, 50)) {
   // Altitude is 1000 ± 50
 }
+
 ```
 
 ### Scaling/Mapping Operations
@@ -49,7 +50,7 @@ if (approxEqual(flight.altitude, 1000, 50)) {
 ```javascript
 // mapInput: Scale from [0:maxValue] to [0:1000]
 // Example: RC value (1000-2000) to normalized (0-1000)
-const normalizedThrottle = mapInput(rc[3].value - 1000, 1000);
+const normalizedThrottle = mapInput(inav.rc[3].value - 1000, 1000);
 
 // mapOutput: Scale from [0:1000] to [0:maxValue]
 // Example: normalized (0-1000) to servo angle (0-180)
@@ -57,41 +58,43 @@ const servoAngle = mapOutput(normalizedThrottle, 180);
 
 // Chaining for full range mapping
 // Map altitude (0-5000m) to percentage (0-100)
-const altitudePercent = mapOutput(mapInput(flight.altitude, 5000), 100);
+const altitudePercent = mapOutput(mapInput(inav.flight.altitude, 5000), 100);
+
 ```
 
 ### RC Channel State Detection
 
 ```javascript
 // LOW state - RC value < 1333us
-if (rc[0].low) {
+if (inav.rc[0].low) {
   // Roll stick is in low position
-  gvar[0] = 1;
+  inav.gvar[0] = 1;
 }
 
 // MID state - RC value between 1333-1666us
-if (rc[1].mid) {
+if (inav.rc[1].mid) {
   // Pitch stick is centered
-  gvar[1] = 1;
+  inav.gvar[1] = 1;
 }
 
 // HIGH state - RC value > 1666us
-if (rc[2].high) {
+if (inav.rc[2].high) {
   // Throttle stick is in high position
-  override.vtx.power = 4;
+  inav.override.vtx.power = 4;
 }
 
 // Access raw RC value
-if (rc[3].value > 1700) {
+if (inav.rc[3].value > 1700) {
   // Custom threshold on yaw channel
-  gvar[2] = 1;
+  inav.gvar[2] = 1;
 }
 
 // Combined with logical operations
-if (rc[0].low && rc[1].mid && rc[2].high) {
+if (inav.rc[0].low && inav.rc[1].mid && inav.rc[2].high) {
   // Specific stick combination detected
-  override.armSafety = 1;
+  inav.override.armSafety = 1;
 }
+
 ```
 
 ## Notes

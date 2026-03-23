@@ -62,7 +62,7 @@ def is_plain_int_literal(expr: str) -> Optional[int]:
 
 # ---------- Parsing regexes ----------
 
-RE_ENUM_START   = re.compile(r'^\s*typedef\s+enum\s*\{')
+RE_ENUM_START   = re.compile(r'^\s*typedef\s+enum(?:\s+[A-Za-z_]\w*)?\s*\{')
 RE_ENUM_END     = re.compile(r'^\s*\}\s*([A-Za-z_]\w*)\s*;')
 RE_LINE_COMMENT = re.compile(r'^\s*//\s*(.+?)\s*$')
 
@@ -273,6 +273,9 @@ def render_markdown(enums: List[EnumDef]) -> str:
             cond = it.cond
             out.append(f"| {name_md} | {val} | {cond} |")
             jsonfile[e.name][name_md.strip('`')] = [val, cond] if len(cond)>0 else val
+        # normalize source to a stable inav/src/... path
+        if '_source' in jsonfile[e.name]:
+            jsonfile[e.name]['_source'] = jsonfile[e.name]['_source'].replace('../../../src', 'inav/src')
         out.append("")
     # While we're at it, chuck this all into a JSON file
     Path("inav_enums.json").write_text(json.dumps(jsonfile,indent=4), encoding="utf-8")

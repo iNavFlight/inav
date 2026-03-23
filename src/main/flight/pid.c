@@ -443,11 +443,26 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
 }
 
 static float calculateFixedWingAirspeedTPAFactor(void){
-    const float airspeed = getAirspeedEstimate(); // in cm/s
+    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
     const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
-    float tpaFactor= powf(referenceAirspeed/(airspeed+0.01f), currentControlProfile->throttle.apa_pow/100.0f);
+    float tpaFactor= powf(referenceAirspeed/airspeed, currentControlProfile->throttle.apa_pow/100.0f);
     tpaFactor= constrainf(tpaFactor, 0.3f, 2.0f);
     return tpaFactor;
+}
+
+// Calculate I-term scaling factor (less aggressive than P/D/FF)
+static float calculateFixedWingAirspeedITermFactor(void){
+    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
+    const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
+    const float apa_pow = currentControlProfile->throttle.apa_pow;
+
+    if (apa_pow <= 100.0f) {
+        return 1.0f;
+    }
+
+    float iTermFactor = powf(referenceAirspeed/airspeed, (apa_pow/100.0f) - 1.0f);
+    iTermFactor = constrainf(iTermFactor, 0.3f, 1.5f);
+    return iTermFactor;
 }
 
 static float calculateFixedWingTPAFactor(uint16_t throttle)
@@ -535,14 +550,18 @@ void updatePIDCoefficients(void)
     }
     
     float tpaFactor=1.0f;
+    float iTermFactor=1.0f;  // Separate factor for I-term scaling
     if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
         if(currentControlProfile->throttle.apa_pow>0 && pitotValidForAirspeed()){
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
+            iTermFactor = calculateFixedWingAirspeedITermFactor();  // Less aggressive I-term scaling
         }else{
             tpaFactor = calculateFixedWingTPAFactor(calculateTPAThtrottle());
+            iTermFactor = tpaFactor;  // Use same factor for throttle-based TPA
         }
     } else {
         tpaFactor = calculateMultirotorTPAFactor(calculateTPAThtrottle());
+        iTermFactor = tpaFactor;  // Multirotor uses same factor
     }
     if (tpaFactor != tpaFactorprev) {
         pidGainsUpdateRequired = true;
@@ -560,9 +579,9 @@ void updatePIDCoefficients(void)
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
     for (int axis = 0; axis < 3; axis++) {
         if (usedPidControllerType == PID_TYPE_PIFF) {
-            // Airplanes - scale all PIDs according to TPA
+            // Airplanes - scale PIDs according to TPA (I-term scaled less aggressively)
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER  * tpaFactor;
-            pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * tpaFactor;
+            pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * iTermFactor;  // Less aggressive scaling
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * tpaFactor;
             pidState[axis].kFF = pidBank()->pid[axis].FF / FP_PID_RATE_FF_MULTIPLIER * tpaFactor;
             pidState[axis].kCD = 0.0f;

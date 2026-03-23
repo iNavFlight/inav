@@ -48,6 +48,13 @@
 #include "sensors/barometer.h"
 #include "sensors/sensors.h"
 
+#include "io/gps.h"
+
+#ifdef USE_WIND_ESTIMATOR
+#include "flight/wind_estimator.h"
+#include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
+#endif
 
 //#include "build/debug.h"
 
@@ -57,6 +64,16 @@
 extern baro_t baro;
 
 pitot_t pitot = {.lastMeasurementUs = 0, .lastSeenHealthyMs = 0};
+
+// Pitot sensor validation state
+static bool pitotHardwareFailed = false;
+static uint16_t pitotFailureCounter = 0;
+static uint16_t pitotRecoveryCounter = 0;
+#define PITOT_FAILURE_THRESHOLD 20   // 0.2 seconds at 100Hz - fast detection per LOG00002 analysis
+#define PITOT_RECOVERY_THRESHOLD 200 // 2 seconds of consecutive good readings to recover
+
+// Forward declaration for GPS-based airspeed fallback
+static float getVirtualAirspeedEstimate(void);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 2);
 
@@ -301,9 +318,18 @@ void pitotUpdate(void)
 
 /*
  * Airspeed estimate in cm/s
+ * Returns hardware pitot if valid, GPS-based virtual airspeed if pitot failed,
+ * or raw pitot value as last resort
  */
 float getAirspeedEstimate(void)
 {
+    // If hardware pitot has failed validation, use GPS-based virtual airspeed
+    if (pitotHardwareFailed) {
+        float virtualAirspeed = getVirtualAirspeedEstimate();
+        if (virtualAirspeed > 0.0f) {
+            return virtualAirspeed;
+        }
+    }
     return pitot.airSpeed;
 }
 
@@ -312,13 +338,158 @@ bool pitotIsHealthy(void)
     return (millis() - pitot.lastSeenHealthyMs) < PITOT_HARDWARE_TIMEOUT_MS;
 }
 
+/**
+ * Calculate virtual airspeed estimate (same as virtual pitot)
+ *
+ * Uses GPS velocity with wind correction when available, providing a reference
+ * airspeed that already accounts for wind conditions.
+ *
+ * @return virtual airspeed in cm/s, or 0 if GPS unavailable
+ */
+static float getVirtualAirspeedEstimate(void)
+{
+#if defined(USE_GPS) && defined(USE_WIND_ESTIMATOR)
+    if (!STATE(GPS_FIX)) {
+        return 0.0f;
+    }
+
+    float airSpeed = 0.0f;
+
+    // Use wind estimator if available (matches virtual pitot logic)
+    if (isEstimatedWindSpeedValid()) {
+        uint16_t windHeading;  // centidegrees
+        float windSpeed = getEstimatedHorizontalWindSpeed(&windHeading);  // cm/s
+        float horizontalWindSpeed = windSpeed * cos_approx(CENTIDEGREES_TO_RADIANS(windHeading - posControl.actualState.yaw));
+        airSpeed = posControl.actualState.velXY - horizontalWindSpeed;
+        airSpeed = calc_length_pythagorean_2D(airSpeed, getEstimatedActualVelocity(Z) + getEstimatedWindSpeed(Z));
+    } else {
+        // Fall back to raw GPS velocity if no wind estimator
+        airSpeed = calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
+    }
+
+    return airSpeed;
+#elif defined(USE_GPS)
+    // No wind estimator, use raw GPS velocity
+    if (!STATE(GPS_FIX)) {
+        return 0.0f;
+    }
+    return calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
+#else
+    return 0.0f;
+#endif
+}
+
+/**
+ * Pitot sensor sanity check against virtual airspeed
+ *
+ * Compares hardware pitot reading against virtual airspeed (GPS + wind estimator)
+ * to detect gross sensor failures like blocked pitot tubes.
+ *
+ * Uses wide thresholds to catch implausible readings while avoiding false positives:
+ * - Compares against wind-corrected virtual airspeed (not raw GPS groundspeed)
+ * - Wide tolerance (30%-200%) catches gross failures only
+ * - Detects: blocked pitot reading 25 km/h when virtual shows 85 km/h
+ * - Avoids: false positives from sensor accuracy differences
+ *
+ * @return true if pitot reading appears plausible, false if likely failed
+ */
+static bool isPitotReadingPlausible(void)
+{
+#ifdef USE_GPS
+    if (!STATE(GPS_FIX)) {
+        return true;
+    }
+
+    const float virtualAirspeedCmS = getVirtualAirspeedEstimate();
+    const float minValidationSpeed = 700.0f;  // 7 m/s
+
+    if (virtualAirspeedCmS < minValidationSpeed) {
+        return true;
+    }
+
+    const float pitotAirspeedCmS = pitot.airSpeed;
+
+    // Wide thresholds to catch gross failures (blocked pitot) only
+    const float minPlausibleAirspeed = virtualAirspeedCmS * 0.3f;  // 30% of virtual
+    const float maxPlausibleAirspeed = virtualAirspeedCmS * 2.0f;  // 200% of virtual
+
+    if (pitotAirspeedCmS < minPlausibleAirspeed || pitotAirspeedCmS > maxPlausibleAirspeed) {
+        return false;
+    }
+
+    return true;
+#else
+    return true;
+#endif
+}
+
+/**
+ * Check if pitot sensor has failed validation
+ *
+ * @return true if pitot has failed sanity checks and should not be trusted
+ */
+bool pitotHasFailed(void)
+{
+    return pitotHardwareFailed;
+}
+
 bool pitotValidForAirspeed(void)
 {
     bool ret = false;
     ret = pitotIsHealthy() && pitotIsCalibrationComplete();
+
+    // For virtual pitot, we need GPS fix
     if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
         ret = ret && STATE(GPS_FIX);
     }
+
+    // For hardware pitot sensors, validate readings against GPS when armed
+    // This detects blocked or failed pitot tubes
+    if (ret && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL &&
+        detectedSensors[SENSOR_INDEX_PITOT] != PITOT_NONE) {
+
+        if (ARMING_FLAG(ARMED)) {
+            // Check if pitot reading is plausible
+            if (!isPitotReadingPlausible()) {
+                pitotFailureCounter++;
+            } else if (pitotFailureCounter > 0) {
+                // Decay counter if sensor appears healthy
+                pitotFailureCounter--;
+            }
+
+            // Declare failure after sustained implausible readings
+            if (pitotFailureCounter >= PITOT_FAILURE_THRESHOLD) {
+                pitotHardwareFailed = true;
+                pitotRecoveryCounter = 0;  // Start recovery tracking
+            }
+
+            // Recovery: require sustained consecutive good readings to clear failure
+            if (pitotHardwareFailed) {
+                if (isPitotReadingPlausible()) {
+                    pitotRecoveryCounter++;
+                    if (pitotRecoveryCounter >= PITOT_RECOVERY_THRESHOLD) {
+                        pitotHardwareFailed = false;  // Sensor has recovered
+                        pitotFailureCounter = 0;
+                        pitotRecoveryCounter = 0;
+                    }
+                } else {
+                    // Bad reading resets recovery progress
+                    pitotRecoveryCounter = 0;
+                }
+            }
+        } else {
+            // Reset on disarm for next flight
+            pitotHardwareFailed = false;
+            pitotFailureCounter = 0;
+            pitotRecoveryCounter = 0;
+        }
+
+        // If pitot has failed sanity checks, require GPS fix (like virtual pitot)
+        if (pitotHardwareFailed) {
+            ret = ret && STATE(GPS_FIX);
+        }
+    }
+
     return ret;
 }
 #endif /* PITOT */

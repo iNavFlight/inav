@@ -22,12 +22,12 @@ conditions behind the scenes.
 Use `if` statements for conditions that should check and execute **every cycle**:
 
 ```javascript
-const { flight, override } = inav;
 
 // Checks every cycle - adjusts VTX power continuously
-if (flight.homeDistance > 100) {
-  override.vtx.power = 3;
+if (inav.flight.homeDistance > 100) {
+  inav.override.vtx.power = 3;
 }
+
 ```
 
 **Use when:** You want the action to happen continuously while the condition is true.
@@ -38,13 +38,13 @@ if (flight.homeDistance > 100) {
 Use `edge()` for actions that should execute **only once** when a condition becomes true:
 
 ```javascript
-const { flight, gvar, edge } = inav;
 
 // Executes ONCE when armTimer reaches 1000ms
-edge(() => flight.armTimer > 1000, { duration: 0 }, () => {
-  gvar[0] = flight.yaw;  // Save initial heading
-  gvar[1] = 0;           // Initialize counter
+inav.events.edge(() => inav.flight.armTimer > 1000, { duration: 0 }, () => {
+  inav.gvar[0] = inav.flight.yaw;  // Save initial heading
+  inav.gvar[1] = 0;           // Initialize counter
 });
+
 ```
 
 **Parameters:**
@@ -64,16 +64,16 @@ edge(() => flight.armTimer > 1000, { duration: 0 }, () => {
 Use `sticky()` for conditions that latch ON and stay ON until reset:
 
 ```javascript
-const { flight, gvar, sticky } = inav;
 
 // Latches ON when RSSI < 30, stays ON until RSSI > 70
-sticky(
-  () => flight.rssi < 30,  // ON condition
-  () => flight.rssi > 70,  // OFF condition  
+inav.events.sticky(
+  () => inav.flight.rssi < 30,  // ON condition
+  () => inav.flight.rssi > 70,  // OFF condition  
   () => {
-    override.vtx.power = 4;  // Executes while latched
+    inav.override.vtx.power = 4;  // Executes while latched
   }
 );
+
 ```
 
 **Parameters:**
@@ -92,12 +92,12 @@ sticky(
 Use `delay()` to execute after a condition has been true for a duration:
 
 ```javascript
-const { flight, gvar, delay } = inav;
 
 // Executes only if RSSI < 30 for 2 seconds continuously
-delay(() => flight.rssi < 30, { duration: 2000 }, () => {
-  gvar[0] = 1;  // Set failsafe flag
+inav.events.delay(() => inav.flight.rssi < 30, { duration: 2000 }, () => {
+  inav.gvar[0] = 1;  // Set failsafe flag
 });
+
 ```
 
 **Parameters:**
@@ -116,73 +116,73 @@ delay(() => flight.rssi < 30, { duration: 2000 }, () => {
 
 ### Initialize on Arm
 ```javascript
-const { flight, gvar, edge } = inav;
 
-edge(() => flight.armTimer > 1000, { duration: 0 }, () => {
-  gvar[0] = 0;              // Reset counter
-  gvar[1] = flight.yaw;     // Save heading
-  gvar[2] = flight.altitude; // Save starting altitude
+inav.events.edge(() => inav.flight.armTimer > 1000, { duration: 0 }, () => {
+  inav.gvar[0] = 0;              // Reset counter
+  inav.gvar[1] = inav.flight.yaw;     // Save heading
+  inav.gvar[2] = inav.flight.altitude; // Save starting altitude
 });
+
 ```
 
 ### Count Events
 ```javascript
-const { flight, gvar, edge } = inav;
 
 // Initialize
-edge(() => flight.armTimer > 1000, { duration: 0 }, () => {
-  gvar[0] = 0;
+inav.events.edge(() => inav.flight.armTimer > 1000, { duration: 0 }, () => {
+  inav.gvar[0] = 0;
 });
 
 // Count each time RSSI drops below 30 (counts transitions, not duration)
-edge(() => flight.rssi < 30, { duration: 100 }, () => {
-  gvar[0] = gvar[0] + 1;
+inav.events.edge(() => inav.flight.rssi < 30, { duration: 100 }, () => {
+  inav.gvar[0] = inav.gvar[0] + 1;
 });
+
 ```
 
 ### Debounce Noisy Signals
 ```javascript
-const { flight, override, edge } = inav;
 
 // Only trigger if RSSI < 30 for at least 500ms
-edge(() => flight.rssi < 30, { duration: 500 }, () => {
-  override.vtx.power = 4;
+inav.events.edge(() => inav.flight.rssi < 30, { duration: 500 }, () => {
+  inav.override.vtx.power = 4;
 });
+
 ```
 
 ### Multi-Stage Logic
 ```javascript
-const { flight, override } = inav;
 
 // Stage 1: Far away
-if (flight.homeDistance > 500) {
-  override.vtx.power = 4;
+if (inav.flight.homeDistance > 500) {
+  inav.override.vtx.power = 4;
 }
 
 // Stage 2: Medium distance  
-if (flight.homeDistance > 200 && flight.homeDistance <= 500) {
-  override.vtx.power = 3;
+if (inav.flight.homeDistance > 200 && inav.flight.homeDistance <= 500) {
+  inav.override.vtx.power = 3;
 }
 
 // Stage 3: Close to home
-if (flight.homeDistance <= 200) {
-  override.vtx.power = 2;
+if (inav.flight.homeDistance <= 200) {
+  inav.override.vtx.power = 2;
 }
+
 ```
 
 ### Hysteresis/Deadband
 ```javascript
-const { flight, gvar, sticky } = inav;
 
 // Turn ON at low voltage, turn OFF when recovered
-sticky(
-  () => flight.cellVoltage < 330,  // Warning threshold
-  () => flight.cellVoltage > 350,  // Recovery threshold
+inav.events.sticky(
+  () => inav.flight.cellVoltage < 330,  // Warning threshold
+  () => inav.flight.cellVoltage > 350,  // Recovery threshold
   () => {
-    override.throttleScale = 50;   // Reduce throttle while in warning
-    gvar[0] = 1;                   // Warning flag
+    inav.override.throttleScale = 50;   // Reduce throttle while in warning
+    inav.gvar[0] = 1;                   // Warning flag
   }
 );
+
 ```
 
 ---
@@ -198,27 +198,101 @@ sticky(
 
 ---
 
-## Available Objects
+## Variables
+
+### Let/Const Variables
+
+Use `let` or `const` to define reusable expressions that are compiled into the logic:
 
 ```javascript
-const { 
-  flight,      // Flight telemetry
-  override,    // Override flight parameters
-  rc,          // RC channels
-  gvar,        // Global variables (0-7)
-  waypoint,    // Waypoint navigation
-  edge,        // Edge detection
-  sticky,      // Latching conditions
-  delay        // Delayed execution
-} = inav;
+// Define reusable calculations
+let distanceThreshold = 500;
+let altitudeLimit = 100;
+let combinedCondition = inav.flight.homeDistance > distanceThreshold && inav.flight.altitude > altitudeLimit;
+
+// Use in conditions
+if (combinedCondition) {
+  inav.override.vtx.power = 4;
+}
 ```
+
+**Benefits:**
+- Makes code more readable with named values
+- Compiler automatically optimizes duplicate expressions
+- Variables preserve their custom names through compile/decompile cycles
+
+**Important:** `let`/`const` variables are **compile-time substituted**, not runtime variables. For runtime state, use `inav.gvar[]`.
+
+### Ternary Operator
+
+Use ternary expressions for conditional values:
+
+```javascript
+// Assign based on condition
+let throttleLimit = inav.flight.cellVoltage < 330 ? 25 : 50;
+
+if (inav.flight.cellVoltage < 350) {
+  inav.override.throttleScale = throttleLimit;
+}
+
+// Inline in expressions
+inav.override.vtx.power = inav.flight.homeDistance > 500 ? 4 : 2;
+```
+
+**Use when:** You need conditional value assignment in a single expression.
+
+---
+
+## Available Objects
+
+The `inav` namespace provides access to all flight controller data and control functions:
+
+- `inav.flight` - Flight telemetry (including `flight.mode.*`)
+- `inav.override` - Override flight parameters
+- `inav.rc` - RC channels
+- `inav.gvar` - Global variables (0-7)
+- `inav.pid` - Programming PID outputs (`pid[0-3].output`)
+- `inav.waypoint` - Waypoint navigation
+- `inav.events.edge` - Edge detection
+- `inav.events.sticky` - Latching conditions
+- `inav.events.delay` - Delayed execution
+
+### Flight Mode Detection
+
+Check which flight modes are currently active via `inav.flight.mode.*`:
+
+```javascript
+if (inav.flight.mode.poshold === 1) {
+  inav.gvar[0] = 1;  // Flag: in position hold
+}
+
+if (inav.flight.mode.rth === 1) {
+  inav.override.vtx.power = 4;  // Max power during RTH
+}
+```
+
+**Available modes:** `failsafe`, `manual`, `rth`, `poshold`, `cruise`, `althold`, `angle`, `horizon`, `air`, `acro`, `courseHold`, `waypointMission`, `user1` through `user4`
+
+### PID Controller Outputs
+
+Read output values from the 4 programming PID controllers (configured in Programming PID tab):
+
+```javascript
+if (inav.pid[0].output > 500) {
+  inav.override.throttle = 1600;
+}
+
+inav.gvar[0] = inav.pid[0].output;  // Store for OSD display
+```
+
+**Available:** `inav.pid[0].output` through `inav.pid[3].output`
 
 ---
 
 ## Tips
 
-1. **Initialize variables on arm** using `edge()` with `flight.armTimer > 1000`
-2. **Use gvars for state** - they persist between logic condition evaluations
+1. **Initialize variables on arm** using `inav.events.edge()` with `inav.flight.armTimer > 1000`
+2. **Use inav.gvar for state** - they persist between logic condition evaluations
 3. **edge() duration = 0** means instant trigger on condition becoming true
 4. **edge() duration > 0** adds debounce time
 5. **if statements are continuous** - they execute every cycle
@@ -231,17 +305,17 @@ const {
 
 Use global variables to track state:
 ```javascript
-const { flight, gvar, edge } = inav;
 
 // Debug counter
-edge(() => flight.armTimer > 1000, { duration: 0 }, () => {
-  gvar[7] = 0; // Use gvar[7] as debug counter
+inav.events.edge(() => inav.flight.armTimer > 1000, { duration: 0 }, () => {
+  inav.gvar[7] = 0; // Use inav.gvar[7] as debug counter
 });
 
 // Increment on each event
-edge(() => flight.rssi < 30, { duration: 0 }, () => {
-  gvar[7] = gvar[7] + 1;
+inav.events.edge(() => inav.flight.rssi < 30, { duration: 0 }, () => {
+  inav.gvar[7] = inav.gvar[7] + 1;
 });
 
-// Check gvar[7] value in OSD or Configurator to see event count
+// Check inav.gvar[7] value in OSD or Configurator to see event count
+
 ```

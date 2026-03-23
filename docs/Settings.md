@@ -434,11 +434,11 @@ Max Antigravity gain. `1` means Antigravity is disabled, `2` means Iterm is allo
 
 ### apa_pow
 
-Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. pid_multiplier = (referenceAirspeed/airspeed)**(apa_pow/100). Set to 0 will disable this feature and use throttle based PID attenuation;
+Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. Scales P/D/FF with airspeed (I-term scaled less aggressively). Gains range from 30% (high speed) to 150% (low speed). Set to 0 to disable and use throttle-based attenuation. Recommended: 120 for aircraft with validated pitot sensor.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 120 | 0 | 200 |
+| 0 | 0 | 200 |
 
 ---
 
@@ -1478,7 +1478,7 @@ TPA smoothing and delay time constant to reflect non-instant speed/throttle resp
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1500 | 0 | 5000 |
+| 2000 | 0 | 5000 |
 
 ---
 
@@ -1734,11 +1734,11 @@ Which SBAS mode to be used
 
 ### gps_ublox_nav_hz
 
-Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
+Navigation update rate for UBLOX receivers. M9 modules limit satellite tracking to 16 satellites at 10Hz or higher, but use 32 satellites below 10Hz for better accuracy. M10 modules work well at 8Hz with 3 constellations. Some M10 devices with high-performance clock can do up to 25Hz with 4 constellations. 8Hz is a safe, accurate default for M8/M9/M10.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 5 | 200 |
+| 8 | 5 | 200 |
 
 ---
 
@@ -1748,7 +1748,7 @@ Enable use of Beidou satellites. This is at the expense of other regional conste
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -1758,7 +1758,7 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -6049,6 +6049,16 @@ When feature SERIALRX is enabled, this allows connection to several receivers wh
 | Default | Min | Max |
 | --- | --- | --- |
 | _target default_ |  |  |
+
+---
+
+### servo_autotrim_iterm_rate_limit
+
+Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 50 |
 
 ---
 
