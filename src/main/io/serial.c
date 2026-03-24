@@ -122,6 +122,13 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
 
+#ifdef TERMINALLOG_UART
+    serialPortConfig_t *terminalLogUartConfig = serialFindPortConfiguration(TERMINALLOG_UART);
+    if (terminalLogUartConfig) {
+        terminalLogUartConfig->functionMask = FUNCTION_LOG;
+    }
+#endif
+
 #ifdef SERIALRX_UART
     serialPortConfig_t *serialRxUartConfig = serialFindPortConfiguration(SERIALRX_UART);
     if (serialRxUartConfig) {
