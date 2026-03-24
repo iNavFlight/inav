@@ -104,16 +104,6 @@ Note: Now implemented only UI Interface with Low-Noise Mode
 #define ICM456XX_ACCEL_CONFIG0                  0x1B
 #define ICM456XX_PWR_MGMT0                      0x10
 #define ICM456XX_TEMP_DATA1                     0x0C
-// Register map IPREG_TOP1 (for future use)
-// Note: SREG_CTRL register provides endian selection capability. 
-// Currently not utilized as UI interface reads are in device's native endianness.
-// Kept as reference for potential future optimization.
-#define ICM456XX_RA_SREG_CTRL                   0xA267 // To access: 0xA200 + 0x67
-
-// SREG_CTRL - 0x67 (bits 1:0 select data endianness)
-#define ICM456XX_SREG_DATA_ENDIAN_SEL_LITTLE    (0 << 1) // Little endian (native)
-#define ICM456XX_SREG_DATA_ENDIAN_SEL_BIG       (1 << 1) // Big endian (requires IREG write)
-
 // MGMT0 - 0x10 - Gyro
 #define ICM456XX_GYRO_MODE_OFF                  (0x00 << 2)
 #define ICM456XX_GYRO_MODE_STANDBY              (0x01 << 2)
@@ -264,6 +254,7 @@ Note: Now implemented only UI Interface with Low-Noise Mode
 #define ICM456XX_ACCEL_STARTUP_TIME_MS          10  // Min accel startup from OFF/STANDBY/LP
 #define ICM456XX_GYRO_STARTUP_TIME_MS           35  // Min gyro startup from OFF/STANDBY/LP
 #define ICM456XX_SENSOR_ENABLE_DELAY_MS         1   // Allow sensors to power on and stabilize
+#define ICM456XX_INT_CONFIG_DELAY_MS            15  // Register settle time after interrupt config (matches ICM-426xx convention)
 #define ICM456XX_IREG_TIMEOUT_US                5000 // IREG operation timeout (5ms max)
 
 #define ICM456XX_DATA_LENGTH                    6  // 3 axes * 2 bytes per axis
@@ -305,7 +296,7 @@ static bool icm45686WriteIREG(const busDevice_t *dev, uint16_t reg, uint8_t valu
         if (misc2 & ICM456XX_BIT_IREG_DONE) {
             return true;
         }
-        delay(1);
+        delayMicroseconds(10);
     }
 
     return false; // timeout
@@ -357,7 +348,7 @@ static bool icm45686ReadTemperature(gyroDev_t *gyro, int16_t * temp)
         return false;
     }
     // From datasheet: Temperature in Degrees Centigrade = (TEMP_DATA / 128) + 25 
-    *temp = ( int16_val_little_endian(data, 0) / 12.8 ) + 250; // Temperature stored as degC*10
+    *temp = ( int16_val_little_endian(data, 0) / 12.8f ) + 250.0f; // Temperature stored as degC*10
 
     return true;
 }
@@ -398,7 +389,7 @@ static void icm45686AccAndGyroInit(gyroDev_t *gyro)
     // Set the Accel UI LPF bandwidth cut-off to ODR/8 (Section 7.3 of datasheet)
     if (!icm45686WriteIREG(dev, ICM456XX_ACCEL_UI_LPF_CFG_IREG_ADDR, ICM456XX_ACCEL_UI_LPFBW_ODR_DIV_8)) {
         // If LPF configuration fails, fallback to BYPASS
-        icm45686WriteIREG(dev, ICM456XX_ACCEL_UI_LPF_CFG_IREG_ADDR, ICM456XX_ACCEL_UI_LPFBW_ODR_DIV_8);
+        icm45686WriteIREG(dev, ICM456XX_ACCEL_UI_LPF_CFG_IREG_ADDR, ICM456XX_ACCEL_UI_LPFBW_BYPASS);
     }
     // Setup scale and odr values for gyro
     busWrite(dev, ICM456XX_GYRO_CONFIG0, ICM456XX_GYRO_FS_SEL_2000DPS | config->gyroConfigValues[1]);
@@ -409,7 +400,7 @@ static void icm45686AccAndGyroInit(gyroDev_t *gyro)
                                             ICM456XX_INT1_POLARITY_ACTIVE_HIGH);
     busWrite(dev, ICM456XX_INT1_CONFIG0, ICM456XX_INT1_STATUS_EN_DRDY);
 
-    delay(15);
+    delay(ICM456XX_INT_CONFIG_DELAY_MS);
     busSetSpeed(dev, BUS_SPEED_FAST);
 }
 
@@ -424,17 +415,18 @@ static bool icm45686DeviceDetect(busDevice_t * dev)
     // Perform soft reset directly
     // Soft reset
     busWrite(dev, ICM456XX_REG_MISC2, ICM456XX_SOFT_RESET);
-    // Wait for reset to complete (bit 1 of REG_MISC2 becomes 0)
-    while (1) {
+    // Poll until soft reset completes (SOFT_RESET bit clears) per datasheet Section 9.4
+    do {
         busRead(dev, ICM456XX_REG_MISC2, &tmp);
         if (!(tmp & ICM456XX_SOFT_RESET)) {
             break;
         }
         delay(1);
         waitedMs++;
-        if (waitedMs >= 20) {
-            return false;
-        }
+    } while (waitedMs < 20);
+
+    if (tmp & ICM456XX_SOFT_RESET) {
+        return false;
     }
     // Initialize power management to a known state after reset
     // This ensures sensors are off and ready for proper initialization
