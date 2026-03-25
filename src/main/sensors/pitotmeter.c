@@ -134,14 +134,15 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             FALLTHROUGH;
 
         case PITOT_VIRTUAL:
-#if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL) 
-            if ((pitotHardwareToUse != PITOT_AUTODETECT) && virtualPitotDetect(dev)) {
-                pitotHardware = PITOT_VIRTUAL;
-                break;
-            }
-#endif
-            /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
+#if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
+                if (virtualPitotDetect(dev)) {
+                    pitotHardware = PITOT_VIRTUAL;
+                    break;
+                }
+#endif
+                // set requested to None to prevent hardware failure if GPS not enabled
+                requestedSensors[SENSOR_INDEX_PITOT] = PITOT_NONE;
                 break;
             }
             FALLTHROUGH;
@@ -226,9 +227,10 @@ STATIC_PROTOTHREAD(pitotThread)
 
     // Init filter
     pitot.lastMeasurementUs = micros();
-    if(pitotmeterConfig()->pitot_lpf_milli_hz >0){
+    if (pitotmeterConfig()->pitot_lpf_milli_hz > 0) {
         pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
     }
+
     while(1) {
 #ifdef USE_SIMULATOR
     	while (SIMULATOR_HAS_OPTION(HITL_AIRSPEED) && SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE))
@@ -236,33 +238,33 @@ STATIC_PROTOTHREAD(pitotThread)
             ptDelayUs(10000);
     	}
 #endif
-
-        if ( pitot.lastSeenHealthyMs == 0 ) {
+        if (pitot.lastSeenHealthyMs == 0) {
             if (pitot.dev.start(&pitot.dev)) {
                 pitot.lastSeenHealthyMs = millis();
-            }        
+            }
         }
 
-        if ( (millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
-            if (pitot.dev.get(&pitot.dev))          // read current data
+        if ((millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
+            if (pitot.dev.get(&pitot.dev)) {    // read current data
                 pitot.lastSeenHealthyMs = millis();
+            }
 
-            if (pitot.dev.start(&pitot.dev))        // init for next read
-                pitot.lastSeenHealthyMs = millis();        
+            if (pitot.dev.start(&pitot.dev)) {  // init for next read
+                pitot.lastSeenHealthyMs = millis();
+            }
         }
-
 
         pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperatureTmp);
 
 #ifdef USE_SIMULATOR
         if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-            pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
+            pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
         }
 #endif
 #if defined(USE_PITOT_FAKE)
-        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
-            pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
-        } 
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) {
+            pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
+        }
 #endif
         ptYield();
 
@@ -280,9 +282,9 @@ STATIC_PROTOTHREAD(pitotThread)
 
             // NOTE ::filter pressure - apply filter when NOT calibrating for zero !!!
             currentTimeUs = micros();
-            if(pitotmeterConfig()->pitot_lpf_milli_hz >0){
+            if (pitotmeterConfig()->pitot_lpf_milli_hz > 0) {
                 pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-            }else{
+            } else {
                 pitot.pressure = pitotPressureTmp;
             }
             pitot.lastMeasurementUs = currentTimeUs;
@@ -297,7 +299,7 @@ STATIC_PROTOTHREAD(pitotThread)
         }
 
 #if defined(USE_PITOT_FAKE)
-        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) {
             pitot.airSpeed = fakePitotGetAirspeed();
         }
 #endif
