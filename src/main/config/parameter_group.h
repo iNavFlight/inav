@@ -47,7 +47,11 @@ typedef struct pgRegistry_s {
     uint8_t *address;      // Address of the group in RAM.
     uint8_t *copy;         // Address of the copy in RAM.
     uint8_t **ptr;         // The pointer to update after loading the record into ram.
+#if defined(WASM_BUILD)
+    struct {
+#else
     union {
+#endif
         void *ptr;         // Pointer to init template
         pgResetFunc *fn;   // Pointer to pgResetFunc
     } reset;
@@ -69,6 +73,20 @@ extern const pgRegistry_t __pg_registry_end[] __asm("section$end$__DATA$__pg_reg
 extern const uint8_t __pg_resetdata_start[] __asm("section$start$__DATA$__pg_resetdata");
 extern const uint8_t __pg_resetdata_end[] __asm("section$end$__DATA$__pg_resetdata");
 #define PG_RESETDATA_ATTRIBUTES __attribute__ ((section("__DATA,__pg_resetdata"), used, aligned(2)))
+#elif defined(WASM_BUILD)
+// WebAssembly/Emscripten: Use array-based registry instead of linker sections
+// (Emscripten doesn't support custom linker scripts well)
+#define PG_REGISTER_ATTRIBUTES 
+
+extern const pgRegistry_t* __pg_registry_start;
+extern const pgRegistry_t* __pg_registry_end;
+
+extern const uint8_t __pg_resetdata_start[];
+extern const uint8_t __pg_resetdata_end[];
+#define PG_RESETDATA_ATTRIBUTES 
+
+// For WASM: Registries are collected into an array at runtime
+void pgRegistryAdd(const pgRegistry_t *reg);
 #else
 extern const pgRegistry_t __pg_registry_start[];
 extern const pgRegistry_t __pg_registry_end[];
@@ -128,6 +146,22 @@ extern const uint8_t __pg_resetdata_end[];
     struct _dummy                                                       \
     /**/
 
+#if defined(WASM_BUILD)
+    #define PG_REGISTER_INIT(_name)                                     \
+        __attribute__((constructor(200)))                               \
+        static void _name ## _register_init(void) {                     \
+            pgRegistryAdd(&_name ## _Registry);                         \
+        }
+
+    #define RESET_PRT_NULL ,.ptr = NULL
+    #define RESET_FUNC_NULL ,.fn = NULL
+#else
+    #define PG_REGISTER_INIT(_name) /* nothing */
+    #define PG_REGISTER_RESET_TEMPLATE_INIT(_name) /* nothing */
+    #define RESET_PRT_NULL
+    #define RESET_FUNC_NULL
+#endif
+
 
 // Register system config
 #define PG_REGISTER_I(_type, _name, _pgn, _version, _reset)             \
@@ -142,7 +176,8 @@ extern const uint8_t __pg_resetdata_end[];
         .copy = (uint8_t*)&_name ## _Copy,                              \
         .ptr = 0,                                                       \
         _reset,                                                         \
-    }                                                                   \
+    };                                                                  \
+    PG_REGISTER_INIT(_name)                                            \
     /**/
 
 #define PG_REGISTER(_type, _name, _pgn, _version)                       \
@@ -151,12 +186,12 @@ extern const uint8_t __pg_resetdata_end[];
 
 #define PG_REGISTER_WITH_RESET_FN(_type, _name, _pgn, _version)         \
     extern void pgResetFn_ ## _name(_type *);                           \
-    PG_REGISTER_I(_type, _name, _pgn, _version, .reset = {.fn = (pgResetFunc*)&pgResetFn_ ## _name }) \
+    PG_REGISTER_I(_type, _name, _pgn, _version, .reset = {.fn = (pgResetFunc*)&pgResetFn_ ## _name RESET_PRT_NULL}) \
     /**/
 
 #define PG_REGISTER_WITH_RESET_TEMPLATE(_type, _name, _pgn, _version)   \
     extern const _type pgResetTemplate_ ## _name;                       \
-    PG_REGISTER_I(_type, _name, _pgn, _version, .reset = {.ptr = (void*)&pgResetTemplate_ ## _name}) \
+    PG_REGISTER_I(_type, _name, _pgn, _version, .reset = {.ptr = (void*)&pgResetTemplate_ ## _name RESET_FUNC_NULL}) \
     /**/
 
 // Register system config array
@@ -171,7 +206,8 @@ extern const uint8_t __pg_resetdata_end[];
         .copy = (uint8_t*)&_name ## _CopyArray,                         \
         .ptr = 0,                                                       \
         _reset,                                                         \
-    }                                                                   \
+    };                                                                  \
+    PG_REGISTER_INIT(_name)                                             \
     /**/
 
 #define PG_REGISTER_ARRAY(_type, _size, _name, _pgn, _version)            \
@@ -204,7 +240,8 @@ extern const uint8_t __pg_resetdata_end[];
         .copy = (uint8_t*)&_name ## _CopyStorage,                       \
         .ptr = (uint8_t **)&_name ## _ProfileCurrent,                   \
         _reset,                                                         \
-    }                                                                   \
+    };                                                                  \
+    PG_REGISTER_INIT(_name)                                            \
     /**/
 
 #define PG_REGISTER_PROFILE(_type, _name, _pgn, _version)               \
@@ -220,9 +257,6 @@ extern const uint8_t __pg_resetdata_end[];
     extern const _type pgResetTemplate_ ## _name;                       \
     PG_REGISTER_PROFILE_I(_type, _name, _pgn, _version, .reset = {.ptr = (void*)&pgResetTemplate_ ## _name}) \
     /**/
-
-
-// Emit reset defaults for config.
 // Config must be registered with PG_REGISTER_<xxx>_WITH_RESET_TEMPLATE macro
 #define PG_RESET_TEMPLATE(_type, _name, ...)                            \
     const _type pgResetTemplate_ ## _name PG_RESETDATA_ATTRIBUTES = {   \

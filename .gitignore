@@ -17,7 +17,6 @@ startup_stm32f10x_md_gcc.s
 #.vscode/
 cov-int*
 /build/
-/build_SITL/
 /[hs]itl/
 /ninja/
 /obj/
@@ -27,6 +26,7 @@ cov-int*
 /debug/
 /release/
 /*_SITL/
+/*_WASM/
 
 # script-generated files
 docs/Manual.pdf

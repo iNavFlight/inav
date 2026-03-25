@@ -572,7 +572,7 @@ float NOINLINE calc_length_pythagorean_3D(const float firstElement, const float 
     return fast_fsqrtf(sq(firstElement) + sq(secondElement) + sq(thirdElement));
 }
 
-#ifdef SITL_BUILD
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
 
 /**
  * @brief Floating-point vector subtraction, equivalent of CMSIS arm_sub_f32.

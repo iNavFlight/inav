@@ -38,10 +38,15 @@ function(enable_settings exe name)
         set(USE_HOST_GCC "-g")
     endif()
     set(output ${dir}/${SETTINGS_GENERATED_H} ${dir}/${SETTINGS_GENERATED_C})
+    # For WASM builds, set SETTINGS_CXX to em++ (Emscripten C++)
+    set(settings_cxx_env "${args_SETTINGS_CXX}")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten" AND settings_cxx_env STREQUAL "")
+        set(settings_cxx_env "em++")
+    endif()
     add_custom_command(
         OUTPUT ${output}
         COMMAND
-            ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name} PATH="$ENV{PATH}" SETTINGS_CXX=${args_SETTINGS_CXX}
+            ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name} PATH="$ENV{PATH}" SETTINGS_CXX=${settings_cxx_env} WASM_BUILD=1
             ${RUBY_EXECUTABLE} ${SETTINGS_GENERATOR} ${MAIN_DIR} ${SETTINGS_FILE} -o "${dir}" ${USE_HOST_GCC} 
         DEPENDS ${SETTINGS_GENERATOR} ${SETTINGS_FILE}
     )

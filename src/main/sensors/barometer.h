@@ -66,7 +66,7 @@ int32_t baroGetLatestAltitude(void);
 int16_t baroGetTemperature(void);
 bool baroIsHealthy(void);
 
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
 float altitudeToPressure(const float altCm);
 #endif
 

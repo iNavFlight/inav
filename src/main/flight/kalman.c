@@ -21,7 +21,7 @@
 #ifdef USE_GYRO_KALMAN
 
 #include <string.h>
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
 #include "arm_math.h"
 #else
 #include <math.h>
@@ -95,7 +95,7 @@ static void updateAxisVariance(kalman_t *kalmanState, float rate)
     kalmanState->axisMean = kalmanState->axisSumMean * kalmanState->inverseN;
     kalmanState->axisVar = kalmanState->axisSumVar * kalmanState->inverseN;
 
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     float squirt;
     arm_sqrt_f32(kalmanState->axisVar, &squirt);
 #else

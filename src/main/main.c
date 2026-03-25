@@ -34,20 +34,16 @@
 
 #ifdef SOFTSERIAL_LOOPBACK
 serialPort_t *loopbackPort;
-#endif
-
 
 static void loopbackInit(void)
 {
-#ifdef SOFTSERIAL_LOOPBACK
+
     loopbackPort = softSerialLoopbackPort();
     serialPrint(loopbackPort, "LOOPBACK\r\n");
-#endif
 }
 
 static void processLoopback(void)
 {
-#ifdef SOFTSERIAL_LOOPBACK
     if (loopbackPort) {
         uint8_t bytesWaiting;
         while ((bytesWaiting = serialRxBytesWaiting(loopbackPort))) {
@@ -55,10 +51,30 @@ static void processLoopback(void)
             serialWrite(loopbackPort, b);
         };
     }
+}
 #endif
+
+
+static void* mainThread(void *arg)
+{
+    UNUSED(arg);
+    init();
+#ifdef SOFTSERIAL_LOOPBACK
+    loopbackInit();
+#endif
+    while (true) {
+#if defined(SITL_BUILD)
+        serialProxyProcess();
+#endif
+        scheduler();
+#ifdef SOFTSERIAL_LOOPBACK
+        processLoopback();
+#endif
+    }
+    return NULL;
 }
 
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
 int main(int argc, char *argv[])
 {
     parseArguments(argc, argv);
@@ -66,14 +82,9 @@ int main(int argc, char *argv[])
 int main(void)
 {
 #endif
-    init();
-    loopbackInit();
-
-    while (true) {
-#if defined(SITL_BUILD)
-        serialProxyProcess();
+#if !defined(WASM_BUILD)
+    mainThread(NULL);
+#else
+    wasmStart(mainThread);
 #endif
-        scheduler();
-        processLoopback();
-    }
 }

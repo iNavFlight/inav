@@ -141,6 +141,10 @@ typedef enum {
     TASK_GEOZONE,
 #endif
 
+#if defined(WASM_BUILD)
+    TASK_WASM_UPDATE_XPLANE,
+#endif
+
     /* Count of real tasks */
     TASK_COUNT,
 

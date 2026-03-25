@@ -158,14 +158,14 @@ void validateNavConfig(void)
 // Stubs to handle target-specific configs
 __attribute__((weak)) void validateAndFixTargetConfig(void)
 {
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     __NOP();
 #endif
 }
 
 __attribute__((weak)) void targetConfiguration(void)
 {
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
     __NOP();
 #endif
 }

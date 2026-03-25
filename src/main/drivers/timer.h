@@ -41,7 +41,7 @@ typedef uint32_t timCCR_t;
 typedef uint32_t timCCER_t;
 typedef uint32_t timSR_t;
 typedef uint32_t timCNT_t;
-#elif defined(SITL_BUILD)
+#elif defined(SITL_BUILD) || defined(WASM_BUILD)
 typedef uint32_t timCCR_t;
 typedef uint32_t timCCER_t;
 typedef uint32_t timSR_t;
@@ -58,7 +58,7 @@ typedef uint32_t timCNT_t;
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
 #elif defined(AT32F43x)
 #define HARDWARE_TIMER_DEFINITION_COUNT 15
-#elif defined(SITL_BUILD)
+#elif defined(SITL_BUILD) || defined(WASM_BUILD)
 #define HARDWARE_TIMER_DEFINITION_COUNT 0
 #else
 #error "Unknown CPU defined"

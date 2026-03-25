@@ -31,6 +31,7 @@
 #include "common/utils.h"
 
 #include "drivers/time.h"
+#include <stdio.h>
 
 STATIC_FASTRAM cfTask_t *currentTask = NULL;
 

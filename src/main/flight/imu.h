@@ -89,6 +89,6 @@ void imuTransformVectorEarthToBody(fpVector3_t * v);
 
 void imuInit(void);
 
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
 void imuSetAttitudeRPY(int16_t roll, int16_t pitch, int16_t yaw);
 #endif

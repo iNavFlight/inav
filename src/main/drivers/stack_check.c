@@ -77,7 +77,7 @@ uint32_t stackUsedSize(void)
 }
 #endif
 
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD) || defined(WASM_BUILD))
 
 uint32_t stackTotalSize(void)
 {

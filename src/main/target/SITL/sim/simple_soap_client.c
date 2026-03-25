@@ -107,8 +107,10 @@ void soapClientSendRequest(soap_client_t *client, const char* action, const char
     va_end(va);
 }
 
+
 static bool soapClientPoll(soap_client_t *client, uint32_t timeout_ms)
 {
+#if !defined(WASM_BUILD)
     fd_set fds;
     struct timeval tv;
 
@@ -121,21 +123,29 @@ static bool soapClientPoll(soap_client_t *client, uint32_t timeout_ms)
     if (select(client->sockedFd + 1, &fds, NULL, NULL, &tv) != 1) {
         return false;
     }
+#else 
+    (void)(timeout_ms);
+    (void)(client);
+#endif
+    // Emscripten does not support select(), so we just skip it here
     return true;
+
 }
 
 
 char* soapClientReceive(soap_client_t *client)
 {
      if (!client->isInitalised){
-        return false;
+        return NULL;
     }
 
+    
     if (!soapClientPoll(client, 1000)) {
-        return false;
+        return NULL;
     }
 
-    ssize_t size = recv(client->sockedFd, recBuffer, REC_BUF_SIZE, 0);
+
+     ssize_t size = recv(client->sockedFd, recBuffer, REC_BUF_SIZE, 0);
 
     if (size <= 0) {
         return NULL;
