@@ -53,6 +53,8 @@ typedef enum portOptions_t {
 
     SERIAL_LONGSTOP      = 0 << 6,
     SERIAL_SHORTSTOP     = 1 << 6,
+    
+    SERIAL_RXTX_SWAP     = 1 << 7
 } portOptions_t;
 
 typedef void (*serialReceiveCallbackPtr)(uint16_t data, void *rxCallbackData);   // used by serial drivers to return frames to app

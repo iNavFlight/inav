@@ -27,6 +27,7 @@
 #include "platform.h"
 
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/utils.h"
 #include "drivers/io.h"
@@ -86,6 +87,11 @@ static void uartReconfigure(uartPort_t *uartPort)
 
     usartConfigurePinInversion(uartPort);
 
+    if (uartPort->port.options & SERIAL_RXTX_SWAP)
+    {
+      SET_BIT(uartPort->USARTx->CR2, USART_CR2_SWAP);
+    }
+
     if (uartPort->port.options & SERIAL_BIDIR)
     {
         HAL_HalfDuplex_Init(&uartPort->Handle);
@@ -111,6 +117,7 @@ static void uartReconfigure(uartPort_t *uartPort)
         /* Enable the UART Transmit Data Register Empty Interrupt */
         SET_BIT(uartPort->USARTx->CR1, USART_CR1_TXEIE);
     }
+
     return;
 }
 
@@ -154,7 +161,6 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
     } else {
         return (serialPort_t *)s;
     }
-
 
     // common serial initialisation code should move to serialPort::init()
     s->port.rxBufferHead = s->port.rxBufferTail = 0;

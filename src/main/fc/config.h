@@ -94,6 +94,13 @@ typedef struct beeperConfig_s {
 
 PG_DECLARE(beeperConfig_t, beeperConfig);
 
+typedef struct CrsfRxPortConfig_s {
+    bool swap;
+    bool preferred_swap;
+} crsfRxPortConfig_t;
+
+PG_DECLARE(crsfRxPortConfig_t, crsfRxPortConfig);
+
 typedef struct adcChannelConfig_s {
     uint8_t adcFunctionChannel[ADC_FUNCTION_COUNT];
 } adcChannelConfig_t;
