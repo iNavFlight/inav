@@ -57,6 +57,7 @@
 
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
+#include "sensors/pitotmeter.h"
 
 #include "telemetry/crsf.h"
 #include "telemetry/telemetry.h"
@@ -296,6 +297,26 @@ static void crsfBarometerAltitude(sbuf_t *dst)
     crsfSerialize16(dst, altitude_packed);
 }
 
+/*
+0x0A Airspeed
+Payload:
+uint16_t    Airspeed ( km/h / 10 )
+*/
+static void crsfFrameAirspeed(sbuf_t *dst)
+{
+    sbufWriteU8(dst, CRSF_FRAME_AIRSPEED_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_AIRSPEED);
+
+    // INAV airspeed is in cm/s
+    // CRSF airspeed wants 0.1 km/h
+    // 1 cm/s = 0.036 km/h = 0.36 (0.1 km/h)
+    // so airspeed_kmh_x10 = cm/s * 36 / 100, rounded
+    const float airspeedCms = getAirspeedEstimate();
+    const uint16_t airspeedKmhX10 = (uint16_t)(airspeedCms * 0.36f + 0.5f);
+
+    crsfSerialize16(dst, airspeedKmhX10);
+}
+
 typedef enum {
     CRSF_ACTIVE_ANTENNA1 = 0,
     CRSF_ACTIVE_ANTENNA2 = 1
@@ -465,6 +486,7 @@ typedef enum {
     CRSF_FRAME_GPS_INDEX,
     CRSF_FRAME_VARIO_SENSOR_INDEX,
     CRSF_FRAME_BAROMETER_ALTITUDE_INDEX,
+    CRSF_FRAME_AIRSPEED_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -545,6 +567,11 @@ static void processCrsf(void)
         crsfFinalize(dst);
     }
 #endif
+    if (currentSchedule & BV(CRSF_FRAME_AIRSPEED_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameAirspeed(dst);
+        crsfFinalize(dst);
+    }
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
 
@@ -583,6 +610,9 @@ void initCrsfTelemetry(void)
         crsfSchedule[index++] = BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX);
     }
 #endif
+    if (sensors(SENSOR_PITOT)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_AIRSPEED_INDEX);
+    }
     crsfScheduleCount = (uint8_t)index;
 }
 
@@ -658,6 +688,9 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
 #endif
     case CRSF_FRAMETYPE_VARIO_SENSOR:
         crsfFrameVarioSensor(sbuf);
+        break;
+    case CRSF_FRAMETYPE_AIRSPEED:
+        crsfFrameAirspeed(sbuf);
         break;
     }
     const int frameSize = crsfFinalizeBuf(sbuf, frame);
