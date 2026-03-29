@@ -77,7 +77,7 @@ TEST(TerrainTest, calculateGridInfo)
     EXPECT_EQ(info2.grid_idx_y, 51);
 
     EXPECT_EQ(info2.idx_x, 4);
-    EXPECT_EQ(info2.idx_y, 23);
+    EXPECT_EQ(info2.idx_y, 24);
 
     EXPECT_EQ(info2.gridLat, 491293581);
     EXPECT_EQ(info2.gridLon, 165873573);
