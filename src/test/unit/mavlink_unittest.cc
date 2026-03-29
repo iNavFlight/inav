@@ -100,9 +100,14 @@ static navWaypoint_t lastWaypoint;
 static int setWaypointCalls;
 static int resetWaypointCalls;
 static int mavlinkRxHandleCalls;
+static int altitudeTargetCalls;
+static geoAltitudeDatumFlag_e lastAltitudeDatum;
+static int32_t lastAltitudeTargetCm;
+static bool altitudeTargetAccepted;
 static bool gcsValid;
 static int waypointCount;
 static navWaypoint_t waypointStore[4];
+static float estimatedPosition[3];
 
 static void resetSerialBuffers(void)
 {
@@ -137,9 +142,14 @@ static void initMavlinkTestState(void)
     setWaypointCalls = 0;
     resetWaypointCalls = 0;
     mavlinkRxHandleCalls = 0;
+    altitudeTargetCalls = 0;
+    lastAltitudeDatum = NAV_WP_TAKEOFF_DATUM;
+    lastAltitudeTargetCm = 0;
+    altitudeTargetAccepted = true;
     gcsValid = true;
     waypointCount = 0;
     memset(waypointStore, 0, sizeof(waypointStore));
+    memset(estimatedPosition, 0, sizeof(estimatedPosition));
     memset(&rxLinkStatistics, 0, sizeof(rxLinkStatistics));
 
     telemetryConfigMutable()->mavlink.sysid = 1;
@@ -542,7 +552,7 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntSetsWaypoint)
     mavlink_message_t msg;
     mavlink_msg_set_position_target_global_int_pack(
         42, 200, &msg,
-        0, 1, MAV_COMP_ID_MISSIONPLANNER,
+        0, 1, 0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, 0,
         375000000, -1222500000, 12.3f,
         0, 0, 0, 0, 0, 0, 0, 0);
@@ -564,7 +574,7 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntUsesAbsoluteAltitude)
     mavlink_message_t msg;
     mavlink_msg_set_position_target_global_int_pack(
         42, 200, &msg,
-        0, 1, MAV_COMP_ID_MISSIONPLANNER,
+        0, 1, 0,
         MAV_FRAME_GLOBAL_INT, 0,
         375000000, -1222500000, 12.3f,
         0, 0, 0, 0, 0, 0, 0, 0);
@@ -574,6 +584,59 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntUsesAbsoluteAltitude)
 
     EXPECT_EQ(setWaypointCalls, 1);
     EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
+}
+
+TEST(MavlinkTelemetryTest, CommandLongChangeAltitudeUsesRequestedDatum)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(
+        42, 200, &msg,
+        1, MAV_COMP_ID_MISSIONPLANNER,
+        MAV_CMD_DO_CHANGE_ALTITUDE,
+        0,
+        12.3f, (float)MAV_FRAME_GLOBAL_RELATIVE_ALT, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_COMMAND_ACK);
+
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_CHANGE_ALTITUDE);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(altitudeTargetCalls, 1);
+    EXPECT_EQ(lastAltitudeDatum, NAV_WP_TAKEOFF_DATUM);
+    EXPECT_EQ(lastAltitudeTargetCm, 1230);
+}
+
+TEST(MavlinkTelemetryTest, SetPositionTargetLocalNedUpdatesAltitudeOnly)
+{
+    initMavlinkTestState();
+    estimatedPosition[Z] = 1000.0f;
+
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_local_ned_pack(
+        42, 200, &msg,
+        0, 1, 0,
+        MAV_FRAME_LOCAL_OFFSET_NED,
+        POSITION_TARGET_TYPEMASK_X_IGNORE | POSITION_TARGET_TYPEMASK_Y_IGNORE,
+        0.0f, 0.0f, -2.5f,
+        0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(altitudeTargetCalls, 1);
+    EXPECT_EQ(lastAltitudeDatum, NAV_WP_TAKEOFF_DATUM);
+    EXPECT_EQ(lastAltitudeTargetCm, 1250);
 }
 
 TEST(MavlinkTelemetryTest, RequestDataStreamStopsStream)
@@ -881,8 +944,7 @@ bool osdUsingScaledThrottle(void)
 
 float getEstimatedActualPosition(int axis)
 {
-    UNUSED(axis);
-    return 0.0f;
+    return estimatedPosition[axis];
 }
 
 float getEstimatedActualVelocity(int axis)
@@ -968,6 +1030,14 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t *wp)
     UNUSED(wpNumber);
     lastWaypoint = *wp;
     setWaypointCalls++;
+}
+
+bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm)
+{
+    lastAltitudeDatum = datumFlag;
+    lastAltitudeTargetCm = targetAltitudeCm;
+    altitudeTargetCalls++;
+    return altitudeTargetAccepted;
 }
 
 int getWaypointCount(void)
