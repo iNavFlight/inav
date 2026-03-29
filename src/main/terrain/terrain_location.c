@@ -84,7 +84,7 @@ neVector_t gpsGetDistanceNE(const gpsLocation_t *a, const gpsLocation_t *b)
 {
     neVector_t v;
     v.north = (float)(b->lat - a->lat) * LOCATION_SCALING_FACTOR;
-    v.east  = (float)diffLongitude(b->lon, a->lon) * LOCATION_SCALING_FACTOR * longitudeScale((b->lat + b->lat)/2);
+    v.east  = (float)diffLongitude(b->lon, a->lon) * LOCATION_SCALING_FACTOR * longitudeScale((b->lat + a->lat)/2);
     return v;
 }
 

@@ -65,10 +65,12 @@ PG_RESET_TEMPLATE(terrainConfig_t, terrainConfig,
 
 static struct {
     timeMs_t lastUpdate;
-    int32_t terrainAGL;
+    int32_t terrainAGL;     // cm
+    int32_t terrainAMSL;    // cm
 } terrainHeight = {
     .terrainAGL = 0,
     .lastUpdate = 0,
+    .terrainAMSL = 0,
 };
 
 static struct {
@@ -182,11 +184,20 @@ void terrainUpdateTask(timeUs_t currentTimeUs)
     {
         float heightASL = getHeightAmslMeters(&gpsSol.llh);
         if(heightASL >= 0){
-            terrainHeight.terrainAGL =  MAX(0, ((int32_t)getEstimatedActualPosition(Z) + (int32_t)(terrainHomePos.homeAltitudeM * 100.0f)) - (int32_t)(heightASL * 100.0f));
+            terrainHeight.terrainAMSL = (int32_t)(heightASL * 100.0f);
+            terrainHeight.terrainAGL =  MAX(0, ((int32_t)getEstimatedActualPosition(Z) + (int32_t)(terrainHomePos.homeAltitudeM * 100.0f)) - terrainHeight.terrainAMSL);
             terrainHeight.lastUpdate = millis();
         }
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////
+}
+
+int32_t terrainGetLastAMSL(void){
+    if(!terrainConfig()->terrainEnabled){
+        return TERRAIN_STATUS_NO_DATA;
+    }
+
+    return terrainHeight.lastUpdate + TERRAIN_NO_DATA_DELAY_MS < millis() ? TERRAIN_STATUS_NO_DATA : terrainHeight.terrainAMSL;
 }
 
 int32_t terrainGetLastDistanceCm(void)
@@ -196,7 +207,7 @@ int32_t terrainGetLastDistanceCm(void)
         return TERRAIN_STATUS_NO_DATA;
     }
 
-    return terrainHeight.lastUpdate + 1000 < millis() ? TERRAIN_STATUS_NO_DATA : terrainHeight.terrainAGL;
+    return terrainHeight.lastUpdate + TERRAIN_NO_DATA_DELAY_MS < millis() ? TERRAIN_STATUS_NO_DATA : terrainHeight.terrainAGL;
 }
 
 #endif

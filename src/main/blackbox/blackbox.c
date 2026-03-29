@@ -520,6 +520,10 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
     {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
 #endif
+#ifdef USE_TERRAIN
+    {"terrainAGL",                -1, UNSIGNED, PREDICT(0),             ENCODING(SIGNED_VB)},
+    {"terrainAMSL",               -1, UNSIGNED, PREDICT(0),             ENCODING(SIGNED_VB)},
+#endif
 };
 
 #define BLACKBOX_FIRST_HEADER_SENDING_STATE BLACKBOX_STATE_SEND_HEADER
@@ -624,6 +628,10 @@ typedef struct blackboxSlowState_s {
 #ifdef USE_ESC_SENSOR
     uint32_t escRPM;
     int8_t escTemperature;
+#endif
+#ifdef USE_TERRAIN
+    int32_t terrainAGL;
+    int32_t terrainAMSL;
 #endif
     uint16_t rxUpdateRate;
     uint8_t activeWpNumber;
@@ -1409,6 +1417,10 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.escRPM);
     blackboxWriteSignedVB(slowHistory.escTemperature);
 #endif
+#ifdef USE_TERRAIN
+    blackboxWriteSignedVB(slowHistory.terrainAGL);
+    blackboxWriteSignedVB(slowHistory.terrainAMSL);
+#endif
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1483,6 +1495,10 @@ static void loadSlowState(blackboxSlowState_t *slow)
     escSensorData_t * escSensor = escSensorGetData();
     slow->escRPM = escSensor->rpm;
     slow->escTemperature = escSensor->temperature;
+#endif
+#ifdef USE_TERRAIN
+    slow->terrainAGL = terrainGetLastDistanceCm();
+    slow->terrainAMSL = terrainGetLastAMSL();
 #endif
 }
 

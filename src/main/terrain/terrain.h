@@ -30,7 +30,7 @@
 #include "navigation/navigation.h"
 
 #define TERRAIN_TASK_RATE_HZ 5
-#define TERRAIN_TASK_ 200
+#define TERRAIN_NO_DATA_DELAY_MS 1000
 
 #define TERRAIN_STATUS_FAILURE (-1)
 #define TERRAIN_STATUS_WRONG_BLOC_SIZE (-2)
@@ -148,4 +148,6 @@ PG_DECLARE(terrainConfig_t, terrainConfig);
 
 void terrainInit(void);
 void terrainUpdateTask(timeUs_t currentTimeUs);
+int32_t terrainGetLastAMSL(void);
 int32_t terrainGetLastDistanceCm(void);
+
