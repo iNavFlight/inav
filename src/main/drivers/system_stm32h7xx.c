@@ -62,8 +62,6 @@ uint32_t systemBootloaderAddress(void)
 
 void systemInit(void)
 {
-    checkForBootLoaderRequest();
-
     // Configure NVIC preempt/priority groups
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITY_GROUPING);
 

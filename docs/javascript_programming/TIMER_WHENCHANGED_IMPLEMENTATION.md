@@ -8,9 +8,10 @@ The `timer()` and `whenChanged()` functions provide advanced timing and change-d
 
 ### Syntax
 ```javascript
-timer(onMs, offMs, () => {
+inav.events.timer(onMs, offMs, () => {
   // actions
 });
+
 ```
 
 ### Description
@@ -23,12 +24,12 @@ Execute actions on a periodic timer with on/off cycling. The action executes dur
 
 ### Example
 ```javascript
-const { override, timer } = inav;
 
 // Flash VTX power: ON for 1 second, OFF for 2 seconds, repeat
-timer(1000, 2000, () => {
-  override.vtx.power = 4;
+inav.events.timer(1000, 2000, () => {
+  inav.override.vtx.power = 4;
 });
+
 ```
 
 **Generated Logic Conditions:**
@@ -47,9 +48,10 @@ logic 1 1 0 25 0 0 0 0 4 0         # Set VTX power = 4
 
 ### Syntax
 ```javascript
-whenChanged(value, threshold, () => {
+inav.events.whenChanged(value, threshold, () => {
   // actions
 });
+
 ```
 
 ### Description
@@ -62,12 +64,12 @@ Execute actions when a monitored value changes by more than the specified thresh
 
 ### Example
 ```javascript
-const { flight, gvar, whenChanged } = inav;
 
 // Log altitude whenever it changes by 50cm or more
-whenChanged(flight.altitude, 50, () => {
-  gvar[0] = flight.altitude;
+inav.events.whenChanged(inav.flight.altitude, 50, () => {
+  inav.gvar[0] = inav.flight.altitude;
 });
+
 ```
 
 **Generated Logic Conditions:**
@@ -89,31 +91,33 @@ Both functions support perfect round-trip transpilation/decompilation:
 ### timer() Round-Trip
 ```javascript
 // Original JavaScript
-timer(1000, 2000, () => { gvar[0] = 1; });
+inav.events.timer(1000, 2000, () => { inav.gvar[0] = 1; });
 
 // Transpiled to logic conditions
 logic 0 1 -1 49 0 1000 0 2000 0
 logic 1 1 0 18 0 0 0 0 1 0
 
 // Decompiled back to JavaScript
-timer(1000, 2000, () => {
-  gvar[0] = 1;
+inav.events.timer(1000, 2000, () => {
+  inav.gvar[0] = 1;
 });
+
 ```
 
 ### whenChanged() Round-Trip
 ```javascript
 // Original JavaScript
-whenChanged(flight.altitude, 50, () => { gvar[0] = flight.altitude; });
+inav.events.whenChanged(inav.flight.altitude, 50, () => { inav.gvar[0] = inav.flight.altitude; });
 
 // Transpiled to logic conditions
 logic 0 1 -1 50 2 12 0 50 0
 logic 1 1 0 18 0 0 2 12 0
 
 // Decompiled back to JavaScript
-whenChanged(flight.altitude, 50, () => {
-  gvar[0] = flight.altitude;
+inav.events.whenChanged(inav.flight.altitude, 50, () => {
+  inav.gvar[0] = inav.flight.altitude;
 });
+
 ```
 
 ## API Definitions
@@ -129,7 +133,7 @@ timer: {
     offMs: { type: 'number', unit: 'ms', desc: 'Duration to wait between executions' },
     action: { type: 'function', desc: 'Action to execute during on-time' }
   },
-  example: 'timer(1000, 5000, () => { override.vtx.power = 4; })'
+  example: 'inav.events.timer(1000, 5000, () => { inav.override.vtx.power = 4; })'
 },
 
 whenChanged: {
@@ -140,8 +144,9 @@ whenChanged: {
     threshold: { type: 'number', desc: 'Change threshold' },
     action: { type: 'function', desc: 'Action to execute on change' }
   },
-  example: 'whenChanged(flight.altitude, 100, () => { gvar[0] = flight.altitude; })'
+  example: 'inav.events.whenChanged(inav.flight.altitude, 100, () => { inav.gvar[0] = inav.flight.altitude; })'
 }
+
 ```
 
 ## See Also

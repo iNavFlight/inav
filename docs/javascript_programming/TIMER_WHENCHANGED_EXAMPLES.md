@@ -4,184 +4,185 @@
 
 ### Example 1: Periodic VTX Power Boost
 ```javascript
-const { override, timer } = inav;
 
 // Boost VTX power to maximum for 1 second every 5 seconds
-timer(1000, 5000, () => {
-  override.vtx.power = 4;
+inav.events.timer(1000, 5000, () => {
+  inav.override.vtx.power = 4;
 });
+
 ```
 
 ### Example 2: Flashing OSD Layout
 ```javascript
-const { override, timer } = inav;
 
 // Alternate between OSD layout 0 and 1 every second
-timer(1000, 1000, () => {
-  override.osdLayout = 1;
+inav.events.timer(1000, 1000, () => {
+  inav.override.osdLayout = 1;
 });
+
 ```
 
 ### Example 3: Periodic Status Check
 ```javascript
-const { flight, gvar, timer } = inav;
 
 // Record battery voltage every 10 seconds for 100ms
-timer(100, 10000, () => {
-  gvar[0] = flight.vbat;
-  gvar[1] = flight.current;
+inav.events.timer(100, 10000, () => {
+  inav.gvar[0] = inav.flight.vbat;
+  inav.gvar[1] = inav.flight.current;
 });
+
 ```
 
 ### Example 4: Warning Beep Pattern
 ```javascript
-const { override, timer } = inav;
 
 // Beep pattern: 200ms on, 200ms off, 200ms on, 5s off
 // (Would need multiple timers or different approach for complex patterns)
-timer(200, 200, () => {
-  override.rcChannel(8, 2000); // Beeper channel
+inav.events.timer(200, 200, () => {
+  inav.override.rcChannel(8, 2000); // Beeper channel
 });
+
 ```
 
 ## whenChanged() Examples
 
 ### Example 1: Altitude Change Logger
 ```javascript
-const { flight, gvar, whenChanged } = inav;
 
 // Log altitude whenever it changes by 50cm or more
-whenChanged(flight.altitude, 50, () => {
-  gvar[0] = flight.altitude;
+inav.events.whenChanged(inav.flight.altitude, 50, () => {
+  inav.gvar[0] = inav.flight.altitude;
 });
+
 ```
 
 ### Example 2: RSSI Drop Detection
 ```javascript
-const { flight, override, whenChanged } = inav;
 
 // Boost VTX power when RSSI drops by 10 or more
-whenChanged(flight.rssi, 10, () => {
-  if (flight.rssi < 50) {
-    override.vtx.power = 4;
+inav.events.whenChanged(inav.flight.rssi, 10, () => {
+  if (inav.flight.rssi < 50) {
+    inav.override.vtx.power = 4;
   }
 });
+
 ```
 
 ### Example 3: Speed Change Tracker
 ```javascript
-const { flight, gvar, whenChanged } = inav;
 
 // Track ground speed changes of 100cm/s or more
-whenChanged(flight.groundSpeed, 100, () => {
-  gvar[1] = flight.groundSpeed;
+inav.events.whenChanged(inav.flight.groundSpeed, 100, () => {
+  inav.gvar[1] = inav.flight.groundSpeed;
 });
+
 ```
 
 ### Example 4: Battery Voltage Monitor
 ```javascript
-const { flight, gvar, whenChanged } = inav;
 
 // Record voltage whenever it changes by 1 unit (0.1V)
-whenChanged(flight.vbat, 1, () => {
-  gvar[2] = flight.vbat;
-  gvar[3] = flight.mahDrawn;
+inav.events.whenChanged(inav.flight.vbat, 1, () => {
+  inav.gvar[2] = inav.flight.vbat;
+  inav.gvar[3] = inav.flight.mahDrawn;
 });
+
 ```
 
 ### Example 5: Climb Rate Detection
 ```javascript
-const { flight, override, whenChanged } = inav;
 
 // Detect rapid climbs (>50cm/s change in vertical speed)
-whenChanged(flight.verticalSpeed, 50, () => {
-  if (flight.verticalSpeed > 200) {
+inav.events.whenChanged(inav.flight.verticalSpeed, 50, () => {
+  if (inav.flight.verticalSpeed > 200) {
     // Climbing fast - reduce throttle scale
-    override.throttleScale = 80;
+    inav.override.throttleScale = 80;
   }
 });
+
 ```
 
 ## Combined Examples
 
 ### Example 1: Timer + WhenChanged
 ```javascript
-const { flight, override, gvar, timer, whenChanged } = inav;
 
 // Periodic VTX boost
-timer(1000, 5000, () => {
-  override.vtx.power = 4;
+inav.events.timer(1000, 5000, () => {
+  inav.override.vtx.power = 4;
 });
 
 // Log altitude changes
-whenChanged(flight.altitude, 100, () => {
-  gvar[0] = flight.altitude;
+inav.events.whenChanged(inav.flight.altitude, 100, () => {
+  inav.gvar[0] = inav.flight.altitude;
 });
+
 ```
 
 ### Example 2: Conditional Timer
 ```javascript
-const { flight, override, timer } = inav;
 
 // Only run timer when armed
-if (flight.isArmed) {
-  timer(500, 500, () => {
-    override.osdLayout = 2;
+if (inav.flight.isArmed) {
+  inav.events.timer(500, 500, () => {
+    inav.override.osdLayout = 2;
   });
 }
+
 ```
 
 ### Example 3: Emergency Response System
 ```javascript
-const { flight, override, gvar, whenChanged } = inav;
 
 // Monitor RSSI drops
-whenChanged(flight.rssi, 5, () => {
-  if (flight.rssi < 30) {
+inav.events.whenChanged(inav.flight.rssi, 5, () => {
+  if (inav.flight.rssi < 30) {
     // RSSI critical - max VTX power
-    override.vtx.power = 4;
-    gvar[7] = 1; // Set emergency flag
+    inav.override.vtx.power = 4;
+    inav.gvar[7] = 1; // Set emergency flag
   }
 });
 
 // Monitor altitude changes
-whenChanged(flight.altitude, 200, () => {
-  if (flight.altitude > 10000) {
+inav.events.whenChanged(inav.flight.altitude, 200, () => {
+  if (inav.flight.altitude > 10000) {
     // Too high - warn
-    gvar[6] = flight.altitude;
+    inav.gvar[6] = inav.flight.altitude;
   }
 });
+
 ```
 
 ### Example 4: Data Logging System
 ```javascript
-const { flight, gvar, timer, whenChanged } = inav;
 
 // Periodic logging every 5 seconds
-timer(100, 5000, () => {
-  gvar[0] = flight.vbat;
-  gvar[1] = flight.current;
-  gvar[2] = flight.altitude;
+inav.events.timer(100, 5000, () => {
+  inav.gvar[0] = inav.flight.vbat;
+  inav.gvar[1] = inav.flight.current;
+  inav.gvar[2] = inav.flight.altitude;
 });
 
 // Event-based logging on significant changes
-whenChanged(flight.altitude, 500, () => {
-  gvar[3] = flight.altitude;
-  gvar[4] = flight.verticalSpeed;
+inav.events.whenChanged(inav.flight.altitude, 500, () => {
+  inav.gvar[3] = inav.flight.altitude;
+  inav.gvar[4] = inav.flight.verticalSpeed;
 });
 
-whenChanged(flight.groundSpeed, 200, () => {
-  gvar[5] = flight.groundSpeed;
+inav.events.whenChanged(inav.flight.groundSpeed, 200, () => {
+  inav.gvar[5] = inav.flight.groundSpeed;
 });
+
 ```
 
 ## Logic Condition Output Examples
 
 ### timer() Output
 ```javascript
-timer(1000, 2000, () => {
-  gvar[0] = 1;
+inav.events.timer(1000, 2000, () => {
+  inav.gvar[0] = 1;
 });
+
 ```
 Generates:
 ```
@@ -191,9 +192,10 @@ logic 1 1 0 18 0 0 0 0 1 0         # gvar[0] = 1
 
 ### whenChanged() Output
 ```javascript
-whenChanged(flight.altitude, 50, () => {
-  gvar[0] = flight.altitude;
+inav.events.whenChanged(inav.flight.altitude, 50, () => {
+  inav.gvar[0] = inav.flight.altitude;
 });
+
 ```
 Generates:
 ```
@@ -239,29 +241,32 @@ logic 1 1 0 18 0 0 2 12 0          # gvar[0] = altitude
 ### Pattern 1: Status Monitor
 ```javascript
 // Log key parameters when they change significantly
-whenChanged(flight.vbat, 2, () => { gvar[0] = flight.vbat; });
-whenChanged(flight.rssi, 10, () => { gvar[1] = flight.rssi; });
-whenChanged(flight.altitude, 100, () => { gvar[2] = flight.altitude; });
+inav.events.whenChanged(inav.flight.vbat, 2, () => { inav.gvar[0] = inav.flight.vbat; });
+inav.events.whenChanged(inav.flight.rssi, 10, () => { inav.gvar[1] = inav.flight.rssi; });
+inav.events.whenChanged(inav.flight.altitude, 100, () => { inav.gvar[2] = inav.flight.altitude; });
+
 ```
 
 ### Pattern 2: Periodic Beacon
 ```javascript
 // Boost VTX power briefly every 10 seconds
-timer(500, 10000, () => {
-  override.vtx.power = 4;
+inav.events.timer(500, 10000, () => {
+  inav.override.vtx.power = 4;
 });
+
 ```
 
 ### Pattern 3: Adaptive Response
 ```javascript
 // React to rapid altitude changes
-whenChanged(flight.altitude, 200, () => {
-  if (flight.altitude < 1000) {
-    override.throttleScale = 120; // Boost
+inav.events.whenChanged(inav.flight.altitude, 200, () => {
+  if (inav.flight.altitude < 1000) {
+    inav.override.throttleScale = 120; // Boost
   } else {
-    override.throttleScale = 80; // Reduce
+    inav.override.throttleScale = 80; // Reduce
   }
 });
+
 ```
 
 ## Troubleshooting

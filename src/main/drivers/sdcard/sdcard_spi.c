@@ -62,7 +62,17 @@ static void sdcardSpi_deselect(void)
     // As per the SD-card spec, give the card 8 dummy clocks so it can finish its operation
     //spiTransferByte(SDCARD_SPI_INSTANCE, 0xFF);
 
-    while (busIsBusy(sdcard.dev)) { __NOP(); }
+    int timeout = 100000;
+    while (busIsBusy(sdcard.dev)) {
+        if (timeout-- == 0) {
+            sdcard.failureCount++;
+            if (sdcard.failureCount >= SDCARD_MAX_CONSECUTIVE_FAILURES) {
+                sdcard.state = SDCARD_STATE_NOT_PRESENT;
+            }
+            break;
+        }
+        __NOP();
+    }
 
     busDeselectDevice(sdcard.dev);
 }

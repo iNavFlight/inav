@@ -73,7 +73,10 @@ static bool wasLimitingPower = false;
 #endif
 
 void powerLimiterInit(void) {
-    if (currentBatteryProfile->powerLimits.burstCurrent < currentBatteryProfile->powerLimits.continuousCurrent) {
+    // Only enforce burst >= continuous if burst is enabled (non-zero)
+    // A value of 0 means "disabled/unlimited", not "zero amps allowed"
+    if (currentBatteryProfile->powerLimits.burstCurrent > 0 &&
+        currentBatteryProfile->powerLimits.burstCurrent < currentBatteryProfile->powerLimits.continuousCurrent) {
         currentBatteryProfileMutable->powerLimits.burstCurrent = currentBatteryProfile->powerLimits.continuousCurrent;
     }
 
@@ -87,7 +90,9 @@ void powerLimiterInit(void) {
     pt1FilterInitRC(&currentThrLimitingBaseFilter, LIMITING_THR_FILTER_TCONST, 0);
 
 #ifdef USE_ADC
-    if (currentBatteryProfile->powerLimits.burstPower < currentBatteryProfile->powerLimits.continuousPower) {
+    // Only enforce burst >= continuous if burst is enabled (non-zero)
+    if (currentBatteryProfile->powerLimits.burstPower > 0 &&
+        currentBatteryProfile->powerLimits.burstPower < currentBatteryProfile->powerLimits.continuousPower) {
         currentBatteryProfileMutable->powerLimits.burstPower = currentBatteryProfile->powerLimits.continuousPower;
     }
 

@@ -126,7 +126,7 @@ static EXTENDED_FASTRAM pt1Filter_t headingHoldRateFilter;
 static EXTENDED_FASTRAM pt1Filter_t fixedWingTpaFilter;
 
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
-STATIC_FASTRAM bool pidGainsUpdateRequired;
+STATIC_FASTRAM bool pidGainsUpdateRequired= true;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
 #ifdef USE_BLACKBOX
@@ -442,6 +442,29 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
     return scaleRangef((float) stick, -500.0f, 500.0f, -maxRateDPS, maxRateDPS);
 }
 
+static float calculateFixedWingAirspeedTPAFactor(void){
+    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
+    const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
+    float tpaFactor= powf(referenceAirspeed/airspeed, currentControlProfile->throttle.apa_pow/100.0f);
+    tpaFactor= constrainf(tpaFactor, 0.3f, 2.0f);
+    return tpaFactor;
+}
+
+// Calculate I-term scaling factor (less aggressive than P/D/FF)
+static float calculateFixedWingAirspeedITermFactor(void){
+    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
+    const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
+    const float apa_pow = currentControlProfile->throttle.apa_pow;
+
+    if (apa_pow <= 100.0f) {
+        return 1.0f;
+    }
+
+    float iTermFactor = powf(referenceAirspeed/airspeed, (apa_pow/100.0f) - 1.0f);
+    iTermFactor = constrainf(iTermFactor, 0.3f, 1.5f);
+    return iTermFactor;
+}
+
 static float calculateFixedWingTPAFactor(uint16_t throttle)
 {
     float tpaFactor;
@@ -452,9 +475,6 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
         if (throttle > getThrottleIdleValue()) {
             // Calculate TPA according to throttle
             tpaFactor = 0.5f + ((float)(currentControlProfile->throttle.pa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
-
-            // Limit to [0.5; 2] range
-            tpaFactor = constrainf(tpaFactor, 0.5f, 2.0f);
         }
         else {
             tpaFactor = 2.0f;
@@ -462,6 +482,8 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
 
         // Attenuate TPA curve according to configured amount
         tpaFactor = 1.0f + (tpaFactor - 1.0f) * (currentControlProfile->throttle.dynPID / 100.0f);
+        // Limit to [0.5; 2] range
+        tpaFactor = constrainf(tpaFactor, 0.3f, 2.0f);
     }
     else {
         tpaFactor = 1.0f;
@@ -470,20 +492,38 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
     return tpaFactor;
 }
 
-static float calculateMultirotorTPAFactor(void)
+static float calculateMultirotorTPAFactor(uint16_t throttle)
 {
     float tpaFactor;
 
     // TPA should be updated only when TPA is actually set
-    if (currentControlProfile->throttle.dynPID == 0 || rcCommand[THROTTLE] < currentControlProfile->throttle.pa_breakpoint) {
+    if (currentControlProfile->throttle.dynPID == 0 || throttle < currentControlProfile->throttle.pa_breakpoint) {
         tpaFactor = 1.0f;
-    } else if (rcCommand[THROTTLE] < getMaxThrottle()) {
-        tpaFactor = (100 - (uint16_t)currentControlProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlProfile->throttle.pa_breakpoint) / (float)(getMaxThrottle() - currentControlProfile->throttle.pa_breakpoint)) / 100.0f;
+    } else if (throttle < getMaxThrottle()) {
+        tpaFactor = (100 - (uint16_t)currentControlProfile->throttle.dynPID * (throttle - currentControlProfile->throttle.pa_breakpoint) / (float)(getMaxThrottle() - currentControlProfile->throttle.pa_breakpoint)) / 100.0f;
     } else {
-        tpaFactor = (100 - currentControlProfile->throttle.dynPID) / 100.0f;
+        tpaFactor = (100 - constrain(currentControlProfile->throttle.dynPID, 0, 100)) / 100.0f;
     }
 
     return tpaFactor;
+}
+
+static float calculateTPAThtrottle(void)
+{
+    uint16_t tpaThrottle = 0;
+    static const fpVector3_t vDown = { .v = { 0.0f, 0.0f, 1.0f } };
+
+    if (usedPidControllerType == PID_TYPE_PIFF && (currentControlProfile->throttle.fixedWingTauMs > 0)) { //fixed wing TPA with filtering
+        fpVector3_t vForward = { .v = { HeadVecEFFiltered.x, -HeadVecEFFiltered.y, -HeadVecEFFiltered.z } };
+        float groundCos = vectorDotProduct(&vForward, &vDown);
+        int16_t throttleAdjustment =  currentControlProfile->throttle.tpa_pitch_compensation * groundCos * 90.0f / 1.57079632679f; //when 1deg pitch up, increase throttle by pitch(deg)_to_throttle. cos(89 deg)*90/(pi/2)=0.99995,cos(80 deg)*90/(pi/2)=9.9493,
+        uint16_t throttleAdjusted = rcCommand[THROTTLE] + constrain(throttleAdjustment, -1000, 1000);
+        tpaThrottle = pt1FilterApply(&fixedWingTpaFilter, constrain(throttleAdjusted, 1000, 2000));
+    }
+    else {
+        tpaThrottle = rcCommand[THROTTLE]; //multirotor TPA without filtering
+    }
+    return tpaThrottle;
 }
 
 void schedulePidGainsUpdate(void)
@@ -493,22 +533,7 @@ void schedulePidGainsUpdate(void)
 
 void updatePIDCoefficients(void)
 {
-    STATIC_FASTRAM uint16_t prevThrottle = 0;
-
-    // Check if throttle changed. Different logic for fixed wing vs multirotor
-    if (usedPidControllerType == PID_TYPE_PIFF && (currentControlProfile->throttle.fixedWingTauMs > 0)) {
-        uint16_t filteredThrottle = pt1FilterApply(&fixedWingTpaFilter, rcCommand[THROTTLE]);
-        if (filteredThrottle != prevThrottle) {
-            prevThrottle = filteredThrottle;
-            pidGainsUpdateRequired = true;
-        }
-    }
-    else {
-        if (rcCommand[THROTTLE] != prevThrottle) {
-            prevThrottle = rcCommand[THROTTLE];
-            pidGainsUpdateRequired = true;
-        }
-    }
+    STATIC_FASTRAM float tpaFactorprev=-1.0f;
 
 #ifdef USE_ANTIGRAVITY
     if (usedPidControllerType == PID_TYPE_PID) {
@@ -523,21 +548,40 @@ void updatePIDCoefficients(void)
     for (int axis = 0; axis < 3; axis++) {
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
+    
+    float tpaFactor=1.0f;
+    float iTermFactor=1.0f;  // Separate factor for I-term scaling
+    if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
+        if(currentControlProfile->throttle.apa_pow>0 && pitotValidForAirspeed()){
+            tpaFactor = calculateFixedWingAirspeedTPAFactor();
+            iTermFactor = calculateFixedWingAirspeedITermFactor();  // Less aggressive I-term scaling
+        }else{
+            tpaFactor = calculateFixedWingTPAFactor(calculateTPAThtrottle());
+            iTermFactor = tpaFactor;  // Use same factor for throttle-based TPA
+        }
+    } else {
+        tpaFactor = calculateMultirotorTPAFactor(calculateTPAThtrottle());
+        iTermFactor = tpaFactor;  // Multirotor uses same factor
+    }
+    if (tpaFactor != tpaFactorprev) {
+        pidGainsUpdateRequired = true;
+    }
+    tpaFactorprev = tpaFactor;
 
+    
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
         return;
     }
 
-    const float tpaFactor = usedPidControllerType == PID_TYPE_PIFF ? calculateFixedWingTPAFactor(prevThrottle) : calculateMultirotorTPAFactor();
-
+    
     // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
     for (int axis = 0; axis < 3; axis++) {
         if (usedPidControllerType == PID_TYPE_PIFF) {
-            // Airplanes - scale all PIDs according to TPA
+            // Airplanes - scale PIDs according to TPA (I-term scaled less aggressively)
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER  * tpaFactor;
-            pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * tpaFactor;
+            pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * iTermFactor;  // Less aggressive scaling
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * tpaFactor;
             pidState[axis].kFF = pidBank()->pid[axis].FF / FP_PID_RATE_FF_MULTIPLIER * tpaFactor;
             pidState[axis].kCD = 0.0f;

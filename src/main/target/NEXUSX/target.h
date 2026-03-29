@@ -32,7 +32,7 @@
 #define SPI1_MOSI_PIN           PA7
 
 #define USE_IMU_ICM42605 // is actually ICM42688P
-#define IMU_ICM42605_ALIGN     CW180_DEG
+#define IMU_ICM42605_ALIGN     CW0_DEG
 #define ICM42605_CS_PIN        PA4
 #define ICM42605_EXTI_PIN      PB8
 #define ICM42605_SPI_BUS       BUS_SPI1
@@ -56,6 +56,10 @@
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_SPL06
+
+#define USE_MAG
+#define MAG_I2C_BUS             DEFAULT_I2C
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     DEFAULT_I2C
 

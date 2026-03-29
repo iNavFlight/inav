@@ -432,6 +432,16 @@ Max Antigravity gain. `1` means Antigravity is disabled, `2` means Iterm is allo
 
 ---
 
+### apa_pow
+
+Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. Scales P/D/FF with airspeed (I-term scaled less aggressively). Gains range from 30% (high speed) to 150% (low speed). Set to 0 to disable and use throttle-based attenuation. Recommended: 120 for aircraft with validated pitot sensor.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 200 |
+
+---
+
 ### applied_defaults
 
 Internal (configurator) hint. Should not be changed manually
@@ -1468,7 +1478,7 @@ TPA smoothing and delay time constant to reflect non-instant speed/throttle resp
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1500 | 0 | 5000 |
+| 2000 | 0 | 5000 |
 
 ---
 
@@ -1724,11 +1734,11 @@ Which SBAS mode to be used
 
 ### gps_ublox_nav_hz
 
-Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
+Navigation update rate for UBLOX receivers. M9 modules limit satellite tracking to 16 satellites at 10Hz or higher, but use 32 satellites below 10Hz for better accuracy. M10 modules work well at 8Hz with 3 constellations. Some M10 devices with high-performance clock can do up to 25Hz with 4 constellations. 8Hz is a safe, accurate default for M8/M9/M10.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 5 | 200 |
+| 8 | 5 | 200 |
 
 ---
 
@@ -1738,7 +1748,7 @@ Enable use of Beidou satellites. This is at the expense of other regional conste
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -1748,7 +1758,7 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -5614,7 +5624,7 @@ Defines rotation rate on PITCH axis that UAV will try to archive on max. stick d
 
 ### pitot_hardware
 
-Selection of pitot hardware.
+Selection of pitot hardware. VIRTUAL only works if a GPS is enabled.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -6042,6 +6052,16 @@ When feature SERIALRX is enabled, this allows connection to several receivers wh
 
 ---
 
+### servo_autotrim_iterm_rate_limit
+
+Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 50 |
+
+---
+
 ### servo_autotrim_rotation_limit
 
 Servo midpoints are only updated when total aircraft rotation is less than this threshold [deg/s]. Only applies when using `feature FW_AUTOTRIM`.
@@ -6442,13 +6462,23 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ---
 
-### tpa_rate
+### tpa_pitch_compensation
 
-Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate.
+Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 100 |
+| 8 | 0 | 20 |
+
+---
+
+### tpa_rate
+
+Throttle based PID attenuation(TPA) reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. On multirotor, For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. for fixedwing modifies PIDFF. See **PID Attenuation and scaling** Wiki for full details.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 200 |
 
 ---
 

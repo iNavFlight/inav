@@ -26,3 +26,7 @@ bool mspOverrideIsInFailsafe(void);
 bool mspOverrideAreFlightChannelsValid(void);
 int16_t mspOverrideGetChannelValue(unsigned channelNumber);
 int16_t mspOverrideGetRawChannelValue(unsigned channelNumber);
+void mspOverrideSetFlightAxisAngleOverride(uint8_t overrideMask, int16_t roll, int16_t pitch, int16_t yaw);
+void mspOverrideSetFlightAxisRateOverride(uint8_t overrideMask, int16_t roll, int16_t pitch, int16_t yaw);
+bool mspOverrideFlightAxisAngleActive(uint8_t axis, int *target);
+bool mspOverrideFlightAxisRateActive(uint8_t axis, int *target);

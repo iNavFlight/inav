@@ -172,8 +172,8 @@ static const char* const gpsFixTypeText[] = {
     "3D"
 };
 
-static const char* tickerCharacters = "|/-\\"; // use 2/4/8 characters so that the divide is optimal.
-#define TICKER_CHARACTER_COUNT (sizeof(tickerCharacters) / sizeof(char))
+static const char tickerCharacters[] = "|/-\\"; // use 2/4/8 characters so that the divide is optimal.
+#define TICKER_CHARACTER_COUNT (sizeof(tickerCharacters) - 1)
 
 static timeUs_t nextPageAt;
 static bool forcePageChange;

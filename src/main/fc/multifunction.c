@@ -45,32 +45,29 @@ static void multiFunctionApply(multi_function_e selectedItem)
     switch (selectedItem) {
     case MULTI_FUNC_NONE:
         break;
-    case MULTI_FUNC_1:  // redisplay current warnings
-        osdResetWarningFlags();
-        break;
-    case MULTI_FUNC_2:  // control manual emergency landing
+    case MULTI_FUNC_1:  // control manual emergency landing
         checkManualEmergencyLandingControl(ARMING_FLAG(ARMED));
         break;
-    case MULTI_FUNC_3:  // toggle Safehome suspend
+    case MULTI_FUNC_2:  // toggle Safehome suspend
 #if defined(USE_SAFE_HOME)
         if (navConfig()->general.flags.safehome_usage_mode != SAFEHOME_USAGE_OFF) {
             MULTI_FUNC_FLAG(MF_SUSPEND_SAFEHOMES) ? MULTI_FUNC_FLAG_DISABLE(MF_SUSPEND_SAFEHOMES) : MULTI_FUNC_FLAG_ENABLE(MF_SUSPEND_SAFEHOMES);
         }
 #endif
         break;
-    case MULTI_FUNC_4:  // toggle RTH Trackback suspend
+    case MULTI_FUNC_3:  // toggle RTH Trackback suspend
         if (navConfig()->general.flags.rth_trackback_mode != RTH_TRACKBACK_OFF) {
             MULTI_FUNC_FLAG(MF_SUSPEND_TRACKBACK) ? MULTI_FUNC_FLAG_DISABLE(MF_SUSPEND_TRACKBACK) : MULTI_FUNC_FLAG_ENABLE(MF_SUSPEND_TRACKBACK);
         }
         break;
-    case MULTI_FUNC_5:
+    case MULTI_FUNC_4:
 #ifdef USE_DSHOT
         if (STATE(MULTIROTOR)) {    // toggle Turtle mode
             MULTI_FUNC_FLAG(MF_TURTLE_MODE) ? MULTI_FUNC_FLAG_DISABLE(MF_TURTLE_MODE) : MULTI_FUNC_FLAG_ENABLE(MF_TURTLE_MODE);
         }
 #endif
         break;
-    case MULTI_FUNC_6:  // emergency ARM
+    case MULTI_FUNC_5:  // emergency ARM
         if (!ARMING_FLAG(ARMED)) {
             emergencyArmingUpdate(true, true);
         }

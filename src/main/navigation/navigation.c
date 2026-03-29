@@ -5201,6 +5201,33 @@ bool navigationIsControllingAltitude(void) {
     return (stateFlags & NAV_CTL_ALT);
 }
 
+bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm)
+{
+    const navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+    if (!(stateFlags & NAV_CTL_ALT) || (stateFlags & NAV_CTL_LAND) || navigationIsExecutingAnEmergencyLanding() || posControl.flags.estAltStatus == EST_NONE) {
+        return false;
+    }
+
+    float targetAltitudeLocalCm;
+    switch (datumFlag) {
+    case NAV_WP_TAKEOFF_DATUM:
+        targetAltitudeLocalCm = (float)targetAltitudeCm;
+        break;
+    case NAV_WP_MSL_DATUM:
+        if (!posControl.gpsOrigin.valid) {
+            return false;
+        }
+        targetAltitudeLocalCm = (float)(targetAltitudeCm - posControl.gpsOrigin.alt);
+        break;
+    case NAV_WP_TERRAIN_DATUM:
+    default:
+        return false;
+    }
+
+    updateClimbRateToAltitudeController(0.0f, targetAltitudeLocalCm, ROC_TO_ALT_TARGET);
+    return true;
+}
+
 bool navigationIsFlyingAutonomousMode(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
