@@ -103,6 +103,7 @@ typedef struct pidProfile_s {
 
     uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
     uint16_t dterm_lpf_hz;
+    uint16_t dterm_lpf2_hz;                 // Dterm second stage LPF (pre-differentiation, like Betaflight)
 
     uint8_t yaw_lpf_hz;
 
