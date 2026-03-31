@@ -31,6 +31,7 @@
 
 #include "drivers/pitotmeter/pitotmeter.h"
 #include "drivers/pitotmeter/pitotmeter_ms4525.h"
+#include "drivers/pitotmeter/pitotmeter_ms5525.h"
 #include "drivers/pitotmeter/pitotmeter_dlvr_l10d.h"
 #include "drivers/pitotmeter/pitotmeter_adc.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
@@ -102,6 +103,19 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
 #ifdef USE_PITOT_MS4525
             if (ms4525Detect(dev)) {
                 pitotHardware = PITOT_MS4525;
+                break;
+            }
+#endif
+            /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+            if (pitotHardwareToUse != PITOT_AUTODETECT) {
+                break;
+            }
+            FALLTHROUGH;
+
+        case PITOT_MS5525:
+#ifdef USE_PITOT_MS5525
+            if (ms5525Detect(dev)) {
+                pitotHardware = PITOT_MS5525;
                 break;
             }
 #endif
