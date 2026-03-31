@@ -222,6 +222,7 @@ bool lsm6dGyroDetect(gyroDev_t *gyro)
     gyro->initFn = lsm6dxxSpiGyroInit;
     gyro->readFn = lsm6dxxGyroRead;
     gyro->intStatusFn = gyroCheckDataReady;
+    gyro->gyroAlign = gyro->busDev->param;
     gyro->scale = 1.0f / 16.4f; // 2000 dps
     return true;
 

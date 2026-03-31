@@ -125,6 +125,7 @@ extern USBD_Class_cb_TypeDef  USBD_CDC_cb;
 /** @defgroup USB_CORE_Exported_Functions
   * @{
   */
+void USBD_CDC_ReceivePacket(void *pdev);
 /**
   * @}
   */ 
