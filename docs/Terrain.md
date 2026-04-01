@@ -21,15 +21,19 @@ terrain data are unavailable or a read error occurs, the feature is automaticall
 
 # SD Card Preparation
 
+Use only quality SD cards from reputable brands. Note that some combinations of flight controllers and SD cards can cause issues, 
+so if you experience any problems, try a different card before troubleshooting further. Compatibility problems have been 
+observed especially with F4-based flight controllers.
+
 For proper operation, the SD card must be prepared in advance. It is recommended to create a **partition with a maximum size
-of 4 GB** and format it. Formatting should be done using the official 
-[**SD Memory Card Formatter**](https://www.sdcard.org/downloads/formatter/sd-memory-card-formatter-for-windows-download/) tool from the SD Association,
-which ensures correct alignment and a compatible file system structure. Using this tool minimizes the risk of terrain data
-read issues during flight and is considered the recommended method for preparing an SD card for iNav.
+of 4 GB** and format it to FAT32. 
 
 # Data Generation and Copying
 
 To generate elevation maps, use the terrain generator web tool available at https://terrain.ardupilot.org/
+
+**Before copying any terrain data files, the SD card must be formatted. Always format the card before each new terrain data
+installation to avoid file system errors.**
 
 In iNav, **only 30 m resolution (SRTM1)** is currently supported, so this option must be selected during data generation.
 The generated files are then copied to the SD card into the root directory structure.
@@ -45,10 +49,8 @@ SDCARD:\
 ├── N49E017.DAT
 └── N50E016.DAT
 ```
-Copying can be done via **iNav MSC (Mass Storage Class)**, but this method is very slow, so using an **external SD card reader**
-is strongly recommended. Before copying the data, the file **`FREESPAC.E`** must be deleted from the root directory of the SD
-card. iNav uses this file to track available disk space, and without deleting it, the card may appear to be full. After the
-copying process is complete, iNav will automatically recreate this file on the next startup.
+
+Copying can be done via **iNav MSC (Mass Storage Class)** is not recommended.
 
 # Enabling and Displaying Terrain Data
 
@@ -71,14 +73,3 @@ Finally, it is **strongly recommended to use only high-quality, branded SD cards
 system is sensitive to SD card read speed and reliability, and low-quality or counterfeit cards may cause read errors,
 display dropouts, or automatic disabling of the feature during flight. Using a quality SD card significantly improves the
 stability and reliability of the terrain feature.
-
-# TL;DR
-
-- **H7/F4 flight controller** with SD card required
-- Format SD card using [SD Memory Card Formatter](https://www.sdcard.org/downloads/formatter/sd-memory-card-formatter-for-windows-download/) (max 4 GB partition)
-- Generate terrain data at https://terrain.ardupilot.org/ — select **SRTM1 (30 m)**
-- Delete `FREESPAC.E` from SD card root before copying files to ROOT of SDCARD (use external card reader, not MSC)
-- Enable via CLI: `set terrain_enabled = ON` + `save`
-- Enable **Rangefinder distance** OSD element to see altitude above terrain
-- ⚠️ Displayed value is **informational only** — not used for navigation or altitude control
-- Use only **high-quality branded SD cards**
