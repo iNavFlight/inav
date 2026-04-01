@@ -2273,6 +2273,34 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t targetComponent
                 mavlinkSendCommandAck(command, result, ackTargetSystem, ackTargetComponent);
                 return true;
             }
+        case MAV_CMD_CONDITION_YAW:
+            {
+                if (!(navGetCurrentStateFlags() & NAV_CTL_YAW)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                int32_t targetHeadingCd = wrap_36000((int32_t)lrintf(param1 * 100.0f));
+
+                if (param4 != 0.0f) {
+                    const int32_t currentHeadingCd = STATE(AIRPLANE) ? posControl.actualState.cog : posControl.actualState.yaw;
+                    const int32_t headingChangeCd = (int32_t)lrintf(fabsf(param1) * 100.0f);
+
+                    if (param3 < 0.0f) {
+                        targetHeadingCd = wrap_36000(currentHeadingCd - headingChangeCd);
+                    } else {
+                        targetHeadingCd = wrap_36000(currentHeadingCd + headingChangeCd);
+                    }
+                }
+
+                updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(targetHeadingCd));
+                posControl.desiredState.yaw = targetHeadingCd;
+                posControl.cruise.course = targetHeadingCd;
+                posControl.cruise.previousCourse = targetHeadingCd;
+
+                mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
         case MAV_CMD_SET_MESSAGE_INTERVAL:
             {
                 uint8_t stream;
@@ -2931,6 +2959,13 @@ static int8_t mavlinkResolveLocalPortForTarget(int16_t targetSystem, int16_t tar
 
     if ((uint8_t)targetSystem != mavlinkGetCommonConfig()->sysid) {
         return -1;
+    }
+
+    if (ingressPortIndex < mavPortCount) {
+        const mavlinkTelemetryPortConfig_t *ingressCfg = mavlinkGetPortConfig(ingressPortIndex);
+        if (targetComponent <= 0 || ingressCfg->compid == targetComponent) {
+            return ingressPortIndex;
+        }
     }
 
     for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {

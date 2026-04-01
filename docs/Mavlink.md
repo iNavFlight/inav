@@ -99,6 +99,7 @@ Messages are organized into MAVLink datastream groups. Each group sends **one me
 Limited implementation of the Command protocol.
 
 - `MAV_CMD_DO_REPOSITION`: sets the Follow Me/GCS Nav waypoint when GCS NAV is valid. Accepts `MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`; otherwise `UNSUPPORTED`.
+- `MAV_CMD_CONDITION_YAW`: changes the current heading target when the active navigation state has yaw control. Accepts absolute heading (`param4=0`) and relative turns (`param4!=0`); turn-rate is ignored.
 - `MAV_CMD_SET_MESSAGE_INTERVAL` / `MAV_CMD_GET_MESSAGE_INTERVAL`: adjust or query telemetry stream output for supported message IDs (streamed messages only; intervals slower than 1 Hz are not accepted).
 - `MAV_CMD_GET_HOME_POSITION`: replies with `HOME_POSITION` when home fix exists.
 - `MAV_CMD_REQUEST_MESSAGE`: emits one selected message (`HEARTBEAT`, `SYS_STATUS`, `ATTITUDE`, `VFR_HUD`, `AVAILABLE_MODES`, `CURRENT_MODE`, `EXTENDED_SYS_STATE`, RC channels, GPS/global/origin, battery/pressure, and `HOME_POSITION` when available) or `UNSUPPORTED`.
