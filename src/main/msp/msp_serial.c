@@ -259,6 +259,11 @@ static bool mspSerialProcessReceivedData(mspPort_t *mspPort, uint8_t c)
     return true;
 }
 
+bool mspSerialProcessReceivedByte(mspPort_t *mspPort, uint8_t c)
+{
+    return mspSerialProcessReceivedData(mspPort, c);
+}
+
 static uint8_t mspSerialChecksumBuf(uint8_t checksum, const uint8_t *data, int len)
 {
     while (len-- > 0) {
@@ -391,6 +396,98 @@ static int mspSerialEncode(mspPort_t *msp, mspPacket_t *packet, mspVersion_e msp
     return mspSerialSendFrame(msp, hdrBuf, hdrLen, sbufPtr(&packet->buf), dataLen, crcBuf, crcLen);
 }
 
+int mspSerialEncodePacket(mspPacket_t *packet, mspVersion_e mspVersion, uint8_t *frameBuf, int frameBufSize)
+{
+    static const uint8_t mspMagic[MSP_VERSION_COUNT] = MSP_VERSION_MAGIC_INITIALIZER;
+    const int dataLen = sbufBytesRemaining(&packet->buf);
+    uint8_t hdrBuf[16] = { '$', mspMagic[mspVersion], packet->result == MSP_RESULT_ERROR ? '!' : '>'};
+    uint8_t crcBuf[2];
+    int hdrLen = 3;
+    int crcLen = 0;
+
+    if (mspVersion == MSP_V1) {
+        mspHeaderV1_t * hdrV1 = (mspHeaderV1_t *)&hdrBuf[hdrLen];
+        hdrLen += sizeof(mspHeaderV1_t);
+        hdrV1->cmd = packet->cmd;
+
+        if (dataLen >= JUMBO_FRAME_SIZE_LIMIT) {
+            mspHeaderJUMBO_t * hdrJUMBO = (mspHeaderJUMBO_t *)&hdrBuf[hdrLen];
+            hdrLen += sizeof(mspHeaderJUMBO_t);
+
+            hdrV1->size = JUMBO_FRAME_SIZE_LIMIT;
+            hdrJUMBO->size = dataLen;
+        }
+        else {
+            hdrV1->size = dataLen;
+        }
+
+        crcBuf[crcLen] = mspSerialChecksumBuf(0, hdrBuf + V1_CHECKSUM_STARTPOS, hdrLen - V1_CHECKSUM_STARTPOS);
+        crcBuf[crcLen] = mspSerialChecksumBuf(crcBuf[crcLen], sbufPtr(&packet->buf), dataLen);
+        crcLen++;
+    }
+    else if (mspVersion == MSP_V2_OVER_V1) {
+        mspHeaderV1_t * hdrV1 = (mspHeaderV1_t *)&hdrBuf[hdrLen];
+
+        hdrLen += sizeof(mspHeaderV1_t);
+
+        mspHeaderV2_t * hdrV2 = (mspHeaderV2_t *)&hdrBuf[hdrLen];
+        hdrLen += sizeof(mspHeaderV2_t);
+
+        const int v1PayloadSize = sizeof(mspHeaderV2_t) + dataLen + 1;
+        hdrV1->cmd = MSP_V2_FRAME_ID;
+
+        if (v1PayloadSize >= JUMBO_FRAME_SIZE_LIMIT) {
+            mspHeaderJUMBO_t * hdrJUMBO = (mspHeaderJUMBO_t *)&hdrBuf[hdrLen];
+            hdrLen += sizeof(mspHeaderJUMBO_t);
+
+            hdrV1->size = JUMBO_FRAME_SIZE_LIMIT;
+            hdrJUMBO->size = v1PayloadSize;
+        }
+        else {
+            hdrV1->size = v1PayloadSize;
+        }
+
+        hdrV2->flags = packet->flags;
+        hdrV2->cmd = packet->cmd;
+        hdrV2->size = dataLen;
+
+        crcBuf[crcLen] = crc8_dvb_s2_update(0, (uint8_t *)hdrV2, sizeof(mspHeaderV2_t));
+        crcBuf[crcLen] = crc8_dvb_s2_update(crcBuf[crcLen], sbufPtr(&packet->buf), dataLen);
+        crcLen++;
+
+        crcBuf[crcLen] = mspSerialChecksumBuf(0, hdrBuf + V1_CHECKSUM_STARTPOS, hdrLen - V1_CHECKSUM_STARTPOS);
+        crcBuf[crcLen] = mspSerialChecksumBuf(crcBuf[crcLen], sbufPtr(&packet->buf), dataLen);
+        crcBuf[crcLen] = mspSerialChecksumBuf(crcBuf[crcLen], crcBuf, crcLen);
+        crcLen++;
+    }
+    else if (mspVersion == MSP_V2_NATIVE) {
+        mspHeaderV2_t * hdrV2 = (mspHeaderV2_t *)&hdrBuf[hdrLen];
+        hdrLen += sizeof(mspHeaderV2_t);
+
+        hdrV2->flags = packet->flags;
+        hdrV2->cmd = packet->cmd;
+        hdrV2->size = dataLen;
+
+        crcBuf[crcLen] = crc8_dvb_s2_update(0, (uint8_t *)hdrV2, sizeof(mspHeaderV2_t));
+        crcBuf[crcLen] = crc8_dvb_s2_update(crcBuf[crcLen], sbufPtr(&packet->buf), dataLen);
+        crcLen++;
+    }
+    else {
+        return 0;
+    }
+
+    const int totalFrameLength = hdrLen + dataLen + crcLen;
+    if (frameBufSize < totalFrameLength) {
+        return 0;
+    }
+
+    memcpy(frameBuf, hdrBuf, hdrLen);
+    memcpy(frameBuf + hdrLen, sbufPtr(&packet->buf), dataLen);
+    memcpy(frameBuf + hdrLen + dataLen, crcBuf, crcLen);
+
+    return totalFrameLength;
+}
+
 static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspProcessCommandFnPtr mspProcessCommandFn)
 {
     uint8_t outBuf[MSP_PORT_OUTBUF_SIZE];
@@ -420,6 +517,20 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
 
     msp->c_state = MSP_IDLE;
     return mspPostProcessFn;
+}
+
+mspResult_e mspSerialProcessCommand(mspPort_t *msp, mspProcessCommandFnPtr mspProcessCommandFn, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
+{
+    mspPacket_t command = {
+        .buf = { .ptr = msp->inBuf, .end = msp->inBuf + msp->dataSize, },
+        .cmd = msp->cmdMSP,
+        .flags = msp->cmdFlags,
+        .result = 0,
+    };
+
+    const mspResult_e status = mspProcessCommandFn(&command, reply, mspPostProcessFn);
+    msp->c_state = MSP_IDLE;
+    return status;
 }
 
 static void mspEvaluateNonMspData(mspPort_t * mspPort, uint8_t receivedChar)

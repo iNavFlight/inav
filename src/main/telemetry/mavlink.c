@@ -48,6 +48,7 @@
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
+#include "fc/fc_msp.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
@@ -65,6 +66,9 @@
 #include "io/ledstrip.h"
 #include "io/serial.h"
 #include "io/osd.h"
+
+#include "msp/msp_protocol.h"
+#include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -106,6 +110,9 @@ static mavlinkPortRuntime_t mavPortStates[MAX_MAVLINK_PORTS];
 static uint8_t mavPortCount = 0;
 static mavlinkRouteEntry_t mavRouteTable[MAVLINK_MAX_ROUTES];
 static uint8_t mavRouteCount = 0;
+static mspPort_t mavTunnelMspPorts[MAX_MAVLINK_PORTS];
+static uint8_t mavTunnelRemoteSystemIds[MAX_MAVLINK_PORTS];
+static uint8_t mavTunnelRemoteComponentIds[MAX_MAVLINK_PORTS];
 static uint8_t mavSendMask = 0;
 static mavlinkPortRuntime_t *mavActivePort = NULL;
 static const mavlinkTelemetryPortConfig_t *mavActiveConfig = NULL;
@@ -116,6 +123,13 @@ static mavlink_message_t mavRecvMsg;
 static uint8_t mavSystemId = 1;
 static uint8_t mavAutopilotType;
 static uint8_t mavComponentId = MAV_COMP_ID_AUTOPILOT1;
+
+#define MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP 0x8001
+#define MAVLINK_TUNNEL_MSP_TIMEOUT_MS 1000
+#define MAVLINK_TUNNEL_MSP_FRAMEBUF_SIZE (MSP_PORT_OUTBUF_SIZE + 16)
+
+static uint8_t mavTunnelReplyPayloadBuf[MSP_PORT_OUTBUF_SIZE];
+static uint8_t mavTunnelFrameBuf[MAVLINK_TUNNEL_MSP_FRAMEBUF_SIZE];
 
 static uint8_t mavlinkGetVehicleType(void)
 {
@@ -363,6 +377,9 @@ static void freeMAVLinkTelemetryPortByIndex(uint8_t portIndex)
     memset(state->mavStreamNextDue, 0, sizeof(state->mavStreamNextDue));
     memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
     memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
+    resetMspPort(&mavTunnelMspPorts[portIndex], NULL);
+    mavTunnelRemoteSystemIds[portIndex] = 0;
+    mavTunnelRemoteComponentIds[portIndex] = 0;
 }
 
 void freeMAVLinkTelemetryPort(void)
@@ -379,6 +396,9 @@ void initMAVLinkTelemetry(void)
 {
     memset(mavPortStates, 0, sizeof(mavPortStates));
     memset(mavRouteTable, 0, sizeof(mavRouteTable));
+    memset(mavTunnelMspPorts, 0, sizeof(mavTunnelMspPorts));
+    memset(mavTunnelRemoteSystemIds, 0, sizeof(mavTunnelRemoteSystemIds));
+    memset(mavTunnelRemoteComponentIds, 0, sizeof(mavTunnelRemoteComponentIds));
     mavPortCount = 0;
     mavRouteCount = 0;
     mavSendMask = 0;
@@ -430,6 +450,9 @@ static void configureMAVLinkTelemetryPort(uint8_t portIndex)
     memset(state->mavStreamNextDue, 0, sizeof(state->mavStreamNextDue));
     memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
     memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
+    resetMspPort(&mavTunnelMspPorts[portIndex], NULL);
+    mavTunnelRemoteSystemIds[portIndex] = 0;
+    mavTunnelRemoteComponentIds[portIndex] = 0;
 }
 
 void checkMAVLinkTelemetryState(void)
@@ -524,6 +547,139 @@ static void mavlinkSendMessage(void)
         serialWriteBuf(state->port, mavBuffer, msgLength);
         serialEndWrite(state->port);
     }
+}
+
+static void mavlinkResetTunnelState(uint8_t ingressPortIndex)
+{
+    resetMspPort(&mavTunnelMspPorts[ingressPortIndex], NULL);
+    mavTunnelRemoteSystemIds[ingressPortIndex] = 0;
+    mavTunnelRemoteComponentIds[ingressPortIndex] = 0;
+}
+
+static void mavlinkSendTunnelReply(uint8_t targetSystem, uint8_t targetComponent, const uint8_t *payload, uint8_t payloadLength)
+{
+    uint8_t tunnelPayload[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN] = { 0 };
+    memcpy(tunnelPayload, payload, payloadLength);
+
+    mavlink_msg_tunnel_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        targetSystem,
+        targetComponent,
+        MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP,
+        payloadLength,
+        tunnelPayload);
+    mavlinkSendMessage();
+}
+
+static void mavlinkSendTunnelMspReply(uint8_t targetSystem, uint8_t targetComponent, mspPacket_t *reply, uint8_t *replyPayloadHead, mspVersion_e mspVersion)
+{
+    sbufSwitchToReader(&reply->buf, replyPayloadHead);
+
+    const int frameLength = mspSerialEncodePacket(reply, mspVersion, mavTunnelFrameBuf, sizeof(mavTunnelFrameBuf));
+    for (int offset = 0; offset < frameLength; offset += MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
+        const uint8_t chunkLength = MIN(MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN, frameLength - offset);
+        mavlinkSendTunnelReply(
+            targetSystem,
+            targetComponent,
+            mavTunnelFrameBuf + offset,
+            chunkLength);
+    }
+}
+
+static bool handleIncoming_TUNNEL(uint8_t ingressPortIndex)
+{
+    if (mavlinkGetProtocolVersion() == 1) {
+        return false;
+    }
+
+    mavlink_tunnel_t msg;
+    mavlink_msg_tunnel_decode(&mavRecvMsg, &msg);
+
+    if (msg.payload_type != MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP) {
+        return false;
+    }
+
+    if (msg.target_system != mavSystemId) {
+        return false;
+    }
+
+    if (msg.target_component != 0 && msg.target_component != mavComponentId) {
+        return false;
+    }
+
+    mspPort_t *mspPort = &mavTunnelMspPorts[ingressPortIndex];
+    const timeMs_t now = millis();
+    if (msg.payload_length > MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
+        mavlinkResetTunnelState(ingressPortIndex);
+        return false;
+    }
+
+    if (mspPort->c_state != MSP_IDLE &&
+        ((now - mspPort->lastActivityMs) > MAVLINK_TUNNEL_MSP_TIMEOUT_MS ||
+         mavTunnelRemoteSystemIds[ingressPortIndex] != mavRecvMsg.sysid ||
+         mavTunnelRemoteComponentIds[ingressPortIndex] != mavRecvMsg.compid)) {
+        mavlinkResetTunnelState(ingressPortIndex);
+    }
+
+    mavTunnelRemoteSystemIds[ingressPortIndex] = mavRecvMsg.sysid;
+    mavTunnelRemoteComponentIds[ingressPortIndex] = mavRecvMsg.compid;
+    mspPort->lastActivityMs = now;
+
+    bool handled = false;
+    for (uint8_t payloadIndex = 0; payloadIndex < msg.payload_length; payloadIndex++) {
+        if (!mspSerialProcessReceivedByte(mspPort, msg.payload[payloadIndex])) {
+            continue;
+        }
+
+        handled = true;
+        if (mspPort->c_state != MSP_COMMAND_RECEIVED) {
+            continue;
+        }
+
+        mspPacket_t reply = {
+            .buf = { .ptr = mavTunnelReplyPayloadBuf, .end = ARRAYEND(mavTunnelReplyPayloadBuf), },
+            .cmd = -1,
+            .flags = 0,
+            .result = 0,
+        };
+        uint8_t *replyPayloadHead = reply.buf.ptr;
+
+        if (mspPort->cmdMSP == MSP_SET_PASSTHROUGH) {
+            reply.cmd = MSP_SET_PASSTHROUGH;
+            reply.result = MSP_RESULT_ERROR;
+            mavlinkSendTunnelMspReply(mavRecvMsg.sysid, mavRecvMsg.compid, &reply, replyPayloadHead, mspPort->mspVersion);
+            mavlinkResetTunnelState(ingressPortIndex);
+            break;
+        }
+
+        mspPostProcessFnPtr mspPostProcessFn = NULL;
+        const uint16_t command = mspPort->cmdMSP;
+        mspResult_e status = mspSerialProcessCommand(mspPort, mspFcProcessCommand, &reply, &mspPostProcessFn);
+
+        if (mspPostProcessFn && command != MSP_REBOOT) {
+            sbufInit(&reply.buf, mavTunnelReplyPayloadBuf, ARRAYEND(mavTunnelReplyPayloadBuf));
+            reply.result = MSP_RESULT_ERROR;
+            mspPostProcessFn = NULL;
+            status = MSP_RESULT_ERROR;
+        }
+
+        if (status != MSP_RESULT_NO_REPLY) {
+            mavlinkSendTunnelMspReply(mavRecvMsg.sysid, mavRecvMsg.compid, &reply, replyPayloadHead, mspPort->mspVersion);
+        }
+
+        mavlinkResetTunnelState(ingressPortIndex);
+
+        if (mspPostProcessFn) {
+            waitForSerialPortToFinishTransmitting(mavPortStates[ingressPortIndex].port);
+            mspPostProcessFn(mavPortStates[ingressPortIndex].port);
+        }
+
+        break;
+    }
+
+    return handled;
 }
 
 static void mavlinkSendAutopilotVersion(void)
@@ -3110,6 +3266,9 @@ static bool processMAVLinkIncomingTelemetry(uint8_t ingressPortIndex)
                     handleIncoming_RADIO_STATUS();
                     // Don't set that we handled a message, otherwise radio status packets will block telemetry messages.
                     localHandled = false;
+                    break;
+                case MAVLINK_MSG_ID_TUNNEL:
+                    localHandled = handleIncoming_TUNNEL(ingressPortIndex);
                     break;
                 default:
                     localHandled = false;

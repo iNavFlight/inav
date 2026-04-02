@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include <limits.h>
+#include <vector>
 
 extern "C" {
     #include "platform.h"
@@ -28,6 +29,7 @@ extern "C" {
 
     #include "common/axis.h"
     #include "common/maths.h"
+    #include "common/streambuf.h"
     #include "common/time.h"
 
     #include "config/parameter_group.h"
@@ -50,6 +52,10 @@ extern "C" {
     #include "io/adsb.h"
     #include "io/gps.h"
     #include "io/osd.h"
+
+    #include "msp/msp.h"
+    #include "msp/msp_protocol.h"
+    #include "msp/msp_serial.h"
 
     #include "navigation/navigation.h"
 #ifdef __cplusplus
@@ -95,6 +101,17 @@ static size_t serialRxLen;
 static size_t serialRxPos;
 static size_t serialTxLen;
 static const uint8_t testTargetComponent = MAV_COMP_ID_AUTOPILOT1;
+static const uint8_t testTunnelSourceSystem = 42;
+static const uint8_t testTunnelSourceComponent = 200;
+static const uint8_t testSimpleMspCommand = 90;
+static const uint8_t testLargeReplyMspCommand = 91;
+static const size_t testMspFrameBufSize = MSP_PORT_OUTBUF_SIZE + 16;
+static timeMs_t fakeMillis;
+static int mspCommandCallCount;
+static int mspPassthroughDispatchCount;
+static int mspRebootPostProcessCount;
+static int waitForSerialPortToFinishTransmittingCalls;
+static serialPort_t *lastPostProcessPort;
 
 const uint32_t baudRates[] = {
     0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 250000,
@@ -124,12 +141,72 @@ static void resetSerialBuffers(void)
     serialTxLen = 0;
 }
 
+static std::vector<uint8_t> makeMspV1Request(uint8_t cmd, const std::vector<uint8_t> &payload = {})
+{
+    std::vector<uint8_t> frame = {
+        '$', 'M', '<',
+        static_cast<uint8_t>(payload.size()),
+        cmd
+    };
+    uint8_t checksum = frame[3] ^ frame[4];
+    for (const uint8_t byte : payload) {
+        frame.push_back(byte);
+        checksum ^= byte;
+    }
+    frame.push_back(checksum);
+    return frame;
+}
+
+static std::vector<uint8_t> encodeMspV1Reply(uint8_t cmd, int16_t result, const std::vector<uint8_t> &payload = {})
+{
+    uint8_t payloadBuf[MSP_PORT_OUTBUF_SIZE];
+    mspPacket_t reply = {
+        .buf = { .ptr = payloadBuf, .end = ARRAYEND(payloadBuf), },
+        .cmd = cmd,
+        .flags = 0,
+        .result = result,
+    };
+    uint8_t *payloadHead = reply.buf.ptr;
+    if (!payload.empty()) {
+        sbufWriteData(&reply.buf, payload.data(), (int)payload.size());
+    }
+    sbufSwitchToReader(&reply.buf, payloadHead);
+
+    uint8_t frameBuf[testMspFrameBufSize];
+    const int frameLength = mspSerialEncodePacket(&reply, MSP_V1, frameBuf, sizeof(frameBuf));
+    return std::vector<uint8_t>(frameBuf, frameBuf + frameLength);
+}
+
 static void pushRxMessage(const mavlink_message_t *msg)
 {
     uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
     int length = mavlink_msg_to_send_buffer(buffer, msg);
     memcpy(&serialRxBuffer[serialRxLen], buffer, (size_t)length);
     serialRxLen += (size_t)length;
+}
+
+static void pushTunnelPayload(uint8_t payloadLength, const std::vector<uint8_t> &payload, uint8_t targetComponent = testTargetComponent)
+{
+    uint8_t tunnelPayload[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN] = { 0 };
+    size_t copyLength = payload.size();
+    if (copyLength > MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
+        copyLength = MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN;
+    }
+    if (copyLength > 0) {
+        memcpy(tunnelPayload, payload.data(), copyLength);
+    }
+
+    mavlink_message_t msg;
+    mavlink_msg_tunnel_pack(
+        testTunnelSourceSystem,
+        testTunnelSourceComponent,
+        &msg,
+        telemetryConfig()->mavlink_common.sysid,
+        targetComponent,
+        0x8001,
+        payloadLength,
+        tunnelPayload);
+    pushRxMessage(&msg);
 }
 
 static bool popTxMessage(mavlink_message_t *msg)
@@ -144,12 +221,54 @@ static bool popTxMessage(mavlink_message_t *msg)
     return false;
 }
 
+static std::vector<mavlink_message_t> parseTxMessages(void)
+{
+    std::vector<mavlink_message_t> messages;
+    mavlink_status_t status;
+    memset(&status, 0, sizeof(status));
+
+    mavlink_message_t msg;
+    for (size_t i = 0; i < serialTxLen; i++) {
+        if (mavlink_parse_char(0, serialTxBuffer[i], &msg, &status) == MAVLINK_FRAMING_OK) {
+            messages.push_back(msg);
+        }
+    }
+
+    return messages;
+}
+
+static std::vector<uint8_t> collectTunnelPayload(const std::vector<mavlink_message_t> &messages)
+{
+    std::vector<uint8_t> payload;
+
+    for (const mavlink_message_t &msg : messages) {
+        EXPECT_EQ(msg.msgid, MAVLINK_MSG_ID_TUNNEL);
+
+        mavlink_tunnel_t tunnel;
+        mavlink_msg_tunnel_decode(&msg, &tunnel);
+
+        EXPECT_EQ(tunnel.payload_type, 0x8001);
+        EXPECT_EQ(tunnel.target_system, testTunnelSourceSystem);
+        EXPECT_EQ(tunnel.target_component, testTunnelSourceComponent);
+
+        payload.insert(payload.end(), tunnel.payload, tunnel.payload + tunnel.payload_length);
+    }
+
+    return payload;
+}
+
 static void initMavlinkTestState(void)
 {
     resetSerialBuffers();
+    fakeMillis = 0;
     setWaypointCalls = 0;
     resetWaypointCalls = 0;
     mavlinkRxHandleCalls = 0;
+    mspCommandCallCount = 0;
+    mspPassthroughDispatchCount = 0;
+    mspRebootPostProcessCount = 0;
+    waitForSerialPortToFinishTransmittingCalls = 0;
+    lastPostProcessPort = NULL;
     gcsValid = true;
     waypointCount = 0;
     memset(estimatedPosition, 0, sizeof(estimatedPosition));
@@ -183,6 +302,99 @@ static void initMavlinkTestState(void)
 
     initMAVLinkTelemetry();
     checkMAVLinkTelemetryState();
+}
+
+TEST(MavlinkTelemetryTest, TunnelMalformedPayloadLengthIsDroppedAndDoesNotPoisonState)
+{
+    initMavlinkTestState();
+
+    std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    request.resize(MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN, 0);
+
+    pushTunnelPayload(MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN + 1, request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 0);
+    EXPECT_TRUE(parseTxMessages().empty());
+
+    resetSerialBuffers();
+    pushTunnelPayload((uint8_t)makeMspV1Request(testSimpleMspCommand).size(), makeMspV1Request(testSimpleMspCommand));
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelRejectsPassthroughBeforeDispatch)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request((uint8_t)MSP_SET_PASSTHROUGH);
+
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 0);
+    EXPECT_EQ(mspPassthroughDispatchCount, 0);
+    EXPECT_EQ(waitForSerialPortToFinishTransmittingCalls, 0);
+    EXPECT_EQ(mspRebootPostProcessCount, 0);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply((uint8_t)MSP_SET_PASSTHROUGH, MSP_RESULT_ERROR));
+}
+
+TEST(MavlinkTelemetryTest, TunnelRebootUsesIngressPortForPostProcess)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request((uint8_t)MSP_REBOOT);
+
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(waitForSerialPortToFinishTransmittingCalls, 1);
+    EXPECT_EQ(mspRebootPostProcessCount, 1);
+    EXPECT_EQ(lastPostProcessPort, &testSerialPort);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply((uint8_t)MSP_REBOOT, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelStalePartialFrameResetsBeforeNextRequest)
+{
+    initMavlinkTestState();
+
+    pushTunnelPayload(3, {'$', 'M', '<'});
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 0);
+    EXPECT_TRUE(parseTxMessages().empty());
+
+    resetSerialBuffers();
+    fakeMillis = 2000;
+
+    const std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelLargeReplyFragmentsAcrossMultipleMessages)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    const std::vector<mavlink_message_t> messages = parseTxMessages();
+    ASSERT_EQ(messages.size(), 3U);
+
+    std::vector<uint8_t> expectedPayload(300);
+    for (size_t i = 0; i < expectedPayload.size(); i++) {
+        expectedPayload[i] = (uint8_t)i;
+    }
+
+    EXPECT_EQ(collectTunnelPayload(messages), encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, expectedPayload));
 }
 
 TEST(MavlinkTelemetryTest, AttitudeUsesRadiansPerSecond)
@@ -1101,6 +1313,7 @@ int32_t debug[DEBUG32_VALUE_COUNT];
 
 uint32_t armingFlags;
 uint32_t stateFlags;
+bool cliMode;
 
 attitudeEulerAngles_t attitude;
 gyro_t gyro;
@@ -1119,7 +1332,7 @@ timeUs_t micros(void)
 
 uint32_t millis(void)
 {
-    return 0;
+    return fakeMillis;
 }
 
 serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function)
@@ -1214,6 +1427,29 @@ bool telemetryDetermineEnabledState(portSharing_e portSharing)
 {
     UNUSED(portSharing);
     return true;
+}
+
+bool serialIsConnected(const serialPort_t *instance)
+{
+    UNUSED(instance);
+    return true;
+}
+
+bool isSerialTransmitBufferEmpty(const serialPort_t *instance)
+{
+    UNUSED(instance);
+    return true;
+}
+
+void waitForSerialPortToFinishTransmitting(serialPort_t *serialPort)
+{
+    waitForSerialPortToFinishTransmittingCalls++;
+    lastPostProcessPort = serialPort;
+}
+
+void cliEnter(serialPort_t *serialPort)
+{
+    UNUSED(serialPort);
 }
 
 bool sensors(uint32_t mask)
@@ -1386,6 +1622,16 @@ bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int3
     return altitudeTargetSetResult;
 }
 
+navigationFSMStateFlags_t navGetCurrentStateFlags(void)
+{
+    return (navigationFSMStateFlags_t)0;
+}
+
+void updateHeadingHoldTarget(int16_t heading)
+{
+    UNUSED(heading);
+}
+
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t *wp)
 {
     UNUSED(wpNumber);
@@ -1443,6 +1689,41 @@ void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg)
 {
     UNUSED(msg);
     mavlinkRxHandleCalls++;
+}
+
+static void testMspRebootPostProcess(serialPort_t *serialPort)
+{
+    mspRebootPostProcessCount++;
+    lastPostProcessPort = serialPort;
+}
+
+mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
+{
+    mspCommandCallCount++;
+    reply->cmd = cmd->cmd;
+    reply->flags = 0;
+    reply->result = 0;
+
+    switch (cmd->cmd) {
+    case MSP_SET_PASSTHROUGH:
+        mspPassthroughDispatchCount++;
+        if (mspPostProcessFn) {
+            *mspPostProcessFn = testMspRebootPostProcess;
+        }
+        return MSP_RESULT_ACK;
+    case MSP_REBOOT:
+        if (mspPostProcessFn) {
+            *mspPostProcessFn = testMspRebootPostProcess;
+        }
+        return MSP_RESULT_ACK;
+    case testLargeReplyMspCommand:
+        for (uint16_t i = 0; i < 300; i++) {
+            sbufWriteU8(&reply->buf, (uint8_t)i);
+        }
+        return MSP_RESULT_ACK;
+    default:
+        return MSP_RESULT_ACK;
+    }
 }
 
 adsbVehicleValues_t* getVehicleForFill(void)
