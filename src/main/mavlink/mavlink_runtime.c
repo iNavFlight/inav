@@ -171,7 +171,7 @@ void mavlinkSendMessage(void)
     }
 }
 
-static bool processMAVLinkIncomingTelemetry(uint8_t ingressPortIndex)
+static bool processMAVLinkIncomingTelemetry(uint8_t ingressPortIndex, timeUs_t currentTimeUs)
 {
     mavlinkPortRuntime_t *state = &mavPortStates[ingressPortIndex];
 
@@ -180,6 +180,7 @@ static bool processMAVLinkIncomingTelemetry(uint8_t ingressPortIndex)
         const char c = serialRead(state->port);
         const uint8_t result = mavlink_parse_char(ingressPortIndex, c, &state->mavRecvMsg, &state->mavRecvStatus);
         if (result == MAVLINK_FRAMING_OK) {
+            state->lastRxFrameUs = currentTimeUs;
             mavlinkContext.recvMsg = state->mavRecvMsg;
 
             if (mavlinkIsFromLocalIdentity(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid)) {
@@ -234,10 +235,15 @@ static bool processMAVLinkIncomingTelemetry(uint8_t ingressPortIndex)
     return false;
 }
 
-static bool isMAVLinkTelemetryHalfDuplex(void)
+static bool isMAVLinkTelemetryHalfDuplex(uint8_t portIndex)
 {
-    return telemetryConfig()->halfDuplex ||
-            (rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_MAVLINK && tristateWithDefaultOffIsActive(rxConfig()->halfDuplex));
+    const mavlinkPortRuntime_t *state = &mavPortStates[portIndex];
+
+    return state->portConfig &&
+        (state->portConfig->functionMask & FUNCTION_RX_SERIAL) &&
+        rxConfig()->receiverType == RX_TYPE_SERIAL &&
+        rxConfig()->serialrx_provider == SERIALRX_MAVLINK &&
+        tristateWithDefaultOffIsActive(rxConfig()->halfDuplex);
 }
 
 void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
@@ -251,19 +257,24 @@ void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
         mavlinkSetActivePortContext(portIndex);
 
         // Process incoming MAVLink on this port and forward when needed.
-        const bool receivedMessage = processMAVLinkIncomingTelemetry(portIndex);
+        processMAVLinkIncomingTelemetry(portIndex, currentTimeUs);
 
         // Restore context back to this port before periodic send decisions.
         mavlinkSetActivePortContext(portIndex);
         bool shouldSendTelemetry = false;
+        const bool halfDuplexBackoff = isMAVLinkTelemetryHalfDuplex(portIndex) &&
+            ((currentTimeUs - state->lastRxFrameUs) < TELEMETRY_MAVLINK_DELAY);
+
+        if (halfDuplexBackoff) {
+            continue;
+        }
 
         if (state->txbuffValid) {
             // Use flow control if available.
             shouldSendTelemetry = state->txbuffFree >= mavActiveConfig->min_txbuff;
         } else {
-            // If not, use blind frame pacing and half-duplex backoff after RX activity.
-            const bool halfDuplexBackoff = isMAVLinkTelemetryHalfDuplex() && receivedMessage;
-            shouldSendTelemetry = ((currentTimeUs - state->lastMavlinkMessageUs) >= TELEMETRY_MAVLINK_DELAY) && !halfDuplexBackoff;
+            // If not, use blind frame pacing.
+            shouldSendTelemetry = (currentTimeUs - state->lastMavlinkMessageUs) >= TELEMETRY_MAVLINK_DELAY;
         }
 
         if (!shouldSendTelemetry) {

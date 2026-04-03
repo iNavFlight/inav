@@ -19,6 +19,7 @@ void freeMAVLinkTelemetryPortByIndex(uint8_t portIndex)
     state->txbuffValid = false;
     state->txbuffFree = 100;
     state->lastMavlinkMessageUs = 0;
+    state->lastRxFrameUs = 0;
     state->lastHighLatencyMessageUs = 0;
     state->highLatencyEnabled = mavlinkGetPortConfig(portIndex)->high_latency;
     state->txSeq = 0;
@@ -56,6 +57,7 @@ void configureMAVLinkTelemetryPort(uint8_t portIndex)
     state->txbuffValid = false;
     state->txbuffFree = 100;
     state->lastMavlinkMessageUs = 0;
+    state->lastRxFrameUs = 0;
     state->lastHighLatencyMessageUs = 0;
     state->highLatencyEnabled = mavlinkGetPortConfig(portIndex)->high_latency;
     state->txSeq = 0;

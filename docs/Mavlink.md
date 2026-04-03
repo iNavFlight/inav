@@ -11,11 +11,12 @@ INAV supports up to 4 concurrent MAVLink telemetry ports (`MAX_MAVLINK_PORTS`), 
 - **Mission handling**: uploads are rejected while armed (except legacy guided waypoint writes). Mission frames are validated per command and unsupported frames are rejected.
 - **Mode reporting**: `custom_mode` approximates ArduPilot modes and may not match all INAV states. 
 - **Flow control expectations**: INAV honours `RADIO_STATUS.txbuf` to avoid overrunning radios; without it, packets are simply paced at 20 ms intervals.
-- **Half‑duplex etiquette**: when half‑duplex is enabled, INAV waits one telemetry tick after any received frame before transmitting to reduce collisions.
+- **Half‑duplex etiquette**: on a MAVLink serial RX port configured for `serialrx_halfduplex`, INAV waits one telemetry tick after any received frame before transmitting to reduce collisions.
 
 
 ### Usage guidance
-- If you rely on RC via MAVLink, ensure the serial receiver type is set to `SERIALRX_MAVLINK` and consider enabling `telemetry_halfduplex` when RX shares the port.
+- If you rely on RC via MAVLink, ensure the serial receiver type is set to `SERIALRX_MAVLINK`.
+- If MAVLink RX and telemetry intentionally share one half-duplex wire, enable `serialrx_halfduplex` for that setup.
 - To reduce bandwidth, lower the stream rates for groups you do not need, or disable them entirely by setting the rate to 0.
 - If a GCS or companion needs telemetry on ports 2..4, explicitly request streams (`REQUEST_DATA_STREAM` or `MAV_CMD_SET_MESSAGE_INTERVAL`) because only heartbeat is enabled by default.
 - If you depend on directed forwarding between links, ensure each remote endpoint transmits at least one frame early so route learning is populated.

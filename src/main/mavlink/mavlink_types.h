@@ -81,6 +81,7 @@ typedef struct mavlinkPortRuntime_s {
     bool txbuffValid;
     uint8_t txbuffFree;
     timeUs_t lastMavlinkMessageUs;
+    timeUs_t lastRxFrameUs;
     timeUs_t lastHighLatencyMessageUs;
     bool highLatencyEnabled;
     uint8_t mavRates[MAVLINK_STREAM_COUNT];
