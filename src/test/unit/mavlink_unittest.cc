@@ -76,6 +76,7 @@ extern "C" {
     #include "sensors/sensors.h"
     #include "sensors/temperature.h"
 
+    #include "mavlink/mavlink_types.h"
     #include "telemetry/mavlink.h"
     #include "telemetry/telemetry.h"
 

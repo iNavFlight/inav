@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "telemetry/mavlink.h"
+#include "mavlink/mavlink_types.h"
 
 bool mavlinkIsFromLocalIdentity(uint8_t sysid, uint8_t compid);
 void mavlinkLearnRoute(uint8_t ingressPortIndex);

@@ -2,7 +2,7 @@
 
 #include "common/time.h"
 
-#include "telemetry/mavlink.h"
+#include "mavlink/mavlink_types.h"
 
 typedef enum {
     MAVLINK_FC_DISPATCH_NOT_HANDLED = 0,

@@ -2,7 +2,7 @@
 
 #include "common/time.h"
 
-#include "telemetry/mavlink.h"
+#include "mavlink/mavlink_types.h"
 
 extern const uint8_t mavSecondaryRates[MAVLINK_STREAM_COUNT];
 

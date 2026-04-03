@@ -67,7 +67,7 @@
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
 
-#include "telemetry/mavlink.h"
+#include "mavlink/mavlink_types.h"
 #include "telemetry/telemetry.h"
 
 #include "blackbox/blackbox_io.h"
