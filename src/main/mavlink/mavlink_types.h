@@ -171,11 +171,6 @@ typedef struct mavlinkModeDescriptor_s {
     const char *name;
 } mavlinkModeDescriptor_t;
 
-extern const mavlinkModeDescriptor_t planeModes[];
-extern const uint8_t planeModesCount;
-extern const mavlinkModeDescriptor_t copterModes[];
-extern const uint8_t copterModesCount;
-
 typedef struct mavlinkMissionItemData_s {
     uint8_t frame;
     uint16_t command;

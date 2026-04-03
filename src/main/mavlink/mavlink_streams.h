@@ -6,6 +6,9 @@
 
 extern const uint8_t mavSecondaryRates[MAVLINK_STREAM_COUNT];
 
+void mavlinkSendAutopilotVersion(void);
+void mavlinkSendProtocolVersion(void);
+bool mavlinkSendRequestedMessage(uint16_t messageId);
 uint8_t mavlinkClampStreamRate(uint8_t rate);
 int32_t mavlinkRateToIntervalUs(uint8_t rate);
 bool mavlinkPeriodicMessageFromMessageId(uint16_t messageId, mavlinkPeriodicMessage_e *periodicMessage);

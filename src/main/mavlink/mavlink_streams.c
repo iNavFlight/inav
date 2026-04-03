@@ -1,7 +1,5 @@
 #include "mavlink/mavlink_internal.h"
 
-#include "fc/fc_mavlink.h"
-
 #include "mavlink/mavlink_runtime.h"
 #include "mavlink/mavlink_streams.h"
 
@@ -237,6 +235,1139 @@ void configureMAVLinkStreamRates(uint8_t portIndex)
         state->mavRates[stream] = selectedRates[stream];
         state->mavRatesConfigured[stream] = selectedRates[stream];
         state->mavStreamNextDue[stream] = 0;
+    }
+}
+
+static uint8_t mavlinkGetVehicleType(void)
+{
+    switch (mixerConfig()->platformType)
+    {
+        case PLATFORM_MULTIROTOR:
+            return MAV_TYPE_QUADROTOR;
+        case PLATFORM_TRICOPTER:
+            return MAV_TYPE_TRICOPTER;
+        case PLATFORM_AIRPLANE:
+            return MAV_TYPE_FIXED_WING;
+        case PLATFORM_ROVER:
+            return MAV_TYPE_GROUND_ROVER;
+        case PLATFORM_BOAT:
+            return MAV_TYPE_SURFACE_BOAT;
+        case PLATFORM_HELICOPTER:
+            return MAV_TYPE_HELICOPTER;
+        default:
+            return MAV_TYPE_GENERIC;
+    }
+}
+
+static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
+{
+    switch (flightMode)
+    {
+        case FLM_ACRO:          return COPTER_MODE_ACRO;
+        case FLM_ACRO_AIR:      return COPTER_MODE_ACRO;
+        case FLM_ANGLE:         return COPTER_MODE_STABILIZE;
+        case FLM_HORIZON:       return COPTER_MODE_STABILIZE;
+        case FLM_ANGLEHOLD:     return COPTER_MODE_STABILIZE;
+        case FLM_ALTITUDE_HOLD: return COPTER_MODE_ALT_HOLD;
+        case FLM_POSITION_HOLD:
+            {
+                if (isGCSValid()) {
+                    return COPTER_MODE_GUIDED;
+                } else {
+                    return COPTER_MODE_POSHOLD;
+                }
+            }
+        case FLM_RTH:           return COPTER_MODE_RTL;
+        case FLM_MISSION:       return COPTER_MODE_AUTO;
+        case FLM_LAUNCH:        return COPTER_MODE_THROW;
+        case FLM_FAILSAFE:
+            {
+                if (failsafePhase() == FAILSAFE_RETURN_TO_HOME) {
+                    return COPTER_MODE_RTL;
+                } else if (failsafePhase() == FAILSAFE_LANDING) {
+                    return COPTER_MODE_LAND;
+                } else {
+                    return COPTER_MODE_RTL;
+                }
+            }
+        default:                return COPTER_MODE_STABILIZE;
+    }
+}
+
+static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
+{
+    switch (flightMode)
+    {
+        case FLM_MANUAL:        return PLANE_MODE_MANUAL;
+        case FLM_ACRO:          return PLANE_MODE_ACRO;
+        case FLM_ACRO_AIR:      return PLANE_MODE_ACRO;
+        case FLM_ANGLE:         return PLANE_MODE_FLY_BY_WIRE_A;
+        case FLM_HORIZON:       return PLANE_MODE_STABILIZE;
+        case FLM_ANGLEHOLD:     return PLANE_MODE_STABILIZE;
+        case FLM_ALTITUDE_HOLD: return PLANE_MODE_FLY_BY_WIRE_B;
+        case FLM_POSITION_HOLD:
+            {
+                if (isGCSValid()) {
+                    return PLANE_MODE_GUIDED;
+                } else {
+                    return PLANE_MODE_LOITER;
+                }
+            }
+        case FLM_RTH:           return PLANE_MODE_RTL;
+        case FLM_MISSION:       return PLANE_MODE_AUTO;
+        case FLM_CRUISE:        return PLANE_MODE_CRUISE;
+        case FLM_LAUNCH:        return PLANE_MODE_TAKEOFF;
+        case FLM_FAILSAFE:
+            {
+                if (failsafePhase() == FAILSAFE_RETURN_TO_HOME) {
+                    return PLANE_MODE_RTL;
+                } else if (failsafePhase() == FAILSAFE_LANDING) {
+                    return PLANE_MODE_AUTOLAND;
+                } else {
+                    return PLANE_MODE_RTL;
+                }
+            }
+        default:                return PLANE_MODE_MANUAL;
+    }
+}
+
+typedef struct mavlinkModeSelection_s {
+    flightModeForTelemetry_e flightMode;
+    uint8_t customMode;
+} mavlinkModeSelection_t;
+
+static mavlinkModeSelection_t selectMavlinkMode(bool isPlane)
+{
+    mavlinkModeSelection_t modeSelection;
+    modeSelection.flightMode = getFlightModeForTelemetry();
+
+    if (isPlane) {
+        modeSelection.customMode = (uint8_t)inavToArduPlaneMap(modeSelection.flightMode);
+    } else {
+        modeSelection.customMode = (uint8_t)inavToArduCopterMap(modeSelection.flightMode);
+    }
+
+    return modeSelection;
+}
+
+void mavlinkSendAutopilotVersion(void)
+{
+    if (mavlinkGetProtocolVersion() == 1) {
+        return;
+    }
+
+    // Capabilities aligned with what we actually support.
+    uint64_t capabilities = 0;
+    capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
+    capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
+    capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_INT;
+    capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
+    capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
+    capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_GLOBAL_INT;
+
+    const uint32_t flightSwVersion =
+        ((uint32_t)ARDUPILOT_VERSION_MAJOR << 24) |
+        ((uint32_t)ARDUPILOT_VERSION_MINOR << 16) |
+        ((uint32_t)ARDUPILOT_VERSION_PATCH << 8);
+
+    // Bare minimum: caps + IDs. Everything else 0 is fine.
+    mavlink_msg_autopilot_version_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        capabilities,
+        flightSwVersion,
+        0,
+        0,
+        0,
+        0ULL,
+        0ULL,
+        0ULL,
+        0ULL,
+        0ULL,
+        (uint64_t)mavSystemId,
+        0ULL
+    );
+    mavlinkSendMessage();
+}
+
+void mavlinkSendProtocolVersion(void)
+{
+    if (mavlinkGetProtocolVersion() == 1) {
+        return;
+    }
+
+    uint8_t specHash[8] = {0};
+    uint8_t libHash[8] = {0};
+    const uint16_t protocolVersion = (uint16_t)mavlinkGetProtocolVersion() * 100;
+
+    mavlink_msg_protocol_version_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        protocolVersion,
+        protocolVersion,
+        protocolVersion,
+        specHash,
+        libHash);
+
+    mavlinkSendMessage();
+}
+
+static const mavlinkModeDescriptor_t planeModes[] = {
+    { PLANE_MODE_MANUAL,       "MANUAL" },
+    { PLANE_MODE_ACRO,         "ACRO" },
+    { PLANE_MODE_STABILIZE,    "STABILIZE" },
+    { PLANE_MODE_FLY_BY_WIRE_A,"FBWA" },
+    { PLANE_MODE_FLY_BY_WIRE_B,"FBWB" },
+    { PLANE_MODE_CRUISE,       "CRUISE" },
+    { PLANE_MODE_AUTO,         "AUTO" },
+    { PLANE_MODE_RTL,          "RTL" },
+    { PLANE_MODE_LOITER,       "LOITER" },
+    { PLANE_MODE_TAKEOFF,      "TAKEOFF" },
+    { PLANE_MODE_GUIDED,       "GUIDED" },
+};
+
+static const mavlinkModeDescriptor_t copterModes[] = {
+    { COPTER_MODE_ACRO,       "ACRO" },
+    { COPTER_MODE_STABILIZE,  "STABILIZE" },
+    { COPTER_MODE_ALT_HOLD,   "ALT_HOLD" },
+    { COPTER_MODE_POSHOLD,    "POSHOLD" },
+    { COPTER_MODE_LOITER,     "LOITER" },
+    { COPTER_MODE_AUTO,       "AUTO" },
+    { COPTER_MODE_GUIDED,     "GUIDED" },
+    { COPTER_MODE_RTL,        "RTL" },
+    { COPTER_MODE_LAND,       "LAND" },
+    { COPTER_MODE_BRAKE,      "BRAKE" },
+    { COPTER_MODE_THROW,      "THROW" },
+    { COPTER_MODE_SMART_RTL,  "SMART_RTL" },
+    { COPTER_MODE_DRIFT,      "DRIFT" },
+};
+
+static bool mavlinkPlaneModeIsConfigured(uint8_t customMode)
+{
+    switch ((APM_PLANE_MODE)customMode) {
+        case PLANE_MODE_MANUAL:
+            return isModeActivationConditionPresent(BOXMANUAL);
+        case PLANE_MODE_ACRO:
+            return true;
+        case PLANE_MODE_STABILIZE:
+            return isModeActivationConditionPresent(BOXHORIZON) ||
+                isModeActivationConditionPresent(BOXANGLEHOLD);
+        case PLANE_MODE_FLY_BY_WIRE_A:
+            return isModeActivationConditionPresent(BOXANGLE);
+        case PLANE_MODE_FLY_BY_WIRE_B:
+            return isModeActivationConditionPresent(BOXNAVALTHOLD);
+        case PLANE_MODE_CRUISE:
+            return isModeActivationConditionPresent(BOXNAVCRUISE) ||
+                (isModeActivationConditionPresent(BOXNAVCOURSEHOLD) &&
+                isModeActivationConditionPresent(BOXNAVALTHOLD));
+        case PLANE_MODE_AUTO:
+            return isModeActivationConditionPresent(BOXNAVWP);
+        case PLANE_MODE_RTL:
+            return isModeActivationConditionPresent(BOXNAVRTH);
+        case PLANE_MODE_GUIDED:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD) &&
+                isModeActivationConditionPresent(BOXGCSNAV);
+        case PLANE_MODE_LOITER:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD);
+        case PLANE_MODE_TAKEOFF:
+            return isModeActivationConditionPresent(BOXNAVLAUNCH);
+        default:
+            return false;
+    }
+}
+
+static bool mavlinkCopterModeIsConfigured(uint8_t customMode)
+{
+    switch ((APM_COPTER_MODE)customMode) {
+        case COPTER_MODE_ACRO:
+            return true;
+        case COPTER_MODE_STABILIZE:
+            return isModeActivationConditionPresent(BOXANGLE) ||
+                isModeActivationConditionPresent(BOXHORIZON) ||
+                isModeActivationConditionPresent(BOXANGLEHOLD);
+        case COPTER_MODE_ALT_HOLD:
+            return isModeActivationConditionPresent(BOXNAVALTHOLD);
+        case COPTER_MODE_GUIDED:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD) &&
+                isModeActivationConditionPresent(BOXGCSNAV);
+        case COPTER_MODE_POSHOLD:
+            return isModeActivationConditionPresent(BOXNAVPOSHOLD);
+        case COPTER_MODE_RTL:
+            return isModeActivationConditionPresent(BOXNAVRTH);
+        case COPTER_MODE_AUTO:
+            return isModeActivationConditionPresent(BOXNAVWP);
+        case COPTER_MODE_THROW:
+            return isModeActivationConditionPresent(BOXNAVLAUNCH);
+        case COPTER_MODE_BRAKE:
+            return isModeActivationConditionPresent(BOXBRAKING);
+        default:
+            return false;
+    }
+}
+
+static void mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint8_t count, uint8_t currentCustom,
+    bool (*isModeConfigured)(uint8_t customMode))
+{
+    uint8_t availableCount = 0;
+    for (uint8_t i = 0; i < count; i++) {
+        if (isModeConfigured(modes[i].customMode)) {
+            availableCount++;
+        }
+    }
+
+    if (availableCount == 0) {
+        return;
+    }
+
+    uint8_t modeIndex = 0;
+    for (uint8_t i = 0; i < count; i++) {
+        if (!isModeConfigured(modes[i].customMode)) {
+            continue;
+        }
+
+        modeIndex++;
+        const uint8_t stdMode = MAV_STANDARD_MODE_NON_STANDARD;
+        const uint32_t properties = 0;
+
+        mavlink_msg_available_modes_pack(
+            mavSystemId,
+            mavComponentId,
+            &mavSendMsg,
+            availableCount,
+            modeIndex,
+            stdMode,
+            modes[i].customMode,
+            properties,
+            modes[i].name);
+
+        mavlinkSendMessage();
+
+        if (modes[i].customMode == currentCustom) {
+            mavlink_msg_current_mode_pack(
+                mavSystemId,
+                mavComponentId,
+                &mavSendMsg,
+                stdMode,
+                currentCustom,
+                currentCustom);
+            mavlinkSendMessage();
+        }
+    }
+}
+
+void mavlinkSendExtendedSysState(void)
+{
+    uint8_t vtolState = MAV_VTOL_STATE_UNDEFINED;
+    uint8_t landedState;
+
+    switch (NAV_Status.state) {
+        case MW_NAV_STATE_LAND_START:
+        case MW_NAV_STATE_LAND_IN_PROGRESS:
+        case MW_NAV_STATE_LAND_SETTLE:
+        case MW_NAV_STATE_LAND_START_DESCENT:
+        case MW_NAV_STATE_EMERGENCY_LANDING:
+            landedState = MAV_LANDED_STATE_LANDING;
+            break;
+        case MW_NAV_STATE_LANDED:
+            landedState = MAV_LANDED_STATE_ON_GROUND;
+            break;
+        default:
+            if (!ARMING_FLAG(ARMED) || STATE(LANDING_DETECTED)) {
+                landedState = MAV_LANDED_STATE_ON_GROUND;
+            } else {
+                landedState = MAV_LANDED_STATE_IN_AIR;
+            }
+            break;
+    }
+
+    mavlink_msg_extended_sys_state_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        vtolState,
+        landedState);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendSystemStatus(void)
+{
+    // Receiver is assumed to be always present
+    uint32_t onboard_control_sensors_present    = (MAV_SYS_STATUS_SENSOR_RC_RECEIVER);
+    // GYRO and RC are assumed as minimum requirements
+    uint32_t onboard_control_sensors_enabled    = (MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_RC_RECEIVER);
+    uint32_t onboard_control_sensors_health     = 0;
+
+    if (getHwGyroStatus() == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_GYRO;
+        // Missing presence will report as sensor unhealthy
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_GYRO;
+    }
+
+    hardwareSensorStatus_e accStatus = getHwAccelerometerStatus();
+    if (accStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+    } else if (accStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+    } else if (accStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
+    }
+
+    hardwareSensorStatus_e compassStatus = getHwCompassStatus();
+    if (compassStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    } else if (compassStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    } else if (compassStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    }
+
+    hardwareSensorStatus_e baroStatus = getHwBarometerStatus();
+    if (baroStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    } else if (baroStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    } else if (baroStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    }
+
+    hardwareSensorStatus_e pitotStatus = getHwPitotmeterStatus();
+    if (pitotStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    } else if (pitotStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    } else if (pitotStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    }
+
+    hardwareSensorStatus_e gpsStatus = getHwGPSStatus();
+    if (gpsStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_GPS;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_GPS;
+    } else if (gpsStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_GPS;
+    } else if (gpsStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_GPS;
+    }
+
+    hardwareSensorStatus_e opFlowStatus = getHwOpticalFlowStatus();
+    if (opFlowStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+    } else if (opFlowStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+    } else if (opFlowStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW;
+    }
+
+    hardwareSensorStatus_e rangefinderStatus = getHwRangefinderStatus();
+    if (rangefinderStatus == HW_SENSOR_OK) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+    } else if (rangefinderStatus == HW_SENSOR_UNHEALTHY) {
+        onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+    } else if (rangefinderStatus == HW_SENSOR_UNAVAILABLE) {
+        onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;
+    }
+
+    if (rxIsReceivingSignal() && rxAreFlightChannelsValid()) {
+        onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_RC_RECEIVER;
+    }
+
+#ifdef USE_BLACKBOX
+    // BLACKBOX is assumed enabled and present for boards with capability
+    onboard_control_sensors_present |= MAV_SYS_STATUS_LOGGING;
+    onboard_control_sensors_enabled |= MAV_SYS_STATUS_LOGGING;
+    // Unhealthy only for cases with not enough space to record
+    if (!isBlackboxDeviceFull()) {
+        onboard_control_sensors_health |= MAV_SYS_STATUS_LOGGING;
+    }
+#endif
+
+    mavlink_msg_sys_status_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        onboard_control_sensors_present,
+        onboard_control_sensors_enabled,
+        onboard_control_sensors_health,
+        constrain(averageSystemLoadPercent * 10, 0, 1000),
+        feature(FEATURE_VBAT) ? getBatteryVoltage() * 10 : 0,
+        isAmperageConfigured() ? getAmperage() : -1,
+        feature(FEATURE_VBAT) ? calculateBatteryPercentage() : 100,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0, 0, 0, 0);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendRCChannelsAndRSSI(void)
+{
+#define GET_CHANNEL_VALUE(x) ((rxRuntimeConfig.channelCount >= (x + 1)) ? rxGetChannelValue(x) : 0)
+    if (mavlinkGetProtocolVersion() == 1) {
+        mavlink_msg_rc_channels_raw_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            millis(),
+            0,
+            GET_CHANNEL_VALUE(0),
+            GET_CHANNEL_VALUE(1),
+            GET_CHANNEL_VALUE(2),
+            GET_CHANNEL_VALUE(3),
+            GET_CHANNEL_VALUE(4),
+            GET_CHANNEL_VALUE(5),
+            GET_CHANNEL_VALUE(6),
+            GET_CHANNEL_VALUE(7),
+            scaleRange(getRSSI(), 0, 1023, 0, 254));
+    }
+    else {
+        mavlink_msg_rc_channels_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            millis(),
+            rxRuntimeConfig.channelCount,
+            GET_CHANNEL_VALUE(0),
+            GET_CHANNEL_VALUE(1),
+            GET_CHANNEL_VALUE(2),
+            GET_CHANNEL_VALUE(3),
+            GET_CHANNEL_VALUE(4),
+            GET_CHANNEL_VALUE(5),
+            GET_CHANNEL_VALUE(6),
+            GET_CHANNEL_VALUE(7),
+            GET_CHANNEL_VALUE(8),
+            GET_CHANNEL_VALUE(9),
+            GET_CHANNEL_VALUE(10),
+            GET_CHANNEL_VALUE(11),
+            GET_CHANNEL_VALUE(12),
+            GET_CHANNEL_VALUE(13),
+            GET_CHANNEL_VALUE(14),
+            GET_CHANNEL_VALUE(15),
+            GET_CHANNEL_VALUE(16),
+            GET_CHANNEL_VALUE(17),
+            scaleRange(getRSSI(), 0, 1023, 0, 254));
+    }
+#undef GET_CHANNEL_VALUE
+
+    mavlinkSendMessage();
+}
+
+#if defined(USE_GPS)
+static void mavlinkSendHomePosition(void)
+{
+    float q[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+
+    mavlink_msg_home_position_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        GPS_home.lat,
+        GPS_home.lon,
+        GPS_home.alt * 10,
+        0.0f,
+        0.0f,
+        0.0f,
+        q,
+        0.0f,
+        0.0f,
+        0.0f,
+        ((uint64_t) millis()) * 1000);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendGpsRawInt(timeUs_t currentTimeUs)
+{
+    uint8_t gpsFixType = 0;
+
+    if (!(sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        )) {
+        return;
+    }
+
+    if (gpsSol.fixType == GPS_NO_FIX) {
+        gpsFixType = 1;
+    } else if (gpsSol.fixType == GPS_FIX_2D) {
+        gpsFixType = 2;
+    } else if (gpsSol.fixType == GPS_FIX_3D) {
+        gpsFixType = 3;
+    }
+
+    mavlink_msg_gps_raw_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        currentTimeUs,
+        gpsFixType,
+        gpsSol.llh.lat,
+        gpsSol.llh.lon,
+        gpsSol.llh.alt * 10,
+        gpsSol.eph,
+        gpsSol.epv,
+        gpsSol.groundSpeed,
+        gpsSol.groundCourse * 10,
+        gpsSol.numSat,
+        0,
+        gpsSol.eph * 10,
+        gpsSol.epv * 10,
+        0,
+        0,
+        0);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendGlobalPositionInt(timeUs_t currentTimeUs)
+{
+    if (!(sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        )) {
+        return;
+    }
+
+    mavlink_msg_global_position_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        currentTimeUs / 1000,
+        gpsSol.llh.lat,
+        gpsSol.llh.lon,
+        gpsSol.llh.alt * 10,
+        getEstimatedActualPosition(Z) * 10,
+        getEstimatedActualVelocity(X),
+        getEstimatedActualVelocity(Y),
+        -getEstimatedActualVelocity(Z),
+        DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw)
+    );
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendGpsGlobalOrigin(void)
+{
+    mavlink_msg_gps_global_origin_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        GPS_home.lat,
+        GPS_home.lon,
+        GPS_home.alt * 10,
+        ((uint64_t) millis()) * 1000);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendPosition(timeUs_t currentTimeUs)
+{
+    mavlinkSendGpsRawInt(currentTimeUs);
+    mavlinkSendGlobalPositionInt(currentTimeUs);
+    mavlinkSendGpsGlobalOrigin();
+}
+#endif
+
+void mavlinkSendAttitude(void)
+{
+    mavlink_msg_attitude_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        millis(),
+        RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(attitude.values.roll)),
+        RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(-attitude.values.pitch)),
+        RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(attitude.values.yaw)),
+        DEGREES_TO_RADIANS(gyro.gyroADCf[FD_ROLL]),
+        DEGREES_TO_RADIANS(gyro.gyroADCf[FD_PITCH]),
+        DEGREES_TO_RADIANS(gyro.gyroADCf[FD_YAW]));
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendVfrHud(void)
+{
+    float mavAltitude = 0;
+    float mavGroundSpeed = 0;
+    float mavAirSpeed = 0;
+    float mavClimbRate = 0;
+
+#if defined(USE_GPS)
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
+        mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
+    }
+#endif
+
+#if defined(USE_PITOT)
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        mavAirSpeed = getAirspeedEstimate() / 100.0f;
+    }
+#endif
+
+    mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
+    mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
+
+    int16_t thr = getThrottlePercent(osdUsingScaledThrottle());
+    mavlink_msg_vfr_hud_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        mavAirSpeed,
+        mavGroundSpeed,
+        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
+        thr,
+        mavAltitude,
+        mavClimbRate);
+
+    mavlinkSendMessage();
+}
+
+static uint8_t mavlinkGetAutopilotEnum(void);
+
+void mavlinkSendHeartbeat(void)
+{
+    uint8_t mavModes = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+
+    const bool isPlane = (STATE(FIXED_WING_LEGACY) || mixerConfig()->platformType == PLATFORM_AIRPLANE);
+    const mavlinkModeSelection_t modeSelection = selectMavlinkMode(isPlane);
+    flightModeForTelemetry_e flm = modeSelection.flightMode;
+    uint8_t mavCustomMode = modeSelection.customMode;
+    uint8_t mavSystemType;
+    if (isPlane) {
+        mavSystemType = MAV_TYPE_FIXED_WING;
+    }
+    else {
+        mavSystemType = mavlinkGetVehicleType();
+    }
+
+    const bool manualInputAllowed = !(flm == FLM_MISSION || flm == FLM_RTH || flm == FLM_FAILSAFE);
+    if (manualInputAllowed) {
+        mavModes |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+    }
+    if (flm == FLM_POSITION_HOLD && isGCSValid()) {
+        mavModes |= MAV_MODE_FLAG_GUIDED_ENABLED;
+    }
+    else if (flm == FLM_MISSION || flm == FLM_RTH ) {
+        mavModes |= MAV_MODE_FLAG_AUTO_ENABLED;
+    }
+    else if (flm != FLM_MANUAL && flm != FLM_ACRO && flm != FLM_ACRO_AIR) {
+        mavModes |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+    }
+
+    if (ARMING_FLAG(ARMED)) {
+        mavModes |= MAV_MODE_FLAG_SAFETY_ARMED;
+    }
+
+    uint8_t mavSystemState = 0;
+    if (ARMING_FLAG(ARMED)) {
+        if (failsafeIsActive()) {
+            mavSystemState = MAV_STATE_CRITICAL;
+        }
+        else {
+            mavSystemState = MAV_STATE_ACTIVE;
+        }
+    }
+    else if (areSensorsCalibrating()) {
+        mavSystemState = MAV_STATE_CALIBRATING;
+    }
+    else {
+        mavSystemState = MAV_STATE_STANDBY;
+    }
+
+    mavlink_msg_heartbeat_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        mavSystemType,
+        mavlinkGetAutopilotEnum(),
+        mavModes,
+        mavCustomMode,
+        mavSystemState);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendBatteryStatus(void)
+{
+    uint16_t batteryVoltages[MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN];
+    uint16_t batteryVoltagesExt[MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_EXT_LEN];
+    memset(batteryVoltages, UINT16_MAX, sizeof(batteryVoltages));
+    memset(batteryVoltagesExt, 0, sizeof(batteryVoltagesExt));
+    if (feature(FEATURE_VBAT)) {
+        uint8_t batteryCellCount = getBatteryCellCount();
+        if (batteryCellCount > 0) {
+            for (int cell = 0; cell < batteryCellCount && cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN + MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_EXT_LEN; cell++) {
+                if (cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN) {
+                    batteryVoltages[cell] = getBatteryAverageCellVoltage() * 10;
+                } else {
+                    batteryVoltagesExt[cell - MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN] = getBatteryAverageCellVoltage() * 10;
+                }
+            }
+        }
+        else {
+            batteryVoltages[0] = getBatteryVoltage() * 10;
+        }
+    }
+    else {
+        batteryVoltages[0] = 0;
+    }
+
+    mavlink_msg_battery_status_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        0,
+        MAV_BATTERY_FUNCTION_UNKNOWN,
+        MAV_BATTERY_TYPE_UNKNOWN,
+        INT16_MAX,
+        batteryVoltages,
+        isAmperageConfigured() ? getAmperage() : -1,
+        isAmperageConfigured() ? getMAhDrawn() : -1,
+        isAmperageConfigured() ? getMWhDrawn() * 36 : -1,
+        feature(FEATURE_VBAT) ? calculateBatteryPercentage() : -1,
+        0,
+        0,
+        batteryVoltagesExt,
+        0,
+        0);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendScaledPressure(void)
+{
+    int16_t temperature;
+    sensors(SENSOR_BARO) ? getBaroTemperature(&temperature) : getIMUTemperature(&temperature);
+    mavlink_msg_scaled_pressure_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        millis(),
+        0,
+        0,
+        temperature * 10,
+        0);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendSystemTime(void)
+{
+    mavlink_msg_system_time_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        0,
+        millis());
+
+    mavlinkSendMessage();
+}
+
+bool mavlinkSendStatusText(void)
+{
+#ifdef USE_OSD
+    char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = {" "};
+    textAttributes_t elemAttr = osdGetSystemMessage(buff, sizeof(buff), false);
+    if (buff[0] != SYM_BLANK) {
+        MAV_SEVERITY severity = MAV_SEVERITY_NOTICE;
+        if (TEXT_ATTRIBUTES_HAVE_BLINK(elemAttr)) {
+            severity = MAV_SEVERITY_CRITICAL;
+        } else if TEXT_ATTRIBUTES_HAVE_INVERTED(elemAttr) {
+            severity = MAV_SEVERITY_WARNING;
+        }
+
+        mavlink_msg_statustext_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            (uint8_t)severity,
+            buff,
+            0,
+            0);
+
+        mavlinkSendMessage();
+        return true;
+    }
+#endif
+    return false;
+}
+
+void mavlinkSendBatteryTemperatureStatusText(void)
+{
+    mavlinkSendBatteryStatus();
+    mavlinkSendScaledPressure();
+    mavlinkSendStatusText();
+}
+
+static uint8_t mavlinkGetAutopilotEnum(void)
+{
+    if (mavAutopilotType == MAVLINK_AUTOPILOT_ARDUPILOT) {
+        return MAV_AUTOPILOT_ARDUPILOTMEGA;
+    }
+
+    return MAV_AUTOPILOT_GENERIC;
+}
+
+static uint8_t mavlinkHeadingDeg2FromCd(int32_t headingCd)
+{
+    return (uint8_t)(wrap_36000(headingCd) / 200);
+}
+
+static uint16_t mavlinkComputeHighLatencyFailures(void)
+{
+    uint16_t flags = 0;
+
+#if defined(USE_GPS)
+    if (!(sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+        || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) || gpsSol.fixType == GPS_NO_FIX) {
+        flags |= HL_FAILURE_FLAG_GPS;
+    }
+#endif
+
+#ifdef USE_PITOT
+    if (getHwPitotmeterStatus() != HW_SENSOR_OK) {
+        flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
+    }
+#endif
+
+    if (getHwBarometerStatus() != HW_SENSOR_OK) {
+        flags |= HL_FAILURE_FLAG_ABSOLUTE_PRESSURE;
+    }
+
+    if (getHwAccelerometerStatus() != HW_SENSOR_OK) {
+        flags |= HL_FAILURE_FLAG_3D_ACCEL;
+    }
+
+    if (getHwGyroStatus() != HW_SENSOR_OK) {
+        flags |= HL_FAILURE_FLAG_3D_GYRO;
+    }
+
+    if (getHwCompassStatus() != HW_SENSOR_OK) {
+        flags |= HL_FAILURE_FLAG_3D_MAG;
+    }
+
+    if (getHwRangefinderStatus() != HW_SENSOR_OK) {
+        flags |= HL_FAILURE_FLAG_TERRAIN;
+    }
+
+    const batteryState_e batteryState = getBatteryState();
+    if (batteryState == BATTERY_WARNING || batteryState == BATTERY_CRITICAL) {
+        flags |= HL_FAILURE_FLAG_BATTERY;
+    }
+
+    if (!rxIsReceivingSignal() || !rxAreFlightChannelsValid()) {
+        flags |= HL_FAILURE_FLAG_RC_RECEIVER;
+    }
+
+    return flags;
+}
+
+void mavlinkSendHighLatency2(timeUs_t currentTimeUs)
+{
+    const bool isPlane = (STATE(FIXED_WING_LEGACY) || mixerConfig()->platformType == PLATFORM_AIRPLANE);
+    const mavlinkModeSelection_t modeSelection = selectMavlinkMode(isPlane);
+
+    int32_t latitude = 0;
+    int32_t longitude = 0;
+    int16_t altitude = (int16_t)constrain((int32_t)(getEstimatedActualPosition(Z) / 100), INT16_MIN, INT16_MAX);
+    int16_t targetAltitude = (int16_t)constrain((int32_t)(posControl.desiredState.pos.z / 100), INT16_MIN, INT16_MAX);
+    uint16_t targetDistance = 0;
+    uint16_t wpNum = 0;
+    uint8_t heading = mavlinkHeadingDeg2FromCd(DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw));
+    uint8_t targetHeading = mavlinkHeadingDeg2FromCd(posControl.desiredState.yaw);
+    uint8_t groundspeed = 0;
+    uint8_t airspeed = 0;
+    uint8_t airspeedSp = 0;
+    uint8_t windspeed = 0;
+    uint8_t windHeading = 0;
+    uint8_t eph = UINT8_MAX;
+    uint8_t epv = UINT8_MAX;
+    int8_t temperatureAir = 0;
+    int8_t climbRate = (int8_t)constrain(lrintf(getEstimatedActualVelocity(Z) / 10.0f), INT8_MIN, INT8_MAX);
+    int8_t battery = feature(FEATURE_VBAT) ? (int8_t)calculateBatteryPercentage() : -1;
+
+#if defined(USE_GPS)
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+        || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
+        latitude = gpsSol.llh.lat;
+        longitude = gpsSol.llh.lon;
+        altitude = (int16_t)constrain((int32_t)(gpsSol.llh.alt / 100), INT16_MIN, INT16_MAX);
+
+        const int32_t desiredAltCm = lrintf(posControl.desiredState.pos.z);
+        const int32_t targetAltCm = GPS_home.alt + desiredAltCm;
+        targetAltitude = (int16_t)constrain(targetAltCm / 100, INT16_MIN, INT16_MAX);
+
+        groundspeed = (uint8_t)constrain(lrintf(gpsSol.groundSpeed / 20.0f), 0, UINT8_MAX);
+
+        if (gpsSol.flags.validEPE) {
+            eph = (uint8_t)constrain((gpsSol.eph + 5) / 10, 0, UINT8_MAX);
+            epv = (uint8_t)constrain((gpsSol.epv + 5) / 10, 0, UINT8_MAX);
+        }
+
+        if (posControl.activeWaypointIndex >= 0) {
+            wpNum = (uint16_t)posControl.activeWaypointIndex;
+            targetDistance = (uint16_t)constrain(lrintf(posControl.wpDistance / 1000.0f), 0, UINT16_MAX);
+        }
+    }
+#endif
+
+#if defined(USE_PITOT)
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        airspeed = (uint8_t)constrain(lrintf(getAirspeedEstimate() / 20.0f), 0, UINT8_MAX);
+        airspeedSp = airspeed;
+    }
+#endif
+
+    if (airspeedSp == 0) {
+        const float desiredVelXY = calc_length_pythagorean_2D(posControl.desiredState.vel.x, posControl.desiredState.vel.y);
+        airspeedSp = (uint8_t)constrain(lrintf(desiredVelXY / 20.0f), 0, UINT8_MAX);
+    }
+
+    if (airspeed == 0) {
+        airspeed = groundspeed;
+    }
+
+#ifdef USE_WIND_ESTIMATOR
+    if (isEstimatedWindSpeedValid()) {
+        uint16_t windAngleCd = 0;
+        const float windHoriz = getEstimatedHorizontalWindSpeed(&windAngleCd);
+        windspeed = (uint8_t)constrain(lrintf(windHoriz / 20.0f), 0, UINT8_MAX);
+        windHeading = mavlinkHeadingDeg2FromCd(windAngleCd);
+    }
+#endif
+
+    int16_t temperature;
+    sensors(SENSOR_BARO) ? getBaroTemperature(&temperature) : getIMUTemperature(&temperature);
+    temperatureAir = (int8_t)constrain(temperature, INT8_MIN, INT8_MAX);
+
+    const uint16_t failureFlags = mavlinkComputeHighLatencyFailures();
+
+    mavlink_msg_high_latency2_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        (uint32_t)(currentTimeUs / 1000),
+        mavlinkGetVehicleType(),
+        mavlinkGetAutopilotEnum(),
+        modeSelection.customMode,
+        latitude,
+        longitude,
+        altitude,
+        targetAltitude,
+        heading,
+        targetHeading,
+        targetDistance,
+        (uint8_t)constrain(getThrottlePercent(osdUsingScaledThrottle()), 0, 100),
+        airspeed,
+        airspeedSp,
+        groundspeed,
+        windspeed,
+        windHeading,
+        eph,
+        epv,
+        temperatureAir,
+        climbRate,
+        battery,
+        wpNum,
+        failureFlags,
+        0,
+        0,
+        0);
+
+    mavlinkSendMessage();
+}
+
+bool mavlinkSendRequestedMessage(uint16_t messageId)
+{
+    switch (messageId) {
+        case MAVLINK_MSG_ID_HEARTBEAT:
+            mavlinkSendHeartbeat();
+            return true;
+        case MAVLINK_MSG_ID_AUTOPILOT_VERSION:
+            if (mavlinkGetProtocolVersion() != 1) {
+                mavlinkSendAutopilotVersion();
+                return true;
+            }
+            return false;
+        case MAVLINK_MSG_ID_PROTOCOL_VERSION:
+            if (mavlinkGetProtocolVersion() != 1) {
+                mavlinkSendProtocolVersion();
+                return true;
+            }
+            return false;
+        case MAVLINK_MSG_ID_SYS_STATUS:
+            mavlinkSendSystemStatus();
+            return true;
+        case MAVLINK_MSG_ID_ATTITUDE:
+            mavlinkSendAttitude();
+            return true;
+        case MAVLINK_MSG_ID_VFR_HUD:
+            mavlinkSendVfrHud();
+            return true;
+        case MAVLINK_MSG_ID_AVAILABLE_MODES:
+            {
+                const bool isPlane = mixerConfig()->platformType == PLATFORM_AIRPLANE || STATE(FIXED_WING_LEGACY);
+                const mavlinkModeSelection_t modeSelection = selectMavlinkMode(isPlane);
+                if (isPlane) {
+                    mavlinkSendAvailableModes(planeModes, (uint8_t)ARRAYLEN(planeModes), modeSelection.customMode, mavlinkPlaneModeIsConfigured);
+                } else {
+                    mavlinkSendAvailableModes(copterModes, (uint8_t)ARRAYLEN(copterModes), modeSelection.customMode, mavlinkCopterModeIsConfigured);
+                }
+                return true;
+            }
+        case MAVLINK_MSG_ID_CURRENT_MODE:
+            {
+                const bool isPlane = mixerConfig()->platformType == PLATFORM_AIRPLANE || STATE(FIXED_WING_LEGACY);
+                const mavlinkModeSelection_t modeSelection = selectMavlinkMode(isPlane);
+                mavlink_msg_current_mode_pack(
+                    mavSystemId,
+                    mavComponentId,
+                    &mavSendMsg,
+                    MAV_STANDARD_MODE_NON_STANDARD,
+                    modeSelection.customMode,
+                    modeSelection.customMode);
+                mavlinkSendMessage();
+                return true;
+            }
+        case MAVLINK_MSG_ID_EXTENDED_SYS_STATE:
+            mavlinkSendExtendedSysState();
+            return true;
+        case MAVLINK_MSG_ID_RC_CHANNELS:
+        case MAVLINK_MSG_ID_RC_CHANNELS_RAW:
+        case MAVLINK_MSG_ID_RC_CHANNELS_SCALED:
+            mavlinkSendRCChannelsAndRSSI();
+            return true;
+#ifdef USE_GPS
+        case MAVLINK_MSG_ID_GPS_RAW_INT:
+            mavlinkSendGpsRawInt(micros());
+            return true;
+        case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:
+            mavlinkSendGlobalPositionInt(micros());
+            return true;
+        case MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN:
+            mavlinkSendGpsGlobalOrigin();
+            return true;
+        case MAVLINK_MSG_ID_HOME_POSITION:
+            if (STATE(GPS_FIX_HOME)) {
+                mavlinkSendHomePosition();
+                return true;
+            }
+            return false;
+#endif
+        case MAVLINK_MSG_ID_BATTERY_STATUS:
+            mavlinkSendBatteryStatus();
+            return true;
+        case MAVLINK_MSG_ID_SCALED_PRESSURE:
+            mavlinkSendScaledPressure();
+            return true;
+        case MAVLINK_MSG_ID_SYSTEM_TIME:
+            mavlinkSendSystemTime();
+            return true;
+        case MAVLINK_MSG_ID_STATUSTEXT:
+            return mavlinkSendStatusText();
+        default:
+            return false;
     }
 }
 
