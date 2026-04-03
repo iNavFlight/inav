@@ -51,7 +51,7 @@ Ports 2..N use a secondary startup profile (heartbeat at 1 Hz, other streams dis
 | `EXTENDED_STATUS` | `SYS_STATUS` | 2 Hz |
 | `RC_CHANNELS` | `RC_CHANNELS_RAW` (v1) / `RC_CHANNELS` (v2) | 1 Hz |
 | `POSITION` | `GPS_RAW_INT`, `GLOBAL_POSITION_INT`, `GPS_GLOBAL_ORIGIN` | 2 Hz |
-| `EXTRA1` | `ATTITUDE` | 3 Hz |
+| `EXTRA1` | `ATTITUDE` | 2 Hz |
 | `EXTRA2` | `VFR_HUD` | 2 Hz |
 | `HEARTBEAT` | `HEARTBEAT` | 1 Hz (independent of stream groups) |
 | `EXT_SYS_STATE` | `EXTENDED_SYS_STATE` | 1 Hz (defaults to `mavlink_port1_extra3_rate`) |
@@ -113,12 +113,14 @@ Messages are organized into MAVLink datastream groups. Each group sends **one me
 Limited implementation of the Command protocol.
 
 - `MAV_CMD_DO_REPOSITION`: sets the Follow Me/GCS Nav waypoint when GCS NAV is valid. Accepts `MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`; otherwise `UNSUPPORTED`.
+- `MAV_CMD_DO_CHANGE_ALTITUDE`: changes the current altitude target. `param1` is the target altitude in meters and `param2` is interpreted as the MAVLink frame (`MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`); unsupported frames are rejected.
 - `MAV_CMD_CONDITION_YAW`: changes the current heading target when the active navigation state has yaw control. Accepts absolute heading (`param4=0`) and relative turns (`param4!=0`); turn-rate is ignored.
 - `MAV_CMD_SET_MESSAGE_INTERVAL` / `MAV_CMD_GET_MESSAGE_INTERVAL`: adjust or query per-message periodic output for `HEARTBEAT`, `SYS_STATUS`, `EXTENDED_SYS_STATE`, RC channels, `GPS_RAW_INT`, `GLOBAL_POSITION_INT`, `GPS_GLOBAL_ORIGIN`, `ATTITUDE`, `VFR_HUD`, `BATTERY_STATUS`, `SCALED_PRESSURE`, and `SYSTEM_TIME`. `REQUEST_DATA_STREAM` still controls the legacy base stream groups; `SET_MESSAGE_INTERVAL` overrides individual messages on top.
 - `MAV_CMD_GET_HOME_POSITION`: replies with `HOME_POSITION` when home fix exists.
 - `MAV_CMD_REQUEST_MESSAGE`: emits one selected message (`HEARTBEAT`, `SYS_STATUS`, `ATTITUDE`, `VFR_HUD`, `AVAILABLE_MODES`, `CURRENT_MODE`, `EXTENDED_SYS_STATE`, RC channels, `GPS_RAW_INT`, `GLOBAL_POSITION_INT`, `GPS_GLOBAL_ORIGIN`, `BATTERY_STATUS`, `SCALED_PRESSURE`, `SYSTEM_TIME`, and `HOME_POSITION` when available) or `UNSUPPORTED`.
 - `MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES`: returns stub `AUTOPILOT_VERSION` (v2 only; v1 returns `UNSUPPORTED`) advertising `SET_POSITION_TARGET_GLOBAL_INT` and `SET_POSITION_TARGET_LOCAL_NED`.
 - `MAV_CMD_REQUEST_PROTOCOL_VERSION`: returns stub `PROTOCOL_VERSION` (v2 only; v1 returns `UNSUPPORTED`).
+- `MAV_CMD_CONTROL_HIGH_LATENCY`: enables or disables `HIGH_LATENCY2` scheduling on the ingress MAVLink port (`param1` = `0` or `1`). Enabling is rejected on MAVLink1 links.
 
 ## Mode mappings (INAV → MAVLink/ArduPilot)
 
