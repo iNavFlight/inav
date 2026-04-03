@@ -7,8 +7,7 @@
 └─────────────────────────────────────────────────┘
 ```
 
-This feature is available **only on H7-based and F4-based flight controllers with an SD card** (preferably SDIO). Due to the high CPU load
-and SD card read speed requirements of terrain data processing, it is not supported on weaker hardware.
+This feature is available **only on H7-based and F4-based flight controllers with an SD card**.
 
 This feature in iNav determines the model’s altitude above ground level using preloaded elevation maps
 (terrain / SRTM data) stored on an SD card, without requiring a physical rangefinder. Based on the current GPS position, the
@@ -52,6 +51,11 @@ SDCARD:\
 
 Copying can be done via **iNav MSC (Mass Storage Class)** is not recommended.
 
+> **Important:** The `.DAT` file covering your **home position** (the location where you arm) must always be present on the SD
+> card. The terrain system first reads the ground elevation at the home position to establish an altitude reference. Until this
+> succeeds, terrain data will not be displayed for any position — even if tiles for your entire flight area are present. Make
+> sure the tile for your take-off site is included when generating and copying terrain files.
+
 # Enabling and Displaying Terrain Data
 
 To display altitude above terrain in iNav, the OSD element **“Rangefinder distance”** must be enabled. If terrain data are
@@ -73,3 +77,21 @@ Finally, it is **strongly recommended to use only high-quality, branded SD cards
 system is sensitive to SD card read speed and reliability, and low-quality or counterfeit cards may cause read errors,
 display dropouts, or automatic disabling of the feature during flight. Using a quality SD card significantly improves the
 stability and reliability of the terrain feature.
+
+# Troubleshooting
+- OSD shows no terrain value / "Rangefinder distance" is dash:
+  - Verify `terrain_enabled = ON` is set and saved (`set terrain_enabled = ON` → `save` → reboot)
+  - Confirm the SD card is mounted: check `status` in the CLI for SD card state
+  - Confirm a valid GPS fix is present before expecting any terrain value to appear
+  - Terrain data is only loaded **after the first valid GPS fix**. If the fix is acquired after a long wait, allow a few seconds for the first read to complete
+  - Check that the `.DAT` file covering your **home position** exists on the SD card — see note in *Data Generation and Copying* above
+- Feature disables itself mid-flight:
+  - The terrain subsystem disables itself on any SD card read failure. This is most commonly caused by a slow or low-quality SD card. Replace the card with a branded, high-speed card
+  - On F4-based flight controllers, SD card compatibility issues are more common. If problems persist, test with a different card model or switch to an H7-based flight controller
+  - Ensure the SD card partition is ≤ 4 GB and formatted FAT32. Larger partitions or exFAT formatting can cause intermittent read failures
+- Value appears but is clearly wrong:
+  - Confirm you selected **30 m resolution (SRTM1)** when generating data at https://terrain.ardupilot.org/. Other resolutions are not supported and will produce incorrect values
+  - Reformat the SD card and recopy the terrain files. A corrupted or partially overwritten FAT32 filesystem can produce plausible but incorrect altitude values
+  - The displayed value is altitude **above terrain at the current GPS position**, not distance to the nearest object below the aircraft. Trees, buildings, and local obstacles are not accounted for
+- Terrain data was not loaded before arming:
+  - If the flight controller is armed before terrain data for the home position is successfully read from the SD card, the system will not attempt to load data during the flight (to avoid SD card access latency while airborne). Disarm, wait for the OSD value to appear, then arm
