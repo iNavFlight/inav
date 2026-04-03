@@ -102,7 +102,6 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
             .extra3_rate = SETTING_MAVLINK_PORT1_EXTRA3_RATE_DEFAULT,
             .min_txbuff = SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT,
             .radio_type = SETTING_MAVLINK_PORT1_RADIO_TYPE_DEFAULT,
-            .compid = SETTING_MAVLINK_PORT1_COMPID_DEFAULT,
             .high_latency = SETTING_MAVLINK_PORT1_HIGH_LATENCY_DEFAULT
         },
         {
@@ -114,7 +113,6 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
             .extra3_rate = 0,
             .min_txbuff = SETTING_MAVLINK_PORT2_MIN_TXBUFFER_DEFAULT,
             .radio_type = SETTING_MAVLINK_PORT2_RADIO_TYPE_DEFAULT,
-            .compid = SETTING_MAVLINK_PORT2_COMPID_DEFAULT,
             .high_latency = SETTING_MAVLINK_PORT2_HIGH_LATENCY_DEFAULT
         },
         {
@@ -126,7 +124,6 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
             .extra3_rate = 0,
             .min_txbuff = SETTING_MAVLINK_PORT3_MIN_TXBUFFER_DEFAULT,
             .radio_type = SETTING_MAVLINK_PORT3_RADIO_TYPE_DEFAULT,
-            .compid = SETTING_MAVLINK_PORT3_COMPID_DEFAULT,
             .high_latency = SETTING_MAVLINK_PORT3_HIGH_LATENCY_DEFAULT
         },
         {
@@ -138,7 +135,6 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
             .extra3_rate = 0,
             .min_txbuff = SETTING_MAVLINK_PORT4_MIN_TXBUFFER_DEFAULT,
             .radio_type = SETTING_MAVLINK_PORT4_RADIO_TYPE_DEFAULT,
-            .compid = SETTING_MAVLINK_PORT4_COMPID_DEFAULT,
             .high_latency = SETTING_MAVLINK_PORT4_HIGH_LATENCY_DEFAULT
         }
     }

@@ -17,7 +17,6 @@ INAV supports up to 4 concurrent MAVLink telemetry ports (`MAX_MAVLINK_PORTS`), 
 ### Usage guidance
 - If you rely on RC via MAVLink, ensure the serial receiver type is set to `SERIALRX_MAVLINK` and consider enabling `telemetry_halfduplex` when RX shares the port.
 - To reduce bandwidth, lower the stream rates for groups you do not need, or disable them entirely by setting the rate to 0.
-- Assign a unique `mavlink_port{1-4}_compid` to each INAV MAVLink port to avoid ambiguous local targeting.
 - If a GCS or companion needs telemetry on ports 2..4, explicitly request streams (`REQUEST_DATA_STREAM` or `MAV_CMD_SET_MESSAGE_INTERVAL`) because only heartbeat is enabled by default.
 - If you depend on directed forwarding between links, ensure each remote endpoint transmits at least one frame early so route learning is populated.
 
@@ -35,10 +34,11 @@ INAV supports up to 4 concurrent MAVLink telemetry ports (`MAX_MAVLINK_PORTS`), 
    - `mavlink_port{1-4}_extra3_rate`. 
 - Port 1 uses configured CLI rates (`mavlink_port1_*_rate`).
 - Ports 2..4 start with heartbeat only (1 Hz), all other streams disabled.
-- `mavlink_port{1-4}_compid` - MAV_COMPONENT ID of port. Ensure these are different.
 - `mavlink_port{1-4}_min_txbuffer` - minimum remote TX buffer level before sending when `RADIO_STATUS` provides flow control.
 - `mavlink_port{1-4}_radio_type`- scales `RADIO_STATUS` RSSI/SNR for **generic**, **ELRS**, or **SiK** links.
 - `mavlink_port{1-4}_high_latency`- turns on Mavlink HIGH_LATENCY2 mode on this port  
+
+INAV always transmits as MAVLink component `MAV_COMP_ID_AUTOPILOT1`. Attached MAVLink devices are remote components learned from incoming traffic; they are not modeled as local per-port FC identities.
 
 
 ## Datastream groups and defaults
@@ -55,7 +55,7 @@ Ports 2..N use a secondary startup profile (heartbeat at 1 Hz, other streams dis
 | `EXTRA2` | `VFR_HUD` | 2 Hz |
 | `HEARTBEAT` | `HEARTBEAT` | 1 Hz (independent of stream groups) |
 | `EXT_SYS_STATE` | `EXTENDED_SYS_STATE` | 1 Hz (defaults to `mavlink_port1_extra3_rate`) |
-| `EXTRA3` | `BATTERY_STATUS`, `SCALED_PRESSURE`, `STATUSTEXT` (when present) | 1 Hz |
+| `EXTRA3` | `BATTERY_STATUS`, `SCALED_PRESSURE`, `SYSTEM_TIME`, `STATUSTEXT` (when present) | 1 Hz |
 
 ### Routing, forwarding and local handling
 
@@ -63,11 +63,13 @@ Ports 2..N use a secondary startup profile (heartbeat at 1 Hz, other streams dis
 - Broadcast messages are forwarded to all other MAVLink ports (except `RADIO_STATUS`, which is not forwarded).
 - Targeted messages are forwarded only to ports with a learned route for that target.
 - Practical caveat: the first targeted message to a never-seen endpoint may not forward until that endpoint has sent at least one MAVLink frame.
+- INAV’s local FC identity is always `(mavlink_sysid, MAV_COMP_ID_AUTOPILOT1)`.
+- Traffic from the local system ID but a different component ID is treated as a remote component and can be learned into the route table.
 - Local/system broadcasts (`target_system=0` or local system ID with `target_component=0`) are fanned out to all local ports only for:
   - `REQUEST_DATA_STREAM`
   - `MAV_CMD_SET_MESSAGE_INTERVAL`
   - `MAV_CMD_CONTROL_HIGH_LATENCY`
-- Other incoming commands/messages are handled on one resolved local port, based on local target matching.
+- Other incoming commands/messages are handled once on the resolved local ingress path, but broadcast-targeted control requests still execute locally.
 
 ## Supported Outgoing Messages
 
@@ -84,6 +86,7 @@ Messages are organized into MAVLink datastream groups. Each group sends **one me
 - `EXTENDED_SYS_STATE`: publishes landed state.
 - `BATTERY_STATUS`: with per-cell voltages (cells 11‑14 in `voltages_ext`), current draw, consumed mAh/Wh, and remaining percentage when available.
 - `SCALED_PRESSURE`: for IMU/baro temperature.
+- `SYSTEM_TIME`: with `time_boot_ms = millis()` and `time_unix_usec = 0`.
 - `STATUSTEXT`: when the OSD has a pending system message; severity follows OSD attributes (notice/warning/critical).
 - On-demand (command-triggered) messages: `AUTOPILOT_VERSION`, `PROTOCOL_VERSION`, `MESSAGE_INTERVAL`, `HOME_POSITION`, `AVAILABLE_MODES`, and `CURRENT_MODE`.
 
@@ -111,9 +114,9 @@ Limited implementation of the Command protocol.
 
 - `MAV_CMD_DO_REPOSITION`: sets the Follow Me/GCS Nav waypoint when GCS NAV is valid. Accepts `MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`; otherwise `UNSUPPORTED`.
 - `MAV_CMD_CONDITION_YAW`: changes the current heading target when the active navigation state has yaw control. Accepts absolute heading (`param4=0`) and relative turns (`param4!=0`); turn-rate is ignored.
-- `MAV_CMD_SET_MESSAGE_INTERVAL` / `MAV_CMD_GET_MESSAGE_INTERVAL`: adjust or query telemetry stream output for supported message IDs (streamed messages only; intervals slower than 1 Hz are not accepted).
+- `MAV_CMD_SET_MESSAGE_INTERVAL` / `MAV_CMD_GET_MESSAGE_INTERVAL`: adjust or query per-message periodic output for `HEARTBEAT`, `SYS_STATUS`, `EXTENDED_SYS_STATE`, RC channels, `GPS_RAW_INT`, `GLOBAL_POSITION_INT`, `GPS_GLOBAL_ORIGIN`, `ATTITUDE`, `VFR_HUD`, `BATTERY_STATUS`, `SCALED_PRESSURE`, and `SYSTEM_TIME`. `REQUEST_DATA_STREAM` still controls the legacy base stream groups; `SET_MESSAGE_INTERVAL` overrides individual messages on top.
 - `MAV_CMD_GET_HOME_POSITION`: replies with `HOME_POSITION` when home fix exists.
-- `MAV_CMD_REQUEST_MESSAGE`: emits one selected message (`HEARTBEAT`, `SYS_STATUS`, `ATTITUDE`, `VFR_HUD`, `AVAILABLE_MODES`, `CURRENT_MODE`, `EXTENDED_SYS_STATE`, RC channels, GPS/global/origin, battery/pressure, and `HOME_POSITION` when available) or `UNSUPPORTED`.
+- `MAV_CMD_REQUEST_MESSAGE`: emits one selected message (`HEARTBEAT`, `SYS_STATUS`, `ATTITUDE`, `VFR_HUD`, `AVAILABLE_MODES`, `CURRENT_MODE`, `EXTENDED_SYS_STATE`, RC channels, `GPS_RAW_INT`, `GLOBAL_POSITION_INT`, `GPS_GLOBAL_ORIGIN`, `BATTERY_STATUS`, `SCALED_PRESSURE`, `SYSTEM_TIME`, and `HOME_POSITION` when available) or `UNSUPPORTED`.
 - `MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES`: returns stub `AUTOPILOT_VERSION` (v2 only; v1 returns `UNSUPPORTED`) advertising `SET_POSITION_TARGET_GLOBAL_INT` and `SET_POSITION_TARGET_LOCAL_NED`.
 - `MAV_CMD_REQUEST_PROTOCOL_VERSION`: returns stub `PROTOCOL_VERSION` (v2 only; v1 returns `UNSUPPORTED`).
 
@@ -169,7 +172,7 @@ CLI mode is unavailable in MSP-over-MAVLink.
 
 - INAV accepts `TUNNEL` messages with private payload type `0x8001` as an MSP byte stream carried over MAVLink2.
 - `target_system` must match `mavlink_sysid`.
-- `target_component` may be `0` or the local port `mavlink_port{1-4}_compid`.
+- `target_component` may be `0` or `MAV_COMP_ID_AUTOPILOT1`.
 - `target_component=0` is handled on the ingress MAVLink port only; it is not fanned out to other local MAVLink ports.
 - MSP replies are sent back to the requester as one or more `TUNNEL` messages on that same ingress port.
 - MSP framing is preserved end-to-end: MSPv1 requests get MSPv1 replies, and MSPv2 requests get MSPv2 replies.

@@ -119,7 +119,7 @@ static const mavlinkTelemetryPortConfig_t *mavActiveConfig = NULL;
 static mavlink_message_t mavSendMsg;
 static mavlink_message_t mavRecvMsg;
 
-// Set active MAV identity from active port settings.
+// Set active MAV identity from global MAVLink settings.
 static uint8_t mavSystemId = 1;
 static uint8_t mavAutopilotType;
 static uint8_t mavComponentId = MAV_COMP_ID_AUTOPILOT1;
@@ -277,7 +277,7 @@ static void mavlinkSetActivePortContext(uint8_t portIndex)
     const mavlinkTelemetryCommonConfig_t *commonConfig = mavlinkGetCommonConfig();
     mavAutopilotType = commonConfig->autopilot_type;
     mavSystemId = commonConfig->sysid;
-    mavComponentId = mavActiveConfig->compid;
+    mavComponentId = MAV_COMP_ID_AUTOPILOT1;
     mavlinkApplyActivePortOutputVersion();
 }
 
@@ -288,6 +288,145 @@ static uint8_t mavlinkClampStreamRate(uint8_t rate)
     }
 
     return rate;
+}
+
+static int32_t mavlinkRateToIntervalUs(uint8_t rate)
+{
+    rate = mavlinkClampStreamRate(rate);
+    if (rate == 0) {
+        return -1;
+    }
+
+    return 1000000 / rate;
+}
+
+static bool mavlinkPeriodicMessageFromMessageId(uint16_t messageId, mavlinkPeriodicMessage_e *periodicMessage)
+{
+    switch (messageId) {
+        case MAVLINK_MSG_ID_HEARTBEAT:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_HEARTBEAT;
+            return true;
+        case MAVLINK_MSG_ID_SYS_STATUS:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_SYS_STATUS;
+            return true;
+        case MAVLINK_MSG_ID_EXTENDED_SYS_STATE:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_EXTENDED_SYS_STATE;
+            return true;
+        case MAVLINK_MSG_ID_RC_CHANNELS:
+        case MAVLINK_MSG_ID_RC_CHANNELS_RAW:
+        case MAVLINK_MSG_ID_RC_CHANNELS_SCALED:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_RC_CHANNELS;
+            return true;
+        case MAVLINK_MSG_ID_GPS_RAW_INT:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_GPS_RAW_INT;
+            return true;
+        case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_GLOBAL_POSITION_INT;
+            return true;
+        case MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_GPS_GLOBAL_ORIGIN;
+            return true;
+        case MAVLINK_MSG_ID_ATTITUDE:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_ATTITUDE;
+            return true;
+        case MAVLINK_MSG_ID_VFR_HUD:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_VFR_HUD;
+            return true;
+        case MAVLINK_MSG_ID_BATTERY_STATUS:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_BATTERY_STATUS;
+            return true;
+        case MAVLINK_MSG_ID_SCALED_PRESSURE:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_SCALED_PRESSURE;
+            return true;
+        case MAVLINK_MSG_ID_SYSTEM_TIME:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_SYSTEM_TIME;
+            return true;
+        default:
+            return false;
+    }
+}
+
+static uint8_t mavlinkPeriodicMessageBaseStream(mavlinkPeriodicMessage_e periodicMessage)
+{
+    switch (periodicMessage) {
+        case MAVLINK_PERIODIC_MESSAGE_HEARTBEAT:
+            return MAV_DATA_STREAM_HEARTBEAT;
+        case MAVLINK_PERIODIC_MESSAGE_SYS_STATUS:
+            return MAV_DATA_STREAM_EXTENDED_STATUS;
+        case MAVLINK_PERIODIC_MESSAGE_EXTENDED_SYS_STATE:
+            return MAV_DATA_STREAM_EXTENDED_SYS_STATE;
+        case MAVLINK_PERIODIC_MESSAGE_RC_CHANNELS:
+            return MAV_DATA_STREAM_RC_CHANNELS;
+        case MAVLINK_PERIODIC_MESSAGE_GPS_RAW_INT:
+        case MAVLINK_PERIODIC_MESSAGE_GLOBAL_POSITION_INT:
+        case MAVLINK_PERIODIC_MESSAGE_GPS_GLOBAL_ORIGIN:
+            return MAV_DATA_STREAM_POSITION;
+        case MAVLINK_PERIODIC_MESSAGE_ATTITUDE:
+            return MAV_DATA_STREAM_EXTRA1;
+        case MAVLINK_PERIODIC_MESSAGE_VFR_HUD:
+            return MAV_DATA_STREAM_EXTRA2;
+        case MAVLINK_PERIODIC_MESSAGE_BATTERY_STATUS:
+        case MAVLINK_PERIODIC_MESSAGE_SCALED_PRESSURE:
+        case MAVLINK_PERIODIC_MESSAGE_SYSTEM_TIME:
+            return MAV_DATA_STREAM_EXTRA3;
+        default:
+            return MAV_DATA_STREAM_ALL;
+    }
+}
+
+static void mavlinkResetMessageSchedule(mavlinkPeriodicMessage_e periodicMessage)
+{
+    if (!mavActivePort) {
+        return;
+    }
+
+    mavActivePort->mavMessageNextDue[periodicMessage] = 0;
+}
+
+static void mavlinkResetMessagesForStream(uint8_t streamNum)
+{
+    if (!mavActivePort) {
+        return;
+    }
+
+    for (uint8_t messageIndex = 0; messageIndex < MAVLINK_PERIODIC_MESSAGE_COUNT; messageIndex++) {
+        if (mavlinkPeriodicMessageBaseStream((mavlinkPeriodicMessage_e)messageIndex) == streamNum) {
+            mavActivePort->mavMessageNextDue[messageIndex] = 0;
+        }
+    }
+}
+
+static int32_t mavlinkMessageBaseIntervalUs(mavlinkPeriodicMessage_e periodicMessage)
+{
+    if (!mavActivePort) {
+        return -1;
+    }
+
+    return mavlinkRateToIntervalUs(mavActivePort->mavRates[mavlinkPeriodicMessageBaseStream(periodicMessage)]);
+}
+
+static int32_t mavlinkMessageIntervalUs(mavlinkPeriodicMessage_e periodicMessage)
+{
+    if (!mavActivePort) {
+        return -1;
+    }
+
+    const int32_t overrideIntervalUs = mavActivePort->mavMessageOverrideIntervalsUs[periodicMessage];
+    if (overrideIntervalUs != 0) {
+        return overrideIntervalUs;
+    }
+
+    return mavlinkMessageBaseIntervalUs(periodicMessage);
+}
+
+static void mavlinkSetMessageOverrideIntervalUs(mavlinkPeriodicMessage_e periodicMessage, int32_t intervalUs)
+{
+    if (!mavActivePort) {
+        return;
+    }
+
+    mavActivePort->mavMessageOverrideIntervalsUs[periodicMessage] = intervalUs;
+    mavlinkResetMessageSchedule(periodicMessage);
 }
 
 static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum, timeUs_t currentTimeUs)
@@ -317,20 +456,26 @@ static void mavlinkSetStreamRate(uint8_t streamNum, uint8_t rate)
     }
     mavActivePort->mavRates[streamNum] = mavlinkClampStreamRate(rate);
     mavActivePort->mavStreamNextDue[streamNum] = 0;
+    mavlinkResetMessagesForStream(streamNum);
 }
 
-static int32_t mavlinkStreamIntervalUs(uint8_t streamNum)
+static int mavlinkMessageTrigger(mavlinkPeriodicMessage_e periodicMessage, timeUs_t currentTimeUs)
 {
-    if (!mavActivePort || streamNum >= MAXSTREAMS) {
-        return -1;
+    if (!mavActivePort) {
+        return 0;
     }
 
-    uint8_t rate = mavlinkClampStreamRate(mavActivePort->mavRates[streamNum]);
-    if (rate == 0) {
-        return -1;
+    const int32_t intervalUs = mavlinkMessageIntervalUs(periodicMessage);
+    if (intervalUs <= 0) {
+        return 0;
     }
 
-    return 1000000 / rate;
+    if ((mavActivePort->mavMessageNextDue[periodicMessage] == 0) || (cmpTimeUs(currentTimeUs, mavActivePort->mavMessageNextDue[periodicMessage]) >= 0)) {
+        mavActivePort->mavMessageNextDue[periodicMessage] = currentTimeUs + intervalUs;
+        return 1;
+    }
+
+    return 0;
 }
 
 static void configureMAVLinkStreamRates(uint8_t portIndex)
@@ -375,6 +520,8 @@ static void freeMAVLinkTelemetryPortByIndex(uint8_t portIndex)
     state->txSeq = 0;
     state->txDroppedFrames = 0;
     memset(state->mavStreamNextDue, 0, sizeof(state->mavStreamNextDue));
+    memset(state->mavMessageOverrideIntervalsUs, 0, sizeof(state->mavMessageOverrideIntervalsUs));
+    memset(state->mavMessageNextDue, 0, sizeof(state->mavMessageNextDue));
     memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
     memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
     resetMspPort(&mavTunnelMspPorts[portIndex], NULL);
@@ -448,6 +595,8 @@ static void configureMAVLinkTelemetryPort(uint8_t portIndex)
     state->txSeq = 0;
     state->txDroppedFrames = 0;
     memset(state->mavStreamNextDue, 0, sizeof(state->mavStreamNextDue));
+    memset(state->mavMessageOverrideIntervalsUs, 0, sizeof(state->mavMessageOverrideIntervalsUs));
+    memset(state->mavMessageNextDue, 0, sizeof(state->mavMessageNextDue));
     memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
     memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
     resetMspPort(&mavTunnelMspPorts[portIndex], NULL);
@@ -1301,7 +1450,7 @@ static void mavlinkSendHomePosition(void)
     mavlinkSendMessage();
 }
 
-void mavlinkSendPosition(timeUs_t currentTimeUs)
+static void mavlinkSendGpsRawInt(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
 
@@ -1354,8 +1503,18 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         0);
 
     mavlinkSendMessage();
+}
 
-    // Global position
+static void mavlinkSendGlobalPositionInt(timeUs_t currentTimeUs)
+{
+    if (!(sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        )) {
+        return;
+    }
+
     mavlink_msg_global_position_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // time_boot_ms Timestamp (milliseconds since system boot)
         currentTimeUs / 1000,
@@ -1378,7 +1537,10 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
     );
 
     mavlinkSendMessage();
+}
 
+static void mavlinkSendGpsGlobalOrigin(void)
+{
     mavlink_msg_gps_global_origin_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // latitude Latitude (WGS84), expressed as * 1E7
         GPS_home.lat,
@@ -1391,6 +1553,13 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         ((uint64_t) millis()) * 1000);
 
     mavlinkSendMessage();
+}
+
+void mavlinkSendPosition(timeUs_t currentTimeUs)
+{
+    mavlinkSendGpsRawInt(currentTimeUs);
+    mavlinkSendGlobalPositionInt(currentTimeUs);
+    mavlinkSendGpsGlobalOrigin();
 }
 #endif
 
@@ -1595,6 +1764,18 @@ static void mavlinkSendScaledPressure(void)
         0,
         temperature * 10,
         0);
+
+    mavlinkSendMessage();
+}
+
+static void mavlinkSendSystemTime(void)
+{
+    mavlink_msg_system_time_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        0,
+        millis());
 
     mavlinkSendMessage();
 }
@@ -1828,38 +2009,58 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
     }
 
     // is executed @ TELEMETRY_MAVLINK_MAXRATE rate
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTENDED_STATUS, currentTimeUs)) {
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_SYS_STATUS, currentTimeUs)) {
         mavlinkSendSystemStatus();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_RC_CHANNELS, currentTimeUs)) {
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_RC_CHANNELS, currentTimeUs)) {
         mavlinkSendRCChannelsAndRSSI();
     }
 
 #ifdef USE_GPS
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_POSITION, currentTimeUs)) {
-        mavlinkSendPosition(currentTimeUs);
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_GPS_RAW_INT, currentTimeUs)) {
+        mavlinkSendGpsRawInt(currentTimeUs);
+    }
+
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_GLOBAL_POSITION_INT, currentTimeUs)) {
+        mavlinkSendGlobalPositionInt(currentTimeUs);
+    }
+
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_GPS_GLOBAL_ORIGIN, currentTimeUs)) {
+        mavlinkSendGpsGlobalOrigin();
     }
 #endif
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA1, currentTimeUs)) {
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_ATTITUDE, currentTimeUs)) {
         mavlinkSendAttitude();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA2, currentTimeUs)) {
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_VFR_HUD, currentTimeUs)) {
         mavlinkSendVfrHud();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_HEARTBEAT, currentTimeUs)) {
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_HEARTBEAT, currentTimeUs)) {
         mavlinkSendHeartbeat();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTENDED_SYS_STATE, currentTimeUs)) {
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_EXTENDED_SYS_STATE, currentTimeUs)) {
         mavlinkSendExtendedSysState();
     }
 
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_BATTERY_STATUS, currentTimeUs)) {
+        mavlinkSendBatteryStatus();
+    }
+
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_SCALED_PRESSURE, currentTimeUs)) {
+        mavlinkSendScaledPressure();
+    }
+
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_SYSTEM_TIME, currentTimeUs)) {
+        mavlinkSendSystemTime();
+    }
+
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3, currentTimeUs)) {
-        mavlinkSendBatteryTemperatureStatusText();
+        mavlinkSendStatusText();
     }
 
 }
@@ -2325,43 +2526,18 @@ static bool handleIncoming_MISSION_REQUEST(void)
     return true;
 }
 
-static bool mavlinkMessageToStream(uint16_t messageId, uint8_t *streamNum)
+static bool mavlinkIsLocalTarget(uint8_t targetSystem, uint8_t targetComponent)
 {
-    switch (messageId) {
-        case MAVLINK_MSG_ID_HEARTBEAT:
-            *streamNum = MAV_DATA_STREAM_HEARTBEAT;
-            return true;
-        case MAVLINK_MSG_ID_VFR_HUD:
-            *streamNum = MAV_DATA_STREAM_EXTRA2;
-            return true;
-        case MAVLINK_MSG_ID_ATTITUDE:
-            *streamNum = MAV_DATA_STREAM_EXTRA1;
-            return true;
-        case MAVLINK_MSG_ID_SYS_STATUS:
-            *streamNum = MAV_DATA_STREAM_EXTENDED_STATUS;
-            return true;
-        case MAVLINK_MSG_ID_EXTENDED_SYS_STATE:
-            *streamNum = MAV_DATA_STREAM_EXTENDED_SYS_STATE;
-            return true;
-        case MAVLINK_MSG_ID_RC_CHANNELS:
-        case MAVLINK_MSG_ID_RC_CHANNELS_RAW:
-        case MAVLINK_MSG_ID_RC_CHANNELS_SCALED:
-            *streamNum = MAV_DATA_STREAM_RC_CHANNELS;
-            return true;
-        case MAVLINK_MSG_ID_GPS_RAW_INT:
-        case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:
-        case MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN:
-            *streamNum = MAV_DATA_STREAM_POSITION;
-            return true;
-        case MAVLINK_MSG_ID_BATTERY_STATUS:
-        case MAVLINK_MSG_ID_SCALED_PRESSURE:
-            *streamNum = MAV_DATA_STREAM_EXTRA3;
-            return true;
-        default:
-            return false;
+    if (targetSystem != 0 && targetSystem != mavSystemId) {
+        return false;
     }
-}
 
+    if (targetComponent != 0 && targetComponent != mavComponentId) {
+        return false;
+    }
+
+    return true;
+}
 
 static void mavlinkSendCommandAck(uint16_t command, MAV_RESULT result, uint8_t ackTargetSystem, uint8_t ackTargetComponent)
 {
@@ -2377,10 +2553,7 @@ static void mavlinkSendCommandAck(uint16_t command, MAV_RESULT result, uint8_t a
 
 static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t targetComponent, uint8_t ackTargetSystem, uint8_t ackTargetComponent, uint16_t command, uint8_t frame, float param1, float param2, float param3, float param4, float latitudeDeg, float longitudeDeg, float altitudeMeters)
 {
-    if (targetSystem != mavSystemId) {
-        return false;
-    }
-    if (targetComponent != 0 && targetComponent != mavComponentId) {
+    if (!mavlinkIsLocalTarget(targetSystem, targetComponent)) {
         return false;
     }
     UNUSED(param3);
@@ -2459,27 +2632,26 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t targetComponent
             }
         case MAV_CMD_SET_MESSAGE_INTERVAL:
             {
-                uint8_t stream;
+                mavlinkPeriodicMessage_e periodicMessage;
                 MAV_RESULT result = MAV_RESULT_UNSUPPORTED;
 
-                if (mavlinkMessageToStream((uint16_t)param1, &stream)) {
+                if (mavlinkPeriodicMessageFromMessageId((uint16_t)param1, &periodicMessage)) {
                     if (param2 == 0.0f) {
-                        mavlinkSetStreamRate(stream, mavActivePort->mavRatesConfigured[stream]);
+                        mavlinkSetMessageOverrideIntervalUs(periodicMessage, 0);
                         result = MAV_RESULT_ACCEPTED;
                     } else if (param2 < 0.0f) {
-                        mavlinkSetStreamRate(stream, 0);
+                        mavlinkSetMessageOverrideIntervalUs(periodicMessage, -1);
                         result = MAV_RESULT_ACCEPTED;
                     } else {
                         uint32_t intervalUs = (uint32_t)param2;
                         if (intervalUs > 0) {
-                            uint32_t rate = 1000000UL / intervalUs;
-                            if (rate > 0) {
-                                if (rate > TELEMETRY_MAVLINK_MAXRATE) {
-                                    rate = TELEMETRY_MAVLINK_MAXRATE;
-                                }
-                                mavlinkSetStreamRate(stream, rate);
-                                result = MAV_RESULT_ACCEPTED;
+                            const uint32_t minIntervalUs = 1000000UL / TELEMETRY_MAVLINK_MAXRATE;
+                            if (intervalUs < minIntervalUs) {
+                                intervalUs = minIntervalUs;
                             }
+
+                            mavlinkSetMessageOverrideIntervalUs(periodicMessage, (int32_t)intervalUs);
+                            result = MAV_RESULT_ACCEPTED;
                         }
                     }
                 }
@@ -2489,19 +2661,19 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t targetComponent
             }
         case MAV_CMD_GET_MESSAGE_INTERVAL:
             {
-                uint8_t stream;
-                if (!mavlinkMessageToStream((uint16_t)param1, &stream)) {
+                mavlinkPeriodicMessage_e periodicMessage;
+                if (!mavlinkPeriodicMessageFromMessageId((uint16_t)param1, &periodicMessage)) {
                     mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
                     return true;
                 }
 
-            mavlink_msg_message_interval_pack(
-                mavSystemId,
-                mavComponentId,
-                &mavSendMsg,
-                (uint16_t)param1,
-                mavlinkStreamIntervalUs(stream));
-            mavlinkSendMessage();
+                mavlink_msg_message_interval_pack(
+                    mavSystemId,
+                    mavComponentId,
+                    &mavSendMsg,
+                    (uint16_t)param1,
+                    mavlinkMessageIntervalUs(periodicMessage));
+                mavlinkSendMessage();
 
                 mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
                 return true;
@@ -2610,10 +2782,20 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t targetComponent
                         sent = true;
                         break;
                     case MAVLINK_MSG_ID_GPS_RAW_INT:
+    #ifdef USE_GPS
+                        mavlinkSendGpsRawInt(micros());
+                        sent = true;
+    #endif
+                        break;
                     case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:
+    #ifdef USE_GPS
+                        mavlinkSendGlobalPositionInt(micros());
+                        sent = true;
+    #endif
+                        break;
                     case MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN:
     #ifdef USE_GPS
-                        mavlinkSendPosition(micros());
+                        mavlinkSendGpsGlobalOrigin();
                         sent = true;
     #endif
                         break;
@@ -2623,6 +2805,10 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t targetComponent
                         break;
                     case MAVLINK_MSG_ID_SCALED_PRESSURE:
                         mavlinkSendScaledPressure();
+                        sent = true;
+                        break;
+                    case MAVLINK_MSG_ID_SYSTEM_TIME:
+                        mavlinkSendSystemTime();
                         sent = true;
                         break;
                     case MAVLINK_MSG_ID_STATUSTEXT:
@@ -2747,10 +2933,7 @@ static bool handleIncoming_REQUEST_DATA_STREAM(void)
     mavlink_request_data_stream_t msg;
     mavlink_msg_request_data_stream_decode(&mavRecvMsg, &msg);
 
-    if (msg.target_system != mavSystemId) {
-        return false;
-    }
-    if (msg.target_component != 0 && msg.target_component != mavComponentId) {
+    if (!mavlinkIsLocalTarget(msg.target_system, msg.target_component)) {
         return false;
     }
 
@@ -2782,10 +2965,7 @@ static bool handleIncoming_SET_POSITION_TARGET_GLOBAL_INT(void)
     mavlink_set_position_target_global_int_t msg;
     mavlink_msg_set_position_target_global_int_decode(&mavRecvMsg, &msg);
 
-    if (msg.target_system != mavSystemId) {
-        return false;
-    }
-    if (msg.target_component != 0 && msg.target_component != mavComponentId) {
+    if (!mavlinkIsLocalTarget(msg.target_system, msg.target_component)) {
         return false;
     }
 
@@ -2837,10 +3017,7 @@ static bool handleIncoming_SET_POSITION_TARGET_LOCAL_NED(void)
     mavlink_set_position_target_local_ned_t msg;
     mavlink_msg_set_position_target_local_ned_decode(&mavRecvMsg, &msg);
 
-    if (msg.target_system != mavSystemId) {
-        return false;
-    }
-    if (msg.target_component != 0 && msg.target_component != mavComponentId) {
+    if (!mavlinkIsLocalTarget(msg.target_system, msg.target_component)) {
         return false;
     }
 
@@ -2880,7 +3057,7 @@ static bool handleIncoming_PARAM_REQUEST_LIST(void) {
     mavlink_msg_param_request_list_decode(&mavRecvMsg, &msg);
 
     // Respond that we don't have any parameters to force Mission Planner to give up quickly
-    if (msg.target_system == mavSystemId) {
+    if (mavlinkIsLocalTarget(msg.target_system, msg.target_component)) {
         // mavlink_msg_param_value_pack(system_id, component_id, msg, param_value->param_id, param_value->param_value, param_value->param_type, param_value->param_count, param_value->param_index);
         mavlink_msg_param_value_pack(mavSystemId, mavComponentId, &mavSendMsg, 0, 0, 0, 0, 0);
         mavlinkSendMessage();
@@ -2975,19 +3152,7 @@ static bool handleIncoming_ADSB_VEHICLE(void) {
 
 static bool mavlinkIsFromLocalIdentity(uint8_t sysid, uint8_t compid)
 {
-    const uint8_t localSystemId = mavlinkGetCommonConfig()->sysid;
-    if (sysid != localSystemId) {
-        return false;
-    }
-
-    for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {
-        const mavlinkTelemetryPortConfig_t *cfg = mavlinkGetPortConfig(portIndex);
-        if (cfg->compid == compid) {
-            return true;
-        }
-    }
-
-    return false;
+    return sysid == mavlinkGetCommonConfig()->sysid && compid == MAV_COMP_ID_AUTOPILOT1;
 }
 
 static void mavlinkLearnRoute(uint8_t ingressPortIndex)
@@ -3117,21 +3282,15 @@ static int8_t mavlinkResolveLocalPortForTarget(int16_t targetSystem, int16_t tar
         return -1;
     }
 
+    if (targetComponent > 0 && (uint8_t)targetComponent != MAV_COMP_ID_AUTOPILOT1) {
+        return -1;
+    }
+
     if (ingressPortIndex < mavPortCount) {
-        const mavlinkTelemetryPortConfig_t *ingressCfg = mavlinkGetPortConfig(ingressPortIndex);
-        if (targetComponent <= 0 || ingressCfg->compid == targetComponent) {
-            return ingressPortIndex;
-        }
+        return ingressPortIndex;
     }
 
-    for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {
-        const mavlinkTelemetryPortConfig_t *cfg = mavlinkGetPortConfig(portIndex);
-        if (targetComponent <= 0 || cfg->compid == targetComponent) {
-            return portIndex;
-        }
-    }
-
-    return -1;
+    return mavPortCount > 0 ? 0 : -1;
 }
 
 static bool mavlinkShouldFanOutLocalBroadcast(const mavlink_message_t *msg)

@@ -3298,13 +3298,6 @@ groups:
         min: 1
         max: 255
         default_value: 1
-      - name: mavlink_port1_compid
-        field: mavlink[0].compid
-        description: "MAVLink Component ID for MAVLink port 1"
-        type: uint8_t
-        min: 1
-        max: 255
-        default_value: 1
       - name: mavlink_port1_high_latency
         field: mavlink[0].high_latency
         description: "Enable MAVLink high-latency mode on port 1"
@@ -3322,13 +3315,6 @@ groups:
         table: mavlink_radio_type
         default_value: "GENERIC"
         type: uint8_t
-      - name: mavlink_port2_compid
-        field: mavlink[1].compid
-        description: "MAVLink Component ID for MAVLink port 2"
-        type: uint8_t
-        min: 1
-        max: 255
-        default_value: 1
       - name: mavlink_port2_high_latency
         field: mavlink[1].high_latency
         description: "Enable MAVLink high-latency mode on port 2"
@@ -3346,13 +3332,6 @@ groups:
         table: mavlink_radio_type
         default_value: "GENERIC"
         type: uint8_t
-      - name: mavlink_port3_compid
-        field: mavlink[2].compid
-        description: "MAVLink Component ID for MAVLink port 3"
-        type: uint8_t
-        min: 1
-        max: 255
-        default_value: 1
       - name: mavlink_port3_high_latency
         field: mavlink[2].high_latency
         description: "Enable MAVLink high-latency mode on port 3"
@@ -3370,13 +3349,6 @@ groups:
         table: mavlink_radio_type
         default_value: "GENERIC"
         type: uint8_t
-      - name: mavlink_port4_compid
-        field: mavlink[3].compid
-        description: "MAVLink Component ID for MAVLink port 4"
-        type: uint8_t
-        min: 1
-        max: 255
-        default_value: 1
       - name: mavlink_port4_high_latency
         field: mavlink[3].high_latency
         description: "Enable MAVLink high-latency mode on port 4"

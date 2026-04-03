@@ -70,7 +70,6 @@ typedef struct mavlinkTelemetryPortConfig_s {
     uint8_t extra3_rate;
     uint8_t min_txbuff;
     uint8_t radio_type;
-    uint8_t compid;
     bool high_latency;
 } mavlinkTelemetryPortConfig_t;
 

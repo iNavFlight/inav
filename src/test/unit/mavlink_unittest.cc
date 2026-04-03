@@ -221,6 +221,22 @@ static bool popTxMessage(mavlink_message_t *msg)
     return false;
 }
 
+static bool findTxMessageById(uint32_t msgid, mavlink_message_t *match)
+{
+    mavlink_status_t status;
+    memset(&status, 0, sizeof(status));
+
+    mavlink_message_t msg;
+    for (size_t i = 0; i < serialTxLen; i++) {
+        if (mavlink_parse_char(0, serialTxBuffer[i], &msg, &status) == MAVLINK_FRAMING_OK && msg.msgid == msgid) {
+            *match = msg;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static std::vector<mavlink_message_t> parseTxMessages(void)
 {
     std::vector<mavlink_message_t> messages;
@@ -287,8 +303,13 @@ static void initMavlinkTestState(void)
     telemetryConfigMutable()->mavlink_common.sysid = 1;
     telemetryConfigMutable()->mavlink_common.autopilot_type = MAVLINK_AUTOPILOT_ARDUPILOT;
     telemetryConfigMutable()->mavlink_common.version = 2;
+    telemetryConfigMutable()->mavlink[0].extended_status_rate = 2;
+    telemetryConfigMutable()->mavlink[0].rc_channels_rate = 1;
+    telemetryConfigMutable()->mavlink[0].position_rate = 2;
+    telemetryConfigMutable()->mavlink[0].extra1_rate = 2;
+    telemetryConfigMutable()->mavlink[0].extra2_rate = 2;
+    telemetryConfigMutable()->mavlink[0].extra3_rate = 1;
     telemetryConfigMutable()->mavlink[0].min_txbuff = 0;
-    telemetryConfigMutable()->mavlink[0].compid = MAV_COMP_ID_AUTOPILOT1;
     telemetryConfigMutable()->halfDuplex = 0;
 
     rxConfigMutable()->receiverType = RX_TYPE_NONE;
@@ -453,6 +474,60 @@ TEST(MavlinkTelemetryTest, CommandLongRepositionUsesGlobalFrameAndParams)
     EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
     EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
     EXPECT_EQ(lastWaypoint.p1, 123);
+}
+
+TEST(MavlinkTelemetryTest, BroadcastCommandLongRepositionExecutesLocally)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        0, 0,
+        MAV_CMD_DO_REPOSITION,
+        0,
+        0, 0, 0, 123.4f,
+        37.5f, -122.25f, 12.3f);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_COMMAND_ACK, &ackMsg));
+
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_REPOSITION);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(setWaypointCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, SameSystemDifferentComponentIsNotDroppedAsLocalIdentity)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        1, 42, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_REPOSITION,
+        0,
+        0, 0, 0, 0,
+        37.5f, -122.25f, 12.3f);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_COMMAND_ACK, &ackMsg));
+
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_REPOSITION);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(setWaypointCalls, 1);
 }
 
 TEST(MavlinkTelemetryTest, CommandIntUnsupportedFrameIsRejected)
@@ -876,6 +951,28 @@ TEST(MavlinkTelemetryTest, ParamRequestListRespondsWithEmptyParam)
     EXPECT_EQ(param.param_index, 0);
 }
 
+TEST(MavlinkTelemetryTest, BroadcastParamRequestListRespondsWithEmptyParam)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_param_request_list_pack(
+        42, 200, &msg,
+        0, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t paramMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_PARAM_VALUE, &paramMsg));
+
+    mavlink_param_value_t param;
+    mavlink_msg_param_value_decode(&paramMsg, &param);
+
+    EXPECT_EQ(param.param_count, 0);
+    EXPECT_EQ(param.param_index, 0);
+}
+
 TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntSetsWaypoint)
 {
     initMavlinkTestState();
@@ -896,6 +993,26 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntSetsWaypoint)
     EXPECT_EQ(lastWaypoint.lon, -1222500000);
     EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
     EXPECT_EQ(lastWaypoint.p3, 0);
+}
+
+TEST(MavlinkTelemetryTest, BroadcastSetPositionTargetGlobalIntSetsWaypoint)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_global_int_pack(
+        42, 200, &msg,
+        0, 0, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, 0,
+        375000000, -1222500000, 12.3f,
+        0, 0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypoint.lat, 375000000);
+    EXPECT_EQ(lastWaypoint.lon, -1222500000);
 }
 
 TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntUsesAbsoluteAltitude)
@@ -974,6 +1091,36 @@ TEST(MavlinkTelemetryTest, SetPositionTargetLocalNedAltitudeOnlySetsAltitudeTarg
 
     EXPECT_EQ(altitudeTargetSetCalls, 1);
     EXPECT_EQ(lastAltitudeTargetDatum, NAV_WP_TAKEOFF_DATUM);
+    EXPECT_EQ(lastAltitudeTargetCm, 1250);
+}
+
+TEST(MavlinkTelemetryTest, BroadcastSetPositionTargetLocalNedAltitudeOnlySetsAltitudeTarget)
+{
+    initMavlinkTestState();
+    estimatedPosition[Z] = 1000.0f;
+
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_local_ned_pack(
+        42, 200, &msg,
+        0, 0, 0,
+        MAV_FRAME_LOCAL_OFFSET_NED,
+        POSITION_TARGET_TYPEMASK_X_IGNORE |
+            POSITION_TARGET_TYPEMASK_Y_IGNORE |
+            POSITION_TARGET_TYPEMASK_VX_IGNORE |
+            POSITION_TARGET_TYPEMASK_VY_IGNORE |
+            POSITION_TARGET_TYPEMASK_VZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_AX_IGNORE |
+            POSITION_TARGET_TYPEMASK_AY_IGNORE |
+            POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE,
+        0.0f, 0.0f, -2.5f,
+        0, 0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(altitudeTargetSetCalls, 1);
     EXPECT_EQ(lastAltitudeTargetCm, 1250);
 }
 
@@ -1066,6 +1213,212 @@ TEST(MavlinkTelemetryTest, RequestDataStreamStopsStream)
     EXPECT_EQ(interval.interval_us, -1);
 }
 
+TEST(MavlinkTelemetryTest, BroadcastRequestDataStreamAdjustsBaseInterval)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t setMsg;
+    mavlink_msg_request_data_stream_pack(
+        42, 200, &setMsg,
+        0, 0,
+        MAV_DATA_STREAM_RC_CHANNELS, 10, 1);
+
+    pushRxMessage(&setMsg);
+    handleMAVLinkTelemetry(1000);
+
+    serialTxLen = 0;
+
+    mavlink_message_t getMsg;
+    mavlink_msg_command_long_pack(
+        42, 200, &getMsg,
+        1, testTargetComponent,
+        MAV_CMD_GET_MESSAGE_INTERVAL,
+        0,
+        (float)MAVLINK_MSG_ID_RC_CHANNELS,
+        0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&getMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t intervalMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MESSAGE_INTERVAL, &intervalMsg));
+
+    mavlink_message_interval_t interval;
+    mavlink_msg_message_interval_decode(&intervalMsg, &interval);
+
+    EXPECT_EQ(interval.message_id, MAVLINK_MSG_ID_RC_CHANNELS);
+    EXPECT_EQ(interval.interval_us, 100000);
+}
+
+TEST(MavlinkTelemetryTest, SetMessageIntervalOverridesOnlyRequestedPositionMessage)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t setMsg;
+    mavlink_msg_command_long_pack(
+        42, 200, &setMsg,
+        1, testTargetComponent,
+        MAV_CMD_SET_MESSAGE_INTERVAL,
+        0,
+        (float)MAVLINK_MSG_ID_GLOBAL_POSITION_INT,
+        200000.0f, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&setMsg);
+    handleMAVLinkTelemetry(1000);
+
+    const uint16_t messageIds[] = {
+        MAVLINK_MSG_ID_GLOBAL_POSITION_INT,
+        MAVLINK_MSG_ID_GPS_RAW_INT,
+        MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN
+    };
+    const int32_t expectedIntervals[] = {
+        200000,
+        500000,
+        500000
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(messageIds); i++) {
+        serialTxLen = 0;
+
+        mavlink_message_t getMsg;
+        mavlink_msg_command_long_pack(
+            42, 200, &getMsg,
+            1, testTargetComponent,
+            MAV_CMD_GET_MESSAGE_INTERVAL,
+            0,
+            (float)messageIds[i],
+            0, 0, 0, 0, 0, 0);
+
+        pushRxMessage(&getMsg);
+        handleMAVLinkTelemetry(1000);
+
+        mavlink_message_t intervalMsg;
+        ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MESSAGE_INTERVAL, &intervalMsg));
+
+        mavlink_message_interval_t interval;
+        mavlink_msg_message_interval_decode(&intervalMsg, &interval);
+
+        EXPECT_EQ(interval.message_id, messageIds[i]);
+        EXPECT_EQ(interval.interval_us, expectedIntervals[i]);
+    }
+}
+
+TEST(MavlinkTelemetryTest, SetMessageIntervalCanDisableBatteryStatusWithoutAffectingScaledPressure)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t setMsg;
+    mavlink_msg_command_long_pack(
+        42, 200, &setMsg,
+        1, testTargetComponent,
+        MAV_CMD_SET_MESSAGE_INTERVAL,
+        0,
+        (float)MAVLINK_MSG_ID_BATTERY_STATUS,
+        -1.0f, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&setMsg);
+    handleMAVLinkTelemetry(1000);
+
+    const uint16_t messageIds[] = {
+        MAVLINK_MSG_ID_BATTERY_STATUS,
+        MAVLINK_MSG_ID_SCALED_PRESSURE
+    };
+    const int32_t expectedIntervals[] = {
+        -1,
+        1000000
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(messageIds); i++) {
+        serialTxLen = 0;
+
+        mavlink_message_t getMsg;
+        mavlink_msg_command_long_pack(
+            42, 200, &getMsg,
+            1, testTargetComponent,
+            MAV_CMD_GET_MESSAGE_INTERVAL,
+            0,
+            (float)messageIds[i],
+            0, 0, 0, 0, 0, 0);
+
+        pushRxMessage(&getMsg);
+        handleMAVLinkTelemetry(1000);
+
+        mavlink_message_t intervalMsg;
+        ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MESSAGE_INTERVAL, &intervalMsg));
+
+        mavlink_message_interval_t interval;
+        mavlink_msg_message_interval_decode(&intervalMsg, &interval);
+
+        EXPECT_EQ(interval.message_id, messageIds[i]);
+        EXPECT_EQ(interval.interval_us, expectedIntervals[i]);
+    }
+}
+
+TEST(MavlinkTelemetryTest, SetMessageIntervalResetRevertsToCurrentGroupInterval)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t streamMsg;
+    mavlink_msg_request_data_stream_pack(
+        42, 200, &streamMsg,
+        1, testTargetComponent,
+        MAV_DATA_STREAM_POSITION, 10, 1);
+
+    pushRxMessage(&streamMsg);
+    handleMAVLinkTelemetry(1000);
+
+    serialTxLen = 0;
+
+    mavlink_message_t setMsg;
+    mavlink_msg_command_long_pack(
+        42, 200, &setMsg,
+        1, testTargetComponent,
+        MAV_CMD_SET_MESSAGE_INTERVAL,
+        0,
+        (float)MAVLINK_MSG_ID_GLOBAL_POSITION_INT,
+        250000.0f, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&setMsg);
+    handleMAVLinkTelemetry(1000);
+
+    serialTxLen = 0;
+
+    mavlink_message_t clearMsg;
+    mavlink_msg_command_long_pack(
+        42, 200, &clearMsg,
+        1, testTargetComponent,
+        MAV_CMD_SET_MESSAGE_INTERVAL,
+        0,
+        (float)MAVLINK_MSG_ID_GLOBAL_POSITION_INT,
+        0.0f, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&clearMsg);
+    handleMAVLinkTelemetry(1000);
+
+    serialTxLen = 0;
+
+    mavlink_message_t getMsg;
+    mavlink_msg_command_long_pack(
+        42, 200, &getMsg,
+        1, testTargetComponent,
+        MAV_CMD_GET_MESSAGE_INTERVAL,
+        0,
+        (float)MAVLINK_MSG_ID_GLOBAL_POSITION_INT,
+        0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&getMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t intervalMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MESSAGE_INTERVAL, &intervalMsg));
+
+    mavlink_message_interval_t interval;
+    mavlink_msg_message_interval_decode(&intervalMsg, &interval);
+
+    EXPECT_EQ(interval.message_id, MAVLINK_MSG_ID_GLOBAL_POSITION_INT);
+    EXPECT_EQ(interval.interval_us, 100000);
+}
+
 TEST(MavlinkTelemetryTest, HeartbeatIntervalIsIndependentFromExtra2Stream)
 {
     initMavlinkTestState();
@@ -1129,6 +1482,63 @@ TEST(MavlinkTelemetryTest, RequestProtocolVersionUsesConfiguredVersion)
     EXPECT_EQ(version.version, 200);
     EXPECT_EQ(version.min_version, 200);
     EXPECT_EQ(version.max_version, 200);
+}
+
+TEST(MavlinkTelemetryTest, SystemTimeSupportsRequestPeriodicOutputAndIntervalQuery)
+{
+    initMavlinkTestState();
+    fakeMillis = 1234;
+
+    mavlink_message_t requestMsg;
+    mavlink_msg_command_long_pack(
+        42, 200, &requestMsg,
+        1, testTargetComponent,
+        MAV_CMD_REQUEST_MESSAGE,
+        0,
+        (float)MAVLINK_MSG_ID_SYSTEM_TIME,
+        0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&requestMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t systemTimeMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_SYSTEM_TIME, &systemTimeMsg));
+
+    mavlink_system_time_t systemTime;
+    mavlink_msg_system_time_decode(&systemTimeMsg, &systemTime);
+
+    EXPECT_EQ(systemTime.time_unix_usec, 0U);
+    EXPECT_EQ(systemTime.time_boot_ms, 1234U);
+
+    serialTxLen = 0;
+    handleMAVLinkTelemetry(1000000);
+
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_SYSTEM_TIME, &systemTimeMsg));
+    mavlink_msg_system_time_decode(&systemTimeMsg, &systemTime);
+    EXPECT_EQ(systemTime.time_boot_ms, 1234U);
+
+    serialTxLen = 0;
+
+    mavlink_message_t getMsg;
+    mavlink_msg_command_long_pack(
+        42, 200, &getMsg,
+        1, testTargetComponent,
+        MAV_CMD_GET_MESSAGE_INTERVAL,
+        0,
+        (float)MAVLINK_MSG_ID_SYSTEM_TIME,
+        0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&getMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t intervalMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MESSAGE_INTERVAL, &intervalMsg));
+
+    mavlink_message_interval_t interval;
+    mavlink_msg_message_interval_decode(&intervalMsg, &interval);
+
+    EXPECT_EQ(interval.message_id, MAVLINK_MSG_ID_SYSTEM_TIME);
+    EXPECT_EQ(interval.interval_us, 1000000);
 }
 
 TEST(MavlinkTelemetryTest, RequestAutopilotCapabilitiesReportsLocalNedCapabilityAndPackedVersion)
