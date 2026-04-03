@@ -44,7 +44,8 @@ set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
 
 set_property(SOURCE mavlink_unittest.cc PROPERTY depends
-    "telemetry/mavlink.c" "common/crc.c" "common/maths.c" "common/streambuf.c" "msp/msp_serial.c")
+    "fc/fc_mavlink.c" "mavlink/mavlink_ports.c" "mavlink/mavlink_routing.c" "mavlink/mavlink_runtime.c"
+    "mavlink/mavlink_streams.c" "telemetry/mavlink.c" "common/crc.c" "common/maths.c" "common/streambuf.c" "msp/msp_serial.c")
 set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK)
 set_property(SOURCE mavlink_unittest.cc PROPERTY includes
     "${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/main/MAVLink")

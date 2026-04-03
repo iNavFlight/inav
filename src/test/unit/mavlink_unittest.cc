@@ -295,6 +295,8 @@ static void initMavlinkTestState(void)
     lastAltitudeTargetCm = 0;
     testFlightMode = FLM_MANUAL;
     testSensorsMask = 0;
+    armingFlags = 0;
+    stateFlags = 0;
     memset(&gpsSol, 0, sizeof(gpsSol));
     memset(&GPS_home, 0, sizeof(GPS_home));
     memset(waypointStore, 0, sizeof(waypointStore));

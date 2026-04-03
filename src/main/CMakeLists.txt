@@ -290,6 +290,8 @@ main_sources(COMMON_SRC
     fc/fc_tasks.c
     fc/fc_tasks.h
     fc/fc_hardfaults.c
+    fc/fc_mavlink.c
+    fc/fc_mavlink.h
     fc/fc_msp.c
     fc/fc_msp.h
     fc/fc_msp_box.c
@@ -390,6 +392,16 @@ main_sources(COMMON_SRC
     io/rcdevice_cam.h
 
     io/osd/custom_elements.c
+
+    mavlink/mavlink_internal.h
+    mavlink/mavlink_ports.c
+    mavlink/mavlink_ports.h
+    mavlink/mavlink_routing.c
+    mavlink/mavlink_routing.h
+    mavlink/mavlink_runtime.c
+    mavlink/mavlink_runtime.h
+    mavlink/mavlink_streams.c
+    mavlink/mavlink_streams.h
 
     msp/msp_serial.c
     msp/msp_serial.h
