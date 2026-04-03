@@ -2075,6 +2075,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
     return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
 }
 
+static void navMarkWaypointReached(int8_t waypointIndex);
+
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
@@ -2103,10 +2105,21 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(naviga
         case NAV_WP_ACTION_HOLD_TIME:
             // Save the current time for the time the waypoint was reached
             posControl.wpReachedTime = millis();
+            navMarkWaypointReached(posControl.activeWaypointIndex);
             return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME;
     }
 
     UNREACHABLE();
+}
+
+static void navMarkWaypointReached(int8_t waypointIndex)
+{
+    if (waypointIndex < posControl.startWpIndex) {
+        return;
+    }
+
+    posControl.wpReachedSeq = (uint16_t)(waypointIndex - posControl.startWpIndex);
+    posControl.wpReachedNotificationPending = true;
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOLD_TIME(navigationFSMState_t previousState)
@@ -2126,6 +2139,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOLD_TIME(navi
 
         if (posControl.wpAltitudeReached) {
             posControl.wpReachedTime = millis();
+            navMarkWaypointReached(posControl.activeWaypointIndex);
         } else {
             return NAV_FSM_EVENT_NONE;
         }
@@ -2164,6 +2178,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND(navig
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_NEXT(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
+
+    if (!posControl.wpReachedNotificationPending) {
+        navMarkWaypointReached(posControl.activeWaypointIndex);
+    }
 
     if (isLastMissionWaypoint()) {      // Last waypoint reached
         return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED;
@@ -3953,6 +3971,7 @@ void resetWaypointList(void)
     posControl.waypointListValid = false;
     posControl.geoWaypointCount = 0;
     posControl.startWpIndex = 0;
+    posControl.wpReachedNotificationPending = false;
 #ifdef USE_MULTI_MISSION
     posControl.totalMultiMissionWpCount = 0;
     posControl.loadedMultiMissionIndex = 0;
@@ -4015,6 +4034,7 @@ void loadSelectedMultiMission(uint8_t missionIndex)
 
     posControl.loadedMultiMissionIndex = posControl.multiMissionCount ? missionIndex : 0;
     posControl.activeWaypointIndex = posControl.startWpIndex;
+    posControl.wpReachedNotificationPending = false;
 }
 
 bool updateWpMissionChange(void)
@@ -5011,6 +5031,8 @@ void navigationInit(void)
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
+    posControl.wpReachedSeq = 0;
+    posControl.wpReachedNotificationPending = false;
     posControl.wpPlannerActiveWPIndex = 0;
     posControl.flags.wpMissionPlannerActive = false;
     posControl.startWpIndex = 0;
@@ -5280,6 +5302,17 @@ float calculateAverageSpeed(void) {
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void) {
     return &posControl.pids;
+}
+
+bool navigationConsumeWaypointReached(uint16_t *seq)
+{
+    if (!posControl.wpReachedNotificationPending) {
+        return false;
+    }
+
+    *seq = posControl.wpReachedSeq;
+    posControl.wpReachedNotificationPending = false;
+    return true;
 }
 
 bool isAdjustingPosition(void) {

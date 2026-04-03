@@ -89,7 +89,7 @@ Messages are organized into MAVLink datastream groups. Each group sends **one me
 - `SCALED_PRESSURE`: for IMU/baro temperature.
 - `SYSTEM_TIME`: with `time_boot_ms = millis()` and `time_unix_usec = 0`.
 - `STATUSTEXT`: when the OSD has a pending system message; severity follows OSD attributes (notice/warning/critical).
-- On-demand (command-triggered) messages: `AUTOPILOT_VERSION`, `PROTOCOL_VERSION`, `MESSAGE_INTERVAL`, `HOME_POSITION`, `AVAILABLE_MODES`, and `CURRENT_MODE`.
+- Event/on-demand messages: `MISSION_ITEM_REACHED` when a mission item is reached, plus `AUTOPILOT_VERSION`, `PROTOCOL_VERSION`, `MESSAGE_INTERVAL`, `HOME_POSITION`, `AVAILABLE_MODES`, and `CURRENT_MODE`.
 
 ## Supported Incoming Messages
 

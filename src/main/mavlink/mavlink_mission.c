@@ -5,6 +5,30 @@
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
 
+void mavlinkSendPendingMissionItemReached(void)
+{
+    uint16_t seq;
+    if (!navigationConsumeWaypointReached(&seq)) {
+        return;
+    }
+
+    uint8_t sendMask = 0;
+    for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {
+        if (mavPortStates[portIndex].telemetryEnabled && mavPortStates[portIndex].port) {
+            sendMask |= MAVLINK_PORT_MASK(portIndex);
+        }
+    }
+
+    if (sendMask == 0) {
+        return;
+    }
+
+    mavSendMask = sendMask;
+    mavlink_msg_mission_item_reached_pack(mavlinkGetCommonConfig()->sysid, MAV_COMP_ID_AUTOPILOT1, &mavSendMsg, seq);
+    mavlinkSendMessage();
+    mavSendMask = 0;
+}
+
 bool mavlinkFrameIsSupported(uint8_t frame, mavFrameSupportMask_e allowedMask)
 {
     switch (frame) {

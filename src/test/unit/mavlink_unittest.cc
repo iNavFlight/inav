@@ -302,6 +302,8 @@ static void initMavlinkTestState(void)
     memset(&GPS_home, 0, sizeof(GPS_home));
     memset(waypointStore, 0, sizeof(waypointStore));
     memset(&rxLinkStatistics, 0, sizeof(rxLinkStatistics));
+    posControl.wpReachedSeq = 0;
+    posControl.wpReachedNotificationPending = false;
 
     telemetryConfigMutable()->mavlink_common.sysid = 1;
     telemetryConfigMutable()->mavlink_common.autopilot_type = MAVLINK_AUTOPILOT_ARDUPILOT;
@@ -907,6 +909,29 @@ TEST(MavlinkTelemetryTest, MissionRequestSendsWaypoint)
     EXPECT_NEAR(item.x, 37.5f, 1e-4f);
     EXPECT_NEAR(item.y, -122.25f, 1e-4f);
     EXPECT_NEAR(item.z, 12.34f, 1e-4f);
+}
+
+TEST(MavlinkTelemetryTest, MissionItemReachedIsBroadcastOnceWhenPending)
+{
+    initMavlinkTestState();
+
+    posControl.wpReachedSeq = 3;
+    posControl.wpReachedNotificationPending = true;
+
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t reachedMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ITEM_REACHED, &reachedMsg));
+
+    mavlink_mission_item_reached_t reached;
+    mavlink_msg_mission_item_reached_decode(&reachedMsg, &reached);
+
+    EXPECT_EQ(reached.seq, 3);
+
+    resetSerialBuffers();
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ITEM_REACHED, &reachedMsg));
 }
 
 TEST(MavlinkTelemetryTest, LegacyGuidedMissionItemUsesAbsoluteAltitude)
@@ -2033,6 +2058,17 @@ bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int3
     lastAltitudeTargetDatum = datumFlag;
     lastAltitudeTargetCm = targetAltitudeCm;
     return altitudeTargetSetResult;
+}
+
+bool navigationConsumeWaypointReached(uint16_t *seq)
+{
+    if (!posControl.wpReachedNotificationPending) {
+        return false;
+    }
+
+    *seq = posControl.wpReachedSeq;
+    posControl.wpReachedNotificationPending = false;
+    return true;
 }
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void)
