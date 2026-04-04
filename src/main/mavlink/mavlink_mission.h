@@ -27,13 +27,9 @@ typedef struct mavlinkMissionItemData_s {
     float alt;
 } mavlinkMissionItemData_t;
 
-bool mavlinkFrameIsSupported(uint8_t frame, mavFrameSupportMask_e allowedMask);
-bool mavlinkFrameUsesAbsoluteAltitude(uint8_t frame);
-MAV_RESULT mavlinkSetAltitudeTargetFromFrame(uint8_t frame, float altitudeMeters);
 uint8_t mavlinkWaypointFrame(const navWaypoint_t *wp, bool useIntMessages);
 bool mavlinkFillMissionItemFromWaypoint(const navWaypoint_t *wp, bool useIntMessages, mavlinkMissionItemData_t *item);
 void mavlinkSendPendingMissionItemReached(void);
-
 bool mavlinkHandleIncomingMissionClearAll(void);
 bool mavlinkHandleIncomingMissionCount(void);
 bool mavlinkHandleIncomingMissionItem(void);

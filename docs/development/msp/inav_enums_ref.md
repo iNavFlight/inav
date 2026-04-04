@@ -173,8 +173,8 @@
 - [ltm_modes_e](#enum-ltm_modes_e)
 - [ltmUpdateRate_e](#enum-ltmupdaterate_e)
 - [magSensor_e](#enum-magsensor_e)
-- [mavFrameSupportMask_e](#enum-mavframesupportmask_e)
 - [mavlinkAutopilotType_e](#enum-mavlinkautopilottype_e)
+- [mavlinkFcDispatchResult_e](#enum-mavlinkfcdispatchresult_e)
 - [mavlinkRadio_e](#enum-mavlinkradio_e)
 - [measurementSteps_e](#enum-measurementsteps_e)
 - [mixerProfileATRequest_e](#enum-mixerprofileatrequest_e)
@@ -371,7 +371,8 @@
 | `ACC_ICM42605` | 8 |  |
 | `ACC_BMI270` | 9 |  |
 | `ACC_LSM6DXX` | 10 |  |
-| `ACC_FAKE` | 11 |  |
+| `ACC_ICM45686` | 11 |  |
+| `ACC_FAKE` | 12 |  |
 | `ACC_MAX` | ACC_FAKE |  |
 
 ---
@@ -1408,53 +1409,54 @@
 | `DEVHW_ICM42605` | 7 |  |
 | `DEVHW_BMI270` | 8 |  |
 | `DEVHW_LSM6D` | 9 |  |
-| `DEVHW_MPU9250` | 10 |  |
-| `DEVHW_BMP085` | 11 |  |
-| `DEVHW_BMP280` | 12 |  |
-| `DEVHW_MS5611` | 13 |  |
-| `DEVHW_MS5607` | 14 |  |
-| `DEVHW_LPS25H` | 15 |  |
-| `DEVHW_SPL06` | 16 |  |
-| `DEVHW_BMP388` | 17 |  |
-| `DEVHW_DPS310` | 18 |  |
-| `DEVHW_B2SMPB` | 19 |  |
-| `DEVHW_HMC5883` | 20 |  |
-| `DEVHW_AK8963` | 21 |  |
-| `DEVHW_AK8975` | 22 |  |
-| `DEVHW_IST8310_0` | 23 |  |
-| `DEVHW_IST8310_1` | 24 |  |
-| `DEVHW_IST8308` | 25 |  |
-| `DEVHW_QMC5883` | 26 |  |
-| `DEVHW_QMC5883P` | 27 |  |
-| `DEVHW_MAG3110` | 28 |  |
-| `DEVHW_LIS3MDL` | 29 |  |
-| `DEVHW_RM3100` | 30 |  |
-| `DEVHW_VCM5883` | 31 |  |
-| `DEVHW_MLX90393` | 32 |  |
-| `DEVHW_LM75_0` | 33 |  |
-| `DEVHW_LM75_1` | 34 |  |
-| `DEVHW_LM75_2` | 35 |  |
-| `DEVHW_LM75_3` | 36 |  |
-| `DEVHW_LM75_4` | 37 |  |
-| `DEVHW_LM75_5` | 38 |  |
-| `DEVHW_LM75_6` | 39 |  |
-| `DEVHW_LM75_7` | 40 |  |
-| `DEVHW_DS2482` | 41 |  |
-| `DEVHW_MAX7456` | 42 |  |
-| `DEVHW_SRF10` | 43 |  |
-| `DEVHW_VL53L0X` | 44 |  |
-| `DEVHW_VL53L1X` | 45 |  |
-| `DEVHW_US42` | 46 |  |
-| `DEVHW_TOF10120_I2C` | 47 |  |
-| `DEVHW_TERARANGER_EVO_I2C` | 48 |  |
-| `DEVHW_MS4525` | 49 |  |
-| `DEVHW_DLVR` | 50 |  |
-| `DEVHW_M25P16` | 51 |  |
-| `DEVHW_W25N` | 52 |  |
-| `DEVHW_UG2864` | 53 |  |
-| `DEVHW_SDCARD` | 54 |  |
-| `DEVHW_IRLOCK` | 55 |  |
-| `DEVHW_PCF8574` | 56 |  |
+| `DEVHW_ICM45686` | 10 |  |
+| `DEVHW_MPU9250` | 11 |  |
+| `DEVHW_BMP085` | 12 |  |
+| `DEVHW_BMP280` | 13 |  |
+| `DEVHW_MS5611` | 14 |  |
+| `DEVHW_MS5607` | 15 |  |
+| `DEVHW_LPS25H` | 16 |  |
+| `DEVHW_SPL06` | 17 |  |
+| `DEVHW_BMP388` | 18 |  |
+| `DEVHW_DPS310` | 19 |  |
+| `DEVHW_B2SMPB` | 20 |  |
+| `DEVHW_HMC5883` | 21 |  |
+| `DEVHW_AK8963` | 22 |  |
+| `DEVHW_AK8975` | 23 |  |
+| `DEVHW_IST8310_0` | 24 |  |
+| `DEVHW_IST8310_1` | 25 |  |
+| `DEVHW_IST8308` | 26 |  |
+| `DEVHW_QMC5883` | 27 |  |
+| `DEVHW_QMC5883P` | 28 |  |
+| `DEVHW_MAG3110` | 29 |  |
+| `DEVHW_LIS3MDL` | 30 |  |
+| `DEVHW_RM3100` | 31 |  |
+| `DEVHW_VCM5883` | 32 |  |
+| `DEVHW_MLX90393` | 33 |  |
+| `DEVHW_LM75_0` | 34 |  |
+| `DEVHW_LM75_1` | 35 |  |
+| `DEVHW_LM75_2` | 36 |  |
+| `DEVHW_LM75_3` | 37 |  |
+| `DEVHW_LM75_4` | 38 |  |
+| `DEVHW_LM75_5` | 39 |  |
+| `DEVHW_LM75_6` | 40 |  |
+| `DEVHW_LM75_7` | 41 |  |
+| `DEVHW_DS2482` | 42 |  |
+| `DEVHW_MAX7456` | 43 |  |
+| `DEVHW_SRF10` | 44 |  |
+| `DEVHW_VL53L0X` | 45 |  |
+| `DEVHW_VL53L1X` | 46 |  |
+| `DEVHW_US42` | 47 |  |
+| `DEVHW_TOF10120_I2C` | 48 |  |
+| `DEVHW_TERARANGER_EVO_I2C` | 49 |  |
+| `DEVHW_MS4525` | 50 |  |
+| `DEVHW_DLVR` | 51 |  |
+| `DEVHW_M25P16` | 52 |  |
+| `DEVHW_W25N` | 53 |  |
+| `DEVHW_UG2864` | 54 |  |
+| `DEVHW_SDCARD` | 55 |  |
+| `DEVHW_IRLOCK` | 56 |  |
+| `DEVHW_PCF8574` | 57 |  |
 
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
@@ -2490,7 +2492,8 @@
 | `GYRO_ICM42605` | 8 |  |
 | `GYRO_BMI270` | 9 |  |
 | `GYRO_LSM6DXX` | 10 |  |
-| `GYRO_FAKE` | 11 |  |
+| `GYRO_ICM45686` | 11 |  |
+| `GYRO_FAKE` | 12 |  |
 
 ---
 ## <a id="enum-hardwaremotortypes_e"></a>`HardwareMotorTypes_e`
@@ -2926,7 +2929,8 @@
 | `LED_MODE_ANGLE` | 3 |  |
 | `LED_MODE_MAG` | 4 |  |
 | `LED_MODE_BARO` | 5 |  |
-| `LED_SPECIAL` | 6 |  |
+| `LED_MODE_LOITER` | 6 |  |
+| `LED_SPECIAL` | 7 |  |
 
 ---
 ## <a id="enum-ledoverlayid_e"></a>`ledOverlayId_e`
@@ -3376,19 +3380,6 @@
 | `MAG_MAX` | MAG_FAKE |  |
 
 ---
-## <a id="enum-mavframesupportmask_e"></a>`mavFrameSupportMask_e`
-
-> Source: ../../../src/main/telemetry/mavlink.h
-
-| Enumerator | Value | Condition |
-|---|---:|---|
-| `MAV_FRAME_SUPPORTED_NONE` | 0 |  |
-| `MAV_FRAME_SUPPORTED_GLOBAL` | (1 << 0) |  |
-| `MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT` | (1 << 1) |  |
-| `MAV_FRAME_SUPPORTED_GLOBAL_INT` | (1 << 2) |  |
-| `MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT` | (1 << 3) |  |
-
----
 ## <a id="enum-mavlinkautopilottype_e"></a>`mavlinkAutopilotType_e`
 
 > Source: ../../../src/main/telemetry/telemetry.h
@@ -3397,6 +3388,17 @@
 |---|---:|---|
 | `MAVLINK_AUTOPILOT_GENERIC` | 0 |  |
 | `MAVLINK_AUTOPILOT_ARDUPILOT` | 1 |  |
+
+---
+## <a id="enum-mavlinkfcdispatchresult_e"></a>`mavlinkFcDispatchResult_e`
+
+> Source: ../../../src/main/fc/fc_mavlink.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MAVLINK_FC_DISPATCH_NOT_HANDLED` | 0 |  |
+| `MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY` | 1 |  |
+| `MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY` | 2 |  |
 
 ---
 ## <a id="enum-mavlinkradio_e"></a>`mavlinkRadio_e`
@@ -3548,8 +3550,7 @@
 | `MULTI_FUNC_3` | 3 |  |
 | `MULTI_FUNC_4` | 4 |  |
 | `MULTI_FUNC_5` | 5 |  |
-| `MULTI_FUNC_6` | 6 |  |
-| `MULTI_FUNC_END` | 7 |  |
+| `MULTI_FUNC_END` | 6 |  |
 
 ---
 ## <a id="enum-multifunctionflags_e"></a>`multiFunctionFlags_e`

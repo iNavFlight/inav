@@ -395,6 +395,10 @@ main_sources(COMMON_SRC
 
     io/osd/custom_elements.c
 
+    mavlink/mavlink_command.c
+    mavlink/mavlink_command.h
+    mavlink/mavlink_guided.c
+    mavlink/mavlink_guided.h
     mavlink/mavlink_internal.h
     mavlink/mavlink_mission.c
     mavlink/mavlink_mission.h

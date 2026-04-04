@@ -1089,6 +1089,68 @@ bool mavlinkSendRequestedMessage(uint16_t messageId)
     }
 }
 
+bool mavlinkHandleIncomingHeartbeat(void)
+{
+    mavlink_heartbeat_t msg;
+    mavlink_msg_heartbeat_decode(&mavlinkContext.recvMsg, &msg);
+
+    switch (msg.type) {
+#ifdef USE_ADSB
+        case MAV_TYPE_ADSB:
+            return adsbHeartbeat();
+#endif
+        default:
+            break;
+    }
+
+    return false;
+}
+
+static bool mavlinkIsLocalTarget(uint8_t targetSystem, uint8_t targetComponent)
+{
+    if (targetSystem != 0 && targetSystem != mavSystemId) {
+        return false;
+    }
+
+    if (targetComponent != 0 && targetComponent != mavComponentId) {
+        return false;
+    }
+
+    return true;
+}
+
+bool mavlinkHandleIncomingRequestDataStream(void)
+{
+    mavlink_request_data_stream_t msg;
+    mavlink_msg_request_data_stream_decode(&mavlinkContext.recvMsg, &msg);
+
+    if (!mavlinkIsLocalTarget(msg.target_system, msg.target_component)) {
+        return false;
+    }
+
+    uint8_t rate = 0;
+    if (msg.start_stop != 0) {
+        rate = (uint8_t)msg.req_message_rate;
+        if (rate > TELEMETRY_MAVLINK_MAXRATE) {
+            rate = TELEMETRY_MAVLINK_MAXRATE;
+        }
+    }
+
+    if (msg.req_stream_id == MAV_DATA_STREAM_ALL) {
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTENDED_STATUS, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_RC_CHANNELS, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_POSITION, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTRA1, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTRA2, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTRA3, rate);
+        mavlinkSetStreamRate(MAV_DATA_STREAM_EXTENDED_SYS_STATE, rate);
+        return true;
+    }
+
+    mavlinkSetStreamRate(msg.req_stream_id, rate);
+    return true;
+}
+
 void processMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
     if (mavActivePort->highLatencyEnabled && mavlinkGetProtocolVersion() != 1) {

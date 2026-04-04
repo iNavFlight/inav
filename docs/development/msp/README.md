@@ -66,6 +66,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 **variable_len**: Optional boolean, if true, message does not have a predefined fixed length and needs appropriate handling\
 **variants**: Optional special case, message has different cases of reply/request. Key/description is not a strict expression or code; just a readable condition\
 **not_implemented**: Optional special case, message is not implemented (never or deprecated)\
+**replaced_by**: Optional array of MSP message names that replace this command. Present when a command is deprecated and scheduled for removal. Empty array if no replacement is needed\
 **notes**: String with details of message
 
 ## Data dict fields:
@@ -419,8 +420,8 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 [8730 - MSP2_INAV_SET_GLOBAL_TARGET](#msp2_inav_set_global_target)  
 [8731 - MSP2_INAV_NAV_TARGET](#msp2_inav_nav_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
-[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)
-[12289 - MSP2_RX_BIND](#msp2_rx_bind)
+[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
+[12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
 ## <a id="msp_api_version"></a>`MSP_API_VERSION (1 / 0x1)`
 **Description:** Provides the MSP protocol version and the INAV API version.  
@@ -2213,7 +2214,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 | `armingFlags` | `uint16_t` | 2 | Bitmask | Bitmask: Flight controller arming flags (`armingFlags`). Note: Truncated to 16 bits |
 | `accCalibAxisFlags` | `uint8_t` | 1 | Bitmask | Bitmask: Accelerometer calibrated axes flags (`accGetCalibrationAxisFlags()`) |
 
-**Notes:** Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements.
+**Notes:** Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements. The `accCalibAxisFlags` field is not present in `MSP2_INAV_STATUS` but is available via `MSP_CALIBRATION_DATA`.
 
 ## <a id="msp_sensor_status"></a>`MSP_SENSOR_STATUS (151 / 0x97)`
 **Description:** Provides the hardware status for each individual sensor system.  
@@ -2280,6 +2281,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 | `hdop` | `uint16_t` | 2 | HDOP * 100 | Horizontal Dilution of Precision (`gpsSol.hdop`) |
 | `eph` | `uint16_t` | 2 | cm | Estimated Horizontal Position Accuracy (`gpsSol.eph`) |
 | `epv` | `uint16_t` | 2 | cm | Estimated Vertical Position Accuracy (`gpsSol.epv`) |
+| `hwVersion` | `uint32_t` | 4 | Version code | GPS hardware version (`gpsState.hwVersion`). Values: 500=UBLOX5, 600=UBLOX6, 700=UBLOX7, 800=UBLOX8, 900=UBLOX9, 1000=UBLOX10, 0=UNKNOWN |
 
 **Notes:** Requires `USE_GPS`.
 
@@ -4650,14 +4652,14 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 **Notes:** Requires `rxConfig()->receiverType == RX_TYPE_SERIAL`. Requires `USE_SERIALRX_CRSF` or `USE_SERIALRX_SRXL2`. Calls `crsfBind()` or `srxl2Bind()` respectively. Returns error if receiver type or provider is not supported for binding.
 
 ## <a id="msp2_rx_bind"></a>`MSP2_RX_BIND (12289 / 0x3001)`
-**Description:** Initiates binding for MSP receivers (mLRS).
-
+**Description:** Initiates binding for MSP receivers (mLRS).  
+  
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Description|
 |---|---|---|---|
 | `port_id` | `uint8_t` | 1 | Port ID |
 | `reserved_for_custom_use` | `uint8_t[3]` | 3 | Reserved for custom use |
-
+  
 **Reply Payload:**
 |Field|C Type|Size (Bytes)|Description|
 |---|---|---|---|
