@@ -26,6 +26,7 @@ hardwareSensorStatus_e getHwGPSStatus(void);
 hardwareSensorStatus_e getHwRangefinderStatus(void);
 hardwareSensorStatus_e getHwPitotmeterStatus(void);
 hardwareSensorStatus_e getHwOpticalFlowStatus(void);
+hardwareSensorStatus_e getHwAoaStatus(void);
 
 bool isHardwareHealthy(void);
 

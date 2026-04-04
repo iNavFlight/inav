@@ -87,6 +87,10 @@
 #define USE_RANGEFINDER_USD1_V0
 #define USE_RANGEFINDER_NANORADAR
 
+// Allow default AOA sensors
+#define USE_AOA
+#define USE_AOA_MSP
+
 // Allow default optic flow boards
 #define USE_OPFLOW
 #define USE_OPFLOW_CXOF

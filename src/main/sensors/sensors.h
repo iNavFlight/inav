@@ -25,6 +25,7 @@ typedef enum {
     SENSOR_INDEX_RANGEFINDER,
     SENSOR_INDEX_PITOT,
     SENSOR_INDEX_OPFLOW,
+    SENSOR_INDEX_AOA,
     SENSOR_INDEX_COUNT
 } sensorIndex_e;
 
@@ -47,7 +48,7 @@ typedef union flightDynamicsTrims_u {
 
 // These bits have to be aligned with sensorIndex_e
 typedef enum {
-    SENSOR_GYRO = 1 << 0, // always present
+    SENSOR_GYRO = 1 << 0,
     SENSOR_ACC = 1 << 1,
     SENSOR_BARO = 1 << 2,
     SENSOR_MAG = 1 << 3,
@@ -56,7 +57,8 @@ typedef enum {
     SENSOR_OPFLOW = 1 << 6,
     SENSOR_GPS = 1 << 7,
     SENSOR_GPSMAG = 1 << 8,
-    SENSOR_TEMP = 1 << 9
+    SENSOR_TEMP = 1 << 9,
+    SENSOR_AOA = 1 << 10
 } sensors_e;
 
 typedef enum {

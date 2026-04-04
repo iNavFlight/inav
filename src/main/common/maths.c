@@ -231,7 +231,6 @@ float scaleRangef(float x, float srcMin, float srcMax, float destMin, float dest
     return ((a / b) + destMin);
 }
 
-// Build rMat from Tait–Bryan angles (convention X1, Y2, Z3)
 void rotationMatrixFromAngles(fpMat3_t * rmat, const fp_angles_t * angles)
 {
     float cosx, sinx, cosy, siny, cosz, sinz;

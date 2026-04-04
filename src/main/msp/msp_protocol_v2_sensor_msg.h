@@ -82,3 +82,8 @@ typedef struct __attribute__((packed)) {
     int16_t  magY; // mGauss, right
     int16_t  magZ; // mGauss, down
 } mspSensorCompassDataMessage_t;
+
+typedef struct __attribute__((packed)) {
+    int16_t aoa;        // angle of attack in multiple of 0.1 degree
+    int16_t sideslip;   // sideslip angle in multiple of 0.1 degree
+} mspSensorAoaDataMessage_t;
