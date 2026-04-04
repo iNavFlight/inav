@@ -2242,6 +2242,14 @@
         "MAG_FAKE": "16",
         "MAG_MAX": "MAG_FAKE"
     },
+    "mavFrameSupportMask_e": {
+        "_source": "inav/src/main/mavlink/mavlink_mission.h",
+        "MAV_FRAME_SUPPORTED_NONE": "0",
+        "MAV_FRAME_SUPPORTED_GLOBAL": "(1 << 0)",
+        "MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT": "(1 << 1)",
+        "MAV_FRAME_SUPPORTED_GLOBAL_INT": "(1 << 2)",
+        "MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT": "(1 << 3)"
+    },
     "mavlinkAutopilotType_e": {
         "_source": "inav/src/main/telemetry/telemetry.h",
         "MAVLINK_AUTOPILOT_GENERIC": "0",
@@ -2252,6 +2260,22 @@
         "MAVLINK_FC_DISPATCH_NOT_HANDLED": "0",
         "MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY": "1",
         "MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY": "2"
+    },
+    "mavlinkPeriodicMessage_e": {
+        "_source": "inav/src/main/mavlink/mavlink_types.h",
+        "MAVLINK_PERIODIC_MESSAGE_HEARTBEAT": "0",
+        "MAVLINK_PERIODIC_MESSAGE_SYS_STATUS": "1",
+        "MAVLINK_PERIODIC_MESSAGE_EXTENDED_SYS_STATE": "2",
+        "MAVLINK_PERIODIC_MESSAGE_RC_CHANNELS": "3",
+        "MAVLINK_PERIODIC_MESSAGE_GPS_RAW_INT": "4",
+        "MAVLINK_PERIODIC_MESSAGE_GLOBAL_POSITION_INT": "5",
+        "MAVLINK_PERIODIC_MESSAGE_GPS_GLOBAL_ORIGIN": "6",
+        "MAVLINK_PERIODIC_MESSAGE_ATTITUDE": "7",
+        "MAVLINK_PERIODIC_MESSAGE_VFR_HUD": "8",
+        "MAVLINK_PERIODIC_MESSAGE_BATTERY_STATUS": "9",
+        "MAVLINK_PERIODIC_MESSAGE_SCALED_PRESSURE": "10",
+        "MAVLINK_PERIODIC_MESSAGE_SYSTEM_TIME": "11",
+        "MAVLINK_PERIODIC_MESSAGE_COUNT": "12"
     },
     "mavlinkRadio_e": {
         "_source": "inav/src/main/telemetry/telemetry.h",
