@@ -549,7 +549,13 @@ static void SD_StartBlockTransfert(uint32_t* pBuffer, uint32_t BlockSize, uint32
     }
 
     pDMA->CR &= ~DMA_SxCR_EN;                                                                       // Disable the Peripheral
-    while (pDMA->CR & DMA_SxCR_EN);
+    int dmaTimeout = 10000;
+    while ((pDMA->CR & DMA_SxCR_EN) && dmaTimeout-- > 0);
+
+    if (pDMA->CR & DMA_SxCR_EN) {
+        SD_Handle.TransferError = SD_DATA_TIMEOUT;
+        return;
+    }
 
     pDMA->NDTR = (uint32_t) (BlockSize * NumberOfBlocks) / 4;                                       // Configure DMA Stream data length
     pDMA->M0AR = (uint32_t) pBuffer;                                                                // Configure DMA Stream memory address
@@ -772,7 +778,7 @@ SD_Error_t SD_GetCardInfo(void)
         SD_CardInfo.CardCapacity  = (SD_CardInfo.SD_csd.DeviceSize + 1) ;
         SD_CardInfo.CardCapacity *= (1 << (SD_CardInfo.SD_csd.DeviceSizeMul + 2));
         SD_CardInfo.CardBlockSize = 1 << (SD_CardInfo.SD_csd.RdBlockLen);
-        SD_CardInfo.CardCapacity *= SD_CardInfo.CardBlockSize;
+        SD_CardInfo.CardCapacity = SD_CardInfo.CardCapacity * SD_CardInfo.CardBlockSize / 512; // In 512 byte blocks
     }
     else if (SD_CardType == SD_HIGH_CAPACITY) {
         // Byte 7
@@ -1014,7 +1020,11 @@ SD_Error_t SD_HighSpeed(void)
             return ErrorState;
         }
 
+        uint32_t swTimeout = SD_DATATIMEOUT;
         while ((SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DBCKEND)) == 0) {
+            if (swTimeout-- == 0) {
+                break;
+            }
             if ((SDIO->STA & SDIO_STA_RXFIFOHF) != 0) {
                 for(Count = 0; Count < 8; Count++) {
                     *(Buffer + Count) = SDIO->FIFO;
@@ -1124,7 +1134,11 @@ SD_Error_t SD_GetCardStatus(SD_CardStatus_t* pCardStatus)
     }
 
     // Get status data
+    uint32_t statTimeout = SD_DATATIMEOUT;
     while ((SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DBCKEND)) == 0) {
+        if (statTimeout-- == 0) {
+            break;
+        }
         if ((SDIO->STA & SDIO_STA_RXFIFOHF) != 0) {
             for(Count = 0; Count < 8; Count++) {
                 Status[Count] = SDIO->FIFO;
@@ -1318,7 +1332,11 @@ static SD_Error_t SD_FindSCR(uint32_t *pSCR)
 
             // Send ACMD51 SD_APP_SEND_SCR with argument as 0
             if ((ErrorState = SD_TransmitCommand((SD_CMD_SD_APP_SEND_SCR | SD_CMD_RESPONSE_SHORT), 0, 1)) == SD_OK) {
+                uint32_t scrTimeout = SD_DATATIMEOUT;
                 while ((SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DBCKEND)) == 0) {
+                    if (scrTimeout-- == 0) {
+                        break;
+                    }
                     if ((SDIO->STA & SDIO_STA_RXDAVL) != 0) {
                         *(tempscr + Index) = SDIO->FIFO;
                         Index++;

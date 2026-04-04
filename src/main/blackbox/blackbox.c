@@ -504,7 +504,7 @@ typedef struct blackboxMainState_s {
     int16_t gyroPeaksYaw[DYN_NOTCH_PEAK_COUNT];
 
     int16_t accADC[XYZ_AXIS_COUNT];
-    int16_t accVib;
+    uint16_t accVib;
     int16_t attitude[XYZ_AXIS_COUNT];
     int32_t debug[DEBUG32_VALUE_COUNT];
     int16_t motor[MAX_SUPPORTED_MOTORS];
@@ -1642,7 +1642,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->axisPID_D[i] = axisPID_D[i];
         blackboxCurrent->axisPID_F[i] = axisPID_F[i];
         blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i]);
-        blackboxCurrent->accADC[i] = lrintf(acc.accADCf[i] * acc.dev.acc_1G);
+        blackboxCurrent->accADC[i] = constrain(lrintf(acc.accADCf[i] * acc.dev.acc_1G), -32678, 32767);
         blackboxCurrent->gyroRaw[i] = lrintf(gyro.gyroRaw[i]);
 
 #ifdef USE_DYNAMIC_FILTERS
@@ -1668,7 +1668,8 @@ static void loadMainState(timeUs_t currentTimeUs)
             blackboxCurrent->mcVelAxisOutput[i] = lrintf(nav_pids->vel[i].output_constrained);
         }
     }
-    blackboxCurrent->accVib = lrintf(accGetVibrationLevel() * acc.dev.acc_1G);
+
+    blackboxCurrent->accVib = constrain(lrintf(accGetVibrationLevel() * acc.dev.acc_1G), 0, 65535);
 
     if (STATE(FIXED_WING_LEGACY)) {
 

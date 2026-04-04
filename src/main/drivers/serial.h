@@ -113,6 +113,7 @@ uint32_t serialRxBytesWaiting(const serialPort_t *instance);
 uint32_t serialTxBytesFree(const serialPort_t *instance);
 void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count);
 uint8_t serialRead(serialPort_t *instance);
+uint32_t serialReadBuf(serialPort_t *instance, uint8_t *data, uint32_t maxLen);
 void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate);
 void serialSetMode(serialPort_t *instance, portMode_t mode);
 void serialSetOptions(serialPort_t *instance, portOptions_t options);
