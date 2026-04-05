@@ -146,9 +146,9 @@
 #define SYM_GFORCE_Z                0xBF  // 191 Gforce Z
 
 #ifdef USE_AOA
-#define SYM_AOA_UP                  0xB0  // 176 Pitch up
-#define SYM_AOA_DOWN                0xBB  // 187 Pitch down
-#define SYM_AOA                     0x41  // 'A' character
+#define SYM_AOA_UP                  0x17    //   up
+#define SYM_AOA_DOWN                0x1B  //   down
+#define SYM_AOA                     0x41       // A
 #endif
 
 #define SYM_BARO_TEMP               0xC0  // 192
