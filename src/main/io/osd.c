@@ -111,6 +111,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
+#include "sensors/rpm_source.h"
 #include "sensors/rangefinder.h"
 
 #include "programming/logic_condition.h"
@@ -3923,9 +3924,9 @@ static bool osdDrawSingleElement(uint8_t item)
 #if defined(USE_ESC_SENSOR)
     case OSD_ESC_RPM:
         {
-            escSensorData_t * escSensor = escSensorGetData();
-            if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
-                osdFormatRpm(buff, escSensor->rpm);
+            uint32_t rpm = 0;
+            if (rpmSourceGetAverageRpm(&rpm)) {
+                osdFormatRpm(buff, rpm);
             }
             else {
                 osdFormatRpm(buff, 0);
@@ -4187,7 +4188,7 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
         }
     }
 
-    if (!STATE(ESC_SENSOR_ENABLED)) {
+    if (!rpmSourceIsConfigured()) {
         if (elementIndex == OSD_ESC_RPM) {
             elementIndex = OSD_AZIMUTH;
         }

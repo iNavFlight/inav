@@ -81,6 +81,7 @@
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
 #include "sensors/esc_sensor.h"
+#include "sensors/rpm_source.h"
 #include "flight/wind_estimator.h"
 #include "sensors/temperature.h"
 
@@ -1428,9 +1429,14 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #endif
 
 #ifdef USE_ESC_SENSOR
-    escSensorData_t * escSensor = escSensorGetData();
-    slow->escRPM = escSensor->rpm;
-    slow->escTemperature = escSensor->temperature;
+    uint32_t escRpm = 0;
+    slow->escRPM = rpmSourceGetAverageRpm(&escRpm) ? escRpm : 0;
+    slow->escTemperature = TEMPERATURE_INVALID_VALUE / 10;
+
+    escSensorData_t *escSensor = escSensorGetData();
+    if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+        slow->escTemperature = escSensor->temperature;
+    }
 #endif
 }
 

@@ -31,6 +31,7 @@
 #include "common/circular_queue.h"
 
 #include "drivers/io.h"
+#include "drivers/dshot_bidir.h"
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -114,6 +115,8 @@ static uint16_t beeperFrequency = 0;
 static uint8_t allocatedOutputPortCount = 0;
 
 static bool pwmMotorsEnabled = true;
+static bool dshotBidirModeActive = false;
+static uint8_t dshotBidirConfiguredMotorCount = 0;
 
 #ifdef USE_DSHOT
 static timeUs_t digitalMotorUpdateIntervalUs = 0;
@@ -348,6 +351,12 @@ static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
     }
     csum &= 0xf;
 
+#ifdef USE_DSHOT_BIDIR
+    if (dshotBidirModeActive) {
+        csum = (~csum) & 0xf;
+    }
+#endif
+
     // append checksum
     packet = (packet << 4) | csum;
 
@@ -379,6 +388,15 @@ bool isMotorProtocolDshot(void)
 bool isMotorProtocolDigital(void)
 {
     return isMotorProtocolDshot();
+}
+
+bool isDshotBidirModeActive(void)
+{
+#ifdef USE_DSHOT_BIDIR
+    return dshotBidirModeActive && dshotBidirConfiguredMotorCount == getMotorCount();
+#else
+    return false;
+#endif
 }
 
 void pwmRequestMotorTelemetry(int motorIndex)
@@ -465,6 +483,12 @@ void pwmCompleteMotorUpdate(void) {
         return;
     }
 
+#ifdef USE_DSHOT_BIDIR
+    if (dshotBidirModeActive && !dshotBidirUpdate()) {
+        return;
+    }
+#endif
+
     int motorCount = getMotorCount();
     timeUs_t currentTimeUs = micros();
 
@@ -485,12 +509,18 @@ void pwmCompleteMotorUpdate(void) {
 #ifdef USE_DSHOT_DMAR
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
-                uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
+                const bool requestTelemetry = dshotBidirModeActive || motors[index].requestTelemetry;
+                uint16_t packet = prepareDshotPacket(motors[index].value, requestTelemetry);
                 loadDmaBufferDshotStride(&motors[index].pwmPort->dmaBurstBuffer[motors[index].pwmPort->tch->timHw->channelIndex], 4, packet);
                 motors[index].requestTelemetry = false;
             }
         }
 
+#ifdef USE_DSHOT_BIDIR
+        if (dshotBidirModeActive) {
+            dshotBidirOnFrameStarted();
+        }
+#endif
         for (int burstDmaTimerIndex = 0; burstDmaTimerIndex < burstDmaTimersCount; burstDmaTimerIndex++) {
             burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
             pwmBurstDMAStart(burstDmaTimer, DSHOT_DMA_BUFFER_SIZE * 4);
@@ -499,7 +529,8 @@ void pwmCompleteMotorUpdate(void) {
         // Generate DMA buffers
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
-                uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
+                const bool requestTelemetry = dshotBidirModeActive || motors[index].requestTelemetry;
+                uint16_t packet = prepareDshotPacket(motors[index].value, requestTelemetry);
                 loadDmaBufferDshot(motors[index].pwmPort->dmaBuffer, packet);
                 timerPWMPrepareDMA(motors[index].pwmPort->tch, DSHOT_DMA_BUFFER_SIZE);
                 motors[index].requestTelemetry = false;
@@ -531,6 +562,23 @@ void pwmMotorPreconfigure(void)
 {
     // Keep track of initial motor protocol
     initMotorProtocol = motorConfig()->motorPwmProtocol;
+
+#ifdef USE_DSHOT_BIDIR
+    dshotBidirModeActive = motorConfig()->dshotBidirEnabled &&
+        initMotorProtocol >= PWM_TYPE_DSHOT150 &&
+        initMotorProtocol <= PWM_TYPE_DSHOT600 &&
+        getMotorCount() > 0 &&
+        getMotorCount() <= 4;
+    dshotBidirConfiguredMotorCount = 0;
+
+    if (dshotBidirModeActive && initMotorProtocol == PWM_TYPE_DSHOT600) {
+        initMotorProtocol = PWM_TYPE_DSHOT300;
+    }
+
+    if (dshotBidirModeActive) {
+        dshotBidirInit(getDshotHz(initMotorProtocol));
+    }
+#endif
 
 #ifdef BRUSHED_MOTORS
     initMotorProtocol = PWM_TYPE_BRUSHED;   // Override proto
@@ -592,6 +640,14 @@ uint32_t getEscUpdateFrequency(void) {
 
 bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bool enableOutput)
 {
+#ifdef USE_DSHOT_BIDIR
+    if (dshotBidirModeActive) {
+        if (motorIndex >= 4 || timerHardware->tim != TIM4) {
+            return false;
+        }
+    }
+#endif
+
     switch (initMotorProtocol) {
     case PWM_TYPE_BRUSHED:
         motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 0.0f, 0.0f, getEscUpdateFrequency(), enableOutput);
@@ -621,6 +677,20 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
         motors[motorIndex].pwmPort = NULL;
         break;
     }
+
+#ifdef USE_DSHOT_BIDIR
+    if (dshotBidirModeActive && motors[motorIndex].pwmPort != NULL) {
+        timerDMASafeType_t *dmaBurstBufferForMotor = NULL;
+
+#ifdef USE_DSHOT_DMAR
+        dmaBurstBufferForMotor = motors[motorIndex].pwmPort->dmaBurstBuffer;
+#endif
+
+        if (dshotBidirAttachMotor(motorIndex, motors[motorIndex].pwmPort->tch, dmaBurstBufferForMotor)) {
+            dshotBidirConfiguredMotorCount++;
+        }
+    }
+#endif
 
     return (motors[motorIndex].pwmPort != NULL);
 }

@@ -36,7 +36,7 @@
 #include "common/maths.h"
 #include "common/filter.h"
 #include "flight/mixer.h"
-#include "sensors/esc_sensor.h"
+#include "sensors/rpm_source.h"
 #include "fc/config.h"
 #include "fc/settings.h"
 
@@ -188,8 +188,13 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
      */
     for (uint8_t i = 0; i < motorCount; i++)
     {
-        const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
-        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * HZ_TO_RPM); //Filter motor frequency
+        uint32_t motorRpm;
+
+        if (!rpmSourceGetMotorRpm(i, &motorRpm)) {
+            continue;
+        }
+
+        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], motorRpm * HZ_TO_RPM);
 
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
     }

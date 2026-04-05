@@ -213,6 +213,8 @@ main_sources(COMMON_SRC
     drivers/osd.h
     drivers/persistent.c
     drivers/persistent.h
+    drivers/dshot_bidir.c
+    drivers/dshot_bidir.h
     drivers/pitotmeter/pitotmeter_adc.c
     drivers/pitotmeter/pitotmeter_adc.h
     drivers/pitotmeter/pitotmeter_ms4525.c
@@ -462,6 +464,8 @@ main_sources(COMMON_SRC
     sensors/esc_sensor.h
     sensors/irlock.c
     sensors/irlock.h
+    sensors/rpm_source.c
+    sensors/rpm_source.h
     sensors/sensors.c
     sensors/temperature.c
     sensors/temperature.h

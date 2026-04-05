@@ -27,6 +27,10 @@
 
 #include "platform.h"
 
+#include "drivers/pwm_mapping.h"
+
+#include "flight/mixer.h"
+
 #include "fc/fc_msp_box.h"
 #include "io/serial.h"
 
@@ -38,4 +42,25 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART2)].functionMask = FUNCTION_RX_SERIAL;
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].functionMask = FUNCTION_MSP;
     // serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].functionMask = FUNCTION_ESCSERIAL;
+}
+
+void validateAndFixTargetConfig(void)
+{
+    if (!motorConfig()->dshotBidirEnabled) {
+        return;
+    }
+
+    if (motorConfig()->motorPwmProtocol < PWM_TYPE_DSHOT150 || motorConfig()->motorPwmProtocol > PWM_TYPE_DSHOT600) {
+        motorConfigMutable()->dshotBidirEnabled = false;
+        return;
+    }
+
+    if (getMotorCount() == 0 || getMotorCount() > 4) {
+        motorConfigMutable()->dshotBidirEnabled = false;
+        return;
+    }
+
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_DSHOT600) {
+        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_DSHOT300;
+    }
 }

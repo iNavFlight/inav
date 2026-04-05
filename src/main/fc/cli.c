@@ -55,6 +55,7 @@ bool cliMode = false;
 #include "drivers/buf_writer.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
+#include "drivers/dshot_bidir.h"
 #include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
@@ -82,6 +83,7 @@ bool cliMode = false;
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
+#include "flight/mixer.h"
 #include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
@@ -117,6 +119,7 @@ bool cliMode = false;
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
+#include "sensors/rpm_source.h"
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
@@ -219,7 +222,8 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "HEADTRACKER",
     "GPS",
     "LULU",
-    "SBUS2"
+    "SBUS2",
+    "DSHOT_BIDIR"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
@@ -4124,6 +4128,35 @@ static void cliStatus(char *cmdline)
         }
         cliPrintLinefeed();
     }
+#endif
+
+#ifdef USE_DSHOT_BIDIR
+    cliPrintLinef("DShot Bidir: requested=%s, configured=%s, active=%s, valid motors=%u, reads=%lu, invalid=%lu, noedge=%lu, timeouts=%lu, edges=%u/%u/%u/%u",
+        motorConfig()->dshotBidirEnabled ? "ON" : "OFF",
+        rpmSourceIsDshotBidirConfigured() ? "YES" : "NO",
+        rpmSourceIsDshotBidirActive() ? "YES" : "NO",
+        rpmSourceGetDshotBidirValidCount(),
+        dshotBidirGetReadCount(),
+        dshotBidirGetInvalidPacketCount(),
+        dshotBidirGetNoEdgeCount(),
+        dshotBidirGetTimeoutCount(),
+        dshotBidirGetLastEdgeCount(0),
+        dshotBidirGetLastEdgeCount(1),
+        dshotBidirGetLastEdgeCount(2),
+        dshotBidirGetLastEdgeCount(3));
+    cliPrintLinef("DShot Bidir Data: raw=%u/%u/%u/%u, erpm=%lu/%lu/%lu/%lu, rpm=%lu/%lu/%lu/%lu",
+        dshotBidirGetLastRawValue(0),
+        dshotBidirGetLastRawValue(1),
+        dshotBidirGetLastRawValue(2),
+        dshotBidirGetLastRawValue(3),
+        dshotBidirGetLastErpmValue(0),
+        dshotBidirGetLastErpmValue(1),
+        dshotBidirGetLastErpmValue(2),
+        dshotBidirGetLastErpmValue(3),
+        dshotBidirGetLastRpmValue(0),
+        dshotBidirGetLastRpmValue(1),
+        dshotBidirGetLastRpmValue(2),
+        dshotBidirGetLastRpmValue(3));
 #endif
 
 #ifdef USE_SDCARD
