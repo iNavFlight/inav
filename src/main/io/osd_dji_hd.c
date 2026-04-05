@@ -69,6 +69,7 @@
 #include "sensors/rangefinder.h"
 #include "sensors/acceleration.h"
 #include "sensors/esc_sensor.h"
+#include "sensors/rpm_source.h"
 #include "sensors/temperature.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/boardalignment.h"
@@ -1347,19 +1348,21 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             {
                 uint16_t protoRpm = 0;
                 int16_t protoTemp = 0;
+                uint32_t averageRpm = 0;
+
+                if (rpmSourceGetAverageRpm(&averageRpm)) {
+                    protoRpm = (averageRpm > UINT16_MAX) ? UINT16_MAX : (uint16_t)averageRpm;
+                }
 
     #if defined(USE_ESC_SENSOR)
                 if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
-                    uint32_t motorRpmAcc = 0;
                     int32_t motorTempAcc = 0;
 
                     for (int i = 0; i < getMotorCount(); i++) {
                         const escSensorData_t * escSensor = getEscTelemetry(i);
-                        motorRpmAcc += escSensor->rpm;
                         motorTempAcc += escSensor->temperature;
                     }
 
-                    protoRpm = motorRpmAcc / getMotorCount();
                     protoTemp = motorTempAcc / getMotorCount();
                 }
     #endif

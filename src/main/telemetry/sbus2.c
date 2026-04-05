@@ -39,6 +39,7 @@
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
 #include "sensors/diagnostics.h"
+#include "sensors/rpm_source.h"
 
 #include "io/gps.h"
 
@@ -76,14 +77,12 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs)
     float temperature = 0;
     uint32_t rpm = 0;
 
+    rpmSourceGetAverageRpm(&rpm);
+
 #ifdef USE_ESC_SENSOR
     escSensorData_t * escSensor = escSensorGetData();
     if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
-        rpm = escSensor->rpm;
         temperature = escSensor->temperature;
-    } else {
-        rpm = 0;
-        temperature = 0;
     }
 #endif
 

@@ -131,6 +131,7 @@
 #include "sensors/opflow.h"
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
+#include "sensors/rpm_source.h"
 
 #include "telemetry/telemetry.h"
 
@@ -666,7 +667,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_RC:
-        for (int i = 0; i < rxRuntimeConfig.channelCount; i++) {
+        for (int i = 0; i < rxGetChannelCount(); i++) {
             sbufWriteU16(dst, rxGetChannelValue(i));
         }
         break;
@@ -1739,8 +1740,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             uint8_t motorCount = getMotorCount();
 
             for (uint8_t i = 0; i < motorCount; i++){
-                const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
-                sbufWriteU32(dst, escState->rpm);
+                uint32_t rpm = 0;
+                rpmSourceGetMotorRpm(i, &rpm);
+                sbufWriteU32(dst, rpm);
             }
         }
         break;
@@ -1751,8 +1753,30 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, motorCount);
 
             for (uint8_t i = 0; i < motorCount; i++){
-                const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
-                sbufWriteDataSafe(dst, escState, sizeof(escSensorData_t));
+                escSensorData_t escState = {
+                    .dataAge = ESC_DATA_INVALID,
+                    .temperature = 0,
+                    .voltage = 0,
+                    .current = 0,
+                    .rpm = 0,
+                };
+
+                if (STATE(ESC_SENSOR_ENABLED)) {
+                    const escSensorData_t *serialEscState = getEscTelemetry(i);
+                    if (serialEscState != NULL) {
+                        escState = *serialEscState;
+                    }
+                }
+
+                if (escState.dataAge >= ESC_DATA_INVALID) {
+                    uint32_t rpm = 0;
+                    if (rpmSourceGetMotorRpm(i, &rpm)) {
+                        escState.dataAge = 0;
+                        escState.rpm = rpm;
+                    }
+                }
+
+                sbufWriteDataSafe(dst, &escState, sizeof(escSensorData_t));
             }
         }
         break;

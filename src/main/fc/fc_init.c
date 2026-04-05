@@ -144,6 +144,7 @@
 #include "sensors/initialisation.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
+#include "sensors/rpm_source.h"
 #include "sensors/sensors.h"
 #include "sensors/esc_sensor.h"
 
@@ -728,7 +729,8 @@ void init(void)
 
 #ifdef USE_RPM_FILTER
     disableRpmFilters();
-    if (STATE(ESC_SENSOR_ENABLED) && (rpmFilterConfig()->gyro_filter_enabled || rpmFilterConfig()->dterm_filter_enabled)) {
+    rpmSourceResetDshotBidir();
+    if (rpmSourceIsConfigured() && (rpmFilterConfig()->gyro_filter_enabled || rpmFilterConfig()->dterm_filter_enabled)) {
         rpmFiltersInit();
         setTaskEnabled(TASK_RPM_FILTER, true);
     }

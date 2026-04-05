@@ -50,6 +50,7 @@
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
+#include "sensors/rpm_source.h"
 
 #include "telemetry/jetiexbus.h"
 #include "telemetry/telemetry.h"
@@ -293,7 +294,7 @@ void initJetiExBusTelemetry(void)
     enableGpsTelemetry(feature(FEATURE_GPS));
 
 #ifdef USE_ESC_SENSOR
-    if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+    if (rpmSourceIsConfigured() && getMotorCount() > 0) {
         bitArraySet(&exSensorEnabled, EX_RPM);
     }
 #endif
@@ -346,11 +347,6 @@ uint32_t calcGpsDDMMmmm(int32_t value, bool isLong)
 
 int32_t getSensorValue(uint8_t sensor)
 {
-
-#ifdef USE_ESC_SENSOR
-    escSensorData_t * escSensor;
-#endif
-
     switch (sensor) {
     case EX_VOLTAGE:
         return telemetryConfig()->report_cell_voltage ? getBatteryAverageCellVoltage() : getBatteryVoltage();
@@ -436,10 +432,11 @@ int32_t getSensorValue(uint8_t sensor)
 
 #ifdef USE_ESC_SENSOR
     case EX_RPM:
-        escSensor = escSensorGetData();
-        if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
-            return escSensor->rpm;
-        } else {
+        {
+            uint32_t rpm = 0;
+            if (rpmSourceGetAverageRpm(&rpm)) {
+                return rpm;
+            }
             return 0;
         }
     break;

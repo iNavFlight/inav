@@ -794,6 +794,54 @@ groups:
         condition: USE_MSP_RC_OVERRIDE
         min: 0
         max: UINT32_MAX
+      - name: rc_orig_src_1
+        description: "Source RC channel copied before MSP override. Set to 0 to disable this copy rule."
+        field: rcOrigSrcChannels[0]
+        default_value: 0
+        min: 0
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: rc_orig_dst_1
+        description: "Destination RC channel that receives the pre-override copy from rc_orig_src_1. Set to 0 to disable this copy rule."
+        field: rcOrigDstChannels[0]
+        default_value: 0
+        min: 0
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: rc_orig_src_2
+        description: "Source RC channel copied before MSP override. Set to 0 to disable this copy rule."
+        field: rcOrigSrcChannels[1]
+        default_value: 0
+        min: 0
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: rc_orig_dst_2
+        description: "Destination RC channel that receives the pre-override copy from rc_orig_src_2. Set to 0 to disable this copy rule."
+        field: rcOrigDstChannels[1]
+        default_value: 0
+        min: 0
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: rc_orig_src_3
+        description: "Source RC channel copied before MSP override. Set to 0 to disable this copy rule."
+        field: rcOrigSrcChannels[2]
+        default_value: 0
+        min: 0
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: rc_orig_dst_3
+        description: "Destination RC channel that receives the pre-override copy from rc_orig_src_3. Set to 0 to disable this copy rule."
+        field: rcOrigDstChannels[2]
+        default_value: 0
+        min: 0
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: rc_orig_src_4
+        description: "Source RC channel copied before MSP override. Set to 0 to disable this copy rule."
+        field: rcOrigSrcChannels[3]
+        default_value: 0
+        min: 0
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: rc_orig_dst_4
+        description: "Destination RC channel that receives the pre-override copy from rc_orig_src_4. Set to 0 to disable this copy rule."
+        field: rcOrigDstChannels[3]
+        default_value: 0
+        min: 0
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
 
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t
@@ -857,6 +905,11 @@ groups:
         min: 4
         max: 255
         default_value: 14
+      - name: dshot_bidir
+        field: dshotBidirEnabled
+        description: "Enable experimental true bidirectional DShot RPM telemetry. Current support is target-specific and intended for multirotors using the first four motor outputs."
+        default_value: OFF
+        type: bool
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
@@ -1696,7 +1749,7 @@ groups:
     type: rpmFilterConfig_t
     members:
       - name: rpm_gyro_filter_enabled
-        description: "Enables gyro RPM filtere. Set to `ON` only when ESC telemetry is working and rotation speed of the motors is correctly reported to INAV"
+        description: "Enables gyro RPM filtere. Set to `ON` only when ESC telemetry or bidirectional DShot telemetry is working and rotation speed of the motors is correctly reported to INAV"
         default_value: OFF
         field: gyro_filter_enabled
         type: bool

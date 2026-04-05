@@ -93,12 +93,13 @@ static timeUs_t needRxSignalBefore = 0;
 static bool isRxSuspended = false;
 
 static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+static rcChannel_t rcOriginalChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 rxLinkStatistics_t rxLinkStatistics;
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 13);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 14);
 
 #ifndef SERIALRX_PROVIDER
 #define SERIALRX_PROVIDER 0
@@ -132,6 +133,8 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     .mspOverrideChannels = SETTING_MSP_OVERRIDE_CHANNELS_DEFAULT,
 #endif
+    .rcOrigSrcChannels = {0},
+    .rcOrigDstChannels = {0},
     .rssi_source = SETTING_RSSI_SOURCE_DEFAULT,
 #ifdef USE_SERIALRX_SRXL2
     .srxl2_unit_id = SETTING_SRXL2_UNIT_ID_DEFAULT,
@@ -171,6 +174,34 @@ static uint8_t nullFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     UNUSED(rxRuntimeConfig);
     return RX_FRAME_PENDING;
+}
+
+static void storeOriginalRxChannels(void)
+{
+    for (unsigned channel = 0; channel < rxChannelCount; channel++) {
+        rcOriginalChannels[channel] = rcChannels[channel];
+    }
+}
+
+static void applyOriginalRxChannelCopies(void)
+{
+    for (unsigned rule = 0; rule < RX_ORIG_COPY_RULE_COUNT; rule++) {
+        const uint8_t srcChannel = rxConfig()->rcOrigSrcChannels[rule];
+        const uint8_t dstChannel = rxConfig()->rcOrigDstChannels[rule];
+
+        if (srcChannel == 0 || dstChannel == 0) {
+            continue;
+        }
+
+        const unsigned srcIndex = srcChannel - 1;
+        const unsigned dstIndex = dstChannel - 1;
+
+        if (srcIndex >= rxChannelCount || dstIndex >= MAX_SUPPORTED_RC_CHANNEL_COUNT) {
+            continue;
+        }
+
+        rcChannels[dstIndex] = rcOriginalChannels[srcIndex];
+    }
 }
 
 bool isRxPulseValid(uint16_t pulseDuration)
@@ -271,10 +302,12 @@ void rxInit(void)
         rcChannels[i].raw = PWM_RANGE_MIDDLE;
         rcChannels[i].data = PWM_RANGE_MIDDLE;
         rcChannels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
+        rcOriginalChannels[i] = rcChannels[i];
     }
 
     rcChannels[THROTTLE].raw = (feature(FEATURE_REVERSIBLE_MOTORS)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
     rcChannels[THROTTLE].data = rcChannels[THROTTLE].raw;
+    rcOriginalChannels[THROTTLE] = rcChannels[THROTTLE];
 
     // Initialize ARM switch to OFF position when arming via switch is defined
     for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
@@ -290,6 +323,7 @@ void rxInit(void)
             rcChannel_t *armChannel = &rcChannels[modeActivationConditions(i)->auxChannelIndex + NON_AUX_CHANNEL_COUNT];
             armChannel->raw = value;
             armChannel->data = value;
+            rcOriginalChannels[modeActivationConditions(i)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = *armChannel;
         }
     }
 
@@ -506,11 +540,15 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         }
     }
 
+    storeOriginalRxChannels();
+
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe()) {
         mspOverrideChannels(rcChannels);
     }
 #endif
+
+    applyOriginalRxChannelCopies();
 
     // Update failsafe
     if (rxFlightChannelsValid && rxSignalReceived) {
@@ -652,6 +690,21 @@ uint16_t getRSSI(void)
 rssiSource_e getRSSISource(void)
 {
     return activeRssiSource;
+}
+
+uint8_t rxGetChannelCount(void)
+{
+    uint8_t channelCount = rxChannelCount;
+
+    for (unsigned rule = 0; rule < RX_ORIG_COPY_RULE_COUNT; rule++) {
+        if (rxConfig()->rcOrigSrcChannels[rule] == 0 || rxConfig()->rcOrigDstChannels[rule] == 0) {
+            continue;
+        }
+
+        channelCount = MAX(channelCount, rxConfig()->rcOrigDstChannels[rule]);
+    }
+
+    return MIN(channelCount, MAX_SUPPORTED_RC_CHANNEL_COUNT);
 }
 
 int16_t rxGetChannelValue(unsigned channelNumber)

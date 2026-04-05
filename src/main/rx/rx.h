@@ -85,6 +85,7 @@ typedef enum {
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_CHANNEL_COUNT 34
+#define RX_ORIG_COPY_RULE_COUNT 4
 
 #define NON_AUX_CHANNEL_COUNT 4
 #define MAX_AUX_CHANNEL_COUNT (MAX_SUPPORTED_RC_CHANNEL_COUNT - NON_AUX_CHANNEL_COUNT)
@@ -127,6 +128,8 @@ typedef struct rxConfig_s {
     uint8_t autoSmooth;                     // auto smooth rx input (0 = off, 1 = on)
     uint8_t autoSmoothFactor;               // auto smooth rx input factor (1 = no smoothing, 100 = lots of smoothing)
     uint32_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
+    uint8_t rcOrigSrcChannels[RX_ORIG_COPY_RULE_COUNT];
+    uint8_t rcOrigDstChannels[RX_ORIG_COPY_RULE_COUNT];
     uint8_t rssi_source;
 #ifdef USE_SERIALRX_SRXL2
     uint8_t srxl2_unit_id;
@@ -214,6 +217,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
 bool isRxPulseValid(uint16_t pulseDuration);
 
 uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap);
+uint8_t rxGetChannelCount(void);
 void parseRcChannels(const char *input);
 
 void setRSSIFromMSP_RC(uint8_t newMspRssi);
