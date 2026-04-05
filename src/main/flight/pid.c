@@ -73,6 +73,9 @@ typedef struct {
     float aD;
     float aFF;
     timeMs_t targetOverThresholdTimeMs;
+    float lastRateTarget;
+    timeMs_t stickReturnTimeMs;
+    int8_t lastErrorSign;
 } fwPidAttenuation_t;
 
 typedef struct {
@@ -151,6 +154,9 @@ static EXTENDED_FASTRAM float antigravityAccelerator;
 
 #define D_BOOST_GYRO_LPF_HZ 80    // Biquad lowpass input cutoff to peak D around propwash frequencies
 #define D_BOOST_LPF_HZ 7          // PT1 lowpass cutoff to smooth the boost effect
+#define AIRSPEED_MIN_VALUE 980    // 35*27.7 cm/s, minimum effective airspeed
+
+#define ATTENUATION_SIGN_CHANGE_MIN_INTERVAL_MS 500
 
 #ifdef USE_D_BOOST
 static EXTENDED_FASTRAM float dBoostMin;
@@ -444,26 +450,22 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
 }
 
 static float calculateFixedWingAirspeedTPAFactor(void){
-    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
-    const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
-    float tpaFactor= powf(referenceAirspeed/airspeed, currentControlProfile->throttle.apa_pow/100.0f);
-    tpaFactor= constrainf(tpaFactor, 0.3f, 2.0f);
-    return tpaFactor;
-}
-
-// Calculate I-term scaling factor (less aggressive than P/D/FF)
-static float calculateFixedWingAirspeedITermFactor(void){
-    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
-    const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
-    const float apa_pow = currentControlProfile->throttle.apa_pow;
-
-    if (apa_pow <= 100.0f) {
-        return 1.0f;
+    float tpaFactor = 1.0f;
+    if (currentControlProfile->throttle.dynPID != 0 && !FLIGHT_MODE(AUTO_TUNE) && ARMING_FLAG(ARMED)) {
+        const float airspeed = getAirspeedEstimate();
+        if (airspeed > AIRSPEED_MIN_VALUE) {
+            float deltaAirspeed = airspeed - AIRSPEED_MIN_VALUE;
+            float deltaReferenceAirspeed = pidProfile()->fixedWingReferenceAirspeed - AIRSPEED_MIN_VALUE;
+            deltaReferenceAirspeed = MAX(deltaReferenceAirspeed, 0.001f);
+            float ratio = deltaAirspeed / deltaReferenceAirspeed;
+            tpaFactor = 0.5f + 1.0f / (1.0f + ratio * ratio);
+            tpaFactor = constrainf(tpaFactor, 0.3f, 2.0f);
+        } else {
+            tpaFactor = 2.0f;
+        }
+        tpaFactor = 1.0f + (tpaFactor - 1.0f) * (currentControlProfile->throttle.dynPID / 100.0f);
     }
-
-    float iTermFactor = powf(referenceAirspeed/airspeed, (apa_pow/100.0f) - 1.0f);
-    iTermFactor = constrainf(iTermFactor, 0.3f, 1.5f);
-    return iTermFactor;
+    return tpaFactor;
 }
 
 static float calculateFixedWingTPAFactor(uint16_t throttle)
@@ -551,18 +553,14 @@ void updatePIDCoefficients(void)
     }
     
     float tpaFactor=1.0f;
-    float iTermFactor=1.0f;  // Separate factor for I-term scaling
-    if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
-        if(currentControlProfile->throttle.apa_pow>0 && pitotValidForAirspeed()){
+    if(usedPidControllerType == PID_TYPE_PIFF){
+        if(currentControlProfile->throttle.dynPID>0 && pitotValidForAirspeed()){
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
-            iTermFactor = calculateFixedWingAirspeedITermFactor();  // Less aggressive I-term scaling
-        }else{
+        } else {
             tpaFactor = calculateFixedWingTPAFactor(calculateTPAThtrottle());
-            iTermFactor = tpaFactor;  // Use same factor for throttle-based TPA
         }
     } else {
         tpaFactor = calculateMultirotorTPAFactor(calculateTPAThtrottle());
-        iTermFactor = tpaFactor;  // Multirotor uses same factor
     }
     if (tpaFactor != tpaFactorprev) {
         pidGainsUpdateRequired = true;
@@ -580,9 +578,8 @@ void updatePIDCoefficients(void)
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
     for (int axis = 0; axis < 3; axis++) {
         if (usedPidControllerType == PID_TYPE_PIFF) {
-            // Airplanes - scale PIDs according to TPA (I-term scaled less aggressively)
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER  * tpaFactor;
-            pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * iTermFactor;  // Less aggressive scaling
+            pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * tpaFactor;
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * tpaFactor;
             pidState[axis].kFF = pidBank()->pid[axis].FF / FP_PID_RATE_FF_MULTIPLIER * tpaFactor;
             pidState[axis].kCD = 0.0f;
@@ -839,6 +836,16 @@ static void iTermLockApply(pidState_t *pidState, const float rateTarget, const f
     //P & D damping factors are always the same and based on current damping factor
     pidState->attenuation.aP = dampingFactor;
     pidState->attenuation.aD = dampingFactor;
+
+    // Bounceback detection: error sign change with minimum interval to prevent rapid reversal
+    int8_t currentErrorSign = (rateError > 0) ? 1 : -1;
+    if (pidState->attenuation.lastErrorSign != 0 &&
+        currentErrorSign != pidState->attenuation.lastErrorSign &&
+        (millis() - pidState->attenuation.stickReturnTimeMs) >= ATTENUATION_SIGN_CHANGE_MIN_INTERVAL_MS) {
+        pidState->errorGyroIf *= -0.2f;
+        pidState->attenuation.stickReturnTimeMs = millis();
+    }
+    pidState->attenuation.lastErrorSign = currentErrorSign;
 }
 
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float dT, float dT_inv)
