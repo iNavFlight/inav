@@ -23,7 +23,8 @@ tables:
     values: ["NONE", "MSP", "FAKE"]
     enum: aoaType_e
   - name: aoa_aircraftTypes
-    values: ["CONVENTIONAL", "CANARD"]
+    values: ["NORMAL", "CANARD"]
+    enum: aoa_aircraftType_e
   - name: receiver_type
     values: ["NONE", "SERIAL", "MSP", "SIM (SITL)"]
     enum: rxReceiverType_e
@@ -89,7 +90,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2"]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2","AOA"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -748,7 +749,7 @@ groups:
         description: "Maximum positive AOA limit angle in degrees"
         default_value: 36
         field: fw_aoa_upper_limit_angle
-        type: int8_t
+        type: uint8_t
         min: 0
         max: 60
       - name: fw_aoa_lower_limit_angle
@@ -759,17 +760,24 @@ groups:
         min: -60
         max: 0
       - name: fw_aoa_aircraft_type
-        description: "Aircraft layout type (CONVENTIONAL or CANARD)"
-        default_value: "CONVENTIONAL"
+        description: "Aircraft layout type (NORMAL or CANARD)"
+        default_value: "NORMAL"
         field: fw_aoa_aircraft_type
         table: aoa_aircraftTypes
       - name: fw_aoa_kp
         description: "AOA P gain percentage"
         default_value: 100
         field: fw_aoa_kp
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: fw_aoa_intervention_threshold
+        description: "Percentage of AOA limit to start intervention for normal aircraft layout (0-100)"
+        default_value: 80
+        field: fw_aoa_intervention_threshold
         type: uint8_t
         min: 0
-        max: 255
+        max: 100
 
   - name: PG_RX_CONFIG
     type: rxConfig_t

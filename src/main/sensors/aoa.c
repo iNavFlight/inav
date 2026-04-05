@@ -25,6 +25,7 @@
 #include "sensors/aoa.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <platform.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -52,7 +53,6 @@
 aoa_t aoaSensor;
 
 FASTRAM int16_t aoaPidOutput;
-FASTRAM int16_t aoaServoOffset;
 bool isAoaControlEnabled;
 static int16_t prev_aoa = 0;
 
@@ -80,6 +80,7 @@ PG_RESET_TEMPLATE(aoaControlConfig_t, aoaControlConfig,
     .fw_aoa_lower_limit_angle = -36,
     .fw_aoa_aircraft_type = 0,
     .fw_aoa_kp = 100,
+    .fw_aoa_intervention_threshold = 80,
 );
 
 static bool aoaDetect(aoaDev_t* dev, uint8_t aoaHardwareToUse)
@@ -194,24 +195,59 @@ void aoaControlUpdate(float pidPitchOutput, float rateError, float newPTerm, flo
     const int16_t filteredAoa = abs(currentAoa - prev_aoa) > 10 ? currentAoa : prev_aoa;
     prev_aoa = currentAoa;
 
-    const int16_t lowerLimit = aoaControlConfig()->fw_aoa_lower_limit_angle * aoaControlConfig()->fw_aoa_deg2pwm / 10.0f;
-    const int16_t upperLimit = aoaControlConfig()->fw_aoa_upper_limit_angle * aoaControlConfig()->fw_aoa_deg2pwm / 10.0f;
+    const float deg2pwm = aoaControlConfig()->fw_aoa_deg2pwm / 10.0f;
+    const float kp = aoaControlConfig()->fw_aoa_kp * 0.01f;
+    const int16_t upperLimitAngle = aoaControlConfig()->fw_aoa_upper_limit_angle;
+    const int16_t lowerLimitAngle = aoaControlConfig()->fw_aoa_lower_limit_angle;
+    float aoaServoOffset = 0.0f;
 
-    float pidOutput = pidPitchOutput * aoaControlConfig()->fw_aoa_kp * 0.01f;
-    float constrainedPidOutput = constrainf(pidOutput, -upperLimit, -lowerLimit);
+    if (aoaControlConfig()->fw_aoa_aircraft_type == AIRCRAFT_CANARD) {
+        // Canard layout: always intervene with servo offset
+        const int16_t lowerLimit = lowerLimitAngle * deg2pwm;
+        const int16_t upperLimit = upperLimitAngle * deg2pwm;
 
-    aoaServoOffset = (DECIDEGREES_TO_DEGREES(filteredAoa) - aoaControlConfig()->fw_aoa_trim_angle) * aoaControlConfig()->fw_aoa_deg2pwm / 10.0f;
+        float pidOutput = pidPitchOutput * kp;
+        float constrainedPidOutput = constrainf(pidOutput, -upperLimit, -lowerLimit);
 
-    aoaPidOutput = isAoaControlEnabled ? constrainedPidOutput + aoaServoOffset : constrainedPidOutput;
-    aoaPidOutput = constrainf(aoaPidOutput, -limit, +limit);
+        aoaServoOffset = (DECIDEGREES_TO_DEGREES(filteredAoa) - aoaControlConfig()->fw_aoa_trim_angle) * deg2pwm;
 
-    DEBUG_SET(DEBUG_AOA, 1, pidOutput);
-    DEBUG_SET(DEBUG_AOA, 2, pidPitchOutput);
-    DEBUG_SET(DEBUG_AOA, 3, aoaControlConfig()->fw_aoa_kp);
-    DEBUG_SET(DEBUG_AOA, 4, constrainedPidOutput);
-    DEBUG_SET(DEBUG_AOA, 5, aoaServoOffset);
-    DEBUG_SET(DEBUG_AOA, 6, aoaPidOutput);
-    DEBUG_SET(DEBUG_AOA, 7, rateError);
+        aoaPidOutput = isAoaControlEnabled ? constrainedPidOutput + aoaServoOffset : constrainedPidOutput;
+        aoaPidOutput = constrainf(aoaPidOutput, -limit, +limit);
+
+        DEBUG_SET(DEBUG_AOA, 1, pidOutput);
+        DEBUG_SET(DEBUG_AOA, 2, pidPitchOutput);
+        DEBUG_SET(DEBUG_AOA, 3, aoaControlConfig()->fw_aoa_kp);
+        DEBUG_SET(DEBUG_AOA, 4, constrainedPidOutput);
+        DEBUG_SET(DEBUG_AOA, 5, aoaServoOffset);
+        DEBUG_SET(DEBUG_AOA, 6, aoaPidOutput);
+        DEBUG_SET(DEBUG_AOA, 7, rateError);
+    } else {
+        // Normal layout: gradual intervention when approaching limits
+        const float thresholdRatio = aoaControlConfig()->fw_aoa_intervention_threshold * 0.01f;
+        const int16_t upperThreshold = upperLimitAngle * thresholdRatio;
+        const int16_t lowerThreshold = lowerLimitAngle * thresholdRatio;
+        const int16_t aoaDeg = DECIDEGREES_TO_DEGREES(filteredAoa);
+
+        float aoaError = 0.0f;
+        if (aoaDeg > upperThreshold) {
+            aoaError = aoaDeg - upperThreshold;
+        } else if (aoaDeg < lowerThreshold) {
+            aoaError = aoaDeg - lowerThreshold;
+        }
+
+        aoaServoOffset = aoaError * kp * deg2pwm;
+
+        aoaPidOutput = isAoaControlEnabled ? pidPitchOutput + aoaServoOffset : pidPitchOutput;
+        aoaPidOutput = constrainf(aoaPidOutput, -limit, +limit);
+
+        DEBUG_SET(DEBUG_AOA, 1, aoaError);
+        DEBUG_SET(DEBUG_AOA, 2, pidPitchOutput);
+        DEBUG_SET(DEBUG_AOA, 3, aoaControlConfig()->fw_aoa_kp);
+        DEBUG_SET(DEBUG_AOA, 4, aoaServoOffset);
+        DEBUG_SET(DEBUG_AOA, 5, aoaServoOffset);
+        DEBUG_SET(DEBUG_AOA, 6, aoaPidOutput);
+        DEBUG_SET(DEBUG_AOA, 7, rateError);
+    }
 }
 
 #endif

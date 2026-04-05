@@ -36,31 +36,36 @@ typedef enum {
     AOA_FAKE = 2,
 } aoaType_e;
 
+typedef enum {
+    AIRCRAFT_NORMAL = 0,    // Conventional aircraft layout
+    AIRCRAFT_CANARD = 1,    // Canard aircraft layout
+} aoa_aircraftType_e;
+
 typedef struct aoaConfig_s {
-    uint8_t aoa_hardware;
-    int16_t aoa_offset;
-    int16_t aoa_max_angle;
-    int16_t aoa_min_angle;
+    uint8_t aoa_hardware;       // AOA sensor hardware type (NONE, MSP, FAKE)
+    int16_t aoa_offset;         // AOA sensor offset in decidegrees
+    int16_t aoa_max_angle;      // Maximum valid AOA angle in decidegrees
+    int16_t aoa_min_angle;      // Minimum valid AOA angle in decidegrees
 } aoaConfig_t;
 
 PG_DECLARE(aoaConfig_t, aoaConfig);
 
 typedef struct aoaControlConfig_s {
-    int8_t fw_aoa_control_channel;
-    int8_t fw_aoa_gvar_index;
-    uint8_t fw_aoa_deg2pwm;
-    int8_t fw_aoa_trim_angle;
-    int8_t fw_aoa_upper_limit_angle;
-    int8_t fw_aoa_lower_limit_angle;
-    uint8_t fw_aoa_aircraft_type;
-    uint8_t fw_aoa_kp;
+    int8_t fw_aoa_control_channel;          // RC channel for AOA control enable (-1 to disable)
+    int8_t fw_aoa_gvar_index;               // Global variable index for AOA control
+    uint8_t fw_aoa_deg2pwm;                 // Conversion factor from degrees to PWM (default 110)
+    int8_t fw_aoa_trim_angle;               // AOA trim angle in degrees
+    uint8_t fw_aoa_upper_limit_angle;       // Upper AOA limit in degrees (0-60)
+    int8_t fw_aoa_lower_limit_angle;        // Lower AOA limit in degrees
+    uint8_t fw_aoa_aircraft_type;           // Aircraft layout type (NORMAL or CANARD)
+    uint16_t fw_aoa_kp;                     // P gain percentage (0-1000)
+    uint8_t fw_aoa_intervention_threshold;  // Percentage of limit angle to start intervention for NORMAL layout (0-100)
 } aoaControlConfig_t;
 
 PG_DECLARE(aoaControlConfig_t, aoaControlConfig);
 
 extern bool isAoaControlEnabled;
 extern int16_t aoaPidOutput;
-extern int16_t aoaServoOffset;
 
 typedef struct aoa_s {
     aoaDev_t dev;
