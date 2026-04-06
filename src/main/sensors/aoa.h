@@ -51,7 +51,7 @@ typedef struct aoaConfig_s {
 PG_DECLARE(aoaConfig_t, aoaConfig);
 
 typedef struct aoaControlConfig_s {
-    int8_t fw_aoa_control_channel;          // RC channel for AOA control enable (-1 to disable)
+    int8_t fw_aoa_control_channel;          // RC channel for AOA control enable (-1 to always enable)
     int8_t fw_aoa_gvar_index;               // Global variable index for AOA control
     uint8_t fw_aoa_deg2pwm;                 // Conversion factor from degrees to PWM (default 110)
     int8_t fw_aoa_trim_angle;               // AOA trim angle in degrees
