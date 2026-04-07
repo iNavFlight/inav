@@ -209,6 +209,10 @@ main_sources(COMMON_SRC
     drivers/opflow/opflow_virtual.c
     drivers/opflow/opflow_virtual.h
 
+    drivers/aoa/aoa.h
+    drivers/aoa/aoa_virtual.c
+    drivers/aoa/aoa_virtual.h
+
     drivers/osd.c
     drivers/osd.h
     drivers/persistent.c
@@ -368,6 +372,8 @@ main_sources(COMMON_SRC
     io/gimbal_serial.h
     io/headtracker_msp.c
     io/headtracker_msp.h
+    io/aoa_msp.c
+
     io/osd_dji_hd.c
     io/osd_dji_hd.h
     io/lights.c
@@ -589,6 +595,9 @@ main_sources(COMMON_SRC
     sensors/barometer.h
     sensors/pitotmeter.c
     sensors/pitotmeter.h
+    sensors/aoa.c
+    sensors/aoa.h
+
     sensors/rangefinder.c
     sensors/rangefinder.h
     sensors/opflow.c

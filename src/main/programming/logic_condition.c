@@ -52,6 +52,7 @@
 #include "drivers/gimbal_common.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
+#include "sensors/aoa.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -802,7 +803,19 @@ static int logicConditionGetFlightOperandValue(int operand) {
 #else
         return 0;
 #endif
-        break;        
+        break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AOA: // deg
+#ifdef USE_AOA
+            {
+                int16_t aoa, unused;
+                aoaGetLatestData(&aoa, &unused);
+                return constrain((int16_t)DECIDEGREES_TO_DEGREES(aoa), -180, 180);
+            }
+#else
+            return 0;
+#endif
+            break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
             return constrain(getEstimatedActualPosition(Z), INT32_MIN, INT32_MAX);

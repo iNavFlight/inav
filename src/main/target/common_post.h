@@ -54,6 +54,11 @@ extern uint8_t __config_end;
 
 #endif
 
+// AOA sensors
+#if defined(USE_AOA)
+#define USE_AOA_MSP
+#endif
+
 // Temperature sensors
 #if !defined(TEMPERATURE_I2C_BUS) && defined(DEFAULT_I2C_BUS)
 #define TEMPERATURE_I2C_BUS DEFAULT_I2C_BUS

@@ -19,6 +19,12 @@ tables:
   - name: pitot_hardware
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP", "DLVR-L10D"]
     enum: pitotSensor_e
+  - name: aoa_hardware
+    values: ["NONE", "MSP", "FAKE"]
+    enum: aoaType_e
+  - name: aoa_aircraftTypes
+    values: ["NORMAL", "CANARD"]
+    enum: aoa_aircraftType_e
   - name: receiver_type
     values: ["NONE", "SERIAL", "MSP", "SIM (SITL)"]
     enum: rxReceiverType_e
@@ -84,7 +90,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2"]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2","AOA"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -680,6 +686,98 @@ groups:
         min: 0
         max: 100
         default_value: 1.0
+
+  - name: PG_AOA_CONFIG
+    type: aoaConfig_t
+    headers: ["sensors/aoa.h"]
+    condition: USE_AOA
+    members:
+      - name: aoa_hardware
+        description: "Selection of AOA (Angle of Attack) hardware."
+        default_value: "NONE"
+        table: aoa_hardware
+      - name: aoa_offset
+        description: "AOA sensor offset calibration value in degrees."
+        default_value: 0
+        min: -180
+        max: 180
+      - name: aoa_max_angle
+        description: "AOA maximum angle in degrees."
+        default_value: 60
+        min: 0
+        max: 180
+      - name: aoa_min_angle
+        description: "AOA minimum angle in degrees."
+        default_value: -60
+        min: -180
+        max: 0
+
+  - name: PG_AOA_CONTROL_CONFIG
+    type: aoaControlConfig_t
+    headers: ["sensors/aoa.h"]
+    condition: USE_AOA
+    members:
+      - name: fw_aoa_control_channel
+        description: "AOA enable channel, -1 means enabled by default"
+        default_value: -1
+        field: fw_aoa_control_channel
+        type: int8_t
+        min: -1
+        max: 16
+      - name: fw_aoa_gvar_index
+        description: "AOA pitch input GVAR index, -1 means disabled"
+        default_value: -1
+        field: fw_aoa_gvar_index
+        type: int8_t
+        min: -1
+        max: 7
+      - name: fw_aoa_deg2pwm
+        description: "AOA angle to PWM conversion factor"
+        default_value: 110
+        field: fw_aoa_deg2pwm
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: fw_aoa_trim_angle
+        description: "AOA trim angle in degrees"
+        default_value: 6
+        field: fw_aoa_trim_angle
+        type: int8_t
+        min: -60
+        max: 60
+      - name: fw_aoa_upper_limit_angle
+        description: "Maximum positive AOA limit angle in degrees"
+        default_value: 36
+        field: fw_aoa_upper_limit_angle
+        type: uint8_t
+        min: 0
+        max: 60
+      - name: fw_aoa_lower_limit_angle
+        description: "Minimum negative AOA limit angle in degrees"
+        default_value: -36
+        field: fw_aoa_lower_limit_angle
+        type: int8_t
+        min: -60
+        max: 0
+      - name: fw_aoa_aircraft_type
+        description: "Aircraft layout type (NORMAL or CANARD)"
+        default_value: "NORMAL"
+        field: fw_aoa_aircraft_type
+        table: aoa_aircraftTypes
+      - name: fw_aoa_kp
+        description: "AOA P gain percentage"
+        default_value: 100
+        field: fw_aoa_kp
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: fw_aoa_intervention_threshold
+        description: "Percentage of AOA limit to start intervention for normal aircraft layout (0-100)"
+        default_value: 80
+        field: fw_aoa_intervention_threshold
+        type: uint8_t
+        min: 0
+        max: 100
 
   - name: PG_RX_CONFIG
     type: rxConfig_t

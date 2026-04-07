@@ -28,6 +28,7 @@
 #include "fc/runtime_config.h"
 
 #include "sensors/acceleration.h"
+#include "sensors/aoa.h"
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
@@ -41,8 +42,8 @@
 #include "sensors/temperature.h"
 #include "rx/rx.h"
 
-uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
-uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
+uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE, AOA_NONE };
+uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE, AOA_NONE };
 
 bool sensorsAutodetect(void)
 {
@@ -76,6 +77,10 @@ bool sensorsAutodetect(void)
 
 #ifdef USE_OPFLOW
     opflowInit();
+#endif
+
+#ifdef USE_AOA
+    aoaInit();
 #endif
 
     if (accelerometerConfig()->acc_hardware == ACC_AUTODETECT) {
