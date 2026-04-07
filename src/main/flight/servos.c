@@ -345,7 +345,7 @@ void servoMixer(float dT)
 
 #ifdef USE_AOA
     const int8_t gvarIndex = aoaControlConfig()->fw_aoa_gvar_index;
-    if (isAoaControlEnabled && gvarIndex >= 0) {
+    if ( gvarIndex >= 0) {
         input[INPUT_GVAR_0 + gvarIndex] = constrain(aoaPidOutput, -500, 500);
     }
 #endif
