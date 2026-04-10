@@ -3,7 +3,7 @@
  *
  * INAV is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
+ * the Free Software Foundation, either version 3 of the License, o
  * (at your option) any later version.
  *
  * INAV is distributed in the hope that it will be useful,
@@ -19,7 +19,7 @@
 #define USE_TARGET_CONFIG
 
 #define TARGET_BOARD_IDENTIFIER "FRF4WM"
-#define USBD_PRODUCT_STRING  "FLYINGRCF4WINGMINI_NOT_RECOMMENDED"
+#define USBD_PRODUCT_STRING  "FLYINGRCF4WINGMINI"
 
 #define LED0                    PA14  //Blue
 #define LED1                    PA13  //Green
@@ -36,6 +36,11 @@
 #define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PC14
+
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW90_DEG_FLIP
+#define BMI270_SPI_BUS          BUS_SPI1
+#define BMI270_CS_PIN           PC14
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C

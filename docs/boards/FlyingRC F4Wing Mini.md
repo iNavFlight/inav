@@ -1,4 +1,4 @@
-# Board - FLYINGRCF4WINGMINI_NOT_RECOMMENDED
+# Board - FLYINGRCF4WINGMINI
 
 This is a cheap flight controller (prices range from $16US to $40US) from an unknown company. Many of the components on this FC are likely to have high tollerances due to the low cost. They sold this FC as compatible with INAV without reaching out to the team or having an official target made. The target only exists thanks to a community contributor (dixi83).
 
@@ -13,7 +13,7 @@ Hardware issues have been reported on these flight controllers. They are also mi
 | | |
 |-----|-----|
 | MCU | STM32F405RTG6 |
-| Gyro | ICM-42605 |
+| Gyro | ICM-42605 / BMI270 |
 | Baro | SPL06 |
 | UARTS | 1, 2 (RX only - SBUS), 4 (DJI), 5 |
 | PWM | Six + One (S12 used for LED control) |
@@ -31,7 +31,7 @@ Hardware issues have been reported on these flight controllers. They are also mi
 > There is no ADC for "voltmeter" input. So potentially this FC can run at 1S to 6S. However there are only 2 LDO regulators on the FC itself. 
 
 ## Notable missing features
-* Current sensor
+* Current senso
 * Blackbox recording
 * Analogue OSD
 * PINIO (for VTX power switching etc)
