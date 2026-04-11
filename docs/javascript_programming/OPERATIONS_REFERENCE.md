@@ -101,7 +101,7 @@ if (inav.rc[0].low && inav.rc[1].mid && inav.rc[2].high) {
 
 - RC channels: `rc[0]` through `rc[17]` (18 channels)
 - RC channel properties: `.value` (1000-2000us), `.low` (<1333us), `.mid` (1333-1666us), `.high` (>1666us)
-- Trig functions: sin/cos/tan take degrees; acos/asin use ratios (-1..1) and atan2 returns degrees from y/x inputs
+- Trig functions: sin/cos/tan take degrees; acos/asin use ratios (-1..1) and atan2 returns a signed angle in (-180, 180] degrees from y/x inputs
 - MODULUS operator bug fixed: `%` now correctly generates MODULUS operation
 - MAP_INPUT normalizes to [0:1000], MAP_OUTPUT scales from [0:1000]
 
