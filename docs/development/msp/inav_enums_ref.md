@@ -3155,7 +3155,10 @@
 | `LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY` | 55 |  |
 | `LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED` | 56 |  |
 | `LOGIC_CONDITION_SET_ALTITUDE_TARGET` | 57 |  |
-| `LOGIC_CONDITION_LAST` | 58 |  |
+| `LOGIC_CONDITION_ACOS` | 58 |  |
+| `LOGIC_CONDITION_ASIN` | 59 |  |
+| `LOGIC_CONDITION_ATAN2` | 60 |  |
+| `LOGIC_CONDITION_LAST` | 61 |  |
 
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
