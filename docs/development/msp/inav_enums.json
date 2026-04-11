@@ -1040,7 +1040,7 @@
         "FEATURE_PWM_OUTPUT_ENABLE": "1 << 28",
         "FEATURE_OSD": "1 << 29",
         "FEATURE_FW_LAUNCH": "1 << 30",
-        "FEATURE_FW_AUTOTRIM": "1 << 31"
+        "FEATURE_FW_AUTOTRIM": "1U << 31"
     },
     "filterType_e": {
         "_source": "inav/src/main/common/filter.h",
@@ -1349,7 +1349,8 @@
     "geoAltitudeDatumFlag_e": {
         "_source": "inav/src/main/navigation/navigation.h",
         "NAV_WP_TAKEOFF_DATUM": "0",
-        "NAV_WP_MSL_DATUM": "1"
+        "NAV_WP_MSL_DATUM": "1",
+        "NAV_WP_TERRAIN_DATUM": "2"
     },
     "geoOriginResetMode_e": {
         "_source": "inav/src/main/navigation/navigation.h",
@@ -2053,7 +2054,11 @@
         "LOGIC_CONDITION_RESET_MAG_CALIBRATION": "54",
         "LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY": "55",
         "LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED": "56",
-        "LOGIC_CONDITION_LAST": "57"
+        "LOGIC_CONDITION_SET_ALTITUDE_TARGET": "57",
+        "LOGIC_CONDITION_ACOS": "58",
+        "LOGIC_CONDITION_ASIN": "59",
+        "LOGIC_CONDITION_ATAN2": "60",
+        "LOGIC_CONDITION_LAST": "61"
     },
     "logicWaypointOperands_e": {
         "_source": "inav/src/main/programming/logic_condition.h",
@@ -3829,7 +3834,7 @@
         "THR_HI": "(2 << (2 * THROTTLE))"
     },
     "systemState_e": {
-        "_source": "inav/src/main/fc/fc_init.h",
+        "_source": "inav/src/main/fc/fc_init.c",
         "SYSTEM_STATE_INITIALISING": "0",
         "SYSTEM_STATE_CONFIG_LOADED": "(1 << 0)",
         "SYSTEM_STATE_SENSORS_READY": "(1 << 1)",

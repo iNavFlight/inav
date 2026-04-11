@@ -1756,7 +1756,7 @@
 | `FEATURE_PWM_OUTPUT_ENABLE` | 1 << 28 |  |
 | `FEATURE_OSD` | 1 << 29 |  |
 | `FEATURE_FW_LAUNCH` | 1 << 30 |  |
-| `FEATURE_FW_AUTOTRIM` | 1 << 31 |  |
+| `FEATURE_FW_AUTOTRIM` | 1U << 31 |  |
 
 ---
 ## <a id="enum-filtertype_e"></a>`filterType_e`
@@ -2206,6 +2206,7 @@
 |---|---:|---|
 | `NAV_WP_TAKEOFF_DATUM` | 0 |  |
 | `NAV_WP_MSL_DATUM` | 1 |  |
+| `NAV_WP_TERRAIN_DATUM` | 2 |  |
 
 ---
 ## <a id="enum-geooriginresetmode_e"></a>`geoOriginResetMode_e`
@@ -3153,7 +3154,11 @@
 | `LOGIC_CONDITION_RESET_MAG_CALIBRATION` | 54 |  |
 | `LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY` | 55 |  |
 | `LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED` | 56 |  |
-| `LOGIC_CONDITION_LAST` | 57 |  |
+| `LOGIC_CONDITION_SET_ALTITUDE_TARGET` | 57 |  |
+| `LOGIC_CONDITION_ACOS` | 58 |  |
+| `LOGIC_CONDITION_ASIN` | 59 |  |
+| `LOGIC_CONDITION_ATAN2` | 60 |  |
+| `LOGIC_CONDITION_LAST` | 61 |  |
 
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
@@ -5627,7 +5632,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.c
+> Source: ../../../src/main/fc/fc_init.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5641,7 +5646,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.h
+> Source: ../../../src/main/fc/fc_init.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|

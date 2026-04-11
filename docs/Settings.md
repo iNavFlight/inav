@@ -1754,11 +1754,11 @@ Which SBAS mode to be used
 
 ### gps_ublox_nav_hz
 
-Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
+Navigation update rate for UBLOX receivers. M9 modules limit satellite tracking to 16 satellites at 10Hz or higher, but use 32 satellites below 10Hz for better accuracy. M10 modules work well at 8Hz with 3 constellations. Some M10 devices with high-performance clock can do up to 25Hz with 4 constellations. 8Hz is a safe, accurate default for M8/M9/M10.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 5 | 200 |
+| 8 | 5 | 200 |
 
 ---
 
@@ -1768,7 +1768,7 @@ Enable use of Beidou satellites. This is at the expense of other regional conste
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -1778,7 +1778,7 @@ Enable use of Galileo satellites. This is at the expense of other regional const
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -4862,6 +4862,16 @@ Force OSD to work in grid mode even if the OSD device supports pixel level acces
 
 ---
 
+### osd_framerate_hz
+
+Target refresh rate for OSD elements in Hz. Each element is redrawn at approximately this rate. Values above 10 Hz provide no visible improvement for typical flight data but increase CPU load. Artificial horizon and telemetry are always updated every cycle regardless of this setting. Set to -1 for legacy behavior (one element per frame).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| -1 | -1 | 15 |
+
+---
+
 ### osd_gforce_alarm
 
 Value above which the OSD g force indicator will blink (g)
@@ -5644,7 +5654,7 @@ Defines rotation rate on PITCH axis that UAV will try to archive on max. stick d
 
 ### pitot_hardware
 
-Selection of pitot hardware.
+Selection of pitot hardware. VIRTUAL only works if a GPS is enabled.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -6069,6 +6079,16 @@ When feature SERIALRX is enabled, this allows connection to several receivers wh
 | Default | Min | Max |
 | --- | --- | --- |
 | _target default_ |  |  |
+
+---
+
+### servo_autotrim_iterm_rate_limit
+
+Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 50 |
 
 ---
 
