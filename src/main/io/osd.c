@@ -29,6 +29,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #include "platform.h"
 
@@ -4246,15 +4247,48 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
 void osdDrawNextElement(void)
 {
     static uint8_t elementIndex = 0;
-    // Flag for end of loop, also prevents infinite loop when no elements are enabled
-    uint8_t index = elementIndex;
-    do {
-        elementIndex = osdIncElementIndex(elementIndex);
-    } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
+    static uint8_t activeElements = 0;
+    static unsigned lastLayout = UINT_MAX;
+
+    // Recount visible elements on layout change
+    if (currentLayout != lastLayout) {
+        lastLayout = currentLayout;
+        activeElements = 0;
+        uint8_t idx = 0;
+        do {
+            idx = osdIncElementIndex(idx);
+            if (OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][idx])) {
+                activeElements++;
+            }
+        } while (idx > 0);
+    }
+
+    int8_t framerate_hz = osdConfig()->osd_framerate_hz;
+
+    uint8_t elementsPerCycle;
+    if (framerate_hz <= 0 || activeElements == 0) {
+        elementsPerCycle = 1; // legacy: one element per cycle
+    } else {
+        elementsPerCycle = ((uint16_t)activeElements * framerate_hz * 2 + 124) / 125;
+        if (elementsPerCycle < 1) elementsPerCycle = 1;
+        if (elementsPerCycle > activeElements) elementsPerCycle = activeElements;
+    }
+
+    DEBUG_SET(DEBUG_OSD_REFRESH, 0, elementsPerCycle);
+    DEBUG_SET(DEBUG_OSD_REFRESH, 1, activeElements);
+    DEBUG_SET(DEBUG_OSD_REFRESH, 2, elementIndex);
+    DEBUG_SET(DEBUG_OSD_REFRESH, 3, framerate_hz);
+
+    for (uint8_t i = 0; i < elementsPerCycle; i++) {
+        uint8_t index = elementIndex;
+        do {
+            elementIndex = osdIncElementIndex(elementIndex);
+        } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
+    }
 
     // Draw artificial horizon + tracking telemetry last
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-    if (osdConfig()->telemetry>0){
+    if (osdConfig()->telemetry > 0) {
         osdDisplayTelemetry();
     }
 }
@@ -4305,6 +4339,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,
     .row_shiftdown = SETTING_OSD_ROW_SHIFTDOWN_DEFAULT,
     .msp_displayport_fullframe_interval = SETTING_OSD_MSP_DISPLAYPORT_FULLFRAME_INTERVAL_DEFAULT,
+    .osd_framerate_hz = SETTING_OSD_FRAMERATE_HZ_DEFAULT,
 
     .ahi_reverse_roll = SETTING_OSD_AHI_REVERSE_ROLL_DEFAULT,
     .ahi_max_pitch = SETTING_OSD_AHI_MAX_PITCH_DEFAULT,

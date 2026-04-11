@@ -1,9 +1,9 @@
 {
     "build": {
         "fc_version": {
-            "major": 9,
+            "major": 10,
             "minor": 0,
-            "patch": 1
+            "patch": 0
         }
     },
     "enums": {
@@ -1870,8 +1870,7 @@
             "LED_MODE_ANGLE": "3",
             "LED_MODE_MAG": "4",
             "LED_MODE_BARO": "5",
-            "LED_MODE_LOITER": "6",
-            "LED_SPECIAL": "7"
+            "LED_SPECIAL": "6"
         },
         "ledOverlayId_e": {
             "_source": "inav/src/main/io/ledstrip.h",
@@ -2064,7 +2063,10 @@
             "LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY": "55",
             "LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED": "56",
             "LOGIC_CONDITION_SET_ALTITUDE_TARGET": "57",
-            "LOGIC_CONDITION_LAST": "58"
+            "LOGIC_CONDITION_ACOS": "58",
+            "LOGIC_CONDITION_ASIN": "59",
+            "LOGIC_CONDITION_ATAN2": "60",
+            "LOGIC_CONDITION_LAST": "61"
         },
         "logicWaypointOperands_e": {
             "_source": "inav/src/main/programming/logic_condition.h",
@@ -2336,7 +2338,8 @@
             "MULTI_FUNC_3": "3",
             "MULTI_FUNC_4": "4",
             "MULTI_FUNC_5": "5",
-            "MULTI_FUNC_END": "6"
+            "MULTI_FUNC_6": "6",
+            "MULTI_FUNC_END": "7"
         },
         "multiFunctionFlags_e": {
             "_source": "inav/src/main/fc/multifunction.h",
@@ -3301,8 +3304,9 @@
             "_source": "inav/src/main/io/displayport_msp_osd.c",
             "SD_3016": "0",
             "HD_5018": "1",
-            "HD_6022": "2",
-            "HD_5320": "3"
+            "HD_3016": "2",
+            "HD_6022": "3",
+            "HD_5320": "4"
         },
         "resourceOwner_e": {
             "_source": "inav/src/main/drivers/resource.h",
@@ -3838,7 +3842,7 @@
             "THR_HI": "(2 << (2 * THROTTLE))"
         },
         "systemState_e": {
-            "_source": "inav/src/main/fc/fc_init.h",
+            "_source": "inav/src/main/fc/fc_init.c",
             "SYSTEM_STATE_INITIALISING": "0",
             "SYSTEM_STATE_CONFIG_LOADED": "(1 << 0)",
             "SYSTEM_STATE_SENSORS_READY": "(1 << 1)",
