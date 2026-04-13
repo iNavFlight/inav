@@ -13,7 +13,7 @@ pip install pymavlink pyserial
 
 ## Usage
 ```bash
-python adsb_sim.py <com_port> <json_file> [--baud BAUD] [--rate RATE]
+python adsb_uart_sender.py <com_port> <json_file> [--baud BAUD] [--rate RATE]
 ```
 
 ### Arguments
@@ -28,10 +28,10 @@ python adsb_sim.py <com_port> <json_file> [--baud BAUD] [--rate RATE]
 ### Examples
 ```bash
 # Windows
-python adsb_sim.py COM3 aircraft.json
+python adsb_uart_sender.py COM3 aircraft.json
 
 # Linux
-python adsb_sim.py /dev/ttyUSB0 aircraft.json --baud 57600 --rate 2.0
+python adsb_uart_sender.py /dev/ttyUSB0 aircraft.json --baud 57600 --rate 2.0
 ```
 
 ---

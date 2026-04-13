@@ -87,8 +87,8 @@ static void calculateMeetPoint(adsbVehicle_t *vehicle) {
             .alt = gpsSol.llh.alt,
             .lat = gpsSol.llh.lat,
             .lon = gpsSol.llh.lon,
-            .scale = posControl.gpsOrigin.scale,
-            .valid = posControl.gpsOrigin.valid,
+            .scale = cos_approx(DEGREES_TO_RADIANS(gpsSol.llh.lat * 1e-7f)),
+            .valid = gpsSol.fixType == GPS_FIX_3D,
     };
     geoConvertGeodeticToLocal(&pos, &uavPosition, &vehicle->vehicleValues.gps, GEO_ALT_RELATIVE);
 
@@ -228,7 +228,7 @@ adsbVehicle_t *findVehicleForAlert(uint32_t alertDistanceCm, uint32_t warningDis
         } else if (osdConfig()->adsb_calculation_use_cpa &&
                    vehicle->calculatedVehicleValues.dist <= warningDistanceCm &&
                    vehicle->calculatedVehicleValues.meetPointTime >= 0 &&
-                   vehicle->calculatedVehicleValues.meetPointDistance > 0) {
+                   vehicle->calculatedVehicleValues.meetPointDistance >= 0) {
             const uint32_t meetPointDistanceCm = ((uint32_t)vehicle->calculatedVehicleValues.meetPointDistance) * 100u;
             if (meetPointDistanceCm > alertDistanceCm) {
                 continue;
