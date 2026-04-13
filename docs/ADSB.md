@@ -68,14 +68,14 @@ AT+SETTINGS=SAVE
 ---
 
 ## Alert and Warning
-The ADS-B warning/alert system supports two operating modes, controlled by the parameter adsb_calculation_use_cpa (ON or OFF).
+The ADS-B warning/alert system supports two operating modes, controlled by the parameter osd_adsb_calculation_use_cpa (ON or OFF).
 
 ---
 
 ### ADS-B Warning and Alert Messages (CPA Mode OFF)
-The ADS-B warning/alert system supports two operating modes, controlled by the parameter **adsb_calculation_use_cpa** (ON or OFF).
+The ADS-B warning/alert system supports two operating modes, controlled by the parameter **osd_adsb_calculation_use_cpa** (ON or OFF).
 
-When **adsb_calculation_use_cpa = OFF**, the system evaluates only the **current distance between the aircraft and the UAV**. The aircraft with the **shortest distance** is always selected for monitoring.
+When **osd_adsb_calculation_use_cpa = OFF**, the system evaluates only the **current distance between the aircraft and the UAV**. The aircraft with the **shortest distance** is always selected for monitoring.
 
 - If the aircraft enters the **warning zone** (`adsb_distance_warning`), the corresponding **OSD element is displayed**.
 - If the aircraft enters the **alert zone** (`adsb_distance_alert`), the **OSD element starts blinking**, indicating a higher-priority alert.
@@ -86,7 +86,7 @@ This mode therefore provides a simple proximity-based warning determined purely 
 
 ### ADS-B Warning and Alert Messages (CPA Mode ON)
 
-When **adsb_calculation_use_cpa = ON**, the system evaluates aircraft using the **Closest Point of Approach (CPA)** and predicted trajectories, not only the current distance.
+When **osd_adsb_calculation_use_cpa = ON**, the system evaluates aircraft using the **Closest Point of Approach (CPA)** and predicted trajectories, not only the current distance.
 
 1. **Aircraft already inside the alert zone**  
    If one or more aircraft are currently inside the **alert zone** (`adsb_distance_alert`), the **closest aircraft** to the UAV is selected and the **OSD element blinks**.
