@@ -177,7 +177,7 @@ TEST_F(RcControlsModesTest, updateActivatedModesUsingValidAuxConfigurationAndRXV
 enum {
     COUNTER_GENERATE_PITCH_ROLL_CURVE = 0,
     COUNTER_QUEUE_CONFIRMATION_BEEP,
-    COUNTER_CHANGE_CONTROL_RATE_PROFILE
+    COUNTER_CHANGE_CONTROL_PROFILE
 };
 #define CALL_COUNT_ITEM_COUNT 3
 
@@ -199,7 +199,7 @@ void beeper(beeperMode_e mode) {
 }
 
 void changeControlRateProfile(uint8_t) {
-    callCounts[COUNTER_CHANGE_CONTROL_RATE_PROFILE]++;
+    callCounts[COUNTER_CHANGE_CONTROL_PROFILE]++;
 }
 
 }
@@ -479,7 +479,7 @@ TEST_F(RcControlsAdjustmentsTest, processRcRateProfileAdjustments)
 
     // then
     EXPECT_EQ(CALL_COUNTER(COUNTER_QUEUE_CONFIRMATION_BEEP), 1);
-    EXPECT_EQ(CALL_COUNTER(COUNTER_CHANGE_CONTROL_RATE_PROFILE), 1);
+    EXPECT_EQ(CALL_COUNTER(COUNTER_CHANGE_CONTROL_PROFILE), 1);
     EXPECT_EQ(adjustmentStateMask, expectedAdjustmentStateMask);
 }
 

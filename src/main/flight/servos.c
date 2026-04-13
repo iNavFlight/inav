@@ -46,7 +46,7 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/settings.h"
 
 #include "flight/imu.h"
@@ -106,7 +106,6 @@ int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
-
 /*
 //Was used to keep track of servo rules in all mixer_profile, In order to Apply mixer speed limit when rules turn off
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];
@@ -207,6 +206,25 @@ int getServoCount(void)
 
 void loadCustomServoMixer(void)
 {
+    
+    //move the rate filter to new servo rules
+    int movefilterCount = 0;
+    static servoMixerSwitch_t servoMixerSwitchHelper[MAX_SERVO_RULES_SWITCH_CARRY]; // helper to keep track of servoSpeedLimitFilter of servo rules
+    memset(servoMixerSwitchHelper, 0, sizeof(servoMixerSwitchHelper));
+    for (int i = 0; i < servoRuleCount; i++) {
+        if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
+            //will not carry over INPUT_MIXER_SWITCH_HELPER rules
+            break;
+        }
+        if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) > 0.01f) {
+            servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
+            servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
+            servoMixerSwitchHelper[movefilterCount].rate = currentServoMixer[i].rate;
+            servoMixerSwitchHelper[movefilterCount].speedLimitFilterState = servoSpeedLimitFilter[i].state;
+            movefilterCount++;
+        }
+    }
+
     servoRuleCount = 0;
     memset(currentServoMixer, 0, sizeof(currentServoMixer));
 
@@ -218,6 +236,19 @@ void loadCustomServoMixer(void)
         }
         currentServoMixer[servoRuleCount] = *customServoMixers(i);
         servoSpeedLimitFilter[servoRuleCount].state = 0;
+        servoRuleCount++;
+    }
+
+    // add servo rules to handle the rate limit filter
+    for (int i = 0; i < movefilterCount; i++) {
+        if (servoRuleCount >= MAX_SERVO_RULES) {
+            break; // prevent overflow
+        }
+        currentServoMixer[servoRuleCount].targetChannel = servoMixerSwitchHelper[i].targetChannel;
+        currentServoMixer[servoRuleCount].speed = servoMixerSwitchHelper[i].speed;
+        currentServoMixer[servoRuleCount].rate = servoMixerSwitchHelper[i].rate;
+        currentServoMixer[servoRuleCount].inputSource = INPUT_MIXER_SWITCH_HELPER; // no input
+        servoSpeedLimitFilter[servoRuleCount].state = servoMixerSwitchHelper[i].speedLimitFilterState;
         servoRuleCount++;
     }
 }
@@ -323,6 +354,7 @@ void servoMixer(float dT)
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
 
     input[INPUT_MIXER_TRANSITION] = isMixerTransitionMixing * 500; //fixed value
+    input[INPUT_MIXER_SWITCH_HELPER] = 0; // no input, used to apply speed limit filter from previous servo rules
 
     // center the RC input value around the RC middle value
     // by subtracting the RC middle value from the RC input value, we get:
@@ -393,6 +425,16 @@ void servoMixer(float dT)
 	simulatorData.input[INPUT_STABILIZED_THROTTLE] = input[INPUT_STABILIZED_THROTTLE];
 #endif
 
+    /*
+     * When disarmed, force throttle inputs to minimum so the mixer pipeline
+     * computes the correct safe servo position accounting for servo reversal
+     * and negative mixer weights.
+     */
+    if (!ARMING_FLAG(ARMED)) {
+        input[INPUT_STABILIZED_THROTTLE] = -500;
+        input[INPUT_RC_THROTTLE] = -500;
+    }
+
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servo[i] = 0;
     }
@@ -455,19 +497,6 @@ void servoMixer(float dT)
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
     }
 
-    /*
-     * When not armed, apply servo low position to all outputs that include a throttle or stabilizet throttle in the mix
-     */
-    if (!ARMING_FLAG(ARMED)) {
-        for (int i = 0; i < servoRuleCount; i++) {
-            const uint8_t target = currentServoMixer[i].targetChannel;
-            const uint8_t from = currentServoMixer[i].inputSource;
-
-            if (from == INPUT_STABILIZED_THROTTLE || from == INPUT_RC_THROTTLE) {
-                servo[target] = motorConfig()->mincommand;
-            }
-        }
-    }
 }
 
 #define SERVO_AUTOTRIM_TIMER_MS     2000
@@ -585,6 +614,7 @@ void processContinuousServoAutotrim(const float dT)
     static timeMs_t lastUpdateTimeMs;
     static servoAutotrimState_e trimState = AUTOTRIM_IDLE;
     static uint32_t servoMiddleUpdateCount;
+    static float prevAxisIterm[2] = {0};  // Track previous I-term for rate-of-change calculation
 
     const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
     const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, getTotalRateTarget(), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
@@ -592,6 +622,13 @@ void processContinuousServoAutotrim(const float dT)
     if (ARMING_FLAG(ARMED)) {
         trimState = AUTOTRIM_COLLECTING;
         if ((millis() - lastUpdateTimeMs) > 500) {
+            static float itermRateOfChange[2];
+            for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
+                const float currentIterm = getAxisIterm(axis);
+                itermRateOfChange[axis] = fabsf(currentIterm - prevAxisIterm[axis]) / 0.5f;
+                prevAxisIterm[axis] = currentIterm;
+            }
+
             const bool planeIsFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
             const bool noRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
             const bool sticksAreCentered = !areSticksDeflected();
@@ -609,7 +646,9 @@ void processContinuousServoAutotrim(const float dT)
                 for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
                     // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
                     const float axisIterm = getAxisIterm(axis);
-                    if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE) {
+                    const bool itermIsStable = itermRateOfChange[axis] < servoConfig()->servo_autotrim_iterm_rate_limit;
+
+                    if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE && itermIsStable) {
                         const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;
                         for (int i = 0; i < servoRuleCount; i++) {
 #ifdef USE_PROGRAMMING_FRAMEWORK
@@ -682,4 +721,9 @@ void setServoOutputEnabled(bool flag)
 bool isMixerUsingServos(void)
 {
     return mixerUsesServos;
+}
+
+uint8_t getMinServoIndex(void)
+{
+    return minServoIndex;
 }

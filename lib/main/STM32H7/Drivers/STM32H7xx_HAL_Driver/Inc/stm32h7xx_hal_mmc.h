@@ -6,23 +6,22 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                       opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
-  */ 
+  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef STM32H7xx_HAL_MMC_H
 #define STM32H7xx_HAL_MMC_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
@@ -31,6 +30,7 @@
 /** @addtogroup STM32H7xx_HAL_Driver
   * @{
   */
+#if defined (SDMMC1) || defined (SDMMC2)
 
 /** @addtogroup MMC
   * @{
@@ -52,9 +52,9 @@ typedef enum
   HAL_MMC_STATE_BUSY                   = ((uint32_t)0x00000003U),  /*!< MMC process ongoing                  */
   HAL_MMC_STATE_PROGRAMMING            = ((uint32_t)0x00000004U),  /*!< MMC Programming State                */
   HAL_MMC_STATE_RECEIVING              = ((uint32_t)0x00000005U),  /*!< MMC Receinving State                 */
-  HAL_MMC_STATE_TRANSFER               = ((uint32_t)0x00000006U),  /*!< MMC Transfert State                  */
+  HAL_MMC_STATE_TRANSFER               = ((uint32_t)0x00000006U),  /*!< MMC Transfer State                   */
   HAL_MMC_STATE_ERROR                  = ((uint32_t)0x0000000FU)   /*!< MMC is in error state                */
-}HAL_MMC_StateTypeDef;
+} HAL_MMC_StateTypeDef;
 /**
   * @}
   */
@@ -64,15 +64,18 @@ typedef enum
   */
 typedef uint32_t HAL_MMC_CardStateTypeDef;
 
-#define HAL_MMC_CARD_READY          0x00000001U  /*!< Card state is ready                     */
-#define HAL_MMC_CARD_IDENTIFICATION 0x00000002U  /*!< Card is in identification state         */
-#define HAL_MMC_CARD_STANDBY        0x00000003U  /*!< Card is in standby state                */
-#define HAL_MMC_CARD_TRANSFER       0x00000004U  /*!< Card is in transfer state               */
-#define HAL_MMC_CARD_SENDING        0x00000005U  /*!< Card is sending an operation            */
-#define HAL_MMC_CARD_RECEIVING      0x00000006U  /*!< Card is receiving operation information */
-#define HAL_MMC_CARD_PROGRAMMING    0x00000007U  /*!< Card is in programming state            */
-#define HAL_MMC_CARD_DISCONNECTED   0x00000008U  /*!< Card is disconnected                    */
-#define HAL_MMC_CARD_ERROR          0x000000FFU  /*!< Card response Error                     */
+#define HAL_MMC_CARD_IDLE           0x00000000U  /*!< Card is in idle state (can't be checked by CMD13)           */
+#define HAL_MMC_CARD_READY          0x00000001U  /*!< Card state is ready (can't be checked by CMD13)             */
+#define HAL_MMC_CARD_IDENTIFICATION 0x00000002U  /*!< Card is in identification state (can't be checked by CMD13) */
+#define HAL_MMC_CARD_STANDBY        0x00000003U  /*!< Card is in standby state                                    */
+#define HAL_MMC_CARD_TRANSFER       0x00000004U  /*!< Card is in transfer state                                   */
+#define HAL_MMC_CARD_SENDING        0x00000005U  /*!< Card is sending an operation                                */
+#define HAL_MMC_CARD_RECEIVING      0x00000006U  /*!< Card is receiving operation information                     */
+#define HAL_MMC_CARD_PROGRAMMING    0x00000007U  /*!< Card is in programming state                                */
+#define HAL_MMC_CARD_DISCONNECTED   0x00000008U  /*!< Card is disconnected                                        */
+#define HAL_MMC_CARD_BUSTEST        0x00000009U  /*!< Card is in bus test state                                   */
+#define HAL_MMC_CARD_SLEEP          0x0000000AU  /*!< Card is in sleep state (can't be checked by CMD13)          */
+#define HAL_MMC_CARD_ERROR          0x000000FFU  /*!< Card response Error (can't be checked by CMD13)             */
 /**
   * @}
   */
@@ -102,7 +105,7 @@ typedef struct
 
   uint32_t LogBlockSize;                 /*!< Specifies logical block size in bytes           */
 
-}HAL_MMC_CardInfoTypeDef;
+} HAL_MMC_CardInfoTypeDef;
 
 /**
   * @brief  MMC handle Structure definition
@@ -119,7 +122,7 @@ typedef struct
 
   HAL_LockTypeDef              Lock;             /*!< MMC locking object                   */
 
-  uint8_t                      *pTxBuffPtr;      /*!< Pointer to MMC Tx transfer Buffer    */
+  const uint8_t                *pTxBuffPtr;      /*!< Pointer to MMC Tx transfer Buffer    */
 
   uint32_t                     TxXferSize;       /*!< MMC Tx Transfer size                 */
 
@@ -133,6 +136,8 @@ typedef struct
 
   __IO uint32_t                ErrorCode;        /*!< MMC Card Error codes                 */
 
+  __IO uint16_t                RPMBErrorCode;    /*!< MMC RPMB Area Error codes            */
+
   HAL_MMC_CardInfoTypeDef      MmcCard;          /*!< MMC Card information                 */
 
   uint32_t                     CSD[4U];          /*!< MMC card specific data table         */
@@ -142,19 +147,19 @@ typedef struct
   uint32_t                     Ext_CSD[128];
 
 #if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
-  void (* TxCpltCallback)                 (struct __MMC_HandleTypeDef *hmmc);
-  void (* RxCpltCallback)                 (struct __MMC_HandleTypeDef *hmmc);
-  void (* ErrorCallback)                  (struct __MMC_HandleTypeDef *hmmc);
-  void (* AbortCpltCallback)              (struct __MMC_HandleTypeDef *hmmc);
-  void (* Read_DMADblBuf0CpltCallback)    (struct __MMC_HandleTypeDef *hmmc);
-  void (* Read_DMADblBuf1CpltCallback)    (struct __MMC_HandleTypeDef *hmmc);
-  void (* Write_DMADblBuf0CpltCallback)   (struct __MMC_HandleTypeDef *hmmc);
-  void (* Write_DMADblBuf1CpltCallback)   (struct __MMC_HandleTypeDef *hmmc);
+  void (* TxCpltCallback)(struct __MMC_HandleTypeDef *hmmc);
+  void (* RxCpltCallback)(struct __MMC_HandleTypeDef *hmmc);
+  void (* ErrorCallback)(struct __MMC_HandleTypeDef *hmmc);
+  void (* AbortCpltCallback)(struct __MMC_HandleTypeDef *hmmc);
+  void (* Read_DMADblBuf0CpltCallback)(struct __MMC_HandleTypeDef *hmmc);
+  void (* Read_DMADblBuf1CpltCallback)(struct __MMC_HandleTypeDef *hmmc);
+  void (* Write_DMADblBuf0CpltCallback)(struct __MMC_HandleTypeDef *hmmc);
+  void (* Write_DMADblBuf1CpltCallback)(struct __MMC_HandleTypeDef *hmmc);
 
-  void (* MspInitCallback)                (struct __MMC_HandleTypeDef *hmmc);
-  void (* MspDeInitCallback)              (struct __MMC_HandleTypeDef *hmmc);
-#endif
-}MMC_HandleTypeDef;
+  void (* MspInitCallback)(struct __MMC_HandleTypeDef *hmmc);
+  void (* MspDeInitCallback)(struct __MMC_HandleTypeDef *hmmc);
+#endif /* USE_HAL_MMC_REGISTER_CALLBACKS */
+} MMC_HandleTypeDef;
 
 
 /**
@@ -204,7 +209,7 @@ typedef struct
   __IO uint8_t  CSD_CRC;              /*!< CSD CRC                               */
   __IO uint8_t  Reserved4;            /*!< Always 1                              */
 
-}HAL_MMC_CardCSDTypeDef;
+} HAL_MMC_CardCSDTypeDef;
 /**
   * @}
   */
@@ -225,7 +230,7 @@ typedef struct
   __IO uint8_t  CID_CRC;         /*!< CID CRC               */
   __IO uint8_t  Reserved2;       /*!< Always 1              */
 
-}HAL_MMC_CardCIDTypeDef;
+} HAL_MMC_CardCIDTypeDef;
 /**
   * @}
   */
@@ -247,7 +252,7 @@ typedef enum
 
   HAL_MMC_MSP_INIT_CB_ID                = 0x10U,  /*!< MMC MspInit Callback ID                         */
   HAL_MMC_MSP_DEINIT_CB_ID              = 0x11U   /*!< MMC MspDeInit Callback ID                       */
-}HAL_MMC_CallbackIDTypeDef;
+} HAL_MMC_CallbackIDTypeDef;
 /**
   * @}
   */
@@ -255,11 +260,11 @@ typedef enum
 /** @defgroup MMC_Exported_Types_Group7 MMC Callback pointer definition
   * @{
   */
-typedef void (*pMMC_CallbackTypeDef)           (MMC_HandleTypeDef *hmmc);
+typedef void (*pMMC_CallbackTypeDef)(MMC_HandleTypeDef *hmmc);
 /**
   * @}
   */
-#endif
+#endif /* USE_HAL_MMC_REGISTER_CALLBACKS */
 /**
   * @}
   */
@@ -274,46 +279,56 @@ typedef void (*pMMC_CallbackTypeDef)           (MMC_HandleTypeDef *hmmc);
 /** @defgroup MMC_Exported_Constansts_Group1 MMC Error status enumeration Structure definition
   * @{
   */
-#define HAL_MMC_ERROR_NONE                     SDMMC_ERROR_NONE                    /*!< No error                                                      */
-#define HAL_MMC_ERROR_CMD_CRC_FAIL             SDMMC_ERROR_CMD_CRC_FAIL            /*!< Command response received (but CRC check failed)              */
-#define HAL_MMC_ERROR_DATA_CRC_FAIL            SDMMC_ERROR_DATA_CRC_FAIL           /*!< Data block sent/received (CRC check failed)                   */
-#define HAL_MMC_ERROR_CMD_RSP_TIMEOUT          SDMMC_ERROR_CMD_RSP_TIMEOUT         /*!< Command response timeout                                      */
-#define HAL_MMC_ERROR_DATA_TIMEOUT             SDMMC_ERROR_DATA_TIMEOUT            /*!< Data timeout                                                  */
-#define HAL_MMC_ERROR_TX_UNDERRUN              SDMMC_ERROR_TX_UNDERRUN             /*!< Transmit FIFO underrun                                        */
-#define HAL_MMC_ERROR_RX_OVERRUN               SDMMC_ERROR_RX_OVERRUN              /*!< Receive FIFO overrun                                          */
-#define HAL_MMC_ERROR_ADDR_MISALIGNED          SDMMC_ERROR_ADDR_MISALIGNED         /*!< Misaligned address                                            */
-#define HAL_MMC_ERROR_BLOCK_LEN_ERR            SDMMC_ERROR_BLOCK_LEN_ERR           /*!< Transferred block length is not allowed for the card or the
-                                                                                        number of transferred bytes does not match the block length   */
-#define HAL_MMC_ERROR_ERASE_SEQ_ERR            SDMMC_ERROR_ERASE_SEQ_ERR           /*!< An error in the sequence of erase command occurs              */
-#define HAL_MMC_ERROR_BAD_ERASE_PARAM          SDMMC_ERROR_BAD_ERASE_PARAM         /*!< An invalid selection for erase groups                         */
-#define HAL_MMC_ERROR_WRITE_PROT_VIOLATION     SDMMC_ERROR_WRITE_PROT_VIOLATION    /*!< Attempt to program a write protect block                      */
-#define HAL_MMC_ERROR_LOCK_UNLOCK_FAILED       SDMMC_ERROR_LOCK_UNLOCK_FAILED      /*!< Sequence or password error has been detected in unlock
-                                                                                        command or if there was an attempt to access a locked card    */
-#define HAL_MMC_ERROR_COM_CRC_FAILED           SDMMC_ERROR_COM_CRC_FAILED          /*!< CRC check of the previous command failed                      */
-#define HAL_MMC_ERROR_ILLEGAL_CMD              SDMMC_ERROR_ILLEGAL_CMD             /*!< Command is not legal for the card state                       */
-#define HAL_MMC_ERROR_CARD_ECC_FAILED          SDMMC_ERROR_CARD_ECC_FAILED         /*!< Card internal ECC was applied but failed to correct the data  */
-#define HAL_MMC_ERROR_CC_ERR                   SDMMC_ERROR_CC_ERR                  /*!< Internal card controller error                                */
-#define HAL_MMC_ERROR_GENERAL_UNKNOWN_ERR      SDMMC_ERROR_GENERAL_UNKNOWN_ERR     /*!< General or unknown error                                      */
-#define HAL_MMC_ERROR_STREAM_READ_UNDERRUN     SDMMC_ERROR_STREAM_READ_UNDERRUN    /*!< The card could not sustain data reading in stream rmode       */
-#define HAL_MMC_ERROR_STREAM_WRITE_OVERRUN     SDMMC_ERROR_STREAM_WRITE_OVERRUN    /*!< The card could not sustain data programming in stream mode    */
-#define HAL_MMC_ERROR_CID_CSD_OVERWRITE        SDMMC_ERROR_CID_CSD_OVERWRITE       /*!< CID/CSD overwrite error                                       */
-#define HAL_MMC_ERROR_WP_ERASE_SKIP            SDMMC_ERROR_WP_ERASE_SKIP           /*!< Only partial address space was erased                         */
-#define HAL_MMC_ERROR_CARD_ECC_DISABLED        SDMMC_ERROR_CARD_ECC_DISABLED       /*!< Command has been executed without using internal ECC          */
-#define HAL_MMC_ERROR_ERASE_RESET              SDMMC_ERROR_ERASE_RESET             /*!< Erase sequence was cleared before executing because an out
-                                                                                        of erase sequence command was received                        */
-#define HAL_MMC_ERROR_AKE_SEQ_ERR              SDMMC_ERROR_AKE_SEQ_ERR             /*!< Error in sequence of authentication                           */
-#define HAL_MMC_ERROR_INVALID_VOLTRANGE        SDMMC_ERROR_INVALID_VOLTRANGE       /*!< Error in case of invalid voltage range                        */
-#define HAL_MMC_ERROR_ADDR_OUT_OF_RANGE        SDMMC_ERROR_ADDR_OUT_OF_RANGE       /*!< Error when addressed block is out of range                    */
-#define HAL_MMC_ERROR_REQUEST_NOT_APPLICABLE   SDMMC_ERROR_REQUEST_NOT_APPLICABLE  /*!< Error when command request is not applicable                  */
-#define HAL_MMC_ERROR_PARAM                    SDMMC_ERROR_INVALID_PARAMETER       /*!< the used parameter is not valid                               */
-#define HAL_MMC_ERROR_UNSUPPORTED_FEATURE      SDMMC_ERROR_UNSUPPORTED_FEATURE     /*!< Error when feature is not insupported                         */
-#define HAL_MMC_ERROR_BUSY                     SDMMC_ERROR_BUSY                    /*!< Error when transfer process is busy                           */
-#define HAL_MMC_ERROR_DMA                      SDMMC_ERROR_DMA                     /*!< Error while DMA transfer                                      */
-#define HAL_MMC_ERROR_TIMEOUT                  SDMMC_ERROR_TIMEOUT                 /*!< Timeout error                                                 */
+#define HAL_MMC_ERROR_NONE                           SDMMC_ERROR_NONE                    /*!< No error                                                      */
+#define HAL_MMC_ERROR_CMD_CRC_FAIL                   SDMMC_ERROR_CMD_CRC_FAIL            /*!< Command response received (but CRC check failed)              */
+#define HAL_MMC_ERROR_DATA_CRC_FAIL                  SDMMC_ERROR_DATA_CRC_FAIL           /*!< Data block sent/received (CRC check failed)                   */
+#define HAL_MMC_ERROR_CMD_RSP_TIMEOUT                SDMMC_ERROR_CMD_RSP_TIMEOUT         /*!< Command response timeout                                      */
+#define HAL_MMC_ERROR_DATA_TIMEOUT                   SDMMC_ERROR_DATA_TIMEOUT            /*!< Data timeout                                                  */
+#define HAL_MMC_ERROR_TX_UNDERRUN                    SDMMC_ERROR_TX_UNDERRUN             /*!< Transmit FIFO underrun                                        */
+#define HAL_MMC_ERROR_RX_OVERRUN                     SDMMC_ERROR_RX_OVERRUN              /*!< Receive FIFO overrun                                          */
+#define HAL_MMC_ERROR_ADDR_MISALIGNED                SDMMC_ERROR_ADDR_MISALIGNED         /*!< Misaligned address                                            */
+#define HAL_MMC_ERROR_BLOCK_LEN_ERR                  SDMMC_ERROR_BLOCK_LEN_ERR           /*!< Transferred block length is not allowed for the card or the   */
+/*!< number of transferred bytes does not match the block length   */
+#define HAL_MMC_ERROR_ERASE_SEQ_ERR                  SDMMC_ERROR_ERASE_SEQ_ERR           /*!< An error in the sequence of erase command occurs              */
+#define HAL_MMC_ERROR_BAD_ERASE_PARAM                SDMMC_ERROR_BAD_ERASE_PARAM         /*!< An invalid selection for erase groups                         */
+#define HAL_MMC_ERROR_WRITE_PROT_VIOLATION           SDMMC_ERROR_WRITE_PROT_VIOLATION    /*!< Attempt to program a write protect block                      */
+#define HAL_MMC_ERROR_LOCK_UNLOCK_FAILED             SDMMC_ERROR_LOCK_UNLOCK_FAILED      /*!< Sequence or password error has been detected in unlock        */
+/*!< command or if there was an attempt to access a locked card    */
+#define HAL_MMC_ERROR_COM_CRC_FAILED                 SDMMC_ERROR_COM_CRC_FAILED          /*!< CRC check of the previous command failed                      */
+#define HAL_MMC_ERROR_ILLEGAL_CMD                    SDMMC_ERROR_ILLEGAL_CMD             /*!< Command is not legal for the card state                       */
+#define HAL_MMC_ERROR_CARD_ECC_FAILED                SDMMC_ERROR_CARD_ECC_FAILED         /*!< Card internal ECC was applied but failed to correct the data  */
+#define HAL_MMC_ERROR_CC_ERR                         SDMMC_ERROR_CC_ERR                  /*!< Internal card controller error                                */
+#define HAL_MMC_ERROR_GENERAL_UNKNOWN_ERR            SDMMC_ERROR_GENERAL_UNKNOWN_ERR     /*!< General or unknown error                                      */
+#define HAL_MMC_ERROR_STREAM_READ_UNDERRUN           SDMMC_ERROR_STREAM_READ_UNDERRUN    /*!< The card could not sustain data reading in stream rmode       */
+#define HAL_MMC_ERROR_STREAM_WRITE_OVERRUN           SDMMC_ERROR_STREAM_WRITE_OVERRUN    /*!< The card could not sustain data programming in stream mode    */
+#define HAL_MMC_ERROR_CID_CSD_OVERWRITE              SDMMC_ERROR_CID_CSD_OVERWRITE       /*!< CID/CSD overwrite error                                       */
+#define HAL_MMC_ERROR_WP_ERASE_SKIP                  SDMMC_ERROR_WP_ERASE_SKIP           /*!< Only partial address space was erased                         */
+#define HAL_MMC_ERROR_CARD_ECC_DISABLED              SDMMC_ERROR_CARD_ECC_DISABLED       /*!< Command has been executed without using internal ECC          */
+#define HAL_MMC_ERROR_ERASE_RESET                    SDMMC_ERROR_ERASE_RESET             /*!< Erase sequence was cleared before executing because an out    */
+/*!< of erase sequence command was received                        */
+#define HAL_MMC_ERROR_AKE_SEQ_ERR                    SDMMC_ERROR_AKE_SEQ_ERR             /*!< Error in sequence of authentication                           */
+#define HAL_MMC_ERROR_INVALID_VOLTRANGE              SDMMC_ERROR_INVALID_VOLTRANGE       /*!< Error in case of invalid voltage range                        */
+#define HAL_MMC_ERROR_ADDR_OUT_OF_RANGE              SDMMC_ERROR_ADDR_OUT_OF_RANGE       /*!< Error when addressed block is out of range                    */
+#define HAL_MMC_ERROR_REQUEST_NOT_APPLICABLE         SDMMC_ERROR_REQUEST_NOT_APPLICABLE  /*!< Error when command request is not applicable                  */
+#define HAL_MMC_ERROR_PARAM                          SDMMC_ERROR_INVALID_PARAMETER       /*!< the used parameter is not valid                               */
+#define HAL_MMC_ERROR_UNSUPPORTED_FEATURE            SDMMC_ERROR_UNSUPPORTED_FEATURE     /*!< Error when feature is not insupported                         */
+#define HAL_MMC_ERROR_BUSY                           SDMMC_ERROR_BUSY                    /*!< Error when transfer process is busy                           */
+#define HAL_MMC_ERROR_DMA                            SDMMC_ERROR_DMA                     /*!< Error while DMA transfer                                      */
+#define HAL_MMC_ERROR_TIMEOUT                        SDMMC_ERROR_TIMEOUT                 /*!< Timeout error                                                 */
+/*!< response results after operating with RPMB partition          */
+#define HAL_MMC_ERROR_RPMB_OPERATION_OK              0x0000U                             /*!< Operation OK                                                  */
+#define HAL_MMC_ERROR_RPMB_GENERAL_FAILURE           0x0001U                             /*!< General failure                                               */
+#define HAL_MMC_ERROR_RPMB_AUTHENTICATION_FAILURE    0x0002U                             /*!< Authentication failure                                        */
+#define HAL_MMC_ERROR_RPMB_COUNTER_FAILURE           0x0003U                             /*!< Counter failure                                               */
+#define HAL_MMC_ERROR_RPMB_ADDRESS_FAILURE           0x0004U                             /*!< Address failure                                               */
+#define HAL_MMC_ERROR_RPMB_WRITE_FAILURE             0x0005U                             /*!< Write failure                                                 */
+#define HAL_MMC_ERROR_RPMB_READ_FAILURE              0x0006U                             /*!< Read failure                                                  */
+#define HAL_MMC_ERROR_RPMB_KEY_NOT_YET_PROG          0x0007U                             /*!< Authentication Key not yet programmed                         */
+#define HAL_MMC_ERROR_RPMB_COUNTER_EXPIRED           0x0080U                             /*!< Write Counter has expired i.e. reached its max value          */
 
 #if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
-#define HAL_MMC_ERROR_INVALID_CALLBACK         SDMMC_ERROR_INVALID_PARAMETER       /*!< Invalid callback error                                        */
-#endif
+#define HAL_MMC_ERROR_INVALID_CALLBACK              SDMMC_ERROR_INVALID_PARAMETER        /*!< Invalid callback error                                        */
+#endif /* USE_HAL_MMC_REGISTER_CALLBACKS */
 /**
   * @}
   */
@@ -339,10 +354,12 @@ typedef void (*pMMC_CallbackTypeDef)           (MMC_HandleTypeDef *hmmc);
 /**
   * @brief
   */
-#define MMC_HIGH_VOLTAGE_RANGE         0x80FF8000U  /*!< VALUE OF ARGUMENT            */
-#define MMC_DUAL_VOLTAGE_RANGE         0x80FF8080U  /*!< VALUE OF ARGUMENT            */
-#define eMMC_HIGH_VOLTAGE_RANGE        0xC0FF8000U  /*!< for eMMC > 2Gb sector mode   */
-#define eMMC_DUAL_VOLTAGE_RANGE        0xC0FF8080U  /*!< for eMMC > 2Gb sector mode   */
+#define MMC_HIGH_VOLTAGE_RANGE         0x80FF8000U  /*!< High voltage in byte mode    */
+#define MMC_DUAL_VOLTAGE_RANGE         0x80FF8080U  /*!< Dual voltage in byte mode    */
+#define MMC_LOW_VOLTAGE_RANGE          0x80000080U  /*!< Low voltage in byte mode     */
+#define EMMC_HIGH_VOLTAGE_RANGE        0xC0FF8000U  /*!< High voltage in sector mode  */
+#define EMMC_DUAL_VOLTAGE_RANGE        0xC0FF8080U  /*!< Dual voltage in sector mode  */
+#define EMMC_LOW_VOLTAGE_RANGE         0xC0000080U  /*!< Low voltage in sector mode   */
 #define MMC_INVALID_VOLTAGE_RANGE      0x0001FF01U
 /**
   * @}
@@ -358,28 +375,78 @@ typedef void (*pMMC_CallbackTypeDef)           (MMC_HandleTypeDef *hmmc);
   * @}
   */
 
+/** @defgroup MMC_Exported_Constansts_Group5 MMC Erase Type
+  * @{
+  */
+#define HAL_MMC_ERASE             0x00000000U  /*!< Erase the erase groups identified by CMD35 & 36                                   */
+#define HAL_MMC_TRIM              0x00000001U  /*!< Erase the write blocks identified by CMD35 & 36                                   */
+#define HAL_MMC_DISCARD           0x00000003U  /*!< Discard the write blocks identified by CMD35 & 36                                 */
+#define HAL_MMC_SECURE_ERASE      0x80000000U  /*!< Perform a secure purge according SRT on the erase groups identified by CMD35 & 36 */
+#define HAL_MMC_SECURE_TRIM_STEP1 0x80000001U  /*!< Mark the write blocks identified by CMD35 & 36 for secure erase                   */
+#define HAL_MMC_SECURE_TRIM_STEP2 0x80008000U  /*!< Perform a secure purge according SRT on the write blocks previously identified    */
+
+#define IS_MMC_ERASE_TYPE(TYPE) (((TYPE) == HAL_MMC_ERASE)             || \
+                                 ((TYPE) == HAL_MMC_TRIM)              || \
+                                 ((TYPE) == HAL_MMC_DISCARD)           || \
+                                 ((TYPE) == HAL_MMC_SECURE_ERASE)      || \
+                                 ((TYPE) == HAL_MMC_SECURE_TRIM_STEP1) || \
+                                 ((TYPE) == HAL_MMC_SECURE_TRIM_STEP2))
+/**
+  * @}
+  */
+
+/** @defgroup MMC_Exported_Constansts_Group6 MMC Secure Removal Type
+  * @{
+  */
+#define HAL_MMC_SRT_ERASE                   0x00000001U  /*!< Information removed by an erase                                                                */
+#define HAL_MMC_SRT_WRITE_CHAR_ERASE        0x00000002U  /*!< Information removed by an overwriting with a character followed by an erase                    */
+#define HAL_MMC_SRT_WRITE_CHAR_COMPL_RANDOM 0x00000004U  /*!< Information removed by an overwriting with a character, its complement then a random character */
+#define HAL_MMC_SRT_VENDOR_DEFINED          0x00000008U  /*!< Information removed using a vendor defined                                                     */
+
+
+#define IS_MMC_SRT_TYPE(TYPE) (((TYPE) == HAL_MMC_SRT_ERASE)                   || \
+                               ((TYPE) == HAL_MMC_SRT_WRITE_CHAR_ERASE)        || \
+                               ((TYPE) == HAL_MMC_SRT_WRITE_CHAR_COMPL_RANDOM) || \
+                               ((TYPE) == HAL_MMC_SRT_VENDOR_DEFINED))
+/**
+  * @}
+  */
+
+/** @defgroup MMC_Exported_Constansts_Group7 MMC Partitions types
+  * @{
+  */
+typedef uint32_t HAL_MMC_PartitionTypeDef;
+
+#define HAL_MMC_USER_AREA_PARTITION              0x00000000U   /*!< User area partition */
+#define HAL_MMC_BOOT_PARTITION1                  0x00000100U   /*!< Boot partition 1    */
+#define HAL_MMC_BOOT_PARTITION2                  0x00000200U   /*!< Boot partition 2    */
+#define HAL_MMC_RPMB_PARTITION                   0x00000300U   /*!< RPMB partition      */
+/**
+  * @}
+  */
+
 /**
   * @}
   */
 
 /* Exported macro ------------------------------------------------------------*/
 /** @defgroup MMC_Exported_macros MMC Exported Macros
- *  @brief macros to handle interrupts and specific clock configurations
- * @{
- */
+  *  @brief macros to handle interrupts and specific clock configurations
+  * @{
+  */
 /** @brief Reset MMC handle state.
   * @param  __HANDLE__ MMC Handle.
   * @retval None
   */
 #if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
 #define __HAL_MMC_RESET_HANDLE_STATE(__HANDLE__)           do {                                              \
-                                                               (__HANDLE__)->State = HAL_MMC_STATE_RESET; \
-                                                               (__HANDLE__)->MspInitCallback = NULL;       \
-                                                               (__HANDLE__)->MspDeInitCallback = NULL;     \
-                                                             } while(0)
+                                                                (__HANDLE__)->State = HAL_MMC_STATE_RESET; \
+                                                                (__HANDLE__)->MspInitCallback = NULL;       \
+                                                                (__HANDLE__)->MspDeInitCallback = NULL;     \
+                                                              } while(0)
 #else
 #define __HAL_MMC_RESET_HANDLE_STATE(__HANDLE__)           ((__HANDLE__)->State = HAL_MMC_STATE_RESET)
-#endif
+#endif /* USE_HAL_MMC_REGISTER_CALLBACKS */
 
 /**
   * @brief  Enable the MMC device interrupt.
@@ -593,7 +660,7 @@ typedef void (*pMMC_CallbackTypeDef)           (MMC_HandleTypeDef *hmmc);
   */
 HAL_StatusTypeDef HAL_MMC_Init(MMC_HandleTypeDef *hmmc);
 HAL_StatusTypeDef HAL_MMC_InitCard(MMC_HandleTypeDef *hmmc);
-HAL_StatusTypeDef HAL_MMC_DeInit (MMC_HandleTypeDef *hmmc);
+HAL_StatusTypeDef HAL_MMC_DeInit(MMC_HandleTypeDef *hmmc);
 void HAL_MMC_MspInit(MMC_HandleTypeDef *hmmc);
 void HAL_MMC_MspDeInit(MMC_HandleTypeDef *hmmc);
 
@@ -605,15 +672,22 @@ void HAL_MMC_MspDeInit(MMC_HandleTypeDef *hmmc);
   * @{
   */
 /* Blocking mode: Polling */
-HAL_StatusTypeDef HAL_MMC_ReadBlocks(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks, uint32_t Timeout);
-HAL_StatusTypeDef HAL_MMC_WriteBlocks(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks, uint32_t Timeout);
+HAL_StatusTypeDef HAL_MMC_ReadBlocks(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd,
+                                     uint32_t NumberOfBlocks,
+                                     uint32_t Timeout);
+HAL_StatusTypeDef HAL_MMC_WriteBlocks(MMC_HandleTypeDef *hmmc, const uint8_t *pData, uint32_t BlockAdd,
+                                      uint32_t NumberOfBlocks, uint32_t Timeout);
 HAL_StatusTypeDef HAL_MMC_Erase(MMC_HandleTypeDef *hmmc, uint32_t BlockStartAdd, uint32_t BlockEndAdd);
 /* Non-Blocking mode: IT */
-HAL_StatusTypeDef HAL_MMC_ReadBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks);
-HAL_StatusTypeDef HAL_MMC_WriteBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks);
+HAL_StatusTypeDef HAL_MMC_ReadBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd,
+                                        uint32_t NumberOfBlocks);
+HAL_StatusTypeDef HAL_MMC_WriteBlocks_IT(MMC_HandleTypeDef *hmmc, const uint8_t *pData, uint32_t BlockAdd,
+                                         uint32_t NumberOfBlocks);
 /* Non-Blocking mode: DMA */
-HAL_StatusTypeDef HAL_MMC_ReadBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks);
-HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks);
+HAL_StatusTypeDef HAL_MMC_ReadBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd,
+                                         uint32_t NumberOfBlocks);
+HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, const uint8_t *pData, uint32_t BlockAdd,
+                                          uint32_t NumberOfBlocks);
 
 void HAL_MMC_IRQHandler(MMC_HandleTypeDef *hmmc);
 
@@ -625,9 +699,10 @@ void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc);
 
 #if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
 /* MMC callback registering/unregistering */
-HAL_StatusTypeDef HAL_MMC_RegisterCallback  (MMC_HandleTypeDef *hmmc, HAL_MMC_CallbackIDTypeDef CallbackId, pMMC_CallbackTypeDef pCallback);
+HAL_StatusTypeDef HAL_MMC_RegisterCallback(MMC_HandleTypeDef *hmmc, HAL_MMC_CallbackIDTypeDef CallbackId,
+                                           pMMC_CallbackTypeDef pCallback);
 HAL_StatusTypeDef HAL_MMC_UnRegisterCallback(MMC_HandleTypeDef *hmmc, HAL_MMC_CallbackIDTypeDef CallbackId);
-#endif
+#endif /* USE_HAL_MMC_REGISTER_CALLBACKS */
 /**
   * @}
   */
@@ -637,6 +712,7 @@ HAL_StatusTypeDef HAL_MMC_UnRegisterCallback(MMC_HandleTypeDef *hmmc, HAL_MMC_Ca
   */
 HAL_StatusTypeDef HAL_MMC_ConfigWideBusOperation(MMC_HandleTypeDef *hmmc, uint32_t WideMode);
 HAL_StatusTypeDef HAL_MMC_ConfigSpeedBusOperation(MMC_HandleTypeDef *hmmc, uint32_t SpeedMode);
+HAL_StatusTypeDef HAL_MMC_SwitchPartition(MMC_HandleTypeDef *hmmc, HAL_MMC_PartitionTypeDef Partition);
 /**
   * @}
   */
@@ -645,9 +721,10 @@ HAL_StatusTypeDef HAL_MMC_ConfigSpeedBusOperation(MMC_HandleTypeDef *hmmc, uint3
   * @{
   */
 HAL_MMC_CardStateTypeDef HAL_MMC_GetCardState(MMC_HandleTypeDef *hmmc);
-HAL_StatusTypeDef HAL_MMC_GetCardCID(MMC_HandleTypeDef *hmmc, HAL_MMC_CardCIDTypeDef *pCID);
+HAL_StatusTypeDef HAL_MMC_GetCardCID(const MMC_HandleTypeDef *hmmc, HAL_MMC_CardCIDTypeDef *pCID);
 HAL_StatusTypeDef HAL_MMC_GetCardCSD(MMC_HandleTypeDef *hmmc, HAL_MMC_CardCSDTypeDef *pCSD);
-HAL_StatusTypeDef HAL_MMC_GetCardInfo(MMC_HandleTypeDef *hmmc, HAL_MMC_CardInfoTypeDef *pCardInfo);
+HAL_StatusTypeDef HAL_MMC_GetCardInfo(const MMC_HandleTypeDef *hmmc, HAL_MMC_CardInfoTypeDef *pCardInfo);
+HAL_StatusTypeDef HAL_MMC_GetCardExtCSD(MMC_HandleTypeDef *hmmc, uint32_t *pExtCSD, uint32_t Timeout);
 /**
   * @}
   */
@@ -655,17 +732,61 @@ HAL_StatusTypeDef HAL_MMC_GetCardInfo(MMC_HandleTypeDef *hmmc, HAL_MMC_CardInfoT
 /** @defgroup MMC_Exported_Functions_Group5 Peripheral State and Errors functions
   * @{
   */
-HAL_MMC_StateTypeDef HAL_MMC_GetState(MMC_HandleTypeDef *hmmc);
-uint32_t HAL_MMC_GetError(MMC_HandleTypeDef *hmmc);
+HAL_MMC_StateTypeDef HAL_MMC_GetState(const MMC_HandleTypeDef *hmmc);
+uint32_t HAL_MMC_GetError(const MMC_HandleTypeDef *hmmc);
+uint32_t HAL_MMC_GetRPMBError(const MMC_HandleTypeDef *hmmc);
 /**
   * @}
   */
 
-/** @defgroup MMC_Exported_Functions_Group6 Perioheral Abort management
+/** @defgroup MMC_Exported_Functions_Group6 Peripheral Abort management
   * @{
   */
 HAL_StatusTypeDef HAL_MMC_Abort(MMC_HandleTypeDef *hmmc);
 HAL_StatusTypeDef HAL_MMC_Abort_IT(MMC_HandleTypeDef *hmmc);
+/**
+  * @}
+  */
+
+/** @defgroup MMC_Exported_Functions_Group7 Peripheral Erase management
+  * @{
+  */
+HAL_StatusTypeDef HAL_MMC_EraseSequence(MMC_HandleTypeDef *hmmc, uint32_t EraseType, uint32_t BlockStartAdd,
+                                        uint32_t BlockEndAdd);
+HAL_StatusTypeDef HAL_MMC_Sanitize(MMC_HandleTypeDef *hmmc);
+HAL_StatusTypeDef HAL_MMC_ConfigSecRemovalType(MMC_HandleTypeDef *hmmc, uint32_t SRTMode);
+HAL_StatusTypeDef HAL_MMC_GetSupportedSecRemovalType(MMC_HandleTypeDef *hmmc, uint32_t *SupportedSRT);
+/**
+  * @}
+  */
+
+/** @defgroup MMC_Exported_Functions_Group8 Peripheral Sleep management
+  * @{
+  */
+HAL_StatusTypeDef HAL_MMC_SleepDevice(MMC_HandleTypeDef *hmmc);
+HAL_StatusTypeDef HAL_MMC_AwakeDevice(MMC_HandleTypeDef *hmmc);
+/**
+  * @}
+  */
+
+/** @defgroup MMC_Exported_Functions_Group9 Replay Protected Memory Block management
+  * @{
+  */
+HAL_StatusTypeDef HAL_MMC_RPMB_ProgramAuthenticationKey(MMC_HandleTypeDef *hmmc, const uint8_t *pKey, uint32_t Timeout);
+HAL_StatusTypeDef HAL_MMC_RPMB_ProgramAuthenticationKey_IT(MMC_HandleTypeDef *hmmc, const uint8_t *pKey,
+                                                           uint32_t Timeout);
+uint32_t HAL_MMC_RPMB_GetWriteCounter(MMC_HandleTypeDef *hmmc, uint8_t *pNonce, uint32_t Timeout);
+uint32_t HAL_MMC_RPMB_GetWriteCounter_IT(MMC_HandleTypeDef *hmmc, uint8_t *pNonce);
+HAL_StatusTypeDef HAL_MMC_RPMB_WriteBlocks(MMC_HandleTypeDef *hmmc, const uint8_t *pData, uint16_t BlockAdd,
+                                           uint16_t NumberOfBlocks, const uint8_t *pMAC, uint32_t Timeout);
+HAL_StatusTypeDef HAL_MMC_RPMB_WriteBlocks_IT(MMC_HandleTypeDef *hmmc, const uint8_t *pData, uint16_t BlockAdd,
+                                              uint16_t NumberOfBlocks, const uint8_t *pMAC);
+HAL_StatusTypeDef HAL_MMC_RPMB_ReadBlocks(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint16_t BlockAdd,
+                                          uint16_t NumberOfBlocks, const uint8_t *pNonce, uint8_t *pMAC,
+                                          uint32_t Timeout);
+HAL_StatusTypeDef HAL_MMC_RPMB_ReadBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint16_t BlockAdd,
+                                             uint16_t NumberOfBlocks, const uint8_t *pNonce, uint8_t *pMAC);
+
 /**
   * @}
   */
@@ -683,7 +804,8 @@ HAL_StatusTypeDef HAL_MMC_Abort_IT(MMC_HandleTypeDef *hmmc);
 /** @defgroup MMC_Private_Defines MMC Private Defines
   * @{
   */
-
+#define MMC_EXT_CSD_DATA_SEC_SIZE_INDEX 61
+#define MMC_EXT_CSD_DATA_SEC_SIZE_POS   8
 /**
   * @}
   */
@@ -741,6 +863,7 @@ HAL_StatusTypeDef HAL_MMC_Abort_IT(MMC_HandleTypeDef *hmmc);
 /**
   * @}
   */
+#endif /* SDMMC1 || SDMMC2 */
 
 /**
   * @}
@@ -752,5 +875,3 @@ HAL_StatusTypeDef HAL_MMC_Abort_IT(MMC_HandleTypeDef *hmmc);
 
 
 #endif /* STM32H7xx_HAL_MMC_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

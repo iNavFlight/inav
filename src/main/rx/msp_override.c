@@ -23,6 +23,7 @@
 #include "build/build_config.h"
 #include "build/debug.h"
 
+#include "common/axis.h"
 #include "common/maths.h"
 #include "common/utils.h"
 
@@ -37,6 +38,7 @@
 #include "fc/rc_modes.h"
 
 #include "flight/failsafe.h"
+#include "flight/pid.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -53,17 +55,26 @@ static bool rxFailsafe = true;
 
 static timeMs_t rxDataFailurePeriod;
 static timeMs_t rxDataRecoveryPeriod;
+static timeMs_t lastAxisOverrideAt = 0;
 static timeMs_t validRxDataReceivedAt = 0;
 static timeMs_t validRxDataFailedAt = 0;
 
 static timeUs_t rxNextUpdateAtUs = 0;
 static timeUs_t needRxSignalBefore = 0;
 
-static uint16_t mspOverrideCtrlChannels = 0; // bitmask representing which channels are used to control MSP override
+static uint32_t mspOverrideCtrlChannels = 0; // bitmask representing which channels are used to control MSP override
 static rcChannel_t mspRcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 static rxRuntimeConfig_t rxRuntimeConfigMSP;
 
+typedef struct mspFlightAxisOverride_s {
+    int angleTarget;
+    int rateTarget;
+    uint8_t angleTargetActive;
+    uint8_t rateTargetActive;
+} mspFlightAxisOverride_t;
+
+static mspFlightAxisOverride_t mspFlightAxisOverride[XYZ_AXIS_COUNT];
 
 void mspOverrideInit(void)
 {
@@ -104,6 +115,13 @@ void mspOverrideInit(void)
     rxDataRecoveryPeriod = PERIOD_RXDATA_RECOVERY + failsafeConfig()->failsafe_recovery_delay * MILLIS_PER_TENTH_SECOND;
 
     rxMspInit(rxConfig(), &rxRuntimeConfigMSP);
+
+    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        mspFlightAxisOverride[axis].angleTargetActive = 0;
+        mspFlightAxisOverride[axis].rateTargetActive = 0;
+        mspFlightAxisOverride[axis].angleTarget = 0;
+        mspFlightAxisOverride[axis].rateTarget = 0;
+    }
 }
 
 bool mspOverrideIsReceivingSignal(void)
@@ -121,6 +139,33 @@ bool mspOverrideIsInFailsafe(void)
     return rxFailsafe;
 }
 
+static bool mspFlightAxisOverridesEnabled(void)
+{
+    bool enabled;
+    if (rxConfig()->receiverType == RX_TYPE_MSP) {
+        enabled = IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && rxIsReceivingSignal() && rxAreFlightChannelsValid();
+    } else {
+        enabled = IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe();
+    }
+
+    const timeMs_t nowMs = millis();
+    const timeMs_t overrideTimeoutMs = PERIOD_RXDATA_FAILURE + failsafeConfig()->failsafe_delay * MILLIS_PER_TENTH_SECOND;
+    const bool freshOverride = lastAxisOverrideAt && (nowMs - lastAxisOverrideAt) <= overrideTimeoutMs;
+    enabled = enabled && freshOverride;
+
+    if (!enabled) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            mspFlightAxisOverride[axis].angleTargetActive = 0;
+            mspFlightAxisOverride[axis].rateTargetActive = 0;
+            mspFlightAxisOverride[axis].angleTarget = 0;
+            mspFlightAxisOverride[axis].rateTarget = 0;
+        }
+        lastAxisOverrideAt = 0;
+    }
+
+    return enabled;
+}
+
 bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
 {
     UNUSED(currentDeltaTime);
@@ -129,6 +174,12 @@ bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime
         if (currentTimeUs >= needRxSignalBefore) {
             rxSignalReceived = false;
         }
+    }
+
+    // Changing receiver_type from MSP to anything can cause a race with
+    // the function pointer as NULL. This will not end well, so bail out early.
+    if(rxRuntimeConfigMSP.rcFrameStatusFn == NULL) {
+	return false;
     }
 
     const uint8_t frameStatus = rxRuntimeConfigMSP.rcFrameStatusFn(&rxRuntimeConfigMSP);
@@ -215,7 +266,7 @@ bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
 
 void mspOverrideChannels(rcChannel_t *rcChannels)
 {
-    for (uint16_t channel = 0, channelMask = 1; channel < rxRuntimeConfigMSP.channelCount; ++channel, channelMask <<= 1) {
+    for (uint32_t channel = 0, channelMask = 1; channel < rxRuntimeConfigMSP.channelCount; ++channel, channelMask <<= 1) {
         if (rxConfig()->mspOverrideChannels & ~mspOverrideCtrlChannels & channelMask) {
             rcChannels[channel].raw = rcChannels[channel].data = mspRcChannels[channel].data;
         }
@@ -230,6 +281,76 @@ int16_t mspOverrideGetChannelValue(unsigned channelNumber)
 int16_t mspOverrideGetRawChannelValue(unsigned channelNumber)
 {
     return mspRcChannels[channelNumber].raw;
+}
+
+void mspOverrideSetFlightAxisAngleOverride(uint8_t overrideMask, int16_t roll, int16_t pitch, int16_t yaw)
+{
+    lastAxisOverrideAt = millis();
+
+    const int16_t rollTarget = constrain(roll, -pidProfile()->max_angle_inclination[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]);
+    const int16_t pitchTarget = constrain(pitch, -pidProfile()->max_angle_inclination[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]);
+    const int16_t yawTarget = constrain(yaw, 0, 3600);
+
+    mspFlightAxisOverride[FD_ROLL].angleTarget = rollTarget;
+    mspFlightAxisOverride[FD_PITCH].angleTarget = pitchTarget;
+    mspFlightAxisOverride[FD_YAW].angleTarget = yawTarget;
+
+    mspFlightAxisOverride[FD_ROLL].angleTargetActive = (overrideMask & 0x01) ? 1 : 0;
+    mspFlightAxisOverride[FD_PITCH].angleTargetActive = (overrideMask & 0x02) ? 1 : 0;
+    mspFlightAxisOverride[FD_YAW].angleTargetActive = (overrideMask & 0x04) ? 1 : 0;
+}
+
+void mspOverrideSetFlightAxisRateOverride(uint8_t overrideMask, int16_t roll, int16_t pitch, int16_t yaw)
+{
+    lastAxisOverrideAt = millis();
+
+    const int16_t rollTarget = constrain(roll, -2000, 2000);
+    const int16_t pitchTarget = constrain(pitch, -2000, 2000);
+    const int16_t yawTarget = constrain(yaw, -2000, 2000);
+
+    mspFlightAxisOverride[FD_ROLL].rateTarget = rollTarget;
+    mspFlightAxisOverride[FD_PITCH].rateTarget = pitchTarget;
+    mspFlightAxisOverride[FD_YAW].rateTarget = yawTarget;
+
+    mspFlightAxisOverride[FD_ROLL].rateTargetActive = (overrideMask & 0x01) ? 1 : 0;
+    mspFlightAxisOverride[FD_PITCH].rateTargetActive = (overrideMask & 0x02) ? 1 : 0;
+    mspFlightAxisOverride[FD_YAW].rateTargetActive = (overrideMask & 0x04) ? 1 : 0;
+}
+
+bool mspOverrideFlightAxisAngleActive(uint8_t axis, int *target)
+{
+    if (!mspFlightAxisOverridesEnabled()) {
+        return false;
+    }
+
+    if (axis >= XYZ_AXIS_COUNT) {
+        return false;
+    }
+
+    if (!mspFlightAxisOverride[axis].angleTargetActive) {
+        return false;
+    }
+
+    *target = mspFlightAxisOverride[axis].angleTarget;
+    return true;
+}
+
+bool mspOverrideFlightAxisRateActive(uint8_t axis, int *target)
+{
+    if (!mspFlightAxisOverridesEnabled()) {
+        return false;
+    }
+
+    if (axis >= XYZ_AXIS_COUNT) {
+        return false;
+    }
+
+    if (!mspFlightAxisOverride[axis].rateTargetActive) {
+        return false;
+    }
+
+    *target = mspFlightAxisOverride[axis].rateTarget;
+    return true;
 }
 
 #endif // defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)

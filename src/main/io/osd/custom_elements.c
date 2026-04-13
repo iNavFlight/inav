@@ -33,6 +33,8 @@
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(osdCustomElement_t, MAX_CUSTOM_ELEMENTS, osdCustomElements, PG_OSD_CUSTOM_ELEMENTS_CONFIG, 1);
 
+static uint8_t prevLength[MAX_CUSTOM_ELEMENTS];
+
 void pgResetFn_osdCustomElements(osdCustomElement_t *instance)
 {
     for (int i = 0; i < MAX_CUSTOM_ELEMENTS; i++) {
@@ -98,6 +100,11 @@ uint8_t customElementDrawPart(char *buff, uint8_t customElementIndex, uint8_t cu
             osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
             return 3;
         }
+        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_1_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999)), 1, 2, 0, 4, false);
+            return 4;
+        }
         case CUSTOM_ELEMENT_TYPE_GV_FLOAT_2_1:
         {
             osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999) * (int32_t) 10), 1, 1, 0, 4, false);
@@ -153,6 +160,11 @@ uint8_t customElementDrawPart(char *buff, uint8_t customElementIndex, uint8_t cu
         {
             osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
             return 3;
+        }
+        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_1_2:
+        {
+            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999)), 1, 2, 0, 4, false);
+            return 4;
         }
         case CUSTOM_ELEMENT_TYPE_LC_FLOAT_2_1:
         {
@@ -218,8 +230,6 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
         return;
     }
 
-    static uint8_t prevLength[MAX_CUSTOM_ELEMENTS];
-
     uint8_t buffSeek = 0;
     const osdCustomElement_t* customElement = osdCustomElements(customElementIndex);
     if(isCustomelementVisible(customElement))
@@ -235,4 +245,8 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
         *buff++ = SYM_BLANK;
     }
     prevLength[customElementIndex] = buffSeek;
+}
+
+uint8_t customElementLength(uint8_t customElementIndex){
+    return prevLength[customElementIndex] ? prevLength[customElementIndex] : 1;
 }

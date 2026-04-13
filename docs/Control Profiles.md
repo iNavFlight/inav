@@ -4,7 +4,7 @@ A profile is a set of configuration settings.
 
 Currently, INAV gives you three control profiles. The default control profile is `1`.
 
-## Changing contorl profiles
+## Changing control profiles
 ### Stick Commands
 Control profiles can be selected using a GUI or the following stick combinations:
 

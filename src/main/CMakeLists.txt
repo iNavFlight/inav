@@ -87,6 +87,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_icm20689.h
     drivers/accgyro/accgyro_icm42605.c
     drivers/accgyro/accgyro_icm42605.h
+    drivers/accgyro/accgyro_icm45686.c
+    drivers/accgyro/accgyro_icm45686.h
     drivers/accgyro/accgyro_mpu.c
     drivers/accgyro/accgyro_mpu.h
     drivers/accgyro/accgyro_mpu6000.c
@@ -152,6 +154,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mpu9250.h
     drivers/compass/compass_qmc5883l.c
     drivers/compass/compass_qmc5883l.h
+    drivers/compass/compass_qmc5883p.c
+    drivers/compass/compass_qmc5883p.h
     drivers/compass/compass_rm3100.c
     drivers/compass/compass_rm3100.h
     drivers/compass/compass_vcm5883.c
@@ -161,6 +165,12 @@ main_sources(COMMON_SRC
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
 
+    drivers/dronecan/libcanard/canard.c
+    drivers/dronecan/libcanard/canard.h
+    drivers/dronecan/libcanard/canard_stm32_driver.h
+    drivers/dronecan/dronecan.c
+    drivers/dronecan/dronecan.h
+     
     drivers/display.c
     drivers/display.h
     drivers/display_canvas.c
@@ -177,8 +187,8 @@ main_sources(COMMON_SRC
     drivers/flash.h
     drivers/flash_m25p16.c
     drivers/flash_m25p16.h
-    drivers/flash_w25n01g.c
-    drivers/flash_w25n01g.h
+    drivers/flash_w25n.c
+    drivers/flash_w25n.h
     drivers/gimbal_common.h
     drivers/gimbal_common.c
     drivers/headtracker_common.h
@@ -216,7 +226,7 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_ms4525.c
     drivers/pitotmeter/pitotmeter_ms4525.h
     drivers/pitotmeter/pitotmeter_dlvr_l10d.c
-    drivers/pitotmeter/pitotmeter_dlvr_l10d.h	
+    drivers/pitotmeter/pitotmeter_dlvr_l10d.h
     drivers/pitotmeter/pitotmeter_msp.c
     drivers/pitotmeter/pitotmeter_msp.h
     drivers/pitotmeter/pitotmeter_virtual.c
@@ -274,13 +284,14 @@ main_sources(COMMON_SRC
     drivers/vtx_common.c
     drivers/vtx_common.h
 
+    
     fc/cli.c
     fc/cli.h
     fc/config.c
     fc/config.h
-    fc/controlrate_profile.c
-    fc/controlrate_profile.h
-    fc/controlrate_profile_config_struct.h
+    fc/control_profile.c
+    fc/control_profile.h
+    fc/control_profile_config_struct.h
     fc/fc_core.c
     fc/fc_core.h
     fc/fc_init.c
@@ -446,6 +457,8 @@ main_sources(COMMON_SRC
     sensors/battery.c
     sensors/battery.h
     sensors/battery_config_structs.h
+    sensors/battery_sensor_dronecan.c
+    sensors/battery_sensor_dronecan.h
     sensors/boardalignment.c
     sensors/boardalignment.h
     sensors/compass.c
@@ -460,6 +473,7 @@ main_sources(COMMON_SRC
     sensors/esc_sensor.h
     sensors/irlock.c
     sensors/irlock.h
+    sensors/sensors.c
     sensors/temperature.c
     sensors/temperature.h
 
@@ -529,6 +543,7 @@ main_sources(COMMON_SRC
     io/gps_ublox.c
     io/gps_ublox_utils.c
     io/gps_msp.c
+    io/gps_dronecan.c
     io/gps_fake.c
     io/gps_private.h
     io/ledstrip.c
@@ -624,5 +639,7 @@ main_sources(COMMON_SRC
     telemetry/telemetry.c
     telemetry/telemetry.h
 )
+
+list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})
 
 add_subdirectory(target)

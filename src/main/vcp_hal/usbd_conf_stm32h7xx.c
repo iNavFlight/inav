@@ -375,7 +375,7 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef * pdev)
     hpcd.Instance = USB2_OTG_FS;
     hpcd.Init.dev_endpoints = 9;
     hpcd.Init.use_dedicated_ep1 = DISABLE;
-    hpcd.Init.ep0_mps = DEP0CTL_MPS_64;
+    hpcd.Init.ep0_mps = EP_MPS_64;
     hpcd.Init.low_power_enable = DISABLE;
     hpcd.Init.phy_itface = PCD_PHY_EMBEDDED;
     hpcd.Init.Sof_enable = DISABLE;
@@ -592,7 +592,7 @@ USBD_StatusTypeDef USBD_LL_SetUSBAddress(USBD_HandleTypeDef * pdev,
  */
 USBD_StatusTypeDef USBD_LL_Transmit(USBD_HandleTypeDef * pdev,
         uint8_t ep_addr,
-        uint8_t * pbuf, uint16_t size)
+        uint8_t * pbuf, uint32_t size)
 {
     /* Get the packet total length */
     pdev->ep_in[ep_addr & 0x7F].total_length = size;
@@ -611,7 +611,7 @@ USBD_StatusTypeDef USBD_LL_Transmit(USBD_HandleTypeDef * pdev,
  */
 USBD_StatusTypeDef USBD_LL_PrepareReceive(USBD_HandleTypeDef * pdev,
         uint8_t ep_addr,
-        uint8_t * pbuf, uint16_t size)
+        uint8_t * pbuf, uint32_t size)
 {
     HAL_PCD_EP_Receive(pdev->pData, ep_addr, pbuf, size);
     return USBD_OK;

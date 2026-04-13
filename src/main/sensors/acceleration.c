@@ -45,6 +45,7 @@
 #include "drivers/accgyro/accgyro_bmi270.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_icm42605.h"
+#include "drivers/accgyro/accgyro_icm45686.h"
 #include "drivers/accgyro/accgyro_lsm6dxx.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/sensor.h"
@@ -85,7 +86,7 @@ static EXTENDED_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM float fAccZero[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM float fAccGain[XYZ_AXIS_COUNT];
 
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 5);
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 6);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
@@ -94,7 +95,8 @@ void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
         .acc_lpf_hz = SETTING_ACC_LPF_HZ_DEFAULT,
         .acc_notch_hz = SETTING_ACC_NOTCH_HZ_DEFAULT,
         .acc_notch_cutoff = SETTING_ACC_NOTCH_CUTOFF_DEFAULT,
-        .acc_soft_lpf_type = SETTING_ACC_LPF_TYPE_DEFAULT
+        .acc_soft_lpf_type = SETTING_ACC_LPF_TYPE_DEFAULT,
+        .acc_temp_correction = SETTING_ACC_TEMP_CORRECTION_DEFAULT
     );
     RESET_CONFIG_2(flightDynamicsTrims_t, &instance->accZero,
         .raw[X] = SETTING_ACCZERO_X_DEFAULT,
@@ -238,6 +240,18 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     case ACC_LSM6DXX:
         if (lsm6dAccDetect(dev)) {
             accHardware = ACC_LSM6DXX;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+#ifdef USE_IMU_ICM45686
+    case ACC_ICM45686:
+        if (icm45686AccDetect(dev)) {
+            accHardware = ACC_ICM45686;
             break;
         }
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
@@ -557,8 +571,8 @@ void accUpdate(void)
 
     if (!ARMING_FLAG(SIMULATOR_MODE_SITL)) {
         performAcclerationCalibration();
-        applyAccelerationZero();  
-    } 
+        applyAccelerationZero();
+    }
 
     applySensorAlignment(accADC, accADC, acc.dev.accAlign);
     applyBoardAlignment(accADC);
@@ -585,8 +599,8 @@ void accUpdate(void)
         // calc difference from this sample and 5hz filtered value, square and filter at 2hz
         const float accDiff = acc.accADCf[axis] - accFloorFilt;
         acc.accVibeSq[axis] = pt1FilterApply(&accVibeFilter[axis], accDiff * accDiff);
-        acc.accVibe = fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
     }
+    acc.accVibe = fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
 
     // Filter acceleration
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -637,7 +651,7 @@ bool accIsClipped(void)
 
 void accSetCalibrationValues(void)
 {
-    if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && 
+    if (!ARMING_FLAG(SIMULATOR_MODE_SITL) &&
         ((accelerometerConfig()->accZero.raw[X] == 0) && (accelerometerConfig()->accZero.raw[Y] == 0) && (accelerometerConfig()->accZero.raw[Z] == 0) &&
         (accelerometerConfig()->accGain.raw[X] == 4096) && (accelerometerConfig()->accGain.raw[Y] == 4096) &&(accelerometerConfig()->accGain.raw[Z] == 4096))) {
         DISABLE_STATE(ACCELEROMETER_CALIBRATED);
@@ -648,12 +662,12 @@ void accSetCalibrationValues(void)
 }
 
 void accInitFilters(void)
-{   
+{
     accSoftLpfFilterApplyFn = nullFilterApply;
 
     if (acc.accTargetLooptime && accelerometerConfig()->acc_lpf_hz) {
 
-        switch (accelerometerConfig()->acc_soft_lpf_type) 
+        switch (accelerometerConfig()->acc_soft_lpf_type)
         {
         case FILTER_PT1:
             accSoftLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;

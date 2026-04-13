@@ -55,7 +55,7 @@ int config_streamer_write(config_streamer_t *c, const uint8_t *p, uint32_t size)
         return -1;
     }
 
-    for (const uint8_t *pat = p; pat != (uint8_t*)p + size; pat++) {
+    for (const uint8_t *pat = p; pat != (uint8_t *)p + size; pat++) {
         c->buffer.b[c->at++] = *pat;
 
         if (c->at == sizeof(c->buffer)) {
@@ -81,7 +81,7 @@ int config_streamer_flush(config_streamer_t *c)
         c->err = config_streamer_impl_write_word(c, &c->buffer.w);
         c->at = 0;
     }
-    return c-> err;
+    return c->err;
 }
 
 int config_streamer_finish(config_streamer_t *c)

@@ -52,10 +52,10 @@ extern baro_t baro;
 typedef struct barometerConfig_s {
     uint8_t baro_hardware;                  // Barometer hardware to use
     uint16_t baro_calibration_tolerance;    // Baro calibration tolerance (cm at sea level)
+    float baro_temp_correction;             // Baro temperature correction value (cm/K)
 } barometerConfig_t;
 
 PG_DECLARE(barometerConfig_t, barometerConfig);
-
 
 bool baroInit(void);
 bool baroIsCalibrationComplete(void);

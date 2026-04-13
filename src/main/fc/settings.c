@@ -235,8 +235,8 @@ static uint16_t getValueOffset(const setting_t *value)
         return value->offset;
     case PROFILE_VALUE:
         return value->offset + sizeof(pidProfile_t) * getConfigProfile();
-    case CONTROL_RATE_VALUE:
-        return value->offset + sizeof(controlRateConfig_t) * getConfigProfile();
+    case CONTROL_VALUE:
+        return value->offset + sizeof(controlConfig_t) * getConfigProfile();
 	case EZ_TUNE_VALUE:
 		return value->offset + sizeof(ezTuneSettings_t) * getConfigProfile();
     case BATTERY_CONFIG_VALUE:

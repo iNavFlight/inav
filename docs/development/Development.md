@@ -107,10 +107,12 @@ The main flow for a contributing is as follows:
 7. `git add <files that have changed>`
 8. `git commit`
 9. `git push origin my-new-code`
-10. Create pull request using github UI to merge your changes from your new branch into `inav/master`
+10. Create pull request using github UI to merge your changes from your new branch into the appropriate target branch (see "Branching and release workflow" below)
 11. Repeat from step 4 for new other changes.
 
 The primary thing to remember is that separate pull requests should be created for separate branches.  Never create a pull request from your `master` branch.
+
+**Important:** Most contributions should target a maintenance branch, not `master`. See the branching section below for guidance on choosing the correct target branch.
 
 Later, you can get the changes from the INAV repo into your `master` branch by adding INAV as a git remote and merging from it as follows:
 
@@ -125,10 +127,111 @@ You can also perform the git commands using the git client inside Eclipse.  Refe
 
 ## Branching and release workflow
 
-Normally, all development occurs on the `master` branch. Every release will have it's own branch named `release_x.y.z`.
+INAV uses maintenance branches for active development and releases. The `master` branch tracks the current version by receiving merges from the current version maintenance branch.
 
-During release candidate cycle we will follow the process outlined below:
+### Branch Types
 
-1. Create a release branch `release_x.y.z`
-2. All bug fixes found in the release candidates will be merged into `release_x.y.z` branch and not into the `master`.
-3. After final release is made, the branch `release_x.y.z` is locked, and merged into `master` bringing all of the bug fixes into the development branch. Merge conflicts that may arise at this stage are resolved manually.
+#### Maintenance Branches (Current and Next Major Version)
+
+**Current version branch** (e.g., `maintenance-9.x`):
+- Used for backward-compatible changes
+- Bug fixes, new features, and improvements that don't break compatibility
+- Changes here will be included in the next release of the current major version (e.g., 9.1, 9.2)
+- Does not create compatibility issues between firmware and configurator within the same major version
+
+**Next major version branch** (e.g., `maintenance-10.x`):
+- Used for changes that introduce compatibility requirements
+- Breaking changes that would cause issues between different major versions
+- New features that require coordinated firmware and configurator updates
+- Changes here will be included in the next major version release (e.g., 10.0)
+
+### Choosing the Right Target Branch
+
+When creating a pull request, target the appropriate branch:
+
+**Target the current version branch** (e.g., `maintenance-9.x`) if your change:
+- Fixes a bug
+- Adds a new feature that is backward-compatible
+- Updates documentation
+- Adds or updates hardware targets
+- Makes improvements that work with existing releases
+
+**Target the next major version branch** (e.g., `maintenance-10.x`) if your change:
+- Breaks compatibility with the current major version
+- Requires coordinated firmware and configurator updates
+- Changes MSP protocol in an incompatible way
+- Modifies data structures in a breaking way
+
+### Release Workflow
+
+1. Development occurs on the current version maintenance branch (e.g., `maintenance-9.x`)
+2. When ready for release, a release candidate is tagged from the maintenance branch
+3. Bug fixes during the RC period continue on the maintenance branch
+4. After final release, the maintenance branch is periodically merged into `master`, which is then merged into the next version branch
+5. The cycle continues with the maintenance branch receiving new changes for the next release
+
+**Merge flow:** `maintenance-9.x` → `master` → `maintenance-10.x`
+
+### Propagating Changes Between Branches
+
+Changes committed to the current version branch flow through master to the next major version branch.
+
+**Maintainer workflow:**
+- Changes in `maintenance-9.x` are merged into `master`
+- Changes in `master` are then merged into `maintenance-10.x`
+- This ensures fixes and features aren't lost when the next major version is released
+- Prevents users from experiencing bugs in v10.0 that were already fixed in v9.x
+
+**Merge flow:**
+```bash
+# Step 1: Merge current version to master
+git checkout master
+git merge maintenance-9.x
+git push upstream master
+
+# Step 2: Merge master to next version
+git checkout maintenance-10.x
+git merge master
+git push upstream maintenance-10.x
+```
+
+**Why use master as intermediate step:** This keeps master synchronized with the current version, so if a contributor accidentally branches from master, they get current version code without breaking changes from maintenance-10.x.
+
+### Example Timeline
+
+**Current state (example - during 9.x series):**
+- `maintenance-9.x` - Active development for INAV 9.1, 9.2, etc.
+- `master` - Mirror of maintenance-9.x (receives merges via merge flow)
+- `maintenance-10.x` - Breaking changes for future INAV 10.0
+
+**After INAV 10.0 is released:**
+- `maintenance-10.x` - Becomes active development for INAV 10.1, 10.2, etc.
+- `master` - Now mirrors maintenance-10.x (via merge flow)
+- `maintenance-11.x` - Breaking changes for future INAV 11.0
+
+### Working with Maintenance Branches
+
+To branch from the current maintenance branch instead of master:
+
+```bash
+# Fetch latest changes
+git fetch upstream
+
+# Create your feature branch from the maintenance branch
+git checkout -b my-new-feature upstream/maintenance-9.x
+
+# Make changes, commit, and push
+git push origin my-new-feature
+
+# Create PR targeting maintenance-9.x (not master)
+```
+
+When updating your fork:
+
+```bash
+# Get the latest maintenance branch changes
+git fetch upstream
+
+# Push directly from upstream to your fork (no local checkout needed)
+git push origin upstream/maintenance-9.x:maintenance-9.x
+```

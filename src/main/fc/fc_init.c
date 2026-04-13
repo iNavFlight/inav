@@ -89,6 +89,7 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 #include "fc/firmware_update.h"
+#include "fc/stats.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -126,6 +127,8 @@
 #include "io/vtx_msp.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
+
+#include "drivers/dronecan/dronecan.h"
 
 #include "msp/msp_serial.h"
 
@@ -283,6 +286,7 @@ void init(void)
 
     serialInit(feature(FEATURE_SOFTSERIAL));
 
+
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
@@ -302,6 +306,7 @@ void init(void)
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
 #endif
+
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     gvInit();
@@ -523,6 +528,10 @@ void init(void)
     ezTuneUpdate();
 #endif
 
+#ifdef USE_DRONECAN
+    dronecanInit();
+#endif
+
 #ifndef USE_GEOZONE
     featureClear(FEATURE_GEOZONE);
 #endif
@@ -677,7 +686,9 @@ void init(void)
 #endif
 
 #ifdef USE_VTX_MSP
-    vtxMspInit();
+    if (feature(FEATURE_OSD)) {
+       vtxMspInit();
+    }
 #endif
 
 #endif // USE_VTX_CONTROL
@@ -743,6 +754,8 @@ void init(void)
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 #endif
+
+    statsInit();
 
     systemState |= SYSTEM_STATE_READY;
 }

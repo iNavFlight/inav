@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -20,6 +19,13 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_ll_exti.h"
+#ifdef  USE_FULL_ASSERT
+#include "stm32_assert.h"
+#else
+#ifndef assert_param
+#define assert_param(expr) ((void)0U)
+#endif
+#endif
 
 /** @addtogroup STM32H7xx_LL_Driver
   * @{
@@ -106,12 +112,12 @@ ErrorStatus LL_EXTI_DeInit(void)
   LL_EXTI_WriteReg(D3PCR2H, 0x00000000U);
   LL_EXTI_WriteReg(D3PCR3H, 0x00000000U);
 
-  /* Interrupt mask register set to default reset values */
+  /* Interrupt mask register reset */
   LL_EXTI_WriteReg(IMR1, 0x00000000U);
   LL_EXTI_WriteReg(IMR2, 0x00000000U);
   LL_EXTI_WriteReg(IMR3, 0x00000000U);
 
-  /*  Event mask register set to default reset values */
+  /*  Event mask register reset */
   LL_EXTI_WriteReg(EMR1, 0x00000000U);
   LL_EXTI_WriteReg(EMR2, 0x00000000U);
   LL_EXTI_WriteReg(EMR3, 0x00000000U);
@@ -450,4 +456,3 @@ void LL_EXTI_StructInit(LL_EXTI_InitTypeDef *EXTI_InitStruct)
 
 #endif /* USE_FULL_LL_DRIVER */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

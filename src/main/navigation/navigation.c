@@ -2718,9 +2718,10 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
 
         case RTH_HOME_ENROUTE_PROPORTIONAL:
             {
-                float rthTotalDistanceToTravel = posControl.rthState.rthInitialDistance - (STATE(FIXED_WING_LEGACY) ? navConfig()->fw.loiter_radius : 0);
+                uint16_t endPointDistance = STATE(FIXED_WING_LEGACY) ? navConfig()->fw.loiter_radius : 0;
+                float rthTotalDistanceToTravel = posControl.rthState.rthInitialDistance - endPointDistance;
                 if (rthTotalDistanceToTravel >= 100) {
-                    float ratioNotTravelled = constrainf(posControl.homeDistance / rthTotalDistanceToTravel, 0.0f, 1.0f);
+                    float ratioNotTravelled = constrainf((posControl.homeDistance - endPointDistance) / rthTotalDistanceToTravel, 0.0f, 1.0f);
                     posControl.rthState.homeTmpWaypoint.z = (posControl.rthState.rthInitialAltitude * ratioNotTravelled) + (posControl.rthState.rthFinalAltitude * (1.0f - ratioNotTravelled));
                 }
                 else {
@@ -3099,12 +3100,10 @@ static void updateDesiredRTHAltitude(void)
             switch (navConfig()->general.flags.rth_alt_control_mode) {
                 case NAV_RTH_NO_ALT:
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_EXTRA_ALT: // Maintain current altitude + predefined safety margin
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z + navConfig()->general.rth_altitude;
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_MAX_ALT:
@@ -3112,19 +3111,17 @@ static void updateDesiredRTHAltitude(void)
                     if (navConfig()->general.rth_altitude > 0) {
                         posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.rthInitialAltitude, posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude);
                     }
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_AT_LEAST_ALT:  // Climb to at least some predefined altitude above home
                     posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude, posControl.actualState.abs.pos.z);
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_CONST_ALT:     // Climb/descend to predefined altitude above home
                 default:
                     posControl.rthState.rthInitialAltitude = posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude;
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
             }
+            posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
 
             if ((navConfig()->general.flags.rth_use_linear_descent) && (navConfig()->general.rth_home_altitude > 0) && (navConfig()->general.rth_linear_descent_start_distance == 0) ) {
                 posControl.rthState.rthFinalAltitude = posControl.rthState.homePosition.pos.z + navConfig()->general.rth_home_altitude;
@@ -3543,6 +3540,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
             landingDetectorIsActive = false;
         }
         resetLandingDetector();
+        getTakeoffAltitude();
 
         return;
     }
@@ -3869,6 +3867,15 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
     }
 }
 
+int isGCSValid(void)
+{
+    return (ARMING_FLAG(ARMED) && 
+            (posControl.flags.estPosStatus >= EST_TRUSTED) && 
+            posControl.gpsOrigin.valid && 
+            posControl.flags.isGCSAssistedNavigationEnabled && 
+            (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS));
+}
+
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
 {
     gpsLocation_t wpLLH;
@@ -3887,9 +3894,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     }
     // WP #255 - special waypoint - directly set desiredPosition
     // Only valid when armed and in poshold mode
-    else if ((wpNumber == 255) && (wpData->action == NAV_WP_ACTION_WAYPOINT) &&
-             ARMING_FLAG(ARMED) && (posControl.flags.estPosStatus == EST_TRUSTED) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled &&
-             (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+    else if ((wpNumber == 255) && (wpData->action == NAV_WP_ACTION_WAYPOINT) && isGCSValid()) {
         // Convert to local coordinates
         geoConvertGeodeticToLocal(&wpPos.pos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
 
@@ -4958,13 +4963,23 @@ void navigationUsePIDs(void)
                                         0.0f
     );
 
-    navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 100.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 100.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 300.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].FF / 100.0f,
-                                        NAV_DTERM_CUT_HZ,
-                                        0.0f
-    );
+    if (pidProfile()->fwAltControlUsePos) {
+        navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 100.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 100.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 100.0f,
+                                            0.0f,
+                                            NAV_DTERM_CUT_HZ,
+                                            0.0f
+        );
+    } else {
+        navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 100.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 100.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 300.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].FF / 100.0f,
+                                            NAV_DTERM_CUT_HZ,
+                                            0.0f
+        );
+    }
 
     navPidInit(&posControl.pids.fw_heading, (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].I / 10.0f,
@@ -5186,6 +5201,33 @@ bool navigationIsControllingAltitude(void) {
     return (stateFlags & NAV_CTL_ALT);
 }
 
+bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm)
+{
+    const navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+    if (!(stateFlags & NAV_CTL_ALT) || (stateFlags & NAV_CTL_LAND) || navigationIsExecutingAnEmergencyLanding() || posControl.flags.estAltStatus == EST_NONE) {
+        return false;
+    }
+
+    float targetAltitudeLocalCm;
+    switch (datumFlag) {
+    case NAV_WP_TAKEOFF_DATUM:
+        targetAltitudeLocalCm = (float)targetAltitudeCm;
+        break;
+    case NAV_WP_MSL_DATUM:
+        if (!posControl.gpsOrigin.valid) {
+            return false;
+        }
+        targetAltitudeLocalCm = (float)(targetAltitudeCm - posControl.gpsOrigin.alt);
+        break;
+    case NAV_WP_TERRAIN_DATUM:
+    default:
+        return false;
+    }
+
+    updateClimbRateToAltitudeController(0.0f, targetAltitudeLocalCm, ROC_TO_ALT_TARGET);
+    return true;
+}
+
 bool navigationIsFlyingAutonomousMode(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
@@ -5276,6 +5318,16 @@ int8_t navCheckActiveAngleHoldAxis(void)
 uint8_t getActiveWpNumber(void)
 {
     return NAV_Status.activeWpNumber;
+}
+
+float getTakeoffAltitude(void)
+{
+    static float refTakeoffAltitude = 0.0f;
+    if (!ARMING_FLAG(ARMED) && !landingDetectorIsActive) {
+        refTakeoffAltitude = posControl.actualState.abs.pos.z;
+    }
+
+    return refTakeoffAltitude;
 }
 
 #ifdef USE_FW_AUTOLAND

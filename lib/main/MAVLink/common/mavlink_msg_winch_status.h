@@ -106,6 +106,60 @@ static inline uint16_t mavlink_msg_winch_status_pack(uint8_t system_id, uint8_t 
 }
 
 /**
+ * @brief Pack a winch_status message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param time_usec [us] Timestamp (synced to UNIX time or since system boot).
+ * @param line_length [m] Length of line released. NaN if unknown
+ * @param speed [m/s] Speed line is being released or retracted. Positive values if being released, negative values if being retracted, NaN if unknown
+ * @param tension [kg] Tension on the line. NaN if unknown
+ * @param voltage [V] Voltage of the battery supplying the winch. NaN if unknown
+ * @param current [A] Current draw from the winch. NaN if unknown
+ * @param temperature [degC] Temperature of the motor. INT16_MAX if unknown
+ * @param status  Status flags
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_winch_status_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint64_t time_usec, float line_length, float speed, float tension, float voltage, float current, int16_t temperature, uint32_t status)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_WINCH_STATUS_LEN];
+    _mav_put_uint64_t(buf, 0, time_usec);
+    _mav_put_float(buf, 8, line_length);
+    _mav_put_float(buf, 12, speed);
+    _mav_put_float(buf, 16, tension);
+    _mav_put_float(buf, 20, voltage);
+    _mav_put_float(buf, 24, current);
+    _mav_put_uint32_t(buf, 28, status);
+    _mav_put_int16_t(buf, 32, temperature);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_WINCH_STATUS_LEN);
+#else
+    mavlink_winch_status_t packet;
+    packet.time_usec = time_usec;
+    packet.line_length = line_length;
+    packet.speed = speed;
+    packet.tension = tension;
+    packet.voltage = voltage;
+    packet.current = current;
+    packet.status = status;
+    packet.temperature = temperature;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_WINCH_STATUS_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_WINCH_STATUS;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_WINCH_STATUS_MIN_LEN, MAVLINK_MSG_ID_WINCH_STATUS_LEN, MAVLINK_MSG_ID_WINCH_STATUS_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_WINCH_STATUS_MIN_LEN, MAVLINK_MSG_ID_WINCH_STATUS_LEN);
+#endif
+}
+
+/**
  * @brief Pack a winch_status message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -183,6 +237,20 @@ static inline uint16_t mavlink_msg_winch_status_encode_chan(uint8_t system_id, u
 }
 
 /**
+ * @brief Encode a winch_status struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param winch_status C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_winch_status_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_winch_status_t* winch_status)
+{
+    return mavlink_msg_winch_status_pack_status(system_id, component_id, _status, msg,  winch_status->time_usec, winch_status->line_length, winch_status->speed, winch_status->tension, winch_status->voltage, winch_status->current, winch_status->temperature, winch_status->status);
+}
+
+/**
  * @brief Send a winch_status message
  * @param chan MAVLink channel to send the message
  *
@@ -242,7 +310,7 @@ static inline void mavlink_msg_winch_status_send_struct(mavlink_channel_t chan, 
 
 #if MAVLINK_MSG_ID_WINCH_STATUS_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

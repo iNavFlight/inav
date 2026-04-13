@@ -61,6 +61,11 @@ PG_RESET_TEMPLATE(logConfig_t, logConfig,
     .topics = SETTING_LOG_TOPICS_DEFAULT
 );
 
+#if defined(USE_BOOTLOG)
+char bootlog_buffer[USE_BOOTLOG];
+char *bootlog_head = bootlog_buffer;
+#endif
+
 void logInit(void)
 {
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_LOG);
@@ -135,6 +140,18 @@ static void logPrint(const char *buf, size_t size)
     } else if (mspLogPort) {
         mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, size, mspLogPort, MSP_V2_NATIVE);
     }
+
+#ifdef USE_BOOTLOG
+    if ( (bootlog_head + size + 2) < (bootlog_buffer + USE_BOOTLOG) ) {
+        for (unsigned int ii = 0; ii < size; ii++) {
+		    *bootlog_head = buf[ii];
+			bootlog_head++;
+        }
+		bootlog_head[0] = '\r';
+		bootlog_head[1] = '\n';
+		bootlog_head =  bootlog_head + 2;
+	}
+#endif
 }
 
 static size_t logFormatPrefix(char *buf, const timeMs_t timeMs)

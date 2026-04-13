@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for STM32 Network Library</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  <link rel="icon" type="image/x-icon" href="_htmresc/favicon.png" />
+</head>
+<body>
+<p>::: {.row} ::: {.col-sm-12 .col-lg-4}</p>
+<div class="card fluid">
+<div class="sectione dark">
+<center>
+<h1 id="release-notes-for-stm32-network-library"><small>Release Notes for</small> <mark>STM32 Network Library</mark></h1>
+<p>Copyright © 2019 STMicroelectronics<br />
+Microcontrollers Division - Application Team</p>
+<a href="https://www.st.com" class="logo"><img src="_htmresc/st_logo.png" alt="ST logo" /></a>
+</center>
+</div>
+</div>
+<h1 id="license">License</h1>
+<p>Licensed under ST license SLA0044 (the “License”). You may not use this package except in compliance with the License.</p>
+<p>You may obtain a copy of the License at: <a href="http://www.st.com/software_license_agreement_liberty_v2">SLA0044 Software license agreement</a>.</p>
+<h1 id="purpose">Purpose</h1>
+<p>The <mark>STM32 Network Library</mark> is a middleware providing network services on STM32 devices. It provides a socket API (BSD like style) with support of secure or non secure connection and an API to control the lifecycle of the network adapters.</p>
+<p>Three classes of network adapters are supported WIFI, Ethernet and Cellular. Different WIFI modules are supported from third party vendors.</p>
+<h1 id="documentation">Documentation</h1>
+<p><a href="./NetworkLib.chm">Doxygen documentation</a> :::</p>
+<div class="col-sm-12 col-lg-8">
+<h1 id="update-history">Update History</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section8" checked aria-hidden="false"> <label for="collapse-section8" aria-hidden="true">V2.1.0 / 2020-Mai-04</label>
+<div>
+<h2 id="main-changes">Main changes</h2>
+<h3 id="network-library-core">Network library core</h3>
+<ul>
+<li>Improve performance monitoring primitives adding Thread display support</li>
+<li>Improve Memory debug primitive</li>
+<li>Add Node Tree display for dynamic memory allocation</li>
+</ul>
+<h3 id="mxchip-wifi-network-interface">MXCHIP WIFI Network interface</h3>
+<ul>
+<li>Add support of UART interrupt module</li>
+</ul>
+<h3 id="bug-fixes">Bug fixes</h3>
+<ul>
+<li>Fix uninitialized variable for all WIFI network interface to force default to AP mode when connecting</li>
+<li>Fix memory leakage for MXCHIP network interface</li>
+</ul>
+<h2 id="development-toolchains-and-compilers">Development Toolchains and Compilers</h2>
+<ul>
+<li>IAR Embedded Workbench for ARM (EWARM). Version 8.32.3</li>
+<li>Keil Microcontroller Development Kit (MDK-ARM) Version 5.27.1</li>
+<li>System Workbench for STM32. Version 2.8.1.</li>
+</ul>
+<h2 id="supported-devices-and-boards">Supported Devices and Boards</h2>
+<ul>
+<li>B-L475E-IOT01A board (MB1297 rev D).</li>
+<li>32F413HDISCOVERY board (MB1274 rev B).</li>
+<li>32F769IDISCOVERY board (MB1225 rev B).</li>
+<li>P-L496G-CELL02 board package including the 32L496G-Discovery board (MB1261 rev B) and the Cellular Add-on board based on BG96 4G Modem (MB1329 rev B)</li>
+<li>STM32H743I-EVAL (with Ethernet interface)</li>
+</ul>
+<h2 id="known-limitations">Known Limitations</h2>
+<ul>
+<li>Cellular on P-L496G-CELL02:</li>
+<li>Server sockets are not supported</li>
+</ul>
+</div>
+</div>
+<div class="col-sm-12 col-lg-8">
+<h1 id="update-history-1">Update History</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section7" checked aria-hidden="false"> <label for="collapse-section7" aria-hidden="true">V2.0.0 / 2020-April-08</label>
+<div>
+<h2 id="main-changes-1">Main changes</h2>
+<h3 id="network-library-core-1">Network library core</h3>
+<ul>
+<li>Prepare support of IPv6 addresses, making code independent from network address definition</li>
+<li>Clean up template of configuration file to allow application to overwrite default definition</li>
+<li>Add performance monitoring primitives</li>
+<li>Add memory allocation primitive to track leakage</li>
+<li>Add yield feature for specific network interface</li>
+</ul>
+<h3 id="wifi-generic-support">WIFI generic support</h3>
+<ul>
+<li>Add WIFI Access point support, with needed new API (set_channel, set mode )</li>
+<li>Update state machine management to support AP and STA connection</li>
+<li>Add support of concurrent interface, for instance an AP running in parallel with a STA</li>
+<li>Extend list of supported security mode</li>
+</ul>
+<h3 id="cellular-network-interface">Cellular Network interface</h3>
+<ul>
+<li>Add compatibility until XCube Cellular package 1.5.0</li>
+</ul>
+<h3 id="cypress-wifi-network-interface">Cypress WIFI Network interface</h3>
+<ul>
+<li>Add support of Access Point mode</li>
+</ul>
+<h3 id="mxchip-wifi-network-interface-1">MXCHIP WIFI Network interface</h3>
+<ul>
+<li>Newly supported WIFI module</li>
+<li>Add support of UART and SPI based module</li>
+<li>Add templates files</li>
+</ul>
+<h3 id="inventek-wifi-network-interface">Inventek WIFI network interface</h3>
+<ul>
+<li>Add support of net_getpeername and net_getsocketinfo API</li>
+</ul>
+<h3 id="bug-fixes-1">Bug fixes</h3>
+<ul>
+<li>Fix memory leakage for Cypress WHD based devices</li>
+<li>Fix memory leakage for secure socket (based on MbedTLS )</li>
+<li>Fix timeout definition for Cellular devices on connection</li>
+<li>Fix state machine on deinitialization transition</li>
+</ul>
+<h2 id="development-toolchains-and-compilers-1">Development Toolchains and Compilers</h2>
+<ul>
+<li>IAR Embedded Workbench for ARM (EWARM). Version 8.32.3</li>
+<li>Keil Microcontroller Development Kit (MDK-ARM) Version 5.27.1</li>
+<li>System Workbench for STM32. Version 2.8.1.</li>
+</ul>
+<h2 id="supported-devices-and-boards-1">Supported Devices and Boards</h2>
+<ul>
+<li>B-L475E-IOT01A board (MB1297 rev D).</li>
+<li>32F413HDISCOVERY board (MB1274 rev B).</li>
+<li>32F769IDISCOVERY board (MB1225 rev B).</li>
+<li>P-L496G-CELL02 board package including the 32L496G-Discovery board (MB1261 rev B) and the Cellular Add-on board based on BG96 4G Modem (MB1329 rev B)</li>
+<li>STM32H743I-EVAL (with Ethernet interface)</li>
+</ul>
+<h2 id="known-limitations-1">Known Limitations</h2>
+<ul>
+<li>Cellular on P-L496G-CELL02:</li>
+<li>Server sockets are not supported</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section6" aria-hidden="true"> <label for="collapse-section6" aria-hidden="true">V1.1.0 / 2019-November-27</label>
+<div>
+<h2 id="main-changes-2">Main changes</h2>
+<ul>
+<li>Add support for WIFI-WHD devices, create a new network interface</li>
+<li>Add support of ethernet on H7 device (STM32H743I-EVAL board)</li>
+<li>Restructure code regarding LWIP based network interface</li>
+<li>lwip related initialisation is moved to net_conf.c</li>
+<li>Compliant with ST-Quality standard
+<ul>
+<li>Pass MISRA check list</li>
+<li>Pass CodeSonar test<br />
+</li>
+<li>Enforce ST coding style rules</li>
+</ul></li>
+</ul>
+<h3 id="bug-fixes-2">Bug fixes</h3>
+<h2 id="development-toolchains-and-compilers-2">Development Toolchains and Compilers</h2>
+<ul>
+<li>IAR Embedded Workbench for ARM (EWARM). Version 8.30.1.</li>
+<li>Keil Microcontroller Development Kit (MDK-ARM) Version 5.26.</li>
+<li>System Workbench for STM32. Version 2.8.1.</li>
+</ul>
+<h2 id="supported-devices-and-boards-2">Supported Devices and Boards</h2>
+<ul>
+<li>B-L475E-IOT01A board (MB1297 rev D).</li>
+<li>32F413HDISCOVERY board (MB1274 rev B).</li>
+<li>32F769IDISCOVERY board (MB1225 rev B).</li>
+<li>P-L496G-CELL02 board package including the 32L496G-Discovery board (MB1261 rev B) and the Cellular Add-on board based on BG96 4G Modem (MB1329 rev B)</li>
+<li>STM32H743I-EVAL (with Ethernet interface)</li>
+</ul>
+<h2 id="known-limitations-2">Known Limitations</h2>
+<ul>
+<li>Cellular on P-L496G-CELL02:
+<ul>
+<li>Server sockets are not supported</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section5" aria-hidden="true"> <label for="collapse-section5" aria-hidden="true">V1.0.5 / 2019-October-8</label>
+<div>
+<h2 id="main-changes-3">Main changes</h2>
+<ul>
+<li>Add support for CMSIS-OS2</li>
+</ul>
+<h3 id="bug-fixes-3">Bug fixes</h3>
+<ul>
+<li>Fix cellular network interface, required to used firmware version &gt;= BG96MAR02A08M1G.</li>
+<li>Fix message order on notification</li>
+</ul>
+<h2 id="development-toolchains-and-compilers-3">Development Toolchains and Compilers</h2>
+<ul>
+<li>IAR Embedded Workbench for ARM (EWARM). Version 8.30.1.</li>
+<li>Keil Microcontroller Development Kit (MDK-ARM) Version 5.26.</li>
+<li>System Workbench for STM32. Version 2.8.1.</li>
+</ul>
+<h2 id="supported-devices-and-boards-3">Supported Devices and Boards</h2>
+<ul>
+<li>B-L475E-IOT01A board (MB1297 rev D).</li>
+<li>32F413HDISCOVERY board (MB1274 rev B).</li>
+<li>32F769IDISCOVERY board (MB1225 rev B).</li>
+<li>P-L496G-CELL02 board package including the 32L496G-Discovery board (MB1261 rev B) and the Cellular Add-on board based on BG96 4G Modem (MB1329 rev B)</li>
+</ul>
+<h2 id="known-limitations-3">Known Limitations</h2>
+<ul>
+<li>Cellular on P-L496G-CELL02:
+<ul>
+<li>Server sockets are not supported</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section4" aria-hidden="true"> <label for="collapse-section4" aria-hidden="true">V1.0.4 / 2019-August-1</label>
+<div>
+<h2 id="main-changes-4">Main changes</h2>
+<ul>
+<li>Renamed STM32 Connectivity library as STM32 Network library</li>
+<li>Re-implement State management of network interface ,renamed states from INITIALIZED to READY , suppress some unused states</li>
+<li>Add and test support of embedded Inventek WIFI TLS socket</li>
+<li>Run MISRA checks</li>
+</ul>
+<h3 id="bug-fixes-4">Bug fixes</h3>
+<ul>
+<li>Ethernet template: properly clear the “Receive buffer unavailable status” in case of RX descriptor underflow.</li>
+<li>Fix missing semaphore on net_wait API</li>
+</ul>
+<h2 id="development-toolchains-and-compilers-4">Development Toolchains and Compilers</h2>
+<ul>
+<li>IAR Embedded Workbench for ARM (EWARM). Version 8.30.1.</li>
+<li>Keil Microcontroller Development Kit (MDK-ARM) Version 5.26.</li>
+<li>System Workbench for STM32. Version 2.8.1.</li>
+</ul>
+<h2 id="supported-devices-and-boards-4">Supported Devices and Boards</h2>
+<ul>
+<li>B-L475E-IOT01A board (MB1297 rev D).</li>
+<li>32F413HDISCOVERY board (MB1274 rev B).</li>
+<li>32F769IDISCOVERY board (MB1225 rev B).</li>
+<li>P-L496G-CELL02 board package including the 32L496G-Discovery board (MB1261 rev B) and the Cellular Add-on board based on BG96 4G Modem (MB1329 rev B)</li>
+</ul>
+<h2 id="known-limitations-4">Known Limitations</h2>
+<ul>
+<li>Cellular on P-L496G-CELL02:
+<ul>
+<li>Server sockets are not supported</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section3" aria-hidden="true"> <label for="collapse-section3" aria-hidden="true">V1.0.3 / 2019-july-05</label>
+<div>
+<h2 id="main-changes-5">Main changes</h2>
+<h3 id="bug-fixes-5">Bug fixes</h3>
+<ul>
+<li>Run Astyle checks</li>
+<li>Add doxygen doc generation</li>
+<li>Fix issue on F769 Ethernet interface , avoid blocking thread on alloc failure from LWIP pool</li>
+</ul>
+<h2 id="development-toolchains-and-compilers-5">Development Toolchains and Compilers</h2>
+<ul>
+<li>IAR Embedded Workbench for ARM (EWARM). Version 8.32.3.</li>
+<li>Keil Microcontroller Development Kit (MDK-ARM) Version 5.26.</li>
+<li>System Workbench for STM32. Version 2.8.1.</li>
+</ul>
+<h2 id="supported-devices-and-boards-5">Supported Devices and Boards</h2>
+<ul>
+<li>B-L475E-IOT01A board (MB1297 rev D).</li>
+<li>32F413HDISCOVERY board (MB1274 rev B).</li>
+<li>32F769IDISCOVERY board (MB1225 rev B).</li>
+<li>P-L496G-CELL02 board package including the 32L496G-Discovery board (MB1261 rev B) and the Cellular Add-on board based on BG96 4G Modem (MB1329 rev B)</li>
+</ul>
+<h2 id="known-limitations-5">Known Limitations</h2>
+<ul>
+<li>Cellular on P-L496G-CELL02:
+<ul>
+<li>Server sockets are not supported</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section2" aria-hidden="true"> <label for="collapse-section2" aria-hidden="true">V1.0.2 / 2019-june-07</label>
+<div>
+<h2 id="main-changes-6">Main changes</h2>
+<h3 id="bug-fixes-6">Bug fixes</h3>
+<ul>
+<li>Ethernet template: properly clear the “Receive buffer unavailable status” in case of RX descriptor underflow.</li>
+</ul>
+<h2 id="development-toolchains-and-compilers-6">Development Toolchains and Compilers</h2>
+<ul>
+<li>IAR Embedded Workbench for ARM (EWARM). Version 8.32.3.</li>
+<li>Keil Microcontroller Development Kit (MDK-ARM) Version 5.26.</li>
+<li>System Workbench for STM32. Version 2.8.1.</li>
+</ul>
+<h2 id="supported-devices-and-boards-6">Supported Devices and Boards</h2>
+<ul>
+<li>B-L475E-IOT01A board (MB1297 rev D).</li>
+<li>32F413HDISCOVERY board (MB1274 rev B).</li>
+<li>32F769IDISCOVERY board (MB1225 rev B).</li>
+<li>P-L496G-CELL02 board package including the 32L496G-Discovery board (MB1261 rev B) and the Cellular Add-on board based on BG96 4G Modem (MB1329 rev B)</li>
+</ul>
+<h2 id="known-limitations-6">Known Limitations</h2>
+<ul>
+<li>Cellular on P-L496G-CELL02:
+<ul>
+<li>Server sockets are not supported</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section1" aria-hidden="true"> <label for="collapse-section1" aria-hidden="true">V1.0.0 / 2019-april-26</label>
+<div>
+<h2 id="initial-version">Initial version</h2>
+<ul>
+<li>Features supported:
+<ul>
+<li>BSD socket like API</li>
+<li>Network interface control API (init, start, stop, …)</li>
+<li>TCP and UPD protocols</li>
+<li>Client and server connections</li>
+<li>DNS and ping services</li>
+<li>Secure socket on top of mbedTLS</li>
+<li>RTOS and bare metal applications are supported</li>
+<li>IPv4 address only is supported (IPv6 will be available in a future version)</li>
+<li>Wi-Fi, Ethernet and cellular connectivities</li>
+</ul></li>
+</ul>
+<h2 id="development-toolchains-and-compilers-7">Development Toolchains and Compilers</h2>
+<ul>
+<li>IAR Embedded Workbench for ARM (EWARM). Version 8.30.1.</li>
+<li>Keil Microcontroller Development Kit (MDK-ARM) Version 5.26.</li>
+<li>System Workbench for STM32. Version 2.8.1.</li>
+</ul>
+<h2 id="supported-devices-and-boards-7">Supported Devices and Boards</h2>
+<ul>
+<li>B-L475E-IOT01A board (MB1297 rev D).</li>
+<li>32F413HDISCOVERY board (MB1274 rev B).</li>
+<li>32F769IDISCOVERY board (MB1225 rev B).</li>
+<li>P-L496G-CELL02 board package including the 32L496G-Discovery board (MB1261 rev B) and the Cellular Add-on board based on BG96 4G Modem (MB1329 rev B)</li>
+</ul>
+<h2 id="known-limitations-7">Known Limitations</h2>
+<ul>
+<li>Cellular on P-L496G-CELL02
+<ul>
+<li>UDP sockets are not supported</li>
+<li>Server sockets are not supported</li>
+</ul></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<footer class="sticky">
+For complete documentation on <mark>STM32</mark> microcontrollers please visit <a href="http://www.st.com/stm32" class="uri">http://www.st.com/stm32</a>
+</footer>
+</body>
+</html>

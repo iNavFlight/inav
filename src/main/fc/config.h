@@ -63,7 +63,7 @@ typedef enum {
     FEATURE_PWM_OUTPUT_ENABLE = 1 << 28,
     FEATURE_OSD = 1 << 29,
     FEATURE_FW_LAUNCH = 1 << 30,
-    FEATURE_FW_AUTOTRIM = 1 << 31,
+    FEATURE_FW_AUTOTRIM = 1U << 31,
 } features_e;
 
 typedef struct systemConfig_s {

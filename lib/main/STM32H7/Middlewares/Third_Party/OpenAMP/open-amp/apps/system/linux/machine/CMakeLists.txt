@@ -1,0 +1,3 @@
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_MACHINE}/CMakeLists.txt")
+  add_subdirectory (${PROJECT_MACHINE})
+endif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_MACHINE}/CMakeLists.txt")

@@ -150,6 +150,7 @@ typedef struct pidProfile_s {
     float fixedWingLevelTrimGain;
 
     uint8_t fwAltControlResponseFactor;
+    bool fwAltControlUsePos;
 #ifdef USE_SMITH_PREDICTOR
     float smithPredictorStrength;
     float smithPredictorDelay;
@@ -196,7 +197,7 @@ float getAxisIterm(uint8_t axis);
 float getTotalRateTarget(void);
 void pidResetTPAFilter(void);
 
-struct controlRateConfig_s;
+struct controlConfig_s;
 struct motorConfig_s;
 struct rxConfig_s;
 

@@ -167,6 +167,90 @@ static inline uint16_t mavlink_msg_onboard_computer_status_pack(uint8_t system_i
     packet.ram_total = ram_total;
     packet.type = type;
     packet.temperature_board = temperature_board;
+    mav_array_assign_uint32_t(packet.storage_type, storage_type, 4);
+    mav_array_assign_uint32_t(packet.storage_usage, storage_usage, 4);
+    mav_array_assign_uint32_t(packet.storage_total, storage_total, 4);
+    mav_array_assign_uint32_t(packet.link_type, link_type, 6);
+    mav_array_assign_uint32_t(packet.link_tx_rate, link_tx_rate, 6);
+    mav_array_assign_uint32_t(packet.link_rx_rate, link_rx_rate, 6);
+    mav_array_assign_uint32_t(packet.link_tx_max, link_tx_max, 6);
+    mav_array_assign_uint32_t(packet.link_rx_max, link_rx_max, 6);
+    mav_array_assign_int16_t(packet.fan_speed, fan_speed, 4);
+    mav_array_assign_uint8_t(packet.cpu_cores, cpu_cores, 8);
+    mav_array_assign_uint8_t(packet.cpu_combined, cpu_combined, 10);
+    mav_array_assign_uint8_t(packet.gpu_cores, gpu_cores, 4);
+    mav_array_assign_uint8_t(packet.gpu_combined, gpu_combined, 10);
+    mav_array_assign_int8_t(packet.temperature_core, temperature_core, 8);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS;
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_MIN_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_CRC);
+}
+
+/**
+ * @brief Pack a onboard_computer_status message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param uptime [ms] Time since system boot.
+ * @param type  Type of the onboard computer: 0: Mission computer primary, 1: Mission computer backup 1, 2: Mission computer backup 2, 3: Compute node, 4-5: Compute spares, 6-9: Payload computers.
+ * @param cpu_cores  CPU usage on the component in percent (100 - idle). A value of UINT8_MAX implies the field is unused.
+ * @param cpu_combined  Combined CPU usage as the last 10 slices of 100 MS (a histogram). This allows to identify spikes in load that max out the system, but only for a short amount of time. A value of UINT8_MAX implies the field is unused.
+ * @param gpu_cores  GPU usage on the component in percent (100 - idle). A value of UINT8_MAX implies the field is unused.
+ * @param gpu_combined  Combined GPU usage as the last 10 slices of 100 MS (a histogram). This allows to identify spikes in load that max out the system, but only for a short amount of time. A value of UINT8_MAX implies the field is unused.
+ * @param temperature_board [degC] Temperature of the board. A value of INT8_MAX implies the field is unused.
+ * @param temperature_core [degC] Temperature of the CPU core. A value of INT8_MAX implies the field is unused.
+ * @param fan_speed [rpm] Fan speeds. A value of INT16_MAX implies the field is unused.
+ * @param ram_usage [MiB] Amount of used RAM on the component system. A value of UINT32_MAX implies the field is unused.
+ * @param ram_total [MiB] Total amount of RAM on the component system. A value of UINT32_MAX implies the field is unused.
+ * @param storage_type  Storage type: 0: HDD, 1: SSD, 2: EMMC, 3: SD card (non-removable), 4: SD card (removable). A value of UINT32_MAX implies the field is unused.
+ * @param storage_usage [MiB] Amount of used storage space on the component system. A value of UINT32_MAX implies the field is unused.
+ * @param storage_total [MiB] Total amount of storage space on the component system. A value of UINT32_MAX implies the field is unused.
+ * @param link_type  Link type: 0-9: UART, 10-19: Wired network, 20-29: Wifi, 30-39: Point-to-point proprietary, 40-49: Mesh proprietary
+ * @param link_tx_rate [KiB/s] Network traffic from the component system. A value of UINT32_MAX implies the field is unused.
+ * @param link_rx_rate [KiB/s] Network traffic to the component system. A value of UINT32_MAX implies the field is unused.
+ * @param link_tx_max [KiB/s] Network capacity from the component system. A value of UINT32_MAX implies the field is unused.
+ * @param link_rx_max [KiB/s] Network capacity to the component system. A value of UINT32_MAX implies the field is unused.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_onboard_computer_status_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint64_t time_usec, uint32_t uptime, uint8_t type, const uint8_t *cpu_cores, const uint8_t *cpu_combined, const uint8_t *gpu_cores, const uint8_t *gpu_combined, int8_t temperature_board, const int8_t *temperature_core, const int16_t *fan_speed, uint32_t ram_usage, uint32_t ram_total, const uint32_t *storage_type, const uint32_t *storage_usage, const uint32_t *storage_total, const uint32_t *link_type, const uint32_t *link_tx_rate, const uint32_t *link_rx_rate, const uint32_t *link_tx_max, const uint32_t *link_rx_max)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN];
+    _mav_put_uint64_t(buf, 0, time_usec);
+    _mav_put_uint32_t(buf, 8, uptime);
+    _mav_put_uint32_t(buf, 12, ram_usage);
+    _mav_put_uint32_t(buf, 16, ram_total);
+    _mav_put_uint8_t(buf, 196, type);
+    _mav_put_int8_t(buf, 229, temperature_board);
+    _mav_put_uint32_t_array(buf, 20, storage_type, 4);
+    _mav_put_uint32_t_array(buf, 36, storage_usage, 4);
+    _mav_put_uint32_t_array(buf, 52, storage_total, 4);
+    _mav_put_uint32_t_array(buf, 68, link_type, 6);
+    _mav_put_uint32_t_array(buf, 92, link_tx_rate, 6);
+    _mav_put_uint32_t_array(buf, 116, link_rx_rate, 6);
+    _mav_put_uint32_t_array(buf, 140, link_tx_max, 6);
+    _mav_put_uint32_t_array(buf, 164, link_rx_max, 6);
+    _mav_put_int16_t_array(buf, 188, fan_speed, 4);
+    _mav_put_uint8_t_array(buf, 197, cpu_cores, 8);
+    _mav_put_uint8_t_array(buf, 205, cpu_combined, 10);
+    _mav_put_uint8_t_array(buf, 215, gpu_cores, 4);
+    _mav_put_uint8_t_array(buf, 219, gpu_combined, 10);
+    _mav_put_int8_t_array(buf, 230, temperature_core, 8);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN);
+#else
+    mavlink_onboard_computer_status_t packet;
+    packet.time_usec = time_usec;
+    packet.uptime = uptime;
+    packet.ram_usage = ram_usage;
+    packet.ram_total = ram_total;
+    packet.type = type;
+    packet.temperature_board = temperature_board;
     mav_array_memcpy(packet.storage_type, storage_type, sizeof(uint32_t)*4);
     mav_array_memcpy(packet.storage_usage, storage_usage, sizeof(uint32_t)*4);
     mav_array_memcpy(packet.storage_total, storage_total, sizeof(uint32_t)*4);
@@ -185,7 +269,11 @@ static inline uint16_t mavlink_msg_onboard_computer_status_pack(uint8_t system_i
 #endif
 
     msg->msgid = MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS;
-    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_MIN_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_CRC);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_MIN_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_MIN_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN);
+#endif
 }
 
 /**
@@ -251,20 +339,20 @@ static inline uint16_t mavlink_msg_onboard_computer_status_pack_chan(uint8_t sys
     packet.ram_total = ram_total;
     packet.type = type;
     packet.temperature_board = temperature_board;
-    mav_array_memcpy(packet.storage_type, storage_type, sizeof(uint32_t)*4);
-    mav_array_memcpy(packet.storage_usage, storage_usage, sizeof(uint32_t)*4);
-    mav_array_memcpy(packet.storage_total, storage_total, sizeof(uint32_t)*4);
-    mav_array_memcpy(packet.link_type, link_type, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.link_tx_rate, link_tx_rate, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.link_rx_rate, link_rx_rate, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.link_tx_max, link_tx_max, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.link_rx_max, link_rx_max, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.fan_speed, fan_speed, sizeof(int16_t)*4);
-    mav_array_memcpy(packet.cpu_cores, cpu_cores, sizeof(uint8_t)*8);
-    mav_array_memcpy(packet.cpu_combined, cpu_combined, sizeof(uint8_t)*10);
-    mav_array_memcpy(packet.gpu_cores, gpu_cores, sizeof(uint8_t)*4);
-    mav_array_memcpy(packet.gpu_combined, gpu_combined, sizeof(uint8_t)*10);
-    mav_array_memcpy(packet.temperature_core, temperature_core, sizeof(int8_t)*8);
+    mav_array_assign_uint32_t(packet.storage_type, storage_type, 4);
+    mav_array_assign_uint32_t(packet.storage_usage, storage_usage, 4);
+    mav_array_assign_uint32_t(packet.storage_total, storage_total, 4);
+    mav_array_assign_uint32_t(packet.link_type, link_type, 6);
+    mav_array_assign_uint32_t(packet.link_tx_rate, link_tx_rate, 6);
+    mav_array_assign_uint32_t(packet.link_rx_rate, link_rx_rate, 6);
+    mav_array_assign_uint32_t(packet.link_tx_max, link_tx_max, 6);
+    mav_array_assign_uint32_t(packet.link_rx_max, link_rx_max, 6);
+    mav_array_assign_int16_t(packet.fan_speed, fan_speed, 4);
+    mav_array_assign_uint8_t(packet.cpu_cores, cpu_cores, 8);
+    mav_array_assign_uint8_t(packet.cpu_combined, cpu_combined, 10);
+    mav_array_assign_uint8_t(packet.gpu_cores, gpu_cores, 4);
+    mav_array_assign_uint8_t(packet.gpu_combined, gpu_combined, 10);
+    mav_array_assign_int8_t(packet.temperature_core, temperature_core, 8);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN);
 #endif
 
@@ -297,6 +385,20 @@ static inline uint16_t mavlink_msg_onboard_computer_status_encode(uint8_t system
 static inline uint16_t mavlink_msg_onboard_computer_status_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_onboard_computer_status_t* onboard_computer_status)
 {
     return mavlink_msg_onboard_computer_status_pack_chan(system_id, component_id, chan, msg, onboard_computer_status->time_usec, onboard_computer_status->uptime, onboard_computer_status->type, onboard_computer_status->cpu_cores, onboard_computer_status->cpu_combined, onboard_computer_status->gpu_cores, onboard_computer_status->gpu_combined, onboard_computer_status->temperature_board, onboard_computer_status->temperature_core, onboard_computer_status->fan_speed, onboard_computer_status->ram_usage, onboard_computer_status->ram_total, onboard_computer_status->storage_type, onboard_computer_status->storage_usage, onboard_computer_status->storage_total, onboard_computer_status->link_type, onboard_computer_status->link_tx_rate, onboard_computer_status->link_rx_rate, onboard_computer_status->link_tx_max, onboard_computer_status->link_rx_max);
+}
+
+/**
+ * @brief Encode a onboard_computer_status struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param onboard_computer_status C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_onboard_computer_status_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_onboard_computer_status_t* onboard_computer_status)
+{
+    return mavlink_msg_onboard_computer_status_pack_status(system_id, component_id, _status, msg,  onboard_computer_status->time_usec, onboard_computer_status->uptime, onboard_computer_status->type, onboard_computer_status->cpu_cores, onboard_computer_status->cpu_combined, onboard_computer_status->gpu_cores, onboard_computer_status->gpu_combined, onboard_computer_status->temperature_board, onboard_computer_status->temperature_core, onboard_computer_status->fan_speed, onboard_computer_status->ram_usage, onboard_computer_status->ram_total, onboard_computer_status->storage_type, onboard_computer_status->storage_usage, onboard_computer_status->storage_total, onboard_computer_status->link_type, onboard_computer_status->link_tx_rate, onboard_computer_status->link_rx_rate, onboard_computer_status->link_tx_max, onboard_computer_status->link_rx_max);
 }
 
 /**
@@ -359,20 +461,20 @@ static inline void mavlink_msg_onboard_computer_status_send(mavlink_channel_t ch
     packet.ram_total = ram_total;
     packet.type = type;
     packet.temperature_board = temperature_board;
-    mav_array_memcpy(packet.storage_type, storage_type, sizeof(uint32_t)*4);
-    mav_array_memcpy(packet.storage_usage, storage_usage, sizeof(uint32_t)*4);
-    mav_array_memcpy(packet.storage_total, storage_total, sizeof(uint32_t)*4);
-    mav_array_memcpy(packet.link_type, link_type, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.link_tx_rate, link_tx_rate, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.link_rx_rate, link_rx_rate, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.link_tx_max, link_tx_max, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.link_rx_max, link_rx_max, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet.fan_speed, fan_speed, sizeof(int16_t)*4);
-    mav_array_memcpy(packet.cpu_cores, cpu_cores, sizeof(uint8_t)*8);
-    mav_array_memcpy(packet.cpu_combined, cpu_combined, sizeof(uint8_t)*10);
-    mav_array_memcpy(packet.gpu_cores, gpu_cores, sizeof(uint8_t)*4);
-    mav_array_memcpy(packet.gpu_combined, gpu_combined, sizeof(uint8_t)*10);
-    mav_array_memcpy(packet.temperature_core, temperature_core, sizeof(int8_t)*8);
+    mav_array_assign_uint32_t(packet.storage_type, storage_type, 4);
+    mav_array_assign_uint32_t(packet.storage_usage, storage_usage, 4);
+    mav_array_assign_uint32_t(packet.storage_total, storage_total, 4);
+    mav_array_assign_uint32_t(packet.link_type, link_type, 6);
+    mav_array_assign_uint32_t(packet.link_tx_rate, link_tx_rate, 6);
+    mav_array_assign_uint32_t(packet.link_rx_rate, link_rx_rate, 6);
+    mav_array_assign_uint32_t(packet.link_tx_max, link_tx_max, 6);
+    mav_array_assign_uint32_t(packet.link_rx_max, link_rx_max, 6);
+    mav_array_assign_int16_t(packet.fan_speed, fan_speed, 4);
+    mav_array_assign_uint8_t(packet.cpu_cores, cpu_cores, 8);
+    mav_array_assign_uint8_t(packet.cpu_combined, cpu_combined, 10);
+    mav_array_assign_uint8_t(packet.gpu_cores, gpu_cores, 4);
+    mav_array_assign_uint8_t(packet.gpu_combined, gpu_combined, 10);
+    mav_array_assign_int8_t(packet.temperature_core, temperature_core, 8);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS, (const char *)&packet, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_MIN_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_CRC);
 #endif
 }
@@ -393,7 +495,7 @@ static inline void mavlink_msg_onboard_computer_status_send_struct(mavlink_chann
 
 #if MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
@@ -432,20 +534,20 @@ static inline void mavlink_msg_onboard_computer_status_send_buf(mavlink_message_
     packet->ram_total = ram_total;
     packet->type = type;
     packet->temperature_board = temperature_board;
-    mav_array_memcpy(packet->storage_type, storage_type, sizeof(uint32_t)*4);
-    mav_array_memcpy(packet->storage_usage, storage_usage, sizeof(uint32_t)*4);
-    mav_array_memcpy(packet->storage_total, storage_total, sizeof(uint32_t)*4);
-    mav_array_memcpy(packet->link_type, link_type, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet->link_tx_rate, link_tx_rate, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet->link_rx_rate, link_rx_rate, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet->link_tx_max, link_tx_max, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet->link_rx_max, link_rx_max, sizeof(uint32_t)*6);
-    mav_array_memcpy(packet->fan_speed, fan_speed, sizeof(int16_t)*4);
-    mav_array_memcpy(packet->cpu_cores, cpu_cores, sizeof(uint8_t)*8);
-    mav_array_memcpy(packet->cpu_combined, cpu_combined, sizeof(uint8_t)*10);
-    mav_array_memcpy(packet->gpu_cores, gpu_cores, sizeof(uint8_t)*4);
-    mav_array_memcpy(packet->gpu_combined, gpu_combined, sizeof(uint8_t)*10);
-    mav_array_memcpy(packet->temperature_core, temperature_core, sizeof(int8_t)*8);
+    mav_array_assign_uint32_t(packet->storage_type, storage_type, 4);
+    mav_array_assign_uint32_t(packet->storage_usage, storage_usage, 4);
+    mav_array_assign_uint32_t(packet->storage_total, storage_total, 4);
+    mav_array_assign_uint32_t(packet->link_type, link_type, 6);
+    mav_array_assign_uint32_t(packet->link_tx_rate, link_tx_rate, 6);
+    mav_array_assign_uint32_t(packet->link_rx_rate, link_rx_rate, 6);
+    mav_array_assign_uint32_t(packet->link_tx_max, link_tx_max, 6);
+    mav_array_assign_uint32_t(packet->link_rx_max, link_rx_max, 6);
+    mav_array_assign_int16_t(packet->fan_speed, fan_speed, 4);
+    mav_array_assign_uint8_t(packet->cpu_cores, cpu_cores, 8);
+    mav_array_assign_uint8_t(packet->cpu_combined, cpu_combined, 10);
+    mav_array_assign_uint8_t(packet->gpu_cores, gpu_cores, 4);
+    mav_array_assign_uint8_t(packet->gpu_combined, gpu_combined, 10);
+    mav_array_assign_int8_t(packet->temperature_core, temperature_core, 8);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS, (const char *)packet, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_MIN_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_LEN, MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS_CRC);
 #endif
 }

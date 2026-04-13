@@ -85,6 +85,7 @@ extern uint8_t __config_end;
 #define USE_MAG_LIS3MDL
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_QMC5883P
 
 //#if (MCU_FLASH_SIZE > 512)
 #define USE_MAG_AK8963

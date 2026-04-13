@@ -15,7 +15,7 @@ typedef struct __mavlink_ais_vessel_t {
  uint16_t dimension_stern; /*< [m] Distance from lat/lon location to stern*/
  uint16_t tslc; /*< [s] Time since last communication in seconds*/
  uint16_t flags; /*<  Bitmask to indicate various statuses including valid data fields*/
- int8_t turn_rate; /*< [cdeg/s] Turn rate*/
+ int8_t turn_rate; /*< [ddeg/s] Turn rate, 0.1 degrees per second*/
  uint8_t navigational_status; /*<  Navigational status*/
  uint8_t type; /*<  Type of vessels*/
  uint8_t dimension_port; /*< [m] Distance from lat/lon location to port side*/
@@ -96,7 +96,7 @@ typedef struct __mavlink_ais_vessel_t {
  * @param COG [cdeg] Course over ground
  * @param heading [cdeg] True heading
  * @param velocity [cm/s] Speed over ground
- * @param turn_rate [cdeg/s] Turn rate
+ * @param turn_rate [ddeg/s] Turn rate, 0.1 degrees per second
  * @param navigational_status  Navigational status
  * @param type  Type of vessels
  * @param dimension_bow [m] Distance from lat/lon location to bow
@@ -149,13 +149,92 @@ static inline uint16_t mavlink_msg_ais_vessel_pack(uint8_t system_id, uint8_t co
     packet.type = type;
     packet.dimension_port = dimension_port;
     packet.dimension_starboard = dimension_starboard;
+    mav_array_assign_char(packet.callsign, callsign, 7);
+    mav_array_assign_char(packet.name, name, 20);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_AIS_VESSEL_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_AIS_VESSEL;
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_AIS_VESSEL_MIN_LEN, MAVLINK_MSG_ID_AIS_VESSEL_LEN, MAVLINK_MSG_ID_AIS_VESSEL_CRC);
+}
+
+/**
+ * @brief Pack a ais_vessel message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param MMSI  Mobile Marine Service Identifier, 9 decimal digits
+ * @param lat [degE7] Latitude
+ * @param lon [degE7] Longitude
+ * @param COG [cdeg] Course over ground
+ * @param heading [cdeg] True heading
+ * @param velocity [cm/s] Speed over ground
+ * @param turn_rate [ddeg/s] Turn rate, 0.1 degrees per second
+ * @param navigational_status  Navigational status
+ * @param type  Type of vessels
+ * @param dimension_bow [m] Distance from lat/lon location to bow
+ * @param dimension_stern [m] Distance from lat/lon location to stern
+ * @param dimension_port [m] Distance from lat/lon location to port side
+ * @param dimension_starboard [m] Distance from lat/lon location to starboard side
+ * @param callsign  The vessel callsign
+ * @param name  The vessel name
+ * @param tslc [s] Time since last communication in seconds
+ * @param flags  Bitmask to indicate various statuses including valid data fields
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_ais_vessel_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint32_t MMSI, int32_t lat, int32_t lon, uint16_t COG, uint16_t heading, uint16_t velocity, int8_t turn_rate, uint8_t navigational_status, uint8_t type, uint16_t dimension_bow, uint16_t dimension_stern, uint8_t dimension_port, uint8_t dimension_starboard, const char *callsign, const char *name, uint16_t tslc, uint16_t flags)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_AIS_VESSEL_LEN];
+    _mav_put_uint32_t(buf, 0, MMSI);
+    _mav_put_int32_t(buf, 4, lat);
+    _mav_put_int32_t(buf, 8, lon);
+    _mav_put_uint16_t(buf, 12, COG);
+    _mav_put_uint16_t(buf, 14, heading);
+    _mav_put_uint16_t(buf, 16, velocity);
+    _mav_put_uint16_t(buf, 18, dimension_bow);
+    _mav_put_uint16_t(buf, 20, dimension_stern);
+    _mav_put_uint16_t(buf, 22, tslc);
+    _mav_put_uint16_t(buf, 24, flags);
+    _mav_put_int8_t(buf, 26, turn_rate);
+    _mav_put_uint8_t(buf, 27, navigational_status);
+    _mav_put_uint8_t(buf, 28, type);
+    _mav_put_uint8_t(buf, 29, dimension_port);
+    _mav_put_uint8_t(buf, 30, dimension_starboard);
+    _mav_put_char_array(buf, 31, callsign, 7);
+    _mav_put_char_array(buf, 38, name, 20);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_AIS_VESSEL_LEN);
+#else
+    mavlink_ais_vessel_t packet;
+    packet.MMSI = MMSI;
+    packet.lat = lat;
+    packet.lon = lon;
+    packet.COG = COG;
+    packet.heading = heading;
+    packet.velocity = velocity;
+    packet.dimension_bow = dimension_bow;
+    packet.dimension_stern = dimension_stern;
+    packet.tslc = tslc;
+    packet.flags = flags;
+    packet.turn_rate = turn_rate;
+    packet.navigational_status = navigational_status;
+    packet.type = type;
+    packet.dimension_port = dimension_port;
+    packet.dimension_starboard = dimension_starboard;
     mav_array_memcpy(packet.callsign, callsign, sizeof(char)*7);
     mav_array_memcpy(packet.name, name, sizeof(char)*20);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_AIS_VESSEL_LEN);
 #endif
 
     msg->msgid = MAVLINK_MSG_ID_AIS_VESSEL;
-    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_AIS_VESSEL_MIN_LEN, MAVLINK_MSG_ID_AIS_VESSEL_LEN, MAVLINK_MSG_ID_AIS_VESSEL_CRC);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_AIS_VESSEL_MIN_LEN, MAVLINK_MSG_ID_AIS_VESSEL_LEN, MAVLINK_MSG_ID_AIS_VESSEL_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_AIS_VESSEL_MIN_LEN, MAVLINK_MSG_ID_AIS_VESSEL_LEN);
+#endif
 }
 
 /**
@@ -170,7 +249,7 @@ static inline uint16_t mavlink_msg_ais_vessel_pack(uint8_t system_id, uint8_t co
  * @param COG [cdeg] Course over ground
  * @param heading [cdeg] True heading
  * @param velocity [cm/s] Speed over ground
- * @param turn_rate [cdeg/s] Turn rate
+ * @param turn_rate [ddeg/s] Turn rate, 0.1 degrees per second
  * @param navigational_status  Navigational status
  * @param type  Type of vessels
  * @param dimension_bow [m] Distance from lat/lon location to bow
@@ -224,8 +303,8 @@ static inline uint16_t mavlink_msg_ais_vessel_pack_chan(uint8_t system_id, uint8
     packet.type = type;
     packet.dimension_port = dimension_port;
     packet.dimension_starboard = dimension_starboard;
-    mav_array_memcpy(packet.callsign, callsign, sizeof(char)*7);
-    mav_array_memcpy(packet.name, name, sizeof(char)*20);
+    mav_array_assign_char(packet.callsign, callsign, 7);
+    mav_array_assign_char(packet.name, name, 20);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_AIS_VESSEL_LEN);
 #endif
 
@@ -261,6 +340,20 @@ static inline uint16_t mavlink_msg_ais_vessel_encode_chan(uint8_t system_id, uin
 }
 
 /**
+ * @brief Encode a ais_vessel struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param ais_vessel C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_ais_vessel_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_ais_vessel_t* ais_vessel)
+{
+    return mavlink_msg_ais_vessel_pack_status(system_id, component_id, _status, msg,  ais_vessel->MMSI, ais_vessel->lat, ais_vessel->lon, ais_vessel->COG, ais_vessel->heading, ais_vessel->velocity, ais_vessel->turn_rate, ais_vessel->navigational_status, ais_vessel->type, ais_vessel->dimension_bow, ais_vessel->dimension_stern, ais_vessel->dimension_port, ais_vessel->dimension_starboard, ais_vessel->callsign, ais_vessel->name, ais_vessel->tslc, ais_vessel->flags);
+}
+
+/**
  * @brief Send a ais_vessel message
  * @param chan MAVLink channel to send the message
  *
@@ -270,7 +363,7 @@ static inline uint16_t mavlink_msg_ais_vessel_encode_chan(uint8_t system_id, uin
  * @param COG [cdeg] Course over ground
  * @param heading [cdeg] True heading
  * @param velocity [cm/s] Speed over ground
- * @param turn_rate [cdeg/s] Turn rate
+ * @param turn_rate [ddeg/s] Turn rate, 0.1 degrees per second
  * @param navigational_status  Navigational status
  * @param type  Type of vessels
  * @param dimension_bow [m] Distance from lat/lon location to bow
@@ -323,8 +416,8 @@ static inline void mavlink_msg_ais_vessel_send(mavlink_channel_t chan, uint32_t 
     packet.type = type;
     packet.dimension_port = dimension_port;
     packet.dimension_starboard = dimension_starboard;
-    mav_array_memcpy(packet.callsign, callsign, sizeof(char)*7);
-    mav_array_memcpy(packet.name, name, sizeof(char)*20);
+    mav_array_assign_char(packet.callsign, callsign, 7);
+    mav_array_assign_char(packet.name, name, 20);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AIS_VESSEL, (const char *)&packet, MAVLINK_MSG_ID_AIS_VESSEL_MIN_LEN, MAVLINK_MSG_ID_AIS_VESSEL_LEN, MAVLINK_MSG_ID_AIS_VESSEL_CRC);
 #endif
 }
@@ -345,7 +438,7 @@ static inline void mavlink_msg_ais_vessel_send_struct(mavlink_channel_t chan, co
 
 #if MAVLINK_MSG_ID_AIS_VESSEL_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
@@ -390,8 +483,8 @@ static inline void mavlink_msg_ais_vessel_send_buf(mavlink_message_t *msgbuf, ma
     packet->type = type;
     packet->dimension_port = dimension_port;
     packet->dimension_starboard = dimension_starboard;
-    mav_array_memcpy(packet->callsign, callsign, sizeof(char)*7);
-    mav_array_memcpy(packet->name, name, sizeof(char)*20);
+    mav_array_assign_char(packet->callsign, callsign, 7);
+    mav_array_assign_char(packet->name, name, 20);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_AIS_VESSEL, (const char *)packet, MAVLINK_MSG_ID_AIS_VESSEL_MIN_LEN, MAVLINK_MSG_ID_AIS_VESSEL_LEN, MAVLINK_MSG_ID_AIS_VESSEL_CRC);
 #endif
 }
@@ -465,7 +558,7 @@ static inline uint16_t mavlink_msg_ais_vessel_get_velocity(const mavlink_message
 /**
  * @brief Get field turn_rate from ais_vessel message
  *
- * @return [cdeg/s] Turn rate
+ * @return [ddeg/s] Turn rate, 0.1 degrees per second
  */
 static inline int8_t mavlink_msg_ais_vessel_get_turn_rate(const mavlink_message_t* msg)
 {

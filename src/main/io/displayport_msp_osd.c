@@ -53,12 +53,17 @@
 #include "displayport_msp_osd.h"
 #include "displayport_msp_dji_compat.h"
 
+#include "osd_dji_hd.h"
+#include "fc/fc_msp_box.h"
+#include "scheduler/scheduler.h"
+#include "fc/config.h"
+#include "common/maths.h"
+
 #define FONT_VERSION 3
 
 typedef enum {          // defines are from hdzero code
     SD_3016,
     HD_5018,
-    HD_3016,           // Special HDZERO mode that just sends the centre 30x16 of the 50x18 canvas to the VRX
     HD_6022,           // added to support DJI wtfos 60x22 grid
     HD_5320            // added to support Avatar and BetaflightHD
 } resolutionType_e;
@@ -113,31 +118,6 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
     return sent;
 }
 
-static uint8_t determineHDZeroOsdMode(void)
-{
-    if (cmsInMenu) {
-        return HD_5018;
-    }
-
-    // Check if all visible widgets are in the center 30x16 chars of the canvas.
-    int activeLayout = osdGetActiveLayout(NULL);
-    osd_items_e index = 0;
-    do {
-        index = osdIncElementIndex(index);
-        uint16_t pos = osdLayoutsConfig()->item_pos[activeLayout][index];
-        if (OSD_VISIBLE(pos)) {
-            uint8_t elemPosX = OSD_X(pos);
-            uint8_t elemPosY = OSD_Y(pos);
-            if (!osdItemIsFixed(index) && (elemPosX < 10 || elemPosX > 39 || elemPosY == 0 || elemPosY == 17)) {
-                return HD_5018;
-            }
-        }
-    } while (index > 0);
-
-    return HD_3016;
-}
-
-
 uint8_t setAttrPage(uint8_t origAttr, uint8_t page)
 {
         return (origAttr & ~DISPLAYPORT_MSP_ATTR_FONTPAGE_MASK) | (page & DISPLAYPORT_MSP_ATTR_FONTPAGE_MASK);
@@ -155,10 +135,6 @@ uint8_t setAttrVersion(uint8_t origAttr, uint8_t version)
 
 static int setDisplayMode(displayPort_t *displayPort)
 {
-    if (osdVideoSystem == VIDEO_SYSTEM_HDZERO) {
-        currentOsdMode = determineHDZeroOsdMode(); // Can change between layouts
-    }
-
     uint8_t subcmd[] = { MSP_DP_OPTIONS, 0, currentOsdMode }; // Font selection, mode (SD/HD)
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
@@ -469,6 +445,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
             break;
         case VIDEO_SYSTEM_DJICOMPAT_HD:
         case VIDEO_SYSTEM_AVATAR:
+        case VIDEO_SYSTEM_DJI_NATIVE:
             currentOsdMode = HD_5320;
             screenRows = AVATAR_ROWS;
             screenCols = AVATAR_COLS;
@@ -512,11 +489,72 @@ static mspResult_e processMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPo
     return mspProcessCommand(cmd, reply, mspPostProcessFn);
 }
 
+#if defined(USE_OSD) && defined(USE_DJI_HD_OSD)
+extern timeDelta_t cycleTime;
+static mspResult_e fixDjiBrokenO4ProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn) {
+    UNUSED(mspPostProcessFn);
+
+    sbuf_t *dst = &reply->buf;
+
+    // If users is using a buggy O4 air unit, re-use the OLD DJI FPV system workaround for status messages
+    if (osdConfig()->enable_broken_o4_workaround && ((cmd->cmd == DJI_MSP_STATUS) || (cmd->cmd == DJI_MSP_STATUS_EX))) {
+        // Start initializing the reply message
+        reply->cmd = cmd->cmd;
+        reply->result = MSP_RESULT_ACK;
+
+        // DJI OSD relies on a statically defined bit order and doesn't use
+        // MSP_BOXIDS to get actual BOX order. We need a special
+        // packBoxModeFlags()
+        // This is a regression from O3
+        boxBitmask_t flightModeBitmask;
+        djiPackBoxModeBitmask(&flightModeBitmask);
+
+        sbufWriteU16(dst, (uint16_t)cycleTime);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, packSensorStatus());
+        sbufWriteData(dst, &flightModeBitmask,
+                      4);  // unconditional part of flags, first 32 bits
+        sbufWriteU8(dst, getConfigProfile());
+
+        sbufWriteU16(dst, constrain(averageSystemLoadPercent, 0, 100));
+        if (cmd->cmd == MSP_STATUS_EX) {
+            sbufWriteU8(dst, 3);  // PID_PROFILE_COUNT
+            sbufWriteU8(dst, 1);  // getCurrentControlProfileIndex()
+        } else {
+            sbufWriteU16(dst, cycleTime);  // gyro cycle time
+        }
+
+        // Cap BoxModeFlags to 32 bits
+        // write flightModeFlags header. Lowest 4 bits contain number of bytes
+        // that follow
+        sbufWriteU8(dst, 0);
+        // sbufWriteData(dst, ((uint8_t*)&flightModeBitmask) + 4, byteCount);
+
+        // Write arming disable flags
+        sbufWriteU8(dst, DJI_ARMING_DISABLE_FLAGS_COUNT);
+        sbufWriteU32(dst, djiPackArmingDisabledFlags());
+
+        // Extra flags
+        sbufWriteU8(dst, 0);
+        // Process DONT_REPLY flag
+        if (cmd->flags & MSP_FLAG_DONT_REPLY) {
+            reply->result = MSP_RESULT_NO_REPLY;
+        }
+
+        return reply->result;
+    }
+
+    return processMspCommand(cmd, reply, mspPostProcessFn);
+}
+#else
+#define fixDjiBrokenO4ProcessMspCommand processMspCommand 
+#endif
+
 void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
 {
     if (mspPort.port) {
         mspProcessCommand = mspProcessCommandFn;
-        mspSerialProcessOnePort(&mspPort, MSP_SKIP_NON_MSP_DATA, processMspCommand);
+        mspSerialProcessOnePort(&mspPort, MSP_SKIP_NON_MSP_DATA, fixDjiBrokenO4ProcessMspCommand);
     }
 }
 

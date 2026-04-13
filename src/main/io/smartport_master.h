@@ -43,6 +43,11 @@ typedef struct {
     int16_t voltage[6];
 } cellsData_t;
 
+typedef struct {
+    int16_t amperage;
+    int16_t vfas;
+} batteryData_t;
+
 typedef enum {
     VS600_BAND_A,
     VS600_BAND_B,
@@ -83,5 +88,7 @@ bool smartportMasterNextForwardResponse(uint8_t phyID, smartPortPayload_t *paylo
 // Returns latest Cells data or NULL if the data is too old
 cellsData_t *smartportMasterGetCellsData(void);
 vs600Data_t *smartportMasterGetVS600Data(void);
+int16_t *smartportMasterGetCurrentData(void);
+int16_t *smartportMasterGetVoltageData(void);
 
 #endif /* USE_SMARTPORT_MASTER */

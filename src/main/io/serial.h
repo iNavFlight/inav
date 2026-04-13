@@ -133,12 +133,23 @@ typedef struct serialPortConfig_s {
 
 typedef struct serialConfig_s {
     serialPortConfig_t portConfigs[SERIAL_PORT_COUNT];
-    uint8_t reboot_character;               // which byte is used to reboot. Default 'R', could be changed carefully to something else.
 } serialConfig_t;
 
 PG_DECLARE(serialConfig_t, serialConfig);
 
 typedef void serialConsumer(uint8_t);
+
+// Hayes escape sequence detection state: [1s silence]+++[1s silence]
+// https://en.wikipedia.org/wiki/Escape_sequence#Modem_control
+typedef struct escapeSequenceState_s {
+    uint32_t lastCharTime;
+    uint32_t lastPlusTime;
+    uint8_t count;
+} escapeSequenceState_t;
+
+void escapeSequenceInit(escapeSequenceState_t *state);
+void escapeSequenceProcessChar(escapeSequenceState_t *state, uint8_t c, uint32_t now);
+bool escapeSequenceCheckGuard(escapeSequenceState_t *state, uint32_t now);
 
 //
 // configuration

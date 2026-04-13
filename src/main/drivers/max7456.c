@@ -240,8 +240,8 @@ static void max7456WaitUntilNoBusy(void)
     }
 }
 
-// Sets wether the OSD drawing is enabled. Returns true iff
-// changes were succesfully performed.
+// Sets whether the OSD drawing is enabled. Returns true iff
+// changes were successfully performed.
 static bool max7456OSDSetEnabled(bool enabled)
 {
     if (enabled && !(state.registers.vm0 | OSD_ENABLE)) {

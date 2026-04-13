@@ -52,6 +52,7 @@ typedef enum {
     VIDEO_SYSTEM_DJICOMPAT,
     VIDEO_SYSTEM_DJICOMPAT_HD,
     VIDEO_SYSTEM_AUTOHD
+    VIDEO_SYSTEM_DJI_NATIVE
 } videoSystem_e;
 
 typedef enum {
