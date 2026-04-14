@@ -34,6 +34,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 #include "common/mavlink.h"
 #pragma GCC diagnostic pop
 #include "io/osd.h"
