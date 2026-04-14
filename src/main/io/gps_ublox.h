@@ -550,7 +550,9 @@ bool ubloxVersionGTE(uint8_t mj, uint8_t mn);
 bool ubloxVersionE(uint8_t mj, uint8_t mn);
 
 // MON-RF access Noise level
-uint8_t gpsGetMonRfNoisePerMs(void);
+uint16_t gpsGetMonRfNoisePerMs(void);
+// MON-RF access AGC level as percent of maximum gain
+uint8_t gpsGetMonAGCPercent(void);
 // Called by OSD to enable/disable periodic MON-RF polling when widget is used
 void gpsSetOsdMonRfWidgetEnabled(bool enabled);
 

@@ -2309,10 +2309,12 @@ static bool osdDrawSingleElement(uint8_t item)
 
             // always show RF noise after the stats
             {
-                uint8_t noise = gpsGetMonRfNoisePerMs();
-                char noiseBuff[4];
+                uint16_t noise = gpsGetMonRfNoisePerMs();
+                if (noise>255)
+                    noise=255; // cap to 255 to fit in the display format
+                char noiseBuff[7];
                 noiseBuff[0] = SYM_SNR;
-                tfp_sprintf(&noiseBuff[1], (noise > 99) ? "%02X" : "%02u", noise);
+                tfp_sprintf(&noiseBuff[1], (noise > 99) ? "%04X" : "%02u", noise);
                 displayWrite(osdDisplayPort, x, elemPosY, noiseBuff);
             }
 

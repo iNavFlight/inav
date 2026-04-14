@@ -87,8 +87,9 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
-// MON-RF noise value (noisePerMS) reported by UBX-MON-RF at payload offset 0x16
-static uint8_t monRfNoisePerMs = 0;
+// MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
+static uint16_t monRfNoisePerMs = 0;
+static uint16_t monAgcCount = 0;
 static uint8_t monCWSuppresion = 0;
 
 // Packet checksum accumulators
@@ -768,9 +769,13 @@ static bool gpsParseFrameUBLOX(void)
         break;
     case MSG_MON_RF:
         if (_class == CLASS_MON) {
-            // MON-RF payload contains various RF stats; noisePerMS is at offset 0x16 (22)
-            if (_payload_length > 0x10) 
-                monRfNoisePerMs = _buffer.bytes[0x10];
+            // MON-RF payload contains various RF stats; noisePerMS/agcCnt are U2 fields at offsets 0x10/0x12.
+            if (_payload_length > 0x11) {
+                monRfNoisePerMs = (uint16_t)_buffer.bytes[0x10] | ((uint16_t)_buffer.bytes[0x11] << 8);
+            }
+            if (_payload_length > 0x13) {
+                monAgcCount = (uint16_t)_buffer.bytes[0x12] | ((uint16_t)_buffer.bytes[0x13] << 8);
+            }
             if (_payload_length > 0x14) 
                 monCWSuppresion = _buffer.bytes[0x14];
         }
@@ -1267,19 +1272,12 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     while (1) {
         ptSemaphoreWait(semNewDataReady);
         gpsProcessNewSolutionData(false);
-
-        /* Periodically poll MON-RF (~1s) for HW > UBLOX8 if OSD widget requested. Do not change ACK state. */
-        if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX8 && osdMonRfWidgetEnabled) {
-            if ((millis() - lastMonRfMs) > 1000) {
-                lastMonRfMs = millis();
-                pollMonRf();
-            }
-        }
-
+       
+        bool gnssPolled=false;
         if (gpsState.gpsConfig->autoConfig) {
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
                 gpsState.lastCapaPoolMs = millis();
-
+                gnssPolled=true;
                 if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN)
                 {
                     pollVersion();
@@ -1288,6 +1286,14 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
                 pollGnssCapabilities();
                 ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+            }
+        }
+
+         /* Periodically poll MON-RF (~1s) for HW > UBLOX8 if OSD widget requested. Do not change ACK state. */
+        if ((!gnssPolled) && gpsState.hwVersion > UBX_HW_VERSION_UBLOX8 && osdMonRfWidgetEnabled) {
+            if ((millis() - lastMonRfMs) > 1000) {
+                lastMonRfMs = millis();
+                pollMonRf();
             }
         }
     }
@@ -1365,10 +1371,16 @@ bool ubloxVersionE(uint8_t mj, uint8_t mn)
     return gpsState.swVersionMajor == mj && gpsState.swVersionMinor == mn;
 }
 
-uint8_t gpsGetMonRfNoisePerMs(void)
+uint16_t gpsGetMonRfNoisePerMs(void)
 {
     return monRfNoisePerMs;
 }
+
+uint8_t gpsGetMonAGCPercent(void)
+{
+    return MIN((uint32_t)(monAgcCount * 100U /*+ 4095U*/) / 8191U, 100U); //AGC Monitor, as percentage of maximum gain, range 0 to 8191 (100%)
+}
+
 uint8_t gpsGetMonRfCWSuppression(void)
 {
     return monCWSuppresion;

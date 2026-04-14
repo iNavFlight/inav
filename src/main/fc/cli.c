@@ -4800,9 +4800,16 @@ static void cliUbloxPrintSatelites(char *arg)
         }
         cliPrintLinefeed();
     }
-    // Print MON-RF noisePerMS if available
-    cliPrintLinef("MON-RF noisePerMS: %u", gpsGetMonRfNoisePerMs());
-    cliPrintLinef("MON-RF CW Suppression: %u", gpsGetMonRfCWSuppression());
+    // Enable and Print MON-RF stats if available
+    gpsSetOsdMonRfWidgetEnabled(true);
+    uint16_t noisePerMs = gpsGetMonRfNoisePerMs();
+    if (noisePerMs==0) {
+        cliPrintLine("MON-RF stat still not available...");
+    } else {    
+        cliPrintLinef("MON-RF noisePerMS: %u", gpsGetMonRfNoisePerMs());
+        cliPrintLinef("MON-RF CW Suppression: %u", gpsGetMonRfCWSuppression());
+        cliPrintLinef("MON-RF AutoGainCtrl(%%): %u", (unsigned)gpsGetMonAGCPercent());   
+    } 
 }
 #endif
 
