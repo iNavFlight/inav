@@ -170,6 +170,7 @@ static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM bool restartAngleHoldMode = true;
 static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
+static EXTENDED_FASTRAM timeMs_t pidLoopNowMs;
 
 #define FIXED_WING_LEVEL_TRIM_MAX_ANGLE 10.0f // Max angle auto trimming can demand
 #define FIXED_WING_LEVEL_TRIM_DIVIDER 50.0f
@@ -820,7 +821,7 @@ static void iTermLockApply(pidState_t *pidState, const float rateTarget, const f
 
     //When abs of rate target is above 20% of max rate, we start tracking time
     if (fabsf(rateTarget) > maxRate * 0.2f) {
-        pidState->attenuation.targetOverThresholdTimeMs = millis();
+        pidState->attenuation.targetOverThresholdTimeMs = pidLoopNowMs;
     }
 
     //If error is below threshold, we no longer track time for lock mechanism
@@ -833,7 +834,7 @@ static void iTermLockApply(pidState_t *pidState, const float rateTarget, const f
      * - dampingFactor
      * - for 500ms (fw_iterm_lock_time_max_ms) force 0 if error is above threshold
      */
-    pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->attenuation.targetOverThresholdTimeMs) < pidProfile()->fwItermLockTimeMaxMs) ? 0.0f : 1.0f);
+    pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (pidLoopNowMs - pidState->attenuation.targetOverThresholdTimeMs) < pidProfile()->fwItermLockTimeMaxMs) ? 0.0f : 1.0f);
 
     //P & D damping factors are always the same and based on current damping factor
     pidState->attenuation.aP = dampingFactor;
@@ -1222,6 +1223,7 @@ void updateAngleHold(float *angleTarget, uint8_t axis)
 void FAST_CODE pidController(float dT)
 {
     const float dT_inv = 1.0f / dT;
+    pidLoopNowMs = millis();
 
     if (!pidFiltersConfigured) {
         return;
