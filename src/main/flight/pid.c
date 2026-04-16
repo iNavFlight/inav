@@ -873,7 +873,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float
 
 #ifdef USE_AOA
     if (pidState->axis == FD_PITCH) {
-        aoaControlUpdate(axisPID[FD_PITCH], rateError, newPTerm, newDTerm, newFFTerm, pidState->errorGyroIf, limit);
+        aoaControlUpdate(&axisPID[FD_PITCH], rateError, newPTerm, newDTerm, newFFTerm, pidState->errorGyroIf, limit);
     }
 #endif
 
