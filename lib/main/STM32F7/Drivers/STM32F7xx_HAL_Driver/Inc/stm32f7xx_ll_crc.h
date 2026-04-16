@@ -2,42 +2,23 @@
   ******************************************************************************
   * @file    stm32f7xx_ll_crc.h
   * @author  MCD Application Team
-  * @version V1.2.2
-  * @date    14-April-2017
   * @brief   Header file of CRC LL module.
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32F7xx_LL_CRC_H
-#define __STM32F7xx_LL_CRC_H
+#ifndef STM32F7xx_LL_CRC_H
+#define STM32F7xx_LL_CRC_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -136,7 +117,7 @@ extern "C" {
   * @param  __VALUE__ Value to be written in the register
   * @retval None
   */
-#define LL_CRC_WriteReg(__INSTANCE__, __REG__, __VALUE__) WRITE_REG(__INSTANCE__->__REG__, (__VALUE__))
+#define LL_CRC_WriteReg(__INSTANCE__, __REG__, __VALUE__) WRITE_REG(__INSTANCE__->__REG__, __VALUE__)
 
 /**
   * @brief  Read a value in CRC register
@@ -203,7 +184,7 @@ __STATIC_INLINE void LL_CRC_SetPolynomialSize(CRC_TypeDef *CRCx, uint32_t PolySi
   *         @arg @ref LL_CRC_POLYLENGTH_8B
   *         @arg @ref LL_CRC_POLYLENGTH_7B
   */
-__STATIC_INLINE uint32_t LL_CRC_GetPolynomialSize(CRC_TypeDef *CRCx)
+__STATIC_INLINE uint32_t LL_CRC_GetPolynomialSize(const CRC_TypeDef *CRCx)
 {
   return (uint32_t)(READ_BIT(CRCx->CR, CRC_CR_POLYSIZE));
 }
@@ -234,7 +215,7 @@ __STATIC_INLINE void LL_CRC_SetInputDataReverseMode(CRC_TypeDef *CRCx, uint32_t 
   *         @arg @ref LL_CRC_INDATA_REVERSE_HALFWORD
   *         @arg @ref LL_CRC_INDATA_REVERSE_WORD
   */
-__STATIC_INLINE uint32_t LL_CRC_GetInputDataReverseMode(CRC_TypeDef *CRCx)
+__STATIC_INLINE uint32_t LL_CRC_GetInputDataReverseMode(const CRC_TypeDef *CRCx)
 {
   return (uint32_t)(READ_BIT(CRCx->CR, CRC_CR_REV_IN));
 }
@@ -254,14 +235,14 @@ __STATIC_INLINE void LL_CRC_SetOutputDataReverseMode(CRC_TypeDef *CRCx, uint32_t
 }
 
 /**
-  * @brief  Configure the reversal of the bit order of the Output data
+  * @brief  Return type of reversal of the bit order of the Output data
   * @rmtoll CR           REV_OUT       LL_CRC_GetOutputDataReverseMode
   * @param  CRCx CRC Instance
   * @retval Returned value can be one of the following values:
   *         @arg @ref LL_CRC_OUTDATA_REVERSE_NONE
   *         @arg @ref LL_CRC_OUTDATA_REVERSE_BIT
   */
-__STATIC_INLINE uint32_t LL_CRC_GetOutputDataReverseMode(CRC_TypeDef *CRCx)
+__STATIC_INLINE uint32_t LL_CRC_GetOutputDataReverseMode(const CRC_TypeDef *CRCx)
 {
   return (uint32_t)(READ_BIT(CRCx->CR, CRC_CR_REV_OUT));
 }
@@ -289,7 +270,7 @@ __STATIC_INLINE void LL_CRC_SetInitialData(CRC_TypeDef *CRCx, uint32_t InitCrc)
   * @param  CRCx CRC Instance
   * @retval Value programmed in Programmable initial CRC value register
   */
-__STATIC_INLINE uint32_t LL_CRC_GetInitialData(CRC_TypeDef *CRCx)
+__STATIC_INLINE uint32_t LL_CRC_GetInitialData(const CRC_TypeDef *CRCx)
 {
   return (uint32_t)(READ_REG(CRCx->INIT));
 }
@@ -320,7 +301,7 @@ __STATIC_INLINE void LL_CRC_SetPolynomialCoef(CRC_TypeDef *CRCx, uint32_t Polyno
   * @param  CRCx CRC Instance
   * @retval Value programmed in Programmable Polynomial value register
   */
-__STATIC_INLINE uint32_t LL_CRC_GetPolynomialCoef(CRC_TypeDef *CRCx)
+__STATIC_INLINE uint32_t LL_CRC_GetPolynomialCoef(const CRC_TypeDef *CRCx)
 {
   return (uint32_t)(READ_REG(CRCx->POL));
 }
@@ -354,7 +335,10 @@ __STATIC_INLINE void LL_CRC_FeedData32(CRC_TypeDef *CRCx, uint32_t InData)
   */
 __STATIC_INLINE void LL_CRC_FeedData16(CRC_TypeDef *CRCx, uint16_t InData)
 {
-  *(uint16_t __IO *)(&CRCx->DR) = (uint16_t) InData;
+  __IO uint16_t *pReg;
+
+  pReg = (__IO uint16_t *)(__IO void *)(&CRCx->DR);                             /* Derogation MisraC2012 R.11.5 */
+  *pReg = InData;
 }
 
 /**
@@ -375,7 +359,7 @@ __STATIC_INLINE void LL_CRC_FeedData8(CRC_TypeDef *CRCx, uint8_t InData)
   * @param  CRCx CRC Instance
   * @retval Current CRC calculation result as stored in CRC_DR register (32 bits).
   */
-__STATIC_INLINE uint32_t LL_CRC_ReadData32(CRC_TypeDef *CRCx)
+__STATIC_INLINE uint32_t LL_CRC_ReadData32(const CRC_TypeDef *CRCx)
 {
   return (uint32_t)(READ_REG(CRCx->DR));
 }
@@ -387,7 +371,7 @@ __STATIC_INLINE uint32_t LL_CRC_ReadData32(CRC_TypeDef *CRCx)
   * @param  CRCx CRC Instance
   * @retval Current CRC calculation result as stored in CRC_DR register (16 bits).
   */
-__STATIC_INLINE uint16_t LL_CRC_ReadData16(CRC_TypeDef *CRCx)
+__STATIC_INLINE uint16_t LL_CRC_ReadData16(const CRC_TypeDef *CRCx)
 {
   return (uint16_t)READ_REG(CRCx->DR);
 }
@@ -399,7 +383,7 @@ __STATIC_INLINE uint16_t LL_CRC_ReadData16(CRC_TypeDef *CRCx)
   * @param  CRCx CRC Instance
   * @retval Current CRC calculation result as stored in CRC_DR register (8 bits).
   */
-__STATIC_INLINE uint8_t LL_CRC_ReadData8(CRC_TypeDef *CRCx)
+__STATIC_INLINE uint8_t LL_CRC_ReadData8(const CRC_TypeDef *CRCx)
 {
   return (uint8_t)READ_REG(CRCx->DR);
 }
@@ -411,7 +395,7 @@ __STATIC_INLINE uint8_t LL_CRC_ReadData8(CRC_TypeDef *CRCx)
   * @param  CRCx CRC Instance
   * @retval Current CRC calculation result as stored in CRC_DR register (7 bits).
   */
-__STATIC_INLINE uint8_t LL_CRC_ReadData7(CRC_TypeDef *CRCx)
+__STATIC_INLINE uint8_t LL_CRC_ReadData7(const CRC_TypeDef *CRCx)
 {
   return (uint8_t)(READ_REG(CRCx->DR) & 0x7FU);
 }
@@ -433,7 +417,7 @@ __STATIC_INLINE uint32_t LL_CRC_Read_IDR(CRC_TypeDef *CRCx)
   * @note   This register can be used as a temporary storage location for one byte.
   * @rmtoll IDR          IDR           LL_CRC_Write_IDR
   * @param  CRCx CRC Instance
-  * @param  InData value to be stored in CRC_IDR register (8-bit) between between Min_Data=0 and Max_Data=0xFF
+  * @param  InData value to be stored in CRC_IDR register (8-bit) between Min_Data=0 and Max_Data=0xFF
   * @retval None
   */
 __STATIC_INLINE void LL_CRC_Write_IDR(CRC_TypeDef *CRCx, uint32_t InData)
@@ -449,7 +433,7 @@ __STATIC_INLINE void LL_CRC_Write_IDR(CRC_TypeDef *CRCx, uint32_t InData)
   * @{
   */
 
-ErrorStatus LL_CRC_DeInit(CRC_TypeDef *CRCx);
+ErrorStatus LL_CRC_DeInit(const CRC_TypeDef *CRCx);
 
 /**
   * @}
@@ -474,6 +458,4 @@ ErrorStatus LL_CRC_DeInit(CRC_TypeDef *CRCx);
 }
 #endif
 
-#endif /* __STM32F7xx_LL_CRC_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+#endif /* STM32F7xx_LL_CRC_H */
