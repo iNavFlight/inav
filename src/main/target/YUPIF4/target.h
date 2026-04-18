@@ -79,10 +79,8 @@
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           SPI3_NSS_PIN
 
-#if defined(USE_SDCARD) && defined(USE_BARO)
 #define USE_TERRAIN
 #define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
-#endif
 #endif
 
 #define USB_IO

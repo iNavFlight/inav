@@ -82,10 +82,8 @@
 #define SDCARD_SDIO_NORMAL_SPEED
 #define SDCARD_SDIO2_CMD_ALT
 
-#if defined(USE_SDCARD) && defined(USE_BARO)
 #define USE_TERRAIN
 #define TERRAIN_GRID_BLOCK_CACHE_SIZE 8 // 2048 bytes = 1 grid block
-#endif
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 

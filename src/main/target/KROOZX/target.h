@@ -51,10 +51,8 @@
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN       PC13
 
-#if defined(USE_SDCARD) && defined(USE_BARO)
 #define USE_TERRAIN
 #define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
-#endif
 
 #ifdef USE_MSP_DISPLAYPORT
 #undef USE_MSP_DISPLAYPORT
