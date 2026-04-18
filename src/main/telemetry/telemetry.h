@@ -39,13 +39,15 @@ typedef enum {
 
 typedef enum {
     MAVLINK_AUTOPILOT_GENERIC,
-    MAVLINK_AUTOPILOT_ARDUPILOT
+    MAVLINK_AUTOPILOT_ARDUPILOT,
+    MAVLINK_AUTOPILOT_INAV // For future use, nothing implemented
 } mavlinkAutopilotType_e;
 
 typedef enum {
     MAVLINK_RADIO_GENERIC,
     MAVLINK_RADIO_ELRS,
     MAVLINK_RADIO_SIK,
+    MAVLINK_RADIO_MLRS,
     MAVLINK_RADIO_NONE  // Not a radio
 } mavlinkRadio_e;
 
