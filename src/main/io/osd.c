@@ -5448,10 +5448,11 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                 tfp_sprintf(buff, ": %u/%u", stats.min_sats, stats.max_sats);
 
                 int32_t logNumber = blackboxGetLogNumber();
-                if (logNumber >= 0)
+                if (logNumber >= 0) {
                     tfp_sprintf(buff, ": %05ld ", logNumber);
-                else
+                } else {
                     strcat(buff, ": INVALID");
+                }
 
                 displayWrite(osdDisplayPort, statValuesX, row++, buff); // 1 row
             }
@@ -5463,6 +5464,9 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
     }
 
     row = drawStat_DisarmMethod(statNameX, row, statValuesX);  // 1 row
+
+    /* "Saved Settings" messages currently don't work as intended because osdShowStats may not be called often enough to update the messages correctly.
+     * NEEDS FIXING */
 
     // The following has been commented out as it will be added in #9688
     // uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
@@ -5879,20 +5883,6 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
         // Handle events only when the "multi-page Stats" screen is being displayed.
         if (statsDisplayed && !statsSinglePageCompatible) {
-
-            // Manual paging stick commands are only applicable to multi-page stats.
-            // ******************************
-            // For single-page stats, this effectively disables the ability to cancel the
-            // automatic paging/updates with the stick commands. So unless stats_page_auto_swap_time
-            // is set to 0 or greater than 4 (saved settings display interval is 5 seconds), then
-            // "Saved Settings" should display if it is active within the refresh interval.
-            // ******************************
-            // With multi-page stats, "Saved Settings" could also be missed if the user
-            // has canceled automatic paging using the stick commands, because that is only
-            // updated when osdShowStats() is called. So, in that case, they would only see
-            // the "Saved Settings" message if they happen to manually change pages using the
-            // stick commands within the interval the message is displayed.
-
             bool manualPageUpRequested = false;
             bool manualPageDownRequested = false;
 
