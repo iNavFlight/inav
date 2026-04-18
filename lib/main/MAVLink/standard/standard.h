@@ -10,7 +10,7 @@
     #error Wrong include order: MAVLINK_STANDARD.H MUST NOT BE DIRECTLY USED. Include mavlink.h from the same directory instead or set ALL AND EVERY defines from MAVLINK.H manually accordingly, including the #define MAVLINK_H call.
 #endif
 
-#define MAVLINK_STANDARD_XML_HASH 2116097011577996616
+#define MAVLINK_STANDARD_XML_HASH 6244665662372157835
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 #ifndef MAVLINK_MESSAGE_CRCS
-#define MAVLINK_MESSAGE_CRCS {{0, 50, 9, 9, 0, 0, 0}, {148, 178, 60, 78, 0, 0, 0}, {300, 217, 22, 22, 0, 0, 0}}
+#define MAVLINK_MESSAGE_CRCS {{0, 50, 9, 9, 0, 0, 0}, {33, 104, 28, 28, 0, 0, 0}, {148, 178, 60, 78, 0, 0, 0}}
 #endif
 
 #include "../protocol.h"
@@ -50,7 +50,7 @@ typedef enum MAV_BOOL
 typedef enum MAV_PROTOCOL_CAPABILITY
 {
    MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT=1, /* Autopilot supports the MISSION_ITEM float message type.
-          Note that MISSION_ITEM is deprecated, and autopilots should use MISSION_INT instead.
+          Note that MISSION_ITEM is deprecated, and autopilots should use MISSION_ITEM_INT instead.
          | */
    MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT=2, /* Autopilot supports the new param float message type. | */
    MAV_PROTOCOL_CAPABILITY_MISSION_INT=4, /* Autopilot supports MISSION_ITEM_INT scaled integer message type.
@@ -109,6 +109,7 @@ typedef enum FIRMWARE_VERSION_TYPE
 #endif
 
 // MESSAGE DEFINITIONS
+#include "./mavlink_msg_global_position_int.h"
 #include "./mavlink_msg_autopilot_version.h"
 
 // base include
@@ -116,8 +117,8 @@ typedef enum FIRMWARE_VERSION_TYPE
 
 
 #if MAVLINK_STANDARD_XML_HASH == MAVLINK_PRIMARY_XML_HASH
-# define MAVLINK_MESSAGE_INFO {MAVLINK_MESSAGE_INFO_HEARTBEAT, MAVLINK_MESSAGE_INFO_AUTOPILOT_VERSION, MAVLINK_MESSAGE_INFO_PROTOCOL_VERSION}
-# define MAVLINK_MESSAGE_NAMES {{ "AUTOPILOT_VERSION", 148 }, { "HEARTBEAT", 0 }, { "PROTOCOL_VERSION", 300 }}
+# define MAVLINK_MESSAGE_INFO {MAVLINK_MESSAGE_INFO_HEARTBEAT, MAVLINK_MESSAGE_INFO_GLOBAL_POSITION_INT, MAVLINK_MESSAGE_INFO_AUTOPILOT_VERSION}
+# define MAVLINK_MESSAGE_NAMES {{ "AUTOPILOT_VERSION", 148 }, { "GLOBAL_POSITION_INT", 33 }, { "HEARTBEAT", 0 }}
 # if MAVLINK_COMMAND_24BIT
 #  include "../mavlink_get_info.h"
 # endif

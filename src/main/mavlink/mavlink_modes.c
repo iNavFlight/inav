@@ -10,7 +10,7 @@ typedef struct mavlinkModeDescriptor_s {
     const char *name;
 } mavlinkModeDescriptor_t;
 
-static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
+static COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
 {
     switch (flightMode)
     {
@@ -45,7 +45,7 @@ static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
     }
 }
 
-static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
+static PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
 {
     switch (flightMode)
     {
@@ -114,7 +114,7 @@ static const mavlinkModeDescriptor_t copterModes[] = {
 
 static bool mavlinkPlaneModeIsConfigured(uint8_t customMode)
 {
-    switch ((APM_PLANE_MODE)customMode) {
+    switch ((PLANE_MODE)customMode) {
         case PLANE_MODE_MANUAL:
             return isModeActivationConditionPresent(BOXMANUAL);
         case PLANE_MODE_ACRO:
@@ -148,7 +148,7 @@ static bool mavlinkPlaneModeIsConfigured(uint8_t customMode)
 
 static bool mavlinkCopterModeIsConfigured(uint8_t customMode)
 {
-    switch ((APM_COPTER_MODE)customMode) {
+    switch ((COPTER_MODE)customMode) {
         case COPTER_MODE_ACRO:
             return true;
         case COPTER_MODE_STABILIZE:

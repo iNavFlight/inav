@@ -28,7 +28,7 @@
 #ifndef MAVLINK_COMM_NUM_BUFFERS
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
 #endif
-#include "common/mavlink.h"
+#include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
 
 #define TELEMETRY_MAVLINK_PORT_MODE MODE_RXTX
