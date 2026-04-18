@@ -5465,14 +5465,11 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 
     row = drawStat_DisarmMethod(statNameX, row, statValuesX);  // 1 row
 
-    /* "Saved Settings" messages currently don't work as intended because osdShowStats may not be called often enough to update the messages correctly.
-     * NEEDS FIXING */
-
     // The following has been commented out as it will be added in #9688
     // uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
 
     // Adds 1 row
-    if (savingSettings == true) {
+    if (savingSettings) {
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS))) / 2, row++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
     /*} else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
         char emReArmMsg[23];
@@ -5481,11 +5478,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         strcat(emReArmMsg, " **\0");
         displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));*/
     } else if (notify_settings_saved > 0) {
-        if (millis() > notify_settings_saved) {
-            notify_settings_saved = 0;
-        } else {
-            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED))) / 2, row++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
-        }
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED))) / 2, row++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
     }
 
     displayCommitTransaction(osdDisplayPort);
@@ -5841,11 +5834,12 @@ static void osdRefresh(timeUs_t currentTimeUs)
       return;
     }
 
-    bool statsSinglePageCompatible = (osdDisplayPort->rows >= OSD_STATS_SINGLE_PAGE_MIN_ROWS);
     static uint8_t statsCurrentPage = 0;
     static bool statsDisplayed = false;
-    static bool statsAutoPagingEnabled = true;
+    static bool statsAutoPagingEnabled = false;
     static bool isThrottleHigh = false;
+    bool statsSinglePageCompatible = osdDisplayPort->rows >= OSD_STATS_SINGLE_PAGE_MIN_ROWS;
+    bool updateShowStats = false;
 
     // Detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -5866,11 +5860,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
             }
             osdSetNextRefreshIn(delay);
         } else {
-            // Display the "Stats" screen
+            // Setup display of the "Stats" screen
             statsDisplayed = true;
             statsCurrentPage = 0;
-            statsAutoPagingEnabled = osdConfig()->stats_page_auto_swap_time > 0 ? true : false;
-            osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+            statsAutoPagingEnabled = !statsSinglePageCompatible && osdConfig()->stats_page_auto_swap_time > 0 ? true : false;
+            updateShowStats = true;
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
             isThrottleHigh = checkStickPosition(THR_HI);
         }
@@ -5882,43 +5876,63 @@ static void osdRefresh(timeUs_t currentTimeUs)
     if (resumeRefreshAt) {
 
         // Handle events only when the "multi-page Stats" screen is being displayed.
-        if (statsDisplayed && !statsSinglePageCompatible) {
-            bool manualPageUpRequested = false;
-            bool manualPageDownRequested = false;
+        if (statsDisplayed) {
+            if (!statsSinglePageCompatible) {
+                bool manualPageUpRequested = false;
+                bool manualPageDownRequested = false;
 
-            // These methods ensure the paging stick commands are held for a brief period
-            // Otherwise it can result in a race condition where the stats are
-            // updated too quickly and can result in partial blanks etc.
-            if (osdIsPageUpStickCommandHeld()) {
-                manualPageUpRequested = true;
-                statsAutoPagingEnabled = false;
-            } else if (osdIsPageDownStickCommandHeld()) {
-                manualPageDownRequested = true;
-                statsAutoPagingEnabled = false;
-            }
+                // These methods ensure the paging stick commands are held for a brief period
+                // Otherwise it can result in a race condition where the stats are
+                // updated too quickly and can result in partial blanks etc.
+                if (osdIsPageUpStickCommandHeld()) {
+                    manualPageUpRequested = true;
+                    statsAutoPagingEnabled = false;
+                } else if (osdIsPageDownStickCommandHeld()) {
+                    manualPageDownRequested = true;
+                    statsAutoPagingEnabled = false;
+                }
 
-            if (statsAutoPagingEnabled) {
-                // Auto alternate screens
-                if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
-                    if (statsCurrentPage == 0) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
-                        statsCurrentPage = 1;
+                if (statsAutoPagingEnabled) {
+                    // Auto alternate screens
+                    if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
+                        if (statsCurrentPage == 0) {
+                            osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                            statsCurrentPage = 1;
+                        }
+                    } else {
+                        if (statsCurrentPage == 1) {
+                            osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                            statsCurrentPage = 0;
+                        }
                     }
                 } else {
-                    if (statsCurrentPage == 1) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    // Process manual page change events
+                    if (manualPageUpRequested) {
+                        updateShowStats = true;
+                        statsCurrentPage = 1;
+                    } else if (manualPageDownRequested) {
+                        updateShowStats = true;
                         statsCurrentPage = 0;
                     }
                 }
-            } else {
-                // Process manual page change events
-                if (manualPageUpRequested) {
-                    osdShowStats(statsSinglePageCompatible, 1);
-                    statsCurrentPage = 1;
-                } else if (manualPageDownRequested) {
-                    osdShowStats(statsSinglePageCompatible, 0);
-                    statsCurrentPage = 0;
+            }
+
+            // Process Save Settings messages
+            static bool saveSettingsToggle = false;
+            if (notify_settings_saved) {
+                if (!saveSettingsToggle) {
+                    updateShowStats = true;
+                    saveSettingsToggle = true;
                 }
+                if (millis() > notify_settings_saved) notify_settings_saved = 0;
+            } else if (saveSettingsToggle) {
+                updateShowStats = true;
+                saveSettingsToggle = false;
+            }
+
+            // Update stats page display only when required
+            if (!statsAutoPagingEnabled && updateShowStats) {
+                osdShowStats(statsSinglePageCompatible, statsCurrentPage);
             }
         }
 
