@@ -2035,8 +2035,8 @@ groups:
         min: 0
         max: 500
       - name: dterm_lpf2_hz
-        description: "Dterm pre-differentiation low pass filter cutoff frequency. Filters gyro before differentiation to reduce noise amplification. Set to 0 to disable. Default 250Hz adds ~0.6ms delay at 1kHz loop rate."
-        default_value: 250
+        description: "Dterm pre-differentiation low pass filter cutoff frequency. Filters gyro before differentiation to reduce noise amplification. Set to 0 to disable. Values around 200-250Hz can add smoothing with small delay."
+        default_value: 0
         field: dterm_lpf2_hz
         min: 0
         max: 500

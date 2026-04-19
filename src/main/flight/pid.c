@@ -265,7 +265,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .dterm_lpf_type = SETTING_DTERM_LPF_TYPE_DEFAULT,
         .dterm_lpf_hz = SETTING_DTERM_LPF_HZ_DEFAULT,
-        .dterm_lpf2_hz = 250,   // Pre-diff LPF default 250Hz: ~0.6ms delay at 1kHz
+        .dterm_lpf2_hz = SETTING_DTERM_LPF2_HZ_DEFAULT,
         .yaw_lpf_hz = SETTING_YAW_LPF_HZ_DEFAULT,
 
         .itermWindupPointPercent = SETTING_ITERM_WINDUP_DEFAULT,
@@ -331,16 +331,17 @@ bool pidInitFilters(void)
         return false;
     }
 
-    // Pre-differentiation LPF: filter gyro before diff to avoid amplifying high-freq noise.
-    // High cutoff (default 250Hz) keeps delay <0.6ms at 1kHz loop.
+    // Optional pre-differentiation LPF: filter gyro before diff to avoid amplifying high-freq noise.
     dtermLpf2Hz = pidProfile()->dterm_lpf2_hz;
     const float dT = US2S(refreshRate);
 
     for (int axis = 0; axis < 3; axis++) {
         initFilter(pidProfile()->dterm_lpf_type, &pidState[axis].dtermLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
         if (dtermLpf2Hz > 0) {
+            const float currentGyroRate = pidState[axis].gyroRate;
             pt1FilterInit(&pidState[axis].dtermLpf2State, dtermLpf2Hz, dT);
-            pidState[axis].previousFilteredGyroRate = 0.0f;
+            pt1FilterReset(&pidState[axis].dtermLpf2State, currentGyroRate);
+            pidState[axis].previousFilteredGyroRate = currentGyroRate;
         }
         pt1FilterInit(&windupLpf[axis], pidProfile()->iterm_relax_cutoff, dT);
     }
@@ -787,8 +788,7 @@ static float dTermProcess(pidState_t *pidState, float currentRateTarget, float d
 
     float delta;
     if (dtermLpf2Hz > 0) {
-        // BF-style: pre-filter gyro before differentiation.
-        // Diff amplifies noise; filtering first keeps D clean with minimal delay (PT1@250Hz = ~0.6ms at 1kHz).
+        // Filter gyro before differentiation so D-term does not amplify high-frequency noise.
         const float filteredGyro = pt1FilterApply(&pidState->dtermLpf2State, pidState->gyroRate);
         delta = pidState->previousFilteredGyroRate - filteredGyro;
         pidState->previousFilteredGyroRate = filteredGyro;
