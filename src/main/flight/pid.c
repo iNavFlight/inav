@@ -265,7 +265,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .dterm_lpf_type = SETTING_DTERM_LPF_TYPE_DEFAULT,
         .dterm_lpf_hz = SETTING_DTERM_LPF_HZ_DEFAULT,
-        .dterm_lpf2_hz = 250,
+        .dterm_lpf2_hz = SETTING_DTERM_LPF2_HZ_DEFAULT,
         .yaw_lpf_hz = SETTING_YAW_LPF_HZ_DEFAULT,
 
         .itermWindupPointPercent = SETTING_ITERM_WINDUP_DEFAULT,
@@ -338,8 +338,10 @@ bool pidInitFilters(void)
     dtermLpf2Hz = pidProfile()->dterm_lpf2_hz;
     if (dtermLpf2Hz > 0) {
         for (int axis = 0; axis < 3; axis++) {
+            const float currentGyroRate = pidState[axis].gyroRate;
             pt1FilterInit(&pidState[axis].dtermLpf2State, dtermLpf2Hz, US2S(refreshRate));
-            pidState[axis].previousFilteredGyroRate = 0.0f;
+            pt1FilterReset(&pidState[axis].dtermLpf2State, currentGyroRate);
+            pidState[axis].previousFilteredGyroRate = currentGyroRate;
         }
     }
 
@@ -789,9 +791,7 @@ static float dTermProcess(pidState_t *pidState, float currentRateTarget, float d
     } else {
         float delta;
         if (dtermLpf2Hz > 0) {
-            // Pre-filter gyro before differentiation (Betaflight-style).
-            // Differentiation amplifies noise by f_loop/f_cutoff (~9x at 1kHz);
-            // filtering first reduces this to ~3.6x with only +0.6ms latency at 250Hz.
+            // Filter gyro before differentiation so D-term does not amplify high-frequency noise.
             const float filteredGyro = pt1FilterApply(&pidState->dtermLpf2State, pidState->gyroRate);
             delta = pidState->previousFilteredGyroRate - filteredGyro;
             pidState->previousFilteredGyroRate = filteredGyro;

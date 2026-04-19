@@ -2035,8 +2035,8 @@ groups:
         min: 0
         max: 500
       - name: dterm_lpf2_hz
-        description: "Dterm pre-differentiation LPF cutoff (Hz). Filters gyro BEFORE differentiation to reduce noise amplification (Betaflight-style). Higher = less delay, more noise. 0 = disabled. Recommended: 250 for 5in, 200 for 7in."
-        default_value: 250
+        description: "Dterm pre-differentiation LPF cutoff (Hz). Filters gyro before differentiation to reduce noise amplification. Higher = less delay, more noise. 0 = disabled. Values around 200-250Hz can add smoothing with small delay."
+        default_value: 0
         field: dterm_lpf2_hz
         min: 0
         max: 500
