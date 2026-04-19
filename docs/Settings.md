@@ -802,6 +802,16 @@ Sets the DShot beeper tone
 
 ---
 
+### dterm_lpf2_hz
+
+Dterm pre-differentiation low pass filter cutoff frequency. Filters gyro before differentiation to reduce noise amplification. Set to 0 to disable. Default 250Hz adds ~0.6ms delay at 1kHz loop rate.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 250 | 0 | 500 |
+
+---
+
 ### dterm_lpf_hz
 
 Dterm low pass filter cutoff frequency. Default setting is very conservative and small multirotors should use higher value between 80 and 100Hz. 80 seems like a gold spot for 7-inch builds while 100 should work best with 5-inch machines. If motors are getting too hot, lower the value
