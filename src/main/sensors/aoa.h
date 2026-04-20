@@ -82,4 +82,4 @@ timeDelta_t aoaUpdate(void);
 bool aoaProcess(void);
 bool aoaIsHealthy(void);
 bool aoaControlEnable(int8_t input_rc_channel);
-void aoaControlUpdate(float *pidPitchOutput, float rateError, float newPTerm, float newDTerm, float newFFTerm, float errorGyroIf, float limit);
+void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float newPTerm, float newDTerm, float newFFTerm, float errorGyroIf, float limit);
