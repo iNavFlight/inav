@@ -186,7 +186,7 @@ bool aoaControlEnable(int8_t input_rc_channel)
     return rcValue > 1666;
 }
 
-void aoaControlUpdate(float *pidPitchOutput, float rateError, float newPTerm, float newDTerm, float newFFTerm, float errorGyroIf, float limit)
+void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float newPTerm, float newDTerm, float newFFTerm, float errorGyroIf, float limit)
 {
     isAoaControlEnabled = aoaControlEnable(aoaControlConfig()->fw_aoa_control_channel);
     
