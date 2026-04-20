@@ -55,9 +55,8 @@
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
-#define USE_BARO_SPL06
 #define USE_BARO_DPS310
-#define SPL06_I2C_ADDR          (0x76)
+#define DPS310_I2C_ADDR         (0x76)
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
