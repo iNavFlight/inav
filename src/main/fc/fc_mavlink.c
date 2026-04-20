@@ -168,8 +168,6 @@ static bool handleIncoming_PARAM_REQUEST_LIST(void) {
 
 static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
     switch(mavActiveConfig->radio_type) {
-        case MAVLINK_RADIO_NONE:
-            break;
         case MAVLINK_RADIO_SIK:
             rxLinkStatistics.uplinkRSSI = (msg->rssi / 1.9) - 127;
             rxLinkStatistics.uplinkSNR = msg->noise / 1.9;
@@ -181,15 +179,7 @@ static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
             rxLinkStatistics.uplinkLQ = scaleRange(msg->rssi, 0, 255, 0, 100);
             break;
         case MAVLINK_RADIO_MLRS:
-            // rssi/remrssi are 0-254 AP scale; back-convert to dBm: range is -120 to -50
-            rxLinkStatistics.uplinkRSSI = msg->rssi != 255
-                ? (int8_t)(((int32_t)msg->rssi * (-50 - -120) / 254) + (-120))
-                : 0;
-            // noise field is actually: clamp(-SNR + 10, 0, 127), so SNR = -(noise - 10) = 10 - noise
-            rxLinkStatistics.uplinkSNR = 10 - (int8_t)msg->noise;
-            rxLinkStatistics.uplinkLQ = msg->rssi != 255
-                ? scaleRange(msg->rssi, 0, 254, 0, 100)
-                : 0;
+            // implement here
             break;
         case MAVLINK_RADIO_GENERIC:
         default:
