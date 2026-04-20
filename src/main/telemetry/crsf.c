@@ -57,6 +57,7 @@
 
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
+#include "sensors/aoa.h"
 
 #include "telemetry/crsf.h"
 #include "telemetry/telemetry.h"
@@ -434,6 +435,37 @@ uint32_t    Null Bytes
 uint8_t     255 (Max MSP Parameter)
 uint8_t     0x01 (Parameter version 1)
 */
+#ifdef USE_AOA
+#define CRSF_AOA_MSP_SEQ_INCREMENT 1
+
+static void crsfFrameAoaMsp(sbuf_t *dst)
+{
+    int16_t aoa = 0;
+    int16_t unused = 0;
+    aoaGetLatestData(&aoa, &unused);
+
+    static uint8_t aoaMspSeq = 0;
+
+    uint8_t mspPayload[8];
+    mspPayload[0] = 0x50 | (aoaMspSeq & 0x0F);
+    mspPayload[1] = 0x00;
+    mspPayload[2] = 0x08;
+    mspPayload[3] = 0x1F;
+    mspPayload[4] = 0x02;
+    mspPayload[5] = 0x00;
+    mspPayload[6] = (uint8_t)(aoa & 0xFF);
+    mspPayload[7] = (uint8_t)((aoa >> 8) & 0xFF);
+
+    aoaMspSeq += CRSF_AOA_MSP_SEQ_INCREMENT;
+
+    sbufWriteU8(dst, sizeof(mspPayload) + CRSF_FRAME_LENGTH_EXT_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_MSP_RESP);
+    crsfSerialize8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
+    crsfSerialize8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
+    crsfSerializeData(dst, mspPayload, sizeof(mspPayload));
+}
+#endif
+
 static void crsfFrameDeviceInfo(sbuf_t *dst)
 {
     char buff[30];
@@ -465,6 +497,9 @@ typedef enum {
     CRSF_FRAME_GPS_INDEX,
     CRSF_FRAME_VARIO_SENSOR_INDEX,
     CRSF_FRAME_BAROMETER_ALTITUDE_INDEX,
+#ifdef USE_AOA
+    CRSF_FRAME_AOA_INDEX,
+#endif
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -545,6 +580,13 @@ static void processCrsf(void)
         crsfFinalize(dst);
     }
 #endif
+#ifdef USE_AOA
+    if (currentSchedule & BV(CRSF_FRAME_AOA_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameAoaMsp(dst);
+        crsfFinalize(dst);
+    }
+#endif
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
 
@@ -581,6 +623,11 @@ void initCrsfTelemetry(void)
 #ifdef USE_BARO
     if (sensors(SENSOR_BARO)) {
         crsfSchedule[index++] = BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX);
+    }
+#endif
+#ifdef USE_AOA
+    if (sensors(SENSOR_AOA)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_AOA_INDEX);
     }
 #endif
     crsfScheduleCount = (uint8_t)index;
@@ -659,6 +706,11 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
     case CRSF_FRAMETYPE_VARIO_SENSOR:
         crsfFrameVarioSensor(sbuf);
         break;
+#ifdef USE_AOA
+    case CRSF_FRAMETYPE_MSP_RESP:
+        crsfFrameAoaMsp(sbuf);
+        break;
+#endif
     }
     const int frameSize = crsfFinalizeBuf(sbuf, frame);
     return frameSize;

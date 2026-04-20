@@ -112,6 +112,7 @@
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
 #include "sensors/rangefinder.h"
+#include "sensors/aoa.h"
 
 #include "programming/logic_condition.h"
 #include "programming/global_variables.h"
@@ -931,6 +932,9 @@ static const char * osdArmingDisabledReasonMessage(void)
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwPitotmeterStatus())) {
                     return OSD_MESSAGE_STR(OSD_MSG_PITOT_FAIL);
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwAoaStatus())) {
+                    return OSD_MESSAGE_STR(OSD_MSG_AOA_FAIL);
                 }
             }
             return OSD_MESSAGE_STR(OSD_MSG_HW_FAIL);
@@ -2450,6 +2454,24 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 osdFormatDistanceSymbol(buff, range, 1, 3);
             }
+        }
+        break;
+#endif
+
+#ifdef USE_AOA
+    case OSD_AOA:
+        {
+            int16_t aoa, unused;
+            aoaGetLatestData(&aoa, &unused);
+            if (ABS(aoa) < 1)
+                buff[0] = SYM_AOA;
+            else if (aoa > 0)
+                buff[0] = SYM_AOA_UP;
+            else if (aoa < 0)
+                buff[0] = SYM_AOA_DOWN;
+            osdFormatCentiNumber(buff + 1,
+                                 DECIDEGREES_TO_CENTIDEGREES(ABS(aoa)), 0, 1, 0,
+                                 3, false);
         }
         break;
 #endif

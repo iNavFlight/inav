@@ -24,6 +24,7 @@
 #include "sensors/rangefinder.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/opflow.h"
+#include "sensors/aoa.h"
 
 extern uint8_t requestedSensors[SENSOR_INDEX_COUNT];
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
@@ -211,10 +212,30 @@ hardwareSensorStatus_e getHwOpticalFlowStatus(void)
     }
     else {
         if (requestedSensors[SENSOR_INDEX_OPFLOW] != OPFLOW_NONE) {
-            // Selected but not detected
             return HW_SENSOR_UNAVAILABLE;
         } else {
-            // Not selected and not detected
+            return HW_SENSOR_NONE;
+        }
+    }
+#else
+    return HW_SENSOR_NONE;
+#endif
+}
+
+hardwareSensorStatus_e getHwAoaStatus(void)
+{
+#if defined(USE_AOA)
+    if (detectedSensors[SENSOR_INDEX_AOA] != AOA_NONE) {
+        if (aoaIsHealthy()) {
+            return HW_SENSOR_OK;
+        } else {
+            return HW_SENSOR_UNHEALTHY;
+        }
+    }
+    else {
+        if (requestedSensors[SENSOR_INDEX_AOA] != AOA_NONE) {
+            return HW_SENSOR_UNAVAILABLE;
+        } else {
             return HW_SENSOR_NONE;
         }
     }
@@ -233,6 +254,7 @@ bool isHardwareHealthy(void)
     const hardwareSensorStatus_e pitotStatus = getHwPitotmeterStatus();
     const hardwareSensorStatus_e gpsStatus = getHwGPSStatus();
     const hardwareSensorStatus_e opflowStatus = getHwOpticalFlowStatus();
+    const hardwareSensorStatus_e aoaStatus = getHwAoaStatus();
 
     // Sensor is considered failing if it's either unavailable (selected but not detected) or unhealthy (returning invalid readings)
     if (gyroStatus == HW_SENSOR_UNAVAILABLE || gyroStatus == HW_SENSOR_UNHEALTHY)
@@ -257,6 +279,9 @@ bool isHardwareHealthy(void)
         return false;
 
     if (opflowStatus == HW_SENSOR_UNAVAILABLE || opflowStatus == HW_SENSOR_UNHEALTHY)
+        return false;
+
+    if (aoaStatus == HW_SENSOR_UNAVAILABLE || aoaStatus == HW_SENSOR_UNHEALTHY)
         return false;
 
     return true;

@@ -100,6 +100,7 @@
 #include "io/vtx_string.h"
 #include "io/gps_private.h"  //for MSP_SIMULATOR
 #include "io/headtracker_msp.h"
+#include "io/aoa.h"
 
 #include "io/osd/custom_elements.h"
 
@@ -129,6 +130,7 @@
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/opflow.h"
+#include "sensors/aoa.h"
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
 
@@ -1396,6 +1398,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, 0);
 #endif
+#ifdef USE_AOA
+        sbufWriteU8(dst, aoaConfig()->aoa_hardware);
+#else
+        sbufWriteU8(dst, 0);
+#endif
 #ifdef USE_OPFLOW
         sbufWriteU8(dst, opticalFlowConfig()->opflow_hardware);
 #else
@@ -2581,6 +2588,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             rangefinderConfigMutable()->rangefinder_hardware = sbufReadU8(src);
 #else
             sbufReadU8(src);        // rangefinder hardware
+#endif
+#ifdef USE_AOA
+            aoaConfigMutable()->aoa_hardware = sbufReadU8(src);
+#else
+            sbufReadU8(src);        // aoa hardware
 #endif
 #ifdef USE_OPFLOW
             opticalFlowConfigMutable()->opflow_hardware = sbufReadU8(src);
@@ -4464,6 +4476,12 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 #if defined(USE_PITOT_MSP)
         case MSP2_SENSOR_AIRSPEED:
             mspPitotmeterReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_AOA_MSP)
+        case MSP2_SENSOR_AOA:
+            mspAoaReceiveNewData(sbufPtr(src));
             break;
 #endif
 

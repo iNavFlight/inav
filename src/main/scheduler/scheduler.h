@@ -103,6 +103,9 @@ typedef enum {
 #ifdef USE_OPFLOW
     TASK_OPFLOW,
 #endif
+#ifdef USE_AOA
+    TASK_AOA,
+#endif
 #ifdef USE_RCDEVICE
     TASK_RCDEVICE,
 #endif

@@ -145,6 +145,12 @@
 #define SYM_GFORCE_Y                0xBE  // 190 Gforce Y
 #define SYM_GFORCE_Z                0xBF  // 191 Gforce Z
 
+#ifdef USE_AOA
+#define SYM_AOA_UP                  0x17    //   up
+#define SYM_AOA_DOWN                0x1B  //   down
+#define SYM_AOA                     0x41       // A
+#endif
+
 #define SYM_BARO_TEMP               0xC0  // 192
 #define SYM_IMU_TEMP                0xC1  // 193
 #define SYM_TEMP                    0xC2  // 194 Thermometer icon

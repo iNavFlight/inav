@@ -59,6 +59,7 @@
 #include "rx/rx.h"
 
 #include "sensors/gyro.h"
+#include "sensors/aoa.h"
 
 PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 3);
 
@@ -341,6 +342,14 @@ void servoMixer(float dT)
     input[INPUT_GVAR_5] = constrain(gvGet(5), -1000, 1000);
     input[INPUT_GVAR_6] = constrain(gvGet(6), -1000, 1000);
     input[INPUT_GVAR_7] = constrain(gvGet(7), -1000, 1000);
+
+#ifdef USE_AOA
+    const int8_t gvarIndex = aoaControlConfig()->fw_aoa_gvar_index;
+    if ( gvarIndex >= 0) {
+        input[INPUT_GVAR_0 + gvarIndex] = constrain(aoaPidOutput, -500, 500);
+    }
+#endif
+
 #endif
 
     if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {

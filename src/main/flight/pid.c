@@ -61,6 +61,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/compass.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/aoa.h"
 
 #include "scheduler/scheduler.h"
 
@@ -869,6 +870,12 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float
     }
 
     axisPID[pidState->axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -limit, +limit);
+
+#ifdef USE_AOA
+    if (pidState->axis == FD_PITCH) {
+        aoaControlUpdate(&axisPID[FD_PITCH], rateError, newPTerm, newDTerm, newFFTerm, pidState->errorGyroIf, limit);
+    }
+#endif
 
     if (FLIGHT_MODE(SOARING_MODE) && pidState->axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
         if (!angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH)) {

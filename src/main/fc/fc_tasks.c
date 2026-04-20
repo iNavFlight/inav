@@ -91,6 +91,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
+#include "sensors/aoa.h"
 
 #include "telemetry/telemetry.h"
 #include "telemetry/sbus2.h"
@@ -268,6 +269,21 @@ void taskUpdateOpticalFlow(timeUs_t currentTimeUs)
 }
 #endif
 
+#ifdef USE_AOA
+void taskUpdateAoa(timeUs_t currentTimeUs)
+{
+    if (!sensors(SENSOR_AOA))
+        return;
+
+    const uint32_t newDeadline = aoaUpdate();
+    if (newDeadline != 0) {
+        rescheduleTask(TASK_SELF, newDeadline);
+    }
+
+    aoaProcess();
+}
+#endif
+
 #ifdef USE_DASHBOARD
 void taskDashboardUpdate(timeUs_t currentTimeUs)
 {
@@ -413,6 +429,9 @@ void fcTasksInit(void)
 #endif
 #ifdef USE_OPFLOW
     setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));
+#endif
+#ifdef USE_AOA
+    setTaskEnabled(TASK_AOA, sensors(SENSOR_AOA));
 #endif
 #ifdef USE_VTX_CONTROL
 #if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP) || defined(USE_VTX_MSP)
@@ -671,7 +690,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_OPFLOW] = {
         .taskName = "OPFLOW",
         .taskFunc = taskUpdateOpticalFlow,
-        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UART sensor will work at lower rate w/o accumulation
+        .desiredPeriod = TASK_PERIOD_HZ(100),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+#ifdef USE_AOA
+    [TASK_AOA] = {
+        .taskName = "AOA",
+        .taskFunc = taskUpdateAoa,
+        .desiredPeriod = TASK_PERIOD_MS(100),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
