@@ -21,3 +21,4 @@
 
 void rxMspFrameReceive(uint16_t *frame, int channelCount);
 void rxMspInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+uint8_t rxMspGetLastChannelCount(void);

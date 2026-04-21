@@ -2418,6 +2418,111 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
+
+    case MSP2_INAV_SET_AUX_RC:
+        {
+            // Max valid payload: 1 def byte + 24 channels × 2 bytes (16-bit) = 49 bytes
+            if (dataSize < 2 || dataSize > 49) {
+                return MSP_RESULT_ERROR;
+            }
+
+            const uint8_t defByte = sbufReadU8(src);
+            const uint8_t startChannel = defByte >> 3;          // Bits 7-3: start channel index (0-31)
+            const uint8_t resolutionMode = defByte & 0x07;      // Bits 2-0: resolution
+
+            // Safety: CH1-CH12 (index 0-11) are protected
+            if (startChannel < 12) {
+                return MSP_RESULT_ERROR;
+            }
+
+            const uint8_t dataBytes = dataSize - 1;
+            uint8_t channelCount;
+            uint8_t bitsPerChannel;
+
+            switch (resolutionMode) {
+                case 0: // 2-bit
+                    bitsPerChannel = 2;
+                    channelCount = dataBytes * 4;
+                    break;
+                case 1: // 4-bit
+                    bitsPerChannel = 4;
+                    channelCount = dataBytes * 2;
+                    break;
+                case 2: // 8-bit
+                    bitsPerChannel = 8;
+                    channelCount = dataBytes;
+                    break;
+                case 3: // 16-bit
+                    bitsPerChannel = 16;
+                    if (dataBytes % 2 != 0) {
+                        return MSP_RESULT_ERROR;
+                    }
+                    channelCount = dataBytes / 2;
+                    break;
+                default:
+                    return MSP_RESULT_ERROR;
+            }
+
+            if (channelCount == 0 || startChannel + channelCount > 32) {
+                return MSP_RESULT_ERROR;
+            }
+
+            // Decode and apply channel values
+            if (bitsPerChannel >= 8) {
+                // Byte-aligned modes: 8-bit and 16-bit
+                for (int i = 0; i < channelCount; i++) {
+                    uint16_t rawValue;
+                    if (bitsPerChannel == 16) {
+                        rawValue = sbufReadU16(src);
+                    } else {
+                        rawValue = sbufReadU8(src);
+                    }
+
+                    if (rawValue == 0) {
+                        continue; // skip: no update
+                    }
+
+                    uint16_t pwmValue;
+                    if (bitsPerChannel == 16) {
+                        pwmValue = constrain(rawValue, 750, 2250);
+                    } else {
+                        // 8-bit: 1-255 → 1000-2000
+                        pwmValue = 1000 + ((uint32_t)(rawValue - 1) * 1000) / 254;
+                    }
+
+                    rxMspAuxOverlaySet(startChannel + i, pwmValue);
+                }
+            } else {
+                // Sub-byte modes: 2-bit and 4-bit
+                const uint8_t mask = (1 << bitsPerChannel) - 1;
+                const uint8_t channelsPerByte = 8 / bitsPerChannel;
+                int ch = 0;
+
+                for (int byteIdx = 0; byteIdx < (int)dataBytes && ch < channelCount; byteIdx++) {
+                    const uint8_t dataByte = sbufReadU8(src);
+                    for (int sub = channelsPerByte - 1; sub >= 0 && ch < channelCount; sub--, ch++) {
+                        const uint8_t rawValue = (dataByte >> (sub * bitsPerChannel)) & mask;
+
+                        if (rawValue == 0) {
+                            continue; // skip: no update
+                        }
+
+                        uint16_t pwmValue;
+                        if (bitsPerChannel == 2) {
+                            // 2-bit: 1→1000, 2→1500, 3→2000
+                            pwmValue = 1000 + (rawValue - 1) * 500;
+                        } else {
+                            // 4-bit: 1-15 → 1000-2000
+                            pwmValue = 1000 + ((uint32_t)(rawValue - 1) * 1000) / 14;
+                        }
+
+                        rxMspAuxOverlaySet(startChannel + ch, pwmValue);
+                    }
+                }
+            }
+        }
+        break;
+
     case MSP2_COMMON_SET_MOTOR_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 9) && (tmp_u8 < MAX_SUPPORTED_MOTORS)) {
@@ -4514,6 +4619,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     sbuf_t *dst = &reply->buf;
     sbuf_t *src = &cmd->buf;
     const uint16_t cmdMSP = cmd->cmd;
+
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
