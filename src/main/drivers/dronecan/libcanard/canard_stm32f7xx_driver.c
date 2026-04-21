@@ -27,21 +27,26 @@ struct Timings {
         uint8_t bs2;
 };
 
+typedef struct {
+    CAN_RxHeaderTypeDef header;
+    uint8_t data[8];
+} RxFrame_t;
+
 static struct RxBuffer_t {
     uint8_t writeIndex;
     uint8_t readIndex;
-    CanRxMsgTypeDef rxMsg[RX_BUFFER_SIZE];
+    RxFrame_t rxMsg[RX_BUFFER_SIZE];
 } RxBuffer;
 
 static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings*out_timings);
 static void canardSTM32GPIO_Init(void);
 
 static CAN_HandleTypeDef hcan1;
-CanRxMsgTypeDef rxMsg;
+RxFrame_t rxMsg;
 
-uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, CanRxMsgTypeDef *rxMsg) {
+uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
-    CanRxMsgTypeDef *pCurrentRxMsg;
+    RxFrame_t *pCurrentRxMsg;
 
     next = rxBuf->writeIndex + 1;
     if(next >= RX_BUFFER_SIZE){
@@ -52,14 +57,14 @@ uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, CanRxMsgTypeDef *rxMsg) {
         return -1;  // rxBuf is full
     }
     pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->writeIndex];
-    memcpy(pCurrentRxMsg, rxMsg, sizeof(CanRxMsgTypeDef));
+    memcpy(pCurrentRxMsg, rxMsg, sizeof(RxFrame_t));
     rxBuf->writeIndex = next;
     return 0;
 }
 
-uint8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, CanRxMsgTypeDef *rxMsg) {
+uint8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
-    CanRxMsgTypeDef *pCurrentRxMsg;
+    RxFrame_t *pCurrentRxMsg;
 
     if(rxBuf->writeIndex == rxBuf->readIndex){
         return -1;  // Nothing to read
@@ -70,7 +75,7 @@ uint8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, CanRxMsgTypeDef *rxMsg) {
         next = 0;
     }
     pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->readIndex];
-    memcpy(rxMsg, pCurrentRxMsg, sizeof(CanRxMsgTypeDef));
+    memcpy(rxMsg, pCurrentRxMsg, sizeof(RxFrame_t));
     rxBuf->readIndex = next;
     return 0;
 }
@@ -89,7 +94,7 @@ uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
 int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
-    CanRxMsgTypeDef canRxFrame;
+    RxFrame_t canRxFrame;
 
     if (rx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
@@ -107,8 +112,8 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
 			rx_frame->id |= CANARD_CAN_FRAME_RTR;
 		}
 
-		rx_frame->data_len = canRxFrame.DLC;
-		memcpy(rx_frame->data, canRxFrame.Data, canRxFrame.DLC);
+		rx_frame->data_len = canRxFrame.header.DLC;
+		memcpy(rx_frame->data, canRxFrame.Data, canRxFrame.header.DLC);
 
 		// assume a single interface
 		rx_frame->iface_id = 0;
@@ -125,7 +130,9 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
-	CanTxMsgTypeDef txMsg = {};
+	CAN_TxHeaderTypeDef txHeader = {};
+    uint8_t txData[8];
+    uint32_t txMailbox;
     uint32_t returnCode;
 
     if (tx_frame == NULL) {
@@ -138,26 +145,24 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 
 	// Process canard id to STM FDCAN header format
 	if (tx_frame->id & CANARD_CAN_FRAME_EFF) {
-		txMsg.IDE = CAN_ID_EXT;
-		txMsg.ExtId = tx_frame->id & CANARD_CAN_EXT_ID_MASK;
+		txHeader.IDE = CAN_ID_EXT;
+		txHeader.ExtId = tx_frame->id & CANARD_CAN_EXT_ID_MASK;
 	} else {
-		txMsg.IDE = CAN_ID_STD;
-		txMsg.StdId = tx_frame->id & CANARD_CAN_STD_ID_MASK;
+		txHeader.IDE = CAN_ID_STD;
+		txHeader.StdId = tx_frame->id & CANARD_CAN_STD_ID_MASK;
 	}
 
-	txMsg.DLC = tx_frame->data_len;
+	txHeader.DLC = tx_frame->data_len;
 
 	if (tx_frame->id & CANARD_CAN_FRAME_RTR) {
-		txMsg.RTR = CAN_RTR_REMOTE;
+		txHeader.RTR = CAN_RTR_REMOTE;
 	} else {
-		txMsg.RTR = CAN_RTR_DATA;
+		txHeader.RTR = CAN_RTR_DATA;
 	}
 
-	memcpy(txMsg.Data, tx_frame->data, tx_frame->data_len);
+	memcpy(txData, tx_frame->data, tx_frame->data_len);
 
-    hcan1.pTxMsg = &txMsg;
-
-	returnCode = HAL_CAN_Transmit(&hcan1, 100);
+	returnCode = HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
     if( returnCode == HAL_OK) {
 		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", tx_frame->id);
 		return 1;
@@ -186,7 +191,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 
     // /* USER CODE BEGIN CAN1_MspInit 1 */
 
-    CAN_FilterConfTypeDef sFilterConfig;
+    CAN_FilterTypeDef sFilterConfig;
     sFilterConfig.FilterIdHigh = 0;
     sFilterConfig.FilterIdLow  = 0;
     sFilterConfig.FilterMaskIdHigh = 0;
@@ -196,23 +201,22 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
     sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
     sFilterConfig.FilterActivation = ENABLE;
-    sFilterConfig.BankNumber = 0;
   
     hcan1.Instance = CAN1;
     hcan1.Init.Mode = CAN_MODE_NORMAL;
-    hcan1.Init.TTCM = DISABLE;
-    hcan1.Init.ABOM = ENABLE;
-    hcan1.Init.AWUM = DISABLE;
-    hcan1.Init.NART = DISABLE;
-    hcan1.Init.RFLM = DISABLE;
-    hcan1.Init.TXFP = DISABLE;
+    hcan1.Init.TimeTriggeredMode = DISABLE;
+    hcan1.Init.AutoBusOff = ENABLE;
+    hcan1.Init.AutoWakeUp = DISABLE;
+    hcan1.Init.AutoRetransmission = ENABLE;
+    hcan1.Init.ReceiveFifoLocked = DISABLE;
+    hcan1.Init.TransmitFifoPriority = DISABLE;
   
     canardSTM32ComputeTimings(bitrate, &out_timings);
 
     hcan1.Init.Prescaler = out_timings.prescaler;
-    hcan1.Init.SJW = (out_timings.sjw << CAN_BTR_SJW_Pos);  // Shift the SJW value over to the correct position in the BTR
-    hcan1.Init.BS1 = (out_timings.bs1 << CAN_BTR_TS1_Pos);  // Shift the bs1 value over to the correct position in the BTR
-    hcan1.Init.BS2 = (out_timings.bs2 << CAN_BTR_TS2_Pos);  // Shift the bs2 value over to the correct position in the BTR
+    hcan1.Init.SyncJumpWidth = out_timings.sjw;
+    hcan1.Init.TimeSeg1 = out_timings.bs1;
+    hcan1.Init.TimeSeg2 = out_timings.bs2;
     LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
     // hcan1.Init.StdFiltersNbr = 0;
@@ -238,24 +242,23 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed CAN Init");
         return -CANARD_ERROR_INTERNAL;
     }
-    hcan1.pRxMsg = &rxMsg;  // Set up a buffer to receive into
-
+    
     /* USER CODE BEGIN FDCAN1_Init 2 */
     if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
     }
-    if (HAL_CAN_Receive_IT(&hcan1, CAN_FIFO0) != HAL_OK)
-    {
-        LOG_ERROR(CAN, "Failed to enable interrupts");
+    
+    if (HAL_CAN_Start(&hcan1) != HAL_OK) {
+        LOG_ERROR(CAN, "Failed to Start");
         return -CANARD_ERROR_INTERNAL;
     }
-    //Don't need to explicitly start the CAN driver in v1.2.2
-    // if (HAL_CAN_Start(hcan1) != HAL_OK) {
-    //     LOG_ERROR(CAN, "Failed to Start");
-    //     return -CANARD_ERROR_INTERNAL;
-    // }
 
+    if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {  // persistent Rx notification
+        LOG_ERROR(CAN, "Failed to activate interrupt");
+        return -CANARD_ERROR_INTERNAL;
+    }
+    
     // Enable interrupt only after all initialization succeeds
     // (if any previous step failed, we return early without enabling IRQ)
     HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
@@ -446,11 +449,9 @@ void CAN1_RX0_IRQHandler(void) {
       HAL_CAN_IRQHandler(&hcan1);
 }
 
-void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef * hcan) {
-
-    rxBufferPushFrame(&RxBuffer, hcan1.pRxMsg);
-	
-    __HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
-
-    //return HAL_OK;
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+    RxFrame_t frame;
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &frame.header, frame.data) == HAL_OK) {
+        rxBufferPushFrame(&RxBuffer, &frame);
+    }
 }
