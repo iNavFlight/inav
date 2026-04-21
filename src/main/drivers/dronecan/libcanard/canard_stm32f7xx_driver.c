@@ -101,19 +101,19 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
 	}
 
 	if (rxBufferPopFrame(&RxBuffer, &canRxFrame) == 0) {  // Wheres the data?
-        rx_frame->id = canRxFrame.ExtId;
+        rx_frame->id = canRxFrame.header.ExtId;
 
 		// Process ID to canard format
-		if (canRxFrame.IDE == CAN_ID_EXT) { // canard will only process the message if it is extended ID
+		if (canRxFrame.header.IDE == CAN_ID_EXT) { // canard will only process the message if it is extended ID
             rx_frame->id |= CANARD_CAN_FRAME_EFF;
 		}
 
-		if (canRxFrame.RTR == CAN_RTR_REMOTE) { // canard won't process the message if it is a remote frame
+		if (canRxFrame.header.RTR == CAN_RTR_REMOTE) { // canard won't process the message if it is a remote frame
 			rx_frame->id |= CANARD_CAN_FRAME_RTR;
 		}
 
 		rx_frame->data_len = canRxFrame.header.DLC;
-		memcpy(rx_frame->data, canRxFrame.Data, canRxFrame.header.DLC);
+		memcpy(rx_frame->data, canRxFrame.data, canRxFrame.header.DLC);
 
 		// assume a single interface
 		rx_frame->iface_id = 0;
@@ -197,7 +197,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     sFilterConfig.FilterMaskIdHigh = 0;
     sFilterConfig.FilterMaskIdLow = 0;
     sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-    sFilterConfig.FilterNumber = 0;
+    sFilterConfig.FilterBank = 0;
     sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
     sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
     sFilterConfig.FilterActivation = ENABLE;
