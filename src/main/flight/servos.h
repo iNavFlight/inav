@@ -84,6 +84,7 @@ typedef enum {
     INPUT_RC_CH32                   = 57,
     INPUT_RC_CH33                   = 58,
     INPUT_RC_CH34                   = 59,
+    INPUT_MIXER_SWITCH_HELPER       = 60,
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
@@ -142,6 +143,15 @@ typedef struct servoMixer_s {
 
 PG_DECLARE_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers);
 
+typedef struct servoMixerSwitch_s {
+    //this is used to keep track of servoSpeedLimitFilter of servo rules during the mixer switch
+    uint8_t targetChannel;                  // servo that receives the output of the rule
+    int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
+    uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
+    float speedLimitFilterState;     // rate limit filter for this rule
+} servoMixerSwitch_t;
+#define MAX_SERVO_RULES_SWITCH_CARRY (MAX_SERVO_RULES / 2)
+
 typedef struct servoParam_s {
     int16_t min;                            // servo min
     int16_t max;                            // servo max
@@ -161,6 +171,7 @@ typedef struct servoConfig_s {
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
     uint8_t servo_autotrim_rotation_limit;  // Max rotation for servo midpoints to be updated
     uint8_t servo_autotrim_iterm_threshold; // How much of the Iterm is carried over to the servo midpoints on each update
+    uint8_t servo_autotrim_iterm_rate_limit; // Max I-term rate of change (units/sec) to apply autotrim
 } servoConfig_t;
 
 PG_DECLARE(servoConfig_t, servoConfig);
@@ -182,3 +193,4 @@ void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
 int getServoCount(void);
+uint8_t getMinServoIndex(void);

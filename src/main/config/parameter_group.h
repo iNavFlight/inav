@@ -49,7 +49,7 @@ typedef struct pgRegistry_s {
     uint8_t **ptr;         // The pointer to update after loading the record into ram.
     union {
         void *ptr;         // Pointer to init template
-        pgResetFunc *fn;   // Popinter to pgResetFunc
+        pgResetFunc *fn;   // Pointer to pgResetFunc
     } reset;
 } pgRegistry_t;
 

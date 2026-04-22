@@ -45,7 +45,7 @@ static inline void crc_accumulate(uint8_t data, uint16_t *crcAccum)
 
 
 /**
- * @brief Initiliaze the buffer for the MCRF4XX CRC16
+ * @brief Initialize the buffer for the MCRF4XX CRC16
  *
  * @param crcAccum the 16 bit MCRF4XX CRC16
  */

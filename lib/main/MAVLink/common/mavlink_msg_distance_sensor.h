@@ -12,7 +12,7 @@ typedef struct __mavlink_distance_sensor_t {
  uint8_t type; /*<  Type of distance sensor.*/
  uint8_t id; /*<  Onboard ID of the sensor*/
  uint8_t orientation; /*<  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270*/
- uint8_t covariance; /*< [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.*/
+ uint8_t covariance; /*< [cm^2] Measurement variance. Max standard deviation is 6cm. UINT8_MAX if unknown.*/
  float horizontal_fov; /*< [rad] Horizontal Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.*/
  float vertical_fov; /*< [rad] Vertical Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.*/
  float quaternion[4]; /*<  Quaternion of the sensor orientation in vehicle body frame (w, x, y, z order, zero-rotation is 1, 0, 0, 0). Zero-rotation is along the vehicle body x-axis. This field is required if the orientation is set to MAV_SENSOR_ROTATION_CUSTOM. Set it to 0 if invalid."*/
@@ -81,7 +81,7 @@ typedef struct __mavlink_distance_sensor_t {
  * @param type  Type of distance sensor.
  * @param id  Onboard ID of the sensor
  * @param orientation  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270
- * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.
+ * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. UINT8_MAX if unknown.
  * @param horizontal_fov [rad] Horizontal Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.
  * @param vertical_fov [rad] Vertical Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.
  * @param quaternion  Quaternion of the sensor orientation in vehicle body frame (w, x, y, z order, zero-rotation is 1, 0, 0, 0). Zero-rotation is along the vehicle body x-axis. This field is required if the orientation is set to MAV_SENSOR_ROTATION_CUSTOM. Set it to 0 if invalid."
@@ -119,12 +119,76 @@ static inline uint16_t mavlink_msg_distance_sensor_pack(uint8_t system_id, uint8
     packet.horizontal_fov = horizontal_fov;
     packet.vertical_fov = vertical_fov;
     packet.signal_quality = signal_quality;
-    mav_array_memcpy(packet.quaternion, quaternion, sizeof(float)*4);
+    mav_array_assign_float(packet.quaternion, quaternion, 4);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN);
 #endif
 
     msg->msgid = MAVLINK_MSG_ID_DISTANCE_SENSOR;
     return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_DISTANCE_SENSOR_MIN_LEN, MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN, MAVLINK_MSG_ID_DISTANCE_SENSOR_CRC);
+}
+
+/**
+ * @brief Pack a distance_sensor message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param min_distance [cm] Minimum distance the sensor can measure
+ * @param max_distance [cm] Maximum distance the sensor can measure
+ * @param current_distance [cm] Current distance reading
+ * @param type  Type of distance sensor.
+ * @param id  Onboard ID of the sensor
+ * @param orientation  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270
+ * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. UINT8_MAX if unknown.
+ * @param horizontal_fov [rad] Horizontal Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.
+ * @param vertical_fov [rad] Vertical Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.
+ * @param quaternion  Quaternion of the sensor orientation in vehicle body frame (w, x, y, z order, zero-rotation is 1, 0, 0, 0). Zero-rotation is along the vehicle body x-axis. This field is required if the orientation is set to MAV_SENSOR_ROTATION_CUSTOM. Set it to 0 if invalid."
+ * @param signal_quality [%] Signal quality of the sensor. Specific to each sensor type, representing the relation of the signal strength with the target reflectivity, distance, size or aspect, but normalised as a percentage. 0 = unknown/unset signal quality, 1 = invalid signal, 100 = perfect signal.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_distance_sensor_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint32_t time_boot_ms, uint16_t min_distance, uint16_t max_distance, uint16_t current_distance, uint8_t type, uint8_t id, uint8_t orientation, uint8_t covariance, float horizontal_fov, float vertical_fov, const float *quaternion, uint8_t signal_quality)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN];
+    _mav_put_uint32_t(buf, 0, time_boot_ms);
+    _mav_put_uint16_t(buf, 4, min_distance);
+    _mav_put_uint16_t(buf, 6, max_distance);
+    _mav_put_uint16_t(buf, 8, current_distance);
+    _mav_put_uint8_t(buf, 10, type);
+    _mav_put_uint8_t(buf, 11, id);
+    _mav_put_uint8_t(buf, 12, orientation);
+    _mav_put_uint8_t(buf, 13, covariance);
+    _mav_put_float(buf, 14, horizontal_fov);
+    _mav_put_float(buf, 18, vertical_fov);
+    _mav_put_uint8_t(buf, 38, signal_quality);
+    _mav_put_float_array(buf, 22, quaternion, 4);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN);
+#else
+    mavlink_distance_sensor_t packet;
+    packet.time_boot_ms = time_boot_ms;
+    packet.min_distance = min_distance;
+    packet.max_distance = max_distance;
+    packet.current_distance = current_distance;
+    packet.type = type;
+    packet.id = id;
+    packet.orientation = orientation;
+    packet.covariance = covariance;
+    packet.horizontal_fov = horizontal_fov;
+    packet.vertical_fov = vertical_fov;
+    packet.signal_quality = signal_quality;
+    mav_array_memcpy(packet.quaternion, quaternion, sizeof(float)*4);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_DISTANCE_SENSOR;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_DISTANCE_SENSOR_MIN_LEN, MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN, MAVLINK_MSG_ID_DISTANCE_SENSOR_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_DISTANCE_SENSOR_MIN_LEN, MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN);
+#endif
 }
 
 /**
@@ -140,7 +204,7 @@ static inline uint16_t mavlink_msg_distance_sensor_pack(uint8_t system_id, uint8
  * @param type  Type of distance sensor.
  * @param id  Onboard ID of the sensor
  * @param orientation  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270
- * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.
+ * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. UINT8_MAX if unknown.
  * @param horizontal_fov [rad] Horizontal Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.
  * @param vertical_fov [rad] Vertical Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.
  * @param quaternion  Quaternion of the sensor orientation in vehicle body frame (w, x, y, z order, zero-rotation is 1, 0, 0, 0). Zero-rotation is along the vehicle body x-axis. This field is required if the orientation is set to MAV_SENSOR_ROTATION_CUSTOM. Set it to 0 if invalid."
@@ -179,7 +243,7 @@ static inline uint16_t mavlink_msg_distance_sensor_pack_chan(uint8_t system_id, 
     packet.horizontal_fov = horizontal_fov;
     packet.vertical_fov = vertical_fov;
     packet.signal_quality = signal_quality;
-    mav_array_memcpy(packet.quaternion, quaternion, sizeof(float)*4);
+    mav_array_assign_float(packet.quaternion, quaternion, 4);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN);
 #endif
 
@@ -215,6 +279,20 @@ static inline uint16_t mavlink_msg_distance_sensor_encode_chan(uint8_t system_id
 }
 
 /**
+ * @brief Encode a distance_sensor struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param distance_sensor C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_distance_sensor_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_distance_sensor_t* distance_sensor)
+{
+    return mavlink_msg_distance_sensor_pack_status(system_id, component_id, _status, msg,  distance_sensor->time_boot_ms, distance_sensor->min_distance, distance_sensor->max_distance, distance_sensor->current_distance, distance_sensor->type, distance_sensor->id, distance_sensor->orientation, distance_sensor->covariance, distance_sensor->horizontal_fov, distance_sensor->vertical_fov, distance_sensor->quaternion, distance_sensor->signal_quality);
+}
+
+/**
  * @brief Send a distance_sensor message
  * @param chan MAVLink channel to send the message
  *
@@ -225,7 +303,7 @@ static inline uint16_t mavlink_msg_distance_sensor_encode_chan(uint8_t system_id
  * @param type  Type of distance sensor.
  * @param id  Onboard ID of the sensor
  * @param orientation  Direction the sensor faces. downward-facing: ROTATION_PITCH_270, upward-facing: ROTATION_PITCH_90, backward-facing: ROTATION_PITCH_180, forward-facing: ROTATION_NONE, left-facing: ROTATION_YAW_90, right-facing: ROTATION_YAW_270
- * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.
+ * @param covariance [cm^2] Measurement variance. Max standard deviation is 6cm. UINT8_MAX if unknown.
  * @param horizontal_fov [rad] Horizontal Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.
  * @param vertical_fov [rad] Vertical Field of View (angle) where the distance measurement is valid and the field of view is known. Otherwise this is set to 0.
  * @param quaternion  Quaternion of the sensor orientation in vehicle body frame (w, x, y, z order, zero-rotation is 1, 0, 0, 0). Zero-rotation is along the vehicle body x-axis. This field is required if the orientation is set to MAV_SENSOR_ROTATION_CUSTOM. Set it to 0 if invalid."
@@ -263,7 +341,7 @@ static inline void mavlink_msg_distance_sensor_send(mavlink_channel_t chan, uint
     packet.horizontal_fov = horizontal_fov;
     packet.vertical_fov = vertical_fov;
     packet.signal_quality = signal_quality;
-    mav_array_memcpy(packet.quaternion, quaternion, sizeof(float)*4);
+    mav_array_assign_float(packet.quaternion, quaternion, 4);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_DISTANCE_SENSOR, (const char *)&packet, MAVLINK_MSG_ID_DISTANCE_SENSOR_MIN_LEN, MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN, MAVLINK_MSG_ID_DISTANCE_SENSOR_CRC);
 #endif
 }
@@ -284,7 +362,7 @@ static inline void mavlink_msg_distance_sensor_send_struct(mavlink_channel_t cha
 
 #if MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
@@ -320,7 +398,7 @@ static inline void mavlink_msg_distance_sensor_send_buf(mavlink_message_t *msgbu
     packet->horizontal_fov = horizontal_fov;
     packet->vertical_fov = vertical_fov;
     packet->signal_quality = signal_quality;
-    mav_array_memcpy(packet->quaternion, quaternion, sizeof(float)*4);
+    mav_array_assign_float(packet->quaternion, quaternion, 4);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_DISTANCE_SENSOR, (const char *)packet, MAVLINK_MSG_ID_DISTANCE_SENSOR_MIN_LEN, MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN, MAVLINK_MSG_ID_DISTANCE_SENSOR_CRC);
 #endif
 }
@@ -404,7 +482,7 @@ static inline uint8_t mavlink_msg_distance_sensor_get_orientation(const mavlink_
 /**
  * @brief Get field covariance from distance_sensor message
  *
- * @return [cm^2] Measurement variance. Max standard deviation is 6cm. 255 if unknown.
+ * @return [cm^2] Measurement variance. Max standard deviation is 6cm. UINT8_MAX if unknown.
  */
 static inline uint8_t mavlink_msg_distance_sensor_get_covariance(const mavlink_message_t* msg)
 {

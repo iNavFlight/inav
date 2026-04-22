@@ -26,14 +26,23 @@
 
 #include "platform.h"
 
-#include "fc/fc_msp_box.h"
 #include "fc/config.h"
+#include "fc/fc_msp_box.h"
+#include "fc/rc_modes.h"
 
 #include "io/piniobox.h"
+
+#include "drivers/pwm_mapping.h"
 
 void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
     pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+    pinioBoxConfigMutable()->permanentId[2] = BOX_PERMANENT_ID_USER3;
     beeperConfigMutable()->pwmMode = true;
+
+    modeActivationConditionsMutable(0)->auxChannelIndex = 0;
+    modeActivationConditionsMutable(0)->modeId = BOXUSER1;
+    modeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
+    modeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MAX);
 }

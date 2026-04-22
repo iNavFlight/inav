@@ -104,6 +104,7 @@ void systemResetToBootloader(void)
     systemResetRequest(RESET_BOOTLOADER_REQUEST_ROM);
 }
 
+
 typedef void resetHandler_t(void);
 
 typedef struct isrVector_s {
@@ -119,14 +120,29 @@ void checkForBootLoaderRequest(void)
     if (bootloaderRequest != RESET_BOOTLOADER_REQUEST_ROM) {
         return;
     }
+
+    // Clear the reset reason before jumping
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 
+#if defined(STM32H7)
+
+    // Enable SYSCFG clock (required for bootloader)
+    __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+    // Jump to bootloader
     volatile isrVector_t *bootloaderVector = (isrVector_t *)systemBootloaderAddress();
     __set_MSP(bootloaderVector->stackEnd);
     bootloaderVector->resetHandler();
 
+    while (1);
+#else
+    // On F4/F7, jump to bootloader
+    volatile isrVector_t *bootloaderVector = (isrVector_t *)systemBootloaderAddress();
+    __set_MSP(bootloaderVector->stackEnd);
+    bootloaderVector->resetHandler();
 
     while (1);
+#endif
 }
 
 #define SHORT_FLASH_DURATION 50

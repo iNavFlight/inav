@@ -62,7 +62,17 @@ static void sdcardSpi_deselect(void)
     // As per the SD-card spec, give the card 8 dummy clocks so it can finish its operation
     //spiTransferByte(SDCARD_SPI_INSTANCE, 0xFF);
 
-    while (busIsBusy(sdcard.dev)) { __NOP(); }
+    int timeout = 100000;
+    while (busIsBusy(sdcard.dev)) {
+        if (timeout-- == 0) {
+            sdcard.failureCount++;
+            if (sdcard.failureCount >= SDCARD_MAX_CONSECUTIVE_FAILURES) {
+                sdcard.state = SDCARD_STATE_NOT_PRESENT;
+            }
+            break;
+        }
+        __NOP();
+    }
 
     busDeselectDevice(sdcard.dev);
 }
@@ -580,7 +590,7 @@ static bool sdcardSpi_poll(void)
                     sdcard.multiWriteNextBlock++;
                     sdcard.state = SDCARD_STATE_WRITING_MULTIPLE_BLOCKS;
                 } else if (sdcard.multiWriteBlocksRemain == 1) {
-                    // This function changes the sd card state for us whether immediately succesful or delayed:
+                    // This function changes the sd card state for us whether immediately successful or delayed:
                     if (sdcardSpi_endWriteBlocks() == SDCARD_OPERATION_SUCCESS) {
                         sdcardSpi_deselect();
                     }
@@ -739,7 +749,7 @@ static sdcardOperationStatus_e sdcardSpi_writeBlock(uint32_t blockIndex, uint8_t
  * Returns:
  *     SDCARD_OPERATION_SUCCESS     - Multi-block write has been queued
  *     SDCARD_OPERATION_BUSY        - The card is already busy and cannot accept your write
- *     SDCARD_OPERATION_FAILURE     - A fatal error occured, card will be reset
+ *     SDCARD_OPERATION_FAILURE     - A fatal error occurred, card will be reset
  */
 static sdcardOperationStatus_e sdcardSpi_beginWriteBlocks(uint32_t blockIndex, uint32_t blockCount)
 {

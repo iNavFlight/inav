@@ -2,7 +2,7 @@ name: Build firmware
 # Don't enable CI on push, just on PR. If you
 # are working on the main repo and want to trigger
 # a CI build submit a draft PR.
-on: 
+on:
   push:
     branches:
       - '!maintenance-8.x.x'
@@ -26,7 +26,69 @@ on:
 
 
 jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      single_target: ${{ steps.check.outputs.single_target }}
+      target_names: ${{ steps.check.outputs.target_names }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect single-target PR
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "single_target=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+
+          if [ -z "$CHANGED" ]; then
+            echo "single_target=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Fail fast if any changed file is outside src/main/target/<dir>/
+          NON_TARGET=$(echo "$CHANGED" | grep -Ev '^src/main/target/[^/]+/.+' | head -1)
+          if [ -n "$NON_TARGET" ]; then
+            echo "Non-target file changed: $NON_TARGET — full build required"
+            echo "single_target=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Count how many distinct target directories were touched
+          TARGET_DIRS=$(echo "$CHANGED" | sed -n 's|^src/main/target/\([^/]*\)/.*|\1|p' | sort -u)
+          DIR_COUNT=$(echo "$TARGET_DIRS" | wc -l)
+          if [ "$DIR_COUNT" != "1" ]; then
+            echo "$DIR_COUNT target directories changed — full build required"
+            echo "single_target=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          TARGET_DIR="$TARGET_DIRS"
+          CMAKE="src/main/target/${TARGET_DIR}/CMakeLists.txt"
+          if [ ! -f "$CMAKE" ]; then
+            echo "No CMakeLists.txt for $TARGET_DIR — full build required"
+            echo "single_target=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          TARGET_NAMES=$(grep -oP '(?<=\()[^)]+' "$CMAKE" | tr '\n' ' ' | xargs)
+          if [ -z "$TARGET_NAMES" ]; then
+            echo "No target names in CMakeLists.txt — full build required"
+            echo "single_target=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Single-target PR: building $TARGET_NAMES"
+          echo "single_target=true" >> $GITHUB_OUTPUT
+          echo "target_names=$TARGET_NAMES" >> $GITHUB_OUTPUT
+
   build:
+    needs: [detect]
+    if: needs.detect.outputs.single_target != 'true'
     runs-on: ubuntu-latest
     strategy:
         matrix:
@@ -66,9 +128,42 @@ jobs:
           path: ./build/*.hex
           retention-days: 1
 
+  build-single-target:
+    needs: [detect]
+    if: needs.detect.outputs.single_target == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get -y install ninja-build
+      - name: Setup environment
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+        run: |
+          COMMIT_ID=${{ github.event.pull_request.head.sha }}
+          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
+          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
+          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
+          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
+          echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
+      - uses: actions/cache@v4
+        with:
+          path: downloads
+          key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
+      - name: Build targets (${{ needs.detect.outputs.target_names }})
+        run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -DMAIN_COMPILE_OPTIONS=-pipe -G Ninja .. && ninja -j${{ env.NUM_CORES }} ${{ needs.detect.outputs.target_names }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-${{ env.BUILD_NAME }}.single
+          path: ./build/*.hex
+          retention-days: 1
+
   upload-artifacts:
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [build, build-single-target]
+    if: always() && !cancelled() && (needs.build.result == 'success' || needs.build-single-target.result == 'success')
     steps:
       - uses: actions/checkout@v4
       - name: Setup environment
@@ -107,6 +202,16 @@ jobs:
         with:
           name: targets
           path: targets.txt
+      - name: Save PR number
+        if: github.event_name == 'pull_request'
+        run: echo "${{ github.event.pull_request.number }}" > pr_number.txt
+      - name: Upload PR number
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-number
+          path: pr_number.txt
+          retention-days: 1
 
   build-SITL-Linux-arm64:
     runs-on: ubuntu-22.04-arm
@@ -186,7 +291,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
-          brew install cmake ninja ruby
+          brew install ruby
 
       - name: Setup environment
         env:
@@ -231,7 +336,7 @@ jobs:
       - name: Setup Cygwin
         uses: egor-tensin/setup-cygwin@v4
         with:
-          packages: cmake ruby ninja gcc-g++
+          packages: cmake ruby ninja gcc-g++ rubygems
       - name: Setup environment
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
@@ -248,19 +353,23 @@ jobs:
           VERSION=$( grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }' )
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-          
+
       - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
+        run: gem install getoptlong && mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
       - name: Strip version number
         run: |
           for f in ./build_SITL/*_SITL.exe; do
             mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
           done
+      - name: Copy cygwin1.dll
+        run: cp /bin/cygwin1.dll ./build_SITL/
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BUILD_NAME }}_SITL-WIN
-          path: ./build_SITL/*.exe
+          path: |
+            ./build_SITL/*.exe
+            ./build_SITL/cygwin1.dll
 
   test:
     #needs: [build]

@@ -76,6 +76,45 @@ static inline uint16_t mavlink_msg_data_stream_pack(uint8_t system_id, uint8_t c
 }
 
 /**
+ * @brief Pack a data_stream message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param stream_id  The ID of the requested data stream
+ * @param message_rate [Hz] The message rate
+ * @param on_off  1 stream is enabled, 0 stream is stopped.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_data_stream_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint8_t stream_id, uint16_t message_rate, uint8_t on_off)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_DATA_STREAM_LEN];
+    _mav_put_uint16_t(buf, 0, message_rate);
+    _mav_put_uint8_t(buf, 2, stream_id);
+    _mav_put_uint8_t(buf, 3, on_off);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_DATA_STREAM_LEN);
+#else
+    mavlink_data_stream_t packet;
+    packet.message_rate = message_rate;
+    packet.stream_id = stream_id;
+    packet.on_off = on_off;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_DATA_STREAM_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_DATA_STREAM;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_DATA_STREAM_MIN_LEN, MAVLINK_MSG_ID_DATA_STREAM_LEN, MAVLINK_MSG_ID_DATA_STREAM_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_DATA_STREAM_MIN_LEN, MAVLINK_MSG_ID_DATA_STREAM_LEN);
+#endif
+}
+
+/**
  * @brief Pack a data_stream message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -138,6 +177,20 @@ static inline uint16_t mavlink_msg_data_stream_encode_chan(uint8_t system_id, ui
 }
 
 /**
+ * @brief Encode a data_stream struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param data_stream C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_data_stream_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_data_stream_t* data_stream)
+{
+    return mavlink_msg_data_stream_pack_status(system_id, component_id, _status, msg,  data_stream->stream_id, data_stream->message_rate, data_stream->on_off);
+}
+
+/**
  * @brief Send a data_stream message
  * @param chan MAVLink channel to send the message
  *
@@ -182,7 +235,7 @@ static inline void mavlink_msg_data_stream_send_struct(mavlink_channel_t chan, c
 
 #if MAVLINK_MSG_ID_DATA_STREAM_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

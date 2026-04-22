@@ -64,7 +64,11 @@ if(NOT MACOSX)
         -Wno-error=maybe-uninitialized
         -fsingle-precision-constant
     )
-    if (CMAKE_COMPILER_IS_GNUCC AND NOT CMAKE_C_COMPILER_VERSION VERSION_LESS 12.0)
+    include(CheckLinkerFlag OPTIONAL)
+    if(COMMAND check_linker_flag)
+        check_linker_flag(C "-Wl,--no-warn-rwx-segments" LINKER_SUPPORTS_NO_RWX_WARNING)
+    endif()
+    if(LINKER_SUPPORTS_NO_RWX_WARNING)
         set(SITL_LINK_OPTIONS ${SITL_LINK_OPTIONS} "-Wl,--no-warn-rwx-segments")
     endif()
 else()

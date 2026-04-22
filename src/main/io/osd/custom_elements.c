@@ -33,6 +33,8 @@
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(osdCustomElement_t, MAX_CUSTOM_ELEMENTS, osdCustomElements, PG_OSD_CUSTOM_ELEMENTS_CONFIG, 1);
 
+static uint8_t prevLength[MAX_CUSTOM_ELEMENTS];
+
 void pgResetFn_osdCustomElements(osdCustomElement_t *instance)
 {
     for (int i = 0; i < MAX_CUSTOM_ELEMENTS; i++) {
@@ -228,8 +230,6 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
         return;
     }
 
-    static uint8_t prevLength[MAX_CUSTOM_ELEMENTS];
-
     uint8_t buffSeek = 0;
     const osdCustomElement_t* customElement = osdCustomElements(customElementIndex);
     if(isCustomelementVisible(customElement))
@@ -245,4 +245,8 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
         *buff++ = SYM_BLANK;
     }
     prevLength[customElementIndex] = buffSeek;
+}
+
+uint8_t customElementLength(uint8_t customElementIndex){
+    return prevLength[customElementIndex] ? prevLength[customElementIndex] : 1;
 }

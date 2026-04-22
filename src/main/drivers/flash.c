@@ -30,7 +30,7 @@
 
 #include "flash.h"
 #include "flash_m25p16.h"
-#include "flash_w25n01g.h"
+#include "flash_w25n.h"
 
 #include "common/time.h"
 
@@ -56,17 +56,17 @@ static flashDriver_t flashDrivers[] = {
     },
 #endif
 
-#ifdef USE_FLASH_W25N01G
+#if defined(USE_FLASH_W25N01G) || defined(USE_FLASH_W25N02K)
     {
-        .init = w25n01g_init,
-        .isReady = w25n01g_isReady,
-        .waitForReady = w25n01g_waitForReady,
-        .eraseSector = w25n01g_eraseSector,
-        .eraseCompletely = w25n01g_eraseCompletely,
-        .pageProgram = w25n01g_pageProgram,
-        .readBytes = w25n01g_readBytes,
-        .getGeometry = w25n01g_getGeometry,
-        .flush = w25n01g_flush
+        .init = w25n_init,
+        .isReady = w25n_isReady,
+        .waitForReady = w25n_waitForReady,
+        .eraseSector = w25n_eraseSector,
+        .eraseCompletely = w25n_eraseCompletely,
+        .pageProgram = w25n_pageProgram,
+        .readBytes = w25n_readBytes,
+        .getGeometry = w25n_getGeometry,
+        .flush = w25n_flush
     },
 #endif
 

@@ -1,4 +1,4 @@
-# GPS Fix estimation (dead reconing, RTH without GPS) for fixed wing
+# GPS Fix estimation (dead reckoning, RTH without GPS) for fixed wing
 
 Video demonstration
 
@@ -12,7 +12,7 @@ Plane should have the following sensors:
 - acceleromenter, gyroscope
 - barometer
 - GPS
-- magnethometer (optional, highly recommended)
+- magnetometer (optional, highly recommended)
 - pitot (optional)
 
 By befault, all navigation modes are disabled when GPS fix is lost. If RC signal is lost also, plane will not be able to enable RTH. Plane will switch to LANDING instead. When flying above unreachable spaces, plane will be lost.
@@ -41,11 +41,11 @@ It is assumed, that plane will fly in roughly estimated direction to home positi
 
 *Plane has to acquire GPS fix and store home position before takeoff. Estimation completely without GPS fix will not work*.
 
-# Estimation without magnethometer
+# Estimation without magnetometer
 
-Without magnethometer, navigation accuracy is very poor. The problem is heading drift. 
+Without magnetometer, navigation accuracy is very poor. The problem is heading drift. 
 
-The longer plane flies without magnethometer or GPS, the bigger is course estimation error.
+The longer plane flies without magnetometer or GPS, the bigger is course estimation error.
 
 After few minutes and few turns, "North" direction estimation can be completely broken.
 In general, accuracy is enough to perform RTH U-turn when both RC controls and GPS are lost, and roughtly keep RTH direction in areas with occasional GPS outages.
@@ -54,7 +54,7 @@ In general, accuracy is enough to perform RTH U-turn when both RC controls and G
 
 (purple line - estimated position, black line - real position).
 
-It is recommened to use GPS fix estimation without magnethometer as last resort only. For example, if plane is flying above lake, landing means loss of plane. With GPS Fix estimation, plane will try to do RTH in very rought direction, instead of landing.
+It is recommened to use GPS fix estimation without magnetometer as last resort only. For example, if plane is flying above lake, landing means loss of plane. With GPS Fix estimation, plane will try to do RTH in very rought direction, instead of landing.
 
 It is up to user to estimate the risk of fly-away.
 

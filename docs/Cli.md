@@ -27,17 +27,17 @@ Disconnect main power, connect to cli via USB/FTDI.
 dump using cli
 
 ```
-profile 0
+control_profile 0
 dump
 ```
 
-dump profiles using cli if you use them
+dump control_profiles using cli if you use them
 
 ```
-profile 1
-dump profile
-profile 2
-dump profile
+control_profile 1
+dump control_profile
+control_profile 2
+dump control_profile
 ```
 
 copy screen output to a file and save it.
@@ -71,9 +71,10 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `batch` | Start or end a batch of commands |
 | `battery_profile` | Change battery profile |
 | `beeper` | Show/set beeper (buzzer) [usage](Buzzer.md) |
+| `bind_msp_rx` | Initiate binding for MSP receivers (mLRS) |
 | `bind_rx` | Initiate binding for SRXL2 or CRSF receivers |
 | `blackbox` | Configure blackbox fields |
-| `bootlog` | Show boot events |
+| `bootlog` | Show init logs from [serial_printf_debugging](./development/serial_printf_debugging.md) |
 | `color` | Configure colors |
 | `defaults` | Reset to defaults and reboot |
 | `dfu` | DFU mode on reboot |
@@ -100,7 +101,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `osd_layout` | Get or set the layout of OSD items |
 | `pid` | Configurable PID controllers |
 | `play_sound` | `<index>`, or none for next item |
-| `profile` | Change profile |
+| `control_profile` | Change profile |
 | `resource` | View currently used resources |
 | `rxrange` | Configure rx channel ranges |
 | `safehome` | Define safe home locations. See the [safehome documentation](Safehomes.md) for usage information. |

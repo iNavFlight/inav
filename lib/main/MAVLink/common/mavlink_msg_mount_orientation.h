@@ -88,6 +88,51 @@ static inline uint16_t mavlink_msg_mount_orientation_pack(uint8_t system_id, uin
 }
 
 /**
+ * @brief Pack a mount_orientation message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param roll [deg] Roll in global frame (set to NaN for invalid).
+ * @param pitch [deg] Pitch in global frame (set to NaN for invalid).
+ * @param yaw [deg] Yaw relative to vehicle (set to NaN for invalid).
+ * @param yaw_absolute [deg] Yaw in absolute frame relative to Earth's North, north is 0 (set to NaN for invalid).
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_mount_orientation_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint32_t time_boot_ms, float roll, float pitch, float yaw, float yaw_absolute)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_MOUNT_ORIENTATION_LEN];
+    _mav_put_uint32_t(buf, 0, time_boot_ms);
+    _mav_put_float(buf, 4, roll);
+    _mav_put_float(buf, 8, pitch);
+    _mav_put_float(buf, 12, yaw);
+    _mav_put_float(buf, 16, yaw_absolute);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_MOUNT_ORIENTATION_LEN);
+#else
+    mavlink_mount_orientation_t packet;
+    packet.time_boot_ms = time_boot_ms;
+    packet.roll = roll;
+    packet.pitch = pitch;
+    packet.yaw = yaw;
+    packet.yaw_absolute = yaw_absolute;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_MOUNT_ORIENTATION_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_MOUNT_ORIENTATION;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_MOUNT_ORIENTATION_MIN_LEN, MAVLINK_MSG_ID_MOUNT_ORIENTATION_LEN, MAVLINK_MSG_ID_MOUNT_ORIENTATION_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_MOUNT_ORIENTATION_MIN_LEN, MAVLINK_MSG_ID_MOUNT_ORIENTATION_LEN);
+#endif
+}
+
+/**
  * @brief Pack a mount_orientation message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -156,6 +201,20 @@ static inline uint16_t mavlink_msg_mount_orientation_encode_chan(uint8_t system_
 }
 
 /**
+ * @brief Encode a mount_orientation struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param mount_orientation C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_mount_orientation_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_mount_orientation_t* mount_orientation)
+{
+    return mavlink_msg_mount_orientation_pack_status(system_id, component_id, _status, msg,  mount_orientation->time_boot_ms, mount_orientation->roll, mount_orientation->pitch, mount_orientation->yaw, mount_orientation->yaw_absolute);
+}
+
+/**
  * @brief Send a mount_orientation message
  * @param chan MAVLink channel to send the message
  *
@@ -206,7 +265,7 @@ static inline void mavlink_msg_mount_orientation_send_struct(mavlink_channel_t c
 
 #if MAVLINK_MSG_ID_MOUNT_ORIENTATION_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

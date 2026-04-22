@@ -31,14 +31,17 @@ typedef enum {
     CURRENT_SENSOR_VIRTUAL,
     CURRENT_SENSOR_FAKE,
     CURRENT_SENSOR_ESC,
-    CURRENT_SENSOR_MAX = CURRENT_SENSOR_FAKE
+    CURRENT_SENSOR_SMARTPORT,
+    CURRENT_SENSOR_MAX = CURRENT_SENSOR_SMARTPORT
 } currentSensor_e;
 
 typedef enum {
     VOLTAGE_SENSOR_NONE = 0,
     VOLTAGE_SENSOR_ADC,
     VOLTAGE_SENSOR_ESC,
-    VOLTAGE_SENSOR_FAKE
+    VOLTAGE_SENSOR_FAKE,
+    VOLTAGE_SENSOR_SMARTPORT,
+    VOLTAGE_SENSOR_MAX = VOLTAGE_SENSOR_SMARTPORT
 } voltageSensor_e;
 
 typedef enum {
@@ -97,7 +100,7 @@ typedef struct batteryProfile_s {
         uint32_t critical;                  // mAh or mWh (see batteryMetersConfig()->capacity_unit)
     } capacity;
 
-    uint8_t controlRateProfile;
+    uint8_t controlProfile;
 
     struct {
         float throttleIdle;                 // Throttle IDLE value based on min_command, max_throttle, in percent

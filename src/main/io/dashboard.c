@@ -38,7 +38,7 @@
 #include "common/typeconversion.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/runtime_config.h"
 #include "fc/rc_controls.h"
 
@@ -68,7 +68,7 @@
 #include "config/feature.h"
 
 
-controlRateConfig_t *getControlRateConfig(uint8_t profileIndex);
+controlConfig_t *getControlConfig(uint8_t profileIndex);
 
 #define MICROSECONDS_IN_A_SECOND (1000 * 1000)
 
@@ -172,8 +172,8 @@ static const char* const gpsFixTypeText[] = {
     "3D"
 };
 
-static const char* tickerCharacters = "|/-\\"; // use 2/4/8 characters so that the divide is optimal.
-#define TICKER_CHARACTER_COUNT (sizeof(tickerCharacters) / sizeof(char))
+static const char tickerCharacters[] = "|/-\\"; // use 2/4/8 characters so that the divide is optimal.
+#define TICKER_CHARACTER_COUNT (sizeof(tickerCharacters) - 1)
 
 static timeUs_t nextPageAt;
 static bool forcePageChange;

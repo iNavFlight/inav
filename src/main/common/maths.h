@@ -35,49 +35,51 @@
 
 #define RAD (M_PIf / 180.0f)
 
-#define DEGREES_TO_CENTIDEGREES(angle) ((angle) * 100)
-#define CENTIDEGREES_TO_DEGREES(angle) ((angle) * 0.01f)
+#define DEGREES_TO_CENTIDEGREES(angle)      ((angle) * 100)
+#define CENTIDEGREES_TO_DEGREES(angle)      ((angle) * 0.01f)
 
-#define CENTIDEGREES_TO_DECIDEGREES(angle) ((angle) / 10.0f)
-#define DECIDEGREES_TO_CENTIDEGREES(angle) ((angle) * 10)
+#define CENTIDEGREES_TO_DECIDEGREES(angle)  ((angle) / 10.0f)
+#define DECIDEGREES_TO_CENTIDEGREES(angle)  ((angle) * 10)
 
-#define DEGREES_TO_DECIDEGREES(angle) ((angle) * 10)
-#define DECIDEGREES_TO_DEGREES(angle) ((angle) / 10.0f)
+#define DEGREES_TO_DECIDEGREES(angle)       ((angle) * 10)
+#define DECIDEGREES_TO_DEGREES(angle)       ((angle) / 10.0f)
 
-#define DEGREES_PER_DEKADEGREE 10
-#define DEGREES_TO_DEKADEGREES(angle) ((angle) / DEGREES_PER_DEKADEGREE)
-#define DEKADEGREES_TO_DEGREES(angle) ((angle) * DEGREES_PER_DEKADEGREE)
+#define DEGREES_PER_DEKADEGREE              10   
+#define DEGREES_TO_DEKADEGREES(angle)       ((angle) / DEGREES_PER_DEKADEGREE)
+#define DEKADEGREES_TO_DEGREES(angle)       ((angle) * DEGREES_PER_DEKADEGREE)
 
-#define DEGREES_TO_RADIANS(angle) ((angle) * RAD)
-#define RADIANS_TO_DEGREES(angle) ((angle) / RAD)
-#define DECIDEGREES_TO_RADIANS(angle) (((angle) / 10.0f) * RAD)
-#define RADIANS_TO_DECIDEGREES(angle) (((angle) * 10.0f) / RAD)
+#define DEGREES_TO_RADIANS(angle)           ((angle) * RAD)
+#define RADIANS_TO_DEGREES(angle)           ((angle) / RAD)
+#define DECIDEGREES_TO_RADIANS(angle)       (((angle) / 10.0f) * RAD)
+#define RADIANS_TO_DECIDEGREES(angle)       (((angle) * 10.0f) / RAD)
 
-#define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
-#define CENTIDEGREES_TO_RADIANS(angle) (((angle) * 0.01f) * RAD)
+#define RADIANS_TO_CENTIDEGREES(angle)      (((angle) * 100.0f) / RAD)
+#define CENTIDEGREES_TO_RADIANS(angle)      (((angle) * 0.01f) * RAD)
 
-#define MILLIMETERS_TO_CENTIMETERS(mm)  (mm / 10.0f)
+#define MILLIMETERS_TO_CENTIMETERS(mm)      (mm / 10.0f)
 
-#define CENTIMETERS_TO_CENTIFEET(cm)    (cm / 0.3048f)
-#define CENTIMETERS_TO_FEET(cm)         (cm / 30.48f)
-#define CENTIMETERS_TO_METERS(cm)       (cm * 0.01f)
+#define CENTIMETERS_TO_CENTIFEET(cm)        (cm / 0.3048f)
+#define CENTIMETERS_TO_FEET(cm)             (cm / 30.48f)
+#define CENTIMETERS_TO_METERS(cm)           (cm * 0.01f)
 
-#define METERS_TO_CENTIMETERS(m)        (m * 100)
-#define METERS_TO_KILOMETERS(m)         (m / 1000.0f)
-#define METERS_TO_MILES(m)              (m / 1609.344f)
-#define METERS_TO_NAUTICALMILES(m)      (m / 1852.00f)
+#define METERS_TO_CENTIMETERS(m)            (m * 100)
+#define METERS_TO_KILOMETERS(m)             (m / 1000.0f)
+#define METERS_TO_MILES(m)                  (m / 1609.344f)
+#define METERS_TO_NAUTICALMILES(m)          (m / 1852.00f)
 
-#define MWH_TO_WH(mWh)                  (mWh / 1000.0f)
+#define MWH_TO_WH(mWh)                      (mWh / 1000.0f)
 
-#define CMSEC_TO_CENTIMPH(cms)          (cms * 2.2369363f)
-#define CMSEC_TO_CENTIKPH(cms)          (cms * 3.6f)
-#define CMSEC_TO_CENTIKNOTS(cms)        (cms * 1.943845f)
+#define CMSEC_TO_CENTIMPH(cms)              (cms * 2.2369363f)
+#define CMSEC_TO_CENTIKPH(cms)              (cms * 3.6f)
+#define CMSEC_TO_CENTIKNOTS(cms)            (cms * 1.943845f)
 
-#define CMSEC_TO_MPH(cms)          (CMSEC_TO_CENTIMPH(cms) / 100.0f)
-#define CMSEC_TO_KPH(cms)          (CMSEC_TO_CENTIKPH(cms) / 100.0f)
-#define CMSEC_TO_KNOTS(cms)        (CMSEC_TO_CENTIKNOTS(cms) / 100.0f)
+#define CMSEC_TO_MPH(cms)                   (CMSEC_TO_CENTIMPH(cms) / 100.0f)
+#define CMSEC_TO_KPH(cms)                   (CMSEC_TO_CENTIKPH(cms) / 100.0f)
+#define CMSEC_TO_KNOTS(cms)                 (CMSEC_TO_CENTIKNOTS(cms) / 100.0f)
 
-#define C_TO_KELVIN(temp) (temp + 273.15f)
+#define KMH_TO_MS(kmh)                      (kmh / 3.6f)  
+
+#define C_TO_KELVIN(temp)                   (temp + 273.15f)
 
 // Standard Sea Level values
 // Ref:https://en.wikipedia.org/wiki/Standard_sea_level

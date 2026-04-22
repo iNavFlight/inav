@@ -89,3 +89,37 @@ The allowable baud rates are as follows:
 | 14         | 1500000   |
 | 15         | 2000000   |
 | 16         | 2470000   |
+
+
+### Function numbers as of 2025
+
+| Function                   | Number                                             |
+| -------------------------- | -------------------------------------------------- |
+| NONE                       | 0, |
+| MSP                        | (1 << 0), // 1 |
+| GPS                        | (1 << 1), // 2 |
+| UNUSED_3                   | (1 << 2), // 4 //Was FUNCTION_TELEMETRY_FRSKY |
+| TELEMETRY_HOTT             | (1 << 3), // 8 |
+| TELEMETRY_LTM              | (1 << 4), // 16 |
+| TELEMETRY_SMARTPORT        | (1 << 5), // 32 |
+| RX_SERIAL                  | (1 << 6), // 64 |
+| BLACKBOX                   | (1 << 7), // 128 |
+| TELEMETRY_MAVLINK          | (1 << 8), // 256 |
+| TELEMETRY_IBUS             | (1 << 9), // 512 |
+| RCDEVICE                   | (1 << 10), // 1024 |
+| VTX_SMARTAUDIO             | (1 << 11), // 2048 |
+| VTX_TRAMP                  | (1 << 12), // 4096 |
+| UNUSED_1                   | (1 << 13), // 8192: former\ UAV_INTERCONNECT |
+| OPTICAL_FLOW               | (1 << 14), // 16384 |
+| LOG                        | (1 << 15), // 32768 |
+| RANGEFINDER                | (1 << 16), // 65536 |
+| VTX_FFPV                   | (1 << 17), // 131072 |
+| ESCSERIAL                  | (1 << 18), // 262144: this is used for both SERIALSHOT and ESC_SENSOR telemetry |
+| TELEMETRY_SIM              | (1 << 19), // 524288 |
+| FRSKY_OSD                  | (1 << 20), // 1048576 |
+| DJI_HD_OSD                 | (1 << 21), // 2097152 |
+| SERVO_SERIAL               | (1 << 22), // 4194304 |
+| TELEMETRY_SMARTPORT_MASTER | (1 << 23), // 8388608 |
+| UNUSED_2                   | (1 << 24), // 16777216 |
+| MSP_OSD                    | (1 << 25), // 33554432 |
+

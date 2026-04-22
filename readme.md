@@ -4,7 +4,7 @@
 
 > INAV no longer accepts targets based on STM32 F411 MCU.
 
-> INAV 7 was the last INAV official release available for F411 based flight controllers. INAV 8 is not officially available for F411 boards.
+> INAV 7 was the last INAV official release available for F411 based flight controllers. INAV 8 is not officially available for F411 boards and the team has not tested either. Issues that can't be reproduced on other MCUs may not be fixed and the targets for F411 targets may eventually be completelly removed from future releases.
 
 # ICM426xx IMUs PSA
 
@@ -50,6 +50,20 @@ Fly safe, fly smart with INAV 7.1 and a compass by your side!
 
 * [INAV Discord Server](https://discord.gg/peg2hhbYwN)
 * [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
+
+## Downloads
+
+### INAV Configurator
+
+**Get the latest version:** **[Download INAV Configurator](https://github.com/iNavFlight/inav-configurator/releases/latest)** - Available for Windows, macOS, and Linux
+
+The INAV Configurator is the official desktop application for configuring your INAV flight controller. Choose your platform from the Assets section on the releases page.
+
+### INAV Firmware
+
+**Get the latest firmware:** **[Download INAV Firmware](https://github.com/iNavFlight/inav/releases/latest)**
+
+Download the latest INAV flight controller firmware. Flash it to your flight controller using the configurator.
 
 ## Features
 

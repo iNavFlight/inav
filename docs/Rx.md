@@ -185,12 +185,18 @@ set rssi_channel = 0
 
 Setting these values differently may have an adverse effects on RSSI readings.
 
-#### CLI Bind Command
+#### CLI Bind Commands
 
 This command will put the receiver into bind mode without the need to reboot the FC as it was required with the older `spektrum_sat_bind` command.
 
 ```
 bind_rx
+```
+
+This command will send a bind request to an MSP receiver on the specified port.
+
+```
+bind_msp_rx <port>
 ```
 
 ## MultiWii serial protocol (MSP RX)
@@ -200,7 +206,7 @@ Note:
 * It is necessary to update `MSP_SET_RAW_RC` at 5Hz or faster.
 * `MSP_SET_RAW_RC` uses the defined RC channel map
 * `MSP_RC` returns `AERT` regardless of channel map
-* You can combine "real" RC radio and MSP RX by compiling custom firmware with `USE_MSP_RC_OVERRIDE` defined. Then use `msp_override_channels` to set the channels to be overridden.
+* You can combine "real" RC radio and MSP RX by using `msp_override_channels` to set the channels to be overridden.
 * The [wiki Remote Control and Management article](https://github.com/iNavFlight/inav/wiki/INAV-Remote-Management,-Control-and-Telemetry) provides more information, including links to 3rd party projects that exercise `MSP_SET_RAW_RC` and `USE_MSP_RC_OVERRIDE`
 
 ## SIM (SITL) Joystick

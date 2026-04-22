@@ -43,6 +43,8 @@
     MAVLINK_HELPER mavlink_status_t* mavlink_get_channel_status(uint8_t chan);
     #endif
     MAVLINK_HELPER void mavlink_reset_channel_status(uint8_t chan);
+    MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t* msg, uint8_t system_id, uint8_t component_id,
+                                                            mavlink_status_t* status, uint8_t min_length, uint8_t length, uint8_t crc_extra);
     MAVLINK_HELPER uint16_t mavlink_finalize_message_chan(mavlink_message_t* msg, uint8_t system_id, uint8_t component_id,
                                                           uint8_t chan, uint8_t min_length, uint8_t length, uint8_t crc_extra);
     MAVLINK_HELPER uint16_t mavlink_finalize_message(mavlink_message_t* msg, uint8_t system_id, uint8_t component_id,
@@ -178,12 +180,42 @@ static void mav_array_memcpy(void *dest, const void *src, size_t n)
 }
 
 /*
+ * Array direct assignment, for use when fields align and no byte swapping
+ * is required. Most are directly #defined to mav_array_memcpy, except for 
+ * mav_array_assign_char, which uses strncpy instead.
+ */
+#if !MAVLINK_NEED_BYTE_SWAP && MAVLINK_ALIGNED_FIELDS
+static void mav_array_assign_char(char *dest, const char *src, size_t n)
+{
+	if (src == NULL) {
+		memset(dest, 0, n);
+	} else {
+		/* strncpy will zero pad dest array up to n bytes */
+		strncpy(dest, src, n);
+	}
+}
+#define mav_array_assign_uint8_t(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(uint8_t))
+#define mav_array_assign_int8_t(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(int8_t))
+#define mav_array_assign_uint16_t(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(uint16_t))
+#define mav_array_assign_int16_t(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(int16_t))
+#define mav_array_assign_uint32_t(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(uint32_t))
+#define mav_array_assign_int32_t(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(int32_t))
+#define mav_array_assign_uint64_t(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(uint64_t))
+#define mav_array_assign_int64_t(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(int64_t))
+#define mav_array_assign_float(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(float))
+#define mav_array_assign_double(DEST,SRC,N) mav_array_memcpy(DEST,SRC,N*sizeof(double))
+#endif
+
+/*
  * Place a char array into a buffer
  */
 static void _mav_put_char_array(char *buf, uint8_t wire_offset, const char *b, uint8_t array_length)
 {
-	mav_array_memcpy(&buf[wire_offset], b, array_length);
-
+	if (b == NULL) {
+		memset(&buf[wire_offset], 0, array_length);
+	} else {
+		strncpy(&buf[wire_offset], b, array_length);
+	}
 }
 
 /*

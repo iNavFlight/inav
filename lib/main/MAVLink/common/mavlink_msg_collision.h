@@ -100,6 +100,57 @@ static inline uint16_t mavlink_msg_collision_pack(uint8_t system_id, uint8_t com
 }
 
 /**
+ * @brief Pack a collision message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param src  Collision data source
+ * @param id  Unique identifier, domain based on src field
+ * @param action  Action that is being taken to avoid this collision
+ * @param threat_level  How concerned the aircraft is about this collision
+ * @param time_to_minimum_delta [s] Estimated time until collision occurs
+ * @param altitude_minimum_delta [m] Closest vertical distance between vehicle and object
+ * @param horizontal_minimum_delta [m] Closest horizontal distance between vehicle and object
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_collision_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint8_t src, uint32_t id, uint8_t action, uint8_t threat_level, float time_to_minimum_delta, float altitude_minimum_delta, float horizontal_minimum_delta)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_COLLISION_LEN];
+    _mav_put_uint32_t(buf, 0, id);
+    _mav_put_float(buf, 4, time_to_minimum_delta);
+    _mav_put_float(buf, 8, altitude_minimum_delta);
+    _mav_put_float(buf, 12, horizontal_minimum_delta);
+    _mav_put_uint8_t(buf, 16, src);
+    _mav_put_uint8_t(buf, 17, action);
+    _mav_put_uint8_t(buf, 18, threat_level);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_COLLISION_LEN);
+#else
+    mavlink_collision_t packet;
+    packet.id = id;
+    packet.time_to_minimum_delta = time_to_minimum_delta;
+    packet.altitude_minimum_delta = altitude_minimum_delta;
+    packet.horizontal_minimum_delta = horizontal_minimum_delta;
+    packet.src = src;
+    packet.action = action;
+    packet.threat_level = threat_level;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_COLLISION_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_COLLISION;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_COLLISION_MIN_LEN, MAVLINK_MSG_ID_COLLISION_LEN, MAVLINK_MSG_ID_COLLISION_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_COLLISION_MIN_LEN, MAVLINK_MSG_ID_COLLISION_LEN);
+#endif
+}
+
+/**
  * @brief Pack a collision message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -174,6 +225,20 @@ static inline uint16_t mavlink_msg_collision_encode_chan(uint8_t system_id, uint
 }
 
 /**
+ * @brief Encode a collision struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param collision C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_collision_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_collision_t* collision)
+{
+    return mavlink_msg_collision_pack_status(system_id, component_id, _status, msg,  collision->src, collision->id, collision->action, collision->threat_level, collision->time_to_minimum_delta, collision->altitude_minimum_delta, collision->horizontal_minimum_delta);
+}
+
+/**
  * @brief Send a collision message
  * @param chan MAVLink channel to send the message
  *
@@ -230,7 +295,7 @@ static inline void mavlink_msg_collision_send_struct(mavlink_channel_t chan, con
 
 #if MAVLINK_MSG_ID_COLLISION_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

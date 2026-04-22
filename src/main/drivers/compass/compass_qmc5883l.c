@@ -103,7 +103,7 @@ static bool qmc5883Read(magDev_t * mag)
     mag->magADCRaw[Z] = 0;
 
     bool ack = busRead(mag->busDev, QMC5883L_REG_STATUS, &status);
-    if (!ack || (status & 0x04) == 0) {
+    if (!ack || (status & 0x01) == 0) {
         return false;
     }
 

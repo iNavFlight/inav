@@ -89,109 +89,159 @@ static const uint32_t spiDivisorMapSlow[] = {
 #endif
 
 #if defined(STM32H7)
+#include "bus_spi_stm32h7xx.h"
+
+// Auto-resolve SPI AF per pin from the lookup table in bus_spi_stm32h7xx.h.
+// Targets may still define individual SPI*_SCK/MISO/MOSI_AF values in target.h
+// to override; explicit defines take priority via these #ifndef guards.
+#ifdef USE_SPI_DEVICE_1
+#ifndef SPI1_SCK_AF
+#define SPI1_SCK_AF    SPI_PIN_AF_HELPER(1, SPI1_SCK_PIN)
+#endif
+#ifndef SPI1_MISO_AF
+#define SPI1_MISO_AF   SPI_PIN_AF_HELPER(1, SPI1_MISO_PIN)
+#endif
+#ifndef SPI1_MOSI_AF
+#define SPI1_MOSI_AF   SPI_PIN_AF_HELPER(1, SPI1_MOSI_PIN)
+#endif
+#endif
+
+#ifdef USE_SPI_DEVICE_2
+#ifndef SPI2_SCK_AF
+#define SPI2_SCK_AF    SPI_PIN_AF_HELPER(2, SPI2_SCK_PIN)
+#endif
+#ifndef SPI2_MISO_AF
+#define SPI2_MISO_AF   SPI_PIN_AF_HELPER(2, SPI2_MISO_PIN)
+#endif
+#ifndef SPI2_MOSI_AF
+#define SPI2_MOSI_AF   SPI_PIN_AF_HELPER(2, SPI2_MOSI_PIN)
+#endif
+#endif
+
+#ifdef USE_SPI_DEVICE_3
+#ifndef SPI3_SCK_AF
+#define SPI3_SCK_AF    SPI_PIN_AF_HELPER(3, SPI3_SCK_PIN)
+#endif
+#ifndef SPI3_MISO_AF
+#define SPI3_MISO_AF   SPI_PIN_AF_HELPER(3, SPI3_MISO_PIN)
+#endif
+#ifndef SPI3_MOSI_AF
+#define SPI3_MOSI_AF   SPI_PIN_AF_HELPER(3, SPI3_MOSI_PIN)
+#endif
+#endif
+
+#ifdef USE_SPI_DEVICE_4
+#ifndef SPI4_SCK_AF
+#define SPI4_SCK_AF    SPI_PIN_AF_HELPER(4, SPI4_SCK_PIN)
+#endif
+#ifndef SPI4_MISO_AF
+#define SPI4_MISO_AF   SPI_PIN_AF_HELPER(4, SPI4_MISO_PIN)
+#endif
+#ifndef SPI4_MOSI_AF
+#define SPI4_MOSI_AF   SPI_PIN_AF_HELPER(4, SPI4_MOSI_PIN)
+#endif
+#endif
+
 static spiDevice_t spiHardwareMap[SPIDEV_COUNT] = {
 #ifdef USE_SPI_DEVICE_1
-#if defined(SPI1_SCK_AF) || defined(SPI1_MISO_AF) || defined(SPI1_MOSI_AF)
-#if !defined(SPI1_SCK_AF) || !defined(SPI1_MISO_AF) || !defined(SPI1_MOSI_AF)
-#error SPI1: SCK, MISO and MOSI AFs should be defined together in target.h!
-#endif
     { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = SPI1_SCK_AF, .misoAF = SPI1_MISO_AF, .mosiAF = SPI1_MOSI_AF, .divisorMap = spiDivisorMapFast },
-#else
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = GPIO_AF5_SPI1, .misoAF = GPIO_AF5_SPI1, .mosiAF = GPIO_AF5_SPI1, .divisorMap = spiDivisorMapFast },
-#endif
 #else
     { .dev = NULL },    // No SPI1
 #endif
 
 #ifdef USE_SPI_DEVICE_2
-#if defined(SPI2_SCK_AF) || defined(SPI2_MISO_AF) || defined(SPI2_MOSI_AF)
-#if !defined(SPI2_SCK_AF) || !defined(SPI2_MISO_AF) || !defined(SPI2_MOSI_AF)
-#error SPI2: SCK, MISO and MOSI AFs should be defined together in target.h!
-#endif
     { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1L(SPI2), .sckAF = SPI2_SCK_AF, .misoAF = SPI2_MISO_AF, .mosiAF = SPI2_MOSI_AF, .divisorMap = spiDivisorMapSlow },
-#else
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1L(SPI2), .sckAF = GPIO_AF5_SPI2, .misoAF = GPIO_AF5_SPI2, .mosiAF = GPIO_AF5_SPI2, .divisorMap = spiDivisorMapSlow },
-#endif
 #else
     { .dev = NULL },    // No SPI2
 #endif
 
 #ifdef USE_SPI_DEVICE_3
-#if defined(SPI3_SCK_AF) || defined(SPI3_MISO_AF) || defined(SPI3_MOSI_AF)
-#if !defined(SPI3_SCK_AF) || !defined(SPI3_MISO_AF) || !defined(SPI3_MOSI_AF)
-#error SPI3: SCK, MISO and MOSI AFs should be defined together in target.h!
-#endif
     { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1L(SPI3), .sckAF = SPI3_SCK_AF, .misoAF = SPI3_MISO_AF, .mosiAF = SPI3_MOSI_AF, .divisorMap = spiDivisorMapSlow },
-#else
-    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1L(SPI3), .sckAF = GPIO_AF6_SPI3, .misoAF = GPIO_AF6_SPI3, .mosiAF = GPIO_AF6_SPI3, .divisorMap = spiDivisorMapSlow },
-#endif
 #else
     { .dev = NULL },    // No SPI3
 #endif
 
 #ifdef USE_SPI_DEVICE_4
-#if defined(SPI4_SCK_AF) || defined(SPI4_MISO_AF) || defined(SPI4_MOSI_AF)
-#if !defined(SPI4_SCK_AF) || !defined(SPI4_MISO_AF) || !defined(SPI4_MOSI_AF)
-#error SPI4: SCK, MISO and MOSI AFs should be defined together in target.h!
-#endif
     { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = SPI4_SCK_AF, .misoAF = SPI4_MISO_AF, .mosiAF = SPI4_MOSI_AF, .divisorMap = spiDivisorMapSlow }
-#else
-    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = GPIO_AF5_SPI4, .misoAF = GPIO_AF5_SPI4, .mosiAF = GPIO_AF5_SPI4, .divisorMap = spiDivisorMapSlow }
-#endif
 #else
     { .dev = NULL }     // No SPI4
 #endif
 };
-#else
+#elif defined(STM32F7)
+#include "bus_spi_stm32f7xx.h"
+
+// Auto-resolve SPI AF per pin from the lookup table in bus_spi_stm32f7xx.h.
+// Targets may still define individual SPI*_SCK/MISO/MOSI_AF values in target.h
+// to override; explicit defines take priority via these #ifndef guards.
+#ifdef USE_SPI_DEVICE_1
+#ifndef SPI1_SCK_AF
+#define SPI1_SCK_AF    SPI_PIN_AF_HELPER(1, SPI1_SCK_PIN)
+#endif
+#ifndef SPI1_MISO_AF
+#define SPI1_MISO_AF   SPI_PIN_AF_HELPER(1, SPI1_MISO_PIN)
+#endif
+#ifndef SPI1_MOSI_AF
+#define SPI1_MOSI_AF   SPI_PIN_AF_HELPER(1, SPI1_MOSI_PIN)
+#endif
+#endif
+
+#ifdef USE_SPI_DEVICE_2
+#ifndef SPI2_SCK_AF
+#define SPI2_SCK_AF    SPI_PIN_AF_HELPER(2, SPI2_SCK_PIN)
+#endif
+#ifndef SPI2_MISO_AF
+#define SPI2_MISO_AF   SPI_PIN_AF_HELPER(2, SPI2_MISO_PIN)
+#endif
+#ifndef SPI2_MOSI_AF
+#define SPI2_MOSI_AF   SPI_PIN_AF_HELPER(2, SPI2_MOSI_PIN)
+#endif
+#endif
+
+#ifdef USE_SPI_DEVICE_3
+#ifndef SPI3_SCK_AF
+#define SPI3_SCK_AF    SPI_PIN_AF_HELPER(3, SPI3_SCK_PIN)
+#endif
+#ifndef SPI3_MISO_AF
+#define SPI3_MISO_AF   SPI_PIN_AF_HELPER(3, SPI3_MISO_PIN)
+#endif
+#ifndef SPI3_MOSI_AF
+#define SPI3_MOSI_AF   SPI_PIN_AF_HELPER(3, SPI3_MOSI_PIN)
+#endif
+#endif
+
+#ifdef USE_SPI_DEVICE_4
+#ifndef SPI4_SCK_AF
+#define SPI4_SCK_AF    SPI_PIN_AF_HELPER(4, SPI4_SCK_PIN)
+#endif
+#ifndef SPI4_MISO_AF
+#define SPI4_MISO_AF   SPI_PIN_AF_HELPER(4, SPI4_MISO_PIN)
+#endif
+#ifndef SPI4_MOSI_AF
+#define SPI4_MOSI_AF   SPI_PIN_AF_HELPER(4, SPI4_MOSI_PIN)
+#endif
+#endif
+
 static spiDevice_t spiHardwareMap[] = {
 #ifdef USE_SPI_DEVICE_1
-#if defined(SPI1_SCK_AF) || defined(SPI1_MISO_AF) || defined(SPI1_MOSI_AF)
-#if !defined(SPI1_SCK_AF) || !defined(SPI1_MISO_AF) || !defined(SPI1_MOSI_AF)
-#error SPI1: SCK, MISO and MOSI AFs should be defined together in target.h!
-#endif
     { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = SPI1_SCK_AF, .misoAF = SPI1_MISO_AF, .mosiAF = SPI1_MOSI_AF, .divisorMap = spiDivisorMapFast },
-#else
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = GPIO_AF5_SPI1, .misoAF = GPIO_AF5_SPI1, .mosiAF = GPIO_AF5_SPI1, .divisorMap = spiDivisorMapFast },
-#endif
 #else
     { .dev = NULL },    // No SPI1
 #endif
 
 #ifdef USE_SPI_DEVICE_2
-#if defined(SPI2_SCK_AF) || defined(SPI2_MISO_AF) || defined(SPI2_MOSI_AF)
-#if !defined(SPI2_SCK_AF) || !defined(SPI2_MISO_AF) || !defined(SPI2_MOSI_AF)
-#error SPI2: SCK, MISO and MOSI AFs should be defined together in target.h!
-#endif
     { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .sckAF = SPI2_SCK_AF, .misoAF = SPI2_MISO_AF, .mosiAF = SPI2_MOSI_AF, .divisorMap = spiDivisorMapSlow },
-#else
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .sckAF = GPIO_AF5_SPI2, .misoAF = GPIO_AF5_SPI2, .mosiAF = GPIO_AF5_SPI2, .divisorMap = spiDivisorMapSlow },
-#endif
 #else
     { .dev = NULL },    // No SPI2
 #endif
 
 #ifdef USE_SPI_DEVICE_3
-#if defined(SPI3_SCK_AF) || defined(SPI3_MISO_AF) || defined(SPI3_MOSI_AF)
-#if !defined(SPI3_SCK_AF) || !defined(SPI3_MISO_AF) || !defined(SPI3_MOSI_AF)
-#error SPI3: SCK, MISO and MOSI AFs should be defined together in target.h!
-#endif
     { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .sckAF = SPI3_SCK_AF, .misoAF = SPI3_MISO_AF, .mosiAF = SPI3_MOSI_AF, .divisorMap = spiDivisorMapSlow },
-#else
-    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .sckAF = GPIO_AF6_SPI3, .misoAF = GPIO_AF6_SPI3, .mosiAF = GPIO_AF6_SPI3, .divisorMap = spiDivisorMapSlow },
-#endif
 #else
     { .dev = NULL },    // No SPI3
 #endif
 
 #ifdef USE_SPI_DEVICE_4
-#if defined(SPI4_SCK_AF) || defined(SPI4_MISO_AF) || defined(SPI4_MOSI_AF)
-#if !defined(SPI4_SCK_AF) || !defined(SPI4_MISO_AF) || !defined(SPI4_MOSI_AF)
-#error SPI3: SCK, MISO and MOSI AFs should be defined together in target.h!
-#endif
     { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = SPI4_SCK_AF, .misoAF = SPI4_MISO_AF, .mosiAF = SPI4_MOSI_AF, .divisorMap = spiDivisorMapSlow }
-#else
-    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = GPIO_AF5_SPI4, .misoAF = GPIO_AF5_SPI4, .mosiAF = GPIO_AF5_SPI4, .divisorMap = spiDivisorMapSlow }
-#endif
 #else
     { .dev = NULL }     // No SPI4
 #endif

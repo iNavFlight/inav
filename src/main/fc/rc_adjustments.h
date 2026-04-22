@@ -145,7 +145,7 @@ PG_DECLARE_ARRAY(adjustmentRange_t, MAX_ADJUSTMENT_RANGE_COUNT, adjustmentRanges
 
 void resetAdjustmentStates(void);
 void updateAdjustmentStates(bool canUseRxData);
-struct controlRateConfig_s;
-void processRcAdjustments(struct controlRateConfig_s *controlRateConfig, bool canUseRxData);
+struct controlConfig_s;
+void processRcAdjustments(struct controlConfig_s *controlConfig, bool canUseRxData);
 bool isAdjustmentFunctionSelected(uint8_t adjustmentFunction);
 uint8_t getActiveAdjustmentFunctions(uint8_t *adjustmentFunctions);

@@ -34,6 +34,8 @@
 
 #define INAV_ACC_BIAS_ACCEPTANCE_VALUE      (GRAVITY_CMSS * 0.25f)   // Max accepted bias correction of 0.25G - unlikely we are going to be that much off anyway
 
+#define INAV_EST_CORR_LIMIT_VALUE           4000.0f   // Sanity constraint limit for pos/vel estimate correction value (max 40m correction per s)
+
 #define INAV_GPS_GLITCH_RADIUS              250.0f  // 2.5m GPS glitch radius
 #define INAV_GPS_GLITCH_ACCEL               1000.0f // 10m/s/s max possible acceleration for GPS glitch detection
 
@@ -58,6 +60,8 @@
 #define RANGEFINDER_RELIABILITY_LOW_THRESHOLD   (0.33f)
 #define RANGEFINDER_RELIABILITY_HIGH_THRESHOLD  (0.75f)
 
+#define INAV_EST_VEL_F_CUT_HZ               3.0f
+
 typedef struct {
     timeUs_t    lastTriggeredTime;
     timeUs_t    deltaTime;
@@ -69,6 +73,7 @@ typedef struct {
     fpVector3_t vel;            // GPS velocity (cms)
     float       eph;
     float       epv;
+    float       updateDt;
 } navPositionEstimatorGPS_t;
 
 typedef struct {
@@ -77,6 +82,7 @@ typedef struct {
     float       alt;            // Raw barometric altitude (cm)
     float       epv;
     float       baroAltRate;    // Baro altitude rate of change (cm/s)
+    float       updateDt;
 } navPositionEstimatorBARO_t;
 
 typedef struct {
@@ -103,6 +109,7 @@ typedef struct {
     float       quality;
     float       flowRate[2];
     float       bodyRate[2];
+    float       updateDt;
 } navPositionEstimatorFLOW_t;
 
 typedef struct {
@@ -154,13 +161,6 @@ typedef enum {
 } navDefaultAltitudeSensor_e;
 
 typedef struct {
-    timeUs_t    baroGroundTimeout;
-    float       baroGroundAlt;
-    bool        isBaroGroundValid;
-} navPositionEstimatorSTATE_t;
-
-
-typedef struct {
     uint32_t                    flags;
 
     // Data sources
@@ -175,9 +175,6 @@ typedef struct {
 
     // Estimate
     navPositionEstimatorESTIMATE_t  est;
-
-    // Extra state variables
-    navPositionEstimatorSTATE_t state;
 } navigationPosEstimator_t;
 
 typedef struct {
@@ -188,6 +185,8 @@ typedef struct {
     fpVector3_t estPosCorr;
     fpVector3_t estVelCorr;
     fpVector3_t accBiasCorr;
+    bool applyCorrectionsXY;
+    bool applyCorrectionsZ;
 } estimationContext_t;
 
 extern navigationPosEstimator_t posEstimator;
@@ -195,5 +194,4 @@ extern navigationPosEstimator_t posEstimator;
 extern float updateEPE(const float oldEPE, const float dt, const float newEPE, const float w);
 extern void estimationCalculateAGL(estimationContext_t * ctx);
 extern bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx);
-extern float navGetAccelerometerWeight(void);
 

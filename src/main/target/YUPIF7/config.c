@@ -23,7 +23,7 @@
 #include "drivers/pwm_output.h"
 #include "blackbox/blackbox.h"
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "io/serial.h"

@@ -213,6 +213,13 @@
     BUSDEV_REGISTER_I2C(busdev_qmc5883,     DEVHW_QMC5883,      QMC5883_I2C_BUS,    0x0D,               NONE,           DEVFLAGS_NONE,  0);
 #endif
 
+#if defined(USE_MAG_QMC5883P)
+    #if !defined(QMC5883P_I2C_BUS)
+        #define QMC5883P_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_qmc5883p,     DEVHW_QMC5883P,      QMC5883P_I2C_BUS,    0x2C,               NONE,           DEVFLAGS_NONE,  0);
+#endif
+
 #if defined(USE_MAG_AK8963)
     #if defined(AK8963_SPI_BUS)
     BUSDEV_REGISTER_SPI(busdev_ak8963,      DEVHW_AK8963,       AK8963_SPI_BUS,     AK8963_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
@@ -410,7 +417,11 @@
 #endif
 
 #if defined(USE_FLASH_W25N01G)
-    BUSDEV_REGISTER_SPI(busdev_w25n01g,     DEVHW_W25N01G,      W25N01G_SPI_BUS,    W25N01G_CS_PIN,     NONE,           DEVFLAGS_NONE,  0);
+    BUSDEV_REGISTER_SPI(busdev_w25n01g,     DEVHW_W25N,      W25N01G_SPI_BUS,    W25N01G_CS_PIN,     NONE,           DEVFLAGS_NONE,  0);
+#endif
+
+#if defined(USE_FLASH_W25N02K)
+    BUSDEV_REGISTER_SPI(busdev_w25n02k,     DEVHW_W25N,      W25N02K_SPI_BUS,    W25N02K_CS_PIN,     NONE,           DEVFLAGS_NONE,  0);
 #endif
 
 #if defined(USE_SDCARD) && defined(USE_SDCARD_SPI)
@@ -426,7 +437,12 @@
 
 #if defined(USE_OLED_UG2864)
     #if !defined(UG2864_I2C_BUS)
-        #define UG2864_I2C_BUS BUS_I2C1
+        #ifdef MAG_I2C_BUS
+            #define UG2864_I2C_BUS MAG_I2C_BUS
+       #else
+            #define UG2864_I2C_BUS DEFAULT_I2C_BUS
+       #endif
+
     #endif
     BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE,  0);
 #endif

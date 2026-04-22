@@ -110,8 +110,8 @@
 #define MSP_CALIBRATION_DATA            14
 #define MSP_SET_CALIBRATION_DATA        15
 
-#define MSP_POSITION_ESTIMATION_CONFIG  16
-#define MSP_SET_POSITION_ESTIMATION_CONFIG  17
+#define MSP_POSITION_ESTIMATION_CONFIG  16      //DEPRECATED in INAV 9.1 - use settings system instead. Will be removed in INAV 10.0
+#define MSP_SET_POSITION_ESTIMATION_CONFIG  17  //DEPRECATED in INAV 9.1 - use settings system instead. Will be removed in INAV 10.0
 
 #define MSP_WP_MISSION_LOAD             18      // Load mission from NVRAM
 #define MSP_WP_MISSION_SAVE             19      // Save mission to NVRAM
@@ -183,14 +183,14 @@
 
 #define MSP_SDCARD_SUMMARY              79 //out message         Get the state of the SD card
 
-#define MSP_BLACKBOX_CONFIG             80 //out message         Get blackbox settings
-#define MSP_SET_BLACKBOX_CONFIG         81 //in message          Set blackbox settings
+#define MSP_BLACKBOX_CONFIG             80 //DEPRECATED in INAV 9.1, use MSP2_BLACKBOX_CONFIG. Will be removed in INAV 10.0
+#define MSP_SET_BLACKBOX_CONFIG         81 //DEPRECATED in INAV 9.1, use MSP2_SET_BLACKBOX_CONFIG. Will be removed in INAV 10.0
 
 #define MSP_TRANSPONDER_CONFIG          82 //out message         Get transponder settings
 #define MSP_SET_TRANSPONDER_CONFIG      83 //in message          Set transponder settings
 
-#define MSP_OSD_CONFIG                  84 //out message         Get osd settings - betaflight
-#define MSP_SET_OSD_CONFIG              85 //in message          Set osd settings - betaflight
+#define MSP_OSD_CONFIG                  84 //DEPRECATED in INAV 9.1 - use MSP2_INAV_OSD_* instead. Will be removed in INAV 10.0
+#define MSP_SET_OSD_CONFIG              85 //DEPRECATED in INAV 9.1 - use MSP2_INAV_OSD_* instead. Will be removed in INAV 10.0
 
 #define MSP_OSD_CHAR_READ               86 //out message         Get osd settings - betaflight
 #define MSP_OSD_CHAR_WRITE              87 //in message          Set osd settings - betaflight
@@ -202,10 +202,10 @@
 #define MSP_ADVANCED_CONFIG             90
 #define MSP_SET_ADVANCED_CONFIG         91
 
-#define MSP_FILTER_CONFIG               92
-#define MSP_SET_FILTER_CONFIG           93
-#define MSP_PID_ADVANCED                94
-#define MSP_SET_PID_ADVANCED            95
+#define MSP_FILTER_CONFIG               92      //DEPRECATED in INAV 9.1 - use settings system instead. Will be removed in INAV 10.0
+#define MSP_SET_FILTER_CONFIG           93      //DEPRECATED in INAV 9.1 - use settings system instead. Will be removed in INAV 10.0
+#define MSP_PID_ADVANCED                94      //DEPRECATED in INAV 9.1 - use MSP_INAV_PID instead. Will be removed in INAV 10.0
+#define MSP_SET_PID_ADVANCED            95      //DEPRECATED in INAV 9.1 - use MSP_SET_INAV_PID instead. Will be removed in INAV 10.0
 
 #define MSP_SENSOR_CONFIG               96
 #define MSP_SET_SENSOR_CONFIG           97
@@ -231,7 +231,7 @@
 // Multwii original MSP commands
 //
 
-#define MSP_STATUS               101    //out message         cycletime & errors_count & sensor present & box activation & current setting number
+#define MSP_STATUS               101    //DEPRECATED in INAV 9.1, use MSP2_INAV_STATUS. Will be removed in INAV 10.0
 #define MSP_RAW_IMU              102    //out message         9 DOF
 #define MSP_SERVO                103    //out message         servos
 #define MSP_MOTOR                104    //out message         motors
@@ -240,12 +240,12 @@
 #define MSP_COMP_GPS             107    //out message         distance home, direction home
 #define MSP_ATTITUDE             108    //out message         2 angles 1 heading
 #define MSP_ALTITUDE             109    //out message         altitude, variometer
-#define MSP_ANALOG               110    //out message         vbat, powermetersum, rssi if available on RX
+#define MSP_ANALOG               110    //DEPRECATED in INAV 9.1 - use MSP2_INAV_ANALOG instead. Will be removed in INAV 10.0
 #define MSP_RC_TUNING            111    //out message         rc rate, rc expo, rollpitch rate, yaw rate, dyn throttle PID
 #define MSP_ACTIVEBOXES          113    //out message         Active box flags (full width, more than 32 bits)
-#define MSP_MISC                 114    //out message         powermeter trig
+#define MSP_MISC                 114    //DEPRECATED in INAV 9.1 - use MSP2_INAV_MISC instead. Will be removed in INAV 10.0
 #define MSP_BOXNAMES             116    //out message         the aux switch names
-#define MSP_PIDNAMES             117    //out message         the PID names
+#define MSP_PIDNAMES             117    //DEPRECATED in INAV 9.1 - no replacement needed (static data). Will be removed in INAV 10.0
 #define MSP_WP                   118    //out message         get a WP, WP# is in the payload, returns (WP#, lat, lon, alt, flags) WP#0-home, WP#16-poshold
 #define MSP_BOXIDS               119    //out message         get the permanent IDs associated to BOXes
 #define MSP_SERVO_CONFIGURATIONS 120    //out message         All servo configurations.
@@ -263,7 +263,7 @@
 #define MSP_SET_RC_TUNING        204    //in message          rc rate, rc expo, rollpitch rate, yaw rate, dyn throttle PID, yaw expo
 #define MSP_ACC_CALIBRATION      205    //in message          no param
 #define MSP_MAG_CALIBRATION      206    //in message          no param
-#define MSP_SET_MISC             207    //in message          powermeter trig + 8 free for future use
+#define MSP_SET_MISC             207    //DEPRECATED in INAV 9.1 - use MSP2_INAV_SET_MISC instead. Will be removed in INAV 10.0
 #define MSP_RESET_CONF           208    //in message          no param
 #define MSP_SET_WP               209    //in message          sets a given WP (WP#,lat, lon, alt, flags)
 #define MSP_SELECT_SETTING       210    //in message          Select Setting Number (0-2)
@@ -273,7 +273,7 @@
 #define MSP_SET_NAV_CONFIG       215    //in message          Sets nav config parameters - write to the eeprom
 #define MSP_SET_3D               217    //in message          Settings needed for reversible ESCs
 #define MSP_SET_RC_DEADBAND      218    //in message          deadbands for yaw alt pitch roll
-#define MSP_SET_RESET_CURR_PID   219    //in message          resetting the current pid profile to defaults
+#define MSP_SET_RESET_CURR_PID   219    //in message          resetting the current PID profile to defaults
 #define MSP_SET_SENSOR_ALIGNMENT 220    //in message          set the orientation of the acc,gyro,mag
 #define MSP_SET_LED_STRIP_MODECOLOR 221 //in  message         Set LED strip mode_color settings
 
@@ -284,19 +284,19 @@
 #define MSP_RESERVE_1            251    //reserved for system usage
 #define MSP_RESERVE_2            252    //reserved for system usage
 #define MSP_DEBUGMSG             253    //out message         debug string buffer
-#define MSP_DEBUG                254    //out message         debug1,debug2,debug3,debug4
+#define MSP_DEBUG                254    //DEPRECATED in INAV 9.1, use MSP2_INAV_DEBUG. Will be removed in INAV 10.0
 #define MSP_V2_FRAME             255    //MSPv2 payload indicator
 
 // Additional commands that are not compatible with MultiWii
-#define MSP_STATUS_EX            150    //out message         cycletime, errors_count, CPU load, sensor present etc
+#define MSP_STATUS_EX            150    //DEPRECATED in INAV 9.1, use MSP2_INAV_STATUS (accCalibAxisFlags available via MSP_CALIBRATION_DATA). Will be removed in INAV 10.0
 #define MSP_SENSOR_STATUS        151    //out message         Hardware sensor status
 #define MSP_UID                  160    //out message         Unique device ID
 #define MSP_GPSSVINFO            164    //out message         get Signal Strength (only U-Blox)
 #define MSP_GPSSTATISTICS        166    //out message         get GPS debugging data
 #define MSP_ACC_TRIM             240    //out message         get acc angle trim values
 #define MSP_SET_ACC_TRIM         239    //in message          set acc angle trim values
-#define MSP_SERVO_MIX_RULES      241    //out message         Returns servo mixer configuration
-#define MSP_SET_SERVO_MIX_RULE   242    //in message          Sets servo mixer configuration
+#define MSP_SERVO_MIX_RULES      241    //DEPRECATED in INAV 9.1 - use MSP2_INAV_SERVO_MIXER instead. Will be removed in INAV 10.0
+#define MSP_SET_SERVO_MIX_RULE   242    //DEPRECATED in INAV 9.1 - use MSP2_INAV_SET_SERVO_MIXER instead. Will be removed in INAV 10.0
 #define MSP_SET_PASSTHROUGH      245    //in message          Sets up passthrough to different peripherals (4way interface, uart, etc...)
 #define MSP_RTC                  246    //out message         Gets the RTC clock (returns: secs(i32) millis(u16) - (0,0) if time is not known)
 #define MSP_SET_RTC              247    //in message          Sets the RTC clock (args: secs(i32) millis(u16))

@@ -71,6 +71,67 @@ static void osdCanvasVarioRect(int *y, int *h, displayCanvas_t *canvas, int midY
     *h = height;
 }
 
+void osdCanvasDrawThrottleGauge(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, uint8_t thrPos)
+{
+    UNUSED(display);
+
+    static uint8_t prevThr = 0;
+
+    if (prevThr == (uint8_t)(thrPos / (OSD_THROTTLE_GAUGE_HEIGHT_ROWS * 2))) {
+        return;
+    }
+
+    // Make sure we clear the grid buffer
+    uint8_t gx;
+    uint8_t gy;
+    osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
+    osdGridBufferClearGridRect(gx, gy, 1, OSD_THROTTLE_GAUGE_HEIGHT_ROWS);
+
+    int x = gx * canvas->gridElementWidth;
+    int w = canvas->gridElementWidth;
+    int y = gy * canvas->gridElementHeight;
+    int h = OSD_THROTTLE_GAUGE_HEIGHT_ROWS * canvas->gridElementHeight;
+
+    displayCanvasClearRect(canvas, x, y, w, h);
+
+    if (thrPos >= 100)
+        displayCanvasDrawCharacter(canvas, x, y, SYM_THR_GAUGE_FULL, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else if (thrPos >= 90)
+        displayCanvasDrawCharacter(canvas, x, y, SYM_THR_GAUGE_HALF, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else
+        displayCanvasDrawCharacter(canvas, x, y, SYM_THR_GAUGE_EMPTY, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    
+    if (thrPos >= 80)
+        displayCanvasDrawCharacter(canvas, x, y + canvas->gridElementHeight, SYM_THR_GAUGE_FULL, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else if (thrPos >= 70)
+        displayCanvasDrawCharacter(canvas, x, y + canvas->gridElementHeight, SYM_THR_GAUGE_HALF, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else
+        displayCanvasDrawCharacter(canvas, x, y + canvas->gridElementHeight, SYM_THR_GAUGE_EMPTY, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    
+    if (thrPos >= 60)
+        displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 2), SYM_THR_GAUGE_FULL, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else if (thrPos >= 50)
+        displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 2), SYM_THR_GAUGE_HALF, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else
+        displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 2), SYM_THR_GAUGE_EMPTY, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    
+    if (thrPos >= 40)
+        displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 3), SYM_THR_GAUGE_FULL, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else if (thrPos >= 30)
+        displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 3), SYM_THR_GAUGE_HALF, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else
+        displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 3), SYM_THR_GAUGE_EMPTY, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    
+    if (thrPos >= 20)
+        displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 4), SYM_THR_GAUGE_FULL, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else if (thrPos >= 10)
+        displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 4), SYM_THR_GAUGE_HALF, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+    else
+        displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 4), SYM_THR_GAUGE_EMPTY, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
+
+    prevThr = (uint8_t)(thrPos / (OSD_THROTTLE_GAUGE_HEIGHT_ROWS * 2));
+}
+
 void osdCanvasDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float zvel)
 {
     UNUSED(display);

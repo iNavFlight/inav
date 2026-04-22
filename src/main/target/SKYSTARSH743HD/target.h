@@ -35,6 +35,7 @@
 #define USE_DUAL_GYRO
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_IMU_BMI270
+#define USE_IMU_ICM42605
 // *****IMU1 BMI270 ON  SPI4 **************
 #define IMU1_ALIGN              CW0_DEG
 #define IMU1_SPI_BUS            BUS_SPI4

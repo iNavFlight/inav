@@ -40,8 +40,7 @@
 #define USE_BARO
 #define USE_BARO_ALL
 
-#define BMP280_SPI_BUS		BUS_SPI2
-#define BMP280_CS_PIN           PB3
+#define BARO_I2C_BUS            BUS_I2C2
 
 //#define USE_MAX7456
 //#define MAX7456_SPI_BUS		BUS_SPI2
@@ -72,18 +71,15 @@
 // PC13 used as inverter select GPIO for UART2
 #define INVERTER_PIN_UART2_RX   PC13
 
-#define USE_UART3
-#define UART3_RX_PIN            PB11
-#define UART3_TX_PIN            PB10
+//#define USE_UART3 // used by onboard baro i2c
+//#define UART3_RX_PIN            PB11
+//#define UART3_TX_PIN            PB10
 
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-//#define USE_SOFTSERIAL1
-//#define USE_SOFTSERIAL2
-
-#define SERIAL_PORT_COUNT       5 //VCP, USART1, USART2, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
+#define SERIAL_PORT_COUNT       4 //VCP, USART1, USART2, USART6
 
 //#define USE_ESCSERIAL // XXX
 //#define ESCSERIAL_TIMER_TX_PIN  PB8 // (Hardware=0, PPM)

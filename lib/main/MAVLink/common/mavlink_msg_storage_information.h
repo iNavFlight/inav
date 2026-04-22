@@ -16,11 +16,15 @@ typedef struct __mavlink_storage_information_t {
  uint8_t status; /*<  Status of storage*/
  uint8_t type; /*<  Type of storage*/
  char name[32]; /*<  Textual storage name to be used in UI (microSD 1, Internal Memory, etc.) This is a NULL terminated string. If it is exactly 32 characters long, add a terminating NULL. If this string is empty, the generic type is shown to the user.*/
+ uint8_t storage_usage; /*<  Flags indicating whether this instance is preferred storage for photos, videos, etc.
+        Note: Implementations should initially set the flags on the system-default storage id used for saving media (if possible/supported).
+        This setting can then be overridden using MAV_CMD_SET_STORAGE_USAGE.
+        If the media usage flags are not set, a GCS may assume storage ID 1 is the default storage for all media types.*/
 } mavlink_storage_information_t;
 
-#define MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN 60
+#define MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN 61
 #define MAVLINK_MSG_ID_STORAGE_INFORMATION_MIN_LEN 27
-#define MAVLINK_MSG_ID_261_LEN 60
+#define MAVLINK_MSG_ID_261_LEN 61
 #define MAVLINK_MSG_ID_261_MIN_LEN 27
 
 #define MAVLINK_MSG_ID_STORAGE_INFORMATION_CRC 179
@@ -32,7 +36,7 @@ typedef struct __mavlink_storage_information_t {
 #define MAVLINK_MESSAGE_INFO_STORAGE_INFORMATION { \
     261, \
     "STORAGE_INFORMATION", \
-    11, \
+    12, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_storage_information_t, time_boot_ms) }, \
          { "storage_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 24, offsetof(mavlink_storage_information_t, storage_id) }, \
          { "storage_count", NULL, MAVLINK_TYPE_UINT8_T, 0, 25, offsetof(mavlink_storage_information_t, storage_count) }, \
@@ -44,12 +48,13 @@ typedef struct __mavlink_storage_information_t {
          { "write_speed", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_storage_information_t, write_speed) }, \
          { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 27, offsetof(mavlink_storage_information_t, type) }, \
          { "name", NULL, MAVLINK_TYPE_CHAR, 32, 28, offsetof(mavlink_storage_information_t, name) }, \
+         { "storage_usage", NULL, MAVLINK_TYPE_UINT8_T, 0, 60, offsetof(mavlink_storage_information_t, storage_usage) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_STORAGE_INFORMATION { \
     "STORAGE_INFORMATION", \
-    11, \
+    12, \
     {  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_storage_information_t, time_boot_ms) }, \
          { "storage_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 24, offsetof(mavlink_storage_information_t, storage_id) }, \
          { "storage_count", NULL, MAVLINK_TYPE_UINT8_T, 0, 25, offsetof(mavlink_storage_information_t, storage_count) }, \
@@ -61,6 +66,7 @@ typedef struct __mavlink_storage_information_t {
          { "write_speed", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_storage_information_t, write_speed) }, \
          { "type", NULL, MAVLINK_TYPE_UINT8_T, 0, 27, offsetof(mavlink_storage_information_t, type) }, \
          { "name", NULL, MAVLINK_TYPE_CHAR, 32, 28, offsetof(mavlink_storage_information_t, name) }, \
+         { "storage_usage", NULL, MAVLINK_TYPE_UINT8_T, 0, 60, offsetof(mavlink_storage_information_t, storage_usage) }, \
          } \
 }
 #endif
@@ -82,10 +88,14 @@ typedef struct __mavlink_storage_information_t {
  * @param write_speed [MiB/s] Write speed.
  * @param type  Type of storage
  * @param name  Textual storage name to be used in UI (microSD 1, Internal Memory, etc.) This is a NULL terminated string. If it is exactly 32 characters long, add a terminating NULL. If this string is empty, the generic type is shown to the user.
+ * @param storage_usage  Flags indicating whether this instance is preferred storage for photos, videos, etc.
+        Note: Implementations should initially set the flags on the system-default storage id used for saving media (if possible/supported).
+        This setting can then be overridden using MAV_CMD_SET_STORAGE_USAGE.
+        If the media usage flags are not set, a GCS may assume storage ID 1 is the default storage for all media types.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_storage_information_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-                               uint32_t time_boot_ms, uint8_t storage_id, uint8_t storage_count, uint8_t status, float total_capacity, float used_capacity, float available_capacity, float read_speed, float write_speed, uint8_t type, const char *name)
+                               uint32_t time_boot_ms, uint8_t storage_id, uint8_t storage_count, uint8_t status, float total_capacity, float used_capacity, float available_capacity, float read_speed, float write_speed, uint8_t type, const char *name, uint8_t storage_usage)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN];
@@ -99,6 +109,7 @@ static inline uint16_t mavlink_msg_storage_information_pack(uint8_t system_id, u
     _mav_put_uint8_t(buf, 25, storage_count);
     _mav_put_uint8_t(buf, 26, status);
     _mav_put_uint8_t(buf, 27, type);
+    _mav_put_uint8_t(buf, 60, storage_usage);
     _mav_put_char_array(buf, 28, name, 32);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN);
 #else
@@ -113,12 +124,80 @@ static inline uint16_t mavlink_msg_storage_information_pack(uint8_t system_id, u
     packet.storage_count = storage_count;
     packet.status = status;
     packet.type = type;
-    mav_array_memcpy(packet.name, name, sizeof(char)*32);
+    packet.storage_usage = storage_usage;
+    mav_array_assign_char(packet.name, name, 32);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN);
 #endif
 
     msg->msgid = MAVLINK_MSG_ID_STORAGE_INFORMATION;
     return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_STORAGE_INFORMATION_MIN_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_CRC);
+}
+
+/**
+ * @brief Pack a storage_information message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param storage_id  Storage ID (1 for first, 2 for second, etc.)
+ * @param storage_count  Number of storage devices
+ * @param status  Status of storage
+ * @param total_capacity [MiB] Total capacity. If storage is not ready (STORAGE_STATUS_READY) value will be ignored.
+ * @param used_capacity [MiB] Used capacity. If storage is not ready (STORAGE_STATUS_READY) value will be ignored.
+ * @param available_capacity [MiB] Available storage capacity. If storage is not ready (STORAGE_STATUS_READY) value will be ignored.
+ * @param read_speed [MiB/s] Read speed.
+ * @param write_speed [MiB/s] Write speed.
+ * @param type  Type of storage
+ * @param name  Textual storage name to be used in UI (microSD 1, Internal Memory, etc.) This is a NULL terminated string. If it is exactly 32 characters long, add a terminating NULL. If this string is empty, the generic type is shown to the user.
+ * @param storage_usage  Flags indicating whether this instance is preferred storage for photos, videos, etc.
+        Note: Implementations should initially set the flags on the system-default storage id used for saving media (if possible/supported).
+        This setting can then be overridden using MAV_CMD_SET_STORAGE_USAGE.
+        If the media usage flags are not set, a GCS may assume storage ID 1 is the default storage for all media types.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_storage_information_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint32_t time_boot_ms, uint8_t storage_id, uint8_t storage_count, uint8_t status, float total_capacity, float used_capacity, float available_capacity, float read_speed, float write_speed, uint8_t type, const char *name, uint8_t storage_usage)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN];
+    _mav_put_uint32_t(buf, 0, time_boot_ms);
+    _mav_put_float(buf, 4, total_capacity);
+    _mav_put_float(buf, 8, used_capacity);
+    _mav_put_float(buf, 12, available_capacity);
+    _mav_put_float(buf, 16, read_speed);
+    _mav_put_float(buf, 20, write_speed);
+    _mav_put_uint8_t(buf, 24, storage_id);
+    _mav_put_uint8_t(buf, 25, storage_count);
+    _mav_put_uint8_t(buf, 26, status);
+    _mav_put_uint8_t(buf, 27, type);
+    _mav_put_uint8_t(buf, 60, storage_usage);
+    _mav_put_char_array(buf, 28, name, 32);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN);
+#else
+    mavlink_storage_information_t packet;
+    packet.time_boot_ms = time_boot_ms;
+    packet.total_capacity = total_capacity;
+    packet.used_capacity = used_capacity;
+    packet.available_capacity = available_capacity;
+    packet.read_speed = read_speed;
+    packet.write_speed = write_speed;
+    packet.storage_id = storage_id;
+    packet.storage_count = storage_count;
+    packet.status = status;
+    packet.type = type;
+    packet.storage_usage = storage_usage;
+    mav_array_memcpy(packet.name, name, sizeof(char)*32);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_STORAGE_INFORMATION;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_STORAGE_INFORMATION_MIN_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_STORAGE_INFORMATION_MIN_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN);
+#endif
 }
 
 /**
@@ -138,11 +217,15 @@ static inline uint16_t mavlink_msg_storage_information_pack(uint8_t system_id, u
  * @param write_speed [MiB/s] Write speed.
  * @param type  Type of storage
  * @param name  Textual storage name to be used in UI (microSD 1, Internal Memory, etc.) This is a NULL terminated string. If it is exactly 32 characters long, add a terminating NULL. If this string is empty, the generic type is shown to the user.
+ * @param storage_usage  Flags indicating whether this instance is preferred storage for photos, videos, etc.
+        Note: Implementations should initially set the flags on the system-default storage id used for saving media (if possible/supported).
+        This setting can then be overridden using MAV_CMD_SET_STORAGE_USAGE.
+        If the media usage flags are not set, a GCS may assume storage ID 1 is the default storage for all media types.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_storage_information_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
                                mavlink_message_t* msg,
-                                   uint32_t time_boot_ms,uint8_t storage_id,uint8_t storage_count,uint8_t status,float total_capacity,float used_capacity,float available_capacity,float read_speed,float write_speed,uint8_t type,const char *name)
+                                   uint32_t time_boot_ms,uint8_t storage_id,uint8_t storage_count,uint8_t status,float total_capacity,float used_capacity,float available_capacity,float read_speed,float write_speed,uint8_t type,const char *name,uint8_t storage_usage)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN];
@@ -156,6 +239,7 @@ static inline uint16_t mavlink_msg_storage_information_pack_chan(uint8_t system_
     _mav_put_uint8_t(buf, 25, storage_count);
     _mav_put_uint8_t(buf, 26, status);
     _mav_put_uint8_t(buf, 27, type);
+    _mav_put_uint8_t(buf, 60, storage_usage);
     _mav_put_char_array(buf, 28, name, 32);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN);
 #else
@@ -170,7 +254,8 @@ static inline uint16_t mavlink_msg_storage_information_pack_chan(uint8_t system_
     packet.storage_count = storage_count;
     packet.status = status;
     packet.type = type;
-    mav_array_memcpy(packet.name, name, sizeof(char)*32);
+    packet.storage_usage = storage_usage;
+    mav_array_assign_char(packet.name, name, 32);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN);
 #endif
 
@@ -188,7 +273,7 @@ static inline uint16_t mavlink_msg_storage_information_pack_chan(uint8_t system_
  */
 static inline uint16_t mavlink_msg_storage_information_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_storage_information_t* storage_information)
 {
-    return mavlink_msg_storage_information_pack(system_id, component_id, msg, storage_information->time_boot_ms, storage_information->storage_id, storage_information->storage_count, storage_information->status, storage_information->total_capacity, storage_information->used_capacity, storage_information->available_capacity, storage_information->read_speed, storage_information->write_speed, storage_information->type, storage_information->name);
+    return mavlink_msg_storage_information_pack(system_id, component_id, msg, storage_information->time_boot_ms, storage_information->storage_id, storage_information->storage_count, storage_information->status, storage_information->total_capacity, storage_information->used_capacity, storage_information->available_capacity, storage_information->read_speed, storage_information->write_speed, storage_information->type, storage_information->name, storage_information->storage_usage);
 }
 
 /**
@@ -202,7 +287,21 @@ static inline uint16_t mavlink_msg_storage_information_encode(uint8_t system_id,
  */
 static inline uint16_t mavlink_msg_storage_information_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_storage_information_t* storage_information)
 {
-    return mavlink_msg_storage_information_pack_chan(system_id, component_id, chan, msg, storage_information->time_boot_ms, storage_information->storage_id, storage_information->storage_count, storage_information->status, storage_information->total_capacity, storage_information->used_capacity, storage_information->available_capacity, storage_information->read_speed, storage_information->write_speed, storage_information->type, storage_information->name);
+    return mavlink_msg_storage_information_pack_chan(system_id, component_id, chan, msg, storage_information->time_boot_ms, storage_information->storage_id, storage_information->storage_count, storage_information->status, storage_information->total_capacity, storage_information->used_capacity, storage_information->available_capacity, storage_information->read_speed, storage_information->write_speed, storage_information->type, storage_information->name, storage_information->storage_usage);
+}
+
+/**
+ * @brief Encode a storage_information struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param storage_information C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_storage_information_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_storage_information_t* storage_information)
+{
+    return mavlink_msg_storage_information_pack_status(system_id, component_id, _status, msg,  storage_information->time_boot_ms, storage_information->storage_id, storage_information->storage_count, storage_information->status, storage_information->total_capacity, storage_information->used_capacity, storage_information->available_capacity, storage_information->read_speed, storage_information->write_speed, storage_information->type, storage_information->name, storage_information->storage_usage);
 }
 
 /**
@@ -220,10 +319,14 @@ static inline uint16_t mavlink_msg_storage_information_encode_chan(uint8_t syste
  * @param write_speed [MiB/s] Write speed.
  * @param type  Type of storage
  * @param name  Textual storage name to be used in UI (microSD 1, Internal Memory, etc.) This is a NULL terminated string. If it is exactly 32 characters long, add a terminating NULL. If this string is empty, the generic type is shown to the user.
+ * @param storage_usage  Flags indicating whether this instance is preferred storage for photos, videos, etc.
+        Note: Implementations should initially set the flags on the system-default storage id used for saving media (if possible/supported).
+        This setting can then be overridden using MAV_CMD_SET_STORAGE_USAGE.
+        If the media usage flags are not set, a GCS may assume storage ID 1 is the default storage for all media types.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_storage_information_send(mavlink_channel_t chan, uint32_t time_boot_ms, uint8_t storage_id, uint8_t storage_count, uint8_t status, float total_capacity, float used_capacity, float available_capacity, float read_speed, float write_speed, uint8_t type, const char *name)
+static inline void mavlink_msg_storage_information_send(mavlink_channel_t chan, uint32_t time_boot_ms, uint8_t storage_id, uint8_t storage_count, uint8_t status, float total_capacity, float used_capacity, float available_capacity, float read_speed, float write_speed, uint8_t type, const char *name, uint8_t storage_usage)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN];
@@ -237,6 +340,7 @@ static inline void mavlink_msg_storage_information_send(mavlink_channel_t chan, 
     _mav_put_uint8_t(buf, 25, storage_count);
     _mav_put_uint8_t(buf, 26, status);
     _mav_put_uint8_t(buf, 27, type);
+    _mav_put_uint8_t(buf, 60, storage_usage);
     _mav_put_char_array(buf, 28, name, 32);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_STORAGE_INFORMATION, buf, MAVLINK_MSG_ID_STORAGE_INFORMATION_MIN_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_CRC);
 #else
@@ -251,7 +355,8 @@ static inline void mavlink_msg_storage_information_send(mavlink_channel_t chan, 
     packet.storage_count = storage_count;
     packet.status = status;
     packet.type = type;
-    mav_array_memcpy(packet.name, name, sizeof(char)*32);
+    packet.storage_usage = storage_usage;
+    mav_array_assign_char(packet.name, name, 32);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_STORAGE_INFORMATION, (const char *)&packet, MAVLINK_MSG_ID_STORAGE_INFORMATION_MIN_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_CRC);
 #endif
 }
@@ -264,7 +369,7 @@ static inline void mavlink_msg_storage_information_send(mavlink_channel_t chan, 
 static inline void mavlink_msg_storage_information_send_struct(mavlink_channel_t chan, const mavlink_storage_information_t* storage_information)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    mavlink_msg_storage_information_send(chan, storage_information->time_boot_ms, storage_information->storage_id, storage_information->storage_count, storage_information->status, storage_information->total_capacity, storage_information->used_capacity, storage_information->available_capacity, storage_information->read_speed, storage_information->write_speed, storage_information->type, storage_information->name);
+    mavlink_msg_storage_information_send(chan, storage_information->time_boot_ms, storage_information->storage_id, storage_information->storage_count, storage_information->status, storage_information->total_capacity, storage_information->used_capacity, storage_information->available_capacity, storage_information->read_speed, storage_information->write_speed, storage_information->type, storage_information->name, storage_information->storage_usage);
 #else
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_STORAGE_INFORMATION, (const char *)storage_information, MAVLINK_MSG_ID_STORAGE_INFORMATION_MIN_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_CRC);
 #endif
@@ -272,13 +377,13 @@ static inline void mavlink_msg_storage_information_send_struct(mavlink_channel_t
 
 #if MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_storage_information_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint32_t time_boot_ms, uint8_t storage_id, uint8_t storage_count, uint8_t status, float total_capacity, float used_capacity, float available_capacity, float read_speed, float write_speed, uint8_t type, const char *name)
+static inline void mavlink_msg_storage_information_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint32_t time_boot_ms, uint8_t storage_id, uint8_t storage_count, uint8_t status, float total_capacity, float used_capacity, float available_capacity, float read_speed, float write_speed, uint8_t type, const char *name, uint8_t storage_usage)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char *buf = (char *)msgbuf;
@@ -292,6 +397,7 @@ static inline void mavlink_msg_storage_information_send_buf(mavlink_message_t *m
     _mav_put_uint8_t(buf, 25, storage_count);
     _mav_put_uint8_t(buf, 26, status);
     _mav_put_uint8_t(buf, 27, type);
+    _mav_put_uint8_t(buf, 60, storage_usage);
     _mav_put_char_array(buf, 28, name, 32);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_STORAGE_INFORMATION, buf, MAVLINK_MSG_ID_STORAGE_INFORMATION_MIN_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_CRC);
 #else
@@ -306,7 +412,8 @@ static inline void mavlink_msg_storage_information_send_buf(mavlink_message_t *m
     packet->storage_count = storage_count;
     packet->status = status;
     packet->type = type;
-    mav_array_memcpy(packet->name, name, sizeof(char)*32);
+    packet->storage_usage = storage_usage;
+    mav_array_assign_char(packet->name, name, 32);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_STORAGE_INFORMATION, (const char *)packet, MAVLINK_MSG_ID_STORAGE_INFORMATION_MIN_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN, MAVLINK_MSG_ID_STORAGE_INFORMATION_CRC);
 #endif
 }
@@ -428,6 +535,19 @@ static inline uint16_t mavlink_msg_storage_information_get_name(const mavlink_me
 }
 
 /**
+ * @brief Get field storage_usage from storage_information message
+ *
+ * @return  Flags indicating whether this instance is preferred storage for photos, videos, etc.
+        Note: Implementations should initially set the flags on the system-default storage id used for saving media (if possible/supported).
+        This setting can then be overridden using MAV_CMD_SET_STORAGE_USAGE.
+        If the media usage flags are not set, a GCS may assume storage ID 1 is the default storage for all media types.
+ */
+static inline uint8_t mavlink_msg_storage_information_get_storage_usage(const mavlink_message_t* msg)
+{
+    return _MAV_RETURN_uint8_t(msg,  60);
+}
+
+/**
  * @brief Decode a storage_information message into a struct
  *
  * @param msg The message to decode
@@ -447,6 +567,7 @@ static inline void mavlink_msg_storage_information_decode(const mavlink_message_
     storage_information->status = mavlink_msg_storage_information_get_status(msg);
     storage_information->type = mavlink_msg_storage_information_get_type(msg);
     mavlink_msg_storage_information_get_name(msg, storage_information->name);
+    storage_information->storage_usage = mavlink_msg_storage_information_get_storage_usage(msg);
 #else
         uint8_t len = msg->len < MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN? msg->len : MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN;
         memset(storage_information, 0, MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN);
