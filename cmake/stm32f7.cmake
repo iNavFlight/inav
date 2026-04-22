@@ -93,11 +93,19 @@ set(STM32F7_DEFINITIONS
 )
 
 function(target_stm32f7xx)
+    # Suppress unused-parameter warnings in vendor HAL source files we don't control.
+    # Must be set here (inside the function) so the property applies in the caller's
+    # directory scope, where add_executable() will be called.
+    set_source_files_properties(
+        "${STM32F7_HAL_DIR}/Src/stm32f7xx_ll_rcc.c"
+        DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        PROPERTIES COMPILE_OPTIONS "-Wno-unused-parameter"
+    )
     target_stm32(
         SOURCES ${STM32F7_HAL_SRC} ${STM32F7_SRC}
         COMPILE_DEFINITIONS ${STM32F7_DEFINITIONS}
         COMPILE_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_COMPILE_OPTIONS}
-        INCLUDE_DIRECTORIES ${STM32F7_INCLUDE_DIRS}
+        SYSTEM_INCLUDE_DIRECTORIES ${STM32F7_INCLUDE_DIRS}
         LINK_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_LINK_OPTIONS}
 
         MSC_SOURCES ${STM32F7_USBMSC_SRC} ${STM32F7_MSC_SRC}
