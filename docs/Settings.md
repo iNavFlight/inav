@@ -4054,11 +4054,11 @@ P gain of altitude PID controller (Multirotor)
 
 ### nav_mc_toiletbowl_detection
 
-Sets sensitivity of toilet bowling detection for multirotors. On detection a heading correction is applied which should stop the toilet bowling. A setting of 2 works well for 5 inch multirotors. Increasing the setting will reduce sensitivity and delay detection. Set to 0 to disable. (Toilet bowling occurs most obviously during position hold when an inaccurate compass heading causes a rapidly increasing fast sweeping bowl shaped flight path).
+Sets the sensitivity of toilet bowling detection for multirotors and whether a heading correction is applied on detection which should stop the toilet bowling occuring. Sensitivity can be set from 1 to 9. A setting of 2 works well for 5 inch multirotors. Increasing the setting will reduce sensitivity and delay detection. If a heading correction is required on detection the sensitivity setting should be multiplied by 10, e.g. set to 20 for a sensitivity of 2 with heading correction on detection. If no heading correction is required, e.g. setting of 2, then toilet bowling detection will be indicated only by an OSD system message. Set to 0 to disable detection entirely.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 20 |
+| 0 | 0 | 90 |
 
 ---
 

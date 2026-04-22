@@ -578,8 +578,13 @@ static void checkForToiletBowling(void)
     int16_t courseError = wrap_18000(calculateBearingToDestination(&posControl.desiredState.pos) - 10 * gpsSol.groundCourse);
     bool courseErrorCheck = ABS(courseError) > 3000 && ABS(courseError) < 15500;
 
+    uint8_t sensitivity = navConfig()->mc.toiletbowl_detection;
+    if (sensitivity > 9) {
+        sensitivity /= 10;
+    }
+
     /* vel x distanceToHoldPoint provides good indication of toilet bowling with value rising rapidly when hold control is lost */
-    bool distanceSpeedCheck = posControl.actualState.velXY * distanceToHoldPoint > (navConfig()->mc.toiletbowl_detection * 10000);
+    bool distanceSpeedCheck = posControl.actualState.velXY * distanceToHoldPoint > (sensitivity * 10000);
 
     static timeMs_t startTime = 0;
     if (courseErrorCheck && distanceSpeedCheck) {
@@ -598,9 +603,11 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 {
     if (navConfig()->mc.toiletbowl_detection) {
         if (mcToiletBowlingHeadingCorrection) {
-            uint16_t correctedHeading = wrap_36000(posControl.actualState.yaw - mcToiletBowlingHeadingCorrection);
-            posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
-            posControl.actualState.cosYaw = cos_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
+            if (navConfig()->mc.toiletbowl_detection > 9) {
+                uint16_t correctedHeading = wrap_36000(posControl.actualState.yaw - mcToiletBowlingHeadingCorrection);
+                posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
+                posControl.actualState.cosYaw = cos_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
+            }
         } else {
             checkForToiletBowling();
         }
