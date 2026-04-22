@@ -57,6 +57,7 @@ extern "C" {
     #include "msp/msp_protocol.h"
     #include "msp/msp_serial.h"
 
+    #include "mavlink/mavlink_runtime.h"
     #include "navigation/navigation.h"
 #ifdef __cplusplus
     #define _Static_assert static_assert
@@ -421,6 +422,228 @@ TEST(MavlinkTelemetryTest, TunnelLargeReplyFragmentsAcrossMultipleMessages)
     }
 
     EXPECT_EQ(collectTunnelPayload(messages), encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, expectedPayload));
+}
+
+TEST(MavlinkTelemetryTest, MlrsRadioLinkStatsUpdateRxStatisticsOnMavlinkSerialRxPort)
+{
+    initMavlinkTestState();
+
+    telemetryConfigMutable()->mavlink[0].radio_type = MAVLINK_RADIO_MLRS;
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
+    rxConfigMutable()->serialrx_provider = SERIALRX_MAVLINK;
+    testPortConfig.functionMask |= FUNCTION_RX_SERIAL;
+
+    mavlink_message_t msg;
+    mavlink_msg_mlrs_radio_link_stats_pack(
+        testTunnelSourceSystem,
+        MAV_COMP_ID_TELEMETRY_RADIO,
+        &msg,
+        telemetryConfig()->mavlink_common.sysid,
+        testTargetComponent,
+        MLRS_RADIO_LINK_STATS_FLAGS_RSSI_DBM | MLRS_RADIO_LINK_STATS_FLAGS_RX_RECEIVE_ANTENNA2,
+        91,
+        77,
+        100,
+        7,
+        55,
+        120,
+        9,
+        111,
+        11,
+        130,
+        13,
+        0.0f,
+        0.0f);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    const mavlinkMlrsPortRuntime_t *mlrs = mavlinkGetPortMlrsRuntime(0);
+    ASSERT_NE(mlrs, nullptr);
+    EXPECT_TRUE(mlrs->stats.valid);
+    EXPECT_TRUE(mlrs->stats.rssiIsDbm);
+    EXPECT_EQ(mlrs->stats.rxLinkQualityRc, 91);
+    EXPECT_EQ(mlrs->stats.rxLinkQualitySerial, 77);
+    EXPECT_EQ(mlrs->stats.activeAntenna, 1);
+    EXPECT_EQ(mlrs->stats.rxRssi, -111);
+    EXPECT_EQ(mlrs->stats.rxSnr, 11);
+    EXPECT_EQ(rxLinkStatistics.uplinkLQ, 91);
+    EXPECT_EQ(rxLinkStatistics.downlinkLQ, 77);
+    EXPECT_EQ(rxLinkStatistics.uplinkRSSI, -111);
+    EXPECT_EQ(rxLinkStatistics.uplinkSNR, 11);
+    EXPECT_EQ(rxLinkStatistics.activeAntenna, 1);
+}
+
+TEST(MavlinkTelemetryTest, MlrsRadioLinkStatsStayCachedOffReceiverPort)
+{
+    initMavlinkTestState();
+
+    telemetryConfigMutable()->mavlink[0].radio_type = MAVLINK_RADIO_MLRS;
+
+    mavlink_message_t msg;
+    mavlink_msg_mlrs_radio_link_stats_pack(
+        testTunnelSourceSystem,
+        MAV_COMP_ID_TELEMETRY_RADIO,
+        &msg,
+        telemetryConfig()->mavlink_common.sysid,
+        testTargetComponent,
+        MLRS_RADIO_LINK_STATS_FLAGS_RSSI_DBM,
+        65,
+        44,
+        101,
+        6,
+        33,
+        121,
+        8,
+        0,
+        INT8_MAX,
+        0,
+        INT8_MAX,
+        0.0f,
+        0.0f);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    const mavlinkMlrsPortRuntime_t *mlrs = mavlinkGetPortMlrsRuntime(0);
+    ASSERT_NE(mlrs, nullptr);
+    EXPECT_TRUE(mlrs->stats.valid);
+    EXPECT_EQ(mlrs->stats.rxLinkQualityRc, 65);
+    EXPECT_EQ(mlrs->stats.rxLinkQualitySerial, 44);
+    EXPECT_EQ(mlrs->stats.rxRssi, -101);
+    EXPECT_EQ(mlrs->stats.rxSnr, 6);
+    EXPECT_EQ(rxLinkStatistics.uplinkLQ, 0);
+    EXPECT_EQ(rxLinkStatistics.downlinkLQ, 0);
+    EXPECT_EQ(rxLinkStatistics.uplinkRSSI, 0);
+    EXPECT_EQ(rxLinkStatistics.uplinkSNR, 0);
+}
+
+TEST(MavlinkTelemetryTest, MlrsRadioLinkInformationUpdatesReceiverFacingMetadata)
+{
+    initMavlinkTestState();
+
+    telemetryConfigMutable()->mavlink[0].radio_type = MAVLINK_RADIO_MLRS;
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
+    rxConfigMutable()->serialrx_provider = SERIALRX_MAVLINK;
+    testPortConfig.functionMask |= FUNCTION_RX_SERIAL;
+
+    mavlink_message_t msg;
+    mavlink_msg_mlrs_radio_link_information_pack(
+        testTunnelSourceSystem,
+        MAV_COMP_ID_TELEMETRY_RADIO,
+        &msg,
+        telemetryConfig()->mavlink_common.sysid,
+        testTargetComponent,
+        MLRS_RADIO_LINK_TYPE_MLRS,
+        3,
+        20,
+        10,
+        50,
+        50,
+        "50HZ",
+        "915",
+        9600,
+        4800,
+        115,
+        117);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    const mavlinkMlrsPortRuntime_t *mlrs = mavlinkGetPortMlrsRuntime(0);
+    ASSERT_NE(mlrs, nullptr);
+    EXPECT_TRUE(mlrs->info.valid);
+    EXPECT_STREQ(mlrs->info.modeStr, "50HZ");
+    EXPECT_STREQ(mlrs->info.bandStr, "915");
+    EXPECT_EQ(mlrs->info.txPowerMw, 100);
+    EXPECT_EQ(mlrs->info.rxPowerMw, 10);
+    EXPECT_EQ(mlrs->info.txReceiveSensitivityDbm, -115);
+    EXPECT_EQ(mlrs->info.rxReceiveSensitivityDbm, -117);
+    EXPECT_EQ(rxLinkStatistics.uplinkTXPower, 100);
+    EXPECT_EQ(rxLinkStatistics.downlinkTXPower, 10);
+    EXPECT_STREQ(rxLinkStatistics.band, "915");
+    EXPECT_STREQ(rxLinkStatistics.mode, "50HZ");
+}
+
+TEST(MavlinkTelemetryTest, MlrsFlowControlUsesIngressPortAndAcceptsZeroTxbuf)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_mlrs_radio_link_flow_control_pack(
+        testTunnelSourceSystem,
+        MAV_COMP_ID_TELEMETRY_RADIO,
+        &msg,
+        9600,
+        4800,
+        90,
+        40,
+        0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    const mavlinkMlrsPortRuntime_t *mlrs = mavlinkGetPortMlrsRuntime(0);
+    ASSERT_NE(mlrs, nullptr);
+    EXPECT_TRUE(mlrs->flowControl.valid);
+    EXPECT_EQ(mlrs->flowControl.packet.txbuf, 0);
+    EXPECT_TRUE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 0);
+}
+
+TEST(MavlinkTelemetryTest, MlrsMessagesRequireTelemetryRadioComponent)
+{
+    initMavlinkTestState();
+
+    telemetryConfigMutable()->mavlink[0].radio_type = MAVLINK_RADIO_MLRS;
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
+    rxConfigMutable()->serialrx_provider = SERIALRX_MAVLINK;
+    testPortConfig.functionMask |= FUNCTION_RX_SERIAL;
+
+    mavlink_message_t statsMsg;
+    mavlink_msg_mlrs_radio_link_stats_pack(
+        testTunnelSourceSystem,
+        testTunnelSourceComponent,
+        &statsMsg,
+        telemetryConfig()->mavlink_common.sysid,
+        testTargetComponent,
+        MLRS_RADIO_LINK_STATS_FLAGS_RSSI_DBM,
+        91,
+        77,
+        100,
+        7,
+        55,
+        120,
+        9,
+        0,
+        INT8_MAX,
+        0,
+        INT8_MAX,
+        0.0f,
+        0.0f);
+    pushRxMessage(&statsMsg);
+
+    mavlink_message_t flowControlMsg;
+    mavlink_msg_mlrs_radio_link_flow_control_pack(
+        testTunnelSourceSystem,
+        testTunnelSourceComponent,
+        &flowControlMsg,
+        9600,
+        4800,
+        90,
+        40,
+        10);
+    pushRxMessage(&flowControlMsg);
+
+    handleMAVLinkTelemetry(1000);
+
+    const mavlinkMlrsPortRuntime_t *mlrs = mavlinkGetPortMlrsRuntime(0);
+    ASSERT_NE(mlrs, nullptr);
+    EXPECT_FALSE(mlrs->stats.valid);
+    EXPECT_FALSE(mlrs->flowControl.valid);
+    EXPECT_EQ(rxLinkStatistics.uplinkLQ, 0);
+    EXPECT_FALSE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 100);
 }
 
 TEST(MavlinkTelemetryTest, AttitudeUsesRadiansPerSecond)

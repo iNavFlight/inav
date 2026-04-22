@@ -27,6 +27,34 @@ uint8_t mavlinkGetProtocolVersion(void)
     return mavlinkGetCommonConfig()->version;
 }
 
+const mavlinkMlrsPortRuntime_t *mavlinkGetPortMlrsRuntime(uint8_t portIndex)
+{
+    if (portIndex >= mavPortCount) {
+        return NULL;
+    }
+
+    return &mavPortStates[portIndex].mlrs;
+}
+
+const mavlinkMlrsPortRuntime_t *mavlinkGetActiveMlrsRuntime(void)
+{
+    if (!mavActivePort) {
+        return NULL;
+    }
+
+    return &mavActivePort->mlrs;
+}
+
+bool mavlinkPortTxBufferIsValid(uint8_t portIndex)
+{
+    return portIndex < mavPortCount && mavPortStates[portIndex].txbuffValid;
+}
+
+uint8_t mavlinkPortTxBufferFree(uint8_t portIndex)
+{
+    return portIndex < mavPortCount ? mavPortStates[portIndex].txbuffFree : 100;
+}
+
 static void mavlinkApplyActivePortOutputVersion(void)
 {
     mavlink_status_t *chanState = mavlink_get_channel_status(MAVLINK_COMM_0);

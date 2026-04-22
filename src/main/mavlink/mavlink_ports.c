@@ -29,6 +29,7 @@ void freeMAVLinkTelemetryPortByIndex(uint8_t portIndex)
     memset(state->mavMessageNextDue, 0, sizeof(state->mavMessageNextDue));
     memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
     memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
+    memset(&state->mlrs, 0, sizeof(state->mlrs));
     resetMspPort(&mavTunnelMspPorts[portIndex], NULL);
     mavTunnelRemoteSystemIds[portIndex] = 0;
     mavTunnelRemoteComponentIds[portIndex] = 0;
@@ -67,6 +68,7 @@ void configureMAVLinkTelemetryPort(uint8_t portIndex)
     memset(state->mavMessageNextDue, 0, sizeof(state->mavMessageNextDue));
     memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
     memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
+    memset(&state->mlrs, 0, sizeof(state->mlrs));
     resetMspPort(&mavTunnelMspPorts[portIndex], NULL);
     mavTunnelRemoteSystemIds[portIndex] = 0;
     mavTunnelRemoteComponentIds[portIndex] = 0;

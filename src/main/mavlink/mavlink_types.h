@@ -73,6 +73,39 @@ typedef struct mavlinkRouteEntry_s {
     uint8_t ingressPortIndex;
 } mavlinkRouteEntry_t;
 
+typedef struct mavlinkMlrsLinkStatsRuntime_s {
+    bool valid;
+    bool rssiIsDbm;
+    uint8_t activeAntenna;
+    uint8_t rxLinkQualityRc;
+    uint8_t rxLinkQualitySerial;
+    int16_t rxRssi;
+    int8_t rxSnr;
+    mavlink_mlrs_radio_link_stats_t packet;
+} mavlinkMlrsLinkStatsRuntime_t;
+
+typedef struct mavlinkMlrsLinkInformationRuntime_s {
+    bool valid;
+    char modeStr[MAVLINK_MSG_MLRS_RADIO_LINK_INFORMATION_FIELD_MODE_STR_LEN + 1];
+    char bandStr[MAVLINK_MSG_MLRS_RADIO_LINK_INFORMATION_FIELD_BAND_STR_LEN + 1];
+    uint16_t txPowerMw;
+    uint16_t rxPowerMw;
+    int16_t txReceiveSensitivityDbm;
+    int16_t rxReceiveSensitivityDbm;
+    mavlink_mlrs_radio_link_information_t packet;
+} mavlinkMlrsLinkInformationRuntime_t;
+
+typedef struct mavlinkMlrsFlowControlRuntime_s {
+    bool valid;
+    mavlink_mlrs_radio_link_flow_control_t packet;
+} mavlinkMlrsFlowControlRuntime_t;
+
+typedef struct mavlinkMlrsPortRuntime_s {
+    mavlinkMlrsLinkStatsRuntime_t stats;
+    mavlinkMlrsLinkInformationRuntime_t info;
+    mavlinkMlrsFlowControlRuntime_t flowControl;
+} mavlinkMlrsPortRuntime_t;
+
 typedef struct mavlinkPortRuntime_s {
     serialPort_t *port;
     const serialPortConfig_t *portConfig;
@@ -93,4 +126,5 @@ typedef struct mavlinkPortRuntime_s {
     uint32_t txDroppedFrames;
     mavlink_message_t mavRecvMsg;
     mavlink_status_t mavRecvStatus;
+    mavlinkMlrsPortRuntime_t mlrs;
 } mavlinkPortRuntime_t;

@@ -99,7 +99,8 @@ static uint8_t mavlinkComputeForwardMask(uint8_t ingressPortIndex, int16_t targe
 
 void mavlinkForwardMessage(uint8_t ingressPortIndex, int16_t targetSystem, int16_t targetComponent)
 {
-    if (mavlinkContext.recvMsg.msgid == MAVLINK_MSG_ID_RADIO_STATUS) {
+    if (mavlinkContext.recvMsg.msgid == MAVLINK_MSG_ID_RADIO_STATUS ||
+        mavlinkContext.recvMsg.msgid == MAVLINK_MSG_ID_MLRS_RADIO_LINK_FLOW_CONTROL) {
         return;
     }
 
