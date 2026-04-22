@@ -214,9 +214,9 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     canardSTM32ComputeTimings(bitrate, &out_timings);
 
     hcan1.Init.Prescaler = out_timings.prescaler;
-    hcan1.Init.SyncJumpWidth = out_timings.sjw;
-    hcan1.Init.TimeSeg1 = out_timings.bs1;
-    hcan1.Init.TimeSeg2 = out_timings.bs2;
+    hcan1.Init.SyncJumpWidth = (uint32_t)out_timings.sjw << CAN_BTR_SJW_Pos;
+    hcan1.Init.TimeSeg1     = (uint32_t)out_timings.bs1 << CAN_BTR_TS1_Pos;
+    hcan1.Init.TimeSeg2     = (uint32_t)out_timings.bs2 << CAN_BTR_TS2_Pos;
     LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
     // hcan1.Init.StdFiltersNbr = 0;
