@@ -4914,9 +4914,9 @@
                 },
                 {
                     "name": "hwVersion",
-                    "ctype": "uint32_t",
-                    "desc": "GPS hardware version (`gpsState.hwVersion`). Values: 500=UBLOX5, 600=UBLOX6, 700=UBLOX7, 800=UBLOX8, 900=UBLOX9, 1000=UBLOX10, 0=UNKNOWN",
-                    "units": "Version code"
+                    "ctype": "uint8_t",
+                    "desc": "GPS hardware version bit-field: bits[7:6]=series (0b01=u-blox Neo/M), bits[5:0]=generation. E.g. 0x48=M8, 0x49=M9, 0x4A=M10, 0=unknown.",
+                    "units": ""
                 }
             ]
         },

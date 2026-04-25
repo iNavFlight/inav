@@ -556,7 +556,7 @@ static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
     }
 }
 
-static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
+static uint8_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
 {
     // ublox_5   hwVersion 00040005
     if (strncmp(szBuf, "00040005", nBufSize) == 0) {
