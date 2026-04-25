@@ -190,6 +190,8 @@
 
 #define MAX_PWM_OUTPUT_PORTS        11
 
+#define USE_BOOTLOG 4096
+
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff

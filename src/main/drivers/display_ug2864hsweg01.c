@@ -301,7 +301,7 @@ static oledControllerType_e detectOledController(void)
 
     // Read the status register (register 0x00)
     // This is a read of the status byte from the OLED controller
-    if (!busRead(busDev, 0x00, &statusByte)) {
+    if (!busRead(busDev, 0xFF, &statusByte)) {
         LOG_ERROR(SYSTEM, "OLED: Failed to read status register");
         return OLED_CONTROLLER_UNKNOWN;
     }
@@ -403,6 +403,7 @@ bool ug2864hsweg01InitI2C(void)
     LOG_DEBUG(SYSTEM, "OLED: Init sequence complete, clearing display");
 
     i2c_OLED_clear_display();
+    ug2864hsweg01TestPattern();
 
     LOG_DEBUG(SYSTEM, "OLED: Initialization complete, controller=%d", detectedController);
 
@@ -480,6 +481,19 @@ void ug2864hsweg01TestPattern(void)
         // col 127: outer right border (solid vertical stripe)
         i2c_OLED_send_byte(0xFF);
     }
+
+    // Display detected controller name centered on page 3 (vertical middle)
+    const char *name;
+    uint8_t nameLen;
+    switch (detectedController) {
+        case OLED_CONTROLLER_SH1106:  name = "SH1106";  nameLen = 6; break;
+        case OLED_CONTROLLER_SH1107:  name = "SH1107";  nameLen = 6; break;
+        case OLED_CONTROLLER_SSD1309: name = "SSD1309"; nameLen = 7; break;
+        case OLED_CONTROLLER_SSD1306:
+        default:                      name = "SSD1306"; nameLen = 7; break;
+    }
+    i2c_OLED_set_xy((SCREEN_CHARACTER_COLUMN_COUNT - nameLen) / 2, 3);
+    i2c_OLED_send_string(name);
 }
 
 #endif // USE_OLED_UG2864
