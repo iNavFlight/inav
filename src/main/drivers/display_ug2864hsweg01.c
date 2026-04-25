@@ -409,4 +409,77 @@ bool ug2864hsweg01InitI2C(void)
     return true;
 }
 
+/**
+ * Column-offset diagnostic test pattern.
+ *
+ * Draws a double-outline rectangle using only column-exact pixel writes so
+ * that a wrong SH1106 +2-pixel column offset is immediately visible on the
+ * physical display.
+ *
+ * Left edge layout (logical columns, after any controller offset is applied):
+ *   col 0  : 0xFF  outer left border  (solid, full page height)
+ *   col 1  : 0x00  1-pixel gap
+ *   col 2  : 0xFF  inner left border  (solid, full page height)
+ *   col 3..124: interior (see below)
+ *   col 125: 0xFF  inner right border (solid, full page height)
+ *   col 126: 0x00  1-pixel gap
+ *   col 127: 0xFF  outer right border (solid, full page height)
+ *
+ * Top/bottom horizontal lines (1 pixel wide):
+ *   page 0, cols 3..124: 0x01  (bit 0 = topmost pixel of the page)
+ *   page 7, cols 3..124: 0x80  (bit 7 = bottommost pixel of the page)
+ *   pages 1..6, cols 3..124: 0x00 (interior empty)
+ *
+ * How to read the result on the display:
+ *   Correct offset  : outer border flush at physical screen edge, 1-pixel gap,
+ *                     then inner border; symmetric on both sides.
+ *   Offset off by 1 : one border merges with its neighbour or a gap doubles.
+ *   Offset off by 2 : outer border disappears off the left (or right) edge.
+ *
+ * Call this function once after ug2864hsweg01InitI2C() to verify the column
+ * offset.  Do NOT call it from production code paths.
+ */
+void ug2864hsweg01TestPattern(void)
+{
+    i2c_OLED_clear_display();
+
+    for (uint8_t page = 0; page < 8; page++) {
+        // Position to the start of this page (col 0, with controller offset applied)
+        i2c_OLED_set_line(page);
+
+        // Determine the fill byte for the interior columns 3..124 on this page
+        uint8_t interiorByte;
+        if (page == 0) {
+            interiorByte = 0x01;  // top horizontal border: only the topmost pixel
+        } else if (page == 7) {
+            interiorByte = 0x80;  // bottom horizontal border: only the bottommost pixel
+        } else {
+            interiorByte = 0x00;  // empty interior
+        }
+
+        // col 0: outer left border (solid vertical stripe)
+        i2c_OLED_send_byte(0xFF);
+
+        // col 1: 1-pixel gap
+        i2c_OLED_send_byte(0x00);
+
+        // col 2: inner left border (solid vertical stripe)
+        i2c_OLED_send_byte(0xFF);
+
+        // cols 3..124: interior (122 columns)
+        for (uint8_t col = 3; col <= 124; col++) {
+            i2c_OLED_send_byte(interiorByte);
+        }
+
+        // col 125: inner right border (solid vertical stripe)
+        i2c_OLED_send_byte(0xFF);
+
+        // col 126: 1-pixel gap
+        i2c_OLED_send_byte(0x00);
+
+        // col 127: outer right border (solid vertical stripe)
+        i2c_OLED_send_byte(0xFF);
+    }
+}
+
 #endif // USE_OLED_UG2864
