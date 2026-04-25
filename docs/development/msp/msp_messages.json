@@ -10482,6 +10482,35 @@
             "notes": "Payload length must be (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (CUSTOM_ELEMENTS_PARTS * 3) + 4 bytes including elementIndex. elementIndex must be < MAX_CUSTOM_ELEMENTS. Each partType must be < CUSTOM_ELEMENT_TYPE_END. Firmware NUL-terminates elementText internally.",
             "description": "Sets the configuration of one custom OSD element."
         },
+        "MSP2_INAV_GET_LINK_STATS": {
+            "code": 8451,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "uplinkRSSI_dBm",
+                        "ctype": "uint8_t",
+                        "desc": "Uplink RSSI in dBm, sent as a positive magnitude (`getRSSI()`). For example, 70 means -70dBm.",
+                        "units": "-dBm"
+                    },
+                    {
+                        "name": "uplinkLQ",
+                        "ctype": "uint8_t",
+                        "desc": "Uplink Link Quality (`rxLinkStatistics.uplinkLQ`)",
+                        "units": "%"
+                    },
+                    {
+                        "name": "uplinkSNR",
+                        "ctype": "int8_t",
+                        "desc": "Uplink Signal-to-Noise Ratio (`rxLinkStatistics.uplinkSNR`)",
+                        "units": "dB"
+                    }
+                ]
+            },
+            "notes": "Useful for GCS monitoring of the active RC link quality and signal margin.",
+            "description": "Provides uplink RC link statistics for monitoring on a GCS."
+        },
         "MSP2_INAV_OUTPUT_MAPPING_EXT2": {
             "code": 8461,
             "mspv": 2,
@@ -11213,6 +11242,40 @@
             },
             "notes": "All attitude angles are in deci-degrees.",
             "description": "Provides estimates of current attitude, local NEU position, and velocity."
+        },
+        "MSP2_INAV_SET_WP_INDEX": {
+            "code": 8737,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "wp_index",
+                        "ctype": "uint8_t",
+                        "desc": "0-based waypoint index to jump to, relative to the mission start waypoint (`posControl.startWpIndex`)",
+                        "units": "-"
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.",
+            "description": "Jumps to a specific waypoint during an active waypoint mission, causing the aircraft to immediately begin navigating toward the new target waypoint."
+        },
+        "MSP2_INAV_SET_CRUISE_HEADING": {
+            "code": 8739,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "heading_centidegrees",
+                        "ctype": "int32_t",
+                        "desc": "Target heading in centidegrees (0-35999). Values are wrapped modulo 36000 before being applied.",
+                        "units": "centidegrees"
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.",
+            "description": "Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading."
         },
         "MSP2_INAV_SET_AUX_RC": {
             "code": 8752,
