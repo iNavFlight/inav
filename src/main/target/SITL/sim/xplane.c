@@ -33,8 +33,10 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <errno.h>
 #include <math.h>
+#include <unistd.h>
 
 #include "platform.h"
 
@@ -58,6 +60,7 @@
 #include "flight/imu.h"
 #include "io/gps.h"
 #include "rx/sim.h"
+#include "xplane.h"
 
 #define XP_PORT 49000
 #define XPLANE_JOYSTICK_AXIS_COUNT 8
@@ -66,11 +69,15 @@
 static uint8_t pwmMapping[XP_MAX_PWM_OUTS];
 static uint8_t mappingCount;
 
+static pthread_mutex_t initMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t initCond = PTHREAD_COND_INITIALIZER;
+static atomic_bool shouldStopListenThread = false;
+
 static struct sockaddr_storage serverAddr;
 static socklen_t serverAddrLen;
 static int sockFd;
-static pthread_t listenThread;
-static bool initialized = false;
+static pthread_t listenThread = 0;
+static atomic_bool initalized = false;
 static bool useImu = false;
 
 static float lattitude = 0;
@@ -170,6 +177,40 @@ static void sendDref(char* dref, float value)
     sendto(sockFd, (void*)buf, sizeof(buf), 0, (struct sockaddr*)&serverAddr, serverAddrLen);
 }
 
+static void tryRegisterDrefs(void)
+{
+    registerDref(DREF_LATITUDE, "sim/flightmodel/position/latitude", 100);
+    registerDref(DREF_LONGITUDE, "sim/flightmodel/position/longitude", 100);
+    registerDref(DREF_ELEVATION, "sim/flightmodel/position/elevation", 100);
+    registerDref(DREF_AGL, "sim/flightmodel/position/y_agl", 100);
+    registerDref(DREF_LOCAL_VX, "sim/flightmodel/position/local_vx", 100);
+    registerDref(DREF_LOCAL_VY, "sim/flightmodel/position/local_vy", 100);
+    registerDref(DREF_LOCAL_VZ, "sim/flightmodel/position/local_vz", 100);
+    registerDref(DREF_GROUNDSPEED, "sim/flightmodel/position/groundspeed", 100);
+    registerDref(DREF_TRUE_AIRSPEED, "sim/flightmodel/position/true_airspeed", 100);
+    registerDref(DREF_POS_PHI, "sim/flightmodel/position/phi", 100);
+    registerDref(DREF_POS_THETA, "sim/flightmodel/position/theta", 100);
+    registerDref(DREF_POS_PSI, "sim/flightmodel/position/psi", 100);
+    registerDref(DREF_POS_HPATH, "sim/flightmodel/position/hpath", 100);
+    registerDref(DREF_FORCE_G_AXI1, "sim/flightmodel/forces/g_axil", 100);
+    registerDref(DREF_FORCE_G_SIDE, "sim/flightmodel/forces/g_side", 100);
+    registerDref(DREF_FORCE_G_NRML, "sim/flightmodel/forces/g_nrml", 100);
+    registerDref(DREF_POS_P, "sim/flightmodel/position/P", 100);
+    registerDref(DREF_POS_Q, "sim/flightmodel/position/Q", 100);
+    registerDref(DREF_POS_R, "sim/flightmodel/position/R", 100);
+    registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", 100);
+    registerDref(DREF_HAS_JOYSTICK, "sim/joystick/has_joystick", 100);
+    registerDref(DREF_JOYSTICK_VALUES_PITCH, "sim/joystick/joy_mapped_axis_value[1]", 100);
+    registerDref(DREF_JOYSTICK_VALUES_ROll, "sim/joystick/joy_mapped_axis_value[2]", 100);
+    registerDref(DREF_JOYSTICK_VALUES_YAW, "sim/joystick/joy_mapped_axis_value[3]", 100);
+    // Abusing cowl flaps for other channels
+    registerDref(DREF_JOYSTICK_VALUES_THROTTLE, "sim/joystick/joy_mapped_axis_value[57]", 100);
+    registerDref(DREF_JOYSTICK_VALUES_CH5, "sim/joystick/joy_mapped_axis_value[58]", 100);
+    registerDref(DREF_JOYSTICK_VALUES_CH6, "sim/joystick/joy_mapped_axis_value[59]", 100);
+    registerDref(DREF_JOYSTICK_VALUES_CH7, "sim/joystick/joy_mapped_axis_value[60]", 100);
+    registerDref(DREF_JOYSTICK_VALUES_CH8, "sim/joystick/joy_mapped_axis_value[61]", 100);
+}
+
 static void* listenWorker(void* arg)
 {
     UNUSED(arg);
@@ -179,8 +220,11 @@ static void* listenWorker(void* arg)
     socklen_t slen = sizeof(remoteAddr);
     int recvLen;
 
-    while (true)
+    while (!atomic_load(&shouldStopListenThread))
     {
+        if (!atomic_load(&initalized)) {
+            tryRegisterDrefs();
+        }
 
         float motorValue = 0;
         float yokeValues[3] = { 0 };
@@ -210,10 +254,12 @@ static void* listenWorker(void* arg)
 
         recvLen = recvfrom(sockFd, buf, sizeof(buf), 0, (struct sockaddr*)&remoteAddr, &slen);
         if (recvLen < 0 && errno != EWOULDBLOCK) {
+            delay(250);
             continue;
         }
 
         if (strncmp((char*)buf, "RREF", 4) != 0) {
+            delay(250);
             continue;
         }
 
@@ -426,11 +472,14 @@ static void* listenWorker(void* arg)
             constrainToInt16(north.z * 1024.0f)
         );
 
-        if (!initialized) {
+        if (!atomic_load(&initalized)) {
             ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
             // Aircraft can wobble on the runway and prevents calibration of the accelerometer
             ENABLE_STATE(ACCELEROMETER_CALIBRATED);
-            initialized = true;
+            atomic_store(&initalized, true);
+            pthread_mutex_lock(&initMutex);
+            pthread_cond_signal(&initCond);
+            pthread_mutex_unlock(&initMutex);
         }
 
         unlockMainPID();
@@ -458,7 +507,7 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
     if (sockFd < 0) {
         return false;
     } else {
-	char addrbuf[IPADDRESS_PRINT_BUFLEN];
+        char addrbuf[IPADDRESS_PRINT_BUFLEN];
         char *nptr = prettyPrintAddress((struct sockaddr *)&serverAddr, addrbuf, IPADDRESS_PRINT_BUFLEN );
         if (nptr != NULL) {
             fprintf(stderr, "[SOCKET] xplane address = %s, fd=%d\n", nptr, sockFd);
@@ -466,9 +515,9 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
     }
 
     struct timeval tv;
-        tv.tv_sec = 1;
-        tv.tv_usec = 0;
-        if (setsockopt(sockFd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    if (setsockopt(sockFd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
         return false;
     }
 
@@ -476,43 +525,30 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
         return false;
     }
 
+    atomic_store(&initalized, false);
+    atomic_store(&shouldStopListenThread, false);
     if (pthread_create(&listenThread, NULL, listenWorker, NULL) < 0) {
         return false;
     }
 
-    while (!initialized) {
-        registerDref(DREF_LATITUDE, "sim/flightmodel/position/latitude", 100);
-        registerDref(DREF_LONGITUDE, "sim/flightmodel/position/longitude", 100);
-        registerDref(DREF_ELEVATION, "sim/flightmodel/position/elevation", 100);
-        registerDref(DREF_AGL, "sim/flightmodel/position/y_agl", 100);
-        registerDref(DREF_LOCAL_VX, "sim/flightmodel/position/local_vx", 100);
-        registerDref(DREF_LOCAL_VY, "sim/flightmodel/position/local_vy", 100);
-        registerDref(DREF_LOCAL_VZ, "sim/flightmodel/position/local_vz", 100);
-        registerDref(DREF_GROUNDSPEED, "sim/flightmodel/position/groundspeed", 100);
-        registerDref(DREF_TRUE_AIRSPEED, "sim/flightmodel/position/true_airspeed", 100);
-        registerDref(DREF_POS_PHI, "sim/flightmodel/position/phi", 100);
-        registerDref(DREF_POS_THETA, "sim/flightmodel/position/theta", 100);
-        registerDref(DREF_POS_PSI, "sim/flightmodel/position/psi", 100);
-        registerDref(DREF_POS_HPATH, "sim/flightmodel/position/hpath", 100);
-        registerDref(DREF_FORCE_G_AXI1, "sim/flightmodel/forces/g_axil", 100);
-        registerDref(DREF_FORCE_G_SIDE, "sim/flightmodel/forces/g_side", 100);
-        registerDref(DREF_FORCE_G_NRML, "sim/flightmodel/forces/g_nrml", 100);
-        registerDref(DREF_POS_P, "sim/flightmodel/position/P", 100);
-        registerDref(DREF_POS_Q, "sim/flightmodel/position/Q", 100);
-        registerDref(DREF_POS_R, "sim/flightmodel/position/R", 100);
-        registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", 100);
-        registerDref(DREF_HAS_JOYSTICK, "sim/joystick/has_joystick", 100);
-        registerDref(DREF_JOYSTICK_VALUES_PITCH, "sim/joystick/joy_mapped_axis_value[1]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_ROll, "sim/joystick/joy_mapped_axis_value[2]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_YAW, "sim/joystick/joy_mapped_axis_value[3]", 100);
-        // Abusing cowl flaps for other channels
-        registerDref(DREF_JOYSTICK_VALUES_THROTTLE, "sim/joystick/joy_mapped_axis_value[57]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_CH5, "sim/joystick/joy_mapped_axis_value[58]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_CH6, "sim/joystick/joy_mapped_axis_value[59]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_CH7, "sim/joystick/joy_mapped_axis_value[60]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_CH8, "sim/joystick/joy_mapped_axis_value[61]", 100);
-        delay(250);
+    pthread_mutex_lock(&initMutex);
+    while (!atomic_load(&initalized)) {
+        pthread_cond_wait(&initCond, &initMutex);        
     }
+    pthread_mutex_unlock(&initMutex);
 
     return true;
+}
+
+void simXPlaneClose(void)
+{
+        atomic_store(&shouldStopListenThread, true);
+        if (listenThread) {
+            pthread_join(listenThread, NULL);
+        }
+        DISABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
+        atomic_store(&initalized, false);
+        pthread_mutex_destroy(&initMutex);
+        pthread_cond_destroy(&initCond);
+        close(sockFd);
 }
