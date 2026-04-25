@@ -50,6 +50,7 @@
 #include "flight/wind_estimator.h"
 #include "drivers/io_port_expander.h"
 #include "drivers/gimbal_common.h"
+#include "rx/msp_override.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
 
@@ -404,6 +405,20 @@ static int logicConditionCompute(
             return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue;
         break;
 
+        case LOGIC_CONDITION_ACOS:
+            temporaryValue = (operandB == 0) ? 1000 : operandB;
+            return RADIANS_TO_DEGREES(acos_approx(constrainf((float)operandA / (float)temporaryValue, -1.0f, 1.0f)));
+        break;
+
+        case LOGIC_CONDITION_ASIN:
+            temporaryValue = (operandB == 0) ? 1000 : operandB;
+            return RADIANS_TO_DEGREES(asin_approx(constrainf((float)operandA / (float)temporaryValue, -1.0f, 1.0f)));
+        break;
+
+        case LOGIC_CONDITION_ATAN2:
+            return RADIANS_TO_DEGREES(atan2_approx((float)operandA, (float)operandB));
+        break;
+
         case LOGIC_CONDITION_MIN:
             return (operandA < operandB) ? operandA : operandB;
         break;
@@ -469,6 +484,10 @@ static int logicConditionCompute(
             logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED] = constrain(operandA, navConfig()->general.min_ground_speed, 150);
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED);
             return true;
+            break;
+
+        case LOGIC_CONDITION_SET_ALTITUDE_TARGET:
+            return navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)operandA, operandB);
             break;
 
         case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
@@ -1200,6 +1219,12 @@ uint32_t getMinGroundSpeed(uint32_t minGroundSpeed) {
 }
 
 float getFlightAxisAngleOverride(uint8_t axis, float angle) {
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    int mspAngleTarget;
+    if (mspOverrideFlightAxisAngleActive(axis, &mspAngleTarget)) {
+        return mspAngleTarget;
+    }
+#endif
     if (flightAxisOverride[axis].angleTargetActive) {
         return flightAxisOverride[axis].angleTarget;
     } else {
@@ -1208,6 +1233,12 @@ float getFlightAxisAngleOverride(uint8_t axis, float angle) {
 }
 
 float getFlightAxisRateOverride(uint8_t axis, float rate) {
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    int mspRateTarget;
+    if (mspOverrideFlightAxisRateActive(axis, &mspRateTarget)) {
+        return mspRateTarget;
+    }
+#endif
     if (flightAxisOverride[axis].rateTargetActive) {
         return flightAxisOverride[axis].rateTarget;
     } else {
@@ -1216,6 +1247,12 @@ float getFlightAxisRateOverride(uint8_t axis, float rate) {
 }
 
 bool isFlightAxisAngleOverrideActive(uint8_t axis) {
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    int mspAngleTarget;
+    if (mspOverrideFlightAxisAngleActive(axis, &mspAngleTarget)) {
+        return true;
+    }
+#endif
     if (flightAxisOverride[axis].angleTargetActive) {
         return true;
     } else {
@@ -1224,6 +1261,12 @@ bool isFlightAxisAngleOverrideActive(uint8_t axis) {
 }
 
 bool isFlightAxisRateOverrideActive(uint8_t axis) {
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    int mspRateTarget;
+    if (mspOverrideFlightAxisRateActive(axis, &mspRateTarget)) {
+        return true;
+    }
+#endif
     if (flightAxisOverride[axis].rateTargetActive) {
         return true;
     } else {

@@ -92,5 +92,8 @@ extern void gpsFakeRestart(void);
 extern void gpsFakeHandle(void);
 #endif
 
+void gpsRestartDronecan(void);
+void gpsHandleDronecan(void);
+
 
 #endif
