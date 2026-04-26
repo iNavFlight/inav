@@ -695,6 +695,7 @@ ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once 
 | FAKE |  |
 | ESC |  |
 | SMARTPORT |  |
+| CAN |  |
 
 ---
 
@@ -780,6 +781,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | GPS |  |
 | LULU |  |
 | SBUS2 |  |
+| OSD_REFRESH |  |
 
 ---
 
@@ -872,9 +874,12 @@ Re-purpose the craft name field for messages.
 
 The speed of the CANbus network in kbps. Set all devices to the same speed. 
 
-| Default | Min | Max |
-| --- | --- | --- |
-| 1000 |  |  |
+| Allowed Values |  |
+| --- | --- |
+| 125 |  |
+| 250 |  |
+| 500 |  |
+| 1000 | Default |
 
 ---
 
@@ -1859,6 +1864,7 @@ Which GPS protocol to be used.
 | UBLOX | Default |
 | MSP |  |
 | FAKE |  |
+| DRONECAN |  |
 
 ---
 
@@ -6934,6 +6940,7 @@ Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. 
 | ESC |  |
 | FAKE |  |
 | SMARTPORT |  |
+| CAN |  |
 
 ---
 
