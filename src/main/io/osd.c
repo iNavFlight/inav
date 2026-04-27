@@ -129,6 +129,7 @@
 #define VIDEO_BUFFER_CHARS_DJIWTF 1320
 
 #define GFORCE_FILTER_TC 0.2
+#define VELOCITY_FILTER_TC 1.5
 
 #define OSD_STATS_SINGLE_PAGE_MIN_ROWS 18
 #define IS_HI(X)  (rxGetChannelValue(X) > 1750)
@@ -174,45 +175,19 @@ static timeMs_t layoutOverrideUntil = 0;
 static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
 static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 
-static float verticalVelocityBuffer[5] = {0};
-static float averagedVerticalVelocity = 0.0f;
-static float horizontalVelocityBuffer[5] = {0};
-static float averagedHorizontalVelocity = 0.0f;
-static uint8_t velocityAveragingIndex = 0;
-
-static void osdUpdateVelocityAverages(void)
-{
-    const float verticalVelocity = getEstimatedActualVelocity(Z);
-#if defined(USE_GPS)
-    const float horizontalVelocity = gpsSol.groundSpeed;
-#else
-    const float horizontalVelocity = 0.0f;
-#endif
-
-    verticalVelocityBuffer[velocityAveragingIndex] = isnormal(verticalVelocity) ? verticalVelocity : 0.0f;
-    horizontalVelocityBuffer[velocityAveragingIndex] = isnormal(horizontalVelocity) ? horizontalVelocity : 0.0f;
-
-    velocityAveragingIndex = (velocityAveragingIndex + 1) % ARRAYLEN(verticalVelocityBuffer);
-
-    float verticalVelocitySum = 0.0f;
-    float horizontalVelocitySum = 0.0f;
-    for (uint8_t i = 0; i < ARRAYLEN(verticalVelocityBuffer); i++) {
-        verticalVelocitySum += verticalVelocityBuffer[i];
-        horizontalVelocitySum += horizontalVelocityBuffer[i];
-    }
-
-    averagedVerticalVelocity = verticalVelocitySum / ARRAYLEN(verticalVelocityBuffer);
-    averagedHorizontalVelocity = horizontalVelocitySum / ARRAYLEN(horizontalVelocityBuffer);
-}
+static pt1Filter_t verticalVelocityFilter;
+static pt1Filter_t horizontalVelocityFilter;
+static float filteredVerticalVelocity = 0.0f;
+static float filteredHorizontalVelocity = 0.0f;
 
 static float getAveragedVerticalVelocity(void)
 {
-    return averagedVerticalVelocity;
+    return filteredVerticalVelocity;
 }
 
 static float getAveragedHorizontalVelocity(void)
 {
-    return averagedHorizontalVelocity;
+    return filteredHorizontalVelocity;
 }
 
 typedef struct statistic_s {
@@ -5799,6 +5774,13 @@ static void osdFilterData(timeUs_t currentTimeUs) {
     if (lastRefresh) {
         GForce = pt1FilterApply3(&GForceFilter, GForce, refresh_dT);
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) pt1FilterApply3(GForceFilterAxis + axis, GForceAxis[axis], refresh_dT);
+        filteredVerticalVelocity = pt1FilterApply3(&verticalVelocityFilter, getEstimatedActualVelocity(Z), refresh_dT);
+#if defined(USE_GPS)
+        filteredHorizontalVelocity = pt1FilterApply3(&horizontalVelocityFilter, gpsSol.groundSpeed, refresh_dT);
+#else
+        filteredHorizontalVelocity = 0.0f;
+#endif   
+    }
     } else {
         pt1FilterInitRC(&GForceFilter, GFORCE_FILTER_TC, 0);
         pt1FilterReset(&GForceFilter, GForce);
@@ -5807,9 +5789,16 @@ static void osdFilterData(timeUs_t currentTimeUs) {
             pt1FilterInitRC(GForceFilterAxis + axis, GFORCE_FILTER_TC, 0);
             pt1FilterReset(GForceFilterAxis + axis, GForceAxis[axis]);
         }
+        pt1FilterInitRC(&verticalVelocityFilter, VELOCITY_FILTER_TC, 0);
+        pt1FilterReset(&verticalVelocityFilter, getEstimatedActualVelocity(Z));
+#if defined(USE_GPS)
+        pt1FilterInitRC(&horizontalVelocityFilter, VELOCITY_FILTER_TC, 0);
+        pt1FilterReset(&horizontalVelocityFilter, gpsSol.groundSpeed);
+#else
+        pt1FilterInitRC(&horizontalVelocityFilter, VELOCITY_FILTER_TC, 0);
+        pt1FilterReset(&horizontalVelocityFilter, 0);
+#endif
     }
-
-    osdUpdateVelocityAverages();
 
     lastRefresh = currentTimeUs;
 }
