@@ -174,6 +174,47 @@ static timeMs_t layoutOverrideUntil = 0;
 static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
 static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 
+static float verticalVelocityBuffer[5] = {0};
+static float averagedVerticalVelocity = 0.0f;
+static float horizontalVelocityBuffer[5] = {0};
+static float averagedHorizontalVelocity = 0.0f;
+static uint8_t velocityAveragingIndex = 0;
+
+static void osdUpdateVelocityAverages(void)
+{
+    const float verticalVelocity = getEstimatedActualVelocity(Z);
+#if defined(USE_GPS)
+    const float horizontalVelocity = gpsSol.groundSpeed;
+#else
+    const float horizontalVelocity = 0.0f;
+#endif
+
+    verticalVelocityBuffer[velocityAveragingIndex] = isnormal(verticalVelocity) ? verticalVelocity : 0.0f;
+    horizontalVelocityBuffer[velocityAveragingIndex] = isnormal(horizontalVelocity) ? horizontalVelocity : 0.0f;
+
+    velocityAveragingIndex = (velocityAveragingIndex + 1) % ARRAYLEN(verticalVelocityBuffer);
+
+    float verticalVelocitySum = 0.0f;
+    float horizontalVelocitySum = 0.0f;
+    for (uint8_t i = 0; i < ARRAYLEN(verticalVelocityBuffer); i++) {
+        verticalVelocitySum += verticalVelocityBuffer[i];
+        horizontalVelocitySum += horizontalVelocityBuffer[i];
+    }
+
+    averagedVerticalVelocity = verticalVelocitySum / ARRAYLEN(verticalVelocityBuffer);
+    averagedHorizontalVelocity = horizontalVelocitySum / ARRAYLEN(horizontalVelocityBuffer);
+}
+
+static float getAveragedVerticalVelocity(void)
+{
+    return averagedVerticalVelocity;
+}
+
+static float getAveragedHorizontalVelocity(void)
+{
+    return averagedHorizontalVelocity;
+}
+
 typedef struct statistic_s {
     uint16_t max_speed;
     uint16_t max_3D_speed;
@@ -1272,7 +1313,7 @@ static inline int32_t osdGetAltitudeMsl(void)
 }
 
 uint16_t osdGetRemainingGlideTime(void) {
-    float value = getEstimatedActualVelocity(Z);
+    float value = getAveragedVerticalVelocity();
     static pt1Filter_t glideTimeFilterState;
     const  timeMs_t curTimeMs = millis();
     static timeMs_t glideTimeUpdatedMs;
@@ -2029,8 +2070,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GLIDESLOPE:
         {
-            float horizontalSpeed = gpsSol.groundSpeed;
-            float sinkRate = -getEstimatedActualVelocity(Z);
+            float horizontalSpeed = getAveragedHorizontalVelocity();
+            float sinkRate = -getAveragedVerticalVelocity();
             static pt1Filter_t gsFilterState;
             const timeMs_t currentTimeMs = millis();
             static timeMs_t gsUpdatedTimeMs;
@@ -3148,7 +3189,7 @@ static bool osdDrawSingleElement(uint8_t item)
             uint16_t glideSeconds = osdGetRemainingGlideTime();
             buff[0] = SYM_GLIDE_DIST;
             if (glideSeconds > 0) {
-                uint32_t glideRangeCM = glideSeconds * gpsSol.groundSpeed;
+                uint32_t glideRangeCM = glideSeconds * getAveragedHorizontalVelocity();
                 osdFormatDistanceSymbol(buff + 1, glideRangeCM, 0, 3);
             } else {
                 tfp_sprintf(buff + 1, "%s%c", "---", SYM_BLANK);
@@ -5792,6 +5833,8 @@ static void osdFilterData(timeUs_t currentTimeUs) {
             pt1FilterReset(GForceFilterAxis + axis, GForceAxis[axis]);
         }
     }
+
+    osdUpdateVelocityAverages();
 
     lastRefresh = currentTimeUs;
 }
