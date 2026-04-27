@@ -9,7 +9,8 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 
 
-**JSON file rev: 4**
+**JSON file rev: 5
+**
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -66,6 +67,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 **variable_len**: Optional boolean, if true, message does not have a predefined fixed length and needs appropriate handling\
 **variants**: Optional special case, message has different cases of reply/request. Key/description is not a strict expression or code; just a readable condition\
 **not_implemented**: Optional special case, message is not implemented (never or deprecated)\
+**replaced_by**: Optional array of MSP message names that replace this command. Present when a command is deprecated and scheduled for removal. Empty array if no replacement is needed\
 **notes**: String with details of message
 
 ## Data dict fields:
@@ -403,6 +405,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 [8448 - MSP2_INAV_CUSTOM_OSD_ELEMENTS](#msp2_inav_custom_osd_elements)  
 [8449 - MSP2_INAV_CUSTOM_OSD_ELEMENT](#msp2_inav_custom_osd_element)  
 [8450 - MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS](#msp2_inav_set_custom_osd_elements)  
+[8451 - MSP2_INAV_GET_LINK_STATS](#msp2_inav_get_link_stats)  
 [8461 - MSP2_INAV_OUTPUT_MAPPING_EXT2](#msp2_inav_output_mapping_ext2)  
 [8704 - MSP2_INAV_SERVO_CONFIG](#msp2_inav_servo_config)  
 [8705 - MSP2_INAV_SET_SERVO_CONFIG](#msp2_inav_set_servo_config)  
@@ -412,8 +415,10 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
 [8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
-[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)
-[12289 - MSP2_RX_BIND](#msp2_rx_bind)
+[8737 - MSP2_INAV_SET_WP_INDEX](#msp2_inav_set_wp_index)  
+[8739 - MSP2_INAV_SET_CRUISE_HEADING](#msp2_inav_set_cruise_heading)  
+[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
+[12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
 ## <a id="msp_api_version"></a>`MSP_API_VERSION (1 / 0x1)`
 **Description:** Provides the MSP protocol version and the INAV API version.  
@@ -2206,7 +2211,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 | `armingFlags` | `uint16_t` | 2 | Bitmask | Bitmask: Flight controller arming flags (`armingFlags`). Note: Truncated to 16 bits |
 | `accCalibAxisFlags` | `uint8_t` | 1 | Bitmask | Bitmask: Accelerometer calibrated axes flags (`accGetCalibrationAxisFlags()`) |
 
-**Notes:** Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements.
+**Notes:** Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements. The `accCalibAxisFlags` field is not present in `MSP2_INAV_STATUS` but is available via `MSP_CALIBRATION_DATA`.
 
 ## <a id="msp_sensor_status"></a>`MSP_SENSOR_STATUS (151 / 0x97)`
 **Description:** Provides the hardware status for each individual sensor system.  
@@ -2273,6 +2278,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 | `hdop` | `uint16_t` | 2 | HDOP * 100 | Horizontal Dilution of Precision (`gpsSol.hdop`) |
 | `eph` | `uint16_t` | 2 | cm | Estimated Horizontal Position Accuracy (`gpsSol.eph`) |
 | `epv` | `uint16_t` | 2 | cm | Estimated Vertical Position Accuracy (`gpsSol.epv`) |
+| `hwVersion` | `uint32_t` | 4 | Version code | GPS hardware version (`gpsState.hwVersion`). Values: 500=UBLOX5, 600=UBLOX6, 700=UBLOX7, 800=UBLOX8, 900=UBLOX9, 1000=UBLOX10, 0=UNKNOWN |
 
 **Notes:** Requires `USE_GPS`.
 
@@ -4355,6 +4361,20 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 **Notes:** Payload length must be (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (CUSTOM_ELEMENTS_PARTS * 3) + 4 bytes including elementIndex. elementIndex must be < MAX_CUSTOM_ELEMENTS. Each partType must be < CUSTOM_ELEMENT_TYPE_END. Firmware NUL-terminates elementText internally.
 
+## <a id="msp2_inav_get_link_stats"></a>`MSP2_INAV_GET_LINK_STATS (8451 / 0x2103)`
+**Description:** Provides uplink RC link statistics for monitoring on a GCS.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `uplinkRSSI_dBm` | `uint8_t` | 1 | -dBm | Uplink RSSI in dBm, sent as a positive magnitude (`getRSSI()`). For example, 70 means -70dBm. |
+| `uplinkLQ` | `uint8_t` | 1 | % | Uplink Link Quality (`rxLinkStatistics.uplinkLQ`) |
+| `uplinkSNR` | `int8_t` | 1 | dB | Uplink Signal-to-Noise Ratio (`rxLinkStatistics.uplinkSNR`) |
+
+**Notes:** Useful for GCS monitoring of the active RC link quality and signal margin.
+
 ## <a id="msp2_inav_output_mapping_ext2"></a>`MSP2_INAV_OUTPUT_MAPPING_EXT2 (8461 / 0x210d)`
 **Description:** Retrieves the full extended output mapping configuration (timer ID, full 32-bit usage flags, and pin label). Supersedes `MSP2_INAV_OUTPUT_MAPPING_EXT`.  
 
@@ -4526,6 +4546,30 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 **Notes:** All attitude angles are in deci-degrees.
 
+## <a id="msp2_inav_set_wp_index"></a>`MSP2_INAV_SET_WP_INDEX (8737 / 0x2221)`
+**Description:** Jumps to a specific waypoint during an active waypoint mission, causing the aircraft to immediately begin navigating toward the new target waypoint.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `wp_index` | `uint8_t` | 1 | - | 0-based waypoint index to jump to, relative to the mission start waypoint (`posControl.startWpIndex`) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.
+
+## <a id="msp2_inav_set_cruise_heading"></a>`MSP2_INAV_SET_CRUISE_HEADING (8739 / 0x2223)`
+**Description:** Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `heading_centidegrees` | `int32_t` | 4 | centidegrees | Target heading in centidegrees (0-35999). Values are wrapped modulo 36000 before being applied. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.
+
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
 
@@ -4536,14 +4580,14 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 **Notes:** Requires `rxConfig()->receiverType == RX_TYPE_SERIAL`. Requires `USE_SERIALRX_CRSF` or `USE_SERIALRX_SRXL2`. Calls `crsfBind()` or `srxl2Bind()` respectively. Returns error if receiver type or provider is not supported for binding.
 
 ## <a id="msp2_rx_bind"></a>`MSP2_RX_BIND (12289 / 0x3001)`
-**Description:** Initiates binding for MSP receivers (mLRS).
-
+**Description:** Initiates binding for MSP receivers (mLRS).  
+  
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Description|
 |---|---|---|---|
 | `port_id` | `uint8_t` | 1 | Port ID |
 | `reserved_for_custom_use` | `uint8_t[3]` | 3 | Reserved for custom use |
-
+  
 **Reply Payload:**
 |Field|C Type|Size (Bytes)|Description|
 |---|---|---|---|

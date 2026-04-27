@@ -2,7 +2,7 @@ tables:
   - name: alignment
     values: ["DEFAULT", "CW0", "CW90", "CW180", "CW270", "CW0FLIP", "CW90FLIP", "CW180FLIP", "CW270FLIP"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX",  "FAKE"]
+    values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "ICM45686", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE", "TERARANGER_EVO", "USD1_V0", "NRA"]
@@ -667,7 +667,7 @@ groups:
     condition: USE_PITOT
     members:
       - name: pitot_hardware
-        description: "Selection of pitot hardware."
+        description: "Selection of pitot hardware. VIRTUAL only works if a GPS is enabled."
         default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz

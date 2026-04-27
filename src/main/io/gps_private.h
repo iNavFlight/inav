@@ -42,7 +42,7 @@ typedef struct {
     const serialConfig_t * serialConfig;
     serialPort_t *  gpsPort;                // Serial GPS only
 
-    uint32_t        hwVersion;
+    uint8_t         hwVersion;          // See UBX_HW_VERSION_* in gps_ublox.h
     uint8_t         swVersionMajor;
     uint8_t         swVersionMinor;
 

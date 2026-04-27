@@ -87,6 +87,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_icm20689.h
     drivers/accgyro/accgyro_icm42605.c
     drivers/accgyro/accgyro_icm42605.h
+    drivers/accgyro/accgyro_icm45686.c
+    drivers/accgyro/accgyro_icm45686.h
     drivers/accgyro/accgyro_mpu.c
     drivers/accgyro/accgyro_mpu.h
     drivers/accgyro/accgyro_mpu6000.c

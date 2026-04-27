@@ -5624,7 +5624,7 @@ Defines rotation rate on PITCH axis that UAV will try to archive on max. stick d
 
 ### pitot_hardware
 
-Selection of pitot hardware.
+Selection of pitot hardware. VIRTUAL only works if a GPS is enabled.
 
 | Default | Min | Max |
 | --- | --- | --- |
