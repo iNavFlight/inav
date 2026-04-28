@@ -203,3 +203,5 @@
 #define MAX_PWM_OUTPUT_PORTS        15
 #define USE_DSHOT
 #define USE_ESC_SENSOR
+
+#define USE_BOOTLOG 4096

@@ -299,10 +299,17 @@ static oledControllerType_e detectOledController(void)
 {
     uint8_t statusByte = 0;
 
-    // Read the status register (register 0x00)
-    // This is a read of the status byte from the OLED controller
+    // Probe I2C addresses 0x3C and 0x3D — log which ones respond so the
+    // bootlog reveals address mismatches without needing an I2C scanner.
+    uint8_t probeByte = 0;
+    bool found3C = i2cRead(busDev->busdev.i2c.i2cBus, 0x3C, 0xFF, 1, &probeByte, true);
+    bool found3D = i2cRead(busDev->busdev.i2c.i2cBus, 0x3D, 0xFF, 1, &probeByte, true);
+    LOG_DEBUG(SYSTEM, "OLED: I2C probe — 0x3C:%s 0x3D:%s",
+              found3C ? "ACK" : "NAK", found3D ? "ACK" : "NAK");
+
+    // Raw status register read (0xFF = no register write phase before read)
     if (!busRead(busDev, 0xFF, &statusByte)) {
-        LOG_ERROR(SYSTEM, "OLED: Failed to read status register");
+        LOG_ERROR(SYSTEM, "OLED: Failed to read status register at 0x3C");
         return OLED_CONTROLLER_UNKNOWN;
     }
 
@@ -403,7 +410,7 @@ bool ug2864hsweg01InitI2C(void)
     LOG_DEBUG(SYSTEM, "OLED: Init sequence complete, clearing display");
 
     i2c_OLED_clear_display();
-    ug2864hsweg01TestPattern();
+    ug2864hsweg01TestPattern(); // TODO: remove before PR — hardware test only
 
     LOG_DEBUG(SYSTEM, "OLED: Initialization complete, controller=%d", detectedController);
 
