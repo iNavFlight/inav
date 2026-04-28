@@ -5780,7 +5780,6 @@ static void osdFilterData(timeUs_t currentTimeUs) {
 #else
         filteredHorizontalVelocity = 0.0f;
 #endif   
-    }
     } else {
         pt1FilterInitRC(&GForceFilter, GFORCE_FILTER_TC, 0);
         pt1FilterReset(&GForceFilter, GForce);
