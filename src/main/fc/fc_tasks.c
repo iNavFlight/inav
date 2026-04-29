@@ -558,7 +558,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         [TASK_ADSB] = {
         .taskName = "ADSB",
         .taskFunc = taskAdsb,
-        .desiredPeriod = TASK_PERIOD_MS(500),      // ADSB is updated at 1 Hz
+        .desiredPeriod = TASK_PERIOD_MS(500),      // ADSB is updated at 2 Hz, can be select 1 Hz as well
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
