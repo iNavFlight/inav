@@ -285,7 +285,7 @@ function(target_stm32)
     cmake_parse_arguments(
         args
         # Boolean arguments
-        "DISABLE_MSC;BOOTLOADER"
+        "DISABLE_MSC;BOOTLOADER;NO_BOOTLOADER"
         # Single value arguments
         "HSE_MHZ;LINKER_SCRIPT;NAME;OPENOCD_TARGET;OPTIMIZATION;STARTUP;SVD"
         # Multi-value arguments
@@ -377,7 +377,7 @@ function(target_stm32)
 
     setup_firmware_target(${main_target_name} ${name} ${ARGN})
 
-    if(args_BOOTLOADER)
+    if(args_BOOTLOADER AND NOT args_NO_BOOTLOADER)
         # Bootloader for the target
         set(bl_suffix _bl)
         add_stm32_executable(
