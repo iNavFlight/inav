@@ -65,6 +65,11 @@ typedef struct imuRuntimeConfig_s {
     float dcm_ki_acc;
     float dcm_kp_mag;
     float dcm_ki_mag;
+    /* Precomputed anti-windup limit for imuMahonyAHRSupdate(): equals
+     * DEGREES_TO_RADIANS(2) * (dcm_kp_acc + dcm_kp_mag) / 2.
+     * Updated once by imuConfigure() whenever settings are saved, so the
+     * hot PID path reads a single float instead of doing arithmetic. */
+    float dcm_i_limit;
     uint8_t small_angle;
 } imuRuntimeConfig_t;
 

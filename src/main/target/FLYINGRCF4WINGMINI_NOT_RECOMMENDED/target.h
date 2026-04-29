@@ -95,6 +95,10 @@
 #define ADC_CHANNEL_1_PIN           PC4
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 
+// *************** LEDSTRIP ************************
+#define USE_LED_STRIP
+#define WS2811_PIN PB1
+
 // *************** others  ************************
 #define DEFAULT_FEATURES   (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define VBAT_SCALE_DEFAULT      2100

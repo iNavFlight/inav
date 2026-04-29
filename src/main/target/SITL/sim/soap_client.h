@@ -22,27 +22,25 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#pragma once
 
-#define SOAP_REC_BUF_SIZE 256 * 1024
+#include <pthread.h>
 
 typedef struct {
-    int sockedFd;
-    struct sockaddr_in socketAddr;
-    bool isInitalised;
-    bool isConnected;
+    char host[256];
+    char port[16];
+    char path[256];
+    int timeout_ms;
+    pthread_mutex_t lock;
 } soap_client_t;
 
-typedef struct {
-    soap_client_t client;
-    char* content;
-} send_info_t;
+int soap_client_init(soap_client_t* c, const char* host, const char* port, const char* path, int timeout_ms);
+void soap_client_destroy(soap_client_t* c);
 
-
-bool soapClientConnect(soap_client_t *client, const char *address, int port);
-void soapClientClose(soap_client_t *client);
-void soapClientSendRequestVa(soap_client_t *client, const char* action, const char *fmt, va_list va);
-void soapClientSendRequest(soap_client_t *client, const char* action, const char *fmt, ...);
-char* soapClientReceive(soap_client_t *client);
+// Sends raw XML as content of <soap:Body> and returns raw XML content of response <soap:Body>.
+// Caller must free(*response_body_xml) on success.
+int soap_client_call_raw_body(soap_client_t* c,
+                              const char* soap_action,
+                              const char* request_body_xml,
+                              char** response_body_xml,
+                              int* http_status);

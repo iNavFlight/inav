@@ -109,6 +109,7 @@ Version numbers are set in:
 - [ ] Release notes drafted
 - [ ] Breaking changes documented
 - [ ] New features documented
+- [ ] **Configurator migration profile created** for major version bumps (see [Backup Restore Architecture](Backup%20Restore%20Architecture.md#adding-a-new-migration-profile))
 
 ## Release Workflow
 
@@ -492,6 +493,7 @@ gh api repos/iNavFlight/inav-configurator/git/refs -f ref="refs/heads/maintenanc
 
 - **Changes maintaining backward compatibility** → PR to maintenance-X.x (e.g., maintenance-9.x)
 - **Breaking changes** (MSP protocol, settings structure) → PR to maintenance-(X+1).x (e.g., maintenance-10.x)
+  - When breaking changes affect CLI settings (renames, removals, value changes), a **Configurator migration profile** must be created. See [Backup Restore Architecture](Backup%20Restore%20Architecture.md#adding-a-new-migration-profile)
 - **Master** → NOT a PR target (receives merges only)
 
 Lower version branches are periodically merged into higher version branches (e.g., maintenance-9.x → master → maintenance-10.x).
