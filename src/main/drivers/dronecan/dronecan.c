@@ -30,11 +30,6 @@
 CanardInstance canard;
 uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
-enum dronecanState_e {
-    STATE_DRONECAN_INIT,
-    STATE_DRONECAN_NORMAL,
-    STATE_DRONECAN_BUS_OFF
-};
 
 PG_REGISTER_WITH_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig, PG_DRONECAN_CONFIG, 0);
 
@@ -42,6 +37,10 @@ PG_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig,
     .nodeID = SETTING_DRONECAN_NODE_ID_DEFAULT,
     .bitRateKbps = SETTING_DRONECAN_BITRATE_KBPS_DEFAULT
 );
+
+static dronecanState_e dronecanState = STATE_DRONECAN_INIT;
+static uint8_t activeNodeCount = 0;
+static uint8_t seenNodeIds[16] = {0};
 
 // NOTE: All canard handlers and senders are based on this reference: https://dronecan.github.io/Specification/7._List_of_standard_data_types/
 // Alternatively, you can look at the corresponding generated header file in the dsdlc_generated folder
@@ -99,6 +98,11 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		// LOG_DEBUG(CAN, "UNKNOWN?");
 		break;
 	}
+    uint8_t bit = 1 << (transfer->source_node_id % 8);
+    if(!(seenNodeIds[transfer->source_node_id/8] & bit)) { // If the bit corresponding to the node ID is not seen yet
+        seenNodeIds[transfer->source_node_id/8] |= bit;  // Set the bit corresponding to the node ID.
+        activeNodeCount++;
+    }
 }
 
 void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -466,7 +470,6 @@ void dronecanUpdate(timeUs_t currentTimeUs)
     static timeUs_t busoffTimeUs = 0;
     CanardCANFrame rx_frame;
     int numMessagesToProcess = 0;
-    static enum dronecanState_e dronecanState = STATE_DRONECAN_INIT;
     canardProtocolStatus_t protocolStatus = {};
     uint64_t timestamp;
     int16_t rx_res;
@@ -522,5 +525,36 @@ void dronecanUpdate(timeUs_t currentTimeUs)
     
     }
     
+}
+
+dronecanState_e dronecanGetState(void)
+{
+    return dronecanState;
+}
+
+uint8_t dronecanGetNodeCount(void)
+{
+    return activeNodeCount;
+}
+
+uint32_t dronecanGetBitrateKbps(void)
+{
+    switch (dronecanConfig()->bitRateKbps){
+        case DRONECAN_BITRATE_125KBPS:
+            return 125;
+
+        case DRONECAN_BITRATE_250KBPS:
+            return 250;
+        
+        case DRONECAN_BITRATE_500KBPS:
+            return 500;
+
+        case DRONECAN_BITRATE_1000KBPS:
+            return 1000;
+        
+        case DRONECAN_BITRATE_COUNT:
+            return 0;
+    }
+    return 0;
 }
 #endif
