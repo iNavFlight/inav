@@ -35,6 +35,14 @@ typedef struct dronecanNodeInfo_s {
     char name[32];
 } dronecanNodeInfo_t;
 
+// Wire format for MSP2_INAV_DRONECAN_NODES records (7 bytes each, packed).
+typedef struct dronecanNodeStatus_s {
+    uint8_t nodeID;
+    uint8_t health;
+    uint8_t mode;
+    uint32_t last_seen_ms;
+} __attribute__((packed)) dronecanNodeStatus_t;
+
 void dronecanInit(void);
 void dronecanUpdate(timeUs_t currentTimeUs);
 dronecanState_e dronecanGetState(void);                                               

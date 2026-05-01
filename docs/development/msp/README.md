@@ -4165,19 +4165,12 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Request Payload:** **None**  
   
 **Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `nodeCount` | `uint8_t` | 1 | - | Number of detected DroneCAN nodes |
-| `nodeID` | `uint8_t` | 1 | - | DroneCAN node ID (1-127) |
-| `health` | `uint8_t` | 1 | - | Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL |
-| `mode` | `uint8_t` | 1 | - | Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE |
-| `uptime_sec` | `uint32_t` | 4 | s | Node uptime in seconds |
-| `vendor_status_code` | `uint16_t` | 2 | - | Vendor-specific status code |
-| `last_seen_ms` | `uint32_t` | 4 | ms | FC millisecond timestamp when this node was last seen |
-| `name_len` | `uint8_t` | 1 | - | Length of node name string (0 if unknown) |
-| `name` | `char[16]` | 16 | - | Node name truncated to 16 bytes, zero-padded |
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `nodeCount` | `uint8_t` | 1 | Number of detected DroneCAN nodes |
+| `nodeData` | `dronecanNodeStatus_t[]` | array | Array of per-node status records, one per detected node. Each record: nodeID(1)+health(1)+mode(1)+last_seen_ms(4) = 7 bytes. Full detail available via MSP2_INAV_DRONECAN_NODE_INFO. |
 
-**Notes:** Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 30 bytes each: nodeID(1)+health(1)+mode(1)+uptime_sec(4)+vendor_status_code(2)+last_seen_ms(4)+name_len(1)+name[16].
+**Notes:** Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 7 bytes each: nodeID(1)+health(1)+mode(1)+last_seen_ms(4). Maximum payload 1 + (DRONECAN_MAX_NODES * 7) = 225 bytes. Full node detail including uptime, vendor status, and name is available via MSP2_INAV_DRONECAN_NODE_INFO.
 
 ## <a id="msp2_inav_dronecan_node_info"></a>`MSP2_INAV_DRONECAN_NODE_INFO (8259 / 0x2043)`
 **Description:** Returns full status detail for a single DroneCAN node by ID.  

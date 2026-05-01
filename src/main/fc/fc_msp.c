@@ -1770,26 +1770,21 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
 #ifdef USE_DRONECAN
-    
     case MSP2_INAV_DRONECAN_NODES:
-        {                                                                                                         
-            uint8_t count = dronecanGetNodeCount();                                         
-            sbufWriteU8(dst, count);                                                                              
+        {
+            uint8_t count = dronecanGetNodeCount();
+            sbufWriteU8(dst, count);
             for (uint8_t i = 0; i < count; i++) {
-                const dronecanNodeInfo_t *node = dronecanGetNode(i);                                              
-                sbufWriteU8(dst, node->nodeID);                                             
-                sbufWriteU8(dst, node->health);                                                                   
-                sbufWriteU8(dst, node->mode);                                               
-                sbufWriteU32(dst, node->uptime_sec);                                                              
-                sbufWriteU16(dst, node->vendor_status_code);                                
-                sbufWriteU32(dst, node->last_seen_ms);                                                            
-                sbufWriteU8(dst, node->name_len);
-                sbufWriteData(dst, node->name, 16);                                                               
-            }                                                                                                     
+                const dronecanNodeInfo_t *node = dronecanGetNode(i);
+                sbufWriteDataSafe(dst, &(dronecanNodeStatus_t){
+                    .nodeID      = node->nodeID,
+                    .health      = node->health,
+                    .mode        = node->mode,
+                    .last_seen_ms = node->last_seen_ms,
+                }, sizeof(dronecanNodeStatus_t));
+            }
         }
-        break;                                                                                                    
-                                                                                              
-     
+        break;
 #endif
 
 #ifdef USE_EZ_TUNE
@@ -4283,28 +4278,39 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 
 #ifdef USE_DRONECAN
-     case MSP2_INAV_DRONECAN_NODE_INFO:
+    case MSP2_INAV_DRONECAN_NODE_INFO:
         {
             if (sbufBytesRemaining(src) < 1) {
-                return MSP_RESULT_ERROR;                                                                          
+                *ret = MSP_RESULT_ERROR;
+                break;
             }
-            uint8_t nodeId = sbufReadU8(src);                                                                     
-            uint8_t count = dronecanGetNodeCount();                                         
-            for (uint8_t i = 0; i < count; i++) {                                                                 
+            uint8_t nodeId = sbufReadU8(src);
+            uint8_t count = dronecanGetNodeCount();
+            bool found = false;
+            for (uint8_t i = 0; i < count; i++) {
                 const dronecanNodeInfo_t *node = dronecanGetNode(i);
-                if (node->nodeID == nodeId) {                                                                     
-                    sbufWriteU8(dst, node->nodeID);                                                               
+                if (node->nodeID == nodeId) {
+                    found = true;
+                    if (sbufBytesRemaining(dst) < 46) {
+                        *ret = MSP_RESULT_ERROR;
+                        break;
+                    }
+                    sbufWriteU8(dst, node->nodeID);
                     sbufWriteU8(dst, node->health);
-                    sbufWriteU8(dst, node->mode);                                                                 
-                    sbufWriteU32(dst, node->uptime_sec);                                    
+                    sbufWriteU8(dst, node->mode);
+                    sbufWriteU32(dst, node->uptime_sec);
                     sbufWriteU16(dst, node->vendor_status_code);
                     sbufWriteU32(dst, node->last_seen_ms);
                     sbufWriteU8(dst, node->name_len);
-                    sbufWriteData(dst, node->name, 32);
-                    return MSP_RESULT_ACK;
+                    sbufWriteDataSafe(dst, node->name, 32);
+                    found = true;
+                    *ret = MSP_RESULT_ACK;
+                    break;
                 }
             }
-            return MSP_RESULT_ERROR;
+            if (!found) {
+                *ret = MSP_RESULT_ERROR;
+            }
         }
         break;
 #endif

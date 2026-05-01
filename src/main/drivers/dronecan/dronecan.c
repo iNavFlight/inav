@@ -148,7 +148,7 @@ void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 // TODO: All the data in here is temporary for testing. If actually need to send valid data, edit accordingly.
 void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
-	printf("GetNodeInfo request from %d", transfer->source_node_id);
+	LOG_DEBUG(CAN, "GetNodeInfo request from %d", transfer->source_node_id);
 
 	uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
 	struct uavcan_protocol_GetNodeInfoResponse pkt;
@@ -536,8 +536,8 @@ uint32_t dronecanGetBitrateKbps(void)
     return 0;
 }
 
-const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {                                                                                                                                                                                
-    if (index < activeNodeCount) return &nodeTable[index];                                  
-      return NULL;                                                                                                                                                                                                                          
-  }  
+const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
+    if (index < activeNodeCount) return &nodeTable[index];
+    return NULL;
+}
 #endif
