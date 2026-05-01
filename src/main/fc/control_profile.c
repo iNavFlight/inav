@@ -101,3 +101,13 @@ void changeControlProfile(uint8_t profileIndex)
     setControlProfile(profileIndex);
     activateControlConfig();
 }
+
+uint8_t getCurrentControlProfile(void) {
+  for (uint8_t index = 0; index < MAX_CONTROL_PROFILE_COUNT; index++) {
+    if (currentControlProfile == controlProfiles(index)) {
+      return index;
+    }
+  }
+
+  return 0;
+}
