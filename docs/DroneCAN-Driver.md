@@ -242,6 +242,38 @@ dronecanUpdate(micros());  // Called repeatedly
 
 ---
 
+### Node Table
+
+The driver maintains a table of detected DroneCAN nodes populated from incoming `NodeStatus` broadcasts.
+
+#### `dronecanNodeInfo_t` struct
+
+```c
+typedef struct dronecanNodeInfo_s {
+    uint8_t  nodeID;              // CAN node ID (1-127)
+    uint8_t  health;              // UAVCAN_PROTOCOL_NODESTATUS_HEALTH_*
+    uint8_t  mode;                // UAVCAN_PROTOCOL_NODESTATUS_MODE_*
+    uint32_t uptime_sec;          // Node uptime in seconds
+    uint16_t vendor_status_code;  // Vendor-specific status word
+    uint32_t last_seen_ms;        // FC millis() timestamp of last NodeStatus
+    uint8_t  name_len;            // Length of name (0 until GetNodeInfo implemented)
+    char     name[32];            // Node name, zero-padded
+} dronecanNodeInfo_t;
+```
+
+The table holds up to `DRONECAN_MAX_NODES` (32) entries, indexed by arrival order. Entries are never removed at runtime; the table persists from boot until power-off.
+
+#### Accessor Functions
+
+| Function | Returns |
+|----------|---------|
+| `dronecanGetNodeCount()` | Number of unique nodes seen (`uint8_t`) |
+| `dronecanGetNode(uint8_t index)` | Pointer to `dronecanNodeInfo_t` for entry `index`, or `NULL` if out of range |
+| `dronecanGetState()` | Current bus state (`dronecanState_e`) |
+| `dronecanGetBitrateKbps()` | Configured bitrate as a plain integer (e.g. 1000) |
+
+---
+
 ### Configuration
 
 #### Settings
@@ -305,8 +337,8 @@ The driver includes 7 built-in message handlers. Each handler decodes a message 
 
 #### `handle_NodeStatus()`
 **Receives:** `uavcan_protocol_NodeStatus` (from other nodes)
-**Processing:** Decodes and logs node health (OK/WARNING/ERROR/CRITICAL) and mode (OPERATIONAL/INITIALIZATION/MAINTENANCE/SOFTWARE_UPDATE/OFFLINE)
-**Status:** Logs health and mode status
+**Processing:** Decodes the message and upserts into the node table (`nodeTable[]`). If the source node ID is already in the table, health, mode, uptime, vendor status, and `last_seen_ms` are updated. If it is a new node and the table is not full, a new entry is appended and `activeNodeCount` is incremented. Node names are not available from NodeStatus broadcasts; they remain empty until `GetNodeInfo` service requests are implemented.
+**Status:** Node count accessible via `dronecanGetNodeCount()`; per-node detail via `dronecanGetNode()`
 
 ### Service Handlers
 
@@ -474,6 +506,46 @@ if (uavcan_equipment_gnss_Fix_decode(transfer, &gnssFix) == 0) {
     LOG_DEBUG(CAN, "GNSSFix decode failed");
 }
 ```
+
+---
+
+## MSP Commands
+
+Two MSP2 commands expose the node table to external tools (configurator, GCS, test scripts):
+
+### `MSP2_INAV_DRONECAN_NODES` (0x2042)
+
+**Direction:** Request (no payload) → Reply  
+**Handler location:** `mspFcProcessOutCommand()` in `fc_msp.c`  
+**Guard:** `#ifdef USE_DRONECAN`
+
+**Reply layout:**
+
+| Offset | Size | Field |
+|--------|------|-------|
+| 0 | 1 | `nodeCount` |
+| 1 + N×30 | 1 | `nodeID` |
+| 2 + N×30 | 1 | `health` |
+| 3 + N×30 | 1 | `mode` |
+| 4 + N×30 | 4 | `uptime_sec` (little-endian) |
+| 8 + N×30 | 2 | `vendor_status_code` |
+| 10 + N×30 | 4 | `last_seen_ms` |
+| 14 + N×30 | 1 | `name_len` |
+| 15 + N×30 | 16 | `name` (zero-padded) |
+
+Total: 1 + nodeCount × 30 bytes.
+
+---
+
+### `MSP2_INAV_DRONECAN_NODE_INFO` (0x2043)
+
+**Direction:** Request (1 byte node ID) → Reply  
+**Handler location:** `mspFCProcessInOutCommand()` in `fc_msp.c`  
+**Guard:** `#ifdef USE_DRONECAN`
+
+**Request:** 1 byte — target `nodeID`
+
+**Reply layout:** same fields as above but with a 32-byte `name` field (46 bytes total). Returns an empty response if the requested node ID is not in the table.
 
 ---
 
@@ -837,6 +909,7 @@ void broadcastNodeStatus(void) {
 
 | Date | Version | Changes |
 |---|---|---|
+| 2026-04-30 | 1.2 | Added node table (`dronecanNodeInfo_t`), accessor functions, CLI status output, and MSP commands (0x2042/0x2043) |
 | 2026-02-18 | 1.1 | Added error recovery, graceful disable behavior, and safe initialization documentation |
 | 2026-02-16 | 1.0 | Initial version - handler-based architecture documentation |
 
