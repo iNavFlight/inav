@@ -40,7 +40,7 @@ PG_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig,
 
 static dronecanState_e dronecanState = STATE_DRONECAN_INIT;
 static uint8_t activeNodeCount = 0;
-static uint8_t seenNodeIds[16] = {0};
+static dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
 
 // NOTE: All canard handlers and senders are based on this reference: https://dronecan.github.io/Specification/7._List_of_standard_data_types/
 // Alternatively, you can look at the corresponding generated header file in the dsdlc_generated folder
@@ -56,53 +56,31 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
 
-	// LOG_DEBUG(CAN, "Node Health ");
-
-	switch (nodeStatus.health) {
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
-		// LOG_DEBUG(CAN, "OK");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
-		// LOG_DEBUG(CAN, "WARNING");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
-		// LOG_DEBUG(CAN, "ERROR");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
-		// LOG_DEBUG(CAN, "CRITICAL");
-		break;
-	default:
-		// LOG_DEBUG(CAN, "UNKNOWN?");
-		break;
-	}
-
-	// LOG_DEBUG(CAN, "Node Mode ");
-
-	switch(nodeStatus.mode) {
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
-		// LOG_DEBUG(CAN, "OPERATIONAL");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
-		// LOG_DEBUG(CAN, "INITIALIZATION");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
-		// LOG_DEBUG(CAN, "MAINTENANCE");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
-		// LOG_DEBUG(CAN, "SOFTWARE UPDATE");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
-		// LOG_DEBUG(CAN, "OFFLINE");
-		break;
-	default:
-		// LOG_DEBUG(CAN, "UNKNOWN?");
-		break;
-	}
-    uint8_t bit = 1 << (transfer->source_node_id % 8);
-    if(!(seenNodeIds[transfer->source_node_id/8] & bit)) { // If the bit corresponding to the node ID is not seen yet
-        seenNodeIds[transfer->source_node_id/8] |= bit;  // Set the bit corresponding to the node ID.
-        activeNodeCount++;
+	uint8_t nodeId = transfer->source_node_id;                                                                                                                                                                                                
+    for (uint8_t i = 0; i < activeNodeCount; i++) {
+        if (nodeTable[i].nodeID == nodeId) { 
+            // update health, mode, uptime, vendor_status_code, last_seen_ms                                                                                                                                                                                                 
+            nodeTable[i].health = nodeStatus.health;
+            nodeTable[i].mode = nodeStatus.mode;
+            nodeTable[i].uptime_sec = nodeStatus.uptime_sec;
+            nodeTable[i].vendor_status_code = nodeStatus.vendor_specific_status_code;
+            nodeTable[i].last_seen_ms = millis();                    
+            return;                                                                                                                                                                                                                           
+        }                                                                                       
+    }                                                                                                                                                                                                                                         
+    // new node                                                                                 
+    if (activeNodeCount < DRONECAN_MAX_NODES) {
+        nodeTable[activeNodeCount].nodeID = nodeId;
+        nodeTable[activeNodeCount].health = nodeStatus.health;
+        nodeTable[activeNodeCount].mode = nodeStatus.mode;
+        nodeTable[activeNodeCount].uptime_sec = nodeStatus.uptime_sec;
+        nodeTable[activeNodeCount].vendor_status_code = nodeStatus.vendor_specific_status_code;
+        nodeTable[activeNodeCount].name_len = 0;
+        nodeTable[activeNodeCount].name[0] = 0;
+        nodeTable[activeNodeCount].last_seen_ms = millis();     
+        activeNodeCount++;                                                                                                                                                               
     }
+
 }
 
 void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -557,4 +535,9 @@ uint32_t dronecanGetBitrateKbps(void)
     }
     return 0;
 }
+
+const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {                                                                                                                                                                                
+    if (index < activeNodeCount) return &nodeTable[index];                                  
+      return NULL;                                                                                                                                                                                                                          
+  }  
 #endif
