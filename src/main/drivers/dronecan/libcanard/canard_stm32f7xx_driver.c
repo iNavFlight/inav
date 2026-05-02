@@ -163,12 +163,9 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	memcpy(txData, tx_frame->data, tx_frame->data_len);
 
 	returnCode = HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
-    if( returnCode == HAL_OK) {
-		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", tx_frame->id);
+    if (returnCode == HAL_OK) {
 		return 1;
 	}
-
-	LOG_DEBUG(CAN, "Failed at adding message with id: %lu to Tx Queue.  Error: %lu", tx_frame->id, returnCode);
 
 	// TX failed (FIFO full or other error) - return 0 to signal retry needed
 	return 0;
@@ -320,9 +317,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   125  kbps      16      17
      */
     const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 18;
-    LOG_DEBUG(CAN, "Baudrate: %lu", target_bitrate);
-    LOG_DEBUG(CAN, "Max Quanta per bit: %i", max_quanta_per_bit);
-    LOG_DEBUG(CAN, "Pclk1: %lu", pclk);
     static const int MaxSamplePointLocation = 900;
 
     /*
@@ -336,7 +330,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   PRESCALER_BS = PCLK / BITRATE
      */
     const uint32_t prescaler_bs = pclk / target_bitrate;
-    LOG_DEBUG(CAN, "Prescaler BS product: %lu", prescaler_bs);
      /*
      * Searching for such prescaler value so that the number of quanta per bit is highest.
      */
@@ -353,8 +346,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     if ((prescaler < 1U) || (prescaler > 1024U)) {
         return false;              // No solution
     }
-    LOG_DEBUG(CAN, "Prescaler: %lu", prescaler);
-
       /*
      * Now we have a constraint: (BS1 + BS2) == bs1_bs2_sum.
      * We need to find the values so that the sample point is as close as possible to the optimal value.
