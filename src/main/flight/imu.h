@@ -28,7 +28,7 @@ extern fpVector3_t imuMeasuredAccelBF;         // cm/s/s
 extern fpVector3_t imuMeasuredAccelBFFiltered; // cm/s/s
 extern fpVector3_t imuMeasuredRotationBF;       // rad/s
 extern fpVector3_t imuMeasuredRotationBFFiltered;       // rad/s
-extern fpVector3_t compansatedGravityBF;         // cm/s/s
+extern fpVector3_t compensatedGravityBF;         // cm/s/s
 extern fpVector3_t HeadVecEFFiltered;
 
 typedef union {
