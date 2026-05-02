@@ -834,7 +834,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     } else if (!ARMING_FLAG(ARMED)) {
         if (STATE(AIRPLANE)) {
             gpsHeadingInitialized = false;  // required for fixed wing flight detection to work correctly
-        } else if (!canUseMAG && STATE(CALIBRATE_MAG)) {
+        } else if (!sensors(SENSOR_MAG) && STATE(CALIBRATE_MAG)) {
             // When no compass available allow yaw to be set to 0 (North) as required using compass calibration stick command
             DISABLE_STATE(CALIBRATE_MAG);
             beeper(BEEPER_ACTION_SUCCESS);
