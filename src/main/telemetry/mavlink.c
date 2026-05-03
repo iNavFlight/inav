@@ -595,6 +595,8 @@ void mavlinkSendRCChannelsAndRSSI(void)
 void mavlinkSendPosition(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
+    rtcTime_t rtcTime;
+    timeUs_t timeUnixUsec = currentTimeUs;
 
     if (!(sensors(SENSOR_GPS)
 #ifdef USE_GPS_FIX_ESTIMATION
@@ -603,16 +605,21 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         ))
         return;
 
-    if (gpsSol.fixType == GPS_NO_FIX)
+    if (gpsSol.fixType == GPS_NO_FIX){
         gpsFixType = 1;
-    else if (gpsSol.fixType == GPS_FIX_2D)
-            gpsFixType = 2;
-    else if (gpsSol.fixType == GPS_FIX_3D)
-            gpsFixType = 3;
+    } else if (gpsSol.fixType == GPS_FIX_2D) {
+        gpsFixType = 2;
+    }else if (gpsSol.fixType == GPS_FIX_3D) {
+        gpsFixType = 3;
+    }
+
+    if (rtcGet(&rtcTime)) {
+        timeUnixUsec = (uint64_t)rtcTime * 1000ULL;
+    }
 
     mavlink_msg_gps_raw_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
-        currentTimeUs,
+        timeUnixUsec,
         // fix_type 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.
         gpsFixType,
         // lat Latitude in 1E7 degrees
@@ -712,8 +719,8 @@ void mavlinkSendSystemTime(void)
     rtcTime_t rtcTime;
 
     if (rtcGet(&rtcTime)) {
-        timeUnixUsec = (uint64_t)rtcTime * 1000ULL + (uint64_t)(micros() % 1000); // extrapolation to uS
-        //timeUnixUsec = (uint64_t)rtcTime * 1000ULL; // mS resolution
+        //timeUnixUsec = (uint64_t)rtcTime * 1000ULL + (uint64_t)(micros() % 1000); // extrapolation to uS
+        timeUnixUsec = (uint64_t)rtcTime * 1000ULL; // mS resolution
     }
 
     mavlink_msg_system_time_pack(mavSystemId, mavComponentId, &mavSendMsg, timeUnixUsec, millis());
