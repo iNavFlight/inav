@@ -23,7 +23,7 @@
 
 #include "platform.h"
 
-#if defined(USE_FLASH_W25N01G) || defined(USE_FLASH_W25N02K)|| defined(USE_FLASH_MX35LF2G)
+#if defined(USE_FLASH_W25N01G) || defined(USE_FLASH_W25N02K) || defined(USE_FLASH_MX35LF2G)
 
 #include "drivers/bus.h"
 #include "drivers/io.h"
@@ -46,17 +46,15 @@
 #define W25N_BB_MANAGEMENT_BLOCKS  (W25N_BB_REPLACEMENT_BLOCKS + W25N_BB_MARKER_BLOCKS)
 
 // blocks are zero-based index
-#define W25N_BB_REPLACEMENT_START_BLOCK (W25N_BLOCKS_PER_DIE - W25N_BB_REPLACEMENT_BLOCKS)
-#define W25N_BB_MANAGEMENT_START_BLOCK  (W25N_BLOCKS_PER_DIE - W25N_BB_MANAGEMENT_BLOCKS)
+#define W25N_BB_REPLACEMENT_START_BLOCK (geometry.sectors - W25N_BB_REPLACEMENT_BLOCKS)
+#define W25N_BB_MANAGEMENT_START_BLOCK  (geometry.sectors - W25N_BB_MANAGEMENT_BLOCKS)
 #define W25N_BB_MARKER_BLOCK            (W25N_BB_REPLACEMENT_START_BLOCK - W25N_BB_MARKER_BLOCKS)
 
 // Instructions
 #define W25N_INSTRUCTION_RDID                       0x9F
 #define W25N_INSTRUCTION_DEVICE_RESET               0xFF
-#define W25N_INSTRUCTION_READ_STATUS_REG            g_readStatusReg
-#define W25N_INSTRUCTION_READ_STATUS_ALTERNATE_REG  0x0F
-#define W25N_INSTRUCTION_WRITE_STATUS_REG           g_writeStatusReg
-#define W25N_INSTRUCTION_WRITE_STATUS_ALTERNATE_REG 0x1F
+#define W25N_INSTRUCTION_READ_STATUS_REG            0x0F
+#define W25N_INSTRUCTION_WRITE_STATUS_REG           0x1F
 #define W25N_INSTRUCTION_WRITE_ENABLE               0x06
 #define W25N_INSTRUCTION_DIE_SELECT                 0xC2
 #define W25N_INSTRUCTION_BLOCK_ERASE                0xD8
@@ -125,9 +123,6 @@
 #define W28N_STATUS_REGISTER_SIZE        8
 #define W28N_STATUS_PAGE_ADDRESS_SIZE    16
 #define W28N_STATUS_COLUMN_ADDRESS_SIZE  16
-
-static uint8_t g_readStatusReg;
-static uint8_t g_writeStatusReg;
 
 // JEDEC ID
 #define JEDEC_ID_WINBOND_W25N01GV 0xEFAA21
@@ -246,30 +241,21 @@ bool w25n_detect(uint32_t chipID)
         geometry.sectors = W25N01GV_BLOCKS_PER_DIE;      // Blocks
         geometry.pagesPerSector = W25N_PAGES_PER_BLOCK;  // Pages/Blocks
         geometry.pageSize = W25N_PAGE_SIZE;
-        g_readStatusReg = 0x05;
-        g_writeStatusReg = 0x01;
         geometry.bbReplacementBlocks = 20;
-        geometry.bufReadModeSet = 0x02;
         geometry.bblutTableEntryCount = 20;
         break;
     case JEDEC_ID_WINBOND_W25N02KV:
         geometry.sectors = W25N02KV_BLOCKS_PER_DIE;      // Blocks
         geometry.pagesPerSector = W25N_PAGES_PER_BLOCK;  // Pages/Blocks
         geometry.pageSize = W25N_PAGE_SIZE;
-        g_readStatusReg = 0x05;
-        g_writeStatusReg = 0x01;
         geometry.bbReplacementBlocks = 20;
-        geometry.bufReadModeSet = 0x02;
         geometry.bblutTableEntryCount = 20;
         break;
     case JEDEC_ID_MACRONIX_MX35LF2G:
         geometry.sectors = MX35LF2G_BLOCKS_PER_DIE;      // Blocks
         geometry.pagesPerSector = W25N_PAGES_PER_BLOCK;  // Pages/Blocks
         geometry.pageSize = W25N_PAGE_SIZE;
-        g_readStatusReg = 0x0F;
-        g_writeStatusReg = 0x1F;
         geometry.bbReplacementBlocks = 40;
-        geometry.bufReadModeSet = 0;
         geometry.bblutTableEntryCount = 40;
         break;
     default:
@@ -278,10 +264,7 @@ bool w25n_detect(uint32_t chipID)
         geometry.pagesPerSector = 0;
         geometry.sectorSize = 0;
         geometry.totalSize = 0;
-        g_readStatusReg = 0;
-        g_writeStatusReg = 0;
         geometry.bbReplacementBlocks = 0;
-        geometry.bufReadModeSet = 0;
         geometry.bblutTableEntryCount = 0;
         return false;
     }
