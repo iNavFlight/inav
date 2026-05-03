@@ -413,4 +413,4 @@ It runs at a fixed baud rate of 100000, so it needs a hardware uart capable of i
     \_______/                                              \-------------/
 ```
 
-For more information and sensor slot numbering, refer to [SBUS2 Documentation](SBUS2_telemetry.md)
+For more information and sensor slot numbering, refer to [SBUS2 Documentation](SBUS2_Telemetry.md)
