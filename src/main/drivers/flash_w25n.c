@@ -23,7 +23,7 @@
 
 #include "platform.h"
 
-#if defined(USE_FLASH_W25N01G) || defined(USE_FLASH_W25N02K)
+#if defined(USE_FLASH_W25N01G) || defined(USE_FLASH_W25N02K)|| defined(USE_FLASH_MX35LF2G)
 
 #include "drivers/bus.h"
 #include "drivers/io.h"
@@ -37,12 +37,12 @@
 
 #define W25N01GV_BLOCKS_PER_DIE  1024
 #define W25N02KV_BLOCKS_PER_DIE   2048
-
+#define MX35LF2G_BLOCKS_PER_DIE   2048
 
 
 // BB replacement area
 #define W25N_BB_MARKER_BLOCKS      1
-#define W25N_BB_REPLACEMENT_BLOCKS 20
+#define W25N_BB_REPLACEMENT_BLOCKS (geometry.bbReplacementBlocks)
 #define W25N_BB_MANAGEMENT_BLOCKS  (W25N_BB_REPLACEMENT_BLOCKS + W25N_BB_MARKER_BLOCKS)
 
 // blocks are zero-based index
@@ -53,9 +53,9 @@
 // Instructions
 #define W25N_INSTRUCTION_RDID                       0x9F
 #define W25N_INSTRUCTION_DEVICE_RESET               0xFF
-#define W25N_INSTRUCTION_READ_STATUS_REG            0x05
+#define W25N_INSTRUCTION_READ_STATUS_REG            g_readStatusReg
 #define W25N_INSTRUCTION_READ_STATUS_ALTERNATE_REG  0x0F
-#define W25N_INSTRUCTION_WRITE_STATUS_REG           0x01
+#define W25N_INSTRUCTION_WRITE_STATUS_REG           g_writeStatusReg
 #define W25N_INSTRUCTION_WRITE_STATUS_ALTERNATE_REG 0x1F
 #define W25N_INSTRUCTION_WRITE_ENABLE               0x06
 #define W25N_INSTRUCTION_DIE_SELECT                 0xC2
@@ -99,7 +99,7 @@
 #define W25N_STATUS_ERASE_FAIL         (1 << 2)
 #define W25N_STATUS_FLAG_WRITE_ENABLED (1 << 1)
 #define W25N_STATUS_FLAG_BUSY          (1 << 0)
-#define W25N_BBLUT_TABLE_ENTRY_COUNT    20
+#define W25N_BBLUT_TABLE_ENTRY_COUNT    geometry.bblutTableEntryCount
 #define W25N_BBLUT_TABLE_ENTRY_SIZE     4  // in bytes
 
 // Bits in LBA for BB LUT
@@ -110,8 +110,8 @@
 // Some useful defs and macros
 #define W25N_LINEAR_TO_COLUMN(laddr) ((laddr) % W25N_PAGE_SIZE)
 #define W25N_LINEAR_TO_PAGE(laddr) ((laddr) / W25N_PAGE_SIZE)
-#define W25N_LINEAR_TO_BLOCK(laddr) (W25N_LINEAR_TO_PAGE(laddr) / W25N_PAGES_PER_BLOCK)
-#define W25N_BLOCK_TO_PAGE(block) ((block) * W25N_PAGES_PER_BLOCK)
+#define W25N_LINEAR_TO_BLOCK(laddr) (W25N_LINEAR_TO_PAGE(laddr) / geometry.pagesPerSector)
+#define W25N_BLOCK_TO_PAGE(block) ((block) * geometry.pagesPerSector)
 #define W25N_BLOCK_TO_LINEAR(block) (W25N_BLOCK_TO_PAGE(block) * W25N_PAGE_SIZE)
 
 // IMPORTANT: Timeout values are currently required to be set to the highest value required by any of the supported flash chips by this driver
@@ -126,9 +126,13 @@
 #define W28N_STATUS_PAGE_ADDRESS_SIZE    16
 #define W28N_STATUS_COLUMN_ADDRESS_SIZE  16
 
+static uint8_t g_readStatusReg;
+static uint8_t g_writeStatusReg;
+
 // JEDEC ID
 #define JEDEC_ID_WINBOND_W25N01GV 0xEFAA21
 #define JEDEC_ID_WINBOND_W25N02KV 0xEFAA22
+#define JEDEC_ID_MACRONIX_MX35LF2G 0xC22603
 
 static busDevice_t *busDev = NULL;
 static flashGeometry_t geometry;
@@ -242,19 +246,43 @@ bool w25n_detect(uint32_t chipID)
         geometry.sectors = W25N01GV_BLOCKS_PER_DIE;      // Blocks
         geometry.pagesPerSector = W25N_PAGES_PER_BLOCK;  // Pages/Blocks
         geometry.pageSize = W25N_PAGE_SIZE;
+        g_readStatusReg = 0x05;
+        g_writeStatusReg = 0x01;
+        geometry.bbReplacementBlocks = 20;
+        geometry.bufReadModeSet = 0x02;
+        geometry.bblutTableEntryCount = 20;
         break;
     case JEDEC_ID_WINBOND_W25N02KV:
         geometry.sectors = W25N02KV_BLOCKS_PER_DIE;      // Blocks
         geometry.pagesPerSector = W25N_PAGES_PER_BLOCK;  // Pages/Blocks
         geometry.pageSize = W25N_PAGE_SIZE;
+        g_readStatusReg = 0x05;
+        g_writeStatusReg = 0x01;
+        geometry.bbReplacementBlocks = 20;
+        geometry.bufReadModeSet = 0x02;
+        geometry.bblutTableEntryCount = 20;
         break;
-
+    case JEDEC_ID_MACRONIX_MX35LF2G:
+        geometry.sectors = MX35LF2G_BLOCKS_PER_DIE;      // Blocks
+        geometry.pagesPerSector = W25N_PAGES_PER_BLOCK;  // Pages/Blocks
+        geometry.pageSize = W25N_PAGE_SIZE;
+        g_readStatusReg = 0x0F;
+        g_writeStatusReg = 0x1F;
+        geometry.bbReplacementBlocks = 40;
+        geometry.bufReadModeSet = 0;
+        geometry.bblutTableEntryCount = 40;
+        break;
     default:
         // Unsupported chip
         geometry.sectors = 0;
         geometry.pagesPerSector = 0;
         geometry.sectorSize = 0;
         geometry.totalSize = 0;
+        g_readStatusReg = 0;
+        g_writeStatusReg = 0;
+        geometry.bbReplacementBlocks = 0;
+        geometry.bufReadModeSet = 0;
+        geometry.bblutTableEntryCount = 0;
         return false;
     }
 

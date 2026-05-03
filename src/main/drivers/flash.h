@@ -40,6 +40,9 @@ typedef struct flashGeometry_s {
     uint32_t totalSize;    // This is just sectorSize * sectors
     uint16_t pagesPerSector;
     flashType_e flashType;
+    int32_t bbReplacementBlocks;
+    uint8_t bufReadModeSet;
+    uint8_t bblutTableEntryCount;
 } flashGeometry_t;
 
 typedef struct
