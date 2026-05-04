@@ -41,8 +41,7 @@ typedef struct flashGeometry_s {
     uint16_t pagesPerSector;
     flashType_e flashType;
     int32_t bbReplacementBlocks;
-    uint8_t bufReadModeSet;
-    uint8_t bblutTableEntryCount;
+    uint8_t bblutTableEntryCount; // Used by W25N_BBLUT_TABLE_ENTRY_COUNT for bad-block scanning
 } flashGeometry_t;
 
 typedef struct
