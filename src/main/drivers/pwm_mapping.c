@@ -219,6 +219,10 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 }
 
 static void timerHardwareOverride(timerHardware_t * timer) {
+    // Never modify a beeper timer — beeperPwmInit() must find TIM_USE_BEEPER intact
+    if (timer->usageFlags & TIM_USE_BEEPER) {
+        return;
+    }
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
             timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED);
@@ -274,47 +278,29 @@ uint8_t pwmClaimTimer(HAL_Timer_t *tim, uint32_t usageFlags) {
     return changed;
 }
 
-void pwmEnsureEnoughtMotors(uint8_t motorCount)
+static void pwmAssignOutput(timMotorServoHardware_t *timOutputs, timerHardware_t *timHw, int type)
 {
-    uint8_t motorOnlyOutputs = 0;
-
-    for (int idx = 0; idx < timerHardwareCount; idx++) {
-        timerHardware_t *timHw = &timerHardware[idx];
-
-        timerHardwareOverride(timHw);
-
-        if (checkPwmTimerConflicts(timHw)) {
-            continue;
-        }
-
-        if (TIM_IS_MOTOR_ONLY(timHw->usageFlags)) {
-            motorOnlyOutputs++;
-            motorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
-        }
-    }
-
-    for (int idx = 0; idx < timerHardwareCount; idx++) {
-        timerHardware_t *timHw = &timerHardware[idx];
-
-        if (checkPwmTimerConflicts(timHw)) {
-            continue;
-        }
-
-        if (TIM_IS_MOTOR(timHw->usageFlags) && !TIM_IS_MOTOR_ONLY(timHw->usageFlags)) {
-            if (motorOnlyOutputs < motorCount) {
-                timHw->usageFlags &= ~TIM_USE_SERVO;
-                timHw->usageFlags |= TIM_USE_MOTOR;
-                motorOnlyOutputs++;
-                motorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
-            } else {
-                timHw->usageFlags &= ~TIM_USE_MOTOR;
-                pwmClaimTimer(timHw->tim, timHw->usageFlags);
-            }
-        }
+    switch (type) {
+        case MAP_TO_MOTOR_OUTPUT:
+            timHw->usageFlags &= TIM_USE_MOTOR;
+            timOutputs->timMotors[timOutputs->maxTimMotorCount++] = timHw;
+            pwmClaimTimer(timHw->tim, timHw->usageFlags);
+            break;
+        case MAP_TO_SERVO_OUTPUT:
+            timHw->usageFlags &= TIM_USE_SERVO;
+            timOutputs->timServos[timOutputs->maxTimServoCount++] = timHw;
+            pwmClaimTimer(timHw->tim, timHw->usageFlags);
+            break;
+        case MAP_TO_LED_OUTPUT:
+            timHw->usageFlags &= TIM_USE_LED;
+            pwmClaimTimer(timHw->tim, timHw->usageFlags);
+            break;
+        default:
+            break;
     }
 }
 
-void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos)
+void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs, bool isMixerUsingServos)
 {
     UNUSED(isMixerUsingServos);
     timOutputs->maxTimMotorCount = 0;
@@ -323,24 +309,53 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
     uint8_t motorCount = getMotorCount();
     uint8_t motorIdx = 0;
 
-    pwmEnsureEnoughtMotors(motorCount);
+    // Apply all timerOverrides upfront so flag state is stable for both passes
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        timerHardwareOverride(&timerHardware[idx]);
+    }
 
+    // Pass 0: Dedicated timers — explicitly assigned OUTPUT_MODE_MOTORS or OUTPUT_MODE_SERVOS
+    // These take priority over AUTO timers regardless of array position
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         timerHardware_t *timHw = &timerHardware[idx];
+        uint8_t outputMode = timerOverrides(timer2id(timHw->tim))->outputMode;
 
-        int type = MAP_TO_NONE;
+        if (checkPwmTimerConflicts(timHw)) {
+            continue;
+        }
 
-        // Check for known conflicts (i.e. UART, LEDSTRIP, Rangefinder and ADC)
+        if (outputMode == OUTPUT_MODE_MOTORS && TIM_IS_MOTOR(timHw->usageFlags) &&
+                !pwmHasServoOnTimer(timOutputs, timHw->tim) && motorIdx < motorCount) {
+            pwmAssignOutput(timOutputs, timHw, MAP_TO_MOTOR_OUTPUT);
+            motorIdx++;
+        } else if (outputMode == OUTPUT_MODE_SERVOS && TIM_IS_SERVO(timHw->usageFlags) &&
+                !pwmHasMotorOnTimer(timOutputs, timHw->tim)) {
+            pwmAssignOutput(timOutputs, timHw, MAP_TO_SERVO_OUTPUT);
+        }
+    }
+
+    // Pass 1: AUTO timers — fill remaining motors, servos, and LEDs in array order
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        timerHardware_t *timHw = &timerHardware[idx];
+        uint8_t outputMode = timerOverrides(timer2id(timHw->tim))->outputMode;
+
         if (checkPwmTimerConflicts(timHw)) {
             LOG_WARNING(PWM, "Timer output %d skipped", idx);
             continue;
         }
 
+        // Dedicated timers already handled in Pass 0
+        if (outputMode == OUTPUT_MODE_MOTORS || outputMode == OUTPUT_MODE_SERVOS) {
+            continue;
+        }
+
+        int type = MAP_TO_NONE;
+
         // Make sure first motorCount motor outputs get assigned to motor
         if (TIM_IS_MOTOR(timHw->usageFlags) && (motorIdx < motorCount)) {
             timHw->usageFlags &= ~TIM_USE_SERVO;
             pwmClaimTimer(timHw->tim, timHw->usageFlags);
-            motorIdx += 1;
+            motorIdx++;
         }
 
         if (TIM_IS_SERVO(timHw->usageFlags) && !pwmHasMotorOnTimer(timOutputs, timHw->tim)) {
@@ -351,24 +366,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             type = MAP_TO_LED_OUTPUT;
         }
 
-        switch(type) {
-            case MAP_TO_MOTOR_OUTPUT:
-                timHw->usageFlags &= TIM_USE_MOTOR;
-                timOutputs->timMotors[timOutputs->maxTimMotorCount++] = timHw;
-                pwmClaimTimer(timHw->tim, timHw->usageFlags);
-                break;
-            case MAP_TO_SERVO_OUTPUT:
-                timHw->usageFlags &= TIM_USE_SERVO;
-                timOutputs->timServos[timOutputs->maxTimServoCount++] = timHw;
-                pwmClaimTimer(timHw->tim, timHw->usageFlags);
-                break;
-            case MAP_TO_LED_OUTPUT:
-                timHw->usageFlags &= TIM_USE_LED;
-                pwmClaimTimer(timHw->tim, timHw->usageFlags);
-                break;
-            default:
-                break;
-        }
+        pwmAssignOutput(timOutputs, timHw, type);
     }
 }
 
