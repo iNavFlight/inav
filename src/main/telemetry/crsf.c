@@ -335,7 +335,7 @@ int24_t    rpm_value[];     // 1 - 19 RPM values with negative ones representing
 static bool crsfRpm(sbuf_t *dst)
 {
     const uint8_t MAX_CRSF_RPM_VALUES = 19;  // CRSF protocol limit: 1-19 RPM values
-    uint8_t motorCount = getMotorCount();
+    uint8_t motorCount = getTelemetryMotorCount();
 
     if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
         // Enforce protocol limit
@@ -371,7 +371,7 @@ static bool crsfTemperature(sbuf_t *dst)
     int16_t temperatures[20];
 
 #ifdef USE_ESC_SENSOR
-    uint8_t motorCount = getMotorCount();
+    uint8_t motorCount = getTelemetryMotorCount();
     if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
         for (uint8_t i = 0; i < motorCount && tempCount < MAX_CRSF_TEMPS; i++) {
             const escSensorData_t *escState = getEscTelemetry(i);
