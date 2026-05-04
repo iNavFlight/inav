@@ -350,7 +350,7 @@ static bool crsfRpm(sbuf_t *dst)
 
         for (uint8_t i = 0; i < motorCount; i++) {
             const escSensorData_t *escState = getEscTelemetry(i);
-            crsfSerialize24(dst, (escState) ? escState->rpm : 0);
+            crsfSerialize24(dst, escState->dataAge < ESC_DATA_INVALID ? escState->rpm : 0);
         }
         return true;
     }
@@ -375,7 +375,7 @@ static bool crsfTemperature(sbuf_t *dst)
     if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
         for (uint8_t i = 0; i < motorCount && tempCount < MAX_CRSF_TEMPS; i++) {
             const escSensorData_t *escState = getEscTelemetry(i);
-            temperatures[tempCount++] = (escState) ? escState->temperature * 10 : TEMPERATURE_INVALID_VALUE;
+            temperatures[tempCount++] = escState->dataAge < ESC_DATA_INVALID ? (int16_t)(escState->temperature * 10) : TEMPERATURE_INVALID_VALUE;
         }
     }
 #endif
