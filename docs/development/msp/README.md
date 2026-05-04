@@ -8,8 +8,21 @@ For details on the structure of MSP, see [The wiki page](https://github.com/iNav
 For list of enums, see [Enum documentation page](https://github.com/iNavFlight/inav/wiki/Enums-reference)
 
 
+**When To Regenerate**
 
-**JSON file rev: 4**
+Run `docs/development/msp/gen_docs.sh` whenever MSP docs inputs change:
+- `msp_messages.json` message content/schema updates
+- source enum changes under `src/main` that affect `inav_enums.json`
+- `format.md` or this header template (`docs_v2_header.md`) changes
+
+By default the script removes temporary generated headers. Use `--keep_headers` only when you need them.
+
+**Versioning Rule**
+
+When the MSP JSON specification changes, bump `msp_messages.json` version:
+- breaking schema/compatibility change: increment `version.major`, reset `minor` and `patch`
+- backward-compatible schema extension: increment `version.minor`, reset `patch`
+- message/content/docs-only update inside current schema: increment `version.patch`
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -27,36 +40,50 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 # Format:
 ## JSON format example:
 ```
-    "MSP_API_VERSION": {
-        "code": 1,
-        "mspv": 1,
-        "request": null,
-        "reply": {
-            "payload": [
-                {
-                    "name": "mspProtocolVersion",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
-                },
-                {
-                    "name": "apiVersionMajor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
-                },
-                {
-                    "name": "apiVersionMinor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
-                }
-            ],
-        },
-        "notes": "Used by configurators to check compatibility.",
-        "description": "Provides the MSP protocol version and the INAV API version."
+{
+    "version": {
+        "major": 2,
+        "minor": 0,
+        "patch": 0
     },
+    "messages": {
+        "MSP_API_VERSION": {
+            "code": 1,
+            "mspv": 1,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "mspProtocolVersion",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
+                    },
+                    {
+                        "name": "apiVersionMajor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
+                    },
+                    {
+                        "name": "apiVersionMinor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
+                    }
+                ]
+            },
+            "notes": "Used by configurators to check compatibility.",
+            "description": "Provides the MSP protocol version and the INAV API version."
+        },
+        "...": {}
+    }
+}
 ```
+## Top-level fields:
+**version**: JSON spec version (`major.minor.patch`)\
+**messages**: Dictionary keyed by MSP message name
+
 ## Message fields:
 **name**: MSP message name\
 **code**: Integer message code\
@@ -66,6 +93,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 **variable_len**: Optional boolean, if true, message does not have a predefined fixed length and needs appropriate handling\
 **variants**: Optional special case, message has different cases of reply/request. Key/description is not a strict expression or code; just a readable condition\
 **not_implemented**: Optional special case, message is not implemented (never or deprecated)\
+**replaced_by**: Optional array of MSP message names that replace this command. Present when a command is deprecated and scheduled for removal. Empty array if no replacement is needed\
 **notes**: String with details of message
 
 ## Data dict fields:
@@ -403,6 +431,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 [8448 - MSP2_INAV_CUSTOM_OSD_ELEMENTS](#msp2_inav_custom_osd_elements)  
 [8449 - MSP2_INAV_CUSTOM_OSD_ELEMENT](#msp2_inav_custom_osd_element)  
 [8450 - MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS](#msp2_inav_set_custom_osd_elements)  
+[8451 - MSP2_INAV_GET_LINK_STATS](#msp2_inav_get_link_stats)  
 [8461 - MSP2_INAV_OUTPUT_MAPPING_EXT2](#msp2_inav_output_mapping_ext2)  
 [8704 - MSP2_INAV_SERVO_CONFIG](#msp2_inav_servo_config)  
 [8705 - MSP2_INAV_SET_SERVO_CONFIG](#msp2_inav_set_servo_config)  
@@ -411,9 +440,18 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 [8722 - MSP2_INAV_GEOZONE_VERTEX](#msp2_inav_geozone_vertex)  
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
 [8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
+[8725 - MSP2_INAV_SET_ALT_TARGET](#msp2_inav_set_alt_target)  
+[8726 - MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE](#msp2_inav_flight_axis_angle_override)  
+[8727 - MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE](#msp2_inav_flight_axis_rate_override)  
+[8728 - MSP2_INAV_SET_LOCAL_TARGET](#msp2_inav_set_local_target)  
+[8729 - MSP2_INAV_LOCAL_TARGET](#msp2_inav_local_target)  
+[8730 - MSP2_INAV_SET_GLOBAL_TARGET](#msp2_inav_set_global_target)  
+[8731 - MSP2_INAV_NAV_TARGET](#msp2_inav_nav_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
-[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)
-[12289 - MSP2_RX_BIND](#msp2_rx_bind)
+[8737 - MSP2_INAV_SET_WP_INDEX](#msp2_inav_set_wp_index)  
+[8739 - MSP2_INAV_SET_CRUISE_HEADING](#msp2_inav_set_cruise_heading)  
+[12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
+[12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
 ## <a id="msp_api_version"></a>`MSP_API_VERSION (1 / 0x1)`
 **Description:** Provides the MSP protocol version and the INAV API version.  
@@ -2206,7 +2244,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 | `armingFlags` | `uint16_t` | 2 | Bitmask | Bitmask: Flight controller arming flags (`armingFlags`). Note: Truncated to 16 bits |
 | `accCalibAxisFlags` | `uint8_t` | 1 | Bitmask | Bitmask: Accelerometer calibrated axes flags (`accGetCalibrationAxisFlags()`) |
 
-**Notes:** Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements.
+**Notes:** Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements. The `accCalibAxisFlags` field is not present in `MSP2_INAV_STATUS` but is available via `MSP_CALIBRATION_DATA`.
 
 ## <a id="msp_sensor_status"></a>`MSP_SENSOR_STATUS (151 / 0x97)`
 **Description:** Provides the hardware status for each individual sensor system.  
@@ -2273,6 +2311,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 | `hdop` | `uint16_t` | 2 | HDOP * 100 | Horizontal Dilution of Precision (`gpsSol.hdop`) |
 | `eph` | `uint16_t` | 2 | cm | Estimated Horizontal Position Accuracy (`gpsSol.eph`) |
 | `epv` | `uint16_t` | 2 | cm | Estimated Vertical Position Accuracy (`gpsSol.epv`) |
+| `hwVersion` | `uint32_t` | 4 | Version code | GPS hardware version (`gpsState.hwVersion`). Values: 500=UBLOX5, 600=UBLOX6, 700=UBLOX7, 800=UBLOX8, 900=UBLOX9, 1000=UBLOX10, 0=UNKNOWN |
 
 **Notes:** Requires `USE_GPS`.
 
@@ -2474,7 +2513,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 **Reply Payload:** **None**  
 
-**Notes:** Expects 2 bytes. Calls `updateHeadingHoldTarget()`.
+**Notes:** Expects 2 bytes. Calls `updateHeadingHoldTarget()`. Also synchronizes navigation yaw targets (including cruise/course) when NAV is controlling yaw.
 
 ## <a id="msp_set_servo_configuration"></a>`MSP_SET_SERVO_CONFIGURATION (212 / 0xd4)`
 **Description:** Sets the configuration for a single servo (legacy format).  
@@ -4355,6 +4394,20 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 **Notes:** Payload length must be (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (CUSTOM_ELEMENTS_PARTS * 3) + 4 bytes including elementIndex. elementIndex must be < MAX_CUSTOM_ELEMENTS. Each partType must be < CUSTOM_ELEMENT_TYPE_END. Firmware NUL-terminates elementText internally.
 
+## <a id="msp2_inav_get_link_stats"></a>`MSP2_INAV_GET_LINK_STATS (8451 / 0x2103)`
+**Description:** Provides uplink RC link statistics for monitoring on a GCS.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `uplinkRSSI_dBm` | `uint8_t` | 1 | -dBm | Uplink RSSI in dBm, sent as a positive magnitude (`getRSSI()`). For example, 70 means -70dBm. |
+| `uplinkLQ` | `uint8_t` | 1 | % | Uplink Link Quality (`rxLinkStatistics.uplinkLQ`) |
+| `uplinkSNR` | `int8_t` | 1 | dB | Uplink Signal-to-Noise Ratio (`rxLinkStatistics.uplinkSNR`) |
+
+**Notes:** Useful for GCS monitoring of the active RC link quality and signal margin.
+
 ## <a id="msp2_inav_output_mapping_ext2"></a>`MSP2_INAV_OUTPUT_MAPPING_EXT2 (8461 / 0x210d)`
 **Description:** Retrieves the full extended output mapping configuration (timer ID, full 32-bit usage flags, and pin label). Supersedes `MSP2_INAV_OUTPUT_MAPPING_EXT`.  
 
@@ -4506,6 +4559,113 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.
 
+## <a id="msp2_inav_set_alt_target"></a>`MSP2_INAV_SET_ALT_TARGET (8725 / 0x2215)`
+**Description:** Set the active altitude hold target using updateClimbRateToAltitudeController.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum |
+
+**Reply Payload:** **None**  
+
+**Notes:** Set new altitude target. Requires 5-byte payload (datum + target) and is set-only. Valid only in NAV or ALTHOLD modes. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).
+
+## <a id="msp2_inav_flight_axis_angle_override"></a>`MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE (8726 / 0x2216)`
+**Description:** Enables or disables a flight-axis angle override for the selected axis.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `overrideMask` | `uint8_t` | 1 | Bitmask | Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis. |
+| `angleTargetRoll` | `int16_t` | 2 | deci-degrees | Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits |
+| `angleTargetPitch` | `int16_t` | 2 | deci-degrees | Angle target in deci-degrees. Roll/Pitch clamped to configured angle limits |
+| `angleTargetYaw` | `int16_t` | 2 | deci-degrees | Angle target in deci-degrees. Yaw clamped to 0–3600. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Uses the same override path as logic conditions and bypasses stick-derived angle targets.
+
+## <a id="msp2_inav_flight_axis_rate_override"></a>`MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE (8727 / 0x2217)`
+**Description:** Enables or disables a flight-axis rate override for the selected axis.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `overrideMask` | `uint8_t` | 1 | Bitmask | Bitmask of desired-state fields that follow (Roll, Pitch, Yaw). Non-zero enables the override; zero disables it for that axis. |
+| `rateTargetRoll` | `int16_t` | 2 | deg/s | Rate target, clamped to ±2000 |
+| `rateTargetPitch` | `int16_t` | 2 | deg/s | Rate target, clamped to ±2000 |
+| `rateTargetYaw` | `int16_t` | 2 | deg/s | Rate target, clamped to ±2000 |
+
+**Reply Payload:** **None**  
+
+**Notes:** Expects 7 bytes. Overrides rate targets just before control is applied, bypassing stick-derived setpoints.
+
+## <a id="msp2_inav_set_local_target"></a>`MSP2_INAV_SET_LOCAL_TARGET (8728 / 0x2218)`
+**Description:** Sets a body-frame offset target relative to the current vehicle position.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `posX` | `int32_t` | 4 | cm | Desired X in local NEU frame |
+| `posY` | `int32_t` | 4 | cm | Desired Y in local NEU frame |
+| `posZ` | `int32_t` | 4 | cm | Desired Z in local NEU frame (up-positive). Omit this field to leave Z unchanged. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Offsets are in the vehicle body frame (forward/right/up, cm) and are rotated into the NEU frame using the current yaw, applied relative to current position. Z offset is always provided; Z=0 keeps current altitude, non-zero offsets are relative to current altitude. Requires GCSNAV/offboard to be active and a valid guided poshold; updates the navigation desired position via `setDesiredPosition()`.
+
+## <a id="msp2_inav_local_target"></a>`MSP2_INAV_LOCAL_TARGET (8729 / 0x2219)`
+**Description:** Returns the current navigation desired state (position, velocity, yaw, and climb rate).  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `posX` | `int32_t` | 4 | cm | Desired X in local NEU frame (`posControl.desiredState.pos.x`) |
+| `posY` | `int32_t` | 4 | cm | Desired Y in local NEU frame (`posControl.desiredState.pos.y`) |
+| `posZ` | `int32_t` | 4 | cm | Desired Z in local NEU frame (`posControl.desiredState.pos.z`, up-positive) |
+| `velX` | `int16_t` | 2 | cm/s | Desired X velocity (`posControl.desiredState.vel.x`) |
+| `velY` | `int16_t` | 2 | cm/s | Desired Y velocity (`posControl.desiredState.vel.y`) |
+| `velZ` | `int16_t` | 2 | cm/s | Desired Z velocity (`posControl.desiredState.vel.z`) |
+| `yaw` | `int32_t` | 4 | centi-degrees | Desired heading (`posControl.desiredState.yaw`) |
+| `climbRate` | `int16_t` | 2 | cm/s | Desired climb rate demand (`posControl.desiredState.climbRateDemand`) |
+
+**Notes:** Local frame is NEU. Mirrors `posControl.desiredState` (position, velocity, yaw, climb rate) used by the position controller.
+
+## <a id="msp2_inav_set_global_target"></a>`MSP2_INAV_SET_GLOBAL_TARGET (8730 / 0x221a)`
+**Description:** Sets desired GCS Nav position with global coordinates (WP 254/GOTO).  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `latitude` | `int32_t` | 4 | deg * 1e7 | Latitude coordinate |
+| `longitude` | `int32_t` | 4 | deg * 1e7 | Longitude coordinate |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum (0 keeps current altitude) |
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged.
+
+## <a id="msp2_inav_nav_target"></a>`MSP2_INAV_NAV_TARGET (8731 / 0x221b)`
+**Description:** Returns the current navigation desired global target (lat/lon/alt, heading, climb rate).  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `latTarget` | `int32_t` | 4 | 1e-7 deg | Latitude in degrees * 1e7 |
+| `lonTarget` | `int32_t` | 4 | 1e-7 deg | Longitude in degrees * 1e7 |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target (takeoff datum, cm) as used by altitude/position hold |
+| `headingTarget` | `uint16_t` | 2 | degrees | Current heading-hold target (`getHeadingHoldTarget()`), wrapped to 0–359.99 |
+| `climbRate` | `int16_t` | 2 | cm/s | Desired climb rate demand (`posControl.desiredState.climbRateDemand`) |
+
+**Notes:** Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome).
+
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  
 
@@ -4526,6 +4686,30 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 **Notes:** All attitude angles are in deci-degrees.
 
+## <a id="msp2_inav_set_wp_index"></a>`MSP2_INAV_SET_WP_INDEX (8737 / 0x2221)`
+**Description:** Jumps to a specific waypoint during an active waypoint mission, causing the aircraft to immediately begin navigating toward the new target waypoint.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `wp_index` | `uint8_t` | 1 | - | 0-based waypoint index to jump to, relative to the mission start waypoint (`posControl.startWpIndex`) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.
+
+## <a id="msp2_inav_set_cruise_heading"></a>`MSP2_INAV_SET_CRUISE_HEADING (8739 / 0x2223)`
+**Description:** Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `heading_centidegrees` | `int32_t` | 4 | centidegrees | Target heading in centidegrees (0-35999). Values are wrapped modulo 36000 before being applied. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.
+
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
 
@@ -4536,14 +4720,14 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 **Notes:** Requires `rxConfig()->receiverType == RX_TYPE_SERIAL`. Requires `USE_SERIALRX_CRSF` or `USE_SERIALRX_SRXL2`. Calls `crsfBind()` or `srxl2Bind()` respectively. Returns error if receiver type or provider is not supported for binding.
 
 ## <a id="msp2_rx_bind"></a>`MSP2_RX_BIND (12289 / 0x3001)`
-**Description:** Initiates binding for MSP receivers (mLRS).
-
+**Description:** Initiates binding for MSP receivers (mLRS).  
+  
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Description|
 |---|---|---|---|
 | `port_id` | `uint8_t` | 1 | Port ID |
 | `reserved_for_custom_use` | `uint8_t[3]` | 3 | Reserved for custom use |
-
+  
 **Reply Payload:**
 |Field|C Type|Size (Bytes)|Description|
 |---|---|---|---|

@@ -2,7 +2,7 @@ tables:
   - name: alignment
     values: ["DEFAULT", "CW0", "CW90", "CW180", "CW270", "CW0FLIP", "CW90FLIP", "CW180FLIP", "CW270FLIP"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX",  "FAKE"]
+    values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "ICM45686", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE", "TERARANGER_EVO", "USD1_V0", "NRA"]
@@ -33,16 +33,16 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "CAN"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CAN"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
     enum: imu_inertia_comp_method_e
   - name: gps_provider
-    values: ["UBLOX", "MSP", "FAKE"]
+    values: ["UBLOX", "MSP", "FAKE", "DRONECAN"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "SPAN", "NONE"]
@@ -84,7 +84,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2"]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -212,6 +212,9 @@ tables:
   - name: osd_adsb_warning_style
     values: [ "COMPACT", "EXTENDED" ]
     enum: osd_adsb_warning_style_e
+  - name: dronecan_bitrate_table
+    values: [ '125', '250', '500', '1000']
+    enum: dronecanBitRate_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -664,7 +667,7 @@ groups:
     condition: USE_PITOT
     members:
       - name: pitot_hardware
-        description: "Selection of pitot hardware."
+        description: "Selection of pitot hardware. VIRTUAL only works if a GPS is enabled."
         default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
@@ -976,7 +979,7 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running."
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus."
         condition: USE_ADC
         default_value: ADC
         field: voltage.type
@@ -1008,7 +1011,7 @@ groups:
         min: -32768
         max: 32767
       - name: current_meter_type
-        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
+        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
         default_value: "ADC"
         field: current.type
         table: current_sensor
@@ -1358,6 +1361,11 @@ groups:
         default_value: 15
         min: 1
         max: 60
+      - name: servo_autotrim_iterm_rate_limit
+        description: "Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`."
+        default_value: 2
+        min: 0
+        max: 50
 
   - name: PG_CONTROL_PROFILES
     type: controlConfig_t
@@ -1754,12 +1762,12 @@ groups:
         type: uint8_t
       - name: gps_ublox_use_galileo
         description: "Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]."
-        default_value: OFF
+        default_value: ON
         field: ubloxUseGalileo
         type: bool
       - name: gps_ublox_use_beidou
         description: "Enable use of Beidou satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON]."
-        default_value: OFF
+        default_value: ON
         field: ubloxUseBeidou
         type: bool
       - name: gps_ublox_use_glonass
@@ -1774,8 +1782,8 @@ groups:
         min: 5
         max: 10
       - name: gps_ublox_nav_hz
-        description: "Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer."
-        default_value: 10
+        description: "Navigation update rate for UBLOX receivers. M9 modules limit satellite tracking to 16 satellites at 10Hz or higher, but use 32 satellites below 10Hz for better accuracy. M10 modules work well at 8Hz with 3 constellations. Some M10 devices with high-performance clock can do up to 25Hz with 4 constellations. 8Hz is a safe, accurate default for M8/M9/M10."
+        default_value: 8
         field: ubloxNavHz
         type: uint8_t
         min: 5
@@ -3326,6 +3334,13 @@ groups:
         max: 600
         type: int16_t
         field: msp_displayport_fullframe_interval
+      - name: osd_framerate_hz
+        description: "Target refresh rate for OSD elements in Hz. Each element is redrawn at approximately this rate. Values above 10 Hz provide no visible improvement for typical flight data but increase CPU load. Artificial horizon and telemetry are always updated every cycle regardless of this setting. Set to -1 for legacy behavior (one element per frame)."
+        default_value: -1
+        min: -1
+        max: 15
+        type: int8_t
+        field: osd_framerate_hz
       - name: osd_units
         description: "IMPERIAL, METRIC, UK"
         default_value: "METRIC"
@@ -4489,4 +4504,21 @@ groups:
         default_value: RTH
         field: noWayHomeAction
         table: geozone_rth_no_way_home
+        type: uint8_t
+  - name: PG_DRONECAN_CONFIG
+    type: dronecanConfig_t
+    headers: ["drivers/dronecan/dronecan.h"]
+    condition: USE_DRONECAN
+    members:
+      - name: dronecan_node_id
+        description: "Unique identifier for this device. Valid values are 1 to 127. 126 and 127 are reserved for diagnostic tools."
+        default_value: 1
+        field: nodeID
+        min: 1
+        max: 127
+      - name: dronecan_bitrate_kbps
+        description: "The speed of the CANbus network in kbps. Set all devices to the same speed. "
+        default_value: "1000"
+        field: bitRateKbps
+        table: dronecan_bitrate_table
         type: uint8_t

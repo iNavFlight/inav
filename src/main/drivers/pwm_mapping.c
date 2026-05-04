@@ -306,67 +306,55 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs, bool isMixerUs
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
-    uint8_t motorCount = getMotorCount();
-    uint8_t motorIdx = 0;
+    const uint8_t motorCount = getMotorCount();
 
     // Apply all timerOverrides upfront so flag state is stable for both passes
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         timerHardwareOverride(&timerHardware[idx]);
     }
 
-    // Pass 0: Dedicated timers — explicitly assigned OUTPUT_MODE_MOTORS or OUTPUT_MODE_SERVOS
-    // These take priority over AUTO timers regardless of array position
-    for (int idx = 0; idx < timerHardwareCount; idx++) {
-        timerHardware_t *timHw = &timerHardware[idx];
-        uint8_t outputMode = timerOverrides(timer2id(timHw->tim))->outputMode;
+    // Assign outputs in priority order: dedicated first, then auto.
+    // Within each pass, array order (S1, S2, ...) is preserved.
+    // Motors and servos cannot share a timer, enforced by pwmHasMotorOnTimer/pwmHasServoOnTimer.
+    for (int priority = 0; priority < 2; priority++) {
+        uint8_t motorIdx = timOutputs->maxTimMotorCount;
 
-        if (checkPwmTimerConflicts(timHw)) {
-            continue;
+        for (int idx = 0; idx < timerHardwareCount; idx++) {
+            timerHardware_t *timHw = &timerHardware[idx];
+            outputMode_e mode = timerOverrides(timer2id(timHw->tim))->outputMode;
+            bool isDedicated = (priority == 0);
+
+            if (checkPwmTimerConflicts(timHw)) {
+                if (priority == 0) {
+                    LOG_WARNING(PWM, "Timer output %d skipped", idx);
+                }
+                continue;
+            }
+
+            // Motors: dedicated (OUTPUT_MODE_MOTORS) first, then auto
+            if (TIM_IS_MOTOR(timHw->usageFlags) && motorIdx < motorCount
+                    && !pwmHasServoOnTimer(timOutputs, timHw->tim)
+                    && (isDedicated ? mode == OUTPUT_MODE_MOTORS : mode != OUTPUT_MODE_MOTORS)) {
+                pwmAssignOutput(timOutputs, timHw, MAP_TO_MOTOR_OUTPUT);
+                motorIdx++;
+                continue;
+            }
+
+            // Servos: dedicated (OUTPUT_MODE_SERVOS) first, then auto
+            if (TIM_IS_SERVO(timHw->usageFlags)
+                    && !pwmHasMotorOnTimer(timOutputs, timHw->tim)
+                    && (isDedicated ? mode == OUTPUT_MODE_SERVOS : mode != OUTPUT_MODE_SERVOS)) {
+                pwmAssignOutput(timOutputs, timHw, MAP_TO_SERVO_OUTPUT);
+                continue;
+            }
+
+            // LEDs: only on the auto pass, and only if timer is uncontested
+            if (!isDedicated && TIM_IS_LED(timHw->usageFlags)
+                    && !pwmHasMotorOnTimer(timOutputs, timHw->tim)
+                    && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
+                pwmAssignOutput(timOutputs, timHw, MAP_TO_LED_OUTPUT);
+            }
         }
-
-        if (outputMode == OUTPUT_MODE_MOTORS && TIM_IS_MOTOR(timHw->usageFlags) &&
-                !pwmHasServoOnTimer(timOutputs, timHw->tim) && motorIdx < motorCount) {
-            pwmAssignOutput(timOutputs, timHw, MAP_TO_MOTOR_OUTPUT);
-            motorIdx++;
-        } else if (outputMode == OUTPUT_MODE_SERVOS && TIM_IS_SERVO(timHw->usageFlags) &&
-                !pwmHasMotorOnTimer(timOutputs, timHw->tim)) {
-            pwmAssignOutput(timOutputs, timHw, MAP_TO_SERVO_OUTPUT);
-        }
-    }
-
-    // Pass 1: AUTO timers — fill remaining motors, servos, and LEDs in array order
-    for (int idx = 0; idx < timerHardwareCount; idx++) {
-        timerHardware_t *timHw = &timerHardware[idx];
-        uint8_t outputMode = timerOverrides(timer2id(timHw->tim))->outputMode;
-
-        if (checkPwmTimerConflicts(timHw)) {
-            LOG_WARNING(PWM, "Timer output %d skipped", idx);
-            continue;
-        }
-
-        // Dedicated timers already handled in Pass 0
-        if (outputMode == OUTPUT_MODE_MOTORS || outputMode == OUTPUT_MODE_SERVOS) {
-            continue;
-        }
-
-        int type = MAP_TO_NONE;
-
-        // Make sure first motorCount motor outputs get assigned to motor
-        if (TIM_IS_MOTOR(timHw->usageFlags) && (motorIdx < motorCount)) {
-            timHw->usageFlags &= ~TIM_USE_SERVO;
-            pwmClaimTimer(timHw->tim, timHw->usageFlags);
-            motorIdx++;
-        }
-
-        if (TIM_IS_SERVO(timHw->usageFlags) && !pwmHasMotorOnTimer(timOutputs, timHw->tim)) {
-            type = MAP_TO_SERVO_OUTPUT;
-        } else if (TIM_IS_MOTOR(timHw->usageFlags) && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
-            type = MAP_TO_MOTOR_OUTPUT;
-        } else if (TIM_IS_LED(timHw->usageFlags) && !pwmHasMotorOnTimer(timOutputs, timHw->tim) && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
-            type = MAP_TO_LED_OUTPUT;
-        }
-
-        pwmAssignOutput(timOutputs, timHw, type);
     }
 }
 
