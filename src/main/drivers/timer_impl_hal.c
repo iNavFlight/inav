@@ -534,7 +534,7 @@ void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, b
             __NOP();
         }
 
-        if (timeout == 0 && LL_DMA_IsEnabledStream(burstDmaTimer->dma, burstDmaTimer->streamLL)) {
+        if (LL_DMA_IsEnabledStream(burstDmaTimer->dma, burstDmaTimer->streamLL)) {
             LL_TIM_EnableDMAReq_CCx(burstDmaTimer->timer, burstDmaTimer->burstRequestSource);
             return;
         }
@@ -647,7 +647,7 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferS
             __NOP();
         }
 
-        if (timeout == 0 && LL_DMA_IsEnabledStream(dmaBase, streamLL)) {
+        if (LL_DMA_IsEnabledStream(dmaBase, streamLL)) {
             LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
             return;
         }

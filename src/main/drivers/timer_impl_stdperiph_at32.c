@@ -432,7 +432,7 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferS
             __NOP();
         }
 
-        if (timeout == 0 && tch->dma->ref->ctrl_bit.chen) {
+        if (tch->dma->ref->ctrl_bit.chen) {
             tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], TRUE);
             return;
         }
