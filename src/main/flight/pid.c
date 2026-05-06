@@ -786,9 +786,7 @@ static float applyDBoost(pidState_t *pidState, float dT) {
 
 static float dTermProcess(pidState_t *pidState, float currentRateTarget, float dT, float dT_inv) {
     float newDTerm = 0;
-    if (pidState->kD == 0) {
-        newDTerm = 0;
-    } else {
+    if (pidState->kD != 0) {
         float delta;
         if (dtermLpf2Hz > 0) {
             // Filter gyro before differentiation so D-term does not amplify high-frequency noise.
