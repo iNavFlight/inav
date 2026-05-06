@@ -269,6 +269,13 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
 {
     if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
         TCH_t * tch = (TCH_t *)descriptor->userParam;
+
+        // In circular mode, let DMA keep running - don't disable the channel
+        if (tch->dmaState == TCH_DMA_CIRCULAR) {
+            DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
+            return;
+        }
+
         tch->dmaState = TCH_DMA_IDLE;
         dma_channel_enable(tch->dma->ref,FALSE);
         tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], FALSE);
@@ -406,4 +413,49 @@ void impl_timerPWMStopDMA(TCH_t * tch)
     tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], FALSE);
     tch->dmaState = TCH_DMA_IDLE;
     tmr_counter_enable(tch->timHw->tim, TRUE);
+}
+
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferSize)
+{
+    if (!tch->dma || !tch->dma->ref) {
+        return;
+    }
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        // Stop new transfer triggers before reconfiguring
+        tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], FALSE);
+        dma_channel_enable(tch->dma->ref, FALSE);
+
+        // AT32: poll enable bit until channel is actually disabled
+        uint32_t timeout = 10000; // ~40us at 288MHz, well above worst-case disable latency
+        while (tch->dma->ref->ctrl_bit.chen && timeout--) {
+            __NOP();
+        }
+
+        if (tch->dma->ref->ctrl_bit.chen) {
+            tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], TRUE);
+            return;
+        }
+
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
+
+        if (circular) {
+            tch->dma->ref->ctrl_bit.lm = TRUE;
+            dma_data_number_set(tch->dma->ref, dmaBufferSize);
+            // Disable TC interrupt — in circular mode, TC fires every cycle
+            // and the IRQ handler would otherwise disable the channel
+            dma_interrupt_enable(tch->dma->ref, DMA_IT_TCIF, FALSE);
+            tch->dmaState = TCH_DMA_CIRCULAR;
+        } else {
+            tch->dma->ref->ctrl_bit.lm = FALSE;
+            dma_interrupt_enable(tch->dma->ref, DMA_IT_TCIF, TRUE);
+            tch->dmaState = TCH_DMA_IDLE;
+        }
+
+        // Ensure register writes are visible to DMA before re-enabling
+        __DSB();
+
+        dma_channel_enable(tch->dma->ref, TRUE);
+        tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], TRUE);
+    }
 }
