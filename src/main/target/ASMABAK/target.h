@@ -20,6 +20,7 @@
 #define USE_IMU_MPU9250
 #define IMU_MPU9250_ALIGN       CW0_DEG        // подберите по ориентации платы (CW0/CW90/CW180/CW270)
 
+#define USE_MAG
 #define USE_MAG_MPU9250
 #define MAG_MPU9250_ALIGN       CW0_DEG
 
@@ -82,6 +83,7 @@
 #define USE_ADC
 #define ADC_INSTANCE            ADC1
 #define RSSI_ADC_PIN            PC3                 // ADC123_IN13
+#define RSSI_ADC_CHANNEL        ADC_Channel_13
 
 // ============== Дополнительно (опционально по ТЗ) ==============
 #define USE_LED_STRIP
@@ -102,6 +104,6 @@
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
-#define TARGET_IO_PORTD         (BIT(2))
+#define TARGET_IO_PORTD         (1 << 2)
 
 #define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_BLACKBOX | FEATURE_GPS)

@@ -1,1 +1,1 @@
-target_stm32f405xg(ASMABAK HSE_MHZ 8)
+target_stm32f405xg(ASMABAK)
