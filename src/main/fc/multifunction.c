@@ -82,34 +82,36 @@ void setMultifunctionSelection(multi_function_e item)
 
 multi_function_e multiFunctionSelection(void)
 {
-    static timeMs_t selectTimer;
+    static timeMs_t functionTimer;
     const timeMs_t currentTime = millis();
-    static uint8_t toggle = 0;
+    static uint8_t functionTracker = 0;
 
     if (IS_RC_MODE_ACTIVE(BOXMULTIFUNCTION)) {
-        if (!selectTimer) {
-            selectTimer = currentTime;
+        if (!functionTimer) {    // initiate function on first BOXMULTIFUNCTION activation
+            functionTimer = currentTime;
             selectedItem = MULTI_FUNC_1;
-        } else if (toggle && selectedItem != MULTI_FUNC_END) {
-            toggle = 2;
-            if (currentTime - selectTimer > 3000) {     // 3s selection duration to activate selected function
+        } else if (functionTracker && selectedItem != MULTI_FUNC_END) {
+            functionTracker = 2;
+            if (currentTime - functionTimer > 3000) {    // 3s BOXMULTIFUNCTION activation to trigger selected function
                 multiFunctionApply(selectedItem);
                 selectedItem = MULTI_FUNC_END;
             }
         }
-    } else if (selectTimer) {
-        if (toggle == 2) {
-            selectTimer = 0;
-            toggle = 0;
+    } else if (functionTimer) {
+        if (!functionTracker) {
+            functionTimer = currentTime;
+        } else if (functionTracker == 2) {    // cancel and reset function after second BOXMULTIFUNCTION deactivation
+            functionTimer = 0;
+            functionTracker = 0;
             return selectedItem = MULTI_FUNC_NONE;
         }
 
-        if (currentTime - selectTimer > 2000) {
+        if (currentTime - functionTimer > 1500) {    // display available functions on 1.5s rolling cycle
             setMultifunctionSelection(++selectedItem);
-            selectTimer = currentTime;
+            functionTimer = currentTime;
         }
 
-        toggle = 1;
+        functionTracker = 1;
     }
 
     return selectedItem;
