@@ -51,7 +51,7 @@
 
 #define USE_UART3
 #define UART3_RX_PIN            PC11
-#define UART3_TX_PIN            PC10
+
 
 #define USE_UART4
 #define UART4_RX_PIN            PA1
