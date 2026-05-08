@@ -65,14 +65,15 @@ AT+SETTINGS=SAVE
 * https://pantsforbirds.com/adsbee-1090/quick-start/
 
 ## SoftRF settings
-SoftRF needs more mavlink messages than other receivers, in INAV cli set correct mavlink output. 
+SoftRF supports only mavlink version 1.
 ```
 set mavlink_version = 1
-set mavlink_pos_rate = 2
 save
 ```
-Baud rate for softRF is 57600. INAV supports only mandatory messages for softRF. 
-Messages MAVLINK_MSG_ID_SYS_STATUS, MAVLINK_MSG_ID_VFR_HUD, MAVLINK_MSG_ID_ATTITUDE are not supported.
+The baud rate for SoftRF is 57600. INAV provides minimal support for SoftRF and supports only 
+the mandatory MAVLink messages: `MAVLINK_MSG_ID_HEARTBEAT`, `MAVLINK_MSG_ID_SYSTEM_TIME`, and `MAVLINK_MSG_ID_GPS_RAW_INT`.
+
+The following messages are not supported: `MAVLINK_MSG_ID_SYS_STATUS`, `MAVLINK_MSG_ID_VFR_HUD`, and `MAVLINK_MSG_ID_ATTITUDE`.
 
 ## Alert and Warning
 The ADS-B warning/alert system supports two operating modes, controlled by the parameter osd_adsb_calculation_use_cpa (ON or OFF).
