@@ -6469,7 +6469,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
             message = ARMING_FLAG(ARMED) ? "NOW ARMED " : "EMERG ARM ";
             break;
         case MULTI_FUNC_END:
-            message = "ACTIVATED!";
+            message = "*FUNC SET*";
             break;
         }
 
