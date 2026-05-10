@@ -38,7 +38,6 @@
 
 multi_function_e selectedItem = MULTI_FUNC_NONE;
 uint8_t multiFunctionFlags;
-bool nextItemIsAvailable = false;
 
 static void multiFunctionApply(multi_function_e selectedItem)
 {
@@ -76,52 +75,43 @@ static void multiFunctionApply(multi_function_e selectedItem)
     }
 }
 
-bool isNextMultifunctionItemAvailable(void)
-{
-    return nextItemIsAvailable;
-}
-
 void setMultifunctionSelection(multi_function_e item)
 {
     selectedItem = item == MULTI_FUNC_END ? MULTI_FUNC_1 : item;
-    nextItemIsAvailable = false;
 }
 
 multi_function_e multiFunctionSelection(void)
 {
-    static timeMs_t startTimer;
-    static timeMs_t selectTimer;
-    static bool toggle = true;
+    static timeMs_t functionTimer;
     const timeMs_t currentTime = millis();
+    static uint8_t functionTracker = 0;
 
     if (IS_RC_MODE_ACTIVE(BOXMULTIFUNCTION)) {
-        if (selectTimer) {
-            if (currentTime - selectTimer > 3000) {     // 3s selection duration to activate selected function
+        if (!functionTimer) {    // initiate function on first BOXMULTIFUNCTION activation
+            functionTimer = currentTime;
+            selectedItem = MULTI_FUNC_1;
+        } else if (functionTracker && selectedItem != MULTI_FUNC_END) {
+            functionTracker = 2;
+            if (currentTime - functionTimer > 3000) {    // 3s BOXMULTIFUNCTION activation to trigger selected function
                 multiFunctionApply(selectedItem);
-                selectTimer = 0;
-                selectedItem = MULTI_FUNC_NONE;
-                nextItemIsAvailable = false;
-            }
-        } else if (toggle) {
-            if (selectedItem == MULTI_FUNC_NONE) {
-                selectedItem++;
-            } else {
-                selectTimer = currentTime;
-                nextItemIsAvailable = true;
+                selectedItem = MULTI_FUNC_END;
             }
         }
-        startTimer = currentTime;
-        toggle = false;
-    } else if (startTimer) {
-        if (!toggle && selectTimer) {
+    } else if (functionTimer) {
+        if (!functionTracker) {
+            functionTimer = currentTime;
+        } else if (functionTracker == 2) {    // cancel and reset function after second BOXMULTIFUNCTION deactivation
+            functionTimer = 0;
+            functionTracker = 0;
+            return selectedItem = MULTI_FUNC_NONE;
+        }
+
+        if (currentTime - functionTimer > 1500) {    // display available functions on 1.5s rolling cycle
             setMultifunctionSelection(++selectedItem);
+            functionTimer = currentTime;
         }
-        if (currentTime - startTimer > 4000) {      // 4s reset delay after mode deselected
-            startTimer = 0;
-            selectedItem = MULTI_FUNC_NONE;
-        }
-        selectTimer = 0;
-        toggle = true;
+
+        functionTracker = 1;
     }
 
     return selectedItem;
