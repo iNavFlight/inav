@@ -6469,6 +6469,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
             message = ARMING_FLAG(ARMED) ? "NOW ARMED " : "EMERG ARM ";
             break;
         case MULTI_FUNC_END:
+            message = "*FUNC SET*";
             break;
         }
 
@@ -6477,11 +6478,6 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         }
 
         strcpy(buff, message);
-
-        if (isNextMultifunctionItemAvailable()) {
-            // provides feedback indicating when a new selection command has been received by flight controller
-            buff[9] = '>';
-        }
 
         return elemAttr;
     }
