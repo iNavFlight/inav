@@ -61,7 +61,7 @@ static void multiFunctionApply(multi_function_e selectedItem)
         break;
     case MULTI_FUNC_4:
 #ifdef USE_DSHOT
-        if (STATE(MULTIROTOR)) {    // toggle Turtle mode
+        if (!ARMING_FLAG(ARMED) && STATE(MULTIROTOR)) {    // toggle Turtle mode
             MULTI_FUNC_FLAG(MF_TURTLE_MODE) ? MULTI_FUNC_FLAG_DISABLE(MF_TURTLE_MODE) : MULTI_FUNC_FLAG_ENABLE(MF_TURTLE_MODE);
         }
 #endif
@@ -100,7 +100,8 @@ multi_function_e multiFunctionSelection(void)
     } else if (functionTimer) {
         if (!functionTracker) {
             functionTimer = currentTime;
-        } else if (functionTracker == 2) {    // cancel and reset function after second BOXMULTIFUNCTION deactivation
+        } else if (functionTracker == 2 || selectedItem == MULTI_FUNC_NONE) {
+            // cancel and reset function after second BOXMULTIFUNCTION deactivation or if no functions available
             functionTimer = 0;
             functionTracker = 0;
             return selectedItem = MULTI_FUNC_NONE;
