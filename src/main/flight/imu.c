@@ -969,7 +969,7 @@ float calculateCosTiltAngle(void)
 #if defined(USE_GPS)
 bool isYawZeroResetAllowed(void)
 {
-    return !ARMING_FLAG(ARMED) && !STATE(AIRPLANE) && !gpsHeadingInitialized && sensors(SENSOR_GPS) && !sensors(SENSOR_MAG);
+    return !ARMING_FLAG(ARMED) && !STATE(AIRPLANE) && sensors(SENSOR_GPS) && !sensors(SENSOR_MAG);
 }
 #endif
 #if defined(SITL_BUILD) || defined (USE_SIMULATOR)
