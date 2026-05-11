@@ -6438,8 +6438,12 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         switch (selectedFunction) {
         case MULTI_FUNC_NONE:
         case MULTI_FUNC_1:
-            message = posControl.flags.manualEmergLandActive ? "ABORT LAND" : "EMERG LAND";
-            break;
+            if (ARMING_FLAG(ARMED)) {
+                message = posControl.flags.manualEmergLandActive ? "ABORT LAND" : "EMERG LAND";
+                break;
+            }
+            activeFunction++;
+            FALLTHROUGH;
         case MULTI_FUNC_2:
 #if defined(USE_SAFE_HOME)
             if (navConfig()->general.flags.safehome_usage_mode != SAFEHOME_USAGE_OFF) {
@@ -6458,7 +6462,7 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
             FALLTHROUGH;
         case MULTI_FUNC_4:
 #ifdef USE_DSHOT
-            if (STATE(MULTIROTOR)) {
+            if (!ARMING_FLAG(ARMED) && STATE(MULTIROTOR)) {
                 message = MULTI_FUNC_FLAG(MF_TURTLE_MODE) ? "END TURTLE" : "USE TURTLE";
                 break;
             }
@@ -6466,7 +6470,11 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
             activeFunction++;
             FALLTHROUGH;
         case MULTI_FUNC_5:
-            message = ARMING_FLAG(ARMED) ? "NOW ARMED " : "EMERG ARM ";
+            if (!ARMING_FLAG(ARMED)) {
+                message = "EMERG ARM ";
+                break;
+            }
+            activeFunction++;
             break;
         case MULTI_FUNC_END:
             message = "*FUNC SET*";
@@ -6474,7 +6482,15 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         }
 
         if (activeFunction != selectedFunction) {
-            setMultifunctionSelection(activeFunction);
+            if (selectedFunction == MULTI_FUNC_1 && activeFunction == MULTI_FUNC_END) {  // no functions available so end process
+                message = "*NO FUNCS*";
+                setMultifunctionSelection(MULTI_FUNC_NONE);
+            } else {
+                setMultifunctionSelection(activeFunction);
+                if (activeFunction == MULTI_FUNC_END) {   // no messages to display so return
+                    return elemAttr;
+                }
+            }
         }
 
         strcpy(buff, message);
