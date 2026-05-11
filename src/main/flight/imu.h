@@ -85,6 +85,7 @@ void imuUpdateAccelerometer(void);
 float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);
+bool isYawZeroResetAllowed(void);
 
 void imuTransformVectorBodyToEarth(fpVector3_t * v);
 void imuTransformVectorEarthToBody(fpVector3_t * v);

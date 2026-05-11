@@ -70,6 +70,12 @@ static void multiFunctionApply(multi_function_e selectedItem)
         if (!ARMING_FLAG(ARMED)) {
             emergencyArmingUpdate(true, true);
         }
+        break;
+    case MULTI_FUNC_6:  // Calibrate compass/Zero yaw heading
+#if defined(USE_GPS) || defined(USE_MAG)
+        ENABLE_STATE(CALIBRATE_MAG);
+#endif
+        break;
     case MULTI_FUNC_END:
         break;
     }
