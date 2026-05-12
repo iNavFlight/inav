@@ -19,6 +19,14 @@ typedef struct mixerConfig_s {
     bool automated_switch;
     int16_t switchTransitionTimer;
     uint16_t switchTransitionAirspeed;
+    bool vtolTransitionDynamicMixer;
+    bool manualVtolTransitionController;
+    uint16_t vtolTransitionToFwMinAirspeed;
+    uint16_t vtolTransitionToMcMaxAirspeed;
+    uint16_t vtolTransitionAirspeedTimeoutMs;
+    uint8_t vtolTransitionLiftEndPercent;
+    uint8_t vtolTransitionMcAuthorityEndPercent;
+    uint8_t vtolTransitionFwAuthorityStartPercent;
     bool tailsitterOrientationOffset;
     int16_t transition_PID_mmix_multiplier_roll;
     int16_t transition_PID_mmix_multiplier_pitch;
@@ -37,8 +45,16 @@ typedef enum {
     MIXERAT_REQUEST_LAND,
     MIXERAT_REQUEST_MISSION_TO_FW,
     MIXERAT_REQUEST_MISSION_TO_MC,
+    MIXERAT_REQUEST_MANUAL_TO_FW,
+    MIXERAT_REQUEST_MANUAL_TO_MC,
     MIXERAT_REQUEST_ABORT,
 } mixerProfileATRequest_e;
+
+typedef enum {
+    MIXERAT_DIRECTION_NONE = 0,
+    MIXERAT_DIRECTION_TO_FW,
+    MIXERAT_DIRECTION_TO_MC,
+} mixerProfileATDirection_e;
 
 //mixerProfile Automated Transition PHASE
 typedef enum {
@@ -50,7 +66,18 @@ typedef enum {
 
 typedef struct mixerProfileAT_s {
     mixerProfileATState_e phase;
+    mixerProfileATDirection_e direction;
+    mixerProfileATRequest_e request;
     bool transitionInputMixing;
+    bool aborted;
+    bool hotSwitchDone;
+    bool usedAirspeed;
+    float progress;
+    float blendToFw;
+    float pusherScale;
+    float liftScale;
+    float mcAuthorityScale;
+    float fwAuthorityScale;
     timeMs_t transitionStartTime;
     timeMs_t transitionStabEndTime;
     timeMs_t transitionTransEndTime;
@@ -58,6 +85,13 @@ typedef struct mixerProfileAT_s {
 extern mixerProfileAT_t mixerProfileAT;
 bool checkMixerATRequired(mixerProfileATRequest_e required_action);
 bool mixerATUpdateState(mixerProfileATRequest_e required_action);
+bool mixerATIsActive(void);
+bool mixerATWasAborted(void);
+float mixerATGetPusherScale(void);
+float mixerATGetLiftScale(void);
+float mixerATGetMcAuthorityScale(void);
+float mixerATGetFwAuthorityScale(void);
+float mixerATGetBlendToFw(void);
 
 extern mixerConfig_t currentMixerConfig;
 extern int currentMixerProfileIndex;

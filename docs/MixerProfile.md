@@ -22,6 +22,17 @@ Transition input is disabled when navigation mode is activate
 
 The use of Transition Mode is recommended to enable further features and future developments like fail-safe support. Mapping motor to servo output, or servo with logic conditions is **not** recommended
 
+`MIXER TRANSITION` now behaves as a transition trigger/request (edge-triggered), not a continuous blend hold:
+
+- A rising edge starts one transition (MC->FW or FW->MC depending on current profile).
+- The transition state machine runs automatically to completion.
+- Keeping the mode ON does not repeatedly restart transitions.
+- A new transition requires mode OFF then ON again.
+- If switched OFF before hot-switch completes, the manual transition request is aborted.
+
+This edge-triggered behavior is enabled by `manual_vtol_transition_controller`.
+When `manual_vtol_transition_controller = OFF`, manual transition keeps legacy behavior.
+
 ## Servo
 
 `Mixer Transition` is the input source for transition input; use this to tilt motor to gain airspeed.
@@ -72,13 +83,43 @@ This feature is mainly for RTH in a failsafe event. When set properly, model wil
 Set `mixer_automated_switch` to `ON` in mixer_profile for MC mode. Set `mixer_switch_trans_timer` in mixer_profile for MC mode for the time required to gain airspeed for your model before entering to FW mode.
 When `mixer_automated_switch`:`OFF` is set for all mixer_profiles(defaults). Model will not perform automated transition at all.
 
+### Unified VTOL transition controller
+
+Manual `MIXER TRANSITION` and mission-authorized VTOL transition both use the same internal transition controller.
+This controller computes transition progress, controls mixer transition scaling, and performs profile hot-switch only inside the authorized transition state.
+
+### Airspeed-first completion
+
+When pitot airspeed is healthy and available, transition completion uses pitot thresholds:
+
+- `vtol_transition_to_fw_min_airspeed_cm_s` for MC->FW
+- `vtol_transition_to_mc_max_airspeed_cm_s` for FW->MC
+
+If pitot is unavailable/unhealthy (or threshold is `0`), timer fallback is used (`mixer_switch_trans_timer`).
+Ground speed is not used for transition completion/progress.
+
+Optional safety timeout:
+
+- `vtol_transition_airspeed_timeout_ms` can abort transition if airspeed condition is not met in time.
+
+### Dynamic scaling (optional)
+
+When `vtol_transition_dynamic_mixer = ON`, transition progress scales:
+
+- pusher contribution (`-2.0 < throttle < -1.0` motors) from configured max toward 0/100% depending on direction,
+- lift motor throttle contribution (`vtol_transition_lift_end_percent`),
+- MC stabilization authority (`vtol_transition_mc_authority_end_percent`),
+- FW authority start level (`vtol_transition_fw_authority_start_percent`, servo transition input blend).
+
+Default is OFF to preserve existing behavior.
+
 ### Mission-authorized VTOL transition (waypoint User Action)
 
 INAV supports mission-requested VTOL transitions through the existing automated transition path. This is configured with:
 
 - `nav_vtol_mission_transition_user_action` (`OFF`, `USER1`, `USER2`, `USER3`, `USER4`)
 - `nav_vtol_mission_transition_min_altitude_cm` (optional, `0` disables minimum-altitude check)
-- `mixer_switch_trans_airspeed_cm_s` (optional, airspeed-based MC->FW switch threshold)
+- `mixer_switch_trans_airspeed_cm_s` (legacy MC->FW threshold fallback/compatibility)
 
 On each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`), the configured USER action bit is used as absolute target selector:
 
@@ -90,7 +131,7 @@ On each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`), the con
 The mission pauses while transition is in progress and resumes after completion.
 
 For MC -> FW mission transitions, navigation uses a straight acceleration segment (no loiter) to build speed before hot-switch.
-When `mixer_switch_trans_airspeed_cm_s > 0` and valid pitot airspeed is available, automated MC->FW switching uses this airspeed target. If airspeed is unavailable, transition falls back to `mixer_switch_trans_timer`.
+Mission path uses the same controller and completion logic as manual transition (airspeed-first, timer fallback).
 
 Manual RC switching (`MIXER PROFILE 2`, `MIXER TRANSITION`) remains blocked during normal active navigation. Mission VTOL transition does not bypass the hot-switch safety guard; it only authorizes switching inside the automated transition state.
 

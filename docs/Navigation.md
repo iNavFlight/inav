@@ -111,7 +111,7 @@ Configuration:
 - `nav_vtol_mission_transition_user_action` selects which waypoint User Action (`USER1..USER4`) is used as the mission VTOL target selector.
 - `nav_vtol_mission_transition_min_altitude_cm` optionally enforces a minimum altitude before transition start (`0` disables check).
 - `nav_vtol_mission_transition_track_distance_cm` configures straight-line MC->FW transition guidance distance.
-- `mixer_switch_trans_airspeed_cm_s` configures MC->FW airspeed threshold for automated profile switching.
+- VTOL transition completion logic is shared with manual MIXER TRANSITION and uses the mixer transition settings.
 
 Behavior on each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`):
 
@@ -125,7 +125,9 @@ Behavior on each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`)
 Transition behavior in this MVP:
 
 - MC -> FW: straight-line acceleration segment (no loiter), heading from the next waypoint bearing when available, otherwise current heading.
-- MC -> FW switch point: if valid pitot airspeed is available and `mixer_switch_trans_airspeed_cm_s > 0`, switch to FW occurs at/above the configured airspeed. If airspeed is unavailable, timer-based fallback (`mixer_switch_trans_timer`) is used.
+- MC -> FW and FW -> MC completion uses pitot airspeed thresholds when healthy/available (`vtol_transition_to_fw_min_airspeed_cm_s`, `vtol_transition_to_mc_max_airspeed_cm_s`).
+- If pitot is unavailable/unhealthy (or threshold disabled), timer fallback (`mixer_switch_trans_timer`) is used.
+- Ground speed is not used for transition progress/completion.
 - FW -> MC: mission pauses during automated transition, then resumes after switching back to MC profile.
 - Strict altitude hold is not enforced during MC -> FW transition; natural climb is allowed.
 

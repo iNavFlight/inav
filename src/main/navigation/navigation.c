@@ -2057,7 +2057,7 @@ static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const 
         posControl.flags.estHeadingStatus < EST_USABLE ||
         !isModeActivationConditionPresent(BOXMIXERPROFILE) ||
         !checkMixerProfileHotSwitchAvalibility() ||
-        mixerProfileAT.phase != MIXERAT_PHASE_IDLE) {
+        mixerATIsActive()) {
         return NAV_MISSION_VTOL_TRANSITION_REJECT;
     }
 
@@ -2476,6 +2476,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
     }
     if (mixerATUpdateState(required_action)){
         // MixerAT is done, switch to next state
+        const bool transitionAborted = mixerATWasAborted();
         resetPositionController();
         resetAltitudeController(false);     // Make sure surface tracking is not enabled uses global altitude, not AGL
         mixerATUpdateState(MIXERAT_REQUEST_ABORT);
@@ -2493,7 +2494,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
             break;
         case NAV_STATE_WAYPOINT_PRE_ACTION:
             setupAltitudeController();
-            return missionTransitionWasActive ? NAV_FSM_EVENT_MIXERAT_MISSION_RESUME : NAV_FSM_EVENT_SWITCH_TO_IDLE;
+            if (missionTransitionWasActive) {
+                return transitionAborted ? NAV_FSM_EVENT_SWITCH_TO_IDLE : NAV_FSM_EVENT_MIXERAT_MISSION_RESUME;
+            }
+            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
             break;
         default:
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;

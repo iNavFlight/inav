@@ -51,6 +51,7 @@
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -353,7 +354,7 @@ void servoMixer(float dT)
 
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
 
-    input[INPUT_MIXER_TRANSITION] = isMixerTransitionMixing * 500; //fixed value
+    input[INPUT_MIXER_TRANSITION] = isMixerTransitionMixing ? lrintf(mixerATGetBlendToFw() * 500.0f) : 0;
     input[INPUT_MIXER_SWITCH_HELPER] = 0; // no input, used to apply speed limit filter from previous servo rules
 
     // center the RC input value around the RC middle value

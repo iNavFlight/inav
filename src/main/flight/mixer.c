@@ -48,6 +48,7 @@
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -520,10 +521,11 @@ void FAST_CODE mixTable(void)
         input[ROLL] = axisPID[ROLL];
         input[PITCH] = axisPID[PITCH];
         input[YAW] = axisPID[YAW];
-        if(isMixerTransitionMixing){
-            input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f);
-            input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f);
-            input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f);
+        if (isMixerTransitionMixing) {
+            const float mcAuthorityScale = mixerATGetMcAuthorityScale();
+            input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f) * mcAuthorityScale;
+            input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f) * mcAuthorityScale;
+            input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f) * mcAuthorityScale;
         }
     }
 
@@ -624,8 +626,16 @@ void FAST_CODE mixTable(void)
 
     // Now add in the desired throttle, but keep in a range that doesn't clip adjusted
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
+    const float liftScale = isMixerTransitionMixing ? mixerATGetLiftScale() : 1.0f;
+    const float pusherScale = isMixerTransitionMixing ? mixerATGetPusherScale() : 1.0f;
+
     for (int i = 0; i < motorCount; i++) {
-        motor[i] = rpyMix[i] + constrain(mixerThrottleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
+        float motorThrottle = mixerThrottleCommand * currentMixer[i].throttle;
+        if (currentMixer[i].throttle > 0.0f) {
+            motorThrottle *= liftScale;
+        }
+
+        motor[i] = rpyMix[i] + constrain(motorThrottle, throttleMin, throttleMax);
 
         if (failsafeIsActive()) {
             motor[i] = constrain(motor[i], motorConfig()->mincommand, getMaxThrottle());
@@ -639,7 +649,7 @@ void FAST_CODE mixTable(void)
         }
         //spin stopped motors only in mixer transition mode
         if (isMixerTransitionMixing && currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f && !feature(FEATURE_REVERSIBLE_MOTORS)) {
-            motor[i] = -currentMixer[i].throttle * 1000;
+            motor[i] = -currentMixer[i].throttle * 1000 * pusherScale;
             motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
         }
     }
