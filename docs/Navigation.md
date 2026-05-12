@@ -122,6 +122,7 @@ Behavior on each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`)
   - `0`: transition to MC / MULTIROTOR profile
   - `1`: transition to FW / AIRPLANE profile
 - When `nav_vtol_mission_transition_user_action != OFF`, each navigable waypoint always encodes target state via that selected USER bit.
+- This means every navigable waypoint implicitly declares desired VTOL platform state when this feature is enabled; users must intentionally set/clear that bit on each waypoint.
 - This command is **not** a toggle.
 - The command is idempotent: if already in the requested target profile type, the mission continues immediately.
 - If a transition is needed, mission progression pauses while automated transition runs, then resumes only after completion.
@@ -138,6 +139,7 @@ Transition behavior in this MVP:
 Safety and scope:
 
 - This path uses authorized automated transition state handling; it does not permit manual mixer profile switching during normal waypoint navigation.
+- It still depends on valid mixer profile switching infrastructure (two configured mixer profiles and a valid `MIXER PROFILE 2` mode activation condition).
 
 `wp save` - Checks list of waypoints and save from FC to EEPROM (warning: it also saves all unsaved CLI settings like normal `save`).
 

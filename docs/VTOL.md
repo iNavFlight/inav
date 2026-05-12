@@ -321,6 +321,7 @@ Mission transition is configured with `nav_vtol_mission_transition_user_action`.
 - `USER1`..`USER4`: selected User Action bit is used as target selector on navigable waypoints.
 - selected bit `0` -> target MC profile
 - selected bit `1` -> target FW profile
+- when enabled, every navigable waypoint implicitly declares desired VTOL platform state through that selected bit, so users should set/clear it intentionally per waypoint
 - Mission progression pauses during transition and resumes only after completion.
 - If already in requested target profile, command is idempotent (no new transition).
 
@@ -349,6 +350,12 @@ When `vtol_transition_dynamic_mixer = ON`, transition progress additionally scal
 - FW transition input authority blend.
 
 When `vtol_transition_dynamic_mixer = OFF`, legacy static transition mixing behavior is preserved.
+
+Optional smooth-start baseline:
+- `vtol_transition_dynamic_mixer = ON`
+- `vtol_transition_lift_end_percent = 30`
+- `vtol_transition_mc_authority_end_percent = 20`
+- `vtol_transition_fw_authority_start_percent = 20`
 
 ### Detailed effect of the three percentage settings
 
@@ -420,13 +427,16 @@ Use these commands in CLI (`set ...`, then `save`):
   - FW authority start level for dynamic transition.
 
 - `set nav_vtol_mission_transition_user_action = OFF|USER1|USER2|USER3|USER4`
-  - Selects waypoint User Action bit used for mission VTOL target selector.
+  - Selects waypoint User Action bit used for mission VTOL target selector (absolute per-waypoint desired state).
 
 - `set nav_vtol_mission_transition_min_altitude_cm = <value>`
   - Optional minimum altitude check before mission transition start (`0` disables).
 
 - `set nav_vtol_mission_transition_track_distance_cm = <value>`
   - Straight-line transition guidance distance for mission MC -> FW segment.
+
+Mission profile-switch dependency:
+- Mission VTOL transition uses the existing profile hot-switch path, so two valid mixer profiles and a configured `MIXER PROFILE 2` mode activation condition are required.
 
 
 # Notes and Experiences 

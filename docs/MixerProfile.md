@@ -130,6 +130,7 @@ On each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`), the con
 - selected USER bit = `0` -> transition to MC / MULTIROTOR profile
 - selected USER bit = `1` -> transition to FW / AIRPLANE profile
 - When `nav_vtol_mission_transition_user_action != OFF`, each navigable waypoint encodes a target state via that selected bit.
+- This is a per-waypoint target-state declaration (not an event trigger). Users should intentionally set/clear the selected USER bit on each navigable waypoint.
 - This is **not** a toggle command.
 - If already in the requested profile type, the action is treated as complete (idempotent).
 
@@ -139,6 +140,13 @@ For MC -> FW mission transitions, navigation uses a straight acceleration segmen
 Mission path uses the same controller and completion logic as manual transition (airspeed-first, timer fallback).
 
 Manual RC switching (`MIXER PROFILE 2`, `MIXER TRANSITION`) remains blocked during normal active navigation. Mission VTOL transition does not bypass the hot-switch safety guard; it only authorizes switching inside the automated transition state.
+Mission VTOL transition still relies on normal profile-switch infrastructure: configure two mixer profiles and a valid `MIXER PROFILE 2` mode activation condition.
+
+Example smooth-start values (optional tuning baseline):
+- `set vtol_transition_dynamic_mixer = ON`
+- `set vtol_transition_lift_end_percent = 30`
+- `set vtol_transition_mc_authority_end_percent = 20`
+- `set vtol_transition_fw_authority_start_percent = 20`
 
 ### Validation Matrix (PR / SITL / HITL)
 

@@ -2679,7 +2679,7 @@ groups:
         field: general.flags.waypoint_mission_restart
         table: nav_wp_mission_restart
       - name: nav_vtol_mission_transition_user_action
-        description: "Selects which waypoint USER action bit (`USER1`..`USER4`) is used as mission VTOL target selector. OFF disables this feature. On navigable mission waypoints: selected USER bit = 1 requests FW profile, selected USER bit = 0 requests MC profile."
+        description: "Selects which waypoint USER action bit (`USER1`..`USER4`) is used as mission VTOL target selector. OFF disables this feature. On navigable mission waypoints: selected USER bit = 1 requests FW profile, selected USER bit = 0 requests MC profile. This is an absolute per-waypoint target-state selector and relies on existing mixer profile switching infrastructure (two profiles and valid MIXER PROFILE 2 mode activation condition)."
         default_value: "OFF"
         field: general.vtol_mission_transition_user_action
         table: nav_wp_user_action
