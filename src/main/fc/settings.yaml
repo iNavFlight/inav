@@ -1281,7 +1281,7 @@ groups:
         min: 0
         max: 200
       - name: mixer_switch_trans_airspeed_cm_s
-        description: "Airspeed threshold [cm/s] for MC->FW automated profile switch. If > 0 and valid pitot airspeed is available, transition will switch to FW only after this speed is reached. If airspeed is unavailable, timer-based fallback (`mixer_switch_trans_timer`) is used."
+        description: "Legacy MC->FW airspeed threshold [cm/s] for automated profile switch. Used when `vtol_transition_to_fw_min_airspeed_cm_s = 0`. If airspeed is unavailable, timer-based fallback (`mixer_switch_trans_timer`) is used."
         default_value: 0
         field: mixer_config.switchTransitionAirspeed
         min: 0
@@ -1297,7 +1297,7 @@ groups:
         field: mixer_config.manualVtolTransitionController
         type: bool
       - name: vtol_transition_to_fw_min_airspeed_cm_s
-        description: "Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. If 0, `mixer_switch_trans_airspeed_cm_s` is used for MC->FW."
+        description: "Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. Overrides `mixer_switch_trans_airspeed_cm_s` when > 0. If 0, legacy setting is used."
         default_value: 0
         field: mixer_config.vtolTransitionToFwMinAirspeed
         min: 0

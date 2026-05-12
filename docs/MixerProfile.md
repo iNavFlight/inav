@@ -86,7 +86,8 @@ When `mixer_automated_switch`:`OFF` is set for all mixer_profiles(defaults). Mod
 ### Unified VTOL transition controller
 
 Manual `MIXER TRANSITION` and mission-authorized VTOL transition both use the same internal transition controller.
-This controller computes transition progress, controls mixer transition scaling, and performs profile hot-switch only inside the authorized transition state.
+This controller always computes transition progress/completion and performs profile hot-switch only inside the authorized transition state.
+When `vtol_transition_dynamic_mixer = ON`, that progress is also used for pusher/lift/authority scaling.
 
 ### Airspeed-first completion
 
@@ -94,6 +95,7 @@ When pitot airspeed is healthy and available, transition completion uses pitot t
 
 - `vtol_transition_to_fw_min_airspeed_cm_s` for MC->FW
 - `vtol_transition_to_mc_max_airspeed_cm_s` for FW->MC
+- If `vtol_transition_to_fw_min_airspeed_cm_s = 0`, MC->FW falls back to legacy `mixer_switch_trans_airspeed_cm_s`.
 
 If pitot is unavailable/unhealthy (or threshold is `0`), timer fallback is used (`mixer_switch_trans_timer`).
 Ground speed is not used for transition completion/progress.
@@ -112,6 +114,7 @@ When `vtol_transition_dynamic_mixer = ON`, transition progress scales:
 - FW authority start level (`vtol_transition_fw_authority_start_percent`, servo transition input blend).
 
 Default is OFF to preserve existing behavior.
+With dynamic scaling enabled, `vtol_transition_fw_authority_start_percent = 100` preserves legacy FW authority handoff; lower values provide smoother ramp-in.
 
 ### Mission-authorized VTOL transition (waypoint User Action)
 
@@ -119,12 +122,14 @@ INAV supports mission-requested VTOL transitions through the existing automated 
 
 - `nav_vtol_mission_transition_user_action` (`OFF`, `USER1`, `USER2`, `USER3`, `USER4`)
 - `nav_vtol_mission_transition_min_altitude_cm` (optional, `0` disables minimum-altitude check)
-- `mixer_switch_trans_airspeed_cm_s` (legacy MC->FW threshold fallback/compatibility)
+- `vtol_transition_to_fw_min_airspeed_cm_s` (preferred MC->FW threshold)
+- `mixer_switch_trans_airspeed_cm_s` (legacy MC->FW fallback when preferred threshold is `0`)
 
 On each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`), the configured USER action bit is used as absolute target selector:
 
 - selected USER bit = `0` -> transition to MC / MULTIROTOR profile
 - selected USER bit = `1` -> transition to FW / AIRPLANE profile
+- When `nav_vtol_mission_transition_user_action != OFF`, each navigable waypoint encodes a target state via that selected bit.
 - This is **not** a toggle command.
 - If already in the requested profile type, the action is treated as complete (idempotent).
 
@@ -134,6 +139,18 @@ For MC -> FW mission transitions, navigation uses a straight acceleration segmen
 Mission path uses the same controller and completion logic as manual transition (airspeed-first, timer fallback).
 
 Manual RC switching (`MIXER PROFILE 2`, `MIXER TRANSITION`) remains blocked during normal active navigation. Mission VTOL transition does not bypass the hot-switch safety guard; it only authorizes switching inside the automated transition state.
+
+### Validation Matrix (PR / SITL / HITL)
+
+- MC->FW manual, pitot healthy/available.
+- MC->FW manual, no pitot (timer fallback).
+- FW->MC manual, pitot healthy/available.
+- FW->MC manual, no pitot (timer fallback).
+- `MIXER TRANSITION` held ON after completion (no repeated starts).
+- `MIXER TRANSITION` OFF before hot-switch (safe abort).
+- Mission transition with selected USER bit = `1` (TO_FW).
+- Mission transition with selected USER bit = `0` (TO_MC).
+- Failsafe/disarm during active transition (abort and no blind mission resume).
 
 ## TailSitter (planned for INAV 7.1)
 TailSitter is supported by add a 90deg offset to the board alignment. Set the board aliment normally in the mixer_profile for FW mode(`set platform_type = AIRPLANE`), The motor trust axis should be same direction as the airplane nose. Then, in the mixer_profile for takeoff and landing set `tailsitter_orientation_offset = ON ` to apply orientation offset. orientation offset will also add a 45deg orientation offset.

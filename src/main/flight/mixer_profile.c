@@ -131,7 +131,9 @@ void setMixerProfileAT(void)
     mixerProfileAT.aborted = false;
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.usedAirspeed = false;
+    mixerProfileAT.transitionStartAirspeedCaptured = false;
     mixerProfileAT.progress = 0.0f;
+    mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
     mixerProfileAT.blendToFw = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW ? 0.0f : 1.0f;
     mixerProfileAT.pusherScale = 1.0f;
     mixerProfileAT.liftScale = 1.0f;
@@ -166,6 +168,16 @@ static void resetTransitionScales(void)
     mixerProfileAT.progress = 0.0f;
     mixerProfileAT.blendToFw = 0.0f;
     mixerProfileAT.pusherScale = 0.0f;
+    mixerProfileAT.liftScale = 1.0f;
+    mixerProfileAT.mcAuthorityScale = 1.0f;
+    mixerProfileAT.fwAuthorityScale = 1.0f;
+}
+
+static void setLegacyTransitionScales(void)
+{
+    mixerProfileAT.progress = 1.0f;
+    mixerProfileAT.blendToFw = 1.0f;
+    mixerProfileAT.pusherScale = 1.0f;
     mixerProfileAT.liftScale = 1.0f;
     mixerProfileAT.mcAuthorityScale = 1.0f;
     mixerProfileAT.fwAuthorityScale = 1.0f;
@@ -251,6 +263,8 @@ static void abortTransition(void)
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
     mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
+    mixerProfileAT.transitionStartAirspeedCaptured = false;
+    mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
     resetTransitionScales();
 }
 
@@ -275,7 +289,19 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
             return airspeedCmS >= airspeedThresholdCmS;
         }
 
-        mixerProfileAT.progress = constrainf((airspeedThresholdCmS - airspeedCmS) / airspeedThresholdCmS, 0.0f, 1.0f);
+        if (!mixerProfileAT.transitionStartAirspeedCaptured) {
+            mixerProfileAT.transitionStartAirspeedCmS = airspeedCmS;
+            mixerProfileAT.transitionStartAirspeedCaptured = true;
+        }
+
+        const float startAirspeed = mixerProfileAT.transitionStartAirspeedCmS;
+        const float thresholdAirspeed = airspeedThresholdCmS;
+        if (startAirspeed <= thresholdAirspeed) {
+            mixerProfileAT.progress = 1.0f;
+        } else {
+            mixerProfileAT.progress = constrainf((startAirspeed - airspeedCmS) / (startAirspeed - thresholdAirspeed), 0.0f, 1.0f);
+        }
+
         return airspeedCmS <= airspeedThresholdCmS;
     }
 
@@ -454,6 +480,9 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         // Backward-compatible manual path: level-controlled transition mixing request.
         if (!FLIGHT_MODE(FAILSAFE_MODE) && (!mixerAT_inuse)) {
             isMixerTransitionMixing_requested = transitionModeActive;
+            if (isMixerTransitionMixing_requested) {
+                setLegacyTransitionScales();
+            }
         }
         manualTransitionReadyForEdge = true;
     } else {

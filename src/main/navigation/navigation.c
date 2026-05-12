@@ -2458,6 +2458,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE(navi
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
+
+    if (!ARMING_FLAG(ARMED) || FLIGHT_MODE(FAILSAFE_MODE)) {
+        mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+        clearMissionVTOLTransitionState();
+        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+    }
+
     mixerProfileATRequest_e required_action;
     switch (navMixerATPendingState)
     {

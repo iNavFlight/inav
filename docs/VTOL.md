@@ -239,7 +239,7 @@ If you have set up the mixer as suggested in STEP1 and STEP2, you may have to de
 # STEP 5: Transition Mixing (Multi-Rotor Profile)(Recommended)
 ### Transition Mixing is typically useful in multi-copter profile to gain airspeed in prior to entering the fixed-wing profile. When the `MIXER TRANSITION` mode is activated, the associated motor or servo will move according to your configured Transition Mixing. 
 
-Please note that transition input is disabled when a navigation mode is activated. The use of Transition Mixing is necessary to enable additional features such as VTOL RTH with out stalling.
+Please note that manual transition input is disabled when a navigation mode is active. Mission-authorized VTOL transition (via configured waypoint User Action) still works through the automated transition state.
 ## Servo 'Transition Mixing': Tilting rotor configuration.
 Add new servo mixer rules, and select 'Mixer Transition' in input. Set the weight/rate according to your desired angle. This will allow tilting the motor for tilting rotor model.
 
@@ -282,6 +282,151 @@ set mixer_automated_switch = ON
 4. Save your settings. type `save` in cli. 
 
 If you set `mixer_automated_switch` to `OFF` for all mixer profiles (the default setting), the model will not perform automated transitions. You can always enable navigation modes after performing a manual transition.
+
+## Unified VTOL Transition Controller (Manual + Mission)
+
+INAV now uses one internal VTOL transition controller for both:
+- manual `MIXER TRANSITION` requests, and
+- mission-authorized VTOL transitions.
+
+This keeps one safety boundary for profile hot-switching and avoids separate transition implementations.
+
+### Behavior summary
+
+- Transition progress is always computed internally.
+- Pitot airspeed is the primary source for transition completion when healthy/available.
+- Timer is used as fallback when pitot is unavailable/unhealthy.
+- Ground speed is not used for transition completion.
+- Mission transition uses the same controller and does not directly manipulate motors.
+- Manual `MIXER PROFILE` / `MIXER TRANSITION` bypass during normal waypoint navigation is still blocked.
+
+### Manual transition semantics
+
+With `manual_vtol_transition_controller = ON`:
+- `MIXER TRANSITION` acts as an edge-triggered request.
+- A rising edge starts one transition.
+- Transition then runs autonomously to completion.
+- Keeping the mode ON does not repeatedly retrigger transition.
+- To start another transition, mode must go OFF then ON again.
+- If mode is turned OFF before hot-switch, transition request is aborted safely.
+
+With `manual_vtol_transition_controller = OFF`:
+- legacy manual behavior is preserved for backward compatibility.
+
+### Mission-authorized transition semantics
+
+Mission transition is configured with `nav_vtol_mission_transition_user_action`.
+
+- `OFF`: feature disabled.
+- `USER1`..`USER4`: selected User Action bit is used as target selector on navigable waypoints.
+- selected bit `0` -> target MC profile
+- selected bit `1` -> target FW profile
+- Mission progression pauses during transition and resumes only after completion.
+- If already in requested target profile, command is idempotent (no new transition).
+
+For MC -> FW mission transition:
+- guidance uses a straight acceleration segment (no loiter),
+- normal waypoint advancement is paused during transition.
+
+### Airspeed-first completion logic
+
+MC -> FW:
+- completion threshold: `vtol_transition_to_fw_min_airspeed_cm_s`
+- if this is `0`, legacy `mixer_switch_trans_airspeed_cm_s` is used.
+
+FW -> MC:
+- completion threshold: `vtol_transition_to_mc_max_airspeed_cm_s`
+
+Timeout:
+- `vtol_transition_airspeed_timeout_ms` can abort transition if condition is not achieved in time.
+
+### Dynamic mixer scaling
+
+When `vtol_transition_dynamic_mixer = ON`, transition progress additionally scales:
+- pusher transition contribution,
+- vertical lift contribution,
+- MC stabilization authority,
+- FW transition input authority blend.
+
+When `vtol_transition_dynamic_mixer = OFF`, legacy static transition mixing behavior is preserved.
+
+### Detailed effect of the three percentage settings
+
+These three settings are active only when `vtol_transition_dynamic_mixer = ON`.
+
+1. `vtol_transition_lift_end_percent`
+- Defines lift throttle scale at transition end.
+- MC -> FW: lift goes from `100%` at start to `lift_end_percent` at end.
+- FW -> MC: lift goes from `lift_end_percent` at start to `100%` at end.
+
+Example (`vtol_transition_lift_end_percent = 20`):
+- MC -> FW at 50% progress: lift scale is about 60%.
+- FW -> MC at 50% progress: lift scale is about 60%.
+
+2. `vtol_transition_mc_authority_end_percent`
+- Defines MC stabilization authority scale at transition end.
+- MC -> FW: MC authority goes from `100%` at start to `mc_authority_end_percent` at end.
+- FW -> MC: MC authority goes from `mc_authority_end_percent` at start to `100%` at end.
+
+Example (`vtol_transition_mc_authority_end_percent = 30`):
+- MC -> FW at 50% progress: MC authority is about 65%.
+- FW -> MC at 50% progress: MC authority is about 65%.
+
+3. `vtol_transition_fw_authority_start_percent`
+- Defines FW authority scale at transition start.
+- MC -> FW: FW authority goes from `fw_authority_start_percent` at start to `100%` at end.
+- FW -> MC: FW authority goes from `100%` at start to `fw_authority_start_percent` at end.
+
+Example (`vtol_transition_fw_authority_start_percent = 25`):
+- MC -> FW at 50% progress: FW authority is about 62.5%.
+- FW -> MC at 50% progress: FW authority is about 62.5%.
+
+Backward-compatible note:
+- `vtol_transition_fw_authority_start_percent = 100` preserves legacy FW authority handoff behavior.
+- Lower values provide smoother FW authority ramp-in/out.
+
+## CLI Commands (English)
+
+Use these commands in CLI (`set ...`, then `save`):
+
+- `set manual_vtol_transition_controller = ON|OFF`
+  - Enables edge-triggered manual transition controller.
+
+- `set vtol_transition_dynamic_mixer = ON|OFF`
+  - Enables/disables dynamic progress-based scaling.
+
+- `set vtol_transition_to_fw_min_airspeed_cm_s = <value>`
+  - Preferred MC -> FW completion threshold (pitot airspeed).
+
+- `set mixer_switch_trans_airspeed_cm_s = <value>`
+  - Legacy MC -> FW threshold, used when `vtol_transition_to_fw_min_airspeed_cm_s = 0`.
+
+- `set mixer_switch_trans_timer = <value>`
+  - Timer-based transition duration fallback (used when pitot airspeed is unavailable/unhealthy).
+
+- `set vtol_transition_to_mc_max_airspeed_cm_s = <value>`
+  - FW -> MC completion threshold (pitot airspeed).
+
+- `set vtol_transition_airspeed_timeout_ms = <value>`
+  - Transition timeout/abort window.
+
+- `set vtol_transition_lift_end_percent = <0..100>`
+  - Lift scale endpoint for dynamic transition.
+
+- `set vtol_transition_mc_authority_end_percent = <0..100>`
+  - MC authority endpoint for dynamic transition.
+
+- `set vtol_transition_fw_authority_start_percent = <0..100>`
+  - FW authority start level for dynamic transition.
+
+- `set nav_vtol_mission_transition_user_action = OFF|USER1|USER2|USER3|USER4`
+  - Selects waypoint User Action bit used for mission VTOL target selector.
+
+- `set nav_vtol_mission_transition_min_altitude_cm = <value>`
+  - Optional minimum altitude check before mission transition start (`0` disables).
+
+- `set nav_vtol_mission_transition_track_distance_cm = <value>`
+  - Straight-line transition guidance distance for mission MC -> FW segment.
 
 
 # Notes and Experiences 
