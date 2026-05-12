@@ -25,6 +25,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include "drivers/display.h"
 
 typedef struct multiFunctionWarning_s {
     uint8_t osdWarningsFlags;  // bitfield
@@ -61,3 +62,4 @@ typedef enum {
 multi_function_e multiFunctionSelection(void);
 void setMultifunctionSelection(multi_function_e item);
 #endif
+textAttributes_t osdGetMultiFunctionMessage(char *buff);
