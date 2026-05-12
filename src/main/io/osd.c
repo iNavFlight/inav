@@ -6475,6 +6475,23 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
                 break;
             }
             activeFunction++;
+            FALLTHROUGH;
+        case MULTI_FUNC_6:
+            if (!ARMING_FLAG(ARMED)) {
+#if defined(USE_MAG)
+                if (sensors(SENSOR_MAG)) {
+                    message = "CAL COMPAS";
+                    break;
+                }
+#endif
+#if defined(USE_GPS)
+                if (isYawZeroResetAllowed()) {
+                    message = "SET HEADIN";
+                    break;
+                }
+#endif
+            }
+            activeFunction++;
             break;
         case MULTI_FUNC_END:
             message = "*FUNC SET*";
