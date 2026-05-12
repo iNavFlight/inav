@@ -329,6 +329,14 @@ typedef enum {
 } navMissionRestart_e;
 
 typedef enum {
+    NAV_MISSION_USER_ACTION_OFF = 0,
+    NAV_MISSION_USER_ACTION_1,
+    NAV_MISSION_USER_ACTION_2,
+    NAV_MISSION_USER_ACTION_3,
+    NAV_MISSION_USER_ACTION_4,
+} navMissionUserAction_e;
+
+typedef enum {
     RTH_TRACKBACK_OFF,
     RTH_TRACKBACK_ON,
     RTH_TRACKBACK_FS,
@@ -413,6 +421,9 @@ typedef struct navConfig_s {
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;                   // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;            // Waypoint mission sanity check distance
+        uint8_t  vtol_mission_transition_user_action; // User action slot that requests mission VTOL transition
+        uint16_t vtol_mission_transition_min_altitude; // Minimum altitude [cm] to start mission VTOL transition (0 = disabled)
+        uint32_t vtol_mission_transition_track_distance; // Straight-segment target distance [cm] used during MC->FW mission transition
 #ifdef USE_MULTI_MISSION
         uint8_t  waypoint_multi_mission_index;      // Index of mission to be loaded in multi mission entry
 #endif

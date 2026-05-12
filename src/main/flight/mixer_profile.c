@@ -17,6 +17,7 @@
 #include "flight/failsafe.h"
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#include "sensors/pitotmeter.h"
 
 #include "fc/fc_core.h"
 #include "fc/config.h"
@@ -37,7 +38,7 @@ bool isMixerTransitionMixing_requested;
 mixerProfileAT_t mixerProfileAT;
 int nextMixerProfileIndex;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 2);
 
 void pgResetFn_mixerProfiles(mixerProfile_t *instance)
 {
@@ -53,6 +54,7 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .controlProfileLinking = SETTING_MIXER_CONTROL_PROFILE_LINKING_DEFAULT,
                          .automated_switch = SETTING_MIXER_AUTOMATED_SWITCH_DEFAULT,
                          .switchTransitionTimer =  SETTING_MIXER_SWITCH_TRANS_TIMER_DEFAULT,
+                         .switchTransitionAirspeed = SETTING_MIXER_SWITCH_TRANS_AIRSPEED_CM_S_DEFAULT,
                          .tailsitterOrientationOffset = SETTING_TAILSITTER_ORIENTATION_OFFSET_DEFAULT,
                          .transition_PID_mmix_multiplier_roll = SETTING_TRANSITION_PID_MMIX_MULTIPLIER_ROLL_DEFAULT,
                          .transition_PID_mmix_multiplier_pitch = SETTING_TRANSITION_PID_MMIX_MULTIPLIER_PITCH_DEFAULT,
@@ -112,12 +114,43 @@ void setMixerProfileAT(void)
     mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchTransitionTimer * 100;
 }
 
+static bool requestTransitionsToFixedWing(const mixerProfileATRequest_e required_action)
+{
+    return required_action == MIXERAT_REQUEST_RTH || required_action == MIXERAT_REQUEST_MISSION_TO_FW;
+}
+
+static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_action)
+{
+#ifdef USE_PITOT
+    if (requestTransitionsToFixedWing(required_action) &&
+        currentMixerConfig.switchTransitionAirspeed > 0 &&
+        pitotValidForAirspeed()) {
+        return getAirspeedEstimate() >= currentMixerConfig.switchTransitionAirspeed;
+    }
+#endif
+
+    // Timer remains a fallback when airspeed is not configured/available.
+    return millis() > mixerProfileAT.transitionTransEndTime;
+}
+
 bool platformTypeConfigured(flyingPlatformType_e platformType)
 {   
     if (!isModeActivationConditionPresent(BOXMIXERPROFILE)){
         return false;
     }
     return mixerConfigByIndex(nextMixerProfileIndex)->platformType == platformType;
+}
+
+static bool missionTransitionToMultirotorTypeConfigured(void)
+{
+    if (!isModeActivationConditionPresent(BOXMIXERPROFILE)) {
+        return false;
+    }
+
+    const flyingPlatformType_e nextPlatformType = mixerConfigByIndex(nextMixerProfileIndex)->platformType;
+    return nextPlatformType == PLATFORM_MULTIROTOR ||
+           nextPlatformType == PLATFORM_TRICOPTER ||
+           nextPlatformType == PLATFORM_HELICOPTER;
 }
 
 bool checkMixerATRequired(mixerProfileATRequest_e required_action)
@@ -132,17 +165,22 @@ bool checkMixerATRequired(mixerProfileATRequest_e required_action)
         return false;
     }
 
-    if(currentMixerConfig.automated_switch){
-        if ((required_action == MIXERAT_REQUEST_RTH) && STATE(MULTIROTOR))
-        {
-            return true;
-        }
-        if ((required_action == MIXERAT_REQUEST_LAND) && STATE(AIRPLANE))
-        {
-            return true;
-        }
+    switch (required_action) {
+    case MIXERAT_REQUEST_RTH:
+        return currentMixerConfig.automated_switch && STATE(MULTIROTOR) && platformTypeConfigured(PLATFORM_AIRPLANE);
+
+    case MIXERAT_REQUEST_LAND:
+        return currentMixerConfig.automated_switch && STATE(AIRPLANE) && missionTransitionToMultirotorTypeConfigured();
+
+    case MIXERAT_REQUEST_MISSION_TO_FW:
+        return STATE(MULTIROTOR) && platformTypeConfigured(PLATFORM_AIRPLANE);
+
+    case MIXERAT_REQUEST_MISSION_TO_MC:
+        return STATE(AIRPLANE) && missionTransitionToMultirotorTypeConfigured();
+
+    default:
+        return false;
     }
-    return false;
 }
 
 bool mixerATUpdateState(mixerProfileATRequest_e required_action)
@@ -173,7 +211,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
             break;
         case MIXERAT_PHASE_TRANSITIONING:
             isMixerTransitionMixing_requested = true;
-            if (millis() > mixerProfileAT.transitionTransEndTime){
+            if (mixerATReadyForHotSwitch(required_action)){
                 isMixerTransitionMixing_requested = false;
                 outputProfileHotSwitch(nextMixerProfileIndex);
                 mixerProfileAT.phase = MIXERAT_PHASE_IDLE;

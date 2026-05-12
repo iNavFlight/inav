@@ -171,6 +171,9 @@ tables:
   - name: nav_wp_mission_restart
     enum: navMissionRestart_e
     values: ["START", "RESUME", "SWITCH"]
+  - name: nav_wp_user_action
+    enum: navMissionUserAction_e
+    values: ["OFF", "USER1", "USER2", "USER3", "USER4"]
   - name: djiRssiSource
     values: ["RSSI", "CRSF_LQ"]
     enum: djiRssiSource_e
@@ -1277,6 +1280,12 @@ groups:
         field: mixer_config.switchTransitionTimer
         min: 0
         max: 200
+      - name: mixer_switch_trans_airspeed_cm_s
+        description: "Airspeed threshold [cm/s] for MC->FW automated profile switch. If > 0 and valid pitot airspeed is available, transition will switch to FW only after this speed is reached. If airspeed is unavailable, timer-based fallback (`mixer_switch_trans_timer`) is used."
+        default_value: 0
+        field: mixer_config.switchTransitionAirspeed
+        min: 0
+        max: 10000
       - name: tailsitter_orientation_offset
         description: "Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode"
         default_value: OFF
@@ -2623,6 +2632,23 @@ groups:
         default_value: "RESUME"
         field: general.flags.waypoint_mission_restart
         table: nav_wp_mission_restart
+      - name: nav_vtol_mission_transition_user_action
+        description: "Selects which waypoint USER action bit (`USER1`..`USER4`) is used as mission VTOL target selector. OFF disables this feature. On navigable mission waypoints: selected USER bit = 1 requests FW profile, selected USER bit = 0 requests MC profile."
+        default_value: "OFF"
+        field: general.vtol_mission_transition_user_action
+        table: nav_wp_user_action
+      - name: nav_vtol_mission_transition_min_altitude_cm
+        description: "Minimum altitude [cm] required to start a mission-authorized VTOL transition. Set to 0 to disable the minimum-altitude check."
+        default_value: 0
+        field: general.vtol_mission_transition_min_altitude
+        min: 0
+        max: 50000
+      - name: nav_vtol_mission_transition_track_distance_cm
+        description: "Straight-line target distance [cm] used during mission-authorized MC->FW transition guidance. This controls how far ahead the transition heading target is placed."
+        default_value: 100000
+        field: general.vtol_mission_transition_track_distance
+        min: 1000
+        max: 500000
       - name: nav_wp_multi_mission_index
         description: "Index of active mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions."
         default_value: 1

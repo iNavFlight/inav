@@ -72,6 +72,28 @@ This feature is mainly for RTH in a failsafe event. When set properly, model wil
 Set `mixer_automated_switch` to `ON` in mixer_profile for MC mode. Set `mixer_switch_trans_timer` in mixer_profile for MC mode for the time required to gain airspeed for your model before entering to FW mode.
 When `mixer_automated_switch`:`OFF` is set for all mixer_profiles(defaults). Model will not perform automated transition at all.
 
+### Mission-authorized VTOL transition (waypoint User Action)
+
+INAV supports mission-requested VTOL transitions through the existing automated transition path. This is configured with:
+
+- `nav_vtol_mission_transition_user_action` (`OFF`, `USER1`, `USER2`, `USER3`, `USER4`)
+- `nav_vtol_mission_transition_min_altitude_cm` (optional, `0` disables minimum-altitude check)
+- `mixer_switch_trans_airspeed_cm_s` (optional, airspeed-based MC->FW switch threshold)
+
+On each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`), the configured USER action bit is used as absolute target selector:
+
+- selected USER bit = `0` -> transition to MC / MULTIROTOR profile
+- selected USER bit = `1` -> transition to FW / AIRPLANE profile
+- This is **not** a toggle command.
+- If already in the requested profile type, the action is treated as complete (idempotent).
+
+The mission pauses while transition is in progress and resumes after completion.
+
+For MC -> FW mission transitions, navigation uses a straight acceleration segment (no loiter) to build speed before hot-switch.
+When `mixer_switch_trans_airspeed_cm_s > 0` and valid pitot airspeed is available, automated MC->FW switching uses this airspeed target. If airspeed is unavailable, transition falls back to `mixer_switch_trans_timer`.
+
+Manual RC switching (`MIXER PROFILE 2`, `MIXER TRANSITION`) remains blocked during normal active navigation. Mission VTOL transition does not bypass the hot-switch safety guard; it only authorizes switching inside the automated transition state.
+
 ## TailSitter (planned for INAV 7.1)
 TailSitter is supported by add a 90deg offset to the board alignment. Set the board aliment normally in the mixer_profile for FW mode(`set platform_type = AIRPLANE`), The motor trust axis should be same direction as the airplane nose. Then, in the mixer_profile for takeoff and landing set `tailsitter_orientation_offset = ON ` to apply orientation offset. orientation offset will also add a 45deg orientation offset.
 

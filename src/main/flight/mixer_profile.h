@@ -18,6 +18,7 @@ typedef struct mixerConfig_s {
     bool controlProfileLinking;
     bool automated_switch;
     int16_t switchTransitionTimer;
+    uint16_t switchTransitionAirspeed;
     bool tailsitterOrientationOffset;
     int16_t transition_PID_mmix_multiplier_roll;
     int16_t transition_PID_mmix_multiplier_pitch;
@@ -34,6 +35,8 @@ typedef enum {
     MIXERAT_REQUEST_NONE, //no request, stats checking only
     MIXERAT_REQUEST_RTH,
     MIXERAT_REQUEST_LAND,
+    MIXERAT_REQUEST_MISSION_TO_FW,
+    MIXERAT_REQUEST_MISSION_TO_MC,
     MIXERAT_REQUEST_ABORT,
 } mixerProfileATRequest_e;
 

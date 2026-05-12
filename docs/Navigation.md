@@ -102,6 +102,37 @@ Parameters:
 
   * `<flag>` - Last waypoint must have `flag` set to 165 (0xA5).
 
+### Mission VTOL transition using existing User Actions
+
+Mission VTOL transition can be requested.
+
+Configuration:
+
+- `nav_vtol_mission_transition_user_action` selects which waypoint User Action (`USER1..USER4`) is used as the mission VTOL target selector.
+- `nav_vtol_mission_transition_min_altitude_cm` optionally enforces a minimum altitude before transition start (`0` disables check).
+- `nav_vtol_mission_transition_track_distance_cm` configures straight-line MC->FW transition guidance distance.
+- `mixer_switch_trans_airspeed_cm_s` configures MC->FW airspeed threshold for automated profile switching.
+
+Behavior on each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`):
+
+- The configured USER bit is an **absolute target selector**:
+  - `0`: transition to MC / MULTIROTOR profile
+  - `1`: transition to FW / AIRPLANE profile
+- This command is **not** a toggle.
+- The command is idempotent: if already in the requested target profile type, the mission continues immediately.
+- If a transition is needed, mission progression pauses while automated transition runs, then resumes only after completion.
+
+Transition behavior in this MVP:
+
+- MC -> FW: straight-line acceleration segment (no loiter), heading from the next waypoint bearing when available, otherwise current heading.
+- MC -> FW switch point: if valid pitot airspeed is available and `mixer_switch_trans_airspeed_cm_s > 0`, switch to FW occurs at/above the configured airspeed. If airspeed is unavailable, timer-based fallback (`mixer_switch_trans_timer`) is used.
+- FW -> MC: mission pauses during automated transition, then resumes after switching back to MC profile.
+- Strict altitude hold is not enforced during MC -> FW transition; natural climb is allowed.
+
+Safety and scope:
+
+- This path uses authorized automated transition state handling; it does not permit manual mixer profile switching during normal waypoint navigation.
+
 `wp save` - Checks list of waypoints and save from FC to EEPROM (warning: it also saves all unsaved CLI settings like normal `save`).
 
 `wp reset` - Resets the list, sets the number of waypoints to 0 and marks the list as invalid (but doesn't delete the waypoint definitions).
