@@ -1314,6 +1314,12 @@ groups:
         field: mixer_config.vtolTransitionAirspeedTimeoutMs
         min: 0
         max: 60000
+      - name: vtol_transition_scale_ramp_time_ms
+        description: "Optional dynamic scaling ramp duration [ms]. When > 0 and `vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling uses this timer instead of transition completion progress. Set to 0 to keep legacy progress-coupled scaling behavior."
+        default_value: 0
+        field: mixer_config.vtolTransitionScaleRampTimeMs
+        min: 0
+        max: 60000
       - name: vtol_transition_lift_end_percent
         description: "Target vertical-lift throttle scale at transition end, in percent. Used only when `vtol_transition_dynamic_mixer` is ON."
         default_value: 100

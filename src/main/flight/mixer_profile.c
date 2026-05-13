@@ -64,6 +64,7 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .vtolTransitionToFwMinAirspeed = SETTING_VTOL_TRANSITION_TO_FW_MIN_AIRSPEED_CM_S_DEFAULT,
                          .vtolTransitionToMcMaxAirspeed = SETTING_VTOL_TRANSITION_TO_MC_MAX_AIRSPEED_CM_S_DEFAULT,
                          .vtolTransitionAirspeedTimeoutMs = SETTING_VTOL_TRANSITION_AIRSPEED_TIMEOUT_MS_DEFAULT,
+                         .vtolTransitionScaleRampTimeMs = SETTING_VTOL_TRANSITION_SCALE_RAMP_TIME_MS_DEFAULT,
                          .vtolTransitionLiftEndPercent = SETTING_VTOL_TRANSITION_LIFT_END_PERCENT_DEFAULT,
                          .vtolTransitionMcAuthorityEndPercent = SETTING_VTOL_TRANSITION_MC_AUTHORITY_END_PERCENT_DEFAULT,
                          .vtolTransitionFwAuthorityStartPercent = SETTING_VTOL_TRANSITION_FW_AUTHORITY_START_PERCENT_DEFAULT,
@@ -188,6 +189,20 @@ static float blendScale(float from, float to, float progress)
     return from + (to - from) * constrainf(progress, 0.0f, 1.0f);
 }
 
+static float getScalingProgress(void)
+{
+    if (!currentMixerConfig.vtolTransitionDynamicMixer) {
+        return 1.0f;
+    }
+
+    if (currentMixerConfig.vtolTransitionScaleRampTimeMs > 0) {
+        const uint32_t elapsedMs = millis() - mixerProfileAT.transitionStartTime;
+        return constrainf((float)elapsedMs / (float)currentMixerConfig.vtolTransitionScaleRampTimeMs, 0.0f, 1.0f);
+    }
+
+    return constrainf(mixerProfileAT.progress, 0.0f, 1.0f);
+}
+
 static bool hasTrustedPitotAirspeed(float *airspeedCmS)
 {
 #ifdef USE_PITOT
@@ -238,17 +253,18 @@ static void updateTransitionScales(void)
     const float liftFloor = constrainf(currentMixerConfig.vtolTransitionLiftEndPercent / 100.0f, 0.0f, 1.0f);
     const float mcFloor = constrainf(currentMixerConfig.vtolTransitionMcAuthorityEndPercent / 100.0f, 0.0f, 1.0f);
     const float fwFloor = constrainf(currentMixerConfig.vtolTransitionFwAuthorityStartPercent / 100.0f, 0.0f, 1.0f);
+    const float scaleProgress = getScalingProgress();
 
     if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) {
-        mixerProfileAT.pusherScale = blendScale(0.0f, 1.0f, mixerProfileAT.progress);
-        mixerProfileAT.liftScale = blendScale(1.0f, liftFloor, mixerProfileAT.progress);
-        mixerProfileAT.mcAuthorityScale = blendScale(1.0f, mcFloor, mixerProfileAT.progress);
-        mixerProfileAT.fwAuthorityScale = blendScale(fwFloor, 1.0f, mixerProfileAT.progress);
+        mixerProfileAT.pusherScale = blendScale(0.0f, 1.0f, scaleProgress);
+        mixerProfileAT.liftScale = blendScale(1.0f, liftFloor, scaleProgress);
+        mixerProfileAT.mcAuthorityScale = blendScale(1.0f, mcFloor, scaleProgress);
+        mixerProfileAT.fwAuthorityScale = blendScale(fwFloor, 1.0f, scaleProgress);
     } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC) {
-        mixerProfileAT.pusherScale = blendScale(1.0f, 0.0f, mixerProfileAT.progress);
-        mixerProfileAT.liftScale = blendScale(liftFloor, 1.0f, mixerProfileAT.progress);
-        mixerProfileAT.mcAuthorityScale = blendScale(mcFloor, 1.0f, mixerProfileAT.progress);
-        mixerProfileAT.fwAuthorityScale = blendScale(1.0f, fwFloor, mixerProfileAT.progress);
+        mixerProfileAT.pusherScale = blendScale(1.0f, 0.0f, scaleProgress);
+        mixerProfileAT.liftScale = blendScale(liftFloor, 1.0f, scaleProgress);
+        mixerProfileAT.mcAuthorityScale = blendScale(mcFloor, 1.0f, scaleProgress);
+        mixerProfileAT.fwAuthorityScale = blendScale(1.0f, fwFloor, scaleProgress);
     }
 
     mixerProfileAT.blendToFw = constrainf(mixerProfileAT.fwAuthorityScale, 0.0f, 1.0f);

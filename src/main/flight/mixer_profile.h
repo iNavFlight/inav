@@ -24,6 +24,7 @@ typedef struct mixerConfig_s {
     uint16_t vtolTransitionToFwMinAirspeed;
     uint16_t vtolTransitionToMcMaxAirspeed;
     uint16_t vtolTransitionAirspeedTimeoutMs;
+    uint16_t vtolTransitionScaleRampTimeMs;
     uint8_t vtolTransitionLiftEndPercent;
     uint8_t vtolTransitionMcAuthorityEndPercent;
     uint8_t vtolTransitionFwAuthorityStartPercent;

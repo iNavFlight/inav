@@ -87,7 +87,9 @@ When `mixer_automated_switch`:`OFF` is set for all mixer_profiles(defaults). Mod
 
 Manual `MIXER TRANSITION` and mission-authorized VTOL transition both use the same internal transition controller.
 This controller always computes transition progress/completion and performs profile hot-switch only inside the authorized transition state.
-When `vtol_transition_dynamic_mixer = ON`, that progress is also used for pusher/lift/authority scaling.
+When `vtol_transition_dynamic_mixer = ON`, pusher/lift/authority scaling is enabled and is driven by:
+- transition progress (default), or
+- `vtol_transition_scale_ramp_time_ms` when configured (>0).
 
 ### Airspeed-first completion
 
@@ -115,6 +117,21 @@ When `vtol_transition_dynamic_mixer = ON`, transition progress scales:
 
 Default is OFF to preserve existing behavior.
 With dynamic scaling enabled, `vtol_transition_fw_authority_start_percent = 100` preserves legacy FW authority handoff; lower values provide smoother ramp-in.
+
+Optional scaling ramp timer:
+
+- `vtol_transition_scale_ramp_time_ms = 0` (default): scaling remains coupled to transition progress (legacy-compatible behavior).
+- `vtol_transition_scale_ramp_time_ms > 0`: scaling uses this timer, while transition completion stays airspeed-first (or timer fallback if pitot unavailable/unhealthy).
+
+Example:
+
+- `mixer_switch_trans_timer = 50` (5s fallback completion timer)
+- `vtol_transition_scale_ramp_time_ms = 1200`
+
+Result:
+- scaling reaches target levels in ~1.2s,
+- transition completion still follows airspeed threshold when pitot is healthy,
+- timer fallback completion still uses 5s when pitot is unavailable/unhealthy.
 
 ### Mission-authorized VTOL transition (waypoint User Action)
 
