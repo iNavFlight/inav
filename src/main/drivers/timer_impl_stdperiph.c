@@ -270,6 +270,13 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
 {
     if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
         TCH_t * tch = (TCH_t *)descriptor->userParam;
+
+        // In circular mode, let DMA keep running - don't disable the stream
+        if (tch->dmaState == TCH_DMA_CIRCULAR) {
+            DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
+            return;
+        }
+
         tch->dmaState = TCH_DMA_IDLE;
 
         DMA_Cmd(tch->dma->ref, DISABLE);
@@ -463,6 +470,46 @@ void impl_pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength
     TIM_DMAConfig(burstDmaTimer->timer, TIM_DMABase_CCR1, TIM_DMABurstLength_4Transfers);
     TIM_DMACmd(burstDmaTimer->timer, burstDmaTimer->burstRequestSource, ENABLE);
 }
+
+void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, uint32_t dmaBufferSize)
+{
+    if (!tch->dma || !tch->dma->ref) {
+        return;
+    }
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        TIM_DMACmd(burstDmaTimer->timer, burstDmaTimer->burstRequestSource, DISABLE);
+        DMA_Cmd(burstDmaTimer->dmaBurstStream, DISABLE);
+
+        uint32_t timeout = 10000;
+        while ((burstDmaTimer->dmaBurstStream->CR & DMA_SxCR_EN) && timeout--) {
+            __NOP();
+        }
+
+        if (burstDmaTimer->dmaBurstStream->CR & DMA_SxCR_EN) {
+            TIM_DMACmd(burstDmaTimer->timer, burstDmaTimer->burstRequestSource, ENABLE);
+            return;
+        }
+
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
+
+        if (circular) {
+            burstDmaTimer->dmaBurstStream->CR |= DMA_SxCR_CIRC;
+            DMA_SetCurrDataCounter(burstDmaTimer->dmaBurstStream, dmaBufferSize);
+            DMA_ITConfig(burstDmaTimer->dmaBurstStream, DMA_IT_TC, DISABLE);
+            tch->dmaState = TCH_DMA_CIRCULAR;
+        } else {
+            burstDmaTimer->dmaBurstStream->CR &= ~DMA_SxCR_CIRC;
+            DMA_ITConfig(burstDmaTimer->dmaBurstStream, DMA_IT_TC, ENABLE);
+            tch->dmaState = TCH_DMA_IDLE;
+        }
+
+        __DSB();
+
+        DMA_Cmd(burstDmaTimer->dmaBurstStream, ENABLE);
+        TIM_DMACmd(burstDmaTimer->timer, burstDmaTimer->burstRequestSource, ENABLE);
+    }
+}
 #endif
 
 void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
@@ -518,4 +565,49 @@ void impl_timerPWMStopDMA(TCH_t * tch)
     TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
     tch->dmaState = TCH_DMA_IDLE;
     TIM_Cmd(tch->timHw->tim, ENABLE);
+}
+
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferSize)
+{
+    if (!tch->dma || !tch->dma->ref) {
+        return;
+    }
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        // Stop new transfer triggers before reconfiguring
+        TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
+        DMA_Cmd(tch->dma->ref, DISABLE);
+
+        // STM32F4/F7 RM: poll EN bit until stream is actually disabled
+        uint32_t timeout = 10000; // ~60us at 168MHz, well above worst-case disable latency
+        while ((tch->dma->ref->CR & DMA_SxCR_EN) && timeout--) {
+            __NOP();
+        }
+
+        if (tch->dma->ref->CR & DMA_SxCR_EN) {
+            TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], ENABLE);
+            return;
+        }
+
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
+
+        if (circular) {
+            tch->dma->ref->CR |= DMA_SxCR_CIRC;
+            DMA_SetCurrDataCounter(tch->dma->ref, dmaBufferSize);
+            // Disable TC interrupt — in circular mode, TC fires every cycle
+            // and the IRQ handler would otherwise disable the stream
+            DMA_ITConfig(tch->dma->ref, DMA_IT_TC, DISABLE);
+            tch->dmaState = TCH_DMA_CIRCULAR;
+        } else {
+            tch->dma->ref->CR &= ~DMA_SxCR_CIRC;
+            DMA_ITConfig(tch->dma->ref, DMA_IT_TC, ENABLE);
+            tch->dmaState = TCH_DMA_IDLE;
+        }
+
+        // Ensure register writes are visible to DMA before re-enabling
+        __DSB();
+
+        DMA_Cmd(tch->dma->ref, ENABLE);
+        TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], ENABLE);
+    }
 }
