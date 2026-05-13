@@ -386,6 +386,10 @@ typedef struct positionEstimationConfig_s {
 
 PG_DECLARE(positionEstimationConfig_t, positionEstimationConfig);
 
+typedef enum {
+    NAV_PRECISION_LANDING_SOURCE_MSP = 0,
+} navPrecisionLandingSource_e;
+
 typedef struct navConfig_s {
 
     struct {
@@ -441,6 +445,17 @@ typedef struct navConfig_s {
         uint16_t rth_linear_descent_start_distance; // Distance from home to start the linear descent (0 = immediately)
         uint8_t  cruise_yaw_rate;                   // Max yaw rate (dps) when CRUISE MODE is enabled
         uint16_t rth_fs_landing_delay;              // Delay upon reaching home before starting landing if in FS (0 = immediate)
+        bool     precision_landing;                 // Enable MSP-driven precision landing target consumer
+        uint8_t  precision_landing_source;          // navPrecisionLandingSource_e
+        uint8_t  precision_landing_min_confidence;  // [0..100]
+        uint16_t precision_landing_max_target_age_ms;
+        uint16_t precision_landing_max_offset_cm;
+        uint16_t precision_landing_align_radius_cm;
+        uint16_t precision_landing_max_correction_speed_cm_s;
+        uint16_t precision_landing_lost_hold_time_ms;
+        uint8_t  precision_landing_retry_count;
+        uint16_t precision_landing_retry_altitude_cm;
+        uint16_t precision_landing_retry_timeout_ms;
     } general;
 
     struct {
@@ -626,6 +641,12 @@ typedef enum {
     MW_NAV_STATE_HOVER_ABOVE_HOME,        // Hover/Loitering above home
     MW_NAV_STATE_EMERGENCY_LANDING,       // Emergency landing
     MW_NAV_STATE_RTH_CLIMB,               // RTH Climb safe altitude
+    MW_NAV_STATE_PRECISION_LANDING_STANDBY,
+    MW_NAV_STATE_PRECISION_LANDING_POSHOLD_CORRECTION,
+    MW_NAV_STATE_PRECISION_LANDING_LAND_CORRECTION,
+    MW_NAV_STATE_PRECISION_LANDING_TARGET_LOST_HOLD,
+    MW_NAV_STATE_PRECISION_LANDING_CLIMB_AND_RETRY,
+    MW_NAV_STATE_PRECISION_LANDING_FALLBACK_NORMAL_LAND,
 } navSystemStatus_State_e;
 
 typedef enum {

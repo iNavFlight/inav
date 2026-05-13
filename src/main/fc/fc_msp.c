@@ -109,6 +109,7 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h" //for MSP_SIMULATOR
+#include "navigation/precision_landing.h"
 #include "navigation/navigation_pos_estimator_private.h" //for MSP_SIMULATOR
 
 #include "rx/rx.h"
@@ -4366,6 +4367,37 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = MSP_RESULT_ERROR;
         break;
 #endif
+
+    case MSP2_INAV_SET_PRECISION_LANDING_TARGET:
+        if (dataSize != (3 * sizeof(uint8_t) + 2 * sizeof(int16_t) + sizeof(uint16_t) + sizeof(uint32_t))) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+        {
+            precisionLandingTargetUpdate_t update = {
+                .valid = sbufReadU8(src),
+                .confidence = sbufReadU8(src),
+                .frame = sbufReadU8(src),
+                .offsetForwardCm = (int16_t)sbufReadU16(src),
+                .offsetRightCm = (int16_t)sbufReadU16(src),
+                .distanceCm = sbufReadU16(src),
+                .timestampMs = sbufReadU32(src),
+            };
+
+            precisionLandingMspResponse_t response = { 0 };
+            if (!precisionLandingHandleMspTargetUpdate(&update, &response)) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+
+            sbufWriteU8(dst, response.accepted);
+            sbufWriteU8(dst, response.usedNow);
+            sbufWriteU8(dst, response.navPrecisionState);
+            sbufWriteU8(dst, response.reason);
+            sbufWriteU8(dst, response.retryCount);
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
 
     case MSP2_INAV_SET_LOCAL_TARGET:
         if (dataSize != 3 * sizeof(int32_t) || !isGCSValid()) {

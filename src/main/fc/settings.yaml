@@ -168,6 +168,8 @@ tables:
   - name: nav_rth_climb_first
     enum: navRTHClimbFirst_e
     values: ["OFF", "ON", "ON_FW_SPIRAL"]
+  - name: nav_precision_landing_source
+    values: ["MSP"]
   - name: nav_wp_mission_restart
     enum: navMissionRestart_e
     values: ["START", "RESUME", "SWITCH"]
@@ -2759,6 +2761,70 @@ groups:
         min: 0
         max: 1800
         field: general.rth_fs_landing_delay
+      - name: nav_precision_landing
+        description: "Enable MSP-based precision landing target consumption. This does not trigger mode changes on its own."
+        default_value: OFF
+        field: general.precision_landing
+        type: bool
+      - name: nav_precision_landing_source
+        description: "Precision landing target source."
+        default_value: "MSP"
+        field: general.precision_landing_source
+        table: nav_precision_landing_source
+      - name: nav_precision_landing_min_confidence
+        description: "Minimum confidence required to accept/use a precision landing target update [0..100]."
+        default_value: 60
+        field: general.precision_landing_min_confidence
+        min: 0
+        max: 100
+      - name: nav_precision_landing_max_target_age_ms
+        description: "Maximum age of a cached precision target that can still be used [ms]."
+        default_value: 500
+        field: general.precision_landing_max_target_age_ms
+        min: 50
+        max: 5000
+      - name: nav_precision_landing_max_offset_cm
+        description: "Maximum allowed horizontal target offset magnitude. Larger offsets are rejected [cm]. Set 0 to disable this check."
+        default_value: 1500
+        field: general.precision_landing_max_offset_cm
+        min: 0
+        max: 5000
+      - name: nav_precision_landing_align_radius_cm
+        description: "Horizontal radius considered close enough to center for precision-alignment quality checks [cm]."
+        default_value: 80
+        field: general.precision_landing_align_radius_cm
+        min: 10
+        max: 2000
+      - name: nav_precision_landing_max_correction_speed_cm_s
+        description: "Maximum horizontal correction speed generated from target offset [cm/s]."
+        default_value: 100
+        field: general.precision_landing_max_correction_speed_cm_s
+        min: 10
+        max: 1000
+      - name: nav_precision_landing_lost_hold_time_ms
+        description: "Hold duration after target loss before climb-and-retry starts [ms]."
+        default_value: 1500
+        field: general.precision_landing_lost_hold_time_ms
+        min: 100
+        max: 10000
+      - name: nav_precision_landing_retry_count
+        description: "Maximum number of climb-and-retry attempts after target loss."
+        default_value: 2
+        field: general.precision_landing_retry_count
+        min: 0
+        max: 10
+      - name: nav_precision_landing_retry_altitude_cm
+        description: "Climb distance for each retry attempt after target loss [cm]."
+        default_value: 200
+        field: general.precision_landing_retry_altitude_cm
+        min: 50
+        max: 2000
+      - name: nav_precision_landing_retry_timeout_ms
+        description: "Timeout for each climb-and-retry phase [ms]. Set to 0 for AUTO mode (computed as 2 x nav_precision_landing_lost_hold_time_ms)."
+        default_value: 0
+        field: general.precision_landing_retry_timeout_ms
+        min: 0
+        max: 60000
       - name: nav_rth_alt_mode
         description: "Configure how the aircraft will manage altitude on the way home, see Navigation modes on wiki for more details"
         default_value: "AT_LEAST"

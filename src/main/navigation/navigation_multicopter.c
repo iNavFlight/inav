@@ -50,6 +50,7 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#include "navigation/precision_landing.h"
 #include "navigation/sqrt_controller.h"
 
 #include "sensors/battery.h"
@@ -533,6 +534,9 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     const float velExpoFactor = getVelocityExpoAttenuationFactor(neuVelTotal, maxSpeed);
     posControl.desiredState.vel.x = neuVelX * velHeadFactor * velExpoFactor;
     posControl.desiredState.vel.y = neuVelY * velHeadFactor * velExpoFactor;
+
+    // Optional external precision landing/alignment correction (MC/VTOL hover contexts only).
+    precisionLandingApplyHorizontalVelocityCorrection(&posControl.desiredState.vel.x, &posControl.desiredState.vel.y);
 }
 
 static float computeNormalizedVelocity(const float value, const float maxValue)

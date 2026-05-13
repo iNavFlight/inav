@@ -1118,6 +1118,18 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_LAND_START_DESCENT:
             // Not used
             break;
+        case MW_NAV_STATE_PRECISION_LANDING_STANDBY:
+            return OSD_MESSAGE_STR("PREC LAND STANDBY");
+        case MW_NAV_STATE_PRECISION_LANDING_POSHOLD_CORRECTION:
+            return OSD_MESSAGE_STR("PREC LAND ALIGN");
+        case MW_NAV_STATE_PRECISION_LANDING_LAND_CORRECTION:
+            return OSD_MESSAGE_STR("PREC LAND DESCENT");
+        case MW_NAV_STATE_PRECISION_LANDING_TARGET_LOST_HOLD:
+            return OSD_MESSAGE_STR("PREC LAND HOLD");
+        case MW_NAV_STATE_PRECISION_LANDING_CLIMB_AND_RETRY:
+            return OSD_MESSAGE_STR("PREC LAND RETRY");
+        case MW_NAV_STATE_PRECISION_LANDING_FALLBACK_NORMAL_LAND:
+            return OSD_MESSAGE_STR("PREC LAND FALLBACK");
     }
 
     return NULL;

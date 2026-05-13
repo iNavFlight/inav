@@ -11260,6 +11260,92 @@
             "notes": "Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.",
             "description": "Jumps to a specific waypoint during an active waypoint mission, causing the aircraft to immediately begin navigating toward the new target waypoint."
         },
+        "MSP2_INAV_SET_PRECISION_LANDING_TARGET": {
+            "code": 8753,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "valid",
+                        "ctype": "uint8_t",
+                        "desc": "0 clears/invalidates target, non-zero marks update as valid.",
+                        "units": ""
+                    },
+                    {
+                        "name": "confidence",
+                        "ctype": "uint8_t",
+                        "desc": "External confidence value.",
+                        "units": "percent"
+                    },
+                    {
+                        "name": "frame",
+                        "ctype": "uint8_t",
+                        "desc": "Target coordinate frame; currently 0 = body FRD.",
+                        "units": "enum"
+                    },
+                    {
+                        "name": "offset_forward_cm",
+                        "ctype": "int16_t",
+                        "desc": "Target forward offset relative to vehicle body frame.",
+                        "units": "cm"
+                    },
+                    {
+                        "name": "offset_right_cm",
+                        "ctype": "int16_t",
+                        "desc": "Target right offset relative to vehicle body frame.",
+                        "units": "cm"
+                    },
+                    {
+                        "name": "distance_cm",
+                        "ctype": "uint16_t",
+                        "desc": "Optional distance to target (0 if unknown).",
+                        "units": "cm"
+                    },
+                    {
+                        "name": "timestamp_ms",
+                        "ctype": "uint32_t",
+                        "desc": "Optional companion timestamp (0 allowed).",
+                        "units": "ms"
+                    }
+                ]
+            },
+            "reply": {
+                "payload": [
+                    {
+                        "name": "accepted",
+                        "ctype": "uint8_t",
+                        "desc": "Payload accepted by precision-landing target consumer.",
+                        "units": ""
+                    },
+                    {
+                        "name": "used_now",
+                        "ctype": "uint8_t",
+                        "desc": "Target is currently influencing navigation correction.",
+                        "units": ""
+                    },
+                    {
+                        "name": "nav_precision_state",
+                        "ctype": "uint8_t",
+                        "desc": "Current internal precision-landing state.",
+                        "units": "enum"
+                    },
+                    {
+                        "name": "reason",
+                        "ctype": "uint8_t",
+                        "desc": "Processing reason/result code.",
+                        "units": "enum"
+                    },
+                    {
+                        "name": "retry_count",
+                        "ctype": "uint8_t",
+                        "desc": "Current retry counter value.",
+                        "units": ""
+                    }
+                ]
+            },
+            "notes": "This message updates precision-landing target cache only. It does not arm/disarm, does not switch modes, and does not trigger landing by itself. Precision correction is applied only in MC/VTOL hover-capable profile and POSHOLD/LAND-compatible navigation contexts.",
+            "description": "Updates the external precision-landing target cache consumed by NAV precision landing."
+        },
         "MSP2_INAV_SET_CRUISE_HEADING": {
             "code": 8739,
             "mspv": 2,
