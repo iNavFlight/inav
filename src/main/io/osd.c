@@ -3573,7 +3573,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!moreThanAh) {
                         tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
                     } else {
-                        tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_MI);
+                        tfp_sprintf(buff + strlen(buff), "%c ", SYM_AH_MI);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
@@ -3587,7 +3587,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!moreThanAh) {
                         tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
                     } else {
-                        tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_NM);
+                        tfp_sprintf(buff + strlen(buff), "%c ", SYM_AH_NM);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
@@ -3603,7 +3603,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!moreThanAh) {
                         tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
                     } else {
-                        tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_KM);
+                        tfp_sprintf(buff + strlen(buff), "%c ", SYM_AH_KM);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
