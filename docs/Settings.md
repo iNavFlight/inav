@@ -2824,6 +2824,16 @@ Servo travel multiplier for the ROLL axis in `MANUAL` flight mode [0-100]%
 
 ---
 
+### manual_vtol_transition_controller
+
+Enables edge-triggered manual VTOL transition controller for `MIXER TRANSITION` when not in waypoint mission. OFF keeps legacy manual transition behavior.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### manual_yaw_rate
 
 Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
@@ -3196,6 +3206,16 @@ If enabled, control_profile_index will follow mixer_profile index. Set to OFF(de
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### mixer_switch_trans_airspeed_cm_s
+
+Legacy MC->FW airspeed threshold [cm/s] for automated profile switch. Used when `vtol_transition_to_fw_min_airspeed_cm_s = 0`. If airspeed is unavailable, timer-based fallback (`mixer_switch_trans_timer`) is used.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
 
 ---
 
@@ -4623,6 +4643,40 @@ Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: AT
 | --- | --- |
 | ATTI | Default |
 | CRUISE |  |
+
+---
+
+### nav_vtol_mission_transition_min_altitude_cm
+
+Minimum altitude [cm] required to start a mission-authorized VTOL transition. Set to 0 to disable the minimum-altitude check.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 50000 |
+
+---
+
+### nav_vtol_mission_transition_track_distance_cm
+
+Straight-line target distance [cm] used during mission-authorized MC->FW transition guidance. This controls how far ahead the transition heading target is placed.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100000 | 1000 | 500000 |
+
+---
+
+### nav_vtol_mission_transition_user_action
+
+Selects which waypoint USER action bit (`USER1`..`USER4`) is used as mission VTOL target selector. OFF disables this feature. On navigable mission waypoints: selected USER bit = 1 requests FW profile, selected USER bit = 0 requests MC profile. This is an absolute per-waypoint target-state selector and relies on existing mixer profile switching infrastructure (two profiles and valid MIXER PROFILE 2 mode activation condition).
+
+| Allowed Values |  |
+| --- | --- |
+| OFF | Default |
+| USER1 |  |
+| USER2 |  |
+| USER3 |  |
+| USER4 |  |
 
 ---
 
@@ -6971,6 +7025,86 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 | Default | Min | Max |
 | --- | --- | --- |
 | 350 | 100 | 500 |
+
+---
+
+### vtol_transition_airspeed_timeout_ms
+
+Safety timeout [ms] for airspeed-controlled transitions. If non-zero and required airspeed condition is not met in time, transition aborts instead of force-completing.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 60000 |
+
+---
+
+### vtol_transition_dynamic_mixer
+
+Enables dynamic VTOL transition progress/scaling controller shared by mission-authorized and manual MIXER TRANSITION paths.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### vtol_transition_fw_authority_start_percent
+
+Initial fixed-wing authority scale at transition start, in percent. Used only when `vtol_transition_dynamic_mixer` is ON.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 100 |
+
+---
+
+### vtol_transition_lift_end_percent
+
+Target vertical-lift throttle scale at transition end, in percent. Used only when `vtol_transition_dynamic_mixer` is ON.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 100 |
+
+---
+
+### vtol_transition_mc_authority_end_percent
+
+Target multicopter stabilization authority scale at transition end, in percent. Used only when `vtol_transition_dynamic_mixer` is ON.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 100 |
+
+---
+
+### vtol_transition_scale_ramp_time_ms
+
+Optional dynamic scaling ramp duration [ms]. When > 0 and `vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling uses this timer instead of transition completion progress. Set to 0 to keep legacy progress-coupled scaling behavior.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 60000 |
+
+---
+
+### vtol_transition_to_fw_min_airspeed_cm_s
+
+Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. Overrides `mixer_switch_trans_airspeed_cm_s` when > 0. If 0, legacy setting is used.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 20000 |
+
+---
+
+### vtol_transition_to_mc_max_airspeed_cm_s
+
+Maximum pitot airspeed [cm/s] allowed to complete FW->MC transition when airspeed is healthy and available. If 0, FW->MC uses timer fallback.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 20000 |
 
 ---
 
