@@ -4711,7 +4711,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `offset_forward_cm` | `int16_t` | 2 | cm | Target offset forward from vehicle body origin |
 | `offset_right_cm` | `int16_t` | 2 | cm | Target offset right from vehicle body origin |
 | `distance_cm` | `uint16_t` | 2 | cm | Optional distance to target (`0` if unknown) |
-| `timestamp_ms` | `uint32_t` | 4 | ms | Optional companion timestamp (`0` allowed) |
+| `timestamp_ms` | `uint32_t` | 4 | ms | Optional companion timestamp (`0` allowed, informational/debug) |
 
 **Reply Payload:**
 |Field|C Type|Size (Bytes)|Description|
@@ -4722,7 +4722,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `reason` | `uint8_t` | 1 | Result reason (`OK`, `NOT_ENABLED`, `LOW_CONFIDENCE`, `BAD_FRAME`, `STALE`, `OFFSET_TOO_LARGE`, `NOT_MC_PROFILE`, `NOT_IN_POSHOLD_OR_LAND`, etc.) |
 | `retry_count` | `uint8_t` | 1 | Active retry attempt count |
 
-**Notes:** Precision corrections are only applied in MC/VTOL-hover-capable profile and only in POSHOLD/LAND-compatible contexts. Outside those contexts, valid updates may still be cached (`used_now = 0`).
+**Notes:** Available only when firmware is built with `USE_PRECISION_LANDING`. Precision corrections are only applied in MC/VTOL-hover-capable profile and only in POSHOLD/LAND-compatible contexts. Outside those contexts, valid updates may still be cached (`used_now = 0`). Freshness is evaluated using FC receive time, not companion clock synchronization.
 
 ## <a id="msp2_inav_set_cruise_heading"></a>`MSP2_INAV_SET_CRUISE_HEADING (8739 / 0x2223)`
 **Description:** Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading.  

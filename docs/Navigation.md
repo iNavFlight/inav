@@ -43,6 +43,10 @@ PID meaning:
 INAV can consume externally computed precision-landing target offsets over MSP.
 INAV only consumes target updates.
 
+### Build-time availability
+This feature is compiled only when `USE_PRECISION_LANDING` is enabled for the target.
+On flash-constrained targets, it can be excluded at build time to preserve headroom.
+
 ### Core behavior
 * `nav_precision_landing` enables/disables this feature.
 * `MSP2_INAV_SET_PRECISION_LANDING_TARGET` updates a target cache and returns acceptance/use status.
@@ -51,6 +55,22 @@ INAV only consumes target updates.
   * active profile is MC/VTOL-hover-capable, and
   * current navigation context is POSHOLD-compatible or LAND-compatible.
 * In fixed-wing profile, updates may be cached but are not used for correction.
+
+### Scope and limits
+Precision landing here is a **final alignment/correction layer**.
+It does not replace normal waypoint/home navigation and it does not solve high-speed approach planning by itself.
+
+Recommended VTOL flow:
+1. transition to MC / hover-capable control
+2. controlled low-speed arrival near landing zone
+3. precision target alignment in POSHOLD
+4. precision correction during LAND
+
+### Why not `SET_WP`?
+`SET_WP` is a navigation target command interface.
+Precision landing target updates are external measurement inputs with validity/confidence/age semantics and target-loss handling.
+
+This feature intentionally keeps those semantics bounded to MC POSHOLD/LAND correction, rather than repeatedly rewriting mission/waypoint targets.
 
 ### POSHOLD behavior
 When a fresh/valid target exists, horizontal correction is applied to improve alignment above the target.

@@ -638,6 +638,7 @@ static char * navigationStateMessage(void)
         case MW_NAV_STATE_LAND_START_DESCENT:
             // Not used
             break;
+#ifdef USE_PRECISION_LANDING
         case MW_NAV_STATE_PRECISION_LANDING_STANDBY:
             return OSD_MESSAGE_STR("PREC LAND STANDBY");
         case MW_NAV_STATE_PRECISION_LANDING_POSHOLD_CORRECTION:
@@ -650,6 +651,7 @@ static char * navigationStateMessage(void)
             return OSD_MESSAGE_STR("PREC LAND RETRY");
         case MW_NAV_STATE_PRECISION_LANDING_FALLBACK_NORMAL_LAND:
             return OSD_MESSAGE_STR("PREC LAND FALLBACK");
+#endif
     }
     return NULL;
 }

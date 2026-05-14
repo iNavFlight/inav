@@ -15,6 +15,8 @@
 
 #include "sensors/sensors.h"
 
+#ifdef USE_PRECISION_LANDING
+
 typedef struct {
     bool cached;
     bool valid;
@@ -481,3 +483,5 @@ bool precisionLandingHandleMspTargetUpdate(const precisionLandingTargetUpdate_t 
     responseOut->retryCount = precisionLanding.retryCount;
     return true;
 }
+
+#endif

@@ -50,7 +50,9 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#ifdef USE_PRECISION_LANDING
 #include "navigation/precision_landing.h"
+#endif
 #include "navigation/sqrt_controller.h"
 
 #include "sensors/battery.h"
@@ -536,7 +538,9 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     posControl.desiredState.vel.y = neuVelY * velHeadFactor * velExpoFactor;
 
     // Optional external precision landing/alignment correction (MC/VTOL hover contexts only).
+#ifdef USE_PRECISION_LANDING
     precisionLandingApplyHorizontalVelocityCorrection(&posControl.desiredState.vel.x, &posControl.desiredState.vel.y);
+#endif
 }
 
 static float computeNormalizedVelocity(const float value, const float maxValue)

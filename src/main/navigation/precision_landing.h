@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef USE_PRECISION_LANDING
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -70,3 +72,5 @@ void precisionLandingApplyHorizontalVelocityCorrection(float *velX, float *velY)
 void precisionLandingGetLandControl(precisionLandingLandControl_t *controlOut);
 navSystemStatus_State_e precisionLandingOverrideNavStatusState(navSystemStatus_State_e defaultState);
 bool precisionLandingHandleMspTargetUpdate(const precisionLandingTargetUpdate_t *update, precisionLandingMspResponse_t *responseOut);
+
+#endif

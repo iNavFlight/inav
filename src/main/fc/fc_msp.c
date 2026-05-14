@@ -109,7 +109,9 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h" //for MSP_SIMULATOR
+#ifdef USE_PRECISION_LANDING
 #include "navigation/precision_landing.h"
+#endif
 #include "navigation/navigation_pos_estimator_private.h" //for MSP_SIMULATOR
 
 #include "rx/rx.h"
@@ -4368,6 +4370,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
+#ifdef USE_PRECISION_LANDING
     case MSP2_INAV_SET_PRECISION_LANDING_TARGET:
         if (dataSize != (3 * sizeof(uint8_t) + 2 * sizeof(int16_t) + sizeof(uint16_t) + sizeof(uint32_t))) {
             *ret = MSP_RESULT_ERROR;
@@ -4398,6 +4401,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             *ret = MSP_RESULT_ACK;
         }
         break;
+#endif
 
     case MSP2_INAV_SET_LOCAL_TARGET:
         if (dataSize != 3 * sizeof(int32_t) || !isGCSValid()) {

@@ -11304,7 +11304,7 @@
                     {
                         "name": "timestamp_ms",
                         "ctype": "uint32_t",
-                        "desc": "Optional companion timestamp (0 allowed).",
+                        "desc": "Optional companion timestamp (0 allowed, informational/debug).",
                         "units": "ms"
                     }
                 ]
@@ -11343,7 +11343,7 @@
                     }
                 ]
             },
-            "notes": "This message updates precision-landing target cache only. It does not arm/disarm, does not switch modes, and does not trigger landing by itself. Precision correction is applied only in MC/VTOL hover-capable profile and POSHOLD/LAND-compatible navigation contexts.",
+            "notes": "This message updates precision-landing target cache only. It does not arm/disarm, does not switch modes, and does not trigger landing by itself. Available only when firmware is built with USE_PRECISION_LANDING. Precision correction is applied only in MC/VTOL hover-capable profile and POSHOLD/LAND-compatible navigation contexts. Target freshness is evaluated using FC receive time.",
             "description": "Updates the external precision-landing target cache consumed by NAV precision landing."
         },
         "MSP2_INAV_SET_CRUISE_HEADING": {

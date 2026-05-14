@@ -56,7 +56,9 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#ifdef USE_PRECISION_LANDING
 #include "navigation/precision_landing.h"
+#endif
 #include "navigation/rth_trackback.h"
 
 #include "rx/rx.h"
@@ -178,6 +180,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_linear_descent_start_distance = SETTING_NAV_RTH_LINEAR_DESCENT_START_DISTANCE_DEFAULT,
         .cruise_yaw_rate = SETTING_NAV_CRUISE_YAW_RATE_DEFAULT,                                 // 20dps
         .rth_fs_landing_delay = SETTING_NAV_RTH_FS_LANDING_DELAY_DEFAULT,                       // Delay before landing in FS. 0 = immedate landing
+#ifdef USE_PRECISION_LANDING
         .precision_landing = SETTING_NAV_PRECISION_LANDING_DEFAULT,
         .precision_landing_source = SETTING_NAV_PRECISION_LANDING_SOURCE_DEFAULT,
         .precision_landing_min_confidence = SETTING_NAV_PRECISION_LANDING_MIN_CONFIDENCE_DEFAULT,
@@ -189,6 +192,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .precision_landing_retry_count = SETTING_NAV_PRECISION_LANDING_RETRY_COUNT_DEFAULT,
         .precision_landing_retry_altitude_cm = SETTING_NAV_PRECISION_LANDING_RETRY_ALTITUDE_CM_DEFAULT,
         .precision_landing_retry_timeout_ms = SETTING_NAV_PRECISION_LANDING_RETRY_TIMEOUT_MS_DEFAULT,
+#endif
     },
 
     // MC-specific
@@ -1896,14 +1900,20 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         descentVelLimited = constrainf(descentVelScaled, navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
     }
 
+    bool precisionLandingVerticalOverride = false;
+#ifdef USE_PRECISION_LANDING
     precisionLandingLandControl_t precisionLandControl = { 0 };
     precisionLandingGetLandControl(&precisionLandControl);
 
     if (precisionLandControl.mode == PREC_LAND_LAND_CTRL_HOLD) {
         updateClimbRateToAltitudeController(0.0f, 0.0f, ROC_TO_ALT_CONSTANT);
+        precisionLandingVerticalOverride = true;
     } else if (precisionLandControl.mode == PREC_LAND_LAND_CTRL_CLIMB) {
         updateClimbRateToAltitudeController(precisionLandControl.rateCmS, 0.0f, ROC_TO_ALT_CONSTANT);
-    } else {
+        precisionLandingVerticalOverride = true;
+    }
+#endif
+    if (!precisionLandingVerticalOverride) {
         updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
     }
 
@@ -2712,7 +2722,10 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
         }
     }
 
-    NAV_Status.state = precisionLandingOverrideNavStatusState(navFSM[posControl.navState].mwState);
+    NAV_Status.state = navFSM[posControl.navState].mwState;
+#ifdef USE_PRECISION_LANDING
+    NAV_Status.state = precisionLandingOverrideNavStatusState(NAV_Status.state);
+#endif
     NAV_Status.error = navFSM[posControl.navState].mwError;
 
     NAV_Status.flags = 0;
@@ -4406,7 +4419,9 @@ void applyWaypointNavigationAndAltitudeHold(void)
         posControl.activeWaypointIndex = posControl.startWpIndex;
         // Reset RTH trackback
         resetRthTrackBack();
+#ifdef USE_PRECISION_LANDING
         precisionLandingReset();
+#endif
 
 #ifdef USE_GEOZONE
         posControl.flags.sendToActive = false;
@@ -4427,7 +4442,9 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
+#ifdef USE_PRECISION_LANDING
     precisionLandingUpdate(navStateFlags, currentTimeUs);
+#endif
 
     if (STATE(ROVER) || STATE(BOAT)) {
         applyRoverBoatNavigationController(navStateFlags, currentTimeUs);
@@ -5121,7 +5138,9 @@ void navigationInit(void)
 
     /* Reset statistics */
     posControl.totalTripDistance = 0.0f;
+#ifdef USE_PRECISION_LANDING
     precisionLandingReset();
+#endif
 
     /* Use system config */
     navigationUsePIDs();
