@@ -4434,6 +4434,116 @@ If GPS fails wait for this much seconds before switching to emergency landing mo
 
 ---
 
+### nav_precision_landing
+
+Enable MSP-based precision landing target consumption. This does not trigger mode changes on its own.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### nav_precision_landing_align_radius_cm
+
+Horizontal radius considered close enough to center for precision-alignment quality checks [cm].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 80 | 10 | 2000 |
+
+---
+
+### nav_precision_landing_lost_hold_time_ms
+
+Hold duration after target loss before climb-and-retry starts [ms].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 100 | 10000 |
+
+---
+
+### nav_precision_landing_max_correction_speed_cm_s
+
+Maximum horizontal correction speed generated from target offset [cm/s].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 10 | 1000 |
+
+---
+
+### nav_precision_landing_max_offset_cm
+
+Maximum allowed horizontal target offset magnitude. Larger offsets are rejected [cm]. Set 0 to disable this check.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 0 | 5000 |
+
+---
+
+### nav_precision_landing_max_target_age_ms
+
+Maximum age of a cached precision target that can still be used [ms].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 50 | 5000 |
+
+---
+
+### nav_precision_landing_min_confidence
+
+Minimum confidence required to accept/use a precision landing target update [0..100].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 60 | 0 | 100 |
+
+---
+
+### nav_precision_landing_retry_altitude_cm
+
+Climb distance for each retry attempt after target loss [cm].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 50 | 2000 |
+
+---
+
+### nav_precision_landing_retry_count
+
+Maximum number of climb-and-retry attempts after target loss.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 10 |
+
+---
+
+### nav_precision_landing_retry_timeout_ms
+
+Timeout for each climb-and-retry phase [ms]. Set to 0 for AUTO mode (computed as 2 x nav_precision_landing_lost_hold_time_ms).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 60000 |
+
+---
+
+### nav_precision_landing_source
+
+Precision landing target source.
+
+| Allowed Values |  |
+| --- | --- |
+| MSP | Default |
+
+---
+
 ### nav_rth_abort_threshold
 
 RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. Set to 0 to disable. [cm]
