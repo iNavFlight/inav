@@ -130,6 +130,10 @@ bool cliMode = false;
 #include "sensors/esc_sensor.h"
 #endif
 
+#ifdef USE_DRONECAN
+#include "drivers/dronecan/libcanard/canard_stm32_driver.h"
+#endif
+
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
@@ -4368,6 +4372,29 @@ static void cliStatus(char *cmdline)
     }
 }
 
+#ifdef USE_DRONECAN
+static void cliDronecan(char *cmdline)
+{
+    UNUSED(cmdline);
+    static const char * const lecNames[] = {
+        "None", "Stuff", "Form", "ACK", "BitR", "BitD", "CRC", "SW"
+    };
+    canardProtocolStatus_t stat;
+    canardSTM32GetProtocolStatus(&stat);
+    int32_t txFill = canardSTM32GetTxQueueFillLevel();
+    int32_t rxFill = canardSTM32GetRxFifoFillLevel();
+    cliPrintLine("DroneCAN CAN peripheral status:");
+    cliPrintLinef("  BusOff:      %s", stat.BusOff       ? "YES" : "no");
+    cliPrintLinef("  ErrorPassive:%s", stat.ErrorPassive  ? "YES" : "no");
+    cliPrintLinef("  TEC:         %u", (unsigned)stat.tec);
+    cliPrintLinef("  REC:         %u", (unsigned)stat.rec);
+    cliPrintLinef("  LEC:         %s (%u)", lecNames[stat.lec & 0x7], (unsigned)stat.lec);
+    cliPrintLinef("  TX queue:    %ld / 32", (long)txFill);
+    cliPrintLinef("  RX buffer:   %ld / 32", (long)rxFill);
+    cliPrintLinef("  TX dropped:  %u", (unsigned)stat.tx_dropped);
+}
+#endif
+
 static void cliTasks(char *cmdline)
 {
     UNUSED(cmdline);
@@ -4936,6 +4963,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDiff),
+#ifdef USE_DRONECAN
+    CLI_COMMAND_DEF("dronecan", "show DroneCAN CAN peripheral debug status", NULL, cliDronecan),
+#endif
     CLI_COMMAND_DEF("dump", "dump configuration",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES

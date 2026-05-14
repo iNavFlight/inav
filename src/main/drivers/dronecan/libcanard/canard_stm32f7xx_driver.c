@@ -95,9 +95,12 @@ uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
     return (rxBuf->writeIndex - rxBuf->readIndex);
 }
 
+static volatile uint16_t canTxDropped = 0;
+
 static bool canTxQueuePush(const CanardCANFrame *frame) {
     uint8_t next = (canTxQueue.head + 1) % TX_QUEUE_SIZE;
-    if (next == canTxQueue.tail) {                                                                                                                                                                                                        
+    if (next == canTxQueue.tail) {
+        canTxDropped++;
         return false;
     }                                                                                                                                                                                                                                     
     canTxQueue.frames[canTxQueue.head] = *frame;                                                                                                                                             
@@ -441,11 +444,17 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
 }
 
 void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
-
-    pProtocolStat->BusOff = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
+    uint32_t esr = hcan1.Instance->ESR;
+    pProtocolStat->BusOff       = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
     pProtocolStat->ErrorPassive = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_EPV);
-    // LOG_DEBUG(CAN, "BusOff: %lu", pProtocolStat->BusOff);
-    // LOG_DEBUG(CAN, "ErrorPassive: %lu", pProtocolStat->ErrorPassive);
+    pProtocolStat->tec          = (uint8_t)((esr >> 16) & 0xFF);
+    pProtocolStat->rec          = (uint8_t)(esr & 0xFF);
+    pProtocolStat->lec          = (uint8_t)((esr >> 4) & 0x07);
+    pProtocolStat->tx_dropped   = canTxDropped;
+}
+
+int32_t canardSTM32GetTxQueueFillLevel(void) {
+    return (canTxQueue.head - canTxQueue.tail + TX_QUEUE_SIZE) % TX_QUEUE_SIZE;
 }
 
 int32_t canardSTM32GetRxFifoFillLevel(void){

@@ -12,6 +12,10 @@
 typedef struct {
     uint32_t BusOff;
     uint32_t ErrorPassive;
+    uint8_t  tec;        // Transmit Error Counter (ESR[23:16])
+    uint8_t  rec;        // Receive Error Counter (ESR[7:0])
+    uint8_t  lec;        // Last Error Code (ESR[6:4])
+    uint16_t tx_dropped; // Frames dropped due to SW TX queue full
 } canardProtocolStatus_t;
 
 #ifdef USE_DRONECAN
@@ -22,6 +26,7 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame);
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame);
 void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat);
 int32_t canardSTM32GetRxFifoFillLevel(void);
+int32_t canardSTM32GetTxQueueFillLevel(void);
 void canardSTM32RecoverFromBusOff(void);
 void canardSTM32GetUniqueID(uint8_t id[16]);
 
