@@ -140,6 +140,7 @@ typedef enum {
     TCH_DMA_IDLE = 0,
     TCH_DMA_READY,
     TCH_DMA_ACTIVE,
+    TCH_DMA_CIRCULAR,
 } tchDmaState_e;
 
 // Some forward declarations for types
