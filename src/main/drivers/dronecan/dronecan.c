@@ -478,7 +478,6 @@ static void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) 
   handle a GetNodeInfo request
 */
 
-// TODO: All the data in here is temporary for testing. If actually need to send valid data, edit accordingly.
 static void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	LOG_DEBUG(CAN, "GetNodeInfo request from %d", transfer->source_node_id);
 
@@ -493,7 +492,7 @@ static void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) 
 	// fill in your major and minor firmware version
 	pkt.software_version.major = FC_VERSION_MAJOR;
 	pkt.software_version.minor = FC_VERSION_MINOR;
-	pkt.software_version.optional_field_flags = FC_VERSION_PATCH_LEVEL;
+	pkt.software_version.optional_field_flags = UAVCAN_PROTOCOL_SOFTWAREVERSION_OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 	pkt.software_version.vcs_commit = strtoul(shortGitRevision, NULL, 16); // need to convert string to integer put git hash in here
 
 	// should fill in hardware version
