@@ -116,7 +116,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   250  kbps      16      17
      *   125  kbps      16      17
      */
-    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 18;
+    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 18;  // TODO: reference paper max is 17; H7 uses 17 — revisit alongside SJW tuning
     static const int MaxSamplePointLocation = 900;
 
     /*

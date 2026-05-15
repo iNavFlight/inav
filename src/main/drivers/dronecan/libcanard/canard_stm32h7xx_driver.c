@@ -89,7 +89,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   250  kbps      16      17
      *   125  kbps      16      17
      */
-    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
+    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;  // TODO: F7 uses 18 here — revisit both alongside SJW tuning
     LOG_DEBUG(CAN, "Baudrate: %lu", target_bitrate);
     LOG_DEBUG(CAN, "Max Quanta per bit: %i", max_quanta_per_bit);
 
