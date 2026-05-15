@@ -535,3 +535,6 @@ void CAN1_TX_IRQHandler(void) {
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
 void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
+// AbortCallback is intentionally not wired: AutoRetransmission=ENABLE prevents
+// ALST (arbitration lost), and TERR (bus fault) leaves the frame in the queue
+// (tail not advanced) so the next canardSTM32Transmit call re-seeds the HW.

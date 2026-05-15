@@ -4389,8 +4389,8 @@ static void cliDronecan(char *cmdline)
     cliPrintLinef("  TEC:         %u", (unsigned)stat.tec);
     cliPrintLinef("  REC:         %u", (unsigned)stat.rec);
     cliPrintLinef("  LEC:         %s (%u)", lecNames[stat.lec & 0x7], (unsigned)stat.lec);
-    cliPrintLinef("  TX queue:    %ld / 32 (hwm: %u)", (long)txFill, (unsigned)stat.tx_queue_hwm);
-    cliPrintLinef("  RX buffer:   %ld / 32 (hwm: %u)", (long)rxFill, (unsigned)stat.rx_buffer_hwm);
+    cliPrintLinef("  TX queue:    %ld / 32 (hwm: %u)", (long)txFill, (unsigned)stat.tx_queue_hwm);  // denominator must match TX_QUEUE_SIZE in canard_stm32f7xx_driver.c
+    cliPrintLinef("  RX buffer:   %ld / 32 (hwm: %u)", (long)rxFill, (unsigned)stat.rx_buffer_hwm);  // denominator must match RX_BUFFER_SIZE in canard_stm32f7xx_driver.c
     cliPrintLinef("  TX dropped:  %u", (unsigned)stat.tx_dropped);
 }
 #endif

@@ -13,7 +13,7 @@ typedef struct {
     uint32_t BusOff;
     uint32_t ErrorPassive;
     uint8_t  tec;        // Transmit Error Counter (ESR[23:16])
-    uint8_t  rec;        // Receive Error Counter (ESR[7:0])
+    uint8_t  rec;        // Receive Error Counter (ESR[31:24])
     uint8_t  lec;        // Last Error Code (ESR[6:4])
     uint16_t tx_dropped;    // Frames dropped due to SW TX queue full
     uint8_t  tx_queue_hwm;  // TX SW queue high water mark
