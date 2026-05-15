@@ -498,7 +498,7 @@ static void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) 
 
 // TODO: All the data in here is temporary for testing. If actually need to send valid data, edit accordingly.
 static void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
-	printf("GetNodeInfo request from %d", transfer->source_node_id);
+	LOG_DEBUG(CAN, "GetNodeInfo request from %d", transfer->source_node_id);
 
 	uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
 	struct uavcan_protocol_GetNodeInfoResponse pkt;

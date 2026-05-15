@@ -308,7 +308,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
   * @param  rxMsg  Pointer to the RxFrame_t to copy into the buffer.
   * @retval 0 on success, -1 if the buffer is full (frame dropped).
   */
-uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
 
@@ -334,7 +334,7 @@ uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
   * @param  rxMsg  Pointer to an RxFrame_t where the frame will be copied.
   * @retval 0 on success, -1 if the buffer is empty.
   */
-uint8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
 
@@ -566,9 +566,12 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
         canTxDrainQueue(&hcan1);
     }
     if (!canTxQueueIsEmpty()) {
-        HAL_StatusTypeDef status = HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
+        // If ActivateNotification fails (e.g. peripheral in error state) the frame is
+        // already in the SW queue. Return 1 so libcanard does not re-push a duplicate;
+        // the next canardSTM32Transmit call will re-seed the HW mailboxes.
+        HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
         __enable_irq();
-        return (status == HAL_OK) ? 1 : 0;  // 0 signals caller to retry
+        return 1;
     }
     __enable_irq();
     return 1;
