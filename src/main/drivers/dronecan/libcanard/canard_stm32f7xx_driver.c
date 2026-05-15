@@ -57,6 +57,12 @@ static volatile uint16_t canTxDropped = 0;
 static volatile uint8_t  canTxQueueHWM = 0;
 static volatile uint8_t  canRxBufferHWM = 0;
 
+/**
+  * @brief  Push a received CAN frame into the ring buffer (called from ISR).
+  * @param  rxBuf  Pointer to the RxBuffer_t ring buffer.
+  * @param  rxMsg  Pointer to the RxFrame_t to copy into the buffer.
+  * @retval 0 on success, -1 if the buffer is full (frame dropped).
+  */
 uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
@@ -77,6 +83,12 @@ uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     return 0;
 }
 
+/**
+  * @brief  Pop the oldest CAN frame from the ring buffer (called from main loop).
+  * @param  rxBuf  Pointer to the RxBuffer_t ring buffer.
+  * @param  rxMsg  Pointer to an RxFrame_t where the frame will be copied.
+  * @retval 0 on success, -1 if the buffer is empty.
+  */
 uint8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
@@ -95,6 +107,11 @@ uint8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     return 0;
 }
 
+/**
+  * @brief  Return the number of frames currently held in the ring buffer.
+  * @param  rxBuf  Pointer to the RxBuffer_t ring buffer.
+  * @retval Number of frames available to read (0 to RX_BUFFER_SIZE-1).
+  */
 uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
     if(rxBuf->writeIndex < rxBuf->readIndex)
         return((rxBuf->writeIndex + RX_BUFFER_SIZE) - rxBuf->readIndex);
@@ -102,6 +119,12 @@ uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
     return (rxBuf->writeIndex - rxBuf->readIndex);
 }
 
+/**
+  * @brief  Push a frame onto the software TX queue (called from main loop).
+  *         Updates the high-water mark and increments the drop counter if full.
+  * @param  frame  Pointer to the CanardCANFrame to enqueue.
+  * @retval true if the frame was enqueued, false if the queue was full (frame dropped).
+  */
 static bool canTxQueuePush(const CanardCANFrame *frame) {
     uint8_t next = (canTxQueue.head + 1) % TX_QUEUE_SIZE;
     uint8_t tail_snapshot = canTxQueue.tail;  // snapshot before ISR can advance it
@@ -117,12 +140,20 @@ static bool canTxQueuePush(const CanardCANFrame *frame) {
     return true;
 }
 
+/**
+  * @brief  Check whether the software TX queue is empty.
+  * @retval true if the queue contains no frames, false otherwise.
+  */
 static bool canTxQueueIsEmpty(void) {
     return canTxQueue.head == canTxQueue.tail;
 }
 
-// Returns a pointer to the tail frame without consuming it, or NULL if empty.
-// Includes the DMB so the caller sees all producer stores before reading data.
+/**
+  * @brief  Return a pointer to the next frame to transmit without consuming it.
+  *         Issues a DMB to ensure all producer stores are visible before the data is read.
+  *         Must be paired with canTxQueueConsume() after the frame is accepted by hardware.
+  * @retval Pointer to the tail CanardCANFrame, or NULL if the queue is empty.
+  */
 static const CanardCANFrame *canTxQueuePeek(void) {
     if (canTxQueue.head == canTxQueue.tail) {
         return NULL;
@@ -131,8 +162,11 @@ static const CanardCANFrame *canTxQueuePeek(void) {
     return &canTxQueue.frames[canTxQueue.tail];
 }
 
-// Advances the tail to consume the peeked frame. Must be called only after
-// canTxQueuePeek returned non-NULL and the frame has been accepted by the HW.
+/**
+  * @brief  Advance the tail to consume the frame returned by canTxQueuePeek().
+  *         Must only be called after canTxQueuePeek() returned non-NULL and the
+  *         frame has been successfully accepted by the hardware (HAL_OK).
+  */
 static void canTxQueueConsume(void) {
     canTxQueue.tail = (canTxQueue.tail + 1) % TX_QUEUE_SIZE;
 }
@@ -173,6 +207,12 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
 	return 0;
 }
 
+/**
+  * @brief  Populate a HAL CAN TX header and data buffer from a CanardCANFrame.
+  * @param  frame   Pointer to the source CanardCANFrame.
+  * @param  header  Pointer to the CAN_TxHeaderTypeDef to fill.
+  * @param  data    Buffer of at least 8 bytes to copy frame payload into.
+  */
 static void buildTxHeader(const CanardCANFrame *frame, CAN_TxHeaderTypeDef *header, uint8_t *data) {
     if (frame->id & CANARD_CAN_FRAME_EFF) {
         header->IDE = CAN_ID_EXT;
@@ -223,11 +263,11 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 }
 
 /**
-  * @brief FDCAN1 Initialization Function
-  * @param  hfdcan pointer to an FDCAN_HandleTypeDef structure that contains
-  *         the configuration information for the specified FDCAN.
-  * @param  bitrate desired bitrate to run the CAN network at.
-  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
+  * @brief  Initialize the bxCAN1 peripheral at the requested bitrate.
+  *         Configures GPIO pins, bit timings, a pass-all acceptance filter,
+  *         starts the peripheral, and enables RX and TX interrupts.
+  * @param  bitrate  Desired CAN bus bitrate in bits per second (e.g. 1000000).
+  * @retval CANARD_OK (1) on success, negative CANARD_ERROR code on failure.
   */
 int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 {
@@ -343,6 +383,13 @@ static void canardSTM32GPIO_Init(void)
     IOLo(IOGetByTag(IO_TAG(CAN1_STANDBY)));
 #endif
 }
+/**
+  * @brief  Compute bxCAN bit-timing parameters (prescaler, SJW, BS1, BS2) for a
+  *         given target bitrate, targeting an ~87.5% sample point location.
+  * @param  target_bitrate  Desired CAN bus bitrate in bits per second.
+  * @param  out_timings     Pointer to a Timings struct to receive the computed values.
+  * @retval true on success, false if no valid timing solution exists for the bitrate.
+  */
 static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings *out_timings)
 {
 
@@ -459,6 +506,11 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     return true;
 }
 
+/**
+  * @brief  Read CAN bus error counters and queue statistics from hardware and
+  *         software state into a canardProtocolStatus_t struct.
+  * @param  pProtocolStat  Pointer to the struct to populate with current status.
+  */
 void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
     uint32_t esr = hcan1.Instance->ESR;
     pProtocolStat->BusOff       = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
@@ -471,22 +523,37 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
     pProtocolStat->rx_buffer_hwm = canRxBufferHWM;
 }
 
+/**
+  * @brief  Return the current number of frames pending in the software TX queue.
+  * @retval Number of frames queued (0 to TX_QUEUE_SIZE-1).
+  */
 int32_t canardSTM32GetTxQueueFillLevel(void) {
     return (canTxQueue.head - canTxQueue.tail + TX_QUEUE_SIZE) % TX_QUEUE_SIZE;
 }
 
+/**
+  * @brief  Return the current number of frames waiting in the software RX ring buffer.
+  * @retval Number of frames available to read (0 to RX_BUFFER_SIZE-1).
+  */
 int32_t canardSTM32GetRxFifoFillLevel(void){
     return rxBufferNumMessages(&RxBuffer);
 }
 
+/**
+  * @brief  Attempt to recover the CAN peripheral from a bus-off condition.
+  *         AutoBusOff=ENABLE in hcan1.Init means the hardware recovers automatically
+  *         after 128 * 11 recessive bits; this function is a no-op placeholder.
+  */
 void canardSTM32RecoverFromBusOff(void){
     // Auto recover from bus off is enabled
     // CLEAR_BIT(hcan1.Instance->CCCR, FDCAN_CCCR_INIT);  // Clear INIT bit to recover from Bus-Off
 }
 
-/*
-  get a 16 byte unique ID for this node, this should be based on the CPU unique ID or other unique ID
- */
+/**
+  * @brief  Populate a 16-byte unique node ID from the STM32 96-bit factory UID.
+  *         The 12 UID bytes are copied into the first 12 bytes; the remainder is zero-padded.
+  * @param  id  Output buffer of exactly 16 bytes to receive the unique ID.
+  */
 void canardSTM32GetUniqueID(uint8_t id[16]) {
     uint32_t HALUniqueIDs[3];
     // Make Unique ID out of the 96-bit STM32 UID and fill the rest with 0s
@@ -497,10 +564,18 @@ void canardSTM32GetUniqueID(uint8_t id[16]) {
     memcpy(id, HALUniqueIDs, 12);
 }
 
+/**
+  * @brief  CAN1 RX FIFO0 interrupt handler — delegates to the HAL IRQ handler.
+  */
 void CAN1_RX0_IRQHandler(void) {
       HAL_CAN_IRQHandler(&hcan1);
 }
 
+/**
+  * @brief  HAL callback fired when a frame arrives in RX FIFO0 (runs in ISR context).
+  *         Reads the frame from hardware and pushes it into the software RX ring buffer.
+  * @param  hcan  Pointer to the CAN_HandleTypeDef that triggered the callback.
+  */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     RxFrame_t frame;
     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &frame.header, frame.data) == HAL_OK) {
@@ -508,6 +583,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     }
 }
 
+/**
+  * @brief  Drain the software TX queue into available hardware mailboxes.
+  *         Called both from the TX-complete ISR callbacks and from canardSTM32Transmit()
+  *         (with IRQs disabled) to seed the first transmission. With TXFP=ENABLE,
+  *         hardware transmits mailboxes in request order, preserving frame sequence.
+  *         Deactivates the TX empty notification when the queue is fully drained.
+  * @param  hcan  Pointer to the CAN_HandleTypeDef to load frames into.
+  */
 static void canTxDrainQueue(CAN_HandleTypeDef *hcan) {
     // With TXFP=ENABLE the hardware transmits mailboxes in request order
     // (chronological), not mailbox-number order, so filling multiple mailboxes
@@ -528,10 +611,20 @@ static void canTxDrainQueue(CAN_HandleTypeDef *hcan) {
     }
 }
 
+/**
+  * @brief  CAN1 TX interrupt handler — delegates to the HAL IRQ handler.
+  */
 void CAN1_TX_IRQHandler(void) {
     HAL_CAN_IRQHandler(&hcan1);
 }
 
+/**
+  * @brief  HAL callbacks fired when a TX mailbox completes transmission (runs in ISR context).
+  *         Each refills available mailboxes from the software TX queue via canTxDrainQueue().
+  *         AbortCallback is intentionally not wired: AutoRetransmission=ENABLE prevents
+  *         ALST (arbitration lost), and TERR (bus fault) leaves the frame in the queue
+  *         (tail not advanced) so the next canardSTM32Transmit call re-seeds the HW.
+  */
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
 void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
