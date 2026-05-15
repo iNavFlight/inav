@@ -8,6 +8,7 @@
 #include "common/log.h"
 #include "common/time.h"
 #include "drivers/io.h"
+#include "drivers/nvic.h"
 #include "canard.h"
 #include "canard_stm32_driver.h"
 
@@ -52,6 +53,10 @@ static void canardSTM32GPIO_Init(void);
 static CAN_HandleTypeDef hcan1;
 RxFrame_t rxMsg;
 
+static volatile uint16_t canTxDropped = 0;
+static volatile uint8_t  canTxQueueHWM = 0;
+static volatile uint8_t  canRxBufferHWM = 0;
+
 uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
@@ -67,6 +72,8 @@ uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->writeIndex];
     memcpy(pCurrentRxMsg, rxMsg, sizeof(RxFrame_t));
     rxBuf->writeIndex = next;
+    uint8_t rxFill = (next >= rxBuf->readIndex) ? (next - rxBuf->readIndex) : (next + RX_BUFFER_SIZE - rxBuf->readIndex);
+    if (rxFill > canRxBufferHWM) canRxBufferHWM = rxFill;
     return 0;
 }
 
@@ -95,16 +102,16 @@ uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
     return (rxBuf->writeIndex - rxBuf->readIndex);
 }
 
-static volatile uint16_t canTxDropped = 0;
-
 static bool canTxQueuePush(const CanardCANFrame *frame) {
     uint8_t next = (canTxQueue.head + 1) % TX_QUEUE_SIZE;
     if (next == canTxQueue.tail) {
         canTxDropped++;
         return false;
-    }                                                                                                                                                                                                                                     
-    canTxQueue.frames[canTxQueue.head] = *frame;                                                                                                                                             
-    canTxQueue.head = next;                                                                                                                                                                                                               
+    }
+    canTxQueue.frames[canTxQueue.head] = *frame;
+    canTxQueue.head = next;
+    uint8_t fill = (canTxQueue.head - canTxQueue.tail + TX_QUEUE_SIZE) % TX_QUEUE_SIZE;
+    if (fill > canTxQueueHWM) canTxQueueHWM = fill;
     return true;
 }                                                                                                                                                                                                                                         
 
@@ -293,9 +300,9 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     
     // Enable interrupt only after all initialization succeeds
     // (if any previous step failed, we return early without enabling IRQ)
-    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, NVIC_PRIO_CAN, 0);
     HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
-    HAL_NVIC_SetPriority(CAN1_TX_IRQn, 0, 0);                                                                                                                                                
+    HAL_NVIC_SetPriority(CAN1_TX_IRQn, NVIC_PRIO_CAN, 0);
     HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);  
 
     return CANARD_OK;
@@ -450,7 +457,9 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
     pProtocolStat->tec          = (uint8_t)((esr >> 16) & 0xFF);
     pProtocolStat->rec          = (uint8_t)(esr & 0xFF);
     pProtocolStat->lec          = (uint8_t)((esr >> 4) & 0x07);
-    pProtocolStat->tx_dropped   = canTxDropped;
+    pProtocolStat->tx_dropped    = canTxDropped;
+    pProtocolStat->tx_queue_hwm  = canTxQueueHWM;
+    pProtocolStat->rx_buffer_hwm = canRxBufferHWM;
 }
 
 int32_t canardSTM32GetTxQueueFillLevel(void) {

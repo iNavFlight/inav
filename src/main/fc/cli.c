@@ -4389,8 +4389,8 @@ static void cliDronecan(char *cmdline)
     cliPrintLinef("  TEC:         %u", (unsigned)stat.tec);
     cliPrintLinef("  REC:         %u", (unsigned)stat.rec);
     cliPrintLinef("  LEC:         %s (%u)", lecNames[stat.lec & 0x7], (unsigned)stat.lec);
-    cliPrintLinef("  TX queue:    %ld / 32", (long)txFill);
-    cliPrintLinef("  RX buffer:   %ld / 32", (long)rxFill);
+    cliPrintLinef("  TX queue:    %ld / 32 (hwm: %u)", (long)txFill, (unsigned)stat.tx_queue_hwm);
+    cliPrintLinef("  RX buffer:   %ld / 32 (hwm: %u)", (long)rxFill, (unsigned)stat.rx_buffer_hwm);
     cliPrintLinef("  TX dropped:  %u", (unsigned)stat.tx_dropped);
 }
 #endif
