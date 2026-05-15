@@ -354,7 +354,7 @@ static uint8_t rxBufferNumMessages(volatile struct RxBuffer_t *rxBuf) {
   * @brief  CAN1 RX FIFO0 interrupt handler — delegates to the HAL IRQ handler.
   */
 void CAN1_RX0_IRQHandler(void) {
-      HAL_CAN_IRQHandler(&hcan1);
+    HAL_CAN_IRQHandler(&hcan1);
 }
 
 /**

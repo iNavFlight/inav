@@ -194,7 +194,7 @@ static void processCanardTxQueue(void) {
         } else if (tx_res > 0) {
             canardPopTxQueue(&canard);  // Success - remove from queue
         } else {
-            // tx_res == 0: TX FIFO full, retry later
+            // tx_res == 0: SW TX queue full, retry on next dronecanUpdate cycle
             break;
         }
     }
@@ -369,7 +369,6 @@ static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) 
                 break;
 
             case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID:
-                LOG_DEBUG(CAN, "Battery Info");
                 handle_BatteryInfo(ins, transfer);
                 break;
         }
