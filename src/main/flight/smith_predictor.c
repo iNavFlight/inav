@@ -34,7 +34,7 @@
 #include "flight/smith_predictor.h"
 #include "build/debug.h"
 
-float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sample) {
+float FAST_CODE applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sample) {
     UNUSED(axis);
     if (predictor->enabled) {
         predictor->data[predictor->idx] = sample;
