@@ -110,6 +110,7 @@ static bool canTxQueuePush(const CanardCANFrame *frame) {
         return false;
     }
     canTxQueue.frames[canTxQueue.head] = *frame;
+    __DMB();  // ensure frame data is visible before head advances
     canTxQueue.head = next;
     uint8_t fill = (canTxQueue.head - canTxQueue.tail + TX_QUEUE_SIZE) % TX_QUEUE_SIZE;
     if (fill > canTxQueueHWM) canTxQueueHWM = fill;
@@ -120,6 +121,7 @@ static bool canTxQueuePop(CanardCANFrame *frame) {
     if (canTxQueue.head == canTxQueue.tail) {
         return false;
     }
+    __DMB();  // observe all stores the producer made before advancing head
     *frame = canTxQueue.frames[canTxQueue.tail];
     canTxQueue.tail = (canTxQueue.tail + 1) % TX_QUEUE_SIZE;
     return true;
