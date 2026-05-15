@@ -156,5 +156,5 @@ https://github.com/iNavFlight/inav-configurator-nightly/releases
 
 ## INAV Releases
 https://github.com/iNavFlight/inav/releases
-
+1
 Test-Build 1
