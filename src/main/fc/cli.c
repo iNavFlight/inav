@@ -4385,7 +4385,7 @@ static void cliDronecan(char *cmdline)
     int32_t rxFill = canardSTM32GetRxFifoFillLevel();
     cliPrintLine("DroneCAN CAN peripheral status:");
     cliPrintLinef("  BusOff:      %s", stat.BusOff       ? "YES" : "no");
-    cliPrintLinef("  ErrorPassive:%s", stat.ErrorPassive  ? "YES" : "no");
+    cliPrintLinef("  ErrorPassive: %s", stat.ErrorPassive ? "YES" : "no");
     cliPrintLinef("  TEC:         %u", (unsigned)stat.tec);
     cliPrintLinef("  REC:         %u", (unsigned)stat.rec);
     cliPrintLinef("  LEC:         %s (%u)", lecNames[stat.lec & 0x7], (unsigned)stat.lec);

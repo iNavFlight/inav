@@ -34,8 +34,8 @@ typedef struct {
 } RxFrame_t;
 
 static struct RxBuffer_t {
-    uint8_t writeIndex;
-    uint8_t readIndex;
+    volatile uint8_t writeIndex;  // written in ISR, read in main loop
+    volatile uint8_t readIndex;
     RxFrame_t rxMsg[RX_BUFFER_SIZE];
 } RxBuffer;
 
@@ -52,7 +52,6 @@ static void canardSTM32GPIO_Init(void);
 static void canTxDrainQueue(CAN_HandleTypeDef *hcan);
 
 static CAN_HandleTypeDef hcan1;
-RxFrame_t rxMsg;
 
 static volatile uint16_t canTxDropped = 0;
 static volatile uint8_t  canTxQueueHWM = 0;
@@ -105,25 +104,16 @@ uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
 
 static bool canTxQueuePush(const CanardCANFrame *frame) {
     uint8_t next = (canTxQueue.head + 1) % TX_QUEUE_SIZE;
-    if (next == canTxQueue.tail) {
+    uint8_t tail_snapshot = canTxQueue.tail;  // snapshot before ISR can advance it
+    if (next == tail_snapshot) {
         canTxDropped++;
         return false;
     }
     canTxQueue.frames[canTxQueue.head] = *frame;
     __DMB();  // ensure frame data is visible before head advances
     canTxQueue.head = next;
-    uint8_t fill = (canTxQueue.head - canTxQueue.tail + TX_QUEUE_SIZE) % TX_QUEUE_SIZE;
+    uint8_t fill = (next - tail_snapshot + TX_QUEUE_SIZE) % TX_QUEUE_SIZE;
     if (fill > canTxQueueHWM) canTxQueueHWM = fill;
-    return true;
-}
-
-static bool canTxQueuePop(CanardCANFrame *frame) {
-    if (canTxQueue.head == canTxQueue.tail) {
-        return false;
-    }
-    __DMB();  // observe all stores the producer made before advancing head
-    *frame = canTxQueue.frames[canTxQueue.tail];
-    canTxQueue.tail = (canTxQueue.tail + 1) % TX_QUEUE_SIZE;
     return true;
 }
 
@@ -188,7 +178,7 @@ static void buildTxHeader(const CanardCANFrame *frame, CAN_TxHeaderTypeDef *head
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
-   if (tx_frame == NULL) {
+    if (tx_frame == NULL) {
         return -CANARD_ERROR_INVALID_ARGUMENT;
     }
     if (tx_frame->id & CANARD_CAN_FRAME_ERR) {
@@ -207,12 +197,10 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
     if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 3) {
         canTxDrainQueue(&hcan1);
     }
-    bool needs_notification = !canTxQueueIsEmpty();
-    __enable_irq();
-
-    if (needs_notification) {
+    if (!canTxQueueIsEmpty()) {
         HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
     }
+    __enable_irq();
     return 1;
 }
 
@@ -503,21 +491,21 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 }
 
 static void canTxDrainQueue(CAN_HandleTypeDef *hcan) {
-    CanardCANFrame frame;
     // With TXFP=ENABLE the hardware transmits mailboxes in request order
     // (chronological), not mailbox-number order, so filling multiple mailboxes
     // per callback is safe and preserves frame sequence.
     while (!canTxQueueIsEmpty() && HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0) {
-        if (canTxQueuePop(&frame)) {
-            CAN_TxHeaderTypeDef txHeader = {};
-            uint8_t txData[8];
-            uint32_t txMailbox;
-            buildTxHeader(&frame, &txHeader, txData);
-            if (HAL_CAN_AddTxMessage(hcan, &txHeader, txData, &txMailbox) != HAL_OK) {
-                canTxDropped++;
-                break;
-            }
+        __DMB();  // observe producer stores before reading frame data
+        CAN_TxHeaderTypeDef txHeader = {};
+        uint8_t txData[8];
+        uint32_t txMailbox;
+        buildTxHeader(&canTxQueue.frames[canTxQueue.tail], &txHeader, txData);
+        if (HAL_CAN_AddTxMessage(hcan, &txHeader, txData, &txMailbox) != HAL_OK) {
+            canTxDropped++;
+            break;
         }
+        // Advance tail only after HAL confirms acceptance — frame is never lost
+        canTxQueue.tail = (canTxQueue.tail + 1) % TX_QUEUE_SIZE;
     }
     if (canTxQueueIsEmpty()) {
         HAL_CAN_DeactivateNotification(hcan, CAN_IT_TX_MAILBOX_EMPTY);
