@@ -198,7 +198,9 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
         canTxDrainQueue(&hcan1);
     }
     if (!canTxQueueIsEmpty()) {
-        HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
+        HAL_StatusTypeDef status = HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
+        __enable_irq();
+        return (status == HAL_OK) ? 1 : 0;  // 0 signals caller to retry
     }
     __enable_irq();
     return 1;
@@ -446,7 +448,7 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
     pProtocolStat->BusOff       = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
     pProtocolStat->ErrorPassive = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_EPV);
     pProtocolStat->tec          = (uint8_t)((esr >> 16) & 0xFF);
-    pProtocolStat->rec          = (uint8_t)(esr & 0xFF);
+    pProtocolStat->rec          = (uint8_t)((esr >> 24) & 0xFF);
     pProtocolStat->lec          = (uint8_t)((esr >> 4) & 0x07);
     pProtocolStat->tx_dropped    = canTxDropped;
     pProtocolStat->tx_queue_hwm  = canTxQueueHWM;
@@ -501,8 +503,7 @@ static void canTxDrainQueue(CAN_HandleTypeDef *hcan) {
         uint32_t txMailbox;
         buildTxHeader(&canTxQueue.frames[canTxQueue.tail], &txHeader, txData);
         if (HAL_CAN_AddTxMessage(hcan, &txHeader, txData, &txMailbox) != HAL_OK) {
-            canTxDropped++;
-            break;
+            break;  // frame stays in queue (tail not advanced) and will retry next ISR
         }
         // Advance tail only after HAL confirms acceptance — frame is never lost
         canTxQueue.tail = (canTxQueue.tail + 1) % TX_QUEUE_SIZE;
