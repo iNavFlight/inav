@@ -121,6 +121,22 @@ static bool canTxQueueIsEmpty(void) {
     return canTxQueue.head == canTxQueue.tail;
 }
 
+// Returns a pointer to the tail frame without consuming it, or NULL if empty.
+// Includes the DMB so the caller sees all producer stores before reading data.
+static const CanardCANFrame *canTxQueuePeek(void) {
+    if (canTxQueue.head == canTxQueue.tail) {
+        return NULL;
+    }
+    __DMB();
+    return &canTxQueue.frames[canTxQueue.tail];
+}
+
+// Advances the tail to consume the peeked frame. Must be called only after
+// canTxQueuePeek returned non-NULL and the frame has been accepted by the HW.
+static void canTxQueueConsume(void) {
+    canTxQueue.tail = (canTxQueue.tail + 1) % TX_QUEUE_SIZE;
+}
+
 /**
   * @brief  Process CAN message from RxLocation FIFO into rx_frame
   * @param  rx_frame pointer to a CanardCANFrame structure where the received CAN message will be
@@ -496,17 +512,16 @@ static void canTxDrainQueue(CAN_HandleTypeDef *hcan) {
     // With TXFP=ENABLE the hardware transmits mailboxes in request order
     // (chronological), not mailbox-number order, so filling multiple mailboxes
     // per callback is safe and preserves frame sequence.
-    while (!canTxQueueIsEmpty() && HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0) {
-        __DMB();  // observe producer stores before reading frame data
+    const CanardCANFrame *frame;
+    while ((frame = canTxQueuePeek()) != NULL && HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0) {
         CAN_TxHeaderTypeDef txHeader = {};
         uint8_t txData[8];
         uint32_t txMailbox;
-        buildTxHeader(&canTxQueue.frames[canTxQueue.tail], &txHeader, txData);
+        buildTxHeader(frame, &txHeader, txData);
         if (HAL_CAN_AddTxMessage(hcan, &txHeader, txData, &txMailbox) != HAL_OK) {
-            break;  // frame stays in queue (tail not advanced) and will retry next ISR
+            break;  // frame stays in queue and will retry on next ISR
         }
-        // Advance tail only after HAL confirms acceptance — frame is never lost
-        canTxQueue.tail = (canTxQueue.tail + 1) % TX_QUEUE_SIZE;
+        canTxQueueConsume();
     }
     if (canTxQueueIsEmpty()) {
         HAL_CAN_DeactivateNotification(hcan, CAN_IT_TX_MAILBOX_EMPTY);
