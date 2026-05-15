@@ -1,5 +1,5 @@
 /*
- * canard_stm32_driver.c
+ * canard_stm32h7xx_driver.c
  *
  *  Created on: Jul 8, 2024
  *      Author: Roni Kant
@@ -47,7 +47,7 @@ static void canardSTM32GPIO_Init(void)
 #endif
 
 
- #ifdef CAN1_STANDBY
+#ifdef CAN1_STANDBY
     // Initialize the standby or listen only pin.  Set default state to enable CAN.
     // TODO: Tie the pin state to a configuration option so we can turn CAN on and off.
 

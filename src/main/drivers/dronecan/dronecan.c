@@ -135,27 +135,27 @@ void dronecanUpdate(timeUs_t currentTimeUs)
         case STATE_DRONECAN_NORMAL:
             processCanardTxQueue();
 
-             for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
-             {
-	            timestamp = millis() * 1000ULL;
-	            rx_res = canardSTM32Receive(&rx_frame);
+            for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
+            {
+                timestamp = millis() * 1000ULL;
+                rx_res = canardSTM32Receive(&rx_frame);
 
-	             if (rx_res < 0) {
-		             LOG_DEBUG(CAN, "Receive error %d", rx_res);
-	             }
-	             else if (rx_res > 0)        // Success - process the frame
-	             {
-		             canardHandleRxFrame(&canard, &rx_frame, timestamp);
-	             }
-             }
+                if (rx_res < 0) {
+                    LOG_DEBUG(CAN, "Receive error %d", rx_res);
+                }
+                else if (rx_res > 0)        // Success - process the frame
+                {
+                    canardHandleRxFrame(&canard, &rx_frame, timestamp);
+                }
+            }
             // Drain any TX frames queued by RX handlers (e.g. GetNodeInfo responses)
             // in the same task cycle so multi-frame transfers complete before timeout.
             processCanardTxQueue();
 
             if (currentTimeUs >= next_1hz_service_at)
             {
-		        next_1hz_service_at += 1000000ULL;
-		        process1HzTasks(currentTimeUs);
+                next_1hz_service_at += 1000000ULL;
+                process1HzTasks(currentTimeUs);
                 processCanardTxQueue();
             }
 
@@ -184,20 +184,20 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 /* --- TX and periodic task processing --- */
 
 static void processCanardTxQueue(void) {
-	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
+    for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
     {
         const int16_t tx_res = canardSTM32Transmit(tx_frame);
 
-		if (tx_res < 0) {
-			LOG_DEBUG(CAN, "Transmit error %d", tx_res);
-			canardPopTxQueue(&canard);  // Error - discard frame
-		} else if (tx_res > 0) {
-			canardPopTxQueue(&canard);  // Success - remove from queue
-		} else {
-			// tx_res == 0: TX FIFO full, retry later
-			break;
-		}
-	}
+        if (tx_res < 0) {
+            LOG_DEBUG(CAN, "Transmit error %d", tx_res);
+            canardPopTxQueue(&canard);  // Error - discard frame
+        } else if (tx_res > 0) {
+            canardPopTxQueue(&canard);  // Success - remove from queue
+        } else {
+            // tx_res == 0: TX FIFO full, retry later
+            break;
+        }
+    }
 }
 
 /*
@@ -276,30 +276,30 @@ static bool shouldAcceptTransfer(const CanardInstance *ins,
                                  CanardTransferType transfer_type,
                                  uint8_t source_node_id)
 {
-	UNUSED(ins);
+    UNUSED(ins);
     UNUSED(source_node_id);
     if (transfer_type == CanardTransferTypeRequest) {
-	// check if we want to handle a specific service request
-		switch (data_type_id) {
-		case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
-			*out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_REQUEST_SIGNATURE;
-			return true;
-		    }
-		}
-	}
-	if (transfer_type == CanardTransferTypeResponse) {
-		// check if we want to handle a specific service request
-		switch (data_type_id) {
-		}
-	}
-	if (transfer_type == CanardTransferTypeBroadcast) {
-		// see if we want to handle a specific broadcast packet
-		switch (data_type_id) {
+    // check if we want to handle a specific service request
+        switch (data_type_id) {
+        case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
+            *out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_REQUEST_SIGNATURE;
+            return true;
+            }
+        }
+    }
+    if (transfer_type == CanardTransferTypeResponse) {
+        // check if we want to handle a specific service request
+        switch (data_type_id) {
+        }
+    }
+    if (transfer_type == CanardTransferTypeBroadcast) {
+        // see if we want to handle a specific broadcast packet
+        switch (data_type_id) {
 
-		case UAVCAN_PROTOCOL_NODESTATUS_ID: {
-			*out_data_type_signature = UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE;
-			return true;
-		}
+        case UAVCAN_PROTOCOL_NODESTATUS_ID: {
+            *out_data_type_signature = UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE;
+            return true;
+        }
         case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID: {
             *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_AUXILIARY_SIGNATURE;
             return true;
@@ -320,33 +320,33 @@ static bool shouldAcceptTransfer(const CanardInstance *ins,
             *out_data_type_signature = UAVCAN_EQUIPMENT_POWER_BATTERYINFO_SIGNATURE;
             return true;
         }
-		}
-	}
-	// we don't want any other messages
-	return false;
+        }
+    }
+    // we don't want any other messages
+    return false;
 }
 
 /*
  This callback is invoked by the library when a new message or request or response is received.
 */
 static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
-	// switch on data type ID to pass to the right handler function
-	if (transfer->transfer_type == CanardTransferTypeRequest) {
-		// check if we want to handle a specific service request
-		switch (transfer->data_type_id) {
-		case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
-			handle_GetNodeInfo(ins, transfer);
-			break;
-		}
-		}
-	}
-	if (transfer->transfer_type == CanardTransferTypeResponse) {
-		switch (transfer->data_type_id) {
-		}
-	}
-	if (transfer->transfer_type == CanardTransferTypeBroadcast) {
-		// check if we want to handle a specific broadcast message
-		switch (transfer->data_type_id) {
+    // switch on data type ID to pass to the right handler function
+    if (transfer->transfer_type == CanardTransferTypeRequest) {
+        // check if we want to handle a specific service request
+        switch (transfer->data_type_id) {
+        case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
+            handle_GetNodeInfo(ins, transfer);
+            break;
+        }
+        }
+    }
+    if (transfer->transfer_type == CanardTransferTypeResponse) {
+        switch (transfer->data_type_id) {
+        }
+    }
+    if (transfer->transfer_type == CanardTransferTypeBroadcast) {
+        // check if we want to handle a specific broadcast message
+        switch (transfer->data_type_id) {
 
             case UAVCAN_PROTOCOL_NODESTATUS_ID:
                 handle_NodeStatus(ins, transfer);
@@ -373,7 +373,7 @@ static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) 
                 handle_BatteryInfo(ins, transfer);
                 break;
         }
-	}
+    }
 }
 
 /* --- Message handlers (incoming) --- */
@@ -381,96 +381,96 @@ static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) 
 // Canard Handlers ( Many have code copied from libcanard esc_node example: https://github.com/dronecan/libcanard/blob/master/examples/ESCNode/esc_node.c )
 
 static void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
-	UNUSED(ins);
+    UNUSED(ins);
     struct uavcan_protocol_NodeStatus nodeStatus;
 
-	if (uavcan_protocol_NodeStatus_decode(transfer, &nodeStatus)) {
-		LOG_DEBUG(CAN, "NodeStatus decode failed");
-		return;
-	}
+    if (uavcan_protocol_NodeStatus_decode(transfer, &nodeStatus)) {
+        LOG_DEBUG(CAN, "NodeStatus decode failed");
+        return;
+    }
 
 
-	switch (nodeStatus.health) {
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
-		break;
-	default:
-		break;
-	}
+    switch (nodeStatus.health) {
+    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
+        break;
+    default:
+        break;
+    }
 
 
-	switch(nodeStatus.mode) {
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
-		break;
-	default:
-		break;
-	}
+    switch(nodeStatus.mode) {
+    case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
+        break;
+    default:
+        break;
+    }
 }
 
 static void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
-	UNUSED(ins);
+    UNUSED(ins);
     struct uavcan_equipment_gnss_Auxiliary gnssAuxiliary;
 
-	if (uavcan_equipment_gnss_Auxiliary_decode(transfer, &gnssAuxiliary)) {
-		LOG_DEBUG(CAN, "GNSSAuxiliary decode failed");
-		return;
-	}
+    if (uavcan_equipment_gnss_Auxiliary_decode(transfer, &gnssAuxiliary)) {
+        LOG_DEBUG(CAN, "GNSSAuxiliary decode failed");
+        return;
+    }
     dronecanGPSReceiveGNSSAuxiliary(&gnssAuxiliary);
 }
 
 static void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
-	UNUSED(ins);
+    UNUSED(ins);
     struct uavcan_equipment_gnss_Fix gnssFix;
 
-	if (uavcan_equipment_gnss_Fix_decode(transfer, &gnssFix)) {
-		LOG_DEBUG(CAN, "GNSSFix decode failed");
-		return;
-	}
+    if (uavcan_equipment_gnss_Fix_decode(transfer, &gnssFix)) {
+        LOG_DEBUG(CAN, "GNSSFix decode failed");
+        return;
+    }
     dronecanGPSReceiveGNSSFix(&gnssFix);
 }
 
 static void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
-	UNUSED(ins);
+    UNUSED(ins);
     struct uavcan_equipment_gnss_Fix2 gnssFix2;
 
-	if (uavcan_equipment_gnss_Fix2_decode(transfer, &gnssFix2)) {
-		LOG_DEBUG(CAN, "GNSSFix2 decode failed");
-		return;
-	}
+    if (uavcan_equipment_gnss_Fix2_decode(transfer, &gnssFix2)) {
+        LOG_DEBUG(CAN, "GNSSFix2 decode failed");
+        return;
+    }
     dronecanGPSReceiveGNSSFix2(&gnssFix2);
 }
 
 static void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
-	UNUSED(ins);
+    UNUSED(ins);
     struct uavcan_equipment_gnss_RTCMStream gnssRTCMStream;
 
-	if (uavcan_equipment_gnss_RTCMStream_decode(transfer, &gnssRTCMStream)) {
-		LOG_DEBUG(CAN, "RTCMStream decode failed");
-		return;
-	}
+    if (uavcan_equipment_gnss_RTCMStream_decode(transfer, &gnssRTCMStream)) {
+        LOG_DEBUG(CAN, "RTCMStream decode failed");
+        return;
+    }
 }
 
 static void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
-	UNUSED(ins);
+    UNUSED(ins);
     struct uavcan_equipment_power_BatteryInfo batteryInfo;
 
-	if (uavcan_equipment_power_BatteryInfo_decode(transfer, &batteryInfo)) {
-		LOG_DEBUG(CAN, "BatteryInfo decode failed");
-		return;
-	}
+    if (uavcan_equipment_power_BatteryInfo_decode(transfer, &batteryInfo)) {
+        LOG_DEBUG(CAN, "BatteryInfo decode failed");
+        return;
+    }
     dronecanBatterySensorReceiveInfo(&batteryInfo);
 }
 
@@ -479,43 +479,43 @@ static void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) 
 */
 
 static void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
-	LOG_DEBUG(CAN, "GetNodeInfo request from %d", transfer->source_node_id);
+    LOG_DEBUG(CAN, "GetNodeInfo request from %d", transfer->source_node_id);
 
-	uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
-	struct uavcan_protocol_GetNodeInfoResponse pkt;
+    uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
+    struct uavcan_protocol_GetNodeInfoResponse pkt;
 
-	memset(&pkt, 0, sizeof(pkt));
+    memset(&pkt, 0, sizeof(pkt));
 
-	node_status.uptime_sec = millis() / 1000ULL;
-	pkt.status = node_status;
+    node_status.uptime_sec = millis() / 1000ULL;
+    pkt.status = node_status;
 
-	// fill in your major and minor firmware version
-	pkt.software_version.major = FC_VERSION_MAJOR;
-	pkt.software_version.minor = FC_VERSION_MINOR;
-	pkt.software_version.optional_field_flags = UAVCAN_PROTOCOL_SOFTWAREVERSION_OPTIONAL_FIELD_FLAG_VCS_COMMIT;
-	pkt.software_version.vcs_commit = strtoul(shortGitRevision, NULL, 16); // need to convert string to integer put git hash in here
+    // fill in your major and minor firmware version
+    pkt.software_version.major = FC_VERSION_MAJOR;
+    pkt.software_version.minor = FC_VERSION_MINOR;
+    pkt.software_version.optional_field_flags = UAVCAN_PROTOCOL_SOFTWAREVERSION_OPTIONAL_FIELD_FLAG_VCS_COMMIT;
+    pkt.software_version.vcs_commit = strtoul(shortGitRevision, NULL, 16); // need to convert string to integer put git hash in here
 
-	// should fill in hardware version
-	pkt.hardware_version.major = 1;
-	pkt.hardware_version.minor = 0;
+    // should fill in hardware version
+    pkt.hardware_version.major = 1;
+    pkt.hardware_version.minor = 0;
 
-	// just setting all 16 bytes to 1 for testing
-	canardSTM32GetUniqueID(pkt.hardware_version.unique_id);
+    // just setting all 16 bytes to 1 for testing
+    canardSTM32GetUniqueID(pkt.hardware_version.unique_id);
 
-	strncpy((char*)pkt.name.data, FC_FIRMWARE_NAME, sizeof(pkt.name.data));
-	pkt.name.len = strnlen((char*)pkt.name.data, sizeof(pkt.name.data));
+    strncpy((char*)pkt.name.data, FC_FIRMWARE_NAME, sizeof(pkt.name.data));
+    pkt.name.len = strnlen((char*)pkt.name.data, sizeof(pkt.name.data));
 
-	uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
+    uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
 
-	canardRequestOrRespond(ins,
-						   transfer->source_node_id,
-						   UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE,
-						   UAVCAN_PROTOCOL_GETNODEINFO_ID,
-						   &transfer->transfer_id,
-						   transfer->priority,
-						   CanardResponse,
-						   &buffer[0],
-						   total_size);
+    canardRequestOrRespond(ins,
+                           transfer->source_node_id,
+                           UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE,
+                           UAVCAN_PROTOCOL_GETNODEINFO_ID,
+                           &transfer->transfer_id,
+                           transfer->priority,
+                           CanardResponse,
+                           &buffer[0],
+                           total_size);
 }
 
 #endif
