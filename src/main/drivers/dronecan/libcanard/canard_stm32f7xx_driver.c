@@ -41,7 +41,7 @@ static struct RxBuffer_t {
 
 #define TX_QUEUE_SIZE 32
 
-static struct {
+static struct CanTxQueue_t {
     CanardCANFrame frames[TX_QUEUE_SIZE];
     volatile uint8_t head;
     volatile uint8_t tail;
@@ -251,7 +251,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hcan1.Init.AutoWakeUp = DISABLE;
     hcan1.Init.AutoRetransmission = ENABLE;
     hcan1.Init.ReceiveFifoLocked = DISABLE;
-    hcan1.Init.TransmitFifoPriority = DISABLE;
+    hcan1.Init.TransmitFifoPriority = ENABLE;  // transmit in request order, not mailbox-number order
 
     canardSTM32ComputeTimings(bitrate, &out_timings);
 
@@ -504,12 +504,20 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 
 static void canTxDrainQueue(CAN_HandleTypeDef *hcan) {
     CanardCANFrame frame;
-    if (canTxQueuePop(&frame)) {
-        CAN_TxHeaderTypeDef txHeader = {};
-        uint8_t txData[8];
-        uint32_t txMailbox;
-        buildTxHeader(&frame, &txHeader, txData);
-        HAL_CAN_AddTxMessage(hcan, &txHeader, txData, &txMailbox);
+    // With TXFP=ENABLE the hardware transmits mailboxes in request order
+    // (chronological), not mailbox-number order, so filling multiple mailboxes
+    // per callback is safe and preserves frame sequence.
+    while (!canTxQueueIsEmpty() && HAL_CAN_GetTxMailboxesFreeLevel(hcan) > 0) {
+        if (canTxQueuePop(&frame)) {
+            CAN_TxHeaderTypeDef txHeader = {};
+            uint8_t txData[8];
+            uint32_t txMailbox;
+            buildTxHeader(&frame, &txHeader, txData);
+            if (HAL_CAN_AddTxMessage(hcan, &txHeader, txData, &txMailbox) != HAL_OK) {
+                canTxDropped++;
+                break;
+            }
+        }
     }
     if (canTxQueueIsEmpty()) {
         HAL_CAN_DeactivateNotification(hcan, CAN_IT_TX_MAILBOX_EMPTY);

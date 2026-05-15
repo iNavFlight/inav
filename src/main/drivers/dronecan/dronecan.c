@@ -295,7 +295,6 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
 */
 void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 	// switch on data type ID to pass to the right handler function
-
 	if (transfer->transfer_type == CanardTransferTypeRequest) {
 		// check if we want to handle a specific service request
 		switch (transfer->data_type_id) {
