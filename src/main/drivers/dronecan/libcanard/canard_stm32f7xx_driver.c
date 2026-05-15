@@ -7,6 +7,7 @@
 
 #include "common/log.h"
 #include "common/time.h"
+#include "build/atomic.h"
 #include "drivers/io.h"
 #include "drivers/nvic.h"
 #include "canard.h"
@@ -531,9 +532,9 @@ void CAN1_TX_IRQHandler(void) {
 /**
   * @brief  HAL callbacks fired when a TX mailbox completes transmission (runs in ISR context).
   *         Each refills available mailboxes from the software TX queue via canTxDrainQueue().
-  *         AbortCallback is intentionally not wired: AutoRetransmission=ENABLE prevents
-  *         ALST (arbitration lost), and TERR (bus fault) leaves the frame in the queue
-  *         (tail not advanced) so the next canardSTM32Transmit call re-seeds the HW.
+  *         AbortCallback is intentionally not wired: with AutoRetransmission=ENABLE the hardware
+  *         retransmits automatically on arbitration loss (ALST) and the software abort path is
+  *         never triggered. Bus-off is handled separately by the state machine in dronecanUpdate().
   */
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
@@ -558,22 +559,19 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
     }
 
     // If all mailboxes are idle, RQCP will never fire to start the ISR chain.
-    // Seed the HW via canTxDrainQueue with IRQs disabled to preserve the
-    // SPSC contract — ISR is the sole consumer; we become the consumer only
-    // while the ISR cannot run.
-    __disable_irq();
-    if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 3) {
-        canTxDrainQueue(&hcan1);
+    // Seed the HW via canTxDrainQueue while blocking only the CAN TX ISR (not
+    // higher-priority IRQs like the gyro timer) to preserve the SPSC contract —
+    // ISR is the sole consumer; we become the consumer only during this window.
+    ATOMIC_BLOCK(NVIC_PRIO_CAN) {
+        if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 3) {
+            canTxDrainQueue(&hcan1);
+        }
+        if (!canTxQueueIsEmpty()) {
+            // If ActivateNotification fails (e.g. peripheral in error state) the frame is
+            // already in the SW queue. The next canardSTM32Transmit call will re-seed the HW.
+            HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
+        }
     }
-    if (!canTxQueueIsEmpty()) {
-        // If ActivateNotification fails (e.g. peripheral in error state) the frame is
-        // already in the SW queue. Return 1 so libcanard does not re-push a duplicate;
-        // the next canardSTM32Transmit call will re-seed the HW mailboxes.
-        HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
-        __enable_irq();
-        return 1;
-    }
-    __enable_irq();
     return 1;
 }
 
