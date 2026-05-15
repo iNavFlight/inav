@@ -120,7 +120,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     }
 
     const uint32_t prescaler = prescaler_bs / (1 + bs1_bs2_sum);
-    if ((prescaler < 1U) || (prescaler > 1024U)) {
+    if ((prescaler < 1U) || (prescaler > 512U)) {  // FDCAN NBTP.NBRP is 9-bit: valid range 1-512
         return false;              // No solution
     }
     LOG_DEBUG(CAN, "Prescaler: %lu", prescaler);
@@ -361,15 +361,7 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	TxHeader.FDFormat = FDCAN_CLASSIC_CAN; // Disabling FDCAN (using CAN 2.0)
 	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // unsure about this one
 	TxHeader.MessageMarker = 0; // unsure about this one
-    if (TxHeader.DataLength <= sizeof(TxData))
-    {
-	    memcpy(TxData, tx_frame->data, TxHeader.DataLength);
-    }
-    else
-    {
-        LOG_ERROR(CAN, "Data to transmit is larger than 8 byte frame size");
-        return -CANARD_ERROR_INVALID_ARGUMENT;
-    }
+    memcpy(TxData, tx_frame->data, TxHeader.DataLength);
 
 	if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) == HAL_OK) {
 		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", TxHeader.Identifier);
@@ -392,6 +384,7 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
 	FDCAN_ProtocolStatusTypeDef protocolStatus = {};
 
+    memset(pProtocolStat, 0, sizeof(*pProtocolStat));
     HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocolStatus);
     pProtocolStat->BusOff = protocolStatus.BusOff;
     pProtocolStat->ErrorPassive = protocolStatus.ErrorPassive;

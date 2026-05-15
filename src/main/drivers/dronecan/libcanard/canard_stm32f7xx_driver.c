@@ -240,7 +240,10 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hcan1.Init.ReceiveFifoLocked = DISABLE;
     hcan1.Init.TransmitFifoPriority = ENABLE;  // transmit in request order, not mailbox-number order
 
-    canardSTM32ComputeTimings(bitrate, &out_timings);
+    if (!canardSTM32ComputeTimings(bitrate, &out_timings)) {
+        LOG_ERROR(CAN, "Failed to compute CAN timings for bitrate %lu", (unsigned long)bitrate);
+        return -CANARD_ERROR_INTERNAL;
+    }
 
     hcan1.Init.Prescaler = out_timings.prescaler;
     hcan1.Init.SyncJumpWidth = (uint32_t)out_timings.sjw << CAN_BTR_SJW_Pos;
@@ -289,7 +292,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
   * @param  rxMsg  Pointer to the RxFrame_t to copy into the buffer.
   * @retval 0 on success, -1 if the buffer is full (frame dropped).
   */
-int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
 
@@ -303,6 +306,7 @@ int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     }
     pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->writeIndex];
     memcpy(pCurrentRxMsg, rxMsg, sizeof(RxFrame_t));
+    __DMB();  // ensure frame data is visible to main loop before writeIndex advances
     rxBuf->writeIndex = next;
     uint8_t rxFill = (next >= rxBuf->readIndex) ? (next - rxBuf->readIndex) : (next + RX_BUFFER_SIZE - rxBuf->readIndex);
     if (rxFill > canRxBufferHWM) canRxBufferHWM = rxFill;
@@ -315,7 +319,7 @@ int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
   * @param  rxMsg  Pointer to an RxFrame_t where the frame will be copied.
   * @retval 0 on success, -1 if the buffer is empty.
   */
-int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
 
@@ -328,6 +332,7 @@ int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
         next = 0;
     }
     pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->readIndex];
+    __DMB();  // ensure ISR's frame data writes are visible before we read them
     memcpy(rxMsg, pCurrentRxMsg, sizeof(RxFrame_t));
     rxBuf->readIndex = next;
     return 0;
@@ -338,7 +343,7 @@ int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
   * @param  rxBuf  Pointer to the RxBuffer_t ring buffer.
   * @retval Number of frames available to read (0 to RX_BUFFER_SIZE-1).
   */
-uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
+static uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
     if(rxBuf->writeIndex < rxBuf->readIndex)
         return((rxBuf->writeIndex + RX_BUFFER_SIZE) - rxBuf->readIndex);
 
