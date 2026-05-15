@@ -199,7 +199,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
           (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / (double)(10.0));
 
     out_timings->prescaler = (uint16_t)(prescaler);
-    out_timings->sjw = 3;                        // SJW=3: allows up to 3 tq of resynchronization per bit; sufficient for short bus runs at 1 Mbps
+    out_timings->sjw = 3;                        // TODO: review SJW value — stored raw (no N-1 offset unlike BS1/BS2), so register encodes 4TQ not 3TQ; verify this is intentional
     out_timings->bs1 = (uint8_t)(solution.bs1)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
     out_timings->bs2 = (uint8_t)(solution.bs2)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
 
