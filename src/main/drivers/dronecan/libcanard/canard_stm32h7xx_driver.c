@@ -365,7 +365,6 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
     memcpy(TxData, tx_frame->data, TxHeader.DataLength);
 
 	if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) == HAL_OK) {
-		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", TxHeader.Identifier);
 		return 1;
 	}
 

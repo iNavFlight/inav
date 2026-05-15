@@ -137,8 +137,6 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 
              for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
              {
-                 //LOG_DEBUG(CAN, "Received a message");
-                 //LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", canardSTM32GetRxFifoFillLevel());
 	            timestamp = millis() * 1000ULL;
 	            rx_res = canardSTM32Recieve(&rx_frame);
 
@@ -194,7 +192,6 @@ static void processCanardTxQueue(void) {
 			LOG_DEBUG(CAN, "Transmit error %d", tx_res);
 			canardPopTxQueue(&canard);  // Error - discard frame
 		} else if (tx_res > 0) {
-			// LOG_DEBUG(CAN, "Successfully transmitted message");
 			canardPopTxQueue(&canard);  // Success - remove from queue
 		} else {
 			// tx_res == 0: TX FIFO full, retry later
@@ -230,7 +227,6 @@ static void process1HzTasks(timeUs_t timestamp_usec)
 static void send_NodeStatus(void) {
     uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
 
-    // LOG_DEBUG(CAN, "Sending Node Status");
     node_status.uptime_sec = millis() / 1000UL;
     if(isHardwareHealthy()){
         node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
@@ -393,46 +389,33 @@ static void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
 
-	// LOG_DEBUG(CAN, "Node Health ");
 
 	switch (nodeStatus.health) {
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
-		// LOG_DEBUG(CAN, "OK");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
-		// LOG_DEBUG(CAN, "WARNING");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
-		// LOG_DEBUG(CAN, "ERROR");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
-		// LOG_DEBUG(CAN, "CRITICAL");
 		break;
 	default:
-		// LOG_DEBUG(CAN, "UNKNOWN?");
 		break;
 	}
 
-	// LOG_DEBUG(CAN, "Node Mode ");
 
 	switch(nodeStatus.mode) {
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
-		// LOG_DEBUG(CAN, "OPERATIONAL");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
-		// LOG_DEBUG(CAN, "INITIALIZATION");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
-		// LOG_DEBUG(CAN, "MAINTENANCE");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
-		// LOG_DEBUG(CAN, "SOFTWARE UPDATE");
 		break;
 	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
-		// LOG_DEBUG(CAN, "OFFLINE");
 		break;
 	default:
-		// LOG_DEBUG(CAN, "UNKNOWN?");
 		break;
 	}
 }
