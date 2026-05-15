@@ -206,7 +206,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hfdcan1.Instance = FDCAN1;
     hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
     hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-    hfdcan1.Init.AutoRetransmission = DISABLE;
+    hfdcan1.Init.AutoRetransmission = ENABLE;  // retransmit on arbitration loss, matching F7 behaviour
     hfdcan1.Init.TransmitPause = DISABLE;
     hfdcan1.Init.ProtocolException = DISABLE;
 
@@ -283,7 +283,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
   * 		stored.
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
-int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
+int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
 	if (rx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}

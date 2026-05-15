@@ -24,7 +24,7 @@ typedef struct {
 
 int16_t canardSTM32CAN1_Init(uint32_t bitrate);
 
-int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame);
+int16_t canardSTM32Receive(CanardCANFrame *const rx_frame);
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame);
 void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat);
 int32_t canardSTM32GetRxFifoFillLevel(void);

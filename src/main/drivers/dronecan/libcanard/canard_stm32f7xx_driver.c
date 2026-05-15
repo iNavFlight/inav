@@ -211,7 +211,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
   *         Configures GPIO pins, bit timings, a pass-all acceptance filter,
   *         starts the peripheral, and enables RX and TX interrupts.
   * @param  bitrate  Desired CAN bus bitrate in bits per second (e.g. 1000000).
-  * @retval CANARD_OK (1) on success, negative CANARD_ERROR code on failure.
+  * @retval CANARD_OK (0) on success, negative CANARD_ERROR code on failure.
   */
 int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 {
@@ -292,7 +292,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
   * @param  rxMsg  Pointer to the RxFrame_t to copy into the buffer.
   * @retval 0 on success, -1 if the buffer is full (frame dropped).
   */
-static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+static int8_t rxBufferPushFrame(volatile struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
 
@@ -304,7 +304,7 @@ static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     if(next == rxBuf->readIndex) {
         return -1;  // rxBuf is full
     }
-    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->writeIndex];
+    pCurrentRxMsg = (RxFrame_t *)&rxBuf->rxMsg[rxBuf->writeIndex];
     memcpy(pCurrentRxMsg, rxMsg, sizeof(RxFrame_t));
     __DMB();  // ensure frame data is visible to main loop before writeIndex advances
     rxBuf->writeIndex = next;
@@ -319,7 +319,7 @@ static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
   * @param  rxMsg  Pointer to an RxFrame_t where the frame will be copied.
   * @retval 0 on success, -1 if the buffer is empty.
   */
-static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+static int8_t rxBufferPopFrame(volatile struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
 
@@ -331,7 +331,7 @@ static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     if (next >= RX_BUFFER_SIZE){
         next = 0;
     }
-    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->readIndex];
+    pCurrentRxMsg = (RxFrame_t *)&rxBuf->rxMsg[rxBuf->readIndex];
     __DMB();  // ensure ISR's frame data writes are visible before we read them
     memcpy(rxMsg, pCurrentRxMsg, sizeof(RxFrame_t));
     rxBuf->readIndex = next;
@@ -343,7 +343,7 @@ static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
   * @param  rxBuf  Pointer to the RxBuffer_t ring buffer.
   * @retval Number of frames available to read (0 to RX_BUFFER_SIZE-1).
   */
-static uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
+static uint8_t rxBufferNumMessages(volatile struct RxBuffer_t *rxBuf) {
     if(rxBuf->writeIndex < rxBuf->readIndex)
         return((rxBuf->writeIndex + RX_BUFFER_SIZE) - rxBuf->readIndex);
 
@@ -375,7 +375,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
   * 		stored.
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
-int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
+int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
     RxFrame_t canRxFrame;
 
     if (rx_frame == NULL) {

@@ -138,7 +138,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
              for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
              {
 	            timestamp = millis() * 1000ULL;
-	            rx_res = canardSTM32Recieve(&rx_frame);
+	            rx_res = canardSTM32Receive(&rx_frame);
 
 	             if (rx_res < 0) {
 		             LOG_DEBUG(CAN, "Receive error %d", rx_res);

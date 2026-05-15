@@ -280,7 +280,7 @@ static void sitlCANGetStatsSocketCAN(canardProtocolStatus_t *pProtocolStat) {
  * @param rx_frame Pointer to frame structure to fill
  * @retval 0 if no frame available, 1 if frame received, negative on error
  */
-int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
+int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
     if (rx_frame == NULL) {
         return -CANARD_ERROR_INVALID_ARGUMENT;
     }
