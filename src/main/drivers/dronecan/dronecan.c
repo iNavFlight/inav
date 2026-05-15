@@ -186,7 +186,6 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 /* --- TX and periodic task processing --- */
 
 static void processCanardTxQueue(void) {
-	// Transmitting
 	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
     {
         const int16_t tx_res = canardSTM32Transmit(tx_frame);
