@@ -41,9 +41,9 @@ static void canardSTM32GPIO_Init(void)
    // Set up the Rx and Tx pins for CAN1 and if present, the standby or listen only pin.
 #if defined(CAN1_TX) && defined(CAN1_RX)
     IOInit(IOGetByTag(IO_TAG(CAN1_TX)), OWNER_DRONECAN, RESOURCE_CAN_TX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);
     IOInit(IOGetByTag(IO_TAG(CAN1_RX)), OWNER_DRONECAN, RESOURCE_CAN_RX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);
 #endif
 
 
@@ -354,11 +354,11 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 		TxHeader.TxFrameType = FDCAN_DATA_FRAME;
 	}
 
-	TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE; // unsure about this one
+	TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE; // node is not in error-passive state; sender sets ESI to active
 	TxHeader.BitRateSwitch = FDCAN_BRS_OFF; // Disabling FDCAN (using CAN 2.0)
 	TxHeader.FDFormat = FDCAN_CLASSIC_CAN; // Disabling FDCAN (using CAN 2.0)
-	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // unsure about this one
-	TxHeader.MessageMarker = 0; // unsure about this one
+	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // no TX event FIFO allocated; event tracking not needed
+	TxHeader.MessageMarker = 0; // only meaningful when TX events are enabled; unused here
     memcpy(TxData, tx_frame->data, TxHeader.DataLength);
 
 	if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) == HAL_OK) {

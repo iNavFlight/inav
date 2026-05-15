@@ -101,18 +101,18 @@ void dronecanInit(void)
     Initializing the Libcanard instance.
     */
     canardInit(&canard,
-	    	   memory_pool,
-			   sizeof(memory_pool),
-			   onTransferReceived,
-			   shouldAcceptTransfer,
-			   NULL);
+               memory_pool,
+               sizeof(memory_pool),
+               onTransferReceived,
+               shouldAcceptTransfer,
+               NULL);
 
     // Could use DNA (Dynamic Node Allocation) by following example in esc_node.c but that requires a lot of setup and I'm not too sure of what advantage it brings
     // Instead, set a different NODE_ID for each device on the CAN bus by configuring node_settings
     if (dronecanConfig()->nodeID > 0) {
-	      canardSetLocalNodeID(&canard, dronecanConfig()->nodeID);
+        canardSetLocalNodeID(&canard, dronecanConfig()->nodeID);
     } else {
-	      LOG_DEBUG(CAN, "Node ID is 0, this node is anonymous and can't transmit most messages. Please update this in config");
+        LOG_DEBUG(CAN, "Node ID is 0, this node is anonymous and can't transmit most messages. Please update this in config");
     }
 }
 

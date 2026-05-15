@@ -67,9 +67,9 @@ static void canardSTM32GPIO_Init(void)
    // Set up the Rx and Tx pins for CAN1 and if present, the standby or listen only pin.
 #if defined(CAN1_TX) && defined(CAN1_RX)
     IOInit(IOGetByTag(IO_TAG(CAN1_TX)), OWNER_DRONECAN, RESOURCE_CAN_TX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_CAN1);  // How do I make the alternate function crossplatform?
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_CAN1);
     IOInit(IOGetByTag(IO_TAG(CAN1_RX)), OWNER_DRONECAN, RESOURCE_CAN_RX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_CAN1);  // How do I make the alternate function crossplatform?
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_CAN1);
 #endif
 
 
@@ -382,7 +382,7 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
         return -CANARD_ERROR_INVALID_ARGUMENT;
     }
 
-    if (rxBufferPopFrame(&RxBuffer, &canRxFrame) == 0) {  // Wheres the data?
+    if (rxBufferPopFrame(&RxBuffer, &canRxFrame) == 0) {
         rx_frame->id = canRxFrame.header.ExtId;
 
         // Process ID to canard format
