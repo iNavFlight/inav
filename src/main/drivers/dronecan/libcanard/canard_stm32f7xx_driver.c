@@ -51,6 +51,9 @@ static struct CanTxQueue_t {
 
 static CAN_HandleTypeDef hcan1;
 
+// canTxDropped and canTxQueueHWM are written by main loop (canTxQueuePush), read by main loop only.
+// canRxBufferHWM is written by ISR (rxBufferPushFrame), read by main loop only.
+// All are uint8/uint16 so reads are single-instruction atomic on Cortex-M.
 static volatile uint16_t canTxDropped = 0;
 static volatile uint8_t  canTxQueueHWM = 0;
 static volatile uint8_t  canRxBufferHWM = 0;
@@ -331,8 +334,9 @@ static int8_t rxBufferPopFrame(volatile struct RxBuffer_t *rxBuf, RxFrame_t *rxM
     if (next >= RX_BUFFER_SIZE){
         next = 0;
     }
-    pCurrentRxMsg = (RxFrame_t *)&rxBuf->rxMsg[rxBuf->readIndex];
+    uint8_t ridx = rxBuf->readIndex;  // snapshot index before barrier
     __DMB();  // ensure ISR's frame data writes are visible before we read them
+    pCurrentRxMsg = (RxFrame_t *)&rxBuf->rxMsg[ridx];
     memcpy(rxMsg, pCurrentRxMsg, sizeof(RxFrame_t));
     rxBuf->readIndex = next;
     return 0;
@@ -550,7 +554,7 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
     // higher-priority IRQs like the gyro timer) to preserve the SPSC contract —
     // ISR is the sole consumer; we become the consumer only during this window.
     ATOMIC_BLOCK(NVIC_PRIO_CAN) {
-        if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 3) {
+        if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0) {
             canTxDrainQueue(&hcan1);
         }
         if (!canTxQueueIsEmpty()) {

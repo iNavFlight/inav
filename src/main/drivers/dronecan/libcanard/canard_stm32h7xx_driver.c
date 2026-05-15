@@ -206,7 +206,13 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hfdcan1.Instance = FDCAN1;
     hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
     hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-    hfdcan1.Init.AutoRetransmission = ENABLE;  // retransmit on arbitration loss, matching F7 behaviour
+    // AutoRetransmission=ENABLE: hardware retries on arbitration loss without software intervention.
+    // Unlike the F7 (ISR + 32-deep SW queue), the H7 has only the HW TX FIFO (no SW queue).
+    // FDCAN TX FIFO maintains strict submission order regardless of retransmission, so frame
+    // ordering is preserved. Risk on a heavily loaded bus: a retrying frame can delay later
+    // FIFO entries but cannot reorder them. Original code used DISABLE (software-controlled
+    // retry via polling). TODO: evaluate whether DISABLE is safer for the H7 polling model.
+    hfdcan1.Init.AutoRetransmission = ENABLE;
     hfdcan1.Init.TransmitPause = DISABLE;
     hfdcan1.Init.ProtocolException = DISABLE;
 
