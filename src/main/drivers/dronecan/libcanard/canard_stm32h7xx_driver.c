@@ -202,7 +202,8 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
     sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
     sFilterConfig.FilterID1 = 0x0;
-    sFilterConfig.FilterID2 = 0x1FFFFFFFU;
+    sFilterConfig.FilterID2 = 0x1FFFFFFFU;  // FILTER_DUAL matches two IDs, but ConfigGlobalFilter below
+                                             // accepts all non-matching frames — this filter is a no-op
     hfdcan1.Instance = FDCAN1;
     hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
     hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;

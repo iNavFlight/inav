@@ -27,8 +27,8 @@
 
 /* --- Private state --- */
 
-CanardInstance canard;
-uint8_t memory_pool[1024];
+static CanardInstance canard;
+static uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig, PG_DRONECAN_CONFIG, 0);
@@ -248,7 +248,7 @@ static void send_NodeStatus(void) {
     uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
 
     // we need a static variable for the transfer ID. This is
-    // incremeneted on each transfer, allowing for detection of packet
+    // incremented on each transfer, allowing for detection of packet
     // loss
     static uint8_t transfer_id;
 
