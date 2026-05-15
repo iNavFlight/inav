@@ -415,14 +415,16 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
   */
 static bool canTxQueuePush(const CanardCANFrame *frame) {
     uint8_t next = (canTxQueue.head + 1) % TX_QUEUE_SIZE;
-    uint8_t tail_snapshot = canTxQueue.tail;  // snapshot before ISR can advance it
-    if (next == tail_snapshot) {
+    // Read tail fresh: ISR only advances tail, so a fresh read can only show more space,
+    // never less — eliminates false-full when ISR drains a slot concurrently.
+    if (next == canTxQueue.tail) {
         canTxDropped++;
         return false;
     }
     canTxQueue.frames[canTxQueue.head] = *frame;
     __DMB();  // ensure frame data is visible before head advances
     canTxQueue.head = next;
+    uint8_t tail_snapshot = canTxQueue.tail;  // snapshot after push; may undercount fill if ISR drains concurrently, acceptable for HWM
     uint8_t fill = (next - tail_snapshot + TX_QUEUE_SIZE) % TX_QUEUE_SIZE;
     if (fill > canTxQueueHWM) canTxQueueHWM = fill;
     return true;

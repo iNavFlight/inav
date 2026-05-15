@@ -188,13 +188,12 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
 /**
   * @brief CAN1 Initialization Function
   * @param  bitrate desired bitrate to run the CAN network at.
-  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
+  * @retval CANARD_OK (0) on success, negative CANARD_ERROR on failure.
   */
 int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 {
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
     struct Timings out_timings;
-    int16_t ErrorCode = 1;
 
     FDCAN_FilterTypeDef sFilterConfig;
     sFilterConfig.IdType = FDCAN_EXTENDED_ID;
@@ -211,10 +210,9 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hfdcan1.Init.TransmitPause = DISABLE;
     hfdcan1.Init.ProtocolException = DISABLE;
 
-    ErrorCode = canardSTM32ComputeTimings(bitrate, &out_timings);
-    if (ErrorCode != 1)
+    if (!canardSTM32ComputeTimings(bitrate, &out_timings))
     {
-        LOG_ERROR(CAN, "Unable to calculate timings, Error Code:%d", ErrorCode);
+        LOG_ERROR(CAN, "Failed to compute CAN timings for bitrate %lu", (unsigned long)bitrate);
         return -CANARD_ERROR_INTERNAL;
     }
 
@@ -257,7 +255,6 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed CAN Init");
         return -CANARD_ERROR_INTERNAL;
     }
-    /* USER CODE BEGIN FDCAN1_Init 2 */
     if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
