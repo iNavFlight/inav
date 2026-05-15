@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdint.h>
 
-/* ── Internal types and state ──────────────────────────────────────────────── */
+/* --- Internal types and state --- */
 
 struct Timings {
         uint16_t prescaler;
@@ -29,7 +29,7 @@ struct Timings {
 
 static FDCAN_HandleTypeDef hfdcan1;
 
-/* ── Initialization ────────────────────────────────────────────────────────── */
+/* --- Initialization --- */
 
 /**
   * @brief GPIO Initialization Function
@@ -196,12 +196,6 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     struct Timings out_timings;
     int16_t ErrorCode = 1;
 
-    /* USER CODE BEGIN FDCAN1_Init 0 */
-
-    /* USER CODE END FDCAN1_Init 0 */
-
-    /* USER CODE BEGIN FDCAN1_Init 1 */
-
     FDCAN_FilterTypeDef sFilterConfig;
     sFilterConfig.IdType = FDCAN_EXTENDED_ID;
     sFilterConfig.FilterIndex = 0;
@@ -209,7 +203,6 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
     sFilterConfig.FilterID1 = 0x0;
     sFilterConfig.FilterID2 = 0x1FFFFFFFU;
-    /* USER CODE END FDCAN1_Init 1 */
     hfdcan1.Instance = FDCAN1;
     hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
     hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
@@ -280,7 +273,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     return CANARD_OK;
 }
 
-/* ── RX ────────────────────────────────────────────────────────────────────── */
+/* --- RX --- */
 
 /**
   * @brief  Process CAN message from RxLocation FIFO into rx_frame
@@ -326,7 +319,7 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
 	return 0;
 }
 
-/* ── TX ────────────────────────────────────────────────────────────────────── */
+/* --- TX --- */
 
 /**
   * @brief  Process tx_frame CAN message into Tx FIFO/Queue and transmit it
@@ -389,7 +382,7 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	return 0;
 }
 
-/* ── Diagnostics ───────────────────────────────────────────────────────────── */
+/* --- Diagnostics --- */
 
 /**
   * @brief  Read FDCAN protocol status (bus-off, error passive) into a

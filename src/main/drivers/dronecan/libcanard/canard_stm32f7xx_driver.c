@@ -20,7 +20,7 @@
 #include <string.h>
 #include <stdint.h>
 
-/* ── Internal types and state ──────────────────────────────────────────────── */
+/* --- Internal types and state --- */
 
 #define RX_BUFFER_SIZE 32
 #define TX_QUEUE_SIZE  32
@@ -55,7 +55,7 @@ static volatile uint16_t canTxDropped = 0;
 static volatile uint8_t  canTxQueueHWM = 0;
 static volatile uint8_t  canRxBufferHWM = 0;
 
-/* ── Initialization ────────────────────────────────────────────────────────── */
+/* --- Initialization --- */
 
 /**
   * @brief GPIO Initialization Function
@@ -199,7 +199,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
           (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / (double)(10.0));
 
     out_timings->prescaler = (uint16_t)(prescaler);
-    out_timings->sjw = 3;                        // Not happy with this value, but 1MBPs with unshielded cable?
+    out_timings->sjw = 3;                        // SJW=3: allows up to 3 tq of resynchronization per bit; sufficient for short bus runs at 1 Mbps
     out_timings->bs1 = (uint8_t)(solution.bs1)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
     out_timings->bs2 = (uint8_t)(solution.bs2)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
 
@@ -215,13 +215,10 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
   */
 int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 {
-//    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
     struct Timings out_timings;
 
-     /* CAN1 clock enable */
+    /* CAN1 clock enable */
     __HAL_RCC_CAN1_CLK_ENABLE();
-
-    // /* USER CODE BEGIN CAN1_MspInit 1 */
 
     CAN_FilterTypeDef sFilterConfig;
     sFilterConfig.FilterIdHigh = 0;
@@ -251,31 +248,14 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hcan1.Init.TimeSeg2     = (uint32_t)out_timings.bs2 << CAN_BTR_TS2_Pos;
     LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
-    // hcan1.Init.StdFiltersNbr = 0;
-    // hcan1.Init.ExtFiltersNbr = 1;
-    // hcan1.Init.TxFifoQueueElmtsNbr = 32;
-    // LOG_DEBUG(CAN, "In CAN Init");
+    canardSTM32GPIO_Init();  // Set up the pins for CAN and optional standby control
 
-    /** Initializes the peripherals clock
-    */
-    // PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
-    // PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL;
-    // if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-    // {
-    //   LOG_DEBUG(CAN, "Unable to configure peripheral clock");
-    // }
-
-    canardSTM32GPIO_Init();  // Set up the pins for CAN and optional listen only mode
-
-    // LOG_DEBUG(CAN, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
-    // LOG_DEBUG(CAN, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
     if (HAL_CAN_Init(&hcan1) != HAL_OK)
     {
         LOG_ERROR(CAN, "Failed CAN Init");
         return -CANARD_ERROR_INTERNAL;
     }
 
-    /* USER CODE BEGIN FDCAN1_Init 2 */
     if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
@@ -301,7 +281,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     return CANARD_OK;
 }
 
-/* ── RX subsystem ──────────────────────────────────────────────────────────── */
+/* --- RX subsystem --- */
 
 /**
   * @brief  Push a received CAN frame into the ring buffer (called from ISR).
@@ -394,33 +374,33 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
     RxFrame_t canRxFrame;
 
     if (rx_frame == NULL) {
-		return -CANARD_ERROR_INVALID_ARGUMENT;
-	}
+        return -CANARD_ERROR_INVALID_ARGUMENT;
+    }
 
-	if (rxBufferPopFrame(&RxBuffer, &canRxFrame) == 0) {  // Wheres the data?
+    if (rxBufferPopFrame(&RxBuffer, &canRxFrame) == 0) {  // Wheres the data?
         rx_frame->id = canRxFrame.header.ExtId;
 
-		// Process ID to canard format
-		if (canRxFrame.header.IDE == CAN_ID_EXT) { // canard will only process the message if it is extended ID
+        // Process ID to canard format
+        if (canRxFrame.header.IDE == CAN_ID_EXT) { // canard will only process the message if it is extended ID
             rx_frame->id |= CANARD_CAN_FRAME_EFF;
-		}
+        }
 
-		if (canRxFrame.header.RTR == CAN_RTR_REMOTE) { // canard won't process the message if it is a remote frame
-			rx_frame->id |= CANARD_CAN_FRAME_RTR;
-		}
+        if (canRxFrame.header.RTR == CAN_RTR_REMOTE) { // canard won't process the message if it is a remote frame
+            rx_frame->id |= CANARD_CAN_FRAME_RTR;
+        }
 
-		rx_frame->data_len = canRxFrame.header.DLC;
-		memcpy(rx_frame->data, canRxFrame.data, canRxFrame.header.DLC);
+        rx_frame->data_len = canRxFrame.header.DLC;
+        memcpy(rx_frame->data, canRxFrame.data, canRxFrame.header.DLC);
 
-		// assume a single interface
-		rx_frame->iface_id = 0;
-		return 1;
-	}
-	// Either no CAN msg to be read, or an error that can be read from hfdcan->ErrorCode
-	return 0;
+        // assume a single interface
+        rx_frame->iface_id = 0;
+        return 1;
+    }
+    // Either no CAN msg to be read, or an error that can be read from hfdcan->ErrorCode
+    return 0;
 }
 
-/* ── TX subsystem ──────────────────────────────────────────────────────────── */
+/* --- TX subsystem --- */
 
 /**
   * @brief  Push a frame onto the software TX queue (called from main loop).
@@ -575,7 +555,7 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
     return 1;
 }
 
-/* ── Diagnostics ───────────────────────────────────────────────────────────── */
+/* --- Diagnostics --- */
 
 /**
   * @brief  Read CAN bus error counters and queue statistics from hardware and
