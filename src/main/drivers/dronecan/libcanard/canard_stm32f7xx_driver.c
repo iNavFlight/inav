@@ -39,16 +39,17 @@ static struct RxBuffer_t {
     RxFrame_t rxMsg[RX_BUFFER_SIZE];
 } RxBuffer;
 
-#define TX_QUEUE_SIZE 32                                                                                                                                                                                                                  
-                                                                                                                                                                                               
-static struct {                        
+#define TX_QUEUE_SIZE 32
+
+static struct {
     CanardCANFrame frames[TX_QUEUE_SIZE];
-    volatile uint8_t head;                                                                                                                                                                                                                
+    volatile uint8_t head;
     volatile uint8_t tail;
-} canTxQueue;                                                                                                                                                                                                                             
+} canTxQueue;
 
 static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings*out_timings);
 static void canardSTM32GPIO_Init(void);
+static void canTxDrainQueue(CAN_HandleTypeDef *hcan);
 
 static CAN_HandleTypeDef hcan1;
 RxFrame_t rxMsg;
@@ -98,7 +99,7 @@ uint8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
 uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
     if(rxBuf->writeIndex < rxBuf->readIndex)
         return((rxBuf->writeIndex + RX_BUFFER_SIZE) - rxBuf->readIndex);
-    
+
     return (rxBuf->writeIndex - rxBuf->readIndex);
 }
 
@@ -113,18 +114,18 @@ static bool canTxQueuePush(const CanardCANFrame *frame) {
     uint8_t fill = (canTxQueue.head - canTxQueue.tail + TX_QUEUE_SIZE) % TX_QUEUE_SIZE;
     if (fill > canTxQueueHWM) canTxQueueHWM = fill;
     return true;
-}                                                                                                                                                                                                                                         
+}
 
 static bool canTxQueuePop(CanardCANFrame *frame) {
     if (canTxQueue.head == canTxQueue.tail) {
         return false;
-    }                                                                                                                                                                                                                                     
+    }
     *frame = canTxQueue.frames[canTxQueue.tail];
-    canTxQueue.tail = (canTxQueue.tail + 1) % TX_QUEUE_SIZE;                                                                                                                                                                              
-    return true;                                                                                                                                                                             
-}                                      
+    canTxQueue.tail = (canTxQueue.tail + 1) % TX_QUEUE_SIZE;
+    return true;
+}
 
-static bool canTxQueueIsEmpty(void) {                                                                                                                                                                                                     
+static bool canTxQueueIsEmpty(void) {
     return canTxQueue.head == canTxQueue.tail;
 }
 
@@ -164,18 +165,18 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
 	return 0;
 }
 
-static void buildTxHeader(const CanardCANFrame *frame, CAN_TxHeaderTypeDef *header, uint8_t *data) {                                                                                                                                      
-    if (frame->id & CANARD_CAN_FRAME_EFF) {                                                                                                                                                                                               
-        header->IDE = CAN_ID_EXT;                                                                                                                                                                                                         
-        header->ExtId = frame->id & CANARD_CAN_EXT_ID_MASK;                                                                                                                                                                               
-    } else {                                                                                                                                                                                                                              
-        header->IDE = CAN_ID_STD;                                                                                                                                                            
-        header->StdId = frame->id & CANARD_CAN_STD_ID_MASK;                                                                                                                                                                               
-    }                                                                                                                                                                                                                                     
-    header->DLC = frame->data_len;     
-    header->RTR = (frame->id & CANARD_CAN_FRAME_RTR) ? CAN_RTR_REMOTE : CAN_RTR_DATA;                                                                                                                                                     
-    header->TransmitGlobalTime = DISABLE;                                                                                                                                                                                                 
-    memcpy(data, frame->data, frame->data_len);                                                                                                                                                                                           
+static void buildTxHeader(const CanardCANFrame *frame, CAN_TxHeaderTypeDef *header, uint8_t *data) {
+    if (frame->id & CANARD_CAN_FRAME_EFF) {
+        header->IDE = CAN_ID_EXT;
+        header->ExtId = frame->id & CANARD_CAN_EXT_ID_MASK;
+    } else {
+        header->IDE = CAN_ID_STD;
+        header->StdId = frame->id & CANARD_CAN_STD_ID_MASK;
+    }
+    header->DLC = frame->data_len;
+    header->RTR = (frame->id & CANARD_CAN_FRAME_RTR) ? CAN_RTR_REMOTE : CAN_RTR_DATA;
+    header->TransmitGlobalTime = DISABLE;
+    memcpy(data, frame->data, frame->data_len);
 }
 
 /**
@@ -185,32 +186,32 @@ static void buildTxHeader(const CanardCANFrame *frame, CAN_TxHeaderTypeDef *head
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
-   if (tx_frame == NULL) {                                                                                                                                                                                                               
-        return -CANARD_ERROR_INVALID_ARGUMENT;                                                                                                                                                                                            
-    }                                                                                                                                                                                        
-    if (tx_frame->id & CANARD_CAN_FRAME_ERR) {                                                                                                                                                                                            
+   if (tx_frame == NULL) {
         return -CANARD_ERROR_INVALID_ARGUMENT;
     }
-                                                                                                                                                                                                                                            
-    if (!canTxQueuePush(tx_frame)) {
-        return 0; // SW queue full - caller retries next cycle                                                                                                                                                                            
-    }                                                                                                                                                                                                                                     
-                                         
-    // If all mailboxes are idle, RQCP will never fire to start the ISR chain.                                                                                                                                                            
-    // Seed the HW directly with the first frame.                                                                                                                                            
-    if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 3) {                                                                                                                                                                                   
-        CanardCANFrame frame;                                                                                                                                                                                                             
-        if (canTxQueuePop(&frame)) {                                                                                                                                                                                                      
-            CAN_TxHeaderTypeDef txHeader = {};                                                                                                                                                                                            
-            uint8_t txData[8];                                                                                                                                                               
-            uint32_t txMailbox;        
-            buildTxHeader(&frame, &txHeader, txData);
-            HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
-        }                                                                                                                                                                                                                                 
+    if (tx_frame->id & CANARD_CAN_FRAME_ERR) {
+        return -CANARD_ERROR_INVALID_ARGUMENT;
     }
-                                                                                                                                                                                                                                            
-    HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);                                                                                                                                                                        
-    return 1;                          
+
+    if (!canTxQueuePush(tx_frame)) {
+        return 0; // SW queue full - caller retries next cycle
+    }
+
+    // If all mailboxes are idle, RQCP will never fire to start the ISR chain.
+    // Seed the HW via canTxDrainQueue with IRQs disabled to preserve the
+    // SPSC contract — ISR is the sole consumer; we become the consumer only
+    // while the ISR cannot run.
+    __disable_irq();
+    if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 3) {
+        canTxDrainQueue(&hcan1);
+    }
+    bool needs_notification = !canTxQueueIsEmpty();
+    __enable_irq();
+
+    if (needs_notification) {
+        HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
+    }
+    return 1;
 }
 
 /**
@@ -240,7 +241,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
     sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
     sFilterConfig.FilterActivation = ENABLE;
-  
+
     hcan1.Instance = CAN1;
     hcan1.Init.Mode = CAN_MODE_NORMAL;
     hcan1.Init.TimeTriggeredMode = DISABLE;
@@ -249,7 +250,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hcan1.Init.AutoRetransmission = ENABLE;
     hcan1.Init.ReceiveFifoLocked = DISABLE;
     hcan1.Init.TransmitFifoPriority = DISABLE;
-  
+
     canardSTM32ComputeTimings(bitrate, &out_timings);
 
     hcan1.Init.Prescaler = out_timings.prescaler;
@@ -273,7 +274,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     // }
 
     canardSTM32GPIO_Init();  // Set up the pins for CAN and optional listen only mode
-    
+
     // LOG_DEBUG(CAN, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
     // LOG_DEBUG(CAN, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
     if (HAL_CAN_Init(&hcan1) != HAL_OK)
@@ -281,13 +282,13 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed CAN Init");
         return -CANARD_ERROR_INTERNAL;
     }
-    
+
     /* USER CODE BEGIN FDCAN1_Init 2 */
     if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
     }
-    
+
     if (HAL_CAN_Start(&hcan1) != HAL_OK) {
         LOG_ERROR(CAN, "Failed to Start");
         return -CANARD_ERROR_INTERNAL;
@@ -297,13 +298,13 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed to activate interrupt");
         return -CANARD_ERROR_INTERNAL;
     }
-    
+
     // Enable interrupt only after all initialization succeeds
     // (if any previous step failed, we return early without enabling IRQ)
     HAL_NVIC_SetPriority(CAN1_RX0_IRQn, NVIC_PRIO_CAN, 0);
     HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
     HAL_NVIC_SetPriority(CAN1_TX_IRQn, NVIC_PRIO_CAN, 0);
-    HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);  
+    HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);
 
     return CANARD_OK;
 }
@@ -336,7 +337,7 @@ static void canardSTM32GPIO_Init(void)
 }
 static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings *out_timings)
 {
-    
+
     if (target_bitrate < 1) {
         return false;
     }
@@ -499,24 +500,24 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     }
 }
 
-static void canTxDrainQueue(CAN_HandleTypeDef *hcan) {                                                                                                                                                                                    
-    CanardCANFrame frame;                                                                                                                                                                    
-    if (canTxQueuePop(&frame)) {                                                                                                                                                                                                          
-        CAN_TxHeaderTypeDef txHeader = {};                                                                                                                                                                                                
-        uint8_t txData[8];             
-        uint32_t txMailbox;                                                                                                                                                                                                               
-        buildTxHeader(&frame, &txHeader, txData);                                                                                                                                            
-        HAL_CAN_AddTxMessage(hcan, &txHeader, txData, &txMailbox);                                                                                                                                                                        
-    }                         
-    if (canTxQueueIsEmpty()) {                                                                                                                                                                                                            
-        HAL_CAN_DeactivateNotification(hcan, CAN_IT_TX_MAILBOX_EMPTY);                                                                                                                                                                    
-    }                                  
-}                                                                                                                                                                                                                                         
-                                                                                                                                                                                                                                            
-void CAN1_TX_IRQHandler(void) {        
-    HAL_CAN_IRQHandler(&hcan1);                                                                                                                                                                                                           
-}                                                                                                                                                                                            
-                                                                                                                                                                                                                                            
+static void canTxDrainQueue(CAN_HandleTypeDef *hcan) {
+    CanardCANFrame frame;
+    if (canTxQueuePop(&frame)) {
+        CAN_TxHeaderTypeDef txHeader = {};
+        uint8_t txData[8];
+        uint32_t txMailbox;
+        buildTxHeader(&frame, &txHeader, txData);
+        HAL_CAN_AddTxMessage(hcan, &txHeader, txData, &txMailbox);
+    }
+    if (canTxQueueIsEmpty()) {
+        HAL_CAN_DeactivateNotification(hcan, CAN_IT_TX_MAILBOX_EMPTY);
+    }
+}
+
+void CAN1_TX_IRQHandler(void) {
+    HAL_CAN_IRQHandler(&hcan1);
+}
+
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
-void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }                                                                                                                                               
-void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }  
+void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
+void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) { canTxDrainQueue(hcan); }
