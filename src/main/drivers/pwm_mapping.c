@@ -51,13 +51,6 @@ enum {
     MAP_TO_LED_OUTPUT
 };
 
-typedef struct {
-    int maxTimMotorCount;
-    int maxTimServoCount;
-    const timerHardware_t * timMotors[MAX_PWM_OUTPUTS];
-    const timerHardware_t * timServos[MAX_PWM_OUTPUTS];
-} timMotorServoHardware_t;
-
 static pwmInitError_e pwmInitError = PWM_INIT_ERROR_NONE;
 
 static const char * pwmInitErrorMsg[] = {
@@ -459,19 +452,61 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
 }
 
 
+static timMotorServoHardware_t timOutputsStatic;
+
 bool pwmMotorAndServoInit(void)
 {
-    timMotorServoHardware_t timOutputs;
-
-    // Build temporary timer mappings for motor and servo
-    pwmBuildTimerOutputList(&timOutputs, isMixerUsingServos());
-
-    // At this point we have built tables of timers suitable for motor and servo mappings
-    // Now we can actually initialize them according to motor/servo count from mixer
-    pwmInitMotors(&timOutputs);
-    pwmInitServos(&timOutputs);
-
+    pwmBuildTimerOutputList(&timOutputsStatic, isMixerUsingServos());
+    pwmInitMotors(&timOutputsStatic);
+    pwmInitServos(&timOutputsStatic);
     return (pwmInitError == PWM_INIT_ERROR_NONE);
+}
+
+const timMotorServoHardware_t *pwmGetOutputAssignment(void)
+{
+    return &timOutputsStatic;
+}
+
+// Upper bound for timerHardware[] size across all supported targets.
+// timerHardwareCount is a runtime value; this constant prevents a VLA on the MSP
+// task stack. Targets with 22+ entries (e.g. OMNIBUSF4) need more than MAX_PWM_OUTPUTS.
+#define TIMER_HW_MAX 64
+
+// Simulate pwmBuildTimerOutputList() with proposed overrides without modifying live state.
+// IMPORTANT: Must only be called from the main loop / MSP task — not ISR-safe.
+// timerHardware[].usageFlags are modified in-place during the simulation; this function
+// saves and restores them so hardware state is identical on exit.
+void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *proposedModes)
+{
+    if (timerHardwareCount > TIMER_HW_MAX) {
+        return; // Safety guard: target exceeds the buffer — increase TIMER_HW_MAX
+    }
+
+    // Snapshot timerHardware flags — pwmBuildTimerOutputList() modifies them in-place
+    // via timerHardwareOverride() and pwmClaimTimer().
+    uint32_t savedFlags[TIMER_HW_MAX];
+    for (int i = 0; i < timerHardwareCount; i++) {
+        savedFlags[i] = timerHardware[i].usageFlags;
+    }
+
+    // Snapshot timerOverrides config so the proposed values can be applied temporarily.
+    uint8_t savedModes[HARDWARE_TIMER_DEFINITION_COUNT];
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+        savedModes[i] = timerOverrides(i)->outputMode;
+    }
+
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+        timerOverridesMutable(i)->outputMode = proposedModes[i];
+    }
+
+    pwmBuildTimerOutputList(out, isMixerUsingServos());
+
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+        timerOverridesMutable(i)->outputMode = savedModes[i];
+    }
+    for (int i = 0; i < timerHardwareCount; i++) {
+        timerHardware[i].usageFlags = savedFlags[i];
+    }
 }
 
 #endif
