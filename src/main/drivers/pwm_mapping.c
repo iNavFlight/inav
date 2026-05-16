@@ -295,11 +295,11 @@ static void pwmAssignOutput(timMotorServoHardware_t *timOutputs, timerHardware_t
 
 void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs, bool isMixerUsingServos)
 {
-    UNUSED(isMixerUsingServos);
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
     const uint8_t motorCount = getMotorCount();
+    const uint8_t servoCount = isMixerUsingServos ? (uint8_t)getServoCount() : 0;
 
     // Apply all timerOverrides upfront so flag state is stable for both passes
     for (int idx = 0; idx < timerHardwareCount; idx++) {
@@ -334,7 +334,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs, bool isMixerUs
             }
 
             // Servos: dedicated (OUTPUT_MODE_SERVOS) first, then auto
-            if (TIM_IS_SERVO(timHw->usageFlags)
+            if (TIM_IS_SERVO(timHw->usageFlags) && timOutputs->maxTimServoCount < servoCount
                     && !pwmHasMotorOnTimer(timOutputs, timHw->tim)
                     && (isDedicated ? mode == OUTPUT_MODE_SERVOS : mode != OUTPUT_MODE_SERVOS)) {
                 pwmAssignOutput(timOutputs, timHw, MAP_TO_SERVO_OUTPUT);
