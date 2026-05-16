@@ -80,6 +80,7 @@ typedef struct {
     bool isDSHOT;
 } motorProtocolProperties_t;
 
+#ifndef SITL_BUILD
 typedef struct {
     int maxTimMotorCount;
     int maxTimServoCount;
@@ -92,10 +93,13 @@ typedef struct {
 // in the MSP2_INAV_OUTPUT_MAPPING_EXT2 usageFlags response.
 #define OUTPUT_ASSIGNMENT_TYPE_MOTOR 1
 #define OUTPUT_ASSIGNMENT_TYPE_SERVO 2
+#endif // SITL_BUILD
 
 bool pwmMotorAndServoInit(void);
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 pwmInitError_e getPwmInitError(void);
 const char * getPwmInitErrorMessage(void);
+#ifndef SITL_BUILD
 const timMotorServoHardware_t *pwmGetOutputAssignment(void);
 void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *proposedModes);
+#endif // SITL_BUILD
