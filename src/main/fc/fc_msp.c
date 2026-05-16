@@ -4755,16 +4755,12 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             pwmCalculateAssignment(&tempOut, proposedModes);
 
             for (int m = 0; m < tempOut.maxTimMotorCount; m++) {
-                ptrdiff_t idx = tempOut.timMotors[m] - timerHardware;
-                ASSERT(idx >= 0 && idx < timerHardwareCount);
-                sbufWriteU8(dst, (uint8_t)idx);
+                sbufWriteU8(dst, (uint8_t)(tempOut.timMotors[m] - timerHardware));
                 sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_MOTOR);
                 sbufWriteU8(dst, (uint8_t)(m + 1));
             }
             for (int s = 0; s < tempOut.maxTimServoCount; s++) {
-                ptrdiff_t idx = tempOut.timServos[s] - timerHardware;
-                ASSERT(idx >= 0 && idx < timerHardwareCount);
-                sbufWriteU8(dst, (uint8_t)idx);
+                sbufWriteU8(dst, (uint8_t)(tempOut.timServos[s] - timerHardware));
                 sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_SERVO);
                 sbufWriteU8(dst, (uint8_t)(s + 1));
             }
