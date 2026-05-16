@@ -306,13 +306,16 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs, bool isMixerUs
     // mixerProfiles->ServoMixers, a separate PG that the Configurator does
     // not clear, which causes phantom servo outputs after settings-preserving
     // firmware upgrades.
+    // Servo count comes directly from customServoMixers — the PG that the
+    // Configurator writes via MSP2_INAV_SET_SERVO_MIXER and that
+    // loadCustomServoMixer() uses.  Do not gate on isMixerUsingServos():
+    // that flag uses mixerProfiles->ServoMixers (a separate PG) which can
+    // disagree with customServoMixers due to stale data.
     uint8_t servoCount = 0;
-    if (isMixerUsingServos) {
-        for (int i = 0; i < MAX_SERVO_RULES; i++) {
-            if (customServoMixers(i)->rate == 0) break;
-            uint8_t ch = customServoMixers(i)->targetChannel;
-            if (ch + 1 > servoCount) servoCount = ch + 1;
-        }
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        if (customServoMixers(i)->rate == 0) break;
+        uint8_t ch = customServoMixers(i)->targetChannel;
+        if (ch + 1 > servoCount) servoCount = ch + 1;
     }
 
     // Apply all timerOverrides upfront so flag state is stable for both passes
