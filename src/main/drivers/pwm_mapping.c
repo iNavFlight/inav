@@ -313,14 +313,6 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs, bool isMixerUs
             uint8_t ch = customServoMixers(i)->targetChannel;
             if (ch + 1 > servoCount) servoCount = ch + 1;
         }
-        // Also include the inactive profile's rules (dual-profile setups)
-        if (MAX_MIXER_PROFILE_COUNT > 1) {
-            for (int i = 0; i < MAX_SERVO_RULES; i++) {
-                if (mixerServoMixersByIndex(nextMixerProfileIndex)[i].rate == 0) break;
-                uint8_t ch = mixerServoMixersByIndex(nextMixerProfileIndex)[i].targetChannel;
-                if (ch + 1 > servoCount) servoCount = ch + 1;
-            }
-        }
     }
 
     // Apply all timerOverrides upfront so flag state is stable for both passes
