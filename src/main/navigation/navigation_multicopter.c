@@ -130,7 +130,11 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             updateClimbRateToAltitudeController(0, altTarget, ROC_TO_ALT_TARGET);
         }
         else {
-            updateClimbRateToAltitudeController(-50.0f, 0, ROC_TO_ALT_CONSTANT);
+            const int16_t throttleIdle = getThrottleIdleValue();
+            const int16_t throttleMid = rcLookupThrottleMid();
+            const int16_t descentRate = scaleRange(constrain(rcCommand[THROTTLE], throttleIdle, throttleMid), throttleIdle, throttleMid, -200, -50);
+
+            updateClimbRateToAltitudeController(descentRate, 0, ROC_TO_ALT_CONSTANT);
         }
 
         // In surface tracking we always indicate that we're adjusting altitude
@@ -841,7 +845,7 @@ bool isMulticopterLandingDetected(void)
      * Throttle low detection only allowed during Surface if AGL trusted and below 10cm */
     bool throttleLowCheckAllowed = !navigationIsFlyingAutonomousMode();
     if (posControl.flags.isTerrainFollowEnabled) {
-        throttleLowCheckAllowed = throttleLowCheckAllowed && posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z < 10.0f;
+        throttleLowCheckAllowed = throttleLowCheckAllowed && posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z < 50.0f;
     }
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG)) ||
                           (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && !isMulticopterThrottleAboveMidHover()) ||
