@@ -304,7 +304,7 @@ This keeps one safety boundary for profile hot-switching and avoids separate tra
 
 Intent: this does not replace legacy manual behavior. Legacy remains available and selectable.
 
-With `manual_vtol_transition_controller = ON`:
+With `mixer_vtol_manualswitch_autotransition_controller = ON`:
 - `MIXER TRANSITION` acts as an edge-triggered request.
 - A rising edge starts one transition.
 - Transition then runs autonomously to completion.
@@ -312,7 +312,7 @@ With `manual_vtol_transition_controller = ON`:
 - To start another transition, mode must go OFF then ON again.
 - If mode is turned OFF before hot-switch, transition request is aborted safely.
 
-With `manual_vtol_transition_controller = OFF`:
+With `mixer_vtol_manualswitch_autotransition_controller = OFF`:
 - legacy manual behavior is preserved for backward compatibility.
 
 Typical 3-position switch workflow (edge-trigger mode enabled):
@@ -350,25 +350,25 @@ FW -> MC:
 - completion threshold: `vtol_transition_to_mc_max_airspeed_cm_s`
 
 Timeout:
-- `vtol_transition_airspeed_timeout_ms` can abort transition if condition is not achieved in time.
+- `mixer_vtol_transition_airspeed_timeout_ms` can abort transition if condition is not achieved in time.
 
 ### Dynamic mixer scaling
 
-When `vtol_transition_dynamic_mixer = ON`, transition progress additionally scales:
+When `mixer_vtol_transition_dynamic_mixer = ON`, transition progress additionally scales:
 - pusher transition contribution,
 - vertical lift contribution,
 - MC stabilization authority,
 - FW transition input authority blend.
 
-When `vtol_transition_dynamic_mixer = OFF`, legacy static transition mixing behavior is preserved.
+When `mixer_vtol_transition_dynamic_mixer = OFF`, legacy static transition mixing behavior is preserved.
 
 Optional decoupled scaling ramp:
-- `vtol_transition_scale_ramp_time_ms = 0` (default): scaling follows transition progress (legacy-compatible behavior).
-- `vtol_transition_scale_ramp_time_ms > 0`: scaling uses this ramp timer, while completion logic remains unchanged (airspeed-first; timer fallback when pitot is unavailable/unhealthy).
+- `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): scaling follows transition progress (legacy-compatible behavior).
+- `mixer_vtol_transition_scale_ramp_time_ms > 0`: scaling uses this ramp timer, while completion logic remains unchanged (airspeed-first; timer fallback when pitot is unavailable/unhealthy).
 
 Example:
 - `mixer_switch_trans_timer = 50` (5s fallback completion timer)
-- `vtol_transition_scale_ramp_time_ms = 1200`
+- `mixer_vtol_transition_scale_ramp_time_ms = 1200`
 
 Result:
 - pusher/lift/authority scaling reaches target levels in ~1.2s,
@@ -376,14 +376,14 @@ Result:
 - if pitot is unavailable/unhealthy, completion fallback still uses 5s.
 
 Optional smooth-start baseline:
-- `vtol_transition_dynamic_mixer = ON`
+- `mixer_vtol_transition_dynamic_mixer = ON`
 - `vtol_transition_lift_end_percent = 30`
 - `vtol_transition_mc_authority_end_percent = 20`
 - `vtol_transition_fw_authority_start_percent = 20`
 
 ### Detailed effect of the three percentage settings
 
-These three settings are active only when `vtol_transition_dynamic_mixer = ON`.
+These three settings are active only when `mixer_vtol_transition_dynamic_mixer = ON`.
 
 1. `vtol_transition_lift_end_percent`
 - Defines lift throttle scale at transition end.
@@ -416,14 +416,43 @@ Backward-compatible note:
 - `vtol_transition_fw_authority_start_percent = 100` preserves legacy FW authority handoff behavior.
 - Lower values provide smoother FW authority ramp-in/out.
 
+## Setting Scope (Important)
+
+The new VTOL settings are split into two groups:
+
+### Per-mixer-profile settings
+
+These can differ between mixer profile 1 (typically MC) and mixer profile 2 (typically FW):
+
+- `mixer_automated_switch`
+- `mixer_switch_trans_timer`
+- `mixer_switch_trans_airspeed_cm_s`
+- `mixer_vtol_transition_dynamic_mixer`
+- `mixer_vtol_manualswitch_autotransition_controller`
+- `mixer_vtol_transition_airspeed_timeout_ms`
+- `mixer_vtol_transition_scale_ramp_time_ms`
+
+### Global settings
+
+These are shared system-wide and are not profile-specific:
+
+- `vtol_transition_to_fw_min_airspeed_cm_s`
+- `vtol_transition_to_mc_max_airspeed_cm_s`
+- `vtol_transition_lift_end_percent`
+- `vtol_transition_mc_authority_end_percent`
+- `vtol_transition_fw_authority_start_percent`
+- `nav_vtol_mission_transition_user_action`
+- `nav_vtol_mission_transition_min_altitude_cm`
+- `nav_vtol_mission_transition_track_distance_cm`
+
 ## CLI Commands (English)
 
 Use these commands in CLI (`set ...`, then `save`):
 
-- `set manual_vtol_transition_controller = ON|OFF`
+- `set mixer_vtol_manualswitch_autotransition_controller = ON|OFF`
   - Enables edge-triggered manual transition controller.
 
-- `set vtol_transition_dynamic_mixer = ON|OFF`
+- `set mixer_vtol_transition_dynamic_mixer = ON|OFF`
   - Enables/disables dynamic progress-based scaling.
 
 - `set vtol_transition_to_fw_min_airspeed_cm_s = <value>`
@@ -438,10 +467,10 @@ Use these commands in CLI (`set ...`, then `save`):
 - `set vtol_transition_to_mc_max_airspeed_cm_s = <value>`
   - FW -> MC completion threshold (pitot airspeed).
 
-- `set vtol_transition_airspeed_timeout_ms = <value>`
+- `set mixer_vtol_transition_airspeed_timeout_ms = <value>`
   - Transition timeout/abort window.
 
-- `set vtol_transition_scale_ramp_time_ms = <value>`
+- `set mixer_vtol_transition_scale_ramp_time_ms = <value>`
   - Optional dynamic scaling ramp duration in milliseconds. `0` keeps legacy progress-coupled scaling. `>0` decouples scaling ramp time from completion timing.
 
 - `set vtol_transition_lift_end_percent = <0..100>`
@@ -493,7 +522,7 @@ When pitot is healthy/available, transition progress is airspeed-driven (not tim
   - progress = `constrain((startAirspeed - airspeed) / (startAirspeed - to_mc_threshold), 0..1)`
   - completion condition = `airspeed <= to_mc_threshold`
 
-Dynamic mixer scaling (`vtol_transition_dynamic_mixer = ON`) uses this progress:
+Dynamic mixer scaling (`mixer_vtol_transition_dynamic_mixer = ON`) uses this progress:
 
 - MC -> FW:
   - pusher scale ramps `0 -> 1`
@@ -507,7 +536,7 @@ Dynamic mixer scaling (`vtol_transition_dynamic_mixer = ON`) uses this progress:
   - MC authority ramps `vtol_transition_mc_authority_end_percent -> 1`
   - FW authority ramps `1 -> vtol_transition_fw_authority_start_percent`
 
-If `vtol_transition_scale_ramp_time_ms > 0`, dynamic scaling uses that timer-based ramp instead of transition-progress coupling.
+If `mixer_vtol_transition_scale_ramp_time_ms > 0`, dynamic scaling uses that timer-based ramp instead of transition-progress coupling.
 This changes only scaling shape. Transition completion logic remains airspeed-first (with timer fallback when pitot is unavailable/unhealthy).
 
 For transition/pusher motors (`-2.0 < throttle < -1.0`), output is interpolated from idle to target:

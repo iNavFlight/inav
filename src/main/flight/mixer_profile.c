@@ -42,7 +42,7 @@ int nextMixerProfileIndex;
 static bool manualTransitionModeWasActive;
 static bool manualTransitionReadyForEdge = true;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 2);
+PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 3);
 
 void pgResetFn_mixerProfiles(mixerProfile_t *instance)
 {
@@ -59,15 +59,10 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .automated_switch = SETTING_MIXER_AUTOMATED_SWITCH_DEFAULT,
                          .switchTransitionTimer =  SETTING_MIXER_SWITCH_TRANS_TIMER_DEFAULT,
                          .switchTransitionAirspeed = SETTING_MIXER_SWITCH_TRANS_AIRSPEED_CM_S_DEFAULT,
-                         .vtolTransitionDynamicMixer = SETTING_VTOL_TRANSITION_DYNAMIC_MIXER_DEFAULT,
-                         .manualVtolTransitionController = SETTING_MANUAL_VTOL_TRANSITION_CONTROLLER_DEFAULT,
-                         .vtolTransitionToFwMinAirspeed = SETTING_VTOL_TRANSITION_TO_FW_MIN_AIRSPEED_CM_S_DEFAULT,
-                         .vtolTransitionToMcMaxAirspeed = SETTING_VTOL_TRANSITION_TO_MC_MAX_AIRSPEED_CM_S_DEFAULT,
-                         .vtolTransitionAirspeedTimeoutMs = SETTING_VTOL_TRANSITION_AIRSPEED_TIMEOUT_MS_DEFAULT,
-                         .vtolTransitionScaleRampTimeMs = SETTING_VTOL_TRANSITION_SCALE_RAMP_TIME_MS_DEFAULT,
-                         .vtolTransitionLiftEndPercent = SETTING_VTOL_TRANSITION_LIFT_END_PERCENT_DEFAULT,
-                         .vtolTransitionMcAuthorityEndPercent = SETTING_VTOL_TRANSITION_MC_AUTHORITY_END_PERCENT_DEFAULT,
-                         .vtolTransitionFwAuthorityStartPercent = SETTING_VTOL_TRANSITION_FW_AUTHORITY_START_PERCENT_DEFAULT,
+                         .vtolTransitionDynamicMixer = SETTING_MIXER_VTOL_TRANSITION_DYNAMIC_MIXER_DEFAULT,
+                         .manualVtolTransitionController = SETTING_MIXER_VTOL_MANUALSWITCH_AUTOTRANSITION_CONTROLLER_DEFAULT,
+                         .vtolTransitionAirspeedTimeoutMs = SETTING_MIXER_VTOL_TRANSITION_AIRSPEED_TIMEOUT_MS_DEFAULT,
+                         .vtolTransitionScaleRampTimeMs = SETTING_MIXER_VTOL_TRANSITION_SCALE_RAMP_TIME_MS_DEFAULT,
                          .tailsitterOrientationOffset = SETTING_TAILSITTER_ORIENTATION_OFFSET_DEFAULT,
                          .transition_PID_mmix_multiplier_roll = SETTING_TRANSITION_PID_MMIX_MULTIPLIER_ROLL_DEFAULT,
                          .transition_PID_mmix_multiplier_pitch = SETTING_TRANSITION_PID_MMIX_MULTIPLIER_PITCH_DEFAULT,
@@ -226,14 +221,14 @@ static bool hasTrustedPitotAirspeed(float *airspeedCmS)
 static uint16_t getAirspeedThresholdForDirection(const mixerProfileATDirection_e direction)
 {
     if (direction == MIXERAT_DIRECTION_TO_FW) {
-        if (currentMixerConfig.vtolTransitionToFwMinAirspeed > 0) {
-            return currentMixerConfig.vtolTransitionToFwMinAirspeed;
+        if (systemConfig()->vtolTransitionToFwMinAirspeed > 0) {
+            return systemConfig()->vtolTransitionToFwMinAirspeed;
         }
         return currentMixerConfig.switchTransitionAirspeed;
     }
 
     if (direction == MIXERAT_DIRECTION_TO_MC) {
-        return currentMixerConfig.vtolTransitionToMcMaxAirspeed;
+        return systemConfig()->vtolTransitionToMcMaxAirspeed;
     }
 
     return 0;
@@ -250,9 +245,9 @@ static void updateTransitionScales(void)
         return;
     }
 
-    const float liftFloor = constrainf(currentMixerConfig.vtolTransitionLiftEndPercent / 100.0f, 0.0f, 1.0f);
-    const float mcFloor = constrainf(currentMixerConfig.vtolTransitionMcAuthorityEndPercent / 100.0f, 0.0f, 1.0f);
-    const float fwFloor = constrainf(currentMixerConfig.vtolTransitionFwAuthorityStartPercent / 100.0f, 0.0f, 1.0f);
+    const float liftFloor = constrainf(systemConfig()->vtolTransitionLiftEndPercent / 100.0f, 0.0f, 1.0f);
+    const float mcFloor = constrainf(systemConfig()->vtolTransitionMcAuthorityEndPercent / 100.0f, 0.0f, 1.0f);
+    const float fwFloor = constrainf(systemConfig()->vtolTransitionFwAuthorityStartPercent / 100.0f, 0.0f, 1.0f);
     const float scaleProgress = getScalingProgress();
 
     if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) {

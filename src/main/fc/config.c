@@ -103,7 +103,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 8);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -117,6 +117,11 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
+    .vtolTransitionToFwMinAirspeed = SETTING_VTOL_TRANSITION_TO_FW_MIN_AIRSPEED_CM_S_DEFAULT,
+    .vtolTransitionToMcMaxAirspeed = SETTING_VTOL_TRANSITION_TO_MC_MAX_AIRSPEED_CM_S_DEFAULT,
+    .vtolTransitionLiftEndPercent = SETTING_VTOL_TRANSITION_LIFT_END_PERCENT_DEFAULT,
+    .vtolTransitionMcAuthorityEndPercent = SETTING_VTOL_TRANSITION_MC_AUTHORITY_END_PERCENT_DEFAULT,
+    .vtolTransitionFwAuthorityStartPercent = SETTING_VTOL_TRANSITION_FW_AUTHORITY_START_PERCENT_DEFAULT,
     .craftName = SETTING_NAME_DEFAULT,
     .pilotName = SETTING_NAME_DEFAULT
 );

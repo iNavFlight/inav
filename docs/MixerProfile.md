@@ -30,8 +30,8 @@ The use of Transition Mode is recommended to enable further features and future 
 - A new transition requires mode OFF then ON again.
 - If switched OFF before hot-switch completes, the manual transition request is aborted.
 
-This edge-triggered behavior is enabled by `manual_vtol_transition_controller`.
-When `manual_vtol_transition_controller = OFF`, manual transition keeps legacy behavior.
+This edge-triggered behavior is enabled by `mixer_vtol_manualswitch_autotransition_controller`.
+When `mixer_vtol_manualswitch_autotransition_controller = OFF`, manual transition keeps legacy behavior.
 
 ## Servo
 
@@ -87,9 +87,9 @@ When `mixer_automated_switch`:`OFF` is set for all mixer_profiles(defaults). Mod
 
 Manual `MIXER TRANSITION` and mission-authorized VTOL transition both use the same internal transition controller.
 This controller always computes transition progress/completion and performs profile hot-switch only inside the authorized transition state.
-When `vtol_transition_dynamic_mixer = ON`, pusher/lift/authority scaling is enabled and is driven by:
+When `mixer_vtol_transition_dynamic_mixer = ON`, pusher/lift/authority scaling is enabled and is driven by:
 - transition progress (default), or
-- `vtol_transition_scale_ramp_time_ms` when configured (>0).
+- `mixer_vtol_transition_scale_ramp_time_ms` when configured (>0).
 
 ### Airspeed-first completion
 
@@ -104,11 +104,11 @@ Ground speed is not used for transition completion/progress.
 
 Optional safety timeout:
 
-- `vtol_transition_airspeed_timeout_ms` can abort transition if airspeed condition is not met in time.
+- `mixer_vtol_transition_airspeed_timeout_ms` can abort transition if airspeed condition is not met in time.
 
 ### Dynamic scaling (optional)
 
-When `vtol_transition_dynamic_mixer = ON`, transition progress scales:
+When `mixer_vtol_transition_dynamic_mixer = ON`, transition progress scales:
 
 - pusher contribution (`-2.0 < throttle < -1.0` motors) from configured max toward 0/100% depending on direction,
 - lift motor throttle contribution (`vtol_transition_lift_end_percent`),
@@ -120,13 +120,13 @@ With dynamic scaling enabled, `vtol_transition_fw_authority_start_percent = 100`
 
 Optional scaling ramp timer:
 
-- `vtol_transition_scale_ramp_time_ms = 0` (default): scaling remains coupled to transition progress (legacy-compatible behavior).
-- `vtol_transition_scale_ramp_time_ms > 0`: scaling uses this timer, while transition completion stays airspeed-first (or timer fallback if pitot unavailable/unhealthy).
+- `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): scaling remains coupled to transition progress (legacy-compatible behavior).
+- `mixer_vtol_transition_scale_ramp_time_ms > 0`: scaling uses this timer, while transition completion stays airspeed-first (or timer fallback if pitot unavailable/unhealthy).
 
 Example:
 
 - `mixer_switch_trans_timer = 50` (5s fallback completion timer)
-- `vtol_transition_scale_ramp_time_ms = 1200`
+- `mixer_vtol_transition_scale_ramp_time_ms = 1200`
 
 Result:
 - scaling reaches target levels in ~1.2s,
@@ -141,6 +141,26 @@ INAV supports mission-requested VTOL transitions through the existing automated 
 - `nav_vtol_mission_transition_min_altitude_cm` (optional, `0` disables minimum-altitude check)
 - `vtol_transition_to_fw_min_airspeed_cm_s` (preferred MC->FW threshold)
 - `mixer_switch_trans_airspeed_cm_s` (legacy MC->FW fallback when preferred threshold is `0`)
+
+Scope note:
+
+- Per-mixer-profile settings:
+  - `mixer_automated_switch`
+  - `mixer_switch_trans_timer`
+  - `mixer_switch_trans_airspeed_cm_s`
+  - `mixer_vtol_transition_dynamic_mixer`
+  - `mixer_vtol_manualswitch_autotransition_controller`
+  - `mixer_vtol_transition_airspeed_timeout_ms`
+  - `mixer_vtol_transition_scale_ramp_time_ms`
+- Global settings:
+  - `vtol_transition_to_fw_min_airspeed_cm_s`
+  - `vtol_transition_to_mc_max_airspeed_cm_s`
+  - `vtol_transition_lift_end_percent`
+  - `vtol_transition_mc_authority_end_percent`
+  - `vtol_transition_fw_authority_start_percent`
+  - `nav_vtol_mission_transition_user_action`
+  - `nav_vtol_mission_transition_min_altitude_cm`
+  - `nav_vtol_mission_transition_track_distance_cm`
 
 On each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`), the configured USER action bit is used as absolute target selector:
 
@@ -160,7 +180,7 @@ Manual RC switching (`MIXER PROFILE 2`, `MIXER TRANSITION`) remains blocked duri
 Mission VTOL transition still relies on normal profile-switch infrastructure: configure two mixer profiles and a valid `MIXER PROFILE 2` mode activation condition.
 
 Example smooth-start values (optional tuning baseline):
-- `set vtol_transition_dynamic_mixer = ON`
+- `set mixer_vtol_transition_dynamic_mixer = ON`
 - `set vtol_transition_lift_end_percent = 30`
 - `set vtol_transition_mc_authority_end_percent = 20`
 - `set vtol_transition_fw_authority_start_percent = 20`

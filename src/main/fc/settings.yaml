@@ -1286,58 +1286,28 @@ groups:
         field: mixer_config.switchTransitionAirspeed
         min: 0
         max: 10000
-      - name: vtol_transition_dynamic_mixer
+      - name: mixer_vtol_transition_dynamic_mixer
         description: "Enables dynamic VTOL transition progress/scaling controller shared by mission-authorized and manual MIXER TRANSITION paths."
         default_value: OFF
         field: mixer_config.vtolTransitionDynamicMixer
         type: bool
-      - name: manual_vtol_transition_controller
+      - name: mixer_vtol_manualswitch_autotransition_controller
         description: "Enables edge-triggered manual VTOL transition controller for `MIXER TRANSITION` when not in waypoint mission. OFF keeps legacy manual transition behavior."
         default_value: OFF
         field: mixer_config.manualVtolTransitionController
         type: bool
-      - name: vtol_transition_to_fw_min_airspeed_cm_s
-        description: "Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. Overrides `mixer_switch_trans_airspeed_cm_s` when > 0. If 0, legacy setting is used."
-        default_value: 0
-        field: mixer_config.vtolTransitionToFwMinAirspeed
-        min: 0
-        max: 20000
-      - name: vtol_transition_to_mc_max_airspeed_cm_s
-        description: "Maximum pitot airspeed [cm/s] allowed to complete FW->MC transition when airspeed is healthy and available. If 0, FW->MC uses timer fallback."
-        default_value: 0
-        field: mixer_config.vtolTransitionToMcMaxAirspeed
-        min: 0
-        max: 20000
-      - name: vtol_transition_airspeed_timeout_ms
+      - name: mixer_vtol_transition_airspeed_timeout_ms
         description: "Safety timeout [ms] for airspeed-controlled transitions. If non-zero and required airspeed condition is not met in time, transition aborts instead of force-completing."
         default_value: 0
         field: mixer_config.vtolTransitionAirspeedTimeoutMs
         min: 0
         max: 60000
-      - name: vtol_transition_scale_ramp_time_ms
-        description: "Optional dynamic scaling ramp duration [ms]. When > 0 and `vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling uses this timer instead of transition completion progress. Set to 0 to keep legacy progress-coupled scaling behavior."
+      - name: mixer_vtol_transition_scale_ramp_time_ms
+        description: "Optional dynamic scaling ramp duration [ms]. When > 0 and `mixer_vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling uses this timer instead of transition completion progress. Set to 0 to keep legacy progress-coupled scaling behavior."
         default_value: 0
         field: mixer_config.vtolTransitionScaleRampTimeMs
         min: 0
         max: 60000
-      - name: vtol_transition_lift_end_percent
-        description: "Target vertical-lift throttle scale at transition end, in percent. Used only when `vtol_transition_dynamic_mixer` is ON."
-        default_value: 100
-        field: mixer_config.vtolTransitionLiftEndPercent
-        min: 0
-        max: 100
-      - name: vtol_transition_mc_authority_end_percent
-        description: "Target multicopter stabilization authority scale at transition end, in percent. Used only when `vtol_transition_dynamic_mixer` is ON."
-        default_value: 100
-        field: mixer_config.vtolTransitionMcAuthorityEndPercent
-        min: 0
-        max: 100
-      - name: vtol_transition_fw_authority_start_percent
-        description: "Initial fixed-wing authority scale at transition start, in percent. Used only when `vtol_transition_dynamic_mixer` is ON."
-        default_value: 100
-        field: mixer_config.vtolTransitionFwAuthorityStartPercent
-        min: 0
-        max: 100
       - name: tailsitter_orientation_offset
         description: "Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode"
         default_value: OFF
@@ -4033,6 +4003,36 @@ groups:
         description: "Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled."
         default_value: 0
         field: throttle_tilt_compensation_strength
+        min: 0
+        max: 100
+      - name: vtol_transition_to_fw_min_airspeed_cm_s
+        description: "Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. Overrides `mixer_switch_trans_airspeed_cm_s` when > 0. If 0, legacy setting is used."
+        default_value: 0
+        field: vtolTransitionToFwMinAirspeed
+        min: 0
+        max: 20000
+      - name: vtol_transition_to_mc_max_airspeed_cm_s
+        description: "Maximum pitot airspeed [cm/s] allowed to complete FW->MC transition when airspeed is healthy and available. If 0, FW->MC uses timer fallback."
+        default_value: 0
+        field: vtolTransitionToMcMaxAirspeed
+        min: 0
+        max: 20000
+      - name: vtol_transition_lift_end_percent
+        description: "Target vertical-lift throttle scale at transition end, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON."
+        default_value: 100
+        field: vtolTransitionLiftEndPercent
+        min: 0
+        max: 100
+      - name: vtol_transition_mc_authority_end_percent
+        description: "Target multicopter stabilization authority scale at transition end, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON."
+        default_value: 100
+        field: vtolTransitionMcAuthorityEndPercent
+        min: 0
+        max: 100
+      - name: vtol_transition_fw_authority_start_percent
+        description: "Initial fixed-wing authority scale at transition start, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON."
+        default_value: 100
+        field: vtolTransitionFwAuthorityStartPercent
         min: 0
         max: 100
       - name: name

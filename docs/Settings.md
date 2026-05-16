@@ -2824,16 +2824,6 @@ Servo travel multiplier for the ROLL axis in `MANUAL` flight mode [0-100]%
 
 ---
 
-### manual_vtol_transition_controller
-
-Enables edge-triggered manual VTOL transition controller for `MIXER TRANSITION` when not in waypoint mission. OFF keeps legacy manual transition behavior.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### manual_yaw_rate
 
 Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
@@ -3226,6 +3216,46 @@ If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 200 |
+
+---
+
+### mixer_vtol_manualswitch_autotransition_controller
+
+Enables edge-triggered manual VTOL transition controller for `MIXER TRANSITION` when not in waypoint mission. OFF keeps legacy manual transition behavior.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_vtol_transition_airspeed_timeout_ms
+
+Safety timeout [ms] for airspeed-controlled transitions. If non-zero and required airspeed condition is not met in time, transition aborts instead of force-completing.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 60000 |
+
+---
+
+### mixer_vtol_transition_dynamic_mixer
+
+Enables dynamic VTOL transition progress/scaling controller shared by mission-authorized and manual MIXER TRANSITION paths.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_vtol_transition_scale_ramp_time_ms
+
+Optional dynamic scaling ramp duration [ms]. When > 0 and `mixer_vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling uses this timer instead of transition completion progress. Set to 0 to keep legacy progress-coupled scaling behavior.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 60000 |
 
 ---
 
@@ -7028,29 +7058,9 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 
 ---
 
-### vtol_transition_airspeed_timeout_ms
-
-Safety timeout [ms] for airspeed-controlled transitions. If non-zero and required airspeed condition is not met in time, transition aborts instead of force-completing.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 60000 |
-
----
-
-### vtol_transition_dynamic_mixer
-
-Enables dynamic VTOL transition progress/scaling controller shared by mission-authorized and manual MIXER TRANSITION paths.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### vtol_transition_fw_authority_start_percent
 
-Initial fixed-wing authority scale at transition start, in percent. Used only when `vtol_transition_dynamic_mixer` is ON.
+Initial fixed-wing authority scale at transition start, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7060,7 +7070,7 @@ Initial fixed-wing authority scale at transition start, in percent. Used only wh
 
 ### vtol_transition_lift_end_percent
 
-Target vertical-lift throttle scale at transition end, in percent. Used only when `vtol_transition_dynamic_mixer` is ON.
+Target vertical-lift throttle scale at transition end, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7070,21 +7080,11 @@ Target vertical-lift throttle scale at transition end, in percent. Used only whe
 
 ### vtol_transition_mc_authority_end_percent
 
-Target multicopter stabilization authority scale at transition end, in percent. Used only when `vtol_transition_dynamic_mixer` is ON.
+Target multicopter stabilization authority scale at transition end, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON.
 
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 | 0 | 100 |
-
----
-
-### vtol_transition_scale_ramp_time_ms
-
-Optional dynamic scaling ramp duration [ms]. When > 0 and `vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling uses this timer instead of transition completion progress. Set to 0 to keep legacy progress-coupled scaling behavior.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 60000 |
 
 ---
 
