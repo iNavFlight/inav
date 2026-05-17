@@ -32,6 +32,7 @@
 #include "navigation/navigation.h"
 
 #include "common/log.h"
+#include "build/debug.h"
 
 mixerConfig_t currentMixerConfig;
 int currentMixerProfileIndex;
@@ -535,6 +536,23 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     if (!isMixerTransitionMixing) {
         resetTransitionScales();
     }
+
+    // VTOL transition debug channels (DEBUG_VTOL_TRANSITION):
+    // [0] phase, [1] request, [2] direction, [3] progress x1000,
+    // [4] pusherScale x1000, [5] liftScale x1000, [6] fwBlend x1000,
+    // [7] flags bitfield: bit0 active, bit1 usedAirspeed, bit2 hotSwitchDone, bit3 aborted
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 0, mixerProfileAT.phase);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, mixerProfileAT.request);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 2, mixerProfileAT.direction);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 3, lrintf(constrainf(mixerProfileAT.progress, 0.0f, 1.0f) * 1000.0f));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 4, lrintf(constrainf(mixerProfileAT.pusherScale, 0.0f, 1.0f) * 1000.0f));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 5, lrintf(constrainf(mixerProfileAT.liftScale, 0.0f, 1.0f) * 1000.0f));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 6, lrintf(constrainf(mixerProfileAT.blendToFw, 0.0f, 1.0f) * 1000.0f));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 7,
+              (mixerATIsActive() ? 1 : 0) |
+              (mixerProfileAT.usedAirspeed ? 1 << 1 : 0) |
+              (mixerProfileAT.hotSwitchDone ? 1 << 2 : 0) |
+              (mixerProfileAT.aborted ? 1 << 3 : 0));
 }
 
 bool mixerATIsActive(void)

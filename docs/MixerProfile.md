@@ -99,7 +99,8 @@ When `mixer_automated_switch`:`OFF` is set for all mixer_profiles(defaults). Mod
 ### Unified VTOL transition controller
 
 Manual `MIXER TRANSITION` and mission-authorized VTOL transition both use the same internal transition controller.
-This controller always computes transition progress/completion and performs profile hot-switch only inside the authorized transition state.
+This controller always computes transition progress/completion and performs its own profile hot-switch only inside the authorized transition state.
+Direct manual `MIXER PROFILE 2` switching remains a separate path when no transition controller path is active.
 When `mixer_vtol_transition_dynamic_mixer = ON`, pusher/lift/authority scaling is enabled and is driven by:
 - transition progress (default), or
 - `mixer_vtol_transition_scale_ramp_time_ms` when configured (>0).
@@ -267,6 +268,28 @@ Behavior:
 - Mission transition with selected USER bit = `1` (TO_FW).
 - Mission transition with selected USER bit = `0` (TO_MC).
 - Failsafe/disarm during active transition (abort and no blind mission resume).
+
+### VTOL transition debug mode (Blackbox / OSD debug)
+
+For transition troubleshooting, use:
+
+- `set debug_mode = VTOL_TRANSITION`
+- `save`
+
+Debug channels:
+
+- `debug[0]` = transition phase (`0=IDLE`, `1=TRANSITION_INITIALIZE`, `2=TRANSITIONING`)
+- `debug[1]` = active request (`MIXERAT_REQUEST_*` enum value)
+- `debug[2]` = direction (`0=NONE`, `1=TO_FW`, `2=TO_MC`)
+- `debug[3]` = progress x1000 (`0..1000`)
+- `debug[4]` = pusher scale x1000 (`0..1000`)
+- `debug[5]` = lift scale x1000 (`0..1000`)
+- `debug[6]` = FW blend/authority scale x1000 (`0..1000`)
+- `debug[7]` = flags bitfield:
+  - bit0: transition active
+  - bit1: airspeed-controlled path in use
+  - bit2: hot-switch done
+  - bit3: transition aborted
 
 ## TailSitter (planned for INAV 7.1)
 TailSitter is supported by add a 90deg offset to the board alignment. Set the board aliment normally in the mixer_profile for FW mode(`set platform_type = AIRPLANE`), The motor trust axis should be same direction as the airplane nose. Then, in the mixer_profile for takeoff and landing set `tailsitter_orientation_offset = ON ` to apply orientation offset. orientation offset will also add a 45deg orientation offset.

@@ -782,6 +782,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | LULU |  |
 | SBUS2 |  |
 | OSD_REFRESH |  |
+| VTOL_TRANSITION |  |
 
 ---
 
