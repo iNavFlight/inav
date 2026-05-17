@@ -469,7 +469,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     const bool manualTransitionAllowed = (posControl.navState == NAV_STATE_IDLE) ||
                                          (posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS);
     const bool missionActive = (navGetCurrentStateFlags() & NAV_AUTO_WP) != 0;
-    const bool manualControllerEnabled = currentMixerConfig.manualVtolTransitionController && !missionActive;
+    bool manualControllerEnabled = false;
 
     if (mixerAT_inuse && (!ARMING_FLAG(ARMED) || FLIGHT_MODE(FAILSAFE_MODE) || areSensorsCalibrating())) {
         abortTransition();
@@ -483,6 +483,9 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
             outputProfileHotSwitch(IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) == 0 ? 0 : 1);
         }
     }
+
+    // Recompute after potential direct profile hot-switch because this flag is per-mixer-profile.
+    manualControllerEnabled = currentMixerConfig.manualVtolTransitionController && !missionActive;
 
     if (!manualControllerEnabled) {
         // Backward-compatible manual path: level-controlled transition mixing request.

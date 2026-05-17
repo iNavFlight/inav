@@ -33,6 +33,10 @@ The use of Transition Mode is recommended to enable further features and future 
 This edge-triggered behavior is enabled by `mixer_vtol_manualswitch_autotransition_controller`.
 When `mixer_vtol_manualswitch_autotransition_controller = OFF`, manual transition keeps legacy behavior.
 
+Important path split:
+- `MIXER PROFILE 2` remains a direct manual profile-switch path.
+- Smooth VTOL transition state-machine behavior is triggered by `MIXER TRANSITION` when `mixer_vtol_manualswitch_autotransition_controller = ON`.
+
 Recommended switch topology (explicit):
 - Use a dedicated 3-position mapping:
   - Pos1 = MC (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
@@ -116,6 +120,7 @@ Optional safety timeout:
 - `mixer_vtol_transition_airspeed_timeout_ms` can abort transition if airspeed condition is not met in time.
 - This timeout is only active while transition completion is using trusted pitot airspeed.
 - If pitot is unavailable/unhealthy, transition completion falls back to `mixer_switch_trans_timer`; timeout does not force abort in that fallback path.
+- For airspeed-first setups, configure non-zero `mixer_switch_trans_timer` fallback (typical `40..60`, i.e. `4..6s`) so pitot-loss fallback does not complete immediately.
 
 ### Dynamic scaling (optional)
 

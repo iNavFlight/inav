@@ -299,6 +299,8 @@ This keeps one safety boundary for profile hot-switching and avoids separate tra
 - Ground speed is not used for transition completion.
 - Mission transition uses the same controller and does not directly manipulate motors.
 - Manual `MIXER PROFILE` / `MIXER TRANSITION` bypass during normal waypoint navigation is still blocked.
+- `MIXER PROFILE 2` remains a direct profile-switch path when used manually.
+- Smooth/automatic transition behavior is triggered by `MIXER TRANSITION` (with manual auto-controller ON) or by mission-authorized transition requests.
 
 ### Manual transition semantics
 
@@ -362,6 +364,7 @@ Timeout:
 - `mixer_vtol_transition_airspeed_timeout_ms` can abort transition if condition is not achieved in time.
 - This timeout is applied only while the transition is airspeed-controlled (trusted pitot in use).
 - If pitot becomes unavailable/unhealthy, completion falls back to `mixer_switch_trans_timer` and this timeout no longer drives the decision.
+- For airspeed-first setups, configure a non-zero `mixer_switch_trans_timer` fallback (typical: `40..60`, i.e. `4..6s`) to avoid immediate fallback completion when pitot is unavailable and timer fallback becomes active.
 
 ### Dynamic mixer scaling
 
