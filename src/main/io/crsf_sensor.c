@@ -31,11 +31,13 @@
 
 #ifdef USE_CRSF_SENSOR_INPUT
 
+#include "build/atomic.h"
 #include "build/build_config.h"
 
 #include "common/crc.h"
 #include "common/utils.h"
 
+#include "drivers/nvic.h"
 #include "drivers/serial.h"
 #include "drivers/time.h"
 
@@ -64,9 +66,9 @@
 #define CRSF_SENSOR_VARIO_TIMEOUT_MS    2000
 
 static serialPort_t *crsfSensorPort;
-static uint8_t crsfSensorFrame[CRSF_FRAME_SIZE_MAX];
-static uint8_t crsfSensorFramePosition;
-static timeUs_t crsfSensorFrameStartAtUs;
+static volatile uint8_t crsfSensorFrame[CRSF_FRAME_SIZE_MAX];
+static volatile uint8_t crsfSensorFramePosition;
+static volatile timeUs_t crsfSensorFrameStartAtUs;
 static volatile bool crsfSensorFrameDone;
 
 // Vario data storage
@@ -75,9 +77,12 @@ static timeMs_t crsfSensorVarioLastUpdateMs;
 
 static uint8_t crsfSensorFrameCRC(const uint8_t *frame)
 {
-    // CRC includes type and payload (bytes 2..frameLength)
-    uint8_t crc = crc8_dvb_s2(0, frame[2]);  // type
     const uint8_t frameLength = frame[1];
+    if (frameLength < CRSF_FRAME_LENGTH_TYPE_CRC) {
+        return 0;
+    }
+    // CRC covers type byte and payload; address and length bytes are excluded
+    uint8_t crc = crc8_dvb_s2(0, frame[2]);
     for (int ii = 0; ii < frameLength - CRSF_FRAME_LENGTH_TYPE_CRC; ++ii) {
         crc = crc8_dvb_s2(crc, frame[3 + ii]);
     }
@@ -201,8 +206,12 @@ static void crsfSensorHandleVario(const uint8_t *payload)
 static void crsfSensorDispatchFrame(const uint8_t *frame)
 {
     const uint8_t frameLength = frame[1];
-    const uint8_t fullFrameLength = frameLength + CRSF_FRAME_LENGTH_ADDRESS + CRSF_FRAME_LENGTH_FRAMELENGTH;
+    const int fullFrameLength = (int)frameLength + CRSF_FRAME_LENGTH_ADDRESS + CRSF_FRAME_LENGTH_FRAMELENGTH;
     const uint8_t type = frame[2];
+
+    if (fullFrameLength < 4 || fullFrameLength > CRSF_FRAME_SIZE_MAX) {
+        return;
+    }
 
     // CRC check
     const uint8_t crc = crsfSensorFrameCRC(frame);
@@ -314,8 +323,10 @@ void crsfSensorProcess(void)
 {
     if (crsfSensorFrameDone) {
         uint8_t localFrame[CRSF_FRAME_SIZE_MAX];
-        memcpy(localFrame, crsfSensorFrame, sizeof(localFrame));
-        crsfSensorFrameDone = false;
+        ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {
+            memcpy(localFrame, (const uint8_t *)crsfSensorFrame, sizeof(localFrame));
+            crsfSensorFrameDone = false;
+        }
         crsfSensorDispatchFrame(localFrame);
     }
 }
