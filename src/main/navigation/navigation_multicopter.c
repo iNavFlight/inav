@@ -122,19 +122,23 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 bool adjustMulticopterAltitudeFromRCInput(void)
 {
     if (posControl.flags.isTerrainFollowEnabled) {
-        const float altTarget = scaleRangef(rcCommand[THROTTLE], getThrottleIdleValue(), getMaxThrottle(), 0, navConfig()->general.max_terrain_follow_altitude);
+        const int16_t altTarget = scaleRange(rcCommand[THROTTLE], getThrottleIdleValue(), getMaxThrottle(), 0, navConfig()->general.max_terrain_follow_altitude);
 
         // In terrain follow mode we apply different logic for terrain control
-        if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
+        if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10) {
             // We have solid terrain sensor signal - directly map throttle to altitude
             updateClimbRateToAltitudeController(0, altTarget, ROC_TO_ALT_TARGET);
         }
         else {
-            const int16_t throttleIdle = getThrottleIdleValue();
-            const int16_t throttleMid = rcLookupThrottleMid();
-            const int16_t descentRate = scaleRange(constrain(rcCommand[THROTTLE], throttleIdle, throttleMid), throttleIdle, throttleMid, -200, -50);
+            int16_t climbRate = -50;
 
-            updateClimbRateToAltitudeController(descentRate, 0, ROC_TO_ALT_CONSTANT);
+            if (posControl.flags.estAglStatus != EST_TRUSTED) {
+                const int16_t throttleIdle = getThrottleIdleValue();
+                const int16_t throttleMid = rcLookupThrottleMid();
+                climbRate = scaleRange(constrain(rcCommand[THROTTLE], throttleIdle, throttleMid), throttleIdle, throttleMid, -200, -50);
+            }
+
+            updateClimbRateToAltitudeController(climbRate, 0, ROC_TO_ALT_CONSTANT);
         }
 
         // In surface tracking we always indicate that we're adjusting altitude
