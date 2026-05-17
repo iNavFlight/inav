@@ -300,16 +300,23 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
 
     const uint8_t motorCount = getMotorCount();
 
-    // Servo count from customServoMixers — the PG that the Configurator writes via
-    // MSP2_INAV_SET_SERVO_MIXER and that loadCustomServoMixer() uses at runtime.
-    // Do NOT use getServoCount() / isMixerUsingServos(): those read mixerProfiles->ServoMixers,
-    // a separate PG that can hold stale data after settings-preserving firmware upgrades.
-    uint8_t servoCount = 0;
-    for (int i = 0; i < MAX_SERVO_RULES; i++) {
-        if (customServoMixers(i)->rate == 0) break;
-        uint8_t ch = customServoMixers(i)->targetChannel;
-        if (ch + 1 > servoCount) servoCount = ch + 1;
+    // Count servo outputs needed across all mixer profiles, matching
+    // computeServoCount() / getServoCount() which also walk all profiles.
+    // Using only the active profile would under-count on targets with a second
+    // profile that has more servos, causing the simulation to diverge from
+    // the real pwmInitServos() result.
+    uint8_t minServo = 255, maxServo = 0;
+    bool anyServo = false;
+    for (int j = 0; j < MAX_MIXER_PROFILE_COUNT; j++) {
+        for (int i = 0; i < MAX_SERVO_RULES; i++) {
+            if (mixerServoMixersByIndex(j)[i].rate == 0) break;
+            uint8_t ch = mixerServoMixersByIndex(j)[i].targetChannel;
+            if (ch < minServo) minServo = ch;
+            if (ch > maxServo) maxServo = ch;
+            anyServo = true;
+        }
     }
+    uint8_t servoCount = anyServo ? (uint8_t)(1 + maxServo - minServo) : 0;
 
     // Apply all timerOverrides upfront so flag state is stable for both passes
     for (int idx = 0; idx < timerHardwareCount; idx++) {

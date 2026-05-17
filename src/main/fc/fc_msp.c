@@ -4751,7 +4751,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 }
             }
 
-            timMotorServoHardware_t tempOut;
+            timMotorServoHardware_t tempOut = {0};
             pwmCalculateAssignment(&tempOut, proposedModes);
 
             for (int m = 0; m < tempOut.maxTimMotorCount; m++) {
