@@ -293,24 +293,17 @@ static void pwmAssignOutput(timMotorServoHardware_t *timOutputs, timerHardware_t
     }
 }
 
-void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs, bool isMixerUsingServos)
+void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
 {
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
     const uint8_t motorCount = getMotorCount();
 
-    // Count servo outputs needed from customServoMixers — the same PG array
-    // that the Configurator writes via MSP2_INAV_SET_SERVO_MIXER and that
-    // loadCustomServoMixer() uses at runtime.  getServoCount() reads from
-    // mixerProfiles->ServoMixers, a separate PG that the Configurator does
-    // not clear, which causes phantom servo outputs after settings-preserving
-    // firmware upgrades.
-    // Servo count comes directly from customServoMixers — the PG that the
-    // Configurator writes via MSP2_INAV_SET_SERVO_MIXER and that
-    // loadCustomServoMixer() uses.  Do not gate on isMixerUsingServos():
-    // that flag uses mixerProfiles->ServoMixers (a separate PG) which can
-    // disagree with customServoMixers due to stale data.
+    // Servo count from customServoMixers — the PG that the Configurator writes via
+    // MSP2_INAV_SET_SERVO_MIXER and that loadCustomServoMixer() uses at runtime.
+    // Do NOT use getServoCount() / isMixerUsingServos(): those read mixerProfiles->ServoMixers,
+    // a separate PG that can hold stale data after settings-preserving firmware upgrades.
     uint8_t servoCount = 0;
     for (int i = 0; i < MAX_SERVO_RULES; i++) {
         if (customServoMixers(i)->rate == 0) break;
@@ -473,7 +466,7 @@ static timMotorServoHardware_t timOutputsStatic;
 
 bool pwmMotorAndServoInit(void)
 {
-    pwmBuildTimerOutputList(&timOutputsStatic, isMixerUsingServos());
+    pwmBuildTimerOutputList(&timOutputsStatic);
     pwmInitMotors(&timOutputsStatic);
     pwmInitServos(&timOutputsStatic);
     return (pwmInitError == PWM_INIT_ERROR_NONE);
@@ -516,7 +509,7 @@ void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *propose
         timerOverridesMutable(i)->outputMode = proposedModes[i];
     }
 
-    pwmBuildTimerOutputList(out, isMixerUsingServos());
+    pwmBuildTimerOutputList(out);
 
     for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
         timerOverridesMutable(i)->outputMode = savedModes[i];
