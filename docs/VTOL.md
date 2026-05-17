@@ -324,6 +324,15 @@ Operational example:
 - fly in MC (pos1) -> move to Transition (pos2) to start automatic MC->FW transition -> after completion move to FW (pos3),
 - reverse order for FW->MC.
 
+Important RC mapping constraint:
+- Use a dedicated 3-position mapping where:
+  - Pos1 = MC (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
+  - Pos2 = Transition trigger (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` ON)
+  - Pos3 = FW (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
+- Do not overlap/merge FW selection and transition trigger in the same switch position.
+- Do not use a 2-position mapping where one position enables both `MIXER PROFILE 2` and `MIXER TRANSITION`.
+- Mixing these mode conditions can cause race/order-dependent behavior (direct profile switch versus transition state machine), which is unpredictable in flight.
+
 ### Mission-authorized transition semantics
 
 Mission transition is configured with `nav_vtol_mission_transition_user_action`.
@@ -351,6 +360,8 @@ FW -> MC:
 
 Timeout:
 - `mixer_vtol_transition_airspeed_timeout_ms` can abort transition if condition is not achieved in time.
+- This timeout is applied only while the transition is airspeed-controlled (trusted pitot in use).
+- If pitot becomes unavailable/unhealthy, completion falls back to `mixer_switch_trans_timer` and this timeout no longer drives the decision.
 
 ### Dynamic mixer scaling
 
@@ -375,11 +386,84 @@ Result:
 - transition completion still follows airspeed thresholds when pitot is healthy,
 - if pitot is unavailable/unhealthy, completion fallback still uses 5s.
 
-Optional smooth-start baseline:
-- `mixer_vtol_transition_dynamic_mixer = ON`
-- `vtol_transition_lift_end_percent = 30`
-- `vtol_transition_mc_authority_end_percent = 20`
-- `vtol_transition_fw_authority_start_percent = 20`
+### Example test presets (VTOL ~1.0m wingspan, ~1720g AUW)
+
+These are example starting points for initial testing. They are not universal values; tune after bench tests and short flight tests.
+
+#### Test 1 - Legacy-compatible baseline (manual transition check)
+
+Goal:
+- Verify that the new controller does not change legacy behavior when dynamic scaling is disabled.
+- Good first test after flashing.
+
+CLI:
+- `set mixer_vtol_manualswitch_autotransition_controller = ON`
+- `set mixer_vtol_transition_dynamic_mixer = OFF`
+- `set mixer_switch_trans_timer = 45`
+- `set vtol_transition_to_fw_min_airspeed_cm_s = 0`
+- `set mixer_switch_trans_airspeed_cm_s = 0`
+- `set vtol_transition_to_mc_max_airspeed_cm_s = 900`
+- `set mixer_vtol_transition_airspeed_timeout_ms = 0`
+- `set mixer_vtol_transition_scale_ramp_time_ms = 0`
+- `set nav_vtol_mission_transition_user_action = OFF`
+
+What this does:
+- Keeps transition mixing behavior close to legacy mode.
+- Uses timer-driven completion when no trusted pitot threshold is configured.
+- Uses conservative FW->MC completion threshold.
+- Disables mission-authorized transition while validating manual behavior.
+
+#### Test 2 - Airspeed-first + dynamic scaling (manual transition tuning)
+
+Goal:
+- Enable the full new behavior: airspeed-first completion and smooth authority/pusher scaling.
+
+CLI:
+- `set mixer_vtol_manualswitch_autotransition_controller = ON`
+- `set mixer_vtol_transition_dynamic_mixer = ON`
+- `set vtol_transition_to_fw_min_airspeed_cm_s = 1300`
+- `set vtol_transition_to_mc_max_airspeed_cm_s = 850`
+- `set mixer_switch_trans_timer = 50`
+- `set mixer_vtol_transition_airspeed_timeout_ms = 6500`
+- `set mixer_vtol_transition_scale_ramp_time_ms = 1200`
+- `set vtol_transition_lift_end_percent = 30`
+- `set vtol_transition_mc_authority_end_percent = 20`
+- `set vtol_transition_fw_authority_start_percent = 20`
+- `set nav_vtol_mission_transition_user_action = OFF`
+
+What this does:
+- MC->FW completes primarily on pitot airspeed (1300 cm/s), with timer fallback only if pitot is unavailable/unhealthy.
+- FW->MC completes when airspeed drops to 850 cm/s.
+- Scaling ramps quickly (1.2 s) to reduce step torque and abrupt authority handoff.
+- Timeout abort protects against staying too long in airspeed-controlled transition without reaching threshold.
+
+#### Test 3 - Mission-authorized transition (end-to-end mission flow)
+
+Goal:
+- Validate mission User Action integration and pause/resume behavior.
+
+CLI:
+- `set mixer_vtol_manualswitch_autotransition_controller = ON`
+- `set mixer_vtol_transition_dynamic_mixer = ON`
+- `set vtol_transition_to_fw_min_airspeed_cm_s = 1300`
+- `set vtol_transition_to_mc_max_airspeed_cm_s = 850`
+- `set mixer_switch_trans_timer = 50`
+- `set mixer_vtol_transition_airspeed_timeout_ms = 6500`
+- `set mixer_vtol_transition_scale_ramp_time_ms = 1200`
+- `set vtol_transition_lift_end_percent = 30`
+- `set vtol_transition_mc_authority_end_percent = 20`
+- `set vtol_transition_fw_authority_start_percent = 20`
+- `set nav_vtol_mission_transition_user_action = USER1`
+- `set nav_vtol_mission_transition_min_altitude_cm = 1200`
+- `set nav_vtol_mission_transition_track_distance_cm = 4000`
+
+What this does:
+- Uses USER1 as the absolute per-waypoint target selector:
+  - USER1 bit clear -> target MC
+  - USER1 bit set -> target FW
+- Pauses mission progression during transition and resumes after completion.
+- Uses straight MC->FW acceleration segment (no loiter) with a 40 m transition track distance.
+- Adds a minimum altitude gate (12 m) before mission transition starts.
 
 ### Detailed effect of the three percentage settings
 

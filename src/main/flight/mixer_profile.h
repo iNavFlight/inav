@@ -57,14 +57,12 @@ typedef enum {
     MIXERAT_PHASE_IDLE,
     MIXERAT_PHASE_TRANSITION_INITIALIZE,
     MIXERAT_PHASE_TRANSITIONING,
-    MIXERAT_PHASE_DONE,
 } mixerProfileATState_e;
 
 typedef struct mixerProfileAT_s {
     mixerProfileATState_e phase;
     mixerProfileATDirection_e direction;
     mixerProfileATRequest_e request;
-    bool transitionInputMixing;
     bool aborted;
     bool hotSwitchDone;
     bool usedAirspeed;
@@ -77,8 +75,6 @@ typedef struct mixerProfileAT_s {
     float mcAuthorityScale;
     float fwAuthorityScale;
     timeMs_t transitionStartTime;
-    timeMs_t transitionStabEndTime;
-    timeMs_t transitionTransEndTime;
 } mixerProfileAT_t;
 extern mixerProfileAT_t mixerProfileAT;
 bool checkMixerATRequired(mixerProfileATRequest_e required_action);

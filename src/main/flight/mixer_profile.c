@@ -119,11 +119,8 @@ void mixerConfigInit(void)
 void setMixerProfileAT(void)
 {
     const timeMs_t now = millis();
-    const uint32_t transitionDurationMs = MAX(0, currentMixerConfig.switchTransitionTimer) * 100;
 
     mixerProfileAT.transitionStartTime = now;
-    mixerProfileAT.transitionStabEndTime = now;
-    mixerProfileAT.transitionTransEndTime = now + transitionDurationMs;
     mixerProfileAT.aborted = false;
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.usedAirspeed = false;
@@ -421,13 +418,13 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
 
             if (mixerATReadyForHotSwitch(mixerProfileAT.request)) {
                 isMixerTransitionMixing_requested = false;
+                mixerProfileAT.progress = 1.0f;
+                updateTransitionScales();
                 if (!outputProfileHotSwitch(nextMixerProfileIndex)) {
                     abortTransition();
                     return true;
                 }
                 mixerProfileAT.hotSwitchDone = true;
-                mixerProfileAT.progress = 1.0f;
-                updateTransitionScales();
                 mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
                 mixerProfileAT.request = MIXERAT_REQUEST_NONE;
                 mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
