@@ -284,12 +284,12 @@ Debug channels:
 - `debug[3]` = progress x1000 (`0..1000`)
 - `debug[4]` = pusher scale x1000 (`0..1000`)
 - `debug[5]` = lift scale x1000 (`0..1000`)
-- `debug[6]` = FW blend/authority scale x1000 (`0..1000`)
+- `debug[6]` = FW authority/blend scale x1000 (`0..1000`)
 - `debug[7]` = flags bitfield:
-  - bit0: transition active
-  - bit1: airspeed-controlled path in use
-  - bit2: hot-switch done
-  - bit3: transition aborted
+    - bit0: transition active
+    - bit1: airspeed-controlled path in use
+    - bit2: hot-switch done
+    - bit3: transition aborted
 
 ## TailSitter (planned for INAV 7.1)
 TailSitter is supported by add a 90deg offset to the board alignment. Set the board aliment normally in the mixer_profile for FW mode(`set platform_type = AIRPLANE`), The motor trust axis should be same direction as the airplane nose. Then, in the mixer_profile for takeoff and landing set `tailsitter_orientation_offset = ON ` to apply orientation offset. orientation offset will also add a 45deg orientation offset.

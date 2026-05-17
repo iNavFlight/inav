@@ -533,13 +533,9 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     isMixerTransitionMixing = isMixerTransitionMixing_requested &&
         ((posControl.navState == NAV_STATE_IDLE) || mixerAT_inuse || (posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS));
 
-    if (!isMixerTransitionMixing) {
-        resetTransitionScales();
-    }
-
     // VTOL transition debug channels (DEBUG_VTOL_TRANSITION):
     // [0] phase, [1] request, [2] direction, [3] progress x1000,
-    // [4] pusherScale x1000, [5] liftScale x1000, [6] fwBlend x1000,
+    // [4] pusherScale x1000, [5] liftScale x1000, [6] fwAuthority/blend x1000,
     // [7] flags bitfield: bit0 active, bit1 usedAirspeed, bit2 hotSwitchDone, bit3 aborted
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 0, mixerProfileAT.phase);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, mixerProfileAT.request);
@@ -553,6 +549,10 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
               (mixerProfileAT.usedAirspeed ? 1 << 1 : 0) |
               (mixerProfileAT.hotSwitchDone ? 1 << 2 : 0) |
               (mixerProfileAT.aborted ? 1 << 3 : 0));
+
+    if (!isMixerTransitionMixing) {
+        resetTransitionScales();
+    }
 }
 
 bool mixerATIsActive(void)
