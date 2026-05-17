@@ -513,6 +513,7 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 | DPS310 |  |
 | B2SMPB |  |
 | MSP |  |
+| CRSF |  |
 | FAKE |  |
 
 ---
@@ -696,6 +697,7 @@ ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once 
 | ESC |  |
 | SMARTPORT |  |
 | CAN |  |
+| CRSF |  |
 
 ---
 
@@ -1865,6 +1867,7 @@ Which GPS protocol to be used.
 | MSP |  |
 | FAKE |  |
 | DRONECAN |  |
+| CRSF |  |
 
 ---
 
@@ -6938,6 +6941,7 @@ Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. 
 | FAKE |  |
 | SMARTPORT |  |
 | CAN |  |
+| CRSF |  |
 
 ---
 

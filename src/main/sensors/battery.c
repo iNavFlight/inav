@@ -67,6 +67,7 @@
 #endif
 #if defined(USE_BATTERY_SENSOR_CRSF)
 #include "sensors/battery_sensor_crsf.h"
+#endif
 #if defined(USE_DRONECAN)
 #include "sensors/battery_sensor_dronecan.h"
 #endif
@@ -659,6 +660,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 }
             }
             break;
+#endif
 #if defined(USE_DRONECAN)
         case CURRENT_SENSOR_CAN:
             amperage = dronecanBattSensorGetAmperage();

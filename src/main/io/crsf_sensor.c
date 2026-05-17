@@ -73,13 +73,13 @@ static volatile bool crsfSensorFrameDone;
 static int16_t crsfSensorVario;
 static timeMs_t crsfSensorVarioLastUpdateMs;
 
-static uint8_t crsfSensorFrameCRC(void)
+static uint8_t crsfSensorFrameCRC(const uint8_t *frame)
 {
     // CRC includes type and payload (bytes 2..frameLength)
-    uint8_t crc = crc8_dvb_s2(0, crsfSensorFrame[2]);  // type
-    const uint8_t frameLength = crsfSensorFrame[1];
+    uint8_t crc = crc8_dvb_s2(0, frame[2]);  // type
+    const uint8_t frameLength = frame[1];
     for (int ii = 0; ii < frameLength - CRSF_FRAME_LENGTH_TYPE_CRC; ++ii) {
-        crc = crc8_dvb_s2(crc, crsfSensorFrame[3 + ii]);
+        crc = crc8_dvb_s2(crc, frame[3 + ii]);
     }
     return crc;
 }
@@ -198,19 +198,19 @@ static void crsfSensorHandleVario(const uint8_t *payload)
     crsfSensorVarioLastUpdateMs = millis();
 }
 
-static void crsfSensorDispatchFrame(void)
+static void crsfSensorDispatchFrame(const uint8_t *frame)
 {
-    const uint8_t frameLength = crsfSensorFrame[1];
+    const uint8_t frameLength = frame[1];
     const uint8_t fullFrameLength = frameLength + CRSF_FRAME_LENGTH_ADDRESS + CRSF_FRAME_LENGTH_FRAMELENGTH;
-    const uint8_t type = crsfSensorFrame[2];
+    const uint8_t type = frame[2];
 
     // CRC check
-    const uint8_t crc = crsfSensorFrameCRC();
-    if (crc != crsfSensorFrame[fullFrameLength - 1]) {
+    const uint8_t crc = crsfSensorFrameCRC(frame);
+    if (crc != frame[fullFrameLength - 1]) {
         return;
     }
 
-    const uint8_t *payload = &crsfSensorFrame[3];
+    const uint8_t *payload = &frame[3];
 
     switch (type) {
 #ifdef USE_GPS_PROTO_CRSF
@@ -313,8 +313,10 @@ int16_t crsfSensorGetVario(void)
 void crsfSensorProcess(void)
 {
     if (crsfSensorFrameDone) {
+        uint8_t localFrame[CRSF_FRAME_SIZE_MAX];
+        memcpy(localFrame, crsfSensorFrame, sizeof(localFrame));
         crsfSensorFrameDone = false;
-        crsfSensorDispatchFrame();
+        crsfSensorDispatchFrame(localFrame);
     }
 }
 
