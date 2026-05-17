@@ -101,8 +101,8 @@
 #define GYRO2_CS_PIN            PE11
 
 #define USE_IMU_MPU6000
-#define IMU_1_MPU6000_ALIGN       CW0_DEG_FLIP
-#define IMU_2_MPU6000_ALIGN       CW90_DEG_FLIP
+#define IMU_1_MPU6000_ALIGN       CW90_DEG_FLIP
+#define IMU_2_MPU6000_ALIGN       CW0_DEG_FLIP
 
 #define USE_IMU_ICM42605
 #define IMU_1_ICM42605_ALIGN      CW90_DEG_FLIP
@@ -124,6 +124,8 @@
 
 #define USE_BARO
 #define USE_BARO_DPS310
+#define USE_BARO_BMP388
+#define USE_BARO_BMP390
 #define BARO_I2C_BUS            BUS_I2C2
 
 #define USE_MAG

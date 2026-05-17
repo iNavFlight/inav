@@ -67,6 +67,8 @@
 #endif
 #if defined(USE_BATTERY_SENSOR_CRSF)
 #include "sensors/battery_sensor_crsf.h"
+#if defined(USE_DRONECAN)
+#include "sensors/battery_sensor_dronecan.h"
 #endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
@@ -172,7 +174,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
     }
 }
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 3);
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
@@ -291,7 +293,7 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             }
             break;
 #endif
-        
+
 #if defined(USE_FAKE_BATT_SENSOR)
     case VOLTAGE_SENSOR_FAKE:
         vbat = fakeBattSensorGetVBat();
@@ -320,6 +322,13 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
         }
         break;
 #endif
+
+#if defined(USE_DRONECAN)
+    case VOLTAGE_SENSOR_CAN:
+        vbat = dronecanBattSensorGetVBat();
+        break;
+#endif
+
     case VOLTAGE_SENSOR_NONE:
         default:
             vbat = 0;
@@ -343,30 +352,32 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 batteryState_e checkBatteryVoltageState(void)
 {
     uint16_t stateVoltage = getBatteryVoltage();
-    switch (batteryState)
+    static batteryState_e currentBatteryVoltageState = BATTERY_OK;
+
+    switch (currentBatteryVoltageState)
     {
         case BATTERY_OK:
             if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS)) {
-                return BATTERY_WARNING;
+                currentBatteryVoltageState = BATTERY_WARNING;
             }
             break;
         case BATTERY_WARNING:
             if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
-                return BATTERY_CRITICAL;
+                currentBatteryVoltageState = BATTERY_CRITICAL;
             } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
-                return BATTERY_OK;
+                currentBatteryVoltageState = BATTERY_OK;
             }
             break;
         case BATTERY_CRITICAL:
             if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS)) {
-                return BATTERY_WARNING;
+                currentBatteryVoltageState = BATTERY_WARNING;
             }
             break;
         default:
             break;
     }
 
-    return batteryState;
+    return currentBatteryVoltageState;
 }
 
 static void checkBatteryCapacityState(void)
@@ -647,6 +658,10 @@ void currentMeterUpdate(timeUs_t timeDelta)
                     amperage = 0;
                 }
             }
+            break;
+#if defined(USE_DRONECAN)
+        case CURRENT_SENSOR_CAN:
+            amperage = dronecanBattSensorGetAmperage();
             break;
 #endif
 #if defined(USE_FAKE_BATT_SENSOR)

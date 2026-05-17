@@ -244,10 +244,11 @@ void IOToggle(IO_t io)
         IO_GPIO(io)->BSRRL = mask;
     }
 #elif defined(AT32F43x)
- if (IO_GPIO(io)->odt & mask)
-        mask <<= 16;   // bit is set, shift mask to reset half 
-    
-    IO_GPIO(io)->scr = IO_Pin(io);
+    if (IO_GPIO(io)->odt & mask) {
+        IO_GPIO(io)->clr = mask;
+    } else {
+        IO_GPIO(io)->scr = mask;
+    }
 #else
     if (IO_GPIO(io)->ODR & mask)
         mask <<= 16;   // bit is set, shift mask to reset half

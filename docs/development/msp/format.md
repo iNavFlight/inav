@@ -1,36 +1,50 @@
 # Format:
 ## JSON format example:
 ```
-    "MSP_API_VERSION": {
-        "code": 1,
-        "mspv": 1,
-        "request": null,
-        "reply": {
-            "payload": [
-                {
-                    "name": "mspProtocolVersion",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
-                },
-                {
-                    "name": "apiVersionMajor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
-                },
-                {
-                    "name": "apiVersionMinor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
-                }
-            ],
-        },
-        "notes": "Used by configurators to check compatibility.",
-        "description": "Provides the MSP protocol version and the INAV API version."
+{
+    "version": {
+        "major": 2,
+        "minor": 0,
+        "patch": 0
     },
+    "messages": {
+        "MSP_API_VERSION": {
+            "code": 1,
+            "mspv": 1,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "mspProtocolVersion",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
+                    },
+                    {
+                        "name": "apiVersionMajor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
+                    },
+                    {
+                        "name": "apiVersionMinor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
+                    }
+                ]
+            },
+            "notes": "Used by configurators to check compatibility.",
+            "description": "Provides the MSP protocol version and the INAV API version."
+        },
+        "...": {}
+    }
+}
 ```
+## Top-level fields:
+**version**: JSON spec version (`major.minor.patch`)\
+**messages**: Dictionary keyed by MSP message name
+
 ## Message fields:
 **name**: MSP message name\
 **code**: Integer message code\
@@ -40,6 +54,7 @@
 **variable_len**: Optional boolean, if true, message does not have a predefined fixed length and needs appropriate handling\
 **variants**: Optional special case, message has different cases of reply/request. Key/description is not a strict expression or code; just a readable condition\
 **not_implemented**: Optional special case, message is not implemented (never or deprecated)\
+**replaced_by**: Optional array of MSP message names that replace this command. Present when a command is deprecated and scheduled for removal. Empty array if no replacement is needed\
 **notes**: String with details of message
 
 ## Data dict fields:

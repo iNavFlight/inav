@@ -36,6 +36,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/gimbal_common.h"
 #include "drivers/headtracker_common.h"
+#include "drivers/dronecan/dronecan.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -354,6 +355,13 @@ void geozoneUpdateTask(timeUs_t currentTimeUs)
 }
 #endif
 
+#ifdef USE_DRONECAN
+void dronecanUpdateTask(timeUs_t currentTimeUs)
+{
+    dronecanUpdate(currentTimeUs);
+}
+#endif
+
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -429,7 +437,7 @@ void fcTasksInit(void)
 #endif
 #endif
 #ifdef USE_RCDEVICE
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled() || osdJoystickEnabled());
 #else
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
@@ -474,6 +482,10 @@ void fcTasksInit(void)
 
 #ifdef USE_GEOZONE
     setTaskEnabled(TASK_GEOZONE, feature(FEATURE_GEOZONE));
+#endif
+
+#ifdef USE_DRONECAN
+    setTaskEnabled(TASK_DRONECAN, true);
 #endif
 
 }
@@ -777,6 +789,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "GEOZONE",
         .taskFunc = geozoneUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(5),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_DRONECAN
+    [TASK_DRONECAN] = {
+        .taskName = "DRONECAN",
+        .taskFunc = dronecanUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(500),   // 500 Hz.  1MBps @ 130 bits per frame is 7700 frames per second. 15 frames per task at 100% busload
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

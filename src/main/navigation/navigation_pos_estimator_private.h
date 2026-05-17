@@ -60,6 +60,8 @@
 #define RANGEFINDER_RELIABILITY_LOW_THRESHOLD   (0.33f)
 #define RANGEFINDER_RELIABILITY_HIGH_THRESHOLD  (0.75f)
 
+#define INAV_EST_VEL_F_CUT_HZ               3.0f
+
 typedef struct {
     timeUs_t    lastTriggeredTime;
     timeUs_t    deltaTime;
@@ -183,7 +185,8 @@ typedef struct {
     fpVector3_t estPosCorr;
     fpVector3_t estVelCorr;
     fpVector3_t accBiasCorr;
-    bool applyCorrections;
+    bool applyCorrectionsXY;
+    bool applyCorrectionsZ;
 } estimationContext_t;
 
 extern navigationPosEstimator_t posEstimator;

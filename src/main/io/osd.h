@@ -340,6 +340,7 @@ typedef enum {
     OSD_NAV_FW_ALT_CONTROL_RESPONSE,
     OSD_NAV_MIN_GROUND_SPEED,
     OSD_THROTTLE_GAUGE,
+    OSD_GPS_EXTRA_STATS, 
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -451,6 +452,7 @@ typedef struct osdConfig_s {
     videoSystem_e   video_system;
     uint8_t         row_shiftdown;
     int16_t         msp_displayport_fullframe_interval;
+    int8_t          osd_framerate_hz;
 
     // Preferences
     uint8_t         main_voltage_decimals;
@@ -584,8 +586,6 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt);
 int osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
-
-void osdResetWarningFlags(void);
 
 int16_t osdGetPanServoOffset(void);
 
