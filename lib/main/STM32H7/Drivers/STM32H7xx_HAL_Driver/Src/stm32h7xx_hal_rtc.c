@@ -112,10 +112,20 @@
     (+) TimeStampEventCallback       : RTC TimeStamp Event callback.
     (+) WakeUpTimerEventCallback     : RTC WakeUpTimer Event callback.
     (+) Tamper1EventCallback         : RTC Tamper 1 Event callback.
-    (+) Tamper2EventCallback         : RTC Tamper 2 Event callback.
+    (+) Tamper2EventCallback         : RTC Tamper 2 Event callback. (*)
     (+) Tamper3EventCallback         : RTC Tamper 3 Event callback.
+    (+) InternalTamper1EventCallback : RTC Internal Tamper 1 Callback ID (*)
+    (+) InternalTamper2EventCallback : RTC Internal Tamper 2 Callback ID (*)
+    (+) InternalTamper3EventCallback : RTC Internal Tamper 3 Callback ID (*)
+    (+) InternalTamper4EventCallback : RTC Internal Tamper 4 Callback ID (*)
+    (+) InternalTamper5EventCallback : RTC Internal Tamper 5 Callback ID (*)
+    (+) InternalTamper6EventCallback : RTC Internal Tamper 6 Callback ID (*)
+    (+) InternalTamper8EventCallback : RTC Internal Tamper 8 Callback ID (*)
     (+) MspInitCallback              : RTC MspInit callback.
     (+) MspDeInitCallback            : RTC MspDeInit callback.
+
+  (*) Not applicable to all devices.
+
   This function takes as parameters the HAL peripheral handle, the Callback ID
   and a pointer to the user callback function.
 
@@ -129,10 +139,19 @@
     (+) TimeStampEventCallback       : RTC TimeStamp Event callback.
     (+) WakeUpTimerEventCallback     : RTC WakeUpTimer Event callback.
     (+) Tamper1EventCallback         : RTC Tamper 1 Event callback.
-    (+) Tamper2EventCallback         : RTC Tamper 2 Event callback.
+    (+) Tamper2EventCallback         : RTC Tamper 2 Event callback. (*)
     (+) Tamper3EventCallback         : RTC Tamper 3 Event callback.
+    (+) InternalTamper1EventCallback : RTC Internal Tamper 1 Callback ID (*)
+    (+) InternalTamper2EventCallback : RTC Internal Tamper 2 Callback ID (*)
+    (+) InternalTamper3EventCallback : RTC Internal Tamper 3 Callback ID (*)
+    (+) InternalTamper4EventCallback : RTC Internal Tamper 4 Callback ID (*)
+    (+) InternalTamper5EventCallback : RTC Internal Tamper 5 Callback ID (*)
+    (+) InternalTamper6EventCallback : RTC Internal Tamper 6 Callback ID (*)
+    (+) InternalTamper8EventCallback : RTC Internal Tamper 8 Callback ID (*)
     (+) MspInitCallback              : RTC MspInit callback.
     (+) MspDeInitCallback            : RTC MspDeInit callback.
+
+  (*) Not applicable to all devices.
 
   By default, after the HAL_RTC_Init() and when the state is HAL_RTC_STATE_RESET,
   all callbacks are set to the corresponding weak functions :
@@ -254,7 +273,9 @@ HAL_StatusTypeDef HAL_RTC_Init(RTC_HandleTypeDef *hrtc)
       hrtc->TimeStampEventCallback       =  HAL_RTCEx_TimeStampEventCallback;        /* Legacy weak TimeStampEventCallback   */
       hrtc->WakeUpTimerEventCallback     =  HAL_RTCEx_WakeUpTimerEventCallback;      /* Legacy weak WakeUpTimerEventCallback */
       hrtc->Tamper1EventCallback         =  HAL_RTCEx_Tamper1EventCallback;          /* Legacy weak Tamper1EventCallback     */
+#if defined(RTC_TAMPER2_SUPPORT)
       hrtc->Tamper2EventCallback         =  HAL_RTCEx_Tamper2EventCallback;          /* Legacy weak Tamper2EventCallback     */
+#endif /* RTC_TAMPER2_SUPPORT */
       hrtc->Tamper3EventCallback         =  HAL_RTCEx_Tamper3EventCallback;          /* Legacy weak Tamper3EventCallback     */
 
 #if defined(TAMP)
@@ -483,17 +504,18 @@ HAL_StatusTypeDef HAL_RTC_DeInit(RTC_HandleTypeDef *hrtc)
   *          @arg @ref HAL_RTC_TIMESTAMP_EVENT_CB_ID        TimeStamp Event Callback ID
   *          @arg @ref HAL_RTC_WAKEUPTIMER_EVENT_CB_ID      WakeUp Timer Event Callback ID
   *          @arg @ref HAL_RTC_TAMPER1_EVENT_CB_ID          Tamper 1 Callback ID
-  *          @arg @ref HAL_RTC_TAMPER2_EVENT_CB_ID          Tamper 2 Callback ID
+  *          @arg @ref HAL_RTC_TAMPER2_EVENT_CB_ID          Tamper 2 Callback ID (*)
   *          @arg @ref HAL_RTC_TAMPER3_EVENT_CB_ID          Tamper 3 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER1_EVENT_CB_ID Internal Tamper 1 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER2_EVENT_CB_ID Internal Tamper 2 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER3_EVENT_CB_ID Internal Tamper 3 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER4_EVENT_CB_ID Internal Tamper 4 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER5_EVENT_CB_ID Internal Tamper 5 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER6_EVENT_CB_ID Internal Tamper 6 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER8_EVENT_CB_ID Internal Tamper 8 Callback ID
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER1_EVENT_CB_ID Internal Tamper 1 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER2_EVENT_CB_ID Internal Tamper 2 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER3_EVENT_CB_ID Internal Tamper 3 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER4_EVENT_CB_ID Internal Tamper 4 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER5_EVENT_CB_ID Internal Tamper 5 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER6_EVENT_CB_ID Internal Tamper 6 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER8_EVENT_CB_ID Internal Tamper 8 Callback ID (*)
   *          @arg @ref HAL_RTC_MSPINIT_CB_ID                Msp Init callback ID
   *          @arg @ref HAL_RTC_MSPDEINIT_CB_ID              Msp DeInit callback ID
+  *        (*) Not applicable to all devices.
   * @param  pCallback pointer to the Callback function
   * @retval HAL status
   */
@@ -533,9 +555,11 @@ HAL_StatusTypeDef HAL_RTC_RegisterCallback(RTC_HandleTypeDef *hrtc, HAL_RTC_Call
         hrtc->Tamper1EventCallback = pCallback;
         break;
 
+#if defined(RTC_TAMPER2_SUPPORT)
       case HAL_RTC_TAMPER2_EVENT_CB_ID :
         hrtc->Tamper2EventCallback = pCallback;
         break;
+#endif /* RTC_TAMPER2_SUPPORT */
 
       case HAL_RTC_TAMPER3_EVENT_CB_ID :
         hrtc->Tamper3EventCallback = pCallback;
@@ -626,17 +650,18 @@ HAL_StatusTypeDef HAL_RTC_RegisterCallback(RTC_HandleTypeDef *hrtc, HAL_RTC_Call
   *          @arg @ref HAL_RTC_TIMESTAMP_EVENT_CB_ID        TimeStamp Event Callback ID
   *          @arg @ref HAL_RTC_WAKEUPTIMER_EVENT_CB_ID      WakeUp Timer Event Callback ID
   *          @arg @ref HAL_RTC_TAMPER1_EVENT_CB_ID          Tamper 1 Callback ID
-  *          @arg @ref HAL_RTC_TAMPER2_EVENT_CB_ID          Tamper 2 Callback ID
+  *          @arg @ref HAL_RTC_TAMPER2_EVENT_CB_ID          Tamper 2 Callback ID (*)
   *          @arg @ref HAL_RTC_TAMPER3_EVENT_CB_ID          Tamper 3 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER1_EVENT_CB_ID Internal Tamper 1 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER2_EVENT_CB_ID Internal Tamper 2 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER3_EVENT_CB_ID Internal Tamper 3 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER4_EVENT_CB_ID Internal Tamper 4 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER5_EVENT_CB_ID Internal Tamper 5 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER6_EVENT_CB_ID Internal Tamper 6 Callback ID
-  *          @arg @ref HAL_RTC_INTERNAL_TAMPER8_EVENT_CB_ID Internal Tamper 8 Callback ID
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER1_EVENT_CB_ID Internal Tamper 1 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER2_EVENT_CB_ID Internal Tamper 2 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER3_EVENT_CB_ID Internal Tamper 3 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER4_EVENT_CB_ID Internal Tamper 4 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER5_EVENT_CB_ID Internal Tamper 5 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER6_EVENT_CB_ID Internal Tamper 6 Callback ID (*)
+  *          @arg @ref HAL_RTC_INTERNAL_TAMPER8_EVENT_CB_ID Internal Tamper 8 Callback ID (*)
   *          @arg @ref HAL_RTC_MSPINIT_CB_ID Msp Init callback ID
   *          @arg @ref HAL_RTC_MSPDEINIT_CB_ID Msp DeInit callback ID
+  *        (*) Not applicable to all devices.
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_RTC_UnRegisterCallback(RTC_HandleTypeDef *hrtc, HAL_RTC_CallbackIDTypeDef CallbackID)
@@ -670,9 +695,11 @@ HAL_StatusTypeDef HAL_RTC_UnRegisterCallback(RTC_HandleTypeDef *hrtc, HAL_RTC_Ca
         hrtc->Tamper1EventCallback = HAL_RTCEx_Tamper1EventCallback;         /* Legacy weak Tamper1EventCallback   */
         break;
 
+#if defined(RTC_TAMPER2_SUPPORT)
       case HAL_RTC_TAMPER2_EVENT_CB_ID :
         hrtc->Tamper2EventCallback = HAL_RTCEx_Tamper2EventCallback;         /* Legacy weak Tamper2EventCallback         */
         break;
+#endif /* RTC_TAMPER2_SUPPORT */
 
       case HAL_RTC_TAMPER3_EVENT_CB_ID :
         hrtc->Tamper3EventCallback = HAL_RTCEx_Tamper3EventCallback;         /* Legacy weak Tamper3EventCallback         */

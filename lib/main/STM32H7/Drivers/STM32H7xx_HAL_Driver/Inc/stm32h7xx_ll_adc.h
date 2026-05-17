@@ -2426,7 +2426,7 @@ typedef struct
   (((uint32_t)(*VREFINT_CAL_ADDR) * VREFINT_CAL_VREF)                          \
     / __LL_ADC_CONVERT_DATA_RESOLUTION((__VREFINT_ADC_DATA__),                 \
                                        (__ADC_RESOLUTION__),                   \
-                                       LL_ADC_RESOLUTION_16B)                  \
+                                       LL_ADC_RESOLUTION_12B)                  \
   )
 
 /**
@@ -3383,7 +3383,7 @@ __STATIC_INLINE void LL_ADC_SetOffset(ADC_TypeDef *ADCx, uint32_t Offsety, uint3
   if (ADCx == ADC3)
   {
     MODIFY_REG(*preg,
-               ADC3_OFR1_OFFSET1_EN | ADC_OFR1_OFFSET1_CH | ADC_OFR1_OFFSET1,
+               ADC3_OFR1_OFFSET1_EN | ADC_OFR1_OFFSET1_CH | (ADC_OFR1_OFFSET1 & 0xFFFUL),
                ADC3_OFR1_OFFSET1_EN | (Channel & ADC_CHANNEL_ID_NUMBER_MASK) | OffsetLevel);
   }
   else
