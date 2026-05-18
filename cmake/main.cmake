@@ -108,10 +108,10 @@ function(setup_firmware_target exe name)
 endfunction()
 
 function(exclude_from_all target)
-    set_property(TARGET ${target} PROPERTY
+    set_target_properties(${target} PROPERTIES
         TARGET_MESSAGES OFF
-        EXCLUDE_FROM_ALL 1
-        EXCLUDE_FROM_DEFAULT_BUILD 1)
+        EXCLUDE_FROM_ALL ON
+        EXCLUDE_FROM_DEFAULT_BUILD ON)
 endfunction()
 
 function(collect_targets)

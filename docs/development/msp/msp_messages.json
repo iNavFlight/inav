@@ -673,6 +673,7 @@
     "MSP_POSITION_ESTIMATION_CONFIG": {
         "code": 16,
         "mspv": 1,
+        "replaced_by": ["MSP2_COMMON_SETTING"],
         "request": null,
         "reply": {
             "payload": [
@@ -727,6 +728,7 @@
     "MSP_SET_POSITION_ESTIMATION_CONFIG": {
         "code": 17,
         "mspv": 1,
+        "replaced_by": ["MSP2_COMMON_SET_SETTING"],
         "request": {
             "payload": [
                 {
@@ -2360,6 +2362,7 @@
     "MSP_BLACKBOX_CONFIG": {
         "code": 80,
         "mspv": 1,
+        "replaced_by": ["MSP2_BLACKBOX_CONFIG"],
         "request": null,
         "reply": {
             "payload": [
@@ -2399,6 +2402,7 @@
     "MSP_SET_BLACKBOX_CONFIG": {
         "code": 81,
         "mspv": 1,
+        "replaced_by": ["MSP2_SET_BLACKBOX_CONFIG"],
         "not_implemented": true,
         "request": null,
         "reply": null,
@@ -2426,6 +2430,7 @@
     "MSP_OSD_CONFIG": {
         "code": 84,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_OSD_LAYOUTS", "MSP2_INAV_OSD_ALARMS", "MSP2_INAV_OSD_PREFERENCES"],
         "request": null,
         "reply": {
             "payload": [
@@ -2504,6 +2509,7 @@
     "MSP_SET_OSD_CONFIG": {
         "code": 85,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_OSD_SET_LAYOUT_ITEM", "MSP2_INAV_OSD_SET_ALARMS", "MSP2_INAV_OSD_SET_PREFERENCES"],
         "request": null,
         "reply": null,
         "notes": "Requires `USE_OSD`. Distinguishes formats based on the first byte. Format 1 requires at least 10 bytes. Format 2 requires 3 bytes. Triggers an OSD redraw. See `MSP2_INAV_OSD_SET_*` for more advanced control.",
@@ -3134,6 +3140,7 @@
     "MSP_FILTER_CONFIG": {
         "code": 92,
         "mspv": 1,
+        "replaced_by": ["MSP2_COMMON_SETTING"],
         "request": null,
         "reply": {
             "payload": [
@@ -3217,6 +3224,7 @@
     "MSP_SET_FILTER_CONFIG": {
         "code": 93,
         "mspv": 1,
+        "replaced_by": ["MSP2_COMMON_SET_SETTING"],
         "request": {
             "payload": [
                 {
@@ -3293,6 +3301,7 @@
     "MSP_PID_ADVANCED": {
         "code": 94,
         "mspv": 1,
+        "replaced_by": ["MSP_INAV_PID"],
         "request": null,
         "reply": {
             "payload": [
@@ -3370,6 +3379,7 @@
     "MSP_SET_PID_ADVANCED": {
         "code": 95,
         "mspv": 1,
+        "replaced_by": ["MSP_SET_INAV_PID"],
         "request": {
             "payload": [
                 {
@@ -3599,6 +3609,7 @@
     "MSP_STATUS": {
         "code": 101,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_STATUS"],
         "request": null,
         "reply": {
             "payload": [
@@ -3914,6 +3925,7 @@
     "MSP_ANALOG": {
         "code": 110,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_ANALOG"],
         "request": null,
         "reply": {
             "payload": [
@@ -4039,6 +4051,7 @@
     "MSP_MISC": {
         "code": 114,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_MISC"],
         "request": null,
         "reply": {
             "payload": [
@@ -4168,6 +4181,7 @@
     "MSP_PIDNAMES": {
         "code": 117,
         "mspv": 1,
+        "replaced_by": [],
         "request": null,
         "reply": {
             "payload": [
@@ -4644,6 +4658,7 @@
     "MSP_STATUS_EX": {
         "code": 150,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_STATUS"],
         "request": null,
         "reply": {
             "payload": [
@@ -4701,7 +4716,7 @@
                 }
             ]
         },
-        "notes": "Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements.",
+        "notes": "Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements. The `accCalibAxisFlags` field is not present in `MSP2_INAV_STATUS` but is available via `MSP_CALIBRATION_DATA`.",
         "description": "Provides extended flight controller status, including CPU load, arming flags, and calibration status, in addition to `MSP_STATUS` fields."
     },
     "MSP_SENSOR_STATUS": {
@@ -4896,6 +4911,12 @@
                     "ctype": "uint16_t",
                     "desc": "Estimated Vertical Position Accuracy (`gpsSol.epv`)",
                     "units": "cm"
+                },
+                {
+                    "name": "hwVersion",
+                    "ctype": "uint8_t",
+                    "desc": "GPS hardware version bit-field: bits[7:6]=series (0b01=u-blox Neo/M), bits[5:0]=generation. E.g. 0x48=M8, 0x49=M9, 0x4A=M10, 0=unknown.",
+                    "units": ""
                 }
             ]
         },
@@ -5135,6 +5156,7 @@
     "MSP_SET_MISC": {
         "code": 207,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_SET_MISC"],
         "request": {
             "payload": [
                 {
@@ -5588,6 +5610,7 @@
     "MSP_SERVO_MIX_RULES": {
         "code": 241,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_SERVO_MIXER"],
         "request": null,
         "reply": {
             "payload": [
@@ -5644,6 +5667,7 @@
     "MSP_SET_SERVO_MIX_RULE": {
         "code": 242,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_SET_SERVO_MIXER"],
         "request": {
             "payload": [
                 {
@@ -5803,6 +5827,7 @@
     "MSP_DEBUG": {
         "code": 254,
         "mspv": 1,
+        "replaced_by": ["MSP2_INAV_DEBUG"],
         "request": null,
         "reply": {
             "payload": [
@@ -6927,6 +6952,35 @@
         },
         "notes": "Requires `USE_CURRENT_METER`/`USE_ADC` for current-related fields; values fall back to zero when unavailable. Capacity fields are reported in the units configured by `batteryMetersConfig()->capacity_unit` (mAh or mWh).",
         "description": "Provides detailed analog sensor readings, superseding `MSP_ANALOG` with higher precision and additional fields."
+    },
+    "MSP2_INAV_GET_LINK_STATS": {
+        "code": 8451,
+        "mspv": 2,
+        "request": null,
+        "reply": {
+            "payload": [
+                {
+                    "name": "uplinkRSSI_dBm",
+                    "ctype": "uint8_t",
+                    "desc": "Uplink RSSI in dBm, sent as a positive magnitude (`getRSSI()`). For example, 70 means -70dBm.",
+                    "units": "-dBm"
+                },
+                {
+                    "name": "uplinkLQ",
+                    "ctype": "uint8_t",
+                    "desc": "Uplink Link Quality (`rxLinkStatistics.uplinkLQ`)",
+                    "units": "%"
+                },
+                {
+                    "name": "uplinkSNR",
+                    "ctype": "int8_t",
+                    "desc": "Uplink Signal-to-Noise Ratio (`rxLinkStatistics.uplinkSNR`)",
+                    "units": "dB"
+                }
+            ]
+        },
+        "notes": "Useful for GCS monitoring of the active RC link quality and signal margin.",
+        "description": "Provides uplink RC link statistics for monitoring on a GCS."
     },
     "MSP2_INAV_MISC": {
         "code": 8195,
@@ -10918,6 +10972,66 @@
         "notes": "All attitude angles are in deci-degrees.",
         "description": "Provides estimates of current attitude, local NEU position, and velocity."
     },
+    "MSP2_INAV_SET_WP_INDEX": {
+        "code": 8737,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "wp_index",
+                    "ctype": "uint8_t",
+                    "desc": "0-based waypoint index to jump to, relative to the mission start waypoint (`posControl.startWpIndex`)",
+                    "units": "-"
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.",
+        "description": "Jumps to a specific waypoint during an active waypoint mission, causing the aircraft to immediately begin navigating toward the new target waypoint."
+    },
+    "MSP2_INAV_SET_CRUISE_HEADING": {
+        "code": 8739,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "heading_centidegrees",
+                    "ctype": "int32_t",
+                    "desc": "Target heading in centidegrees (0-35999). Values are wrapped modulo 36000 before being applied.",
+                    "units": "centidegrees"
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.",
+        "description": "Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading."
+    },
+    "MSP2_INAV_SET_AUX_RC": {
+        "code": 8752,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "definitionByte",
+                    "ctype": "uint8_t",
+                    "desc": "Packed start channel and resolution. Bits 7-3: start channel index (valid range 12-31 for CH13-CH32; 0-11 rejected as error). Bits 2-0: resolution mode (0=2-bit, 1=4-bit, 2=8-bit, 3=16-bit; 4-7 reserved/error).",
+                    "units": ""
+                },
+                {
+                    "name": "channelData",
+                    "ctype": "uint8_t",
+                    "desc": "Packed channel values, sequential from start channel. Number of channels is derived from data size and resolution. Value 0 means skip (no update). Sub-byte modes (2-bit, 4-bit) are packed MSB-first. 2-bit values 1-3 map to 1000/1500/2000us. 4-bit values 1-15 map to 1000 + (val-1)*1000/14 us. 8-bit values 1-255 map to 1000 + (val-1)*1000/254 us. 16-bit values are direct PWM, clamped to 750-2250us.",
+                    "units": "PWM (encoded)",
+                    "array": true,
+                    "array_size": 0
+                }
+            ]
+        },
+        "reply": null,
+        "variable_len": true,
+        "notes": "CH1-CH12 (index 0-11) are protected and will return `MSP_RESULT_ERROR`. Payload size must be 2-49 bytes. Constraint: `startChannel + channelCount <= 32`. Values persist until overwritten; no timeout. Applied as a post-RX overlay in `calculateRxChannelsAndUpdateFailsafe()` after MSP RC Override but before failsafe. Does not require `USE_RX_MSP` or MSP-RC-OVERRIDE flight mode. Does not affect failsafe detection. When MSP is the primary RX provider, channels covered by `MSP_SET_RAW_RC` are automatically skipped. Channels in the `mspOverrideChannels` bitmask are skipped when MSP RC Override mode is active. Recommended to send with `MSP_FLAG_DONT_REPLY` (flags=0x01) to save bandwidth on telemetry passthrough links. 16-bit mode requires even number of data bytes and values are clamped to 750-2250us.",
+        "description": "Bandwidth-efficient auxiliary RC channel update. Sets CH13-CH32 with configurable resolution (2/4/8/16-bit) without affecting primary flight controls. Designed for extending channel count beyond native RC link capacity via MSP passthrough."
+    },
     "MSP2_BETAFLIGHT_BIND": {
         "code": 12288,
         "mspv": 2,
@@ -10925,5 +11039,47 @@
         "reply": null,
         "notes": "Requires `rxConfig()->receiverType == RX_TYPE_SERIAL`. Requires `USE_SERIALRX_CRSF` or `USE_SERIALRX_SRXL2`. Calls `crsfBind()` or `srxl2Bind()` respectively. Returns error if receiver type or provider is not supported for binding.",
         "description": "Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2)."
+    },
+    "MSP2_RX_BIND": {
+        "code": 12289,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "port_id",
+                    "ctype": "uint8_t",
+                    "desc": "Port ID",
+                    "units": ""
+                },
+                {
+                    "name": "reserved_for_custom_use",
+                    "ctype": "uint8_t",
+                    "desc": "Reserved for custom use",
+                    "units": "",
+                    "array": true,
+                    "array_size": 3
+                }
+            ]
+        },
+        "reply": {
+            "payload": [
+                {
+                    "name": "port_id",
+                    "ctype": "uint8_t",
+                    "desc": "Port ID",
+                    "units": ""
+                },
+                {
+                    "name": "reserved_for_custom_use",
+                    "ctype": "uint8_t",
+                    "desc": "Reserved for custom use",
+                    "units": "",
+                    "array": true,
+                    "array_size": 3
+                }
+            ]
+        },
+        "notes": "Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.",
+        "description": "Initiates binding for MSP receivers (mLRS)."
     }
 }

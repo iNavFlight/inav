@@ -451,6 +451,9 @@ void gpsInit(void)
     gpsStats.errors = 0;
     gpsStats.timeouts = 0;
 
+    // Initialize hardware version to unknown (for MSP_GPSSTATISTICS)
+    gpsState.hwVersion = 0;
+
     // Reset solution, timeout and prepare to start
     gpsResetSolution(&gpsSolDRV);
     gpsResetSolution(&gpsSol);

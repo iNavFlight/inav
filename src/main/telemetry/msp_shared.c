@@ -68,7 +68,7 @@ void initSharedMsp(void)
     mspPackage.requestBuffer = (uint8_t *)&mspRxBuffer;
     mspPackage.requestPacket = &mspRxPacket;
     mspPackage.requestPacket->buf.ptr = mspPackage.requestBuffer;
-    mspPackage.requestPacket->buf.end = mspPackage.requestBuffer;
+    mspPackage.requestPacket->buf.end = mspPackage.requestBuffer + sizeof(mspRxBuffer);
 
     mspPackage.responseBuffer = (uint8_t *)&mspTxBuffer;
     mspPackage.responsePacket = &mspTxPacket;
@@ -76,21 +76,28 @@ void initSharedMsp(void)
     mspPackage.responsePacket->buf.end = mspPackage.responseBuffer;
 }
 
-static void processMspPacket(void)
+static bool processMspPacket(void)
 {
     mspPackage.responsePacket->cmd = 0;
     mspPackage.responsePacket->result = 0;
-    mspPackage.responsePacket->buf.end = mspPackage.responseBuffer;
+    mspPackage.responsePacket->buf.ptr = mspPackage.responseBuffer;
+    mspPackage.responsePacket->buf.end = mspPackage.responseBuffer + sizeof(mspTxBuffer);
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
-    if (mspFcProcessCommand(mspPackage.requestPacket, mspPackage.responsePacket, &mspPostProcessFn) == MSP_RESULT_ERROR) {
+    const mspResult_e status = mspFcProcessCommand(mspPackage.requestPacket, mspPackage.responsePacket, &mspPostProcessFn);
+    if (status == MSP_RESULT_ERROR) {
         sbufWriteU8(&mspPackage.responsePacket->buf, TELEMETRY_MSP_ERROR);
     }
     if (mspPostProcessFn) {
         mspPostProcessFn(NULL);
     }
 
+    if (status == MSP_RESULT_NO_REPLY) {
+        return false;
+    }
+
     sbufSwitchToReader(&mspPackage.responsePacket->buf, mspPackage.responseBuffer);
+    return true;
 }
 
 void sendMspErrorResponse(uint8_t error, int16_t cmd)
@@ -193,8 +200,7 @@ bool handleMspFrame(uint8_t *const frameStart, const int payloadLength)
     sbufAdvance(&mspPackage.requestFrame, payloadExpecting);
     sbufWriteData(&requestPacket->buf, payload, payloadExpecting);
     sbufSwitchToReader(&requestPacket->buf, mspPackage.requestBuffer);
-    processMspPacket();
-    return true;
+    return processMspPacket();
 }
 
 bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
@@ -217,7 +223,7 @@ bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
         }
         sbufWriteU8(payloadBuf, status);
 
-        const uint8_t size = sbufBytesRemaining(txBuf);
+        const uint16_t size = sbufBytesRemaining(txBuf);
         if (lastRequestVersion == 1) { // MSPv1
             sbufWriteU8(payloadBuf, size);
             sbufWriteU8(payloadBuf, mspPackage.responsePacket->cmd);
@@ -231,7 +237,7 @@ bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
         sbufWriteU8(payloadBuf, (seq++ & TELEMETRY_MSP_SEQ_MASK) | (lastRequestVersion << TELEMETRY_MSP_VER_SHIFT)); // header without 'start' flag
     }
 
-    const uint8_t bufferBytesRemaining = sbufBytesRemaining(txBuf);
+    const uint16_t bufferBytesRemaining = sbufBytesRemaining(txBuf);
     const uint8_t payloadBytesRemaining = sbufBytesRemaining(payloadBuf);
     uint8_t frame[payloadBytesRemaining];
 

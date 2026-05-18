@@ -370,7 +370,8 @@
 | `ACC_ICM42605` | 8 |  |
 | `ACC_BMI270` | 9 |  |
 | `ACC_LSM6DXX` | 10 |  |
-| `ACC_FAKE` | 11 |  |
+| `ACC_ICM45686` | 11 |  |
+| `ACC_FAKE` | 12 |  |
 | `ACC_MAX` | ACC_FAKE |  |
 
 ---
@@ -1317,6 +1318,9 @@
 | `CRSF_FRAMETYPE_VARIO_SENSOR` | 7 |  |
 | `CRSF_FRAMETYPE_BATTERY_SENSOR` | 8 |  |
 | `CRSF_FRAMETYPE_BAROMETER_ALTITUDE` | 9 |  |
+| `CRSF_FRAMETYPE_AIRSPEED_SENSOR` | 10 |  |
+| `CRSF_FRAMETYPE_RPM` | 12 |  |
+| `CRSF_FRAMETYPE_TEMP` | 13 |  |
 | `CRSF_FRAMETYPE_LINK_STATISTICS` | 20 |  |
 | `CRSF_FRAMETYPE_RC_CHANNELS_PACKED` | 22 |  |
 | `CRSF_FRAMETYPE_ATTITUDE` | 30 |  |
@@ -1346,6 +1350,9 @@
 | `CRSF_FRAME_GPS_INDEX` |  |  |
 | `CRSF_FRAME_VARIO_SENSOR_INDEX` |  |  |
 | `CRSF_FRAME_BAROMETER_ALTITUDE_INDEX` |  |  |
+| `CRSF_FRAME_TEMP_INDEX` |  |  |
+| `CRSF_FRAME_RPM_INDEX` |  |  |
+| `CRSF_FRAME_AIRSPEED_INDEX` |  |  |
 | `CRSF_SCHEDULE_COUNT_MAX` |  |  |
 
 ---
@@ -1407,53 +1414,54 @@
 | `DEVHW_ICM42605` | 7 |  |
 | `DEVHW_BMI270` | 8 |  |
 | `DEVHW_LSM6D` | 9 |  |
-| `DEVHW_MPU9250` | 10 |  |
-| `DEVHW_BMP085` | 11 |  |
-| `DEVHW_BMP280` | 12 |  |
-| `DEVHW_MS5611` | 13 |  |
-| `DEVHW_MS5607` | 14 |  |
-| `DEVHW_LPS25H` | 15 |  |
-| `DEVHW_SPL06` | 16 |  |
-| `DEVHW_BMP388` | 17 |  |
-| `DEVHW_DPS310` | 18 |  |
-| `DEVHW_B2SMPB` | 19 |  |
-| `DEVHW_HMC5883` | 20 |  |
-| `DEVHW_AK8963` | 21 |  |
-| `DEVHW_AK8975` | 22 |  |
-| `DEVHW_IST8310_0` | 23 |  |
-| `DEVHW_IST8310_1` | 24 |  |
-| `DEVHW_IST8308` | 25 |  |
-| `DEVHW_QMC5883` | 26 |  |
-| `DEVHW_QMC5883P` | 27 |  |
-| `DEVHW_MAG3110` | 28 |  |
-| `DEVHW_LIS3MDL` | 29 |  |
-| `DEVHW_RM3100` | 30 |  |
-| `DEVHW_VCM5883` | 31 |  |
-| `DEVHW_MLX90393` | 32 |  |
-| `DEVHW_LM75_0` | 33 |  |
-| `DEVHW_LM75_1` | 34 |  |
-| `DEVHW_LM75_2` | 35 |  |
-| `DEVHW_LM75_3` | 36 |  |
-| `DEVHW_LM75_4` | 37 |  |
-| `DEVHW_LM75_5` | 38 |  |
-| `DEVHW_LM75_6` | 39 |  |
-| `DEVHW_LM75_7` | 40 |  |
-| `DEVHW_DS2482` | 41 |  |
-| `DEVHW_MAX7456` | 42 |  |
-| `DEVHW_SRF10` | 43 |  |
-| `DEVHW_VL53L0X` | 44 |  |
-| `DEVHW_VL53L1X` | 45 |  |
-| `DEVHW_US42` | 46 |  |
-| `DEVHW_TOF10120_I2C` | 47 |  |
-| `DEVHW_TERARANGER_EVO_I2C` | 48 |  |
-| `DEVHW_MS4525` | 49 |  |
-| `DEVHW_DLVR` | 50 |  |
-| `DEVHW_M25P16` | 51 |  |
-| `DEVHW_W25N` | 52 |  |
-| `DEVHW_UG2864` | 53 |  |
-| `DEVHW_SDCARD` | 54 |  |
-| `DEVHW_IRLOCK` | 55 |  |
-| `DEVHW_PCF8574` | 56 |  |
+| `DEVHW_ICM45686` | 10 |  |
+| `DEVHW_MPU9250` | 11 |  |
+| `DEVHW_BMP085` | 12 |  |
+| `DEVHW_BMP280` | 13 |  |
+| `DEVHW_MS5611` | 14 |  |
+| `DEVHW_MS5607` | 15 |  |
+| `DEVHW_LPS25H` | 16 |  |
+| `DEVHW_SPL06` | 17 |  |
+| `DEVHW_BMP388` | 18 |  |
+| `DEVHW_DPS310` | 19 |  |
+| `DEVHW_B2SMPB` | 20 |  |
+| `DEVHW_HMC5883` | 21 |  |
+| `DEVHW_AK8963` | 22 |  |
+| `DEVHW_AK8975` | 23 |  |
+| `DEVHW_IST8310_0` | 24 |  |
+| `DEVHW_IST8310_1` | 25 |  |
+| `DEVHW_IST8308` | 26 |  |
+| `DEVHW_QMC5883` | 27 |  |
+| `DEVHW_QMC5883P` | 28 |  |
+| `DEVHW_MAG3110` | 29 |  |
+| `DEVHW_LIS3MDL` | 30 |  |
+| `DEVHW_RM3100` | 31 |  |
+| `DEVHW_VCM5883` | 32 |  |
+| `DEVHW_MLX90393` | 33 |  |
+| `DEVHW_LM75_0` | 34 |  |
+| `DEVHW_LM75_1` | 35 |  |
+| `DEVHW_LM75_2` | 36 |  |
+| `DEVHW_LM75_3` | 37 |  |
+| `DEVHW_LM75_4` | 38 |  |
+| `DEVHW_LM75_5` | 39 |  |
+| `DEVHW_LM75_6` | 40 |  |
+| `DEVHW_LM75_7` | 41 |  |
+| `DEVHW_DS2482` | 42 |  |
+| `DEVHW_MAX7456` | 43 |  |
+| `DEVHW_SRF10` | 44 |  |
+| `DEVHW_VL53L0X` | 45 |  |
+| `DEVHW_VL53L1X` | 46 |  |
+| `DEVHW_US42` | 47 |  |
+| `DEVHW_TOF10120_I2C` | 48 |  |
+| `DEVHW_TERARANGER_EVO_I2C` | 49 |  |
+| `DEVHW_MS4525` | 50 |  |
+| `DEVHW_DLVR` | 51 |  |
+| `DEVHW_M25P16` | 52 |  |
+| `DEVHW_W25N` | 53 |  |
+| `DEVHW_UG2864` | 54 |  |
+| `DEVHW_SDCARD` | 55 |  |
+| `DEVHW_IRLOCK` | 56 |  |
+| `DEVHW_PCF8574` | 57 |  |
 
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
@@ -2488,7 +2496,8 @@
 | `GYRO_ICM42605` | 8 |  |
 | `GYRO_BMI270` | 9 |  |
 | `GYRO_LSM6DXX` | 10 |  |
-| `GYRO_FAKE` | 11 |  |
+| `GYRO_ICM45686` | 11 |  |
+| `GYRO_FAKE` | 12 |  |
 
 ---
 ## <a id="enum-hardwaremotortypes_e"></a>`HardwareMotorTypes_e`
@@ -2924,7 +2933,8 @@
 | `LED_MODE_ANGLE` | 3 |  |
 | `LED_MODE_MAG` | 4 |  |
 | `LED_MODE_BARO` | 5 |  |
-| `LED_SPECIAL` | 6 |  |
+| `LED_MODE_LOITER` | 6 |  |
+| `LED_SPECIAL` | 7 |  |
 
 ---
 ## <a id="enum-ledoverlayid_e"></a>`ledOverlayId_e`
@@ -3531,8 +3541,7 @@
 | `MULTI_FUNC_3` | 3 |  |
 | `MULTI_FUNC_4` | 4 |  |
 | `MULTI_FUNC_5` | 5 |  |
-| `MULTI_FUNC_6` | 6 |  |
-| `MULTI_FUNC_END` | 7 |  |
+| `MULTI_FUNC_END` | 6 |  |
 
 ---
 ## <a id="enum-multifunctionflags_e"></a>`multiFunctionFlags_e`
@@ -3658,6 +3667,7 @@
 | `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME` | NAV_FSM_EVENT_STATE_SPECIFIC_1 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND` | NAV_FSM_EVENT_STATE_SPECIFIC_2 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED` | NAV_FSM_EVENT_STATE_SPECIFIC_3 |  |
+| `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP` | NAV_FSM_EVENT_STATE_SPECIFIC_4 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE` | NAV_FSM_EVENT_STATE_SPECIFIC_1 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK` | NAV_FSM_EVENT_STATE_SPECIFIC_2 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME` | NAV_FSM_EVENT_STATE_SPECIFIC_3 |  |
@@ -4819,9 +4829,8 @@
 |---|---:|---|
 | `SD_3016` | 0 |  |
 | `HD_5018` | 1 |  |
-| `HD_3016` | 2 |  |
-| `HD_6022` | 3 |  |
-| `HD_5320` | 4 |  |
+| `HD_6022` | 2 |  |
+| `HD_5320` | 3 |  |
 
 ---
 ## <a id="enum-resourceowner_e"></a>`resourceOwner_e`
@@ -5627,7 +5636,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.h
+> Source: ../../../src/main/fc/fc_init.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5641,7 +5650,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.c
+> Source: ../../../src/main/fc/fc_init.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|

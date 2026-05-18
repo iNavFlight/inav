@@ -10,7 +10,7 @@ See the Serial section for more information and see the Board specific sections 
 The GUI cannot currently configure all aspects of the system, the CLI must be used to enable or configure
 some features and settings.
 
-__Due to ongoing development, the fact that the GUI cannot yet backup all your settings and automatic chrome updates of the GUI app it is highly advisable to backup your settings (using the CLI) so that when a new version of the configurator or firmware is released you can re-apply your settings.__
+__The INAV Configurator now (versions after 9.0.x) automatically backs up your settings before flashing firmware and can restore them afterwards (when Full Chip Erase is enabled), including automatic migration across major versions. For details, see [Backup and Restore](Backup%20and%20Restore.md). You can also manually backup and restore settings using the [CLI](Cli.md#backup-via-cli).__
 
 
 ## GUI
