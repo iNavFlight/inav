@@ -171,7 +171,7 @@ static uint8_t mavRates[] = {
     [MAV_DATA_STREAM_RC_CHANNELS] = 1,          // 1Hz
     [MAV_DATA_STREAM_POSITION] = 2,             // 2Hz
     [MAV_DATA_STREAM_EXTRA1] = 3,               // 3Hz
-    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz, HEARTBEATs are important
+    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz, HEARTBEATs are important, HEARTBEAT is sent independently 1HZ
     [MAV_DATA_STREAM_EXTRA3] = 1,               // 1Hz
     [MAV_DATA_STREAM_SYSTEM_TIME] = 1,          // 1Hz
     [MAV_DATA_STREAM_HEARTBEAT] = 1,            // 1Hz
@@ -596,7 +596,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
     rtcTime_t rtcTime;
-    timeUs_t timeUnixUsec = currentTimeUs;
+    uint64_t timeUnixUsec = currentTimeUs;
 
     if (!(sensors(SENSOR_GPS)
 #ifdef USE_GPS_FIX_ESTIMATION
@@ -605,16 +605,16 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         ))
         return;
 
-    if (gpsSol.fixType == GPS_NO_FIX){
+    if (gpsSol.fixType == GPS_NO_FIX) {
         gpsFixType = 1;
     } else if (gpsSol.fixType == GPS_FIX_2D) {
         gpsFixType = 2;
-    }else if (gpsSol.fixType == GPS_FIX_3D) {
+    } else if (gpsSol.fixType == GPS_FIX_3D) {
         gpsFixType = 3;
     }
 
     if (rtcGet(&rtcTime)) {
-        timeUnixUsec = (uint64_t)rtcTime * 1000ULL;
+        timeUnixUsec = rtcTime * 1000ULL;
     }
 
     mavlink_msg_gps_raw_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
