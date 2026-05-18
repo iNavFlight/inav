@@ -157,7 +157,7 @@ float fast_powf(float base, float exp)
     float result_exp = exp * log2_base;
     
     // Convert back to float: 2^result_exp
-    int32_t result_exp_int = (int32_t)result_exp;
+    int32_t result_exp_int = (int32_t)floorf(result_exp);
     float result_exp_frac = result_exp - (float)result_exp_int;
     
     // Reconstruct float from exponent
