@@ -171,11 +171,18 @@ static uint8_t mavRates[] = {
     [MAV_DATA_STREAM_RC_CHANNELS] = 1,          // 1Hz
     [MAV_DATA_STREAM_POSITION] = 2,             // 2Hz
     [MAV_DATA_STREAM_EXTRA1] = 3,               // 3Hz
-    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz, HEARTBEATs are important, HEARTBEAT is sent independently 1HZ
+    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz
     [MAV_DATA_STREAM_EXTRA3] = 1,               // 1Hz
-    [MAV_DATA_STREAM_SYSTEM_TIME] = 1,          // 1Hz
-    [MAV_DATA_STREAM_HEARTBEAT] = 1,            // 1Hz
 };
+
+/* HEARTBEAT and SYSTEM_TIME are not part of any MAV_DATA_STREAM; scheduled independently. */
+typedef struct mavlinkScheduledMessage_s {
+    uint8_t rateHz;     // desired transmission rate in Hz
+    uint8_t ticks;      // countdown decremented at TELEMETRY_MAVLINK_MAXRATE
+} mavlinkScheduledMessage_t;
+
+static mavlinkScheduledMessage_t mavHeartbeat  = { .rateHz = 1, .ticks = 0 };
+static mavlinkScheduledMessage_t mavSystemTime = { .rateHz = 1, .ticks = TELEMETRY_MAVLINK_MAXRATE / 2 }; // Stagger SYSTEM_TIME by half a period so it doesn't ride in the same TX burst as HEARTBEAT.
 
 #define MAXSTREAMS (sizeof(mavRates) / sizeof(mavRates[0]))
 
@@ -286,6 +293,22 @@ static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum)
     // count down at TASK_RATE_HZ
     mavTicks[streamNum]--;
     return 0;
+}
+
+static bool mavlinkScheduledTrigger(mavlinkScheduledMessage_t *msg)
+{
+    if (msg->rateHz == 0) {
+        return false;
+    }
+
+    if (msg->ticks == 0) {
+        uint8_t rate = msg->rateHz > TELEMETRY_MAVLINK_MAXRATE ? TELEMETRY_MAVLINK_MAXRATE : msg->rateHz;
+        msg->ticks = TELEMETRY_MAVLINK_MAXRATE / rate;
+        return true;
+    }
+
+    msg->ticks--;
+    return false;
 }
 
 void freeMAVLinkTelemetryPort(void)
@@ -614,7 +637,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
     }
 
     if (rtcGet(&rtcTime)) {
-        timeUnixUsec = rtcTime * 1000ULL;
+        timeUnixUsec = (uint64_t)rtcTime * 1000ULL;
     }
 
     mavlink_msg_gps_raw_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
@@ -984,14 +1007,13 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
         mavlinkSendBatteryTemperatureStatusText();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_HEARTBEAT)) {
+    if (mavlinkScheduledTrigger(&mavHeartbeat)) {
         mavlinkSendHeartbeat();
     }
 
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_SYSTEM_TIME)) {
+    if (mavlinkScheduledTrigger(&mavSystemTime)) {
         mavlinkSendSystemTime();
     }
-
 }
 
 static bool handleIncoming_MISSION_CLEAR_ALL(void)
