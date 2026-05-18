@@ -845,7 +845,7 @@ bool isMulticopterLandingDetected(void)
     /* Basic condition to start looking for landing
      * Detection active during Failsafe only if throttle below mid hover throttle
      * and WP mission not active (except landing states).
-     * Also active in non autonomous flight modes but only when thottle low.
+     * Also active in non autonomous flight modes but only when throttle low.
      * Throttle low detection only allowed during Surface if AGL trusted and below 10cm */
     bool throttleLowCheckAllowed = !navigationIsFlyingAutonomousMode();
     if (posControl.flags.isTerrainFollowEnabled) {
