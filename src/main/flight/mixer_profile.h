@@ -86,6 +86,8 @@ float mixerATGetLiftScale(void);
 float mixerATGetMcAuthorityScale(void);
 float mixerATGetFwAuthorityScale(void);
 float mixerATGetBlendToFw(void);
+bool isMixerProfile2ModeReportedActive(void);
+bool isMixerTransitionModeReportedActive(void);
 
 extern mixerConfig_t currentMixerConfig;
 extern int currentMixerProfileIndex;

@@ -32,6 +32,8 @@ The use of Transition Mode is recommended to enable further features and future 
 
 This edge-triggered behavior is enabled by `mixer_vtol_manualswitch_autotransition_controller`.
 When `mixer_vtol_manualswitch_autotransition_controller = OFF`, manual transition keeps legacy behavior.
+With manual auto-transition enabled, Active Modes `MIXER TRANSITION` now indicates that the internal transition controller/mixing is actually active, not merely that the RC `MIXER TRANSITION` switch is active.
+Active Modes `MIXER PROFILE 2` indicates the currently active mixer profile.
 
 Important path split:
 - `MIXER PROFILE 2` remains a direct manual profile-switch path.

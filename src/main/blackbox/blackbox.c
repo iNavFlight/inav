@@ -59,6 +59,7 @@
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 #include "flight/rpm_filter.h"
@@ -1366,10 +1367,25 @@ static void writeSlowFrame(void)
  */
 static void loadSlowState(blackboxSlowState_t *slow)
 {
+    boxBitmask_t reportedRcModeFlags = rcModeActivationMask;
+
     slow->activeWpNumber = getActiveWpNumber();
 
-    slow->rcModeFlags = rcModeActivationMask.bits[0];   // first 32 bits of boxId_e
-    slow->rcModeFlags2 = rcModeActivationMask.bits[1];  // remaining bits of boxId_e
+    // Keep these two mode bits aligned with actual VTOL state/profile activity for status reporting.
+    if (isMixerProfile2ModeReportedActive()) {
+        bitArraySet(reportedRcModeFlags.bits, BOXMIXERPROFILE);
+    } else {
+        bitArrayClr(reportedRcModeFlags.bits, BOXMIXERPROFILE);
+    }
+
+    if (isMixerTransitionModeReportedActive()) {
+        bitArraySet(reportedRcModeFlags.bits, BOXMIXERTRANSITION);
+    } else {
+        bitArrayClr(reportedRcModeFlags.bits, BOXMIXERTRANSITION);
+    }
+
+    slow->rcModeFlags = reportedRcModeFlags.bits[0];   // first 32 bits of boxId_e
+    slow->rcModeFlags2 = reportedRcModeFlags.bits[1];  // remaining bits of boxId_e
 
     // Also log Nav auto enabled flight modes rather than just those selected by boxmode
     if (navigationGetHeadingControlState() == NAV_HEADING_CONTROL_AUTO) {

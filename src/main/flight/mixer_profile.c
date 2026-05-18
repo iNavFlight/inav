@@ -590,6 +590,30 @@ float mixerATGetBlendToFw(void)
     return constrainf(mixerProfileAT.blendToFw, 0.0f, 1.0f);
 }
 
+bool isMixerProfile2ModeReportedActive(void)
+{
+#if (MAX_MIXER_PROFILE_COUNT > 1)
+    return currentMixerProfileIndex > 0;
+#else
+    return false;
+#endif
+}
+
+bool isMixerTransitionModeReportedActive(void)
+{
+    // Transition is actively running in the internal controller.
+    if (mixerATIsActive()) {
+        return true;
+    }
+
+    // With manual auto-transition enabled, treat the RC box as a trigger/request only.
+    if (currentMixerConfig.manualVtolTransitionController) {
+        return false;
+    }
+
+    return IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION);
+}
+
 // switch mixerprofile without reboot
 bool outputProfileHotSwitch(int profile_index)
 {
