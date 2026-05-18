@@ -4902,6 +4902,16 @@ To vertically adjust the whole OSD and AHI and scrolling bars
 
 ---
 
+### osd_horizontal_velocity_filter_tc
+
+OSD horizontal velocity filter time constant in seconds. Set to 0 to disable filtering (passthrough).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 5 |
+
+---
+
 ### osd_hud_homepoint
 
 To 3D-display the home point location in the hud
@@ -5532,13 +5542,13 @@ Use custom pilot logo with/instead of the INAV logo. The pilot logo must be char
 
 ---
 
-### osd_velocity_filter_tc
+### osd_vertical_velocity_filter_tc_ratio
 
-OSD velocity filter time constant in seconds. Set to 0 to disable filtering (passthrough).
+Multiplier applied to the horizontal velocity filter time constant to derive vertical velocity smoothing.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 5 |
+| 3 | 1 | 10 |
 
 ---
 

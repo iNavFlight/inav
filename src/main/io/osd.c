@@ -129,7 +129,8 @@
 #define VIDEO_BUFFER_CHARS_DJIWTF 1320
 
 #define GFORCE_FILTER_TC 0.2
-#define VELOCITY_FILTER_TC osdConfig()->velocity_filter_tc
+#define HORIZONTAL_VELOCITY_FILTER_TC osdConfig()->horizontal_velocity_filter_tc
+#define VERTICAL_VELOCITY_FILTER_TC (HORIZONTAL_VELOCITY_FILTER_TC * osdConfig()->vertical_velocity_filter_tc_ratio)
 
 #define OSD_STATS_SINGLE_PAGE_MIN_ROWS 18
 #define IS_HI(X)  (rxGetChannelValue(X) > 1750)
@@ -241,7 +242,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 15);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 16);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 3);
 
 void osdStartedSaveProcess(void) {
@@ -4392,7 +4393,9 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .stats_page_auto_swap_time = SETTING_OSD_STATS_PAGE_AUTO_SWAP_TIME_DEFAULT,
     .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT,
 
-    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT
+    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT,
+    .horizontal_velocity_filter_tc = SETTING_OSD_HORIZONTAL_VELOCITY_FILTER_TC_DEFAULT,
+    .vertical_velocity_filter_tc_ratio = SETTING_OSD_VERTICAL_VELOCITY_FILTER_TC_RATIO_DEFAULT
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
@@ -5788,13 +5791,13 @@ static void osdFilterData(timeUs_t currentTimeUs) {
             pt1FilterInitRC(GForceFilterAxis + axis, GFORCE_FILTER_TC, 0);
             pt1FilterReset(GForceFilterAxis + axis, GForceAxis[axis]);
         }
-        pt1FilterInitRC(&verticalVelocityFilter, VELOCITY_FILTER_TC, 0);
+        pt1FilterInitRC(&verticalVelocityFilter, VERTICAL_VELOCITY_FILTER_TC, 0);
         pt1FilterReset(&verticalVelocityFilter, getEstimatedActualVelocity(Z));
 #if defined(USE_GPS)
-        pt1FilterInitRC(&horizontalVelocityFilter, VELOCITY_FILTER_TC, 0);
+        pt1FilterInitRC(&horizontalVelocityFilter, HORIZONTAL_VELOCITY_FILTER_TC, 0);
         pt1FilterReset(&horizontalVelocityFilter, gpsSol.groundSpeed);
 #else
-        pt1FilterInitRC(&horizontalVelocityFilter, VELOCITY_FILTER_TC, 0);
+        pt1FilterInitRC(&horizontalVelocityFilter, HORIZONTAL_VELOCITY_FILTER_TC, 0);
         pt1FilterReset(&horizontalVelocityFilter, 0);
 #endif
     }

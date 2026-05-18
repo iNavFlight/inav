@@ -3363,13 +3363,20 @@ groups:
         field: rssi_alarm
         min: 0
         max: 100
-      - name: osd_velocity_filter_tc
-        description: "OSD velocity filter time constant in seconds. Set to 0 to disable filtering (passthrough)."
+      - name: osd_horizontal_velocity_filter_tc
+        description: "OSD horizontal velocity filter time constant in seconds. Set to 0 to disable filtering (passthrough)."
         type: float
         default_value: 0
         min: 0
         max: 5
-        field: velocity_filter_tc
+        field: horizontal_velocity_filter_tc
+      - name: osd_vertical_velocity_filter_tc_ratio
+        description: "Multiplier applied to the horizontal velocity filter time constant to derive vertical velocity smoothing."
+        type: float
+        default_value: 3
+        min: 1
+        max: 10
+        field: vertical_velocity_filter_tc_ratio
       - name: osd_time_alarm
         description: "Value above which to make the OSD flight time indicator blink (minutes)"
         default_value: 10
