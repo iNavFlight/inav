@@ -536,6 +536,7 @@ typedef struct osdConfig_s {
     osd_adsb_warning_style_e    adsb_warning_style;       // adsb warning element style, one or two lines
 #endif
     uint8_t  radar_peers_display_time;                  // in seconds
+    float    velocity_filter_tc;                        // OSD velocity filter time constant (seconds). 0 = passthrough
 #ifdef USE_GEOZONE
     uint8_t geozoneDistanceWarning;                     // Distance to fence or action
     bool geozoneDistanceType;                            // Shows a countdown timer or distance to fence/action

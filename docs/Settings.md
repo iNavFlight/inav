@@ -5532,6 +5532,16 @@ Use custom pilot logo with/instead of the INAV logo. The pilot logo must be char
 
 ---
 
+### osd_velocity_filter_tc
+
+OSD velocity filter time constant in seconds. Set to 0 to disable filtering (passthrough).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 5 |
+
+---
+
 ### osd_video_system
 
 Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR', `BF43COMPAT`, `BFHDCOMPAT` and `DJI_NATIVE`

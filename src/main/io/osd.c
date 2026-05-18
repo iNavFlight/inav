@@ -129,7 +129,7 @@
 #define VIDEO_BUFFER_CHARS_DJIWTF 1320
 
 #define GFORCE_FILTER_TC 0.2
-#define VELOCITY_FILTER_TC 1.5
+#define VELOCITY_FILTER_TC osdConfig()->velocity_filter_tc
 
 #define OSD_STATS_SINGLE_PAGE_MIN_ROWS 18
 #define IS_HI(X)  (rxGetChannelValue(X) > 1750)
