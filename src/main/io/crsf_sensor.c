@@ -72,8 +72,8 @@ static volatile timeUs_t crsfSensorFrameStartAtUs;
 static volatile bool crsfSensorFrameDone;
 
 // Vario data storage
-static int16_t crsfSensorVario;
-static timeMs_t crsfSensorVarioLastUpdateMs;
+static volatile int16_t crsfSensorVario;
+static volatile timeMs_t crsfSensorVarioLastUpdateMs;
 
 static uint8_t crsfSensorFrameCRC(const uint8_t *frame)
 {
@@ -149,18 +149,24 @@ static void crsfSensorHandleGPS(const uint8_t *payload)
 #ifdef USE_BARO_CRSF
 static void crsfSensorHandleBaro(const uint8_t *payload)
 {
-    // Baro payload: altitude_packed (uint16_t big-endian)
-    // Format matches outgoing CRSF baro encoding:
-    //   bit 15 clear: altitude_dm = packed - 10000 (fine, dm resolution)
-    //   bit 15 set:   altitude_dm = (packed & 0x7fff) * 10 - 5 (coarse, meter resolution)
+    // Altitude: uint16_t big-endian, bit 15 selects resolution
+    //   MSB=0: altitude_dm = packed - 10000 (dm resolution, ±1000m range)
+    //   MSB=1: altitude_dm = (packed & 0x7fff) * 10 (meter resolution, 0-32766m range)
     uint16_t packed = crsfSensorReadU16(payload);
     int32_t altitude_dm;
 
     if (packed & 0x8000) {
-        altitude_dm = (int32_t)(packed & 0x7fff) * 10 - 5;
+        altitude_dm = (int32_t)(packed & 0x7fff) * 10;
     } else {
         altitude_dm = (int32_t)packed - 10000;
     }
+
+    // Vertical speed: int8_t log-encoded, Kr=0.026 Kl=100
+    // Unpack: (exp(|packed| * Kr) - 1) * Kl * sign
+    int8_t vario_packed = (int8_t)payload[2];
+    float vario_abs = (expf(fabsf((float)vario_packed * 0.026f)) - 1.0f) * 100.0f;
+    crsfSensorVario = (int16_t)(vario_packed < 0 ? -vario_abs : vario_abs);
+    crsfSensorVarioLastUpdateMs = millis();
 
     // Convert altitude (dm) to pressure using ISA formula:
     // P = 101325 * (1 - h/44330)^5.255
@@ -231,8 +237,8 @@ static void crsfSensorDispatchFrame(const uint8_t *frame)
 #endif
 
 #ifdef USE_BARO_CRSF
-        case CRSF_FRAMETYPE_BAROMETER_ALTITUDE:
-            if (frameLength >= CRSF_FRAME_BAROMETER_ALTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC) {
+        case CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR:
+            if (frameLength >= CRSF_FRAME_BAROMETER_ALTITUDE_VARIO_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC) {
                 crsfSensorHandleBaro(payload);
             }
             break;
