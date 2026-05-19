@@ -384,7 +384,8 @@ bool pidInitFilters(void)
 void pidResetTPAFilter(void)
 {
     if (usedPidControllerType == PID_TYPE_PIFF && currentControlProfile->throttle.fixedWingTauMs > 0) {
-        pt1FilterInitRC(&fixedWingTpaFilter, MS2S(currentControlProfile->throttle.fixedWingTauMs), US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)));
+        pt1FilterInit(&fixedWingTpaFilter, 1.0f, HZ2S(TASK_AUX_RATE_HZ));
+        pt1FilterSetTimeConstant(&fixedWingTpaFilter, MS2S(currentControlProfile->throttle.fixedWingTauMs));
         pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
 }
@@ -549,7 +550,7 @@ void updatePIDCoefficients(void)
     for (int axis = 0; axis < 3; axis++) {
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
-    
+
     float tpaFactor=1.0f;
     float iTermFactor=1.0f;  // Separate factor for I-term scaling
     if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
@@ -569,13 +570,13 @@ void updatePIDCoefficients(void)
     }
     tpaFactorprev = tpaFactor;
 
-    
+
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
         return;
     }
 
-    
+
     // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
     for (int axis = 0; axis < 3; axis++) {
@@ -1378,12 +1379,8 @@ void pidInit(void)
 
         pidState[axis].axis = axis;
         pidState[axis].pidSumLimit = getPidSumLimit(axis);
-        if (axis == FD_YAW) {
-            if (yawLpfHz) {
-                pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) pt1FilterApply4;
-            } else {
-                pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
-            }
+        if (axis == FD_YAW && yawLpfHz) {
+            pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) pt1FilterApply4;
         } else {
             pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
         }

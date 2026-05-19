@@ -332,7 +332,7 @@ bool gyroInit(void)
 
     // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
     gyro.targetLooptime = gyroDev[0].sampleRateIntervalUs;
- 
+
     gyroInitFilters();
 
 #ifdef USE_DYNAMIC_FILTERS
@@ -505,7 +505,7 @@ void FAST_CODE NOINLINE gyroFilter(void)
         }
 
         /**
-         * Secondary dynamic notch filter. 
+         * Secondary dynamic notch filter.
          * In some cases, noise amplitude is high enough not to be filtered by the primary filter.
          * This happens on the first frequency with the biggest aplitude
          */
@@ -534,7 +534,7 @@ void FAST_CODE NOINLINE gyroFilter(void)
             );
 
             secondaryDynamicGyroNotchFiltersUpdate(
-                &secondaryDynamicGyroNotchState, 
+                &secondaryDynamicGyroNotchState,
                 gyroAnalyseState.filterUpdateAxis,
                 gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
             );
@@ -612,7 +612,7 @@ int16_t gyroRateDps(int axis)
 
 void gyroUpdateDynamicLpf(float cutoffFreq) {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        pt1FilterUpdateCutoff(&gyroLpf2State[axis].pt1, cutoffFreq);
+        pt1FilterSetCutoff(&gyroLpf2State[axis].pt1, cutoffFreq);
     }
 }
 

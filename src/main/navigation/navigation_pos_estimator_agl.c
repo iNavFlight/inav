@@ -80,7 +80,7 @@ void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfa
 
         // Update average sonar altitude if range is good
         if (surfaceMeasurementWithinRange) {
-            pt1FilterApply3(&posEstimator.surface.avgFilter, newSurfaceAlt, surfaceDt);
+            pt1FilterApply4(&posEstimator.surface.avgFilter, newSurfaceAlt, INAV_SURFACE_AVERAGE_HZ, surfaceDt);
         }
     }
 }

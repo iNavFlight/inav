@@ -241,9 +241,6 @@ STATIC_PROTOTHREAD(pitotThread)
 
     // Init filter
     pitot.lastMeasurementUs = micros();
-    if (pitotmeterConfig()->pitot_lpf_milli_hz > 0) {
-        pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
-    }
 
     while(1) {
 #ifdef USE_SIMULATOR
@@ -296,8 +293,9 @@ STATIC_PROTOTHREAD(pitotThread)
 
             // NOTE ::filter pressure - apply filter when NOT calibrating for zero !!!
             currentTimeUs = micros();
-            if (pitotmeterConfig()->pitot_lpf_milli_hz > 0) {
-                pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+            const uint16_t pitot_lpf_milli_hz = pitotmeterConfig()->pitot_lpf_milli_hz;
+            if (pitot_lpf_milli_hz) {
+                pitot.pressure = pt1FilterApply4(&pitot.lpfState, pitotPressureTmp, pitot_lpf_milli_hz, US2S(currentTimeUs - pitot.lastMeasurementUs));
             } else {
                 pitot.pressure = pitotPressureTmp;
             }
