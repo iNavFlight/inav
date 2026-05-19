@@ -1830,6 +1830,43 @@ static bool osdElementEnabled(uint8_t elementID, bool onlyCurrentLayout) {
     return elementEnabled;
 }
 
+static void osdDisplayBattVoltDJI(uint8_t elemPosX, uint8_t elemPosY, uint16_t voltage, uint8_t total_digits, uint8_t decimals)
+{
+#ifndef DISABLE_MSP_DJI_COMPAT
+    if (isDJICompatibleVideoSystem(osdConfig())) total_digits++;
+#endif
+    osdDisplayBatteryVoltage(elemPosX, elemPosY, voltage, total_digits, decimals);
+}
+
+static void osdFormatAngleDeg(char *buff, char sym, bool valid, int16_t degrees)
+{
+    buff[0] = sym;
+    if (valid)
+        osdFormatIntUnit(&buff[1], 3, degrees, 0);
+    else
+        buff[1] = buff[2] = buff[3] = '-';
+    buff[4] = SYM_DEGREES;
+    buff[5] = '\0';
+}
+
+static int32_t osdUpdateEfficiencyFilter(pt1Filter_t *state, timeUs_t *lastUpdated, float rawValue)
+{
+    timeUs_t currentTimeUs = micros();
+    timeDelta_t delta = cmpTimeUs(currentTimeUs, *lastUpdated);
+    if ((STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+        || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) && gpsSol.groundSpeed > 0) {
+        if (delta >= EFFICIENCY_UPDATE_INTERVAL) {
+            pt1FilterApply4(state, rawValue, 1, US2S(delta));
+            *lastUpdated = currentTimeUs;
+        }
+        return (int32_t)state->state;
+    }
+    return 0;
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -1870,27 +1907,15 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_MAIN_BATT_VOLTAGE: {
-        uint8_t base_digits = 2U;
-#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
-        if(isDJICompatibleVideoSystem(osdConfig())) {
-            base_digits = 3U;   // Add extra digit to account for decimal point taking an extra character space
-        }
-#endif
-        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawVoltage(), base_digits + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
+    case OSD_MAIN_BATT_VOLTAGE:
+        osdDisplayBattVoltDJI(elemPosX, elemPosY, getBatteryRawVoltage(),
+            2 + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
-    }
 
-    case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE: {
-        uint8_t base_digits = 2U;
-#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
-        if(isDJICompatibleVideoSystem(osdConfig())) {
-            base_digits = 3U;   // Add extra digit to account for decimal point taking an extra character space
-        }
-#endif
-        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedVoltage(), base_digits + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
+    case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE:
+        osdDisplayBattVoltDJI(elemPosX, elemPosY, getBatterySagCompensatedVoltage(),
+            2 + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
-    }
 
     case OSD_CURRENT_DRAW: {
         osdFormatCentiNumber(buff, getAmperage(), 0, 2, 0, 3, false);
@@ -2186,17 +2211,9 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GROUND_COURSE:
-        {
-            buff[0] = SYM_GROUND_COURSE;
-            if (osdIsHeadingValid()) {
-                osdFormatIntUnit(&buff[1], 3, (int16_t)CENTIDEGREES_TO_DEGREES(posControl.actualState.cog), 0);
-            } else {
-                buff[1] = buff[2] = buff[3] = '-';
-            }
-            buff[4] = SYM_DEGREES;
-            buff[5] = '\0';
-            break;
-        }
+        osdFormatAngleDeg(buff, SYM_GROUND_COURSE, osdIsHeadingValid(),
+                          (int16_t)CENTIDEGREES_TO_DEGREES(posControl.actualState.cog));
+        break;
 
     case OSD_COURSE_HOLD_ERROR:
         {
@@ -3546,28 +3563,12 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_MAIN_BATT_CELL_VOLTAGE:
-        {
-            uint8_t base_digits = 3U;
-#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
-            if(isDJICompatibleVideoSystem(osdConfig())) {
-                base_digits = 4U;   // Add extra digit to account for decimal point taking an extra character space
-            }
-#endif
-            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawAverageCellVoltage(), base_digits, 2);
-            return true;
-        }
+        osdDisplayBattVoltDJI(elemPosX, elemPosY, getBatteryRawAverageCellVoltage(), 3, 2);
+        return true;
 
     case OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE:
-        {
-            uint8_t base_digits = 3U;
-#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
-            if(isDJICompatibleVideoSystem(osdConfig())) {
-                base_digits = 4U;   // Add extra digit to account for decimal point taking an extra character space
-            }
-#endif
-            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedAverageCellVoltage(), base_digits, 2);
-            return true;
-        }
+        osdDisplayBattVoltDJI(elemPosX, elemPosY, getBatterySagCompensatedAverageCellVoltage(), 3, 2);
+        return true;
 
     case OSD_SCALED_THROTTLE_POS:
         {
@@ -3577,18 +3578,9 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HEADING:
         {
-            buff[0] = SYM_HEADING;
-            if (osdIsHeadingValid()) {
-                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
-                if (h < 0) {
-                    h += 360;
-                }
-                osdFormatIntUnit(&buff[1], 3, h, 0);
-            } else {
-                buff[1] = buff[2] = buff[3] = '-';
-            }
-            buff[4] = SYM_DEGREES;
-            buff[5] = '\0';
+            int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
+            if (h < 0) h += 360;
+            osdFormatAngleDeg(buff, SYM_HEADING, osdIsHeadingValid(), h);
             break;
         }
 
@@ -3607,35 +3599,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_EFFICIENCY_MAH_PER_KM:
         {
-            // amperage is in centi amps, speed is in cms/s. We want
-            // mah/km. Only show when ground speed > 1m/s.
+            // amperage is in centi amps, speed is in cms/s. We want mah/km.
             static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
-            int32_t value = 0;
             bool moreThanAh = false;
-            timeUs_t currentTimeUs = micros();
-            timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             uint8_t digits = 3U;
-#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is not supported, there's no need to check for it and change the values
-            if (isDJICompatibleVideoSystem(osdConfig())) {
-                // Increase number of digits so values above 99 don't get scaled by osdFormatCentiNumber
-                digits = 4U;
-            }
+#ifndef DISABLE_MSP_DJI_COMPAT
+            if (isDJICompatibleVideoSystem(osdConfig())) digits = 4U;
 #endif
-            if ((STATE(GPS_FIX)
-#ifdef USE_GPS_FIX_ESTIMATION
-                || STATE(GPS_ESTIMATED_FIX)
-#endif
-                ) && gpsSol.groundSpeed > 0) {
-                if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                    value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
-                        1, US2S(efficiencyTimeDelta));
-
-                    efficiencyUpdated = currentTimeUs;
-                } else {
-                    value = eFilterState.state;
-                }
-            }
+            float rawEff = gpsSol.groundSpeed > 0 ? ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f : 0.0f;
+            int32_t value = osdUpdateEfficiencyFilter(&eFilterState, &efficiencyUpdated, rawEff);
             bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
@@ -3690,27 +3663,11 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_EFFICIENCY_WH_PER_KM:
         {
-            // amperage is in centi amps, speed is in cms/s. We want
-            // mWh/km. Only show when ground speed > 1m/s.
+            // power is in mW, speed is in cms/s. We want mWh/km.
             static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
-            int32_t value = 0;
-            timeUs_t currentTimeUs = micros();
-            timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
-            if ((STATE(GPS_FIX)
-#ifdef USE_GPS_FIX_ESTIMATION
-                    || STATE(GPS_ESTIMATED_FIX)
-#endif
-                ) && gpsSol.groundSpeed > 0) {
-                if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                    value = pt1FilterApply4(&eFilterState, ((float)getPower() / gpsSol.groundSpeed) / 0.0036f,
-                        1, US2S(efficiencyTimeDelta));
-
-                    efficiencyUpdated = currentTimeUs;
-                } else {
-                    value = eFilterState.state;
-                }
-            }
+            float rawEff = gpsSol.groundSpeed > 0 ? ((float)getPower() / gpsSol.groundSpeed) / 0.0036f : 0.0f;
+            int32_t value = osdUpdateEfficiencyFilter(&eFilterState, &efficiencyUpdated, rawEff);
             bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
@@ -3874,24 +3831,10 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_AZIMUTH:
         {
-
-            buff[0] = SYM_AZIMUTH;
-            if (osdIsHeadingValid()) {
-                int16_t h = GPS_directionToHome;
-                if (h < 0) {
-                    h += 360;
-                }
-                if (h >= 180)
-                    h = h - 180;
-                else
-                    h = h + 180;
-
-                osdFormatIntUnit(&buff[1], 3, h, 0);
-            } else {
-                buff[1] = buff[2] = buff[3] = '-';
-            }
-            buff[4] = SYM_DEGREES;
-            buff[5] = '\0';
+            int16_t h = GPS_directionToHome;
+            if (h < 0) h += 360;
+            h = (h >= 180) ? h - 180 : h + 180;
+            osdFormatAngleDeg(buff, SYM_AZIMUTH, osdIsHeadingValid(), h);
             break;
         }
 
