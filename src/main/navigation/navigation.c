@@ -785,6 +785,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED] = NAV_STATE_WAYPOINT_FINISHED,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP]     = NAV_STATE_WAYPOINT_PRE_ACTION,   // MSP2_INAV_SET_WP_INDEX
         }
     },
 
@@ -806,6 +807,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP]        = NAV_STATE_WAYPOINT_PRE_ACTION,    // MSP2_INAV_SET_WP_INDEX
         }
     },
 
@@ -830,6 +832,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]       = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]            = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP]     = NAV_STATE_WAYPOINT_PRE_ACTION,    // MSP2_INAV_SET_WP_INDEX
         }
     },
 
@@ -851,6 +854,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP]        = NAV_STATE_WAYPOINT_PRE_ACTION,    // MSP2_INAV_SET_WP_INDEX
         }
     },
 
@@ -909,6 +913,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP]        = NAV_STATE_WAYPOINT_PRE_ACTION,    // MSP2_INAV_SET_WP_INDEX
         }
     },
 
@@ -3874,6 +3879,69 @@ int isGCSValid(void)
             posControl.gpsOrigin.valid && 
             posControl.flags.isGCSAssistedNavigationEnabled && 
             (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS));
+}
+
+/*
+ * navSetActiveWaypointIndex - MSP2_INAV_SET_WP_INDEX handler
+ *
+ * Jumps to a specific waypoint during an active WP mission without interrupting
+ * navigation mode.  'index' is 0-based and relative to the mission start
+ * (i.e. the first waypoint in the loaded mission is index 0, regardless of
+ * startWpIndex).
+ *
+ * Returns true on success, false when the preconditions are not met (not armed,
+ * not in WP mode, or index out of range).
+ */
+bool navSetActiveWaypointIndex(uint8_t index)
+{
+    // Must be armed and actively executing a WP mission
+    if (!ARMING_FLAG(ARMED) || !FLIGHT_MODE(NAV_WP_MODE)) {
+        return false;
+    }
+
+    // Translate user-visible 0-based index to the internal absolute index
+    int8_t absoluteIndex = (int8_t)index + posControl.startWpIndex;
+    if (absoluteIndex < posControl.startWpIndex ||
+        absoluteIndex >= posControl.startWpIndex + posControl.waypointCount) {
+        return false;
+    }
+
+    posControl.activeWaypointIndex = absoluteIndex;
+    posControl.wpMissionRestart = false;
+
+    // Transition immediately to WAYPOINT_PRE_ACTION so the new WP is set up
+    // on this navigation tick.  navProcessFSMEvents is safe to call here as
+    // everything runs in the same main-loop task context.
+    navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP);
+    return true;
+}
+
+/*
+ * navSetCruiseHeading - MSP2_INAV_SET_CRUISE_HEADING handler
+ *
+ * Sets the target heading while Cruise or Course Hold mode is active.
+ * 'headingCd' is in centidegrees (0-35999), matching the internal
+ * posControl.cruise.course representation.
+ *
+ * Returns true on success, false when the preconditions are not met.
+ */
+bool navSetCruiseHeading(int32_t headingCd)
+{
+    if (!ARMING_FLAG(ARMED)) {
+        return false;
+    }
+
+    // Only valid while Cruise or Course Hold is the active navigation mode
+    if (!FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+        return false;
+    }
+
+    // Clamp to valid centidegree range
+    headingCd = ((headingCd % 36000) + 36000) % 36000;
+
+    posControl.cruise.course         = headingCd;
+    posControl.cruise.previousCourse = headingCd;
+    return true;
 }
 
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)

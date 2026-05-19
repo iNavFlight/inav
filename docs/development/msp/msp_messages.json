@@ -4920,9 +4920,9 @@
                     },
                     {
                         "name": "hwVersion",
-                        "ctype": "uint32_t",
-                        "desc": "GPS hardware version (`gpsState.hwVersion`). Values: 500=UBLOX5, 600=UBLOX6, 700=UBLOX7, 800=UBLOX8, 900=UBLOX9, 1000=UBLOX10, 0=UNKNOWN",
-                        "units": "Version code"
+                        "ctype": "uint8_t",
+                        "desc": "GPS hardware version bit-field: bits[7:6]=series (0b01=u-blox Neo/M), bits[5:0]=generation. E.g. 0x48=M8, 0x49=M9, 0x4A=M10, 0=unknown.",
+                        "units": ""
                     }
                 ]
             },
@@ -10482,6 +10482,35 @@
             "notes": "Payload length must be (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (CUSTOM_ELEMENTS_PARTS * 3) + 4 bytes including elementIndex. elementIndex must be < MAX_CUSTOM_ELEMENTS. Each partType must be < CUSTOM_ELEMENT_TYPE_END. Firmware NUL-terminates elementText internally.",
             "description": "Sets the configuration of one custom OSD element."
         },
+        "MSP2_INAV_GET_LINK_STATS": {
+            "code": 8451,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "uplinkRSSI_dBm",
+                        "ctype": "uint8_t",
+                        "desc": "Uplink RSSI in dBm, sent as a positive magnitude (`getRSSI()`). For example, 70 means -70dBm.",
+                        "units": "-dBm"
+                    },
+                    {
+                        "name": "uplinkLQ",
+                        "ctype": "uint8_t",
+                        "desc": "Uplink Link Quality (`rxLinkStatistics.uplinkLQ`)",
+                        "units": "%"
+                    },
+                    {
+                        "name": "uplinkSNR",
+                        "ctype": "int8_t",
+                        "desc": "Uplink Signal-to-Noise Ratio (`rxLinkStatistics.uplinkSNR`)",
+                        "units": "dB"
+                    }
+                ]
+            },
+            "notes": "Useful for GCS monitoring of the active RC link quality and signal margin.",
+            "description": "Provides uplink RC link statistics for monitoring on a GCS."
+        },
         "MSP2_INAV_OUTPUT_MAPPING_EXT2": {
             "code": 8461,
             "mspv": 2,
@@ -11213,6 +11242,66 @@
             },
             "notes": "All attitude angles are in deci-degrees.",
             "description": "Provides estimates of current attitude, local NEU position, and velocity."
+        },
+        "MSP2_INAV_SET_WP_INDEX": {
+            "code": 8737,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "wp_index",
+                        "ctype": "uint8_t",
+                        "desc": "0-based waypoint index to jump to, relative to the mission start waypoint (`posControl.startWpIndex`)",
+                        "units": "-"
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.",
+            "description": "Jumps to a specific waypoint during an active waypoint mission, causing the aircraft to immediately begin navigating toward the new target waypoint."
+        },
+        "MSP2_INAV_SET_CRUISE_HEADING": {
+            "code": 8739,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "heading_centidegrees",
+                        "ctype": "int32_t",
+                        "desc": "Target heading in centidegrees (0-35999). Values are wrapped modulo 36000 before being applied.",
+                        "units": "centidegrees"
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.",
+            "description": "Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading."
+        },
+        "MSP2_INAV_SET_AUX_RC": {
+            "code": 8752,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "definitionByte",
+                        "ctype": "uint8_t",
+                        "desc": "Packed start channel and resolution. Bits 7-3: start channel index (valid range 12-31 for CH13-CH32; 0-11 rejected as error). Bits 2-0: resolution mode (0=2-bit, 1=4-bit, 2=8-bit, 3=16-bit; 4-7 reserved/error).",
+                        "units": ""
+                    },
+                    {
+                        "name": "channelData",
+                        "ctype": "uint8_t",
+                        "desc": "Packed channel values, sequential from start channel. Number of channels is derived from data size and resolution. Value 0 means skip (no update). Sub-byte modes (2-bit, 4-bit) are packed MSB-first. 2-bit values 1-3 map to 1000/1500/2000us. 4-bit values 1-15 map to 1000 + (val-1)*1000/14 us. 8-bit values 1-255 map to 1000 + (val-1)*1000/254 us. 16-bit values are direct PWM, clamped to 750-2250us.",
+                        "units": "PWM (encoded)",
+                        "array": true,
+                        "array_size": 0
+                    }
+                ]
+            },
+            "reply": null,
+            "variable_len": true,
+            "notes": "CH1-CH12 (index 0-11) are protected and will return `MSP_RESULT_ERROR`. Payload size must be 2-49 bytes. Constraint: `startChannel + channelCount <= 32`. Values persist until overwritten; no timeout. Applied as a post-RX overlay in `calculateRxChannelsAndUpdateFailsafe()` after MSP RC Override but before failsafe. Does not require `USE_RX_MSP` or MSP-RC-OVERRIDE flight mode. Does not affect failsafe detection. When MSP is the primary RX provider, channels covered by `MSP_SET_RAW_RC` are automatically skipped. Channels in the `mspOverrideChannels` bitmask are skipped when MSP RC Override mode is active. Recommended to send with `MSP_FLAG_DONT_REPLY` (flags=0x01) to save bandwidth on telemetry passthrough links. 16-bit mode requires even number of data bytes and values are clamped to 750-2250us.",
+            "description": "Bandwidth-efficient auxiliary RC channel update. Sets CH13-CH32 with configurable resolution (2/4/8/16-bit) without affecting primary flight controls. Designed for extending channel count beyond native RC link capacity via MSP passthrough."
         },
         "MSP2_BETAFLIGHT_BIND": {
             "code": 12288,

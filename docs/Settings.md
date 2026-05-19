@@ -514,6 +514,7 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 | B2SMPB |  |
 | MSP |  |
 | FAKE |  |
+| CRSF |  |
 
 ---
 
@@ -643,6 +644,16 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### crsf_use_legacy_baro_packet
+
+CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
@@ -695,6 +706,7 @@ ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once 
 | FAKE |  |
 | ESC |  |
 | SMARTPORT |  |
+| CRSF |  |
 | CAN |  |
 
 ---
@@ -1863,6 +1875,7 @@ Which GPS protocol to be used.
 | --- | --- |
 | UBLOX | Default |
 | MSP |  |
+| CRSF |  |
 | FAKE |  |
 | DRONECAN |  |
 
@@ -2496,19 +2509,6 @@ Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened w
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 0 | 90 |
-
----
-
-### led_pin_pwm_mode
-
-PWM mode of LED pin.
-
-| Allowed Values |  |
-| --- | --- |
-| SHARED_LOW | Default |
-| SHARED_HIGH |  |
-| LOW |  |
-| HIGH |  |
 
 ---
 
@@ -5322,6 +5322,16 @@ PWM value for LEFT key
 
 ---
 
+### osd_joystick_pinio_channel
+
+PINIO channel index (0-3) for the camera OSD control pin
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
+
+---
+
 ### osd_joystick_right
 
 PWM value for RIGHT key
@@ -5854,41 +5864,41 @@ Pilot name
 
 ### pinio_box1
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 1
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER1` | 0 | 255 |
 
 ---
 
 ### pinio_box2
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 2
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER2` | 0 | 255 |
 
 ---
 
 ### pinio_box3
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 3
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER3` | 0 | 255 |
 
 ---
 
 ### pinio_box4
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 4
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER4` | 0 | 255 |
 
 ---
 
@@ -6950,6 +6960,7 @@ Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. 
 | ESC |  |
 | FAKE |  |
 | SMARTPORT |  |
+| CRSF |  |
 | CAN |  |
 
 ---
