@@ -383,6 +383,15 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 }
 #endif
 
+static void mspDeserializeServoParams(sbuf_t *src, uint8_t servoIndex)
+{
+    servoParamsMutable(servoIndex)->min    = sbufReadU16(src);
+    servoParamsMutable(servoIndex)->max    = sbufReadU16(src);
+    servoParamsMutable(servoIndex)->middle = sbufReadU16(src);
+    servoParamsMutable(servoIndex)->rate   = sbufReadU8(src);
+    servoComputeScalingFactors(servoIndex);
+}
+
 static void mspSerializeMotorMixer(sbuf_t *dst, const motorMixer_t *m)
 {
     sbufWriteU16(dst, constrainf(m->throttle + 2.0f, 0.0f, 4.0f) * 1000);
@@ -2345,15 +2354,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (tmp_u8 >= MAX_SUPPORTED_SERVOS) {
             return MSP_RESULT_ERROR;
         } else {
-            servoParamsMutable(tmp_u8)->min = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->max = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->middle = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->rate = sbufReadU8(src);
+            mspDeserializeServoParams(src, tmp_u8);
             sbufReadU8(src);
             sbufReadU8(src);
             sbufReadU8(src); // used to be forwardFromChannel, ignored
             sbufReadU32(src); // used to be reversedSources
-            servoComputeScalingFactors(tmp_u8);
         }
         break;
 
@@ -2365,11 +2370,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (tmp_u8 >= MAX_SUPPORTED_SERVOS) {
             return MSP_RESULT_ERROR;
         } else {
-            servoParamsMutable(tmp_u8)->min = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->max = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->middle = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->rate = sbufReadU8(src);
-            servoComputeScalingFactors(tmp_u8);
+            mspDeserializeServoParams(src, tmp_u8);
         }
         break;
 
