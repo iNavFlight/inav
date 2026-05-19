@@ -5277,6 +5277,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
             osdWriteChar(outBuff + strlen(outBuff), SYM_WH_KM);
         }
     }
+    osdWriteChar(outBuff + strlen(outBuff), '\0');
 
     displayWrite(osdDisplayPort, statValX, row++, outBuff);
 
