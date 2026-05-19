@@ -1,0 +1,1 @@
+target_stm32h743xi(XMAV_APH743V2)
