@@ -383,6 +383,29 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 }
 #endif
 
+static void sbufWriteAxisU16(sbuf_t *dst, const int16_t *arr)
+{
+    sbufWriteU16(dst, arr[X]);
+    sbufWriteU16(dst, arr[Y]);
+    sbufWriteU16(dst, arr[Z]);
+}
+
+static void sbufReadAxisU16(sbuf_t *src, int16_t *arr)
+{
+    arr[X] = sbufReadU16(src);
+    arr[Y] = sbufReadU16(src);
+    arr[Z] = sbufReadU16(src);
+}
+
+static void mspReadRates(sbuf_t *src, uint8_t *rates)
+{
+    for (uint8_t i = 0; i < 3; ++i) {
+        uint8_t v = sbufReadU8(src);
+        rates[i] = (i == FD_YAW) ? constrain(v, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX)
+                                  : constrain(v, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
+    }
+}
+
 static void mspDeserializeServoParams(sbuf_t *src, uint8_t servoIndex)
 {
     servoParamsMutable(servoIndex)->min    = sbufReadU16(src);
@@ -1461,17 +1484,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_CALIBRATION_DATA:
         sbufWriteU8(dst, accGetCalibrationAxisFlags());
-        sbufWriteU16(dst, accelerometerConfig()->accZero.raw[X]);
-        sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Y]);
-        sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Z]);
-        sbufWriteU16(dst, accelerometerConfig()->accGain.raw[X]);
-        sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Y]);
-        sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Z]);
+        sbufWriteAxisU16(dst, accelerometerConfig()->accZero.raw);
+        sbufWriteAxisU16(dst, accelerometerConfig()->accGain.raw);
 
     #ifdef USE_MAG
-        sbufWriteU16(dst, compassConfig()->magZero.raw[X]);
-        sbufWriteU16(dst, compassConfig()->magZero.raw[Y]);
-        sbufWriteU16(dst, compassConfig()->magZero.raw[Z]);
+        sbufWriteAxisU16(dst, compassConfig()->magZero.raw);
     #else
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
@@ -2106,15 +2123,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); //Read rcRate8, kept for protocol compatibility reasons
             // need to cast away const to set controlProfile
             ((controlConfig_t*)currentControlProfile)->stabilized.rcExpo8 = sbufReadU8(src);
-            for (int i = 0; i < 3; i++) {
-                tmp_u8 = sbufReadU8(src);
-                if (i == FD_YAW) {
-                    ((controlConfig_t*)currentControlProfile)->stabilized.rates[i] = constrain(tmp_u8, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
-                }
-                else {
-                    ((controlConfig_t*)currentControlProfile)->stabilized.rates[i] = constrain(tmp_u8, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
-                }
-            }
+            mspReadRates(src, ((controlConfig_t*)currentControlProfile)->stabilized.rates);
             tmp_u8 = sbufReadU8(src);
             ((controlConfig_t*)currentControlProfile)->throttle.dynPID = MIN(tmp_u8, SETTING_TPA_RATE_MAX);
             ((controlConfig_t*)currentControlProfile)->throttle.rcMid8 = sbufReadU8(src);
@@ -2143,26 +2152,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             // stabilized
             currentControlProfile_p->stabilized.rcExpo8 = sbufReadU8(src);
             currentControlProfile_p->stabilized.rcYawExpo8 = sbufReadU8(src);
-            for (uint8_t i = 0; i < 3; ++i) {
-                tmp_u8 = sbufReadU8(src);
-                if (i == FD_YAW) {
-                    currentControlProfile_p->stabilized.rates[i] = constrain(tmp_u8, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
-                } else {
-                    currentControlProfile_p->stabilized.rates[i] = constrain(tmp_u8, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
-                }
-            }
+            mspReadRates(src, currentControlProfile_p->stabilized.rates);
 
             // manual
             currentControlProfile_p->manual.rcExpo8 = sbufReadU8(src);
             currentControlProfile_p->manual.rcYawExpo8 = sbufReadU8(src);
-            for (uint8_t i = 0; i < 3; ++i) {
-                tmp_u8 = sbufReadU8(src);
-                if (i == FD_YAW) {
-                    currentControlProfile_p->manual.rates[i] = constrain(tmp_u8, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
-                } else {
-                    currentControlProfile_p->manual.rates[i] = constrain(tmp_u8, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
-                }
-            }
+            mspReadRates(src, currentControlProfile_p->manual.rates);
 
         } else {
             return MSP_RESULT_ERROR;
@@ -2821,17 +2816,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_CALIBRATION_DATA:
         if (dataSize >= 18) {
-            accelerometerConfigMutable()->accZero.raw[X] = sbufReadU16(src);
-            accelerometerConfigMutable()->accZero.raw[Y] = sbufReadU16(src);
-            accelerometerConfigMutable()->accZero.raw[Z] = sbufReadU16(src);
-            accelerometerConfigMutable()->accGain.raw[X] = sbufReadU16(src);
-            accelerometerConfigMutable()->accGain.raw[Y] = sbufReadU16(src);
-            accelerometerConfigMutable()->accGain.raw[Z] = sbufReadU16(src);
+            sbufReadAxisU16(src, accelerometerConfigMutable()->accZero.raw);
+            sbufReadAxisU16(src, accelerometerConfigMutable()->accGain.raw);
 
 #ifdef USE_MAG
-            compassConfigMutable()->magZero.raw[X] = sbufReadU16(src);
-            compassConfigMutable()->magZero.raw[Y] = sbufReadU16(src);
-            compassConfigMutable()->magZero.raw[Z] = sbufReadU16(src);
+            sbufReadAxisU16(src, compassConfigMutable()->magZero.raw);
 #else
             sbufReadU16(src);
             sbufReadU16(src);
@@ -2844,9 +2833,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
 #ifdef USE_MAG
             if (dataSize >= 22) {
-                compassConfigMutable()->magGain[X] = sbufReadU16(src);
-                compassConfigMutable()->magGain[Y] = sbufReadU16(src);
-                compassConfigMutable()->magGain[Z] = sbufReadU16(src);
+                sbufReadAxisU16(src, compassConfigMutable()->magGain);
             }
 #else
             if (dataSize >= 22) {
