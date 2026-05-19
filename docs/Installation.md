@@ -27,4 +27,8 @@ When upgrading be sure to backup / dump your existing settings.  Some firmware r
 
 ## Backup/Restore process
 
-See the CLI section of the docs for details on how to backup and restore your configuration via the CLI.
+The INAV Configurator (after version 9.0.x) automatically backs up your configuration before flashing and offers to restore it afterwards (when Full Chip Erase is enabled) — including automatic settings migration when upgrading across major versions.
+
+For details on automatic and manual backup/restore, see [Backup and Restore](Backup%20and%20Restore.md).
+
+For CLI-based backup and restore, see the [CLI documentation](Cli.md#backup-via-cli).
