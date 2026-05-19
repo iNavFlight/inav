@@ -1843,45 +1843,18 @@ static bool osdDrawSingleElement(uint8_t item)
 
     switch (item) {
     case OSD_CUSTOM_ELEMENT_1:
-    {
-        customElementDrawElement(buff, 0);
-        break;
-    }
     case OSD_CUSTOM_ELEMENT_2:
-    {
-        customElementDrawElement(buff, 1);
-        break;
-    }
     case OSD_CUSTOM_ELEMENT_3:
-    {
-        customElementDrawElement(buff, 2);
+        customElementDrawElement(buff, item - OSD_CUSTOM_ELEMENT_1);
         break;
-    }
+
     case OSD_CUSTOM_ELEMENT_4:
-    {
-        customElementDrawElement(buff, 3);
-        break;
-    }
     case OSD_CUSTOM_ELEMENT_5:
-    {
-        customElementDrawElement(buff, 4);
-        break;
-    }
     case OSD_CUSTOM_ELEMENT_6:
-    {
-        customElementDrawElement(buff, 5);
-        break;
-    }
     case OSD_CUSTOM_ELEMENT_7:
-    {
-        customElementDrawElement(buff, 6);
-        break;
-    }
     case OSD_CUSTOM_ELEMENT_8:
-    {
-        customElementDrawElement(buff, 7);
+        customElementDrawElement(buff, item - OSD_CUSTOM_ELEMENT_4 + 3);
         break;
-    }
     case OSD_RSSI_VALUE:
         {
             uint8_t osdRssi = osdConvertRSSI();
@@ -3986,25 +3959,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_GVAR_0:
-    {
-        osdFormatGVar(buff, 0);
-        break;
-    }
     case OSD_GVAR_1:
-    {
-        osdFormatGVar(buff, 1);
-        break;
-    }
     case OSD_GVAR_2:
-    {
-        osdFormatGVar(buff, 2);
-        break;
-    }
     case OSD_GVAR_3:
-    {
-        osdFormatGVar(buff, 3);
+        osdFormatGVar(buff, item - OSD_GVAR_0);
         break;
-    }
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     case OSD_RC_SOURCE:

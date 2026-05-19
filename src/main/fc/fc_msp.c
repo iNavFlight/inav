@@ -383,6 +383,27 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 }
 #endif
 
+static void mspSerializeMotorMixer(sbuf_t *dst, const motorMixer_t *m)
+{
+    sbufWriteU16(dst, constrainf(m->throttle + 2.0f, 0.0f, 4.0f) * 1000);
+    sbufWriteU16(dst, constrainf(m->roll    + 2.0f, 0.0f, 4.0f) * 1000);
+    sbufWriteU16(dst, constrainf(m->pitch   + 2.0f, 0.0f, 4.0f) * 1000);
+    sbufWriteU16(dst, constrainf(m->yaw     + 2.0f, 0.0f, 4.0f) * 1000);
+}
+
+static void mspSerializeServoMixer(sbuf_t *dst, const servoMixer_t *m)
+{
+    sbufWriteU8(dst, m->targetChannel);
+    sbufWriteU8(dst, m->inputSource);
+    sbufWriteU16(dst, m->rate);
+    sbufWriteU8(dst, m->speed);
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    sbufWriteU8(dst, m->conditionId);
+#else
+    sbufWriteU8(dst, -1);
+#endif
+}
+
 /*
  * Returns true if the command was processd, false otherwise.
  * May set mspPostProcessFunc to a function to be called once the command has been processed
@@ -569,27 +590,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP2_INAV_SERVO_MIXER:
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
-            sbufWriteU8(dst, customServoMixers(i)->targetChannel);
-            sbufWriteU8(dst, customServoMixers(i)->inputSource);
-            sbufWriteU16(dst, customServoMixers(i)->rate);
-            sbufWriteU8(dst, customServoMixers(i)->speed);
-        #ifdef USE_PROGRAMMING_FRAMEWORK
-            sbufWriteU8(dst, customServoMixers(i)->conditionId);
-        #else
-            sbufWriteU8(dst, -1);
-        #endif
+            mspSerializeServoMixer(dst, customServoMixers(i));
         }
         if(MAX_MIXER_PROFILE_COUNT==1) break;
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
-            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].targetChannel);
-            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].inputSource);
-            sbufWriteU16(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].rate);
-            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].speed);
-        #ifdef USE_PROGRAMMING_FRAMEWORK
-            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].conditionId);
-        #else
-            sbufWriteU8(dst, -1);
-        #endif
+            mspSerializeServoMixer(dst, &mixerServoMixersByIndex(nextMixerProfileIndex)[i]);
         }
         break;
 #ifdef USE_PROGRAMMING_FRAMEWORK
@@ -649,17 +654,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->throttle + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->roll + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->pitch + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->yaw + 2.0f, 0.0f, 4.0f) * 1000);
+            mspSerializeMotorMixer(dst, primaryMotorMixer(i));
         }
         if (MAX_MIXER_PROFILE_COUNT==1) break;
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].throttle + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].roll + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].pitch + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].yaw + 2.0f, 0.0f, 4.0f) * 1000);
+            mspSerializeMotorMixer(dst, &mixerMotorMixersByIndex(nextMixerProfileIndex)[i]);
         }
         break;
 
