@@ -1,9 +1,9 @@
 {
     "build": {
         "fc_version": {
-            "major": 10,
+            "major": 9,
             "minor": 0,
-            "patch": 0
+            "patch": 1
         }
     },
     "enums": {
@@ -373,7 +373,8 @@
             "BARO_B2SMPB": "10",
             "BARO_MSP": "11",
             "BARO_FAKE": "12",
-            "BARO_MAX": "BARO_FAKE"
+            "BARO_CRSF": "13",
+            "BARO_MAX": "BARO_CRSF"
         },
         "batCapacityUnit_e": {
             "_source": "inav/src/main/sensors/battery_config_structs.h",
@@ -744,7 +745,7 @@
             "CRSF_FRAMETYPE_GPS": "2",
             "CRSF_FRAMETYPE_VARIO_SENSOR": "7",
             "CRSF_FRAMETYPE_BATTERY_SENSOR": "8",
-            "CRSF_FRAMETYPE_BAROMETER_ALTITUDE": "9",
+            "CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR": "9",
             "CRSF_FRAMETYPE_AIRSPEED_SENSOR": "10",
             "CRSF_FRAMETYPE_RPM": "12",
             "CRSF_FRAMETYPE_TEMP": "13",
@@ -770,8 +771,7 @@
             "CRSF_FRAME_BATTERY_SENSOR_INDEX": "",
             "CRSF_FRAME_FLIGHT_MODE_INDEX": "",
             "CRSF_FRAME_GPS_INDEX": "",
-            "CRSF_FRAME_VARIO_SENSOR_INDEX": "",
-            "CRSF_FRAME_BAROMETER_ALTITUDE_INDEX": "",
+            "CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX": "",
             "CRSF_FRAME_TEMP_INDEX": "",
             "CRSF_FRAME_RPM_INDEX": "",
             "CRSF_FRAME_AIRSPEED_INDEX": "",
@@ -802,7 +802,9 @@
             "CURRENT_SENSOR_FAKE": "3",
             "CURRENT_SENSOR_ESC": "4",
             "CURRENT_SENSOR_SMARTPORT": "5",
-            "CURRENT_SENSOR_MAX": "CURRENT_SENSOR_SMARTPORT"
+            "CURRENT_SENSOR_CRSF": "6",
+            "CURRENT_SENSOR_CAN": "7",
+            "CURRENT_SENSOR_MAX": "CURRENT_SENSOR_CAN"
         },
         "devHardwareType_e": {
             "_source": "inav/src/main/drivers/bus.h",
@@ -937,6 +939,14 @@
             "DJI_OSD_CN_DISTANCE": "5",
             "DJI_OSD_CN_ADJUSTEMNTS": "6",
             "DJI_OSD_CN_MAX_ELEMENTS": "7"
+        },
+        "dronecanBitrate_e": {
+            "_source": "inav/src/main/drivers/dronecan/dronecan.h",
+            "DRONECAN_BITRATE_125KBPS": "0",
+            "DRONECAN_BITRATE_250KBPS": "1",
+            "DRONECAN_BITRATE_500KBPS": "2",
+            "DRONECAN_BITRATE_1000KBPS": "3",
+            "DRONECAN_BITRATE_COUNT": "4"
         },
         "dshotCommands_e": {
             "_source": "inav/src/main/drivers/pwm_output.h",
@@ -1506,8 +1516,10 @@
             "_source": "inav/src/main/io/gps.h",
             "GPS_UBLOX": "0",
             "GPS_MSP": "1",
-            "GPS_FAKE": "2",
-            "GPS_PROVIDER_COUNT": "3"
+            "GPS_CRSF": "2",
+            "GPS_FAKE": "3",
+            "GPS_DRONECAN": "4",
+            "GPS_PROVIDER_COUNT": "5"
         },
         "gpsState_e": {
             "_source": "inav/src/main/io/gps_private.h",
@@ -1844,13 +1856,6 @@
             "ITERM_RELAX_RP": "1",
             "ITERM_RELAX_RPY": "2"
         },
-        "led_pin_pwm_mode_e": {
-            "_source": "inav/src/main/drivers/light_ws2811strip.h",
-            "LED_PIN_PWM_MODE_SHARED_LOW": "0",
-            "LED_PIN_PWM_MODE_SHARED_HIGH": "1",
-            "LED_PIN_PWM_MODE_LOW": "2",
-            "LED_PIN_PWM_MODE_HIGH": "3"
-        },
         "ledBaseFunctionId_e": {
             "_source": "inav/src/main/io/ledstrip.h",
             "LED_FUNCTION_COLOR": "0",
@@ -2067,7 +2072,7 @@
             "LOGIC_CONDITION_TIMER": "49",
             "LOGIC_CONDITION_DELTA": "50",
             "LOGIC_CONDITION_APPROX_EQUAL": "51",
-            "LOGIC_CONDITION_LED_PIN_PWM": "52",
+            "LOGIC_CONDITION_PINIO_PWM": "52",
             "LOGIC_CONDITION_DISABLE_GPS_FIX": "53",
             "LOGIC_CONDITION_RESET_MAG_CALIBRATION": "54",
             "LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY": "55",
@@ -2108,7 +2113,8 @@
             "LOG_TOPIC_POS_ESTIMATOR": "8",
             "LOG_TOPIC_VTX": "9",
             "LOG_TOPIC_OSD": "10",
-            "LOG_TOPIC_COUNT": "11"
+            "LOG_TOPIC_CAN": "11",
+            "LOG_TOPIC_COUNT": "12"
         },
         "lsm6dxxConfigMasks_e": {
             "_source": "inav/src/main/drivers/accgyro/accgyro_lsm6dxx.h",
@@ -2258,6 +2264,14 @@
             "MAG_MLX90393": "15",
             "MAG_FAKE": "16",
             "MAG_MAX": "MAG_FAKE"
+        },
+        "mavFrameSupportMask_e": {
+            "_source": "inav/src/main/telemetry/mavlink.c",
+            "MAV_FRAME_SUPPORTED_NONE": "0",
+            "MAV_FRAME_SUPPORTED_GLOBAL": "(1 << 0)",
+            "MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT": "(1 << 1)",
+            "MAV_FRAME_SUPPORTED_GLOBAL_INT": "(1 << 2)",
+            "MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT": "(1 << 3)"
         },
         "mavlinkAutopilotType_e": {
             "_source": "inav/src/main/telemetry/telemetry.h",
@@ -2914,7 +2928,8 @@
             "OSD_NAV_FW_ALT_CONTROL_RESPONSE": "166",
             "OSD_NAV_MIN_GROUND_SPEED": "167",
             "OSD_THROTTLE_GAUGE": "168",
-            "OSD_ITEM_COUNT": "169"
+            "OSD_GPS_EXTRA_STATS": "169",
+            "OSD_ITEM_COUNT": "170"
         },
         "osd_sidebar_arrow_e": {
             "_source": "inav/src/main/io/osd_grid.c",
@@ -3011,7 +3026,8 @@
             "OUTPUT_MODE_AUTO": "0",
             "OUTPUT_MODE_MOTORS": "1",
             "OUTPUT_MODE_SERVOS": "2",
-            "OUTPUT_MODE_LED": "3"
+            "OUTPUT_MODE_LED": "3",
+            "OUTPUT_MODE_PINIO": "4"
         },
         "pageId_e": {
             "_source": "inav/src/main/io/dashboard.h",
@@ -3065,7 +3081,8 @@
         "pinLabel_e": {
             "_source": "inav/src/main/drivers/pwm_mapping.h",
             "PIN_LABEL_NONE": "0",
-            "PIN_LABEL_LED": "1"
+            "PIN_LABEL_LED": "1",
+            "PIN_LABEL_PINIO_BASE": "2"
         },
         "pitotSensor_e": {
             "_source": "inav/src/main/sensors/pitotmeter.h",
@@ -3315,9 +3332,8 @@
             "_source": "inav/src/main/io/displayport_msp_osd.c",
             "SD_3016": "0",
             "HD_5018": "1",
-            "HD_3016": "2",
-            "HD_6022": "3",
-            "HD_5320": "4"
+            "HD_6022": "2",
+            "HD_5320": "3"
         },
         "resourceOwner_e": {
             "_source": "inav/src/main/drivers/resource.h",
@@ -3355,7 +3371,8 @@
             "OWNER_OLED_DISPLAY": "31",
             "OWNER_PINIO": "32",
             "OWNER_IRLOCK": "33",
-            "OWNER_TOTAL_COUNT": "34"
+            "OWNER_DRONECAN": "34",
+            "OWNER_TOTAL_COUNT": "35"
         },
         "resourceType_e": {
             "_source": "inav/src/main/drivers/resource.h",
@@ -3372,7 +3389,8 @@
             "RESOURCE_QUADSPI_BK2IO3": "10",
             "RESOURCE_ADC_CH1": "11",
             "RESOURCE_RX_CE": "12",
-            "RESOURCE_TOTAL_COUNT": "13"
+            "RESOURCE_CAN_TX": "13",
+            "RESOURCE_TOTAL_COUNT": "14"
         },
         "reversibleMotorsThrottleState_e": {
             "_source": "inav/src/main/flight/mixer.h",
@@ -3577,7 +3595,7 @@
             "FUNCTION_DJI_HD_OSD": "(1 << 21)",
             "FUNCTION_SERVO_SERIAL": "(1 << 22)",
             "FUNCTION_TELEMETRY_SMARTPORT_MASTER": "(1 << 23)",
-            "FUNCTION_UNUSED_2": "(1 << 24)",
+            "FUNCTION_CRSF_SENSOR": "(1 << 24)",
             "FUNCTION_MSP_OSD": "(1 << 25)",
             "FUNCTION_GIMBAL": "(1 << 26)",
             "FUNCTION_GIMBAL_HEADTRACKER": "(1 << 27)"
@@ -3707,6 +3725,11 @@
             "HITL_EXTENDED_FLAGS": "(1 << 7)",
             "HITL_GPS_TIMEOUT": "(1 << 8)",
             "HITL_PITOT_FAILURE": "(1 << 9)"
+        },
+        "sitlCANMode_e": {
+            "_source": "inav/src/main/drivers/dronecan/libcanard/canard_sitl_driver.c",
+            "SITL_CAN_MODE_STUB": "0",
+            "SITL_CAN_MODE_SOCKETCAN": "1"
         },
         "smartAudioVersion_e": {
             "_source": "inav/src/main/io/vtx_smartaudio.h",
@@ -3865,7 +3888,8 @@
             "_source": "inav/src/main/drivers/timer.h",
             "TCH_DMA_IDLE": "0",
             "TCH_DMA_READY": "1",
-            "TCH_DMA_ACTIVE": "2"
+            "TCH_DMA_ACTIVE": "2",
+            "TCH_DMA_CIRCULAR": "3"
         },
         "tempSensorType_e": {
             "_source": "inav/src/main/sensors/temperature.h",
@@ -3897,7 +3921,8 @@
             "TIM_USE_SERVO": "(1 << 3)",
             "TIM_USE_MC_CHNFW": "(1 << 4)",
             "TIM_USE_LED": "(1 << 24)",
-            "TIM_USE_BEEPER": "(1 << 25)"
+            "TIM_USE_BEEPER": "(1 << 25)",
+            "TIM_USE_PINIO": "(1 << 26)"
         },
         "timId_e": {
             "_source": "inav/src/main/io/ledstrip.c",
@@ -4018,7 +4043,8 @@
             "MSG_CFG_SBAS": "22",
             "MSG_CFG_GNSS": "62",
             "MSG_MON_GNSS": "40",
-            "MSG_NAV_SIG": "67"
+            "MSG_NAV_SIG": "67",
+            "MSG_MON_RF": "56"
         },
         "vcselPeriodType_e": {
             "_source": "inav/src/main/drivers/rangefinder/rangefinder_vl53l0x.c",
@@ -4044,7 +4070,9 @@
             "VOLTAGE_SENSOR_ESC": "2",
             "VOLTAGE_SENSOR_FAKE": "3",
             "VOLTAGE_SENSOR_SMARTPORT": "4",
-            "VOLTAGE_SENSOR_MAX": "VOLTAGE_SENSOR_SMARTPORT"
+            "VOLTAGE_SENSOR_CRSF": "5",
+            "VOLTAGE_SENSOR_CAN": "6",
+            "VOLTAGE_SENSOR_MAX": "VOLTAGE_SENSOR_CAN"
         },
         "vs600Band_e": {
             "_source": "inav/src/main/io/smartport_master.h",

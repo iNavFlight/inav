@@ -450,6 +450,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [8737 - MSP2_INAV_SET_WP_INDEX](#msp2_inav_set_wp_index)  
 [8739 - MSP2_INAV_SET_CRUISE_HEADING](#msp2_inav_set_cruise_heading)  
+[8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -2311,7 +2312,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `hdop` | `uint16_t` | 2 | HDOP * 100 | Horizontal Dilution of Precision (`gpsSol.hdop`) |
 | `eph` | `uint16_t` | 2 | cm | Estimated Horizontal Position Accuracy (`gpsSol.eph`) |
 | `epv` | `uint16_t` | 2 | cm | Estimated Vertical Position Accuracy (`gpsSol.epv`) |
-| `hwVersion` | `uint32_t` | 4 | Version code | GPS hardware version (`gpsState.hwVersion`). Values: 500=UBLOX5, 600=UBLOX6, 700=UBLOX7, 800=UBLOX8, 900=UBLOX9, 1000=UBLOX10, 0=UNKNOWN |
+| `hwVersion` | `uint8_t` | 1 | - | GPS hardware version bit-field: bits[7:6]=series (0b01=u-blox Neo/M), bits[5:0]=generation. E.g. 0x48=M8, 0x49=M9, 0x4A=M10, 0=unknown. |
 
 **Notes:** Requires `USE_GPS`.
 
@@ -4709,6 +4710,19 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.
+
+## <a id="msp2_inav_set_aux_rc"></a>`MSP2_INAV_SET_AUX_RC (8752 / 0x2230)`
+**Description:** Bandwidth-efficient auxiliary RC channel update. Sets CH13-CH32 with configurable resolution (2/4/8/16-bit) without affecting primary flight controls. Designed for extending channel count beyond native RC link capacity via MSP passthrough.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `definitionByte` | `uint8_t` | 1 | - | Packed start channel and resolution. Bits 7-3: start channel index (valid range 12-31 for CH13-CH32; 0-11 rejected as error). Bits 2-0: resolution mode (0=2-bit, 1=4-bit, 2=8-bit, 3=16-bit; 4-7 reserved/error). |
+| `channelData` | `uint8_t[]` | array | PWM (encoded) | Packed channel values, sequential from start channel. Number of channels is derived from data size and resolution. Value 0 means skip (no update). Sub-byte modes (2-bit, 4-bit) are packed MSB-first. 2-bit values 1-3 map to 1000/1500/2000us. 4-bit values 1-15 map to 1000 + (val-1)*1000/14 us. 8-bit values 1-255 map to 1000 + (val-1)*1000/254 us. 16-bit values are direct PWM, clamped to 750-2250us. |
+
+**Reply Payload:** **None**  
+
+**Notes:** CH1-CH12 (index 0-11) are protected and will return `MSP_RESULT_ERROR`. Payload size must be 2-49 bytes. Constraint: `startChannel + channelCount <= 32`. Values persist until overwritten; no timeout. Applied as a post-RX overlay in `calculateRxChannelsAndUpdateFailsafe()` after MSP RC Override but before failsafe. Does not require `USE_RX_MSP` or MSP-RC-OVERRIDE flight mode. Does not affect failsafe detection. When MSP is the primary RX provider, channels covered by `MSP_SET_RAW_RC` are automatically skipped. Channels in the `mspOverrideChannels` bitmask are skipped when MSP RC Override mode is active. Recommended to send with `MSP_FLAG_DONT_REPLY` (flags=0x01) to save bandwidth on telemetry passthrough links. 16-bit mode requires even number of data bytes and values are clamped to 750-2250us.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
