@@ -92,7 +92,7 @@ cmake -DCOMPILER_VERSION_CHECK=OFF ..
 
 `cmake` will generate a number of files in your `build` directory, including a cache of generated build settings `CMakeCache.txt` and a `Makefile`.
 
-## Bulding the firmware
+## Building the firmware
 
 Once `cmake` has generated the `build/Makefile`, this `Makfile` (with `make`) is used to build the firmware, again from the `build` directory. It is not necessary to re-run `cmake` unless the INAV cmake configuration is changed (i.e. a new release) or you wish to swap between the ARM SDK compiler and a distro or other external compiler.
 
