@@ -96,6 +96,7 @@
 // Allow default airspeed sensors
 #define USE_PITOT
 #define USE_PITOT_MS4525
+#define USE_PITOT_MS5525
 #define USE_PITOT_MSP
 #define USE_PITOT_DLVR
 

@@ -59,6 +59,12 @@ if(DEBUG)
     list(APPEND SITL_COMPILE_OPTIONS -g)
 endif()
 
+if(ASAN)
+    message(STATUS "AddressSanitizer enabled.")
+    list(APPEND SITL_COMPILE_OPTIONS -fsanitize=address -fno-omit-frame-pointer)
+    list(APPEND SITL_LINK_OPTIONS -fsanitize=address)
+endif()
+
 if(NOT MACOSX)
     set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
         -Wno-return-local-addr

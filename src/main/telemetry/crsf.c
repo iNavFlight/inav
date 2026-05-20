@@ -330,19 +330,6 @@ static void crsfFrameBarometerAltitudeVarioSensor(sbuf_t *dst)
     crsfSerialize8(dst, vario_packed);
 }
 
-/*
-0x0A Airspeed sensor
-Payload:
-int16      Air speed ( dm/s )
-*/
-static void crsfFrameAirSpeedSensor(sbuf_t *dst)
-{
-    // use sbufWrite since CRC does not include frame length
-    sbufWriteU8(dst, CRSF_FRAME_AIRSPEED_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
-    crsfSerialize8(dst, CRSF_FRAMETYPE_AIRSPEED_SENSOR);
-    crsfSerialize16(dst, (uint16_t)(getAirspeedEstimate() * 36 / 100));
-}
-
 #ifdef USE_PITOT
 /*
 0x0A Airspeed sensor
@@ -848,9 +835,11 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
     case CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR:
         crsfFrameBarometerAltitudeVarioSensor(sbuf);
         break;
+#ifdef USE_PITOT
     case CRSF_FRAMETYPE_AIRSPEED_SENSOR:
         crsfFrameAirSpeedSensor(sbuf);
         break;
+#endif
     }  
     const int frameSize = crsfFinalizeBuf(sbuf, frame);
     return frameSize;
