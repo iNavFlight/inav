@@ -441,7 +441,7 @@ static void mspSerializeServoMixer(sbuf_t *dst, const servoMixer_t *m)
 #ifdef USE_PROGRAMMING_FRAMEWORK
     sbufWriteU8(dst, m->conditionId);
 #else
-    sbufWriteU8(dst, 0xFF);
+    sbufWriteU8(dst, -1);
 #endif
 }
 
