@@ -4218,7 +4218,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
-#ifdef USE_GPS
+#if defined(USE_BARO) || defined(USE_GPS)
     case MSP2_INAV_SET_ALT_TARGET:
         if (dataSize != (sizeof(int32_t) + sizeof(uint8_t))) {
             *ret = MSP_RESULT_ERROR;
