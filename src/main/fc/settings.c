@@ -124,12 +124,14 @@ const setting_t *settingFind(const char *name)
 	return NULL;
 }
 
-const setting_t *settingGet(unsigned index)
+// noinline: LTO inlines these with divergent settingsTable base addresses,
+// breaking the settingGetIndex -> settingGet round-trip.
+__attribute__((noinline)) const setting_t *settingGet(unsigned index)
 {
 	return index < SETTINGS_TABLE_COUNT ? &settingsTable[index] : NULL;
 }
 
-unsigned settingGetIndex(const setting_t *val)
+__attribute__((noinline)) unsigned settingGetIndex(const setting_t *val)
 {
 	return val - settingsTable;
 }
