@@ -22,6 +22,8 @@ See the other documentation sections for details of the cli commands and setting
 
 ## Backup via CLI
 
+> **Note:** The INAV Configurator now performs automatic backups before flashing and can restore settings afterwards, including migration across major versions. See [Backup and Restore](Backup%20and%20Restore.md) for details. The CLI method below remains available for manual backup.
+
 Disconnect main power, connect to cli via USB/FTDI.
 
 dump using cli

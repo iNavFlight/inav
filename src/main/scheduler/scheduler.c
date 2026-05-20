@@ -19,6 +19,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#if defined(SITL_BUILD)
+#include <unistd.h>
+#endif
+
 #include "platform.h"
 
 #include "scheduler.h"
@@ -215,11 +219,22 @@ void FAST_CODE NOINLINE scheduler(void)
     uint16_t selectedTaskDynamicPriority = 0;
     bool forcedRealTimeTask = false;
 
+#if defined(SITL_BUILD)
+    // Track the earliest time at which the next task will become due so we can
+    // sleep until then instead of busy-waiting.  Cap at 1 ms so event-driven
+    // tasks (checkFunc) are still polled frequently enough.
+    timeUs_t sitlEarliestNextTaskAt = currentTimeUs + 1000;
+    bool sitlHasCheckFuncTask = false;
+#endif
+
     // Update task dynamic priorities
     uint16_t waitingTasks = 0;
     for (cfTask_t *task = queueFirst(); task != NULL; task = queueNext()) {
         // Task has checkFunc - event driven
         if (task->checkFunc) {
+#if defined(SITL_BUILD)
+            sitlHasCheckFuncTask = true;
+#endif
             const timeUs_t currentTimeBeforeCheckFuncCallUs = micros();
 
             // Increase priority for event driven tasks
@@ -248,7 +263,19 @@ void FAST_CODE NOINLINE scheduler(void)
                 waitingTasks++;
                 forcedRealTimeTask = true;
             }
+#if defined(SITL_BUILD)
+            const timeUs_t taskNextAt = task->lastExecutedAt + (timeUs_t)task->desiredPeriod;
+            if (taskNextAt < sitlEarliestNextTaskAt) {
+                sitlEarliestNextTaskAt = taskNextAt;
+            }            
+#endif
         } else {
+#if defined(SITL_BUILD)
+            const timeUs_t taskNextAt = task->lastExecutedAt + (timeUs_t)task->desiredPeriod;
+            if (taskNextAt < sitlEarliestNextTaskAt) {
+                sitlEarliestNextTaskAt = taskNextAt;
+            }            
+#endif
             // Task is time-driven, dynamicPriority is last execution age (measured in desiredPeriods)
             // Task age is calculated from last execution
             task->taskAgeCycles = ((timeDelta_t)(currentTimeUs - task->lastExecutedAt)) / task->desiredPeriod;
@@ -294,4 +321,27 @@ void FAST_CODE NOINLINE scheduler(void)
         selectedTask->totalExecutionTime += taskExecutionTime;   // time consumed by scheduler + task
         selectedTask->maxExecutionTime = MAX(selectedTask->maxExecutionTime, taskExecutionTime);
     }
+
+#if defined(SITL_BUILD)
+    {
+        // Avoid busy-waiting and burning 100% CPU in SITL.  After executing the
+        // current task (or finding nothing to do), sleep until just before the
+        // next task is due.  For event-driven tasks (checkFunc) we limit the
+        // sleep so the check function is still called frequently.
+        if (sitlHasCheckFuncTask) {
+            // Poll event-driven tasks at least every 500 µs
+            const timeUs_t eventCap = micros() + 500;
+            if (eventCap < sitlEarliestNextTaskAt) {
+                sitlEarliestNextTaskAt = eventCap;
+            }
+        }
+        const timeUs_t nowUs = micros();
+        if (sitlEarliestNextTaskAt > nowUs + 50) {
+            const timeDelta_t sleepUs = (timeDelta_t)(sitlEarliestNextTaskAt - nowUs) - 50;
+            if (sleepUs > 0) {
+                usleep((useconds_t)sleepUs);
+            }
+        }
+    }
+#endif
 }

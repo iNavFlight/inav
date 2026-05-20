@@ -11,7 +11,7 @@ expected="$(awk '{print $1}' msp_messages.checksum)"
 echo "Hash:" $actual
 if [[ "$actual" != "$expected" ]]; then
   n="$(cat rev)"
-  printf '%d' "$(n + 1)" > rev
+  printf '%d' "$((n + 1))" > rev
   echo "File changed, incrementing revision"
   echo $actual > msp_messages.checksum
 fi

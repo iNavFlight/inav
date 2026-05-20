@@ -54,7 +54,7 @@
 static serialPort_t * logPort = NULL;
 static mspPort_t * mspLogPort = NULL;
 
-PG_REGISTER(logConfig_t, logConfig, PG_LOG_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(logConfig_t, logConfig, PG_LOG_CONFIG, 0);
 
 PG_RESET_TEMPLATE(logConfig_t, logConfig,
     .level = SETTING_LOG_LEVEL_DEFAULT,
