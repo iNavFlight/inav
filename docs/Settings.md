@@ -4434,29 +4434,31 @@ If GPS fails wait for this much seconds before switching to emergency landing mo
 
 ---
 
-### nav_precision_landing
+### nav_marker_guidance_mode
 
-Enable MSP-based precision landing target consumption. This does not trigger mode changes on its own.
+Marker-guidance mode selector (master enable gate). `OFF` disables marker guidance.
 
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### nav_precision_landing_align_radius_cm
-
-Horizontal radius considered close enough to center for precision-alignment quality checks [cm].
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 80 | 10 | 2000 |
+| Allowed Values |  |
+| --- | --- |
+| OFF | Default |
+| PL |  |
+| CONTAINMENT |  |
 
 ---
 
-### nav_precision_landing_lost_hold_time_ms
+### nav_marker_guidance_radius_cm
 
-Hold duration after target loss before climb-and-retry starts [ms].
+Marker-guidance radius [cm]. In PL, this is the center-alignment deadband around marker center. In CONTAINMENT, this is the allowed radius around marker-containment hold target. Set 0 for continuous correction.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 80 | 0 | 5000 |
+
+---
+
+### nav_marker_guidance_lost_hold_time_ms
+
+Hold duration after target loss before falling back to normal LAND behavior [ms].
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4464,17 +4466,27 @@ Hold duration after target loss before climb-and-retry starts [ms].
 
 ---
 
-### nav_precision_landing_max_correction_speed_cm_s
+### nav_marker_containment_hold_north_cm
 
-Maximum horizontal correction speed generated from target offset [cm/s].
+Marker-relative hold target for vehicle North position [cm], relative to marker. Positive means vehicle should stay North of marker.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 100 | 10 | 1000 |
+| 0 | -5000 | 5000 |
 
 ---
 
-### nav_precision_landing_max_offset_cm
+### nav_marker_containment_hold_east_cm
+
+Marker-relative hold target for vehicle East position [cm], relative to marker. Positive means vehicle should stay East of marker.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -5000 | 5000 |
+
+---
+
+### nav_marker_guidance_max_offset_cm
 
 Maximum allowed horizontal target offset magnitude. Larger offsets are rejected [cm]. Set 0 to disable this check.
 
@@ -4484,9 +4496,9 @@ Maximum allowed horizontal target offset magnitude. Larger offsets are rejected 
 
 ---
 
-### nav_precision_landing_max_target_age_ms
+### nav_marker_guidance_max_target_age_ms
 
-Maximum age of a cached precision target that can still be used [ms].
+Maximum age of cached marker data [ms]. If no fresh packet arrives inside this window, target becomes stale/lost and marker guidance stops affecting navigation.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4494,19 +4506,9 @@ Maximum age of a cached precision target that can still be used [ms].
 
 ---
 
-### nav_precision_landing_min_confidence
+### nav_marker_guidance_retry_altitude_cm
 
-Minimum confidence required to accept/use a precision landing target update [0..100].
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 60 | 0 | 100 |
-
----
-
-### nav_precision_landing_retry_altitude_cm
-
-Climb distance for each retry attempt after target loss [cm].
+Climb distance for each retry attempt after target loss in PL mode LAND context [cm].
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4514,9 +4516,9 @@ Climb distance for each retry attempt after target loss [cm].
 
 ---
 
-### nav_precision_landing_retry_count
+### nav_marker_guidance_retry_count
 
-Maximum number of climb-and-retry attempts after target loss.
+Maximum number of climb-and-retry attempts after target loss in PL mode LAND context.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4524,9 +4526,9 @@ Maximum number of climb-and-retry attempts after target loss.
 
 ---
 
-### nav_precision_landing_retry_timeout_ms
+### nav_marker_guidance_retry_timeout_ms
 
-Timeout for each climb-and-retry phase [ms]. Set to 0 for AUTO mode (computed as 2 x nav_precision_landing_lost_hold_time_ms).
+Timeout for each climb-and-retry phase in PL mode LAND context [ms]. Set to 0 for AUTO mode (computed as 2 x nav_marker_guidance_lost_hold_time_ms).
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4534,9 +4536,9 @@ Timeout for each climb-and-retry phase [ms]. Set to 0 for AUTO mode (computed as
 
 ---
 
-### nav_precision_landing_source
+### nav_marker_guidance_source
 
-Precision landing target source.
+Marker-guidance target source.
 
 | Allowed Values |  |
 | --- | --- |
@@ -7237,4 +7239,3 @@ Defines rotation rate on YAW axis that UAV will try to archive on max. stick def
 | 20 | 1 | 180 |
 
 ---
-

@@ -449,7 +449,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8731 - MSP2_INAV_NAV_TARGET](#msp2_inav_nav_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [8737 - MSP2_INAV_SET_WP_INDEX](#msp2_inav_set_wp_index)  
-[8753 - MSP2_INAV_SET_PRECISION_LANDING_TARGET](#msp2_inav_set_precision_landing_target)  
+[8753 - MSP2_INAV_SET_MARKER_GUIDANCE_TARGET](#msp2_inav_set_marker_guidance_target)  
 [8739 - MSP2_INAV_SET_CRUISE_HEADING](#msp2_inav_set_cruise_heading)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
@@ -4699,30 +4699,25 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Notes:** Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.
 
-## <a id="msp2_inav_set_precision_landing_target"></a>`MSP2_INAV_SET_PRECISION_LANDING_TARGET (8753 / 0x2231)`
-**Description:** Updates the external precision-landing target cache used by NAV precision landing. This message does not arm/disarm, does not switch flight modes, and does not start landing by itself.
+## <a id="msp2_inav_set_marker_guidance_target"></a>`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET (8753 / 0x2231)`
+**Description:** Updates the external marker target sample used by marker-guidance NAV correction. This message does not arm/disarm, does not switch flight modes, and does not start landing by itself.
 
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
-| `valid` | `uint8_t` | 1 | - | 0 clears/invalidates target, non-zero marks update as valid |
-| `confidence` | `uint8_t` | 1 | percent | External confidence [0..100] |
-| `frame` | `uint8_t` | 1 | enum | Target frame. Current implementation supports `0` = body FRD |
-| `offset_forward_cm` | `int16_t` | 2 | cm | Target offset forward from vehicle body origin |
-| `offset_right_cm` | `int16_t` | 2 | cm | Target offset right from vehicle body origin |
-| `distance_cm` | `uint16_t` | 2 | cm | Optional distance to target (`0` if unknown) |
-| `timestamp_ms` | `uint32_t` | 4 | ms | Optional companion timestamp (`0` allowed, informational/debug) |
+| `offset_forward_cm` | `int16_t` | 2 | cm | Marker offset forward from vehicle body origin |
+| `offset_right_cm` | `int16_t` | 2 | cm | Marker offset right from vehicle body origin |
 
 **Reply Payload:**
 |Field|C Type|Size (Bytes)|Description|
 |---|---|---|---|
 | `accepted` | `uint8_t` | 1 | Payload accepted into target-processing path |
 | `used_now` | `uint8_t` | 1 | Target is currently influencing navigation correction |
-| `nav_precision_state` | `uint8_t` | 1 | Internal precision-landing state |
-| `reason` | `uint8_t` | 1 | Result reason (`OK`, `NOT_ENABLED`, `LOW_CONFIDENCE`, `BAD_FRAME`, `STALE`, `OFFSET_TOO_LARGE`, `NOT_MC_PROFILE`, `NOT_IN_POSHOLD_OR_LAND`, etc.) |
-| `retry_count` | `uint8_t` | 1 | Active retry attempt count |
+| `nav_guidance_state` | `uint8_t` | 1 | Internal marker-guidance state |
+| `reason` | `uint8_t` | 1 | Result reason (`OK`, `NOT_ENABLED`, `STALE`, `OFFSET_TOO_LARGE`, `NOT_MC_PROFILE`, `NOT_IN_POSHOLD_OR_LAND`, etc.) |
+| `retry_count` | `uint8_t` | 1 | Current retry-attempt counter in PL LAND retry flow |
 
-**Notes:** Available only when firmware is built with `USE_PRECISION_LANDING`. Precision corrections are only applied in MC/VTOL-hover-capable profile and only in POSHOLD/LAND-compatible contexts. Outside those contexts, valid updates may still be cached (`used_now = 0`). Freshness is evaluated using FC receive time, not companion clock synchronization.
+**Notes:** Hard break: request payload is now fixed at **4 bytes** (`int16_t`, `int16_t`). Legacy request fields `valid`, `confidence`, `frame`, `timestamp_ms`, and `distance_cm` were removed. Companion implementations must migrate to the new layout. Available only when firmware is built with `USE_MARKER_GUIDANCE`. Corrections are mode-gated to MC/VTOL-hover-capable POSHOLD/LAND contexts; outside those contexts updates may still be cached (`used_now = 0`). Freshness is evaluated using FC receive time.
 
 ## <a id="msp2_inav_set_cruise_heading"></a>`MSP2_INAV_SET_CRUISE_HEADING (8739 / 0x2223)`
 **Description:** Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading.  

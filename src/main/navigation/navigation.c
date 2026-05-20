@@ -56,8 +56,8 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
-#ifdef USE_PRECISION_LANDING
-#include "navigation/precision_landing.h"
+#ifdef USE_MARKER_GUIDANCE
+#include "navigation/marker_guidance.h"
 #endif
 #include "navigation/rth_trackback.h"
 
@@ -180,18 +180,18 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_linear_descent_start_distance = SETTING_NAV_RTH_LINEAR_DESCENT_START_DISTANCE_DEFAULT,
         .cruise_yaw_rate = SETTING_NAV_CRUISE_YAW_RATE_DEFAULT,                                 // 20dps
         .rth_fs_landing_delay = SETTING_NAV_RTH_FS_LANDING_DELAY_DEFAULT,                       // Delay before landing in FS. 0 = immedate landing
-#ifdef USE_PRECISION_LANDING
-        .precision_landing = SETTING_NAV_PRECISION_LANDING_DEFAULT,
-        .precision_landing_source = SETTING_NAV_PRECISION_LANDING_SOURCE_DEFAULT,
-        .precision_landing_min_confidence = SETTING_NAV_PRECISION_LANDING_MIN_CONFIDENCE_DEFAULT,
-        .precision_landing_max_target_age_ms = SETTING_NAV_PRECISION_LANDING_MAX_TARGET_AGE_MS_DEFAULT,
-        .precision_landing_max_offset_cm = SETTING_NAV_PRECISION_LANDING_MAX_OFFSET_CM_DEFAULT,
-        .precision_landing_align_radius_cm = SETTING_NAV_PRECISION_LANDING_ALIGN_RADIUS_CM_DEFAULT,
-        .precision_landing_max_correction_speed_cm_s = SETTING_NAV_PRECISION_LANDING_MAX_CORRECTION_SPEED_CM_S_DEFAULT,
-        .precision_landing_lost_hold_time_ms = SETTING_NAV_PRECISION_LANDING_LOST_HOLD_TIME_MS_DEFAULT,
-        .precision_landing_retry_count = SETTING_NAV_PRECISION_LANDING_RETRY_COUNT_DEFAULT,
-        .precision_landing_retry_altitude_cm = SETTING_NAV_PRECISION_LANDING_RETRY_ALTITUDE_CM_DEFAULT,
-        .precision_landing_retry_timeout_ms = SETTING_NAV_PRECISION_LANDING_RETRY_TIMEOUT_MS_DEFAULT,
+#ifdef USE_MARKER_GUIDANCE
+        .marker_guidance_mode = SETTING_NAV_MARKER_GUIDANCE_MODE_DEFAULT,
+        .marker_guidance_source = SETTING_NAV_MARKER_GUIDANCE_SOURCE_DEFAULT,
+        .marker_guidance_max_target_age_ms = SETTING_NAV_MARKER_GUIDANCE_MAX_TARGET_AGE_MS_DEFAULT,
+        .marker_guidance_max_offset_cm = SETTING_NAV_MARKER_GUIDANCE_MAX_OFFSET_CM_DEFAULT,
+        .marker_guidance_radius_cm = SETTING_NAV_MARKER_GUIDANCE_RADIUS_CM_DEFAULT,
+        .marker_containment_hold_north_cm = SETTING_NAV_MARKER_CONTAINMENT_HOLD_NORTH_CM_DEFAULT,
+        .marker_containment_hold_east_cm = SETTING_NAV_MARKER_CONTAINMENT_HOLD_EAST_CM_DEFAULT,
+        .marker_guidance_lost_hold_time_ms = SETTING_NAV_MARKER_GUIDANCE_LOST_HOLD_TIME_MS_DEFAULT,
+        .marker_guidance_retry_count = SETTING_NAV_MARKER_GUIDANCE_RETRY_COUNT_DEFAULT,
+        .marker_guidance_retry_altitude_cm = SETTING_NAV_MARKER_GUIDANCE_RETRY_ALTITUDE_CM_DEFAULT,
+        .marker_guidance_retry_timeout_ms = SETTING_NAV_MARKER_GUIDANCE_RETRY_TIMEOUT_MS_DEFAULT,
 #endif
     },
 
@@ -1900,20 +1900,20 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         descentVelLimited = constrainf(descentVelScaled, navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
     }
 
-    bool precisionLandingVerticalOverride = false;
-#ifdef USE_PRECISION_LANDING
-    precisionLandingLandControl_t precisionLandControl = { 0 };
-    precisionLandingGetLandControl(&precisionLandControl);
+    bool markerGuidanceVerticalOverride = false;
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceLandControl_t markerGuidanceControl = { 0 };
+    markerGuidanceGetLandControl(&markerGuidanceControl);
 
-    if (precisionLandControl.mode == PREC_LAND_LAND_CTRL_HOLD) {
+    if (markerGuidanceControl.mode == MARKER_GUIDANCE_LAND_CTRL_HOLD) {
         updateClimbRateToAltitudeController(0.0f, 0.0f, ROC_TO_ALT_CONSTANT);
-        precisionLandingVerticalOverride = true;
-    } else if (precisionLandControl.mode == PREC_LAND_LAND_CTRL_CLIMB) {
-        updateClimbRateToAltitudeController(precisionLandControl.rateCmS, 0.0f, ROC_TO_ALT_CONSTANT);
-        precisionLandingVerticalOverride = true;
+        markerGuidanceVerticalOverride = true;
+    } else if (markerGuidanceControl.mode == MARKER_GUIDANCE_LAND_CTRL_CLIMB) {
+        updateClimbRateToAltitudeController(markerGuidanceControl.rateCmS, 0.0f, ROC_TO_ALT_CONSTANT);
+        markerGuidanceVerticalOverride = true;
     }
 #endif
-    if (!precisionLandingVerticalOverride) {
+    if (!markerGuidanceVerticalOverride) {
         updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
     }
 
@@ -2723,8 +2723,8 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
     }
 
     NAV_Status.state = navFSM[posControl.navState].mwState;
-#ifdef USE_PRECISION_LANDING
-    NAV_Status.state = precisionLandingOverrideNavStatusState(NAV_Status.state);
+#ifdef USE_MARKER_GUIDANCE
+    NAV_Status.state = markerGuidanceOverrideNavStatusState(NAV_Status.state);
 #endif
     NAV_Status.error = navFSM[posControl.navState].mwError;
 
@@ -4419,8 +4419,8 @@ void applyWaypointNavigationAndAltitudeHold(void)
         posControl.activeWaypointIndex = posControl.startWpIndex;
         // Reset RTH trackback
         resetRthTrackBack();
-#ifdef USE_PRECISION_LANDING
-        precisionLandingReset();
+#ifdef USE_MARKER_GUIDANCE
+        markerGuidanceReset();
 #endif
 
 #ifdef USE_GEOZONE
@@ -4442,8 +4442,8 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
-#ifdef USE_PRECISION_LANDING
-    precisionLandingUpdate(navStateFlags, currentTimeUs);
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceUpdate(navStateFlags, currentTimeUs);
 #endif
 
     if (STATE(ROVER) || STATE(BOAT)) {
@@ -5138,8 +5138,8 @@ void navigationInit(void)
 
     /* Reset statistics */
     posControl.totalTripDistance = 0.0f;
-#ifdef USE_PRECISION_LANDING
-    precisionLandingReset();
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceReset();
 #endif
 
     /* Use system config */

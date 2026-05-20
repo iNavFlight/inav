@@ -50,8 +50,8 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
-#ifdef USE_PRECISION_LANDING
-#include "navigation/precision_landing.h"
+#ifdef USE_MARKER_GUIDANCE
+#include "navigation/marker_guidance.h"
 #endif
 #include "navigation/sqrt_controller.h"
 
@@ -537,9 +537,9 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     posControl.desiredState.vel.x = neuVelX * velHeadFactor * velExpoFactor;
     posControl.desiredState.vel.y = neuVelY * velHeadFactor * velExpoFactor;
 
-    // Optional external precision landing/alignment correction (MC/VTOL hover contexts only).
-#ifdef USE_PRECISION_LANDING
-    precisionLandingApplyHorizontalVelocityCorrection(&posControl.desiredState.vel.x, &posControl.desiredState.vel.y);
+    // Optional external marker-guidance correction (MC/VTOL hover contexts only).
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceApplyHorizontalVelocityCorrection(&posControl.desiredState.vel.x, &posControl.desiredState.vel.y);
 #endif
 }
 

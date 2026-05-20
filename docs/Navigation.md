@@ -38,99 +38,69 @@ PID meaning:
 * POS - translated position error to desired velocity, uses P term only
 * POSR - translates velocity error to desired acceleration
 
-## Precision Landing Target Consumer (MSP)
+## Marker Guidance Target Consumer (MSP)
 
-INAV can consume externally computed precision-landing target offsets over MSP.
-INAV only consumes target updates.
+INAV can consume externally computed marker offsets over MSP and use them for:
+1. precision landing alignment
+2. marker-relative position hold in POSHOLD
+3. marker-relative containment (indoor limiter behavior)
 
 ### Build-time availability
-This feature is compiled only when `USE_PRECISION_LANDING` is enabled for the target.
+This feature is compiled only when `USE_MARKER_GUIDANCE` is enabled for the target.
 On flash-constrained targets, it can be excluded at build time to preserve headroom.
 
-### Core behavior
-* `nav_precision_landing` enables/disables this feature.
-* `MSP2_INAV_SET_PRECISION_LANDING_TARGET` updates a target cache and returns acceptance/use status.
-* Target updates do **not** arm/disarm, do **not** switch modes, and do **not** start LAND/POSHOLD by themselves.
-* Corrections are applied only when:
-  * active profile is MC/VTOL-hover-capable, and
-  * current navigation context is POSHOLD-compatible or LAND-compatible.
-* In fixed-wing profile, updates may be cached but are not used for correction.
+### MSP payload
+`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET` request payload is 4 bytes:
+* `int16_t offsetForwardCm`
+* `int16_t offsetRightCm`
 
-### Scope and limits
-Precision landing here is a **final alignment/correction layer**.
-It does not replace normal waypoint/home navigation and it does not solve high-speed approach planning by itself.
+* every received packet is treated as a fresh target sample
+* target freshness is based on FC receive time (`nav_marker_guidance_max_target_age_ms`)
 
-Recommended VTOL flow:
-1. transition to MC / hover-capable control
-2. controlled low-speed arrival near landing zone
-3. precision target alignment in POSHOLD
-4. precision correction during LAND
+### Mode gating
+Marker guidance can influence navigation only when:
+* active profile is MC/VTOL-hover-capable
+* `nav_marker_guidance_mode` is not `OFF`
 
-### Why not `SET_WP`?
-`SET_WP` is a navigation target command interface.
-Precision landing target updates are external measurement inputs with validity/confidence/age semantics and target-loss handling.
-
-This feature intentionally keeps those semantics bounded to MC POSHOLD/LAND correction, rather than repeatedly rewriting mission/waypoint targets.
+Outside those contexts, updates may still be cached but do not affect navigation loops.
 
 ### POSHOLD behavior
-When a fresh/valid target exists, horizontal correction is applied to improve alignment above the target.
-Descent is not started automatically in POSHOLD.
+When `nav_marker_guidance_mode = PL`:
+* FC uses marker offsets to center above the target in POSHOLD.
+
+When `nav_marker_guidance_mode = CONTAINMENT`:
+* FC uses marker-relative hold target:
+  * `nav_marker_containment_hold_north_cm`
+  * `nav_marker_containment_hold_east_cm`
+* FC applies containment behavior with `nav_marker_guidance_radius_cm`:
+  * inside radius: no correction
+  * outside radius: FC corrects back toward allowed boundary
 
 ### LAND behavior
-When LAND is active and target data is fresh/valid, INAV applies horizontal correction through normal navigation controllers.
-Vertical descent profile remains the standard INAV LAND behavior (`nav_land_*` settings).
-If target is not available at LAND entry, normal landing behavior is used.
+When `nav_marker_guidance_mode = PL` and target is fresh:
+* FC performs precision horizontal alignment to marker center during LAND
+* vertical descent profile remains normal LAND behavior (`nav_land_*`)
 
-### Lost target recovery
-If target is lost after precision correction already became active:
-1. HOLD (`nav_precision_landing_lost_hold_time_ms`)
-2. CLIMB_AND_RETRY (`nav_precision_landing_retry_altitude_cm`, `nav_precision_landing_retry_timeout_ms`)
-3. Repeat up to `nav_precision_landing_retry_count`
-4. Fallback to normal landing
+With stale/lost target:
+* FC enters hold for `nav_marker_guidance_lost_hold_time_ms`
+* optionally performs climb-and-retry up to `nav_marker_guidance_retry_count`
+* then falls back to normal LAND behavior
 
-### Key settings
-You do not need to tune all settings on day 1. Start with the minimum set, then tune only if needed.
+Retry safety rule:
+* retry is only entered if target was acquired at least once in the current LAND context
+* if no target was ever acquired in that LAND context, no retry is performed
 
-Minimum required:
-* `nav_precision_landing`: Master enable.  
-  `OFF` keeps legacy behavior unchanged. `ON` allows precision-target consumption in MC/VTOL POSHOLD/LAND contexts.
-* `nav_precision_landing_source`: Target source selector (currently `MSP` only).  
-  Keep at `MSP`.
-* `nav_precision_landing_min_confidence`: Reject low-confidence target reports.  
-  Example: `60` accepts detections >= 60%; raising to `75` reduces false positives but may drop valid detections in poor light.
-* `nav_precision_landing_max_target_age_ms`: Freshness limit for cached targets.  
-  Example: at 20 Hz companion update rate (~50 ms period), `500` ms is tolerant; `200` ms is stricter and avoids stale corrections.
+### Shared radius setting
+`nav_marker_guidance_radius_cm` is used by both modes:
+* `PL`: center-alignment deadband around marker center
+* `CONTAINMENT`: allowed radius around marker-containment hold target
+* `0`: continuous correction (no deadband/boundary allowance)
 
-Recommended for first field tests:
-* `nav_precision_landing_max_correction_speed_cm_s`: Horizontal correction clamp.  
-  Example: `80-120` cm/s is conservative for small/medium copters; higher values react faster but can look aggressive near touchdown.
-* `nav_precision_landing_align_radius_cm`: Radius treated as close-enough center reference for alignment quality checks.  
-  Example: `60-100` cm for MVP tests.
-
-Safety and fault-handling settings:
-* `nav_precision_landing_max_offset_cm`: Hard bound on accepted offset magnitude.  
-  Example: `1500` cm rejects obviously wrong detections. Set `0` to disable this check.
-* `nav_precision_landing_lost_hold_time_ms`: Time to hold after target loss before retry climb.  
-  Example: `1200-2000` ms to allow short vision dropouts to recover without immediate climb.
-* `nav_precision_landing_retry_count`: Number of retry attempts before fallback to normal landing.  
-  Example: `2` gives two climb/reacquire attempts.
-* `nav_precision_landing_retry_altitude_cm`: Climb distance per retry.  
-  Example: `150-300` cm can improve camera view/FOV.
-* `nav_precision_landing_retry_timeout_ms`: Max retry phase duration.  
-  `0` = AUTO mode, computed as `2 x nav_precision_landing_lost_hold_time_ms`.  
-  Example: with `lost_hold=1500`, AUTO timeout becomes `3000` ms.
-
-Suggested starter profile (conservative):
-* `nav_precision_landing = ON`
-* `nav_precision_landing_source = MSP`
-* `nav_precision_landing_min_confidence = 60`
-* `nav_precision_landing_max_target_age_ms = 500`
-* `nav_precision_landing_max_correction_speed_cm_s = 100`
-* `nav_precision_landing_align_radius_cm = 80`
-* `nav_precision_landing_lost_hold_time_ms = 1500`
-* `nav_precision_landing_retry_count = 2`
-* `nav_precision_landing_retry_altitude_cm = 200`
-* `nav_precision_landing_retry_timeout_ms = 0` (AUTO)
+### Core safety semantics
+* new packet == fresh target sample
+* no packet inside timeout window == target lost
+* horizontal marker-guidance correction is capped by current active navigation speed limit (`getActiveSpeed()`)
+* no dynamic allocation in the runtime path
 
 ## NAV RTH - return to home mode
 

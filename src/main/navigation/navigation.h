@@ -386,10 +386,16 @@ typedef struct positionEstimationConfig_s {
 
 PG_DECLARE(positionEstimationConfig_t, positionEstimationConfig);
 
-#ifdef USE_PRECISION_LANDING
+#ifdef USE_MARKER_GUIDANCE
 typedef enum {
-    NAV_PRECISION_LANDING_SOURCE_MSP = 0,
-} navPrecisionLandingSource_e;
+    NAV_MARKER_GUIDANCE_SOURCE_MSP = 0,
+} navMarkerGuidanceSource_e;
+
+typedef enum {
+    NAV_MARKER_GUIDANCE_MODE_OFF = 0,
+    NAV_MARKER_GUIDANCE_MODE_PL,
+    NAV_MARKER_GUIDANCE_MODE_CONTAINMENT,
+} navMarkerGuidanceMode_e;
 #endif
 
 typedef struct navConfig_s {
@@ -447,18 +453,18 @@ typedef struct navConfig_s {
         uint16_t rth_linear_descent_start_distance; // Distance from home to start the linear descent (0 = immediately)
         uint8_t  cruise_yaw_rate;                   // Max yaw rate (dps) when CRUISE MODE is enabled
         uint16_t rth_fs_landing_delay;              // Delay upon reaching home before starting landing if in FS (0 = immediate)
-#ifdef USE_PRECISION_LANDING
-        bool     precision_landing;                 // Enable MSP-driven precision landing target consumer
-        uint8_t  precision_landing_source;          // navPrecisionLandingSource_e
-        uint8_t  precision_landing_min_confidence;  // [0..100]
-        uint16_t precision_landing_max_target_age_ms;
-        uint16_t precision_landing_max_offset_cm;
-        uint16_t precision_landing_align_radius_cm;
-        uint16_t precision_landing_max_correction_speed_cm_s;
-        uint16_t precision_landing_lost_hold_time_ms;
-        uint8_t  precision_landing_retry_count;
-        uint16_t precision_landing_retry_altitude_cm;
-        uint16_t precision_landing_retry_timeout_ms;
+#ifdef USE_MARKER_GUIDANCE
+        uint8_t  marker_guidance_mode;            // navMarkerGuidanceMode_e
+        uint8_t  marker_guidance_source;          // navMarkerGuidanceSource_e
+        uint16_t marker_guidance_max_target_age_ms;
+        uint16_t marker_guidance_max_offset_cm;
+        uint16_t marker_guidance_radius_cm;
+        int16_t  marker_containment_hold_north_cm;
+        int16_t  marker_containment_hold_east_cm;
+        uint16_t marker_guidance_lost_hold_time_ms;
+        uint8_t  marker_guidance_retry_count;
+        uint16_t marker_guidance_retry_altitude_cm;
+        uint16_t marker_guidance_retry_timeout_ms;
 #endif
     } general;
 
@@ -645,13 +651,13 @@ typedef enum {
     MW_NAV_STATE_HOVER_ABOVE_HOME,        // Hover/Loitering above home
     MW_NAV_STATE_EMERGENCY_LANDING,       // Emergency landing
     MW_NAV_STATE_RTH_CLIMB,               // RTH Climb safe altitude
-#ifdef USE_PRECISION_LANDING
-    MW_NAV_STATE_PRECISION_LANDING_STANDBY,
-    MW_NAV_STATE_PRECISION_LANDING_POSHOLD_CORRECTION,
-    MW_NAV_STATE_PRECISION_LANDING_LAND_CORRECTION,
-    MW_NAV_STATE_PRECISION_LANDING_TARGET_LOST_HOLD,
-    MW_NAV_STATE_PRECISION_LANDING_CLIMB_AND_RETRY,
-    MW_NAV_STATE_PRECISION_LANDING_FALLBACK_NORMAL_LAND,
+#ifdef USE_MARKER_GUIDANCE
+    MW_NAV_STATE_MARKER_GUIDANCE_STANDBY,
+    MW_NAV_STATE_MARKER_GUIDANCE_POSHOLD_CORRECTION,
+    MW_NAV_STATE_MARKER_GUIDANCE_LAND_CORRECTION,
+    MW_NAV_STATE_MARKER_GUIDANCE_TARGET_LOST_HOLD,
+    MW_NAV_STATE_MARKER_GUIDANCE_CLIMB_AND_RETRY,
+    MW_NAV_STATE_MARKER_GUIDANCE_FALLBACK_NORMAL_LAND,
 #endif
 } navSystemStatus_State_e;
 
