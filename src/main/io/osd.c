@@ -449,6 +449,7 @@ int osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, bo
             unitSym = SYM_MPH; unit3dSym = SYM_3D_MPH; break;
         case OSD_UNIT_GA:
             unitSym = SYM_KT;  unit3dSym = SYM_3D_KT;  break;
+        case OSD_UNIT_METRIC:
         default:
             unitSym = SYM_KMH; unit3dSym = SYM_3D_KMH; break;
     }
