@@ -416,6 +416,14 @@ static void mspDeserializeServoParams(sbuf_t *src, uint8_t servoIndex)
     servoComputeScalingFactors(servoIndex);
 }
 
+static void mspSerializeServoParams(sbuf_t *dst, const servoParam_t *sp)
+{
+    sbufWriteU16(dst, sp->min);
+    sbufWriteU16(dst, sp->max);
+    sbufWriteU16(dst, sp->middle);
+    sbufWriteU8(dst, sp->rate);
+}
+
 static void mspSerializeMotorMixer(sbuf_t *dst, const motorMixer_t *m)
 {
     sbufWriteU16(dst, constrainf(m->throttle + 2.0f, 0.0f, 4.0f) * 1000);
@@ -592,10 +600,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP_SERVO_CONFIGURATIONS:
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            sbufWriteU16(dst, servoParams(i)->min);
-            sbufWriteU16(dst, servoParams(i)->max);
-            sbufWriteU16(dst, servoParams(i)->middle);
-            sbufWriteU8(dst, servoParams(i)->rate);
+            mspSerializeServoParams(dst, servoParams(i));
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 255); // used to be forwardFromChannel, not used anymore, send 0xff for compatibility reasons
@@ -604,10 +609,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP2_INAV_SERVO_CONFIG:
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            sbufWriteU16(dst, servoParams(i)->min);
-            sbufWriteU16(dst, servoParams(i)->max);
-            sbufWriteU16(dst, servoParams(i)->middle);
-            sbufWriteU8(dst, servoParams(i)->rate);
+            mspSerializeServoParams(dst, servoParams(i));
         }
         break;
     case MSP_SERVO_MIX_RULES:
