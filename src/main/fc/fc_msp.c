@@ -383,6 +383,7 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 }
 #endif
 
+// Calibration data is stored as int16_t but transmitted as raw bytes via sbufWriteU16.
 static void sbufWriteAxisU16(sbuf_t *dst, const int16_t *arr)
 {
     sbufWriteU16(dst, arr[X]);
@@ -399,7 +400,7 @@ static void sbufReadAxisU16(sbuf_t *src, int16_t *arr)
 
 static void mspReadRates(sbuf_t *src, uint8_t *rates)
 {
-    for (uint8_t i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) {
         uint8_t v = sbufReadU8(src);
         rates[i] = (i == FD_YAW) ? constrain(v, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX)
                                   : constrain(v, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);

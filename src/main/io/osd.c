@@ -1849,22 +1849,24 @@ static void osdFormatAngleDeg(char *buff, char sym, bool valid, int16_t degrees)
     buff[5] = '\0';
 }
 
+// rawValue must be pre-computed by the caller; this function owns the GPS/speed
+// guard and returns 0 (show dashes) when GPS is absent or speed is zero.
 static int32_t osdUpdateEfficiencyFilter(pt1Filter_t *state, timeUs_t *lastUpdated, float rawValue)
 {
-    timeUs_t currentTimeUs = micros();
-    timeDelta_t delta = cmpTimeUs(currentTimeUs, *lastUpdated);
-    if ((STATE(GPS_FIX)
+    if (!(STATE(GPS_FIX)
 #ifdef USE_GPS_FIX_ESTIMATION
         || STATE(GPS_ESTIMATED_FIX)
 #endif
-        ) && gpsSol.groundSpeed > 0) {
-        if (delta >= EFFICIENCY_UPDATE_INTERVAL) {
-            pt1FilterApply4(state, rawValue, 1, US2S(delta));
-            *lastUpdated = currentTimeUs;
-        }
-        return (int32_t)state->state;
+        ) || gpsSol.groundSpeed == 0) {
+        return 0;
     }
-    return 0;
+    timeUs_t currentTimeUs = micros();
+    timeDelta_t delta = cmpTimeUs(currentTimeUs, *lastUpdated);
+    if (delta >= EFFICIENCY_UPDATE_INTERVAL) {
+        pt1FilterApply4(state, rawValue, 1, US2S(delta));
+        *lastUpdated = currentTimeUs;
+    }
+    return (int32_t)state->state;
 }
 
 static bool osdDrawSingleElement(uint8_t item)
@@ -3607,7 +3609,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #ifndef DISABLE_MSP_DJI_COMPAT
             if (isDJICompatibleVideoSystem(osdConfig())) digits = 4U;
 #endif
-            float rawEff = gpsSol.groundSpeed > 0 ? ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f : 0.0f;
+            float rawEff = gpsSol.groundSpeed > 0 ? ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f : 0.0f; // div/0 guard only; helper owns the GPS guard
             int32_t value = osdUpdateEfficiencyFilter(&eFilterState, &efficiencyUpdated, rawEff);
             bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
             switch (osdConfig()->units) {
@@ -5310,7 +5312,6 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX)
             strcat(osdFormatTrimWhiteSpace(buff), "/");
             itoa(stats.min_rssi_dbm, buff + strlen(buff), 10);
             osdWriteChar(buff + strlen(buff), SYM_DBM);
-            displayWrite(osdDisplayPort, statValX, row++, buff);
         }
     }
 
