@@ -707,7 +707,7 @@ void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
             }
 
             if (impedanceFilterState.state) {
-                pt1FilterSetTimeConstant(&impedanceFilterState, impedanceSampleCount > IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH ? 1.2 : 0.5);
+                pt1FilterSetTimeConstant(&impedanceFilterState, impedanceSampleCount > IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH ? 1.2f : 0.5f);
                 pt1FilterApply4(&impedanceFilterState, impedanceSample, 0.0f, US2S(timeDelta));
             } else {
                 pt1FilterReset(&impedanceFilterState, impedanceSample);
@@ -721,7 +721,7 @@ void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
         }
 
         uint16_t sagCompensatedVBatSample = MIN(batteryFullVoltage, vbat + (int32_t)powerSupplyImpedance * amperage / 1000);
-        pt1FilterSetTimeConstant(&sagCompVBatFilterState, sagCompensatedVBatSample < pt1FilterGetLastOutput(&sagCompVBatFilterState) ? 40 : 500);
+        pt1FilterSetTimeConstant(&sagCompVBatFilterState, sagCompensatedVBatSample < pt1FilterGetLastOutput(&sagCompVBatFilterState) ? 40.0f : 500.0f);
         sagCompensatedVBat = lrintf(pt1FilterApply4(&sagCompVBatFilterState, sagCompensatedVBatSample, 0.0f, US2S(timeDelta)));
     }
 

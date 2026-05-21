@@ -206,7 +206,7 @@ int getServoCount(void)
 
 void loadCustomServoMixer(void)
 {
-    
+
     //move the rate filter to new servo rules
     int movefilterCount = 0;
     static servoMixerSwitch_t servoMixerSwitchHelper[MAX_SERVO_RULES_SWITCH_CARRY]; // helper to keep track of servoSpeedLimitFilter of servo rules
@@ -603,7 +603,7 @@ void processServoAutotrimMode(void)
     }
 }
 
-#define SERVO_AUTOTRIM_FILTER_CUTOFF    1       // LPF cutoff frequency
+#define SERVO_AUTOTRIM_FILTER_CUTOFF    1.0f     // LPF cutoff frequency
 #define SERVO_AUTOTRIM_CENTER_MIN       1300
 #define SERVO_AUTOTRIM_CENTER_MAX       1700
 #define SERVO_AUTOTRIM_UPDATE_SIZE      5
