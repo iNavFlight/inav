@@ -124,13 +124,19 @@ const setting_t *settingFind(const char *name)
 	return NULL;
 }
 
-// noinline: LTO inlines these with divergent settingsTable base addresses,
-// breaking the settingGetIndex -> settingGet round-trip.
+// Under release builds (LTO enabled), inlining settingGet and settingGetIndex
+// at their call sites in fc_msp.c produces wrong results for the
+// settingGetIndex(ptr)->settingGet(index) round-trip, causing MSPV2_SETTING
+// to return incorrect byte counts for some uint16_t settings.
+// Use the raw attribute rather than NOINLINE because NOINLINE expands to
+// nothing on non-F7/H7 targets (common.h:29), but LTO is enabled for all
+// release targets and the bug affects all of them.
 __attribute__((noinline)) const setting_t *settingGet(unsigned index)
 {
 	return index < SETTINGS_TABLE_COUNT ? &settingsTable[index] : NULL;
 }
 
+// noinline: same reason as settingGet above
 __attribute__((noinline)) unsigned settingGetIndex(const setting_t *val)
 {
 	return val - settingsTable;
@@ -217,7 +223,9 @@ size_t settingGetValueSize(const setting_t *val)
 	return 0; // Unreachable
 }
 
-pgn_t settingGetPgn(const setting_t *val)
+// noinline: same reason as settingGet above; also does pointer arithmetic
+// against settingsTable and is called from settingGetValuePointer.
+__attribute__((noinline)) pgn_t settingGetPgn(const setting_t *val)
 {
 	uint16_t pos = val - (const setting_t *)settingsTable;
 	uint16_t acc = 0;
