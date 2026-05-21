@@ -463,6 +463,8 @@ typedef struct navConfig_s {
         int16_t  marker_containment_hold_east_cm;
         uint16_t marker_guidance_lost_hold_time_ms;
         uint8_t  marker_guidance_retry_count;
+        uint16_t marker_guidance_retry_min_alt_cm;
+        bool     marker_guidance_low_alt_lock_xy;
         uint16_t marker_guidance_retry_altitude_cm;
         uint16_t marker_guidance_retry_timeout_ms;
 #endif

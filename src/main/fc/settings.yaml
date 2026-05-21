@@ -2824,6 +2824,19 @@ groups:
         condition: USE_MARKER_GUIDANCE
         min: 0
         max: 10
+      - name: nav_marker_guidance_retry_min_alt_cm
+        description: "Minimum AGL altitude for climb-and-retry after target loss in PL mode LAND context [cm]. At or below this altitude, retry is skipped and normal LAND continues. Set 0 to disable."
+        default_value: 100
+        field: general.marker_guidance_retry_min_alt_cm
+        condition: USE_MARKER_GUIDANCE
+        min: 0
+        max: 2000
+      - name: nav_marker_guidance_low_alt_lock_xy
+        description: "Lock current XY position when marker target is lost at or below nav_marker_guidance_retry_min_alt_cm in PL mode LAND context. OFF keeps normal LAND XY target."
+        default_value: OFF
+        field: general.marker_guidance_low_alt_lock_xy
+        condition: USE_MARKER_GUIDANCE
+        type: bool
       - name: nav_marker_guidance_retry_altitude_cm
         description: "Climb distance for each retry attempt after target loss in PL mode LAND context [cm]."
         default_value: 200

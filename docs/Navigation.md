@@ -82,13 +82,17 @@ When `nav_marker_guidance_mode = PL` and target is fresh:
 * vertical descent profile remains normal LAND behavior (`nav_land_*`)
 
 With stale/lost target:
-* FC enters hold for `nav_marker_guidance_lost_hold_time_ms`
+* at or below `nav_marker_guidance_retry_min_alt_cm` AGL, FC skips retry and continues normal LAND behavior
+* if `nav_marker_guidance_low_alt_lock_xy = ON`, FC locks the current XY position when entering low-altitude fallback
+* above that altitude, FC enters hold for `nav_marker_guidance_lost_hold_time_ms`
 * optionally performs climb-and-retry up to `nav_marker_guidance_retry_count`
 * then falls back to normal LAND behavior
 
 Retry safety rule:
 * retry is only entered if target was acquired at least once in the current LAND context
 * if no target was ever acquired in that LAND context, no retry is performed
+* set `nav_marker_guidance_retry_min_alt_cm = 0` to disable the low-altitude retry suppression
+* set `nav_marker_guidance_low_alt_lock_xy = OFF` to keep the normal LAND XY target during low-altitude fallback
 
 ### Shared radius setting
 `nav_marker_guidance_radius_cm` is used by both modes:

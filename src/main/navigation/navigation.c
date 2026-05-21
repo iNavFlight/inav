@@ -122,7 +122,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 9);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 10);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -190,6 +190,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .marker_containment_hold_east_cm = SETTING_NAV_MARKER_CONTAINMENT_HOLD_EAST_CM_DEFAULT,
         .marker_guidance_lost_hold_time_ms = SETTING_NAV_MARKER_GUIDANCE_LOST_HOLD_TIME_MS_DEFAULT,
         .marker_guidance_retry_count = SETTING_NAV_MARKER_GUIDANCE_RETRY_COUNT_DEFAULT,
+        .marker_guidance_retry_min_alt_cm = SETTING_NAV_MARKER_GUIDANCE_RETRY_MIN_ALT_CM_DEFAULT,
+        .marker_guidance_low_alt_lock_xy = SETTING_NAV_MARKER_GUIDANCE_LOW_ALT_LOCK_XY_DEFAULT,
         .marker_guidance_retry_altitude_cm = SETTING_NAV_MARKER_GUIDANCE_RETRY_ALTITUDE_CM_DEFAULT,
         .marker_guidance_retry_timeout_ms = SETTING_NAV_MARKER_GUIDANCE_RETRY_TIMEOUT_MS_DEFAULT,
 #endif

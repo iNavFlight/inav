@@ -270,6 +270,25 @@ static float getRetryClimbRateCmS(void)
     return constrainf(climbRate, 20.0f, navConfig()->mc.max_auto_climb_rate);
 }
 
+static bool markerGuidanceRetrySuppressedByAltitude(void)
+{
+    const uint16_t retryMinAltitudeCm = navConfig()->general.marker_guidance_retry_min_alt_cm;
+    return retryMinAltitudeCm > 0 &&
+           posControl.flags.estAglStatus >= EST_USABLE &&
+           posControl.actualState.agl.pos.z >= 0.0f &&
+           posControl.actualState.agl.pos.z <= retryMinAltitudeCm;
+}
+
+static void setLowAltitudeFallbackNormalLandState(void)
+{
+    if (markerGuidance.state != MARKER_GUIDANCE_FALLBACK_NORMAL_LAND &&
+        navConfig()->general.marker_guidance_low_alt_lock_xy) {
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+    }
+
+    setMarkerGuidanceState(MARKER_GUIDANCE_FALLBACK_NORMAL_LAND);
+}
+
 static void setLostHoldState(timeMs_t nowMs)
 {
     setMarkerGuidanceState(MARKER_GUIDANCE_TARGET_LOST_HOLD);
@@ -344,6 +363,11 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
         } else {
             setMarkerGuidanceState(MARKER_GUIDANCE_STANDBY);
         }
+        return;
+    }
+
+    if (markerGuidanceRetrySuppressedByAltitude()) {
+        setLowAltitudeFallbackNormalLandState();
         return;
     }
 
