@@ -533,22 +533,37 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     isMixerTransitionMixing = isMixerTransitionMixing_requested &&
         ((posControl.navState == NAV_STATE_IDLE) || mixerAT_inuse || (posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS));
 
+    const uint32_t transitionDebugFlags =
+        ((uint32_t)mixerProfileAT.direction & 0x3U) |
+        (mixerATIsActive() ? 1U << 2 : 0U) |
+        (isMixerTransitionMixing ? 1U << 3 : 0U) |
+        (transitionModeActive ? 1U << 4 : 0U) |
+        (mixerProfileAT.usedAirspeed ? 1U << 5 : 0U) |
+        (mixerProfileAT.hotSwitchDone ? 1U << 6 : 0U) |
+        (mixerProfileAT.aborted ? 1U << 7 : 0U) |
+        (currentMixerConfig.manualVtolTransitionController ? 1U << 8 : 0U) |
+        (currentMixerConfig.vtolTransitionDynamicMixer ? 1U << 9 : 0U) |
+        (((uint32_t)currentMixerProfileIndex & 0x3U) << 10) |
+        (((uint32_t)nextMixerProfileIndex & 0x3U) << 12) |
+        (manualTransitionAllowed ? 1U << 14 : 0U) |
+        (missionActive ? 1U << 15 : 0U) |
+        (isMixerTransitionMixing_requested ? 1U << 16 : 0U) |
+        (FLIGHT_MODE(FAILSAFE_MODE) ? 1U << 17 : 0U) |
+        (manualControllerEnabled ? 1U << 18 : 0U) |
+        (IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) ? 1U << 19 : 0U);
+
     // VTOL transition debug channels (DEBUG_VTOL_TRANSITION):
-    // [0] phase, [1] request, [2] direction, [3] progress x1000,
-    // [4] pusherScale x1000, [5] liftScale x1000, [6] fwAuthority/blend x1000,
-    // [7] flags bitfield: bit0 active, bit1 usedAirspeed, bit2 hotSwitchDone, bit3 aborted
+    // [0] phase, [1] request, [2] packed transition flags, [3] progress x1000,
+    // [4] pusherScale x1000, [5] liftScale x1000, [6] mcAuthorityScale x1000,
+    // [7] transition_PID_mmix_multiplier_pitch from currentMixerConfig
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 0, mixerProfileAT.phase);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, mixerProfileAT.request);
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 2, mixerProfileAT.direction);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 2, (int32_t)transitionDebugFlags);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 3, lrintf(constrainf(mixerProfileAT.progress, 0.0f, 1.0f) * 1000.0f));
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 4, lrintf(constrainf(mixerProfileAT.pusherScale, 0.0f, 1.0f) * 1000.0f));
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 5, lrintf(constrainf(mixerProfileAT.liftScale, 0.0f, 1.0f) * 1000.0f));
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 6, lrintf(constrainf(mixerProfileAT.blendToFw, 0.0f, 1.0f) * 1000.0f));
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 7,
-              (mixerATIsActive() ? 1 : 0) |
-              (mixerProfileAT.usedAirspeed ? 1 << 1 : 0) |
-              (mixerProfileAT.hotSwitchDone ? 1 << 2 : 0) |
-              (mixerProfileAT.aborted ? 1 << 3 : 0));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 6, lrintf(constrainf(mixerProfileAT.mcAuthorityScale, 0.0f, 1.0f) * 1000.0f));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 7, currentMixerConfig.transition_PID_mmix_multiplier_pitch);
 
     if (!isMixerTransitionMixing) {
         resetTransitionScales();

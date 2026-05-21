@@ -282,16 +282,29 @@ Debug channels:
 
 - `debug[0]` = transition phase (`0=IDLE`, `1=TRANSITION_INITIALIZE`, `2=TRANSITIONING`)
 - `debug[1]` = active request (`MIXERAT_REQUEST_*` enum value)
-- `debug[2]` = direction (`0=NONE`, `1=TO_FW`, `2=TO_MC`)
+- `debug[2]` = packed transition flags:
+    - bits 0-1: transition direction (`0=NONE`, `1=TO_FW`, `2=TO_MC`)
+    - bit2: auto-transition controller active
+    - bit3: transition mixing output active (`isMixerTransitionMixing`)
+    - bit4: RC `MIXERTRANSITION` mode active
+    - bit5: airspeed-controlled path in use
+    - bit6: hot-switch done
+    - bit7: transition aborted
+    - bit8: manual VTOL auto-transition controller enabled in current mixer config
+    - bit9: dynamic transition mixer enabled in current mixer config
+    - bits 10-11: current mixer profile index
+    - bits 12-13: next mixer profile index
+    - bit14: manual transition currently allowed by navigation state
+    - bit15: mission mode active
+    - bit16: transition mixing requested (`isMixerTransitionMixing_requested`)
+    - bit17: failsafe mode active
+    - bit18: manual VTOL auto-transition controller effective after mission gating
+    - bit19: RC `MIXERPROFILE` mode active
 - `debug[3]` = progress x1000 (`0..1000`)
 - `debug[4]` = pusher scale x1000 (`0..1000`)
 - `debug[5]` = lift scale x1000 (`0..1000`)
-- `debug[6]` = FW authority/blend scale x1000 (`0..1000`)
-- `debug[7]` = flags bitfield:
-    - bit0: transition active
-    - bit1: airspeed-controlled path in use
-    - bit2: hot-switch done
-    - bit3: transition aborted
+- `debug[6]` = MC authority scale x1000 (`0..1000`)
+- `debug[7]` = current mixer profile pitch transition PID multiplier (`transition_PID_mmix_multiplier_pitch`)
 
 ## TailSitter (planned for INAV 7.1)
 TailSitter is supported by add a 90deg offset to the board alignment. Set the board aliment normally in the mixer_profile for FW mode(`set platform_type = AIRPLANE`), The motor trust axis should be same direction as the airplane nose. Then, in the mixer_profile for takeoff and landing set `tailsitter_orientation_offset = ON ` to apply orientation offset. orientation offset will also add a 45deg orientation offset.
