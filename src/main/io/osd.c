@@ -3609,7 +3609,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!moreThanAh) {
                         osdWriteChar2(buff + strlen(buff), SYM_MAH_MI_0, SYM_MAH_MI_1);
                     } else {
-                        osdWriteChar(buff + strlen(buff), SYM_AH_MI);
+                        osdWriteChar2(buff + strlen(buff), SYM_AH_MI, SYM_BLANK);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
@@ -3623,7 +3623,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!moreThanAh) {
                         osdWriteChar2(buff + strlen(buff), SYM_MAH_NM_0, SYM_MAH_NM_1);
                     } else {
-                        osdWriteChar(buff + strlen(buff), SYM_AH_NM);
+                        osdWriteChar2(buff + strlen(buff), SYM_AH_NM, SYM_BLANK);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
@@ -3639,7 +3639,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!moreThanAh) {
                         osdWriteChar2(buff + strlen(buff), SYM_MAH_KM_0, SYM_MAH_KM_1);
                     } else {
-                        osdWriteChar(buff + strlen(buff), SYM_AH_KM);
+                        osdWriteChar2(buff + strlen(buff), SYM_AH_KM, SYM_BLANK);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
