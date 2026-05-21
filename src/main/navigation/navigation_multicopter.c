@@ -132,6 +132,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         else {
             int16_t climbRate = -50;
 
+            // Increase descent rate when throttle stick below mid from min rate of 0.5m/s up to max 2 m/s
             if (posControl.flags.estAglStatus != EST_TRUSTED) {
                 const int16_t throttleIdle = getThrottleIdleValue();
                 const int16_t throttleMid = rcLookupThrottleMid();
