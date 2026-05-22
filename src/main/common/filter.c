@@ -34,10 +34,9 @@ float nullFilterApply(void *filter, float input)
     return input;
 }
 
-float nullFilterApply4(void *filter, float input, float f_cut, float dt)
+float nullFilterApply3(void *filter, float input, float dt)
 {
     UNUSED(filter);
-    UNUSED(f_cut);
     UNUSED(dt);
     return input;
 }
@@ -46,7 +45,7 @@ float nullFilterApply4(void *filter, float input, float f_cut, float dt)
  * f_cut = cutoff frequency. Use pt1FilterSetTimeConstant to directly set RC time constant tau if required.
  */
 
-static float FAST_CODE pt1ComputeRC(const float f_cut)
+static float pt1ComputeRC(const float f_cut)
 {
     return 1.0f / (2.0f * M_PIf * f_cut);
 }
@@ -64,13 +63,8 @@ float FAST_CODE NOINLINE pt1FilterApply(pt1Filter_t *filter, float input)  // us
     return filter->state = filter->state + filter->alpha * (input - filter->state);
 }
 
-float FAST_CODE NOINLINE pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dT)
+float FAST_CODE NOINLINE pt1FilterApply3(pt1Filter_t *filter, float input, float dT)
 {
-    // Pre calculate and store RC only if f_cut non zero
-    if (f_cut && !filter->RC) {
-        filter->RC = pt1ComputeRC(f_cut);
-    }
-
     filter->dT = dT;    // cache latest dT for possible use in pt1FilterApply
     filter->alpha = filter->dT / (filter->RC + filter->dT);
 

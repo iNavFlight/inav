@@ -192,6 +192,10 @@ void servosInit(void)
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servoComputeScalingFactors(i);
     }
+
+    // Initialise filters
+    pt1FilterSetCutoff(&rotRateFilter, SERVO_AUTOTRIM_FILTER_CUTOFF);
+    pt1FilterSetCutoff(&targetRateFilter, SERVO_AUTOTRIM_FILTER_CUTOFF);
 }
 
 int getServoCount(void)
@@ -603,12 +607,6 @@ void processServoAutotrimMode(void)
     }
 }
 
-#define SERVO_AUTOTRIM_FILTER_CUTOFF    1.0f     // LPF cutoff frequency
-#define SERVO_AUTOTRIM_CENTER_MIN       1300
-#define SERVO_AUTOTRIM_CENTER_MAX       1700
-#define SERVO_AUTOTRIM_UPDATE_SIZE      5
-#define SERVO_AUTOTRIM_ATTITUDE_LIMIT   50       // 5 degrees
-
 void processContinuousServoAutotrim(const float dT)
 {
     static timeMs_t lastUpdateTimeMs;
@@ -616,8 +614,8 @@ void processContinuousServoAutotrim(const float dT)
     static uint32_t servoMiddleUpdateCount;
     static float prevAxisIterm[2] = {0};  // Track previous I-term for rate-of-change calculation
 
-    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
-    const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, getTotalRateTarget(), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+    const float rotRateMagnitudeFiltered = pt1FilterApply3(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), dT);
+    const float targetRateMagnitudeFiltered = pt1FilterApply3(&targetRateFilter, getTotalRateTarget(), dT);
 
     if (ARMING_FLAG(ARMED)) {
         trimState = AUTOTRIM_COLLECTING;
