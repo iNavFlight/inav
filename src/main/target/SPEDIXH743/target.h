@@ -143,10 +143,10 @@
 
 // *************** ADC **********************************
 #define USE_ADC
-#define ADC_INSTANCE            ADC1
+#define ADC_INSTANCE                ADC3    // PC-port pins require ADC3 on H743
 
-#define ADC_CHANNEL_1_PIN       PC1     // VBAT
-#define ADC_CHANNEL_2_PIN       PC2     // Current
+#define ADC_CHANNEL_1_PIN           PC1     // VBat    — ADC123_INP11 (works on ADC3)
+#define ADC_CHANNEL_2_PIN           PC2     // Current — ADC3_INP0
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
