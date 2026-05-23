@@ -495,11 +495,15 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 		             canardHandleRxFrame(&canard, &rx_frame, timestamp);
 	             }
              }
+            // Drain any TX frames queued by RX handlers (e.g. GetNodeInfo responses)
+            // in the same task cycle so multi-frame transfers complete before timeout.
+            processCanardTxQueue();
+
             if (currentTimeUs >= next_1hz_service_at)
             {
 		        next_1hz_service_at += 1000000ULL;
 		        process1HzTasks(currentTimeUs);
-        
+                processCanardTxQueue();
             }
 
             canardSTM32GetProtocolStatus(&protocolStatus);
