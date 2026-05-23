@@ -4378,14 +4378,15 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
-#ifdef USE_BARO
+#if defined(USE_BARO) || defined(USE_GPS)
     case MSP2_INAV_SET_ALT_TARGET:
         if (dataSize != (sizeof(int32_t) + sizeof(uint8_t))) {
             *ret = MSP_RESULT_ERROR;
             break;
         }
-
-        if (navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)sbufReadU8(src), (int32_t)sbufReadU32(src))) {
+        uint8_t setAltDatum = (geoAltitudeDatumFlag_e)sbufReadU8(src);
+        int32_t setNewAlt = sbufReadU32(src);
+        if (navigationSetAltitudeTargetWithDatum(setAltDatum, setNewAlt)) {
             *ret = MSP_RESULT_ACK;
             break;
         }
