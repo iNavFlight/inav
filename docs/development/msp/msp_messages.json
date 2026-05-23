@@ -9818,69 +9818,29 @@
             "description": "Retrieves the full telemetry data structure reported by each ESC."
         },
         "MSP2_INAV_DRONECAN_NODES": {
-            "code": 8258,                                                                                         
-            "mspv": 2,                                                                      
-            "request": null,                                                                                      
-            "reply": {                                                                      
+            "code": 8258,
+            "mspv": 2,
+            "request": null,
+            "reply": {
                 "payload": [
-                    {                                                                                             
-                        "name": "nodeCount",
-                        "ctype": "uint8_t",                                                                       
-                        "desc": "Number of detected DroneCAN nodes",                        
-                        "units": ""
-                    },
-                    {                                                                                             
-                        "name": "nodeID",
-                        "ctype": "uint8_t",                                                                       
-                        "desc": "DroneCAN node ID (1-127)",                                 
-                        "units": ""
-                    },                                                                                            
                     {
-                        "name": "health",                                                                         
-                        "ctype": "uint8_t",                                                 
-                        "desc": "Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL",
-                        "units": ""                                                                               
-                    },
-                    {                                                                                             
-                        "name": "mode",                                                     
+                        "name": "nodeCount",
                         "ctype": "uint8_t",
-                        "desc": "Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE",                                                                                                       
+                        "desc": "Number of detected DroneCAN nodes",
                         "units": ""
-                    },                                                                                            
-                    {                                                                       
-                        "name": "uptime_sec",
-                        "ctype": "uint32_t",
-                        "desc": "Node uptime in seconds",
-                        "units": "s"                                                                              
                     },
-                    {                                                                                             
-                        "name": "vendor_status_code",                                       
-                        "ctype": "uint16_t",                                                                      
-                        "desc": "Vendor-specific status code",
-                        "units": ""                                                                               
-                    },                                                                      
-                    {                                                                                             
-                        "name": "last_seen_ms",
-                        "ctype": "uint32_t",                                                                      
-                        "desc": "FC millisecond timestamp when this node was last seen",    
-                        "units": "ms"                                                                             
-                    },
-                    {                                                                                             
-                        "name": "name_len",                                                 
-                        "ctype": "uint8_t",                                                                       
-                        "desc": "Length of node name string (0 if unknown)",
-                        "units": ""                                                                               
-                    },                                                                      
-                    {                                                                                             
-                        "name": "name",                                                     
-                        "ctype": "char[16]",
-                        "desc": "Node name truncated to 16 bytes, zero-padded",
-                        "units": ""                                                                               
+                    {
+                        "name": "nodeData",
+                        "desc": "Array of per-node status records, one per detected node. Each record: nodeID(1)+health(1)+mode(1)+last_seen_ms(4) = 7 bytes. Full detail available via MSP2_INAV_DRONECAN_NODE_INFO.",
+                        "ctype": "dronecanNodeStatus_t",
+                        "array": true,
+                        "array_size": 0,
+                        "units": ""
                     }
-                ]                                                                                                 
-            },                                                                              
+                ]
+            },
             "variable_len": true,
-            "notes": "Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 30 bytes each: nodeID(1)+health(1)+mode(1)+uptime_sec(4)+vendor_status_code(2)+last_seen_ms(4)+name_len(1)+name[16].",    
+            "notes": "Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 7 bytes each: nodeID(1)+health(1)+mode(1)+last_seen_ms(4). Maximum payload 1 + (DRONECAN_MAX_NODES * 7) = 225 bytes. Full node detail including uptime, vendor status, and name is available via MSP2_INAV_DRONECAN_NODE_INFO.",
             "description": "Returns the list of all detected DroneCAN nodes with their current status."
         },                                                                                                        
         "MSP2_INAV_DRONECAN_NODE_INFO": {                                                   

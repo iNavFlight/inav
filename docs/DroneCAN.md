@@ -344,9 +344,9 @@ Two MSP2 commands are available for querying detected DroneCAN nodes programmati
 | `MSP2_INAV_DRONECAN_NODES` | `0x2042` | Returns count and status of all detected nodes |
 | `MSP2_INAV_DRONECAN_NODE_INFO` | `0x2043` | Returns full detail for a single node by ID |
 
-**`MSP2_INAV_DRONECAN_NODES` response:** one byte node count followed by 30-byte records — nodeID, health, mode, uptime, vendor status code, last-seen timestamp, and name (currently empty; populated once `GetNodeInfo` service requests are implemented).
+**`MSP2_INAV_DRONECAN_NODES` response:** one byte node count followed by 7-byte records — nodeID(1), health(1), mode(1), last\_seen\_ms(4). Maximum payload is 1 + 32×7 = 225 bytes, well within the 512-byte MSP output buffer.
 
-**`MSP2_INAV_DRONECAN_NODE_INFO` request/response:** send a single-byte node ID; receive the same fields as above with a 32-byte name field. Returns an empty response if the node ID is not in the table.
+**`MSP2_INAV_DRONECAN_NODE_INFO` request/response:** send a single-byte node ID; receive full node detail — nodeID, health, mode, uptime\_sec, vendor\_status\_code, last\_seen\_ms, name\_len, and name (32 bytes). Returns `MSP_RESULT_ERROR` if the node ID is not in the table.
 
 See `docs/development/msp/README.md` for the full MSP field layout.
 
