@@ -85,13 +85,17 @@
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9
 
+#define USE_I2C_DEVICE_2
+#define I2C2_SCL                PB10
+#define I2C2_SDA                PB11
+
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 #define USE_BARO_DPS310
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C1
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
@@ -151,7 +155,7 @@
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 
-#define VBAT_SCALE_DEFAULT      110
+#define VBAT_SCALE_DEFAULT      1100
 
 // *************** PINIO ********************************
 #define USE_PINIO
