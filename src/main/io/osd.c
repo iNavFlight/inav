@@ -5795,19 +5795,19 @@ static void osdFilterData(timeUs_t currentTimeUs)
     float refresh_dT = US2S(cmpTimeUs(currentTimeUs, lastRefresh));
 
     GForce = fast_fsqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
-    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) {
+    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         GForceAxis[axis] = imuMeasuredAccelBF.v[axis] / GRAVITY_MSS;
     }
 
     if (lastRefresh) {
         GForce = pt1FilterApply3(&GForceFilter, GForce, refresh_dT);
-        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) {
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             GForceAxis[axis] = pt1FilterApply3(&GForceFilterAxis[axis], GForceAxis[axis], refresh_dT);
         }
     } else {
         pt1FilterSetCutoff(&GForceFilter, GFORCE_FILTER_T_CUT_HZ);
 
-        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) {
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             pt1FilterSetCutoff(&GForceFilterAxis[axis], GFORCE_FILTER_T_CUT_HZ);
         }
     }
