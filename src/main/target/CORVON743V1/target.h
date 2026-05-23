@@ -123,7 +123,6 @@
 #define SDCARD_SDIO_4BIT
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1

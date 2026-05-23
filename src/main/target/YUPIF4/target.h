@@ -78,7 +78,6 @@
 #define SDCARD_DETECT_PIN       PD2
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           SPI3_NSS_PIN
-
 #endif
 
 #define USB_IO

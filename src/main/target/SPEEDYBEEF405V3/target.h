@@ -115,7 +115,6 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-
 // *************** OSD *****************************
 #define USE_OSD
 

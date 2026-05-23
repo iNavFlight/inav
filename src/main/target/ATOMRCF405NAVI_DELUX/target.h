@@ -149,7 +149,6 @@
 #define SDCARD_CS_PIN           PC14
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-
 /*
  * LED Strip
  */

@@ -143,8 +143,6 @@
 #define SDCARD_SDIO_DEVICE      SDIODEV_1
 #define SDCARD_SDIO_4BIT
 
-
-
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
 

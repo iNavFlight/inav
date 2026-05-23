@@ -82,7 +82,6 @@
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PB6
 
-
 // *************** Flash *****************************
 #define M25P16_CS_PIN           PA15
 #define M25P16_SPI_BUS          BUS_SPI3

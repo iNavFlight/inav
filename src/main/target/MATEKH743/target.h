@@ -167,17 +167,16 @@
 // *************** CANBUS ****************************
 #define USE_DRONECAN
 #define CAN1_RX                 PD0
-#define CAN1_TX                 PD1
+#define CAN1_TX                 PD1 
 #define CAN1_STANDBY            PD3
 
-// *************** SDIO SD BLACKBOX AND TERRAIN *******************
+// *************** SDIO SD BLACKBOX*******************
 #define USE_SDCARD
 #define USE_SDCARD_SDIO
 #define SDCARD_SDIO_DEVICE      SDIODEV_1
 #define SDCARD_SDIO_4BIT
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
 
 // *************** ADC *****************************
 #define USE_ADC

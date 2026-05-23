@@ -63,13 +63,6 @@
 #define SPI2_MISO_PIN   	    PC2
 #define SPI2_MOSI_PIN   	    PC3
 
-#define USE_BARO
-#define BARO_I2C_BUS            BUS_I2C1
-#define USE_BARO_BMP280
-#define USE_BARO_MS5611
-#define USE_BARO_DPS310
-#define USE_BARO_SPL06
-
 #if defined(MATEKF405TE_SD)
 #   define USE_SDCARD
 #   define USE_SDCARD_SPI
@@ -89,6 +82,13 @@
 #define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB7
+
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
+#define USE_BARO_BMP280
+#define USE_BARO_MS5611
+#define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

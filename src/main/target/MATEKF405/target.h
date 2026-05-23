@@ -69,8 +69,6 @@
 #define SDCARD_CS_PIN           PC1
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
-
 #endif
 
 // *************** OSD *****************************

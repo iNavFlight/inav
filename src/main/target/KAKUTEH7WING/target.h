@@ -82,7 +82,6 @@
 #define SDCARD_SDIO_NORMAL_SPEED
 #define SDCARD_SDIO2_CMD_ALT
 
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** I2C /Baro/Mag *********************

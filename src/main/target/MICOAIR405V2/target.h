@@ -66,7 +66,6 @@
 #define SDCARD_CS_PIN           PC9
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-
 // *************** UART *****************************
 #define USE_VCP
 

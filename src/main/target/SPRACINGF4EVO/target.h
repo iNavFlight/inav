@@ -115,7 +115,6 @@
 #define SDCARD_SPI_BUS          BUS_SPI2
 #define SDCARD_CS_PIN           SPI2_NSS_PIN
 
-
 #define MPU6500_CS_PIN                      SPI1_NSS_PIN
 #define MPU6500_SPI_BUS                     BUS_SPI1
 

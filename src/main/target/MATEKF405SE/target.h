@@ -100,7 +100,6 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-
 // *************** UART *****************************
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC13

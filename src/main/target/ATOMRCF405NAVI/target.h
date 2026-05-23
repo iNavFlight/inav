@@ -151,7 +151,6 @@
 #define SDCARD_CS_PIN           PB6
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-
 /*
  * LED Strip
  */
