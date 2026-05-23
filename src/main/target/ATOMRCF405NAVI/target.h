@@ -151,8 +151,6 @@
 #define SDCARD_CS_PIN           PB6
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-#define USE_TERRAIN
-#define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
 
 /*
  * LED Strip

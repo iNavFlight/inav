@@ -82,8 +82,6 @@
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PB6
 
-#define USE_TERRAIN
-#define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
 
 // *************** Flash *****************************
 #define M25P16_CS_PIN           PA15

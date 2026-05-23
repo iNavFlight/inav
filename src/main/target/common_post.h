@@ -131,6 +131,17 @@ extern uint8_t __config_end;
 
 #endif
 
+#if defined(USE_BARO) && defined(USE_SDCARD) && (MCU_FLASH_SIZE > 512) && !defined(USE_TERRAIN)
+#define USE_TERRAIN
+
+#if (MCU_FLASH_SIZE > 1024)
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8 // 2048 bytes = 1 grid block
+#else
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
+#endif
+
+#endif
+
 // CRSF sensor input on a dedicated UART
 #if defined(USE_SERIALRX_CRSF)
 #define USE_CRSF_SENSOR_INPUT

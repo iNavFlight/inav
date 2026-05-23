@@ -235,8 +235,6 @@
   #define SDCARD_DETECT_PIN     PB7
   #define SDCARD_DETECT_INVERTED
 
-    #define USE_TERRAIN
-    #define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
 #else
   #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
   #define M25P16_CS_PIN           SPI3_NSS_PIN

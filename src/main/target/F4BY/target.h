@@ -55,8 +55,6 @@
 #define SDCARD_SPI_BUS          BUS_SPI2
 #define SDCARD_CS_PIN           PE15
 
-#define USE_TERRAIN
-#define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA9

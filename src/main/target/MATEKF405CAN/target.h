@@ -84,8 +84,6 @@
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
 
-#define USE_TERRAIN
-#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8 // 2048 bytes = 1 grid block
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
