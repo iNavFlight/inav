@@ -498,7 +498,7 @@ static void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) 
     pkt.hardware_version.major = 1;
     pkt.hardware_version.minor = 0;
 
-    // just setting all 16 bytes to 1 for testing
+    // populate the hardware unique ID from the STM32 device unique ID
     canardSTM32GetUniqueID(pkt.hardware_version.unique_id);
 
     strncpy((char*)pkt.name.data, FC_FIRMWARE_NAME, sizeof(pkt.name.data));
