@@ -1771,6 +1771,24 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
 
+#ifndef SITL_BUILD
+    case MSP2_INAV_OUTPUT_ASSIGNMENT:
+        {
+            const timMotorServoHardware_t *hw = pwmGetOutputAssignment();
+            for (int m = 0; m < hw->maxTimMotorCount; m++) {
+                sbufWriteU8(dst, (uint8_t)(hw->timMotors[m] - timerHardware));
+                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_MOTOR);
+                sbufWriteU8(dst, (uint8_t)(m + 1));
+            }
+            for (int s = 0; s < hw->maxTimServoCount; s++) {
+                sbufWriteU8(dst, (uint8_t)(hw->timServos[s] - timerHardware));
+                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_SERVO);
+                sbufWriteU8(dst, (uint8_t)(s + 1));
+            }
+        }
+        break;
+#endif
+
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
         sbufWriteU16(dst, navConfig()->mc.braking_speed_threshold);
@@ -4752,6 +4770,48 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             }
         } else {
             *ret = MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_INAV_QUERY_OUTPUT_ASSIGNMENT:
+        {
+            // Build proposed overrides array (defaults to current stored overrides)
+            uint8_t proposedModes[HARDWARE_TIMER_DEFINITION_COUNT];
+            for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+                proposedModes[i] = timerOverrides(i)->outputMode;
+            }
+
+            if (dataSize >= 1) {
+                uint8_t timerCount = sbufReadU8(src);
+                // Reject malformed payloads: must be exactly timerCount pairs.
+                if (timerCount > HARDWARE_TIMER_DEFINITION_COUNT ||
+                    sbufBytesRemaining(src) != (uint32_t)(timerCount * 2)) {
+                    *ret = MSP_RESULT_ERROR;
+                    break;
+                }
+                for (int i = 0; i < timerCount; i++) {
+                    uint8_t timerId = sbufReadU8(src);
+                    uint8_t outputMode = sbufReadU8(src);
+                    if (timerId < HARDWARE_TIMER_DEFINITION_COUNT) {
+                        proposedModes[timerId] = outputMode;
+                    }
+                }
+            }
+
+            timMotorServoHardware_t tempOut = {0};
+            pwmCalculateAssignment(&tempOut, proposedModes);
+
+            for (int m = 0; m < tempOut.maxTimMotorCount; m++) {
+                sbufWriteU8(dst, (uint8_t)(tempOut.timMotors[m] - timerHardware));
+                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_MOTOR);
+                sbufWriteU8(dst, (uint8_t)(m + 1));
+            }
+            for (int s = 0; s < tempOut.maxTimServoCount; s++) {
+                sbufWriteU8(dst, (uint8_t)(tempOut.timServos[s] - timerHardware));
+                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_SERVO);
+                sbufWriteU8(dst, (uint8_t)(s + 1));
+            }
+            *ret = MSP_RESULT_ACK;
         }
         break;
 #endif
