@@ -1,8 +1,8 @@
 # OSD joystick
 
-LED pin can be used to emulate 5key OSD joystick for OSD camera pin, while still driving ws2812 LEDs (shared functionality).
+A PINIO channel can be used to emulate a 5-key OSD joystick for OSD camera control.
 
-See [LED pin PWM](LED%20pin%20PWM.md) for more details.
+See [PINIO PWM](PINIO%20PWM.md) for more details.
 
 Note that for cameras which support RuncamDevice protocol, there is alternative functionality using serial communication: [Runcam device](Runcam%20device.md)
 
@@ -22,17 +22,17 @@ To simulate 5key joystick, it is sufficient to generate correct voltage on camer
 
 # Enabling OSD Joystick emulation
 
-```set led_pin_pwm_mode=shared_high```
-
 ```set osd_joystick_enabled=on```
 
-Also enable "Multi-color RGB LED Strip support" in Configuration tab.
+```set osd_joystick_pinio_channel=<N>```
+
+Where `<N>` is the PINIO channel (0-3) connected to the camera OSD pin.
 
 # Connection diagram
 
-We use LED pin PWM functionality with RC filter to generate voltage:
+We use PINIO PWM with an RC filter to generate voltage:
 
-![alt text](/docs/assets/images/ledpinpwmfilter.png  "led pin pwm filter")
+![alt text](/docs/assets/images/ledpinpwmfilter.png  "PINIO PWM filter")
 
 # Example PCB layout (SMD components)
 
@@ -48,7 +48,7 @@ If default voltages does not work with your camera model, then you have to measu
 2. Measure voltages on OSD pin while each key is pressed.
 3. Connect camera to FC throught RC filter as shown on schematix above.
 4. Enable OSD Joystick emulation (see "Enabling OSD Joystick emulation" above)
-4. Use cli command ```led_pin_pwm <value>```, value = 0...100 to find out PWM values for each voltage.
+4. Use CLI command `piniopwm <channel> <value>`, value = 0...100 to find out PWM values for each voltage.
 5. Specify PWM values in configuration and save:
 
 ```set osd_joystick_down=0```
@@ -87,7 +87,7 @@ There are 3 RC Boxes which can be used in armed and unarmed state:
 - Camera 2 - Up
 - Camera 3 - Down
 
-Other keys can be emulated using Programming framework ( see [LED pin PWM](LED%20pin%20PWM.md) for more details ).
+Other keys can be emulated using the Programming framework (see [PINIO PWM](PINIO%20PWM.md) for more details).
 
 # Behavior on boot
 

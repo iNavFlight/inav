@@ -1,0 +1,12 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/robs/Projects/inav-claude/inav/lib/main/CMSIS/DSP/Source/TransformFunctions/arm_bitreversal2.S
+
+/home/robs/Projects/inav-claude/inav/src/main/startup/startup_stm32f722xx.s
+

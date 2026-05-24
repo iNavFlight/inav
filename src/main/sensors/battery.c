@@ -65,6 +65,12 @@
 #if defined(USE_SMARTPORT_MASTER)
 #include "io/smartport_master.h"
 #endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+#include "sensors/battery_sensor_crsf.h"
+#endif
+#if defined(USE_DRONECAN)
+#include "sensors/battery_sensor_dronecan.h"
+#endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
@@ -169,7 +175,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
     }
 }
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 3);
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
@@ -305,6 +311,25 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
         }
         break;
 #endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+    case VOLTAGE_SENSOR_CRSF:
+        {
+            int16_t *crsfVoltageData = crsfBatterySensorGetVoltageData();
+            if (crsfVoltageData) {
+                vbat = *crsfVoltageData;
+            } else {
+                vbat = 0;
+            }
+        }
+        break;
+#endif
+
+#if defined(USE_DRONECAN)
+    case VOLTAGE_SENSOR_CAN:
+        vbat = dronecanBattSensorGetVBat();
+        break;
+#endif
+
     case VOLTAGE_SENSOR_NONE:
         default:
             vbat = 0;
@@ -622,6 +647,23 @@ void currentMeterUpdate(timeUs_t timeDelta)
             } else {
                 amperage = 0;
             }
+            break;
+#endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+        case CURRENT_SENSOR_CRSF:
+            {
+                int16_t *crsfCurrentData = crsfBatterySensorGetCurrentData();
+                if (crsfCurrentData) {
+                    amperage = *crsfCurrentData;
+                } else {
+                    amperage = 0;
+                }
+            }
+            break;
+#endif
+#if defined(USE_DRONECAN)
+        case CURRENT_SENSOR_CAN:
+            amperage = dronecanBattSensorGetAmperage();
             break;
 #endif
 #if defined(USE_FAKE_BATT_SENSOR)

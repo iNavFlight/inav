@@ -54,6 +54,7 @@
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
 #define USE_GPS_PROTO_MSP
+#define USE_GPS_PROTO_DRONECAN
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
 #define USE_GPS_FIX_ESTIMATION
@@ -123,7 +124,6 @@
 
 #define USE_I2C_IO_EXPANDER
 
-#define USE_TELEMETRY_SIM
 #define USE_TELEMETRY_MAVLINK
 #define USE_MSP_OVER_TELEMETRY
 
@@ -146,6 +146,7 @@
 #define USE_FW_AUTOLAND
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_LOG
+#define USE_BOOTLOG 2048
 #define USE_STATS
 #define USE_CMS
 #define CMS_MENU_OSD
@@ -205,6 +206,7 @@
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
+#define USE_TELEMETRY_SIM
 #define USE_VTX_FFPV
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT

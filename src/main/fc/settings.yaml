@@ -14,7 +14,7 @@ tables:
     values: ["NONE", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
-    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"]
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE", "CRSF"]
     enum: baroSensor_e
   - name: pitot_hardware
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP", "DLVR-L10D", "MS5525"]
@@ -33,16 +33,16 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "CRSF", "CAN"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CRSF", "CAN"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
     enum: imu_inertia_comp_method_e
   - name: gps_provider
-    values: ["UBLOX", "MSP", "FAKE"]
+    values: ["UBLOX", "MSP", "CRSF", "FAKE", "DRONECAN"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "SPAN", "NONE"]
@@ -84,7 +84,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2"]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -189,9 +189,6 @@ tables:
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
     enum: navMcAltHoldThrottle_e
-  - name: led_pin_pwm_mode
-    values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
-    enum: led_pin_pwm_mode_e
   - name: gyro_filter_mode
     values: ["OFF", "STATIC", "DYNAMIC", "ADAPTIVE"]
     enum: gyroFilterType_e
@@ -215,6 +212,9 @@ tables:
   - name: osd_adsb_warning_style
     values: [ "COMPACT", "EXTENDED" ]
     enum: osd_adsb_warning_style_e
+  - name: dronecan_bitrate_table
+    values: [ '125', '250', '500', '1000']
+    enum: dronecanBitRate_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -979,7 +979,7 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running."
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus."
         condition: USE_ADC
         default_value: ADC
         field: voltage.type
@@ -1011,7 +1011,7 @@ groups:
         min: -32768
         max: 32767
       - name: current_meter_type
-        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
+        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
         default_value: "ADC"
         field: current.type
         table: current_sensor
@@ -3303,6 +3303,10 @@ groups:
         min: 1
         max: 255
         default_value: 1
+      - name: crsf_use_legacy_baro_packet
+        description: "CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'"
+        default_value: OFF
+        type: bool
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
@@ -3334,6 +3338,13 @@ groups:
         max: 600
         type: int16_t
         field: msp_displayport_fullframe_interval
+      - name: osd_framerate_hz
+        description: "Target refresh rate for OSD elements in Hz. Each element is redrawn at approximately this rate. Values above 10 Hz provide no visible improvement for typical flight data but increase CPU load. Artificial horizon and telemetry are always updated every cycle regardless of this setting. Set to -1 for legacy behavior (one element per frame)."
+        default_value: -1
+        min: -1
+        max: 15
+        type: int8_t
+        field: osd_framerate_hz
       - name: osd_units
         description: "IMPERIAL, METRIC, UK"
         default_value: "METRIC"
@@ -3694,6 +3705,12 @@ groups:
         table: osd_adsb_warning_style
         field: adsb_warning_style
         type: uint8_t
+        condition: USE_ADSB
+      - name: osd_adsb_calculation_use_cpa
+        description: "Use CPA (Closest Point of Approach) method for ADS-B traffic distance and collision risk calculation instead of instantaneous distance."
+        default_value: OFF
+        field: adsb_calculation_use_cpa
+        type: bool
         condition: USE_ADSB
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
@@ -4112,35 +4129,31 @@ groups:
     members:
       - name: pinio_box1
         field: permanentId[0]
-        description: "Mode assignment for PINIO#1"
-        default_value: "target specific"
+        description: "Mode box assignment for PINIO channel 1"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER1
         type: uint8_t
       - name: pinio_box2
         field: permanentId[1]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 2"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER2
         type: uint8_t
       - name: pinio_box3
         field: permanentId[2]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 3"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER3
         type: uint8_t
       - name: pinio_box4
         field: permanentId[3]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 4"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER4
         type: uint8_t
 
   - name: PG_LOG_CONFIG
@@ -4270,27 +4283,22 @@ groups:
         field: attnFilterCutoff
         max: 100
 
-  - name: PG_LEDPIN_CONFIG
-    type: ledPinConfig_t
-    headers: ["drivers/light_ws2811strip.h"]
-    members:
-      - name: led_pin_pwm_mode
-        condition: USE_LED_STRIP
-        description: "PWM mode of LED pin."
-        default_value: "SHARED_LOW"
-        field: led_pin_pwm_mode
-        table: led_pin_pwm_mode
-
   - name: PG_OSD_JOYSTICK_CONFIG
     type: osdJoystickConfig_t
     headers: ["io/osd_joystick.h"]
-    condition: USE_RCDEVICE && USE_LED_STRIP
+    condition: USE_RCDEVICE && USE_PINIO
     members:
       - name: osd_joystick_enabled
         description: "Enable OSD Joystick emulation"
         default_value: OFF
         field: osd_joystick_enabled
         type: bool
+      - name: osd_joystick_pinio_channel
+        description: "PINIO channel index (0-3) for the camera OSD control pin"
+        default_value: 0
+        field: pinio_channel
+        min: 0
+        max: 3
       - name: osd_joystick_down
         description: "PWM value for DOWN key"
         default_value: 0
@@ -4506,4 +4514,21 @@ groups:
         default_value: RTH
         field: noWayHomeAction
         table: geozone_rth_no_way_home
+        type: uint8_t
+  - name: PG_DRONECAN_CONFIG
+    type: dronecanConfig_t
+    headers: ["drivers/dronecan/dronecan.h"]
+    condition: USE_DRONECAN
+    members:
+      - name: dronecan_node_id
+        description: "Unique identifier for this device. Valid values are 1 to 127. 126 and 127 are reserved for diagnostic tools."
+        default_value: 1
+        field: nodeID
+        min: 1
+        max: 127
+      - name: dronecan_bitrate_kbps
+        description: "The speed of the CANbus network in kbps. Set all devices to the same speed. "
+        default_value: "1000"
+        field: bitRateKbps
+        table: dronecan_bitrate_table
         type: uint8_t

@@ -55,6 +55,9 @@
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/pwm_mapping.h"
+#ifdef USE_PINIO
+#include "drivers/pinio.h"
+#endif
 #include "drivers/sdcard/sdcard.h"
 #include "drivers/serial.h"
 #include "drivers/system.h"
@@ -114,6 +117,7 @@
 
 #include "rx/rx.h"
 #include "rx/msp.h"
+#include "rx/msp_override.h"
 #include "rx/srxl2.h"
 #include "rx/crsf.h"
 #include "rx/sim.h"
@@ -1050,6 +1054,49 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, 0);
         sbufWriteU32(dst, 0);
 #endif
+        break;
+    case MSP2_ADSB_LIMITS:
+#ifdef USE_ADSB
+        sbufWriteU16(dst, osdConfig()->adsb_distance_warning);
+        sbufWriteU16(dst, osdConfig()->adsb_distance_alert);
+        sbufWriteU16(dst, osdConfig()->adsb_ignore_plane_above_me_limit);
+#else
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+#endif
+        break;
+    case MSP2_ADSB_WARNING_VEHICLE_ICAO:
+#ifdef USE_ADSB
+        if(isEnvironmentOkForCalculatingADSBDistanceBearing()) {
+            adsbVehicle_t *vehicle = NULL;
+            bool isAlert = true;
+            vehicle = findVehicleForAlert(
+                    METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert),
+                    METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning),
+                    METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit)
+            );
+
+            if(vehicle == NULL) {
+                vehicle = findVehicleForWarning(METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning), METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
+                isAlert = false;
+            }
+
+            if(vehicle != NULL) {
+                sbufWriteU32(dst, vehicle->vehicleValues.icao);
+                sbufWriteU8(dst, isAlert ? 1 : 0);;
+            } else {
+                sbufWriteU32(dst, 0);
+                sbufWriteU8(dst, 0);;
+            }
+        } else {
+            sbufWriteU32(dst, 0);
+            sbufWriteU8(dst, 0);
+        }
+#else
+        sbufWriteU32(dst, 0);
+        sbufWriteU8(dst, 0);
+#endif
             break;
     case MSP_DEBUG:
         // output some useful QA statistics
@@ -1681,6 +1728,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             #if !(defined(SITL_BUILD) || defined(WASM_BUILD)) && defined(WS2811_PIN)
             ioTag_t led_tag = IO_TAG(WS2811_PIN);
             #endif
+            #ifdef USE_PINIO
+            int nextPinioIndex = pinioHardwareCount;
+            #endif
             for (uint8_t i = 0; i < timerHardwareCount; ++i)
 
                 if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
@@ -1690,17 +1740,57 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                     sbufWriteU8(dst, timer2id(timerHardware[i].tim));
                     #endif
                     sbufWriteU32(dst, timerHardware[i].usageFlags);
-                    #if defined(SITL_BUILD) || defined(WASM_BUILD) || !defined(WS2811_PIN)
+                  
+                    #if defined(SITL_BUILD) || defined(WASM_BUILD)
                     sbufWriteU8(dst, 0);
                     #else
-                    // Extra label to help identify repurposed PINs.
-                    // Eventually, we can try to add more labels for PPM pins, etc.
-                    sbufWriteU8(dst, timerHardware[i].tag == led_tag ? PIN_LABEL_LED : PIN_LABEL_NONE);
+                    {
+                        uint8_t specialLabel = PIN_LABEL_NONE;
+                        #if defined(WS2811_PIN)
+                        if (timerHardware[i].tag == led_tag) {
+                            specialLabel = PIN_LABEL_LED;
+                        }
+                        #endif
+                        #ifdef USE_PINIO
+                        if (specialLabel == PIN_LABEL_NONE) {
+                            for (int j = 0; j < pinioHardwareCount; j++) {
+                                if (timerHardware[i].tag == pinioHardware[j].ioTag) {
+                                    specialLabel = PIN_LABEL_PINIO_BASE + j;
+                                    break;
+                                }
+                            }
+                        }
+                        // Timer-override PINIO pins: assign next USER index (up to PINIO_COUNT)
+                        if (specialLabel == PIN_LABEL_NONE && (timerHardware[i].usageFlags & TIM_USE_PINIO) && nextPinioIndex < PINIO_COUNT) {
+                            specialLabel = PIN_LABEL_PINIO_BASE + nextPinioIndex;
+                            nextPinioIndex++;
+                        }
+                        #endif
+                        sbufWriteU8(dst, specialLabel);
+                    }
                     #endif
             }
         }
         break;
 
+
+#ifndef SITL_BUILD
+    case MSP2_INAV_OUTPUT_ASSIGNMENT:
+        {
+            const timMotorServoHardware_t *hw = pwmGetOutputAssignment();
+            for (int m = 0; m < hw->maxTimMotorCount; m++) {
+                sbufWriteU8(dst, (uint8_t)(hw->timMotors[m] - timerHardware));
+                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_MOTOR);
+                sbufWriteU8(dst, (uint8_t)(m + 1));
+            }
+            for (int s = 0; s < hw->maxTimServoCount; s++) {
+                sbufWriteU8(dst, (uint8_t)(hw->timServos[s] - timerHardware));
+                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_SERVO);
+                sbufWriteU8(dst, (uint8_t)(s + 1));
+            }
+        }
+        break;
+#endif
 
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
@@ -1975,9 +2065,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_HEAD:
-        if (sbufReadU16Safe(&tmp_u16, src))
-            updateHeadingHoldTarget(tmp_u16);
-        else
+        if (sbufReadU16Safe(&tmp_u16, src)) {
+            const int32_t headingCentidegrees = wrap_36000(DEGREES_TO_CENTIDEGREES(tmp_u16));
+            updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(headingCentidegrees));
+
+            if (navGetCurrentStateFlags() & NAV_CTL_YAW) {
+                posControl.desiredState.yaw = headingCentidegrees;
+                posControl.cruise.course = headingCentidegrees;
+                posControl.cruise.previousCourse = headingCentidegrees;
+            }
+        } else
             return MSP_RESULT_ERROR;
         break;
 
@@ -2525,6 +2622,33 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    case MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE:
+        if (dataSize != 7) {
+            return MSP_RESULT_ERROR;
+        }
+        {
+            const uint8_t overrideMask = sbufReadU8(src);
+            const int16_t rollTarget = (int16_t)sbufReadU16(src);
+            const int16_t pitchTarget = (int16_t)sbufReadU16(src);
+            const int16_t yawTarget = (int16_t)sbufReadU16(src);
+            mspOverrideSetFlightAxisAngleOverride(overrideMask, rollTarget, pitchTarget, yawTarget);
+        }
+        break;
+
+    case MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE:
+        if (dataSize != 7) {
+            return MSP_RESULT_ERROR;
+        }
+        {
+            const uint8_t overrideMask = sbufReadU8(src);
+            const int16_t rollTarget = (int16_t)sbufReadU16(src);
+            const int16_t pitchTarget = (int16_t)sbufReadU16(src);
+            const int16_t yawTarget = (int16_t)sbufReadU16(src);
+            mspOverrideSetFlightAxisRateOverride(overrideMask, rollTarget, pitchTarget, yawTarget);
+        }
+        break;
+#endif
     case MSP2_COMMON_SET_MOTOR_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 9) && (tmp_u8 < MAX_SUPPORTED_MOTORS)) {
@@ -4541,6 +4665,128 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = mspFcGeozoneVerteciesOutCommand(dst, src);
         break;
 #endif
+
+#if defined(USE_BARO) || defined(USE_GPS)
+    case MSP2_INAV_SET_ALT_TARGET:
+        if (dataSize != (sizeof(int32_t) + sizeof(uint8_t))) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+        uint8_t setAltDatum = (geoAltitudeDatumFlag_e)sbufReadU8(src);
+        int32_t setNewAlt = sbufReadU32(src);
+        if (navigationSetAltitudeTargetWithDatum(setAltDatum, setNewAlt)) {
+            *ret = MSP_RESULT_ACK;
+            break;
+        }
+
+        *ret = MSP_RESULT_ERROR;
+        break;
+#endif
+
+    case MSP2_INAV_SET_LOCAL_TARGET:
+        if (dataSize != 3 * sizeof(int32_t) || !isGCSValid()) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        {
+            fpVector3_t targetPos = posControl.desiredState.pos;
+
+            const navEstimatedPosVel_t *actual = navGetCurrentActualPositionAndVelocity();
+            const float offsetBodyX = (float)(int32_t)sbufReadU32(src);
+            const float offsetBodyY = (float)(int32_t)sbufReadU32(src);
+            const float offsetBodyZ = (float)(int32_t)sbufReadU32(src);
+
+            const float cosYaw = posControl.actualState.cosYaw;
+            const float sinYaw = posControl.actualState.sinYaw;
+
+            // Rotate body-frame offsets into NEU and apply relative to current position
+            const float offsetN = offsetBodyX * cosYaw - offsetBodyY * sinYaw;
+            const float offsetE = offsetBodyX * sinYaw + offsetBodyY * cosYaw;
+
+            targetPos.x = actual->pos.x + offsetN;
+            targetPos.y = actual->pos.y + offsetE;
+
+            navSetWaypointFlags_t updateMask = NAV_POS_UPDATE_XY;
+            if (offsetBodyZ != 0.0f) {
+                targetPos.z = actual->pos.z + offsetBodyZ;
+            }
+            updateMask |= NAV_POS_UPDATE_Z;
+
+            setDesiredPosition(&targetPos, posControl.desiredState.yaw, updateMask);
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
+
+    case MSP2_INAV_LOCAL_TARGET:
+        sbufWriteU32(dst, lrintf(posControl.desiredState.pos.x));
+        sbufWriteU32(dst, lrintf(posControl.desiredState.pos.y));
+        sbufWriteU32(dst, lrintf(posControl.desiredState.pos.z));
+        sbufWriteU16(dst, (int16_t)lrintf(posControl.desiredState.vel.x));
+        sbufWriteU16(dst, (int16_t)lrintf(posControl.desiredState.vel.y));
+        sbufWriteU16(dst, (int16_t)lrintf(posControl.desiredState.vel.z));
+        sbufWriteU32(dst, posControl.desiredState.yaw);
+        sbufWriteU16(dst, posControl.desiredState.climbRateDemand);
+        *ret = MSP_RESULT_ACK;
+        break;
+
+    case MSP2_INAV_SET_GLOBAL_TARGET:
+        if (dataSize != (3 * sizeof(int32_t) + sizeof(uint8_t)) || !isGCSValid()) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        {
+            gpsLocation_t targetLlh;
+            targetLlh.lat = (int32_t)sbufReadU32(src);
+            targetLlh.lon = (int32_t)sbufReadU32(src);
+            targetLlh.alt = (int32_t)sbufReadU32(src);
+
+            const geoAltitudeDatumFlag_e datumFlag = (geoAltitudeDatumFlag_e)sbufReadU8(src);
+
+            if (datumFlag == NAV_WP_TERRAIN_DATUM) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+
+            fpVector3_t targetPos;
+            if (!geoConvertGeodeticToLocal(&targetPos, &posControl.gpsOrigin, &targetLlh, waypointMissionAltConvMode(datumFlag))) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+
+            navSetWaypointFlags_t updateMask = NAV_POS_UPDATE_XY;
+
+            if (targetLlh.alt != 0) {
+                updateMask |= NAV_POS_UPDATE_Z;
+            }
+
+            setDesiredPosition(&targetPos, posControl.desiredState.yaw, updateMask);
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
+
+    case MSP2_INAV_NAV_TARGET:
+        if (!posControl.gpsOrigin.valid) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        {
+            gpsLocation_t targetLlh;
+            geoConvertLocalToGeodetic(&targetLlh, &posControl.gpsOrigin, &posControl.desiredState.pos);
+
+            sbufWriteU32(dst, targetLlh.lat);
+            sbufWriteU32(dst, targetLlh.lon);
+            sbufWriteU32(dst, lrintf(posControl.desiredState.pos.z));
+
+            const uint16_t headingTarget = CENTIDEGREES_TO_DEGREES(wrap_36000(DEGREES_TO_CENTIDEGREES(getHeadingHoldTarget())));
+            sbufWriteU16(dst, headingTarget);
+            sbufWriteU16(dst, posControl.desiredState.climbRateDemand);
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
+
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
         *ret = mspProcessSimulatorCommand(dst, src, dataSize);
@@ -4579,6 +4825,48 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             }
         } else {
             *ret = MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_INAV_QUERY_OUTPUT_ASSIGNMENT:
+        {
+            // Build proposed overrides array (defaults to current stored overrides)
+            uint8_t proposedModes[HARDWARE_TIMER_DEFINITION_COUNT];
+            for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+                proposedModes[i] = timerOverrides(i)->outputMode;
+            }
+
+            if (dataSize >= 1) {
+                uint8_t timerCount = sbufReadU8(src);
+                // Reject malformed payloads: must be exactly timerCount pairs.
+                if (timerCount > HARDWARE_TIMER_DEFINITION_COUNT ||
+                    sbufBytesRemaining(src) != (uint32_t)(timerCount * 2)) {
+                    *ret = MSP_RESULT_ERROR;
+                    break;
+                }
+                for (int i = 0; i < timerCount; i++) {
+                    uint8_t timerId = sbufReadU8(src);
+                    uint8_t outputMode = sbufReadU8(src);
+                    if (timerId < HARDWARE_TIMER_DEFINITION_COUNT) {
+                        proposedModes[timerId] = outputMode;
+                    }
+                }
+            }
+
+            timMotorServoHardware_t tempOut = {0};
+            pwmCalculateAssignment(&tempOut, proposedModes);
+
+            for (int m = 0; m < tempOut.maxTimMotorCount; m++) {
+                sbufWriteU8(dst, (uint8_t)(tempOut.timMotors[m] - timerHardware));
+                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_MOTOR);
+                sbufWriteU8(dst, (uint8_t)(m + 1));
+            }
+            for (int s = 0; s < tempOut.maxTimServoCount; s++) {
+                sbufWriteU8(dst, (uint8_t)(tempOut.timServos[s] - timerHardware));
+                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_SERVO);
+                sbufWriteU8(dst, (uint8_t)(s + 1));
+            }
+            *ret = MSP_RESULT_ACK;
         }
         break;
 #endif
