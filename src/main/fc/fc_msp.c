@@ -4739,10 +4739,13 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
             if (dataSize >= 1) {
                 uint8_t timerCount = sbufReadU8(src);
-                if (timerCount > HARDWARE_TIMER_DEFINITION_COUNT) {
-                    timerCount = HARDWARE_TIMER_DEFINITION_COUNT;
+                // Reject malformed payloads: must be exactly timerCount pairs.
+                if (timerCount > HARDWARE_TIMER_DEFINITION_COUNT ||
+                    sbufBytesRemaining(src) != (uint32_t)(timerCount * 2)) {
+                    *ret = MSP_RESULT_ERROR;
+                    break;
                 }
-                for (int i = 0; i < timerCount && sbufBytesRemaining(src) >= 2; i++) {
+                for (int i = 0; i < timerCount; i++) {
                     uint8_t timerId = sbufReadU8(src);
                     uint8_t outputMode = sbufReadU8(src);
                     if (timerId < HARDWARE_TIMER_DEFINITION_COUNT) {
