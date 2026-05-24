@@ -23,7 +23,7 @@
 /* --- Internal types and state --- */
 
 #define RX_BUFFER_SIZE 32
-#define TX_QUEUE_SIZE  32
+#define TX_QUEUE_SIZE  32  // usable capacity is TX_QUEUE_SIZE - 1 (31) due to one-slot-empty scheme
 
 struct Timings {
         uint16_t prescaler;
@@ -545,14 +545,20 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
         return -CANARD_ERROR_INVALID_ARGUMENT;
     }
 
+    // Classic CAN only, max payload is 8 bytes
+    if (tx_frame->data_len > 8) {
+        return -CANARD_ERROR_INVALID_ARGUMENT;
+    }
+
     if (!canTxQueuePush(tx_frame)) {
         return 0; // SW queue full - caller retries next cycle
     }
 
     // If all mailboxes are idle, RQCP will never fire to start the ISR chain.
-    // Seed the HW via canTxDrainQueue while blocking only the CAN TX ISR (not
-    // higher-priority IRQs like the gyro timer) to preserve the SPSC contract —
-    // ISR is the sole consumer; we become the consumer only during this window.
+    // Seed the HW via canTxDrainQueue while masking all interrupts at priority
+    // >= NVIC_PRIO_CAN via BASEPRI (higher-priority IRQs like gyro timer are
+    // unaffected) to preserve the SPSC contract — ISR is the sole consumer;
+    // we become the consumer only during this window.
     ATOMIC_BLOCK(NVIC_PRIO_CAN) {
         if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0) {
             canTxDrainQueue(&hcan1);

@@ -310,8 +310,8 @@ int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
 			rx_frame->id |= CANARD_CAN_FRAME_RTR;
 		}
 
-		rx_frame->data_len = RxHeader.DataLength;
-		memcpy(rx_frame->data, RxData, RxHeader.DataLength);
+		rx_frame->data_len = RxHeader.DataLength > 8 ? 8 : RxHeader.DataLength;
+		memcpy(rx_frame->data, RxData, rx_frame->data_len);
 
 		// assume a single interface
 		rx_frame->iface_id = 0;
@@ -338,6 +338,10 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 
 	if (tx_frame->id & CANARD_CAN_FRAME_ERR) {
 		return -CANARD_ERROR_INVALID_ARGUMENT; // unsupported frame format
+	}
+
+	if (tx_frame->data_len > 8) {
+		return -CANARD_ERROR_INVALID_ARGUMENT; // classic CAN only, max 8 bytes
 	}
 
 	FDCAN_TxHeaderTypeDef TxHeader;
