@@ -4,6 +4,10 @@ set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/main")
 
 # Keep these alphabetically sorted by test name
 
+set_property(SOURCE adsb_unittest.cc PROPERTY depends "io/adsb.c" "common/maths.c")
+set_property(SOURCE adsb_unittest.cc PROPERTY definitions USE_ADSB MAX_ADSB_VEHICLES=5 ADSB_LIMIT_CM=6400000)
+set_property(SOURCE adsb_unittest.cc PROPERTY extra_includes "../../lib/main/MAVLink")
+
 set_property(SOURCE alignsensor_unittest.cc PROPERTY depends
     "common/maths.c" "sensors/boardalignment.c")
 

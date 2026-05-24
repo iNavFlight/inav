@@ -35,6 +35,8 @@
 #define MSP2_INAV_TIMER_OUTPUT_MODE             0x200E
 #define MSP2_INAV_SET_TIMER_OUTPUT_MODE         0x200F
 #define MSP2_INAV_OUTPUT_MAPPING_EXT2           0x210D
+#define MSP2_INAV_OUTPUT_ASSIGNMENT             0x210E  // Read finalized post-boot output assignments
+#define MSP2_INAV_QUERY_OUTPUT_ASSIGNMENT       0x210F  // Preview assignments for proposed timer overrides
 
 #define MSP2_INAV_MIXER                         0x2010
 #define MSP2_INAV_SET_MIXER                     0x2011
@@ -111,6 +113,8 @@
 #define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
 
 #define MSP2_ADSB_VEHICLE_LIST                  0x2090
+#define MSP2_ADSB_LIMITS                        0x2091
+#define MSP2_ADSB_WARNING_VEHICLE_ICAO          0x2092
 
 #define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
 #define MSP2_INAV_CUSTOM_OSD_ELEMENT            0x2101

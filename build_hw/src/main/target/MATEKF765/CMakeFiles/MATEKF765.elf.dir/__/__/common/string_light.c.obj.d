@@ -1,0 +1,26 @@
+src/main/target/MATEKF765/CMakeFiles/MATEKF765.elf.dir/__/__/common/string_light.c.obj: \
+ /home/robs/Projects/inav-claude/inav/src/main/common/string_light.c \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/lib/gcc/arm-none-eabi/13.2.1/include/limits.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/lib/gcc/arm-none-eabi/13.2.1/include/syslimits.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/limits.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/newlib.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/_newlib_version.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/cdefs.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/machine/_default_types.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/features.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/lib/gcc/arm-none-eabi/13.2.1/include/stddef.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/syslimits.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/string.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/_ansi.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/config.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/machine/ieeefp.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/reent.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/_ansi.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/_types.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/machine/_types.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/lock.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/_locale.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/strings.h \
+ /home/robs/Projects/inav-claude/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/string.h \
+ /home/robs/Projects/inav-claude/inav/src/main/common/string_light.h \
+ /home/robs/Projects/inav-claude/inav/src/main/common/typeconversion.h

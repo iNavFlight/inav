@@ -224,7 +224,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 15);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 3);
 
 /* OSD formatting helpers replacing common tfp_sprintf patterns
@@ -2370,18 +2370,24 @@ static bool osdDrawSingleElement(uint8_t item)
 
             uint8_t buffIndexFirstLine = 0;
             uint8_t arrowIndexIndex = 0;
-            adsbVehicle_t *vehicle = findVehicleClosestLimit(METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
-            if (vehicle != NULL) {
-                recalculateVehicle(vehicle);
+            bool isAlert = true;
+
+            adsbVehicle_t *vehicle = NULL;
+
+            if(isEnvironmentOkForCalculatingADSBDistanceBearing()){
+                vehicle = findVehicleForAlert(
+                        METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert),
+                        METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning),
+                        METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit)
+                );
+
+                if(vehicle == NULL) {
+                    vehicle = findVehicleForWarning(METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning), METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
+                    isAlert = false;
+                }
             }
 
-            if (
-                    vehicle != NULL
-                    && (vehicle->calculatedVehicleValues.dist > 0
-                    && vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning))
-                    && isEnvironmentOkForCalculatingADSBDistanceBearing()
-
-            ) {
+            if (vehicle != NULL) {
                 adsbLengthForClearFirstLine = 11;
 
                 buff[buffIndexFirstLine++] = SYM_ADSB;
@@ -2405,7 +2411,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 buffIndexFirstLine += osdConfig()->decimals_altitude + 2;
                 //////////////////////////////////////////////////////
 
-                if (vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert)) {
+                if (isAlert) {
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                 }
 
@@ -3686,7 +3692,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!moreThanAh) {
                         osdWriteChar2(buff + strlen(buff), SYM_MAH_MI_0, SYM_MAH_MI_1);
                     } else {
-                        osdWriteChar(buff + strlen(buff), SYM_AH_MI);
+                        osdWriteChar2(buff + strlen(buff), SYM_AH_MI, SYM_BLANK);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
@@ -3700,7 +3706,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!moreThanAh) {
                         osdWriteChar2(buff + strlen(buff), SYM_MAH_NM_0, SYM_MAH_NM_1);
                     } else {
-                        osdWriteChar(buff + strlen(buff), SYM_AH_NM);
+                        osdWriteChar2(buff + strlen(buff), SYM_AH_NM, SYM_BLANK);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
@@ -3716,7 +3722,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!moreThanAh) {
                         osdWriteChar2(buff + strlen(buff), SYM_MAH_KM_0, SYM_MAH_KM_1);
                     } else {
-                        osdWriteChar(buff + strlen(buff), SYM_AH_KM);
+                        osdWriteChar2(buff + strlen(buff), SYM_AH_KM, SYM_BLANK);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
@@ -4424,6 +4430,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .adsb_distance_alert = SETTING_OSD_ADSB_DISTANCE_ALERT_DEFAULT,
     .adsb_ignore_plane_above_me_limit = SETTING_OSD_ADSB_IGNORE_PLANE_ABOVE_ME_LIMIT_DEFAULT,
     .adsb_warning_style = SETTING_OSD_ADSB_WARNING_STYLE_DEFAULT,
+    .adsb_calculation_use_cpa = SETTING_OSD_ADSB_CALCULATION_USE_CPA_DEFAULT,
 #endif
 #if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
     .snr_alarm = SETTING_OSD_SNR_ALARM_DEFAULT,
@@ -6269,8 +6276,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH + 1)];
 
         /* WARNING: ensure number of messages returned does not exceed messages array size
-         * Messages array set 1 larger than maximum expected message count of 6 */
-        const char *messages[7];
+         * Messages array set 1 larger than maximum expected message count of 7 */
+        const char *messages[8];
         unsigned messageCount = 0;
 
         const char *failsafeInfoMessage = NULL;
@@ -6343,66 +6350,66 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             } else if (STATE(LANDING_DETECTED)) {
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
             } else {
-#ifdef USE_GEOZONE
-            char buf[12], buf1[12];
-            switch (geozone.messageState) {
-                case GEOZONE_MESSAGE_STATE_NFZ:
-                    messages[messageCount++] = OSD_MSG_NFZ;
-                    break;
-                case GEOZONE_MESSAGE_STATE_LEAVING_FZ:
-                    osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
-                    tfp_sprintf(messageBuf, OSD_MSG_LEAVING_FZ, buf);
-                    messages[messageCount++] = messageBuf;
-                    break;
-                case GEOZONE_MESSAGE_STATE_OUTSIDE_FZ:
-                    messages[messageCount++] = OSD_MSG_OUTSIDE_FZ;
-                    break;
-                case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:
-                osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
-                    if (geozone.zoneInfo == INT32_MAX) {
-                        tfp_sprintf(buf1, "%s%c", "INF", SYM_ALT_M);
-                    } else {
-                        osdFormatAltitudeSymbol(buf1, geozone.zoneInfo);
-                    }
-                    tfp_sprintf(messageBuf, OSD_MSG_ENTERING_NFZ, buf, buf1);
-                    messages[messageCount++] = messageBuf;
-                    break;
-                case GEOZONE_MESSAGE_STATE_AVOIDING_FB:
-                    messages[messageCount++] = OSD_MSG_AVOIDING_FB;
-                    if (!posControl.sendTo.lockSticks) {
-                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                    }
-                    break;
-                case GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE:
-                    messages[messageCount++] = OSD_MSG_RETURN_TO_ZONE;
-                    if (!posControl.sendTo.lockSticks) {
-                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                    }
-                    break;
-                case GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH:
-                    messages[messageCount++] = OSD_MSG_AVOIDING_ALT_BREACH;
-                    if (!posControl.sendTo.lockSticks) {
-                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                    }
-                    break;
-                case GEOZONE_MESSAGE_STATE_FLYOUT_NFZ:
-                    messages[messageCount++] = OSD_MSG_FLYOUT_NFZ;
-                    if (!posControl.sendTo.lockSticks) {
-                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                    }
-                    break;
-                case GEOZONE_MESSAGE_STATE_POS_HOLD:
-                    messages[messageCount++] = OSD_MSG_AVOIDING_FB;
-                    if (!geozone.sticksLocked) {
-                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                    }
-                    break;
-                case GEOZONE_MESSAGE_STATE_NONE:
-                    break;
-            }
-#endif
                 /* Messages shown only when Failsafe, WP, RTH or Emergency Landing not active and landed state inactive */
-                /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
+                /* ADDS MAXIMUM OF 5 MESSAGES TO TOTAL */
+#ifdef USE_GEOZONE
+                char buf[12], buf1[12];
+                switch (geozone.messageState) {     /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
+                    case GEOZONE_MESSAGE_STATE_NFZ:
+                        messages[messageCount++] = OSD_MSG_NFZ;
+                        break;
+                    case GEOZONE_MESSAGE_STATE_LEAVING_FZ:
+                        osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
+                        tfp_sprintf(messageBuf, OSD_MSG_LEAVING_FZ, buf);
+                        messages[messageCount++] = messageBuf;
+                        break;
+                    case GEOZONE_MESSAGE_STATE_OUTSIDE_FZ:
+                        messages[messageCount++] = OSD_MSG_OUTSIDE_FZ;
+                        break;
+                    case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:
+                        osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
+                        if (geozone.zoneInfo == INT32_MAX) {
+                            tfp_sprintf(buf1, "%s%c", "INF", SYM_ALT_M);
+                        } else {
+                            osdFormatAltitudeSymbol(buf1, geozone.zoneInfo);
+                        }
+                        tfp_sprintf(messageBuf, OSD_MSG_ENTERING_NFZ, buf, buf1);
+                        messages[messageCount++] = messageBuf;
+                        break;
+                    case GEOZONE_MESSAGE_STATE_AVOIDING_FB:
+                        messages[messageCount++] = OSD_MSG_AVOIDING_FB;
+                        if (!posControl.sendTo.lockSticks) {
+                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                        }
+                        break;
+                    case GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE:
+                        messages[messageCount++] = OSD_MSG_RETURN_TO_ZONE;
+                        if (!posControl.sendTo.lockSticks) {
+                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                        }
+                        break;
+                    case GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH:
+                        messages[messageCount++] = OSD_MSG_AVOIDING_ALT_BREACH;
+                        if (!posControl.sendTo.lockSticks) {
+                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                        }
+                        break;
+                    case GEOZONE_MESSAGE_STATE_FLYOUT_NFZ:
+                        messages[messageCount++] = OSD_MSG_FLYOUT_NFZ;
+                        if (!posControl.sendTo.lockSticks) {
+                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                        }
+                        break;
+                    case GEOZONE_MESSAGE_STATE_POS_HOLD:
+                        messages[messageCount++] = OSD_MSG_AVOIDING_FB;
+                        if (!geozone.sticksLocked) {
+                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                        }
+                        break;
+                    case GEOZONE_MESSAGE_STATE_NONE:
+                        break;
+                }
+#endif
                 if (STATE(AIRPLANE)) {      /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
 #ifdef USE_FW_AUTOLAND
                     if (canFwLandingBeCancelled()) {
@@ -6439,7 +6446,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_PITCH);
                         }
                     }
-
                 } else if (STATE(MULTIROTOR)) {     /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
                     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
                         if (posControl.cruise.multicopterSpeed >= 50.0f) {
@@ -6453,12 +6459,21 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     } else if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
                     }
-                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                        /* If ALTHOLD is separately enabled for multirotor together with ANGL/HORIZON/ACRO modes
-                         * then ANGL/HORIZON/ACRO are indicated by the OSD_FLYMODE field.
-                         * In this case indicate ALTHOLD is active via a system message */
 
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
+                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+                        if (posControl.flags.isTerrainFollowEnabled) {
+                            if (posControl.flags.estAglStatus == EST_TRUSTED) {
+                                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SURFACE_OK);
+                            } else {
+                                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SURFACE_BAD);
+                            }
+                        } else if (!navigationRequiresAngleMode()) {
+                            /* If ALTHOLD is separately enabled for multirotor together with ANGL/HORIZON/ACRO modes
+                             * then ANGL/HORIZON/ACRO are indicated by the OSD_FLYMODE field.
+                             * In this case indicate ALTHOLD is active via a system message */
+
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
+                        }
                     }
                 }
             }

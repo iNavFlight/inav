@@ -529,8 +529,8 @@ typedef struct
 
                                       @note This bit-field can not be modified as long as LOCK level 1 has been
                                       programmed. */
+#if defined(TIM_BDTR_BK2BID)
 
-#if defined(TIM_BDTR_BKBID)
   uint32_t Break2AFMode;          /*!< Specifies the alternate function mode of the break2 input.
                                       This parameter can be a value of @ref TIM_LL_EC_BREAK2_AFMODE
 
@@ -541,8 +541,8 @@ typedef struct
 
                                       @note This bit-field can not be modified as long as LOCK level 1 has been
                                       programmed. */
+#endif /*TIM_BDTR_BK2BID */
 
-#endif /*TIM_BDTR_BKBID */
   uint32_t AutomaticOutput;      /*!< Specifies whether the TIM Automatic Output feature is enabled or not.
                                       This parameter can be a value of @ref TIM_LL_EC_AUTOMATICOUTPUT_ENABLE
 

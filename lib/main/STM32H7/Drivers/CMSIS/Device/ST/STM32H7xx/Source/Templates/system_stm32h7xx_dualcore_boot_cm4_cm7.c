@@ -100,12 +100,8 @@
 #if defined(VECT_TAB_SRAM)
 #define VECT_TAB_BASE_ADDRESS   D2_AXISRAM_BASE   /*!< Vector Table base address field.
                                                        This value must be a multiple of 0x400. */
-#define VECT_TAB_OFFSET         0x00000000U       /*!< Vector Table base offset field.
-                                                       This value must be a multiple of 0x400. */
 #else
 #define VECT_TAB_BASE_ADDRESS   FLASH_BANK2_BASE  /*!< Vector Table base address field.
-                                                       This value must be a multiple of 0x400. */
-#define VECT_TAB_OFFSET         0x00000000U       /*!< Vector Table base offset field.
                                                        This value must be a multiple of 0x400. */
 #endif /* VECT_TAB_SRAM */
 #elif defined(CORE_CM7)
@@ -115,17 +111,19 @@
 #if defined(VECT_TAB_SRAM)
 #define VECT_TAB_BASE_ADDRESS   D1_AXISRAM_BASE   /*!< Vector Table base address field.
                                                        This value must be a multiple of 0x400. */
-#define VECT_TAB_OFFSET         0x00000000U       /*!< Vector Table base offset field.
-                                                       This value must be a multiple of 0x400. */
 #else
 #define VECT_TAB_BASE_ADDRESS   FLASH_BANK1_BASE  /*!< Vector Table base address field.
-                                                       This value must be a multiple of 0x400. */
-#define VECT_TAB_OFFSET         0x00000000U       /*!< Vector Table base offset field.
                                                        This value must be a multiple of 0x400. */
 #endif /* VECT_TAB_SRAM */
 #else
 #error Please #define CORE_CM4 or CORE_CM7
 #endif /* CORE_CM4 */
+
+#if !defined(VECT_TAB_OFFSET)
+#define VECT_TAB_OFFSET         0x00000000U       /*!< Vector Table base offset field.
+                                                       This value must be a multiple of 0x400. */
+#endif /* VECT_TAB_OFFSET */
+
 #endif /* USER_VECT_TAB_ADDRESS */
 /******************************************************************************/
 
@@ -154,7 +152,7 @@
   */
   uint32_t SystemCoreClock = 64000000;
   uint32_t SystemD2Clock = 64000000;
-  const  uint8_t D1CorePrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+  const  uint8_t D1CorePrescTable[16] = {0, 0, 0, 0, 1, 2, 3, 4, 1, 2, 3, 4, 6, 7, 8, 9};
 
 /**
   * @}
@@ -271,12 +269,21 @@ void SystemInit (void)
 #endif /* USER_VECT_TAB_ADDRESS */
 
 #elif defined(CORE_CM7)
-  /*
-   * Disable the FMC bank1 (enabled after reset).
-   * This, prevents CPU speculation access on this bank which blocks the use of FMC during
-   * 24us. During this time the others FMC master (such as LTDC) cannot use it!
-   */
-  FMC_Bank1_R->BTCR[0] = 0x000030D2;
+  if(READ_BIT(RCC->AHB3ENR, RCC_AHB3ENR_FMCEN) == 0U)
+  {
+    /* Enable the FMC interface clock */
+    SET_BIT(RCC->AHB3ENR, RCC_AHB3ENR_FMCEN);
+
+    /*
+     * Disable the FMC bank1 (enabled after reset).
+     * This, prevents CPU speculation access on this bank which blocks the use of FMC during
+     * 24us. During this time the others FMC master (such as LTDC) cannot use it!
+     */
+    FMC_Bank1_R->BTCR[0] = 0x000030D2;
+
+    /* Disable the FMC interface clock */
+    CLEAR_BIT(RCC->AHB3ENR, RCC_AHB3ENR_FMCEN);
+  }
 
   /* Configure the Vector Table location -------------------------------------*/
 #if defined(USER_VECT_TAB_ADDRESS)
