@@ -49,6 +49,10 @@ tokens.yaml
 /testing/
 /.idea/
 
+# Build output directories (catch-all for ad-hoc build dirs)
+/build_*/
+/build_hw/
+
 # Local development files
 .semgrepignore
 build_sitl/
