@@ -389,34 +389,8 @@ static void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
     }
 
 
-    switch (nodeStatus.health) {
-    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
-        break;
-    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
-        break;
-    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
-        break;
-    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
-        break;
-    default:
-        break;
-    }
-
-
-    switch(nodeStatus.mode) {
-    case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
-        break;
-    case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
-        break;
-    case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
-        break;
-    case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
-        break;
-    case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
-        break;
-    default:
-        break;
-    }
+    // TODO: NodeStatus health/mode monitoring — currently no action taken
+    (void)nodeStatus;
 }
 
 static void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {

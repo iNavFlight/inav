@@ -54,8 +54,9 @@ static CAN_HandleTypeDef hcan1;
 // canTxDropped and canTxQueueHWM are written by main loop (canTxQueuePush), read by main loop only.
 // canRxBufferHWM is written by ISR (rxBufferPushFrame), read by main loop only.
 // All are uint8/uint16 so reads are single-instruction atomic on Cortex-M.
-static volatile uint16_t canTxDropped = 0;
-static volatile uint8_t  canTxQueueHWM = 0;
+// Only canRxBufferHWM needs volatile (ISR vs main loop sharing).
+static uint16_t canTxDropped = 0;
+static uint8_t  canTxQueueHWM = 0;
 static volatile uint8_t  canRxBufferHWM = 0;
 
 /* --- Initialization --- */
@@ -509,7 +510,10 @@ static void canTxDrainQueue(CAN_HandleTypeDef *hcan) {
         canTxQueueConsume();
     }
     if (canTxQueueIsEmpty()) {
-        HAL_CAN_DeactivateNotification(hcan, CAN_IT_TX_MAILBOX_EMPTY);
+        // Use the register-level macro instead of HAL_CAN_DeactivateNotification:
+        // this function is called from ISR context (TX mailbox complete callbacks)
+        // where HAL functions using __HAL_LOCK() may not be safe to call.
+        __HAL_CAN_DISABLE_IT(hcan, CAN_IT_TX_MAILBOX_EMPTY);
     }
 }
 
