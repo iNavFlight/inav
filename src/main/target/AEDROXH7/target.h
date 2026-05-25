@@ -114,10 +114,11 @@
 #define UART3_TX_PIN            PD8
 #define UART3_RX_PIN            PD9
 
-// PD0/PD1 are also CAN1_RX/TX; CAN not used on this board
-#define USE_UART4
-#define UART4_TX_PIN            PD1
-#define UART4_RX_PIN            PD0
+// *************** CAN Bus *************************
+// TODO: verify CAN syntax for INAV and confirm transceiver standby pin (if any)
+#define USE_DRONECAN
+#define CAN1_RX                 PD0
+#define CAN1_TX                 PD1
 
 #define USE_UART7
 #define UART7_TX_PIN            PE8
@@ -127,7 +128,7 @@
 #define UART8_TX_PIN            PE1
 #define UART8_RX_PIN            PE0
 
-#define SERIAL_PORT_COUNT       7
+#define SERIAL_PORT_COUNT       6   // VCP + UART1-3 + UART7 + UART8
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
