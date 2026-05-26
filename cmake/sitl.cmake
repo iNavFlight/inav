@@ -13,6 +13,7 @@ main_sources(SITL_COMMON_SRC_EXCLUDES
 
 main_sources(SITL_SRC
     config/config_streamer_file.c
+    drivers/dronecan/libcanard/canard_sitl_driver.c
     drivers/serial_tcp.c
     drivers/serial_tcp.h
     target/SITL/sim/realFlight.c
@@ -58,12 +59,19 @@ if(DEBUG)
     list(APPEND SITL_COMPILE_OPTIONS -g)
 endif()
 
+if(ASAN)
+    message(STATUS "AddressSanitizer enabled.")
+    list(APPEND SITL_COMPILE_OPTIONS -fsanitize=address -fno-omit-frame-pointer)
+    list(APPEND SITL_LINK_OPTIONS -fsanitize=address)
+endif()
+
 if(NOT MACOSX)
     set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
         -Wno-return-local-addr
         -Wno-error=maybe-uninitialized
         -fsingle-precision-constant
     )
+
     include(CheckLinkerFlag OPTIONAL)
     if(COMMAND check_linker_flag)
         check_linker_flag(C "-Wl,--no-warn-rwx-segments" LINKER_SUPPORTS_NO_RWX_WARNING)

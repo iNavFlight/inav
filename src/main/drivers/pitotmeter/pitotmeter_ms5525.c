@@ -172,10 +172,14 @@ bool ms5525Detect(pitotDev_t * pitot)
     }
 
     // Try primary address 0x76
+#ifdef USE_I2C
     pitot->busDev->busdev.i2c.address = MS5525_ADDR_1;
+#endif
     if (!deviceDetect(pitot->busDev)) {
         // Fallback to secondary 0x77
+#ifdef USE_I2C
         pitot->busDev->busdev.i2c.address = MS5525_ADDR_2;
+#endif
         if (!deviceDetect(pitot->busDev)) {
             busDeviceDeInit(pitot->busDev);
             return false;

@@ -1,0 +1,2 @@
+# Empty custom commands generated dependencies file for svd_BRAHMA_F722.
+# This may be replaced when dependencies are built.

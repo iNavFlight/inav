@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""Usage:
+python3 src/utils/update_cli_docs.py
+python3 src/utils/update_cli_docs.py --defaults
+"""
 
 import optparse
 import os
@@ -41,6 +45,10 @@ def parse_settings_yaml():
 def generate_md_from_yaml(settings_yaml):
     """Generate a sorted markdown table with description & default value for each setting"""
     params = {}
+    tables = {}
+
+    for table in settings_yaml['tables']:
+        tables[table['name']] = table['values']
     
     # Extract description, default/min/max values of each setting from the YAML specs (if present)
     for group in settings_yaml['groups']:
@@ -83,7 +91,8 @@ def generate_md_from_yaml(settings_yaml):
                     "description": member["description"] if "description" in member else "",
                     "default": member["default_value"] if "default_value" in member else "",
                     "min": member["min"] if "min" in member else "",
-                    "max": member["max"] if "max" in member else ""
+                    "max": member["max"] if "max" in member else "",
+                    "values": tables[member["table"]] if "table" in member else []
                 }
     
     # Sort the settings by name and build the doc
@@ -92,10 +101,29 @@ def generate_md_from_yaml(settings_yaml):
         output_lines.extend([
             f"### {param[0]}\n\n",
             f"{param[1]['description'] if param[1]['description'] else '_// TODO_'}\n\n",
-            "| Default | Min | Max |\n| --- | --- | --- |\n",
-            f"| {param[1]['default']} | {param[1]['min']} | {param[1]['max']} |\n\n",
-            "---\n\n"
         ])
+
+        if param[1]['values']:
+            output_lines.extend([
+                "| Allowed Values |  |\n| --- | --- |\n",
+            ])
+
+            for value in param[1]['values']:
+                output_lines.append(f"| {value} | {'Default' if value == param[1]['default'] else ''} |\n")
+
+            if param[1]['default'] and param[1]['default'] not in param[1]['values']:
+                output_lines.append(f"| {param[1]['default']} | Default |\n")
+
+            output_lines.extend([
+                "\n",
+                "---\n\n"
+            ])
+        else:
+            output_lines.extend([
+                "| Default | Min | Max |\n| --- | --- | --- |\n",
+                f"| {param[1]['default']} | {param[1]['min']} | {param[1]['max']} |\n\n",
+                "---\n\n"
+            ])
     
     # Return the assembled doc body
     return output_lines
@@ -160,6 +188,10 @@ def check_defaults(settings_yaml):
                     default_from_code = code_values_map[default_from_code]
                 
                 default_from_yaml = member["default_value"] if "default_value" in member else ""
+                if type(default_from_yaml) == bool:
+                    default_from_yaml = 'ON' if default_from_yaml else 'OFF'
+                else:
+                    default_from_yaml = str(default_from_yaml)
                 # Remove eventual Markdown formatting
                 default_from_yaml = default_from_yaml.replace('`', '').replace('*', '').replace('__', '')
                 # Allow specific C-YAML matches that coudln't be replaced in the previous steps
