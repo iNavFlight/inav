@@ -115,10 +115,11 @@
 #define UART3_RX_PIN            PD9
 
 // *************** CAN Bus *************************
-// TODO: verify CAN syntax for INAV and confirm transceiver standby pin (if any)
+// CAN not yet tested
 #define USE_DRONECAN
 #define CAN1_RX                 PD0
 #define CAN1_TX                 PD1
+#define CAN1_STANDBY            PD3
 
 #define USE_UART7
 #define UART7_TX_PIN            PE8
