@@ -33,7 +33,7 @@ Hardware issues have been reported on these flight controllers. They are also mi
 > There is no ADC for "voltmeter" input. So potentially this FC can run at 1S to 6S. However there are only 2 LDO regulators on the FC itself. 
 
 ## Notable missing features
-* Current sensor
+* Current sensor on earlier hardware revisions (V4 adds a backside ADC current-sensor pad)
 * Blackbox recording
 * Analogue OSD
 * PINIO (for VTX power switching etc)
