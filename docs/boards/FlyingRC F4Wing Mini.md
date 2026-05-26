@@ -4,12 +4,12 @@ This is a budget-friendly flight controller, typically sold in the US$16-40 rang
 
 FlyingRC is a small hardware vendor focused on affordable flight-controller and RC electronics products. More information about their work and open-source activity is available on their GitHub page: https://github.com/FlyingRC-Official
 
-Hardware issues have been reported on these flight controllers. They are also missing many features. Unlike most other _wing_ flight controllers. This is not an all in one solution. It requires an external power source for servos. So is not as small or light as it first appears.
+Hardware issues have been reported on these flight controllers. They are also missing many features. Unlike most other _wing_ flight controllers, this is not an all-in-one solution. It requires an external power source for servos, so is not as small or light as it first appears.
 
 > [!WARNING]
 > We recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware is far from guaranteed. So fitting to a larger, heavier aircraft adds unnecessary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only, if used at all.
 >
-> Also, if you insist on buying one of these. Make sure it's from a somewhere selling it at $16US. Spending $40US on this is a waste of money. You can get better FCs for around that money.
+> Also, if you choose to buy one of these, compare pricing carefully. At around US$40 there are more capable flight controllers available.
 
 ## Specifications
 | | |
@@ -37,8 +37,8 @@ Hardware issues have been reported on these flight controllers. They are also mi
 * Blackbox recording
 * Analogue OSD
 * PINIO (for VTX power switching etc)
-* ADCs (external current sensor, airspeed sensor, rssi, etc)
+* Additional ADCs (airspeed sensor, RSSI, etc)
 * On-board power rail for servos
 * Filtered power for video
 
-All the above can be found on the Matek F405-WMO. Which is a $45US flight controller. Which is 32 x 22 x 12.7 mm and 9g, and has a definite input voltage range of 2S to 6S, and able to handle up to 132A.
+Most of the above can be found on the Matek F405-WMO. Which is a $45US flight controller. Which is 32 x 22 x 12.7 mm and 9g, and has a definite input voltage range of 2S to 6S, and able to handle up to 132A.
