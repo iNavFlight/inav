@@ -1,11 +1,13 @@
 # Board - FLYINGRCF4WINGMINI
 
-This is a cheap flight controller (prices range from $16US to $40US) from an unknown company. Many of the components on this FC are likely to have high tollerances due to the low cost. They sold this FC as compatible with INAV without reaching out to the team or having an official target made. The target only exists thanks to a community contributor (dixi83).
+This is a budget-friendly flight controller, typically sold in the US$16-40 range. As with many entry-level boards, component tolerances and quality control may vary compared with higher-cost hardware, so users should test critical functions carefully before flying. The board has been advertised as INAV-compatible, but it was not originally submitted through the official INAV target process; current support exists thanks to community work, especially the contribution from dixi83.
+
+FlyingRC is a small hardware vendor focused on affordable flight-controller and RC electronics products. More information about their work and open-source activity is available on their GitHub page: https://github.com/FlyingRC-Official
 
 Hardware issues have been reported on these flight controllers. They are also missing many features. Unlike most other _wing_ flight controllers. This is not an all in one solution. It requires an external power source for servos. So is not as small or light as it first appears.
 
 > [!WARNING]
-> We recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware is far from guaranteed. So fitting to a larger, heavier aircraft adds unneccesary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only, if used at all.
+> We recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware is far from guaranteed. So fitting to a larger, heavier aircraft adds unnecessary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only, if used at all.
 >
 > Also, if you insist on buying one of these. Make sure it's from a somewhere selling it at $16US. Spending $40US on this is a waste of money. You can get better FCs for around that money.
 
@@ -22,7 +24,7 @@ Hardware issues have been reported on these flight controllers. They are also mi
 | Weight | 2.8g |
 
 > [!NOTE]
-> There is conflicting information for the power this FC can handle. There are 2 specs providied:
+> There is conflicting information for the power this FC can handle. There are 2 specs provided:
 > | | |
 > |---|---| 
 > | Voltmeter | 2.5-30V |
@@ -31,7 +33,7 @@ Hardware issues have been reported on these flight controllers. They are also mi
 > There is no ADC for "voltmeter" input. So potentially this FC can run at 1S to 6S. However there are only 2 LDO regulators on the FC itself. 
 
 ## Notable missing features
-* Current senso
+* Current sensor
 * Blackbox recording
 * Analogue OSD
 * PINIO (for VTX power switching etc)
