@@ -103,6 +103,10 @@
 // V4 hardware adds a backside current-sensor pad on the same ADC pin used by Matek F405 TE.
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 
+// *************** LEDSTRIP ************************
+#define USE_LED_STRIP
+#define WS2811_PIN PB1
+
 // *************** others  ************************
 #define DEFAULT_FEATURES   (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define VBAT_SCALE_DEFAULT      2100

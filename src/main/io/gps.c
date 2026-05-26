@@ -109,15 +109,29 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
     { false, 0, NULL, NULL },
 #endif
 
+    /* CRSF GPS */
+#ifdef USE_GPS_PROTO_CRSF
+    { true, 0, &gpsRestartCRSF, &gpsHandleCRSF },
+#else
+    { false, 0, NULL, NULL },
+#endif
+
 #ifdef USE_GPS_FAKE
     {true, 0, &gpsFakeRestart, &gpsFakeHandle},
 #else
     { false, 0, NULL, NULL },
 #endif
 
+    /* DRONECAN GPS */
+#ifdef USE_GPS_PROTO_DRONECAN
+    {true, 0, &gpsRestartDronecan, &gpsHandleDronecan },
+#else
+    {false, 0, NULL, NULL },
+#endif
+
 };
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 6);
 
 PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .provider = SETTING_GPS_PROVIDER_DEFAULT,

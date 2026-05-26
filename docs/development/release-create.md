@@ -109,6 +109,7 @@ Version numbers are set in:
 - [ ] Release notes drafted
 - [ ] Breaking changes documented
 - [ ] New features documented
+- [ ] **Configurator migration profile created** for major version bumps (see [Backup Restore Architecture](Backup%20Restore%20Architecture.md#adding-a-new-migration-profile))
 
 ## Release Workflow
 
@@ -378,6 +379,25 @@ gh release list --repo iNavFlight/inav-nightly --limit 5
 gh release download <nightly-tag> --repo iNavFlight/inav-nightly --pattern "*.hex"
 ```
 
+#### Building Firmware Locally (if needed)
+
+**⚠️ Important:** Always use Release mode when building firmware for releases to save disk space:
+
+```bash
+cd inav
+mkdir build-release
+cd build-release
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# Build all official release targets
+make release
+
+# Or build specific targets
+make MATEKF405 MATEKF722
+```
+
+**Disk usage:** Release mode uses ~4-6 GB vs ~109 GB for default RelWithDebInfo mode (96% reduction). The debug symbols are stripped from final `.hex` files anyway, so Release mode produces identical output.
+
 #### Renaming Firmware Files
 
 Remove CI suffix and add RC number for RC releases:
@@ -492,6 +512,7 @@ gh api repos/iNavFlight/inav-configurator/git/refs -f ref="refs/heads/maintenanc
 
 - **Changes maintaining backward compatibility** → PR to maintenance-X.x (e.g., maintenance-9.x)
 - **Breaking changes** (MSP protocol, settings structure) → PR to maintenance-(X+1).x (e.g., maintenance-10.x)
+  - When breaking changes affect CLI settings (renames, removals, value changes), a **Configurator migration profile** must be created. See [Backup Restore Architecture](Backup%20Restore%20Architecture.md#adding-a-new-migration-profile)
 - **Master** → NOT a PR target (receives merges only)
 
 Lower version branches are periodically merged into higher version branches (e.g., maintenance-9.x → master → maintenance-10.x).
