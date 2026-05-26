@@ -98,7 +98,10 @@
 #define ADC_INSTANCE                ADC1
 #define ADC1_DMA_STREAM             DMA2_Stream4
 #define ADC_CHANNEL_1_PIN           PC4
+#define ADC_CHANNEL_2_PIN           PC5
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
+// V4 hardware adds a backside current-sensor pad on the same ADC pin used by Matek F405 TE.
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
