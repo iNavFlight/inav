@@ -1161,7 +1161,7 @@ static void osdFormatThrottlePosition(char *buff, bool useScaled, textAttributes
 #endif
     int8_t throttlePercent = getThrottlePercent(useScaled);
     if ((useScaled && throttlePercent <= 0) || !ARMING_FLAG(ARMED)) {
-        const char* message = ARMING_FLAG(ARMED) ? (throttlePercent == 0 && !ifMotorstopFeatureEnabled()) ? "IDLE" : "STOP" : "DARM";
+        const char* message = ARMING_FLAG(ARMED) ? areMotorsStopped() ? "STOP" : "IDLE" : "DARM";
         buff[0] = SYM_THR;
         strcpy(buff + 1, message);
         return;
@@ -1988,6 +1988,18 @@ static bool osdDrawSingleElement(uint8_t item)
         osdFormatVelocityStr(buff, stats.max_3D_speed, OSD_SPEED_TYPE_3D, true);
         break;
 
+     case OSD_AUTO_SPEED:
+        if (isFixedwingAutoSpeedActive()) {
+            buff[0] = '(';
+            osdFormatVelocityStr(buff + 1, getDesiredAutoSpeed(), OSD_SPEED_TYPE_3D, false);
+            buff[5] = ')';
+            buff[6] = '\0';
+            break;
+        } else {
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
+            return true;
+        }
+
     case OSD_GLIDESLOPE:
         {
             float horizontalSpeed = gpsSol.groundSpeed;
@@ -2216,7 +2228,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_GPS_EXTRA_STATS:
         {
             gpsSetOsdMonRfWidgetEnabled(true);
-            
+
             // Collect satellite stats grouped by GNSS ID: 0,2,3,6
             uint8_t stats[4][2] = { {0,0}, {0,0}, {0,0}, {0,0} }; // [group][0]=total, [group][1]=good
             for (int i = 0; i < UBLOX_MAX_SIGNALS; ++i) {
@@ -4360,6 +4372,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdLayoutsConfig->item_pos[0][OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
+    osdLayoutsConfig->item_pos[0][OSD_AUTO_SPEED] = OSD_POS(23, 0);
     osdLayoutsConfig->item_pos[0][OSD_3D_SPEED] = OSD_POS(23, 1);
     osdLayoutsConfig->item_pos[0][OSD_GLIDESLOPE] = OSD_POS(23, 2);
 
@@ -4418,7 +4431,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
     osdLayoutsConfig->item_pos[0][OSD_MISSION] = OSD_POS(0, 10);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SATS] = OSD_POS(0, 11) | OSD_VISIBLE_FLAG;
-    osdLayoutsConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);    
+    osdLayoutsConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
     osdLayoutsConfig->item_pos[0][OSD_GPS_EXTRA_STATS] = OSD_POS(3, 11);
 
     osdLayoutsConfig->item_pos[0][OSD_GPS_LAT] = OSD_POS(0, 12);

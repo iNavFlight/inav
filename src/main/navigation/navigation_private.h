@@ -144,6 +144,7 @@ typedef struct {
     fpVector3_t vel;
     int32_t     yaw;
     int16_t     climbRateDemand;
+    uint16_t    autoSpeedDemand;
 } navigationDesiredState_t;
 
 typedef enum {

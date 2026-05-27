@@ -257,6 +257,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .P = SETTING_NAV_FW_POS_HDG_P_DEFAULT,
                     .I = SETTING_NAV_FW_POS_HDG_I_DEFAULT,
                     .D = SETTING_NAV_FW_POS_HDG_D_DEFAULT,
+                    .FF = 0,
+                },
+                [PID_AUTO_SPEED] = {
+                    .P = SETTING_NAV_FW_AUTO_SPEED_P_DEFAULT,
+                    .I = SETTING_NAV_FW_AUTO_SPEED_I_DEFAULT,
+                    .D = SETTING_NAV_FW_AUTO_SPEED_D_DEFAULT,
                     .FF = 0
                 }
             }
@@ -550,7 +556,7 @@ void updatePIDCoefficients(void)
     for (int axis = 0; axis < 3; axis++) {
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
-    
+
     float tpaFactor=1.0f;
     float iTermFactor=1.0f;  // Separate factor for I-term scaling
     if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
@@ -570,13 +576,13 @@ void updatePIDCoefficients(void)
     }
     tpaFactorprev = tpaFactor;
 
-    
+
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
         return;
     }
 
-    
+
     // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
     for (int axis = 0; axis < 3; axis++) {

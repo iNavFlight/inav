@@ -724,6 +724,11 @@ bool areMotorsRunning(void)
     return false;
 }
 
+bool areMotorsStopped(void)
+{
+    return motor[0] == motorZeroCommand;
+}
+
 uint16_t getMaxThrottle(void) {
 
     static uint16_t throttle = 0;

@@ -197,7 +197,7 @@ typedef struct geozone_s {
     int32_t distanceHorToNearestZone;
     int32_t distanceVertToNearestZone;
     int32_t zoneInfo;
-    int32_t currentzoneMaxAltitude; 
+    int32_t currentzoneMaxAltitude;
     int32_t currentzoneMinAltitude;
     bool nearestHorZoneHasAction;
     bool sticksLocked;
@@ -473,6 +473,8 @@ typedef struct navConfig_s {
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
+        uint16_t auto_speed_min_speed;       // Minimum allowed speed for auto speed mode (m/s)
+        uint16_t auto_speed_max_speed;       // Maximum allowed speed for auto speed mode (m/s)
         uint8_t  control_smoothness;         // The amount of smoothing to apply to controls for navigation
         uint16_t pitch_to_throttle_smooth;   // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
         uint8_t  pitch_to_throttle_thresh;   // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
@@ -598,6 +600,7 @@ typedef struct navigationPIDControllers_s {
     pidController_t fw_alt;
     pidController_t fw_nav;
     pidController_t fw_heading;
+    pidController_t fw_autoSpeed;
 } navigationPIDControllers_t;
 
 /* MultiWii-compatible params for telemetry */
@@ -819,6 +822,10 @@ bool rthAltControlStickOverrideCheck(uint8_t axis);
 int8_t navCheckActiveAngleHoldAxis(void);
 uint8_t getActiveWpNumber(void);
 uint16_t getFlownLoiterRadius(void);
+
+uint16_t getDesiredAutoSpeed(void);
+bool isFixedwingAutoSpeedActive(void);
+void getAutoSpeedThrottleDemand(int16_t *throttleCommand);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles

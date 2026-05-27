@@ -211,6 +211,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_climb_angle = SETTING_NAV_FW_CLIMB_ANGLE_DEFAULT,                              // degrees
         .max_dive_angle = SETTING_NAV_FW_DIVE_ANGLE_DEFAULT,                                // degrees
         .cruise_speed = SETTING_NAV_FW_CRUISE_SPEED_DEFAULT,                                // cm/s
+        .auto_speed_min_speed = SETTING_FW_AUTO_SPEED_MIN_SPEED_DEFAULT,                    // 11 m/s
+        .auto_speed_max_speed = SETTING_FW_AUTO_SPEED_MAX_SPEED_DEFAULT,                    // 22 m/s
         .control_smoothness = SETTING_NAV_FW_CONTROL_SMOOTHNESS_DEFAULT,
         .pitch_to_throttle_smooth = SETTING_NAV_FW_PITCH2THR_SMOOTHING_DEFAULT,
         .pitch_to_throttle_thresh = SETTING_NAV_FW_PITCH2THR_THRESHOLD_DEFAULT,
@@ -3874,10 +3876,10 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
 
 int isGCSValid(void)
 {
-    return (ARMING_FLAG(ARMED) && 
-            (posControl.flags.estPosStatus >= EST_TRUSTED) && 
-            posControl.gpsOrigin.valid && 
-            posControl.flags.isGCSAssistedNavigationEnabled && 
+    return (ARMING_FLAG(ARMED) &&
+            (posControl.flags.estPosStatus >= EST_TRUSTED) &&
+            posControl.gpsOrigin.valid &&
+            posControl.flags.isGCSAssistedNavigationEnabled &&
             (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS));
 }
 
@@ -5056,6 +5058,14 @@ void navigationUsePIDs(void)
                                         2.0f,
                                         0.0f
     );
+
+    navPidInit(&posControl.pids.fw_autoSpeed, (float)pidProfile()->bank_fw.pid[PID_AUTO_SPEED].P / 30.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_AUTO_SPEED].I / 50.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_AUTO_SPEED].D / 50.0f,
+                                        0.0f,
+                                        2.0f,
+                                        0.0f
+    );
 }
 
 void navigationInit(void)
@@ -5255,7 +5265,8 @@ bool navigationInAutomaticThrottleMode(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
     return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAND)) ||
-           ((stateFlags & NAV_CTL_LAUNCH) && !navConfig()->fw.launch_manual_throttle);
+           ((stateFlags & NAV_CTL_LAUNCH) && !navConfig()->fw.launch_manual_throttle) ||
+           isFixedwingAutoSpeedActive();
 }
 
 bool navigationIsControllingThrottle(void)

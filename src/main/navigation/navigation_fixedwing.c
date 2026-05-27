@@ -680,36 +680,41 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         // PITCH >0 dive, <0 climb
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
-        int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
-        if (navStateFlags & NAV_CTL_LAND) {
-        // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
-            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
-        } else {
-            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
-        }
-
-        // Speed controller - only apply in POS mode when NOT NAV_CTL_LAND
-        if ((navStateFlags & NAV_CTL_POS) && !(navStateFlags & NAV_CTL_LAND)) {
-            throttleCorrection += applyFixedWingMinSpeedController(currentTimeUs);
-            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
-        }
-
-        uint16_t correctedThrottleValue = constrain(currentBatteryProfile->nav.fw.cruise_throttle + throttleCorrection, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
-
-        // Manual throttle increase
-        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
-            if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
-                correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
-            } else {
-                correctedThrottleValue = getMaxThrottle();
-            }
-            isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle);
-        } else {
+        if (isFixedwingAutoSpeedActive()) {  // CR164
             isAutoThrottleManuallyIncreased = false;
-        }
+        } else {
+            int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
-        rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
+            if (navStateFlags & NAV_CTL_LAND) {
+            // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
+                throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
+            } else {
+                throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
+            }
+
+            // Speed controller - only apply in POS mode when NOT NAV_CTL_LAND
+            if ((navStateFlags & NAV_CTL_POS) && !(navStateFlags & NAV_CTL_LAND)) {
+                throttleCorrection += applyFixedWingMinSpeedController(currentTimeUs);
+                throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
+            }
+
+            uint16_t correctedThrottleValue = constrain(currentBatteryProfile->nav.fw.cruise_throttle + throttleCorrection, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
+
+            // Manual throttle increase
+            if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+                if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
+                    correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
+                } else {
+                    correctedThrottleValue = getMaxThrottle();
+                }
+                isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle);
+            } else {
+                isAutoThrottleManuallyIncreased = false;
+            }
+
+            rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
+        }   // CR164
     }
 
 #ifdef USE_FW_AUTOLAND
@@ -927,4 +932,48 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
 float navigationGetCrossTrackError(void)
 {
     return navCrossTrackError;
+}
+
+uint16_t getDesiredAutoSpeed(void)
+{
+    return posControl.desiredState.autoSpeedDemand;
+}
+
+bool isFixedwingAutoSpeedActive(void)
+{
+    return STATE(AIRPLANE) && ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXAUTOSPEED) && posControl.flags.estVelStatus == EST_TRUSTED && !areMotorsStopped() &&
+            !FLIGHT_MODE(NAV_LAUNCH_MODE) && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND) && !navigationIsExecutingAnEmergencyLanding();
+}
+
+void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
+{
+    if (!isFixedwingAutoSpeedActive()) return;
+
+    static uint16_t autoSpeedThrottleCommand = PWM_RANGE_MIDDLE;
+    static timeUs_t lastUpdateTimeUs = 0;
+    timeUs_t currentTime = micros();
+    timeUs_t dT = currentTime - lastUpdateTimeUs;
+
+    if (dT > 20000) {   // update at 50 Hz
+        lastUpdateTimeUs = currentTime;
+
+        if (dT > 50000) return;     // don't update if delayed by more than 50 ms
+
+        static pt1Filter_t speedToThrFilterState;
+
+        uint16_t minSpeed = 100 * navConfig()->fw.auto_speed_min_speed;
+        uint16_t maxSpeed = 100 * navConfig()->fw.auto_speed_max_speed;
+
+        posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
+
+        uint16_t actual3DSpeed = calc_length_pythagorean_2D(posControl.actualState.velXY, posControl.actualState.abs.vel.z);
+
+        int16_t throttleCorr = navPidApply2(&posControl.pids.fw_autoSpeed, posControl.desiredState.autoSpeedDemand, actual3DSpeed, US2S(dT), -PWM_RANGE_HALF, PWM_RANGE_HALF, 0);
+        throttleCorr = pt1FilterApply4(&speedToThrFilterState, throttleCorr, 0.5f, US2S(dT));
+
+        autoSpeedThrottleCommand = PWM_RANGE_MIDDLE + throttleCorr;
+        autoSpeedThrottleCommand = constrain(autoSpeedThrottleCommand, getThrottleIdleValue(), getMaxThrottle());
+    }
+
+    *throttleCommand = autoSpeedThrottleCommand;
 }
