@@ -257,6 +257,9 @@
 #define MSP_LED_STRIP_MODECOLOR  127    //out message         Get LED strip mode_color settings
 #define MSP_BATTERY_STATE        130    // DJI googles fc battery info
 
+#define MSP_SET_OSD_CANVAS       188    // Sent from VTX to inform OSD canvas size
+#define MSP_OSD_CANVAS           189    // Sent from FC to inform configurator about canvas size
+
 #define MSP_SET_RAW_RC           200    //in message          8 rc chan
 #define MSP_SET_RAW_GPS          201    //in message          fix, numsat, lat, lon, alt, speed
 #define MSP_SET_BOX              203    //in message          BOX setup (number is dependant of your setup)
