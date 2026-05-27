@@ -197,8 +197,8 @@
 #define USE_HEADTRACKER_SERIAL
 #define USE_HEADTRACKER_MSP
 
-#if defined(STM32F7) || defined(STM32H7)
-// needs bi-direction inverter, not available on F4 hardware.
+#if defined(STM32F7) || defined(STM32H7) || defined(RP2350)
+// needs bi-directional inverter; not available on F4 or AT32F43x hardware
 #define USE_TELEMETRY_SBUS2
 #endif
 
