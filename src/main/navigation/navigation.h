@@ -464,7 +464,6 @@ typedef struct navConfig_s {
         bool slowDownForTurning;                // Slow down during WP missions when changing heading on next waypoint
         uint8_t althold_throttle_type;          // throttle zero datum type for alt hold
         uint8_t inverted_crash_detection;       // Enables inverted crash detection, setting defines disarm time delay (0 = disabled)
-        uint8_t toiletbowl_detection;           // Enables toilet bowling detection and heading correction (0 = disabled)
     } mc;
 
     struct {
