@@ -63,7 +63,6 @@ static int16_t altHoldThrottleRCZero = 1500;
 static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
-bool mcToiletBowlingDetected;
 
 float getSqrtControllerVelocity(float targetAltitude, timeDelta_t deltaMicros)
 {
@@ -299,6 +298,7 @@ bool adjustMulticopterHeadingFromRCInput(void)
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
 static float lastAccelTargetX = 0.0f, lastAccelTargetY = 0.0f;
+bool mcToiletBowlingDetected;
 
 void resetMulticopterBrakingMode(void)
 {
