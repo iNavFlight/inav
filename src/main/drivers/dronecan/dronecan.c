@@ -495,7 +495,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
             break;
 
         case STATE_DRONECAN_BUS_OFF:
-            if(currentTimeUs > (busoffTimeUs + 100000)) { // Wait 100 mS
+            if(currentTimeUs > (busoffTimeUs + 1000)) { // Wait 1 mS
                 canardSTM32RecoverFromBusOff();
                 busoffTimeUs = currentTimeUs;
             }
