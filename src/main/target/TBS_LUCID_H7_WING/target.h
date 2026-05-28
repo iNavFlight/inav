@@ -100,7 +100,7 @@
 #define GYRO2_CS_PIN            PE11
 
 #define USE_IMU_MPU6000
-#define IMU_1_MPU6000_ALIGN       CW0_DEG_FLIP
+#define IMU_1_MPU6000_ALIGN       CW180_DEG_FLIP
 #define IMU_2_MPU6000_ALIGN       CW90_DEG_FLIP
 
 #define USE_IMU_ICM42605
@@ -124,6 +124,8 @@
 
 #define USE_BARO
 #define USE_BARO_DPS310
+#define USE_BARO_BMP388
+#define USE_BARO_BMP390
 #define BARO_I2C_BUS            BUS_I2C2
 
 #define USE_MAG
@@ -160,6 +162,9 @@
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PD10 
 #define PINIO2_PIN                  PD11
+
+#define USE_LED_STRIP
+#define WS2811_PIN                  PA15
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define CURRENT_METER_SCALE         200

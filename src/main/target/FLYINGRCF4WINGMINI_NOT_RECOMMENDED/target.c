@@ -34,7 +34,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2,  CH4,  PB11, TIM_USE_OUTPUT_AUTO,   0, 0), // S5 D(1,7,3) UP173
     DEF_TIM(TIM2,  CH3,  PB10, TIM_USE_OUTPUT_AUTO,   0, 0), // S6 D(1,1,3) UP173
 
-    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_OUTPUT_AUTO,    0, 0), // 2812LED  D(1,2,5)
+    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_LED,    0, 0), // 2812LED  D(1,2,5)
 
     DEF_TIM(TIM5,  CH3,  PA2,  TIM_USE_ANY,    0, 0), //TX2  softserial1_Tx
 };

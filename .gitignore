@@ -46,6 +46,8 @@ launch.json
 # Assitnow token and files for test script
 tokens.yaml
 *.ubx
+/testing/
+/.idea/
 
 # Local development files
 .semgrepignore
