@@ -4713,7 +4713,7 @@ Selects which waypoint USER action bit (`USER1`..`USER4`) is used as mission VTO
 
 ### nav_vtol_transition_fail_action_fw_to_mc
 
-Action executed after a final FW->MC transition failure. FORCE_SWITCH attempts an immediate mixer hot-switch even after failed criteria.
+Action executed after a final FW->MC transition failure. LOITER switches to POSHOLD hold at current position (fixed-wing loiter/orbit around current point). FORCE_SWITCH attempts an immediate mixer hot-switch even after failed criteria.
 
 | Allowed Values |  |
 | --- | --- |

@@ -2688,7 +2688,7 @@ groups:
         field: general.vtol_transition_fail_action_mc_to_fw
         table: nav_vtol_transition_fail_action_mc_to_fw
       - name: nav_vtol_transition_fail_action_fw_to_mc
-        description: "Action executed after a final FW->MC transition failure. FORCE_SWITCH attempts an immediate mixer hot-switch even after failed criteria."
+        description: "Action executed after a final FW->MC transition failure. LOITER switches to POSHOLD hold at current position (fixed-wing loiter/orbit around current point). FORCE_SWITCH attempts an immediate mixer hot-switch even after failed criteria."
         default_value: "LOITER"
         field: general.vtol_transition_fail_action_fw_to_mc
         table: nav_vtol_transition_fail_action_fw_to_mc
