@@ -64,6 +64,7 @@ typedef struct mixerProfileAT_s {
     mixerProfileATDirection_e direction;
     mixerProfileATRequest_e request;
     bool aborted;
+    bool abortedByAirspeedTimeout;
     bool hotSwitchDone;
     bool usedAirspeed;
     bool transitionStartAirspeedCaptured;
@@ -81,6 +82,7 @@ bool checkMixerATRequired(mixerProfileATRequest_e required_action);
 bool mixerATUpdateState(mixerProfileATRequest_e required_action);
 bool mixerATIsActive(void);
 bool mixerATWasAborted(void);
+bool mixerATWasAbortedByAirspeedTimeout(void);
 float mixerATGetPusherScale(void);
 float mixerATGetLiftScale(void);
 float mixerATGetMcAuthorityScale(void);

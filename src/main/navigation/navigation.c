@@ -61,6 +61,7 @@
 #include "rx/rx.h"
 
 #include "sensors/sensors.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
 #include "sensors/battery.h"
@@ -82,6 +83,11 @@
 #define FW_RTH_CLIMB_MARGIN_PERCENT 15
 #define FW_LAND_LOITER_MIN_TIME 30000000 // usec (30 sec)
 #define FW_LAND_LOITER_ALT_TOLERANCE 150
+
+// One-shot MC->FW mission retry after airspeed-timeout: hold position, yaw scan, align to best pitot heading.
+#define NAV_MIXERAT_RETRY_SCAN_STEP_CD       DEGREES_TO_CENTIDEGREES(20)
+#define NAV_MIXERAT_RETRY_HEADING_TOL_CD     DEGREES_TO_CENTIDEGREES(5)
+#define NAV_MIXERAT_RETRY_HEADING_SETTLE_MS  500
 
 /*-----------------------------------------------------------
  * Compatibility for home position
@@ -152,6 +158,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .vtol_mission_transition_user_action = SETTING_NAV_VTOL_MISSION_TRANSITION_USER_ACTION_DEFAULT,
         .vtol_mission_transition_min_altitude = SETTING_NAV_VTOL_MISSION_TRANSITION_MIN_ALTITUDE_CM_DEFAULT,
         .vtol_mission_transition_track_distance = SETTING_NAV_VTOL_MISSION_TRANSITION_TRACK_DISTANCE_CM_DEFAULT,
+        .vtol_transition_retry_on_airspeed_timeout = SETTING_NAV_VTOL_TRANSITION_RETRY_ON_AIRSPEED_TIMEOUT_DEFAULT,
+        .vtol_transition_fail_action_mc_to_fw = SETTING_NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_DEFAULT,
+        .vtol_transition_fail_action_fw_to_mc = SETTING_NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_DEFAULT,
 #ifdef USE_MULTI_MISSION
         .waypoint_multi_mission_index = SETTING_NAV_WP_MULTI_MISSION_INDEX_DEFAULT,             // mission index selected from multi mission WP entry
 #endif
@@ -277,7 +286,22 @@ typedef struct navMixerATMissionTransition_s {
     mixerProfileATRequest_e request;
     int32_t heading;
     bool active;
+    bool retryAttempted;
+    uint8_t retryStage;
+    int32_t retryScanStartHeading;
+    int32_t retryTargetHeading;
+    int32_t retryBestHeading;
+    int32_t retryScannedCd;
+    float retryBestAirspeedCmS;
+    timeMs_t retryStepStartTimeMs;
+    fpVector3_t retryHoldPos;
 } navMixerATMissionTransition_t;
+
+typedef enum {
+    NAV_MIXERAT_RETRY_STAGE_IDLE = 0,
+    NAV_MIXERAT_RETRY_STAGE_SCAN,
+    NAV_MIXERAT_RETRY_STAGE_ALIGN,
+} navMixerATRetryStage_e;
 
 typedef enum {
     NAV_MISSION_VTOL_TRANSITION_NONE = 0,
@@ -318,6 +342,11 @@ static bool isWaypointMissionValid(void);
 static void clearMissionVTOLTransitionState(void);
 static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const navWaypoint_t *waypoint);
 static void updateMissionTransitionGuidance(void);
+static bool isTransitionRetryToFixedWingRequest(const mixerProfileATRequest_e request);
+static bool hasAirspeedSensorForTransitionRetry(void);
+static bool canRetryTransitionAfterAirspeedTimeout(const mixerProfileATRequest_e request);
+static void beginMissionTransitionRetryScan(const mixerProfileATRequest_e request);
+static void updateMissionTransitionRetryScan(void);
 void missionPlannerSetWaypoint(void);
 
 void initializeRTHSanityChecker(void);
@@ -1067,6 +1096,9 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                        = NAV_STATE_MIXERAT_IN_PROGRESS,    // re-process the state
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_MIXERAT_ABORT,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]           = NAV_STATE_POSHOLD_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME]        = NAV_STATE_RTH_HEAD_HOME, //switch to its pending state
             [NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING]          = NAV_STATE_RTH_LANDING, //switch to its pending state
             [NAV_FSM_EVENT_MIXERAT_MISSION_RESUME]         = NAV_STATE_WAYPOINT_IN_PROGRESS,
@@ -1283,12 +1315,20 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
 static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
 {
     navigationFSMStateFlags_t stateFlags = navFSM[state].stateFlags;
+    const bool mixerATState = (state == NAV_STATE_MIXERAT_INITIALIZE || state == NAV_STATE_MIXERAT_IN_PROGRESS);
 
     // During mission-authorized MC->FW transition, enable XY/YAW control to fly a straight acceleration segment.
-    if ((state == NAV_STATE_MIXERAT_INITIALIZE || state == NAV_STATE_MIXERAT_IN_PROGRESS) &&
+    if (mixerATState &&
         navMixerATPendingState == NAV_STATE_WAYPOINT_PRE_ACTION &&
         navMixerATMissionTransition.active &&
         navMixerATMissionTransition.request == MIXERAT_REQUEST_MISSION_TO_FW) {
+        stateFlags |= NAV_CTL_POS | NAV_CTL_YAW;
+    }
+
+    // During one-shot retry scan/alignment, hold position and command heading in MC.
+    if (mixerATState &&
+        navMixerATMissionTransition.retryStage != NAV_MIXERAT_RETRY_STAGE_IDLE &&
+        isTransitionRetryToFixedWingRequest(navMixerATMissionTransition.request)) {
         stateFlags |= NAV_CTL_POS | NAV_CTL_YAW;
     }
 
@@ -2024,11 +2064,191 @@ static bool isMissionTransitionToMultirotorType(const flyingPlatformType_e platf
            platformType == PLATFORM_HELICOPTER;
 }
 
+#ifdef USE_PITOT
+static bool hasTrustedPitotAirspeed(float *airspeedCmS)
+{
+    if (!sensors(SENSOR_PITOT) || !pitotValidForAirspeed() || pitotHasFailed()) {
+        return false;
+    }
+
+    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE ||
+        detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
+        return false;
+    }
+
+    *airspeedCmS = pitot.airSpeed;
+    return true;
+}
+#else
+static bool hasTrustedPitotAirspeed(float *airspeedCmS)
+{
+    UNUSED(airspeedCmS);
+    return false;
+}
+#endif
+
+static bool isTransitionRetryToFixedWingRequest(const mixerProfileATRequest_e request)
+{
+    return request == MIXERAT_REQUEST_MISSION_TO_FW || request == MIXERAT_REQUEST_RTH;
+}
+
+static bool hasAirspeedSensorForTransitionRetry(void)
+{
+#ifdef USE_PITOT
+    if (!sensors(SENSOR_PITOT) || pitotHasFailed()) {
+        return false;
+    }
+
+    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE ||
+        detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
+        return false;
+    }
+
+    return true;
+#else
+    return false;
+#endif
+}
+
+static bool canRetryTransitionAfterAirspeedTimeout(const mixerProfileATRequest_e request)
+{
+    return navConfig()->general.vtol_transition_retry_on_airspeed_timeout &&
+           isTransitionRetryToFixedWingRequest(request) &&
+           hasAirspeedSensorForTransitionRetry();
+}
+
+static bool isTransitionToMultirotorRequest(const mixerProfileATRequest_e request)
+{
+    return request == MIXERAT_REQUEST_LAND || request == MIXERAT_REQUEST_MISSION_TO_MC;
+}
+
+static navigationFSMEvent_t getMcToFwTransitionFailEvent(const mixerProfileATRequest_e request)
+{
+    switch ((navVtolTransitionFailActionMcToFw_e)navConfig()->general.vtol_transition_fail_action_mc_to_fw) {
+    case NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_POSH:
+        return NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D;
+    case NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_RTH:
+        return request == MIXERAT_REQUEST_RTH ? NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME : NAV_FSM_EVENT_SWITCH_TO_RTH;
+    case NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_EMERGENCY_LANDING:
+        return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+    case NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_IDLE:
+    default:
+        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+    }
+}
+
+static navigationFSMEvent_t getFwToMcTransitionFailEvent(const mixerProfileATRequest_e request)
+{
+    switch ((navVtolTransitionFailActionFwToMc_e)navConfig()->general.vtol_transition_fail_action_fw_to_mc) {
+    case NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_RTH:
+        return NAV_FSM_EVENT_SWITCH_TO_RTH;
+    case NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_EMERGENCY_LANDING:
+        return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+    case NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_LOITER:
+    case NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH:
+        return request == MIXERAT_REQUEST_LAND ? NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME : NAV_FSM_EVENT_SWITCH_TO_RTH;
+    case NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_IDLE:
+    default:
+        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+    }
+}
+
+static navigationFSMEvent_t getTransitionFailEvent(const mixerProfileATRequest_e request)
+{
+    if (isTransitionRetryToFixedWingRequest(request)) {
+        return getMcToFwTransitionFailEvent(request);
+    }
+
+    if (isTransitionToMultirotorRequest(request)) {
+        return getFwToMcTransitionFailEvent(request);
+    }
+
+    return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+}
+
+static bool tryForceSwitchAfterFwToMcFailure(const mixerProfileATRequest_e request)
+{
+    if (!isTransitionToMultirotorRequest(request)) {
+        return false;
+    }
+
+    if ((navVtolTransitionFailActionFwToMc_e)navConfig()->general.vtol_transition_fail_action_fw_to_mc != NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH) {
+        return false;
+    }
+
+    return STATE(AIRPLANE) && outputProfileHotSwitch(nextMixerProfileIndex);
+}
+
 static void clearMissionVTOLTransitionState(void)
 {
     navMixerATMissionTransition.active = false;
     navMixerATMissionTransition.request = MIXERAT_REQUEST_NONE;
     navMixerATMissionTransition.heading = posControl.actualState.yaw;
+    navMixerATMissionTransition.retryAttempted = false;
+    navMixerATMissionTransition.retryStage = NAV_MIXERAT_RETRY_STAGE_IDLE;
+    navMixerATMissionTransition.retryScanStartHeading = posControl.actualState.yaw;
+    navMixerATMissionTransition.retryTargetHeading = posControl.actualState.yaw;
+    navMixerATMissionTransition.retryBestHeading = posControl.actualState.yaw;
+    navMixerATMissionTransition.retryScannedCd = 0;
+    navMixerATMissionTransition.retryBestAirspeedCmS = -1.0f;
+    navMixerATMissionTransition.retryStepStartTimeMs = 0;
+    navMixerATMissionTransition.retryHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
+}
+
+static void beginMissionTransitionRetryScan(const mixerProfileATRequest_e request)
+{
+    navMixerATMissionTransition.request = request;
+    navMixerATMissionTransition.retryAttempted = true;
+    navMixerATMissionTransition.retryStage = NAV_MIXERAT_RETRY_STAGE_SCAN;
+    navMixerATMissionTransition.retryScanStartHeading = wrap_36000(posControl.actualState.yaw);
+    navMixerATMissionTransition.retryTargetHeading = navMixerATMissionTransition.retryScanStartHeading;
+    navMixerATMissionTransition.retryBestHeading = navMixerATMissionTransition.retryScanStartHeading;
+    navMixerATMissionTransition.retryScannedCd = 0;
+    navMixerATMissionTransition.retryBestAirspeedCmS = -1.0f;
+    navMixerATMissionTransition.retryStepStartTimeMs = millis();
+    navMixerATMissionTransition.retryHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
+}
+
+static void updateMissionTransitionRetryScan(void)
+{
+    if (navMixerATMissionTransition.retryStage == NAV_MIXERAT_RETRY_STAGE_IDLE) {
+        return;
+    }
+
+    const int32_t headingError = ABS(wrap_18000(navMixerATMissionTransition.retryTargetHeading - posControl.actualState.yaw));
+    if (headingError > NAV_MIXERAT_RETRY_HEADING_TOL_CD) {
+        return;
+    }
+
+    if ((millis() - navMixerATMissionTransition.retryStepStartTimeMs) < NAV_MIXERAT_RETRY_HEADING_SETTLE_MS) {
+        return;
+    }
+
+    if (navMixerATMissionTransition.retryStage == NAV_MIXERAT_RETRY_STAGE_SCAN) {
+        float airspeedCmS = 0.0f;
+        if (hasTrustedPitotAirspeed(&airspeedCmS) && airspeedCmS > navMixerATMissionTransition.retryBestAirspeedCmS) {
+            navMixerATMissionTransition.retryBestAirspeedCmS = airspeedCmS;
+            navMixerATMissionTransition.retryBestHeading = navMixerATMissionTransition.retryTargetHeading;
+        }
+
+        navMixerATMissionTransition.retryScannedCd += NAV_MIXERAT_RETRY_SCAN_STEP_CD;
+        if (navMixerATMissionTransition.retryScannedCd >= DEGREES_TO_CENTIDEGREES(360)) {
+            navMixerATMissionTransition.retryStage = NAV_MIXERAT_RETRY_STAGE_ALIGN;
+            navMixerATMissionTransition.retryTargetHeading = wrap_36000(navMixerATMissionTransition.retryBestHeading);
+            navMixerATMissionTransition.retryStepStartTimeMs = millis();
+            return;
+        }
+
+        navMixerATMissionTransition.retryTargetHeading =
+            wrap_36000(navMixerATMissionTransition.retryScanStartHeading + navMixerATMissionTransition.retryScannedCd);
+        navMixerATMissionTransition.retryStepStartTimeMs = millis();
+        return;
+    }
+
+    if (navMixerATMissionTransition.retryStage == NAV_MIXERAT_RETRY_STAGE_ALIGN) {
+        navMixerATMissionTransition.heading = wrap_36000(navMixerATMissionTransition.retryBestHeading);
+        navMixerATMissionTransition.retryStage = NAV_MIXERAT_RETRY_STAGE_IDLE;
+    }
 }
 
 static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const navWaypoint_t *waypoint)
@@ -2092,6 +2312,15 @@ static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const 
 
 static void updateMissionTransitionGuidance(void)
 {
+    if (navMixerATMissionTransition.retryStage != NAV_MIXERAT_RETRY_STAGE_IDLE &&
+        isTransitionRetryToFixedWingRequest(navMixerATMissionTransition.request) &&
+        STATE(MULTIROTOR)) {
+        setDesiredPosition(&navMixerATMissionTransition.retryHoldPos,
+            navMixerATMissionTransition.retryTargetHeading,
+            NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        return;
+    }
+
     if (navMixerATMissionTransition.active &&
         navMixerATMissionTransition.request == MIXERAT_REQUEST_MISSION_TO_FW &&
         STATE(MULTIROTOR)) {
@@ -2481,35 +2710,68 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
         required_action = MIXERAT_REQUEST_NONE;
         break;
     }
+
+    if (navMixerATMissionTransition.retryStage != NAV_MIXERAT_RETRY_STAGE_IDLE) {
+        updateMissionTransitionRetryScan();
+        if (navMixerATMissionTransition.retryStage == NAV_MIXERAT_RETRY_STAGE_IDLE) {
+            mixerATUpdateState(required_action);
+        }
+        updateMissionTransitionGuidance();
+        return NAV_FSM_EVENT_NONE;
+    }
+
     if (mixerATUpdateState(required_action)){
         // MixerAT is done, switch to next state
-        const bool transitionAborted = mixerATWasAborted();
+        bool transitionAborted = mixerATWasAborted();
+        const bool transitionTimeout = mixerATWasAbortedByAirspeedTimeout();
+        const bool missionTransitionWasActive = navMixerATMissionTransition.active;
+        if (transitionAborted &&
+            transitionTimeout &&
+            !navMixerATMissionTransition.retryAttempted &&
+            canRetryTransitionAfterAirspeedTimeout(required_action) &&
+            STATE(MULTIROTOR) &&
+            ((required_action == MIXERAT_REQUEST_MISSION_TO_FW && missionTransitionWasActive) ||
+             required_action == MIXERAT_REQUEST_RTH)) {
+            mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+            beginMissionTransitionRetryScan(required_action);
+            updateMissionTransitionGuidance();
+            return NAV_FSM_EVENT_NONE;
+        }
+
+        if (transitionAborted && tryForceSwitchAfterFwToMcFailure(required_action)) {
+            transitionAborted = false;
+        }
+
+        navigationFSMEvent_t nextEvent = NAV_FSM_EVENT_SWITCH_TO_IDLE;
+        if (transitionAborted) {
+            nextEvent = getTransitionFailEvent(required_action);
+        } else {
+            switch (navMixerATPendingState)
+            {
+            case NAV_STATE_RTH_HEAD_HOME:
+                nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME;
+                break;
+            case NAV_STATE_RTH_LANDING:
+                nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING;
+                break;
+            case NAV_STATE_WAYPOINT_PRE_ACTION:
+                if (missionTransitionWasActive) {
+                    nextEvent = NAV_FSM_EVENT_MIXERAT_MISSION_RESUME;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
         resetPositionController();
         resetAltitudeController(false);     // Make sure surface tracking is not enabled uses global altitude, not AGL
         mixerATUpdateState(MIXERAT_REQUEST_ABORT);
-        const bool missionTransitionWasActive = navMixerATMissionTransition.active;
         clearMissionVTOLTransitionState();
-        switch (navMixerATPendingState)
-        {
-        case NAV_STATE_RTH_HEAD_HOME:
+        if (nextEvent != NAV_FSM_EVENT_SWITCH_TO_IDLE) {
             setupAltitudeController();
-            return NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME;
-            break;
-        case NAV_STATE_RTH_LANDING:
-            setupAltitudeController();
-            return NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING;
-            break;
-        case NAV_STATE_WAYPOINT_PRE_ACTION:
-            setupAltitudeController();
-            if (missionTransitionWasActive) {
-                return transitionAborted ? NAV_FSM_EVENT_SWITCH_TO_IDLE : NAV_FSM_EVENT_MIXERAT_MISSION_RESUME;
-            }
-            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
-            break;
-        default:
-            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
-            break;
         }
+        return nextEvent;
     }
 
     updateMissionTransitionGuidance();

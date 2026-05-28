@@ -174,6 +174,12 @@ tables:
   - name: nav_wp_user_action
     enum: navMissionUserAction_e
     values: ["OFF", "USER1", "USER2", "USER3", "USER4"]
+  - name: nav_vtol_transition_fail_action_mc_to_fw
+    enum: navVtolTransitionFailActionMcToFw_e
+    values: ["IDLE", "POSH", "RTH", "EMERGENCY_LANDING"]
+  - name: nav_vtol_transition_fail_action_fw_to_mc
+    enum: navVtolTransitionFailActionFwToMc_e
+    values: ["IDLE", "LOITER", "RTH", "EMERGENCY_LANDING", "FORCE_SWITCH"]
   - name: djiRssiSource
     values: ["RSSI", "CRSF_LQ"]
     enum: djiRssiSource_e
@@ -2671,6 +2677,21 @@ groups:
         field: general.vtol_mission_transition_track_distance
         min: 1000
         max: 500000
+      - name: nav_vtol_transition_retry_on_airspeed_timeout
+        description: "If ON, allows one retry for failed airspeed-gated MC->FW auto-transition (mission or RTH head-home): hold position, perform a 360deg yaw scan, align to best measured pitot airspeed heading, and retry transition once."
+        default_value: OFF
+        field: general.vtol_transition_retry_on_airspeed_timeout
+        type: bool
+      - name: nav_vtol_transition_fail_action_mc_to_fw
+        description: "Action executed after a final MC->FW transition failure (after retry logic, if enabled)."
+        default_value: "IDLE"
+        field: general.vtol_transition_fail_action_mc_to_fw
+        table: nav_vtol_transition_fail_action_mc_to_fw
+      - name: nav_vtol_transition_fail_action_fw_to_mc
+        description: "Action executed after a final FW->MC transition failure. FORCE_SWITCH attempts an immediate mixer hot-switch even after failed criteria."
+        default_value: "LOITER"
+        field: general.vtol_transition_fail_action_fw_to_mc
+        table: nav_vtol_transition_fail_action_fw_to_mc
       - name: nav_wp_multi_mission_index
         description: "Index of active mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions."
         default_value: 1

@@ -337,6 +337,21 @@ typedef enum {
 } navMissionUserAction_e;
 
 typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_POSH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_EMERGENCY_LANDING,
+} navVtolTransitionFailActionMcToFw_e;
+
+typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_LOITER,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_EMERGENCY_LANDING,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH,
+} navVtolTransitionFailActionFwToMc_e;
+
+typedef enum {
     RTH_TRACKBACK_OFF,
     RTH_TRACKBACK_ON,
     RTH_TRACKBACK_FS,
@@ -424,6 +439,9 @@ typedef struct navConfig_s {
         uint8_t  vtol_mission_transition_user_action; // User action slot that requests mission VTOL transition
         uint16_t vtol_mission_transition_min_altitude; // Minimum altitude [cm] to start mission VTOL transition (0 = disabled)
         uint32_t vtol_mission_transition_track_distance; // Straight-segment target distance [cm] used during MC->FW mission transition
+        bool     vtol_transition_retry_on_airspeed_timeout; // Enables one-shot yaw-scan retry for failed airspeed-gated MC->FW auto-transition
+        uint8_t  vtol_transition_fail_action_mc_to_fw; // Action after final MC->FW transition failure
+        uint8_t  vtol_transition_fail_action_fw_to_mc; // Action after final FW->MC transition failure
 #ifdef USE_MULTI_MISSION
         uint8_t  waypoint_multi_mission_index;      // Index of mission to be loaded in multi mission entry
 #endif

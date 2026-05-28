@@ -4711,6 +4711,43 @@ Selects which waypoint USER action bit (`USER1`..`USER4`) is used as mission VTO
 
 ---
 
+### nav_vtol_transition_fail_action_fw_to_mc
+
+Action executed after a final FW->MC transition failure. FORCE_SWITCH attempts an immediate mixer hot-switch even after failed criteria.
+
+| Allowed Values |  |
+| --- | --- |
+| IDLE |  |
+| LOITER | Default |
+| RTH |  |
+| EMERGENCY_LANDING |  |
+| FORCE_SWITCH |  |
+
+---
+
+### nav_vtol_transition_fail_action_mc_to_fw
+
+Action executed after a final MC->FW transition failure (after retry logic, if enabled).
+
+| Allowed Values |  |
+| --- | --- |
+| IDLE | Default |
+| POSH |  |
+| RTH |  |
+| EMERGENCY_LANDING |  |
+
+---
+
+### nav_vtol_transition_retry_on_airspeed_timeout
+
+If ON, allows one retry for failed airspeed-gated MC->FW auto-transition (mission or RTH head-home): hold position, perform a 360deg yaw scan, align to best measured pitot airspeed heading, and retry transition once.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### nav_wp_enforce_altitude
 
 Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on. 0 = disabled, otherwise setting defines altitude capture tolerance [cm], e.g. 100 means required altitude is achieved when within 100cm of waypoint altitude setting.

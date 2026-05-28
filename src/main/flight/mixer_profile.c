@@ -123,6 +123,7 @@ void setMixerProfileAT(void)
 
     mixerProfileAT.transitionStartTime = now;
     mixerProfileAT.aborted = false;
+    mixerProfileAT.abortedByAirspeedTimeout = false;
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.usedAirspeed = false;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
@@ -263,15 +264,17 @@ static void updateTransitionScales(void)
     mixerProfileAT.blendToFw = constrainf(mixerProfileAT.fwAuthorityScale, 0.0f, 1.0f);
 }
 
-static void abortTransition(void)
+static void abortTransition(const bool byAirspeedTimeout)
 {
     const bool wasActive = mixerProfileAT.phase != MIXERAT_PHASE_IDLE;
     isMixerTransitionMixing_requested = false;
     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
     mixerProfileAT.aborted = wasActive;
+    mixerProfileAT.abortedByAirspeedTimeout = wasActive && byAirspeedTimeout;
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
     mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
+    mixerProfileAT.usedAirspeed = false;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
     resetTransitionScales();
@@ -388,7 +391,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
     {   
         reprocessState=false;
         if (required_action == MIXERAT_REQUEST_ABORT) {
-            abortTransition();
+            abortTransition(false);
             return true;
         }
         switch (mixerProfileAT.phase) {
@@ -413,7 +416,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
         case MIXERAT_PHASE_TRANSITIONING:
             isMixerTransitionMixing_requested = true;
             if (required_action != MIXERAT_REQUEST_NONE && required_action != mixerProfileAT.request) {
-                abortTransition();
+                abortTransition(false);
                 return true;
             }
 
@@ -422,7 +425,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                 mixerProfileAT.progress = 1.0f;
                 updateTransitionScales();
                 if (!outputProfileHotSwitch(nextMixerProfileIndex)) {
-                    abortTransition();
+                    abortTransition(false);
                     return true;
                 }
                 mixerProfileAT.hotSwitchDone = true;
@@ -433,7 +436,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
             } else if (mixerProfileAT.usedAirspeed &&
                        currentMixerConfig.vtolTransitionAirspeedTimeoutMs > 0 &&
                        (millis() - mixerProfileAT.transitionStartTime) >= currentMixerConfig.vtolTransitionAirspeedTimeoutMs) {
-                abortTransition();
+                abortTransition(true);
                 return true;
             }
 
@@ -473,7 +476,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     bool manualControllerEnabled = false;
 
     if (mixerAT_inuse && (!ARMING_FLAG(ARMED) || FLIGHT_MODE(FAILSAFE_MODE) || areSensorsCalibrating())) {
-        abortTransition();
+        abortTransition(false);
         mixerAT_inuse = false;
     }
 
@@ -517,7 +520,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
             mixerAT_inuse &&
             !mixerProfileAT.hotSwitchDone &&
             (mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_FW || mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_MC)) {
-            abortTransition();
+            abortTransition(false);
             mixerAT_inuse = false;
         }
 
@@ -578,6 +581,11 @@ bool mixerATIsActive(void)
 bool mixerATWasAborted(void)
 {
     return mixerProfileAT.aborted;
+}
+
+bool mixerATWasAbortedByAirspeedTimeout(void)
+{
+    return mixerProfileAT.abortedByAirspeedTimeout;
 }
 
 float mixerATGetPusherScale(void)
