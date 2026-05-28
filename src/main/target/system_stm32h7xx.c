@@ -499,9 +499,9 @@ void SystemClock_Config(void)
 
 #ifdef USE_SDCARD_SDIO
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SDMMC;
-    RCC_PeriphClkInit.PLL2.PLL2M = 5;
-    RCC_PeriphClkInit.PLL2.PLL2N = 500;
-    RCC_PeriphClkInit.PLL2.PLL2P = 2; // 500Mhz
+    RCC_PeriphClkInit.PLL2.PLL2M = HSE_VALUE / 1000000 / 2;
+    RCC_PeriphClkInit.PLL2.PLL2N = 400;
+    RCC_PeriphClkInit.PLL2.PLL2P = 2; // 200Mhz
     RCC_PeriphClkInit.PLL2.PLL2Q = 3; // 266Mhz - 133Mhz can be derived from this for for QSPI if flash chip supports the speed.
     RCC_PeriphClkInit.PLL2.PLL2R = 4; // 200Mhz HAL LIBS REQUIRE 200MHZ SDMMC CLOCK, see HAL_SD_ConfigWideBusOperation, SDMMC_HSpeed_CLK_DIV, SDMMC_NSpeed_CLK_DIV
     RCC_PeriphClkInit.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_0;
