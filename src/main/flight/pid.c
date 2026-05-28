@@ -97,6 +97,8 @@ typedef struct {
     rateLimitFilter_t axisAccelFilter;
     pt1Filter_t ptermLpfState;
     filter_t dtermLpfState;
+    pt1Filter_t dtermLpf2State;         // Pre-differentiation LPF (BF-style: filter before diff to reduce noise amplification)
+    float previousFilteredGyroRate;     // Stores filtered gyro for pre-diff architecture
 
     float stickPosition;
 
@@ -161,6 +163,7 @@ static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
 static EXTENDED_FASTRAM uint8_t yawLpfHz;
 static EXTENDED_FASTRAM float motorItermWindupPoint;
 static EXTENDED_FASTRAM float antiWindupScaler;
+static EXTENDED_FASTRAM uint16_t dtermLpf2Hz;
 #ifdef USE_ANTIGRAVITY
 static EXTENDED_FASTRAM float iTermAntigravityGain;
 #endif
@@ -264,6 +267,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .dterm_lpf_type = SETTING_DTERM_LPF_TYPE_DEFAULT,
         .dterm_lpf_hz = SETTING_DTERM_LPF_HZ_DEFAULT,
+        .dterm_lpf2_hz = SETTING_DTERM_LPF2_HZ_DEFAULT,
         .yaw_lpf_hz = SETTING_YAW_LPF_HZ_DEFAULT,
 
         .itermWindupPointPercent = SETTING_ITERM_WINDUP_DEFAULT,
@@ -331,6 +335,16 @@ bool pidInitFilters(void)
 
     for (int axis = 0; axis < 3; ++ axis) {
         initFilter(pidProfile()->dterm_lpf_type, &pidState[axis].dtermLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
+    }
+
+    dtermLpf2Hz = pidProfile()->dterm_lpf2_hz;
+    if (dtermLpf2Hz > 0) {
+        for (int axis = 0; axis < 3; axis++) {
+            const float currentGyroRate = pidState[axis].gyroRate;
+            pt1FilterInit(&pidState[axis].dtermLpf2State, dtermLpf2Hz, US2S(refreshRate));
+            pt1FilterReset(&pidState[axis].dtermLpf2State, currentGyroRate);
+            pidState[axis].previousFilteredGyroRate = currentGyroRate;
+        }
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
@@ -775,16 +789,20 @@ static float applyDBoost(pidState_t *pidState, float dT) {
 static float FAST_CODE dTermProcess(pidState_t *pidState, float currentRateTarget, float dT, float dT_inv) {
     // Calculate new D-term
     float newDTerm = 0;
-    if (pidState->kD == 0) {
-        // optimisation for when D is zero, often used by YAW axis
-        newDTerm = 0;
-    } else {
-        float delta = pidState->previousRateGyro - pidState->gyroRate;
+    if (pidState->kD != 0) {
+        float delta;
+        if (dtermLpf2Hz > 0) {
+            // Filter gyro before differentiation so D-term does not amplify high-frequency noise.
+            const float filteredGyro = pt1FilterApply(&pidState->dtermLpf2State, pidState->gyroRate);
+            delta = pidState->previousFilteredGyroRate - filteredGyro;
+            pidState->previousFilteredGyroRate = filteredGyro;
+        } else {
+            delta = pidState->previousRateGyro - pidState->gyroRate;
+        }
 
         delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
 
-        // Calculate derivative
-        newDTerm =  delta * (pidState->kD * dT_inv) * applyDBoost(pidState, currentRateTarget, dT, dT_inv);
+        newDTerm = delta * (pidState->kD * dT_inv) * applyDBoost(pidState, currentRateTarget, dT, dT_inv);
     }
     return(newDTerm);
 }
