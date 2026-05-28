@@ -42,6 +42,7 @@ mixerProfileAT_t mixerProfileAT;
 int nextMixerProfileIndex;
 static bool manualTransitionModeWasActive;
 static bool manualTransitionReadyForEdge = true;
+static bool manualTransitionSessionLatched;
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 3);
 
@@ -470,19 +471,29 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     bool mixerAT_inuse = mixerATIsActive();
     const bool transitionModeActive = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION);
     const bool transitionModeRisingEdge = transitionModeActive && !manualTransitionModeWasActive;
+    const bool transitionModeFallingEdge = !transitionModeActive && manualTransitionModeWasActive;
     const bool manualTransitionAllowed = (posControl.navState == NAV_STATE_IDLE) ||
                                          (posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS);
     const bool missionActive = (navGetCurrentStateFlags() & NAV_AUTO_WP) != 0;
     const bool manualControllerConfigured = currentMixerConfig.manualVtolTransitionController && !missionActive;
-    bool manualControllerEnabled = manualControllerConfigured;
+    bool manualControllerEnabled = manualControllerConfigured || manualTransitionSessionLatched;
+
+    if (manualControllerConfigured && transitionModeRisingEdge) {
+        manualTransitionSessionLatched = true;
+    }
+
+    if (transitionModeFallingEdge) {
+        manualTransitionSessionLatched = false;
+    }
 
     if (mixerAT_inuse && (!ARMING_FLAG(ARMED) || FLIGHT_MODE(FAILSAFE_MODE) || areSensorsCalibrating())) {
         abortTransition(false);
+        manualTransitionSessionLatched = false;
         mixerAT_inuse = false;
     }
 
     // For manual auto-transition control, suppress direct profile hotswitch while transition trigger is active.
-    const bool suppressDirectProfileSwitch = manualControllerConfigured && transitionModeActive;
+    const bool suppressDirectProfileSwitch = manualControllerEnabled && transitionModeActive;
     if (!FLIGHT_MODE(FAILSAFE_MODE) && !mixerAT_inuse && !suppressDirectProfileSwitch)
     {
         if (isModeActivationConditionPresent(BOXMIXERPROFILE)){
@@ -491,7 +502,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     }
 
     // Recompute after a potential direct profile hot-switch because this flag is per-mixer-profile.
-    manualControllerEnabled = currentMixerConfig.manualVtolTransitionController && !missionActive;
+    manualControllerEnabled = (currentMixerConfig.manualVtolTransitionController && !missionActive) || manualTransitionSessionLatched;
 
     if (!manualControllerEnabled) {
         // Backward-compatible manual path: level-controlled transition mixing request.
@@ -504,6 +515,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         manualTransitionReadyForEdge = true;
     } else {
         if (!transitionModeActive) {
+            manualTransitionSessionLatched = false;
             manualTransitionReadyForEdge = true;
             if (!mixerAT_inuse) {
                 isMixerTransitionMixing_requested = false;
@@ -555,7 +567,8 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         (isMixerTransitionMixing_requested ? 1U << 16 : 0U) |
         (FLIGHT_MODE(FAILSAFE_MODE) ? 1U << 17 : 0U) |
         (manualControllerEnabled ? 1U << 18 : 0U) |
-        (IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) ? 1U << 19 : 0U);
+        (IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) ? 1U << 19 : 0U) |
+        (manualTransitionSessionLatched ? 1U << 20 : 0U);
 
     // VTOL transition debug channels (DEBUG_VTOL_TRANSITION):
     // [0] phase, [1] request, [2] packed transition flags, [3] progress x1000,
@@ -631,8 +644,8 @@ bool isMixerTransitionModeReportedActive(void)
         return true;
     }
 
-    // With manual auto-transition enabled, treat the RC box as a trigger/request only.
-    if (currentMixerConfig.manualVtolTransitionController) {
+    // With manual auto-transition enabled (or session latched), treat RC as trigger only.
+    if (currentMixerConfig.manualVtolTransitionController || manualTransitionSessionLatched) {
         return false;
     }
 

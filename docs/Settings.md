@@ -3222,7 +3222,7 @@ If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_
 
 ### mixer_vtol_manualswitch_autotransition_controller
 
-Enables edge-triggered manual VTOL transition controller for `MIXER TRANSITION` when not in waypoint mission. OFF keeps legacy manual transition behavior.
+Enables edge-triggered manual VTOL transition controller for `MIXER TRANSITION` when not in waypoint mission. OFF keeps legacy manual transition behavior. For consistent manual transition semantics, enable this in both mixer profiles.
 
 | Default | Min | Max |
 | --- | --- | --- |

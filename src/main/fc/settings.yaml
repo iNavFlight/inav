@@ -1298,7 +1298,7 @@ groups:
         field: mixer_config.vtolTransitionDynamicMixer
         type: bool
       - name: mixer_vtol_manualswitch_autotransition_controller
-        description: "Enables edge-triggered manual VTOL transition controller for `MIXER TRANSITION` when not in waypoint mission. OFF keeps legacy manual transition behavior."
+        description: "Enables edge-triggered manual VTOL transition controller for `MIXER TRANSITION` when not in waypoint mission. OFF keeps legacy manual transition behavior. For consistent manual transition semantics, enable this in both mixer profiles."
         default_value: OFF
         field: mixer_config.manualVtolTransitionController
         type: bool

@@ -31,6 +31,7 @@ The use of Transition Mode is recommended to enable further features and future 
 - If switched OFF before hot-switch completes, the manual transition request is aborted.
 
 This edge-triggered behavior is enabled by `mixer_vtol_manualswitch_autotransition_controller`.
+Set `mixer_vtol_manualswitch_autotransition_controller = ON` in both mixer profiles (MC and FW) used for switching to keep manual transition semantics consistent after profile hot-switch.
 When `mixer_vtol_manualswitch_autotransition_controller = OFF`, manual transition keeps legacy behavior.
 With manual auto-transition enabled, Active Modes `MIXER TRANSITION` now indicates that the internal transition controller/mixing is actually active, not merely that the RC `MIXER TRANSITION` switch is active.
 Active Modes `MIXER PROFILE 2` indicates the currently active mixer profile.
@@ -44,6 +45,7 @@ Recommended switch topology (explicit):
   - Pos1 = MC (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
   - Pos2 = Transition trigger (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` ON)
   - Pos3 = FW (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
+- Keep `mixer_vtol_manualswitch_autotransition_controller` ON in both profiles used by this mapping.
 - Avoid overlapping FW selection and transition trigger in the same position.
 - Avoid 2-position setups where one position activates both `MIXER PROFILE 2` and `MIXER TRANSITION`.
 - Overlapping mode activation can produce order-dependent behavior (direct profile switch path vs transition-controller path), which is unpredictable and not recommended.

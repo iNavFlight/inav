@@ -307,6 +307,7 @@ This keeps one safety boundary for profile hot-switching and avoids separate tra
 Intent: this does not replace legacy manual behavior. Legacy remains available and selectable.
 
 With `mixer_vtol_manualswitch_autotransition_controller = ON`:
+- Enable this setting in both mixer profiles (MC and FW) for consistent edge-triggered behavior across profile hot-switches.
 - `MIXER TRANSITION` acts as an edge-triggered request.
 - A rising edge starts one transition.
 - Transition then runs autonomously to completion.
@@ -331,6 +332,7 @@ Important RC mapping constraint:
   - Pos1 = MC (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
   - Pos2 = Transition trigger (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` ON)
   - Pos3 = FW (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
+- Keep `mixer_vtol_manualswitch_autotransition_controller` ON in both profiles used by this mapping.
 - Do not overlap/merge FW selection and transition trigger in the same switch position.
 - Do not use a 2-position mapping where one position enables both `MIXER PROFILE 2` and `MIXER TRANSITION`.
 - Mixing these mode conditions can cause race/order-dependent behavior (direct profile switch versus transition state machine), which is unpredictable in flight.
