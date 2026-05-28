@@ -127,7 +127,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 8);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 9);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -298,6 +298,7 @@ typedef struct navMixerATMissionTransition_s {
     bool retryHadTrustedAirspeedSample;
     timeMs_t retryStartTimeMs;
     timeMs_t retryStepStartTimeMs;
+    timeMs_t retryHeadingReachedTimeMs;
     fpVector3_t retryHoldPos;
 } navMixerATMissionTransition_t;
 
@@ -2206,6 +2207,7 @@ static void clearMissionVTOLTransitionState(void)
     navMixerATMissionTransition.retryHadTrustedAirspeedSample = false;
     navMixerATMissionTransition.retryStartTimeMs = 0;
     navMixerATMissionTransition.retryStepStartTimeMs = 0;
+    navMixerATMissionTransition.retryHeadingReachedTimeMs = 0;
     navMixerATMissionTransition.retryHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
 }
 
@@ -2222,6 +2224,7 @@ static void beginMissionTransitionRetryScan(const mixerProfileATRequest_e reques
     navMixerATMissionTransition.retryHadTrustedAirspeedSample = false;
     navMixerATMissionTransition.retryStartTimeMs = millis();
     navMixerATMissionTransition.retryStepStartTimeMs = navMixerATMissionTransition.retryStartTimeMs;
+    navMixerATMissionTransition.retryHeadingReachedTimeMs = 0;
     navMixerATMissionTransition.retryHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
 }
 
@@ -2242,13 +2245,21 @@ static navMixerATRetryScanResult_e updateMissionTransitionRetryScan(void)
     const bool headingReached = headingError <= NAV_MIXERAT_RETRY_HEADING_TOL_CD;
     const bool stepTimedOut = (nowMs - navMixerATMissionTransition.retryStepStartTimeMs) >= NAV_MIXERAT_RETRY_HEADING_STEP_TIMEOUT_MS;
 
+    if (headingReached) {
+        if (!navMixerATMissionTransition.retryHeadingReachedTimeMs) {
+            navMixerATMissionTransition.retryHeadingReachedTimeMs = nowMs;
+        }
+    } else {
+        navMixerATMissionTransition.retryHeadingReachedTimeMs = 0;
+    }
+
     if (!headingReached && !stepTimedOut) {
         return NAV_MIXERAT_RETRY_SCAN_IN_PROGRESS;
     }
 
     if (headingReached &&
         !stepTimedOut &&
-        (nowMs - navMixerATMissionTransition.retryStepStartTimeMs) < NAV_MIXERAT_RETRY_HEADING_SETTLE_MS) {
+        (nowMs - navMixerATMissionTransition.retryHeadingReachedTimeMs) < NAV_MIXERAT_RETRY_HEADING_SETTLE_MS) {
         return NAV_MIXERAT_RETRY_SCAN_IN_PROGRESS;
     }
 
@@ -2272,12 +2283,14 @@ static navMixerATRetryScanResult_e updateMissionTransitionRetryScan(void)
             navMixerATMissionTransition.retryStage = NAV_MIXERAT_RETRY_STAGE_ALIGN;
             navMixerATMissionTransition.retryTargetHeading = wrap_36000(navMixerATMissionTransition.retryBestHeading);
             navMixerATMissionTransition.retryStepStartTimeMs = nowMs;
+            navMixerATMissionTransition.retryHeadingReachedTimeMs = 0;
             return NAV_MIXERAT_RETRY_SCAN_IN_PROGRESS;
         }
 
         navMixerATMissionTransition.retryTargetHeading =
             wrap_36000(navMixerATMissionTransition.retryScanStartHeading + navMixerATMissionTransition.retryScannedCd);
         navMixerATMissionTransition.retryStepStartTimeMs = nowMs;
+        navMixerATMissionTransition.retryHeadingReachedTimeMs = 0;
         return NAV_MIXERAT_RETRY_SCAN_IN_PROGRESS;
     }
 

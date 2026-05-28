@@ -473,22 +473,24 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     const bool manualTransitionAllowed = (posControl.navState == NAV_STATE_IDLE) ||
                                          (posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS);
     const bool missionActive = (navGetCurrentStateFlags() & NAV_AUTO_WP) != 0;
-    bool manualControllerEnabled = false;
+    const bool manualControllerConfigured = currentMixerConfig.manualVtolTransitionController && !missionActive;
+    bool manualControllerEnabled = manualControllerConfigured;
 
     if (mixerAT_inuse && (!ARMING_FLAG(ARMED) || FLIGHT_MODE(FAILSAFE_MODE) || areSensorsCalibrating())) {
         abortTransition(false);
         mixerAT_inuse = false;
     }
 
-    // transition mode input for servo mix and motor mix
-    if (!FLIGHT_MODE(FAILSAFE_MODE) && (!mixerAT_inuse))
+    // For manual auto-transition control, suppress direct profile hotswitch while transition trigger is active.
+    const bool suppressDirectProfileSwitch = manualControllerConfigured && transitionModeActive;
+    if (!FLIGHT_MODE(FAILSAFE_MODE) && !mixerAT_inuse && !suppressDirectProfileSwitch)
     {
         if (isModeActivationConditionPresent(BOXMIXERPROFILE)){
             outputProfileHotSwitch(IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) == 0 ? 0 : 1);
         }
     }
 
-    // Recompute after potential direct profile hot-switch because this flag is per-mixer-profile.
+    // Recompute after a potential direct profile hot-switch because this flag is per-mixer-profile.
     manualControllerEnabled = currentMixerConfig.manualVtolTransitionController && !missionActive;
 
     if (!manualControllerEnabled) {
