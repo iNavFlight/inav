@@ -163,9 +163,19 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hfdcan1.Instance = FDCAN1;
     hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
     hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-    hfdcan1.Init.AutoRetransmission = DISABLE;
+    hfdcan1.Init.AutoRetransmission = ENABLE;
     hfdcan1.Init.TransmitPause = DISABLE;
     hfdcan1.Init.ProtocolException = DISABLE;
+
+    /* Configure FDCAN kernel clock before computing timings */
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
+    PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+      LOG_DEBUG(CAN, "Unable to configure peripheral clock");
+      return -CANARD_ERROR_INTERNAL;
+    }
+    __HAL_RCC_FDCAN_CLK_ENABLE();
 
     ErrorCode = canardSTM32ComputeTimings(bitrate, &out_timings);
     if (ErrorCode != 1)
@@ -188,23 +198,9 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hfdcan1.Init.ExtFiltersNbr = 1;
     hfdcan1.Init.TxFifoQueueElmtsNbr = 32;
     hfdcan1.Init.TxEventsNbr = 0;
-    hfdcan1.Init.TxBuffersNbr = 5;
+    hfdcan1.Init.TxBuffersNbr = 0;
     hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
     hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
-    LOG_DEBUG(CAN, "In CAN Init");
-
-    /** Initializes the peripherals clock
-    */
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
-    PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-    {
-      LOG_DEBUG(CAN, "Unable to configure peripheral clock");
-      return -CANARD_ERROR_INTERNAL;
-    }
-
-    /* FDCAN1 clock enable */
-    __HAL_RCC_FDCAN_CLK_ENABLE();
 
     canardSTM32GPIO_Init();  // Set up the pins for CAN and optional listen only mode
        
@@ -369,7 +365,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
           (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / (double)(10.0));
 
     out_timings->prescaler = (uint16_t)(prescaler);
-    out_timings->sjw = 3;                        // Standard SJW
+    out_timings->sjw = 1;
     out_timings->bs1 = (uint8_t)(solution.bs1);  // The HAL takes care of the 1 bs offset in the register so don't remove it here like AP does.
     out_timings->bs2 = (uint8_t)(solution.bs2);  // The HAL takes care of the 1 bs offset in the register so don't remove it here like AP does.
 
