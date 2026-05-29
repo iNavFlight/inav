@@ -164,7 +164,6 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 
 	returnCode = HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
     if( returnCode == HAL_OK) {
-		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", tx_frame->id);
 		return 1;
 	}
 
@@ -222,21 +221,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     // hcan1.Init.StdFiltersNbr = 0;
     // hcan1.Init.ExtFiltersNbr = 1;
     // hcan1.Init.TxFifoQueueElmtsNbr = 32;
-    // LOG_DEBUG(CAN, "In CAN Init");
-
-    /** Initializes the peripherals clock
-    */
-    // PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
-    // PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL;
-    // if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-    // {
-    //   LOG_DEBUG(CAN, "Unable to configure peripheral clock");
-    // }
-
     canardSTM32GPIO_Init();  // Set up the pins for CAN and optional listen only mode
-    
-    // LOG_DEBUG(CAN, "System Clock Speed: %lu", HAL_RCC_GetSysClockFreq());
-    // LOG_DEBUG(CAN, "PClk1 Clock Speed: %lu", HAL_RCC_GetPCLK1Freq());
     if (HAL_CAN_Init(&hcan1) != HAL_OK)
     {
         LOG_ERROR(CAN, "Failed CAN Init");
@@ -320,9 +305,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   125  kbps      16      17
      */
     const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 18;
-    LOG_DEBUG(CAN, "Baudrate: %lu", target_bitrate);
-    LOG_DEBUG(CAN, "Max Quanta per bit: %i", max_quanta_per_bit);
-    LOG_DEBUG(CAN, "Pclk1: %lu", pclk);
     static const int MaxSamplePointLocation = 900;
 
     /*
@@ -336,7 +318,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   PRESCALER_BS = PCLK / BITRATE
      */
     const uint32_t prescaler_bs = pclk / target_bitrate;
-    LOG_DEBUG(CAN, "Prescaler BS product: %lu", prescaler_bs);
      /*
      * Searching for such prescaler value so that the number of quanta per bit is highest.
      */
@@ -353,7 +334,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     if ((prescaler < 1U) || (prescaler > 1024U)) {
         return false;              // No solution
     }
-    LOG_DEBUG(CAN, "Prescaler: %lu", prescaler);
 
       /*
      * Now we have a constraint: (BS1 + BS2) == bs1_bs2_sum.
@@ -404,11 +384,8 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
         return false;
     }
 
-    LOG_DEBUG(CAN, "Timings: quanta/bit: %d, sample point location: %f%%",
-          (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / (double)(10.0));
-
     out_timings->prescaler = (uint16_t)(prescaler);
-    out_timings->sjw = 3;                        // Not happy with this value, but 1MBPs with unshielded cable?
+    out_timings->sjw = 3;
     out_timings->bs1 = (uint8_t)(solution.bs1)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
     out_timings->bs2 = (uint8_t)(solution.bs2)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
 
@@ -419,8 +396,6 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
 
     pProtocolStat->BusOff = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
     pProtocolStat->ErrorPassive = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_EPV);
-    // LOG_DEBUG(CAN, "BusOff: %lu", pProtocolStat->BusOff);
-    // LOG_DEBUG(CAN, "ErrorPassive: %lu", pProtocolStat->ErrorPassive);
 }
 
 int32_t canardSTM32GetRxFifoFillLevel(void){
