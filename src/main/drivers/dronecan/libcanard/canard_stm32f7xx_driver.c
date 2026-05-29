@@ -202,7 +202,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hcan1.Init.TimeTriggeredMode = DISABLE;
     hcan1.Init.AutoBusOff = ENABLE;
     hcan1.Init.AutoWakeUp = DISABLE;
-    hcan1.Init.AutoRetransmission = ENABLE;
+    hcan1.Init.AutoRetransmission = DISABLE;  // ENABLE fills the TX FIFO on a degraded bus; DroneCAN reliability is handled at the application layer
     hcan1.Init.ReceiveFifoLocked = DISABLE;
     hcan1.Init.TransmitFifoPriority = DISABLE;
   

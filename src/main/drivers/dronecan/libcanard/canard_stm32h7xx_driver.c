@@ -151,7 +151,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hfdcan1.Instance = FDCAN1;
     hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
     hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-    hfdcan1.Init.AutoRetransmission = ENABLE;
+    hfdcan1.Init.AutoRetransmission = DISABLE;  // ENABLE fills the 32-slot TX FIFO on a degraded bus; DroneCAN reliability is handled at the application layer
     hfdcan1.Init.TransmitPause = DISABLE;
     hfdcan1.Init.ProtocolException = DISABLE;
 
