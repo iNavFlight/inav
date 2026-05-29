@@ -377,7 +377,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     }
 
     out_timings->prescaler = (uint16_t)(prescaler);
-    out_timings->sjw = 1;
+    out_timings->sjw = 3;  // Register value: hardware SJW = sjw+1 = 4 tq. F7 bxCAN needs wider SJW than H7 FDCAN.
     out_timings->bs1 = (uint8_t)(solution.bs1)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
     out_timings->bs2 = (uint8_t)(solution.bs2)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
 
