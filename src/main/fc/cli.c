@@ -4200,7 +4200,7 @@ static void cliStatus(char *cmdline)
 #endif
 
 #ifdef USE_DRONECAN
-    static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF"};
+    static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF", "FAILED"};
     cliPrintLinef("DroneCAN: nodeID=%d, bitrate=%u kbps, status=%s, nodes=%d",                                                                                                                                                  
         dronecanConfig()->nodeID,                                                                                                                                                                                                     
         (unsigned)dronecanGetBitrateKbps(),                                                                                                                                                                                                     
