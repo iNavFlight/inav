@@ -135,7 +135,6 @@ void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
     dronecanBatterySensorReceiveInfo(&batteryInfo);
-    LOG_DEBUG(CAN, "Battery Info");
 }
 
 /*
@@ -144,8 +143,6 @@ void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 // TODO: All the data in here is temporary for testing. If actually need to send valid data, edit accordingly.
 void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
-	LOG_DEBUG(CAN, "GetNodeInfo request from %d", transfer->source_node_id);
-
 	uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
 	struct uavcan_protocol_GetNodeInfoResponse pkt;
 
@@ -192,7 +189,6 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 void send_NodeStatus(void) {
     uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
 
-    // LOG_DEBUG(CAN, "Sending Node Status");
     node_status.uptime_sec = millis() / 1000UL;
     if(isHardwareHealthy()){
         node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
@@ -335,7 +331,6 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
                 break;
             
             case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID:
-                LOG_DEBUG(CAN, "Battery Info");
                 handle_BatteryInfo(ins, transfer);
                 break;
         }
@@ -353,7 +348,6 @@ void processCanardTxQueue(void) {
 			LOG_DEBUG(CAN, "Transmit error %d", tx_res);
 			canardPopTxQueue(&canard);  // Error - discard frame
 		} else if (tx_res > 0) {
-			// LOG_DEBUG(CAN, "Successfully transmitted message");
 			canardPopTxQueue(&canard);  // Success - remove from queue
 		} else {
 			// tx_res == 0: TX FIFO full, retry later
@@ -451,8 +445,6 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 
              for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
              {
-                 //LOG_DEBUG(CAN, "Received a message");
-                 //LOG_DEBUG(CAN, "Rx FIFO Fill Level: %lu", canardSTM32GetRxFifoFillLevel());
 	            timestamp = millis() * 1000ULL;
 	            rx_res = canardSTM32Recieve(&rx_frame);
 

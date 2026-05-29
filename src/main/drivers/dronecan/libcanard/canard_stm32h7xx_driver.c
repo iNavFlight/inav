@@ -256,8 +256,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   125  kbps      16      17
      */
     const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
-    LOG_DEBUG(CAN, "Baudrate: %lu", target_bitrate);
-    LOG_DEBUG(CAN, "Max Quanta per bit: %i", max_quanta_per_bit);
 
     static const int MaxSamplePointLocation = 900;
 
@@ -272,7 +270,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   PRESCALER_BS = PCLK / BITRATE
      */
     const uint32_t prescaler_bs = pclk / target_bitrate;
-    LOG_DEBUG(CAN, "Prescaler BS product: %lu", prescaler_bs);
      /*
      * Searching for such prescaler value so that the number of quanta per bit is highest.
      */
@@ -289,7 +286,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     if ((prescaler < 1U) || (prescaler > 1024U)) {
         return false;              // No solution
     }
-    LOG_DEBUG(CAN, "Prescaler: %lu", prescaler);
 
       /*
      * Now we have a constraint: (BS1 + BS2) == bs1_bs2_sum.
@@ -339,9 +335,6 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     {
         return false;
     }
-
-    LOG_DEBUG(CAN, "Timings: quanta/bit: %d, sample point location: %f%%",
-          (int)(1 + solution.bs1 + solution.bs2), (double)(solution.sample_point_permill) / (double)(10.0));
 
     out_timings->prescaler = (uint16_t)(prescaler);
     out_timings->sjw = 3;
