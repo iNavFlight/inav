@@ -85,6 +85,7 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
+    if (gpsConfig()->provider != GPS_DRONECAN) return;
     struct uavcan_equipment_gnss_Auxiliary gnssAuxiliary;
 
 	if (uavcan_equipment_gnss_Auxiliary_decode(transfer, &gnssAuxiliary)) {
@@ -96,6 +97,7 @@ void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
+    if (gpsConfig()->provider != GPS_DRONECAN) return;
     struct uavcan_equipment_gnss_Fix gnssFix;
 
 	if (uavcan_equipment_gnss_Fix_decode(transfer, &gnssFix)) {
@@ -107,6 +109,7 @@ void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
+    if (gpsConfig()->provider != GPS_DRONECAN) return;
     struct uavcan_equipment_gnss_Fix2 gnssFix2;
 
 	if (uavcan_equipment_gnss_Fix2_decode(transfer, &gnssFix2)) {
@@ -118,6 +121,7 @@ void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
+    if (gpsConfig()->provider != GPS_DRONECAN) return;
     struct uavcan_equipment_gnss_RTCMStream gnssRTCMStream;
 
 	if (uavcan_equipment_gnss_RTCMStream_decode(transfer, &gnssRTCMStream)) {
