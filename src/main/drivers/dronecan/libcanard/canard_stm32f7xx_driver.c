@@ -206,7 +206,11 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hcan1.Init.ReceiveFifoLocked = DISABLE;
     hcan1.Init.TransmitFifoPriority = DISABLE;
   
-    canardSTM32ComputeTimings(bitrate, &out_timings);
+    if (!canardSTM32ComputeTimings(bitrate, &out_timings))
+    {
+        LOG_ERROR(CAN, "Failed to compute CAN timings for bitrate %lu", (unsigned long)bitrate);
+        return -CANARD_ERROR_INTERNAL;
+    }
 
     hcan1.Init.Prescaler = out_timings.prescaler;
     hcan1.Init.SyncJumpWidth = (uint32_t)out_timings.sjw << CAN_BTR_SJW_Pos;
