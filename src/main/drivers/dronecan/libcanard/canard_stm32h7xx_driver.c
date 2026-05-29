@@ -125,12 +125,9 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
     }
 
 	if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) == HAL_OK) {
-		// LOG_DEBUG(CAN, "Successfully sent message with id: %lu", TxHeader.Identifier);
 		return 1;
 	}
 
-	LOG_DEBUG(CAN, "Failed at adding message with id: %lu to Tx Queue", TxHeader.Identifier);
-    
 	// This might be for many reasons including the Tx Fifo being full, the error can be read from hfdcan->ErrorCode
 	return 0;
 }
@@ -360,8 +357,6 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
     HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocolStatus);
     pProtocolStat->BusOff = protocolStatus.BusOff;
     pProtocolStat->ErrorPassive = protocolStatus.ErrorPassive;
-    LOG_DEBUG(CAN, "BusOff: %lu", protocolStatus.BusOff);
-    LOG_DEBUG(CAN, "ErrorPassive: %lu", protocolStatus.ErrorPassive);
 }
 
 int32_t canardSTM32GetRxFifoFillLevel(void){
