@@ -471,7 +471,9 @@ void dronecanUpdate(timeUs_t currentTimeUs)
                 processCanardTxQueue();
 
                 canardSTM32GetProtocolStatus(&protocolStatus);
-                LOG_DEBUG(CAN, "CAN status: BusOff=%lu ErrorPassive=%lu", protocolStatus.BusOff, protocolStatus.ErrorPassive);
+                if (protocolStatus.BusOff != 0 || protocolStatus.ErrorPassive != 0) {
+                    LOG_DEBUG(CAN, "CAN status: BusOff=%lu ErrorPassive=%lu", protocolStatus.BusOff, protocolStatus.ErrorPassive);
+                }
                 if (protocolStatus.BusOff != 0) {
                     dronecanState = STATE_DRONECAN_BUS_OFF;
                     busoffTimeUs = currentTimeUs;
