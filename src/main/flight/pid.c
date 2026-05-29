@@ -97,6 +97,8 @@ typedef struct {
     rateLimitFilter_t axisAccelFilter;
     pt1Filter_t ptermLpfState;
     filter_t dtermLpfState;
+    pt1Filter_t dtermLpf2State;         // Pre-differentiation LPF (BF-style: filter before diff to reduce noise amplification)
+    float previousFilteredGyroRate;     // Stores filtered gyro for pre-diff architecture
 
     float stickPosition;
 
@@ -161,6 +163,7 @@ static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
 static EXTENDED_FASTRAM uint8_t yawLpfHz;
 static EXTENDED_FASTRAM float motorItermWindupPoint;
 static EXTENDED_FASTRAM float antiWindupScaler;
+static EXTENDED_FASTRAM uint16_t dtermLpf2Hz;
 #ifdef USE_ANTIGRAVITY
 static EXTENDED_FASTRAM float iTermAntigravityGain;
 #endif
@@ -171,6 +174,7 @@ static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM bool restartAngleHoldMode = true;
 static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
+static EXTENDED_FASTRAM timeMs_t pidLoopNowMs;
 
 #define FIXED_WING_LEVEL_TRIM_MAX_ANGLE 10.0f // Max angle auto trimming can demand
 #define FIXED_WING_LEVEL_TRIM_DIVIDER 50.0f
@@ -263,6 +267,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .dterm_lpf_type = SETTING_DTERM_LPF_TYPE_DEFAULT,
         .dterm_lpf_hz = SETTING_DTERM_LPF_HZ_DEFAULT,
+        .dterm_lpf2_hz = SETTING_DTERM_LPF2_HZ_DEFAULT,
         .yaw_lpf_hz = SETTING_YAW_LPF_HZ_DEFAULT,
 
         .itermWindupPointPercent = SETTING_ITERM_WINDUP_DEFAULT,
@@ -330,6 +335,16 @@ bool pidInitFilters(void)
 
     for (int axis = 0; axis < 3; ++ axis) {
         initFilter(pidProfile()->dterm_lpf_type, &pidState[axis].dtermLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
+    }
+
+    dtermLpf2Hz = pidProfile()->dterm_lpf2_hz;
+    if (dtermLpf2Hz > 0) {
+        for (int axis = 0; axis < 3; axis++) {
+            const float currentGyroRate = pidState[axis].gyroRate;
+            pt1FilterInit(&pidState[axis].dtermLpf2State, dtermLpf2Hz, US2S(refreshRate));
+            pt1FilterReset(&pidState[axis].dtermLpf2State, currentGyroRate);
+            pidState[axis].previousFilteredGyroRate = currentGyroRate;
+        }
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
@@ -780,16 +795,20 @@ static float applyDBoost(pidState_t *pidState, float dT) {
 static float FAST_CODE dTermProcess(pidState_t *pidState, float currentRateTarget, float dT, float dT_inv) {
     // Calculate new D-term
     float newDTerm = 0;
-    if (pidState->kD == 0) {
-        // optimisation for when D is zero, often used by YAW axis
-        newDTerm = 0;
-    } else {
-        float delta = pidState->previousRateGyro - pidState->gyroRate;
+    if (pidState->kD != 0) {
+        float delta;
+        if (dtermLpf2Hz > 0) {
+            // Filter gyro before differentiation so D-term does not amplify high-frequency noise.
+            const float filteredGyro = pt1FilterApply(&pidState->dtermLpf2State, pidState->gyroRate);
+            delta = pidState->previousFilteredGyroRate - filteredGyro;
+            pidState->previousFilteredGyroRate = filteredGyro;
+        } else {
+            delta = pidState->previousRateGyro - pidState->gyroRate;
+        }
 
         delta = dTermLpfFilterApplyFn((filter_t *) &pidState->dtermLpfState, delta);
 
-        // Calculate derivative
-        newDTerm =  delta * (pidState->kD * dT_inv) * applyDBoost(pidState, currentRateTarget, dT, dT_inv);
+        newDTerm = delta * (pidState->kD * dT_inv) * applyDBoost(pidState, currentRateTarget, dT, dT_inv);
     }
     return(newDTerm);
 }
@@ -827,7 +846,7 @@ static void iTermLockApply(pidState_t *pidState, const float rateTarget, const f
 
     //When abs of rate target is above 20% of max rate, we start tracking time
     if (fabsf(rateTarget) > maxRate * 0.2f) {
-        pidState->attenuation.targetOverThresholdTimeMs = millis();
+        pidState->attenuation.targetOverThresholdTimeMs = pidLoopNowMs;
     }
 
     //If error is below threshold, we no longer track time for lock mechanism
@@ -840,7 +859,7 @@ static void iTermLockApply(pidState_t *pidState, const float rateTarget, const f
      * - dampingFactor
      * - for 500ms (fw_iterm_lock_time_max_ms) force 0 if error is above threshold
      */
-    pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->attenuation.targetOverThresholdTimeMs) < pidProfile()->fwItermLockTimeMaxMs) ? 0.0f : 1.0f);
+    pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (pidLoopNowMs - pidState->attenuation.targetOverThresholdTimeMs) < pidProfile()->fwItermLockTimeMaxMs) ? 0.0f : 1.0f);
 
     //P & D damping factors are always the same and based on current damping factor
     pidState->attenuation.aP = dampingFactor;
@@ -1229,6 +1248,7 @@ void updateAngleHold(float *angleTarget, uint8_t axis)
 void FAST_CODE pidController(float dT)
 {
     const float dT_inv = 1.0f / dT;
+    pidLoopNowMs = millis();
 
     if (!pidFiltersConfigured) {
         return;
