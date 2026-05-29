@@ -500,6 +500,9 @@ void SystemClock_Config(void)
 #if defined(USE_SDCARD_SDIO) || defined(USE_DRONECAN)
     // PLL2M = HSE_VALUE / 1600000 pins the VCO input to exactly 1.6 MHz for any HSE.
     // With N=500: VCO=800 MHz, PLL2R/4=200 MHz (SDMMC), PLL2Q/10=80 MHz (FDCAN).
+    // HSE_VALUE must be an exact multiple of 1600000. CMake sets it per-target via -DHSE_VALUE=<n>;
+    // current targets use 8MHz (÷5) and 16MHz (÷10). If adding a target with a non-multiple HSE,
+    // this assert will fire — choose a different VCO input frequency.
     STATIC_ASSERT(HSE_VALUE % 1600000 == 0, HSE_not_a_multiple_of_1600000);
     RCC_PeriphClkInit.PLL2.PLL2M = HSE_VALUE / 1600000;
     RCC_PeriphClkInit.PLL2.PLL2N = 500;
