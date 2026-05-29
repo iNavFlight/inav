@@ -152,11 +152,9 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
     gpsSolDRV.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
     // TODO where to get EPH gpsSolDRV.eph = gpsConstrainEPE(pgnssFix-> / 10);
     // TODO where to get EPV gpsSolDRV.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
-    LOG_DEBUG(CAN, "Last HDOP %d", lastHDOP);
     if (pgnssFix2->pdop > 0){
         gpsSolDRV.hdop = gpsConstrainHDOP(pgnssFix2->pdop * 100); // Only update if valid.
     } else if((9999 > lastHDOP) && (lastHDOP > 0)) {
-        LOG_DEBUG(CAN, "Updating gpsSolDRV");
         gpsSolDRV.hdop = lastHDOP;
     }
     gpsSolDRV.flags.validVelNE = true;
