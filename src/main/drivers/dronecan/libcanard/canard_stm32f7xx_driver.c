@@ -400,10 +400,9 @@ int32_t canardSTM32GetRxFifoFillLevel(void){
 
 void canardSTM32RecoverFromBusOff(void){
     // AutoBusOff=ENABLE handles the 128x11 recovery sequence automatically.
-    // Stop/Start re-enters init mode which clears the sticky ESR.BOFF flag
-    // so GetProtocolStatus() can detect recovery and return to NORMAL state.
-    HAL_CAN_Stop(&hcan1);
-    HAL_CAN_Start(&hcan1);
+    // TODO: ESR.BOFF is a sticky flag not cleared by AutoBusOff recovery.
+    // HAL_CAN_Stop/Start would clear it but caused lockups on F7 when called
+    // from the scheduler context with CAN interrupts active. Needs investigation.
 }
 
 /*
