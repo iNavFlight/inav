@@ -82,8 +82,7 @@ static uint8_t gpsMapFixType(uint8_t dronecanFixType)
 
 void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix)
 {
-    //const mspSensorGpsDataMessage_t * pkt = (const mspSensorGpsDataMessage_t *)bufferPtr;
-
+    if (gpsConfig()->provider != GPS_DRONECAN) return;
     gpsSolDRV.fixType   = gpsMapFixType(pgnssFix->status);
     gpsSolDRV.numSat    = pgnssFix->sats_used;
     gpsSolDRV.llh.lon   = pgnssFix->longitude_deg_1e8 / 10; // convert to deg_1e7
@@ -134,7 +133,7 @@ void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix
 
 void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssFix2)
 {
-    //const mspSensorGpsDataMessage_t * pkt = (const mspSensorGpsDataMessage_t *)bufferPtr;
+    if (gpsConfig()->provider != GPS_DRONECAN) return;
 
     gpsSolDRV.fixType   = gpsMapFixType(pgnssFix2->status);
     gpsSolDRV.numSat    = pgnssFix2->sats_used;
@@ -185,6 +184,7 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
 
 void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliary * pgnssAux)
 {
+    if (gpsConfig()->provider != GPS_DRONECAN) return;
     UNUSED(pgnssAux);
     // No useful information I think...  Placeholder until after testing.
     lastVDOP = pgnssAux->vdop * 100;
