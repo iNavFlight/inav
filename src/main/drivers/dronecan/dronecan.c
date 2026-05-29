@@ -402,7 +402,7 @@ void dronecanInit(void)
     if(canardSTM32CAN1_Init(bitrate) != CANARD_OK)
     {
         LOG_ERROR(CAN, "Unable to initialize the CAN peripheral");
-        // TODO: Notify the user that CAN does not work and disable the peripheral
+        dronecanState = STATE_DRONECAN_FAILED;
         return;
     }  
     /*
@@ -484,7 +484,10 @@ void dronecanUpdate(timeUs_t currentTimeUs)
                 dronecanState = STATE_DRONECAN_NORMAL;
             }
             break;
-    
+
+        case STATE_DRONECAN_FAILED:
+            break;
+
     }
     
 }

@@ -14,7 +14,8 @@ typedef enum {
 typedef enum {
     STATE_DRONECAN_INIT,
     STATE_DRONECAN_NORMAL,
-    STATE_DRONECAN_BUS_OFF
+    STATE_DRONECAN_BUS_OFF,
+    STATE_DRONECAN_FAILED
 } dronecanState_e;
 
 #define DRONECAN_MAX_NODES 32 // Reasonably expected number of devices on the bus.  If this is regularly hit, we could go higher but it consumes more ram.
