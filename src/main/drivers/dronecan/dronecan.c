@@ -469,12 +469,13 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 		        next_1hz_service_at += 1000000ULL;
 		        process1HzTasks(currentTimeUs);
                 processCanardTxQueue();
-            }
 
-            canardSTM32GetProtocolStatus(&protocolStatus);
-            if(protocolStatus.BusOff != 0) {
-                dronecanState = STATE_DRONECAN_BUS_OFF;
-                busoffTimeUs = currentTimeUs;
+                canardSTM32GetProtocolStatus(&protocolStatus);
+                LOG_DEBUG(CAN, "CAN status: BusOff=%lu ErrorPassive=%lu", protocolStatus.BusOff, protocolStatus.ErrorPassive);
+                if (protocolStatus.BusOff != 0) {
+                    dronecanState = STATE_DRONECAN_BUS_OFF;
+                    busoffTimeUs = currentTimeUs;
+                }
             }
             break;
 
