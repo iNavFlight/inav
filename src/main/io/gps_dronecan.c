@@ -56,7 +56,6 @@
 
 static bool newDataReady;
 static uint16_t lastHDOP = 9999;
-static uint16_t lastVDOP = 9999;
 
 void gpsRestartDronecan(void)
 {
@@ -185,9 +184,6 @@ void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliar
     // gpsConstrainHDOP clamps to 9999 preventing uint16_t overflow for extreme DOP values.
     if (!isnan(pgnssAux->hdop)) {
         lastHDOP = gpsConstrainHDOP((uint32_t)(pgnssAux->hdop * 100));
-    }
-    if (!isnan(pgnssAux->vdop)) {
-        lastVDOP = gpsConstrainHDOP((uint32_t)(pgnssAux->vdop * 100));
     }
 }
 #endif
