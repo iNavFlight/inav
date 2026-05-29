@@ -495,6 +495,9 @@ void dronecanUpdate(timeUs_t currentTimeUs)
         case STATE_DRONECAN_FAILED:
             break;
 
+        case STATE_DRONECAN_COUNT:
+            break;
+
     }
     
 }
