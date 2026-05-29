@@ -181,6 +181,42 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 
 }
 
+dronecanState_e dronecanGetState(void)
+{
+    return dronecanState;
+}
+
+uint8_t dronecanGetNodeCount(void)
+{
+    return activeNodeCount;
+}
+
+uint32_t dronecanGetBitrateKbps(void)
+{
+    switch (dronecanConfig()->bitRateKbps){
+        case DRONECAN_BITRATE_125KBPS:
+            return 125;
+
+        case DRONECAN_BITRATE_250KBPS:
+            return 250;
+        
+        case DRONECAN_BITRATE_500KBPS:
+            return 500;
+
+        case DRONECAN_BITRATE_1000KBPS:
+            return 1000;
+        
+        case DRONECAN_BITRATE_COUNT:
+            return 0;
+    }
+    return 0;
+}
+
+const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
+    if (index < activeNodeCount) return &nodeTable[index];
+    return NULL;
+}
+
 /* --- TX and periodic task processing --- */
 
 static void processCanardTxQueue(void) {
