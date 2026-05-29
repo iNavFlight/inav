@@ -109,11 +109,11 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 		TxHeader.TxFrameType = FDCAN_DATA_FRAME;
 	}
 
-	TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE; // unsure about this one
-	TxHeader.BitRateSwitch = FDCAN_BRS_OFF; // Disabling FDCAN (using CAN 2.0)
-	TxHeader.FDFormat = FDCAN_CLASSIC_CAN; // Disabling FDCAN (using CAN 2.0)
-	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // unsure about this one
-	TxHeader.MessageMarker = 0; // unsure about this one
+	TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+	TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
+	TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
+	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+	TxHeader.MessageMarker = 0;
     if (TxHeader.DataLength <= sizeof(TxData))
     {
 	    memcpy(TxData, tx_frame->data, TxHeader.DataLength);
@@ -188,7 +188,6 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed CAN Init");
         return -CANARD_ERROR_INTERNAL;
     }
-    /* USER CODE BEGIN FDCAN1_Init 2 */
     if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
@@ -215,9 +214,9 @@ static void canardSTM32GPIO_Init(void)
    // Set up the Rx and Tx pins for CAN1 and if present, the standby or listen only pin.
 #if defined(CAN1_TX) && defined(CAN1_RX)
     IOInit(IOGetByTag(IO_TAG(CAN1_TX)), OWNER_DRONECAN, RESOURCE_CAN_TX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);
     IOInit(IOGetByTag(IO_TAG(CAN1_RX)), OWNER_DRONECAN, RESOURCE_CAN_RX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);  // How do I make the alternate function crossplatform?
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);
 #endif
 
 
@@ -226,7 +225,7 @@ static void canardSTM32GPIO_Init(void)
     // TODO: Tie the pin state to a configuration option so we can turn CAN on and off.
 
     IOInit(IOGetByTag(IO_TAG(CAN1_STANDBY)), OWNER_DRONECAN, RESOURCE_CAN_STANDBY, 0);
-    IOConfigGPIO(IOGetByTag(IO_TAG(CAN1_STANDBY)), IOCFG_OUT_PP);  // Do any boards use pullups, external/internal?
+    IOConfigGPIO(IOGetByTag(IO_TAG(CAN1_STANDBY)), IOCFG_OUT_PP);
     IOLo(IOGetByTag(IO_TAG(CAN1_STANDBY)));
 #endif
 }

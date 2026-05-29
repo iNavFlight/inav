@@ -182,13 +182,9 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
   */
 int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 {
-//    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
     struct Timings out_timings;
 
-     /* CAN1 clock enable */
     __HAL_RCC_CAN1_CLK_ENABLE();
-
-    // /* USER CODE BEGIN CAN1_MspInit 1 */
 
     CAN_FilterTypeDef sFilterConfig;
     sFilterConfig.FilterIdHigh = 0;
@@ -218,17 +214,13 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hcan1.Init.TimeSeg2     = (uint32_t)out_timings.bs2 << CAN_BTR_TS2_Pos;
     LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
-    // hcan1.Init.StdFiltersNbr = 0;
-    // hcan1.Init.ExtFiltersNbr = 1;
-    // hcan1.Init.TxFifoQueueElmtsNbr = 32;
-    canardSTM32GPIO_Init();  // Set up the pins for CAN and optional listen only mode
+    canardSTM32GPIO_Init();
     if (HAL_CAN_Init(&hcan1) != HAL_OK)
     {
         LOG_ERROR(CAN, "Failed CAN Init");
         return -CANARD_ERROR_INTERNAL;
     }
     
-    /* USER CODE BEGIN FDCAN1_Init 2 */
     if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
@@ -263,9 +255,9 @@ static void canardSTM32GPIO_Init(void)
    // Set up the Rx and Tx pins for CAN1 and if present, the standby or listen only pin.
 #if defined(CAN1_TX) && defined(CAN1_RX)
     IOInit(IOGetByTag(IO_TAG(CAN1_TX)), OWNER_DRONECAN, RESOURCE_CAN_TX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_CAN1);  // How do I make the alternate function crossplatform?
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_CAN1);
     IOInit(IOGetByTag(IO_TAG(CAN1_RX)), OWNER_DRONECAN, RESOURCE_CAN_RX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_CAN1);  // How do I make the alternate function crossplatform?
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_CAN1);
 #endif
 
 
@@ -274,7 +266,7 @@ static void canardSTM32GPIO_Init(void)
     // TODO: Tie the pin state to a configuration option so we can turn CAN on and off.
 
     IOInit(IOGetByTag(IO_TAG(CAN1_STANDBY)), OWNER_DRONECAN, RESOURCE_CAN_STANDBY, 0);
-    IOConfigGPIO(IOGetByTag(IO_TAG(CAN1_STANDBY)), IOCFG_OUT_PP);  // Do any boards use pullups, external/internal?
+    IOConfigGPIO(IOGetByTag(IO_TAG(CAN1_STANDBY)), IOCFG_OUT_PP);
     IOLo(IOGetByTag(IO_TAG(CAN1_STANDBY)));
 #endif
 }
@@ -385,7 +377,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     }
 
     out_timings->prescaler = (uint16_t)(prescaler);
-    out_timings->sjw = 3;
+    out_timings->sjw = 1;
     out_timings->bs1 = (uint8_t)(solution.bs1)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
     out_timings->bs2 = (uint8_t)(solution.bs2)-1;  // The HAL does not take care of the 1 bs offset in the register so remove it here like AP does.
 
@@ -403,8 +395,6 @@ int32_t canardSTM32GetRxFifoFillLevel(void){
 }
 
 void canardSTM32RecoverFromBusOff(void){
-    // Auto recover from bus off is enabled
-    // CLEAR_BIT(hcan1.Instance->CCCR, FDCAN_CCCR_INIT);  // Clear INIT bit to recover from Bus-Off
 }
 
 /*
