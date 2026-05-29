@@ -181,7 +181,13 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
 
 void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliary * pgnssAux)
 {
-    lastVDOP = pgnssAux->vdop * 100;
-    lastHDOP = pgnssAux->hdop * 100;
+    // DroneCAN float16 optional fields encode NaN when unpopulated; guard before use.
+    // gpsConstrainHDOP clamps to 9999 preventing uint16_t overflow for extreme DOP values.
+    if (!isnan(pgnssAux->hdop)) {
+        lastHDOP = gpsConstrainHDOP((uint32_t)(pgnssAux->hdop * 100));
+    }
+    if (!isnan(pgnssAux->vdop)) {
+        lastVDOP = gpsConstrainHDOP((uint32_t)(pgnssAux->vdop * 100));
+    }
 }
 #endif
