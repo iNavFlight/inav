@@ -337,7 +337,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     }
 
     out_timings->prescaler = (uint16_t)(prescaler);
-    out_timings->sjw = 3;
+    out_timings->sjw = 1;
     out_timings->bs1 = (uint8_t)(solution.bs1);  // The HAL takes care of the 1 bs offset in the register so don't remove it here like AP does.
     out_timings->bs2 = (uint8_t)(solution.bs2);  // The HAL takes care of the 1 bs offset in the register so don't remove it here like AP does.
 
