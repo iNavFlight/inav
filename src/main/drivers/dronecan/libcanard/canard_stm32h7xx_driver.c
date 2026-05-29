@@ -356,7 +356,8 @@ int32_t canardSTM32GetRxFifoFillLevel(void){
 }
 
 void canardSTM32RecoverFromBusOff(void){
-    CLEAR_BIT(hfdcan1.Instance->CCCR, FDCAN_CCCR_INIT);  // Clear INIT bit to recover from Bus-Off
+    hfdcan1.Instance->TXBCR = 0xFFFFFFFFU;  // Cancel all pending TX requests before recovery
+    CLEAR_BIT(hfdcan1.Instance->CCCR, FDCAN_CCCR_INIT);
 }
 
 /*
