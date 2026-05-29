@@ -92,7 +92,6 @@ void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
     dronecanGPSReceiveGNSSAuxiliary(&gnssAuxiliary);
-    LOG_DEBUG(CAN, "GNSS Auxiliary: Sats=%d HDOP=%.1f", gnssAuxiliary.sats_used, (double)gnssAuxiliary.hdop);
 }
 
 void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -104,7 +103,6 @@ void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
     dronecanGPSReceiveGNSSFix(&gnssFix);
-    LOG_DEBUG(CAN, "GNSS Fix received");
 }
 
 void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -116,7 +114,6 @@ void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
     dronecanGPSReceiveGNSSFix2(&gnssFix2);
-    LOG_DEBUG(CAN, "GNSS Fix2 received");
 }
 
 void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -127,7 +124,6 @@ void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
 		LOG_DEBUG(CAN, "RTCMStream decode failed");
 		return;
 	}
-    LOG_DEBUG(CAN, "GNSS RTCM");
 }
 
 void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -300,13 +296,6 @@ bool shouldAcceptTransfer(const CanardInstance *ins,
 */
 void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 	// switch on data type ID to pass to the right handler function
-    LOG_DEBUG(CAN, "Transfer type: %u, Transfer ID: %u ", transfer->transfer_type, transfer->data_type_id);
-	//LOG_DEBUG(CAN, "0x");
-    //LOG_BUFFER_ERROR(SYSTEM, transfer->payload_head, transfer->payload_len);
-	//	for (int i = 0; i < transfer->payload_len; i++) {
-	//		LOG_DEBUG(CAN,"%02x", transfer->payload_head[i]);
-	//	}
-
 	if (transfer->transfer_type == CanardTransferTypeRequest) {
 		// check if we want to handle a specific service request
 		switch (transfer->data_type_id) {
@@ -392,7 +381,6 @@ void process1HzTasks(timeUs_t timestamp_usec)
 
 void dronecanInit(void)
 {
-    LOG_DEBUG(CAN, "dronecan Init");
     uint32_t bitrate = 500000; // At least define 500000
 
     switch (dronecanConfig()->bitRateKbps){
