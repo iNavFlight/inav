@@ -483,10 +483,10 @@ void dronecanUpdate(timeUs_t currentTimeUs)
             if(currentTimeUs > (busoffTimeUs + 20000)) { // Wait 20ms: worst-case 128x11 recovery is 11.264ms at 125kbps
                 canardSTM32RecoverFromBusOff();
                 busoffTimeUs = currentTimeUs;
-            }
-            canardSTM32GetProtocolStatus(&protocolStatus);
-            if(protocolStatus.BusOff == 0) {
-                dronecanState = STATE_DRONECAN_NORMAL;
+                canardSTM32GetProtocolStatus(&protocolStatus);
+                if(protocolStatus.BusOff == 0) {
+                    dronecanState = STATE_DRONECAN_NORMAL;
+                }
             }
             break;
 
