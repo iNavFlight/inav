@@ -318,6 +318,40 @@ Connect the CAN bus lines between your flight controller and DroneCAN peripheral
     120R                          (pass-through)                              120R
 ```
 
+## Diagnostics
+
+### CLI Status
+
+The `status` CLI command includes a DroneCAN summary line showing the current bus state and how many nodes have been detected:
+
+```
+DroneCAN: nodeID=10, bitrate=1000 kbps, status=NORMAL, nodes=2
+```
+
+| Field | Description |
+|-------|-------------|
+| `nodeID` | This FC's CAN node ID |
+| `bitrate` | Configured CAN bus bitrate |
+| `status` | `INIT`, `NORMAL`, or `BUS_OFF` |
+| `nodes` | Number of unique nodes seen since boot |
+
+### MSP Commands
+
+Two MSP2 commands are available for querying detected DroneCAN nodes programmatically (e.g. from a GCS or configurator):
+
+| Command | Code | Description |
+|---------|------|-------------|
+| `MSP2_INAV_DRONECAN_NODES` | `0x2042` | Returns count and status of all detected nodes |
+| `MSP2_INAV_DRONECAN_NODE_INFO` | `0x2043` | Returns full detail for a single node by ID |
+
+**`MSP2_INAV_DRONECAN_NODES` response:** one byte node count followed by 7-byte records — nodeID(1), health(1), mode(1), last\_seen\_ms(4). Maximum payload is 1 + 32×7 = 225 bytes, well within the 512-byte MSP output buffer.
+
+**`MSP2_INAV_DRONECAN_NODE_INFO` request/response:** send a single-byte node ID; receive full node detail — nodeID, health, mode, uptime\_sec, vendor\_status\_code, last\_seen\_ms, name\_len, and name (32 bytes). Returns `MSP_RESULT_ERROR` if the node ID is not in the table.
+
+See `docs/development/msp/README.md` for the full MSP field layout.
+
+---
+
 ## Troubleshooting
 
 ### No data from DroneCAN devices

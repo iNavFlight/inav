@@ -2034,6 +2034,12 @@ groups:
         default_value: 110
         min: 0
         max: 500
+      - name: dterm_lpf2_hz
+        description: "Dterm pre-differentiation LPF cutoff (Hz). Filters gyro before differentiation to reduce noise amplification. Higher = less delay, more noise. 0 = disabled. Values around 200-250Hz can add smoothing with small delay."
+        default_value: 0
+        field: dterm_lpf2_hz
+        min: 0
+        max: 500
       - name: dterm_lpf_type
         description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`."
         default_value: "PT2"
