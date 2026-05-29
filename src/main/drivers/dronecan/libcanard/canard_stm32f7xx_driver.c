@@ -167,9 +167,7 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 		return 1;
 	}
 
-	LOG_DEBUG(CAN, "Failed at adding message with id: %lu to Tx Queue.  Error: %lu", tx_frame->id, returnCode);
-
-	// TX failed (FIFO full or other error) - return 0 to signal retry needed
+	// TX failed (mailboxes full or bus error) - return 0 to signal retry needed
 	return 0;
 }
 
