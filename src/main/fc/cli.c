@@ -4205,7 +4205,7 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("DroneCAN: nodeID=%d, bitrate=%u kbps, status=%s, nodes=%d",                                                                                                                                                  
         dronecanConfig()->nodeID,                                                                                                                                                                                                     
         (unsigned)dronecanGetBitrateKbps(),                                                                                                                                                                                                     
-        dronecanStateNames[dronecanGetState()],                                                                                                                                                                                       
+        dronecanStateNames[MIN(dronecanGetState(), STATE_DRONECAN_COUNT - 1)],                                                                                                                                                                                       
         dronecanGetNodeCount()                                                         
     );
 #endif
