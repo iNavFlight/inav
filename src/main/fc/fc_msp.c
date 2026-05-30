@@ -4840,7 +4840,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 uint8_t timerCount = sbufReadU8(src);
                 // Reject malformed payloads: must be exactly timerCount pairs.
                 if (timerCount > HARDWARE_TIMER_DEFINITION_COUNT ||
-                    sbufBytesRemaining(src) != (int)(timerCount * 2)) {
+                    sbufBytesRemaining(src) != (uint32_t)(timerCount * 2)) {
                     *ret = MSP_RESULT_ERROR;
                     break;
                 }
