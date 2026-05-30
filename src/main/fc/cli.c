@@ -4201,7 +4201,7 @@ static void cliStatus(char *cmdline)
 
 #ifdef USE_DRONECAN
     static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF", "FAILED"};
-    STATIC_ASSERT(ARRAY_LENGTH(dronecanStateNames) == STATE_DRONECAN_COUNT, dronecanStateNames_size_mismatch);
+    STATIC_ASSERT(ARRAYLEN(dronecanStateNames) == STATE_DRONECAN_COUNT, dronecanStateNames_size_mismatch);
     cliPrintLinef("DroneCAN: nodeID=%d, bitrate=%u kbps, status=%s, nodes=%d",                                                                                                                                                  
         dronecanConfig()->nodeID,                                                                                                                                                                                                     
         (unsigned)dronecanGetBitrateKbps(),                                                                                                                                                                                                     
