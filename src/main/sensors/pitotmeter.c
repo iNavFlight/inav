@@ -70,8 +70,9 @@ pitot_t pitot = {.lastMeasurementUs = 0, .lastSeenHealthyMs = 0};
 static bool pitotHardwareFailed = false;
 static uint16_t pitotFailureCounter = 0;
 static uint16_t pitotRecoveryCounter = 0;
-#define PITOT_FAILURE_THRESHOLD 20   // 0.2 seconds at 100Hz - fast detection per LOG00002 analysis
-#define PITOT_RECOVERY_THRESHOLD 200 // 2 seconds of consecutive good readings to recover
+static bool pitotAirspeedValidCached = false;
+#define PITOT_FAILURE_THRESHOLD 10   // 0.2 seconds at 50Hz - fast detection per LOG00002 analysis
+#define PITOT_RECOVERY_THRESHOLD 100 // 2 seconds of consecutive good readings to recover
 
 // Forward declaration for GPS-based airspeed fallback
 static float getVirtualAirspeedEstimate(void);
@@ -231,6 +232,7 @@ static void performPitotCalibrationCycle(void)
     }
 }
 
+
 STATIC_PROTOTHREAD(pitotThread)
 {
     ptBegin(pitotThread);
@@ -280,6 +282,7 @@ STATIC_PROTOTHREAD(pitotThread)
             pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
         }
 #endif
+        pitotAirspeedValidCached = pitotValidateAirspeed();
         ptYield();
 
         // Calculate IAS
@@ -449,7 +452,7 @@ bool pitotHasFailed(void)
     return pitotHardwareFailed;
 }
 
-bool pitotValidForAirspeed(void)
+bool pitotValidateAirspeed(void)
 {
     bool ret = false;
     ret = pitotIsHealthy() && pitotIsCalibrationComplete();
@@ -507,5 +510,10 @@ bool pitotValidForAirspeed(void)
     }
 
     return ret;
+}
+
+bool pitotGetValidForAirspeed(void)
+{
+    return pitotAirspeedValidCached;
 }
 #endif /* PITOT */
