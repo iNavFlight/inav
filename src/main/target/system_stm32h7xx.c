@@ -514,7 +514,9 @@ void SystemClock_Config(void)
     RCC_PeriphClkInit.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
     RCC_PeriphClkInit.PLL2.PLL2FRACN = 0;
     RCC_PeriphClkInit.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL2;
-    HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
+    if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit) != HAL_OK) {
+        Error_Handler();
+    }
 #endif
 
 #ifdef USE_QUADSPI
