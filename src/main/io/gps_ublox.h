@@ -62,13 +62,25 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 #define UBX_VALID_GPS_TIME(valid) (valid & 1 << 1)
 #define UBX_VALID_GPS_DATE_TIME(valid) (UBX_VALID_GPS_DATE(valid) && UBX_VALID_GPS_TIME(valid))
 
-#define UBX_HW_VERSION_UNKNOWN  0
-#define UBX_HW_VERSION_UBLOX5   500
-#define UBX_HW_VERSION_UBLOX6   600
-#define UBX_HW_VERSION_UBLOX7   700
-#define UBX_HW_VERSION_UBLOX8   800
-#define UBX_HW_VERSION_UBLOX9   900
-#define UBX_HW_VERSION_UBLOX10  1000
+/*
+ * hwVersion encoding (fits in uint8_t):
+ *   bits [7:6]  series:  0b00=unknown, 0b01=u-blox Neo/M series
+ *   bits [5:0]  generation within series (e.g. 8=M8, 9=M9, 10=M10)
+ *
+ * This leaves 0b10 and 0b11 available for future series (e.g. u-blox F9,
+ * other manufacturers).
+ */
+#define UBX_HW_SERIES_MASK          0xC0
+#define UBX_HW_GEN_MASK             0x3F
+#define UBX_HW_SERIES_UBLOX_NM      0x40    // 0b01 << 6: u-blox Neo/M series
+
+#define UBX_HW_VERSION_UNKNOWN      0
+#define UBX_HW_VERSION_UBLOX5       (UBX_HW_SERIES_UBLOX_NM | 5)   // 0x45
+#define UBX_HW_VERSION_UBLOX6       (UBX_HW_SERIES_UBLOX_NM | 6)   // 0x46
+#define UBX_HW_VERSION_UBLOX7       (UBX_HW_SERIES_UBLOX_NM | 7)   // 0x47
+#define UBX_HW_VERSION_UBLOX8       (UBX_HW_SERIES_UBLOX_NM | 8)   // 0x48
+#define UBX_HW_VERSION_UBLOX9       (UBX_HW_SERIES_UBLOX_NM | 9)   // 0x49
+#define UBX_HW_VERSION_UBLOX10      (UBX_HW_SERIES_UBLOX_NM | 10)  // 0x4A
 
 #define UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1   0x2091002a // U1
 #define UBLOX_CFG_MSGOUT_NAV_SAT_UART1      0x20910016 // U1
@@ -506,7 +518,8 @@ typedef enum {
     MSG_CFG_SBAS = 0x16,
     MSG_CFG_GNSS = 0x3e,
     MSG_MON_GNSS = 0x28,
-    MSG_NAV_SIG = 0x43
+    MSG_NAV_SIG = 0x43,
+    MSG_MON_RF = 0x38
 } ubx_protocol_bytes_t;
 
 typedef enum {
@@ -547,6 +560,16 @@ bool ubloxVersionLT(uint8_t mj, uint8_t mn);
 bool ubloxVersionGT(uint8_t mj, uint8_t mn);
 bool ubloxVersionGTE(uint8_t mj, uint8_t mn);
 bool ubloxVersionE(uint8_t mj, uint8_t mn);
+
+// MON-RF access Noise level
+uint16_t gpsGetMonRfNoisePerMs(void);
+// MON-RF access AGC level as percent of maximum gain
+uint8_t gpsGetMonAGCPercent(void);
+// Called by OSD to enable/disable periodic MON-RF polling when widget is used
+void gpsSetOsdMonRfWidgetEnabled(bool enabled);
+
+// MON-RF access CW Suppression
+uint8_t gpsGetMonRfCWSuppression(void);
 
 #ifdef __cplusplus
 }

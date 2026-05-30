@@ -28,14 +28,14 @@
 #include <string.h>
 #include <stdarg.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <math.h>
 
 #include "platform.h"
 
 #include "target.h"
 #include "target/SITL/sim/realFlight.h"
-#include "target/SITL/sim/simple_soap_client.h"
-#include "target/SITL/sim/xplane.h"
+#include "target/SITL/sim/soap_client.h"
 #include "target/SITL/sim/simHelper.h"
 #include "fc/runtime_config.h"
 #include "drivers/time.h"
@@ -55,8 +55,9 @@
 #include "flight/imu.h"
 #include "io/gps.h"
 #include "rx/sim.h"
+#include "realFlight.h"
 
-#define RF_PORT 18083
+#define RF_PORT "18083"
 #define RF_MAX_CHANNEL_COUNT 12
 
 // "RealFlight Ranch" is located in Sierra Nevada, southern Spain
@@ -67,17 +68,14 @@
 static uint8_t pwmMapping[RF_MAX_PWM_OUTS];
 static uint8_t mappingCount;
 
-static pthread_cond_t sockcond1 = PTHREAD_COND_INITIALIZER;
-static pthread_cond_t sockcond2 = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t sockmtx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t initMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t initCond = PTHREAD_COND_INITIALIZER;
+static atomic_bool shouldStopSoapThread = false;
 
-static soap_client_t *client = NULL;
-static soap_client_t *clientNext = NULL;
+static soap_client_t client;
+static pthread_t soapThread = 0;
 
-static pthread_t soapThread;
-static pthread_t creationThread;
-
-static bool isInitalised = false;
+static atomic_bool isInitalised = false;
 static bool useImu = false;
 
 typedef struct 
@@ -133,38 +131,6 @@ typedef struct
 
 rfValues_t rfValues; 
 
-static void deleteClient(soap_client_t *client)
-{
-    soapClientClose(client);
-    free(client);
-    client = NULL;
-}
-
-static void startRequest(char* action, const char* fmt, ...)
-{
-    pthread_mutex_lock(&sockmtx);
-    while (clientNext == NULL) {
-        pthread_cond_wait(&sockcond1, &sockmtx);
-    }
-
-    client = clientNext;
-    clientNext = NULL;
-
-    pthread_cond_broadcast(&sockcond2);
-    pthread_mutex_unlock(&sockmtx);
-
-    va_list va;
-    va_start(va, fmt);
-    soapClientSendRequestVa(client, action, fmt, va);
-    va_end(va);
-}
-
-static char* endRequest(void)
-{
-   char* ret = soapClientReceive(client); 
-   deleteClient(client);
-   return ret;   
-}
 
 // Simple, but fast ;)
 static double getDoubleFromResponse(const char* response, const char* elementName)
@@ -261,6 +227,7 @@ static float convertAzimuth(float azimuth)
     return 360 - fmodf(azimuth + 90, 360.0f);
 }
 
+
 static void exchangeData(void)
 {
     double servoValues[RF_MAX_PWM_OUTS] = {  };    
@@ -272,14 +239,32 @@ static void exchangeData(void)
         }
     }
 
-    startRequest("ExchangeData", "<ExchangeData><pControlInputs><m-selectedChannels>%u</m-selectedChannels>"
-        "<m-channelValues-0to1><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item>"
-        "<item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item></m-channelValues-0to1></pControlInputs></ExchangeData>",
-        0xFFF, 
-        servoValues[0], servoValues[1], servoValues[2], servoValues[3], servoValues[4], servoValues[5], servoValues[6], servoValues[7],
-        servoValues[8], servoValues[9], servoValues[10], servoValues[11]);
-    char* response = endRequest();
+    char requestBody[1024] = "<ExchangeData><pControlInputs><m-selectedChannels>4095</m-selectedChannels><m-channelValues-0to1>";
+    
+    for (int i = 0; i < RF_MAX_CHANNEL_COUNT; i++) {
+        char value[32];
+        snprintf(value, sizeof(value), "<item>%.4f</item>", servoValues[i]);
+        strncat(requestBody, value, sizeof(requestBody) - strlen(requestBody) - 1);
+    }
+    strncat(requestBody, "</m-channelValues-0to1></pControlInputs></ExchangeData>", sizeof(requestBody) - strlen(requestBody) - 1);
 
+    char *response = NULL;
+    int http_status = 0; 
+
+    int ret = soap_client_call_raw_body(
+        &client,
+        "ExchangeData",
+        requestBody,
+        &response,
+        &http_status
+    );
+    
+    if (ret < 0 || http_status != 200 || !response) {
+        fprintf(stderr, "[SIM] Data exchange with RealFlight failed.\n");
+        free(response);
+        return;
+    }
+  
     //rfValues.m_currentPhysicsTime_SEC = getDoubleFromResponse(response, "m-currentPhysicsTime-SEC");
     //rfValues.m_currentPhysicsSpeedMultiplier = getDoubleFromResponse(response, "m-currentPhysicsSpeedMultiplier");
     rfValues.m_airspeed_MPS = getDoubleFromResponse(response, "m-airspeed-MPS");
@@ -410,50 +395,70 @@ static void exchangeData(void)
     free(response);
 }
 
+static bool restoreOriginalControllerDevice(void)
+{
+    char* response = NULL;
+    int http_status = 0;
+    const int ret = soap_client_call_raw_body(
+        &client,
+        "RestoreOriginalControllerDevice",
+        "<RestoreOriginalControllerDevice><a>1</a><b>2</b></RestoreOriginalControllerDevice>",
+        &response,
+        &http_status
+    );
+
+    if (ret < 0 || (http_status != 200 && http_status != 500) || !response) {
+        free(response);
+        return false;
+    }
+
+    free(response);
+    return true;
+}
+
 static void* soapWorker(void* arg)
 {
     UNUSED(arg);
-    while(true)
-    {     
-        if (!isInitalised) {
-            startRequest("RestoreOriginalControllerDevice", "<RestoreOriginalControllerDevice><a>1</a><b>2</b></RestoreOriginalControllerDevice>");
-            free(endRequest());
-            startRequest("InjectUAVControllerInterface", "<InjectUAVControllerInterface><a>1</a><b>2</b></InjectUAVControllerInterface>");
-            free(endRequest());  
-            exchangeData();
-            ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
+    while(!atomic_load(&shouldStopSoapThread)) {
+
+        if (!atomic_load(&isInitalised)) {
+            // Initialize RealFlight
+
+            // Alway try to restore the original controller device first to avoid problems with broken connections and the interface being stuck in a half-initialised state. 
+            // RealFlight seems to not properly close the connection on its side if the connection is interrupted, but only after a timeout of about 30 seconds. 
+            // During this time the interface is not usable, but without this step it would be stuck in an unusable state until the next restart of the SITL.
+            if (!restoreOriginalControllerDevice()) {
+                delay(1000);
+                continue;
+            }
+
+            char* response = NULL;
+            int http_status = 0;
+            const int ret = soap_client_call_raw_body(
+                &client,
+                "InjectUAVControllerInterface",
+                "<InjectUAVControllerInterface><a>1</a><b>2</b></InjectUAVControllerInterface>",
+                &response,
+                &http_status
+            );
+
+            if (ret < 0 || http_status != 200 || !response) {
+                free(response);
+                delay(1000);
+                continue; 
+            }
             
-            isInitalised = true;  
+            exchangeData(); // Get initial data and set initial state in RealFlight
+            
+            ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
+            atomic_store(&isInitalised, true);
+            pthread_mutex_lock(&initMutex);
+            pthread_cond_signal(&initCond);
+            pthread_mutex_unlock(&initMutex);
         }
 
         exchangeData();
         unlockMainPID();
-    }
-
-    return NULL;
-}
-
-
-static void* creationWorker(void* arg)
-{
-    char* ip = (char*)arg;
-    
-    while (true) {
-        pthread_mutex_lock(&sockmtx);
-        while (clientNext != NULL) {
-            pthread_cond_wait(&sockcond2, &sockmtx);
-        }
-        pthread_mutex_unlock(&sockmtx);
-        
-        soap_client_t *cli = malloc(sizeof(soap_client_t));
-        if (!soapClientConnect(cli, ip, RF_PORT)) {
-            continue;
-        }
-        
-        clientNext = cli;
-        pthread_mutex_lock(&sockmtx);
-        pthread_cond_broadcast(&sockcond1);
-        pthread_mutex_unlock(&sockmtx);
     }
 
     return NULL;
@@ -465,19 +470,46 @@ bool simRealFlightInit(char* ip, uint8_t* mapping, uint8_t mapCount, bool imu)
     mappingCount = mapCount;
     useImu = imu;
 
-    if (pthread_create(&soapThread, NULL, soapWorker, NULL) < 0) {
+    if (soap_client_init(&client, ip, RF_PORT, "/", 1000) < 0) {
         return false;
     }
 
-    if (pthread_create(&creationThread, NULL, creationWorker, (void*)ip) < 0) {
+    atomic_store(&isInitalised, false);
+    atomic_store(&shouldStopSoapThread, false);
+    if (pthread_create(&soapThread, NULL, soapWorker, &client) < 0) {
         return false;
     }
 
     // Wait until the connection is established, the interface has been initialised 
-    // and the first valid packet has been received to avoid problems with the startup calibration.   
-    while (!isInitalised) {
-        delay(250);
+    // and the first valid packet has been received to avoid problems with the startup calibration.
+    pthread_mutex_lock(&initMutex);
+    while (!atomic_load(&isInitalised)) {
+        pthread_cond_wait(&initCond, &initMutex);
     }
+    pthread_mutex_unlock(&initMutex);
 
     return true;
+}
+
+void simRealFlightClose(void)
+{   
+    atomic_store(&shouldStopSoapThread, true);
+    if (soapThread) {
+        pthread_join(soapThread, NULL);
+    }
+
+    if (atomic_load(&isInitalised)) {
+
+        if (!restoreOriginalControllerDevice( )) {
+            fprintf(stderr, "[SIM] Failed to restore original controller device in RealFlight.\n");
+        } else {
+            fprintf(stderr, "[SIM] Restored original controller device in RealFlight.\n");
+        }
+    }
+
+    DISABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
+    atomic_store(&isInitalised, false);
+    pthread_mutex_destroy(&initMutex);
+    pthread_cond_destroy(&initCond);
+    soap_client_destroy(&client);
 }

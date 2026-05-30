@@ -127,6 +127,7 @@ static const modeColorIndexes_t defaultModeColors[] = {
     [LED_MODE_ANGLE]       = {{ COLOR_CYAN,       COLOR_DARK_VIOLET, COLOR_YELLOW,    COLOR_DEEP_PINK, COLOR_BLUE, COLOR_ORANGE }},
     [LED_MODE_MAG]         = {{ COLOR_MINT_GREEN, COLOR_DARK_VIOLET, COLOR_ORANGE,    COLOR_DEEP_PINK, COLOR_BLUE, COLOR_ORANGE }},
     [LED_MODE_BARO]        = {{ COLOR_LIGHT_BLUE, COLOR_DARK_VIOLET, COLOR_RED,       COLOR_DEEP_PINK, COLOR_BLUE, COLOR_ORANGE }},
+    [LED_MODE_LOITER]      = {{ COLOR_YELLOW,     COLOR_DARK_VIOLET, COLOR_RED,       COLOR_DEEP_PINK, COLOR_BLUE, COLOR_ORANGE }},
 };
 
 static const specialColorIndexes_t defaultSpecialColors[] = {
@@ -423,6 +424,7 @@ static const struct {
     uint8_t ledMode;
 } flightModeToLed[] = {
     {HEADFREE_MODE, LED_MODE_HEADFREE},
+    {NAV_POSHOLD_MODE, LED_MODE_LOITER},
     {HEADING_MODE,  LED_MODE_MAG},
 #ifdef USE_BARO
     {NAV_ALTHOLD_MODE, LED_MODE_BARO},

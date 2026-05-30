@@ -35,6 +35,8 @@
 #define MSP2_INAV_TIMER_OUTPUT_MODE             0x200E
 #define MSP2_INAV_SET_TIMER_OUTPUT_MODE         0x200F
 #define MSP2_INAV_OUTPUT_MAPPING_EXT2           0x210D
+#define MSP2_INAV_OUTPUT_ASSIGNMENT             0x210E  // Read finalized post-boot output assignments
+#define MSP2_INAV_QUERY_OUTPUT_ASSIGNMENT       0x210F  // Preview assignments for proposed timer overrides
 
 #define MSP2_INAV_MIXER                         0x2010
 #define MSP2_INAV_SET_MIXER                     0x2011
@@ -111,10 +113,14 @@
 #define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
 
 #define MSP2_ADSB_VEHICLE_LIST                  0x2090
+#define MSP2_ADSB_LIMITS                        0x2091
+#define MSP2_ADSB_WARNING_VEHICLE_ICAO          0x2092
 
 #define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
 #define MSP2_INAV_CUSTOM_OSD_ELEMENT            0x2101
 #define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2102
+
+#define MSP2_INAV_GET_LINK_STATS                0x2103
 
 #define MSP2_INAV_SERVO_CONFIG                  0x2200
 #define MSP2_INAV_SET_SERVO_CONFIG              0x2201
@@ -125,4 +131,17 @@
 #define MSP2_INAV_SET_GEOZONE_VERTEX            0x2213
 #define MSP2_INAV_SET_GVAR                      0x2214
 
+#define MSP2_INAV_SET_ALT_TARGET                0x2215
+#define MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE    0x2216
+#define MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE     0x2217
+#define MSP2_INAV_SET_LOCAL_TARGET              0x2218
+#define MSP2_INAV_LOCAL_TARGET                  0x2219
+#define MSP2_INAV_SET_GLOBAL_TARGET             0x221A
+#define MSP2_INAV_NAV_TARGET                    0x221B
+
 #define MSP2_INAV_FULL_LOCAL_POSE               0x2220
+
+#define MSP2_INAV_SET_WP_INDEX                  0x2221  //in message  jump to waypoint N during active WP mission; payload: U8 wp_index (0-based, relative to mission start)
+#define MSP2_INAV_SET_CRUISE_HEADING            0x2223  //in message  set heading while in Cruise/Course Hold mode; payload: I32 heading_centidegrees (0-35999)
+
+#define MSP2_INAV_SET_AUX_RC                    0x2230

@@ -1,0 +1,2 @@
+# Empty custom commands generated dependencies file for MATEKF411TE.bin.
+# This may be replaced when dependencies are built.
