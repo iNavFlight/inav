@@ -89,30 +89,30 @@ static struct {
 static float getHeightAmslMeters(const gpsLocation_t *loc)
 {
     if(isTerrainIoFailure()){
-        return TERRAIN_STATUS_FAILURE;
+        return TERRAIN_STATUS_NO_DATA;
     }
 
     gridInfo_t info;
     calculateGridInfo(loc, &info);
 
     if (info.idx_x > TERRAIN_GRID_BLOCK_SIZE_X - 2) {
-        return TERRAIN_STATUS_WRONG_BLOC_SIZE;
+        return TERRAIN_STATUS_NO_DATA;
     }
     if (info.idx_y > TERRAIN_GRID_BLOCK_SIZE_Y - 2) {
-        return TERRAIN_STATUS_WRONG_BLOC_SIZE;
+        return TERRAIN_STATUS_NO_DATA;
     }
 
     // find the grid
     gridCache_t *cache = findGridCache(&info);
     if(cache == NULL){
-        return TERRAIN_STATUS_CACHE_FULL;
+        return TERRAIN_STATUS_NO_DATA;
     }
     gridBlock_t *grid = &cache->gridBlock;
 
     // check we have all 4 required heights; it's check if grid is loaded from SD card
     if (!checkBitmap(grid, info.idx_x,   info.idx_y) || !checkBitmap(grid, info.idx_x, info.idx_y + 1) || !checkBitmap(grid, info.idx_x + 1, info.idx_y) || !checkBitmap(grid, info.idx_x + 1, info.idx_y + 1)) {
         markGridBlockNeedRead(grid);
-        return TERRAIN_STATUS_WRONG_BITMAP;
+        return TERRAIN_STATUS_NO_DATA;
     }
 
     // hXY are the heights of the 4 surrounding grid points
@@ -169,7 +169,7 @@ void terrainUpdateTask(timeUs_t currentTimeUs)
 
         float heightASLHome = getHeightAmslMeters(&homeLoc);
 
-        if(heightASLHome >= 0){
+        if(heightASLHome != TERRAIN_STATUS_NO_DATA){
             terrainHomePos.homeAltitudeFound = true;
             terrainHomePos.homeAltitudeM = heightASLHome;
             terrainHomePos.homeLocation.lat = posControl.gpsOrigin.lat;
@@ -183,7 +183,7 @@ void terrainUpdateTask(timeUs_t currentTimeUs)
     if(terrainHomePos.homeAltitudeFound)
     {
         float heightASL = getHeightAmslMeters(&gpsSol.llh);
-        if(heightASL >= 0){
+        if(heightASL != TERRAIN_STATUS_NO_DATA){
             terrainHeight.terrainAMSL = (int32_t)(heightASL * 100.0f);
             terrainHeight.terrainAGL =  MAX(0, ((int32_t)getEstimatedActualPosition(Z) + (int32_t)(terrainHomePos.homeAltitudeM * 100.0f)) - terrainHeight.terrainAMSL);
             terrainHeight.lastUpdate = millis();

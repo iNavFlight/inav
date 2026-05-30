@@ -521,8 +521,8 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
 #endif
 #ifdef USE_TERRAIN
-    {"terrainAGL",                -1, UNSIGNED, PREDICT(0),             ENCODING(SIGNED_VB)},
-    {"terrainAMSL",               -1, UNSIGNED, PREDICT(0),             ENCODING(SIGNED_VB)},
+    {"terrainAGL",                -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
+    {"terrainAMSL",               -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
 #endif
 };
 

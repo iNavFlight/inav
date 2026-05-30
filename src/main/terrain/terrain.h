@@ -32,12 +32,11 @@
 #define TERRAIN_TASK_RATE_HZ 5
 #define TERRAIN_NO_DATA_DELAY_MS 1000
 
-#define TERRAIN_STATUS_FAILURE (-1)
-#define TERRAIN_STATUS_WRONG_BLOC_SIZE (-2)
-#define TERRAIN_STATUS_WRONG_BITMAP (-3)
-#define TERRAIN_STATUS_NO_DATA (-4)
-#define TERRAIN_STATUS_NO_CARD (-5)
-#define TERRAIN_STATUS_CACHE_FULL (-6)
+// Sentinel returned by the terrain getters when no valid height/distance is
+// available. It must lie outside the range of any real altitude or distance:
+// terrain can legitimately be negative (below sea level), so INT32_MIN is used
+// to guarantee it never collides with valid data.
+#define TERRAIN_STATUS_NO_DATA (INT32_MIN)
 
 // MAVLink sends 4x4 grids
 #define TERRAIN_GRID_MAVLINK_SIZE 4

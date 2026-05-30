@@ -397,12 +397,11 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
     /////// CLOSING BLOCK DATA /////////////////////////////////////////////
     // wait to call callback terrainIoClosedFileCallback
     if(terrainIoState.status == TERRAIN_IO_CLOSE){
-        terrainIoState.status = TERRAIN_IO_CLOSE_PENDING;
-
         if(terrainIoState.datFile == NULL) {
             resetStateMachine();
+            return;
         }
-
+        terrainIoState.status = TERRAIN_IO_CLOSE_PENDING;
         if(!afatfs_fclose(terrainIoState.datFile, terrainIoClosedFileCallback)){
             resetStateMachine();
         }
