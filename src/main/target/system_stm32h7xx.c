@@ -500,10 +500,7 @@ void SystemClock_Config(void)
 #ifdef USE_SDCARD_SDIO
     // PLL2M = HSE_VALUE / 1600000 pins the VCO input to exactly 1.6 MHz for any HSE.
     // With N=500 this gives VCO=800 MHz: PLL2R/4=200 MHz (SDMMC), PLL2P/2=400 MHz.
-    // For 8 MHz HSE (M=5, N=500) this is identical to the original hardcoded values —
-    // only KAKUTEH7WING (16 MHz HSE, M=10) is different from the original broken state.
-    // HSE_VALUE must be a multiple of 1600000; all current H7 targets (8 MHz, 16 MHz) satisfy this.
-    STATIC_ASSERT(HSE_VALUE % 1600000 == 0, HSE_VALUE_must_be_a_multiple_of_1_6MHz_for_PLL2M_calculation);
+    STATIC_ASSERT(HSE_VALUE % 1600000 == 0, HSE_not_a_multiple_of_1600000);
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SDMMC;
     RCC_PeriphClkInit.PLL2.PLL2M = HSE_VALUE / 1600000;
     RCC_PeriphClkInit.PLL2.PLL2N = 500;
