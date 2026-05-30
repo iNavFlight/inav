@@ -498,10 +498,16 @@ void SystemClock_Config(void)
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
 
 #ifdef USE_SDCARD_SDIO
+    // PLL2M = HSE_VALUE / 1600000 pins the VCO input to exactly 1.6 MHz for any HSE.
+    // With N=500 this gives VCO=800 MHz: PLL2R/4=200 MHz (SDMMC), PLL2P/2=400 MHz.
+    // For 8 MHz HSE (M=5, N=500) this is identical to the original hardcoded values —
+    // only KAKUTEH7WING (16 MHz HSE, M=10) is different from the original broken state.
+    // HSE_VALUE must be a multiple of 1600000; all current H7 targets (8 MHz, 16 MHz) satisfy this.
+    STATIC_ASSERT(HSE_VALUE % 1600000 == 0, HSE_VALUE_must_be_a_multiple_of_1_6MHz_for_PLL2M_calculation);
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SDMMC;
-    RCC_PeriphClkInit.PLL2.PLL2M = 5;
+    RCC_PeriphClkInit.PLL2.PLL2M = HSE_VALUE / 1600000;
     RCC_PeriphClkInit.PLL2.PLL2N = 500;
-    RCC_PeriphClkInit.PLL2.PLL2P = 2; // 500Mhz
+    RCC_PeriphClkInit.PLL2.PLL2P = 2; // 400Mhz
     RCC_PeriphClkInit.PLL2.PLL2Q = 3; // 266Mhz - 133Mhz can be derived from this for for QSPI if flash chip supports the speed.
     RCC_PeriphClkInit.PLL2.PLL2R = 4; // 200Mhz HAL LIBS REQUIRE 200MHZ SDMMC CLOCK, see HAL_SD_ConfigWideBusOperation, SDMMC_HSpeed_CLK_DIV, SDMMC_NSpeed_CLK_DIV
     RCC_PeriphClkInit.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_0;
