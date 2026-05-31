@@ -1,13 +1,13 @@
 # Board - FLYINGRCF4WINGMINI
 
-This is a budget-friendly flight controller, typically sold in the US$16-40 range. As with many entry-level boards, component tolerances and quality control may vary compared with higher-cost hardware, so users should test critical functions carefully before flying. The board has been advertised as INAV-compatible, but it was not originally submitted through the official INAV target process; current support exists thanks to community work, especially the contribution from dixi83.
+This is a budget-friendly flight controller. Component tolerances and quality control may vary compared with higher-cost hardware, so users should test critical functions carefully before flying. The board has been advertised as INAV-compatible, but it was not originally submitted through the official INAV target process; current support exists thanks to community work, especially the contribution from dixi83.
 
-FlyingRC is a small hardware vendor focused on affordable flight-controller and RC electronics products. More information about their work and open-source activity is available on their GitHub page: https://github.com/FlyingRC-Official
+The manufaturer, FlyingRC, now has a GitHub available: https://github.com/FlyingRC-Official
 
 Hardware issues have been reported on these flight controllers. They are also missing many features. Unlike most other _wing_ flight controllers, this is not an all-in-one solution. It requires an external power source for servos, so is not as small or light as it first appears.
 
 > [!WARNING]
-> We recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware is far from guaranteed. So fitting to a larger, heavier aircraft adds unnecessary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only, if used at all.
+> We recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware is far from guaranteed. So fitting to a larger, heavier aircraft adds unnecessary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only.
 >
 > Also, if you choose to buy one of these, compare pricing carefully. At around US$40 there are more capable flight controllers available.
 
@@ -40,5 +40,3 @@ Hardware issues have been reported on these flight controllers. They are also mi
 * Additional ADCs (airspeed sensor, RSSI, etc)
 * On-board power rail for servos
 * Filtered power for video
-
-Most of the above can be found on the Matek F405-WMO. Which is a $45US flight controller. Which is 32 x 22 x 12.7 mm and 9g, and has a definite input voltage range of 2S to 6S, and able to handle up to 132A.
