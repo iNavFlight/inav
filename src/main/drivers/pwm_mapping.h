@@ -18,8 +18,6 @@
 #pragma once
 
 #include "drivers/io_types.h"
-#include "drivers/timer.h"
-#include "drivers/pwm_output.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
 #include "flight/servos.h"
@@ -57,8 +55,7 @@ typedef enum {
 
 typedef enum {
     PIN_LABEL_NONE = 0,
-    PIN_LABEL_LED,
-    PIN_LABEL_PINIO_BASE = 2    // values 2..5 = USER1..USER4 (add channel index 0-3)
+    PIN_LABEL_LED
 } pinLabel_e;
 
 typedef enum {
@@ -80,26 +77,7 @@ typedef struct {
     bool isDSHOT;
 } motorProtocolProperties_t;
 
-#ifndef SITL_BUILD
-typedef struct {
-    int maxTimMotorCount;
-    int maxTimServoCount;
-    const timerHardware_t * timMotors[MAX_PWM_OUTPUTS];
-    const timerHardware_t * timServos[MAX_PWM_OUTPUTS];
-} timMotorServoHardware_t;
-
-// Output assignment types for MSP2_INAV_OUTPUT_ASSIGNMENT response
-// LED outputs are not reported here; they are already identified by TIM_USE_LED
-// in the MSP2_INAV_OUTPUT_MAPPING_EXT2 usageFlags response.
-#define OUTPUT_ASSIGNMENT_TYPE_MOTOR 1
-#define OUTPUT_ASSIGNMENT_TYPE_SERVO 2
-#endif // SITL_BUILD
-
 bool pwmMotorAndServoInit(void);
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 pwmInitError_e getPwmInitError(void);
 const char * getPwmInitErrorMessage(void);
-#ifndef SITL_BUILD
-const timMotorServoHardware_t *pwmGetOutputAssignment(void);
-void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *proposedModes);
-#endif // SITL_BUILD

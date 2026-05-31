@@ -2,6 +2,8 @@
   ******************************************************************************
   * @file    stm32f7xx_hal_dma.c
   * @author  MCD Application Team
+  * @version V1.2.2
+  * @date    14-April-2017
   * @brief   DMA HAL module driver.
   *    
   *          This file provides firmware functions to manage the following 
@@ -41,8 +43,7 @@
      ===================================
     [..]
           (+) Configure the DMA interrupt priority using HAL_NVIC_SetPriority()
-          (+) Enable the DMA IRQ handler using HAL_NVIC_EnableIRQ()
-          (+) Select Callbacks functions using HAL_DMA_RegisterCallback()
+          (+) Enable the DMA IRQ handler using HAL_NVIC_EnableIRQ() 
           (+) Use HAL_DMA_Start_IT() to start DMA transfer after the configuration of  
               Source address and destination address and the Length of data to be transferred. In this 
               case the DMA interrupt is configured 
@@ -84,12 +85,29 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.
+  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
   *
-  * This software is licensed under terms that can be found in the LICENSE file in
-  * the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * Redistribution and use in source and binary forms, with or without modification,
+  * are permitted provided that the following conditions are met:
+  *   1. Redistributions of source code must retain the above copyright notice,
+  *      this list of conditions and the following disclaimer.
+  *   2. Redistributions in binary form must reproduce the above copyright notice,
+  *      this list of conditions and the following disclaimer in the documentation
+  *      and/or other materials provided with the distribution.
+  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+  *      may be used to endorse or promote products derived from this software
+  *      without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
   */ 
@@ -164,7 +182,7 @@ static HAL_StatusTypeDef DMA_CheckFifoParam(DMA_HandleTypeDef *hdma);
 /**
   * @brief  Initialize the DMA according to the specified
   *         parameters in the DMA_InitTypeDef and create the associated handle.
-  * @param  hdma Pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma: Pointer to a DMA_HandleTypeDef structure that contains
   *               the configuration information for the specified DMA Stream.  
   * @retval HAL status
   */
@@ -200,12 +218,11 @@ HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef *hdma)
     assert_param(IS_DMA_PERIPHERAL_BURST(hdma->Init.PeriphBurst));
   }
   
-  /* Change DMA peripheral state */
-  hdma->State = HAL_DMA_STATE_BUSY;
-  
   /* Allocate lock resource */
   __HAL_UNLOCK(hdma);
 
+  /* Change DMA peripheral state */
+  hdma->State = HAL_DMA_STATE_BUSY;
   
   /* Disable the peripheral */
   __HAL_DMA_DISABLE(hdma);
@@ -276,7 +293,7 @@ HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef *hdma)
         hdma->ErrorCode = HAL_DMA_ERROR_PARAM;
         
         /* Change the DMA state */
-        hdma->State = HAL_DMA_STATE_RESET;
+        hdma->State = HAL_DMA_STATE_READY;
         
         return HAL_ERROR; 
       }
@@ -304,7 +321,7 @@ HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  DeInitializes the DMA peripheral 
-  * @param  hdma pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma: pointer to a DMA_HandleTypeDef structure that contains
   *               the configuration information for the specified DMA Stream.  
   * @retval HAL status
   */
@@ -354,19 +371,11 @@ HAL_StatusTypeDef HAL_DMA_DeInit(DMA_HandleTypeDef *hdma)
   
   /* Clear all interrupt flags at correct offset within the register */
   regs->IFCR = 0x3FU << hdma->StreamIndex;
-  
-  /* Clean all callbacks */
-  hdma->XferCpltCallback = NULL;
-  hdma->XferHalfCpltCallback = NULL;
-  hdma->XferM1CpltCallback = NULL;
-  hdma->XferM1HalfCpltCallback = NULL;
-  hdma->XferErrorCallback = NULL;
-  hdma->XferAbortCallback = NULL;  
 
-  /* Reset the error code */
+  /* Initialize the error code */
   hdma->ErrorCode = HAL_DMA_ERROR_NONE;
 
-  /* Reset the DMA state */
+  /* Initialize the DMA state */
   hdma->State = HAL_DMA_STATE_RESET;
 
   /* Release Lock */
@@ -399,11 +408,11 @@ HAL_StatusTypeDef HAL_DMA_DeInit(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  Starts the DMA Transfer.
-  * @param  hdma       pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma      : pointer to a DMA_HandleTypeDef structure that contains
   *                     the configuration information for the specified DMA Stream.
-  * @param  SrcAddress The source memory Buffer address
-  * @param  DstAddress The destination memory Buffer address
-  * @param  DataLength The length of data to be transferred from source to destination
+  * @param  SrcAddress: The source memory Buffer address
+  * @param  DstAddress: The destination memory Buffer address
+  * @param  DataLength: The length of data to be transferred from source to destination
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_DMA_Start(DMA_HandleTypeDef *hdma, uint32_t SrcAddress, uint32_t DstAddress, uint32_t DataLength)
@@ -443,11 +452,11 @@ HAL_StatusTypeDef HAL_DMA_Start(DMA_HandleTypeDef *hdma, uint32_t SrcAddress, ui
 
 /**
   * @brief  Start the DMA Transfer with interrupt enabled.
-  * @param  hdma       pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma:       pointer to a DMA_HandleTypeDef structure that contains
   *                     the configuration information for the specified DMA Stream.  
-  * @param  SrcAddress The source memory Buffer address
-  * @param  DstAddress The destination memory Buffer address
-  * @param  DataLength The length of data to be transferred from source to destination
+  * @param  SrcAddress: The source memory Buffer address
+  * @param  DstAddress: The destination memory Buffer address
+  * @param  DataLength: The length of data to be transferred from source to destination
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_DMA_Start_IT(DMA_HandleTypeDef *hdma, uint32_t SrcAddress, uint32_t DstAddress, uint32_t DataLength)
@@ -479,6 +488,7 @@ HAL_StatusTypeDef HAL_DMA_Start_IT(DMA_HandleTypeDef *hdma, uint32_t SrcAddress,
     
     /* Enable Common interrupts*/
     hdma->Instance->CR  |= DMA_IT_TC | DMA_IT_TE | DMA_IT_DME;
+    hdma->Instance->FCR |= DMA_IT_FE;
     
     if(hdma->XferHalfCpltCallback != NULL)
     {
@@ -502,7 +512,7 @@ HAL_StatusTypeDef HAL_DMA_Start_IT(DMA_HandleTypeDef *hdma, uint32_t SrcAddress,
 
 /**
   * @brief  Aborts the DMA Transfer.
-  * @param  hdma   pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma  : pointer to a DMA_HandleTypeDef structure that contains
   *                 the configuration information for the specified DMA Stream.
   *                   
   * @note  After disabling a DMA Stream, a check for wait until the DMA Stream is 
@@ -551,12 +561,12 @@ HAL_StatusTypeDef HAL_DMA_Abort(DMA_HandleTypeDef *hdma)
         /* Update error code */
         hdma->ErrorCode = HAL_DMA_ERROR_TIMEOUT;
         
+        /* Process Unlocked */
+        __HAL_UNLOCK(hdma);
+        
         /* Change the DMA state */
         hdma->State = HAL_DMA_STATE_TIMEOUT;
         
-        /* Process Unlocked */
-        __HAL_UNLOCK(hdma);
-
         return HAL_TIMEOUT;
       }
     }
@@ -564,19 +574,18 @@ HAL_StatusTypeDef HAL_DMA_Abort(DMA_HandleTypeDef *hdma)
     /* Clear all interrupt flags at correct offset within the register */
     regs->IFCR = 0x3FU << hdma->StreamIndex;
     
-    /* Change the DMA state*/
-    hdma->State = HAL_DMA_STATE_READY;
-    
     /* Process Unlocked */
     __HAL_UNLOCK(hdma);
     
+    /* Change the DMA state*/
+    hdma->State = HAL_DMA_STATE_READY;
   }
   return HAL_OK;
 }
 
 /**
   * @brief  Aborts the DMA Transfer in Interrupt mode.
-  * @param  hdma   pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma  : pointer to a DMA_HandleTypeDef structure that contains
   *                 the configuration information for the specified DMA Stream.
   * @retval HAL status
   */
@@ -601,13 +610,13 @@ HAL_StatusTypeDef HAL_DMA_Abort_IT(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  Polling for transfer complete.
-  * @param  hdma          pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma:          pointer to a DMA_HandleTypeDef structure that contains
   *                        the configuration information for the specified DMA Stream.
-  * @param  CompleteLevel Specifies the DMA level complete.
-  * @note   The polling mode is kept in this version for legacy. it is recommended to use the IT model instead.
+  * @param  CompleteLevel: Specifies the DMA level complete.
+  * @note   The polling mode is kept in this version for legacy. it is recommanded to use the IT model instead.
   *         This model could be used for debug purpose.
   * @note   The HAL_DMA_PollForTransfer API cannot be used in circular and double buffering mode (automatic circular mode). 
-  * @param  Timeout       Timeout duration.
+  * @param  Timeout:       Timeout duration.
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_DMA_PollForTransfer(DMA_HandleTypeDef *hdma, HAL_DMA_LevelCompleteTypeDef CompleteLevel, uint32_t Timeout)
@@ -659,13 +668,13 @@ HAL_StatusTypeDef HAL_DMA_PollForTransfer(DMA_HandleTypeDef *hdma, HAL_DMA_Level
       {
         /* Update error code */
         hdma->ErrorCode = HAL_DMA_ERROR_TIMEOUT;
-        
-        /* Change the DMA state */
-        hdma->State = HAL_DMA_STATE_READY;
 
         /* Process Unlocked */
         __HAL_UNLOCK(hdma);
-
+        
+        /* Change the DMA state */
+        hdma->State = HAL_DMA_STATE_READY;
+        
         return HAL_TIMEOUT;
       }
     }
@@ -705,16 +714,16 @@ HAL_StatusTypeDef HAL_DMA_PollForTransfer(DMA_HandleTypeDef *hdma, HAL_DMA_Level
   {
     if((hdma->ErrorCode & HAL_DMA_ERROR_TE) != RESET)
     {
-      (void)HAL_DMA_Abort(hdma);
+      HAL_DMA_Abort(hdma);
     
       /* Clear the half transfer and transfer complete flags */
       regs->IFCR = (DMA_FLAG_HTIF0_4 | DMA_FLAG_TCIF0_4) << hdma->StreamIndex;
     
-      /* Change the DMA state */
-      hdma->State= HAL_DMA_STATE_READY;
-
       /* Process Unlocked */
       __HAL_UNLOCK(hdma);
+
+      /* Change the DMA state */
+      hdma->State= HAL_DMA_STATE_READY;
 
       return HAL_ERROR;
    }
@@ -726,15 +735,14 @@ HAL_StatusTypeDef HAL_DMA_PollForTransfer(DMA_HandleTypeDef *hdma, HAL_DMA_Level
     /* Clear the half transfer and transfer complete flags */
     regs->IFCR = (DMA_FLAG_HTIF0_4 | DMA_FLAG_TCIF0_4) << hdma->StreamIndex;
     
-    hdma->State = HAL_DMA_STATE_READY;
-
     /* Process Unlocked */
     __HAL_UNLOCK(hdma);
 
+    hdma->State = HAL_DMA_STATE_READY;
   }
   else
   {
-    /* Clear the half transfer flag */
+    /* Clear the half transfer and transfer complete flags */
     regs->IFCR = (DMA_FLAG_HTIF0_4) << hdma->StreamIndex;
   }
   
@@ -743,7 +751,7 @@ HAL_StatusTypeDef HAL_DMA_PollForTransfer(DMA_HandleTypeDef *hdma, HAL_DMA_Level
 
 /**
   * @brief  Handles DMA interrupt request.
-  * @param  hdma pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma: pointer to a DMA_HandleTypeDef structure that contains
   *               the configuration information for the specified DMA Stream.  
   * @retval None
   */
@@ -866,11 +874,11 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
         /* Clear all interrupt flags at correct offset within the register */
         regs->IFCR = 0x3FU << hdma->StreamIndex;
 
-        /* Change the DMA state */
-        hdma->State = HAL_DMA_STATE_READY;
-
         /* Process Unlocked */
         __HAL_UNLOCK(hdma);
+
+        /* Change the DMA state */
+        hdma->State = HAL_DMA_STATE_READY;
 
         if(hdma->XferAbortCallback != NULL)
         {
@@ -908,12 +916,11 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
           /* Disable the transfer complete interrupt */
           hdma->Instance->CR  &= ~(DMA_IT_TC);
 
-          /* Change the DMA state */
-          hdma->State = HAL_DMA_STATE_READY;
-
           /* Process Unlocked */
           __HAL_UNLOCK(hdma);
 
+          /* Change the DMA state */
+          hdma->State = HAL_DMA_STATE_READY;
         }
 
         if(hdma->XferCpltCallback != NULL)
@@ -944,12 +951,11 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
       }
       while((hdma->Instance->CR & DMA_SxCR_EN) != RESET);
 
-      /* Change the DMA state */
-      hdma->State = HAL_DMA_STATE_READY;
-
       /* Process Unlocked */
       __HAL_UNLOCK(hdma);
 
+      /* Change the DMA state */
+      hdma->State = HAL_DMA_STATE_READY;
     }
 
     if(hdma->XferErrorCallback != NULL)
@@ -962,11 +968,11 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  Register callbacks
-  * @param  hdma                 pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma:                 pointer to a DMA_HandleTypeDef structure that contains
   *                               the configuration information for the specified DMA Stream.
-  * @param  CallbackID           User Callback identifier
+  * @param  CallbackID:           User Callback identifer
   *                               a DMA_HandleTypeDef structure as parameter.
-  * @param  pCallback            pointer to private callbacsk function which has pointer to 
+  * @param  pCallback:            pointer to private callbacsk function which has pointer to 
   *                               a DMA_HandleTypeDef structure as parameter.
   * @retval HAL status
   */                      
@@ -1007,8 +1013,6 @@ HAL_StatusTypeDef HAL_DMA_RegisterCallback(DMA_HandleTypeDef *hdma, HAL_DMA_Call
       break;
 
     default:
-      /* Return error status */
-      status =  HAL_ERROR;
       break;
     }
   }
@@ -1026,9 +1030,9 @@ HAL_StatusTypeDef HAL_DMA_RegisterCallback(DMA_HandleTypeDef *hdma, HAL_DMA_Call
 
 /**
   * @brief  UnRegister callbacks
-  * @param  hdma                 pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma:                 pointer to a DMA_HandleTypeDef structure that contains
   *                               the configuration information for the specified DMA Stream.
-  * @param  CallbackID           User Callback identifier
+  * @param  CallbackID:           User Callback identifer
   *                               a HAL_DMA_CallbackIDTypeDef ENUM as parameter.
   * @retval HAL status
   */              
@@ -1113,7 +1117,7 @@ HAL_StatusTypeDef HAL_DMA_UnRegisterCallback(DMA_HandleTypeDef *hdma, HAL_DMA_Ca
 
 /**
   * @brief  Returns the DMA state.
-  * @param  hdma pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma: pointer to a DMA_HandleTypeDef structure that contains
   *               the configuration information for the specified DMA Stream.
   * @retval HAL state
   */
@@ -1124,7 +1128,7 @@ HAL_DMA_StateTypeDef HAL_DMA_GetState(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  Return the DMA error code
-  * @param  hdma  pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma : pointer to a DMA_HandleTypeDef structure that contains
   *              the configuration information for the specified DMA Stream.
   * @retval DMA Error Code
   */
@@ -1147,11 +1151,11 @@ uint32_t HAL_DMA_GetError(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  Sets the DMA Transfer parameter.
-  * @param  hdma       pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma:       pointer to a DMA_HandleTypeDef structure that contains
   *                     the configuration information for the specified DMA Stream.
-  * @param  SrcAddress The source memory Buffer address
-  * @param  DstAddress The destination memory Buffer address
-  * @param  DataLength The length of data to be transferred from source to destination
+  * @param  SrcAddress: The source memory Buffer address
+  * @param  DstAddress: The destination memory Buffer address
+  * @param  DataLength: The length of data to be transferred from source to destination
   * @retval HAL status
   */
 static void DMA_SetConfig(DMA_HandleTypeDef *hdma, uint32_t SrcAddress, uint32_t DstAddress, uint32_t DataLength)
@@ -1162,7 +1166,7 @@ static void DMA_SetConfig(DMA_HandleTypeDef *hdma, uint32_t SrcAddress, uint32_t
   /* Configure DMA Stream data length */
   hdma->Instance->NDTR = DataLength;
 
-  /* Memory to Peripheral */
+  /* Peripheral to Memory */
   if((hdma->Init.Direction) == DMA_MEMORY_TO_PERIPH)
   {
     /* Configure DMA Stream destination address */
@@ -1171,7 +1175,7 @@ static void DMA_SetConfig(DMA_HandleTypeDef *hdma, uint32_t SrcAddress, uint32_t
     /* Configure DMA Stream source address */
     hdma->Instance->M0AR = SrcAddress;
   }
-  /* Peripheral to Memory */
+  /* Memory to Peripheral */
   else
   {
     /* Configure DMA Stream source address */
@@ -1184,7 +1188,7 @@ static void DMA_SetConfig(DMA_HandleTypeDef *hdma, uint32_t SrcAddress, uint32_t
 
 /**
   * @brief  Returns the DMA Stream base address depending on stream number
-  * @param  hdma       pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma:       pointer to a DMA_HandleTypeDef structure that contains
   *                     the configuration information for the specified DMA Stream. 
   * @retval Stream base address
   */
@@ -1212,7 +1216,7 @@ static uint32_t DMA_CalcBaseAndBitshift(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  Check compatibility between FIFO threshold level and size of the memory burst
-  * @param  hdma       pointer to a DMA_HandleTypeDef structure that contains
+  * @param  hdma:       pointer to a DMA_HandleTypeDef structure that contains
   *                     the configuration information for the specified DMA Stream. 
   * @retval HAL status
   */
@@ -1309,3 +1313,4 @@ static HAL_StatusTypeDef DMA_CheckFifoParam(DMA_HandleTypeDef *hdma)
   * @}
   */
 
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -24,7 +24,6 @@
 #include <stdint.h>
 
 #include "drivers/io_types.h"
-#include "drivers/timer.h"
 
 #define PINIO_COUNT             4
 #define PINIO_FLAGS_INVERTED    0x80
@@ -40,5 +39,3 @@ extern const int pinioHardwareCount;
 
 void pinioInit(void);
 void pinioSet(int index, bool newState);
-void pinioSetDuty(int index, uint8_t duty);
-int pinioGetRuntimeCount(void);

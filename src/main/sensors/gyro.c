@@ -89,9 +89,6 @@ STATIC_FASTRAM filter_t gyroLpfState[XYZ_AXIS_COUNT];
 STATIC_FASTRAM filterApplyFnPtr gyroLpf2ApplyFn;
 STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
 
-// Cached calibration status to eliminate function call in hot path
-STATIC_FASTRAM bool gyroCalibrationComplete;
-
 STATIC_FASTRAM filterApplyFnPtr gyroLuluApplyFn;
 STATIC_FASTRAM filter_t gyroLuluState[XYZ_AXIS_COUNT];
 
@@ -306,7 +303,6 @@ static void gyroInitFilters(void)
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
-    gyroCalibrationComplete = false;
 
     // Set inertial sensor tag (for dual-gyro selection)
 #ifdef USE_DUAL_GYRO
@@ -366,7 +362,6 @@ void gyroStartCalibration(void)
     }
 #endif
 
-    gyroCalibrationComplete = false;
     zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, false);
 }
 
@@ -407,9 +402,6 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         setGyroCalibration(dev->gyroZero);
 #endif
 
-        // Cache completion status to avoid function call in hot path
-        gyroCalibrationComplete = true;
-
         LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", (int16_t) dev->gyroZero[X], (int16_t) dev->gyroZero[Y], (int16_t) dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     } else {
@@ -439,7 +431,6 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
     if (!gyroConfig()->init_gyro_cal_enabled) {
         // marks that the gyro calibration has ended
         gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE;
-        gyroCalibrationComplete = true;
         // pass the calibration values
         gyroDev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
         gyroDev->gyroZero[Y] = gyroConfig()->gyro_zero_cal[Y];
@@ -447,8 +438,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
     }
 #endif
 
-        // Use cached status to avoid function call in hot path
-        if (gyroCalibrationComplete) {
+        if (zeroCalibrationIsCompleteV(gyroCal)) {
             float gyroADCtmp[XYZ_AXIS_COUNT];
 
             //Apply zero calibration with CMSIS DSP

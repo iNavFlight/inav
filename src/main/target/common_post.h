@@ -131,18 +131,6 @@ extern uint8_t __config_end;
 
 #endif
 
-// CRSF sensor input on a dedicated UART
-#if defined(USE_SERIALRX_CRSF)
-#define USE_CRSF_SENSOR_INPUT
-#define USE_BATTERY_SENSOR_CRSF
-#if defined(USE_GPS)
-#define USE_GPS_PROTO_CRSF
-#endif
-#if defined(USE_BARO)
-#define USE_BARO_CRSF
-#endif
-#endif
-
 #ifdef USE_ESC_SENSOR
     #define USE_RPM_FILTER
 #endif

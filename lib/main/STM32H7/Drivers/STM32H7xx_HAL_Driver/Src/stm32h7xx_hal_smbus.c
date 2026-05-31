@@ -1543,50 +1543,55 @@ HAL_StatusTypeDef HAL_SMBUS_IsDeviceReady(SMBUS_HandleTypeDef *hsmbus, uint16_t 
         /* Wait until STOPF flag is reset */
         if (SMBUS_WaitOnFlagUntilTimeout(hsmbus, SMBUS_FLAG_STOPF, RESET, Timeout) != HAL_OK)
         {
-          /* A non acknowledge appear during STOP Flag waiting process, a new trial must be performed */
-          /* Clear STOP Flag */
-          __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_STOPF);
-
-          /* Reset the error code for next trial */
-          hsmbus->ErrorCode = HAL_SMBUS_ERROR_NONE;
+          return HAL_ERROR;
         }
-        else
-        {
-          /* A acknowledge appear during STOP Flag waiting process, this mean that device respond to its address */
 
-          /* Clear STOP Flag */
-          __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_STOPF);
+        /* Clear STOP Flag */
+        __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_STOPF);
 
-          /* Device is ready */
-          hsmbus->State = HAL_SMBUS_STATE_READY;
+        /* Device is ready */
+        hsmbus->State = HAL_SMBUS_STATE_READY;
 
-          /* Process Unlocked */
-          __HAL_UNLOCK(hsmbus);
+        /* Process Unlocked */
+        __HAL_UNLOCK(hsmbus);
 
-          return HAL_OK;
-        }
+        return HAL_OK;
       }
       else
       {
-        /* A non acknowledge is detected, this mean that device not respond to its address,
-           a new trial must be performed */
+        /* Wait until STOPF flag is reset */
+        if (SMBUS_WaitOnFlagUntilTimeout(hsmbus, SMBUS_FLAG_STOPF, RESET, Timeout) != HAL_OK)
+        {
+          return HAL_ERROR;
+        }
 
         /* Clear NACK Flag */
         __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_AF);
 
+        /* Clear STOP Flag, auto generated with autoend*/
+        __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_STOPF);
+      }
+
+      /* Check if the maximum allowed number of trials has been reached */
+      if (SMBUS_Trials == Trials)
+      {
+        /* Generate Stop */
+        hsmbus->Instance->CR2 |= I2C_CR2_STOP;
+
         /* Wait until STOPF flag is reset */
-        if (SMBUS_WaitOnFlagUntilTimeout(hsmbus, SMBUS_FLAG_STOPF, RESET, Timeout) == HAL_OK)
+        if (SMBUS_WaitOnFlagUntilTimeout(hsmbus, SMBUS_FLAG_STOPF, RESET, Timeout) != HAL_OK)
         {
-          /* Clear STOP Flag, auto generated with autoend*/
-          __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_STOPF);
+          return HAL_ERROR;
         }
+
+        /* Clear STOP Flag */
+        __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_STOPF);
       }
 
       /* Increment Trials */
       SMBUS_Trials++;
     } while (SMBUS_Trials < Trials);
 
-    /* Update SMBUS state */
     hsmbus->State = HAL_SMBUS_STATE_READY;
 
     /* Update SMBUS error code */
@@ -1954,7 +1959,7 @@ static HAL_StatusTypeDef SMBUS_Master_ISR(SMBUS_HandleTypeDef *hsmbus, uint32_t 
         /* Increment Buffer pointer */
         hsmbus->pBuffPtr++;
 
-        if (hsmbus->XferSize > 0U)
+        if ((hsmbus->XferSize > 0U))
         {
           hsmbus->XferSize--;
           hsmbus->XferCount--;
@@ -2382,7 +2387,7 @@ static HAL_StatusTypeDef SMBUS_Slave_ISR(SMBUS_HandleTypeDef *hsmbus, uint32_t S
         /* Increment Buffer pointer */
         hsmbus->pBuffPtr++;
 
-        if (hsmbus->XferSize > 0U)
+        if ((hsmbus->XferSize > 0U))
         {
           hsmbus->XferSize--;
           hsmbus->XferCount--;

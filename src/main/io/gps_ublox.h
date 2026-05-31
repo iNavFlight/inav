@@ -518,8 +518,7 @@ typedef enum {
     MSG_CFG_SBAS = 0x16,
     MSG_CFG_GNSS = 0x3e,
     MSG_MON_GNSS = 0x28,
-    MSG_NAV_SIG = 0x43,
-    MSG_MON_RF = 0x38
+    MSG_NAV_SIG = 0x43
 } ubx_protocol_bytes_t;
 
 typedef enum {
@@ -560,16 +559,6 @@ bool ubloxVersionLT(uint8_t mj, uint8_t mn);
 bool ubloxVersionGT(uint8_t mj, uint8_t mn);
 bool ubloxVersionGTE(uint8_t mj, uint8_t mn);
 bool ubloxVersionE(uint8_t mj, uint8_t mn);
-
-// MON-RF access Noise level
-uint16_t gpsGetMonRfNoisePerMs(void);
-// MON-RF access AGC level as percent of maximum gain
-uint8_t gpsGetMonAGCPercent(void);
-// Called by OSD to enable/disable periodic MON-RF polling when widget is used
-void gpsSetOsdMonRfWidgetEnabled(bool enabled);
-
-// MON-RF access CW Suppression
-uint8_t gpsGetMonRfCWSuppression(void);
 
 #ifdef __cplusplus
 }

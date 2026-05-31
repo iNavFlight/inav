@@ -21,7 +21,6 @@
 #include <time.h>
 
 #include "config/parameter_group.h"
-#include <dronecan_msgs.h>
 
 #include "common/time.h"
 
@@ -36,9 +35,7 @@
 typedef enum {
     GPS_UBLOX = 0,
     GPS_MSP,
-    GPS_CRSF,
     GPS_FAKE,
-    GPS_DRONECAN,
     GPS_PROVIDER_COUNT
 } gpsProvider_e;
 
@@ -174,9 +171,6 @@ bool isGPSHeadingValid(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
 void mspGPSReceiveNewData(const uint8_t * bufferPtr);
-void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix);
-void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssFix2);
-void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliary * pgnssAux);
 
 const char *getGpsHwVersion(void);
 uint8_t getGpsProtoMajorVersion(void);

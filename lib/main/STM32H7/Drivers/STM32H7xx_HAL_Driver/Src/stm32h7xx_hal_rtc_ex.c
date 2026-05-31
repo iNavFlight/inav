@@ -115,9 +115,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#if defined(TAMP)
 #define TAMP_ALL (TAMP_CR1_TAMP1E | TAMP_CR1_TAMP2E | TAMP_CR1_TAMP3E)
-#endif /* TAMP */
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -578,7 +576,6 @@ HAL_StatusTypeDef HAL_RTCEx_SetTamper(RTC_HandleTypeDef * hrtc, const RTC_Tamper
     tmpreg &= (uint32_t)~(sTamper->Tamper << 1U);
   }
 
-#if defined(RTC_TAMPNOERASE_SUPPORT)
   /* Configure the tamper backup registers erasure bit */
   if (sTamper->NoErase != RTC_TAMPER_ERASE_BACKUP_ENABLE)
   {
@@ -610,9 +607,7 @@ HAL_StatusTypeDef HAL_RTCEx_SetTamper(RTC_HandleTypeDef * hrtc, const RTC_Tamper
       tmpreg &= (uint32_t)~(RTC_TAMPCR_TAMP3NOERASE);
     }
   }
-#endif /* RTC_TAMPNOERASE_SUPPORT */
 
-#if defined(RTC_TAMPMASKFLAG_SUPPORT)  
   /* Configure the tamper flags masking bit */
   if (sTamper->MaskFlag != RTC_TAMPERMASK_FLAG_DISABLE)
   {
@@ -644,7 +639,6 @@ HAL_StatusTypeDef HAL_RTCEx_SetTamper(RTC_HandleTypeDef * hrtc, const RTC_Tamper
       tmpreg &= (uint32_t)~(RTC_TAMPCR_TAMP3MF);
     }
   }
-#endif /* RTC_TAMPMASKFLAG_SUPPORT */
 
   /* Clearing remaining fields before setting them */
   tmpreg &= ~(RTC_TAMPERFILTER_MASK            | RTC_TAMPERSAMPLINGFREQ_RTCCLK_MASK | \
@@ -794,7 +788,6 @@ HAL_StatusTypeDef HAL_RTCEx_SetTamper_IT(RTC_HandleTypeDef * hrtc, const RTC_Tam
     tmpreg &= (uint32_t)~(sTamper->Tamper << 1U);
   }
 
-#if defined(RTC_TAMPNOERASE_SUPPORT)
   /* Configure the tamper backup registers erasure bit */
   if (sTamper->NoErase != RTC_TAMPER_ERASE_BACKUP_ENABLE)
   {
@@ -826,9 +819,7 @@ HAL_StatusTypeDef HAL_RTCEx_SetTamper_IT(RTC_HandleTypeDef * hrtc, const RTC_Tam
       tmpreg &= (uint32_t)~(RTC_TAMPCR_TAMP3NOERASE);
     }
   }
-#endif /* RTC_TAMPNOERASE_SUPPORT */
 
-#if defined(RTC_TAMPMASKFLAG_SUPPORT)
   /* Configure the tamper flags masking bit */
   if (sTamper->MaskFlag != RTC_TAMPERMASK_FLAG_DISABLE)
   {
@@ -860,7 +851,6 @@ HAL_StatusTypeDef HAL_RTCEx_SetTamper_IT(RTC_HandleTypeDef * hrtc, const RTC_Tam
       tmpreg &= (uint32_t)~(RTC_TAMPCR_TAMP3MF);
     }
   }
-#endif /* RTC_TAMPMASKFLAG_SUPPORT */
 
   /* Clearing remaining fields before setting them */
   tmpreg &= ~(RTC_TAMPERFILTER_MASK            | RTC_TAMPERSAMPLINGFREQ_RTCCLK_MASK | \
@@ -943,9 +933,8 @@ HAL_StatusTypeDef HAL_RTCEx_DeactivateTamper(RTC_HandleTypeDef * hrtc, uint32_t 
   * @param  Tamper Selected tamper pin.
   *         This parameter can be any combination of the following values:
   *         @arg RTC_TAMPER_1
-  *         @arg RTC_TAMPER_2 (*)
+  *         @arg RTC_TAMPER_2
   *         @arg RTC_TAMPER_3
-  *        (*) Not applicable to all devices.
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_RTCEx_DeactivateTamper(RTC_HandleTypeDef * hrtc, uint32_t Tamper)
@@ -960,28 +949,21 @@ HAL_StatusTypeDef HAL_RTCEx_DeactivateTamper(RTC_HandleTypeDef * hrtc, uint32_t 
   /* Disable the selected Tamper pin */
   hrtc->Instance->TAMPCR &= ((uint32_t)~Tamper);
 
-#if defined(RTC_TAMPxIE_SUPPORT)
   /* Disable the selected Tamper interrupt */
   if ((Tamper & RTC_TAMPER_1) != 0U)
   {
     hrtc->Instance->TAMPCR &= ((uint32_t)~(RTC_IT_TAMP | RTC_IT_TAMP1));
   }
 
-#if defined(RTC_TAMPER2_SUPPORT)
   if ((Tamper & RTC_TAMPER_2) != 0U)
   {
     hrtc->Instance->TAMPCR &= ((uint32_t)~(RTC_IT_TAMP | RTC_IT_TAMP2));
   }
-#endif /* RTC_TAMPER2_SUPPORT */
 
   if ((Tamper & RTC_TAMPER_3) != 0U)
   {
     hrtc->Instance->TAMPCR &= ((uint32_t)~(RTC_IT_TAMP | RTC_IT_TAMP3));
   }
-#else
-  /* Disable the Tamper interrupt */
-  hrtc->Instance->TAMPCR &= (uint32_t)~(RTC_IT_TAMP);
-#endif /* RTC_TAMPxIE_SUPPORT */
 
   hrtc->State = HAL_RTC_STATE_READY;
 
@@ -1161,6 +1143,7 @@ HAL_StatusTypeDef HAL_RTCEx_SetActiveTampers(RTC_HandleTypeDef *hrtc, const RTC_
   }
 
   WRITE_REG(TAMP->IER, IER);
+  WRITE_REG(TAMP->IER, IER);
   WRITE_REG(TAMP->ATCR1, ATCR1);
 #if defined(TAMP_ATCR2_ATOSEL1)
   WRITE_REG(TAMP->ATCR2, ATCR2);
@@ -1312,7 +1295,6 @@ void HAL_RTCEx_TamperTimeStampIRQHandler(RTC_HandleTypeDef *hrtc)
 #endif /* USE_HAL_RTC_REGISTER_CALLBACKS */
   }
 
-#if defined(RTC_TAMPER2_SUPPORT)
   /* Check Tamper 2 status */
   if ((tmp & RTC_TAMPER_2) == RTC_TAMPER_2)
   {
@@ -1324,7 +1306,6 @@ void HAL_RTCEx_TamperTimeStampIRQHandler(RTC_HandleTypeDef *hrtc)
     HAL_RTCEx_Tamper2EventCallback(hrtc);
 #endif /* USE_HAL_RTC_REGISTER_CALLBACKS */
   }
-#endif /* RTC_TAMPER2_SUPPORT */
 
   /* Check Tamper 3 status */
   if ((tmp & RTC_TAMPER_3) == RTC_TAMPER_3)
@@ -1461,11 +1442,7 @@ void HAL_RTCEx_TamperTimeStampIRQHandler(RTC_HandleTypeDef *hrtc)
   }
 
   /* Get the Tamper 1 interrupt source enable status */
-#if defined(RTC_TAMPxIE_SUPPORT)
   if (__HAL_RTC_TAMPER_GET_IT_SOURCE(hrtc, RTC_IT_TAMP | RTC_IT_TAMP1) != 0U)
-#else
-  if (__HAL_RTC_TAMPER_GET_IT_SOURCE(hrtc, RTC_IT_TAMP) != 0U)
-#endif /* RTC_TAMPxIE_SUPPORT */
   {
     /* Get the pending status of the Tamper 1 Interrupt */
     if (__HAL_RTC_TAMPER_GET_FLAG(hrtc, RTC_FLAG_TAMP1F) != 0U)
@@ -1483,12 +1460,7 @@ void HAL_RTCEx_TamperTimeStampIRQHandler(RTC_HandleTypeDef *hrtc)
   }
 
   /* Get the Tamper 2 interrupt source enable status */
-#if defined(RTC_TAMPER2_SUPPORT)
-#if defined(RTC_TAMPxIE_SUPPORT)
   if (__HAL_RTC_TAMPER_GET_IT_SOURCE(hrtc, RTC_IT_TAMP | RTC_IT_TAMP2) != 0U)
-#else
-  if (__HAL_RTC_TAMPER_GET_IT_SOURCE(hrtc, RTC_IT_TAMP) != 0U)
-#endif /* RTC_TAMPxIE_SUPPORT */
   {
     /* Get the pending status of the Tamper 2 Interrupt */
     if (__HAL_RTC_TAMPER_GET_FLAG(hrtc, RTC_FLAG_TAMP2F) != 0U)
@@ -1504,14 +1476,9 @@ void HAL_RTCEx_TamperTimeStampIRQHandler(RTC_HandleTypeDef *hrtc)
 #endif /* (USE_HAL_RTC_REGISTER_CALLBACKS == 1) */
     }
   }
-#endif /* RTC_TAMPER2_SUPPORT */
 
   /* Get the Tamper 3 interrupts source enable status */
-#if defined(RTC_TAMPxIE_SUPPORT)
   if (__HAL_RTC_TAMPER_GET_IT_SOURCE(hrtc, RTC_IT_TAMP | RTC_IT_TAMP3) != 0U)
-#else
-  if (__HAL_RTC_TAMPER_GET_IT_SOURCE(hrtc, RTC_IT_TAMP) != 0U)
-#endif /* RTC_TAMPxIE_SUPPORT */
   {
     /* Get the pending status of the Tamper 3 Interrupt */
     if (__HAL_RTC_TAMPER_GET_FLAG(hrtc, RTC_FLAG_TAMP3F) != 0U)
@@ -1573,7 +1540,6 @@ __weak void HAL_RTCEx_Tamper1EventCallback(RTC_HandleTypeDef * hrtc)
    */
 }
 
-#if defined(RTC_TAMPER2_SUPPORT)
 /**
   * @brief  Tamper 2 callback.
   * @param  hrtc RTC handle
@@ -1588,7 +1554,6 @@ __weak void HAL_RTCEx_Tamper2EventCallback(RTC_HandleTypeDef * hrtc)
             the HAL_RTCEx_Tamper2EventCallback could be implemented in the user file
    */
 }
-#endif /* RTC_TAMPER2_SUPPORT */
 
 /**
   * @brief  Tamper 3 callback.
@@ -1803,7 +1768,6 @@ HAL_StatusTypeDef HAL_RTCEx_PollForTamper1Event(RTC_HandleTypeDef * hrtc, uint32
   return HAL_OK;
 }
 
-#if defined(RTC_TAMPER2_SUPPORT)
 /**
   * @brief  Handle Tamper2 Polling.
   * @param  hrtc RTC handle
@@ -1835,7 +1799,6 @@ HAL_StatusTypeDef HAL_RTCEx_PollForTamper2Event(RTC_HandleTypeDef * hrtc, uint32
 
   return HAL_OK;
 }
-#endif /* RTC_TAMPER2_SUPPORT */
 
 /**
   * @brief  Handle Tamper3 Polling.

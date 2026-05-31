@@ -50,7 +50,6 @@
 #include "flight/wind_estimator.h"
 #include "drivers/io_port_expander.h"
 #include "drivers/gimbal_common.h"
-#include "rx/msp_override.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
 
@@ -59,7 +58,7 @@
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
-#include "drivers/pinio.h"
+#include "drivers/light_ws2811strip.h"
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 4);
 
@@ -405,20 +404,6 @@ static int logicConditionCompute(
             return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue;
         break;
 
-        case LOGIC_CONDITION_ACOS:
-            temporaryValue = (operandB == 0) ? 1000 : operandB;
-            return RADIANS_TO_DEGREES(acos_approx(constrainf((float)operandA / (float)temporaryValue, -1.0f, 1.0f)));
-        break;
-
-        case LOGIC_CONDITION_ASIN:
-            temporaryValue = (operandB == 0) ? 1000 : operandB;
-            return RADIANS_TO_DEGREES(asin_approx(constrainf((float)operandA / (float)temporaryValue, -1.0f, 1.0f)));
-        break;
-
-        case LOGIC_CONDITION_ATAN2:
-            return RADIANS_TO_DEGREES(atan2_approx((float)operandA, (float)operandB));
-        break;
-
         case LOGIC_CONDITION_MIN:
             return (operandA < operandB) ? operandA : operandB;
         break;
@@ -486,10 +471,6 @@ static int logicConditionCompute(
             return true;
             break;
 
-        case LOGIC_CONDITION_SET_ALTITUDE_TARGET:
-            return navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)operandA, operandB);
-            break;
-
         case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 
@@ -525,11 +506,16 @@ static int logicConditionCompute(
             }
             break;
 
-#ifdef USE_PINIO
-        case LOGIC_CONDITION_PINIO_PWM:
-            // operandA = duty cycle (0-100), operandB = channel (0=LED idle, 1-4=PINIO)
-            pinioSetDuty(operandB, (uint8_t)constrain(operandA, 0, 100));
+#ifdef USE_LED_STRIP
+        case LOGIC_CONDITION_LED_PIN_PWM:
+
+            if (operandA >=0 && operandA <= 100) {
+                ledPinStartPWM((uint8_t)operandA);
+            } else {
+                ledPinStopPWM();
+            }
             return operandA;
+            break;
 #endif
 #ifdef USE_GPS_FIX_ESTIMATION
         case LOGIC_CONDITION_DISABLE_GPS_FIX:
@@ -1214,12 +1200,6 @@ uint32_t getMinGroundSpeed(uint32_t minGroundSpeed) {
 }
 
 float getFlightAxisAngleOverride(uint8_t axis, float angle) {
-#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    int mspAngleTarget;
-    if (mspOverrideFlightAxisAngleActive(axis, &mspAngleTarget)) {
-        return mspAngleTarget;
-    }
-#endif
     if (flightAxisOverride[axis].angleTargetActive) {
         return flightAxisOverride[axis].angleTarget;
     } else {
@@ -1228,12 +1208,6 @@ float getFlightAxisAngleOverride(uint8_t axis, float angle) {
 }
 
 float getFlightAxisRateOverride(uint8_t axis, float rate) {
-#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    int mspRateTarget;
-    if (mspOverrideFlightAxisRateActive(axis, &mspRateTarget)) {
-        return mspRateTarget;
-    }
-#endif
     if (flightAxisOverride[axis].rateTargetActive) {
         return flightAxisOverride[axis].rateTarget;
     } else {
@@ -1242,12 +1216,6 @@ float getFlightAxisRateOverride(uint8_t axis, float rate) {
 }
 
 bool isFlightAxisAngleOverrideActive(uint8_t axis) {
-#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    int mspAngleTarget;
-    if (mspOverrideFlightAxisAngleActive(axis, &mspAngleTarget)) {
-        return true;
-    }
-#endif
     if (flightAxisOverride[axis].angleTargetActive) {
         return true;
     } else {
@@ -1256,12 +1224,6 @@ bool isFlightAxisAngleOverrideActive(uint8_t axis) {
 }
 
 bool isFlightAxisRateOverrideActive(uint8_t axis) {
-#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    int mspRateTarget;
-    if (mspOverrideFlightAxisRateActive(axis, &mspRateTarget)) {
-        return true;
-    }
-#endif
     if (flightAxisOverride[axis].rateTargetActive) {
         return true;
     } else {

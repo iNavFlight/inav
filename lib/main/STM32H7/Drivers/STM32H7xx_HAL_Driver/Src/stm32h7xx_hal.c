@@ -51,7 +51,7 @@
    */
 #define __STM32H7xx_HAL_VERSION_MAIN   (0x01UL) /*!< [31:24] main version */
 #define __STM32H7xx_HAL_VERSION_SUB1   (0x0BUL) /*!< [23:16] sub1 version */
-#define __STM32H7xx_HAL_VERSION_SUB2   (0x06UL) /*!< [15:8]  sub2 version */
+#define __STM32H7xx_HAL_VERSION_SUB2   (0x04UL) /*!< [15:8]  sub2 version */
 #define __STM32H7xx_HAL_VERSION_RC     (0x00UL) /*!< [7:0]  release candidate */
 #define __STM32H7xx_HAL_VERSION         ((__STM32H7xx_HAL_VERSION_MAIN << 24)\
                                         |(__STM32H7xx_HAL_VERSION_SUB1 << 16)\
@@ -267,11 +267,11 @@ __weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
     return HAL_ERROR;
   }
 
-  /* Configure the SysTick to have interrupt in 1ms time basis*/
-  if (HAL_SYSTICK_Config(SystemCoreClock / (1000UL / (uint32_t)uwTickFreq)) > 0U)
-  {
-    return HAL_ERROR;
-  }
+    /* Configure the SysTick to have interrupt in 1ms time basis*/
+    if (HAL_SYSTICK_Config(SystemCoreClock / (1000UL / (uint32_t)uwTickFreq)) > 0U)
+    {
+      return HAL_ERROR;
+    }
 
   /* Configure the SysTick IRQ priority */
   if (TickPriority < (1UL << __NVIC_PRIO_BITS))

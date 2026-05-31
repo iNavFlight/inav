@@ -10029,38 +10029,38 @@ typedef struct
 #define GPIO_MODER_MODE9_0             GPIO_MODER_MODER9_0
 #define GPIO_MODER_MODE9_1             GPIO_MODER_MODER9_1
 
-#define GPIO_MODER_MODE10_Pos          GPIO_MODER_MODER10_Pos
-#define GPIO_MODER_MODE10_Msk          GPIO_MODER_MODER10_Msk
+#define GPIO_MODER_MODE10_Pos          GPIO_MODER_MODER10_Po
+#define GPIO_MODER_MODE10_Msk          GPIO_MODER_MODER10_Ms
 #define GPIO_MODER_MODE10              GPIO_MODER_MODER10
 #define GPIO_MODER_MODE10_0            GPIO_MODER_MODER10_0
 #define GPIO_MODER_MODE10_1            GPIO_MODER_MODER10_1
 
-#define GPIO_MODER_MODE11_Pos          GPIO_MODER_MODER11_Pos
-#define GPIO_MODER_MODE11_Msk          GPIO_MODER_MODER11_Msk
+#define GPIO_MODER_MODE11_Pos          GPIO_MODER_MODER11_Po
+#define GPIO_MODER_MODE11_Msk          GPIO_MODER_MODER11_Ms
 #define GPIO_MODER_MODE11              GPIO_MODER_MODER11
 #define GPIO_MODER_MODE11_0            GPIO_MODER_MODER11_0
 #define GPIO_MODER_MODE11_1            GPIO_MODER_MODER11_1
 
-#define GPIO_MODER_MODE12_Pos          GPIO_MODER_MODER12_Pos
-#define GPIO_MODER_MODE12_Msk          GPIO_MODER_MODER12_Msk
+#define GPIO_MODER_MODE12_Pos          GPIO_MODER_MODER12_Po
+#define GPIO_MODER_MODE12_Msk          GPIO_MODER_MODER12_Ms
 #define GPIO_MODER_MODE12              GPIO_MODER_MODER12
 #define GPIO_MODER_MODE12_0            GPIO_MODER_MODER12_0
 #define GPIO_MODER_MODE12_1            GPIO_MODER_MODER12_1
 
-#define GPIO_MODER_MODE13_Pos          GPIO_MODER_MODER13_Pos
-#define GPIO_MODER_MODE13_Msk          GPIO_MODER_MODER13_Msk
+#define GPIO_MODER_MODE13_Pos          GPIO_MODER_MODER13_Po
+#define GPIO_MODER_MODE13_Msk          GPIO_MODER_MODER13_Ms
 #define GPIO_MODER_MODE13              GPIO_MODER_MODER13
 #define GPIO_MODER_MODE13_0            GPIO_MODER_MODER13_0
 #define GPIO_MODER_MODE13_1            GPIO_MODER_MODER13_1
 
-#define GPIO_MODER_MODE14_Pos          GPIO_MODER_MODER14_Pos
-#define GPIO_MODER_MODE14_Msk          GPIO_MODER_MODER14_Msk
+#define GPIO_MODER_MODE14_Pos          GPIO_MODER_MODER14_Po
+#define GPIO_MODER_MODE14_Msk          GPIO_MODER_MODER14_Ms
 #define GPIO_MODER_MODE14              GPIO_MODER_MODER14
 #define GPIO_MODER_MODE14_0            GPIO_MODER_MODER14_0
 #define GPIO_MODER_MODE14_1            GPIO_MODER_MODER14_1
 
-#define GPIO_MODER_MODE15_Pos          GPIO_MODER_MODER15_Pos
-#define GPIO_MODER_MODE15_Msk          GPIO_MODER_MODER15_Msk
+#define GPIO_MODER_MODE15_Pos          GPIO_MODER_MODER15_Po
+#define GPIO_MODER_MODE15_Msk          GPIO_MODER_MODER15_Ms
 #define GPIO_MODER_MODE15              GPIO_MODER_MODER15
 #define GPIO_MODER_MODE15_0            GPIO_MODER_MODER15_0
 #define GPIO_MODER_MODE15_1            GPIO_MODER_MODER15_1
@@ -15120,10 +15120,10 @@ typedef struct
 #define RNG_CR_CLKDIV_Pos           (16U)
 #define RNG_CR_CLKDIV_Msk           (0xFUL << RNG_CR_CLKDIV_Pos)               /*!< 0x000F0000 */
 #define RNG_CR_CLKDIV               RNG_CR_CLKDIV_Msk
-#define RNG_CR_CLKDIV_0             (0x1UL << RNG_CR_CLKDIV_Pos)                /*!< 0x00010000 */
-#define RNG_CR_CLKDIV_1             (0x2UL << RNG_CR_CLKDIV_Pos)                /*!< 0x00020000 */
-#define RNG_CR_CLKDIV_2             (0x4UL << RNG_CR_CLKDIV_Pos)                /*!< 0x00040000 */
-#define RNG_CR_CLKDIV_3             (0x8UL << RNG_CR_CLKDIV_Pos)                /*!< 0x00080000 */
+#define RNG_CR_CLKDIV_0             (0x1U << RNG_CR_CLKDIV_Pos)                /*!< 0x00010000 */
+#define RNG_CR_CLKDIV_1             (0x2U << RNG_CR_CLKDIV_Pos)                /*!< 0x00020000 */
+#define RNG_CR_CLKDIV_2             (0x4U << RNG_CR_CLKDIV_Pos)                /*!< 0x00040000 */
+#define RNG_CR_CLKDIV_3             (0x8U << RNG_CR_CLKDIV_Pos)                /*!< 0x00080000 */
 #define RNG_CR_RNG_CONFIG1_Pos      (20U)
 #define RNG_CR_RNG_CONFIG1_Msk      (0x3FUL << RNG_CR_RNG_CONFIG1_Pos)         /*!< 0x03F00000 */
 #define RNG_CR_RNG_CONFIG1          RNG_CR_RNG_CONFIG1_Msk
@@ -15156,11 +15156,6 @@ typedef struct
 /*                           Real-Time Clock (RTC)                            */
 /*                                                                            */
 /******************************************************************************/
-#define RTC_TAMPER2_SUPPORT           /*!<RTC TAMPER 2 support feature                   */
-#define RTC_TAMPNOERASE_SUPPORT       /*!<RTC BKP REG NO ERASE ON TAMPER support feature */
-#define RTC_TAMPMASKFLAG_SUPPORT      /*!<RTC TAMPER MASK FLAG support feature           */
-#define RTC_TAMPxIE_SUPPORT           /*!<RTC TAMPERx INTERRUPT ENABLE support feature   */
-
 /********************  Bits definition for RTC_TR register  *******************/
 #define RTC_TR_PM_Pos                  (22U)
 #define RTC_TR_PM_Msk                  (0x1UL << RTC_TR_PM_Pos)                /*!< 0x00400000 */
@@ -18649,7 +18644,7 @@ typedef struct
 
 /*******************  Bit definition for TIM_CCR5 register  *******************/
 #define TIM_CCR5_CCR5_Pos         (0U)
-#define TIM_CCR5_CCR5_Msk         (0xFFFFUL << TIM_CCR5_CCR5_Pos)              /*!< 0xFFFF */
+#define TIM_CCR5_CCR5_Msk         (0xFFFFFFFFUL << TIM_CCR5_CCR5_Pos)          /*!< 0xFFFFFFFF */
 #define TIM_CCR5_CCR5             TIM_CCR5_CCR5_Msk                            /*!<Capture/Compare 5 Value */
 #define TIM_CCR5_GC5C1_Pos        (29U)
 #define TIM_CCR5_GC5C1_Msk        (0x1UL << TIM_CCR5_GC5C1_Pos)                /*!< 0x20000000 */
@@ -22427,7 +22422,7 @@ typedef struct
 
 /******************************** HSEM Instances *******************************/
 #define IS_HSEM_ALL_INSTANCE(INSTANCE) ((INSTANCE) == HSEM)
-#define HSEM_CPU1_COREID         (0x00000001UL) /* Semaphore Core CM7 ID */
+#define HSEM_CPU1_COREID         (0x00000001U) /* Semaphore Core CM7 ID */
 #define HSEM_CR_COREID_CPU1      (HSEM_CPU1_COREID << HSEM_CR_COREID_Pos)
 #define HSEM_CR_COREID_CURRENT   (HSEM_CPU1_COREID << HSEM_CR_COREID_Pos)
 
