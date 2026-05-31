@@ -1807,16 +1807,16 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CUSTOM_ELEMENT_1:
     case OSD_CUSTOM_ELEMENT_2:
     case OSD_CUSTOM_ELEMENT_3:
-        customElementDrawElement(buff, item - OSD_CUSTOM_ELEMENT_1);
-        break;
+        customElementDrawElement(osdDisplayPort, buff, item - OSD_CUSTOM_ELEMENT_1, elemPosX, elemPosY);
+        return true;
 
     case OSD_CUSTOM_ELEMENT_4:
     case OSD_CUSTOM_ELEMENT_5:
     case OSD_CUSTOM_ELEMENT_6:
     case OSD_CUSTOM_ELEMENT_7:
     case OSD_CUSTOM_ELEMENT_8:
-        customElementDrawElement(buff, item - OSD_CUSTOM_ELEMENT_4 + 3);
-        break;
+        customElementDrawElement(osdDisplayPort, buff, item - OSD_CUSTOM_ELEMENT_4 + 3, elemPosX, elemPosY);
+        return true;
     case OSD_RSSI_VALUE:
         {
             uint8_t osdRssi = osdConvertRSSI();
