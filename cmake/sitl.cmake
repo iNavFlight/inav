@@ -19,8 +19,8 @@ main_sources(SITL_SRC
     target/SITL/sim/realFlight.h
     target/SITL/sim/simHelper.c
     target/SITL/sim/simHelper.h
-    target/SITL/sim/simple_soap_client.c
-    target/SITL/sim/simple_soap_client.h
+    target/SITL/sim/soap_client.c
+    target/SITL/sim/soap_client.h
     target/SITL/sim/xplane.c
     target/SITL/sim/xplane.h
 )
@@ -58,13 +58,23 @@ if(DEBUG)
     list(APPEND SITL_COMPILE_OPTIONS -g)
 endif()
 
+if(ASAN)
+    message(STATUS "AddressSanitizer enabled.")
+    list(APPEND SITL_COMPILE_OPTIONS -fsanitize=address -fno-omit-frame-pointer)
+    list(APPEND SITL_LINK_OPTIONS -fsanitize=address)
+endif()
+
 if(NOT MACOSX)
     set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
         -Wno-return-local-addr
         -Wno-error=maybe-uninitialized
         -fsingle-precision-constant
     )
-    if (CMAKE_COMPILER_IS_GNUCC AND NOT CMAKE_C_COMPILER_VERSION VERSION_LESS 12.0)
+    include(CheckLinkerFlag OPTIONAL)
+    if(COMMAND check_linker_flag)
+        check_linker_flag(C "-Wl,--no-warn-rwx-segments" LINKER_SUPPORTS_NO_RWX_WARNING)
+    endif()
+    if(LINKER_SUPPORTS_NO_RWX_WARNING)
         set(SITL_LINK_OPTIONS ${SITL_LINK_OPTIONS} "-Wl,--no-warn-rwx-segments")
     endif()
 else()
@@ -159,8 +169,8 @@ function (target_sitl name)
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             COMMAND ${generator_cmd} clean
             COMMENT "Removing intermediate files for ${name}")
-        set_property(TARGET ${clean_target} PROPERTY
-            EXCLUDE_FROM_ALL 1
-            EXCLUDE_FROM_DEFAULT_BUILD 1)
+        set_target_properties(${clean_target} PROPERTIES
+            EXCLUDE_FROM_ALL ON
+            EXCLUDE_FROM_DEFAULT_BUILD ON)
     endif()
 endfunction()

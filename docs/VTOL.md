@@ -133,7 +133,7 @@ save
 
 ![Alt text](Screenshots/mixerprofile_fw_mixer.png)
 
-You must also assign the tilting servos values using the MAX values.  If you don't do this the motors will point in the direction assigned by the transition mode.
+You must also assign the tilting servos values using the Fixed Value values (formerly called "MAX").  If you don't do this the motors will point in the direction assigned by the transition mode.
 
 # STEP 2: Configuring as a Multi-Copter in Profile 2
 
@@ -149,7 +149,7 @@ You must also assign the tilting servos values using the MAX values.  If you don
 
 2. **Configure the Multicopter/tricopter:**
    - Set up your multi-copter/fixed-wing as usual, this time for mixer_profile 2 and control_profile 2.
-   - Utilize the 'MAX' input in the servo mixer to tilt the motors without altering the servo midpoint.
+   - Utilize the Fixed Value values (formerly called "MAX") input in the servo mixer to tilt the motors without altering the servo midpoint.
    - At this stage, focus on configuring profile-specific settings. You can streamline this process by copying and pasting the default PID settings.
    - you can set -1 in motor mixer throttle as a place holder: this will disable that motor but will load following the motor rules
    - compass is required to enable navigation modes for multi-rotor profile.
@@ -199,7 +199,7 @@ The steps below describe how you can fine-tune the tilting servos to obtian the 
 2. **Switch to Multicopter/Tricopter:**
    - Assuming that you have set up your mixer similar to STEP1 and STEP2, you can now switch to the tricopter/multicopter mode and your servos should be tilting the motors upwards. If this is not the case, reverse the servo(s) in the Outputs tab such that the servo(s) is/are pointed upwards.
    - It is OK for the servos not to point exactly 90 degrees upwards, but they should be as close as possible to that position.
-   - Also, ensure that your MAX values in the Mixer tab are at 100 and -100, so that your servo will move to the maximum position, as shown in the screenshots in STEP1 and STEP2.
+   - Also, ensure that your Fixed Value values (formerly called "MAX") values in the Mixer tab are at 100 and -100, so that your servo will move to the maximum position, as shown in the screenshots in STEP1 and STEP2.
 
 3. **Adjust the maximum throws for the Multicopter/Tricopter mode:**
    - While in tricopter mode, navigate to the Outputs tab and adjust the MIN and MAX endpoint values to position the motors slightly backward.
@@ -214,7 +214,7 @@ The steps below describe how you can fine-tune the tilting servos to obtian the 
 
 5. **Adjsut the vertival position of the tilt servos:**
    - Switch back to multicopter/tricopter mode and open the Mixer tab.
-   - Start adjusting the `MAX` mixer lines from STEP2 such that the servos are pointed exactly upwards. In other words, start reducing the values of 100 and -100 to something like 80 and -80 until the motors are are pointed exaxctly upwards.
+   - Start adjusting the `Fixed Value` mixer lines from STEP2 such that the servos are pointed exactly upwards. In other words, start reducing the values of 100 and -100 to something like 80 and -80 until the motors are are pointed exaxctly upwards.
    - You will have to `Save & reboot` for adjustement for the changes to take effect, so be patient, take your time and don't forget to `Save & reboot`.
    - Move the YAW stick to either extreme position and ensure that the servos are tilting the motors both forwards and backwards.
    - NOTE: When yawing fully left, the left motor should tilt backwards and the right motor should tilt forwards. 

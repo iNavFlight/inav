@@ -549,14 +549,14 @@ static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
     if (bufferLength > 13 && (!strncmp(proto, "PROTVER=", 8) || !strncmp(proto, "PROTVER ", 8))) {
         proto+=8;
 
-        float ver = atof(proto);
+        float ver = fastA2F(proto);
 
         gpsState.swVersionMajor = (uint8_t)ver;
         gpsState.swVersionMinor = (uint8_t)((ver - gpsState.swVersionMajor) * 100.0f);
     }
 }
 
-static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
+static uint8_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
 {
     // ublox_5   hwVersion 00040005
     if (strncmp(szBuf, "00040005", nBufSize) == 0) {
@@ -1231,11 +1231,9 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
                 if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN)
                 {
                     pollVersion();
-                    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
                 }
 
                 pollGnssCapabilities();
-                ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
             }
         }
     }

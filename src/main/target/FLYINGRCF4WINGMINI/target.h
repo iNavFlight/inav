@@ -19,7 +19,7 @@
 #define USE_TARGET_CONFIG
 
 #define TARGET_BOARD_IDENTIFIER "FRF4WM"
-#define USBD_PRODUCT_STRING  "FLYINGRCF4WINGMINI_NOT_RECOMMENDED"
+#define USBD_PRODUCT_STRING  "FLYINGRCF4WINGMINI"
 
 #define LED0                    PA14  //Blue
 #define LED1                    PA13  //Green
@@ -33,9 +33,14 @@
 #define SPI1_MOSI_PIN   	    PA7
 
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
+#define IMU_ICM42605_ALIGN      CW270_DEG_FLIP
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PC14
+
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW180_DEG_FLIP
+#define BMI270_SPI_BUS          BUS_SPI1
+#define BMI270_CS_PIN           PC14
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -93,7 +98,14 @@
 #define ADC_INSTANCE                ADC1
 #define ADC1_DMA_STREAM             DMA2_Stream4
 #define ADC_CHANNEL_1_PIN           PC4
+#define ADC_CHANNEL_2_PIN           PC5
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
+// V4 hardware adds a backside current-sensor pad on the same ADC pin used by Matek F405 TE.
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
+
+// *************** LEDSTRIP ************************
+#define USE_LED_STRIP
+#define WS2811_PIN PB1
 
 // *************** others  ************************
 #define DEFAULT_FEATURES   (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)

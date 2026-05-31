@@ -20,8 +20,8 @@
 #include "common/time.h"
 #include "rx/crsf.h"
 
-#define CRSF_MSP_RX_BUF_SIZE 128
-#define CRSF_MSP_TX_BUF_SIZE 128
+#define CRSF_MSP_RX_BUF_SIZE 512
+#define CRSF_MSP_TX_BUF_SIZE 512
 
 void initCrsfTelemetry(void);
 bool checkCrsfTelemetryState(void);

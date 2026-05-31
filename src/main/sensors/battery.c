@@ -288,7 +288,7 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             }
             break;
 #endif
-        
+
 #if defined(USE_FAKE_BATT_SENSOR)
     case VOLTAGE_SENSOR_FAKE:
         vbat = fakeBattSensorGetVBat();
@@ -328,30 +328,32 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 batteryState_e checkBatteryVoltageState(void)
 {
     uint16_t stateVoltage = getBatteryVoltage();
-    switch (batteryState)
+    static batteryState_e currentBatteryVoltageState = BATTERY_OK;
+
+    switch (currentBatteryVoltageState)
     {
         case BATTERY_OK:
             if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS)) {
-                return BATTERY_WARNING;
+                currentBatteryVoltageState = BATTERY_WARNING;
             }
             break;
         case BATTERY_WARNING:
             if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
-                return BATTERY_CRITICAL;
+                currentBatteryVoltageState = BATTERY_CRITICAL;
             } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
-                return BATTERY_OK;
+                currentBatteryVoltageState = BATTERY_OK;
             }
             break;
         case BATTERY_CRITICAL:
             if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS)) {
-                return BATTERY_WARNING;
+                currentBatteryVoltageState = BATTERY_WARNING;
             }
             break;
         default:
             break;
     }
 
-    return batteryState;
+    return currentBatteryVoltageState;
 }
 
 static void checkBatteryCapacityState(void)
@@ -632,6 +634,12 @@ void currentMeterUpdate(timeUs_t timeDelta)
             amperage = 0;
             break;
     }
+
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) && SIMULATOR_HAS_OPTION(HITL_CURRENT_SENSOR)) {
+        amperage = ((uint16_t)simulatorData.current) * 10;
+    }
+#endif
 
     // Clamp amperage to positive values
     amperage = MAX(0, amperage);

@@ -31,6 +31,7 @@
 
 #include "drivers/pitotmeter/pitotmeter.h"
 #include "drivers/pitotmeter/pitotmeter_ms4525.h"
+#include "drivers/pitotmeter/pitotmeter_ms5525.h"
 #include "drivers/pitotmeter/pitotmeter_dlvr_l10d.h"
 #include "drivers/pitotmeter/pitotmeter_adc.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
@@ -69,8 +70,9 @@ pitot_t pitot = {.lastMeasurementUs = 0, .lastSeenHealthyMs = 0};
 static bool pitotHardwareFailed = false;
 static uint16_t pitotFailureCounter = 0;
 static uint16_t pitotRecoveryCounter = 0;
-#define PITOT_FAILURE_THRESHOLD 20   // 0.2 seconds at 100Hz - fast detection per LOG00002 analysis
-#define PITOT_RECOVERY_THRESHOLD 200 // 2 seconds of consecutive good readings to recover
+static bool pitotAirspeedValidCached = false;
+#define PITOT_FAILURE_THRESHOLD 10   // 0.2 seconds at 50Hz - fast detection per LOG00002 analysis
+#define PITOT_RECOVERY_THRESHOLD 100 // 2 seconds of consecutive good readings to recover
 
 // Forward declaration for GPS-based airspeed fallback
 static float getVirtualAirspeedEstimate(void);
@@ -111,6 +113,19 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             }
             FALLTHROUGH;
 
+        case PITOT_MS5525:
+#ifdef USE_PITOT_MS5525
+            if (ms5525Detect(dev)) {
+                pitotHardware = PITOT_MS5525;
+                break;
+            }
+#endif
+            /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+            if (pitotHardwareToUse != PITOT_AUTODETECT) {
+                break;
+            }
+            FALLTHROUGH;
+
         case PITOT_DLVR:
 
 			// Skip autodetection for DLVR (it is indistinguishable from MS4525) and allow only manual config
@@ -134,14 +149,15 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             FALLTHROUGH;
 
         case PITOT_VIRTUAL:
-#if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL) 
-            if ((pitotHardwareToUse != PITOT_AUTODETECT) && virtualPitotDetect(dev)) {
-                pitotHardware = PITOT_VIRTUAL;
-                break;
-            }
-#endif
-            /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
+#if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
+                if (virtualPitotDetect(dev)) {
+                    pitotHardware = PITOT_VIRTUAL;
+                    break;
+                }
+#endif
+                // set requested to None to prevent hardware failure if GPS not enabled
+                requestedSensors[SENSOR_INDEX_PITOT] = PITOT_NONE;
                 break;
             }
             FALLTHROUGH;
@@ -216,6 +232,7 @@ static void performPitotCalibrationCycle(void)
     }
 }
 
+
 STATIC_PROTOTHREAD(pitotThread)
 {
     ptBegin(pitotThread);
@@ -226,9 +243,10 @@ STATIC_PROTOTHREAD(pitotThread)
 
     // Init filter
     pitot.lastMeasurementUs = micros();
-    if(pitotmeterConfig()->pitot_lpf_milli_hz >0){
+    if (pitotmeterConfig()->pitot_lpf_milli_hz > 0) {
         pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
     }
+
     while(1) {
 #ifdef USE_SIMULATOR
     	while (SIMULATOR_HAS_OPTION(HITL_AIRSPEED) && SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE))
@@ -236,34 +254,35 @@ STATIC_PROTOTHREAD(pitotThread)
             ptDelayUs(10000);
     	}
 #endif
-
-        if ( pitot.lastSeenHealthyMs == 0 ) {
+        if (pitot.lastSeenHealthyMs == 0) {
             if (pitot.dev.start(&pitot.dev)) {
                 pitot.lastSeenHealthyMs = millis();
-            }        
+            }
         }
 
-        if ( (millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
-            if (pitot.dev.get(&pitot.dev))          // read current data
+        if ((millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
+            if (pitot.dev.get(&pitot.dev)) {    // read current data
                 pitot.lastSeenHealthyMs = millis();
+            }
 
-            if (pitot.dev.start(&pitot.dev))        // init for next read
-                pitot.lastSeenHealthyMs = millis();        
+            if (pitot.dev.start(&pitot.dev)) {  // init for next read
+                pitot.lastSeenHealthyMs = millis();
+            }
         }
-
 
         pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperatureTmp);
 
 #ifdef USE_SIMULATOR
         if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-            pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
+            pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
         }
 #endif
 #if defined(USE_PITOT_FAKE)
-        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
-            pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
-        } 
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) {
+            pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
+        }
 #endif
+        pitotAirspeedValidCached = pitotValidateAirspeed();
         ptYield();
 
         // Calculate IAS
@@ -280,9 +299,9 @@ STATIC_PROTOTHREAD(pitotThread)
 
             // NOTE ::filter pressure - apply filter when NOT calibrating for zero !!!
             currentTimeUs = micros();
-            if(pitotmeterConfig()->pitot_lpf_milli_hz >0){
+            if (pitotmeterConfig()->pitot_lpf_milli_hz > 0) {
                 pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-            }else{
+            } else {
                 pitot.pressure = pitotPressureTmp;
             }
             pitot.lastMeasurementUs = currentTimeUs;
@@ -297,7 +316,7 @@ STATIC_PROTOTHREAD(pitotThread)
         }
 
 #if defined(USE_PITOT_FAKE)
-        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) {
             pitot.airSpeed = fakePitotGetAirspeed();
         }
 #endif
@@ -433,7 +452,7 @@ bool pitotHasFailed(void)
     return pitotHardwareFailed;
 }
 
-bool pitotValidForAirspeed(void)
+bool pitotValidateAirspeed(void)
 {
     bool ret = false;
     ret = pitotIsHealthy() && pitotIsCalibrationComplete();
@@ -491,5 +510,10 @@ bool pitotValidForAirspeed(void)
     }
 
     return ret;
+}
+
+bool pitotGetValidForAirspeed(void)
+{
+    return pitotAirspeedValidCached;
 }
 #endif /* PITOT */

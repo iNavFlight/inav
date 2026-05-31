@@ -122,32 +122,41 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 bool adjustMulticopterAltitudeFromRCInput(void)
 {
     if (posControl.flags.isTerrainFollowEnabled) {
-        const float altTarget = scaleRangef(rcCommand[THROTTLE], getThrottleIdleValue(), getMaxThrottle(), 0, navConfig()->general.max_terrain_follow_altitude);
+        const int16_t altTarget = scaleRange(rcCommand[THROTTLE], getThrottleIdleValue(), getMaxThrottle(), 0, navConfig()->general.max_terrain_follow_altitude);
 
         // In terrain follow mode we apply different logic for terrain control
-        if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
+        if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10) {
             // We have solid terrain sensor signal - directly map throttle to altitude
             updateClimbRateToAltitudeController(0, altTarget, ROC_TO_ALT_TARGET);
         }
         else {
-            updateClimbRateToAltitudeController(-50.0f, 0, ROC_TO_ALT_CONSTANT);
+            int16_t climbRate = -50;
+
+            // Increase descent rate when throttle stick below mid from min rate of 0.5m/s up to max 2 m/s
+            if (posControl.flags.estAglStatus != EST_TRUSTED) {
+                const int16_t throttleIdle = getThrottleIdleValue();
+                const int16_t throttleMid = rcLookupThrottleMid();
+                climbRate = scaleRange(constrain(rcCommand[THROTTLE], throttleIdle, throttleMid), throttleIdle, throttleMid, -200, -50);
+            }
+
+            updateClimbRateToAltitudeController(climbRate, 0, ROC_TO_ALT_CONSTANT);
         }
 
         // In surface tracking we always indicate that we're adjusting altitude
         return true;
     }
     else {
-        const int16_t rcThrottleAdjustment = applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
+        const uint8_t deadband = rcControlsConfig()->alt_hold_deadband;
+        const int16_t rcThrottleAdjustment = applyDeadband(rcCommand[THROTTLE] - altHoldThrottleRCZero, deadband);
 
         if (rcThrottleAdjustment) {
             /* Set velocity proportional to stick movement
              * Scale from altHoldThrottleRCZero to maxthrottle or minthrottle to altHoldThrottleRCZero */
 
-            // Calculate max up or min down limit value scaled for deadband
-            int16_t limitValue = rcThrottleAdjustment > 0 ? getMaxThrottle() : getThrottleIdleValue();
-            limitValue = applyDeadbandRescaled(limitValue - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
+            int16_t controlRange = -deadband;
+            controlRange += rcThrottleAdjustment > 0 ? getMaxThrottle() - altHoldThrottleRCZero : altHoldThrottleRCZero - getThrottleIdleValue();
 
-            int16_t rcClimbRate = ABS(rcThrottleAdjustment) * navConfig()->mc.max_manual_climb_rate / limitValue;
+            const int16_t rcClimbRate = rcThrottleAdjustment * navConfig()->mc.max_manual_climb_rate / controlRange;
             updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
 
             return true;
@@ -837,10 +846,18 @@ bool isMulticopterLandingDetected(void)
     /* Basic condition to start looking for landing
      * Detection active during Failsafe only if throttle below mid hover throttle
      * and WP mission not active (except landing states).
-     * Also active in non autonomous flight modes but only when thottle low */
-    bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
-                          || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && !isMulticopterThrottleAboveMidHover())
-                          || (!navigationIsFlyingAutonomousMode() && throttleStickIsLow());
+     * Also active in non autonomous flight modes but only when throttle low.
+     * Throttle low detection only allowed during Surface if AGL trusted and below 50cm */
+
+    bool throttleLowCheckAllowed = !navigationIsFlyingAutonomousMode();
+
+    if (posControl.flags.isTerrainFollowEnabled) {
+        throttleLowCheckAllowed = throttleLowCheckAllowed && posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z < 50.0f;
+    }
+
+    bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG)) ||
+                          (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && !isMulticopterThrottleAboveMidHover()) ||
+                          (throttleLowCheckAllowed && throttleStickIsLow());
 
     static timeMs_t landingDetectorStartedAt;
 

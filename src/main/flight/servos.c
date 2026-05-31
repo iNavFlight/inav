@@ -425,6 +425,16 @@ void servoMixer(float dT)
 	simulatorData.input[INPUT_STABILIZED_THROTTLE] = input[INPUT_STABILIZED_THROTTLE];
 #endif
 
+    /*
+     * When disarmed, force throttle inputs to minimum so the mixer pipeline
+     * computes the correct safe servo position accounting for servo reversal
+     * and negative mixer weights.
+     */
+    if (!ARMING_FLAG(ARMED)) {
+        input[INPUT_STABILIZED_THROTTLE] = -500;
+        input[INPUT_RC_THROTTLE] = -500;
+    }
+
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servo[i] = 0;
     }
@@ -487,19 +497,6 @@ void servoMixer(float dT)
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
     }
 
-    /*
-     * When not armed, apply servo low position to all outputs that include a throttle or stabilizet throttle in the mix
-     */
-    if (!ARMING_FLAG(ARMED)) {
-        for (int i = 0; i < servoRuleCount; i++) {
-            const uint8_t target = currentServoMixer[i].targetChannel;
-            const uint8_t from = currentServoMixer[i].inputSource;
-
-            if (from == INPUT_STABILIZED_THROTTLE || from == INPUT_RC_THROTTLE) {
-                servo[target] = motorConfig()->mincommand;
-            }
-        }
-    }
 }
 
 #define SERVO_AUTOTRIM_TIMER_MS     2000
@@ -617,6 +614,7 @@ void processContinuousServoAutotrim(const float dT)
     static timeMs_t lastUpdateTimeMs;
     static servoAutotrimState_e trimState = AUTOTRIM_IDLE;
     static uint32_t servoMiddleUpdateCount;
+    static float prevAxisIterm[2] = {0};  // Track previous I-term for rate-of-change calculation
 
     const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
     const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, getTotalRateTarget(), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
@@ -624,6 +622,13 @@ void processContinuousServoAutotrim(const float dT)
     if (ARMING_FLAG(ARMED)) {
         trimState = AUTOTRIM_COLLECTING;
         if ((millis() - lastUpdateTimeMs) > 500) {
+            static float itermRateOfChange[2];
+            for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
+                const float currentIterm = getAxisIterm(axis);
+                itermRateOfChange[axis] = fabsf(currentIterm - prevAxisIterm[axis]) / 0.5f;
+                prevAxisIterm[axis] = currentIterm;
+            }
+
             const bool planeIsFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
             const bool noRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
             const bool sticksAreCentered = !areSticksDeflected();
@@ -641,7 +646,9 @@ void processContinuousServoAutotrim(const float dT)
                 for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
                     // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
                     const float axisIterm = getAxisIterm(axis);
-                    if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE) {
+                    const bool itermIsStable = itermRateOfChange[axis] < servoConfig()->servo_autotrim_iterm_rate_limit;
+
+                    if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE && itermIsStable) {
                         const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;
                         for (int i = 0; i < servoRuleCount; i++) {
 #ifdef USE_PROGRAMMING_FRAMEWORK
