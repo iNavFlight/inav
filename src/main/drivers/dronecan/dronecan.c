@@ -472,7 +472,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 
                 canardSTM32GetProtocolStatus(&protocolStatus);
                 if (protocolStatus.BusOff != 0 || protocolStatus.ErrorPassive != 0) {
-                    LOG_DEBUG(CAN, "CAN status: BusOff=%u ErrorPassive=%u", protocolStatus.BusOff, protocolStatus.ErrorPassive);
+                    LOG_DEBUG(CAN, "CAN status: BusOff=%" PRIu32 " ErrorPassive=%" PRIu32, protocolStatus.BusOff, protocolStatus.ErrorPassive);
                 }
                 if (protocolStatus.BusOff != 0) {
                     dronecanState = STATE_DRONECAN_BUS_OFF;
