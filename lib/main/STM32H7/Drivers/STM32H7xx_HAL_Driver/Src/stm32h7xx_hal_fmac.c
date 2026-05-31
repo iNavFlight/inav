@@ -1226,20 +1226,14 @@ HAL_StatusTypeDef HAL_FMAC_FilterStop(FMAC_HandleTypeDef *hfmac)
 
     if (hfmac->InputAccess == FMAC_BUFFER_ACCESS_DMA)
     {
-      if (HAL_DMA_GetState(hfmac->hdmaIn) != HAL_DMA_STATE_READY)
-      {
-        /* Disable the DMA stream managing FMAC input data */
-        status = HAL_DMA_Abort_IT(hfmac->hdmaIn);
-      }
+      /* Disable the DMA stream managing FMAC input data */
+      status = HAL_DMA_Abort_IT(hfmac->hdmaIn);
     }
 
     if ((hfmac->OutputAccess == FMAC_BUFFER_ACCESS_DMA) && (status == HAL_OK))
     {
-      if (HAL_DMA_GetState(hfmac->hdmaOut) != HAL_DMA_STATE_READY)
-      {
-        /* Disable the DMA stream managing FMAC output data */
-        status = HAL_DMA_Abort_IT(hfmac->hdmaOut);
-      }
+      /* Disable the DMA stream managing FMAC output data */
+      status = HAL_DMA_Abort_IT(hfmac->hdmaOut);
     }
 
     /* Reset FMAC unit (internal pointers) */

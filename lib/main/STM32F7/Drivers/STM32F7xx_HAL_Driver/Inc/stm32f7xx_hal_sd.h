@@ -2,29 +2,46 @@
   ******************************************************************************
   * @file    stm32f7xx_hal_sd.h
   * @author  MCD Application Team
+  * @version V1.2.2
+  * @date    14-April-2017
   * @brief   Header file of SD HAL module.
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.
+  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
   *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * Redistribution and use in source and binary forms, with or without modification,
+  * are permitted provided that the following conditions are met:
+  *   1. Redistributions of source code must retain the above copyright notice,
+  *      this list of conditions and the following disclaimer.
+  *   2. Redistributions in binary form must reproduce the above copyright notice,
+  *      this list of conditions and the following disclaimer in the documentation
+  *      and/or other materials provided with the distribution.
+  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+  *      may be used to endorse or promote products derived from this software
+  *      without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
   */ 
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef STM32F7xx_HAL_SD_H
-#define STM32F7xx_HAL_SD_H
+#ifndef __STM32F7xx_HAL_SD_H
+#define __STM32F7xx_HAL_SD_H
 
 #ifdef __cplusplus
  extern "C" {
 #endif
-
-#if defined(SDMMC1)
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_ll_sdmmc.h"
@@ -48,14 +65,14 @@
   */   
 typedef enum
 {
-  HAL_SD_STATE_RESET                  = 0x00000000U,  /*!< SD not yet initialized or disabled  */
-  HAL_SD_STATE_READY                  = 0x00000001U,  /*!< SD initialized and ready for use    */
-  HAL_SD_STATE_TIMEOUT                = 0x00000002U,  /*!< SD Timeout state                    */
-  HAL_SD_STATE_BUSY                   = 0x00000003U,  /*!< SD process ongoing                  */
-  HAL_SD_STATE_PROGRAMMING            = 0x00000004U,  /*!< SD Programming State                */
-  HAL_SD_STATE_RECEIVING              = 0x00000005U,  /*!< SD Receiving State                  */
-  HAL_SD_STATE_TRANSFER               = 0x00000006U,  /*!< SD Transfer State                  */
-  HAL_SD_STATE_ERROR                  = 0x0000000FU   /*!< SD is in error state                */
+  HAL_SD_STATE_RESET                  = ((uint32_t)0x00000000U),  /*!< SD not yet initialized or disabled  */
+  HAL_SD_STATE_READY                  = ((uint32_t)0x00000001U),  /*!< SD initialized and ready for use    */
+  HAL_SD_STATE_TIMEOUT                = ((uint32_t)0x00000002U),  /*!< SD Timeout state                    */
+  HAL_SD_STATE_BUSY                   = ((uint32_t)0x00000003U),  /*!< SD process ongoing                  */
+  HAL_SD_STATE_PROGRAMMING            = ((uint32_t)0x00000004U),  /*!< SD Programming State                */
+  HAL_SD_STATE_RECEIVING              = ((uint32_t)0x00000005U),  /*!< SD Receinving State                 */
+  HAL_SD_STATE_TRANSFER               = ((uint32_t)0x00000006U),  /*!< SD Transfert State                  */
+  HAL_SD_STATE_ERROR                  = ((uint32_t)0x0000000FU)   /*!< SD is in error state                */
 }HAL_SD_StateTypeDef;
 /** 
   * @}
@@ -64,17 +81,18 @@ typedef enum
 /** @defgroup SD_Exported_Types_Group2 SD Card State enumeration structure
   * @{
   */   
-typedef uint32_t HAL_SD_CardStateTypeDef;
-
-#define HAL_SD_CARD_READY          0x00000001U  /*!< Card state is ready                     */
-#define HAL_SD_CARD_IDENTIFICATION 0x00000002U  /*!< Card is in identification state         */
-#define HAL_SD_CARD_STANDBY        0x00000003U  /*!< Card is in standby state                */
-#define HAL_SD_CARD_TRANSFER       0x00000004U  /*!< Card is in transfer state               */
-#define HAL_SD_CARD_SENDING        0x00000005U  /*!< Card is sending an operation            */
-#define HAL_SD_CARD_RECEIVING      0x00000006U  /*!< Card is receiving operation information */
-#define HAL_SD_CARD_PROGRAMMING    0x00000007U  /*!< Card is in programming state            */
-#define HAL_SD_CARD_DISCONNECTED   0x00000008U  /*!< Card is disconnected                    */
-#define HAL_SD_CARD_ERROR          0x000000FFU  /*!< Card response Error                     */
+typedef enum
+{
+  HAL_SD_CARD_READY                  = ((uint32_t)0x00000001U),  /*!< Card state is ready                     */
+  HAL_SD_CARD_IDENTIFICATION         = ((uint32_t)0x00000002U),  /*!< Card is in identification state         */
+  HAL_SD_CARD_STANDBY                = ((uint32_t)0x00000003U),  /*!< Card is in standby state                */
+  HAL_SD_CARD_TRANSFER               = ((uint32_t)0x00000004U),  /*!< Card is in transfer state               */  
+  HAL_SD_CARD_SENDING                = ((uint32_t)0x00000005U),  /*!< Card is sending an operation            */
+  HAL_SD_CARD_RECEIVING              = ((uint32_t)0x00000006U),  /*!< Card is receiving operation information */
+  HAL_SD_CARD_PROGRAMMING            = ((uint32_t)0x00000007U),  /*!< Card is in programming state            */
+  HAL_SD_CARD_DISCONNECTED           = ((uint32_t)0x00000008U),  /*!< Card is disconnected                    */
+  HAL_SD_CARD_ERROR                  = ((uint32_t)0x000000FFU)   /*!< Card response Error                     */
+}HAL_SD_CardStateTypeDef;
 /** 
   * @}
   */
@@ -111,11 +129,7 @@ typedef struct
 /** 
   * @brief  SD handle Structure definition
   */ 
-#if defined (USE_HAL_SD_REGISTER_CALLBACKS) && (USE_HAL_SD_REGISTER_CALLBACKS == 1U)
-typedef struct __SD_HandleTypeDef
-#else
 typedef struct
-#endif /* USE_HAL_SD_REGISTER_CALLBACKS */
 {
   SD_TypeDef                   *Instance;        /*!< SD registers base address           */
   
@@ -123,11 +137,11 @@ typedef struct
   
   HAL_LockTypeDef              Lock;             /*!< SD locking object                   */
   
-  uint8_t                      *pTxBuffPtr;      /*!< Pointer to SD Tx transfer Buffer    */
+  uint32_t                     *pTxBuffPtr;      /*!< Pointer to SD Tx transfer Buffer    */
 
   uint32_t                     TxXferSize;       /*!< SD Tx Transfer size                 */
 
-  uint8_t                      *pRxBuffPtr;      /*!< Pointer to SD Rx transfer Buffer    */
+  uint32_t                     *pRxBuffPtr;      /*!< Pointer to SD Rx transfer Buffer    */
 
   uint32_t                     RxXferSize;       /*!< SD Rx Transfer size                 */
   
@@ -137,9 +151,9 @@ typedef struct
   
   __IO uint32_t                ErrorCode;        /*!< SD Card Error codes                 */  
  
-  DMA_HandleTypeDef            *hdmatx;          /*!< SD Tx DMA handle parameters         */
-
   DMA_HandleTypeDef            *hdmarx;          /*!< SD Rx DMA handle parameters         */
+  
+  DMA_HandleTypeDef            *hdmatx;          /*!< SD Tx DMA handle parameters         */
   
   HAL_SD_CardInfoTypeDef       SdCard;           /*!< SD Card information                 */
   
@@ -147,15 +161,6 @@ typedef struct
   
   uint32_t                     CID[4];           /*!< SD card identification number table */
   
-#if defined (USE_HAL_SD_REGISTER_CALLBACKS) && (USE_HAL_SD_REGISTER_CALLBACKS == 1U)
-  void (* TxCpltCallback)                 (struct __SD_HandleTypeDef *hsd);
-  void (* RxCpltCallback)                 (struct __SD_HandleTypeDef *hsd);
-  void (* ErrorCallback)                  (struct __SD_HandleTypeDef *hsd);
-  void (* AbortCpltCallback)              (struct __SD_HandleTypeDef *hsd);
-
-  void (* MspInitCallback)                (struct __SD_HandleTypeDef *hsd);
-  void (* MspDeInitCallback)              (struct __SD_HandleTypeDef *hsd);
-#endif /* USE_HAL_SD_REGISTER_CALLBACKS */
 }SD_HandleTypeDef;
 
 /** 
@@ -196,7 +201,7 @@ typedef struct
   __IO uint8_t  WriteBlockPaPartial;  /*!< Partial blocks for write allowed      */
   __IO uint8_t  Reserved3;            /*!< Reserved                              */
   __IO uint8_t  ContentProtectAppli;  /*!< Content protection application        */
-  __IO uint8_t  FileFormatGroup;      /*!< File format group                     */
+  __IO uint8_t  FileFormatGrouop;     /*!< File format group                     */
   __IO uint8_t  CopyFlag;             /*!< Copy flag (OTP)                       */
   __IO uint8_t  PermWrProtect;        /*!< Permanent write protection            */
   __IO uint8_t  TempWrProtect;        /*!< Temporary write protection            */
@@ -204,6 +209,7 @@ typedef struct
   __IO uint8_t  ECC;                  /*!< ECC code                              */
   __IO uint8_t  CSD_CRC;              /*!< CSD CRC                               */
   __IO uint8_t  Reserved4;            /*!< Always 1                              */
+  
 }HAL_SD_CardCSDTypeDef;
 /** 
   * @}
@@ -251,32 +257,6 @@ typedef struct
   * @}
   */
 
-#if defined (USE_HAL_SD_REGISTER_CALLBACKS) && (USE_HAL_SD_REGISTER_CALLBACKS == 1U)
-/** @defgroup SD_Exported_Types_Group7 SD Callback ID enumeration definition 
-  * @{
-  */
-typedef enum
-{
-  HAL_SD_TX_CPLT_CB_ID                 = 0x00U,  /*!< SD Tx Complete Callback ID                     */
-  HAL_SD_RX_CPLT_CB_ID                 = 0x01U,  /*!< SD Rx Complete Callback ID                     */
-  HAL_SD_ERROR_CB_ID                   = 0x02U,  /*!< SD Error Callback ID                           */
-  HAL_SD_ABORT_CB_ID                   = 0x03U,  /*!< SD Abort Callback ID                           */
-
-  HAL_SD_MSP_INIT_CB_ID                = 0x10U,  /*!< SD MspInit Callback ID                         */
-  HAL_SD_MSP_DEINIT_CB_ID              = 0x11U   /*!< SD MspDeInit Callback ID                       */
-}HAL_SD_CallbackIDTypeDef;
-/** 
-  * @}
-  */
-
-/** @defgroup SD_Exported_Types_Group8 SD Callback pointer definition 
-  * @{
-  */
-typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
-/** 
-  * @}
-  */
-#endif /* USE_HAL_SD_REGISTER_CALLBACKS */
 /** 
   * @}
   */
@@ -286,7 +266,7 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   * @{
   */
 
-#define BLOCKSIZE   512U /*!< Block size is 512 bytes */
+#define BLOCKSIZE   ((uint32_t)512U) /*!< Block size is 512 bytes */
 
 /** @defgroup SD_Exported_Constansts_Group1 SD Error status enumeration Structure definition 
   * @{
@@ -328,9 +308,6 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
 #define HAL_SD_ERROR_DMA                      SDMMC_ERROR_DMA                     /*!< Error while DMA transfer                                      */
 #define HAL_SD_ERROR_TIMEOUT                  SDMMC_ERROR_TIMEOUT                 /*!< Timeout error                                                 */
                                                 
-#if defined (USE_HAL_SD_REGISTER_CALLBACKS) && (USE_HAL_SD_REGISTER_CALLBACKS == 1U)
-#define HAL_SD_ERROR_INVALID_CALLBACK         SDMMC_ERROR_INVALID_PARAMETER       /*!< Invalid callback error                                        */
-#endif /* USE_HAL_SD_REGISTER_CALLBACKS */
 /** 
   * @}
   */
@@ -338,13 +315,13 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
 /** @defgroup SD_Exported_Constansts_Group2 SD context enumeration
   * @{
   */ 
-#define SD_CONTEXT_NONE                            0x00000000U   /*!< None                             */
-#define SD_CONTEXT_READ_SINGLE_BLOCK               0x00000001U   /*!< Read single block operation      */
-#define SD_CONTEXT_READ_MULTIPLE_BLOCK             0x00000002U   /*!< Read multiple blocks operation   */
-#define SD_CONTEXT_WRITE_SINGLE_BLOCK              0x00000010U   /*!< Write single block operation     */
-#define SD_CONTEXT_WRITE_MULTIPLE_BLOCK            0x00000020U   /*!< Write multiple blocks operation  */
-#define SD_CONTEXT_IT                              0x00000008U   /*!< Process in Interrupt mode        */
-#define SD_CONTEXT_DMA                             0x00000080U   /*!< Process in DMA mode              */
+#define   SD_CONTEXT_NONE                 ((uint32_t)0x00000000U)  /*!< None                             */
+#define   SD_CONTEXT_READ_SINGLE_BLOCK    ((uint32_t)0x00000001U)  /*!< Read single block operation      */
+#define   SD_CONTEXT_READ_MULTIPLE_BLOCK  ((uint32_t)0x00000002U)  /*!< Read multiple blocks operation   */
+#define   SD_CONTEXT_WRITE_SINGLE_BLOCK   ((uint32_t)0x00000010U)  /*!< Write single block operation     */
+#define   SD_CONTEXT_WRITE_MULTIPLE_BLOCK ((uint32_t)0x00000020U)  /*!< Write multiple blocks operation  */
+#define   SD_CONTEXT_IT                   ((uint32_t)0x00000008U)  /*!< Process in Interrupt mode        */
+#define   SD_CONTEXT_DMA                  ((uint32_t)0x00000080U)  /*!< Process in DMA mode              */  
 
 /**
   * @}
@@ -353,9 +330,9 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
 /** @defgroup SD_Exported_Constansts_Group3 SD Supported Memory Cards
   * @{
   */
-#define CARD_SDSC                  0x00000000U  /*!< SD Standard Capacity <2Go                          */
-#define CARD_SDHC_SDXC             0x00000001U  /*!< SD High Capacity <32Go, SD Extended Capacity <2To  */
-#define CARD_SECURED               0x00000003U
+#define CARD_SDSC                  ((uint32_t)0x00000000U)
+#define CARD_SDHC_SDXC             ((uint32_t)0x00000001U)
+#define CARD_SECURED               ((uint32_t)0x00000003U)
     
 /**
   * @}
@@ -364,8 +341,8 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
 /** @defgroup SD_Exported_Constansts_Group4 SD Supported Version
   * @{
   */
-#define CARD_V1_X                  0x00000000U
-#define CARD_V2_X                  0x00000001U
+#define CARD_V1_X                  ((uint32_t)0x00000000U)
+#define CARD_V2_X                  ((uint32_t)0x00000001U)
 /**
   * @}
   */
@@ -379,19 +356,6 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
  *  @brief macros to handle interrupts and specific clock configurations
  * @{
  */
-/** @brief Reset SD handle state.
-  * @param  __HANDLE__ : SD handle.
-  * @retval None
-  */
-#if defined (USE_HAL_SD_REGISTER_CALLBACKS) && (USE_HAL_SD_REGISTER_CALLBACKS == 1U)
-#define __HAL_SD_RESET_HANDLE_STATE(__HANDLE__)           do {                                              \
-                                                               (__HANDLE__)->State = HAL_SD_STATE_RESET; \
-                                                               (__HANDLE__)->MspInitCallback = NULL;       \
-                                                               (__HANDLE__)->MspDeInitCallback = NULL;     \
-                                                             } while(0)
-#else
-#define __HAL_SD_RESET_HANDLE_STATE(__HANDLE__)           ((__HANDLE__)->State = HAL_SD_STATE_RESET)
-#endif /* USE_HAL_SD_REGISTER_CALLBACKS */
  
 /**
   * @brief  Enable the SD device.
@@ -430,7 +394,7 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_IT_RXOVERR:  Received FIFO overrun error interrupt
   *            @arg SDMMC_IT_CMDREND:  Command response received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDSENT:  Command sent (no response required) interrupt
-  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, DATACOUNT, is zero) interrupt
+  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, SDIDCOUNT, is zero) interrupt
   *            @arg SDMMC_IT_DBCKEND:  Data block sent/received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDACT:   Command transfer in progress interrupt
   *            @arg SDMMC_IT_TXACT:    Data transmit in progress interrupt
@@ -443,7 +407,7 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_IT_RXFIFOE:  Receive FIFO empty interrupt
   *            @arg SDMMC_IT_TXDAVL:   Data available in transmit FIFO interrupt
   *            @arg SDMMC_IT_RXDAVL:   Data available in receive FIFO interrupt
-  *            @arg SDMMC_IT_SDIOIT:   SDIO interrupt received interrupt
+  *            @arg SDMMC_IT_SDIOIT:   SD I/O interrupt received interrupt
   * @retval None
   */
 #define __HAL_SD_ENABLE_IT(__HANDLE__, __INTERRUPT__) __SDMMC_ENABLE_IT((__HANDLE__)->Instance, (__INTERRUPT__))
@@ -461,7 +425,7 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_IT_RXOVERR:  Received FIFO overrun error interrupt
   *            @arg SDMMC_IT_CMDREND:  Command response received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDSENT:  Command sent (no response required) interrupt
-  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, DATACOUNT, is zero) interrupt
+  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, SDIDCOUNT, is zero) interrupt
   *            @arg SDMMC_IT_DBCKEND:  Data block sent/received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDACT:   Command transfer in progress interrupt
   *            @arg SDMMC_IT_TXACT:    Data transmit in progress interrupt
@@ -474,7 +438,7 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_IT_RXFIFOE:  Receive FIFO empty interrupt
   *            @arg SDMMC_IT_TXDAVL:   Data available in transmit FIFO interrupt
   *            @arg SDMMC_IT_RXDAVL:   Data available in receive FIFO interrupt
-  *            @arg SDMMC_IT_SDIOIT:   SDIO interrupt received interrupt   
+  *            @arg SDMMC_IT_SDIOIT:   SD I/O interrupt received interrupt   
   * @retval None
   */
 #define __HAL_SD_DISABLE_IT(__HANDLE__, __INTERRUPT__) __SDMMC_DISABLE_IT((__HANDLE__)->Instance, (__INTERRUPT__))
@@ -492,7 +456,7 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_FLAG_RXOVERR:  Received FIFO overrun error
   *            @arg SDMMC_FLAG_CMDREND:  Command response received (CRC check passed)
   *            @arg SDMMC_FLAG_CMDSENT:  Command sent (no response required)
-  *            @arg SDMMC_FLAG_DATAEND:  Data end (data counter, DATACOUNT, is zero)
+  *            @arg SDMMC_FLAG_DATAEND:  Data end (data counter, SDIDCOUNT, is zero)
   *            @arg SDMMC_FLAG_DBCKEND:  Data block sent/received (CRC check passed)
   *            @arg SDMMC_FLAG_CMDACT:   Command transfer in progress
   *            @arg SDMMC_FLAG_TXACT:    Data transmit in progress
@@ -505,7 +469,7 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_FLAG_RXFIFOE:  Receive FIFO empty
   *            @arg SDMMC_FLAG_TXDAVL:   Data available in transmit FIFO
   *            @arg SDMMC_FLAG_RXDAVL:   Data available in receive FIFO
-  *            @arg SDMMC_FLAG_SDIOIT:   SDIO interrupt received
+  *            @arg SDMMC_FLAG_SDIOIT:   SD I/O interrupt received
   * @retval The new state of SD FLAG (SET or RESET).
   */
 #define __HAL_SD_GET_FLAG(__HANDLE__, __FLAG__) __SDMMC_GET_FLAG((__HANDLE__)->Instance, (__FLAG__))
@@ -523,9 +487,9 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_FLAG_RXOVERR:  Received FIFO overrun error
   *            @arg SDMMC_FLAG_CMDREND:  Command response received (CRC check passed)
   *            @arg SDMMC_FLAG_CMDSENT:  Command sent (no response required)
-  *            @arg SDMMC_FLAG_DATAEND:  Data end (data counter, DATACOUNT, is zero)
+  *            @arg SDMMC_FLAG_DATAEND:  Data end (data counter, SDIDCOUNT, is zero)
   *            @arg SDMMC_FLAG_DBCKEND:  Data block sent/received (CRC check passed)
-  *            @arg SDMMC_FLAG_SDIOIT:   SDIO interrupt received
+  *            @arg SDMMC_FLAG_SDIOIT:   SD I/O interrupt received
   * @retval None
   */
 #define __HAL_SD_CLEAR_FLAG(__HANDLE__, __FLAG__) __SDMMC_CLEAR_FLAG((__HANDLE__)->Instance, (__FLAG__))
@@ -543,7 +507,7 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_IT_RXOVERR:  Received FIFO overrun error interrupt
   *            @arg SDMMC_IT_CMDREND:  Command response received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDSENT:  Command sent (no response required) interrupt
-  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, DATACOUNT, is zero) interrupt
+  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, SDIDCOUNT, is zero) interrupt
   *            @arg SDMMC_IT_DBCKEND:  Data block sent/received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDACT:   Command transfer in progress interrupt
   *            @arg SDMMC_IT_TXACT:    Data transmit in progress interrupt
@@ -556,7 +520,7 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_IT_RXFIFOE:  Receive FIFO empty interrupt
   *            @arg SDMMC_IT_TXDAVL:   Data available in transmit FIFO interrupt
   *            @arg SDMMC_IT_RXDAVL:   Data available in receive FIFO interrupt
-  *            @arg SDMMC_IT_SDIOIT:   SDIO interrupt received interrupt
+  *            @arg SDMMC_IT_SDIOIT:   SD I/O interrupt received interrupt
   * @retval The new state of SD IT (SET or RESET).
   */
 #define __HAL_SD_GET_IT(__HANDLE__, __INTERRUPT__) __SDMMC_GET_IT((__HANDLE__)->Instance, (__INTERRUPT__))
@@ -574,8 +538,8 @@ typedef void (*pSD_CallbackTypeDef)           (SD_HandleTypeDef *hsd);
   *            @arg SDMMC_IT_RXOVERR:  Received FIFO overrun error interrupt
   *            @arg SDMMC_IT_CMDREND:  Command response received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDSENT:  Command sent (no response required) interrupt
-  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, DATACOUNT, is zero) interrupt
-  *            @arg SDMMC_IT_SDIOIT:   SDIO interrupt received interrupt
+  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, SDMMC_DCOUNT, is zero) interrupt
+  *            @arg SDMMC_IT_SDIOIT:   SD I/O interrupt received interrupt
   * @retval None
   */
 #define __HAL_SD_CLEAR_IT(__HANDLE__, __INTERRUPT__) __SDMMC_CLEAR_IT((__HANDLE__)->Instance, (__INTERRUPT__))
@@ -622,13 +586,6 @@ void HAL_SD_TxCpltCallback(SD_HandleTypeDef *hsd);
 void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd);
 void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd);
 void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd);
-
-#if defined (USE_HAL_SD_REGISTER_CALLBACKS) && (USE_HAL_SD_REGISTER_CALLBACKS == 1U)
-/* SD callback registering/unregistering */
-HAL_StatusTypeDef HAL_SD_RegisterCallback  (SD_HandleTypeDef *hsd, HAL_SD_CallbackIDTypeDef CallbackId, pSD_CallbackTypeDef pCallback);
-HAL_StatusTypeDef HAL_SD_UnRegisterCallback(SD_HandleTypeDef *hsd, HAL_SD_CallbackIDTypeDef CallbackId);
-#endif /* USE_HAL_SD_REGISTER_CALLBACKS */
-
 /**
   * @}
   */
@@ -748,11 +705,12 @@ HAL_StatusTypeDef HAL_SD_Abort_IT(SD_HandleTypeDef *hsd);
   * @}
   */
 
-#endif /* SDMMC1 */
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif /* STM32F7xx_HAL_SD_H */ 
+#endif /* __STM32F7xx_HAL_SD_H */ 
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

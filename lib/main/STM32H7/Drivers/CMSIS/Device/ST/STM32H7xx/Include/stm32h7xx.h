@@ -89,6 +89,10 @@
         devices, you can define the device in your toolchain compiler preprocessor.
   */
 
+#if defined(DUAL_CORE) && !defined(CORE_CM4) && !defined(CORE_CM7)
+ #error "Dual core device, please select CORE_CM4 or CORE_CM7"
+#endif
+
 #if !defined  (USE_HAL_DRIVER)
 /**
  * @brief Comment the line below if you will not use the peripherals drivers.
@@ -99,11 +103,11 @@
 #endif /* USE_HAL_DRIVER */
 
 /**
-  * @brief CMSIS Device version number V1.10.7
+  * @brief CMSIS Device version number V1.10.5
   */
 #define __STM32H7xx_CMSIS_DEVICE_VERSION_MAIN   (0x01) /*!< [31:24] main version */
 #define __STM32H7xx_CMSIS_DEVICE_VERSION_SUB1   (0x0A) /*!< [23:16] sub1 version */
-#define __STM32H7xx_CMSIS_DEVICE_VERSION_SUB2   (0x07) /*!< [15:8]  sub2 version */
+#define __STM32H7xx_CMSIS_DEVICE_VERSION_SUB2   (0x05) /*!< [15:8]  sub2 version */
 #define __STM32H7xx_CMSIS_DEVICE_VERSION_RC     (0x00) /*!< [7:0]  release candidate */
 #define __STM32H7xx_CMSIS_DEVICE_VERSION        ((__STM32H7xx_CMSIS_DEVICE_VERSION_MAIN     << 24)\
                                       |(__STM32H7xx_CMSIS_DEVICE_VERSION_SUB1 << 16)\
@@ -164,10 +168,6 @@
   #include "stm32h723xx.h"
 #else
  #error "Please select first the target STM32H7xx device used in your application (in stm32h7xx.h file)"
-#endif
-
-#if defined(DUAL_CORE) && !defined(CORE_CM4) && !defined(CORE_CM7)
-#error "Dual core device, please select CORE_CM4 or CORE_CM7"
 #endif
 
 /**

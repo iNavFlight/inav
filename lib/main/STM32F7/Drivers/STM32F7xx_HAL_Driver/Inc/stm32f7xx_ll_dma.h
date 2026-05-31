@@ -2,16 +2,35 @@
   ******************************************************************************
   * @file    stm32f7xx_ll_dma.h
   * @author  MCD Application Team
+  * @version V1.2.2
+  * @date    14-April-2017
   * @brief   Header file of DMA LL module.
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.
+  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
   *
-  * This software is licensed under terms that can be found in the LICENSE file in
-  * the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * Redistribution and use in source and binary forms, with or without modification,
+  * are permitted provided that the following conditions are met:
+  *   1. Redistributions of source code must retain the above copyright notice,
+  *      this list of conditions and the following disclaimer.
+  *   2. Redistributions in binary form must reproduce the above copyright notice,
+  *      this list of conditions and the following disclaimer in the documentation
+  *      and/or other materials provided with the distribution.
+  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+  *      may be used to endorse or promote products derived from this software
+  *      without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
   */
@@ -1632,7 +1651,7 @@ __STATIC_INLINE uint32_t LL_DMA_GetM2MDstAddress(DMA_TypeDef* DMAx, uint32_t Str
   */
 __STATIC_INLINE void LL_DMA_SetMemory1Address(DMA_TypeDef *DMAx, uint32_t Stream, uint32_t Address)
 {
-  WRITE_REG(((DMA_Stream_TypeDef*)((uint32_t)((uint32_t)DMAx + STREAM_OFFSET_TAB[Stream])))->M1AR, Address);
+  MODIFY_REG(((DMA_Stream_TypeDef*)((uint32_t)((uint32_t)DMAx + STREAM_OFFSET_TAB[Stream])))->M1AR, DMA_SxM1AR_M1A, Address);
 }
 
 /**
@@ -2111,7 +2130,7 @@ __STATIC_INLINE uint32_t LL_DMA_IsActiveFlag_FE7(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_HT0(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CHTIF0);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CHTIF0);
 }
 
 /**
@@ -2122,7 +2141,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_HT0(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_HT1(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CHTIF1);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CHTIF1);
 }
 
 /**
@@ -2133,7 +2152,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_HT1(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_HT2(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CHTIF2);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CHTIF2);
 }
 
 /**
@@ -2144,7 +2163,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_HT2(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_HT3(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CHTIF3);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CHTIF3);
 }
 
 /**
@@ -2155,7 +2174,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_HT3(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_HT4(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CHTIF4);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CHTIF4);
 }
 
 /**
@@ -2166,7 +2185,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_HT4(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_HT5(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CHTIF5);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CHTIF5);
 }
 
 /**
@@ -2177,7 +2196,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_HT5(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_HT6(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CHTIF6);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CHTIF6);
 }
 
 /**
@@ -2188,7 +2207,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_HT6(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_HT7(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CHTIF7);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CHTIF7);
 }
 
 /**
@@ -2199,7 +2218,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_HT7(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TC0(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CTCIF0);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CTCIF0);
 }
 
 /**
@@ -2210,7 +2229,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TC0(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TC1(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CTCIF1);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CTCIF1);
 }
 
 /**
@@ -2221,7 +2240,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TC1(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TC2(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CTCIF2);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CTCIF2);
 }
 
 /**
@@ -2232,7 +2251,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TC2(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TC3(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CTCIF3);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CTCIF3);
 }
 
 /**
@@ -2243,7 +2262,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TC3(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TC4(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CTCIF4);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CTCIF4);
 }
 
 /**
@@ -2254,7 +2273,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TC4(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TC5(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CTCIF5);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CTCIF5);
 }
 
 /**
@@ -2265,7 +2284,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TC5(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TC6(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CTCIF6);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CTCIF6);
 }
 
 /**
@@ -2276,7 +2295,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TC6(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TC7(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CTCIF7);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CTCIF7);
 }
 
 /**
@@ -2287,7 +2306,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TC7(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TE0(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CTEIF0);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CTEIF0);
 }
 
 /**
@@ -2298,7 +2317,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TE0(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TE1(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CTEIF1);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CTEIF1);
 }
 
 /**
@@ -2309,7 +2328,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TE1(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TE2(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CTEIF2);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CTEIF2);
 }
 
 /**
@@ -2320,7 +2339,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TE2(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TE3(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CTEIF3);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CTEIF3);
 }
 
 /**
@@ -2331,7 +2350,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TE3(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TE4(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CTEIF4);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CTEIF4);
 }
 
 /**
@@ -2342,7 +2361,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TE4(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TE5(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CTEIF5);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CTEIF5);
 }
 
 /**
@@ -2353,7 +2372,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TE5(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TE6(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CTEIF6);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CTEIF6);
 }
 
 /**
@@ -2364,7 +2383,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TE6(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_TE7(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CTEIF7);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CTEIF7);
 }
 
 /**
@@ -2375,7 +2394,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_TE7(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_DME0(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CDMEIF0);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CDMEIF0);
 }
 
 /**
@@ -2386,7 +2405,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_DME0(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_DME1(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CDMEIF1);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CDMEIF1);
 }
 
 /**
@@ -2397,7 +2416,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_DME1(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_DME2(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CDMEIF2);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CDMEIF2);
 }
 
 /**
@@ -2408,7 +2427,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_DME2(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_DME3(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CDMEIF3);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CDMEIF3);
 }
 
 /**
@@ -2419,7 +2438,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_DME3(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_DME4(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CDMEIF4);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CDMEIF4);
 }
 
 /**
@@ -2430,7 +2449,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_DME4(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_DME5(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CDMEIF5);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CDMEIF5);
 }
 
 /**
@@ -2441,7 +2460,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_DME5(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_DME6(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CDMEIF6);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CDMEIF6);
 }
 
 /**
@@ -2452,7 +2471,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_DME6(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_DME7(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CDMEIF7);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CDMEIF7);
 }
 
 /**
@@ -2463,7 +2482,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_DME7(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_FE0(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CFEIF0);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CFEIF0);
 }
 
 /**
@@ -2474,7 +2493,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_FE0(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_FE1(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CFEIF1);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CFEIF1);
 }
 
 /**
@@ -2485,7 +2504,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_FE1(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_FE2(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CFEIF2);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CFEIF2);
 }
 
 /**
@@ -2496,7 +2515,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_FE2(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_FE3(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->LIFCR , DMA_LIFCR_CFEIF3);
+  SET_BIT(DMAx->LIFCR , DMA_LIFCR_CFEIF3);
 }
 
 /**
@@ -2507,7 +2526,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_FE3(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_FE4(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CFEIF4);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CFEIF4);
 }
 
 /**
@@ -2518,7 +2537,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_FE4(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_FE5(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CFEIF5);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CFEIF5);
 }
 
 /**
@@ -2529,7 +2548,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_FE5(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_FE6(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CFEIF6);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CFEIF6);
 }
 
 /**
@@ -2540,7 +2559,7 @@ __STATIC_INLINE void LL_DMA_ClearFlag_FE6(DMA_TypeDef *DMAx)
   */
 __STATIC_INLINE void LL_DMA_ClearFlag_FE7(DMA_TypeDef *DMAx)
 {
-  WRITE_REG(DMAx->HIFCR , DMA_HIFCR_CFEIF7);
+  SET_BIT(DMAx->HIFCR , DMA_HIFCR_CFEIF7);
 }
 
 /**
@@ -2889,3 +2908,4 @@ void LL_DMA_StructInit(LL_DMA_InitTypeDef *DMA_InitStruct);
 
 #endif /* __STM32F7xx_LL_DMA_H */
 
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -1729,13 +1729,8 @@ static uint32_t RCC_GetSystemClockFreq(void)
   */
 static uint32_t RCC_GetHCLKClockFreq(uint32_t SYSCLK_Frequency)
 {
-#if defined(RCC_D1CFGR_HPRE)
   /* HCLK clock frequency */
-  return LL_RCC_CALC_HCLK_FREQ(SYSCLK_Frequency, LL_RCC_GetAHBPrescaler()) >> (D1CorePrescTable[(RCC->D1CFGR & RCC_D1CFGR_D1CPRE) >> RCC_D1CFGR_D1CPRE_Pos] & 0x1FU);
-#else
-  /* HCLK clock frequency */
-  return LL_RCC_CALC_HCLK_FREQ(SYSCLK_Frequency, LL_RCC_GetAHBPrescaler()) >> (D1CorePrescTable[(RCC->CDCFGR1 & RCC_CDCFGR1_CDCPRE) >> RCC_CDCFGR1_CDCPRE_Pos] & 0x1FU);
-#endif
+  return LL_RCC_CALC_HCLK_FREQ(SYSCLK_Frequency, LL_RCC_GetAHBPrescaler());
 }
 
 /**
