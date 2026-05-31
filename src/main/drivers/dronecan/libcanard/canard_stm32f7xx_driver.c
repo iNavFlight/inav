@@ -397,10 +397,10 @@ int32_t canardSTM32GetRxFifoFillLevel(void){
 }
 
 void canardSTM32RecoverFromBusOff(void){
-    // AutoBusOff=ENABLE handles the 128x11 recovery sequence automatically.
-    // TODO: ESR.BOFF is a sticky flag not cleared by AutoBusOff recovery.
-    // HAL_CAN_Stop/Start would clear it but caused lockups on F7 when called
-    // from the scheduler context with CAN interrupts active. Needs investigation.
+    // No-op: ABOM (CAN_MCR bit 6) is set in canardSTM32CAN1_Init, so hardware
+    // manages the full bus-off recovery sequence automatically. After 128x11
+    // recessive bits, hardware cycles INRQ and clears ESR.BOFF without software
+    // intervention. See RM0410 ss40.7.6 and CAN_MCR.ABOM, CAN_ESR.BOFF.
 }
 
 /*
