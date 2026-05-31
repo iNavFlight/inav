@@ -63,8 +63,7 @@ void pinioBoxInit(void)
 void pinioBoxUpdate(void)
 {
     for (int i = 0; i < PINIO_COUNT; i++) {
-        if (pinioBoxRuntimeConfig.boxId[i] != BOXID_NONE &&
-            isModeActivationConditionPresent(pinioBoxRuntimeConfig.boxId[i])) {
+        if (pinioBoxRuntimeConfig.boxId[i] != BOXID_NONE) {
             pinioSet(i, IS_RC_MODE_ACTIVE(pinioBoxRuntimeConfig.boxId[i]));
         }
     }

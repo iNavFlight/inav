@@ -46,8 +46,6 @@ launch.json
 # Assitnow token and files for test script
 tokens.yaml
 *.ubx
-/testing/
-/.idea/
 
 # Build output directories (catch-all for ad-hoc build dirs)
 /build_*/

@@ -87,17 +87,10 @@ extern void gpsHandleUBLOX(void);
 extern void gpsRestartMSP(void);
 extern void gpsHandleMSP(void);
 
-extern void gpsRestartCRSF(void);
-extern void gpsHandleCRSF(void);
-extern void crsfGPSNewDataReady(void);
-
 #if defined(USE_GPS_FAKE)
 extern void gpsFakeRestart(void);
 extern void gpsFakeHandle(void);
 #endif
-
-void gpsRestartDronecan(void);
-void gpsHandleDronecan(void);
 
 
 #endif

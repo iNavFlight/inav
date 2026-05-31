@@ -87,11 +87,6 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
-// MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
-static uint16_t monRfNoisePerMs = 0;
-static uint16_t monAgcCount = 0;
-static uint8_t monCWSuppresion = 0;
-
 // Packet checksum accumulators
 static uint8_t _ck_a;
 static uint8_t _ck_b;
@@ -156,14 +151,6 @@ static union {
     ubx_nav_sig navsig;
     uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
-
-// OSD controlled flag: when true, OSD requests periodic MON-RF polling
-static volatile bool osdMonRfWidgetEnabled = false;
-
-void gpsSetOsdMonRfWidgetEnabled(bool enabled)
-{
-    osdMonRfWidgetEnabled = enabled;
-}
 
 bool gpsUbloxHasGalileo(void)
 {
@@ -272,28 +259,6 @@ static void pollGnssCapabilities(void)
     send_buffer.message.header.msg_id = MSG_MON_GNSS;
     send_buffer.message.header.length = 0;
     sendConfigMessageUBLOX();
-}
-
-// Poll UBX-MON-RF (no ACK expected) - used periodically for RF status on newer modules
-static void pollMonRf(void)
-{
-    uint8_t pkt[8];
-    uint8_t ck_a = 0, ck_b = 0;
-
-    pkt[0] = PREAMBLE1;
-    pkt[1] = PREAMBLE2;
-    pkt[2] = CLASS_MON;
-    pkt[3] = MSG_MON_RF;
-    pkt[4] = 0; // length LSB
-    pkt[5] = 0; // length MSB
-
-    // compute checksum over CLASS, ID and length (4 bytes)
-    ublox_update_checksum(&pkt[2], 4, &ck_a, &ck_b);
-    pkt[6] = ck_a;
-    pkt[7] = ck_b;
-
-    // send without forcing ACK state (so we don't disturb config ACK handling)
-    serialWriteBuf(gpsState.gpsPort, pkt, sizeof(pkt));
 }
 
 
@@ -765,19 +730,6 @@ static bool gpsParseFrameUBLOX(void)
                 ubx_capabilities.capMaxGnss = _buffer.gnss.maxConcurrent;
                 gpsState.lastCapaUpdMs = millis();
             }
-        }
-        break;
-    case MSG_MON_RF:
-        if (_class == CLASS_MON) {
-            // MON-RF payload contains various RF stats; noisePerMS/agcCnt are U2 fields at offsets 0x10/0x12.
-            if (_payload_length > 0x11) {
-                monRfNoisePerMs = (uint16_t)_buffer.bytes[0x10] | ((uint16_t)_buffer.bytes[0x11] << 8);
-            }
-            if (_payload_length > 0x13) {
-                monAgcCount = (uint16_t)_buffer.bytes[0x12] | ((uint16_t)_buffer.bytes[0x13] << 8);
-            }
-            if (_payload_length > 0x14) 
-                monCWSuppresion = _buffer.bytes[0x14];
         }
         break;
     case MSG_NAV_SAT:
@@ -1268,30 +1220,20 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
 
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
-    static uint32_t lastMonRfMs = 0;
     while (1) {
         ptSemaphoreWait(semNewDataReady);
         gpsProcessNewSolutionData(false);
-       
-        bool gnssPolled=false;
+
         if (gpsState.gpsConfig->autoConfig) {
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
                 gpsState.lastCapaPoolMs = millis();
-                gnssPolled=true;
+
                 if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN)
                 {
                     pollVersion();
                 }
 
                 pollGnssCapabilities();
-            }
-        }
-
-         /* Periodically poll MON-RF (~1s) for HW > UBLOX8 if OSD widget requested. Do not change ACK state. */
-        if ((!gnssPolled) && gpsState.hwVersion > UBX_HW_VERSION_UBLOX8 && osdMonRfWidgetEnabled) {
-            if ((millis() - lastMonRfMs) > 1000) {
-                lastMonRfMs = millis();
-                pollMonRf();
             }
         }
     }
@@ -1367,21 +1309,6 @@ bool ubloxVersionLTE(uint8_t mj, uint8_t mn)
 bool ubloxVersionE(uint8_t mj, uint8_t mn)
 {
     return gpsState.swVersionMajor == mj && gpsState.swVersionMinor == mn;
-}
-
-uint16_t gpsGetMonRfNoisePerMs(void)
-{
-    return monRfNoisePerMs;
-}
-
-uint8_t gpsGetMonAGCPercent(void)
-{
-    return MIN((uint32_t)(monAgcCount * 100U /*+ 4095U*/) / 8191U, 100U); //AGC Monitor, as percentage of maximum gain, range 0 to 8191 (100%)
-}
-
-uint8_t gpsGetMonRfCWSuppression(void)
-{
-    return monCWSuppresion;
 }
 
 #endif
