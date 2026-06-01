@@ -4608,7 +4608,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                     sbufWriteU8(dst, node->mode);
                     sbufWriteU32(dst, node->uptime_sec);
                     sbufWriteU16(dst, node->vendor_status_code);
-                    sbufWriteU32(dst, node->last_seen_ms);
+                    sbufWriteU32(dst, millis() - node->last_seen_ms);
                     sbufWriteU8(dst, node->name_len);
                     sbufWriteDataSafe(dst, node->name, 32);
                     found = true;
