@@ -1899,7 +1899,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                     .nodeID      = node->nodeID,
                     .health      = node->health,
                     .mode        = node->mode,
-                    .last_seen_ms = node->last_seen_ms,
+                    .last_seen_ms = millis() - node->last_seen_ms,
                 }, sizeof(dronecanNodeStatus_t));
             }
         }
