@@ -456,7 +456,7 @@ bool pitotValidForAirspeed(void)
 
     // For virtual pitot, we need GPS fix
     if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
-        ret = ret && STATE(GPS_FIX);
+        ret = ret && STATE(GPS_FIX) && isEstimatedWindSpeedValid();
     }
 
     // For hardware pitot sensors, validate readings against GPS when armed

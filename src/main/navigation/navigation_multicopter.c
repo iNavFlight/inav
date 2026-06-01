@@ -785,7 +785,7 @@ static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
             if (acc.accADCf[Z] < 1.0f && baroAltRate < -200.0f) {
                 const uint16_t idleThrottle = getThrottleIdleValue();
                 const uint16_t hoverThrottleRange = currentBatteryProfile->nav.mc.hover_throttle - idleThrottle;
-                return rcCommand[THROTTLE] < idleThrottle + ((navigationInAutomaticThrottleMode() ? 0.8 : 0.5) * hoverThrottleRange);
+                return rcCommand[THROTTLE] < idleThrottle + ((navigationRequiresAutoThrottleMode() ? 0.8 : 0.5) * hoverThrottleRange);
             }
         } else if (acc.accADCf[Z] <= 1.0f) {
             gSpikeDetectTimeMs = 0;
