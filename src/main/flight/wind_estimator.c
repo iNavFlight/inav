@@ -45,6 +45,7 @@
 
 #define WINDESTIMATOR_TIMEOUT       60*15 // 15min with out altitude change
 #define WINDESTIMATOR_ALTITUDE_SCALE WINDESTIMATOR_TIMEOUT/500.0f //or 500m altitude change
+#define WINDESTIMATOR_VALIDITY_THRESHOLD    100
 // Based on WindEstimation.pdf paper
 
 static bool hasValidWindEstimate = false;
@@ -107,10 +108,10 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         updateTimedout = true;
 
         if (validityScore > 0) validityScore--;
-        if (validityScore < 85) hasValidWindEstimate = false;
+        if (validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD - 15) hasValidWindEstimate = false;
     }
 
-    if (!hasValidWindEstimate && validityScore > 100) {
+    if (!hasValidWindEstimate && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) {
         hasValidWindEstimate = true;
     }
 
@@ -202,7 +203,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         lastUpdateUs = currentTimeUs;
         lastValidWindEstimate = currentTimeUs;
         lastValidEstimateAltitude = currentAltitude;
-        if (validityScore < 115) validityScore++;
+        if (validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD + 15) validityScore++;
     }
 }
 
