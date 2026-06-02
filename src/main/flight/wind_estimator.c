@@ -54,7 +54,7 @@ static float lastFuselageDirection[XYZ_AXIS_COUNT];
 
 bool isEstimatedWindSpeedValid(void)
 {
-    return hasValidWindEstimate 
+    return hasValidWindEstimate
 #ifdef USE_GPS_FIX_ESTIMATION
         || STATE(GPS_ESTIMATED_FIX)  //use any wind estimate with GPS fix estimation.
 #endif
@@ -88,19 +88,37 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     static timeUs_t lastValidWindEstimate = 0;
     static float lastValidEstimateAltitude = 0.0f;
     float currentAltitude = gpsSol.llh.alt / 100.0f; // altitude in m
+    static uint8_t validityScore = 0;
+    bool updateTimedout = false;
 
     if ((US2S(currentTimeUs - lastValidWindEstimate) + WINDESTIMATOR_ALTITUDE_SCALE * fabsf(currentAltitude - lastValidEstimateAltitude)) > WINDESTIMATOR_TIMEOUT) {
         hasValidWindEstimate = false;
     }
 
-    if (!STATE(FIXED_WING_LEGACY) ||
-        !isGPSHeadingValid() ||
-        !gpsSol.flags.validVelNE ||
-        !gpsSol.flags.validVelD 
+    /* validityScore used to indicate validity of wind estimate in a more reactive way compared to the basic method used above.
+     * Each new estimate calc adds to score and each updateTimedout decrements from score.
+     * hasValidWindEstimate considered valid when score > 100 with max count limit of 115.
+     * 100 seems to be the number of estimate calcs required to get a reasonable estimate based on current filtering.
+     * hasValidWindEstimate considered invalid when score < 85.
+     * 85 approximates to around 2.5 to 5 minutes for hasValidWindEstimate to become invalid if no new estimate calcs occur */
+
+    if (cmpTimeUs(currentTimeUs, lastUpdateUs) > 10 * USECS_PER_SEC || lastUpdateUs == 0) {
+        lastUpdateUs = currentTimeUs;
+        updateTimedout = true;
+
+        if (validityScore > 0) validityScore--;
+        if (validityScore < 85) hasValidWindEstimate = false;
+    }
+
+    if (!hasValidWindEstimate && validityScore > 100) {
+        hasValidWindEstimate = true;
+    }
+
+    if (!isGPSHeadingValid() || !gpsSol.flags.validVelNE || !gpsSol.flags.validVelD
 #ifdef USE_GPS_FIX_ESTIMATION
-            || STATE(GPS_ESTIMATED_FIX)
+        || STATE(GPS_ESTIMATED_FIX)
 #endif
-            ) {
+        ) {
         return;
     }
 
@@ -123,12 +141,8 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     fuselageDirection[Y] = -HeadVecEFFiltered.y;
     fuselageDirection[Z] = -HeadVecEFFiltered.z;
 
-    timeDelta_t timeDelta = cmpTimeUs(currentTimeUs, lastUpdateUs);
-    // scrap our data and start over if we're taking too long to get a direction change
-    if (lastUpdateUs == 0 || timeDelta > 10 * USECS_PER_SEC) {
-
-        lastUpdateUs = currentTimeUs;
-
+    // scrap our data and start over if we're taking too long (> 10s) to get a direction change
+    if (updateTimedout) {
         memcpy(lastFuselageDirection, fuselageDirection, sizeof(lastFuselageDirection));
         memcpy(lastGroundVelocity, groundVelocity, sizeof(lastGroundVelocity));
         return;
@@ -139,7 +153,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     fuselageDirectionDiff[Z] = fuselageDirection[Z] - lastFuselageDirection[Z];
 
     float diffLengthSq = sq(fuselageDirectionDiff[X]) + sq(fuselageDirectionDiff[Y]) + sq(fuselageDirectionDiff[Z]);
-    
+
     // Very small changes in attitude will result in a denominator
     // very close to zero which will introduce too much error in the
     // estimation.
@@ -187,8 +201,8 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
         lastUpdateUs = currentTimeUs;
         lastValidWindEstimate = currentTimeUs;
-        hasValidWindEstimate = true;
         lastValidEstimateAltitude = currentAltitude;
+        if (validityScore < 115) validityScore++;
     }
 }
 
