@@ -1346,6 +1346,16 @@ S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GN
 
 ---
 
+### fw_auto_speed_channel
+
+Channel number used to set desired Auto speed input value. Defaults to throttle channel 4. Currently only for fixed wing.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 4 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
 ### fw_auto_speed_max_speed
 
 Maximum ground speed for fixed wing auto speed mode [m/s].

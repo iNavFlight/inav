@@ -865,7 +865,8 @@ uint16_t getDesiredAutoSpeed(void)
 
 bool isFixedwingAutoSpeedActive(void)
 {
-    return STATE(AIRPLANE) && ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXAUTOSPEED) && !FLIGHT_MODE(FAILSAFE_MODE) &&
+    return STATE(AIRPLANE) && ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXAUTOSPEED) && isProbablyStillFlying() &&
+            !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(SOARING_MODE) &&
             posControl.flags.estVelStatus == EST_TRUSTED && posControl.flags.estAltStatus == EST_TRUSTED &&
             !(navigationRequiresAutoThrottleMode() && !(navGetCurrentStateFlags() & NAV_CTL_SPEED));
 }
@@ -890,7 +891,7 @@ void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
         uint16_t maxSpeed = 100 * navConfig()->fw.auto_speed_max_speed;
         uint16_t minThrottle = getThrottleIdleValue();
 
-        posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
+        posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(navConfig()->fw.auto_speed_channel - 1), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
         uint16_t actualSpeed = calc_length_pythagorean_2D(posControl.actualState.velXY, posControl.actualState.abs.vel.z);
 
 #ifdef USE_PITOT

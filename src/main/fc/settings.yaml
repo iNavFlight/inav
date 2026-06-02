@@ -3030,6 +3030,12 @@ groups:
         field: fw.auto_speed_max_speed
         min: 5
         max: 50
+      - name: fw_auto_speed_channel
+        description: "Channel number used to set desired Auto speed input value. Defaults to throttle channel 4. Currently only for fixed wing."
+        default_value: 4
+        field: fw.auto_speed_channel
+        min: 4
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
       - name: nav_fw_control_smoothness
         description: "How smoothly the autopilot controls the airplane to correct the navigation error"
         default_value: 0
