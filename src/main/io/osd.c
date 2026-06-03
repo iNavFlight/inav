@@ -204,6 +204,11 @@ static glidePositionSample_t *glideBuffer = NULL;
 static uint16_t glideBufferAllocatedSize = 0;
 static uint16_t glideBufferCurrentSize = 0;
 
+// Calculated glide ratio (distance per unit altitude descent)
+// Available for use by multiple OSD elements
+static float currentGlideRatio = 0.0f;
+static bool useGlideElement = false; // Whether any glide element is enabled, used to determine whether glide ratio calculation needs to be performed
+
 static statistic_t stats;
 
 static timeUs_t resumeRefreshAt = 0;
@@ -1941,6 +1946,69 @@ static float calculateGlideRatioFromBuffer(const glidePositionSample_t *buffer, 
     return 0.0f;  // Out of reasonable range
 }
 
+// Update glide ratio calculation
+// Called regularly to maintain glide ratio buffer regardless of OSD element visibility
+// This ensures glide ratio is available for all OSD elements that need it
+static void updateGlideRatioCalculation(void) {
+    uint8_t sampleRate = osdConfig()->glide_sample_rate;
+    uint8_t timeFrame = osdConfig()->glide_sample_time_frame;
+    const uint16_t requiredBufferSize = sampleRate * timeFrame;
+    const uint8_t minimumSampleCount = requiredBufferSize / 4;
+    
+    uint16_t bufferSize = ensureGlideBufferAllocated(requiredBufferSize);
+    
+    if (bufferSize == 0) {
+        // Allocation failed
+        currentGlideRatio = 0.0f;
+        return;
+    }
+    
+    static uint8_t glideBufferIndex = 0;
+    static timeMs_t glideLastSampleTime = 0;
+    static uint8_t samplesSinceLastClear = 0;
+    const timeMs_t currentTime = millis();
+    const uint16_t sampleIntervalMs = 1000 / sampleRate;
+
+    if (currentTime - glideLastSampleTime >= sampleIntervalMs) {
+        // Record a new sample
+        glideLastSampleTime = currentTime;
+        if (!isDataValidForGlideRatio()) {
+            // Conditions not valid for glide ratio, reset buffer
+            for (uint16_t i = 0; i < bufferSize; i++) {
+                glideBuffer[i].distance_cm = 0;
+                glideBuffer[i].altitude_cm = 0;
+            }
+            currentGlideRatio = 0.0f;
+            samplesSinceLastClear = 0;
+            glideBufferIndex = 0;
+        }
+        else {
+            glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
+            glideBuffer[glideBufferIndex].altitude_cm = osdGetAltitude();
+            glideBufferIndex = (glideBufferIndex + 1) % bufferSize;
+
+            if (samplesSinceLastClear < bufferSize) {
+                samplesSinceLastClear++;
+            }
+
+            if (samplesSinceLastClear >= minimumSampleCount) {
+                // Calculate glide ratio using only the valid samples collected
+                currentGlideRatio = calculateGlideRatioFromBuffer(glideBuffer, samplesSinceLastClear);
+            }
+            else {
+                currentGlideRatio = 0.0f;  // Not enough samples yet
+            }
+        }
+    }
+}
+
+static void enableGlideRatioCalculation(void) {
+    if (!useGlideElement) {
+        useGlideElement = true;
+        updateGlideRatioCalculation();  // Start calculation immediately when element is enabled
+    }
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -2178,67 +2246,10 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GLIDESLOPE:
         {
-            // Note: the element was originally named "Glide Slope" but actually shows the glide ratio 
-            // The original naming is conserved in places to retain compatibility but otherwise the code refers to it as glide ratio
-            
-            uint8_t sampleRate = osdConfig()->glide_sample_rate;
-            uint8_t timeFrame = osdConfig()->glide_sample_time_frame;
-            const uint16_t requiredBufferSize = sampleRate * timeFrame;
-            const uint8_t minimumSampleCount = requiredBufferSize / 4;  // Require at least a quarter of the buffer to be filled with valid samples before showing a glide ratio
-            uint16_t bufferSize = ensureGlideBufferAllocated(requiredBufferSize);
-            
-            if (bufferSize == 0) {
-                // Allocation failed, display error
-                buff[0] = SYM_GLIDESLOPE;
-                buff[1] = 'E';
-                buff[2] = 'R';
-                buff[3] = 'R';
-                buff[4] = '\0';
-                break;
-            }
-            
-            static uint8_t glideBufferIndex = 0;
-            static timeMs_t glideLastSampleTime = 0;
-            static uint8_t samplesSinceLastClear = 0;
-            const timeMs_t currentTime = millis();
-            const uint16_t sampleIntervalMs = 1000 / sampleRate;
-            static float glideRatio = 0.0f;
-
-            if (currentTime - glideLastSampleTime >= sampleIntervalMs) {
-                // Record a new sample
-                glideLastSampleTime = currentTime;
-                if (!isDataValidForGlideRatio()) {
-                    // Conditions not valid for glide ratio, reset buffer
-                    for (uint16_t i = 0; i < bufferSize; i++) {
-                        glideBuffer[i].distance_cm = 0;
-                        glideBuffer[i].altitude_cm = 0;
-                    }
-                    glideRatio = 0.0f;
-                    samplesSinceLastClear = 0;
-                    glideBufferIndex = 0;
-                }
-                else {
-                    glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
-                    glideBuffer[glideBufferIndex].altitude_cm = osdGetAltitude();
-                    glideBufferIndex = (glideBufferIndex + 1) % bufferSize;
-
-                    if (samplesSinceLastClear < bufferSize) {
-                        samplesSinceLastClear++;
-                    }
-
-                    if (samplesSinceLastClear >= minimumSampleCount) {
-                        // Calculate glide ratio using only the valid samples collected
-                        glideRatio = calculateGlideRatioFromBuffer(glideBuffer, samplesSinceLastClear);
-                    }
-                    else {
-                        glideRatio = 0.0f;  // Not enough samples yet
-                    }
-                }
-            }
-
+            enableGlideRatioCalculation();  // Ensure glide ratio calculation is running if this element is enabled
             buff[0] = SYM_GLIDESLOPE;
-            if (glideRatio > 0.0f && glideRatio < 100.0f) {
-                osdFormatCentiNumber(buff + 1, glideRatio * 100.0f, 0, 2, 0, 3, false);
+            if (currentGlideRatio > 0.0f && currentGlideRatio < 100.0f) {
+                osdFormatCentiNumber(buff + 1, currentGlideRatio * 100.0f, 0, 2, 0, 3, false);
             } else {
                 buff[1] = buff[2] = buff[3] = '-';
             }
@@ -6024,6 +6035,10 @@ static bool osdIsPageDownStickCommandHeld(void)
 static void osdRefresh(timeUs_t currentTimeUs)
 {
     osdFilterData(currentTimeUs);
+    
+    if (useGlideElement) {
+        updateGlideRatioCalculation();
+    }
 
 #ifdef USE_CMS
     if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
