@@ -2179,7 +2179,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_GLIDESLOPE:
         {
             // Note: the element was originally named "Glide Slope" but actually shows the glide ratio 
-            // The original naming is conserved in places to retain compatibility 
+            // The original naming is conserved in places to retain compatibility but otherwise the code refers to it as glide ratio
             
             uint8_t sampleRate = osdConfig()->glide_sample_rate;
             uint8_t timeFrame = osdConfig()->glide_sample_time_frame;
@@ -2190,7 +2190,9 @@ static bool osdDrawSingleElement(uint8_t item)
             if (bufferSize == 0) {
                 // Allocation failed, display error
                 buff[0] = SYM_GLIDESLOPE;
-                buff[1] = buff[2] = buff[3] = '-';
+                buff[1] = 'E';
+                buff[2] = 'R';
+                buff[3] = 'R';
                 buff[4] = '\0';
                 break;
             }
