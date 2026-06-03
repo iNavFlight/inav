@@ -196,9 +196,9 @@ typedef struct glidePositionSample_s {
     int32_t altitude_cm;     // Altitude
 } glidePositionSample_t;
 
-static uint8_t glideSampleRate = 2;         // 2Hz
-static uint8_t glideSampleTimeFrame = 10;   // seconds
-static uint8_t minimumSampleCount = 5;      // Minimum number of samples in the timeframe to consider the glide slope valid
+static const uint8_t glideSampleRate = 2;         // 2Hz
+static const uint8_t glideSampleTimeFrame = 10;   // seconds
+static const uint8_t minimumSampleCount = 5;      // Minimum number of samples in the timeframe to consider the glide slope valid
 
 static statistic_t stats;
 
@@ -2077,7 +2077,7 @@ static bool osdDrawSingleElement(uint8_t item)
             // Note: the element was originally named "Glide Slope" but actually shows the glide ratio 
             // The original naming is conserved in places to retain compatibility 
             
-            static uint8_t bufferSize = glideSampleRate * glideSampleTimeFrame;
+            const uint8_t bufferSize = glideSampleRate * glideSampleTimeFrame;
             static glidePositionSample_t glideBuffer[20]; // Need to add semi-dynamic allocation based on glideSampleRate and glideSampleTimeFrame later to allow for changing this in settings
             static uint8_t glideBufferIndex = 0;
             static uint8_t samplesSinceLastClear = 0;
