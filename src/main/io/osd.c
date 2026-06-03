@@ -2088,10 +2088,11 @@ static bool osdDrawSingleElement(uint8_t item)
             static uint8_t glideBufferIndex = 0;
             static uint8_t samplesSinceLastClear = 0;
             const timeMs_t currentTime = millis();
+            const uint16_t sampleIntervalMs = 1000 / glideSampleRate; 
 
             static float glideSlope = 0.0f;
             
-            if (currentTime - glideLastSampleTime >= glideSampleRate) {
+            if (currentTime - glideLastSampleTime >= sampleIntervalMs) {
                 // Record a new sample
                 glideLastSampleTime = currentTime;
                 glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
