@@ -191,6 +191,8 @@ typedef struct statistic_s {
     int32_t flightStartMWh;
 } statistic_t;
 
+#define MAX_GLIDE_BUFFER_SIZE 240  // Maximum samples: 4 Hz * 60 seconds
+
 typedef struct glidePositionSample_s {
     uint32_t distance_cm;    // Total travel distance
     int32_t altitude_cm;     // Altitude
@@ -199,6 +201,11 @@ typedef struct glidePositionSample_s {
 static const uint8_t glideSampleRate = 2;         // 2Hz
 static const uint8_t glideSampleTimeFrame = 10;   // seconds
 static const uint8_t minimumSampleCount = 5;      // Minimum number of samples in the timeframe to consider the glide slope valid
+
+// Lazy-allocated glide buffer
+static glidePositionSample_t *glideBuffer = NULL;
+static uint16_t glideBufferAllocatedSize = 0;
+static uint16_t glideBufferCurrentSize = 0;
 
 static statistic_t stats;
 
@@ -1837,6 +1844,36 @@ static bool osdElementEnabled(uint8_t elementID, bool onlyCurrentLayout) {
     return elementEnabled;
 }
 
+// Manage lazy allocation and reallocation of glide buffer
+// Returns the current buffer size, or 0 if allocation failed
+static uint16_t ensureGlideBufferAllocated(uint16_t requiredSize)
+{
+    // Clamp to maximum size
+    if (requiredSize > MAX_GLIDE_BUFFER_SIZE) {
+        requiredSize = MAX_GLIDE_BUFFER_SIZE;
+    }
+    
+    // If already allocated with correct size, return it
+    if (glideBuffer != NULL && glideBufferAllocatedSize == requiredSize) {
+        return requiredSize;
+    }
+    
+    // Need to allocate or reallocate
+    glidePositionSample_t *newBuffer = (glidePositionSample_t *)realloc(glideBuffer, requiredSize * sizeof(glidePositionSample_t));
+    
+    if (newBuffer == NULL) {
+        return 0;  // Allocation failed, keep old buffer
+    }
+    
+    glideBuffer = newBuffer;
+    glideBufferAllocatedSize = requiredSize;
+    
+    // Reset sample tracking when buffer changes size
+    glideBufferCurrentSize = 0;
+    
+    return requiredSize;
+}
+
 
 // Linear regression: calculate glide ratio from position samples
 // Returns glide ratio (horizontal distance per 1 unit vertical descent)
@@ -2130,14 +2167,23 @@ static bool osdDrawSingleElement(uint8_t item)
             // Note: the element was originally named "Glide Slope" but actually shows the glide ratio 
             // The original naming is conserved in places to retain compatibility 
             
-            const uint8_t bufferSize = glideSampleRate * glideSampleTimeFrame;
-            static glidePositionSample_t glideBuffer[20]; // Need to add semi-dynamic allocation based on glideSampleRate and glideSampleTimeFrame later to allow for changing this in settings
+            uint8_t sampleRate = osdConfig()->glide_sample_rate;
+            uint8_t timeFrame = osdConfig()->glide_sample_time_frame;
+            const uint16_t requiredBufferSize = sampleRate * timeFrame;
+            uint16_t bufferSize = ensureGlideBufferAllocated(requiredBufferSize);
+            
+            if (bufferSize == 0) {
+                // Allocation failed, display error
+                buff[0] = SYM_GLIDESLOPE;
+                buff[1] = buff[2] = buff[3] = '-';
+                buff[4] = '\0';
+                break;
+            }
+            
             static uint8_t glideBufferIndex = 0;
-            static uint8_t samplesSinceLastClear = 0;
             static timeMs_t glideLastSampleTime = 0;
             const timeMs_t currentTime = millis();
-            const uint16_t sampleIntervalMs = 1000 / glideSampleRate; 
-
+            const uint16_t sampleIntervalMs = 1000 / sampleRate;
             static float glideRatio = 0.0f;
             
             if (currentTime - glideLastSampleTime >= sampleIntervalMs) {
@@ -2146,13 +2192,13 @@ static bool osdDrawSingleElement(uint8_t item)
                 glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
                 glideBuffer[glideBufferIndex].altitude_cm = osdGetAltitude();
                 glideBufferIndex = (glideBufferIndex + 1) % bufferSize;
-                if (samplesSinceLastClear < bufferSize) {
-                    samplesSinceLastClear++;
+                if (glideBufferCurrentSize < bufferSize) {
+                    glideBufferCurrentSize++;
                 }
 
-                if (samplesSinceLastClear >= minimumSampleCount) {
+                if (glideBufferCurrentSize >= minimumSampleCount) {
                     // Calculate glide ratio using the samples
-                    glideRatio = calculateGlideRatioFromBuffer(glideBuffer, bufferSize);
+                    glideRatio = calculateGlideRatioFromBuffer(glideBuffer, glideBufferCurrentSize);
                 }
             }
 
@@ -4494,7 +4540,9 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .stats_page_auto_swap_time = SETTING_OSD_STATS_PAGE_AUTO_SWAP_TIME_DEFAULT,
     .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT,
 
-    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT
+    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT,
+    .glide_sample_rate = SETTING_OSD_GLIDE_SAMPLE_RATE_DEFAULT,
+    .glide_sample_time_frame = SETTING_OSD_GLIDE_SAMPLE_TIME_FRAME_DEFAULT
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
