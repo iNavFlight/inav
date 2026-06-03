@@ -1874,7 +1874,7 @@ static uint16_t ensureGlideBufferAllocated(uint16_t requiredSize)
     return requiredSize;
 }
 
-static bool isDataValidForGlideRatio() {
+static bool isDataValidForGlideRatio(void) {
     // Check if we have been ascending for more than 4 seconds, which would indicate that the glide ratio is not valid
     static timeMs_t lastDescentTime = 0;
     if (getEstimatedActualVelocity(Z) < 0) {  // Descending
