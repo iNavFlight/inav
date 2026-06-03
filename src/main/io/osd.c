@@ -2206,7 +2206,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             if (currentTime - glideLastSampleTime >= sampleIntervalMs) {
                 // Record a new sample
-
+                glideLastSampleTime = currentTime;
                 if (!isDataValidForGlideRatio()) {
                     // Conditions not valid for glide ratio, reset buffer
                     for (uint16_t i = 0; i < bufferSize; i++) {
@@ -2217,7 +2217,6 @@ static bool osdDrawSingleElement(uint8_t item)
                     samplesSinceLastClear = 0;
                 }
                 else {
-                    glideLastSampleTime = currentTime;
                     glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
                     glideBuffer[glideBufferIndex].altitude_cm = osdGetAltitude();
                     glideBufferIndex = (glideBufferIndex + 1) % bufferSize;
