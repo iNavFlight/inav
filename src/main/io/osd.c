@@ -1874,6 +1874,23 @@ static uint16_t ensureGlideBufferAllocated(uint16_t requiredSize)
     return requiredSize;
 }
 
+static bool isDataValidForGlideRatio() {
+    // Check if we have been ascending for more than 5 seconds, which would indicate that the glide ratio is not valid
+    static timeMs_t lastDescentTime = 0;
+    if (getEstimatedActualVelocity(Z) < 0) {  // Descending
+        lastDescentTime = millis();
+    } else if (millis() - lastDescentTime > 5000) {  // Ascending for more than 5 seconds
+        return false;
+    }
+
+    // Check if the throttle is above a certain threshold, which would indicate that we are under power and the glide ratio is not valid
+    if (getThrottlePercent(true) > 10) { 
+        return false;
+    }
+
+    return true;
+}
+
 
 // Linear regression: calculate glide ratio from position samples
 // Returns glide ratio (horizontal distance per 1 unit vertical descent)
@@ -2182,23 +2199,40 @@ static bool osdDrawSingleElement(uint8_t item)
             
             static uint8_t glideBufferIndex = 0;
             static timeMs_t glideLastSampleTime = 0;
+            static uint8_t samplesSinceLastClear = 0;
             const timeMs_t currentTime = millis();
             const uint16_t sampleIntervalMs = 1000 / sampleRate;
             static float glideRatio = 0.0f;
-            
+
             if (currentTime - glideLastSampleTime >= sampleIntervalMs) {
                 // Record a new sample
-                glideLastSampleTime = currentTime;
-                glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
-                glideBuffer[glideBufferIndex].altitude_cm = osdGetAltitude();
-                glideBufferIndex = (glideBufferIndex + 1) % bufferSize;
-                if (glideBufferCurrentSize < bufferSize) {
-                    glideBufferCurrentSize++;
-                }
 
-                if (glideBufferCurrentSize >= minimumSampleCount) {
-                    // Calculate glide ratio using the samples
-                    glideRatio = calculateGlideRatioFromBuffer(glideBuffer, glideBufferCurrentSize);
+                if (!isDataValidForGlideRatio()) {
+                    // Conditions not valid for glide ratio, reset buffer
+                    for (uint16_t i = 0; i < bufferSize; i++) {
+                        glideBuffer[i].distance_cm = 0;
+                        glideBuffer[i].altitude_cm = 0;
+                    }
+                    glideRatio = 0.0f;
+                    samplesSinceLastClear = 0;
+                }
+                else {
+                    glideLastSampleTime = currentTime;
+                    glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
+                    glideBuffer[glideBufferIndex].altitude_cm = osdGetAltitude();
+                    glideBufferIndex = (glideBufferIndex + 1) % bufferSize;
+
+                    if (samplesSinceLastClear < bufferSize) {
+                        samplesSinceLastClear++;
+                    }
+
+                    if (samplesSinceLastClear >= minimumSampleCount) {
+                        // Calculate glide ratio using the samples
+                        glideRatio = calculateGlideRatioFromBuffer(glideBuffer, bufferSize);
+                    }
+                    else {
+                        glideRatio = 0.0f;  // Not enough samples yet
+                    }
                 }
             }
 
