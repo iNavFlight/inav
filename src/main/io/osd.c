@@ -1326,21 +1326,16 @@ static inline int32_t osdGetAltitudeMsl(void)
 }
 
 uint16_t osdGetRemainingGlideTime(void) {
-    float value = getEstimatedActualVelocity(Z);
-    static pt1Filter_t glideTimeFilterState;
-    const  timeMs_t curTimeMs = millis();
-    static timeMs_t glideTimeUpdatedMs;
-
-    value = pt1FilterApply4(&glideTimeFilterState, isnormal(value) ? value : 0, 0.5, MS2S(curTimeMs - glideTimeUpdatedMs));
-    glideTimeUpdatedMs = curTimeMs;
-
-    if (value < 0) {
-        value = osdGetAltitude() / abs((int)value);
-    } else {
-        value = 0;
+    // Use glide ratio if available and valid
+    uint16_t glideTime = 0;
+    if (currentGlideRatio > 0.0f) {
+        int32_t altitude = osdGetAltitude();
+        int16_t groundSpeed = gpsSol.groundSpeed;
+        if (altitude > 0 && groundSpeed > 0) {
+           glideTime = (uint16_t)((float)altitude * currentGlideRatio / groundSpeed);
+        }
     }
-
-    return (uint16_t)roundf(value);
+    return glideTime;
 }
 
 static bool osdIsHeadingValid(void)
@@ -3330,6 +3325,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_GLIDE_TIME_REMAINING:
         {
+            enableGlideRatioCalculation();
             uint16_t glideTime = osdGetRemainingGlideTime();
             buff[0] = SYM_GLIDE_MINS;
             if (glideTime > 0) {
@@ -3350,14 +3346,18 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_GLIDE_RANGE:
         {
-            uint16_t glideSeconds = osdGetRemainingGlideTime();
+            enableGlideRatioCalculation();
+            int32_t altitude = osdGetAltitude();
             buff[0] = SYM_GLIDE_DIST;
-            if (glideSeconds > 0) {
-                uint32_t glideRangeCM = glideSeconds * gpsSol.groundSpeed;
-                osdFormatDistanceSymbol(buff + 1, glideRangeCM, 0, 3);
-            } else {
-                tfp_sprintf(buff + 1, "%s%c", "---", SYM_BLANK);
+            if (currentGlideRatio <= 0.0f || altitude <= 0) {
+                tfp_sprintf(buff, "%s%c", "---", SYM_BLANK);
                 buff[5] = '\0';
+                break;
+            }
+            else
+            {
+                int32_t glideRangeCm = (int32_t)(currentGlideRatio * altitude);
+                osdFormatDistanceSymbol(buff + 1, glideRangeCm, 0, 3);
             }
             break;
         }
