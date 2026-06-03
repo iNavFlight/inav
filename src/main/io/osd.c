@@ -2098,7 +2098,9 @@ static bool osdDrawSingleElement(uint8_t item)
                 glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
                 glideBuffer[glideBufferIndex].altitude_cm = osdGetAltitude();
                 glideBufferIndex = (glideBufferIndex + 1) % bufferSize;
-                (samplesSinceLastClear < bufferSize) ? samplesSinceLastClear++ : 0;
+                if (samplesSinceLastClear < bufferSize) {
+                    samplesSinceLastClear++;
+                }
 
                 if (samplesSinceLastClear >= minimumSampleCount) {
                     // Calculate glide slope using the samples
