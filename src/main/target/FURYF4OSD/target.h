@@ -156,6 +156,9 @@
 #define USE_LED_STRIP
 #define WS2811_PIN                  PA0
 
+#define USE_ROTOR
+#define ROTOR_PIN PA0
+
 //#define USE_SPEKTRUM_BIND
 //#define BIND_PIN                PA3 //  RX2
 
