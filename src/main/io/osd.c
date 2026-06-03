@@ -1945,8 +1945,8 @@ static float calculateGlideRatioFromBuffer(const glidePositionSample_t *buffer, 
 // Called regularly to maintain glide ratio buffer regardless of OSD element visibility
 // This ensures glide ratio is available for all OSD elements that need it
 static void updateGlideRatioCalculation(void) {
-    uint8_t sampleRate = osdConfig()->glide_sample_rate;
-    uint8_t timeFrame = osdConfig()->glide_sample_time_frame;
+    uint8_t sampleRate = osdConfig()->glide_sample_rate > 0 ? osdConfig()->glide_sample_rate : 1;  // Default to 1 sample/sec if misconfigured
+    uint8_t timeFrame = osdConfig()->glide_sample_time_frame > 0 ? osdConfig()->glide_sample_time_frame : 5;  // Default to 5 seconds if misconfigured
     const uint16_t requiredBufferSize = sampleRate * timeFrame;
     const uint8_t minimumSampleCount = requiredBufferSize / 4;
     
