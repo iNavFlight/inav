@@ -387,17 +387,23 @@ When `mixer_vtol_transition_dynamic_mixer = ON`, transition progress additionall
 When `mixer_vtol_transition_dynamic_mixer = OFF`, legacy static transition mixing behavior is preserved.
 
 Optional decoupled scaling ramp:
-- trusted pitot available/healthy: scaling follows airspeed-based transition progress.
-- `mixer_vtol_transition_scale_ramp_time_ms > 0`: if trusted pitot becomes unavailable/unhealthy, scaling falls back to this ramp timer.
-- `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): if trusted pitot is unavailable/unhealthy, scaling falls back to transition progress/timer behavior.
+- MC->FW pusher:
+  - `mixer_vtol_transition_scale_ramp_time_ms > 0`: pusher ramps from `0 -> 100%` over this time, even when trusted pitot is healthy.
+  - `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): pusher goes to `100%` immediately.
+- Lift / MC authority / FW authority handoff:
+  - trusted pitot available/healthy: follows airspeed-based transition progress.
+  - `mixer_vtol_transition_scale_ramp_time_ms > 0`: if trusted pitot becomes unavailable/unhealthy, handoff scaling falls back to this ramp timer.
+  - `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): if trusted pitot is unavailable/unhealthy, handoff scaling falls back to transition progress/timer behavior.
+- FW->MC keeps the existing handoff-based scaling behavior.
 
 Example:
 - `mixer_switch_trans_timer = 50` (5s fallback completion timer)
 - `mixer_vtol_transition_scale_ramp_time_ms = 1200`
 
 Result:
-- when trusted pitot is healthy, pusher/lift/authority scaling still follows airspeed progress,
-- if trusted pitot becomes unavailable/unhealthy, scaling reaches target levels in ~1.2s,
+- in MC->FW, pusher reaches full scale in ~1.2s,
+- when trusted pitot is healthy, lift/MC/FW handoff still follows airspeed progress,
+- if trusted pitot becomes unavailable/unhealthy, handoff scaling reaches target levels in ~1.2s,
 - transition completion still follows airspeed thresholds when pitot is healthy,
 - if pitot is unavailable/unhealthy, completion fallback still uses 5s.
 
@@ -448,7 +454,8 @@ CLI:
 What this does:
 - MC->FW completes primarily on pitot airspeed (1300 cm/s), with timer fallback only if pitot is unavailable/unhealthy.
 - FW->MC completes when airspeed drops to 850 cm/s.
-- Scaling ramps quickly (1.2 s) to reduce step torque and abrupt authority handoff.
+- In MC->FW, pusher ramps to full scale in 1.2 s while lift/MC/FW handoff still follows airspeed progress.
+- The pusher ramp is quick enough (1.2 s) to reduce step torque while still allowing strong acceleration.
 - Timeout abort protects against staying too long in airspeed-controlled transition without reaching threshold.
 
 #### Test 3 - Mission-authorized transition (end-to-end mission flow)
@@ -635,9 +642,12 @@ Dynamic mixer scaling (`mixer_vtol_transition_dynamic_mixer = ON`) uses this pro
   - MC authority ramps `vtol_transition_mc_authority_end_percent -> 1`
   - FW authority ramps `1 -> vtol_transition_fw_authority_start_percent`
 
-Dynamic scaling prefers trusted pitot-based transition progress whenever available.
-If trusted pitot becomes unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms > 0`, scaling falls back to that timer-based ramp.
-If trusted pitot is unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms = 0`, scaling falls back to transition progress/timer behavior (`mixer_switch_trans_timer`).
+Dynamic scaling splits MC->FW pusher ramp from lift/authority handoff scaling.
+For MC->FW, pusher scaling uses `mixer_vtol_transition_scale_ramp_time_ms`; if this is `0`, pusher goes full immediately.
+Lift / MC authority / FW authority handoff still prefers trusted pitot-based transition progress whenever available.
+If trusted pitot becomes unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms > 0`, handoff scaling falls back to that timer-based ramp.
+If trusted pitot is unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms = 0`, handoff scaling falls back to transition progress/timer behavior (`mixer_switch_trans_timer`).
+FW->MC keeps the existing handoff-based scaling behavior.
 
 For transition/pusher motors (`-2.0 < throttle < -1.0`), output is interpolated from idle to target:
 

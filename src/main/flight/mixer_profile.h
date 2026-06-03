@@ -68,7 +68,7 @@ typedef struct mixerProfileAT_s {
     bool usedAirspeed;
     bool transitionStartAirspeedCaptured;
     float progress;
-    float scalingProgress;
+    float handoffScalingProgress;
     float transitionStartAirspeedCmS;
     float blendToFw;
     float pusherScale;

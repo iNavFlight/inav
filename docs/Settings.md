@@ -3244,7 +3244,7 @@ Enables dynamic VTOL transition progress/scaling controller shared by mission-au
 
 ### mixer_vtol_transition_scale_ramp_time_ms
 
-Optional dynamic scaling fallback ramp duration [ms]. When > 0 and `mixer_vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling still follows trusted pitot-based transition progress when available; if trusted pitot becomes unavailable/unhealthy, scaling falls back to this timer. If set to 0, scaling falls back to transition progress/timer behavior.
+Optional VTOL transition scaling ramp duration [ms]. In MC->FW, pusher scaling uses this timer regardless of pitot availability; if set to 0, pusher goes to full scale immediately. Lift/MC/FW handoff scaling still follows trusted pitot-based transition progress when available; if trusted pitot becomes unavailable/unhealthy, it falls back to this timer. If set to 0, handoff scaling falls back to transition progress/timer behavior.
 
 | Default | Min | Max |
 | --- | --- | --- |
