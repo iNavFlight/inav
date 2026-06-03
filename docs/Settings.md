@@ -4872,6 +4872,26 @@ Value under which the OSD axis g force indicators will blink (g)
 
 ---
 
+### osd_glide_sample_rate
+
+Glide slope sampling rate in Hz (1-4 Hz). Higher rates give more responsive glide slope calculations but use more CPU.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 1 | 4 |
+
+---
+
+### osd_glide_sample_time_frame
+
+Glide slope sampling time frame in seconds (5-60 seconds). Longer frames provide more stable glide slope estimates.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 5 | 60 |
+
+---
+
 ### osd_highlight_djis_missing_font_symbols
 
 Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
