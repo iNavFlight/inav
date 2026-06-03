@@ -1959,6 +1959,7 @@ static void updateGlideRatioCalculation(void) {
     const uint16_t requiredBufferSize = sampleRate * timeFrame;
     const uint8_t minimumSampleCount = requiredBufferSize / 4;
     
+    static uint16_t previousBufferSize = 0;
     uint16_t bufferSize = ensureGlideBufferAllocated(requiredBufferSize);
     
     if (bufferSize == 0) {
@@ -1972,6 +1973,14 @@ static void updateGlideRatioCalculation(void) {
     static uint8_t samplesSinceLastClear = 0;
     const timeMs_t currentTime = millis();
     const uint16_t sampleIntervalMs = 1000 / sampleRate;
+
+    // Reset sampling state if buffer size changed
+    if (bufferSize != previousBufferSize) {
+        previousBufferSize = bufferSize;
+        glideBufferIndex = 0;
+        samplesSinceLastClear = 0;
+        glideLastSampleTime = 0;  // Reset to take sample immediately after resize
+    }
 
     if (currentTime - glideLastSampleTime >= sampleIntervalMs) {
         // Record a new sample
