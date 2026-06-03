@@ -1849,6 +1849,15 @@ static uint16_t ensureGlideBufferAllocated(uint16_t requiredSize)
     if (requiredSize > MAX_GLIDE_BUFFER_SIZE) {
         requiredSize = MAX_GLIDE_BUFFER_SIZE;
     }
+
+    if (requiredSize == 0) {
+        // Free buffer if no longer needed
+        free(glideBuffer);
+        glideBuffer = NULL;
+        glideBufferAllocatedSize = 0;
+        glideBufferCurrentSize = 0;
+        return 0;
+    }
     
     // If already allocated with correct size, return it
     if (glideBuffer != NULL && glideBufferAllocatedSize == requiredSize) {
