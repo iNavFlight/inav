@@ -191,6 +191,15 @@ typedef struct statistic_s {
     int32_t flightStartMWh;
 } statistic_t;
 
+typedef struct glidePositionSample_s {
+    uint32_t distance_cm;    // Total travel distance
+    int32_t altitude_cm;     // Altitude
+} glidePositionSample_t;
+
+static uint8_t glideSampleRate = 2;         // 2Hz
+static uint8_t glideSampleTimeFrame = 10;   // seconds
+static uint8_t minimumSampleCount = 5;      // Minimum number of samples in the timeframe to consider the glide slope valid
+
 static statistic_t stats;
 
 static timeUs_t resumeRefreshAt = 0;
@@ -2065,14 +2074,37 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GLIDESLOPE:
         {
-            float horizontalSpeed = gpsSol.groundSpeed;
-            float sinkRate = -getEstimatedActualVelocity(Z);
-            static pt1Filter_t gsFilterState;
-            const timeMs_t currentTimeMs = millis();
-            static timeMs_t gsUpdatedTimeMs;
-            float glideSlope = horizontalSpeed / sinkRate;
-            glideSlope = pt1FilterApply4(&gsFilterState, isnormal(glideSlope) ? glideSlope : 200, 0.5, MS2S(currentTimeMs - gsUpdatedTimeMs));
-            gsUpdatedTimeMs = currentTimeMs;
+            // float horizontalSpeed = gpsSol.groundSpeed;
+            // float sinkRate = -getEstimatedActualVelocity(Z);
+            // static pt1Filter_t gsFilterState;
+            // const timeMs_t currentTimeMs = millis();
+            // static timeMs_t gsUpdatedTimeMs;
+            // float glideSlope = horizontalSpeed / sinkRate;
+            // glideSlope = pt1FilterApply4(&gsFilterState, isnormal(glideSlope) ? glideSlope : 200, 0.5, MS2S(currentTimeMs - gsUpdatedTimeMs));
+            // gsUpdatedTimeMs = currentTimeMs;
+
+            static uint8_t bufferSize = glideSampleRate * glideSampleTimeFrame;
+            static glidePositionSample_t glideBuffer[bufferSize] = 0;
+            static uint16_t glideBufferIndex = 0;
+            static timeMs_t glideLastSampleTime = 0;
+            static uint8_t samplesSinceLastClear = 0;
+            const timeMs_t currentTime = millis();
+
+            static float glideSlope = 0.0f;
+            
+            if (currentTime - glideLastSampleTime >= glideSampleRate) {
+                // Record a new sample
+                glideLastSampleTime = currentTime;
+                glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
+                glideBuffer[glideBufferIndex].altitude_cm = osdGetAltitude();
+                glideBufferIndex = (glideBufferIndex + 1) % bufferSize;
+                (samplesSinceLastClear < bufferSize) ? samplesSinceLastClear++ : 0;
+
+                if (samplesSinceLastClear >= minimumSampleCount) {
+                    // Calculate glide slope using the samples
+
+                }
+            }
 
             buff[0] = SYM_GLIDESLOPE;
             if (glideSlope > 0.0f && glideSlope < 100.0f) {
