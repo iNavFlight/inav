@@ -2074,15 +2074,9 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GLIDESLOPE:
         {
-            // float horizontalSpeed = gpsSol.groundSpeed;
-            // float sinkRate = -getEstimatedActualVelocity(Z);
-            // static pt1Filter_t gsFilterState;
-            // const timeMs_t currentTimeMs = millis();
-            // static timeMs_t gsUpdatedTimeMs;
-            // float glideSlope = horizontalSpeed / sinkRate;
-            // glideSlope = pt1FilterApply4(&gsFilterState, isnormal(glideSlope) ? glideSlope : 200, 0.5, MS2S(currentTimeMs - gsUpdatedTimeMs));
-            // gsUpdatedTimeMs = currentTimeMs;
-
+            // Note: the element was originally named "Glide Slope" but actually shows the glide ratio 
+            // The original naming is conserved in places to retain compatibility 
+            
             static uint8_t bufferSize = glideSampleRate * glideSampleTimeFrame;
             static glidePositionSample_t glideBuffer[20]; // Need to add semi-dynamic allocation based on glideSampleRate and glideSampleTimeFrame later to allow for changing this in settings
             static uint8_t glideBufferIndex = 0;
@@ -2090,7 +2084,7 @@ static bool osdDrawSingleElement(uint8_t item)
             const timeMs_t currentTime = millis();
             const uint16_t sampleIntervalMs = 1000 / glideSampleRate; 
 
-            static float glideSlope = 0.0f;
+            static float glideRatio = 0.0f;
             
             if (currentTime - glideLastSampleTime >= sampleIntervalMs) {
                 // Record a new sample
@@ -2103,14 +2097,14 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
 
                 if (samplesSinceLastClear >= minimumSampleCount) {
-                    // Calculate glide slope using the samples
-
+                    // Calculate glide ratio using the samples
+                    glideRatio = calculateGlideRatioFromBuffer(glideBuffer, bufferSize);
                 }
             }
 
             buff[0] = SYM_GLIDESLOPE;
-            if (glideSlope > 0.0f && glideSlope < 100.0f) {
-                osdFormatCentiNumber(buff + 1, glideSlope * 100.0f, 0, 2, 0, 3, false);
+            if (glideRatio > 0.0f && glideRatio < 100.0f) {
+                osdFormatCentiNumber(buff + 1, glideRatio * 100.0f, 0, 2, 0, 3, false);
             } else {
                 buff[1] = buff[2] = buff[3] = '-';
             }
