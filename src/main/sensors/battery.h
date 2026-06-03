@@ -29,12 +29,32 @@
 #define VBAT_SCALE_DEFAULT 1100
 #endif
 
+#ifndef VBAT_METER_TYPE_DEFAULT
+#define VBAT_METER_TYPE_DEFAULT VOLTAGE_SENSOR_ADC
+#endif
+
 #ifndef CURRENT_METER_SCALE
 #define CURRENT_METER_SCALE 400 // for Allegro ACS758LCB-100U (40mV/A)
 #endif
 
 #ifndef CURRENT_METER_OFFSET
 #define CURRENT_METER_OFFSET 0
+#endif
+
+#ifndef CURRENT_METER_TYPE_DEFAULT
+#define CURRENT_METER_TYPE_DEFAULT CURRENT_SENSOR_ADC
+#endif
+
+#ifndef INA226_SHUNT_RESISTANCE_UOHM
+#define INA226_SHUNT_RESISTANCE_UOHM 2000
+#endif
+
+#ifndef INA226_SHUNT_RES_UOHM
+#define INA226_SHUNT_RES_UOHM INA226_SHUNT_RESISTANCE_UOHM
+#endif
+
+#ifndef INA226_SHUNT_RES_UOHM_DEFAULT
+#define INA226_SHUNT_RES_UOHM_DEFAULT INA226_SHUNT_RES_UOHM
 #endif
 
 #ifndef MAX_BATTERY_PROFILE_COUNT
@@ -90,10 +110,13 @@ int32_t getPower(void);
 int32_t getMAhDrawn(void);
 int32_t getMWhDrawn(void);
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
 void batteryUpdate(timeUs_t timeDelta);
 void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta);
 void powerMeterUpdate(timeUs_t timeDelta);
+#endif
+
+#ifdef USE_ADC
 uint16_t getVBatSample(void);
 #endif
 

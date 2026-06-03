@@ -1,7 +1,7 @@
 adcChannelConfig_t               4 0
 armingConfig_t                   6 3
 barometerConfig_t                8 5
-batteryMetersConfig_t           24 2
+batteryMetersConfig_t           24 3
 beeperConfig_t                  12 2
 blackboxConfig_t                16 4
 compassConfig_t                 24 6

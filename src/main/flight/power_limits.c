@@ -61,7 +61,7 @@ static pt1Filter_t currentThrAttnFilter;
 static pt1Filter_t currentThrLimitingBaseFilter;
 static bool wasLimitingCurrent = false;
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
 static float burstPowerReserve;                 // cW.µs
 static float burstPowerReserveMax;              // cW.µs
 static float burstPowerReserveFalldown;         // cW.µs
@@ -89,7 +89,7 @@ void powerLimiterInit(void) {
     pt1FilterInit(&currentThrAttnFilter, powerLimitsConfig()->attnFilterCutoff, 0);
     pt1FilterInitRC(&currentThrLimitingBaseFilter, LIMITING_THR_FILTER_TCONST, 0);
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     // Only enforce burst >= continuous if burst is enabled (non-zero)
     if (currentBatteryProfile->powerLimits.burstPower > 0 &&
         currentBatteryProfile->powerLimits.burstPower < currentBatteryProfile->powerLimits.continuousPower) {
@@ -126,7 +126,7 @@ void currentLimiterUpdate(timeDelta_t timeDelta) {
                             timeDelta);
 }
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
 void powerLimiterUpdate(timeDelta_t timeDelta) {
     activePowerLimit = calculateActiveLimit(getPower(),
                             currentBatteryProfile->powerLimits.continuousPower, currentBatteryProfile->powerLimits.burstPower,
@@ -137,7 +137,7 @@ void powerLimiterUpdate(timeDelta_t timeDelta) {
 
 void powerLimiterApply(int16_t *throttleCommand) {
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     if (!activeCurrentLimit && !activePowerLimit) {
         return;
     }
@@ -153,13 +153,13 @@ void powerLimiterApply(int16_t *throttleCommand) {
 
     int16_t throttleBase;
     int16_t currentThrottleCommand;
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     int16_t powerThrottleCommand;
 #endif
 
-    int16_t current = getAmperageSample();
-#ifdef USE_ADC
-    uint16_t voltage = getVBatSample();
+    int16_t current = getAmperage();
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
+    uint16_t voltage = getBatteryRawVoltage();
     int32_t power = (int32_t)voltage * current / 100;
 #endif
 
@@ -191,7 +191,7 @@ void powerLimiterApply(int16_t *throttleCommand) {
         currentThrottleCommand = *throttleCommand;
     }
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     // Power limiting
     int32_t overPower = power - activePowerLimit;
 
@@ -229,7 +229,7 @@ void powerLimiterApply(int16_t *throttleCommand) {
 }
 
 bool powerLimiterIsLimiting(void) {
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     return wasLimitingPower || wasLimitingCurrent;
 #else
     return wasLimitingCurrent;
@@ -240,7 +240,7 @@ bool powerLimiterIsLimitingCurrent(void) {
     return wasLimitingCurrent;
 }
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
 bool powerLimiterIsLimitingPower(void) {
     return wasLimitingPower;
 }
@@ -251,7 +251,7 @@ float powerLimiterGetRemainingBurstTime(void) {
     uint16_t currentBurstOverContinuous = currentBatteryProfile->powerLimits.burstCurrent - currentBatteryProfile->powerLimits.continuousCurrent;
     float remainingCurrentBurstTime = burstCurrentReserve / currentBurstOverContinuous / 1e7f;
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     uint16_t powerBurstOverContinuous = currentBatteryProfile->powerLimits.burstPower - currentBatteryProfile->powerLimits.continuousPower;
     float remainingPowerBurstTime = burstPowerReserve / powerBurstOverContinuous / 1e7f;
 
@@ -274,7 +274,7 @@ uint16_t powerLimiterGetActiveCurrentLimit(void) {
     return activeCurrentLimit;
 }
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
 // returns cW
 uint16_t powerLimiterGetActivePowerLimit(void) {
     return activePowerLimit;

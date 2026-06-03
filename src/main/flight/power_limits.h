@@ -29,6 +29,8 @@
 
 #include "config/parameter_group.h"
 
+#include "sensors/battery_config_structs.h"
+
 #if defined(USE_POWER_LIMITS)
 
 typedef struct {
@@ -48,7 +50,7 @@ bool powerLimiterIsLimiting(void);
 bool powerLimiterIsLimitingCurrent(void);
 float powerLimiterGetRemainingBurstTime(void);      // returns seconds
 uint16_t powerLimiterGetActiveCurrentLimit(void);   // returns cA
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
 uint16_t powerLimiterGetActivePowerLimit(void);     // returns cW
 bool powerLimiterIsLimitingPower(void);
 #endif

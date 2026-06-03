@@ -32,7 +32,12 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#if defined(USE_ADC)
 #include "drivers/adc.h"
+#endif
+#if defined(USE_INA226)
+#include "drivers/ina226.h"
+#endif
 #include "drivers/time.h"
 
 #include "fc/config.h"
@@ -64,6 +69,11 @@
 #endif
 #if defined(USE_SMARTPORT_MASTER)
 #include "io/smartport_master.h"
+#endif
+
+#if defined(USE_INA226)
+static ina226Dev_t ina226Dev;
+static bool ina226Detected = false;
 #endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
@@ -106,7 +116,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
     for (int i = 0; i < MAX_BATTERY_PROFILE_COUNT; i++) {
         RESET_CONFIG(batteryProfile_t, &instance[i],
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
             .cells = SETTING_BAT_CELLS_DEFAULT,
 
             .voltage = {
@@ -156,12 +166,12 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                 .burstCurrent = SETTING_LIMIT_BURST_CURRENT_DEFAULT,                                // dA
                 .burstCurrentTime = SETTING_LIMIT_BURST_CURRENT_TIME_DEFAULT,                       // dS
                 .burstCurrentFalldownTime = SETTING_LIMIT_BURST_CURRENT_FALLDOWN_TIME_DEFAULT,      // dS
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
                 .continuousPower = SETTING_LIMIT_CONT_POWER_DEFAULT,                                // dW
                 .burstPower = SETTING_LIMIT_BURST_POWER_DEFAULT,                                    // dW
                 .burstPowerTime = SETTING_LIMIT_BURST_POWER_TIME_DEFAULT,                           // dS
                 .burstPowerFalldownTime = SETTING_LIMIT_BURST_POWER_FALLDOWN_TIME_DEFAULT,          // dS
-#endif // USE_ADC
+#endif // USE_BATTERY_VOLTAGE_SENSOR
             }
 #endif // USE_POWER_LIMITS
 
@@ -169,22 +179,30 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
     }
 }
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 3);
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     .voltage = {
-        .type = SETTING_VBAT_METER_TYPE_DEFAULT,
+        .type = VBAT_METER_TYPE_DEFAULT,
+#ifdef USE_ADC
         .scale = VBAT_SCALE_DEFAULT,
+#endif
     },
 #endif
 
     .current = {
-        .type = SETTING_CURRENT_METER_TYPE_DEFAULT,
+        .type = CURRENT_METER_TYPE_DEFAULT,
         .scale = CURRENT_METER_SCALE,
         .offset = CURRENT_METER_OFFSET
     },
+
+#ifdef USE_INA226
+    .ina226 = {
+        .shuntResistanceMicroOhm = INA226_SHUNT_RES_UOHM_DEFAULT,
+    },
+#endif
 
     .voltageSource = SETTING_BAT_VOLTAGE_SRC_DEFAULT,
 
@@ -205,9 +223,17 @@ void batteryInit(void)
     batteryFullVoltage = 0;
     batteryWarningVoltage = 0;
     batteryCriticalVoltage = 0;
+
+#if defined(USE_INA226)
+    ina226Detected = false;
+    if (batteryMetersConfig()->current.type == CURRENT_SENSOR_INA226
+        || batteryMetersConfig()->voltage.type == VOLTAGE_SENSOR_INA226) {
+        ina226Detected = ina226Init(&ina226Dev);
+    }
+#endif
 }
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
 // profileDetect() profile sorting compare function
 static int profile_compare(profile_comp_t *a, profile_comp_t *b) {
     if (a->max_voltage < b->max_voltage)
@@ -264,17 +290,19 @@ void activateBatteryProfile(void)
     }
 }
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
 static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 {
     static pt1Filter_t vbatFilterState;
 
     switch (batteryMetersConfig()->voltage.type) {
+#if defined(USE_ADC)
         case VOLTAGE_SENSOR_ADC:
             {
                 vbat = getVBatSample();
                 break;
             }
+#endif
 #if defined(USE_ESC_SENSOR)
         case VOLTAGE_SENSOR_ESC:
             {
@@ -303,6 +331,14 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
         } else {
             vbat = 0;
         }
+        break;
+#endif
+#if defined(USE_INA226)
+    case VOLTAGE_SENSOR_INA226:
+        if (ina226Detected && ina226ReadBusVoltage(&ina226Dev, &vbat)) {
+            break;
+        }
+        vbat = 0;
         break;
 #endif
     case VOLTAGE_SENSOR_NONE:
@@ -554,8 +590,12 @@ int16_t getAmperage(void)
 
 int16_t getAmperageSample(void)
 {
+#ifdef USE_ADC
     int32_t microvolts = ((uint32_t)adcGetChannel(ADC_CURRENT) * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
     return microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
+#else
+    return getAmperage();
+#endif
 }
 
 int32_t getPower(void)
@@ -579,11 +619,13 @@ void currentMeterUpdate(timeUs_t timeDelta)
     static int64_t mAhdrawnRaw = 0;
 
     switch (batteryMetersConfig()->current.type) {
+#if defined(USE_ADC)
         case CURRENT_SENSOR_ADC:
             {
                 amperage = pt1FilterApply4(&amperageFilterState, getAmperageSample(), AMPERAGE_LPF_FREQ, US2S(timeDelta));
                 break;
             }
+#endif
         case CURRENT_SENSOR_VIRTUAL:
             amperage = batteryMetersConfig()->current.offset;
             if (ARMING_FLAG(ARMED)) {
@@ -621,6 +663,18 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 amperage = *smartportCurrentData;
             } else {
                 amperage = 0;
+            }
+            break;
+#endif
+#if defined(USE_INA226)
+        case CURRENT_SENSOR_INA226:
+            {
+                int16_t ina226Current;
+                if (ina226Detected && ina226ReadShuntCurrent(&ina226Dev, batteryMetersConfig()->ina226.shuntResistanceMicroOhm, &ina226Current)) {
+                    amperage = pt1FilterApply4(&amperageFilterState, ina226Current + batteryMetersConfig()->current.offset, AMPERAGE_LPF_FREQ, US2S(timeDelta));
+                } else {
+                    amperage = 0;
+                }
             }
             break;
 #endif

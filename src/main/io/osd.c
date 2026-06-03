@@ -2516,7 +2516,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             /*static int32_t updatedTimeSeconds = 0;*/
             static int32_t timeSeconds = -1;
-#if defined(USE_ADC) && defined(USE_GPS)
+#if defined(USE_BATTERY_VOLTAGE_SENSOR) && defined(USE_GPS)
             static timeUs_t updatedTimestamp = 0;
             timeUs_t currentTimeUs = micros();
             if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= MS2US(1000)) {
@@ -2531,7 +2531,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if ((!ARMING_FLAG(ARMED)) || (timeSeconds == -1)) {
                 buff[0] = SYM_FLIGHT_MINS_REMAINING;
                 strcpy(buff + 1, "--:--");
-#if defined(USE_ADC) && defined(USE_GPS)
+#if defined(USE_BATTERY_VOLTAGE_SENSOR) && defined(USE_GPS)
                 updatedTimestamp = 0;
 #endif
             } else if (timeSeconds == -2) {
@@ -2551,7 +2551,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_REMAINING_DISTANCE_BEFORE_RTH:;
         static int32_t distanceMeters = -1;
-#if defined(USE_ADC) && defined(USE_GPS)
+#if defined(USE_BATTERY_VOLTAGE_SENSOR) && defined(USE_GPS)
         static timeUs_t updatedTimestamp = 0;
         timeUs_t currentTimeUs = micros();
         if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= MS2US(1000)) {
@@ -4083,7 +4083,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     case OSD_PLIMIT_ACTIVE_POWER_LIMIT:
         {
             if (currentBatteryProfile->powerLimits.continuousPower) {
@@ -4097,7 +4097,7 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             break;
         }
-#endif // USE_ADC
+#endif // USE_BATTERY_VOLTAGE_SENSOR
 #endif // USE_POWER_LIMITS
     case OSD_MULTI_FUNCTION:
         {
@@ -4735,7 +4735,7 @@ uint8_t drawStat_Stats(uint8_t statNameX, uint8_t row, uint8_t statValueX, bool 
 
         displayWrite(osdDisplayPort, statValueX-(isBootStats ? 7 : 0), row,  string_buffer);
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
         if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER) && statsConfig()->stats_total_energy) {
             uint8_t buffOffset = 0;
             if (isBootStats) {
@@ -4797,7 +4797,7 @@ uint8_t drawStat_Stats(uint8_t statNameX, uint8_t row, uint8_t statValueX, bool 
 
             displayWrite(osdDisplayPort, statValueX-(isBootStats ? 4 : 0), row++, avgEffBuff);
         }
-#endif // USE_ADC
+#endif // USE_BATTERY_VOLTAGE_SENSOR
     }
     return row;
 }

@@ -18,6 +18,7 @@
 #include <platform.h>
 #include "drivers/io.h"
 #include "drivers/bus.h"
+#include "drivers/ina226.h"
 #include "drivers/sensor.h"
 
 #if !defined(USE_TARGET_HARDWARE_DESCRIPTORS)
@@ -466,6 +467,14 @@
         #define IRLOCK_I2C_BUS BUS_I2C1
     #endif
     BUSDEV_REGISTER_I2C(busdev_irlock,      DEVHW_IRLOCK,       IRLOCK_I2C_BUS,     0x54,               NONE,           DEVFLAGS_USE_RAW_REGISTERS);
+#endif
+
+#if defined(USE_INA226) && defined(INA226_I2C_BUS)
+    #if !defined(INA226_I2C_ADDRESS)
+        #define INA226_I2C_ADDRESS INA226_DEFAULT_I2C_ADDRESS
+    #endif
+
+    BUSDEV_REGISTER_I2C(busdev_ina226,      DEVHW_INA226,       INA226_I2C_BUS,     INA226_I2C_ADDRESS, NONE,           DEVFLAGS_NONE, 0);
 #endif
 
 #if defined(USE_I2C) && defined(USE_I2C_IO_EXPANDER)
