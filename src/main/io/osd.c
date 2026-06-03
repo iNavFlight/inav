@@ -3368,7 +3368,7 @@ static bool osdDrawSingleElement(uint8_t item)
             int32_t altitude = osdGetAltitude();
             buff[0] = SYM_GLIDE_DIST;
             if (currentGlideRatio <= 0.0f || altitude <= 0) {
-                tfp_sprintf(buff, "%s%c", "---", SYM_BLANK);
+                tfp_sprintf(buff + 1, "%s%c", "---", SYM_BLANK);
                 buff[5] = '\0';
                 break;
             }
