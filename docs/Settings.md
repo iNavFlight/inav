@@ -5946,6 +5946,7 @@ Selection of pitot hardware. VIRTUAL only works if a GPS is enabled.
 | FAKE |  |
 | MSP |  |
 | DLVR-L10D |  |
+| MS5525 |  |
 
 ---
 
