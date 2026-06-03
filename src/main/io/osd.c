@@ -170,8 +170,12 @@ static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
-static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
 static float GForce, GForceAxis[XYZ_AXIS_COUNT];
+
+// OSD Filters
+static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
+static pt1Filter_t glideTimeFilterState, glideSlopeFilterState;
+static pt1Filter_t climbEffFilterState, mahEffFilterState, whEffFilterState;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -1234,11 +1238,9 @@ static inline int32_t osdGetAltitudeMsl(void)
 
 uint16_t osdGetRemainingGlideTime(void) {
     float value = getEstimatedActualVelocity(Z);
-    static pt1Filter_t glideTimeFilterState;
     const  timeMs_t curTimeMs = millis();
     static timeMs_t glideTimeUpdatedMs;
 
-    if (!glideTimeFilterState.RC) pt1FilterSetCutoff(&glideTimeFilterState, 0.5f);
     value = pt1FilterApply3(&glideTimeFilterState, isnormal(value) ? value : 0, MS2S(curTimeMs - glideTimeUpdatedMs));
     glideTimeUpdatedMs = curTimeMs;
 
@@ -1787,7 +1789,6 @@ static int32_t osdUpdateEfficiencyFilter(pt1Filter_t *state, timeUs_t *lastUpdat
     timeUs_t currentTimeUs = micros();
     timeDelta_t delta = cmpTimeUs(currentTimeUs, *lastUpdated);
     if (delta >= EFFICIENCY_UPDATE_INTERVAL) {
-        if (!state->RC) pt1FilterSetCutoff(state, 1.0f);
         pt1FilterApply3(state, rawValue, US2S(delta));
         *lastUpdated = currentTimeUs;
     }
@@ -1994,13 +1995,11 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             float horizontalSpeed = gpsSol.groundSpeed;
             float sinkRate = -getEstimatedActualVelocity(Z);
-            static pt1Filter_t gsFilterState;
             const timeMs_t currentTimeMs = millis();
             static timeMs_t gsUpdatedTimeMs;
             float glideSlope = horizontalSpeed / sinkRate;
 
-            if (!gsFilterState.RC) pt1FilterSetCutoff(&gsFilterState, 0.5f);
-            glideSlope = pt1FilterApply3(&gsFilterState, isnormal(glideSlope) ? glideSlope : 200, MS2S(currentTimeMs - gsUpdatedTimeMs));
+            glideSlope = pt1FilterApply3(&glideSlopeFilterState, isnormal(glideSlope) ? glideSlope : 200, MS2S(currentTimeMs - gsUpdatedTimeMs));
             gsUpdatedTimeMs = currentTimeMs;
 
             buff[0] = SYM_GLIDESLOPE;
@@ -3093,20 +3092,18 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             // amperage is in centi amps (10mA), vertical speed is in cms/s. We want
             // Ah/dist only to show when vertical speed > 1m/s.
-            static pt1Filter_t veFilterState;
             static timeUs_t vEfficiencyUpdated = 0;
             int32_t value = 0;
             timeUs_t currentTimeUs = micros();
             timeDelta_t vEfficiencyTimeDelta = cmpTimeUs(currentTimeUs, vEfficiencyUpdated);
             if (getEstimatedActualVelocity(Z) > 0) {
                 if (vEfficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                    // getAmperage() Centiamps (kept for osdFormatCentiNumber) / m/s - Will appear as A / m/s in OSD
-                    if (!veFilterState.RC) pt1FilterSetCutoff(&veFilterState, 1.0f);
-                    value = pt1FilterApply3(&veFilterState, (float)getAmperage() / (getEstimatedActualVelocity(Z) / 100.0f), US2S(vEfficiencyTimeDelta));
+                                                                  // Centiamps (kept for osdFormatCentiNumber) / m/s - Will appear as A / m/s in OSD
+                    value = pt1FilterApply3(&climbEffFilterState, (float)getAmperage() / (getEstimatedActualVelocity(Z) / 100.0f), US2S(vEfficiencyTimeDelta));
 
                     vEfficiencyUpdated = currentTimeUs;
                 } else {
-                    value = veFilterState.state;
+                    value = climbEffFilterState.state;
                 }
             }
             bool efficiencyValid = (value > 0) && (getEstimatedActualVelocity(Z) > 100);
@@ -3536,7 +3533,6 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_EFFICIENCY_MAH_PER_KM:
         {
             // amperage is in centi amps, speed is in cms/s. We want mah/km.
-            static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
             bool moreThanAh = false;
             uint8_t digits = 3U;
@@ -3544,8 +3540,9 @@ static bool osdDrawSingleElement(uint8_t item)
             if (isDJICompatibleVideoSystem(osdConfig())) digits = 4U;
 #endif
             float rawEff = gpsSol.groundSpeed > 0 ? ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f : 0.0f; // div/0 guard only; helper owns the GPS guard
-            int32_t value = osdUpdateEfficiencyFilter(&eFilterState, &efficiencyUpdated, rawEff);
+            int32_t value = osdUpdateEfficiencyFilter(&mahEffFilterState, &efficiencyUpdated, rawEff);
             bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
+
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
@@ -3600,11 +3597,11 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_EFFICIENCY_WH_PER_KM:
         {
             // power is in mW, speed is in cms/s. We want mWh/km.
-            static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
             float rawEff = gpsSol.groundSpeed > 0 ? ((float)getPower() / gpsSol.groundSpeed) / 0.0036f : 0.0f;
-            int32_t value = osdUpdateEfficiencyFilter(&eFilterState, &efficiencyUpdated, rawEff);
+            int32_t value = osdUpdateEfficiencyFilter(&whEffFilterState, &efficiencyUpdated, rawEff);
             bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
+
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
@@ -5736,8 +5733,13 @@ static void osdFilterData(timeUs_t currentTimeUs)
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             GForceAxis[axis] = pt1FilterApply3(&GForceFilterAxis[axis], GForceAxis[axis], refresh_dT);
         }
-    } else {
+    } else {   // init OSD filter f_cut values
         pt1FilterSetCutoff(&GForceFilter, GFORCE_FILTER_T_CUT_HZ);
+        pt1FilterSetCutoff(&glideTimeFilterState, 0.5f);
+        pt1FilterSetCutoff(&glideSlopeFilterState, 0.5f);
+        pt1FilterSetCutoff(&climbEffFilterState, 1.0f);
+        pt1FilterSetCutoff(&mahEffFilterState, 1.0f);
+        pt1FilterSetCutoff(&whEffFilterState, 1.0f);
 
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             pt1FilterSetCutoff(&GForceFilterAxis[axis], GFORCE_FILTER_T_CUT_HZ);
