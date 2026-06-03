@@ -1877,7 +1877,7 @@ static bool isDataValidForGlideRatio(void) {
     static timeMs_t lastDescentTime = 0;
     if (getEstimatedActualVelocity(Z) < 0) {  // Descending
         lastDescentTime = millis();
-    } else if (millis() - lastDescentTime > 4000) {  // Ascending for more than 4 seconds
+    } else if (millis() - lastDescentTime > 4000) {  // Not descending for more than 4 seconds
         return false;
     }
 
@@ -2213,6 +2213,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                     glideRatio = 0.0f;
                     samplesSinceLastClear = 0;
+                    glideBufferIndex = 0;
                 }
                 else {
                     glideBuffer[glideBufferIndex].distance_cm = getTotalTravelDistance();
@@ -2224,8 +2225,8 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
 
                     if (samplesSinceLastClear >= minimumSampleCount) {
-                        // Calculate glide ratio using the samples
-                        glideRatio = calculateGlideRatioFromBuffer(glideBuffer, bufferSize);
+                        // Calculate glide ratio using only the valid samples collected
+                        glideRatio = calculateGlideRatioFromBuffer(glideBuffer, samplesSinceLastClear);
                     }
                     else {
                         glideRatio = 0.0f;  // Not enough samples yet
