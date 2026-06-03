@@ -634,11 +634,11 @@ This sets the output voltage to current scaling for the current sensor in 0.1 mV
 
 ### current_meter_type
 
-ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
+ADC, VIRTUAL, FAKE, ESC, SMARTPORT, INA226, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ADC |  |  |
+| _target default_ |  |  |
 
 ---
 
@@ -2069,6 +2069,16 @@ Power draw at zero throttle used for remaining flight time/distance estimation i
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 65535 |
+
+---
+
+### ina_shunt_res_uohm
+
+INA226 shunt resistor value in micro-ohms.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 1 | 4294967295 |
 
 ---
 
@@ -6594,11 +6604,11 @@ Maximum voltage per cell in 0.01V units, default is 4.20V
 
 ### vbat_meter_type
 
-Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running.
+Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, `INA226`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. `INA226` requires an INA226 I2C sensor.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ADC |  |  |
+| _target default_ |  |  |
 
 ---
 
