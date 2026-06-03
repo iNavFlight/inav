@@ -2084,9 +2084,8 @@ static bool osdDrawSingleElement(uint8_t item)
             // gsUpdatedTimeMs = currentTimeMs;
 
             static uint8_t bufferSize = glideSampleRate * glideSampleTimeFrame;
-            static glidePositionSample_t glideBuffer[bufferSize] = 0;
-            static uint16_t glideBufferIndex = 0;
-            static timeMs_t glideLastSampleTime = 0;
+            static glidePositionSample_t glideBuffer[20]; // Need to add semi-dynamic allocation based on glideSampleRate and glideSampleTimeFrame later to allow for changing this in settings
+            static uint8_t glideBufferIndex = 0;
             static uint8_t samplesSinceLastClear = 0;
             const timeMs_t currentTime = millis();
 
