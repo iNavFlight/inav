@@ -198,7 +198,6 @@ typedef struct glidePositionSample_s {
     int32_t altitude_cm;     // Altitude
 } glidePositionSample_t;
 
-static const uint8_t minimumSampleCount = 5;      // Minimum number of samples in the timeframe to consider the glide slope valid
 
 // Lazy-allocated glide buffer
 static glidePositionSample_t *glideBuffer = NULL;
@@ -2185,6 +2184,7 @@ static bool osdDrawSingleElement(uint8_t item)
             uint8_t sampleRate = osdConfig()->glide_sample_rate;
             uint8_t timeFrame = osdConfig()->glide_sample_time_frame;
             const uint16_t requiredBufferSize = sampleRate * timeFrame;
+            const uint8_t minimumSampleCount = requiredBufferSize / 4;  // Require at least a quarter of the buffer to be filled with valid samples before showing a glide ratio
             uint16_t bufferSize = ensureGlideBufferAllocated(requiredBufferSize);
             
             if (bufferSize == 0) {
