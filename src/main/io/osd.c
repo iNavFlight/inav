@@ -198,8 +198,6 @@ typedef struct glidePositionSample_s {
     int32_t altitude_cm;     // Altitude
 } glidePositionSample_t;
 
-static const uint8_t glideSampleRate = 2;         // 2Hz
-static const uint8_t glideSampleTimeFrame = 10;   // seconds
 static const uint8_t minimumSampleCount = 5;      // Minimum number of samples in the timeframe to consider the glide slope valid
 
 // Lazy-allocated glide buffer
