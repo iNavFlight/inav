@@ -18,7 +18,6 @@ typedef struct mixerConfig_s {
     bool controlProfileLinking;
     bool automated_switch;
     int16_t switchTransitionTimer;
-    uint16_t switchTransitionAirspeed;
     bool vtolTransitionDynamicMixer;
     bool manualVtolTransitionController;
     uint16_t vtolTransitionAirspeedTimeoutMs;
@@ -69,6 +68,7 @@ typedef struct mixerProfileAT_s {
     bool usedAirspeed;
     bool transitionStartAirspeedCaptured;
     float progress;
+    float scalingProgress;
     float transitionStartAirspeedCmS;
     float blendToFw;
     float pusherScale;

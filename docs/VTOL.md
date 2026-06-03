@@ -23,15 +23,21 @@ We highly value your feedback as it plays a crucial role in the development and 
 # VTOL Configuration Steps
 
 ### The VTOL functionality is achieved by switching/transitioning between two configurations stored in the FC. VTOL specific configurations are Mixer Profiles with associated control profiles. One profile set is for fixed-wing(FW) mode, One is for multi-copter(MC) mode. Configuration/Settings other than Mixer/control profiles are shared among two modes
+
+This guide uses the long-standing VTOL setup order:
+- Profile 1 = fixed-wing (FW)
+- Profile 2 = multicopter (MC)
+
+The firmware can work with the profiles swapped, but keeping one order in the guide makes the setup steps easier to follow.
 ![Alt text](Screenshots/mixerprofile_flow.png)
 
 0. **Find a DIFF ALL file for your model and start from there if possible**
    - Be aware that `MIXER PROFILE 2` RC mode setting introduced by diff file can get your stuck in a mixer_profile. remove or change channel to proceed
 1. **Setup Profile 1:**
-   - Configure it as a normal fixed-wing/multi-copter.
+   - Configure it as your normal fixed-wing setup.
 
 2. **Setup Profile 2:**
-   - Configure it as a normal multi-copter/fixed-wing.
+   - Configure it as your normal multicopter setup.
 
 3. **Mode Tab Settings:**
    - Set up switching in the mode tab.
@@ -125,8 +131,8 @@ save
      save
      ```
 
-2. **Configure the fixed-wing/Multi-Copter:**
-   - Configure your fixed-wing/Multi-Copter as you normally would, or you can copy and paste default settings to expedite the process.
+2. **Configure the fixed-wing:**
+   - Configure your fixed-wing as you normally would, or you can copy and paste default settings to speed things up.
    - Dshot esc protocol availability might be limited depends on outputs and fc board you are using. change the motor wiring or use oneshot/multishot esc protocol and calibrate throttle range.
    - You can use throttle = -1 as a placeholder for the motor you wish to stop if the motor isn't the last motor
    - Consider conducting a test flight to ensure that everything operates as expected. And tune the settings, trim the servos.
@@ -147,8 +153,8 @@ You must also assign the tilting servos values using the MAX values.  If you don
      save
      ```
 
-2. **Configure the Multicopter/tricopter:**
-   - Set up your multi-copter/fixed-wing as usual, this time for mixer_profile 2 and control_profile 2.
+2. **Configure the multicopter/tricopter:**
+   - Set up your multicopter/tricopter as usual, this time for mixer_profile 2 and control_profile 2.
    - Utilize the 'MAX' input in the servo mixer to tilt the motors without altering the servo midpoint.
    - At this stage, focus on configuring profile-specific settings. You can streamline this process by copying and pasting the default PID settings.
    - you can set -1 in motor mixer throttle as a place holder: this will disable that motor but will load following the motor rules
@@ -314,6 +320,8 @@ With `mixer_vtol_manualswitch_autotransition_controller = ON`:
 - Keeping the mode ON does not repeatedly retrigger transition.
 - To start another transition, mode must go OFF then ON again.
 - If mode is turned OFF before hot-switch, transition request is aborted safely.
+- If valid pitot is present and MC->FW airspeed threshold is configured, direct manual profile hot-switch to FW is blocked until threshold is reached.
+- Optional FW safety fallback: set `vtol_fw_to_mc_auto_switch_airspeed_cm_s > 0` to auto-request FW->MC transition when valid pitot airspeed drops to/below the configured value.
 
 With `mixer_vtol_manualswitch_autotransition_controller = OFF`:
 - legacy manual behavior is preserved for backward compatibility.
@@ -357,7 +365,7 @@ For MC -> FW mission transition:
 
 MC -> FW:
 - completion threshold: `vtol_transition_to_fw_min_airspeed_cm_s`
-- if this is `0`, legacy `mixer_switch_trans_airspeed_cm_s` is used.
+- if this is `0`, MC->FW uses timer fallback (`mixer_switch_trans_timer`).
 
 FW -> MC:
 - completion threshold: `vtol_transition_to_mc_max_airspeed_cm_s`
@@ -379,15 +387,17 @@ When `mixer_vtol_transition_dynamic_mixer = ON`, transition progress additionall
 When `mixer_vtol_transition_dynamic_mixer = OFF`, legacy static transition mixing behavior is preserved.
 
 Optional decoupled scaling ramp:
-- `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): scaling follows transition progress (legacy-compatible behavior).
-- `mixer_vtol_transition_scale_ramp_time_ms > 0`: scaling uses this ramp timer, while completion logic remains unchanged (airspeed-first; timer fallback when pitot is unavailable/unhealthy).
+- trusted pitot available/healthy: scaling follows airspeed-based transition progress.
+- `mixer_vtol_transition_scale_ramp_time_ms > 0`: if trusted pitot becomes unavailable/unhealthy, scaling falls back to this ramp timer.
+- `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): if trusted pitot is unavailable/unhealthy, scaling falls back to transition progress/timer behavior.
 
 Example:
 - `mixer_switch_trans_timer = 50` (5s fallback completion timer)
 - `mixer_vtol_transition_scale_ramp_time_ms = 1200`
 
 Result:
-- pusher/lift/authority scaling reaches target levels in ~1.2s,
+- when trusted pitot is healthy, pusher/lift/authority scaling still follows airspeed progress,
+- if trusted pitot becomes unavailable/unhealthy, scaling reaches target levels in ~1.2s,
 - transition completion still follows airspeed thresholds when pitot is healthy,
 - if pitot is unavailable/unhealthy, completion fallback still uses 5s.
 
@@ -406,7 +416,6 @@ CLI:
 - `set mixer_vtol_transition_dynamic_mixer = OFF`
 - `set mixer_switch_trans_timer = 45`
 - `set vtol_transition_to_fw_min_airspeed_cm_s = 0`
-- `set mixer_switch_trans_airspeed_cm_s = 0`
 - `set vtol_transition_to_mc_max_airspeed_cm_s = 900`
 - `set mixer_vtol_transition_airspeed_timeout_ms = 0`
 - `set mixer_vtol_transition_scale_ramp_time_ms = 0`
@@ -511,11 +520,11 @@ The new VTOL settings are split into two groups:
 
 ### Per-mixer-profile settings
 
-These can differ between mixer profile 1 (typically MC) and mixer profile 2 (typically FW):
+In the examples in this guide, mixer profile 1 is FW and mixer profile 2 is MC.
+These settings can differ between the two mixer profiles:
 
 - `mixer_automated_switch`
 - `mixer_switch_trans_timer`
-- `mixer_switch_trans_airspeed_cm_s`
 - `mixer_vtol_transition_dynamic_mixer`
 - `mixer_vtol_manualswitch_autotransition_controller`
 - `mixer_vtol_transition_airspeed_timeout_ms`
@@ -527,6 +536,7 @@ These are shared system-wide and are not profile-specific:
 
 - `vtol_transition_to_fw_min_airspeed_cm_s`
 - `vtol_transition_to_mc_max_airspeed_cm_s`
+- `vtol_fw_to_mc_auto_switch_airspeed_cm_s`
 - `vtol_transition_lift_end_percent`
 - `vtol_transition_mc_authority_end_percent`
 - `vtol_transition_fw_authority_start_percent`
@@ -547,14 +557,14 @@ Use these commands in CLI (`set ...`, then `save`):
 - `set vtol_transition_to_fw_min_airspeed_cm_s = <value>`
   - Preferred MC -> FW completion threshold (pitot airspeed).
 
-- `set mixer_switch_trans_airspeed_cm_s = <value>`
-  - Legacy MC -> FW threshold, used when `vtol_transition_to_fw_min_airspeed_cm_s = 0`.
-
 - `set mixer_switch_trans_timer = <value>`
   - Timer-based transition duration fallback (used when pitot airspeed is unavailable/unhealthy).
 
 - `set vtol_transition_to_mc_max_airspeed_cm_s = <value>`
   - FW -> MC completion threshold (pitot airspeed).
+
+- `set vtol_fw_to_mc_auto_switch_airspeed_cm_s = <value>`
+  - Optional low-airspeed FW protection threshold for manual auto-transition controller (`0` disables).
 
 - `set mixer_vtol_transition_airspeed_timeout_ms = <value>`
   - Transition timeout/abort window.
@@ -625,8 +635,9 @@ Dynamic mixer scaling (`mixer_vtol_transition_dynamic_mixer = ON`) uses this pro
   - MC authority ramps `vtol_transition_mc_authority_end_percent -> 1`
   - FW authority ramps `1 -> vtol_transition_fw_authority_start_percent`
 
-If `mixer_vtol_transition_scale_ramp_time_ms > 0`, dynamic scaling uses that timer-based ramp instead of transition-progress coupling.
-This changes only scaling shape. Transition completion logic remains airspeed-first (with timer fallback when pitot is unavailable/unhealthy).
+Dynamic scaling prefers trusted pitot-based transition progress whenever available.
+If trusted pitot becomes unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms > 0`, scaling falls back to that timer-based ramp.
+If trusted pitot is unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms = 0`, scaling falls back to transition progress/timer behavior (`mixer_switch_trans_timer`).
 
 For transition/pusher motors (`-2.0 < throttle < -1.0`), output is interpolated from idle to target:
 

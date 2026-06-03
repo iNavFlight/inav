@@ -1281,17 +1281,11 @@ groups:
         field: mixer_config.automated_switch
         type: bool
       - name: mixer_switch_trans_timer
-        description: "If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch."
+        description: "If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch. If trusted pitot is unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms = 0`, dynamic scaling also falls back to this transition progress/timer behavior."
         default_value: 0
         field: mixer_config.switchTransitionTimer
         min: 0
         max: 200
-      - name: mixer_switch_trans_airspeed_cm_s
-        description: "Legacy MC->FW airspeed threshold [cm/s] for automated profile switch. Used when `vtol_transition_to_fw_min_airspeed_cm_s = 0`. If airspeed is unavailable, timer-based fallback (`mixer_switch_trans_timer`) is used."
-        default_value: 0
-        field: mixer_config.switchTransitionAirspeed
-        min: 0
-        max: 10000
       - name: mixer_vtol_transition_dynamic_mixer
         description: "Enables dynamic VTOL transition progress/scaling controller shared by mission-authorized and manual MIXER TRANSITION paths."
         default_value: OFF
@@ -1309,7 +1303,7 @@ groups:
         min: 0
         max: 60000
       - name: mixer_vtol_transition_scale_ramp_time_ms
-        description: "Optional dynamic scaling ramp duration [ms]. When > 0 and `mixer_vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling uses this timer instead of transition completion progress. Set to 0 to keep legacy progress-coupled scaling behavior."
+        description: "Optional dynamic scaling fallback ramp duration [ms]. When > 0 and `mixer_vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling still follows trusted pitot-based transition progress when available; if trusted pitot becomes unavailable/unhealthy, scaling falls back to this timer. If set to 0, scaling falls back to transition progress/timer behavior."
         default_value: 0
         field: mixer_config.vtolTransitionScaleRampTimeMs
         min: 0
@@ -4027,7 +4021,7 @@ groups:
         min: 0
         max: 100
       - name: vtol_transition_to_fw_min_airspeed_cm_s
-        description: "Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. Overrides `mixer_switch_trans_airspeed_cm_s` when > 0. If 0, legacy setting is used."
+        description: "Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. If 0, MC->FW uses timer fallback (`mixer_switch_trans_timer`)."
         default_value: 0
         field: vtolTransitionToFwMinAirspeed
         min: 0
@@ -4036,6 +4030,12 @@ groups:
         description: "Maximum pitot airspeed [cm/s] allowed to complete FW->MC transition when airspeed is healthy and available. If 0, FW->MC uses timer fallback."
         default_value: 0
         field: vtolTransitionToMcMaxAirspeed
+        min: 0
+        max: 20000
+      - name: vtol_fw_to_mc_auto_switch_airspeed_cm_s
+        description: "Automatic FW->MC protection threshold [cm/s] used only when `mixer_vtol_manualswitch_autotransition_controller` is ON. If set above 0 and valid pitot airspeed is at/below this value while in FW, controller requests FW->MC transition automatically. Set to 0 to disable."
+        default_value: 0
+        field: vtolFwToMcAutoSwitchAirspeed
         min: 0
         max: 20000
       - name: vtol_transition_lift_end_percent

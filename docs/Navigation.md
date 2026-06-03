@@ -113,7 +113,6 @@ Configuration:
 - `nav_vtol_mission_transition_track_distance_cm` configures straight-line MC->FW transition guidance distance.
 - VTOL transition completion logic is shared with manual MIXER TRANSITION and uses mixer transition settings:
   - preferred MC->FW threshold: `vtol_transition_to_fw_min_airspeed_cm_s`
-  - legacy MC->FW fallback (when preferred threshold is `0`): `mixer_switch_trans_airspeed_cm_s`
   - FW->MC threshold: `vtol_transition_to_mc_max_airspeed_cm_s`
 
 Behavior on each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`):
@@ -131,7 +130,7 @@ Transition behavior in this MVP:
 
 - MC -> FW: straight-line acceleration segment (no loiter), heading from the next waypoint bearing when available, otherwise current heading.
 - MC -> FW and FW -> MC completion uses pitot airspeed thresholds when healthy/available (`vtol_transition_to_fw_min_airspeed_cm_s`, `vtol_transition_to_mc_max_airspeed_cm_s`).
-- If pitot is unavailable/unhealthy (or threshold disabled), timer fallback (`mixer_switch_trans_timer`) is used.
+- If pitot is unavailable/unhealthy (or threshold is `0`), timer fallback (`mixer_switch_trans_timer`) is used.
 - Ground speed is not used for transition progress/completion.
 - FW -> MC: mission pauses during automated transition, then resumes after switching back to MC profile.
 - Strict altitude hold is not enforced during MC -> FW transition; natural climb is allowed.

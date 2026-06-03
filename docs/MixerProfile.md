@@ -12,6 +12,12 @@ For VTOL setup. one mixer_profile is used for multi-rotor(MR) and the other is u
 By default, switching between profiles requires reboot to take affect. However, using the RC mode: `MIXER PROFILE 2` will allow in flight switching for things like VTOL operation
 . And will re-initialize pid and navigation controllers for current MC or FW flying mode.
 
+For consistency, this document uses the long-standing VTOL order:
+- Profile 1 = fixed-wing (FW)
+- Profile 2 = multicopter (MC)
+
+The firmware can work with the profiles swapped, but the examples below keep this order so the switch logic is easier to follow.
+
 Please note that this is an emerging / experimental capability that will require some effort by the pilot to implement.
 
 ## Mixer Transition input
@@ -29,6 +35,8 @@ The use of Transition Mode is recommended to enable further features and future 
 - Keeping the mode ON does not repeatedly restart transitions.
 - A new transition requires mode OFF then ON again.
 - If switched OFF before hot-switch completes, the manual transition request is aborted.
+- If valid pitot is present and MC->FW threshold is configured, direct manual profile hot-switch to FW is blocked until threshold is reached.
+- Optional FW protection: `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can auto-request FW->MC transition when valid pitot airspeed drops to/below the configured value (`0` disables).
 
 This edge-triggered behavior is enabled by `mixer_vtol_manualswitch_autotransition_controller`.
 Set `mixer_vtol_manualswitch_autotransition_controller = ON` in both mixer profiles (MC and FW) used for switching to keep manual transition semantics consistent after profile hot-switch.
@@ -40,15 +48,19 @@ Important path split:
 - `MIXER PROFILE 2` remains a direct manual profile-switch path.
 - Smooth VTOL transition state-machine behavior is triggered by `MIXER TRANSITION` when `mixer_vtol_manualswitch_autotransition_controller = ON`.
 
-Recommended switch topology (explicit):
+Recommended switch topology example (clear 3-position setup):
+- This example assumes the usual VTOL order used in this document:
+  - Profile 1 = FW
+  - Profile 2 = MC
 - Use a dedicated 3-position mapping:
-  - Pos1 = MC (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
+  - Pos1 = FW (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
   - Pos2 = Transition trigger (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` ON)
-  - Pos3 = FW (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
+  - Pos3 = MC (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
 - Keep `mixer_vtol_manualswitch_autotransition_controller` ON in both profiles used by this mapping.
 - Avoid overlapping FW selection and transition trigger in the same position.
 - Avoid 2-position setups where one position activates both `MIXER PROFILE 2` and `MIXER TRANSITION`.
 - Overlapping mode activation can produce order-dependent behavior (direct profile switch path vs transition-controller path), which is unpredictable and not recommended.
+- If you intentionally swap the profile order, the same idea still works; just swap the FW and MC end positions.
 
 ## Servo
 
@@ -115,7 +127,6 @@ When pitot airspeed is healthy and available, transition completion uses pitot t
 
 - `vtol_transition_to_fw_min_airspeed_cm_s` for MC->FW
 - `vtol_transition_to_mc_max_airspeed_cm_s` for FW->MC
-- If `vtol_transition_to_fw_min_airspeed_cm_s = 0`, MC->FW falls back to legacy `mixer_switch_trans_airspeed_cm_s`.
 
 If pitot is unavailable/unhealthy (or threshold is `0`), timer fallback is used (`mixer_switch_trans_timer`).
 Ground speed is not used for transition completion/progress.
@@ -141,8 +152,9 @@ With dynamic scaling enabled, `vtol_transition_fw_authority_start_percent = 100`
 
 Optional scaling ramp timer:
 
-- `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): scaling remains coupled to transition progress (legacy-compatible behavior).
-- `mixer_vtol_transition_scale_ramp_time_ms > 0`: scaling uses this timer, while transition completion stays airspeed-first (or timer fallback if pitot unavailable/unhealthy).
+- trusted pitot available/healthy: scaling follows airspeed-based transition progress.
+- `mixer_vtol_transition_scale_ramp_time_ms > 0`: if trusted pitot becomes unavailable/unhealthy, scaling falls back to this timer.
+- `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): if trusted pitot is unavailable/unhealthy, scaling falls back to transition progress/timer behavior.
 
 Example:
 
@@ -150,7 +162,8 @@ Example:
 - `mixer_vtol_transition_scale_ramp_time_ms = 1200`
 
 Result:
-- scaling reaches target levels in ~1.2s,
+- when trusted pitot is healthy, scaling still follows airspeed progress,
+- if trusted pitot becomes unavailable/unhealthy, scaling reaches target levels in ~1.2s,
 - transition completion still follows airspeed threshold when pitot is healthy,
 - timer fallback completion still uses 5s when pitot is unavailable/unhealthy.
 
@@ -161,14 +174,12 @@ INAV supports mission-requested VTOL transitions through the existing automated 
 - `nav_vtol_mission_transition_user_action` (`OFF`, `USER1`, `USER2`, `USER3`, `USER4`)
 - `nav_vtol_mission_transition_min_altitude_cm` (optional, `0` disables minimum-altitude check)
 - `vtol_transition_to_fw_min_airspeed_cm_s` (preferred MC->FW threshold)
-- `mixer_switch_trans_airspeed_cm_s` (legacy MC->FW fallback when preferred threshold is `0`)
 
 Scope note:
 
 - Per-mixer-profile settings:
   - `mixer_automated_switch`
   - `mixer_switch_trans_timer`
-  - `mixer_switch_trans_airspeed_cm_s`
   - `mixer_vtol_transition_dynamic_mixer`
   - `mixer_vtol_manualswitch_autotransition_controller`
   - `mixer_vtol_transition_airspeed_timeout_ms`
@@ -176,6 +187,7 @@ Scope note:
 - Global settings:
   - `vtol_transition_to_fw_min_airspeed_cm_s`
   - `vtol_transition_to_mc_max_airspeed_cm_s`
+  - `vtol_fw_to_mc_auto_switch_airspeed_cm_s`
   - `vtol_transition_lift_end_percent`
   - `vtol_transition_mc_authority_end_percent`
   - `vtol_transition_fw_authority_start_percent`
@@ -211,7 +223,6 @@ CLI:
 - `set mixer_vtol_transition_dynamic_mixer = OFF`
 - `set mixer_switch_trans_timer = 45`
 - `set vtol_transition_to_fw_min_airspeed_cm_s = 0`
-- `set mixer_switch_trans_airspeed_cm_s = 0`
 - `set vtol_transition_to_mc_max_airspeed_cm_s = 900`
 - `set mixer_vtol_transition_airspeed_timeout_ms = 0`
 - `set mixer_vtol_transition_scale_ramp_time_ms = 0`

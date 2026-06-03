@@ -3200,19 +3200,11 @@ If enabled, control_profile_index will follow mixer_profile index. Set to OFF(de
 
 ---
 
-### mixer_switch_trans_airspeed_cm_s
-
-Legacy MC->FW airspeed threshold [cm/s] for automated profile switch. Used when `vtol_transition_to_fw_min_airspeed_cm_s = 0`. If airspeed is unavailable, timer-based fallback (`mixer_switch_trans_timer`) is used.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 10000 |
-
----
-
 ### mixer_switch_trans_timer
 
 If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch.
+
+If trusted pitot is unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms = 0`, dynamic scaling also falls back to this transition progress/timer behavior.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3252,7 +3244,7 @@ Enables dynamic VTOL transition progress/scaling controller shared by mission-au
 
 ### mixer_vtol_transition_scale_ramp_time_ms
 
-Optional dynamic scaling ramp duration [ms]. When > 0 and `mixer_vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling uses this timer instead of transition completion progress. Set to 0 to keep legacy progress-coupled scaling behavior.
+Optional dynamic scaling fallback ramp duration [ms]. When > 0 and `mixer_vtol_transition_dynamic_mixer` is ON, pusher/lift/authority scaling still follows trusted pitot-based transition progress when available; if trusted pitot becomes unavailable/unhealthy, scaling falls back to this timer. If set to 0, scaling falls back to transition progress/timer behavior.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7096,6 +7088,16 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 
 ---
 
+### vtol_fw_to_mc_auto_switch_airspeed_cm_s
+
+Automatic FW->MC protection threshold [cm/s] used only when `mixer_vtol_manualswitch_autotransition_controller` is ON. If set above 0 and valid pitot airspeed is at/below this value while in FW, controller requests FW->MC transition automatically. Set to 0 to disable.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 20000 |
+
+---
+
 ### vtol_transition_fw_authority_start_percent
 
 Initial fixed-wing authority scale at transition start, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON.
@@ -7128,7 +7130,7 @@ Target multicopter stabilization authority scale at transition end, in percent. 
 
 ### vtol_transition_to_fw_min_airspeed_cm_s
 
-Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. Overrides `mixer_switch_trans_airspeed_cm_s` when > 0. If 0, legacy setting is used.
+Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. If 0, MC->FW uses timer fallback (`mixer_switch_trans_timer`).
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7299,4 +7301,3 @@ Defines rotation rate on YAW axis that UAV will try to archive on max. stick def
 | 20 | 1 | 180 |
 
 ---
-

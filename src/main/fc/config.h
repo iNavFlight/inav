@@ -80,6 +80,7 @@ typedef struct systemConfig_s {
     uint8_t throttle_tilt_compensation_strength;    // the correction that will be applied at throttle_correction_angle.
     uint16_t vtolTransitionToFwMinAirspeed;
     uint16_t vtolTransitionToMcMaxAirspeed;
+    uint16_t vtolFwToMcAutoSwitchAirspeed;
     uint8_t vtolTransitionLiftEndPercent;
     uint8_t vtolTransitionMcAuthorityEndPercent;
     uint8_t vtolTransitionFwAuthorityStartPercent;
