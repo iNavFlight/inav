@@ -603,6 +603,7 @@ void processServoAutotrimMode(void)
     }
 }
 
+
 void processContinuousServoAutotrim(const float dT)
 {
     static timeMs_t lastUpdateTimeMs;
