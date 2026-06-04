@@ -438,7 +438,6 @@ typedef struct navConfig_s {
         uint16_t waypoint_safe_distance;            // Waypoint mission sanity check distance
         uint8_t  vtol_mission_transition_user_action; // User action slot that requests mission VTOL transition
         uint16_t vtol_mission_transition_min_altitude; // Minimum altitude [cm] to start mission VTOL transition (0 = disabled)
-        uint32_t vtol_mission_transition_track_distance; // Straight-segment target distance [cm] used during MC->FW mission transition
         bool     vtol_transition_retry_on_airspeed_timeout; // Enables one-shot yaw-scan retry for failed airspeed-gated MC->FW auto-transition
         uint8_t  vtol_transition_fail_action_mc_to_fw; // Action after final MC->FW transition failure
         uint8_t  vtol_transition_fail_action_fw_to_mc; // Action after final FW->MC transition failure

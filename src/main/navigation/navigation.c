@@ -90,6 +90,7 @@
 #define NAV_MIXERAT_RETRY_HEADING_SETTLE_MS  500
 #define NAV_MIXERAT_RETRY_HEADING_STEP_TIMEOUT_MS 6000
 #define NAV_MIXERAT_RETRY_MAX_TOTAL_MS       45000
+#define NAV_MIXERAT_MISSION_TRANSITION_TRACK_DISTANCE_CM 4000
 
 /*-----------------------------------------------------------
  * Compatibility for home position
@@ -127,7 +128,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 9);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 10);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -159,7 +160,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .waypoint_safe_distance = SETTING_NAV_WP_MAX_SAFE_DISTANCE_DEFAULT,                         // Metres - first waypoint should be closer than this
         .vtol_mission_transition_user_action = SETTING_NAV_VTOL_MISSION_TRANSITION_USER_ACTION_DEFAULT,
         .vtol_mission_transition_min_altitude = SETTING_NAV_VTOL_MISSION_TRANSITION_MIN_ALTITUDE_CM_DEFAULT,
-        .vtol_mission_transition_track_distance = SETTING_NAV_VTOL_MISSION_TRANSITION_TRACK_DISTANCE_CM_DEFAULT,
         .vtol_transition_retry_on_airspeed_timeout = SETTING_NAV_VTOL_TRANSITION_RETRY_ON_AIRSPEED_TIMEOUT_DEFAULT,
         .vtol_transition_fail_action_mc_to_fw = SETTING_NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_DEFAULT,
         .vtol_transition_fail_action_fw_to_mc = SETTING_NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_DEFAULT,
@@ -2382,8 +2382,7 @@ static void updateMissionTransitionGuidance(void)
         navMixerATMissionTransition.request == MIXERAT_REQUEST_MISSION_TO_FW &&
         STATE(MULTIROTOR)) {
         fpVector3_t transitionTarget;
-        const uint32_t transitionTrackDistance = navConfig()->general.vtol_mission_transition_track_distance;
-        calculateFarAwayTarget(&transitionTarget, navMixerATMissionTransition.heading, transitionTrackDistance);
+        calculateFarAwayTarget(&transitionTarget, navMixerATMissionTransition.heading, NAV_MIXERAT_MISSION_TRANSITION_TRACK_DISTANCE_CM);
         setDesiredPosition(&transitionTarget, navMixerATMissionTransition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
         return;
     }

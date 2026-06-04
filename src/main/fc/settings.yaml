@@ -1281,29 +1281,29 @@ groups:
         field: mixer_config.automated_switch
         type: bool
       - name: mixer_switch_trans_timer
-        description: "If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch. If trusted pitot is unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms = 0`, dynamic scaling also falls back to this transition progress/timer behavior."
+        description: "Time, in deciseconds (0.1s), that transition motors or servos stay active before iNAV changes to the other mixer profile during an automated VTOL switch. This is also the backup transition time when pitot airspeed is not available. If `mixer_vtol_transition_scale_ramp_time_ms = 0`, the other smooth transition power changes also fall back to this timing."
         default_value: 0
         field: mixer_config.switchTransitionTimer
         min: 0
         max: 200
       - name: mixer_vtol_transition_dynamic_mixer
-        description: "Enables dynamic VTOL transition progress/scaling controller shared by mission-authorized and manual MIXER TRANSITION paths."
+        description: "Turns on smooth VTOL transition power changes. This affects forward motor ramp-up, lift motor power reduction, multicopter stabilisation reduction, and fixed-wing control fade-in. Used by both manual `MIXER TRANSITION` and mission-requested VTOL transitions."
         default_value: OFF
         field: mixer_config.vtolTransitionDynamicMixer
         type: bool
       - name: mixer_vtol_manualswitch_autotransition_controller
-        description: "Enables edge-triggered manual VTOL transition controller for `MIXER TRANSITION` when not in waypoint mission. OFF keeps legacy manual transition behavior. For consistent manual transition semantics, enable this in both mixer profiles."
+        description: "Makes `MIXER TRANSITION` start one automatic VTOL transition each time the switch moves from OFF to ON, when not in waypoint mission. Turn this ON in both mixer profiles if you want the same behavior in both directions. OFF keeps the older manual switch behavior."
         default_value: OFF
         field: mixer_config.manualVtolTransitionController
         type: bool
       - name: mixer_vtol_transition_airspeed_timeout_ms
-        description: "Safety timeout [ms] for airspeed-controlled transitions. If non-zero and required airspeed condition is not met in time, transition aborts instead of force-completing."
+        description: "How long iNAV will wait for the required pitot airspeed during an airspeed-based transition. If the target airspeed is not reached in time, the transition is aborted. Set to 0 to disable."
         default_value: 0
         field: mixer_config.vtolTransitionAirspeedTimeoutMs
         min: 0
         max: 60000
       - name: mixer_vtol_transition_scale_ramp_time_ms
-        description: "Optional VTOL transition scaling ramp duration [ms]. In MC->FW, pusher scaling uses this timer regardless of pitot availability; if set to 0, pusher goes to full scale immediately. Lift/MC/FW handoff scaling still follows trusted pitot-based transition progress when available; if trusted pitot becomes unavailable/unhealthy, it falls back to this timer. If set to 0, handoff scaling falls back to transition progress/timer behavior."
+        description: "Ramp-up time [ms] for the forward motor during MC->FW when smooth VTOL transition power changes are ON. `0` gives full forward-motor power immediately. The same timer is also used as a backup for lift motor power, multicopter stabilisation, and fixed-wing control fade if pitot airspeed is lost or unavailable."
         default_value: 0
         field: mixer_config.vtolTransitionScaleRampTimeMs
         min: 0
@@ -2655,34 +2655,28 @@ groups:
         field: general.flags.waypoint_mission_restart
         table: nav_wp_mission_restart
       - name: nav_vtol_mission_transition_user_action
-        description: "Selects which waypoint USER action bit (`USER1`..`USER4`) is used as mission VTOL target selector. OFF disables this feature. On navigable mission waypoints: selected USER bit = 1 requests FW profile, selected USER bit = 0 requests MC profile. This is an absolute per-waypoint target-state selector and relies on existing mixer profile switching infrastructure (two profiles and valid MIXER PROFILE 2 mode activation condition)."
+        description: "Chooses which waypoint USER flag (`USER1`..`USER4`) tells iNAV which flight mode to use at each navigable waypoint. Selected USER flag ON means fixed-wing. Selected USER flag OFF means multicopter. OFF disables this feature. Requires two mixer profiles and a working `MIXER PROFILE 2` mode setup."
         default_value: "OFF"
         field: general.vtol_mission_transition_user_action
         table: nav_wp_user_action
       - name: nav_vtol_mission_transition_min_altitude_cm
-        description: "Minimum altitude [cm] required to start a mission-authorized VTOL transition. Set to 0 to disable the minimum-altitude check."
+        description: "Do not start a mission-requested VTOL transition below this altitude [cm]. Set to 0 to disable the altitude check."
         default_value: 0
         field: general.vtol_mission_transition_min_altitude
         min: 0
         max: 50000
-      - name: nav_vtol_mission_transition_track_distance_cm
-        description: "Straight-line target distance [cm] used during mission-authorized MC->FW transition guidance. This controls how far ahead the transition heading target is placed."
-        default_value: 100000
-        field: general.vtol_mission_transition_track_distance
-        min: 1000
-        max: 500000
       - name: nav_vtol_transition_retry_on_airspeed_timeout
-        description: "If ON, allows one retry for failed airspeed-gated MC->FW auto-transition (mission or RTH head-home): hold position, perform a 360deg yaw scan, align to best measured pitot airspeed heading, and retry transition once."
+        description: "If ON, iNAV gets one extra MC->FW attempt after an airspeed timeout during mission or RTH. It pauses, yaws around to find the best airspeed direction, then tries once more."
         default_value: OFF
         field: general.vtol_transition_retry_on_airspeed_timeout
         type: bool
       - name: nav_vtol_transition_fail_action_mc_to_fw
-        description: "Action executed after a final MC->FW transition failure (after retry logic, if enabled)."
+        description: "What iNAV should do if MC->FW transition still fails after the final attempt."
         default_value: "IDLE"
         field: general.vtol_transition_fail_action_mc_to_fw
         table: nav_vtol_transition_fail_action_mc_to_fw
       - name: nav_vtol_transition_fail_action_fw_to_mc
-        description: "Action executed after a final FW->MC transition failure. LOITER switches to POSHOLD hold at current position (fixed-wing loiter/orbit around current point). FORCE_SWITCH attempts an immediate mixer hot-switch even after failed criteria."
+        description: "What iNAV should do if FW->MC transition fails. `LOITER` keeps the aircraft near its current position. `FORCE_SWITCH` changes to the other mixer profile immediately even though the normal switch conditions were not met."
         default_value: "LOITER"
         field: general.vtol_transition_fail_action_fw_to_mc
         table: nav_vtol_transition_fail_action_fw_to_mc
@@ -4021,37 +4015,37 @@ groups:
         min: 0
         max: 100
       - name: vtol_transition_to_fw_min_airspeed_cm_s
-        description: "Minimum pitot airspeed [cm/s] required to complete MC->FW transition when airspeed is healthy and available. If 0, MC->FW uses timer fallback (`mixer_switch_trans_timer`)."
+        description: "Minimum pitot airspeed [cm/s] needed before MC->FW transition is considered complete. If set to 0, iNAV uses the transition timer instead."
         default_value: 0
         field: vtolTransitionToFwMinAirspeed
         min: 0
         max: 20000
       - name: vtol_transition_to_mc_max_airspeed_cm_s
-        description: "Maximum pitot airspeed [cm/s] allowed to complete FW->MC transition when airspeed is healthy and available. If 0, FW->MC uses timer fallback."
+        description: "When slowing down from FW to MC, the transition is considered complete once pitot airspeed falls to this value [cm/s] or lower. If set to 0, iNAV uses the transition timer instead."
         default_value: 0
         field: vtolTransitionToMcMaxAirspeed
         min: 0
         max: 20000
       - name: vtol_fw_to_mc_auto_switch_airspeed_cm_s
-        description: "Automatic FW->MC protection threshold [cm/s] used only when `mixer_vtol_manualswitch_autotransition_controller` is ON. If set above 0 and valid pitot airspeed is at/below this value while in FW, controller requests FW->MC transition automatically. Set to 0 to disable."
+        description: "Extra low-speed protection for fixed-wing flight [cm/s]. If airspeed falls to this value or lower while in FW, iNAV can start FW->MC transition automatically. Used only when `mixer_vtol_manualswitch_autotransition_controller` is ON. Set to 0 to disable."
         default_value: 0
         field: vtolFwToMcAutoSwitchAirspeed
         min: 0
         max: 20000
       - name: vtol_transition_lift_end_percent
-        description: "Target vertical-lift throttle scale at transition end, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON."
+        description: "How much lift motor power remains at the end of transition, in percent. `100` keeps full lift power. Lower values reduce lift motor power more. Used only when `mixer_vtol_transition_dynamic_mixer` is ON."
         default_value: 100
         field: vtolTransitionLiftEndPercent
         min: 0
         max: 100
       - name: vtol_transition_mc_authority_end_percent
-        description: "Target multicopter stabilization authority scale at transition end, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON."
+        description: "How much multicopter stabilisation remains at the end of transition, in percent. `100` keeps full multicopter stabilisation. Lower values reduce it more. Used only when `mixer_vtol_transition_dynamic_mixer` is ON."
         default_value: 100
         field: vtolTransitionMcAuthorityEndPercent
         min: 0
         max: 100
       - name: vtol_transition_fw_authority_start_percent
-        description: "Initial fixed-wing authority scale at transition start, in percent. Used only when `mixer_vtol_transition_dynamic_mixer` is ON."
+        description: "How much fixed-wing control is available at the start of transition, in percent. `100` gives full fixed-wing control immediately. Lower values bring in fixed-wing control more gently. Used only when `mixer_vtol_transition_dynamic_mixer` is ON."
         default_value: 100
         field: vtolTransitionFwAuthorityStartPercent
         min: 0

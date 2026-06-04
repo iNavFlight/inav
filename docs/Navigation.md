@@ -110,7 +110,7 @@ Configuration:
 
 - `nav_vtol_mission_transition_user_action` selects which waypoint User Action (`USER1..USER4`) is used as the mission VTOL target selector.
 - `nav_vtol_mission_transition_min_altitude_cm` optionally enforces a minimum altitude before transition start (`0` disables check).
-- `nav_vtol_mission_transition_track_distance_cm` configures straight-line MC->FW transition guidance distance.
+- During MC->FW mission transition, iNAV uses a built-in straight run-up target to help the model build speed before switching to fixed-wing.
 - VTOL transition completion logic is shared with manual MIXER TRANSITION and uses mixer transition settings:
   - preferred MC->FW threshold: `vtol_transition_to_fw_min_airspeed_cm_s`
   - FW->MC threshold: `vtol_transition_to_mc_max_airspeed_cm_s`

@@ -180,6 +180,11 @@ You must also assign the tilting servos values using the MAX values.  If you don
 | :-- | :-- | :-- |
 | Profile1(FW) with transition off |  Profile2(MC) with transition on  | Profile2(MC) with transition off |
 
+- This is a **legacy manual switch** example, where `MIXER TRANSITION` is used as a live transition input.
+- It is suitable for the older manual behavior with `mixer_vtol_manualswitch_autotransition_controller = OFF`.
+- If you use `mixer_vtol_manualswitch_autotransition_controller = ON`, do **not** use this overlap mapping.
+- For the newer smooth automatic transition behavior, use the dedicated 3-position mapping described later in this document, where `MIXER PROFILE 2` and `MIXER TRANSITION` are not ON together.
+
 - Profile file switching becomes available after completing the runtime sensor calibration (15-30s after booting). And It is **not available** when a navigation mode or position hold is active.
 
 - By default, `mixer_profile 1` is used. `mixer_profile 2` is used when the `MIXER PROFILE 2` mode is activate. Once configured successfully, you will notice that the profiles and model preview changes accordingly when you refresh the relevant INAV Configurator tabs. 
@@ -295,116 +300,114 @@ INAV now uses one internal VTOL transition controller for both:
 - manual `MIXER TRANSITION` requests, and
 - mission-authorized VTOL transitions.
 
-This keeps one safety boundary for profile hot-switching and avoids separate transition implementations.
+This keeps one safety boundary for profile changes and avoids separate transition implementations.
 
 ### Behavior summary
 
-- Transition progress is always computed internally.
-- Pitot airspeed is the primary source for transition completion when healthy/available.
-- Timer is used as fallback when pitot is unavailable/unhealthy.
+- iNAV always tracks transition progress internally.
+- If valid pitot airspeed is available, airspeed is the main way iNAV decides when transition is complete.
+- If pitot is not available, iNAV falls back to a timer.
 - Ground speed is not used for transition completion.
-- Mission transition uses the same controller and does not directly manipulate motors.
-- Manual `MIXER PROFILE` / `MIXER TRANSITION` bypass during normal waypoint navigation is still blocked.
-- `MIXER PROFILE 2` remains a direct profile-switch path when used manually.
-- Smooth/automatic transition behavior is triggered by `MIXER TRANSITION` (with manual auto-controller ON) or by mission-authorized transition requests.
+- Mission VTOL transition uses the same controller and does not directly drive the motors by itself.
+- During normal waypoint navigation, manual `MIXER PROFILE` and `MIXER TRANSITION` switching is still blocked.
+- `MIXER PROFILE 2` is still a direct manual profile switch when you are flying manually.
+- Smooth automatic transition is started by `MIXER TRANSITION` when the manual auto-controller is ON, or by a mission transition request.
 
 ### Manual transition semantics
 
-Intent: this does not replace legacy manual behavior. Legacy remains available and selectable.
+This does not remove the older manual behavior. The older behavior is still available if you want it.
 
 With `mixer_vtol_manualswitch_autotransition_controller = ON`:
-- Enable this setting in both mixer profiles (MC and FW) for consistent edge-triggered behavior across profile hot-switches.
-- `MIXER TRANSITION` acts as an edge-triggered request.
-- A rising edge starts one transition.
-- Transition then runs autonomously to completion.
-- Keeping the mode ON does not repeatedly retrigger transition.
-- To start another transition, mode must go OFF then ON again.
-- If mode is turned OFF before hot-switch, transition request is aborted safely.
-- Optional FW safety fallback: set `vtol_fw_to_mc_auto_switch_airspeed_cm_s > 0` to auto-request FW->MC transition when valid pitot airspeed drops to/below the configured value.
+- Turn this ON in both mixer profiles if you want the same behavior in both directions.
+- Each time `MIXER TRANSITION` moves from OFF to ON, iNAV starts one transition.
+- After it starts, the transition keeps running until the speed target or timer target is reached.
+- Leaving the switch ON does not keep restarting the transition.
+- To start another transition, turn the switch OFF and then ON again.
+- If you turn the switch OFF before the profile change happens, that transition request is cancelled.
+- Optional extra protection: set `vtol_fw_to_mc_auto_switch_airspeed_cm_s > 0` if you want FW->MC to start automatically when pitot airspeed becomes too low.
 
 With `mixer_vtol_manualswitch_autotransition_controller = OFF`:
-- legacy manual behavior is preserved for backward compatibility.
+- the older manual behavior is preserved.
 
-Typical 3-position switch workflow (edge-trigger mode enabled):
-- Position 1: MC
-- Position 2: Transition (trigger AUTO transition sequence)
-- Position 3: FW
+Typical 3-position switch workflow:
+- Position 1: FW
+- Position 2: Transition request
+- Position 3: MC
 
 Operational example:
-- fly in MC (pos1) -> move to Transition (pos2) to start automatic MC->FW transition -> after completion move to FW (pos3),
-- reverse order for FW->MC.
+- fly in MC (pos3) -> move to Transition (pos2) to start automatic MC->FW transition -> after completion move to FW (pos1)
+- reverse the order for FW->MC
 
 Important RC mapping constraint:
 - Use a dedicated 3-position mapping where:
-  - Pos1 = MC (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
+  - Pos1 = FW (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
   - Pos2 = Transition trigger (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` ON)
-  - Pos3 = FW (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
+  - Pos3 = MC (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
 - Keep `mixer_vtol_manualswitch_autotransition_controller` ON in both profiles used by this mapping.
-- Do not overlap/merge FW selection and transition trigger in the same switch position.
-- Do not use a 2-position mapping where one position enables both `MIXER PROFILE 2` and `MIXER TRANSITION`.
-- Mixing these mode conditions can cause race/order-dependent behavior (direct profile switch versus transition state machine), which is unpredictable in flight.
+- Avoid a switch position that turns ON both `MIXER PROFILE 2` and `MIXER TRANSITION`.
+- If both are ON together, iNAV may switch profile immediately instead of running the smooth transition.
 
 ### Mission-authorized transition semantics
 
 Mission transition is configured with `nav_vtol_mission_transition_user_action`.
 
 - `OFF`: feature disabled.
-- `USER1`..`USER4`: selected User Action bit is used as target selector on navigable waypoints.
-- selected bit `0` -> target MC profile
-- selected bit `1` -> target FW profile
-- when enabled, every navigable waypoint implicitly declares desired VTOL platform state through that selected bit, so users should set/clear it intentionally per waypoint
+- `USER1`..`USER4`: the selected USER flag becomes the flight-mode selector on navigable waypoints.
+- selected flag `0` -> target MC profile
+- selected flag `1` -> target FW profile
+- when this feature is ON, every navigable waypoint should intentionally have that USER flag either clear or set
 - Mission progression pauses during transition and resumes only after completion.
-- If already in requested target profile, command is idempotent (no new transition).
+- If the aircraft is already in the requested mode, iNAV does nothing and continues.
 
 For MC -> FW mission transition:
-- guidance uses a straight acceleration segment (no loiter),
+- guidance uses a straight acceleration run,
 - normal waypoint advancement is paused during transition.
 
 ### Airspeed-first completion logic
 
 MC -> FW:
-- completion threshold: `vtol_transition_to_fw_min_airspeed_cm_s`
-- if this is `0`, MC->FW uses timer fallback (`mixer_switch_trans_timer`).
+- `vtol_transition_to_fw_min_airspeed_cm_s` is the target airspeed.
+- If it is `0`, MC->FW uses `mixer_switch_trans_timer` instead.
 
 FW -> MC:
-- completion threshold: `vtol_transition_to_mc_max_airspeed_cm_s`
+- `vtol_transition_to_mc_max_airspeed_cm_s` is the airspeed that must be reached or lower.
 
 Timeout:
-- `mixer_vtol_transition_airspeed_timeout_ms` can abort transition if condition is not achieved in time.
-- This timeout is applied only while the transition is airspeed-controlled (trusted pitot in use).
-- If pitot becomes unavailable/unhealthy, completion falls back to `mixer_switch_trans_timer` and this timeout no longer drives the decision.
-- For airspeed-first setups, configure a non-zero `mixer_switch_trans_timer` fallback (typical: `40..60`, i.e. `4..6s`) to avoid immediate fallback completion when pitot is unavailable and timer fallback becomes active.
+- `mixer_vtol_transition_airspeed_timeout_ms` limits how long iNAV waits for the required airspeed.
+- This timeout only matters while pitot airspeed is actually controlling the transition.
+- If pitot stops being usable, completion falls back to `mixer_switch_trans_timer` and this timeout no longer decides the outcome.
+- For pitot-based setups, use a non-zero `mixer_switch_trans_timer` as a sensible backup time, typically `40..60` (`4..6s`).
 
-### Dynamic mixer scaling
+### Smooth power changes during transition
 
-When `mixer_vtol_transition_dynamic_mixer = ON`, transition progress additionally scales:
-- pusher transition contribution,
-- vertical lift contribution,
-- MC stabilization authority,
-- FW transition input authority blend.
+When `mixer_vtol_transition_dynamic_mixer = ON`, iNAV can smoothly change:
+- forward motor power,
+- lift motor power,
+- multicopter stabilisation strength,
+- fixed-wing control strength.
 
-When `mixer_vtol_transition_dynamic_mixer = OFF`, legacy static transition mixing behavior is preserved.
+When `mixer_vtol_transition_dynamic_mixer = OFF`, the older static behavior is preserved.
 
-Optional decoupled scaling ramp:
+How `mixer_vtol_transition_scale_ramp_time_ms` works:
 - MC->FW pusher:
-  - `mixer_vtol_transition_scale_ramp_time_ms > 0`: pusher ramps from `0 -> 100%` over this time, even when trusted pitot is healthy.
-  - `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): pusher goes to `100%` immediately.
-- Lift / MC authority / FW authority handoff:
-  - trusted pitot available/healthy: follows airspeed-based transition progress.
-  - `mixer_vtol_transition_scale_ramp_time_ms > 0`: if trusted pitot becomes unavailable/unhealthy, handoff scaling falls back to this ramp timer.
-  - `mixer_vtol_transition_scale_ramp_time_ms = 0` (default): if trusted pitot is unavailable/unhealthy, handoff scaling falls back to transition progress/timer behavior.
-- FW->MC keeps the existing handoff-based scaling behavior.
+  - `> 0`: forward motor power ramps from `0 -> 100%` over this time, even when pitot is working normally.
+  - `= 0` (default): forward motor power goes to `100%` immediately.
+- Lift motor power, MC stabilisation, and FW control:
+  - with valid pitot airspeed, they still follow airspeed-based transition progress.
+  - if pitot stops being usable and this setting is `> 0`, they use this same timer as a backup ramp.
+  - if pitot stops being usable and this setting is `0`, they fall back to the normal transition timer/progress behavior.
+- FW->MC keeps the existing style of smooth handover.
 
 Example:
 - `mixer_switch_trans_timer = 50` (5s fallback completion timer)
 - `mixer_vtol_transition_scale_ramp_time_ms = 1200`
 
 Result:
-- in MC->FW, pusher reaches full scale in ~1.2s,
-- when trusted pitot is healthy, lift/MC/FW handoff still follows airspeed progress,
-- if trusted pitot becomes unavailable/unhealthy, handoff scaling reaches target levels in ~1.2s,
-- transition completion still follows airspeed thresholds when pitot is healthy,
-- if pitot is unavailable/unhealthy, completion fallback still uses 5s.
+- in MC->FW, the forward motor reaches full power in about `1.2s`,
+- when pitot is working, lift power and control handover still follow airspeed,
+- if pitot stops being usable, the same handover reaches its target in about `1.2s`,
+- transition completion still uses airspeed when pitot is working,
+- backup completion time is still `5s` if pitot is not usable.
 
 ### Example test presets (VTOL ~1.0m wingspan, ~1720g AUW)
 
@@ -413,7 +416,7 @@ These are example starting points for initial testing. They are not universal va
 #### Test 1 - Legacy-compatible baseline (manual transition check)
 
 Goal:
-- Verify that the new controller does not change legacy behavior when dynamic scaling is disabled.
+- Verify that the new controller does not change legacy behavior when smooth power changes are disabled.
 - Good first test after flashing.
 
 CLI:
@@ -432,10 +435,10 @@ What this does:
 - Uses conservative FW->MC completion threshold.
 - Disables mission-authorized transition while validating manual behavior.
 
-#### Test 2 - Airspeed-first + dynamic scaling (manual transition tuning)
+#### Test 2 - Airspeed-first + smooth power changes (manual transition tuning)
 
 Goal:
-- Enable the full new behavior: airspeed-first completion and smooth authority/pusher scaling.
+- Enable the full new behavior: airspeed-first completion and smooth forward-motor and control handover.
 
 CLI:
 - `set mixer_vtol_manualswitch_autotransition_controller = ON`
@@ -453,7 +456,7 @@ CLI:
 What this does:
 - MC->FW completes primarily on pitot airspeed (1300 cm/s), with timer fallback only if pitot is unavailable/unhealthy.
 - FW->MC completes when airspeed drops to 850 cm/s.
-- In MC->FW, pusher ramps to full scale in 1.2 s while lift/MC/FW handoff still follows airspeed progress.
+- In MC->FW, the forward motor ramps to full power in `1.2s` while lift power and control handover still follow airspeed progress.
 - The pusher ramp is quick enough (1.2 s) to reduce step torque while still allowing strong acceleration.
 - Timeout abort protects against staying too long in airspeed-controlled transition without reaching threshold.
 
@@ -475,14 +478,13 @@ CLI:
 - `set vtol_transition_fw_authority_start_percent = 20`
 - `set nav_vtol_mission_transition_user_action = USER1`
 - `set nav_vtol_mission_transition_min_altitude_cm = 1200`
-- `set nav_vtol_mission_transition_track_distance_cm = 4000`
 
 What this does:
 - Uses USER1 as the absolute per-waypoint target selector:
   - USER1 bit clear -> target MC
   - USER1 bit set -> target FW
 - Pauses mission progression during transition and resumes after completion.
-- Uses straight MC->FW acceleration segment (no loiter) with a 40 m transition track distance.
+- Uses a straight MC->FW acceleration segment (no loiter) before the switch to fixed-wing.
 - Adds a minimum altitude gate (12 m) before mission transition starts.
 
 ### Detailed effect of the three percentage settings
@@ -490,35 +492,35 @@ What this does:
 These three settings are active only when `mixer_vtol_transition_dynamic_mixer = ON`.
 
 1. `vtol_transition_lift_end_percent`
-- Defines lift throttle scale at transition end.
-- MC -> FW: lift goes from `100%` at start to `lift_end_percent` at end.
-- FW -> MC: lift goes from `lift_end_percent` at start to `100%` at end.
+- Sets how much lift motor power remains at the end of transition.
+- MC -> FW: lift power goes from `100%` at start to `lift_end_percent` at the end.
+- FW -> MC: lift power goes from `lift_end_percent` at start to `100%` at the end.
 
 Example (`vtol_transition_lift_end_percent = 20`):
-- MC -> FW at 50% progress: lift scale is about 60%.
-- FW -> MC at 50% progress: lift scale is about 60%.
+- MC -> FW at 50% progress: lift power is about `60%`.
+- FW -> MC at 50% progress: lift power is about `60%`.
 
 2. `vtol_transition_mc_authority_end_percent`
-- Defines MC stabilization authority scale at transition end.
-- MC -> FW: MC authority goes from `100%` at start to `mc_authority_end_percent` at end.
-- FW -> MC: MC authority goes from `mc_authority_end_percent` at start to `100%` at end.
+- Sets how much multicopter stabilisation remains at the end of transition.
+- MC -> FW: MC stabilisation goes from `100%` at start to `mc_authority_end_percent` at the end.
+- FW -> MC: MC stabilisation goes from `mc_authority_end_percent` at start to `100%` at the end.
 
 Example (`vtol_transition_mc_authority_end_percent = 30`):
-- MC -> FW at 50% progress: MC authority is about 65%.
-- FW -> MC at 50% progress: MC authority is about 65%.
+- MC -> FW at 50% progress: MC stabilisation is about `65%`.
+- FW -> MC at 50% progress: MC stabilisation is about `65%`.
 
 3. `vtol_transition_fw_authority_start_percent`
-- Defines FW authority scale at transition start.
-- MC -> FW: FW authority goes from `fw_authority_start_percent` at start to `100%` at end.
-- FW -> MC: FW authority goes from `100%` at start to `fw_authority_start_percent` at end.
+- Sets how much fixed-wing control is already available at the start of transition.
+- MC -> FW: fixed-wing control goes from `fw_authority_start_percent` at start to `100%` at the end.
+- FW -> MC: fixed-wing control goes from `100%` at start to `fw_authority_start_percent` at the end.
 
 Example (`vtol_transition_fw_authority_start_percent = 25`):
-- MC -> FW at 50% progress: FW authority is about 62.5%.
-- FW -> MC at 50% progress: FW authority is about 62.5%.
+- MC -> FW at 50% progress: fixed-wing control is about `62.5%`.
+- FW -> MC at 50% progress: fixed-wing control is about `62.5%`.
 
 Backward-compatible note:
-- `vtol_transition_fw_authority_start_percent = 100` preserves legacy FW authority handoff behavior.
-- Lower values provide smoother FW authority ramp-in/out.
+- `vtol_transition_fw_authority_start_percent = 100` keeps the older fixed-wing control behavior.
+- Lower values bring fixed-wing control in and out more gently.
 
 ## Setting Scope (Important)
 
@@ -548,56 +550,52 @@ These are shared system-wide and are not profile-specific:
 - `vtol_transition_fw_authority_start_percent`
 - `nav_vtol_mission_transition_user_action`
 - `nav_vtol_mission_transition_min_altitude_cm`
-- `nav_vtol_mission_transition_track_distance_cm`
 
 ## CLI Commands (English)
 
 Use these commands in CLI (`set ...`, then `save`):
 
 - `set mixer_vtol_manualswitch_autotransition_controller = ON|OFF`
-  - Enables edge-triggered manual transition controller.
+  - Makes `MIXER TRANSITION` start one automatic transition each time you turn it ON.
 
 - `set mixer_vtol_transition_dynamic_mixer = ON|OFF`
-  - Enables/disables dynamic progress-based scaling.
+  - Turns smooth transition power changes ON or OFF.
 
 - `set vtol_transition_to_fw_min_airspeed_cm_s = <value>`
   - Preferred MC -> FW completion threshold (pitot airspeed).
 
 - `set mixer_switch_trans_timer = <value>`
-  - Timer-based transition duration fallback (used when pitot airspeed is unavailable/unhealthy).
+  - Backup transition time used when pitot airspeed is not available.
 
 - `set vtol_transition_to_mc_max_airspeed_cm_s = <value>`
   - FW -> MC completion threshold (pitot airspeed).
 
 - `set vtol_fw_to_mc_auto_switch_airspeed_cm_s = <value>`
-  - Optional low-airspeed FW protection threshold for manual auto-transition controller (`0` disables).
+  - Optional low-speed protection threshold for fixed-wing (`0` disables).
 
 - `set mixer_vtol_transition_airspeed_timeout_ms = <value>`
-  - Transition timeout/abort window.
+  - How long iNAV waits for required pitot airspeed before aborting.
 
 - `set mixer_vtol_transition_scale_ramp_time_ms = <value>`
-  - Optional dynamic scaling ramp duration in milliseconds. `0` keeps legacy progress-coupled scaling. `>0` decouples scaling ramp time from completion timing.
+  - Ramp-up time for the forward motor, and backup ramp time for the other smooth transition power changes.
 
 - `set vtol_transition_lift_end_percent = <0..100>`
-  - Lift scale endpoint for dynamic transition.
+  - How much lift motor power remains at the end of transition.
 
 - `set vtol_transition_mc_authority_end_percent = <0..100>`
-  - MC authority endpoint for dynamic transition.
+  - How much multicopter stabilisation remains at the end of transition.
 
 - `set vtol_transition_fw_authority_start_percent = <0..100>`
-  - FW authority start level for dynamic transition.
+  - How much fixed-wing control is already available at the start of transition.
 
 - `set nav_vtol_mission_transition_user_action = OFF|USER1|USER2|USER3|USER4`
-  - Selects waypoint User Action bit used for mission VTOL target selector (absolute per-waypoint desired state).
+  - Selects which waypoint USER flag tells iNAV to use MC or FW at each waypoint.
 
 - `set nav_vtol_mission_transition_min_altitude_cm = <value>`
-  - Optional minimum altitude check before mission transition start (`0` disables).
-
-- `set nav_vtol_mission_transition_track_distance_cm = <value>`
-  - Straight-line transition guidance distance for mission MC -> FW segment.
+  - Optional minimum altitude before mission transition may start (`0` disables).
 
 Mission profile-switch dependency:
-- Mission VTOL transition uses the existing profile hot-switch path, so two valid mixer profiles and a configured `MIXER PROFILE 2` mode activation condition are required.
+- Mission VTOL transition uses the existing profile-change path, so two valid mixer profiles and a configured `MIXER PROFILE 2` mode activation condition are required.
 
 
 # Notes and Experiences 
@@ -627,26 +625,26 @@ When pitot is healthy/available, transition progress is airspeed-driven (not tim
   - progress = `constrain((startAirspeed - airspeed) / (startAirspeed - to_mc_threshold), 0..1)`
   - completion condition = `airspeed <= to_mc_threshold`
 
-Dynamic mixer scaling (`mixer_vtol_transition_dynamic_mixer = ON`) uses this progress:
+Smooth transition power changes (`mixer_vtol_transition_dynamic_mixer = ON`) use this progress:
 
 - MC -> FW:
-  - pusher scale ramps `0 -> 1`
-  - lift scale ramps `1 -> vtol_transition_lift_end_percent`
-  - MC authority ramps `1 -> vtol_transition_mc_authority_end_percent`
-  - FW authority ramps `vtol_transition_fw_authority_start_percent -> 1`
+  - forward motor power ramps `0 -> 1`
+  - lift motor power ramps `1 -> vtol_transition_lift_end_percent`
+  - MC stabilisation ramps `1 -> vtol_transition_mc_authority_end_percent`
+  - FW control ramps `vtol_transition_fw_authority_start_percent -> 1`
 
 - FW -> MC:
-  - pusher scale ramps `1 -> 0`
-  - lift scale ramps `vtol_transition_lift_end_percent -> 1`
-  - MC authority ramps `vtol_transition_mc_authority_end_percent -> 1`
-  - FW authority ramps `1 -> vtol_transition_fw_authority_start_percent`
+  - forward motor power ramps `1 -> 0`
+  - lift motor power ramps `vtol_transition_lift_end_percent -> 1`
+  - MC stabilisation ramps `vtol_transition_mc_authority_end_percent -> 1`
+  - FW control ramps `1 -> vtol_transition_fw_authority_start_percent`
 
-Dynamic scaling splits MC->FW pusher ramp from lift/authority handoff scaling.
-For MC->FW, pusher scaling uses `mixer_vtol_transition_scale_ramp_time_ms`; if this is `0`, pusher goes full immediately.
-Lift / MC authority / FW authority handoff still prefers trusted pitot-based transition progress whenever available.
-If trusted pitot becomes unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms > 0`, handoff scaling falls back to that timer-based ramp.
-If trusted pitot is unavailable/unhealthy and `mixer_vtol_transition_scale_ramp_time_ms = 0`, handoff scaling falls back to transition progress/timer behavior (`mixer_switch_trans_timer`).
-FW->MC keeps the existing handoff-based scaling behavior.
+MC->FW uses separate forward-motor ramp-up and control handover behavior.
+For MC->FW, forward motor power uses `mixer_vtol_transition_scale_ramp_time_ms`; if this is `0`, the motor goes to full power immediately.
+Lift motor power, MC stabilisation, and FW control still prefer pitot-based transition progress whenever pitot is working.
+If pitot stops being usable and `mixer_vtol_transition_scale_ramp_time_ms > 0`, those other changes fall back to the same timer-based ramp.
+If pitot is not usable and `mixer_vtol_transition_scale_ramp_time_ms = 0`, they fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
+FW->MC keeps the existing style of smooth handover.
 
 For transition/pusher motors (`-2.0 < throttle < -1.0`), output is interpolated from idle to target:
 
