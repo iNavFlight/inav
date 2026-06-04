@@ -19,6 +19,16 @@
 
 #define TARGET_BOARD_IDENTIFIER "MK41"
 
+// Platz schaffen: Ungenutzte Protokolle deaktivieren
+#undef USE_TELEMETRY_HOTT
+#undef USE_SERIALRX_SRXL2
+#undef USE_PWM
+
+// Deine neuen Sensoren aktivieren
+#define USE_GYRO_ICM42688P
+#define USE_ACC_ICM42688P
+#define USE_BARO_DPS310
+
 #define USBD_PRODUCT_STRING  "MatekF411"
 
 #define LED0                    PC13
