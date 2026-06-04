@@ -276,29 +276,6 @@ static uint16_t getAirspeedThresholdForDirection(const mixerProfileATDirection_e
     return 0;
 }
 
-static bool shouldBlockManualDirectSwitchToFixedWing(const bool manualControllerEnabled, const int requestedProfileIndex)
-{
-    if (!manualControllerEnabled || !STATE(MULTIROTOR) || requestedProfileIndex == currentMixerProfileIndex) {
-        return false;
-    }
-
-    if (mixerConfigByIndex(requestedProfileIndex)->platformType != PLATFORM_AIRPLANE) {
-        return false;
-    }
-
-    const uint16_t thresholdCmS = getAirspeedThresholdForDirection(MIXERAT_DIRECTION_TO_FW);
-    if (thresholdCmS == 0 || !hasPitotSensorForManualProtection()) {
-        return false;
-    }
-
-    float airspeedCmS = 0.0f;
-    if (!hasTrustedPitotAirspeed(&airspeedCmS)) {
-        return true;
-    }
-
-    return airspeedCmS < thresholdCmS;
-}
-
 static bool shouldRequestManualFwToMcProtection(const bool manualControllerEnabled)
 {
     if (!manualControllerEnabled || !STATE(AIRPLANE)) {
@@ -580,12 +557,9 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         mixerAT_inuse = false;
     }
 
-    // For manual auto-transition control, suppress direct profile hotswitch while transition trigger is active.
-    const bool suppressDirectProfileSwitch = manualControllerEnabled && transitionModeActive;
-    if (!FLIGHT_MODE(FAILSAFE_MODE) && !mixerAT_inuse && !suppressDirectProfileSwitch)
+    if (!FLIGHT_MODE(FAILSAFE_MODE) && !mixerAT_inuse)
     {
-        if (mixerProfileModePresent &&
-            !shouldBlockManualDirectSwitchToFixedWing(manualControllerEnabled, requestedProfileIndex)) {
+        if (mixerProfileModePresent) {
             outputProfileHotSwitch(requestedProfileIndex);
         }
     }

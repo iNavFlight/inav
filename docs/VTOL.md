@@ -320,7 +320,6 @@ With `mixer_vtol_manualswitch_autotransition_controller = ON`:
 - Keeping the mode ON does not repeatedly retrigger transition.
 - To start another transition, mode must go OFF then ON again.
 - If mode is turned OFF before hot-switch, transition request is aborted safely.
-- If valid pitot is present and MC->FW airspeed threshold is configured, direct manual profile hot-switch to FW is blocked until threshold is reached.
 - Optional FW safety fallback: set `vtol_fw_to_mc_auto_switch_airspeed_cm_s > 0` to auto-request FW->MC transition when valid pitot airspeed drops to/below the configured value.
 
 With `mixer_vtol_manualswitch_autotransition_controller = OFF`:

@@ -35,7 +35,6 @@ The use of Transition Mode is recommended to enable further features and future 
 - Keeping the mode ON does not repeatedly restart transitions.
 - A new transition requires mode OFF then ON again.
 - If switched OFF before hot-switch completes, the manual transition request is aborted.
-- If valid pitot is present and MC->FW threshold is configured, direct manual profile hot-switch to FW is blocked until threshold is reached.
 - Optional FW protection: `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can auto-request FW->MC transition when valid pitot airspeed drops to/below the configured value (`0` disables).
 
 This edge-triggered behavior is enabled by `mixer_vtol_manualswitch_autotransition_controller`.
