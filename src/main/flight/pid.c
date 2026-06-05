@@ -224,6 +224,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .P = 0,
                     .I = 0,
                     .D = 0,
+                    .FF = 0,
+                },
+                [PID_AUTO_SPEED] = {
+                    .P = 0,
+                    .I = 0,
+                    .D = 0,
                     .FF = 0
                 }
             }
