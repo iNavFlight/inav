@@ -367,15 +367,16 @@ For MC -> FW mission transition:
 
 MC -> FW:
 - `vtol_transition_to_fw_min_airspeed_cm_s` is the target airspeed.
-- If it is `0`, MC->FW uses `mixer_switch_trans_timer` instead.
+- If pitot stops being usable, or if this is `0`, MC->FW uses `mixer_switch_trans_timer` instead.
 
 FW -> MC:
 - `vtol_transition_to_mc_max_airspeed_cm_s` is the airspeed that must be reached or lower.
+- If pitot stops being usable, or if this is `0`, FW->MC uses `mixer_switch_trans_timer` instead.
 
 Timeout:
-- `mixer_vtol_transition_airspeed_timeout_ms` limits how long iNAV waits for the required airspeed.
-- This timeout only matters while pitot airspeed is actually controlling the transition.
-- If pitot stops being usable, completion falls back to `mixer_switch_trans_timer` and this timeout no longer decides the outcome.
+- `mixer_switch_trans_timer` is the original VTOL transition timer. It is still the backup completion timer when trusted pitot airspeed is not being used.
+- `mixer_vtol_transition_airspeed_timeout_ms` is only a maximum wait time for the required airspeed while pitot is still usable. It does not complete the transition by itself; it aborts that airspeed-controlled attempt.
+- If pitot stops being usable, iNAV stops using the airspeed timeout and falls back to `mixer_switch_trans_timer`.
 - For pitot-based setups, use a non-zero `mixer_switch_trans_timer` as a sensible backup time, typically `40..60` (`4..6s`).
 
 ### Smooth power changes during transition
@@ -387,6 +388,9 @@ When `mixer_vtol_transition_dynamic_mixer = ON`, iNAV can smoothly change:
 - fixed-wing control strength.
 
 When `mixer_vtol_transition_dynamic_mixer = OFF`, the older static behavior is preserved.
+
+`mixer_vtol_transition_scale_ramp_time_ms` always controls the MC->FW forward-motor ramp when this feature is ON.
+It does not decide when the transition completes.
 
 How `mixer_vtol_transition_scale_ramp_time_ms` works:
 - MC->FW pusher:
@@ -641,6 +645,7 @@ Smooth transition power changes (`mixer_vtol_transition_dynamic_mixer = ON`) use
 
 MC->FW uses separate forward-motor ramp-up and control handover behavior.
 For MC->FW, forward motor power uses `mixer_vtol_transition_scale_ramp_time_ms`; if this is `0`, the motor goes to full power immediately.
+This timer does not decide when the transition completes.
 Lift motor power, MC stabilisation, and FW control still prefer pitot-based transition progress whenever pitot is working.
 If pitot stops being usable and `mixer_vtol_transition_scale_ramp_time_ms > 0`, those other changes fall back to the same timer-based ramp.
 If pitot is not usable and `mixer_vtol_transition_scale_ramp_time_ms = 0`, they fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).

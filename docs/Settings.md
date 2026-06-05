@@ -3202,7 +3202,7 @@ If enabled, control_profile_index will follow mixer_profile index. Set to OFF(de
 
 ### mixer_switch_trans_timer
 
-Time, in deciseconds (0.1s), that transition motors or servos stay active before iNAV changes to the other mixer profile during an automated VTOL switch. This is also the backup transition time when pitot airspeed is not available. If `mixer_vtol_transition_scale_ramp_time_ms = 0`, the other smooth transition power changes also fall back to this timing.
+Original VTOL transition timer, still used as the backup completion time. If trusted pitot airspeed is not being used, iNAV completes the transition from this timer instead. If `mixer_vtol_transition_scale_ramp_time_ms = 0`, lift motor power, multicopter stabilisation, and fixed-wing control handoff also fall back to this timing.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3222,7 +3222,7 @@ Makes `MIXER TRANSITION` start one automatic VTOL transition each time the switc
 
 ### mixer_vtol_transition_airspeed_timeout_ms
 
-How long iNAV will wait for the required pitot airspeed during an airspeed-based transition. If the target airspeed is not reached in time, the transition is aborted. Set to 0 to disable.
+Maximum wait time [ms] for the required pitot airspeed during an airspeed-controlled transition. This timer does not complete the transition; it only aborts it if the target airspeed is still not reached in time. If pitot becomes unavailable, iNAV falls back to `mixer_switch_trans_timer` instead. Set to 0 to disable.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3242,7 +3242,7 @@ Turns on smooth VTOL transition power changes. This affects forward motor ramp-u
 
 ### mixer_vtol_transition_scale_ramp_time_ms
 
-Ramp-up time [ms] for the forward motor during MC->FW when smooth VTOL transition power changes are ON. `0` gives full forward-motor power immediately. The same timer is also used as a backup for lift motor power, multicopter stabilisation, and fixed-wing control fade if pitot airspeed is lost or unavailable.
+When smooth VTOL transition power changes are ON, this always controls the MC->FW forward motor ramp. `0` gives full forward-motor power immediately. This timer does not decide when the transition is complete. For lift motor power, multicopter stabilisation, and fixed-wing control handoff, trusted pitot airspeed still controls the change while pitot is usable; this timer is only their backup ramp if pitot becomes unavailable.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7118,7 +7118,7 @@ How much multicopter stabilisation remains at the end of transition, in percent.
 
 ### vtol_transition_to_fw_min_airspeed_cm_s
 
-Minimum pitot airspeed [cm/s] needed before MC->FW transition is considered complete. If set to 0, iNAV uses the transition timer instead.
+Minimum pitot airspeed [cm/s] needed before MC->FW transition is considered complete while pitot remains usable. If pitot becomes unavailable, or if this is set to 0, iNAV uses `mixer_switch_trans_timer` instead. If pitot remains usable but this target is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7128,7 +7128,7 @@ Minimum pitot airspeed [cm/s] needed before MC->FW transition is considered comp
 
 ### vtol_transition_to_mc_max_airspeed_cm_s
 
-When slowing down from FW to MC, the transition is considered complete once pitot airspeed falls to this value [cm/s] or lower. If set to 0, iNAV uses the transition timer instead.
+When slowing down from FW to MC, the transition is considered complete once pitot airspeed falls to this value [cm/s] or lower while pitot remains usable. If pitot becomes unavailable, or if this is set to 0, iNAV uses `mixer_switch_trans_timer` instead. If pitot remains usable but this condition is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7289,3 +7289,4 @@ Defines rotation rate on YAW axis that UAV will try to archive on max. stick def
 | 20 | 1 | 180 |
 
 ---
+

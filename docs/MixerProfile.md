@@ -146,11 +146,11 @@ When valid pitot airspeed is available, iNAV uses airspeed to decide when the tr
 If pitot is not available, not healthy, or the threshold is set to `0`, iNAV uses `mixer_switch_trans_timer` instead.
 Ground speed is not used for transition completion/progress.
 
-Optional timeout:
+The three timer settings do different jobs:
 
-- `mixer_vtol_transition_airspeed_timeout_ms` limits how long iNAV waits for the required airspeed.
-- This timeout is only used while pitot airspeed is actually controlling the transition.
-- If pitot is lost, iNAV falls back to `mixer_switch_trans_timer` and this timeout no longer decides the outcome.
+- `mixer_switch_trans_timer` is the original VTOL transition timer. It is still the backup completion timer when trusted pitot airspeed is not being used.
+- `mixer_vtol_transition_airspeed_timeout_ms` is only a maximum wait time for the required airspeed while pitot is still usable. It does not complete the transition by itself; it aborts that airspeed-controlled attempt.
+- If pitot becomes unavailable during transition, iNAV stops using the airspeed timeout and falls back to `mixer_switch_trans_timer`.
 - For pitot-based setups, use a non-zero `mixer_switch_trans_timer` as a sensible backup time, typically `40..60` (`4..6s`).
 
 ### Smooth power changes during transition (optional)
@@ -170,6 +170,7 @@ How `mixer_vtol_transition_scale_ramp_time_ms` works:
 - MC->FW pusher:
   - `> 0`: forward motor power ramps from `0 -> 100%` over this time, even when pitot is working normally.
   - `= 0` (default): forward motor power goes to `100%` immediately.
+- This timer does not decide when the transition completes.
 - Lift motor power, MC stabilisation, and FW control:
   - with valid pitot airspeed, they still follow transition progress based on airspeed.
   - if pitot stops being usable and this setting is `> 0`, they use this same timer as a backup ramp.

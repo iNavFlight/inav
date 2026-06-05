@@ -1281,7 +1281,7 @@ groups:
         field: mixer_config.automated_switch
         type: bool
       - name: mixer_switch_trans_timer
-        description: "Time, in deciseconds (0.1s), that transition motors or servos stay active before iNAV changes to the other mixer profile during an automated VTOL switch. This is also the backup transition time when pitot airspeed is not available. If `mixer_vtol_transition_scale_ramp_time_ms = 0`, the other smooth transition power changes also fall back to this timing."
+        description: "Original VTOL transition timer, still used as the backup completion time. If trusted pitot airspeed is not being used, iNAV completes the transition from this timer instead. If `mixer_vtol_transition_scale_ramp_time_ms = 0`, lift motor power, multicopter stabilisation, and fixed-wing control handoff also fall back to this timing."
         default_value: 0
         field: mixer_config.switchTransitionTimer
         min: 0
@@ -1297,13 +1297,13 @@ groups:
         field: mixer_config.manualVtolTransitionController
         type: bool
       - name: mixer_vtol_transition_airspeed_timeout_ms
-        description: "How long iNAV will wait for the required pitot airspeed during an airspeed-based transition. If the target airspeed is not reached in time, the transition is aborted. Set to 0 to disable."
+        description: "Maximum wait time [ms] for the required pitot airspeed during an airspeed-controlled transition. This timer does not complete the transition; it only aborts it if the target airspeed is still not reached in time. If pitot becomes unavailable, iNAV falls back to `mixer_switch_trans_timer` instead. Set to 0 to disable."
         default_value: 0
         field: mixer_config.vtolTransitionAirspeedTimeoutMs
         min: 0
         max: 60000
       - name: mixer_vtol_transition_scale_ramp_time_ms
-        description: "Ramp-up time [ms] for the forward motor during MC->FW when smooth VTOL transition power changes are ON. `0` gives full forward-motor power immediately. The same timer is also used as a backup for lift motor power, multicopter stabilisation, and fixed-wing control fade if pitot airspeed is lost or unavailable."
+        description: "When smooth VTOL transition power changes are ON, this always controls the MC->FW forward motor ramp. `0` gives full forward-motor power immediately. This timer does not decide when the transition is complete. For lift motor power, multicopter stabilisation, and fixed-wing control handoff, trusted pitot airspeed still controls the change while pitot is usable; this timer is only their backup ramp if pitot becomes unavailable."
         default_value: 0
         field: mixer_config.vtolTransitionScaleRampTimeMs
         min: 0
@@ -4015,13 +4015,13 @@ groups:
         min: 0
         max: 100
       - name: vtol_transition_to_fw_min_airspeed_cm_s
-        description: "Minimum pitot airspeed [cm/s] needed before MC->FW transition is considered complete. If set to 0, iNAV uses the transition timer instead."
+        description: "Minimum pitot airspeed [cm/s] needed before MC->FW transition is considered complete while pitot remains usable. If pitot becomes unavailable, or if this is set to 0, iNAV uses `mixer_switch_trans_timer` instead. If pitot remains usable but this target is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted."
         default_value: 0
         field: vtolTransitionToFwMinAirspeed
         min: 0
         max: 20000
       - name: vtol_transition_to_mc_max_airspeed_cm_s
-        description: "When slowing down from FW to MC, the transition is considered complete once pitot airspeed falls to this value [cm/s] or lower. If set to 0, iNAV uses the transition timer instead."
+        description: "When slowing down from FW to MC, the transition is considered complete once pitot airspeed falls to this value [cm/s] or lower while pitot remains usable. If pitot becomes unavailable, or if this is set to 0, iNAV uses `mixer_switch_trans_timer` instead. If pitot remains usable but this condition is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted."
         default_value: 0
         field: vtolTransitionToMcMaxAirspeed
         min: 0
