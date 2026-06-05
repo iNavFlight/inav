@@ -895,6 +895,7 @@ void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
         if (dT > MAX_POSITION_UPDATE_INTERVAL_US) return;     // skip if update is delayed
 
         static pt1Filter_t speedToThrFilterState;
+        if (!speedToThrFilterState.RC) pt1FilterSetCutoff(&speedToThrFilterState, 0.5f);
 
         uint16_t minSpeed = 100 * navConfig()->fw.auto_speed_min_speed;
         uint16_t maxSpeed = 100 * navConfig()->fw.auto_speed_max_speed;
@@ -913,7 +914,7 @@ void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
         }
 
         int16_t throttleCorr = navPidApply2(&posControl.pids.fw_autoSpeed, posControl.desiredState.autoSpeedDemand, actualSpeed, US2S(dT), -PWM_RANGE_HALF, PWM_RANGE_HALF, 0);
-        throttleCorr = pt1FilterApply4(&speedToThrFilterState, throttleCorr, 0.5f, US2S(dT));
+        throttleCorr = pt1FilterApply3(&speedToThrFilterState, throttleCorr, US2S(dT));
 
         autoSpeedThrottleCommand = PWM_RANGE_MIDDLE + throttleCorr;
 
