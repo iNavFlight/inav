@@ -123,6 +123,9 @@ bool cliMode = false;
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
+#ifdef USE_DRONECAN
+#include "drivers/dronecan/dronecan.h"
+#endif
 #ifdef USE_ESC_SENSOR
 #include "sensors/esc_sensor.h"
 #endif
@@ -4192,6 +4195,16 @@ static void cliStatus(char *cmdline)
         }
         cliPrintLinefeed();
     }
+#endif
+
+#ifdef USE_DRONECAN
+    static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF"};
+    cliPrintLinef("DroneCAN: nodeID=%d, bitrate=%u kbps, status=%s, nodes=%d",                                                                                                                                                  
+        dronecanConfig()->nodeID,                                                                                                                                                                                                     
+        (unsigned)dronecanGetBitrateKbps(),                                                                                                                                                                                                     
+        dronecanStateNames[dronecanGetState()],                                                                                                                                                                                       
+        dronecanGetNodeCount()                                                         
+    );
 #endif
 
 #ifdef USE_SDCARD

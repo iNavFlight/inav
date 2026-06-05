@@ -30,11 +30,6 @@
 CanardInstance canard;
 uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
-enum dronecanState_e {
-    STATE_DRONECAN_INIT,
-    STATE_DRONECAN_NORMAL,
-    STATE_DRONECAN_BUS_OFF
-};
 
 PG_REGISTER_WITH_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig, PG_DRONECAN_CONFIG, 0);
 
@@ -42,6 +37,10 @@ PG_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig,
     .nodeID = SETTING_DRONECAN_NODE_ID_DEFAULT,
     .bitRateKbps = SETTING_DRONECAN_BITRATE_KBPS_DEFAULT
 );
+
+static dronecanState_e dronecanState = STATE_DRONECAN_INIT;
+static uint8_t activeNodeCount = 0;
+static dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
 
 // NOTE: All canard handlers and senders are based on this reference: https://dronecan.github.io/Specification/7._List_of_standard_data_types/
 // Alternatively, you can look at the corresponding generated header file in the dsdlc_generated folder
@@ -57,48 +56,31 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
 
-	// LOG_DEBUG(CAN, "Node Health ");
+	uint8_t nodeId = transfer->source_node_id;                                                                                                                                                                                                
+    for (uint8_t i = 0; i < activeNodeCount; i++) {
+        if (nodeTable[i].nodeID == nodeId) { 
+            // update health, mode, uptime, vendor_status_code, last_seen_ms                                                                                                                                                                                                 
+            nodeTable[i].health = nodeStatus.health;
+            nodeTable[i].mode = nodeStatus.mode;
+            nodeTable[i].uptime_sec = nodeStatus.uptime_sec;
+            nodeTable[i].vendor_status_code = nodeStatus.vendor_specific_status_code;
+            nodeTable[i].last_seen_ms = millis();                    
+            return;                                                                                                                                                                                                                           
+        }                                                                                       
+    }                                                                                                                                                                                                                                         
+    // new node                                                                                 
+    if (activeNodeCount < DRONECAN_MAX_NODES) {
+        nodeTable[activeNodeCount].nodeID = nodeId;
+        nodeTable[activeNodeCount].health = nodeStatus.health;
+        nodeTable[activeNodeCount].mode = nodeStatus.mode;
+        nodeTable[activeNodeCount].uptime_sec = nodeStatus.uptime_sec;
+        nodeTable[activeNodeCount].vendor_status_code = nodeStatus.vendor_specific_status_code;
+        nodeTable[activeNodeCount].name_len = 0;
+        nodeTable[activeNodeCount].name[0] = 0;
+        nodeTable[activeNodeCount].last_seen_ms = millis();     
+        activeNodeCount++;                                                                                                                                                               
+    }
 
-	switch (nodeStatus.health) {
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
-		// LOG_DEBUG(CAN, "OK");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
-		// LOG_DEBUG(CAN, "WARNING");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
-		// LOG_DEBUG(CAN, "ERROR");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
-		// LOG_DEBUG(CAN, "CRITICAL");
-		break;
-	default:
-		// LOG_DEBUG(CAN, "UNKNOWN?");
-		break;
-	}
-
-	// LOG_DEBUG(CAN, "Node Mode ");
-
-	switch(nodeStatus.mode) {
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL:
-		// LOG_DEBUG(CAN, "OPERATIONAL");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_INITIALIZATION:
-		// LOG_DEBUG(CAN, "INITIALIZATION");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE:
-		// LOG_DEBUG(CAN, "MAINTENANCE");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:
-		// LOG_DEBUG(CAN, "SOFTWARE UPDATE");
-		break;
-	case UAVCAN_PROTOCOL_NODESTATUS_MODE_OFFLINE:
-		// LOG_DEBUG(CAN, "OFFLINE");
-		break;
-	default:
-		// LOG_DEBUG(CAN, "UNKNOWN?");
-		break;
-	}
 }
 
 void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -166,7 +148,7 @@ void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 // TODO: All the data in here is temporary for testing. If actually need to send valid data, edit accordingly.
 void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
-	printf("GetNodeInfo request from %d", transfer->source_node_id);
+	LOG_DEBUG(CAN, "GetNodeInfo request from %d", transfer->source_node_id);
 
 	uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
 	struct uavcan_protocol_GetNodeInfoResponse pkt;
@@ -466,7 +448,6 @@ void dronecanUpdate(timeUs_t currentTimeUs)
     static timeUs_t busoffTimeUs = 0;
     CanardCANFrame rx_frame;
     int numMessagesToProcess = 0;
-    static enum dronecanState_e dronecanState = STATE_DRONECAN_INIT;
     canardProtocolStatus_t protocolStatus = {};
     uint64_t timestamp;
     int16_t rx_res;
@@ -526,5 +507,41 @@ void dronecanUpdate(timeUs_t currentTimeUs)
     
     }
     
+}
+
+dronecanState_e dronecanGetState(void)
+{
+    return dronecanState;
+}
+
+uint8_t dronecanGetNodeCount(void)
+{
+    return activeNodeCount;
+}
+
+uint32_t dronecanGetBitrateKbps(void)
+{
+    switch (dronecanConfig()->bitRateKbps){
+        case DRONECAN_BITRATE_125KBPS:
+            return 125;
+
+        case DRONECAN_BITRATE_250KBPS:
+            return 250;
+        
+        case DRONECAN_BITRATE_500KBPS:
+            return 500;
+
+        case DRONECAN_BITRATE_1000KBPS:
+            return 1000;
+        
+        case DRONECAN_BITRATE_COUNT:
+            return 0;
+    }
+    return 0;
+}
+
+const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
+    if (index < activeNodeCount) return &nodeTable[index];
+    return NULL;
 }
 #endif

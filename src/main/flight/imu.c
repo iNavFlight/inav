@@ -99,21 +99,16 @@ FASTRAM float rMat[3][3];
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 
-STATIC_FASTRAM pt1Filter_t rotRateFilterX;
-STATIC_FASTRAM pt1Filter_t rotRateFilterY;
-STATIC_FASTRAM pt1Filter_t rotRateFilterZ;
+STATIC_FASTRAM pt1Filter_t rotRateFilter[XYZ_AXIS_COUNT];
 FASTRAM fpVector3_t imuMeasuredRotationBFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
 
-STATIC_FASTRAM pt1Filter_t accelFilterX;
-STATIC_FASTRAM pt1Filter_t accelFilterY;
-STATIC_FASTRAM pt1Filter_t accelFilterZ;
+STATIC_FASTRAM pt1Filter_t accelFilter[XYZ_AXIS_COUNT];
 FASTRAM fpVector3_t imuMeasuredAccelBFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
 
-STATIC_FASTRAM pt1Filter_t HeadVecEFFilterX;
-STATIC_FASTRAM pt1Filter_t HeadVecEFFilterY;
-STATIC_FASTRAM pt1Filter_t HeadVecEFFilterZ;
+STATIC_FASTRAM pt1Filter_t HeadVecEFFilter[XYZ_AXIS_COUNT];
 FASTRAM fpVector3_t HeadVecEFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
 
+static pt1Filter_t GPS3DspeedFilter;
 
 FASTRAM bool gpsHeadingInitialized;
 
@@ -202,18 +197,19 @@ void imuInit(void)
     quaternionInitUnit(&orientation);
     imuComputeRotationMatrix();
 
-    // Initialize rotation rate filter
-    pt1FilterReset(&rotRateFilterX, 0);
-    pt1FilterReset(&rotRateFilterY, 0);
-    pt1FilterReset(&rotRateFilterZ, 0);
-    // Initialize accel filter
-    pt1FilterReset(&accelFilterX, 0);
-    pt1FilterReset(&accelFilterY, 0);
-    pt1FilterReset(&accelFilterZ, 0);
-    // Initialize Heading vector filter
-    pt1FilterReset(&HeadVecEFFilterX, 0);
-    pt1FilterReset(&HeadVecEFFilterY, 0);
-    pt1FilterReset(&HeadVecEFFilterZ, 0);
+    // Initialize rotation rate, accel and Heading vector filters
+    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        pt1FilterSetCutoff(&rotRateFilter[axis], IMU_ROTATION_LPF);
+        pt1FilterReset(&rotRateFilter[axis], 0.0f);
+
+        pt1FilterSetCutoff(&accelFilter[axis], IMU_ROTATION_LPF);
+        pt1FilterReset(&accelFilter[axis], 0.0f);
+
+        pt1FilterSetCutoff(&HeadVecEFFilter[axis], IMU_ROTATION_LPF);
+        pt1FilterReset(&HeadVecEFFilter[axis], 0.0f);
+    }
+
+    pt1FilterSetCutoff(&GPS3DspeedFilter, IMU_ROTATION_LPF);
 }
 
 void imuSetMagneticDeclination(float declinationDeg)
@@ -684,19 +680,11 @@ static float imuCalculateAccelerometerWeightRateIgnore(const float acc_ignore_sl
 
 static void imuCalculateFilters(float dT)
 {
-    //flitering
-    imuMeasuredRotationBFFiltered.x = pt1FilterApply4(&rotRateFilterX, imuMeasuredRotationBF.x, IMU_ROTATION_LPF, dT);
-    imuMeasuredRotationBFFiltered.y = pt1FilterApply4(&rotRateFilterY, imuMeasuredRotationBF.y, IMU_ROTATION_LPF, dT);
-    imuMeasuredRotationBFFiltered.z = pt1FilterApply4(&rotRateFilterZ, imuMeasuredRotationBF.z, IMU_ROTATION_LPF, dT);
-
-    imuMeasuredAccelBFFiltered.x = pt1FilterApply4(&accelFilterX, imuMeasuredAccelBF.x, IMU_ROTATION_LPF, dT);
-    imuMeasuredAccelBFFiltered.y = pt1FilterApply4(&accelFilterY, imuMeasuredAccelBF.y, IMU_ROTATION_LPF, dT);
-    imuMeasuredAccelBFFiltered.z = pt1FilterApply4(&accelFilterZ, imuMeasuredAccelBF.z, IMU_ROTATION_LPF, dT);
-
-    HeadVecEFFiltered.x = pt1FilterApply4(&HeadVecEFFilterX, rMat[0][0], IMU_ROTATION_LPF, dT);
-    HeadVecEFFiltered.y = pt1FilterApply4(&HeadVecEFFilterY, rMat[1][0], IMU_ROTATION_LPF, dT);
-    HeadVecEFFiltered.z = pt1FilterApply4(&HeadVecEFFilterZ, rMat[2][0], IMU_ROTATION_LPF, dT);
-
+    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        imuMeasuredRotationBFFiltered.v[axis] = pt1FilterApply3(&rotRateFilter[axis], imuMeasuredRotationBF.v[axis], dT);
+        imuMeasuredAccelBFFiltered.v[axis] = pt1FilterApply3(&accelFilter[axis], imuMeasuredAccelBF.v[axis], dT);
+        HeadVecEFFiltered.v[axis] = pt1FilterApply3(&HeadVecEFFilter[axis], rMat[axis][0], dT);
+    }
 }
 
 static void imuCalculateGPSacceleration(fpVector3_t *vEstAccelEF,fpVector3_t *vEstcentrifugalAccelBF, float *acc_ignore_slope_multipiler)
@@ -732,12 +720,11 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
     if (isGPSTrustworthy()) {
         //first speed choice is gps
         static bool lastGPSHeartbeat;
-        static pt1Filter_t GPS3DspeedFilter;
         static float GPS3DspeedFiltered = 0.0f;
         if (gpsSol.flags.gpsHeartbeat != lastGPSHeartbeat) {
             lastGPSHeartbeat = gpsSol.flags.gpsHeartbeat;
             float GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
-            GPS3DspeedFiltered = pt1FilterApply4(&GPS3DspeedFilter, GPS3Dspeed, IMU_ROTATION_LPF, dT);
+            GPS3DspeedFiltered = pt1FilterApply3(&GPS3DspeedFilter, GPS3Dspeed, dT);
         }
         currentspeed = GPS3DspeedFiltered;
         *acc_ignore_slope_multipiler = 4.0f;

@@ -33,7 +33,7 @@
 
 #define AXIS_ACCEL_MIN_LIMIT        50
 
-#define HEADING_HOLD_ERROR_LPF_FREQ 2
+#define HEADING_HOLD_ERROR_LPF_FREQ 2.0f
 
 /*
 FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
@@ -104,6 +104,7 @@ typedef struct pidProfile_s {
 
     uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
     uint16_t dterm_lpf_hz;
+    uint16_t dterm_lpf2_hz;                 // Dterm second stage LPF (pre-differentiation, like Betaflight)
 
     uint8_t yaw_lpf_hz;
 

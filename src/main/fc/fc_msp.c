@@ -144,6 +144,10 @@
 #include "hardware_revision.h"
 #endif
 
+#ifdef USE_DRONECAN
+#include "drivers/dronecan/dronecan.h"
+#endif
+
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 
 static const char * const flightControllerIdentifier = INAV_IDENTIFIER; // 4 UPPER CASE alpha numeric characters that identify the flight controller.
@@ -1881,6 +1885,24 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             for (uint8_t i = 0; i < motorCount; i++){
                 const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
                 sbufWriteDataSafe(dst, escState, sizeof(escSensorData_t));
+            }
+        }
+        break;
+#endif
+
+#ifdef USE_DRONECAN
+    case MSP2_INAV_DRONECAN_NODES:
+        {
+            uint8_t count = dronecanGetNodeCount();
+            sbufWriteU8(dst, count);
+            for (uint8_t i = 0; i < count; i++) {
+                const dronecanNodeInfo_t *node = dronecanGetNode(i);
+                sbufWriteDataSafe(dst, &(dronecanNodeStatus_t){
+                    .nodeID      = node->nodeID,
+                    .health      = node->health,
+                    .mode        = node->mode,
+                    .last_seen_ms = node->last_seen_ms,
+                }, sizeof(dronecanNodeStatus_t));
             }
         }
         break;
@@ -4561,6 +4583,44 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         mspFcWaypointOutCommand(dst, src);
         *ret = MSP_RESULT_ACK;
         break;
+
+#ifdef USE_DRONECAN
+    case MSP2_INAV_DRONECAN_NODE_INFO:
+        {
+            if (sbufBytesRemaining(src) < 1) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+            uint8_t nodeId = sbufReadU8(src);
+            uint8_t count = dronecanGetNodeCount();
+            bool found = false;
+            for (uint8_t i = 0; i < count; i++) {
+                const dronecanNodeInfo_t *node = dronecanGetNode(i);
+                if (node->nodeID == nodeId) {
+                    found = true;
+                    if (sbufBytesRemaining(dst) < 46) {
+                        *ret = MSP_RESULT_ERROR;
+                        break;
+                    }
+                    sbufWriteU8(dst, node->nodeID);
+                    sbufWriteU8(dst, node->health);
+                    sbufWriteU8(dst, node->mode);
+                    sbufWriteU32(dst, node->uptime_sec);
+                    sbufWriteU16(dst, node->vendor_status_code);
+                    sbufWriteU32(dst, node->last_seen_ms);
+                    sbufWriteU8(dst, node->name_len);
+                    sbufWriteDataSafe(dst, node->name, 32);
+                    found = true;
+                    *ret = MSP_RESULT_ACK;
+                    break;
+                }
+            }
+            if (!found) {
+                *ret = MSP_RESULT_ERROR;
+            }
+        }
+        break;
+#endif
 
 #if defined(USE_FLASHFS)
     case MSP_DATAFLASH_READ:
