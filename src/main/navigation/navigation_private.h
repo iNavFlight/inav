@@ -137,6 +137,7 @@ typedef struct {
     float                   cosYaw;
     float                   surfaceMin;
     float                   velXY;
+    float                   vel3D;
 } navigationEstimatedState_t;
 
 typedef struct {

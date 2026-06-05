@@ -164,7 +164,7 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
 {
     uint8_t gx;
     uint8_t gy;
-        
+
 #if defined(USE_CANVAS)
     if (canvas) {
         osdCanvasDrawArtificialHorizon(display, canvas, p, pitchAngle, rollAngle);
@@ -210,16 +210,4 @@ void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
     osdGridDrawSidebars(display);
 }
 
-#endif
-
-#ifdef USE_GPS
-/*
- * 3D speed in cm/s
- */
-int16_t osdGet3DSpeed(void)
-{
-    float vert_speed = getEstimatedActualVelocity(Z);
-    float hor_speed = (float)gpsSol.groundSpeed;
-    return (int16_t)calc_length_pythagorean_2D(hor_speed, vert_speed);
-}
 #endif
