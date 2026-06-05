@@ -42,6 +42,8 @@
 #include "io/osd_grid.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
+
 #include "sensors/pitotmeter.h"
 
 #if defined(USE_OSD) || defined(USE_DJI_HD_OSD)
@@ -59,7 +61,7 @@ int16_t osdGetSpeedFromSelectedSource(void) {
             speed = gpsSol.groundSpeed;
             break;
         case OSD_SPEED_SOURCE_3D:
-            speed = osdGet3DSpeed();
+            speed = posControl.actualState.vel3D;
             break;
         case OSD_SPEED_SOURCE_AIR:
             #ifdef USE_PITOT
