@@ -2070,9 +2070,7 @@ static uint16_t missionUserActionMask(const navMissionUserAction_e userAction)
 
 static bool isMissionTransitionToMultirotorType(const flyingPlatformType_e platformType)
 {
-    return platformType == PLATFORM_MULTIROTOR ||
-           platformType == PLATFORM_TRICOPTER ||
-           platformType == PLATFORM_HELICOPTER;
+    return isMultirotorTypePlatform(platformType);
 }
 
 #ifdef USE_PITOT

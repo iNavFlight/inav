@@ -7078,7 +7078,7 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 
 ### vtol_fw_to_mc_auto_switch_airspeed_cm_s
 
-Extra low-speed protection for fixed-wing flight [cm/s]. If airspeed falls to this value or lower while in FW, iNAV can start FW->MC transition automatically. Used only when `mixer_vtol_manualswitch_autotransition_controller` is ON. Set to 0 to disable.
+Extra low-speed protection for fixed-wing flight [cm/s]. If airspeed falls to this value or lower while in FW, iNAV automatically starts FW->MC. After the switch to MC, iNAV keeps the MC profile until you deliberately command another manual profile change. Used only when `mixer_vtol_manualswitch_autotransition_controller` is ON. Set to 0 to disable.
 
 | Default | Min | Max |
 | --- | --- | --- |

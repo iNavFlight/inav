@@ -325,7 +325,7 @@ With `mixer_vtol_manualswitch_autotransition_controller = ON`:
 - Leaving the switch ON does not keep restarting the transition.
 - To start another transition, turn the switch OFF and then ON again.
 - If you turn the switch OFF before the profile change happens, that transition request is cancelled.
-- Optional extra protection: set `vtol_fw_to_mc_auto_switch_airspeed_cm_s > 0` if you want FW->MC to start automatically when pitot airspeed becomes too low.
+- Optional extra protection: set `vtol_fw_to_mc_auto_switch_airspeed_cm_s > 0` if you want FW->MC to start automatically when pitot airspeed becomes too low. After that switch, iNAV stays in MC until you deliberately command another manual profile change.
 
 With `mixer_vtol_manualswitch_autotransition_controller = OFF`:
 - the older manual behavior is preserved.
@@ -575,7 +575,7 @@ Use these commands in CLI (`set ...`, then `save`):
   - FW -> MC completion threshold (pitot airspeed).
 
 - `set vtol_fw_to_mc_auto_switch_airspeed_cm_s = <value>`
-  - Optional low-speed protection threshold for fixed-wing (`0` disables).
+  - Optional low-speed protection threshold for fixed-wing. After it switches to MC, iNAV stays in MC until you deliberately command another manual profile change (`0` disables).
 
 - `set mixer_vtol_transition_airspeed_timeout_ms = <value>`
   - How long iNAV waits for required pitot airspeed before aborting.

@@ -37,7 +37,7 @@ If `mixer_vtol_manualswitch_autotransition_controller = ON`, `MIXER TRANSITION` 
 - Leaving the switch ON does not keep restarting the transition.
 - To start another transition, turn the switch OFF and then ON again.
 - If you turn the switch OFF before the profile change happens, that transition request is cancelled.
-- Optional extra protection: `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can automatically start FW->MC if airspeed gets too low.
+- Optional extra protection: `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can automatically start FW->MC if airspeed gets too low. After that switch, iNAV stays in MC until you deliberately command another manual profile change.
 
 This behavior is controlled by `mixer_vtol_manualswitch_autotransition_controller`.
 Turn it ON in both mixer profiles if you want the same switch behavior in both directions.
@@ -53,6 +53,7 @@ There are two separate manual paths:
 - `MIXER PROFILE 2` is still a direct manual profile switch when `MIXER TRANSITION` is OFF.
 - `MIXER TRANSITION` starts the smooth automatic transition sequence when `mixer_vtol_manualswitch_autotransition_controller = ON`.
 - If both are ON together while the automatic transition controller is enabled, the controller temporarily owns the profile switching. When `MIXER TRANSITION` turns OFF again, direct `MIXER PROFILE 2` switching becomes active again.
+- If low-speed protection switches the model from FW to MC, iNAV keeps the MC profile until you deliberately command another manual profile change.
 
 3-position switch example:
 

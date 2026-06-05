@@ -43,6 +43,7 @@ int nextMixerProfileIndex;
 static bool manualTransitionModeWasActive;
 static bool manualTransitionReadyForEdge = true;
 static bool manualTransitionSessionLatched;
+static bool manualFwToMcProtectionLatched;
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 4);
 
@@ -406,9 +407,7 @@ static bool missionTransitionToMultirotorTypeConfigured(void)
     }
 
     const flyingPlatformType_e nextPlatformType = mixerConfigByIndex(nextMixerProfileIndex)->platformType;
-    return nextPlatformType == PLATFORM_MULTIROTOR ||
-           nextPlatformType == PLATFORM_TRICOPTER ||
-           nextPlatformType == PLATFORM_HELICOPTER;
+    return isMultirotorTypePlatform(nextPlatformType);
 }
 
 bool checkMixerATRequired(mixerProfileATRequest_e required_action)
@@ -543,24 +542,40 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     const bool transitionControllerOwnsProfileSwitch = manualControllerEnabled && transitionModeActive;
     const bool mixerProfileModePresent = isModeActivationConditionPresent(BOXMIXERPROFILE);
     const int requestedProfileIndex = IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) == 0 ? 0 : 1;
+    const bool requestedMultirotorProfile = mixerProfileModePresent &&
+        isMultirotorTypePlatform(mixerConfigByIndex(requestedProfileIndex)->platformType);
+    // If low-speed protection already moved the model back to MC, keep direct
+    // switching from forcing FW again until the pilot makes a new manual choice.
+    const bool fwToMcProtectionOwnsProfileSwitch = manualFwToMcProtectionLatched &&
+        STATE(MULTIROTOR) &&
+        !requestedMultirotorProfile;
 
     if (manualControllerConfigured && transitionModeRisingEdge) {
         manualTransitionSessionLatched = true;
+    }
+
+    if (transitionModeRisingEdge) {
+        manualFwToMcProtectionLatched = false;
     }
 
     if (transitionModeFallingEdge) {
         manualTransitionSessionLatched = false;
     }
 
+    if (requestedMultirotorProfile || (!mixerAT_inuse && !STATE(MULTIROTOR))) {
+        manualFwToMcProtectionLatched = false;
+    }
+
     if (mixerAT_inuse && (!ARMING_FLAG(ARMED) || FLIGHT_MODE(FAILSAFE_MODE) || areSensorsCalibrating())) {
         abortTransition(false);
         manualTransitionSessionLatched = false;
+        manualFwToMcProtectionLatched = false;
         mixerAT_inuse = false;
     }
 
     if (!FLIGHT_MODE(FAILSAFE_MODE) && !mixerAT_inuse)
     {
-        if (mixerProfileModePresent && !transitionControllerOwnsProfileSwitch) {
+        if (mixerProfileModePresent && !transitionControllerOwnsProfileSwitch && !fwToMcProtectionOwnsProfileSwitch) {
             outputProfileHotSwitch(requestedProfileIndex);
         }
     }
@@ -573,6 +588,9 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         checkMixerATRequired(MIXERAT_REQUEST_MANUAL_TO_MC)) {
         mixerATUpdateState(MIXERAT_REQUEST_MANUAL_TO_MC);
         mixerAT_inuse = mixerATIsActive();
+        if (mixerAT_inuse || STATE(MULTIROTOR)) {
+            manualFwToMcProtectionLatched = true;
+        }
     }
 
     if (!manualControllerEnabled) {
