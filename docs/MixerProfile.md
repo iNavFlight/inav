@@ -50,21 +50,20 @@ In Active Modes:
 
 There are two separate manual paths:
 
-- `MIXER PROFILE 2` is still a direct manual profile switch.
+- `MIXER PROFILE 2` is still a direct manual profile switch when `MIXER TRANSITION` is OFF.
 - `MIXER TRANSITION` starts the smooth automatic transition sequence when `mixer_vtol_manualswitch_autotransition_controller = ON`.
+- If both are ON together while the automatic transition controller is enabled, the controller temporarily owns the profile switching. When `MIXER TRANSITION` turns OFF again, direct `MIXER PROFILE 2` switching becomes active again.
 
-Recommended 3-position switch example:
+3-position switch example:
 
 - This example assumes the usual VTOL order used in this document:
   - Profile 1 = FW
   - Profile 2 = MC
-- Use a dedicated 3-position mapping:
+- One supported mapping is:
   - Pos1 = FW (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
   - Pos2 = Transition request (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` ON)
   - Pos3 = MC (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
 - Keep `mixer_vtol_manualswitch_autotransition_controller` ON in both profiles used by this mapping.
-- Avoid a switch position that turns ON both `MIXER PROFILE 2` and `MIXER TRANSITION`.
-- If both are ON together, iNAV may switch profile immediately instead of running the smooth transition.
 - If you intentionally swap the profile order, keep the same idea and swap the FW and MC end positions.
 
 ## Servo
@@ -103,8 +102,9 @@ Profile files Switching is not available until the runtime sensor calibration is
 `mixer_profile` 1 will be used as default, `mixer_profile` 2 will be used when the `MIXER PROFILE 2` mode box is activated. 
 Set `MIXER TRANSITION` accordingly when you want to use `MIXER TRANSITION` input for motors and servos.
 
-The example below is a **legacy manual switch** example, where `MIXER TRANSITION` is used as a live transition input and `mixer_vtol_manualswitch_autotransition_controller = OFF`.
-It is not the recommended mapping for the newer automatic transition controller.
+Another supported mapping is where one switch position turns ON both `MIXER PROFILE 2` and `MIXER TRANSITION`.
+With `mixer_vtol_manualswitch_autotransition_controller = OFF`, `MIXER TRANSITION` is used as a live transition input.
+With `mixer_vtol_manualswitch_autotransition_controller = ON`, that same overlap position is used as a controller-owned transition position.
 
 ![Alt text](Screenshots/mixer_profile.png)
 
@@ -114,8 +114,12 @@ It is not the recommended mapping for the newer automatic transition controller.
 
 It is also possible to set it as 4 state switch by adding FW(profile1) with transition on.
 
-If `mixer_vtol_manualswitch_autotransition_controller = ON`, do **not** use this overlap style where `MIXER PROFILE 2` and `MIXER TRANSITION` are ON together.
-For the newer smooth automatic transition behavior, use the dedicated 3-position mapping shown earlier in this document.
+If `mixer_vtol_manualswitch_autotransition_controller = ON` and this overlap position is active:
+- the smooth transition controller runs while `MIXER TRANSITION` stays ON
+- direct `MIXER PROFILE 2` switching is deferred during that time
+- when `MIXER TRANSITION` turns OFF, `MIXER PROFILE 2` again decides which stable mixer profile should be active
+
+This overlap style is supported too.
 
 ## Automated Transition
 This feature is mainly used for RTH and failsafe.

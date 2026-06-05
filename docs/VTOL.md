@@ -180,10 +180,11 @@ You must also assign the tilting servos values using the MAX values.  If you don
 | :-- | :-- | :-- |
 | Profile1(FW) with transition off |  Profile2(MC) with transition on  | Profile2(MC) with transition off |
 
-- This is a **legacy manual switch** example, where `MIXER TRANSITION` is used as a live transition input.
-- It is suitable for the older manual behavior with `mixer_vtol_manualswitch_autotransition_controller = OFF`.
-- If you use `mixer_vtol_manualswitch_autotransition_controller = ON`, do **not** use this overlap mapping.
-- For the newer smooth automatic transition behavior, use the dedicated 3-position mapping described later in this document, where `MIXER PROFILE 2` and `MIXER TRANSITION` are not ON together.
+- This is one supported mapping, where one switch position turns ON both `MIXER PROFILE 2` and `MIXER TRANSITION`.
+- With `mixer_vtol_manualswitch_autotransition_controller = OFF`, `MIXER TRANSITION` is used as a live transition input.
+- With `mixer_vtol_manualswitch_autotransition_controller = ON`, that same overlap position is used as a controller-owned transition position.
+- While both are ON, the smooth transition controller runs and direct `MIXER PROFILE 2` switching is deferred.
+- When `MIXER TRANSITION` turns OFF again, `MIXER PROFILE 2` once more decides which stable mixer profile should be active.
 
 - Profile file switching becomes available after completing the runtime sensor calibration (15-30s after booting). And It is **not available** when a navigation mode or position hold is active.
 
@@ -339,13 +340,12 @@ Operational example:
 - reverse the order for FW->MC
 
 Important RC mapping constraint:
-- Use a dedicated 3-position mapping where:
+- One supported mapping is:
   - Pos1 = FW (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
   - Pos2 = Transition trigger (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` ON)
   - Pos3 = MC (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
 - Keep `mixer_vtol_manualswitch_autotransition_controller` ON in both profiles used by this mapping.
-- Avoid a switch position that turns ON both `MIXER PROFILE 2` and `MIXER TRANSITION`.
-- If both are ON together, iNAV may switch profile immediately instead of running the smooth transition.
+- Another supported mapping is the overlap version: while both `MIXER PROFILE 2` and `MIXER TRANSITION` are ON, the transition controller owns the switching until `MIXER TRANSITION` turns OFF again.
 
 ### Mission-authorized transition semantics
 

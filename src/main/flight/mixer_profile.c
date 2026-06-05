@@ -540,6 +540,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     const bool missionActive = (navGetCurrentStateFlags() & NAV_AUTO_WP) != 0;
     const bool manualControllerConfigured = currentMixerConfig.manualVtolTransitionController && !missionActive;
     bool manualControllerEnabled = manualControllerConfigured || manualTransitionSessionLatched;
+    const bool transitionControllerOwnsProfileSwitch = manualControllerEnabled && transitionModeActive;
     const bool mixerProfileModePresent = isModeActivationConditionPresent(BOXMIXERPROFILE);
     const int requestedProfileIndex = IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) == 0 ? 0 : 1;
 
@@ -559,7 +560,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
 
     if (!FLIGHT_MODE(FAILSAFE_MODE) && !mixerAT_inuse)
     {
-        if (mixerProfileModePresent) {
+        if (mixerProfileModePresent && !transitionControllerOwnsProfileSwitch) {
             outputProfileHotSwitch(requestedProfileIndex);
         }
     }
