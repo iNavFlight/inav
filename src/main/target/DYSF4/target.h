@@ -17,19 +17,33 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "OBF4"
+// This directory contains: DYSF4PRO, DYSF4PROV2
 
-#define USBD_PRODUCT_STRING "Omnibus F4"
+#if defined(DYSF4PRO)
+#define TARGET_BOARD_IDENTIFIER "DYS4"
+#elif defined(DYSF4PROV2)
+#define TARGET_BOARD_IDENTIFIER "DY42"
+#endif
+
+#define USBD_PRODUCT_STRING "DysF4Pro"
 
 #define LED0                    PB5
 
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
+#if defined(DYSF4PROV2)
+#define USE_I2C
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL PB8
+#define I2C1_SDA PB9
+#define I2C_EXT_BUS BUS_I2C1
+#else
 #define USE_I2C
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
 #define I2C_EXT_BUS BUS_I2C2
+#endif
 
 #define UG2864_I2C_BUS I2C_EXT_BUS
 
@@ -88,6 +102,7 @@
 
 #define USE_SPI_DEVICE_1
 
+
 #define USE_SPI_DEVICE_3
 #define SPI3_NSS_PIN          PB3
 #define SPI3_SCK_PIN            PC10
@@ -107,7 +122,12 @@
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
-#define ADC_CHANNEL_3_PIN               PA0
+
+#ifdef DYSF4PRO
+    #define ADC_CHANNEL_3_PIN               PC3
+#else
+    #define ADC_CHANNEL_3_PIN               PA0
+#endif
 
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
@@ -136,3 +156,4 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
+
