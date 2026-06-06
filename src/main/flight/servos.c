@@ -603,12 +603,6 @@ void processServoAutotrimMode(void)
     }
 }
 
-#define SERVO_AUTOTRIM_FILTER_CUTOFF    1       // LPF cutoff frequency
-#define SERVO_AUTOTRIM_CENTER_MIN       1300
-#define SERVO_AUTOTRIM_CENTER_MAX       1700
-#define SERVO_AUTOTRIM_UPDATE_SIZE      5
-#define SERVO_AUTOTRIM_ATTITUDE_LIMIT   50       // 5 degrees
-#define SERVO_AUTOTRIM_ITERM_RATE_LIMIT 30  // ~90th percentile during stable cruise (blackbox-derived)
 
 void processContinuousServoAutotrim(const float dT)
 {

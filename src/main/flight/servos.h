@@ -161,6 +161,14 @@ typedef struct servoParam_s {
 
 PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
 
+
+#define SERVO_AUTOTRIM_FILTER_CUTOFF    1.0f     // LPF cutoff frequency
+#define SERVO_AUTOTRIM_CENTER_MIN       1300
+#define SERVO_AUTOTRIM_CENTER_MAX       1700
+#define SERVO_AUTOTRIM_UPDATE_SIZE      5
+#define SERVO_AUTOTRIM_ATTITUDE_LIMIT   50       // 5 degrees
+#define SERVO_AUTOTRIM_ITERM_RATE_LIMIT 30       // ~90th percentile during stable cruise (blackbox-derived)
+
 typedef struct servoConfig_s {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
     uint16_t servoCenterPulse;              // This is the value for servos when they should be in the middle. e.g. 1500.
