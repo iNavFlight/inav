@@ -330,8 +330,8 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
             tch->dmaState = TCH_DMA_IDLE;
         }
 
-        LL_DMA_DisableStream(tch->dma->dma, lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)]);
         LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+        LL_DMA_DisableStream(tch->dma->dma, lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)]);
 
         DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
     }
