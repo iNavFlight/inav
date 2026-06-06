@@ -603,11 +603,6 @@ void processServoAutotrimMode(void)
     }
 }
 
-#define SERVO_AUTOTRIM_FILTER_CUTOFF    1       // LPF cutoff frequency
-#define SERVO_AUTOTRIM_CENTER_MIN       1300
-#define SERVO_AUTOTRIM_CENTER_MAX       1700
-#define SERVO_AUTOTRIM_UPDATE_SIZE      5
-#define SERVO_AUTOTRIM_ATTITUDE_LIMIT   50       // 5 degrees
 
 void processContinuousServoAutotrim(const float dT)
 {
@@ -646,7 +641,7 @@ void processContinuousServoAutotrim(const float dT)
                 for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
                     // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
                     const float axisIterm = getAxisIterm(axis);
-                    const bool itermIsStable = itermRateOfChange[axis] < servoConfig()->servo_autotrim_iterm_rate_limit;
+                    const bool itermIsStable = itermRateOfChange[axis] < SERVO_AUTOTRIM_ITERM_RATE_LIMIT;
 
                     if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE && itermIsStable) {
                         const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;
