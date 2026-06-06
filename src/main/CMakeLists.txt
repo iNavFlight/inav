@@ -233,6 +233,8 @@ main_sources(COMMON_SRC
     drivers/pwm_esc_detect.h
     drivers/pwm_mapping.c
     drivers/pwm_mapping.h
+    drivers/dshot.c
+    drivers/dshot.h
     drivers/pwm_output.c
     drivers/pwm_output.h
     drivers/pinio.c
