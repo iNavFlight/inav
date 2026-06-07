@@ -1812,18 +1812,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             const timMotorServoHardware_t *hw = pwmGetOutputAssignment();
             for (int m = 0; m < hw->maxTimMotorCount; m++) {
                 sbufWriteU8(dst, (uint8_t)(hw->timMotors[m] - timerHardware));
-                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_MOTOR);
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_MOTOR));
                 sbufWriteU8(dst, (uint8_t)(m + 1));
             }
             for (int s = 0; s < hw->maxTimServoCount; s++) {
                 sbufWriteU8(dst, (uint8_t)(hw->timServos[s] - timerHardware));
-                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_SERVO);
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_SERVO));
                 sbufWriteU8(dst, (uint8_t)(s + 1));
             }
             for (int idx = 0; idx < timerHardwareCount; idx++) {
                 if (timerOverrides(timer2id(timerHardware[idx].tim))->outputMode == OUTPUT_MODE_BEEPER) {
                     sbufWriteU8(dst, (uint8_t)idx);
-                    sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_BUZZER);
+                    sbufWriteU8(dst, __builtin_ctz(TIM_USE_BEEPER));
                     sbufWriteU8(dst, 1);
                     break;
                 }
@@ -4919,18 +4919,18 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
             for (int m = 0; m < tempOut.maxTimMotorCount; m++) {
                 sbufWriteU8(dst, (uint8_t)(tempOut.timMotors[m] - timerHardware));
-                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_MOTOR);
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_MOTOR));
                 sbufWriteU8(dst, (uint8_t)(m + 1));
             }
             for (int s = 0; s < tempOut.maxTimServoCount; s++) {
                 sbufWriteU8(dst, (uint8_t)(tempOut.timServos[s] - timerHardware));
-                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_SERVO);
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_SERVO));
                 sbufWriteU8(dst, (uint8_t)(s + 1));
             }
             for (int idx = 0; idx < timerHardwareCount; idx++) {
                 if (proposedModes[timer2id(timerHardware[idx].tim)] == OUTPUT_MODE_BEEPER) {
                     sbufWriteU8(dst, (uint8_t)idx);
-                    sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_BUZZER);
+                    sbufWriteU8(dst, __builtin_ctz(TIM_USE_BEEPER));
                     sbufWriteU8(dst, 1);
                     break;
                 }

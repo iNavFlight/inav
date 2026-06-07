@@ -88,12 +88,9 @@ typedef struct {
     const timerHardware_t * timServos[MAX_PWM_OUTPUTS];
 } timMotorServoHardware_t;
 
-// Output assignment types for MSP2_INAV_OUTPUT_ASSIGNMENT response
-// LED outputs are not reported here; they are already identified by TIM_USE_LED
-// in the MSP2_INAV_OUTPUT_MAPPING_EXT2 usageFlags response.
-#define OUTPUT_ASSIGNMENT_TYPE_MOTOR  1
-#define OUTPUT_ASSIGNMENT_TYPE_SERVO  2
-#define OUTPUT_ASSIGNMENT_TYPE_BUZZER 3
+// MSP2_INAV_OUTPUT_ASSIGNMENT type byte: bit index of the TIM_USE_* flag.
+// Matches the JavaScript TIM_USE_* constants in outputMapping.js (which are bit indices).
+// Use __builtin_ctz(TIM_USE_x) to derive these from the bit-mask definitions in timer.h.
 #endif // SITL_BUILD
 
 bool pwmMotorAndServoInit(void);
