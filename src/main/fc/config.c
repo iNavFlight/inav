@@ -117,12 +117,14 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
+#ifdef USE_AUTO_TRANSITION
     .vtolTransitionToFwMinAirspeed = SETTING_VTOL_TRANSITION_TO_FW_MIN_AIRSPEED_CM_S_DEFAULT,
     .vtolTransitionToMcMaxAirspeed = SETTING_VTOL_TRANSITION_TO_MC_MAX_AIRSPEED_CM_S_DEFAULT,
     .vtolFwToMcAutoSwitchAirspeed = SETTING_VTOL_FW_TO_MC_AUTO_SWITCH_AIRSPEED_CM_S_DEFAULT,
     .vtolTransitionLiftEndPercent = SETTING_VTOL_TRANSITION_LIFT_END_PERCENT_DEFAULT,
     .vtolTransitionMcAuthorityEndPercent = SETTING_VTOL_TRANSITION_MC_AUTHORITY_END_PERCENT_DEFAULT,
     .vtolTransitionFwAuthorityStartPercent = SETTING_VTOL_TRANSITION_FW_AUTHORITY_START_PERCENT_DEFAULT,
+#endif
     .craftName = SETTING_NAME_DEFAULT,
     .pilotName = SETTING_NAME_DEFAULT
 );

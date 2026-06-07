@@ -297,6 +297,10 @@ If you set `mixer_automated_switch` to `OFF` for all mixer profiles (the default
 
 ## Unified VTOL Transition Controller (Manual + Mission)
 
+This feature is available only on targets with more than 512 KB flash.
+In standard INAV builds those targets are compiled with `USE_AUTO_TRANSITION`.
+Targets with 512 KB flash keep the older VTOL mixer transition behavior and do not include the smooth auto-transition settings.
+
 INAV now uses one internal VTOL transition controller for both:
 - manual `MIXER TRANSITION` requests, and
 - mission-authorized VTOL transitions.
@@ -388,6 +392,11 @@ When `mixer_vtol_transition_dynamic_mixer = ON`, iNAV can smoothly change:
 - fixed-wing control strength.
 
 When `mixer_vtol_transition_dynamic_mixer = OFF`, the older static behavior is preserved.
+When it is ON, you can configure `INPUT_AUTOTRANSITION_TARGET_STABILIZED_*` servo rules in the MC mixer profile.
+During MC->FW they drive the selected servo outputs from the target FW controller before the hot-switch.
+During FW->MC the same MC mixer rules mark which FW servo outputs should fade down as fixed-wing authority is reduced and motor stabilisation comes back in.
+These inputs are active only while the smooth autotransition controller is running. If `mixer_vtol_transition_dynamic_mixer = OFF`, they stay at full authority while the controller is active. If `mixer_vtol_transition_dynamic_mixer = ON`, they follow the normal fixed-wing authority scaling.
+`INPUT_MIXER_TRANSITION` remains available for transition-progress servo movement such as tilt or helper servos.
 
 `mixer_vtol_transition_scale_ramp_time_ms` always controls the MC->FW forward-motor ramp when this feature is ON.
 It does not decide when the transition completes.
@@ -517,6 +526,8 @@ Example (`vtol_transition_mc_authority_end_percent = 30`):
 - Sets how much fixed-wing control is already available at the start of transition.
 - MC -> FW: fixed-wing control goes from `fw_authority_start_percent` at start to `100%` at the end.
 - FW -> MC: fixed-wing control goes from `100%` at start to `fw_authority_start_percent` at the end.
+- During MC -> FW, this same setting also scales `INPUT_AUTOTRANSITION_TARGET_STABILIZED_*` servo rules configured in the MC mixer profile.
+- During FW -> MC, the same setting scales down the matching FW servo stabilisation on the outputs marked by those MC mixer rules.
 
 Example (`vtol_transition_fw_authority_start_percent = 25`):
 - MC -> FW at 50% progress: fixed-wing control is about `62.5%`.

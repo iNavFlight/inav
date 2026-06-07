@@ -522,10 +522,16 @@ void FAST_CODE mixTable(void)
         input[PITCH] = axisPID[PITCH];
         input[YAW] = axisPID[YAW];
         if (isMixerTransitionMixing) {
+#ifdef USE_AUTO_TRANSITION
             const float mcAuthorityScale = mixerATGetMcAuthorityScale();
             input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f) * mcAuthorityScale;
             input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f) * mcAuthorityScale;
             input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f) * mcAuthorityScale;
+#else
+            input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f);
+            input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f);
+            input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f);
+#endif
         }
     }
 
@@ -626,14 +632,14 @@ void FAST_CODE mixTable(void)
 
     // Now add in the desired throttle, but keep in a range that doesn't clip adjusted
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
-    const float liftScale = isMixerTransitionMixing ? mixerATGetLiftScale() : 1.0f;
-    const float pusherScale = isMixerTransitionMixing ? mixerATGetPusherScale() : 1.0f;
-
     for (int i = 0; i < motorCount; i++) {
         float motorThrottle = mixerThrottleCommand * currentMixer[i].throttle;
+#ifdef USE_AUTO_TRANSITION
+        const float liftScale = isMixerTransitionMixing ? mixerATGetLiftScale() : 1.0f;
         if (currentMixer[i].throttle > 0.0f) {
             motorThrottle *= liftScale;
         }
+#endif
 
         motor[i] = rpyMix[i] + constrain(motorThrottle, throttleMin, throttleMax);
 
@@ -649,9 +655,14 @@ void FAST_CODE mixTable(void)
         }
         //spin stopped motors only in mixer transition mode
         if (isMixerTransitionMixing && currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f && !feature(FEATURE_REVERSIBLE_MOTORS)) {
+#ifdef USE_AUTO_TRANSITION
+            const float pusherScale = mixerATGetPusherScale();
             const float pusherTarget = -currentMixer[i].throttle * 1000.0f;
             const float pusherIdle = throttleRangeMin;
             motor[i] = pusherIdle + (pusherTarget - pusherIdle) * pusherScale;
+#else
+            motor[i] = -currentMixer[i].throttle * 1000;
+#endif
             motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
         }
     }

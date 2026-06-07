@@ -6,7 +6,9 @@ A MixerProfile is a set of motor mixer, servo-mixer and platform type configurat
 
 Not limited to VTOL. air/land/sea mixed vehicle is also achievable with this feature. Model behaves according to current mixer_profile's platform_type and configured custom motor/servo mixer
 
-Currently two profiles are supported on targets other than F411(due to resource constraints on F411). i.e VTOL transition is not available on F411.
+Two mixer profiles and smooth VTOL auto-transition are available only on targets with enough flash space.
+In standard INAV builds this means targets with more than 512 KB flash, compiled with `USE_AUTO_TRANSITION`.
+Targets with 512 KB flash keep the older single-profile / legacy transition behavior and do not include the smooth auto-transition settings.
 
 For VTOL setup. one mixer_profile is used for multi-rotor(MR) and the other is used for fixed-wing(FW)
 By default, switching between profiles requires reboot to take affect. However, using the RC mode: `MIXER PROFILE 2` will allow in flight switching for things like VTOL operation
@@ -139,6 +141,8 @@ If `mixer_automated_switch = OFF` in all mixer profiles, automated VTOL transiti
 Manual `MIXER TRANSITION` and mission-requested VTOL transition both use the same internal transition controller.
 That means the same airspeed checks, timer fallback, and smooth power changes are reused in both cases.
 
+This section applies only to targets with more than 512 KB flash, compiled with `USE_AUTO_TRANSITION`.
+
 Direct manual `MIXER PROFILE 2` switching is still a separate path when you want an immediate profile change.
 
 ### Airspeed-first completion
@@ -168,7 +172,11 @@ When `mixer_vtol_transition_dynamic_mixer = ON`, iNAV can smoothly change:
 - fixed-wing control strength.
 
 Default is OFF to preserve existing behavior.
-With it ON, `vtol_transition_fw_authority_start_percent = 100` keeps the old fixed-wing control behavior. Lower values bring fixed-wing control in more gently.
+With it ON, you can configure `INPUT_AUTOTRANSITION_TARGET_STABILIZED_*` servo rules in the MC mixer profile.
+During MC->FW they drive the selected servo outputs from the target FW controller before the hot-switch.
+During FW->MC the same MC mixer rules mark which FW servo outputs should fade down as fixed-wing authority is reduced and motor stabilisation comes back in.
+These inputs are active only while the smooth autotransition controller is running. If `mixer_vtol_transition_dynamic_mixer = OFF`, they stay at full authority while the controller is active. If `mixer_vtol_transition_dynamic_mixer = ON`, they follow the normal fixed-wing authority scaling.
+`INPUT_MIXER_TRANSITION` remains available for transition-progress servo movement such as tilt or helper servos.
 
 How `mixer_vtol_transition_scale_ramp_time_ms` works:
 

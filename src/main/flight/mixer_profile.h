@@ -18,10 +18,12 @@ typedef struct mixerConfig_s {
     bool controlProfileLinking;
     bool automated_switch;
     int16_t switchTransitionTimer;
+#ifdef USE_AUTO_TRANSITION
     bool vtolTransitionDynamicMixer;
     bool manualVtolTransitionController;
     uint16_t vtolTransitionAirspeedTimeoutMs;
     uint16_t vtolTransitionScaleRampTimeMs;
+#endif
     bool tailsitterOrientationOffset;
     int16_t transition_PID_mmix_multiplier_roll;
     int16_t transition_PID_mmix_multiplier_pitch;
@@ -38,28 +40,36 @@ typedef enum {
     MIXERAT_REQUEST_NONE, //no request, stats checking only
     MIXERAT_REQUEST_RTH,
     MIXERAT_REQUEST_LAND,
+#ifdef USE_AUTO_TRANSITION
     MIXERAT_REQUEST_MISSION_TO_FW,
     MIXERAT_REQUEST_MISSION_TO_MC,
     MIXERAT_REQUEST_MANUAL_TO_FW,
     MIXERAT_REQUEST_MANUAL_TO_MC,
+#endif
     MIXERAT_REQUEST_ABORT,
 } mixerProfileATRequest_e;
 
+#ifdef USE_AUTO_TRANSITION
 typedef enum {
     MIXERAT_DIRECTION_NONE = 0,
     MIXERAT_DIRECTION_TO_FW,
     MIXERAT_DIRECTION_TO_MC,
 } mixerProfileATDirection_e;
+#endif
 
 //mixerProfile Automated Transition PHASE
 typedef enum {
     MIXERAT_PHASE_IDLE,
     MIXERAT_PHASE_TRANSITION_INITIALIZE,
     MIXERAT_PHASE_TRANSITIONING,
+#ifndef USE_AUTO_TRANSITION
+    MIXERAT_PHASE_DONE,
+#endif
 } mixerProfileATState_e;
 
 typedef struct mixerProfileAT_s {
     mixerProfileATState_e phase;
+#ifdef USE_AUTO_TRANSITION
     mixerProfileATDirection_e direction;
     mixerProfileATRequest_e request;
     bool aborted;
@@ -76,6 +86,12 @@ typedef struct mixerProfileAT_s {
     float mcAuthorityScale;
     float fwAuthorityScale;
     timeMs_t transitionStartTime;
+#else
+    bool transitionInputMixing;
+    timeMs_t transitionStartTime;
+    timeMs_t transitionStabEndTime;
+    timeMs_t transitionTransEndTime;
+#endif
 } mixerProfileAT_t;
 extern mixerProfileAT_t mixerProfileAT;
 bool checkMixerATRequired(mixerProfileATRequest_e required_action);

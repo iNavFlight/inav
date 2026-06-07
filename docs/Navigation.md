@@ -105,6 +105,8 @@ Parameters:
 ### Mission VTOL transition using existing User Actions
 
 Mission VTOL transition can be requested.
+This is available only on targets with more than 512 KB flash, compiled with `USE_AUTO_TRANSITION`.
+Targets with 512 KB flash do not include these mission VTOL transition settings.
 
 Configuration:
 

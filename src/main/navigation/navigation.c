@@ -84,6 +84,7 @@
 #define FW_LAND_LOITER_MIN_TIME 30000000 // usec (30 sec)
 #define FW_LAND_LOITER_ALT_TOLERANCE 150
 
+#ifdef USE_AUTO_TRANSITION
 // One-shot MC->FW mission retry after airspeed-timeout: hold position, yaw scan, align to best pitot heading.
 #define NAV_MIXERAT_RETRY_SCAN_STEP_CD       DEGREES_TO_CENTIDEGREES(20)
 #define NAV_MIXERAT_RETRY_HEADING_TOL_CD     DEGREES_TO_CENTIDEGREES(5)
@@ -91,6 +92,7 @@
 #define NAV_MIXERAT_RETRY_HEADING_STEP_TIMEOUT_MS 6000
 #define NAV_MIXERAT_RETRY_MAX_TOTAL_MS       45000
 #define NAV_MIXERAT_MISSION_TRANSITION_TRACK_DISTANCE_CM 4000
+#endif
 
 /*-----------------------------------------------------------
  * Compatibility for home position
@@ -128,7 +130,11 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
+#ifdef USE_AUTO_TRANSITION
 PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 10);
+#else
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 7);
+#endif
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -158,11 +164,13 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .pos_failure_timeout = SETTING_NAV_POSITION_TIMEOUT_DEFAULT,                            // 5 sec
         .waypoint_radius = SETTING_NAV_WP_RADIUS_DEFAULT,                                       // 2m diameter
         .waypoint_safe_distance = SETTING_NAV_WP_MAX_SAFE_DISTANCE_DEFAULT,                         // Metres - first waypoint should be closer than this
+#ifdef USE_AUTO_TRANSITION
         .vtol_mission_transition_user_action = SETTING_NAV_VTOL_MISSION_TRANSITION_USER_ACTION_DEFAULT,
         .vtol_mission_transition_min_altitude = SETTING_NAV_VTOL_MISSION_TRANSITION_MIN_ALTITUDE_CM_DEFAULT,
         .vtol_transition_retry_on_airspeed_timeout = SETTING_NAV_VTOL_TRANSITION_RETRY_ON_AIRSPEED_TIMEOUT_DEFAULT,
         .vtol_transition_fail_action_mc_to_fw = SETTING_NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_DEFAULT,
         .vtol_transition_fail_action_fw_to_mc = SETTING_NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_DEFAULT,
+#endif
 #ifdef USE_MULTI_MISSION
         .waypoint_multi_mission_index = SETTING_NAV_WP_MULTI_MISSION_INDEX_DEFAULT,             // mission index selected from multi mission WP entry
 #endif
@@ -284,6 +292,7 @@ uint16_t navEPV;
 int16_t navAccNEU[3];
 //End of blackbox states
 
+#ifdef USE_AUTO_TRANSITION
 typedef struct navMixerATMissionTransition_s {
     mixerProfileATRequest_e request;
     int32_t heading;
@@ -323,6 +332,9 @@ typedef enum {
 
 static navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
 static navMixerATMissionTransition_t navMixerATMissionTransition;
+#else
+static navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
+#endif
 
 static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode);
 static void updateDesiredRTHAltitude(void);
@@ -342,7 +354,9 @@ static void resetJumpCounter(void);
 static void clearJumpCounters(void);
 
 static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint);
+#ifdef USE_AUTO_TRANSITION
 static bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos);
+#endif
 void calculateInitialHoldPosition(fpVector3_t * pos);
 void calculateFarAwayPos(fpVector3_t * farAwayPos, const fpVector3_t *start, int32_t bearing, int32_t distance);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t bearing, int32_t distance);
@@ -350,6 +364,7 @@ bool isWaypointAltitudeReached(void);
 static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
 static navigationFSMEvent_t nextForNonGeoStates(void);
 static bool isWaypointMissionValid(void);
+#ifdef USE_AUTO_TRANSITION
 static void clearMissionVTOLTransitionState(void);
 static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const navWaypoint_t *waypoint);
 static void updateMissionTransitionGuidance(void);
@@ -358,6 +373,7 @@ static bool hasAirspeedSensorForTransitionRetry(void);
 static bool canRetryTransitionAfterAirspeedTimeout(const mixerProfileATRequest_e request);
 static void beginMissionTransitionRetryScan(const mixerProfileATRequest_e request);
 static navMixerATRetryScanResult_e updateMissionTransitionRetryScan(void);
+#endif
 void missionPlannerSetWaypoint(void);
 
 void initializeRTHSanityChecker(void);
@@ -1107,12 +1123,16 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                        = NAV_STATE_MIXERAT_IN_PROGRESS,    // re-process the state
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_MIXERAT_ABORT,
+#ifdef USE_AUTO_TRANSITION
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]           = NAV_STATE_POSHOLD_3D_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
+#endif
             [NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME]        = NAV_STATE_RTH_HEAD_HOME, //switch to its pending state
             [NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING]          = NAV_STATE_RTH_LANDING, //switch to its pending state
+#ifdef USE_AUTO_TRANSITION
             [NAV_FSM_EVENT_MIXERAT_MISSION_RESUME]         = NAV_STATE_WAYPOINT_IN_PROGRESS,
+#endif
         }
     },
     [NAV_STATE_MIXERAT_ABORT] = {
@@ -1326,6 +1346,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
 static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
 {
     navigationFSMStateFlags_t stateFlags = navFSM[state].stateFlags;
+#ifdef USE_AUTO_TRANSITION
     const bool mixerATState = (state == NAV_STATE_MIXERAT_INITIALIZE || state == NAV_STATE_MIXERAT_IN_PROGRESS);
 
     // During mission-authorized MC->FW transition, enable XY/YAW control to fly a straight acceleration segment.
@@ -1342,6 +1363,7 @@ static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
         isTransitionRetryToFixedWingRequest(navMixerATMissionTransition.request)) {
         stateFlags |= NAV_CTL_POS | NAV_CTL_YAW;
     }
+#endif
 
     return stateFlags;
 }
@@ -1367,8 +1389,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState
 {
     UNUSED(previousState);
 
+#ifdef USE_AUTO_TRANSITION
     navMixerATPendingState = NAV_STATE_IDLE;
     clearMissionVTOLTransitionState();
+#endif
     resetAltitudeController(false);
     resetHeadingController();
     resetPositionController();
@@ -2052,6 +2076,7 @@ static navigationFSMEvent_t nextForNonGeoStates(void)
     }
 }
 
+#ifdef USE_AUTO_TRANSITION
 static uint16_t missionUserActionMask(const navMissionUserAction_e userAction)
 {
     switch (userAction) {
@@ -2387,6 +2412,7 @@ static void updateMissionTransitionGuidance(void)
 
     setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
 }
+#endif
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(navigationFSMState_t previousState)
 {
@@ -2403,6 +2429,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             posControl.wpAltitudeReached = false;
 
+#ifdef USE_AUTO_TRANSITION
             clearMissionVTOLTransitionState();
             const navMissionVtolTransitionDisposition_e transitionAction = prepareMissionVTOLTransition(activeWaypoint);
             if (transitionAction == NAV_MISSION_VTOL_TRANSITION_START) {
@@ -2411,6 +2438,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             if (transitionAction == NAV_MISSION_VTOL_TRANSITION_REJECT) {
                 return NAV_FSM_EVENT_ERROR;
             }
+#endif
 
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
         }
@@ -2729,11 +2757,15 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE(navi
         setupAltitudeController();
     }
 
+#ifdef USE_AUTO_TRANSITION
     if (previousState != NAV_STATE_WAYPOINT_PRE_ACTION) {
         clearMissionVTOLTransitionState();
     }
 
     updateMissionTransitionGuidance();
+#else
+    setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
+#endif
     navMixerATPendingState = previousState;
     return NAV_FSM_EVENT_SUCCESS;
 }
@@ -2742,6 +2774,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
 {
     UNUSED(previousState);
 
+#ifdef USE_AUTO_TRANSITION
     if (!ARMING_FLAG(ARMED) || FLIGHT_MODE(FAILSAFE_MODE)) {
         mixerATUpdateState(MIXERAT_REQUEST_ABORT);
         clearMissionVTOLTransitionState();
@@ -2841,13 +2874,54 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
     updateMissionTransitionGuidance();
 
     return NAV_FSM_EVENT_NONE;
+#else
+    mixerProfileATRequest_e required_action;
+    switch (navMixerATPendingState)
+    {
+    case NAV_STATE_RTH_HEAD_HOME:
+        required_action = MIXERAT_REQUEST_RTH;
+        break;
+    case NAV_STATE_RTH_LANDING:
+        required_action = MIXERAT_REQUEST_LAND;
+        break;
+    default:
+        required_action = MIXERAT_REQUEST_NONE;
+        break;
+    }
+    if (mixerATUpdateState(required_action)){
+        // MixerAT is done, switch to next state
+        resetPositionController();
+        resetAltitudeController(false);     // Make sure surface tracking is not enabled uses global altitude, not AGL
+        mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+        switch (navMixerATPendingState)
+        {
+        case NAV_STATE_RTH_HEAD_HOME:
+            setupAltitudeController();
+            return NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME;
+            break;
+        case NAV_STATE_RTH_LANDING:
+            setupAltitudeController();
+            return NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING;
+            break;
+        default:
+            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+            break;
+        }
+    }
+
+    setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
+
+    return NAV_FSM_EVENT_NONE;
+#endif
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
     mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+#ifdef USE_AUTO_TRANSITION
     clearMissionVTOLTransitionState();
+#endif
     return NAV_FSM_EVENT_SUCCESS;
 }
 
@@ -5565,8 +5639,10 @@ void navigationInit(void)
 {
     /* Initial state */
     posControl.navState = NAV_STATE_IDLE;
+#ifdef USE_AUTO_TRANSITION
     navMixerATPendingState = NAV_STATE_IDLE;
     clearMissionVTOLTransitionState();
+#endif
 
     posControl.flags.horizontalPositionDataNew = false;
     posControl.flags.verticalPositionDataNew = false;

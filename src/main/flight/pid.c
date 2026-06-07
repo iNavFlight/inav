@@ -119,6 +119,33 @@ typedef struct {
     fwPidAttenuation_t attenuation;
 } pidState_t;
 
+#ifdef USE_AUTO_TRANSITION
+typedef struct {
+    float kP;
+    float kI;
+    float kD;
+    float kFF;
+    float gyroRate;
+    float rateTarget;
+    float errorGyroIf;
+    float errorGyroIfLimit;
+    pt1Filter_t ptermLpfState;
+    filter_t dtermLpfState;
+    float previousRateTarget;
+    float previousRateGyro;
+#ifdef USE_D_BOOST
+    pt1Filter_t dBoostLpf;
+    biquadFilter_t dBoostGyroLpf;
+    float dBoostTargetAcceleration;
+#endif
+    filterApply4FnPtr ptermFilterApplyFn;
+#ifdef USE_SMITH_PREDICTOR
+    smithPredictor_t smithPredictor;
+#endif
+    fwPidAttenuation_t attenuation;
+} autoTransitionTargetPidState_t;
+#endif
+
 STATIC_FASTRAM bool pidFiltersConfigured = false;
 static EXTENDED_FASTRAM float headingHoldCosZLimit;
 static EXTENDED_FASTRAM int16_t headingHoldTarget;
@@ -128,6 +155,9 @@ static EXTENDED_FASTRAM pt1Filter_t fixedWingTpaFilter;
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
 STATIC_FASTRAM bool pidGainsUpdateRequired= true;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
+#ifdef USE_AUTO_TRANSITION
+FASTRAM int16_t autoTransitionTargetAxisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
+#endif
 
 #ifdef USE_BLACKBOX
 int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT];
@@ -138,8 +168,17 @@ int32_t axisPID_Setpoint[FLIGHT_DYNAMICS_INDEX_COUNT];
 #endif
 
 static EXTENDED_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
+#ifdef USE_AUTO_TRANSITION
+static EXTENDED_FASTRAM autoTransitionTargetPidState_t autoTransitionTargetPidState[FLIGHT_DYNAMICS_INDEX_COUNT];
+#endif
 static EXTENDED_FASTRAM pt1Filter_t windupLpf[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM uint8_t itermRelax;
+#ifdef USE_AUTO_TRANSITION
+static EXTENDED_FASTRAM pt1Filter_t autoTransitionTargetTpaFilter;
+static EXTENDED_FASTRAM filterApplyFnPtr autoTransitionTargetDTermLpfFilterApplyFn;
+static EXTENDED_FASTRAM uint8_t autoTransitionTargetYawLpfHz;
+static EXTENDED_FASTRAM int8_t autoTransitionTargetControlProfileIndex = -1;
+#endif
 
 #ifdef USE_ANTIGRAVITY
 static EXTENDED_FASTRAM pt1Filter_t antigravityThrottleLpf;
@@ -179,6 +218,8 @@ static EXTENDED_FASTRAM timeMs_t pidLoopNowMs;
 
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
+
+static void applyItermLimiting(pidState_t *pidState);
 
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 11);
 
@@ -395,6 +436,11 @@ void pidResetErrorAccumulators(void)
     for (int axis = 0; axis < 3; axis++) {
         pidState[axis].errorGyroIf = 0.0f;
         pidState[axis].errorGyroIfLimit = 0.0f;
+#ifdef USE_AUTO_TRANSITION
+        autoTransitionTargetPidState[axis].errorGyroIf = 0.0f;
+        autoTransitionTargetPidState[axis].errorGyroIfLimit = 0.0f;
+        autoTransitionTargetAxisPID[axis] = 0;
+#endif
     }
 }
 
@@ -413,6 +459,372 @@ float getAxisIterm(uint8_t axis)
 {
     return pidState[axis].errorGyroIf;
 }
+
+#ifdef USE_AUTO_TRANSITION
+static void resetAutoTransitionTargetPidState(void)
+{
+    memset(autoTransitionTargetPidState, 0, sizeof(autoTransitionTargetPidState));
+    memset(autoTransitionTargetAxisPID, 0, sizeof(autoTransitionTargetAxisPID));
+    memset(&autoTransitionTargetTpaFilter, 0, sizeof(autoTransitionTargetTpaFilter));
+    autoTransitionTargetControlProfileIndex = -1;
+    autoTransitionTargetDTermLpfFilterApplyFn = (filterApplyFnPtr)nullFilterApply;
+    autoTransitionTargetYawLpfHz = 0;
+}
+
+static bool isAutoTransitionTargetPidActive(void)
+{
+    return isMixerTransitionMixing &&
+           mixerATIsActive() &&
+           mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW &&
+           isMultirotorTypePlatform(currentMixerConfig.platformType) &&
+           nextMixerProfileIndex >= 0 &&
+           nextMixerProfileIndex < MAX_PROFILE_COUNT &&
+           mixerConfigByIndex(nextMixerProfileIndex)->platformType == PLATFORM_AIRPLANE;
+}
+
+static uint8_t getAutoTransitionTargetControlProfileIndex(void)
+{
+    if (currentMixerConfig.controlProfileLinking &&
+        nextMixerProfileIndex >= 0 &&
+        nextMixerProfileIndex < MAX_CONTROL_PROFILE_COUNT &&
+        nextMixerProfileIndex < MAX_PROFILE_COUNT) {
+        return nextMixerProfileIndex;
+    }
+
+    return getConfigProfile();
+}
+
+static const controlConfig_t *getAutoTransitionTargetControlProfile(uint8_t profileIndex)
+{
+    if (currentMixerConfig.controlProfileLinking &&
+        profileIndex < MAX_CONTROL_PROFILE_COUNT) {
+        return controlProfiles(profileIndex);
+    }
+
+    return currentControlProfile;
+}
+
+static const pidProfile_t *getAutoTransitionTargetPidProfile(uint8_t profileIndex)
+{
+    if (currentMixerConfig.controlProfileLinking && profileIndex < MAX_PROFILE_COUNT) {
+        const pgRegistry_t *pidProfileRegistry = pgFind(PG_PID_PROFILE);
+        if (pidProfileRegistry) {
+            return (const pidProfile_t *)(pidProfileRegistry->address + (pgSize(pidProfileRegistry) * profileIndex));
+        }
+    }
+
+    return pidProfile();
+}
+
+static void initAutoTransitionTargetPidState(const uint8_t profileIndex, const controlConfig_t *controlProfile, const pidProfile_t *targetPidProfile)
+{
+    const uint32_t refreshRate = getLooptime();
+
+    resetAutoTransitionTargetPidState();
+
+    autoTransitionTargetControlProfileIndex = profileIndex;
+    autoTransitionTargetYawLpfHz = targetPidProfile->yaw_lpf_hz;
+
+    assignFilterApplyFn(targetPidProfile->dterm_lpf_type, targetPidProfile->dterm_lpf_hz, &autoTransitionTargetDTermLpfFilterApplyFn);
+
+    if (controlProfile->throttle.fixedWingTauMs > 0) {
+        pt1FilterInitRC(&autoTransitionTargetTpaFilter, MS2S(controlProfile->throttle.fixedWingTauMs), US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)));
+        pt1FilterReset(&autoTransitionTargetTpaFilter, getThrottleIdleValue());
+    }
+
+    for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+#ifdef USE_D_BOOST
+        autoTransitionTargetPidState[axis].dBoostTargetAcceleration = controlProfile->stabilized.rates[axis] * 10 * 10;
+#endif
+
+        if (axis == FD_YAW && autoTransitionTargetYawLpfHz) {
+            autoTransitionTargetPidState[axis].ptermFilterApplyFn = (filterApply4FnPtr)pt1FilterApply4;
+        } else {
+            autoTransitionTargetPidState[axis].ptermFilterApplyFn = (filterApply4FnPtr)nullFilterApply4;
+        }
+
+        initFilter(targetPidProfile->dterm_lpf_type, &autoTransitionTargetPidState[axis].dtermLpfState, targetPidProfile->dterm_lpf_hz, refreshRate);
+
+#ifdef USE_D_BOOST
+        biquadFilterInitLPF(&autoTransitionTargetPidState[axis].dBoostGyroLpf, targetPidProfile->dBoostGyroDeltaLpfHz, refreshRate);
+#endif
+
+#ifdef USE_SMITH_PREDICTOR
+        smithPredictorInit(
+            &autoTransitionTargetPidState[axis].smithPredictor,
+            targetPidProfile->smithPredictorDelay,
+            targetPidProfile->smithPredictorStrength,
+            targetPidProfile->smithPredictorFilterHz,
+            refreshRate
+        );
+#endif
+    }
+}
+
+static float calculateAutoTransitionTargetAirspeedTPAFactor(const pidProfile_t *targetPidProfile, const controlConfig_t *controlProfile)
+{
+    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f);
+    const float referenceAirspeed = targetPidProfile->fixedWingReferenceAirspeed;
+    float tpaFactor = powf(referenceAirspeed / airspeed, controlProfile->throttle.apa_pow / 100.0f);
+
+    return constrainf(tpaFactor, 0.3f, 2.0f);
+}
+
+static float calculateAutoTransitionTargetAirspeedITermFactor(const pidProfile_t *targetPidProfile, const controlConfig_t *controlProfile)
+{
+    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f);
+    const float referenceAirspeed = targetPidProfile->fixedWingReferenceAirspeed;
+    const float apaPow = controlProfile->throttle.apa_pow;
+
+    if (apaPow <= 100.0f) {
+        return 1.0f;
+    }
+
+    return constrainf(powf(referenceAirspeed / airspeed, (apaPow / 100.0f) - 1.0f), 0.3f, 1.5f);
+}
+
+static uint16_t calculateAutoTransitionTargetTPAThrottle(const controlConfig_t *controlProfile)
+{
+    if (controlProfile->throttle.fixedWingTauMs > 0) {
+        static const fpVector3_t vDown = { .v = { 0.0f, 0.0f, 1.0f } };
+        fpVector3_t vForward = { .v = { HeadVecEFFiltered.x, -HeadVecEFFiltered.y, -HeadVecEFFiltered.z } };
+        const float groundCos = vectorDotProduct(&vForward, &vDown);
+        const int16_t throttleAdjustment = controlProfile->throttle.tpa_pitch_compensation * groundCos * 90.0f / 1.57079632679f;
+        const uint16_t throttleAdjusted = rcCommand[THROTTLE] + constrain(throttleAdjustment, -1000, 1000);
+        return pt1FilterApply(&autoTransitionTargetTpaFilter, constrain(throttleAdjusted, 1000, 2000));
+    }
+
+    return rcCommand[THROTTLE];
+}
+
+static float calculateAutoTransitionTargetTPAFactor(const controlConfig_t *controlProfile)
+{
+    const uint16_t throttle = calculateAutoTransitionTargetTPAThrottle(controlProfile);
+    float tpaFactor;
+
+    if (controlProfile->throttle.dynPID != 0 &&
+        controlProfile->throttle.pa_breakpoint > getThrottleIdleValue() &&
+        !FLIGHT_MODE(AUTO_TUNE) &&
+        ARMING_FLAG(ARMED)) {
+        if (throttle > getThrottleIdleValue()) {
+            tpaFactor = 0.5f + ((float)(controlProfile->throttle.pa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
+        } else {
+            tpaFactor = 2.0f;
+        }
+
+        tpaFactor = 1.0f + (tpaFactor - 1.0f) * (controlProfile->throttle.dynPID / 100.0f);
+        tpaFactor = constrainf(tpaFactor, 0.3f, 2.0f);
+    } else {
+        tpaFactor = 1.0f;
+    }
+
+    return tpaFactor;
+}
+
+static void updateAutoTransitionTargetPIDCoefficients(const controlConfig_t *controlProfile, const pidProfile_t *targetPidProfile)
+{
+    float tpaFactor = 1.0f;
+    float iTermFactor = 1.0f;
+
+    if (controlProfile->throttle.apa_pow > 0 &&
+        pitotValidForAirspeed()) {
+        tpaFactor = calculateAutoTransitionTargetAirspeedTPAFactor(targetPidProfile, controlProfile);
+        iTermFactor = calculateAutoTransitionTargetAirspeedITermFactor(targetPidProfile, controlProfile);
+    } else {
+        tpaFactor = calculateAutoTransitionTargetTPAFactor(controlProfile);
+        iTermFactor = tpaFactor;
+    }
+
+    for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        autoTransitionTargetPidState[axis].kP = targetPidProfile->bank_fw.pid[axis].P / FP_PID_RATE_P_MULTIPLIER * tpaFactor;
+        autoTransitionTargetPidState[axis].kI = targetPidProfile->bank_fw.pid[axis].I / FP_PID_RATE_I_MULTIPLIER * iTermFactor;
+        autoTransitionTargetPidState[axis].kD = targetPidProfile->bank_fw.pid[axis].D / FP_PID_RATE_D_MULTIPLIER * tpaFactor;
+        autoTransitionTargetPidState[axis].kFF = targetPidProfile->bank_fw.pid[axis].FF / FP_PID_RATE_FF_MULTIPLIER * tpaFactor;
+    }
+}
+
+static float autoTransitionTargetPTermProcess(autoTransitionTargetPidState_t *pidState, flight_dynamics_index_t axis, float rateError, float dT)
+{
+    const float newPTerm = rateError * pidState->kP;
+    UNUSED(axis);
+
+    return pidState->ptermFilterApplyFn(&pidState->ptermLpfState, newPTerm, autoTransitionTargetYawLpfHz, dT);
+}
+
+#ifdef USE_D_BOOST
+static float applyAutoTransitionTargetDBoost(autoTransitionTargetPidState_t *pidState, const pidProfile_t *targetPidProfile, float currentRateTarget, float dT, float dT_inv)
+{
+    float dBoost = 1.0f;
+    const float dBoostGyroDelta = (pidState->gyroRate - pidState->previousRateGyro) * dT_inv;
+    const float dBoostGyroAcceleration = fabsf(biquadFilterApply(&pidState->dBoostGyroLpf, dBoostGyroDelta));
+    const float dBoostRateAcceleration = fabsf((currentRateTarget - pidState->previousRateTarget) * dT_inv);
+
+    if (dBoostGyroAcceleration >= dBoostRateAcceleration) {
+        dBoost = scaleRangef(dBoostGyroAcceleration, 0.0f, targetPidProfile->dBoostMaxAtAlleceleration, 1.0f, targetPidProfile->dBoostMax);
+    } else {
+        dBoost = scaleRangef(dBoostRateAcceleration, 0.0f, pidState->dBoostTargetAcceleration, 1.0f, targetPidProfile->dBoostMin);
+    }
+
+    dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
+    return constrainf(dBoost, targetPidProfile->dBoostMin, targetPidProfile->dBoostMax);
+}
+#else
+static float applyAutoTransitionTargetDBoost(autoTransitionTargetPidState_t *pidState, const pidProfile_t *targetPidProfile, float currentRateTarget, float dT, float dT_inv)
+{
+    UNUSED(pidState);
+    UNUSED(targetPidProfile);
+    UNUSED(currentRateTarget);
+    UNUSED(dT);
+    UNUSED(dT_inv);
+    return 1.0f;
+}
+#endif
+
+static float autoTransitionTargetDTermProcess(autoTransitionTargetPidState_t *pidState, const pidProfile_t *targetPidProfile, float currentRateTarget, float dT, float dT_inv)
+{
+    if (pidState->kD == 0.0f) {
+        return 0.0f;
+    }
+
+    float delta = pidState->previousRateGyro - pidState->gyroRate;
+    delta = autoTransitionTargetDTermLpfFilterApplyFn((filter_t *)&pidState->dtermLpfState, delta);
+
+    return delta * (pidState->kD * dT_inv) * applyAutoTransitionTargetDBoost(pidState, targetPidProfile, currentRateTarget, dT, dT_inv);
+}
+
+static void applyAutoTransitionTargetItermLock(autoTransitionTargetPidState_t *pidState, const controlConfig_t *controlProfile, const pidProfile_t *targetPidProfile, flight_dynamics_index_t axis, const float rateTarget, const float rateError)
+{
+    const float maxRate = controlProfile->stabilized.rates[axis] * 10.0f;
+    const float dampingFactor = attenuation(rateTarget, maxRate * targetPidProfile->fwItermLockRateLimit / 100.0f);
+    const bool errorThresholdReached = fabsf(rateError) > maxRate * targetPidProfile->fwItermLockEngageThreshold / 100.0f;
+
+    if (fabsf(rateTarget) > maxRate * 0.2f) {
+        pidState->attenuation.targetOverThresholdTimeMs = pidLoopNowMs;
+    }
+
+    if (!errorThresholdReached) {
+        pidState->attenuation.targetOverThresholdTimeMs = 0;
+    }
+
+    pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (pidLoopNowMs - pidState->attenuation.targetOverThresholdTimeMs) < targetPidProfile->fwItermLockTimeMaxMs) ? 0.0f : 1.0f);
+    pidState->attenuation.aP = dampingFactor;
+    pidState->attenuation.aD = dampingFactor;
+}
+
+static bool checkAutoTransitionTargetItermLimitingActive(void)
+{
+    return STATE(ANTI_WINDUP);
+}
+
+static void applyAutoTransitionTargetItermLimiting(autoTransitionTargetPidState_t *pidState, const bool itermLimitActive)
+{
+    if (itermLimitActive) {
+        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
+    } else {
+        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
+    }
+}
+
+static bool checkAutoTransitionTargetItermFreezingActive(const pidProfile_t *targetPidProfile, flight_dynamics_index_t axis)
+{
+    if (targetPidProfile->fixedWingYawItermBankFreeze != 0 &&
+        axis == FD_YAW) {
+        const float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
+        return fabsf(bankAngle) > targetPidProfile->fixedWingYawItermBankFreeze && !(FLIGHT_MODE(AUTO_TUNE) || FLIGHT_MODE(TURN_ASSISTANT));
+    }
+
+    return false;
+}
+
+static int16_t applyAutoTransitionTargetFixedWingRateController(autoTransitionTargetPidState_t *pidState, const controlConfig_t *controlProfile, const pidProfile_t *targetPidProfile, flight_dynamics_index_t axis, const bool itermLimitActive, const bool itermFreezeActive, float dT, float dT_inv)
+{
+    const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
+    const float rateError = rateTarget - pidState->gyroRate;
+
+    applyAutoTransitionTargetItermLock(pidState, controlProfile, targetPidProfile, axis, rateTarget, rateError);
+
+    const float newPTerm = autoTransitionTargetPTermProcess(pidState, axis, rateError, dT) * pidState->attenuation.aP;
+    const float newDTerm = autoTransitionTargetDTermProcess(pidState, targetPidProfile, rateTarget, dT, dT_inv) * pidState->attenuation.aD;
+    const float newFFTerm = rateTarget * pidState->kFF;
+
+    if (!itermFreezeActive) {
+        pidState->errorGyroIf += rateError * pidState->kI * dT * pidState->attenuation.aI;
+    }
+
+    applyAutoTransitionTargetItermLimiting(pidState, itermLimitActive);
+
+    const uint16_t limit = 500;
+
+    if (targetPidProfile->pidItermLimitPercent != 0) {
+        const float itermLimit = limit * targetPidProfile->pidItermLimitPercent * 0.01f;
+        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
+    }
+
+    pidState->previousRateGyro = pidState->gyroRate;
+    pidState->previousRateTarget = rateTarget;
+
+    return constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -limit, +limit);
+}
+
+static void updateAutoTransitionTargetAxisPID(float dT)
+{
+    if (!pidFiltersConfigured || !isAutoTransitionTargetPidActive()) {
+        resetAutoTransitionTargetPidState();
+        return;
+    }
+
+    const uint8_t profileIndex = getAutoTransitionTargetControlProfileIndex();
+    const controlConfig_t *controlProfile = getAutoTransitionTargetControlProfile(profileIndex);
+    const pidProfile_t *targetPidProfile = getAutoTransitionTargetPidProfile(profileIndex);
+
+    if (autoTransitionTargetControlProfileIndex != profileIndex) {
+        initAutoTransitionTargetPidState(profileIndex, controlProfile, targetPidProfile);
+    }
+
+    updateAutoTransitionTargetPIDCoefficients(controlProfile, targetPidProfile);
+
+    const float dT_inv = 1.0f / dT;
+
+    for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        autoTransitionTargetPidState[axis].gyroRate = gyro.gyroADCf[axis];
+        autoTransitionTargetPidState[axis].rateTarget = pidState[axis].rateTarget;
+
+#ifdef USE_SMITH_PREDICTOR
+        autoTransitionTargetPidState[axis].gyroRate = applySmithPredictor(axis, &autoTransitionTargetPidState[axis].smithPredictor, autoTransitionTargetPidState[axis].gyroRate);
+#endif
+
+        const bool itermLimitActive = checkAutoTransitionTargetItermLimitingActive();
+        const bool itermFreezeActive = checkAutoTransitionTargetItermFreezingActive(targetPidProfile, axis);
+
+        autoTransitionTargetAxisPID[axis] = applyAutoTransitionTargetFixedWingRateController(&autoTransitionTargetPidState[axis], controlProfile, targetPidProfile, axis, itermLimitActive, itermFreezeActive, dT, dT_inv);
+    }
+}
+
+int16_t getAutoTransitionTargetStabilizedInput(flight_dynamics_index_t axis)
+{
+    if (!(isMixerTransitionMixing &&
+          mixerATIsActive() &&
+          mixerProfileAT.direction != MIXERAT_DIRECTION_NONE)) {
+        return 0;
+    }
+
+    const float scale = currentMixerConfig.vtolTransitionDynamicMixer ? mixerATGetFwAuthorityScale() : 1.0f;
+
+    if (FLIGHT_MODE(MANUAL_MODE)) {
+        return lrintf(rcCommand[axis] * scale);
+    }
+
+    if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) {
+        return lrintf(autoTransitionTargetAxisPID[axis] * scale);
+    }
+
+    if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC) {
+        return lrintf(axisPID[axis] * scale);
+    }
+
+    return 0;
+}
+#endif
 
 static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination)
 {
@@ -1226,6 +1638,9 @@ void FAST_CODE pidController(float dT)
     pidLoopNowMs = millis();
 
     if (!pidFiltersConfigured) {
+#ifdef USE_AUTO_TRANSITION
+        resetAutoTransitionTargetPidState();
+#endif
         return;
     }
 
@@ -1326,6 +1741,10 @@ void FAST_CODE pidController(float dT)
 
         pidControllerApplyFn(&pidState[axis], dT, dT_inv);
     }
+
+#ifdef USE_AUTO_TRANSITION
+    updateAutoTransitionTargetAxisPID(dT);
+#endif
 }
 
 pidType_e pidIndexGetType(pidIndex_e pidIndex)
@@ -1426,6 +1845,10 @@ void pidInit(void)
         2.0f,
         0.0f
     );
+
+#ifdef USE_AUTO_TRANSITION
+    resetAutoTransitionTargetPidState();
+#endif
 
 }
 
