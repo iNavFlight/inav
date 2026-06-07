@@ -642,8 +642,6 @@ HAL_StatusTypeDef HAL_UART_DeInit(UART_HandleTypeDef *huart)
 
   huart->gState = HAL_UART_STATE_BUSY;
 
-  __HAL_UART_DISABLE(huart);
-
   huart->Instance->CR1 = 0x0U;
   huart->Instance->CR2 = 0x0U;
   huart->Instance->CR3 = 0x0U;
@@ -1022,78 +1020,79 @@ HAL_StatusTypeDef HAL_UART_UnRegisterRxEventCallback(UART_HandleTypeDef *huart)
  ===============================================================================
                       ##### IO operation functions #####
  ===============================================================================
+    [..]
     This subsection provides a set of functions allowing to manage the UART asynchronous
     and Half duplex data transfers.
 
-    (#) There are two mode of transfer:
-       (+) Blocking mode: The communication is performed in polling mode.
-           The HAL status of all data processing is returned by the same function
-           after finishing transfer.
-       (+) Non-Blocking mode: The communication is performed using Interrupts
-           or DMA, These API's return the HAL status.
-           The end of the data processing will be indicated through the
-           dedicated UART IRQ when using Interrupt mode or the DMA IRQ when
-           using DMA mode.
-           The HAL_UART_TxCpltCallback(), HAL_UART_RxCpltCallback() user callbacks
-           will be executed respectively at the end of the transmit or Receive process
-           The HAL_UART_ErrorCallback()user callback will be executed when a communication error is detected
+    (#) There are two modes of transfer:
+       (++) Blocking mode: The communication is performed in polling mode.
+            The HAL status of all data processing is returned by the same function
+            after finishing transfer.
+       (++) Non-Blocking mode: The communication is performed using Interrupts
+            or DMA, These API's return the HAL status.
+            The end of the data processing will be indicated through the
+            dedicated UART IRQ when using Interrupt mode or the DMA IRQ when
+            using DMA mode.
+            The HAL_UART_TxCpltCallback(), HAL_UART_RxCpltCallback() user callbacks
+            will be executed respectively at the end of the transmit or Receive process
+            The HAL_UART_ErrorCallback()user callback will be executed when a communication error is detected
 
     (#) Blocking mode API's are :
-        (+) HAL_UART_Transmit()
-        (+) HAL_UART_Receive()
+        (++) HAL_UART_Transmit()
+        (++) HAL_UART_Receive()
 
     (#) Non-Blocking mode API's with Interrupt are :
-        (+) HAL_UART_Transmit_IT()
-        (+) HAL_UART_Receive_IT()
-        (+) HAL_UART_IRQHandler()
+        (++) HAL_UART_Transmit_IT()
+        (++) HAL_UART_Receive_IT()
+        (++) HAL_UART_IRQHandler()
 
     (#) Non-Blocking mode API's with DMA are :
-        (+) HAL_UART_Transmit_DMA()
-        (+) HAL_UART_Receive_DMA()
-        (+) HAL_UART_DMAPause()
-        (+) HAL_UART_DMAResume()
-        (+) HAL_UART_DMAStop()
+        (++) HAL_UART_Transmit_DMA()
+        (++) HAL_UART_Receive_DMA()
+        (++) HAL_UART_DMAPause()
+        (++) HAL_UART_DMAResume()
+        (++) HAL_UART_DMAStop()
 
     (#) A set of Transfer Complete Callbacks are provided in Non_Blocking mode:
-        (+) HAL_UART_TxHalfCpltCallback()
-        (+) HAL_UART_TxCpltCallback()
-        (+) HAL_UART_RxHalfCpltCallback()
-        (+) HAL_UART_RxCpltCallback()
-        (+) HAL_UART_ErrorCallback()
+        (++) HAL_UART_TxHalfCpltCallback()
+        (++) HAL_UART_TxCpltCallback()
+        (++) HAL_UART_RxHalfCpltCallback()
+        (++) HAL_UART_RxCpltCallback()
+        (++) HAL_UART_ErrorCallback()
 
     (#) Non-Blocking mode transfers could be aborted using Abort API's :
-        (+) HAL_UART_Abort()
-        (+) HAL_UART_AbortTransmit()
-        (+) HAL_UART_AbortReceive()
-        (+) HAL_UART_Abort_IT()
-        (+) HAL_UART_AbortTransmit_IT()
-        (+) HAL_UART_AbortReceive_IT()
+        (++) HAL_UART_Abort()
+        (++) HAL_UART_AbortTransmit()
+        (++) HAL_UART_AbortReceive()
+        (++) HAL_UART_Abort_IT()
+        (++) HAL_UART_AbortTransmit_IT()
+        (++) HAL_UART_AbortReceive_IT()
 
     (#) For Abort services based on interrupts (HAL_UART_Abortxxx_IT), a set of Abort Complete Callbacks are provided:
-        (+) HAL_UART_AbortCpltCallback()
-        (+) HAL_UART_AbortTransmitCpltCallback()
-        (+) HAL_UART_AbortReceiveCpltCallback()
+        (++) HAL_UART_AbortCpltCallback()
+        (++) HAL_UART_AbortTransmitCpltCallback()
+        (++) HAL_UART_AbortReceiveCpltCallback()
 
     (#) A Rx Event Reception Callback (Rx event notification) is available for Non_Blocking modes of enhanced
         reception services:
-        (+) HAL_UARTEx_RxEventCallback()
+        (++) HAL_UARTEx_RxEventCallback()
 
     (#) Wakeup from Stop mode Callback:
-        (+) HAL_UARTEx_WakeupCallback()
+        (++) HAL_UARTEx_WakeupCallback()
 
     (#) In Non-Blocking mode transfers, possible errors are split into 2 categories.
         Errors are handled as follows :
-       (+) Error is considered as Recoverable and non blocking : Transfer could go till end, but error severity is
-           to be evaluated by user : this concerns Frame Error, Parity Error or Noise Error
-           in Interrupt mode reception .
-           Received character is then retrieved and stored in Rx buffer, Error code is set to allow user
-           to identify error type, and HAL_UART_ErrorCallback() user callback is executed.
-           Transfer is kept ongoing on UART side.
-           If user wants to abort it, Abort services should be called by user.
-       (+) Error is considered as Blocking : Transfer could not be completed properly and is aborted.
-           This concerns Overrun Error In Interrupt mode reception and all errors in DMA mode.
-           Error code is set to allow user to identify error type, and HAL_UART_ErrorCallback()
-           user callback is executed.
+       (++) Error is considered as Recoverable and non blocking : Transfer could go till end, but error severity is
+            to be evaluated by user : this concerns Frame Error, Parity Error or Noise Error
+            in Interrupt mode reception .
+            Received character is then retrieved and stored in Rx buffer, Error code is set to allow user
+            to identify error type, and HAL_UART_ErrorCallback() user callback is executed.
+            Transfer is kept ongoing on UART side.
+            If user wants to abort it, Abort services should be called by user.
+       (++) Error is considered as Blocking : Transfer could not be completed properly and is aborted.
+            This concerns Overrun Error In Interrupt mode reception and all errors in DMA mode.
+            Error code is set to allow user to identify error type, and HAL_UART_ErrorCallback()
+            user callback is executed.
 
     -@- In the Half duplex communication, it is forbidden to run the transmit
         and receive process in parallel, the UART state HAL_UART_STATE_BUSY_TX_RX can't be useful.
@@ -1171,7 +1170,15 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
         huart->Instance->TDR = (uint8_t)(*pdata8bits & 0xFFU);
         pdata8bits++;
       }
-      huart->TxXferCount--;
+      if ((huart->gState & HAL_UART_STATE_BUSY_TX) == HAL_UART_STATE_BUSY_TX)
+      {
+        huart->TxXferCount--;
+      }
+      else
+      {
+        /* Process was aborted during the transmission */
+        return HAL_ERROR;
+      }
     }
 
     if (UART_WaitOnFlagUntilTimeout(huart, UART_FLAG_TC, RESET, tickstart, Timeout) != HAL_OK)
@@ -1267,7 +1274,15 @@ HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData, ui
         *pdata8bits = (uint8_t)(huart->Instance->RDR & (uint8_t)uhMask);
         pdata8bits++;
       }
-      huart->RxXferCount--;
+      if (huart->RxState == HAL_UART_STATE_BUSY_RX)
+      {
+        huart->RxXferCount--;
+      }
+      else
+      {
+        /* Process was aborted during the reception */
+        return HAL_ERROR;
+      }
     }
 
     /* At end of Rx process, restore huart->RxState to Ready */
@@ -1707,10 +1722,6 @@ HAL_StatusTypeDef HAL_UART_Abort(UART_HandleTypeDef *huart)
     }
   }
 
-  /* Reset Tx and Rx transfer counters */
-  huart->TxXferCount = 0U;
-  huart->RxXferCount = 0U;
-
   /* Clear the Error flags in the ICR register */
   __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_OREF | UART_CLEAR_NEF | UART_CLEAR_PEF | UART_CLEAR_FEF);
 
@@ -1777,9 +1788,6 @@ HAL_StatusTypeDef HAL_UART_AbortTransmit(UART_HandleTypeDef *huart)
     }
   }
 
-  /* Reset Tx transfer counter */
-  huart->TxXferCount = 0U;
-
   /* Flush the whole TX FIFO (if needed) */
   if (huart->FifoMode == UART_FIFOMODE_ENABLE)
   {
@@ -1841,9 +1849,6 @@ HAL_StatusTypeDef HAL_UART_AbortReceive(UART_HandleTypeDef *huart)
       }
     }
   }
-
-  /* Reset Rx transfer counter */
-  huart->RxXferCount = 0U;
 
   /* Clear the Error flags in the ICR register */
   __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_OREF | UART_CLEAR_NEF | UART_CLEAR_PEF | UART_CLEAR_FEF);
@@ -1970,10 +1975,6 @@ HAL_StatusTypeDef HAL_UART_Abort_IT(UART_HandleTypeDef *huart)
   /* if no DMA abort complete callback execution is required => call user Abort Complete callback */
   if (abortcplt == 1U)
   {
-    /* Reset Tx and Rx transfer counters */
-    huart->TxXferCount = 0U;
-    huart->RxXferCount = 0U;
-
     /* Clear ISR function pointers */
     huart->RxISR = NULL;
     huart->TxISR = NULL;
@@ -2053,8 +2054,6 @@ HAL_StatusTypeDef HAL_UART_AbortTransmit_IT(UART_HandleTypeDef *huart)
     }
     else
     {
-      /* Reset Tx transfer counter */
-      huart->TxXferCount = 0U;
 
       /* Clear TxISR function pointers */
       huart->TxISR = NULL;
@@ -2074,9 +2073,6 @@ HAL_StatusTypeDef HAL_UART_AbortTransmit_IT(UART_HandleTypeDef *huart)
   }
   else
   {
-    /* Reset Tx transfer counter */
-    huart->TxXferCount = 0U;
-
     /* Clear TxISR function pointers */
     huart->TxISR = NULL;
 
@@ -2150,9 +2146,6 @@ HAL_StatusTypeDef HAL_UART_AbortReceive_IT(UART_HandleTypeDef *huart)
     }
     else
     {
-      /* Reset Rx transfer counter */
-      huart->RxXferCount = 0U;
-
       /* Clear RxISR function pointer */
       huart->pRxBuffPtr = NULL;
 
@@ -2178,9 +2171,6 @@ HAL_StatusTypeDef HAL_UART_AbortReceive_IT(UART_HandleTypeDef *huart)
   }
   else
   {
-    /* Reset Rx transfer counter */
-    huart->RxXferCount = 0U;
-
     /* Clear RxISR function pointer */
     huart->pRxBuffPtr = NULL;
 
@@ -3759,12 +3749,24 @@ static void UART_DMAReceiveCplt(DMA_HandleTypeDef *hdma)
      If Reception till IDLE event has been selected : use Rx Event callback */
   if (huart->ReceptionType == HAL_UART_RECEPTION_TOIDLE)
   {
+    huart->RxXferCount = 0;
+
+    /* Check current nb of data still to be received on DMA side.
+       DMA Normal mode, remaining nb of data will be 0
+       DMA Circular mode, remaining nb of data is reset to RxXferSize */
+    uint16_t nb_remaining_rx_data = (uint16_t) __HAL_DMA_GET_COUNTER(hdma);
+    if (nb_remaining_rx_data < huart->RxXferSize)
+    {
+      /* Update nb of remaining data */
+      huart->RxXferCount = nb_remaining_rx_data;
+    }
+
 #if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
     /*Call registered Rx Event callback*/
-    huart->RxEventCallback(huart, huart->RxXferSize);
+    huart->RxEventCallback(huart, (huart->RxXferSize - huart->RxXferCount));
 #else
     /*Call legacy weak Rx Event callback*/
-    HAL_UARTEx_RxEventCallback(huart, huart->RxXferSize);
+    HAL_UARTEx_RxEventCallback(huart, (huart->RxXferSize - huart->RxXferCount));
 #endif /* USE_HAL_UART_REGISTER_CALLBACKS */
   }
   else
@@ -3797,12 +3799,22 @@ static void UART_DMARxHalfCplt(DMA_HandleTypeDef *hdma)
      If Reception till IDLE event has been selected : use Rx Event callback */
   if (huart->ReceptionType == HAL_UART_RECEPTION_TOIDLE)
   {
+    huart->RxXferCount = huart->RxXferSize / 2U;
+
+    /* Check current nb of data still to be received on DMA side. */
+    uint16_t nb_remaining_rx_data = (uint16_t) __HAL_DMA_GET_COUNTER(hdma);
+    if (nb_remaining_rx_data <= huart->RxXferSize)
+    {
+      /* Update nb of remaining data */
+      huart->RxXferCount = nb_remaining_rx_data;
+    }
+
 #if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
     /*Call registered Rx Event callback*/
-    huart->RxEventCallback(huart, huart->RxXferSize / 2U);
+    huart->RxEventCallback(huart, (huart->RxXferSize - huart->RxXferCount));
 #else
     /*Call legacy weak Rx Event callback*/
-    HAL_UARTEx_RxEventCallback(huart, huart->RxXferSize / 2U);
+    HAL_UARTEx_RxEventCallback(huart, (huart->RxXferSize - huart->RxXferCount));
 #endif /* USE_HAL_UART_REGISTER_CALLBACKS */
   }
   else
@@ -3834,7 +3846,6 @@ static void UART_DMAError(DMA_HandleTypeDef *hdma)
   if ((HAL_IS_BIT_SET(huart->Instance->CR3, USART_CR3_DMAT)) &&
       (gstate == HAL_UART_STATE_BUSY_TX))
   {
-    huart->TxXferCount = 0U;
     UART_EndTxTransfer(huart);
   }
 
@@ -3842,7 +3853,6 @@ static void UART_DMAError(DMA_HandleTypeDef *hdma)
   if ((HAL_IS_BIT_SET(huart->Instance->CR3, USART_CR3_DMAR)) &&
       (rxstate == HAL_UART_STATE_BUSY_RX))
   {
-    huart->RxXferCount = 0U;
     UART_EndRxTransfer(huart);
   }
 
@@ -3866,7 +3876,6 @@ static void UART_DMAError(DMA_HandleTypeDef *hdma)
 static void UART_DMAAbortOnError(DMA_HandleTypeDef *hdma)
 {
   UART_HandleTypeDef *huart = (UART_HandleTypeDef *)(hdma->Parent);
-  huart->RxXferCount = 0U;
 
 #if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
   /*Call registered error callback*/
@@ -3899,10 +3908,6 @@ static void UART_DMATxAbortCallback(DMA_HandleTypeDef *hdma)
       return;
     }
   }
-
-  /* No Abort process still ongoing : All DMA channels are aborted, call user Abort Complete callback */
-  huart->TxXferCount = 0U;
-  huart->RxXferCount = 0U;
 
   /* Reset errorCode */
   huart->ErrorCode = HAL_UART_ERROR_NONE;
@@ -3955,10 +3960,6 @@ static void UART_DMARxAbortCallback(DMA_HandleTypeDef *hdma)
     }
   }
 
-  /* No Abort process still ongoing : All DMA channels are aborted, call user Abort Complete callback */
-  huart->TxXferCount = 0U;
-  huart->RxXferCount = 0U;
-
   /* Reset errorCode */
   huart->ErrorCode = HAL_UART_ERROR_NONE;
 
@@ -3996,8 +3997,6 @@ static void UART_DMATxOnlyAbortCallback(DMA_HandleTypeDef *hdma)
 {
   UART_HandleTypeDef *huart = (UART_HandleTypeDef *)(hdma->Parent);
 
-  huart->TxXferCount = 0U;
-
   /* Flush the whole TX FIFO (if needed) */
   if (huart->FifoMode == UART_FIFOMODE_ENABLE)
   {
@@ -4028,8 +4027,6 @@ static void UART_DMATxOnlyAbortCallback(DMA_HandleTypeDef *hdma)
 static void UART_DMARxOnlyAbortCallback(DMA_HandleTypeDef *hdma)
 {
   UART_HandleTypeDef *huart = (UART_HandleTypeDef *)((DMA_HandleTypeDef *)hdma)->Parent;
-
-  huart->RxXferCount = 0U;
 
   /* Clear the Error flags in the ICR register */
   __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_OREF | UART_CLEAR_NEF | UART_CLEAR_PEF | UART_CLEAR_FEF);

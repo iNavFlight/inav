@@ -51,13 +51,6 @@ enum {
     MAP_TO_LED_OUTPUT
 };
 
-typedef struct {
-    int maxTimMotorCount;
-    int maxTimServoCount;
-    const timerHardware_t * timMotors[MAX_PWM_OUTPUTS];
-    const timerHardware_t * timServos[MAX_PWM_OUTPUTS];
-} timMotorServoHardware_t;
-
 static pwmInitError_e pwmInitError = PWM_INIT_ERROR_NONE;
 
 static const char * pwmInitErrorMsg[] = {
@@ -219,6 +212,10 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 }
 
 static void timerHardwareOverride(timerHardware_t * timer) {
+    // Never modify a beeper timer — beeperPwmInit() must find TIM_USE_BEEPER intact
+    if (timer->usageFlags & TIM_USE_BEEPER) {
+        return;
+    }
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
             timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED);
@@ -231,6 +228,10 @@ static void timerHardwareOverride(timerHardware_t * timer) {
         case OUTPUT_MODE_LED:
             timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO);
             timer->usageFlags |= TIM_USE_LED;
+            break;
+        case OUTPUT_MODE_PINIO:
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED);
+            timer->usageFlags |= TIM_USE_PINIO;
             break;
     }
 }
@@ -287,18 +288,37 @@ static void pwmAssignOutput(timMotorServoHardware_t *timOutputs, timerHardware_t
             timHw->usageFlags &= TIM_USE_LED;
             pwmClaimTimer(timHw->tim, timHw->usageFlags);
             break;
+        default:
+            break;
     }
 }
 
-void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos)
+void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
 {
-    UNUSED(isMixerUsingServos);
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
     const uint8_t motorCount = getMotorCount();
 
-    // Apply configurator overrides to all timer outputs
+    // Count servo outputs needed across all mixer profiles, matching
+    // computeServoCount() / getServoCount() which also walk all profiles.
+    // Using only the active profile would under-count on targets with a second
+    // profile that has more servos, causing the simulation to diverge from
+    // the real pwmInitServos() result.
+    uint8_t minServo = 255, maxServo = 0;
+    bool anyServo = false;
+    for (int j = 0; j < MAX_MIXER_PROFILE_COUNT; j++) {
+        for (int i = 0; i < MAX_SERVO_RULES; i++) {
+            if (mixerServoMixersByIndex(j)[i].rate == 0) break;
+            uint8_t ch = mixerServoMixersByIndex(j)[i].targetChannel;
+            if (ch < minServo) minServo = ch;
+            if (ch > maxServo) maxServo = ch;
+            anyServo = true;
+        }
+    }
+    uint8_t servoCount = anyServo ? (uint8_t)(1 + maxServo - minServo) : 0;
+
+    // Apply all timerOverrides upfront so flag state is stable for both passes
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         timerHardwareOverride(&timerHardware[idx]);
     }
@@ -331,7 +351,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             }
 
             // Servos: dedicated (OUTPUT_MODE_SERVOS) first, then auto
-            if (TIM_IS_SERVO(timHw->usageFlags)
+            if (TIM_IS_SERVO(timHw->usageFlags) && timOutputs->maxTimServoCount < servoCount
                     && !pwmHasMotorOnTimer(timOutputs, timHw->tim)
                     && (isDedicated ? mode == OUTPUT_MODE_SERVOS : mode != OUTPUT_MODE_SERVOS)) {
                 pwmAssignOutput(timOutputs, timHw, MAP_TO_SERVO_OUTPUT);
@@ -449,19 +469,61 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
 }
 
 
+static timMotorServoHardware_t timOutputsStatic;
+
 bool pwmMotorAndServoInit(void)
 {
-    timMotorServoHardware_t timOutputs;
-
-    // Build temporary timer mappings for motor and servo
-    pwmBuildTimerOutputList(&timOutputs, isMixerUsingServos());
-
-    // At this point we have built tables of timers suitable for motor and servo mappings
-    // Now we can actually initialize them according to motor/servo count from mixer
-    pwmInitMotors(&timOutputs);
-    pwmInitServos(&timOutputs);
-
+    pwmBuildTimerOutputList(&timOutputsStatic);
+    pwmInitMotors(&timOutputsStatic);
+    pwmInitServos(&timOutputsStatic);
     return (pwmInitError == PWM_INIT_ERROR_NONE);
+}
+
+const timMotorServoHardware_t *pwmGetOutputAssignment(void)
+{
+    return &timOutputsStatic;
+}
+
+// Upper bound for timerHardware[] size across all supported targets.
+// timerHardwareCount is a runtime value; this constant prevents a VLA on the MSP
+// task stack. Targets with 22+ entries (e.g. OMNIBUSF4) need more than MAX_PWM_OUTPUTS.
+#define TIMER_HW_MAX 64
+
+// Simulate pwmBuildTimerOutputList() with proposed overrides without modifying live state.
+// IMPORTANT: Must only be called from the main loop / MSP task — not ISR-safe.
+// timerHardware[].usageFlags are modified in-place during the simulation; this function
+// saves and restores them so hardware state is identical on exit.
+void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *proposedModes)
+{
+    if (timerHardwareCount > TIMER_HW_MAX) {
+        return; // Safety guard: target exceeds the buffer — increase TIMER_HW_MAX
+    }
+
+    // Snapshot timerHardware flags — pwmBuildTimerOutputList() modifies them in-place
+    // via timerHardwareOverride() and pwmClaimTimer().
+    uint32_t savedFlags[TIMER_HW_MAX];
+    for (int i = 0; i < timerHardwareCount; i++) {
+        savedFlags[i] = timerHardware[i].usageFlags;
+    }
+
+    // Snapshot timerOverrides config so the proposed values can be applied temporarily.
+    uint8_t savedModes[HARDWARE_TIMER_DEFINITION_COUNT];
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+        savedModes[i] = timerOverrides(i)->outputMode;
+    }
+
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+        timerOverridesMutable(i)->outputMode = proposedModes[i];
+    }
+
+    pwmBuildTimerOutputList(out);
+
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+        timerOverridesMutable(i)->outputMode = savedModes[i];
+    }
+    for (int i = 0; i < timerHardwareCount; i++) {
+        timerHardware[i].usageFlags = savedFlags[i];
+    }
 }
 
 #endif

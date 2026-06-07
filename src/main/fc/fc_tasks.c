@@ -68,6 +68,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/osd_joystick.h"
 #include "io/smartport_master.h"
+#include "io/crsf_sensor.h"
 #include "io/vtx.h"
 #include "io/vtx_msp.h"
 #include "io/osd_dji_hd.h"
@@ -188,14 +189,6 @@ void taskUpdateCompass(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_ADSB
-void taskAdsb(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
-    adsbTtlClean(currentTimeUs);
-}
-#endif
-
 #ifdef USE_BARO
 void taskUpdateBaro(timeUs_t currentTimeUs)
 {
@@ -293,6 +286,14 @@ void taskTelemetry(timeUs_t currentTimeUs)
 void taskSmartportMaster(timeUs_t currentTimeUs)
 {
     smartportMasterHandle(currentTimeUs);
+}
+#endif
+
+#if defined(USE_CRSF_SENSOR_INPUT)
+void taskCrsfSensor(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    crsfSensorProcess();
 }
 #endif
 
@@ -428,7 +429,7 @@ void fcTasksInit(void)
 #endif
 #endif
 #ifdef USE_RCDEVICE
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled() || osdJoystickEnabled());
 #else
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
@@ -442,6 +443,9 @@ void fcTasksInit(void)
 #endif
 #if defined(USE_SMARTPORT_MASTER)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
+#endif
+#if defined(USE_CRSF_SENSOR_INPUT)
+    setTaskEnabled(TASK_CRSF_SENSOR, true);
 #endif
 
 #ifdef USE_SERIAL_GIMBAL
@@ -566,7 +570,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         [TASK_ADSB] = {
         .taskName = "ADSB",
         .taskFunc = taskAdsb,
-        .desiredPeriod = TASK_PERIOD_HZ(1),      // ADSB is updated at 1 Hz
+        .desiredPeriod = TASK_PERIOD_MS(500),      // ADSB is updated at 2 Hz, can be select 1 Hz as well
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
@@ -630,6 +634,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "SPORT MASTER",
         .taskFunc = taskSmartportMaster,
         .desiredPeriod = TASK_PERIOD_HZ(500),         // 500 Hz
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+
+#if defined(USE_CRSF_SENSOR_INPUT)
+    [TASK_CRSF_SENSOR] = {
+        .taskName = "CRSF SENSOR",
+        .taskFunc = taskCrsfSensor,
+        .desiredPeriod = TASK_PERIOD_HZ(100),         // 100 Hz
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif

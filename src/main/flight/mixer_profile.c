@@ -236,7 +236,7 @@ static float getHandoffScalingProgress(void)
 static bool hasTrustedPitotAirspeed(float *airspeedCmS)
 {
 #ifdef USE_PITOT
-    if (!sensors(SENSOR_PITOT) || !pitotValidForAirspeed() || pitotHasFailed()) {
+    if (!sensors(SENSOR_PITOT) || !pitotGetValidForAirspeed() || pitotHasFailed()) {
         return false;
     }
 

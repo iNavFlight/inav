@@ -46,9 +46,9 @@ float navPidApply3(
 ) {
     float newProportional, newDerivative, newFeedForward;
     float error = 0.0f;
-    
+
     if (pid->errorLpfHz > 0.0f) {
-        error = pt1FilterApply4(&pid->error_filter_state, setpoint - measurement, pid->errorLpfHz, dt);
+        error = pt1FilterApply3(&pid->error_filter_state, setpoint - measurement, dt);
     } else {
         error = setpoint - measurement;
     }
@@ -73,7 +73,7 @@ float navPidApply3(
     }
 
     if (pid->dTermLpfHz > 0.0f) {
-        newDerivative = pid->param.kD * pt1FilterApply4(&pid->dterm_filter_state, newDerivative, pid->dTermLpfHz, dt);
+        newDerivative = pid->param.kD * pt1FilterApply3(&pid->dterm_filter_state, newDerivative, dt);
     } else {
         newDerivative = pid->param.kD * newDerivative;
     }
@@ -105,10 +105,7 @@ float navPidApply3(
     pid->output_constrained = outValConstrained;
 
     /* Update I-term */
-    if (
-        !(pidFlags & PID_ZERO_INTEGRATOR) &&
-        !(pidFlags & PID_FREEZE_INTEGRATOR) 
-    ) {
+    if (!(pidFlags & PID_ZERO_INTEGRATOR) && !(pidFlags & PID_FREEZE_INTEGRATOR)) {
         const float newIntegrator = pid->integrator + (error * pid->param.kI * gainScaler * dt) + (backCalc * pid->param.kT * dt);
 
         if (pidFlags & PID_SHRINK_INTEGRATOR) {
@@ -121,10 +118,10 @@ float navPidApply3(
             pid->integrator = newIntegrator;
         }
     }
-    
+
     if (pidFlags & PID_LIMIT_INTEGRATOR) {
         pid->integrator = constrainf(pid->integrator, outMin, outMax);
-    } 
+    }
 
     return outValConstrained;
 }
@@ -143,8 +140,9 @@ void navPidReset(pidController_t *pid)
     pid->integrator = 0.0f;
     pid->last_input = 0.0f;
     pid->feedForward = 0.0f;
-    pt1FilterReset(&pid->dterm_filter_state, 0.0f);
     pid->output_constrained = 0.0f;
+
+    pt1FilterReset(&pid->dterm_filter_state, 0.0f);
 }
 
 void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz, float _errorLpfHz)
@@ -169,5 +167,9 @@ void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kF
     }
     pid->dTermLpfHz = _dTermLpfHz;
     pid->errorLpfHz = _errorLpfHz;
+
+    pt1FilterSetCutoff(&pid->dterm_filter_state, pid->dTermLpfHz);
+    pt1FilterSetCutoff(&pid->error_filter_state, pid->errorLpfHz);
+
     navPidReset(pid);
 }

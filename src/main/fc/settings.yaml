@@ -14,10 +14,10 @@ tables:
     values: ["NONE", "CXOF", "MSP", "FAKE"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
-    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"]
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE", "CRSF"]
     enum: baroSensor_e
   - name: pitot_hardware
-    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP", "DLVR-L10D"]
+    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP", "DLVR-L10D", "MS5525"]
     enum: pitotSensor_e
   - name: receiver_type
     values: ["NONE", "SERIAL", "MSP", "SIM (SITL)"]
@@ -33,16 +33,16 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "CAN"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "CRSF", "CAN"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CAN"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CRSF", "CAN"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
     enum: imu_inertia_comp_method_e
   - name: gps_provider
-    values: ["UBLOX", "MSP", "FAKE", "DRONECAN"]
+    values: ["UBLOX", "MSP", "CRSF", "FAKE", "DRONECAN"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "SPAN", "NONE"]
@@ -198,9 +198,6 @@ tables:
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
     enum: navMcAltHoldThrottle_e
-  - name: led_pin_pwm_mode
-    values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
-    enum: led_pin_pwm_mode_e
   - name: gyro_filter_mode
     values: ["OFF", "STATIC", "DYNAMIC", "ADAPTIVE"]
     enum: gyroFilterType_e
@@ -1399,11 +1396,6 @@ groups:
         default_value: 15
         min: 1
         max: 60
-      - name: servo_autotrim_iterm_rate_limit
-        description: "Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`."
-        default_value: 2
-        min: 0
-        max: 50
 
   - name: PG_CONTROL_PROFILES
     type: controlConfig_t
@@ -2070,6 +2062,12 @@ groups:
       - name: dterm_lpf_hz
         description: "Dterm low pass filter cutoff frequency. Default setting is very conservative and small multirotors should use higher value between 80 and 100Hz. 80 seems like a gold spot for 7-inch builds while 100 should work best with 5-inch machines. If motors are getting too hot, lower the value"
         default_value: 110
+        min: 0
+        max: 500
+      - name: dterm_lpf2_hz
+        description: "Dterm pre-differentiation LPF cutoff (Hz). Filters gyro before differentiation to reduce noise amplification. Higher = less delay, more noise. 0 = disabled. Values around 200-250Hz can add smoothing with small delay."
+        default_value: 0
+        field: dterm_lpf2_hz
         min: 0
         max: 500
       - name: dterm_lpf_type
@@ -3372,6 +3370,10 @@ groups:
         min: 1
         max: 255
         default_value: 1
+      - name: crsf_use_legacy_baro_packet
+        description: "CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'"
+        default_value: OFF
+        type: bool
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
@@ -3770,6 +3772,12 @@ groups:
         table: osd_adsb_warning_style
         field: adsb_warning_style
         type: uint8_t
+        condition: USE_ADSB
+      - name: osd_adsb_calculation_use_cpa
+        description: "Use CPA (Closest Point of Approach) method for ADS-B traffic distance and collision risk calculation instead of instantaneous distance."
+        default_value: OFF
+        field: adsb_calculation_use_cpa
+        type: bool
         condition: USE_ADSB
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
@@ -4230,35 +4238,31 @@ groups:
     members:
       - name: pinio_box1
         field: permanentId[0]
-        description: "Mode assignment for PINIO#1"
-        default_value: "target specific"
+        description: "Mode box assignment for PINIO channel 1"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER1
         type: uint8_t
       - name: pinio_box2
         field: permanentId[1]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 2"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER2
         type: uint8_t
       - name: pinio_box3
         field: permanentId[2]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 3"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER3
         type: uint8_t
       - name: pinio_box4
         field: permanentId[3]
-        default_value: "target specific"
-        description: "Mode assignment for PINIO#1"
+        description: "Mode box assignment for PINIO channel 4"
         min: 0
         max: 255
-        default_value: :BOX_PERMANENT_ID_NONE
+        default_value: :BOX_PERMANENT_ID_USER4
         type: uint8_t
 
   - name: PG_LOG_CONFIG
@@ -4388,27 +4392,22 @@ groups:
         field: attnFilterCutoff
         max: 100
 
-  - name: PG_LEDPIN_CONFIG
-    type: ledPinConfig_t
-    headers: ["drivers/light_ws2811strip.h"]
-    members:
-      - name: led_pin_pwm_mode
-        condition: USE_LED_STRIP
-        description: "PWM mode of LED pin."
-        default_value: "SHARED_LOW"
-        field: led_pin_pwm_mode
-        table: led_pin_pwm_mode
-
   - name: PG_OSD_JOYSTICK_CONFIG
     type: osdJoystickConfig_t
     headers: ["io/osd_joystick.h"]
-    condition: USE_RCDEVICE && USE_LED_STRIP
+    condition: USE_RCDEVICE && USE_PINIO
     members:
       - name: osd_joystick_enabled
         description: "Enable OSD Joystick emulation"
         default_value: OFF
         field: osd_joystick_enabled
         type: bool
+      - name: osd_joystick_pinio_channel
+        description: "PINIO channel index (0-3) for the camera OSD control pin"
+        default_value: 0
+        field: pinio_channel
+        min: 0
+        max: 3
       - name: osd_joystick_down
         description: "PWM value for DOWN key"
         default_value: 0

@@ -2101,7 +2101,7 @@ static bool isMissionTransitionToMultirotorType(const flyingPlatformType_e platf
 #ifdef USE_PITOT
 static bool hasTrustedPitotAirspeed(float *airspeedCmS)
 {
-    if (!sensors(SENSOR_PITOT) || !pitotValidForAirspeed() || pitotHasFailed()) {
+    if (!sensors(SENSOR_PITOT) || !pitotGetValidForAirspeed() || pitotHasFailed()) {
         return false;
     }
 
@@ -2129,7 +2129,7 @@ static bool isTransitionRetryToFixedWingRequest(const mixerProfileATRequest_e re
 static bool hasAirspeedSensorForTransitionRetry(void)
 {
 #ifdef USE_PITOT
-    if (!sensors(SENSOR_PITOT) || !pitotValidForAirspeed() || pitotHasFailed()) {
+    if (!sensors(SENSOR_PITOT) || !pitotGetValidForAirspeed() || pitotHasFailed()) {
         return false;
     }
 
@@ -5853,7 +5853,14 @@ bool navigationIsControllingAltitude(void) {
 bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm)
 {
     const navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
-    if (!(stateFlags & NAV_CTL_ALT) || (stateFlags & NAV_CTL_LAND) || navigationIsExecutingAnEmergencyLanding() || posControl.flags.estAltStatus == EST_NONE) {
+    if (!(stateFlags & NAV_CTL_ALT) ||
+        (stateFlags & NAV_CTL_LAND) ||
+        navigationIsExecutingAnEmergencyLanding() ||
+        posControl.flags.estAltStatus == EST_NONE ||
+        (stateFlags & NAV_MIXERAT) ||
+        FLIGHT_MODE(NAV_FW_AUTOLAND) ||
+        FLIGHT_MODE(NAV_SEND_TO) ||
+        ((stateFlags & NAV_AUTO_RTH) && posControl.navState != NAV_STATE_RTH_HEAD_HOME)) {
         return false;
     }
 

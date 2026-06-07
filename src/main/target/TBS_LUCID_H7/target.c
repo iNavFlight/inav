@@ -54,7 +54,8 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM15, CH1, PE5, TIM_USE_OUTPUT_AUTO, 0, 0),   // S11
     DEF_TIM(TIM15, CH2, PE6, TIM_USE_OUTPUT_AUTO, 0, 0),   // S12 DMA_NONE
 
-    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_LED, 0, 9),    // RGB_LED
+    DEF_TIM(TIM1,  CH1, PA8, TIM_USE_OUTPUT_AUTO | TIM_USE_LED, 0, 9),    // RGB_LED
+
     DEF_TIM(TIM2,  CH1, PA15, TIM_USE_BEEPER, 0, 0),  // BEEPER
 };
 

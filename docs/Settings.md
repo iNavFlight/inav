@@ -514,6 +514,7 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 | B2SMPB |  |
 | MSP |  |
 | FAKE |  |
+| CRSF |  |
 
 ---
 
@@ -643,6 +644,16 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### crsf_use_legacy_baro_packet
+
+CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
@@ -695,6 +706,7 @@ ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once 
 | FAKE |  |
 | ESC |  |
 | SMARTPORT |  |
+| CRSF |  |
 | CAN |  |
 
 ---
@@ -911,6 +923,16 @@ Sets the DShot beeper tone
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | 1 | 5 |
+
+---
+
+### dterm_lpf2_hz
+
+Dterm pre-differentiation LPF cutoff (Hz). Filters gyro before differentiation to reduce noise amplification. Higher = less delay, more noise. 0 = disabled. Values around 200-250Hz can add smoothing with small delay.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 500 |
 
 ---
 
@@ -1864,6 +1886,7 @@ Which GPS protocol to be used.
 | --- | --- |
 | UBLOX | Default |
 | MSP |  |
+| CRSF |  |
 | FAKE |  |
 | DRONECAN |  |
 
@@ -2497,19 +2520,6 @@ Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened w
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 0 | 90 |
-
----
-
-### led_pin_pwm_mode
-
-PWM mode of LED pin.
-
-| Allowed Values |  |
-| --- | --- |
-| SHARED_LOW | Default |
-| SHARED_HIGH |  |
-| LOW |  |
-| HIGH |  |
 
 ---
 
@@ -4813,6 +4823,16 @@ Optical flow module scale factor
 
 ---
 
+### osd_adsb_calculation_use_cpa
+
+Use CPA (Closest Point of Approach) method for ADS-B traffic distance and collision risk calculation instead of instantaneous distance.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_adsb_distance_alert
 
 Distance inside which ADSB data flashes for proximity warning
@@ -5424,6 +5444,16 @@ PWM value for LEFT key
 
 ---
 
+### osd_joystick_pinio_channel
+
+PINIO channel index (0-3) for the camera OSD control pin
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
+
+---
+
 ### osd_joystick_right
 
 PWM value for RIGHT key
@@ -5956,41 +5986,41 @@ Pilot name
 
 ### pinio_box1
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 1
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER1` | 0 | 255 |
 
 ---
 
 ### pinio_box2
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 2
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER2` | 0 | 255 |
 
 ---
 
 ### pinio_box3
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 3
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER3` | 0 | 255 |
 
 ---
 
 ### pinio_box4
 
-Mode assignment for PINIO#1
+Mode box assignment for PINIO channel 4
 
 | Default | Min | Max |
 | --- | --- | --- |
-| `BOX_PERMANENT_ID_NONE` | 0 | 255 |
+| `BOX_PERMANENT_ID_USER4` | 0 | 255 |
 
 ---
 
@@ -6018,6 +6048,7 @@ Selection of pitot hardware. VIRTUAL only works if a GPS is enabled.
 | FAKE |  |
 | MSP |  |
 | DLVR-L10D |  |
+| MS5525 |  |
 
 ---
 
@@ -6482,16 +6513,6 @@ When feature SERIALRX is enabled, this allows connection to several receivers wh
 | FBUS |  |
 | SBUS2 |  |
 | _target default_ | Default |
-
----
-
-### servo_autotrim_iterm_rate_limit
-
-Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 2 | 0 | 50 |
 
 ---
 
@@ -7042,6 +7063,7 @@ Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. 
 | ESC |  |
 | FAKE |  |
 | SMARTPORT |  |
+| CRSF |  |
 | CAN |  |
 
 ---
