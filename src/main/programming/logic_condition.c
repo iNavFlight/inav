@@ -538,9 +538,9 @@ static int logicConditionCompute(
             } else {
                 LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
             }
-                return true;
+            return true;
             break;
-#endif  // CR164
+#endif
         case LOGIC_CONDITION_DISABLE_AUTOSPEED_AIRSPEED:
             if (operandA > 0) {
                 LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED);
@@ -549,7 +549,7 @@ static int logicConditionCompute(
             }
             return true;
             break;
-// CR164
+
         default:
             return false;
             break;
