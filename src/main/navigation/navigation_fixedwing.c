@@ -872,7 +872,7 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
  *----------------------------*/
 bool navIsAutoSpeedAirspeedUsed(void)
 {
-    return !LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED) && pitotValidForAirspeed();
+    return !LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED) && pitotValidateAirspeed();
 }
 
 bool isFixedwingAutoSpeedActive(void)
