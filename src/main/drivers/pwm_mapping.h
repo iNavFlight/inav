@@ -91,8 +91,9 @@ typedef struct {
 // Output assignment types for MSP2_INAV_OUTPUT_ASSIGNMENT response
 // LED outputs are not reported here; they are already identified by TIM_USE_LED
 // in the MSP2_INAV_OUTPUT_MAPPING_EXT2 usageFlags response.
-#define OUTPUT_ASSIGNMENT_TYPE_MOTOR 1
-#define OUTPUT_ASSIGNMENT_TYPE_SERVO 2
+#define OUTPUT_ASSIGNMENT_TYPE_MOTOR  1
+#define OUTPUT_ASSIGNMENT_TYPE_SERVO  2
+#define OUTPUT_ASSIGNMENT_TYPE_BUZZER 3
 #endif // SITL_BUILD
 
 bool pwmMotorAndServoInit(void);

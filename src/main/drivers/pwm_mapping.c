@@ -233,6 +233,10 @@ static void timerHardwareOverride(timerHardware_t * timer) {
             timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED);
             timer->usageFlags |= TIM_USE_PINIO;
             break;
+        case OUTPUT_MODE_BEEPER:
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED|TIM_USE_PINIO);
+            timer->usageFlags |= TIM_USE_BEEPER;
+            break;
     }
 }
 
