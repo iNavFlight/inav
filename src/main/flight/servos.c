@@ -192,6 +192,10 @@ void servosInit(void)
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servoComputeScalingFactors(i);
     }
+
+    // Initialise filters
+    pt1FilterSetCutoff(&rotRateFilter, SERVO_AUTOTRIM_FILTER_CUTOFF);
+    pt1FilterSetCutoff(&targetRateFilter, SERVO_AUTOTRIM_FILTER_CUTOFF);
 }
 
 int getServoCount(void)
@@ -206,7 +210,7 @@ int getServoCount(void)
 
 void loadCustomServoMixer(void)
 {
-    
+
     //move the rate filter to new servo rules
     int movefilterCount = 0;
     static servoMixerSwitch_t servoMixerSwitchHelper[MAX_SERVO_RULES_SWITCH_CARRY]; // helper to keep track of servoSpeedLimitFilter of servo rules
@@ -603,12 +607,6 @@ void processServoAutotrimMode(void)
     }
 }
 
-#define SERVO_AUTOTRIM_FILTER_CUTOFF    1       // LPF cutoff frequency
-#define SERVO_AUTOTRIM_CENTER_MIN       1300
-#define SERVO_AUTOTRIM_CENTER_MAX       1700
-#define SERVO_AUTOTRIM_UPDATE_SIZE      5
-#define SERVO_AUTOTRIM_ATTITUDE_LIMIT   50       // 5 degrees
-
 void processContinuousServoAutotrim(const float dT)
 {
     static timeMs_t lastUpdateTimeMs;
@@ -616,8 +614,8 @@ void processContinuousServoAutotrim(const float dT)
     static uint32_t servoMiddleUpdateCount;
     static float prevAxisIterm[2] = {0};  // Track previous I-term for rate-of-change calculation
 
-    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
-    const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, getTotalRateTarget(), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+    const float rotRateMagnitudeFiltered = pt1FilterApply3(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), dT);
+    const float targetRateMagnitudeFiltered = pt1FilterApply3(&targetRateFilter, getTotalRateTarget(), dT);
 
     if (ARMING_FLAG(ARMED)) {
         trimState = AUTOTRIM_COLLECTING;
@@ -646,7 +644,7 @@ void processContinuousServoAutotrim(const float dT)
                 for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
                     // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
                     const float axisIterm = getAxisIterm(axis);
-                    const bool itermIsStable = itermRateOfChange[axis] < servoConfig()->servo_autotrim_iterm_rate_limit;
+                    const bool itermIsStable = itermRateOfChange[axis] < SERVO_AUTOTRIM_ITERM_RATE_LIMIT;
 
                     if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE && itermIsStable) {
                         const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;

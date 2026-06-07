@@ -127,7 +127,7 @@
 #define VIDEO_BUFFER_CHARS_HDZERO 900
 #define VIDEO_BUFFER_CHARS_DJIWTF 1320
 
-#define GFORCE_FILTER_TC 0.2
+#define GFORCE_FILTER_T_CUT_HZ 0.8f
 
 #define OSD_STATS_SINGLE_PAGE_MIN_ROWS 18
 #define IS_HI(X)  (rxGetChannelValue(X) > 1750)
@@ -170,8 +170,12 @@ static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
-static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
 static float GForce, GForceAxis[XYZ_AXIS_COUNT];
+
+// OSD Filters
+static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
+static pt1Filter_t glideTimeFilterState, glideSlopeFilterState;
+static pt1Filter_t climbEffFilterState, mahEffFilterState, whEffFilterState;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -1234,11 +1238,10 @@ static inline int32_t osdGetAltitudeMsl(void)
 
 uint16_t osdGetRemainingGlideTime(void) {
     float value = getEstimatedActualVelocity(Z);
-    static pt1Filter_t glideTimeFilterState;
     const  timeMs_t curTimeMs = millis();
     static timeMs_t glideTimeUpdatedMs;
 
-    value = pt1FilterApply4(&glideTimeFilterState, isnormal(value) ? value : 0, 0.5, MS2S(curTimeMs - glideTimeUpdatedMs));
+    value = pt1FilterApply3(&glideTimeFilterState, isnormal(value) ? value : 0, MS2S(curTimeMs - glideTimeUpdatedMs));
     glideTimeUpdatedMs = curTimeMs;
 
     if (value < 0) {
@@ -1786,7 +1789,7 @@ static int32_t osdUpdateEfficiencyFilter(pt1Filter_t *state, timeUs_t *lastUpdat
     timeUs_t currentTimeUs = micros();
     timeDelta_t delta = cmpTimeUs(currentTimeUs, *lastUpdated);
     if (delta >= EFFICIENCY_UPDATE_INTERVAL) {
-        pt1FilterApply4(state, rawValue, 1, US2S(delta));
+        pt1FilterApply3(state, rawValue, US2S(delta));
         *lastUpdated = currentTimeUs;
     }
     return (int32_t)state->state;
@@ -1992,11 +1995,11 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             float horizontalSpeed = gpsSol.groundSpeed;
             float sinkRate = -getEstimatedActualVelocity(Z);
-            static pt1Filter_t gsFilterState;
             const timeMs_t currentTimeMs = millis();
             static timeMs_t gsUpdatedTimeMs;
             float glideSlope = horizontalSpeed / sinkRate;
-            glideSlope = pt1FilterApply4(&gsFilterState, isnormal(glideSlope) ? glideSlope : 200, 0.5, MS2S(currentTimeMs - gsUpdatedTimeMs));
+
+            glideSlope = pt1FilterApply3(&glideSlopeFilterState, isnormal(glideSlope) ? glideSlope : 200, MS2S(currentTimeMs - gsUpdatedTimeMs));
             gsUpdatedTimeMs = currentTimeMs;
 
             buff[0] = SYM_GLIDESLOPE;
@@ -2216,7 +2219,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_GPS_EXTRA_STATS:
         {
             gpsSetOsdMonRfWidgetEnabled(true);
-            
+
             // Collect satellite stats grouped by GNSS ID: 0,2,3,6
             uint8_t stats[4][2] = { {0,0}, {0,0}, {0,0}, {0,0} }; // [group][0]=total, [group][1]=good
             for (int i = 0; i < UBLOX_MAX_SIGNALS; ++i) {
@@ -3089,19 +3092,18 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             // amperage is in centi amps (10mA), vertical speed is in cms/s. We want
             // Ah/dist only to show when vertical speed > 1m/s.
-            static pt1Filter_t veFilterState;
             static timeUs_t vEfficiencyUpdated = 0;
             int32_t value = 0;
             timeUs_t currentTimeUs = micros();
             timeDelta_t vEfficiencyTimeDelta = cmpTimeUs(currentTimeUs, vEfficiencyUpdated);
             if (getEstimatedActualVelocity(Z) > 0) {
                 if (vEfficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                                                            // Centiamps (kept for osdFormatCentiNumber) / m/s - Will appear as A / m/s in OSD
-                    value = pt1FilterApply4(&veFilterState, (float)getAmperage() / (getEstimatedActualVelocity(Z) / 100.0f), 1, US2S(vEfficiencyTimeDelta));
+                                                                  // Centiamps (kept for osdFormatCentiNumber) / m/s - Will appear as A / m/s in OSD
+                    value = pt1FilterApply3(&climbEffFilterState, (float)getAmperage() / (getEstimatedActualVelocity(Z) / 100.0f), US2S(vEfficiencyTimeDelta));
 
                     vEfficiencyUpdated = currentTimeUs;
                 } else {
-                    value = veFilterState.state;
+                    value = climbEffFilterState.state;
                 }
             }
             bool efficiencyValid = (value > 0) && (getEstimatedActualVelocity(Z) > 100);
@@ -3531,7 +3533,6 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_EFFICIENCY_MAH_PER_KM:
         {
             // amperage is in centi amps, speed is in cms/s. We want mah/km.
-            static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
             bool moreThanAh = false;
             uint8_t digits = 3U;
@@ -3539,8 +3540,9 @@ static bool osdDrawSingleElement(uint8_t item)
             if (isDJICompatibleVideoSystem(osdConfig())) digits = 4U;
 #endif
             float rawEff = gpsSol.groundSpeed > 0 ? ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f : 0.0f; // div/0 guard only; helper owns the GPS guard
-            int32_t value = osdUpdateEfficiencyFilter(&eFilterState, &efficiencyUpdated, rawEff);
+            int32_t value = osdUpdateEfficiencyFilter(&mahEffFilterState, &efficiencyUpdated, rawEff);
             bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
+
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
@@ -3595,11 +3597,11 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_EFFICIENCY_WH_PER_KM:
         {
             // power is in mW, speed is in cms/s. We want mWh/km.
-            static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
             float rawEff = gpsSol.groundSpeed > 0 ? ((float)getPower() / gpsSol.groundSpeed) / 0.0036f : 0.0f;
-            int32_t value = osdUpdateEfficiencyFilter(&eFilterState, &efficiencyUpdated, rawEff);
+            int32_t value = osdUpdateEfficiencyFilter(&whEffFilterState, &efficiencyUpdated, rawEff);
             bool efficiencyValid = (value > 0) && (gpsSol.groundSpeed > 100);
+
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
@@ -4418,7 +4420,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
     osdLayoutsConfig->item_pos[0][OSD_MISSION] = OSD_POS(0, 10);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SATS] = OSD_POS(0, 11) | OSD_VISIBLE_FLAG;
-    osdLayoutsConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);    
+    osdLayoutsConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
     osdLayoutsConfig->item_pos[0][OSD_GPS_EXTRA_STATS] = OSD_POS(3, 11);
 
     osdLayoutsConfig->item_pos[0][OSD_GPS_LAT] = OSD_POS(0, 12);
@@ -5716,26 +5718,33 @@ static void osdShowArmed(void)
     }
 }
 
-static void osdFilterData(timeUs_t currentTimeUs) {
+static void osdFilterData(timeUs_t currentTimeUs)
+{
     static timeUs_t lastRefresh = 0;
     float refresh_dT = US2S(cmpTimeUs(currentTimeUs, lastRefresh));
 
     GForce = fast_fsqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
-    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) GForceAxis[axis] = imuMeasuredAccelBF.v[axis] / GRAVITY_MSS;
+    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        GForceAxis[axis] = imuMeasuredAccelBF.v[axis] / GRAVITY_MSS;
+    }
 
     if (lastRefresh) {
         GForce = pt1FilterApply3(&GForceFilter, GForce, refresh_dT);
-        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) pt1FilterApply3(GForceFilterAxis + axis, GForceAxis[axis], refresh_dT);
-    } else {
-        pt1FilterInitRC(&GForceFilter, GFORCE_FILTER_TC, 0);
-        pt1FilterReset(&GForceFilter, GForce);
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            GForceAxis[axis] = pt1FilterApply3(&GForceFilterAxis[axis], GForceAxis[axis], refresh_dT);
+        }
+    } else {   // init OSD filter f_cut values
+        pt1FilterSetCutoff(&GForceFilter, GFORCE_FILTER_T_CUT_HZ);
+        pt1FilterSetCutoff(&glideTimeFilterState, 0.5f);
+        pt1FilterSetCutoff(&glideSlopeFilterState, 0.5f);
+        pt1FilterSetCutoff(&climbEffFilterState, 1.0f);
+        pt1FilterSetCutoff(&mahEffFilterState, 1.0f);
+        pt1FilterSetCutoff(&whEffFilterState, 1.0f);
 
-        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) {
-            pt1FilterInitRC(GForceFilterAxis + axis, GFORCE_FILTER_TC, 0);
-            pt1FilterReset(GForceFilterAxis + axis, GForceAxis[axis]);
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            pt1FilterSetCutoff(&GForceFilterAxis[axis], GFORCE_FILTER_T_CUT_HZ);
         }
     }
-
     lastRefresh = currentTimeUs;
 }
 
@@ -6087,10 +6096,10 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         /* WARNING: messageBuf is shared, use accordingly */
         char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH + 1)];
 
-        /* WARNING: ensure number of messages returned does not exceed messages array size
-         * Messages array set 1 larger than maximum expected message count of 7 */
+        /* Messages array - use ADD_MSG() for bounds-safe access. */
         const char *messages[8];
         unsigned messageCount = 0;
+        #define ADD_MSG(msg) do { if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg); } while(0)
 
         const char *failsafeInfoMessage = NULL;
         const char *invertedInfoMessage = NULL;
@@ -6099,16 +6108,16 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                 /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL NORMALLY, 5 MESSAGES DURING FAILSAFE */
                 if (navGetCurrentStateFlags() & NAV_AUTO_WP_DONE) {
-                    messages[messageCount++] = STATE(LANDING_DETECTED) ? OSD_MESSAGE_STR(OSD_MSG_WP_LANDED) : OSD_MESSAGE_STR(OSD_MSG_WP_FINISHED);
+                    ADD_MSG(STATE(LANDING_DETECTED) ? OSD_MESSAGE_STR(OSD_MSG_WP_LANDED) : OSD_MESSAGE_STR(OSD_MSG_WP_FINISHED));
                 } else if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
                     // Countdown display for remaining Waypoints
                     char buf[6];
                     osdFormatDistanceSymbol(buf, posControl.wpDistance, 0, 3);
                     tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
-                    messages[messageCount++] = messageBuf;
+                    ADD_MSG(messageBuf);
                 } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
                     if (navConfig()->general.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ADJUSTING_WP_ALT);
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_ADJUSTING_WP_ALT));
                     } else {
                         // WP hold time countdown in seconds
                         timeMs_t currentTime = millis();
@@ -6117,25 +6126,25 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
                         tfp_sprintf(messageBuf, "HOLDING WP FOR %2u S", holdTimeRemaining);
 
-                        messages[messageCount++] = messageBuf;
+                        ADD_MSG(messageBuf);
                     }
                 }
                 else {
                     const char *navStateMessage = navigationStateMessage();
                     if (navStateMessage) {
-                        messages[messageCount++] = navStateMessage;
+                        ADD_MSG(navStateMessage);
                     }
                 }
 #if defined(USE_SAFE_HOME)
                 const char *safehomeMessage = divertingToSafehomeMessage();
                 if (safehomeMessage) {
-                    messages[messageCount++] = safehomeMessage;
+                    ADD_MSG(safehomeMessage);
                 }
 #endif
 
 #ifdef USE_GEOZONE
                 if (geozone.avoidInRTHInProgress) {
-                    messages[messageCount++] = OSD_MSG_AVOID_ZONES_RTH;
+                    ADD_MSG(OSD_MSG_AVOID_ZONES_RTH);
                 }
 #endif
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {   // In FS mode while armed
@@ -6143,24 +6152,24 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         uint16_t remainingHoldSec = MS2S(posControl.landingDelay - millis());
                         tfp_sprintf(messageBuf, "LANDING DELAY: %3u SECONDS", remainingHoldSec);
 
-                        messages[messageCount++] = messageBuf;
+                        ADD_MSG(messageBuf);
                     }
 
                     const char *failsafePhaseMessage = osdFailsafePhaseMessage();
                     failsafeInfoMessage = osdFailsafeInfoMessage();
 
                     if (failsafePhaseMessage) {
-                        messages[messageCount++] = failsafePhaseMessage;
+                        ADD_MSG(failsafePhaseMessage);
                     }
                     if (failsafeInfoMessage) {
-                        messages[messageCount++] = failsafeInfoMessage;
+                        ADD_MSG(failsafeInfoMessage);
                     }
                 } else if (isWaypointMissionRTHActive()) {
                     // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
-                    messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
+                    ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL));
                 }
             } else if (STATE(LANDING_DETECTED)) {
-                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
+                ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_LANDED));
             } else {
                 /* Messages shown only when Failsafe, WP, RTH or Emergency Landing not active and landed state inactive */
                 /* ADDS MAXIMUM OF 5 MESSAGES TO TOTAL */
@@ -6168,15 +6177,15 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 char buf[12], buf1[12];
                 switch (geozone.messageState) {     /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
                     case GEOZONE_MESSAGE_STATE_NFZ:
-                        messages[messageCount++] = OSD_MSG_NFZ;
+                        ADD_MSG(OSD_MSG_NFZ);
                         break;
                     case GEOZONE_MESSAGE_STATE_LEAVING_FZ:
                         osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
                         tfp_sprintf(messageBuf, OSD_MSG_LEAVING_FZ, buf);
-                        messages[messageCount++] = messageBuf;
+                        ADD_MSG(messageBuf);
                         break;
                     case GEOZONE_MESSAGE_STATE_OUTSIDE_FZ:
-                        messages[messageCount++] = OSD_MSG_OUTSIDE_FZ;
+                        ADD_MSG(OSD_MSG_OUTSIDE_FZ);
                         break;
                     case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:
                         osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
@@ -6186,36 +6195,36 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             osdFormatAltitudeSymbol(buf1, geozone.zoneInfo);
                         }
                         tfp_sprintf(messageBuf, OSD_MSG_ENTERING_NFZ, buf, buf1);
-                        messages[messageCount++] = messageBuf;
+                        ADD_MSG(messageBuf);
                         break;
                     case GEOZONE_MESSAGE_STATE_AVOIDING_FB:
-                        messages[messageCount++] = OSD_MSG_AVOIDING_FB;
+                        ADD_MSG(OSD_MSG_AVOIDING_FB);
                         if (!posControl.sendTo.lockSticks) {
-                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                            ADD_MSG(OSD_MSG_MOVE_STICKS);
                         }
                         break;
                     case GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE:
-                        messages[messageCount++] = OSD_MSG_RETURN_TO_ZONE;
+                        ADD_MSG(OSD_MSG_RETURN_TO_ZONE);
                         if (!posControl.sendTo.lockSticks) {
-                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                            ADD_MSG(OSD_MSG_MOVE_STICKS);
                         }
                         break;
                     case GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH:
-                        messages[messageCount++] = OSD_MSG_AVOIDING_ALT_BREACH;
+                        ADD_MSG(OSD_MSG_AVOIDING_ALT_BREACH);
                         if (!posControl.sendTo.lockSticks) {
-                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                            ADD_MSG(OSD_MSG_MOVE_STICKS);
                         }
                         break;
                     case GEOZONE_MESSAGE_STATE_FLYOUT_NFZ:
-                        messages[messageCount++] = OSD_MSG_FLYOUT_NFZ;
+                        ADD_MSG(OSD_MSG_FLYOUT_NFZ);
                         if (!posControl.sendTo.lockSticks) {
-                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                            ADD_MSG(OSD_MSG_MOVE_STICKS);
                         }
                         break;
                     case GEOZONE_MESSAGE_STATE_POS_HOLD:
-                        messages[messageCount++] = OSD_MSG_AVOIDING_FB;
+                        ADD_MSG(OSD_MSG_AVOIDING_FB);
                         if (!geozone.sticksLocked) {
-                            messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                            ADD_MSG(OSD_MSG_MOVE_STICKS);
                         }
                         break;
                     case GEOZONE_MESSAGE_STATE_NONE:
@@ -6225,37 +6234,37 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 if (STATE(AIRPLANE)) {      /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
 #ifdef USE_FW_AUTOLAND
                     if (canFwLandingBeCancelled()) {
-                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MOVE_STICKS);
+                         ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_MOVE_STICKS));
                     } else
 #endif
                     if (navGetCurrentStateFlags() & NAV_CTL_LAUNCH) {
-                        messages[messageCount++] = navConfig()->fw.launch_manual_throttle ? OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH_MANUAL) :
-                                                                                            OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH);
+                        ADD_MSG(navConfig()->fw.launch_manual_throttle ? OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH_MANUAL) :
+                                                                                            OSD_MESSAGE_STR(OSD_MSG_AUTOLAUNCH));
                         const char *launchStateMessage = fixedWingLaunchStateMessage();
                         if (launchStateMessage) {
-                            messages[messageCount++] = launchStateMessage;
+                            ADD_MSG(launchStateMessage);
                         }
                     } else if (FLIGHT_MODE(SOARING_MODE)) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_NAV_SOARING);
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_NAV_SOARING));
                     } else if (isFwAutoModeActive(BOXAUTOTUNE)) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTUNE);
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_AUTOTUNE));
                         if (FLIGHT_MODE(MANUAL_MODE)) {
-                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTUNE_ACRO);
+                            ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_AUTOTUNE_ACRO));
                         }
                     } else if (isFwAutoModeActive(BOXAUTOTRIM) && !feature(FEATURE_FW_AUTOTRIM)) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTRIM);
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_AUTOTRIM));
                     } else if (isFixedWingLevelTrimActive()) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLEVEL);
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_AUTOLEVEL));
                     }
 
                     if (IS_RC_MODE_ACTIVE(BOXANGLEHOLD)) {
                         int8_t navAngleHoldAxis = navCheckActiveAngleHoldAxis();
                         if (isAngleHoldLevel()) {
-                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_LEVEL);
+                            ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_LEVEL));
                         } else if (navAngleHoldAxis == FD_ROLL) {
-                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_ROLL);
+                            ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_ROLL));
                         } else if (navAngleHoldAxis == FD_PITCH) {
-                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_PITCH);
+                            ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_PITCH));
                         }
                     }
                 } else if (STATE(MULTIROTOR)) {     /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
@@ -6267,25 +6276,26 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         } else {
                             strcpy(messageBuf, "(HOLD)");
                         }
-                        messages[messageCount++] = messageBuf;
+                        ADD_MSG(messageBuf);
                     } else if (FLIGHT_MODE(HEADFREE_MODE)) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_HEADFREE));
                     }
 
                     if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
                         if (posControl.flags.isTerrainFollowEnabled) {
                             if (posControl.flags.estAglStatus == EST_TRUSTED) {
-                                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SURFACE_OK);
+                                ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_SURFACE_OK));
                             } else {
-                                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SURFACE_BAD);
+                                ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_SURFACE_BAD));
                             }
                         } else if (!navigationRequiresAngleMode()) {
                             /* If ALTHOLD is separately enabled for multirotor together with ANGL/HORIZON/ACRO modes
                              * then ANGL/HORIZON/ACRO are indicated by the OSD_FLYMODE field.
                              * In this case indicate ALTHOLD is active via a system message */
 
-                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
+                            ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD));
                         }
+
                     }
                 }
             }
@@ -6300,44 +6310,44 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     messageBuf[ii] = sl_toupper(messageBuf[ii]);
                 }
                 invertedInfoMessage = messageBuf;
-                messages[messageCount++] = invertedInfoMessage;
+                ADD_MSG(invertedInfoMessage);
 
                 invertedInfoMessage = OSD_MESSAGE_STR(OSD_MSG_INVALID_SETTING);
-                messages[messageCount++] = invertedInfoMessage;
+                ADD_MSG(invertedInfoMessage);
             } else {
                 invertedInfoMessage = OSD_MESSAGE_STR(OSD_MSG_UNABLE_ARM);
-                messages[messageCount++] = invertedInfoMessage;
+                ADD_MSG(invertedInfoMessage);
                 // Show the reason for not arming
-                messages[messageCount++] = osdArmingDisabledReasonMessage();
+                ADD_MSG(osdArmingDisabledReasonMessage());
             }
         } else if (!ARMING_FLAG(ARMED)) {
             if (isWaypointListValid()) {
-                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_MISSION_LOADED);
+                ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_WP_MISSION_LOADED));
             }
         }
 
         /* Messages that are shown regardless of Arming state */
         /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL NORMALLY, 1 MESSAGE DURING FAILSAFE */
         if (posControl.flags.wpMissionPlannerActive && !FLIGHT_MODE(FAILSAFE_MODE)) {
-            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
+            ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER));
         }
 
         // The following has been commented out as it will be added in #9688
         // uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
 
         if (savingSettings == true) {
-           messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS);
+           ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
         /*} else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
             char emReArmMsg[23];
             tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
             tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
             strcat(emReArmMsg, " **\0");
-            messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);*/
+            ADD_MSG(OSD_MESSAGE_STR(emReArmMsg));*/
         } else if (notify_settings_saved > 0) {
             if (millis() > notify_settings_saved) {
                 notify_settings_saved = 0;
             } else {
-                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
+                ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
             }
         }
 
@@ -6360,6 +6370,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         osdFormatMessage(buff, buff_size, message, isCenteredText);
     }
+    #undef ADD_MSG
     return elemAttr;
 }
 

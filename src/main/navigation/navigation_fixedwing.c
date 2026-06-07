@@ -96,6 +96,9 @@ static float getPitchToThrottleSmoothnessCutoffFreq(float baseFreq)
 /*-----------------------------------------------------------
  * Altitude controller
  *-----------------------------------------------------------*/
+static pt1Filter_t pitchFilterState;
+static pt1Filter_t pitchToThrFilterState;
+
 void setupFixedWingAltitudeController(void)
 {
     // TODO
@@ -107,6 +110,11 @@ void resetFixedWingAltitudeController(void)
     posControl.rcAdjustment[PITCH] = 0;
     isPitchAdjustmentValid = false;
     throttleSpeedAdjustment = 0;
+
+    pt1FilterSetCutoff(&pitchFilterState, getSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ));
+    pt1FilterReset(&pitchFilterState, 0.0f);
+    pt1FilterSetCutoff(&pitchToThrFilterState, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ));
+    pt1FilterReset(&pitchToThrFilterState, 0.0f);
 }
 
 bool adjustFixedWingAltitudeFromRCInput(void)
@@ -131,7 +139,6 @@ bool adjustFixedWingAltitudeFromRCInput(void)
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 {
-    static pt1Filter_t pitchFilterState;
 
     float desiredClimbRate = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
 
@@ -198,7 +205,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     float targetPitchAngle = navPidApply2(&posControl.pids.fw_alt, targetValue, measuredValue, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0);
 
     // Apply low-pass filter to prevent rapid correction
-    targetPitchAngle = pt1FilterApply4(&pitchFilterState, targetPitchAngle, getSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicros));
+    targetPitchAngle = pt1FilterApply3(&pitchFilterState, targetPitchAngle, US2S(deltaMicros));
 
     // Reconstrain pitch angle (> 0 - climb, < 0 - dive)
     targetPitchAngle = constrainf(targetPitchAngle, minDiveDeciDeg, maxClimbDeciDeg);
@@ -250,10 +257,11 @@ bool adjustFixedWingHeadingFromRCInput(void)
 }
 
 /*-----------------------------------------------------------
- * XY-position controller for multicopter aircraft
+ * XY-position controller
  *-----------------------------------------------------------*/
 static fpVector3_t virtualDesiredPosition;
 static pt1Filter_t fwPosControllerCorrectionFilterState;
+static pt1Filter_t fwCrossTrackErrorRateFilterState;
 
 /*
  * TODO Currently this function resets both FixedWing and Rover & Boat position controller
@@ -271,6 +279,9 @@ void resetFixedWingPositionController(void)
     isRollAdjustmentValid = false;
     isYawAdjustmentValid = false;
 
+    pt1FilterSetCutoff(&fwCrossTrackErrorRateFilterState, 3.0f);
+    pt1FilterReset(&fwCrossTrackErrorRateFilterState, 0.0f);
+    pt1FilterSetCutoff(&fwPosControllerCorrectionFilterState, getSmoothnessCutoffFreq(NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ));
     pt1FilterReset(&fwPosControllerCorrectionFilterState, 0.0f);
 }
 
@@ -469,14 +480,13 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
             static float crossTrackErrorRate;
             static timeUs_t previousCrossTrackErrorUpdateTime;
             static float previousCrossTrackError = 0.0f;
-            static pt1Filter_t fwCrossTrackErrorRateFilterState;
 
             if ((currentTimeUs - previousCrossTrackErrorUpdateTime) >= HZ2US(20) && fabsf(previousCrossTrackError - navCrossTrackError) > 10.0f) {
                 const float crossTrackErrorDtSec =  US2S(currentTimeUs - previousCrossTrackErrorUpdateTime);
                 if (fabsf(previousCrossTrackError - navCrossTrackError) < 500.0f) {
                     crossTrackErrorRate = (previousCrossTrackError - navCrossTrackError) / crossTrackErrorDtSec;
                 }
-                crossTrackErrorRate = pt1FilterApply4(&fwCrossTrackErrorRateFilterState, crossTrackErrorRate, 3.0f, crossTrackErrorDtSec);
+                crossTrackErrorRate = pt1FilterApply3(&fwCrossTrackErrorRateFilterState, crossTrackErrorRate, crossTrackErrorDtSec);
                 previousCrossTrackErrorUpdateTime = currentTimeUs;
                 previousCrossTrackError = navCrossTrackError;
             }
@@ -539,7 +549,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                         pidFlags);
 
     // Apply low-pass filter to prevent rapid correction
-    rollAdjustment = pt1FilterApply4(&fwPosControllerCorrectionFilterState, rollAdjustment, getSmoothnessCutoffFreq(NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ), US2S(deltaMicros));
+    rollAdjustment = pt1FilterApply3(&fwPosControllerCorrectionFilterState, rollAdjustment, US2S(deltaMicros));
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
     posControl.rcAdjustment[ROLL] = CENTIDEGREES_TO_DECIDEGREES(rollAdjustment);
@@ -638,10 +648,9 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
     const timeDeltaLarge_t deltaMicrosPitchToThrCorr = currentTimeUs -  previousTimePitchToThrCorr;
     previousTimePitchToThrCorr = currentTimeUs;
 
-    static pt1Filter_t pitchToThrFilterState;
 
     // Apply low-pass filter to pitch angle to smooth throttle correction
-    int16_t filteredPitch = (int16_t)pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
+    int16_t filteredPitch = pt1FilterApply3(&pitchToThrFilterState, pitch, US2S(deltaMicrosPitchToThrCorr));
 
     int16_t pitchToThrottle = currentBatteryProfile->nav.fw.pitch_to_throttle;
 

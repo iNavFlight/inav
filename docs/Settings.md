@@ -5946,6 +5946,7 @@ Selection of pitot hardware. VIRTUAL only works if a GPS is enabled.
 | FAKE |  |
 | MSP |  |
 | DLVR-L10D |  |
+| MS5525 |  |
 
 ---
 
@@ -6410,16 +6411,6 @@ When feature SERIALRX is enabled, this allows connection to several receivers wh
 | FBUS |  |
 | SBUS2 |  |
 | _target default_ | Default |
-
----
-
-### servo_autotrim_iterm_rate_limit
-
-Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 2 | 0 | 50 |
 
 ---
 
