@@ -1993,10 +1993,10 @@ static bool osdDrawSingleElement(uint8_t item)
 
      case OSD_AUTO_SPEED:
         if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED)) {
-            buff[0] = pitotValidForAirspeed() ? 'A' : 'G';
+            buff[0] = navIsAutoSpeedAirspeedUsed() ? 'A' : 'G';
             strcpy(buff + 1, ": OFF");
             if (isFixedwingAutoSpeedActive()) {
-                osdFormatVelocityStr(buff + 2, getDesiredAutoSpeed(), OSD_SPEED_TYPE_3D, false);
+                osdFormatVelocityStr(buff + 2, posControl.desiredState.autoSpeedDemand, OSD_SPEED_TYPE_3D, false);
                 buff[6] = '\0';
             }
             break;

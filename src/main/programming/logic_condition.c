@@ -540,8 +540,16 @@ static int logicConditionCompute(
             }
                 return true;
             break;
-#endif
-
+#endif  // CR164
+        case LOGIC_CONDITION_DISABLE_AUTOSPEED_AIRSPEED:
+            if (operandA > 0) {
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED);
+            } else {
+                LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED);
+            }
+            return true;
+            break;
+// CR164
         default:
             return false;
             break;
@@ -781,7 +789,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
                 uint16_t windAngle;
                 getEstimatedHorizontalWindSpeed(&windAngle);
                 int32_t windHeading = (int32_t)windAngle + 18000; // Correct heading to display correctly.
-        
+
                 while (windHeading < 0) windHeading += 36000;
                 while (windHeading >= 36000) windHeading -= 36000;
 
@@ -801,10 +809,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
                 uint16_t windAngle;
                 getEstimatedHorizontalWindSpeed(&windAngle);
                 int32_t relativeWindHeading = (int32_t)windAngle + 18000 - DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw);
-        
+
                 while (relativeWindHeading < 0) relativeWindHeading += 36000;
                 while (relativeWindHeading >= 36000) relativeWindHeading -= 36000;
-                
+
                 relativeWindHeading = -relativeWindHeading;
                 if (relativeWindHeading <= -18000)
                     relativeWindHeading = 18000 + (relativeWindHeading + 18000);
@@ -816,7 +824,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 #else
         return 0;
 #endif
-        break;        
+        break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
             return constrain(getEstimatedActualPosition(Z), INT32_MIN, INT32_MAX);
@@ -908,7 +916,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return rxLinkStatistics.uplinkRSSI;
 #else
             return 0;
-#endif        
+#endif
             break;
 
 case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK:

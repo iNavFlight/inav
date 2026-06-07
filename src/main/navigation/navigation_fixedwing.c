@@ -867,9 +867,12 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
     }
 }
 
-uint16_t getDesiredAutoSpeed(void)
+/*----------------------------
+ * Auto Speed mode
+ *----------------------------*/
+bool navIsAutoSpeedAirspeedUsed(void)
 {
-    return posControl.desiredState.autoSpeedDemand;
+    return !LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED) && pitotValidForAirspeed();
 }
 
 bool isFixedwingAutoSpeedActive(void)
@@ -905,7 +908,7 @@ void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
         uint16_t actualSpeed = calc_length_pythagorean_2D(posControl.actualState.velXY, posControl.actualState.abs.vel.z);
 
 #ifdef USE_PITOT
-        if (pitotValidForAirspeed()) {  // Use airspeed if pitot available
+        if (navIsAutoSpeedAirspeedUsed()) { // If pitot available use airspeed if enabled for use
             actualSpeed = getAirspeedEstimate();
         } else
 #endif
