@@ -45,7 +45,7 @@
 
 #define WINDESTIMATOR_TIMEOUT       60*15 // 15min with out altitude change
 #define WINDESTIMATOR_ALTITUDE_SCALE WINDESTIMATOR_TIMEOUT/500.0f //or 500m altitude change
-#define WINDESTIMATOR_VALIDITY_THRESHOLD    100
+#define WINDESTIMATOR_VALIDITY_THRESHOLD    50
 // Based on WindEstimation.pdf paper
 
 static bool hasValidWindEstimate = false;
