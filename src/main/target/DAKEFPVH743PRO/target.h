@@ -166,6 +166,14 @@
 // unkonw
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
+// *************** CANBUS ****************************
+// CAN bus pins - sourced from ArduPilot board definition
+// Uncomment to enable DroneCAN support (requires custom build)
+// #define USE_DRONECAN
+// #define CAN1_RX                 PD0
+// #define CAN1_TX                 PD1
+// #define CAN1_STANDBY            PD2
+
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
