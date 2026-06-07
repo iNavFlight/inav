@@ -2518,6 +2518,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             programmingPidsMutable(tmp_u8)->gains.I = sbufReadU16(src);
             programmingPidsMutable(tmp_u8)->gains.D = sbufReadU16(src);
             programmingPidsMutable(tmp_u8)->gains.FF = sbufReadU16(src);
+
+            programmingPidInit();
+
         } else
             return MSP_RESULT_ERROR;
         break;
