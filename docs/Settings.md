@@ -3202,7 +3202,7 @@ If enabled, control_profile_index will follow mixer_profile index. Set to OFF(de
 
 ### mixer_switch_trans_timer
 
-Original VTOL transition timer, still used as the backup completion time. If trusted pitot airspeed is not being used, iNAV completes the transition from this timer instead. If `mixer_vtol_transition_scale_ramp_time_ms = 0`, lift motor power, multicopter stabilisation, and fixed-wing control handoff also fall back to this timing.
+Original VTOL transition timer, still used as the backup completion time. If trusted pitot airspeed is not being used, iNAV completes the transition from this timer instead. With smooth VTOL transition power changes ON, lift motor power, multicopter stabilisation, and fixed-wing control handoff also fall back to this timing whenever trusted pitot is not usable.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3242,7 +3242,7 @@ Turns on smooth VTOL transition power changes. This affects forward motor ramp-u
 
 ### mixer_vtol_transition_scale_ramp_time_ms
 
-When smooth VTOL transition power changes are ON, this always controls the MC->FW forward motor ramp. `0` gives full forward-motor power immediately. This timer does not decide when the transition is complete. For lift motor power, multicopter stabilisation, and fixed-wing control handoff, trusted pitot airspeed still controls the change while pitot is usable; this timer is only their backup ramp if pitot becomes unavailable. Available only on targets with more than 512 KB flash.
+When smooth VTOL transition power changes are ON, this controls motor ramp-in time only. In MC->FW it ramps the forward motor from idle to full target power. In FW->MC it ramps the lift motors from their configured minimum back to full power. `0` applies those motor-power changes immediately. This timer does not decide when the transition completes and it does not control the multicopter/fixed-wing control handoff. Handoff still follows trusted pitot airspeed when pitot is usable, otherwise `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7086,19 +7086,9 @@ Extra low-speed protection for fixed-wing flight [cm/s]. If airspeed falls to th
 
 ---
 
-### vtol_transition_fw_authority_start_percent
+### vtol_transition_fw_authority_min_percent
 
-How much fixed-wing control is available at the start of transition, in percent. `100` gives full fixed-wing control immediately. Lower values bring it in and out more gently. With `INPUT_AUTOTRANSITION_TARGET_STABILIZED_*` rules configured in the MC mixer profile, this same setting scales their servo authority during MC->FW and scales down the matching FW servo stabilisation during FW->MC. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 100 | 0 | 100 |
-
----
-
-### vtol_transition_lift_end_percent
-
-How much lift motor power remains at the end of transition, in percent. `100` keeps full lift power. Lower values reduce lift motor power more. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
+Lowest fixed-wing stabilisation used during transition, in percent. In MC->FW, fixed-wing stabilisation starts from this value and rises to full strength. In FW->MC, it fades down from full strength to this value. With `INPUT_AUTOTRANSITION_TARGET_STABILIZED_*` rules configured in the MC mixer profile, this same setting scales their servo authority during MC->FW and scales down the matching FW servo stabilisation during FW->MC. `100` keeps full fixed-wing stabilisation through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7106,9 +7096,19 @@ How much lift motor power remains at the end of transition, in percent. `100` ke
 
 ---
 
-### vtol_transition_mc_authority_end_percent
+### vtol_transition_lift_min_percent
 
-How much multicopter stabilisation remains at the end of transition, in percent. `100` keeps full multicopter stabilisation. Lower values reduce it more. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
+Lowest lift motor power used during transition, in percent. In MC->FW, lift power fades down to this value. In FW->MC, lift power starts from this value and rises back to full power. `100` keeps full lift power through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 100 |
+
+---
+
+### vtol_transition_mc_authority_min_percent
+
+Lowest multicopter stabilisation used during transition, in percent. In MC->FW, multicopter stabilisation fades down to this value. In FW->MC, it starts from this value and rises back to full stabilisation. `100` keeps full multicopter stabilisation through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |

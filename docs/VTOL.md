@@ -393,23 +393,23 @@ When `mixer_vtol_transition_dynamic_mixer = ON`, iNAV can smoothly change:
 
 When `mixer_vtol_transition_dynamic_mixer = OFF`, the older static behavior is preserved.
 When it is ON, you can configure `INPUT_AUTOTRANSITION_TARGET_STABILIZED_*` servo rules in the MC mixer profile.
-During MC->FW they drive the selected servo outputs from the target FW controller before the hot-switch.
+During MC->FW they give those servos a preview of the fixed-wing stabilisation that will take over after the hot-switch.
+This preview uses the target fixed-wing PID bank, rates, angle limits, heading-hold limits, and turn-assist gains, but it still follows the current transition stick shaping until the actual profile switch.
 During FW->MC the same MC mixer rules mark which FW servo outputs should fade down as fixed-wing authority is reduced and motor stabilisation comes back in.
 These inputs are active only while the smooth autotransition controller is running. If `mixer_vtol_transition_dynamic_mixer = OFF`, they stay at full authority while the controller is active. If `mixer_vtol_transition_dynamic_mixer = ON`, they follow the normal fixed-wing authority scaling.
 `INPUT_MIXER_TRANSITION` remains available for transition-progress servo movement such as tilt or helper servos.
 
-`mixer_vtol_transition_scale_ramp_time_ms` always controls the MC->FW forward-motor ramp when this feature is ON.
+`mixer_vtol_transition_scale_ramp_time_ms` controls motor ramp-in timing when this feature is ON.
 It does not decide when the transition completes.
 
 How `mixer_vtol_transition_scale_ramp_time_ms` works:
-- MC->FW pusher:
-  - `> 0`: forward motor power ramps from `0 -> 100%` over this time, even when pitot is working normally.
-  - `= 0` (default): forward motor power goes to `100%` immediately.
-- Lift motor power, MC stabilisation, and FW control:
+- Motor ramp-in:
+  - MC->FW: forward motor power ramps from `0 -> 100%` over this time.
+  - FW->MC: lift motor power ramps from `vtol_transition_lift_min_percent -> 100%` over this time.
+  - `= 0` (default): those motor-power changes happen immediately.
+- Lift motor reduction in MC->FW, plus MC/FW control handoff in both directions:
   - with valid pitot airspeed, they still follow airspeed-based transition progress.
-  - if pitot stops being usable and this setting is `> 0`, they use this same timer as a backup ramp.
-  - if pitot stops being usable and this setting is `0`, they fall back to the normal transition timer/progress behavior.
-- FW->MC keeps the existing style of smooth handover.
+  - if pitot is not usable, they fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
 
 Example:
 - `mixer_switch_trans_timer = 50` (5s fallback completion timer)
@@ -417,8 +417,9 @@ Example:
 
 Result:
 - in MC->FW, the forward motor reaches full power in about `1.2s`,
-- when pitot is working, lift power and control handover still follow airspeed,
-- if pitot stops being usable, the same handover reaches its target in about `1.2s`,
+- in FW->MC, lift motor power returns to full in about `1.2s`,
+- when pitot is working, control handover still follows airspeed,
+- if pitot is not usable, handover falls back to `mixer_switch_trans_timer`,
 - transition completion still uses airspeed when pitot is working,
 - backup completion time is still `5s` if pitot is not usable.
 
@@ -461,9 +462,9 @@ CLI:
 - `set mixer_switch_trans_timer = 50`
 - `set mixer_vtol_transition_airspeed_timeout_ms = 6500`
 - `set mixer_vtol_transition_scale_ramp_time_ms = 1200`
-- `set vtol_transition_lift_end_percent = 30`
-- `set vtol_transition_mc_authority_end_percent = 20`
-- `set vtol_transition_fw_authority_start_percent = 20`
+- `set vtol_transition_lift_min_percent = 30`
+- `set vtol_transition_mc_authority_min_percent = 20`
+- `set vtol_transition_fw_authority_min_percent = 20`
 - `set nav_vtol_mission_transition_user_action = OFF`
 
 What this does:
@@ -486,9 +487,9 @@ CLI:
 - `set mixer_switch_trans_timer = 50`
 - `set mixer_vtol_transition_airspeed_timeout_ms = 6500`
 - `set mixer_vtol_transition_scale_ramp_time_ms = 1200`
-- `set vtol_transition_lift_end_percent = 30`
-- `set vtol_transition_mc_authority_end_percent = 20`
-- `set vtol_transition_fw_authority_start_percent = 20`
+- `set vtol_transition_lift_min_percent = 30`
+- `set vtol_transition_mc_authority_min_percent = 20`
+- `set vtol_transition_fw_authority_min_percent = 20`
 - `set nav_vtol_mission_transition_user_action = USER1`
 - `set nav_vtol_mission_transition_min_altitude_cm = 1200`
 
@@ -504,37 +505,37 @@ What this does:
 
 These three settings are active only when `mixer_vtol_transition_dynamic_mixer = ON`.
 
-1. `vtol_transition_lift_end_percent`
-- Sets how much lift motor power remains at the end of transition.
-- MC -> FW: lift power goes from `100%` at start to `lift_end_percent` at the end.
-- FW -> MC: lift power goes from `lift_end_percent` at start to `100%` at the end.
+1. `vtol_transition_lift_min_percent`
+- Sets the lowest lift motor power used during transition.
+- MC -> FW: lift power goes from `100%` at start down to `lift_min_percent`.
+- FW -> MC: lift power goes from `lift_min_percent` at start up to `100%`.
 
-Example (`vtol_transition_lift_end_percent = 20`):
+Example (`vtol_transition_lift_min_percent = 20`):
 - MC -> FW at 50% progress: lift power is about `60%`.
 - FW -> MC at 50% progress: lift power is about `60%`.
 
-2. `vtol_transition_mc_authority_end_percent`
-- Sets how much multicopter stabilisation remains at the end of transition.
-- MC -> FW: MC stabilisation goes from `100%` at start to `mc_authority_end_percent` at the end.
-- FW -> MC: MC stabilisation goes from `mc_authority_end_percent` at start to `100%` at the end.
+2. `vtol_transition_mc_authority_min_percent`
+- Sets the lowest multicopter stabilisation used during transition.
+- MC -> FW: MC stabilisation goes from `100%` at start down to `mc_authority_min_percent`.
+- FW -> MC: MC stabilisation goes from `mc_authority_min_percent` at start up to `100%`.
 
-Example (`vtol_transition_mc_authority_end_percent = 30`):
+Example (`vtol_transition_mc_authority_min_percent = 30`):
 - MC -> FW at 50% progress: MC stabilisation is about `65%`.
 - FW -> MC at 50% progress: MC stabilisation is about `65%`.
 
-3. `vtol_transition_fw_authority_start_percent`
-- Sets how much fixed-wing control is already available at the start of transition.
-- MC -> FW: fixed-wing control goes from `fw_authority_start_percent` at start to `100%` at the end.
-- FW -> MC: fixed-wing control goes from `100%` at start to `fw_authority_start_percent` at the end.
+3. `vtol_transition_fw_authority_min_percent`
+- Sets the lowest fixed-wing control used during transition.
+- MC -> FW: fixed-wing control goes from `fw_authority_min_percent` at start up to `100%`.
+- FW -> MC: fixed-wing control goes from `100%` at start down to `fw_authority_min_percent`.
 - During MC -> FW, this same setting also scales `INPUT_AUTOTRANSITION_TARGET_STABILIZED_*` servo rules configured in the MC mixer profile.
 - During FW -> MC, the same setting scales down the matching FW servo stabilisation on the outputs marked by those MC mixer rules.
 
-Example (`vtol_transition_fw_authority_start_percent = 25`):
+Example (`vtol_transition_fw_authority_min_percent = 25`):
 - MC -> FW at 50% progress: fixed-wing control is about `62.5%`.
 - FW -> MC at 50% progress: fixed-wing control is about `62.5%`.
 
-Backward-compatible note:
-- `vtol_transition_fw_authority_start_percent = 100` keeps the older fixed-wing control behavior.
+Practical note:
+- `vtol_transition_fw_authority_min_percent = 100` keeps full fixed-wing control through the whole transition.
 - Lower values bring fixed-wing control in and out more gently.
 
 ## Setting Scope (Important)
@@ -560,9 +561,9 @@ These are shared system-wide and are not profile-specific:
 - `vtol_transition_to_fw_min_airspeed_cm_s`
 - `vtol_transition_to_mc_max_airspeed_cm_s`
 - `vtol_fw_to_mc_auto_switch_airspeed_cm_s`
-- `vtol_transition_lift_end_percent`
-- `vtol_transition_mc_authority_end_percent`
-- `vtol_transition_fw_authority_start_percent`
+- `vtol_transition_lift_min_percent`
+- `vtol_transition_mc_authority_min_percent`
+- `vtol_transition_fw_authority_min_percent`
 - `nav_vtol_mission_transition_user_action`
 - `nav_vtol_mission_transition_min_altitude_cm`
 
@@ -592,16 +593,16 @@ Use these commands in CLI (`set ...`, then `save`):
   - How long iNAV waits for required pitot airspeed before aborting.
 
 - `set mixer_vtol_transition_scale_ramp_time_ms = <value>`
-  - Ramp-up time for the forward motor, and backup ramp time for the other smooth transition power changes.
+  - Ramp-in time for the MC->FW forward motor and the FW->MC lift motors.
 
-- `set vtol_transition_lift_end_percent = <0..100>`
-  - How much lift motor power remains at the end of transition.
+- `set vtol_transition_lift_min_percent = <0..100>`
+  - Lowest lift motor power used during transition.
 
-- `set vtol_transition_mc_authority_end_percent = <0..100>`
-  - How much multicopter stabilisation remains at the end of transition.
+- `set vtol_transition_mc_authority_min_percent = <0..100>`
+  - Lowest multicopter stabilisation used during transition.
 
-- `set vtol_transition_fw_authority_start_percent = <0..100>`
-  - How much fixed-wing control is already available at the start of transition.
+- `set vtol_transition_fw_authority_min_percent = <0..100>`
+  - Lowest fixed-wing control used during transition.
 
 - `set nav_vtol_mission_transition_user_action = OFF|USER1|USER2|USER3|USER4`
   - Selects which waypoint USER flag tells iNAV to use MC or FW at each waypoint.
@@ -644,23 +645,22 @@ Smooth transition power changes (`mixer_vtol_transition_dynamic_mixer = ON`) use
 
 - MC -> FW:
   - forward motor power ramps `0 -> 1`
-  - lift motor power ramps `1 -> vtol_transition_lift_end_percent`
-  - MC stabilisation ramps `1 -> vtol_transition_mc_authority_end_percent`
-  - FW control ramps `vtol_transition_fw_authority_start_percent -> 1`
+  - lift motor power ramps `1 -> vtol_transition_lift_min_percent`
+  - MC stabilisation ramps `1 -> vtol_transition_mc_authority_min_percent`
+  - FW control ramps `vtol_transition_fw_authority_min_percent -> 1`
 
 - FW -> MC:
   - forward motor power ramps `1 -> 0`
-  - lift motor power ramps `vtol_transition_lift_end_percent -> 1`
-  - MC stabilisation ramps `vtol_transition_mc_authority_end_percent -> 1`
-  - FW control ramps `1 -> vtol_transition_fw_authority_start_percent`
+  - lift motor power ramps `vtol_transition_lift_min_percent -> 1`
+  - MC stabilisation ramps `vtol_transition_mc_authority_min_percent -> 1`
+  - FW control ramps `1 -> vtol_transition_fw_authority_min_percent`
 
-MC->FW uses separate forward-motor ramp-up and control handover behavior.
+Motor ramp-in and control handover are separate.
 For MC->FW, forward motor power uses `mixer_vtol_transition_scale_ramp_time_ms`; if this is `0`, the motor goes to full power immediately.
+For FW->MC, lift motor power uses the same timer to rise from `vtol_transition_lift_min_percent` back to full power; if this is `0`, that lift power returns immediately.
 This timer does not decide when the transition completes.
-Lift motor power, MC stabilisation, and FW control still prefer pitot-based transition progress whenever pitot is working.
-If pitot stops being usable and `mixer_vtol_transition_scale_ramp_time_ms > 0`, those other changes fall back to the same timer-based ramp.
-If pitot is not usable and `mixer_vtol_transition_scale_ramp_time_ms = 0`, they fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
-FW->MC keeps the existing style of smooth handover.
+Lift motor reduction in MC->FW, plus MC stabilisation and FW control handoff in both directions, still prefer pitot-based transition progress whenever pitot is working.
+If pitot is not usable, those handoff changes fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
 
 For transition/pusher motors (`-2.0 < throttle < -1.0`), output is interpolated from idle to target:
 

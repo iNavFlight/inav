@@ -47,7 +47,12 @@ static bool manualTransitionSessionLatched;
 static bool manualFwToMcProtectionLatched;
 #endif
 
+// Keep PG version split because USE_AUTO_TRANSITION changes the stored mixer profile layout only on >512 KB targets.
+#ifdef USE_AUTO_TRANSITION
 PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 4);
+#else
+PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
+#endif
 
 void pgResetFn_mixerProfiles(mixerProfile_t *instance)
 {
@@ -197,7 +202,7 @@ static float blendScale(float from, float to, float progress)
     return from + (to - from) * constrainf(progress, 0.0f, 1.0f);
 }
 
-static float getPusherRampProgress(void)
+static float getMotorRampProgress(void)
 {
     if (!currentMixerConfig.vtolTransitionDynamicMixer) {
         return 1.0f;
@@ -222,16 +227,8 @@ static float getHandoffScalingProgress(void)
         return mixerProfileAT.handoffScalingProgress;
     }
 
-    if (currentMixerConfig.vtolTransitionScaleRampTimeMs > 0) {
-        const float rampProgress = getPusherRampProgress();
-
-        // Preserve already-applied handoff scaling if pitot drops out mid-transition.
-        mixerProfileAT.handoffScalingProgress = MAX(mixerProfileAT.handoffScalingProgress, rampProgress);
-        return mixerProfileAT.handoffScalingProgress;
-    }
-
-    // Last-resort compatibility path: with no trusted pitot and no dedicated
-    // scaling ramp configured, reuse transition progress/timer behavior.
+    // Preserve already-applied handoff scaling if pitot drops out mid-transition.
+    // Without trusted pitot, handoff returns to the normal transition timer/progress behavior.
     mixerProfileAT.handoffScalingProgress = MAX(mixerProfileAT.handoffScalingProgress, constrainf(mixerProfileAT.progress, 0.0f, 1.0f));
     return mixerProfileAT.handoffScalingProgress;
 }
@@ -317,21 +314,23 @@ static void updateTransitionScales(void)
         return;
     }
 
-    const float liftFloor = constrainf(systemConfig()->vtolTransitionLiftEndPercent / 100.0f, 0.0f, 1.0f);
-    const float mcFloor = constrainf(systemConfig()->vtolTransitionMcAuthorityEndPercent / 100.0f, 0.0f, 1.0f);
-    const float fwFloor = constrainf(systemConfig()->vtolTransitionFwAuthorityStartPercent / 100.0f, 0.0f, 1.0f);
+    const float liftFloor = constrainf(systemConfig()->vtolTransitionLiftMinPercent / 100.0f, 0.0f, 1.0f);
+    const float mcFloor = constrainf(systemConfig()->vtolTransitionMcAuthorityMinPercent / 100.0f, 0.0f, 1.0f);
+    const float fwFloor = constrainf(systemConfig()->vtolTransitionFwAuthorityMinPercent / 100.0f, 0.0f, 1.0f);
     const float handoffProgress = getHandoffScalingProgress();
 
     if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) {
-        const float pusherProgress = getPusherRampProgress();
+        const float pusherProgress = getMotorRampProgress();
 
         mixerProfileAT.pusherScale = blendScale(0.0f, 1.0f, pusherProgress);
         mixerProfileAT.liftScale = blendScale(1.0f, liftFloor, handoffProgress);
         mixerProfileAT.mcAuthorityScale = blendScale(1.0f, mcFloor, handoffProgress);
         mixerProfileAT.fwAuthorityScale = blendScale(fwFloor, 1.0f, handoffProgress);
     } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC) {
+        const float liftRampProgress = getMotorRampProgress();
+
         mixerProfileAT.pusherScale = blendScale(1.0f, 0.0f, handoffProgress);
-        mixerProfileAT.liftScale = blendScale(liftFloor, 1.0f, handoffProgress);
+        mixerProfileAT.liftScale = blendScale(liftFloor, 1.0f, liftRampProgress);
         mixerProfileAT.mcAuthorityScale = blendScale(mcFloor, 1.0f, handoffProgress);
         mixerProfileAT.fwAuthorityScale = blendScale(1.0f, fwFloor, handoffProgress);
     }

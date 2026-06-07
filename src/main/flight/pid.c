@@ -129,6 +129,8 @@ typedef struct {
     float rateTarget;
     float errorGyroIf;
     float errorGyroIfLimit;
+    pt1Filter_t angleFilterState;
+    rateLimitFilter_t axisAccelFilter;
     pt1Filter_t ptermLpfState;
     filter_t dtermLpfState;
     float previousRateTarget;
@@ -174,6 +176,7 @@ static EXTENDED_FASTRAM autoTransitionTargetPidState_t autoTransitionTargetPidSt
 static EXTENDED_FASTRAM pt1Filter_t windupLpf[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM uint8_t itermRelax;
 #ifdef USE_AUTO_TRANSITION
+static EXTENDED_FASTRAM pt1Filter_t autoTransitionTargetHeadingHoldRateFilter;
 static EXTENDED_FASTRAM pt1Filter_t autoTransitionTargetTpaFilter;
 static EXTENDED_FASTRAM filterApplyFnPtr autoTransitionTargetDTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM uint8_t autoTransitionTargetYawLpfHz;
@@ -220,6 +223,9 @@ static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
 static void applyItermLimiting(pidState_t *pidState);
+static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination);
+float pidRcCommandToRate(int16_t stick, uint8_t rate);
+int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis);
 
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 11);
 
@@ -465,6 +471,7 @@ static void resetAutoTransitionTargetPidState(void)
 {
     memset(autoTransitionTargetPidState, 0, sizeof(autoTransitionTargetPidState));
     memset(autoTransitionTargetAxisPID, 0, sizeof(autoTransitionTargetAxisPID));
+    memset(&autoTransitionTargetHeadingHoldRateFilter, 0, sizeof(autoTransitionTargetHeadingHoldRateFilter));
     memset(&autoTransitionTargetTpaFilter, 0, sizeof(autoTransitionTargetTpaFilter));
     autoTransitionTargetControlProfileIndex = -1;
     autoTransitionTargetDTermLpfFilterApplyFn = (filterApplyFnPtr)nullFilterApply;
@@ -643,6 +650,239 @@ static void updateAutoTransitionTargetPIDCoefficients(const controlConfig_t *con
     }
 }
 
+static float calcAutoTransitionTargetHorizonRateMagnitude(const pidProfile_t *targetPidProfile)
+{
+    const int32_t stickPosAil = ABS(getRcStickDeflection(FD_ROLL));
+    const int32_t stickPosEle = ABS(getRcStickDeflection(FD_PITCH));
+    const float mostDeflectedStickPos = constrain(MAX(stickPosAil, stickPosEle), 0, 500) / 500.0f;
+    const float modeTransitionStickPos = constrain(targetPidProfile->bank_fw.pid[PID_LEVEL].D, 0, 100) / 100.0f;
+
+    if (modeTransitionStickPos <= 0.0f) {
+        return 1.0f;
+    }
+
+    if (mostDeflectedStickPos <= modeTransitionStickPos) {
+        return mostDeflectedStickPos / modeTransitionStickPos;
+    }
+
+    return 1.0f;
+}
+
+static uint8_t getAutoTransitionTargetHeadingHoldState(const pidProfile_t *targetPidProfile)
+{
+    const float headingHoldCosLimit =
+        cos_approx(DECIDEGREES_TO_RADIANS(targetPidProfile->max_angle_inclination[FD_ROLL])) *
+        cos_approx(DECIDEGREES_TO_RADIANS(targetPidProfile->max_angle_inclination[FD_PITCH]));
+
+    if (calculateCosTiltAngle() < headingHoldCosLimit) {
+        return HEADING_HOLD_DISABLED;
+    }
+
+    const int navHeadingState = navigationGetHeadingControlState();
+    if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
+        if (navHeadingState == NAV_HEADING_CONTROL_AUTO) {
+            return HEADING_HOLD_ENABLED;
+        }
+    } else if (ABS(rcCommand[YAW]) == 0 && FLIGHT_MODE(HEADING_MODE)) {
+        return HEADING_HOLD_ENABLED;
+    }
+
+    return HEADING_HOLD_UPDATE_HEADING;
+}
+
+static float pidAutoTransitionTargetHeadingHold(const pidProfile_t *targetPidProfile, float dT)
+{
+    int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headingHoldTarget;
+
+    if (error > 180) {
+        error -= 360;
+    } else if (error < -180) {
+        error += 360;
+    }
+
+    float headingHoldRate = error * targetPidProfile->bank_fw.pid[PID_HEADING].P / 30.0f;
+    headingHoldRate = constrainf(headingHoldRate, -targetPidProfile->heading_hold_rate_limit, targetPidProfile->heading_hold_rate_limit);
+    headingHoldRate = pt1FilterApply4(&autoTransitionTargetHeadingHoldRateFilter, headingHoldRate, HEADING_HOLD_ERROR_LPF_FREQ, dT);
+
+    return headingHoldRate;
+}
+
+static float computeAutoTransitionTargetPidLevelTarget(const pidProfile_t *targetPidProfile, flight_dynamics_index_t axis)
+{
+    float angleTarget;
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    angleTarget = pidRcCommandToAngle(getRcCommandOverride(rcCommand, axis), targetPidProfile->max_angle_inclination[axis]);
+#else
+    angleTarget = pidRcCommandToAngle(rcCommand[axis], targetPidProfile->max_angle_inclination[axis]);
+#endif
+
+    if (axis == FD_PITCH) {
+#ifdef USE_FW_AUTOLAND
+        if (FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+#else
+        if (FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
+#endif
+            angleTarget += scaleRange(
+                MAX(0, currentBatteryProfile->nav.fw.cruise_throttle - rcCommand[THROTTLE]),
+                0,
+                currentBatteryProfile->nav.fw.cruise_throttle - PWM_RANGE_MIN,
+                0,
+                navConfig()->fw.minThrottleDownPitchAngle
+            );
+        }
+
+        angleTarget -= DEGREES_TO_DECIDEGREES(targetPidProfile->fixedWingLevelTrim);
+    }
+
+    return angleTarget;
+}
+
+static void pidAutoTransitionTargetLevel(
+    const float angleTarget,
+    autoTransitionTargetPidState_t *pidState,
+    const controlConfig_t *controlProfile,
+    const pidProfile_t *targetPidProfile,
+    flight_dynamics_index_t axis,
+    float horizonRateMagnitude,
+    float dT)
+{
+    float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
+
+    if (FLIGHT_MODE(SOARING_MODE) && axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
+        angleErrorDeg = DECIDEGREES_TO_DEGREES((float)angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH));
+        if (!angleErrorDeg) {
+            pidState->errorGyroIf = 0.0f;
+            pidState->errorGyroIfLimit = 0.0f;
+        }
+    }
+
+    float angleRateTarget = constrainf(
+        angleErrorDeg * (targetPidProfile->bank_fw.pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
+        -controlProfile->stabilized.rates[axis] * 10.0f,
+        controlProfile->stabilized.rates[axis] * 10.0f
+    );
+
+    if (targetPidProfile->bank_fw.pid[PID_LEVEL].I) {
+        angleRateTarget = pt1FilterApply4(&pidState->angleFilterState, angleRateTarget, targetPidProfile->bank_fw.pid[PID_LEVEL].I, dT);
+    }
+
+    if (FLIGHT_MODE(HORIZON_MODE)) {
+        pidState->rateTarget = (1.0f - horizonRateMagnitude) * angleRateTarget + horizonRateMagnitude * pidState->rateTarget;
+    } else {
+        pidState->rateTarget = angleRateTarget;
+    }
+}
+
+static void pidApplyAutoTransitionTargetSetpointRateLimiting(
+    autoTransitionTargetPidState_t *pidState,
+    const pidProfile_t *targetPidProfile,
+    flight_dynamics_index_t axis,
+    float dT)
+{
+    const uint32_t axisAccelLimit = (axis == FD_YAW) ? targetPidProfile->axisAccelerationLimitYaw : targetPidProfile->axisAccelerationLimitRollPitch;
+
+    if (axisAccelLimit > AXIS_ACCEL_MIN_LIMIT) {
+        pidState->rateTarget = rateLimitFilterApply4(&pidState->axisAccelFilter, pidState->rateTarget, (float)axisAccelLimit, dT);
+    }
+}
+
+static void pidAutoTransitionTargetTurnAssistant(
+    autoTransitionTargetPidState_t *pidState,
+    const controlConfig_t *controlProfile,
+    const pidProfile_t *targetPidProfile,
+    float bankAngleTarget,
+    float pitchAngleTarget)
+{
+    fpVector3_t targetRates;
+    targetRates.x = 0.0f;
+    targetRates.y = 0.0f;
+
+    if (calculateCosTiltAngle() < 0.173648f) {
+        return;
+    }
+
+#if defined(USE_PITOT)
+    float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) && pitotIsHealthy() ? getAirspeedEstimate() : targetPidProfile->fixedWingReferenceAirspeed;
+#else
+    float airspeedForCoordinatedTurn = targetPidProfile->fixedWingReferenceAirspeed;
+#endif
+
+    airspeedForCoordinatedTurn = constrainf(airspeedForCoordinatedTurn, 300.0f, 6000.0f);
+    bankAngleTarget = constrainf(bankAngleTarget, -DEGREES_TO_RADIANS(60), DEGREES_TO_RADIANS(60));
+
+    const float turnRatePitchAdjustmentFactor = cos_approx(fabsf(pitchAngleTarget));
+    const float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngleTarget) / airspeedForCoordinatedTurn * turnRatePitchAdjustmentFactor;
+
+    targetRates.z = RADIANS_TO_DEGREES(coordinatedTurnRateEarthFrame);
+
+    imuTransformVectorEarthToBody(&targetRates);
+
+    pidState[ROLL].rateTarget = constrainf(
+        pidState[ROLL].rateTarget + targetRates.x,
+        -controlProfile->stabilized.rates[ROLL] * 10.0f,
+        controlProfile->stabilized.rates[ROLL] * 10.0f
+    );
+    pidState[PITCH].rateTarget = constrainf(
+        pidState[PITCH].rateTarget + targetRates.y * targetPidProfile->fixedWingCoordinatedPitchGain,
+        -controlProfile->stabilized.rates[PITCH] * 10.0f,
+        controlProfile->stabilized.rates[PITCH] * 10.0f
+    );
+    pidState[YAW].rateTarget = constrainf(
+        pidState[YAW].rateTarget + targetRates.z * targetPidProfile->fixedWingCoordinatedYawGain,
+        -controlProfile->stabilized.rates[YAW] * 10.0f,
+        controlProfile->stabilized.rates[YAW] * 10.0f
+    );
+}
+
+static void updateAutoTransitionTargetRateTargets(const controlConfig_t *controlProfile, const pidProfile_t *targetPidProfile, float dT)
+{
+    const uint8_t headingHoldState = getAutoTransitionTargetHeadingHoldState(targetPidProfile);
+
+    for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        float rateTarget;
+
+        if (axis == FD_YAW && headingHoldState == HEADING_HOLD_ENABLED) {
+            rateTarget = pidAutoTransitionTargetHeadingHold(targetPidProfile, dT);
+        } else {
+#ifdef USE_PROGRAMMING_FRAMEWORK
+            rateTarget = pidRcCommandToRate(getRcCommandOverride(rcCommand, axis), controlProfile->stabilized.rates[axis]);
+#else
+            rateTarget = pidRcCommandToRate(rcCommand[axis], controlProfile->stabilized.rates[axis]);
+#endif
+        }
+
+        autoTransitionTargetPidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+    }
+
+    const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcAutoTransitionTargetHorizonRateMagnitude(targetPidProfile) : 0.0f;
+
+    for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
+        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ANGLEHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
+            float angleTarget = getFlightAxisAngleOverride(axis, computeAutoTransitionTargetPidLevelTarget(targetPidProfile, axis));
+
+            if (STATE(TAILSITTER) && isMixerTransitionMixing && axis == FD_PITCH) {
+                angleTarget += DEGREES_TO_DECIDEGREES(45);
+            }
+
+            // Preview the target fixed-wing angle controller using the current transition stick command.
+            // Airplane angle-hold target memory is not duplicated here, so this remains a close preview
+            // rather than a bit-for-bit copy of the post-switch controller state.
+            pidAutoTransitionTargetLevel(angleTarget, &autoTransitionTargetPidState[axis], controlProfile, targetPidProfile, axis, horizonRateMagnitude, dT);
+        }
+    }
+
+    if (FLIGHT_MODE(TURN_ASSISTANT) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+        const float bankAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_ROLL], targetPidProfile->max_angle_inclination[FD_ROLL]));
+        const float pitchAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_PITCH], targetPidProfile->max_angle_inclination[FD_PITCH]));
+        pidAutoTransitionTargetTurnAssistant(autoTransitionTargetPidState, controlProfile, targetPidProfile, bankAngleTarget, pitchAngleTarget);
+    }
+
+    for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        pidApplyAutoTransitionTargetSetpointRateLimiting(&autoTransitionTargetPidState[axis], targetPidProfile, axis, dT);
+    }
+}
+
 static float autoTransitionTargetPTermProcess(autoTransitionTargetPidState_t *pidState, flight_dynamics_index_t axis, float rateError, float dT)
 {
     const float newPTerm = rateError * pidState->kP;
@@ -782,12 +1022,12 @@ static void updateAutoTransitionTargetAxisPID(float dT)
     }
 
     updateAutoTransitionTargetPIDCoefficients(controlProfile, targetPidProfile);
+    updateAutoTransitionTargetRateTargets(controlProfile, targetPidProfile, dT);
 
     const float dT_inv = 1.0f / dT;
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
         autoTransitionTargetPidState[axis].gyroRate = gyro.gyroADCf[axis];
-        autoTransitionTargetPidState[axis].rateTarget = pidState[axis].rateTarget;
 
 #ifdef USE_SMITH_PREDICTOR
         autoTransitionTargetPidState[axis].gyroRate = applySmithPredictor(axis, &autoTransitionTargetPidState[axis].smithPredictor, autoTransitionTargetPidState[axis].gyroRate);
