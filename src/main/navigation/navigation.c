@@ -3874,10 +3874,10 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
 
 int isGCSValid(void)
 {
-    return (ARMING_FLAG(ARMED) && 
-            (posControl.flags.estPosStatus >= EST_TRUSTED) && 
-            posControl.gpsOrigin.valid && 
-            posControl.flags.isGCSAssistedNavigationEnabled && 
+    return (ARMING_FLAG(ARMED) &&
+            (posControl.flags.estPosStatus >= EST_TRUSTED) &&
+            posControl.gpsOrigin.valid &&
+            posControl.flags.isGCSAssistedNavigationEnabled &&
             (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS));
 }
 

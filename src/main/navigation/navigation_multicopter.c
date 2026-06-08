@@ -298,6 +298,7 @@ bool adjustMulticopterHeadingFromRCInput(void)
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
 static float lastAccelTargetX = 0.0f, lastAccelTargetY = 0.0f;
+bool mcToiletBowlingDetected;
 
 void resetMulticopterBrakingMode(void)
 {
@@ -563,8 +564,41 @@ static float computeVelocityScale(
     return constrainf(scale, 0, attenuationFactor);
 }
 
+static void checkForToiletBowling(void)
+{
+    bool isHoldingPosition = ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && posControl.cruise.multicopterSpeed < 50) || navGetCurrentStateFlags() & NAV_CTL_HOLD);
+    uint16_t distanceToHoldPoint = calculateDistanceToDestination(&posControl.desiredState.pos);
+
+    if (!isHoldingPosition || posControl.actualState.velXY < 100 || distanceToHoldPoint < 100 || (posControl.flags.isAdjustingPosition && navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI)) {
+        return;
+    }
+
+    /* Compare required course back to hold point against actual GPS CoG
+     * Toilet bowling likely if heading error > 30 dges. Also ignore errors > 155 degs -> could be caused by gusting wind */
+    int16_t courseError = wrap_18000(calculateBearingToDestination(&posControl.desiredState.pos) - 10 * gpsSol.groundCourse);
+    bool courseErrorCheck = ABS(courseError) > 3000 && ABS(courseError) < 15500;
+
+    /* vel x distanceToHoldPoint provides good indication of toilet bowling with value rising rapidly when hold control is lost
+     * 30000 should provide a reliable detection threshold without excessive delay or false triggers */
+    bool distanceSpeedCheck = posControl.actualState.velXY * distanceToHoldPoint > (30000);
+
+    static timeMs_t startTime = 0;
+    if (courseErrorCheck && distanceSpeedCheck) {
+        if (startTime == 0) {
+            startTime = millis();
+        } else {
+            // Set detection flag if check conditions exist > 1 sec
+            mcToiletBowlingDetected = millis() - startTime > 1000;
+        }
+    } else {
+        startTime = 0;
+    }
+}
+
 static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float maxSpeed)
 {
+    if (!mcToiletBowlingDetected) checkForToiletBowling();
+
     const float measurementX = navGetCurrentActualPositionAndVelocity()->vel.x;
     const float measurementY = navGetCurrentActualPositionAndVelocity()->vel.y;
 
@@ -1010,6 +1044,7 @@ void calculateMulticopterInitialHoldPosition(fpVector3_t * pos)
 void resetMulticopterHeadingController(void)
 {
     updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(posControl.actualState.yaw));
+    mcToiletBowlingDetected = false;
 }
 
 static void applyMulticopterHeadingController(void)
