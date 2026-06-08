@@ -212,25 +212,21 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 }
 
 static void timerHardwareOverride(timerHardware_t * timer) {
-    // Never modify a beeper timer — beeperPwmInit() must find TIM_USE_BEEPER intact
-    if (timer->usageFlags & TIM_USE_BEEPER) {
-        return;
-    }
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
-            timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED);
+            timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED|TIM_USE_BEEPER);
             timer->usageFlags |= TIM_USE_MOTOR;
             break;
         case OUTPUT_MODE_SERVOS:
-            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_LED);
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_LED|TIM_USE_BEEPER);
             timer->usageFlags |= TIM_USE_SERVO;
             break;
         case OUTPUT_MODE_LED:
-            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO);
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_BEEPER);
             timer->usageFlags |= TIM_USE_LED;
             break;
         case OUTPUT_MODE_PINIO:
-            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED);
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED|TIM_USE_BEEPER);
             timer->usageFlags |= TIM_USE_PINIO;
             break;
         case OUTPUT_MODE_BEEPER:

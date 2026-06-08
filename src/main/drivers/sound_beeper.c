@@ -78,7 +78,7 @@ void beeperInit(const beeperDevConfig_t *config)
 #if !defined(BEEPER)
     UNUSED(config);
 #else
-    // Runtime output assignment takes precedence over the compile-time BEEPER pin.
+    // Runtime output assignment: scan for any pad explicitly set to OUTPUT_MODE_BEEPER.
     // pwmBuildTimerOutputList() runs before beeperInit(), so TIM_USE_BEEPER is already
     // set on the runtime-assigned pad by the time we get here.
     for (int idx = 0; idx < timerHardwareCount; idx++) {
@@ -88,6 +88,16 @@ void beeperInit(const beeperDevConfig_t *config)
             beeperConfigMutable()->pwmMode = true;
             systemBeep(false);
             return;
+        }
+    }
+
+    // Skip compile-time beeper pad if the user has overridden it to another function.
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        if (timerHardware[idx].tag == config->ioTag) {
+            if (!(timerHardware[idx].usageFlags & TIM_USE_BEEPER)) {
+                return;
+            }
+            break;
         }
     }
 
