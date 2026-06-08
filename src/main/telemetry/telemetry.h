@@ -100,6 +100,7 @@ typedef struct telemetryConfig_s {
 #endif
     mavlinkTelemetryCommonConfig_t mavlink_common;
     mavlinkTelemetryPortConfig_t mavlink[MAX_MAVLINK_PORTS];
+    bool crsf_use_legacy_baro_packet;
 } telemetryConfig_t;
 
 PG_DECLARE(telemetryConfig_t, telemetryConfig);

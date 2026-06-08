@@ -59,7 +59,7 @@
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
-#include "drivers/light_ws2811strip.h"
+#include "drivers/pinio.h"
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 4);
 
@@ -405,6 +405,20 @@ static int logicConditionCompute(
             return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue;
         break;
 
+        case LOGIC_CONDITION_ACOS:
+            temporaryValue = (operandB == 0) ? 1000 : operandB;
+            return RADIANS_TO_DEGREES(acos_approx(constrainf((float)operandA / (float)temporaryValue, -1.0f, 1.0f)));
+        break;
+
+        case LOGIC_CONDITION_ASIN:
+            temporaryValue = (operandB == 0) ? 1000 : operandB;
+            return RADIANS_TO_DEGREES(asin_approx(constrainf((float)operandA / (float)temporaryValue, -1.0f, 1.0f)));
+        break;
+
+        case LOGIC_CONDITION_ATAN2:
+            return RADIANS_TO_DEGREES(atan2_approx((float)operandA, (float)operandB));
+        break;
+
         case LOGIC_CONDITION_MIN:
             return (operandA < operandB) ? operandA : operandB;
         break;
@@ -511,16 +525,11 @@ static int logicConditionCompute(
             }
             break;
 
-#ifdef USE_LED_STRIP
-        case LOGIC_CONDITION_LED_PIN_PWM:
-
-            if (operandA >=0 && operandA <= 100) {
-                ledPinStartPWM((uint8_t)operandA);
-            } else {
-                ledPinStopPWM();
-            }
+#ifdef USE_PINIO
+        case LOGIC_CONDITION_PINIO_PWM:
+            // operandA = duty cycle (0-100), operandB = channel (0=LED idle, 1-4=PINIO)
+            pinioSetDuty(operandB, (uint8_t)constrain(operandA, 0, 100));
             return operandA;
-            break;
 #endif
 #ifdef USE_GPS_FIX_ESTIMATION
         case LOGIC_CONDITION_DISABLE_GPS_FIX:

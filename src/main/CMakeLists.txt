@@ -122,6 +122,8 @@ main_sources(COMMON_SRC
     drivers/barometer/barometer_spl06.h
     drivers/barometer/barometer_msp.c
     drivers/barometer/barometer_msp.h
+    drivers/barometer/barometer_crsf.c
+    drivers/barometer/barometer_crsf.h
     drivers/barometer/barometer_2smpb_02b.c
     drivers/barometer/barometer_2smpb_02b.h
 
@@ -165,6 +167,12 @@ main_sources(COMMON_SRC
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
 
+    drivers/dronecan/libcanard/canard.c
+    drivers/dronecan/libcanard/canard.h
+    drivers/dronecan/libcanard/canard_stm32_driver.h
+    drivers/dronecan/dronecan.c
+    drivers/dronecan/dronecan.h
+     
     drivers/display.c
     drivers/display.h
     drivers/display_canvas.c
@@ -219,6 +227,8 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_adc.h
     drivers/pitotmeter/pitotmeter_ms4525.c
     drivers/pitotmeter/pitotmeter_ms4525.h
+    drivers/pitotmeter/pitotmeter_ms5525.c
+    drivers/pitotmeter/pitotmeter_ms5525.h
     drivers/pitotmeter/pitotmeter_dlvr_l10d.c
     drivers/pitotmeter/pitotmeter_dlvr_l10d.h
     drivers/pitotmeter/pitotmeter_msp.c
@@ -278,6 +288,7 @@ main_sources(COMMON_SRC
     drivers/vtx_common.c
     drivers/vtx_common.h
 
+    
     fc/cli.c
     fc/cli.h
     fc/config.c
@@ -362,6 +373,7 @@ main_sources(COMMON_SRC
     flight/adaptive_filter.h
 
     io/adsb.c
+    io/adsb.h
     io/beeper.c
     io/beeper.h
     io/servo_sbus.c
@@ -471,6 +483,8 @@ main_sources(COMMON_SRC
     sensors/battery.c
     sensors/battery.h
     sensors/battery_config_structs.h
+    sensors/battery_sensor_dronecan.c
+    sensors/battery_sensor_dronecan.h
     sensors/boardalignment.c
     sensors/boardalignment.h
     sensors/compass.c
@@ -555,6 +569,8 @@ main_sources(COMMON_SRC
     io/gps_ublox.c
     io/gps_ublox_utils.c
     io/gps_msp.c
+    io/gps_crsf.c
+    io/gps_dronecan.c
     io/gps_fake.c
     io/gps_private.h
     io/ledstrip.c
@@ -575,6 +591,8 @@ main_sources(COMMON_SRC
     io/osd_joystick.h
     io/smartport_master.c
     io/smartport_master.h
+    io/crsf_sensor.c
+    io/crsf_sensor.h
     io/vtx.c
     io/vtx.h
     io/vtx_string.c
@@ -618,6 +636,8 @@ main_sources(COMMON_SRC
     sensors/opflow.h
     sensors/battery_sensor_fake.c
     sensors/battery_sensor_fake.h
+    sensors/battery_sensor_crsf.c
+    sensors/battery_sensor_crsf.h
 
     telemetry/crsf.c
     telemetry/crsf.h
@@ -650,5 +670,7 @@ main_sources(COMMON_SRC
     telemetry/telemetry.c
     telemetry/telemetry.h
 )
+
+list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})
 
 add_subdirectory(target)

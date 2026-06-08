@@ -1996,6 +1996,12 @@ uint32_t millis(void)
     return fakeMillis;
 }
 
+bool rtcGet(rtcTime_t *t)
+{
+    UNUSED(t);
+    return false;
+}
+
 serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function)
 {
     UNUSED(function);

@@ -22,6 +22,8 @@ See the other documentation sections for details of the cli commands and setting
 
 ## Backup via CLI
 
+> **Note:** The INAV Configurator now performs automatic backups before flashing and can restore settings afterwards, including migration across major versions. See [Backup and Restore](Backup%20and%20Restore.md) for details. The CLI method below remains available for manual backup.
+
 Disconnect main power, connect to cli via USB/FTDI.
 
 dump using cli
@@ -100,6 +102,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `msc` | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information. |
 | `osd_layout` | Get or set the layout of OSD items |
 | `pid` | Configurable PID controllers |
+| `piniopwm` | Set PINIO PWM duty cycle. See [PINIO PWM](PINIO%20PWM.md) |
 | `play_sound` | `<index>`, or none for next item |
 | `control_profile` | Change profile |
 | `resource` | View currently used resources |

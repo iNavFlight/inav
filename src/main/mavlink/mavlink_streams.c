@@ -1,5 +1,7 @@
 #include "mavlink/mavlink_internal.h"
 
+#include "common/time.h"
+
 #include "mavlink/mavlink_modes.h"
 #include "mavlink/mavlink_runtime.h"
 #include "mavlink/mavlink_streams.h"
@@ -541,6 +543,8 @@ static void mavlinkSendHomePosition(void)
 void mavlinkSendGpsRawInt(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
+    rtcTime_t rtcTime;
+    uint64_t timeUnixUsec = currentTimeUs;
 
     if (!(sensors(SENSOR_GPS)
 #ifdef USE_GPS_FIX_ESTIMATION
@@ -558,8 +562,12 @@ void mavlinkSendGpsRawInt(timeUs_t currentTimeUs)
         gpsFixType = 3;
     }
 
+    if (rtcGet(&rtcTime)) {
+        timeUnixUsec = (uint64_t)rtcTime * 1000ULL;
+    }
+
     mavlink_msg_gps_raw_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
-        currentTimeUs,
+        timeUnixUsec,
         gpsFixType,
         gpsSol.llh.lat,
         gpsSol.llh.lon,
@@ -795,11 +803,18 @@ void mavlinkSendScaledPressure(void)
 
 void mavlinkSendSystemTime(void)
 {
+    uint64_t timeUnixUsec = 0;
+    rtcTime_t rtcTime;
+
+    if (rtcGet(&rtcTime)) {
+        timeUnixUsec = (uint64_t)rtcTime * 1000ULL;
+    }
+
     mavlink_msg_system_time_pack(
         mavSystemId,
         mavComponentId,
         &mavSendMsg,
-        0,
+        timeUnixUsec,
         millis());
 
     mavlinkSendMessage();

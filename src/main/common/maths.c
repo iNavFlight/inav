@@ -165,7 +165,7 @@ int32_t applyDeadbandRescaled(int32_t value, int32_t deadband, int32_t min, int3
     return value;
 }
 
-int32_t constrain(int32_t amt, int32_t low, int32_t high)
+int32_t FAST_CODE constrain(int32_t amt, int32_t low, int32_t high)
 {
     if (amt < low)
         return low;
@@ -175,7 +175,7 @@ int32_t constrain(int32_t amt, int32_t low, int32_t high)
         return amt;
 }
 
-float constrainf(float amt, float low, float high)
+float FAST_CODE constrainf(float amt, float low, float high)
 {
     if (amt < low)
         return low;
@@ -225,7 +225,7 @@ int scaleRange(int x, int srcMin, int srcMax, int destMin, int destMax) {
     return ((a / b) + destMin);
 }
 
-float scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax) {
+float FAST_CODE scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax) {
     float a = (destMax - destMin) * (x - srcMin);
     float b = srcMax - srcMin;
     return ((a / b) + destMin);

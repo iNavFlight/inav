@@ -137,8 +137,9 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
             .radio_type = SETTING_MAVLINK_PORT4_RADIO_TYPE_DEFAULT,
             .high_latency = SETTING_MAVLINK_PORT4_HIGH_LATENCY_DEFAULT
         }
-    }
+    },
 #endif
+    .crsf_use_legacy_baro_packet = SETTING_CRSF_USE_LEGACY_BARO_PACKET_DEFAULT
 );
 
 void telemetryInit(void)

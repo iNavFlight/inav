@@ -8,8 +8,21 @@ For details on the structure of MSP, see [The wiki page](https://github.com/iNav
 For list of enums, see [Enum documentation page](https://github.com/iNavFlight/inav/wiki/Enums-reference)
 
 
+**When To Regenerate**
 
-**JSON file rev: 0**
+Run `docs/development/msp/gen_docs.sh` whenever MSP docs inputs change:
+- `msp_messages.json` message content/schema updates
+- source enum changes under `src/main` that affect `inav_enums.json`
+- `format.md` or this header template (`docs_v2_header.md`) changes
+
+By default the script removes temporary generated headers. Use `--keep_headers` only when you need them.
+
+**Versioning Rule**
+
+When the MSP JSON specification changes, bump `msp_messages.json` version:
+- breaking schema/compatibility change: increment `version.major`, reset `minor` and `patch`
+- backward-compatible schema extension: increment `version.minor`, reset `patch`
+- message/content/docs-only update inside current schema: increment `version.patch`
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -27,36 +40,50 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 # Format:
 ## JSON format example:
 ```
-    "MSP_API_VERSION": {
-        "code": 1,
-        "mspv": 1,
-        "request": null,
-        "reply": {
-            "payload": [
-                {
-                    "name": "mspProtocolVersion",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
-                },
-                {
-                    "name": "apiVersionMajor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
-                },
-                {
-                    "name": "apiVersionMinor",
-                    "ctype": "uint8_t",
-                    "units": "",
-                    "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
-                }
-            ],
-        },
-        "notes": "Used by configurators to check compatibility.",
-        "description": "Provides the MSP protocol version and the INAV API version."
+{
+    "version": {
+        "major": 2,
+        "minor": 0,
+        "patch": 0
     },
+    "messages": {
+        "MSP_API_VERSION": {
+            "code": 1,
+            "mspv": 1,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "mspProtocolVersion",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
+                    },
+                    {
+                        "name": "apiVersionMajor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Major version (`API_VERSION_MAJOR`)."
+                    },
+                    {
+                        "name": "apiVersionMinor",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "INAV API Minor version (`API_VERSION_MINOR`)."
+                    }
+                ]
+            },
+            "notes": "Used by configurators to check compatibility.",
+            "description": "Provides the MSP protocol version and the INAV API version."
+        },
+        "...": {}
+    }
+}
 ```
+## Top-level fields:
+**version**: JSON spec version (`major.minor.patch`)\
+**messages**: Dictionary keyed by MSP message name
+
 ## Message fields:
 **name**: MSP message name\
 **code**: Integer message code\
@@ -390,6 +417,8 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 [8251 - MSP2_INAV_LOGIC_CONDITIONS_SINGLE](#msp2_inav_logic_conditions_single)  
 [8256 - MSP2_INAV_ESC_RPM](#msp2_inav_esc_rpm)  
 [8257 - MSP2_INAV_ESC_TELEM](#msp2_inav_esc_telem)  
+[8258 - MSP2_INAV_DRONECAN_NODES](#msp2_inav_dronecan_nodes)  
+[8259 - MSP2_INAV_DRONECAN_NODE_INFO](#msp2_inav_dronecan_node_info)  
 [8264 - MSP2_INAV_LED_STRIP_CONFIG_EX](#msp2_inav_led_strip_config_ex)  
 [8265 - MSP2_INAV_SET_LED_STRIP_CONFIG_EX](#msp2_inav_set_led_strip_config_ex)  
 [8266 - MSP2_INAV_FW_APPROACH](#msp2_inav_fw_approach)  
@@ -404,6 +433,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 [8448 - MSP2_INAV_CUSTOM_OSD_ELEMENTS](#msp2_inav_custom_osd_elements)  
 [8449 - MSP2_INAV_CUSTOM_OSD_ELEMENT](#msp2_inav_custom_osd_element)  
 [8450 - MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS](#msp2_inav_set_custom_osd_elements)  
+[8451 - MSP2_INAV_GET_LINK_STATS](#msp2_inav_get_link_stats)  
 [8461 - MSP2_INAV_OUTPUT_MAPPING_EXT2](#msp2_inav_output_mapping_ext2)  
 [8704 - MSP2_INAV_SERVO_CONFIG](#msp2_inav_servo_config)  
 [8705 - MSP2_INAV_SET_SERVO_CONFIG](#msp2_inav_set_servo_config)  
@@ -420,6 +450,9 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 [8730 - MSP2_INAV_SET_GLOBAL_TARGET](#msp2_inav_set_global_target)  
 [8731 - MSP2_INAV_NAV_TARGET](#msp2_inav_nav_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
+[8737 - MSP2_INAV_SET_WP_INDEX](#msp2_inav_set_wp_index)  
+[8739 - MSP2_INAV_SET_CRUISE_HEADING](#msp2_inav_set_cruise_heading)  
+[8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -2281,7 +2314,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 | `hdop` | `uint16_t` | 2 | HDOP * 100 | Horizontal Dilution of Precision (`gpsSol.hdop`) |
 | `eph` | `uint16_t` | 2 | cm | Estimated Horizontal Position Accuracy (`gpsSol.eph`) |
 | `epv` | `uint16_t` | 2 | cm | Estimated Vertical Position Accuracy (`gpsSol.epv`) |
-| `hwVersion` | `uint32_t` | 4 | Version code | GPS hardware version (`gpsState.hwVersion`). Values: 500=UBLOX5, 600=UBLOX6, 700=UBLOX7, 800=UBLOX8, 900=UBLOX9, 1000=UBLOX10, 0=UNKNOWN |
+| `hwVersion` | `uint8_t` | 1 | - | GPS hardware version bit-field: bits[7:6]=series (0b01=u-blox Neo/M), bits[5:0]=generation. E.g. 0x48=M8, 0x49=M9, 0x4A=M10, 0=unknown. |
 
 **Notes:** Requires `USE_GPS`.
 
@@ -4126,6 +4159,41 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 **Notes:** Requires `USE_ESC_SENSOR`. See `escSensorData_t` in `sensors/esc_sensor.h` for the exact structure fields.
 
+## <a id="msp2_inav_dronecan_nodes"></a>`MSP2_INAV_DRONECAN_NODES (8258 / 0x2042)`
+**Description:** Returns the list of all detected DroneCAN nodes with their current status.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `nodeCount` | `uint8_t` | 1 | Number of detected DroneCAN nodes |
+| `nodeData` | `dronecanNodeStatus_t[]` | array | Array of per-node status records, one per detected node. Each record: nodeID(1)+health(1)+mode(1)+last_seen_ms(4) = 7 bytes. Full detail available via MSP2_INAV_DRONECAN_NODE_INFO. |
+
+**Notes:** Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 7 bytes each: nodeID(1)+health(1)+mode(1)+last_seen_ms(4). Maximum payload 1 + (DRONECAN_MAX_NODES * 7) = 225 bytes. Full node detail including uptime, vendor status, and name is available via MSP2_INAV_DRONECAN_NODE_INFO.
+
+## <a id="msp2_inav_dronecan_node_info"></a>`MSP2_INAV_DRONECAN_NODE_INFO (8259 / 0x2043)`
+**Description:** Returns full status detail for a single DroneCAN node by ID.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `nodeID` | `uint8_t` | 1 | DroneCAN node ID to query (1-127) |
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `nodeID` | `uint8_t` | 1 | - | DroneCAN node ID |
+| `health` | `uint8_t` | 1 | - | Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL |
+| `mode` | `uint8_t` | 1 | - | Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE |
+| `uptime_sec` | `uint32_t` | 4 | s | Node uptime in seconds |
+| `vendor_status_code` | `uint16_t` | 2 | - | Vendor-specific status code |
+| `last_seen_ms` | `uint32_t` | 4 | ms | FC millisecond timestamp when this node was last seen |
+| `name_len` | `uint8_t` | 1 | - | Length of node name string (0 if unknown) |
+| `name` | `char[32]` | 32 | - | Node name up to 32 bytes, zero-padded |
+
+**Notes:** Requires `USE_DRONECAN`. Returns `MSP_RESULT_ERROR` if the requested node ID is not in the node table.
+
 ## <a id="msp2_inav_led_strip_config_ex"></a>`MSP2_INAV_LED_STRIP_CONFIG_EX (8264 / 0x2048)`
 **Description:** Retrieves the full configuration for each LED on the strip using the `ledConfig_t` structure. Supersedes `MSP_LED_STRIP_CONFIG`.  
 
@@ -4363,6 +4431,20 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 **Reply Payload:** **None**  
 
 **Notes:** Payload length must be (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (CUSTOM_ELEMENTS_PARTS * 3) + 4 bytes including elementIndex. elementIndex must be < MAX_CUSTOM_ELEMENTS. Each partType must be < CUSTOM_ELEMENT_TYPE_END. Firmware NUL-terminates elementText internally.
+
+## <a id="msp2_inav_get_link_stats"></a>`MSP2_INAV_GET_LINK_STATS (8451 / 0x2103)`
+**Description:** Provides uplink RC link statistics for monitoring on a GCS.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `uplinkRSSI_dBm` | `uint8_t` | 1 | -dBm | Uplink RSSI in dBm, sent as a positive magnitude (`getRSSI()`). For example, 70 means -70dBm. |
+| `uplinkLQ` | `uint8_t` | 1 | % | Uplink Link Quality (`rxLinkStatistics.uplinkLQ`) |
+| `uplinkSNR` | `int8_t` | 1 | dB | Uplink Signal-to-Noise Ratio (`rxLinkStatistics.uplinkSNR`) |
+
+**Notes:** Useful for GCS monitoring of the active RC link quality and signal margin.
 
 ## <a id="msp2_inav_output_mapping_ext2"></a>`MSP2_INAV_OUTPUT_MAPPING_EXT2 (8461 / 0x210d)`
 **Description:** Retrieves the full extended output mapping configuration (timer ID, full 32-bit usage flags, and pin label). Supersedes `MSP2_INAV_OUTPUT_MAPPING_EXT`.  
@@ -4641,6 +4723,43 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 | `localVelocityUp` | `int16_t` | 2 | cm/s | Estimated Up component of velocity in local NEU frame (`posControl.actualState.abs.vel.z`) |
 
 **Notes:** All attitude angles are in deci-degrees.
+
+## <a id="msp2_inav_set_wp_index"></a>`MSP2_INAV_SET_WP_INDEX (8737 / 0x2221)`
+**Description:** Jumps to a specific waypoint during an active waypoint mission, causing the aircraft to immediately begin navigating toward the new target waypoint.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `wp_index` | `uint8_t` | 1 | - | 0-based waypoint index to jump to, relative to the mission start waypoint (`posControl.startWpIndex`) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.
+
+## <a id="msp2_inav_set_cruise_heading"></a>`MSP2_INAV_SET_CRUISE_HEADING (8739 / 0x2223)`
+**Description:** Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `heading_centidegrees` | `int32_t` | 4 | centidegrees | Target heading in centidegrees (0-35999). Values are wrapped modulo 36000 before being applied. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.
+
+## <a id="msp2_inav_set_aux_rc"></a>`MSP2_INAV_SET_AUX_RC (8752 / 0x2230)`
+**Description:** Bandwidth-efficient auxiliary RC channel update. Sets CH13-CH32 with configurable resolution (2/4/8/16-bit) without affecting primary flight controls. Designed for extending channel count beyond native RC link capacity via MSP passthrough.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `definitionByte` | `uint8_t` | 1 | - | Packed start channel and resolution. Bits 7-3: start channel index (valid range 12-31 for CH13-CH32; 0-11 rejected as error). Bits 2-0: resolution mode (0=2-bit, 1=4-bit, 2=8-bit, 3=16-bit; 4-7 reserved/error). |
+| `channelData` | `uint8_t[]` | array | PWM (encoded) | Packed channel values, sequential from start channel. Number of channels is derived from data size and resolution. Value 0 means skip (no update). Sub-byte modes (2-bit, 4-bit) are packed MSB-first. 2-bit values 1-3 map to 1000/1500/2000us. 4-bit values 1-15 map to 1000 + (val-1)*1000/14 us. 8-bit values 1-255 map to 1000 + (val-1)*1000/254 us. 16-bit values are direct PWM, clamped to 750-2250us. |
+
+**Reply Payload:** **None**  
+
+**Notes:** CH1-CH12 (index 0-11) are protected and will return `MSP_RESULT_ERROR`. Payload size must be 2-49 bytes. Constraint: `startChannel + channelCount <= 32`. Values persist until overwritten; no timeout. Applied as a post-RX overlay in `calculateRxChannelsAndUpdateFailsafe()` after MSP RC Override but before failsafe. Does not require `USE_RX_MSP` or MSP-RC-OVERRIDE flight mode. Does not affect failsafe detection. When MSP is the primary RX provider, channels covered by `MSP_SET_RAW_RC` are automatically skipped. Channels in the `mspOverrideChannels` bitmask are skipped when MSP RC Override mode is active. Recommended to send with `MSP_FLAG_DONT_REPLY` (flags=0x01) to save bandwidth on telemetry passthrough links. 16-bit mode requires even number of data bytes and values are clamped to 750-2250us.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

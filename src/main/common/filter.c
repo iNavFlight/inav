@@ -34,72 +34,54 @@ float nullFilterApply(void *filter, float input)
     return input;
 }
 
-float nullFilterApply4(void *filter, float input, float f_cut, float dt)
+float nullFilterApply3(void *filter, float input, float dt)
 {
     UNUSED(filter);
-    UNUSED(f_cut);
     UNUSED(dt);
     return input;
 }
 
-// PT1 Low Pass filter
+/* PT1 Low Pass filter
+ * f_cut = cutoff frequency. Use pt1FilterSetTimeConstant to directly set RC time constant tau if required.
+ */
 
 static float pt1ComputeRC(const float f_cut)
 {
     return 1.0f / (2.0f * M_PIf * f_cut);
 }
 
-// f_cut = cutoff frequency
-void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT)
-{
-    filter->state = 0.0f;
-    filter->RC = tau;
-    filter->dT = dT;
-    filter->alpha = filter->dT / (filter->RC + filter->dT);
-}
-
 void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT)
 {
-    pt1FilterInitRC(filter, pt1ComputeRC(f_cut), dT);
+    filter->RC = pt1ComputeRC(f_cut);
+    filter->dT = dT;
+    filter->alpha = filter->dT / (filter->RC + filter->dT);
+    filter->state = 0.0f;
+}
+
+float FAST_CODE NOINLINE pt1FilterApply(pt1Filter_t *filter, float input)  // use with pt1FilterInit if dT and f_cut are constants
+{
+    return filter->state = filter->state + filter->alpha * (input - filter->state);
+}
+
+float FAST_CODE NOINLINE pt1FilterApply3(pt1Filter_t *filter, float input, float dT)
+{
+    filter->dT = dT;    // cache latest dT for possible use in pt1FilterApply
+    filter->alpha = filter->dT / (filter->RC + filter->dT);
+
+    return filter->state = filter->state + filter->alpha * (input - filter->state);
 }
 
 void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau) {
     filter->RC = tau;
 }
 
-float pt1FilterGetLastOutput(pt1Filter_t *filter) {
-    return filter->state;
-}
-
-void pt1FilterUpdateCutoff(pt1Filter_t *filter, float f_cut)
+void pt1FilterSetCutoff(pt1Filter_t *filter, float f_cut)
 {
     filter->RC = pt1ComputeRC(f_cut);
     filter->alpha = filter->dT / (filter->RC + filter->dT);
 }
 
-float FAST_CODE NOINLINE pt1FilterApply(pt1Filter_t *filter, float input)
-{
-    filter->state = filter->state + filter->alpha * (input - filter->state);
-    return filter->state;
-}
-
-float pt1FilterApply3(pt1Filter_t *filter, float input, float dT)
-{
-    filter->dT = dT;
-    filter->state = filter->state + dT / (filter->RC + dT) * (input - filter->state);
-    return filter->state;
-}
-
-float FAST_CODE NOINLINE pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dT)
-{
-    // Pre calculate and store RC
-    if (!filter->RC) {
-        filter->RC = pt1ComputeRC(f_cut);
-    }
-
-    filter->dT = dT;    // cache latest dT for possible use in pt1FilterApply
-    filter->alpha = filter->dT / (filter->RC + filter->dT);
-    filter->state = filter->state + filter->alpha * (input - filter->state);
+float pt1FilterGetLastOutput(pt1Filter_t *filter) {
     return filter->state;
 }
 
