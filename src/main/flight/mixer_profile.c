@@ -150,6 +150,13 @@ void setMixerProfileAT(void)
     mixerProfileAT.liftScale = 1.0f;
     mixerProfileAT.mcAuthorityScale = 1.0f;
     mixerProfileAT.fwAuthorityScale = 1.0f;
+    mixerProfileAT.postSwitchFadeProgress = 0.0f;
+    mixerProfileAT.postSwitchFadeInitialScale = 0.0f;
+    mixerProfileAT.postSwitchFadeMotorMask = 0;
+    mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    mixerProfileAT.postSwitchFadeDurationMs = 0;
+    mixerProfileAT.postSwitchFadeStartTime = 0;
+    memset(mixerProfileAT.postSwitchFadeMotorOutput, 0, sizeof(mixerProfileAT.postSwitchFadeMotorOutput));
 #else
     mixerProfileAT.transitionStartTime = millis();
     mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchTransitionTimer * 100;
@@ -189,6 +196,13 @@ static void resetTransitionScales(void)
     mixerProfileAT.liftScale = 1.0f;
     mixerProfileAT.mcAuthorityScale = 1.0f;
     mixerProfileAT.fwAuthorityScale = 1.0f;
+    mixerProfileAT.postSwitchFadeProgress = 0.0f;
+    mixerProfileAT.postSwitchFadeInitialScale = 0.0f;
+    mixerProfileAT.postSwitchFadeMotorMask = 0;
+    mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    mixerProfileAT.postSwitchFadeDurationMs = 0;
+    mixerProfileAT.postSwitchFadeStartTime = 0;
+    memset(mixerProfileAT.postSwitchFadeMotorOutput, 0, sizeof(mixerProfileAT.postSwitchFadeMotorOutput));
 }
 
 static void setLegacyTransitionScales(void)
@@ -201,6 +215,10 @@ static void setLegacyTransitionScales(void)
     mixerProfileAT.liftScale = 1.0f;
     mixerProfileAT.mcAuthorityScale = 1.0f;
     mixerProfileAT.fwAuthorityScale = 1.0f;
+    mixerProfileAT.postSwitchFadeProgress = 1.0f;
+    mixerProfileAT.postSwitchFadeInitialScale = 0.0f;
+    mixerProfileAT.postSwitchFadeMotorMask = 0;
+    mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
 }
 
 static float blendScale(float from, float to, float progress)
@@ -278,6 +296,121 @@ static bool hasPitotSensorForManualProtection(void)
 #else
     return false;
 #endif
+}
+
+static void preparePostSwitchFade(const int targetProfileIndex)
+{
+    mixerProfileAT.postSwitchFadeMotorMask = 0;
+    mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    mixerProfileAT.postSwitchFadeProgress = 0.0f;
+    mixerProfileAT.postSwitchFadeInitialScale = 0.0f;
+    mixerProfileAT.postSwitchFadeDurationMs = 0;
+    mixerProfileAT.postSwitchFadeStartTime = 0;
+    memset(mixerProfileAT.postSwitchFadeMotorOutput, 0, sizeof(mixerProfileAT.postSwitchFadeMotorOutput));
+
+    if (!currentMixerConfig.vtolTransitionDynamicMixer ||
+        currentMixerConfig.vtolTransitionScaleRampTimeMs == 0 ||
+        mixerProfileAT.direction == MIXERAT_DIRECTION_NONE ||
+        targetProfileIndex < 0 ||
+        targetProfileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        return;
+    }
+
+    const motorMixer_t *currentMotorMixer = mixerMotorMixersByIndex(currentMixerProfileIndex);
+    const motorMixer_t *targetMotorMixer = mixerMotorMixersByIndex(targetProfileIndex);
+    const bool currentProfileIsMultirotor = isMultirotorTypePlatform(currentMixerConfig.platformType);
+    const uint8_t count = getMotorCount();
+
+    for (uint8_t i = 0; i < count && i < MAX_SUPPORTED_MOTORS; i++) {
+        const bool currentMotorActive = currentMotorMixer[i].throttle > 0.0f;
+        const bool targetMotorActive = targetMotorMixer[i].throttle > 0.0f;
+        // Fade only propulsion outputs that disappear after the hot-switch.
+        // Shared tilt motors are handled by complementary throttle blending and
+        // must not receive an extra captured-output overlay.
+        const bool oldLiftMotor = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW &&
+                                  currentProfileIsMultirotor &&
+                                  currentMotorActive &&
+                                  !targetMotorActive;
+        const bool oldPusherMotor = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC &&
+                                    !currentProfileIsMultirotor &&
+                                    currentMotorActive &&
+                                    !targetMotorActive;
+        const bool targetFwPusherMotor = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW &&
+                                         currentProfileIsMultirotor &&
+                                         !currentMotorActive &&
+                                         targetMotorActive;
+
+        if (oldLiftMotor || oldPusherMotor || targetFwPusherMotor) {
+            mixerProfileAT.postSwitchFadeMotorOutput[i] = motor[i];
+            mixerProfileAT.postSwitchFadeMotorMask |= (1U << i);
+            if (targetFwPusherMotor) {
+                mixerProfileAT.postSwitchFadeToCurrentMotorMask |= (1U << i);
+            }
+        }
+    }
+
+    if (mixerProfileAT.postSwitchFadeMotorMask == 0) {
+        return;
+    }
+
+    mixerProfileAT.postSwitchFadeDurationMs = currentMixerConfig.vtolTransitionScaleRampTimeMs;
+    mixerProfileAT.postSwitchFadeInitialScale = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW ?
+        constrainf(mixerProfileAT.liftScale, 0.0f, 1.0f) :
+        constrainf(mixerProfileAT.pusherScale, 0.0f, 1.0f);
+}
+
+static bool startPostSwitchFade(void)
+{
+    if (mixerProfileAT.postSwitchFadeMotorMask == 0 ||
+        mixerProfileAT.postSwitchFadeDurationMs == 0) {
+        return false;
+    }
+
+    mixerProfileAT.postSwitchFadeStartTime = millis();
+    mixerProfileAT.postSwitchFadeProgress = 0.0f;
+    mixerProfileAT.phase = MIXERAT_PHASE_POST_SWITCH_FADE;
+    isMixerTransitionMixing_requested = false;
+    return true;
+}
+
+static bool updatePostSwitchFade(void)
+{
+    if (mixerProfileAT.phase != MIXERAT_PHASE_POST_SWITCH_FADE) {
+        return true;
+    }
+
+    if (mixerProfileAT.postSwitchFadeDurationMs == 0) {
+        mixerProfileAT.postSwitchFadeProgress = 1.0f;
+    } else {
+        const uint32_t elapsedMs = millis() - mixerProfileAT.postSwitchFadeStartTime;
+        mixerProfileAT.postSwitchFadeProgress = constrainf((float)elapsedMs / (float)mixerProfileAT.postSwitchFadeDurationMs, 0.0f, 1.0f);
+    }
+
+    const float remainingScale = mixerProfileAT.postSwitchFadeInitialScale * (1.0f - mixerProfileAT.postSwitchFadeProgress);
+    if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) {
+        mixerProfileAT.pusherScale = 1.0f;
+        mixerProfileAT.liftScale = remainingScale;
+        mixerProfileAT.mcAuthorityScale = 0.0f;
+        mixerProfileAT.fwAuthorityScale = 1.0f;
+        mixerProfileAT.blendToFw = 1.0f;
+    } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC) {
+        mixerProfileAT.pusherScale = remainingScale;
+        mixerProfileAT.liftScale = 1.0f;
+        mixerProfileAT.mcAuthorityScale = 1.0f;
+        mixerProfileAT.fwAuthorityScale = 0.0f;
+        mixerProfileAT.blendToFw = 0.0f;
+    }
+
+    if (mixerProfileAT.postSwitchFadeProgress < 1.0f) {
+        return false;
+    }
+
+    mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
+    mixerProfileAT.request = MIXERAT_REQUEST_NONE;
+    mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
+    mixerProfileAT.postSwitchFadeMotorMask = 0;
+    mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    return true;
 }
 
 static uint16_t getAirspeedThresholdForDirection(const mixerProfileATDirection_e direction)
@@ -490,6 +623,10 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
     {
         reprocessState=false;
         if (required_action == MIXERAT_REQUEST_ABORT) {
+            if (mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE && mixerProfileAT.hotSwitchDone) {
+                mixerProfileAT.request = MIXERAT_REQUEST_NONE;
+                return true;
+            }
             abortTransition(false);
             return true;
         }
@@ -523,15 +660,18 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                 isMixerTransitionMixing_requested = false;
                 mixerProfileAT.progress = 1.0f;
                 updateTransitionScales();
+                preparePostSwitchFade(nextMixerProfileIndex);
                 if (!outputProfileHotSwitch(nextMixerProfileIndex)) {
                     abortTransition(false);
                     return true;
                 }
                 mixerProfileAT.hotSwitchDone = true;
-                mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
-                mixerProfileAT.request = MIXERAT_REQUEST_NONE;
-                mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
-                reprocessState = true;
+                if (!startPostSwitchFade()) {
+                    mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
+                    mixerProfileAT.request = MIXERAT_REQUEST_NONE;
+                    mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
+                }
+                return true;
             } else if (mixerProfileAT.usedAirspeed &&
                        currentMixerConfig.vtolTransitionAirspeedTimeoutMs > 0 &&
                        (millis() - mixerProfileAT.transitionStartTime) >= currentMixerConfig.vtolTransitionAirspeedTimeoutMs) {
@@ -542,6 +682,10 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
             updateTransitionScales();
             return false;
             break;
+        case MIXERAT_PHASE_POST_SWITCH_FADE:
+            isMixerTransitionMixing_requested = false;
+            updatePostSwitchFade();
+            return true;
         default:
             break;
         }
@@ -652,6 +796,11 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         mixerAT_inuse = false;
     }
 
+    if (mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE) {
+        mixerATUpdateState(MIXERAT_REQUEST_NONE);
+        mixerAT_inuse = mixerATIsActive();
+    }
+
     if (!FLIGHT_MODE(FAILSAFE_MODE) && !mixerAT_inuse)
     {
         if (mixerProfileModePresent && !transitionControllerOwnsProfileSwitch && !fwToMcProtectionOwnsProfileSwitch) {
@@ -736,21 +885,29 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         (FLIGHT_MODE(FAILSAFE_MODE) ? 1U << 17 : 0U) |
         (manualControllerEnabled ? 1U << 18 : 0U) |
         (IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) ? 1U << 19 : 0U) |
-        (manualTransitionSessionLatched ? 1U << 20 : 0U);
+        (manualTransitionSessionLatched ? 1U << 20 : 0U) |
+        (mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE ? 1U << 29 : 0U);
 
-    const uint8_t targetInputMode =
-        (isMixerTransitionMixing &&
-         mixerATIsActive() &&
-         mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) ?
-            (FLIGHT_MODE(MANUAL_MODE) ? 1U : 2U) :
-            0U;
+    uint8_t targetInputMode = 0U;
+    if (isMixerTransitionMixing && mixerATIsActive()) {
+        if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) {
+            targetInputMode = FLIGHT_MODE(MANUAL_MODE) ? 1U : 2U;
+        } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC) {
+            targetInputMode = 3U;
+        }
+    }
     const uint16_t progressScaled = lrintf(constrainf(mixerProfileAT.progress, 0.0f, 1.0f) * 1000.0f);
     const uint16_t handoffScaled = lrintf(constrainf(mixerProfileAT.handoffScalingProgress, 0.0f, 1.0f) * 1000.0f);
     const uint16_t motorRampScaled = lrintf(constrainf(mixerProfileAT.motorRampProgress, 0.0f, 1.0f) * 1000.0f);
+    const uint16_t postFadeScaled = lrintf(constrainf(mixerProfileAT.postSwitchFadeProgress, 0.0f, 1.0f) * 1000.0f);
     const uint16_t pusherScaled = lrintf(constrainf(mixerProfileAT.pusherScale, 0.0f, 1.0f) * 1000.0f);
     const uint16_t liftScaled = lrintf(constrainf(mixerProfileAT.liftScale, 0.0f, 1.0f) * 1000.0f);
     const uint16_t mcAuthorityScaled = lrintf(constrainf(mixerProfileAT.mcAuthorityScale, 0.0f, 1.0f) * 1000.0f);
     const uint16_t fwAuthorityScaled = lrintf(constrainf(mixerProfileAT.fwAuthorityScale, 0.0f, 1.0f) * 1000.0f);
+    const uint32_t packedProgress =
+        ((uint32_t)MIN(handoffScaled, 1000) & 0x3FFU) |
+        (((uint32_t)MIN(motorRampScaled, 1000) & 0x3FFU) << 10) |
+        (((uint32_t)MIN(postFadeScaled, 1000) & 0x3FFU) << 20);
 
     transitionDebugFlags |= (((uint32_t)currentMixerConfig.platformType & 0xFU) << 21);
     transitionDebugFlags |= (((uint32_t)pidIndexGetType(PID_ROLL) & 0x3U) << 25);
@@ -764,7 +921,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     // [4] pusherScale x1000
     // [5] liftScale x1000
     // [6] mcAuthorityScale x1000 | (fwAuthorityScale x1000 << 16)
-    // [7] handoffProgress x1000 | (motorRampProgress x1000 << 16)
+    // [7] handoffProgress 10-bit | motorRampProgress 10-bit | postSwitchFadeProgress 10-bit
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 0, mixerProfileAT.phase);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, (int32_t)(((uint32_t)mixerProfileAT.request & 0xFFU) | (((uint32_t)mixerProfileAT.direction & 0xFFU) << 8)));
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 2, (int32_t)transitionDebugFlags);
@@ -772,9 +929,9 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 4, pusherScaled);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 5, liftScaled);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 6, (int32_t)((uint32_t)mcAuthorityScaled | ((uint32_t)fwAuthorityScaled << 16)));
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 7, (int32_t)((uint32_t)handoffScaled | ((uint32_t)motorRampScaled << 16)));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 7, (int32_t)packedProgress);
 
-    if (!isMixerTransitionMixing) {
+    if (!isMixerTransitionMixing && !mixerATIsActive()) {
         resetTransitionScales();
     }
 #else
@@ -858,6 +1015,31 @@ float mixerATGetBlendToFw(void)
     return 1.0f;
 #endif
 }
+
+#ifdef USE_AUTO_TRANSITION
+bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output)
+{
+    if (mixerProfileAT.phase != MIXERAT_PHASE_POST_SWITCH_FADE ||
+        motorIndex >= MAX_SUPPORTED_MOTORS ||
+        (mixerProfileAT.postSwitchFadeMotorMask & (1U << motorIndex)) == 0) {
+        return false;
+    }
+
+    const float holdScale = 1.0f - constrainf(mixerProfileAT.postSwitchFadeProgress, 0.0f, 1.0f);
+    const int16_t capturedOutput = mixerProfileAT.postSwitchFadeMotorOutput[motorIndex];
+    const bool fadeToCurrentOutput = (mixerProfileAT.postSwitchFadeToCurrentMotorMask & (1U << motorIndex)) != 0;
+    const int16_t targetOutput = fadeToCurrentOutput ? currentOutput : idleOutput;
+    const int32_t fadedOutput = lrintf(targetOutput + (capturedOutput - targetOutput) * holdScale);
+
+    *output = constrain(fadedOutput, MIN(targetOutput, capturedOutput), MAX(targetOutput, capturedOutput));
+    return true;
+}
+
+float mixerATGetPostSwitchFadeProgress(void)
+{
+    return constrainf(mixerProfileAT.postSwitchFadeProgress, 0.0f, 1.0f);
+}
+#endif
 
 bool isMixerProfile2ModeReportedActive(void)
 {

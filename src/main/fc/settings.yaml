@@ -1284,7 +1284,7 @@ groups:
         min: 0
         max: 200
       - name: mixer_vtol_transition_dynamic_mixer
-        description: "Turns on smooth VTOL transition handoff scaling. In MC->FW it ramps the forward motor up while lift power and multicopter stabilisation fade down and fixed-wing control fades in. In FW->MC it ramps the forward motor down while lift power and multicopter stabilisation ramp back in, and fixed-wing control fades down. Used by both manual `MIXER TRANSITION` and mission-requested VTOL transitions. Available only on targets with more than 512 KB flash."
+        description: "Turns on smooth VTOL transition handoff scaling. In MC->FW it ramps the forward motor up while lift power and multicopter stabilisation fade down and fixed-wing control fades in. In FW->MC it ramps the forward motor down while target MC lift power and target MC motor stabilisation ramp back in, and fixed-wing control fades down. Used by both manual `MIXER TRANSITION` and mission-requested VTOL transitions. Available only on targets with more than 512 KB flash."
         condition: USE_AUTO_TRANSITION
         default_value: OFF
         field: mixer_config.vtolTransitionDynamicMixer
@@ -1303,7 +1303,7 @@ groups:
         min: 0
         max: 60000
       - name: mixer_vtol_transition_scale_ramp_time_ms
-        description: "When smooth VTOL transition power changes are ON, this controls the time-based motor/power handover only. In MC->FW it ramps the forward motor from idle to full target power. In FW->MC it ramps the forward motor down to idle and ramps lift power plus multicopter stabilisation back in. `0` applies those time-based power changes immediately. This timer does not decide when the transition completes and it does not control fixed-wing control-surface handoff. Fixed-wing handoff still follows trusted pitot airspeed when pitot is usable, otherwise `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash."
+        description: "When smooth VTOL transition power changes are ON, this controls the time-based motor/power handover only. In MC->FW it ramps the forward motor from idle to full target power. After the switch to FW, any old lift motors that are no longer used by the FW profile fade to idle over the same time. In FW->MC it ramps the forward motor down to idle and ramps target MC lift power plus target MC motor stabilisation back in. After the switch to MC, any old forward motor that is no longer used by the MC profile is kept fading to idle. `0` applies those time-based power changes immediately. This timer does not decide when the transition completes and it does not control fixed-wing control-surface handoff. Fixed-wing handoff still follows trusted pitot airspeed when pitot is usable, otherwise `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash."
         condition: USE_AUTO_TRANSITION
         default_value: 0
         field: mixer_config.vtolTransitionScaleRampTimeMs
@@ -4060,7 +4060,7 @@ groups:
         min: 0
         max: 100
       - name: vtol_transition_mc_authority_min_percent
-        description: "Lowest multicopter stabilisation used during transition, in percent. In MC->FW, multicopter stabilisation fades down to this value as the handoff progresses. In FW->MC, it starts from this value and rises back to full stabilisation by the motor ramp timer. `100` keeps full multicopter stabilisation through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash."
+        description: "Lowest multicopter stabilisation used during transition, in percent. In MC->FW, active MC motor stabilisation fades down to this value as the handoff progresses. In FW->MC, target MC motor stabilisation starts from this value and rises back to full strength by the motor ramp timer. `100` keeps full multicopter stabilisation through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash."
         condition: USE_AUTO_TRANSITION
         default_value: 100
         field: vtolTransitionMcAuthorityMinPercent

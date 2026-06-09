@@ -62,6 +62,9 @@ typedef enum {
     MIXERAT_PHASE_IDLE,
     MIXERAT_PHASE_TRANSITION_INITIALIZE,
     MIXERAT_PHASE_TRANSITIONING,
+#ifdef USE_AUTO_TRANSITION
+    MIXERAT_PHASE_POST_SWITCH_FADE,
+#endif
 #ifndef USE_AUTO_TRANSITION
     MIXERAT_PHASE_DONE,
 #endif
@@ -86,6 +89,13 @@ typedef struct mixerProfileAT_s {
     float liftScale;
     float mcAuthorityScale;
     float fwAuthorityScale;
+    float postSwitchFadeProgress;
+    float postSwitchFadeInitialScale;
+    uint16_t postSwitchFadeMotorMask;
+    uint16_t postSwitchFadeToCurrentMotorMask;
+    uint16_t postSwitchFadeDurationMs;
+    uint16_t postSwitchFadeMotorOutput[MAX_SUPPORTED_MOTORS];
+    timeMs_t postSwitchFadeStartTime;
     timeMs_t transitionStartTime;
 #else
     bool transitionInputMixing;
@@ -105,6 +115,10 @@ float mixerATGetLiftScale(void);
 float mixerATGetMcAuthorityScale(void);
 float mixerATGetFwAuthorityScale(void);
 float mixerATGetBlendToFw(void);
+#ifdef USE_AUTO_TRANSITION
+bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output);
+float mixerATGetPostSwitchFadeProgress(void);
+#endif
 bool isMixerProfile2ModeReportedActive(void);
 bool isMixerTransitionModeReportedActive(void);
 

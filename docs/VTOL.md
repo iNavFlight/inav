@@ -259,7 +259,7 @@ Add new servo mixer rules, and select 'Mixer Transition' in input. Set the weigh
 
 ## Motor 'Transition Mixing': Dedicated forward motor configuration
 In motor mixer set:
-- -2.0 < throttle < -1.0: The motor will spin regardless of the radio's throttle position at a speed of `abs(throttle) - 1` multiplied by throttle range only when Mixer Transition is activated.
+- -2.0 <= throttle <= -1.05: The motor will spin regardless of the radio's throttle position at a speed of `abs(throttle) - 1` multiplied by throttle range only when Mixer Transition is activated. Use exactly `-1.000` only as a placeholder, not as a transition helper motor.
 - Airmode type should be set to "STICK_CENTER". Airmode type must NOT be set to "THROTTLE_THRESHOLD". If set to throttle threshold the (-) motor will spin until the throttle threshold is passed.
   
 ![Alt text](Screenshots/mixerprofile_4puls1_mix.png)
@@ -396,8 +396,20 @@ When it is ON, you can configure `INPUT_AUTOTRANSITION_TARGET_STABILIZED_*` serv
 During MC->FW they give those servos a preview of the fixed-wing stabilisation that will take over after the hot-switch.
 This preview uses the target fixed-wing PID bank, rates, angle limits, heading-hold limits, and turn-assist gains, but it still follows the current transition stick shaping until the actual profile switch.
 During FW->MC the same MC mixer rules mark which FW servo outputs should fade down as fixed-wing authority is reduced and motor stabilisation comes back in.
+At the same time, target MC motor rules can fade in before the switch and use a target MC PID preview, so lift motors are not driven by the active FW/PIFF controller.
 These inputs are active only while the smooth autotransition controller is running. If `mixer_vtol_transition_dynamic_mixer = OFF`, they stay at full authority while the controller is active. If `mixer_vtol_transition_dynamic_mixer = ON`, they follow the normal fixed-wing authority scaling.
 `INPUT_MIXER_TRANSITION` remains available for transition-progress servo movement such as tilt or helper servos.
+
+Forward motor setup for smooth auto-transition:
+
+- Preferred setup: configure the forward motor as a normal positive-throttle motor in the FW mixer profile.
+- Reserve the same motor index in the MC mixer profile with a placeholder if that motor is not used in MC flight. Use `throttle = -1.000`, `roll = 0`, `pitch = 0`, `yaw = 0` if Configurator removes zero-throttle motor rules.
+- During MC->FW, iNAV can ramp that target FW motor rule in before the hot-switch.
+- For FW->MC, configure the lift motors as normal positive-throttle motors in the MC mixer profile. If those motor indexes are not used in FW flight, reserve them in the FW mixer profile with placeholders.
+- During FW->MC, iNAV can ramp those target MC lift motor rules in before the hot-switch and use target MC stabilisation for their roll/pitch/yaw correction.
+- The older `-2.0 <= throttle <= -1.05` transition motor rule still works as a legacy/helper path, but it is not the preferred setup for smooth auto-transition.
+- If a helper such as `throttle = -1.200` is used before the MC->FW switch, smooth auto-transition fades from that helper output to the real FW mixer output after the hot-switch.
+- If the same physical tilt motor is configured with positive throttle in both profiles on the same index, iNAV blends the base throttle between the MC and FW mixer rules instead of adding both throttles together. The current-profile stabilisation fades out while the target-profile stabilisation fades in.
 
 `mixer_vtol_transition_scale_ramp_time_ms` controls the time-based motor/power handover when this feature is ON.
 It does not decide when the transition completes.
@@ -405,11 +417,15 @@ It does not decide when the transition completes.
 How `mixer_vtol_transition_scale_ramp_time_ms` works:
 - Time-based motor/power handover:
   - MC->FW: forward motor power ramps from `0 -> 100%` over this time.
+  - After the MC->FW profile switch, lift motors that are not used by the FW profile fade to idle over this same time instead of stopping immediately.
   - FW->MC: forward motor power ramps from `100% -> 0%`, while lift power and MC stabilisation ramp from their configured minimums back to `100%` over this time.
+  - After the FW->MC profile switch, a forward motor that is not used by the MC profile is kept fading to idle and cannot be reintroduced by FW throttle.
   - `= 0` (default): those time-based power changes happen immediately.
-- Lift motor reduction in MC->FW, plus MC/FW control handoff in both directions:
-  - with valid pitot airspeed, they still follow airspeed-based transition progress.
-  - if pitot is not usable, they fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
+- Airspeed-based control handoff:
+  - in MC->FW, lift power reduction, MC stabilisation fade-out, and FW control fade-in follow airspeed when pitot is usable.
+  - in FW->MC, FW control fade-out follows airspeed when pitot is usable.
+  - if pitot is not usable, those handoff changes fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
+- In FW->MC, forward motor removal, lift power ramp-in, and MC motor stabilisation ramp-in use the time-based motor ramp so they do not wait for airspeed to fall first.
 
 Example:
 - `mixer_switch_trans_timer = 50` (5s fallback completion timer)
@@ -516,8 +532,9 @@ Example (`vtol_transition_lift_min_percent = 20`):
 
 2. `vtol_transition_mc_authority_min_percent`
 - Sets the lowest multicopter stabilisation used during transition.
-- MC -> FW: MC stabilisation goes from `100%` at start down to `mc_authority_min_percent`.
-- FW -> MC: MC stabilisation goes from `mc_authority_min_percent` at start up to `100%`.
+- MC -> FW: active MC motor stabilisation goes from `100%` at start down to `mc_authority_min_percent`.
+- FW -> MC: target MC motor stabilisation goes from `mc_authority_min_percent` at start up to `100%`.
+- During FW -> MC, this target MC stabilisation comes from the MC mixer profile and target MC PID preview, not from the active FW/PIFF controller.
 
 Example (`vtol_transition_mc_authority_min_percent = 30`):
 - MC -> FW at 50% progress: MC stabilisation is about `65%`.
@@ -593,7 +610,7 @@ Use these commands in CLI (`set ...`, then `save`):
   - How long iNAV waits for required pitot airspeed before aborting.
 
 - `set mixer_vtol_transition_scale_ramp_time_ms = <value>`
-  - Ramp-in time for the MC->FW forward motor and the FW->MC lift motors.
+  - Ramp time for MC->FW forward motor power, FW->MC forward motor removal, and the short post-switch fade of old lift/pusher outputs.
 
 - `set vtol_transition_lift_min_percent = <0..100>`
   - Lowest lift motor power used during transition.
@@ -655,14 +672,21 @@ Smooth transition power changes (`mixer_vtol_transition_dynamic_mixer = ON`) use
   - MC stabilisation ramps `vtol_transition_mc_authority_min_percent -> 1`
   - FW control ramps `1 -> vtol_transition_fw_authority_min_percent`
 
+After the profile switch, iNAV keeps only the old propulsion output alive for a short fade:
+
+- MC -> FW: lift motors that are not used by the FW profile fade to idle.
+- FW -> MC: a forward motor that is not used by the MC profile keeps fading to idle.
+- This post-switch fade uses `mixer_vtol_transition_scale_ramp_time_ms` and does not keep the old PID/controller active.
+
 Motor ramp-in and control handover are separate.
 For MC->FW, forward motor power uses `mixer_vtol_transition_scale_ramp_time_ms`; if this is `0`, the motor goes to full power immediately.
 For FW->MC, the same timer ramps the forward motor down to idle while lift power and MC stabilisation rise back from their configured minimums; if this is `0`, those changes happen immediately.
 This timer does not decide when the transition completes.
-Lift motor reduction in MC->FW, plus MC stabilisation and FW control handoff in both directions, still prefer pitot-based transition progress whenever pitot is working.
-If pitot is not usable, those handoff changes fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
+In MC->FW, lift power reduction, MC stabilisation fade-out, and FW control fade-in still prefer pitot-based transition progress whenever pitot is working.
+In FW->MC, FW control fade-out still prefers pitot-based transition progress, while forward motor removal, lift power ramp-in, and MC motor stabilisation ramp-in use the time-based motor ramp.
+If pitot is not usable, the airspeed-based handoff changes fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
 
-For transition/pusher motors (`-2.0 < throttle < -1.0`), output is interpolated from idle to target:
+For legacy/helper transition motors (`-2.0 <= throttle <= -1.05`), output is interpolated from idle to target:
 
 `motor = idle + (target - idle) * pusherScale`
 
@@ -671,3 +695,5 @@ where:
 - `idle = throttleRangeMin`
 
 If pitot is unavailable/unhealthy, timer fallback is used (`mixer_switch_trans_timer`).
+
+For smooth auto-transition, the preferred forward motor setup is a normal positive-throttle rule in the FW mixer profile, with a placeholder on the same motor index in the MC mixer profile. Use `throttle = -1.000` for that placeholder if Configurator removes zero-throttle motor rules. If a helper such as `throttle = -1.200` is used, iNAV fades from that helper output to the real FW mixer output after the hot-switch.

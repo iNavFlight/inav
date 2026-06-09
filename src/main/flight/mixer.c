@@ -523,10 +523,12 @@ void FAST_CODE mixTable(void)
         input[YAW] = axisPID[YAW];
         if (isMixerTransitionMixing) {
 #ifdef USE_AUTO_TRANSITION
-            const float mcAuthorityScale = mixerATGetMcAuthorityScale();
-            input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f) * mcAuthorityScale;
-            input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f) * mcAuthorityScale;
-            input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f) * mcAuthorityScale;
+            const float activeAuthorityScale = isMultirotorTypePlatform(currentMixerConfig.platformType) ?
+                mixerATGetMcAuthorityScale() :
+                mixerATGetFwAuthorityScale();
+            input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f) * activeAuthorityScale;
+            input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f) * activeAuthorityScale;
+            input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f) * activeAuthorityScale;
 #else
             input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f);
             input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f);
@@ -535,6 +537,41 @@ void FAST_CODE mixTable(void)
         }
     }
 
+#ifdef USE_AUTO_TRANSITION
+    const bool autoTransitionMotorMixing = isMixerTransitionMixing &&
+                                           mixerATIsActive() &&
+                                           mixerProfileAT.direction != MIXERAT_DIRECTION_NONE &&
+                                           nextMixerProfileIndex >= 0 &&
+                                           nextMixerProfileIndex < MAX_MIXER_PROFILE_COUNT;
+    const bool currentProfileIsMultirotor = isMultirotorTypePlatform(currentMixerConfig.platformType);
+    const int targetMixerProfileIndex = autoTransitionMotorMixing ? nextMixerProfileIndex : -1;
+    const motorMixer_t *targetMotorMixer = autoTransitionMotorMixing ? mixerMotorMixersByIndex(targetMixerProfileIndex) : NULL;
+    const bool targetProfileIsMultirotor = autoTransitionMotorMixing ?
+        isMultirotorTypePlatform(mixerConfigByIndex(targetMixerProfileIndex)->platformType) :
+        false;
+    int16_t targetInput[3] = { 0, 0, 0 };
+
+    if (autoTransitionMotorMixing) {
+        const float targetAuthorityScale = targetProfileIsMultirotor ?
+            mixerATGetMcAuthorityScale() :
+            mixerATGetFwAuthorityScale();
+
+        if (!targetProfileIsMultirotor && FLIGHT_MODE(MANUAL_MODE)) {
+            targetInput[ROLL] = rcCommand[ROLL];
+            targetInput[PITCH] = rcCommand[PITCH];
+            targetInput[YAW] = rcCommand[YAW];
+        } else {
+            targetInput[ROLL] = getAutoTransitionTargetAxisPID(FD_ROLL);
+            targetInput[PITCH] = getAutoTransitionTargetAxisPID(FD_PITCH);
+            targetInput[YAW] = getAutoTransitionTargetAxisPID(FD_YAW);
+        }
+
+        targetInput[ROLL] = targetInput[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f) * targetAuthorityScale;
+        targetInput[PITCH] = targetInput[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f) * targetAuthorityScale;
+        targetInput[YAW] = targetInput[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f) * targetAuthorityScale;
+    }
+#endif
+
     // Initial mixer concept by bdoiron74 reused and optimized for Air Mode
     int16_t rpyMix[MAX_SUPPORTED_MOTORS];
     int16_t rpyMixMax = 0; // assumption: symetrical about zero.
@@ -542,10 +579,28 @@ void FAST_CODE mixTable(void)
 
     // motors for non-servo mixes
     for (int i = 0; i < motorCount; i++) {
+#ifdef USE_AUTO_TRANSITION
+        const motorMixer_t *targetMixer = autoTransitionMotorMixing ? &targetMotorMixer[i] : NULL;
+        const bool currentMotorActive = currentMixer[i].throttle > 0.0f;
+        const bool targetMotorActive = targetMixer && targetMixer->throttle > 0.0f;
+        const int16_t activeRpyMix = currentMotorActive ?
+            (input[PITCH] * currentMixer[i].pitch +
+            input[ROLL] * currentMixer[i].roll +
+            -motorYawMultiplier * input[YAW] * currentMixer[i].yaw) :
+            0;
+        const int16_t targetRpyMix = targetMotorActive ?
+            (targetInput[PITCH] * targetMixer->pitch +
+            targetInput[ROLL] * targetMixer->roll +
+            -motorYawMultiplier * targetInput[YAW] * targetMixer->yaw) :
+            0;
+
+        rpyMix[i] = (activeRpyMix + targetRpyMix) * mixerScale;
+#else
         rpyMix[i] =
             (input[PITCH] * currentMixer[i].pitch +
             input[ROLL] * currentMixer[i].roll +
             -motorYawMultiplier * input[YAW] * currentMixer[i].yaw) * mixerScale;
+#endif
 
         if (rpyMix[i] > rpyMixMax) rpyMixMax = rpyMix[i];
         if (rpyMix[i] < rpyMixMin) rpyMixMin = rpyMix[i];
@@ -635,18 +690,32 @@ void FAST_CODE mixTable(void)
     for (int i = 0; i < motorCount; i++) {
         float motorThrottle = mixerThrottleCommand * currentMixer[i].throttle;
 #ifdef USE_AUTO_TRANSITION
-        if (isMixerTransitionMixing && currentMixer[i].throttle > 0.0f) {
-            // During MC->FW, positive-throttle motors in the active multirotor
-            // profile are lift motors, so they fade with liftScale.
-            // During FW->MC, positive-throttle motors in the active airplane
-            // profile are forward propulsion, so they must decay with
-            // pusherScale instead of staying tied to airspeed progress.
-            if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW &&
-                isMultirotorTypePlatform(currentMixerConfig.platformType)) {
-                motorThrottle *= mixerATGetLiftScale();
-            } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC &&
-                       !isMultirotorTypePlatform(currentMixerConfig.platformType)) {
-                motorThrottle *= mixerATGetPusherScale();
+        const motorMixer_t *targetMixer = autoTransitionMotorMixing ? &targetMotorMixer[i] : NULL;
+        const bool currentMotorActive = currentMixer[i].throttle > 0.0f;
+        const bool targetMotorActive = targetMixer && targetMixer->throttle > 0.0f;
+        const bool sharedMotor = currentMotorActive && targetMotorActive;
+        const bool currentMotorPlaceholder = currentMixer[i].throttle <= 0.0f && currentMixer[i].throttle > -1.05f;
+        const float pusherScale = mixerATGetPusherScale();
+
+        if (autoTransitionMotorMixing && currentMotorActive) {
+            if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW && currentProfileIsMultirotor) {
+                if (sharedMotor && !targetProfileIsMultirotor) {
+                    const float propulsionBlend = pusherScale;
+                    const float blendedThrottle = currentMixer[i].throttle * (1.0f - propulsionBlend) +
+                        targetMixer->throttle * propulsionBlend;
+                    motorThrottle = mixerThrottleCommand * blendedThrottle;
+                } else {
+                    motorThrottle *= mixerATGetLiftScale();
+                }
+            } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC && !currentProfileIsMultirotor) {
+                if (sharedMotor && targetProfileIsMultirotor) {
+                    const float mcBlend = 1.0f - pusherScale;
+                    const float blendedThrottle = currentMixer[i].throttle * pusherScale +
+                        targetMixer->throttle * mcBlend;
+                    motorThrottle = mixerThrottleCommand * blendedThrottle;
+                } else {
+                    motorThrottle *= pusherScale;
+                }
             }
         }
 #endif
@@ -663,6 +732,30 @@ void FAST_CODE mixTable(void)
         if (currentMixer[i].throttle <= 0.0f) {
             motor[i] = motorZeroCommand;
         }
+#ifdef USE_AUTO_TRANSITION
+        if (autoTransitionMotorMixing &&
+            mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW &&
+            currentProfileIsMultirotor &&
+            currentMotorPlaceholder &&
+            targetMotorActive &&
+            !targetProfileIsMultirotor) {
+            // Smooth auto-transition pusher preview comes from the target FW
+            // mixer rule. A zero current rule reserves the physical motor index.
+            const float targetMotorThrottle = mixerThrottleCommand * targetMixer->throttle * pusherScale;
+            motor[i] = constrain(rpyMix[i] + constrain(targetMotorThrottle, throttleMin, throttleMax), throttleRangeMin, throttleRangeMax);
+        } else if (autoTransitionMotorMixing &&
+            mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC &&
+            !currentProfileIsMultirotor &&
+            currentMotorPlaceholder &&
+            targetMotorActive &&
+            targetProfileIsMultirotor) {
+            // Target MC lift preview uses the target MC mixer rule and target
+            // MC PID preview. This avoids feeding active FW/PIFF PID into lift
+            // motors while still allowing MC control to fade in before switch.
+            const float targetMotorThrottle = mixerThrottleCommand * targetMixer->throttle * mixerATGetLiftScale();
+            motor[i] = constrain(rpyMix[i] + constrain(targetMotorThrottle, throttleMin, throttleMax), throttleRangeMin, throttleRangeMax);
+        }
+#endif
         //spin stopped motors only in mixer transition mode
         if (isMixerTransitionMixing && currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f && !feature(FEATURE_REVERSIBLE_MOTORS)) {
 #ifdef USE_AUTO_TRANSITION
@@ -675,6 +768,12 @@ void FAST_CODE mixTable(void)
 #endif
             motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
         }
+#ifdef USE_AUTO_TRANSITION
+        int16_t postSwitchFadeOutput = 0;
+        if (mixerATGetPostSwitchFadeMotorOutput(i, motorZeroCommand, motor[i], &postSwitchFadeOutput)) {
+            motor[i] = constrain(postSwitchFadeOutput, motorZeroCommand, getMaxThrottle());
+        }
+#endif
     }
 }
 

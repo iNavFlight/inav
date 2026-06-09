@@ -194,6 +194,7 @@ extern int16_t autoTransitionTargetAxisPID[];
 extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_F[], axisPID_Setpoint[];
 #ifdef USE_AUTO_TRANSITION
 int16_t getAutoTransitionTargetStabilizedInput(flight_dynamics_index_t axis);
+int16_t getAutoTransitionTargetAxisPID(flight_dynamics_index_t axis);
 #endif
 
 void pidInit(void);
