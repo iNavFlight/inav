@@ -76,6 +76,23 @@
 #define NAV_FW_TURN_RADIUS_MAX       30000.0f   // [cm] 300 m upper clamp (matches loiter_radius max)
 #define NAV_FW_TURN_LEAD_TAN_MAX     3.7f       // tan(half turn angle) cap (~150 deg) to bound the lead distance
 
+// FW energy/altitude bank guard thresholds (conservative; observable via DEBUG_FW_TURN)
+#define NAV_FW_GUARD_PHI_FLOOR_DEG       15.0f    // minimum effective bank limit
+#define NAV_FW_GUARD_MIN_BANK_DEG        10.0f    // "banked" threshold
+#define NAV_FW_GUARD_VZ_CLIMB_MIN        50.0f    // only guard when commanding a climb above this
+#define NAV_FW_GUARD_VZ_DEFICIT_ENTER    150.0f   // filtered Vz deficit to start guarding (Schmitt high)
+#define NAV_FW_GUARD_VZ_DEFICIT_EXIT     50.0f    // filtered Vz deficit to stop guarding  (Schmitt low)
+#define NAV_FW_GUARD_VZ_FILTER_HZ        0.5f     // deficit/rise low-pass cutoff (rejects wind/thermal/noise)
+#define NAV_FW_GUARD_PITCH_FRAC          0.85f    // "near max climb pitch" fraction
+#define NAV_FW_GUARD_THROTTLE_MARGIN     50       // "near max throttle" margin
+#define NAV_FW_GUARD_REDUCE_RATE_DPS     20.0f    // bank-limit reduce rate
+#define NAV_FW_GUARD_RECOVER_RATE_DPS    5.0f     // bank-limit recover rate
+#define NAV_FW_GUARD_RECOVER_HOLDOFF_MS  1000     // healthy time before recovery starts
+
+// Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
+#define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
+#define NAV_FW_FF_HEADING_FULL_CD        3000.0f  // heading error for full WP-turn FF
+
 // If this is enabled navigation won't be applied if velocity is below 3 m/s
 //#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
 
@@ -89,6 +106,8 @@ static bool fwRollSmoothReseed = false;     // re-sync the roll S-curve smoother
 static float fwRollSmoothSeedCd = 0.0f;     // baseline the smoother re-seeds to (set by the controller reset)
 static float fwLastNavRollCmdCd = 0.0f;     // last applied nav roll command [centideg] + timestamp, to tell a
 static timeUs_t fwLastNavRollCmdTimeUs = 0; // nav-to-nav transition apart from a pilot handover at reset time
+static float fwEffectiveBankLimit = 0.0f;   // adaptive nav bank limit (energy guard), deg; 0 = not yet initialised
+static float fwActiveLoiterRadius = 0.0f;   // effective loiter radius in use (cm), for the turn feed-forward
 static int8_t loiterDirYaw = 1;
 static bool needToCalculateCircularLoiter;
 static bool autoSpeedIsActive = false;
@@ -302,6 +321,9 @@ void resetFixedWingPositionController(void)
     fwRollSmoothSeedCd = ((micros() - fwLastNavRollCmdTimeUs) < MAX_POSITION_UPDATE_INTERVAL_US) ? fwLastNavRollCmdCd : 0.0f;
     fwRollSmoothReseed = true;
 
+    // Reset the energy-guard bank limit to the configured maximum (guard state re-syncs on next run)
+    fwEffectiveBankLimit = navConfig()->fw.max_bank_angle;
+
     pt1FilterSetCutoff(&fwCrossTrackErrorRateFilterState, 3.0f);
     pt1FilterReset(&fwCrossTrackErrorRateFilterState, 0.0f);
 }
@@ -395,15 +417,127 @@ static float applyFwRollInSmoothing(float rollTargetCd, timeDelta_t deltaMicros,
     return out;
 }
 
-// Predicted coordinated-turn radius [cm] for the current ground speed and the nav
-// bank-angle limit: R = V^2 / (g * tan(phi)). Clamped to a sane range. Used to time
-// the FLY_BY turn so it starts at the correct distance regardless of speed.
+// Effective nav bank limit [deg]: the energy guard's reduced limit, never above the configured max.
+static float getFwEffectiveBankLimit(void)
+{
+    const float maxBank = (float)navConfig()->fw.max_bank_angle;
+    return (fwEffectiveBankLimit > 0.0f) ? MIN(fwEffectiveBankLimit, maxBank) : maxBank;
+}
+
+// Reduce the effective bank limit when a commanded climb can't be sustained near the pitch/throttle
+// limit while banked, so the turn/loiter widens and the climb recovers. Uses target-vs-actual Vz.
+static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t correctedThrottleValue)
+{
+    static timeUs_t lastUpdateUs = 0;
+    static timeUs_t lastTriggerUs = 0;
+    static bool deficitLatched = false;
+    static bool bankedPrev = false;
+    static float targetVzBaseline = 0.0f;
+    static pt1Filter_t deficitFilter;
+    static pt1Filter_t riseFilter;
+
+    const float maxBank = (float)navConfig()->fw.max_bank_angle;
+    if (fwEffectiveBankLimit <= 0.0f) {
+        fwEffectiveBankLimit = maxBank;
+    }
+
+    const timeDeltaLarge_t dtUs = currentTimeUs - lastUpdateUs;
+    lastUpdateUs = currentTimeUs;
+    // First call / gap (controller was inactive): resync, skip integration this step.
+    if (dtUs <= 0 || dtUs > MAX_POSITION_UPDATE_INTERVAL_US) {
+        targetVzBaseline = posControl.desiredState.vel.z;
+        pt1FilterSetCutoff(&deficitFilter, NAV_FW_GUARD_VZ_FILTER_HZ);
+        pt1FilterSetCutoff(&riseFilter, NAV_FW_GUARD_VZ_FILTER_HZ);
+        pt1FilterReset(&deficitFilter, 0.0f);
+        pt1FilterReset(&riseFilter, 0.0f);
+        deficitLatched = false;
+        lastTriggerUs = currentTimeUs;
+        return;
+    }
+    const float dtSec = US2S(dtUs);
+
+    const float bankDeg = fabsf((float)posControl.rcAdjustment[ROLL]) / 10.0f;  // rcAdjustment is decidegrees
+    const bool banked = bankDeg > NAV_FW_GUARD_MIN_BANK_DEG;
+
+    // Latch target Vz at bank entry as the pre-bank reference.
+    if (banked && !bankedPrev) {
+        targetVzBaseline = posControl.desiredState.vel.z;
+    }
+    bankedPrev = banked;
+
+    const float targetVz = posControl.desiredState.vel.z;                       // cm/s
+    const float actualVz = navGetCurrentActualPositionAndVelocity()->vel.z;     // cm/s
+
+    // Signal A: unmet climb demand. Signal B: bank-induced rise of the demand since bank entry.
+    const float deficit = pt1FilterApply3(&deficitFilter, targetVz - actualVz, dtSec);
+    const float rise    = pt1FilterApply3(&riseFilter, targetVz - targetVzBaseline, dtSec);
+
+    // Schmitt trigger + deadband on the filtered deficit (rejects fluctuations).
+    if (deficit > NAV_FW_GUARD_VZ_DEFICIT_ENTER) {
+        deficitLatched = true;
+    } else if (deficit < NAV_FW_GUARD_VZ_DEFICIT_EXIT) {
+        deficitLatched = false;
+    }
+
+    const float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES((float)navConfig()->fw.max_climb_angle);
+    const bool nearPitchLimit = (float)posControl.rcAdjustment[PITCH] >= NAV_FW_GUARD_PITCH_FRAC * maxClimbDeciDeg;
+    const bool nearThrottleLimit = correctedThrottleValue >= (currentBatteryProfile->nav.fw.max_throttle - NAV_FW_GUARD_THROTTLE_MARGIN);
+    const bool climbCommanded = targetVz > NAV_FW_GUARD_VZ_CLIMB_MIN;
+
+    const bool trigger = banked && climbCommanded && deficitLatched && (nearPitchLimit || nearThrottleLimit);
+
+    // Bank-induced rise (signal B) -> react faster.
+    const float reduceRate = (rise > NAV_FW_GUARD_VZ_DEFICIT_ENTER) ? (2.0f * NAV_FW_GUARD_REDUCE_RATE_DPS) : NAV_FW_GUARD_REDUCE_RATE_DPS;
+
+    if (trigger) {
+        fwEffectiveBankLimit -= reduceRate * dtSec;
+        lastTriggerUs = currentTimeUs;
+    } else if ((currentTimeUs - lastTriggerUs) > ((timeUs_t)NAV_FW_GUARD_RECOVER_HOLDOFF_MS * 1000)) {
+        fwEffectiveBankLimit += NAV_FW_GUARD_RECOVER_RATE_DPS * dtSec;
+    }
+    fwEffectiveBankLimit = constrainf(fwEffectiveBankLimit, NAV_FW_GUARD_PHI_FLOOR_DEG, maxBank);
+
+    DEBUG_SET(DEBUG_FW_TURN, 1, lrintf(fwEffectiveBankLimit));
+    DEBUG_SET(DEBUG_FW_TURN, 4, lrintf(deficit));
+    DEBUG_SET(DEBUG_FW_TURN, 5, lrintf(rise));
+    DEBUG_SET(DEBUG_FW_TURN, 6, trigger);
+}
+
+// Coordinated-turn radius R = V^2/(g*tan(phi)) [cm], clamped. Times the FLY_BY turn for any speed.
 static float getFwCoordinatedTurnRadius(void)
 {
     const float speed = MAX(posControl.actualState.velXY, NAV_FW_TURN_MIN_SPEED);   // cm/s
     const float bankRad = DEGREES_TO_RADIANS((float)navConfig()->fw.max_bank_angle);
     const float radius = (speed * speed) / (GRAVITY_CMSS * tan_approx(bankRad));     // cm
     return constrainf(radius, NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX);
+}
+
+// Coordinated-turn feed-forward bank [centideg] for the active loiter/WP turn (0 if disabled or straight).
+static float getFwTurnFeedForward(int32_t navHeadingError)
+{
+    const uint8_t ffGain = navConfig()->fw.turn_ff_gain;
+    if (ffGain == 0 || posControl.actualState.velXY <= NAV_FW_TURN_MIN_SPEED) {
+        return 0.0f;
+    }
+
+    float ffRadius = 0.0f;
+    float ffSign = 0.0f;
+    if (needToCalculateCircularLoiter) {                // loiter circle: known radius
+        ffRadius = fwActiveLoiterRadius;
+        ffSign = (float)loiterDirection();
+    } else if (isWaypointNavTrackingActive() && ABS(navHeadingError) > NAV_FW_FF_HEADING_DEADBAND_CD) {
+        ffRadius = getFwCoordinatedTurnRadius();        // WP turn: dynamic radius, tapered by heading error
+        ffSign = (navHeadingError > 0 ? 1.0f : -1.0f) * constrainf((float)ABS(navHeadingError) / NAV_FW_FF_HEADING_FULL_CD, 0.0f, 1.0f);
+    }
+
+    float rollFF = 0.0f;
+    if (ffRadius > 0.0f) {
+        const float v = posControl.actualState.velXY;
+        const float phiFFcd = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * ffRadius)));
+        rollFF = ffSign * phiFFcd * (ffGain / 100.0f);
+    }
+    DEBUG_SET(DEBUG_FW_TURN, 7, lrintf(rollFF));
+    return rollFF;
 }
 
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
@@ -421,6 +555,16 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
 
     uint32_t navLoiterRadius = getLoiterRadius(navConfig()->fw.loiter_radius);
+
+    /* Floor the loiter radius to what the (possibly guard-reduced) bank limit can fly at this speed,
+     * so the aircraft holds a stable circle instead of chasing an unachievable one. */
+    {
+        const float speed = MAX(posControl.actualState.velXY, NAV_FW_TURN_MIN_SPEED);
+        const float minRadius = (speed * speed) / (GRAVITY_CMSS * tan_approx(DEGREES_TO_RADIANS(getFwEffectiveBankLimit())));
+        navLoiterRadius = MAX(navLoiterRadius, (uint32_t)constrainf(minRadius, NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX));
+    }
+    fwActiveLoiterRadius = (float)navLoiterRadius;   // expose to the turn feed-forward
+
     fpVector3_t loiterCenterPos = posControl.desiredState.pos;
     int8_t loiterTurnDirection = loiterDirection();
 
@@ -438,14 +582,8 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         needToCalculateCircularLoiter = false;
     }
 
-    /* FLY_BY waypoint turn (corner cut): start the turn a geometric lead distance
-     * before the WP so the arc joins the next leg. The lead uses the live
-     * coordinated-turn radius and the true half-angle tangent, so the start point is
-     * correct at any speed (the old code used a fixed loiter radius and a clamped
-     * angle factor, which only matched one speed). nextTurnAngle is only set for
-     * FLY_BY waypoints and for landing approach, so this is skipped for FLY_OVER.
-     * Works for turns 30..160 deg. The precise turn arc itself is added with the
-     * feed-forward controller in a later PR; here only the timing is corrected. */
+    /* FLY_BY corner cut: start the turn R*tan(angle/2) before the WP so the arc joins the next leg
+     * at any speed. Only runs when nextTurnAngle is set (FLY_BY waypoints + landing); FLY_OVER skips it. */
     int32_t waypointTurnAngle = posControl.activeWaypoint.nextTurnAngle == -1 ? -1 : ABS(posControl.activeWaypoint.nextTurnAngle);
     posControl.flags.wpTurnSmoothingActive = false;
     if (waypointTurnAngle > 3000 && waypointTurnAngle < 16000 && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
@@ -453,6 +591,9 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         const float halfAngleTan = constrainf(tan_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f)), 0.0f, NAV_FW_TURN_LEAD_TAN_MAX);
         // velXY term is a ~1 s roll-in lead (replaced by a modelled roll-in in a later PR)
         const float turnStartDistance = posControl.actualState.velXY + turnRadius * halfAngleTan;
+        DEBUG_SET(DEBUG_FW_TURN, 0, lrintf(turnRadius));
+        DEBUG_SET(DEBUG_FW_TURN, 2, lrintf(turnStartDistance));
+        DEBUG_SET(DEBUG_FW_TURN, 3, lrintf(posControl.wpDistance));
         if (posControl.wpDistance < turnStartDistance) {
             posControl.flags.wpTurnSmoothingActive = true;
         }
@@ -627,15 +768,20 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0);
 
     // Input error in (deg*100), output roll angle (deg*100)
+    const float navBankLimit = getFwEffectiveBankLimit();    // energy-guard reduced limit (<= nav_fw_bank_angle)
     float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.cog + navHeadingError, posControl.actualState.cog, US2S(deltaMicros),
-                                       -DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
-                                        DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
+                                       -DEGREES_TO_CENTIDEGREES(navBankLimit),
+                                        DEGREES_TO_CENTIDEGREES(navBankLimit),
                                         pidFlags);
+
+    // Coordinated-turn feed-forward: command the bank for the active turn radius so the PID only trims.
+    rollAdjustment += getFwTurnFeedForward(navHeadingError);
 
     // Triggered S-curve smoothing on the roll command (control_smoothness); re-seeded after a
     // controller reset so stale smoother state cannot fire a spurious ramp.
     rollAdjustment = applyFwRollInSmoothing(rollAdjustment, deltaMicros, fwRollSmoothReseed);
     fwRollSmoothReseed = false;
+    rollAdjustment = constrainf(rollAdjustment, -DEGREES_TO_CENTIDEGREES(navBankLimit), DEGREES_TO_CENTIDEGREES(navBankLimit));
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
     posControl.rcAdjustment[ROLL] = CENTIDEGREES_TO_DECIDEGREES(rollAdjustment);
@@ -758,8 +904,8 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
     if (isRollAdjustmentValid && (navStateFlags & NAV_CTL_POS)) {
         // ROLL >0 right, <0 left
-        const uint8_t maxBankAngle = navConfig()->fw.max_bank_angle;
-        int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL], -DEGREES_TO_DECIDEGREES(maxBankAngle), DEGREES_TO_DECIDEGREES(maxBankAngle));
+        const int16_t navBankLimitDeciDeg = (int16_t)lrintf(DEGREES_TO_DECIDEGREES(getFwEffectiveBankLimit()));
+        int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL], -navBankLimitDeciDeg, navBankLimitDeciDeg);
         rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection, pidProfile()->max_angle_inclination[FD_ROLL]);
     }
 
@@ -808,6 +954,9 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             }
 
             rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
+
+            // Update the energy guard now that this cycle's pitch + throttle commands are known.
+            updateFwEnergyBankGuard(currentTimeUs, correctedThrottleValue);
         }
     }
 

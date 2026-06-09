@@ -795,6 +795,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | LULU |  |
 | SBUS2 |  |
 | OSD_REFRESH |  |
+| FW_TURN |  |
 
 ---
 
@@ -4145,6 +4146,16 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 | Default | Min | Max |
 | --- | --- | --- |
 | 5 | 0 | 15 |
+
+---
+
+### nav_fw_turn_ff_gain
+
+DEVELOPER/EXPERIMENTAL (to be hardcoded before release): turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn/loiter radius forward to the roll controller so the PID only trims the residual, giving cleaner coordinated turns and more precise loiter circles. 0 disables the feed-forward (pure PID).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
 
 ---
 
