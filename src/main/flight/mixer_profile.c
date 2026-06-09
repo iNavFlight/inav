@@ -115,16 +115,19 @@ void mixerConfigInit(void)
     servosInit();
     mixerUpdateStateFlags();
     mixerInit();
-    if (currentMixerConfig.controlProfileLinking)
-    {
-        // LOG_INFO(PWM, "mixer switch pidInit");
+
+    if (currentMixerConfig.controlProfileLinking) {
         setConfigProfile(getConfigMixerProfile());
-        pidInit();
-        pidInitFilters();
-        pidResetErrorAccumulators(); //should be safer to reset error accumulators
-        schedulePidGainsUpdate();
-        navigationUsePIDs(); // set navigation pid gains
     }
+
+    // Reinitialize the active controller on every mixer hot-switch so AUTO PID
+    // selection follows the new platform type and no stale FW/MC integrator
+    // state leaks across the completed transition.
+    pidInit();
+    pidInitFilters();
+    pidResetErrorAccumulators();
+    schedulePidGainsUpdate();
+    navigationUsePIDs();
 }
 
 void setMixerProfileAT(void)
@@ -140,6 +143,7 @@ void setMixerProfileAT(void)
     mixerProfileAT.transitionStartAirspeedCaptured = false;
     mixerProfileAT.progress = 0.0f;
     mixerProfileAT.handoffScalingProgress = 0.0f;
+    mixerProfileAT.motorRampProgress = 0.0f;
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
     mixerProfileAT.blendToFw = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW ? 0.0f : 1.0f;
     mixerProfileAT.pusherScale = 1.0f;
@@ -179,6 +183,7 @@ static void resetTransitionScales(void)
 {
     mixerProfileAT.progress = 0.0f;
     mixerProfileAT.handoffScalingProgress = 0.0f;
+    mixerProfileAT.motorRampProgress = 0.0f;
     mixerProfileAT.blendToFw = 0.0f;
     mixerProfileAT.pusherScale = 0.0f;
     mixerProfileAT.liftScale = 1.0f;
@@ -190,6 +195,7 @@ static void setLegacyTransitionScales(void)
 {
     mixerProfileAT.progress = 1.0f;
     mixerProfileAT.handoffScalingProgress = 1.0f;
+    mixerProfileAT.motorRampProgress = 1.0f;
     mixerProfileAT.blendToFw = 1.0f;
     mixerProfileAT.pusherScale = 1.0f;
     mixerProfileAT.liftScale = 1.0f;
@@ -205,15 +211,18 @@ static float blendScale(float from, float to, float progress)
 static float getMotorRampProgress(void)
 {
     if (!currentMixerConfig.vtolTransitionDynamicMixer) {
+        mixerProfileAT.motorRampProgress = 1.0f;
         return 1.0f;
     }
 
     if (currentMixerConfig.vtolTransitionScaleRampTimeMs <= 0) {
+        mixerProfileAT.motorRampProgress = 1.0f;
         return 1.0f;
     }
 
     const uint32_t elapsedMs = millis() - mixerProfileAT.transitionStartTime;
-    return constrainf((float)elapsedMs / (float)currentMixerConfig.vtolTransitionScaleRampTimeMs, 0.0f, 1.0f);
+    mixerProfileAT.motorRampProgress = constrainf((float)elapsedMs / (float)currentMixerConfig.vtolTransitionScaleRampTimeMs, 0.0f, 1.0f);
+    return mixerProfileAT.motorRampProgress;
 }
 
 static float getHandoffScalingProgress(void)
@@ -318,20 +327,20 @@ static void updateTransitionScales(void)
     const float mcFloor = constrainf(systemConfig()->vtolTransitionMcAuthorityMinPercent / 100.0f, 0.0f, 1.0f);
     const float fwFloor = constrainf(systemConfig()->vtolTransitionFwAuthorityMinPercent / 100.0f, 0.0f, 1.0f);
     const float handoffProgress = getHandoffScalingProgress();
+    const float motorRampProgress = getMotorRampProgress();
 
     if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) {
-        const float pusherProgress = getMotorRampProgress();
-
-        mixerProfileAT.pusherScale = blendScale(0.0f, 1.0f, pusherProgress);
+        mixerProfileAT.pusherScale = blendScale(0.0f, 1.0f, motorRampProgress);
         mixerProfileAT.liftScale = blendScale(1.0f, liftFloor, handoffProgress);
         mixerProfileAT.mcAuthorityScale = blendScale(1.0f, mcFloor, handoffProgress);
         mixerProfileAT.fwAuthorityScale = blendScale(fwFloor, 1.0f, handoffProgress);
     } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC) {
-        const float liftRampProgress = getMotorRampProgress();
-
-        mixerProfileAT.pusherScale = blendScale(1.0f, 0.0f, handoffProgress);
-        mixerProfileAT.liftScale = blendScale(liftFloor, 1.0f, liftRampProgress);
-        mixerProfileAT.mcAuthorityScale = blendScale(mcFloor, 1.0f, handoffProgress);
+        // In FW->MC, propulsion handover must not wait for airspeed-derived
+        // handoff progress. Ramp down the pusher and ramp up lift / MC
+        // stabilisation by time so the aircraft can actually slow down.
+        mixerProfileAT.pusherScale = blendScale(1.0f, 0.0f, motorRampProgress);
+        mixerProfileAT.liftScale = blendScale(liftFloor, 1.0f, motorRampProgress);
+        mixerProfileAT.mcAuthorityScale = blendScale(mcFloor, 1.0f, motorRampProgress);
         mixerProfileAT.fwAuthorityScale = blendScale(1.0f, fwFloor, handoffProgress);
     }
 
@@ -709,7 +718,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     isMixerTransitionMixing = isMixerTransitionMixing_requested &&
         ((posControl.navState == NAV_STATE_IDLE) || mixerAT_inuse || (posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS));
 
-    const uint32_t transitionDebugFlags =
+    uint32_t transitionDebugFlags =
         ((uint32_t)mixerProfileAT.direction & 0x3U) |
         (mixerATIsActive() ? 1U << 2 : 0U) |
         (isMixerTransitionMixing ? 1U << 3 : 0U) |
@@ -729,18 +738,41 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         (IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) ? 1U << 19 : 0U) |
         (manualTransitionSessionLatched ? 1U << 20 : 0U);
 
+    const uint8_t targetInputMode =
+        (isMixerTransitionMixing &&
+         mixerATIsActive() &&
+         mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) ?
+            (FLIGHT_MODE(MANUAL_MODE) ? 1U : 2U) :
+            0U;
+    const uint16_t progressScaled = lrintf(constrainf(mixerProfileAT.progress, 0.0f, 1.0f) * 1000.0f);
+    const uint16_t handoffScaled = lrintf(constrainf(mixerProfileAT.handoffScalingProgress, 0.0f, 1.0f) * 1000.0f);
+    const uint16_t motorRampScaled = lrintf(constrainf(mixerProfileAT.motorRampProgress, 0.0f, 1.0f) * 1000.0f);
+    const uint16_t pusherScaled = lrintf(constrainf(mixerProfileAT.pusherScale, 0.0f, 1.0f) * 1000.0f);
+    const uint16_t liftScaled = lrintf(constrainf(mixerProfileAT.liftScale, 0.0f, 1.0f) * 1000.0f);
+    const uint16_t mcAuthorityScaled = lrintf(constrainf(mixerProfileAT.mcAuthorityScale, 0.0f, 1.0f) * 1000.0f);
+    const uint16_t fwAuthorityScaled = lrintf(constrainf(mixerProfileAT.fwAuthorityScale, 0.0f, 1.0f) * 1000.0f);
+
+    transitionDebugFlags |= (((uint32_t)currentMixerConfig.platformType & 0xFU) << 21);
+    transitionDebugFlags |= (((uint32_t)pidIndexGetType(PID_ROLL) & 0x3U) << 25);
+    transitionDebugFlags |= (((uint32_t)targetInputMode & 0x3U) << 27);
+
     // VTOL transition debug channels (DEBUG_VTOL_TRANSITION):
-    // [0] phase, [1] request, [2] packed transition flags, [3] progress x1000,
-    // [4] pusherScale x1000, [5] liftScale x1000, [6] mcAuthorityScale x1000,
-    // [7] transition_PID_mmix_multiplier_pitch from currentMixerConfig
+    // [0] phase
+    // [1] request | (direction << 8)
+    // [2] packed transition flags | active platform type | active PID type | target input mode
+    // [3] raw transition progress x1000
+    // [4] pusherScale x1000
+    // [5] liftScale x1000
+    // [6] mcAuthorityScale x1000 | (fwAuthorityScale x1000 << 16)
+    // [7] handoffProgress x1000 | (motorRampProgress x1000 << 16)
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 0, mixerProfileAT.phase);
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, mixerProfileAT.request);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, (int32_t)(((uint32_t)mixerProfileAT.request & 0xFFU) | (((uint32_t)mixerProfileAT.direction & 0xFFU) << 8)));
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 2, (int32_t)transitionDebugFlags);
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 3, lrintf(constrainf(mixerProfileAT.progress, 0.0f, 1.0f) * 1000.0f));
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 4, lrintf(constrainf(mixerProfileAT.pusherScale, 0.0f, 1.0f) * 1000.0f));
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 5, lrintf(constrainf(mixerProfileAT.liftScale, 0.0f, 1.0f) * 1000.0f));
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 6, lrintf(constrainf(mixerProfileAT.mcAuthorityScale, 0.0f, 1.0f) * 1000.0f));
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 7, currentMixerConfig.transition_PID_mmix_multiplier_pitch);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 3, progressScaled);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 4, pusherScaled);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 5, liftScaled);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 6, (int32_t)((uint32_t)mcAuthorityScaled | ((uint32_t)fwAuthorityScaled << 16)));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 7, (int32_t)((uint32_t)handoffScaled | ((uint32_t)motorRampScaled << 16)));
 
     if (!isMixerTransitionMixing) {
         resetTransitionScales();

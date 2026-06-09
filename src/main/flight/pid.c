@@ -1078,18 +1078,18 @@ int16_t getAutoTransitionTargetStabilizedInput(flight_dynamics_index_t axis)
 
     const float scale = currentMixerConfig.vtolTransitionDynamicMixer ? mixerATGetFwAuthorityScale() : 1.0f;
 
-    if (FLIGHT_MODE(MANUAL_MODE)) {
-        return lrintf(rcCommand[axis] * scale);
-    }
-
     if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) {
+        if (FLIGHT_MODE(MANUAL_MODE)) {
+            return lrintf(rcCommand[axis] * scale);
+        }
+
         return lrintf(autoTransitionTargetAxisPID[axis] * scale);
     }
 
-    if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC) {
-        return lrintf(axisPID[axis] * scale);
-    }
-
+    // FW->MC does not preview multirotor lift stabilisation through these
+    // inputs. Returning current FW axisPID here would incorrectly feed fixed-
+    // wing controller output into rules that users may expect to represent MC
+    // takeover.
     return 0;
 }
 #endif

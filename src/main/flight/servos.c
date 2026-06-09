@@ -386,6 +386,8 @@ void servoMixer(float dT)
     const bool autoTransitionInputsActive = isMixerTransitionMixing &&
                                             mixerATIsActive() &&
                                             mixerProfileAT.direction != MIXERAT_DIRECTION_NONE;
+    const bool autoTransitionTargetPreviewActive = autoTransitionInputsActive &&
+                                                   mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW;
     const bool scaleCurrentFwServoRules = autoTransitionInputsActive &&
                                           mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC &&
                                           !isMultirotorTypePlatform(currentMixerConfig.platformType);
@@ -417,9 +419,13 @@ void servoMixer(float dT)
     }
 
 #ifdef USE_AUTO_TRANSITION
-    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL] = getAutoTransitionTargetStabilizedInput(FD_ROLL);
-    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH] = getAutoTransitionTargetStabilizedInput(FD_PITCH);
-    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW] = getAutoTransitionTargetStabilizedInput(FD_YAW);
+    // These preview inputs are only for pre-switch FW servo handoff.
+    // In FW->MC the same marked rules are used only as identifiers so the
+    // currently active FW servo rules can fade out; they do not become MC
+    // lift-motor stabilisation sources.
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL] = autoTransitionTargetPreviewActive ? getAutoTransitionTargetStabilizedInput(FD_ROLL) : 0;
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH] = autoTransitionTargetPreviewActive ? getAutoTransitionTargetStabilizedInput(FD_PITCH) : 0;
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW] = autoTransitionTargetPreviewActive ? getAutoTransitionTargetStabilizedInput(FD_YAW) : 0;
 #endif
 
     input[INPUT_STABILIZED_ROLL_PLUS] = constrain(input[INPUT_STABILIZED_ROLL], 0, 1000);

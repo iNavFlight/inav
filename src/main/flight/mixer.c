@@ -635,9 +635,19 @@ void FAST_CODE mixTable(void)
     for (int i = 0; i < motorCount; i++) {
         float motorThrottle = mixerThrottleCommand * currentMixer[i].throttle;
 #ifdef USE_AUTO_TRANSITION
-        const float liftScale = isMixerTransitionMixing ? mixerATGetLiftScale() : 1.0f;
-        if (currentMixer[i].throttle > 0.0f) {
-            motorThrottle *= liftScale;
+        if (isMixerTransitionMixing && currentMixer[i].throttle > 0.0f) {
+            // During MC->FW, positive-throttle motors in the active multirotor
+            // profile are lift motors, so they fade with liftScale.
+            // During FW->MC, positive-throttle motors in the active airplane
+            // profile are forward propulsion, so they must decay with
+            // pusherScale instead of staying tied to airspeed progress.
+            if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW &&
+                isMultirotorTypePlatform(currentMixerConfig.platformType)) {
+                motorThrottle *= mixerATGetLiftScale();
+            } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC &&
+                       !isMultirotorTypePlatform(currentMixerConfig.platformType)) {
+                motorThrottle *= mixerATGetPusherScale();
+            }
         }
 #endif
 
