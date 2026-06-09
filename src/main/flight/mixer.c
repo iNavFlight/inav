@@ -546,8 +546,9 @@ void FAST_CODE mixTable(void)
     const bool currentProfileIsMultirotor = isMultirotorTypePlatform(currentMixerConfig.platformType);
     const int targetMixerProfileIndex = autoTransitionMotorMixing ? nextMixerProfileIndex : -1;
     const motorMixer_t *targetMotorMixer = autoTransitionMotorMixing ? mixerMotorMixersByIndex(targetMixerProfileIndex) : NULL;
+    const mixerConfig_t *targetMixerConfig = autoTransitionMotorMixing ? mixerConfigByIndex(targetMixerProfileIndex) : NULL;
     const bool targetProfileIsMultirotor = autoTransitionMotorMixing ?
-        isMultirotorTypePlatform(mixerConfigByIndex(targetMixerProfileIndex)->platformType) :
+        isMultirotorTypePlatform(targetMixerConfig->platformType) :
         false;
     int16_t targetInput[3] = { 0, 0, 0 };
 
@@ -566,9 +567,9 @@ void FAST_CODE mixTable(void)
             targetInput[YAW] = getAutoTransitionTargetAxisPID(FD_YAW);
         }
 
-        targetInput[ROLL] = targetInput[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f) * targetAuthorityScale;
-        targetInput[PITCH] = targetInput[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f) * targetAuthorityScale;
-        targetInput[YAW] = targetInput[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f) * targetAuthorityScale;
+        targetInput[ROLL] = targetInput[ROLL] * (targetMixerConfig->transition_PID_mmix_multiplier_roll / 1000.0f) * targetAuthorityScale;
+        targetInput[PITCH] = targetInput[PITCH] * (targetMixerConfig->transition_PID_mmix_multiplier_pitch / 1000.0f) * targetAuthorityScale;
+        targetInput[YAW] = targetInput[YAW] * (targetMixerConfig->transition_PID_mmix_multiplier_yaw / 1000.0f) * targetAuthorityScale;
     }
 #endif
 
@@ -583,18 +584,33 @@ void FAST_CODE mixTable(void)
         const motorMixer_t *targetMixer = autoTransitionMotorMixing ? &targetMotorMixer[i] : NULL;
         const bool currentMotorActive = currentMixer[i].throttle > 0.0f;
         const bool targetMotorActive = targetMixer && targetMixer->throttle > 0.0f;
-        const int16_t activeRpyMix = currentMotorActive ?
+        const float activeRpyMix = currentMotorActive ?
             (input[PITCH] * currentMixer[i].pitch +
             input[ROLL] * currentMixer[i].roll +
             -motorYawMultiplier * input[YAW] * currentMixer[i].yaw) :
             0;
-        const int16_t targetRpyMix = targetMotorActive ?
+        const float targetRpyMix = targetMotorActive ?
             (targetInput[PITCH] * targetMixer->pitch +
             targetInput[ROLL] * targetMixer->roll +
             -motorYawMultiplier * targetInput[YAW] * targetMixer->yaw) :
             0;
+        float sharedRpyNormalizer = 1.0f;
 
-        rpyMix[i] = (activeRpyMix + targetRpyMix) * mixerScale;
+        if (currentMotorActive && targetMotorActive) {
+            const float activeAuthorityScale = currentProfileIsMultirotor ?
+                mixerATGetMcAuthorityScale() :
+                mixerATGetFwAuthorityScale();
+            const float targetAuthorityScale = targetProfileIsMultirotor ?
+                mixerATGetMcAuthorityScale() :
+                mixerATGetFwAuthorityScale();
+            const float authorityScaleSum = activeAuthorityScale + targetAuthorityScale;
+
+            if (authorityScaleSum > 1.0f) {
+                sharedRpyNormalizer = 1.0f / authorityScaleSum;
+            }
+        }
+
+        rpyMix[i] = (activeRpyMix + targetRpyMix) * sharedRpyNormalizer * mixerScale;
 #else
         rpyMix[i] =
             (input[PITCH] * currentMixer[i].pitch +

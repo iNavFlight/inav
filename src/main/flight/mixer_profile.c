@@ -624,7 +624,11 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
         reprocessState=false;
         if (required_action == MIXERAT_REQUEST_ABORT) {
             if (mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE && mixerProfileAT.hotSwitchDone) {
+                // Once the target profile is active, abort cannot safely undo
+                // the hot-switch. Keep fading the old propulsion output toward
+                // the safe post-switch destination instead of freezing it.
                 mixerProfileAT.request = MIXERAT_REQUEST_NONE;
+                updatePostSwitchFade();
                 return true;
             }
             abortTransition(false);
