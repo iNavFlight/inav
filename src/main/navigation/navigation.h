@@ -507,6 +507,7 @@ typedef struct navConfig_s {
         uint8_t  wp_tracking_accuracy;       // fixed wing tracking accuracy response factor
         uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
         uint8_t  wp_turn_mode;               // WP mission turn mode (navFwWpTurnMode_e: FLY_BY / FLY_OVER)
+        uint8_t  turn_ff_gain;               // turn coordination feed-forward gain [%] (0 = off; dev tuning, to be hardcoded)
     } fw;
 } navConfig_t;
 

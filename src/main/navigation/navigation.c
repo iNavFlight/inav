@@ -251,6 +251,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .wp_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,                // 0, improves course tracking accuracy during FW WP missions
         .wp_tracking_max_angle = SETTING_NAV_FW_WP_TRACKING_MAX_ANGLE_DEFAULT,              // 60 degs
         .wp_turn_mode = SETTING_NAV_FW_WP_TURN_MODE_DEFAULT,                                // FLY_BY, WP mission turn mode
+        .turn_ff_gain = SETTING_NAV_FW_TURN_FF_GAIN_DEFAULT,                                // 0, turn FF off by default
     }
 );
 
