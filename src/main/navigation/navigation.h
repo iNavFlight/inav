@@ -335,10 +335,9 @@ typedef enum {
 } rthTrackbackMode_e;
 
 typedef enum {
-    WP_TURN_SMOOTHING_OFF,
-    WP_TURN_SMOOTHING_ON,
-    WP_TURN_SMOOTHING_CUT,
-} wpFwTurnSmoothing_e;
+    NAV_FW_WP_TURN_MODE_FLY_BY = 0,     // corner cut: turn anticipated so the arc joins the next leg, WP passed abeam
+    NAV_FW_WP_TURN_MODE_FLY_OVER = 1,   // fly over the WP, then turn onto the next leg
+} navFwWpTurnMode_e;
 
 typedef enum {
     MC_ALT_HOLD_STICK,
@@ -507,7 +506,7 @@ typedef struct navConfig_s {
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
         uint8_t  wp_tracking_accuracy;       // fixed wing tracking accuracy response factor
         uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
-        uint8_t  wp_turn_smoothing;          // WP mission turn smoothing options
+        uint8_t  wp_turn_mode;               // WP mission turn mode (navFwWpTurnMode_e: FLY_BY / FLY_OVER)
     } fw;
 } navConfig_t;
 

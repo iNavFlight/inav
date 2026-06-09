@@ -4168,15 +4168,14 @@ Sets the maximum allowed alignment convergence angle to the waypoint course line
 
 ---
 
-### nav_fw_wp_turn_smoothing
+### nav_fw_wp_turn_mode
 
-Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner).
+How the aircraft turns at waypoints during FW WP missions. FLY_BY anticipates the turn using the real coordinated-turn radius (from speed and nav_fw_bank_angle) so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). FLY_OVER flies over the waypoint, then turns onto the next leg.
 
 | Allowed Values |  |
 | --- | --- |
-| OFF | Default |
-| ON |  |
-| ON-CUT |  |
+| FLY_BY | Default |
+| FLY_OVER |  |
 
 ---
 
