@@ -180,9 +180,9 @@ tables:
   - name: dynamic_gyro_notch_mode
     values: ["2D", "3D"]
     enum: dynamicGyroNotchMode_e
-  - name: nav_fw_wp_turn_smoothing
-    values: ["OFF", "ON", "ON-CUT"]
-    enum: wpFwTurnSmoothing_e
+  - name: nav_fw_wp_turn_mode
+    values: ["FLY_BY", "FLY_OVER"]
+    enum: navFwWpTurnMode_e
   - name: gps_auto_baud_max
     values: [ '115200', '57600', '38400', '19200', '9600', '230400', '460800', '921600']
     enum: gpsBaudRate_e
@@ -2670,11 +2670,11 @@ groups:
         field: fw.wp_tracking_max_angle
         min: 30
         max: 80
-      - name: nav_fw_wp_turn_smoothing
-        description: "Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner)."
-        default_value: "OFF"
-        field: fw.wp_turn_smoothing
-        table: nav_fw_wp_turn_smoothing
+      - name: nav_fw_wp_turn_mode
+        description: "How the aircraft turns at waypoints during FW WP missions. FLY_BY anticipates the turn using the real coordinated-turn radius (from speed and nav_fw_bank_angle) so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). FLY_OVER flies over the waypoint, then turns onto the next leg."
+        default_value: "FLY_BY"
+        field: fw.wp_turn_mode
+        table: nav_fw_wp_turn_mode
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 500

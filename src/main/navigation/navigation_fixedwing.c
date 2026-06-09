@@ -70,6 +70,12 @@
 // If we are going slower than the minimum ground speed (navConfig()->general.min_ground_speed) - boost throttle to fight against the wind
 #define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.5f
 
+// FW waypoint turn predictor: clamps for the coordinated-turn radius used to time the FLY_BY turn
+#define NAV_FW_TURN_MIN_SPEED        500.0f     // [cm/s] speed floor for the radius calc (low-speed noise guard)
+#define NAV_FW_TURN_RADIUS_MIN       1000.0f    // [cm] 10 m  lower clamp
+#define NAV_FW_TURN_RADIUS_MAX       30000.0f   // [cm] 300 m upper clamp (matches loiter_radius max)
+#define NAV_FW_TURN_LEAD_TAN_MAX     3.7f       // tan(half turn angle) cap (~150 deg) to bound the lead distance
+
 // If this is enabled navigation won't be applied if velocity is below 3 m/s
 //#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
 
@@ -389,6 +395,17 @@ static float applyFwRollInSmoothing(float rollTargetCd, timeDelta_t deltaMicros,
     return out;
 }
 
+// Predicted coordinated-turn radius [cm] for the current ground speed and the nav
+// bank-angle limit: R = V^2 / (g * tan(phi)). Clamped to a sane range. Used to time
+// the FLY_BY turn so it starts at the correct distance regardless of speed.
+static float getFwCoordinatedTurnRadius(void)
+{
+    const float speed = MAX(posControl.actualState.velXY, NAV_FW_TURN_MIN_SPEED);   // cm/s
+    const float bankRad = DEGREES_TO_RADIANS((float)navConfig()->fw.max_bank_angle);
+    const float radius = (speed * speed) / (GRAVITY_CMSS * tan_approx(bankRad));     // cm
+    return constrainf(radius, NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX);
+}
+
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 {
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
@@ -421,37 +438,22 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         needToCalculateCircularLoiter = false;
     }
 
-    /* WP turn smoothing with 2 options, 1: pass through WP, 2: cut inside turn missing WP
-     * Works for turns > 30 degs and < 160 degs.
-     * Option 1 switches to loiter path around waypoint using navLoiterRadius.
-     * Loiter centered on point inside turn at required distance from waypoint and
-     * on a bearing midway between current and next waypoint course bearings.
-     * Option 2 simply uses a normal turn once the turn initiation point is reached */
+    /* FLY_BY waypoint turn (corner cut): start the turn a geometric lead distance
+     * before the WP so the arc joins the next leg. The lead uses the live
+     * coordinated-turn radius and the true half-angle tangent, so the start point is
+     * correct at any speed (the old code used a fixed loiter radius and a clamped
+     * angle factor, which only matched one speed). nextTurnAngle is only set for
+     * FLY_BY waypoints and for landing approach, so this is skipped for FLY_OVER.
+     * Works for turns 30..160 deg. The precise turn arc itself is added with the
+     * feed-forward controller in a later PR; here only the timing is corrected. */
     int32_t waypointTurnAngle = posControl.activeWaypoint.nextTurnAngle == -1 ? -1 : ABS(posControl.activeWaypoint.nextTurnAngle);
     posControl.flags.wpTurnSmoothingActive = false;
     if (waypointTurnAngle > 3000 && waypointTurnAngle < 16000 && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
-        // turnStartFactor adjusts start of loiter based on turn angle
-        float turnStartFactor;
-        if (navConfig()->fw.wp_turn_smoothing == WP_TURN_SMOOTHING_ON) {     // passes through WP
-            turnStartFactor = waypointTurnAngle / 6000.0f;
-        } else {    // // cut inside turn missing WP
-            turnStartFactor = constrainf(tan_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f)), 1.0f, 2.0f);
-        }
-        // velXY provides additional turn initiation distance based on an assumed 1 second delayed turn response time
-        if (posControl.wpDistance < (posControl.actualState.velXY + navLoiterRadius * turnStartFactor)) {
-            if (navConfig()->fw.wp_turn_smoothing == WP_TURN_SMOOTHING_ON) {
-                int32_t loiterCenterBearing = wrap_36000(((wrap_18000(posControl.activeWaypoint.nextTurnAngle - 18000)) / 2) + posControl.activeWaypoint.bearing + 18000);
-                loiterCenterPos.x = posControl.activeWaypoint.pos.x + navLoiterRadius * cos_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
-                loiterCenterPos.y = posControl.activeWaypoint.pos.y + navLoiterRadius * sin_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
-
-                posErrorX = loiterCenterPos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
-                posErrorY = loiterCenterPos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
-
-                // turn direction to next waypoint
-                loiterTurnDirection = posControl.activeWaypoint.nextTurnAngle > 0 ? 1 : -1;  // 1 = right
-
-                needToCalculateCircularLoiter = true;
-            }
+        const float turnRadius = getFwCoordinatedTurnRadius();
+        const float halfAngleTan = constrainf(tan_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f)), 0.0f, NAV_FW_TURN_LEAD_TAN_MAX);
+        // velXY term is a ~1 s roll-in lead (replaced by a modelled roll-in in a later PR)
+        const float turnStartDistance = posControl.actualState.velXY + turnRadius * halfAngleTan;
+        if (posControl.wpDistance < turnStartDistance) {
             posControl.flags.wpTurnSmoothingActive = true;
         }
     }
