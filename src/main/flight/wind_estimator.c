@@ -45,7 +45,7 @@
 
 #define WINDESTIMATOR_TIMEOUT       60*15 // 15min with out altitude change
 #define WINDESTIMATOR_ALTITUDE_SCALE WINDESTIMATOR_TIMEOUT/500.0f //or 500m altitude change
-#define WINDESTIMATOR_VALIDITY_THRESHOLD    50
+#define WINDESTIMATOR_VALIDITY_THRESHOLD    15
 // Based on WindEstimation.pdf paper
 
 static bool hasValidWindEstimate = false;
@@ -90,6 +90,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     static float lastValidEstimateAltitude = 0.0f;
     float currentAltitude = gpsSol.llh.alt / 100.0f; // altitude in m
     static uint8_t validityScore = 0;
+    static bool forcedUpdate = false;
     bool updateTimedout = false;
 
     if ((US2S(currentTimeUs - lastValidWindEstimate) + WINDESTIMATOR_ALTITUDE_SCALE * fabsf(currentAltitude - lastValidEstimateAltitude)) > WINDESTIMATOR_TIMEOUT) {
@@ -98,17 +99,16 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
     /* validityScore used to indicate validity of wind estimate in a more reactive way compared to the basic method used above.
      * Each new estimate calc adds to score and each updateTimedout decrements from score.
-     * hasValidWindEstimate considered valid when score > 100 with max count limit of 115.
-     * 100 seems to be the number of estimate calcs required to get a reasonable estimate based on current filtering.
-     * hasValidWindEstimate considered invalid when score < 85.
-     * 85 approximates to around 2.5 to 5 minutes for hasValidWindEstimate to become invalid if no new estimate calcs occur */
+     * hasValidWindEstimate considered valid when score > WINDESTIMATOR_VALIDITY_THRESHOLD with max count limit of WINDESTIMATOR_VALIDITY_THRESHOLD + 15.
+     * WINDESTIMATOR_VALIDITY_THRESHOLD should result in a valid estimate based on the spike elimination and filtering used.
+     * hasValidWindEstimate considered invalid when score = 0 which approximates to around 2.5 to 5 minutes if no new estimate calcs occur */
 
     if (cmpTimeUs(currentTimeUs, lastUpdateUs) > 10 * USECS_PER_SEC || lastUpdateUs == 0) {
         lastUpdateUs = currentTimeUs;
         updateTimedout = true;
-
+        forcedUpdate = true;
         if (validityScore > 0) validityScore--;
-        if (validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD - 15) hasValidWindEstimate = false;
+        if (!validityScore) hasValidWindEstimate = false;
     }
 
     if (!hasValidWindEstimate && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) {
@@ -131,8 +131,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     float fuselageDirectionDiff[XYZ_AXIS_COUNT];
     float fuselageDirectionSum[XYZ_AXIS_COUNT];
 
-    // Get current 3D velocity from GPS in cm/s
-    // relative to earth frame
+    // Get current 3D velocity from GPS in cm/s relative to earth frame
     groundVelocity[X] = posEstimator.gps.vel.x;
     groundVelocity[Y] = posEstimator.gps.vel.y;
     groundVelocity[Z] = posEstimator.gps.vel.z;
@@ -180,30 +179,36 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         memcpy(lastFuselageDirection, fuselageDirection, sizeof(lastFuselageDirection));
         memcpy(lastGroundVelocity, groundVelocity, sizeof(lastGroundVelocity));
 
-        float theta = atan2f(groundVelocityDiff[Y], groundVelocityDiff[X]) - atan2f(fuselageDirectionDiff[Y], fuselageDirectionDiff[X]);// equation 9
+        float theta = atan2f(groundVelocityDiff[Y], groundVelocityDiff[X]) - atan2f(fuselageDirectionDiff[Y], fuselageDirectionDiff[X]);    // equation 9
         float sintheta = sinf(theta);
         float costheta = cosf(theta);
 
         float wind[XYZ_AXIS_COUNT];
-        wind[X] = (groundVelocitySum[X] - V * (costheta * fuselageDirectionSum[X] - sintheta * fuselageDirectionSum[Y])) * 0.5f;// equation 10
-        wind[Y] = (groundVelocitySum[Y] - V * (sintheta * fuselageDirectionSum[X] + costheta * fuselageDirectionSum[Y])) * 0.5f;// equation 11
-        wind[Z] = (groundVelocitySum[Z] - V * fuselageDirectionSum[Z]) * 0.5f;// equation 12
+        wind[X] = (groundVelocitySum[X] - V * (costheta * fuselageDirectionSum[X] - sintheta * fuselageDirectionSum[Y])) * 0.5f;    // equation 10
+        wind[Y] = (groundVelocitySum[Y] - V * (sintheta * fuselageDirectionSum[X] + costheta * fuselageDirectionSum[Y])) * 0.5f;    // equation 11
+        wind[Z] = (groundVelocitySum[Z] - V * fuselageDirectionSum[Z]) * 0.5f;  // equation 12
 
-        float prevWindLength = calc_length_pythagorean_3D(estimatedWind[X], estimatedWind[Y], estimatedWind[Z]);
+        float prevEstWindLength = calc_length_pythagorean_3D(estimatedWind[X], estimatedWind[Y], estimatedWind[Z]);
         float windLength = calc_length_pythagorean_3D(wind[X], wind[Y], wind[Z]);
 
-        //is this really needed? The reason it is here might be above equation was wrong in early implementations
-        if (windLength < prevWindLength + 4000) {
-            // TODO: Better filtering
-            estimatedWind[X] = estimatedWind[X] * 0.98f + wind[X] * 0.02f;
-            estimatedWind[Y] = estimatedWind[Y] * 0.98f + wind[Y] * 0.02f;
-            estimatedWind[Z] = estimatedWind[Z] * 0.98f + wind[Z] * 0.02f;
-        }
+        /* Initial "rough and rapid" estimate calculated with validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD.
+         * Estimate then refined with a max threshold of 3 m/s between windLength and estimated wind which is necessary
+         * to prevent large transient spikes in windLength upsetting the estimate.
+         * forcedUpdate used to ensure estimate doesn't get stuck should a large misatch between windLength and estimate occur */
+        if ((ABS(windLength - prevEstWindLength) < 300.0f) || validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD || forcedUpdate) {
+            float filterAlpha = 0.1f;
 
-        lastUpdateUs = currentTimeUs;
-        lastValidWindEstimate = currentTimeUs;
-        lastValidEstimateAltitude = currentAltitude;
-        if (validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD + 15) validityScore++;
+            estimatedWind[X] = estimatedWind[X] + filterAlpha * (wind[X] - estimatedWind[X]);
+            estimatedWind[Y] = estimatedWind[Y] + filterAlpha * (wind[Y] - estimatedWind[Y]);
+            estimatedWind[Z] = estimatedWind[Z] + filterAlpha * (wind[Z] - estimatedWind[Z]);
+
+            if (validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD + 15) validityScore++;
+
+            lastUpdateUs = currentTimeUs;
+            lastValidWindEstimate = currentTimeUs;
+            lastValidEstimateAltitude = currentAltitude;
+            forcedUpdate = false;
+        }
     }
 }
 
