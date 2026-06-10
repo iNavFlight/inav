@@ -902,18 +902,20 @@ void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
 
         uint16_t minSpeed = 100 * navConfig()->fw.auto_speed_min_speed;
         uint16_t maxSpeed = 100 * navConfig()->fw.auto_speed_max_speed;
-        uint16_t minThrottle = getThrottleIdleValue();
+        uint16_t minThrottle = MAX(getThrottleIdleValue(), navConfig()->fw.auto_speed_min_throttle);
+        uint16_t maxThrottle = navConfig()->fw.auto_speed_max_throttle;
 
         posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(navConfig()->fw.auto_speed_channel - 1), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
-        uint16_t actualSpeed = calc_length_pythagorean_2D(posControl.actualState.velXY, posControl.actualState.abs.vel.z);
+        uint16_t actualSpeed = posControl.actualState.vel3D;
 
 #ifdef USE_PITOT
-        if (navIsAutoSpeedAirspeedUsed()) { // If pitot available use airspeed if enabled for use
+        if (navIsAutoSpeedAirspeedUsed()) { // If pitot available use airspeed if selected for use
             actualSpeed = getAirspeedEstimate();
         } else
 #endif
-        {   // When using ground speed set minimum throttle to cruise throttle with pitch2throttle correction to prevent downwind stall
-            minThrottle = currentBatteryProfile->nav.fw.cruise_throttle + fixedWingPitchToThrottleCorrection(-attitude.values.pitch, currentTime);
+        {   // Ground speed - set minimum throttle to cruise throttle with pitch2throttle correction to prevent downwind stall
+            minThrottle = constrain(currentBatteryProfile->nav.fw.cruise_throttle + fixedWingPitchToThrottleCorrection(-attitude.values.pitch, currentTime),
+                                    minThrottle, maxThrottle);
         }
 
         int16_t throttleCorr = navPidApply2(&posControl.pids.fw_autoSpeed, posControl.desiredState.autoSpeedDemand, actualSpeed, US2S(dT), -PWM_RANGE_HALF, PWM_RANGE_HALF, 0);
@@ -927,7 +929,7 @@ void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
             autoSpeedThrottleCommand += applyFixedWingMinSpeedController(currentTime);
         }
 
-        autoSpeedThrottleCommand = constrain(autoSpeedThrottleCommand, minThrottle, getMaxThrottle());
+        autoSpeedThrottleCommand = constrain(autoSpeedThrottleCommand, minThrottle, maxThrottle);
 
         // Indicate that information is no longer usable
         posControl.flags.horizontalPositionDataConsumed = true;

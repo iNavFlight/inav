@@ -3031,6 +3031,18 @@ groups:
         field: fw.auto_speed_max_speed
         min: 5
         max: 50
+      - name: fw_auto_speed_min_throttle
+        description: "Minimum throttle for auto speed mode [us]. Currently only for fixed wing."
+        default_value: 1200
+        field: fw.auto_speed_min_throttle
+        min: PWM_RANGE_MIN
+        max: PWM_RANGE_MAX
+      - name: fw_auto_speed_max_throttle
+        description: "Maximum throttle for auto speed mode [us]. Currently only for fixed wing."
+        default_value: 1800
+        field: fw.auto_speed_max_throttle
+        min: PWM_RANGE_MIN
+        max: PWM_RANGE_MAX
       - name: fw_auto_speed_channel
         description: "Channel number used to set desired Auto speed input value. Defaults to throttle channel 4. Currently only for fixed wing."
         default_value: 4
