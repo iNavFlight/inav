@@ -1984,7 +1984,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_3D_SPEED:
-        osdFormatVelocityStr(buff, osdGet3DSpeed(), OSD_SPEED_TYPE_3D, false);
+        osdFormatVelocityStr(buff, posControl.actualState.vel3D, OSD_SPEED_TYPE_3D, false);
         break;
 
     case OSD_3D_MAX_SPEED:
@@ -4877,7 +4877,7 @@ static void osdUpdateStats(void)
     int32_t value;
 
     if (feature(FEATURE_GPS)) {
-        value = osdGet3DSpeed();
+        value = posControl.actualState.vel3D;
         const float airspeed_estimate = getAirspeedEstimate();
 
         if (stats.max_3D_speed < value) stats.max_3D_speed = value;

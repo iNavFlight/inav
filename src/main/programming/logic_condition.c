@@ -755,9 +755,8 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return getMinGroundSpeed(navConfig()->general.min_ground_speed);
             break;
 
-        //FIXME align with osdGet3DSpeed
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_SPEED: // cm/s
-            return osdGet3DSpeed();
+            return posControl.actualState.vel3D;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
