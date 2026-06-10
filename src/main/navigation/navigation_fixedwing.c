@@ -74,6 +74,7 @@
 #define NAV_FW_TURN_MIN_SPEED        500.0f     // [cm/s] speed floor for the radius calc (low-speed noise guard)
 #define NAV_FW_TURN_RADIUS_MIN       1000.0f    // [cm] 10 m  lower clamp
 #define NAV_FW_TURN_RADIUS_MAX       30000.0f   // [cm] 300 m upper clamp (matches loiter_radius max)
+#define NAV_FW_LOITER_RADIUS_DECAY   100.0f     // [cm/s] max rate the held loiter radius eases back down (1 m/s)
 #define NAV_FW_TURN_LEAD_TAN_MAX     3.7f       // tan(half turn angle) cap (~150 deg) to bound the lead distance
 
 // FW energy/altitude bank guard thresholds (conservative; observable via DEBUG_FW_TURN)
@@ -321,8 +322,8 @@ void resetFixedWingPositionController(void)
     fwRollSmoothSeedCd = ((micros() - fwLastNavRollCmdTimeUs) < MAX_POSITION_UPDATE_INTERVAL_US) ? fwLastNavRollCmdCd : 0.0f;
     fwRollSmoothReseed = true;
 
-    // Reset the energy-guard bank limit to the configured maximum (guard state re-syncs on next run)
-    fwEffectiveBankLimit = navConfig()->fw.max_bank_angle;
+    // Reset the energy-guard bank limit; 0 = use full ceiling until the guard re-syncs on its next run
+    fwEffectiveBankLimit = 0.0f;
 
     pt1FilterSetCutoff(&fwCrossTrackErrorRateFilterState, 3.0f);
     pt1FilterReset(&fwCrossTrackErrorRateFilterState, 0.0f);
@@ -417,11 +418,34 @@ static float applyFwRollInSmoothing(float rollTargetCd, timeDelta_t deltaMicros,
     return out;
 }
 
-// Effective nav bank limit [deg]: the energy guard's reduced limit, never above the configured max.
+// Hard roll ceiling [deg] = the global angle-mode limit (max_angle_inclination_rll); the nav control
+// output may never exceed it (also enforced downstream by pidAngleToRcCommand).
+static float getFwBankCeilingDeg(void)
+{
+    return (float)pidProfile()->max_angle_inclination[FD_ROLL] / 10.0f;
+}
+
+// Control-output bank ceiling [deg]: the hard roll ceiling, reduced by the energy guard. Roll PID/FF
+// corrections may climb to here to HOLD the radius; nav_fw_bank_angle is only the planning target.
 static float getFwEffectiveBankLimit(void)
 {
-    const float maxBank = (float)navConfig()->fw.max_bank_angle;
-    return (fwEffectiveBankLimit > 0.0f) ? MIN(fwEffectiveBankLimit, maxBank) : maxBank;
+    const float ceiling = getFwBankCeilingDeg();
+    return (fwEffectiveBankLimit > 0.0f) ? MIN(fwEffectiveBankLimit, ceiling) : ceiling;
+}
+
+// Planning bank [deg] for sizing turn/loiter radii: nav_fw_bank_angle as the TARGET, capped by the
+// (guard-reduced) ceiling. If nav_fw_bank_angle >= the ceiling, planning == ceiling (hard limit).
+static float getFwPlanningBankDeg(void)
+{
+    return MIN((float)navConfig()->fw.max_bank_angle, getFwEffectiveBankLimit());
+}
+
+// Roll-command bank limit [deg]: in a held loiter the controller may use the reserve up to the guard
+// ceiling to reject wind and hold the circle; everywhere else (WP turns, cruise) it stays at the
+// planning target so coordinated turns fly a clean arc at nav_fw_bank_angle, not the hard ceiling.
+static float getFwControlBankLimit(void)
+{
+    return (navGetCurrentStateFlags() & NAV_CTL_HOLD) ? getFwEffectiveBankLimit() : getFwPlanningBankDeg();
 }
 
 // Reduce the effective bank limit when a commanded climb can't be sustained near the pitch/throttle
@@ -436,7 +460,8 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t correctedTh
     static pt1Filter_t deficitFilter;
     static pt1Filter_t riseFilter;
 
-    const float maxBank = (float)navConfig()->fw.max_bank_angle;
+    const float maxBank = getFwBankCeilingDeg();
+    const float targetBank = MIN((float)navConfig()->fw.max_bank_angle, maxBank);   // planning target = guard snap level
     if (fwEffectiveBankLimit <= 0.0f) {
         fwEffectiveBankLimit = maxBank;
     }
@@ -490,7 +515,8 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t correctedTh
     const float reduceRate = (rise > NAV_FW_GUARD_VZ_DEFICIT_ENTER) ? (2.0f * NAV_FW_GUARD_REDUCE_RATE_DPS) : NAV_FW_GUARD_REDUCE_RATE_DPS;
 
     if (trigger) {
-        fwEffectiveBankLimit -= reduceRate * dtSec;
+        fwEffectiveBankLimit = MIN(fwEffectiveBankLimit, targetBank);    // drop headroom at once: snap to the planning target
+        fwEffectiveBankLimit -= reduceRate * dtSec;                      // then keep easing down toward the floor
         lastTriggerUs = currentTimeUs;
     } else if ((currentTimeUs - lastTriggerUs) > ((timeUs_t)NAV_FW_GUARD_RECOVER_HOLDOFF_MS * 1000)) {
         fwEffectiveBankLimit += NAV_FW_GUARD_RECOVER_RATE_DPS * dtSec;
@@ -507,7 +533,7 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t correctedTh
 static float getFwCoordinatedTurnRadius(void)
 {
     const float speed = MAX(posControl.actualState.velXY, NAV_FW_TURN_MIN_SPEED);   // cm/s
-    const float bankRad = DEGREES_TO_RADIANS((float)navConfig()->fw.max_bank_angle);
+    const float bankRad = DEGREES_TO_RADIANS(getFwPlanningBankDeg());                // plan for the target bank
     const float radius = (speed * speed) / (GRAVITY_CMSS * tan_approx(bankRad));     // cm
     return constrainf(radius, NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX);
 }
@@ -540,7 +566,65 @@ static float getFwTurnFeedForward(int32_t navHeadingError)
     return rollFF;
 }
 
-static void calculateVirtualPositionTarget_FW(float trackingPeriod)
+// Loiter-radius floor [cm], stabilised. The tightest holdable circle scales with ground-speed squared,
+// so it swings with wind; commanding that every loop makes the fixed-radius loiter tracker thrash. We
+// ratchet UP immediately (safety), hold the PEAK over a full revolution, then ease DOWN toward that
+// revolution's peak at <= NAV_FW_LOITER_RADIUS_DECAY (no abrupt drop after a gust). Revolution = the
+// aircraft's azimuth about the loiter centre sweeping a net 360deg (heading-independent).
+static uint32_t getFwStableLoiterRadius(uint32_t configuredRadius, float bearingFromCenterRad, bool loiterActive, timeDelta_t deltaMicros)
+{
+    static bool  active = false;
+    static float commandedHold = 0.0f;
+    static float decayTarget = 0.0f;
+    static float revPeak = 0.0f;
+    static float netAngle = 0.0f;
+    static float prevBearing = 0.0f;
+
+    const float speed = MAX(posControl.actualState.velXY, NAV_FW_TURN_MIN_SPEED);
+    const float required = constrainf((speed * speed) / (GRAVITY_CMSS * tan_approx(DEGREES_TO_RADIANS(getFwPlanningBankDeg()))),
+                                      NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX);
+
+    if (!loiterActive) {
+        active = false;
+        commandedHold = required;                       // transit / WP turn: track instantaneously
+    } else {
+        if (!active) {                                  // loiter entry: seed (no decay until the first revolution)
+            active = true;
+            commandedHold = required;
+            decayTarget = NAV_FW_TURN_RADIUS_MAX;
+            revPeak = required;
+            netAngle = 0.0f;
+            prevBearing = bearingFromCenterRad;
+        }
+        revPeak = MAX(revPeak, required);
+        commandedHold = MAX(commandedHold, required);   // ratchet up immediately (safety)
+
+        float dAng = bearingFromCenterRad - prevBearing;
+        if (dAng >  M_PIf) dAng -= 2.0f * M_PIf;
+        if (dAng < -M_PIf) dAng += 2.0f * M_PIf;
+        netAngle += dAng;                               // signed net rotation about the centre
+        prevBearing = bearingFromCenterRad;
+
+        if (fabsf(netAngle) >= 2.0f * M_PIf) {          // a full revolution -> this revolution's peak is the decay target
+            decayTarget = revPeak;
+            revPeak = required;
+            netAngle = 0.0f;
+        }
+
+        if (commandedHold > decayTarget) {              // ease down gradually, never below the current need
+            commandedHold -= NAV_FW_LOITER_RADIUS_DECAY * US2S(deltaMicros);
+            commandedHold = MAX(commandedHold, MAX(decayTarget, required));
+        }
+    }
+
+    const uint32_t out = (uint32_t)MAX((float)configuredRadius, commandedHold);
+    DEBUG_SET(DEBUG_FW_TURN, 0, lrintf(out));           // commanded loiter radius (stabilised)
+    DEBUG_SET(DEBUG_FW_TURN, 2, lrintf(required));      // instantaneous required (swings with wind)
+    DEBUG_SET(DEBUG_FW_TURN, 3, lrintf(speed));         // ground speed
+    return out;
+}
+
+static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t deltaMicros)
 {
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
         return;
@@ -556,13 +640,11 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 
     uint32_t navLoiterRadius = getLoiterRadius(navConfig()->fw.loiter_radius);
 
-    /* Floor the loiter radius to what the (possibly guard-reduced) bank limit can fly at this speed,
-     * so the aircraft holds a stable circle instead of chasing an unachievable one. */
-    {
-        const float speed = MAX(posControl.actualState.velXY, NAV_FW_TURN_MIN_SPEED);
-        const float minRadius = (speed * speed) / (GRAVITY_CMSS * tan_approx(DEGREES_TO_RADIANS(getFwEffectiveBankLimit())));
-        navLoiterRadius = MAX(navLoiterRadius, (uint32_t)constrainf(minRadius, NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX));
-    }
+    /* Loiter-radius floor with per-revolution peak hold (see getFwStableLoiterRadius): keep the circle
+     * stable for the fixed-radius loiter tracker instead of chasing the wind-varying instantaneous value. */
+    const bool inLoiter = (navGetCurrentStateFlags() & NAV_CTL_HOLD);
+    const float bearingFromCenter = atan2_approx(-posErrorY, -posErrorX);
+    navLoiterRadius = getFwStableLoiterRadius(navLoiterRadius, bearingFromCenter, inLoiter, deltaMicros);
     fwActiveLoiterRadius = (float)navLoiterRadius;   // expose to the turn feed-forward
 
     fpVector3_t loiterCenterPos = posControl.desiredState.pos;
@@ -768,7 +850,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0);
 
     // Input error in (deg*100), output roll angle (deg*100)
-    const float navBankLimit = getFwEffectiveBankLimit();    // energy-guard reduced limit (<= nav_fw_bank_angle)
+    const float navBankLimit = getFwControlBankLimit();      // planning target on WP turns, guard ceiling in loiter
     float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.cog + navHeadingError, posControl.actualState.cog, US2S(deltaMicros),
                                        -DEGREES_TO_CENTIDEGREES(navBankLimit),
                                         DEGREES_TO_CENTIDEGREES(navBankLimit),
@@ -815,7 +897,7 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs)
                 // Account for pilot's roll input (move position target left/right at max of max_manual_speed)
                 // POSITION_TARGET_UPDATE_RATE_HZ should be chosen keeping in mind that position target shouldn't be reached until next pos update occurs
                 // FIXME: verify the above
-                calculateVirtualPositionTarget_FW(HZ2S(MIN_POSITION_UPDATE_RATE_HZ) * 2);
+                calculateVirtualPositionTarget_FW(HZ2S(MIN_POSITION_UPDATE_RATE_HZ) * 2, deltaMicrosPositionUpdate);
                 updatePositionHeadingController_FW(currentTimeUs, deltaMicrosPositionUpdate);
                 needToCalculateCircularLoiter = false;
             }
@@ -904,7 +986,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
     if (isRollAdjustmentValid && (navStateFlags & NAV_CTL_POS)) {
         // ROLL >0 right, <0 left
-        const int16_t navBankLimitDeciDeg = (int16_t)lrintf(DEGREES_TO_DECIDEGREES(getFwEffectiveBankLimit()));
+        const int16_t navBankLimitDeciDeg = (int16_t)lrintf(DEGREES_TO_DECIDEGREES(getFwControlBankLimit()));
         int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL], -navBankLimitDeciDeg, navBankLimitDeciDeg);
         rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection, pidProfile()->max_angle_inclination[FD_ROLL]);
     }
