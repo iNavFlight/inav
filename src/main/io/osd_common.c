@@ -42,6 +42,8 @@
 #include "io/osd_grid.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
+
 #include "sensors/pitotmeter.h"
 
 #if defined(USE_OSD) || defined(USE_DJI_HD_OSD)
@@ -59,7 +61,7 @@ int16_t osdGetSpeedFromSelectedSource(void) {
             speed = gpsSol.groundSpeed;
             break;
         case OSD_SPEED_SOURCE_3D:
-            speed = osdGet3DSpeed();
+            speed = posControl.actualState.vel3D;
             break;
         case OSD_SPEED_SOURCE_AIR:
             #ifdef USE_PITOT
@@ -164,7 +166,7 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
 {
     uint8_t gx;
     uint8_t gy;
-        
+
 #if defined(USE_CANVAS)
     if (canvas) {
         osdCanvasDrawArtificialHorizon(display, canvas, p, pitchAngle, rollAngle);
@@ -208,18 +210,5 @@ void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
     UNUSED(canvas);
 #endif
     osdGridDrawSidebars(display);
-}
-
-#endif
-
-#ifdef USE_GPS
-/*
- * 3D speed in cm/s
- */
-int16_t osdGet3DSpeed(void)
-{
-    float vert_speed = getEstimatedActualVelocity(Z);
-    float hor_speed = (float)gpsSol.groundSpeed;
-    return (int16_t)calc_length_pythagorean_2D(hor_speed, vert_speed);
 }
 #endif

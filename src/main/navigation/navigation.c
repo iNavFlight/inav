@@ -2852,6 +2852,8 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
     posControl.actualState.agl.pos.z = surfaceDistance;
     posControl.actualState.agl.vel.z = surfaceVelocity;
 
+    posControl.actualState.vel3D = calc_length_pythagorean_2D(posControl.actualState.velXY, posControl.actualState.abs.vel.z);
+
     // Update altitude that would be used when executing RTH
     if (estimateValid) {
         updateDesiredRTHAltitude();
@@ -3874,10 +3876,10 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
 
 int isGCSValid(void)
 {
-    return (ARMING_FLAG(ARMED) && 
-            (posControl.flags.estPosStatus >= EST_TRUSTED) && 
-            posControl.gpsOrigin.valid && 
-            posControl.flags.isGCSAssistedNavigationEnabled && 
+    return (ARMING_FLAG(ARMED) &&
+            (posControl.flags.estPosStatus >= EST_TRUSTED) &&
+            posControl.gpsOrigin.valid &&
+            posControl.flags.isGCSAssistedNavigationEnabled &&
             (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS));
 }
 
