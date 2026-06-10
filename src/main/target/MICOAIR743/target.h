@@ -139,6 +139,13 @@
 #define USE_ESC_SENSOR
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
+// *************** CANBUS ****************************
+// CAN bus pins - sourced from ArduPilot board definition
+// Uncomment to enable DroneCAN support (requires custom build)
+// #define USE_DRONECAN
+// #define CAN1_RX                 PB8
+// #define CAN1_TX                 PB9
+
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
