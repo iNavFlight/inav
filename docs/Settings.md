@@ -4049,6 +4049,138 @@ Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mod
 
 ---
 
+### nav_marker_containment_hold_east_cm
+
+Marker-relative hold target for vehicle East position [cm], relative to marker. Positive means vehicle should stay East of marker.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -5000 | 5000 |
+
+---
+
+### nav_marker_containment_hold_north_cm
+
+Marker-relative hold target for vehicle North position [cm], relative to marker. Positive means vehicle should stay North of marker.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -5000 | 5000 |
+
+---
+
+### nav_marker_guidance_lost_hold_time_ms
+
+Hold duration after target loss before falling back to normal LAND behavior [ms].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 100 | 10000 |
+
+---
+
+### nav_marker_guidance_low_alt_lock_xy
+
+Lock current XY position when marker target is lost at or below nav_marker_guidance_retry_min_alt_cm in PL mode LAND context. OFF keeps normal LAND XY target.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### nav_marker_guidance_max_offset_cm
+
+Maximum allowed horizontal target offset magnitude. Larger offsets are rejected [cm]. Set 0 to disable this check.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 0 | 5000 |
+
+---
+
+### nav_marker_guidance_max_target_age_ms
+
+Maximum age of cached marker data [ms]. If no fresh packet arrives inside this window, target becomes stale/lost and marker guidance stops affecting navigation.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 50 | 5000 |
+
+---
+
+### nav_marker_guidance_mode
+
+Marker-guidance mode selector: OFF disables guidance, PL enables precision-centering for LAND/POSHOLD with retry-on-loss behavior in LAND, CONTAINMENT enables marker-relative POSHOLD containment using hold north/east and radius.
+
+| Allowed Values |  |
+| --- | --- |
+| OFF | Default |
+| PL |  |
+| CONTAINMENT |  |
+
+---
+
+### nav_marker_guidance_radius_cm
+
+Marker-guidance radius [cm]. In PL, this is the center-alignment deadband around marker center. In CONTAINMENT, this is the allowed radius around marker-containment hold target. Set 0 for continuous correction.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 80 | 0 | 5000 |
+
+---
+
+### nav_marker_guidance_retry_altitude_cm
+
+Climb distance for each retry attempt after target loss in PL mode LAND context [cm].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 50 | 2000 |
+
+---
+
+### nav_marker_guidance_retry_count
+
+Maximum number of climb-and-retry attempts after target loss in PL mode LAND context.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 10 |
+
+---
+
+### nav_marker_guidance_retry_min_alt_cm
+
+Minimum AGL altitude for climb-and-retry after target loss in PL mode LAND context [cm]. At or below this altitude, retry is skipped and normal LAND continues. Set 0 to disable.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 2000 |
+
+---
+
+### nav_marker_guidance_retry_timeout_ms
+
+Timeout for each climb-and-retry phase in PL mode LAND context [ms]. Set to 0 for AUTO mode (computed as 2 x nav_marker_guidance_lost_hold_time_ms).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 60000 |
+
+---
+
+### nav_marker_guidance_source
+
+Marker-guidance target source.
+
+| Allowed Values |  |
+| --- | --- |
+| MSP | Default |
+
+---
+
 ### nav_max_altitude
 
 Max allowed altitude (above Home Point) that applies to all NAV modes (including Altitude Hold). 0 means limit is disabled
@@ -7149,4 +7281,3 @@ Defines rotation rate on YAW axis that UAV will try to archive on max. stick def
 | 20 | 1 | 180 |
 
 ---
-

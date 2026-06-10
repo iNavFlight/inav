@@ -50,6 +50,9 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#ifdef USE_MARKER_GUIDANCE
+#include "navigation/marker_guidance.h"
+#endif
 #include "navigation/sqrt_controller.h"
 
 #include "sensors/battery.h"
@@ -493,6 +496,18 @@ static float getVelocityExpoAttenuationFactor(float velTotal, float velMax)
     return 1.0f - posControl.posResponseExpo * (1.0f - (velScale * velScale));  // x^3 expo factor
 }
 
+#ifdef USE_MARKER_GUIDANCE
+static void constrainDesiredHorizontalVelocity(float maxSpeed)
+{
+    const float speed = calc_length_pythagorean_2D(posControl.desiredState.vel.x, posControl.desiredState.vel.y);
+    if (maxSpeed > 0.0f && speed > maxSpeed) {
+        const float scale = maxSpeed / speed;
+        posControl.desiredState.vel.x *= scale;
+        posControl.desiredState.vel.y *= scale;
+    }
+}
+#endif
+
 static void updatePositionVelocityController_MC(const float maxSpeed)
 {
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
@@ -543,6 +558,12 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     const float velExpoFactor = getVelocityExpoAttenuationFactor(neuVelTotal, maxSpeed);
     posControl.desiredState.vel.x = neuVelX * velHeadFactor * velExpoFactor;
     posControl.desiredState.vel.y = neuVelY * velHeadFactor * velExpoFactor;
+
+    // Optional external marker-guidance correction (MC/VTOL hover contexts only).
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceApplyHorizontalVelocityCorrection(&posControl.desiredState.vel.x, &posControl.desiredState.vel.y);
+    constrainDesiredHorizontalVelocity(maxSpeed);
+#endif
 }
 
 static float computeNormalizedVelocity(const float value, const float maxValue)
