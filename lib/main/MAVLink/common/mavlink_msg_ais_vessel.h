@@ -13,15 +13,15 @@ typedef struct __mavlink_ais_vessel_t {
  uint16_t velocity; /*< [cm/s] Speed over ground*/
  uint16_t dimension_bow; /*< [m] Distance from lat/lon location to bow*/
  uint16_t dimension_stern; /*< [m] Distance from lat/lon location to stern*/
- uint16_t tslc; /*< [s] Time since last communication in seconds*/
+ uint16_t tslc; /*< [s] Time since last communication from the vessel, in seconds*/
  uint16_t flags; /*<  Bitmask to indicate various statuses including valid data fields*/
  int8_t turn_rate; /*< [ddeg/s] Turn rate, 0.1 degrees per second*/
  uint8_t navigational_status; /*<  Navigational status*/
  uint8_t type; /*<  Type of vessels*/
  uint8_t dimension_port; /*< [m] Distance from lat/lon location to port side*/
  uint8_t dimension_starboard; /*< [m] Distance from lat/lon location to starboard side*/
- char callsign[7]; /*<  The vessel callsign*/
- char name[20]; /*<  The vessel name*/
+ char callsign[7]; /*<  The vessel callsign. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_CALLSIGN if valid. The string is NULL-terminated if it is shorter than the array length.*/
+ char name[20]; /*<  The vessel name. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_NAME if valid. The string is NULL-terminated if it is shorter than the array length.*/
 } mavlink_ais_vessel_t;
 
 #define MAVLINK_MSG_ID_AIS_VESSEL_LEN 58
@@ -103,9 +103,9 @@ typedef struct __mavlink_ais_vessel_t {
  * @param dimension_stern [m] Distance from lat/lon location to stern
  * @param dimension_port [m] Distance from lat/lon location to port side
  * @param dimension_starboard [m] Distance from lat/lon location to starboard side
- * @param callsign  The vessel callsign
- * @param name  The vessel name
- * @param tslc [s] Time since last communication in seconds
+ * @param callsign  The vessel callsign. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_CALLSIGN if valid. The string is NULL-terminated if it is shorter than the array length.
+ * @param name  The vessel name. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_NAME if valid. The string is NULL-terminated if it is shorter than the array length.
+ * @param tslc [s] Time since last communication from the vessel, in seconds
  * @param flags  Bitmask to indicate various statuses including valid data fields
  * @return length of the message in bytes (excluding serial stream start sign)
  */
@@ -178,9 +178,9 @@ static inline uint16_t mavlink_msg_ais_vessel_pack(uint8_t system_id, uint8_t co
  * @param dimension_stern [m] Distance from lat/lon location to stern
  * @param dimension_port [m] Distance from lat/lon location to port side
  * @param dimension_starboard [m] Distance from lat/lon location to starboard side
- * @param callsign  The vessel callsign
- * @param name  The vessel name
- * @param tslc [s] Time since last communication in seconds
+ * @param callsign  The vessel callsign. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_CALLSIGN if valid. The string is NULL-terminated if it is shorter than the array length.
+ * @param name  The vessel name. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_NAME if valid. The string is NULL-terminated if it is shorter than the array length.
+ * @param tslc [s] Time since last communication from the vessel, in seconds
  * @param flags  Bitmask to indicate various statuses including valid data fields
  * @return length of the message in bytes (excluding serial stream start sign)
  */
@@ -256,9 +256,9 @@ static inline uint16_t mavlink_msg_ais_vessel_pack_status(uint8_t system_id, uin
  * @param dimension_stern [m] Distance from lat/lon location to stern
  * @param dimension_port [m] Distance from lat/lon location to port side
  * @param dimension_starboard [m] Distance from lat/lon location to starboard side
- * @param callsign  The vessel callsign
- * @param name  The vessel name
- * @param tslc [s] Time since last communication in seconds
+ * @param callsign  The vessel callsign. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_CALLSIGN if valid. The string is NULL-terminated if it is shorter than the array length.
+ * @param name  The vessel name. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_NAME if valid. The string is NULL-terminated if it is shorter than the array length.
+ * @param tslc [s] Time since last communication from the vessel, in seconds
  * @param flags  Bitmask to indicate various statuses including valid data fields
  * @return length of the message in bytes (excluding serial stream start sign)
  */
@@ -370,9 +370,9 @@ static inline uint16_t mavlink_msg_ais_vessel_encode_status(uint8_t system_id, u
  * @param dimension_stern [m] Distance from lat/lon location to stern
  * @param dimension_port [m] Distance from lat/lon location to port side
  * @param dimension_starboard [m] Distance from lat/lon location to starboard side
- * @param callsign  The vessel callsign
- * @param name  The vessel name
- * @param tslc [s] Time since last communication in seconds
+ * @param callsign  The vessel callsign. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_CALLSIGN if valid. The string is NULL-terminated if it is shorter than the array length.
+ * @param name  The vessel name. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_NAME if valid. The string is NULL-terminated if it is shorter than the array length.
+ * @param tslc [s] Time since last communication from the vessel, in seconds
  * @param flags  Bitmask to indicate various statuses including valid data fields
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
@@ -628,7 +628,7 @@ static inline uint8_t mavlink_msg_ais_vessel_get_dimension_starboard(const mavli
 /**
  * @brief Get field callsign from ais_vessel message
  *
- * @return  The vessel callsign
+ * @return  The vessel callsign. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_CALLSIGN if valid. The string is NULL-terminated if it is shorter than the array length.
  */
 static inline uint16_t mavlink_msg_ais_vessel_get_callsign(const mavlink_message_t* msg, char *callsign)
 {
@@ -638,7 +638,7 @@ static inline uint16_t mavlink_msg_ais_vessel_get_callsign(const mavlink_message
 /**
  * @brief Get field name from ais_vessel message
  *
- * @return  The vessel name
+ * @return  The vessel name. Characters are encoded as 7-bit ASCII, but only characters in the [AIS 6-bit ASCII subset](https://en.wikipedia.org/wiki/Six-bit_character_code#AIS_SixBit_ASCII) are permitted. Also set AIS_FLAGS_VALID_NAME if valid. The string is NULL-terminated if it is shorter than the array length.
  */
 static inline uint16_t mavlink_msg_ais_vessel_get_name(const mavlink_message_t* msg, char *name)
 {
@@ -648,7 +648,7 @@ static inline uint16_t mavlink_msg_ais_vessel_get_name(const mavlink_message_t* 
 /**
  * @brief Get field tslc from ais_vessel message
  *
- * @return [s] Time since last communication in seconds
+ * @return [s] Time since last communication from the vessel, in seconds
  */
 static inline uint16_t mavlink_msg_ais_vessel_get_tslc(const mavlink_message_t* msg)
 {

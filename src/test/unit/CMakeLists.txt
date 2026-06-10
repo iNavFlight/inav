@@ -70,6 +70,14 @@ set_property(SOURCE gps_ublox_unittest.cc PROPERTY definitions GPS_UBLOX_UNIT_TE
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
 
+set_property(SOURCE mavlink_unittest.cc PROPERTY depends
+    "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_mission.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"
+    "mavlink/mavlink_routing.c" "mavlink/mavlink_runtime.c" "mavlink/mavlink_streams.c" "telemetry/mavlink.c"
+    "common/crc.c" "common/maths.c" "common/streambuf.c" "common/string_light.c" "msp/msp_serial.c")
+set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK)
+set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
+    "../../lib/main/MAVLink")
+
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
     string(REPLACE ".cc" "" name ${basename} )
@@ -78,6 +86,7 @@ function(unit_test src)
     list(TRANSFORM headers REPLACE "\.c$" ".h")
     list(APPEND deps ${headers})
     get_property(defs SOURCE ${src} PROPERTY definitions)
+    get_property(extra_includes SOURCE ${src} PROPERTY includes)
     set(test_definitions "UNIT_TEST")
     if (defs)
         list(APPEND test_definitions ${defs})
