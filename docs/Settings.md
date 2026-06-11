@@ -4179,6 +4179,47 @@ Sets the maximum allowed alignment convergence angle to the waypoint course line
 
 ---
 
+### nav_fw_wp_turn_control_ease
+
+DEVELOPER/EXPERIMENTAL: unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramp; SIM low, real models higher.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 500 |
+
+---
+
+### nav_fw_wp_turn_coordination
+
+How FW waypoint turns are flown. COORDINATED (default) commands an explicit coordinated arc of the planned radius at nav_fw_bank_angle and tracks it to the next leg. DIRECT uses the legacy heading-PID turn (fallback for users who prefer the old behaviour).
+
+| Allowed Values |  |
+| --- | --- |
+| DIRECT |  |
+| COORDINATED | Default |
+
+---
+
+### nav_fw_wp_turn_handback_angle
+
+DEVELOPER/EXPERIMENTAL (to be hardcoded before release): heading error to the next leg [deg] at which the arc turn coordinator hands control back to the normal heading PID.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 5 | 45 |
+
+---
+
+### nav_fw_wp_turn_max_lead_time
+
+DEVELOPER/EXPERIMENTAL (to be hardcoded before release): FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. Stops extreme early turn-in at high speed / large angles; above this the turn waits, then flies a non-tangent recovery.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3000 | 0 | 10000 |
+
+---
+
 ### nav_fw_wp_turn_mode
 
 How the aircraft turns at waypoints during FW WP missions. FLY_BY anticipates the turn using the real coordinated-turn radius (from speed and nav_fw_bank_angle) so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). FLY_OVER flies over the waypoint, then turns onto the next leg.
