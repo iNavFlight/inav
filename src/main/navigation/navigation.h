@@ -340,6 +340,11 @@ typedef enum {
 } navFwWpTurnMode_e;
 
 typedef enum {
+    NAV_FW_WP_TURN_DIRECT = 0,          // legacy heading-PID turn (fallback)
+    NAV_FW_WP_TURN_COORDINATED = 1,     // arc-based coordinated turn (default)
+} navFwWpTurnCoordination_e;
+
+typedef enum {
     MC_ALT_HOLD_STICK,
     MC_ALT_HOLD_MID,
     MC_ALT_HOLD_HOVER,
@@ -508,6 +513,10 @@ typedef struct navConfig_s {
         uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
         uint8_t  wp_turn_mode;               // WP mission turn mode (navFwWpTurnMode_e: FLY_BY / FLY_OVER)
         uint8_t  turn_ff_gain;               // turn coordination feed-forward gain [%] (0 = off; dev tuning, to be hardcoded)
+        uint8_t  wp_turn_coordination;       // turn handling (navFwWpTurnCoordination_e: DIRECT / COORDINATED)
+        uint8_t  wp_turn_handback_angle;     // arc -> direct PID handback heading error [deg] (dev tuning)
+        uint16_t wp_turn_max_lead_time;      // FLY_BY: cap on how early the turn may start before the WP [ms] (dev tuning)
+        uint16_t wp_turn_control_ease;       // unmodelled roll-response lag added to the computed turn ease time [ms]
     } fw;
 } navConfig_t;
 

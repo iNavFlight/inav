@@ -183,6 +183,9 @@ tables:
   - name: nav_fw_wp_turn_mode
     values: ["FLY_BY", "FLY_OVER"]
     enum: navFwWpTurnMode_e
+  - name: nav_fw_wp_turn_coordination
+    values: ["DIRECT", "COORDINATED"]
+    enum: navFwWpTurnCoordination_e
   - name: gps_auto_baud_max
     values: [ '115200', '57600', '38400', '19200', '9600', '230400', '460800', '921600']
     enum: gpsBaudRate_e
@@ -2681,6 +2684,29 @@ groups:
         field: fw.turn_ff_gain
         min: 0
         max: 200
+      - name: nav_fw_wp_turn_coordination
+        description: "How FW waypoint turns are flown. COORDINATED (default) commands an explicit coordinated arc of the planned radius at nav_fw_bank_angle and tracks it to the next leg. DIRECT uses the legacy heading-PID turn (fallback for users who prefer the old behaviour)."
+        default_value: "COORDINATED"
+        field: fw.wp_turn_coordination
+        table: nav_fw_wp_turn_coordination
+      - name: nav_fw_wp_turn_handback_angle
+        description: "DEVELOPER/EXPERIMENTAL (to be hardcoded before release): heading error to the next leg [deg] at which the arc turn coordinator hands control back to the normal heading PID."
+        default_value: 15
+        field: fw.wp_turn_handback_angle
+        min: 5
+        max: 45
+      - name: nav_fw_wp_turn_max_lead_time
+        description: "DEVELOPER/EXPERIMENTAL (to be hardcoded before release): FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. Stops extreme early turn-in at high speed / large angles; above this the turn waits, then flies a non-tangent recovery."
+        default_value: 3000
+        field: fw.wp_turn_max_lead_time
+        min: 0
+        max: 10000
+      - name: nav_fw_wp_turn_control_ease
+        description: "DEVELOPER/EXPERIMENTAL: unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramp; SIM low, real models higher."
+        default_value: 100
+        field: fw.wp_turn_control_ease
+        min: 0
+        max: 500
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 500

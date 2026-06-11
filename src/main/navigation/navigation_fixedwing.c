@@ -76,6 +76,12 @@
 #define NAV_FW_TURN_RADIUS_MAX       30000.0f   // [cm] 300 m upper clamp (matches loiter_radius max)
 #define NAV_FW_LOITER_RADIUS_DECAY   100.0f     // [cm/s] max rate the held loiter radius eases back down (1 m/s)
 #define NAV_FW_TURN_LEAD_TAN_MAX     3.7f       // tan(half turn angle) cap (~150 deg) to bound the lead distance
+#define NAV_FW_ARC_MIN_TURN_ANGLE_CD 3000       // [centideg] only fly the coordinated arc for turns sharper than 30 deg
+#define NAV_FW_ARC_HANDBACK_GUARD_MS 300.0f     // [ms] min time in the arc before handback may fire (anti early-handback)
+#define NAV_FW_ARC_RADIAL_GAIN       0.5f       // [centideg bank / cm radial error] pull back onto the arc radius (TBD from flight)
+#define NAV_FW_ARC_HEADING_GAIN      0.3f       // [centideg bank / centideg tangent heading error] align to the arc (TBD from flight)
+#define NAV_FW_ARC_EXIT_GAIN         2.0f       // [centideg bank / centideg heading error] proportional roll-out capture: bank -> 0 as cog reaches the out-leg (no overshoot)
+#define NAV_FW_ARC_EXIT_HANDOFF_CD   150        // [centideg] hand back to the PID within this heading error of the out-leg (keep low: residual bank = gain*this)
 
 // FW energy/altitude bank guard thresholds (conservative; observable via DEBUG_FW_TURN)
 #define NAV_FW_GUARD_PHI_FLOOR_DEG       15.0f    // minimum effective bank limit
@@ -109,6 +115,10 @@ static float fwLastNavRollCmdCd = 0.0f;     // last applied nav roll command [ce
 static timeUs_t fwLastNavRollCmdTimeUs = 0; // nav-to-nav transition apart from a pilot handover at reset time
 static float fwEffectiveBankLimit = 0.0f;   // adaptive nav bank limit (energy guard), deg; 0 = not yet initialised
 static float fwActiveLoiterRadius = 0.0f;   // effective loiter radius in use (cm), for the turn feed-forward
+static bool fwArcActive = false;            // arc turn coordinator is driving the turn (-> bank headroom, suppress cross-track, roll override)
+static bool fwFlyByCappedLatch = false;     // the pending FLY_BY turn hit the lead-time cap -> fly it direct, not as an arc
+static int8_t fwArcDir = 1;                 // active arc turn direction (+1 right / -1 left)
+static float fwArcBankCmd = 0.0f;           // direct-radius arc bank command [centideg] (Approach B), applied to roll while fwArcActive
 static int8_t loiterDirYaw = 1;
 static bool needToCalculateCircularLoiter;
 static bool autoSpeedIsActive = false;
@@ -308,6 +318,8 @@ void resetFixedWingPositionController(void)
     virtualDesiredPosition.x = 0;
     virtualDesiredPosition.y = 0;
     virtualDesiredPosition.z = 0;
+    fwArcActive = false;
+    fwFlyByCappedLatch = false;
 
     navPidReset(&posControl.pids.fw_nav);
     navPidReset(&posControl.pids.fw_heading);
@@ -440,12 +452,13 @@ static float getFwPlanningBankDeg(void)
     return MIN((float)navConfig()->fw.max_bank_angle, getFwEffectiveBankLimit());
 }
 
-// Roll-command bank limit [deg]: in a held loiter the controller may use the reserve up to the guard
-// ceiling to reject wind and hold the circle; everywhere else (WP turns, cruise) it stays at the
-// planning target so coordinated turns fly a clean arc at nav_fw_bank_angle, not the hard ceiling.
+// Roll-command bank limit [deg]: a held loiter OR an active arc may use the reserve up to the guard
+// ceiling — the loiter to hold its circle, the arc's radial term to pull back onto the radius against
+// wind. (Approach B commands the bank directly with no lead bias, so the reserve is used only for
+// genuine radial error, never over-banked.) Everywhere else (direct/capped/shallow turns, cruise) = target.
 static float getFwControlBankLimit(void)
 {
-    return (navGetCurrentStateFlags() & NAV_CTL_HOLD) ? getFwEffectiveBankLimit() : getFwPlanningBankDeg();
+    return ((navGetCurrentStateFlags() & NAV_CTL_HOLD) || fwArcActive) ? getFwEffectiveBankLimit() : getFwPlanningBankDeg();
 }
 
 // Reduce the effective bank limit when a commanded climb can't be sustained near the pitch/throttle
@@ -524,9 +537,7 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t correctedTh
     fwEffectiveBankLimit = constrainf(fwEffectiveBankLimit, NAV_FW_GUARD_PHI_FLOOR_DEG, maxBank);
 
     DEBUG_SET(DEBUG_FW_TURN, 1, lrintf(fwEffectiveBankLimit));
-    DEBUG_SET(DEBUG_FW_TURN, 4, lrintf(deficit));
-    DEBUG_SET(DEBUG_FW_TURN, 5, lrintf(rise));
-    DEBUG_SET(DEBUG_FW_TURN, 6, trigger);
+    // ch4/5/6 temporarily owned by the arc coordinator diagnostic (guard deficit/rise/trigger muted)
 }
 
 // Coordinated-turn radius R = V^2/(g*tan(phi)) [cm], clamped. Times the FLY_BY turn for any speed.
@@ -548,7 +559,10 @@ static float getFwTurnFeedForward(int32_t navHeadingError)
 
     float ffRadius = 0.0f;
     float ffSign = 0.0f;
-    if (needToCalculateCircularLoiter) {                // loiter circle: known radius
+    if (fwArcActive) {                                  // arc turn: full coordinated bank, NO taper (the arc, not the heading error, sets the bank)
+        ffRadius = getFwCoordinatedTurnRadius();
+        ffSign = (float)fwArcDir;
+    } else if (needToCalculateCircularLoiter) {         // loiter circle: known radius
         ffRadius = fwActiveLoiterRadius;
         ffSign = (float)loiterDirection();
     } else if (isWaypointNavTrackingActive() && ABS(navHeadingError) > NAV_FW_FF_HEADING_DEADBAND_CD) {
@@ -624,6 +638,148 @@ static uint32_t getFwStableLoiterRadius(uint32_t configuredRadius, float bearing
     return out;
 }
 
+// Modelled roll-in/out ease time [ms]: how long to ramp the bank to phiNom (and back). Roll-rate floor
+// (1.5x so a smoothstep ramp's peak rate == roll_rate), the control_smoothness window folded in (gentleness
+// / structural protection), plus the user's unmodelled servo+inertia margin. CS is bypassed during the arc,
+// so this is the single, deterministic source of the turn's roll dynamics.
+static float fwTurnEaseTimeMs(float phiNomDeg)
+{
+    const float rollRateDps = currentControlProfile->stabilized.rates[FD_ROLL] * 10.0f;
+    const float rollMs = (rollRateDps > 1.0f) ? (1.5f * phiNomDeg / rollRateDps * 1000.0f) : 0.0f;
+    const float csMs = MIN((float)navConfig()->fw.control_smoothness * NAV_FW_SMOOTH_TCONST_PER_STEP_MS, NAV_FW_SMOOTH_TCONST_MAX_MS);
+    return rollMs + csMs + (float)navConfig()->fw.wp_turn_control_ease;
+}
+
+// Arc-based turn coordinator (Approach B + roll-aware easing): on a real WP-to-WP turn (course change > 30 deg)
+// fly a variable-radius spline = smoothstep bank ramp 0->phiNom (RAMP_IN) -> coordinated arc (STEADY, direct
+// radius control: nominal + radial pull-back kR + tangent alignment kH) -> ramp phiNom->0 (RAMP_OUT) -> hand
+// back to the PID level + aligned. The ramps make the command achievable (no slam, no roll-in drift); the
+// entry is anticipated geometrically by the FLY_BY turnStartDistance. Sets fwArcActive (drives roll directly).
+static void updateFwTurnArc(timeDelta_t deltaMicros)
+{
+    enum { ARC_RAMP_IN = 0, ARC_STEADY, ARC_CAPTURE };
+    static bool    active = false;
+    static uint8_t phase;
+    static int32_t prevLegBearing = -1;
+    static float   arcCx, arcCy, arcR;
+    static int8_t  arcDir;
+    static int32_t arcOutBearing;
+    static float   phiNomCd;            // coordinated nominal bank for this turn [centideg]
+    static float   tEaseMs;             // roll-in ease time
+    static float   rampMs;              // elapsed time in the ramp-in phase
+
+    fwArcActive = false;
+
+    const bool wpTracking = isWaypointNavTrackingActive() && !needToCalculateCircularLoiter;
+    if (navConfig()->fw.wp_turn_coordination != NAV_FW_WP_TURN_COORDINATED || !wpTracking) {
+        active = false;
+        prevLegBearing = -1;
+        return;
+    }
+
+    const int32_t legBearing = posControl.activeWaypoint.bearing;
+    const int32_t cog = posControl.actualState.cog;
+    const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
+    const float v = posControl.actualState.velXY;
+
+    if (!active) {
+        const bool legChanged = (prevLegBearing >= 0) && (ABS(wrap_18000(legBearing - prevLegBearing)) > 500);
+        prevLegBearing = legBearing;
+        if (legChanged) {
+            const bool capped = fwFlyByCappedLatch;             // a capped FLY_BY turn is flown direct, not as an arc
+            fwFlyByCappedLatch = false;                         // consume the latch on any leg change
+            const int32_t hdgErr = wrap_18000(legBearing - cog);
+            if (!capped && ABS(hdgErr) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
+                const float arcRtmp = getFwCoordinatedTurnRadius();
+                const float phiTmp = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * arcRtmp)));
+                const float tTmp = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiTmp));
+                const float omegaNomCds = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(v / arcRtmp));   // v/R == g*tan(phi)/v
+                const float psiTmp = 0.5f * omegaNomCds * (tTmp / 1000.0f);
+                if (2.0f * psiTmp < (float)ABS(hdgErr)) {       // enough turn left for a steady arc between the ease ramps
+                    active = true;
+                    phase = ARC_RAMP_IN;
+                    rampMs = 0.0f;
+                    arcR = arcRtmp;
+                    arcDir = (hdgErr > 0) ? 1 : -1;
+                    arcOutBearing = legBearing;
+                    phiNomCd = phiTmp;
+                    tEaseMs = tTmp;
+                    // Pin the arc tangent to BOTH legs (corner-cut inscribed circle) so the exit lands ON the
+                    // out-leg, not offset: centre = intersection of the in-leg and out-leg lines, each shifted R
+                    // toward the turn inside. The radial term (STEADY) then converges the aircraft onto it.
+                    const float cogRad = CENTIDEGREES_TO_RADIANS((float)cog);
+                    const float legRad = CENTIDEGREES_TO_RADIANS((float)legBearing);
+                    const float d1x = cos_approx(cogRad), d1y = sin_approx(cogRad);
+                    const float d2x = cos_approx(legRad), d2y = sin_approx(legRad);
+                    const float cross = d1x * d2y - d1y * d2x;
+                    const float p1x = pos->x + arcRtmp * cos_approx(cogRad + arcDir * (M_PIf * 0.5f));
+                    const float p1y = pos->y + arcRtmp * sin_approx(cogRad + arcDir * (M_PIf * 0.5f));
+                    if (fabsf(cross) > 0.087f) {                // legs not near-parallel (30..160 deg turn)
+                        const float p2x = posControl.activeWaypoint.pos.x + arcRtmp * cos_approx(legRad + arcDir * (M_PIf * 0.5f));
+                        const float p2y = posControl.activeWaypoint.pos.y + arcRtmp * sin_approx(legRad + arcDir * (M_PIf * 0.5f));
+                        const float tt = ((p2x - p1x) * d2y - (p2y - p1y) * d2x) / cross;
+                        arcCx = p1x + tt * d1x;
+                        arcCy = p1y + tt * d1y;
+                    } else {                                    // degenerate -> tangent at the entry point
+                        arcCx = p1x;
+                        arcCy = p1y;
+                    }
+                }
+            }
+        }
+        if (!active) {
+            return;
+        }
+    } else {
+        prevLegBearing = legBearing;
+    }
+
+    rampMs += US2S(deltaMicros) * 1000.0f;
+    const int32_t hdgErrOut = wrap_18000(arcOutBearing - cog);
+
+    switch (phase) {
+    case ARC_RAMP_IN: {
+        const float p = (tEaseMs > 1.0f) ? constrainf(rampMs / tEaseMs, 0.0f, 1.0f) : 1.0f;
+        const float s = p * p * (3.0f - 2.0f * p);             // smoothstep up
+        fwArcBankCmd = arcDir * phiNomCd * s;
+        if (p >= 1.0f) {                                       // roll-in done -> track the pre-placed tangent circle
+            phase = ARC_STEADY;
+        }
+        break;
+    }
+    case ARC_STEADY: {
+        const float dx = pos->x - arcCx;
+        const float dy = pos->y - arcCy;
+        const float eR = calc_length_pythagorean_2D(dx, dy) - arcR;             // [cm], + = outside the arc
+        const float alpha = atan2_approx(dy, dx);                               // azimuth on the arc
+        const int32_t tangentBearing = lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(arcDir * cos_approx(alpha), -arcDir * sin_approx(alpha)))));
+        const int32_t eH = wrap_18000(tangentBearing - cog);                    // [centideg] heading error to the arc tangent
+        fwArcBankCmd = arcDir * (phiNomCd + NAV_FW_ARC_RADIAL_GAIN * eR) + NAV_FW_ARC_HEADING_GAIN * (float)eH;
+        if (NAV_FW_ARC_EXIT_GAIN * (float)ABS(hdgErrOut) <= ABS(fwArcBankCmd)) {   // heading-proportional bank has fallen to the steady bank -> hand the exit to the closed-loop capture
+            phase = ARC_CAPTURE;
+        }
+        break;
+    }
+    case ARC_CAPTURE:
+    default: {
+        // Closed-loop roll-out: bank proportional to the heading still to go, so bank (and turn rate) reach zero
+        // exactly as cog reaches the out-leg. Robust to roll-lag / cog-lag / tan nonlinearity -> cannot overshoot.
+        fwArcBankCmd = constrainf(NAV_FW_ARC_EXIT_GAIN * (float)hdgErrOut, -phiNomCd, phiNomCd);
+        if (ABS(hdgErrOut) <= NAV_FW_ARC_EXIT_HANDOFF_CD) {    // aligned -> hand back to the standard controller
+            active = false;
+            return;
+        }
+        break;
+    }
+    }
+
+    DEBUG_SET(DEBUG_FW_TURN, 4, lrintf(fwArcBankCmd));          // bank command [centideg], all phases
+    DEBUG_SET(DEBUG_FW_TURN, 5, hdgErrOut);                     // remaining heading to out-leg [centideg]; closed-loop capture -> 0 (should not overshoot)
+    DEBUG_SET(DEBUG_FW_TURN, 6, lrintf(tEaseMs));               // roll-in ease time [ms] -> sizes the turn-start lead (V*tEase)
+    fwArcDir = arcDir;
+    fwArcActive = true;
+}
+
 static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t deltaMicros)
 {
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
@@ -671,13 +827,21 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
     if (waypointTurnAngle > 3000 && waypointTurnAngle < 16000 && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
         const float turnRadius = getFwCoordinatedTurnRadius();
         const float halfAngleTan = constrainf(tan_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f)), 0.0f, NAV_FW_TURN_LEAD_TAN_MAX);
-        // velXY term is a ~1 s roll-in lead (replaced by a modelled roll-in in a later PR)
-        const float turnStartDistance = posControl.actualState.velXY + turnRadius * halfAngleTan;
+        // Roll-in lead: the smoothstep ramp is back-loaded AND cog (ground track) lags the bank, so the aircraft
+        // flies nearly straight for longer than the ramp lasts -> the steady arc begins well downrange. Lead by
+        // k*V*T_in. T_in from roll rate + control_smoothness + control_ease. Coefficient calibrated from flight.
+        const float easeLeadDistance = posControl.actualState.velXY * (fwTurnEaseTimeMs(getFwPlanningBankDeg()) / 1000.0f) * 1.5f;
+        float turnStartDistance = easeLeadDistance + turnRadius * halfAngleTan;
+        // Cap how early the turn may begin (nav_fw_wp_turn_max_lead_time): never more than N ms of flight before the WP.
+        const float maxLeadDistance = posControl.actualState.velXY * (float)navConfig()->fw.wp_turn_max_lead_time * 0.001f;
+        const bool turnCapped = turnStartDistance > maxLeadDistance;
+        turnStartDistance = MIN(turnStartDistance, maxLeadDistance);
         DEBUG_SET(DEBUG_FW_TURN, 0, lrintf(turnRadius));
         DEBUG_SET(DEBUG_FW_TURN, 2, lrintf(turnStartDistance));
         DEBUG_SET(DEBUG_FW_TURN, 3, lrintf(posControl.wpDistance));
         if (posControl.wpDistance < turnStartDistance) {
             posControl.flags.wpTurnSmoothingActive = true;
+            fwFlyByCappedLatch = turnCapped;   // capped corner cut -> the arc coordinator flies it direct instead
         }
     }
 
@@ -692,6 +856,10 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
         posErrorY = loiterTargetY - navGetCurrentActualPositionAndVelocity()->pos.y;
         distanceToActualTarget = calc_length_pythagorean_2D(posErrorX, posErrorY);
     }
+
+    // Arc turn coordinator (Approach B): manages the turn state and commands the roll bank directly
+    // (applied in updatePositionHeadingController_FW). The position carrot stays on the normal path.
+    updateFwTurnArc(deltaMicros);
 
     // Calculate virtual waypoint
     virtualDesiredPosition.x = navGetCurrentActualPositionAndVelocity()->pos.x + posErrorX * (trackingDistance / distanceToActualTarget);
@@ -779,8 +947,9 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.bearing));
         navCrossTrackError = calculateDistanceToDestination(&virtualCoursePoint);
 
-        /* If waypoint tracking enabled force craft toward and closely track along waypoint course line */
-        if (navConfig()->fw.wp_tracking_accuracy && !needToCalculateCircularLoiter) {
+        /* If waypoint tracking enabled force craft toward and closely track along waypoint course line.
+         * Suppressed while the arc coordinator drives a turn (it tracks the arc, not the straight leg). */
+        if (navConfig()->fw.wp_tracking_accuracy && !needToCalculateCircularLoiter && !fwArcActive) {
             if ((currentTimeUs - previousCrossTrackErrorUpdateTime) >= HZ2US(20) && fabsf(previousCrossTrackError - navCrossTrackError) > 10.0f) {
                 const float crossTrackErrorDtSec =  US2S(currentTimeUs - previousCrossTrackErrorUpdateTime);
                 if (fabsf(previousCrossTrackError - navCrossTrackError) < 500.0f) {
@@ -846,8 +1015,12 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
         previousTimeMonitoringUpdate = currentTimeUs;
     }
 
-    // Only allow PID integrator to shrink if error is decreasing over time
-    const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0);
+    // Only allow PID integrator to shrink if error is decreasing over time.
+    // While the arc coordinator drives the turn the FF sets the bank and the carrot-P does the tracking,
+    // so freeze the integrator: otherwise it winds up (carrot error keeps one sign) and slams the turn at handback.
+    const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR
+                                        | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0)
+                                        | (fwArcActive ? PID_FREEZE_INTEGRATOR : 0);
 
     // Input error in (deg*100), output roll angle (deg*100)
     const float navBankLimit = getFwControlBankLimit();      // planning target on WP turns, guard ceiling in loiter
@@ -859,10 +1032,17 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     // Coordinated-turn feed-forward: command the bank for the active turn radius so the PID only trims.
     rollAdjustment += getFwTurnFeedForward(navHeadingError);
 
-    // Triggered S-curve smoothing on the roll command (control_smoothness); re-seeded after a
-    // controller reset so stale smoother state cannot fire a spurious ramp.
-    rollAdjustment = applyFwRollInSmoothing(rollAdjustment, deltaMicros, fwRollSmoothReseed);
-    fwRollSmoothReseed = false;
+    // Arc turn coordinator drives the roll directly while active (overrides PID+FF). Its smoothstep ramps are
+    // already gentle, so control_smoothness is bypassed during the arc (CS is folded into the ease time instead);
+    // the smoother is re-seeded on the first direct frame after an arc handback or a controller reset so a
+    // stale internal state cannot smear or falsely trigger the S-curve.
+    if (fwArcActive) {
+        rollAdjustment = fwArcBankCmd;
+        fwRollSmoothReseed = true;
+    } else {
+        rollAdjustment = applyFwRollInSmoothing(rollAdjustment, deltaMicros, fwRollSmoothReseed);
+        fwRollSmoothReseed = false;
+    }
     rollAdjustment = constrainf(rollAdjustment, -DEGREES_TO_CENTIDEGREES(navBankLimit), DEGREES_TO_CENTIDEGREES(navBankLimit));
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
