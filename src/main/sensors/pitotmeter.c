@@ -382,7 +382,7 @@ float getWindEstimatedVirtualAirspeed(void)
     // Transform to body frame to obtain virtual airspeed in the x direction
     imuTransformVectorEarthToBody(&windCorrectedVel);
 
-    return windCorrectedVel.x;
+    return fabsf(windCorrectedVel.x);
 }
 #endif
 static float getVirtualAirspeedEstimate(void)
