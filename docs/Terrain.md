@@ -29,7 +29,7 @@ of 4 GB** and format it to FAT32.
 
 # Data Generation and Copying
 
-To generate elevation maps, use the terrain generator web tool available at https://terrain.ardupilot.org/
+To generate elevation maps, use the terrain generator web tool available at https://martinovem.github.io/High-Resolution-Map-Generator/ or https://terrain.ardupilot.org/
 
 **Before copying any terrain data files, the SD card must be formatted. Always format the card before each new terrain data
 installation to avoid file system errors.**
