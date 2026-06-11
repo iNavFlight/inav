@@ -369,7 +369,7 @@ bool pitotIsHealthy(void)
  *
  * @return virtual airspeed in cm/s, or 0 if GPS unavailable
  */
-
+#if defined(USE_GPS) && defined(USE_WIND_ESTIMATOR)
 float getWindEstimatedVirtualAirspeed(void)
 {
     fpVector3_t windCorrectedVel;
@@ -384,7 +384,7 @@ float getWindEstimatedVirtualAirspeed(void)
 
     return windCorrectedVel.x;
 }
-
+#endif
 static float getVirtualAirspeedEstimate(void)
 {
 #if defined(USE_GPS) && defined(USE_WIND_ESTIMATOR)

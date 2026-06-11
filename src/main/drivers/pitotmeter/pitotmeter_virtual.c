@@ -45,7 +45,6 @@
 #include "drivers/pitotmeter/pitotmeter_virtual.h"
 
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
-
 static bool virtualPitotStart(pitotDev_t *pitot)
 {
     UNUSED(pitot);
@@ -64,6 +63,7 @@ static void virtualPitotCalculate(pitotDev_t *pitot, float *pressure, float *tem
     float airSpeed = 0.0f;
 
     if (pitotIsCalibrationComplete()) {
+#if defined(USE_GPS)
         if (isEstimatedWindSpeedValid() && STATE(GPS_FIX)) {
             airSpeed = getWindEstimatedVirtualAirspeed();
         }
@@ -71,7 +71,9 @@ static void virtualPitotCalculate(pitotDev_t *pitot, float *pressure, float *tem
         {
             airSpeed = calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
         }
-        else {
+        else
+#endif
+        {
             airSpeed = pidProfile()->fixedWingReferenceAirspeed; //float cm/s
         }
     }
