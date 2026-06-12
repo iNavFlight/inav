@@ -223,6 +223,7 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
     HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocolStatus);
     pProtocolStat->BusOff       = protocolStatus.BusOff;
     pProtocolStat->ErrorPassive = protocolStatus.ErrorPassive;
+    /* HAL provides no accessor for ECR (TEC/REC); read directly. PSR fields (BusOff, ErrorPassive, LEC) come from HAL. */
     uint32_t ecr = hfdcan1.Instance->ECR;
     pProtocolStat->tec          = (uint8_t)(ecr & 0xFF);           /* ECR[7:0]  */
     pProtocolStat->rec          = (uint8_t)((ecr >> 8) & 0x7F);   /* ECR[14:8] */
@@ -239,6 +240,9 @@ int32_t canardSTM32GetRxFifoFillLevel(void){
 
 void canardSTM32RecoverFromBusOff(void){
     hfdcan1.Instance->TXBCR = 0xFFFFFFFFU;  // Cancel all pending TX requests before recovery
+    /* H7 FDCAN does not set CCCR.INIT on bus-off entry (unlike F7 bxCAN ABOM).
+       Hardware runs the 128x11 recessive-bit sequence autonomously. This clear
+       is a defensive no-op in case software previously entered init mode. */
     CLEAR_BIT(hfdcan1.Instance->CCCR, FDCAN_CCCR_INIT);
 }
 

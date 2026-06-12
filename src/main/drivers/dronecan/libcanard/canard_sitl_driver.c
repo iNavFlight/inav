@@ -112,11 +112,6 @@ static void sitlCANGetStatsStub(canardProtocolStatus_t *pProtocolStat) {
 #ifdef __linux__
 // SocketCAN implementations
 
-/**
- * @brief Initialize SocketCAN interface
- * @param bitrate CAN bitrate in bps (for logging, actual rate set via ip link)
- * @retval 0 on success, negative on error
- */
 static int16_t sitlCANInitSocketCAN(uint32_t bitrate) {
     struct sockaddr_can addr;
     struct ifreq ifr;
@@ -162,9 +157,6 @@ static int16_t sitlCANInitSocketCAN(uint32_t bitrate) {
     return 0;
 }
 
-/**
- * @brief Convert libcanard frame to Linux CAN frame
- */
 static void sitlCANFrameToLinux(const CanardCANFrame *const src, struct can_frame *const dst) {
     memset(dst, 0, sizeof(struct can_frame));
 
@@ -182,9 +174,6 @@ static void sitlCANFrameToLinux(const CanardCANFrame *const src, struct can_fram
     }
 }
 
-/**
- * @brief Convert Linux CAN frame to libcanard frame
- */
 static void sitlCANFrameFromLinux(const struct can_frame *const src, CanardCANFrame *const dst) {
     memset(dst, 0, sizeof(CanardCANFrame));
 
@@ -202,11 +191,6 @@ static void sitlCANFrameFromLinux(const struct can_frame *const src, CanardCANFr
     }
 }
 
-/**
- * @brief Receive a CAN frame via SocketCAN
- * @param rx_frame Pointer to frame structure to fill
- * @retval 0 if no frame available, 1 if frame received, negative on error
- */
 static int16_t sitlCANReceiveSocketCAN(CanardCANFrame *const rx_frame) {
     struct can_frame frame;
     ssize_t nbytes;
@@ -234,11 +218,6 @@ static int16_t sitlCANReceiveSocketCAN(CanardCANFrame *const rx_frame) {
     return 1;
 }
 
-/**
- * @brief Transmit a CAN frame via SocketCAN
- * @param tx_frame Pointer to frame to transmit
- * @retval 1 on success, 0 if busy, negative on error
- */
 static int16_t sitlCANTransmitSocketCAN(const CanardCANFrame* const tx_frame) {
     struct can_frame frame;
     ssize_t nbytes;
@@ -261,10 +240,7 @@ static int16_t sitlCANTransmitSocketCAN(const CanardCANFrame* const tx_frame) {
     return 1; // Success
 }
 
-/**
- * @brief Get CAN protocol status from SocketCAN
- * @param pProtocolStat Pointer to status structure to fill
- */
+/* Always returns zeroes — SocketCAN provides no per-frame error counters via raw sockets. */
 static void sitlCANGetStatsSocketCAN(canardProtocolStatus_t *pProtocolStat) {
     memset(pProtocolStat, 0, sizeof(*pProtocolStat));
 }
