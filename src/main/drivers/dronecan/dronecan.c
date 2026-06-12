@@ -65,7 +65,7 @@ static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer);
 
 void dronecanInit(void)
 {
-    uint32_t bitrate = 500000; // At least define 500000
+    uint32_t bitrate = 500000;
 
     switch (dronecanConfig()->bitRateKbps){
         case DRONECAN_BITRATE_125KBPS:

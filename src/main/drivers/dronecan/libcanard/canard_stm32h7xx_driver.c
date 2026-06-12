@@ -45,10 +45,10 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     FDCAN_FilterTypeDef sFilterConfig;
     sFilterConfig.IdType = FDCAN_EXTENDED_ID;
     sFilterConfig.FilterIndex = 0;
-    sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
+    sFilterConfig.FilterType = FDCAN_FILTER_MASK; /* ID1=pattern 0x0, ID2=mask 0x0: all bits don't care, accept any extended ID */
     sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
     sFilterConfig.FilterID1 = 0x0;
-    sFilterConfig.FilterID2 = 0x1FFFFFFFU;
+    sFilterConfig.FilterID2 = 0x0;
     hfdcan1.Instance = FDCAN1;
     hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;  // Initialize in CAN2.0 mode not CAN_FD
     hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
@@ -235,7 +235,7 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
 }
 
 uint32_t canardSTM32GetAndClearRxDropCount(void) {
-    return 0;  // H7 FIFO0 (30 slots) has no software ring buffer; hardware overflow is tracked via GetProtocolStatus
+    return 0;  // H7 FIFO0 (30 slots) has no software ring buffer; FIFO overflow drops are not currently counted
 }
 
 int32_t canardSTM32GetTxQueueFillLevel(void){
