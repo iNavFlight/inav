@@ -26,6 +26,7 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame);
 void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat);
 int32_t canardSTM32GetTxQueueFillLevel(void);
 int32_t canardSTM32GetRxFifoFillLevel(void);
+uint32_t canardSTM32GetAndClearRxDropCount(void);
 void canardSTM32RecoverFromBusOff(void);
 void canardSTM32GetUniqueID(uint8_t id[16]);
 

@@ -328,6 +328,10 @@ int32_t canardSTM32GetRxFifoFillLevel(void) {
     return 0;
 }
 
+uint32_t canardSTM32GetAndClearRxDropCount(void) {
+    return 0;
+}
+
 int32_t canardSTM32GetTxQueueFillLevel(void) {
     return 0;
 }
@@ -359,11 +363,11 @@ void canardSTM32GetUniqueID(uint8_t id[16]) {
 
 #ifdef __linux__
     // Add process ID for uniqueness between multiple SITL instances
-    pid_t pid = getpid();
-    id[4] = (pid >> 24) & 0xFF;
-    id[5] = (pid >> 16) & 0xFF;
-    id[6] = (pid >> 8) & 0xFF;
-    id[7] = pid & 0xFF;
+    uint32_t upid = (uint32_t)getpid();
+    id[4] = (upid >> 24) & 0xFF;
+    id[5] = (upid >> 16) & 0xFF;
+    id[6] = (upid >> 8) & 0xFF;
+    id[7] = upid & 0xFF;
 
     // Add timestamp for additional uniqueness
     struct timespec ts;

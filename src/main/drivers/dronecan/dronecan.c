@@ -41,6 +41,7 @@ PG_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig,
 static dronecanState_e dronecanState = STATE_DRONECAN_INIT;
 static uint8_t activeNodeCount = 0;
 static dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
+static volatile uint32_t txErrCount = 0;
 
 #if defined(STM32H7)
 static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(FDCAN1_IT0_IRQn); }
@@ -57,8 +58,8 @@ static inline void dronecanUnmaskTxISR(void) {}
 
 static void processCanardTxQueueSafe(void);
 static void process1HzTasks(timeUs_t timestamp_usec);
-bool shouldAcceptTransfer(const CanardInstance *ins, uint64_t *out_data_type_signature, uint16_t data_type_id, CanardTransferType transfer_type, uint8_t source_node_id);
-void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer);
+static bool shouldAcceptTransfer(const CanardInstance *ins, uint64_t *out_data_type_signature, uint16_t data_type_id, CanardTransferType transfer_type, uint8_t source_node_id);
+static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer);
 
 // ---- Public API -------------------------------------------------------------
 
@@ -159,6 +160,17 @@ void dronecanUpdate(timeUs_t currentTimeUs)
                 if (protocolStatus.BusOff != 0 || protocolStatus.ErrorPassive != 0) {
                     LOG_DEBUG(CAN, "CAN status: BusOff=%" PRIu32 " ErrorPassive=%" PRIu32, protocolStatus.BusOff, protocolStatus.ErrorPassive);
                 }
+
+                uint32_t rxDrops = canardSTM32GetAndClearRxDropCount();
+                uint32_t txErrs = txErrCount;
+                txErrCount = 0;
+                if (rxDrops > 0) {
+                    LOG_DEBUG(CAN, "RX drops: %" PRIu32, rxDrops);
+                }
+                if (txErrs > 0) {
+                    LOG_DEBUG(CAN, "TX errors: %" PRIu32, txErrs);
+                }
+
                 if (protocolStatus.BusOff != 0) {
                     dronecanState = STATE_DRONECAN_BUS_OFF;
                     busoffTimeUs = currentTimeUs;
@@ -227,14 +239,14 @@ const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
 
 /* Called from TX-complete ISR only. Already in interrupt context — no NVIC masking needed.
    For main-loop use, call processCanardTxQueueSafe() instead. */
-void processCanardTxQueue(void) {
+static void processCanardTxQueue(void) {
 	// Transmitting
 	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
     {
         const int16_t tx_res = canardSTM32Transmit(tx_frame);
 
 		if (tx_res < 0) {
-			LOG_DEBUG(CAN, "Transmit error %d", tx_res);
+			txErrCount++;  // logged from main loop at 1Hz
 			canardPopTxQueue(&canard);  // Error - discard frame
 		} else if (tx_res > 0) {
 			canardPopTxQueue(&canard);  // Success - remove from queue
@@ -317,7 +329,7 @@ void send_NodeStatus(void) {
     static uint8_t transfer_id;
 
     dronecanMaskTxISR();
-    canardBroadcast(&canard,
+    const int16_t bc_res = canardBroadcast(&canard,
                     UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
                     UAVCAN_PROTOCOL_NODESTATUS_ID,
                     &transfer_id,
@@ -325,6 +337,9 @@ void send_NodeStatus(void) {
                     buffer,
                     len);
     dronecanUnmaskTxISR();
+    if (bc_res < 0) {
+        LOG_DEBUG(CAN, "NodeStatus broadcast failed: %d", bc_res);
+    }
 
 }
 
@@ -355,7 +370,7 @@ static void process1HzTasks(timeUs_t timestamp_usec)
 
  This function must fill in the out_data_type_signature to be the signature of the message.
  */
-bool shouldAcceptTransfer(const CanardInstance *ins,
+static bool shouldAcceptTransfer(const CanardInstance *ins,
                                  uint64_t *out_data_type_signature,
                                  uint16_t data_type_id,
                                  CanardTransferType transfer_type,
@@ -540,7 +555,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
 
     dronecanMaskTxISR();
-	canardRequestOrRespond(ins,
+    const int16_t rr_res = canardRequestOrRespond(ins,
 						   transfer->source_node_id,
 						   UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE,
 						   UAVCAN_PROTOCOL_GETNODEINFO_ID,
@@ -550,12 +565,15 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 						   &buffer[0],
 						   total_size);
     dronecanUnmaskTxISR();
+    if (rr_res < 0) {
+        LOG_DEBUG(CAN, "GetNodeInfo response failed: %d", rr_res);
+    }
 }
 
 /*
  This callback is invoked by the library when a new message or request or response is received.
 */
-void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
+static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 	// switch on data type ID to pass to the right handler function
 	if (transfer->transfer_type == CanardTransferTypeRequest) {
 		// check if we want to handle a specific service request

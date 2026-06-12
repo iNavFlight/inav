@@ -36,7 +36,7 @@ static FDCAN_HandleTypeDef hfdcan1;
 /**
   * @brief CAN1 Initialization Function
   * @param  bitrate desired bitrate to run the CAN network at.
-  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
+  * @retval ret == 0: OK (CANARD_OK), ret < 0: CANARD_ERROR
   */
 int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 {
@@ -72,7 +72,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 
     hfdcan1.Init.RxFifo0ElmtsNbr = 30;
     hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
-    hfdcan1.Init.RxBuffersNbr = 1;
+    hfdcan1.Init.RxBuffersNbr = 0;
     hfdcan1.Init.RxBufferSize = FDCAN_DATA_BYTES_8;
     hfdcan1.Init.StdFiltersNbr = 0;
     hfdcan1.Init.ExtFiltersNbr = 1;
@@ -93,7 +93,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
     }
-    if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
+    if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
         LOG_ERROR(CAN, "Failed to config FDCAN filter");
         return -CANARD_ERROR_INTERNAL;
     }
@@ -124,7 +124,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
   *         This parameter can be a value of @arg FDCAN_Rx_location.
   * @param  rx_frame pointer to a CanardCANFrame structure where the received CAN message will be
   * 		stored.
-  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
+  * @retval ret == 0: OK (CANARD_OK), ret < 0: CANARD_ERROR
   */
 int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
 	if (rx_frame == NULL) {
@@ -164,7 +164,7 @@ int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
   * @brief  Process tx_frame CAN message into Tx FIFO/Queue and transmit it
   * @param  tx_frame pointer to a CanardCANFrame structure that contains the CAN message to
   * 		transmit.
-  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
+  * @retval ret == 0: OK (CANARD_OK), ret < 0: CANARD_ERROR
   */
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	if (tx_frame == NULL) {
@@ -228,6 +228,10 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
     pProtocolStat->tec          = (uint8_t)(ecr & 0xFF);           /* ECR[7:0]  */
     pProtocolStat->rec          = (uint8_t)((ecr >> 8) & 0x7F);   /* ECR[14:8] */
     pProtocolStat->lec          = (uint8_t)(protocolStatus.LastErrorCode & 0x07);
+}
+
+uint32_t canardSTM32GetAndClearRxDropCount(void) {
+    return 0;  // H7 FIFO0 (30 slots) has no software ring buffer; hardware overflow is tracked via GetProtocolStatus
 }
 
 int32_t canardSTM32GetTxQueueFillLevel(void){
