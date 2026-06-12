@@ -115,6 +115,7 @@ float mixerATGetLiftScale(void);
 float mixerATGetMcAuthorityScale(void);
 float mixerATGetFwAuthorityScale(void);
 float mixerATGetBlendToFw(void);
+int16_t mixerATGetTransitionServoInput(void);
 #ifdef USE_AUTO_TRANSITION
 bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output);
 float mixerATGetPostSwitchFadeProgress(void);
