@@ -4711,7 +4711,7 @@ static void cliDronecan(char *cmdline)
     cliPrintLinef("  ErrorPassive: %s", stat.ErrorPassive ? "YES" : "no");
     cliPrintLinef("  TEC:          %u", (unsigned)stat.tec);
     cliPrintLinef("  REC:          %u", (unsigned)stat.rec);
-    cliPrintLinef("  LEC:          %s (%u)", lecNames[stat.lec & 0x7], (unsigned)stat.lec);
+    cliPrintLinef("  LEC:          %s (%u)", lecNames[stat.lec], (unsigned)stat.lec);
     cliPrintLinef("  TX queue:     %ld", (long)txFill);
     cliPrintLinef("  RX buffer:    %ld", (long)rxFill);
 }

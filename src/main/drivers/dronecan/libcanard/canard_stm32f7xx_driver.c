@@ -34,8 +34,8 @@ typedef struct {
 } RxFrame_t;
 
 static struct RxBuffer_t {
-    uint8_t writeIndex;
-    uint8_t readIndex;
+    volatile uint8_t writeIndex;
+    volatile uint8_t readIndex;
     RxFrame_t rxMsg[RX_BUFFER_SIZE];
 } RxBuffer;
 
@@ -43,9 +43,8 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
 static void canardSTM32GPIO_Init(void);
 
 static CAN_HandleTypeDef hcan1;
-RxFrame_t rxMsg;
 
-uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
 
@@ -63,7 +62,7 @@ uint8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     return 0;
 }
 
-uint8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     uint8_t next;
     RxFrame_t *pCurrentRxMsg;
 
@@ -441,6 +440,8 @@ void CAN1_TX_IRQHandler(void) {
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     RxFrame_t frame;
     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &frame.header, frame.data) == HAL_OK) {
-        rxBufferPushFrame(&RxBuffer, &frame);
+        if (rxBufferPushFrame(&RxBuffer, &frame) != 0) {
+            LOG_WARNING(CAN, "RX buffer full, frame dropped");
+        }
     }
 }

@@ -43,8 +43,8 @@ static uint8_t activeNodeCount = 0;
 static dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
 
 #if defined(STM32H7)
-static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(FDCAN1_IT1_IRQn); }
-static inline void dronecanUnmaskTxISR(void) { NVIC_EnableIRQ(FDCAN1_IT1_IRQn); }
+static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(FDCAN1_IT0_IRQn); }
+static inline void dronecanUnmaskTxISR(void) { NVIC_EnableIRQ(FDCAN1_IT0_IRQn); }
 #elif defined(STM32F7)
 static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(CAN1_TX_IRQn); }
 static inline void dronecanUnmaskTxISR(void) { NVIC_EnableIRQ(CAN1_TX_IRQn); }
@@ -375,10 +375,34 @@ void processCanardTxQueue(void) {
 }
 
 static void processCanardTxQueueSafe(void) {
-    dronecanMaskTxISR();
-    processCanardTxQueue();
-    dronecanUnmaskTxISR();
-}  
+    for (;;) {
+        // Mask only for the linked-list peek — not for the HAL transmit call
+        dronecanMaskTxISR();
+        const CanardCANFrame *tx_frame = canardPeekTxQueue(&canard);
+        if (tx_frame == NULL) {
+            dronecanUnmaskTxISR();
+            break;
+        }
+        const CanardCANFrame frame_copy = *tx_frame;
+        dronecanUnmaskTxISR();
+
+        const int16_t tx_res = canardSTM32Transmit(&frame_copy);
+        if (tx_res == 0) {
+            break;  // HW TX full, ISR will refill when a slot opens
+        }
+
+        // Re-mask to pop. If the ISR fired during the transmit call and already
+        // popped this frame, peek will return a different pointer — skip the pop.
+        dronecanMaskTxISR();
+        if (canardPeekTxQueue(&canard) == tx_frame) {
+            if (tx_res < 0) {
+                LOG_DEBUG(CAN, "Transmit error %d", tx_res);
+            }
+            canardPopTxQueue(&canard);
+        }
+        dronecanUnmaskTxISR();
+    }
+}
 
 #if defined(STM32H7)
 void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes)

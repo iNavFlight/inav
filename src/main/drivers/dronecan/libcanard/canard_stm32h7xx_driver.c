@@ -8,6 +8,7 @@
 #include "common/log.h"
 #include "common/time.h"
 #include "drivers/io.h"
+#include "drivers/nvic.h"
 #include "canard.h"
 #include "canard_stm32_driver.h"
 
@@ -203,10 +204,14 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     }
 
     if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_TX_COMPLETE,
-        FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2)) {
+        FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2) != HAL_OK) { /* Must match TxFifoQueueElmtsNbr = 3 */
         LOG_ERROR(CAN, "Failed to activate interrupt notification");
         return -CANARD_ERROR_INTERNAL;
     }
+
+    /* FDCAN_IT_TX_COMPLETE routes to LINE0 by default (ILS resets to 0) */
+    HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, NVIC_PRIO_CAN, 0);
+    HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
 
     return CANARD_OK;
 }
@@ -356,8 +361,8 @@ void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
     pProtocolStat->BusOff       = protocolStatus.BusOff;
     pProtocolStat->ErrorPassive = protocolStatus.ErrorPassive;
     uint32_t ecr = hfdcan1.Instance->ECR;
-    pProtocolStat->tec          = (uint8_t)((ecr >> 16) & 0x7F);
-    pProtocolStat->rec          = (uint8_t)((ecr >> 8) & 0x7F);
+    pProtocolStat->tec          = (uint8_t)(ecr & 0xFF);           /* ECR[7:0]  */
+    pProtocolStat->rec          = (uint8_t)((ecr >> 8) & 0x7F);   /* ECR[14:8] */
     pProtocolStat->lec          = (uint8_t)(protocolStatus.LastErrorCode & 0x07);
 }
 
@@ -385,4 +390,8 @@ void canardSTM32GetUniqueID(uint8_t id[16]) {
     HALUniqueIDs[1] = HAL_GetUIDw1();
     HALUniqueIDs[2] = HAL_GetUIDw2();
     memcpy(id, HALUniqueIDs, 12);
+}
+
+void FDCAN1_IT0_IRQHandler(void) {
+    HAL_FDCAN_IRQHandler(&hfdcan1);
 }
