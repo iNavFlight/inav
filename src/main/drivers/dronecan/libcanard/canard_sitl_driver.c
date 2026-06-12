@@ -167,6 +167,10 @@ static void sitlCANFrameToLinux(const CanardCANFrame *const src, struct can_fram
         dst->can_id = src->id & CANARD_CAN_STD_ID_MASK;
     }
 
+    if (src->id & CANARD_CAN_FRAME_RTR) {
+        dst->can_id |= CAN_RTR_FLAG;
+    }
+
     // Copy data
     dst->can_dlc = src->data_len;
     if (src->data_len > 0) {
@@ -182,6 +186,10 @@ static void sitlCANFrameFromLinux(const struct can_frame *const src, CanardCANFr
         dst->id = (src->can_id & CANARD_CAN_EXT_ID_MASK) | CANARD_CAN_FRAME_EFF;
     } else {
         dst->id = src->can_id & CANARD_CAN_STD_ID_MASK;
+    }
+
+    if (src->can_id & CAN_RTR_FLAG) {
+        dst->id |= CANARD_CAN_FRAME_RTR;
     }
 
     // Copy data
@@ -275,7 +283,7 @@ int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
  * @retval 1 on success, 0 if busy, negative on error
  */
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
-    if (tx_frame == NULL) {
+    if (tx_frame == NULL || (tx_frame->id & CANARD_CAN_FRAME_ERR)) {
         return -CANARD_ERROR_INVALID_ARGUMENT;
     }
 

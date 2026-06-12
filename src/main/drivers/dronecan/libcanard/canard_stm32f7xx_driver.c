@@ -88,6 +88,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     }
 
     hcan1.Init.Prescaler = out_timings.prescaler;
+    /* F7 bxCAN HAL ORs these directly into BTR; values must be pre-shifted to their register positions */
     hcan1.Init.SyncJumpWidth = (uint32_t)out_timings.sjw << CAN_BTR_SJW_Pos;
     hcan1.Init.TimeSeg1     = (uint32_t)out_timings.bs1 << CAN_BTR_TS1_Pos;
     hcan1.Init.TimeSeg2     = (uint32_t)out_timings.bs2 << CAN_BTR_TS2_Pos;

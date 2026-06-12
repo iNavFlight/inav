@@ -188,7 +188,7 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 		TxHeader.Identifier = tx_frame->id & CANARD_CAN_STD_ID_MASK;
 	}
 
-	TxHeader.DataLength = tx_frame->data_len;
+	TxHeader.DataLength = tx_frame->data_len;  /* FDCAN_DLC_BYTES_0..8 == 0..8; valid only in FDCAN_FRAME_CLASSIC mode */
 
 	if (tx_frame->id & CANARD_CAN_FRAME_RTR) {
 		TxHeader.TxFrameType = FDCAN_REMOTE_FRAME;
