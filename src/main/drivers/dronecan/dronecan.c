@@ -162,8 +162,10 @@ void dronecanUpdate(timeUs_t currentTimeUs)
                 }
 
                 uint32_t rxDrops = canardSTM32GetAndClearRxDropCount();
+                dronecanMaskTxISR();
                 uint32_t txErrs = txErrCount;
                 txErrCount = 0;
+                dronecanUnmaskTxISR();
                 if (rxDrops > 0) {
                     LOG_DEBUG(CAN, "RX drops: %" PRIu32, rxDrops);
                 }
@@ -235,8 +237,9 @@ const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
     return NULL;
 }
 
-// ---- TX queue ---------------------------------------------------------------
+// ---- ISR / HAL callbacks ----------------------------------------------------
 
+#if defined(STM32H7) || defined(STM32F7)
 /* Called from TX-complete ISR only. Already in interrupt context — no NVIC masking needed.
    For main-loop use, call processCanardTxQueueSafe() instead. */
 static void processCanardTxQueue(void) {
@@ -256,8 +259,7 @@ static void processCanardTxQueue(void) {
 		}
 	}
 }
-
-// ---- ISR / HAL callbacks ----------------------------------------------------
+#endif
 
 #if defined(STM32H7)
 void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes)
@@ -304,7 +306,7 @@ static void processCanardTxQueueSafe(void) {
   send the 1Hz NodeStatus message. This is what allows a node to show
   up in the DroneCAN GUI tool and in the flight controller logs
  */
-void send_NodeStatus(void) {
+static void send_NodeStatus(void) {
     uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
 
     node_status.uptime_sec = millis() / 1000UL;
@@ -428,7 +430,7 @@ static bool shouldAcceptTransfer(const CanardInstance *ins,
 
 // Canard Handlers ( Many have code copied from libcanard esc_node example: https://github.com/dronecan/libcanard/blob/master/examples/ESCNode/esc_node.c )
 
-void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
+static void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
     struct uavcan_protocol_NodeStatus nodeStatus;
 
@@ -464,7 +466,7 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 }
 
-void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
+static void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
     if (gpsConfig()->provider != GPS_DRONECAN) return;
     struct uavcan_equipment_gnss_Auxiliary gnssAuxiliary;
@@ -476,7 +478,7 @@ void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
     dronecanGPSReceiveGNSSAuxiliary(&gnssAuxiliary);
 }
 
-void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
+static void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
     if (gpsConfig()->provider != GPS_DRONECAN) return;
     struct uavcan_equipment_gnss_Fix gnssFix;
@@ -488,7 +490,7 @@ void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
     dronecanGPSReceiveGNSSFix(&gnssFix);
 }
 
-void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
+static void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
     if (gpsConfig()->provider != GPS_DRONECAN) return;
     struct uavcan_equipment_gnss_Fix2 gnssFix2;
@@ -500,7 +502,7 @@ void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
     dronecanGPSReceiveGNSSFix2(&gnssFix2);
 }
 
-void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
+static void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
     if (gpsConfig()->provider != GPS_DRONECAN) return;
     struct uavcan_equipment_gnss_RTCMStream gnssRTCMStream;
@@ -511,7 +513,7 @@ void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
 	}
 }
 
-void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
+static void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
     struct uavcan_equipment_power_BatteryInfo batteryInfo;
 
@@ -527,7 +529,7 @@ void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 */
 
 // TODO: All the data in here is temporary for testing. If actually need to send valid data, edit accordingly.
-void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
+static void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 	uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
 	struct uavcan_protocol_GetNodeInfoResponse pkt;
 
