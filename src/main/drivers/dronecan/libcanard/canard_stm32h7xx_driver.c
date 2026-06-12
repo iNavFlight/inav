@@ -175,10 +175,10 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hfdcan1.Init.RxBufferSize = FDCAN_DATA_BYTES_8;
     hfdcan1.Init.StdFiltersNbr = 0;
     hfdcan1.Init.ExtFiltersNbr = 1;
-    hfdcan1.Init.TxFifoQueueElmtsNbr = 32;
+    hfdcan1.Init.TxFifoQueueElmtsNbr = 3;
     hfdcan1.Init.TxEventsNbr = 0;
     hfdcan1.Init.TxBuffersNbr = 0;
-    hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+    hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_QUEUE_OPERATION;
     hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
 
     canardSTM32GPIO_Init();  // Set up the pins for CAN and optional listen only mode
@@ -201,6 +201,13 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed to Start");
         return -CANARD_ERROR_INTERNAL;
     }
+
+    if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_TX_COMPLETE,
+        FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2)) {
+        LOG_ERROR(CAN, "Failed to activate interrupt notification");
+        return -CANARD_ERROR_INTERNAL;
+    }
+
     return CANARD_OK;
 }
 
