@@ -46,15 +46,14 @@ static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg);
 static uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf);
 
 static CAN_HandleTypeDef hcan1;
+static volatile uint32_t rxDropCount = 0;
 
 // ---- Public API -------------------------------------------------------------
 
 /**
-  * @brief FDCAN1 Initialization Function
-  * @param  hfdcan pointer to an FDCAN_HandleTypeDef structure that contains
-  *         the configuration information for the specified FDCAN.
+  * @brief CAN1 (bxCAN) Initialization Function
   * @param  bitrate desired bitrate to run the CAN network at.
-  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
+  * @retval ret == 0: OK (CANARD_OK), ret < 0: CANARD_ERROR
   */
 int16_t canardSTM32CAN1_Init(uint32_t bitrate)
 {
@@ -115,15 +114,14 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed to activate interrupt");
         return -CANARD_ERROR_INTERNAL;
     }
-
-    // Enable interrupt only after all initialization succeeds
-    // (if any previous step failed, we return early without enabling IRQ)
-    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, NVIC_PRIO_CAN, 0);
-    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
     if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
         LOG_ERROR(CAN, "Failed to activate TX interrupt");
         return -CANARD_ERROR_INTERNAL;
     }
+
+    // Enable IRQs only after all ActivateNotification calls succeed
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, NVIC_PRIO_CAN, 0);
+    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
     HAL_NVIC_SetPriority(CAN1_TX_IRQn, NVIC_PRIO_CAN, 0);
     HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);
 
@@ -134,7 +132,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
   * @brief  Process CAN message from RxLocation FIFO into rx_frame
   * @param  rx_frame pointer to a CanardCANFrame structure where the received CAN message will be
   * 		stored.
-  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
+  * @retval ret == 0: OK (CANARD_OK), ret < 0: CANARD_ERROR
   */
 int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
     RxFrame_t canRxFrame;
@@ -170,7 +168,7 @@ int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
   * @brief  Process tx_frame CAN message into Tx FIFO/Queue and transmit it
   * @param  tx_frame pointer to a CanardCANFrame structure that contains the CAN message to
   * 		transmit.
-  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
+  * @retval ret == 0: OK (CANARD_OK), ret < 0: CANARD_ERROR
   */
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	CAN_TxHeaderTypeDef txHeader = {};
@@ -265,9 +263,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     RxFrame_t frame;
     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &frame.header, frame.data) == HAL_OK) {
         if (rxBufferPushFrame(&RxBuffer, &frame) != 0) {
-            LOG_WARNING(CAN, "RX buffer full, frame dropped");
+            rxDropCount++;  // logged from main loop via canardSTM32GetAndClearRxDropCount()
         }
     }
+}
+
+uint32_t canardSTM32GetAndClearRxDropCount(void) {
+    uint32_t count = rxDropCount;
+    rxDropCount = 0;
+    return count;
 }
 
 // ---- Private helpers --------------------------------------------------------
