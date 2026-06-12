@@ -148,8 +148,11 @@ int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
 		}
 
 		/* FDCAN_DLC_BYTES_0..8 equal 0..8, so DataLength is the byte count in FDCAN_FRAME_CLASSIC mode. */
-		rx_frame->data_len = RxHeader.DataLength;
-		memcpy(rx_frame->data, RxData, RxHeader.DataLength);
+		if (RxHeader.DataLength > CANARD_CAN_FRAME_MAX_DATA_LEN) {
+			return -CANARD_ERROR_INVALID_ARGUMENT;  /* should never happen in FDCAN_FRAME_CLASSIC mode */
+		}
+		rx_frame->data_len = (uint8_t)RxHeader.DataLength;
+		memcpy(rx_frame->data, RxData, rx_frame->data_len);
 
 		// assume a single interface
 		rx_frame->iface_id = 0;
