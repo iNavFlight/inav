@@ -53,8 +53,371 @@ static inline void dronecanMaskTxISR(void)   {}
 static inline void dronecanUnmaskTxISR(void) {}
 #endif
 
+/* Forward declarations ------------------------------------------------------*/
+
+static void processCanardTxQueueSafe(void);
+static void process1HzTasks(timeUs_t timestamp_usec);
+bool shouldAcceptTransfer(const CanardInstance *ins, uint64_t *out_data_type_signature, uint16_t data_type_id, CanardTransferType transfer_type, uint8_t source_node_id);
+void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer);
+
+// ---- Public API -------------------------------------------------------------
+
+void dronecanInit(void)
+{
+    uint32_t bitrate = 500000; // At least define 500000
+
+    switch (dronecanConfig()->bitRateKbps){
+        case DRONECAN_BITRATE_125KBPS:
+            bitrate = 125000;
+            break;
+
+        case DRONECAN_BITRATE_250KBPS:
+            bitrate = 250000;
+            break;
+
+        case DRONECAN_BITRATE_500KBPS:
+            bitrate = 500000;
+            break;
+
+        case DRONECAN_BITRATE_1000KBPS:
+            bitrate = 1000000;
+            break;
+
+        case DRONECAN_BITRATE_COUNT:
+            LOG_ERROR(SYSTEM, "Undefined bitrate set in configuration. 500kbps selected");
+            bitrate = 500000;
+            break;
+    }
+    if(canardSTM32CAN1_Init(bitrate) != CANARD_OK)
+    {
+        LOG_ERROR(CAN, "Unable to initialize the CAN peripheral");
+        dronecanState = STATE_DRONECAN_FAILED;
+        return;
+    }
+    /*
+    Initializing the Libcanard instance.
+    */
+    canardInit(&canard,
+	    	   memory_pool,
+			   sizeof(memory_pool),
+			   onTransferReceived,
+			   shouldAcceptTransfer,
+			   NULL);
+
+    // Could use DNA (Dynamic Node Allocation) by following example in esc_node.c but that requires a lot of setup and I'm not too sure of what advantage it brings
+    // Instead, set a different NODE_ID for each device on the CAN bus by configuring node_settings
+    if (dronecanConfig()->nodeID > 0) {
+	      canardSetLocalNodeID(&canard, dronecanConfig()->nodeID);
+    } else {
+	      LOG_DEBUG(CAN, "Node ID is 0, this node is anonymous and can't transmit most messages. Please update this in config");
+    }
+}
+
+void dronecanUpdate(timeUs_t currentTimeUs)
+{
+    static timeUs_t next_1hz_service_at = 0;
+    static timeUs_t busoffTimeUs = 0;
+    CanardCANFrame rx_frame;
+    int numMessagesToProcess = 0;
+    canardProtocolStatus_t protocolStatus = {};
+    uint64_t timestamp;
+    int16_t rx_res;
+
+    switch(dronecanState) {
+        case STATE_DRONECAN_INIT:
+            next_1hz_service_at = currentTimeUs + 1000000ULL;  // First 1Hz tick in 1 second
+            dronecanState = STATE_DRONECAN_NORMAL;
+            break;
+
+        case STATE_DRONECAN_NORMAL:
+            processCanardTxQueueSafe();
+
+             for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
+             {
+	            timestamp = millis() * 1000ULL;
+	            rx_res = canardSTM32Receive(&rx_frame);
+
+	             if (rx_res < 0) {
+		             LOG_DEBUG(CAN, "Receive error %d", rx_res);
+	             }
+	             else if (rx_res > 0)        // Success - process the frame
+	             {
+		             canardHandleRxFrame(&canard, &rx_frame, timestamp);
+	             }
+             }
+            // Drain any TX frames queued by RX handlers (e.g. GetNodeInfo responses)
+            // in the same task cycle so multi-frame transfers complete before timeout.
+            processCanardTxQueueSafe();
+
+            if (currentTimeUs >= next_1hz_service_at)
+            {
+		        next_1hz_service_at += 1000000ULL;
+		        process1HzTasks(currentTimeUs);
+                processCanardTxQueueSafe();
+
+                canardSTM32GetProtocolStatus(&protocolStatus);
+                if (protocolStatus.BusOff != 0 || protocolStatus.ErrorPassive != 0) {
+                    LOG_DEBUG(CAN, "CAN status: BusOff=%" PRIu32 " ErrorPassive=%" PRIu32, protocolStatus.BusOff, protocolStatus.ErrorPassive);
+                }
+                if (protocolStatus.BusOff != 0) {
+                    dronecanState = STATE_DRONECAN_BUS_OFF;
+                    busoffTimeUs = currentTimeUs;
+                }
+            }
+            break;
+
+        case STATE_DRONECAN_BUS_OFF:
+            if(currentTimeUs > (busoffTimeUs + 20000)) { // Wait 20ms: worst-case 128x11 recovery is 11.264ms at 125kbps
+                canardSTM32RecoverFromBusOff();
+                busoffTimeUs = currentTimeUs;
+                canardSTM32GetProtocolStatus(&protocolStatus);
+                if(protocolStatus.BusOff == 0) {
+                    dronecanState = STATE_DRONECAN_NORMAL;
+                }
+            }
+            break;
+
+        case STATE_DRONECAN_FAILED:
+            break;
+
+        case STATE_DRONECAN_COUNT:
+            break;
+
+    }
+
+}
+
+dronecanState_e dronecanGetState(void)
+{
+    return dronecanState;
+}
+
+uint8_t dronecanGetNodeCount(void)
+{
+    return activeNodeCount;
+}
+
+uint32_t dronecanGetBitrateKbps(void)
+{
+    switch (dronecanConfig()->bitRateKbps){
+        case DRONECAN_BITRATE_125KBPS:
+            return 125;
+
+        case DRONECAN_BITRATE_250KBPS:
+            return 250;
+
+        case DRONECAN_BITRATE_500KBPS:
+            return 500;
+
+        case DRONECAN_BITRATE_1000KBPS:
+            return 1000;
+
+        case DRONECAN_BITRATE_COUNT:
+            return 0;
+    }
+    return 0;
+}
+
+const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
+    if (index < activeNodeCount) return &nodeTable[index];
+    return NULL;
+}
+
+// ---- TX queue ---------------------------------------------------------------
+
+/* Called from TX-complete ISR only. Already in interrupt context — no NVIC masking needed.
+   For main-loop use, call processCanardTxQueueSafe() instead. */
+void processCanardTxQueue(void) {
+	// Transmitting
+	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
+    {
+        const int16_t tx_res = canardSTM32Transmit(tx_frame);
+
+		if (tx_res < 0) {
+			LOG_DEBUG(CAN, "Transmit error %d", tx_res);
+			canardPopTxQueue(&canard);  // Error - discard frame
+		} else if (tx_res > 0) {
+			canardPopTxQueue(&canard);  // Success - remove from queue
+		} else {
+			// tx_res == 0: TX FIFO full, retry later
+			break;
+		}
+	}
+}
+
+// ---- ISR / HAL callbacks ----------------------------------------------------
+
+#if defined(STM32H7)
+void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes)
+{
+    UNUSED(hfdcan);
+    UNUSED(BufferIndexes);
+    processCanardTxQueue();
+}
+#endif
+#if defined(STM32F7)
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan); processCanardTxQueue(); }
+void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan); processCanardTxQueue(); }
+void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan); processCanardTxQueue(); }
+#endif
+
+// ---- Internal helpers -------------------------------------------------------
+
+static void processCanardTxQueueSafe(void) {
+    for (;;) {
+        // Mask only for the linked-list peek — not for the HAL transmit call
+        dronecanMaskTxISR();
+        const CanardCANFrame *tx_frame = canardPeekTxQueue(&canard);
+        if (tx_frame == NULL) {
+            dronecanUnmaskTxISR();
+            break;
+        }
+        const CanardCANFrame frame_copy = *tx_frame;
+        dronecanUnmaskTxISR();
+
+        const int16_t tx_res = canardSTM32Transmit(&frame_copy);
+        if (tx_res == 0) {
+            break;  // HW TX full, ISR will refill when a slot opens
+        }
+
+        // Re-mask to pop. If the ISR fired during the transmit call and already
+        // popped this frame, peek will return a different pointer — skip the pop.
+        dronecanMaskTxISR();
+        if (canardPeekTxQueue(&canard) == tx_frame) {
+            if (tx_res < 0) {
+                LOG_DEBUG(CAN, "Transmit error %d", tx_res);
+            }
+            canardPopTxQueue(&canard);
+        }
+        dronecanUnmaskTxISR();
+    }
+}
+
 // NOTE: All canard handlers and senders are based on this reference: https://dronecan.github.io/Specification/7._List_of_standard_data_types/
 // Alternatively, you can look at the corresponding generated header file in the dsdlc_generated folder
+
+/*
+  send the 1Hz NodeStatus message. This is what allows a node to show
+  up in the DroneCAN GUI tool and in the flight controller logs
+ */
+void send_NodeStatus(void) {
+    uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
+
+    node_status.uptime_sec = millis() / 1000UL;
+    if(isHardwareHealthy()){
+        node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
+    }
+    else {
+        node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL;
+    }
+
+    node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;  // Indicates that node is able to communicate over CAN, not that it is in flight.
+    node_status.sub_mode = 0; // Not currently used in dronecan
+
+    // put whatever you like in here for display in GUI
+    node_status.vendor_specific_status_code = armingFlags;
+
+    uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
+
+    // we need a static variable for the transfer ID. This is
+    // incremeneted on each transfer, allowing for detection of packet
+    // loss
+    static uint8_t transfer_id;
+
+    dronecanMaskTxISR();
+    canardBroadcast(&canard,
+                    UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
+                    UAVCAN_PROTOCOL_NODESTATUS_ID,
+                    &transfer_id,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    buffer,
+                    len);
+    dronecanUnmaskTxISR();
+
+}
+
+/*
+  This function is called at 1 Hz rate from the main loop.
+*/
+static void process1HzTasks(timeUs_t timestamp_usec)
+{
+   /*
+      Purge transfers that are no longer transmitted. This can free up some memory
+    */
+    dronecanMaskTxISR();
+    canardCleanupStaleTransfers(&canard, timestamp_usec);
+    dronecanUnmaskTxISR();
+
+    /*
+      Transmit the node status message
+    */
+    send_NodeStatus();
+}
+
+/*
+ This callback is invoked by the library when it detects beginning of a new transfer on the bus that can be received
+ by the local node.
+ If the callback returns true, the library will receive the transfer.
+ If the callback returns false, the library will ignore the transfer.
+ All transfers that are addressed to other nodes are always ignored.
+
+ This function must fill in the out_data_type_signature to be the signature of the message.
+ */
+bool shouldAcceptTransfer(const CanardInstance *ins,
+                                 uint64_t *out_data_type_signature,
+                                 uint16_t data_type_id,
+                                 CanardTransferType transfer_type,
+                                 uint8_t source_node_id)
+{
+	UNUSED(ins);
+    UNUSED(source_node_id);
+    if (transfer_type == CanardTransferTypeRequest) {
+	// check if we want to handle a specific service request
+		switch (data_type_id) {
+		case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
+			*out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_REQUEST_SIGNATURE;
+			return true;
+		    }
+		}
+	}
+	if (transfer_type == CanardTransferTypeResponse) {
+		// check if we want to handle a specific service request
+		switch (data_type_id) {
+		}
+	}
+	if (transfer_type == CanardTransferTypeBroadcast) {
+		// see if we want to handle a specific broadcast packet
+		switch (data_type_id) {
+
+		case UAVCAN_PROTOCOL_NODESTATUS_ID: {
+			*out_data_type_signature = UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE;
+			return true;
+		}
+        case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_AUXILIARY_SIGNATURE;
+            return true;
+        }
+        case UAVCAN_EQUIPMENT_GNSS_FIX_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_FIX_SIGNATURE;
+            return true;
+        }
+        case UAVCAN_EQUIPMENT_GNSS_FIX2_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_FIX2_SIGNATURE;
+            return true;
+        }
+        case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_SIGNATURE;
+            return true;
+        }
+        case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID: {
+            *out_data_type_signature = UAVCAN_EQUIPMENT_POWER_BATTERYINFO_SIGNATURE;
+            return true;
+        }
+		}
+	}
+	// we don't want any other messages
+	return false;
+}
 
 // Canard Handlers ( Many have code copied from libcanard esc_node example: https://github.com/dronecan/libcanard/blob/master/examples/ESCNode/esc_node.c )
 
@@ -67,19 +430,19 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
 
-	uint8_t nodeId = transfer->source_node_id;                                                                                                                                                                                                
+	uint8_t nodeId = transfer->source_node_id;
     for (uint8_t i = 0; i < activeNodeCount; i++) {
-        if (nodeTable[i].nodeID == nodeId) { 
-            // update health, mode, uptime, vendor_status_code, last_seen_ms                                                                                                                                                                                                 
+        if (nodeTable[i].nodeID == nodeId) {
+            // update health, mode, uptime, vendor_status_code, last_seen_ms
             nodeTable[i].health = nodeStatus.health;
             nodeTable[i].mode = nodeStatus.mode;
             nodeTable[i].uptime_sec = nodeStatus.uptime_sec;
             nodeTable[i].vendor_status_code = nodeStatus.vendor_specific_status_code;
-            nodeTable[i].last_seen_ms = millis();                    
-            return;                                                                                                                                                                                                                           
-        }                                                                                       
-    }                                                                                                                                                                                                                                         
-    // new node                                                                                 
+            nodeTable[i].last_seen_ms = millis();
+            return;
+        }
+    }
+    // new node
     if (activeNodeCount < DRONECAN_MAX_NODES) {
         nodeTable[activeNodeCount].nodeID = nodeId;
         nodeTable[activeNodeCount].health = nodeStatus.health;
@@ -88,8 +451,8 @@ void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
         nodeTable[activeNodeCount].vendor_status_code = nodeStatus.vendor_specific_status_code;
         nodeTable[activeNodeCount].name_len = 0;
         nodeTable[activeNodeCount].name[0] = 0;
-        nodeTable[activeNodeCount].last_seen_ms = millis();     
-        activeNodeCount++;                                                                                                                                                               
+        nodeTable[activeNodeCount].last_seen_ms = millis();
+        activeNodeCount++;
     }
 
 }
@@ -197,115 +560,6 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
     dronecanUnmaskTxISR();
 }
 
-// Canard Senders
-
-/*
-  send the 1Hz NodeStatus message. This is what allows a node to show
-  up in the DroneCAN GUI tool and in the flight controller logs
- */
-void send_NodeStatus(void) {
-    uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
-
-    node_status.uptime_sec = millis() / 1000UL;
-    if(isHardwareHealthy()){
-        node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
-    }
-    else {
-        node_status.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL;
-    }
-    
-    node_status.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;  // Indicates that node is able to communicate over CAN, not that it is in flight.
-    node_status.sub_mode = 0; // Not currently used in dronecan
-
-    // put whatever you like in here for display in GUI
-    node_status.vendor_specific_status_code = armingFlags;
-
-    uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
-
-    // we need a static variable for the transfer ID. This is
-    // incremeneted on each transfer, allowing for detection of packet
-    // loss
-    static uint8_t transfer_id;
-
-    dronecanMaskTxISR();
-    canardBroadcast(&canard,
-                    UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
-                    UAVCAN_PROTOCOL_NODESTATUS_ID,
-                    &transfer_id,
-                    CANARD_TRANSFER_PRIORITY_LOW,
-                    buffer,
-                    len);
-    dronecanUnmaskTxISR();
-
-}
-
-// Canard Util
-/*
- This callback is invoked by the library when it detects beginning of a new transfer on the bus that can be received
- by the local node.
- If the callback returns true, the library will receive the transfer.
- If the callback returns false, the library will ignore the transfer.
- All transfers that are addressed to other nodes are always ignored.
-
- This function must fill in the out_data_type_signature to be the signature of the message.
- */
-
-bool shouldAcceptTransfer(const CanardInstance *ins,
-                                 uint64_t *out_data_type_signature,
-                                 uint16_t data_type_id,
-                                 CanardTransferType transfer_type,
-                                 uint8_t source_node_id)
-{
-	UNUSED(ins);
-    UNUSED(source_node_id);
-    if (transfer_type == CanardTransferTypeRequest) {
-	// check if we want to handle a specific service request
-		switch (data_type_id) {
-		case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
-			*out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_REQUEST_SIGNATURE;
-			return true;
-		    }
-		}
-	}
-	if (transfer_type == CanardTransferTypeResponse) {
-		// check if we want to handle a specific service request
-		switch (data_type_id) {
-		}
-	}
-	if (transfer_type == CanardTransferTypeBroadcast) {
-		// see if we want to handle a specific broadcast packet
-		switch (data_type_id) {
-
-		case UAVCAN_PROTOCOL_NODESTATUS_ID: {
-			*out_data_type_signature = UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE;
-			return true;
-		}
-        case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID: {
-            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_AUXILIARY_SIGNATURE;
-            return true;
-        }
-        case UAVCAN_EQUIPMENT_GNSS_FIX_ID: {
-            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_FIX_SIGNATURE;
-            return true;
-        }
-        case UAVCAN_EQUIPMENT_GNSS_FIX2_ID: {
-            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_FIX2_SIGNATURE;
-            return true;
-        }
-        case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID: {
-            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_SIGNATURE;
-            return true;
-        }
-        case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID: {
-            *out_data_type_signature = UAVCAN_EQUIPMENT_POWER_BATTERYINFO_SIGNATURE;
-            return true;
-        }
-		}
-	}
-	// we don't want any other messages
-	return false;
-}
-
 /*
  This callback is invoked by the library when a new message or request or response is received.
 */
@@ -328,273 +582,31 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 		// check if we want to handle a specific broadcast message
 		switch (transfer->data_type_id) {
 
-            case UAVCAN_PROTOCOL_NODESTATUS_ID: 
+            case UAVCAN_PROTOCOL_NODESTATUS_ID:
                 handle_NodeStatus(ins, transfer);
                 break;
-            
 
-            case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID: 
+
+            case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID:
                 handle_GNSSAuxiliary(ins, transfer);
                 break;
-            
-            case UAVCAN_EQUIPMENT_GNSS_FIX_ID: 
+
+            case UAVCAN_EQUIPMENT_GNSS_FIX_ID:
                 handle_GNSSFix(ins, transfer);
                 break;
-            
-            case UAVCAN_EQUIPMENT_GNSS_FIX2_ID: 
+
+            case UAVCAN_EQUIPMENT_GNSS_FIX2_ID:
                 handle_GNSSFix2(ins, transfer);
                 break;
-            
-            case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID: 
+
+            case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID:
                 handle_GNSSRCTMStream(ins, transfer);
                 break;
-            
+
             case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID:
                 handle_BatteryInfo(ins, transfer);
                 break;
         }
 	}
-}
-
-void processCanardTxQueue(void) {
-	// Transmitting
-	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
-    {
-        const int16_t tx_res = canardSTM32Transmit(tx_frame);
-
-		if (tx_res < 0) {
-			LOG_DEBUG(CAN, "Transmit error %d", tx_res);
-			canardPopTxQueue(&canard);  // Error - discard frame
-		} else if (tx_res > 0) {
-			canardPopTxQueue(&canard);  // Success - remove from queue
-		} else {
-			// tx_res == 0: TX FIFO full, retry later
-			break;
-		}
-	}
-}
-
-static void processCanardTxQueueSafe(void) {
-    for (;;) {
-        // Mask only for the linked-list peek — not for the HAL transmit call
-        dronecanMaskTxISR();
-        const CanardCANFrame *tx_frame = canardPeekTxQueue(&canard);
-        if (tx_frame == NULL) {
-            dronecanUnmaskTxISR();
-            break;
-        }
-        const CanardCANFrame frame_copy = *tx_frame;
-        dronecanUnmaskTxISR();
-
-        const int16_t tx_res = canardSTM32Transmit(&frame_copy);
-        if (tx_res == 0) {
-            break;  // HW TX full, ISR will refill when a slot opens
-        }
-
-        // Re-mask to pop. If the ISR fired during the transmit call and already
-        // popped this frame, peek will return a different pointer — skip the pop.
-        dronecanMaskTxISR();
-        if (canardPeekTxQueue(&canard) == tx_frame) {
-            if (tx_res < 0) {
-                LOG_DEBUG(CAN, "Transmit error %d", tx_res);
-            }
-            canardPopTxQueue(&canard);
-        }
-        dronecanUnmaskTxISR();
-    }
-}
-
-#if defined(STM32H7)
-void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes)
-{
-    UNUSED(hfdcan);
-    UNUSED(BufferIndexes);
-    processCanardTxQueue();
-}   
-#endif
-#if defined(STM32F7)
-void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan); processCanardTxQueue(); }
-void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan); processCanardTxQueue(); }
-void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan); processCanardTxQueue(); }
-#endif
-
-
-/*
-  This function is called at 1 Hz rate from the main loop.
-*/
-void process1HzTasks(timeUs_t timestamp_usec)
-{
-   /*
-      Purge transfers that are no longer transmitted. This can free up some memory
-    */
-    dronecanMaskTxISR();
-    canardCleanupStaleTransfers(&canard, timestamp_usec);
-    dronecanUnmaskTxISR();
-
-    /*
-      Transmit the node status message
-    */
-    send_NodeStatus();
-}
-
-void dronecanInit(void)
-{
-    uint32_t bitrate = 500000; // At least define 500000
-
-    switch (dronecanConfig()->bitRateKbps){
-        case DRONECAN_BITRATE_125KBPS:
-            bitrate = 125000;
-            break;
-
-        case DRONECAN_BITRATE_250KBPS:
-            bitrate = 250000;
-            break;
-        
-        case DRONECAN_BITRATE_500KBPS:
-            bitrate = 500000;
-            break;
-
-        case DRONECAN_BITRATE_1000KBPS:
-            bitrate = 1000000;
-            break;
-
-        case DRONECAN_BITRATE_COUNT:
-            LOG_ERROR(SYSTEM, "Undefined bitrate set in configuration. 500kbps selected");
-            bitrate = 500000;
-            break;
-    }
-    if(canardSTM32CAN1_Init(bitrate) != CANARD_OK)
-    {
-        LOG_ERROR(CAN, "Unable to initialize the CAN peripheral");
-        dronecanState = STATE_DRONECAN_FAILED;
-        return;
-    }  
-    /*
-    Initializing the Libcanard instance.
-    */
-    canardInit(&canard,
-	    	   memory_pool,
-			   sizeof(memory_pool),
-			   onTransferReceived,
-			   shouldAcceptTransfer,
-			   NULL);
-
-    // Could use DNA (Dynamic Node Allocation) by following example in esc_node.c but that requires a lot of setup and I'm not too sure of what advantage it brings
-    // Instead, set a different NODE_ID for each device on the CAN bus by configuring node_settings
-    if (dronecanConfig()->nodeID > 0) {
-	      canardSetLocalNodeID(&canard, dronecanConfig()->nodeID);
-    } else {
-	      LOG_DEBUG(CAN, "Node ID is 0, this node is anonymous and can't transmit most messages. Please update this in config");
-    }
-}
-
-void dronecanUpdate(timeUs_t currentTimeUs)
-{
-    static timeUs_t next_1hz_service_at = 0;
-    static timeUs_t busoffTimeUs = 0;
-    CanardCANFrame rx_frame;
-    int numMessagesToProcess = 0;
-    canardProtocolStatus_t protocolStatus = {};
-    uint64_t timestamp;
-    int16_t rx_res;
-
-    switch(dronecanState) {
-        case STATE_DRONECAN_INIT:
-            next_1hz_service_at = currentTimeUs + 1000000ULL;  // First 1Hz tick in 1 second
-            dronecanState = STATE_DRONECAN_NORMAL;
-            break;
-
-        case STATE_DRONECAN_NORMAL:
-            processCanardTxQueueSafe();
-
-             for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
-             {
-	            timestamp = millis() * 1000ULL;
-	            rx_res = canardSTM32Receive(&rx_frame);
-
-	             if (rx_res < 0) {
-		             LOG_DEBUG(CAN, "Receive error %d", rx_res);
-	             }
-	             else if (rx_res > 0)        // Success - process the frame
-	             {
-		             canardHandleRxFrame(&canard, &rx_frame, timestamp);
-	             }
-             }
-            // Drain any TX frames queued by RX handlers (e.g. GetNodeInfo responses)
-            // in the same task cycle so multi-frame transfers complete before timeout.
-            processCanardTxQueueSafe();
-
-            if (currentTimeUs >= next_1hz_service_at)
-            {
-		        next_1hz_service_at += 1000000ULL;
-		        process1HzTasks(currentTimeUs);
-                processCanardTxQueueSafe();
-
-                canardSTM32GetProtocolStatus(&protocolStatus);
-                if (protocolStatus.BusOff != 0 || protocolStatus.ErrorPassive != 0) {
-                    LOG_DEBUG(CAN, "CAN status: BusOff=%" PRIu32 " ErrorPassive=%" PRIu32, protocolStatus.BusOff, protocolStatus.ErrorPassive);
-                }
-                if (protocolStatus.BusOff != 0) {
-                    dronecanState = STATE_DRONECAN_BUS_OFF;
-                    busoffTimeUs = currentTimeUs;
-                }
-            }
-            break;
-
-        case STATE_DRONECAN_BUS_OFF:
-            if(currentTimeUs > (busoffTimeUs + 20000)) { // Wait 20ms: worst-case 128x11 recovery is 11.264ms at 125kbps
-                canardSTM32RecoverFromBusOff();
-                busoffTimeUs = currentTimeUs;
-                canardSTM32GetProtocolStatus(&protocolStatus);
-                if(protocolStatus.BusOff == 0) {
-                    dronecanState = STATE_DRONECAN_NORMAL;
-                }
-            }
-            break;
-
-        case STATE_DRONECAN_FAILED:
-            break;
-
-        case STATE_DRONECAN_COUNT:
-            break;
-
-    }
-    
-}
-
-dronecanState_e dronecanGetState(void)
-{
-    return dronecanState;
-}
-
-uint8_t dronecanGetNodeCount(void)
-{
-    return activeNodeCount;
-}
-
-uint32_t dronecanGetBitrateKbps(void)
-{
-    switch (dronecanConfig()->bitRateKbps){
-        case DRONECAN_BITRATE_125KBPS:
-            return 125;
-
-        case DRONECAN_BITRATE_250KBPS:
-            return 250;
-        
-        case DRONECAN_BITRATE_500KBPS:
-            return 500;
-
-        case DRONECAN_BITRATE_1000KBPS:
-            return 1000;
-        
-        case DRONECAN_BITRATE_COUNT:
-            return 0;
-    }
-    return 0;
-}
-
-const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
-    if (index < activeNodeCount) return &nodeTable[index];
-    return NULL;
 }
 #endif

@@ -41,50 +41,93 @@ static struct RxBuffer_t {
 
 static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings*out_timings);
 static void canardSTM32GPIO_Init(void);
+static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg);
+static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg);
+static uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf);
 
 static CAN_HandleTypeDef hcan1;
 
-static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
-    uint8_t next;
-    RxFrame_t *pCurrentRxMsg;
+// ---- Public API -------------------------------------------------------------
 
-    next = rxBuf->writeIndex + 1;
-    if(next >= RX_BUFFER_SIZE){
-        next = 0;
+/**
+  * @brief FDCAN1 Initialization Function
+  * @param  hfdcan pointer to an FDCAN_HandleTypeDef structure that contains
+  *         the configuration information for the specified FDCAN.
+  * @param  bitrate desired bitrate to run the CAN network at.
+  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
+  */
+int16_t canardSTM32CAN1_Init(uint32_t bitrate)
+{
+    struct Timings out_timings;
+
+    __HAL_RCC_CAN1_CLK_ENABLE();
+
+    CAN_FilterTypeDef sFilterConfig;
+    sFilterConfig.FilterIdHigh = 0;
+    sFilterConfig.FilterIdLow  = 0;
+    sFilterConfig.FilterMaskIdHigh = 0;
+    sFilterConfig.FilterMaskIdLow = 0;
+    sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+    sFilterConfig.FilterBank = 0;
+    sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+    sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+    sFilterConfig.FilterActivation = ENABLE;
+
+    hcan1.Instance = CAN1;
+    hcan1.Init.Mode = CAN_MODE_NORMAL;
+    hcan1.Init.TimeTriggeredMode = DISABLE;
+    hcan1.Init.AutoBusOff = ENABLE;
+    hcan1.Init.AutoWakeUp = DISABLE;
+    hcan1.Init.AutoRetransmission = DISABLE;  // ENABLE fills the TX FIFO on a degraded bus; DroneCAN reliability is handled at the application layer
+    hcan1.Init.ReceiveFifoLocked = DISABLE;
+    hcan1.Init.TransmitFifoPriority = DISABLE;
+
+    if (!canardSTM32ComputeTimings(bitrate, &out_timings))
+    {
+        LOG_ERROR(CAN, "Failed to compute CAN timings for bitrate %lu", (unsigned long)bitrate);
+        return -CANARD_ERROR_INTERNAL;
     }
 
-    if(next == rxBuf->readIndex) {
-        return -1;  // rxBuf is full
-    }
-    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->writeIndex];
-    memcpy(pCurrentRxMsg, rxMsg, sizeof(RxFrame_t));
-    rxBuf->writeIndex = next;
-    return 0;
-}
+    hcan1.Init.Prescaler = out_timings.prescaler;
+    hcan1.Init.SyncJumpWidth = (uint32_t)out_timings.sjw << CAN_BTR_SJW_Pos;
+    hcan1.Init.TimeSeg1     = (uint32_t)out_timings.bs1 << CAN_BTR_TS1_Pos;
+    hcan1.Init.TimeSeg2     = (uint32_t)out_timings.bs2 << CAN_BTR_TS2_Pos;
+    LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
 
-static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
-    uint8_t next;
-    RxFrame_t *pCurrentRxMsg;
-
-    if(rxBuf->writeIndex == rxBuf->readIndex){
-        return -1;  // Nothing to read
+    canardSTM32GPIO_Init();
+    if (HAL_CAN_Init(&hcan1) != HAL_OK)
+    {
+        LOG_ERROR(CAN, "Failed CAN Init");
+        return -CANARD_ERROR_INTERNAL;
     }
 
-    next = rxBuf->readIndex + 1;
-    if (next >= RX_BUFFER_SIZE){
-        next = 0;
+    if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
+        LOG_ERROR(CAN, "Failed Config Filter");
+        return -CANARD_ERROR_INTERNAL;
     }
-    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->readIndex];
-    memcpy(rxMsg, pCurrentRxMsg, sizeof(RxFrame_t));
-    rxBuf->readIndex = next;
-    return 0;
-}
 
-uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
-    if(rxBuf->writeIndex < rxBuf->readIndex)
-        return((rxBuf->writeIndex + RX_BUFFER_SIZE) - rxBuf->readIndex);
-    
-    return (rxBuf->writeIndex - rxBuf->readIndex);
+    if (HAL_CAN_Start(&hcan1) != HAL_OK) {
+        LOG_ERROR(CAN, "Failed to Start");
+        return -CANARD_ERROR_INTERNAL;
+    }
+
+    if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {  // persistent Rx notification
+        LOG_ERROR(CAN, "Failed to activate interrupt");
+        return -CANARD_ERROR_INTERNAL;
+    }
+
+    // Enable interrupt only after all initialization succeeds
+    // (if any previous step failed, we return early without enabling IRQ)
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, NVIC_PRIO_CAN, 0);
+    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
+    if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
+        LOG_ERROR(CAN, "Failed to activate TX interrupt");
+        return -CANARD_ERROR_INTERNAL;
+    }
+    HAL_NVIC_SetPriority(CAN1_TX_IRQn, NVIC_PRIO_CAN, 0);
+    HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);
+
+    return CANARD_OK;
 }
 
 /**
@@ -171,86 +214,63 @@ int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
 	return 0;
 }
 
-/**
-  * @brief FDCAN1 Initialization Function
-  * @param  hfdcan pointer to an FDCAN_HandleTypeDef structure that contains
-  *         the configuration information for the specified FDCAN.
-  * @param  bitrate desired bitrate to run the CAN network at.
-  * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
-  */
-int16_t canardSTM32CAN1_Init(uint32_t bitrate)
-{
-    struct Timings out_timings;
-
-    __HAL_RCC_CAN1_CLK_ENABLE();
-
-    CAN_FilterTypeDef sFilterConfig;
-    sFilterConfig.FilterIdHigh = 0;
-    sFilterConfig.FilterIdLow  = 0;
-    sFilterConfig.FilterMaskIdHigh = 0;
-    sFilterConfig.FilterMaskIdLow = 0;
-    sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-    sFilterConfig.FilterBank = 0;
-    sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-    sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-    sFilterConfig.FilterActivation = ENABLE;
-  
-    hcan1.Instance = CAN1;
-    hcan1.Init.Mode = CAN_MODE_NORMAL;
-    hcan1.Init.TimeTriggeredMode = DISABLE;
-    hcan1.Init.AutoBusOff = ENABLE;
-    hcan1.Init.AutoWakeUp = DISABLE;
-    hcan1.Init.AutoRetransmission = DISABLE;  // ENABLE fills the TX FIFO on a degraded bus; DroneCAN reliability is handled at the application layer
-    hcan1.Init.ReceiveFifoLocked = DISABLE;
-    hcan1.Init.TransmitFifoPriority = DISABLE;
-  
-    if (!canardSTM32ComputeTimings(bitrate, &out_timings))
-    {
-        LOG_ERROR(CAN, "Failed to compute CAN timings for bitrate %lu", (unsigned long)bitrate);
-        return -CANARD_ERROR_INTERNAL;
-    }
-
-    hcan1.Init.Prescaler = out_timings.prescaler;
-    hcan1.Init.SyncJumpWidth = (uint32_t)out_timings.sjw << CAN_BTR_SJW_Pos;
-    hcan1.Init.TimeSeg1     = (uint32_t)out_timings.bs1 << CAN_BTR_TS1_Pos;
-    hcan1.Init.TimeSeg2     = (uint32_t)out_timings.bs2 << CAN_BTR_TS2_Pos;
-    LOG_DEBUG(CAN, "Prescaler: %d, SJW: %d, BS1: %d, BS2: %d", out_timings.prescaler, out_timings.sjw, out_timings.bs1, out_timings.bs2);
-
-    canardSTM32GPIO_Init();
-    if (HAL_CAN_Init(&hcan1) != HAL_OK)
-    {
-        LOG_ERROR(CAN, "Failed CAN Init");
-        return -CANARD_ERROR_INTERNAL;
-    }
-    
-    if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
-        LOG_ERROR(CAN, "Failed Config Filter");
-        return -CANARD_ERROR_INTERNAL;
-    }
-    
-    if (HAL_CAN_Start(&hcan1) != HAL_OK) {
-        LOG_ERROR(CAN, "Failed to Start");
-        return -CANARD_ERROR_INTERNAL;
-    }
-
-    if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {  // persistent Rx notification
-        LOG_ERROR(CAN, "Failed to activate interrupt");
-        return -CANARD_ERROR_INTERNAL;
-    }
-    
-    // Enable interrupt only after all initialization succeeds
-    // (if any previous step failed, we return early without enabling IRQ)
-    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, NVIC_PRIO_CAN, 0);
-    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
-    if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
-        LOG_ERROR(CAN, "Failed to activate TX interrupt");
-        return -CANARD_ERROR_INTERNAL;
-    }   
-    HAL_NVIC_SetPriority(CAN1_TX_IRQn, NVIC_PRIO_CAN, 0);
-    HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);
-
-    return CANARD_OK;
+void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
+    uint32_t esr = hcan1.Instance->ESR;
+    pProtocolStat->BusOff       = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
+    pProtocolStat->ErrorPassive = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_EPV);
+    pProtocolStat->tec          = (uint8_t)((esr >> 16) & 0xFF);
+    pProtocolStat->rec          = (uint8_t)((esr >> 24) & 0xFF);
+    pProtocolStat->lec          = (uint8_t)((esr >> 4) & 0x07);
 }
+
+int32_t canardSTM32GetTxQueueFillLevel(void){
+    return 0;
+}
+
+int32_t canardSTM32GetRxFifoFillLevel(void){
+    return rxBufferNumMessages(&RxBuffer);
+}
+
+void canardSTM32RecoverFromBusOff(void){
+    // No-op: ABOM (CAN_MCR bit 6) is set in canardSTM32CAN1_Init, so hardware
+    // manages the full bus-off recovery sequence automatically. After 128x11
+    // recessive bits, hardware cycles INRQ and clears ESR.BOFF without software
+    // intervention. See RM0410 ss40.7.6 and CAN_MCR.ABOM, CAN_ESR.BOFF.
+}
+
+/*
+  get a 16 byte unique ID for this node, this should be based on the CPU unique ID or other unique ID
+ */
+void canardSTM32GetUniqueID(uint8_t id[16]) {
+    uint32_t HALUniqueIDs[3];
+    // Make Unique ID out of the 96-bit STM32 UID and fill the rest with 0s
+    memset(id, 0, 16);
+    HALUniqueIDs[0] = *(uint32_t *)UID_BASE;
+    HALUniqueIDs[1] = *(uint32_t *)(UID_BASE + 4);
+    HALUniqueIDs[2] = *(uint32_t *)(UID_BASE + 8);
+    memcpy(id, HALUniqueIDs, 12);
+}
+
+// ---- ISR / HAL callbacks ----------------------------------------------------
+
+void CAN1_RX0_IRQHandler(void) {
+      HAL_CAN_IRQHandler(&hcan1);
+}
+
+void CAN1_TX_IRQHandler(void) {
+    HAL_CAN_IRQHandler(&hcan1);
+}
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+    RxFrame_t frame;
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &frame.header, frame.data) == HAL_OK) {
+        if (rxBufferPushFrame(&RxBuffer, &frame) != 0) {
+            LOG_WARNING(CAN, "RX buffer full, frame dropped");
+        }
+    }
+}
+
+// ---- Private helpers --------------------------------------------------------
 
 /**
   * @brief GPIO Initialization Function
@@ -278,9 +298,10 @@ static void canardSTM32GPIO_Init(void)
     IOLo(IOGetByTag(IO_TAG(CAN1_STANDBY)));
 #endif
 }
+
 static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timings *out_timings)
 {
-    
+
     if (target_bitrate < 1) {
         return false;
     }
@@ -392,56 +413,45 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
     return true;
 }
 
-void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
-    uint32_t esr = hcan1.Instance->ESR;
-    pProtocolStat->BusOff       = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
-    pProtocolStat->ErrorPassive = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_EPV);
-    pProtocolStat->tec          = (uint8_t)((esr >> 16) & 0xFF);
-    pProtocolStat->rec          = (uint8_t)((esr >> 24) & 0xFF);
-    pProtocolStat->lec          = (uint8_t)((esr >> 4) & 0x07);
-}
+static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+    uint8_t next;
+    RxFrame_t *pCurrentRxMsg;
 
-int32_t canardSTM32GetTxQueueFillLevel(void){
+    next = rxBuf->writeIndex + 1;
+    if(next >= RX_BUFFER_SIZE){
+        next = 0;
+    }
+
+    if(next == rxBuf->readIndex) {
+        return -1;  // rxBuf is full
+    }
+    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->writeIndex];
+    memcpy(pCurrentRxMsg, rxMsg, sizeof(RxFrame_t));
+    rxBuf->writeIndex = next;
     return 0;
 }
 
-int32_t canardSTM32GetRxFifoFillLevel(void){
-    return rxBufferNumMessages(&RxBuffer);
-}
+static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
+    uint8_t next;
+    RxFrame_t *pCurrentRxMsg;
 
-void canardSTM32RecoverFromBusOff(void){
-    // No-op: ABOM (CAN_MCR bit 6) is set in canardSTM32CAN1_Init, so hardware
-    // manages the full bus-off recovery sequence automatically. After 128x11
-    // recessive bits, hardware cycles INRQ and clears ESR.BOFF without software
-    // intervention. See RM0410 ss40.7.6 and CAN_MCR.ABOM, CAN_ESR.BOFF.
-}
-
-/*
-  get a 16 byte unique ID for this node, this should be based on the CPU unique ID or other unique ID
- */
-void canardSTM32GetUniqueID(uint8_t id[16]) {
-    uint32_t HALUniqueIDs[3];
-    // Make Unique ID out of the 96-bit STM32 UID and fill the rest with 0s
-    memset(id, 0, 16);
-    HALUniqueIDs[0] = *(uint32_t *)UID_BASE;
-    HALUniqueIDs[1] = *(uint32_t *)(UID_BASE + 4);
-    HALUniqueIDs[2] = *(uint32_t *)(UID_BASE + 8);
-    memcpy(id, HALUniqueIDs, 12);
-}
-
-void CAN1_RX0_IRQHandler(void) {
-      HAL_CAN_IRQHandler(&hcan1);
-}
-
-void CAN1_TX_IRQHandler(void) {
-    HAL_CAN_IRQHandler(&hcan1);
-}
-
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-    RxFrame_t frame;
-    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &frame.header, frame.data) == HAL_OK) {
-        if (rxBufferPushFrame(&RxBuffer, &frame) != 0) {
-            LOG_WARNING(CAN, "RX buffer full, frame dropped");
-        }
+    if(rxBuf->writeIndex == rxBuf->readIndex){
+        return -1;  // Nothing to read
     }
+
+    next = rxBuf->readIndex + 1;
+    if (next >= RX_BUFFER_SIZE){
+        next = 0;
+    }
+    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->readIndex];
+    memcpy(rxMsg, pCurrentRxMsg, sizeof(RxFrame_t));
+    rxBuf->readIndex = next;
+    return 0;
+}
+
+static uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
+    if(rxBuf->writeIndex < rxBuf->readIndex)
+        return((rxBuf->writeIndex + RX_BUFFER_SIZE) - rxBuf->readIndex);
+
+    return (rxBuf->writeIndex - rxBuf->readIndex);
 }
