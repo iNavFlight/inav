@@ -269,8 +269,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 }
 
 uint32_t canardSTM32GetAndClearRxDropCount(void) {
+    HAL_NVIC_DisableIRQ(CAN1_RX0_IRQn);
     uint32_t count = rxDropCount;
     rxDropCount = 0;
+    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
     return count;
 }
 
@@ -418,39 +420,34 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
 }
 
 static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
-    uint8_t next;
-    RxFrame_t *pCurrentRxMsg;
-
-    next = rxBuf->writeIndex + 1;
-    if(next >= RX_BUFFER_SIZE){
+    uint8_t wi = rxBuf->writeIndex;  // snapshot: only this ISR writes writeIndex
+    uint8_t next = wi + 1;
+    if (next >= RX_BUFFER_SIZE) {
         next = 0;
     }
 
-    if(next == rxBuf->readIndex) {
+    if (next == rxBuf->readIndex) {
         return -1;  // rxBuf is full
     }
-    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->writeIndex];
-    memcpy(pCurrentRxMsg, rxMsg, sizeof(RxFrame_t));
+    memcpy(&rxBuf->rxMsg[wi], rxMsg, sizeof(RxFrame_t));
     __DMB();  // ensure frame data is visible to main loop before writeIndex advance
     rxBuf->writeIndex = next;
     return 0;
 }
 
 static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
-    uint8_t next;
-    RxFrame_t *pCurrentRxMsg;
+    uint8_t ri = rxBuf->readIndex;  // snapshot: only main loop writes readIndex
 
-    if(rxBuf->writeIndex == rxBuf->readIndex){
+    if (rxBuf->writeIndex == ri) {
         return -1;  // Nothing to read
     }
 
-    next = rxBuf->readIndex + 1;
-    if (next >= RX_BUFFER_SIZE){
+    uint8_t next = ri + 1;
+    if (next >= RX_BUFFER_SIZE) {
         next = 0;
     }
     __DMB();  // ensure writeIndex read is complete before reading frame data written by ISR
-    pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->readIndex];
-    memcpy(rxMsg, pCurrentRxMsg, sizeof(RxFrame_t));
+    memcpy(rxMsg, &rxBuf->rxMsg[ri], sizeof(RxFrame_t));
     rxBuf->readIndex = next;
     return 0;
 }

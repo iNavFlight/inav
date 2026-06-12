@@ -93,7 +93,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
         LOG_ERROR(CAN, "Failed Config Filter");
         return -CANARD_ERROR_INTERNAL;
     }
-    if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
+    if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE) != HAL_OK) {
         LOG_ERROR(CAN, "Failed to config FDCAN filter");
         return -CANARD_ERROR_INTERNAL;
     }
@@ -147,6 +147,7 @@ int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
 			rx_frame->id |= CANARD_CAN_FRAME_RTR;
 		}
 
+		/* FDCAN_DLC_BYTES_0..8 equal 0..8, so DataLength is the byte count in FDCAN_FRAME_CLASSIC mode. */
 		rx_frame->data_len = RxHeader.DataLength;
 		memcpy(rx_frame->data, RxData, RxHeader.DataLength);
 
