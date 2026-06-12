@@ -42,6 +42,14 @@ static dronecanState_e dronecanState = STATE_DRONECAN_INIT;
 static uint8_t activeNodeCount = 0;
 static dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
 
+#if defined(STM32H7)
+static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(FDCAN1_IT1_IRQn); }
+static inline void dronecanUnmaskTxISR(void) { NVIC_EnableIRQ(FDCAN1_IT1_IRQn); }
+#else
+static inline void dronecanMaskTxISR(void)   {}
+static inline void dronecanUnmaskTxISR(void) {}
+#endif
+
 // NOTE: All canard handlers and senders are based on this reference: https://dronecan.github.io/Specification/7._List_of_standard_data_types/
 // Alternatively, you can look at the corresponding generated header file in the dsdlc_generated folder
 
@@ -173,6 +181,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 	uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
 
+    dronecanMaskTxISR();
 	canardRequestOrRespond(ins,
 						   transfer->source_node_id,
 						   UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE,
@@ -182,6 +191,7 @@ void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
 						   CanardResponse,
 						   &buffer[0],
 						   total_size);
+    dronecanUnmaskTxISR();
 }
 
 // Canard Senders
@@ -214,6 +224,7 @@ void send_NodeStatus(void) {
     // loss
     static uint8_t transfer_id;
 
+    dronecanMaskTxISR();
     canardBroadcast(&canard,
                     UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
                     UAVCAN_PROTOCOL_NODESTATUS_ID,
@@ -221,7 +232,8 @@ void send_NodeStatus(void) {
                     CANARD_TRANSFER_PRIORITY_LOW,
                     buffer,
                     len);
-    // PrintCanStatus();
+    dronecanUnmaskTxISR();
+
 }
 
 // Canard Util
@@ -341,7 +353,6 @@ void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
 	}
 }
 
-
 void processCanardTxQueue(void) {
 	// Transmitting
 	for (const CanardCANFrame *tx_frame ; (tx_frame = canardPeekTxQueue(&canard)) != NULL;)
@@ -358,8 +369,23 @@ void processCanardTxQueue(void) {
 			break;
 		}
 	}
-
 }
+
+static void processCanardTxQueueSafe(void) {
+    dronecanMaskTxISR();
+    processCanardTxQueue();
+    dronecanUnmaskTxISR();
+}  
+
+#if defined(STM32H7)
+void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes)
+{
+    UNUSED(hfdcan);
+    UNUSED(BufferIndexes);
+    processCanardTxQueue();
+}   
+#endif
+
 
 /*
   This function is called at 1 Hz rate from the main loop.
@@ -369,7 +395,9 @@ void process1HzTasks(timeUs_t timestamp_usec)
    /*
       Purge transfers that are no longer transmitted. This can free up some memory
     */
+    dronecanMaskTxISR();
     canardCleanupStaleTransfers(&canard, timestamp_usec);
+    dronecanUnmaskTxISR();
 
     /*
       Transmit the node status message
@@ -445,7 +473,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
             break;
 
         case STATE_DRONECAN_NORMAL:
-            processCanardTxQueue();
+            processCanardTxQueueSafe();
 
              for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
              {
@@ -462,13 +490,13 @@ void dronecanUpdate(timeUs_t currentTimeUs)
              }
             // Drain any TX frames queued by RX handlers (e.g. GetNodeInfo responses)
             // in the same task cycle so multi-frame transfers complete before timeout.
-            processCanardTxQueue();
+            processCanardTxQueueSafe();
 
             if (currentTimeUs >= next_1hz_service_at)
             {
 		        next_1hz_service_at += 1000000ULL;
 		        process1HzTasks(currentTimeUs);
-                processCanardTxQueue();
+                processCanardTxQueueSafe();
 
                 canardSTM32GetProtocolStatus(&protocolStatus);
                 if (protocolStatus.BusOff != 0 || protocolStatus.ErrorPassive != 0) {
