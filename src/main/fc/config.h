@@ -78,6 +78,14 @@ typedef struct systemConfig_s {
     uint8_t i2c_speed;
 #endif
     uint8_t throttle_tilt_compensation_strength;    // the correction that will be applied at throttle_correction_angle.
+#ifdef USE_AUTO_TRANSITION
+    uint16_t vtolTransitionToFwMinAirspeed;
+    uint16_t vtolTransitionToMcMaxAirspeed;
+    uint16_t vtolFwToMcAutoSwitchAirspeed;
+    uint8_t vtolTransitionLiftMinPercent;
+    uint8_t vtolTransitionMcAuthorityMinPercent;
+    uint8_t vtolTransitionFwAuthorityMinPercent;
+#endif
     char craftName[MAX_NAME_LENGTH + 1];
     char pilotName[MAX_NAME_LENGTH + 1];
 } systemConfig_t;

@@ -682,6 +682,13 @@ static int logicConditionGetWaypointOperandValue(int operand) {
     }
 }
 
+#ifdef USE_AUTO_TRANSITION
+static int logicConditionGetAutoTransitionTargetStabilizedOperandValue(flight_dynamics_index_t axis)
+{
+    return getAutoTransitionTargetStabilizedInput(axis);
+}
+#endif
+
 static int logicConditionGetFlightOperandValue(int operand) {
 
     switch (operand) {
@@ -889,6 +896,20 @@ static int logicConditionGetFlightOperandValue(int operand) {
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH: //
             return axisPID[PITCH];
             break;
+
+#ifdef USE_AUTO_TRANSITION
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_ROLL:
+            return logicConditionGetAutoTransitionTargetStabilizedOperandValue(FD_ROLL);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_PITCH:
+            return logicConditionGetAutoTransitionTargetStabilizedOperandValue(FD_PITCH);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_YAW:
+            return logicConditionGetAutoTransitionTargetStabilizedOperandValue(FD_YAW);
+            break;
+#endif
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
             return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT32_MAX);

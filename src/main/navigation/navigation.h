@@ -328,6 +328,31 @@ typedef enum {
     WP_MISSION_SWITCH,
 } navMissionRestart_e;
 
+#ifdef USE_AUTO_TRANSITION
+typedef enum {
+    NAV_MISSION_USER_ACTION_OFF = 0,
+    NAV_MISSION_USER_ACTION_1,
+    NAV_MISSION_USER_ACTION_2,
+    NAV_MISSION_USER_ACTION_3,
+    NAV_MISSION_USER_ACTION_4,
+} navMissionUserAction_e;
+
+typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_POSH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_EMERGENCY_LANDING,
+} navVtolTransitionFailActionMcToFw_e;
+
+typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_LOITER,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_EMERGENCY_LANDING,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH,
+} navVtolTransitionFailActionFwToMc_e;
+#endif
+
 typedef enum {
     RTH_TRACKBACK_OFF,
     RTH_TRACKBACK_ON,
@@ -413,6 +438,13 @@ typedef struct navConfig_s {
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;                   // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;            // Waypoint mission sanity check distance
+#ifdef USE_AUTO_TRANSITION
+        uint8_t  vtol_mission_transition_user_action; // User action slot that requests mission VTOL transition
+        uint16_t vtol_mission_transition_min_altitude; // Minimum altitude [cm] to start mission VTOL transition (0 = disabled)
+        bool     vtol_transition_retry_on_airspeed_timeout; // Enables one-shot yaw-scan retry for failed airspeed-gated MC->FW auto-transition
+        uint8_t  vtol_transition_fail_action_mc_to_fw; // Action after final MC->FW transition failure
+        uint8_t  vtol_transition_fail_action_fw_to_mc; // Action after final FW->MC transition failure
+#endif
 #ifdef USE_MULTI_MISSION
         uint8_t  waypoint_multi_mission_index;      // Index of mission to be loaded in multi mission entry
 #endif

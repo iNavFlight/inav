@@ -794,6 +794,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | LULU |  |
 | SBUS2 |  |
 | OSD_REFRESH |  |
+| VTOL_TRANSITION |  |
 
 ---
 
@@ -3211,11 +3212,51 @@ If enabled, control_profile_index will follow mixer_profile index. Set to OFF(de
 
 ### mixer_switch_trans_timer
 
-If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch.
+Original VTOL transition timer, still used as the backup completion time. If trusted pitot airspeed is not being used, iNAV completes the transition from this timer instead. With smooth VTOL transition power changes ON, the control-handoff side of the transition also falls back to this timing whenever trusted pitot is not usable.
 
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 200 |
+
+---
+
+### mixer_vtol_manualswitch_autotransition_controller
+
+Makes `MIXER TRANSITION` start one automatic VTOL transition each time the switch moves from OFF to ON, when not in waypoint mission. Turn this ON in both mixer profiles if you want the same behavior in both directions. OFF keeps the older manual switch behavior. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_vtol_transition_airspeed_timeout_ms
+
+Maximum wait time [ms] for the required pitot airspeed during an airspeed-controlled transition. This timer does not complete the transition; it only aborts it if the target airspeed is still not reached in time. If pitot becomes unavailable, iNAV falls back to `mixer_switch_trans_timer` instead. Set to 0 to disable. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 60000 |
+
+---
+
+### mixer_vtol_transition_dynamic_mixer
+
+Turns on smooth VTOL transition handoff scaling. In MC->FW it ramps the forward motor up while lift power and multicopter stabilisation fade down and fixed-wing control fades in. In FW->MC it ramps the forward motor down while target MC lift power and target MC motor stabilisation ramp back in, and fixed-wing control fades down. Used by both manual `MIXER TRANSITION` and mission-requested VTOL transitions. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_vtol_transition_scale_ramp_time_ms
+
+When smooth VTOL transition power changes are ON, this controls the time-based motor/power handover only. In MC->FW it ramps the forward motor from idle to full target power. After the switch to FW, any old lift motors that are no longer used by the FW profile fade to idle over the same time. In FW->MC it ramps the forward motor down to idle and ramps target MC lift power plus target MC motor stabilisation back in. After the switch to MC, any old forward motor that is no longer used by the MC profile is kept fading to idle. `0` applies those time-based power changes immediately. This timer does not decide when the transition completes and it does not control fixed-wing control-surface handoff. Fixed-wing handoff still follows trusted pitot airspeed when pitot is usable, otherwise `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 60000 |
 
 ---
 
@@ -4633,6 +4674,67 @@ Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: AT
 | --- | --- |
 | ATTI | Default |
 | CRUISE |  |
+
+---
+
+### nav_vtol_mission_transition_min_altitude_cm
+
+Do not start a mission-requested VTOL transition below this altitude [cm]. Set to 0 to disable the altitude check. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 50000 |
+
+---
+
+### nav_vtol_mission_transition_user_action
+
+Chooses which waypoint USER flag (`USER1`..`USER4`) tells iNAV which flight mode to use at each navigable waypoint. Selected USER flag ON means fixed-wing. Selected USER flag OFF means multicopter. OFF disables this feature. Requires two mixer profiles, a working `MIXER PROFILE 2` mode setup, and a target with more than 512 KB flash.
+
+| Allowed Values |  |
+| --- | --- |
+| OFF | Default |
+| USER1 |  |
+| USER2 |  |
+| USER3 |  |
+| USER4 |  |
+
+---
+
+### nav_vtol_transition_fail_action_fw_to_mc
+
+What iNAV should do if FW->MC transition fails. `LOITER` keeps the aircraft near its current position. `FORCE_SWITCH` changes to the other mixer profile immediately even though the normal switch conditions were not met. Available only on targets with more than 512 KB flash.
+
+| Allowed Values |  |
+| --- | --- |
+| IDLE |  |
+| LOITER | Default |
+| RTH |  |
+| EMERGENCY_LANDING |  |
+| FORCE_SWITCH |  |
+
+---
+
+### nav_vtol_transition_fail_action_mc_to_fw
+
+What iNAV should do if MC->FW transition still fails after the final attempt. Available only on targets with more than 512 KB flash.
+
+| Allowed Values |  |
+| --- | --- |
+| IDLE | Default |
+| POSH |  |
+| RTH |  |
+| EMERGENCY_LANDING |  |
+
+---
+
+### nav_vtol_transition_retry_on_airspeed_timeout
+
+If ON, iNAV gets one extra MC->FW attempt after an airspeed timeout during mission or RTH. It pauses, yaws around to find the best airspeed direction, then tries once more. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
@@ -6996,6 +7098,66 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 
 ---
 
+### vtol_fw_to_mc_auto_switch_airspeed_cm_s
+
+Extra low-speed protection for fixed-wing flight [cm/s]. If airspeed falls to this value or lower while in FW, iNAV automatically starts FW->MC. After the switch to MC, iNAV keeps the MC profile until you deliberately command another manual profile change. Used only when `mixer_vtol_manualswitch_autotransition_controller` is ON. Set to 0 to disable. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 20000 |
+
+---
+
+### vtol_transition_fw_authority_min_percent
+
+Lowest fixed-wing stabilisation used during transition, in percent. In MC->FW, fixed-wing stabilisation starts from this value and rises to full strength as the handoff progresses. In FW->MC, it fades down from full strength to this value as the handoff progresses. With `INPUT_AUTOTRANSITION_TARGET_STABILIZED_*` rules configured in the MC mixer profile, this same setting scales their servo authority during MC->FW and scales down the matching FW servo stabilisation during FW->MC. `100` keeps full fixed-wing stabilisation through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 100 |
+
+---
+
+### vtol_transition_lift_min_percent
+
+Lowest lift motor power used during transition, in percent. In MC->FW, lift power fades down to this value as the handoff progresses. In FW->MC, lift power starts from this value and rises back to full power by the motor ramp timer. `100` keeps full lift power through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 100 |
+
+---
+
+### vtol_transition_mc_authority_min_percent
+
+Lowest multicopter stabilisation used during transition, in percent. In MC->FW, active MC motor stabilisation fades down to this value as the handoff progresses. In FW->MC, target MC motor stabilisation starts from this value and rises back to full strength by the motor ramp timer. `100` keeps full multicopter stabilisation through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 100 |
+
+---
+
+### vtol_transition_to_fw_min_airspeed_cm_s
+
+Minimum pitot airspeed [cm/s] needed before MC->FW transition is considered complete while pitot remains usable. If pitot becomes unavailable, or if this is set to 0, iNAV uses `mixer_switch_trans_timer` instead. If pitot remains usable but this target is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 20000 |
+
+---
+
+### vtol_transition_to_mc_max_airspeed_cm_s
+
+When slowing down from FW to MC, the transition is considered complete once pitot airspeed falls to this value [cm/s] or lower while pitot remains usable. If pitot becomes unavailable, or if this is set to 0, iNAV uses `mixer_switch_trans_timer` instead. If pitot remains usable but this condition is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 20000 |
+
+---
+
 ### vtx_band
 
 Configure the VTX band. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race.
@@ -7149,4 +7311,3 @@ Defines rotation rate on YAW axis that UAV will try to archive on max. stick def
 | 20 | 1 | 180 |
 
 ---
-

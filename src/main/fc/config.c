@@ -103,7 +103,12 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
+// Keep PG version split because USE_AUTO_TRANSITION changes the stored layout only on >512 KB targets.
+#ifdef USE_AUTO_TRANSITION
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 9);
+#else
 PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
+#endif
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -117,6 +122,14 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
+#ifdef USE_AUTO_TRANSITION
+    .vtolTransitionToFwMinAirspeed = SETTING_VTOL_TRANSITION_TO_FW_MIN_AIRSPEED_CM_S_DEFAULT,
+    .vtolTransitionToMcMaxAirspeed = SETTING_VTOL_TRANSITION_TO_MC_MAX_AIRSPEED_CM_S_DEFAULT,
+    .vtolFwToMcAutoSwitchAirspeed = SETTING_VTOL_FW_TO_MC_AUTO_SWITCH_AIRSPEED_CM_S_DEFAULT,
+    .vtolTransitionLiftMinPercent = SETTING_VTOL_TRANSITION_LIFT_MIN_PERCENT_DEFAULT,
+    .vtolTransitionMcAuthorityMinPercent = SETTING_VTOL_TRANSITION_MC_AUTHORITY_MIN_PERCENT_DEFAULT,
+    .vtolTransitionFwAuthorityMinPercent = SETTING_VTOL_TRANSITION_FW_AUTHORITY_MIN_PERCENT_DEFAULT,
+#endif
     .craftName = SETTING_NAME_DEFAULT,
     .pilotName = SETTING_NAME_DEFAULT
 );

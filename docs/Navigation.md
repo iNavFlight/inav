@@ -102,6 +102,46 @@ Parameters:
 
   * `<flag>` - Last waypoint must have `flag` set to 165 (0xA5).
 
+### Mission VTOL transition using existing User Actions
+
+Mission VTOL transition can be requested.
+This is available only on targets with more than 512 KB flash, compiled with `USE_AUTO_TRANSITION`.
+Targets with 512 KB flash do not include these mission VTOL transition settings.
+
+Configuration:
+
+- `nav_vtol_mission_transition_user_action` selects which waypoint User Action (`USER1..USER4`) is used as the mission VTOL target selector.
+- `nav_vtol_mission_transition_min_altitude_cm` optionally enforces a minimum altitude before transition start (`0` disables check).
+- During MC->FW mission transition, iNAV uses a built-in straight run-up target to help the model build speed before switching to fixed-wing.
+- VTOL transition completion logic is shared with manual MIXER TRANSITION and uses mixer transition settings:
+  - preferred MC->FW threshold: `vtol_transition_to_fw_min_airspeed_cm_s`
+  - FW->MC threshold: `vtol_transition_to_mc_max_airspeed_cm_s`
+
+Behavior on each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`):
+
+- The configured USER bit is an **absolute target selector**:
+  - `0`: transition to MC / MULTIROTOR profile
+  - `1`: transition to FW / AIRPLANE profile
+- When `nav_vtol_mission_transition_user_action != OFF`, each navigable waypoint always encodes target state via that selected USER bit.
+- This means every navigable waypoint implicitly declares desired VTOL platform state when this feature is enabled; users must intentionally set/clear that bit on each waypoint.
+- This command is **not** a toggle.
+- The command is idempotent: if already in the requested target profile type, the mission continues immediately.
+- If a transition is needed, mission progression pauses while automated transition runs, then resumes only after completion.
+
+Transition behavior in this MVP:
+
+- MC -> FW: straight-line acceleration segment (no loiter), heading from the next waypoint bearing when available, otherwise current heading.
+- MC -> FW and FW -> MC completion uses pitot airspeed thresholds when healthy/available (`vtol_transition_to_fw_min_airspeed_cm_s`, `vtol_transition_to_mc_max_airspeed_cm_s`).
+- If pitot is unavailable/unhealthy (or threshold is `0`), timer fallback (`mixer_switch_trans_timer`) is used.
+- Ground speed is not used for transition progress/completion.
+- FW -> MC: mission pauses during automated transition, then resumes after switching back to MC profile.
+- Strict altitude hold is not enforced during MC -> FW transition; natural climb is allowed.
+
+Safety and scope:
+
+- This path uses authorized automated transition state handling; it does not permit manual mixer profile switching during normal waypoint navigation.
+- It still depends on valid mixer profile switching infrastructure (two configured mixer profiles and a valid `MIXER PROFILE 2` mode activation condition).
+
 `wp save` - Checks list of waypoints and save from FC to EEPROM (warning: it also saves all unsaved CLI settings like normal `save`).
 
 `wp reset` - Resets the list, sets the number of waypoints to 0 and marks the list as invalid (but doesn't delete the waypoint definitions).

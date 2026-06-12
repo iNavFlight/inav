@@ -51,6 +51,7 @@
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -280,6 +281,79 @@ static void filterServos(void)
     }
 }
 
+#ifdef USE_AUTO_TRANSITION
+static bool isAutoTransitionTargetInputSource(const uint8_t inputSource)
+{
+    return inputSource >= INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL &&
+           inputSource <= INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS;
+}
+
+static bool isStabilizedAxisInputSource(const uint8_t inputSource)
+{
+    switch (inputSource) {
+    case INPUT_STABILIZED_ROLL:
+    case INPUT_STABILIZED_PITCH:
+    case INPUT_STABILIZED_YAW:
+    case INPUT_STABILIZED_ROLL_PLUS:
+    case INPUT_STABILIZED_ROLL_MINUS:
+    case INPUT_STABILIZED_PITCH_PLUS:
+    case INPUT_STABILIZED_PITCH_MINUS:
+    case INPUT_STABILIZED_YAW_PLUS:
+    case INPUT_STABILIZED_YAW_MINUS:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static int getAutoTransitionServoProfileIndex(void)
+{
+    if (isMultirotorTypePlatform(currentMixerConfig.platformType)) {
+        return currentMixerProfileIndex;
+    }
+
+    if (nextMixerProfileIndex >= 0 &&
+        nextMixerProfileIndex < MAX_MIXER_PROFILE_COUNT &&
+        isMultirotorTypePlatform(mixerConfigByIndex(nextMixerProfileIndex)->platformType)) {
+        return nextMixerProfileIndex;
+    }
+
+    return -1;
+}
+
+static void collectAutoTransitionServoTargets(bool targets[MAX_SUPPORTED_SERVOS])
+{
+    memset(targets, 0, MAX_SUPPORTED_SERVOS * sizeof(targets[0]));
+
+    const int profileIndex = getAutoTransitionServoProfileIndex();
+    if (profileIndex < 0) {
+        return;
+    }
+
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        const servoMixer_t *rule = &mixerServoMixersByIndex(profileIndex)[i];
+
+        if (rule->rate == 0) {
+            break;
+        }
+
+        if (!isAutoTransitionTargetInputSource(rule->inputSource)) {
+            continue;
+        }
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        if (!logicConditionGetValue(rule->conditionId)) {
+            continue;
+        }
+#endif
+
+        if (rule->targetChannel < MAX_SUPPORTED_SERVOS) {
+            targets[rule->targetChannel] = true;
+        }
+    }
+}
+#endif
+
 void writeServos(void)
 {
     filterServos();
@@ -308,6 +382,24 @@ void writeServos(void)
 void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
+#ifdef USE_AUTO_TRANSITION
+    const bool autoTransitionInputsActive = isMixerTransitionMixing &&
+                                            mixerATIsActive() &&
+                                            mixerProfileAT.direction != MIXERAT_DIRECTION_NONE;
+    const bool autoTransitionTargetPreviewActive = autoTransitionInputsActive &&
+                                                   mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW;
+    const bool scaleCurrentFwServoRules = autoTransitionInputsActive &&
+                                          mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC &&
+                                          !isMultirotorTypePlatform(currentMixerConfig.platformType);
+    const float currentFwServoScale = currentMixerConfig.vtolTransitionDynamicMixer ? mixerATGetFwAuthorityScale() : 1.0f;
+    bool autoTransitionServoTargets[MAX_SUPPORTED_SERVOS];
+
+    if (scaleCurrentFwServoRules) {
+        collectAutoTransitionServoTargets(autoTransitionServoTargets);
+    } else {
+        memset(autoTransitionServoTargets, 0, sizeof(autoTransitionServoTargets));
+    }
+#endif
 
     if (FLIGHT_MODE(MANUAL_MODE)) {
         input[INPUT_STABILIZED_ROLL] = rcCommand[ROLL];
@@ -326,12 +418,30 @@ void servoMixer(float dT)
         }
     }
 
+#ifdef USE_AUTO_TRANSITION
+    // These preview inputs are only for pre-switch FW servo handoff.
+    // In FW->MC the same marked rules are used only as identifiers so the
+    // currently active FW servo rules can fade out; they do not become MC
+    // lift-motor stabilisation sources.
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL] = autoTransitionTargetPreviewActive ? getAutoTransitionTargetStabilizedInput(FD_ROLL) : 0;
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH] = autoTransitionTargetPreviewActive ? getAutoTransitionTargetStabilizedInput(FD_PITCH) : 0;
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW] = autoTransitionTargetPreviewActive ? getAutoTransitionTargetStabilizedInput(FD_YAW) : 0;
+#endif
+
     input[INPUT_STABILIZED_ROLL_PLUS] = constrain(input[INPUT_STABILIZED_ROLL], 0, 1000);
     input[INPUT_STABILIZED_ROLL_MINUS] = constrain(input[INPUT_STABILIZED_ROLL], -1000, 0);
     input[INPUT_STABILIZED_PITCH_PLUS] = constrain(input[INPUT_STABILIZED_PITCH], 0, 1000);
     input[INPUT_STABILIZED_PITCH_MINUS] = constrain(input[INPUT_STABILIZED_PITCH], -1000, 0);
     input[INPUT_STABILIZED_YAW_PLUS] = constrain(input[INPUT_STABILIZED_YAW], 0, 1000);
     input[INPUT_STABILIZED_YAW_MINUS] = constrain(input[INPUT_STABILIZED_YAW], -1000, 0);
+#ifdef USE_AUTO_TRANSITION
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_PLUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL], 0, 1000);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_MINUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL], -1000, 0);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_PLUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH], 0, 1000);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_MINUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH], -1000, 0);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_PLUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW], 0, 1000);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW], -1000, 0);
+#endif
 
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
 
@@ -357,7 +467,7 @@ void servoMixer(float dT)
 
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
 
-    input[INPUT_MIXER_TRANSITION] = isMixerTransitionMixing * 500; //fixed value
+    input[INPUT_MIXER_TRANSITION] = mixerATGetTransitionServoInput();
     input[INPUT_MIXER_SWITCH_HELPER] = 0; // no input, used to apply speed limit filter from previous servo rules
 
     // center the RC input value around the RC middle value
@@ -458,6 +568,15 @@ void servoMixer(float dT)
             inputRaw = 0;
         }
     #endif
+
+#ifdef USE_AUTO_TRANSITION
+        if (scaleCurrentFwServoRules &&
+            autoTransitionServoTargets[target] &&
+            isStabilizedAxisInputSource(from)) {
+            inputRaw = lrintf(inputRaw * currentFwServoScale);
+        }
+#endif
+
         /*
          * Apply mixer speed limit. 1 [one] speed unit is defined as 10us/s:
          * 0 = no limiting

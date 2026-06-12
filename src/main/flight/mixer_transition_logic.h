@@ -1,0 +1,339 @@
+#pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "flight/mixer_profile.h"
+
+typedef enum {
+    MIXER_TRANSITION_MANUAL_SESSION_NONE = 0,
+    MIXER_TRANSITION_MANUAL_SESSION_LEGACY,
+    MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+} mixerTransitionManualSessionMode_e;
+
+#ifdef USE_AUTO_TRANSITION
+typedef struct {
+    bool readyForHotSwitch;
+    bool usedAirspeed;
+    bool transitionStartAirspeedCaptured;
+    float transitionStartAirspeedCmS;
+    float progress;
+} mixerTransitionHotSwitchProgress_t;
+
+typedef struct {
+    float pusherScale;
+    float liftScale;
+    float mcAuthorityScale;
+    float fwAuthorityScale;
+    float blendToFw;
+} mixerTransitionScaleState_t;
+
+typedef struct {
+    uint16_t motorMask;
+    uint16_t toCurrentMotorMask;
+} mixerTransitionPostSwitchFadeMask_t;
+#endif
+
+static inline mixerTransitionManualSessionMode_e mixerTransitionUpdateManualSessionMode(
+    mixerTransitionManualSessionMode_e currentMode,
+    bool transitionModeRisingEdge,
+    bool transitionModeFallingEdge,
+    bool manualControllerConfigured,
+    bool clearSession)
+{
+    if (clearSession || transitionModeFallingEdge) {
+        return MIXER_TRANSITION_MANUAL_SESSION_NONE;
+    }
+
+    if (transitionModeRisingEdge) {
+        return manualControllerConfigured ?
+            MIXER_TRANSITION_MANUAL_SESSION_AUTO :
+            MIXER_TRANSITION_MANUAL_SESSION_LEGACY;
+    }
+
+    return currentMode;
+}
+
+static inline float mixerTransitionClamp(float value, float low, float high)
+{
+    if (value < low) {
+        return low;
+    }
+
+    if (value > high) {
+        return high;
+    }
+
+    return value;
+}
+
+static inline bool mixerTransitionManualControllerEnabled(
+    bool manualControllerConfigured,
+    mixerTransitionManualSessionMode_e sessionMode)
+{
+    return sessionMode == MIXER_TRANSITION_MANUAL_SESSION_AUTO ||
+           (sessionMode != MIXER_TRANSITION_MANUAL_SESSION_LEGACY && manualControllerConfigured);
+}
+
+static inline bool mixerTransitionIsRequestAllowed(
+    mixerProfileATRequest_e requiredAction,
+    bool stateAirplane,
+    bool stateMultirotor,
+    bool mixerProfileModePresent,
+    bool automatedSwitch,
+    bool targetProfileIsAirplane,
+    bool targetProfileIsMultirotor)
+{
+    if ((!stateAirplane && !stateMultirotor) || !mixerProfileModePresent) {
+        return false;
+    }
+
+    switch (requiredAction) {
+    case MIXERAT_REQUEST_RTH:
+        return automatedSwitch && stateMultirotor && targetProfileIsAirplane;
+
+    case MIXERAT_REQUEST_LAND:
+        return automatedSwitch && stateAirplane && targetProfileIsMultirotor;
+
+#ifdef USE_AUTO_TRANSITION
+    case MIXERAT_REQUEST_MISSION_TO_FW:
+    case MIXERAT_REQUEST_MANUAL_TO_FW:
+        return stateMultirotor && targetProfileIsAirplane;
+
+    case MIXERAT_REQUEST_MISSION_TO_MC:
+    case MIXERAT_REQUEST_MANUAL_TO_MC:
+        return stateAirplane && targetProfileIsMultirotor;
+#endif
+
+    default:
+        return false;
+    }
+}
+
+#ifdef USE_AUTO_TRANSITION
+static inline float mixerTransitionComputeMotorRampProgress(
+    bool dynamicMixerEnabled,
+    uint16_t scaleRampTimeMs,
+    uint32_t elapsedMs)
+{
+    if (!dynamicMixerEnabled || scaleRampTimeMs == 0) {
+        return 1.0f;
+    }
+
+    return mixerTransitionClamp((float)elapsedMs / (float)scaleRampTimeMs, 0.0f, 1.0f);
+}
+
+static inline float mixerTransitionResolveHandoffProgress(
+    bool dynamicMixerEnabled,
+    bool usedAirspeed,
+    float previousHandoffProgress,
+    float rawProgress)
+{
+    const float clampedProgress = mixerTransitionClamp(rawProgress, 0.0f, 1.0f);
+
+    if (!dynamicMixerEnabled) {
+        return 1.0f;
+    }
+
+    if (usedAirspeed) {
+        return clampedProgress;
+    }
+
+    return previousHandoffProgress > clampedProgress ? previousHandoffProgress : clampedProgress;
+}
+
+static inline float mixerTransitionBlendScale(float from, float to, float progress)
+{
+    return from + (to - from) * mixerTransitionClamp(progress, 0.0f, 1.0f);
+}
+
+static inline mixerTransitionScaleState_t mixerTransitionComputeScales(
+    bool dynamicMixerEnabled,
+    mixerProfileATDirection_e direction,
+    float liftFloor,
+    float mcFloor,
+    float fwFloor,
+    float handoffProgress,
+    float motorRampProgress)
+{
+    mixerTransitionScaleState_t scales = {
+        .pusherScale = 1.0f,
+        .liftScale = 1.0f,
+        .mcAuthorityScale = 1.0f,
+        .fwAuthorityScale = 1.0f,
+        .blendToFw = 1.0f,
+    };
+
+    if (!dynamicMixerEnabled) {
+        return scales;
+    }
+
+    liftFloor = mixerTransitionClamp(liftFloor, 0.0f, 1.0f);
+    mcFloor = mixerTransitionClamp(mcFloor, 0.0f, 1.0f);
+    fwFloor = mixerTransitionClamp(fwFloor, 0.0f, 1.0f);
+
+    if (direction == MIXERAT_DIRECTION_TO_FW) {
+        scales.pusherScale = mixerTransitionBlendScale(0.0f, 1.0f, motorRampProgress);
+        scales.liftScale = mixerTransitionBlendScale(1.0f, liftFloor, handoffProgress);
+        scales.mcAuthorityScale = mixerTransitionBlendScale(1.0f, mcFloor, handoffProgress);
+        scales.fwAuthorityScale = mixerTransitionBlendScale(fwFloor, 1.0f, handoffProgress);
+    } else if (direction == MIXERAT_DIRECTION_TO_MC) {
+        scales.pusherScale = mixerTransitionBlendScale(1.0f, 0.0f, motorRampProgress);
+        scales.liftScale = mixerTransitionBlendScale(liftFloor, 1.0f, motorRampProgress);
+        scales.mcAuthorityScale = mixerTransitionBlendScale(mcFloor, 1.0f, motorRampProgress);
+        scales.fwAuthorityScale = mixerTransitionBlendScale(1.0f, fwFloor, handoffProgress);
+    }
+
+    scales.blendToFw = mixerTransitionClamp(scales.fwAuthorityScale, 0.0f, 1.0f);
+    return scales;
+}
+
+static inline mixerTransitionHotSwitchProgress_t mixerTransitionEvaluateHotSwitch(
+    mixerProfileATDirection_e direction,
+    uint16_t airspeedThresholdCmS,
+    bool trustedAirspeedAvailable,
+    float currentAirspeedCmS,
+    bool transitionStartAirspeedCaptured,
+    float transitionStartAirspeedCmS,
+    uint32_t elapsedMs,
+    uint32_t transitionTimerMs)
+{
+    mixerTransitionHotSwitchProgress_t result = {
+        .readyForHotSwitch = false,
+        .usedAirspeed = false,
+        .transitionStartAirspeedCaptured = transitionStartAirspeedCaptured,
+        .transitionStartAirspeedCmS = transitionStartAirspeedCmS,
+        .progress = 0.0f,
+    };
+
+    if (direction == MIXERAT_DIRECTION_NONE) {
+        return result;
+    }
+
+    if (airspeedThresholdCmS > 0 && trustedAirspeedAvailable) {
+        result.usedAirspeed = true;
+
+        if (direction == MIXERAT_DIRECTION_TO_FW) {
+            result.progress = mixerTransitionClamp(currentAirspeedCmS / airspeedThresholdCmS, 0.0f, 1.0f);
+            result.readyForHotSwitch = currentAirspeedCmS >= airspeedThresholdCmS;
+            return result;
+        }
+
+        if (!result.transitionStartAirspeedCaptured) {
+            result.transitionStartAirspeedCmS = currentAirspeedCmS;
+            result.transitionStartAirspeedCaptured = true;
+        }
+
+        if (result.transitionStartAirspeedCmS <= airspeedThresholdCmS) {
+            result.progress = 1.0f;
+        } else {
+            result.progress = mixerTransitionClamp(
+                (result.transitionStartAirspeedCmS - currentAirspeedCmS) /
+                (result.transitionStartAirspeedCmS - airspeedThresholdCmS),
+                0.0f,
+                1.0f);
+        }
+
+        result.readyForHotSwitch = currentAirspeedCmS <= airspeedThresholdCmS;
+        return result;
+    }
+
+    result.progress = transitionTimerMs > 0 ?
+        mixerTransitionClamp((float)elapsedMs / (float)transitionTimerMs, 0.0f, 1.0f) :
+        1.0f;
+    result.readyForHotSwitch = elapsedMs >= transitionTimerMs;
+    return result;
+}
+
+static inline mixerTransitionPostSwitchFadeMask_t mixerTransitionComputePostSwitchFadeMask(
+    bool dynamicMixerEnabled,
+    uint16_t scaleRampTimeMs,
+    mixerProfileATDirection_e direction,
+    bool currentProfileIsMultirotor,
+    uint8_t motorCount,
+    const motorMixer_t *currentMotorMixer,
+    const motorMixer_t *targetMotorMixer)
+{
+    mixerTransitionPostSwitchFadeMask_t mask = { 0, 0 };
+
+    if (!dynamicMixerEnabled ||
+        scaleRampTimeMs == 0 ||
+        direction == MIXERAT_DIRECTION_NONE ||
+        !currentMotorMixer ||
+        !targetMotorMixer) {
+        return mask;
+    }
+
+    for (uint8_t i = 0; i < motorCount && i < MAX_SUPPORTED_MOTORS; i++) {
+        const bool currentMotorActive = currentMotorMixer[i].throttle > 0.0f;
+        const bool targetMotorActive = targetMotorMixer[i].throttle > 0.0f;
+        const bool oldLiftMotor = direction == MIXERAT_DIRECTION_TO_FW &&
+                                  currentProfileIsMultirotor &&
+                                  currentMotorActive &&
+                                  !targetMotorActive;
+        const bool oldPusherMotor = direction == MIXERAT_DIRECTION_TO_MC &&
+                                    !currentProfileIsMultirotor &&
+                                    currentMotorActive &&
+                                    !targetMotorActive;
+        const bool targetFwPusherMotor = direction == MIXERAT_DIRECTION_TO_FW &&
+                                         currentProfileIsMultirotor &&
+                                         !currentMotorActive &&
+                                         targetMotorActive;
+
+        if (oldLiftMotor || oldPusherMotor || targetFwPusherMotor) {
+            mask.motorMask |= (1U << i);
+            if (targetFwPusherMotor) {
+                mask.toCurrentMotorMask |= (1U << i);
+            }
+        }
+    }
+
+    return mask;
+}
+#endif
+
+static inline int16_t mixerTransitionBlendToServoInput(float blendToFw)
+{
+    if (blendToFw <= 0.0f) {
+        return 0;
+    }
+
+    if (blendToFw >= 1.0f) {
+        return 500;
+    }
+
+    return (int16_t)(blendToFw * 500.0f + 0.5f);
+}
+
+static inline int16_t mixerTransitionUpdateServoInput(
+    int16_t previousInput,
+    bool legacyManualTransitionActive,
+    bool transitionMixingActive,
+    bool autoTransitionActive,
+    bool postSwitchFadeToFwActive,
+    bool transitionToFw,
+    float blendToFw)
+{
+    int16_t desiredInput = 0;
+
+    if (legacyManualTransitionActive) {
+        desiredInput = transitionMixingActive ? 500 : 0;
+    } else if (postSwitchFadeToFwActive) {
+        desiredInput = 500;
+    } else if (transitionMixingActive) {
+        desiredInput = autoTransitionActive ? mixerTransitionBlendToServoInput(blendToFw) : 500;
+    } else if (autoTransitionActive && transitionToFw) {
+        desiredInput = mixerTransitionBlendToServoInput(blendToFw);
+    }
+
+    // Only the new auto-transition MC->FW path needs the anti-reverse latch.
+    // Legacy mode must keep its original fixed 0/500 endpoint behaviour.
+    if (transitionToFw &&
+        desiredInput < previousInput &&
+        !legacyManualTransitionActive &&
+        (transitionMixingActive || autoTransitionActive || postSwitchFadeToFwActive)) {
+        return previousInput;
+    }
+
+    return desiredInput;
+}

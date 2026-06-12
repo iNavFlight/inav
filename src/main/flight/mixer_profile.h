@@ -18,6 +18,12 @@ typedef struct mixerConfig_s {
     bool controlProfileLinking;
     bool automated_switch;
     int16_t switchTransitionTimer;
+#ifdef USE_AUTO_TRANSITION
+    bool vtolTransitionDynamicMixer;
+    bool manualVtolTransitionController;
+    uint16_t vtolTransitionAirspeedTimeoutMs;
+    uint16_t vtolTransitionScaleRampTimeMs;
+#endif
     bool tailsitterOrientationOffset;
     int16_t transition_PID_mmix_multiplier_roll;
     int16_t transition_PID_mmix_multiplier_pitch;
@@ -34,27 +40,88 @@ typedef enum {
     MIXERAT_REQUEST_NONE, //no request, stats checking only
     MIXERAT_REQUEST_RTH,
     MIXERAT_REQUEST_LAND,
+#ifdef USE_AUTO_TRANSITION
+    MIXERAT_REQUEST_MISSION_TO_FW,
+    MIXERAT_REQUEST_MISSION_TO_MC,
+    MIXERAT_REQUEST_MANUAL_TO_FW,
+    MIXERAT_REQUEST_MANUAL_TO_MC,
+#endif
     MIXERAT_REQUEST_ABORT,
 } mixerProfileATRequest_e;
+
+#ifdef USE_AUTO_TRANSITION
+typedef enum {
+    MIXERAT_DIRECTION_NONE = 0,
+    MIXERAT_DIRECTION_TO_FW,
+    MIXERAT_DIRECTION_TO_MC,
+} mixerProfileATDirection_e;
+#endif
 
 //mixerProfile Automated Transition PHASE
 typedef enum {
     MIXERAT_PHASE_IDLE,
     MIXERAT_PHASE_TRANSITION_INITIALIZE,
     MIXERAT_PHASE_TRANSITIONING,
+#ifdef USE_AUTO_TRANSITION
+    MIXERAT_PHASE_POST_SWITCH_FADE,
+#endif
+#ifndef USE_AUTO_TRANSITION
     MIXERAT_PHASE_DONE,
+#endif
 } mixerProfileATState_e;
 
 typedef struct mixerProfileAT_s {
     mixerProfileATState_e phase;
+#ifdef USE_AUTO_TRANSITION
+    mixerProfileATDirection_e direction;
+    mixerProfileATRequest_e request;
+    bool aborted;
+    bool abortedByAirspeedTimeout;
+    bool hotSwitchDone;
+    bool usedAirspeed;
+    bool transitionStartAirspeedCaptured;
+    float progress;
+    float handoffScalingProgress;
+    float motorRampProgress;
+    float transitionStartAirspeedCmS;
+    float blendToFw;
+    float pusherScale;
+    float liftScale;
+    float mcAuthorityScale;
+    float fwAuthorityScale;
+    float postSwitchFadeProgress;
+    float postSwitchFadeInitialScale;
+    uint16_t postSwitchFadeMotorMask;
+    uint16_t postSwitchFadeToCurrentMotorMask;
+    uint16_t postSwitchFadeDurationMs;
+    uint16_t postSwitchFadeMotorOutput[MAX_SUPPORTED_MOTORS];
+    timeMs_t postSwitchFadeStartTime;
+    timeMs_t transitionStartTime;
+#else
     bool transitionInputMixing;
     timeMs_t transitionStartTime;
     timeMs_t transitionStabEndTime;
     timeMs_t transitionTransEndTime;
+#endif
 } mixerProfileAT_t;
 extern mixerProfileAT_t mixerProfileAT;
 bool checkMixerATRequired(mixerProfileATRequest_e required_action);
 bool mixerATUpdateState(mixerProfileATRequest_e required_action);
+bool mixerATIsActive(void);
+bool mixerATWasAborted(void);
+bool mixerATWasAbortedByAirspeedTimeout(void);
+float mixerATGetPusherScale(void);
+float mixerATGetLiftScale(void);
+float mixerATGetMcAuthorityScale(void);
+float mixerATGetFwAuthorityScale(void);
+float mixerATGetBlendToFw(void);
+int16_t mixerATGetTransitionServoInput(void);
+#ifdef USE_AUTO_TRANSITION
+bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output);
+float mixerATGetPostSwitchFadeProgress(void);
+#endif
+bool isMixerProfile2ModeReportedActive(void);
+bool isMixerTransitionModeReportedActive(void);
 
 extern mixerConfig_t currentMixerConfig;
 extern int currentMixerProfileIndex;
