@@ -325,7 +325,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   250  kbps      16      17
      *   125  kbps      16      17
      */
-    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 18;
+    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
     static const int MaxSamplePointLocation = 900;
 
     /*
@@ -427,6 +427,7 @@ static int8_t rxBufferPushFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     }
     pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->writeIndex];
     memcpy(pCurrentRxMsg, rxMsg, sizeof(RxFrame_t));
+    __DMB();  // ensure frame data is visible to main loop before writeIndex advance
     rxBuf->writeIndex = next;
     return 0;
 }
@@ -443,6 +444,7 @@ static int8_t rxBufferPopFrame(struct RxBuffer_t *rxBuf, RxFrame_t *rxMsg) {
     if (next >= RX_BUFFER_SIZE){
         next = 0;
     }
+    __DMB();  // ensure writeIndex read is complete before reading frame data written by ISR
     pCurrentRxMsg = &rxBuf->rxMsg[rxBuf->readIndex];
     memcpy(rxMsg, pCurrentRxMsg, sizeof(RxFrame_t));
     rxBuf->readIndex = next;

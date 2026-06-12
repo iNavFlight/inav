@@ -180,7 +180,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
         case STATE_DRONECAN_FAILED:
             break;
 
-        case STATE_DRONECAN_COUNT:
+        default:
             break;
 
     }
@@ -265,31 +265,23 @@ void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan);
 
 static void processCanardTxQueueSafe(void) {
     for (;;) {
-        // Mask only for the linked-list peek — not for the HAL transmit call
         dronecanMaskTxISR();
         const CanardCANFrame *tx_frame = canardPeekTxQueue(&canard);
         if (tx_frame == NULL) {
             dronecanUnmaskTxISR();
             break;
         }
-        const CanardCANFrame frame_copy = *tx_frame;
-        dronecanUnmaskTxISR();
-
-        const int16_t tx_res = canardSTM32Transmit(&frame_copy);
-        if (tx_res == 0) {
-            break;  // HW TX full, ISR will refill when a slot opens
-        }
-
-        // Re-mask to pop. If the ISR fired during the transmit call and already
-        // popped this frame, peek will return a different pointer — skip the pop.
-        dronecanMaskTxISR();
-        if (canardPeekTxQueue(&canard) == tx_frame) {
+        const int16_t tx_res = canardSTM32Transmit(tx_frame);  // HAL register write, ~1µs
+        if (tx_res != 0) {
             if (tx_res < 0) {
                 LOG_DEBUG(CAN, "Transmit error %d", tx_res);
             }
             canardPopTxQueue(&canard);
         }
         dronecanUnmaskTxISR();
+        if (tx_res == 0) {
+            break;  // HW TX full, ISR will refill when a slot opens
+        }
     }
 }
 

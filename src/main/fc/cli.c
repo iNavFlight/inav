@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -4712,8 +4713,8 @@ static void cliDronecan(char *cmdline)
     cliPrintLinef("  TEC:          %u", (unsigned)stat.tec);
     cliPrintLinef("  REC:          %u", (unsigned)stat.rec);
     cliPrintLinef("  LEC:          %s (%u)", lecNames[stat.lec], (unsigned)stat.lec);
-    cliPrintLinef("  TX queue:     %ld", (long)txFill);
-    cliPrintLinef("  RX buffer:    %ld", (long)rxFill);
+    cliPrintLinef("  TX queue:     %" PRId32, txFill);
+    cliPrintLinef("  RX buffer:    %" PRId32, rxFill);
 }
 #endif
 
