@@ -161,7 +161,7 @@ int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
 		rx_frame->iface_id = 0;
 		return 1;
 	}
-	// Either no CAN msg to be read, or an error that can be read from hfdcan->ErrorCode
+	// Either no CAN msg to be read, or an error that can be read from hcan1.ErrorCode
 	return 0;
 }
 

@@ -327,8 +327,10 @@ int32_t canardSTM32GetRxFifoFillLevel(void) {
 #ifdef __linux__
     if (can_mode == SITL_CAN_MODE_SOCKETCAN && can_socket >= 0) {
         int available;
+        /* FIONREAD on SOCK_RAW returns the byte size of the next pending datagram only,
+           so this yields 0 or 1 — SITL processes at most one frame per scheduler tick. */
         if (ioctl(can_socket, FIONREAD, &available) == 0) {
-            return available / sizeof(struct can_frame);
+            return available / (int)sizeof(struct can_frame);
         }
     }
 #endif

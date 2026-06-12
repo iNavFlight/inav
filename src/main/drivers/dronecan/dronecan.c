@@ -104,11 +104,11 @@ void dronecanInit(void)
     Initializing the Libcanard instance.
     */
     canardInit(&canard,
-	    	   memory_pool,
-			   sizeof(memory_pool),
-			   onTransferReceived,
-			   shouldAcceptTransfer,
-			   NULL);
+               memory_pool,
+               sizeof(memory_pool),
+               onTransferReceived,
+               shouldAcceptTransfer,
+               NULL);
 
     // Could use DNA (Dynamic Node Allocation) by following example in esc_node.c but that requires a lot of setup and I'm not too sure of what advantage it brings
     // Instead, set a different NODE_ID for each device on the CAN bus by configuring node_settings
@@ -232,9 +232,9 @@ uint32_t dronecanGetBitrateKbps(void)
             return 1000;
 
         case DRONECAN_BITRATE_COUNT:
-            return 0;
+        default:
+            return 500;
     }
-    return 0;
 }
 
 const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
@@ -331,7 +331,7 @@ static void send_NodeStatus(void) {
     uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
 
     // we need a static variable for the transfer ID. This is
-    // incremeneted on each transfer, allowing for detection of packet
+    // incremented on each transfer, allowing for detection of packet
     // loss
     static uint8_t transfer_id;
 
