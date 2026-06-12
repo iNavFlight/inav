@@ -88,6 +88,11 @@ void dronecanInit(void)
             LOG_ERROR(SYSTEM, "Undefined bitrate set in configuration. 500kbps selected");
             bitrate = 500000;
             break;
+
+        default:
+            LOG_ERROR(SYSTEM, "Invalid bitrate setting, defaulting to 500kbps");
+            bitrate = 500000;
+            break;
     }
     if(canardSTM32CAN1_Init(bitrate) != CANARD_OK)
     {
@@ -321,7 +326,7 @@ static void send_NodeStatus(void) {
     node_status.sub_mode = 0; // Not currently used in dronecan
 
     // put whatever you like in here for display in GUI
-    node_status.vendor_specific_status_code = armingFlags;
+    node_status.vendor_specific_status_code = (uint16_t)(armingFlags & 0xFFFF);  /* field is 16-bit by UAVCAN spec; bits 16-30 of armingFlags are not transmitted */
 
     uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
 
@@ -504,13 +509,8 @@ static void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
 
 static void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
-    if (gpsConfig()->provider != GPS_DRONECAN) return;
-    struct uavcan_equipment_gnss_RTCMStream gnssRTCMStream;
-
-	if (uavcan_equipment_gnss_RTCMStream_decode(transfer, &gnssRTCMStream)) {
-		LOG_DEBUG(CAN, "RTCMStream decode failed");
-		return;
-	}
+	UNUSED(transfer);
+    /* RTCM forwarding not yet implemented. Accepted in shouldAcceptTransfer for future use. */
 }
 
 static void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
