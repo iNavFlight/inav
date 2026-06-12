@@ -40,7 +40,7 @@ static FDCAN_HandleTypeDef hfdcan1;
   * 		stored.
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
-int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
+int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
 	if (rx_frame == NULL) {
 		return -CANARD_ERROR_INVALID_ARGUMENT;
 	}
@@ -351,11 +351,18 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
 }
 
 void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
-	FDCAN_ProtocolStatusTypeDef protocolStatus = {};
-
+    FDCAN_ProtocolStatusTypeDef protocolStatus = {};
     HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocolStatus);
-    pProtocolStat->BusOff = protocolStatus.BusOff;
+    pProtocolStat->BusOff       = protocolStatus.BusOff;
     pProtocolStat->ErrorPassive = protocolStatus.ErrorPassive;
+    uint32_t ecr = hfdcan1.Instance->ECR;
+    pProtocolStat->tec          = (uint8_t)((ecr >> 16) & 0x7F);
+    pProtocolStat->rec          = (uint8_t)((ecr >> 8) & 0x7F);
+    pProtocolStat->lec          = (uint8_t)(protocolStatus.LastErrorCode & 0x07);
+}
+
+int32_t canardSTM32GetTxQueueFillLevel(void){
+    return 0;
 }
 
 int32_t canardSTM32GetRxFifoFillLevel(void){

@@ -106,8 +106,7 @@ static int16_t sitlCANTransmitStub(const CanardCANFrame* const tx_frame) {
 }
 
 static void sitlCANGetStatsStub(canardProtocolStatus_t *pProtocolStat) {
-    pProtocolStat->BusOff = 0;
-    pProtocolStat->ErrorPassive = 0;
+    memset(pProtocolStat, 0, sizeof(*pProtocolStat));
 }
 
 #ifdef __linux__
@@ -267,11 +266,7 @@ static int16_t sitlCANTransmitSocketCAN(const CanardCANFrame* const tx_frame) {
  * @param pProtocolStat Pointer to status structure to fill
  */
 static void sitlCANGetStatsSocketCAN(canardProtocolStatus_t *pProtocolStat) {
-    // SocketCAN doesn't expose bus-off/error-passive directly
-    // We could check interface flags via netlink, but for SITL testing
-    // we assume the virtual CAN is always healthy
-    pProtocolStat->BusOff = 0;
-    pProtocolStat->ErrorPassive = 0;
+    memset(pProtocolStat, 0, sizeof(*pProtocolStat));
 }
 #endif // __linux__
 
@@ -280,7 +275,7 @@ static void sitlCANGetStatsSocketCAN(canardProtocolStatus_t *pProtocolStat) {
  * @param rx_frame Pointer to frame structure to fill
  * @retval 0 if no frame available, 1 if frame received, negative on error
  */
-int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
+int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
     if (rx_frame == NULL) {
         return -CANARD_ERROR_INVALID_ARGUMENT;
     }
@@ -354,6 +349,10 @@ int32_t canardSTM32GetRxFifoFillLevel(void) {
     }
 #endif
 
+    return 0;
+}
+
+int32_t canardSTM32GetTxQueueFillLevel(void) {
     return 0;
 }
 
