@@ -8,6 +8,7 @@
 #include "common/log.h"
 #include "common/time.h"
 #include "drivers/io.h"
+#include "drivers/nvic.h"
 #include "canard.h"
 #include "canard_stm32_driver.h"
 
@@ -93,7 +94,7 @@ uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
   * 		stored.
   * @retval ret == 1: OK, ret < 0: CANARD_ERROR, ret == 0: Check hfdcan->ErrorCode
   */
-int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
+int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
     RxFrame_t canRxFrame;
 
     if (rx_frame == NULL) {
@@ -240,8 +241,14 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     
     // Enable interrupt only after all initialization succeeds
     // (if any previous step failed, we return early without enabling IRQ)
-    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, NVIC_PRIO_CAN, 0);
     HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
+    if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
+        LOG_ERROR(CAN, "Failed to activate TX interrupt");
+        return -CANARD_ERROR_INTERNAL;
+    }   
+    HAL_NVIC_SetPriority(CAN1_TX_IRQn, NVIC_PRIO_CAN, 0);
+    HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);
 
     return CANARD_OK;
 }
@@ -387,9 +394,16 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
 }
 
 void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat){
-
-    pProtocolStat->BusOff = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
+    uint32_t esr = hcan1.Instance->ESR;
+    pProtocolStat->BusOff       = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_BOF);
     pProtocolStat->ErrorPassive = __HAL_CAN_GET_FLAG(&hcan1, CAN_FLAG_EPV);
+    pProtocolStat->tec          = (uint8_t)((esr >> 16) & 0xFF);
+    pProtocolStat->rec          = (uint8_t)((esr >> 24) & 0xFF);
+    pProtocolStat->lec          = (uint8_t)((esr >> 4) & 0x07);
+}
+
+int32_t canardSTM32GetTxQueueFillLevel(void){
+    return 0;
 }
 
 int32_t canardSTM32GetRxFifoFillLevel(void){
@@ -418,6 +432,10 @@ void canardSTM32GetUniqueID(uint8_t id[16]) {
 
 void CAN1_RX0_IRQHandler(void) {
       HAL_CAN_IRQHandler(&hcan1);
+}
+
+void CAN1_TX_IRQHandler(void) {
+    HAL_CAN_IRQHandler(&hcan1);
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {

@@ -27,8 +27,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-CanardInstance canard;
-uint8_t memory_pool[1024];
+static CanardInstance canard;
+static uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig, PG_DRONECAN_CONFIG, 0);
@@ -45,6 +45,9 @@ static dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
 #if defined(STM32H7)
 static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(FDCAN1_IT1_IRQn); }
 static inline void dronecanUnmaskTxISR(void) { NVIC_EnableIRQ(FDCAN1_IT1_IRQn); }
+#elif defined(STM32F7)
+static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(CAN1_TX_IRQn); }
+static inline void dronecanUnmaskTxISR(void) { NVIC_EnableIRQ(CAN1_TX_IRQn); }
 #else
 static inline void dronecanMaskTxISR(void)   {}
 static inline void dronecanUnmaskTxISR(void) {}
@@ -385,6 +388,11 @@ void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t Bu
     processCanardTxQueue();
 }   
 #endif
+#if defined(STM32F7)
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan); processCanardTxQueue(); }
+void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan); processCanardTxQueue(); }
+void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan); processCanardTxQueue(); }
+#endif
 
 
 /*
@@ -478,7 +486,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
              for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
              {
 	            timestamp = millis() * 1000ULL;
-	            rx_res = canardSTM32Recieve(&rx_frame);
+	            rx_res = canardSTM32Receive(&rx_frame);
 
 	             if (rx_res < 0) {
 		             LOG_DEBUG(CAN, "Receive error %d", rx_res);
