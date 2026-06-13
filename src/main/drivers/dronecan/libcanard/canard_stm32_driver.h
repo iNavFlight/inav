@@ -12,16 +12,21 @@
 typedef struct {
     uint32_t BusOff;
     uint32_t ErrorPassive;
+    uint8_t  tec;
+    uint8_t  rec;
+    uint8_t  lec;
 } canardProtocolStatus_t;
 
 #ifdef USE_DRONECAN
 
 int16_t canardSTM32CAN1_Init(uint32_t bitrate);
 
-int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame);
+int16_t canardSTM32Receive(CanardCANFrame *const rx_frame);
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame);
 void canardSTM32GetProtocolStatus(canardProtocolStatus_t *pProtocolStat);
+int32_t canardSTM32GetTxQueueFillLevel(void);
 int32_t canardSTM32GetRxFifoFillLevel(void);
+uint32_t canardSTM32GetAndClearRxDropCount(void);
 void canardSTM32RecoverFromBusOff(void);
 void canardSTM32GetUniqueID(uint8_t id[16]);
 

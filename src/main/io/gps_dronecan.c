@@ -56,7 +56,6 @@
 
 static bool newDataReady;
 static uint16_t lastHDOP = 9999;
-static uint16_t lastVDOP = 9999;
 
 void gpsRestartDronecan(void)
 {
@@ -82,8 +81,6 @@ static uint8_t gpsMapFixType(uint8_t dronecanFixType)
 
 void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix)
 {
-    //const mspSensorGpsDataMessage_t * pkt = (const mspSensorGpsDataMessage_t *)bufferPtr;
-
     gpsSolDRV.fixType   = gpsMapFixType(pgnssFix->status);
     gpsSolDRV.numSat    = pgnssFix->sats_used;
     gpsSolDRV.llh.lon   = pgnssFix->longitude_deg_1e8 / 10; // convert to deg_1e7
@@ -134,8 +131,6 @@ void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix
 
 void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssFix2)
 {
-    //const mspSensorGpsDataMessage_t * pkt = (const mspSensorGpsDataMessage_t *)bufferPtr;
-
     gpsSolDRV.fixType   = gpsMapFixType(pgnssFix2->status);
     gpsSolDRV.numSat    = pgnssFix2->sats_used;
     gpsSolDRV.llh.lon   = pgnssFix2->longitude_deg_1e8 / 10; // convert to deg_1e7
@@ -152,11 +147,9 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
     gpsSolDRV.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
     // TODO where to get EPH gpsSolDRV.eph = gpsConstrainEPE(pgnssFix-> / 10);
     // TODO where to get EPV gpsSolDRV.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
-    LOG_DEBUG(CAN, "Last HDOP %d", lastHDOP);
     if (pgnssFix2->pdop > 0){
         gpsSolDRV.hdop = gpsConstrainHDOP(pgnssFix2->pdop * 100); // Only update if valid.
     } else if((9999 > lastHDOP) && (lastHDOP > 0)) {
-        LOG_DEBUG(CAN, "Updating gpsSolDRV");
         gpsSolDRV.hdop = lastHDOP;
     }
     gpsSolDRV.flags.validVelNE = true;
@@ -187,10 +180,10 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
 
 void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliary * pgnssAux)
 {
-    UNUSED(pgnssAux);
-    // No useful information I think...  Placeholder until after testing.
-    lastVDOP = pgnssAux->vdop * 100;
-    lastHDOP = pgnssAux->hdop * 100;
-    
+    // DroneCAN float16 optional fields encode NaN when unpopulated; guard before use.
+    // gpsConstrainHDOP clamps to 9999 preventing uint16_t overflow for extreme DOP values.
+    if (!isnan(pgnssAux->hdop)) {
+        lastHDOP = gpsConstrainHDOP((uint32_t)(pgnssAux->hdop * 100));
+    }
 }
 #endif
