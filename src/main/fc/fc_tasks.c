@@ -167,7 +167,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
     // change this based on available hardware
     if (feature(FEATURE_GPS)) {
-        if (gpsUpdate()) {
+        if (gpsUpdate() && STATE(AIRPLANE)) {
 #ifdef USE_WIND_ESTIMATOR
             updateWindEstimator(currentTimeUs);
 #endif
@@ -462,8 +462,8 @@ void fcTasksInit(void)
 
 #ifdef USE_ADAPTIVE_FILTER
     setTaskEnabled(TASK_ADAPTIVE_FILTER, (
-        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE && 
-        gyroConfig()->adaptiveFilterMinHz > 0 && 
+        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE &&
+        gyroConfig()->adaptiveFilterMinHz > 0 &&
         gyroConfig()->adaptiveFilterMaxHz > 0
     ));
 #endif
