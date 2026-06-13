@@ -79,7 +79,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hcan1.Init.AutoWakeUp = DISABLE;
     hcan1.Init.AutoRetransmission = DISABLE;  // ENABLE fills the TX FIFO on a degraded bus; DroneCAN reliability is handled at the application layer
     hcan1.Init.ReceiveFifoLocked = DISABLE;
-    hcan1.Init.TransmitFifoPriority = DISABLE;
+    hcan1.Init.TransmitFifoPriority = ENABLE;
 
     if (!canardSTM32ComputeTimings(bitrate, &out_timings))
     {
@@ -332,7 +332,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   250  kbps      16      17
      *   125  kbps      16      17
      */
-    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
+    const int max_quanta_per_bit = 18; //(target_bitrate >= 1000000) ? 10 : 17;
     static const int MaxSamplePointLocation = 900;
 
     /*
