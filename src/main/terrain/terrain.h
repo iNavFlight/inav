@@ -36,7 +36,8 @@
 // available. It must lie outside the range of any real altitude or distance:
 // terrain can legitimately be negative (below sea level), so INT32_MIN is used
 // to guarantee it never collides with valid data.
-#define TERRAIN_STATUS_NO_DATA (INT32_MIN)
+#define TERRAIN_STATUS_NO_AMSL_DATA (INT32_MIN)
+#define TERRAIN_STATUS_NO_AGL_DATA (-1)
 
 // MAVLink sends 4x4 grids
 #define TERRAIN_GRID_MAVLINK_SIZE 4
