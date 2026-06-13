@@ -42,11 +42,12 @@
 
 #include "io/gps.h"
 
-
+// Based on WindEstimation.pdf paper
 #define WINDESTIMATOR_TIMEOUT       60*15 // 15min with out altitude change
 #define WINDESTIMATOR_ALTITUDE_SCALE WINDESTIMATOR_TIMEOUT/500.0f //or 500m altitude change
+
 #define WINDESTIMATOR_VALIDITY_THRESHOLD    15
-// Based on WindEstimation.pdf paper
+#define WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR   40
 
 static bool hasValidWindEstimate = false;
 static float estimatedWind[XYZ_AXIS_COUNT] = {0, 0, 0};    // wind velocity vectors in cm / sec in earth frame
@@ -86,14 +87,15 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
 void updateWindEstimator(timeUs_t currentTimeUs)
 {
     static timeUs_t lastUpdateUs = 0;
-    static timeUs_t lastValidWindEstimate = 0;
+    static timeUs_t lastValidWindEstimateUs = 0;
     static float lastValidEstimateAltitude = 0.0f;
     float currentAltitude = gpsSol.llh.alt / 100.0f; // altitude in m
     static uint8_t validityScore = 0;
-    static bool forcedUpdate = false;
     bool updateTimedout = false;
+    static uint8_t spikeFilterDynAdjustment = WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR;
+    static bool initialEstimate = true;
 
-    if ((US2S(currentTimeUs - lastValidWindEstimate) + WINDESTIMATOR_ALTITUDE_SCALE * fabsf(currentAltitude - lastValidEstimateAltitude)) > WINDESTIMATOR_TIMEOUT) {
+    if ((US2S(currentTimeUs - lastValidWindEstimateUs) + WINDESTIMATOR_ALTITUDE_SCALE * fabsf(currentAltitude - lastValidEstimateAltitude)) > WINDESTIMATOR_TIMEOUT) {
         hasValidWindEstimate = false;
     }
 
@@ -103,17 +105,20 @@ void updateWindEstimator(timeUs_t currentTimeUs)
      * WINDESTIMATOR_VALIDITY_THRESHOLD should result in a valid estimate based on the spike elimination and filtering used.
      * hasValidWindEstimate considered invalid when score = 0 which approximates to around 2.5 to 5 minutes if no new estimate calcs occur */
 
-    if (cmpTimeUs(currentTimeUs, lastUpdateUs) > 10 * USECS_PER_SEC || lastUpdateUs == 0) {
-        lastUpdateUs = currentTimeUs;
-        updateTimedout = true;
-        forcedUpdate = true;
+    if (US2S(cmpTimeUs(currentTimeUs, lastUpdateUs)) > 10 || lastUpdateUs == 0) {
         if (validityScore > 0) validityScore--;
         if (!validityScore) hasValidWindEstimate = false;
+
+        lastUpdateUs = currentTimeUs;
+        updateTimedout = true;
+
+        // Rapidly reset spikeFilterDynAdjustment if no new wind calcs
+        if (!initialEstimate && spikeFilterDynAdjustment >= 5) {
+            spikeFilterDynAdjustment -= 5;
+        }
     }
 
-    if (!hasValidWindEstimate && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) {
-        hasValidWindEstimate = true;
-    }
+    if (!hasValidWindEstimate && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) hasValidWindEstimate = true;
 
     if (!isGPSHeadingValid() || !gpsSol.flags.validVelNE || !gpsSol.flags.validVelD
 #ifdef USE_GPS_FIX_ESTIMATION
@@ -160,6 +165,8 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     //
     // TODO: Is 0.2f an adequate threshold?
     if (diffLengthSq > sq(0.2f)) {
+        lastUpdateUs = currentTimeUs;
+
         // when turning, use the attitude response to estimate wind speed
         groundVelocityDiff[X] = groundVelocity[X] - lastGroundVelocity[X];
         groundVelocityDiff[Y] = groundVelocity[Y] - lastGroundVelocity[Y];
@@ -188,27 +195,43 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         wind[Y] = (groundVelocitySum[Y] - V * (sintheta * fuselageDirectionSum[X] + costheta * fuselageDirectionSum[Y])) * 0.5f;    // equation 11
         wind[Z] = (groundVelocitySum[Z] - V * fuselageDirectionSum[Z]) * 0.5f;  // equation 12
 
-        float prevEstWindLength = calc_length_pythagorean_3D(estimatedWind[X], estimatedWind[Y], estimatedWind[Z]);
-        float windLength = calc_length_pythagorean_3D(wind[X], wind[Y], wind[Z]);
+        /* Spike filter used to filter out large spikes that can occur in the raw wind calcs.
+         * Filter is based on a threshold between new wind updates and current estimated wind.
+         * A baseline threshold of 3 m/s is used with an additional dynamic threshold to clear a stuck estimate.
+         * The dynamic threshold relaxes spike filtering until the estimate recovers then falls back to the baseline threshold.
+         * The dynamic threshold is active on initialisation and also if new updates haven't made it past the spike filter > 30s.
+         * New wind values are discarded if a single axis exceeds the spike threshhold */
 
-        /* Initial "rough and rapid" estimate calculated with validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD.
-         * Estimate then refined with a max threshold of 3 m/s between windLength and estimated wind which is necessary
-         * to prevent large transient spikes in windLength upsetting the estimate.
-         * forcedUpdate used to ensure estimate doesn't get stuck should a large misatch between windLength and estimate occur */
-        if ((ABS(windLength - prevEstWindLength) < 300.0f) || validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD || forcedUpdate) {
-            float filterAlpha = 0.1f;
-
-            estimatedWind[X] = estimatedWind[X] + filterAlpha * (wind[X] - estimatedWind[X]);
-            estimatedWind[Y] = estimatedWind[Y] + filterAlpha * (wind[Y] - estimatedWind[Y]);
-            estimatedWind[Z] = estimatedWind[Z] + filterAlpha * (wind[Z] - estimatedWind[Z]);
-
-            if (validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD + 15) validityScore++;
-
-            lastUpdateUs = currentTimeUs;
-            lastValidWindEstimate = currentTimeUs;
-            lastValidEstimateAltitude = currentAltitude;
-            forcedUpdate = false;
+        if (initialEstimate) {
+            if (validityScore == WINDESTIMATOR_VALIDITY_THRESHOLD + 15) {
+                initialEstimate = false;
+                spikeFilterDynAdjustment = 0;
+            }
+        } else if (spikeFilterDynAdjustment || US2S(cmpTimeUs(currentTimeUs, lastValidWindEstimateUs)) > 30) {  // 30s estimate update timeout
+            if (spikeFilterDynAdjustment < WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR) spikeFilterDynAdjustment++;
         }
+
+        // Spike filter
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            if (ABS(wind[axis] - estimatedWind[axis]) > (300 + spikeFilterDynAdjustment * WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR)) {
+                return;
+            }
+        }
+
+        // Spike free filter
+        float filterAlpha = 0.1f;
+        estimatedWind[X] = estimatedWind[X] + filterAlpha * (wind[X] - estimatedWind[X]);
+        estimatedWind[Y] = estimatedWind[Y] + filterAlpha * (wind[Y] - estimatedWind[Y]);
+        estimatedWind[Z] = estimatedWind[Z] + filterAlpha * (wind[Z] - estimatedWind[Z]);
+
+        if (validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD + 15) validityScore++;
+
+        if (spikeFilterDynAdjustment) {
+            spikeFilterDynAdjustment -= (spikeFilterDynAdjustment == 1 || initialEstimate) ? 1 : 2;
+        }
+
+        lastValidWindEstimateUs = currentTimeUs;
+        lastValidEstimateAltitude = currentAltitude;
     }
 }
 
