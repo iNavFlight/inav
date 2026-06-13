@@ -1165,7 +1165,7 @@ static void osdFormatThrottlePosition(char *buff, bool useScaled, textAttributes
 #endif
     int8_t throttlePercent = getThrottlePercent(useScaled);
     if ((useScaled && throttlePercent <= 0) || !ARMING_FLAG(ARMED)) {
-        const char* message = ARMING_FLAG(ARMED) ? (throttlePercent == 0 && !ifMotorstopFeatureEnabled()) ? "IDLE" : "STOP" : "DARM";
+        const char* message = ARMING_FLAG(ARMED) ? areMotorsStopped() ? "STOP" : "IDLE" : "DARM";
         buff[0] = SYM_THR;
         strcpy(buff + 1, message);
         return;
@@ -1990,6 +1990,20 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_3D_MAX_SPEED:
         osdFormatVelocityStr(buff, stats.max_3D_speed, OSD_SPEED_TYPE_3D, true);
         break;
+
+     case OSD_AUTO_SPEED:
+        if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED)) {
+            buff[0] = navIsAutoSpeedAirspeedUsed() ? 'A' : 'G';
+            strcpy(buff + 1, ": OFF");
+            if (isFixedwingAutoSpeedActive()) {
+                osdFormatVelocityStr(buff + 2, posControl.desiredState.autoSpeedDemand, OSD_SPEED_TYPE_3D, false);
+                buff[6] = '\0';
+            }
+            break;
+        } else {
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
+            return true;
+        }
 
     case OSD_GLIDESLOPE:
         {
@@ -4362,6 +4376,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdLayoutsConfig->item_pos[0][OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
+    osdLayoutsConfig->item_pos[0][OSD_AUTO_SPEED] = OSD_POS(23, 0);
     osdLayoutsConfig->item_pos[0][OSD_3D_SPEED] = OSD_POS(23, 1);
     osdLayoutsConfig->item_pos[0][OSD_GLIDESLOPE] = OSD_POS(23, 2);
 

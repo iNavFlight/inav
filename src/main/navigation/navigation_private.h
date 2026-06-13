@@ -145,6 +145,7 @@ typedef struct {
     fpVector3_t vel;
     int32_t     yaw;
     int16_t     climbRateDemand;
+    uint16_t    autoSpeedDemand;
 } navigationDesiredState_t;
 
 typedef enum {
@@ -352,6 +353,8 @@ typedef enum {
 
     NAV_MIXERAT             = (1 << 16),    // MIXERAT in progress
     NAV_CTL_HOLD            = (1 << 17),    // Nav loiter active at position
+
+    NAV_CTL_SPEED           = (1 << 18),    // Auto speed allowed
 } navigationFSMStateFlags_t;
 
 typedef struct {

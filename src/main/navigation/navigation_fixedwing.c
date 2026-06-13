@@ -608,35 +608,24 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
 {
     static timeUs_t previousTimePositionUpdate = 0;         // Occurs @ GPS update rate
 
-    // Apply controller only if position source is valid
-    if ((posControl.flags.estPosStatus >= EST_USABLE)) {
-        // If we have new position - update velocity and acceleration controllers
-        if (posControl.flags.horizontalPositionDataNew) {
-            const timeDeltaLarge_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
-            previousTimePositionUpdate = currentTimeUs;
+    // If we have new position - update min speed controller
+    if (posControl.flags.horizontalPositionDataNew) {
+        const timeDeltaLarge_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
+        previousTimePositionUpdate = currentTimeUs;
 
-            if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-                float velThrottleBoost = ((getMinGroundSpeed(navConfig()->general.min_ground_speed) * 100.0f) - posControl.actualState.velXY) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
+        if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
+            float velThrottleBoost = ((getMinGroundSpeed(navConfig()->general.min_ground_speed) * 100.0f) - posControl.actualState.velXY) *
+                                     NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
 
-                // If we are in the deadband of 50cm/s - don't update speed boost
-                if (fabsf(posControl.actualState.velXY - (getMinGroundSpeed(navConfig()->general.min_ground_speed) * 100.0f)) > 50) {
-                    throttleSpeedAdjustment += velThrottleBoost;
-                }
-
-                throttleSpeedAdjustment = constrainf(throttleSpeedAdjustment, 0.0f, 500.0f);
-            }
-            else {
-                // Position update has not occurred in time (first iteration or glitch), reset altitude controller
-                throttleSpeedAdjustment = 0;
-            }
-
-            // Indicate that information is no longer usable
-            posControl.flags.horizontalPositionDataConsumed = true;
+            throttleSpeedAdjustment += velThrottleBoost;
+            throttleSpeedAdjustment = constrainf(throttleSpeedAdjustment, 0.0f, 500.0f);
         }
-    }
-    else {
-        // No valid pos sensor data, we can't calculate speed
-        throttleSpeedAdjustment = 0;
+        else {
+            // Reset if position update has not occurred in time (first iteration or glitch)
+            throttleSpeedAdjustment = 0;
+        }
+        // Indicate that information is no longer usable
+        posControl.flags.horizontalPositionDataConsumed = true;
     }
 
     return throttleSpeedAdjustment;
@@ -689,36 +678,44 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         // PITCH >0 dive, <0 climb
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
-        int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
-        if (navStateFlags & NAV_CTL_LAND) {
-        // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
-            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
-        } else {
-            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
-        }
-
-        // Speed controller - only apply in POS mode when NOT NAV_CTL_LAND
-        if ((navStateFlags & NAV_CTL_POS) && !(navStateFlags & NAV_CTL_LAND)) {
-            throttleCorrection += applyFixedWingMinSpeedController(currentTimeUs);
-            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
-        }
-
-        uint16_t correctedThrottleValue = constrain(currentBatteryProfile->nav.fw.cruise_throttle + throttleCorrection, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
-
-        // Manual throttle increase
-        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
-            if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
-                correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
-            } else {
-                correctedThrottleValue = getMaxThrottle();
-            }
-            isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle);
-        } else {
+        if (isFixedwingAutoSpeedActive()) {
             isAutoThrottleManuallyIncreased = false;
-        }
+        } else {
+            int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
-        rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
+            if (navStateFlags & NAV_CTL_LAND) {
+            // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
+                throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
+            } else {
+                throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
+            }
+
+            // Min Speed controller - only apply in POS mode when NOT NAV_CTL_LAND
+            if (posControl.flags.estPosStatus >= EST_USABLE && (navStateFlags & NAV_CTL_POS) && !(navStateFlags & NAV_CTL_LAND)) {
+                bool speedBoostRequired = (getMinGroundSpeed(navConfig()->general.min_ground_speed) * 100.0f - posControl.actualState.velXY > 0) && !throttleSpeedAdjustment;
+                if (speedBoostRequired || throttleSpeedAdjustment) {
+                    throttleCorrection += applyFixedWingMinSpeedController(currentTimeUs);
+                    throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
+                }
+            }
+
+            uint16_t correctedThrottleValue = constrain(currentBatteryProfile->nav.fw.cruise_throttle + throttleCorrection, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
+
+            // Manual throttle increase
+            if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+                if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
+                    correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
+                } else {
+                    correctedThrottleValue = getMaxThrottle();
+                }
+                isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle);
+            } else {
+                isAutoThrottleManuallyIncreased = false;
+            }
+
+            rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
+        }
     }
 
 #ifdef USE_FW_AUTOLAND
@@ -868,6 +865,76 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
         rcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
         rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlProfile->stabilized.rates[FD_YAW]);
     }
+}
+
+/*----------------------------
+ * Auto Speed mode
+ *----------------------------*/
+bool navIsAutoSpeedAirspeedUsed(void)
+{
+    return !LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED) && pitotValidateAirspeed();
+}
+
+bool isFixedwingAutoSpeedActive(void)
+{
+    return STATE(AIRPLANE) && ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXAUTOSPEED) && isProbablyStillFlying() &&
+            !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(SOARING_MODE) &&
+            posControl.flags.estVelStatus == EST_TRUSTED && posControl.flags.estAltStatus == EST_TRUSTED &&
+            !(navigationRequiresAutoThrottleMode() && !(navGetCurrentStateFlags() & NAV_CTL_SPEED));
+}
+
+void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
+{
+    if (!isFixedwingAutoSpeedActive()) return;
+
+    static uint16_t autoSpeedThrottleCommand = PWM_RANGE_MIDDLE;
+
+    if (posControl.flags.horizontalPositionDataNew && posControl.flags.verticalPositionDataNew) {
+        static timeUs_t lastUpdateTimeUs = 0;
+        timeUs_t currentTime = micros();
+        timeUs_t dT = currentTime - lastUpdateTimeUs;
+        lastUpdateTimeUs = currentTime;
+
+        if (dT > MAX_POSITION_UPDATE_INTERVAL_US) return;     // skip if update is delayed
+
+        static pt1Filter_t speedToThrFilterState;
+        if (!speedToThrFilterState.RC) pt1FilterSetCutoff(&speedToThrFilterState, 0.5f);
+
+        uint16_t minSpeed = 100 * navConfig()->fw.auto_speed_min_speed;
+        uint16_t maxSpeed = 100 * navConfig()->fw.auto_speed_max_speed;
+        uint16_t minThrottle = getThrottleIdleValue();
+        uint16_t maxThrottle = navConfig()->fw.auto_speed_max_throttle;
+
+        posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(navConfig()->fw.auto_speed_channel - 1), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
+        uint16_t actualSpeed = posControl.actualState.vel3D;
+
+#ifdef USE_PITOT
+        if (navIsAutoSpeedAirspeedUsed()) { // If pitot available use airspeed if selected for use
+            actualSpeed = getAirspeedEstimate();
+        } else
+#endif
+        {   // Ground speed - set minimum throttle to auto_speed_min_throttle with pitch2throttle correction to prevent downwind stall
+            minThrottle = constrain(navConfig()->fw.auto_speed_min_throttle + fixedWingPitchToThrottleCorrection(-attitude.values.pitch, currentTime), minThrottle, maxThrottle);
+        }
+
+        int16_t throttleCorr = navPidApply2(&posControl.pids.fw_autoSpeed, posControl.desiredState.autoSpeedDemand, actualSpeed, US2S(dT), -PWM_RANGE_HALF, PWM_RANGE_HALF, 0);
+        throttleCorr = pt1FilterApply3(&speedToThrFilterState, throttleCorr, US2S(dT));
+
+        autoSpeedThrottleCommand = PWM_RANGE_MIDDLE + throttleCorr;
+
+        // Boost throttle if ground speed too low
+        bool speedBoostReq = (getMinGroundSpeed(navConfig()->general.min_ground_speed) * 100.0f - posControl.actualState.velXY > 0) && !throttleSpeedAdjustment;
+        if (speedBoostReq || throttleSpeedAdjustment) {
+            autoSpeedThrottleCommand += applyFixedWingMinSpeedController(currentTime);
+        }
+
+        autoSpeedThrottleCommand = constrain(autoSpeedThrottleCommand, minThrottle, maxThrottle);
+
+        // Indicate that information is no longer usable
+        posControl.flags.horizontalPositionDataConsumed = true;
+    }
+
+    *throttleCommand = autoSpeedThrottleCommand;
 }
 
 /*-----------------------------------------------------------
