@@ -65,6 +65,8 @@
 
 #include "io/beeper.h"
 #include "io/gps.h"
+#include "io/asyncfatfs/asyncfatfs.h"
+
 
 #include "navigation/navigation.h"
 
@@ -83,6 +85,8 @@
 #include "sensors/esc_sensor.h"
 #include "flight/wind_estimator.h"
 #include "sensors/temperature.h"
+
+#include "terrain/terrain.h"
 
 
 #if defined(ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT)
@@ -195,6 +199,54 @@ typedef struct blackboxDeltaFieldDefinition_s {
     uint8_t Pencode;
     uint8_t condition; // Decide whether this field should appear in the log
 } blackboxDeltaFieldDefinition_t;
+
+static bool canUseBlackboxWithCurrentConfiguration(void)
+{
+    return feature(FEATURE_BLACKBOX);
+}
+
+#ifdef USE_TERRAIN
+//state machine to get access to other device, it's designed only for one other device, in this case for terrain
+//if you would like to have more devices, some queue must be implemented
+static struct blackboxSDCardAccessStatus_s {
+    bool blackboxAccessToSDGrantedToOtherDevice;
+    bool requestToSdCardAccessState;
+
+} blackboxSDCardAccessStatus = {
+        .blackboxAccessToSDGrantedToOtherDevice = false,
+        .requestToSdCardAccessState = false
+};
+
+
+/**
+ * request access from terrain subsystem
+ * @return
+ */
+bool requestToSdCardAccess(void)
+{
+    if(blackboxConfig()->device != BLACKBOX_DEVICE_SDCARD || !canUseBlackboxWithCurrentConfiguration()){
+        return true;
+    }
+
+    if(blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice){
+        return true;
+    }
+
+    blackboxSDCardAccessStatus.requestToSdCardAccessState = true;
+    return false;
+}
+
+/**
+ * release access from terrain subsystem
+ * @return
+ */
+void releaseSdCardAccess(void)
+{
+    blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice = false;
+    blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
+}
+#endif
+
 
 /**
  * Description of the blackbox fields we are writing in our main intra (I) and inter (P) frames. This description is
@@ -468,6 +520,10 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
     {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
 #endif
+#ifdef USE_TERRAIN
+    {"terrainAGL",                -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
+    {"terrainAMSL",               -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
+#endif
 };
 
 #define BLACKBOX_FIRST_HEADER_SENDING_STATE BLACKBOX_STATE_SEND_HEADER
@@ -572,6 +628,10 @@ typedef struct blackboxSlowState_s {
 #ifdef USE_ESC_SENSOR
     uint32_t escRPM;
     int8_t escTemperature;
+#endif
+#ifdef USE_TERRAIN
+    int32_t terrainAGL;
+    int32_t terrainAMSL;
 #endif
     uint16_t rxUpdateRate;
     uint8_t activeWpNumber;
@@ -1357,6 +1417,10 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.escRPM);
     blackboxWriteSignedVB(slowHistory.escTemperature);
 #endif
+#ifdef USE_TERRAIN
+    blackboxWriteSignedVB(slowHistory.terrainAGL);
+    blackboxWriteSignedVB(slowHistory.terrainAMSL);
+#endif
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1431,6 +1495,10 @@ static void loadSlowState(blackboxSlowState_t *slow)
     escSensorData_t * escSensor = escSensorGetData();
     slow->escRPM = escSensor->rpm;
     slow->escTemperature = escSensor->temperature;
+#endif
+#ifdef USE_TERRAIN
+    slow->terrainAGL = terrainGetLastDistanceCm();
+    slow->terrainAMSL = terrainGetLastAMSL();
 #endif
 }
 
@@ -2177,6 +2245,24 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
  */
 void blackboxUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_TERRAIN
+    if(blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD){
+        //access to SD card is given to other device
+        if(blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice){
+            return;
+        }
+
+        //incooming request to get access to SD card
+        if(blackboxSDCardAccessStatus.requestToSdCardAccessState && (blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_STOPPED)){
+            //we have to be sure that all writes are already processed and SD card is in idle
+            if(afatfs_isIdle()){
+                blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
+                blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice = true;
+            }
+        }
+    }
+#endif
+
     if (blackboxState >= BLACKBOX_FIRST_HEADER_SENDING_STATE && blackboxState <= BLACKBOX_LAST_HEADER_SENDING_STATE) {
         blackboxReplenishHeaderBudget();
     }
@@ -2305,11 +2391,6 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     if (isBlackboxDeviceFull()) {
         blackboxSetState(BLACKBOX_STATE_STOPPED);
     }
-}
-
-static bool canUseBlackboxWithCurrentConfiguration(void)
-{
-    return feature(FEATURE_BLACKBOX);
 }
 
 BlackboxState getBlackboxState(void)
