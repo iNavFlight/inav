@@ -661,12 +661,17 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
 
 void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
 {
-    int16_t minThrottleCorrection = currentBatteryProfile->nav.fw.min_throttle - currentBatteryProfile->nav.fw.cruise_throttle;
-    int16_t maxThrottleCorrection = currentBatteryProfile->nav.fw.max_throttle - currentBatteryProfile->nav.fw.cruise_throttle;
+    const uint16_t cruiseThrottle = currentBatteryProfile->nav.fw.cruise_throttle;
+    const uint16_t minThrottle = currentBatteryProfile->nav.fw.min_throttle;
+    const uint16_t maxThrottle = currentBatteryProfile->nav.fw.max_throttle;
+
+    int16_t minThrottleCorrection = minThrottle - cruiseThrottle;
+    int16_t maxThrottleCorrection = maxThrottle - cruiseThrottle;
 
     if (isRollAdjustmentValid && (navStateFlags & NAV_CTL_POS)) {
         // ROLL >0 right, <0 left
-        int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle));
+        const uint8_t maxBankAngle = navConfig()->fw.max_bank_angle;
+        int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL], -DEGREES_TO_DECIDEGREES(maxBankAngle), DEGREES_TO_DECIDEGREES(maxBankAngle));
         rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection, pidProfile()->max_angle_inclination[FD_ROLL]);
     }
 
@@ -700,16 +705,16 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
                 }
             }
 
-            uint16_t correctedThrottleValue = constrain(currentBatteryProfile->nav.fw.cruise_throttle + throttleCorrection, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
+            uint16_t correctedThrottleValue = constrain(cruiseThrottle + throttleCorrection, minThrottle, maxThrottle);
 
             // Manual throttle increase
             if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
                 if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
-                    correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
+                    correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - cruiseThrottle);
                 } else {
                     correctedThrottleValue = getMaxThrottle();
                 }
-                isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle);
+                isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > cruiseThrottle);
             } else {
                 isAutoThrottleManuallyIncreased = false;
             }
@@ -902,8 +907,8 @@ void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
 
         uint16_t minSpeed = 100 * navConfig()->fw.auto_speed_min_speed;
         uint16_t maxSpeed = 100 * navConfig()->fw.auto_speed_max_speed;
-        uint16_t minThrottle = getThrottleIdleValue();
-        uint16_t maxThrottle = navConfig()->fw.auto_speed_max_throttle;
+        uint16_t minThrottle = MAX(getThrottleIdleValue(), currentBatteryProfile->nav.fw.min_throttle);
+        uint16_t maxThrottle = currentBatteryProfile->nav.fw.max_throttle;
 
         posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(navConfig()->fw.auto_speed_channel - 1), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
         uint16_t actualSpeed = posControl.actualState.vel3D;
@@ -914,7 +919,8 @@ void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
         } else
 #endif
         {   // Ground speed - set minimum throttle to auto_speed_min_throttle with pitch2throttle correction to prevent downwind stall
-            minThrottle = constrain(navConfig()->fw.auto_speed_min_throttle + fixedWingPitchToThrottleCorrection(-attitude.values.pitch, currentTime), minThrottle, maxThrottle);
+            minThrottle = constrain(currentBatteryProfile->nav.fw.auto_speed_level_min_thr + fixedWingPitchToThrottleCorrection(-attitude.values.pitch, currentTime),
+                          minThrottle, maxThrottle);
         }
 
         int16_t throttleCorr = navPidApply2(&posControl.pids.fw_autoSpeed, posControl.desiredState.autoSpeedDemand, actualSpeed, US2S(dT), -PWM_RANGE_HALF, PWM_RANGE_HALF, 0);
