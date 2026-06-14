@@ -149,8 +149,6 @@ static serialPort_t *fportPort;
 
 static void reportFrameError(uint8_t errorReason) {
     UNUSED(errorReason);
-    static volatile uint16_t frameErrors = 0;
-    frameErrors++;
 }
 
 // Receive ISR callback

@@ -447,7 +447,7 @@ int32_t getSensorValue(uint8_t sensor)
 
     case EX_TRIP_DISTANCE:
         return getTotalTravelDistance() / 10;
-    
+
     case EX_DEBUG0:
         return debug[0];
     case EX_DEBUG1:
@@ -548,7 +548,6 @@ void checkJetiExBusTelemetryState(void)
 
 void NOINLINE handleJetiExBusTelemetry(void)
 {
-    static uint16_t framesLost = 0; // only for debug
     static uint8_t item = 0;
     uint32_t timeDiff;
 
@@ -564,7 +563,6 @@ void NOINLINE handleJetiExBusTelemetry(void)
 
         if (timeDiff > 3000) {   // include reserved time
             jetiExBusRequestState = EXBUS_STATE_ZERO;
-            framesLost++;
             return;
         }
 
