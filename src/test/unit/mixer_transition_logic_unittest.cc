@@ -152,18 +152,17 @@ TEST(MixerTransitionLogicTest, AutoServoInputDoesNotMoveBackwardsDuringMcToFw)
     EXPECT_EQ(0, servoInput);
 }
 
-TEST(MixerTransitionLogicTest, AutoServoBlendUsesTransitionProgressInsteadOfNeutralAuthorityScales)
+TEST(MixerTransitionLogicTest, AutoServoBlendUsesScaleRampTimerInsteadOfAirspeedProgress)
 {
     const float blendAtTransitionStart = mixerTransitionComputeServoBlendToFw(
         false,
         true,
         true,
         false,
+        true,
         MIXERAT_DIRECTION_TO_FW,
-        false,
-        0.0f,
-        10,
-        16000);
+        16000,
+        10);
 
     EXPECT_LT(blendAtTransitionStart, 0.01f);
     EXPECT_EQ(0, mixerTransitionUpdateServoInput(
@@ -180,11 +179,10 @@ TEST(MixerTransitionLogicTest, AutoServoBlendUsesTransitionProgressInsteadOfNeut
         true,
         true,
         false,
-        MIXERAT_DIRECTION_TO_FW,
         true,
-        0.65f,
-        0,
-        0));
+        MIXERAT_DIRECTION_TO_FW,
+        1000,
+        650));
 }
 
 TEST(MixerTransitionLogicTest, AutoServoBlendCountsBackDownDuringFwToMc)
@@ -194,22 +192,66 @@ TEST(MixerTransitionLogicTest, AutoServoBlendCountsBackDownDuringFwToMc)
         true,
         true,
         false,
-        MIXERAT_DIRECTION_TO_MC,
         true,
-        0.25f,
-        0,
-        0));
+        MIXERAT_DIRECTION_TO_MC,
+        1000,
+        250));
 
     EXPECT_FLOAT_EQ(1.0f, mixerTransitionComputeServoBlendToFw(
         false,
         false,
         true,
         true,
+        true,
         MIXERAT_DIRECTION_TO_FW,
-        false,
-        0.0f,
         0,
         0));
+}
+
+TEST(MixerTransitionLogicTest, AutoServoBlendStaysLegacyStaticWhenDynamicMixerIsDisabled)
+{
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionComputeServoBlendToFw(
+        false,
+        true,
+        true,
+        false,
+        false,
+        MIXERAT_DIRECTION_TO_FW,
+        1000,
+        0));
+
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionComputeServoBlendToFw(
+        false,
+        true,
+        true,
+        false,
+        false,
+        MIXERAT_DIRECTION_TO_FW,
+        1000,
+        100));
+
+    EXPECT_EQ(500, mixerTransitionUpdateServoInput(
+        0,
+        false,
+        true,
+        true,
+        false,
+        true,
+        1.0f));
+}
+
+TEST(MixerTransitionLogicTest, ServoHandoffUsesFullScaleRampTimeAfterHotSwitchWhenDynamicMixerIsEnabled)
+{
+    EXPECT_EQ(1000, mixerTransitionComputeServoHandoffDurationMs(true, 1000, 0));
+    EXPECT_EQ(1000, mixerTransitionComputeServoHandoffDurationMs(true, 1000, 250));
+    EXPECT_EQ(1000, mixerTransitionComputeServoHandoffDurationMs(true, 1000, 1200));
+}
+
+TEST(MixerTransitionLogicTest, ServoHandoffUsesConfiguredScaleRampWhenDynamicMixerIsDisabled)
+{
+    EXPECT_EQ(1000, mixerTransitionComputeServoHandoffDurationMs(false, 1000, 0));
+    EXPECT_EQ(1000, mixerTransitionComputeServoHandoffDurationMs(false, 1000, 750));
+    EXPECT_EQ(0, mixerTransitionComputeServoHandoffDurationMs(false, 0, 750));
 }
 
 TEST(MixerTransitionLogicTest, ServoHandoffBlendStartsFromCapturedOutputAfterHotSwitch)

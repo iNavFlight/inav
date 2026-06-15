@@ -48,9 +48,6 @@ static bool manualTransitionReadyForEdge = true;
 static mixerTransitionManualSessionMode_e manualTransitionSessionMode;
 static bool manualFwToMcProtectionLatched;
 static int16_t mixerTransitionServoInput;
-// Servos need their own short handoff because profile reload can change the
-// final servo mix abruptly even when motor-scale debug values stay neutral.
-#define MIXER_TRANSITION_SERVO_HANDOFF_FADE_MS 100U
 #endif
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored mixer profile layout only on >512 KB targets.
@@ -291,6 +288,8 @@ static uint32_t collectServoProfileDifferenceMask(const servoMixer_t *currentRul
     return differenceMask;
 }
 
+static uint16_t getServoHandoffDurationMs(void);
+
 static uint32_t collectServoHandoffMask(const int targetProfileIndex, const bool includeProfileDifferences)
 {
     const servoMixer_t *currentRules = mixerServoMixersByIndex(currentMixerProfileIndex);
@@ -315,12 +314,14 @@ static void prepareServoHandoffFade(const uint32_t handoffMask)
 {
     clearServoHandoffFade();
 
-    if (handoffMask == 0) {
+    const uint16_t handoffDurationMs = getServoHandoffDurationMs();
+
+    if (handoffMask == 0 || handoffDurationMs == 0) {
         return;
     }
 
     mixerProfileAT.servoHandoffMask = handoffMask;
-    mixerProfileAT.servoHandoffDurationMs = MIXER_TRANSITION_SERVO_HANDOFF_FADE_MS;
+    mixerProfileAT.servoHandoffDurationMs = handoffDurationMs;
 
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         if ((handoffMask & (1U << i)) == 0) {
@@ -408,6 +409,16 @@ static float getMotorRampProgress(void)
         currentMixerConfig.vtolTransitionScaleRampTimeMs,
         elapsedMs);
     return mixerProfileAT.motorRampProgress;
+}
+
+static uint16_t getServoHandoffDurationMs(void)
+{
+    const uint32_t elapsedMs = millis() - mixerProfileAT.transitionStartTime;
+
+    return mixerTransitionComputeServoHandoffDurationMs(
+        currentMixerConfig.vtolTransitionDynamicMixer,
+        currentMixerConfig.vtolTransitionScaleRampTimeMs,
+        elapsedMs);
 }
 
 static float getHandoffScalingProgress(void)
@@ -914,7 +925,15 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     if (!FLIGHT_MODE(FAILSAFE_MODE) && !mixerAT_inuse)
     {
         if (mixerProfileModePresent && !transitionControllerOwnsProfileSwitch && !fwToMcProtectionOwnsProfileSwitch) {
-            outputProfileHotSwitch(requestedProfileIndex);
+            if (requestedProfileIndex != currentMixerProfileIndex) {
+                prepareServoHandoffFade(collectServoHandoffMask(requestedProfileIndex, true));
+
+                if (outputProfileHotSwitch(requestedProfileIndex)) {
+                    startServoHandoffFade();
+                } else {
+                    clearServoHandoffFade();
+                }
+            }
         }
     }
 
@@ -1136,17 +1155,15 @@ int16_t mixerATGetTransitionServoInput(void)
         mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE &&
         mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW;
     const uint32_t elapsedMs = millis() - mixerProfileAT.transitionStartTime;
-    const uint32_t transitionTimerMs = MAX(0, currentMixerConfig.switchTransitionTimer) * 100;
     const float servoBlendToFw = mixerTransitionComputeServoBlendToFw(
         isLegacyManualTransitionSessionActive(),
         isMixerTransitionMixing,
         mixerATIsActive(),
         postSwitchFadeToFwActive,
+        currentMixerConfig.vtolTransitionDynamicMixer,
         mixerProfileAT.direction,
-        mixerProfileAT.usedAirspeed,
-        mixerProfileAT.progress,
-        elapsedMs,
-        transitionTimerMs);
+        currentMixerConfig.vtolTransitionScaleRampTimeMs,
+        elapsedMs);
 
     mixerTransitionServoInput = mixerTransitionUpdateServoInput(
         mixerTransitionServoInput,

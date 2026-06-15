@@ -123,6 +123,21 @@ static inline float mixerTransitionComputeMotorRampProgress(
     return mixerTransitionClamp((float)elapsedMs / (float)scaleRampTimeMs, 0.0f, 1.0f);
 }
 
+static inline uint16_t mixerTransitionComputeServoHandoffDurationMs(
+    bool dynamicMixerEnabled,
+    uint16_t scaleRampTimeMs,
+    uint32_t elapsedMs)
+{
+    (void)dynamicMixerEnabled;
+    (void)elapsedMs;
+
+    if (scaleRampTimeMs == 0) {
+        return 0;
+    }
+
+    return scaleRampTimeMs;
+}
+
 static inline float mixerTransitionResolveHandoffProgress(
     bool dynamicMixerEnabled,
     bool usedAirspeed,
@@ -298,11 +313,10 @@ static inline float mixerTransitionComputeServoBlendToFw(
     bool transitionMixingActive,
     bool autoTransitionActive,
     bool postSwitchFadeToFwActive,
+    bool dynamicMixerEnabled,
     mixerProfileATDirection_e direction,
-    bool usedAirspeed,
-    float transitionProgress,
-    uint32_t elapsedMs,
-    uint32_t transitionTimerMs)
+    uint16_t scaleRampTimeMs,
+    uint32_t elapsedMs)
 {
     if (legacyManualTransitionActive) {
         return transitionMixingActive ? 1.0f : 0.0f;
@@ -316,13 +330,14 @@ static inline float mixerTransitionComputeServoBlendToFw(
         return 0.0f;
     }
 
-    float progress = mixerTransitionClamp(transitionProgress, 0.0f, 1.0f);
-
-    if (!usedAirspeed) {
-        progress = transitionTimerMs > 0 ?
-            mixerTransitionClamp((float)elapsedMs / (float)transitionTimerMs, 0.0f, 1.0f) :
-            1.0f;
+    if (!dynamicMixerEnabled) {
+        return transitionMixingActive ? 1.0f : 0.0f;
     }
+
+    const float progress = mixerTransitionComputeMotorRampProgress(
+        dynamicMixerEnabled,
+        scaleRampTimeMs,
+        elapsedMs);
 
     if (direction == MIXERAT_DIRECTION_TO_MC) {
         return 1.0f - progress;

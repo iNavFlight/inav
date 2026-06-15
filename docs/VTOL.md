@@ -398,7 +398,7 @@ This preview uses the target fixed-wing PID bank, rates, angle limits, heading-h
 During FW->MC the same MC mixer rules mark which FW servo outputs should fade down as fixed-wing authority is reduced and motor stabilisation comes back in.
 At the same time, target MC motor rules can fade in before the switch and use a target MC PID preview, so lift motors are not driven by the active FW/PIFF controller.
 These inputs are active only while the smooth autotransition controller is running. If `mixer_vtol_transition_dynamic_mixer = OFF`, they stay at full authority while the controller is active. If `mixer_vtol_transition_dynamic_mixer = ON`, they follow the normal fixed-wing authority scaling.
-`INPUT_MIXER_TRANSITION` remains available for transition-progress servo movement such as tilt or helper servos.
+`INPUT_MIXER_TRANSITION` remains available for tilt/helper servo movement. With `mixer_vtol_transition_dynamic_mixer = ON`, it follows `mixer_vtol_transition_scale_ramp_time_ms`. With it OFF, it keeps the older fixed transition behavior while the auto controller only decides the profile switch timing. If a profile hot-switch or direct profile switch still needs a servo handoff fade, that fade starts its own full `mixer_vtol_transition_scale_ramp_time_ms` window instead of using a separate fixed servo delay.
 
 Forward motor setup for smooth auto-transition:
 
