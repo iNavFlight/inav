@@ -285,9 +285,9 @@ static void canardSTM32GPIO_Init(void)
    // Set up the Rx and Tx pins for CAN1 and if present, the standby or listen only pin.
 #if defined(CAN1_TX) && defined(CAN1_RX)
     IOInit(IOGetByTag(IO_TAG(CAN1_TX)), OWNER_DRONECAN, RESOURCE_CAN_TX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP_FAST_UP, GPIO_AF9_FDCAN1);
     IOInit(IOGetByTag(IO_TAG(CAN1_RX)), OWNER_DRONECAN, RESOURCE_CAN_RX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_FDCAN1);
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP_FAST_UP, GPIO_AF9_FDCAN1);
 #endif
 
 

@@ -77,7 +77,7 @@ int16_t canardSTM32CAN1_Init(uint32_t bitrate)
     hcan1.Init.TimeTriggeredMode = DISABLE;
     hcan1.Init.AutoBusOff = ENABLE;
     hcan1.Init.AutoWakeUp = DISABLE;
-    hcan1.Init.AutoRetransmission = DISABLE;  // ENABLE fills the TX FIFO on a degraded bus; DroneCAN reliability is handled at the application layer
+    hcan1.Init.AutoRetransmission = ENABLE;  // ENABLE fills the TX FIFO on a degraded bus; DroneCAN reliability is handled at the application layer
     hcan1.Init.ReceiveFifoLocked = DISABLE;
     hcan1.Init.TransmitFifoPriority = ENABLE;
 
@@ -290,9 +290,9 @@ static void canardSTM32GPIO_Init(void)
    // Set up the Rx and Tx pins for CAN1 and if present, the standby or listen only pin.
 #if defined(CAN1_TX) && defined(CAN1_RX)
     IOInit(IOGetByTag(IO_TAG(CAN1_TX)), OWNER_DRONECAN, RESOURCE_CAN_TX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP, GPIO_AF9_CAN1);
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_TX)), IOCFG_AF_PP_FAST_UP, GPIO_AF9_CAN1);
     IOInit(IOGetByTag(IO_TAG(CAN1_RX)), OWNER_DRONECAN, RESOURCE_CAN_RX, 0);
-    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP, GPIO_AF9_CAN1);
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(CAN1_RX)), IOCFG_AF_PP_FAST_UP, GPIO_AF9_CAN1);
 #endif
 
 
@@ -332,7 +332,7 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
      *   250  kbps      16      17
      *   125  kbps      16      17
      */
-    const int max_quanta_per_bit = 18; //(target_bitrate >= 1000000) ? 10 : 17;
+    const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
     static const int MaxSamplePointLocation = 900;
 
     /*

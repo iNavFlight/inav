@@ -32,7 +32,7 @@
 #include "build/build_config.h"
 
 
-#if defined(USE_GPS_PROTO_DRONECAN)
+#if defined(USE_DRONECAN)
 
 #include "build/debug.h"
 

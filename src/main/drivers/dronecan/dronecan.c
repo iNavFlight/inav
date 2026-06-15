@@ -42,6 +42,7 @@ static dronecanState_e dronecanState = STATE_DRONECAN_INIT;
 static uint8_t activeNodeCount = 0;
 static dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
 static volatile uint32_t txErrCount = 0;
+static uint32_t busOffCount = 0;
 
 #if defined(STM32H7)
 static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(FDCAN1_IT0_IRQn); }
@@ -181,6 +182,7 @@ void dronecanUpdate(timeUs_t currentTimeUs)
                 if (protocolStatus.BusOff != 0) {
                     dronecanState = STATE_DRONECAN_BUS_OFF;
                     busoffTimeUs = currentTimeUs;
+                    busOffCount++;
                 }
             }
             break;
@@ -240,6 +242,16 @@ uint32_t dronecanGetBitrateKbps(void)
 const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
     if (index < activeNodeCount) return &nodeTable[index];
     return NULL;
+}
+
+uint32_t dronecanGetBusOffCount(void)
+{
+    return busOffCount;
+}
+
+CanardPoolAllocatorStatistics dronecanGetPoolStats(void)
+{
+    return canardGetPoolAllocatorStatistics(&canard);
 }
 
 // ---- ISR / HAL callbacks ----------------------------------------------------
