@@ -113,7 +113,6 @@ typedef struct navigationFlags_s {
     bool rthTrackbackActive;                // Activation status of RTH trackback
     bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
     bool manualEmergLandActive;             // Activation status of manual emergency landing
-
 #ifdef USE_GEOZONE
     bool sendToActive;
     bool forcedPosholdActive;
@@ -425,6 +424,12 @@ typedef enum {
     RTH_HOME_FINAL_LAND,            // Home position and altitude
 } rthTargetMode_e;
 
+typedef enum {
+    FW_AUTO_SPD_GROUND,
+    FW_AUTO_SPD_AIR,
+    FW_AUTO_SPD_GROUND_OVERRIDE,
+} fwAutoSpeedSpdSource_e;
+
 #ifdef USE_GEOZONE
 typedef struct navSendTo_s {
     fpVector3_t targetPos;
@@ -511,6 +516,8 @@ typedef struct {
 #ifdef USE_GEOZONE
     navSendTo_t                  sendTo; // Used for Geozones
 #endif
+
+    uint8_t autoSpeedSpdSource;             // Auto Speed mode speed source
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];

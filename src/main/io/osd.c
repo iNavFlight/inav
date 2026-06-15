@@ -1993,11 +1993,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
      case OSD_AUTO_SPEED:
         if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED)) {
-            buff[0] = navIsAutoSpeedAirspeedUsed() ? 'A' : 'G';
+            buff[0] = posControl.autoSpeedSpdSource == FW_AUTO_SPD_GROUND ? 'G' : 'A';
             strcpy(buff + 1, ": OFF");
             if (isFixedwingAutoSpeedActive()) {
                 osdFormatVelocityStr(buff + 2, posControl.desiredState.autoSpeedDemand, OSD_SPEED_TYPE_3D, false);
                 buff[6] = '\0';
+                if (posControl.autoSpeedSpdSource == FW_AUTO_SPD_GROUND_OVERRIDE && OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                    buff[0] = 'G';
+                }
             }
             break;
         } else {

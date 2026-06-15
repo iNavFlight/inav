@@ -823,7 +823,6 @@ bool rthAltControlStickOverrideCheck(uint8_t axis);
 int8_t navCheckActiveAngleHoldAxis(void);
 uint8_t getActiveWpNumber(void);
 uint16_t getFlownLoiterRadius(void);
-bool navIsAutoSpeedAirspeedUsed(void);
 bool isFixedwingAutoSpeedActive(void);
 void getAutoSpeedThrottleDemand(int16_t *throttleCommand);
 
