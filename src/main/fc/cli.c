@@ -4707,6 +4707,8 @@ static void cliDronecan(char *cmdline)
     canardSTM32GetProtocolStatus(&stat);
     int32_t txFill = canardSTM32GetTxQueueFillLevel();
     int32_t rxFill = canardSTM32GetRxFifoFillLevel();
+    uint32_t busOffCount = dronecanGetBusOffCount();
+    CanardPoolAllocatorStatistics poolStats = dronecanGetPoolStats();
     cliPrintLine("DroneCAN CAN peripheral status:");
     cliPrintLinef("  BusOff:       %s", stat.BusOff       ? "YES" : "no");
     cliPrintLinef("  ErrorPassive: %s", stat.ErrorPassive ? "YES" : "no");
@@ -4715,6 +4717,11 @@ static void cliDronecan(char *cmdline)
     cliPrintLinef("  LEC:          %s (%u)", lecNames[stat.lec], (unsigned)stat.lec);
     cliPrintLinef("  TX queue:     %" PRId32, txFill);
     cliPrintLinef("  RX buffer:    %" PRId32, rxFill);
+    cliPrintLinef("  BusOff count: %" PRIu32, busOffCount);
+    cliPrintLinef("  Pool blocks:  %u used, %u peak, %u capacity",
+                  poolStats.current_usage_blocks,
+                  poolStats.peak_usage_blocks,
+                  poolStats.capacity_blocks);
 }
 #endif
 
