@@ -27,7 +27,7 @@
 #endif
 
 #define LED0                    PA14  //Blue
-#define LED1                    PA13  //Green
+#define LED1                    PA13  //Green、黁
 
 #define BEEPER                  PB9
 #define BEEPER_INVERTED
