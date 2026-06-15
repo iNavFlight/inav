@@ -48,6 +48,9 @@ static bool manualTransitionReadyForEdge = true;
 static mixerTransitionManualSessionMode_e manualTransitionSessionMode;
 static bool manualFwToMcProtectionLatched;
 static int16_t mixerTransitionServoInput;
+// Servos need their own short handoff because profile reload can change the
+// final servo mix abruptly even when motor-scale debug values stay neutral.
+#define MIXER_TRANSITION_SERVO_HANDOFF_FADE_MS 100U
 #endif
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored mixer profile layout only on >512 KB targets.
@@ -167,6 +170,176 @@ void setMixerProfileAT(void)
 }
 
 #ifdef USE_AUTO_TRANSITION
+static void clearServoHandoffFade(void)
+{
+    mixerProfileAT.servoHandoffMask = 0;
+    mixerProfileAT.servoHandoffDurationMs = 0;
+    mixerProfileAT.servoHandoffStartTime = 0;
+    memset(mixerProfileAT.servoHandoffOutput, 0, sizeof(mixerProfileAT.servoHandoffOutput));
+}
+
+static bool isServoTransitionLinkedInputSource(const uint8_t inputSource)
+{
+    return inputSource == INPUT_MIXER_TRANSITION ||
+           (inputSource >= INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL &&
+            inputSource <= INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS);
+}
+
+static uint32_t collectServoTargetMask(const servoMixer_t *rules)
+{
+    uint32_t mask = 0;
+
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        if (rules[i].rate == 0) {
+            break;
+        }
+
+        if (rules[i].targetChannel < MAX_SUPPORTED_SERVOS) {
+            mask |= 1U << rules[i].targetChannel;
+        }
+    }
+
+    return mask;
+}
+
+static uint32_t collectTransitionLinkedServoTargetMask(const servoMixer_t *rules)
+{
+    uint32_t mask = 0;
+
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        if (rules[i].rate == 0) {
+            break;
+        }
+
+        if (rules[i].targetChannel >= MAX_SUPPORTED_SERVOS ||
+            !isServoTransitionLinkedInputSource(rules[i].inputSource)) {
+            continue;
+        }
+
+        mask |= 1U << rules[i].targetChannel;
+    }
+
+    return mask;
+}
+
+static bool servoMixerRuleMatches(const servoMixer_t *lhs, const servoMixer_t *rhs)
+{
+    return lhs->targetChannel == rhs->targetChannel &&
+           lhs->inputSource == rhs->inputSource &&
+           lhs->rate == rhs->rate &&
+           lhs->speed == rhs->speed
+#ifdef USE_PROGRAMMING_FRAMEWORK
+           && lhs->conditionId == rhs->conditionId
+#endif
+        ;
+}
+
+static int collectServoRulesForTarget(const servoMixer_t *rules, const uint8_t targetChannel, const servoMixer_t *targetRules[MAX_SERVO_RULES])
+{
+    int ruleCount = 0;
+
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        if (rules[i].rate == 0) {
+            break;
+        }
+
+        if (rules[i].targetChannel != targetChannel) {
+            continue;
+        }
+
+        targetRules[ruleCount++] = &rules[i];
+    }
+
+    return ruleCount;
+}
+
+static bool servoTargetRulesDiffer(const servoMixer_t *currentRules, const servoMixer_t *targetRules, const uint8_t targetChannel)
+{
+    const servoMixer_t *currentTargetRules[MAX_SERVO_RULES];
+    const servoMixer_t *nextTargetRules[MAX_SERVO_RULES];
+    const int currentRuleCount = collectServoRulesForTarget(currentRules, targetChannel, currentTargetRules);
+    const int nextRuleCount = collectServoRulesForTarget(targetRules, targetChannel, nextTargetRules);
+
+    if (currentRuleCount != nextRuleCount) {
+        return true;
+    }
+
+    for (int i = 0; i < currentRuleCount; i++) {
+        if (!servoMixerRuleMatches(currentTargetRules[i], nextTargetRules[i])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static uint32_t collectServoProfileDifferenceMask(const servoMixer_t *currentRules, const servoMixer_t *targetRules)
+{
+    const uint32_t allTargetsMask = collectServoTargetMask(currentRules) | collectServoTargetMask(targetRules);
+    uint32_t differenceMask = 0;
+
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        if ((allTargetsMask & (1U << i)) == 0) {
+            continue;
+        }
+
+        if (servoTargetRulesDiffer(currentRules, targetRules, i)) {
+            differenceMask |= 1U << i;
+        }
+    }
+
+    return differenceMask;
+}
+
+static uint32_t collectServoHandoffMask(const int targetProfileIndex, const bool includeProfileDifferences)
+{
+    const servoMixer_t *currentRules = mixerServoMixersByIndex(currentMixerProfileIndex);
+    uint32_t handoffMask = collectTransitionLinkedServoTargetMask(currentRules);
+
+    if (targetProfileIndex < 0 || targetProfileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        return handoffMask;
+    }
+
+    const servoMixer_t *targetRules = mixerServoMixersByIndex(targetProfileIndex);
+
+    handoffMask |= collectTransitionLinkedServoTargetMask(targetRules);
+
+    if (includeProfileDifferences) {
+        handoffMask |= collectServoProfileDifferenceMask(currentRules, targetRules);
+    }
+
+    return handoffMask;
+}
+
+static void prepareServoHandoffFade(const uint32_t handoffMask)
+{
+    clearServoHandoffFade();
+
+    if (handoffMask == 0) {
+        return;
+    }
+
+    mixerProfileAT.servoHandoffMask = handoffMask;
+    mixerProfileAT.servoHandoffDurationMs = MIXER_TRANSITION_SERVO_HANDOFF_FADE_MS;
+
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        if ((handoffMask & (1U << i)) == 0) {
+            continue;
+        }
+
+        mixerProfileAT.servoHandoffOutput[i] = servo[i];
+    }
+}
+
+static void startServoHandoffFade(void)
+{
+    if (mixerProfileAT.servoHandoffMask == 0 || mixerProfileAT.servoHandoffDurationMs == 0) {
+        return;
+    }
+
+    mixerProfileAT.servoHandoffStartTime = millis();
+}
+
 static bool requestTransitionsToFixedWing(const mixerProfileATRequest_e required_action)
 {
     return required_action == MIXERAT_REQUEST_RTH ||
@@ -442,6 +615,12 @@ static void updateTransitionScales(void)
 static void abortTransition(const bool byAirspeedTimeout)
 {
     const bool wasActive = mixerProfileAT.phase != MIXERAT_PHASE_IDLE;
+    const bool hotSwitchAlreadyDone = mixerProfileAT.hotSwitchDone;
+
+    if (wasActive && !hotSwitchAlreadyDone) {
+        prepareServoHandoffFade(collectServoHandoffMask(nextMixerProfileIndex, false));
+    }
+
     isMixerTransitionMixing_requested = false;
     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
     mixerProfileAT.aborted = wasActive;
@@ -453,6 +632,10 @@ static void abortTransition(const bool byAirspeedTimeout)
     mixerProfileAT.transitionStartAirspeedCaptured = false;
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
     resetTransitionScales();
+
+    if (wasActive && !hotSwitchAlreadyDone) {
+        startServoHandoffFade();
+    }
 }
 
 static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_action)
@@ -586,12 +769,14 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                 isMixerTransitionMixing_requested = false;
                 mixerProfileAT.progress = 1.0f;
                 updateTransitionScales();
+                prepareServoHandoffFade(collectServoHandoffMask(nextMixerProfileIndex, true));
                 preparePostSwitchFade(nextMixerProfileIndex);
                 if (!outputProfileHotSwitch(nextMixerProfileIndex)) {
                     abortTransition(false);
                     return true;
                 }
                 mixerProfileAT.hotSwitchDone = true;
+                startServoHandoffFade();
                 if (!startPostSwitchFade()) {
                     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
                     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
@@ -950,6 +1135,18 @@ int16_t mixerATGetTransitionServoInput(void)
     const bool postSwitchFadeToFwActive =
         mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE &&
         mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW;
+    const uint32_t elapsedMs = millis() - mixerProfileAT.transitionStartTime;
+    const uint32_t transitionTimerMs = MAX(0, currentMixerConfig.switchTransitionTimer) * 100;
+    const float servoBlendToFw = mixerTransitionComputeServoBlendToFw(
+        isLegacyManualTransitionSessionActive(),
+        isMixerTransitionMixing,
+        mixerATIsActive(),
+        postSwitchFadeToFwActive,
+        mixerProfileAT.direction,
+        mixerProfileAT.usedAirspeed,
+        mixerProfileAT.progress,
+        elapsedMs,
+        transitionTimerMs);
 
     mixerTransitionServoInput = mixerTransitionUpdateServoInput(
         mixerTransitionServoInput,
@@ -958,7 +1155,7 @@ int16_t mixerATGetTransitionServoInput(void)
         mixerATIsActive(),
         postSwitchFadeToFwActive,
         mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW,
-        mixerATGetBlendToFw());
+        servoBlendToFw);
 
     return mixerTransitionServoInput;
 #else
@@ -967,6 +1164,30 @@ int16_t mixerATGetTransitionServoInput(void)
 }
 
 #ifdef USE_AUTO_TRANSITION
+bool mixerATGetServoHandoffOutput(uint8_t servoIndex, int16_t currentOutput, int16_t *output)
+{
+    if (servoIndex >= MAX_SUPPORTED_SERVOS ||
+        mixerProfileAT.servoHandoffMask == 0 ||
+        (mixerProfileAT.servoHandoffMask & (1U << servoIndex)) == 0) {
+        return false;
+    }
+
+    const float progress = mixerProfileAT.servoHandoffDurationMs == 0 ?
+        1.0f :
+        constrainf((float)(millis() - mixerProfileAT.servoHandoffStartTime) / (float)mixerProfileAT.servoHandoffDurationMs, 0.0f, 1.0f);
+
+    *output = mixerTransitionBlendCapturedServoOutput(
+        mixerProfileAT.servoHandoffOutput[servoIndex],
+        currentOutput,
+        progress);
+
+    if (progress >= 1.0f) {
+        clearServoHandoffFade();
+    }
+
+    return true;
+}
+
 bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output)
 {
     if (mixerProfileAT.phase != MIXERAT_PHASE_POST_SWITCH_FADE ||

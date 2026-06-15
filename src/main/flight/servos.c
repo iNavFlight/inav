@@ -618,6 +618,13 @@ void servoMixer(float dT)
          * allowed the situation when smix weight sum for an output was above 100
          */
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
+
+#ifdef USE_AUTO_TRANSITION
+        int16_t handoffOutput = 0;
+        if (mixerATGetServoHandoffOutput(i, servo[i], &handoffOutput)) {
+            servo[i] = constrain(handoffOutput, servoParams(i)->min, servoParams(i)->max);
+        }
+#endif
     }
 
 }

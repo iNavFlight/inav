@@ -54,29 +54,23 @@ struct ManualTransitionScenario {
     bool transitionToFw = true;
 };
 
-float computeBlendToFwForStep(
+float computeTransitionServoBlendForStep(
     const mixerProfileATDirection_e direction,
-    float *handoffProgress,
     const bool usedAirspeed,
     const float rawProgress,
-    const float motorRampProgress)
+    const uint32_t elapsedMs,
+    const uint32_t transitionTimerMs)
 {
-    *handoffProgress = mixerTransitionResolveHandoffProgress(
+    return mixerTransitionComputeServoBlendToFw(
+        false,
         true,
-        usedAirspeed,
-        *handoffProgress,
-        rawProgress);
-
-    const mixerTransitionScaleState_t scales = mixerTransitionComputeScales(
         true,
+        false,
         direction,
-        0.20f,
-        0.30f,
-        0.40f,
-        *handoffProgress,
-        motorRampProgress);
-
-    return scales.blendToFw;
+        usedAirspeed,
+        rawProgress,
+        elapsedMs,
+        transitionTimerMs);
 }
 
 } // namespace
@@ -105,7 +99,6 @@ TEST(MixerTransitionScenarioTest, LegacyManualMcToFwSessionStaysLegacyAcrossProf
 TEST(MixerTransitionScenarioTest, AutoMcToFwSessionStaysMonotonicAcrossAirspeedDropoutAndHotSwitch)
 {
     ManualTransitionScenario scenario(true);
-    float handoffProgress = 0.0f;
 
     scenario.setTransitionMode(true, true);
     EXPECT_EQ(MIXER_TRANSITION_MANUAL_SESSION_AUTO, scenario.sessionMode);
@@ -120,16 +113,16 @@ TEST(MixerTransitionScenarioTest, AutoMcToFwSessionStaysMonotonicAcrossAirspeedD
         0,
         1000);
     EXPECT_FALSE(hotSwitchProgress.readyForHotSwitch);
-    EXPECT_EQ(296, scenario.updateServo(
+    EXPECT_EQ(160, scenario.updateServo(
         true,
         scenario.autoControllerEnabled(true),
         false,
-        computeBlendToFwForStep(
+        computeTransitionServoBlendForStep(
             MIXERAT_DIRECTION_TO_FW,
-            &handoffProgress,
             hotSwitchProgress.usedAirspeed,
             hotSwitchProgress.progress,
-            0.25f)));
+            0,
+            1000)));
 
     hotSwitchProgress = mixerTransitionEvaluateHotSwitch(
         MIXERAT_DIRECTION_TO_FW,
@@ -141,16 +134,16 @@ TEST(MixerTransitionScenarioTest, AutoMcToFwSessionStaysMonotonicAcrossAirspeedD
         0,
         1000);
     EXPECT_FALSE(hotSwitchProgress.readyForHotSwitch);
-    EXPECT_EQ(395, scenario.updateServo(
+    EXPECT_EQ(325, scenario.updateServo(
         true,
         scenario.autoControllerEnabled(true),
         false,
-        computeBlendToFwForStep(
+        computeTransitionServoBlendForStep(
             MIXERAT_DIRECTION_TO_FW,
-            &handoffProgress,
             hotSwitchProgress.usedAirspeed,
             hotSwitchProgress.progress,
-            0.55f)));
+            0,
+            1000)));
 
     // After a profile hot-switch, the active auto session must survive even if
     // the target profile itself has the manual controller disabled.
@@ -168,20 +161,20 @@ TEST(MixerTransitionScenarioTest, AutoMcToFwSessionStaysMonotonicAcrossAirspeedD
         500,
         1000);
     EXPECT_FALSE(hotSwitchProgress.readyForHotSwitch);
-    EXPECT_EQ(395, scenario.updateServo(
+    EXPECT_EQ(325, scenario.updateServo(
         true,
         scenario.autoControllerEnabled(false),
         false,
-        computeBlendToFwForStep(
+        computeTransitionServoBlendForStep(
             MIXERAT_DIRECTION_TO_FW,
-            &handoffProgress,
             hotSwitchProgress.usedAirspeed,
             hotSwitchProgress.progress,
-            0.75f)));
+            500,
+            1000)));
 
     // Even if the raw blend source drops during the same control cycle as the
     // hot-switch, the MC->FW servo source must not move backwards.
-    EXPECT_EQ(395, scenario.updateServo(
+    EXPECT_EQ(325, scenario.updateServo(
         false,
         scenario.autoControllerEnabled(false),
         false,
@@ -200,7 +193,6 @@ TEST(MixerTransitionScenarioTest, AutoMcToFwSessionStaysMonotonicAcrossAirspeedD
 TEST(MixerTransitionScenarioTest, AutoFwToMcSessionUsesCapturedAirspeedAndReturnsTowardMultirotor)
 {
     ManualTransitionScenario scenario(false);
-    float handoffProgress = 0.0f;
 
     scenario.setTransitionMode(true, true);
     EXPECT_EQ(MIXER_TRANSITION_MANUAL_SESSION_AUTO, scenario.sessionMode);
@@ -219,12 +211,12 @@ TEST(MixerTransitionScenarioTest, AutoFwToMcSessionUsesCapturedAirspeedAndReturn
         true,
         scenario.autoControllerEnabled(true),
         false,
-        computeBlendToFwForStep(
+        computeTransitionServoBlendForStep(
             MIXERAT_DIRECTION_TO_MC,
-            &handoffProgress,
             hotSwitchProgress.usedAirspeed,
             hotSwitchProgress.progress,
-            0.0f)));
+            0,
+            1000)));
 
     hotSwitchProgress = mixerTransitionEvaluateHotSwitch(
         MIXERAT_DIRECTION_TO_MC,
@@ -236,16 +228,16 @@ TEST(MixerTransitionScenarioTest, AutoFwToMcSessionUsesCapturedAirspeedAndReturn
         0,
         1000);
     EXPECT_FALSE(hotSwitchProgress.readyForHotSwitch);
-    EXPECT_EQ(350, scenario.updateServo(
+    EXPECT_EQ(250, scenario.updateServo(
         true,
         scenario.autoControllerEnabled(true),
         false,
-        computeBlendToFwForStep(
+        computeTransitionServoBlendForStep(
             MIXERAT_DIRECTION_TO_MC,
-            &handoffProgress,
             hotSwitchProgress.usedAirspeed,
             hotSwitchProgress.progress,
-            0.50f)));
+            0,
+            1000)));
 
     hotSwitchProgress = mixerTransitionEvaluateHotSwitch(
         MIXERAT_DIRECTION_TO_MC,
@@ -257,16 +249,16 @@ TEST(MixerTransitionScenarioTest, AutoFwToMcSessionUsesCapturedAirspeedAndReturn
         0,
         1000);
     EXPECT_TRUE(hotSwitchProgress.readyForHotSwitch);
-    EXPECT_EQ(200, scenario.updateServo(
+    EXPECT_EQ(0, scenario.updateServo(
         true,
         scenario.autoControllerEnabled(true),
         false,
-        computeBlendToFwForStep(
+        computeTransitionServoBlendForStep(
             MIXERAT_DIRECTION_TO_MC,
-            &handoffProgress,
             hotSwitchProgress.usedAirspeed,
             hotSwitchProgress.progress,
-            1.0f)));
+            0,
+            1000)));
 
     scenario.setTransitionMode(false, true);
     EXPECT_EQ(MIXER_TRANSITION_MANUAL_SESSION_NONE, scenario.sessionMode);
@@ -278,7 +270,6 @@ TEST(MixerTransitionScenarioTest, PusherHotSwitchFadeScenarioCapturesOnlyNonShar
     motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS] = {};
     motorMixer_t targetMixer[MAX_SUPPORTED_MOTORS] = {};
     ManualTransitionScenario scenario(true);
-    float handoffProgress = 0.0f;
 
     currentMixer[0].throttle = 1.0f; // shared tilt motor
     currentMixer[1].throttle = 1.0f; // lift motor disappears after switch
@@ -290,12 +281,12 @@ TEST(MixerTransitionScenarioTest, PusherHotSwitchFadeScenarioCapturesOnlyNonShar
         true,
         scenario.autoControllerEnabled(true),
         false,
-        computeBlendToFwForStep(
+        computeTransitionServoBlendForStep(
             MIXERAT_DIRECTION_TO_FW,
-            &handoffProgress,
             true,
             1.0f,
-            1.0f)));
+            1000,
+            1000)));
 
     const mixerTransitionPostSwitchFadeMask_t fadeMask = mixerTransitionComputePostSwitchFadeMask(
         true,
@@ -320,7 +311,6 @@ TEST(MixerTransitionScenarioTest, SharedTiltOnlyHotSwitchScenarioNeedsNoFadeAndS
     motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS] = {};
     motorMixer_t targetMixer[MAX_SUPPORTED_MOTORS] = {};
     ManualTransitionScenario scenario(true);
-    float handoffProgress = 0.0f;
 
     currentMixer[0].throttle = 1.0f;
     targetMixer[0].throttle = 1.0f;
@@ -330,12 +320,12 @@ TEST(MixerTransitionScenarioTest, SharedTiltOnlyHotSwitchScenarioNeedsNoFadeAndS
         true,
         scenario.autoControllerEnabled(true),
         false,
-        computeBlendToFwForStep(
+        computeTransitionServoBlendForStep(
             MIXERAT_DIRECTION_TO_FW,
-            &handoffProgress,
             true,
             1.0f,
-            1.0f)));
+            1000,
+            1000)));
 
     const mixerTransitionPostSwitchFadeMask_t fadeMask = mixerTransitionComputePostSwitchFadeMask(
         true,

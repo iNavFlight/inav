@@ -151,3 +151,78 @@ TEST(MixerTransitionLogicTest, AutoServoInputDoesNotMoveBackwardsDuringMcToFw)
         0.0f);
     EXPECT_EQ(0, servoInput);
 }
+
+TEST(MixerTransitionLogicTest, AutoServoBlendUsesTransitionProgressInsteadOfNeutralAuthorityScales)
+{
+    const float blendAtTransitionStart = mixerTransitionComputeServoBlendToFw(
+        false,
+        true,
+        true,
+        false,
+        MIXERAT_DIRECTION_TO_FW,
+        false,
+        0.0f,
+        10,
+        16000);
+
+    EXPECT_LT(blendAtTransitionStart, 0.01f);
+    EXPECT_EQ(0, mixerTransitionUpdateServoInput(
+        0,
+        false,
+        true,
+        true,
+        false,
+        true,
+        blendAtTransitionStart));
+
+    EXPECT_FLOAT_EQ(0.65f, mixerTransitionComputeServoBlendToFw(
+        false,
+        true,
+        true,
+        false,
+        MIXERAT_DIRECTION_TO_FW,
+        true,
+        0.65f,
+        0,
+        0));
+}
+
+TEST(MixerTransitionLogicTest, AutoServoBlendCountsBackDownDuringFwToMc)
+{
+    EXPECT_FLOAT_EQ(0.75f, mixerTransitionComputeServoBlendToFw(
+        false,
+        true,
+        true,
+        false,
+        MIXERAT_DIRECTION_TO_MC,
+        true,
+        0.25f,
+        0,
+        0));
+
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionComputeServoBlendToFw(
+        false,
+        false,
+        true,
+        true,
+        MIXERAT_DIRECTION_TO_FW,
+        false,
+        0.0f,
+        0,
+        0));
+}
+
+TEST(MixerTransitionLogicTest, ServoHandoffBlendStartsFromCapturedOutputAfterHotSwitch)
+{
+    EXPECT_EQ(1366, mixerTransitionBlendCapturedServoOutput(1366, 980, 0.0f));
+    EXPECT_EQ(1270, mixerTransitionBlendCapturedServoOutput(1366, 980, 0.25f));
+    EXPECT_EQ(1173, mixerTransitionBlendCapturedServoOutput(1366, 980, 0.50f));
+    EXPECT_EQ(980, mixerTransitionBlendCapturedServoOutput(1366, 980, 1.0f));
+}
+
+TEST(MixerTransitionLogicTest, ServoHandoffBlendReturnsSmoothlyAfterAbort)
+{
+    EXPECT_EQ(1651, mixerTransitionBlendCapturedServoOutput(1651, 1224, 0.0f));
+    EXPECT_EQ(1438, mixerTransitionBlendCapturedServoOutput(1651, 1224, 0.50f));
+    EXPECT_EQ(1224, mixerTransitionBlendCapturedServoOutput(1651, 1224, 1.0f));
+}

@@ -292,6 +292,46 @@ static inline mixerTransitionPostSwitchFadeMask_t mixerTransitionComputePostSwit
 }
 #endif
 
+#ifdef USE_AUTO_TRANSITION
+static inline float mixerTransitionComputeServoBlendToFw(
+    bool legacyManualTransitionActive,
+    bool transitionMixingActive,
+    bool autoTransitionActive,
+    bool postSwitchFadeToFwActive,
+    mixerProfileATDirection_e direction,
+    bool usedAirspeed,
+    float transitionProgress,
+    uint32_t elapsedMs,
+    uint32_t transitionTimerMs)
+{
+    if (legacyManualTransitionActive) {
+        return transitionMixingActive ? 1.0f : 0.0f;
+    }
+
+    if (postSwitchFadeToFwActive) {
+        return 1.0f;
+    }
+
+    if (!autoTransitionActive || direction == MIXERAT_DIRECTION_NONE) {
+        return 0.0f;
+    }
+
+    float progress = mixerTransitionClamp(transitionProgress, 0.0f, 1.0f);
+
+    if (!usedAirspeed) {
+        progress = transitionTimerMs > 0 ?
+            mixerTransitionClamp((float)elapsedMs / (float)transitionTimerMs, 0.0f, 1.0f) :
+            1.0f;
+    }
+
+    if (direction == MIXERAT_DIRECTION_TO_MC) {
+        return 1.0f - progress;
+    }
+
+    return progress;
+}
+#endif
+
 static inline int16_t mixerTransitionBlendToServoInput(float blendToFw)
 {
     if (blendToFw <= 0.0f) {
@@ -336,4 +376,25 @@ static inline int16_t mixerTransitionUpdateServoInput(
     }
 
     return desiredInput;
+}
+
+static inline int16_t mixerTransitionBlendCapturedServoOutput(
+    int16_t capturedOutput,
+    int16_t currentOutput,
+    float progress)
+{
+    const float holdScale = 1.0f - mixerTransitionClamp(progress, 0.0f, 1.0f);
+    const float fadedOutput = currentOutput + (capturedOutput - currentOutput) * holdScale;
+    const int16_t minOutput = capturedOutput < currentOutput ? capturedOutput : currentOutput;
+    const int16_t maxOutput = capturedOutput > currentOutput ? capturedOutput : currentOutput;
+
+    if (fadedOutput <= minOutput) {
+        return minOutput;
+    }
+
+    if (fadedOutput >= maxOutput) {
+        return maxOutput;
+    }
+
+    return (int16_t)(fadedOutput + (fadedOutput >= 0.0f ? 0.5f : -0.5f));
 }

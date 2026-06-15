@@ -96,6 +96,10 @@ typedef struct mixerProfileAT_s {
     uint16_t postSwitchFadeDurationMs;
     uint16_t postSwitchFadeMotorOutput[MAX_SUPPORTED_MOTORS];
     timeMs_t postSwitchFadeStartTime;
+    uint32_t servoHandoffMask;
+    uint16_t servoHandoffDurationMs;
+    int16_t servoHandoffOutput[MAX_SUPPORTED_SERVOS];
+    timeMs_t servoHandoffStartTime;
     timeMs_t transitionStartTime;
 #else
     bool transitionInputMixing;
@@ -119,6 +123,7 @@ int16_t mixerATGetTransitionServoInput(void);
 #ifdef USE_AUTO_TRANSITION
 bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output);
 float mixerATGetPostSwitchFadeProgress(void);
+bool mixerATGetServoHandoffOutput(uint8_t servoIndex, int16_t currentOutput, int16_t *output);
 #endif
 bool isMixerProfile2ModeReportedActive(void);
 bool isMixerTransitionModeReportedActive(void);
