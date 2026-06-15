@@ -169,7 +169,7 @@ typedef enum
     DREF_XITL_BATTERY_CURRENT,
     DREF_XITL_RSSI,
     DREF_XITL_FAILSAFE,
-    
+
     DREF_LAST
 } dref_t;
 
@@ -560,8 +560,8 @@ static void exchangeDataWithXPlane(void)
     }
 
     gpsFakeSet(
-        fixType, 
-        numSats, 
+        fixType,
+        numSats,
         (int32_t)roundf(lattitude * 10000000),
         (int32_t)roundf(longitude * 10000000),
         (int32_t)roundf(elevation * 100),
@@ -687,7 +687,7 @@ static void* listenWorker(void* arg)
                 // calibration of the accelerometer
                 ENABLE_STATE(ACCELEROMETER_CALIBRATED);
                 connectionState = CONNECTED;
-                
+
                 break;
             }
             case CONNECTED:
