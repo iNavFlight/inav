@@ -5,6 +5,10 @@
  *      Author: Roni Kant
  */
 
+#include "platform.h"
+
+#ifdef USE_DRONECAN
+
 #include "common/log.h"
 #include "common/time.h"
 #include "drivers/io.h"
@@ -459,3 +463,5 @@ static uint8_t rxBufferNumMessages(struct RxBuffer_t *rxBuf) {
 
     return (rxBuf->writeIndex - rxBuf->readIndex);
 }
+
+#endif

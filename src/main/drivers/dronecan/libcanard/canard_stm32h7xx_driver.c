@@ -5,6 +5,10 @@
  *      Author: Roni Kant
  */
 
+#include "platform.h"
+
+#ifdef USE_DRONECAN
+
 #include "common/log.h"
 #include "common/time.h"
 #include "drivers/io.h"
@@ -414,3 +418,5 @@ static bool canardSTM32ComputeTimings(const uint32_t target_bitrate, struct Timi
 
     return true;
 }
+
+#endif
