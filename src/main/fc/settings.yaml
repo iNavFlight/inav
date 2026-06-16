@@ -3026,23 +3026,29 @@ groups:
         min: 0
         max: 65535
       - name: fw_auto_speed_min_speed
-        description: "Minimum allowed speed demand for auto speed mode [m/s]."
+        description: "Minimum allowed speed demand for Auto Speed mode [m/s]."
         default_value: 11
         field: fw.auto_speed_min_speed
         min: 5
         max: 50
       - name: fw_auto_speed_max_speed
-        description: "Maximum allowed speed demand for auto speed mode [m/s]."
+        description: "Maximum allowed speed demand for Auto Speed mode [m/s]."
         default_value: 22
         field: fw.auto_speed_max_speed
         min: 5
         max: 50
       - name: fw_auto_speed_channel
-        description: "Channel number used to set desired Auto speed demand value. Defaults to throttle channel 4."
+        description: "Channel number used to set desired Auto Speed demand value. Defaults to throttle channel 4."
         default_value: 4
         field: fw.auto_speed_channel
         min: 4
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: fw_auto_speed_thr_smoothing
+        description: "Changes how smoothly the throttle responds in Auto Speed mode. Increasing the setting makes throttle changes smoother but also reduces throttle response."
+        default_value: 4
+        field: fw.auto_speed_thr_smoothing
+        min: 1
+        max: 10
       - name: nav_fw_control_smoothness
         description: "How smoothly the autopilot controls the airplane to correct the navigation error"
         default_value: 0

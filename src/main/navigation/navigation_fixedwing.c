@@ -877,8 +877,10 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
  *-----------------------------------------------------------*/
 bool isFixedwingAutoSpeedActive(void)
 {
-    return STATE(AIRPLANE) && ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXAUTOSPEED) && isProbablyStillFlying() &&
-            !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(SOARING_MODE) &&
+    bool thrStickEmergStop = navConfig()->fw.auto_speed_channel != (THROTTLE + 1) && throttleStickIsLow();
+
+    return STATE(AIRPLANE) && ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXAUTOSPEED) && isProbablyStillFlying() && !thrStickEmergStop &&
+            !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
             posControl.flags.estVelStatus == EST_TRUSTED && posControl.flags.estAltStatus == EST_TRUSTED &&
             !(navigationRequiresAutoThrottleMode() && !(navGetCurrentStateFlags() & NAV_CTL_SPEED));
 }
@@ -897,7 +899,7 @@ void getAutoSpeedThrottleDemand(int16_t *throttleCommand)
         static pt1Filter_t speedToThrFilterState;
 
         if (dT > MAX_POSITION_UPDATE_INTERVAL_US) {
-            if (!speedToThrFilterState.RC) pt1FilterSetCutoff(&speedToThrFilterState, 0.25f);
+            if (!speedToThrFilterState.RC) pt1FilterSetCutoff(&speedToThrFilterState, 1.0f / navConfig()->fw.auto_speed_thr_smoothing);
             return;
         }
 

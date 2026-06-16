@@ -1358,7 +1358,7 @@ S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GN
 
 ### fw_auto_speed_channel
 
-Channel number used to set desired Auto speed demand value. Defaults to throttle channel 4.
+Channel number used to set desired Auto Speed demand value. Defaults to throttle channel 4.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1378,7 +1378,7 @@ Minimum throttle for LEVEL flight in auto speed mode when using ground speed as 
 
 ### fw_auto_speed_max_speed
 
-Maximum allowed speed demand for auto speed mode [m/s].
+Maximum allowed speed demand for Auto Speed mode [m/s].
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1388,11 +1388,21 @@ Maximum allowed speed demand for auto speed mode [m/s].
 
 ### fw_auto_speed_min_speed
 
-Minimum allowed speed demand for auto speed mode [m/s].
+Minimum allowed speed demand for Auto Speed mode [m/s].
 
 | Default | Min | Max |
 | --- | --- | --- |
 | 11 | 5 | 50 |
+
+---
+
+### fw_auto_speed_thr_smoothing
+
+Changes how smoothly the throttle responds in Auto Speed mode. Increasing the setting makes throttle changes smoother but also reduces throttle response.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 1 | 10 |
 
 ---
 
