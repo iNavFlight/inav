@@ -2720,6 +2720,7 @@ Selection of mag hardware. See Wiki Sensor auto detect and hardware failure dete
 | RM3100 |  |
 | VCM5883 |  |
 | MLX90393 |  |
+| LIS2MDL |  |
 | FAKE |  |
 
 ---
