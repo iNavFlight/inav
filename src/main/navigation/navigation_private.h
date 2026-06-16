@@ -41,6 +41,11 @@
 
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
+// A landed multicopter should have near-zero vertical speed. Keep this independent
+// from nav_land_detect_sensitivity so higher sensitivity cannot disarm during descent.
+#define MC_LAND_DETECT_MAX_VEL_Z            50.0f   // cm/s
+// Only allow autonomous land detection near the configured final slow-descent phase.
+#define MC_LAND_DETECT_DESCENT_DEMAND_MARGIN 25.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm

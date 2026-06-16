@@ -56,6 +56,7 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#include "navigation/navigation_vtol_mc_protection.h"
 #include "navigation/rth_trackback.h"
 
 #include "rx/rx.h"
@@ -92,6 +93,7 @@
 #define NAV_MIXERAT_RETRY_HEADING_STEP_TIMEOUT_MS 6000
 #define NAV_MIXERAT_RETRY_MAX_TOTAL_MS       45000
 #define NAV_MIXERAT_MISSION_TRANSITION_TRACK_DISTANCE_CM 4000
+#define NAV_MIXERAT_MISSION_TRANSITION_ALTITUDE_FALLBACK_TOLERANCE_CM 100
 #endif
 
 /*-----------------------------------------------------------
@@ -217,7 +219,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_boost_disengage_speed = SETTING_NAV_MC_BRAKING_BOOST_DISENGAGE_SPEED_DEFAULT,   // Disable boost at 1m/s
         .braking_bank_angle = SETTING_NAV_MC_BRAKING_BANK_ANGLE_DEFAULT,                         // Max braking angle
 #endif
-
         .posDecelerationTime = SETTING_NAV_MC_POS_DECELERATION_TIME_DEFAULT,                     // posDecelerationTime * 100
         .posResponseExpo = SETTING_NAV_MC_POS_EXPO_DEFAULT,                                      // posResponseExpo * 100
         .slowDownForTurning = SETTING_NAV_MC_WP_SLOWDOWN_DEFAULT,
@@ -326,6 +327,7 @@ typedef enum {
 typedef enum {
     NAV_MISSION_VTOL_TRANSITION_NONE = 0,
     NAV_MISSION_VTOL_TRANSITION_CONTINUE,
+    NAV_MISSION_VTOL_TRANSITION_WAIT,
     NAV_MISSION_VTOL_TRANSITION_START,
     NAV_MISSION_VTOL_TRANSITION_REJECT,
 } navMissionVtolTransitionDisposition_e;
@@ -360,6 +362,7 @@ static bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos);
 void calculateInitialHoldPosition(fpVector3_t * pos);
 void calculateFarAwayPos(fpVector3_t * farAwayPos, const fpVector3_t *start, int32_t bearing, int32_t distance);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t bearing, int32_t distance);
+bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBearing);
 bool isWaypointAltitudeReached(void);
 static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
 static navigationFSMEvent_t nextForNonGeoStates(void);
@@ -863,6 +866,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_ERROR]                       = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]           = NAV_STATE_MIXERAT_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED] = NAV_STATE_WAYPOINT_FINISHED,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP]     = NAV_STATE_WAYPOINT_PRE_ACTION,   // MSP2_INAV_SET_WP_INDEX
         }
@@ -1891,6 +1895,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
     // If landing is not temporarily paused (FS only), position ok, OR within valid timeout - continue
     // Wait until target heading is reached for MR (with 15 deg margin for error), or continue for Fixed Wing
     if (!pauseLanding && ((ABS(wrap_18000(posControl.rthState.homePosition.heading - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) || STATE(FIXED_WING_LEGACY))) {
+        fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
+
+        if (navigationRTHAllowsLanding() && !navigationVtolMcProtectionLandingSettleReady(tmpHomePos)) {
+            setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
+            return NAV_FSM_EVENT_NONE;
+        }
+
         resetLandingDetector();     // force reset landing detector just in case
         updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
         return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME; // success = land
@@ -1937,6 +1949,17 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
 
     if (checkMixerATRequired(MIXERAT_REQUEST_LAND)){
         return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
+    }
+
+    const fpVector3_t *landingSettlePos = FLIGHT_MODE(NAV_WP_MODE) ? &posControl.activeWaypoint.pos : rthGetHomeTargetPosition(RTH_HOME_FINAL_LAND);
+    if (!navigationVtolMcProtectionLandingSettleReady(landingSettlePos)) {
+        if (FLIGHT_MODE(NAV_WP_MODE)) {
+            setDesiredPosition(landingSettlePos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        } else {
+            setDesiredPosition(landingSettlePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        }
+        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
+        return NAV_FSM_EVENT_NONE;
     }
 
 #ifdef USE_FW_AUTOLAND
@@ -2096,6 +2119,33 @@ static uint16_t missionUserActionMask(const navMissionUserAction_e userAction)
 static bool isMissionTransitionToMultirotorType(const flyingPlatformType_e platformType)
 {
     return isMultirotorTypePlatform(platformType);
+}
+
+static uint16_t missionVTOLTransitionAltitudeToleranceCm(void)
+{
+    return navConfig()->general.waypoint_enforce_altitude > 0 ?
+           navConfig()->general.waypoint_enforce_altitude :
+           NAV_MIXERAT_MISSION_TRANSITION_ALTITUDE_FALLBACK_TOLERANCE_CM;
+}
+
+static bool missionVTOLTransitionPointReady(const bool transitionToFixedWing, const uint16_t transitionMinAltitude)
+{
+    if (!isWaypointReached(&posControl.activeWaypoint.pos, &posControl.activeWaypoint.bearing)) {
+        return false;
+    }
+
+    const float currentAltitude = navGetCurrentActualPositionAndVelocity()->pos.z;
+
+    if (transitionMinAltitude > 0 && currentAltitude < transitionMinAltitude) {
+        return false;
+    }
+
+    if (transitionToFixedWing &&
+        currentAltitude < (posControl.activeWaypoint.pos.z - missionVTOLTransitionAltitudeToleranceCm())) {
+        return false;
+    }
+
+    return true;
 }
 
 #ifdef USE_PITOT
@@ -2350,6 +2400,8 @@ static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const 
         return NAV_MISSION_VTOL_TRANSITION_CONTINUE;
     }
 
+    const uint16_t transitionMinAltitude = navConfig()->general.vtol_mission_transition_min_altitude;
+
     if (!ARMING_FLAG(ARMED) ||
         FLIGHT_MODE(FAILSAFE_MODE) ||
         areSensorsCalibrating() ||
@@ -2361,9 +2413,8 @@ static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const 
         return NAV_MISSION_VTOL_TRANSITION_REJECT;
     }
 
-    const uint16_t transitionMinAltitude = navConfig()->general.vtol_mission_transition_min_altitude;
-    if (transitionMinAltitude > 0 && navGetCurrentActualPositionAndVelocity()->pos.z < transitionMinAltitude) {
-        return NAV_MISSION_VTOL_TRANSITION_REJECT;
+    if (!missionVTOLTransitionPointReady(transitionToFixedWing, transitionMinAltitude)) {
+        return NAV_MISSION_VTOL_TRANSITION_WAIT;
     }
 
     const flyingPlatformType_e targetPlatformType = mixerConfigByIndex(nextMixerProfileIndex)->platformType;
@@ -2432,6 +2483,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
 #ifdef USE_AUTO_TRANSITION
             clearMissionVTOLTransitionState();
             const navMissionVtolTransitionDisposition_e transitionAction = prepareMissionVTOLTransition(activeWaypoint);
+            if (transitionAction == NAV_MISSION_VTOL_TRANSITION_WAIT) {
+                return NAV_FSM_EVENT_NONE;
+            }
             if (transitionAction == NAV_MISSION_VTOL_TRANSITION_START) {
                 return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
             }

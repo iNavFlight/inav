@@ -84,7 +84,9 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH", "VTOL_TRANSITION"]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH", "VTOL_TRANSITION", "VTOL_MC_PROTECT"]
+  - name: vtol_mc_protection_mode
+    values: ["OFF", "NAV", "NAV_AND_STABILIZED"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -4073,6 +4075,19 @@ groups:
         field: vtolTransitionFwAuthorityMinPercent
         min: 0
         max: 100
+      - name: vtol_mc_protection_mode
+        description: "Enables extra protection for VTOL aircraft while the active mixer profile is multicopter-like and another mixer profile is fixed-wing. OFF keeps legacy behavior. NAV protects altitude/NAV throttle authority, NAV capture, landing settle, and conservative bailout. NAV_AND_STABILIZED also applies speed-based roll/pitch/yaw command shaping in ANGLE/HORIZON. Available only on targets with more than 512 KB flash."
+        condition: USE_AUTO_TRANSITION
+        default_value: "OFF"
+        field: vtolMcProtectionMode
+        table: vtol_mc_protection_mode
+      - name: vtol_mc_thr_reserve_percent
+        description: "Throttle range percentage reserved on both low and high side for VTOL MC attitude authority while navigation/altitude control owns throttle. The reserve is applied before altitude PID anti-windup bounds and is automatically shrunk if needed to keep hover throttle inside the usable range. Available only on targets with more than 512 KB flash."
+        condition: USE_AUTO_TRANSITION
+        default_value: 15
+        field: vtolMcThrReservePercent
+        min: 0
+        max: 40
       - name: name
         description: "Craft name"
         default_value: ""

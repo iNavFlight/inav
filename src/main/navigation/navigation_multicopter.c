@@ -51,6 +51,7 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 #include "navigation/sqrt_controller.h"
+#include "navigation/navigation_vtol_mc_protection.h"
 
 #include "sensors/battery.h"
 
@@ -77,6 +78,8 @@ float getSqrtControllerVelocity(float targetAltitude, timeDelta_t deltaMicros)
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
+    navigationVtolMcProtectionApplySoftAltitudeCapture(navGetCurrentStateFlags());
+
     float targetVel = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
 
     posControl.pids.pos[Z].output_constrained = targetVel;      // only used for Blackbox and OSD info
@@ -108,15 +111,23 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 {
     // Calculate min and max throttle boundaries (to compensate for integral windup)
-    const int16_t thrCorrectionMin = getThrottleIdleValue() - currentBatteryProfile->nav.mc.hover_throttle;
-    const int16_t thrCorrectionMax = getMaxThrottle() - currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t idleThrottle = getThrottleIdleValue();
+    const int16_t hoverThrottle = currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t maxThrottle = getMaxThrottle();
+    const vtolMcProtectionThrottleBounds_t vtolMcThrottleBounds = navigationVtolMcProtectionGetThrottleBounds(idleThrottle, hoverThrottle, maxThrottle);
+    const int16_t thrCorrectionMin = vtolMcThrottleBounds.min - hoverThrottle;
+    const int16_t thrCorrectionMax = vtolMcThrottleBounds.max - hoverThrottle;
+    const pidControllerFlags_e pidFlags = navigationVtolMcProtectionShouldFreezeAltitudeIntegrator() ? PID_FREEZE_INTEGRATOR : 0;
 
-    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrCorrectionMin, thrCorrectionMax, 0);
+    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrCorrectionMin, thrCorrectionMax, pidFlags);
     
     int16_t rcThrottleCorrection = pt1FilterApply3(&altholdThrottleFilterState, velocity_controller, US2S(deltaMicros));
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
-    posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, false);
+    int16_t protectedThrottle = hoverThrottle + rcThrottleCorrection;
+    protectedThrottle = navigationVtolMcProtectionApplyBailoutThrottle(protectedThrottle, &vtolMcThrottleBounds, hoverThrottle);
+    posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(protectedThrottle, false);
+    navigationVtolMcProtectionPublishThrottleDebug(&vtolMcThrottleBounds, posControl.rcAdjustment[THROTTLE]);
 }
 
 bool adjustMulticopterAltitudeFromRCInput(void)
@@ -731,6 +742,10 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 
         // If we have new position data - update velocity and acceleration controllers
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
+            if (navigationVtolMcProtectionApplyCapture(navGetCurrentStateFlags())) {
+                setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
+            }
+
             // Get max speed for current NAV mode
             float maxSpeed = getActiveSpeed();
             updatePositionVelocityController_MC(maxSpeed);
@@ -869,9 +884,14 @@ bool isMulticopterLandingDetected(void)
 
     const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
 
+    const float absVerticalSpeed = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z);
+
     // check vertical and horizontal velocities are low (cm/s)
-    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (MC_LAND_CHECK_VEL_Z_MOVING * sensitivity) &&
+    bool velCondition = absVerticalSpeed < (MC_LAND_CHECK_VEL_Z_MOVING * sensitivity) &&
                         posControl.actualState.velXY < (MC_LAND_CHECK_VEL_XY_MOVING * sensitivity);
+    // Sensitivity may relax the generic velocity check, but auto-disarm still needs
+    // the aircraft to be nearly stopped vertically when a Z estimate is available.
+    const bool verticalSpeedSettled = posControl.flags.estAltStatus == EST_NONE || absVerticalSpeed < MC_LAND_DETECT_MAX_VEL_Z;
     // check gyro rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < (4.0f * sensitivity);
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);
@@ -904,14 +924,20 @@ bool isMulticopterLandingDetected(void)
         landingThrSum += rcCommandAdjustedThrottle;
         isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
 
-        possibleLandingDetected = isAtMinimalThrust && velCondition;
+        const float finalDescentDemandLimit = navConfig()->general.land_minalt_vspd + MC_LAND_DETECT_DESCENT_DEMAND_MARGIN;
+        const bool descentDemandSettled = posControl.desiredState.vel.z > -finalDescentDemandLimit;
+        const int16_t landingThrottleLimit = (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()) / 2;
+        const bool throttleLowEnough = rcCommandAdjustedThrottle < landingThrottleLimit;
+
+        possibleLandingDetected = isAtMinimalThrust && throttleLowEnough &&
+                                  velCondition && verticalSpeedSettled && descentDemandSettled;
 
         DEBUG_SET(DEBUG_LANDING, 6, rcCommandAdjustedThrottle);
         DEBUG_SET(DEBUG_LANDING, 7, landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
     } else {    // non autonomous and emergency landing
         DEBUG_SET(DEBUG_LANDING, 4, 2);
         if (landingDetectorStartedAt) {
-            possibleLandingDetected = velCondition && gyroCondition;
+            possibleLandingDetected = velCondition && verticalSpeedSettled && gyroCondition;
         } else {
             landingDetectorStartedAt = currentTimeMs;
             return false;

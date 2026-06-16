@@ -105,7 +105,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored layout only on >512 KB targets.
 #ifdef USE_AUTO_TRANSITION
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 9);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 10);
 #else
 PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
 #endif
@@ -129,6 +129,8 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .vtolTransitionLiftMinPercent = SETTING_VTOL_TRANSITION_LIFT_MIN_PERCENT_DEFAULT,
     .vtolTransitionMcAuthorityMinPercent = SETTING_VTOL_TRANSITION_MC_AUTHORITY_MIN_PERCENT_DEFAULT,
     .vtolTransitionFwAuthorityMinPercent = SETTING_VTOL_TRANSITION_FW_AUTHORITY_MIN_PERCENT_DEFAULT,
+    .vtolMcProtectionMode = SETTING_VTOL_MC_PROTECTION_MODE_DEFAULT,
+    .vtolMcThrReservePercent = SETTING_VTOL_MC_THR_RESERVE_PERCENT_DEFAULT,
 #endif
     .craftName = SETTING_NAME_DEFAULT,
     .pilotName = SETTING_NAME_DEFAULT
