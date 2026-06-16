@@ -254,6 +254,14 @@ TEST(MixerTransitionLogicTest, ServoHandoffUsesConfiguredScaleRampWhenDynamicMix
     EXPECT_EQ(0, mixerTransitionComputeServoHandoffDurationMs(false, 0, 750));
 }
 
+TEST(MixerTransitionLogicTest, DirectSwitchServoHoldIsIndependentFromHandoffDuration)
+{
+    EXPECT_TRUE(mixerTransitionServoHandoffHoldActive(300, 0));
+    EXPECT_TRUE(mixerTransitionServoHandoffHoldActive(300, 299));
+    EXPECT_FALSE(mixerTransitionServoHandoffHoldActive(300, 300));
+    EXPECT_FALSE(mixerTransitionServoHandoffHoldActive(0, 0));
+}
+
 TEST(MixerTransitionLogicTest, ServoHandoffBlendStartsFromCapturedOutputAfterHotSwitch)
 {
     EXPECT_EQ(1366, mixerTransitionBlendCapturedServoOutput(1366, 980, 0.0f));

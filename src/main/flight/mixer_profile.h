@@ -98,8 +98,10 @@ typedef struct mixerProfileAT_s {
     timeMs_t postSwitchFadeStartTime;
     uint32_t servoHandoffMask;
     uint16_t servoHandoffDurationMs;
+    uint16_t servoHandoffHoldDurationMs;
     int16_t servoHandoffOutput[MAX_SUPPORTED_SERVOS];
     timeMs_t servoHandoffStartTime;
+    timeMs_t servoHandoffHoldStartTime;
     timeMs_t transitionStartTime;
 #else
     bool transitionInputMixing;

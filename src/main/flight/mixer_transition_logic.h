@@ -138,6 +138,11 @@ static inline uint16_t mixerTransitionComputeServoHandoffDurationMs(
     return scaleRampTimeMs;
 }
 
+static inline bool mixerTransitionServoHandoffHoldActive(uint16_t holdDurationMs, uint32_t elapsedMs)
+{
+    return holdDurationMs > 0 && elapsedMs < holdDurationMs;
+}
+
 static inline float mixerTransitionResolveHandoffProgress(
     bool dynamicMixerEnabled,
     bool usedAirspeed,
