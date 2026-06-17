@@ -39,6 +39,7 @@
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
 #include "sensors/temperature.h"
+#include "sensors/rotor.h"
 #include "rx/rx.h"
 
 uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
@@ -106,6 +107,10 @@ bool sensorsAutodetect(void)
 
 #ifdef USE_IRLOCK
     irlockInit();
+#endif
+
+#ifdef USE_ROTOR
+    rotorInit();
 #endif
 
     if (eepromUpdatePending) {
