@@ -27,10 +27,15 @@ extern "C" {
     #include "flight/mixer.h"
     #include "io/beeper.h"
     #include "navigation/navigation.h"
-    #include "navigation/navigation_private.h"
     #include "rx/rx.h"
     #include "sensors/battery.h"
 }
+
+typedef int navigationFSMStateFlags_t;
+
+typedef struct navigationPosControl_s {
+    int navState;
+} navigationPosControl_t;
 
 #define INA226_REG_SHUNT_VOLTAGE     0x01
 #define INA226_REG_BUS_VOLTAGE       0x02
