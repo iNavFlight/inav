@@ -190,6 +190,183 @@ TEST(VtolMcProtectionLogicTest, SoftAltitudeRelaxationOnlyAppliesDuringCaptureOr
         true, true, true, true, false, false, false, 75.0f, 75, false));
 }
 
+TEST(VtolMcProtectionLogicTest, LandingBumpKeepsLegacyBehaviorForNonVtol)
+{
+    EXPECT_TRUE(vtolMcProtectionLandingBumpAllowed(
+        false,
+        false,
+        false,
+        1000.0f,
+        false,
+        -300.0f,
+        -300.0f,
+        75.0f,
+        100.0f));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingBumpAllowsTrustedNearGroundTouchdown)
+{
+    EXPECT_TRUE(vtolMcProtectionLandingBumpAllowed(
+        true,
+        false,
+        true,
+        VTOL_MC_LANDING_BUMP_SAFE_AGL_CM,
+        false,
+        -300.0f,
+        -300.0f,
+        75.0f,
+        100.0f));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingBumpBlocksTrustedHighAgl)
+{
+    EXPECT_FALSE(vtolMcProtectionLandingBumpAllowed(
+        true,
+        true,
+        true,
+        VTOL_MC_LANDING_BUMP_SAFE_AGL_CM + 1.0f,
+        true,
+        -20.0f,
+        -50.0f,
+        75.0f,
+        100.0f));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingBumpBlocksVtolHighAltitudeFastDescent)
+{
+    EXPECT_FALSE(vtolMcProtectionLandingBumpAllowed(
+        true,
+        true,
+        false,
+        1000.0f,
+        true,
+        -170.0f,
+        -150.0f,
+        75.0f,
+        100.0f));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingBumpAllowsVtolFinalSlowDescent)
+{
+    EXPECT_TRUE(vtolMcProtectionLandingBumpAllowed(
+        true,
+        true,
+        false,
+        1000.0f,
+        true,
+        -60.0f,
+        -50.0f,
+        75.0f,
+        100.0f));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingBumpBlocksVtolWithoutTouchdownContext)
+{
+    EXPECT_FALSE(vtolMcProtectionLandingBumpAllowed(
+        true,
+        false,
+        false,
+        1000.0f,
+        true,
+        -20.0f,
+        0.0f,
+        75.0f,
+        100.0f));
+
+    EXPECT_FALSE(vtolMcProtectionLandingBumpAllowed(
+        true,
+        true,
+        false,
+        1000.0f,
+        false,
+        0.0f,
+        -50.0f,
+        75.0f,
+        100.0f));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingProbeThrottleDropUsesSmallBoundedReduction)
+{
+    EXPECT_EQ(40, vtolMcProtectionLandingProbeThrottleDrop(1000, 1200));
+    EXPECT_EQ(50, vtolMcProtectionLandingProbeThrottleDrop(1000, 1500));
+    EXPECT_EQ(100, vtolMcProtectionLandingProbeThrottleDrop(1000, 2500));
+    EXPECT_EQ(0, vtolMcProtectionLandingProbeThrottleDrop(1000, 1000));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingProbeThrottleRampsDownFromStart)
+{
+    EXPECT_EQ(1500, vtolMcProtectionLandingProbeThrottle(1500, 1000, 1500, 1000, 1000));
+    EXPECT_EQ(1475, vtolMcProtectionLandingProbeThrottle(1500, 1000, 1500, 1000, 1150));
+    EXPECT_EQ(1450, vtolMcProtectionLandingProbeThrottle(1500, 1000, 1500, 1000, 1300));
+    EXPECT_EQ(1000, vtolMcProtectionLandingProbeThrottle(0, 1000, 1500, 1000, 1150));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingProbeDetectsAirborneByAglDrop)
+{
+    EXPECT_TRUE(vtolMcProtectionLandingProbeAirborneResponse(
+        true,
+        40.0f,
+        30.0f,
+        false,
+        0.0f,
+        0.0f,
+        1.0f));
+
+    EXPECT_FALSE(vtolMcProtectionLandingProbeAirborneResponse(
+        true,
+        40.0f,
+        35.0f,
+        false,
+        0.0f,
+        0.0f,
+        1.0f));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingProbeDetectsAirborneByLowG)
+{
+    EXPECT_TRUE(vtolMcProtectionLandingProbeAirborneResponse(
+        false,
+        0.0f,
+        0.0f,
+        false,
+        0.0f,
+        0.0f,
+        VTOL_MC_LANDING_PROBE_LOW_G_THRESHOLD - 0.01f));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingProbeDetectsAirborneByVerticalVelocityChange)
+{
+    EXPECT_TRUE(vtolMcProtectionLandingProbeAirborneResponse(
+        false,
+        0.0f,
+        0.0f,
+        true,
+        -20.0f,
+        -45.0f,
+        1.0f));
+
+    EXPECT_TRUE(vtolMcProtectionLandingProbeAirborneResponse(
+        false,
+        0.0f,
+        0.0f,
+        true,
+        -50.0f,
+        -90.0f,
+        1.0f));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingProbeDoesNotReactWithoutDescentEvidence)
+{
+    EXPECT_FALSE(vtolMcProtectionLandingProbeAirborneResponse(
+        false,
+        0.0f,
+        0.0f,
+        true,
+        -20.0f,
+        -30.0f,
+        1.0f));
+}
+
 TEST(VtolMcProtectionLogicTest, BailoutAngleLimitUsesBankAngleWithSafeClamps)
 {
     EXPECT_EQ(450, vtolMcProtectionBailoutAngleLimitDeciDeg(20));

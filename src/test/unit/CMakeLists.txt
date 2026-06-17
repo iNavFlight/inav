@@ -72,6 +72,7 @@ set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GI
 set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_scenarios_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE navigation_vtol_mission_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE vtol_mc_protection_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 
 function(unit_test src)

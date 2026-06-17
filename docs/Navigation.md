@@ -112,7 +112,7 @@ Configuration:
 
 - `nav_vtol_mission_transition_user_action` selects which waypoint User Action (`USER1..USER4`) is used as the mission VTOL target selector.
 - `nav_vtol_mission_transition_min_altitude_cm` optionally enforces a minimum altitude before transition start (`0` disables check).
-- During MC->FW mission transition, iNAV uses a built-in straight run-up target to help the model build speed before switching to fixed-wing.
+- During MC->FW mission transition, INAV uses a built-in straight run-up target to help the model build speed before switching to fixed-wing.
 - VTOL transition completion logic is shared with manual MIXER TRANSITION and uses mixer transition settings:
   - preferred MC->FW threshold: `vtol_transition_to_fw_min_airspeed_cm_s`
   - FW->MC threshold: `vtol_transition_to_mc_max_airspeed_cm_s`
@@ -141,6 +141,54 @@ Safety and scope:
 
 - This path uses authorized automated transition state handling; it does not permit manual mixer profile switching during normal waypoint navigation.
 - It still depends on valid mixer profile switching infrastructure (two configured mixer profiles and a valid `MIXER PROFILE 2` mode activation condition).
+
+### VTOL MC navigation protection and landing detection
+
+Targets with more than 512 KB flash can enable extra protection for VTOL aircraft flying in MC mode:
+
+- `vtol_mc_protection_mode = OFF`: disabled, legacy behavior.
+- `vtol_mc_protection_mode = NAV`: protects VTOL MC navigation and altitude-control behavior.
+- `vtol_mc_protection_mode = NAV_AND_STABILIZED`: also shapes ANGLE/HORIZON roll, pitch, and yaw commands at higher horizontal speed.
+
+The protection only activates when the current mixer profile is multicopter-like and another configured mixer profile is fixed-wing. Normal multirotors and fixed-wing mode are not changed.
+
+In NAV modes, VTOL MC protection adds:
+
+- throttle reserve before altitude PID anti-windup, controlled by `vtol_mc_thr_reserve_percent`,
+- capture/settle when entering position-holding navigation with horizontal speed,
+- soft altitude capture while horizontal speed is being bled off,
+- a stricter RTH/WP landing settle gate before descent starts,
+- a conservative bailout path if attitude becomes excessive while automatic throttle is active.
+
+The landing settle gate uses `min(nav_wp_radius, 100 cm)` as the capture radius for the landing point. It also requires low horizontal speed, low vertical speed, and safe attitude to be held for the internal settle time. This prevents a large `nav_wp_radius` from starting landing descent after only briefly touching the waypoint radius while still moving.
+
+ANGLE/HORIZON shaping in `NAV_AND_STABILIZED` only runs when armed, VTOL MC mode is detected, velocity estimate is trusted, and horizontal speed is above the shaping threshold. It continuously scales roll, pitch, and yaw commands as speed increases, preserving command sign and small deadband behavior.
+
+#### Landing detector sensitivity
+
+`nav_land_detect_sensitivity` scales the generic landing detector velocity and gyro thresholds. The default `5` is nominal sensitivity. For multirotors, this corresponds to about:
+
+- `100 cm/s` horizontal speed,
+- `100 cm/s` vertical speed,
+- `4 deg/s` average pitch/roll gyro rate.
+
+Higher values relax these thresholds and can make landing detection faster, but also increase false-detect risk. VTOL MC landing detection adds additional safety gates that `nav_land_detect_sensitivity` does not bypass:
+
+- vertical speed must be near zero when altitude/vertical-speed estimate is available,
+- NAV landing must be in the final slow-descent context,
+- trusted surface/AGL data, if available, must show near-ground,
+- all VTOL MC landing candidates must pass a throttle-probe confirmation before `LANDING_DETECTED`.
+
+The VTOL MC throttle probe gently reduces lift throttle for a short confirmation window. If the aircraft starts descending, shows unloading acceleration, or trusted AGL drops, the candidate is rejected and the detector waits again. This is intended to avoid false disarm during slow descent or ground-effect bounce, without relying on barometric altitude as AGL.
+
+`nav_landing_bump_detection = ON` allows G-bump touchdown detection to create a landing candidate. For VTOL MC it is not an immediate disarm shortcut: trusted high AGL blocks it, and accepted candidates still go through the throttle probe. For non-VTOL multirotors it keeps the existing landing detector behavior.
+
+Automatic disarm still requires `nav_disarm_on_landing = ON`. `nav_auto_disarm_delay` is applied after a landing candidate is detected; in VTOL MC mode the throttle probe must also confirm before the global `LANDING_DETECTED` state is set.
+
+Debugging:
+
+- `debug_mode = VTOL_MC_PROTECT` shows protection flags, safe throttle range, protected throttle, speed, attitude, and settle/command-scale progress.
+- `debug_mode = LANDING` shows normal landing detector status and candidate state.
 
 `wp save` - Checks list of waypoints and save from FC to EEPROM (warning: it also saves all unsaved CLI settings like normal `save`).
 

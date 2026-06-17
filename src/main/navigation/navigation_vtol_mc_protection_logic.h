@@ -35,6 +35,16 @@
 #define VTOL_MC_FALLBACK_SETTLE_TIME_MS            3000
 #define VTOL_MC_BAILOUT_MIN_RAMP_TIME_MS           500
 #define VTOL_MC_DEFAULT_BRAKING_DISENGAGE_CM_S     75
+#define VTOL_MC_LANDING_BUMP_SAFE_AGL_CM           50.0f
+#define VTOL_MC_LANDING_PROBE_RAMP_TIME_MS         300
+#define VTOL_MC_LANDING_PROBE_CONFIRM_TIME_MS      700
+#define VTOL_MC_LANDING_PROBE_THROTTLE_DROP_PERCENT 10
+#define VTOL_MC_LANDING_PROBE_THROTTLE_DROP_MIN    40
+#define VTOL_MC_LANDING_PROBE_THROTTLE_DROP_MAX    100
+#define VTOL_MC_LANDING_PROBE_AGL_DROP_CM          8.0f
+#define VTOL_MC_LANDING_PROBE_VEL_DELTA_CM_S       20.0f
+#define VTOL_MC_LANDING_PROBE_VEL_ABS_CM_S         80.0f
+#define VTOL_MC_LANDING_PROBE_LOW_G_THRESHOLD      0.85f
 
 typedef struct vtolMcProtectionThrottleBounds_s {
     int16_t min;
@@ -224,6 +234,95 @@ static inline bool vtolMcProtectionShouldRelaxAltitude(
            !emergencyState &&
            !altitudeStickActive &&
            (captureActive || (velocityUsable && horizontalSpeedCmS > horizontalLimitCmS));
+}
+
+static inline bool vtolMcProtectionLandingBumpAllowed(
+    const bool isVtolMcMode,
+    const bool navLandingActive,
+    const bool aglTrusted,
+    const float aglCm,
+    const bool verticalVelocityUsable,
+    const float verticalSpeedCmS,
+    const float desiredVerticalSpeedCmS,
+    const float finalDescentDemandLimitCmS,
+    const float verticalSpeedLimitCmS)
+{
+    if (!isVtolMcMode) {
+        return true;
+    }
+
+    if (aglTrusted) {
+        return aglCm <= VTOL_MC_LANDING_BUMP_SAFE_AGL_CM;
+    }
+
+    if (!navLandingActive || !verticalVelocityUsable) {
+        return false;
+    }
+
+    const float absVerticalSpeedCmS = verticalSpeedCmS < 0.0f ? -verticalSpeedCmS : verticalSpeedCmS;
+    return desiredVerticalSpeedCmS > -finalDescentDemandLimitCmS &&
+           absVerticalSpeedCmS <= verticalSpeedLimitCmS;
+}
+
+static inline int16_t vtolMcProtectionLandingProbeThrottleDrop(
+    const int16_t idleThrottle,
+    const int16_t hoverThrottle)
+{
+    const int16_t hoverRange = hoverThrottle > idleThrottle ? hoverThrottle - idleThrottle : 0;
+    int16_t drop = (hoverRange * VTOL_MC_LANDING_PROBE_THROTTLE_DROP_PERCENT) / 100;
+
+    if (drop < VTOL_MC_LANDING_PROBE_THROTTLE_DROP_MIN) {
+        drop = VTOL_MC_LANDING_PROBE_THROTTLE_DROP_MIN;
+    } else if (drop > VTOL_MC_LANDING_PROBE_THROTTLE_DROP_MAX) {
+        drop = VTOL_MC_LANDING_PROBE_THROTTLE_DROP_MAX;
+    }
+
+    return drop < hoverRange ? drop : hoverRange;
+}
+
+static inline int16_t vtolMcProtectionLandingProbeThrottle(
+    const int16_t startThrottle,
+    const int16_t idleThrottle,
+    const int16_t hoverThrottle,
+    const timeMs_t startedAtMs,
+    const timeMs_t nowMs)
+{
+    const int16_t safeStartThrottle = startThrottle > idleThrottle ? startThrottle : idleThrottle;
+    const int16_t throttleDrop = vtolMcProtectionLandingProbeThrottleDrop(idleThrottle, hoverThrottle);
+    const int16_t targetThrottle = safeStartThrottle > idleThrottle + throttleDrop ? safeStartThrottle - throttleDrop : idleThrottle;
+
+    if (VTOL_MC_LANDING_PROBE_RAMP_TIME_MS == 0) {
+        return targetThrottle;
+    }
+
+    const timeMs_t elapsedMs = nowMs - startedAtMs;
+    if (elapsedMs >= VTOL_MC_LANDING_PROBE_RAMP_TIME_MS) {
+        return targetThrottle;
+    }
+
+    return safeStartThrottle - ((safeStartThrottle - targetThrottle) * (int32_t)elapsedMs) / VTOL_MC_LANDING_PROBE_RAMP_TIME_MS;
+}
+
+static inline bool vtolMcProtectionLandingProbeAirborneResponse(
+    const bool aglTrusted,
+    const float startAglCm,
+    const float currentAglCm,
+    const bool verticalVelocityUsable,
+    const float startVerticalSpeedCmS,
+    const float currentVerticalSpeedCmS,
+    const float accZG)
+{
+    if (aglTrusted && currentAglCm < startAglCm - VTOL_MC_LANDING_PROBE_AGL_DROP_CM) {
+        return true;
+    }
+
+    if (accZG < VTOL_MC_LANDING_PROBE_LOW_G_THRESHOLD) {
+        return true;
+    }
+
+    return verticalVelocityUsable &&
+           (currentVerticalSpeedCmS < startVerticalSpeedCmS - VTOL_MC_LANDING_PROBE_VEL_DELTA_CM_S ||
+            currentVerticalSpeedCmS < -VTOL_MC_LANDING_PROBE_VEL_ABS_CM_S);
 }
 
 static inline float vtolMcProtectionCommandScaleForSpeed(const float horizontalSpeedCmS)

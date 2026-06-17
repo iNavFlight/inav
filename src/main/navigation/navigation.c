@@ -57,6 +57,7 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 #include "navigation/navigation_vtol_mc_protection.h"
+#include "navigation/navigation_vtol_mission_logic.h"
 #include "navigation/rth_trackback.h"
 
 #include "rx/rx.h"
@@ -2402,14 +2403,21 @@ static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const 
 
     const uint16_t transitionMinAltitude = navConfig()->general.vtol_mission_transition_min_altitude;
 
-    if (!ARMING_FLAG(ARMED) ||
-        FLIGHT_MODE(FAILSAFE_MODE) ||
-        areSensorsCalibrating() ||
-        posControl.flags.estPosStatus < EST_USABLE ||
-        posControl.flags.estHeadingStatus < EST_USABLE ||
-        !isModeActivationConditionPresent(BOXMIXERPROFILE) ||
-        !checkMixerProfileHotSwitchAvalibility() ||
-        mixerATIsActive()) {
+    const navMissionVtolTransitionPrecondition_e precondition = navMissionVtolTransitionPreconditionDisposition(
+        ARMING_FLAG(ARMED),
+        FLIGHT_MODE(FAILSAFE_MODE),
+        areSensorsCalibrating(),
+        posControl.flags.estPosStatus >= EST_USABLE,
+        posControl.flags.estHeadingStatus >= EST_USABLE,
+        isModeActivationConditionPresent(BOXMIXERPROFILE),
+        checkMixerProfileHotSwitchAvalibility(),
+        mixerATIsActive());
+
+    if (precondition == NAV_MISSION_VTOL_PRECONDITION_WAIT) {
+        return NAV_MISSION_VTOL_TRANSITION_WAIT;
+    }
+
+    if (precondition == NAV_MISSION_VTOL_PRECONDITION_REJECT) {
         return NAV_MISSION_VTOL_TRANSITION_REJECT;
     }
 
@@ -2475,6 +2483,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
         case NAV_WP_ACTION_WAYPOINT:
         case NAV_WP_ACTION_LAND: {
             const navWaypoint_t * const activeWaypoint = &posControl.waypointList[posControl.activeWaypointIndex];
+
+            if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout()) {
+                return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+            }
+
             calculateAndSetActiveWaypoint(activeWaypoint);
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
             posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
