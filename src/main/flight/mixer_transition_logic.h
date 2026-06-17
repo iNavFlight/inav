@@ -110,6 +110,32 @@ static inline bool mixerTransitionIsRequestAllowed(
     }
 }
 
+static inline bool mixerTransitionRequestAllowedDuringFailsafe(mixerProfileATRequest_e requiredAction)
+{
+    switch (requiredAction) {
+    case MIXERAT_REQUEST_RTH:
+    case MIXERAT_REQUEST_LAND:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
+static inline bool mixerTransitionShouldAbortForFailsafe(
+    const mixerProfileATRequest_e requiredAction,
+    const bool postSwitchActive,
+    const bool hotSwitchDone)
+{
+    if (mixerTransitionRequestAllowedDuringFailsafe(requiredAction)) {
+        return false;
+    }
+
+    // Once the target profile is already active, finishing the remaining output
+    // ramp is safer than cancelling into an abrupt scale reset.
+    return !(postSwitchActive && hotSwitchDone);
+}
+
 #ifdef USE_AUTO_TRANSITION
 static inline float mixerTransitionComputeMotorRampProgress(
     bool dynamicMixerEnabled,

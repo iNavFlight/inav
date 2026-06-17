@@ -160,6 +160,31 @@ TEST(MixerTransitionPolicyTest, ManualRequestsNeedMixerProfileModeAndMatchingTar
         true));
 }
 
+TEST(MixerTransitionPolicyTest, OnlyNavigationOwnedRthAndLandRequestsMayContinueDuringFailsafe)
+{
+    EXPECT_TRUE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_RTH));
+    EXPECT_TRUE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_LAND));
+
+    EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_NONE));
+    EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_MISSION_TO_FW));
+    EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_MISSION_TO_MC));
+    EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_MANUAL_TO_FW));
+    EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_MANUAL_TO_MC));
+    EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_ABORT));
+}
+
+TEST(MixerTransitionPolicyTest, FailsafeKeepsPostSwitchOutputRampAfterRequestIsCleared)
+{
+    EXPECT_FALSE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_RTH, false, false));
+    EXPECT_FALSE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_LAND, false, false));
+
+    EXPECT_TRUE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_NONE, false, false));
+    EXPECT_TRUE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_NONE, true, false));
+    EXPECT_TRUE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_NONE, false, true));
+
+    EXPECT_FALSE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_NONE, true, true));
+}
+
 TEST(MixerTransitionPolicyTest, DynamicScalingDisabledKeepsAllScalesAtFullValues)
 {
     const mixerTransitionScaleState_t scales = mixerTransitionComputeScales(

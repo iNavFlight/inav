@@ -492,7 +492,7 @@ float getAxisIterm(uint8_t axis)
 }
 
 #ifdef USE_AUTO_TRANSITION
-static void resetAutoTransitionTargetPidState(void)
+static void NOINLINE resetAutoTransitionTargetPidState(void)
 {
     memset(autoTransitionTargetPidState, 0, sizeof(autoTransitionTargetPidState));
     memset(autoTransitionTargetAxisPID, 0, sizeof(autoTransitionTargetAxisPID));
@@ -1155,7 +1155,7 @@ static int16_t applyAutoTransitionTargetMulticopterRateController(autoTransition
     return newOutputLimited;
 }
 
-static void updateAutoTransitionTargetAxisPID(float dT)
+static void NOINLINE updateAutoTransitionTargetAxisPID(float dT)
 {
     if (!pidFiltersConfigured || !isAutoTransitionTargetPidActive()) {
         resetAutoTransitionTargetPidState();
@@ -1194,7 +1194,7 @@ static void updateAutoTransitionTargetAxisPID(float dT)
     }
 }
 
-int16_t getAutoTransitionTargetAxisPID(flight_dynamics_index_t axis)
+int16_t NOINLINE getAutoTransitionTargetAxisPID(flight_dynamics_index_t axis)
 {
     if (!isAutoTransitionTargetPidActive()) {
         return 0;

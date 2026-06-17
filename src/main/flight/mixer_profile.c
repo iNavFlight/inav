@@ -955,7 +955,13 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         manualFwToMcProtectionLatched = false;
     }
 
-    if (mixerAT_inuse && (!ARMING_FLAG(ARMED) || FLIGHT_MODE(FAILSAFE_MODE) || areSensorsCalibrating())) {
+    const bool failsafeShouldAbortTransition = FLIGHT_MODE(FAILSAFE_MODE) &&
+        mixerTransitionShouldAbortForFailsafe(
+            mixerProfileAT.request,
+            mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE,
+            mixerProfileAT.hotSwitchDone);
+
+    if (mixerAT_inuse && (!ARMING_FLAG(ARMED) || failsafeShouldAbortTransition || areSensorsCalibrating())) {
         abortTransition(false, false);
         manualTransitionSessionMode = MIXER_TRANSITION_MANUAL_SESSION_NONE;
         manualFwToMcProtectionLatched = false;
@@ -1125,7 +1131,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
 #endif
 }
 
-bool mixerATIsActive(void)
+bool NOINLINE mixerATIsActive(void)
 {
     return mixerProfileAT.phase != MIXERAT_PHASE_IDLE;
 }
@@ -1148,7 +1154,7 @@ bool mixerATWasAbortedByAirspeedTimeout(void)
 #endif
 }
 
-float mixerATGetPusherScale(void)
+float NOINLINE mixerATGetPusherScale(void)
 {
 #ifdef USE_AUTO_TRANSITION
     return constrainf(mixerProfileAT.pusherScale, 0.0f, 1.0f);
@@ -1157,7 +1163,7 @@ float mixerATGetPusherScale(void)
 #endif
 }
 
-float mixerATGetLiftScale(void)
+float NOINLINE mixerATGetLiftScale(void)
 {
 #ifdef USE_AUTO_TRANSITION
     return constrainf(mixerProfileAT.liftScale, 0.0f, 1.0f);
@@ -1166,7 +1172,7 @@ float mixerATGetLiftScale(void)
 #endif
 }
 
-float mixerATGetMcAuthorityScale(void)
+float NOINLINE mixerATGetMcAuthorityScale(void)
 {
 #ifdef USE_AUTO_TRANSITION
     return constrainf(mixerProfileAT.mcAuthorityScale, 0.0f, 1.0f);
@@ -1175,7 +1181,7 @@ float mixerATGetMcAuthorityScale(void)
 #endif
 }
 
-float mixerATGetFwAuthorityScale(void)
+float NOINLINE mixerATGetFwAuthorityScale(void)
 {
 #ifdef USE_AUTO_TRANSITION
     return constrainf(mixerProfileAT.fwAuthorityScale, 0.0f, 1.0f);
@@ -1184,7 +1190,7 @@ float mixerATGetFwAuthorityScale(void)
 #endif
 }
 
-float mixerATGetBlendToFw(void)
+float NOINLINE mixerATGetBlendToFw(void)
 {
 #ifdef USE_AUTO_TRANSITION
     return constrainf(mixerProfileAT.blendToFw, 0.0f, 1.0f);
@@ -1193,7 +1199,7 @@ float mixerATGetBlendToFw(void)
 #endif
 }
 
-int16_t mixerATGetTransitionServoInput(void)
+int16_t NOINLINE mixerATGetTransitionServoInput(void)
 {
 #ifdef USE_AUTO_TRANSITION
     const bool postSwitchFadeToFwActive =
@@ -1268,7 +1274,7 @@ bool mixerATGetServoHandoffOutput(uint8_t servoIndex, int16_t currentOutput, int
     return true;
 }
 
-bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output)
+bool NOINLINE mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output)
 {
     if (mixerProfileAT.phase != MIXERAT_PHASE_POST_SWITCH_FADE ||
         motorIndex >= MAX_SUPPORTED_MOTORS ||

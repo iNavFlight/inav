@@ -48,6 +48,7 @@
 
 #include "flight/imu.h"
 #include "flight/mixer_profile.h"
+#include "flight/mixer_transition_logic.h"
 #include "flight/pid.h"
 #include "flight/wind_estimator.h"
 
@@ -1949,6 +1950,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     }
 
     if (checkMixerATRequired(MIXERAT_REQUEST_LAND)){
+        // Fixed-wing VTOL can only pass through the landing area; switch to MC
+        // before applying the MC-only settle gate below.
         return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
     }
 
@@ -2842,12 +2845,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
     UNUSED(previousState);
 
 #ifdef USE_AUTO_TRANSITION
-    if (!ARMING_FLAG(ARMED) || FLIGHT_MODE(FAILSAFE_MODE)) {
-        mixerATUpdateState(MIXERAT_REQUEST_ABORT);
-        clearMissionVTOLTransitionState();
-        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
-    }
-
     mixerProfileATRequest_e required_action;
     switch (navMixerATPendingState)
     {
@@ -2863,6 +2860,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
     default:
         required_action = MIXERAT_REQUEST_NONE;
         break;
+    }
+
+    if (!ARMING_FLAG(ARMED) ||
+        (FLIGHT_MODE(FAILSAFE_MODE) && mixerTransitionShouldAbortForFailsafe(required_action, false, false))) {
+        mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+        clearMissionVTOLTransitionState();
+        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
     }
 
     if (navMixerATMissionTransition.retryStage != NAV_MIXERAT_RETRY_STAGE_IDLE) {
