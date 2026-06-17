@@ -7,6 +7,10 @@ set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/main")
 set_property(SOURCE alignsensor_unittest.cc PROPERTY depends
     "common/maths.c" "sensors/boardalignment.c")
 
+set_property(SOURCE battery_ina226_unittest.cc PROPERTY depends
+    "sensors/battery.c" "drivers/ina226.c" "common/filter.c" "common/lulu.c" "common/maths.c")
+set_property(SOURCE battery_ina226_unittest.cc PROPERTY definitions USE_INA226 USE_I2C USE_HEADTRACKER USE_STATS USE_ADC)
+
 set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
 set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
