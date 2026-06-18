@@ -825,7 +825,7 @@ int8_t navCheckActiveAngleHoldAxis(void);
 uint8_t getActiveWpNumber(void);
 uint16_t getFlownLoiterRadius(void);
 bool isFixedwingAutoSpeedActive(void);
-void getAutoSpeedThrottleDemand(int16_t *throttleCommand);
+void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTimeUs);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles
