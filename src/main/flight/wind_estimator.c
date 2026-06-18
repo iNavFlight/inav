@@ -107,7 +107,6 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
     if (US2S(cmpTimeUs(currentTimeUs, lastUpdateUs)) > 10 || lastUpdateUs == 0) {
         if (validityScore > 0) validityScore--;
-        if (!validityScore) hasValidWindEstimate = false;
 
         lastUpdateUs = currentTimeUs;
         updateTimedout = true;
@@ -118,7 +117,11 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         }
     }
 
-    if (!hasValidWindEstimate && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) hasValidWindEstimate = true;
+    if (!validityScore) {
+        hasValidWindEstimate = false;
+    } else if (!hasValidWindEstimate && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) {
+        hasValidWindEstimate = true;
+    }
 
     if (!isGPSHeadingValid() || !gpsSol.flags.validVelNE || !gpsSol.flags.validVelD
 #ifdef USE_GPS_FIX_ESTIMATION
@@ -208,7 +211,10 @@ void updateWindEstimator(timeUs_t currentTimeUs)
                 spikeFilterDynAdjustment = 0;
             }
         } else if (spikeFilterDynAdjustment || US2S(cmpTimeUs(currentTimeUs, lastValidWindEstimateUs)) > 30) {  // 30s estimate update timeout
-            if (spikeFilterDynAdjustment < WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR) spikeFilterDynAdjustment++;
+            if (spikeFilterDynAdjustment < WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR) {
+                spikeFilterDynAdjustment++;
+                if (hasValidWindEstimate && validityScore > 1) validityScore -= 2;  // degrade valid estimate if update stuck too long
+            }
         }
 
         // Spike filter
