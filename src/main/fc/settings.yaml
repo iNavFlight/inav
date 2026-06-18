@@ -4048,7 +4048,7 @@ groups:
         min: 0
         max: 20000
       - name: vtol_fw_to_mc_auto_switch_airspeed_cm_s
-        description: "Extra low-speed protection for fixed-wing flight [cm/s]. If airspeed falls to this value or lower while in FW, INAV automatically starts FW->MC. After the switch to MC, INAV keeps the MC profile until you deliberately command another manual profile change. Used only when `mixer_vtol_manualswitch_autotransition_controller` is ON. Set to 0 to disable. Available only on targets with more than 512 KB flash."
+        description: "Extra low-speed fixed-wing safety fallback [cm/s]. If trusted pitot airspeed falls to this value or lower while in FW, INAV automatically starts FW->MC. In manual FW flight this requires `mixer_vtol_manualswitch_autotransition_controller` to be ON and keeps MC until the pilot deliberately commands another manual profile change. In mission/RTH/failsafe this requires `mixer_automated_switch` to be ON and keeps the current navigation task in MC after the safety switch, blocking automatic MC->FW re-entry for that navigation session. `vtol_transition_to_mc_max_airspeed_cm_s` still controls when the FW->MC transition is safe to complete. Set to 0 to disable. Available only on targets with more than 512 KB flash."
         condition: USE_AUTO_TRANSITION
         default_value: 0
         field: vtolFwToMcAutoSwitchAirspeed

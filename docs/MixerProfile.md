@@ -39,7 +39,7 @@ If `mixer_vtol_manualswitch_autotransition_controller = ON`, `MIXER TRANSITION` 
 - Leaving the switch ON does not keep restarting the transition.
 - To start another transition, turn the switch OFF and then ON again.
 - If you turn the switch OFF before the profile change happens, that transition request is cancelled.
-- Optional extra protection: `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can automatically start FW->MC if airspeed gets too low. After that switch, INAV stays in MC until you deliberately command another manual profile change.
+- Optional extra protection: `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can automatically start FW->MC if trusted pitot airspeed gets too low. During manual FW flight, INAV stays in MC until you deliberately command another manual profile change. During mission/RTH/failsafe, INAV keeps the current navigation task in MC after the safety switch.
 
 This behavior is controlled by `mixer_vtol_manualswitch_autotransition_controller`.
 Turn it ON in both mixer profiles if you want the same switch behavior in both directions.
@@ -49,6 +49,9 @@ In Active Modes:
 
 - `MIXER TRANSITION` shows that the internal transition logic is actually running.
 - `MIXER PROFILE 2` shows that mixer profile 2 is currently active.
+- During a smooth auto-transition, `MIXER TRANSITION` may remain active while INAV is still using the source profile, waiting for airspeed/timer completion, or finishing the safe output movement after the profile switch.
+- During the same transition, `MIXER PROFILE 2` changes only when the actual active mixer profile changes. It is not a progress indicator.
+- Mission, RTH, and LAND auto-transitions use the same internal transition state, so `MIXER TRANSITION` can appear active even when the RC `MIXER TRANSITION` switch was not used. Use the OSD system message or `DEBUG_VTOL_TRANSITION` when you need to see which internal transition state is active.
 
 There are two separate manual paths:
 
@@ -64,7 +67,7 @@ There are two separate manual paths:
   - Profile 2 = MC
 - One supported mapping is:
   - Pos1 = FW (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` OFF)
-  - Pos2 = Transition request (`MIXER PROFILE 2` OFF, `MIXER TRANSITION` ON)
+  - Pos2 = Transition request (`MIXER PROFILE 2` ON, `MIXER TRANSITION` ON)
   - Pos3 = MC (`MIXER PROFILE 2` ON, `MIXER TRANSITION` OFF)
 - Keep `mixer_vtol_manualswitch_autotransition_controller` ON in both profiles used by this mapping.
 - If you intentionally swap the profile order, keep the same idea and swap the FW and MC end positions.
@@ -146,6 +149,8 @@ That means the same airspeed checks, timer fallback, and smooth power changes ar
 This section applies only to targets with more than 512 KB flash, compiled with `USE_AUTO_TRANSITION`.
 
 Direct manual `MIXER PROFILE 2` switching is still a separate path when you want an immediate profile change.
+
+The OSD system message field reports the internal transition state for manual, mission, RTH, LAND, retry, abort, timeout, and completion events. This is useful because Active Modes show RC mode/profile state, while the OSD message describes what the auto-transition controller is doing.
 
 ### Airspeed-first completion
 

@@ -11,6 +11,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/time.h"
 #include "common/maths.h"
+#include "common/utils.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
 #include "flight/mixer_transition_logic.h"
@@ -38,6 +39,7 @@
 
 #ifdef USE_AUTO_TRANSITION
 #define MIXER_TRANSITION_DIRECT_SWITCH_SERVO_HOLD_MS 300
+#define MIXER_TRANSITION_OSD_EVENT_DISPLAY_MS 3000
 #endif
 
 mixerConfig_t currentMixerConfig;
@@ -52,6 +54,8 @@ static bool manualTransitionReadyForEdge = true;
 static mixerTransitionManualSessionMode_e manualTransitionSessionMode;
 static bool manualFwToMcProtectionLatched;
 static int16_t mixerTransitionServoInput;
+static mixerProfileATOsdEvent_e mixerATOsdEvent;
+static timeMs_t mixerATOsdEventUntil;
 #endif
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored mixer profile layout only on >512 KB targets.
@@ -177,6 +181,12 @@ void setMixerProfileAT(void)
 }
 
 #ifdef USE_AUTO_TRANSITION
+static void setMixerATOsdEvent(const mixerProfileATOsdEvent_e event)
+{
+    mixerATOsdEvent = event;
+    mixerATOsdEventUntil = event == MIXERAT_OSD_EVENT_NONE ? 0 : millis() + MIXER_TRANSITION_OSD_EVENT_DISPLAY_MS;
+}
+
 static void clearServoHandoffFade(void)
 {
     mixerProfileAT.servoHandoffMask = 0;
@@ -392,7 +402,8 @@ static mixerProfileATDirection_e directionForRequest(const mixerProfileATRequest
 
     if (required_action == MIXERAT_REQUEST_LAND ||
         required_action == MIXERAT_REQUEST_MISSION_TO_MC ||
-        required_action == MIXERAT_REQUEST_MANUAL_TO_MC) {
+        required_action == MIXERAT_REQUEST_MANUAL_TO_MC ||
+        required_action == MIXERAT_REQUEST_FW_TO_MC_PROTECTION) {
         return MIXERAT_DIRECTION_TO_MC;
     }
 
@@ -601,6 +612,7 @@ static bool updatePostSwitchFade(void)
         return false;
     }
 
+    setMixerATOsdEvent(MIXERAT_OSD_EVENT_DONE);
     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
     mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
@@ -638,7 +650,7 @@ static bool shouldRequestManualFwToMcProtection(const bool manualControllerEnabl
         return false;
     }
 
-    return airspeedCmS <= thresholdCmS;
+    return mixerTransitionFwToMcProtectionTriggered(STATE(AIRPLANE), thresholdCmS, true, airspeedCmS);
 }
 
 static void updateTransitionScales(void)
@@ -669,6 +681,10 @@ static void abortTransition(const bool byAirspeedTimeout, const bool holdServoOu
 
     if (servoHandoffMask != 0 && !holdServoOutputsForDirectSwitch) {
         prepareServoHandoffFade(servoHandoffMask);
+    }
+
+    if (wasActive) {
+        setMixerATOsdEvent(byAirspeedTimeout ? MIXERAT_OSD_EVENT_AIRSPEED_TIMEOUT : MIXERAT_OSD_EVENT_ABORTED);
     }
 
     isMixerTransitionMixing_requested = false;
@@ -834,6 +850,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                 mixerProfileAT.hotSwitchDone = true;
                 startServoHandoffFade();
                 if (!startPostSwitchFade()) {
+                    setMixerATOsdEvent(MIXERAT_OSD_EVENT_DONE);
                     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
                     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
                     mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
@@ -1135,6 +1152,35 @@ bool NOINLINE mixerATIsActive(void)
 {
     return mixerProfileAT.phase != MIXERAT_PHASE_IDLE;
 }
+
+#ifdef USE_AUTO_TRANSITION
+bool mixerATGetOsdStatus(mixerProfileATOsdStatus_t *status)
+{
+    if (!status) {
+        return false;
+    }
+
+    const bool active = mixerATIsActive();
+    const bool eventActive = mixerATOsdEvent != MIXERAT_OSD_EVENT_NONE && cmp32(millis(), mixerATOsdEventUntil) < 0;
+
+    if (!active && !eventActive) {
+        return false;
+    }
+
+    status->active = active;
+    status->phase = mixerProfileAT.phase;
+    status->direction = mixerProfileAT.direction;
+    status->request = mixerProfileAT.request;
+    status->event = eventActive ? mixerATOsdEvent : MIXERAT_OSD_EVENT_NONE;
+
+    if (!eventActive) {
+        mixerATOsdEvent = MIXERAT_OSD_EVENT_NONE;
+        mixerATOsdEventUntil = 0;
+    }
+
+    return true;
+}
+#endif
 
 bool mixerATWasAborted(void)
 {

@@ -136,11 +136,23 @@ Transition behavior in this MVP:
 - Ground speed is not used for transition progress/completion.
 - FW -> MC: mission pauses during automated transition, then resumes after switching back to MC profile.
 - Strict altitude hold is not enforced during MC -> FW transition; natural climb is allowed.
+- If an airspeed-controlled MC -> FW transition times out, `nav_vtol_transition_retry_on_airspeed_timeout` can run one heading scan/retry before the configured fail action is used.
 
 Safety and scope:
 
 - This path uses authorized automated transition state handling; it does not permit manual mixer profile switching during normal waypoint navigation.
 - It still depends on valid mixer profile switching infrastructure (two configured mixer profiles and a valid `MIXER PROFILE 2` mode activation condition).
+
+RTH and failsafe VTOL transitions:
+
+- RTH may request MC -> FW before flying home if the aircraft is in MC and far enough from home.
+- RTH landing may request FW -> MC before using the MC landing controller.
+- Failsafe RTH/LAND is allowed to continue those navigation-owned `RTH` and `LAND` transition requests.
+- `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can also request a navigation-owned FW -> MC safety transition during mission, RTH, or failsafe RTH when trusted pitot airspeed falls too low.
+- This low-speed safety transition requires `mixer_automated_switch = ON` and a valid MC target profile.
+- After the low-speed safety transition switches to MC, INAV keeps the current navigation task in MC and blocks automatic MC -> FW RTH or mission re-entry for that navigation session.
+- Manual and mission transition requests are not allowed to continue just because failsafe became active; they are aborted unless the target profile has already been selected and INAV is only finishing the remaining safe output movement.
+- `vtol_transition_to_mc_max_airspeed_cm_s` controls when an already-requested FW -> MC transition is considered safe to complete.
 
 ### VTOL MC navigation protection and landing detection
 

@@ -679,6 +679,14 @@ typedef enum {
     MW_NAV_FLAG_ADJUSTING_ALTITUDE  = 1 << 1,
 } navSystemStatus_Flags_e;
 
+#ifdef USE_AUTO_TRANSITION
+typedef enum {
+    NAV_VTOL_TRANSITION_OSD_NONE = 0,
+    NAV_VTOL_TRANSITION_OSD_RETRY_SCAN,
+    NAV_VTOL_TRANSITION_OSD_RETRY_ALIGN,
+} navVtolTransitionOsdState_e;
+#endif
+
 typedef struct {
     navSystemStatus_Mode_e  mode;
     navSystemStatus_State_e state;
@@ -819,6 +827,9 @@ bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int3
  */
 bool navigationRTHAllowsLanding(void);
 bool isWaypointMissionRTHActive(void);
+#ifdef USE_AUTO_TRANSITION
+navVtolTransitionOsdState_e navigationVtolTransitionOsdState(void);
+#endif
 
 bool rthClimbStageActiveAndComplete(void);
 

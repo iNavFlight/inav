@@ -45,6 +45,7 @@ typedef enum {
     MIXERAT_REQUEST_MISSION_TO_MC,
     MIXERAT_REQUEST_MANUAL_TO_FW,
     MIXERAT_REQUEST_MANUAL_TO_MC,
+    MIXERAT_REQUEST_FW_TO_MC_PROTECTION,
 #endif
     MIXERAT_REQUEST_ABORT,
 } mixerProfileATRequest_e;
@@ -55,6 +56,13 @@ typedef enum {
     MIXERAT_DIRECTION_TO_FW,
     MIXERAT_DIRECTION_TO_MC,
 } mixerProfileATDirection_e;
+
+typedef enum {
+    MIXERAT_OSD_EVENT_NONE = 0,
+    MIXERAT_OSD_EVENT_DONE,
+    MIXERAT_OSD_EVENT_ABORTED,
+    MIXERAT_OSD_EVENT_AIRSPEED_TIMEOUT,
+} mixerProfileATOsdEvent_e;
 #endif
 
 //mixerProfile Automated Transition PHASE
@@ -110,6 +118,17 @@ typedef struct mixerProfileAT_s {
     timeMs_t transitionTransEndTime;
 #endif
 } mixerProfileAT_t;
+
+#ifdef USE_AUTO_TRANSITION
+typedef struct mixerProfileATOsdStatus_s {
+    bool active;
+    mixerProfileATState_e phase;
+    mixerProfileATDirection_e direction;
+    mixerProfileATRequest_e request;
+    mixerProfileATOsdEvent_e event;
+} mixerProfileATOsdStatus_t;
+#endif
+
 extern mixerProfileAT_t mixerProfileAT;
 bool checkMixerATRequired(mixerProfileATRequest_e required_action);
 bool mixerATUpdateState(mixerProfileATRequest_e required_action);
@@ -123,6 +142,7 @@ float mixerATGetFwAuthorityScale(void);
 float mixerATGetBlendToFw(void);
 int16_t mixerATGetTransitionServoInput(void);
 #ifdef USE_AUTO_TRANSITION
+bool mixerATGetOsdStatus(mixerProfileATOsdStatus_t *status);
 bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output);
 float mixerATGetPostSwitchFadeProgress(void);
 bool mixerATGetServoHandoffOutput(uint8_t servoIndex, int16_t currentOutput, int16_t *output);

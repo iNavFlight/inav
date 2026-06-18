@@ -387,7 +387,16 @@ Optional low-speed protection:
 set vtol_fw_to_mc_auto_switch_airspeed_cm_s = 750
 ```
 
-With this set, fixed-wing flight automatically starts FW -> MC when trusted pitot airspeed drops to `7.5 m/s` or lower. After this protection switches to MC, INAV stays in MC until you deliberately command another manual profile change. Set it to `0` to disable this protection.
+With this set, fixed-wing flight automatically starts FW -> MC when trusted pitot airspeed drops to `7.5 m/s` or lower. Set it to `0` to disable this protection.
+
+This is a safety fallback for cases where fixed-wing flight no longer looks safe, for example a pusher problem or another failure that prevents the aircraft from keeping enough airspeed.
+
+It can be used in two contexts:
+
+- During manual FW flight, it requires `mixer_vtol_manualswitch_autotransition_controller = ON`. After the switch, INAV stays in MC until you deliberately command another manual profile change.
+- During mission, RTH, and failsafe RTH, it is a navigation-owned safety transition. It requires `mixer_automated_switch = ON` and a valid MC target profile. After it switches to MC, INAV keeps the current navigation task in MC and does not automatically start another MC -> FW transition for that navigation session, even if a later mission waypoint requests FW.
+
+This setting decides when the emergency FW -> MC fallback starts. `vtol_transition_to_mc_max_airspeed_cm_s` still decides when the FW -> MC profile switch is safe to complete during an airspeed-controlled FW -> MC transition.
 
 ## 2. Manual switch auto transition with dynamic scaling
 
@@ -970,6 +979,24 @@ Useful debug modes:
 - `debug[6]`: max absolute roll/pitch attitude [deci-degrees].
 - `debug[7]`: capture/landing/bailout settle elapsed time [ms], or command scale x1000 when command shaping is active, otherwise `1000`.
 
+OSD system messages:
+
+INAV shows VTOL transition progress in the normal OSD system message field, including analog/MSP DisplayPort OSD and DJI HD OSD message output.
+
+Typical messages include:
+
+- `VTOL MANUAL TO FW` or `VTOL MANUAL TO MC`: manual switch transition is running.
+- `VTOL MISSION TO FW` or `VTOL MISSION TO MC`: waypoint USER action requested a mission transition.
+- `VTOL RTH TO FW`: RTH requested MC -> FW before flying home.
+- `VTOL LAND TO MC`: RTH or mission landing requested FW -> MC before MC landing.
+- `VTOL LOW SPD TO MC`: low-speed protection requested FW -> MC as a safety fallback.
+- `VTOL RETRY SCAN`: mission/RTH MC -> FW timed out on airspeed and INAV is scanning headings for a better airspeed direction.
+- `VTOL RETRY ALIGN`: INAV is turning to the best heading found by the retry scan before trying again.
+- `VTOL FINISHING SWITCH`: the target profile is already active and old propulsion output is being moved to its safe final value.
+- `VTOL AIRSPEED TIMEOUT`: the requested pitot airspeed was not reached before `mixer_vtol_transition_airspeed_timeout_ms`.
+- `VTOL TRANSITION ABORTED`: the transition was cancelled before the profile switch.
+- `VTOL TRANSITION DONE`: the transition finished.
+
 Per-mixer-profile settings:
 
 - `mixer_automated_switch`: existing RTH use is to allow NAV to switch between MC and FW for return/landing. New mission use is to allow waypoint USER actions to request MC/FW transitions.
@@ -983,7 +1010,7 @@ Global VTOL transition settings:
 
 - `vtol_transition_to_fw_min_airspeed_cm_s`: new preferred MC -> FW completion threshold when pitot is trusted. `0` uses the timer path.
 - `vtol_transition_to_mc_max_airspeed_cm_s`: new preferred FW -> MC completion threshold when pitot is trusted. `0` uses the timer path.
-- `vtol_fw_to_mc_auto_switch_airspeed_cm_s`: new low-speed fixed-wing protection. When non-zero, FW can automatically start FW -> MC if pitot airspeed falls too low.
+- `vtol_fw_to_mc_auto_switch_airspeed_cm_s`: new low-speed fixed-wing safety fallback. When non-zero, FW flight can automatically start FW -> MC if trusted pitot airspeed falls too low. In manual FW flight it requires the manual auto-transition controller. In mission/RTH/failsafe it requires `mixer_automated_switch = ON` and keeps the current navigation task in MC after the switch.
 - `vtol_transition_lift_min_percent`: new lowest lift motor power during dynamic transition scaling. `100` keeps full lift power.
 - `vtol_transition_mc_authority_min_percent`: new lowest MC motor stabilisation strength during dynamic transition scaling. `100` keeps full MC stabilisation.
 - `vtol_transition_fw_authority_min_percent`: new lowest FW control strength during dynamic transition scaling. It also scales optional target fixed-wing servo preview rules.

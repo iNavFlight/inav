@@ -121,6 +121,36 @@ TEST(MixerTransitionPolicyTest, LandRequestNeedsAutomatedSwitchWhenMultirotorPro
         isMultirotorTypePlatform(profileTypes[targetMcIndex])));
 }
 
+TEST(MixerTransitionPolicyTest, NavigationFwToMcProtectionNeedsAutomatedSwitch)
+{
+    EXPECT_FALSE(mixerTransitionIsRequestAllowed(
+        MIXERAT_REQUEST_FW_TO_MC_PROTECTION,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true));
+
+    EXPECT_TRUE(mixerTransitionIsRequestAllowed(
+        MIXERAT_REQUEST_FW_TO_MC_PROTECTION,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true));
+
+    EXPECT_FALSE(mixerTransitionIsRequestAllowed(
+        MIXERAT_REQUEST_FW_TO_MC_PROTECTION,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false));
+}
+
 TEST(MixerTransitionPolicyTest, ManualRequestsNeedMixerProfileModeAndMatchingTargetType)
 {
     EXPECT_FALSE(mixerTransitionIsRequestAllowed(
@@ -160,7 +190,7 @@ TEST(MixerTransitionPolicyTest, ManualRequestsNeedMixerProfileModeAndMatchingTar
         true));
 }
 
-TEST(MixerTransitionPolicyTest, OnlyNavigationOwnedRthAndLandRequestsMayContinueDuringFailsafe)
+TEST(MixerTransitionPolicyTest, OnlyNavigationOwnedRequestsMayContinueDuringFailsafe)
 {
     EXPECT_TRUE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_RTH));
     EXPECT_TRUE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_LAND));
@@ -170,6 +200,7 @@ TEST(MixerTransitionPolicyTest, OnlyNavigationOwnedRthAndLandRequestsMayContinue
     EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_MISSION_TO_MC));
     EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_MANUAL_TO_FW));
     EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_MANUAL_TO_MC));
+    EXPECT_TRUE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_FW_TO_MC_PROTECTION));
     EXPECT_FALSE(mixerTransitionRequestAllowedDuringFailsafe(MIXERAT_REQUEST_ABORT));
 }
 
@@ -177,12 +208,24 @@ TEST(MixerTransitionPolicyTest, FailsafeKeepsPostSwitchOutputRampAfterRequestIsC
 {
     EXPECT_FALSE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_RTH, false, false));
     EXPECT_FALSE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_LAND, false, false));
+    EXPECT_FALSE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_FW_TO_MC_PROTECTION, false, false));
 
     EXPECT_TRUE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_NONE, false, false));
     EXPECT_TRUE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_NONE, true, false));
     EXPECT_TRUE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_NONE, false, true));
 
     EXPECT_FALSE(mixerTransitionShouldAbortForFailsafe(MIXERAT_REQUEST_NONE, true, true));
+}
+
+TEST(MixerTransitionPolicyTest, FwToMcProtectionAirspeedTriggerNeedsTrustedLowAirspeed)
+{
+    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(false, 700, true, 650.0f));
+    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, 0, true, 650.0f));
+    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, 700, false, 650.0f));
+    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, 700, true, 701.0f));
+
+    EXPECT_TRUE(mixerTransitionFwToMcProtectionTriggered(true, 700, true, 700.0f));
+    EXPECT_TRUE(mixerTransitionFwToMcProtectionTriggered(true, 700, true, 650.0f));
 }
 
 TEST(MixerTransitionPolicyTest, DynamicScalingDisabledKeepsAllScalesAtFullValues)

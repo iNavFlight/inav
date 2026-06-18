@@ -103,6 +103,9 @@ static inline bool mixerTransitionIsRequestAllowed(
     case MIXERAT_REQUEST_MISSION_TO_MC:
     case MIXERAT_REQUEST_MANUAL_TO_MC:
         return stateAirplane && targetProfileIsMultirotor;
+
+    case MIXERAT_REQUEST_FW_TO_MC_PROTECTION:
+        return automatedSwitch && stateAirplane && targetProfileIsMultirotor;
 #endif
 
     default:
@@ -117,10 +120,29 @@ static inline bool mixerTransitionRequestAllowedDuringFailsafe(mixerProfileATReq
     case MIXERAT_REQUEST_LAND:
         return true;
 
+#ifdef USE_AUTO_TRANSITION
+    case MIXERAT_REQUEST_FW_TO_MC_PROTECTION:
+        return true;
+#endif
+
     default:
         return false;
     }
 }
+
+#ifdef USE_AUTO_TRANSITION
+static inline bool mixerTransitionFwToMcProtectionTriggered(
+    const bool stateAirplane,
+    const uint16_t thresholdCmS,
+    const bool trustedAirspeedAvailable,
+    const float airspeedCmS)
+{
+    return stateAirplane &&
+           thresholdCmS > 0 &&
+           trustedAirspeedAvailable &&
+           airspeedCmS <= thresholdCmS;
+}
+#endif
 
 static inline bool mixerTransitionShouldAbortForFailsafe(
     const mixerProfileATRequest_e requiredAction,
