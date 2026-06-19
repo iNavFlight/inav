@@ -78,6 +78,11 @@ typedef struct mcLandingProbeState_s {
 
 static mcLandingProbeState_t mcLandingProbe;
 
+static void setMulticopterCurrentPositionAsHoldTarget(navSetWaypointFlags_t useMask)
+{
+    setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, useMask);
+}
+
 static void resetMulticopterLandingProbe(void)
 {
     mcLandingProbe = (mcLandingProbeState_t){ 0 };
@@ -392,13 +397,37 @@ void resetMulticopterBrakingMode(void)
     DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
 }
 
+bool navigationMulticopterBrakingActive(void)
+{
+#ifdef USE_MR_BRAKING_MODE
+    return STATE(NAV_CRUISE_BRAKING);
+#else
+    return false;
+#endif
+}
+
+bool navigationMulticopterBrakingBoostActive(void)
+{
+#ifdef USE_MR_BRAKING_MODE
+    return STATE(NAV_CRUISE_BRAKING_BOOST);
+#else
+    return false;
+#endif
+}
+
 static void processMulticopterBrakingMode(const bool isAdjusting)
 {
 #ifdef USE_MR_BRAKING_MODE
     static uint32_t brakingModeDisengageAt = 0;
     static uint32_t brakingBoostModeDisengageAt = 0;
+    const bool brakingSuppressed = vtolMcProtectionSuppressesMulticopterBrakingMode(navigationVtolMcProtectionIsNavActive());
 
     if (!(NAV_Status.state == MW_NAV_STATE_NONE || NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT)) {
+        resetMulticopterBrakingMode();
+        return;
+    }
+
+    if (brakingSuppressed) {
         resetMulticopterBrakingMode();
         return;
     }
@@ -422,7 +451,7 @@ static void processMulticopterBrakingMode(const bool isAdjusting)
          * Set currnt position and target position
          * Enabling NAV_CRUISE_BRAKING locks other routines from setting position!
          */
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+        setMulticopterCurrentPositionAsHoldTarget(NAV_POS_UPDATE_XY);
 
         ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
         ENABLE_STATE(NAV_CRUISE_BRAKING);
@@ -470,7 +499,7 @@ static void processMulticopterBrakingMode(const bool isAdjusting)
          * When braking is done, store current position as desired one
          * We do not want to go back to the place where braking has started
          */
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+        setMulticopterCurrentPositionAsHoldTarget(NAV_POS_UPDATE_XY);
     }
 #else
     UNUSED(isAdjusting);
@@ -680,7 +709,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     float maxAccelChange = US2S(deltaMicros) * MC_POS_CONTROL_JERK_LIMIT_CMSSS;
     //When braking, raise jerk limit even if we are not boosting acceleration
 #ifdef USE_MR_BRAKING_MODE
-    if (STATE(NAV_CRUISE_BRAKING)) {
+    if (navigationMulticopterBrakingActive() &&
+        !vtolMcProtectionSuppressesMulticopterBrakingMode(navigationVtolMcProtectionIsNavActive())) {
         maxAccelChange = maxAccelChange * 2;
     }
 #endif
@@ -746,7 +776,9 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
-    if (STATE(NAV_CRUISE_BRAKING_BOOST) && multicopterPosXyCoefficients.breakingBoostFactor > 0.0f) {
+    if (navigationMulticopterBrakingBoostActive() &&
+        !vtolMcProtectionSuppressesMulticopterBrakingMode(navigationVtolMcProtectionIsNavActive()) &&
+        multicopterPosXyCoefficients.breakingBoostFactor > 0.0f) {
 
         //Scale boost factor according to speed
         const float boostFactor = constrainf(
@@ -817,7 +849,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
         // If we have new position data - update velocity and acceleration controllers
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
             if (navigationVtolMcProtectionApplyCapture(navGetCurrentStateFlags())) {
-                setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
+                setMulticopterCurrentPositionAsHoldTarget(NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
             }
 
             // Get max speed for current NAV mode

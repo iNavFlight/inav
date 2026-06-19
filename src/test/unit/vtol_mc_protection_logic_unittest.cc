@@ -374,6 +374,12 @@ TEST(VtolMcProtectionLogicTest, BailoutAngleLimitUsesBankAngleWithSafeClamps)
     EXPECT_EQ(600, vtolMcProtectionBailoutAngleLimitDeciDeg(80));
 }
 
+TEST(VtolMcProtectionLogicTest, ActiveProtectionSuppressesMulticopterBrakingMode)
+{
+    EXPECT_FALSE(vtolMcProtectionSuppressesMulticopterBrakingMode(false));
+    EXPECT_TRUE(vtolMcProtectionSuppressesMulticopterBrakingMode(true));
+}
+
 TEST(VtolMcProtectionLogicTest, CommandShapingIsContinuousAndPreservesSign)
 {
     EXPECT_FLOAT_EQ(1.0f, vtolMcProtectionCommandScaleForSpeed(250.0f));

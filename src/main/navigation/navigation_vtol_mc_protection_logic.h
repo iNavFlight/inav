@@ -86,6 +86,11 @@ static inline uint16_t vtolMcProtectionSettleAttitudeLimitDeciDeg(const uint8_t 
     return (uint16_t)limitedAngleDeg * 10U;
 }
 
+static inline bool vtolMcProtectionSuppressesMulticopterBrakingMode(const bool active)
+{
+    return active;
+}
+
 static inline uint16_t vtolMcProtectionBailoutAngleLimitDeciDeg(const uint8_t navMcBankAngleDeg)
 {
     uint8_t bailoutAngleDeg = navMcBankAngleDeg + VTOL_MC_BAILOUT_ANGLE_EXTRA_DEG;
