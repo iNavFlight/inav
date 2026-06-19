@@ -119,7 +119,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
     if (!validityScore) {
         hasValidWindEstimate = false;
-    } else if (!hasValidWindEstimate && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) {
+    } else if (!hasValidWindEstimate && !spikeFilterDynAdjustment && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) {
         hasValidWindEstimate = true;
     }
 
@@ -213,7 +213,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         } else if (spikeFilterDynAdjustment || US2S(cmpTimeUs(currentTimeUs, lastValidWindEstimateUs)) > 30) {  // 30s estimate update timeout
             if (spikeFilterDynAdjustment < WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR) {
                 spikeFilterDynAdjustment++;
-                if (hasValidWindEstimate && validityScore > 1) validityScore -= 2;  // degrade valid estimate if update stuck too long
+                if (hasValidWindEstimate && validityScore) validityScore -= validityScore == 1 ? 1 : 2;  // degrade valid estimate if update stuck too long
             }
         }
 
