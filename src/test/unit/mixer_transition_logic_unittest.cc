@@ -43,6 +43,72 @@ TEST(MixerTransitionLogicTest, AutoManualSessionStaysAutoAcrossProfileChanges)
     EXPECT_TRUE(mixerTransitionManualControllerEnabled(false, sessionMode));
 }
 
+TEST(MixerTransitionLogicTest, CompletedAutoSessionSurvivesProfileModeGapAfterHotSwitch)
+{
+    EXPECT_TRUE(mixerTransitionKeepCompletedAutoSession(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        true,
+        true,
+        0,
+        1));
+
+    EXPECT_TRUE(mixerTransitionCompletedAutoSessionOwnsProfileSwitch(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        true,
+        0,
+        1));
+}
+
+TEST(MixerTransitionLogicTest, CompletedAutoSessionReleasesWhenSwitchMatchesActiveProfile)
+{
+    EXPECT_FALSE(mixerTransitionKeepCompletedAutoSession(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        true,
+        true,
+        0,
+        0));
+
+    EXPECT_FALSE(mixerTransitionCompletedAutoSessionOwnsProfileSwitch(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        true,
+        0,
+        0));
+
+    EXPECT_FALSE(mixerTransitionKeepCompletedAutoSession(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        true,
+        false,
+        0,
+        1));
+}
+
+TEST(MixerTransitionLogicTest, CompletedAutoSessionClearsStaleMixingWhileSwitchRemainsInTransition)
+{
+    EXPECT_TRUE(mixerTransitionShouldClearCompletedAutoMixingRequest(
+        true,
+        false,
+        false,
+        true));
+
+    EXPECT_FALSE(mixerTransitionShouldClearCompletedAutoMixingRequest(
+        true,
+        false,
+        true,
+        true));
+
+    EXPECT_FALSE(mixerTransitionShouldClearCompletedAutoMixingRequest(
+        false,
+        false,
+        false,
+        true));
+
+    EXPECT_FALSE(mixerTransitionShouldClearCompletedAutoMixingRequest(
+        true,
+        true,
+        false,
+        true));
+}
+
 TEST(MixerTransitionLogicTest, LegacySessionIgnoresAutoControllerAfterProfileHotSwitch)
 {
     mixerTransitionManualSessionMode_e sessionMode = MIXER_TRANSITION_MANUAL_SESSION_NONE;

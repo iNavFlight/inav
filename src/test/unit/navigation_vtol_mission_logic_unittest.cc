@@ -111,3 +111,27 @@ TEST(NavigationVtolMissionLogicTest, HardSafetyAndConfigurationProblemsReject)
             false,
             false));
 }
+
+TEST(NavigationVtolMissionLogicTest, StartValidationRejectsBadTargetProfile)
+{
+    EXPECT_EQ(NAV_MISSION_VTOL_START_VALIDATION_REJECT,
+        navMissionVtolTransitionStartValidation(
+            false,
+            true));
+}
+
+TEST(NavigationVtolMissionLogicTest, StartValidationUsesFailActionWhenRequestCannotStart)
+{
+    EXPECT_EQ(NAV_MISSION_VTOL_START_VALIDATION_FAIL_ACTION,
+        navMissionVtolTransitionStartValidation(
+            true,
+            false));
+}
+
+TEST(NavigationVtolMissionLogicTest, StartValidationAllowsValidTransitionStart)
+{
+    EXPECT_EQ(NAV_MISSION_VTOL_START_VALIDATION_READY,
+        navMissionVtolTransitionStartValidation(
+            true,
+            true));
+}

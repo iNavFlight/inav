@@ -25,6 +25,12 @@ typedef enum {
     NAV_MISSION_VTOL_PRECONDITION_REJECT,
 } navMissionVtolTransitionPrecondition_e;
 
+typedef enum {
+    NAV_MISSION_VTOL_START_VALIDATION_READY = 0,
+    NAV_MISSION_VTOL_START_VALIDATION_FAIL_ACTION,
+    NAV_MISSION_VTOL_START_VALIDATION_REJECT,
+} navMissionVtolTransitionStartValidation_e;
+
 static inline navMissionVtolTransitionPrecondition_e navMissionVtolTransitionPreconditionDisposition(
     const bool armed,
     const bool failsafeActive,
@@ -48,4 +54,19 @@ static inline navMissionVtolTransitionPrecondition_e navMissionVtolTransitionPre
     }
 
     return NAV_MISSION_VTOL_PRECONDITION_READY;
+}
+
+static inline navMissionVtolTransitionStartValidation_e navMissionVtolTransitionStartValidation(
+    const bool targetPlatformMatchesRequest,
+    const bool transitionRequestAllowed)
+{
+    if (!targetPlatformMatchesRequest) {
+        return NAV_MISSION_VTOL_START_VALIDATION_REJECT;
+    }
+
+    if (!transitionRequestAllowed) {
+        return NAV_MISSION_VTOL_START_VALIDATION_FAIL_ACTION;
+    }
+
+    return NAV_MISSION_VTOL_START_VALIDATION_READY;
 }

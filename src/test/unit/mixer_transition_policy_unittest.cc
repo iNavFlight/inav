@@ -219,13 +219,73 @@ TEST(MixerTransitionPolicyTest, FailsafeKeepsPostSwitchOutputRampAfterRequestIsC
 
 TEST(MixerTransitionPolicyTest, FwToMcProtectionAirspeedTriggerNeedsTrustedLowAirspeed)
 {
-    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(false, 700, true, 650.0f));
-    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, 0, true, 650.0f));
-    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, 700, false, 650.0f));
-    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, 700, true, 701.0f));
+    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(false, true, 700, true, 650.0f));
+    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, false, 700, true, 650.0f));
+    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, true, 0, true, 650.0f));
+    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, true, 700, false, 650.0f));
+    EXPECT_FALSE(mixerTransitionFwToMcProtectionTriggered(true, true, 700, true, 701.0f));
 
-    EXPECT_TRUE(mixerTransitionFwToMcProtectionTriggered(true, 700, true, 700.0f));
-    EXPECT_TRUE(mixerTransitionFwToMcProtectionTriggered(true, 700, true, 650.0f));
+    EXPECT_TRUE(mixerTransitionFwToMcProtectionTriggered(true, true, 700, true, 700.0f));
+    EXPECT_TRUE(mixerTransitionFwToMcProtectionTriggered(true, true, 700, true, 650.0f));
+}
+
+TEST(MixerTransitionPolicyTest, NavigationOwnsProfileSwitchOnlyForArmedVtolAutoStates)
+{
+    EXPECT_FALSE(mixerTransitionNavigationOwnsProfileSwitch(
+        false,
+        true,
+        true,
+        false,
+        false,
+        false));
+
+    EXPECT_FALSE(mixerTransitionNavigationOwnsProfileSwitch(
+        true,
+        false,
+        true,
+        false,
+        false,
+        false));
+
+    EXPECT_FALSE(mixerTransitionNavigationOwnsProfileSwitch(
+        true,
+        true,
+        false,
+        false,
+        false,
+        false));
+
+    EXPECT_TRUE(mixerTransitionNavigationOwnsProfileSwitch(
+        true,
+        true,
+        true,
+        false,
+        false,
+        false));
+
+    EXPECT_TRUE(mixerTransitionNavigationOwnsProfileSwitch(
+        true,
+        true,
+        false,
+        true,
+        false,
+        false));
+
+    EXPECT_TRUE(mixerTransitionNavigationOwnsProfileSwitch(
+        true,
+        true,
+        false,
+        false,
+        true,
+        false));
+
+    EXPECT_TRUE(mixerTransitionNavigationOwnsProfileSwitch(
+        true,
+        true,
+        false,
+        false,
+        false,
+        true));
 }
 
 TEST(MixerTransitionPolicyTest, DynamicScalingDisabledKeepsAllScalesAtFullValues)
@@ -298,6 +358,20 @@ TEST(MixerTransitionPolicyTest, MotorRampProgressFallsBackToFullWhenDisabledOrZe
     EXPECT_FLOAT_EQ(1.0f, mixerTransitionComputeMotorRampProgress(false, 500, 100));
     EXPECT_FLOAT_EQ(1.0f, mixerTransitionComputeMotorRampProgress(true, 0, 100));
     EXPECT_FLOAT_EQ(0.40f, mixerTransitionComputeMotorRampProgress(true, 500, 200));
+}
+
+TEST(MixerTransitionPolicyTest, PostSwitchMotorOutputBlendIsBounded)
+{
+    EXPECT_EQ(1800, mixerTransitionBlendCapturedMotorOutput(1800, 1000, 0.0f));
+    EXPECT_EQ(1400, mixerTransitionBlendCapturedMotorOutput(1800, 1000, 0.5f));
+    EXPECT_EQ(1000, mixerTransitionBlendCapturedMotorOutput(1800, 1000, 1.0f));
+
+    EXPECT_EQ(1000, mixerTransitionBlendCapturedMotorOutput(1000, 1800, 0.0f));
+    EXPECT_EQ(1400, mixerTransitionBlendCapturedMotorOutput(1000, 1800, 0.5f));
+    EXPECT_EQ(1800, mixerTransitionBlendCapturedMotorOutput(1000, 1800, 1.0f));
+
+    EXPECT_EQ(1800, mixerTransitionBlendCapturedMotorOutput(1800, 1000, -0.25f));
+    EXPECT_EQ(1000, mixerTransitionBlendCapturedMotorOutput(1800, 1000, 1.25f));
 }
 
 TEST(MixerTransitionPolicyTest, DirectionNoneKeepsScalesAndHotSwitchIdle)

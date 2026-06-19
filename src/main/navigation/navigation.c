@@ -331,6 +331,7 @@ typedef enum {
     NAV_MISSION_VTOL_TRANSITION_CONTINUE,
     NAV_MISSION_VTOL_TRANSITION_WAIT,
     NAV_MISSION_VTOL_TRANSITION_START,
+    NAV_MISSION_VTOL_TRANSITION_FAIL_ACTION,
     NAV_MISSION_VTOL_TRANSITION_REJECT,
 } navMissionVtolTransitionDisposition_e;
 
@@ -875,7 +876,9 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_WAYPOINT_IN_PROGRESS,
             [NAV_FSM_EVENT_ERROR]                       = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]           = NAV_STATE_MIXERAT_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED] = NAV_STATE_WAYPOINT_FINISHED,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP]     = NAV_STATE_WAYPOINT_PRE_ACTION,   // MSP2_INAV_SET_WP_INDEX
@@ -2229,7 +2232,7 @@ static bool beginNavigationFwToMcProtectionTransition(void)
     float airspeedCmS = 0.0f;
     const bool trustedAirspeedAvailable = hasTrustedPitotAirspeed(&airspeedCmS);
 
-    if (!mixerTransitionFwToMcProtectionTriggered(STATE(AIRPLANE), thresholdCmS, trustedAirspeedAvailable, airspeedCmS)) {
+    if (!mixerTransitionFwToMcProtectionTriggered(ARMING_FLAG(ARMED), STATE(AIRPLANE), thresholdCmS, trustedAirspeedAvailable, airspeedCmS)) {
         return false;
     }
 
@@ -2504,13 +2507,20 @@ static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const 
     }
 
     const flyingPlatformType_e targetPlatformType = mixerConfigByIndex(nextMixerProfileIndex)->platformType;
-    if ((transitionToFixedWing && targetPlatformType != PLATFORM_AIRPLANE) ||
-        (!transitionToFixedWing && !isMissionTransitionToMultirotorType(targetPlatformType))) {
+    const bool targetPlatformMatchesRequest = transitionToFixedWing ?
+        targetPlatformType == PLATFORM_AIRPLANE :
+        isMissionTransitionToMultirotorType(targetPlatformType);
+    const navMissionVtolTransitionStartValidation_e startValidation = navMissionVtolTransitionStartValidation(
+        targetPlatformMatchesRequest,
+        checkMixerATRequired(requestedAction));
+
+    if (startValidation == NAV_MISSION_VTOL_START_VALIDATION_REJECT) {
         return NAV_MISSION_VTOL_TRANSITION_REJECT;
     }
 
-    if (!checkMixerATRequired(requestedAction)) {
-        return NAV_MISSION_VTOL_TRANSITION_REJECT;
+    if (startValidation == NAV_MISSION_VTOL_START_VALIDATION_FAIL_ACTION) {
+        navMixerATMissionTransition.request = requestedAction;
+        return NAV_MISSION_VTOL_TRANSITION_FAIL_ACTION;
     }
 
     int32_t transitionHeading = posControl.actualState.yaw;
@@ -2599,6 +2609,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
             }
             if (transitionAction == NAV_MISSION_VTOL_TRANSITION_START) {
                 return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
+            }
+            if (transitionAction == NAV_MISSION_VTOL_TRANSITION_FAIL_ACTION) {
+                const navigationFSMEvent_t failEvent = getTransitionFailEvent(navMixerATMissionTransition.request);
+                clearMissionVTOLTransitionState();
+                return failEvent;
             }
             if (transitionAction == NAV_MISSION_VTOL_TRANSITION_REJECT) {
                 return NAV_FSM_EVENT_ERROR;

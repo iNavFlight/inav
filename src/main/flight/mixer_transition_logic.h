@@ -75,6 +75,54 @@ static inline bool mixerTransitionManualControllerEnabled(
            (sessionMode != MIXER_TRANSITION_MANUAL_SESSION_LEGACY && manualControllerConfigured);
 }
 
+#ifdef USE_AUTO_TRANSITION
+static inline bool mixerTransitionKeepCompletedAutoSession(
+    mixerTransitionManualSessionMode_e sessionMode,
+    bool transitionModeFallingEdge,
+    bool hotSwitchDone,
+    int currentProfileIndex,
+    int requestedProfileIndex)
+{
+    return sessionMode == MIXER_TRANSITION_MANUAL_SESSION_AUTO &&
+           transitionModeFallingEdge &&
+           hotSwitchDone &&
+           currentProfileIndex != requestedProfileIndex;
+}
+
+static inline bool mixerTransitionCompletedAutoSessionOwnsProfileSwitch(
+    mixerTransitionManualSessionMode_e sessionMode,
+    bool hotSwitchDone,
+    int currentProfileIndex,
+    int requestedProfileIndex)
+{
+    return sessionMode == MIXER_TRANSITION_MANUAL_SESSION_AUTO &&
+           hotSwitchDone &&
+           currentProfileIndex != requestedProfileIndex;
+}
+
+static inline bool mixerTransitionShouldClearCompletedAutoMixingRequest(
+    bool transitionModeActive,
+    bool transitionModeRisingEdge,
+    bool autoTransitionActive,
+    bool hotSwitchDone)
+{
+    return transitionModeActive && !transitionModeRisingEdge && !autoTransitionActive && hotSwitchDone;
+}
+
+static inline bool mixerTransitionNavigationOwnsProfileSwitch(
+    bool armed,
+    bool vtolProfilePairConfigured,
+    bool navWaypointActive,
+    bool navRthActive,
+    bool navLandingActive,
+    bool navMixerAtActive)
+{
+    return armed &&
+           vtolProfilePairConfigured &&
+           (navWaypointActive || navRthActive || navLandingActive || navMixerAtActive);
+}
+#endif
+
 static inline bool mixerTransitionIsRequestAllowed(
     mixerProfileATRequest_e requiredAction,
     bool stateAirplane,
@@ -132,12 +180,14 @@ static inline bool mixerTransitionRequestAllowedDuringFailsafe(mixerProfileATReq
 
 #ifdef USE_AUTO_TRANSITION
 static inline bool mixerTransitionFwToMcProtectionTriggered(
+    const bool armed,
     const bool stateAirplane,
     const uint16_t thresholdCmS,
     const bool trustedAirspeedAvailable,
     const float airspeedCmS)
 {
-    return stateAirplane &&
+    return armed &&
+           stateAirplane &&
            thresholdCmS > 0 &&
            trustedAirspeedAvailable &&
            airspeedCmS <= thresholdCmS;
@@ -191,6 +241,11 @@ static inline bool mixerTransitionServoHandoffHoldActive(uint16_t holdDurationMs
     return holdDurationMs > 0 && elapsedMs < holdDurationMs;
 }
 
+static inline int16_t mixerTransitionRoundFloatToInt16(float value)
+{
+    return (int16_t)(value >= 0.0f ? value + 0.5f : value - 0.5f);
+}
+
 static inline float mixerTransitionResolveHandoffProgress(
     bool dynamicMixerEnabled,
     bool usedAirspeed,
@@ -213,6 +268,28 @@ static inline float mixerTransitionResolveHandoffProgress(
 static inline float mixerTransitionBlendScale(float from, float to, float progress)
 {
     return from + (to - from) * mixerTransitionClamp(progress, 0.0f, 1.0f);
+}
+
+static inline int16_t mixerTransitionBlendCapturedMotorOutput(
+    int16_t capturedOutput,
+    int16_t targetOutput,
+    float progress)
+{
+    const float holdScale = 1.0f - mixerTransitionClamp(progress, 0.0f, 1.0f);
+    const int32_t blendedOutput = mixerTransitionRoundFloatToInt16(
+        targetOutput + (capturedOutput - targetOutput) * holdScale);
+    const int16_t low = targetOutput < capturedOutput ? targetOutput : capturedOutput;
+    const int16_t high = targetOutput > capturedOutput ? targetOutput : capturedOutput;
+
+    if (blendedOutput < low) {
+        return low;
+    }
+
+    if (blendedOutput > high) {
+        return high;
+    }
+
+    return (int16_t)blendedOutput;
 }
 
 static inline mixerTransitionScaleState_t mixerTransitionComputeScales(
