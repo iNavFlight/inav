@@ -1035,8 +1035,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, NAV_Status.activeWpAction);
         sbufWriteU8(dst, NAV_Status.activeWpNumber);
         sbufWriteU8(dst, NAV_Status.error);
-        //sbufWriteU16(dst,  (int16_t)(target_bearing/100));
         sbufWriteU16(dst, getHeadingHoldTarget());
+        sbufWriteU16(dst, navDesiredHeading);   // guidance course/track (centideg)
         break;
 
 
