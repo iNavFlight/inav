@@ -139,6 +139,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 #ifdef USE_DSHOT
                 .turtleModePowerFactor = SETTING_TURTLE_MODE_POWER_FACTOR_DEFAULT,
 #endif
+                .throttle_rate_limiter = SETTING_FW_THROTTLE_RATE_LIMITER_DEFAULT,                  // 100 millis
             },
 
             .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                                 // default throttle off.
