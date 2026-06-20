@@ -4475,9 +4475,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             sbufWriteU8(dst,  vehicle->vehicleValues.tslc);
             sbufWriteU8(dst,  vehicle->vehicleValues.emitterType);
             sbufWriteU8(dst,  vehicle->ttl);
-            for (uint8_t i = 0; i < ADSB_CALL_SIGN_MAX_LENGTH; i++) {
-                sbufWriteU8(dst, vehicle->vehicleValues.callsign[i]);
-            }
+            sbufWriteData(dst, vehicle->vehicleValues.callsign, ADSB_CALL_SIGN_MAX_LENGTH);
         } else {
             *ret = MSP_RESULT_ERROR;               // no index supplied
             break;
