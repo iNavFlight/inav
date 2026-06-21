@@ -128,12 +128,10 @@
 
 #define USE_I2C_IO_EXPANDER
 
-#define USE_TELEMETRY_MAVLINK
 #define USE_MSP_OVER_TELEMETRY
 
 #define USE_SERIALRX_SRXL2     // Spektrum SRXL2 protocol
 #define USE_SERIALRX_JETIEXBUS
-#define USE_SERIALRX_MAVLINK
 #define USE_TELEMETRY_SRXL
 #define USE_SPEKTRUM_CMS_TELEMETRY
 //#define USE_SPEKTRUM_VTX_CONTROL //Some functions from betaflight still not implemented
@@ -210,6 +208,8 @@
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
+#define USE_TELEMETRY_MAVLINK
+#define USE_SERIALRX_MAVLINK
 #define USE_TELEMETRY_SIM
 #define USE_VTX_FFPV
 #define USE_SERIALRX_SUMD
