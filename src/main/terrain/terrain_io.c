@@ -218,6 +218,15 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
         }
         ////////////////////////////////////////////////////////////////
 
+        ////////////////////////////////////////////////////////////////
+        //for start reading terrain data, SD card must be in idle
+        if(!afatfs_isIdle()){
+            releaseSdCardAccess();
+            return;
+        }
+        ////////////////////////////////////////////////////////////////
+
+
         //set grid block for process. open file -> seek -> read -> close
         terrainIoState.gridBlock = gridBlock;
         terrainIoState.status = TERRAIN_IO_CHANGE_DIR;

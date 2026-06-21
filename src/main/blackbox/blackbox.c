@@ -2258,6 +2258,7 @@ void blackboxUpdate(timeUs_t currentTimeUs)
             if(afatfs_isIdle()){
                 blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
                 blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice = true;
+                return;
             }
         }
     }
