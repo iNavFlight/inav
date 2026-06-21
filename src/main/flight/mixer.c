@@ -75,7 +75,7 @@ static EXTENDED_FASTRAM int throttleDeadbandHigh = 0;
 static EXTENDED_FASTRAM int throttleRangeMin = 0;
 static EXTENDED_FASTRAM int throttleRangeMax = 0;
 static EXTENDED_FASTRAM int8_t motorYawMultiplier = 1;
-static EXTENDED_FASTRAM uint16_t throttleRateLimit = 0;
+static EXTENDED_FASTRAM float throttleRateLimit = 0.0f;
 
 int motorZeroCommand = 0;
 
@@ -237,7 +237,7 @@ void mixerInit(void)
         motorYawMultiplier = 1;
     }
 
-    if (currentBatteryProfile->motor.throttle_rate_limiter > 100) {
+    if (currentBatteryProfile->motor.throttle_rate_limiter > 0) {
         throttleRateLimit = (PWM_RANGE_MAX - PWM_RANGE_MIN) / MS2S(currentBatteryProfile->motor.throttle_rate_limiter);
     }
 }

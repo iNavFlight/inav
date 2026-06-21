@@ -1178,11 +1178,11 @@ groups:
         min: 1000
         max: 2000
       - name: fw_throttle_rate_limiter
-        description: "Limits throttle output rate of change. Setting defines minimum time in milliseconds for throttle to change by 1000us (min to max throttle range). Set to 100 to disable. Fixed wing only."
-        default_value: 100
+        description: "Limits throttle output rate of change. Setting defines minimum time in milliseconds for throttle to change by 1000us (min to max throttle range). Set to 0 to disable. Fixed wing only."
+        default_value: 0
         field: motor.throttle_rate_limiter
-        min: 100
-        max: 10000
+        min: 0
+        max: 5000
       - name: limit_cont_current
         description: "Continous current limit (dA), set to 0 to disable"
         condition: USE_POWER_LIMITS
