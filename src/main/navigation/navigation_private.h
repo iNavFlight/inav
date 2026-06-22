@@ -526,6 +526,7 @@ PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
 
 extern navigationPosControl_t posControl;
 extern multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
+extern bool mcToiletBowlingDetected;
 
 /* Internally used functions */
 const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
