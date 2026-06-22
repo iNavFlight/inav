@@ -1620,6 +1620,16 @@ Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually shoul
 
 ---
 
+### fw_throttle_rate_limiter
+
+Limits throttle output rate of change. Setting defines minimum time in milliseconds for throttle to change by 1000us (min to max throttle range). Set to 0 to disable. Fixed wing only.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 5000 |
+
+---
+
 ### fw_tpa_time_constant
 
 TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. See **PID Attenuation and scaling** Wiki for full details.

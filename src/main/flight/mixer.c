@@ -75,6 +75,7 @@ static EXTENDED_FASTRAM int throttleDeadbandHigh = 0;
 static EXTENDED_FASTRAM int throttleRangeMin = 0;
 static EXTENDED_FASTRAM int throttleRangeMax = 0;
 static EXTENDED_FASTRAM int8_t motorYawMultiplier = 1;
+static EXTENDED_FASTRAM float throttleRateLimit = 0.0f;
 
 int motorZeroCommand = 0;
 
@@ -234,6 +235,10 @@ void mixerInit(void)
         motorYawMultiplier = -1;
     } else {
         motorYawMultiplier = 1;
+    }
+
+    if (currentBatteryProfile->motor.throttle_rate_limiter > 0) {
+        throttleRateLimit = (PWM_RANGE_MAX - PWM_RANGE_MIN) / MS2S(currentBatteryProfile->motor.throttle_rate_limiter);
     }
 }
 
@@ -486,8 +491,10 @@ static int getReversibleMotorsThrottleDeadband(void)
     return ifMotorstopFeatureEnabled() ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
-void FAST_CODE mixTable(void)
+void FAST_CODE mixTable(float dT)
 {
+    static float lastMixerThrottleCommand = 1000.0f;
+
 #ifdef USE_DSHOT
     if (FLIGHT_MODE(TURTLE_MODE)) {
         applyTurtleModeToMotors();
@@ -505,6 +512,7 @@ void FAST_CODE mixTable(void)
             motor[i] = isDisarmed ? motor_disarmed[i] : motorValueWhenStopped;
         }
         mixerThrottleCommand = motor[0];
+        lastMixerThrottleCommand = mixerThrottleCommand;
         return;
     }
 
@@ -606,6 +614,17 @@ void FAST_CODE mixTable(void)
     throttleMin = throttleRangeMin;
     throttleMax = throttleRangeMax;
     throttleRange = throttleMax - throttleMin;
+
+    // FW throttle rate limiter
+    if (STATE(AIRPLANE) && throttleRateLimit) {
+        const float deltaThrottle = mixerThrottleCommand - lastMixerThrottleCommand;
+        const float throttleRate = deltaThrottle / dT;
+
+        if (fabsf(throttleRate) > throttleRateLimit) {
+            lastMixerThrottleCommand = lastMixerThrottleCommand + SIGN(throttleRate) * throttleRateLimit * dT;
+            mixerThrottleCommand = lastMixerThrottleCommand;
+        }
+    }
 
     #define THROTTLE_CLIPPING_FACTOR    0.33f
     motorMixRange = (float)rpyMixRange / (float)throttleRange;

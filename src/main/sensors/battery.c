@@ -108,7 +108,7 @@ static pt1Filter_t amperageFilterState;
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 3);
+PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 4);
 
 void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
@@ -136,6 +136,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
             .motor = {
                 .throttleIdle = SETTING_THROTTLE_IDLE_DEFAULT,
                 .throttleScale = SETTING_THROTTLE_SCALE_DEFAULT,
+                .throttle_rate_limiter = SETTING_FW_THROTTLE_RATE_LIMITER_DEFAULT,                  // 100 millis
 #ifdef USE_DSHOT
                 .turtleModePowerFactor = SETTING_TURTLE_MODE_POWER_FACTOR_DEFAULT,
 #endif
