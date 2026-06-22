@@ -1051,6 +1051,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, 0);
 #endif
             break;
+
+    case MSP2_ADSB_VEHICLE_COUNT:
+#ifdef USE_ADSB
+        sbufWriteU8(dst, MAX_ADSB_VEHICLES);   // iteration bound for the client
+#else
+        sbufWriteU8(dst, 0);
+#endif
+        break;
+
     case MSP_DEBUG:
         // output some useful QA statistics
         // debug[x] = ((hse_value / 1000000) * 1000) + (SystemCoreClock / 1000000);         // XX0YY [crystal clock : core clock]
@@ -4448,6 +4457,32 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         mspFcWaypointOutCommand(dst, src);
         *ret = MSP_RESULT_ACK;
         break;
+
+#ifdef USE_ADSB
+    case MSP2_ADSB_VEHICLE:
+        if (sbufBytesRemaining(src) >= 1) {
+            adsbVehicle_t *vehicle = findVehicle(sbufReadU8(src));
+            if (vehicle == NULL) {                 // index past MAX_ADSB_VEHICLES
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+            sbufWriteU32(dst, vehicle->vehicleValues.icao);
+            sbufWriteU32(dst, vehicle->vehicleValues.gps.lat);
+            sbufWriteU32(dst, vehicle->vehicleValues.gps.lon);
+            sbufWriteU32(dst, vehicle->vehicleValues.alt);
+            sbufWriteU16(dst, vehicle->vehicleValues.heading);      // centideg, full-res
+            sbufWriteU16(dst, vehicle->vehicleValues.horVelocity);  // cm/s - omitted by the bulk list
+            sbufWriteU8(dst,  vehicle->vehicleValues.tslc);
+            sbufWriteU8(dst,  vehicle->vehicleValues.emitterType);
+            sbufWriteU8(dst,  vehicle->ttl);
+            sbufWriteData(dst, vehicle->vehicleValues.callsign, ADSB_CALL_SIGN_MAX_LENGTH);
+        } else {
+            *ret = MSP_RESULT_ERROR;               // no index supplied
+            break;
+        }
+        *ret = MSP_RESULT_ACK;
+        break;
+#endif
 
 #if defined(USE_FLASHFS)
     case MSP_DATAFLASH_READ:
