@@ -167,9 +167,9 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
     // change this based on available hardware
     if (feature(FEATURE_GPS)) {
-        if (gpsUpdate() && STATE(AIRPLANE)) {
+        if (gpsUpdate()) {
 #ifdef USE_WIND_ESTIMATOR
-            updateWindEstimator(currentTimeUs);
+            if (STATE(AIRPLANE)) updateWindEstimator(currentTimeUs);
 #endif
         }
     }
