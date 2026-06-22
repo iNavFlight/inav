@@ -43,20 +43,21 @@ TEST(MixerTransitionLogicTest, AutoManualSessionStaysAutoAcrossProfileChanges)
     EXPECT_TRUE(mixerTransitionManualControllerEnabled(false, sessionMode));
 }
 
-TEST(MixerTransitionLogicTest, CompletedAutoSessionSurvivesProfileModeGapAfterHotSwitch)
+TEST(MixerTransitionLogicTest, CompletedAutoSessionReleasesOnFallingEdgeToEndpoint)
 {
-    EXPECT_TRUE(mixerTransitionKeepCompletedAutoSession(
+    EXPECT_FALSE(mixerTransitionKeepCompletedAutoSession(
         MIXER_TRANSITION_MANUAL_SESSION_AUTO,
         true,
         true,
         0,
         1));
 
-    EXPECT_TRUE(mixerTransitionCompletedAutoSessionOwnsProfileSwitch(
+    EXPECT_EQ(MIXER_TRANSITION_MANUAL_SESSION_NONE, mixerTransitionUpdateManualSessionMode(
         MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        false,
         true,
-        0,
-        1));
+        true,
+        false));
 }
 
 TEST(MixerTransitionLogicTest, CompletedAutoSessionReleasesWhenSwitchMatchesActiveProfile)

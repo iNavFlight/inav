@@ -84,7 +84,7 @@ static inline bool mixerTransitionKeepCompletedAutoSession(
     int requestedProfileIndex)
 {
     return sessionMode == MIXER_TRANSITION_MANUAL_SESSION_AUTO &&
-           transitionModeFallingEdge &&
+           !transitionModeFallingEdge &&
            hotSwitchDone &&
            currentProfileIndex != requestedProfileIndex;
 }
