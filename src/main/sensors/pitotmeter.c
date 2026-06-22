@@ -372,17 +372,27 @@ bool pitotIsHealthy(void)
 #if defined(USE_GPS) && defined(USE_WIND_ESTIMATOR)
 float getWindEstimatedVirtualAirspeed(void)
 {
-    fpVector3_t windCorrectedVel;
+    static float virtualAirspeed = 0.0f;
+    static timeMs_t lastUpdateTimeMs = 0;
+    const timeMs_t currentTimeMs = millis();
 
-    // Correct nav velocities with estimated wind velocities in earth frame
-    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        windCorrectedVel.v[axis] = posControl.actualState.abs.vel.v[axis] - getEstimatedWindSpeed(axis);
+    if (currentTimeMs - lastUpdateTimeMs > 100) {   // 10Hz update rate should be sufficient for virtual airspeed
+        lastUpdateTimeMs = currentTimeMs;
+
+        fpVector3_t windCorrectedVel;
+
+        // Correct nav velocities with estimated wind velocities in earth frame
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            windCorrectedVel.v[axis] = posControl.actualState.abs.vel.v[axis] - getEstimatedWindSpeed(axis);
+        }
+
+        // Transform to body frame to obtain virtual airspeed in the x direction
+        imuTransformVectorEarthToBody(&windCorrectedVel);
+
+        virtualAirspeed = fabsf(windCorrectedVel.x);
     }
 
-    // Transform to body frame to obtain virtual airspeed in the x direction
-    imuTransformVectorEarthToBody(&windCorrectedVel);
-
-    return fabsf(windCorrectedVel.x);
+    return virtualAirspeed;
 }
 #endif
 static float getVirtualAirspeedEstimate(void)
