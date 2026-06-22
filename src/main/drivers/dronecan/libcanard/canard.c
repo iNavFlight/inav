@@ -24,6 +24,11 @@
  * Documentation: http://uavcan.org/Implementations/Libcanard
  */
 
+// INAV addition: platform.h provides USE_DRONECAN; both lines must be preserved when updating this library.
+#include "platform.h"
+
+#ifdef USE_DRONECAN
+
 #include "canard_internals.h"
 #include <string.h>
 
@@ -1958,3 +1963,5 @@ CANARD_INTERNAL void freeBlock(CanardPoolAllocator* allocator, void* p)
     canard_allocate_sem_give(allocator);
 #endif
 }
+
+#endif
