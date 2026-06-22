@@ -520,6 +520,43 @@ uint16_t getVBatSample(void) {
 }
 #endif
 
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
+uint16_t getBatteryVoltageSample(void)
+{
+    switch (batteryMetersConfig()->voltage.type) {
+#if defined(USE_ADC)
+        case VOLTAGE_SENSOR_ADC:
+            return getVBatSample();
+#endif
+#if defined(USE_ESC_SENSOR)
+        case VOLTAGE_SENSOR_ESC: {
+            escSensorData_t *escSensor = escSensorGetData();
+            return (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) ? escSensor->voltage : 0;
+        }
+#endif
+#if defined(USE_FAKE_BATT_SENSOR)
+        case VOLTAGE_SENSOR_FAKE:
+            return fakeBattSensorGetVBat();
+#endif
+#if defined(USE_SMARTPORT_MASTER)
+        case VOLTAGE_SENSOR_SMARTPORT: {
+            int16_t *smartportVoltageData = smartportMasterGetVoltageData();
+            return smartportVoltageData ? *smartportVoltageData : 0;
+        }
+#endif
+#if defined(USE_INA226)
+        case VOLTAGE_SENSOR_INA226: {
+            uint16_t ina226Voltage;
+            return (ina226Detected && ina226ReadBusVoltage(&ina226Dev, &ina226Voltage)) ? ina226Voltage : 0;
+        }
+#endif
+        case VOLTAGE_SENSOR_NONE:
+        default:
+            return 0;
+    }
+}
+#endif
+
 uint16_t getBatteryVoltage(void)
 {
     if (batteryMetersConfig()->voltageSource == BAT_VOLTAGE_SAG_COMP) {
@@ -590,12 +627,43 @@ int16_t getAmperage(void)
 
 int16_t getAmperageSample(void)
 {
+    switch (batteryMetersConfig()->current.type) {
 #ifdef USE_ADC
-    int32_t microvolts = ((uint32_t)adcGetChannel(ADC_CURRENT) * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
-    return microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
-#else
-    return getAmperage();
+        case CURRENT_SENSOR_ADC: {
+            int32_t microvolts = ((uint32_t)adcGetChannel(ADC_CURRENT) * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
+            return microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
+        }
 #endif
+#if defined(USE_ESC_SENSOR)
+        case CURRENT_SENSOR_ESC: {
+            escSensorData_t *escSensor = escSensorGetData();
+            return (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) ? escSensor->current : 0;
+        }
+#endif
+#if defined(USE_SMARTPORT_MASTER)
+        case CURRENT_SENSOR_SMARTPORT: {
+            int16_t *smartportCurrentData = smartportMasterGetCurrentData();
+            return smartportCurrentData ? *smartportCurrentData : 0;
+        }
+#endif
+#if defined(USE_INA226)
+        case CURRENT_SENSOR_INA226: {
+            int16_t ina226Current;
+            return (ina226Detected && ina226ReadShuntCurrent(&ina226Dev, batteryMetersConfig()->ina226.shuntResistanceMicroOhm, &ina226Current))
+                ? ina226Current + batteryMetersConfig()->current.offset
+                : 0;
+        }
+#endif
+#if defined(USE_FAKE_BATT_SENSOR)
+        case CURRENT_SENSOR_FAKE:
+            return fakeBattSensorGetAmerperage();
+#endif
+        case CURRENT_SENSOR_VIRTUAL:
+            return getAmperage();
+        case CURRENT_SENSOR_NONE:
+        default:
+            return 0;
+    }
 }
 
 int32_t getPower(void)

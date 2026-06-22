@@ -230,6 +230,15 @@ TEST(BatteryINA226, UpdatesBatteryVoltageFromIna226BusVoltage)
     EXPECT_EQ(1200, getBatteryRawVoltage());
 }
 
+TEST(BatteryINA226, SamplesBatteryVoltageDirectlyFromIna226BusVoltage)
+{
+    resetBatteryTestState();
+    setFakeRegister(INA226_REG_BUS_VOLTAGE, 9600);
+
+    EXPECT_EQ(1200, getBatteryVoltageSample());
+    EXPECT_EQ(0, getBatteryRawVoltage());
+}
+
 TEST(BatteryINA226, UpdatesCurrentFromIna226ShuntVoltage)
 {
     resetBatteryTestState();
@@ -238,6 +247,16 @@ TEST(BatteryINA226, UpdatesCurrentFromIna226ShuntVoltage)
     settleCurrent();
 
     EXPECT_NEAR(1000, getAmperage(), 2);
+}
+
+TEST(BatteryINA226, SamplesCurrentDirectlyFromConfiguredIna226Shunt)
+{
+    resetBatteryTestState();
+    batteryMetersConfigMutable()->ina226.shuntResistanceMicroOhm = 300;
+    setFakeRegister(INA226_REG_SHUNT_VOLTAGE, 1200);
+
+    EXPECT_EQ(1000, getAmperageSample());
+    EXPECT_EQ(0, getAmperage());
 }
 
 TEST(BatteryINA226, UsesConfiguredMicroOhmShuntForCurrent)

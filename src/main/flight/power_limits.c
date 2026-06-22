@@ -157,9 +157,9 @@ void powerLimiterApply(int16_t *throttleCommand) {
     int16_t powerThrottleCommand;
 #endif
 
-    int16_t current = getAmperage();
+    int16_t current = getAmperageSample();
 #ifdef USE_BATTERY_VOLTAGE_SENSOR
-    uint16_t voltage = getBatteryRawVoltage();
+    uint16_t voltage = getBatteryVoltageSample();
     int32_t power = (int32_t)voltage * current / 100;
 #endif
 

@@ -114,6 +114,7 @@ int32_t getMWhDrawn(void);
 void batteryUpdate(timeUs_t timeDelta);
 void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta);
 void powerMeterUpdate(timeUs_t timeDelta);
+uint16_t getBatteryVoltageSample(void);
 #endif
 
 #ifdef USE_ADC
