@@ -457,7 +457,6 @@ static sdcardOperationStatus_e sdcardSdio_writeBlock(uint32_t blockIndex, uint8_
     sdcard.pendingOperation.callback = callback;
     sdcard.pendingOperation.callbackData = callbackData;
     sdcard.pendingOperation.chunkIndex = 1; // (for non-DMA transfers) we've sent chunk #0 already
-    sdcard.state = SDCARD_STATE_SENDING_WRITE;
 
     if (SD_WriteBlocks_DMA(blockIndex, (uint32_t*) buffer, 512, block_count) != SD_OK) {
         /* Our write was rejected! Try a few times before giving up.
@@ -480,6 +479,9 @@ static sdcardOperationStatus_e sdcardSdio_writeBlock(uint32_t blockIndex, uint8_
         }
         return SDCARD_OPERATION_FAILURE;
     }
+
+    // DMA started successfully - only set state after confirming operation will proceed
+    sdcard.state = SDCARD_STATE_SENDING_WRITE;
 
     // Success - reset retry counter
     sdcard.operationRetries = 0;
