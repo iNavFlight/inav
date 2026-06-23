@@ -31,6 +31,10 @@
 
 #define DYNAMIC_HEAP_SIZE   2048
 
+#ifndef MAX_MAVLINK_PORTS
+#define MAX_MAVLINK_PORTS 4
+#endif
+
 #define I2C1_OVERCLOCK false
 #define I2C2_OVERCLOCK false
 #define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
@@ -231,4 +235,3 @@
 
 #define USE_EZ_TUNE
 #define USE_ADAPTIVE_FILTER
-

@@ -239,18 +239,18 @@ void abortForcedPosHold(void);
 
 #define NAV_ACCEL_CUTOFF_FREQUENCY_HZ 2       // low-pass filter on XY-acceleration target
 
-enum {
+typedef enum {
     NAV_GPS_ATTI    = 0,                    // Pitch/roll stick controls attitude (pitch/roll lean angles)
     NAV_GPS_CRUISE  = 1                     // Pitch/roll stick controls velocity (forward/right speed)
-};
+} nav_control_type_e;
 
-enum {
+typedef enum {
     NAV_LOITER_RIGHT = 0,                    // Loitering direction right
     NAV_LOITER_LEFT  = 1,                    // Loitering direction left
     NAV_LOITER_YAW   = 2
-};
+} nav_loiter_type_e;
 
-enum {
+typedef enum {
     NAV_RTH_NO_ALT                       = 0, // Maintain current altitude
     NAV_RTH_EXTRA_ALT                    = 1, // Maintain current altitude + predefined safety margin
     NAV_RTH_CONST_ALT                    = 2, // Climb/descend to predefined altitude
@@ -258,18 +258,18 @@ enum {
     NAV_RTH_AT_LEAST_ALT                 = 4, // Climb to predefined altitude if below it
     NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT  = 5, // Climb to predefined altitude if below it,
                                               // descend linearly to reach home at predefined altitude if above it
-};
+} nav_rth_alt_profile_e;
 
-enum {
+typedef enum {
     NAV_RTH_CLIMB_STAGE_AT_LEAST        = 0, // Will climb to the lesser of rth_climb_first_stage_altitude or rth_altitude, before turning
     NAV_RTH_CLIMB_STAGE_EXTRA           = 1, // Will climb the lesser of rth_climb_first_stage_altitude above the current altitude or to nav_rth_altitude, before turning
-};
+} nav_rth_climb_profile_e;
 
-enum {
+typedef enum {
     NAV_HEADING_CONTROL_NONE = 0,
     NAV_HEADING_CONTROL_AUTO,
     NAV_HEADING_CONTROL_MANUAL
-};
+} nav_heading_control_e;
 
 typedef enum {
     NAV_RESET_NEVER = 0,
@@ -783,6 +783,7 @@ bool navigationIsFlyingAutonomousMode(void);
 bool navigationIsExecutingAnEmergencyLanding(void);
 bool navigationIsControllingAltitude(void);
 bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm);
+bool navigationConsumeWaypointReached(uint16_t *seq);
 /* Returns true if navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */

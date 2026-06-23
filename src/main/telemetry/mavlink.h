@@ -17,9 +17,12 @@
 
 #pragma once
 
+#include "mavlink/mavlink_types.h"
+
+#include "common/time.h"
+
 void initMAVLinkTelemetry(void);
 void handleMAVLinkTelemetry(timeUs_t currentTimeUs);
 void checkMAVLinkTelemetryState(void);
 
 void freeMAVLinkTelemetryPort(void);
-void configureMAVLinkTelemetryPort(void);

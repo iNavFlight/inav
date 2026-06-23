@@ -16,6 +16,7 @@ SUBDIRS = [
     'flight',
     'fc',
     'drivers',
+    'mavlink',
 ]
 
 def strip_comments(text: str) -> str:
