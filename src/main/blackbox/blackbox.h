@@ -75,3 +75,6 @@ void blackboxIncludeFlagSet(uint32_t mask);
 void blackboxIncludeFlagClear(uint32_t mask);
 bool blackboxIncludeFlag(uint32_t mask);
 BlackboxState getBlackboxState(void);
+
+bool requestToSdCardAccess(void);
+void releaseSdCardAccess(void);
