@@ -1177,6 +1177,12 @@ groups:
         field: nav.fw.launch_idle_throttle
         min: 1000
         max: 2000
+      - name: fw_auto_speed_level_min_thr
+        description: "Minimum throttle for LEVEL flight in auto speed mode when using ground speed as speed reference [us]. This should be set with just enough margin to avoid stalling. Throttle can go lower than this setting when pitching down to a minimum of nav_fw_min_thr."
+        default_value: 1300
+        field: nav.fw.auto_speed_level_min_thr
+        min: PWM_RANGE_MIN
+        max: PWM_RANGE_MAX
       - name: limit_cont_current
         description: "Continous current limit (dA), set to 0 to disable"
         condition: USE_POWER_LIMITS
@@ -2263,6 +2269,24 @@ groups:
         field: navFwPosHdgPidsumLimit
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
+      - name: nav_fw_auto_speed_p
+        description: "P gain of auto speed PID controller."
+        default_value: 30
+        field: bank_fw.pid[PID_AUTO_SPEED].P
+        min: 0
+        max: 255
+      - name: nav_fw_auto_speed_i
+        description: "I gain of auto speed PID controller."
+        default_value: 5
+        field: bank_fw.pid[PID_AUTO_SPEED].I
+        min: 0
+        max: 255
+      - name: nav_fw_auto_speed_d
+        description: "D gain of auto speed PID controller."
+        default_value: 10
+        field: bank_fw.pid[PID_AUTO_SPEED].D
+        min: 0
+        max: 255
       - name: mc_iterm_relax
         description: "Iterm relax type. When enabled, Iterm will be relaxed when stick is centered. This will help to reduce bounceback and followthrough on multirotors. It is recommended to enable this feature on all multirotors."
         field: iterm_relax
@@ -3001,6 +3025,30 @@ groups:
         field: fw.cruise_speed
         min: 0
         max: 65535
+      - name: fw_auto_speed_min_speed
+        description: "Minimum allowed speed demand for Auto Speed mode [m/s]."
+        default_value: 11
+        field: fw.auto_speed_min_speed
+        min: 5
+        max: 50
+      - name: fw_auto_speed_max_speed
+        description: "Maximum allowed speed demand for Auto Speed mode [m/s]."
+        default_value: 22
+        field: fw.auto_speed_max_speed
+        min: 5
+        max: 50
+      - name: fw_auto_speed_channel
+        description: "Channel number used to set desired Auto Speed demand value. Defaults to throttle channel 4."
+        default_value: 4
+        field: fw.auto_speed_channel
+        min: 4
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: fw_auto_speed_thr_smoothing
+        description: "Changes how smoothly the throttle responds in Auto Speed mode. Increasing the setting makes throttle changes smoother but also reduces throttle response."
+        default_value: 4
+        field: fw.auto_speed_thr_smoothing
+        min: 1
+        max: 10
       - name: nav_fw_control_smoothness
         description: "How smoothly the autopilot controls the airplane to correct the navigation error"
         default_value: 0
