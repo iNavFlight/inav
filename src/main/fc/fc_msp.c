@@ -113,6 +113,9 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h" //for MSP_SIMULATOR
+#ifdef USE_MARKER_GUIDANCE
+#include "navigation/marker_guidance.h"
+#endif
 #include "navigation/navigation_pos_estimator_private.h" //for MSP_SIMULATOR
 
 #include "rx/rx.h"
@@ -4733,6 +4736,34 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         }
 
         *ret = MSP_RESULT_ERROR;
+        break;
+#endif
+
+#ifdef USE_MARKER_GUIDANCE
+    case MSP2_INAV_SET_MARKER_GUIDANCE_TARGET:
+        if (dataSize != (2 * sizeof(int16_t))) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+        {
+            markerGuidanceTargetUpdate_t update = {
+                .offsetForwardCm = (int16_t)sbufReadU16(src),
+                .offsetRightCm = (int16_t)sbufReadU16(src),
+            };
+
+            markerGuidanceMspResponse_t response = { 0 };
+            if (!markerGuidanceHandleMspTargetUpdate(&update, &response)) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+
+            sbufWriteU8(dst, response.accepted);
+            sbufWriteU8(dst, response.usedNow);
+            sbufWriteU8(dst, response.navGuidanceState);
+            sbufWriteU8(dst, response.reason);
+            sbufWriteU8(dst, response.retryCount);
+            *ret = MSP_RESULT_ACK;
+        }
         break;
 #endif
 
