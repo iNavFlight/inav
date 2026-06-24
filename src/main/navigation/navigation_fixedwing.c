@@ -960,6 +960,15 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
 
         // Indicate that information is no longer usable
         posControl.flags.horizontalPositionDataConsumed = true;
+
+        // Blackbox speed demand uses target velocity that is otherwise unused for FW: X used for airspeed, Y for ground speed
+        if (posControl.autoSpeedSpdSource == FW_AUTO_SPD_AIR) {
+            navDesiredVelocity[X] = constrain(posControl.desiredState.autoSpeedDemand, 0, 32767);
+            navDesiredVelocity[Y] = 0;
+        } else {
+            navDesiredVelocity[X] = posControl.autoSpeedSpdSource = FW_AUTO_SPD_GROUND_OVERRIDE ? 1 : 0;  // indicate airspeed overriding
+            navDesiredVelocity[Y] = constrain(posControl.desiredState.autoSpeedDemand, 0, 32767);
+        }
     }
 
     *throttleCommand = autoSpeedThrottleCommand;
