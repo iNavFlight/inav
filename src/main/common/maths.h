@@ -205,6 +205,7 @@ float bellCurve(const float x, const float curveWidth);
 float attenuation(const float input, const float width);
 float gaussian(const float x, const float mu, const float sigma);
 float fast_fsqrtf(const float value);
+float fast_powf(float base, float exp);
 float calc_length_pythagorean_2D(const float firstElement, const float secondElement);
 float calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement);
 
