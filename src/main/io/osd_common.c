@@ -74,6 +74,8 @@ int16_t osdGetSpeedFromSelectedSource(void) {
 }
 
 #ifdef USE_AUTO_TRANSITION
+static bool osdVtolTransitionBlink;
+
 static const char *osdVtolTransitionRequestMessage(const mixerProfileATRequest_e request, const mixerProfileATDirection_e direction)
 {
     switch (request) {
@@ -117,6 +119,8 @@ static const char *osdVtolTransitionRequestMessage(const mixerProfileATRequest_e
 const char *osdVtolTransitionMessage(void)
 {
 #ifdef USE_AUTO_TRANSITION
+    osdVtolTransitionBlink = false;
+
     const navVtolTransitionOsdState_e navTransitionState = navigationVtolTransitionOsdState();
     switch (navTransitionState) {
     case NAV_VTOL_TRANSITION_OSD_RETRY_SCAN:
@@ -133,6 +137,16 @@ const char *osdVtolTransitionMessage(void)
     mixerProfileATOsdStatus_t status;
     if (!mixerATGetOsdStatus(&status)) {
         return NULL;
+    }
+
+    if (status.switchReminderDirection == MIXERAT_DIRECTION_TO_FW) {
+        osdVtolTransitionBlink = true;
+        return OSD_MSG_VTOL_MOVE_SW_FW;
+    }
+
+    if (status.switchReminderDirection == MIXERAT_DIRECTION_TO_MC) {
+        osdVtolTransitionBlink = true;
+        return OSD_MSG_VTOL_MOVE_SW_MC;
     }
 
     if (!status.active) {
@@ -169,6 +183,15 @@ const char *osdVtolTransitionMessage(void)
 #endif
 
     return NULL;
+}
+
+bool osdVtolTransitionMessageShouldBlink(void)
+{
+#ifdef USE_AUTO_TRANSITION
+    return osdVtolTransitionBlink;
+#else
+    return false;
+#endif
 }
 
 #endif // defined(USE_OSD) || defined(USE_DJI_HD_OSD)

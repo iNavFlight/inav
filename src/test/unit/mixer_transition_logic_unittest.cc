@@ -110,6 +110,160 @@ TEST(MixerTransitionLogicTest, CompletedAutoSessionClearsStaleMixingWhileSwitchR
         true));
 }
 
+TEST(MixerTransitionLogicTest, ManualSwitchReminderShowsAfterCompletedAutoSwitchUntilEndpointConfirmed)
+{
+    EXPECT_EQ(MIXERAT_DIRECTION_TO_MC, mixerTransitionManualSwitchReminderDirection(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        false,
+        true,
+        true,
+        1,
+        1,
+        true));
+
+    EXPECT_EQ(MIXERAT_DIRECTION_TO_FW, mixerTransitionManualSwitchReminderDirection(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        false,
+        true,
+        false,
+        0,
+        1,
+        false));
+}
+
+TEST(MixerTransitionLogicTest, ManualSwitchReminderClearsWhenEndpointMatches)
+{
+    EXPECT_EQ(MIXERAT_DIRECTION_NONE, mixerTransitionManualSwitchReminderDirection(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        false,
+        true,
+        false,
+        1,
+        1,
+        true));
+
+    EXPECT_EQ(MIXERAT_DIRECTION_NONE, mixerTransitionManualSwitchReminderDirection(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        false,
+        true,
+        false,
+        0,
+        0,
+        false));
+}
+
+TEST(MixerTransitionLogicTest, ManualSwitchReminderDoesNotShowForLegacyOrActiveTransition)
+{
+    EXPECT_EQ(MIXERAT_DIRECTION_NONE, mixerTransitionManualSwitchReminderDirection(
+        MIXER_TRANSITION_MANUAL_SESSION_LEGACY,
+        false,
+        true,
+        true,
+        1,
+        1,
+        true));
+
+    EXPECT_EQ(MIXERAT_DIRECTION_NONE, mixerTransitionManualSwitchReminderDirection(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        true,
+        true,
+        true,
+        1,
+        1,
+        true));
+
+    EXPECT_EQ(MIXERAT_DIRECTION_NONE, mixerTransitionManualSwitchReminderDirection(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        false,
+        false,
+        true,
+        1,
+        1,
+        true));
+}
+
+TEST(MixerTransitionLogicTest, NavigationHandbackHoldsProfileWhenManualSwitchDiffers)
+{
+    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldHoldProfile(
+        true,
+        false,
+        true,
+        false,
+        false,
+        0,
+        1));
+
+    EXPECT_FALSE(mixerTransitionNavigationHandbackShouldHoldProfile(
+        false,
+        false,
+        true,
+        false,
+        false,
+        0,
+        1));
+
+    EXPECT_FALSE(mixerTransitionNavigationHandbackShouldHoldProfile(
+        true,
+        true,
+        true,
+        false,
+        false,
+        0,
+        1));
+}
+
+TEST(MixerTransitionLogicTest, NavigationHandbackHoldsProfileWhenSwitchStillInTransitionPosition)
+{
+    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldHoldProfile(
+        true,
+        false,
+        true,
+        false,
+        true,
+        1,
+        1));
+
+    EXPECT_FALSE(mixerTransitionNavigationHandbackShouldClear(
+        false,
+        false,
+        true,
+        1,
+        1));
+
+    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldClear(
+        false,
+        false,
+        false,
+        1,
+        1));
+}
+
+TEST(MixerTransitionLogicTest, NavigationHandbackClearsForNewNavigationOrExplicitTransition)
+{
+    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldClear(
+        true,
+        false,
+        false,
+        0,
+        1));
+
+    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldClear(
+        false,
+        true,
+        true,
+        0,
+        1));
+
+    EXPECT_FALSE(mixerTransitionNavigationHandbackShouldHoldProfile(
+        true,
+        false,
+        true,
+        true,
+        false,
+        0,
+        1));
+}
+
 TEST(MixerTransitionLogicTest, LegacySessionIgnoresAutoControllerAfterProfileHotSwitch)
 {
     mixerTransitionManualSessionMode_e sessionMode = MIXER_TRANSITION_MANUAL_SESSION_NONE;
@@ -319,14 +473,6 @@ TEST(MixerTransitionLogicTest, ServoHandoffUsesConfiguredScaleRampWhenDynamicMix
     EXPECT_EQ(1000, mixerTransitionComputeServoHandoffDurationMs(false, 1000, 0));
     EXPECT_EQ(1000, mixerTransitionComputeServoHandoffDurationMs(false, 1000, 750));
     EXPECT_EQ(0, mixerTransitionComputeServoHandoffDurationMs(false, 0, 750));
-}
-
-TEST(MixerTransitionLogicTest, DirectSwitchServoHoldIsIndependentFromHandoffDuration)
-{
-    EXPECT_TRUE(mixerTransitionServoHandoffHoldActive(300, 0));
-    EXPECT_TRUE(mixerTransitionServoHandoffHoldActive(300, 299));
-    EXPECT_FALSE(mixerTransitionServoHandoffHoldActive(300, 300));
-    EXPECT_FALSE(mixerTransitionServoHandoffHoldActive(0, 0));
 }
 
 TEST(MixerTransitionLogicTest, ServoHandoffBlendStartsFromCapturedOutputAfterHotSwitch)

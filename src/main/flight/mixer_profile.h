@@ -126,6 +126,7 @@ typedef struct mixerProfileATOsdStatus_s {
     mixerProfileATDirection_e direction;
     mixerProfileATRequest_e request;
     mixerProfileATOsdEvent_e event;
+    mixerProfileATDirection_e switchReminderDirection;
 } mixerProfileATOsdStatus_t;
 #endif
 

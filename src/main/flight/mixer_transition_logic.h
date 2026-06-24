@@ -100,6 +100,56 @@ static inline bool mixerTransitionCompletedAutoSessionOwnsProfileSwitch(
            currentProfileIndex != requestedProfileIndex;
 }
 
+static inline mixerProfileATDirection_e mixerTransitionManualSwitchReminderDirection(
+    mixerTransitionManualSessionMode_e sessionMode,
+    bool autoTransitionActive,
+    bool hotSwitchDone,
+    bool transitionModeActive,
+    int currentProfileIndex,
+    int requestedProfileIndex,
+    bool currentProfileIsMultirotor)
+{
+    if (sessionMode != MIXER_TRANSITION_MANUAL_SESSION_AUTO ||
+        autoTransitionActive ||
+        !hotSwitchDone) {
+        return MIXERAT_DIRECTION_NONE;
+    }
+
+    if (!transitionModeActive && currentProfileIndex == requestedProfileIndex) {
+        return MIXERAT_DIRECTION_NONE;
+    }
+
+    return currentProfileIsMultirotor ? MIXERAT_DIRECTION_TO_MC : MIXERAT_DIRECTION_TO_FW;
+}
+
+static inline bool mixerTransitionNavigationHandbackShouldHoldProfile(
+    bool navigationOwnedProfileSwitchPreviousUpdate,
+    bool navigationOwnsProfileSwitch,
+    bool mixerProfileModePresent,
+    bool autoTransitionActive,
+    bool transitionModeActive,
+    int currentProfileIndex,
+    int requestedProfileIndex)
+{
+    return navigationOwnedProfileSwitchPreviousUpdate &&
+           !navigationOwnsProfileSwitch &&
+           mixerProfileModePresent &&
+           !autoTransitionActive &&
+           (transitionModeActive || currentProfileIndex != requestedProfileIndex);
+}
+
+static inline bool mixerTransitionNavigationHandbackShouldClear(
+    bool navigationOwnsProfileSwitch,
+    bool transitionModeRisingEdge,
+    bool transitionModeActive,
+    int currentProfileIndex,
+    int requestedProfileIndex)
+{
+    return navigationOwnsProfileSwitch ||
+           transitionModeRisingEdge ||
+           (!transitionModeActive && currentProfileIndex == requestedProfileIndex);
+}
+
 static inline bool mixerTransitionShouldClearCompletedAutoMixingRequest(
     bool transitionModeActive,
     bool transitionModeRisingEdge,
@@ -234,11 +284,6 @@ static inline uint16_t mixerTransitionComputeServoHandoffDurationMs(
     }
 
     return scaleRampTimeMs;
-}
-
-static inline bool mixerTransitionServoHandoffHoldActive(uint16_t holdDurationMs, uint32_t elapsedMs)
-{
-    return holdDurationMs > 0 && elapsedMs < holdDurationMs;
 }
 
 static inline int16_t mixerTransitionRoundFloatToInt16(float value)

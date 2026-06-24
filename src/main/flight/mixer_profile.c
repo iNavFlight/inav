@@ -38,7 +38,6 @@
 #include "build/debug.h"
 
 #ifdef USE_AUTO_TRANSITION
-#define MIXER_TRANSITION_DIRECT_SWITCH_SERVO_HOLD_MS 300
 #define MIXER_TRANSITION_OSD_EVENT_DISPLAY_MS 3000
 #endif
 
@@ -56,6 +55,9 @@ static bool manualFwToMcProtectionLatched;
 static int16_t mixerTransitionServoInput;
 static mixerProfileATOsdEvent_e mixerATOsdEvent;
 static timeMs_t mixerATOsdEventUntil;
+static mixerProfileATDirection_e mixerATOsdSwitchReminderDirection;
+static bool navigationProfileSwitchWasOwned;
+static bool navigationProfileHandbackPending;
 #endif
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored mixer profile layout only on >512 KB targets.
@@ -185,6 +187,26 @@ static void setMixerATOsdEvent(const mixerProfileATOsdEvent_e event)
 {
     mixerATOsdEvent = event;
     mixerATOsdEventUntil = event == MIXERAT_OSD_EVENT_NONE ? 0 : millis() + MIXER_TRANSITION_OSD_EVENT_DISPLAY_MS;
+}
+
+static void updateMixerATSwitchReminder(
+    const bool transitionModeActive,
+    const int requestedProfileIndex)
+{
+    mixerATOsdSwitchReminderDirection = mixerTransitionManualSwitchReminderDirection(
+        manualTransitionSessionMode,
+        mixerATIsActive(),
+        mixerProfileAT.hotSwitchDone,
+        transitionModeActive,
+        currentMixerProfileIndex,
+        requestedProfileIndex,
+        isMultirotorTypePlatform(currentMixerConfig.platformType));
+
+    if (mixerATOsdSwitchReminderDirection == MIXERAT_DIRECTION_NONE && navigationProfileHandbackPending) {
+        mixerATOsdSwitchReminderDirection = isMultirotorTypePlatform(currentMixerConfig.platformType) ?
+            MIXERAT_DIRECTION_TO_MC :
+            MIXERAT_DIRECTION_TO_FW;
+    }
 }
 
 static void clearServoHandoffFade(void)
@@ -395,28 +417,6 @@ static void prepareServoHandoffFade(const uint32_t handoffMask)
     }
 }
 
-static void prepareServoHandoffHold(const uint32_t handoffMask, const uint16_t holdDurationMs)
-{
-    clearServoHandoffFade();
-
-    if (handoffMask == 0 || holdDurationMs == 0) {
-        return;
-    }
-
-    mixerProfileAT.servoHandoffMask = handoffMask;
-    mixerProfileAT.servoHandoffDurationMs = getServoHandoffDurationMs();
-    mixerProfileAT.servoHandoffHoldDurationMs = holdDurationMs;
-    mixerProfileAT.servoHandoffHoldStartTime = millis();
-
-    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        if ((handoffMask & (1U << i)) == 0) {
-            continue;
-        }
-
-        mixerProfileAT.servoHandoffOutput[i] = servo[i];
-    }
-}
-
 static void startServoHandoffFade(void)
 {
     if (mixerProfileAT.servoHandoffMask == 0 || mixerProfileAT.servoHandoffDurationMs == 0) {
@@ -434,6 +434,14 @@ static void startTransitionEntryServoHandoffFade(void)
     // use INPUT_MIXER_TRANSITION already have their own transition trajectory.
     prepareServoHandoffFade(collectTransitionEntryServoHandoffMask(nextMixerProfileIndex));
     startServoHandoffFade();
+}
+
+static bool outputProfileDirectSwitch(const int profileIndex)
+{
+    clearServoHandoffFade();
+    const bool switched = outputProfileHotSwitch(profileIndex);
+    clearServoHandoffFade();
+    return switched;
 }
 
 static bool requestTransitionsToFixedWing(const mixerProfileATRequest_e required_action)
@@ -720,15 +728,15 @@ static void updateTransitionScales(void)
     mixerProfileAT.fwAuthorityScale = scales.fwAuthorityScale;
 }
 
-static void abortTransition(const bool byAirspeedTimeout, const bool holdServoOutputsForDirectSwitch)
+static void abortTransition(const bool byAirspeedTimeout, const bool directSwitchAbort)
 {
     const bool wasActive = mixerProfileAT.phase != MIXERAT_PHASE_IDLE;
     const bool hotSwitchAlreadyDone = mixerProfileAT.hotSwitchDone;
-    const uint32_t servoHandoffMask = (wasActive && !hotSwitchAlreadyDone) ?
+    const uint32_t servoHandoffMask = (wasActive && !hotSwitchAlreadyDone && !directSwitchAbort) ?
         collectServoHandoffMask(nextMixerProfileIndex, false) :
         0;
 
-    if (servoHandoffMask != 0 && !holdServoOutputsForDirectSwitch) {
+    if (servoHandoffMask != 0) {
         prepareServoHandoffFade(servoHandoffMask);
     }
 
@@ -748,13 +756,7 @@ static void abortTransition(const bool byAirspeedTimeout, const bool holdServoOu
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
     resetTransitionScales();
 
-    if (servoHandoffMask != 0 && holdServoOutputsForDirectSwitch) {
-        // A manual direct switch may report MIXERTRANSITION OFF a few control
-        // cycles before MIXERPROFILE changes. Hold the real servo output so
-        // transition-linked tilt servos do not briefly move back toward the
-        // source profile before the destination profile takes ownership.
-        prepareServoHandoffHold(servoHandoffMask, MIXER_TRANSITION_DIRECT_SWITCH_SERVO_HOLD_MS);
-    } else if (servoHandoffMask != 0) {
+    if (servoHandoffMask != 0) {
         startServoHandoffFade();
     }
 }
@@ -1063,6 +1065,28 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         mixerAT_inuse = mixerATIsActive();
     }
 
+    if (!ARMING_FLAG(ARMED)) {
+        navigationProfileSwitchWasOwned = false;
+        navigationProfileHandbackPending = false;
+    } else if (mixerTransitionNavigationHandbackShouldClear(
+                   navigationOwnsProfileSwitch,
+                   transitionModeRisingEdge,
+                   transitionModeActive,
+                   currentMixerProfileIndex,
+                   requestedProfileIndex)) {
+        navigationProfileHandbackPending = false;
+    } else if (mixerTransitionNavigationHandbackShouldHoldProfile(
+                   navigationProfileSwitchWasOwned,
+                   navigationOwnsProfileSwitch,
+                   mixerProfileModePresent,
+                   mixerAT_inuse,
+                   transitionModeActive,
+                   currentMixerProfileIndex,
+                   requestedProfileIndex)) {
+        navigationProfileHandbackPending = true;
+    }
+    navigationProfileSwitchWasOwned = navigationOwnsProfileSwitch;
+
     const bool transitionControllerOwnsProfileSwitch = manualControllerEnabled && transitionModeActive;
     const bool completedAutoSessionOwnsProfileSwitch = mixerTransitionCompletedAutoSessionOwnsProfileSwitch(
         manualTransitionSessionMode,
@@ -1076,15 +1100,10 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
             !transitionControllerOwnsProfileSwitch &&
             !completedAutoSessionOwnsProfileSwitch &&
             !navigationOwnsProfileSwitch &&
+            !navigationProfileHandbackPending &&
             !fwToMcProtectionOwnsProfileSwitch) {
             if (requestedProfileIndex != currentMixerProfileIndex) {
-                prepareServoHandoffFade(collectServoHandoffMask(requestedProfileIndex, true));
-
-                if (outputProfileHotSwitch(requestedProfileIndex)) {
-                    startServoHandoffFade();
-                } else {
-                    clearServoHandoffFade();
-                }
+                outputProfileDirectSwitch(requestedProfileIndex);
             }
         }
     }
@@ -1141,6 +1160,12 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
             (mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_FW || mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_MC)) {
             abortTransition(false, true);
             mixerAT_inuse = false;
+            if (!FLIGHT_MODE(FAILSAFE_MODE) &&
+                mixerProfileModePresent &&
+                !navigationOwnsProfileSwitch &&
+                requestedProfileIndex != currentMixerProfileIndex) {
+                outputProfileDirectSwitch(requestedProfileIndex);
+            }
         }
 
         if (mixerAT_inuse &&
@@ -1149,6 +1174,8 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
             mixerAT_inuse = mixerATIsActive();
         }
     }
+
+    updateMixerATSwitchReminder(transitionModeActive, requestedProfileIndex);
 
     manualTransitionModeWasActive = transitionModeActive;
 
@@ -1252,8 +1279,9 @@ bool mixerATGetOsdStatus(mixerProfileATOsdStatus_t *status)
 
     const bool active = mixerATIsActive();
     const bool eventActive = mixerATOsdEvent != MIXERAT_OSD_EVENT_NONE && cmp32(millis(), mixerATOsdEventUntil) < 0;
+    const bool switchReminderActive = mixerATOsdSwitchReminderDirection != MIXERAT_DIRECTION_NONE;
 
-    if (!active && !eventActive) {
+    if (!active && !eventActive && !switchReminderActive) {
         return false;
     }
 
@@ -1262,6 +1290,7 @@ bool mixerATGetOsdStatus(mixerProfileATOsdStatus_t *status)
     status->direction = mixerProfileAT.direction;
     status->request = mixerProfileAT.request;
     status->event = eventActive ? mixerATOsdEvent : MIXERAT_OSD_EVENT_NONE;
+    status->switchReminderDirection = switchReminderActive ? mixerATOsdSwitchReminderDirection : MIXERAT_DIRECTION_NONE;
 
     if (!eventActive) {
         mixerATOsdEvent = MIXERAT_OSD_EVENT_NONE;
@@ -1374,24 +1403,6 @@ bool mixerATGetServoHandoffOutput(uint8_t servoIndex, int16_t currentOutput, int
         mixerProfileAT.servoHandoffMask == 0 ||
         (mixerProfileAT.servoHandoffMask & (1U << servoIndex)) == 0) {
         return false;
-    }
-
-    if (mixerProfileAT.servoHandoffHoldDurationMs > 0) {
-        const uint32_t holdElapsedMs = millis() - mixerProfileAT.servoHandoffHoldStartTime;
-        if (mixerTransitionServoHandoffHoldActive(mixerProfileAT.servoHandoffHoldDurationMs, holdElapsedMs)) {
-            *output = mixerProfileAT.servoHandoffOutput[servoIndex];
-            return true;
-        }
-
-        mixerProfileAT.servoHandoffHoldDurationMs = 0;
-        mixerProfileAT.servoHandoffHoldStartTime = 0;
-
-        if (mixerProfileAT.servoHandoffDurationMs == 0) {
-            clearServoHandoffFade();
-            return false;
-        }
-
-        mixerProfileAT.servoHandoffStartTime = millis();
     }
 
     const float progress = mixerProfileAT.servoHandoffDurationMs == 0 ?

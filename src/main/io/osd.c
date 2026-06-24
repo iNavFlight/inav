@@ -6103,9 +6103,10 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         const char *failsafeInfoMessage = NULL;
         const char *invertedInfoMessage = NULL;
+        const char *vtolTransitionMessage = NULL;
 
         if (ARMING_FLAG(ARMED)) {
-            const char *vtolTransitionMessage = osdVtolTransitionMessage();
+            vtolTransitionMessage = osdVtolTransitionMessage();
             if (vtolTransitionMessage) {
                 ADD_MSG(vtolTransitionMessage);
             }
@@ -6362,6 +6363,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 // failsafeInfoMessage is not useful for recovering
                 // a lost model, but might help avoiding a crash.
                 // Blink to grab user attention.
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else if (message == vtolTransitionMessage && osdVtolTransitionMessageShouldBlink()) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             } else if (message == invertedInfoMessage) {
                 TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);

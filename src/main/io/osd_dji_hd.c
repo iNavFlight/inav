@@ -1073,8 +1073,15 @@ static bool djiFormatMessages(char *buff)
         // Pick one of the available messages. Each message lasts
         // a second.
         if (messageCount > 0) {
-           strcpy(buff, messages[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, messageCount)]);
-           haveMessage = true;
+            const char *message = messages[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, messageCount)];
+            if (message == vtolTransitionMessage &&
+                osdVtolTransitionMessageShouldBlink() &&
+                OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT / 2, 2) == 0) {
+                buff[0] = '\0';
+            } else {
+                strcpy(buff, message);
+            }
+            haveMessage = true;
         }
         #undef ADD_DJI_MSG
     } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
