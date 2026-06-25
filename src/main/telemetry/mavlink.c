@@ -171,9 +171,18 @@ static uint8_t mavRates[] = {
     [MAV_DATA_STREAM_RC_CHANNELS] = 1,          // 1Hz
     [MAV_DATA_STREAM_POSITION] = 2,             // 2Hz
     [MAV_DATA_STREAM_EXTRA1] = 3,               // 3Hz
-    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz, HEARTBEATs are important
-    [MAV_DATA_STREAM_EXTRA3] = 1                // 1Hz
+    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz
+    [MAV_DATA_STREAM_EXTRA3] = 1,               // 1Hz
 };
+
+/* HEARTBEAT and SYSTEM_TIME are not part of any MAV_DATA_STREAM; scheduled independently. */
+typedef struct mavlinkScheduledMessage_s {
+    uint8_t rateHz;     // desired transmission rate in Hz
+    uint8_t ticks;      // countdown decremented at TELEMETRY_MAVLINK_MAXRATE
+} mavlinkScheduledMessage_t;
+
+static mavlinkScheduledMessage_t mavHeartbeat  = { .rateHz = 1, .ticks = 0 };
+static mavlinkScheduledMessage_t mavSystemTime = { .rateHz = 1, .ticks = TELEMETRY_MAVLINK_MAXRATE / 2 }; // Stagger SYSTEM_TIME by half a period so it doesn't ride in the same TX burst as HEARTBEAT.
 
 #define MAXSTREAMS (sizeof(mavRates) / sizeof(mavRates[0]))
 
@@ -284,6 +293,22 @@ static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum)
     // count down at TASK_RATE_HZ
     mavTicks[streamNum]--;
     return 0;
+}
+
+static bool mavlinkScheduledTrigger(mavlinkScheduledMessage_t *msg)
+{
+    if (msg->rateHz == 0) {
+        return false;
+    }
+
+    if (msg->ticks == 0) {
+        uint8_t rate = msg->rateHz > TELEMETRY_MAVLINK_MAXRATE ? TELEMETRY_MAVLINK_MAXRATE : msg->rateHz;
+        msg->ticks = TELEMETRY_MAVLINK_MAXRATE / rate;
+        return true;
+    }
+
+    msg->ticks--;
+    return false;
 }
 
 void freeMAVLinkTelemetryPort(void)
@@ -593,6 +618,8 @@ void mavlinkSendRCChannelsAndRSSI(void)
 void mavlinkSendPosition(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
+    rtcTime_t rtcTime;
+    uint64_t timeUnixUsec = currentTimeUs;
 
     if (!(sensors(SENSOR_GPS)
 #ifdef USE_GPS_FIX_ESTIMATION
@@ -601,16 +628,21 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         ))
         return;
 
-    if (gpsSol.fixType == GPS_NO_FIX)
+    if (gpsSol.fixType == GPS_NO_FIX) {
         gpsFixType = 1;
-    else if (gpsSol.fixType == GPS_FIX_2D)
-            gpsFixType = 2;
-    else if (gpsSol.fixType == GPS_FIX_3D)
-            gpsFixType = 3;
+    } else if (gpsSol.fixType == GPS_FIX_2D) {
+        gpsFixType = 2;
+    } else if (gpsSol.fixType == GPS_FIX_3D) {
+        gpsFixType = 3;
+    }
+
+    if (rtcGet(&rtcTime)) {
+        timeUnixUsec = (uint64_t)rtcTime * 1000ULL;
+    }
 
     mavlink_msg_gps_raw_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
-        currentTimeUs,
+        timeUnixUsec,
         // fix_type 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.
         gpsFixType,
         // lat Latitude in 1E7 degrees
@@ -704,52 +736,22 @@ void mavlinkSendAttitude(void)
     mavlinkSendMessage();
 }
 
-void mavlinkSendHUDAndHeartbeat(void)
+void mavlinkSendSystemTime(void)
 {
-    float mavAltitude = 0;
-    float mavGroundSpeed = 0;
-    float mavAirSpeed = 0;
-    float mavClimbRate = 0;
+    uint64_t timeUnixUsec = 0;
+    rtcTime_t rtcTime;
 
-#if defined(USE_GPS)
-    // use ground speed if source available
-    if (sensors(SENSOR_GPS)
-#ifdef USE_GPS_FIX_ESTIMATION
-            || STATE(GPS_ESTIMATED_FIX)
-#endif
-        ) {
-        mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
+    if (rtcGet(&rtcTime)) {
+        //timeUnixUsec = (uint64_t)rtcTime * 1000ULL + (uint64_t)(micros() % 1000); // extrapolation to uS
+        timeUnixUsec = (uint64_t)rtcTime * 1000ULL; // mS resolution
     }
-#endif
 
-#if defined(USE_PITOT)
-    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
-        mavAirSpeed = getAirspeedEstimate() / 100.0f;
-    }
-#endif
-
-    // select best source for altitude
-    mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
-    mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
-
-    int16_t thr = getThrottlePercent(osdUsingScaledThrottle());
-    mavlink_msg_vfr_hud_pack(mavSystemId, mavComponentId, &mavSendMsg,
-        // airspeed Current airspeed in m/s
-        mavAirSpeed,
-        // groundspeed Current ground speed in m/s
-        mavGroundSpeed,
-        // heading Current heading in degrees, in compass units (0..360, 0=north)
-        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
-        // throttle Current throttle setting in integer percent, 0 to 100
-        thr,
-        // alt Current altitude (MSL), in meters, if we have surface or baro use them, otherwise use GPS (less accurate)
-        mavAltitude,
-        // climb Current climb rate in meters/second
-        mavClimbRate);
-
+    mavlink_msg_system_time_pack(mavSystemId, mavComponentId, &mavSendMsg, timeUnixUsec, millis());
     mavlinkSendMessage();
+}
 
-
+void mavlinkSendHeartbeat(void)
+{
     uint8_t mavModes = MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
     if (ARMING_FLAG(ARMED))
         mavModes |= MAV_MODE_FLAG_SAFETY_ARMED;
@@ -821,16 +823,62 @@ void mavlinkSendHUDAndHeartbeat(void)
     }
 
     mavlink_msg_heartbeat_pack(mavSystemId, mavComponentId, &mavSendMsg,
-        // type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
-        mavSystemType,
-        // autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
-        mavType,
-        // base_mode System mode bitfield, see MAV_MODE_FLAGS ENUM in mavlink/include/mavlink_types.h
-        mavModes,
-        // custom_mode A bitfield for use for autopilot-specific flags.
-        mavCustomMode,
-        // system_status System status flag, see MAV_STATE ENUM
-        mavSystemState);
+            // type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
+                               mavSystemType,
+            // autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
+                               mavType,
+            // base_mode System mode bitfield, see MAV_MODE_FLAGS ENUM in mavlink/include/mavlink_types.h
+                               mavModes,
+            // custom_mode A bitfield for use for autopilot-specific flags.
+                               mavCustomMode,
+            // system_status System status flag, see MAV_STATE ENUM
+                               mavSystemState);
+
+    mavlinkSendMessage();
+}
+
+void mavlinkSendHUD(void)
+{
+    float mavAltitude = 0;
+    float mavGroundSpeed = 0;
+    float mavAirSpeed = 0;
+    float mavClimbRate = 0;
+
+#if defined(USE_GPS)
+    // use ground speed if source available
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
+        mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
+    }
+#endif
+
+#if defined(USE_PITOT)
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        mavAirSpeed = getAirspeedEstimate() / 100.0f;
+    }
+#endif
+
+    // select best source for altitude
+    mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
+    mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
+
+    int16_t thr = getThrottlePercent(osdUsingScaledThrottle());
+    mavlink_msg_vfr_hud_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        // airspeed Current airspeed in m/s
+        mavAirSpeed,
+        // groundspeed Current ground speed in m/s
+        mavGroundSpeed,
+        // heading Current heading in degrees, in compass units (0..360, 0=north)
+        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
+        // throttle Current throttle setting in integer percent, 0 to 100
+        thr,
+        // alt Current altitude (MSL), in meters, if we have surface or baro use them, otherwise use GPS (less accurate)
+        mavAltitude,
+        // climb Current climb rate in meters/second
+        mavClimbRate);
 
     mavlinkSendMessage();
 }
@@ -952,13 +1000,20 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
     }
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA2)) {
-        mavlinkSendHUDAndHeartbeat();
+        mavlinkSendHUD();
     }
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3)) {
         mavlinkSendBatteryTemperatureStatusText();
     }
 
+    if (mavlinkScheduledTrigger(&mavHeartbeat)) {
+        mavlinkSendHeartbeat();
+    }
+
+    if (mavlinkScheduledTrigger(&mavSystemTime)) {
+        mavlinkSendSystemTime();
+    }
 }
 
 static bool handleIncoming_MISSION_CLEAR_ALL(void)
@@ -1157,7 +1212,6 @@ static bool handleIncoming_MISSION_REQUEST(void)
     return false;
 }
 
-
 static bool handleIncoming_COMMAND_INT(void)
 {
     mavlink_command_int_t msg;
@@ -1216,6 +1270,46 @@ static bool handleIncoming_COMMAND_INT(void)
                 mavlinkSendMessage();
             }
         } else {
+#if defined(USE_BARO) || defined(USE_GPS)
+            if (msg.command == MAV_CMD_DO_CHANGE_ALTITUDE) {
+                const float altitudeMeters = msg.param1;
+                const uint8_t frame = (uint8_t)msg.frame;
+
+                geoAltitudeDatumFlag_e datum;
+                switch (frame) {
+                case MAV_FRAME_GLOBAL:
+                case MAV_FRAME_GLOBAL_INT:
+                    datum = NAV_WP_MSL_DATUM;
+                    break;
+                case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+                case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+                    datum = NAV_WP_TAKEOFF_DATUM;
+                    break;
+                default:
+                    mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                                 msg.command,
+                                                 MAV_RESULT_UNSUPPORTED,
+                                                 0,
+                                                 0,
+                                                 mavRecvMsg.sysid,
+                                                 mavRecvMsg.compid);
+                    mavlinkSendMessage();
+                    return true;
+                }
+
+                const int32_t targetAltitudeCm = (int32_t)lrintf(altitudeMeters * 100.0f);
+                const bool accepted = navigationSetAltitudeTargetWithDatum(datum, targetAltitudeCm);
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                             msg.command,
+                                             accepted ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED,
+                                             0,
+                                             0,
+                                             mavRecvMsg.sysid,
+                                             mavRecvMsg.compid);
+                mavlinkSendMessage();
+                return true;
+            }
+#endif
             mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                         msg.command,
                                         MAV_RESULT_UNSUPPORTED,
@@ -1355,7 +1449,7 @@ static bool processMAVLinkIncomingTelemetry(void)
                 //TODO:
                 //case MAVLINK_MSG_ID_COMMAND_LONG; //up to 7 float parameters
                     //return handleIncoming_COMMAND_LONG();
-                
+
                 case MAVLINK_MSG_ID_COMMAND_INT: //7 parameters: parameters 1-4, 7 are floats, and parameters 5,6 are scaled integers
                     return handleIncoming_COMMAND_INT();
                 case MAVLINK_MSG_ID_MISSION_REQUEST:

@@ -1,19 +1,21 @@
-# Board - FLYINGRCF4WINGMINI_NOT_RECOMMENDED
+# Board - FLYINGRCF4WINGMINI
 
-This is a cheap flight controller (prices range from $16US to $40US) from an unknown company. Many of the components on this FC are likely to have high tollerances due to the low cost. They sold this FC as compatible with INAV without reaching out to the team or having an official target made. The target only exists thanks to a community contributor (dixi83).
+This is a budget-friendly flight controller. Component tolerances and quality control may vary compared with higher-cost hardware, so users should test critical functions carefully before flying. The board has been advertised as INAV-compatible, but it was not originally submitted through the official INAV target process; current support exists thanks to community work, especially the contribution from dixi83.
 
-Hardware issues have been reported on these flight controllers. They are also missing many features. Unlike most other _wing_ flight controllers. This is not an all in one solution. It requires an external power source for servos. So is not as small or light as it first appears.
+The manufaturer, FlyingRC, now has a GitHub available: https://github.com/FlyingRC-Official
+
+Hardware issues have been reported on these flight controllers. They are also missing many features. Unlike most other _wing_ flight controllers, this is not an all-in-one solution. It requires an external power source for servos, so is not as small or light as it first appears.
 
 > [!WARNING]
-> We recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware is far from guaranteed. So fitting to a larger, heavier aircraft adds unneccesary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only, if used at all.
+> We recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware is far from guaranteed. So fitting to a larger, heavier aircraft adds unnecessary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only.
 >
-> Also, if you insist on buying one of these. Make sure it's from a somewhere selling it at $16US. Spending $40US on this is a waste of money. You can get better FCs for around that money.
+> Also, if you choose to buy one of these, compare pricing carefully. At around US$40 there are more capable flight controllers available.
 
 ## Specifications
 | | |
 |-----|-----|
 | MCU | STM32F405RTG6 |
-| Gyro | ICM-42605 |
+| Gyro | ICM-42605 / BMI270 |
 | Baro | SPL06 |
 | UARTS | 1, 2 (RX only - SBUS), 4 (DJI), 5 |
 | PWM | Six + One (S12 used for LED control) |
@@ -22,7 +24,7 @@ Hardware issues have been reported on these flight controllers. They are also mi
 | Weight | 2.8g |
 
 > [!NOTE]
-> There is conflicting information for the power this FC can handle. There are 2 specs providied:
+> There is conflicting information for the power this FC can handle. There are 2 specs provided:
 > | | |
 > |---|---| 
 > | Voltmeter | 2.5-30V |
@@ -31,12 +33,10 @@ Hardware issues have been reported on these flight controllers. They are also mi
 > There is no ADC for "voltmeter" input. So potentially this FC can run at 1S to 6S. However there are only 2 LDO regulators on the FC itself. 
 
 ## Notable missing features
-* Current sensor
+* Current sensor on earlier hardware revisions (V4 adds a backside ADC current-sensor pad)
 * Blackbox recording
 * Analogue OSD
 * PINIO (for VTX power switching etc)
-* ADCs (external current sensor, airspeed sensor, rssi, etc)
+* Additional ADCs (airspeed sensor, RSSI, etc)
 * On-board power rail for servos
 * Filtered power for video
-
-All the above can be found on the Matek F405-WMO. Which is a $45US flight controller. Which is 32 x 22 x 12.7 mm and 9g, and has a definite input voltage range of 2S to 6S, and able to handle up to 132A.

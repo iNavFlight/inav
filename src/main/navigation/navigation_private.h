@@ -28,7 +28,7 @@
 #include "navigation/navigation.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
-#define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
+#define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4.0f    // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
 #define NAV_VEL_Z_DERIVATIVE_CUT_HZ         5.0f
@@ -137,6 +137,7 @@ typedef struct {
     float                   cosYaw;
     float                   surfaceMin;
     float                   velXY;
+    float                   vel3D;
 } navigationEstimatedState_t;
 
 typedef struct {

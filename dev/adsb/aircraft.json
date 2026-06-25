@@ -1,0 +1,52 @@
+[
+{
+    "icao_address": 1002,
+    "lat": 49.2341564,
+    "lon": 16.5505527,
+    "altitude": 300,
+    "heading": 275,
+    "hor_velocity": 30,
+    "ver_velocity": 0,
+    "callsign": "V550"
+},
+{
+    "icao_address": 1001,
+    "lat": 49.2344299,
+    "lon": 16.5610206,
+    "altitude": 300,
+    "heading": 237,
+    "hor_velocity": 30,
+    "ver_velocity": 0,
+    "callsign": "V250"
+},
+{
+    "icao_address": 1003,
+    "lat": 49.2422463,
+    "lon": 16.5645653,
+    "altitude": 300,
+    "heading": 29,
+    "hor_velocity": 30,
+    "ver_velocity": 0,
+    "callsign": "V1100"
+},
+{
+    "icao_address": 1004,
+    "lat": 49.2377083,
+    "lon": 16.5520834,
+    "altitude": 300,
+    "heading": 110,
+    "hor_velocity": 30,
+    "ver_velocity": 0,
+    "callsign": "V650X3"
+},
+{
+    "icao_address": 1005,
+    "lat": 49.2388158,
+    "lon": 16.5730266,
+    "altitude": 300,
+    "heading": 261,
+    "hor_velocity": 30,
+    "ver_velocity": 0,
+    "callsign": "V1250X4"
+}
+]

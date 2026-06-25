@@ -2852,6 +2852,8 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
     posControl.actualState.agl.pos.z = surfaceDistance;
     posControl.actualState.agl.vel.z = surfaceVelocity;
 
+    posControl.actualState.vel3D = calc_length_pythagorean_2D(posControl.actualState.velXY, posControl.actualState.abs.vel.z);
+
     // Update altitude that would be used when executing RTH
     if (estimateValid) {
         updateDesiredRTHAltitude();
@@ -3874,10 +3876,10 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
 
 int isGCSValid(void)
 {
-    return (ARMING_FLAG(ARMED) && 
-            (posControl.flags.estPosStatus >= EST_TRUSTED) && 
-            posControl.gpsOrigin.valid && 
-            posControl.flags.isGCSAssistedNavigationEnabled && 
+    return (ARMING_FLAG(ARMED) &&
+            (posControl.flags.estPosStatus >= EST_TRUSTED) &&
+            posControl.gpsOrigin.valid &&
+            posControl.flags.isGCSAssistedNavigationEnabled &&
             (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS));
 }
 
@@ -5267,6 +5269,40 @@ bool navigationIsControllingThrottle(void)
 bool navigationIsControllingAltitude(void) {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
     return (stateFlags & NAV_CTL_ALT);
+}
+
+bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm)
+{
+    const navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+    if (!(stateFlags & NAV_CTL_ALT) ||
+        (stateFlags & NAV_CTL_LAND) ||
+        navigationIsExecutingAnEmergencyLanding() ||
+        posControl.flags.estAltStatus == EST_NONE ||
+        (stateFlags & NAV_MIXERAT) ||
+        FLIGHT_MODE(NAV_FW_AUTOLAND) ||
+        FLIGHT_MODE(NAV_SEND_TO) ||
+        ((stateFlags & NAV_AUTO_RTH) && posControl.navState != NAV_STATE_RTH_HEAD_HOME)) {
+        return false;
+    }
+
+    float targetAltitudeLocalCm;
+    switch (datumFlag) {
+    case NAV_WP_TAKEOFF_DATUM:
+        targetAltitudeLocalCm = (float)targetAltitudeCm;
+        break;
+    case NAV_WP_MSL_DATUM:
+        if (!posControl.gpsOrigin.valid) {
+            return false;
+        }
+        targetAltitudeLocalCm = (float)(targetAltitudeCm - posControl.gpsOrigin.alt);
+        break;
+    case NAV_WP_TERRAIN_DATUM:
+    default:
+        return false;
+    }
+
+    updateClimbRateToAltitudeController(0.0f, targetAltitudeLocalCm, ROC_TO_ALT_TARGET);
+    return true;
 }
 
 bool navigationIsFlyingAutonomousMode(void)

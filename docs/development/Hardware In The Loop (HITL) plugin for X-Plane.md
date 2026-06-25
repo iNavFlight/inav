@@ -8,4 +8,10 @@
 
 https://github.com/RomanLut/INAV-X-Plane-HITL
 
+or for latest HITL features (INAV >= 9.0)
+
+ **INAV-X-Plane-XITL** 
+ 
+ https://github.com/Scavanger/INAV-X-Plane-XITL
+
 HITL technique can be used to test features during development. Please check page above for installation instructions.

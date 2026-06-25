@@ -70,6 +70,12 @@
 #if defined(USE_SMARTPORT_MASTER)
 #include "io/smartport_master.h"
 #endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+#include "sensors/battery_sensor_crsf.h"
+#endif
+#if defined(USE_DRONECAN)
+#include "sensors/battery_sensor_dronecan.h"
+#endif
 
 #if defined(USE_INA226)
 static ina226Dev_t ina226Dev;
@@ -106,6 +112,8 @@ static int16_t amperage = 0;                    // amperage read by current sens
 static int32_t power = 0;                       // power draw in cW (0.01W resolution)
 static int32_t mAhDrawn = 0;                    // milliampere hours drawn from the battery since start
 static int32_t mWhDrawn = 0;                    // energy (milliWatt hours) drawn from the battery since start
+
+static pt1Filter_t amperageFilterState;
 
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
@@ -224,6 +232,8 @@ void batteryInit(void)
     batteryWarningVoltage = 0;
     batteryCriticalVoltage = 0;
 
+    pt1FilterSetCutoff(&amperageFilterState, AMPERAGE_LPF_FREQ);
+
 #if defined(USE_INA226)
     ina226Detected = false;
     if (batteryMetersConfig()->current.type == CURRENT_SENSOR_INA226
@@ -333,6 +343,25 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
         }
         break;
 #endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+    case VOLTAGE_SENSOR_CRSF:
+        {
+            int16_t *crsfVoltageData = crsfBatterySensorGetVoltageData();
+            if (crsfVoltageData) {
+                vbat = *crsfVoltageData;
+            } else {
+                vbat = 0;
+            }
+        }
+        break;
+#endif
+
+#if defined(USE_DRONECAN)
+    case VOLTAGE_SENSOR_CAN:
+        vbat = dronecanBattSensorGetVBat();
+        break;
+#endif
+
 #if defined(USE_INA226)
     case VOLTAGE_SENSOR_INA226:
         if (ina226Detected && ina226ReadBusVoltage(&ina226Dev, &vbat)) {
@@ -355,9 +384,10 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 #endif
 
     if (justConnected) {
+        pt1FilterSetCutoff(&vbatFilterState, VBATT_LPF_FREQ);
         pt1FilterReset(&vbatFilterState, vbat);
     } else {
-        vbat = pt1FilterApply4(&vbatFilterState, vbat, VBATT_LPF_FREQ, US2S(timeDelta));
+        vbat = pt1FilterApply3(&vbatFilterState, vbat, US2S(timeDelta));
     }
 }
 
@@ -544,6 +574,16 @@ uint16_t getBatteryVoltageSample(void)
             return smartportVoltageData ? *smartportVoltageData : 0;
         }
 #endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+        case VOLTAGE_SENSOR_CRSF: {
+            int16_t *crsfVoltageData = crsfBatterySensorGetVoltageData();
+            return crsfVoltageData ? *crsfVoltageData : 0;
+        }
+#endif
+#if defined(USE_DRONECAN)
+        case VOLTAGE_SENSOR_CAN:
+            return dronecanBattSensorGetVBat();
+#endif
 #if defined(USE_INA226)
         case VOLTAGE_SENSOR_INA226: {
             uint16_t ina226Voltage;
@@ -646,6 +686,16 @@ int16_t getAmperageSample(void)
             return smartportCurrentData ? *smartportCurrentData : 0;
         }
 #endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+        case CURRENT_SENSOR_CRSF: {
+            int16_t *crsfCurrentData = crsfBatterySensorGetCurrentData();
+            return crsfCurrentData ? *crsfCurrentData : 0;
+        }
+#endif
+#if defined(USE_DRONECAN)
+        case CURRENT_SENSOR_CAN:
+            return dronecanBattSensorGetAmperage();
+#endif
 #if defined(USE_INA226)
         case CURRENT_SENSOR_INA226: {
             int16_t ina226Current;
@@ -683,14 +733,13 @@ int32_t getMWhDrawn(void)
 
 void currentMeterUpdate(timeUs_t timeDelta)
 {
-    static pt1Filter_t amperageFilterState;
     static int64_t mAhdrawnRaw = 0;
 
     switch (batteryMetersConfig()->current.type) {
 #if defined(USE_ADC)
         case CURRENT_SENSOR_ADC:
             {
-                amperage = pt1FilterApply4(&amperageFilterState, getAmperageSample(), AMPERAGE_LPF_FREQ, US2S(timeDelta));
+                amperage = pt1FilterApply3(&amperageFilterState, getAmperageSample(), US2S(timeDelta));
                 break;
             }
 #endif
@@ -716,7 +765,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
             {
                 escSensorData_t * escSensor = escSensorGetData();
                 if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
-                    amperage = pt1FilterApply4(&amperageFilterState, escSensor->current, AMPERAGE_LPF_FREQ, US2S(timeDelta));
+                    amperage = pt1FilterApply3(&amperageFilterState, escSensor->current, US2S(timeDelta));
                 }
                 else {
                     amperage = 0;
@@ -734,12 +783,29 @@ void currentMeterUpdate(timeUs_t timeDelta)
             }
             break;
 #endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+        case CURRENT_SENSOR_CRSF:
+            {
+                int16_t *crsfCurrentData = crsfBatterySensorGetCurrentData();
+                if (crsfCurrentData) {
+                    amperage = *crsfCurrentData;
+                } else {
+                    amperage = 0;
+                }
+            }
+            break;
+#endif
+#if defined(USE_DRONECAN)
+        case CURRENT_SENSOR_CAN:
+            amperage = dronecanBattSensorGetAmperage();
+            break;
+#endif
 #if defined(USE_INA226)
         case CURRENT_SENSOR_INA226:
             {
                 int16_t ina226Current;
                 if (ina226Detected && ina226ReadShuntCurrent(&ina226Dev, batteryMetersConfig()->ina226.shuntResistanceMicroOhm, &ina226Current)) {
-                    amperage = pt1FilterApply4(&amperageFilterState, ina226Current + batteryMetersConfig()->current.offset, AMPERAGE_LPF_FREQ, US2S(timeDelta));
+                    amperage = pt1FilterApply3(&amperageFilterState, ina226Current + batteryMetersConfig()->current.offset, US2S(timeDelta));
                 } else {
                     amperage = 0;
                 }
@@ -756,6 +822,12 @@ void currentMeterUpdate(timeUs_t timeDelta)
             amperage = 0;
             break;
     }
+
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) && SIMULATOR_HAS_OPTION(HITL_CURRENT_SENSOR)) {
+        amperage = ((uint16_t)simulatorData.current) * 10;
+    }
+#endif
 
     // Clamp amperage to positive values
     amperage = MAX(0, amperage);
@@ -829,7 +901,7 @@ void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
             }
 
             if (impedanceFilterState.state) {
-                pt1FilterSetTimeConstant(&impedanceFilterState, impedanceSampleCount > IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH ? 1.2 : 0.5);
+                pt1FilterSetTimeConstant(&impedanceFilterState, impedanceSampleCount > IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH ? 1.2f : 0.5f);
                 pt1FilterApply3(&impedanceFilterState, impedanceSample, US2S(timeDelta));
             } else {
                 pt1FilterReset(&impedanceFilterState, impedanceSample);
@@ -843,7 +915,7 @@ void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
         }
 
         uint16_t sagCompensatedVBatSample = MIN(batteryFullVoltage, vbat + (int32_t)powerSupplyImpedance * amperage / 1000);
-        pt1FilterSetTimeConstant(&sagCompVBatFilterState, sagCompensatedVBatSample < pt1FilterGetLastOutput(&sagCompVBatFilterState) ? 40 : 500);
+        pt1FilterSetTimeConstant(&sagCompVBatFilterState, sagCompensatedVBatSample < pt1FilterGetLastOutput(&sagCompVBatFilterState) ? 40.0f : 500.0f);
         sagCompensatedVBat = lrintf(pt1FilterApply3(&sagCompVBatFilterState, sagCompensatedVBatSample, US2S(timeDelta)));
     }
 

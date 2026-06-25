@@ -681,7 +681,7 @@ void osdDJIFormatVelocityStr(char* buff)
             break;
         case OSD_SPEED_SOURCE_3D:
             strcpy(sourceBuf, "3D");
-            vel = osdGet3DSpeed();
+            vel = posControl.actualState.vel3D;
             break;
         case OSD_SPEED_SOURCE_AIR:
             strcpy(sourceBuf, "AIR");
@@ -785,8 +785,8 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
 #endif
         ) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-            value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
-                1, US2S(efficiencyTimeDelta));
+            if (!eFilterState.RC) pt1FilterSetCutoff(&eFilterState, 1.0f);
+            value = pt1FilterApply3(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f, US2S(efficiencyTimeDelta));
 
             efficiencyUpdated = currentTimeUs;
         } else {
