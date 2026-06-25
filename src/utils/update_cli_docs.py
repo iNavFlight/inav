@@ -132,7 +132,7 @@ def write_settings_md(lines):
     """Write the contents of the CLI settings docs"""
 
     with open(SETTINGS_MD_PATH, "w") as settings_md:
-        settings_md.writelines(lines)
+        settings_md.write("".join(lines).rstrip() + "\n")
 
 # Return all matches of a compiled regex in a list of files
 def regex_search(regex, files):

@@ -4535,7 +4535,7 @@ groups:
         min: 1
         max: 127
       - name: dronecan_bitrate_kbps
-        description: "The speed of the CANbus network in kbps. Set all devices to the same speed. "
+        description: "The speed of the CANbus network in kbps. Set all devices to the same speed."
         default_value: "1000"
         field: bitRateKbps
         table: dronecan_bitrate_table
