@@ -11,6 +11,10 @@ set_property(SOURCE adsb_unittest.cc PROPERTY extra_includes "../../lib/main/MAV
 set_property(SOURCE alignsensor_unittest.cc PROPERTY depends
     "common/maths.c" "sensors/boardalignment.c")
 
+set_property(SOURCE battery_ina226_unittest.cc PROPERTY depends
+    "sensors/battery.c" "drivers/ina226.c" "common/filter.c" "common/lulu.c" "common/maths.c")
+set_property(SOURCE battery_ina226_unittest.cc PROPERTY definitions USE_INA226 USE_I2C USE_HEADTRACKER USE_STATS USE_ADC)
+
 set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
 set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
@@ -69,6 +73,9 @@ set_property(SOURCE gps_ublox_unittest.cc PROPERTY definitions GPS_UBLOX_UNIT_TE
 
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
+
+set_property(SOURCE ina226_unittest.cc PROPERTY depends "drivers/ina226.c")
+set_property(SOURCE ina226_unittest.cc PROPERTY definitions USE_INA226 USE_I2C USE_HEADTRACKER)
 
 function(unit_test src)
     get_filename_component(basename ${src} NAME)

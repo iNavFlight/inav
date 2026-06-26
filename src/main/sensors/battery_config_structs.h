@@ -34,7 +34,8 @@ typedef enum {
     CURRENT_SENSOR_SMARTPORT,
     CURRENT_SENSOR_CRSF,
     CURRENT_SENSOR_CAN,
-    CURRENT_SENSOR_MAX = CURRENT_SENSOR_CAN
+    CURRENT_SENSOR_INA226,
+    CURRENT_SENSOR_MAX = CURRENT_SENSOR_INA226
 } currentSensor_e;
 
 typedef enum {
@@ -45,8 +46,13 @@ typedef enum {
     VOLTAGE_SENSOR_SMARTPORT,
     VOLTAGE_SENSOR_CRSF,
     VOLTAGE_SENSOR_CAN,
-    VOLTAGE_SENSOR_MAX = VOLTAGE_SENSOR_CAN
+    VOLTAGE_SENSOR_INA226,
+    VOLTAGE_SENSOR_MAX = VOLTAGE_SENSOR_INA226
 } voltageSensor_e;
+
+#if defined(USE_ADC) || defined(USE_INA226) || defined(USE_ESC_SENSOR) || defined(USE_FAKE_BATT_SENSOR) || defined(USE_SMARTPORT_MASTER) || defined(USE_BATTERY_SENSOR_CRSF) || defined(USE_DRONECAN)
+#define USE_BATTERY_VOLTAGE_SENSOR
+#endif
 
 typedef enum {
     BAT_CAPACITY_UNIT_MAH,
@@ -60,9 +66,11 @@ typedef enum {
 
 typedef struct batteryMetersConfig_s {
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     struct {
+#ifdef USE_ADC
         uint16_t scale;
+#endif
         voltageSensor_e type;
     } voltage;
 #endif
@@ -72,6 +80,12 @@ typedef struct batteryMetersConfig_s {
         int16_t offset;                 // offset of the current sensor in millivolt steps
         currentSensor_e type;           // type of current meter used, either ADC or virtual
     } current;
+
+#ifdef USE_INA226
+    struct {
+        uint32_t shuntResistanceMicroOhm;
+    } ina226;
+#endif
 
     batVoltageSource_e voltageSource;
 
@@ -87,7 +101,7 @@ typedef struct batteryMetersConfig_s {
 
 typedef struct batteryProfile_s {
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     uint8_t cells;
 
     struct {
@@ -140,12 +154,12 @@ typedef struct batteryProfile_s {
         uint16_t burstCurrentTime;          // ds
         uint16_t burstCurrentFalldownTime;  // ds
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
         uint16_t continuousPower;           // dW
         uint16_t burstPower;                // dW
         uint16_t burstPowerTime;            // ds
         uint16_t burstPowerFalldownTime;    // ds
-#endif // USE_ADC
+#endif // USE_BATTERY_VOLTAGE_SENSOR
     } powerLimits;
 #endif // USE_POWER_LIMITS
 
