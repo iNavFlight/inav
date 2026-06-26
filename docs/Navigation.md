@@ -102,6 +102,106 @@ Parameters:
 
   * `<flag>` - Last waypoint must have `flag` set to 165 (0xA5).
 
+### Mission VTOL transition using existing User Actions
+
+Mission VTOL transition can be requested.
+This is available only on targets with more than 512 KB flash, compiled with `USE_AUTO_TRANSITION`.
+Targets with 512 KB flash do not include these mission VTOL transition settings.
+
+Configuration:
+
+- `nav_vtol_mission_transition_user_action` selects which waypoint User Action (`USER1..USER4`) is used as the mission VTOL target selector.
+- `nav_vtol_mission_transition_min_altitude_cm` optionally enforces a minimum altitude before transition start (`0` disables check).
+- During MC->FW mission transition, INAV uses a built-in straight run-up target to help the model build speed before switching to fixed-wing.
+- VTOL transition completion logic is shared with manual MIXER TRANSITION and uses mixer transition settings:
+  - preferred MC->FW threshold: `vtol_transition_to_fw_min_airspeed_cm_s`
+  - FW->MC threshold: `vtol_transition_to_mc_max_airspeed_cm_s`
+
+Behavior on each navigable mission waypoint (`WAYPOINT`, `POSHOLD_TIME`, `LAND`):
+
+- The configured USER bit is an **absolute target selector**:
+  - `0`: transition to MC / MULTIROTOR profile
+  - `1`: transition to FW / AIRPLANE profile
+- When `nav_vtol_mission_transition_user_action != OFF`, each navigable waypoint always encodes target state via that selected USER bit.
+- This means every navigable waypoint implicitly declares desired VTOL platform state when this feature is enabled; users must intentionally set/clear that bit on each waypoint.
+- This command is **not** a toggle.
+- The command is idempotent: if already in the requested target profile type, the mission continues immediately.
+- If a transition is needed, mission progression pauses while automated transition runs, then resumes only after completion.
+
+Transition behavior in this MVP:
+
+- MC -> FW: straight-line acceleration segment (no loiter), heading from the next waypoint bearing when available, otherwise current heading.
+- MC -> FW and FW -> MC completion uses pitot airspeed thresholds when healthy/available (`vtol_transition_to_fw_min_airspeed_cm_s`, `vtol_transition_to_mc_max_airspeed_cm_s`).
+- If pitot is unavailable/unhealthy (or threshold is `0`), timer fallback (`mixer_switch_trans_timer`) is used.
+- Ground speed is not used for transition progress/completion.
+- FW -> MC: mission pauses during automated transition, then resumes after switching back to MC profile.
+- Strict altitude hold is not enforced during MC -> FW transition; natural climb is allowed.
+- If an airspeed-controlled MC -> FW transition times out, `nav_vtol_transition_retry_on_airspeed_timeout` can run one heading scan/retry before the configured fail action is used.
+
+Safety and scope:
+
+- This path uses authorized automated transition state handling; it does not permit manual mixer profile switching during normal waypoint navigation.
+- It still depends on valid mixer profile switching infrastructure (two configured mixer profiles and a valid `MIXER PROFILE 2` mode activation condition).
+
+RTH and failsafe VTOL transitions:
+
+- RTH may request MC -> FW before flying home if the aircraft is in MC and far enough from home.
+- RTH landing may request FW -> MC before using the MC landing controller.
+- Failsafe RTH/LAND is allowed to continue those navigation-owned `RTH` and `LAND` transition requests.
+- `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can also request a navigation-owned FW -> MC safety transition during mission, RTH, or failsafe RTH when trusted pitot airspeed falls too low.
+- This low-speed safety transition requires `mixer_automated_switch = ON` and a valid MC target profile.
+- After the low-speed safety transition switches to MC, INAV keeps the current navigation task in MC and blocks automatic MC -> FW RTH or mission re-entry for that navigation session.
+- Manual and mission transition requests are not allowed to continue just because failsafe became active; they are aborted unless the target profile has already been selected and INAV is only finishing the remaining safe output movement.
+- `vtol_transition_to_mc_max_airspeed_cm_s` controls when an already-requested FW -> MC transition is considered safe to complete.
+
+### VTOL MC navigation protection and landing detection
+
+Targets with more than 512 KB flash can enable extra protection for VTOL aircraft flying in MC mode:
+
+- `vtol_mc_protection_mode = OFF`: disabled, legacy behavior.
+- `vtol_mc_protection_mode = NAV`: protects VTOL MC navigation and altitude-control behavior.
+- `vtol_mc_protection_mode = NAV_AND_STABILIZED`: also shapes ANGLE/HORIZON roll, pitch, and yaw commands at higher horizontal speed.
+
+The protection only activates when the current mixer profile is multicopter-like and another configured mixer profile is fixed-wing. Normal multirotors and fixed-wing mode are not changed.
+
+In NAV modes, VTOL MC protection adds:
+
+- throttle reserve before altitude PID anti-windup, controlled by `vtol_mc_thr_reserve_percent`,
+- capture/settle when entering position-holding navigation with horizontal speed,
+- soft altitude capture while horizontal speed is being bled off,
+- a stricter RTH/WP landing settle gate before descent starts,
+- a conservative bailout path if attitude becomes excessive while automatic throttle is active.
+
+The landing settle gate uses `min(nav_wp_radius, 100 cm)` as the capture radius for the landing point. It also requires low horizontal speed, low vertical speed, and safe attitude to be held for the internal settle time. This prevents a large `nav_wp_radius` from starting landing descent after only briefly touching the waypoint radius while still moving.
+
+ANGLE/HORIZON shaping in `NAV_AND_STABILIZED` only runs when armed, VTOL MC mode is detected, velocity estimate is trusted, and horizontal speed is above the shaping threshold. It continuously scales roll, pitch, and yaw commands as speed increases, preserving command sign and small deadband behavior.
+
+#### Landing detector sensitivity
+
+`nav_land_detect_sensitivity` scales the generic landing detector velocity and gyro thresholds. The default `5` is nominal sensitivity. For multirotors, this corresponds to about:
+
+- `100 cm/s` horizontal speed,
+- `100 cm/s` vertical speed,
+- `4 deg/s` average pitch/roll gyro rate.
+
+Higher values relax these thresholds and can make landing detection faster, but also increase false-detect risk. VTOL MC landing detection adds additional safety gates that `nav_land_detect_sensitivity` does not bypass:
+
+- vertical speed must be near zero when altitude/vertical-speed estimate is available,
+- NAV landing must be in the final slow-descent context,
+- trusted surface/AGL data, if available, must show near-ground,
+- all VTOL MC landing candidates must pass a throttle-probe confirmation before `LANDING_DETECTED`.
+
+The VTOL MC throttle probe gently reduces lift throttle for a short confirmation window. If the aircraft starts descending, shows unloading acceleration, or trusted AGL drops, the candidate is rejected and the detector waits again. This is intended to avoid false disarm during slow descent or ground-effect bounce, without relying on barometric altitude as AGL.
+
+`nav_landing_bump_detection = ON` allows G-bump touchdown detection to create a landing candidate. For VTOL MC it is not an immediate disarm shortcut: trusted high AGL blocks it, and accepted candidates still go through the throttle probe. For non-VTOL multirotors it keeps the existing landing detector behavior.
+
+Automatic disarm still requires `nav_disarm_on_landing = ON`. `nav_auto_disarm_delay` is applied after a landing candidate is detected; in VTOL MC mode the throttle probe must also confirm before the global `LANDING_DETECTED` state is set.
+
+Debugging:
+
+- `debug_mode = VTOL_MC_PROTECT` shows protection flags, safe throttle range, protected throttle, speed, attitude, and settle/command-scale progress.
+- `debug_mode = LANDING` shows normal landing detector status and candidate state.
+
 `wp save` - Checks list of waypoints and save from FC to EEPROM (warning: it also saves all unsaved CLI settings like normal `save`).
 
 `wp reset` - Resets the list, sets the number of waypoints to 0 and marks the list as invalid (but doesn't delete the waypoint definitions).

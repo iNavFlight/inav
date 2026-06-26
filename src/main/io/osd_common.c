@@ -37,6 +37,9 @@
 
 #include "fc/settings.h"
 
+#include "flight/mixer_profile.h"
+
+#include "io/osd.h"
 #include "io/osd_canvas.h"
 #include "io/osd_common.h"
 #include "io/osd_grid.h"
@@ -70,6 +73,127 @@ int16_t osdGetSpeedFromSelectedSource(void) {
             break;
     }
     return speed;
+}
+
+#ifdef USE_AUTO_TRANSITION
+static bool osdVtolTransitionBlink;
+
+static const char *osdVtolTransitionRequestMessage(const mixerProfileATRequest_e request, const mixerProfileATDirection_e direction)
+{
+    switch (request) {
+    case MIXERAT_REQUEST_RTH:
+        return OSD_MSG_VTOL_RTH_TO_FW;
+
+    case MIXERAT_REQUEST_LAND:
+        return OSD_MSG_VTOL_LAND_TO_MC;
+
+    case MIXERAT_REQUEST_FW_TO_MC_PROTECTION:
+        return OSD_MSG_VTOL_SAFE_TO_MC;
+
+    case MIXERAT_REQUEST_MISSION_TO_FW:
+        return OSD_MSG_VTOL_MISSION_TO_FW;
+
+    case MIXERAT_REQUEST_MISSION_TO_MC:
+        return OSD_MSG_VTOL_MISSION_TO_MC;
+
+    case MIXERAT_REQUEST_MANUAL_TO_FW:
+        return OSD_MSG_VTOL_MANUAL_TO_FW;
+
+    case MIXERAT_REQUEST_MANUAL_TO_MC:
+        return OSD_MSG_VTOL_MANUAL_TO_MC;
+
+    default:
+        break;
+    }
+
+    if (direction == MIXERAT_DIRECTION_TO_FW) {
+        return OSD_MSG_VTOL_TO_FW;
+    }
+
+    if (direction == MIXERAT_DIRECTION_TO_MC) {
+        return OSD_MSG_VTOL_TO_MC;
+    }
+
+    return NULL;
+}
+#endif
+
+const char *osdVtolTransitionMessage(void)
+{
+#ifdef USE_AUTO_TRANSITION
+    osdVtolTransitionBlink = false;
+
+    const navVtolTransitionOsdState_e navTransitionState = navigationVtolTransitionOsdState();
+    switch (navTransitionState) {
+    case NAV_VTOL_TRANSITION_OSD_RETRY_SCAN:
+        return OSD_MSG_VTOL_RETRY_SCAN;
+
+    case NAV_VTOL_TRANSITION_OSD_RETRY_ALIGN:
+        return OSD_MSG_VTOL_RETRY_ALIGN;
+
+    case NAV_VTOL_TRANSITION_OSD_NONE:
+    default:
+        break;
+    }
+
+    mixerProfileATOsdStatus_t status;
+    if (!mixerATGetOsdStatus(&status)) {
+        return NULL;
+    }
+
+    if (status.switchReminderDirection == MIXERAT_DIRECTION_TO_FW) {
+        osdVtolTransitionBlink = true;
+        return OSD_MSG_VTOL_MOVE_SW_FW;
+    }
+
+    if (status.switchReminderDirection == MIXERAT_DIRECTION_TO_MC) {
+        osdVtolTransitionBlink = true;
+        return OSD_MSG_VTOL_MOVE_SW_MC;
+    }
+
+    if (!status.active) {
+        switch (status.event) {
+        case MIXERAT_OSD_EVENT_DONE:
+            return OSD_MSG_VTOL_TRANS_DONE;
+
+        case MIXERAT_OSD_EVENT_AIRSPEED_TIMEOUT:
+            return OSD_MSG_VTOL_AIRSPEED_TO;
+
+        case MIXERAT_OSD_EVENT_ABORTED:
+            return OSD_MSG_VTOL_TRANS_ABORTED;
+
+        case MIXERAT_OSD_EVENT_NONE:
+        default:
+            return NULL;
+        }
+    }
+
+    switch (status.phase) {
+    case MIXERAT_PHASE_TRANSITION_INITIALIZE:
+        return OSD_MSG_VTOL_TRANS_START;
+
+    case MIXERAT_PHASE_TRANSITIONING:
+        return osdVtolTransitionRequestMessage(status.request, status.direction);
+
+    case MIXERAT_PHASE_POST_SWITCH_FADE:
+        return OSD_MSG_VTOL_FINISH_SWITCH;
+
+    case MIXERAT_PHASE_IDLE:
+    default:
+        break;
+    }
+#endif
+
+    return NULL;
+}
+
+bool osdVtolTransitionMessageShouldBlink(void)
+{
+#ifdef USE_AUTO_TRANSITION
+    return osdVtolTransitionBlink;
+#else
+    return false;
+#endif
 }
 
 #endif // defined(USE_OSD) || defined(USE_DJI_HD_OSD)

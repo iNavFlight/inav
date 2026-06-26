@@ -6103,8 +6103,14 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         const char *failsafeInfoMessage = NULL;
         const char *invertedInfoMessage = NULL;
+        const char *vtolTransitionMessage = NULL;
 
         if (ARMING_FLAG(ARMED)) {
+            vtolTransitionMessage = osdVtolTransitionMessage();
+            if (vtolTransitionMessage) {
+                ADD_MSG(vtolTransitionMessage);
+            }
+
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                 /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL NORMALLY, 5 MESSAGES DURING FAILSAFE */
                 if (navGetCurrentStateFlags() & NAV_AUTO_WP_DONE) {
@@ -6357,6 +6363,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 // failsafeInfoMessage is not useful for recovering
                 // a lost model, but might help avoiding a crash.
                 // Blink to grab user attention.
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else if (message == vtolTransitionMessage && osdVtolTransitionMessageShouldBlink()) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             } else if (message == invertedInfoMessage) {
                 TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);

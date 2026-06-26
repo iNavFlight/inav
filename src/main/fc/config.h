@@ -32,6 +32,12 @@
 #define TASK_GYRO_LOOPTIME 250 // Task gyro always runs at 4kHz
 
 typedef enum {
+    VTOL_MC_PROTECTION_OFF = 0,
+    VTOL_MC_PROTECTION_NAV,
+    VTOL_MC_PROTECTION_NAV_AND_STABILIZED,
+} vtolMcProtectionMode_e;
+
+typedef enum {
     FEATURE_THR_VBAT_COMP = 1 << 0,
     FEATURE_VBAT = 1 << 1,
     FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
@@ -78,6 +84,16 @@ typedef struct systemConfig_s {
     uint8_t i2c_speed;
 #endif
     uint8_t throttle_tilt_compensation_strength;    // the correction that will be applied at throttle_correction_angle.
+#ifdef USE_AUTO_TRANSITION
+    uint16_t vtolTransitionToFwMinAirspeed;
+    uint16_t vtolTransitionToMcMaxAirspeed;
+    uint16_t vtolFwToMcAutoSwitchAirspeed;
+    uint8_t vtolTransitionLiftMinPercent;
+    uint8_t vtolTransitionMcAuthorityMinPercent;
+    uint8_t vtolTransitionFwAuthorityMinPercent;
+    uint8_t vtolMcProtectionMode;
+    uint8_t vtolMcThrReservePercent;
+#endif
     char craftName[MAX_NAME_LENGTH + 1];
     char pilotName[MAX_NAME_LENGTH + 1];
 } systemConfig_t;
