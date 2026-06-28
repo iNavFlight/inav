@@ -58,6 +58,7 @@ extern "C" {
     #include "msp/msp_serial.h"
 
     #include "mavlink/mavlink_runtime.h"
+    #include "mavlink/mavlink_streams.h"
     #include "navigation/navigation.h"
 #ifdef __cplusplus
     #define _Static_assert static_assert
@@ -108,7 +109,9 @@ static const uint8_t testTunnelSourceComponent = 200;
 static const uint8_t testSimpleMspCommand = 90;
 static const uint8_t testLargeReplyMspCommand = 91;
 static const size_t testMspFrameBufSize = MSP_PORT_OUTBUF_SIZE + 16;
+static const timeMs_t testMissionUploadRetryMs = 1500;
 static timeMs_t fakeMillis;
+static timeUs_t fakeMicros;
 static int mspCommandCallCount;
 static int mspPassthroughDispatchCount;
 static int mspRebootPostProcessCount;
@@ -123,6 +126,7 @@ const uint32_t baudRates[] = {
 static navWaypoint_t lastWaypoint;
 static int setWaypointCalls;
 static int resetWaypointCalls;
+static int saveWaypointCalls;
 static int mavlinkRxHandleCalls;
 static bool gcsValid;
 static int waypointCount;
@@ -185,6 +189,13 @@ static void pushRxMessage(const mavlink_message_t *msg)
     int length = mavlink_msg_to_send_buffer(buffer, msg);
     memcpy(&serialRxBuffer[serialRxLen], buffer, (size_t)length);
     serialRxLen += (size_t)length;
+}
+
+static void handleMavlinkUntilRxEmpty(timeUs_t currentTimeUs)
+{
+    while (serialRxPos < serialRxLen) {
+        handleMAVLinkTelemetry(currentTimeUs);
+    }
 }
 
 static void pushTunnelPayload(uint8_t payloadLength, const std::vector<uint8_t> &payload, uint8_t targetComponent = testTargetComponent)
@@ -279,8 +290,10 @@ static void initMavlinkTestState(void)
 {
     resetSerialBuffers();
     fakeMillis = 0;
+    fakeMicros = 0;
     setWaypointCalls = 0;
     resetWaypointCalls = 0;
+    saveWaypointCalls = 0;
     mavlinkRxHandleCalls = 0;
     mspCommandCallCount = 0;
     mspPassthroughDispatchCount = 0;
@@ -299,6 +312,7 @@ static void initMavlinkTestState(void)
     testSensorsMask = 0;
     armingFlags = 0;
     stateFlags = 0;
+    flightModeFlags = 0;
     memset(&gpsSol, 0, sizeof(gpsSol));
     memset(&GPS_home, 0, sizeof(GPS_home));
     memset(waypointStore, 0, sizeof(waypointStore));
@@ -893,7 +907,7 @@ TEST(MavlinkTelemetryTest, MissionCountWhileArmedIsRejected)
             if (outMsg.msgid == MAVLINK_MSG_ID_MISSION_ACK) {
                 mavlink_mission_ack_t ack;
                 mavlink_msg_mission_ack_decode(&outMsg, &ack);
-                EXPECT_EQ(ack.type, MAV_MISSION_ERROR);
+                EXPECT_EQ(ack.type, MAV_MISSION_DENIED);
                 sawAck = true;
             }
             if (outMsg.msgid == MAVLINK_MSG_ID_MISSION_REQUEST_INT) {
@@ -1037,7 +1051,7 @@ TEST(MavlinkTelemetryTest, MissionItemIntGuidedWhileArmedUpdatesWaypoint)
         MAV_MISSION_TYPE_MISSION);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     EXPECT_EQ(setWaypointCalls, 1);
     EXPECT_EQ(lastWaypoint.lat, 375000000);
@@ -1062,7 +1076,7 @@ TEST(MavlinkTelemetryTest, MissionItemIntGuidedWhileArmedCurrentThreeChangesAlti
         MAV_MISSION_TYPE_MISSION);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     mavlink_message_t ackMsg;
     ASSERT_TRUE(popTxMessage(&ackMsg));
@@ -1088,7 +1102,7 @@ TEST(MavlinkTelemetryTest, MissionRequestListSendsCount)
         1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     mavlink_message_t countMsg;
     ASSERT_TRUE(popTxMessage(&countMsg));
@@ -1111,13 +1125,21 @@ TEST(MavlinkTelemetryTest, MissionRequestSendsWaypoint)
     waypointStore[0].alt = 1234;
     waypointStore[0].p3 = 0;
 
+    mavlink_message_t listMsg;
+    mavlink_msg_mission_request_list_pack(
+        42, 200, &listMsg,
+        1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&listMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
     mavlink_message_t msg;
     mavlink_msg_mission_request_pack(
         42, 200, &msg,
         1, testTargetComponent, 0, MAV_MISSION_TYPE_MISSION);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     mavlink_message_t itemMsg;
     ASSERT_TRUE(popTxMessage(&itemMsg));
@@ -1173,7 +1195,7 @@ TEST(MavlinkTelemetryTest, LegacyGuidedMissionItemUsesAbsoluteAltitude)
         MAV_MISSION_TYPE_MISSION);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     EXPECT_EQ(setWaypointCalls, 1);
     EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
@@ -1189,7 +1211,7 @@ TEST(MavlinkTelemetryTest, ParamRequestListRespondsWithEmptyParam)
         1, testTargetComponent);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     mavlink_message_t paramMsg;
     ASSERT_TRUE(popTxMessage(&paramMsg));
@@ -1237,7 +1259,7 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntSetsWaypoint)
         0, 0, 0, 0, 0, 0, 0, 0);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     EXPECT_EQ(setWaypointCalls, 1);
     EXPECT_EQ(lastWaypoint.lat, 375000000);
@@ -1259,7 +1281,7 @@ TEST(MavlinkTelemetryTest, BroadcastSetPositionTargetGlobalIntSetsWaypoint)
         0, 0, 0, 0, 0, 0, 0, 0);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     EXPECT_EQ(setWaypointCalls, 1);
     EXPECT_EQ(lastWaypoint.lat, 375000000);
@@ -1279,7 +1301,7 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntUsesAbsoluteAltitude)
         0, 0, 0, 0, 0, 0, 0, 0);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     EXPECT_EQ(setWaypointCalls, 1);
     EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
@@ -1309,7 +1331,7 @@ TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntAltitudeOnlyRequiresValidGc
         0, 0, 0, 0, 0, 0, 0, 0);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     EXPECT_EQ(altitudeTargetSetCalls, 0);
 }
@@ -1338,7 +1360,7 @@ TEST(MavlinkTelemetryTest, SetPositionTargetLocalNedAltitudeOnlySetsAltitudeTarg
         0, 0, 0, 0, 0, 0, 0, 0);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     EXPECT_EQ(altitudeTargetSetCalls, 1);
     EXPECT_EQ(lastAltitudeTargetDatum, NAV_WP_TAKEOFF_DATUM);
@@ -1369,7 +1391,7 @@ TEST(MavlinkTelemetryTest, BroadcastSetPositionTargetLocalNedAltitudeOnlySetsAlt
         0, 0, 0, 0, 0, 0, 0, 0);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     EXPECT_EQ(altitudeTargetSetCalls, 1);
     EXPECT_EQ(lastAltitudeTargetCm, 1250);
@@ -1397,7 +1419,7 @@ TEST(MavlinkTelemetryTest, SetPositionTargetLocalNedIgnoresXyMotionRequests)
         0, 0, 0, 0, 0, 0, 0, 0);
 
     pushRxMessage(&msg);
-    handleMAVLinkTelemetry(1000);
+    handleMavlinkUntilRxEmpty(1000);
 
     EXPECT_EQ(altitudeTargetSetCalls, 0);
 }
@@ -1762,7 +1784,7 @@ TEST(MavlinkTelemetryTest, SystemTimeSupportsRequestPeriodicOutputAndIntervalQue
     EXPECT_EQ(systemTime.time_boot_ms, 1234U);
 
     serialTxLen = 0;
-    handleMAVLinkTelemetry(1000000);
+    handleMAVLinkTelemetry(1040000);
 
     ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_SYSTEM_TIME, &systemTimeMsg));
     mavlink_msg_system_time_decode(&systemTimeMsg, &systemTime);
@@ -1968,13 +1990,224 @@ TEST(MavlinkTelemetryTest, RcChannelsOverrideIgnoresTargetSystemMismatch)
     EXPECT_EQ(mavlinkRxHandleCalls, 1);
 }
 
+TEST(MavlinkTelemetryTest, PingRequestEchoesSequenceAndTimestamp)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_ping_pack(42, 200, &msg, 123456789, 77, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t responseMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_PING, &responseMsg));
+
+    mavlink_ping_t response;
+    mavlink_msg_ping_decode(&responseMsg, &response);
+    EXPECT_EQ(response.time_usec, 123456789U);
+    EXPECT_EQ(response.seq, 77U);
+    EXPECT_EQ(response.target_system, 42);
+    EXPECT_EQ(response.target_component, 200);
+}
+
+TEST(MavlinkTelemetryTest, TimesyncRequestReturnsNanosecondBootTime)
+{
+    initMavlinkTestState();
+    fakeMicros = 1234;
+
+    mavlink_message_t msg;
+    mavlink_msg_timesync_pack(42, 200, &msg, 0, 987654321, 1, testTargetComponent);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t responseMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_TIMESYNC, &responseMsg));
+
+    mavlink_timesync_t response;
+    mavlink_msg_timesync_decode(&responseMsg, &response);
+    EXPECT_EQ(response.tc1, 1234000);
+    EXPECT_EQ(response.ts1, 987654321);
+    EXPECT_EQ(response.target_system, 42);
+    EXPECT_EQ(response.target_component, 200);
+}
+
+TEST(MavlinkTelemetryTest, RequestMessageRejectsNanMessageId)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(
+        42, 200, &msg,
+        1, testTargetComponent,
+        MAV_CMD_REQUEST_MESSAGE,
+        0,
+        NAN, 0, 0, 0, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_COMMAND_ACK, &ackMsg));
+
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.result, MAV_RESULT_DENIED);
+}
+
+TEST(MavlinkTelemetryTest, RequestMessageReturnsIndexedAvailableMode)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(
+        42, 200, &msg,
+        1, testTargetComponent,
+        MAV_CMD_REQUEST_MESSAGE,
+        0,
+        MAVLINK_MSG_ID_AVAILABLE_MODES, 1, 0, 0, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t modeMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_AVAILABLE_MODES, &modeMsg));
+
+    mavlink_available_modes_t mode;
+    mavlink_msg_available_modes_decode(&modeMsg, &mode);
+    EXPECT_EQ(mode.number_modes, 1);
+    EXPECT_EQ(mode.mode_index, 1);
+    EXPECT_EQ(mode.custom_mode, PLANE_MODE_ACRO);
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadPersistsAndRetriesMissingItem)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+
+    resetSerialBuffers();
+    fakeMillis = testMissionUploadRetryMs;
+    handleMAVLinkTelemetry((timeUs_t)testMissionUploadRetryMs * 1000);
+
+    mavlink_message_t retryMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &retryMsg));
+    mavlink_mission_request_int_t retry;
+    mavlink_msg_mission_request_int_decode(&retryMsg, &retry);
+    EXPECT_EQ(retry.seq, 0);
+
+    resetSerialBuffers();
+    mavlink_message_t itemMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &itemMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&itemMsg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(saveWaypointCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, MissionCurrentReportsLoadedMission)
+{
+    initMavlinkTestState();
+    waypointCount = 2;
+
+    handleMAVLinkTelemetry(1000000);
+
+    mavlink_message_t currentMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_CURRENT, &currentMsg));
+
+    mavlink_mission_current_t current;
+    mavlink_msg_mission_current_decode(&currentMsg, &current);
+    EXPECT_EQ(current.seq, 0);
+    EXPECT_EQ(current.total, 2);
+    EXPECT_EQ(current.mission_state, MISSION_STATE_NOT_STARTED);
+    EXPECT_EQ(current.mission_mode, 2);
+}
+
+TEST(MavlinkTelemetryTest, ArmingDisableChangeSendsStatusTextOnce)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
+
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t statusMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_STATUSTEXT, &statusMsg));
+
+    mavlink_statustext_t status;
+    mavlink_msg_statustext_decode(&statusMsg, &status);
+    EXPECT_NE(strstr(status.text, "THR"), nullptr);
+
+    resetSerialBuffers();
+    handleMAVLinkTelemetry(2000);
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_STATUSTEXT, &statusMsg));
+}
+
+TEST(MavlinkTelemetryTest, ArmingDisableStatusWaitsForAnActivePort)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
+
+    mavlinkRuntimeFreePorts();
+    mavlinkSendArmingStatusText();
+    checkMAVLinkTelemetryState();
+    mavlinkSendArmingStatusText();
+
+    mavlink_message_t statusMsg;
+    EXPECT_TRUE(findTxMessageById(MAVLINK_MSG_ID_STATUSTEXT, &statusMsg));
+}
+
+TEST(MavlinkTelemetryTest, GpsRawReportsNativeAccuracyExtensions)
+{
+    initMavlinkTestState();
+    testSensorsMask = SENSOR_GPS;
+    gpsSol.fixType = GPS_FIX_3D;
+    gpsSol.flags.validEPE = true;
+    gpsSol.flags.validEllipsoidAltitude = true;
+    gpsSol.flags.validSpeedAccuracy = true;
+    gpsSol.flags.validHeadingAccuracy = true;
+    gpsSol.eph = 123;
+    gpsSol.epv = 456;
+    gpsSol.ellipsoidAltitude = 12345;
+    gpsSol.speedAccuracy = 789;
+    gpsSol.headingAccuracy = 321;
+
+    mavlinkSendPosition(1000);
+
+    mavlink_message_t rawMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_GPS_RAW_INT, &rawMsg));
+
+    mavlink_gps_raw_int_t raw;
+    mavlink_msg_gps_raw_int_decode(&rawMsg, &raw);
+    EXPECT_EQ(raw.alt_ellipsoid, 123450);
+    EXPECT_EQ(raw.h_acc, 1230U);
+    EXPECT_EQ(raw.v_acc, 4560U);
+    EXPECT_EQ(raw.vel_acc, 789U);
+    EXPECT_EQ(raw.hdg_acc, 321U);
+}
+
 extern "C" {
 
 int32_t debug[DEBUG32_VALUE_COUNT];
 
 uint32_t armingFlags;
 uint32_t stateFlags;
+uint32_t flightModeFlags;
 bool cliMode;
+const char *armingDisableFlagNames[] = {
+    "GEOZONE", "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
+    "ACC", "ARMSW", "HWFAIL", "BOXFS", "PLACEHOLDER", "RX",
+    "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM",
+    "SETTINGFAIL", "PWMOUT", "NOPREARM", "DSHOTBEEPER", "LANDED"
+};
 
 attitudeEulerAngles_t attitude;
 gyro_t gyro;
@@ -1988,7 +2221,7 @@ uint16_t averageSystemLoadPercent;
 
 timeUs_t micros(void)
 {
-    return 0;
+    return fakeMicros;
 }
 
 uint32_t millis(void)
@@ -2322,6 +2555,11 @@ int getWaypointCount(void)
     return waypointCount;
 }
 
+uint8_t getActiveWpNumber(void)
+{
+    return NAV_Status.activeWpNumber;
+}
+
 void getWaypoint(uint8_t wpNumber, navWaypoint_t *wp)
 {
     if (wpNumber == 0 || wpNumber > ARRAYLEN(waypointStore)) {
@@ -2333,6 +2571,12 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t *wp)
 
 bool isWaypointListValid(void)
 {
+    return true;
+}
+
+bool saveNonVolatileWaypointList(void)
+{
+    saveWaypointCalls++;
     return true;
 }
 

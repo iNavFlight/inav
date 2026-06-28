@@ -203,14 +203,16 @@ void mavlinkSendMessage(void)
 static bool processMAVLinkIncomingTelemetry(uint8_t ingressPortIndex, timeUs_t currentTimeUs)
 {
     mavlinkPortRuntime_t *state = &mavPortStates[ingressPortIndex];
+    uint16_t rxBudget = MAVLINK_RX_BYTE_BUDGET;
 
-    while (serialRxBytesWaiting(state->port) > 0) {
+    while (rxBudget-- > 0 && serialRxBytesWaiting(state->port) > 0) {
         // Limit handling to one message per cycle
         const char c = serialRead(state->port);
+        state->lastRxFrameUs = currentTimeUs;
         const uint8_t result = mavlink_parse_char(ingressPortIndex, c, &state->mavRecvMsg, &state->mavRecvStatus);
         if (result == MAVLINK_FRAMING_OK) {
-            state->lastRxFrameUs = currentTimeUs;
             mavlinkContext.recvMsg = state->mavRecvMsg;
+            mavRecvPortIndex = ingressPortIndex;
 
             if (mavlinkIsFromLocalIdentity(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid)) {
                 return false;
@@ -278,6 +280,8 @@ static bool isMAVLinkTelemetryHalfDuplex(uint8_t portIndex)
 void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
 {
     mavlinkSendPendingMissionItemReached();
+    mavlinkMissionUpdate(currentTimeUs / 1000);
+    mavlinkSendArmingStatusText();
 
     for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {
         mavlinkPortRuntime_t *state = &mavPortStates[portIndex];

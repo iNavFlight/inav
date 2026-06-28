@@ -10,9 +10,9 @@ This branch builds against the checked-in generated `storm32` MAVLink headers/di
 
 - Multiport MAVLink telemetry on up to 4 serial ports, with per-port stream rates, radio type, and high-latency mode.
 - Learned route discovery and forwarding between MAVLink ports based on `(sysid, compid) -> ingress port`.
-- Mission upload, download, clear, and `MISSION_ITEM_REACHED` notifications.
+- Stateful mission upload, download, clear, retry, persistence, `MISSION_CURRENT`, and `MISSION_ITEM_REACHED`.
 - Guided / GCS-nav control via `MAV_CMD_DO_REPOSITION`, altitude changes, yaw changes, and selected `SET_POSITION_TARGET_*` messages.
-- Request-response services including `REQUEST_DATA_STREAM`, `MAV_CMD_SET_MESSAGE_INTERVAL`, `MAV_CMD_GET_MESSAGE_INTERVAL`, `MAV_CMD_REQUEST_MESSAGE`, `MAV_CMD_GET_HOME_POSITION`, `AUTOPILOT_VERSION`, `PROTOCOL_VERSION`, `AVAILABLE_MODES`, and `CURRENT_MODE`.
+- Request-response services including `PING`, `TIMESYNC`, `REQUEST_DATA_STREAM`, message interval control, version discovery, and indexed mode discovery.
 - `RC_CHANNELS_OVERRIDE` for MAVLink serial RX setups.
 - Per-port `HIGH_LATENCY2` mode.
 - MSP-over-MAVLink tunnel using `TUNNEL` payload type `0x8001`.
@@ -124,7 +124,7 @@ Messages are organized into MAVLink datastream groups. Each group sends one mess
 
 - `SYS_STATUS`: advertises detected sensors (gyro/accel/compass, baro, pitot, GPS, optical flow, rangefinder, RC, blackbox) and whether they are healthy. Includes main loop load, battery voltage/current/percentage, and logging capability.
 - `RC_CHANNELS_RAW` (v1) / `RC_CHANNELS` (v2): up to 18 input channels plus RSSI mapped to MAVLink units.
-- `GPS_RAW_INT`: GNSS fix quality, HDOP/VDOP, velocity, and satellite count when a fix (or estimated fix) exists.
+- `GPS_RAW_INT`: GNSS fix quality, HDOP/VDOP, velocity, satellite count, and receiver-native ellipsoid altitude and accuracy extensions when available.
 - `GLOBAL_POSITION_INT`: GPS position plus INAV altitude and velocity estimates.
 - `GPS_GLOBAL_ORIGIN`: current home position.
 - `ATTITUDE`: roll, pitch, yaw, and angular rates.
@@ -133,23 +133,28 @@ Messages are organized into MAVLink datastream groups. Each group sends one mess
 - `EXTENDED_SYS_STATE`: landed-state reporting.
 - `BATTERY_STATUS`: per-cell voltages (cells 11-14 in `voltages_ext`), current draw, consumed mAh/Wh, and remaining percentage when available.
 - `SCALED_PRESSURE`: baro pressure and temperature data.
-- `SYSTEM_TIME`: `time_boot_ms = millis()` and `time_unix_usec = 0`.
-- `STATUSTEXT`: pending OSD/system messages with mapped severity.
+- `SYSTEM_TIME`: boot time plus RTC Unix time when the RTC is valid.
+- `STATUSTEXT`: pending OSD/system messages and changed arming-disable reasons with mapped severity.
+- `MISSION_CURRENT`: broadcast at 1 Hz with mission count, current item, execution mode, and mission state.
 - `MISSION_ITEM_REACHED`: sent when navigation reports a mission waypoint reached and broadcast to all enabled MAVLink ports.
 - `AUTOPILOT_VERSION`: on request, advertises ArduPilot-compatible version `4.7.0` and the capabilities listed above (MAVLink2 only).
 - `PROTOCOL_VERSION`: on request, reports the configured MAVLink protocol version (MAVLink2 only).
 - `MESSAGE_INTERVAL`: reply payload for `MAV_CMD_GET_MESSAGE_INTERVAL`.
 - `HOME_POSITION`: on request, when a home fix exists.
-- `AVAILABLE_MODES`: on request, for the current vehicle type / mode family.
+- `AVAILABLE_MODES`: indexed on request, with standard-mode and mode-property metadata for the current vehicle type.
+- `AVAILABLE_MODES_MONITOR`: on request, advertises the mode-list sequence.
 - `CURRENT_MODE`: on request, for the current selected mode view.
 
 ## Supported incoming messages
 
 - `HEARTBEAT`: used to detect ADS-B participants when `type` is `MAV_TYPE_ADSB`.
-- `MISSION_COUNT`: starts an upload transaction (capped at `NAV_MAX_WAYPOINTS`).
+- `PING`: broadcast requests are echoed to the requesting system/component.
+- `TIMESYNC`: broadcast or locally targeted requests receive the local boot time in nanoseconds.
+- `MISSION_COUNT`: starts an upload transaction (capped at `NAV_MAX_WAYPOINTS`). The owning system/component and ingress port are retained for the transaction.
 - `MISSION_ITEM` / `MISSION_ITEM_INT`: stores mission waypoints; rejects unsupported frames / sequence errors. Upload while armed is rejected except legacy guided waypoint writes.
-- `MISSION_REQUEST_LIST`, `MISSION_REQUEST`, `MISSION_REQUEST_INT`: downloads active mission items; returns `MISSION_ACK` on bad sequence.
-- `MISSION_CLEAR_ALL`: clears stored mission.
+- `MISSION_REQUEST_LIST`, `MISSION_REQUEST`, `MISSION_REQUEST_INT`: stateful mission download with partner checks and one-item retransmission support.
+- `MISSION_ACK`: completes an active mission download.
+- `MISSION_CLEAR_ALL`: clears the runtime and saved mission.
 - `COMMAND_LONG` / `COMMAND_INT`: command transport for supported `MAV_CMD_*` handlers.
 - `REQUEST_DATA_STREAM`: legacy stream-rate control per stream group.
 - `SET_POSITION_TARGET_GLOBAL_INT`: writes the GCS-guided waypoint when the frame is supported; altitude-only requests are also accepted when X/Y are masked out and GCS navigation is valid.
@@ -172,7 +177,7 @@ INAV implements a selective but useful subset of the MAVLink Command protocol. U
 - `MAV_CMD_CONDITION_YAW`: changes the current heading target when the active navigation state has yaw control. Accepts absolute heading (`param4 = 0`) and relative turns (`param4 != 0`); turn rate is ignored.
 - `MAV_CMD_SET_MESSAGE_INTERVAL` / `MAV_CMD_GET_MESSAGE_INTERVAL`: adjust or query per-message periodic output for `HEARTBEAT`, `SYS_STATUS`, `EXTENDED_SYS_STATE`, RC channels, `GPS_RAW_INT`, `GLOBAL_POSITION_INT`, `GPS_GLOBAL_ORIGIN`, `ATTITUDE`, `VFR_HUD`, `BATTERY_STATUS`, `SCALED_PRESSURE`, and `SYSTEM_TIME`. `REQUEST_DATA_STREAM` still controls the legacy base stream groups; `SET_MESSAGE_INTERVAL` overrides individual messages on top.
 - `MAV_CMD_GET_HOME_POSITION`: replies with `HOME_POSITION` when a home fix exists.
-- `MAV_CMD_REQUEST_MESSAGE`: emits one selected message (`HEARTBEAT`, `AUTOPILOT_VERSION`, `PROTOCOL_VERSION`, `SYS_STATUS`, `ATTITUDE`, `VFR_HUD`, `AVAILABLE_MODES`, `CURRENT_MODE`, `EXTENDED_SYS_STATE`, RC channels, `GPS_RAW_INT`, `GLOBAL_POSITION_INT`, `GPS_GLOBAL_ORIGIN`, `BATTERY_STATUS`, `SCALED_PRESSURE`, `SYSTEM_TIME`, `STATUSTEXT`, and `HOME_POSITION` when available) or `UNSUPPORTED`.
+- `MAV_CMD_REQUEST_MESSAGE`: emits one selected message or `UNSUPPORTED`. `AVAILABLE_MODES` uses `param2` as its one-based index; `MESSAGE_INTERVAL` uses `param2` as the queried message ID; `AVAILABLE_MODES_MONITOR` is also supported.
 - `MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES`: returns `AUTOPILOT_VERSION` (MAVLink2 only; MAVLink1 returns `UNSUPPORTED`) advertising ArduPilot-compatible version `4.7.0` and the capabilities listed above.
 - `MAV_CMD_REQUEST_PROTOCOL_VERSION`: returns `PROTOCOL_VERSION` (MAVLink2 only; MAVLink1 returns `UNSUPPORTED`).
 - `MAV_CMD_CONTROL_HIGH_LATENCY`: enables or disables `HIGH_LATENCY2` scheduling on the ingress MAVLink port (`param1 = 0` or `1`). Enabling is rejected on MAVLink1 links.
@@ -207,7 +212,9 @@ INAV implements a selective but useful subset of the MAVLink Command protocol. U
 
 ## MAVLink missions
 
-INAV supports MAVLink mission upload, download, clear, and waypoint-reached notifications, and works with common MAVLink mission planners such as QGC for simple mission flows. However, the differences between MAVLink missions and INAV's fuller MSP navigation model mean MAVLink still cannot represent every INAV mission feature. Use MultiWii Planner or the INAV Configurator when you need full MSP mission semantics.
+INAV supports MAVLink mission upload, download, clear, live mission-state reporting, and waypoint-reached notifications. Uploads retry the outstanding request every 1.5 seconds and abort after five unsuccessful retries. Downloads time out after five seconds of inactivity. Only the system/component and ingress port that started a transfer may continue it. Completed uploads and clears update nonvolatile waypoint storage on targets that provide it.
+
+The implementation works with common MAVLink mission planners such as QGC for simple mission flows. However, the differences between MAVLink missions and INAV's fuller MSP navigation model mean MAVLink still cannot represent every INAV mission feature. Use MultiWii Planner or the INAV Configurator when you need full MSP mission semantics.
 
 ## MSP mission parity gaps (MAV <-> MSP)
 

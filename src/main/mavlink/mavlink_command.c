@@ -2,6 +2,7 @@
 
 #include "mavlink/mavlink_command.h"
 #include "mavlink/mavlink_guided.h"
+#include "mavlink/mavlink_modes.h"
 #include "mavlink/mavlink_runtime.h"
 #include "mavlink/mavlink_streams.h"
 
@@ -30,6 +31,16 @@ static void mavlinkSendCommandAck(uint16_t command, MAV_RESULT result, uint8_t a
         ackTargetSystem,
         ackTargetComponent);
     mavlinkSendMessage();
+}
+
+static bool mavlinkCommandParamToUint32(float value, uint32_t maximum, uint32_t *result)
+{
+    if (!isfinite(value) || value < 0.0f || (double)value > (double)maximum) {
+        return false;
+    }
+
+    *result = (uint32_t)value;
+    return true;
 }
 
 static bool handleIncoming_COMMAND(
@@ -63,7 +74,11 @@ static bool handleIncoming_COMMAND(
                 return true;
             }
 
-            if (isnan(latitudeDeg) || isnan(longitudeDeg)) {
+            if (!isfinite(latitudeDeg) || latitudeDeg < -90.0f || latitudeDeg > 90.0f ||
+                !isfinite(longitudeDeg) || longitudeDeg < -180.0f || longitudeDeg > 180.0f ||
+                !isfinite(altitudeMeters) ||
+                altitudeMeters < (float)INT32_MIN / 100.0f ||
+                altitudeMeters > (float)INT32_MAX / 100.0f) {
                 mavlinkSendCommandAck(command, MAV_RESULT_FAILED, ackTargetSystem, ackTargetComponent);
                 return true;
             }
@@ -92,12 +107,21 @@ static bool handleIncoming_COMMAND(
             return true;
         case MAV_CMD_DO_CHANGE_ALTITUDE:
             {
-                const MAV_RESULT result = mavlinkSetAltitudeTargetFromFrame((uint8_t)lrintf(param2), param1);
+                uint32_t frameValue;
+                if (!isfinite(param1) || !mavlinkCommandParamToUint32(param2, UINT8_MAX, &frameValue)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+                const MAV_RESULT result = mavlinkSetAltitudeTargetFromFrame((uint8_t)frameValue, param1);
                 mavlinkSendCommandAck(command, result, ackTargetSystem, ackTargetComponent);
                 return true;
             }
         case MAV_CMD_CONDITION_YAW:
             {
+                if (!isfinite(param1) || fabsf(param1) > 360.0f || !isfinite(param3) || !isfinite(param4)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
                 if (!(navGetCurrentStateFlags() & NAV_CTL_YAW)) {
                     mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
                     return true;
@@ -128,15 +152,21 @@ static bool handleIncoming_COMMAND(
             {
                 mavlinkPeriodicMessage_e periodicMessage;
                 MAV_RESULT result = MAV_RESULT_UNSUPPORTED;
+                uint32_t messageId;
 
-                if (mavlinkPeriodicMessageFromMessageId((uint16_t)param1, &periodicMessage)) {
+                if (!mavlinkCommandParamToUint32(param1, UINT16_MAX, &messageId) || !isfinite(param2)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                if (mavlinkPeriodicMessageFromMessageId((uint16_t)messageId, &periodicMessage)) {
                     if (param2 == 0.0f) {
                         mavlinkSetMessageOverrideIntervalUs(periodicMessage, 0);
                         result = MAV_RESULT_ACCEPTED;
                     } else if (param2 < 0.0f) {
                         mavlinkSetMessageOverrideIntervalUs(periodicMessage, -1);
                         result = MAV_RESULT_ACCEPTED;
-                    } else {
+                    } else if ((double)param2 <= INT32_MAX) {
                         uint32_t intervalUs = (uint32_t)param2;
                         if (intervalUs > 0) {
                             const uint32_t minIntervalUs = 1000000UL / TELEMETRY_MAVLINK_MAXRATE;
@@ -156,7 +186,9 @@ static bool handleIncoming_COMMAND(
         case MAV_CMD_GET_MESSAGE_INTERVAL:
             {
                 mavlinkPeriodicMessage_e periodicMessage;
-                if (!mavlinkPeriodicMessageFromMessageId((uint16_t)param1, &periodicMessage)) {
+                uint32_t messageId;
+                if (!mavlinkCommandParamToUint32(param1, UINT16_MAX, &messageId) ||
+                    !mavlinkPeriodicMessageFromMessageId((uint16_t)messageId, &periodicMessage)) {
                     mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
                     return true;
                 }
@@ -165,7 +197,7 @@ static bool handleIncoming_COMMAND(
                     mavSystemId,
                     mavComponentId,
                     &mavSendMsg,
-                    (uint16_t)param1,
+                    (uint16_t)messageId,
                     mavlinkMessageIntervalUs(periodicMessage));
                 mavlinkSendMessage();
 
@@ -197,16 +229,63 @@ static bool handleIncoming_COMMAND(
             }
             return true;
         case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
-            if (mavlinkGetProtocolVersion() == 1) {
-                mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
-            } else {
-                mavlinkSendAutopilotVersion();
-                mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
+            {
+                uint32_t request;
+                if (!mavlinkCommandParamToUint32(param1, 1, &request)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                } else if (mavlinkGetProtocolVersion() == 1) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                } else {
+                    if (request == 1) {
+                        mavlinkSendAutopilotVersion();
+                    }
+                    mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
+                }
+                return true;
             }
-            return true;
         case MAV_CMD_REQUEST_MESSAGE:
             {
-                const bool sent = mavlinkSendRequestedMessage((uint16_t)param1);
+                uint32_t messageId;
+                if (!mavlinkCommandParamToUint32(param1, UINT16_MAX, &messageId)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                bool sent;
+                switch (messageId) {
+                    case MAVLINK_MSG_ID_AVAILABLE_MODES:
+                        {
+                            uint32_t modeIndex;
+                            sent = mavlinkCommandParamToUint32(param2, UINT8_MAX, &modeIndex) &&
+                                modeIndex > 0 &&
+                                mavlinkSendAvailableModeForCurrentVehicle((uint8_t)modeIndex);
+                            break;
+                        }
+                    case MAVLINK_MSG_ID_AVAILABLE_MODES_MONITOR:
+                        mavlinkSendAvailableModesMonitor();
+                        sent = true;
+                        break;
+                    case MAVLINK_MSG_ID_MESSAGE_INTERVAL:
+                        {
+                            uint32_t intervalMessageId;
+                            mavlinkPeriodicMessage_e periodicMessage;
+                            sent = mavlinkCommandParamToUint32(param2, UINT16_MAX, &intervalMessageId) &&
+                                mavlinkPeriodicMessageFromMessageId((uint16_t)intervalMessageId, &periodicMessage);
+                            if (sent) {
+                                mavlink_msg_message_interval_pack(
+                                    mavSystemId,
+                                    mavComponentId,
+                                    &mavSendMsg,
+                                    (uint16_t)intervalMessageId,
+                                    mavlinkMessageIntervalUs(periodicMessage));
+                                mavlinkSendMessage();
+                            }
+                            break;
+                        }
+                    default:
+                        sent = mavlinkSendRequestedMessage((uint16_t)messageId);
+                        break;
+                }
                 mavlinkSendCommandAck(command, sent ? MAV_RESULT_ACCEPTED : MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
                 return true;
             }

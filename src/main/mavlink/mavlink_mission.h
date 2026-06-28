@@ -30,6 +30,7 @@ typedef struct mavlinkMissionItemData_s {
 uint8_t mavlinkWaypointFrame(const navWaypoint_t *wp, bool useIntMessages);
 bool mavlinkFillMissionItemFromWaypoint(const navWaypoint_t *wp, bool useIntMessages, mavlinkMissionItemData_t *item);
 void mavlinkSendPendingMissionItemReached(void);
+void mavlinkMissionUpdate(timeMs_t currentTimeMs);
 bool mavlinkHandleIncomingMissionClearAll(void);
 bool mavlinkHandleIncomingMissionCount(void);
 bool mavlinkHandleIncomingMissionItem(void);
@@ -37,3 +38,4 @@ bool mavlinkHandleIncomingMissionRequestList(void);
 bool mavlinkHandleIncomingMissionRequest(void);
 bool mavlinkHandleIncomingMissionItemInt(void);
 bool mavlinkHandleIncomingMissionRequestInt(void);
+bool mavlinkHandleIncomingMissionAck(void);

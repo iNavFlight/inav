@@ -22,4 +22,7 @@ int mavlinkMessageTrigger(mavlinkPeriodicMessage_e periodicMessage, timeUs_t cur
 void configureMAVLinkStreamRates(uint8_t portIndex);
 void processMAVLinkTelemetry(timeUs_t currentTimeUs);
 bool mavlinkHandleIncomingHeartbeat(void);
+bool mavlinkHandleIncomingPing(void);
+bool mavlinkHandleIncomingTimesync(void);
+void mavlinkSendArmingStatusText(void);
 bool mavlinkHandleIncomingRequestDataStream(void);

@@ -4200,7 +4200,16 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded)
 
 bool saveNonVolatileWaypointList(void)
 {
-    if (ARMING_FLAG(ARMED) || !posControl.waypointListValid)
+    if (ARMING_FLAG(ARMED))
+        return false;
+
+    if (posControl.waypointCount == 0) {
+        memset(nonVolatileWaypointListMutable(0), 0, sizeof(navWaypoint_t) * NAV_MAX_WAYPOINTS);
+        saveConfigAndNotify();
+        return true;
+    }
+
+    if (!posControl.waypointListValid)
         return false;
 
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {

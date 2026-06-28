@@ -15,4 +15,6 @@ uint8_t mavlinkGetVehicleType(void);
 uint8_t mavlinkGetAutopilotEnum(void);
 mavlinkModeSelection_t mavlinkSelectMode(void);
 void mavlinkSendAvailableModesForCurrentMode(void);
+bool mavlinkSendAvailableModeForCurrentVehicle(uint8_t requestedIndex);
+void mavlinkSendAvailableModesMonitor(void);
 void mavlinkSendCurrentMode(const mavlinkModeSelection_t *modeSelection);

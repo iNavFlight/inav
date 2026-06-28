@@ -7,6 +7,8 @@
 
 typedef struct mavlinkModeDescriptor_s {
     uint8_t customMode;
+    MAV_STANDARD_MODE standardMode;
+    uint32_t properties;
     const char *name;
 } mavlinkModeDescriptor_t;
 
@@ -83,33 +85,33 @@ static PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
 }
 
 static const mavlinkModeDescriptor_t planeModes[] = {
-    { PLANE_MODE_MANUAL,        "MANUAL" },
-    { PLANE_MODE_ACRO,          "ACRO" },
-    { PLANE_MODE_STABILIZE,     "STABILIZE" },
-    { PLANE_MODE_FLY_BY_WIRE_A, "FBWA" },
-    { PLANE_MODE_FLY_BY_WIRE_B, "FBWB" },
-    { PLANE_MODE_CRUISE,        "CRUISE" },
-    { PLANE_MODE_AUTO,          "AUTO" },
-    { PLANE_MODE_RTL,           "RTL" },
-    { PLANE_MODE_LOITER,        "LOITER" },
-    { PLANE_MODE_TAKEOFF,       "TAKEOFF" },
-    { PLANE_MODE_GUIDED,        "GUIDED" },
+    { PLANE_MODE_MANUAL,        MAV_STANDARD_MODE_NON_STANDARD,  0,                      "MANUAL" },
+    { PLANE_MODE_ACRO,          MAV_STANDARD_MODE_NON_STANDARD,  0,                      "ACRO" },
+    { PLANE_MODE_STABILIZE,     MAV_STANDARD_MODE_NON_STANDARD,  0,                      "STABILIZE" },
+    { PLANE_MODE_FLY_BY_WIRE_A, MAV_STANDARD_MODE_NON_STANDARD,  0,                      "FBWA" },
+    { PLANE_MODE_FLY_BY_WIRE_B, MAV_STANDARD_MODE_ALTITUDE_HOLD, 0,                      "FBWB" },
+    { PLANE_MODE_CRUISE,        MAV_STANDARD_MODE_CRUISE,        0,                      "CRUISE" },
+    { PLANE_MODE_AUTO,          MAV_STANDARD_MODE_MISSION,       MAV_MODE_PROPERTY_AUTO_MODE, "AUTO" },
+    { PLANE_MODE_RTL,           MAV_STANDARD_MODE_SAFE_RECOVERY, MAV_MODE_PROPERTY_AUTO_MODE, "RTL" },
+    { PLANE_MODE_LOITER,        MAV_STANDARD_MODE_POSITION_HOLD, 0,                      "LOITER" },
+    { PLANE_MODE_TAKEOFF,       MAV_STANDARD_MODE_TAKEOFF,       MAV_MODE_PROPERTY_AUTO_MODE, "TAKEOFF" },
+    { PLANE_MODE_GUIDED,        MAV_STANDARD_MODE_POSITION_HOLD, MAV_MODE_PROPERTY_ADVANCED, "GUIDED" },
 };
 
 static const mavlinkModeDescriptor_t copterModes[] = {
-    { COPTER_MODE_ACRO,      "ACRO" },
-    { COPTER_MODE_STABILIZE, "STABILIZE" },
-    { COPTER_MODE_ALT_HOLD,  "ALT_HOLD" },
-    { COPTER_MODE_POSHOLD,   "POSHOLD" },
-    { COPTER_MODE_LOITER,    "LOITER" },
-    { COPTER_MODE_AUTO,      "AUTO" },
-    { COPTER_MODE_GUIDED,    "GUIDED" },
-    { COPTER_MODE_RTL,       "RTL" },
-    { COPTER_MODE_LAND,      "LAND" },
-    { COPTER_MODE_BRAKE,     "BRAKE" },
-    { COPTER_MODE_THROW,     "THROW" },
-    { COPTER_MODE_SMART_RTL, "SMART_RTL" },
-    { COPTER_MODE_DRIFT,     "DRIFT" },
+    { COPTER_MODE_ACRO,      MAV_STANDARD_MODE_NON_STANDARD,  0,                          "ACRO" },
+    { COPTER_MODE_STABILIZE, MAV_STANDARD_MODE_NON_STANDARD,  0,                          "STABILIZE" },
+    { COPTER_MODE_ALT_HOLD,  MAV_STANDARD_MODE_ALTITUDE_HOLD, 0,                          "ALT_HOLD" },
+    { COPTER_MODE_POSHOLD,   MAV_STANDARD_MODE_POSITION_HOLD, 0,                          "POSHOLD" },
+    { COPTER_MODE_LOITER,    MAV_STANDARD_MODE_POSITION_HOLD, 0,                          "LOITER" },
+    { COPTER_MODE_AUTO,      MAV_STANDARD_MODE_MISSION,       MAV_MODE_PROPERTY_AUTO_MODE, "AUTO" },
+    { COPTER_MODE_GUIDED,    MAV_STANDARD_MODE_POSITION_HOLD, MAV_MODE_PROPERTY_ADVANCED,  "GUIDED" },
+    { COPTER_MODE_RTL,       MAV_STANDARD_MODE_SAFE_RECOVERY, MAV_MODE_PROPERTY_AUTO_MODE, "RTL" },
+    { COPTER_MODE_LAND,      MAV_STANDARD_MODE_LAND,          MAV_MODE_PROPERTY_AUTO_MODE, "LAND" },
+    { COPTER_MODE_BRAKE,     MAV_STANDARD_MODE_POSITION_HOLD, 0,                          "BRAKE" },
+    { COPTER_MODE_THROW,     MAV_STANDARD_MODE_TAKEOFF,       MAV_MODE_PROPERTY_AUTO_MODE, "THROW" },
+    { COPTER_MODE_SMART_RTL, MAV_STANDARD_MODE_SAFE_RECOVERY, MAV_MODE_PROPERTY_AUTO_MODE, "SMART_RTL" },
+    { COPTER_MODE_DRIFT,     MAV_STANDARD_MODE_NON_STANDARD,  MAV_MODE_PROPERTY_ADVANCED,  "DRIFT" },
 };
 
 static bool mavlinkPlaneModeIsConfigured(uint8_t customMode)
@@ -175,8 +177,8 @@ static bool mavlinkCopterModeIsConfigured(uint8_t customMode)
     }
 }
 
-static void mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint8_t count, uint8_t currentCustom,
-    bool (*isModeConfigured)(uint8_t customMode))
+static bool mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint8_t count,
+    bool (*isModeConfigured)(uint8_t customMode), uint8_t requestedIndex)
 {
     uint8_t availableCount = 0;
     for (uint8_t i = 0; i < count; i++) {
@@ -186,7 +188,10 @@ static void mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint
     }
 
     if (availableCount == 0) {
-        return;
+        return false;
+    }
+    if (requestedIndex > availableCount) {
+        return false;
     }
 
     uint8_t modeIndex = 0;
@@ -196,6 +201,9 @@ static void mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint
         }
 
         modeIndex++;
+        if (requestedIndex != 0 && requestedIndex != modeIndex) {
+            continue;
+        }
 
         mavlink_msg_available_modes_pack(
             mavSystemId,
@@ -203,21 +211,18 @@ static void mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint
             &mavSendMsg,
             availableCount,
             modeIndex,
-            MAV_STANDARD_MODE_NON_STANDARD,
+            modes[i].standardMode,
             modes[i].customMode,
-            0,
+            modes[i].properties,
             modes[i].name);
 
         mavlinkSendMessage();
 
-        if (modes[i].customMode == currentCustom) {
-            const mavlinkModeSelection_t modeSelection = {
-                .flightMode = FLM_MANUAL,
-                .customMode = currentCustom,
-            };
-            mavlinkSendCurrentMode(&modeSelection);
+        if (requestedIndex != 0) {
+            break;
         }
     }
+    return true;
 }
 
 bool mavlinkIsFixedWingVehicle(void)
@@ -271,13 +276,34 @@ mavlinkModeSelection_t mavlinkSelectMode(void)
 
 void mavlinkSendAvailableModesForCurrentMode(void)
 {
-    const mavlinkModeSelection_t modeSelection = mavlinkSelectMode();
-
     if (mavlinkIsFixedWingVehicle()) {
-        mavlinkSendAvailableModes(planeModes, (uint8_t)ARRAYLEN(planeModes), modeSelection.customMode, mavlinkPlaneModeIsConfigured);
+        mavlinkSendAvailableModes(planeModes, (uint8_t)ARRAYLEN(planeModes), mavlinkPlaneModeIsConfigured, 0);
     } else {
-        mavlinkSendAvailableModes(copterModes, (uint8_t)ARRAYLEN(copterModes), modeSelection.customMode, mavlinkCopterModeIsConfigured);
+        mavlinkSendAvailableModes(copterModes, (uint8_t)ARRAYLEN(copterModes), mavlinkCopterModeIsConfigured, 0);
     }
+}
+
+bool mavlinkSendAvailableModeForCurrentVehicle(uint8_t requestedIndex)
+{
+    if (mavlinkIsFixedWingVehicle()) {
+        return mavlinkSendAvailableModes(
+            planeModes,
+            (uint8_t)ARRAYLEN(planeModes),
+            mavlinkPlaneModeIsConfigured,
+            requestedIndex);
+    }
+
+    return mavlinkSendAvailableModes(
+        copterModes,
+        (uint8_t)ARRAYLEN(copterModes),
+        mavlinkCopterModeIsConfigured,
+        requestedIndex);
+}
+
+void mavlinkSendAvailableModesMonitor(void)
+{
+    mavlink_msg_available_modes_monitor_pack(mavSystemId, mavComponentId, &mavSendMsg, 1);
+    mavlinkSendMessage();
 }
 
 void mavlinkSendCurrentMode(const mavlinkModeSelection_t *modeSelection)

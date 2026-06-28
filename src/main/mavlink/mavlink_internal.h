@@ -77,7 +77,11 @@
 #define MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP 0x8001
 #define MAVLINK_TUNNEL_MSP_TIMEOUT_MS 1000
 #define MAVLINK_TUNNEL_MSP_FRAMEBUF_SIZE (MSP_PORT_OUTBUF_SIZE + 16)
-#define MAVLINK_MISSION_UPLOAD_TIMEOUT_MS 10000
+#define MAVLINK_MISSION_UPLOAD_RETRY_MS 1500
+#define MAVLINK_MISSION_UPLOAD_MAX_RETRIES 5
+#define MAVLINK_MISSION_DOWNLOAD_TIMEOUT_MS 5000
+#define MAVLINK_MISSION_CURRENT_INTERVAL_MS 1000
+#define MAVLINK_RX_BYTE_BUDGET 64
 
 typedef struct mavlinkContext_s {
     mavlinkPortRuntime_t portStates[MAX_MAVLINK_PORTS];
@@ -97,11 +101,11 @@ typedef struct mavlinkContext_s {
     uint8_t componentId;
     uint8_t tunnelReplyPayloadBuf[MSP_PORT_OUTBUF_SIZE];
     uint8_t tunnelFrameBuf[MAVLINK_TUNNEL_MSP_FRAMEBUF_SIZE];
-    int incomingMissionWpCount;
-    int incomingMissionWpSequence;
-    uint8_t incomingMissionSourceSystem;
-    uint8_t incomingMissionSourceComponent;
-    timeMs_t incomingMissionLastActivityMs;
+    uint8_t recvPortIndex;
+    mavlinkMissionTransfer_t missionTransfer;
+    timeMs_t lastMissionCurrentMs;
+    bool missionCompleted;
+    uint32_t lastArmingDisableFlags;
 } mavlinkContext_t;
 
 extern mavlinkContext_t mavlinkContext;
@@ -122,10 +126,7 @@ extern mavlinkContext_t mavlinkContext;
 #define mavComponentId (mavlinkContext.componentId)
 #define mavTunnelReplyPayloadBuf (mavlinkContext.tunnelReplyPayloadBuf)
 #define mavTunnelFrameBuf (mavlinkContext.tunnelFrameBuf)
-#define incomingMissionWpCount (mavlinkContext.incomingMissionWpCount)
-#define incomingMissionWpSequence (mavlinkContext.incomingMissionWpSequence)
-#define incomingMissionSourceSystem (mavlinkContext.incomingMissionSourceSystem)
-#define incomingMissionSourceComponent (mavlinkContext.incomingMissionSourceComponent)
-#define incomingMissionLastActivityMs (mavlinkContext.incomingMissionLastActivityMs)
+#define mavRecvPortIndex (mavlinkContext.recvPortIndex)
+#define mavMissionTransfer (mavlinkContext.missionTransfer)
 
 #endif

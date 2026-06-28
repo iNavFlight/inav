@@ -29,6 +29,12 @@ bool mavlinkFrameUsesAbsoluteAltitude(uint8_t frame)
 MAV_RESULT mavlinkSetAltitudeTargetFromFrame(uint8_t frame, float altitudeMeters)
 {
 #if defined(USE_BARO) || defined(USE_GPS)
+    if (!isfinite(altitudeMeters) ||
+        altitudeMeters < (float)INT32_MIN / 100.0f ||
+        altitudeMeters > (float)INT32_MAX / 100.0f) {
+        return MAV_RESULT_DENIED;
+    }
+
     geoAltitudeDatumFlag_e datum;
 
     switch (frame) {

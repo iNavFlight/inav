@@ -233,11 +233,23 @@ void configureMAVLinkStreamRates(uint8_t portIndex)
 
     const uint8_t *selectedRates = (portIndex == 0) ? mavPrimaryRates : mavSecondaryRates;
     mavlinkPortRuntime_t *state = &mavPortStates[portIndex];
+    const timeUs_t currentTimeUs = micros();
 
     for (uint8_t stream = 0; stream < MAVLINK_STREAM_COUNT; stream++) {
         state->mavRates[stream] = selectedRates[stream];
         state->mavRatesConfigured[stream] = selectedRates[stream];
-        state->mavStreamNextDue[stream] = 0;
+        const int32_t intervalUs = mavlinkRateToIntervalUs(selectedRates[stream]);
+        state->mavStreamNextDue[stream] = intervalUs > 0 ? currentTimeUs + intervalUs + 3000 * stream : 0;
+    }
+
+    for (uint8_t messageIndex = 0; messageIndex < MAVLINK_PERIODIC_MESSAGE_COUNT; messageIndex++) {
+        const int32_t overrideUs = state->mavMessageOverrideIntervalsUs[messageIndex];
+        const int32_t intervalUs = overrideUs != 0
+            ? overrideUs
+            : mavlinkRateToIntervalUs(selectedRates[mavlinkPeriodicMessageBaseStream((mavlinkPeriodicMessage_e)messageIndex)]);
+        state->mavMessageNextDue[messageIndex] = intervalUs > 0
+            ? currentTimeUs + intervalUs + 3000 * messageIndex
+            : 0;
     }
 }
 
@@ -577,11 +589,11 @@ void mavlinkSendGpsRawInt(timeUs_t currentTimeUs)
         gpsSol.groundSpeed,
         gpsSol.groundCourse * 10,
         gpsSol.numSat,
-        0,
-        gpsSol.eph * 10,
-        gpsSol.epv * 10,
-        0,
-        0,
+        gpsSol.flags.validEllipsoidAltitude ? gpsSol.ellipsoidAltitude * 10 : 0,
+        gpsSol.flags.validEPE ? gpsSol.eph * 10 : UINT32_MAX,
+        gpsSol.flags.validEPE ? gpsSol.epv * 10 : UINT32_MAX,
+        gpsSol.flags.validSpeedAccuracy ? gpsSol.speedAccuracy : UINT32_MAX,
+        gpsSol.flags.validHeadingAccuracy ? gpsSol.headingAccuracy : UINT32_MAX,
         0);
 
     mavlinkSendMessage();
@@ -1119,6 +1131,108 @@ bool mavlinkHandleIncomingHeartbeat(void)
     }
 
     return false;
+}
+
+bool mavlinkHandleIncomingPing(void)
+{
+    mavlink_ping_t msg;
+    mavlink_msg_ping_decode(&mavlinkContext.recvMsg, &msg);
+
+    if (msg.target_system != 0 || msg.target_component != 0) {
+        return false;
+    }
+
+    mavlink_msg_ping_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        msg.time_usec,
+        msg.seq,
+        mavlinkContext.recvMsg.sysid,
+        mavlinkContext.recvMsg.compid);
+    mavlinkSendMessage();
+    return true;
+}
+
+bool mavlinkHandleIncomingTimesync(void)
+{
+    mavlink_timesync_t msg;
+    mavlink_msg_timesync_decode(&mavlinkContext.recvMsg, &msg);
+
+    if (msg.tc1 != 0 ||
+        (msg.target_system != 0 && msg.target_system != mavSystemId) ||
+        (msg.target_component != 0 && msg.target_component != mavComponentId)) {
+        return false;
+    }
+
+    mavlink_msg_timesync_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        (int64_t)micros() * 1000LL,
+        msg.ts1,
+        mavlinkContext.recvMsg.sysid,
+        mavlinkContext.recvMsg.compid);
+    mavlinkSendMessage();
+    return true;
+}
+
+void mavlinkSendArmingStatusText(void)
+{
+#if !defined(CLI_MINIMAL_VERBOSITY)
+    const uint32_t disableFlags = armingFlags & ARMING_DISABLED_ALL_FLAGS;
+    if (disableFlags == mavlinkContext.lastArmingDisableFlags) {
+        return;
+    }
+
+    if (disableFlags == 0) {
+        mavlinkContext.lastArmingDisableFlags = 0;
+        return;
+    }
+
+    char text[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = "Arming disabled:";
+    size_t pos = strlen(text);
+    for (unsigned bit = 6; bit <= 30 && pos < sizeof(text) - 1; bit++) {
+        if (!(disableFlags & (1U << bit))) {
+            continue;
+        }
+
+        const char *name = armingDisableFlagNames[bit - 6];
+        if (sizeof(text) - pos < 3) {
+            break;
+        }
+
+        text[pos++] = ' ';
+        const size_t remaining = sizeof(text) - 1 - pos;
+        const size_t nameLength = MIN(strlen(name), remaining);
+        memcpy(text + pos, name, nameLength);
+        pos += nameLength;
+    }
+    text[pos] = '\0';
+
+    uint8_t sendMask = 0;
+    for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {
+        if (mavPortStates[portIndex].telemetryEnabled && mavPortStates[portIndex].port) {
+            sendMask |= MAVLINK_PORT_MASK(portIndex);
+        }
+    }
+    if (sendMask == 0) {
+        return;
+    }
+
+    mavlinkContext.lastArmingDisableFlags = disableFlags;
+    mavSendMask = sendMask;
+    mavlink_msg_statustext_pack(
+        mavlinkGetCommonConfig()->sysid,
+        MAV_COMP_ID_AUTOPILOT1,
+        &mavSendMsg,
+        MAV_SEVERITY_NOTICE,
+        text,
+        0,
+        0);
+    mavlinkSendMessage();
+    mavSendMask = 0;
+#endif
 }
 
 static bool mavlinkIsLocalTarget(uint8_t targetSystem, uint8_t targetComponent)

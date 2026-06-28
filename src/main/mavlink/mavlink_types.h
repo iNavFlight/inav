@@ -73,6 +73,25 @@ typedef struct mavlinkRouteEntry_s {
     uint8_t ingressPortIndex;
 } mavlinkRouteEntry_t;
 
+typedef enum {
+    MAVLINK_MISSION_TRANSFER_IDLE,
+    MAVLINK_MISSION_TRANSFER_RECEIVING,
+    MAVLINK_MISSION_TRANSFER_SENDING,
+} mavlinkMissionTransferState_e;
+
+typedef struct mavlinkMissionTransfer_s {
+    mavlinkMissionTransferState_e state;
+    uint16_t count;
+    uint16_t nextSequence;
+    uint8_t partnerSystem;
+    uint8_t partnerComponent;
+    uint8_t ingressPortIndex;
+    bool useIntMessages;
+    bool formatSelected;
+    uint8_t retries;
+    timeMs_t lastActivityMs;
+} mavlinkMissionTransfer_t;
+
 typedef struct mavlinkMlrsLinkStatsRuntime_s {
     bool valid;
     bool rssiIsDbm;
