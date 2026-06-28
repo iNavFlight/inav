@@ -966,7 +966,7 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
             navDesiredVelocity[X] = constrain(posControl.desiredState.autoSpeedDemand, 0, 32767);
             navDesiredVelocity[Y] = 0;
         } else {
-            navDesiredVelocity[X] = posControl.autoSpeedSpdSource = FW_AUTO_SPD_GROUND_OVERRIDE ? 1 : 0;  // indicate airspeed overriding
+            navDesiredVelocity[X] = posControl.autoSpeedSpdSource == FW_AUTO_SPD_GROUND_OVERRIDE ? 1 : 0;  // indicate airspeed overriding
             navDesiredVelocity[Y] = constrain(posControl.desiredState.autoSpeedDemand, 0, 32767);
         }
     }
