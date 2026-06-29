@@ -39,7 +39,7 @@ If `mixer_vtol_manualswitch_autotransition_controller = ON`, `MIXER TRANSITION` 
 - Leaving the switch ON does not keep restarting the transition.
 - To start another transition, turn the switch OFF and then ON again.
 - If you turn the switch OFF before the profile change happens, that transition request is cancelled.
-- Optional extra protection: `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can automatically start FW->MC if trusted pitot airspeed gets too low. During manual FW flight, INAV stays in MC until you deliberately command another manual profile change. During mission/RTH/failsafe, INAV keeps the current navigation task in MC after the safety switch.
+- Optional extra protection: `vtol_fw_to_mc_auto_switch_airspeed_cm_s` can automatically start FW->MC if the usable transition airspeed source gets too low. During manual FW flight, INAV stays in MC until you deliberately command another manual profile change. During mission/RTH/failsafe, INAV keeps the current navigation task in MC after the safety switch.
 
 This behavior is controlled by `mixer_vtol_manualswitch_autotransition_controller`.
 Turn it ON in both mixer profiles if you want the same switch behavior in both directions.
@@ -159,14 +159,14 @@ When valid pitot airspeed is available, INAV uses airspeed to decide when the tr
 - `vtol_transition_to_fw_min_airspeed_cm_s` for MC->FW
 - `vtol_transition_to_mc_max_airspeed_cm_s` for FW->MC
 
-If trusted hardware pitot is not available, not healthy, or the threshold is set to `0`, INAV uses `mixer_switch_trans_timer` instead. `PITOT_VIRTUAL` is treated as timer-based for VTOL transition completion.
+If no usable transition airspeed source is available, or the threshold is set to `0`, INAV uses `mixer_switch_trans_timer` instead. A usable source is either a valid real pitot sensor or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate.
 Ground speed is not used for transition completion/progress.
 
 The three timer settings do different jobs:
 
-- `mixer_switch_trans_timer` is the original VTOL transition timer. It is still the backup completion timer when trusted hardware pitot airspeed is not being used.
-- `mixer_vtol_transition_airspeed_timeout_ms` is only a maximum wait time for the required airspeed while trusted hardware pitot is still usable. It does not complete the transition by itself; it aborts that airspeed-controlled attempt.
-- If hardware pitot becomes unavailable during transition, INAV stops using the airspeed timeout and falls back to `mixer_switch_trans_timer`.
+- `mixer_switch_trans_timer` is the original VTOL transition timer. It is still the backup completion timer when a usable transition airspeed source is not being used.
+- `mixer_vtol_transition_airspeed_timeout_ms` is only a maximum wait time for the required airspeed while the transition airspeed source is still usable. It does not complete the transition by itself; it aborts that airspeed-controlled attempt.
+- If the airspeed source becomes unavailable during transition, INAV stops using the airspeed timeout and falls back to `mixer_switch_trans_timer`.
 - For pitot-based setups, use a non-zero `mixer_switch_trans_timer` as a sensible backup time, typically `40..60` (`4..6s`).
 
 ### Smooth power changes during transition (optional)
@@ -217,7 +217,7 @@ How `mixer_vtol_transition_scale_ramp_time_ms` works:
   - in MC->FW, lift power reduction, MC stabilisation reduction, and FW control increase follow airspeed when pitot is usable.
   - in FW->MC, FW control reduction follows airspeed when pitot is usable.
   - with valid pitot airspeed, they follow transition progress based on airspeed.
-  - without trusted hardware pitot, they fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
+  - without a usable transition airspeed source, they fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
 - In FW->MC, forward motor removal, lift power return, and MC motor stabilisation return use the time-based motor ramp so they do not wait for airspeed to fall first.
 
 `vtol_transition_lift_min_percent` and `vtol_transition_mc_authority_min_percent` control different parts of the MC motor output:
@@ -236,9 +236,9 @@ Result:
 - in MC->FW, the forward motor reaches full power in about `1.2s`,
 - in FW->MC, the forward motor ramps down while lift power and MC stabilisation return in about `1.2s`,
 - when pitot is working, airspeed-linked control scaling still follows airspeed,
-- if hardware pitot stops being usable, airspeed-linked control scaling falls back to `mixer_switch_trans_timer`,
-- transition completion still uses airspeed when trusted hardware pitot is working,
-- backup completion time is still `5s` if trusted hardware pitot is not usable.
+- if the airspeed source stops being usable, airspeed-linked control scaling falls back to `mixer_switch_trans_timer`,
+- transition completion still uses airspeed when a usable transition airspeed source is available,
+- backup completion time is still `5s` if no usable transition airspeed source is available.
 
 ### Mission-authorized VTOL transition (waypoint User Action)
 
@@ -367,10 +367,10 @@ Debug channels:
 - `debug[1]` = active request (`MIXERAT_REQUEST_*` enum value), with transition direction packed in bits `8..15` and wait reason packed in bits `16..23`
     - wait reason `0`: none
     - wait reason `1`: FW->MC is close to the MC speed threshold, but is still waiting
-    - wait reason `2`: no trusted hardware pitot speed is available, so timer-based completion is being used
-    - wait reason `3`: FW->MC is waiting because trusted pitot airspeed is still clearly above `vtol_transition_to_mc_max_airspeed_cm_s`
+    - wait reason `2`: no usable transition airspeed source is available, so timer-based completion is being used
+    - wait reason `3`: FW->MC is waiting because the usable airspeed source is still clearly above `vtol_transition_to_mc_max_airspeed_cm_s`
 
-For display only, reason `3` means the trusted pitot value is more than about `1 m/s` above the MC switch threshold. The actual FW->MC switch condition is still `airspeed <= vtol_transition_to_mc_max_airspeed_cm_s`.
+For display only, reason `3` means the usable airspeed value is more than about `1 m/s` above the MC switch threshold. The actual FW->MC switch condition is still `airspeed <= vtol_transition_to_mc_max_airspeed_cm_s`.
 - `debug[2]` = packed transition flags:
     - bits 0-1: transition direction (`0=NONE`, `1=TO_FW`, `2=TO_MC`)
     - bit2: auto-transition controller active

@@ -2200,22 +2200,23 @@ static bool missionVTOLTransitionPointReady(const bool transitionToFixedWing, co
 }
 
 #ifdef USE_PITOT
-static bool hasTrustedPitotAirspeed(float *airspeedCmS)
+static bool hasUsableTransitionAirspeed(float *airspeedCmS)
 {
     if (!sensors(SENSOR_PITOT) || !pitotGetValidForAirspeed() || pitotHasFailed()) {
         return false;
     }
 
-    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE ||
-        detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
+    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE) {
         return false;
     }
 
-    *airspeedCmS = pitot.airSpeed;
+    *airspeedCmS = detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL ?
+        MAX(getAirspeedEstimate(), 0.0f) :
+        MAX(pitot.airSpeed, 0.0f);
     return true;
 }
 #else
-static bool hasTrustedPitotAirspeed(float *airspeedCmS)
+static bool hasUsableTransitionAirspeed(float *airspeedCmS)
 {
     UNUSED(airspeedCmS);
     return false;
@@ -2230,9 +2231,9 @@ static bool beginNavigationFwToMcProtectionTransition(void)
 
     const uint16_t thresholdCmS = systemConfig()->vtolFwToMcAutoSwitchAirspeed;
     float airspeedCmS = 0.0f;
-    const bool trustedAirspeedAvailable = hasTrustedPitotAirspeed(&airspeedCmS);
+    const bool usableAirspeedAvailable = hasUsableTransitionAirspeed(&airspeedCmS);
 
-    if (!mixerTransitionFwToMcProtectionTriggered(ARMING_FLAG(ARMED), STATE(AIRPLANE), thresholdCmS, trustedAirspeedAvailable, airspeedCmS)) {
+    if (!mixerTransitionFwToMcProtectionTriggered(ARMING_FLAG(ARMED), STATE(AIRPLANE), thresholdCmS, usableAirspeedAvailable, airspeedCmS)) {
         return false;
     }
 
@@ -2252,20 +2253,8 @@ static bool isTransitionRetryToFixedWingRequest(const mixerProfileATRequest_e re
 
 static bool hasAirspeedSensorForTransitionRetry(void)
 {
-#ifdef USE_PITOT
-    if (!sensors(SENSOR_PITOT) || !pitotGetValidForAirspeed() || pitotHasFailed()) {
-        return false;
-    }
-
-    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE ||
-        detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
-        return false;
-    }
-
-    return true;
-#else
-    return false;
-#endif
+    float airspeedCmS = 0.0f;
+    return hasUsableTransitionAirspeed(&airspeedCmS);
 }
 
 static bool canRetryTransitionAfterAirspeedTimeout(const mixerProfileATRequest_e request)
@@ -2414,7 +2403,7 @@ static navMixerATRetryScanResult_e updateMissionTransitionRetryScan(void)
 
     if (navMixerATMissionTransition.retryStage == NAV_MIXERAT_RETRY_STAGE_SCAN) {
         float airspeedCmS = 0.0f;
-        if (hasTrustedPitotAirspeed(&airspeedCmS)) {
+        if (hasUsableTransitionAirspeed(&airspeedCmS)) {
             navMixerATMissionTransition.retryHadTrustedAirspeedSample = true;
             if (airspeedCmS > navMixerATMissionTransition.retryBestAirspeedCmS) {
                 navMixerATMissionTransition.retryBestAirspeedCmS = airspeedCmS;

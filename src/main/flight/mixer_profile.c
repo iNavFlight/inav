@@ -538,40 +538,23 @@ static float getHandoffScalingProgress(void)
     return mixerProfileAT.handoffScalingProgress;
 }
 
-static bool hasTrustedPitotAirspeed(float *airspeedCmS)
+static bool hasUsableTransitionAirspeed(float *airspeedCmS)
 {
 #ifdef USE_PITOT
     if (!sensors(SENSOR_PITOT) || !pitotGetValidForAirspeed() || pitotHasFailed()) {
         return false;
     }
 
-    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE ||
-        detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
+    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE) {
         return false;
     }
 
-    *airspeedCmS = pitot.airSpeed;
+    *airspeedCmS = detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL ?
+        MAX(getAirspeedEstimate(), 0.0f) :
+        MAX(pitot.airSpeed, 0.0f);
     return true;
 #else
     UNUSED(airspeedCmS);
-    return false;
-#endif
-}
-
-static bool hasPitotSensorForManualProtection(void)
-{
-#ifdef USE_PITOT
-    if (!sensors(SENSOR_PITOT) || pitotHasFailed()) {
-        return false;
-    }
-
-    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE ||
-        detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
-        return false;
-    }
-
-    return true;
-#else
     return false;
 #endif
 }
@@ -702,12 +685,12 @@ static bool shouldRequestManualFwToMcProtection(const bool manualControllerEnabl
     }
 
     const uint16_t thresholdCmS = systemConfig()->vtolFwToMcAutoSwitchAirspeed;
-    if (thresholdCmS == 0 || !hasPitotSensorForManualProtection()) {
+    if (thresholdCmS == 0) {
         return false;
     }
 
     float airspeedCmS = 0.0f;
-    if (!hasTrustedPitotAirspeed(&airspeedCmS)) {
+    if (!hasUsableTransitionAirspeed(&airspeedCmS)) {
         return false;
     }
 
@@ -773,12 +756,12 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
     const uint32_t elapsedMs = millis() - mixerProfileAT.transitionStartTime;
     const uint32_t transitionTimerMs = MAX(0, currentMixerConfig.switchTransitionTimer) * 100;
     float airspeedCmS = 0.0f;
-    const bool trustedAirspeedAvailable =
-        airspeedThresholdCmS > 0 && hasTrustedPitotAirspeed(&airspeedCmS);
+    const bool usableAirspeedAvailable =
+        airspeedThresholdCmS > 0 && hasUsableTransitionAirspeed(&airspeedCmS);
     const mixerTransitionHotSwitchProgress_t hotSwitchProgress = mixerTransitionEvaluateHotSwitch(
         direction,
         airspeedThresholdCmS,
-        trustedAirspeedAvailable,
+        usableAirspeedAvailable,
         airspeedCmS,
         mixerProfileAT.transitionStartAirspeedCaptured,
         mixerProfileAT.transitionStartAirspeedCmS,
@@ -794,7 +777,7 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
     if (!hotSwitchProgress.readyForHotSwitch &&
         direction == MIXERAT_DIRECTION_TO_MC &&
         airspeedThresholdCmS > 0) {
-        if (!trustedAirspeedAvailable) {
+        if (!usableAirspeedAvailable) {
             mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NO_SPEED;
         } else if (airspeedCmS > (float)airspeedThresholdCmS + MIXER_TRANSITION_MC_SPEED_HIGH_MARGIN_CM_S) {
             mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_MC_SPEED_HIGH;

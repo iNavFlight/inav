@@ -3213,7 +3213,7 @@ If enabled, control_profile_index will follow mixer_profile index. Set to OFF(de
 
 ### mixer_switch_trans_timer
 
-Original VTOL transition timer, still used as the backup completion time. If trusted hardware pitot airspeed is not being used, INAV completes the transition from this timer instead. `PITOT_VIRTUAL` is treated as timer-based for VTOL transition completion. With smooth VTOL transition power changes ON, airspeed-linked power and control changes also fall back to this timer whenever trusted hardware pitot is not usable.
+Original VTOL transition timer, still used as the backup completion time. If a usable transition airspeed source is not available, INAV completes the transition from this timer instead. A usable transition airspeed source is a valid real pitot sensor, or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate. With smooth VTOL transition power changes ON, airspeed-linked power and control changes also fall back to this timer whenever the transition airspeed source is not usable.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3233,7 +3233,7 @@ Makes `MIXER TRANSITION` start one automatic VTOL transition each time the switc
 
 ### mixer_vtol_transition_airspeed_timeout_ms
 
-Maximum wait time [ms] for the required hardware pitot airspeed during an airspeed-controlled transition. This timer does not complete the transition; it only aborts it if the target airspeed is still not reached in time while trusted hardware pitot remains usable. If hardware pitot becomes unavailable, or only `PITOT_VIRTUAL` is available, INAV falls back to `mixer_switch_trans_timer` instead. Set to 0 to disable. Available only on targets with more than 512 KB flash.
+Maximum wait time [ms] for the required airspeed during an airspeed-controlled transition. This timer does not complete the transition; it only aborts it if the target airspeed is still not reached in time while the transition airspeed source remains usable. Real pitot and explicitly configured `pitot_hardware = VIRTUAL` can both be used. If the source becomes unavailable, INAV falls back to `mixer_switch_trans_timer` instead. Set to 0 to disable. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3253,7 +3253,7 @@ Turns on smooth VTOL transition power and control scaling. In MC->FW it smoothly
 
 ### mixer_vtol_transition_scale_ramp_time_ms
 
-Controls time-based smooth VTOL motor, power, and transition-servo movement. In MC->FW it moves the forward motor from idle to the requested power. After the switch to FW, old lift motors that are no longer used by the FW profile are moved to idle over the same time. In FW->MC it moves the forward motor down to idle while target MC lift power plus target MC motor stabilisation come back in. `INPUT_MIXER_TRANSITION` also uses this time when `mixer_vtol_transition_dynamic_mixer` is ON. If a profile switch or direct switch changes a transition-linked servo output, INAV starts a fresh smooth movement from the servo's current output using this full time value. `0` applies these time-based changes immediately. This timer does not decide when transition completes; completion still uses trusted hardware pitot airspeed or `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash.
+Controls time-based smooth VTOL motor, power, and transition-servo movement. In MC->FW it moves the forward motor from idle to the requested power. After the switch to FW, old lift motors that are no longer used by the FW profile are moved to idle over the same time. In FW->MC it moves the forward motor down to idle while target MC lift power plus target MC motor stabilisation come back in. `INPUT_MIXER_TRANSITION` also uses this time when `mixer_vtol_transition_dynamic_mixer` is ON. If a profile switch or direct switch changes a transition-linked servo output, INAV starts a fresh smooth movement from the servo's current output using this full time value. `0` applies these time-based changes immediately. This timer does not decide when transition completes; completion still uses a usable transition airspeed source or `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7101,7 +7101,7 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 
 ### vtol_fw_to_mc_auto_switch_airspeed_cm_s
 
-Extra low-speed fixed-wing safety fallback [cm/s]. If trusted hardware pitot airspeed falls to this value or lower while in FW, INAV automatically starts FW->MC. In manual FW flight this requires `mixer_vtol_manualswitch_autotransition_controller` to be ON and keeps MC until the pilot deliberately commands another manual profile change. In mission/RTH/failsafe this requires `mixer_automated_switch` to be ON and keeps the current navigation task in MC after the safety switch, blocking automatic MC->FW re-entry for that navigation session. `vtol_transition_to_mc_max_airspeed_cm_s` still controls when the FW->MC transition is safe to complete. Set to 0 to disable. Available only on targets with more than 512 KB flash.
+Extra low-speed fixed-wing safety fallback [cm/s]. If a usable transition airspeed source falls to this value or lower while in FW, INAV automatically starts FW->MC. Real pitot and explicitly configured `pitot_hardware = VIRTUAL` can both be used. In manual FW flight this requires `mixer_vtol_manualswitch_autotransition_controller` to be ON and keeps MC until the pilot deliberately commands another manual profile change. In mission/RTH/failsafe this requires `mixer_automated_switch` to be ON and keeps the current navigation task in MC after the safety switch, blocking automatic MC->FW re-entry for that navigation session. `vtol_transition_to_mc_max_airspeed_cm_s` still controls when the FW->MC transition is safe to complete. Set to 0 to disable. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7163,7 +7163,7 @@ Lowest multicopter stabilisation authority used during transition, in percent. T
 
 ### vtol_transition_to_fw_min_airspeed_cm_s
 
-Minimum trusted hardware pitot airspeed [cm/s] needed before MC->FW transition is considered complete while hardware pitot remains usable. If hardware pitot becomes unavailable, if only `PITOT_VIRTUAL` is available, or if this is set to 0, INAV uses `mixer_switch_trans_timer` instead. If hardware pitot remains usable but this target is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
+Minimum airspeed [cm/s] needed before MC->FW transition is considered complete while a usable transition airspeed source is available. A usable source is a valid real pitot sensor, or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate. If no usable source is available, or if this is set to 0, INAV uses `mixer_switch_trans_timer` instead. If the source remains usable but this target is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7173,7 +7173,7 @@ Minimum trusted hardware pitot airspeed [cm/s] needed before MC->FW transition i
 
 ### vtol_transition_to_mc_max_airspeed_cm_s
 
-When slowing down from FW to MC, the transition is considered complete once trusted hardware pitot airspeed falls to this value [cm/s] or lower while hardware pitot remains usable. If hardware pitot becomes unavailable, if only `PITOT_VIRTUAL` is available, or if this is set to 0, INAV uses `mixer_switch_trans_timer` instead. If hardware pitot remains usable but this condition is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
+When slowing down from FW to MC, the transition is considered complete once airspeed falls to this value [cm/s] or lower while a usable transition airspeed source is available. A usable source is a valid real pitot sensor, or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate. If no usable source is available, or if this is set to 0, INAV uses `mixer_switch_trans_timer` instead. If the source remains usable but this condition is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
