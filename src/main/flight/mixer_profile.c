@@ -39,6 +39,7 @@
 
 #ifdef USE_AUTO_TRANSITION
 #define MIXER_TRANSITION_OSD_EVENT_DISPLAY_MS 3000
+#define MIXER_TRANSITION_MC_SPEED_HIGH_MARGIN_CM_S 100.0f
 #endif
 
 mixerConfig_t currentMixerConfig;
@@ -153,6 +154,7 @@ void setMixerProfileAT(void)
     mixerProfileAT.abortedByAirspeedTimeout = false;
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.usedAirspeed = false;
+    mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
     mixerProfileAT.progress = 0.0f;
     mixerProfileAT.handoffScalingProgress = 0.0f;
@@ -469,6 +471,7 @@ static mixerProfileATDirection_e directionForRequest(const mixerProfileATRequest
 
 static void resetTransitionScales(void)
 {
+    mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.progress = 0.0f;
     mixerProfileAT.handoffScalingProgress = 0.0f;
     mixerProfileAT.motorRampProgress = 0.0f;
@@ -673,6 +676,7 @@ static bool updatePostSwitchFade(void)
     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
     mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
+    mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.postSwitchFadeMotorMask = 0;
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
     return true;
@@ -752,6 +756,7 @@ static void abortTransition(const bool byAirspeedTimeout, const bool directSwitc
     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
     mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
     mixerProfileAT.usedAirspeed = false;
+    mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
     resetTransitionScales();
@@ -784,6 +789,20 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
     mixerProfileAT.transitionStartAirspeedCaptured = hotSwitchProgress.transitionStartAirspeedCaptured;
     mixerProfileAT.transitionStartAirspeedCmS = hotSwitchProgress.transitionStartAirspeedCmS;
     mixerProfileAT.progress = hotSwitchProgress.progress;
+
+    mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
+    if (!hotSwitchProgress.readyForHotSwitch &&
+        direction == MIXERAT_DIRECTION_TO_MC &&
+        airspeedThresholdCmS > 0) {
+        if (!trustedAirspeedAvailable) {
+            mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NO_SPEED;
+        } else if (airspeedCmS > (float)airspeedThresholdCmS + MIXER_TRANSITION_MC_SPEED_HIGH_MARGIN_CM_S) {
+            mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_MC_SPEED_HIGH;
+        } else {
+            mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_MC_SPEED;
+        }
+    }
+
     return hotSwitchProgress.readyForHotSwitch;
 }
 #endif
@@ -906,6 +925,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
                     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
                     mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
+                    mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
                 }
                 return true;
             } else if (mixerProfileAT.usedAirspeed &&
@@ -1231,7 +1251,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
 
     // VTOL transition debug channels (DEBUG_VTOL_TRANSITION):
     // [0] phase
-    // [1] request | (direction << 8)
+    // [1] request | (direction << 8) | (waitReason << 16)
     // [2] packed transition flags | active platform type | active PID type | target input mode
     // [3] raw transition progress x1000
     // [4] pusherScale x1000
@@ -1239,7 +1259,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     // [6] mcAuthorityScale x1000 | (fwAuthorityScale x1000 << 16)
     // [7] handoffProgress 10-bit | motorRampProgress 10-bit | postSwitchFadeProgress 10-bit
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 0, mixerProfileAT.phase);
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, (int32_t)(((uint32_t)mixerProfileAT.request & 0xFFU) | (((uint32_t)mixerProfileAT.direction & 0xFFU) << 8)));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, (int32_t)(((uint32_t)mixerProfileAT.request & 0xFFU) | (((uint32_t)mixerProfileAT.direction & 0xFFU) << 8) | (((uint32_t)mixerProfileAT.waitReason & 0xFFU) << 16)));
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 2, (int32_t)transitionDebugFlags);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 3, progressScaled);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 4, pusherScaled);
@@ -1290,6 +1310,7 @@ bool mixerATGetOsdStatus(mixerProfileATOsdStatus_t *status)
     status->direction = mixerProfileAT.direction;
     status->request = mixerProfileAT.request;
     status->event = eventActive ? mixerATOsdEvent : MIXERAT_OSD_EVENT_NONE;
+    status->waitReason = active ? mixerProfileAT.waitReason : MIXERAT_WAIT_REASON_NONE;
     status->switchReminderDirection = switchReminderActive ? mixerATOsdSwitchReminderDirection : MIXERAT_DIRECTION_NONE;
 
     if (!eventActive) {

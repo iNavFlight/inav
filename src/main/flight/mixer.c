@@ -49,6 +49,7 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
+#include "flight/mixer_transition_logic.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -275,6 +276,57 @@ typedef struct autoTransitionMotorMixState_s {
     const mixerConfig_t *targetMixerConfig;
     int16_t targetInput[3];
 } autoTransitionMotorMixState_t;
+
+static uint16_t targetLiftMotorPreviewCaptureMask;
+static int targetLiftMotorPreviewTargetProfileIndex = -1;
+static mixerProfileATDirection_e targetLiftMotorPreviewDirection = MIXERAT_DIRECTION_NONE;
+static int16_t targetLiftMotorPreviewCapturedOutput[MAX_SUPPORTED_MOTORS];
+
+static void resetTargetLiftMotorPreviewCapture(void)
+{
+    targetLiftMotorPreviewCaptureMask = 0;
+    targetLiftMotorPreviewTargetProfileIndex = -1;
+    targetLiftMotorPreviewDirection = MIXERAT_DIRECTION_NONE;
+    memset(targetLiftMotorPreviewCapturedOutput, 0, sizeof(targetLiftMotorPreviewCapturedOutput));
+}
+
+static void updateTargetLiftMotorPreviewSession(const autoTransitionMotorMixState_t *state)
+{
+    if (!state->active ||
+        mixerProfileAT.phase != MIXERAT_PHASE_TRANSITIONING ||
+        mixerProfileAT.direction != MIXERAT_DIRECTION_TO_MC ||
+        !currentMixerConfig.vtolTransitionDynamicMixer ||
+        currentMixerConfig.vtolTransitionScaleRampTimeMs == 0 ||
+        state->currentProfileIsMultirotor ||
+        !state->targetProfileIsMultirotor ||
+        nextMixerProfileIndex < 0 ||
+        nextMixerProfileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        resetTargetLiftMotorPreviewCapture();
+        return;
+    }
+
+    if (targetLiftMotorPreviewTargetProfileIndex != nextMixerProfileIndex ||
+        targetLiftMotorPreviewDirection != mixerProfileAT.direction) {
+        targetLiftMotorPreviewCaptureMask = 0;
+        targetLiftMotorPreviewTargetProfileIndex = nextMixerProfileIndex;
+        targetLiftMotorPreviewDirection = mixerProfileAT.direction;
+        memset(targetLiftMotorPreviewCapturedOutput, 0, sizeof(targetLiftMotorPreviewCapturedOutput));
+    }
+}
+
+static int16_t getTargetLiftMotorPreviewOutput(uint8_t motorIndex, int16_t currentOutput, int16_t targetOutput)
+{
+    const uint16_t motorMask = 1U << motorIndex;
+    if (!(targetLiftMotorPreviewCaptureMask & motorMask)) {
+        targetLiftMotorPreviewCapturedOutput[motorIndex] = currentOutput;
+        targetLiftMotorPreviewCaptureMask |= motorMask;
+    }
+
+    return mixerTransitionBlendCapturedMotorOutput(
+        targetLiftMotorPreviewCapturedOutput[motorIndex],
+        targetOutput,
+        mixerProfileAT.motorRampProgress);
+}
 
 static void NOINLINE prepareAutoTransitionMotorMixState(autoTransitionMotorMixState_t *state)
 {
@@ -590,6 +642,7 @@ void FAST_CODE mixTable(void)
     if (isMixerTransitionMixing) {
         prepareAutoTransitionMotorMixState(&autoTransition);
     }
+    updateTargetLiftMotorPreviewSession(&autoTransition);
 #endif
 
     // Initial mixer concept by bdoiron74 reused and optimized for Air Mode
@@ -790,7 +843,8 @@ void FAST_CODE mixTable(void)
             // MC PID preview. This avoids feeding active FW/PIFF PID into lift
             // motors while still allowing MC control to fade in before switch.
             const float targetMotorThrottle = mixerThrottleCommand * targetMixer->throttle * mixerATGetLiftScale();
-            motor[i] = constrain(rpyMix[i] + constrain(targetMotorThrottle, throttleMin, throttleMax), throttleRangeMin, throttleRangeMax);
+            const int16_t targetMotorOutput = constrain(rpyMix[i] + constrain(targetMotorThrottle, throttleMin, throttleMax), throttleRangeMin, throttleRangeMax);
+            motor[i] = getTargetLiftMotorPreviewOutput(i, motor[i], targetMotorOutput);
         }
 #endif
         //spin stopped motors only in mixer transition mode

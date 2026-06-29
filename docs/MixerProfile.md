@@ -159,14 +159,14 @@ When valid pitot airspeed is available, INAV uses airspeed to decide when the tr
 - `vtol_transition_to_fw_min_airspeed_cm_s` for MC->FW
 - `vtol_transition_to_mc_max_airspeed_cm_s` for FW->MC
 
-If pitot is not available, not healthy, or the threshold is set to `0`, INAV uses `mixer_switch_trans_timer` instead.
+If trusted hardware pitot is not available, not healthy, or the threshold is set to `0`, INAV uses `mixer_switch_trans_timer` instead. `PITOT_VIRTUAL` is treated as timer-based for VTOL transition completion.
 Ground speed is not used for transition completion/progress.
 
 The three timer settings do different jobs:
 
-- `mixer_switch_trans_timer` is the original VTOL transition timer. It is still the backup completion timer when trusted pitot airspeed is not being used.
-- `mixer_vtol_transition_airspeed_timeout_ms` is only a maximum wait time for the required airspeed while pitot is still usable. It does not complete the transition by itself; it aborts that airspeed-controlled attempt.
-- If pitot becomes unavailable during transition, INAV stops using the airspeed timeout and falls back to `mixer_switch_trans_timer`.
+- `mixer_switch_trans_timer` is the original VTOL transition timer. It is still the backup completion timer when trusted hardware pitot airspeed is not being used.
+- `mixer_vtol_transition_airspeed_timeout_ms` is only a maximum wait time for the required airspeed while trusted hardware pitot is still usable. It does not complete the transition by itself; it aborts that airspeed-controlled attempt.
+- If hardware pitot becomes unavailable during transition, INAV stops using the airspeed timeout and falls back to `mixer_switch_trans_timer`.
 - For pitot-based setups, use a non-zero `mixer_switch_trans_timer` as a sensible backup time, typically `40..60` (`4..6s`).
 
 ### Smooth power changes during transition (optional)
@@ -187,13 +187,15 @@ At the same time, target MC motor rules can come in before the switch and use a 
 These inputs are active only while the smooth auto-transition controller is running. If `mixer_vtol_transition_dynamic_mixer = OFF`, they stay at full authority while the controller is active. If `mixer_vtol_transition_dynamic_mixer = ON`, they follow the normal fixed-wing authority scaling.
 `INPUT_MIXER_TRANSITION` remains available for tilt/helper servo movement. With `mixer_vtol_transition_dynamic_mixer = ON`, it follows `mixer_vtol_transition_scale_ramp_time_ms`. With it OFF, it keeps the older fixed transition behavior while the auto controller only decides the profile switch timing. If a profile switch or direct switch changes a transition-linked servo output, INAV starts a fresh full `mixer_vtol_transition_scale_ramp_time_ms` movement from the servo's current output instead of using a separate fixed servo delay.
 
+The smooth auto-transition controller owns the transition while it is running. It can therefore use target-profile transition rules even before the RC switch position would normally select that target profile. This is useful for FW->MC tilt-rotor setups where the FW profile has no tilt-servo rules, but the target MC profile has `INPUT_MIXER_TRANSITION` rules for those servo outputs.
+
 Forward motor setup for smooth auto-transition:
 
 - Preferred setup: configure the forward motor as a normal positive-throttle motor in the FW mixer profile.
 - Reserve the same motor index in the MC mixer profile with a placeholder if that motor is not used in MC flight. Use `throttle = -1.000`, `roll = 0`, `pitch = 0`, `yaw = 0` if Configurator removes zero-throttle motor rules.
 - During MC->FW, INAV can bring that target FW motor rule in before the profile switch.
 - For FW->MC, configure the lift motors as normal positive-throttle motors in the MC mixer profile. If those motor indexes are not used in FW flight, reserve them in the FW mixer profile with placeholders.
-- During FW->MC, INAV can bring those target MC lift motor rules in before the profile switch and use target MC stabilisation for their roll/pitch/yaw correction.
+- During FW->MC, INAV can bring those target MC lift motor rules in before the profile switch and use target MC stabilisation for their roll/pitch/yaw correction. If a target MC lift motor was idle in the FW profile, INAV captures the current real motor output and moves from that value toward the target MC lift output over `mixer_vtol_transition_scale_ramp_time_ms`.
 - The older `-2.0 <= throttle <= -1.05` transition motor rule still works as a legacy/helper path, but it is not the preferred setup for smooth auto-transition.
 - If a helper such as `throttle = -1.200` is used before the MC->FW switch, smooth auto-transition moves from that helper output to the real FW mixer output after the profile switch.
 - If the same physical tilt motor is configured with positive throttle in both profiles on the same index, INAV blends the base throttle between the MC and FW mixer rules instead of adding both throttles together. The current-profile stabilisation is reduced while the target-profile stabilisation is increased.
@@ -204,17 +206,26 @@ How `mixer_vtol_transition_scale_ramp_time_ms` works:
   - MC->FW: forward motor power ramps from `0 -> 100%` over this time.
   - After the MC->FW profile switch, lift motors that are not used by the FW profile move to idle over this same time instead of stopping immediately.
   - FW->MC: forward motor power ramps from `100% -> 0%`, while lift power and MC stabilisation ramp from their configured minimums back to `100%` over this time.
+  - FW->MC target lift motors that exist only in the MC profile start from their current real output and move toward the target MC lift output over this time.
   - After the FW->MC profile switch, a forward motor that is not used by the MC profile keeps moving to idle and cannot be reintroduced by FW throttle.
   - `INPUT_MIXER_TRANSITION` uses this ramp when `mixer_vtol_transition_dynamic_mixer = ON`; with dynamic mixer OFF it keeps the older fixed transition endpoint behavior.
   - If a profile switch or direct switch changes a transition-linked servo output, INAV captures the current servo output and starts a fresh full window from this value.
   - `= 0` (default): those time-based power changes happen immediately.
+- For FW->MC tilt servos that exist only in the target MC profile, INAV can preview only the target `INPUT_MIXER_TRANSITION` plus `INPUT_MAX` movement from the servo's current real output. This means it adds the target transition movement and the target fixed offset when both rules exist. A `MAX` rule alone is not enough to identify a transition servo. Target yaw/roll/pitch stabilisation is not applied until the MC profile is active.
 - This timer does not decide when the transition completes.
 - Airspeed-based control scaling:
   - in MC->FW, lift power reduction, MC stabilisation reduction, and FW control increase follow airspeed when pitot is usable.
   - in FW->MC, FW control reduction follows airspeed when pitot is usable.
   - with valid pitot airspeed, they follow transition progress based on airspeed.
-  - without trusted pitot, they fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
+  - without trusted hardware pitot, they fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
 - In FW->MC, forward motor removal, lift power return, and MC motor stabilisation return use the time-based motor ramp so they do not wait for airspeed to fall first.
+
+`vtol_transition_lift_min_percent` and `vtol_transition_mc_authority_min_percent` control different parts of the MC motor output:
+
+- `vtol_transition_lift_min_percent` scales the lift motor base throttle.
+- `vtol_transition_mc_authority_min_percent` scales the MC roll/pitch/yaw stabilisation correction mixed into those motors.
+
+Pilot throttle still matters. In ALTHOLD/NAV, `nav_mc_manual_climb_rate` limits the climb/descent rate requested by the throttle stick. In pure manual throttle modes, the transition controller does not automatically convert a strong manual climb command into hover throttle, so avoid entering MC->FW while commanding an aggressive vertical climb.
 
 Example:
 
@@ -225,9 +236,9 @@ Result:
 - in MC->FW, the forward motor reaches full power in about `1.2s`,
 - in FW->MC, the forward motor ramps down while lift power and MC stabilisation return in about `1.2s`,
 - when pitot is working, airspeed-linked control scaling still follows airspeed,
-- if pitot stops being usable, airspeed-linked control scaling falls back to `mixer_switch_trans_timer`,
-- transition completion still uses airspeed when pitot is working,
-- backup completion time is still `5s` if pitot is not usable.
+- if hardware pitot stops being usable, airspeed-linked control scaling falls back to `mixer_switch_trans_timer`,
+- transition completion still uses airspeed when trusted hardware pitot is working,
+- backup completion time is still `5s` if trusted hardware pitot is not usable.
 
 ### Mission-authorized VTOL transition (waypoint User Action)
 
@@ -353,7 +364,13 @@ For transition troubleshooting, use:
 Debug channels:
 
 - `debug[0]` = transition phase (`0=IDLE`, `1=TRANSITION_INITIALIZE`, `2=TRANSITIONING`, `3=after-switch smoothing`)
-- `debug[1]` = active request (`MIXERAT_REQUEST_*` enum value) with transition direction packed in the high byte
+- `debug[1]` = active request (`MIXERAT_REQUEST_*` enum value), with transition direction packed in bits `8..15` and wait reason packed in bits `16..23`
+    - wait reason `0`: none
+    - wait reason `1`: FW->MC is close to the MC speed threshold, but is still waiting
+    - wait reason `2`: no trusted hardware pitot speed is available, so timer-based completion is being used
+    - wait reason `3`: FW->MC is waiting because trusted pitot airspeed is still clearly above `vtol_transition_to_mc_max_airspeed_cm_s`
+
+For display only, reason `3` means the trusted pitot value is more than about `1 m/s` above the MC switch threshold. The actual FW->MC switch condition is still `airspeed <= vtol_transition_to_mc_max_airspeed_cm_s`.
 - `debug[2]` = packed transition flags:
     - bits 0-1: transition direction (`0=NONE`, `1=TO_FW`, `2=TO_MC`)
     - bit2: auto-transition controller active

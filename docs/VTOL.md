@@ -361,24 +361,25 @@ In the standard layout above, the transition position deliberately has both `MIX
 
 ### Timer, pitot, and timeout examples
 
-`mixer_switch_trans_timer` is the backup completion timer. It is used when pitot airspeed is not configured, not trusted, or not available.
+`mixer_switch_trans_timer` is the backup completion timer. It is used when hardware pitot airspeed is not configured, not trusted, or not available.
 
 Examples:
 
 - `mixer_switch_trans_timer = 30`: transition completes by timer after `3.0s` if pitot is not used.
 - `mixer_switch_trans_timer = 50`: transition completes by timer after `5.0s` if pitot is not used.
-- `vtol_transition_to_fw_min_airspeed_cm_s = 1300`: MC -> FW waits for `13 m/s` pitot airspeed when pitot is trusted.
-- `vtol_transition_to_mc_max_airspeed_cm_s = 850`: FW -> MC waits until pitot airspeed falls to `8.5 m/s` or lower when pitot is trusted.
-- `mixer_vtol_transition_airspeed_timeout_ms = 6500`: if pitot remains trusted but the requested airspeed is not reached within `6.5s`, that airspeed-controlled transition attempt is aborted.
+- `vtol_transition_to_fw_min_airspeed_cm_s = 1300`: MC -> FW waits for `13 m/s` hardware pitot airspeed when pitot is trusted.
+- `vtol_transition_to_mc_max_airspeed_cm_s = 850`: FW -> MC waits until hardware pitot airspeed falls to `8.5 m/s` or lower when pitot is trusted.
+- `mixer_vtol_transition_airspeed_timeout_ms = 6500`: if hardware pitot remains trusted but the requested airspeed is not reached within `6.5s`, that airspeed-controlled transition attempt is aborted.
 
 Important pitot behavior:
 
-- If pitot is trusted and a non-zero airspeed threshold is configured, INAV prefers airspeed for transition completion.
+- If hardware pitot is trusted and a non-zero airspeed threshold is configured, INAV prefers airspeed for transition completion.
 - The configured airspeed must be reached before `mixer_vtol_transition_airspeed_timeout_ms` expires. For example, with `vtol_transition_to_fw_min_airspeed_cm_s = 1300` and `mixer_vtol_transition_airspeed_timeout_ms = 6500`, MC -> FW must reach `13 m/s` within `6.5s`.
 - If that timeout expires during a manual transition, the transition attempt is aborted and INAV does not force the target profile switch from that timeout.
 - If that timeout expires during a mission transition, mission retry/failure handling is used: retry can run if `nav_vtol_transition_retry_on_airspeed_timeout = ON`; otherwise the configured mission fail action is used.
 - If pitot becomes unavailable during the transition, INAV falls back to `mixer_switch_trans_timer`.
-- Ground speed is not used to decide transition completion.
+- `pitot_hardware = VIRTUAL` is not treated as trusted hardware pitot for transition completion. It may estimate an airspeed-like value from GPS and wind estimation, but VTOL transition completion falls back to `mixer_switch_trans_timer` when only virtual pitot is available.
+- Ground speed is not used as a trusted pitot replacement for transition completion.
 - `mixer_vtol_transition_airspeed_timeout_ms` does not complete a transition. It only stops an airspeed-controlled attempt that is taking too long.
 
 Optional low-speed protection:
@@ -483,16 +484,79 @@ Result:
 
 This separation is intentional. Tilt servos should not wait for airspeed to build before they start moving; otherwise the aircraft may need tilt to gain speed but also need speed before it is allowed to tilt. The tilt servo source uses `mixer_vtol_transition_scale_ramp_time_ms` when dynamic scaling is ON.
 
+### How the transition timers work together
+
+Several transition-related movements can happen during one transition. They are not all controlled by the same setting.
+
+`mixer_switch_trans_timer`
+
+- Unit: deciseconds. `50` means `5.0s`.
+- Decides when a timer-based transition is allowed to switch to the target mixer profile.
+- Used when there is no trusted hardware pitot, when the airspeed threshold for that direction is `0`, or when only `pitot_hardware = VIRTUAL` is available.
+- Also gives the fallback progress used by airspeed-linked authority scaling when trusted hardware pitot is not being used.
+- Lower values switch profile sooner. Higher values keep the aircraft in the transition profile relationship longer.
+
+`mixer_vtol_transition_airspeed_timeout_ms`
+
+- Unit: milliseconds.
+- Used only while INAV is actually waiting for a trusted hardware pitot airspeed threshold.
+- It does not complete a transition.
+- If the threshold is not reached before this timeout, the transition attempt is aborted and manual or mission failure handling decides what happens next.
+- If only virtual pitot is configured, this timeout is not the normal completion timer; the transition is timer-based and uses `mixer_switch_trans_timer`.
+
+`mixer_vtol_transition_scale_ramp_time_ms`
+
+- Unit: milliseconds.
+- Controls time-based smooth movement of power and transition-linked servo outputs.
+- Does not decide when the profile switch happens.
+- In MC -> FW it brings the forward motor in over this time.
+- In MC -> FW it can move lift power down toward `vtol_transition_lift_min_percent` over the active transition progress.
+- In FW -> MC it moves the forward motor down, and brings target MC lift power and MC motor stabilisation back over this time.
+- In FW -> MC, if a lift motor exists only in the target MC profile, its real output starts from the current motor output and moves toward the target MC lift output over this time.
+- `INPUT_MIXER_TRANSITION` uses this time when `mixer_vtol_transition_dynamic_mixer = ON`.
+- After a profile switch or direct switch changes a transition-linked servo output, the servo continues from its current output toward the new output over a fresh window of this length.
+- After a profile switch changes which motors exist in the active mixer, old propulsion outputs that must go to idle are moved toward idle over this time.
+
+Servo mixer `Speed`
+
+- This is the per-servo-rule speed column in the Servo Mixer table, in `10us/s`.
+- It is separate from the VTOL transition timers.
+- If set to `0`, that servo rule is not additionally slowed by the servo mixer speed limiter.
+- If set to a non-zero value, it can slow that rule even if `mixer_vtol_transition_scale_ramp_time_ms` is shorter.
+
+Example with no trusted hardware pitot:
+
+- `mixer_switch_trans_timer = 50`
+- `mixer_vtol_transition_scale_ramp_time_ms = 1200`
+- `mixer_vtol_transition_dynamic_mixer = ON`
+
+Result:
+
+- The target profile switch happens after about `5.0s`.
+- Time-based power and transition-servo movement use about `1.2s`.
+- In FW -> MC, target MC lift power can return much earlier than the final profile switch.
+- If a target MC lift motor was idle in the FW profile, its real output starts from idle and moves toward the target MC lift output over the same `1.2s` instead of jumping immediately to the configured lift minimum.
+- If the tilt servos are configured only in the MC profile, they cannot start moving during the FW-profile part of FW -> MC. They will only become active after the profile switch, because the FW profile does not own those servo rules.
+
+This timing relationship is important for tilt-rotor tricopter setups. If the tail rotor exists only in the MC profile, dynamic scaling can start applying target MC lift before the final MC profile switch. INAV therefore has a narrow safety helper for FW -> MC: when the target MC profile has `INPUT_MIXER_TRANSITION` rules for a servo output and the current FW profile does not, INAV can move that servo output from its current real position toward the target profile's transition/static position during the transition. This helper only uses `INPUT_MIXER_TRANSITION` and `INPUT_MAX` from the target profile; it does not apply target yaw, roll, pitch, or PID stabilisation before the MC profile is active.
+
+For target MC lift motors that exist only in the MC profile, INAV also captures the current real motor output and moves from that value toward the target MC lift output over `mixer_vtol_transition_scale_ramp_time_ms`. This prevents a tail/lift motor from jumping immediately from idle to `vtol_transition_lift_min_percent` at the start of FW -> MC.
+
+This means the auto-transition controller can use transition rules from the target mixer profile even when the RC `MIXER TRANSITION` mode is not active for that profile yet. The controller owns the transition while it is running. For example, a normal 3-position switch may have `MIXER TRANSITION` active only in the middle switch position while the aircraft is still using the FW profile. If the target MC profile contains tilt-servo `INPUT_MIXER_TRANSITION` rules, INAV can still use those target rules to move the tilt servos smoothly toward the MC transition position before the MC profile is finally selected.
+
 ### Percentage settings
 
 These settings are active only when `mixer_vtol_transition_dynamic_mixer = ON`.
 
 `vtol_transition_lift_min_percent`
 
-- Current purpose: sets the lowest lift motor power used during transition.
-- MC -> FW: lift power is reduced toward this value.
-- FW -> MC: lift power starts from this value and returns to full power.
-- `100` keeps full lift power for the whole transition.
+- Current purpose: sets the lowest lift motor base throttle used during transition.
+- This is the throttle/lift part of the MC lift motor output, not the roll/pitch/yaw stabilisation correction.
+- MC -> FW: lift motor base throttle is reduced toward this value.
+- FW -> MC: target MC lift motor base throttle starts from this value and returns to full power.
+- `100` keeps full lift base throttle for the whole transition.
+- This is one shared value for both directions. A high value keeps lift during MC -> FW, but it also makes FW -> MC start with stronger target MC lift. On tricopter or tail-rotor VTOLs this can make the tail rotor active early while the aircraft is still in FW geometry.
+- If a lift motor exists only in the target MC profile, the real motor output is still smoothed from its current value toward this target lift output when dynamic scaling and `mixer_vtol_transition_scale_ramp_time_ms` are enabled.
 
 Example:
 
@@ -500,17 +564,24 @@ Example:
 - At halfway through the lift-power change, lift power is about `65%`.
 - At the lowest point, lift power is `30%`, not zero.
 
+For timer-based FW -> MC tilt-rotor tuning:
+
+- Lower values reduce early tail/lift motor power, but give less tail support during the transition.
+- Higher values keep more lift support, but can push the tail strongly before the front motors are tilted for MC flight.
+- `100` is useful if you need full lift retained during MC -> FW, but it also means FW -> MC starts from full target lift. If you need full lift in MC -> FW but a gentle tail rotor start in FW -> MC, this single setting may not be enough and the setup may need a direction-specific lift-start option in a future firmware change.
+
 `vtol_transition_mc_authority_min_percent`
 
-- Current purpose: sets the lowest MC motor stabilisation strength during transition.
-- MC -> FW: active MC motor stabilisation is reduced toward this value.
-- FW -> MC: target MC motor stabilisation starts from this value and returns to full strength.
-- During FW -> MC, this target MC stabilisation comes from the MC mixer profile and target MC PID preview, not from the active FW controller.
+- Current purpose: sets the lowest MC roll/pitch/yaw stabilisation correction during transition.
+- This is the stabilisation correction mixed into MC motors, not the lift motor base throttle.
+- MC -> FW: active MC motor stabilisation correction is reduced toward this value.
+- FW -> MC: target MC motor stabilisation correction starts from this value and returns to full strength.
+- During FW -> MC, this target MC stabilisation correction comes from the MC mixer profile and target MC PID preview, not from the active FW controller.
 
 Example:
 
 - `vtol_transition_mc_authority_min_percent = 20`
-- MC motor stabilisation never goes below `20%` during the transition.
+- MC roll/pitch/yaw correction never goes below `20%` during the transition.
 
 `vtol_transition_fw_authority_min_percent`
 
@@ -524,6 +595,16 @@ Example:
 - `vtol_transition_fw_authority_min_percent = 20`
 - Fixed-wing control starts gently, then increases as the transition progresses.
 - `100` means fixed-wing control is full strength for the whole transition.
+
+### Manual throttle during transition
+
+The smooth transition controller does not automatically reinterpret the pilot throttle stick as hover throttle in all modes. It scales the motor outputs that the current control mode is already producing.
+
+During FW -> MC, `nav_mc_althold_throttle = STICK` can be helpful when ALTHOLD/NAV is engaged after the transition. It lets INAV treat the current throttle stick position as the neutral altitude-hold point, so the aircraft is less likely to jump up or sink when MC altitude hold takes over.
+
+During MC -> FW, the pilot throttle position still matters. If the aircraft enters transition with very low MC throttle, it may lose altitude before the wing and forward motor are carrying the aircraft. If it enters transition while the pilot is commanding a strong vertical climb, the lift motors may keep trying to climb while the aircraft is also accelerating forward. Dynamic scaling can reduce this effect by reducing lift motor base throttle toward `vtol_transition_lift_min_percent`, but it does not replace careful throttle management.
+
+When MC altitude hold is active, `nav_mc_manual_climb_rate` still limits the climb/descent rate requested by pilot throttle input. This can help prevent an accidental large manual climb command from carrying too much vertical lift into MC -> FW transition. In pure manual throttle modes, use pilot technique and transition tuning instead: start MC -> FW near hover throttle, avoid commanding a strong vertical climb into transition, tune `vtol_transition_lift_min_percent`, and choose a `mixer_vtol_transition_scale_ramp_time_ms` that gives the aircraft enough time to transfer lift from the rotors to the wing.
 
 ### Pusher configuration example
 
@@ -587,9 +668,20 @@ Behavior:
 - `INPUT_MAX` stays constant.
 - With dynamic scaling OFF, `INPUT_MIXER_TRANSITION` keeps the older fixed transition value while transition mode is active.
 - With dynamic scaling ON, `INPUT_MIXER_TRANSITION` moves from `0` to `500` over `mixer_vtol_transition_scale_ramp_time_ms`.
+- During FW -> MC, the value moves back from `500` toward `0` over `mixer_vtol_transition_scale_ramp_time_ms`.
 - During MC -> FW, `INPUT_MIXER_TRANSITION` must not move backwards when the FW profile is selected.
 - During FW -> MC, it must also continue smoothly if the transition is aborted or reversed.
 - If the destination profile does not own the same tilt servo output, INAV keeps the current servo output and moves it toward the destination output instead of briefly jumping through a middle/default position.
+
+If the front tilt servos use `INPUT_MIXER_TRANSITION` only in the MC profile, INAV can preview only the static transition movement during FW -> MC. This is useful when the FW profile has no tilt-servo rules, but the MC profile defines the physical tilt positions. The preview is intentionally limited: INAV uses the target profile's `INPUT_MIXER_TRANSITION` rule and any `INPUT_MAX` fixed offset for that same servo output. It does not apply target yaw correction, roll/pitch correction, or other stabilised corrections until the MC profile is active.
+
+`INPUT_MIXER_TRANSITION + INPUT_MAX` in this context means INAV adds the target transition movement and the target fixed offset if both rules exist. A servo can have both rules, or only the transition rule. A `MAX` rule alone is not enough to identify a transition servo, because many normal servos use fixed offsets.
+
+For tilt-rotor aircraft with a tail lift motor, this matters because target MC lift can be introduced before the final MC profile switch when dynamic scaling is ON. If the front motors are still held in FW tilt position, too much early tail motor power can push the tail up and the nose down. Typical tuning options are:
+
+- Increase `mixer_vtol_transition_scale_ramp_time_ms` so target MC lift returns more slowly.
+- Lower `vtol_transition_lift_min_percent` so FW -> MC starts with less target lift, then test carefully for tail drop.
+- Keep `mixer_switch_trans_timer` long enough for the aircraft to slow down and for the mechanical tilt movement to be in a safe range before the profile switch.
 
 Example:
 
@@ -960,7 +1052,11 @@ Useful debug modes:
 `VTOL_TRANSITION` debug channels:
 
 - `debug[0]`: transition phase (`0=IDLE`, `1=TRANSITION_INITIALIZE`, `2=TRANSITIONING`, `3=after-switch smoothing`).
-- `debug[1]`: active transition request, with direction packed in the high byte.
+- `debug[1]`: active transition request, with direction packed in bits `8..15` and wait reason packed in bits `16..23`.
+  - wait reason `0`: none.
+  - wait reason `1`: FW -> MC is close to the MC speed threshold, but is still waiting.
+  - wait reason `2`: no trusted hardware pitot speed is available, so timer-based completion is being used.
+  - wait reason `3`: FW -> MC is waiting because trusted pitot airspeed is still clearly above `vtol_transition_to_mc_max_airspeed_cm_s`.
 - `debug[2]`: packed flags. Important bits include direction, controller active, transition input active, airspeed path active, profile switch done, abort state, current/next profile index, mission active, failsafe active, direct profile switch active, target preview mode, after-switch smoothing active, and legacy manual session active.
 - `debug[3]`: main transition progress x1000 (`0..1000`).
 - `debug[4]`: pusher/forward motor scale x1000 (`0..1000`).
@@ -990,6 +1086,11 @@ Typical messages include:
 - `VTOL RTH TO FW`: RTH requested MC -> FW before flying home.
 - `VTOL LAND TO MC`: RTH or mission landing requested FW -> MC before MC landing.
 - `VTOL LOW SPD TO MC`: low-speed protection requested FW -> MC as a safety fallback.
+- `WAIT MC SPEED`: FW -> MC is close to the MC speed threshold, but is still waiting.
+- `NO SPEED`: no trusted hardware pitot speed is available for this transition, so INAV is using the timer path.
+- `MC SPEED HIGH`: FW -> MC is waiting because trusted pitot airspeed is still clearly above `vtol_transition_to_mc_max_airspeed_cm_s`.
+
+For display only, `MC SPEED HIGH` means the trusted pitot value is more than about `1 m/s` above the MC switch threshold. Inside that final `1 m/s` band, INAV shows `WAIT MC SPEED` until the actual threshold is reached. The real profile-switch condition remains `airspeed <= vtol_transition_to_mc_max_airspeed_cm_s`.
 - `VTOL RETRY SCAN`: mission/RTH MC -> FW timed out on airspeed and INAV is scanning headings for a better airspeed direction.
 - `VTOL RETRY ALIGN`: INAV is turning to the best heading found by the retry scan before trying again.
 - `VTOL FINISHING SWITCH`: the target profile is already active and old propulsion output is being moved to its safe final value.
@@ -1058,9 +1159,9 @@ Mission profile-switch dependency:
 ## Dedicated forward motor 
 - Easiest way to setup a vtol. and efficiency can be improved by using different motor/prop for hover and forward flight
 
-## Pitot-based transition logic (reference)
+## Hardware-pitot-based transition logic (reference)
 
-When pitot is healthy/available, transition progress is airspeed-driven (not timer-driven).
+When trusted hardware pitot is healthy/available, transition progress is airspeed-driven (not timer-driven). `PITOT_VIRTUAL` is treated as timer-based for VTOL transition completion, so it uses `mixer_switch_trans_timer`.
 
 - MC -> FW:
   - progress = `constrain(airspeed / to_fw_threshold, 0..1)`
@@ -1071,7 +1172,7 @@ When pitot is healthy/available, transition progress is airspeed-driven (not tim
   - progress = `constrain((startAirspeed - airspeed) / (startAirspeed - to_mc_threshold), 0..1)`
   - completion condition = `airspeed <= to_mc_threshold`
 
-Smooth transition power changes (`mixer_vtol_transition_dynamic_mixer = ON`) use this progress:
+Smooth transition power changes (`mixer_vtol_transition_dynamic_mixer = ON`) use this progress when trusted hardware pitot is being used:
 
 - MC -> FW:
   - forward motor power ramps `0 -> 1`
@@ -1097,9 +1198,9 @@ For FW->MC, the same timer ramps the forward motor down to idle while lift power
 For `INPUT_MIXER_TRANSITION`, the same timer is used only when `mixer_vtol_transition_dynamic_mixer = ON`. With dynamic mixer OFF, source 38 keeps the older fixed transition endpoint behavior.
 If a profile switch or direct switch affects servos that use transition-linked inputs, INAV captures the current servo output and moves from that captured output toward the new profile output using a fresh `mixer_vtol_transition_scale_ramp_time_ms` window.
 This timer does not decide when the transition completes.
-In MC->FW, lift power reduction, MC stabilisation reduction, and FW control increase still prefer pitot-based transition progress whenever pitot is working.
-In FW->MC, FW control reduction still prefers pitot-based transition progress, while forward motor removal, lift power return, and MC motor stabilisation return use the time-based motor ramp.
-If pitot is not usable, the airspeed-linked changes fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
+In MC->FW, lift power reduction, MC stabilisation reduction, and FW control increase still prefer hardware-pitot-based transition progress whenever trusted hardware pitot is working.
+In FW->MC, FW control reduction still prefers hardware-pitot-based transition progress, while forward motor removal, lift power return, and MC motor stabilisation return use the time-based motor ramp.
+If trusted hardware pitot is not usable, the airspeed-linked changes fall back to the normal transition timer/progress behavior (`mixer_switch_trans_timer`).
 
 For legacy/helper transition motors (`-2.0 <= throttle <= -1.05`), output is interpolated from idle to target:
 
@@ -1109,6 +1210,6 @@ where:
 - `target = -mixerThrottle * 1000`
 - `idle = throttleRangeMin`
 
-If pitot is unavailable/unhealthy, timer fallback is used (`mixer_switch_trans_timer`).
+If trusted hardware pitot is unavailable/unhealthy, timer fallback is used (`mixer_switch_trans_timer`).
 
 For smooth auto-transition, the preferred forward motor setup is a normal positive-throttle rule in the FW mixer profile, with a placeholder on the same motor index in the MC mixer profile. Use `throttle = -1.000` for that placeholder if Configurator removes zero-throttle motor rules. If a helper such as `throttle = -1.200` is used, INAV moves from that helper output to the real FW mixer output after the profile switch.

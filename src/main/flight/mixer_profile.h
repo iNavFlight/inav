@@ -63,6 +63,13 @@ typedef enum {
     MIXERAT_OSD_EVENT_ABORTED,
     MIXERAT_OSD_EVENT_AIRSPEED_TIMEOUT,
 } mixerProfileATOsdEvent_e;
+
+typedef enum {
+    MIXERAT_WAIT_REASON_NONE = 0,
+    MIXERAT_WAIT_REASON_MC_SPEED,
+    MIXERAT_WAIT_REASON_NO_SPEED,
+    MIXERAT_WAIT_REASON_MC_SPEED_HIGH,
+} mixerProfileATWaitReason_e;
 #endif
 
 //mixerProfile Automated Transition PHASE
@@ -87,6 +94,7 @@ typedef struct mixerProfileAT_s {
     bool abortedByAirspeedTimeout;
     bool hotSwitchDone;
     bool usedAirspeed;
+    mixerProfileATWaitReason_e waitReason;
     bool transitionStartAirspeedCaptured;
     float progress;
     float handoffScalingProgress;
@@ -126,6 +134,7 @@ typedef struct mixerProfileATOsdStatus_s {
     mixerProfileATDirection_e direction;
     mixerProfileATRequest_e request;
     mixerProfileATOsdEvent_e event;
+    mixerProfileATWaitReason_e waitReason;
     mixerProfileATDirection_e switchReminderDirection;
 } mixerProfileATOsdStatus_t;
 #endif

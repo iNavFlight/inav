@@ -114,6 +114,24 @@ static const char *osdVtolTransitionRequestMessage(const mixerProfileATRequest_e
 
     return NULL;
 }
+
+static const char *osdVtolTransitionWaitReasonMessage(const mixerProfileATWaitReason_e waitReason)
+{
+    switch (waitReason) {
+    case MIXERAT_WAIT_REASON_MC_SPEED:
+        return OSD_MSG_VTOL_WAIT_MC_SPEED;
+
+    case MIXERAT_WAIT_REASON_NO_SPEED:
+        return OSD_MSG_VTOL_NO_SPEED;
+
+    case MIXERAT_WAIT_REASON_MC_SPEED_HIGH:
+        return OSD_MSG_VTOL_MC_SPEED_HIGH;
+
+    case MIXERAT_WAIT_REASON_NONE:
+    default:
+        return NULL;
+    }
+}
 #endif
 
 const char *osdVtolTransitionMessage(void)
@@ -171,7 +189,14 @@ const char *osdVtolTransitionMessage(void)
         return OSD_MSG_VTOL_TRANS_START;
 
     case MIXERAT_PHASE_TRANSITIONING:
-        return osdVtolTransitionRequestMessage(status.request, status.direction);
+        {
+            const char *waitReasonMessage = osdVtolTransitionWaitReasonMessage(status.waitReason);
+            if (waitReasonMessage) {
+                return waitReasonMessage;
+            }
+
+            return osdVtolTransitionRequestMessage(status.request, status.direction);
+        }
 
     case MIXERAT_PHASE_POST_SWITCH_FADE:
         return OSD_MSG_VTOL_FINISH_SWITCH;
