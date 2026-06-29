@@ -25,7 +25,6 @@
 #include <math.h>
 
 #include "build/build_config.h"
-#include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/filter.h"
@@ -101,7 +100,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
     /* validityScore used to indicate validity of wind estimate in a more reactive way compared to the basic method used above.
      * Each new estimate calc adds to score and each updateTimedout decrements from score.
-     * hasValidWindEstimate considered valid when score > WINDESTIMATOR_VALIDITY_THRESHOLD with max count limit of WINDESTIMATOR_VALIDITY_THRESHOLD + 15.
+     * hasValidWindEstimate considered valid when score > WINDESTIMATOR_VALIDITY_THRESHOLD with max count limit of 2 * WINDESTIMATOR_VALIDITY_THRESHOLD.
      * WINDESTIMATOR_VALIDITY_THRESHOLD should result in a valid estimate based on the spike elimination and filtering used.
      * hasValidWindEstimate considered invalid when score = 0 which approximates to around 2.5 to 5 minutes if no new estimate calcs occur */
 
@@ -112,14 +111,14 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         updateTimedout = true;
 
         // Rapidly reset spikeFilterDynAdjustment if no new wind calcs
-        if (!initialEstimate && spikeFilterDynAdjustment >= 5) {
-            spikeFilterDynAdjustment -= 5;
+        if (!initialEstimate && spikeFilterDynAdjustment) {
+            spikeFilterDynAdjustment = MAX(0, spikeFilterDynAdjustment - 5);
         }
     }
 
     if (!validityScore) {
         hasValidWindEstimate = false;
-    } else if (!hasValidWindEstimate && !spikeFilterDynAdjustment && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) {
+    } else if (!hasValidWindEstimate && validityScore > WINDESTIMATOR_VALIDITY_THRESHOLD) {
         hasValidWindEstimate = true;
     }
 
@@ -206,14 +205,14 @@ void updateWindEstimator(timeUs_t currentTimeUs)
          * New wind values are discarded if a single axis exceeds the spike threshhold */
 
         if (initialEstimate) {
-            if (validityScore == WINDESTIMATOR_VALIDITY_THRESHOLD + 15) {
+            if (validityScore == 2 * WINDESTIMATOR_VALIDITY_THRESHOLD) {
                 initialEstimate = false;
                 spikeFilterDynAdjustment = 0;
             }
         } else if (spikeFilterDynAdjustment || US2S(cmpTimeUs(currentTimeUs, lastValidWindEstimateUs)) > 30) {  // 30s estimate update timeout
             if (spikeFilterDynAdjustment < WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR) {
                 spikeFilterDynAdjustment++;
-                if (hasValidWindEstimate && validityScore) validityScore -= validityScore == 1 ? 1 : 2;  // degrade valid estimate if update stuck too long
+                if (hasValidWindEstimate && validityScore) validityScore = MAX(0, validityScore - 2);   // degrade valid estimate if update stuck too long
             }
         }
 
@@ -230,10 +229,10 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         estimatedWind[Y] = estimatedWind[Y] + filterAlpha * (wind[Y] - estimatedWind[Y]);
         estimatedWind[Z] = estimatedWind[Z] + filterAlpha * (wind[Z] - estimatedWind[Z]);
 
-        if (validityScore < WINDESTIMATOR_VALIDITY_THRESHOLD + 15) validityScore++;
+        if (validityScore < 2 * WINDESTIMATOR_VALIDITY_THRESHOLD) validityScore++;
 
         if (spikeFilterDynAdjustment) {
-            spikeFilterDynAdjustment -= (spikeFilterDynAdjustment == 1 || initialEstimate) ? 1 : 2;
+            spikeFilterDynAdjustment = MAX(0, spikeFilterDynAdjustment - (initialEstimate ? 1 : 2));
         }
 
         lastValidWindEstimateUs = currentTimeUs;
