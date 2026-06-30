@@ -1772,7 +1772,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                     sbufWriteU8(dst, timer2id(timerHardware[i].tim));
                     #endif
                     sbufWriteU32(dst, timerHardware[i].usageFlags);
-                  
+
                     #if defined(SITL_BUILD) || defined(WASM_BUILD)
                     sbufWriteU8(dst, 0);
                     #else
@@ -4410,7 +4410,7 @@ static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_
         }
         // Feed data to navigation
         gpsProcessNewDriverData();
-        gpsProcessNewSolutionData(false);                          
+        gpsProcessNewSolutionData(false);
     } else {
         sbufAdvance(src, sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
     }
@@ -4463,26 +4463,26 @@ static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_
         sbufReadU16(src);
     }
 
-    if (simMspVersion == SIMULATOR_MSP_VERSION_3) {  
-        
+    if (simMspVersion == SIMULATOR_MSP_VERSION_3) {
+
         if (SIMULATOR_HAS_OPTION(HITL_RANGEFINDER)) {
             simulatorData.rangefinder = sbufReadU16(src);
             if (simulatorData.rangefinder == 0xFFFF) {
                 fakeRangefindersSetData(-1);
             } else {
-                fakeRangefindersSetData(simulatorData.rangefinder); 
+                fakeRangefindersSetData(simulatorData.rangefinder);
             }
-            
+
         } else {
             sbufReadU16(src);
         }
-        
+
         if (SIMULATOR_HAS_OPTION(HITL_CURRENT_SENSOR)) {
             simulatorData.current = sbufReadU16(src);
         } else {
             sbufReadU16(src);
         }
-        
+
         if (SIMULATOR_HAS_OPTION(HITL_SIM_RC_INPUT)) {
             for (int i = 0; i < HITL_SIM_MAX_RC_INPUTS; i++) {
                 simulatorData.rcInput[i] = sbufReadU16(src);

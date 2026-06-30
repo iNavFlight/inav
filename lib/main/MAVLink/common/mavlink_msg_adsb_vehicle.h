@@ -8,7 +8,7 @@ typedef struct __mavlink_adsb_vehicle_t {
  uint32_t ICAO_address; /*<  ICAO address*/
  int32_t lat; /*< [degE7] Latitude*/
  int32_t lon; /*< [degE7] Longitude*/
- int32_t altitude; /*< [mm] Altitude(ASL)*/
+ int32_t altitude; /*< [mm] Altitude (ASL)*/
  uint16_t heading; /*< [cdeg] Course over ground*/
  uint16_t hor_velocity; /*< [cm/s] The horizontal velocity*/
  int16_t ver_velocity; /*< [cm/s] The vertical velocity. Positive is up*/
@@ -17,7 +17,7 @@ typedef struct __mavlink_adsb_vehicle_t {
  uint8_t altitude_type; /*<  ADSB altitude type.*/
  char callsign[9]; /*<  The callsign, 8+null*/
  uint8_t emitter_type; /*<  ADSB emitter type.*/
- uint8_t tslc; /*< [s] Time since last communication in seconds*/
+ uint8_t tslc; /*< [s] Time since last communication from the remote vehicle, in seconds.*/
 } mavlink_adsb_vehicle_t;
 
 #define MAVLINK_MSG_ID_ADSB_VEHICLE_LEN 38
@@ -81,13 +81,13 @@ typedef struct __mavlink_adsb_vehicle_t {
  * @param lat [degE7] Latitude
  * @param lon [degE7] Longitude
  * @param altitude_type  ADSB altitude type.
- * @param altitude [mm] Altitude(ASL)
+ * @param altitude [mm] Altitude (ASL)
  * @param heading [cdeg] Course over ground
  * @param hor_velocity [cm/s] The horizontal velocity
  * @param ver_velocity [cm/s] The vertical velocity. Positive is up
  * @param callsign  The callsign, 8+null
  * @param emitter_type  ADSB emitter type.
- * @param tslc [s] Time since last communication in seconds
+ * @param tslc [s] Time since last communication from the remote vehicle, in seconds.
  * @param flags  Bitmap to indicate various statuses including valid data fields
  * @param squawk  Squawk code. Note that the code is in decimal: e.g. 7700 (general emergency) is encoded as binary 0b0001_1110_0001_0100, not(!) as 0b0000_111_111_000_000
  * @return length of the message in bytes (excluding serial stream start sign)
@@ -144,13 +144,13 @@ static inline uint16_t mavlink_msg_adsb_vehicle_pack(uint8_t system_id, uint8_t 
  * @param lat [degE7] Latitude
  * @param lon [degE7] Longitude
  * @param altitude_type  ADSB altitude type.
- * @param altitude [mm] Altitude(ASL)
+ * @param altitude [mm] Altitude (ASL)
  * @param heading [cdeg] Course over ground
  * @param hor_velocity [cm/s] The horizontal velocity
  * @param ver_velocity [cm/s] The vertical velocity. Positive is up
  * @param callsign  The callsign, 8+null
  * @param emitter_type  ADSB emitter type.
- * @param tslc [s] Time since last communication in seconds
+ * @param tslc [s] Time since last communication from the remote vehicle, in seconds.
  * @param flags  Bitmap to indicate various statuses including valid data fields
  * @param squawk  Squawk code. Note that the code is in decimal: e.g. 7700 (general emergency) is encoded as binary 0b0001_1110_0001_0100, not(!) as 0b0000_111_111_000_000
  * @return length of the message in bytes (excluding serial stream start sign)
@@ -210,13 +210,13 @@ static inline uint16_t mavlink_msg_adsb_vehicle_pack_status(uint8_t system_id, u
  * @param lat [degE7] Latitude
  * @param lon [degE7] Longitude
  * @param altitude_type  ADSB altitude type.
- * @param altitude [mm] Altitude(ASL)
+ * @param altitude [mm] Altitude (ASL)
  * @param heading [cdeg] Course over ground
  * @param hor_velocity [cm/s] The horizontal velocity
  * @param ver_velocity [cm/s] The vertical velocity. Positive is up
  * @param callsign  The callsign, 8+null
  * @param emitter_type  ADSB emitter type.
- * @param tslc [s] Time since last communication in seconds
+ * @param tslc [s] Time since last communication from the remote vehicle, in seconds.
  * @param flags  Bitmap to indicate various statuses including valid data fields
  * @param squawk  Squawk code. Note that the code is in decimal: e.g. 7700 (general emergency) is encoded as binary 0b0001_1110_0001_0100, not(!) as 0b0000_111_111_000_000
  * @return length of the message in bytes (excluding serial stream start sign)
@@ -312,13 +312,13 @@ static inline uint16_t mavlink_msg_adsb_vehicle_encode_status(uint8_t system_id,
  * @param lat [degE7] Latitude
  * @param lon [degE7] Longitude
  * @param altitude_type  ADSB altitude type.
- * @param altitude [mm] Altitude(ASL)
+ * @param altitude [mm] Altitude (ASL)
  * @param heading [cdeg] Course over ground
  * @param hor_velocity [cm/s] The horizontal velocity
  * @param ver_velocity [cm/s] The vertical velocity. Positive is up
  * @param callsign  The callsign, 8+null
  * @param emitter_type  ADSB emitter type.
- * @param tslc [s] Time since last communication in seconds
+ * @param tslc [s] Time since last communication from the remote vehicle, in seconds.
  * @param flags  Bitmap to indicate various statuses including valid data fields
  * @param squawk  Squawk code. Note that the code is in decimal: e.g. 7700 (general emergency) is encoded as binary 0b0001_1110_0001_0100, not(!) as 0b0000_111_111_000_000
  */
@@ -469,7 +469,7 @@ static inline uint8_t mavlink_msg_adsb_vehicle_get_altitude_type(const mavlink_m
 /**
  * @brief Get field altitude from adsb_vehicle message
  *
- * @return [mm] Altitude(ASL)
+ * @return [mm] Altitude (ASL)
  */
 static inline int32_t mavlink_msg_adsb_vehicle_get_altitude(const mavlink_message_t* msg)
 {
@@ -529,7 +529,7 @@ static inline uint8_t mavlink_msg_adsb_vehicle_get_emitter_type(const mavlink_me
 /**
  * @brief Get field tslc from adsb_vehicle message
  *
- * @return [s] Time since last communication in seconds
+ * @return [s] Time since last communication from the remote vehicle, in seconds.
  */
 static inline uint8_t mavlink_msg_adsb_vehicle_get_tslc(const mavlink_message_t* msg)
 {

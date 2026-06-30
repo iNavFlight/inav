@@ -499,6 +499,8 @@ typedef struct {
     float                       wpDistance;                 // Distance to active WP
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
     bool                        wpAltitudeReached;          // WP altitude achieved
+    uint16_t                    wpReachedSeq;               // Last reached mission item sequence relative to startWpIndex
+    bool                        wpReachedNotificationPending;
 
 #ifdef USE_FW_AUTOLAND
     /* Fixedwing autoland */
