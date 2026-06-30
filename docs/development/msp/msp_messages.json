@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 0,
-        "patch": 0
+        "patch": 1
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -11353,6 +11353,62 @@
             "reply": null,
             "notes": "Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.",
             "description": "Jumps to a specific waypoint during an active waypoint mission, causing the aircraft to immediately begin navigating toward the new target waypoint."
+        },
+        "MSP2_INAV_SET_MARKER_GUIDANCE_TARGET": {
+            "code": 8753,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "offset_forward_cm",
+                        "ctype": "int16_t",
+                        "desc": "Marker forward offset relative to vehicle body frame.",
+                        "units": "cm"
+                    },
+                    {
+                        "name": "offset_right_cm",
+                        "ctype": "int16_t",
+                        "desc": "Marker right offset relative to vehicle body frame.",
+                        "units": "cm"
+                    }
+                ]
+            },
+            "reply": {
+                "payload": [
+                    {
+                        "name": "accepted",
+                        "ctype": "uint8_t",
+                        "desc": "Payload accepted by marker-guidance target consumer.",
+                        "units": ""
+                    },
+                    {
+                        "name": "used_now",
+                        "ctype": "uint8_t",
+                        "desc": "Target is currently influencing navigation correction.",
+                        "units": ""
+                    },
+                    {
+                        "name": "nav_guidance_state",
+                        "ctype": "uint8_t",
+                        "desc": "Current internal marker-guidance state.",
+                        "units": "enum"
+                    },
+                    {
+                        "name": "reason",
+                        "ctype": "uint8_t",
+                        "desc": "Processing reason/result code.",
+                        "units": "enum"
+                    },
+                    {
+                        "name": "retry_count",
+                        "ctype": "uint8_t",
+                        "desc": "Current retry-attempt counter in PL LAND retry flow.",
+                        "units": ""
+                    }
+                ]
+            },
+            "notes": "Hard-break payload format: request size is now exactly 4 bytes (`int16_t`, `int16_t`). Legacy fields (`valid`, `confidence`, `frame`, `timestamp_ms`, `distance_cm`) were removed. Every received packet is treated as a fresh target sample; freshness timeout is evaluated using FC receive time. This message updates marker target cache only. It does not arm/disarm, does not switch modes, and does not trigger landing by itself. Available only when firmware is built with USE_MARKER_GUIDANCE. Navigation correction influence is mode-gated to MC/VTOL-hover-capable POSHOLD/LAND contexts.",
+            "description": "Updates the external marker-relative target sample consumed by marker-guidance NAV correction."
         },
         "MSP2_INAV_SET_CRUISE_HEADING": {
             "code": 8739,

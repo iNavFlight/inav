@@ -38,6 +38,74 @@ PID meaning:
 * POS - translated position error to desired velocity, uses P term only
 * POSR - translates velocity error to desired acceleration
 
+## Marker Guidance Target Consumer (MSP)
+
+INAV can consume externally computed marker offsets over MSP and use them for:
+1. precision landing alignment
+2. marker-relative position hold in POSHOLD
+3. marker-relative containment (indoor limiter behavior)
+
+### Build-time availability
+This feature is compiled only when `USE_MARKER_GUIDANCE` is enabled for the target.
+On flash-constrained targets, it can be excluded at build time to preserve headroom.
+
+### MSP payload
+`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET` request payload is 4 bytes:
+* `int16_t offsetForwardCm`
+* `int16_t offsetRightCm`
+
+* every received packet is treated as a fresh target sample
+* target freshness is based on FC receive time (`nav_marker_guidance_max_target_age_ms`)
+
+### Mode gating
+Marker guidance can influence navigation only when:
+* active profile is MC/VTOL-hover-capable
+* `nav_marker_guidance_mode` is not `OFF`
+
+Outside those contexts, updates may still be cached but do not affect navigation loops.
+
+### POSHOLD behavior
+When `nav_marker_guidance_mode = PL`:
+* FC uses marker offsets to center above the target in POSHOLD.
+
+When `nav_marker_guidance_mode = CONTAINMENT`:
+* FC uses marker-relative hold target:
+  * `nav_marker_containment_hold_north_cm`
+  * `nav_marker_containment_hold_east_cm`
+* FC applies containment behavior with `nav_marker_guidance_radius_cm`:
+  * inside radius: no correction
+  * outside radius: FC corrects back toward allowed boundary
+
+### LAND behavior
+When `nav_marker_guidance_mode = PL` and target is fresh:
+* FC performs precision horizontal alignment to marker center during LAND
+* vertical descent profile remains normal LAND behavior (`nav_land_*`)
+
+With stale/lost target:
+* at or below `nav_marker_guidance_retry_min_alt_cm` AGL, FC skips retry and continues normal LAND behavior
+* if `nav_marker_guidance_low_alt_lock_xy = ON`, FC locks the current XY position when entering low-altitude fallback
+* above that altitude, FC enters hold for `nav_marker_guidance_lost_hold_time_ms`
+* optionally performs climb-and-retry up to `nav_marker_guidance_retry_count`
+* then falls back to normal LAND behavior
+
+Retry safety rule:
+* retry is only entered if target was acquired at least once in the current LAND context
+* if no target was ever acquired in that LAND context, no retry is performed
+* set `nav_marker_guidance_retry_min_alt_cm = 0` to disable the low-altitude retry suppression
+* set `nav_marker_guidance_low_alt_lock_xy = OFF` to keep the normal LAND XY target during low-altitude fallback
+
+### Shared radius setting
+`nav_marker_guidance_radius_cm` is used by both modes:
+* `PL`: center-alignment deadband around marker center
+* `CONTAINMENT`: allowed radius around marker-containment hold target
+* `0`: continuous correction (no deadband/boundary allowance)
+
+### Core safety semantics
+* new packet == fresh target sample
+* no packet inside timeout window == target lost
+* horizontal marker-guidance correction is capped by current active navigation speed limit (`getActiveSpeed()`)
+* no dynamic allocation in the runtime path
+
 ## NAV RTH - return to home mode
 
 Home for RTH is the position where vehicle was first armed. This position may be offset by the CLI settings `nav_rth_home_offset_distance` and `nav_rth_home_offset_direction`. This position may also be overridden with Safehomes. RTH requires accelerometer, compass and GPS sensors.
