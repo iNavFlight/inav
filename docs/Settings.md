@@ -1356,6 +1356,56 @@ S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GN
 
 ---
 
+### fw_auto_speed_channel
+
+Channel number used to set desired Auto Speed demand value. Defaults to throttle channel 4.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 4 | MAX_SUPPORTED_RC_CHANNEL_COUNT |
+
+---
+
+### fw_auto_speed_level_min_thr
+
+Minimum throttle for LEVEL flight in auto speed mode when using ground speed as speed reference [us]. This should be set with just enough margin to avoid stalling. Throttle can go lower than this setting when pitching down to a minimum of nav_fw_min_thr.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1300 | PWM_RANGE_MIN | PWM_RANGE_MAX |
+
+---
+
+### fw_auto_speed_max_speed
+
+Maximum allowed speed demand for Auto Speed mode [m/s].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 22 | 5 | 50 |
+
+---
+
+### fw_auto_speed_min_speed
+
+Minimum allowed speed demand for Auto Speed mode [m/s].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 11 | 5 | 50 |
+
+---
+
+### fw_auto_speed_thr_smoothing
+
+Changes how smoothly the throttle responds in Auto Speed mode. Increasing the setting makes throttle changes smoother but also reduces throttle response.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 1 | 10 |
+
+---
+
 ### fw_autotune_max_rate_deflection
 
 The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`.
@@ -3414,6 +3464,36 @@ Maximum climb/descent rate that UAV is allowed to reach during navigation modes.
 | Default | Min | Max |
 | --- | --- | --- |
 | 500 | 10 | 2000 |
+
+---
+
+### nav_fw_auto_speed_d
+
+D gain of auto speed PID controller.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 255 |
+
+---
+
+### nav_fw_auto_speed_i
+
+I gain of auto speed PID controller.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 0 | 255 |
+
+---
+
+### nav_fw_auto_speed_p
+
+P gain of auto speed PID controller.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 0 | 255 |
 
 ---
 

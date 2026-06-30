@@ -232,6 +232,8 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"fwPosI",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwPosD",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwPosOut",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwAutoSpeedP",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwAutoSpeedI",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
 
     {"mcPosAxisP",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
     {"mcPosAxisP",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
@@ -493,6 +495,8 @@ typedef struct blackboxMainState_s {
     int32_t fwAltPIDOutput;
     int32_t fwPosPID[3];
     int32_t fwPosPIDOutput;
+    int32_t fwAutoSpeedP;
+    int32_t fwAutoSpeedI;
 
     int16_t rcData[4];
     int16_t rcCommand[4];
@@ -875,6 +879,8 @@ static void writeIntraframe(void)
         blackboxWriteSignedVB(blackboxCurrent->fwAltPIDOutput);
         blackboxWriteSignedVBArray(blackboxCurrent->fwPosPID, 3);
         blackboxWriteSignedVB(blackboxCurrent->fwPosPIDOutput);
+        blackboxWriteSignedVB(blackboxCurrent->fwAutoSpeedP);
+        blackboxWriteSignedVB(blackboxCurrent->fwAutoSpeedI);
     }
 
     if (testBlackboxCondition(CONDITION(MC_NAV))) {
@@ -1125,7 +1131,6 @@ static void writeInterframe(void)
     blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
 
     if (testBlackboxCondition(CONDITION(FIXED_WING_NAV))) {
-
         arraySubInt32(deltas, blackboxCurrent->fwAltPID, blackboxLast->fwAltPID, 3);
         blackboxWriteSignedVBArray(deltas, 3);
 
@@ -1136,6 +1141,8 @@ static void writeInterframe(void)
 
         blackboxWriteSignedVB(blackboxCurrent->fwPosPIDOutput - blackboxLast->fwPosPIDOutput);
 
+        blackboxWriteSignedVB(blackboxCurrent->fwAutoSpeedP - blackboxLast->fwAutoSpeedP);
+        blackboxWriteSignedVB(blackboxCurrent->fwAutoSpeedI - blackboxLast->fwAutoSpeedI);
     }
 
     if (testBlackboxCondition(CONDITION(MC_NAV))) {
@@ -1672,7 +1679,6 @@ static void loadMainState(timeUs_t currentTimeUs)
     blackboxCurrent->accVib = constrain(lrintf(accGetVibrationLevel() * acc.dev.acc_1G), 0, 65535);
 
     if (STATE(FIXED_WING_LEGACY)) {
-
         // log requested pitch in decidegrees
         blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional);
         blackboxCurrent->fwAltPID[1] = lrintf(nav_pids->fw_alt.integral);
@@ -1685,6 +1691,9 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->fwPosPID[2] = lrintf(nav_pids->fw_nav.derivative / 10);
         blackboxCurrent->fwPosPIDOutput = lrintf(nav_pids->fw_nav.output_constrained / 10);
 
+        // log requested auto speed throttle in us
+        blackboxCurrent->fwAutoSpeedP = lrintf(nav_pids->fw_autoSpeed.proportional);
+        blackboxCurrent->fwAutoSpeedI = lrintf(nav_pids->fw_autoSpeed.integral);
     } else {
         blackboxCurrent->mcSurfacePID[0] = lrintf(nav_pids->surface.proportional / 10);
         blackboxCurrent->mcSurfacePID[1] = lrintf(nav_pids->surface.integral / 10);

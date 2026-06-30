@@ -113,7 +113,6 @@ typedef struct navigationFlags_s {
     bool rthTrackbackActive;                // Activation status of RTH trackback
     bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
     bool manualEmergLandActive;             // Activation status of manual emergency landing
-
 #ifdef USE_GEOZONE
     bool sendToActive;
     bool forcedPosholdActive;
@@ -145,6 +144,7 @@ typedef struct {
     fpVector3_t vel;
     int32_t     yaw;
     int16_t     climbRateDemand;
+    uint16_t    autoSpeedDemand;
 } navigationDesiredState_t;
 
 typedef enum {
@@ -352,6 +352,8 @@ typedef enum {
 
     NAV_MIXERAT             = (1 << 16),    // MIXERAT in progress
     NAV_CTL_HOLD            = (1 << 17),    // Nav loiter active at position
+
+    NAV_CTL_SPEED           = (1 << 18),    // Auto speed allowed
 } navigationFSMStateFlags_t;
 
 typedef struct {
@@ -421,6 +423,12 @@ typedef enum {
     RTH_HOME_FINAL_LOITER,          // Final loiter altitude (if rth_home_altitude is set)
     RTH_HOME_FINAL_LAND,            // Home position and altitude
 } rthTargetMode_e;
+
+typedef enum {
+    FW_AUTO_SPD_GROUND,
+    FW_AUTO_SPD_AIR,
+    FW_AUTO_SPD_GROUND_OVERRIDE,
+} fwAutoSpeedSpdSource_e;
 
 #ifdef USE_GEOZONE
 typedef struct navSendTo_s {
@@ -508,6 +516,8 @@ typedef struct {
 #ifdef USE_GEOZONE
     navSendTo_t                  sendTo; // Used for Geozones
 #endif
+
+    uint8_t autoSpeedSpdSource;             // Auto Speed mode speed source
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
