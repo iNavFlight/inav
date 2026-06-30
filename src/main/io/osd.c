@@ -119,6 +119,10 @@
 #include "blackbox/blackbox_io.h"
 #endif
 
+#ifdef USE_TERRAIN
+#include "terrain/terrain.h"
+#endif
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -2462,19 +2466,29 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-#ifdef USE_RANGEFINDER
-    case OSD_RANGEFINDER:
+#if defined(USE_RANGEFINDER) || defined(USE_TERRAIN)
+        case OSD_RANGEFINDER:
         {
-            int32_t range = rangefinderGetLatestRawAltitude();
+            int32_t range = -1;
+
+#if defined(USE_RANGEFINDER)
+            range = rangefinderGetLatestRawAltitude();
+#ifdef USE_TERRAIN
+            if (!rangefinderIsHealthy() || range == RANGEFINDER_OUT_OF_RANGE) {
+                range = terrainGetLastDistanceCm();
+            }
+#endif
+#elif defined(USE_TERRAIN)
+            range = terrainGetLastDistanceCm();
+#endif
+
             if (range < 0) {
-                buff[0] = '-';
-                buff[1] = '-';
-                buff[2] = '-';
+                buff[0] = buff[1] = buff[2] = '-';
             } else {
-                osdFormatDistanceSymbol(buff, range, 1, 3);
+                osdFormatDistanceSymbol(buff, range, 0, 3);
             }
         }
-        break;
+            break;
 #endif
 
     case OSD_ONTIME:

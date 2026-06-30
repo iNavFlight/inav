@@ -154,6 +154,8 @@
 
 #include "telemetry/telemetry.h"
 
+#include "terrain/terrain.h"
+
 #if defined(SITL_BUILD)
 #include "target/SITL/serial_proxy.h"
 #endif
@@ -624,6 +626,19 @@ void init(void)
     }
 #endif
 
+#ifdef USE_SDCARD
+
+#ifdef USE_TERRAIN
+    if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD)
+#endif
+    {
+        sdcardInsertionDetectInit();
+        sdcard_init();
+        afatfs_init();
+    }
+#endif
+
+
 #ifdef USE_BLACKBOX
 
     //Do not allow blackbox to be run faster that 1kHz. It can cause UAV to drop dead when digital ESC protocol is used
@@ -648,19 +663,14 @@ void init(void)
             }
             break;
 #endif
-
-#ifdef USE_SDCARD
-        case BLACKBOX_DEVICE_SDCARD:
-            sdcardInsertionDetectInit();
-            sdcard_init();
-            afatfs_init();
-            break;
-#endif
         default:
             break;
     }
 
     blackboxInit();
+#endif
+#ifdef USE_TERRAIN
+    terrainInit();
 #endif
 
     gyroStartCalibration();

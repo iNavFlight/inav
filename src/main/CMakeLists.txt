@@ -648,6 +648,15 @@ main_sources(COMMON_SRC
     telemetry/sim.h
     telemetry/telemetry.c
     telemetry/telemetry.h
+
+    terrain/terrain.h
+    terrain/terrain.c
+    terrain/terrain_utils.h
+    terrain/terrain_utils.c
+    terrain/terrain_io.h
+    terrain/terrain_io.c
+    terrain/terrain_location.h
+    terrain/terrain_location.c
 )
 
 list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})

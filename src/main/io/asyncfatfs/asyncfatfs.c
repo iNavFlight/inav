@@ -495,6 +495,50 @@ static void afatfs_fileOperationContinue(afatfsFile_t *file);
 static uint8_t* afatfs_fileLockCursorSectorForWrite(afatfsFilePtr_t file);
 static uint8_t* afatfs_fileRetainCursorSectorForRead(afatfsFilePtr_t file);
 
+bool afatfs_isIdle(void)
+{
+    // 1. Check if any sector is being actively flushed or read at the hardware level
+    if (afatfs.cacheFlushInProgress) {
+        return false;
+    }
+
+    // 2. Check all cache descriptors for active I/O states (waiting for SD card)
+    for (int i = 0; i < AFATFS_NUM_CACHE_SECTORS; i++) {
+        if (afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_READING ||
+            afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_WRITING) {
+            return false;
+        }
+    }
+
+    // 3. Check if current directory state machine is performing an async task (like chdir or findNext)
+    if (afatfs.currentDirectory.operation.operation != AFATFS_FILE_OPERATION_NONE) {
+        return false;
+    }
+
+#ifdef AFATFS_USE_FREEFILE
+    // 4. Check freeFile state (ignore LOCKED as it's a static permission marker, not an operation)
+    if (afatfs.freeFile.operation.operation != AFATFS_FILE_OPERATION_NONE &&
+        afatfs.freeFile.operation.operation != AFATFS_FILE_OPERATION_LOCKED) {
+        return false;
+    }
+#endif
+
+    // 5. Check all potentially open file handles for pending background operations
+    for (int i = 0; i < AFATFS_MAX_OPEN_FILES; i++) {
+        if (afatfs.openFiles[i].type != AFATFS_FILE_TYPE_NONE &&
+            afatfs.openFiles[i].operation.operation != AFATFS_FILE_OPERATION_NONE) {
+            return false;
+        }
+    }
+
+    // 6. During initialization, we are never "idle" in the operational sense
+    if (afatfs.filesystemState == AFATFS_FILESYSTEM_STATE_INITIALIZATION) {
+        return false;
+    }
+
+    return true;
+}
+
 static uint32_t roundUpTo(uint32_t value, uint32_t rounding)
 {
     uint32_t remainder = value % rounding;
@@ -3620,6 +3664,11 @@ afatfsFilesystemState_e afatfs_getFilesystemState(void)
 afatfsError_e afatfs_getLastError(void)
 {
     return afatfs.lastError;
+}
+
+bool afatfs_isCurrentDirRoot(void)
+{
+    return afatfs.currentDirectory.directoryEntryPos.sectorNumberPhysical == 0;
 }
 
 void afatfs_init(void)
