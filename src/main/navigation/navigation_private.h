@@ -41,6 +41,11 @@
 
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
+// A landed multicopter should have near-zero vertical speed. Keep this independent
+// from nav_land_detect_sensitivity so higher sensitivity cannot disarm during descent.
+#define MC_LAND_DETECT_MAX_VEL_Z            50.0f   // cm/s
+// Only allow autonomous land detection near the configured final slow-descent phase.
+#define MC_LAND_DETECT_DESCENT_DEMAND_MARGIN 25.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
@@ -184,6 +189,11 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK = NAV_FSM_EVENT_STATE_SPECIFIC_2,
     NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
     NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
+#ifdef USE_AUTO_TRANSITION
+    // Only valid while NAV_STATE_MIXERAT_IN_PROGRESS is active. The same
+    // state-specific slot is intentionally reused by other FSM states.
+    NAV_FSM_EVENT_MIXERAT_MISSION_RESUME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
+#endif
     NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_5,
 
     NAV_FSM_EVENT_COUNT,
@@ -574,6 +584,8 @@ void resetMulticopterAltitudeController(void);
 void resetMulticopterPositionController(void);
 void resetMulticopterHeadingController(void);
 void resetMulticopterBrakingMode(void);
+bool navigationMulticopterBrakingActive(void);
+bool navigationMulticopterBrakingBoostActive(void);
 
 bool adjustMulticopterAltitudeFromRCInput(void);
 bool adjustMulticopterHeadingFromRCInput(void);

@@ -204,8 +204,9 @@
 #define USE_TELEMETRY_SBUS2
 #endif
 
-//Designed to free space of F722 and F411 MCUs
+// Keep larger optional features off 512 KB targets to preserve flash space.
 #if (MCU_FLASH_SIZE > 512)
+#define USE_AUTO_TRANSITION
 #define USE_TELEMETRY_SIM
 #define USE_VTX_FFPV
 #define USE_SERIALRX_SUMD
@@ -231,4 +232,3 @@
 
 #define USE_EZ_TUNE
 #define USE_ADAPTIVE_FILTER
-

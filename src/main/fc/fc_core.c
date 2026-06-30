@@ -74,6 +74,7 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_vtol_mc_protection.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -418,14 +419,17 @@ static void processPilotAndFailSafeActions(float dT)
         } else {
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
             rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
 
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 2, rcCommand[PITCH]);
             rcCommand[PITCH] = applyRateDynamics(rcCommand[PITCH], PITCH, dT);
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
 
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
             rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
+
+            navigationVtolMcProtectionApplyStabilizedCommandShaping(&rcCommand[ROLL], &rcCommand[PITCH], &rcCommand[YAW]);
+
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
 
         }
@@ -464,6 +468,7 @@ void disarm(disarmReason_t disarmReason)
 #endif
         statsOnDisarm();
         logicConditionReset();
+        navigationVtolMcProtectionResetTransientStates();
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
