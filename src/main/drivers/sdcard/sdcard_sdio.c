@@ -457,16 +457,15 @@ static sdcardOperationStatus_e sdcardSdio_writeBlock(uint32_t blockIndex, uint8_
     sdcard.pendingOperation.callback = callback;
     sdcard.pendingOperation.callbackData = callbackData;
     sdcard.pendingOperation.chunkIndex = 1; // (for non-DMA transfers) we've sent chunk #0 already
-    sdcard.state = SDCARD_STATE_SENDING_WRITE;
 
     if (SD_WriteBlocks_DMA(blockIndex, (uint32_t*) buffer, 512, block_count) != SD_OK) {
         /* Our write was rejected! Try a few times before giving up.
-         * This handles transient DMA/bus issues without full card reset.
+         * This handles transient DMA/bus issues without a full card reset.
+         * Returning busy without blocking: the blackbox/asyncfatfs flush re-issues
+         * this operation on the next PID loop, which paces the retries for us.
          */
         if (sdcard.operationRetries < SDCARD_MAX_OPERATION_RETRIES) {
             sdcard.operationRetries++;
-            // Brief delay before retry
-            delay(1);
             return SDCARD_OPERATION_BUSY;
         }
 
@@ -480,6 +479,9 @@ static sdcardOperationStatus_e sdcardSdio_writeBlock(uint32_t blockIndex, uint8_
         }
         return SDCARD_OPERATION_FAILURE;
     }
+
+    // DMA started successfully - only set state after confirming operation will proceed
+    sdcard.state = SDCARD_STATE_SENDING_WRITE;
 
     // Success - reset retry counter
     sdcard.operationRetries = 0;
@@ -562,11 +564,11 @@ static bool sdcardSdio_readBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_op
     } else {
         /* Read was rejected! Try a few times before giving up.
          * This handles transient DMA/bus issues without full card reset.
+         * Returning busy without blocking: the asyncfatfs read re-issues
+         * this operation on the next PID loop, which paces the retries for us.
          */
         if (sdcard.operationRetries < SDCARD_MAX_OPERATION_RETRIES) {
             sdcard.operationRetries++;
-            // Brief delay before retry
-            delay(1);
             return false;
         }
 
