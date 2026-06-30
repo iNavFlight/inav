@@ -109,12 +109,13 @@ typedef struct batteryProfile_s {
     struct {
         float throttleIdle;                 // Throttle IDLE value based on min_command, max_throttle, in percent
         float throttleScale;                // Scaling factor for throttle.
+        uint16_t throttle_rate_limiter;     // Min time in millis for fixed wing throttle to go from min to max
 #ifdef USE_DSHOT
         uint8_t turtleModePowerFactor;      // Power factor from 0 to 100% of flip over after crash
 #endif
     } motor;
 
-    uint16_t failsafe_throttle;             // Throttle level used for landing - specify value between 1000..2000 (pwm pulse width for slightly below hover). center throttle = 1500.
+    uint16_t failsafe_throttle;             // Throttle level used for landing - slightly below hover for MC, probably motor off for FW.
 
     struct {
 
