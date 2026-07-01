@@ -82,6 +82,7 @@ extern uint8_t __config_end;
 
 #define USE_MAG_HMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_LIS2MDL
 #define USE_MAG_LIS3MDL
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
