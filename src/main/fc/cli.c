@@ -177,6 +177,7 @@ static const char * outputModeNames[] = {
     "SERVOS",
     "LED",
     "PINIO",
+    "BEEPER",
     NULL
 };
 
@@ -3225,6 +3226,8 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_LED;
                 } else if(!sl_strcasecmp("PINIO", tok)) {
                     mode = OUTPUT_MODE_PINIO;
+                } else if(!sl_strcasecmp("BEEPER", tok)) {
+                    mode = OUTPUT_MODE_BEEPER;
                 } else {
                     cliShowParseError();
                     return;
@@ -5037,7 +5040,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
-    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS|LED|PINIO>]]", cliTimerOutputMode),
+    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS|LED|PINIO|BEEPER>]]", cliTimerOutputMode),
 };
 
 static void cliHelp(char *cmdline)
