@@ -696,18 +696,20 @@ This sets the output voltage to current scaling for the current sensor in 0.1 mV
 
 ### current_meter_type
 
-ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
+ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CRSF, CAN, INA226, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
 
 | Allowed Values |  |
 | --- | --- |
 | NONE |  |
-| ADC | Default |
+| ADC |  |
 | VIRTUAL |  |
 | FAKE |  |
 | ESC |  |
 | SMARTPORT |  |
 | CRSF |  |
 | CAN |  |
+| INA226 |  |
+| _target default_ | Default |
 
 ---
 
@@ -884,7 +886,7 @@ Re-purpose the craft name field for messages.
 
 ### dronecan_bitrate_kbps
 
-The speed of the CANbus network in kbps. Set all devices to the same speed. 
+The speed of the CANbus network in kbps. Set all devices to the same speed.
 
 | Allowed Values |  |
 | --- | --- |
@@ -2252,6 +2254,16 @@ Power draw at zero throttle used for remaining flight time/distance estimation i
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 65535 |
+
+---
+
+### ina_shunt_res_uohm
+
+INA226 shunt resistor value in micro-ohms.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 1 | 4294967295 |
 
 ---
 
@@ -6952,17 +6964,19 @@ Maximum voltage per cell in 0.01V units, default is 4.20V
 
 ### vbat_meter_type
 
-Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus.
+Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, `CRSF`, `CAN`, `INA226`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. `CRSF` requires CRSF battery telemetry. `CAN` requires DroneCAN running and a sensor on the bus. `INA226` requires an INA226 I2C sensor.
 
 | Allowed Values |  |
 | --- | --- |
 | NONE |  |
-| ADC | Default |
+| ADC |  |
 | ESC |  |
 | FAKE |  |
 | SMARTPORT |  |
 | CRSF |  |
 | CAN |  |
+| INA226 |  |
+| _target default_ | Default |
 
 ---
 
@@ -7149,4 +7163,3 @@ Defines rotation rate on YAW axis that UAV will try to archive on max. stick def
 | 20 | 1 | 180 |
 
 ---
-

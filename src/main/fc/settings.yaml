@@ -33,10 +33,10 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "CRSF", "CAN"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "CRSF", "CAN", "INA226"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CRSF", "CAN"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CRSF", "CAN", "INA226"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
@@ -979,9 +979,9 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus."
-        condition: USE_ADC
-        default_value: ADC
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, `CRSF`, `CAN`, `INA226`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. `CRSF` requires CRSF battery telemetry. `CAN` requires DroneCAN running and a sensor on the bus. `INA226` requires an INA226 I2C sensor."
+        condition: USE_BATTERY_VOLTAGE_SENSOR
+        default_value: :target
         field: voltage.type
         table: voltage_sensor
         type: uint8_t
@@ -1011,11 +1011,18 @@ groups:
         min: -32768
         max: 32767
       - name: current_meter_type
-        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
-        default_value: "ADC"
+        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CRSF, CAN, INA226, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
+        default_value: :target
         field: current.type
         table: current_sensor
         type: uint8_t
+      - name: ina_shunt_res_uohm
+        description: "INA226 shunt resistor value in micro-ohms."
+        default_value: :target
+        field: ina226.shuntResistanceMicroOhm
+        condition: USE_INA226
+        min: 1
+        max: 4294967295
       - name: bat_voltage_src
         description: "Chose between raw and sag compensated battery voltage to use for battery alarms and telemetry. Possible values are `RAW` and `SAG_COMP`"
         default_value: "RAW"
@@ -1055,35 +1062,35 @@ groups:
         description: "Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected."
         default_value: 0
         field: cells
-        condition: USE_ADC
+        condition: USE_BATTERY_VOLTAGE_SENSOR
         min: 0
         max: 12
       - name: vbat_cell_detect_voltage
         description: "Maximum voltage per cell, used for auto-detecting the number of cells of the battery in 0.01V units."
         default_value: 425
         field: voltage.cellDetect
-        condition: USE_ADC
+        condition: USE_BATTERY_VOLTAGE_SENSOR
         min: 100
         max: 500
       - name: vbat_max_cell_voltage
         description: "Maximum voltage per cell in 0.01V units, default is 4.20V"
         default_value: 420
         field: voltage.cellMax
-        condition: USE_ADC
+        condition: USE_BATTERY_VOLTAGE_SENSOR
         min: 100
         max: 500
       - name: vbat_min_cell_voltage
         description: "Minimum voltage per cell, this triggers battery out alarms, in 0.01V units, default is 330 (3.3V)"
         default_value: 330
         field: voltage.cellMin
-        condition: USE_ADC
+        condition: USE_BATTERY_VOLTAGE_SENSOR
         min: 100
         max: 500
       - name: vbat_warning_cell_voltage
         description: "Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, default is 350 (3.5V)"
         default_value: 350
         field: voltage.cellWarning
-        condition: USE_ADC
+        condition: USE_BATTERY_VOLTAGE_SENSOR
         min: 100
         max: 500
       - name: battery_capacity
@@ -1203,25 +1210,25 @@ groups:
         max: 3000
       - name: limit_cont_power
         description: "Continous power limit (dW), set to 0 to disable"
-        condition: USE_POWER_LIMITS && USE_ADC
+        condition: USE_POWER_LIMITS && USE_BATTERY_VOLTAGE_SENSOR
         default_value: 0
         field: powerLimits.continuousPower
         max: 40000
       - name: limit_burst_power
         description: "Burst power limit (dW): the current which is allowed during `limit_burst_power_time` after which `limit_cont_power` will be enforced, set to 0 to disable"
-        condition: USE_POWER_LIMITS && USE_ADC
+        condition: USE_POWER_LIMITS && USE_BATTERY_VOLTAGE_SENSOR
         default_value: 0
         field: powerLimits.burstPower
         max: 40000
       - name: limit_burst_power_time
         description: "Allowed power burst time (ds) during which `limit_burst_power` is allowed and after which `limit_cont_power` will be enforced"
-        condition: USE_POWER_LIMITS && USE_ADC
+        condition: USE_POWER_LIMITS && USE_BATTERY_VOLTAGE_SENSOR
         default_value: 0
         field: powerLimits.burstPowerTime
         max: 3000
       - name: limit_burst_power_falldown_time
         description: "Time slice at the end of the burst time during which the power limit will be ramped down from `limit_burst_power` back down to `limit_cont_power`"
-        condition: USE_POWER_LIMITS && USE_ADC
+        condition: USE_POWER_LIMITS && USE_BATTERY_VOLTAGE_SENSOR
         default_value: 0
         field: powerLimits.burstPowerFalldownTime
         max: 3000
@@ -4010,7 +4017,7 @@ groups:
       - name: stats_total_energy
         description: "Total energy consumption [in mWh]. The value is updated on every disarm when \"stats\" are enabled."
         max: INT32_MAX
-        condition: USE_ADC
+        condition: USE_BATTERY_VOLTAGE_SENSOR
         default_value: 0
       - name: stats_flight_count
         description: "Total number of flights. The value is updated on every disarm when \"stats\" are enabled."
@@ -4528,7 +4535,7 @@ groups:
         min: 1
         max: 127
       - name: dronecan_bitrate_kbps
-        description: "The speed of the CANbus network in kbps. Set all devices to the same speed. "
+        description: "The speed of the CANbus network in kbps. Set all devices to the same speed."
         default_value: "1000"
         field: bitRateKbps
         table: dronecan_bitrate_table

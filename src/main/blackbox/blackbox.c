@@ -1911,10 +1911,14 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("motorOutput", "%d,%d",                  getThrottleIdleValue(),getMaxThrottle());
         BLACKBOX_PRINT_HEADER_LINE("acc_1G", "%u",                          acc.dev.acc_1G);
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
         BLACKBOX_PRINT_HEADER_LINE_CUSTOM(
             if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_VBAT)) {
+#ifdef USE_ADC
                 blackboxPrintfHeaderLine("vbat_scale", "%u", batteryMetersConfig()->voltage.scale / 10);
+#else
+                blackboxPrintfHeaderLine("vbat_scale", "%u", 0);
+#endif
             } else {
                 xmitState.headerIndex += 2; // Skip the next two vbat fields too
             }

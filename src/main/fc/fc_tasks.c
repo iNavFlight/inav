@@ -137,7 +137,7 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
 #endif
     }
 
-#ifdef USE_ADC
+#ifdef USE_BATTERY_VOLTAGE_SENSOR
     if (feature(FEATURE_VBAT)) {
         batteryUpdate(BatMonitoringTimeSinceLastServiced);
     }
@@ -145,7 +145,7 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
     if (feature(FEATURE_VBAT) && isAmperageConfigured()) {
         powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
         sagCompensatedVBatUpdate(currentTimeUs, BatMonitoringTimeSinceLastServiced);
-#if defined(USE_POWER_LIMITS) && defined(USE_ADC)
+#if defined(USE_POWER_LIMITS) && defined(USE_BATTERY_VOLTAGE_SENSOR)
         powerLimiterUpdate(BatMonitoringTimeSinceLastServiced);
 #endif
     }
