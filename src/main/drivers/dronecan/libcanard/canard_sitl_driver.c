@@ -106,18 +106,12 @@ static int16_t sitlCANTransmitStub(const CanardCANFrame* const tx_frame) {
 }
 
 static void sitlCANGetStatsStub(canardProtocolStatus_t *pProtocolStat) {
-    pProtocolStat->BusOff = 0;
-    pProtocolStat->ErrorPassive = 0;
+    memset(pProtocolStat, 0, sizeof(*pProtocolStat));
 }
 
 #ifdef __linux__
 // SocketCAN implementations
 
-/**
- * @brief Initialize SocketCAN interface
- * @param bitrate CAN bitrate in bps (for logging, actual rate set via ip link)
- * @retval 0 on success, negative on error
- */
 static int16_t sitlCANInitSocketCAN(uint32_t bitrate) {
     struct sockaddr_can addr;
     struct ifreq ifr;
@@ -163,9 +157,6 @@ static int16_t sitlCANInitSocketCAN(uint32_t bitrate) {
     return 0;
 }
 
-/**
- * @brief Convert libcanard frame to Linux CAN frame
- */
 static void sitlCANFrameToLinux(const CanardCANFrame *const src, struct can_frame *const dst) {
     memset(dst, 0, sizeof(struct can_frame));
 
@@ -176,6 +167,10 @@ static void sitlCANFrameToLinux(const CanardCANFrame *const src, struct can_fram
         dst->can_id = src->id & CANARD_CAN_STD_ID_MASK;
     }
 
+    if (src->id & CANARD_CAN_FRAME_RTR) {
+        dst->can_id |= CAN_RTR_FLAG;
+    }
+
     // Copy data
     dst->can_dlc = src->data_len;
     if (src->data_len > 0) {
@@ -183,9 +178,6 @@ static void sitlCANFrameToLinux(const CanardCANFrame *const src, struct can_fram
     }
 }
 
-/**
- * @brief Convert Linux CAN frame to libcanard frame
- */
 static void sitlCANFrameFromLinux(const struct can_frame *const src, CanardCANFrame *const dst) {
     memset(dst, 0, sizeof(CanardCANFrame));
 
@@ -196,6 +188,10 @@ static void sitlCANFrameFromLinux(const struct can_frame *const src, CanardCANFr
         dst->id = src->can_id & CANARD_CAN_STD_ID_MASK;
     }
 
+    if (src->can_id & CAN_RTR_FLAG) {
+        dst->id |= CANARD_CAN_FRAME_RTR;
+    }
+
     // Copy data
     dst->data_len = src->can_dlc;
     if (src->can_dlc > 0) {
@@ -203,11 +199,6 @@ static void sitlCANFrameFromLinux(const struct can_frame *const src, CanardCANFr
     }
 }
 
-/**
- * @brief Receive a CAN frame via SocketCAN
- * @param rx_frame Pointer to frame structure to fill
- * @retval 0 if no frame available, 1 if frame received, negative on error
- */
 static int16_t sitlCANReceiveSocketCAN(CanardCANFrame *const rx_frame) {
     struct can_frame frame;
     ssize_t nbytes;
@@ -235,11 +226,6 @@ static int16_t sitlCANReceiveSocketCAN(CanardCANFrame *const rx_frame) {
     return 1;
 }
 
-/**
- * @brief Transmit a CAN frame via SocketCAN
- * @param tx_frame Pointer to frame to transmit
- * @retval 1 on success, 0 if busy, negative on error
- */
 static int16_t sitlCANTransmitSocketCAN(const CanardCANFrame* const tx_frame) {
     struct can_frame frame;
     ssize_t nbytes;
@@ -262,16 +248,9 @@ static int16_t sitlCANTransmitSocketCAN(const CanardCANFrame* const tx_frame) {
     return 1; // Success
 }
 
-/**
- * @brief Get CAN protocol status from SocketCAN
- * @param pProtocolStat Pointer to status structure to fill
- */
+/* Always returns zeroes — SocketCAN provides no per-frame error counters via raw sockets. */
 static void sitlCANGetStatsSocketCAN(canardProtocolStatus_t *pProtocolStat) {
-    // SocketCAN doesn't expose bus-off/error-passive directly
-    // We could check interface flags via netlink, but for SITL testing
-    // we assume the virtual CAN is always healthy
-    pProtocolStat->BusOff = 0;
-    pProtocolStat->ErrorPassive = 0;
+    memset(pProtocolStat, 0, sizeof(*pProtocolStat));
 }
 #endif // __linux__
 
@@ -280,7 +259,7 @@ static void sitlCANGetStatsSocketCAN(canardProtocolStatus_t *pProtocolStat) {
  * @param rx_frame Pointer to frame structure to fill
  * @retval 0 if no frame available, 1 if frame received, negative on error
  */
-int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
+int16_t canardSTM32Receive(CanardCANFrame *const rx_frame) {
     if (rx_frame == NULL) {
         return -CANARD_ERROR_INVALID_ARGUMENT;
     }
@@ -304,7 +283,7 @@ int16_t canardSTM32Recieve(CanardCANFrame *const rx_frame) {
  * @retval 1 on success, 0 if busy, negative on error
  */
 int16_t canardSTM32Transmit(const CanardCANFrame* const tx_frame) {
-    if (tx_frame == NULL) {
+    if (tx_frame == NULL || (tx_frame->id & CANARD_CAN_FRAME_ERR)) {
         return -CANARD_ERROR_INVALID_ARGUMENT;
     }
 
@@ -348,12 +327,22 @@ int32_t canardSTM32GetRxFifoFillLevel(void) {
 #ifdef __linux__
     if (can_mode == SITL_CAN_MODE_SOCKETCAN && can_socket >= 0) {
         int available;
+        /* FIONREAD on SOCK_RAW returns the byte size of the next pending datagram only,
+           so this yields 0 or 1 — SITL processes at most one frame per scheduler tick. */
         if (ioctl(can_socket, FIONREAD, &available) == 0) {
-            return available / sizeof(struct can_frame);
+            return available / (int)sizeof(struct can_frame);
         }
     }
 #endif
 
+    return 0;
+}
+
+uint32_t canardSTM32GetAndClearRxDropCount(void) {
+    return 0;
+}
+
+int32_t canardSTM32GetTxQueueFillLevel(void) {
     return 0;
 }
 
@@ -384,11 +373,11 @@ void canardSTM32GetUniqueID(uint8_t id[16]) {
 
 #ifdef __linux__
     // Add process ID for uniqueness between multiple SITL instances
-    pid_t pid = getpid();
-    id[4] = (pid >> 24) & 0xFF;
-    id[5] = (pid >> 16) & 0xFF;
-    id[6] = (pid >> 8) & 0xFF;
-    id[7] = pid & 0xFF;
+    uint32_t upid = (uint32_t)getpid();
+    id[4] = (upid >> 24) & 0xFF;
+    id[5] = (upid >> 16) & 0xFF;
+    id[6] = (upid >> 8) & 0xFF;
+    id[7] = upid & 0xFF;
 
     // Add timestamp for additional uniqueness
     struct timespec ts;
