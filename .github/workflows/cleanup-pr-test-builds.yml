@@ -1,0 +1,58 @@
+name: Cleanup PR Test Build
+
+# Deletes the pr-test-builds release for a PR as soon as it merges, so
+# iNavFlight/pr-test-builds doesn't accumulate stale test firmware forever.
+# See pr-test-builds.yml for the workflow that creates these releases.
+#
+# Uses pull_request_target (not pull_request) so secrets are available even
+# for PRs from forks -- GitHub withholds repo secrets from plain
+# pull_request-triggered workflows on fork PRs as a safety measure.
+# pull_request_target runs the base repo's trusted workflow file instead of
+# the fork's, which is normally risky if you check out and execute the PR's
+# code with privileged secrets -- but this workflow never checks out or runs
+# any PR code, it only reads github.event.pull_request.number/.merged from
+# the trusted event payload and calls the GitHub API.
+#
+# Requires the same repository secret PR_BUILDS_TOKEN used by
+# pr-test-builds.yml (Contents: write access to iNavFlight/pr-test-builds).
+#
+# A "not found" release (e.g. the PR never had a successful test build) is
+# treated as an expected no-op, not a failure. Any other API failure (auth,
+# rate limit, etc.) fails the job loudly so it doesn't go unnoticed -- see
+# also cleanup-pr-test-builds-scheduled.yml, which sweeps up anything missed
+# here.
+#
+# workflow_dispatch is a manual escape hatch: retry cleanup for a specific PR
+# if the automatic run failed, or test this workflow without waiting for a
+# live merge event.
+on:
+  pull_request_target:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to clean up'
+        required: true
+        type: number
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    permissions: {}
+    steps:
+      - name: Delete pr-test-builds release
+        env:
+          GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+          PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+        run: |
+          if err=$(gh release view "pr-${PR_NUMBER}" --repo iNavFlight/pr-test-builds 2>&1 >/dev/null); then
+            gh release delete "pr-${PR_NUMBER}" \
+              --repo iNavFlight/pr-test-builds --cleanup-tag --yes
+            echo "Deleted pr-test-builds release pr-${PR_NUMBER}"
+          elif [[ "$err" == *"release not found"* ]]; then
+            echo "No pr-test-builds release found for PR #${PR_NUMBER} - nothing to clean up."
+          else
+            echo "::error::gh release view failed: $err"
+            exit 1
+          fi
