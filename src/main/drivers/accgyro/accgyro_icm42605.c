@@ -422,7 +422,7 @@ static const aafConfig_t *getGyroAafConfig(icm42605Variant_e variant, const uint
         aafConfigs = aafLUT42605;
     }
     int i;
-    int8_t selectedFreq = aafConfigs[0].freq;
+    uint16_t selectedFreq = aafConfigs[0].freq;
     const aafConfig_t * candidate = &aafConfigs[0];
 
     // Choose closest supported LPF value
