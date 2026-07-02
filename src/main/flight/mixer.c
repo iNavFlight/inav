@@ -237,8 +237,8 @@ void mixerInit(void)
         motorYawMultiplier = 1;
     }
 
-    if (currentBatteryProfile->motor.throttle_rate_limiter > 0) {
-        throttleRateLimit = (PWM_RANGE_MAX - PWM_RANGE_MIN) / MS2S(currentBatteryProfile->motor.throttle_rate_limiter);
+    if (currentBatteryProfile->motor.throttleRateLimiter) {
+        throttleRateLimit = (PWM_RANGE_MAX - PWM_RANGE_MIN) / MS2S(currentBatteryProfile->motor.throttleRateLimiter);
     }
 }
 
@@ -494,7 +494,6 @@ static int getReversibleMotorsThrottleDeadband(void)
 void FAST_CODE mixTable(float dT)
 {
     static float lastMixerThrottleCommand = 1000.0f;
-
 #ifdef USE_DSHOT
     if (FLIGHT_MODE(TURTLE_MODE)) {
         applyTurtleModeToMotors();
@@ -619,10 +618,19 @@ void FAST_CODE mixTable(float dT)
     if (STATE(AIRPLANE) && throttleRateLimit) {
         const float deltaThrottle = mixerThrottleCommand - lastMixerThrottleCommand;
         const float throttleRate = deltaThrottle / dT;
+        bool limitOutput = false;
 
-        if (fabsf(throttleRate) > throttleRateLimit) {
-            lastMixerThrottleCommand = lastMixerThrottleCommand + SIGN(throttleRate) * throttleRateLimit * dT;
+        if (throttleRateLimit < 0.0f) {
+            limitOutput = fabsf(throttleRate) > -throttleRateLimit;
+        } else if (throttleRate > throttleRateLimit) {
+            limitOutput = true;
+        }
+
+        if (limitOutput) {
+            lastMixerThrottleCommand  += SIGN(throttleRate) * fabsf(throttleRateLimit) * dT;
             mixerThrottleCommand = lastMixerThrottleCommand;
+        } else {
+            lastMixerThrottleCommand = mixerThrottleCommand;
         }
     }
 

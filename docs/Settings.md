@@ -1622,11 +1622,11 @@ Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually shoul
 
 ### fw_throttle_rate_limiter
 
-Limits throttle output rate of change. Setting defines minimum time in milliseconds for throttle to change by 1000us (min to max throttle range). Set to 0 to disable. Fixed wing only.
+Minimum time allowed for throttle to increase from minimum to maximum throttle (1000 to 2000) in milliseconds. Negative values limit decreasing as well as increasing throttle. Positive values only limit increasing throttle. Set to 0 to disable. Fixed wing only.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 5000 |
+| 0 | -5000 | 5000 |
 
 ---
 
