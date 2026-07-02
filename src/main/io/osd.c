@@ -770,7 +770,7 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     int integerDigits = tfp_sprintf(buff + 1, (integerPart == 0 && val < 0) ? "-%d" : "%d", (int)integerPart);
     // We can show up to 7 digits in decimalPart.
     int32_t decimalPart = abs(val % (int)GPS_DEGREES_DIVIDER);
-    STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
+    STATIC_ASSERT(GPS_DEGREES_DIVIDER == 10000000L, adjust_max_decimal_digits);
     int decimalDigits;
     bool djiCompat = false;  // Assume DJICOMPAT mode is no enabled
 

@@ -25,9 +25,9 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "LUH7"
+#define TARGET_BOARD_IDENTIFIER "LH7V3"
 
-#define USBD_PRODUCT_STRING     "TBS_LUCID_H7"
+#define USBD_PRODUCT_STRING     "TBS_LUCID_H7_V3"
 
 #define USE_TARGET_CONFIG
 
@@ -40,10 +40,6 @@
 
 #define USE_VCP
 
-#define USE_UART1
-#define UART1_TX_PIN            PA9
-#define UART1_RX_PIN            PA10
-
 #define USE_UART2
 #define UART2_TX_PIN            PD5
 #define UART2_RX_PIN            PD6
@@ -55,6 +51,10 @@
 #define USE_UART4
 #define UART4_TX_PIN            PB9
 #define UART4_RX_PIN            PB8
+
+#define USE_UART5
+#define UART5_TX_PIN            PB13
+#define UART5_RX_PIN            PB12
 
 #define USE_UART6
 #define UART6_TX_PIN            PC6
@@ -70,17 +70,17 @@
 
 #define SERIAL_PORT_COUNT       8
 
+#define USE_DRONECAN
+#define CAN1_RX                 PD0
+#define CAN1_TX                 PD1
+#define CAN1_STANDBY            PD3
+
 #define USE_SPI
 
 #define USE_SPI_DEVICE_1
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PD7
-
-#define USE_SPI_DEVICE_2
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PB14
-#define SPI2_MOSI_PIN           PB15
 
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PB3
@@ -97,8 +97,10 @@
 
 #define GYRO1_SPI_BUS           BUS_SPI1
 #define GYRO1_CS_PIN            PC15
+#define GYRO1_EXTI_PIN          PB2
 #define GYRO2_SPI_BUS           BUS_SPI4
 #define GYRO2_CS_PIN            PE11
+#define GYRO2_EXTI_PIN          PE15
 
 #define USE_IMU_MPU6000
 #define IMU_1_MPU6000_ALIGN       CW90_DEG_FLIP
@@ -108,10 +110,6 @@
 #define USE_IMU_ICM45686
 #define IMU_1_ICM42605_ALIGN      CW90_DEG_FLIP
 #define IMU_2_ICM42605_ALIGN      CW0_DEG_FLIP
-
-#define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI2
-#define MAX7456_CS_PIN          PB12
 
 #define USE_I2C
 
@@ -161,15 +159,14 @@
 
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PD10 
+#define PINIO1_PIN                  PD10
 #define PINIO2_PIN                  PD11
 #define PINIO3_PIN                  PC13
-#define PINIO3_FLAGS                PINIO_FLAGS_INVERTED
 
 #define USE_LED_STRIP
 #define WS2811_PIN                  PA8
 
-#define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
+#define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_LED_STRIP)
 #define CURRENT_METER_SCALE         250
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
@@ -184,7 +181,3 @@
 #define MAX_PWM_OUTPUT_PORTS        15
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-
-#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
-#define SERIALRX_PROVIDER       SERIALRX_CRSF
-#define SERIALRX_UART           SERIAL_PORT_USART6
