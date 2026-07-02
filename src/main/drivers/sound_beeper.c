@@ -23,6 +23,7 @@
 #include "drivers/time.h"
 #include "drivers/io.h"
 
+#include "common/log.h"
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -84,7 +85,10 @@ void beeperInit(const beeperDevConfig_t *config)
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         const timerHardware_t *timHw = &timerHardware[idx];
         if (timerOverrides(timer2id(timHw->tim))->outputMode == OUTPUT_MODE_BEEPER) {
-            beeperPwmInit(timHw->tag, BEEPER_PWM_FREQUENCY);
+            if (!beeperPwmInit(timHw->tag, BEEPER_PWM_FREQUENCY)) {
+                LOG_ERROR(PWM, "Beeper PWM init failed on assigned pad, beeper disabled");
+                return;
+            }
             beeperConfigMutable()->pwmMode = true;
             systemBeep(false);
             return;
@@ -107,7 +111,9 @@ void beeperInit(const beeperDevConfig_t *config)
     if (beeperIO) {
         IOInit(beeperIO, OWNER_BEEPER, RESOURCE_OUTPUT, 0);
         if (beeperConfig()->pwmMode) {
-            beeperPwmInit(config->ioTag, BEEPER_PWM_FREQUENCY);
+            if (!beeperPwmInit(config->ioTag, BEEPER_PWM_FREQUENCY)) {
+                LOG_ERROR(PWM, "Beeper PWM init failed on compile-time pad, beeper disabled");
+            }
         } else {
             IOConfigGPIO(beeperIO, config->isOD ? IOCFG_OUT_OD : IOCFG_OUT_PP);
         }
