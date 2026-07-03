@@ -171,6 +171,54 @@ static inline bool mixerTransitionNavigationOwnsProfileSwitch(
            vtolProfilePairConfigured &&
            (navWaypointActive || navRthActive || navLandingActive || navMixerAtActive);
 }
+
+static inline bool mixerTransitionProfileSwitchShouldStartAutoTransition(
+    bool autoTransitionAlways,
+    bool armed,
+    bool manualTransitionAllowed,
+    bool mixerProfileModePresent,
+    bool vtolProfilePairConfigured,
+    bool autoTransitionActive,
+    bool navigationOwnsProfileSwitch,
+    bool navigationProfileHandbackPending,
+    bool completedAutoSessionOwnsProfileSwitch,
+    bool fwToMcProtectionOwnsProfileSwitch,
+    int currentProfileIndex,
+    int requestedProfileIndex)
+{
+    return autoTransitionAlways &&
+           armed &&
+           manualTransitionAllowed &&
+           mixerProfileModePresent &&
+           vtolProfilePairConfigured &&
+           !autoTransitionActive &&
+           !navigationOwnsProfileSwitch &&
+           !navigationProfileHandbackPending &&
+           !completedAutoSessionOwnsProfileSwitch &&
+           !fwToMcProtectionOwnsProfileSwitch &&
+           currentProfileIndex != requestedProfileIndex;
+}
+
+static inline bool mixerTransitionProfileSwitchDirectSwitchAllowed(
+    bool autoTransitionAlways,
+    bool armed,
+    bool vtolProfilePairConfigured)
+{
+    return !autoTransitionAlways || !armed || !vtolProfilePairConfigured;
+}
+
+static inline bool mixerTransitionProfileSwitchShouldAbortToCurrentProfile(
+    bool profileSwitchAutoTransitionActive,
+    bool autoTransitionActive,
+    bool hotSwitchDone,
+    int currentProfileIndex,
+    int requestedProfileIndex)
+{
+    return profileSwitchAutoTransitionActive &&
+           autoTransitionActive &&
+           !hotSwitchDone &&
+           currentProfileIndex == requestedProfileIndex;
+}
 #endif
 
 static inline bool mixerTransitionIsRequestAllowed(

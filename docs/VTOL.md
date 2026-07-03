@@ -359,6 +359,91 @@ Workflow:
 
 In the standard layout above, the transition position deliberately has both `MIXER PROFILE 2` and `MIXER TRANSITION` ON. While the auto-transition controller is enabled, the controller owns the profile switching until `MIXER TRANSITION` is turned OFF again.
 
+Optional two-position desired-mode layout:
+
+```text
+set vtol_autotransition_always = ON
+```
+
+With this global option enabled, an armed manual switch from one VTOL mixer profile to the other does not switch profiles directly. Instead, it starts the auto-transition controller:
+
+- Switch to FW: INAV starts MC -> FW and ends in FW after the configured speed or timer condition.
+- Switch to MC: INAV starts FW -> MC and ends in MC after the configured speed or timer condition.
+- No middle transition position is required.
+- If you move the switch back to the current profile before the profile switch happens, INAV aborts the transition and remains in the current profile.
+- When disarmed, direct profile switching still works for bench and preflight checks.
+- Turn this option OFF if you want direct VTOL MC/FW profile switching while armed.
+
+Leave `vtol_autotransition_always = OFF` if you want the pilot to keep the explicit choice between a direct profile switch and a separate `MIXER TRANSITION` request.
+
+Optional two-position layout with instant FW -> MC:
+
+Some pilots want an automated MC -> FW transition, but want FW -> MC to switch almost immediately when they request multicopter mode. This can still be done with `vtol_autotransition_always = ON` by making the FW -> MC transition complete by timer with a zero timer.
+
+Example:
+
+```text
+set vtol_autotransition_always = ON
+set vtol_transition_to_fw_min_airspeed_cm_s = 1300
+set vtol_transition_to_mc_max_airspeed_cm_s = 0
+
+mixer_profile 1
+# FW profile: FW -> MC should switch immediately when MC is requested
+set mixer_switch_trans_timer = 0
+set mixer_vtol_transition_scale_ramp_time_ms = 0
+
+mixer_profile 2
+# MC profile: MC -> FW still waits for speed or the backup timer
+set mixer_switch_trans_timer = 50
+set mixer_vtol_transition_scale_ramp_time_ms = 1200
+```
+
+Behavior:
+
+- In MC, selecting FW starts MC -> FW and waits for `vtol_transition_to_fw_min_airspeed_cm_s`, or the MC profile's `mixer_switch_trans_timer` fallback if no usable airspeed source is available.
+- In FW, selecting MC starts the controller, but `vtol_transition_to_mc_max_airspeed_cm_s = 0` chooses timer completion and the FW profile's `mixer_switch_trans_timer = 0` makes the profile switch happen immediately.
+- `mixer_vtol_transition_scale_ramp_time_ms = 0` in the FW profile avoids extra smooth output movement after the immediate FW -> MC switch. Use a non-zero value only if you want outputs to continue moving smoothly after the switch.
+
+### Which mixer profile controls each direction
+
+Some transition settings are stored inside each mixer profile. For those settings, INAV uses the profile where the transition starts. Think of them as source-profile settings, not target-profile settings.
+
+With the example profile order used in this guide:
+
+| Direction | Starts from | Switches to | Put direction-specific mixer settings in |
+| --- | --- | --- | --- |
+| MC -> FW | `mixer_profile 2` / MC | `mixer_profile 1` / FW | `mixer_profile 2` |
+| FW -> MC | `mixer_profile 1` / FW | `mixer_profile 2` / MC | `mixer_profile 1` |
+
+If your model uses the opposite profile order, keep the same rule: configure the transition in the profile where that transition starts.
+
+These settings are per-mixer-profile and follow the source-profile rule:
+
+- `mixer_vtol_manualswitch_autotransition_controller`: enables the manual auto-transition controller for transitions that start from that profile.
+- `mixer_vtol_transition_dynamic_mixer`: enables smooth power/control/transition-servo movement for transitions that start from that profile.
+- `mixer_switch_trans_timer`: backup timer for transitions that start from that profile.
+- `mixer_vtol_transition_airspeed_timeout_ms`: airspeed wait limit for transitions that start from that profile.
+- `mixer_vtol_transition_scale_ramp_time_ms`: time used for smooth output movement for transitions that start from that profile.
+- `mixer_automated_switch`: allows navigation-owned profile changes that start from that profile, such as RTH MC -> FW, landing FW -> MC, and low-speed FW -> MC protection. Mission USER transitions use the mission transition settings and target profile checks, so they do not depend on this flag in the same way.
+
+Global transition settings are not stored per mixer profile. They apply by direction wherever that direction starts:
+
+- `vtol_transition_to_fw_min_airspeed_cm_s`: MC -> FW completion speed. This is only for MC -> FW.
+- `vtol_transition_to_mc_max_airspeed_cm_s`: FW -> MC completion speed. This is only for FW -> MC.
+- `vtol_fw_to_mc_auto_switch_airspeed_cm_s`: fixed-wing low-speed safety trigger. This can start FW -> MC from FW mode.
+- `vtol_autotransition_always`: optional manual workflow. When armed, selecting the other VTOL profile starts the matching transition instead of directly switching profile.
+- `vtol_transition_lift_min_percent`: lift motor power floor used by dynamic scaling in both directions.
+- `vtol_transition_mc_authority_min_percent`: MC motor stabilisation floor used by dynamic scaling in both directions.
+- `vtol_transition_fw_authority_min_percent`: FW control floor used by dynamic scaling in both directions.
+
+Servo mixer transition rules are profile rules too. Normal servo rules from the current active profile own the output while that profile is active, and normal servo rules from the target profile own it after the profile switch. The auto-transition controller can also use a narrow target-profile helper before the switch: if the target profile has a transition-linked rule for a servo output and the current profile does not, INAV can move that output smoothly from its current real position toward the target transition/static position. This is useful for tilt servos that are defined only in the MC profile during FW -> MC.
+
+Examples:
+
+- To make MC -> FW slow and speed-based, put the longer `mixer_switch_trans_timer`, non-zero `mixer_vtol_transition_scale_ramp_time_ms`, and MC -> FW dynamic mixer setup in the MC/source profile.
+- To make FW -> MC switch immediately, put `mixer_switch_trans_timer = 0` and usually `mixer_vtol_transition_scale_ramp_time_ms = 0` in the FW/source profile, and set `vtol_transition_to_mc_max_airspeed_cm_s = 0`.
+- To make FW -> MC move tilt servos before the MC profile becomes active, add the needed `INPUT_MIXER_TRANSITION`/`INPUT_MAX` tilt rules to the target MC profile. The controller can use those target rules during the transition even if the RC `MIXER TRANSITION` mode does not overlap the MC profile at that moment.
+
 ### Timer, pitot, and timeout examples
 
 `mixer_switch_trans_timer` is the backup completion timer. It is used when no usable transition airspeed source is configured, trusted, or available.
@@ -850,7 +935,7 @@ With `NAV`, INAV can:
 
 - reserve throttle range for attitude stabilisation before altitude controller anti-windup limits are applied
 - keep hover throttle inside the safe range, shrinking the reserve if necessary
-- damp horizontal speed before fully settling position-hold behavior
+- let the existing MC position controller reduce horizontal speed before fully locking the final position-hold point
 - relax altitude target capture while the aircraft is bleeding speed or transitioning in MC
 - require a more stable landing condition before starting/describing landing as complete
 - use a conservative recovery path if attitude becomes excessive during automatic-throttle VTOL MC navigation
@@ -902,7 +987,7 @@ During VTOL MC braking, wing lift can make the aircraft climb even when the pilo
 
 With VTOL MC protection enabled, INAV is more tolerant while the aircraft is still settling:
 
-- NAV capture damps velocity first instead of immediately forcing a hard final hold point.
+- NAV capture lets the existing MC position controller reduce velocity first instead of immediately forcing a hard final hold point.
 - Soft altitude capture follows current altitude more gently while horizontal speed is being reduced.
 - During auto transition while the active side is MC, the same protection can reduce altitude-control aggression.
 - Once the aircraft is stable, normal altitude/position behavior resumes.
@@ -1097,22 +1182,27 @@ For display only, `MC SPEED HIGH` means the usable airspeed value is more than a
 - `VTOL FINISHING SWITCH`: the target profile is already active and old propulsion output is being moved to its safe final value.
 - `VTOL AIRSPEED TIMEOUT`: the requested pitot airspeed was not reached before `mixer_vtol_transition_airspeed_timeout_ms`.
 - `VTOL TRANSITION ABORTED`: the transition was cancelled before the profile switch.
+- `VTOL ABORTED IN FW`: the transition was cancelled and the active profile remains fixed-wing.
+- `VTOL ABORTED IN MC`: the transition was cancelled and the active profile remains multicopter.
 - `VTOL TRANSITION DONE`: the transition finished.
 
 Per-mixer-profile settings:
 
-- `mixer_automated_switch`: existing RTH use is to allow NAV to switch between MC and FW for return/landing. New mission use is to allow waypoint USER actions to request MC/FW transitions.
-- `mixer_switch_trans_timer`: existing legacy transition timer in deciseconds. New auto-transition use is the fallback completion timer when pitot airspeed is not used or not trusted.
-- `mixer_vtol_transition_dynamic_mixer`: new optional smooth power/control scaling. OFF keeps old transition motor/servo behavior; ON allows smooth pusher, lift, MC stabilisation, FW control, and transition-servo movement.
-- `mixer_vtol_manualswitch_autotransition_controller`: new manual switch controller. OFF keeps older manual behavior; ON makes `MIXER TRANSITION` start one complete transition.
-- `mixer_vtol_transition_airspeed_timeout_ms`: new airspeed wait limit. It does not complete transition; it aborts an airspeed-controlled attempt that takes too long while pitot remains trusted.
-- `mixer_vtol_transition_scale_ramp_time_ms`: new time used for smooth pusher/lift/transition-servo movement. It also controls how long transition-linked servo outputs continue from their current position after a direct switch or abort.
+These values are read from the source mixer profile, meaning the profile where the transition starts. In the standard setup in this document, MC -> FW uses the MC profile values and FW -> MC uses the FW profile values.
+
+- `mixer_automated_switch`: existing RTH use is to allow NAV to switch from MC to FW for return and from FW to MC for landing. New safety use is to allow navigation-owned low-speed FW -> MC protection. This flag is checked in the source profile for those navigation-owned transitions. Mission USER transitions are controlled by the mission VTOL settings and target profile checks instead.
+- `mixer_switch_trans_timer`: existing legacy transition timer in deciseconds. New auto-transition use is the fallback completion timer for transitions starting from this profile when pitot airspeed is not used or not trusted.
+- `mixer_vtol_transition_dynamic_mixer`: new optional smooth power/control scaling for transitions starting from this profile. OFF keeps old transition motor/servo behavior; ON allows smooth pusher, lift, MC stabilisation, FW control, and transition-servo movement.
+- `mixer_vtol_manualswitch_autotransition_controller`: new manual switch controller for transitions starting from this profile. OFF keeps older manual behavior; ON makes `MIXER TRANSITION` start one complete transition.
+- `mixer_vtol_transition_airspeed_timeout_ms`: new airspeed wait limit for transitions starting from this profile. It does not complete transition; it aborts an airspeed-controlled attempt that takes too long while pitot remains trusted.
+- `mixer_vtol_transition_scale_ramp_time_ms`: new time used for smooth pusher/lift/transition-servo movement in transitions starting from this profile. It also controls how long transition-linked servo outputs continue from their current position after a direct switch or abort.
 
 Global VTOL transition settings:
 
 - `vtol_transition_to_fw_min_airspeed_cm_s`: new preferred MC -> FW completion threshold when pitot is trusted. `0` uses the timer path.
 - `vtol_transition_to_mc_max_airspeed_cm_s`: new preferred FW -> MC completion threshold when pitot is trusted. `0` uses the timer path.
 - `vtol_fw_to_mc_auto_switch_airspeed_cm_s`: new low-speed fixed-wing safety fallback. When non-zero, FW flight can automatically start FW -> MC if the usable transition airspeed source falls too low. In manual FW flight it requires the manual auto-transition controller. In mission/RTH/failsafe it requires `mixer_automated_switch = ON` and keeps the current navigation task in MC after the switch.
+- `vtol_autotransition_always`: new optional two-position manual workflow. When ON and armed, selecting the other VTOL mixer profile starts the auto-transition controller instead of switching profiles directly. Disarmed direct profile switching remains available for bench/preflight checks. OFF keeps direct manual profile switching available when `MIXER TRANSITION` is not active.
 - `vtol_transition_lift_min_percent`: new lowest lift motor power during dynamic transition scaling. `100` keeps full lift power.
 - `vtol_transition_mc_authority_min_percent`: new lowest MC motor stabilisation strength during dynamic transition scaling. `100` keeps full MC stabilisation.
 - `vtol_transition_fw_authority_min_percent`: new lowest FW control strength during dynamic transition scaling. It also scales optional target fixed-wing servo preview rules.

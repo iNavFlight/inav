@@ -4054,6 +4054,12 @@ groups:
         field: vtolFwToMcAutoSwitchAirspeed
         min: 0
         max: 20000
+      - name: vtol_autotransition_always
+        description: "When enabled, an armed manual VTOL profile switch between a multicopter-like profile and a fixed-wing profile starts the auto-transition controller instead of switching profiles directly. This allows a two-position desired-mode switch: selecting FW starts MC->FW, selecting MC starts FW->MC. Disarmed direct profile switching remains available for bench and preflight checks. OFF preserves direct manual profile switching when `MIXER TRANSITION` is not active. Available only on targets with more than 512 KB flash."
+        condition: USE_AUTO_TRANSITION
+        default_value: OFF
+        field: vtolAutotransitionAlways
+        type: bool
       - name: vtol_transition_lift_min_percent
         description: "Lowest lift motor base throttle used during transition, in percent. This scales the throttle/lift component of MC lift motors, not their roll/pitch/yaw stabilisation correction. In MC->FW, lift motor base throttle is reduced to this value as the transition progresses. In FW->MC, target MC lift motor base throttle starts from this value and rises back to full power by the motor ramp timer. `100` keeps full lift base throttle through the whole transition, but also starts FW->MC target lift at full base throttle. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash."
         condition: USE_AUTO_TRANSITION

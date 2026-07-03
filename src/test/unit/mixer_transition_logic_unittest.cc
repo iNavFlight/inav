@@ -264,6 +264,143 @@ TEST(MixerTransitionLogicTest, NavigationHandbackClearsForNewNavigationOrExplici
         1));
 }
 
+TEST(MixerTransitionLogicTest, ProfileSwitchAutotransitionStartsOnlyWhenArmedAndClear)
+{
+    EXPECT_TRUE(mixerTransitionProfileSwitchShouldStartAutoTransition(
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        1,
+        0));
+
+    EXPECT_FALSE(mixerTransitionProfileSwitchShouldStartAutoTransition(
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        1,
+        0));
+
+    EXPECT_FALSE(mixerTransitionProfileSwitchShouldStartAutoTransition(
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        1,
+        0));
+}
+
+TEST(MixerTransitionLogicTest, ProfileSwitchAutotransitionKeepsDisarmedDirectSwitchForPreflight)
+{
+    EXPECT_FALSE(mixerTransitionProfileSwitchDirectSwitchAllowed(
+        true,
+        true,
+        true));
+
+    EXPECT_TRUE(mixerTransitionProfileSwitchDirectSwitchAllowed(
+        true,
+        false,
+        true));
+
+    EXPECT_TRUE(mixerTransitionProfileSwitchDirectSwitchAllowed(
+        false,
+        true,
+        true));
+
+    EXPECT_TRUE(mixerTransitionProfileSwitchDirectSwitchAllowed(
+        true,
+        true,
+        false));
+}
+
+TEST(MixerTransitionLogicTest, ProfileSwitchAutotransitionDoesNotFightOwnedStates)
+{
+    EXPECT_FALSE(mixerTransitionProfileSwitchShouldStartAutoTransition(
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        0,
+        1));
+
+    EXPECT_FALSE(mixerTransitionProfileSwitchShouldStartAutoTransition(
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        0,
+        1));
+
+    EXPECT_FALSE(mixerTransitionProfileSwitchShouldStartAutoTransition(
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        0,
+        1));
+}
+
+TEST(MixerTransitionLogicTest, ProfileSwitchAutotransitionAbortsWhenSwitchReturnsToCurrentProfile)
+{
+    EXPECT_TRUE(mixerTransitionProfileSwitchShouldAbortToCurrentProfile(
+        true,
+        true,
+        false,
+        1,
+        1));
+
+    EXPECT_FALSE(mixerTransitionProfileSwitchShouldAbortToCurrentProfile(
+        true,
+        true,
+        true,
+        1,
+        1));
+
+    EXPECT_FALSE(mixerTransitionProfileSwitchShouldAbortToCurrentProfile(
+        true,
+        true,
+        false,
+        1,
+        0));
+}
+
 TEST(MixerTransitionLogicTest, LegacySessionIgnoresAutoControllerAfterProfileHotSwitch)
 {
     mixerTransitionManualSessionMode_e sessionMode = MIXER_TRANSITION_MANUAL_SESSION_NONE;

@@ -88,6 +88,7 @@ typedef struct systemConfig_s {
     uint16_t vtolTransitionToFwMinAirspeed;
     uint16_t vtolTransitionToMcMaxAirspeed;
     uint16_t vtolFwToMcAutoSwitchAirspeed;
+    bool vtolAutotransitionAlways;
     uint8_t vtolTransitionLiftMinPercent;
     uint8_t vtolTransitionMcAuthorityMinPercent;
     uint8_t vtolTransitionFwAuthorityMinPercent;

@@ -72,6 +72,16 @@ There are two separate manual paths:
 - Keep `mixer_vtol_manualswitch_autotransition_controller` ON in both profiles used by this mapping.
 - If you intentionally swap the profile order, keep the same idea and swap the FW and MC end positions.
 
+Optional two-position desired-mode switch:
+
+- Set `vtol_autotransition_always = ON` if you want the profile switch to mean "go to this final mode".
+- With this option enabled while armed, selecting FW starts MC->FW auto-transition instead of directly switching to FW.
+- Selecting MC starts FW->MC auto-transition instead of directly switching to MC.
+- If you move the switch back to the current profile before the profile switch happens, INAV cancels that transition and remains in the current profile.
+- When disarmed, direct profile switching remains available for bench and preflight checks.
+- Turn this option OFF if you want direct VTOL MC/FW profile switching while armed.
+- Leave this option OFF if you want to keep the pilot choice between direct profile switching and a separate transition request.
+
 ## Servo
 
 `Mixer Transition` is the input source for transition input; use this to tilt motor to gain airspeed.
@@ -128,6 +138,8 @@ If `mixer_vtol_manualswitch_autotransition_controller = ON` and this overlap pos
 - when `MIXER TRANSITION` turns OFF, `MIXER PROFILE 2` again decides which stable mixer profile should be active
 
 This overlap style is supported too.
+
+For a simpler two-position workflow, set `vtol_autotransition_always = ON` and let the `MIXER PROFILE 2` switch select the desired final mode. In that setup the pilot does not need a middle transition position: switching toward FW starts MC->FW, and switching toward MC starts FW->MC. This option is global and changes armed manual VTOL switching only; disarmed direct profile switching remains available for bench and preflight checks.
 
 ## Automated Transition
 This feature is mainly used for RTH and failsafe.

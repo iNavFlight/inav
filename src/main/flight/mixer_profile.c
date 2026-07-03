@@ -59,6 +59,7 @@ static timeMs_t mixerATOsdEventUntil;
 static mixerProfileATDirection_e mixerATOsdSwitchReminderDirection;
 static bool navigationProfileSwitchWasOwned;
 static bool navigationProfileHandbackPending;
+static bool manualProfileSwitchAutoTransitionActive;
 #endif
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored mixer profile layout only on >512 KB targets.
@@ -189,6 +190,19 @@ static void setMixerATOsdEvent(const mixerProfileATOsdEvent_e event)
 {
     mixerATOsdEvent = event;
     mixerATOsdEventUntil = event == MIXERAT_OSD_EVENT_NONE ? 0 : millis() + MIXER_TRANSITION_OSD_EVENT_DISPLAY_MS;
+}
+
+static mixerProfileATOsdEvent_e mixerATAbortedEventForCurrentProfile(void)
+{
+    if (currentMixerConfig.platformType == PLATFORM_AIRPLANE) {
+        return MIXERAT_OSD_EVENT_ABORTED_IN_FW;
+    }
+
+    if (isMultirotorTypePlatform(currentMixerConfig.platformType)) {
+        return MIXERAT_OSD_EVENT_ABORTED_IN_MC;
+    }
+
+    return MIXERAT_OSD_EVENT_ABORTED;
 }
 
 static void updateMixerATSwitchReminder(
@@ -662,6 +676,7 @@ static bool updatePostSwitchFade(void)
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.postSwitchFadeMotorMask = 0;
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    manualProfileSwitchAutoTransitionActive = false;
     return true;
 }
 
@@ -728,10 +743,11 @@ static void abortTransition(const bool byAirspeedTimeout, const bool directSwitc
     }
 
     if (wasActive) {
-        setMixerATOsdEvent(byAirspeedTimeout ? MIXERAT_OSD_EVENT_AIRSPEED_TIMEOUT : MIXERAT_OSD_EVENT_ABORTED);
+        setMixerATOsdEvent(byAirspeedTimeout ? MIXERAT_OSD_EVENT_AIRSPEED_TIMEOUT : mixerATAbortedEventForCurrentProfile());
     }
 
     isMixerTransitionMixing_requested = false;
+    manualProfileSwitchAutoTransitionActive = false;
     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
     mixerProfileAT.aborted = wasActive;
     mixerProfileAT.abortedByAirspeedTimeout = wasActive && byAirspeedTimeout;
@@ -909,6 +925,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
                     mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
                     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
+                    manualProfileSwitchAutoTransitionActive = false;
                 }
                 return true;
             } else if (mixerProfileAT.usedAirspeed &&
@@ -1000,7 +1017,8 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
                                          (posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS);
     const navigationFSMStateFlags_t navStateFlags = navGetCurrentStateFlags();
     const bool missionActive = (navStateFlags & NAV_AUTO_WP) != 0;
-    const bool manualControllerConfigured = currentMixerConfig.manualVtolTransitionController && !missionActive;
+    const bool autotransitionAlways = systemConfig()->vtolAutotransitionAlways && !missionActive;
+    const bool manualControllerConfigured = (currentMixerConfig.manualVtolTransitionController || autotransitionAlways) && !missionActive;
     bool manualControllerEnabled = mixerTransitionManualControllerEnabled(manualControllerConfigured, manualTransitionSessionMode);
     const bool mixerProfileModePresent = isModeActivationConditionPresent(BOXMIXERPROFILE);
     const int requestedProfileIndex = IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) == 0 ? 0 : 1;
@@ -1096,24 +1114,57 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         mixerProfileAT.hotSwitchDone,
         currentMixerProfileIndex,
         requestedProfileIndex);
+    const bool profileSwitchShouldStartAutoTransition = mixerTransitionProfileSwitchShouldStartAutoTransition(
+        autotransitionAlways,
+        ARMING_FLAG(ARMED),
+        manualTransitionAllowed,
+        mixerProfileModePresent,
+        vtolProfilePairConfigured,
+        mixerAT_inuse,
+        navigationOwnsProfileSwitch,
+        navigationProfileHandbackPending,
+        completedAutoSessionOwnsProfileSwitch,
+        fwToMcProtectionOwnsProfileSwitch,
+        currentMixerProfileIndex,
+        requestedProfileIndex);
+    const bool profileSwitchDirectSwitchAllowed = mixerTransitionProfileSwitchDirectSwitchAllowed(
+        autotransitionAlways,
+        ARMING_FLAG(ARMED),
+        vtolProfilePairConfigured);
 
     if (!FLIGHT_MODE(FAILSAFE_MODE) && !mixerAT_inuse)
     {
         if (mixerProfileModePresent &&
-            !transitionControllerOwnsProfileSwitch &&
+            (!transitionControllerOwnsProfileSwitch || profileSwitchShouldStartAutoTransition) &&
             !completedAutoSessionOwnsProfileSwitch &&
             !navigationOwnsProfileSwitch &&
             !navigationProfileHandbackPending &&
             !fwToMcProtectionOwnsProfileSwitch) {
             if (requestedProfileIndex != currentMixerProfileIndex) {
-                outputProfileDirectSwitch(requestedProfileIndex);
+                if (profileSwitchShouldStartAutoTransition) {
+                    const mixerProfileATRequest_e profileSwitchRequest = STATE(MULTIROTOR) ?
+                        MIXERAT_REQUEST_MANUAL_TO_FW :
+                        (STATE(AIRPLANE) ? MIXERAT_REQUEST_MANUAL_TO_MC : MIXERAT_REQUEST_NONE);
+
+                    if (profileSwitchRequest != MIXERAT_REQUEST_NONE && checkMixerATRequired(profileSwitchRequest)) {
+                        manualProfileSwitchAutoTransitionActive = true;
+                        manualTransitionSessionMode = MIXER_TRANSITION_MANUAL_SESSION_AUTO;
+                        manualTransitionReadyForEdge = false;
+                        mixerATUpdateState(profileSwitchRequest);
+                        mixerAT_inuse = mixerATIsActive();
+                    }
+                } else {
+                    if (profileSwitchDirectSwitchAllowed) {
+                        outputProfileDirectSwitch(requestedProfileIndex);
+                    }
+                }
             }
         }
     }
 
     // Recompute after a potential direct profile hot-switch because this flag is per-mixer-profile.
     manualControllerEnabled = mixerTransitionManualControllerEnabled(
-        currentMixerConfig.manualVtolTransitionController && !missionActive,
+        (currentMixerConfig.manualVtolTransitionController || autotransitionAlways) && !missionActive,
         manualTransitionSessionMode);
 
     if (!mixerAT_inuse &&
@@ -1157,7 +1208,15 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
             mixerAT_inuse = mixerATIsActive();
         }
 
-        if (!transitionModeActive &&
+        const bool transitionSwitchAbort = !manualProfileSwitchAutoTransitionActive && !transitionModeActive;
+        const bool profileSwitchAbort = mixerTransitionProfileSwitchShouldAbortToCurrentProfile(
+            manualProfileSwitchAutoTransitionActive,
+            mixerAT_inuse,
+            mixerProfileAT.hotSwitchDone,
+            currentMixerProfileIndex,
+            requestedProfileIndex);
+
+        if ((transitionSwitchAbort || profileSwitchAbort) &&
             mixerAT_inuse &&
             !mixerProfileAT.hotSwitchDone &&
             (mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_FW || mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_MC)) {

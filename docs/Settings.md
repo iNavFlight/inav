@@ -7099,6 +7099,16 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 
 ---
 
+### vtol_autotransition_always
+
+When enabled, an armed manual VTOL profile switch between a multicopter-like profile and a fixed-wing profile starts the auto-transition controller instead of switching profiles directly. This allows a two-position desired-mode switch: selecting FW starts MC->FW, selecting MC starts FW->MC. Disarmed direct profile switching remains available for bench and preflight checks. OFF preserves direct manual profile switching when `MIXER TRANSITION` is not active. Available only on targets with more than 512 KB flash.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### vtol_fw_to_mc_auto_switch_airspeed_cm_s
 
 Extra low-speed fixed-wing safety fallback [cm/s]. If a usable transition airspeed source falls to this value or lower while in FW, INAV automatically starts FW->MC. Real pitot and explicitly configured `pitot_hardware = VIRTUAL` can both be used. In manual FW flight this requires `mixer_vtol_manualswitch_autotransition_controller` to be ON and keeps MC until the pilot deliberately commands another manual profile change. In mission/RTH/failsafe this requires `mixer_automated_switch` to be ON and keeps the current navigation task in MC after the safety switch, blocking automatic MC->FW re-entry for that navigation session. `vtol_transition_to_mc_max_airspeed_cm_s` still controls when the FW->MC transition is safe to complete. Set to 0 to disable. Available only on targets with more than 512 KB flash.

@@ -178,6 +178,12 @@ const char *osdVtolTransitionMessage(void)
         case MIXERAT_OSD_EVENT_ABORTED:
             return OSD_MSG_VTOL_TRANS_ABORTED;
 
+        case MIXERAT_OSD_EVENT_ABORTED_IN_FW:
+            return OSD_MSG_VTOL_ABORTED_FW;
+
+        case MIXERAT_OSD_EVENT_ABORTED_IN_MC:
+            return OSD_MSG_VTOL_ABORTED_MC;
+
         case MIXERAT_OSD_EVENT_NONE:
         default:
             return NULL;

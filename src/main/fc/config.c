@@ -105,7 +105,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored layout only on >512 KB targets.
 #ifdef USE_AUTO_TRANSITION
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 10);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 11);
 #else
 PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
 #endif
@@ -126,6 +126,7 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .vtolTransitionToFwMinAirspeed = SETTING_VTOL_TRANSITION_TO_FW_MIN_AIRSPEED_CM_S_DEFAULT,
     .vtolTransitionToMcMaxAirspeed = SETTING_VTOL_TRANSITION_TO_MC_MAX_AIRSPEED_CM_S_DEFAULT,
     .vtolFwToMcAutoSwitchAirspeed = SETTING_VTOL_FW_TO_MC_AUTO_SWITCH_AIRSPEED_CM_S_DEFAULT,
+    .vtolAutotransitionAlways = SETTING_VTOL_AUTOTRANSITION_ALWAYS_DEFAULT,
     .vtolTransitionLiftMinPercent = SETTING_VTOL_TRANSITION_LIFT_MIN_PERCENT_DEFAULT,
     .vtolTransitionMcAuthorityMinPercent = SETTING_VTOL_TRANSITION_MC_AUTHORITY_MIN_PERCENT_DEFAULT,
     .vtolTransitionFwAuthorityMinPercent = SETTING_VTOL_TRANSITION_FW_AUTHORITY_MIN_PERCENT_DEFAULT,
