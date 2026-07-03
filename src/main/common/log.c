@@ -205,6 +205,8 @@ void _logBufferHex(logTopic_e topic, unsigned level, const void *buffer, size_t 
 {
     // Print lines of up to maxBytes bytes. We need 5 characters per byte
     // 0xAB[space|\n]
+    // These must be true compile-time constants so the buffer size below is
+    // a real constant expression, not a VLA.
     enum {
         LOG_BUFFER_HEX_CHARS_PER_BYTE = 5,
         LOG_BUFFER_HEX_MAX_BYTES = 8,

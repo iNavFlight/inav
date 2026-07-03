@@ -56,7 +56,8 @@ typedef enum {
     OUTPUT_MODE_MOTORS,
     OUTPUT_MODE_SERVOS,
     OUTPUT_MODE_LED,
-    OUTPUT_MODE_PINIO
+    OUTPUT_MODE_PINIO,
+    OUTPUT_MODE_BEEPER
 } outputMode_e;
 
 typedef struct motorAxisCorrectionLimits_s {
