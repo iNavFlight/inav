@@ -90,6 +90,8 @@ typedef enum {
     LOGIC_CONDITION_ACOS                        = 58,
     LOGIC_CONDITION_ASIN                        = 59,
     LOGIC_CONDITION_ATAN2                       = 60,
+    LOGIC_CONDITION_ACTIVATE_RTH                = 61,
+    LOGIC_CONDITION_ACTIVATE_LANDING            = 62,
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 

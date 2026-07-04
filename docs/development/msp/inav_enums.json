@@ -2088,7 +2088,9 @@
             "LOGIC_CONDITION_ACOS": "58",
             "LOGIC_CONDITION_ASIN": "59",
             "LOGIC_CONDITION_ATAN2": "60",
-            "LOGIC_CONDITION_LAST": "61"
+            "LOGIC_CONDITION_ACTIVATE_RTH": "61",
+            "LOGIC_CONDITION_ACTIVATE_LANDING": "62",
+            "LOGIC_CONDITION_LAST": "63"
         },
         "logicWaypointOperands_e": {
             "_source": "inav/src/main/programming/logic_condition.h",
@@ -2291,6 +2293,12 @@
             "MAVLINK_FC_DISPATCH_NOT_HANDLED": "0",
             "MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY": "1",
             "MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY": "2"
+        },
+        "mavlinkMissionTransferState_e": {
+            "_source": "inav/src/main/mavlink/mavlink_types.h",
+            "MAVLINK_MISSION_TRANSFER_IDLE": "0",
+            "MAVLINK_MISSION_TRANSFER_RECEIVING": "1",
+            "MAVLINK_MISSION_TRANSFER_SENDING": "2"
         },
         "mavlinkPeriodicMessage_e": {
             "_source": "inav/src/main/mavlink/mavlink_types.h",
@@ -2497,11 +2505,12 @@
             "NAV_FSM_EVENT_SWITCH_TO_MIXERAT": "14",
             "NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING": "15",
             "NAV_FSM_EVENT_SWITCH_TO_SEND_TO": "16",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_1": "17",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_2": "18",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_3": "19",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_4": "20",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_5": "21",
+            "NAV_FSM_EVENT_SWITCH_TO_LANDING": "17",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_1": "18",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_2": "19",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_3": "20",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_4": "21",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_5": "22",
             "NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT": "NAV_FSM_EVENT_STATE_SPECIFIC_1",
             "NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED": "NAV_FSM_EVENT_STATE_SPECIFIC_2",
             "NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME": "NAV_FSM_EVENT_STATE_SPECIFIC_1",

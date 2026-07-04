@@ -490,6 +490,18 @@ static int logicConditionCompute(
             return navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)operandA, operandB);
             break;
 
+        case LOGIC_CONDITION_ACTIVATE_RTH:
+            if (ARMING_FLAG(ARMED)) {
+                activateForcedRTH();
+                return getStateOfForcedRTH() != RTH_IDLE;
+            }
+            return false;
+            break;
+
+        case LOGIC_CONDITION_ACTIVATE_LANDING:
+            return activateForcedLanding();
+            break;
+
         case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 

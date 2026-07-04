@@ -64,6 +64,70 @@ static bool handleIncoming_COMMAND(
     UNUSED(param3);
 
     switch (command) {
+        case MAV_CMD_COMPONENT_ARM_DISARM:
+            if (param1 != 0.0f && param1 != 1.0f) {
+                mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
+            mavlinkSendCommandAck(command, fcSetArmState(param1 == 1.0f) ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+            return true;
+        case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+            if (!ARMING_FLAG(ARMED)) {
+                mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
+            activateForcedRTH();
+            mavlinkSendCommandAck(command, getStateOfForcedRTH() != RTH_IDLE ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+            return true;
+        case MAV_CMD_NAV_LAND:
+            mavlinkSendCommandAck(command, activateForcedLanding() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+            return true;
+        case MAV_CMD_NAV_TAKEOFF:
+            mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+            return true;
+        case MAV_CMD_DO_SET_HOME:
+            {
+                if ((param1 != 0.0f && param1 != 1.0f) ||
+                    !mavlinkFrameIsSupported(frame,
+                        MAV_FRAME_SUPPORTED_GLOBAL |
+                        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                        MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                if (!navCanSetHome()) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                navWaypoint_t wp = {0};
+                wp.action = NAV_WP_ACTION_WAYPOINT;
+                if (param1 == 1.0f) {
+                    wp.lat = gpsSol.llh.lat;
+                    wp.lon = gpsSol.llh.lon;
+                    wp.alt = gpsSol.llh.alt - posControl.gpsOrigin.alt;
+                } else {
+                    if (!isfinite(latitudeDeg) || latitudeDeg < -90.0f || latitudeDeg > 90.0f ||
+                        !isfinite(longitudeDeg) || longitudeDeg < -180.0f || longitudeDeg > 180.0f ||
+                        !isfinite(altitudeMeters) ||
+                        altitudeMeters < (float)INT32_MIN / 100.0f ||
+                        altitudeMeters > (float)INT32_MAX / 100.0f) {
+                        mavlinkSendCommandAck(command, MAV_RESULT_FAILED, ackTargetSystem, ackTargetComponent);
+                        return true;
+                    }
+                    wp.lat = (int32_t)lrintf(latitudeDeg * 1e7f);
+                    wp.lon = (int32_t)lrintf(longitudeDeg * 1e7f);
+                    wp.alt = (int32_t)lrintf(altitudeMeters * 100.0f);
+                    if (mavlinkFrameUsesAbsoluteAltitude(frame)) {
+                        wp.alt -= posControl.gpsOrigin.alt;
+                    }
+                }
+                setWaypoint(0, &wp);
+                mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
         case MAV_CMD_DO_REPOSITION:
             if (!mavlinkFrameIsSupported(frame,
                 MAV_FRAME_SUPPORTED_GLOBAL |

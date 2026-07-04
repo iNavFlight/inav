@@ -104,6 +104,7 @@ typedef struct navigationFlags_s {
 
     // Failsafe actions
     bool forcedRTHActivated;
+    bool forcedLandingActivated;
     bool forcedEmergLandingActivated;
 
     /* Landing detector */
@@ -166,6 +167,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_MIXERAT,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING,
     NAV_FSM_EVENT_SWITCH_TO_SEND_TO,
+    NAV_FSM_EVENT_SWITCH_TO_LANDING,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
@@ -476,6 +478,7 @@ typedef struct {
 
     /* Waypoint list */
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
+    navWaypoint_t               commandLandingWaypoint;
     bool                        waypointListValid;
     int8_t                      waypointCount;              // number of WPs in loaded mission
     int8_t                      startWpIndex;               // index of first waypoint in mission

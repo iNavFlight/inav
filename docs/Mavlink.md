@@ -172,6 +172,10 @@ Messages are organized into MAVLink datastream groups. Each group sends one mess
 
 INAV implements a selective but useful subset of the MAVLink Command protocol. Unsupported commands are ACKed as `UNSUPPORTED`.
 
+- `MAV_CMD_COMPONENT_ARM_DISARM`: arms through the normal INAV arming checks or disarms with `DISARM_SWITCH`. The ACK is accepted only when the requested armed state is reached.
+- `MAV_CMD_NAV_RETURN_TO_LAUNCH`: starts the normal forced-RTH path while armed. RTH altitude, safehome, landing, and fixed-wing autoland behavior remain controlled by the existing INAV configuration.
+- `MAV_CMD_NAV_LAND`: while armed with usable navigation estimates, creates a transient LAND waypoint at the current position and enters the same normal landing path used by a mission `NAV_WP_ACTION_LAND`. It does not use emergency landing and does not modify the uploaded mission. Command location fields are ignored; mission items retain their supplied landing position.
+- `MAV_CMD_DO_SET_HOME`: writes the existing INAV waypoint `0` home through `setWaypoint(0, ...)`. `param1 = 1` uses the current GNSS position; `param1 = 0` uses the supplied global location. The existing WP#0 gates still apply: armed state, usable position estimate, valid GPS origin, and GCS-assisted navigation enabled.
 - `MAV_CMD_DO_REPOSITION`: sets the Follow Me / GCS-nav waypoint when GCS nav is valid. Accepts `MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, and `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`; otherwise `UNSUPPORTED`.
 - `MAV_CMD_DO_CHANGE_ALTITUDE`: changes the current altitude target. `param1` is the target altitude in meters and `param2` is interpreted as the MAVLink frame (`MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`); unsupported frames are rejected.
 - `MAV_CMD_CONDITION_YAW`: changes the current heading target when the active navigation state has yaw control. Accepts absolute heading (`param4 = 0`) and relative turns (`param4 != 0`); turn rate is ignored.
@@ -181,6 +185,8 @@ INAV implements a selective but useful subset of the MAVLink Command protocol. U
 - `MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES`: returns `AUTOPILOT_VERSION` (MAVLink2 only; MAVLink1 returns `UNSUPPORTED`) advertising ArduPilot-compatible version `4.7.0` and the capabilities listed above.
 - `MAV_CMD_REQUEST_PROTOCOL_VERSION`: returns `PROTOCOL_VERSION` (MAVLink2 only; MAVLink1 returns `UNSUPPORTED`).
 - `MAV_CMD_CONTROL_HIGH_LATENCY`: enables or disables `HIGH_LATENCY2` scheduling on the ingress MAVLink port (`param1 = 0` or `1`). Enabling is rejected on MAVLink1 links.
+
+`MAV_CMD_NAV_TAKEOFF` has an explicit command stub and currently returns `UNSUPPORTED`.
 
 ## Mode mappings (INAV -> MAVLink / ArduPilot)
 

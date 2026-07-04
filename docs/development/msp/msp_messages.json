@@ -1,7 +1,7 @@
 {
     "version": {
         "major": 2,
-        "minor": 0,
+        "minor": 1,
         "patch": 0
     },
     "messages": {
@@ -11370,6 +11370,56 @@
             "reply": null,
             "notes": "Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.",
             "description": "Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading."
+        },
+        "MSP2_INAV_ACTIVATE_LANDING": {
+            "code": 8740,
+            "mspv": 2,
+            "request": null,
+            "reply": null,
+            "notes": "Requires the aircraft to be armed with usable position, altitude, and heading estimates. Creates a transient LAND waypoint at the current position without changing the uploaded mission, then enters the normal `NAV_STATE_WAYPOINT_RTH_LAND` path. This is not emergency landing.",
+            "description": "Commands an immediate normal landing at the current position."
+        },
+        "MSP2_INAV_ACTIVATE_RTH": {
+            "code": 8741,
+            "mspv": 2,
+            "request": null,
+            "reply": null,
+            "notes": "Requires the aircraft to be armed. Uses `activateForcedRTH()` and returns an error unless the forced-RTH state leaves `RTH_IDLE`.",
+            "description": "Commands the aircraft to execute its configured return-to-home sequence."
+        },
+        "MSP2_INAV_ARM_DISARM": {
+            "code": 8743,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "arm",
+                        "ctype": "uint8_t",
+                        "desc": "Requested armed state: 0 disarms, 1 arms through the normal arming checks.",
+                        "units": "Boolean"
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Returns an error for values other than 0 or 1, or when the requested armed state is not reached.",
+            "description": "Arms or disarms the flight controller using the normal FC arming path."
+        },
+        "MSP2_INAV_TIMESYNC": {
+            "code": 8744,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "timeNs",
+                        "ctype": "uint64_t",
+                        "desc": "Monotonic flight-controller boot time, calculated as `(uint64_t)micros() * 1000`.",
+                        "units": "ns"
+                    }
+                ]
+            },
+            "notes": "The value is little-endian like other MSP integer fields and uses the same boot-time clock returned by MAVLink `TIMESYNC`.",
+            "description": "Returns the local monotonic boot time in nanoseconds."
         },
         "MSP2_INAV_SET_AUX_RC": {
             "code": 8752,

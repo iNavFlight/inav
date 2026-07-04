@@ -177,6 +177,7 @@
 - [mavFrameSupportMask_e](#enum-mavframesupportmask_e)
 - [mavlinkAutopilotType_e](#enum-mavlinkautopilottype_e)
 - [mavlinkFcDispatchResult_e](#enum-mavlinkfcdispatchresult_e)
+- [mavlinkMissionTransferState_e](#enum-mavlinkmissiontransferstate_e)
 - [mavlinkPeriodicMessage_e](#enum-mavlinkperiodicmessage_e)
 - [mavlinkRadio_e](#enum-mavlinkradio_e)
 - [measurementSteps_e](#enum-measurementsteps_e)
@@ -3195,7 +3196,9 @@
 | `LOGIC_CONDITION_ACOS` | 58 |  |
 | `LOGIC_CONDITION_ASIN` | 59 |  |
 | `LOGIC_CONDITION_ATAN2` | 60 |  |
-| `LOGIC_CONDITION_LAST` | 61 |  |
+| `LOGIC_CONDITION_ACTIVATE_RTH` | 61 |  |
+| `LOGIC_CONDITION_ACTIVATE_LANDING` | 62 |  |
+| `LOGIC_CONDITION_LAST` | 63 |  |
 
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
@@ -3449,6 +3452,17 @@
 | `MAVLINK_FC_DISPATCH_NOT_HANDLED` | 0 |  |
 | `MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY` | 1 |  |
 | `MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY` | 2 |  |
+
+---
+## <a id="enum-mavlinkmissiontransferstate_e"></a>`mavlinkMissionTransferState_e`
+
+> Source: ../../../src/main/mavlink/mavlink_types.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MAVLINK_MISSION_TRANSFER_IDLE` | 0 |  |
+| `MAVLINK_MISSION_TRANSFER_RECEIVING` | 1 |  |
+| `MAVLINK_MISSION_TRANSFER_SENDING` | 2 |  |
 
 ---
 ## <a id="enum-mavlinkperiodicmessage_e"></a>`mavlinkPeriodicMessage_e`
@@ -3795,11 +3809,12 @@
 | `NAV_FSM_EVENT_SWITCH_TO_MIXERAT` | 14 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING` | 15 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_SEND_TO` | 16 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_1` | 17 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_2` | 18 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_3` | 19 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_4` | 20 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_5` | 21 |  |
+| `NAV_FSM_EVENT_SWITCH_TO_LANDING` | 17 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_1` | 18 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_2` | 19 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_3` | 20 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_4` | 21 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_5` | 22 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT` | NAV_FSM_EVENT_STATE_SPECIFIC_1 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED` | NAV_FSM_EVENT_STATE_SPECIFIC_2 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME` | NAV_FSM_EVENT_STATE_SPECIFIC_1 |  |

@@ -742,6 +742,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+    case MSP2_INAV_TIMESYNC:
+        {
+            const uint64_t timeNs = (uint64_t)micros() * 1000ULL;
+            sbufWriteU32(dst, (uint32_t)timeNs);
+            sbufWriteU32(dst, (uint32_t)(timeNs >> 32));
+        }
+        break;
+
     case MSP_SONAR_ALTITUDE:
 #ifdef USE_RANGEFINDER
         sbufWriteU32(dst, rangefinderGetLatestAltitude());
@@ -3953,6 +3961,30 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize == 1) {
             uint8_t wpIndex;
             if (sbufReadU8Safe(&wpIndex, src) && navSetActiveWaypointIndex(wpIndex)) {
+                break;
+            }
+        }
+        return MSP_RESULT_ERROR;
+
+    case MSP2_INAV_ACTIVATE_LANDING:
+        if (dataSize == 0 && activateForcedLanding()) {
+            break;
+        }
+        return MSP_RESULT_ERROR;
+
+    case MSP2_INAV_ACTIVATE_RTH:
+        if (dataSize == 0 && ARMING_FLAG(ARMED)) {
+            activateForcedRTH();
+            if (getStateOfForcedRTH() != RTH_IDLE) {
+                break;
+            }
+        }
+        return MSP_RESULT_ERROR;
+
+    case MSP2_INAV_ARM_DISARM:
+        if (dataSize == 1) {
+            uint8_t arm;
+            if (sbufReadU8Safe(&arm, src) && arm <= 1 && fcSetArmState(arm)) {
                 break;
             }
         }

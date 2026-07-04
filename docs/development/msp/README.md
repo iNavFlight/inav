@@ -452,6 +452,10 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [8737 - MSP2_INAV_SET_WP_INDEX](#msp2_inav_set_wp_index)  
 [8739 - MSP2_INAV_SET_CRUISE_HEADING](#msp2_inav_set_cruise_heading)  
+[8740 - MSP2_INAV_ACTIVATE_LANDING](#msp2_inav_activate_landing)  
+[8741 - MSP2_INAV_ACTIVATE_RTH](#msp2_inav_activate_rth)  
+[8743 - MSP2_INAV_ARM_DISARM](#msp2_inav_arm_disarm)  
+[8744 - MSP2_INAV_TIMESYNC](#msp2_inav_timesync)  
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
@@ -4747,6 +4751,48 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.
+
+## <a id="msp2_inav_activate_landing"></a>`MSP2_INAV_ACTIVATE_LANDING (8740 / 0x2224)`
+**Description:** Commands an immediate normal landing at the current position.  
+
+**Request Payload:** **None**  
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires the aircraft to be armed with usable position, altitude, and heading estimates. Creates a transient LAND waypoint at the current position without changing the uploaded mission, then enters the normal `NAV_STATE_WAYPOINT_RTH_LAND` path. This is not emergency landing.
+
+## <a id="msp2_inav_activate_rth"></a>`MSP2_INAV_ACTIVATE_RTH (8741 / 0x2225)`
+**Description:** Commands the aircraft to execute its configured return-to-home sequence.  
+
+**Request Payload:** **None**  
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires the aircraft to be armed. Uses `activateForcedRTH()` and returns an error unless the forced-RTH state leaves `RTH_IDLE`.
+
+## <a id="msp2_inav_arm_disarm"></a>`MSP2_INAV_ARM_DISARM (8743 / 0x2227)`
+**Description:** Arms or disarms the flight controller using the normal FC arming path.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `arm` | `uint8_t` | 1 | Boolean | Requested armed state: 0 disarms, 1 arms through the normal arming checks. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns an error for values other than 0 or 1, or when the requested armed state is not reached.
+
+## <a id="msp2_inav_timesync"></a>`MSP2_INAV_TIMESYNC (8744 / 0x2228)`
+**Description:** Returns the local monotonic boot time in nanoseconds.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `timeNs` | `uint64_t` | 8 | ns | Monotonic flight-controller boot time, calculated as `(uint64_t)micros() * 1000`. |
+
+**Notes:** The value is little-endian like other MSP integer fields and uses the same boot-time clock returned by MAVLink `TIMESYNC`.
 
 ## <a id="msp2_inav_set_aux_rc"></a>`MSP2_INAV_SET_AUX_RC (8752 / 0x2230)`
 **Description:** Bandwidth-efficient auxiliary RC channel update. Sets CH13-CH32 with configurable resolution (2/4/8/16-bit) without affecting primary flight controls. Designed for extending channel count beyond native RC link capacity via MSP passthrough.  
