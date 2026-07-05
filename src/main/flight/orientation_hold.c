@@ -34,11 +34,22 @@
 #include "common/utils.h"
 #include "common/vector.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "fc/rc_modes.h"
+#include "fc/settings.h"
 
 #include "flight/altitude_floor.h"
 #include "flight/imu.h"
 #include "flight/orientation_hold.h"
+
+PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, PG_ORIENTATION_HOLD_CONFIG, 0);
+
+PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
+    .invertedPitchTrim = SETTING_OHOLD_INVERTED_PITCH_TRIM_DEFAULT,
+    .knifePitchTrim = SETTING_OHOLD_KNIFE_PITCH_TRIM_DEFAULT,
+);
 
 typedef struct {
     boxId_e box;
@@ -168,7 +179,15 @@ bool orientationHoldComputeError(fpVector3_t *errDeg)
         if (!preset) {
             return false;
         }
-        orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg);
+        // Per attitude pitch trim, as Euler pitch of the target: positive is
+        // always "nose above the horizon" regardless of the attitude's roll
+        float pitchTrim = 0.0f;
+        if (preset->box == BOXINVERTED) {
+            pitchTrim = orientationHoldConfig()->invertedPitchTrim;
+        } else if (preset->box == BOXKNIFELEFT || preset->box == BOXKNIFERIGHT) {
+            pitchTrim = orientationHoldConfig()->knifePitchTrim;
+        }
+        orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg + pitchTrim);
     }
 
     orientationHoldComputeAttitudeError(errDeg, &orientation, &qTarget);

@@ -25,15 +25,29 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "common/quaternion.h"
 #include "common/vector.h"
+
+#include "config/parameter_group.h"
 
 // Orientation hold: quaternion based attitude controller that can stabilise
 // arbitrary target attitudes (inverted, knife edge, prop hang) on fixed wing.
 // Unlike the Euler based ANGLE controller it has no singularity at
 // pitch = +/-90 deg. Heading (rotation about the earth vertical axis) is
 // always left free, matching ANGLE mode behaviour in normal flight.
+
+// Per attitude pitch trim on the hold target, applied as the Euler pitch of
+// the target (before the attitude's roll): positive = nose above the
+// horizon in every attitude. Inverted flight needs it to hold altitude
+// (down-elevator bias), knife edge to carry the fuselage lift.
+typedef struct orientationHoldConfig_s {
+    int8_t invertedPitchTrim;   // deg, nose above horizon in inverted flight
+    int8_t knifePitchTrim;      // deg, nose above horizon in knife edge (both sides)
+} orientationHoldConfig_t;
+
+PG_DECLARE(orientationHoldConfig_t, orientationHoldConfig);
 
 // Compute the body frame attitude error (deg, per body axis) between qEst
 // and the tilt part of qTarget. The rotation of qEst about the earth

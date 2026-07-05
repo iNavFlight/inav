@@ -4544,3 +4544,21 @@ groups:
         field: thrustComp
         min: 0
         max: 100
+
+  - name: PG_ORIENTATION_HOLD_CONFIG
+    type: orientationHoldConfig_t
+    headers: ["flight/orientation_hold.h"]
+    condition: USE_ORIENTATION_HOLD
+    members:
+      - name: ohold_inverted_pitch_trim
+        description: "Pitch trim [deg] on the INVERTED hold target, positive = nose above the horizon. Inverted flight typically needs a few degrees to hold altitude (down-elevator bias)"
+        default_value: 0
+        field: invertedPitchTrim
+        min: -15
+        max: 15
+      - name: ohold_knife_pitch_trim
+        description: "Pitch trim [deg] on the KNIFE EDGE hold targets (both sides), positive = nose above the horizon, held via the rudder"
+        default_value: 0
+        field: knifePitchTrim
+        min: -15
+        max: 15
