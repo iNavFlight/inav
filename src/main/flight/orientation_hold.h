@@ -43,8 +43,10 @@
 // horizon in every attitude. Inverted flight needs it to hold altitude
 // (down-elevator bias), knife edge to carry the fuselage lift.
 typedef struct orientationHoldConfig_s {
-    int8_t invertedPitchTrim;   // deg, nose above horizon in inverted flight
-    int8_t knifePitchTrim;      // deg, nose above horizon in knife edge (both sides)
+    int8_t invertedPitchTrim;      // deg, nose above horizon in inverted flight
+    int8_t knifeLeftPitchTrim;     // deg, nose above horizon in left knife edge
+    int8_t knifeRightPitchTrim;    // deg, nose above horizon in right knife edge
+                                   // (separate per side: prop effects break the symmetry)
 } orientationHoldConfig_t;
 
 PG_DECLARE(orientationHoldConfig_t, orientationHoldConfig);

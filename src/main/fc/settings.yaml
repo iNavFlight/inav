@@ -4556,9 +4556,15 @@ groups:
         field: invertedPitchTrim
         min: -15
         max: 15
-      - name: ohold_knife_pitch_trim
-        description: "Pitch trim [deg] on the KNIFE EDGE hold targets (both sides), positive = nose above the horizon, held via the rudder"
+      - name: ohold_knife_left_pitch_trim
+        description: "Pitch trim [deg] on the KNIFE EDGE LEFT hold target, positive = nose above the horizon, held via the rudder. Separate per side: the body-fixed prop effects (spiral slipstream, torque, P-factor) point to the vertically opposite direction after the 180 deg roll to the other side, so left/right = shared fuselage-lift part +/- prop part. Reversed prop rotation swaps the sides"
         default_value: 0
-        field: knifePitchTrim
+        field: knifeLeftPitchTrim
+        min: -15
+        max: 15
+      - name: ohold_knife_right_pitch_trim
+        description: "Pitch trim [deg] on the KNIFE EDGE RIGHT hold target, positive = nose above the horizon, held via the rudder. See ohold_knife_left_pitch_trim for why the sides differ"
+        default_value: 0
+        field: knifeRightPitchTrim
         min: -15
         max: 15

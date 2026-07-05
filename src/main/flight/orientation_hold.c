@@ -48,7 +48,8 @@ PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, 
 
 PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     .invertedPitchTrim = SETTING_OHOLD_INVERTED_PITCH_TRIM_DEFAULT,
-    .knifePitchTrim = SETTING_OHOLD_KNIFE_PITCH_TRIM_DEFAULT,
+    .knifeLeftPitchTrim = SETTING_OHOLD_KNIFE_LEFT_PITCH_TRIM_DEFAULT,
+    .knifeRightPitchTrim = SETTING_OHOLD_KNIFE_RIGHT_PITCH_TRIM_DEFAULT,
 );
 
 typedef struct {
@@ -184,8 +185,10 @@ bool orientationHoldComputeError(fpVector3_t *errDeg)
         float pitchTrim = 0.0f;
         if (preset->box == BOXINVERTED) {
             pitchTrim = orientationHoldConfig()->invertedPitchTrim;
-        } else if (preset->box == BOXKNIFELEFT || preset->box == BOXKNIFERIGHT) {
-            pitchTrim = orientationHoldConfig()->knifePitchTrim;
+        } else if (preset->box == BOXKNIFELEFT) {
+            pitchTrim = orientationHoldConfig()->knifeLeftPitchTrim;
+        } else if (preset->box == BOXKNIFERIGHT) {
+            pitchTrim = orientationHoldConfig()->knifeRightPitchTrim;
         }
         orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg + pitchTrim);
     }
