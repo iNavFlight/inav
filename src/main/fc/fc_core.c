@@ -87,6 +87,7 @@
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
+#include "flight/orientation_hold.h"
 #include "flight/rate_dynamics.h"
 
 #include "flight/failsafe.h"
@@ -683,17 +684,24 @@ void processRx(timeUs_t currentTimeUs)
     bool emergRearmAngleEnforce = STATE(MULTIROTOR) && emergRearmStabiliseTimeout > US2MS(currentTimeUs);
     bool autoEnableAngle = failsafeRequiresAngleMode() || navigationRequiresAngleMode() || emergRearmAngleEnforce;
 
-    /* Disable stabilised modes initially, will be enabled as required with priority ANGLE > HORIZON > ANGLEHOLD
+    /* Disable stabilised modes initially, will be enabled as required with priority ANGLE > HORIZON > ORIENTATION HOLD > ANGLEHOLD
      * MANUAL mode has priority over these modes except when ANGLE auto enabled */
     DISABLE_FLIGHT_MODE(ANGLE_MODE);
     DISABLE_FLIGHT_MODE(HORIZON_MODE);
     DISABLE_FLIGHT_MODE(ANGLEHOLD_MODE);
+#ifdef USE_ORIENTATION_HOLD
+    DISABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
+#endif
 
     if (sensors(SENSOR_ACC) && (!FLIGHT_MODE(MANUAL_MODE) || autoEnableAngle)) {
         if (IS_RC_MODE_ACTIVE(BOXANGLE) || autoEnableAngle) {
             ENABLE_FLIGHT_MODE(ANGLE_MODE);
         } else if (IS_RC_MODE_ACTIVE(BOXHORIZON)) {
             ENABLE_FLIGHT_MODE(HORIZON_MODE);
+#ifdef USE_ORIENTATION_HOLD
+        } else if (STATE(AIRPLANE) && orientationHoldIsRequested()) {
+            ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
+#endif
         } else if (STATE(AIRPLANE) && IS_RC_MODE_ACTIVE(BOXANGLEHOLD)) {
             ENABLE_FLIGHT_MODE(ANGLEHOLD_MODE);
         }

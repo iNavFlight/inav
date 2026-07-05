@@ -109,6 +109,10 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXGIMBALRLOCK,      .boxName = "GIMBAL LEVEL ROLL", .permanentId = 66 },
     { .boxId = BOXGIMBALCENTER,     .boxName = "GIMBAL CENTER",     .permanentId = 67 },
     { .boxId = BOXGIMBALHTRK,       .boxName = "GIMBAL HEADTRACKER", .permanentId = 68 },
+    { .boxId = BOXINVERTED,         .boxName = "INVERTED",          .permanentId = 69 },
+    { .boxId = BOXKNIFELEFT,        .boxName = "KNIFE EDGE LEFT",   .permanentId = 70 },
+    { .boxId = BOXKNIFERIGHT,       .boxName = "KNIFE EDGE RIGHT",  .permanentId = 71 },
+    { .boxId = BOXPROPHANG,         .boxName = "PROP HANG",         .permanentId = 72 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -283,6 +287,12 @@ void initActiveBoxIds(void)
         }
         if (sensors(SENSOR_ACC)) {
             ADD_ACTIVE_BOX(BOXANGLEHOLD);
+#ifdef USE_ORIENTATION_HOLD
+            ADD_ACTIVE_BOX(BOXINVERTED);
+            ADD_ACTIVE_BOX(BOXKNIFELEFT);
+            ADD_ACTIVE_BOX(BOXKNIFERIGHT);
+            ADD_ACTIVE_BOX(BOXPROPHANG);
+#endif
         }
     }
 
@@ -449,6 +459,12 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)), BOXMIXERTRANSITION);
 #endif
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANGLEHOLD)),       BOXANGLEHOLD);
+#ifdef USE_ORIENTATION_HOLD
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXINVERTED)),        BOXINVERTED);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKNIFELEFT)),       BOXKNIFELEFT);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKNIFERIGHT)),      BOXKNIFERIGHT);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXPROPHANG)),        BOXPROPHANG);
+#endif
 
 #ifdef USE_SERIAL_GIMBAL
     if(IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {

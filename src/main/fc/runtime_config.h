@@ -108,6 +108,7 @@ typedef enum {
     ANGLEHOLD_MODE        = (1 << 17),
     NAV_FW_AUTOLAND       = (1 << 18),
     NAV_SEND_TO           = (1 << 19),
+    ORIENTATION_HOLD_MODE = (1 << 20),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;

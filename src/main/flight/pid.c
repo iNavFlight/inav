@@ -44,6 +44,7 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
+#include "flight/orientation_hold.h"
 #include "flight/rpm_filter.h"
 #include "flight/kalman.h"
 #include "flight/smith_predictor.h"
@@ -725,6 +726,35 @@ static void pidLevel(const float angleTarget, pidState_t *pidState, flight_dynam
     }
 }
 
+#ifdef USE_ORIENTATION_HOLD
+// Quaternion based attitude hold for arbitrary target attitudes (inverted,
+// knife edge, prop hang). Works on all three body axes and stays defined at
+// pitch = +/-90 deg where the Euler based pidLevel() is singular. Sticks
+// remain live as rate commands on top of the stabilisation.
+static void pidOrientationHold(pidState_t *pidStates, float dT)
+{
+    fpVector3_t errDeg;
+
+    if (!orientationHoldComputeError(&errDeg)) {
+        return;
+    }
+
+    for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        // Same gain and rate limit handling as pidLevel()
+        float rateTarget = constrainf(errDeg.v[axis] * (pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
+                                      -currentControlProfile->stabilized.rates[axis] * 10.0f,
+                                       currentControlProfile->stabilized.rates[axis] * 10.0f);
+
+        if (pidBank()->pid[PID_LEVEL].I) {
+            // I8[PIDLEVEL] is used as a PT1 cutoff frequency (Hz), same as pidLevel()
+            rateTarget = pt1FilterApply4(&pidStates[axis].angleFilterState, rateTarget, pidBank()->pid[PID_LEVEL].I, dT);
+        }
+
+        pidStates[axis].rateTarget = constrainf(pidStates[axis].rateTarget + rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+    }
+}
+#endif
+
 /* Apply angular acceleration limit to rate target to limit extreme stick inputs to respect physical capabilities of the machine */
 static void FAST_CODE pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
@@ -1277,6 +1307,14 @@ void FAST_CODE pidController(float dT)
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     angleHoldIsLevel = false;
 
+#ifdef USE_ORIENTATION_HOLD
+    if (FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
+        // Quaternion attitude hold replaces the Euler level controllers on all three axes
+        pidOrientationHold(pidState, dT);
+        restartAngleHoldMode = true;
+        canUseFpvCameraMix = false;     // not compatible with FPVANGLEMIX
+    } else
+#endif
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ANGLEHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             // If axis angle override, get the correct angle from Logic Conditions

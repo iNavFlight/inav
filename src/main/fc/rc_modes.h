@@ -85,6 +85,10 @@ typedef enum {
     BOXGIMBALRLOCK   = 57,
     BOXGIMBALCENTER  = 58,
     BOXGIMBALHTRK    = 59,
+    BOXINVERTED      = 60,
+    BOXKNIFELEFT     = 61,
+    BOXKNIFERIGHT    = 62,
+    BOXPROPHANG      = 63,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 

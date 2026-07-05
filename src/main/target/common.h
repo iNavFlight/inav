@@ -74,6 +74,7 @@
 #define USE_SMITH_PREDICTOR
 #define USE_RATE_DYNAMICS
 #define USE_EXTENDED_CMS_MENUS
+#define USE_ORIENTATION_HOLD
 
 // Allow default rangefinders
 #define USE_RANGEFINDER
