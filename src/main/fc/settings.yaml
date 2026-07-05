@@ -4526,3 +4526,21 @@ groups:
         field: floorClimbPitch
         min: 5
         max: 45
+
+  - name: PG_THRUST_VECTORING_CONFIG
+    type: thrustVectoringConfig_t
+    headers: ["flight/thrust_vectoring.h"]
+    condition: USE_THRUST_VECTORING
+    members:
+      - name: tvc_gain
+        description: "Overall thrust vectoring deflection gain [%] at full thrust, applied to the TVC servo mixer input sources"
+        default_value: 100
+        field: gain
+        min: 0
+        max: 200
+      - name: tvc_thrust_comp
+        description: "Inverse thrust compensation [%] for the TVC inputs: vane/tilt authority scales with thrust, 100 compensates fully (deflection ~ 1/thrust, capped at low thrust), 0 disables"
+        default_value: 100
+        field: thrustComp
+        min: 0
+        max: 100

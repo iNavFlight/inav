@@ -53,6 +53,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/thrust_vectoring.h"
 
 #include "io/gps.h"
 
@@ -352,6 +353,18 @@ void servoMixer(float dT)
     }
 
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
+
+#ifdef USE_THRUST_VECTORING
+    {
+        // Same stabilized commands as the surfaces, but with inverse thrust
+        // compensation so vectoring vane / tilt motor authority stays
+        // roughly constant across the throttle range
+        const float tvcGain = thrustVectoringGain((mixerThrottleCommand - 1000) / 1000.0f);
+        input[INPUT_TVC_ROLL] = constrain(lrintf(input[INPUT_STABILIZED_ROLL] * tvcGain), -1000, 1000);
+        input[INPUT_TVC_PITCH] = constrain(lrintf(input[INPUT_STABILIZED_PITCH] * tvcGain), -1000, 1000);
+        input[INPUT_TVC_YAW] = constrain(lrintf(input[INPUT_STABILIZED_YAW] * tvcGain), -1000, 1000);
+    }
+#endif
 
     input[INPUT_MIXER_TRANSITION] = isMixerTransitionMixing * 500; //fixed value
     input[INPUT_MIXER_SWITCH_HELPER] = 0; // no input, used to apply speed limit filter from previous servo rules

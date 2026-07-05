@@ -344,6 +344,8 @@ main_sources(COMMON_SRC
     flight/power_limits.h
     flight/rth_estimator.c
     flight/rth_estimator.h
+    flight/thrust_vectoring.c
+    flight/thrust_vectoring.h
     flight/servos.c
     flight/servos.h
     flight/mixer_profile.c

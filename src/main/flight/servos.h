@@ -85,6 +85,9 @@ typedef enum {
     INPUT_RC_CH33                   = 58,
     INPUT_RC_CH34                   = 59,
     INPUT_MIXER_SWITCH_HELPER       = 60,
+    INPUT_TVC_ROLL                  = 61,
+    INPUT_TVC_PITCH                 = 62,
+    INPUT_TVC_YAW                   = 63,
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
