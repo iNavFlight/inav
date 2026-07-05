@@ -331,6 +331,8 @@ main_sources(COMMON_SRC
     flight/smith_predictor.h
     flight/rate_dynamics.c
     flight/rate_dynamics.h
+    flight/altitude_floor.c
+    flight/altitude_floor.h
     flight/mixer.c
     flight/mixer.h
     flight/orientation_hold.c

@@ -36,6 +36,7 @@
 
 #include "fc/rc_modes.h"
 
+#include "flight/altitude_floor.h"
 #include "flight/imu.h"
 #include "flight/orientation_hold.h"
 
@@ -157,13 +158,19 @@ void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion
 
 bool orientationHoldComputeError(fpVector3_t *errDeg)
 {
-    const orientationHoldPreset_t *preset = orientationHoldActivePreset();
-    if (!preset) {
-        return false;
+    fpQuaternion_t qTarget;
+
+    // Altitude floor recovery overrides any selected preset: upright + climb
+    if (altitudeFloorRecoveryActive()) {
+        orientationHoldTargetFromRP(&qTarget, 0.0f, altitudeFloorRecoveryPitchDeg());
+    } else {
+        const orientationHoldPreset_t *preset = orientationHoldActivePreset();
+        if (!preset) {
+            return false;
+        }
+        orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg);
     }
 
-    fpQuaternion_t qTarget;
-    orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg);
     orientationHoldComputeAttitudeError(errDeg, &orientation, &qTarget);
     return true;
 }

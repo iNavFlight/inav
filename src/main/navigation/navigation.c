@@ -4761,6 +4761,11 @@ bool navigationPositionEstimateIsHealthy(void)
     return posControl.flags.estPosStatus >= EST_USABLE && posControl.flags.estAltStatus >= EST_USABLE && STATE(GPS_FIX_HOME);
 }
 
+bool navIsAltitudeEstimateTrusted(void)
+{
+    return posControl.flags.estAltStatus >= EST_USABLE;
+}
+
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 {
     const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) ||

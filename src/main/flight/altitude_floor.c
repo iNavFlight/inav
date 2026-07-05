@@ -1,0 +1,107 @@
+/*
+ * This file is part of INAV Project.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * Alternatively, the contents of this file may be used under the terms
+ * of the GNU General Public License Version 3, as described below:
+ *
+ * This file is free software: you may copy, redistribute and/or modify
+ * it under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ */
+
+#include <stdbool.h>
+
+#include <platform.h>
+
+#ifdef USE_ORIENTATION_HOLD
+
+#include "common/axis.h"
+#include "common/maths.h"
+
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
+#include "fc/rc_modes.h"
+#include "fc/runtime_config.h"
+#include "fc/settings.h"
+
+#include "flight/altitude_floor.h"
+
+#include "navigation/navigation.h"
+
+PG_REGISTER_WITH_RESET_TEMPLATE(altitudeFloorConfig_t, altitudeFloorConfig, PG_ALTITUDE_FLOOR_CONFIG, 0);
+
+PG_RESET_TEMPLATE(altitudeFloorConfig_t, altitudeFloorConfig,
+    .floorAltitude = SETTING_ALT_FLOOR_ALTITUDE_DEFAULT,
+    .floorMargin = SETTING_ALT_FLOOR_MARGIN_DEFAULT,
+    .floorClimbPitch = SETTING_ALT_FLOOR_CLIMB_PITCH_DEFAULT,
+);
+
+// How far ahead the sink prediction looks. Must cover the roll-to-upright
+// time AND the Z estimator lag: under sustained sink the estimated altitude
+// trails the true altitude by roughly vz * estimator time constant (~2-3 s
+// with default baro weighting), so a short lookahead catches far too low.
+#define ALT_FLOOR_LOOKAHEAD_S 3.0f
+
+static bool floorArmed = false;      // climbed above floor + margin once
+static bool floorRecovery = false;
+
+void altitudeFloorUpdate(void)
+{
+    if (!IS_RC_MODE_ACTIVE(BOXALTFLOOR) || !ARMING_FLAG(ARMED) || !STATE(AIRPLANE)
+        || !navIsAltitudeEstimateTrusted()) {
+        floorArmed = false;
+        floorRecovery = false;
+        return;
+    }
+
+    const float z = getEstimatedActualPosition(Z);          // cm above home
+    const float vz = getEstimatedActualVelocity(Z);         // cm/s
+    const float floorCm = altitudeFloorConfig()->floorAltitude * 100.0f;
+    const float marginCm = altitudeFloorConfig()->floorMargin * 100.0f;
+
+    if (!floorArmed) {
+        // Arm only after climbing above floor + margin once, so switching
+        // the box on while on the ground (or arming below the floor) never
+        // grabs the aircraft during takeoff
+        floorArmed = z > (floorCm + marginCm);
+        return;
+    }
+
+    if (!floorRecovery) {
+        // Predictive engage: catch before the floor, not at it
+        if (vz < 0.0f && (z + vz * ALT_FLOOR_LOOKAHEAD_S) < floorCm) {
+            floorRecovery = true;
+        }
+    } else {
+        // Release when back above floor + margin and climbing
+        if (z > (floorCm + marginCm) && vz > 0.0f) {
+            floorRecovery = false;
+        }
+    }
+}
+
+bool altitudeFloorRecoveryActive(void)
+{
+    return floorRecovery;
+}
+
+float altitudeFloorRecoveryPitchDeg(void)
+{
+    return (float)altitudeFloorConfig()->floorClimbPitch;
+}
+
+#endif // USE_ORIENTATION_HOLD

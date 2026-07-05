@@ -89,6 +89,7 @@ typedef enum {
     BOXKNIFELEFT     = 61,
     BOXKNIFERIGHT    = 62,
     BOXPROPHANG      = 63,
+    BOXALTFLOOR      = 64,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 

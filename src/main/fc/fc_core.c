@@ -87,6 +87,7 @@
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
+#include "flight/altitude_floor.h"
 #include "flight/orientation_hold.h"
 #include "flight/rate_dynamics.h"
 
@@ -684,17 +685,27 @@ void processRx(timeUs_t currentTimeUs)
     bool emergRearmAngleEnforce = STATE(MULTIROTOR) && emergRearmStabiliseTimeout > US2MS(currentTimeUs);
     bool autoEnableAngle = failsafeRequiresAngleMode() || navigationRequiresAngleMode() || emergRearmAngleEnforce;
 
-    /* Disable stabilised modes initially, will be enabled as required with priority ANGLE > HORIZON > ORIENTATION HOLD > ANGLEHOLD
+    /* Disable stabilised modes initially, will be enabled as required with priority
+     * auto ANGLE (failsafe/nav) > ALT FLOOR recovery > ANGLE > HORIZON > ORIENTATION HOLD > ANGLEHOLD
      * MANUAL mode has priority over these modes except when ANGLE auto enabled */
     DISABLE_FLIGHT_MODE(ANGLE_MODE);
     DISABLE_FLIGHT_MODE(HORIZON_MODE);
     DISABLE_FLIGHT_MODE(ANGLEHOLD_MODE);
 #ifdef USE_ORIENTATION_HOLD
     DISABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
+    altitudeFloorUpdate();
 #endif
 
     if (sensors(SENSOR_ACC) && (!FLIGHT_MODE(MANUAL_MODE) || autoEnableAngle)) {
-        if (IS_RC_MODE_ACTIVE(BOXANGLE) || autoEnableAngle) {
+        if (autoEnableAngle) {
+            ENABLE_FLIGHT_MODE(ANGLE_MODE);
+#ifdef USE_ORIENTATION_HOLD
+        } else if (STATE(AIRPLANE) && altitudeFloorRecoveryActive()) {
+            // Automatic floor recovery: upright + climb, overrides the pilot's
+            // stabilised mode selection until back above the floor
+            ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
+#endif
+        } else if (IS_RC_MODE_ACTIVE(BOXANGLE)) {
             ENABLE_FLIGHT_MODE(ANGLE_MODE);
         } else if (IS_RC_MODE_ACTIVE(BOXHORIZON)) {
             ENABLE_FLIGHT_MODE(HORIZON_MODE);

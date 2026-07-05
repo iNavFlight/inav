@@ -683,6 +683,7 @@ int8_t navigationGetHeadingControlState(void);
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass);
 bool navigationPositionEstimateIsHealthy(void);
 bool navIsCalibrationComplete(void);
+bool navIsAltitudeEstimateTrusted(void);
 bool navigationTerrainFollowingEnabled(void);
 
 /* Access to estimated position and velocity */

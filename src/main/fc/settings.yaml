@@ -4502,3 +4502,27 @@ groups:
         field: noWayHomeAction
         table: geozone_rth_no_way_home
         type: uint8_t
+
+  - name: PG_ALTITUDE_FLOOR_CONFIG
+    type: altitudeFloorConfig_t
+    headers: ["flight/altitude_floor.h"]
+    condition: USE_ORIENTATION_HOLD
+    members:
+      - name: alt_floor_altitude
+        description: "Altitude floor [m above home]. With the ALT FLOOR mode active and armed (climbed above floor + margin once), a predicted floor breach engages an automatic upright + climb recovery. Switch the mode off to land."
+        default_value: 30
+        field: floorAltitude
+        min: 5
+        max: 500
+      - name: alt_floor_margin
+        description: "Margin above the altitude floor [m] to arm the floor after takeoff and to release the recovery"
+        default_value: 10
+        field: floorMargin
+        min: 2
+        max: 100
+      - name: alt_floor_climb_pitch
+        description: "Nose up pitch target [deg] flown during altitude floor recovery"
+        default_value: 15
+        field: floorClimbPitch
+        min: 5
+        max: 45
