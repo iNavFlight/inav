@@ -83,52 +83,76 @@ void orientationHoldTargetFromRP(fpQuaternion_t *qTarget, float rollDeg, float p
     qTarget->q3 = -sinRoll * sinPitch;
 }
 
+// Earth vertical (up) expressed in the body frame, normalized. Works for a
+// slightly denormalized quaternion as well.
+static void earthUpInBodyFrame(fpVector3_t *up, const fpQuaternion_t *q)
+{
+    fpVector3_t v = { .v = { 0.0f, 0.0f, 1.0f } };
+    quaternionRotateVector(&v, &v, q);
+    const float norm = fast_fsqrtf(sq(v.x) + sq(v.y) + sq(v.z));
+    up->x = v.x / norm;
+    up->y = v.y / norm;
+    up->z = v.z / norm;
+}
+
 void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion_t *qEst, const fpQuaternion_t *qTarget)
 {
-    // Swing-twist decomposition: split qEst into a rotation about the earth
-    // vertical axis (twist = heading) and the remaining tilt (swing), then
-    // form the error against the tilt only. Exact for large angles, unlike
-    // projecting the final rotation vector.
-    fpQuaternion_t qTwist = { .q0 = qEst->q0, .q1 = 0.0f, .q2 = 0.0f, .q3 = qEst->q3 };
-    const float twistNormSq = sq(qTwist.q0) + sq(qTwist.q3);
+    // Reduced attitude control: regulate the direction of the earth vertical
+    // in the body frame instead of the full rotation. The rotation about the
+    // vertical axis (heading in normal/inverted flight, body roll at prop
+    // hang) is free by construction. Unlike a swing-twist decomposition
+    // about earth Z this has no degenerate region near inverted, where
+    // w^2 + z^2 vanishes for every heading and the extracted twist direction
+    // is noise driven.
+    fpVector3_t upEst, upTarget;
+    earthUpInBodyFrame(&upEst, qEst);
+    earthUpInBodyFrame(&upTarget, qTarget);
 
-    fpQuaternion_t qSwing;
-    if (twistNormSq > 1e-6f) {
-        const float twistNormInv = 1.0f / sqrtf(twistNormSq);
-        qTwist.q0 *= twistNormInv;
-        qTwist.q3 *= twistNormInv;
+    // Shortest rotation taking upEst to upTarget; operand order gives the
+    // pidLevel() sign convention (error = target - attitude), pinned by the
+    // host convention tests
+    fpVector3_t cross = { .v = {
+        upTarget.y * upEst.z - upTarget.z * upEst.y,
+        upTarget.z * upEst.x - upTarget.x * upEst.z,
+        upTarget.x * upEst.y - upTarget.y * upEst.x,
+    }};
+    const float crossNorm = fast_fsqrtf(sq(cross.x) + sq(cross.y) + sq(cross.z));
+    const float dot = upEst.x * upTarget.x + upEst.y * upTarget.y + upEst.z * upTarget.z;
+    const float angle = atan2_approx(crossNorm, dot);
 
-        // qEst = qTwist (about earth Z) * qSwing  =>  qSwing = qTwist^-1 * qEst
-        fpQuaternion_t qTwistInv;
-        quaternionConjugate(&qTwistInv, &qTwist);
-        quaternionMultiply(&qSwing, &qTwistInv, qEst);
+    fpVector3_t axis;
+    if (crossNorm > 1e-6f) {
+        axis.x = cross.x / crossNorm;
+        axis.y = cross.y / crossNorm;
+        axis.z = cross.z / crossNorm;
+    } else if (dot < 0.0f) {
+        // Exactly 180 deg of tilt error: rotation axis is ambiguous, pick a
+        // deterministic body axis orthogonal to the target up direction
+        // (the one least aligned with it)
+        fpVector3_t seed = { .v = { 0.0f, 0.0f, 0.0f } };
+        if (fabsf(upTarget.x) <= fabsf(upTarget.y) && fabsf(upTarget.x) <= fabsf(upTarget.z)) {
+            seed.x = 1.0f;
+        } else if (fabsf(upTarget.y) <= fabsf(upTarget.z)) {
+            seed.y = 1.0f;
+        } else {
+            seed.z = 1.0f;
+        }
+        axis.x = upTarget.y * seed.z - upTarget.z * seed.y;
+        axis.y = upTarget.z * seed.x - upTarget.x * seed.z;
+        axis.z = upTarget.x * seed.y - upTarget.y * seed.x;
+        const float norm = fast_fsqrtf(sq(axis.x) + sq(axis.y) + sq(axis.z));
+        axis.x /= norm;
+        axis.y /= norm;
+        axis.z /= norm;
     } else {
-        // Degenerate at 180 deg of twist (e.g. inverted flying the opposite
-        // heading): treat the full rotation as swing, shortest path handling
-        // below keeps the error bounded.
-        qSwing = *qEst;
+        errDeg->x = errDeg->y = errDeg->z = 0.0f;
+        return;
     }
 
-    // Attitude error in the rotation group: qErr = qTarget^-1 * qSwing
-    fpQuaternion_t qTargetInv, qErr;
-    quaternionConjugate(&qTargetInv, qTarget);
-    quaternionMultiply(&qErr, &qTargetInv, &qSwing);
-    quaternionNormalize(&qErr, &qErr);
-
-    // Shortest path: q and -q encode the same rotation, pick |angle| <= 180 deg
-    if (qErr.q0 < 0.0f) {
-        quaternionScale(&qErr, &qErr, -1.0f);
-    }
-
-    // Rotation vector err = 2 * log(qErr), valid for large error angles
-    fpAxisAngle_t axisAngle;
-    quaternionToAxisAngle(&axisAngle, &qErr);
-
-    // Error is "attitude ahead of target", the controller must command the
-    // opposite rate, matching pidLevel() where error = target - attitude
-    errDeg->x = -RADIANS_TO_DEGREES(axisAngle.axis.x * axisAngle.angle);
-    errDeg->y = -RADIANS_TO_DEGREES(axisAngle.axis.y * axisAngle.angle);
-    errDeg->z = -RADIANS_TO_DEGREES(axisAngle.axis.z * axisAngle.angle);
+    // Sign matches pidLevel(): error = target - attitude
+    errDeg->x = RADIANS_TO_DEGREES(axis.x * angle);
+    errDeg->y = RADIANS_TO_DEGREES(axis.y * angle);
+    errDeg->z = RADIANS_TO_DEGREES(axis.z * angle);
 }
 
 bool orientationHoldComputeError(fpVector3_t *errDeg)
