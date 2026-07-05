@@ -231,9 +231,12 @@ static void timerHardwareOverride(timerHardware_t * timer, bool isCanonicalBeepe
             break;
         case OUTPUT_MODE_BEEPER:
             // Other channels of this timer share its period register, so they can't
-            // be repurposed as motor/servo/LED/PINIO either — leave them flagless.
-            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED|TIM_USE_PINIO|TIM_USE_BEEPER);
+            // be repurposed as motor/servo/LED either. They can still drive a GPIO-only
+            // PINIO (binary on/off, no PWM), since that doesn't need the timer's period.
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED|TIM_USE_BEEPER);
+            timer->usageFlags |= TIM_USE_PINIO;
             if (isCanonicalBeeperPad) {
+                timer->usageFlags &= ~TIM_USE_PINIO;
                 timer->usageFlags |= TIM_USE_BEEPER;
             }
             break;
