@@ -77,6 +77,7 @@
 #include "flight/failsafe.h"
 #include "flight/figure_sequencer.h"
 #include "flight/imu.h"
+#include "flight/orientation_hold.h"
 #include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -4487,6 +4488,42 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         mspFcDataFlashReadCommand(dst, src);
         *ret = MSP_RESULT_ACK;
         break;
+#endif
+
+#ifdef USE_ORIENTATION_HOLD
+    case MSP2_INAV_ORIENTATION_HOLD_TEST: {
+        // Level-1 test injection (bench/HIL): evaluate the orientation hold
+        // error function and the level gain on the given quaternions.
+        // Pure computation on this MCU's float32 - no controller or
+        // estimator state is touched, safe in any build/flight state.
+        if (dataSize != 8 * sizeof(uint32_t)) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+        union { uint32_t u; float f; } pun;
+        fpQuaternion_t qEst, qTarget;
+        float * const in[8] = { &qEst.q0, &qEst.q1, &qEst.q2, &qEst.q3,
+                                &qTarget.q0, &qTarget.q1, &qTarget.q2, &qTarget.q3 };
+        for (int i = 0; i < 8; i++) {
+            pun.u = sbufReadU32(src);
+            *in[i] = pun.f;
+        }
+
+        fpVector3_t errDeg;
+        orientationHoldComputeAttitudeError(&errDeg, &qEst, &qTarget);
+        for (int i = 0; i < 3; i++) {
+            pun.f = errDeg.v[i];
+            sbufWriteU32(dst, pun.u);
+        }
+        for (int axis = 0; axis < 3; axis++) {
+            pun.f = constrainf(errDeg.v[axis] * (pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
+                               -currentControlProfile->stabilized.rates[axis] * 10.0f,
+                                currentControlProfile->stabilized.rates[axis] * 10.0f);
+            sbufWriteU32(dst, pun.u);
+        }
+        *ret = MSP_RESULT_ACK;
+        break;
+    }
 #endif
 
     case MSP2_COMMON_SETTING:
