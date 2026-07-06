@@ -720,6 +720,12 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
+#ifdef USE_ORIENTATION_HOLD
+    if (!FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
+        orientationHoldResetSourceTracking();
+    }
+#endif
+
     if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
         LED1_ON;
     } else {

@@ -68,3 +68,7 @@ bool orientationHoldIsRequested(void);
 // Body frame attitude error (deg) for the currently selected target.
 // Returns false when no orientation hold box is active.
 bool orientationHoldComputeError(fpVector3_t *errDeg);
+
+// Call while ORIENTATION_HOLD_MODE is inactive: resets the target-source
+// tracking (and the rate-loop I accumulators once on the exit edge)
+void orientationHoldResetSourceTracking(void);

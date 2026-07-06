@@ -44,6 +44,7 @@
 #include "flight/figure_sequencer.h"
 #include "flight/imu.h"
 #include "flight/orientation_hold.h"
+#include "flight/pid.h"
 
 PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, PG_ORIENTATION_HOLD_CONFIG, 0);
 
@@ -169,15 +170,48 @@ void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion
     errDeg->z = RADIANS_TO_DEGREES(axis.z * angle);
 }
 
+// Rate-loop I-term reset on target-source switches (e.g. prop hang ->
+// knife edge): the accumulated I trims the OLD attitude's holding load
+// (propwash vs knife rudder load) and would discharge as a disturbance
+// into the new attitude. Within a figure (continuous trajectory) the
+// source stays the same and the I-term is kept.
+#define OHOLD_SOURCE_NONE   (-1)
+#define OHOLD_SOURCE_FLOOR  (-2)
+#define OHOLD_SOURCE_FIGURE (-3)
+
+static int activeTargetSource = OHOLD_SOURCE_NONE;
+
+static void orientationHoldCheckSourceSwitch(int source)
+{
+    if (source != activeTargetSource) {
+        if (activeTargetSource != OHOLD_SOURCE_NONE || source != OHOLD_SOURCE_NONE) {
+            pidResetErrorAccumulators();
+        }
+        activeTargetSource = source;
+    }
+}
+
+void orientationHoldResetSourceTracking(void)
+{
+    // mode left: also reset, the attitude's holding-load trim in the I-term
+    // would discharge into the pilot's manual/acro flying otherwise
+    if (activeTargetSource != OHOLD_SOURCE_NONE) {
+        pidResetErrorAccumulators();
+        activeTargetSource = OHOLD_SOURCE_NONE;
+    }
+}
+
 bool orientationHoldComputeError(fpVector3_t *errDeg)
 {
     fpQuaternion_t qTarget;
 
     // Altitude floor recovery overrides any selected preset: upright + climb
     if (altitudeFloorRecoveryActive()) {
+        orientationHoldCheckSourceSwitch(OHOLD_SOURCE_FLOOR);
         orientationHoldTargetFromRP(&qTarget, 0.0f, altitudeFloorRecoveryPitchDeg());
     } else if (figureSequencerRequested()) {
         float figRoll, figPitch;
+        orientationHoldCheckSourceSwitch(OHOLD_SOURCE_FIGURE);
         figureSequencerGetTarget(&figRoll, &figPitch);
         orientationHoldTargetFromRP(&qTarget, figRoll, figPitch);
     } else {
@@ -185,6 +219,7 @@ bool orientationHoldComputeError(fpVector3_t *errDeg)
         if (!preset) {
             return false;
         }
+        orientationHoldCheckSourceSwitch(preset->box);
         // Per attitude pitch trim, as Euler pitch of the target: positive is
         // always "nose above the horizon" regardless of the attitude's roll
         float pitchTrim = 0.0f;
