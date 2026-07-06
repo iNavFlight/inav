@@ -75,6 +75,7 @@
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
+#include "flight/figure_sequencer.h"
 #include "flight/imu.h"
 #include "flight/mixer_profile.h"
 #include "flight/mixer.h"
@@ -565,6 +566,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
         }
         break;
+#ifdef USE_ORIENTATION_HOLD
+    case MSP2_INAV_FIGURE_SEQUENCE:
+        for (int i = 0; i < MAX_FIGURE_SEQUENCE_SEGMENTS; i++) {
+            sbufWriteU8(dst, figureSequence(i)->type);
+            sbufWriteU16(dst, figureSequence(i)->p1);
+            sbufWriteU16(dst, figureSequence(i)->p2);
+            sbufWriteU16(dst, figureSequence(i)->p3);
+            sbufWriteU8(dst, figureSequence(i)->flags);
+        }
+        break;
+#endif
+
     case MSP2_INAV_SERVO_MIXER:
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
             sbufWriteU8(dst, customServoMixers(i)->targetChannel);
@@ -2371,6 +2384,26 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
+
+#ifdef USE_ORIENTATION_HOLD
+    case MSP2_INAV_SET_FIGURE_SEQUENCE:
+        sbufReadU8Safe(&tmp_u8, src);
+        if ((dataSize == 9) && (tmp_u8 < MAX_FIGURE_SEQUENCE_SEGMENTS)) {
+            figureSegment_t *seg = figureSequenceMutable(tmp_u8);
+            seg->type = sbufReadU8(src);
+            seg->p1 = sbufReadU16(src);
+            seg->p2 = sbufReadU16(src);
+            seg->p3 = sbufReadU16(src);
+            seg->flags = sbufReadU8(src);
+            if (seg->type >= FIGSEG_TYPE_COUNT) {
+                seg->type = FIGSEG_END;
+                return MSP_RESULT_ERROR;
+            }
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+#endif
+
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_SET_LOGIC_CONDITIONS:
         sbufReadU8Safe(&tmp_u8, src);

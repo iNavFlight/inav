@@ -56,11 +56,14 @@ PG_RESET_TEMPLATE(figureSequencerConfig_t, figureSequencerConfig,
     .assistMax = SETTING_FIG_ASSIST_MAX_DEFAULT,
 );
 
+PG_REGISTER_ARRAY(figureSegment_t, MAX_FIGURE_SEQUENCE_SEGMENTS, figureSequence, PG_FIGURE_SEQUENCE, 0);
+
 typedef enum {
     FIGURE_NONE = 0,
     FIGURE_ROLL,
     FIGURE_LOOP,
     FIGURE_POINT_ROLL,
+    FIGURE_SEQUENCE,
 } figureType_e;
 
 typedef enum {
@@ -76,8 +79,18 @@ static float startAltitudeCm;
 static float targetRollDeg;
 static float targetPitchDeg;
 
+// sequence (FIGURE SEQ) state
+static int seqIndex;
+static timeMs_t seqSegStartMs;
+static float seqBaseRoll;
+static float seqBasePitch;
+static float seqSegAltCm;      // assist reference, captured at segment entry
+
 static figureType_e requestedFigure(void)
 {
+    if (IS_RC_MODE_ACTIVE(BOXFIGSEQ)) {
+        return FIGURE_SEQUENCE;
+    }
     if (IS_RC_MODE_ACTIVE(BOXFIGROLL)) {
         return FIGURE_ROLL;
     }
@@ -93,21 +106,26 @@ static figureType_e requestedFigure(void)
 // Altitude assist: earth referenced nose-above-horizon offset from an
 // altitude/climb-rate PID, blended out as the nose approaches vertical
 // (there altitude is a thrust problem, not an attitude problem)
-static float altitudeAssistDeg(float nosePitchDeg)
+static float altitudeAssistDeg(float nosePitchDeg, float refAltCm)
 {
     if (!navIsAltitudeEstimateTrusted()) {
         return 0.0f;
     }
 
-    const float zErrM = (startAltitudeCm - getEstimatedActualPosition(Z)) / 100.0f;
+    const float zErrM = (refAltCm - getEstimatedActualPosition(Z)) / 100.0f;
     const float sinkMs = -getEstimatedActualVelocity(Z) / 100.0f;
 
     float offset = (figureSequencerConfig()->assistZGain / 10.0f) * zErrM
                  + figureSequencerConfig()->assistVzGain * sinkMs;
     offset = constrainf(offset, -figureSequencerConfig()->assistMax, figureSequencerConfig()->assistMax);
 
-    // cos blend toward nose-vertical
-    return offset * cos_approx(DEGREES_TO_RADIANS(constrainf(nosePitchDeg, -90.0f, 90.0f)));
+    // The offset must raise the NOSE ELEVATION. With an accumulated pitch
+    // parameter past +/-90 (e.g. base pitch 180 after a half loop) the raw
+    // pitch parameter acts inverted on the elevation: elevation = sin(pitch),
+    // d(elevation)/d(pitch) flips sign with cos(pitch). Blend out toward
+    // nose-vertical with |cos| (= cos of the true elevation).
+    const float cosPitch = cos_approx(DEGREES_TO_RADIANS(nosePitchDeg));
+    return offset * cosPitch;   // magnitude blends with |cos|, sign corrects the direction
 }
 
 void figureSequencerUpdate(void)
@@ -125,6 +143,11 @@ void figureSequencerUpdate(void)
         state = FIG_STATE_RUNNING;
         startTimeMs = millis();
         startAltitudeCm = getEstimatedActualPosition(Z);
+        seqIndex = 0;
+        seqSegStartMs = startTimeMs;
+        seqBaseRoll = 0.0f;
+        seqBasePitch = 0.0f;
+        seqSegAltCm = startAltitudeCm;
     }
 
     const float tS = (millis() - startTimeMs) * 0.001f;
@@ -151,6 +174,101 @@ void figureSequencerUpdate(void)
                 state = FIG_STATE_DONE;
                 pitch = 0.0f;
                 assist = true;  // level again: hold the entry altitude
+            }
+            break;
+        }
+
+        case FIGURE_SEQUENCE: {
+            // advance through the programmed segment chain
+            while (state == FIG_STATE_RUNNING) {
+                if (seqIndex >= MAX_FIGURE_SEQUENCE_SEGMENTS
+                    || figureSequence(seqIndex)->type == FIGSEG_END
+                    || figureSequence(seqIndex)->type >= FIGSEG_TYPE_COUNT) {
+                    state = FIG_STATE_DONE;
+                    break;
+                }
+
+                const figureSegment_t *seg = figureSequence(seqIndex);
+                const float tSeg = (millis() - seqSegStartMs) * 0.001f;
+                bool segDone = false;
+
+                switch (seg->type) {
+                    case FIGSEG_ROLL: {
+                        const float span = ABS((float)seg->p1);
+                        const float theta = MIN(figureSequencerConfig()->rollRate * tSeg, span);
+                        roll = seqBaseRoll + (seg->p1 < 0 ? -theta : theta);
+                        pitch = seqBasePitch;
+                        assist = seg->flags & FIGSEG_FLAG_ASSIST;
+                        if (theta >= span) {
+                            seqBaseRoll += seg->p1;
+                            segDone = true;
+                        }
+                        break;
+                    }
+
+                    case FIGSEG_PITCH: {
+                        const float span = ABS((float)seg->p1);
+                        const float theta = MIN(figureSequencerConfig()->loopRate * tSeg, span);
+                        roll = seqBaseRoll;
+                        pitch = seqBasePitch + (seg->p1 < 0 ? -theta : theta);
+                        assist = false;
+                        if (theta >= span) {
+                            seqBasePitch += seg->p1;
+                            segDone = true;
+                        }
+                        break;
+                    }
+
+                    case FIGSEG_HOLD:
+                        seqBaseRoll = seg->p1;
+                        seqBasePitch = seg->p2;
+                        roll = seqBaseRoll;
+                        pitch = seqBasePitch;
+                        assist = seg->flags & FIGSEG_FLAG_ASSIST;
+                        segDone = tSeg * 1000.0f >= seg->p3;
+                        break;
+
+                    case FIGSEG_WAIT_ALT: {
+                        // wings level, climb/descend to the target altitude
+                        // via the assist mechanism, gate until reached
+                        seqBaseRoll = 0.0f;
+                        seqBasePitch = 0.0f;
+                        roll = 0.0f;
+                        pitch = 0.0f;
+                        seqSegAltCm = seg->p1 * 100.0f;
+                        assist = true;
+                        const float tolCm = MAX(seg->p2, 1) * 100.0f;
+                        segDone = navIsAltitudeEstimateTrusted()
+                            && ABS(getEstimatedActualPosition(Z) - seqSegAltCm) < tolCm
+                            && ABS(getEstimatedActualVelocity(Z)) < 150.0f;
+                        break;
+                    }
+
+                    case FIGSEG_WAIT_TIME:
+                        roll = seqBaseRoll;
+                        pitch = seqBasePitch;
+                        assist = seg->flags & FIGSEG_FLAG_ASSIST;
+                        segDone = tSeg * 1000.0f >= seg->p3;
+                        break;
+
+                    default:
+                        segDone = true;
+                        break;
+                }
+
+                if (!segDone) {
+                    break;
+                }
+                seqIndex++;
+                seqSegStartMs = millis();
+                if (figureSequence(MIN(seqIndex, MAX_FIGURE_SEQUENCE_SEGMENTS - 1))->type != FIGSEG_WAIT_ALT) {
+                    seqSegAltCm = getEstimatedActualPosition(Z);   // assist reference for the next segment
+                }
+            }
+            if (state == FIG_STATE_DONE) {
+                roll = 0.0f;
+                pitch = 0.0f;
+                assist = true;
             }
             break;
         }
@@ -182,7 +300,9 @@ void figureSequencerUpdate(void)
     }
 
     targetRollDeg = roll;
-    targetPitchDeg = pitch + (assist ? altitudeAssistDeg(pitch) : 0.0f);
+    targetPitchDeg = pitch + (assist
+        ? altitudeAssistDeg(pitch, activeFigure == FIGURE_SEQUENCE ? seqSegAltCm : startAltitudeCm)
+        : 0.0f);
 }
 
 bool figureSequencerRequested(void)

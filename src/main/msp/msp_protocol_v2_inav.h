@@ -133,3 +133,6 @@
 #define MSP2_INAV_SET_CRUISE_HEADING            0x2223  //in message  set heading while in Cruise/Course Hold mode; payload: I32 heading_centidegrees (0-35999)
 
 #define MSP2_INAV_SET_AUX_RC                    0x2230
+
+#define MSP2_INAV_FIGURE_SEQUENCE               0x2240
+#define MSP2_INAV_SET_FIGURE_SEQUENCE           0x2241

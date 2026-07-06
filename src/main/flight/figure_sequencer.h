@@ -54,6 +54,35 @@ typedef struct figureSequencerConfig_s {
 
 PG_DECLARE(figureSequencerConfig_t, figureSequencerConfig);
 
+// Programmable figure sequence (FIGURE SEQ box): a chain of segments flown
+// in order. Rotations are cumulative on the running attitude baseline, so
+// e.g. Immelmann = PITCH +180 then ROLL +180. Wait segments gate the chain
+// on preconditions (altitude now; position is reserved, it needs heading
+// control / nav coupling).
+#define MAX_FIGURE_SEQUENCE_SEGMENTS 16
+
+typedef enum {
+    FIGSEG_END = 0,          // terminator / unused slot
+    FIGSEG_ROLL = 1,         // p1: signed deg, cumulative, at fig_roll_rate
+    FIGSEG_PITCH = 2,        // p1: signed deg, cumulative, at fig_loop_rate
+    FIGSEG_HOLD = 3,         // p1: roll deg, p2: pitch deg (absolute), p3: ms
+    FIGSEG_WAIT_ALT = 4,     // p1: target altitude m above home, p2: tolerance m
+    FIGSEG_WAIT_TIME = 5,    // p3: ms, holds the current baseline attitude
+    FIGSEG_TYPE_COUNT
+} figureSegmentType_e;
+
+#define FIGSEG_FLAG_ASSIST (1 << 0)   // altitude assist during this segment
+
+typedef struct figureSegment_s {
+    uint8_t type;
+    int16_t p1;
+    int16_t p2;
+    int16_t p3;
+    uint8_t flags;
+} figureSegment_t;
+
+PG_DECLARE_ARRAY(figureSegment_t, MAX_FIGURE_SEQUENCE_SEGMENTS, figureSequence);
+
 // Run once per RC processing cycle (before flight mode selection)
 void figureSequencerUpdate(void);
 
