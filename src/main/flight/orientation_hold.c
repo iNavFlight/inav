@@ -37,6 +37,7 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/settings.h"
 
@@ -81,7 +82,15 @@ static const orientationHoldPreset_t * orientationHoldActivePreset(void)
 
 bool orientationHoldIsRequested(void)
 {
-    return figureSequencerRequested() || orientationHoldActivePreset() != NULL;
+    return figureSequencerRequested() || orientationHoldActivePreset() != NULL
+        || IS_RC_MODE_ACTIVE(BOXATTLOCK);
+}
+
+static bool orientationHoldSticksDeflected(void)
+{
+    return ABS(rcCommand[ROLL]) > rcControlsConfig()->deadband
+        || ABS(rcCommand[PITCH]) > rcControlsConfig()->deadband
+        || ABS(rcCommand[YAW]) > rcControlsConfig()->yaw_deadband;
 }
 
 // Same Euler to quaternion convention as imuComputeQuaternionFromRPY (yaw = 0)
@@ -178,6 +187,7 @@ void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion
 #define OHOLD_SOURCE_NONE   (-1)
 #define OHOLD_SOURCE_FLOOR  (-2)
 #define OHOLD_SOURCE_FIGURE (-3)
+#define OHOLD_SOURCE_LOCK   (-4)
 
 static int activeTargetSource = OHOLD_SOURCE_NONE;
 
@@ -214,6 +224,16 @@ bool orientationHoldComputeError(fpVector3_t *errDeg)
         orientationHoldCheckSourceSwitch(OHOLD_SOURCE_FIGURE);
         figureSequencerGetTarget(&figRoll, &figPitch);
         orientationHoldTargetFromRP(&qTarget, figRoll, figPitch);
+    } else if (orientationHoldActivePreset() == NULL && IS_RC_MODE_ACTIVE(BOXATTLOCK)) {
+        // 3D LOCK: sticks centered = hold the attitude captured at release;
+        // sticks deflected = pure rate flying, the lock target follows the
+        // aircraft and freezes on the NEW attitude when the sticks center
+        static fpQuaternion_t lockTarget;
+        if (activeTargetSource != OHOLD_SOURCE_LOCK || orientationHoldSticksDeflected()) {
+            lockTarget = orientation;
+        }
+        orientationHoldCheckSourceSwitch(OHOLD_SOURCE_LOCK);
+        qTarget = lockTarget;
     } else {
         const orientationHoldPreset_t *preset = orientationHoldActivePreset();
         if (!preset) {

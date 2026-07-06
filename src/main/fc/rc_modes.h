@@ -94,6 +94,7 @@ typedef enum {
     BOXFIGLOOP       = 66,
     BOXFIGPOINTROLL  = 67,
     BOXFIGSEQ        = 68,
+    BOXATTLOCK       = 69,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
