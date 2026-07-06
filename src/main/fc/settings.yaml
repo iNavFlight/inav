@@ -4568,3 +4568,45 @@ groups:
         field: knifeRightPitchTrim
         min: -15
         max: 15
+
+  - name: PG_FIGURE_SEQUENCER_CONFIG
+    type: figureSequencerConfig_t
+    headers: ["flight/figure_sequencer.h"]
+    condition: USE_ORIENTATION_HOLD
+    members:
+      - name: fig_roll_rate
+        description: "Roll rate [deg/s] flown by the FIGURE ROLL and FIGURE 4PT ROLL modes"
+        default_value: 90
+        field: rollRate
+        min: 30
+        max: 360
+      - name: fig_loop_rate
+        description: "Pitch rate [deg/s] flown by the FIGURE LOOP mode"
+        default_value: 90
+        field: loopRate
+        min: 30
+        max: 360
+      - name: fig_point_dwell
+        description: "Dwell time [ms] on each point of the FIGURE 4PT ROLL"
+        default_value: 500
+        field: pointDwellMs
+        min: 100
+        max: 2000
+      - name: fig_assist_z_gain
+        description: "Altitude assist: nose-up offset [deg per 10 m] of altitude error during figures. The controller distributes the offset to elevator and rudder as the roll phase demands"
+        default_value: 20
+        field: assistZGain
+        min: 0
+        max: 100
+      - name: fig_assist_vz_gain
+        description: "Altitude assist: nose-up offset [deg per m/s] of sink rate during figures. Keep low: the climb rate estimate lags and a strong damping term fights fast figures"
+        default_value: 1
+        field: assistVzGain
+        min: 0
+        max: 20
+      - name: fig_assist_max
+        description: "Cap [deg] on the altitude assist nose-up offset"
+        default_value: 12
+        field: assistMax
+        min: 0
+        max: 30

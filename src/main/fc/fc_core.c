@@ -88,6 +88,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/altitude_floor.h"
+#include "flight/figure_sequencer.h"
 #include "flight/orientation_hold.h"
 #include "flight/rate_dynamics.h"
 
@@ -694,6 +695,7 @@ void processRx(timeUs_t currentTimeUs)
 #ifdef USE_ORIENTATION_HOLD
     DISABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
     altitudeFloorUpdate();
+    figureSequencerUpdate();
 #endif
 
     if (sensors(SENSOR_ACC) && (!FLIGHT_MODE(MANUAL_MODE) || autoEnableAngle)) {

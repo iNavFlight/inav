@@ -323,6 +323,8 @@ main_sources(COMMON_SRC
 
     flight/failsafe.c
     flight/failsafe.h
+    flight/figure_sequencer.c
+    flight/figure_sequencer.h
     flight/imu.c
     flight/imu.h
     flight/kalman.c

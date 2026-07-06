@@ -41,6 +41,7 @@
 #include "fc/settings.h"
 
 #include "flight/altitude_floor.h"
+#include "flight/figure_sequencer.h"
 #include "flight/imu.h"
 #include "flight/orientation_hold.h"
 
@@ -79,7 +80,7 @@ static const orientationHoldPreset_t * orientationHoldActivePreset(void)
 
 bool orientationHoldIsRequested(void)
 {
-    return orientationHoldActivePreset() != NULL;
+    return figureSequencerRequested() || orientationHoldActivePreset() != NULL;
 }
 
 // Same Euler to quaternion convention as imuComputeQuaternionFromRPY (yaw = 0)
@@ -175,6 +176,10 @@ bool orientationHoldComputeError(fpVector3_t *errDeg)
     // Altitude floor recovery overrides any selected preset: upright + climb
     if (altitudeFloorRecoveryActive()) {
         orientationHoldTargetFromRP(&qTarget, 0.0f, altitudeFloorRecoveryPitchDeg());
+    } else if (figureSequencerRequested()) {
+        float figRoll, figPitch;
+        figureSequencerGetTarget(&figRoll, &figPitch);
+        orientationHoldTargetFromRP(&qTarget, figRoll, figPitch);
     } else {
         const orientationHoldPreset_t *preset = orientationHoldActivePreset();
         if (!preset) {
