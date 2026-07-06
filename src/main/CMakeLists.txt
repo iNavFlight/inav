@@ -335,6 +335,8 @@ main_sources(COMMON_SRC
     flight/rate_dynamics.h
     flight/altitude_floor.c
     flight/altitude_floor.h
+    flight/hover_throttle.c
+    flight/hover_throttle.h
     flight/mixer.c
     flight/mixer.h
     flight/orientation_hold.c

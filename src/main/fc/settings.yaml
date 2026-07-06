@@ -4610,3 +4610,27 @@ groups:
         field: assistMax
         min: 0
         max: 30
+
+  - name: PG_HOVER_THROTTLE_CONFIG
+    type: hoverThrottleConfig_t
+    headers: ["flight/hover_throttle.h"]
+    condition: USE_ORIENTATION_HOLD
+    members:
+      - name: ohold_hover_thr_p
+        description: "Hover throttle P gain [throttle us per m of altitude error] while PROP HANG is held. The hover base throttle is learned online (I-term seeded from the pilot's throttle at engage)"
+        default_value: 25
+        field: pGain
+        min: 0
+        max: 100
+      - name: ohold_hover_thr_i
+        description: "Hover throttle I gain [throttle us per m per second]"
+        default_value: 10
+        field: iGain
+        min: 0
+        max: 100
+      - name: ohold_hover_thr_d
+        description: "Hover throttle D gain [throttle us per m/s of climb rate]"
+        default_value: 30
+        field: dGain
+        min: 0
+        max: 100

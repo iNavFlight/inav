@@ -46,6 +46,7 @@
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
+#include "flight/hover_throttle.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -587,7 +588,12 @@ void FAST_CODE mixTable(void)
         }
 #endif
     } else {
+#ifdef USE_ORIENTATION_HOLD
+        // hover throttle owns the altitude axis while PROP HANG is held
+        mixerThrottleCommand = hoverThrottleApply(rcCommand[THROTTLE]);
+#else
         mixerThrottleCommand = rcCommand[THROTTLE];
+#endif
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = getMaxThrottle();
 

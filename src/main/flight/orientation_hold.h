@@ -72,3 +72,7 @@ bool orientationHoldComputeError(fpVector3_t *errDeg);
 // Call while ORIENTATION_HOLD_MODE is inactive: resets the target-source
 // tracking (and the rate-loop I accumulators once on the exit edge)
 void orientationHoldResetSourceTracking(void);
+
+// True while the PROP HANG preset is the active hold target (used by the
+// hover throttle to own the altitude axis)
+bool orientationHoldIsPropHang(void);

@@ -201,6 +201,11 @@ static void orientationHoldCheckSourceSwitch(int source)
     }
 }
 
+bool orientationHoldIsPropHang(void)
+{
+    return activeTargetSource == BOXPROPHANG;
+}
+
 void orientationHoldResetSourceTracking(void)
 {
     // mode left: also reset, the attitude's holding-load trim in the I-term
