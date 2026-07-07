@@ -63,6 +63,7 @@
 #define USE_MAG
 #define USE_BARO
 #define USE_PITOT_FAKE
+#define MSP_PORT_OUTBUF_SIZE 1024   // no FLASHFS on SITL; the full box-name list exceeds 512
 #define USE_IMU_FAKE
 #define USE_FAKE_BARO
 #define USE_FAKE_MAG

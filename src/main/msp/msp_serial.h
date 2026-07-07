@@ -57,12 +57,14 @@ typedef enum {
 } mspPendingSystemRequest_e;
 
 #define MSP_PORT_INBUF_SIZE 192
+#ifndef MSP_PORT_OUTBUF_SIZE
 #ifdef USE_FLASHFS
 #define MSP_PORT_DATAFLASH_BUFFER_SIZE 4096
 #define MSP_PORT_DATAFLASH_INFO_SIZE 16
 #define MSP_PORT_OUTBUF_SIZE (MSP_PORT_DATAFLASH_BUFFER_SIZE + MSP_PORT_DATAFLASH_INFO_SIZE)    // WARNING! Must fit in stack!
 #else
 #define MSP_PORT_OUTBUF_SIZE 512
+#endif
 #endif
 
 typedef struct __attribute__((packed)) {
