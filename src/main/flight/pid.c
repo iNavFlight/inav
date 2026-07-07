@@ -43,6 +43,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/figure_sequencer.h"
 #include "flight/mixer_profile.h"
 #include "flight/orientation_hold.h"
 #include "flight/rpm_filter.h"
@@ -735,6 +736,18 @@ static void pidOrientationHold(pidState_t *pidStates, float dT)
 {
     fpVector3_t errDeg;
 
+    // open-loop rate impulse (figure sequencer snap/spin entry): command
+    // the profile's full rates directly, saturating the surfaces
+    float impulseNorm[3];
+    if (figureSequencerGetRateCommand(impulseNorm)) {
+        for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+            pidStates[axis].rateTarget = constrainf(
+                impulseNorm[axis] * currentControlProfile->stabilized.rates[axis] * 10.0f,
+                -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+        }
+        return;
+    }
+
     if (!orientationHoldComputeError(&errDeg)) {
         return;
     }
@@ -1344,6 +1357,17 @@ void FAST_CODE pidController(float dT)
         pidTurnAssistant(pidState, bankAngleTarget, pitchAngleTarget);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
+#ifdef USE_ORIENTATION_HOLD
+    else if (FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
+        // WAIT_POS banks toward home: feed the coordinated turn rates
+        // forward, otherwise the heading-free hold regulates the physical
+        // turn yaw rate back to zero and the aircraft never turns
+        float bankDeg;
+        if (figureSequencerGetTurnBank(&bankDeg)) {
+            pidTurnAssistant(pidState, DEGREES_TO_RADIANS(bankDeg), 0.0f);
+        }
+    }
+#endif
 
     // Apply FPV camera mix
     if (canUseFpvCameraMix && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && currentControlProfile->misc.fpvCamAngleDegrees && STATE(MULTIROTOR)) {

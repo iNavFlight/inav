@@ -42,6 +42,7 @@
 #include "fc/settings.h"
 
 #include "flight/figure_sequencer.h"
+#include "flight/imu.h"
 
 #include "navigation/navigation.h"
 
@@ -85,6 +86,10 @@ static timeMs_t seqSegStartMs;
 static float seqBaseRoll;
 static float seqBasePitch;
 static float seqSegAltCm;      // assist reference, captured at segment entry
+static bool seqImpulseActive;
+static float seqImpulseRates[3];
+static bool seqTurnCoordination;
+static float seqTurnBankDeg;
 
 static figureType_e requestedFigure(void)
 {
@@ -154,6 +159,8 @@ void figureSequencerUpdate(void)
     float roll = 0.0f;
     float pitch = 0.0f;
     bool assist = false;
+    seqImpulseActive = false;   // recomputed below while an IMPULSE runs
+    seqTurnCoordination = false;
 
     switch (activeFigure) {
         case FIGURE_ROLL: {
@@ -251,6 +258,48 @@ void figureSequencerUpdate(void)
                         segDone = tSeg * 1000.0f >= seg->p3;
                         break;
 
+                    case FIGSEG_IMPULSE:
+                        // open-loop rate impulse (snap/spin entry): full-rate
+                        // commands saturate the surfaces; the following
+                        // segment (or the DONE level hold) catches whatever
+                        // attitude results, shortest path
+                        seqImpulseActive = true;
+                        seqImpulseRates[FD_ROLL] = 0.0f;
+                        seqImpulseRates[FD_PITCH] = constrainf(seg->p1, -100, 100) * 0.01f;
+                        seqImpulseRates[FD_YAW] = constrainf(seg->p2, -100, 100) * 0.01f;
+                        roll = seqBaseRoll;
+                        pitch = seqBasePitch;
+                        segDone = tSeg * 1000.0f >= seg->p3;
+                        break;
+
+                    case FIGSEG_WAIT_POS: {
+                        // airspace containment: bank toward HOME until the
+                        // distance drops below the radius. The course loop
+                        // lives only in this segment; the attitude modes
+                        // stay heading-free
+                        seqBaseRoll = 0.0f;
+                        seqBasePitch = 0.0f;
+                        pitch = 0.0f;
+                        assist = true;
+                        if (STATE(GPS_FIX_HOME)) {
+                            const float maxBank = (seg->p2 > 0) ? seg->p2 : 30.0f;
+                            float courseErr = GPS_directionToHome - DECIDEGREES_TO_DEGREES((float)attitude.values.yaw);
+                            while (courseErr > 180.0f) { courseErr -= 360.0f; }
+                            while (courseErr < -180.0f) { courseErr += 360.0f; }
+                            roll = constrainf(0.8f * courseErr, -maxBank, maxBank);
+                            // banked turn: feed the coordinated turn rates
+                            // forward, otherwise the heading-free controller
+                            // regulates the (physical) turn yaw rate to zero
+                            seqTurnCoordination = true;
+                            seqTurnBankDeg = roll;
+                            segDone = GPS_distanceToHome < (uint32_t)MAX(seg->p1, 10);
+                        } else {
+                            roll = 0.0f;    // no home fix: hold level, gate stays
+                            segDone = false;
+                        }
+                        break;
+                    }
+
                     default:
                         segDone = true;
                         break;
@@ -308,6 +357,26 @@ void figureSequencerUpdate(void)
 bool figureSequencerRequested(void)
 {
     return activeFigure != FIGURE_NONE && state != FIG_STATE_IDLE;
+}
+
+bool figureSequencerGetTurnBank(float *bankDeg)
+{
+    if (!seqTurnCoordination) {
+        return false;
+    }
+    *bankDeg = seqTurnBankDeg;
+    return true;
+}
+
+bool figureSequencerGetRateCommand(float ratesNorm[3])
+{
+    if (!seqImpulseActive) {
+        return false;
+    }
+    for (int i = 0; i < 3; i++) {
+        ratesNorm[i] = seqImpulseRates[i];
+    }
+    return true;
 }
 
 void figureSequencerGetTarget(float *rollDeg, float *pitchDeg)

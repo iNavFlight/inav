@@ -68,6 +68,11 @@ typedef enum {
     FIGSEG_HOLD = 3,         // p1: roll deg, p2: pitch deg (absolute), p3: ms
     FIGSEG_WAIT_ALT = 4,     // p1: target altitude m above home, p2: tolerance m
     FIGSEG_WAIT_TIME = 5,    // p3: ms, holds the current baseline attitude
+    FIGSEG_IMPULSE = 6,      // open-loop rate impulse (snap/spin entry):
+                             // p1: pitch %, p2: yaw %, p3: ms; the next
+                             // segment catches the attitude afterwards
+    FIGSEG_WAIT_POS = 7,     // airspace containment: bank toward HOME until
+                             // distance < p1 m; p2: max bank deg (0 = 30)
     FIGSEG_TYPE_COUNT
 } figureSegmentType_e;
 
@@ -91,3 +96,11 @@ bool figureSequencerRequested(void);
 
 // Current figure target, valid while requested
 void figureSequencerGetTarget(float *rollDeg, float *pitchDeg);
+
+// True while an open-loop IMPULSE segment runs; returns the commanded body
+// rates normalized to -1..1 of the profile's max rates (full deflection)
+bool figureSequencerGetRateCommand(float ratesNorm[3]);
+
+// True while a WAIT_POS segment banks toward home; returns the commanded
+// bank (deg) for coordinated-turn rate feedforward
+bool figureSequencerGetTurnBank(float *bankDeg);
