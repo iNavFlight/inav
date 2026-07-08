@@ -392,6 +392,36 @@ Optical flow module alignment (default CW0_DEG_FLIP)
 
 ---
 
+### alt_floor_altitude
+
+Altitude floor [m above home]. With the ALT FLOOR mode active and armed (climbed above floor + margin once), a predicted floor breach engages an automatic upright + climb recovery. Switch the mode off to land.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 5 | 500 |
+
+---
+
+### alt_floor_climb_pitch
+
+Nose up pitch target [deg] flown during altitude floor recovery
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 5 | 45 |
+
+---
+
+### alt_floor_margin
+
+Margin above the altitude floor [m] to arm the floor after takeoff and to release the recovery
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 2 | 100 |
+
+---
+
 ### alt_hold_deadband
 
 Defines the deadband of throttle during alt_hold [r/c points]
@@ -1159,6 +1189,66 @@ If failsafe activated when throttle is low for this much time - bypass failsafe 
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 300 |
+
+---
+
+### fig_assist_max
+
+Cap [deg] on the altitude assist nose-up offset
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 12 | 0 | 30 |
+
+---
+
+### fig_assist_vz_gain
+
+Altitude assist: nose-up offset [deg per m/s] of sink rate during figures. Keep low: the climb rate estimate lags and a strong damping term fights fast figures
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 20 |
+
+---
+
+### fig_assist_z_gain
+
+Altitude assist: nose-up offset [deg per 10 m] of altitude error during figures. The controller distributes the offset to elevator and rudder as the roll phase demands
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 0 | 100 |
+
+---
+
+### fig_loop_rate
+
+Pitch rate [deg/s] flown by the FIGURE LOOP mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 90 | 30 | 360 |
+
+---
+
+### fig_point_dwell
+
+Dwell time [ms] on each point of the FIGURE 4PT ROLL
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 100 | 2000 |
+
+---
+
+### fig_roll_rate
+
+Roll rate [deg/s] flown by the FIGURE ROLL and FIGURE 4PT ROLL modes
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 90 | 30 | 360 |
 
 ---
 
@@ -4462,6 +4552,66 @@ Waypoint radius [cm]. Waypoint would be considered reached if machine is within 
 
 ---
 
+### ohold_hover_thr_d
+
+Hover throttle D gain [throttle us per m/s of climb rate]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 0 | 100 |
+
+---
+
+### ohold_hover_thr_i
+
+Hover throttle I gain [throttle us per m per second]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 100 |
+
+---
+
+### ohold_hover_thr_p
+
+Hover throttle P gain [throttle us per m of altitude error] while PROP HANG is held. The hover base throttle is learned online (I-term seeded from the pilot's throttle at engage)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 25 | 0 | 100 |
+
+---
+
+### ohold_inverted_pitch_trim
+
+Pitch trim [deg] on the INVERTED hold target, positive = nose above the horizon. Inverted flight typically needs a few degrees to hold altitude (down-elevator bias)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -15 | 15 |
+
+---
+
+### ohold_knife_left_pitch_trim
+
+Pitch trim [deg] on the KNIFE EDGE LEFT hold target, positive = nose above the horizon, held via the rudder. Separate per side: the body-fixed prop effects (spiral slipstream, torque, P-factor) point to the vertically opposite direction after the 180 deg roll to the other side, so left/right = shared fuselage-lift part +/- prop part. Reversed prop rotation swaps the sides
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -15 | 15 |
+
+---
+
+### ohold_knife_right_pitch_trim
+
+Pitch trim [deg] on the KNIFE EDGE RIGHT hold target, positive = nose above the horizon, held via the rudder. See ohold_knife_left_pitch_trim for why the sides differ
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -15 | 15 |
+
+---
+
 ### opflow_hardware
 
 Selection of OPFLOW hardware.
@@ -6519,6 +6669,26 @@ Turtle mode power factor
 | Default | Min | Max |
 | --- | --- | --- |
 | 55 | 0 | 100 |
+
+---
+
+### tvc_gain
+
+Overall thrust vectoring deflection gain [%] at full thrust, applied to the TVC servo mixer input sources
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### tvc_thrust_comp
+
+Inverse thrust compensation [%] for the TVC inputs: vane/tilt authority scales with thrust, 100 compensates fully (deflection ~ 1/thrust, capped at low thrust), 0 disables
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 100 |
 
 ---
 
