@@ -732,7 +732,7 @@ static void pidLevel(const float angleTarget, pidState_t *pidState, flight_dynam
 // knife edge, prop hang). Works on all three body axes and stays defined at
 // pitch = +/-90 deg where the Euler based pidLevel() is singular. Sticks
 // remain live as rate commands on top of the stabilisation.
-static void pidOrientationHold(pidState_t *pidStates, float dT)
+static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
 {
     fpVector3_t errDeg;
 
