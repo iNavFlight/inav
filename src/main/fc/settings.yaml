@@ -2277,7 +2277,7 @@ groups:
         max: 255
       - name: nav_fw_auto_speed_i
         description: "I gain of auto speed PID controller."
-        default_value: 5
+        default_value: 10
         field: bank_fw.pid[PID_AUTO_SPEED].I
         min: 0
         max: 255

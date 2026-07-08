@@ -3483,7 +3483,7 @@ I gain of auto speed PID controller.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 255 |
+| 10 | 0 | 255 |
 
 ---
 

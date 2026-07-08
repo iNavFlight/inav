@@ -5065,8 +5065,8 @@ void navigationUsePIDs(void)
                                         0.0f
     );
 
-    navPidInit(&posControl.pids.fw_autoSpeed, (float)pidProfile()->bank_fw.pid[PID_AUTO_SPEED].P / 30.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_AUTO_SPEED].I / 50.0f,
+    navPidInit(&posControl.pids.fw_autoSpeed, (float)pidProfile()->bank_fw.pid[PID_AUTO_SPEED].P / 25.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_AUTO_SPEED].I / 25.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_AUTO_SPEED].D / 50.0f,
                                         0.0f,
                                         2.0f,
