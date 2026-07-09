@@ -108,7 +108,7 @@
 
 
 // *************** Gyro & ACC **********************
-//#define USE_DUAL_GYRO
+#define USE_DUAL_GYRO
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
 #define USE_IMU_ICM42605
@@ -118,10 +118,10 @@
 #define ICM42688_SPI_BUS_1        BUS_SPI1
 #define ICM42688_EXTI_PIN_1       PE10
 
-//#define IMU_ICM40609_ALIGN        CW270_DEG
-//#define ICM40609_CS_PIN           PD3
-//#define ICM40609_SPI_BUS          BUS_SPI3
-//#define ICM40609_EXTI_PIN         PD2
+#define IMU_ICM40609_ALIGN        CW270_DEG
+#define ICM40609_CS_PIN           PD3
+#define ICM40609_SPI_BUS          BUS_SPI3
+#define ICM40609_EXTI_PIN         PD2
 
 
 // *************** OSD *****************************
