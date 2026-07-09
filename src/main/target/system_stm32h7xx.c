@@ -302,7 +302,7 @@ static void SystemClockHSE_Config(void)
     RCC_OscInitStruct.PLL.PLLR = pll1Config->r;
 
     RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
-    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_1; // VCI = HSE/M = 2 MHz, range is 2-4 MHz
 
     HAL_StatusTypeDef status = HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
@@ -498,17 +498,22 @@ void SystemClock_Config(void)
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
 
 #ifdef USE_SDCARD_SDIO
+    // PLL2M = HSE_VALUE / 1600000 pins the VCO input to exactly 1.6 MHz for any HSE.
+    // With N=500 this gives VCO=800 MHz: PLL2R/4=200 MHz (SDMMC), PLL2P/2=400 MHz.
+    STATIC_ASSERT(HSE_VALUE % 1600000 == 0, HSE_not_a_multiple_of_1600000);
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SDMMC;
-    RCC_PeriphClkInit.PLL2.PLL2M = 5;
+    RCC_PeriphClkInit.PLL2.PLL2M = HSE_VALUE / 1600000;
     RCC_PeriphClkInit.PLL2.PLL2N = 500;
-    RCC_PeriphClkInit.PLL2.PLL2P = 2; // 500Mhz
+    RCC_PeriphClkInit.PLL2.PLL2P = 2; // 400Mhz
     RCC_PeriphClkInit.PLL2.PLL2Q = 3; // 266Mhz - 133Mhz can be derived from this for for QSPI if flash chip supports the speed.
     RCC_PeriphClkInit.PLL2.PLL2R = 4; // 200Mhz HAL LIBS REQUIRE 200MHZ SDMMC CLOCK, see HAL_SD_ConfigWideBusOperation, SDMMC_HSpeed_CLK_DIV, SDMMC_NSpeed_CLK_DIV
     RCC_PeriphClkInit.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_0;
     RCC_PeriphClkInit.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
     RCC_PeriphClkInit.PLL2.PLL2FRACN = 0;
     RCC_PeriphClkInit.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL2;
-    HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
+    if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit) != HAL_OK) {
+        Error_Handler();
+    }
 #endif
 
 #ifdef USE_QUADSPI

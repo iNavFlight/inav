@@ -2,11 +2,11 @@
 
 This document describes the process for creating INAV firmware and configurator releases.
 
-> **Note:** This document is designed to be used with coding assistants (such as Claude Code) that can execute the commands and automate parts of the release process. Update this document with lessons learned after each release.
+> **Note:** This document is designed to be used with coding assistants (such as Claude Code) that can execute the commands and automate parts of the release process. Update this document with lessons learned after each release. Sensei has written more detailed guides for his process in the third-party repo https://github.com/sensei-hacker/inav-claude/tree/master/claude/release-manager
 
 ## CRITICAL PRINCIPLE: Verify Builds BEFORE Creating Tags
 
-**Never tag a commit that hasn't been proven to build successfully.**
+**Never tag a commit that hasn't been fully tested successfully.**
 
 Order of operations:
 1. Merge all firmware PRs to the release branch
@@ -92,6 +92,22 @@ Version numbers are set in:
   Verify/update:
   - View: `jq -r .version package.json` (or `node -p "require('./package.json').version"`)
   - Update: `npm version <X.Y.Z> --no-git-tag-version`
+
+## Version String Format (RC Releases)
+
+**CRITICAL:** Establish the canonical version string before starting any release work.
+
+RC version strings must use **lowercase `rc`** joined to the version with a **hyphen**:
+
+| Correct | Wrong |
+|---------|-------|
+| `9.1.0-rc1` | `9.1.0-RC1` |
+| `9.1.0-rc2` | `9.1.0_RC2` |
+| `9.0.0-rc3` | `9.0.0-rc_3` |
+
+The Configurator firmware flasher uses a case-sensitive regex to parse firmware filenames. Uppercase `RC` or underscore separators cause the target board name to be misread, making the firmware invisible in the flasher even after a successful release upload.
+
+---
 
 ## Pre-Release Checklist
 
@@ -318,6 +334,20 @@ LAST_TAG=$(git describe --tags --abbrev=0)
 gh pr list --state merged --search "merged:>=$(git log -1 --format=%ai $LAST_TAG | cut -d' ' -f1)" --limit 100
 ```
 
+### Verify Each PR Is on the Correct Branch
+
+**Before including a PR in release notes**, confirm it is actually merged into the release branch, not a future branch. `gh pr list` shows PRs by merge date regardless of target branch — a PR merged to `maintenance-10.x` will appear even though it's not in the current release.
+
+```bash
+# Confirm a PR's merge commit exists on the release branch
+git log upstream/maintenance-9.x --oneline | grep <short-sha>
+
+# Or check all recent merge commits on the branch
+git log upstream/maintenance-9.x --oneline --merges | head -30
+```
+
+If a PR is not in that output, exclude it from the release notes.
+
 ### Using git log
 
 ```bash
@@ -403,7 +433,7 @@ make MATEKF405 MATEKF722
 Remove CI suffix and add RC number for RC releases:
 
 ```bash
-RC_NUM="RC2"  # Empty for final releases
+RC_NUM="rc2"  # Empty for final releases
 
 # Check if any .hex files exist to avoid errors with the glob
 if compgen -G "*.hex" > /dev/null; then
@@ -411,7 +441,7 @@ if compgen -G "*.hex" > /dev/null; then
     target=$(echo "$f" | sed -E 's/inav_[0-9]+\.[0-9]+\.[0-9]+_(.*)_ci-.*/\1/')
     version=$(echo "$f" | sed -E 's/inav_([0-9]+\.[0-9]+\.[0-9]+)_.*/\1/')
     if [ -n "$RC_NUM" ]; then
-      mv "$f" "inav_${version}_${RC_NUM}_${target}.hex"
+      mv "$f" "inav_${version}-${RC_NUM}_${target}.hex"
     else
       mv "$f" "inav_${version}_${target}.hex"
     fi
@@ -429,29 +459,46 @@ Download from GitHub Actions CI:
 # List recent workflow runs
 gh run list --repo iNavFlight/inav-configurator --limit 10
 
-# Download artifacts
+# Download artifacts (creates one subdirectory per platform artifact)
 gh run download <run-id> --repo iNavFlight/inav-configurator
 
-# Flatten directory structure
-find . -mindepth 2 -type f -exec mv -t . {} +
-# Remove the now-empty subdirectories
-find . -mindepth 1 -type d -empty -delete
+# CRITICAL: Organize by platform — NEVER flatten all files into one directory.
+# Flattening can put Windows .exe files inside macOS DMGs (caused a 9.0.0 release incident).
+mkdir -p linux/ macos/ windows/
+mv INAV-Configurator_linux_*/* linux/
+mv INAV-Configurator_macOS*/* macos/
+mv INAV-Configurator_win_*/* windows/
+rmdir INAV-Configurator_*
 ```
 
 ## Creating GitHub Releases
 
 ### Create Draft Release
 
-```bash
-# Firmware
-cd inav
-gh release create <version> --draft --title "INAV <version>" --notes-file release-notes.md
-gh release upload <version> *.hex
+For RC releases, add `--prerelease` so GitHub marks them as pre-release and they don't appear as the latest stable release. Use `--target <commit-sha>` to tag a specific commit (safer than tagging the current HEAD, and works even when the local repo is locked).
 
-# Configurator
-cd inav-configurator
-gh release create <version> --draft --title "INAV Configurator <version>" --notes-file release-notes.md
-gh release upload <version> *.zip *.dmg *.exe *.AppImage *.deb *.rpm *.msi
+```bash
+# Firmware (RC release)
+gh release create 9.1.0-rc1 \
+  --repo iNavFlight/inav \
+  --target <commit-sha> \
+  --title "INAV 9.1.0-rc1 release candidate for testing" \
+  --notes-file release-notes.md \
+  --prerelease \
+  --draft
+gh release upload 9.1.0-rc1 firmware-dir/*.hex --repo iNavFlight/inav
+
+# Configurator (RC release)
+gh release create 9.1.0-rc1 \
+  --repo iNavFlight/inav-configurator \
+  --target <commit-sha> \
+  --title "INAV Configurator 9.1.0-rc1 release candidate for testing" \
+  --notes-file release-notes.md \
+  --prerelease \
+  --draft
+gh release upload 9.1.0-rc1 linux/* macos/* windows/* --repo iNavFlight/inav-configurator
+
+# Final releases: same commands, omit --prerelease
 ```
 
 ### Managing Release Assets
@@ -477,16 +524,32 @@ gh api -X DELETE "repos/iNavFlight/inav/releases/assets/ASSET_ID"
 
 ### Publish Release
 
+**Publish firmware first, then verify the Configurator can see it before publishing the Configurator release.**
+
 ```bash
-gh release edit <version> --draft=false
+# Step 1: Publish firmware release
+gh release edit <version> --repo iNavFlight/inav --draft=false
+```
+
+**Step 2: Verify firmware appears in Configurator Firmware Flasher (human step)**
+
+Open INAV Configurator → Firmware Flasher tab → enable "Show unstable releases". The new firmware version must appear in the release list. This confirms the GitHub release is properly formatted and the filename regex parsed correctly.
+
+Also select a target whose name contains spaces (e.g., `MAMBAH743 2022B GYRO2`) and confirm it displays with spaces, not underscores — this validates that multi-word target names parsed correctly.
+
+If the firmware does not appear: check that filenames follow `inav_<version>-rc<n>_<TARGET>.hex` exactly (lowercase `rc`, hyphen separator). See [Asset Naming Conventions](#asset-naming-conventions).
+
+```bash
+# Step 3: Publish configurator release (only after firmware verified in flasher)
+gh release edit <version> --repo iNavFlight/inav-configurator --draft=false
 ```
 
 ## Asset Naming Conventions
 
-**Firmware (RC releases):** `inav_<version>_RC<n>_<TARGET>.hex`
+**Firmware (RC releases):** `inav_<version>-rc<n>_<TARGET>.hex`
 **Firmware (final):** `inav_<version>_<TARGET>.hex`
 
-**Configurator (RC releases):** `INAV-Configurator_<platform>_<version>_RC<n>.<ext>`
+**Configurator (RC releases):** `INAV-Configurator_<platform>_<version>-rc<n>.<ext>`
 **Configurator (final):** `INAV-Configurator_<platform>_<version>.<ext>`
 
 ## Maintenance Branches

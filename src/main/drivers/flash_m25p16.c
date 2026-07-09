@@ -118,6 +118,9 @@ struct {
     {0x1C3017, 128, 256},
     // JEDEC_ID_SPANSION_S25FL116
     {0x014015, 32, 256 },
+    // JEDEC_ID_XTX_XT25F128F
+    // Datasheet: https://www.xtxtech.com/Products/info_productModel_XT25F128FSSIGT.html
+    {0x0B4018, 256, 256 },
     // End of list
     {0x000000, 0, 0}};
 

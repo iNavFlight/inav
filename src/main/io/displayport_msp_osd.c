@@ -119,7 +119,7 @@ static void checkVtxPresent(void)
         vtxActive = false;
     }
 
-    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) { 
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         vtxActive = true;
     }
 }
@@ -243,10 +243,11 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
  */
 static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
+#ifdef USE_SIMULATOR
     if (SIMULATOR_HAS_OPTION(HITL_SITL_MODE)) {
         vtxActive = true;
     }
-    
+#endif
     static uint8_t counter = 0;
 
     if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) { // 62.5Hz
@@ -258,14 +259,14 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         uint8_t refreshSubcmd[1];
         refreshSubcmd[0] = MSP_DP_CLEAR_SCREEN;
         output(displayPort, MSP_DISPLAYPORT, refreshSubcmd, sizeof(refreshSubcmd));
-        
+
         // Then dirty the characters that are not blank, to send all data on this draw.
         for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
             if (screen[pos] != SYM_BLANK) {
                 bitArraySet(dirty, pos);
             }
         }
-            
+
         sendSubFrameMs = (osdConfig()->msp_displayport_fullframe_interval > 0) ? (millis() + DS2MS(osdConfig()->msp_displayport_fullframe_interval)) : 0;
     }
 
@@ -570,7 +571,7 @@ static mspResult_e fixDjiBrokenO4ProcessMspCommand(mspPacket_t *cmd, mspPacket_t
     return processMspCommand(cmd, reply, mspPostProcessFn);
 }
 #else
-#define fixDjiBrokenO4ProcessMspCommand processMspCommand 
+#define fixDjiBrokenO4ProcessMspCommand processMspCommand
 #endif
 
 void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
