@@ -70,6 +70,13 @@
 
 #define USE_RANGEFINDER_FAKE
 #define USE_RX_SIM
+
+// SD card simulated from a host image file (see drivers/sdcard/sdcard_sitl.c),
+// which also enables the terrain module for SITL
+#define USE_SDCARD
+#define USE_SDCARD_SITL
+#define USE_TERRAIN
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8 // 2048 bytes = 1 grid block
 #define USE_DRONECAN
 #define DRONECAN_SITL_INTERFACE "vcan0"
 
