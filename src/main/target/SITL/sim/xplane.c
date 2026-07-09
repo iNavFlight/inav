@@ -344,10 +344,8 @@ static void exchangeDataWithXPlane(void)
     sendDref("sim/operation/override/override_joystick", 1);
     if (inavXitlDrefVersion >= XITL_DREF_VERSION) {
         sendDref("inav_xitl/plugin/heartbeat", 1.0f);
-        // Do not send motor value in Sitl mode, INAV XITL sets throttle itself
-    } else if (inavXitlDrefVersion < XITL_DREF_VERSION) {
-        sendDref("sim/cockpit2/engine/actuators/throttle_ratio_all",motorValue);
     }
+    sendDref("sim/cockpit2/engine/actuators/throttle_ratio_all", motorValue);
 
     sendDref("sim/joystick/yoke_roll_ratio", yokeValues[0]);
     sendDref("sim/joystick/yoke_pitch_ratio", yokeValues[1]);
