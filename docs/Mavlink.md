@@ -30,9 +30,10 @@ This branch builds against the checked-in generated `storm32` MAVLink headers/di
 
 ### Usage guidance
 
-- If you rely on RC via MAVLink, set the serial receiver type to `SERIALRX_MAVLINK`.
+- If you rely on RC via MAVLink, set `receiver_type = SERIAL` and `serialrx_provider = MAVLINK`. The serial port carrying MAVLink RC override traffic must also be configured for MAVLink telemetry so the MAVLink parser is active on that link.
 - If MAVLink RX and telemetry intentionally share one half-duplex wire, enable `serialrx_halfduplex` for that setup.
 - Leave `mavlink_version = 2` unless you intentionally need MAVLink1 compatibility. Native MLRS messages, MSP tunnel, high-latency mode, `AUTOPILOT_VERSION`, and `PROTOCOL_VERSION` all depend on MAVLink2 behavior in this branch.
+- SITL builds on this branch explicitly include MAVLink telemetry and MAVLink serial RX so this receiver path can be exercised in simulation.
 - To reduce bandwidth, lower stream rates for groups you do not need, or disable them entirely by setting the rate to 0.
 - If a GCS or companion needs telemetry on ports 2..4, explicitly request streams (`REQUEST_DATA_STREAM` or `MAV_CMD_SET_MESSAGE_INTERVAL`) because only heartbeat is enabled by default.
 - If you depend on directed forwarding between links, ensure each remote endpoint transmits at least one frame early so route learning is populated.
