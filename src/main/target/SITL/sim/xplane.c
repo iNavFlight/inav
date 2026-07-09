@@ -348,8 +348,8 @@ static void exchangeDataWithXPlane(void)
     sendDref("sim/cockpit2/engine/actuators/throttle_ratio_all", motorValue);
 
     sendDref("sim/joystick/yoke_roll_ratio", yokeValues[0]);
-    sendDref("sim/joystick/yoke_pitch_ratio", yokeValues[1]);
-    sendDref("sim/joystick/yoke_heading_ratio", yokeValues[2]);
+    sendDref("sim/joystick/yoke_pitch_ratio", -yokeValues[1]);
+    sendDref("sim/joystick/yoke_heading_ratio", -yokeValues[2]);
     sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[0]", 0);
     sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[1]", 0);
     sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[2]", 0);

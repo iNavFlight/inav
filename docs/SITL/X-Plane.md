@@ -33,6 +33,8 @@ In the settings, calibrate the joystick, set it up and assign the axes as follow
 
 Reverse axis in X-Plane if necessary.
 
+SITL sends pitch and yaw output to X-Plane with inverted signs so stabilized and autopilot corrections move the aircraft in the correct direction.
+
 ## Channelmap:
 The assignment of the "virtual receiver" is fixed:
 1 - Throttle
