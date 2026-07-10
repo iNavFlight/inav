@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-INAV_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
+INAV_DIR="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)"
 WORKSPACE_ROOT="$(cd -- "${INAV_DIR}/.." && pwd)"
 BRANCH_DIR="${WORKSPACE_ROOT}/mydev/branch/mavlink_multiport2"
 LOG_DIR="${SCRIPT_DIR}/results"
@@ -114,7 +114,7 @@ start_mavproxy_master() {
     ) >"${attempt_log}" 2>&1 &
     MAVPROXY_PID=$!
     MAVPROXY_LOG="${attempt_log}"
-    echo "mavproxy_started pid=${MAVPROXY_PID} master=${master_endpoint} log=src/test/mavlink/results/mission_tester_mavproxy_${port_label}.log"
+    echo "mavproxy_started pid=${MAVPROXY_PID} master=${master_endpoint} log=src/test/mavlink/missions/results/mission_tester_mavproxy_${port_label}.log"
 
     sleep 5
     if kill -0 "${MAVPROXY_PID}" 2>/dev/null; then
@@ -155,7 +155,7 @@ rm -f "${REPORT_PATH}"
 echo "mission_tester_start"
 echo "inav_dir=."
 echo "sitl_binary=cmake/build_SITL/inav_9.1.0_SITL"
-echo "results_dir=src/test/mavlink/results"
+echo "results_dir=src/test/mavlink/missions/results"
 
 (
     cd "${INAV_DIR}"
@@ -167,7 +167,7 @@ echo "results_dir=src/test/mavlink/results"
         --chanmap=M01-01,S02-02,S01-03,S04-04
 ) >"${SITL_LOG}" 2>&1 &
 SITL_PID=$!
-echo "sitl_started pid=${SITL_PID} log=src/test/mavlink/results/mission_tester_sitl.log"
+echo "sitl_started pid=${SITL_PID} log=src/test/mavlink/missions/results/mission_tester_sitl.log"
 
 wait_tcp 127.0.0.1 5760 "sitl_msp_uart1" 20
 wait_tcp 127.0.0.1 5763 "sitl_mavlink_uart4" 20
@@ -177,8 +177,8 @@ start_mavproxy_master tcp:127.0.0.1:5763
 set +e
 (
     cd "${INAV_DIR}"
-    conda run --no-capture-output -n drone python src/test/mavlink/mavlink_mission_tester.py \
-        --config src/test/mavlink/mavlink_mission_tester.ini
+    conda run --no-capture-output -n drone python src/test/mavlink/missions/mavlink_mission_tester.py \
+        --config src/test/mavlink/missions/mavlink_mission_tester.ini
 ) 2>&1 | tee "${TESTER_LOG}"
 TEST_STATUS=${PIPESTATUS[0]}
 set -e
@@ -189,7 +189,7 @@ scan_log_errors "${MAVPROXY_LOG}" "mavproxy"
 scan_log_errors "${SITL_LOG}" "sitl"
 
 if [[ -f "${REPORT_PATH}" ]]; then
-    echo "mission_tester_report=src/test/mavlink/results/mission_tester_report.json"
+    echo "mission_tester_report=src/test/mavlink/missions/results/mission_tester_report.json"
 fi
 
 if [[ "${TEST_STATUS}" -ne 0 ]]; then

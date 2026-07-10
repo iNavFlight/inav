@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 Usage:
-  conda run -n drone python src/test/mavlink/mavlink_mission_tester.py
-  conda run -n drone python src/test/mavlink/mavlink_mission_tester.py --config src/test/mavlink/mavlink_mission_tester.ini
+  conda run -n drone python src/test/mavlink/missions/mavlink_mission_tester.py
+  conda run -n drone python src/test/mavlink/missions/mavlink_mission_tester.py --config src/test/mavlink/missions/mavlink_mission_tester.ini
 
 Expected external setup:
   ./cmake/build_SITL/inav_9.1.0_SITL --serialport=/dev/ttyUSB0 --serialuart=3 --baudrate=460800 --path="../mydev/branch/mavlink_multiport2/eeprom.bin" --chanmap=M01-01,S02-02,S01-03,S04-04
-  cd src/test/mavlink/results
+  cd src/test/mavlink/missions/results
   mavproxy.py --master=tcp:127.0.0.1:5763 --force-connected --nowait --daemon --out=udp:127.0.0.1:14550
 """
 
@@ -30,14 +30,14 @@ try:
     from mspapi2.msp_api import MSPApi
     from mspapi2.lib import InavEnums
 except ModuleNotFoundError:
-    workspace_root_guess = Path(__file__).resolve().parents[4]
+    workspace_root_guess = Path(__file__).resolve().parents[5]
     mspapi2_repo = workspace_root_guess / "mspapi2"
     sys.path.insert(0, str(mspapi2_repo))
     from mspapi2.msp_api import MSPApi
     from mspapi2.lib import InavEnums
 
 
-INAV_ROOT = Path(__file__).resolve().parents[3]
+INAV_ROOT = Path(__file__).resolve().parents[4]
 WORKSPACE_ROOT = INAV_ROOT.parent
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().with_suffix(".ini")
 
