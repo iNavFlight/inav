@@ -43,6 +43,8 @@
 
 #include "flight/altitude_floor.h"
 #include "flight/figure_sequencer.h"
+
+#include "navigation/navigation.h"
 #include "flight/imu.h"
 #include "flight/orientation_hold.h"
 #include "flight/pid.h"
@@ -191,6 +193,8 @@ void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion
 
 static int activeTargetSource = OHOLD_SOURCE_NONE;
 
+
+static float holdRefAltCm = 0.0f;   // altitude assist reference, captured at hold entry
 static void orientationHoldCheckSourceSwitch(int source)
 {
     if (source != activeTargetSource) {
@@ -198,6 +202,9 @@ static void orientationHoldCheckSourceSwitch(int source)
             pidResetErrorAccumulators();
         }
         activeTargetSource = source;
+        // capture the altitude reference for the hold altitude assist at the
+        // moment the target engages (same pattern as the figure sequencer)
+        holdRefAltCm = getEstimatedActualPosition(Z);
     }
 }
 
@@ -255,7 +262,12 @@ bool orientationHoldComputeError(fpVector3_t *errDeg)
         } else if (preset->box == BOXKNIFERIGHT) {
             pitchTrim = orientationHoldConfig()->knifeRightPitchTrim;
         }
-        orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg + pitchTrim);
+        // Active altitude hold on top of the static trim: same assist as the
+        // figure sequencer, referenced to the entry altitude. The cos-blend
+        // inside fades it out toward nose-vertical (prop hang), where
+        // altitude is owned by the hover throttle controller instead.
+        const float assistDeg = figureAltitudeAssistDeg(preset->pitchDeg + pitchTrim, holdRefAltCm);
+        orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg + pitchTrim + assistDeg);
     }
 
     orientationHoldComputeAttitudeError(errDeg, &orientation, &qTarget);

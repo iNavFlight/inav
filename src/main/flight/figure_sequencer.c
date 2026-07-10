@@ -111,7 +111,7 @@ static figureType_e requestedFigure(void)
 // Altitude assist: earth referenced nose-above-horizon offset from an
 // altitude/climb-rate PID, blended out as the nose approaches vertical
 // (there altitude is a thrust problem, not an attitude problem)
-static float altitudeAssistDeg(float nosePitchDeg, float refAltCm)
+float figureAltitudeAssistDeg(float nosePitchDeg, float refAltCm)
 {
     if (!navIsAltitudeEstimateTrusted()) {
         return 0.0f;
@@ -350,7 +350,7 @@ void figureSequencerUpdate(void)
 
     targetRollDeg = roll;
     targetPitchDeg = pitch + (assist
-        ? altitudeAssistDeg(pitch, activeFigure == FIGURE_SEQUENCE ? seqSegAltCm : startAltitudeCm)
+        ? figureAltitudeAssistDeg(pitch, activeFigure == FIGURE_SEQUENCE ? seqSegAltCm : startAltitudeCm)
         : 0.0f);
 }
 

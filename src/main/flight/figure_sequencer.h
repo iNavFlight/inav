@@ -97,6 +97,11 @@ bool figureSequencerRequested(void);
 // Current figure target, valid while requested
 void figureSequencerGetTarget(float *rollDeg, float *pitchDeg);
 
+// Earth-referenced nose-above-horizon offset from an altitude/climb-rate PID,
+// blended out as the nose approaches vertical. Shared with the plain
+// orientation holds so INVERT/KNIFE actively hold their entry altitude too.
+float figureAltitudeAssistDeg(float nosePitchDeg, float refAltCm);
+
 // True while an open-loop IMPULSE segment runs; returns the commanded body
 // rates normalized to -1..1 of the profile's max rates (full deflection)
 bool figureSequencerGetRateCommand(float ratesNorm[3]);
