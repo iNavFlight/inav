@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef enum {
     NAV_MISSION_VTOL_PRECONDITION_READY = 0,
@@ -69,4 +70,83 @@ static inline navMissionVtolTransitionStartValidation_e navMissionVtolTransition
     }
 
     return NAV_MISSION_VTOL_START_VALIDATION_READY;
+}
+
+static inline bool navMissionVtolTransitionSuppressesWaypointRestartGuard(
+    const bool missionTransitionInProgress)
+{
+    return missionTransitionInProgress;
+}
+
+static inline bool navMissionVtolTransitionSuppressesWaypointFallbackToRth(
+    const bool missionTransitionInProgress)
+{
+    return missionTransitionInProgress;
+}
+
+static inline bool navMissionVtolTransitionHoldsWaypointSelector(
+    const bool missionTransitionInProgress,
+    const bool waypointModeSwitchActive)
+{
+    return missionTransitionInProgress && waypointModeSwitchActive;
+}
+
+static inline bool navMissionShouldHoldMultirotorWaypointForAltitude(
+    const bool isMultirotor,
+    const bool waypointAltitudeEnforceActive,
+    const uint16_t waypointEnforceAltitudeCm,
+    const float waypointDistanceCm,
+    const float waypointInitialDistanceCm,
+    const uint16_t waypointRadiusCm,
+    const float altitudeErrorCm)
+{
+    return isMultirotor &&
+           waypointEnforceAltitudeCm > 0 &&
+           (waypointAltitudeEnforceActive || waypointDistanceCm <= waypointRadiusCm || waypointInitialDistanceCm <= waypointRadiusCm) &&
+           altitudeErrorCm >= waypointEnforceAltitudeCm;
+}
+
+static inline bool navMissionUpdateMultirotorWaypointAltitudeEnforceActive(
+    const bool isMultirotor,
+    const bool waypointAltitudeEnforceActive,
+    const bool forceFromWaypointStart,
+    const uint16_t waypointEnforceAltitudeCm,
+    const float waypointDistanceCm,
+    const float waypointInitialDistanceCm,
+    const uint16_t waypointRadiusCm)
+{
+    return waypointAltitudeEnforceActive ||
+           (isMultirotor &&
+            waypointEnforceAltitudeCm > 0 &&
+            (forceFromWaypointStart || waypointDistanceCm <= waypointRadiusCm || waypointInitialDistanceCm <= waypointRadiusCm));
+}
+
+static inline bool navMissionShouldForceFirstGeoWaypointAltitudeFromStart(
+    const bool isMultirotor,
+    const bool firstGeoWaypoint)
+{
+    return isMultirotor && firstGeoWaypoint;
+}
+
+static inline bool navMissionShouldHoldFirstMultirotorWaypointXyForAltitude(
+    const bool isMultirotor,
+    const bool waypointAltitudeEnforceFromStart,
+    const uint16_t waypointEnforceAltitudeCm,
+    const float altitudeErrorCm)
+{
+    return isMultirotor &&
+           waypointAltitudeEnforceFromStart &&
+           waypointEnforceAltitudeCm > 0 &&
+           altitudeErrorCm >= waypointEnforceAltitudeCm;
+}
+
+static inline float navMissionMultirotorWaypointAltitudeTarget(
+    const bool isMultirotor,
+    const bool waypointAltitudeEnforceActive,
+    const float waypointAltitudeCm,
+    const float interpolatedAltitudeCm)
+{
+    return (isMultirotor && waypointAltitudeEnforceActive) ?
+           waypointAltitudeCm :
+           interpolatedAltitudeCm;
 }

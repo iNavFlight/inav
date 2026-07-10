@@ -135,3 +135,204 @@ TEST(NavigationVtolMissionLogicTest, StartValidationAllowsValidTransitionStart)
             true,
             true));
 }
+
+TEST(NavigationVtolMissionLogicTest, MissionTransitionSuppressesWaypointFallbackOnlyWhileInProgress)
+{
+    EXPECT_TRUE(navMissionVtolTransitionSuppressesWaypointRestartGuard(true));
+    EXPECT_TRUE(navMissionVtolTransitionSuppressesWaypointFallbackToRth(true));
+    EXPECT_TRUE(navMissionVtolTransitionHoldsWaypointSelector(true, true));
+
+    EXPECT_FALSE(navMissionVtolTransitionSuppressesWaypointRestartGuard(false));
+    EXPECT_FALSE(navMissionVtolTransitionSuppressesWaypointFallbackToRth(false));
+    EXPECT_FALSE(navMissionVtolTransitionHoldsWaypointSelector(false, true));
+    EXPECT_FALSE(navMissionVtolTransitionHoldsWaypointSelector(true, false));
+}
+
+TEST(NavigationVtolMissionLogicTest, MultirotorWaypointHoldsForEnforcedAltitudeInsideRadius)
+{
+    EXPECT_TRUE(navMissionShouldHoldMultirotorWaypointForAltitude(
+        true,
+        false,
+        100,
+        250.0f,
+        250.0f,
+        500,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MultirotorWaypointKeepsAltitudeHoldWhenStartedInsideRadius)
+{
+    EXPECT_TRUE(navMissionShouldHoldMultirotorWaypointForAltitude(
+        true,
+        false,
+        100,
+        650.0f,
+        250.0f,
+        500,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MultirotorWaypointDoesNotHoldWhenAltitudeReached)
+{
+    EXPECT_FALSE(navMissionShouldHoldMultirotorWaypointForAltitude(
+        true,
+        false,
+        100,
+        250.0f,
+        250.0f,
+        500,
+        99.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MultirotorWaypointAltitudeHoldIsDisabledWithoutEnforceAltitude)
+{
+    EXPECT_FALSE(navMissionShouldHoldMultirotorWaypointForAltitude(
+        true,
+        false,
+        0,
+        250.0f,
+        250.0f,
+        500,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MultirotorWaypointAltitudeHoldDoesNotAffectFixedWing)
+{
+    EXPECT_FALSE(navMissionShouldHoldMultirotorWaypointForAltitude(
+        false,
+        false,
+        100,
+        250.0f,
+        250.0f,
+        500,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MultirotorWaypointAltitudeHoldWaitsForHorizontalRadius)
+{
+    EXPECT_FALSE(navMissionShouldHoldMultirotorWaypointForAltitude(
+        true,
+        false,
+        100,
+        501.0f,
+        501.0f,
+        500,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MultirotorWaypointKeepsAltitudeHoldAfterEnteringRadius)
+{
+    EXPECT_TRUE(navMissionUpdateMultirotorWaypointAltitudeEnforceActive(
+        true,
+        false,
+        false,
+        100,
+        250.0f,
+        650.0f,
+        500));
+
+    EXPECT_TRUE(navMissionShouldHoldMultirotorWaypointForAltitude(
+        true,
+        true,
+        100,
+        650.0f,
+        650.0f,
+        500,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, FirstMultirotorWaypointCanEnforceAltitudeBeforeRadius)
+{
+    EXPECT_TRUE(navMissionUpdateMultirotorWaypointAltitudeEnforceActive(
+        true,
+        false,
+        true,
+        100,
+        1200.0f,
+        1200.0f,
+        500));
+
+    EXPECT_TRUE(navMissionShouldHoldMultirotorWaypointForAltitude(
+        true,
+        true,
+        100,
+        1200.0f,
+        1200.0f,
+        500,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, NonFirstMultirotorWaypointStillWaitsForRadius)
+{
+    EXPECT_FALSE(navMissionUpdateMultirotorWaypointAltitudeEnforceActive(
+        true,
+        false,
+        false,
+        100,
+        1200.0f,
+        1200.0f,
+        500));
+}
+
+TEST(NavigationVtolMissionLogicTest, FirstGeoWaypointAltitudeForceRequiresMultirotor)
+{
+    EXPECT_TRUE(navMissionShouldForceFirstGeoWaypointAltitudeFromStart(
+        true,
+        true));
+
+    EXPECT_FALSE(navMissionShouldForceFirstGeoWaypointAltitudeFromStart(
+        true,
+        false));
+
+    EXPECT_FALSE(navMissionShouldForceFirstGeoWaypointAltitudeFromStart(
+        false,
+        true));
+}
+
+TEST(NavigationVtolMissionLogicTest, FirstMultirotorWaypointHoldsXyUntilAltitudeReached)
+{
+    EXPECT_TRUE(navMissionShouldHoldFirstMultirotorWaypointXyForAltitude(
+        true,
+        true,
+        100,
+        12000.0f));
+
+    EXPECT_FALSE(navMissionShouldHoldFirstMultirotorWaypointXyForAltitude(
+        true,
+        true,
+        100,
+        99.0f));
+
+    EXPECT_FALSE(navMissionShouldHoldFirstMultirotorWaypointXyForAltitude(
+        true,
+        false,
+        100,
+        12000.0f));
+
+    EXPECT_FALSE(navMissionShouldHoldFirstMultirotorWaypointXyForAltitude(
+        false,
+        true,
+        100,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, ActiveMultirotorAltitudeEnforcementKeepsWaypointAltitude)
+{
+    EXPECT_FLOAT_EQ(12000.0f, navMissionMultirotorWaypointAltitudeTarget(
+        true,
+        true,
+        12000.0f,
+        250.0f));
+
+    EXPECT_FLOAT_EQ(250.0f, navMissionMultirotorWaypointAltitudeTarget(
+        true,
+        false,
+        12000.0f,
+        250.0f));
+
+    EXPECT_FLOAT_EQ(250.0f, navMissionMultirotorWaypointAltitudeTarget(
+        false,
+        true,
+        12000.0f,
+        250.0f));
+}

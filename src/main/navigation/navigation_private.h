@@ -509,6 +509,9 @@ typedef struct {
     float                       wpDistance;                 // Distance to active WP
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
     bool                        wpAltitudeReached;          // WP altitude achieved
+    bool                        wpAltitudeEnforceActive;    // WP entered altitude enforcement window
+    bool                        wpAltitudeEnforceFromStart; // First MC WP is climbing before horizontal travel
+    fpVector3_t                 wpAltitudeEnforceHoldPos;   // XY position captured before first-WP climb
 
 #ifdef USE_FW_AUTOLAND
     /* Fixedwing autoland */

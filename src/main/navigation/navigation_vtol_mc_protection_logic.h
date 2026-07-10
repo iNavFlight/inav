@@ -91,6 +91,20 @@ static inline bool vtolMcProtectionSuppressesMulticopterBrakingMode(const bool a
     return active;
 }
 
+static inline bool vtolMcProtectionRthLandingYawSettleAssistActive(
+    const bool active,
+    const bool landingAllowed,
+    const bool landingSettleConditionsMet,
+    const bool headingReached,
+    const bool fixedWingLegacy)
+{
+    return active &&
+           landingAllowed &&
+           landingSettleConditionsMet &&
+           !headingReached &&
+           !fixedWingLegacy;
+}
+
 static inline uint16_t vtolMcProtectionBailoutAngleLimitDeciDeg(const uint8_t navMcBankAngleDeg)
 {
     uint8_t bailoutAngleDeg = navMcBankAngleDeg + VTOL_MC_BAILOUT_ANGLE_EXTRA_DEG;

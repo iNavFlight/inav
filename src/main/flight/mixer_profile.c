@@ -40,6 +40,7 @@
 #ifdef USE_AUTO_TRANSITION
 #define MIXER_TRANSITION_OSD_EVENT_DISPLAY_MS 3000
 #define MIXER_TRANSITION_MC_SPEED_HIGH_MARGIN_CM_S 100.0f
+#define MIXER_TRANSITION_AIRSPEED_HOT_SWITCH_CONFIRM_MS 300
 #endif
 
 mixerConfig_t currentMixerConfig;
@@ -157,10 +158,12 @@ void setMixerProfileAT(void)
     mixerProfileAT.usedAirspeed = false;
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
+    mixerProfileAT.airspeedHotSwitchConfirmActive = false;
     mixerProfileAT.progress = 0.0f;
     mixerProfileAT.handoffScalingProgress = 0.0f;
     mixerProfileAT.motorRampProgress = 0.0f;
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
+    mixerProfileAT.airspeedHotSwitchConfirmStartTime = 0;
     mixerProfileAT.blendToFw = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW ? 0.0f : 1.0f;
     mixerProfileAT.pusherScale = 1.0f;
     mixerProfileAT.liftScale = 1.0f;
@@ -486,6 +489,8 @@ static mixerProfileATDirection_e directionForRequest(const mixerProfileATRequest
 static void resetTransitionScales(void)
 {
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
+    mixerProfileAT.airspeedHotSwitchConfirmActive = false;
+    mixerProfileAT.airspeedHotSwitchConfirmStartTime = 0;
     mixerProfileAT.progress = 0.0f;
     mixerProfileAT.handoffScalingProgress = 0.0f;
     mixerProfileAT.motorRampProgress = 0.0f;
@@ -757,7 +762,9 @@ static void abortTransition(const bool byAirspeedTimeout, const bool directSwitc
     mixerProfileAT.usedAirspeed = false;
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
+    mixerProfileAT.airspeedHotSwitchConfirmActive = false;
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
+    mixerProfileAT.airspeedHotSwitchConfirmStartTime = 0;
     resetTransitionScales();
 
     if (servoHandoffMask != 0) {
@@ -802,7 +809,23 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
         }
     }
 
-    return hotSwitchProgress.readyForHotSwitch;
+    if (!hotSwitchProgress.readyForHotSwitch || !hotSwitchProgress.usedAirspeed) {
+        mixerProfileAT.airspeedHotSwitchConfirmActive = false;
+        mixerProfileAT.airspeedHotSwitchConfirmStartTime = 0;
+    } else if (!mixerProfileAT.airspeedHotSwitchConfirmActive) {
+        mixerProfileAT.airspeedHotSwitchConfirmActive = true;
+        mixerProfileAT.airspeedHotSwitchConfirmStartTime = millis();
+    }
+
+    const uint32_t confirmationElapsedMs = mixerProfileAT.airspeedHotSwitchConfirmActive ?
+        millis() - mixerProfileAT.airspeedHotSwitchConfirmStartTime :
+        0;
+    return mixerTransitionAirspeedHotSwitchConfirmed(
+        hotSwitchProgress.usedAirspeed,
+        hotSwitchProgress.readyForHotSwitch,
+        mixerProfileAT.airspeedHotSwitchConfirmActive,
+        confirmationElapsedMs,
+        MIXER_TRANSITION_AIRSPEED_HOT_SWITCH_CONFIRM_MS);
 }
 #endif
 

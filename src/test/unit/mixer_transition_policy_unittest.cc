@@ -442,6 +442,50 @@ TEST(MixerTransitionPolicyTest, HotSwitchUsesAirspeedWhenAvailableForMcToFw)
     EXPECT_FLOAT_EQ(1.0f, progress.progress);
 }
 
+TEST(MixerTransitionPolicyTest, AirspeedHotSwitchRequiresConfirmationWindow)
+{
+    EXPECT_FALSE(mixerTransitionAirspeedHotSwitchConfirmed(
+        true,
+        true,
+        true,
+        100,
+        300));
+
+    EXPECT_TRUE(mixerTransitionAirspeedHotSwitchConfirmed(
+        true,
+        true,
+        true,
+        300,
+        300));
+}
+
+TEST(MixerTransitionPolicyTest, AirspeedHotSwitchConfirmationRejectsSpikeBeforeTimerStarts)
+{
+    EXPECT_FALSE(mixerTransitionAirspeedHotSwitchConfirmed(
+        true,
+        true,
+        false,
+        0,
+        300));
+
+    EXPECT_FALSE(mixerTransitionAirspeedHotSwitchConfirmed(
+        true,
+        false,
+        true,
+        500,
+        300));
+}
+
+TEST(MixerTransitionPolicyTest, TimerBasedHotSwitchDoesNotNeedAirspeedConfirmation)
+{
+    EXPECT_TRUE(mixerTransitionAirspeedHotSwitchConfirmed(
+        false,
+        true,
+        false,
+        0,
+        300));
+}
+
 TEST(MixerTransitionPolicyTest, HotSwitchWithoutAirspeedCompletesImmediatelyWhenTimerIsZero)
 {
     const mixerTransitionHotSwitchProgress_t progress = mixerTransitionEvaluateHotSwitch(

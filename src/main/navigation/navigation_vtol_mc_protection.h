@@ -39,7 +39,9 @@ int16_t navigationVtolMcProtectionApplyBailoutThrottle(int16_t requestedThrottle
 
 bool navigationVtolMcProtectionApplyCapture(uint32_t navStateFlags);
 bool navigationVtolMcProtectionApplySoftAltitudeCapture(uint32_t navStateFlags);
+bool navigationVtolMcProtectionLandingSettleConditionsMet(const fpVector3_t *landingPos);
 bool navigationVtolMcProtectionLandingSettleReady(const fpVector3_t *landingPos);
+void navigationVtolMcProtectionResetLandingSettle(void);
 void navigationVtolMcProtectionApplyStabilizedCommandShaping(int16_t *rollCommand, int16_t *pitchCommand, int16_t *yawCommand);
 void navigationVtolMcProtectionPublishThrottleDebug(const vtolMcProtectionThrottleBounds_t *bounds, int16_t protectedThrottle);
 void navigationVtolMcProtectionResetTransientStates(void);
@@ -69,11 +71,17 @@ static inline bool navigationVtolMcProtectionApplySoftAltitudeCapture(uint32_t n
     (void)navStateFlags;
     return false;
 }
+static inline bool navigationVtolMcProtectionLandingSettleConditionsMet(const fpVector3_t *landingPos)
+{
+    (void)landingPos;
+    return true;
+}
 static inline bool navigationVtolMcProtectionLandingSettleReady(const fpVector3_t *landingPos)
 {
     (void)landingPos;
     return true;
 }
+static inline void navigationVtolMcProtectionResetLandingSettle(void) {}
 static inline void navigationVtolMcProtectionApplyStabilizedCommandShaping(int16_t *rollCommand, int16_t *pitchCommand, int16_t *yawCommand)
 {
     (void)rollCommand;

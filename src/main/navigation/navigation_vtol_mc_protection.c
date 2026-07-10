@@ -251,6 +251,13 @@ void navigationVtolMcProtectionResetTransientStates(void)
     vtolMcProtection.protectedThrottle = 0;
 }
 
+void navigationVtolMcProtectionResetLandingSettle(void)
+{
+    vtolMcProtection.landingSettle.stableSinceMs = 0;
+    vtolMcProtection.landingSettle.elapsedMs = 0;
+    vtolMcProtection.landingSettleActive = false;
+}
+
 vtolMcProtectionThrottleBounds_t navigationVtolMcProtectionGetThrottleBounds(const int16_t idleThrottle, const int16_t hoverThrottle, const int16_t maxThrottle)
 {
     const bool active = navigationVtolMcProtectionIsNavActive() && navigationInAutomaticThrottleMode();
@@ -409,23 +416,45 @@ bool navigationVtolMcProtectionApplySoftAltitudeCapture(const uint32_t navStateF
     return shouldRelaxAltitude;
 }
 
-bool navigationVtolMcProtectionLandingSettleReady(const fpVector3_t *landingPos)
+static bool navigationVtolMcProtectionLandingSettleConditionsMetInternal(const fpVector3_t *landingPos, uint16_t *settleTimeMs)
+{
+    const uint16_t landingCaptureRadiusCm = vtolMcProtectionLandingCaptureRadiusCm(navConfig()->general.waypoint_radius);
+    const bool insideLandingRadius = calculateDistanceToDestination(landingPos) <= landingCaptureRadiusCm;
+
+    *settleTimeMs = 0;
+    const bool settleConditionsMet = navigationVtolMcProtectionSettleConditionsMet(settleTimeMs);
+
+    return insideLandingRadius && settleConditionsMet;
+}
+
+bool navigationVtolMcProtectionLandingSettleConditionsMet(const fpVector3_t *landingPos)
 {
     if (!navigationVtolMcProtectionIsNavActive()) {
-        vtolMcProtection.landingSettleActive = false;
-        vtolMcProtection.landingSettle.stableSinceMs = 0;
-        vtolMcProtection.landingSettle.elapsedMs = 0;
+        navigationVtolMcProtectionResetLandingSettle();
         navigationVtolMcProtectionPublishDebug();
         return true;
     }
 
-    const uint16_t landingCaptureRadiusCm = vtolMcProtectionLandingCaptureRadiusCm(navConfig()->general.waypoint_radius);
-    const bool insideLandingRadius = calculateDistanceToDestination(landingPos) <= landingCaptureRadiusCm;
     uint16_t settleTimeMs;
-    const bool settleConditionsMet = navigationVtolMcProtectionSettleConditionsMet(&settleTimeMs);
+    const bool conditionsMet = navigationVtolMcProtectionLandingSettleConditionsMetInternal(landingPos, &settleTimeMs);
+    vtolMcProtection.landingSettleActive = true;
+    navigationVtolMcProtectionPublishDebug();
+    return conditionsMet;
+}
+
+bool navigationVtolMcProtectionLandingSettleReady(const fpVector3_t *landingPos)
+{
+    if (!navigationVtolMcProtectionIsNavActive()) {
+        navigationVtolMcProtectionResetLandingSettle();
+        navigationVtolMcProtectionPublishDebug();
+        return true;
+    }
+
+    uint16_t settleTimeMs;
+    const bool settleConditionsMet = navigationVtolMcProtectionLandingSettleConditionsMetInternal(landingPos, &settleTimeMs);
     const bool ready = vtolMcProtectionUpdateSettleState(
         &vtolMcProtection.landingSettle,
-        insideLandingRadius && settleConditionsMet,
+        settleConditionsMet,
         settleTimeMs,
         millis());
 

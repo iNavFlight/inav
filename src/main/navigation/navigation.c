@@ -88,13 +88,12 @@
 #define FW_LAND_LOITER_ALT_TOLERANCE 150
 
 #ifdef USE_AUTO_TRANSITION
-// One-shot MC->FW mission retry after airspeed-timeout: hold position, yaw scan, align to best pitot heading.
+// One-shot MC->FW mission retry after airspeed-timeout: yaw scan, align to best pitot heading.
 #define NAV_MIXERAT_RETRY_SCAN_STEP_CD       DEGREES_TO_CENTIDEGREES(20)
 #define NAV_MIXERAT_RETRY_HEADING_TOL_CD     DEGREES_TO_CENTIDEGREES(5)
 #define NAV_MIXERAT_RETRY_HEADING_SETTLE_MS  500
 #define NAV_MIXERAT_RETRY_HEADING_STEP_TIMEOUT_MS 6000
 #define NAV_MIXERAT_RETRY_MAX_TOTAL_MS       45000
-#define NAV_MIXERAT_MISSION_TRANSITION_TRACK_DISTANCE_CM 4000
 #define NAV_MIXERAT_MISSION_TRANSITION_ALTITUDE_FALLBACK_TOLERANCE_CM 100
 #endif
 
@@ -311,7 +310,7 @@ typedef struct navMixerATMissionTransition_s {
     timeMs_t retryStartTimeMs;
     timeMs_t retryStepStartTimeMs;
     timeMs_t retryHeadingReachedTimeMs;
-    fpVector3_t retryHoldPos;
+    fpVector3_t transitionHoldPos;
 } navMixerATMissionTransition_t;
 
 typedef enum {
@@ -342,6 +341,7 @@ static navMixerATMissionTransition_t navMixerATMissionTransition;
 #else
 static navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
 #endif
+static int8_t waypointPreActionPreparedIndex = -1;
 
 static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode);
 static void updateDesiredRTHAltitude(void);
@@ -361,6 +361,7 @@ static void resetJumpCounter(void);
 static void clearJumpCounters(void);
 
 static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint);
+static bool prepareActiveWaypointForPreAction(const navWaypoint_t *waypoint);
 #ifdef USE_AUTO_TRANSITION
 static bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos);
 #endif
@@ -1368,19 +1369,22 @@ static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
 #ifdef USE_AUTO_TRANSITION
     const bool mixerATState = (state == NAV_STATE_MIXERAT_INITIALIZE || state == NAV_STATE_MIXERAT_IN_PROGRESS);
 
-    // During mission-authorized MC->FW transition, enable XY/YAW control to fly a straight acceleration segment.
+    // During mission-authorized MC->FW transition, command heading only. The
+    // pusher/tilt transition should build speed without the MC position
+    // controller saturating pitch/roll toward a far-away target.
     if (mixerATState &&
         navMixerATPendingState == NAV_STATE_WAYPOINT_PRE_ACTION &&
         navMixerATMissionTransition.active &&
         navMixerATMissionTransition.request == MIXERAT_REQUEST_MISSION_TO_FW) {
-        stateFlags |= NAV_CTL_POS | NAV_CTL_YAW;
+        stateFlags |= NAV_CTL_YAW;
     }
 
-    // During one-shot retry scan/alignment, hold position and command heading in MC.
+    // During one-shot retry scan/alignment, command heading only. Avoid XY
+    // position chase while the VTOL is recovering from a failed transition.
     if (mixerATState &&
         navMixerATMissionTransition.retryStage != NAV_MIXERAT_RETRY_STAGE_IDLE &&
         isTransitionRetryToFixedWingRequest(navMixerATMissionTransition.request)) {
-        stateFlags |= NAV_CTL_POS | NAV_CTL_YAW;
+        stateFlags |= NAV_CTL_YAW;
     }
 #endif
 
@@ -1935,12 +1939,51 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
             posControl.landingDelay = 0;
     }
 
+    fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
+    const bool landingAllowed = navigationRTHAllowsLanding();
+    const bool headingReached = ABS(wrap_18000(posControl.rthState.homePosition.heading - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15);
+    const bool vtolMcProtectionActive = navigationVtolMcProtectionIsNavActive();
+    bool vtolLandingSettleReady = false;
+    bool vtolLandingSettleConditionsMet = false;
+    bool vtolLandingSettleChecked = false;
+
+    if (!pauseLanding && landingAllowed && vtolMcProtectionActive) {
+        if (headingReached) {
+            vtolLandingSettleReady = navigationVtolMcProtectionLandingSettleReady(tmpHomePos);
+            vtolLandingSettleChecked = true;
+        } else {
+            vtolLandingSettleConditionsMet = navigationVtolMcProtectionLandingSettleConditionsMet(tmpHomePos);
+            navigationVtolMcProtectionResetLandingSettle();
+        }
+    }
+
+    const bool vtolYawSettleAssistActive = vtolMcProtectionRthLandingYawSettleAssistActive(
+        vtolMcProtectionActive,
+        landingAllowed,
+        vtolLandingSettleConditionsMet,
+        headingReached,
+        STATE(FIXED_WING_LEGACY));
+
+    if (!pauseLanding && vtolYawSettleAssistActive) {
+        // VTOL MC has already settled over the landing point, but yaw has not
+        // reached the required heading yet. Hold the current XY/Z target so
+        // position corrections do not keep competing with yaw authority.
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
+        return NAV_FSM_EVENT_NONE;
+    }
+
     // If landing is not temporarily paused (FS only), position ok, OR within valid timeout - continue
     // Wait until target heading is reached for MR (with 15 deg margin for error), or continue for Fixed Wing
-    if (!pauseLanding && ((ABS(wrap_18000(posControl.rthState.homePosition.heading - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) || STATE(FIXED_WING_LEGACY))) {
-        fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
+    if (!pauseLanding && (headingReached || STATE(FIXED_WING_LEGACY))) {
 
-        if (navigationRTHAllowsLanding() && !navigationVtolMcProtectionLandingSettleReady(tmpHomePos)) {
+        if (landingAllowed && vtolLandingSettleChecked && !vtolLandingSettleReady) {
+            setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
+            return NAV_FSM_EVENT_NONE;
+        }
+
+        if (landingAllowed && !vtolLandingSettleChecked && !navigationVtolMcProtectionLandingSettleReady(tmpHomePos)) {
             setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
             updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
             return NAV_FSM_EVENT_NONE;
@@ -1948,9 +1991,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
 
         resetLandingDetector();     // force reset landing detector just in case
         updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
-        return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME; // success = land
+        return landingAllowed ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME; // success = land
     } else {
-        fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
         setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
         return NAV_FSM_EVENT_NONE;
     }
@@ -2115,6 +2157,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(nav
     // Prepare controllers
     resetPositionController();
     resetAltitudeController(false);     // Make sure surface tracking is not enabled - WP uses global altitude, not AGL
+    waypointPreActionPreparedIndex = -1;
 
 #ifdef USE_FW_AUTOLAND
     if (previousState != NAV_STATE_FW_LANDING_ABORT) {
@@ -2346,12 +2389,95 @@ static void clearMissionVTOLTransitionState(void)
     navMixerATMissionTransition.retryStartTimeMs = 0;
     navMixerATMissionTransition.retryStepStartTimeMs = 0;
     navMixerATMissionTransition.retryHeadingReachedTimeMs = 0;
-    navMixerATMissionTransition.retryHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
+    navMixerATMissionTransition.transitionHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
+}
+
+static bool navMixerATStateActive(void)
+{
+    return posControl.navState == NAV_STATE_MIXERAT_INITIALIZE ||
+           posControl.navState == NAV_STATE_MIXERAT_IN_PROGRESS;
+}
+
+static bool navMissionVTOLTransitionInProgress(void)
+{
+    return navMixerATMissionTransition.active && navMixerATStateActive();
+}
+
+static bool navMixerATRequestIsNavigationOwned(const mixerProfileATRequest_e request)
+{
+    return request == MIXERAT_REQUEST_RTH ||
+           request == MIXERAT_REQUEST_LAND ||
+           request == MIXERAT_REQUEST_MISSION_TO_FW ||
+           request == MIXERAT_REQUEST_MISSION_TO_MC ||
+           request == MIXERAT_REQUEST_FW_TO_MC_PROTECTION;
+}
+
+static mixerProfileATRequest_e navMixerATNavigationOwnedRequest(void)
+{
+    if (navMixerATRequestOverride != MIXERAT_REQUEST_NONE) {
+        return navMixerATRequestOverride;
+    }
+
+    switch (navMixerATPendingState) {
+    case NAV_STATE_RTH_HEAD_HOME:
+        return MIXERAT_REQUEST_RTH;
+
+    case NAV_STATE_RTH_LANDING:
+        return MIXERAT_REQUEST_LAND;
+
+    case NAV_STATE_WAYPOINT_PRE_ACTION:
+        return navMixerATMissionTransition.active ? navMixerATMissionTransition.request : MIXERAT_REQUEST_NONE;
+
+    default:
+        return MIXERAT_REQUEST_NONE;
+    }
+}
+
+static navigationFSMEvent_t navSanitizeTransitionFailEventForCurrentState(navigationFSMEvent_t event)
+{
+    if (event == NAV_FSM_EVENT_NONE ||
+        navFSM[posControl.navState].onEvent[event] != NAV_STATE_UNDEFINED) {
+        return event;
+    }
+
+    if (event == NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME &&
+        navFSM[posControl.navState].onEvent[NAV_FSM_EVENT_SWITCH_TO_RTH] != NAV_STATE_UNDEFINED) {
+        return NAV_FSM_EVENT_SWITCH_TO_RTH;
+    }
+
+    return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+}
+
+static navigationFSMEvent_t abortOrphanedNavigationMixerATTransition(void)
+{
+    if (!mixerATIsActive() || navMixerATStateActive() || mixerProfileAT.request == MIXERAT_REQUEST_NONE) {
+        return NAV_FSM_EVENT_NONE;
+    }
+
+    const mixerProfileATRequest_e activeRequest = mixerProfileAT.request;
+    if (!navMixerATRequestIsNavigationOwned(activeRequest)) {
+        return NAV_FSM_EVENT_NONE;
+    }
+
+    const mixerProfileATRequest_e request = navMixerATNavigationOwnedRequest();
+    if (request == MIXERAT_REQUEST_NONE || request != activeRequest) {
+        return NAV_FSM_EVENT_NONE;
+    }
+
+    const navigationFSMEvent_t failEvent = navSanitizeTransitionFailEventForCurrentState(getTransitionFailEvent(request));
+    mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+    navMixerATRequestOverride = MIXERAT_REQUEST_NONE;
+    clearMissionVTOLTransitionState();
+    return failEvent;
 }
 
 static void beginMissionTransitionRetryScan(const mixerProfileATRequest_e request)
 {
     navMixerATMissionTransition.request = request;
+    // Mission retries need to keep the waypoint pre-action context alive so
+    // the second attempt can restart MixerAT after scan/align completes.
+    navMixerATMissionTransition.active = request == MIXERAT_REQUEST_MISSION_TO_FW ||
+                                          request == MIXERAT_REQUEST_MISSION_TO_MC;
     navMixerATMissionTransition.retryAttempted = true;
     navMixerATMissionTransition.retryStage = NAV_MIXERAT_RETRY_STAGE_SCAN;
     navMixerATMissionTransition.retryScanStartHeading = wrap_36000(posControl.actualState.yaw);
@@ -2363,7 +2489,6 @@ static void beginMissionTransitionRetryScan(const mixerProfileATRequest_e reques
     navMixerATMissionTransition.retryStartTimeMs = millis();
     navMixerATMissionTransition.retryStepStartTimeMs = navMixerATMissionTransition.retryStartTimeMs;
     navMixerATMissionTransition.retryHeadingReachedTimeMs = 0;
-    navMixerATMissionTransition.retryHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
 }
 
 static navMixerATRetryScanResult_e updateMissionTransitionRetryScan(void)
@@ -2523,6 +2648,7 @@ static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const 
     navMixerATMissionTransition.request = requestedAction;
     navMixerATMissionTransition.heading = wrap_36000(transitionHeading);
     navMixerATMissionTransition.active = true;
+    navMixerATMissionTransition.transitionHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
     return NAV_MISSION_VTOL_TRANSITION_START;
 }
 
@@ -2531,18 +2657,18 @@ static void updateMissionTransitionGuidance(void)
     if (navMixerATMissionTransition.retryStage != NAV_MIXERAT_RETRY_STAGE_IDLE &&
         isTransitionRetryToFixedWingRequest(navMixerATMissionTransition.request) &&
         STATE(MULTIROTOR)) {
-        setDesiredPosition(&navMixerATMissionTransition.retryHoldPos,
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos,
             navMixerATMissionTransition.retryTargetHeading,
-            NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
         return;
     }
 
     if (navMixerATMissionTransition.active &&
         navMixerATMissionTransition.request == MIXERAT_REQUEST_MISSION_TO_FW &&
         STATE(MULTIROTOR)) {
-        fpVector3_t transitionTarget;
-        calculateFarAwayTarget(&transitionTarget, navMixerATMissionTransition.heading, NAV_MIXERAT_MISSION_TRANSITION_TRACK_DISTANCE_CM);
-        setDesiredPosition(&transitionTarget, navMixerATMissionTransition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        setDesiredPosition(&navMixerATMissionTransition.transitionHoldPos,
+            navMixerATMissionTransition.heading,
+            NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
         return;
     }
 
@@ -2570,6 +2696,51 @@ navVtolTransitionOsdState_e navigationVtolTransitionOsdState(void)
 }
 #endif
 
+static bool prepareActiveWaypointForPreAction(const navWaypoint_t *waypoint)
+{
+    fpVector3_t localPos;
+    mapWaypointToLocalPosition(&localPos, waypoint, waypointMissionAltConvMode(waypoint->p3));
+
+    const bool waypointChanged =
+        waypointPreActionPreparedIndex != posControl.activeWaypointIndex ||
+        posControl.activeWaypoint.pos.x != localPos.x ||
+        posControl.activeWaypoint.pos.y != localPos.y ||
+        posControl.activeWaypoint.pos.z != localPos.z;
+
+    if (!waypointChanged) {
+        return false;
+    }
+
+    calculateAndSetActiveWaypoint(waypoint);
+    posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
+    posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
+    posControl.wpAltitudeReached = false;
+    posControl.wpAltitudeEnforceActive = false;
+    posControl.wpAltitudeEnforceFromStart = false;
+    posControl.wpAltitudeEnforceHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
+    waypointPreActionPreparedIndex = posControl.activeWaypointIndex;
+
+    return true;
+}
+
+static bool isGeoWaypointAction(const navWaypointActions_e action)
+{
+    return action == NAV_WP_ACTION_WAYPOINT ||
+           action == NAV_WP_ACTION_HOLD_TIME ||
+           action == NAV_WP_ACTION_LAND;
+}
+
+static bool isActiveWaypointFirstGeoWaypoint(void)
+{
+    for (int8_t waypointIndex = posControl.startWpIndex; waypointIndex <= posControl.activeWaypointIndex; waypointIndex++) {
+        if (isGeoWaypointAction((navWaypointActions_e)posControl.waypointList[waypointIndex].action)) {
+            return waypointIndex == posControl.activeWaypointIndex;
+        }
+    }
+
+    return false;
+}
+
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(navigationFSMState_t previousState)
 {
     /* A helper function to do waypoint-specific action */
@@ -2585,10 +2756,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
                 return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
             }
 
-            calculateAndSetActiveWaypoint(activeWaypoint);
-            posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
-            posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
-            posControl.wpAltitudeReached = false;
+            prepareActiveWaypointForPreAction(activeWaypoint);
 
 #ifdef USE_AUTO_TRANSITION
             clearMissionVTOLTransitionState();
@@ -2670,8 +2838,75 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
         switch ((navWaypointActions_e)posControl.waypointList[posControl.activeWaypointIndex].action) {
             case NAV_WP_ACTION_HOLD_TIME:
             case NAV_WP_ACTION_WAYPOINT:
-            case NAV_WP_ACTION_LAND:
-                if (isWaypointReached(&posControl.activeWaypoint.pos, &posControl.activeWaypoint.bearing)) {
+            case NAV_WP_ACTION_LAND: {
+                const bool waypointReached = isWaypointReached(&posControl.activeWaypoint.pos, &posControl.activeWaypoint.bearing);
+                const bool forceAltitudeFromWaypointStart = navMissionShouldForceFirstGeoWaypointAltitudeFromStart(
+                    STATE(MULTIROTOR),
+                    isActiveWaypointFirstGeoWaypoint());
+                const bool wasAltitudeEnforceActive = posControl.wpAltitudeEnforceActive;
+                posControl.wpAltitudeEnforceActive = navMissionUpdateMultirotorWaypointAltitudeEnforceActive(
+                    STATE(MULTIROTOR),
+                    posControl.wpAltitudeEnforceActive,
+                    forceAltitudeFromWaypointStart,
+                    navConfig()->general.waypoint_enforce_altitude,
+                    posControl.wpDistance,
+                    posControl.wpInitialDistance,
+                    navConfig()->general.waypoint_radius);
+
+                if (waypointReached || posControl.wpAltitudeEnforceActive) {
+                    const float waypointAltitudeError = fabsf(navGetCurrentActualPositionAndVelocity()->pos.z - posControl.activeWaypoint.pos.z);
+                    if (!wasAltitudeEnforceActive &&
+                        posControl.wpAltitudeEnforceActive &&
+                        forceAltitudeFromWaypointStart) {
+                        posControl.wpAltitudeEnforceFromStart = true;
+                    }
+
+                    if (posControl.wpAltitudeEnforceActive &&
+                        navConfig()->general.waypoint_enforce_altitude > 0 &&
+                        waypointAltitudeError < navConfig()->general.waypoint_enforce_altitude) {
+                        posControl.wpAltitudeReached = true;
+                        posControl.wpAltitudeEnforceFromStart = false;
+                    }
+
+                    if (navMissionShouldHoldMultirotorWaypointForAltitude(
+                            STATE(MULTIROTOR),
+                            posControl.wpAltitudeEnforceActive,
+                            navConfig()->general.waypoint_enforce_altitude,
+                            posControl.wpDistance,
+                            posControl.wpInitialDistance,
+                            navConfig()->general.waypoint_radius,
+                            waypointAltitudeError)) {
+                        const bool holdFirstWaypointXy = navMissionShouldHoldFirstMultirotorWaypointXyForAltitude(
+                            STATE(MULTIROTOR),
+                            posControl.wpAltitudeEnforceFromStart,
+                            navConfig()->general.waypoint_enforce_altitude,
+                            waypointAltitudeError);
+                        fpVector3_t altitudeHoldPos = holdFirstWaypointXy ?
+                            posControl.wpAltitudeEnforceHoldPos :
+                            posControl.activeWaypoint.pos;
+                        altitudeHoldPos.z = posControl.activeWaypoint.pos.z;
+                        const navSetWaypointFlags_t altitudeHoldUpdateFlags = holdFirstWaypointXy ?
+                            (NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z) :
+                            (NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
+                        setDesiredPosition(&altitudeHoldPos, 0, altitudeHoldUpdateFlags);
+
+                        if (STATE(MULTIROTOR)) {
+                            switch (wpHeadingControl.mode) {
+                                case NAV_WP_HEAD_MODE_NONE:
+                                    break;
+                                case NAV_WP_HEAD_MODE_FIXED:
+                                    setDesiredPosition(NULL, wpHeadingControl.heading, NAV_POS_UPDATE_HEADING);
+                                    break;
+                                case NAV_WP_HEAD_MODE_POI:
+                                    setDesiredPosition(&wpHeadingControl.poi_pos, 0, NAV_POS_UPDATE_BEARING);
+                                    break;
+                            }
+                        }
+                        return NAV_FSM_EVENT_NONE;
+                    }
+                }
+
+                if (waypointReached) {
                     return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
                 }
                 else {
@@ -2679,9 +2914,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                     tmpWaypoint.x = posControl.activeWaypoint.pos.x;
                     tmpWaypoint.y = posControl.activeWaypoint.pos.y;
                     /* Use linear climb/descent between WPs arriving at WP altitude when within 10% of total distance to WP */
-                    tmpWaypoint.z = scaleRangef(constrainf(posControl.wpDistance, 0.1f * posControl.wpInitialDistance, posControl.wpInitialDistance),
-                                                posControl.wpInitialDistance, 0.1f * posControl.wpInitialDistance,
-                                                posControl.wpInitialAltitude, posControl.activeWaypoint.pos.z);
+                    const float interpolatedAltitude = scaleRangef(constrainf(posControl.wpDistance, 0.1f * posControl.wpInitialDistance, posControl.wpInitialDistance),
+                                                                    posControl.wpInitialDistance, 0.1f * posControl.wpInitialDistance,
+                                                                    posControl.wpInitialAltitude, posControl.activeWaypoint.pos.z);
+                    tmpWaypoint.z = navMissionMultirotorWaypointAltitudeTarget(
+                        STATE(MULTIROTOR),
+                        posControl.wpAltitudeEnforceActive,
+                        posControl.activeWaypoint.pos.z,
+                        interpolatedAltitude);
 
                     setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
 
@@ -2700,6 +2940,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                     return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
                 }
                 break;
+            }
 
             case NAV_WP_ACTION_JUMP:
             case NAV_WP_ACTION_SET_HEAD:
@@ -5311,6 +5552,19 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         const bool canActivatePosHold    = canActivatePosHoldMode();
         const bool canActivateNavigation = canActivateNavigationModes();
         const bool isExecutingRTH        = navGetStateFlags(posControl.navState) & NAV_AUTO_RTH;
+#ifdef USE_AUTO_TRANSITION
+        const navigationFSMEvent_t orphanedTransitionEvent = abortOrphanedNavigationMixerATTransition();
+        if (orphanedTransitionEvent != NAV_FSM_EVENT_NONE) {
+            return orphanedTransitionEvent;
+        }
+
+        const bool missionVtolTransitionInProgress = navMissionVTOLTransitionInProgress();
+        const bool waypointRestartGuardSuppressed = navMissionVtolTransitionSuppressesWaypointRestartGuard(missionVtolTransitionInProgress);
+        const bool waypointFallbackToRthSuppressed = navMissionVtolTransitionSuppressesWaypointFallbackToRth(missionVtolTransitionInProgress);
+#else
+        const bool waypointRestartGuardSuppressed = false;
+        const bool waypointFallbackToRthSuppressed = false;
+#endif
 #ifdef USE_SAFE_HOME
         checkSafeHomeState(isExecutingRTH || posControl.flags.forcedRTHActivated);
 #endif
@@ -5406,7 +5660,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         if (IS_RC_MODE_ACTIVE(BOXMANUAL) || posControl.flags.wpMissionPlannerActive) {
             canActivateWaypoint = false;
         } else {
-            if (waypointWasActivated && !FLIGHT_MODE(NAV_WP_MODE)) {
+            if (waypointWasActivated && !FLIGHT_MODE(NAV_WP_MODE) && !waypointRestartGuardSuppressed) {
                 canActivateWaypoint = false;
 
                 if (!IS_RC_MODE_ACTIVE(BOXNAVWP)) {
@@ -5415,7 +5669,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
                 }
             }
 
-            wpRthFallbackIsActive = IS_RC_MODE_ACTIVE(BOXNAVWP) && !canActivateWaypoint;
+            wpRthFallbackIsActive = IS_RC_MODE_ACTIVE(BOXNAVWP) && !canActivateWaypoint && !waypointFallbackToRthSuppressed;
         }
 
         /* Pilot-triggered RTH, also fall-back for WP if no mission is loaded.
@@ -5433,6 +5687,13 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         if (IS_RC_MODE_ACTIVE(BOXMANUAL)) {
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
+
+#ifdef USE_AUTO_TRANSITION
+        if (navMissionVtolTransitionHoldsWaypointSelector(missionVtolTransitionInProgress, IS_RC_MODE_ACTIVE(BOXNAVWP))) {
+            waypointWasActivated = true;
+            return NAV_FSM_EVENT_NONE;
+        }
+#endif
 
         // Pilot-activated waypoint mission. Fall-back to RTH if no mission loaded.
         // Also check multimission mission change status before activating WP mode.
@@ -6272,6 +6533,9 @@ static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos
     posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
     posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
     posControl.wpAltitudeReached = false;
+    posControl.wpAltitudeEnforceActive = false;
+    posControl.wpAltitudeEnforceFromStart = false;
+    posControl.wpAltitudeEnforceHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
 }
 
 void resetFwAutolandApproach(int8_t idx)

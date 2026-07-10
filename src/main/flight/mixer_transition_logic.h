@@ -290,6 +290,24 @@ static inline bool mixerTransitionFwToMcProtectionTriggered(
            trustedAirspeedAvailable &&
            airspeedCmS <= thresholdCmS;
 }
+
+static inline bool mixerTransitionAirspeedHotSwitchConfirmed(
+    const bool usedAirspeed,
+    const bool readyForHotSwitch,
+    const bool confirmationTimerRunning,
+    const uint32_t confirmationElapsedMs,
+    const uint16_t confirmationTimeMs)
+{
+    if (!readyForHotSwitch) {
+        return false;
+    }
+
+    if (!usedAirspeed || confirmationTimeMs == 0) {
+        return true;
+    }
+
+    return confirmationTimerRunning && confirmationElapsedMs >= confirmationTimeMs;
+}
 #endif
 
 static inline bool mixerTransitionShouldAbortForFailsafe(

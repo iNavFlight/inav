@@ -98,10 +98,12 @@ typedef struct mixerProfileAT_s {
     bool usedAirspeed;
     mixerProfileATWaitReason_e waitReason;
     bool transitionStartAirspeedCaptured;
+    bool airspeedHotSwitchConfirmActive;
     float progress;
     float handoffScalingProgress;
     float motorRampProgress;
     float transitionStartAirspeedCmS;
+    timeMs_t airspeedHotSwitchConfirmStartTime;
     float blendToFw;
     float pusherScale;
     float liftScale;

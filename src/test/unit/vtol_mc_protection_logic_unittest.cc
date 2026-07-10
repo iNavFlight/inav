@@ -380,6 +380,51 @@ TEST(VtolMcProtectionLogicTest, ActiveProtectionSuppressesMulticopterBrakingMode
     EXPECT_TRUE(vtolMcProtectionSuppressesMulticopterBrakingMode(true));
 }
 
+TEST(VtolMcProtectionLogicTest, RthLandingYawSettleAssistRequiresSettledVtolMcLanding)
+{
+    EXPECT_TRUE(vtolMcProtectionRthLandingYawSettleAssistActive(
+        true,
+        true,
+        true,
+        false,
+        false));
+
+    EXPECT_FALSE(vtolMcProtectionRthLandingYawSettleAssistActive(
+        false,
+        true,
+        true,
+        false,
+        false));
+
+    EXPECT_FALSE(vtolMcProtectionRthLandingYawSettleAssistActive(
+        true,
+        false,
+        true,
+        false,
+        false));
+
+    EXPECT_FALSE(vtolMcProtectionRthLandingYawSettleAssistActive(
+        true,
+        true,
+        false,
+        false,
+        false));
+
+    EXPECT_FALSE(vtolMcProtectionRthLandingYawSettleAssistActive(
+        true,
+        true,
+        true,
+        true,
+        false));
+
+    EXPECT_FALSE(vtolMcProtectionRthLandingYawSettleAssistActive(
+        true,
+        true,
+        true,
+        false,
+        true));
+}
+
 TEST(VtolMcProtectionLogicTest, CommandShapingIsContinuousAndPreservesSign)
 {
     EXPECT_FLOAT_EQ(1.0f, vtolMcProtectionCommandScaleForSpeed(250.0f));
