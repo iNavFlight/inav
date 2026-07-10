@@ -266,8 +266,22 @@ bool orientationHoldComputeError(fpVector3_t *errDeg)
         // figure sequencer, referenced to the entry altitude. The cos-blend
         // inside fades it out toward nose-vertical (prop hang), where
         // altitude is owned by the hover throttle controller instead.
-        const float assistDeg = figureAltitudeAssistDeg(preset->pitchDeg + pitchTrim, holdRefAltCm);
-        orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg + pitchTrim + assistDeg);
+        // The assist only engages once the attitude has captured the preset:
+        // during the entry the transient altitude error would deflect the
+        // target (seen as a knife-edge entry stalling at half the bank) and
+        // the entry itself must stay a pure attitude move.
+        orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg + pitchTrim);
+        fpVector3_t entryErr;
+        orientationHoldComputeAttitudeError(&entryErr, &orientation, &qTarget);
+        if (fabsf(entryErr.x) < 25.0f && fabsf(entryErr.y) < 25.0f) {
+            const float assistDeg = figureAltitudeAssistDeg(preset->pitchDeg + pitchTrim, holdRefAltCm);
+            orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg + pitchTrim + assistDeg);
+        } else {
+            // still capturing: keep the altitude reference tracking so the
+            // assist later holds the altitude where the attitude settled,
+            // not where the switch was flipped
+            holdRefAltCm = getEstimatedActualPosition(Z);
+        }
     }
 
     orientationHoldComputeAttitudeError(errDeg, &orientation, &qTarget);
