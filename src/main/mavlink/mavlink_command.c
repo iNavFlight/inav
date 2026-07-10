@@ -76,9 +76,32 @@ static bool handleIncoming_COMMAND(
                 mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
                 return true;
             }
-            activateForcedRTH();
-            mavlinkSendCommandAck(command, getStateOfForcedRTH() != RTH_IDLE ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+            mavlinkSendCommandAck(command, activateRTHMode() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
             return true;
+        case MAV_CMD_DO_SET_MODE:
+            {
+                uint32_t modeFlags;
+                uint32_t customMode;
+                if (!mavlinkCommandParamToUint32(param1, UINT8_MAX, &modeFlags) ||
+                    !mavlinkCommandParamToUint32(param2, UINT8_MAX, &customMode) ||
+                    (modeFlags & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) == 0) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                const uint8_t rthMode = mavlinkIsFixedWingVehicle() ? PLANE_MODE_RTL : COPTER_MODE_RTL;
+                if (customMode != rthMode) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+                if (!ARMING_FLAG(ARMED)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                mavlinkSendCommandAck(command, activateRTHMode() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
         case MAV_CMD_NAV_LAND:
             mavlinkSendCommandAck(command, activateForcedLanding() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
             return true;
@@ -317,6 +340,7 @@ static bool handleIncoming_COMMAND(
 
                 bool sent;
                 switch (messageId) {
+#ifdef USE_MAVLINK_STANDARD_MODES
                     case MAVLINK_MSG_ID_AVAILABLE_MODES:
                         {
                             uint32_t modeIndex;
@@ -329,6 +353,7 @@ static bool handleIncoming_COMMAND(
                         mavlinkSendAvailableModesMonitor();
                         sent = true;
                         break;
+#endif
                     case MAVLINK_MSG_ID_MESSAGE_INTERVAL:
                         {
                             uint32_t intervalMessageId;

@@ -21,6 +21,21 @@ static uint8_t mavlinkActivePortMask(void)
     return sendMask;
 }
 
+#define MAVLINK_MISSION_UPLOAD_MAX_ITEMS ((uint16_t)(NAV_MAX_WAYPOINTS * 2U + 1U))
+
+static navWaypoint_t mavlinkMissionUploadWaypoints[NAV_MAX_WAYPOINTS];
+static uint8_t mavlinkMissionUploadWaypointCount;
+static uint8_t mavlinkMissionUploadSequenceWaypointNumbers[MAVLINK_MISSION_UPLOAD_MAX_ITEMS];
+static int16_t mavlinkMissionCurrentSpeedCmS;
+
+static void mavlinkClearMissionUploadBuffer(void)
+{
+    memset(mavlinkMissionUploadWaypoints, 0, sizeof(mavlinkMissionUploadWaypoints));
+    memset(mavlinkMissionUploadSequenceWaypointNumbers, 0, sizeof(mavlinkMissionUploadSequenceWaypointNumbers));
+    mavlinkMissionUploadWaypointCount = 0;
+    mavlinkMissionCurrentSpeedCmS = 0;
+}
+
 void mavlinkSendPendingMissionItemReached(void)
 {
     uint16_t seq;
@@ -87,20 +102,16 @@ static void mavlinkSendMissionAckTo(uint8_t targetSystem, uint8_t targetComponen
     mavlinkSendMessage();
 }
 
-static void mavlinkSendMissionAck(MAV_MISSION_RESULT result)
-{
-    mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, result);
-}
-
 static void mavlinkResetMissionTransfer(void)
 {
     memset(&mavMissionTransfer, 0, sizeof(mavMissionTransfer));
     mavMissionTransfer.state = MAVLINK_MISSION_TRANSFER_IDLE;
+    mavlinkClearMissionUploadBuffer();
 }
 
 static void mavlinkAbortMissionUpload(MAV_MISSION_RESULT result)
 {
-    mavlinkSendMissionAck(result);
+    mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, result);
     mavlinkResetMissionTransfer();
 }
 
@@ -147,6 +158,130 @@ static bool mavlinkPersistMission(void)
 #else
     return true;
 #endif
+}
+
+static bool mavlinkMissionCoordinateIsValid(int32_t lat, int32_t lon)
+{
+    return lat >= -900000000 && lat <= 900000000 &&
+        lon >= -1800000000 && lon <= 1800000000;
+}
+
+static bool mavlinkMissionAltitudeIsValid(float altMeters)
+{
+    return isfinite(altMeters) &&
+        altMeters >= (float)INT32_MIN / 100.0f &&
+        altMeters <= (float)INT32_MAX / 100.0f;
+}
+
+static bool mavlinkMissionItemIsQgcPlannedHome(uint8_t frame, uint16_t command, uint16_t seq)
+{
+    if (seq != 0 || command != MAV_CMD_NAV_WAYPOINT || mavMissionTransfer.count <= 1) {
+        return false;
+    }
+
+    // QGC can upload planned home as item 0; INAV stores home separately as waypoint 0.
+    return mavlinkFrameIsSupported(frame, MAV_FRAME_SUPPORTED_GLOBAL | MAV_FRAME_SUPPORTED_GLOBAL_INT);
+}
+
+static void mavlinkApplyCurrentSpeed(navWaypoint_t *wp)
+{
+    if (mavlinkMissionCurrentSpeedCmS <= 0) {
+        return;
+    }
+
+    switch (wp->action) {
+        case NAV_WP_ACTION_WAYPOINT:
+        case NAV_WP_ACTION_LAND:
+            wp->p1 = mavlinkMissionCurrentSpeedCmS;
+            break;
+        case NAV_WP_ACTION_HOLD_TIME:
+            wp->p2 = mavlinkMissionCurrentSpeedCmS;
+            break;
+        default:
+            break;
+    }
+}
+
+static bool mavlinkStageUploadedMissionItem(uint16_t seq, navWaypoint_t *wp)
+{
+    if (seq >= MAVLINK_MISSION_UPLOAD_MAX_ITEMS || mavlinkMissionUploadWaypointCount >= NAV_MAX_WAYPOINTS) {
+        return false;
+    }
+
+    const uint8_t waypointNumber = mavlinkMissionUploadWaypointCount + 1;
+    mavlinkMissionUploadSequenceWaypointNumbers[seq] = waypointNumber;
+
+    mavlinkApplyCurrentSpeed(wp);
+    wp->flag = (seq + 1 >= mavMissionTransfer.count) ? NAV_WP_FLAG_LAST : 0;
+
+    mavlinkMissionUploadWaypoints[mavlinkMissionUploadWaypointCount] = *wp;
+    mavlinkMissionUploadWaypointCount++;
+
+    return true;
+}
+
+static bool mavlinkStageSkippedMissionItem(uint16_t seq)
+{
+    if (seq >= MAVLINK_MISSION_UPLOAD_MAX_ITEMS) {
+        return false;
+    }
+
+    mavlinkMissionUploadSequenceWaypointNumbers[seq] = 0;
+    return true;
+}
+
+static bool mavlinkResolveUploadedMissionJumps(void)
+{
+    for (uint8_t i = 0; i < mavlinkMissionUploadWaypointCount; i++) {
+        navWaypoint_t *wp = &mavlinkMissionUploadWaypoints[i];
+        if (wp->action != NAV_WP_ACTION_JUMP) {
+            continue;
+        }
+
+        const uint16_t targetSeq = (uint16_t)wp->p1;
+        if (targetSeq >= MAVLINK_MISSION_UPLOAD_MAX_ITEMS) {
+            return false;
+        }
+
+        const uint8_t targetWaypointNumber = mavlinkMissionUploadSequenceWaypointNumbers[targetSeq];
+        if (targetWaypointNumber == 0 || targetWaypointNumber > mavlinkMissionUploadWaypointCount) {
+            return false;
+        }
+
+        wp->p1 = targetWaypointNumber;
+    }
+
+    return true;
+}
+
+static bool mavlinkCommitMissionUpload(void)
+{
+    if (!mavlinkResolveUploadedMissionJumps()) {
+        return false;
+    }
+
+    if (mavlinkMissionUploadWaypointCount == 0) {
+        resetWaypointList();
+        mavlinkContext.missionCompleted = false;
+        return mavlinkPersistMission();
+    }
+
+    mavlinkMissionUploadWaypoints[mavlinkMissionUploadWaypointCount - 1].flag = NAV_WP_FLAG_LAST;
+
+    resetWaypointList();
+
+    for (uint8_t i = 0; i < mavlinkMissionUploadWaypointCount; i++) {
+        setWaypoint(i + 1, &mavlinkMissionUploadWaypoints[i]);
+    }
+
+    if (!isWaypointListValid() || !mavlinkPersistMission()) {
+        resetWaypointList();
+        mavlinkContext.missionCompleted = false;
+        return false;
+    }
+
+    mavlinkContext.missionCompleted = false;
+    return true;
 }
 
 void mavlinkMissionUpdate(timeMs_t currentTimeMs)
@@ -222,12 +357,12 @@ static bool mavlinkHandleArmedGuidedMissionItem(
     float altitudeMeters)
 {
     if (!isGCSValid()) {
-        mavlinkSendMissionAck(MAV_MISSION_ERROR);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
         return true;
     }
 
     if (!mavlinkFrameIsSupported(frame, allowedFrames)) {
-        mavlinkSendMissionAck(MAV_MISSION_UNSUPPORTED_FRAME);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME);
         return true;
     }
     if (!isfinite(altitudeMeters) ||
@@ -235,7 +370,7 @@ static bool mavlinkHandleArmedGuidedMissionItem(
         altitudeMeters > (float)INT32_MAX / 100.0f ||
         latitudeE7 < -900000000 || latitudeE7 > 900000000 ||
         longitudeE7 < -1800000000 || longitudeE7 > 1800000000) {
-        mavlinkSendMissionAck(MAV_MISSION_INVALID);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID);
         return true;
     }
 
@@ -249,7 +384,7 @@ static bool mavlinkHandleArmedGuidedMissionItem(
 
         setWaypoint(255, &wp);
 
-        mavlinkSendMissionAck(MAV_MISSION_ACCEPTED);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ACCEPTED);
         return true;
     }
 
@@ -258,46 +393,47 @@ static bool mavlinkHandleArmedGuidedMissionItem(
         MAV_MISSION_RESULT response = MAV_MISSION_ERROR;
         if (result == MAV_RESULT_ACCEPTED) {response = MAV_MISSION_ACCEPTED;}
         else if (result == MAV_RESULT_UNSUPPORTED) {response = MAV_MISSION_UNSUPPORTED;}
-        mavlinkSendMissionAck(response);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, response);
         return true;
     }
 
-    mavlinkSendMissionAck(MAV_MISSION_ERROR);
+    mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
     return true;
 }
 
+static void mavlinkFinishAcceptedUploadSequence(void)
+{
+    mavMissionTransfer.nextSequence++;
+
+    if (mavMissionTransfer.nextSequence >= mavMissionTransfer.count) {
+        if (mavlinkCommitMissionUpload()) {
+            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ACCEPTED);
+        } else {
+            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID);
+        }
+        mavlinkResetMissionTransfer();
+    } else {
+        mavlinkSendMissionRequest();
+    }
+}
+
 static bool mavlinkHandleMissionItemCommon(
-    bool useIntMessages, 
-    uint8_t frame, 
-    uint16_t command, 
-    uint8_t autocontinue, 
-    uint16_t seq, 
-    float param1, 
-    float param2, 
-    float param3, 
-    float param4, 
+    bool useIntMessages,
+    uint8_t frame,
+    uint16_t command,
+    uint8_t current,
+    uint8_t autocontinue,
+    uint16_t seq,
+    float param1,
+    float param2,
+    float param3,
+    float param4,
     int32_t lat,
-    int32_t lon, 
+    int32_t lon,
     float altMeters)
 {
     if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_RECEIVING || !mavlinkMissionSenderOwnsTransfer()) {
-        mavlinkSendMissionAck(MAV_MISSION_INVALID_SEQUENCE);
-        return true;
-    }
-    if (!isfinite(param1) || !isfinite(param2) || !isfinite(param3) || !isfinite(param4) || !isfinite(altMeters)) {
-        mavlinkAbortMissionUpload(MAV_MISSION_INVALID);
-        return true;
-    }
-    if (altMeters < (float)INT32_MIN / 100.0f || altMeters > (float)INT32_MAX / 100.0f) {
-        mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM7);
-        return true;
-    }
-    if (lat < -900000000 || lat > 900000000) {
-        mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM5_X);
-        return true;
-    }
-    if (lon < -1800000000 || lon > 1800000000) {
-        mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM6_Y);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID_SEQUENCE);
         return true;
     }
 
@@ -312,6 +448,40 @@ static bool mavlinkHandleMissionItemCommon(
     mavMissionTransfer.lastActivityMs = millis();
     mavMissionTransfer.retries = 0;
 
+    if (seq != mavMissionTransfer.nextSequence) {
+        if (seq + 1 == mavMissionTransfer.nextSequence) {
+            mavlinkSendMissionRequest();
+        } else {
+            mavlinkAbortMissionUpload(MAV_MISSION_INVALID_SEQUENCE);
+        }
+        return true;
+    }
+
+    if (seq >= MAVLINK_MISSION_UPLOAD_MAX_ITEMS) {
+        mavlinkAbortMissionUpload(MAV_MISSION_NO_SPACE);
+        return true;
+    }
+
+    if (mavlinkMissionItemIsQgcPlannedHome(frame, command, seq)) {
+        UNUSED(current);
+        UNUSED(autocontinue);
+        UNUSED(param1);
+        UNUSED(param2);
+        UNUSED(param3);
+        UNUSED(param4);
+        UNUSED(lat);
+        UNUSED(lon);
+        UNUSED(altMeters);
+
+        if (!mavlinkStageSkippedMissionItem(seq)) {
+            mavlinkAbortMissionUpload(MAV_MISSION_NO_SPACE);
+            return true;
+        }
+
+        mavlinkFinishAcceptedUploadSequence();
+        return true;
+    }
+
     const bool lastMissionItem = seq + 1 >= mavMissionTransfer.count;
 
     if (autocontinue == 0 && !lastMissionItem) {
@@ -319,9 +489,11 @@ static bool mavlinkHandleMissionItemCommon(
         return true;
     }
 
+    UNUSED(current);
     UNUSED(param3);
 
     navWaypoint_t wp = {0};
+    bool storeWaypoint = true;
 
     switch (command) {
         case MAV_CMD_NAV_WAYPOINT:
@@ -333,10 +505,27 @@ static bool mavlinkHandleMissionItemCommon(
                 mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
                 return true;
             }
+            if (!mavlinkMissionCoordinateIsValid(lat, lon)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID);
+                return true;
+            }
+            if (!mavlinkMissionAltitudeIsValid(altMeters)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM7);
+                return true;
+            }
+
             wp.action = NAV_WP_ACTION_WAYPOINT;
+            if (isfinite(param1) && param1 > 0.0f) {
+                if (param1 > INT16_MAX) {
+                    mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM1);
+                    return true;
+                }
+                wp.action = NAV_WP_ACTION_HOLD_TIME;
+                wp.p1 = (int16_t)lrintf(param1);
+            }
             wp.lat = lat;
             wp.lon = lon;
-            wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.alt = (int32_t)lrintf(altMeters * 100.0f);
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
             break;
 
@@ -349,35 +538,54 @@ static bool mavlinkHandleMissionItemCommon(
                 mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
                 return true;
             }
-            if (param1 < 0.0f || param1 > INT16_MAX) {
+            if (!mavlinkMissionCoordinateIsValid(lat, lon)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID);
+                return true;
+            }
+            if (!mavlinkMissionAltitudeIsValid(altMeters)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM7);
+                return true;
+            }
+            if (!isfinite(param1) || param1 < 0.0f || param1 > INT16_MAX) {
                 mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM1);
                 return true;
             }
+
             wp.action = NAV_WP_ACTION_HOLD_TIME;
             wp.lat = lat;
             wp.lon = lon;
-            wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.alt = (int32_t)lrintf(altMeters * 100.0f);
             wp.p1 = (int16_t)lrintf(param1);
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
             break;
 
         case MAV_CMD_NAV_RETURN_TO_LAUNCH:
-            {
-                const bool coordinateFrame = mavlinkFrameIsSupported(frame,
-                    MAV_FRAME_SUPPORTED_GLOBAL |
-                    MAV_FRAME_SUPPORTED_GLOBAL_INT |
-                    MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
-                    MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT);
+            if (frame != MAV_FRAME_MISSION && !mavlinkFrameIsSupported(frame,
+                MAV_FRAME_SUPPORTED_GLOBAL |
+                MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
+                return true;
+            }
 
-                if (!coordinateFrame && frame != MAV_FRAME_MISSION) {
-                    mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
+            wp.action = NAV_WP_ACTION_RTH;
+            if (isfinite(param1) && param1 > 0.0f) {
+                wp.p1 = 1;
+            }
+            if (mavlinkFrameIsSupported(frame,
+                MAV_FRAME_SUPPORTED_GLOBAL |
+                MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                if (!mavlinkMissionAltitudeIsValid(altMeters)) {
+                    mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM7);
                     return true;
                 }
-                wp.action = NAV_WP_ACTION_RTH;
-                wp.alt = coordinateFrame ? (int32_t)(altMeters * 100.0f) : 0;
+                wp.alt = (int32_t)lrintf(altMeters * 100.0f);
                 wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
-                break;
             }
+            break;
 
         case MAV_CMD_NAV_LAND:
             if (!mavlinkFrameIsSupported(frame,
@@ -388,10 +596,19 @@ static bool mavlinkHandleMissionItemCommon(
                 mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
                 return true;
             }
+            if (!mavlinkMissionCoordinateIsValid(lat, lon)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID);
+                return true;
+            }
+            if (!mavlinkMissionAltitudeIsValid(altMeters)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM7);
+                return true;
+            }
+
             wp.action = NAV_WP_ACTION_LAND;
             wp.lat = lat;
             wp.lon = lon;
-            wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.alt = (int32_t)lrintf(altMeters * 100.0f);
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
             break;
 
@@ -400,33 +617,65 @@ static bool mavlinkHandleMissionItemCommon(
                 mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
                 return true;
             }
-            if (param1 < 0.0f || param1 >= INT16_MAX) {
+            if (!isfinite(param1) || param1 < 0.0f || param1 >= MAVLINK_MISSION_UPLOAD_MAX_ITEMS) {
                 mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM1);
                 return true;
             }
-            if (param2 < INT16_MIN || param2 > INT16_MAX) {
+            if (!isfinite(param2) || param2 < INT16_MIN || param2 > INT16_MAX) {
                 mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM2);
                 return true;
             }
+
             wp.action = NAV_WP_ACTION_JUMP;
-            wp.p1 = (int16_t)lrintf(param1 + 1.0f);
+            wp.p1 = (int16_t)lrintf(param1);
             wp.p2 = (int16_t)lrintf(param2);
             break;
 
-        case MAV_CMD_DO_SET_ROI:
-            if (param1 != MAV_ROI_LOCATION ||
-                !mavlinkFrameIsSupported(frame,
-                    MAV_FRAME_SUPPORTED_GLOBAL |
-                    MAV_FRAME_SUPPORTED_GLOBAL_INT |
-                    MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
-                    MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+        case MAV_CMD_DO_CHANGE_SPEED:
+            if (!isfinite(param1) || !isfinite(param2)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID);
+                return true;
+            }
+            if (param1 > 1.0f) {
                 mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
                 return true;
             }
+            if (param2 >= 0.0f) {
+                if (param2 > (float)INT16_MAX / 100.0f) {
+                    mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM2);
+                    return true;
+                }
+                mavlinkMissionCurrentSpeedCmS = (int16_t)lrintf(param2 * 100.0f);
+            }
+            storeWaypoint = false;
+            break;
+
+        case MAV_CMD_DO_SET_ROI:
+            if (!isfinite(param1) || param1 != MAV_ROI_LOCATION) {
+                mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
+                return true;
+            }
+            if (!mavlinkFrameIsSupported(frame,
+                MAV_FRAME_SUPPORTED_GLOBAL |
+                MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
+                return true;
+            }
+            if (!mavlinkMissionCoordinateIsValid(lat, lon)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID);
+                return true;
+            }
+            if (!mavlinkMissionAltitudeIsValid(altMeters)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM7);
+                return true;
+            }
+
             wp.action = NAV_WP_ACTION_SET_POI;
             wp.lat = lat;
             wp.lon = lon;
-            wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.alt = (int32_t)lrintf(altMeters * 100.0f);
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
             break;
 
@@ -435,14 +684,15 @@ static bool mavlinkHandleMissionItemCommon(
                 mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
                 return true;
             }
-            if (param1 < 0.0f || param1 >= 360.0f) {
+            if (!isfinite(param1) || param1 < -1.0f || param1 >= 360.0f) {
                 mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM1);
                 return true;
             }
-            if (param4 != 0.0f) {
+            if (isfinite(param4) && param4 != 0.0f) {
                 mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
                 return true;
             }
+
             wp.action = NAV_WP_ACTION_SET_HEAD;
             wp.p1 = (int16_t)lrintf(param1);
             break;
@@ -452,30 +702,17 @@ static bool mavlinkHandleMissionItemCommon(
             return true;
     }
 
-    if (seq == mavMissionTransfer.nextSequence) {
-        mavMissionTransfer.nextSequence++;
-        wp.flag = (mavMissionTransfer.nextSequence >= mavMissionTransfer.count) ? NAV_WP_FLAG_LAST : 0;
-        setWaypoint(mavMissionTransfer.nextSequence, &wp);
-
-        if (mavMissionTransfer.nextSequence >= mavMissionTransfer.count) {
-            if (isWaypointListValid() && mavlinkPersistMission()) {
-                mavlinkContext.missionCompleted = false;
-                mavlinkSendMissionAck(MAV_MISSION_ACCEPTED);
-            } else {
-                mavlinkSendMissionAck(MAV_MISSION_INVALID);
-            }
-            mavlinkResetMissionTransfer();
-        } else {
-            mavlinkSendMissionRequest();
+    if (storeWaypoint) {
+        if (!mavlinkStageUploadedMissionItem(seq, &wp)) {
+            mavlinkAbortMissionUpload(MAV_MISSION_NO_SPACE);
+            return true;
         }
-    } else {
-        if (seq + 1 == mavMissionTransfer.nextSequence) {
-            mavlinkSendMissionRequest();
-        } else {
-            mavlinkAbortMissionUpload(MAV_MISSION_INVALID_SEQUENCE);
-        }
+    } else if (!mavlinkStageSkippedMissionItem(seq)) {
+        mavlinkAbortMissionUpload(MAV_MISSION_NO_SPACE);
+        return true;
     }
 
+    mavlinkFinishAcceptedUploadSequence();
     return true;
 }
 
@@ -488,18 +725,21 @@ bool mavlinkHandleIncomingMissionClearAll(void)
         return false;
     }
     if (msg.mission_type != MAV_MISSION_TYPE_MISSION && msg.mission_type != MAV_MISSION_TYPE_ALL) {
-        mavlinkSendMissionAck(MAV_MISSION_UNSUPPORTED);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED);
         return true;
     }
     if (ARMING_FLAG(ARMED)) {
-        mavlinkSendMissionAck(MAV_MISSION_DENIED);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
         return true;
     }
 
     resetWaypointList();
     mavlinkResetMissionTransfer();
     mavlinkContext.missionCompleted = false;
-    mavlinkSendMissionAck(mavlinkPersistMission() ? MAV_MISSION_ACCEPTED : MAV_MISSION_ERROR);
+    mavlinkSendMissionAckTo(
+        mavlinkContext.recvMsg.sysid,
+        mavlinkContext.recvMsg.compid,
+        mavlinkPersistMission() ? MAV_MISSION_ACCEPTED : MAV_MISSION_ERROR);
     return true;
 }
 
@@ -515,27 +755,30 @@ bool mavlinkHandleIncomingMissionCount(void)
         if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
             mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
         } else {
-            mavlinkSendMissionAck(MAV_MISSION_UNSUPPORTED);
+            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED);
         }
         return true;
     }
     if (ARMING_FLAG(ARMED)) {
-        mavlinkSendMissionAck(MAV_MISSION_DENIED);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
         return true;
     }
     if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_IDLE && !mavlinkMissionSenderOwnsTransfer()) {
-        mavlinkSendMissionAck(MAV_MISSION_DENIED);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
         return true;
     }
-    if (msg.count > NAV_MAX_WAYPOINTS) {
-        mavlinkSendMissionAck(MAV_MISSION_NO_SPACE);
+    if (msg.count > MAVLINK_MISSION_UPLOAD_MAX_ITEMS) {
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_NO_SPACE);
         return true;
     }
     if (msg.count == 0) {
         resetWaypointList();
         mavlinkResetMissionTransfer();
         mavlinkContext.missionCompleted = false;
-        mavlinkSendMissionAck(mavlinkPersistMission() ? MAV_MISSION_ACCEPTED : MAV_MISSION_ERROR);
+        mavlinkSendMissionAckTo(
+            mavlinkContext.recvMsg.sysid,
+            mavlinkContext.recvMsg.compid,
+            mavlinkPersistMission() ? MAV_MISSION_ACCEPTED : MAV_MISSION_ERROR);
         return true;
     }
 
@@ -556,7 +799,7 @@ bool mavlinkHandleIncomingMissionItem(void)
         if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
             mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
         } else {
-            mavlinkSendMissionAck(MAV_MISSION_UNSUPPORTED);
+            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED);
         }
         return true;
     }
@@ -569,7 +812,7 @@ bool mavlinkHandleIncomingMissionItem(void)
             if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
                 mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM5_X);
             } else {
-                mavlinkSendMissionAck(MAV_MISSION_INVALID_PARAM5_X);
+                mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID_PARAM5_X);
             }
             return true;
         }
@@ -577,7 +820,7 @@ bool mavlinkHandleIncomingMissionItem(void)
             if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
                 mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM6_Y);
             } else {
-                mavlinkSendMissionAck(MAV_MISSION_INVALID_PARAM6_Y);
+                mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID_PARAM6_Y);
             }
             return true;
         }
@@ -590,11 +833,12 @@ bool mavlinkHandleIncomingMissionItem(void)
                 (int32_t)lrintf(msg.x * 1e7f), (int32_t)lrintf(msg.y * 1e7f), msg.z);
         }
 
-        mavlinkSendMissionAck(MAV_MISSION_ERROR);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
         return true;
     }
 
-    return mavlinkHandleMissionItemCommon(false, msg.frame, msg.command, msg.autocontinue, msg.seq, msg.param1, msg.param2, msg.param3, msg.param4,
+    return mavlinkHandleMissionItemCommon(false, msg.frame, msg.command, msg.current, msg.autocontinue, msg.seq,
+        msg.param1, msg.param2, msg.param3, msg.param4,
         coordinateCommand ? (int32_t)lrintf(msg.x * 1e7f) : 0,
         coordinateCommand ? (int32_t)lrintf(msg.y * 1e7f) : 0,
         msg.z);
@@ -612,12 +856,12 @@ bool mavlinkHandleIncomingMissionRequestList(void)
         if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
             mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
         } else {
-            mavlinkSendMissionAck(MAV_MISSION_UNSUPPORTED);
+            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED);
         }
         return true;
     }
     if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_IDLE && !mavlinkMissionSenderOwnsTransfer()) {
-        mavlinkSendMissionAck(MAV_MISSION_DENIED);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
         return true;
     }
 
@@ -708,16 +952,16 @@ bool mavlinkHandleIncomingMissionRequest(void)
         return false;
     }
     if (msg.mission_type != MAV_MISSION_TYPE_MISSION) {
-        mavlinkSendMissionAck(MAV_MISSION_UNSUPPORTED);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED);
         return true;
     }
     if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_SENDING || !mavlinkMissionSenderOwnsTransfer()) {
-        mavlinkSendMissionAck(MAV_MISSION_INVALID_SEQUENCE);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID_SEQUENCE);
         return true;
     }
     if (msg.seq != mavMissionTransfer.nextSequence &&
         !(mavMissionTransfer.nextSequence > 0 && msg.seq + 1 == mavMissionTransfer.nextSequence)) {
-        mavlinkSendMissionAck(MAV_MISSION_INVALID_SEQUENCE);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID_SEQUENCE);
         mavlinkResetMissionTransfer();
         return true;
     }
@@ -728,7 +972,12 @@ bool mavlinkHandleIncomingMissionRequest(void)
 
         mavlinkMissionItemData_t item;
         if (mavlinkFillMissionItemFromWaypoint(&wp, false, &item)) {
-            mavlink_msg_mission_item_pack(mavSystemId, mavComponentId, &mavSendMsg, mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid,
+            mavlink_msg_mission_item_pack(
+                mavSystemId,
+                mavComponentId,
+                &mavSendMsg,
+                mavlinkContext.recvMsg.sysid,
+                mavlinkContext.recvMsg.compid,
                 msg.seq,
                 item.frame,
                 item.command,
@@ -746,11 +995,11 @@ bool mavlinkHandleIncomingMissionRequest(void)
             mavMissionTransfer.useIntMessages = false;
             mavMissionTransfer.lastActivityMs = millis();
         } else {
-            mavlinkSendMissionAck(MAV_MISSION_ERROR);
+            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
             mavlinkResetMissionTransfer();
         }
     } else {
-        mavlinkSendMissionAck(MAV_MISSION_INVALID_SEQUENCE);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID_SEQUENCE);
         mavlinkResetMissionTransfer();
     }
 
@@ -769,7 +1018,7 @@ bool mavlinkHandleIncomingMissionItemInt(void)
         if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
             mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
         } else {
-            mavlinkSendMissionAck(MAV_MISSION_UNSUPPORTED);
+            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED);
         }
         return true;
     }
@@ -781,11 +1030,12 @@ bool mavlinkHandleIncomingMissionItemInt(void)
                 msg.x, msg.y, msg.z);
         }
 
-        mavlinkSendMissionAck(MAV_MISSION_ERROR);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
         return true;
     }
 
-    return mavlinkHandleMissionItemCommon(true, msg.frame, msg.command, msg.autocontinue, msg.seq, msg.param1, msg.param2, msg.param3, msg.param4, msg.x, msg.y, msg.z);
+    return mavlinkHandleMissionItemCommon(true, msg.frame, msg.command, msg.current, msg.autocontinue, msg.seq,
+        msg.param1, msg.param2, msg.param3, msg.param4, msg.x, msg.y, msg.z);
 }
 
 bool mavlinkHandleIncomingMissionRequestInt(void)
@@ -797,16 +1047,16 @@ bool mavlinkHandleIncomingMissionRequestInt(void)
         return false;
     }
     if (msg.mission_type != MAV_MISSION_TYPE_MISSION) {
-        mavlinkSendMissionAck(MAV_MISSION_UNSUPPORTED);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED);
         return true;
     }
     if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_SENDING || !mavlinkMissionSenderOwnsTransfer()) {
-        mavlinkSendMissionAck(MAV_MISSION_INVALID_SEQUENCE);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID_SEQUENCE);
         return true;
     }
     if (msg.seq != mavMissionTransfer.nextSequence &&
         !(mavMissionTransfer.nextSequence > 0 && msg.seq + 1 == mavMissionTransfer.nextSequence)) {
-        mavlinkSendMissionAck(MAV_MISSION_INVALID_SEQUENCE);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID_SEQUENCE);
         mavlinkResetMissionTransfer();
         return true;
     }
@@ -817,7 +1067,12 @@ bool mavlinkHandleIncomingMissionRequestInt(void)
 
         mavlinkMissionItemData_t item;
         if (mavlinkFillMissionItemFromWaypoint(&wp, true, &item)) {
-            mavlink_msg_mission_item_int_pack(mavSystemId, mavComponentId, &mavSendMsg, mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid,
+            mavlink_msg_mission_item_int_pack(
+                mavSystemId,
+                mavComponentId,
+                &mavSendMsg,
+                mavlinkContext.recvMsg.sysid,
+                mavlinkContext.recvMsg.compid,
                 msg.seq,
                 item.frame,
                 item.command,
@@ -835,11 +1090,11 @@ bool mavlinkHandleIncomingMissionRequestInt(void)
             mavMissionTransfer.useIntMessages = true;
             mavMissionTransfer.lastActivityMs = millis();
         } else {
-            mavlinkSendMissionAck(MAV_MISSION_ERROR);
+            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
             mavlinkResetMissionTransfer();
         }
     } else {
-        mavlinkSendMissionAck(MAV_MISSION_INVALID_SEQUENCE);
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_INVALID_SEQUENCE);
         mavlinkResetMissionTransfer();
     }
 

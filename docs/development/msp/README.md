@@ -4768,7 +4768,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Reply Payload:** **None**  
 
-**Notes:** Requires the aircraft to be armed. Uses `activateForcedRTH()` and returns an error unless the forced-RTH state leaves `RTH_IDLE`.
+**Notes:** Requires the aircraft to be armed. Enters normal return-to-home mode through the same mode selector path as RC RTH, without setting the failsafe/geozone forced-RTH latch.
 
 ## <a id="msp2_inav_arm_disarm"></a>`MSP2_INAV_ARM_DISARM (8743 / 0x2227)`
 **Description:** Arms or disarms the flight controller using the normal FC arming path.  
@@ -4832,4 +4832,3 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `reserved_for_custom_use` | `uint8_t[3]` | 3 | Reserved for custom use |
 
 **Notes:** Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.
-

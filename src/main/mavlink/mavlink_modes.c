@@ -5,12 +5,14 @@
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
 
+#ifdef USE_MAVLINK_STANDARD_MODES
 typedef struct mavlinkModeDescriptor_s {
     uint8_t customMode;
     MAV_STANDARD_MODE standardMode;
     uint32_t properties;
     const char *name;
 } mavlinkModeDescriptor_t;
+#endif
 
 static COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
 {
@@ -84,6 +86,7 @@ static PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
     }
 }
 
+#ifdef USE_MAVLINK_STANDARD_MODES
 static const mavlinkModeDescriptor_t planeModes[] = {
     { PLANE_MODE_MANUAL,        MAV_STANDARD_MODE_NON_STANDARD,  0,                      "MANUAL" },
     { PLANE_MODE_ACRO,          MAV_STANDARD_MODE_NON_STANDARD,  0,                      "ACRO" },
@@ -95,7 +98,7 @@ static const mavlinkModeDescriptor_t planeModes[] = {
     { PLANE_MODE_RTL,           MAV_STANDARD_MODE_SAFE_RECOVERY, MAV_MODE_PROPERTY_AUTO_MODE, "RTL" },
     { PLANE_MODE_LOITER,        MAV_STANDARD_MODE_POSITION_HOLD, 0,                      "LOITER" },
     { PLANE_MODE_TAKEOFF,       MAV_STANDARD_MODE_TAKEOFF,       MAV_MODE_PROPERTY_AUTO_MODE, "TAKEOFF" },
-    { PLANE_MODE_GUIDED,        MAV_STANDARD_MODE_POSITION_HOLD, MAV_MODE_PROPERTY_ADVANCED, "GUIDED" },
+    { PLANE_MODE_GUIDED,        MAV_STANDARD_MODE_NON_STANDARD,  MAV_MODE_PROPERTY_ADVANCED, "GUIDED" },
 };
 
 static const mavlinkModeDescriptor_t copterModes[] = {
@@ -105,7 +108,7 @@ static const mavlinkModeDescriptor_t copterModes[] = {
     { COPTER_MODE_POSHOLD,   MAV_STANDARD_MODE_POSITION_HOLD, 0,                          "POSHOLD" },
     { COPTER_MODE_LOITER,    MAV_STANDARD_MODE_POSITION_HOLD, 0,                          "LOITER" },
     { COPTER_MODE_AUTO,      MAV_STANDARD_MODE_MISSION,       MAV_MODE_PROPERTY_AUTO_MODE, "AUTO" },
-    { COPTER_MODE_GUIDED,    MAV_STANDARD_MODE_POSITION_HOLD, MAV_MODE_PROPERTY_ADVANCED,  "GUIDED" },
+    { COPTER_MODE_GUIDED,    MAV_STANDARD_MODE_NON_STANDARD,  MAV_MODE_PROPERTY_ADVANCED,  "GUIDED" },
     { COPTER_MODE_RTL,       MAV_STANDARD_MODE_SAFE_RECOVERY, MAV_MODE_PROPERTY_AUTO_MODE, "RTL" },
     { COPTER_MODE_LAND,      MAV_STANDARD_MODE_LAND,          MAV_MODE_PROPERTY_AUTO_MODE, "LAND" },
     { COPTER_MODE_BRAKE,     MAV_STANDARD_MODE_POSITION_HOLD, 0,                          "BRAKE" },
@@ -224,6 +227,7 @@ static bool mavlinkSendAvailableModes(const mavlinkModeDescriptor_t *modes, uint
     }
     return true;
 }
+#endif
 
 bool mavlinkIsFixedWingVehicle(void)
 {
@@ -274,6 +278,7 @@ mavlinkModeSelection_t mavlinkSelectMode(void)
     return modeSelection;
 }
 
+#ifdef USE_MAVLINK_STANDARD_MODES
 void mavlinkSendAvailableModesForCurrentMode(void)
 {
     if (mavlinkIsFixedWingVehicle()) {
@@ -317,5 +322,6 @@ void mavlinkSendCurrentMode(const mavlinkModeSelection_t *modeSelection)
         modeSelection->customMode);
     mavlinkSendMessage();
 }
+#endif
 
 #endif

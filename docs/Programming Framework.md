@@ -123,7 +123,7 @@ for complete documentation on using JavaScript to program your flight controller
 | 58            | Trigonometry: ACos            | Computes ACOS of (`Operand A` / `Operand B`) using the fast approximation. If `Operand B` is `0`, `1000` is used. Input is clamped to [-1, 1] and the result is returned in degrees. |
 | 59            | Trigonometry: ASin            | Computes ASIN of (`Operand A` / `Operand B`) using the fast approximation. If `Operand B` is `0`, `1000` is used. Input is clamped to [-1, 1] and the result is returned in degrees. |
 | 60            | Trigonometry: ATan2           | Computes ATAN2 using `Operand A` as Y and `Operand B` as X with the fast approximation. Returns a signed angle in degrees in `(-180, 180]`. |
-| 61            | Activate RTH                  | While armed, activates the configured forced return-to-home path. Returns true while forced RTH is active. |
+| 61            | Activate RTH                  | While armed, activates normal return-to-home mode through the same mode selector path as RC RTH. Returns true when RTH mode is accepted. |
 | 62            | Activate Landing              | While armed with usable navigation estimates, commands a normal landing at the current position through the waypoint LAND path. This is not emergency landing. |
 
 ### Operands

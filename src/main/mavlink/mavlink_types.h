@@ -141,6 +141,10 @@ typedef struct mavlinkPortRuntime_s {
     timeUs_t mavStreamNextDue[MAVLINK_STREAM_COUNT];
     int32_t mavMessageOverrideIntervalsUs[MAVLINK_PERIODIC_MESSAGE_COUNT];
     timeUs_t mavMessageNextDue[MAVLINK_PERIODIC_MESSAGE_COUNT];
+    char lastStatusText[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN + 1];
+    uint8_t lastStatusTextSeverity;
+    timeMs_t firstStatusTextMs;
+    timeMs_t lastStatusTextMs;
     uint8_t txSeq;
     uint32_t txDroppedFrames;
     mavlink_message_t mavRecvMsg;

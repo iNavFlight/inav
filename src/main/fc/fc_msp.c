@@ -3973,11 +3973,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         return MSP_RESULT_ERROR;
 
     case MSP2_INAV_ACTIVATE_RTH:
-        if (dataSize == 0 && ARMING_FLAG(ARMED)) {
-            activateForcedRTH();
-            if (getStateOfForcedRTH() != RTH_IDLE) {
-                break;
-            }
+        if (dataSize == 0 && activateRTHMode()) {
+            break;
         }
         return MSP_RESULT_ERROR;
 

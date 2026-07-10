@@ -732,7 +732,8 @@ typedef enum {
 typedef enum {
     NAV_WP_TAKEOFF_DATUM,
     NAV_WP_MSL_DATUM,
-    NAV_WP_TERRAIN_DATUM
+    NAV_WP_TERRAIN_DATUM,
+    NAV_WP_RELATIVE_DATUM
 } geoAltitudeDatumFlag_e;
 
 // geoSetOrigin stores the location provided in llh as a GPS origin in the
@@ -764,6 +765,9 @@ bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * waypoint
 /* Distance/bearing calculation */
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);   // NOT USED
 uint32_t distanceToFirstWP(void);
+
+/* Commanded normal RTH mode */
+bool activateRTHMode(void);
 
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);

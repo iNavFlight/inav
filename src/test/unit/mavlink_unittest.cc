@@ -85,6 +85,7 @@ extern "C" {
     void mavlinkSendAttitude(void);
     void mavlinkSendHeartbeat(void);
     void mavlinkSendBatteryTemperatureStatusText(void);
+    bool mavlinkSendStatusText(void);
     void mavlinkSendPosition(timeUs_t currentTimeUs);
 
     PG_REGISTER(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
@@ -148,6 +149,9 @@ static rthState_e forcedRthState;
 static int activateLandingCalls;
 static bool activateLandingResult;
 static bool canSetHome;
+static bool testModeActivationConditions[CHECKBOX_ITEM_COUNT];
+static char testOsdSystemMessage[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN + 1];
+static textAttributes_t testOsdSystemMessageAttributes;
 
 static void resetSerialBuffers(void)
 {
@@ -328,6 +332,9 @@ static void initMavlinkTestState(void)
     activateLandingCalls = 0;
     activateLandingResult = true;
     canSetHome = true;
+    memset(testModeActivationConditions, 0, sizeof(testModeActivationConditions));
+    strcpy(testOsdSystemMessage, " ");
+    testOsdSystemMessageAttributes = TEXT_ATTRIBUTES_NONE;
     armingFlags = 0;
     stateFlags = 0;
     flightModeFlags = 0;
@@ -786,7 +793,7 @@ TEST(MavlinkTelemetryTest, ReturnToLaunchRequiresArmedState)
     EXPECT_EQ(activateRthCalls, 0);
 }
 
-TEST(MavlinkTelemetryTest, ReturnToLaunchUsesForcedRthPath)
+TEST(MavlinkTelemetryTest, ReturnToLaunchUsesNormalRthModePath)
 {
     initMavlinkTestState();
     ENABLE_ARMING_FLAG(ARMED);
@@ -810,6 +817,112 @@ TEST(MavlinkTelemetryTest, ReturnToLaunchUsesForcedRthPath)
 
     EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
     EXPECT_EQ(activateRthCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeRtlRequiresArmedState)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, PLANE_MODE_RTL, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_DENIED);
+    EXPECT_EQ(activateRthCalls, 0);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeRtlUsesNormalRthModePath)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    forcedRthState = RTH_IN_PROGRESS;
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, PLANE_MODE_RTL, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(activateRthCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeCopterRtlUsesNormalRthModePath)
+{
+    initMavlinkTestState();
+    mixerProfilesMutable(0)->mixer_config.platformType = PLATFORM_MULTIROTOR;
+    ENABLE_ARMING_FLAG(ARMED);
+    forcedRthState = RTH_IN_PROGRESS;
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, COPTER_MODE_RTL, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(activateRthCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeNonRtlStaysUnsupported)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, PLANE_MODE_LOITER, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_UNSUPPORTED);
+    EXPECT_EQ(activateRthCalls, 0);
 }
 
 TEST(MavlinkTelemetryTest, LandUsesNormalForcedLandingPath)
@@ -2176,6 +2289,73 @@ TEST(MavlinkTelemetryTest, BatteryStatusDoesNotSendExtendedSysState)
     EXPECT_FALSE(sawExtSysState);
 }
 
+TEST(MavlinkTelemetryTest, StatusTextSuppressesUnchangedOsdNoticeUntilRepeatInterval)
+{
+    initMavlinkTestState();
+    strcpy(testOsdSystemMessage, "LOITERING AROUND HOME");
+    fakeMillis = 1000;
+
+    EXPECT_TRUE(mavlinkSendStatusText());
+
+    mavlink_message_t statusMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_STATUSTEXT, &statusMsg));
+
+    resetSerialBuffers();
+    fakeMillis = 2000;
+    EXPECT_FALSE(mavlinkSendStatusText());
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_STATUSTEXT, &statusMsg));
+
+    fakeMillis = 31000;
+    EXPECT_TRUE(mavlinkSendStatusText());
+    EXPECT_TRUE(findTxMessageById(MAVLINK_MSG_ID_STATUSTEXT, &statusMsg));
+}
+
+TEST(MavlinkTelemetryTest, StatusTextSendsChangedOsdMessageImmediately)
+{
+    initMavlinkTestState();
+    strcpy(testOsdSystemMessage, "LOITERING AROUND HOME");
+    fakeMillis = 1000;
+
+    EXPECT_TRUE(mavlinkSendStatusText());
+
+    resetSerialBuffers();
+    strcpy(testOsdSystemMessage, "RETURNING HOME");
+    fakeMillis = 2000;
+    EXPECT_TRUE(mavlinkSendStatusText());
+
+    mavlink_message_t statusMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_STATUSTEXT, &statusMsg));
+
+    mavlink_statustext_t status;
+    mavlink_msg_statustext_decode(&statusMsg, &status);
+    EXPECT_NE(strstr(status.text, "RETURNING HOME"), nullptr);
+}
+
+TEST(MavlinkTelemetryTest, StatusTextWarningUsesShorterRepeatInterval)
+{
+    initMavlinkTestState();
+    strcpy(testOsdSystemMessage, "GPS FIX LOST");
+    TEXT_ATTRIBUTES_ADD_INVERTED(testOsdSystemMessageAttributes);
+    fakeMillis = 1000;
+
+    EXPECT_TRUE(mavlinkSendStatusText());
+
+    resetSerialBuffers();
+    fakeMillis = 9000;
+    EXPECT_FALSE(mavlinkSendStatusText());
+
+    mavlink_message_t statusMsg;
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_STATUSTEXT, &statusMsg));
+
+    fakeMillis = 11000;
+    EXPECT_TRUE(mavlinkSendStatusText());
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_STATUSTEXT, &statusMsg));
+
+    mavlink_statustext_t status;
+    mavlink_msg_statustext_decode(&statusMsg, &status);
+    EXPECT_EQ(status.severity, MAV_SEVERITY_WARNING);
+}
+
 TEST(MavlinkTelemetryTest, RadioStatusUpdatesRxLinkStats)
 {
     initMavlinkTestState();
@@ -2293,6 +2473,7 @@ TEST(MavlinkTelemetryTest, RequestMessageRejectsNanMessageId)
     EXPECT_EQ(ack.result, MAV_RESULT_DENIED);
 }
 
+#ifdef USE_MAVLINK_STANDARD_MODES
 TEST(MavlinkTelemetryTest, RequestMessageReturnsIndexedAvailableMode)
 {
     initMavlinkTestState();
@@ -2316,6 +2497,60 @@ TEST(MavlinkTelemetryTest, RequestMessageReturnsIndexedAvailableMode)
     EXPECT_EQ(mode.mode_index, 1);
     EXPECT_EQ(mode.custom_mode, PLANE_MODE_ACRO);
 }
+
+TEST(MavlinkTelemetryTest, GuidedAvailableModeIsNamedNonStandard)
+{
+    initMavlinkTestState();
+    testModeActivationConditions[BOXNAVPOSHOLD] = true;
+    testModeActivationConditions[BOXGCSNAV] = true;
+
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(
+        42, 200, &msg,
+        1, testTargetComponent,
+        MAV_CMD_REQUEST_MESSAGE,
+        0,
+        MAVLINK_MSG_ID_AVAILABLE_MODES, 3, 0, 0, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t modeMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_AVAILABLE_MODES, &modeMsg));
+
+    mavlink_available_modes_t mode;
+    mavlink_msg_available_modes_decode(&modeMsg, &mode);
+    EXPECT_EQ(mode.number_modes, 3);
+    EXPECT_EQ(mode.mode_index, 3);
+    EXPECT_EQ(mode.standard_mode, MAV_STANDARD_MODE_NON_STANDARD);
+    EXPECT_EQ(mode.custom_mode, PLANE_MODE_GUIDED);
+    EXPECT_STREQ(mode.mode_name, "GUIDED");
+}
+#else
+TEST(MavlinkTelemetryTest, RequestMessageRejectsAvailableModeWhenStandardModesDisabled)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(
+        42, 200, &msg,
+        1, testTargetComponent,
+        MAV_CMD_REQUEST_MESSAGE,
+        0,
+        MAVLINK_MSG_ID_AVAILABLE_MODES, 1, 0, 0, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t modeMsg;
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_AVAILABLE_MODES, &modeMsg));
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_COMMAND_ACK, &ackMsg));
+
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.result, MAV_RESULT_UNSUPPORTED);
+}
+#endif
 
 TEST(MavlinkTelemetryTest, MissionUploadPersistsAndRetriesMissingItem)
 {
@@ -2351,6 +2586,58 @@ TEST(MavlinkTelemetryTest, MissionUploadPersistsAndRetriesMissingItem)
     pushRxMessage(&itemMsg);
     handleMAVLinkTelemetry(1000);
 
+    EXPECT_EQ(saveWaypointCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadSkipsQgcPlannedHomeAndAcceptsWaypointNanParams)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 2, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+
+    resetSerialBuffers();
+    mavlink_message_t homeMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &homeMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        NAN, NAN, NAN, NAN,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&homeMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t requestMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &requestMsg));
+    mavlink_mission_request_int_t request;
+    mavlink_msg_mission_request_int_decode(&requestMsg, &request);
+    EXPECT_EQ(request.seq, 1);
+
+    resetSerialBuffers();
+    mavlink_message_t waypointMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &waypointMsg,
+        1, testTargetComponent, 1,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        NAN, NAN, NAN, NAN,
+        375001000, -1222501000, 45.6f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&waypointMsg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypointNumber, 1);
+    EXPECT_EQ(lastWaypoint.action, NAV_WP_ACTION_WAYPOINT);
+    EXPECT_EQ(lastWaypoint.lat, 375001000);
+    EXPECT_EQ(lastWaypoint.lon, -1222501000);
+    EXPECT_EQ(lastWaypoint.alt, 4560);
     EXPECT_EQ(saveWaypointCalls, 1);
 }
 
@@ -2766,6 +3053,12 @@ void activateForcedRTH(void)
     activateRthCalls++;
 }
 
+bool activateRTHMode(void)
+{
+    activateRthCalls++;
+    return forcedRthState != RTH_IDLE;
+}
+
 rthState_e getStateOfForcedRTH(void)
 {
     return forcedRthState;
@@ -2862,17 +3155,15 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
 
 bool isModeActivationConditionPresent(boxId_e modeId)
 {
-    UNUSED(modeId);
-    return false;
+    return testModeActivationConditions[modeId];
 }
 
 textAttributes_t osdGetSystemMessage(char *message, size_t length, bool remove)
 {
-    UNUSED(length);
     UNUSED(remove);
-    message[0] = 0x20;
-    message[1] = '\0';
-    return 0;
+    strncpy(message, testOsdSystemMessage, length - 1);
+    message[length - 1] = '\0';
+    return testOsdSystemMessageAttributes;
 }
 
 void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg)

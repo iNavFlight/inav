@@ -83,7 +83,7 @@ Ports 2..N use a secondary startup profile (heartbeat at 1 Hz, other streams dis
 | `EXTRA2` | `VFR_HUD` | 2 Hz |
 | `HEARTBEAT` | `HEARTBEAT` | 1 Hz (independent of stream groups) |
 | `EXT_SYS_STATE` | `EXTENDED_SYS_STATE` | 1 Hz (defaults to `mavlink_port1_extra3_rate`) |
-| `EXTRA3` | `BATTERY_STATUS`, `SCALED_PRESSURE`, `SYSTEM_TIME`, `STATUSTEXT` (when present) | 1 Hz |
+| `EXTRA3` | `BATTERY_STATUS`, `SCALED_PRESSURE`, `SYSTEM_TIME`, `STATUSTEXT` (when present and not suppressed as an unchanged repeat) | 1 Hz |
 
 ### Routing, forwarding, and local handling
 
@@ -135,23 +135,21 @@ Messages are organized into MAVLink datastream groups. Each group sends one mess
 - `BATTERY_STATUS`: per-cell voltages (cells 11-14 in `voltages_ext`), current draw, consumed mAh/Wh, and remaining percentage when available.
 - `SCALED_PRESSURE`: baro pressure and temperature data.
 - `SYSTEM_TIME`: boot time plus RTC Unix time when the RTC is valid.
-- `STATUSTEXT`: pending OSD/system messages and changed arming-disable reasons with mapped severity.
+- `STATUSTEXT`: pending OSD/system messages and changed arming-disable reasons with mapped severity. Repeated OSD-derived status text is suppressed per MAVLink port; changed text is sent immediately, while unchanged notices/warnings/critical messages are re-announced at progressively shorter severity-based intervals.
 - `MISSION_CURRENT`: broadcast at 1 Hz with mission count, current item, execution mode, and mission state.
 - `MISSION_ITEM_REACHED`: sent when navigation reports a mission waypoint reached and broadcast to all enabled MAVLink ports.
 - `AUTOPILOT_VERSION`: on request, advertises ArduPilot-compatible version `4.7.0` and the capabilities listed above (MAVLink2 only).
 - `PROTOCOL_VERSION`: on request, reports the configured MAVLink protocol version (MAVLink2 only).
 - `MESSAGE_INTERVAL`: reply payload for `MAV_CMD_GET_MESSAGE_INTERVAL`.
 - `HOME_POSITION`: on request, when a home fix exists.
-- `AVAILABLE_MODES`: indexed on request, with standard-mode and mode-property metadata for the current vehicle type.
-- `AVAILABLE_MODES_MONITOR`: on request, advertises the mode-list sequence.
-- `CURRENT_MODE`: on request, for the current selected mode view.
+- `AVAILABLE_MODES`, `AVAILABLE_MODES_MONITOR`, `CURRENT_MODE`: optional MAVLink Standard Modes microservice messages, available only when built with `USE_MAVLINK_STANDARD_MODES`.
 
 ## Supported incoming messages
 
 - `HEARTBEAT`: used to detect ADS-B participants when `type` is `MAV_TYPE_ADSB`.
 - `PING`: broadcast requests are echoed to the requesting system/component.
 - `TIMESYNC`: broadcast or locally targeted requests receive the local boot time in nanoseconds.
-- `MISSION_COUNT`: starts an upload transaction (capped at `NAV_MAX_WAYPOINTS`). The owning system/component and ingress port are retained for the transaction.
+- `MISSION_COUNT`: starts an upload transaction. Stored INAV waypoints remain capped at `NAV_MAX_WAYPOINTS`; the upload transaction also allows QGC planned-home and non-storage command items. The owning system/component and ingress port are retained for the transaction.
 - `MISSION_ITEM` / `MISSION_ITEM_INT`: stores mission waypoints; rejects unsupported frames / sequence errors. Upload while armed is rejected except legacy guided waypoint writes.
 - `MISSION_REQUEST_LIST`, `MISSION_REQUEST`, `MISSION_REQUEST_INT`: stateful mission download with partner checks and one-item retransmission support.
 - `MISSION_ACK`: completes an active mission download.
@@ -174,7 +172,8 @@ Messages are organized into MAVLink datastream groups. Each group sends one mess
 INAV implements a selective but useful subset of the MAVLink Command protocol. Unsupported commands are ACKed as `UNSUPPORTED`.
 
 - `MAV_CMD_COMPONENT_ARM_DISARM`: arms through the normal INAV arming checks or disarms with `DISARM_SWITCH`. The ACK is accepted only when the requested armed state is reached.
-- `MAV_CMD_NAV_RETURN_TO_LAUNCH`: starts the normal forced-RTH path while armed. RTH altitude, safehome, landing, and fixed-wing autoland behavior remain controlled by the existing INAV configuration.
+- `MAV_CMD_NAV_RETURN_TO_LAUNCH`: enters the normal INAV RTH mode path while armed by adding a temporary `BOXNAVRTH` mode source to the normal RC mode selector. RTH altitude, safehome, landing, and fixed-wing autoland behavior remain controlled by the existing INAV configuration. This does not set the failsafe/geozone forced-RTH latch; a later pilot RC flight-mode change or disarm clears the temporary source.
+- `MAV_CMD_DO_SET_MODE`: supports only the ArduPilot-style RTL/RTH custom-mode request and routes it to the same normal RTH mode path as `MAV_CMD_NAV_RETURN_TO_LAUNCH`. Other mode changes remain unsupported.
 - `MAV_CMD_NAV_LAND`: while armed with usable navigation estimates, creates a transient LAND waypoint at the current position and enters the same normal landing path used by a mission `NAV_WP_ACTION_LAND`. It does not use emergency landing and does not modify the uploaded mission. Command location fields are ignored; mission items retain their supplied landing position.
 - `MAV_CMD_DO_SET_HOME`: writes the existing INAV waypoint `0` home through `setWaypoint(0, ...)`. `param1 = 1` uses the current GNSS position; `param1 = 0` uses the supplied global location. The existing WP#0 gates still apply: armed state, usable position estimate, valid GPS origin, and GCS-assisted navigation enabled.
 - `MAV_CMD_DO_REPOSITION`: sets the Follow Me / GCS-nav waypoint when GCS nav is valid. Accepts `MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, and `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`; otherwise `UNSUPPORTED`.
@@ -182,7 +181,7 @@ INAV implements a selective but useful subset of the MAVLink Command protocol. U
 - `MAV_CMD_CONDITION_YAW`: changes the current heading target when the active navigation state has yaw control. Accepts absolute heading (`param4 = 0`) and relative turns (`param4 != 0`); turn rate is ignored.
 - `MAV_CMD_SET_MESSAGE_INTERVAL` / `MAV_CMD_GET_MESSAGE_INTERVAL`: adjust or query per-message periodic output for `HEARTBEAT`, `SYS_STATUS`, `EXTENDED_SYS_STATE`, RC channels, `GPS_RAW_INT`, `GLOBAL_POSITION_INT`, `GPS_GLOBAL_ORIGIN`, `ATTITUDE`, `VFR_HUD`, `BATTERY_STATUS`, `SCALED_PRESSURE`, and `SYSTEM_TIME`. `REQUEST_DATA_STREAM` still controls the legacy base stream groups; `SET_MESSAGE_INTERVAL` overrides individual messages on top.
 - `MAV_CMD_GET_HOME_POSITION`: replies with `HOME_POSITION` when a home fix exists.
-- `MAV_CMD_REQUEST_MESSAGE`: emits one selected message or `UNSUPPORTED`. `AVAILABLE_MODES` uses `param2` as its one-based index; `MESSAGE_INTERVAL` uses `param2` as the queried message ID; `AVAILABLE_MODES_MONITOR` is also supported.
+- `MAV_CMD_REQUEST_MESSAGE`: emits one selected message or `UNSUPPORTED`. `MESSAGE_INTERVAL` uses `param2` as the queried message ID. When built with `USE_MAVLINK_STANDARD_MODES`, `AVAILABLE_MODES` uses `param2` as its one-based index and `AVAILABLE_MODES_MONITOR` is also supported.
 - `MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES`: returns `AUTOPILOT_VERSION` (MAVLink2 only; MAVLink1 returns `UNSUPPORTED`) advertising ArduPilot-compatible version `4.7.0` and the capabilities listed above.
 - `MAV_CMD_REQUEST_PROTOCOL_VERSION`: returns `PROTOCOL_VERSION` (MAVLink2 only; MAVLink1 returns `UNSUPPORTED`).
 - `MAV_CMD_CONTROL_HIGH_LATENCY`: enables or disables `HIGH_LATENCY2` scheduling on the ingress MAVLink port (`param1 = 0` or `1`). Enabling is rejected on MAVLink1 links.
@@ -192,6 +191,7 @@ INAV implements a selective but useful subset of the MAVLink Command protocol. U
 ## Mode mappings (INAV -> MAVLink / ArduPilot)
 
 `custom_mode` is derived from active INAV telemetry flight mode (`getFlightModeForTelemetry()`), then mapped per vehicle type.
+The default ArduPilot-compatible path reports modes through `HEARTBEAT.custom_mode`. The MAVLink Standard Modes microservice is separate and disabled unless the firmware is built with `USE_MAVLINK_STANDARD_MODES`; if enabled, GUIDED is reported as a named non-standard mode because MAVLink common standard modes do not define a GUIDED enum.
 
 - **Multirotor profiles**
   - ACRO / ACRO AIR -> **ACRO**

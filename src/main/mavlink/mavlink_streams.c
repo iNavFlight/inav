@@ -20,6 +20,11 @@ const uint8_t mavSecondaryRates[MAVLINK_STREAM_COUNT] = {
     [MAV_DATA_STREAM_HEARTBEAT] = 1
 };
 
+#define MAVLINK_STATUS_TEXT_STALE_MS 5000
+#define MAVLINK_STATUS_TEXT_NOTICE_REPEAT_MS 30000
+#define MAVLINK_STATUS_TEXT_WARNING_REPEAT_MS 10000
+#define MAVLINK_STATUS_TEXT_CRITICAL_REPEAT_MS 5000
+
 uint8_t mavlinkClampStreamRate(uint8_t rate)
 {
     if (rate > TELEMETRY_MAVLINK_MAXRATE) {
@@ -835,14 +840,41 @@ void mavlinkSendSystemTime(void)
 bool mavlinkSendStatusText(void)
 {
 #ifdef USE_OSD
-    char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = {" "};
+    char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN + 1] = {" "};
     textAttributes_t elemAttr = osdGetSystemMessage(buff, sizeof(buff), false);
+    buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = '\0';
+
     if (buff[0] != SYM_BLANK) {
         MAV_SEVERITY severity = MAV_SEVERITY_NOTICE;
         if (TEXT_ATTRIBUTES_HAVE_BLINK(elemAttr)) {
             severity = MAV_SEVERITY_CRITICAL;
         } else if TEXT_ATTRIBUTES_HAVE_INVERTED(elemAttr) {
             severity = MAV_SEVERITY_WARNING;
+        }
+
+        if (mavActivePort) {
+            const timeMs_t nowMs = millis();
+            timeMs_t repeatMs = MAVLINK_STATUS_TEXT_NOTICE_REPEAT_MS;
+            if (severity <= MAV_SEVERITY_CRITICAL) {
+                repeatMs = MAVLINK_STATUS_TEXT_CRITICAL_REPEAT_MS;
+            } else if (severity <= MAV_SEVERITY_WARNING) {
+                repeatMs = MAVLINK_STATUS_TEXT_WARNING_REPEAT_MS;
+            }
+
+            const bool textChanged = strcmp(mavActivePort->lastStatusText, buff) != 0 || mavActivePort->lastStatusTextSeverity != (uint8_t)severity;
+            const bool textWasStale = mavActivePort->lastStatusText[0] == '\0' || nowMs - mavActivePort->lastStatusTextMs >= MAVLINK_STATUS_TEXT_STALE_MS;
+            const bool textRepeatDue = nowMs - mavActivePort->firstStatusTextMs >= repeatMs;
+
+            if (textChanged || textWasStale || textRepeatDue) {
+                strncpy(mavActivePort->lastStatusText, buff, sizeof(mavActivePort->lastStatusText) - 1);
+                mavActivePort->lastStatusText[sizeof(mavActivePort->lastStatusText) - 1] = '\0';
+                mavActivePort->lastStatusTextSeverity = (uint8_t)severity;
+                mavActivePort->firstStatusTextMs = nowMs;
+                mavActivePort->lastStatusTextMs = nowMs;
+            } else {
+                mavActivePort->lastStatusTextMs = nowMs;
+                return false;
+            }
         }
 
         mavlink_msg_statustext_pack(mavSystemId, mavComponentId, &mavSendMsg,
@@ -853,6 +885,13 @@ bool mavlinkSendStatusText(void)
 
         mavlinkSendMessage();
         return true;
+    }
+
+    if (mavActivePort) {
+        mavActivePort->lastStatusText[0] = '\0';
+        mavActivePort->lastStatusTextSeverity = 0;
+        mavActivePort->firstStatusTextMs = 0;
+        mavActivePort->lastStatusTextMs = 0;
     }
 #endif
     return false;
@@ -1066,6 +1105,7 @@ bool mavlinkSendRequestedMessage(uint16_t messageId)
         case MAVLINK_MSG_ID_VFR_HUD:
             mavlinkSendVfrHud();
             return true;
+#ifdef USE_MAVLINK_STANDARD_MODES
         case MAVLINK_MSG_ID_AVAILABLE_MODES:
             mavlinkSendAvailableModesForCurrentMode();
             return true;
@@ -1075,6 +1115,7 @@ bool mavlinkSendRequestedMessage(uint16_t messageId)
                 mavlinkSendCurrentMode(&modeSelection);
                 return true;
             }
+#endif
         case MAVLINK_MSG_ID_EXTENDED_SYS_STATE:
             mavlinkSendExtendedSysState();
             return true;

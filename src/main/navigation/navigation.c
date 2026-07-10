@@ -5208,6 +5208,28 @@ float getEstimatedActualPosition(int axis)
 /*-----------------------------------------------------------
  * Ability to execute RTH on external event
  *-----------------------------------------------------------*/
+bool activateRTHMode(void)
+{
+    if (!ARMING_FLAG(ARMED)) {
+        return false;
+    }
+
+    abortFixedWingLaunch();
+    posControl.flags.forcedLandingActivated = false;
+    rcModeSetActivationOverride(BOXNAVRTH);
+#ifdef USE_SAFE_HOME
+    checkSafeHomeState(true);
+#endif
+    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+
+    if (navGetStateFlags(posControl.navState) & NAV_AUTO_RTH) {
+        return true;
+    }
+
+    rcModeClearActivationOverride(BOXNAVRTH);
+    return false;
+}
+
 void activateForcedRTH(void)
 {
     abortFixedWingLaunch();

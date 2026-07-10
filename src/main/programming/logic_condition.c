@@ -491,11 +491,7 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_ACTIVATE_RTH:
-            if (ARMING_FLAG(ARMED)) {
-                activateForcedRTH();
-                return getStateOfForcedRTH() != RTH_IDLE;
-            }
-            return false;
+            return activateRTHMode();
             break;
 
         case LOGIC_CONDITION_ACTIVATE_LANDING:

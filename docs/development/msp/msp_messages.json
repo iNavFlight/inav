@@ -11384,7 +11384,7 @@
             "mspv": 2,
             "request": null,
             "reply": null,
-            "notes": "Requires the aircraft to be armed. Uses `activateForcedRTH()` and returns an error unless the forced-RTH state leaves `RTH_IDLE`.",
+            "notes": "Requires the aircraft to be armed. Enters normal return-to-home mode through the same mode selector path as RC RTH, without setting the failsafe/geozone forced-RTH latch.",
             "description": "Commands the aircraft to execute its configured return-to-home sequence."
         },
         "MSP2_INAV_ARM_DISARM": {
