@@ -12,6 +12,10 @@ For advanced SITL features (like OSD, virtual RX, simulated hardware failures, p
 
 SITL still sends INAV motor output to X-Plane throttle when the plugin is detected; the plugin heartbeat does not replace motor control.
 
+## SITL sensor feed
+
+SITL feeds INAV GPS altitude and GPS NED velocity from X-Plane aircraft position and local velocity. Fake barometer pressure is derived from aircraft elevation, matching the RealFlight SITL path, so altitude hold uses aircraft altitude instead of X-Plane's weather altimeter setting.
+
 ## General settings
 In Settings / Network select "Accept incoming connections".
 The port can be found under "UDP PORTS", "Port we receive on". If no connection is established, the port can be changed.
