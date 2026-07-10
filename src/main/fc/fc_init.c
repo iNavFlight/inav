@@ -628,15 +628,19 @@ void init(void)
 
 #ifdef USE_SDCARD
 
-#ifdef USE_TERRAIN
-    if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD)
+    bool sdcardNeeded = false;
+#ifdef USE_BLACKBOX
+    sdcardNeeded = (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD);
 #endif
-    {
+#ifdef USE_TERRAIN
+    sdcardNeeded = sdcardNeeded || terrainConfig()->terrainEnabled;
+#endif
+    if (sdcardNeeded) {
         sdcardInsertionDetectInit();
         sdcard_init();
         afatfs_init();
     }
-#endif
+#endif // USE_SDCARD
 
 
 #ifdef USE_BLACKBOX
