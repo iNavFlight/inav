@@ -21,7 +21,7 @@ static uint8_t mavlinkActivePortMask(void)
     return sendMask;
 }
 
-#define MAVLINK_MISSION_UPLOAD_MAX_ITEMS ((uint16_t)(NAV_MAX_WAYPOINTS * 2U + 1U))
+#define MAVLINK_MISSION_UPLOAD_MAX_ITEMS ((uint16_t)(NAV_MAX_WAYPOINTS * 4U + 1U))
 
 static navWaypoint_t mavlinkMissionUploadWaypoints[NAV_MAX_WAYPOINTS];
 static uint8_t mavlinkMissionUploadWaypointCount;
@@ -200,6 +200,91 @@ static void mavlinkApplyCurrentSpeed(navWaypoint_t *wp)
         default:
             break;
     }
+}
+
+static bool mavlinkMissionApplyDelayToPreviousWaypoint(float delaySeconds)
+{
+    if (!isfinite(delaySeconds) || delaySeconds < 0.0f || delaySeconds > (float)INT16_MAX) {
+        return false;
+    }
+
+    const int32_t roundedDelay = (int32_t)lrintf(delaySeconds);
+    if (roundedDelay < 0 || roundedDelay > INT16_MAX) {
+        return false;
+    }
+
+    const int16_t delay = (int16_t)roundedDelay;
+
+    for (uint8_t i = mavlinkMissionUploadWaypointCount; i > 0; i--) {
+        navWaypoint_t *wp = &mavlinkMissionUploadWaypoints[i - 1];
+
+        if (!(wp->action == NAV_WP_ACTION_WAYPOINT || wp->action == NAV_WP_ACTION_HOLD_TIME)) {
+            continue;
+        }
+
+        if (wp->action == NAV_WP_ACTION_WAYPOINT) {
+            wp->action = NAV_WP_ACTION_HOLD_TIME;
+            wp->p2 = wp->p1;
+            wp->p1 = delay;
+            return true;
+        }
+
+        const int32_t combinedDelay = (int32_t)wp->p1 + delay;
+        if (combinedDelay < 0 || combinedDelay > INT16_MAX) {
+            return false;
+        }
+
+        wp->p1 = (int16_t)combinedDelay;
+        return true;
+    }
+
+    return false;
+}
+
+static bool mavlinkMissionAltitudeFrameIsSupported(uint8_t frame)
+{
+    return mavlinkFrameIsSupported(frame,
+        MAV_FRAME_SUPPORTED_GLOBAL |
+        MAV_FRAME_SUPPORTED_GLOBAL_INT |
+        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT);
+}
+
+static void mavlinkMissionApplyAltitudeMode(navWaypoint_t *wp, uint8_t frame)
+{
+    if (mavlinkFrameUsesAbsoluteAltitude(frame)) {
+        wp->p3 = (int16_t)(wp->p3 | NAV_WP_ALTMODE);
+    } else {
+        wp->p3 = (int16_t)(wp->p3 & (int16_t)~NAV_WP_ALTMODE);
+    }
+}
+
+static bool mavlinkMissionApplyAltitudeToPreviousWaypoint(float altitudeMeters, uint8_t frame, bool updateAltitudeMode)
+{
+    if (!mavlinkMissionAltitudeIsValid(altitudeMeters)) {
+        return false;
+    }
+
+    if (updateAltitudeMode && !mavlinkMissionAltitudeFrameIsSupported(frame)) {
+        return false;
+    }
+
+    for (uint8_t i = mavlinkMissionUploadWaypointCount; i > 0; i--) {
+        navWaypoint_t *wp = &mavlinkMissionUploadWaypoints[i - 1];
+
+        if (!(wp->action == NAV_WP_ACTION_WAYPOINT || wp->action == NAV_WP_ACTION_HOLD_TIME || wp->action == NAV_WP_ACTION_LAND)) {
+            continue;
+        }
+
+        wp->alt = (int32_t)lrintf(altitudeMeters * 100.0f);
+        if (updateAltitudeMode) {
+            mavlinkMissionApplyAltitudeMode(wp, frame);
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 static bool mavlinkStageUploadedMissionItem(uint16_t seq, navWaypoint_t *wp)
@@ -490,7 +575,6 @@ static bool mavlinkHandleMissionItemCommon(
     }
 
     UNUSED(current);
-    UNUSED(param3);
 
     navWaypoint_t wp = {0};
     bool storeWaypoint = true;
@@ -629,6 +713,69 @@ static bool mavlinkHandleMissionItemCommon(
             wp.action = NAV_WP_ACTION_JUMP;
             wp.p1 = (int16_t)lrintf(param1);
             wp.p2 = (int16_t)lrintf(param2);
+            break;
+
+        case MAV_CMD_CONDITION_DELAY:
+            if (frame != MAV_FRAME_MISSION) {
+                mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
+                return true;
+            }
+            if (!isfinite(param1) || param1 < 0.0f || param1 > (float)INT16_MAX) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM1);
+                return true;
+            }
+            if ((isfinite(param2) && param2 != 0.0f) ||
+                (isfinite(param3) && param3 != 0.0f) ||
+                (isfinite(param4) && param4 != 0.0f)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
+                return true;
+            }
+            if (!mavlinkMissionApplyDelayToPreviousWaypoint(param1)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
+                return true;
+            }
+            storeWaypoint = false;
+            break;
+
+        case MAV_CMD_CONDITION_CHANGE_ALT:
+            if (frame != MAV_FRAME_MISSION && !mavlinkMissionAltitudeFrameIsSupported(frame)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
+                return true;
+            }
+            if (!mavlinkMissionAltitudeIsValid(altMeters)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM7);
+                return true;
+            }
+            if (!mavlinkMissionApplyAltitudeToPreviousWaypoint(altMeters, frame, frame != MAV_FRAME_MISSION)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
+                return true;
+            }
+            storeWaypoint = false;
+            break;
+
+        case MAV_CMD_DO_CHANGE_ALTITUDE:
+            if (!mavlinkMissionAltitudeIsValid(param1)) {
+                mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM1);
+                return true;
+            }
+            if (isfinite(param2)) {
+                if (param2 < 0.0f || param2 > (float)UINT8_MAX) {
+                    mavlinkAbortMissionUpload(MAV_MISSION_INVALID_PARAM2);
+                    return true;
+                }
+
+                const uint8_t altitudeFrame = (uint8_t)lrintf(param2);
+                if (!mavlinkMissionApplyAltitudeToPreviousWaypoint(param1, altitudeFrame, true)) {
+                    mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED_FRAME);
+                    return true;
+                }
+            } else {
+                if (!mavlinkMissionApplyAltitudeToPreviousWaypoint(param1, 0, false)) {
+                    mavlinkAbortMissionUpload(MAV_MISSION_UNSUPPORTED);
+                    return true;
+                }
+            }
+            storeWaypoint = false;
             break;
 
         case MAV_CMD_DO_CHANGE_SPEED:

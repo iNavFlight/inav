@@ -182,7 +182,9 @@ static bool handleIncoming_COMMAND(
 
             if (isGCSValid()) {
                 if (isfinite(param3)) {
-                    if (param3 < 0.0f || (double)param3 > (double)UINT32_MAX / 100.0) {
+                    const float maxLoiterRadiusMeters = (float)(UINT32_MAX / 100U);
+
+                    if (param3 < 0.0f || param3 > maxLoiterRadiusMeters) {
                         mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
                         return true;
                     }

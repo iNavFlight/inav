@@ -221,12 +221,16 @@ The default ArduPilot-compatible path reports modes through `HEARTBEAT.custom_mo
 
 INAV supports MAVLink mission upload, download, clear, live mission-state reporting, and waypoint-reached notifications. Uploads retry the outstanding request every 1.5 seconds and abort after five unsuccessful retries. Downloads time out after five seconds of inactivity. Only the system/component and ingress port that started a transfer may continue it. Completed uploads and clears update nonvolatile waypoint storage on targets that provide it.
 
+Mission upload is staged before it touches the live INAV waypoint list. The MAVLink stream is translated into a temporary INAV mission, validated, and committed only after the full upload succeeds, so rejected uploads do not leave a half-written mission in the FC. QGC planned home item `0` is skipped because INAV stores home separately; MAVLink sequence `1` becomes INAV waypoint `1`.
+
+The upload translator handles MAVLink mission items that are modifiers rather than standalone INAV waypoints. `MAV_CMD_NAV_WAYPOINT` stores a normal waypoint, or `POSHOLD_TIME` when hold time is set. `MAV_CMD_NAV_LOITER_TIME` stores `POSHOLD_TIME`; `MAV_CMD_NAV_LAND` stores `LAND`; `MAV_CMD_DO_JUMP` stores `JUMP` with its target remapped after translation. `MAV_CMD_DO_CHANGE_SPEED` sets a pending leg speed for following geographic waypoints. `MAV_CMD_CONDITION_DELAY`, `MAV_CMD_CONDITION_CHANGE_ALT`, and `MAV_CMD_DO_CHANGE_ALTITUDE` modify the previous applicable geographic waypoint instead of consuming an INAV waypoint slot.
+
 The implementation works with common MAVLink mission planners such as QGC for simple mission flows. However, the differences between MAVLink missions and INAV's fuller MSP navigation model mean MAVLink still cannot represent every INAV mission feature. Use MultiWii Planner or the INAV Configurator when you need full MSP mission semantics.
 
 ## MSP mission parity gaps (MAV <-> MSP)
 
-- WAYPOINT: MSP->MAV sends lat/lon/alt but drops leg speed `p1` and all user-action bits in `p3` (only alt-mode bit drives frame). MAV->MSP stores lat/lon/alt but forces `p1 = 0`, `p2 = 0`, keeps only alt-mode bit in `p3`; leg speed and user bits are lost.
-- POSHOLD_TIME / LOITER_TIME: loiter time `p1` OK; leg speed `p2` and user-action bits in `p3` are discarded both directions.
+- WAYPOINT: MSP->MAV sends lat/lon/alt but drops leg speed `p1` and all user-action bits in `p3` (only alt-mode bit drives frame). MAV->MSP stores lat/lon/alt, can apply pending leg speed into `p1`, and keeps only alt-mode bit in `p3`; user bits are lost.
+- POSHOLD_TIME / LOITER_TIME: loiter time `p1` OK; pending leg speed can be stored in `p2` on upload. User-action bits in `p3` are discarded both directions.
 - LAND: lat/lon/alt OK; leg speed `p1`, ground elevation `p2`, and user-action bits in `p3` are cleared in both directions (only alt-mode bit is retained from frame on upload).
 - RTH: RTH land-if-nonzero flag in `p1` is ignored both ways (always zeroed); user-action bits dropped; alt is sent only if the MAVLink frame is coordinate and returns with alt-mode bit set on upload.
 - JUMP: target and repeat count OK.
