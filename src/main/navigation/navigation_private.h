@@ -456,6 +456,7 @@ typedef struct {
     /* Local system state, both actual (estimated) and desired (target setpoint)*/
     navigationEstimatedState_t  actualState;
     navigationDesiredState_t    desiredState;   // waypoint coordinates + velocity
+    uint32_t                    gcsLoiterRadiusOverride; // Temporary GCS PosHold loiter radius override, cm; 0 = configured default
 
     uint32_t                    lastValidPositionTimeMs;
     uint32_t                    lastValidAltitudeTimeMs;

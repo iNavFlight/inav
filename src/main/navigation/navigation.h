@@ -707,6 +707,9 @@ bool isWaypointListValid(void);
 int isGCSValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
+void navigationSetLoiterRadiusOverride(uint32_t loiterRadiusCm);
+uint32_t navigationGetLoiterRadiusOverride(void);
+uint32_t navigationGetLoiterRadius(void);
 void resetWaypointList(void);
 bool navSetActiveWaypointIndex(uint8_t index);  // MSP2_INAV_SET_WP_INDEX: jump to WP during active mission
 bool navSetCruiseHeading(int32_t headingCd);    // MSP2_INAV_SET_CRUISE_HEADING: set cruise/course-hold heading (centidegrees)
@@ -768,6 +771,9 @@ uint32_t distanceToFirstWP(void);
 
 /* Commanded normal RTH mode */
 bool activateRTHMode(void);
+
+/* Commanded normal position hold mode */
+bool activatePositionHoldMode(void);
 
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);

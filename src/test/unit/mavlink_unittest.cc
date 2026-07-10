@@ -146,6 +146,9 @@ static bool requestedArmState;
 static bool setArmStateResult;
 static int activateRthCalls;
 static rthState_e forcedRthState;
+static int activatePositionHoldCalls;
+static bool activatePositionHoldResult;
+static uint32_t lastLoiterRadiusOverride;
 static int activateLandingCalls;
 static bool activateLandingResult;
 static bool canSetHome;
@@ -329,6 +332,9 @@ static void initMavlinkTestState(void)
     setArmStateResult = true;
     activateRthCalls = 0;
     forcedRthState = RTH_IDLE;
+    activatePositionHoldCalls = 0;
+    activatePositionHoldResult = true;
+    lastLoiterRadiusOverride = 0;
     activateLandingCalls = 0;
     activateLandingResult = true;
     canSetHome = true;
@@ -899,7 +905,7 @@ TEST(MavlinkTelemetryTest, DoSetModeCopterRtlUsesNormalRthModePath)
     EXPECT_EQ(activateRthCalls, 1);
 }
 
-TEST(MavlinkTelemetryTest, DoSetModeNonRtlStaysUnsupported)
+TEST(MavlinkTelemetryTest, DoSetModeLoiterUsesNormalPositionHoldModePath)
 {
     initMavlinkTestState();
     ENABLE_ARMING_FLAG(ARMED);
@@ -921,8 +927,36 @@ TEST(MavlinkTelemetryTest, DoSetModeNonRtlStaysUnsupported)
     mavlink_msg_command_ack_decode(&ackMsg, &ack);
 
     EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(activateRthCalls, 0);
+    EXPECT_EQ(activatePositionHoldCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeUnsupportedModeStaysUnsupported)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, PLANE_MODE_CRUISE, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
     EXPECT_EQ(ack.result, MAV_RESULT_UNSUPPORTED);
     EXPECT_EQ(activateRthCalls, 0);
+    EXPECT_EQ(activatePositionHoldCalls, 0);
 }
 
 TEST(MavlinkTelemetryTest, LandUsesNormalForcedLandingPath)
@@ -1148,6 +1182,35 @@ TEST(MavlinkTelemetryTest, CommandIntRepositionScalesCoordinates)
     EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
     EXPECT_EQ(lastWaypoint.p3, 0);
     EXPECT_EQ(lastWaypoint.p1, 45);
+}
+
+TEST(MavlinkTelemetryTest, CommandIntRepositionSetsLoiterRadiusOverride)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_int_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_DO_REPOSITION,
+        0, 0,
+        0, 0, 42.5f, 45.6f,
+        375000000, -1222500000, 12.3f);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_COMMAND_ACK);
+
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_REPOSITION);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(lastLoiterRadiusOverride, 4250U);
 }
 
 TEST(MavlinkTelemetryTest, MissionClearAllAcksAndResets)
@@ -3057,6 +3120,27 @@ bool activateRTHMode(void)
 {
     activateRthCalls++;
     return forcedRthState != RTH_IDLE;
+}
+
+bool activatePositionHoldMode(void)
+{
+    activatePositionHoldCalls++;
+    return activatePositionHoldResult;
+}
+
+void navigationSetLoiterRadiusOverride(uint32_t loiterRadiusCm)
+{
+    lastLoiterRadiusOverride = loiterRadiusCm;
+}
+
+uint32_t navigationGetLoiterRadiusOverride(void)
+{
+    return lastLoiterRadiusOverride;
+}
+
+uint32_t navigationGetLoiterRadius(void)
+{
+    return lastLoiterRadiusOverride;
 }
 
 rthState_e getStateOfForcedRTH(void)

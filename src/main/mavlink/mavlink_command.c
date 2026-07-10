@@ -61,7 +61,6 @@ static bool handleIncoming_COMMAND(
     if (!mavlinkIsLocalTarget(targetSystem, targetComponent)) {
         return false;
     }
-    UNUSED(param3);
 
     switch (command) {
         case MAV_CMD_COMPONENT_ARM_DISARM:
@@ -89,17 +88,28 @@ static bool handleIncoming_COMMAND(
                     return true;
                 }
 
-                const uint8_t rthMode = mavlinkIsFixedWingVehicle() ? PLANE_MODE_RTL : COPTER_MODE_RTL;
-                if (customMode != rthMode) {
+                const bool fixedWing = mavlinkIsFixedWingVehicle();
+                const uint8_t rthMode = fixedWing ? PLANE_MODE_RTL : COPTER_MODE_RTL;
+                const bool posHoldMode = fixedWing ?
+                    (customMode == PLANE_MODE_LOITER) :
+                    (customMode == COPTER_MODE_LOITER || customMode == COPTER_MODE_POSHOLD || customMode == COPTER_MODE_BRAKE);
+
+                if (customMode != rthMode && !posHoldMode) {
                     mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
                     return true;
                 }
+
                 if (!ARMING_FLAG(ARMED)) {
                     mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
                     return true;
                 }
 
-                mavlinkSendCommandAck(command, activateRTHMode() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                if (customMode == rthMode) {
+                    mavlinkSendCommandAck(command, activateRTHMode() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                mavlinkSendCommandAck(command, activatePositionHoldMode() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
                 return true;
             }
         case MAV_CMD_NAV_LAND:
@@ -171,6 +181,14 @@ static bool handleIncoming_COMMAND(
             }
 
             if (isGCSValid()) {
+                if (isfinite(param3)) {
+                    if (param3 < 0.0f || (double)param3 > (double)UINT32_MAX / 100.0) {
+                        mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                        return true;
+                    }
+                    navigationSetLoiterRadiusOverride((uint32_t)lrintf(METERS_TO_CENTIMETERS(param3)));
+                }
+
                 navWaypoint_t wp = {0};
                 wp.action = NAV_WP_ACTION_WAYPOINT;
                 wp.lat = (int32_t)(latitudeDeg * 1e7f);

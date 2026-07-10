@@ -11015,7 +11015,7 @@
                     {
                         "name": "altitudeDatum",
                         "ctype": "uint8_t",
-                        "desc": "Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet)",
+                        "desc": "Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` and `NAV_WP_RELATIVE_DATUM` (not implemented yet)",
                         "units": "",
                         "enum": "geoAltitudeDatumFlag_e"
                     },
@@ -11224,11 +11224,17 @@
                         "desc": "Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet)",
                         "units": "",
                         "enum": "geoAltitudeDatumFlag_e"
+                    },
+                    {
+                        "name": "loiterRadius",
+                        "ctype": "int32_t",
+                        "desc": "Optional temporary fixed-wing PosHold loiter radius override. Appended field; omit to leave unchanged. `0` clears the override and uses `navConfig()->fw.loiter_radius`.",
+                        "units": "cm"
                     }
                 ]
             },
             "reply": null,
-            "notes": "Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged.",
+            "notes": "Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged. Existing 13-byte payloads are still accepted; 17-byte payloads append `loiterRadius`, where `0` clears the temporary override and non-zero values are centimeters.",
             "description": "Sets desired GCS Nav position with global coordinates (WP 254/GOTO)."
         },
         "MSP2_INAV_NAV_TARGET": {
@@ -11266,10 +11272,16 @@
                         "ctype": "int16_t",
                         "desc": "Desired climb rate demand (`posControl.desiredState.climbRateDemand`)",
                         "units": "cm/s"
+                    },
+                    {
+                        "name": "loiterRadius",
+                        "ctype": "uint32_t",
+                        "desc": "Temporary fixed-wing PosHold loiter radius override. `0` means no override; the configured `navConfig()->fw.loiter_radius` is used.",
+                        "units": "cm"
                     }
                 ]
             },
-            "notes": "Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome).",
+            "notes": "Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome). The appended `loiterRadius` reports the temporary override only; `0` means the configured default is active.",
             "description": "Returns the current navigation desired global target (lat/lon/alt, heading, climb rate)."
         },
         "MSP2_INAV_FULL_LOCAL_POSE": {

@@ -3853,6 +3853,26 @@ void resetGCSFlags(void)
     posControl.flags.isGCSAssistedNavigationEnabled = false;
 }
 
+void navigationSetLoiterRadiusOverride(uint32_t loiterRadiusCm)
+{
+    posControl.gcsLoiterRadiusOverride = loiterRadiusCm;
+}
+
+uint32_t navigationGetLoiterRadiusOverride(void)
+{
+    return posControl.gcsLoiterRadiusOverride;
+}
+
+uint32_t navigationGetLoiterRadius(void)
+{
+    if (posControl.gcsLoiterRadiusOverride != 0 &&
+        (posControl.navState == NAV_STATE_POSHOLD_3D_INITIALIZE || posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+        return posControl.gcsLoiterRadiusOverride;
+    }
+
+    return navConfig()->fw.loiter_radius;
+}
+
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
 {
     /* Default waypoint to send */
@@ -4437,6 +4457,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         posControl.flags.forcedLandingActivated = false;
         posControl.flags.forcedEmergLandingActivated = false;
         posControl.flags.manualEmergLandActive = false;
+        posControl.gcsLoiterRadiusOverride = 0;
         //  ensure WP missions always restart from first waypoint after disarm
         posControl.activeWaypointIndex = posControl.startWpIndex;
         // Reset RTH trackback
@@ -5141,6 +5162,7 @@ void navigationInit(void)
 
     posControl.flags.forcedRTHActivated = false;
     posControl.flags.forcedEmergLandingActivated = false;
+    posControl.gcsLoiterRadiusOverride = 0;
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
@@ -5225,6 +5247,31 @@ bool activateRTHMode(void)
     }
 
     rcModeClearActivationOverride(BOXNAVRTH);
+    return false;
+}
+
+bool activatePositionHoldMode(void)
+{
+    if (!ARMING_FLAG(ARMED) ||
+        posControl.flags.estPosStatus < EST_USABLE ||
+        posControl.flags.estVelStatus < EST_TRUSTED ||
+        posControl.flags.estAltStatus < EST_USABLE ||
+        posControl.flags.estHeadingStatus < EST_USABLE) {
+        return false;
+    }
+
+    abortFixedWingLaunch();
+    posControl.flags.forcedRTHActivated = false;
+    posControl.flags.forcedLandingActivated = false;
+    rcModeSetActivationOverride(BOXNAVPOSHOLD);
+    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+
+    if (navGetStateFlags(posControl.navState) & NAV_CTL_HOLD) {
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        return true;
+    }
+
+    rcModeClearActivationOverride(BOXNAVPOSHOLD);
     return false;
 }
 

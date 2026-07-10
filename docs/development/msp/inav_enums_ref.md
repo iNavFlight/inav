@@ -2253,6 +2253,7 @@
 | `NAV_WP_TAKEOFF_DATUM` | 0 |  |
 | `NAV_WP_MSL_DATUM` | 1 |  |
 | `NAV_WP_TERRAIN_DATUM` | 2 |  |
+| `NAV_WP_RELATIVE_DATUM` | 3 |  |
 
 ---
 ## <a id="enum-geooriginresetmode_e"></a>`geoOriginResetMode_e`
