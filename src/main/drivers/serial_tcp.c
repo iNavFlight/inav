@@ -121,6 +121,10 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 }
 
 void tcpReceiveBytes( tcpPort_t *port, const uint8_t* buffer, ssize_t recvSize ) {
+    // lockstep: newly arrived bytes widen the frozen-clock creep window so
+    // the serial task gets scheduled to parse the frame that advances the
+    // simulated time (see target/SITL/target.c)
+    sitlLockstepRxPending = true;
     for (ssize_t i = 0; i < recvSize; i++) {
         if (port->serialPort.rxCallback) {
             port->serialPort.rxCallback((uint16_t)buffer[i], port->serialPort.rxCallbackData);

@@ -202,8 +202,10 @@ extern bool lockMainPID(void);
 extern void unlockMainPID(void);
 extern void parseArguments(int argc, char *argv[]);
 // Lockstep (--lockstep): simulated time advances exactly 1 ms per
-// MSP_SIMULATOR frame; sitlLockstepTick() is called from the frame handler
+// MSP_SIMULATOR frame; sitlLockstepTick() is called from the frame handler,
+// sitlLockstepRxPending by the TCP receive thread on arriving bytes
 extern bool sitlLockstepEnabled;
+extern volatile bool sitlLockstepRxPending;
 extern void sitlLockstepTick(void);
 extern char *strnstr(const char *s, const char *find, size_t slen);
 extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);

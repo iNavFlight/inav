@@ -404,9 +404,11 @@ void unlockMainPID(void)
 // Until the first frame arrives (boot, gyro calibration) time runs on the
 // host clock as before.
 bool sitlLockstepEnabled = false;
+volatile bool sitlLockstepRxPending = false;   // set by the TCP receive thread
 static bool lockstepActive = false;
 static volatile uint64_t lockstepTickTimeUs;   // sim time of the last tick
 static volatile uint64_t lockstepTickRealUs;   // wall clock at the last tick
+static volatile uint64_t lockstepLastUs;       // monotonicity high-water mark
 
 static uint64_t realMicros(void) {
     struct timespec now;
@@ -424,17 +426,36 @@ void sitlLockstepTick(void) {
         lockstepActive = true;
     } else {
         lockstepTickTimeUs += 1000;
+        // a stall may have crept past the next tick (see micros below):
+        // never step backwards
+        if (lockstepTickTimeUs < lockstepLastUs) {
+            lockstepTickTimeUs = lockstepLastUs;
+        }
     }
     lockstepTickRealUs = realMicros();
+    sitlLockstepRxPending = false;
 }
 
 timeUs_t micros(void) {
     if (lockstepActive) {
         uint64_t creepUs = realMicros() - lockstepTickRealUs;
-        if (creepUs > 999) {
-            creepUs = 999;
+        // frozen-clock creep window: sub-millisecond real time keeps the
+        // scheduler alive between frames, but simulated time can never run
+        // a full tick ahead of the injected sensor data. If the NEXT frame
+        // arrives late (bench hiccup), the capped clock would starve the
+        // serial task that parses it - freshly received bytes widen the
+        // window just enough for one more serial pass.
+        const uint64_t capUs = sitlLockstepRxPending ? 2500 : 999;
+        if (creepUs > capUs) {
+            creepUs = capUs;
         }
-        return lockstepTickTimeUs + creepUs;
+        uint64_t t = lockstepTickTimeUs + creepUs;
+        if (t < lockstepLastUs) {
+            t = lockstepLastUs;          // monotonic under the widened window
+        } else {
+            lockstepLastUs = t;
+        }
+        return t;
     }
     return realMicros();
 }
