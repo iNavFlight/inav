@@ -147,37 +147,44 @@ void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion
     const float angle = atan2_approx(crossNorm, dot);
 
     fpVector3_t axis;
-    if (dot < -0.87f) {
-        // Near-antipodal (tilt error > ~150 deg, e.g. engaging inverted from
-        // level): the cross product barely rises above noise, so the picked
-        // axis -- and with it the entry path -- would be an arbitrary mix of
-        // roll and yaw (seen as a heading swing while rolling in). Do what a
-        // pilot does: roll about body X. Use the body X axis projected
-        // orthogonal to the target up; keep the sign continuous with the
-        // cross product once that becomes meaningful.
-        axis.x = 1.0f - upTarget.x * upTarget.x;
-        axis.y = -upTarget.x * upTarget.y;
-        axis.z = -upTarget.x * upTarget.z;
-        const float prefNorm = fast_fsqrtf(sq(axis.x) + sq(axis.y) + sq(axis.z));
+    // Toward the antipode (engaging inverted from level) the cross product
+    // barely rises above noise, so the shortest-rotation axis -- and with it
+    // the whole entry path -- would be an arbitrary mix of roll and yaw
+    // (seen as a heading swing while rolling in). Do what a pilot does and
+    // roll about body X: blend the axis CONTINUOUSLY from the cross product
+    // (tilt error <= 120 deg) to body X projected orthogonal to the target
+    // up (>= 150 deg). The ramp avoids chattering at a hard threshold.
+    const float wPref = constrainf((-dot - 0.5f) / 0.37f, 0.0f, 1.0f);
+    if (wPref > 0.0f) {
+        fpVector3_t pref = { .v = {
+            1.0f - upTarget.x * upTarget.x,
+            -upTarget.x * upTarget.y,
+            -upTarget.x * upTarget.z,
+        }};
+        const float prefNorm = fast_fsqrtf(sq(pref.x) + sq(pref.y) + sq(pref.z));
         if (prefNorm > 1e-3f) {
-            float s = 1.0f;
+            float s = 1.0f / prefNorm;
             if (crossNorm > 1e-3f
-                && (axis.x * cross.x + axis.y * cross.y + axis.z * cross.z) < 0.0f) {
-                s = -1.0f;
+                && (pref.x * cross.x + pref.y * cross.y + pref.z * cross.z) < 0.0f) {
+                s = -s;      // keep the roll direction the cross product started
             }
-            axis.x = s * axis.x / prefNorm;
-            axis.y = s * axis.y / prefNorm;
-            axis.z = s * axis.z / prefNorm;
-        } else if (crossNorm > 1e-6f) {
-            // body X parallel to the target up (entering prop hang from a
-            // dive): fall back to the shortest-rotation axis
-            axis.x = cross.x / crossNorm;
-            axis.y = cross.y / crossNorm;
-            axis.z = cross.z / crossNorm;
-        } else {
-            axis.x = 0.0f; axis.y = 1.0f; axis.z = 0.0f;
+            const float wCross = (crossNorm > 1e-6f) ? (1.0f - wPref) / crossNorm : 0.0f;
+            axis.x = wPref * s * pref.x + wCross * cross.x;
+            axis.y = wPref * s * pref.y + wCross * cross.y;
+            axis.z = wPref * s * pref.z + wCross * cross.z;
+            const float n = fast_fsqrtf(sq(axis.x) + sq(axis.y) + sq(axis.z));
+            if (n > 1e-6f) {
+                axis.x /= n; axis.y /= n; axis.z /= n;
+                errDeg->x = RADIANS_TO_DEGREES(angle) * axis.x;
+                errDeg->y = RADIANS_TO_DEGREES(angle) * axis.y;
+                errDeg->z = RADIANS_TO_DEGREES(angle) * axis.z;
+                return;
+            }
         }
-    } else if (crossNorm > 1e-6f) {
+        // body X parallel to the target up (prop hang entry from a dive):
+        // fall through to the shortest rotation / deterministic seed below
+    }
+    if (crossNorm > 1e-6f) {
         axis.x = cross.x / crossNorm;
         axis.y = cross.y / crossNorm;
         axis.z = cross.z / crossNorm;
