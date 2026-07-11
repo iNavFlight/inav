@@ -228,7 +228,8 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "GPS",
     "LULU",
     "SBUS2",
-    "OSD_REFRESH"
+    "OSD_REFRESH",
+    "MAG_CALIB"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status

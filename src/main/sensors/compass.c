@@ -56,8 +56,11 @@
 #include "io/gps.h"
 #include "io/beeper.h"
 
+#include "flight/imu.h"
+
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
+#include "sensors/compass_orientation.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
@@ -394,6 +397,7 @@ void compassUpdate(timeUs_t currentTimeUs)
     static sensorCalibrationState_t calState;
     static int16_t magPrev[XYZ_AXIS_COUNT];
     static int magAxisDeviation[XYZ_AXIS_COUNT];
+    static bool autoDetectOrientationThisSpin;
 
 #if defined(SITL_BUILD)
     ENABLE_STATE(COMPASS_CALIBRATED);
@@ -435,6 +439,11 @@ void compassUpdate(timeUs_t currentTimeUs)
 
         sensorCalibrationResetState(&calState);
         DISABLE_STATE(CALIBRATE_MAG);
+
+        autoDetectOrientationThisSpin = !STATE(COMPASS_CALIBRATED) && !STATE(ACCELEROMETER_CALIBRATED);
+        if (autoDetectOrientationThisSpin) {
+            compassOrientationBufferReset();
+        }
     }
 
     if (calStartedAt != 0) {
@@ -459,6 +468,13 @@ void compassUpdate(timeUs_t currentTimeUs)
             if ((avgMag > 0.01f) && ((diffMag / avgMag) > (0.14f * 0.14f))) {
                 sensorCalibrationPushSampleForOffsetCalculation(&calState, mag.magADC);
 
+                if (autoDetectOrientationThisSpin) {
+                    const int16_t rawMagSample[3] = {
+                        (int16_t)mag.magADC[X], (int16_t)mag.magADC[Y], (int16_t)mag.magADC[Z]
+                    };
+                    compassOrientationBufferPush(rawMagSample, &orientation);
+                }
+
                 for (int axis = 0; axis < 3; axis++) {
                     magPrev[axis] = mag.magADC[axis];
                 }
@@ -478,6 +494,19 @@ void compassUpdate(timeUs_t currentTimeUs)
              */
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 compassConfigMutable()->magGain[axis] = ABS(magAxisDeviation[axis] - compassConfig()->magZero.raw[axis]);
+            }
+
+            if (autoDetectOrientationThisSpin) {
+                int16_t detectedRollDD, detectedPitchDD, detectedYawDD;
+                float confidence = 0.0f;
+                if (compassOrientationDetect(magZerof, compassConfig()->magGain, COMPASS_ORIENTATION_CONFIDENCE_MIN,
+                                              &detectedRollDD, &detectedPitchDD, &detectedYawDD, &confidence)) {
+                    compassConfigMutable()->rollDeciDegrees = detectedRollDD;
+                    compassConfigMutable()->pitchDeciDegrees = detectedPitchDD;
+                    compassConfigMutable()->yawDeciDegrees = detectedYawDD;
+                    compassRefreshAlignment();
+                }
+                DEBUG_SET(DEBUG_MAG_CALIB, 0, lrintf(confidence * 100.0f));
             }
 
             calStartedAt = 0;
