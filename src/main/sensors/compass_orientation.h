@@ -22,6 +22,8 @@
 
 #include "common/quaternion.h"
 
+#ifdef USE_MAG
+
 // Empirically, accuracy is ~100% for any accepted result at confidence >=
 // 1.2 (Monte Carlo sweep across wide noise/attitude-error ranges); 2.0
 // leaves a comfortable margin while still accepting good spins.
@@ -48,3 +50,5 @@ bool compassOrientationDetect(const float magZero[3], const int16_t magGain[3],
                                float confidenceMin,
                                int16_t *outRollDD, int16_t *outPitchDD, int16_t *outYawDD,
                                float *outConfidence);
+
+#endif

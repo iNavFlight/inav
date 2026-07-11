@@ -386,6 +386,32 @@ bool compassIsCalibrating(void)
     return calStartedAt != 0;
 }
 
+static void compassPushOrientationSample(void)
+{
+    const int16_t rawMagSample[3] = {
+        (int16_t)mag.magADC[X], (int16_t)mag.magADC[Y], (int16_t)mag.magADC[Z]
+    };
+    compassOrientationBufferPush(rawMagSample, &orientation);
+}
+
+static void compassApplyDetectedOrientation(int16_t rollDD, int16_t pitchDD, int16_t yawDD)
+{
+    // rollDeciDegrees/pitchDeciDegrees/yawDeciDegrees == 0,0,0 means
+    // "unconfigured, fall back to mag_align" (see align_mag_roll in
+    // settings.yaml) - a detected identity rotation would be silently
+    // discarded if written there. mag_align's ALIGN_DEFAULT(0) vs
+    // CW0_DEG(1) encoding can represent "explicitly no rotation"
+    // unambiguously, so route that one case through it instead.
+    if (rollDD == 0 && pitchDD == 0 && yawDD == 0) {
+        compassConfigMutable()->mag_align = CW0_DEG;
+    } else {
+        compassConfigMutable()->rollDeciDegrees = rollDD;
+        compassConfigMutable()->pitchDeciDegrees = pitchDD;
+        compassConfigMutable()->yawDeciDegrees = yawDD;
+    }
+    compassRefreshAlignment();
+}
+
 void compassUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_SIMULATOR
@@ -469,10 +495,7 @@ void compassUpdate(timeUs_t currentTimeUs)
                 sensorCalibrationPushSampleForOffsetCalculation(&calState, mag.magADC);
 
                 if (autoDetectOrientationThisSpin) {
-                    const int16_t rawMagSample[3] = {
-                        (int16_t)mag.magADC[X], (int16_t)mag.magADC[Y], (int16_t)mag.magADC[Z]
-                    };
-                    compassOrientationBufferPush(rawMagSample, &orientation);
+                    compassPushOrientationSample();
                 }
 
                 for (int axis = 0; axis < 3; axis++) {
@@ -499,12 +522,12 @@ void compassUpdate(timeUs_t currentTimeUs)
             if (autoDetectOrientationThisSpin) {
                 int16_t detectedRollDD, detectedPitchDD, detectedYawDD;
                 float confidence = 0.0f;
+                // magZerof (float, pre-rounding) rather than the already-rounded
+                // compassConfig()->magZero.raw is deliberate - the more precise
+                // value is available here, use it.
                 if (compassOrientationDetect(magZerof, compassConfig()->magGain, COMPASS_ORIENTATION_CONFIDENCE_MIN,
                                               &detectedRollDD, &detectedPitchDD, &detectedYawDD, &confidence)) {
-                    compassConfigMutable()->rollDeciDegrees = detectedRollDD;
-                    compassConfigMutable()->pitchDeciDegrees = detectedPitchDD;
-                    compassConfigMutable()->yawDeciDegrees = detectedYawDD;
-                    compassRefreshAlignment();
+                    compassApplyDetectedOrientation(detectedRollDD, detectedPitchDD, detectedYawDD);
                 }
                 DEBUG_SET(DEBUG_MAG_CALIB, 0, lrintf(confidence * 100.0f));
             }

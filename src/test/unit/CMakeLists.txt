@@ -15,6 +15,7 @@ set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
 set_property(SOURCE compass_orientation_unittest.cc PROPERTY depends
     "common/maths.c" "sensors/compass_orientation.c")
+set_property(SOURCE compass_orientation_unittest.cc PROPERTY definitions USE_MAG)
 
 set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
     "common/maths.c" "common/calibration.c" "common/filter.c"

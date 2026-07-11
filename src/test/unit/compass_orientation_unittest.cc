@@ -253,3 +253,25 @@ TEST_F(CompassOrientationTest, BufferOverflowIsSilentlyIgnored)
     EXPECT_EQ(outRoll, trueCandidate.rollDD);
     EXPECT_EQ(outYaw, trueCandidate.yawDD);
 }
+
+TEST_F(CompassOrientationTest, RejectsZeroMagGainInsteadOfNaN)
+{
+    // A stuck/disconnected sensor axis can leave magGain at 0 after
+    // calibration; dividing by it must not silently defeat the confidence
+    // gate via NaN comparison semantics (NaN < threshold is always false).
+    const Candidate trueCandidate = kCandidates[3];
+    const std::vector<fpQuaternion_t> attitudes = diverseAttitudes(80);
+    for (const fpQuaternion_t &q : attitudes) {
+        int16_t rawMag[3];
+        synthesizeSample(trueCandidate, q, rawMag);
+        compassOrientationBufferPush(rawMag, &q);
+    }
+
+    const int16_t zeroGain[3] = {0, 1024, 1024};
+    int16_t outRoll, outPitch, outYaw;
+    float confidence = -1.0f;
+    const bool ok = compassOrientationDetect(kMagZero, zeroGain, 2.0f,
+                                               &outRoll, &outPitch, &outYaw, &confidence);
+    EXPECT_FALSE(ok);
+    EXPECT_FALSE(isnan(confidence));
+}

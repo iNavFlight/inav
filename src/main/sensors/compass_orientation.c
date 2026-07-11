@@ -18,11 +18,15 @@
 #include <math.h>
 #include <string.h>
 
+#include "platform.h"
+
 #include "sensors/compass_orientation.h"
 
 #include "common/maths.h"
 #include "common/vector.h"
 #include "common/quaternion.h"
+
+#ifdef USE_MAG
 
 #define COMPASS_ORIENTATION_MAX_SAMPLES 128
 #define COMPASS_ORIENTATION_MIN_SAMPLES 30
@@ -116,6 +120,9 @@ bool compassOrientationDetect(const float magZero[3], const int16_t magGain[3],
     if (sampleCount < COMPASS_ORIENTATION_MIN_SAMPLES) {
         return false;
     }
+    if (magGain[0] == 0 || magGain[1] == 0 || magGain[2] == 0) {
+        return false;
+    }
 
     int best = -1;
     int second = -1;
@@ -166,14 +173,18 @@ bool compassOrientationDetect(const float magZero[3], const int16_t magGain[3],
     }
 
     (void)second;
+    // bestVar can be ~0 for a mathematically-perfect fit; 1e-6f avoids a
+    // near-zero/near-zero division producing a meaningless huge or NaN ratio.
     const float confidence = (bestVar < 1e-6f) ? confidenceMin : (secondVar / bestVar);
-    if (confidence < confidenceMin) {
+    *outConfidence = confidence;
+    if (isnan(confidence) || isinf(confidence) || confidence < confidenceMin) {
         return false;
     }
 
     *outRollDD = compassOrientationCandidates[best].rollDD;
     *outPitchDD = compassOrientationCandidates[best].pitchDD;
     *outYawDD = compassOrientationCandidates[best].yawDD;
-    *outConfidence = confidence;
     return true;
 }
+
+#endif
