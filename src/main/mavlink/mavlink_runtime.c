@@ -281,6 +281,7 @@ void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
 {
     mavlinkSendPendingMissionItemReached();
     mavlinkMissionUpdate(currentTimeUs / 1000);
+    mavlinkSendModeStatusText();
     mavlinkSendArmingStatusText();
 
     for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {

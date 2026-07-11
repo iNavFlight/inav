@@ -24,5 +24,6 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs);
 bool mavlinkHandleIncomingHeartbeat(void);
 bool mavlinkHandleIncomingPing(void);
 bool mavlinkHandleIncomingTimesync(void);
+void mavlinkSendModeStatusText(void);
 void mavlinkSendArmingStatusText(void);
 bool mavlinkHandleIncomingRequestDataStream(void);

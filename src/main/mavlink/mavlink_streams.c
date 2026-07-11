@@ -20,10 +20,55 @@ const uint8_t mavSecondaryRates[MAVLINK_STREAM_COUNT] = {
     [MAV_DATA_STREAM_HEARTBEAT] = 1
 };
 
-#define MAVLINK_STATUS_TEXT_STALE_MS 5000
 #define MAVLINK_STATUS_TEXT_NOTICE_REPEAT_MS 30000
 #define MAVLINK_STATUS_TEXT_WARNING_REPEAT_MS 10000
 #define MAVLINK_STATUS_TEXT_CRITICAL_REPEAT_MS 5000
+
+static const char * const mavlinkInavFlightModeNames[FLM_COUNT] = {
+    [FLM_MANUAL] = "MANUAL",
+    [FLM_ACRO] = "ACRO",
+    [FLM_ACRO_AIR] = "ACRO AIR",
+    [FLM_ANGLE] = "ANGLE",
+    [FLM_HORIZON] = "HORIZON",
+    [FLM_ALTITUDE_HOLD] = "ALTITUDE HOLD",
+    [FLM_POSITION_HOLD] = "POSITION HOLD",
+    [FLM_RTH] = "RTH",
+    [FLM_MISSION] = "MISSION",
+    [FLM_COURSE_HOLD] = "COURSE HOLD",
+    [FLM_CRUISE] = "CRUISE",
+    [FLM_LAUNCH] = "LAUNCH",
+    [FLM_FAILSAFE] = "FAILSAFE",
+    [FLM_ANGLEHOLD] = "ANGLE HOLD",
+};
+
+STATIC_ASSERT(FLM_COUNT == 14, update_mavlink_inav_flight_mode_names);
+
+static bool mavlinkSendNoticeStatusText(const char *text)
+{
+    uint8_t sendMask = 0;
+    for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {
+        if (mavPortStates[portIndex].telemetryEnabled && mavPortStates[portIndex].port) {
+            sendMask |= MAVLINK_PORT_MASK(portIndex);
+        }
+    }
+    if (sendMask == 0) {
+        return false;
+    }
+
+    const uint8_t previousSendMask = mavSendMask;
+    mavSendMask = sendMask;
+    mavlink_msg_statustext_pack(
+        mavlinkGetCommonConfig()->sysid,
+        MAV_COMP_ID_AUTOPILOT1,
+        &mavSendMsg,
+        MAV_SEVERITY_NOTICE,
+        text,
+        0,
+        0);
+    mavlinkSendMessage();
+    mavSendMask = previousSendMask;
+    return true;
+}
 
 uint8_t mavlinkClampStreamRate(uint8_t rate)
 {
@@ -843,6 +888,10 @@ bool mavlinkSendStatusText(void)
     char buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN + 1] = {" "};
     textAttributes_t elemAttr = osdGetSystemMessage(buff, sizeof(buff), false);
     buff[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = '\0';
+    mavlinkPortRuntime_t *statusTextPort = mavActivePort;
+    if (!statusTextPort && mavPortCount == 1 && mavPortStates[0].telemetryEnabled && mavPortStates[0].port) {
+        statusTextPort = &mavPortStates[0];
+    }
 
     if (buff[0] != SYM_BLANK) {
         MAV_SEVERITY severity = MAV_SEVERITY_NOTICE;
@@ -852,7 +901,7 @@ bool mavlinkSendStatusText(void)
             severity = MAV_SEVERITY_WARNING;
         }
 
-        if (mavActivePort) {
+        if (statusTextPort) {
             const timeMs_t nowMs = millis();
             timeMs_t repeatMs = MAVLINK_STATUS_TEXT_NOTICE_REPEAT_MS;
             if (severity <= MAV_SEVERITY_CRITICAL) {
@@ -861,18 +910,18 @@ bool mavlinkSendStatusText(void)
                 repeatMs = MAVLINK_STATUS_TEXT_WARNING_REPEAT_MS;
             }
 
-            const bool textChanged = strcmp(mavActivePort->lastStatusText, buff) != 0 || mavActivePort->lastStatusTextSeverity != (uint8_t)severity;
-            const bool textWasStale = mavActivePort->lastStatusText[0] == '\0' || nowMs - mavActivePort->lastStatusTextMs >= MAVLINK_STATUS_TEXT_STALE_MS;
-            const bool textRepeatDue = nowMs - mavActivePort->firstStatusTextMs >= repeatMs;
+            const bool textChanged = strcmp(statusTextPort->lastStatusText, buff) != 0 || statusTextPort->lastStatusTextSeverity != (uint8_t)severity;
+            const bool textWasStale = statusTextPort->lastStatusText[0] == '\0';
+            const bool textRepeatDue = nowMs - statusTextPort->firstStatusTextMs >= repeatMs;
 
             if (textChanged || textWasStale || textRepeatDue) {
-                strncpy(mavActivePort->lastStatusText, buff, sizeof(mavActivePort->lastStatusText) - 1);
-                mavActivePort->lastStatusText[sizeof(mavActivePort->lastStatusText) - 1] = '\0';
-                mavActivePort->lastStatusTextSeverity = (uint8_t)severity;
-                mavActivePort->firstStatusTextMs = nowMs;
-                mavActivePort->lastStatusTextMs = nowMs;
+                strncpy(statusTextPort->lastStatusText, buff, sizeof(statusTextPort->lastStatusText) - 1);
+                statusTextPort->lastStatusText[sizeof(statusTextPort->lastStatusText) - 1] = '\0';
+                statusTextPort->lastStatusTextSeverity = (uint8_t)severity;
+                statusTextPort->firstStatusTextMs = nowMs;
+                statusTextPort->lastStatusTextMs = nowMs;
             } else {
-                mavActivePort->lastStatusTextMs = nowMs;
+                statusTextPort->lastStatusTextMs = nowMs;
                 return false;
             }
         }
@@ -887,11 +936,11 @@ bool mavlinkSendStatusText(void)
         return true;
     }
 
-    if (mavActivePort) {
-        mavActivePort->lastStatusText[0] = '\0';
-        mavActivePort->lastStatusTextSeverity = 0;
-        mavActivePort->firstStatusTextMs = 0;
-        mavActivePort->lastStatusTextMs = 0;
+    if (statusTextPort) {
+        statusTextPort->lastStatusText[0] = '\0';
+        statusTextPort->lastStatusTextSeverity = 0;
+        statusTextPort->firstStatusTextMs = 0;
+        statusTextPort->lastStatusTextMs = 0;
     }
 #endif
     return false;
@@ -1251,29 +1300,44 @@ void mavlinkSendArmingStatusText(void)
     }
     text[pos] = '\0';
 
-    uint8_t sendMask = 0;
-    for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {
-        if (mavPortStates[portIndex].telemetryEnabled && mavPortStates[portIndex].port) {
-            sendMask |= MAVLINK_PORT_MASK(portIndex);
-        }
-    }
-    if (sendMask == 0) {
+    if (!mavlinkSendNoticeStatusText(text)) {
         return;
     }
 
     mavlinkContext.lastArmingDisableFlags = disableFlags;
-    mavSendMask = sendMask;
-    mavlink_msg_statustext_pack(
-        mavlinkGetCommonConfig()->sysid,
-        MAV_COMP_ID_AUTOPILOT1,
-        &mavSendMsg,
-        MAV_SEVERITY_NOTICE,
-        text,
-        0,
-        0);
-    mavlinkSendMessage();
-    mavSendMask = 0;
 #endif
+}
+
+void mavlinkSendModeStatusText(void)
+{
+    const flightModeForTelemetry_e flightMode = getFlightModeForTelemetry();
+    const bool gcsNavMode = flightMode == FLM_POSITION_HOLD && isGCSValid();
+
+    if (!mavlinkContext.modeStatusTextInitialized) {
+        mavlinkContext.lastFlightMode = flightMode;
+        mavlinkContext.lastGCSNavMode = gcsNavMode;
+        mavlinkContext.modeStatusTextInitialized = true;
+        return;
+    }
+
+    const bool flightModeChanged = flightMode != mavlinkContext.lastFlightMode;
+    const bool gcsNavModeChanged = gcsNavMode != mavlinkContext.lastGCSNavMode;
+    if (!flightModeChanged && !gcsNavModeChanged) {
+        return;
+    }
+
+    if (gcsNavModeChanged) {
+        mavlinkSendNoticeStatusText(gcsNavMode ? "Notice: INAV: Entering GCS NAV mode" : "Notice: INAV: Exiting GCS NAV mode");
+    }
+
+    if (flightModeChanged && !gcsNavMode) {
+        char text[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN + 1] = "Notice: INAV: Entering ";
+        strcat(text, mavlinkInavFlightModeNames[flightMode]);
+        mavlinkSendNoticeStatusText(text);
+    }
+
+    mavlinkContext.lastFlightMode = flightMode;
+    mavlinkContext.lastGCSNavMode = gcsNavMode;
 }
 
 static bool mavlinkIsLocalTarget(uint8_t targetSystem, uint8_t targetComponent)
