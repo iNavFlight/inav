@@ -405,10 +405,14 @@ void unlockMainPID(void)
 // host clock as before.
 bool sitlLockstepEnabled = false;
 static bool lockstepActive = false;
-static volatile uint64_t lockstepTickTimeUs;   // sim time of the last tick (base of the 1 ms grid)
-static volatile uint64_t lockstepAnchorSimUs;  // sim time the creep window starts from
-static volatile uint64_t lockstepAnchorRealUs; // wall clock the creep window starts from
-static volatile uint64_t lockstepLastUs;       // monotonicity high-water mark
+static uint64_t lockstepTickTimeUs;    // sim time of the last tick (base of the 1 ms grid)
+static uint64_t lockstepAnchorSimUs;   // sim time the creep window starts from
+static uint64_t lockstepAnchorRealUs;  // wall clock the creep window starts from
+static uint64_t lockstepLastUs;        // monotonicity high-water mark
+// the anchors are written by the TCP receive thread and read by the main
+// thread: unsynchronized 64-bit accesses produced torn values (an anchor
+// in the future freezes the clock until the next arrival)
+static pthread_mutex_t lockstepMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static uint64_t realMicros(void) {
     struct timespec now;
@@ -417,25 +421,34 @@ static uint64_t realMicros(void) {
     return (now.tv_sec - start_time.tv_sec) * 1000000 + (now.tv_nsec - start_time.tv_nsec) / 1000;
 }
 
+// callers hold lockstepMutex
+static uint64_t lockstepMicrosLocked(void) {
+    // creep window: up to one sub-tick millisecond of real time from the
+    // last ANCHOR (tick or byte arrival). It keeps the scheduler and the
+    // serial task alive between frames while simulated time can never
+    // run more than ~1 ms past the last received data. Every arrival
+    // re-opens the window (see sitlLockstepRxArrival), so a late frame
+    // or an interleaved non-simulator request can never starve the
+    // serial pass that would advance the clock.
+    const uint64_t nowReal = realMicros();
+    uint64_t creepUs = (nowReal > lockstepAnchorRealUs) ? nowReal - lockstepAnchorRealUs : 0;
+    if (creepUs > 999) {
+        creepUs = 999;
+    }
+    uint64_t t = lockstepAnchorSimUs + creepUs;
+    if (t < lockstepLastUs) {
+        t = lockstepLastUs;              // strictly monotonic across anchors
+    } else {
+        lockstepLastUs = t;
+    }
+    return t;
+}
+
 timeUs_t micros(void) {
     if (lockstepActive) {
-        // creep window: up to one sub-tick millisecond of real time from the
-        // last ANCHOR (tick or byte arrival). It keeps the scheduler and the
-        // serial task alive between frames while simulated time can never
-        // run more than ~1 ms past the last received data. Every arrival
-        // re-opens the window (see sitlLockstepRxArrival), so a late frame
-        // or an interleaved non-simulator request can never starve the
-        // serial pass that would advance the clock.
-        uint64_t creepUs = realMicros() - lockstepAnchorRealUs;
-        if (creepUs > 999) {
-            creepUs = 999;
-        }
-        uint64_t t = lockstepAnchorSimUs + creepUs;
-        if (t < lockstepLastUs) {
-            t = lockstepLastUs;          // strictly monotonic across anchors
-        } else {
-            lockstepLastUs = t;
-        }
+        pthread_mutex_lock(&lockstepMutex);
+        const uint64_t t = lockstepMicrosLocked();
+        pthread_mutex_unlock(&lockstepMutex);
         return t;
     }
     return realMicros();
@@ -445,6 +458,7 @@ void sitlLockstepTick(void) {
     if (!sitlLockstepEnabled) {
         return;
     }
+    pthread_mutex_lock(&lockstepMutex);
     if (!lockstepActive) {
         lockstepTickTimeUs = realMicros();
         lockstepActive = true;
@@ -458,6 +472,7 @@ void sitlLockstepTick(void) {
     }
     lockstepAnchorSimUs = lockstepTickTimeUs;
     lockstepAnchorRealUs = realMicros();
+    pthread_mutex_unlock(&lockstepMutex);
 }
 
 // Called by the TCP receive thread on arriving bytes: restart the creep
@@ -467,8 +482,10 @@ void sitlLockstepRxArrival(void) {
     if (!lockstepActive) {
         return;
     }
-    lockstepAnchorSimUs = micros();
+    pthread_mutex_lock(&lockstepMutex);
+    lockstepAnchorSimUs = lockstepMicrosLocked();
     lockstepAnchorRealUs = realMicros();
+    pthread_mutex_unlock(&lockstepMutex);
 }
 
 uint64_t microsISR(void)
