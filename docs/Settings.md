@@ -6694,11 +6694,11 @@ Turtle mode power factor
 
 ### tvc_gain
 
-Overall thrust vectoring deflection gain [%] at full thrust, applied to the TVC servo mixer input sources
+Overall thrust vectoring deflection gain [%] at full thrust, applied to the TVC servo mixer input sources. Values above 100 use more of the mechanical vectoring travel per stabilized unit (the output stays clamped at full deflection); hover-heavy setups typically need 200 or more.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 100 | 0 | 200 |
+| 100 | 0 | 400 |
 
 ---
 
