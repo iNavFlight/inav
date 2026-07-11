@@ -4562,6 +4562,12 @@ groups:
         field: knifeLeftPitchTrim
         min: -15
         max: 15
+      - name: ohold_hover_gain
+        description: "LEARNED hover angle-gain scale [%]. The prop hang limit-cycle detector writes this at hang exit and it is saved on disarm; the next hang and the next flight start at the learned value instead of oscillating down again. Editable, but normally maintained by the firmware. 100 = full angle gain."
+        default_value: 100
+        field: hoverGainLearned
+        min: 30
+        max: 100
       - name: ohold_knife_right_pitch_trim
         description: "Pitch trim [deg] on the KNIFE EDGE RIGHT hold target, positive = nose above the horizon, held via the rudder. See ohold_knife_left_pitch_trim for why the sides differ"
         default_value: 0

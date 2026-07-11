@@ -47,6 +47,11 @@ typedef struct orientationHoldConfig_s {
     int8_t knifeLeftPitchTrim;     // deg, nose above horizon in left knife edge
     int8_t knifeRightPitchTrim;    // deg, nose above horizon in right knife edge
                                    // (separate per side: prop effects break the symmetry)
+    uint8_t hoverGainLearned;      // %, LEARNED hover angle-gain scale: written
+                                   // by the limit-cycle detector at hang exit,
+                                   // saved on disarm. The next hang (and the
+                                   // next flight) starts at the learned value
+                                   // instead of oscillating its way down again.
 } orientationHoldConfig_t;
 
 PG_DECLARE(orientationHoldConfig_t, orientationHoldConfig);

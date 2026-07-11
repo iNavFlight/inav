@@ -37,8 +37,10 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
+#include "fc/runtime_config.h"
 #include "fc/settings.h"
 
 #include "flight/altitude_floor.h"
@@ -55,6 +57,7 @@ PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     .invertedPitchTrim = SETTING_OHOLD_INVERTED_PITCH_TRIM_DEFAULT,
     .knifeLeftPitchTrim = SETTING_OHOLD_KNIFE_LEFT_PITCH_TRIM_DEFAULT,
     .knifeRightPitchTrim = SETTING_OHOLD_KNIFE_RIGHT_PITCH_TRIM_DEFAULT,
+    .hoverGainLearned = SETTING_OHOLD_HOVER_GAIN_DEFAULT,
 );
 
 typedef struct {
@@ -365,7 +368,6 @@ bool orientationHoldIsPropHang(void)
 #define HOVER_GAIN_ATTACK        0.85f   // per detected half wave
 #define HOVER_GAIN_FLOOR         0.3f
 #define HOVER_GAIN_RELEASE_TAU_S 4.0f
-#define HOVER_GAIN_RESTORE_TAU_S 1.0f    // outside the hover regime
 
 typedef struct {
     float sign;         // sign of the current half wave
@@ -373,7 +375,15 @@ typedef struct {
     float sinceFlipS;
 } hoverOscDetector_t;
 
-static float hoverGainScale = 1.0f;
+// The scale PERSISTS: it freezes at hang exit (the next hang starts at the
+// learned value instead of oscillating its way down again), is written back
+// to the config at exit and saved to EEPROM on disarm. A value learned
+// under worse conditions self-corrects upward through the release while
+// hovering quietly.
+static float hoverGainScale;
+static bool hoverGainInitialized = false;
+static bool hoverGainWasActive = false;
+static bool hoverGainDirty = false;      // learned value awaiting the disarm save
 static hoverOscDetector_t hoverOsc[2];   // body pitch, body yaw
 
 static bool hoverOscDetectAxis(hoverOscDetector_t *d, float sigDeg, float dT)
@@ -398,6 +408,12 @@ static bool hoverOscDetectAxis(hoverOscDetector_t *d, float sigDeg, float dT)
 
 static void hoverGainUpdate(const fpVector3_t *errDeg, float dT)
 {
+    if (!hoverGainInitialized) {
+        hoverGainScale = constrainf(orientationHoldConfig()->hoverGainLearned / 100.0f,
+                                    HOVER_GAIN_FLOOR, 1.0f);
+        hoverGainInitialized = true;
+    }
+
     bool active = activeTargetSource == BOXPROPHANG;
     if (active) {
         // nose elevation gate, same release threshold as the hover throttle
@@ -407,10 +423,20 @@ static void hoverGainUpdate(const fpVector3_t *errDeg, float dT)
     }
 
     if (!active) {
-        hoverGainScale += (1.0f - hoverGainScale) * MIN(dT / HOVER_GAIN_RESTORE_TAU_S, 1.0f);
+        // freeze the learned value across hang exits; write it back once so
+        // the disarm save picks it up
+        if (hoverGainWasActive) {
+            const uint8_t learned = lrintf(hoverGainScale * 100.0f);
+            if (learned != orientationHoldConfig()->hoverGainLearned) {
+                orientationHoldConfigMutable()->hoverGainLearned = learned;
+                hoverGainDirty = true;
+            }
+            hoverGainWasActive = false;
+        }
         hoverOsc[0] = hoverOsc[1] = (hoverOscDetector_t){ 0 };
         return;
     }
+    hoverGainWasActive = true;
 
     bool osc = hoverOscDetectAxis(&hoverOsc[0], errDeg->y, dT);
     osc = hoverOscDetectAxis(&hoverOsc[1], errDeg->z, dT) || osc;
@@ -424,7 +450,7 @@ static void hoverGainUpdate(const fpVector3_t *errDeg, float dT)
 
 float orientationHoldLevelGainScale(void)
 {
-    return hoverGainScale;
+    return (hoverGainInitialized) ? hoverGainScale : 1.0f;
 }
 
 void orientationHoldSyncTargetToAttitude(void)
@@ -442,6 +468,13 @@ void orientationHoldResetSourceTracking(void)
     if (activeTargetSource != OHOLD_SOURCE_NONE) {
         pidResetErrorAccumulators();
         activeTargetSource = OHOLD_SOURCE_NONE;
+    }
+
+    // persist the learned hover gain once the aircraft is on the ground
+    // (never write EEPROM while armed, the flight loop would stall)
+    if (hoverGainDirty && !ARMING_FLAG(ARMED)) {
+        hoverGainDirty = false;
+        saveConfigAndNotify();
     }
 }
 
