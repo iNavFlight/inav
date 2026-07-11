@@ -52,6 +52,10 @@ typedef struct orientationHoldConfig_s {
                                    // saved on disarm. The next hang (and the
                                    // next flight) starts at the learned value
                                    // instead of oscillating its way down again.
+    uint16_t entryRateDps;         // deg/s target slew for PRESET entries.
+                                   // Separate from fig_roll_rate on purpose:
+                                   // a deliberate slow roll figure and a snappy
+                                   // entry into a hold are different intents.
 } orientationHoldConfig_t;
 
 PG_DECLARE(orientationHoldConfig_t, orientationHoldConfig);

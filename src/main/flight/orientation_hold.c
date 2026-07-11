@@ -60,6 +60,7 @@ PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     .knifeLeftPitchTrim = SETTING_OHOLD_KNIFE_LEFT_PITCH_TRIM_DEFAULT,
     .knifeRightPitchTrim = SETTING_OHOLD_KNIFE_RIGHT_PITCH_TRIM_DEFAULT,
     .hoverGainLearned = SETTING_OHOLD_HOVER_GAIN_DEFAULT,
+    .entryRateDps = SETTING_OHOLD_ENTRY_RATE_DEFAULT,
 );
 
 typedef struct {
@@ -505,9 +506,10 @@ void orientationHoldResetSourceTracking(void)
 bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
 {
     fpQuaternion_t qDesired;
-    // Preset entries slew the target at the figure roll rate: the entry is
-    // the same mechanism as a figure segment, just toward a constant
-    float slewRateDegS = figureSequencerConfig()->rollRate;
+    // Preset entries slew the target with their own rate: same mechanism as
+    // a figure segment, but a snappy entry and a deliberate slow roll figure
+    // are different intents with different rates
+    float slewRateDegS = orientationHoldConfig()->entryRateDps;
 
     // Altitude floor recovery overrides any selected preset: upright + climb.
     // Safety recovery tracks the requested attitude directly, no entry slew.

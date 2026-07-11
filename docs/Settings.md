@@ -4552,6 +4552,16 @@ Waypoint radius [cm]. Waypoint would be considered reached if machine is within 
 
 ---
 
+### ohold_entry_rate
+
+Target slew rate [deg/s] for entering an orientation hold preset (INVERTED, KNIFE EDGE, PROP HANG). The entry rolls the hold target from the current attitude to the preset at this rate; figures keep their own fig_roll_rate / fig_loop_rate
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 180 | 30 | 720 |
+
+---
+
 ### ohold_hover_gain
 
 LEARNED hover angle-gain scale [%]. The prop hang limit-cycle detector writes this at hang exit and it is saved on disarm; the next hang and the next flight start at the learned value instead of oscillating down again. Editable, but normally maintained by the firmware. 100 = full angle gain.

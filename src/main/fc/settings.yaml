@@ -4574,6 +4574,12 @@ groups:
         field: knifeRightPitchTrim
         min: -15
         max: 15
+      - name: ohold_entry_rate
+        description: "Target slew rate [deg/s] for entering an orientation hold preset (INVERTED, KNIFE EDGE, PROP HANG). The entry rolls the hold target from the current attitude to the preset at this rate; figures keep their own fig_roll_rate / fig_loop_rate"
+        default_value: 180
+        field: entryRateDps
+        min: 30
+        max: 720
 
   - name: PG_FIGURE_SEQUENCER_CONFIG
     type: figureSequencerConfig_t
