@@ -404,10 +404,10 @@ void unlockMainPID(void)
 // Until the first frame arrives (boot, gyro calibration) time runs on the
 // host clock as before.
 bool sitlLockstepEnabled = false;
-volatile bool sitlLockstepRxPending = false;   // set by the TCP receive thread
 static bool lockstepActive = false;
-static volatile uint64_t lockstepTickTimeUs;   // sim time of the last tick
-static volatile uint64_t lockstepTickRealUs;   // wall clock at the last tick
+static volatile uint64_t lockstepTickTimeUs;   // sim time of the last tick (base of the 1 ms grid)
+static volatile uint64_t lockstepAnchorSimUs;  // sim time the creep window starts from
+static volatile uint64_t lockstepAnchorRealUs; // wall clock the creep window starts from
 static volatile uint64_t lockstepLastUs;       // monotonicity high-water mark
 
 static uint64_t realMicros(void) {
@@ -415,6 +415,30 @@ static uint64_t realMicros(void) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     return (now.tv_sec - start_time.tv_sec) * 1000000 + (now.tv_nsec - start_time.tv_nsec) / 1000;
+}
+
+timeUs_t micros(void) {
+    if (lockstepActive) {
+        // creep window: up to one sub-tick millisecond of real time from the
+        // last ANCHOR (tick or byte arrival). It keeps the scheduler and the
+        // serial task alive between frames while simulated time can never
+        // run more than ~1 ms past the last received data. Every arrival
+        // re-opens the window (see sitlLockstepRxArrival), so a late frame
+        // or an interleaved non-simulator request can never starve the
+        // serial pass that would advance the clock.
+        uint64_t creepUs = realMicros() - lockstepAnchorRealUs;
+        if (creepUs > 999) {
+            creepUs = 999;
+        }
+        uint64_t t = lockstepAnchorSimUs + creepUs;
+        if (t < lockstepLastUs) {
+            t = lockstepLastUs;          // strictly monotonic across anchors
+        } else {
+            lockstepLastUs = t;
+        }
+        return t;
+    }
+    return realMicros();
 }
 
 void sitlLockstepTick(void) {
@@ -426,38 +450,25 @@ void sitlLockstepTick(void) {
         lockstepActive = true;
     } else {
         lockstepTickTimeUs += 1000;
-        // a stall may have crept past the next tick (see micros below):
-        // never step backwards
+        // request bursts between frames may have crept past the next grid
+        // step: never step backwards, re-anchor the grid instead
         if (lockstepTickTimeUs < lockstepLastUs) {
             lockstepTickTimeUs = lockstepLastUs;
         }
     }
-    lockstepTickRealUs = realMicros();
-    sitlLockstepRxPending = false;
+    lockstepAnchorSimUs = lockstepTickTimeUs;
+    lockstepAnchorRealUs = realMicros();
 }
 
-timeUs_t micros(void) {
-    if (lockstepActive) {
-        uint64_t creepUs = realMicros() - lockstepTickRealUs;
-        // frozen-clock creep window: sub-millisecond real time keeps the
-        // scheduler alive between frames, but simulated time can never run
-        // a full tick ahead of the injected sensor data. If the NEXT frame
-        // arrives late (bench hiccup), the capped clock would starve the
-        // serial task that parses it - freshly received bytes widen the
-        // window just enough for one more serial pass.
-        const uint64_t capUs = sitlLockstepRxPending ? 2500 : 999;
-        if (creepUs > capUs) {
-            creepUs = capUs;
-        }
-        uint64_t t = lockstepTickTimeUs + creepUs;
-        if (t < lockstepLastUs) {
-            t = lockstepLastUs;          // monotonic under the widened window
-        } else {
-            lockstepLastUs = t;
-        }
-        return t;
+// Called by the TCP receive thread on arriving bytes: restart the creep
+// window at the current simulated time so the (frozen) scheduler wakes up
+// and the serial task parses what just arrived.
+void sitlLockstepRxArrival(void) {
+    if (!lockstepActive) {
+        return;
     }
-    return realMicros();
+    lockstepAnchorSimUs = micros();
+    lockstepAnchorRealUs = realMicros();
 }
 
 uint64_t microsISR(void)
