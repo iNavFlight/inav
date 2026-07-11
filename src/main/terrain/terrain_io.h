@@ -29,6 +29,7 @@
 
 #define TERRAIN_IO_TASK_RATE_HZ 50
 #define TERRAIN_IO_MAX_FILE_OPEN_STATUS 4 //supposed max 4 files opened for a single flight
+#define TERRAIN_IO_KEEP_OPEN_IDLE_MS 60000 //close the kept-open .DAT file after this long without any block read
 
 /**
  * @brief Enumeration of terrain IO status states.
@@ -67,13 +68,16 @@ typedef struct {
     uint32_t bytesRead;
     uint32_t readsZeroBytesCount;
     timeMs_t openFileStartTimeMs;
+    int8_t openFileLatDegrees; //tile of the currently open datFile, valid only while datFile != NULL
+    int16_t openFileLonDegrees;
+    timeMs_t lastReadActivityMs; //last time a block was read from datFile, used for the keep-open idle timeout
+    bool sdAccessHeld; //we currently hold exclusive SD card access granted by blackbox
+    bool sdAccessRequested; //a request to blackbox is pending and must be cancelled if we stop needing it
 } terrainIoState_t;
 
 
 
 void loadGridToCacheTask(timeUs_t currentTimeUs);
-void terrainIoOpenedDirCallback(afatfsFilePtr_t directory);
 void terrainIoOpenedFileCallback(afatfsFilePtr_t file);
 void terrainIoClosedFileCallback(void);
-void terrainIoClosedDirCallback(void);
 bool isTerrainIoFailure(void);

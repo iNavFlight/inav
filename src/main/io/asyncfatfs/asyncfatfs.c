@@ -44,7 +44,9 @@
 #define AFATFS_SECTOR_SIZE  512
 #define AFATFS_NUM_FATS     2
 
-#define AFATFS_MAX_OPEN_FILES 3
+// One handle is held long-term by the terrain module (kept-open .DAT tile file) in addition to the
+// blackbox log file and transient directory/open operations
+#define AFATFS_MAX_OPEN_FILES 4
 
 #define AFATFS_DEFAULT_FILE_DATE FAT_MAKE_DATE(2015, 12, 01)
 #define AFATFS_DEFAULT_FILE_TIME FAT_MAKE_TIME(00, 00, 00)
