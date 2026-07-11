@@ -4653,3 +4653,20 @@ groups:
         default_value: OFF
         field: terrainEnabled
         type: bool
+  - name: PG_TERRAIN_NAV_CONFIG
+    type: terrainNavConfig_t
+    headers: ["terrain/terrain_nav_hold.h"]
+    condition: USE_TERRAIN
+    members:
+      - name: terrain_nav_min_agl
+        description: "TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb to it. Covers worst-case terrain map error on steep slopes plus canopy - lowering it below the default is not recommended"
+        default_value: 6000
+        field: minAglCm
+        min: 3000
+        max: 12000
+      - name: terrain_nav_lookahead
+        description: "TERRAIN AGL HOLD: check terrain up to this distance ahead along the flight path and climb early for rising ground [m]. 0 disables the lookahead. The effective distance is also limited by the terrain block cache of the flight controller"
+        default_value: 1000
+        field: lookaheadDistM
+        min: 0
+        max: 2000

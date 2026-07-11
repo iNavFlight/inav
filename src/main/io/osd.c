@@ -99,6 +99,10 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+#ifdef USE_TERRAIN
+#include "terrain/terrain_nav_hold.h"
+#endif
+
 #include "rx/rx.h"
 #include "rx/msp_override.h"
 
@@ -6260,6 +6264,24 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         }
                         break;
                     case GEOZONE_MESSAGE_STATE_NONE:
+                        break;
+                }
+#endif
+#ifdef USE_TERRAIN
+                switch (terrainNavHoldGetWarning()) {   /* ADDS MAXIMUM OF 1 MESSAGE TO TOTAL */
+                    case TERRAIN_NAV_HOLD_WARN_NOT_READY:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_NOT_READY));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_DATA_LOST:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_DATA_LOST));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_MAX_ALT:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_VS_MAX_ALT));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_PULL_UP:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_PULL_UP));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_NONE:
                         break;
                 }
 #endif

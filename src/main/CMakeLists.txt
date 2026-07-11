@@ -680,6 +680,10 @@ main_sources(COMMON_SRC
     terrain/terrain_location.c
     terrain/terrain_nav.h
     terrain/terrain_nav.c
+    terrain/terrain_nav_hold_core.h
+    terrain/terrain_nav_hold_core.c
+    terrain/terrain_nav_hold.h
+    terrain/terrain_nav_hold.c
 )
 
 list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})

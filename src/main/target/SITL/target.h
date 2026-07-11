@@ -76,7 +76,7 @@
 #define USE_SDCARD
 #define USE_SDCARD_SITL
 #define USE_TERRAIN
-#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8 // 2048 bytes = 1 grid block
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block; 5 mirrors the small-cache (F405 class) tier
 #define USE_DRONECAN
 #define DRONECAN_SITL_INTERFACE "vcan0"
 

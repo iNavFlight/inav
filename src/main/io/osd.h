@@ -147,6 +147,13 @@
 #define OSD_MSG_GEOZONE_ACTION      "PERFORM ACTION IN %s %s"
 #endif
 
+#if defined(USE_TERRAIN)
+#define OSD_MSG_TERRAIN_NOT_READY   "TERRAIN NOT READY"
+#define OSD_MSG_TERRAIN_DATA_LOST   "TERRAIN LOST - ALT FROZEN"
+#define OSD_MSG_TERRAIN_VS_MAX_ALT  "TERRAIN VS MAX ALT"
+#define OSD_MSG_TERRAIN_PULL_UP     "TERRAIN PULL UP"
+#endif
+
 #ifdef USE_ADSB
 static const char* const ADSB_EMITTER_TYPE_STRINGS[] = {
         "NOINFO",  //  0 - No information about the emitter type
