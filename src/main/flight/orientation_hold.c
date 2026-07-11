@@ -29,6 +29,7 @@
 
 #ifdef USE_ORIENTATION_HOLD
 
+#include "common/axis.h"
 #include "common/maths.h"
 #include "common/quaternion.h"
 #include "common/utils.h"
@@ -38,6 +39,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "fc/config.h"
+#include "fc/control_profile.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
@@ -289,6 +291,14 @@ static float orientationHoldSlewTarget(fpQuaternion_t *qSoll, const fpQuaternion
     return angleDeg - stepDeg;
 }
 
+// Error leash (ArduPlane qacro pattern): the target never runs further
+// ahead of the attitude than the rate loop can catch up within this time.
+// Clamping the error BEFORE the re-anchor below pulls the target back by
+// the excess -- anti-windup at the target level. It only binds when the
+// aircraft cannot follow (saturation, stall, blocked surfaces): in normal
+// operation the slewed target keeps the error far smaller.
+#define OHOLD_LEASH_TIME_S 0.2f
+
 // Regulator core: tilt error between the estimated attitude and q_soll, then
 // re-anchor q_soll on the attitude composed with that error. The twist (the
 // free axis: heading in level/inverted flight, body roll at prop hang) of
@@ -298,6 +308,20 @@ static float orientationHoldSlewTarget(fpQuaternion_t *qSoll, const fpQuaternion
 static void orientationHoldRegulate(fpVector3_t *errDeg)
 {
     orientationHoldComputeAttitudeError(errDeg, &orientation, &qSollState);
+
+    // leash: slowest axis rate bounds what the rate loop can catch up
+    // (the tilt error can sit on any body axis, yaw included at the hang)
+    uint16_t slowestRate = currentControlProfile->stabilized.rates[FD_ROLL];
+    slowestRate = MIN(slowestRate, currentControlProfile->stabilized.rates[FD_PITCH]);
+    slowestRate = MIN(slowestRate, currentControlProfile->stabilized.rates[FD_YAW]);
+    const float leashDeg = slowestRate * 10.0f * OHOLD_LEASH_TIME_S;
+    const float errMag = fast_fsqrtf(sq(errDeg->x) + sq(errDeg->y) + sq(errDeg->z));
+    if (errMag > leashDeg) {
+        const float s = leashDeg / errMag;
+        errDeg->x *= s;
+        errDeg->y *= s;
+        errDeg->z *= s;
+    }
 
     fpQuaternion_t qErr;
     quatFromRotVecDeg(&qErr, errDeg);
