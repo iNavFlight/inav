@@ -129,6 +129,7 @@ static uint8_t lastWaypointNumber;
 static int setWaypointCalls;
 static int resetWaypointCalls;
 static int saveWaypointCalls;
+static bool saveWaypointResult;
 static int mavlinkRxHandleCalls;
 static bool gcsValid;
 static int waypointCount;
@@ -311,6 +312,7 @@ static void initMavlinkTestState(void)
     lastWaypointNumber = 0;
     resetWaypointCalls = 0;
     saveWaypointCalls = 0;
+    saveWaypointResult = true;
     mavlinkRxHandleCalls = 0;
     mspCommandCallCount = 0;
     mspPassthroughDispatchCount = 0;
@@ -1238,6 +1240,41 @@ TEST(MavlinkTelemetryTest, MissionClearAllAcksAndResets)
     EXPECT_EQ(ack.mission_type, MAV_MISSION_TYPE_MISSION);
 }
 
+TEST(MavlinkTelemetryTest, MissionClearAllRestoresPreviousMissionOnPersistFailure)
+{
+    initMavlinkTestState();
+
+    waypointCount = 1;
+    waypointStore[0].action = NAV_WP_ACTION_WAYPOINT;
+    waypointStore[0].lat = 365304400;
+    waypointStore[0].lon = -832163830;
+    waypointStore[0].alt = 1234;
+    waypointStore[0].flag = NAV_WP_FLAG_LAST;
+    saveWaypointResult = false;
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_clear_all_pack(
+        42, 200, &msg,
+        1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_MISSION_ACK);
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.type, MAV_MISSION_ERROR);
+    EXPECT_EQ(waypointCount, 1);
+    EXPECT_EQ(waypointStore[0].lat, 365304400);
+    EXPECT_EQ(waypointStore[0].lon, -832163830);
+    EXPECT_EQ(waypointStore[0].alt, 1234);
+    EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
+}
+
 TEST(MavlinkTelemetryTest, MissionCountRequestsFirstItem)
 {
     initMavlinkTestState();
@@ -1259,6 +1296,40 @@ TEST(MavlinkTelemetryTest, MissionCountRequestsFirstItem)
 
     EXPECT_EQ(req.seq, 0);
     EXPECT_EQ(req.mission_type, MAV_MISSION_TYPE_MISSION);
+}
+
+TEST(MavlinkTelemetryTest, MissionCountZeroRestoresPreviousMissionOnPersistFailure)
+{
+    initMavlinkTestState();
+
+    waypointCount = 1;
+    waypointStore[0].action = NAV_WP_ACTION_LAND;
+    waypointStore[0].lat = 365304400;
+    waypointStore[0].lon = -832163830;
+    waypointStore[0].flag = NAV_WP_FLAG_LAST;
+    saveWaypointResult = false;
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 0, MAV_MISSION_TYPE_MISSION, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_MISSION_ACK);
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.type, MAV_MISSION_ERROR);
+    EXPECT_EQ(waypointCount, 1);
+    EXPECT_EQ(waypointStore[0].action, NAV_WP_ACTION_LAND);
+    EXPECT_EQ(waypointStore[0].lat, 365304400);
+    EXPECT_EQ(waypointStore[0].lon, -832163830);
+    EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
 }
 
 TEST(MavlinkTelemetryTest, MissionCountWhileArmedIsRejected)
@@ -1531,7 +1602,7 @@ TEST(MavlinkTelemetryTest, MissionRequestListSendsCount)
     EXPECT_EQ(count.mission_type, MAV_MISSION_TYPE_MISSION);
 }
 
-TEST(MavlinkTelemetryTest, MissionRequestSendsWaypoint)
+TEST(MavlinkTelemetryTest, MissionRequestSendsWaypointInt)
 {
     initMavlinkTestState();
     waypointCount = 1;
@@ -1559,16 +1630,16 @@ TEST(MavlinkTelemetryTest, MissionRequestSendsWaypoint)
 
     mavlink_message_t itemMsg;
     ASSERT_TRUE(popTxMessage(&itemMsg));
-    ASSERT_EQ(itemMsg.msgid, MAVLINK_MSG_ID_MISSION_ITEM);
+    ASSERT_EQ(itemMsg.msgid, MAVLINK_MSG_ID_MISSION_ITEM_INT);
 
-    mavlink_mission_item_t item;
-    mavlink_msg_mission_item_decode(&itemMsg, &item);
+    mavlink_mission_item_int_t item;
+    mavlink_msg_mission_item_int_decode(&itemMsg, &item);
 
     EXPECT_EQ(item.seq, 0);
     EXPECT_EQ(item.command, MAV_CMD_NAV_WAYPOINT);
-    EXPECT_EQ(item.frame, MAV_FRAME_GLOBAL_RELATIVE_ALT);
-    EXPECT_NEAR(item.x, 37.5f, 1e-4f);
-    EXPECT_NEAR(item.y, -122.25f, 1e-4f);
+    EXPECT_EQ(item.frame, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT);
+    EXPECT_EQ(item.x, 375000000);
+    EXPECT_EQ(item.y, -1222500000);
     EXPECT_NEAR(item.z, 12.34f, 1e-4f);
 }
 
@@ -2652,6 +2723,131 @@ TEST(MavlinkTelemetryTest, MissionUploadPersistsAndRetriesMissingItem)
     EXPECT_EQ(saveWaypointCalls, 1);
 }
 
+TEST(MavlinkTelemetryTest, MissionUploadOutOfSequenceRerequestsExpectedItem)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 2, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_message_t itemMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &itemMsg,
+        1, testTargetComponent, 1,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&itemMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t requestMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &requestMsg));
+
+    mavlink_mission_request_int_t request;
+    mavlink_msg_mission_request_int_decode(&requestMsg, &request);
+    EXPECT_EQ(request.seq, 0);
+
+    mavlink_message_t ackMsg;
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    EXPECT_EQ(setWaypointCalls, 0);
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadCancelAckResetsTransfer)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_message_t cancelMsg;
+    mavlink_msg_mission_ack_pack(
+        42, 200, &cancelMsg,
+        1, testTargetComponent,
+        MAV_MISSION_OPERATION_CANCELLED,
+        MAV_MISSION_TYPE_MISSION,
+        0);
+    pushRxMessage(&cancelMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_message_t itemMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &itemMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&itemMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_INVALID_SEQUENCE);
+    EXPECT_EQ(setWaypointCalls, 0);
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadRestoresPreviousMissionOnPersistFailure)
+{
+    initMavlinkTestState();
+
+    waypointCount = 1;
+    waypointStore[0].action = NAV_WP_ACTION_WAYPOINT;
+    waypointStore[0].lat = 365304400;
+    waypointStore[0].lon = -832163830;
+    waypointStore[0].alt = 1234;
+    waypointStore[0].flag = NAV_WP_FLAG_LAST;
+    saveWaypointResult = false;
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_message_t itemMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &itemMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&itemMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_INVALID);
+    EXPECT_EQ(waypointCount, 1);
+    EXPECT_EQ(waypointStore[0].lat, 365304400);
+    EXPECT_EQ(waypointStore[0].lon, -832163830);
+    EXPECT_EQ(waypointStore[0].alt, 1234);
+    EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
+}
+
 TEST(MavlinkTelemetryTest, MissionUploadSkipsQgcPlannedHomeAndAcceptsWaypointNanParams)
 {
     initMavlinkTestState();
@@ -2702,6 +2898,113 @@ TEST(MavlinkTelemetryTest, MissionUploadSkipsQgcPlannedHomeAndAcceptsWaypointNan
     EXPECT_EQ(lastWaypoint.lon, -1222501000);
     EXPECT_EQ(lastWaypoint.alt, 4560);
     EXPECT_EQ(saveWaypointCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadPreservesCurrentAbsoluteFirstWaypoint)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 2, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_message_t firstMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &firstMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_INT,
+        MAV_CMD_NAV_WAYPOINT, 1, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 123.4f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&firstMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_message_t secondMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &secondMsg,
+        1, testTargetComponent, 1,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        0, 0, 0, 0,
+        375001000, -1222501000, 45.6f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&secondMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(setWaypointCalls, 2);
+    EXPECT_EQ(waypointCount, 2);
+    EXPECT_EQ(waypointStore[0].lat, 375000000);
+    EXPECT_EQ(waypointStore[0].lon, -1222500000);
+    EXPECT_EQ(waypointStore[0].alt, 12340);
+    EXPECT_EQ(waypointStore[0].p3, NAV_WP_ALTMODE);
+    EXPECT_EQ(waypointStore[1].lat, 375001000);
+    EXPECT_EQ(waypointStore[1].lon, -1222501000);
+    EXPECT_EQ(waypointStore[1].alt, 4560);
+}
+
+TEST(MavlinkTelemetryTest, MissionDownloadServesValidOutOfOrderRequests)
+{
+    initMavlinkTestState();
+
+    waypointCount = 2;
+    waypointStore[0].action = NAV_WP_ACTION_WAYPOINT;
+    waypointStore[0].lat = 375000000;
+    waypointStore[0].lon = -1222500000;
+    waypointStore[0].alt = 1234;
+    waypointStore[1].action = NAV_WP_ACTION_LAND;
+    waypointStore[1].lat = 375001000;
+    waypointStore[1].lon = -1222501000;
+    waypointStore[1].alt = 0;
+    waypointStore[1].flag = NAV_WP_FLAG_LAST;
+
+    mavlink_message_t listMsg;
+    mavlink_msg_mission_request_list_pack(
+        42, 200, &listMsg,
+        1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&listMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_message_t requestMsg;
+    mavlink_msg_mission_request_int_pack(
+        42, 200, &requestMsg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&requestMsg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    mavlink_message_t itemMsg;
+    ASSERT_TRUE(popTxMessage(&itemMsg));
+    ASSERT_EQ(itemMsg.msgid, MAVLINK_MSG_ID_MISSION_ITEM_INT);
+
+    mavlink_mission_item_int_t item;
+    mavlink_msg_mission_item_int_decode(&itemMsg, &item);
+    EXPECT_EQ(item.seq, 1);
+    EXPECT_EQ(item.command, MAV_CMD_NAV_LAND);
+
+    resetSerialBuffers();
+    mavlink_msg_mission_request_int_pack(
+        42, 200, &requestMsg,
+        1, testTargetComponent, 0, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&requestMsg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    ASSERT_TRUE(popTxMessage(&itemMsg));
+    ASSERT_EQ(itemMsg.msgid, MAVLINK_MSG_ID_MISSION_ITEM_INT);
+    mavlink_msg_mission_item_int_decode(&itemMsg, &item);
+    EXPECT_EQ(item.seq, 0);
+    EXPECT_EQ(item.command, MAV_CMD_NAV_WAYPOINT);
 }
 
 TEST(MavlinkTelemetryTest, MissionCurrentReportsLoadedMission)
@@ -3193,6 +3496,12 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t *wp)
     lastWaypointNumber = wpNumber;
     lastWaypoint = *wp;
     setWaypointCalls++;
+    if (wpNumber > 0 && wpNumber <= ARRAYLEN(waypointStore)) {
+        waypointStore[wpNumber - 1] = *wp;
+        if (wpNumber > waypointCount) {
+            waypointCount = wpNumber;
+        }
+    }
 }
 
 int getWaypointCount(void)
@@ -3222,7 +3531,7 @@ bool isWaypointListValid(void)
 bool saveNonVolatileWaypointList(void)
 {
     saveWaypointCalls++;
-    return true;
+    return saveWaypointResult;
 }
 
 void resetWaypointList(void)

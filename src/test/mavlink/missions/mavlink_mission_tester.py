@@ -124,6 +124,8 @@ class MissionCase:
     items: tuple[MissionItem, ...]
     expected_upload_result: int
     expected_waypoints: tuple[ExpectedWaypoint, ...]
+    preload_items: tuple[MissionItem, ...] = ()
+    verify_legacy_download: bool = False
 
 
 def resolve_inav_path(path_text: str) -> Path:
@@ -285,6 +287,19 @@ def make_cases() -> tuple[MissionCase, ...]:
             ),
         ),
         MissionCase(
+            name="absolute_first_waypoint_is_not_planned_home",
+            description="A current first absolute waypoint is kept; only QGC-style non-current planned home is skipped.",
+            expected_upload_result=MAV_MISSION_ACCEPTED,
+            items=(
+                mission_item(0, global_int, nav_waypoint, current=1, latitudeE7=lat_e7(16), longitudeE7=lon_e7(16), altitudeMeters=95.0),
+                mission_item(1, global_relative_alt_int, nav_land, latitudeE7=lat_e7(17), longitudeE7=lon_e7(17), altitudeMeters=0.0),
+            ),
+            expected_waypoints=(
+                expected_waypoint(1, NAV_WP_ACTION_WAYPOINT, lat_e7(16), lon_e7(16), 95.0, param3=NAV_WP_ALTMODE),
+                expected_waypoint(2, NAV_WP_ACTION_LAND, lat_e7(17), lon_e7(17), 0.0, flag=NAV_WP_FLAG_LAST),
+            ),
+        ),
+        MissionCase(
             name="speed_change_applies_to_following_legs",
             description="DO_CHANGE_SPEED is a pending modifier applied to later geographic legs.",
             expected_upload_result=MAV_MISSION_ACCEPTED,
@@ -334,6 +349,7 @@ def make_cases() -> tuple[MissionCase, ...]:
                 expected_waypoint(3, NAV_WP_ACTION_JUMP, 0, 0, 0.0, param1=1, param2=2),
                 expected_waypoint(4, NAV_WP_ACTION_LAND, lat_e7(13), lon_e7(13), 0.0, flag=NAV_WP_FLAG_LAST),
             ),
+            verify_legacy_download=True,
         ),
         MissionCase(
             name="takeoff_is_rejected_without_partial_commit",
@@ -344,6 +360,23 @@ def make_cases() -> tuple[MissionCase, ...]:
                 mission_item(1, global_relative_alt_int, nav_waypoint, latitudeE7=lat_e7(15), longitudeE7=lon_e7(15), altitudeMeters=50.0),
             ),
             expected_waypoints=(),
+        ),
+        MissionCase(
+            name="failed_upload_preserves_existing_mission",
+            description="A rejected upload after a valid mission leaves the stored INAV mission unchanged.",
+            expected_upload_result=MAV_MISSION_UNSUPPORTED,
+            preload_items=(
+                mission_item(0, global_relative_alt_int, nav_waypoint, current=1, latitudeE7=lat_e7(18), longitudeE7=lon_e7(18), altitudeMeters=55.0),
+                mission_item(1, global_relative_alt_int, nav_land, latitudeE7=lat_e7(19), longitudeE7=lon_e7(19), altitudeMeters=0.0),
+            ),
+            items=(
+                mission_item(0, global_relative_alt_int, nav_takeoff, latitudeE7=lat_e7(20), longitudeE7=lon_e7(20), altitudeMeters=20.0),
+                mission_item(1, global_relative_alt_int, nav_waypoint, latitudeE7=lat_e7(21), longitudeE7=lon_e7(21), altitudeMeters=50.0),
+            ),
+            expected_waypoints=(
+                expected_waypoint(1, NAV_WP_ACTION_WAYPOINT, lat_e7(18), lon_e7(18), 55.0),
+                expected_waypoint(2, NAV_WP_ACTION_LAND, lat_e7(19), lon_e7(19), 0.0, flag=NAV_WP_FLAG_LAST),
+            ),
         ),
     )
 
@@ -492,13 +525,93 @@ class MissionTester:
 
         raise TimeoutError(f"mission_upload_timeout_s={self.config.mission_timeout_s}")
 
+    def verify_legacy_download_uses_item_int(self, expected_count: int) -> dict[str, Any]:
+        self.drain(0.1)
+        self.connection.mav.mission_request_list_send(
+            self.target_system,
+            self.target_component,
+        )
+
+        mismatches = []
+        downloaded_items = []
+        deadline = time.monotonic() + self.config.mission_timeout_s
+        count = None
+        while time.monotonic() < deadline:
+            self.maybe_send_heartbeat()
+            message = self.connection.recv_match(blocking=True, timeout=0.1)
+            if message is None:
+                continue
+            self.handle_background_message(message)
+            if int(message.get_srcSystem()) != self.target_system:
+                continue
+            if message.get_type() == "MISSION_COUNT":
+                count = int(message.count)
+                break
+
+        if count is None:
+            raise TimeoutError(f"mission_download_count_timeout_s={self.config.mission_timeout_s}")
+        if count != expected_count:
+            mismatches.append(f"download_count: expected={expected_count} actual={count}")
+
+        for seq in range(count):
+            self.connection.mav.mission_request_send(
+                self.target_system,
+                self.target_component,
+                seq,
+            )
+            item_deadline = time.monotonic() + self.config.mission_timeout_s
+            item_message = None
+            while time.monotonic() < item_deadline:
+                self.maybe_send_heartbeat()
+                message = self.connection.recv_match(blocking=True, timeout=0.1)
+                if message is None:
+                    continue
+                self.handle_background_message(message)
+                if int(message.get_srcSystem()) != self.target_system:
+                    continue
+                if message.get_type() in ("MISSION_ITEM", "MISSION_ITEM_INT", "MISSION_ACK"):
+                    item_message = message
+                    break
+
+            if item_message is None:
+                raise TimeoutError(f"mission_download_item_timeout_s={self.config.mission_timeout_s} seq={seq}")
+
+            message_type = item_message.get_type()
+            downloaded_items.append(
+                {
+                    "seq": int(getattr(item_message, "seq", -1)),
+                    "message_type": message_type,
+                }
+            )
+            if message_type != "MISSION_ITEM_INT":
+                mismatches.append(f"download_seq={seq}: expected MISSION_ITEM_INT actual={message_type}")
+                continue
+            if int(item_message.seq) != seq:
+                mismatches.append(f"download_seq: expected={seq} actual={int(item_message.seq)}")
+
+        self.connection.mav.mission_ack_send(
+            self.target_system,
+            self.target_component,
+            MAV_MISSION_ACCEPTED,
+        )
+
+        return {
+            "items": downloaded_items,
+            "mismatches": mismatches,
+        }
+
     def upload_case(self, case: MissionCase) -> dict[str, Any]:
         self.case_statustext = []
         clear_result = self.clear_mission()
+        preload_result = None
+        if case.preload_items:
+            preload_result = self.upload_mission(case.preload_items)
         upload_result = self.upload_mission(case.items)
         return {
             "clear_result": clear_result,
             "clear_result_name": mission_result_name(clear_result),
+            "preload_result": preload_result,
+            "preload_result_name": mission_result_name(preload_result) if preload_result is not None else None,
             "upload_result": upload_result,
             "upload_result_name": mission_result_name(upload_result),
             "statustext": self.case_statustext,
@@ -626,12 +739,17 @@ def run_cases(config: RuntimeConfig, cases: tuple[MissionCase, ...]) -> dict[str
         for case in cases:
             print(f"case_start name={case.name} items={len(case.items)}", flush=True)
             upload = tester.upload_case(case)
-            upload_matches = int(upload["upload_result"]) == case.expected_upload_result
+            preload_matches = upload["preload_result"] is None or int(upload["preload_result"]) == MAV_MISSION_ACCEPTED
+            upload_matches = preload_matches and int(upload["upload_result"]) == case.expected_upload_result
             msp_report = None
+            legacy_download_report = None
             if upload_matches:
                 time.sleep(config.msp_verify_settle_s)
                 msp_report = verify_msp_mission(config, case)
                 passed = not msp_report["mismatches"]
+                if case.verify_legacy_download:
+                    legacy_download_report = tester.verify_legacy_download_uses_item_int(len(case.expected_waypoints))
+                    passed = passed and not legacy_download_report["mismatches"]
             else:
                 passed = False
 
@@ -643,8 +761,10 @@ def run_cases(config: RuntimeConfig, cases: tuple[MissionCase, ...]) -> dict[str
                 "expected_upload_result_name": mission_result_name(case.expected_upload_result),
                 "upload": upload,
                 "mission_items": [mission_item_report(item) for item in case.items],
+                "preload_items": [mission_item_report(item) for item in case.preload_items],
                 "expected_waypoints": [expected_waypoint_report(waypoint) for waypoint in case.expected_waypoints],
                 "msp": msp_report,
+                "legacy_download": legacy_download_report,
                 "interesting_statustext": interesting_statustext(upload["statustext"]),
             }
             results.append(case_report)
@@ -717,6 +837,14 @@ def main() -> None:
                 f"statustext={message['text']}",
                 flush=True,
             )
+        legacy_download_report = case_report["legacy_download"]
+        if legacy_download_report is not None:
+            print(
+                f"case={case_report['name']} legacy_download_mismatches={len(legacy_download_report['mismatches'])}",
+                flush=True,
+            )
+            for mismatch in legacy_download_report["mismatches"]:
+                print(f"case={case_report['name']} legacy_download_mismatch={mismatch}", flush=True)
     print("mission_test_summary_end", flush=True)
     raise SystemExit(0 if report["passed"] else 1)
 

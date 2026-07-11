@@ -227,6 +227,8 @@ The upload translator handles MAVLink mission items that are modifiers rather th
 
 The implementation works with common MAVLink mission planners such as QGC for simple mission flows. However, the differences between MAVLink missions and INAV's fuller MSP navigation model mean MAVLink still cannot represent every INAV mission feature. Use MultiWii Planner or the INAV Configurator when you need full MSP mission semantics.
 
+Warning: a mission downloaded over MAVLink is a best-effort reconstruction from INAV's stored MSP waypoint list, not a reliable canonical mission source. Downloaded items can differ from the original uploaded plan in item count, sequence numbers, command shape, modifier placement, and MSP-specific fields. Keep the original mission plan outside the FC and verify important missions through MSP / INAV-native tooling.
+
 ## MSP mission parity gaps (MAV <-> MSP)
 
 - WAYPOINT: MSP->MAV sends lat/lon/alt but drops leg speed `p1` and all user-action bits in `p3` (only alt-mode bit drives frame). MAV->MSP stores lat/lon/alt, can apply pending leg speed into `p1`, and keeps only alt-mode bit in `p3`; user bits are lost.
@@ -236,7 +238,7 @@ The implementation works with common MAVLink mission planners such as QGC for si
 - JUMP: target and repeat count OK.
 - SET_POI: lat/lon/alt OK; `param1` is fixed to `MAV_ROI_LOCATION`; user-action bits in `p3` are dropped (alt-mode bit respected on upload).
 - SET_HEAD: heading `p1` OK; user-action bits in `p3` are not represented.
-- Net effect: actions and positions OK, but MSP-specific fields (leg speed, LAND elevation adjustment, RTH land flag, user-action bits in `p3`) are lost, so MAVLink missions cannot fully conform to `MSP_navigation_messages.md`.
+- Net effect: actions and positions OK, but MSP-specific fields (leg speed, LAND elevation adjustment, RTH land flag, user-action bits in `p3`) are lost, so MAVLink missions cannot fully conform to `MSP-Navigation-Messages.md`.
 
 ## MSP over MAVLink tunnel
 
