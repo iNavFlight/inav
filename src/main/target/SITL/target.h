@@ -207,6 +207,10 @@ extern void parseArguments(int argc, char *argv[]);
 extern bool sitlLockstepEnabled;
 extern void sitlLockstepTick(void);
 extern void sitlLockstepRxArrival(void);
+// unparsed received bytes (maintained by the TCP serial driver): while
+// nonzero the lockstep creep window stays open so the pending work is
+// always reachable by the scheduler
+extern volatile int32_t sitlRxBytesPending;
 extern char *strnstr(const char *s, const char *find, size_t slen);
 extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);
 

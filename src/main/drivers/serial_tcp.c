@@ -121,10 +121,6 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 }
 
 void tcpReceiveBytes( tcpPort_t *port, const uint8_t* buffer, ssize_t recvSize ) {
-    // lockstep: newly arrived bytes restart the frozen-clock creep window so
-    // the serial task gets scheduled to parse what just arrived (see
-    // target/SITL/target.c)
-    sitlLockstepRxArrival();
     for (ssize_t i = 0; i < recvSize; i++) {
         if (port->serialPort.rxCallback) {
             port->serialPort.rxCallback((uint16_t)buffer[i], port->serialPort.rxCallbackData);
@@ -133,8 +129,14 @@ void tcpReceiveBytes( tcpPort_t *port, const uint8_t* buffer, ssize_t recvSize )
             port->serialPort.rxBuffer[port->serialPort.rxBufferHead] = buffer[i];
             port->serialPort.rxBufferHead = (port->serialPort.rxBufferHead + 1) % port->serialPort.rxBufferSize;
             pthread_mutex_unlock(&port->receiveMutex);
+            __atomic_add_fetch(&sitlRxBytesPending, 1, __ATOMIC_RELAXED);
         }
     }
+    // lockstep: newly arrived bytes restart the frozen-clock creep window so
+    // the serial task gets scheduled to parse what just arrived - AFTER the
+    // enqueue, so the woken pass cannot outrun the buffer fill (see
+    // target/SITL/target.c)
+    sitlLockstepRxArrival();
 }
 
 void tcpReceiveBytesEx( int portIndex, const uint8_t* buffer, ssize_t recvSize ) {
@@ -238,6 +240,9 @@ uint8_t tcpRead(serialPort_t *instance)
     port->serialPort.rxBufferTail = (port->serialPort.rxBufferTail + 1) % port->serialPort.rxBufferSize;
 
     pthread_mutex_unlock(&port->receiveMutex);
+    if (sitlRxBytesPending > 0) {
+        __atomic_sub_fetch(&sitlRxBytesPending, 1, __ATOMIC_RELAXED);
+    }
 
     return ch;
 }

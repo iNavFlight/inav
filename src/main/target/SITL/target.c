@@ -404,6 +404,7 @@ void unlockMainPID(void)
 // Until the first frame arrives (boot, gyro calibration) time runs on the
 // host clock as before.
 bool sitlLockstepEnabled = false;
+volatile int32_t sitlRxBytesPending = 0;
 static bool lockstepActive = false;
 static uint64_t lockstepTickTimeUs;    // sim time of the last tick (base of the 1 ms grid)
 static uint64_t lockstepAnchorSimUs;   // sim time the creep window starts from
@@ -432,7 +433,11 @@ static uint64_t lockstepMicrosLocked(void) {
     // serial pass that would advance the clock.
     const uint64_t nowReal = realMicros();
     uint64_t creepUs = (nowReal > lockstepAnchorRealUs) ? nowReal - lockstepAnchorRealUs : 0;
-    if (creepUs > 999) {
+    // while received bytes wait unparsed, the window stays open: the last
+    // in-window serial pass can otherwise land right at the cap with its
+    // next execution just beyond it, freezing the clock with work still
+    // queued (seen as a rare late-flight stall under parallel host load)
+    if (creepUs > 999 && sitlRxBytesPending <= 0) {
         creepUs = 999;
     }
     uint64_t t = lockstepAnchorSimUs + creepUs;
