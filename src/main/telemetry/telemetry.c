@@ -86,19 +86,59 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .accEventThresholdNegX = SETTING_ACC_EVENT_THRESHOLD_NEG_X_DEFAULT,
 #endif
 
-    .mavlink = {
+#if defined(USE_TELEMETRY_MAVLINK)
+    .mavlink_common = {
         .autopilot_type = SETTING_MAVLINK_AUTOPILOT_TYPE_DEFAULT,
-        .extended_status_rate = SETTING_MAVLINK_EXT_STATUS_RATE_DEFAULT,
-        .rc_channels_rate = SETTING_MAVLINK_RC_CHAN_RATE_DEFAULT,
-        .position_rate = SETTING_MAVLINK_POS_RATE_DEFAULT,
-        .extra1_rate = SETTING_MAVLINK_EXTRA1_RATE_DEFAULT,
-        .extra2_rate = SETTING_MAVLINK_EXTRA2_RATE_DEFAULT,
-        .extra3_rate = SETTING_MAVLINK_EXTRA3_RATE_DEFAULT,
         .version = SETTING_MAVLINK_VERSION_DEFAULT,
-        .min_txbuff = SETTING_MAVLINK_MIN_TXBUFFER_DEFAULT,
-        .radio_type = SETTING_MAVLINK_RADIO_TYPE_DEFAULT,
-        .sysid = SETTING_MAVLINK_SYSID_DEFAULT
+        .sysid = SETTING_MAVLINK_SYSID_DEFAULT,
     },
+    .mavlink = {
+        {
+            .extended_status_rate = SETTING_MAVLINK_PORT1_EXT_STATUS_RATE_DEFAULT,
+            .rc_channels_rate = SETTING_MAVLINK_PORT1_RC_CHAN_RATE_DEFAULT,
+            .position_rate = SETTING_MAVLINK_PORT1_POS_RATE_DEFAULT,
+            .extra1_rate = SETTING_MAVLINK_PORT1_EXTRA1_RATE_DEFAULT,
+            .extra2_rate = SETTING_MAVLINK_PORT1_EXTRA2_RATE_DEFAULT,
+            .extra3_rate = SETTING_MAVLINK_PORT1_EXTRA3_RATE_DEFAULT,
+            .min_txbuff = SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT,
+            .radio_type = SETTING_MAVLINK_PORT1_RADIO_TYPE_DEFAULT,
+            .high_latency = SETTING_MAVLINK_PORT1_HIGH_LATENCY_DEFAULT
+        },
+        {
+            .extended_status_rate = 0,
+            .rc_channels_rate = 0,
+            .position_rate = 0,
+            .extra1_rate = 0,
+            .extra2_rate = 0,
+            .extra3_rate = 0,
+            .min_txbuff = SETTING_MAVLINK_PORT2_MIN_TXBUFFER_DEFAULT,
+            .radio_type = SETTING_MAVLINK_PORT2_RADIO_TYPE_DEFAULT,
+            .high_latency = SETTING_MAVLINK_PORT2_HIGH_LATENCY_DEFAULT
+        },
+        {
+            .extended_status_rate = 0,
+            .rc_channels_rate = 0,
+            .position_rate = 0,
+            .extra1_rate = 0,
+            .extra2_rate = 0,
+            .extra3_rate = 0,
+            .min_txbuff = SETTING_MAVLINK_PORT3_MIN_TXBUFFER_DEFAULT,
+            .radio_type = SETTING_MAVLINK_PORT3_RADIO_TYPE_DEFAULT,
+            .high_latency = SETTING_MAVLINK_PORT3_HIGH_LATENCY_DEFAULT
+        },
+        {
+            .extended_status_rate = 0,
+            .rc_channels_rate = 0,
+            .position_rate = 0,
+            .extra1_rate = 0,
+            .extra2_rate = 0,
+            .extra3_rate = 0,
+            .min_txbuff = SETTING_MAVLINK_PORT4_MIN_TXBUFFER_DEFAULT,
+            .radio_type = SETTING_MAVLINK_PORT4_RADIO_TYPE_DEFAULT,
+            .high_latency = SETTING_MAVLINK_PORT4_HIGH_LATENCY_DEFAULT
+        }
+    },
+#endif
     .crsf_use_legacy_baro_packet = SETTING_CRSF_USE_LEGACY_BARO_PACKET_DEFAULT
 );
 
