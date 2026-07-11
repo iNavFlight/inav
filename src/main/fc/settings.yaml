@@ -4580,6 +4580,18 @@ groups:
         field: entryRateDps
         min: 30
         max: 720
+      - name: ohold_stick_angle
+        description: "Body-frame target offset [deg] at full roll/pitch stick while an orientation hold preset is active: the deflection is a held angle offset from the rotated reference (carving), centered sticks return the target at ohold_stick_return_rate. Yaw stays a rate command. 0 = sticks act as raw rate commands like before"
+        default_value: 30
+        field: stickAngleMaxDeg
+        min: 0
+        max: 90
+      - name: ohold_stick_return_rate
+        description: "Rate [deg/s] the hold target returns to the preset after the roll/pitch sticks center"
+        default_value: 45
+        field: stickReturnRateDps
+        min: 5
+        max: 180
 
   - name: PG_FIGURE_SEQUENCER_CONFIG
     type: figureSequencerConfig_t

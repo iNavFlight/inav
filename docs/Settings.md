@@ -4642,6 +4642,26 @@ Pitch trim [deg] on the KNIFE EDGE RIGHT hold target, positive = nose above the 
 
 ---
 
+### ohold_stick_angle
+
+Body-frame target offset [deg] at full roll/pitch stick while an orientation hold preset is active: the deflection is a held angle offset from the rotated reference (carving), centered sticks return the target at ohold_stick_return_rate. Yaw stays a rate command. 0 = sticks act as raw rate commands like before
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 0 | 90 |
+
+---
+
+### ohold_stick_return_rate
+
+Rate [deg/s] the hold target returns to the preset after the roll/pitch sticks center
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 45 | 5 | 180 |
+
+---
+
 ### opflow_hardware
 
 Selection of OPFLOW hardware.

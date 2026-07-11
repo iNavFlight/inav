@@ -61,6 +61,8 @@ PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     .knifeRightPitchTrim = SETTING_OHOLD_KNIFE_RIGHT_PITCH_TRIM_DEFAULT,
     .hoverGainLearned = SETTING_OHOLD_HOVER_GAIN_DEFAULT,
     .entryRateDps = SETTING_OHOLD_ENTRY_RATE_DEFAULT,
+    .stickAngleMaxDeg = SETTING_OHOLD_STICK_ANGLE_DEFAULT,
+    .stickReturnRateDps = SETTING_OHOLD_STICK_RETURN_RATE_DEFAULT,
 );
 
 typedef struct {
@@ -99,6 +101,16 @@ static bool orientationHoldSticksDeflected(void)
     return ABS(rcCommand[ROLL]) > rcControlsConfig()->deadband
         || ABS(rcCommand[PITCH]) > rcControlsConfig()->deadband
         || ABS(rcCommand[YAW]) > rcControlsConfig()->yaw_deadband;
+}
+
+// Deadbanded stick position normalized to -1..1
+static float orientationHoldStickNorm(int16_t rc, uint8_t deadband)
+{
+    if (ABS(rc) <= deadband) {
+        return 0.0f;
+    }
+    const float span = 500.0f - deadband;
+    return (rc > 0 ? (rc - deadband) : (rc + deadband)) / span;
 }
 
 // Same Euler to quaternion convention as imuComputeQuaternionFromRPY (yaw = 0)
@@ -342,8 +354,8 @@ static void orientationHoldRegulate(fpVector3_t *errDeg)
 
 static int activeTargetSource = OHOLD_SOURCE_NONE;
 
-
 static float holdRefAltCm = 0.0f;   // altitude assist reference, captured at hold entry
+static bool presetSlewCaptured = false;   // entry slew has reached the preset once
 static void orientationHoldCheckSourceSwitch(int source)
 {
     if (source != activeTargetSource) {
@@ -357,12 +369,21 @@ static void orientationHoldCheckSourceSwitch(int source)
         // seed the persistent target on the actual attitude: the regulator
         // error starts at zero and the entry happens as a target slew
         qSollState = orientation;
+        presetSlewCaptured = false;
     }
 }
 
 bool orientationHoldIsPropHang(void)
 {
     return activeTargetSource == BOXPROPHANG;
+}
+
+bool orientationHoldSticksAreTargetOffsets(void)
+{
+    // preset sources carry the box id (positive); the special sources
+    // (floor/figure/lock/none) are negative
+    return activeTargetSource >= 0
+        && orientationHoldConfig()->stickAngleMaxDeg > 0;
 }
 
 // ---- Learned damping reserve for the hover regime -------------------------
@@ -571,10 +592,36 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
             // not where the switch was flipped
             holdRefAltCm = getEstimatedActualPosition(Z);
         }
+
+        // Pilot stick offsets, ANGLE semantics around the rotated reference:
+        // deflection = body-frame angle offset from the preset, held while
+        // deflected; centered sticks return the target slowly. Yaw stays a
+        // rate command (the free axis). While this is active the rate path
+        // must not also feed roll/pitch sticks as rates, see
+        // orientationHoldSticksAreTargetOffsets().
+        if (orientationHoldConfig()->stickAngleMaxDeg > 0) {
+            const float rollOffDeg = orientationHoldStickNorm(rcCommand[ROLL], rcControlsConfig()->deadband)
+                                     * orientationHoldConfig()->stickAngleMaxDeg;
+            const float pitchOffDeg = orientationHoldStickNorm(rcCommand[PITCH], rcControlsConfig()->deadband)
+                                      * orientationHoldConfig()->stickAngleMaxDeg;
+            if (rollOffDeg != 0.0f || pitchOffDeg != 0.0f) {
+                const fpVector3_t offVec = { .v = { rollOffDeg, pitchOffDeg, 0.0f } };
+                fpQuaternion_t qOff;
+                quatFromRotVecDeg(&qOff, &offVec);
+                quaternionMultiply(&qDesired, &qDesired, &qOff);
+                // carving: keep following at the entry rate
+            } else if (presetSlewCaptured) {
+                // sticks centered after capture: gentle return to the preset
+                slewRateDegS = orientationHoldConfig()->stickReturnRateDps;
+            }
+        }
     }
 
     if (slewRateDegS > 0.0f) {
-        orientationHoldSlewTarget(&qSollState, &qDesired, slewRateDegS * dT);
+        const float remainingDeg = orientationHoldSlewTarget(&qSollState, &qDesired, slewRateDegS * dT);
+        if (remainingDeg < 1.0f) {
+            presetSlewCaptured = true;
+        }
     } else {
         qSollState = qDesired;
     }

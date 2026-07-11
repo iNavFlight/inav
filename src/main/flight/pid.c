@@ -758,6 +758,10 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
     // learned damping reserve: backs the angle gain off while a hover
     // limit cycle is detected (1.0 anywhere outside the hang)
     const float levelGainScale = orientationHoldLevelGainScale();
+    // when the sticks act as target offsets (preset holds), the rate path
+    // must not also feed roll/pitch as rate commands -- yaw stays a rate,
+    // it is the free axis
+    const bool stickOffsets = orientationHoldSticksAreTargetOffsets();
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
         // Same gain and rate limit handling as pidLevel()
@@ -770,7 +774,8 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
             rateTarget = pt1FilterApply4(&pidStates[axis].angleFilterState, rateTarget, pidBank()->pid[PID_LEVEL].I, dT);
         }
 
-        pidStates[axis].rateTarget = constrainf(pidStates[axis].rateTarget + rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+        const float stickRate = (stickOffsets && axis != FD_YAW) ? 0.0f : pidStates[axis].rateTarget;
+        pidStates[axis].rateTarget = constrainf(stickRate + rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
     }
 }
 #endif

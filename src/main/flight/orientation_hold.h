@@ -56,6 +56,13 @@ typedef struct orientationHoldConfig_s {
                                    // Separate from fig_roll_rate on purpose:
                                    // a deliberate slow roll figure and a snappy
                                    // entry into a hold are different intents.
+    uint8_t stickAngleMaxDeg;      // deg of body-frame target offset at full
+                                   // roll/pitch stick: ANGLE semantics around
+                                   // the rotated reference (deflection = held
+                                   // angle offset, release = slow return).
+                                   // 0 = sticks stay raw rate commands.
+    uint8_t stickReturnRateDps;    // deg/s the target returns to the preset
+                                   // after the sticks center
 } orientationHoldConfig_t;
 
 PG_DECLARE(orientationHoldConfig_t, orientationHoldConfig);
@@ -95,6 +102,12 @@ void orientationHoldResetSourceTracking(void);
 // True while the PROP HANG preset is the active hold target (used by the
 // hover throttle to own the altitude axis)
 bool orientationHoldIsPropHang(void);
+
+// True while roll/pitch sticks act as TARGET OFFSETS around the rotated
+// reference (preset hold active and ohold_stick_angle > 0): the rate path
+// must then not also feed them as rate commands. Yaw stays a rate command,
+// it is the free axis.
+bool orientationHoldSticksAreTargetOffsets(void);
 
 // Learned damping reserve for the hover regime: scale factor (0.3..1.0) on
 // the angle-loop gain. A detected limit cycle around the vertical backs it
