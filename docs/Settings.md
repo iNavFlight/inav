@@ -4552,6 +4552,16 @@ Waypoint radius [cm]. Waypoint would be considered reached if machine is within 
 
 ---
 
+### ohold_hover_gain
+
+LEARNED hover angle-gain scale [%]. The prop hang limit-cycle detector writes this at hang exit and it is saved on disarm; the next hang and the next flight start at the learned value instead of oscillating down again. Editable, but normally maintained by the firmware. 100 = full angle gain.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 30 | 100 |
+
+---
+
 ### ohold_hover_thr_d
 
 Hover throttle D gain [throttle us per m/s of climb rate]
@@ -4569,6 +4579,16 @@ Hover throttle I gain [throttle us per m per second]
 | Default | Min | Max |
 | --- | --- | --- |
 | 10 | 0 | 100 |
+
+---
+
+### ohold_hover_thr_min
+
+Hover throttle floor [us]. The hover altitude controller never cuts the throttle below this, preserving the control authority that scales with thrust - prop wash over the control surfaces as well as thrust vectoring (an updraft otherwise starves the attitude authority; excess lift is accepted as a climb). Find it by experiment, slightly below the hover throttle. 1000 = no floor beyond motor idle.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 1000 | 1800 |
 
 ---
 
