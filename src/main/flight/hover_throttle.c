@@ -58,6 +58,7 @@ PG_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig,
     .pGain = SETTING_OHOLD_HOVER_THR_P_DEFAULT,
     .iGain = SETTING_OHOLD_HOVER_THR_I_DEFAULT,
     .dGain = SETTING_OHOLD_HOVER_THR_D_DEFAULT,
+    .minThrottle = SETTING_OHOLD_HOVER_THR_MIN_DEFAULT,
 );
 
 // Engage only when the nose is this close to the zenith; once engaged,
@@ -133,8 +134,14 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
     const float zErrM = (targetAltCm - z) / 100.0f;
     const float climbMs = climbCms / 100.0f;
 
+    // throttle floor: never cut the throttle below what keeps the prop wash
+    // (and with it the control authority) alive -- excess lift, e.g. in an
+    // updraft, is accepted as a climb instead
+    const int16_t floorThrottle = MAX(getThrottleIdleValue(),
+                                      (int16_t)hoverThrottleConfig()->minThrottle);
+
     iTermUs = constrainf(iTermUs + hoverThrottleConfig()->iGain * zErrM * dT,
-                         getThrottleIdleValue(), getMaxThrottle());
+                         floorThrottle, getMaxThrottle());
 
     // thrust supports the weight with its vertical component only:
     // compensate the tilt away from the zenith (capped, the elevation
@@ -143,7 +150,7 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
     const float correction = (hoverThrottleConfig()->pGain * zErrM
                               - hoverThrottleConfig()->dGain * climbMs) / vertical;
 
-    return constrain(lrintf(iTermUs + correction), getThrottleIdleValue(), getMaxThrottle());
+    return constrain(lrintf(iTermUs + correction), floorThrottle, getMaxThrottle());
 }
 
 #endif // USE_ORIENTATION_HOLD

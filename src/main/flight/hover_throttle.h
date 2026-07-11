@@ -36,9 +36,15 @@
 // hands control back to the pilot and re-captures the target.
 
 typedef struct hoverThrottleConfig_s {
-    uint8_t pGain;    // throttle us per m of altitude error
-    uint8_t iGain;    // throttle us per m per second
-    uint8_t dGain;    // throttle us per m/s of climb rate
+    uint8_t pGain;         // throttle us per m of altitude error
+    uint8_t iGain;         // throttle us per m per second
+    uint8_t dGain;         // throttle us per m/s of climb rate
+    uint16_t minThrottle;  // throttle floor [us] while hovering: keeps the
+                           // prop wash over the control surfaces (an updraft
+                           // otherwise makes the PID cut the throttle and
+                           // with it the control authority). Found by
+                           // experiment near the model's hover throttle;
+                           // 1000 = no floor beyond the motor idle.
 } hoverThrottleConfig_t;
 
 PG_DECLARE(hoverThrottleConfig_t, hoverThrottleConfig);
