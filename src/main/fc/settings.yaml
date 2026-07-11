@@ -4635,7 +4635,7 @@ groups:
         min: 0
         max: 100
       - name: ohold_hover_thr_min
-        description: "Hover throttle floor [us]. The hover altitude controller never cuts the throttle below this, keeping the prop wash over the control surfaces alive (an updraft otherwise starves the attitude authority; excess lift is accepted as a climb). Find it by experiment, slightly below the hover throttle. 1000 = no floor beyond motor idle."
+        description: "Hover throttle floor [us]. The hover altitude controller never cuts the throttle below this, preserving the control authority that scales with thrust - prop wash over the control surfaces as well as thrust vectoring (an updraft otherwise starves the attitude authority; excess lift is accepted as a climb). Find it by experiment, slightly below the hover throttle. 1000 = no floor beyond motor idle."
         default_value: 1000
         field: minThrottle
         min: 1000
