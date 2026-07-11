@@ -580,40 +580,47 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         // during the entry the transient altitude error would deflect the
         // target (seen as a knife-edge entry stalling at half the bank) and
         // the entry itself must stay a pure attitude move.
-        orientationHoldTargetFromRP(&qDesired, preset->rollDeg, preset->pitchDeg + pitchTrim);
-        fpVector3_t entryErr;
-        orientationHoldComputeAttitudeError(&entryErr, &orientation, &qDesired);
-        if (fabsf(entryErr.x) < 25.0f && fabsf(entryErr.y) < 25.0f) {
-            const float assistDeg = figureAltitudeAssistDeg(preset->pitchDeg + pitchTrim, holdRefAltCm);
-            orientationHoldTargetFromRP(&qDesired, preset->rollDeg, preset->pitchDeg + pitchTrim + assistDeg);
-        } else {
-            // still capturing: keep the altitude reference tracking so the
-            // assist later holds the altitude where the attitude settled,
-            // not where the switch was flipped
-            holdRefAltCm = getEstimatedActualPosition(Z);
-        }
-
         // Pilot stick offsets, ANGLE semantics around the rotated reference:
         // deflection = body-frame angle offset from the preset, held while
         // deflected; centered sticks return the target slowly. Yaw stays a
         // rate command (the free axis). While this is active the rate path
         // must not also feed roll/pitch sticks as rates, see
         // orientationHoldSticksAreTargetOffsets().
+        float rollOffDeg = 0.0f;
+        float pitchOffDeg = 0.0f;
         if (orientationHoldConfig()->stickAngleMaxDeg > 0) {
-            const float rollOffDeg = orientationHoldStickNorm(rcCommand[ROLL], rcControlsConfig()->deadband)
-                                     * orientationHoldConfig()->stickAngleMaxDeg;
-            const float pitchOffDeg = orientationHoldStickNorm(rcCommand[PITCH], rcControlsConfig()->deadband)
-                                      * orientationHoldConfig()->stickAngleMaxDeg;
-            if (rollOffDeg != 0.0f || pitchOffDeg != 0.0f) {
-                const fpVector3_t offVec = { .v = { rollOffDeg, pitchOffDeg, 0.0f } };
-                fpQuaternion_t qOff;
-                quatFromRotVecDeg(&qOff, &offVec);
-                quaternionMultiply(&qDesired, &qDesired, &qOff);
-                // carving: keep following at the entry rate
-            } else if (presetSlewCaptured) {
-                // sticks centered after capture: gentle return to the preset
-                slewRateDegS = orientationHoldConfig()->stickReturnRateDps;
-            }
+            rollOffDeg = orientationHoldStickNorm(rcCommand[ROLL], rcControlsConfig()->deadband)
+                         * orientationHoldConfig()->stickAngleMaxDeg;
+            pitchOffDeg = orientationHoldStickNorm(rcCommand[PITCH], rcControlsConfig()->deadband)
+                          * orientationHoldConfig()->stickAngleMaxDeg;
+        }
+
+        orientationHoldTargetFromRP(&qDesired, preset->rollDeg, preset->pitchDeg + pitchTrim);
+        fpVector3_t entryErr;
+        orientationHoldComputeAttitudeError(&entryErr, &orientation, &qDesired);
+        // The altitude assist yields to a deliberate pitch input (same
+        // pattern as the hover throttle stick override): the pilot owns the
+        // altitude while the pitch stick is deflected, and the reference
+        // tracks so the release locks the NEW altitude.
+        if (fabsf(entryErr.x) < 25.0f && fabsf(entryErr.y) < 25.0f && pitchOffDeg == 0.0f) {
+            const float assistDeg = figureAltitudeAssistDeg(preset->pitchDeg + pitchTrim, holdRefAltCm);
+            orientationHoldTargetFromRP(&qDesired, preset->rollDeg, preset->pitchDeg + pitchTrim + assistDeg);
+        } else {
+            // still capturing or pilot pitching: keep the altitude reference
+            // tracking so the assist later holds the altitude where the
+            // attitude settled / the pilot leveled off
+            holdRefAltCm = getEstimatedActualPosition(Z);
+        }
+
+        if (rollOffDeg != 0.0f || pitchOffDeg != 0.0f) {
+            const fpVector3_t offVec = { .v = { rollOffDeg, pitchOffDeg, 0.0f } };
+            fpQuaternion_t qOff;
+            quatFromRotVecDeg(&qOff, &offVec);
+            quaternionMultiply(&qDesired, &qDesired, &qOff);
+            // carving: keep following at the entry rate
+        } else if (orientationHoldConfig()->stickAngleMaxDeg > 0 && presetSlewCaptured) {
+            // sticks centered after capture: gentle return to the preset
+            slewRateDegS = orientationHoldConfig()->stickReturnRateDps;
         }
     }
 
