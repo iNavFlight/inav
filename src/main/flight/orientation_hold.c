@@ -355,7 +355,10 @@ bool orientationHoldIsPropHang(void)
 // holds near vertical; it re-learns on every hang on purpose (no setting,
 // no persistence).
 
-#define HOVER_OSC_MIN_HALFWAVE_S 0.15f   // 0.4..3 Hz band
+// Wide band on purpose: a 1.5 m aerobat limit cycles at 1-2 Hz, a 0.7 m
+// model with its small inertia rather at 4-8 Hz. Noise rejection is the
+// job of the amplitude gates below, not of the band.
+#define HOVER_OSC_MIN_HALFWAVE_S 0.06f   // 0.4..8 Hz band
 #define HOVER_OSC_MAX_HALFWAVE_S 1.2f
 #define HOVER_OSC_AMPLITUDE_DEG  2.0f    // ignore noise-level wobble
 #define HOVER_OSC_CROSS_DEG      0.5f    // decisive zero crossing
