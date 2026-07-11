@@ -4407,6 +4407,12 @@ static mspResult_e mspProcessSimulatorCommand(sbuf_t *dst, sbuf_t *src, const in
         return MSP_RESULT_ERROR;
     }
 
+#ifdef SITL_BUILD
+    // lockstep (--lockstep): every simulator frame advances the simulated
+    // clock by exactly one millisecond, see target/SITL/target.c
+    sitlLockstepTick();
+#endif
+
     const uint8_t simMspVersion = sbufReadU8(src); // Get the Simulator MSP version
     if (simMspVersion != SIMULATOR_MSP_VERSION_2 && simMspVersion != SIMULATOR_MSP_VERSION_3) {
         return MSP_RESULT_ERROR;

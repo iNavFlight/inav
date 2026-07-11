@@ -237,6 +237,8 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--parity=[Even|None|Odd]       Serial receiver parity (default: None).\n");
     fprintf(stderr, "--fcproxy                      Use inav/betaflight FC as a proxy for serial receiver.\n");
     fprintf(stderr, "--tcpbaseport=[port]           Base TCP port for UART sockets (default: 5760)\n");
+    fprintf(stderr, "--lockstep                     Simulated time advances exactly 1 ms per MSP_SIMULATOR frame\n");
+    fprintf(stderr, "                               (deterministic HITL benches; real time until the first frame)\n");
     fprintf(stderr, "--chanmap=[mapstring]          Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
     fprintf(stderr, "                               The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
     fprintf(stderr, "                               For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
@@ -268,6 +270,7 @@ void parseArguments(int argc, char *argv[])
             {"parity", required_argument, 0, '4'},
             {"fcproxy", no_argument, 0, '5'},
             {"tcpbaseport", required_argument, 0, '6'},
+            {"lockstep", no_argument, 0, '7'},
             {NULL, 0, NULL, 0}
         };
 
@@ -353,6 +356,10 @@ void parseArguments(int argc, char *argv[])
             case '5':
                 serialFCProxy = true;
                 break;
+            case '7':
+                sitlLockstepEnabled = true;
+                fprintf(stderr, "[SIM] Lockstep: sim time advances 1 ms per MSP_SIMULATOR frame\n");
+                break;
             case '6': {
                 char *endptr = NULL;
                 long basePort = strtol(optarg, &endptr, 10);
@@ -387,11 +394,49 @@ void unlockMainPID(void)
 }
 
 // Replacements for system functions
-timeUs_t micros(void) {
+
+// Lockstep (--lockstep): simulated time is driven by the HITL sensor
+// injection, one fixed millisecond per MSP_SIMULATOR frame, equidistant and
+// independent of host load or wall time. Between frames the clock creeps
+// with real time but is CAPPED just below the next tick, so the scheduler
+// (and with it the serial task that parses the next frame) keeps running
+// while simulated time can never run ahead of the injected sensor data.
+// Until the first frame arrives (boot, gyro calibration) time runs on the
+// host clock as before.
+bool sitlLockstepEnabled = false;
+static bool lockstepActive = false;
+static volatile uint64_t lockstepTickTimeUs;   // sim time of the last tick
+static volatile uint64_t lockstepTickRealUs;   // wall clock at the last tick
+
+static uint64_t realMicros(void) {
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     return (now.tv_sec - start_time.tv_sec) * 1000000 + (now.tv_nsec - start_time.tv_nsec) / 1000;
+}
+
+void sitlLockstepTick(void) {
+    if (!sitlLockstepEnabled) {
+        return;
+    }
+    if (!lockstepActive) {
+        lockstepTickTimeUs = realMicros();
+        lockstepActive = true;
+    } else {
+        lockstepTickTimeUs += 1000;
+    }
+    lockstepTickRealUs = realMicros();
+}
+
+timeUs_t micros(void) {
+    if (lockstepActive) {
+        uint64_t creepUs = realMicros() - lockstepTickRealUs;
+        if (creepUs > 999) {
+            creepUs = 999;
+        }
+        return lockstepTickTimeUs + creepUs;
+    }
+    return realMicros();
 }
 
 uint64_t microsISR(void)
