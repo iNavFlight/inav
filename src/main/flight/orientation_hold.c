@@ -129,7 +129,10 @@ void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion
     // hang) is free by construction. Unlike a swing-twist decomposition
     // about earth Z this has no degenerate region near inverted, where
     // w^2 + z^2 vanishes for every heading and the extracted twist direction
-    // is noise driven.
+    // is noise driven. Large errors do not occur in operation: the target
+    // is a persistent state slewed toward the requested attitude, never
+    // stepped (the entry path is chosen by the slew, see
+    // orientationHoldSlewTarget), so no axis preference is needed here.
     fpVector3_t upEst, upTarget;
     earthUpInBodyFrame(&upEst, qEst);
     earthUpInBodyFrame(&upTarget, qTarget);
@@ -147,43 +150,6 @@ void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion
     const float angle = atan2_approx(crossNorm, dot);
 
     fpVector3_t axis;
-    // Toward the antipode (engaging inverted from level) the cross product
-    // barely rises above noise, so the shortest-rotation axis -- and with it
-    // the whole entry path -- would be an arbitrary mix of roll and yaw
-    // (seen as a heading swing while rolling in). Do what a pilot does and
-    // roll about body X: blend the axis CONTINUOUSLY from the cross product
-    // (tilt error <= 120 deg) to body X projected orthogonal to the target
-    // up (>= 150 deg). The ramp avoids chattering at a hard threshold.
-    const float wPref = constrainf((-dot - 0.5f) / 0.37f, 0.0f, 1.0f);
-    if (wPref > 0.0f) {
-        fpVector3_t pref = { .v = {
-            1.0f - upTarget.x * upTarget.x,
-            -upTarget.x * upTarget.y,
-            -upTarget.x * upTarget.z,
-        }};
-        const float prefNorm = fast_fsqrtf(sq(pref.x) + sq(pref.y) + sq(pref.z));
-        if (prefNorm > 1e-3f) {
-            float s = 1.0f / prefNorm;
-            if (crossNorm > 1e-3f
-                && (pref.x * cross.x + pref.y * cross.y + pref.z * cross.z) < 0.0f) {
-                s = -s;      // keep the roll direction the cross product started
-            }
-            const float wCross = (crossNorm > 1e-6f) ? (1.0f - wPref) / crossNorm : 0.0f;
-            axis.x = wPref * s * pref.x + wCross * cross.x;
-            axis.y = wPref * s * pref.y + wCross * cross.y;
-            axis.z = wPref * s * pref.z + wCross * cross.z;
-            const float n = fast_fsqrtf(sq(axis.x) + sq(axis.y) + sq(axis.z));
-            if (n > 1e-6f) {
-                axis.x /= n; axis.y /= n; axis.z /= n;
-                errDeg->x = RADIANS_TO_DEGREES(angle) * axis.x;
-                errDeg->y = RADIANS_TO_DEGREES(angle) * axis.y;
-                errDeg->z = RADIANS_TO_DEGREES(angle) * axis.z;
-                return;
-            }
-        }
-        // body X parallel to the target up (prop hang entry from a dive):
-        // fall through to the shortest rotation / deterministic seed below
-    }
     if (crossNorm > 1e-6f) {
         axis.x = cross.x / crossNorm;
         axis.y = cross.y / crossNorm;
@@ -218,6 +184,124 @@ void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion
     errDeg->z = RADIANS_TO_DEGREES(axis.z * angle);
 }
 
+// Rotation vector (body frame, deg) to quaternion. Same sign convention as
+// quaternionToAxisAngle / orientationHoldTargetFromRP: positive x = positive
+// roll. Do NOT use axisAngleToQuaternion here, it negates the axis.
+static void quatFromRotVecDeg(fpQuaternion_t *q, const fpVector3_t *rotVecDeg)
+{
+    const float angleDeg = fast_fsqrtf(sq(rotVecDeg->x) + sq(rotVecDeg->y) + sq(rotVecDeg->z));
+    if (angleDeg < 1e-4f) {
+        quaternionInitUnit(q);
+        return;
+    }
+    const float halfRad = DEGREES_TO_RADIANS(angleDeg) * 0.5f;
+    const float s = sin_approx(halfRad) / angleDeg;
+    q->q0 = cos_approx(halfRad);
+    q->q1 = rotVecDeg->x * s;
+    q->q2 = rotVecDeg->y * s;
+    q->q3 = rotVecDeg->z * s;
+}
+
+// The persistent target attitude q_soll: seeded from the estimated attitude
+// when a target source engages, then SLEWED toward the source's requested
+// attitude instead of stepping there. The regulator error therefore stays
+// small at all times; the entry path is an explicit target trajectory.
+static fpQuaternion_t qSollState;
+
+// Rotate the tilt of qSoll toward qDesired by at most maxStepDeg.
+// Returns the tilt angle (deg) still remaining AFTER the step.
+//
+// Toward the antipode (engaging inverted from level) the shortest-rotation
+// cross product barely rises above noise, so the entry path would be an
+// arbitrary mix of roll and yaw (seen as a heading swing while rolling in).
+// Do what a pilot does and roll about body X: blend the slew axis
+// CONTINUOUSLY from the cross product (tilt <= 120 deg) to body X projected
+// orthogonal to the desired up (>= 150 deg). The ramp avoids chattering at
+// a hard threshold. Because this shapes the TARGET trajectory, the
+// regulator error itself needs no axis preference.
+static float orientationHoldSlewTarget(fpQuaternion_t *qSoll, const fpQuaternion_t *qDesired, float maxStepDeg)
+{
+    fpVector3_t upSoll, upDes;
+    earthUpInBodyFrame(&upSoll, qSoll);
+    earthUpInBodyFrame(&upDes, qDesired);
+
+    fpVector3_t cross = { .v = {
+        upDes.y * upSoll.z - upDes.z * upSoll.y,
+        upDes.z * upSoll.x - upDes.x * upSoll.z,
+        upDes.x * upSoll.y - upDes.y * upSoll.x,
+    }};
+    const float crossNorm = fast_fsqrtf(sq(cross.x) + sq(cross.y) + sq(cross.z));
+    const float dot = upSoll.x * upDes.x + upSoll.y * upDes.y + upSoll.z * upDes.z;
+    const float angleDeg = RADIANS_TO_DEGREES(atan2_approx(crossNorm, dot));
+
+    fpVector3_t axis;
+    bool axisValid = false;
+    const float wPref = constrainf((-dot - 0.5f) / 0.37f, 0.0f, 1.0f);
+    if (wPref > 0.0f) {
+        fpVector3_t pref = { .v = {
+            1.0f - upDes.x * upDes.x,
+            -upDes.x * upDes.y,
+            -upDes.x * upDes.z,
+        }};
+        const float prefNorm = fast_fsqrtf(sq(pref.x) + sq(pref.y) + sq(pref.z));
+        if (prefNorm > 1e-3f) {
+            float s = 1.0f / prefNorm;
+            if (crossNorm > 1e-3f
+                && (pref.x * cross.x + pref.y * cross.y + pref.z * cross.z) < 0.0f) {
+                s = -s;      // keep the roll direction the cross product started
+            }
+            const float wCross = (crossNorm > 1e-6f) ? (1.0f - wPref) / crossNorm : 0.0f;
+            axis.x = wPref * s * pref.x + wCross * cross.x;
+            axis.y = wPref * s * pref.y + wCross * cross.y;
+            axis.z = wPref * s * pref.z + wCross * cross.z;
+            const float n = fast_fsqrtf(sq(axis.x) + sq(axis.y) + sq(axis.z));
+            if (n > 1e-6f) {
+                axis.x /= n; axis.y /= n; axis.z /= n;
+                axisValid = true;
+            }
+        }
+        // body X parallel to the desired up (prop hang entry from a dive):
+        // fall through to the shortest rotation below
+    }
+    if (!axisValid) {
+        if (crossNorm > 1e-6f) {
+            axis.x = cross.x / crossNorm;
+            axis.y = cross.y / crossNorm;
+            axis.z = cross.z / crossNorm;
+        } else {
+            // aligned (nothing to do) or exact antipode with body X vertical:
+            // leave the target where it is, the next cycle disambiguates
+            return (dot < 0.0f) ? angleDeg : 0.0f;
+        }
+    }
+
+    const float stepDeg = MIN(angleDeg, maxStepDeg);
+    if (stepDeg > 1e-3f) {
+        const fpVector3_t stepVec = { .v = { axis.x * stepDeg, axis.y * stepDeg, axis.z * stepDeg } };
+        fpQuaternion_t qStep;
+        quatFromRotVecDeg(&qStep, &stepVec);
+        quaternionMultiply(qSoll, qSoll, &qStep);
+        quaternionNormalize(qSoll, qSoll);
+    }
+    return angleDeg - stepDeg;
+}
+
+// Regulator core: tilt error between the estimated attitude and q_soll, then
+// re-anchor q_soll on the attitude composed with that error. The twist (the
+// free axis: heading in level/inverted flight, body roll at prop hang) of
+// the target thereby follows the actual attitude every cycle -- axis
+// compliance w_yaw = 0. Held-twist sources (course hold bridging) will skip
+// this re-anchoring and feed the full error instead.
+static void orientationHoldRegulate(fpVector3_t *errDeg)
+{
+    orientationHoldComputeAttitudeError(errDeg, &orientation, &qSollState);
+
+    fpQuaternion_t qErr;
+    quatFromRotVecDeg(&qErr, errDeg);
+    quaternionMultiply(&qSollState, &orientation, &qErr);
+    quaternionNormalize(&qSollState, &qSollState);
+}
+
 // Rate-loop I-term reset on target-source switches (e.g. prop hang ->
 // knife edge): the accumulated I trims the OLD attitude's holding load
 // (propwash vs knife rudder load) and would discharge as a disturbance
@@ -242,12 +326,23 @@ static void orientationHoldCheckSourceSwitch(int source)
         // capture the altitude reference for the hold altitude assist at the
         // moment the target engages (same pattern as the figure sequencer)
         holdRefAltCm = getEstimatedActualPosition(Z);
+        // seed the persistent target on the actual attitude: the regulator
+        // error starts at zero and the entry happens as a target slew
+        qSollState = orientation;
     }
 }
 
 bool orientationHoldIsPropHang(void)
 {
     return activeTargetSource == BOXPROPHANG;
+}
+
+void orientationHoldSyncTargetToAttitude(void)
+{
+    // open-loop flying (figure IMPULSE): the persistent target must not go
+    // stale while the regulator is bypassed -- re-seed it on the attitude so
+    // the catch afterwards slews from where the aircraft actually is
+    qSollState = orientation;
 }
 
 void orientationHoldResetSourceTracking(void)
@@ -260,29 +355,37 @@ void orientationHoldResetSourceTracking(void)
     }
 }
 
-bool orientationHoldComputeError(fpVector3_t *errDeg)
+bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
 {
-    fpQuaternion_t qTarget;
+    fpQuaternion_t qDesired;
+    // Preset entries slew the target at the figure roll rate: the entry is
+    // the same mechanism as a figure segment, just toward a constant
+    float slewRateDegS = figureSequencerConfig()->rollRate;
 
-    // Altitude floor recovery overrides any selected preset: upright + climb
+    // Altitude floor recovery overrides any selected preset: upright + climb.
+    // Safety recovery tracks the requested attitude directly, no entry slew.
     if (altitudeFloorRecoveryActive()) {
         orientationHoldCheckSourceSwitch(OHOLD_SOURCE_FLOOR);
-        orientationHoldTargetFromRP(&qTarget, 0.0f, altitudeFloorRecoveryPitchDeg());
+        orientationHoldTargetFromRP(&qDesired, 0.0f, altitudeFloorRecoveryPitchDeg());
+        slewRateDegS = 0.0f;
     } else if (figureSequencerRequested()) {
         float figRoll, figPitch;
         orientationHoldCheckSourceSwitch(OHOLD_SOURCE_FIGURE);
         figureSequencerGetTarget(&figRoll, &figPitch);
-        orientationHoldTargetFromRP(&qTarget, figRoll, figPitch);
+        orientationHoldTargetFromRP(&qDesired, figRoll, figPitch);
+        // the trajectory is already rate shaped; the slew only smooths the
+        // engage and absolute HOLD segment steps
+        slewRateDegS = MAX(figureSequencerConfig()->rollRate, figureSequencerConfig()->loopRate);
     } else if (orientationHoldActivePreset() == NULL && IS_RC_MODE_ACTIVE(BOXATTLOCK)) {
         // 3D LOCK: sticks centered = hold the attitude captured at release;
         // sticks deflected = pure rate flying, the lock target follows the
         // aircraft and freezes on the NEW attitude when the sticks center
-        static fpQuaternion_t lockTarget;
-        if (activeTargetSource != OHOLD_SOURCE_LOCK || orientationHoldSticksDeflected()) {
-            lockTarget = orientation;
-        }
         orientationHoldCheckSourceSwitch(OHOLD_SOURCE_LOCK);
-        qTarget = lockTarget;
+        if (orientationHoldSticksDeflected()) {
+            qSollState = orientation;
+        }
+        qDesired = qSollState;
+        slewRateDegS = 0.0f;
     } else {
         const orientationHoldPreset_t *preset = orientationHoldActivePreset();
         if (!preset) {
@@ -307,12 +410,12 @@ bool orientationHoldComputeError(fpVector3_t *errDeg)
         // during the entry the transient altitude error would deflect the
         // target (seen as a knife-edge entry stalling at half the bank) and
         // the entry itself must stay a pure attitude move.
-        orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg + pitchTrim);
+        orientationHoldTargetFromRP(&qDesired, preset->rollDeg, preset->pitchDeg + pitchTrim);
         fpVector3_t entryErr;
-        orientationHoldComputeAttitudeError(&entryErr, &orientation, &qTarget);
+        orientationHoldComputeAttitudeError(&entryErr, &orientation, &qDesired);
         if (fabsf(entryErr.x) < 25.0f && fabsf(entryErr.y) < 25.0f) {
             const float assistDeg = figureAltitudeAssistDeg(preset->pitchDeg + pitchTrim, holdRefAltCm);
-            orientationHoldTargetFromRP(&qTarget, preset->rollDeg, preset->pitchDeg + pitchTrim + assistDeg);
+            orientationHoldTargetFromRP(&qDesired, preset->rollDeg, preset->pitchDeg + pitchTrim + assistDeg);
         } else {
             // still capturing: keep the altitude reference tracking so the
             // assist later holds the altitude where the attitude settled,
@@ -321,7 +424,13 @@ bool orientationHoldComputeError(fpVector3_t *errDeg)
         }
     }
 
-    orientationHoldComputeAttitudeError(errDeg, &orientation, &qTarget);
+    if (slewRateDegS > 0.0f) {
+        orientationHoldSlewTarget(&qSollState, &qDesired, slewRateDegS * dT);
+    } else {
+        qSollState = qDesired;
+    }
+
+    orientationHoldRegulate(errDeg);
     return true;
 }
 

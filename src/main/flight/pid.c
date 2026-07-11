@@ -745,10 +745,13 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
                 impulseNorm[axis] * currentControlProfile->stabilized.rates[axis] * 10.0f,
                 -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
         }
+        // keep the persistent hold target on the attitude while flying
+        // open loop, so the catch segment slews from where the spin ends
+        orientationHoldSyncTargetToAttitude();
         return;
     }
 
-    if (!orientationHoldComputeError(&errDeg)) {
+    if (!orientationHoldComputeError(&errDeg, dT)) {
         return;
     }
 

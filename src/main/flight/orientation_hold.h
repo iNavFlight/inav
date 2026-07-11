@@ -54,7 +54,9 @@ PG_DECLARE(orientationHoldConfig_t, orientationHoldConfig);
 // Compute the body frame attitude error (deg, per body axis) between qEst
 // and the tilt part of qTarget. The rotation of qEst about the earth
 // vertical axis (heading / twist) is removed before the error is formed, so
-// the returned error never asks for a heading change.
+// the returned error never asks for a heading change. Pure shortest-tilt
+// rotation: large-error entry paths are shaped by the target slew inside
+// orientationHoldComputeError(), not here.
 void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion_t *qEst, const fpQuaternion_t *qTarget);
 
 // Build a target quaternion from roll/pitch (deg, yaw = 0) using the same
@@ -66,8 +68,16 @@ void orientationHoldTargetFromRP(fpQuaternion_t *qTarget, float rollDeg, float p
 bool orientationHoldIsRequested(void);
 
 // Body frame attitude error (deg) for the currently selected target.
-// Returns false when no orientation hold box is active.
-bool orientationHoldComputeError(fpVector3_t *errDeg);
+// The target is a persistent attitude quaternion seeded on the actual
+// attitude at engage and slewed toward the requested attitude (fig_roll_rate
+// for preset entries), so the error stays small and the entry path is an
+// explicit trajectory. Returns false when no orientation hold box is active.
+bool orientationHoldComputeError(fpVector3_t *errDeg, float dT);
+
+// Re-seed the persistent target on the actual attitude. Call every cycle
+// the regulator is bypassed while a source is active (figure IMPULSE
+// segments), so the catch afterwards starts from the actual attitude.
+void orientationHoldSyncTargetToAttitude(void);
 
 // Call while ORIENTATION_HOLD_MODE is inactive: resets the target-source
 // tracking (and the rate-loop I accumulators once on the exit edge)
