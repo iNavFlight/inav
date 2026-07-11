@@ -82,6 +82,7 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
 );
 
 static bool magUpdatedAtLeastOnce = false;
+static timeUs_t calStartedAt = 0;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -303,26 +304,12 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     return true;
 }
 
-bool compassInit(void)
+// Rebuilds mag.dev.magAlign (useExternal / externalRotation / onBoard) from the
+// current compassConfig(). Called at init, and again whenever alignment settings
+// change at runtime (e.g. auto-detected orientation) so the cached rotation takes
+// effect immediately instead of only after the next reboot.
+static void compassRefreshAlignment(void)
 {
-#ifdef USE_DUAL_MAG
-    mag.dev.magSensorToUse = compassConfig()->mag_to_use;
-#else
-    mag.dev.magSensorToUse = 0;
-#endif
-
-    if (!compassDetect(&mag.dev, compassConfig()->mag_hardware)) {
-        return false;
-    }
-    // initialize and calibration. turn on led during mag calibration (calibration routine blinks it)
-    LED1_ON;
-    const bool ret = mag.dev.init(&mag.dev);
-    LED1_OFF;
-
-    if (!ret) {
-        sensorsClear(SENSOR_MAG);
-    }
-
     if (compassConfig()->rollDeciDegrees != 0 ||
         compassConfig()->pitchDeciDegrees != 0 ||
         compassConfig()->yawDeciDegrees != 0) {
@@ -344,6 +331,29 @@ bool compassInit(void)
             mag.dev.magAlign.onBoard = CW270_DEG_FLIP;  // The most popular default is 270FLIP for external mags
         }
     }
+}
+
+bool compassInit(void)
+{
+#ifdef USE_DUAL_MAG
+    mag.dev.magSensorToUse = compassConfig()->mag_to_use;
+#else
+    mag.dev.magSensorToUse = 0;
+#endif
+
+    if (!compassDetect(&mag.dev, compassConfig()->mag_hardware)) {
+        return false;
+    }
+    // initialize and calibration. turn on led during mag calibration (calibration routine blinks it)
+    LED1_ON;
+    const bool ret = mag.dev.init(&mag.dev);
+    LED1_OFF;
+
+    if (!ret) {
+        sensorsClear(SENSOR_MAG);
+    }
+
+    compassRefreshAlignment();
 
     return ret;
 }
@@ -368,6 +378,11 @@ bool compassIsCalibrationComplete(void)
     }
 }
 
+bool compassIsCalibrating(void)
+{
+    return calStartedAt != 0;
+}
+
 void compassUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_SIMULATOR
@@ -377,7 +392,6 @@ void compassUpdate(timeUs_t currentTimeUs)
 	}
 #endif
     static sensorCalibrationState_t calState;
-    static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
     static int magAxisDeviation[XYZ_AXIS_COUNT];
 
