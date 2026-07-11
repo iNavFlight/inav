@@ -755,9 +755,13 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
         return;
     }
 
+    // learned damping reserve: backs the angle gain off while a hover
+    // limit cycle is detected (1.0 anywhere outside the hang)
+    const float levelGainScale = orientationHoldLevelGainScale();
+
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
         // Same gain and rate limit handling as pidLevel()
-        float rateTarget = constrainf(errDeg.v[axis] * (pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
+        float rateTarget = constrainf(errDeg.v[axis] * levelGainScale * (pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
                                       -currentControlProfile->stabilized.rates[axis] * 10.0f,
                                        currentControlProfile->stabilized.rates[axis] * 10.0f);
 

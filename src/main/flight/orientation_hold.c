@@ -337,6 +337,93 @@ bool orientationHoldIsPropHang(void)
     return activeTargetSource == BOXPROPHANG;
 }
 
+// ---- Learned damping reserve for the hover regime -------------------------
+//
+// Hovering has almost no natural aerodynamic damping (no airflow from
+// forward motion over the tail) and the prop-wash moment responds with a
+// lag, so angle-loop gains that are well damped in forward flight can limit
+// cycle around the vertical: a growing 1-2 Hz pitch/yaw oscillation with
+// the surfaces far from saturation. Instead of a hand-tuned hover gain the
+// controller LEARNS its own damping reserve, the same philosophy as the
+// hover throttle learning its hover point:
+//  - detect the limit cycle per tilt axis: decisive zero crossings of the
+//    attitude error at 0.4..3 Hz with amplitude above a floor
+//  - each detected half wave backs the angle gain off fast (attack)
+//  - quiet time recovers it slowly toward 1.0 (release)
+// The scale settles just below the stability boundary for the actual
+// airframe, CG and battery state. Active only while the PROP HANG preset
+// holds near vertical; it re-learns on every hang on purpose (no setting,
+// no persistence).
+
+#define HOVER_OSC_MIN_HALFWAVE_S 0.15f   // 0.4..3 Hz band
+#define HOVER_OSC_MAX_HALFWAVE_S 1.2f
+#define HOVER_OSC_AMPLITUDE_DEG  2.0f    // ignore noise-level wobble
+#define HOVER_OSC_CROSS_DEG      0.5f    // decisive zero crossing
+#define HOVER_GAIN_ATTACK        0.85f   // per detected half wave
+#define HOVER_GAIN_FLOOR         0.3f
+#define HOVER_GAIN_RELEASE_TAU_S 4.0f
+#define HOVER_GAIN_RESTORE_TAU_S 1.0f    // outside the hover regime
+
+typedef struct {
+    float sign;         // sign of the current half wave
+    float peakDeg;      // amplitude seen since the last crossing
+    float sinceFlipS;
+} hoverOscDetector_t;
+
+static float hoverGainScale = 1.0f;
+static hoverOscDetector_t hoverOsc[2];   // body pitch, body yaw
+
+static bool hoverOscDetectAxis(hoverOscDetector_t *d, float sigDeg, float dT)
+{
+    d->sinceFlipS += dT;
+    d->peakDeg = MAX(d->peakDeg, fabsf(sigDeg));
+    if (d->sign == 0.0f) {
+        d->sign = (sigDeg >= 0.0f) ? 1.0f : -1.0f;
+        return false;
+    }
+    if (sigDeg * d->sign < 0.0f && fabsf(sigDeg) > HOVER_OSC_CROSS_DEG) {
+        const bool osc = d->sinceFlipS > HOVER_OSC_MIN_HALFWAVE_S
+                      && d->sinceFlipS < HOVER_OSC_MAX_HALFWAVE_S
+                      && d->peakDeg > HOVER_OSC_AMPLITUDE_DEG;
+        d->sign = (sigDeg > 0.0f) ? 1.0f : -1.0f;
+        d->peakDeg = fabsf(sigDeg);
+        d->sinceFlipS = 0.0f;
+        return osc;
+    }
+    return false;
+}
+
+static void hoverGainUpdate(const fpVector3_t *errDeg, float dT)
+{
+    bool active = activeTargetSource == BOXPROPHANG;
+    if (active) {
+        // nose elevation gate, same release threshold as the hover throttle
+        fpVector3_t nose = { .v = { 1.0f, 0.0f, 0.0f } };
+        quaternionRotateVectorInv(&nose, &nose, &orientation);
+        active = RADIANS_TO_DEGREES(asin_approx(constrainf(-nose.z, -1.0f, 1.0f))) > 45.0f;
+    }
+
+    if (!active) {
+        hoverGainScale += (1.0f - hoverGainScale) * MIN(dT / HOVER_GAIN_RESTORE_TAU_S, 1.0f);
+        hoverOsc[0] = hoverOsc[1] = (hoverOscDetector_t){ 0 };
+        return;
+    }
+
+    bool osc = hoverOscDetectAxis(&hoverOsc[0], errDeg->y, dT);
+    osc = hoverOscDetectAxis(&hoverOsc[1], errDeg->z, dT) || osc;
+
+    if (osc) {
+        hoverGainScale = MAX(HOVER_GAIN_FLOOR, hoverGainScale * HOVER_GAIN_ATTACK);
+    } else {
+        hoverGainScale += (1.0f - hoverGainScale) * MIN(dT / HOVER_GAIN_RELEASE_TAU_S, 1.0f);
+    }
+}
+
+float orientationHoldLevelGainScale(void)
+{
+    return hoverGainScale;
+}
+
 void orientationHoldSyncTargetToAttitude(void)
 {
     // open-loop flying (figure IMPULSE): the persistent target must not go
@@ -431,6 +518,7 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
     }
 
     orientationHoldRegulate(errDeg);
+    hoverGainUpdate(errDeg, dT);
     return true;
 }
 

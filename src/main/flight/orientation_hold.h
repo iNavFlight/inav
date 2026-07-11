@@ -86,3 +86,9 @@ void orientationHoldResetSourceTracking(void);
 // True while the PROP HANG preset is the active hold target (used by the
 // hover throttle to own the altitude axis)
 bool orientationHoldIsPropHang(void);
+
+// Learned damping reserve for the hover regime: scale factor (0.3..1.0) on
+// the angle-loop gain. A detected limit cycle around the vertical backs it
+// off fast, quiet time recovers it slowly; 1.0 outside the hang. Apply to
+// the angle error before the LEVEL P gain.
+float orientationHoldLevelGainScale(void);
