@@ -4642,7 +4642,7 @@ groups:
     members:
       - name: ohold_hover_thr_p
         description: "Hover throttle P gain [throttle us per m of altitude error] while PROP HANG is held. The hover base throttle is learned online (I-term seeded from the pilot's throttle at engage)"
-        default_value: 25
+        default_value: 85
         field: pGain
         min: 0
         max: 100
@@ -4654,7 +4654,7 @@ groups:
         max: 100
       - name: ohold_hover_thr_d
         description: "Hover throttle D gain [throttle us per m/s of climb rate]"
-        default_value: 30
+        default_value: 100
         field: dGain
         min: 0
         max: 100

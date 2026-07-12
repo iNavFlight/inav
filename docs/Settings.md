@@ -4578,7 +4578,7 @@ Hover throttle D gain [throttle us per m/s of climb rate]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 0 | 100 |
+| 100 | 0 | 100 |
 
 ---
 
@@ -4608,7 +4608,7 @@ Hover throttle P gain [throttle us per m of altitude error] while PROP HANG is h
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 25 | 0 | 100 |
+| 85 | 0 | 100 |
 
 ---
 
