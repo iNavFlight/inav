@@ -47,6 +47,7 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/orientation_hold.h"
+#include "flight/pid.h"
 
 #include "navigation/navigation.h"
 
@@ -114,10 +115,34 @@ static timeUs_t lastUpdateUs;
                                         // (above ~60 deg the hover PID owns
                                         // the throttle anyway)
 
+// Stall reserve: a good regulator MASKS the approach to the envelope edge -
+// the attitude stays clean while the surfaces silently work their way
+// toward saturation, then everything lets go at once (a ramp becomes a
+// cliff; field observation). The mean control effort is therefore the EARLY
+// escalation criterion, ahead of sinking and far ahead of oscillation:
+// above the effort threshold the assist raises the speed while reserve is
+// still left.
+#define ASSIST_EFFORT_TAU_S      1.5f   // effort trend low-pass
+#define ASSIST_EFFORT_THRESHOLD  0.7f   // of the pidSum authority
+#define ASSIST_EFFORT_RAISE_US_S 40.0f  // full raise rate at 100% effort
+
 static bool assistActive = false;
 static float assistTrimUs;
 static float assistCosRef;
+static float assistEffortFilt;
 static timeUs_t assistLastUs;
+
+static float assistControlEffort(void)
+{
+    float effort = 0.0f;
+    for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        const uint16_t limit = getPidSumLimit(axis);
+        if (limit > 0) {
+            effort = MAX(effort, fabsf((float)axisPID[axis]) / limit);
+        }
+    }
+    return MIN(effort, 1.0f);
+}
 
 static int16_t knifeInvertedAssistApply(int16_t pilotThrottle, float elevDeg)
 {
@@ -135,6 +160,7 @@ static int16_t knifeInvertedAssistApply(int16_t pilotThrottle, float elevDeg)
         assistActive = true;
         assistTrimUs = 0.0f;
         assistCosRef = cosNow;
+        assistEffortFilt = 0.0f;
         assistLastUs = nowUs;
     }
     const float dT = constrainf((nowUs - assistLastUs) * 1e-6f, 0.0f, 0.1f);
@@ -157,6 +183,16 @@ static int16_t knifeInvertedAssistApply(int16_t pilotThrottle, float elevDeg)
     // symptom
     if (orientationHoldRegimeOscillating()) {
         assistTrimUs = constrainf(assistTrimUs + ASSIST_OSC_RAISE_US_S * dT,
+                                  -ASSIST_TRIM_MAX_US, ASSIST_TRIM_MAX_US);
+    }
+    // stall reserve (the EARLY criterion): sustained control effort toward
+    // saturation raises the speed while the attitude still looks clean
+    assistEffortFilt += (assistControlEffort() - assistEffortFilt)
+                        * MIN(dT / ASSIST_EFFORT_TAU_S, 1.0f);
+    if (assistEffortFilt > ASSIST_EFFORT_THRESHOLD) {
+        const float urgency = (assistEffortFilt - ASSIST_EFFORT_THRESHOLD)
+                            / (1.0f - ASSIST_EFFORT_THRESHOLD);
+        assistTrimUs = constrainf(assistTrimUs + ASSIST_EFFORT_RAISE_US_S * urgency * dT,
                                   -ASSIST_TRIM_MAX_US, ASSIST_TRIM_MAX_US);
     }
     const float damping = -hoverThrottleConfig()->assistVzP
