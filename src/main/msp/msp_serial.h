@@ -101,6 +101,9 @@ typedef struct mspPort_s {
 
 void mspSerialInit(void);
 void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort);
+bool mspSerialProcessReceivedByte(mspPort_t *mspPort, uint8_t c);
+int mspSerialEncodePacket(mspPacket_t *packet, mspVersion_e mspVersion, uint8_t *frameBuf, int frameBufSize);
+mspResult_e mspSerialProcessCommand(mspPort_t *msp, mspProcessCommandFnPtr mspProcessCommandFn, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn);
 void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn);
 void mspSerialProcessOnePort(mspPort_t * const mspPort, mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn);
 void mspSerialAllocatePorts(void);
