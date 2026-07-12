@@ -460,6 +460,20 @@ static bool hoverOscDetectAxis(hoverOscDetector_t *d, float sigDeg, float dT)
     return false;
 }
 
+// freeze the learned value when the hover regime ends; write it back once
+// so the disarm save picks it up
+static void hoverGainFreeze(void)
+{
+    if (hoverGainWasActive) {
+        const uint8_t learned = lrintf(hoverGainScale * 100.0f);
+        if (learned != orientationHoldConfig()->hoverGainLearned) {
+            orientationHoldConfigMutable()->hoverGainLearned = learned;
+            hoverGainDirty = true;
+        }
+        hoverGainWasActive = false;
+    }
+}
+
 static void hoverGainUpdate(const fpVector3_t *errDeg, float dT)
 {
     if (!hoverGainInitialized) {
@@ -477,16 +491,7 @@ static void hoverGainUpdate(const fpVector3_t *errDeg, float dT)
     }
 
     if (!active) {
-        // freeze the learned value across hang exits; write it back once so
-        // the disarm save picks it up
-        if (hoverGainWasActive) {
-            const uint8_t learned = lrintf(hoverGainScale * 100.0f);
-            if (learned != orientationHoldConfig()->hoverGainLearned) {
-                orientationHoldConfigMutable()->hoverGainLearned = learned;
-                hoverGainDirty = true;
-            }
-            hoverGainWasActive = false;
-        }
+        hoverGainFreeze();
         hoverOsc[0] = hoverOsc[1] = (hoverOscDetector_t){ 0 };
         return;
     }
@@ -504,7 +509,10 @@ static void hoverGainUpdate(const fpVector3_t *errDeg, float dT)
 
 float orientationHoldLevelGainScale(void)
 {
-    return (hoverGainInitialized) ? hoverGainScale : 1.0f;
+    // the learned damping reserve applies ONLY in the hover regime: the
+    // stored value persists for the next hang, but leaving the hover for
+    // another hold (or re-entering later at speed) must run at full gain
+    return (hoverGainInitialized && hoverGainWasActive) ? hoverGainScale : 1.0f;
 }
 
 void orientationHoldSyncTargetToAttitude(void)
@@ -523,6 +531,10 @@ void orientationHoldResetSourceTracking(void)
         pidResetErrorAccumulators();
         activeTargetSource = OHOLD_SOURCE_NONE;
     }
+
+    // leaving the mode ends the hover regime too: freeze the learned gain
+    // (landing straight out of a hang and disarming must not lose it)
+    hoverGainFreeze();
 
     // persist the learned hover gain once the aircraft is on the ground
     // (never write EEPROM while armed, the flight loop would stall)
