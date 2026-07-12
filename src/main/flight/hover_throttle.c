@@ -76,6 +76,14 @@ PG_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig,
 // at some fly-through altitude
 #define HOVER_LATCH_CLIMB_CMS 200.0f
 
+// Pilot correction: the throttle stick outside the mid deadband commands a
+// CLIMB RATE (full deflection = this many m/s) while the controller keeps
+// owning the throttle. Direct pilot throttle on top of the altitude PID
+// would be two controllers fighting over one actuator - a classic
+// oscillation; commanding the target instead leaves a single loop.
+// Centered stick = hold; releasing latches the new altitude.
+#define HOVER_STICK_CLIMB_MS 2.0f
+
 static bool hoverActive = false;
 static bool hoverLatched = false;
 static float targetAltCm;
@@ -162,10 +170,25 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
 
     const float z = getEstimatedActualPosition(Z);
 
-    // pilot throttle outside the mid deadband: direct control, target follows
-    if (ABS(pilotThrottle - PWM_RANGE_MIDDLE) > rcControlsConfig()->mid_throttle_deadband) {
+    // a stick slammed to the bottom stays a hard throttle cut (bailout);
+    // everything above commands a sink rate instead
+    if (pilotThrottle < getThrottleIdleValue() + 50) {
         hoverActive = false;
         return pilotThrottle;
+    }
+
+    // pilot throttle outside the mid deadband: a climb-rate command, the
+    // controller keeps the throttle (see HOVER_STICK_CLIMB_MS). The stick
+    // maps linearly beyond the deadband, full deflection = full rate.
+    float stickClimbMs = 0.0f;
+    const int16_t stickOff = pilotThrottle - PWM_RANGE_MIDDLE;
+    if (ABS(stickOff) > rcControlsConfig()->mid_throttle_deadband) {
+        const float span = (PWM_RANGE_MAX - PWM_RANGE_MIDDLE) - rcControlsConfig()->mid_throttle_deadband;
+        const float beyond = (float)(ABS(stickOff) - rcControlsConfig()->mid_throttle_deadband);
+        stickClimbMs = constrainf(beyond / MAX(span, 1.0f), 0.0f, 1.0f) * HOVER_STICK_CLIMB_MS;
+        if (stickOff < 0) {
+            stickClimbMs = -stickClimbMs;
+        }
     }
 
     if (!hoverActive) {
@@ -188,6 +211,15 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
         if (fabsf(climbCms) < HOVER_LATCH_CLIMB_CMS) {
             hoverLatched = true;
         }
+    }
+    if (stickClimbMs != 0.0f) {
+        // the pilot's rate command RAMPS the altitude reference; the
+        // unchanged altitude loop tracks the moving target and releasing
+        // the stick latches wherever the ramp stopped. Clamping the
+        // reference to the reachable neighbourhood prevents windup when
+        // the aircraft cannot follow (throttle floor, saturation).
+        targetAltCm += stickClimbMs * 100.0f * dT;
+        targetAltCm = constrainf(targetAltCm, z - 500.0f, z + 500.0f);
     }
 
     const float zErrM = (targetAltCm - z) / 100.0f;
