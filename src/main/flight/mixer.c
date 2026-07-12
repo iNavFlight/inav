@@ -46,6 +46,7 @@
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
+#include "flight/crash_detection.h"
 #include "flight/hover_throttle.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -589,8 +590,12 @@ void FAST_CODE mixTable(void)
 #endif
     } else {
 #ifdef USE_ORIENTATION_HOLD
-        // hover throttle owns the altitude axis while PROP HANG is held
-        mixerThrottleCommand = hoverThrottleApply(rcCommand[THROTTLE]);
+        // hover throttle owns the altitude axis while PROP HANG is held;
+        // after a detected crash the motor stays cut until the pilot
+        // re-allows it (throttle to zero, then up again)
+        mixerThrottleCommand = crashDetectionMotorCut()
+                             ? throttleIdleValue
+                             : hoverThrottleApply(rcCommand[THROTTLE]);
 #else
         mixerThrottleCommand = rcCommand[THROTTLE];
 #endif

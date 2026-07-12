@@ -624,7 +624,7 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ### crash_g_threshold
 
-Crash detection impact threshold [g x 10]: an acceleration spike above this, followed by the aircraft lying still within 2 s, stops the motor (disarm, reason CRASH). Arms only once clearly in flight (nav launch completed or throttle held above cruise for a moment), so a hand-launched aircraft can be carried armed. Aggressive maneuvers do not trigger it - a flying aircraft is never still. 0 = off.
+Crash detection impact threshold [g x 10]: an acceleration spike above this, followed by the aircraft lying still within 2 s, CUTS the motor while staying armed. Moving the throttle to zero and up again re-allows the motor (short bursts help locating the aircraft in high grass). Arms only once clearly in flight (nav launch completed or throttle held above cruise for a moment), so a hand-launched aircraft can be carried armed. Aggressive maneuvers do not trigger it - a flying aircraft is never still. 0 = off.
 
 | Default | Min | Max |
 | --- | --- | --- |

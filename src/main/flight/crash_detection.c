@@ -36,12 +36,12 @@
 #include "config/parameter_group_ids.h"
 
 #include "fc/config.h"
-#include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
 #include "flight/crash_detection.h"
+#include "flight/mixer.h"
 
 #include "navigation/navigation.h"
 
@@ -75,6 +75,8 @@ static bool inFlight = false;
 static float inFlightTimerS;
 static float impactWindowS;
 static float stillTimerS;
+static bool motorCut = false;
+static bool cutAckLow = false;
 
 void crashDetectionUpdate(float dT)
 {
@@ -85,6 +87,24 @@ void crashDetectionUpdate(float dT)
         inFlightTimerS = 0.0f;
         impactWindowS = 0.0f;
         stillTimerS = 0.0f;
+        motorCut = false;
+        cutAckLow = false;
+        return;
+    }
+
+    // after a crash the motor stays CUT (not disarmed) until the pilot
+    // acknowledges: throttle to zero, then up again re-allows the motor -
+    // short bursts help locating the aircraft in high grass or corn
+    if (motorCut) {
+        const bool thrLow = rcCommand[THROTTLE] < getThrottleIdleValue() + 50;
+        if (!cutAckLow) {
+            cutAckLow = thrLow;
+        } else if (!thrLow) {
+            motorCut = false;
+            cutAckLow = false;
+            impactWindowS = 0.0f;
+            stillTimerS = 0.0f;
+        }
         return;
     }
 
@@ -127,12 +147,18 @@ void crashDetectionUpdate(float dT)
     if (still) {
         stillTimerS += dT;
         if (stillTimerS > CRASH_STILL_CONFIRM_S) {
-            // impact followed by stillness: the flight is over, stop the motor
-            disarm(DISARM_CRASH);
+            // impact followed by stillness: the flight is over, cut the motor
+            motorCut = true;
+            cutAckLow = false;
         }
     } else {
         stillTimerS = 0.0f;
     }
+}
+
+bool crashDetectionMotorCut(void)
+{
+    return motorCut;
 }
 
 #endif // USE_ORIENTATION_HOLD
