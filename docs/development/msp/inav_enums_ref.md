@@ -176,6 +176,7 @@
 - [ltmUpdateRate_e](#enum-ltmupdaterate_e)
 - [magSensor_e](#enum-magsensor_e)
 - [mavlinkAutopilotType_e](#enum-mavlinkautopilottype_e)
+- [mavlinkFcDispatchResult_e](#enum-mavlinkfcdispatchresult_e)
 - [mavlinkRadio_e](#enum-mavlinkradio_e)
 - [measurementSteps_e](#enum-measurementsteps_e)
 - [mixerProfileATRequest_e](#enum-mixerprofileatrequest_e)
@@ -3428,6 +3429,18 @@
 |---|---:|---|
 | `MAVLINK_AUTOPILOT_GENERIC` | 0 |  |
 | `MAVLINK_AUTOPILOT_ARDUPILOT` | 1 |  |
+| `MAVLINK_AUTOPILOT_INAV` | 2 |  |
+
+---
+## <a id="enum-mavlinkfcdispatchresult_e"></a>`mavlinkFcDispatchResult_e`
+
+> Source: ../../../src/main/fc/fc_mavlink.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MAVLINK_FC_DISPATCH_NOT_HANDLED` | 0 |  |
+| `MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY` | 1 |  |
+| `MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY` | 2 |  |
 
 ---
 ## <a id="enum-mavlinkradio_e"></a>`mavlinkRadio_e`
@@ -3439,6 +3452,8 @@
 | `MAVLINK_RADIO_GENERIC` | 0 |  |
 | `MAVLINK_RADIO_ELRS` | 1 |  |
 | `MAVLINK_RADIO_SIK` | 2 |  |
+| `MAVLINK_RADIO_MLRS` | 3 |  |
+| `MAVLINK_RADIO_NONE` | 4 |  |
 
 ---
 ## <a id="enum-measurementsteps_e"></a>`measurementSteps_e`
