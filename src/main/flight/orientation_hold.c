@@ -694,6 +694,22 @@ static void regimeGainUpdate(const fpVector3_t *errDeg, float dT)
     }
 }
 
+bool orientationHoldRegimeOscillating(void)
+{
+    // true while the ACTIVE regime's limit-cycle detector recently fired:
+    // the learned scale sits measurably below the reference. At the knife
+    // edge instability usually means "too slow, the surfaces are starving" -
+    // the throttle assist raises the speed on this signal (more airflow is
+    // the physical cure, backing the gain off only treats the symptom).
+    if (!regimeGainInitialized) {
+        return false;
+    }
+    const oholdRegime_e active = regimeGainActiveRegime();
+    return active != OHOLD_REGIME_NONE
+        && regimeGain[active].wasActive
+        && regimeGain[active].scale < 0.9f;
+}
+
 float orientationHoldLevelGainScale(void)
 {
     // the learned damping reserve of the ACTIVE regime; everything else

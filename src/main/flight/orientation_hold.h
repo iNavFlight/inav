@@ -125,6 +125,11 @@ bool orientationHoldIsPropHang(void);
 // (used by the knife/inverted throttle assist, criterion vz -> 0)
 bool orientationHoldIsKnifeOrInverted(void);
 
+// True while the active regime's limit-cycle detector holds the learned
+// gain scale measurably below the reference (the hold is oscillating);
+// the knife/inverted throttle assist raises the speed on this signal
+bool orientationHoldRegimeOscillating(void);
+
 // True while the FLAT SPIN family owns the target (flat / inverted / knife /
 // torque roll): the pilot's rudder commands rotation about the earth
 // vertical instead of the body yaw axis

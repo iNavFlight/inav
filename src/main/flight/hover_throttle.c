@@ -108,12 +108,18 @@ static timeUs_t lastUpdateUs;
 #define ASSIST_VZ_CLAMP_MS       4.0f   // |vz| beyond this is an entry/zoom
                                         // transient: freeze the trim, cap the
                                         // damping term
+#define ASSIST_OSC_RAISE_US_S   30.0f   // trim raise rate while the hold
+                                        // oscillates (starved surfaces)
+#define ASSIST_COS_FLOOR         0.5f   // forward-component compensation cap
+                                        // (above ~60 deg the hover PID owns
+                                        // the throttle anyway)
 
 static bool assistActive = false;
 static float assistTrimUs;
+static float assistCosRef;
 static timeUs_t assistLastUs;
 
-static int16_t knifeInvertedAssistApply(int16_t pilotThrottle)
+static int16_t knifeInvertedAssistApply(int16_t pilotThrottle, float elevDeg)
 {
     // a deliberate throttle cut stays a throttle cut
     if (!navIsAltitudeEstimateTrusted()
@@ -124,23 +130,39 @@ static int16_t knifeInvertedAssistApply(int16_t pilotThrottle)
     }
 
     const timeUs_t nowUs = micros();
+    const float cosNow = MAX(cos_approx(DEGREES_TO_RADIANS(elevDeg)), ASSIST_COS_FLOOR);
     if (!assistActive) {
         assistActive = true;
         assistTrimUs = 0.0f;
+        assistCosRef = cosNow;
         assistLastUs = nowUs;
     }
     const float dT = constrainf((nowUs - assistLastUs) * 1e-6f, 0.0f, 0.1f);
     assistLastUs = nowUs;
+
+    // the CHOSEN speed is kept as the FORWARD component: when the nose
+    // rises (assist, speed feedforward, harrier transition) the horizontal
+    // thrust share shrinks with cos(theta) - scale the pilot's base so
+    // T*cos(theta) stays at its engage value instead of bleeding speed
+    const float baseUs = getThrottleIdleValue()
+        + (pilotThrottle - getThrottleIdleValue()) * (assistCosRef / cosNow);
 
     const float climbMs = getEstimatedActualVelocity(Z) / 100.0f;
     if (fabsf(climbMs) < ASSIST_VZ_CLAMP_MS) {
         assistTrimUs = constrainf(assistTrimUs - hoverThrottleConfig()->assistVzI * climbMs * dT,
                                   -ASSIST_TRIM_MAX_US, ASSIST_TRIM_MAX_US);
     }
+    // an oscillating hold means the surfaces are starving: raise the
+    // operating point (more airflow), the gain learner only treats the
+    // symptom
+    if (orientationHoldRegimeOscillating()) {
+        assistTrimUs = constrainf(assistTrimUs + ASSIST_OSC_RAISE_US_S * dT,
+                                  -ASSIST_TRIM_MAX_US, ASSIST_TRIM_MAX_US);
+    }
     const float damping = -hoverThrottleConfig()->assistVzP
                           * constrainf(climbMs, -ASSIST_VZ_CLAMP_MS, ASSIST_VZ_CLAMP_MS);
 
-    return constrain(lrintf(pilotThrottle + assistTrimUs + damping),
+    return constrain(lrintf(baseUs + assistTrimUs + damping),
                      getThrottleIdleValue(), getMaxThrottle());
 }
 
@@ -178,7 +200,7 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
         || elevDeg < elevGate) {
         hoverActive = false;
         if (ARMING_FLAG(ARMED) && orientationHoldIsKnifeOrInverted()) {
-            return knifeInvertedAssistApply(pilotThrottle);
+            return knifeInvertedAssistApply(pilotThrottle, elevDeg);
         }
         assistActive = false;
         return pilotThrottle;
