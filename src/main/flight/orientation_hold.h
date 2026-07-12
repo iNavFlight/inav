@@ -69,6 +69,10 @@ typedef struct orientationHoldConfig_s {
                                    // 0 = sticks stay raw rate commands.
     uint8_t stickReturnRateDps;    // deg/s the target returns to the preset
                                    // after the sticks center
+    uint8_t knifeSpeedFF;          // deg of extra knife-edge nose angle per
+                                   // half-throttle of speed deficit: the
+                                   // fuselage side force scales with v^2,
+                                   // throttle is the v^2 proxy. 0 = off.
 } orientationHoldConfig_t;
 
 PG_DECLARE(orientationHoldConfig_t, orientationHoldConfig);

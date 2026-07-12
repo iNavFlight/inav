@@ -4562,6 +4562,12 @@ groups:
         field: knifeLeftPitchTrim
         min: -15
         max: 15
+      - name: ohold_knife_speed_ff
+        description: "Knife edge speed feedforward: extra nose-above-horizon angle [deg] per half throttle of speed deficit. The fuselage side force carries the weight and scales with speed squared, so flying slower needs more nose angle immediately - this feeds it forward from the throttle (the speed proxy) instead of waiting for an altitude error. 0 = off."
+        default_value: 0
+        field: knifeSpeedFF
+        min: 0
+        max: 30
       - name: ohold_inverted_gain
         description: "Learned angle-gain scale [%] for the inverted hold, relative to the normal-flight gains. Maintained by the firmware's limit-cycle detector and saved on disarm; editable. 100 = reference gains."
         default_value: 100

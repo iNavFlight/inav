@@ -4702,6 +4702,16 @@ Pitch trim [deg] on the KNIFE EDGE RIGHT hold target, positive = nose above the 
 
 ---
 
+### ohold_knife_speed_ff
+
+Knife edge speed feedforward: extra nose-above-horizon angle [deg] per half throttle of speed deficit. The fuselage side force carries the weight and scales with speed squared, so flying slower needs more nose angle immediately - this feeds it forward from the throttle (the speed proxy) instead of waiting for an altitude error. 0 = off.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 30 |
+
+---
+
 ### ohold_stick_angle
 
 Body-frame target offset [deg] at full roll/pitch stick while an orientation hold preset is active: the deflection is a held angle offset from the rotated reference (carving), centered sticks return the target at ohold_stick_return_rate. Yaw stays a rate command. 0 = sticks act as raw rate commands like before

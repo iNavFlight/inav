@@ -66,6 +66,7 @@ PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     .entryRateDps = SETTING_OHOLD_ENTRY_RATE_DEFAULT,
     .stickAngleMaxDeg = SETTING_OHOLD_STICK_ANGLE_DEFAULT,
     .stickReturnRateDps = SETTING_OHOLD_STICK_RETURN_RATE_DEFAULT,
+    .knifeSpeedFF = SETTING_OHOLD_KNIFE_SPEED_FF_DEFAULT,
 );
 
 typedef struct {
@@ -848,10 +849,22 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         float pitchTrim = 0.0f;
         if (preset->box == BOXINVERTED) {
             pitchTrim = orientationHoldConfig()->invertedPitchTrim;
-        } else if (preset->box == BOXKNIFELEFT) {
-            pitchTrim = orientationHoldConfig()->knifeLeftPitchTrim;
-        } else if (preset->box == BOXKNIFERIGHT) {
-            pitchTrim = orientationHoldConfig()->knifeRightPitchTrim;
+        } else if (preset->box == BOXKNIFELEFT || preset->box == BOXKNIFERIGHT) {
+            pitchTrim = (preset->box == BOXKNIFELEFT)
+                      ? orientationHoldConfig()->knifeLeftPitchTrim
+                      : orientationHoldConfig()->knifeRightPitchTrim;
+            // Knife edge speed feedforward: the fuselage side force carries
+            // the weight and scales with v^2, so LESS speed needs MORE nose
+            // angle IMMEDIATELY - not only after an altitude error has built
+            // up for the (reactive) assist. Without an airspeed sensor the
+            // own throttle is the v^2 proxy (T ~ v^2 in steady flight); the
+            // prop wash over the tail linearizes the theoretical hyperbola,
+            // so a linear term around the mid-throttle trim point is the
+            // honest model. 0 disables (default).
+            if (orientationHoldConfig()->knifeSpeedFF > 0) {
+                const float uGas = constrainf((rcCommand[THROTTLE] - 1000) / 1000.0f, 0.0f, 1.0f);
+                pitchTrim += orientationHoldConfig()->knifeSpeedFF * (0.5f - uGas);
+            }
         }
         // Active altitude hold on top of the static trim: same assist as the
         // figure sequencer, referenced to the entry altitude. The cos-blend
