@@ -777,12 +777,28 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
     if (spinSegment) {
         spinRateDps = spinYawNorm * currentControlProfile->stabilized.rates[FD_YAW] * 10.0f;
     } else if (spinPreset) {
-        // the pilot's rudder rate command becomes the spin rate: positive
-        // rudder = the same rotation seen from above in every attitude
+        // the pilot's rudder rate command becomes the spin rate
         spinRateDps = pidStates[FD_YAW].rateTarget;
     }
     if (spinSegment || spinPreset) {
         orientationHoldUpInBody(&upBody);
+        // AIRCRAFT-referenced stick sense: the body axis nearest the
+        // vertical receives the stick with its own positive sign - right
+        // rudder yaws the airframe right at flat AND inverted (so the
+        // rotation seen from above reverses when inverted, exactly like a
+        // real aircraft), and maps to positive pitch at the knife edge.
+        // The sign flip does not disturb the tilt (the distribution stays
+        // along the free axis either way).
+        float dominant = upBody.z;
+        if (fabsf(upBody.y) > fabsf(dominant)) {
+            dominant = upBody.y;
+        }
+        if (fabsf(upBody.x) > fabsf(dominant)) {
+            dominant = upBody.x;
+        }
+        if (dominant < 0.0f) {
+            vectorScale(&upBody, &upBody, -1.0f);
+        }
     }
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
