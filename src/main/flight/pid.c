@@ -762,19 +762,30 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
     // must not also feed roll/pitch as rate commands -- yaw stays a rate,
     // it is the free axis
     const bool stickOffsets = orientationHoldSticksAreTargetOffsets();
-    // controlled flat spin (figure SPIN segment): the rudder goes open loop
-    // for the autorotation while roll and pitch stay CLOSED loop on the
-    // flat target attitude
+    // controlled spin (FLAT SPIN family or figure SPIN segment): the spin
+    // command is a rotation about the EARTH VERTICAL - exactly the axis the
+    // reduced attitude error leaves free - distributed onto the body axes
+    // via the earth-up direction in the body frame. At flat/inverted that
+    // is the yaw axis, at knife edge the pitch axis, at the hang the roll
+    // axis (torque roll). Rates along this axis leave the tilt untouched,
+    // so holding and spinning never fight (bench math mirror, section H).
     float spinYawNorm;
-    const bool spinYaw = figureSequencerGetSpinCommand(&spinYawNorm);
+    const bool spinSegment = figureSequencerGetSpinCommand(&spinYawNorm);
+    const bool spinPreset = orientationHoldIsSpinAboutVertical();
+    float spinRateDps = 0.0f;
+    fpVector3_t upBody;
+    if (spinSegment) {
+        spinRateDps = spinYawNorm * currentControlProfile->stabilized.rates[FD_YAW] * 10.0f;
+    } else if (spinPreset) {
+        // the pilot's rudder rate command becomes the spin rate: positive
+        // rudder = the same rotation seen from above in every attitude
+        spinRateDps = pidStates[FD_YAW].rateTarget;
+    }
+    if (spinSegment || spinPreset) {
+        orientationHoldUpInBody(&upBody);
+    }
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
-        if (spinYaw && axis == FD_YAW) {
-            pidStates[FD_YAW].rateTarget = constrainf(
-                spinYawNorm * currentControlProfile->stabilized.rates[FD_YAW] * 10.0f,
-                -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
-            continue;
-        }
         // Same gain and rate limit handling as pidLevel()
         float rateTarget = constrainf(errDeg.v[axis] * levelGainScale * (pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
                                       -currentControlProfile->stabilized.rates[axis] * 10.0f,
@@ -785,7 +796,13 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
             rateTarget = pt1FilterApply4(&pidStates[axis].angleFilterState, rateTarget, pidBank()->pid[PID_LEVEL].I, dT);
         }
 
-        const float stickRate = (stickOffsets && axis != FD_YAW) ? 0.0f : pidStates[axis].rateTarget;
+        float stickRate = (stickOffsets && axis != FD_YAW) ? 0.0f : pidStates[axis].rateTarget;
+        if (spinSegment || spinPreset) {
+            if (axis == FD_YAW) {
+                stickRate = 0.0f;   // the rudder is consumed by the spin command
+            }
+            rateTarget += spinRateDps * upBody.v[axis];
+        }
         pidStates[axis].rateTarget = constrainf(stickRate + rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
     }
 }

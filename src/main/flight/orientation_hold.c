@@ -78,18 +78,34 @@ static const orientationHoldPreset_t orientationHoldPresets[] = {
     { BOXKNIFELEFT,     -90.0f,  0.0f },
     { BOXKNIFERIGHT,     90.0f,  0.0f },
     { BOXPROPHANG,        0.0f, 90.0f },
-    // FLAT SPIN: its own flight mode like INVERTED. Roll and pitch are
-    // regulated FLAT while the pilot's rudder stick drives the
-    // autorotation (full stick saturates the yaw rate loop = full
-    // rudder, exactly like a real spin); releasing the rudder stops the
-    // rotation with the attitude still held flat, releasing the box
-    // recovers normally. No altitude assist: a spin descends by design
-    // (the altitude floor still preempts globally).
-    { BOXFSPIN,           0.0f,  0.0f },
+};
+
+// FLAT SPIN is a spin BEHAVIOR, not one fixed attitude: the tilt is
+// regulated onto the held target while the pilot's rudder commands a
+// rotation about the EARTH VERTICAL - the axis the reduced attitude error
+// leaves free by construction, in every attitude. The attitude selector
+// picks the held target (none = flat): INVERTED = inverted flat spin,
+// KNIFE = knife edge spin, PROP HANG = torque roll. Releasing the rudder
+// stops the rotation with the attitude still held; releasing the box
+// recovers normally. No altitude assist: a spin descends by design (the
+// altitude floor still preempts globally).
+static const orientationHoldPreset_t orientationHoldSpinPresets[] = {
+    { BOXFSPIN,         180.0f,  0.0f },   // + INVERTED
+    { BOXFSPIN,         -90.0f,  0.0f },   // + KNIFE LEFT
+    { BOXFSPIN,          90.0f,  0.0f },   // + KNIFE RIGHT
+    { BOXFSPIN,           0.0f, 90.0f },   // + PROP HANG (torque roll)
+    { BOXFSPIN,           0.0f,  0.0f },   // alone: flat spin
 };
 
 static const orientationHoldPreset_t * orientationHoldActivePreset(void)
 {
+    if (IS_RC_MODE_ACTIVE(BOXFSPIN)) {
+        if (IS_RC_MODE_ACTIVE(BOXINVERTED))   return &orientationHoldSpinPresets[0];
+        if (IS_RC_MODE_ACTIVE(BOXKNIFELEFT))  return &orientationHoldSpinPresets[1];
+        if (IS_RC_MODE_ACTIVE(BOXKNIFERIGHT)) return &orientationHoldSpinPresets[2];
+        if (IS_RC_MODE_ACTIVE(BOXPROPHANG))   return &orientationHoldSpinPresets[3];
+        return &orientationHoldSpinPresets[4];
+    }
     for (unsigned i = 0; i < ARRAYLEN(orientationHoldPresets); i++) {
         if (IS_RC_MODE_ACTIVE(orientationHoldPresets[i].box)) {
             return &orientationHoldPresets[i];
@@ -442,6 +458,17 @@ bool orientationHoldIsKnifeOrInverted(void)
     return activeTargetSource == BOXINVERTED
         || activeTargetSource == BOXKNIFELEFT
         || activeTargetSource == BOXKNIFERIGHT;
+}
+
+bool orientationHoldIsSpinAboutVertical(void)
+{
+    return activeTargetSource == BOXFSPIN;
+}
+
+void orientationHoldUpInBody(fpVector3_t *upBody)
+{
+    const fpVector3_t upEarth = { .v = { 0.0f, 0.0f, 1.0f } };
+    quaternionRotateVector(upBody, &upEarth, &orientation);
 }
 
 // ---- Figure line-hold ------------------------------------------------------

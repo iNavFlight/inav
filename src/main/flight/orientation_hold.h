@@ -115,6 +115,15 @@ bool orientationHoldIsPropHang(void);
 // (used by the knife/inverted throttle assist, criterion vz -> 0)
 bool orientationHoldIsKnifeOrInverted(void);
 
+// True while the FLAT SPIN family owns the target (flat / inverted / knife /
+// torque roll): the pilot's rudder commands rotation about the earth
+// vertical instead of the body yaw axis
+bool orientationHoldIsSpinAboutVertical(void);
+
+// Earth-up direction expressed in the body frame (the spin distribution
+// axis; also the axis the reduced attitude error leaves free)
+void orientationHoldUpInBody(fpVector3_t *upBody);
+
 // True while roll/pitch sticks act as TARGET OFFSETS around the rotated
 // reference (preset hold active and ohold_stick_angle > 0): the rate path
 // must then not also feed them as rate commands. Yaw stays a rate command,
