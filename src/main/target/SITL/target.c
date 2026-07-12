@@ -468,12 +468,14 @@ void sitlLockstepTick(void) {
         lockstepTickTimeUs = realMicros();
         lockstepActive = true;
     } else {
+        // ABSOLUTE grid: exactly N milliseconds after N frames, always.
+        // Creep chains (request bursts between frames) may run micros()
+        // past this grid point; the monotonicity clamp in micros() then
+        // holds the OUTPUT flat until the grid catches up. Inheriting the
+        // high-water mark into the base instead would stretch the grid
+        // permanently - measured as 14 percent clock inflation against
+        // the injected sensor stream on a faster-than-realtime bench.
         lockstepTickTimeUs += 1000;
-        // request bursts between frames may have crept past the next grid
-        // step: never step backwards, re-anchor the grid instead
-        if (lockstepTickTimeUs < lockstepLastUs) {
-            lockstepTickTimeUs = lockstepLastUs;
-        }
     }
     lockstepAnchorSimUs = lockstepTickTimeUs;
     lockstepAnchorRealUs = realMicros();
