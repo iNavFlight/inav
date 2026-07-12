@@ -136,6 +136,8 @@ PG_DECLARE(modeActivationOperatorConfig_t, modeActivationOperatorConfig);
 
 bool IS_RC_MODE_ACTIVE(boxId_e boxId);
 void rcModeUpdate(boxBitmask_t *newState);
+void rcModeSetActivationOverride(boxId_e boxId);
+void rcModeClearActivationOverride(boxId_e boxId);
 
 bool isModeActivationConditionPresent(boxId_e modeId);
 
