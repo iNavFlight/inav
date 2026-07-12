@@ -100,6 +100,11 @@ void figureSequencerUpdate(void);
 // True while a figure box is active (sequencer wants ORIENTATION_HOLD_MODE)
 bool figureSequencerRequested(void);
 
+// True while the current segment flies on the heading captured at figure
+// start (the line-hold). WAIT_POS turns and open-loop impulse/spin segments
+// release the anchor; it re-captures when they complete.
+bool figureSequencerHeadingAnchored(void);
+
 // Current figure target, valid while requested
 void figureSequencerGetTarget(float *rollDeg, float *pitchDeg);
 

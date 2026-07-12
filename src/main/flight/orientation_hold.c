@@ -312,6 +312,32 @@ static float orientationHoldSlewTarget(fpQuaternion_t *qSoll, const fpQuaternion
     return angleDeg - stepDeg;
 }
 
+static void orientationHoldComputeFullAttitudeError(fpVector3_t *errDeg, const fpQuaternion_t *qEst, const fpQuaternion_t *qTarget);
+
+// Full-attitude slew (rate-limited slerp) for the figure line-hold: the
+// reduced slew above works on the up vectors only and is heading-free by
+// design - correct for pilot holds, but it can never close the heading gap
+// to a yaw-anchored figure target (the slewed target simply inherits the
+// drifted heading). Anchored figures slew the FULL rotation instead. No
+// antipode axis preference needed: figures start on the current attitude
+// and the trajectory is fortgeschrieben, the relative angle stays small.
+static float orientationHoldSlewTargetFull(fpQuaternion_t *qSoll, const fpQuaternion_t *qDesired, float maxStepDeg)
+{
+    fpVector3_t errDeg;
+    orientationHoldComputeFullAttitudeError(&errDeg, qSoll, qDesired);
+    const float angleDeg = fast_fsqrtf(sq(errDeg.x) + sq(errDeg.y) + sq(errDeg.z));
+    const float stepDeg = MIN(angleDeg, maxStepDeg);
+    if (stepDeg > 1e-3f) {
+        const float s = stepDeg / angleDeg;
+        const fpVector3_t stepVec = { .v = { errDeg.x * s, errDeg.y * s, errDeg.z * s } };
+        fpQuaternion_t qStep;
+        quatFromRotVecDeg(&qStep, &stepVec);
+        quaternionMultiply(qSoll, qSoll, &qStep);
+        quaternionNormalize(qSoll, qSoll);
+    }
+    return angleDeg - stepDeg;
+}
+
 // Error leash (ArduPlane qacro pattern): the target never runs further
 // ahead of the attitude than the rate loop can catch up within this time.
 // Clamping the error BEFORE the re-anchor below pulls the target back by
@@ -326,9 +352,19 @@ static float orientationHoldSlewTarget(fpQuaternion_t *qSoll, const fpQuaternion
 // the target thereby follows the actual attitude every cycle -- axis
 // compliance w_yaw = 0. Held-twist sources (course hold bridging) will skip
 // this re-anchoring and feed the full error instead.
+static bool figureLineAnchored = false;
+static fpQuaternion_t qFigureYawAnchor;
+static void orientationHoldComputeFullAttitudeError(fpVector3_t *errDeg, const fpQuaternion_t *qEst, const fpQuaternion_t *qTarget);
+
 static void orientationHoldRegulate(fpVector3_t *errDeg)
 {
-    orientationHoldComputeAttitudeError(errDeg, &orientation, &qSollState);
+    if (figureLineAnchored) {
+        // figure on a line: the full error adds the heading (twist)
+        // component the reduced error deliberately drops
+        orientationHoldComputeFullAttitudeError(errDeg, &orientation, &qSollState);
+    } else {
+        orientationHoldComputeAttitudeError(errDeg, &orientation, &qSollState);
+    }
 
     // leash: slowest axis rate bounds what the rate loop can catch up
     // (the tilt error can sit on any body axis, yaw included at the hang)
@@ -385,6 +421,7 @@ static void orientationHoldCheckSourceSwitch(int source)
         if (source != OHOLD_SOURCE_EXIT) {
             exitSlewActive = false;
         }
+        figureLineAnchored = false;
         // capture the altitude reference for the hold altitude assist at the
         // moment the target engages (same pattern as the figure sequencer)
         holdRefAltCm = getEstimatedActualPosition(Z);
@@ -405,6 +442,44 @@ bool orientationHoldIsKnifeOrInverted(void)
     return activeTargetSource == BOXINVERTED
         || activeTargetSource == BOXKNIFELEFT
         || activeTargetSource == BOXKNIFERIGHT;
+}
+
+// ---- Figure line-hold ------------------------------------------------------
+//
+// Pilot holds are heading-free by design (the reduced attitude error drops
+// the rotation about the earth vertical), but a FIGURE flown on a line must
+// not be: with the target rotating about the body axis and heading free, a
+// slow roll wandered ~15 deg of course per roll in SITL - the roll axis
+// follows wherever the nose drifts and nothing pulls it back. Figures
+// therefore anchor their trajectory to the heading captured at figure start
+// and regulate the FULL attitude error. Verified identity (bench
+// math_verify G3): the full error differs from the reduced one exactly by
+// the twist about body-up, so tilt regulation is unchanged and the line
+// hold is purely additive. State lives next to the source tracking above.
+static void figureCaptureYawAnchor(void)
+{
+    const float halfPsiRad = DECIDEGREES_TO_RADIANS(attitude.values.yaw) * 0.5f;
+    qFigureYawAnchor.q0 = cos_approx(halfPsiRad);
+    qFigureYawAnchor.q1 = 0.0f;
+    qFigureYawAnchor.q2 = 0.0f;
+    qFigureYawAnchor.q3 = sin_approx(halfPsiRad);
+}
+
+// Full attitude error: q_err = conj(q_est) (x) q_target, as a rotation
+// vector in the body frame (deg). Same sign convention as the reduced
+// error / pidLevel; quaternionToAxisAngle wraps to the shortest path.
+// Bench mirror: math_verify.py section G (checked against scipy).
+static void orientationHoldComputeFullAttitudeError(fpVector3_t *errDeg, const fpQuaternion_t *qEst, const fpQuaternion_t *qTarget)
+{
+    fpQuaternion_t qConj, qErr;
+    quaternionConjugate(&qConj, qEst);
+    quaternionMultiply(&qErr, &qConj, qTarget);
+    fpAxisAngle_t aa;
+    quaternionToAxisAngle(&aa, &qErr);
+    const float angleDeg = RADIANS_TO_DEGREES(aa.angle);
+    errDeg->x = aa.axis.x * angleDeg;
+    errDeg->y = aa.axis.y * angleDeg;
+    errDeg->z = aa.axis.z * angleDeg;
 }
 
 bool orientationHoldSticksAreTargetOffsets(void)
@@ -618,9 +693,28 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         orientationHoldCheckSourceSwitch(OHOLD_SOURCE_FIGURE);
         figureSequencerGetTarget(&figRoll, &figPitch);
         orientationHoldTargetFromRP(&qDesired, figRoll, figPitch);
+        // line-hold: fly the figure about the heading captured at figure
+        // start instead of wherever the nose currently points. Segments
+        // that change the heading on purpose (WAIT_POS banks toward home)
+        // or fly open loop (impulse, spin) release the anchor; it
+        // re-captures on the CURRENT heading when they complete.
+        if (figureSequencerHeadingAnchored()) {
+            if (!figureLineAnchored) {
+                figureCaptureYawAnchor();
+                figureLineAnchored = true;
+            }
+            quaternionMultiply(&qDesired, &qFigureYawAnchor, &qDesired);
+        } else {
+            figureLineAnchored = false;
+        }
         // the trajectory is already rate shaped; the slew only smooths the
-        // engage and absolute HOLD segment steps
-        slewRateDegS = MAX(figureSequencerConfig()->rollRate, figureSequencerConfig()->loopRate);
+        // engage and absolute HOLD segment steps. The slew must OUTRUN the
+        // trajectory: at exactly the figure rate it chases the rotating
+        // target saturated, the entire budget goes into the figure and the
+        // line-hold's heading correction never closes - the slewed target
+        // absorbs the heading drift instead of holding the line (seen as
+        // 12 deg of FC-frame course walk during one slow roll)
+        slewRateDegS = MAX(figureSequencerConfig()->rollRate, figureSequencerConfig()->loopRate) + 90.0f;
     } else if (orientationHoldActivePreset() == NULL && IS_RC_MODE_ACTIVE(BOXATTLOCK)) {
         // 3D LOCK: sticks centered = hold the attitude captured at release;
         // sticks deflected = pure rate flying, the lock target follows the
@@ -718,7 +812,9 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
     }
 
     if (slewRateDegS > 0.0f) {
-        const float remainingDeg = orientationHoldSlewTarget(&qSollState, &qDesired, slewRateDegS * dT);
+        const float remainingDeg = figureLineAnchored
+            ? orientationHoldSlewTargetFull(&qSollState, &qDesired, slewRateDegS * dT)
+            : orientationHoldSlewTarget(&qSollState, &qDesired, slewRateDegS * dT);
         if (remainingDeg < 1.0f) {
             presetSlewCaptured = true;
         }

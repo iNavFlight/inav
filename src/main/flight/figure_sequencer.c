@@ -401,6 +401,16 @@ bool figureSequencerRequested(void)
     return activeFigure != FIGURE_NONE && state != FIG_STATE_IDLE;
 }
 
+bool figureSequencerHeadingAnchored(void)
+{
+    // line-hold: figure trajectories fly on the heading captured at figure
+    // start. Segments that change the heading on purpose (WAIT_POS banks
+    // toward home) or fly open loop (impulse, spin autorotation) release
+    // the anchor; it re-captures on the current heading when they end.
+    return figureSequencerRequested()
+        && !seqTurnCoordination && !seqImpulseActive && !seqSpinActive;
+}
+
 bool figureSequencerGetTurnBank(float *bankDeg)
 {
     if (!seqTurnCoordination) {
