@@ -48,6 +48,10 @@ typedef struct hoverThrottleConfig_s {
                            // covers both steering paths. Found by
                            // experiment near the model's hover throttle;
                            // 1000 = no floor beyond the motor idle.
+    uint8_t assistVzP;     // knife/inverted throttle assist: us per m/s of
+                           // climb rate (damping)
+    uint8_t assistVzI;     // knife/inverted throttle assist: trim rate,
+                           // us per m/s per second; 0 disables the assist
 } hoverThrottleConfig_t;
 
 PG_DECLARE(hoverThrottleConfig_t, hoverThrottleConfig);

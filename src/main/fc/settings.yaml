@@ -4664,3 +4664,15 @@ groups:
         field: minThrottle
         min: 1000
         max: 1800
+      - name: ohold_assist_thr_p
+        description: "Knife edge / inverted throttle assist: damping term, throttle us per m/s of climb rate"
+        default_value: 40
+        field: assistVzP
+        min: 0
+        max: 255
+      - name: ohold_assist_thr_i
+        description: "Knife edge / inverted throttle assist: trim rate, throttle us per m/s of climb per second. The assist slowly trims the throttle around the pilot's stick until the hold stops sinking (or climbing). 0 disables the assist."
+        default_value: 20
+        field: assistVzI
+        min: 0
+        max: 255

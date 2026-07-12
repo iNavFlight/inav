@@ -111,6 +111,10 @@ void orientationHoldResetSourceTracking(void);
 // hover throttle to own the altitude axis)
 bool orientationHoldIsPropHang(void);
 
+// True while a knife edge or inverted preset is the active hold target
+// (used by the knife/inverted throttle assist, criterion vz -> 0)
+bool orientationHoldIsKnifeOrInverted(void);
+
 // True while roll/pitch sticks act as TARGET OFFSETS around the rotated
 // reference (preset hold active and ohold_stick_angle > 0): the rate path
 // must then not also feed them as rate commands. Yaw stays a rate command,

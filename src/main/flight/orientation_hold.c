@@ -400,6 +400,13 @@ bool orientationHoldIsPropHang(void)
     return activeTargetSource == BOXPROPHANG;
 }
 
+bool orientationHoldIsKnifeOrInverted(void)
+{
+    return activeTargetSource == BOXINVERTED
+        || activeTargetSource == BOXKNIFELEFT
+        || activeTargetSource == BOXKNIFERIGHT;
+}
+
 bool orientationHoldSticksAreTargetOffsets(void)
 {
     // preset sources carry the box id (positive); the special sources

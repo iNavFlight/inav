@@ -52,13 +52,15 @@
 
 #include "rx/rx.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig, PG_HOVER_THROTTLE_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig, PG_HOVER_THROTTLE_CONFIG, 1);
 
 PG_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig,
     .pGain = SETTING_OHOLD_HOVER_THR_P_DEFAULT,
     .iGain = SETTING_OHOLD_HOVER_THR_I_DEFAULT,
     .dGain = SETTING_OHOLD_HOVER_THR_D_DEFAULT,
     .minThrottle = SETTING_OHOLD_HOVER_THR_MIN_DEFAULT,
+    .assistVzP = SETTING_OHOLD_ASSIST_THR_P_DEFAULT,
+    .assistVzI = SETTING_OHOLD_ASSIST_THR_I_DEFAULT,
 );
 
 // Engage only when the nose is this close to the zenith; once engaged,
@@ -80,6 +82,58 @@ static float targetAltCm;
 static float iTermUs;
 static timeUs_t lastUpdateUs;
 
+// ---- Knife/inverted throttle assist ----------------------------------------
+//
+// In a knife edge or inverted hold the attitude controller owns the surfaces
+// and the pitch-based altitude assist owns the flight path, but the throttle
+// is a frozen pilot stick: if the speed is too low for the attitude's lift
+// (fuselage lift at knife edge, inverted wing lift), the hold can only sink
+// and the pitch assist saturates against the missing energy. The throttle
+// criterion of these holds is vz -> 0: a slow, integrating TRIM around the
+// pilot's stick adds throttle while the hold sinks and takes it back while
+// it climbs. The pilot stays the base - moving the stick moves the whole
+// operating point, the learned trim rides on top.
+
+#define ASSIST_TRIM_MAX_US     150.0f
+#define ASSIST_VZ_CLAMP_MS       4.0f   // |vz| beyond this is an entry/zoom
+                                        // transient: freeze the trim, cap the
+                                        // damping term
+
+static bool assistActive = false;
+static float assistTrimUs;
+static timeUs_t assistLastUs;
+
+static int16_t knifeInvertedAssistApply(int16_t pilotThrottle)
+{
+    // a deliberate throttle cut stays a throttle cut
+    if (!navIsAltitudeEstimateTrusted()
+        || hoverThrottleConfig()->assistVzI == 0
+        || pilotThrottle < getThrottleIdleValue() + 50) {
+        assistActive = false;
+        return pilotThrottle;
+    }
+
+    const timeUs_t nowUs = micros();
+    if (!assistActive) {
+        assistActive = true;
+        assistTrimUs = 0.0f;
+        assistLastUs = nowUs;
+    }
+    const float dT = constrainf((nowUs - assistLastUs) * 1e-6f, 0.0f, 0.1f);
+    assistLastUs = nowUs;
+
+    const float climbMs = getEstimatedActualVelocity(Z) / 100.0f;
+    if (fabsf(climbMs) < ASSIST_VZ_CLAMP_MS) {
+        assistTrimUs = constrainf(assistTrimUs - hoverThrottleConfig()->assistVzI * climbMs * dT,
+                                  -ASSIST_TRIM_MAX_US, ASSIST_TRIM_MAX_US);
+    }
+    const float damping = -hoverThrottleConfig()->assistVzP
+                          * constrainf(climbMs, -ASSIST_VZ_CLAMP_MS, ASSIST_VZ_CLAMP_MS);
+
+    return constrain(lrintf(pilotThrottle + assistTrimUs + damping),
+                     getThrottleIdleValue(), getMaxThrottle());
+}
+
 static float noseElevationDeg(void)
 {
     fpVector3_t nose = { .v = { 1.0f, 0.0f, 0.0f } };
@@ -98,8 +152,13 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
         || !navIsAltitudeEstimateTrusted()
         || elevDeg < elevGate) {
         hoverActive = false;
+        if (ARMING_FLAG(ARMED) && orientationHoldIsKnifeOrInverted()) {
+            return knifeInvertedAssistApply(pilotThrottle);
+        }
+        assistActive = false;
         return pilotThrottle;
     }
+    assistActive = false;
 
     const float z = getEstimatedActualPosition(Z);
 
