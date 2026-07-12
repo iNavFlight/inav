@@ -38,6 +38,7 @@
 #include "fc/settings.h"
 #include "fc/rc_modes.h"
 
+#include "flight/hover_throttle.h"
 #include "flight/imu.h"
 
 #include "io/gps.h"
@@ -627,8 +628,17 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             }
 
             const float baroVelZResidual = isAirCushionEffectDetected ? 0.0f : wBaro * (posEstimator.baro.baroAltRate - posEstimator.est.vel.z);
-            const float w_z_baro_p = positionEstimationConfig()->w_z_baro_p;
+            float w_z_baro_p = positionEstimationConfig()->w_z_baro_p;
             const float w_z_baro_v = positionEstimationConfig()->w_z_baro_v;
+#ifdef USE_ORIENTATION_HOLD
+            // hovering on the prop: the thrust pollutes the accelerometer Z
+            // and the inertial estimate wanders meters around the truth; the
+            // baro deserves more trust for as long as the hover throttle
+            // owns the altitude
+            if (hoverThrottleIsEngaged()) {
+                w_z_baro_p = MAX(w_z_baro_p, hoverThrottleConfig()->hoverBaroWeight / 100.0f);
+            }
+#endif
 
             ctx->estPosCorr.z = baroAltResidual * w_z_baro_p * dT;
             ctx->estVelCorr.z = baroVelZResidual * w_z_baro_v * dT;

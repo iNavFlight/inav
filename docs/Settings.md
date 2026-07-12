@@ -4582,6 +4582,16 @@ Target slew rate [deg/s] for entering an orientation hold preset (INVERTED, KNIF
 
 ---
 
+### ohold_hover_baro_weight
+
+Baro position weight (x100) while the hover throttle owns the altitude, applied as a floor over inav_w_z_baro_p. Hovering thrust pollutes the accelerometer, the baro deserves more trust than in forward flight. 0 keeps the global weight.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 150 |
+
+---
+
 ### ohold_hover_gain
 
 LEARNED hover angle-gain scale [%]. The prop hang limit-cycle detector writes this at hang exit and it is saved on disarm; the next hang and the next flight start at the learned value instead of oscillating down again. Editable, but normally maintained by the firmware. 100 = full angle gain.

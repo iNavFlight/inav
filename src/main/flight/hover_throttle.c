@@ -52,7 +52,7 @@
 
 #include "rx/rx.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig, PG_HOVER_THROTTLE_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig, PG_HOVER_THROTTLE_CONFIG, 2);
 
 PG_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig,
     .pGain = SETTING_OHOLD_HOVER_THR_P_DEFAULT,
@@ -61,6 +61,7 @@ PG_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig,
     .minThrottle = SETTING_OHOLD_HOVER_THR_MIN_DEFAULT,
     .assistVzP = SETTING_OHOLD_ASSIST_THR_P_DEFAULT,
     .assistVzI = SETTING_OHOLD_ASSIST_THR_I_DEFAULT,
+    .hoverBaroWeight = SETTING_OHOLD_HOVER_BARO_WEIGHT_DEFAULT,
 );
 
 // Engage only when the nose is this close to the zenith; once engaged,
@@ -140,6 +141,11 @@ static int16_t knifeInvertedAssistApply(int16_t pilotThrottle)
 
     return constrain(lrintf(pilotThrottle + assistTrimUs + damping),
                      getThrottleIdleValue(), getMaxThrottle());
+}
+
+bool hoverThrottleIsEngaged(void)
+{
+    return hoverActive;
 }
 
 static float noseElevationDeg(void)

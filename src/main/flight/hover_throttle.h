@@ -52,6 +52,12 @@ typedef struct hoverThrottleConfig_s {
                            // climb rate (damping)
     uint8_t assistVzI;     // knife/inverted throttle assist: trim rate,
                            // us per m/s per second; 0 disables the assist
+    uint8_t hoverBaroWeight; // baro position weight (x100) while the hover
+                             // throttle owns the altitude: hovering thrust
+                             // pollutes the accelerometer Z, the baro
+                             // deserves more trust than in forward flight.
+                             // Applied as a floor over inav_w_z_baro_p;
+                             // 0 keeps the global weight.
 } hoverThrottleConfig_t;
 
 PG_DECLARE(hoverThrottleConfig_t, hoverThrottleConfig);
@@ -59,3 +65,7 @@ PG_DECLARE(hoverThrottleConfig_t, hoverThrottleConfig);
 // Called from the mixer throttle path; returns the pilot throttle when the
 // hover throttle is not active, the controller output otherwise.
 int16_t hoverThrottleApply(int16_t pilotThrottle);
+
+// True while the hover throttle controller owns the altitude (used by the
+// position estimator to raise the baro weight in the hover regime)
+bool hoverThrottleIsEngaged(void);

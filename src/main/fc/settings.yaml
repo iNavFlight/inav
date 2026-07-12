@@ -4676,3 +4676,9 @@ groups:
         field: assistVzI
         min: 0
         max: 255
+      - name: ohold_hover_baro_weight
+        description: "Baro position weight (x100) while the hover throttle owns the altitude, applied as a floor over inav_w_z_baro_p. Hovering thrust pollutes the accelerometer, the baro deserves more trust than in forward flight. 0 keeps the global weight."
+        default_value: 100
+        field: hoverBaroWeight
+        min: 0
+        max: 150
