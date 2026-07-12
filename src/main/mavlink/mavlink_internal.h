@@ -74,6 +74,10 @@
 
 #include "scheduler/scheduler.h"
 
+#define MAVLINK_MISSION_UPLOAD_RETRY_MS 1500
+#define MAVLINK_MISSION_UPLOAD_MAX_RETRIES 5
+#define MAVLINK_MISSION_DOWNLOAD_TIMEOUT_MS 5000
+#define MAVLINK_MISSION_CURRENT_INTERVAL_MS 1000
 #define MAVLINK_RX_BYTE_BUDGET 64
 
 typedef struct mavlinkContext_s {
@@ -90,6 +94,9 @@ typedef struct mavlinkContext_s {
     uint8_t autopilotType;
     uint8_t componentId;
     uint8_t recvPortIndex;
+    mavlinkMissionTransfer_t missionTransfer;
+    timeMs_t lastMissionCurrentMs;
+    bool missionCompleted;
     uint32_t lastArmingDisableFlags;
     flightModeForTelemetry_e lastFlightMode;
     bool lastGCSNavMode;
@@ -110,5 +117,6 @@ extern mavlinkContext_t mavlinkContext;
 #define mavAutopilotType (mavlinkContext.autopilotType)
 #define mavComponentId (mavlinkContext.componentId)
 #define mavRecvPortIndex (mavlinkContext.recvPortIndex)
+#define mavMissionTransfer (mavlinkContext.missionTransfer)
 
 #endif
