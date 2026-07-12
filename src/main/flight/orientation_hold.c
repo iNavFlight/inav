@@ -359,8 +359,18 @@ static void orientationHoldRegulate(fpVector3_t *errDeg)
 #define OHOLD_SOURCE_FLOOR  (-2)
 #define OHOLD_SOURCE_FIGURE (-3)
 #define OHOLD_SOURCE_LOCK   (-4)
+#define OHOLD_SOURCE_EXIT   (-5)
+
+// Exit handover thresholds: engage only when the released attitude is far
+// enough from level that the instant Euler error would command full rates;
+// hand to ANGLE once the attitude has followed the target to the horizon
+#define OHOLD_EXIT_SLEW_ENGAGE_DEG   30.0f
+#define OHOLD_EXIT_SLEW_DONE_DEG     10.0f
+#define OHOLD_EXIT_SLEW_TIMEOUT_S     3.0f
 
 static int activeTargetSource = OHOLD_SOURCE_NONE;
+static bool exitSlewActive = false;
+static float exitSlewTimeS = 0.0f;
 
 static float holdRefAltCm = 0.0f;   // altitude assist reference, captured at hold entry
 static bool presetSlewCaptured = false;   // entry slew has reached the preset once
@@ -371,6 +381,10 @@ static void orientationHoldCheckSourceSwitch(int source)
             pidResetErrorAccumulators();
         }
         activeTargetSource = source;
+        // any real hold taking over cancels a pending exit handover
+        if (source != OHOLD_SOURCE_EXIT) {
+            exitSlewActive = false;
+        }
         // capture the altitude reference for the hold altitude assist at the
         // moment the target engages (same pattern as the figure sequencer)
         holdRefAltCm = getEstimatedActualPosition(Z);
@@ -531,6 +545,7 @@ void orientationHoldResetSourceTracking(void)
         pidResetErrorAccumulators();
         activeTargetSource = OHOLD_SOURCE_NONE;
     }
+    exitSlewActive = false;
 
     // leaving the mode ends the hover regime too: freeze the learned gain
     // (landing straight out of a hang and disarming must not lose it)
@@ -542,6 +557,39 @@ void orientationHoldResetSourceTracking(void)
         hoverGainDirty = false;
         saveConfigAndNotify();
     }
+}
+
+// Exit handover toward ANGLE: releasing a hold far from level must not drop
+// the full attitude error onto the Euler level controller at once. A prop
+// hang exit otherwise whips: ~90 deg of error at near zero airspeed commands
+// the full rates, the airframe has no authority to arrest the resulting
+// pitch rate at the horizon and slices through to nose down before ANGLE
+// catches it. Instead the hold keeps the aircraft one more transition and
+// slews its target to level; ANGLE takes over once the attitude is there.
+bool orientationHoldExitSlewPending(void)
+{
+    if (exitSlewActive) {
+        return true;
+    }
+    // only a released real hold (preset / figure / lock) hands over; floor
+    // recovery ends level by construction and an idle mode has nothing to do
+    if (activeTargetSource == OHOLD_SOURCE_NONE || activeTargetSource == OHOLD_SOURCE_FLOOR
+        || activeTargetSource == OHOLD_SOURCE_EXIT) {
+        return false;
+    }
+    if (orientationHoldIsRequested()) {
+        return false;
+    }
+    fpQuaternion_t qLevel;
+    fpVector3_t tiltErr;
+    orientationHoldTargetFromRP(&qLevel, 0.0f, 0.0f);
+    orientationHoldComputeAttitudeError(&tiltErr, &orientation, &qLevel);
+    if (fabsf(tiltErr.x) < OHOLD_EXIT_SLEW_ENGAGE_DEG && fabsf(tiltErr.y) < OHOLD_EXIT_SLEW_ENGAGE_DEG) {
+        return false;
+    }
+    exitSlewActive = true;
+    exitSlewTimeS = 0.0f;
+    return true;
 }
 
 bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
@@ -576,6 +624,22 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         }
         qDesired = qSollState;
         slewRateDegS = 0.0f;
+    } else if (exitSlewActive && orientationHoldActivePreset() == NULL) {
+        // exit handover: slew the target to level at the entry rate, then
+        // hand to ANGLE. The pilot deflecting a stick takes over instantly.
+        orientationHoldCheckSourceSwitch(OHOLD_SOURCE_EXIT);
+        orientationHoldTargetFromRP(&qDesired, 0.0f, 0.0f);
+        fpVector3_t tiltErr;
+        orientationHoldComputeAttitudeError(&tiltErr, &orientation, &qDesired);
+        exitSlewTimeS += dT;
+        if (orientationHoldSticksDeflected()
+            || exitSlewTimeS > OHOLD_EXIT_SLEW_TIMEOUT_S
+            || (presetSlewCaptured
+                && fabsf(tiltErr.x) < OHOLD_EXIT_SLEW_DONE_DEG
+                && fabsf(tiltErr.y) < OHOLD_EXIT_SLEW_DONE_DEG)) {
+            exitSlewActive = false;
+            return false;
+        }
     } else {
         const orientationHoldPreset_t *preset = orientationHoldActivePreset();
         if (!preset) {

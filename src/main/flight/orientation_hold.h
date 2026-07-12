@@ -83,6 +83,14 @@ void orientationHoldTargetFromRP(fpQuaternion_t *qTarget, float rollDeg, float p
 // selected on the transmitter.
 bool orientationHoldIsRequested(void);
 
+// True while a released hold still owns the exit handover toward ANGLE:
+// the hold slews its target to level first so the Euler level controller
+// never sees the full attitude error as one step (a prop hang exit whips
+// through nose down otherwise). Latches on the release edge when the
+// attitude is far from level; clears when level is captured, the pilot
+// deflects a stick, or a timeout expires.
+bool orientationHoldExitSlewPending(void);
+
 // Body frame attitude error (deg) for the currently selected target.
 // The target is a persistent attitude quaternion seeded on the actual
 // attitude at engage and slewed toward the requested attitude (fig_roll_rate

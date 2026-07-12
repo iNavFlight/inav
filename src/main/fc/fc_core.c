@@ -708,7 +708,17 @@ void processRx(timeUs_t currentTimeUs)
             ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
 #endif
         } else if (IS_RC_MODE_ACTIVE(BOXANGLE)) {
-            ENABLE_FLIGHT_MODE(ANGLE_MODE);
+#ifdef USE_ORIENTATION_HOLD
+            // leaving a hold far from level: the hold slews its target to
+            // the horizon first, ANGLE takes over once the attitude is
+            // there (a hover exit otherwise whips through nose down)
+            if (STATE(AIRPLANE) && orientationHoldExitSlewPending()) {
+                ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
+            } else
+#endif
+            {
+                ENABLE_FLIGHT_MODE(ANGLE_MODE);
+            }
         } else if (IS_RC_MODE_ACTIVE(BOXHORIZON)) {
             ENABLE_FLIGHT_MODE(HORIZON_MODE);
 #ifdef USE_ORIENTATION_HOLD
