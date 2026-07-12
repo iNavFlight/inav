@@ -89,6 +89,7 @@
 #include "flight/imu.h"
 #include "flight/altitude_floor.h"
 #include "flight/figure_sequencer.h"
+#include "flight/crash_detection.h"
 #include "flight/orientation_hold.h"
 #include "flight/rate_dynamics.h"
 
@@ -999,6 +1000,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 #endif
 
     processPilotAndFailSafeActions(dT);
+
+#ifdef USE_ORIENTATION_HOLD
+    // impact followed by stillness stops the motor (hand-launch aware)
+    crashDetectionUpdate(dT);
+#endif
 
     // Check battery, GPS signal, arming status etc @ 200 Hz
     static uint8_t armingStatusDivider = 0;

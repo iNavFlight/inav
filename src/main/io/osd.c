@@ -5395,7 +5395,7 @@ uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX)
 uint8_t drawStat_DisarmMethod(uint8_t col, uint8_t row, uint8_t statValX)
 {
     // We keep "" for backward compatibility with the Blackbox explorer and other potential usages
-    const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "", "FAILSAFE", "NAV SYS", "LANDING"};
+    const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "", "FAILSAFE", "NAV SYS", "LANDING", "CRASH"};
 
     displayWrite(osdDisplayPort, col, row, "DISARMED BY");
     displayWrite(osdDisplayPort, statValX, row, ": ");

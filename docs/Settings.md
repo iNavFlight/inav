@@ -622,6 +622,16 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### crash_g_threshold
+
+Crash detection impact threshold [g x 10]: an acceleration spike above this, followed by the aircraft lying still within 2 s, stops the motor (disarm, reason CRASH). Arms only once clearly in flight (nav launch completed or throttle held above cruise for a moment), so a hand-launched aircraft can be carried armed. Aggressive maneuvers do not trigger it - a flying aircraft is never still. 0 = off.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 60 | 0 | 160 |
+
+---
+
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
