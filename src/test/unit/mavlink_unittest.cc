@@ -180,6 +180,26 @@ static std::vector<uint8_t> makeMspV1Request(uint8_t cmd, const std::vector<uint
     return frame;
 }
 
+static std::vector<uint8_t> encodeMspV1Reply(uint8_t cmd, int16_t result, const std::vector<uint8_t> &payload = {})
+{
+    uint8_t payloadBuf[MSP_PORT_OUTBUF_SIZE];
+    mspPacket_t reply = {
+        .buf = { .ptr = payloadBuf, .end = ARRAYEND(payloadBuf), },
+        .cmd = cmd,
+        .flags = 0,
+        .result = result,
+    };
+    uint8_t *payloadHead = reply.buf.ptr;
+    if (!payload.empty()) {
+        sbufWriteData(&reply.buf, payload.data(), (int)payload.size());
+    }
+    sbufSwitchToReader(&reply.buf, payloadHead);
+
+    uint8_t frameBuf[testMspFrameBufSize];
+    const int frameLength = mspSerialEncodePacket(&reply, MSP_V1, frameBuf, sizeof(frameBuf));
+    return std::vector<uint8_t>(frameBuf, frameBuf + frameLength);
+}
+
 static void pushRxMessage(const mavlink_message_t *msg)
 {
     uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
@@ -358,10 +378,98 @@ static void initMavlinkTestState(void)
     checkMAVLinkTelemetryState();
 }
 
+TEST(MavlinkTelemetryTest, TunnelMalformedPayloadLengthIsDroppedAndDoesNotPoisonState)
+{
+    initMavlinkTestState();
 
+    std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    request.resize(MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN, 0);
 
+    pushTunnelPayload(MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN + 1, request);
+    handleMAVLinkTelemetry(1000);
 
+    EXPECT_EQ(mspCommandCallCount, 0);
+    EXPECT_TRUE(parseTxMessages().empty());
 
+    resetSerialBuffers();
+    pushTunnelPayload((uint8_t)makeMspV1Request(testSimpleMspCommand).size(), makeMspV1Request(testSimpleMspCommand));
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelRejectsPassthroughBeforeDispatch)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request((uint8_t)MSP_SET_PASSTHROUGH);
+
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 0);
+    EXPECT_EQ(mspPassthroughDispatchCount, 0);
+    EXPECT_EQ(waitForSerialPortToFinishTransmittingCalls, 0);
+    EXPECT_EQ(mspRebootPostProcessCount, 0);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply((uint8_t)MSP_SET_PASSTHROUGH, MSP_RESULT_ERROR));
+}
+
+TEST(MavlinkTelemetryTest, TunnelRebootUsesIngressPortForPostProcess)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request((uint8_t)MSP_REBOOT);
+
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(waitForSerialPortToFinishTransmittingCalls, 1);
+    EXPECT_EQ(mspRebootPostProcessCount, 1);
+    EXPECT_EQ(lastPostProcessPort, &testSerialPort);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply((uint8_t)MSP_REBOOT, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelStalePartialFrameResetsBeforeNextRequest)
+{
+    initMavlinkTestState();
+
+    pushTunnelPayload(3, {'$', 'M', '<'});
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 0);
+    EXPECT_TRUE(parseTxMessages().empty());
+
+    resetSerialBuffers();
+    fakeMillis = 2000;
+
+    const std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelLargeReplyFragmentsAcrossMultipleMessages)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    const std::vector<mavlink_message_t> messages = parseTxMessages();
+    ASSERT_EQ(messages.size(), 3U);
+
+    std::vector<uint8_t> expectedPayload(300);
+    for (size_t i = 0; i < expectedPayload.size(); i++) {
+        expectedPayload[i] = (uint8_t)i;
+    }
+
+    EXPECT_EQ(collectTunnelPayload(messages), encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, expectedPayload));
+}
 
 TEST(MavlinkTelemetryTest, MlrsRadioLinkStatsUpdateRxStatisticsOnMavlinkSerialRxPort)
 {

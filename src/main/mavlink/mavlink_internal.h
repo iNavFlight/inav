@@ -74,6 +74,9 @@
 
 #include "scheduler/scheduler.h"
 
+#define MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP 0x8001
+#define MAVLINK_TUNNEL_MSP_TIMEOUT_MS 1000
+#define MAVLINK_TUNNEL_MSP_FRAMEBUF_SIZE (MSP_PORT_OUTBUF_SIZE + 16)
 #define MAVLINK_MISSION_UPLOAD_RETRY_MS 1500
 #define MAVLINK_MISSION_UPLOAD_MAX_RETRIES 5
 #define MAVLINK_MISSION_DOWNLOAD_TIMEOUT_MS 5000
@@ -85,6 +88,9 @@ typedef struct mavlinkContext_s {
     uint8_t portCount;
     mavlinkRouteEntry_t routeTable[MAVLINK_MAX_ROUTES];
     uint8_t routeCount;
+    mspPort_t tunnelMspPorts[MAX_MAVLINK_PORTS];
+    uint8_t tunnelRemoteSystemIds[MAX_MAVLINK_PORTS];
+    uint8_t tunnelRemoteComponentIds[MAX_MAVLINK_PORTS];
     uint8_t sendMask;
     mavlinkPortRuntime_t *activePort;
     const mavlinkTelemetryPortConfig_t *activeConfig;
@@ -93,6 +99,8 @@ typedef struct mavlinkContext_s {
     uint8_t systemId;
     uint8_t autopilotType;
     uint8_t componentId;
+    uint8_t tunnelReplyPayloadBuf[MSP_PORT_OUTBUF_SIZE];
+    uint8_t tunnelFrameBuf[MAVLINK_TUNNEL_MSP_FRAMEBUF_SIZE];
     uint8_t recvPortIndex;
     mavlinkMissionTransfer_t missionTransfer;
     timeMs_t lastMissionCurrentMs;
@@ -110,6 +118,9 @@ extern mavlinkContext_t mavlinkContext;
 #define mavPortCount (mavlinkContext.portCount)
 #define mavRouteTable (mavlinkContext.routeTable)
 #define mavRouteCount (mavlinkContext.routeCount)
+#define mavTunnelMspPorts (mavlinkContext.tunnelMspPorts)
+#define mavTunnelRemoteSystemIds (mavlinkContext.tunnelRemoteSystemIds)
+#define mavTunnelRemoteComponentIds (mavlinkContext.tunnelRemoteComponentIds)
 #define mavSendMask (mavlinkContext.sendMask)
 #define mavActivePort (mavlinkContext.activePort)
 #define mavActiveConfig (mavlinkContext.activeConfig)
@@ -117,6 +128,8 @@ extern mavlinkContext_t mavlinkContext;
 #define mavSystemId (mavlinkContext.systemId)
 #define mavAutopilotType (mavlinkContext.autopilotType)
 #define mavComponentId (mavlinkContext.componentId)
+#define mavTunnelReplyPayloadBuf (mavlinkContext.tunnelReplyPayloadBuf)
+#define mavTunnelFrameBuf (mavlinkContext.tunnelFrameBuf)
 #define mavRecvPortIndex (mavlinkContext.recvPortIndex)
 #define mavMissionTransfer (mavlinkContext.missionTransfer)
 
