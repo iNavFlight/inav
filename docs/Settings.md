@@ -4582,6 +4582,16 @@ Target slew rate [deg/s] for entering an orientation hold preset (INVERTED, KNIF
 
 ---
 
+### ohold_figure_gain
+
+Learned angle-gain scale [%] while a figure flies, relative to the normal-flight gains. Maintained by the firmware's limit-cycle detector and saved on disarm; editable - flying the same figures repeatedly converges it. 100 = reference gains.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 30 | 100 |
+
+---
+
 ### ohold_hover_baro_weight
 
 Baro position weight (x100) while the hover throttle owns the altitude, applied as a floor over inav_w_z_baro_p. Hovering thrust pollutes the accelerometer, the baro deserves more trust than in forward flight. 0 keeps the global weight.
@@ -4642,6 +4652,16 @@ Hover throttle P gain [throttle us per m of altitude error] while PROP HANG is h
 
 ---
 
+### ohold_inverted_gain
+
+Learned angle-gain scale [%] for the inverted hold, relative to the normal-flight gains. Maintained by the firmware's limit-cycle detector and saved on disarm; editable. 100 = reference gains.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 30 | 100 |
+
+---
+
 ### ohold_inverted_pitch_trim
 
 Pitch trim [deg] on the INVERTED hold target, positive = nose above the horizon. Inverted flight typically needs a few degrees to hold altitude (down-elevator bias)
@@ -4649,6 +4669,16 @@ Pitch trim [deg] on the INVERTED hold target, positive = nose above the horizon.
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | -15 | 15 |
+
+---
+
+### ohold_knife_gain
+
+Learned angle-gain scale [%] for the knife edge holds, relative to the normal-flight gains. Maintained by the firmware's limit-cycle detector and saved on disarm; editable. 100 = reference gains.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 30 | 100 |
 
 ---
 

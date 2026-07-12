@@ -53,13 +53,16 @@
 #include "flight/orientation_hold.h"
 #include "flight/pid.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, PG_ORIENTATION_HOLD_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, PG_ORIENTATION_HOLD_CONFIG, 1);
 
 PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     .invertedPitchTrim = SETTING_OHOLD_INVERTED_PITCH_TRIM_DEFAULT,
     .knifeLeftPitchTrim = SETTING_OHOLD_KNIFE_LEFT_PITCH_TRIM_DEFAULT,
     .knifeRightPitchTrim = SETTING_OHOLD_KNIFE_RIGHT_PITCH_TRIM_DEFAULT,
     .hoverGainLearned = SETTING_OHOLD_HOVER_GAIN_DEFAULT,
+    .invertedGainLearned = SETTING_OHOLD_INVERTED_GAIN_DEFAULT,
+    .knifeGainLearned = SETTING_OHOLD_KNIFE_GAIN_DEFAULT,
+    .figureGainLearned = SETTING_OHOLD_FIGURE_GAIN_DEFAULT,
     .entryRateDps = SETTING_OHOLD_ENTRY_RATE_DEFAULT,
     .stickAngleMaxDeg = SETTING_OHOLD_STICK_ANGLE_DEFAULT,
     .stickReturnRateDps = SETTING_OHOLD_STICK_RETURN_RATE_DEFAULT,
@@ -517,23 +520,24 @@ bool orientationHoldSticksAreTargetOffsets(void)
         && orientationHoldConfig()->stickAngleMaxDeg > 0;
 }
 
-// ---- Learned damping reserve for the hover regime -------------------------
+// ---- Learned damping reserve per regime ------------------------------------
 //
-// Hovering has almost no natural aerodynamic damping (no airflow from
-// forward motion over the tail) and the prop-wash moment responds with a
-// lag, so angle-loop gains that are well damped in forward flight can limit
-// cycle around the vertical: a growing 1-2 Hz pitch/yaw oscillation with
-// the surfaces far from saturation. Instead of a hand-tuned hover gain the
-// controller LEARNS its own damping reserve, the same philosophy as the
-// hover throttle learning its hover point:
+// The NORMAL-FLIGHT gains are the reference; every hold regime runs on a
+// single learned SCALE of them instead of its own gain set. Aerobatic
+// regimes change the plant gain (prop wash instead of airflow at the hang,
+// fuselage lift at the knife edge, transients at figure boundaries), so
+// gains that are well damped in forward flight can limit cycle there - a
+// growing oscillation with the surfaces far from saturation. Instead of
+// hand tuning each regime the controller LEARNS its damping reserve:
 //  - detect the limit cycle per tilt axis: decisive zero crossings of the
-//    attitude error at 0.4..3 Hz with amplitude above a floor
-//  - each detected half wave backs the angle gain off fast (attack)
+//    attitude error at 0.4..8 Hz with amplitude above a floor
+//  - each detected half wave backs the angle-gain scale off fast (attack)
 //  - quiet time recovers it slowly toward 1.0 (release)
-// The scale settles just below the stability boundary for the actual
-// airframe, CG and battery state. Active only while the PROP HANG preset
-// holds near vertical; it re-learns on every hang on purpose (no setting,
-// no persistence).
+// One scale per regime (hover / inverted / knife / figure), each persisted:
+// flying the same figure repeatedly converges its scale, so the figures
+// get better with every flight. The scale settles just below the stability
+// boundary for the actual airframe, CG and battery state. Spins are
+// excluded: their rotation is not a limit cycle to tune away.
 
 // Wide band on purpose: a 1.5 m aerobat limit cycles at 1-2 Hz, a 0.7 m
 // model with its small inertia rather at 4-8 Hz. Noise rejection is the
@@ -552,16 +556,39 @@ typedef struct {
     float sinceFlipS;
 } hoverOscDetector_t;
 
-// The scale PERSISTS: it freezes at hang exit (the next hang starts at the
-// learned value instead of oscillating its way down again), is written back
-// to the config at exit and saved to EEPROM on disarm. A value learned
+// The scales PERSIST: each freezes at regime exit (the next entry starts at
+// the learned value instead of oscillating its way down again), is written
+// back to the config at exit and saved to EEPROM on disarm. A value learned
 // under worse conditions self-corrects upward through the release while
-// hovering quietly.
-static float hoverGainScale;
-static bool hoverGainInitialized = false;
-static bool hoverGainWasActive = false;
-static bool hoverGainDirty = false;      // learned value awaiting the disarm save
-static hoverOscDetector_t hoverOsc[2];   // body pitch, body yaw
+// flying that regime quietly.
+typedef enum {
+    OHOLD_REGIME_NONE = -1,
+    OHOLD_REGIME_HOVER = 0,
+    OHOLD_REGIME_INVERTED,
+    OHOLD_REGIME_KNIFE,
+    OHOLD_REGIME_FIGURE,
+    OHOLD_REGIME_COUNT
+} oholdRegime_e;
+
+typedef struct {
+    float scale;
+    bool wasActive;
+    hoverOscDetector_t osc[2];
+} regimeGainState_t;
+
+static regimeGainState_t regimeGain[OHOLD_REGIME_COUNT];
+static bool regimeGainInitialized = false;
+static bool regimeGainDirty = false;     // learned value awaiting the disarm save
+
+static uint8_t * regimeGainConfigField(oholdRegime_e regime)
+{
+    switch (regime) {
+        case OHOLD_REGIME_HOVER:    return &orientationHoldConfigMutable()->hoverGainLearned;
+        case OHOLD_REGIME_INVERTED: return &orientationHoldConfigMutable()->invertedGainLearned;
+        case OHOLD_REGIME_KNIFE:    return &orientationHoldConfigMutable()->knifeGainLearned;
+        default:                    return &orientationHoldConfigMutable()->figureGainLearned;
+    }
+}
 
 static bool hoverOscDetectAxis(hoverOscDetector_t *d, float sigDeg, float dT)
 {
@@ -583,59 +610,101 @@ static bool hoverOscDetectAxis(hoverOscDetector_t *d, float sigDeg, float dT)
     return false;
 }
 
-// freeze the learned value when the hover regime ends; write it back once
-// so the disarm save picks it up
-static void hoverGainFreeze(void)
+// freeze the learned value when a regime ends; write it back once so the
+// disarm save picks it up
+static void regimeGainFreeze(oholdRegime_e regime)
 {
-    if (hoverGainWasActive) {
-        const uint8_t learned = lrintf(hoverGainScale * 100.0f);
-        if (learned != orientationHoldConfig()->hoverGainLearned) {
-            orientationHoldConfigMutable()->hoverGainLearned = learned;
-            hoverGainDirty = true;
+    regimeGainState_t *g = &regimeGain[regime];
+    if (g->wasActive) {
+        const uint8_t learned = lrintf(g->scale * 100.0f);
+        if (learned != *regimeGainConfigField(regime)) {
+            *regimeGainConfigField(regime) = learned;
+            regimeGainDirty = true;
         }
-        hoverGainWasActive = false;
+        g->wasActive = false;
     }
 }
 
-static void hoverGainUpdate(const fpVector3_t *errDeg, float dT)
+static void regimeGainFreezeAll(void)
 {
-    if (!hoverGainInitialized) {
-        hoverGainScale = constrainf(orientationHoldConfig()->hoverGainLearned / 100.0f,
-                                    HOVER_GAIN_FLOOR, 1.0f);
-        hoverGainInitialized = true;
+    for (int r = 0; r < OHOLD_REGIME_COUNT; r++) {
+        regimeGainFreeze((oholdRegime_e)r);
+    }
+}
+
+// which learning regime the current target source belongs to; spins and
+// the special sources (lock / floor / exit handover) learn nothing
+static oholdRegime_e regimeGainActiveRegime(void)
+{
+    switch (activeTargetSource) {
+        case BOXPROPHANG: {
+            // nose elevation gate, same release threshold as the hover throttle
+            fpVector3_t nose = { .v = { 1.0f, 0.0f, 0.0f } };
+            quaternionRotateVectorInv(&nose, &nose, &orientation);
+            return RADIANS_TO_DEGREES(asin_approx(constrainf(-nose.z, -1.0f, 1.0f))) > 45.0f
+                 ? OHOLD_REGIME_HOVER : OHOLD_REGIME_NONE;
+        }
+        case BOXINVERTED:
+            return OHOLD_REGIME_INVERTED;
+        case BOXKNIFELEFT:
+        case BOXKNIFERIGHT:
+            return OHOLD_REGIME_KNIFE;
+        case OHOLD_SOURCE_FIGURE:
+            return OHOLD_REGIME_FIGURE;
+        default:
+            return OHOLD_REGIME_NONE;
+    }
+}
+
+static void regimeGainUpdate(const fpVector3_t *errDeg, float dT)
+{
+    if (!regimeGainInitialized) {
+        for (int r = 0; r < OHOLD_REGIME_COUNT; r++) {
+            regimeGain[r].scale = constrainf(*regimeGainConfigField((oholdRegime_e)r) / 100.0f,
+                                             HOVER_GAIN_FLOOR, 1.0f);
+        }
+        regimeGainInitialized = true;
     }
 
-    bool active = activeTargetSource == BOXPROPHANG;
-    if (active) {
-        // nose elevation gate, same release threshold as the hover throttle
-        fpVector3_t nose = { .v = { 1.0f, 0.0f, 0.0f } };
-        quaternionRotateVectorInv(&nose, &nose, &orientation);
-        active = RADIANS_TO_DEGREES(asin_approx(constrainf(-nose.z, -1.0f, 1.0f))) > 45.0f;
+    const oholdRegime_e active = regimeGainActiveRegime();
+    for (int r = 0; r < OHOLD_REGIME_COUNT; r++) {
+        if (r != active && regimeGain[r].wasActive) {
+            regimeGainFreeze((oholdRegime_e)r);
+            regimeGain[r].osc[0] = regimeGain[r].osc[1] = (hoverOscDetector_t){ 0 };
+        }
     }
-
-    if (!active) {
-        hoverGainFreeze();
-        hoverOsc[0] = hoverOsc[1] = (hoverOscDetector_t){ 0 };
+    if (active == OHOLD_REGIME_NONE) {
         return;
     }
-    hoverGainWasActive = true;
+    regimeGainState_t *g = &regimeGain[active];
+    g->wasActive = true;
 
-    bool osc = hoverOscDetectAxis(&hoverOsc[0], errDeg->y, dT);
-    osc = hoverOscDetectAxis(&hoverOsc[1], errDeg->z, dT) || osc;
+    // the hang limit cycles on body pitch/yaw (prop wash axes); the other
+    // regimes on the tilt axes roll/pitch
+    const float sigA = (active == OHOLD_REGIME_HOVER) ? errDeg->y : errDeg->x;
+    const float sigB = (active == OHOLD_REGIME_HOVER) ? errDeg->z : errDeg->y;
+    bool osc = hoverOscDetectAxis(&g->osc[0], sigA, dT);
+    osc = hoverOscDetectAxis(&g->osc[1], sigB, dT) || osc;
 
     if (osc) {
-        hoverGainScale = MAX(HOVER_GAIN_FLOOR, hoverGainScale * HOVER_GAIN_ATTACK);
+        g->scale = MAX(HOVER_GAIN_FLOOR, g->scale * HOVER_GAIN_ATTACK);
     } else {
-        hoverGainScale += (1.0f - hoverGainScale) * MIN(dT / HOVER_GAIN_RELEASE_TAU_S, 1.0f);
+        g->scale += (1.0f - g->scale) * MIN(dT / HOVER_GAIN_RELEASE_TAU_S, 1.0f);
     }
 }
 
 float orientationHoldLevelGainScale(void)
 {
-    // the learned damping reserve applies ONLY in the hover regime: the
-    // stored value persists for the next hang, but leaving the hover for
-    // another hold (or re-entering later at speed) must run at full gain
-    return (hoverGainInitialized && hoverGainWasActive) ? hoverGainScale : 1.0f;
+    // the learned damping reserve of the ACTIVE regime; everything else
+    // (normal flight, lock, spins, handover) runs the reference gains.
+    // The scale of the target regime applies from the moment the source
+    // switches, so the entry slew already flies with it.
+    if (!regimeGainInitialized) {
+        return 1.0f;
+    }
+    const oholdRegime_e active = regimeGainActiveRegime();
+    return (active != OHOLD_REGIME_NONE && regimeGain[active].wasActive)
+         ? regimeGain[active].scale : 1.0f;
 }
 
 void orientationHoldSyncTargetToAttitude(void)
@@ -656,14 +725,14 @@ void orientationHoldResetSourceTracking(void)
     }
     exitSlewActive = false;
 
-    // leaving the mode ends the hover regime too: freeze the learned gain
-    // (landing straight out of a hang and disarming must not lose it)
-    hoverGainFreeze();
+    // leaving the mode ends every learning regime: freeze the learned
+    // gains (landing straight out of a hold and disarming must not lose them)
+    regimeGainFreezeAll();
 
-    // persist the learned hover gain once the aircraft is on the ground
+    // persist the learned regime gains once the aircraft is on the ground
     // (never write EEPROM while armed, the flight loop would stall)
-    if (hoverGainDirty && !ARMING_FLAG(ARMED)) {
-        hoverGainDirty = false;
+    if (regimeGainDirty && !ARMING_FLAG(ARMED)) {
+        regimeGainDirty = false;
         saveConfigAndNotify();
     }
 }
@@ -850,7 +919,7 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
     }
 
     orientationHoldRegulate(errDeg);
-    hoverGainUpdate(errDeg, dT);
+    regimeGainUpdate(errDeg, dT);
     return true;
 }
 

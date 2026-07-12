@@ -47,11 +47,17 @@ typedef struct orientationHoldConfig_s {
     int8_t knifeLeftPitchTrim;     // deg, nose above horizon in left knife edge
     int8_t knifeRightPitchTrim;    // deg, nose above horizon in right knife edge
                                    // (separate per side: prop effects break the symmetry)
-    uint8_t hoverGainLearned;      // %, LEARNED hover angle-gain scale: written
-                                   // by the limit-cycle detector at hang exit,
-                                   // saved on disarm. The next hang (and the
-                                   // next flight) starts at the learned value
+    uint8_t hoverGainLearned;      // %, LEARNED angle-gain scale per regime:
+                                   // the normal-flight gains are the reference
+                                   // (100), the limit-cycle detector backs the
+                                   // scale off while that regime oscillates and
+                                   // writes it back at regime exit; saved on
+                                   // disarm. The next entry (and the next
+                                   // flight) starts at the learned value
                                    // instead of oscillating its way down again.
+    uint8_t invertedGainLearned;   // %, learned scale for the inverted hold
+    uint8_t knifeGainLearned;      // %, learned scale for the knife edge holds
+    uint8_t figureGainLearned;     // %, learned scale while a figure flies
     uint16_t entryRateDps;         // deg/s target slew for PRESET entries.
                                    // Separate from fig_roll_rate on purpose:
                                    // a deliberate slow roll figure and a snappy
