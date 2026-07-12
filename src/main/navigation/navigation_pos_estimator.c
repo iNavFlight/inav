@@ -500,7 +500,17 @@ static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
         ) && posControl.gpsOrigin.valid &&
         ((currentTimeUs - posEstimator.gps.lastUpdateTime) <= MS2US(INAV_GPS_TIMEOUT_MS)) &&
         (posEstimator.gps.eph < max_eph_epv)) {
-        if (posEstimator.gps.epv < max_eph_epv) {
+        if (posEstimator.gps.epv < max_eph_epv
+#ifdef USE_ORIENTATION_HOLD
+            // lock-quality gate for the Z axis: aerobatic attitudes shade
+            // the antenna and the reported epv lags the real degradation.
+            // The vertical solution degrades first on a thin constellation,
+            // so GPS altitude requires a MARGIN over the fix threshold
+            // (gps_min_sats keeps gating the fix/XY as before); below it
+            // the altitude stays baro-first
+            && gpsSol.numSat >= gpsConfig()->gpsMinSats + 2
+#endif
+        ) {
             newFlags |= EST_GPS_XY_VALID | EST_GPS_Z_VALID;
         }
         else {
