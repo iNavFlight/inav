@@ -78,6 +78,14 @@ static const orientationHoldPreset_t orientationHoldPresets[] = {
     { BOXKNIFELEFT,     -90.0f,  0.0f },
     { BOXKNIFERIGHT,     90.0f,  0.0f },
     { BOXPROPHANG,        0.0f, 90.0f },
+    // FLAT SPIN: its own flight mode like INVERTED. Roll and pitch are
+    // regulated FLAT while the pilot's rudder stick drives the
+    // autorotation (full stick saturates the yaw rate loop = full
+    // rudder, exactly like a real spin); releasing the rudder stops the
+    // rotation with the attitude still held flat, releasing the box
+    // recovers normally. No altitude assist: a spin descends by design
+    // (the altitude floor still preempts globally).
+    { BOXFSPIN,           0.0f,  0.0f },
 };
 
 static const orientationHoldPreset_t * orientationHoldActivePreset(void)
@@ -601,8 +609,10 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         // The altitude assist yields to a deliberate pitch input (same
         // pattern as the hover throttle stick override): the pilot owns the
         // altitude while the pitch stick is deflected, and the reference
-        // tracks so the release locks the NEW altitude.
-        if (fabsf(entryErr.x) < 25.0f && fabsf(entryErr.y) < 25.0f && pitchOffDeg == 0.0f) {
+        // tracks so the release locks the NEW altitude. The FLAT SPIN mode
+        // never gets the assist: a spin descends by design.
+        if (fabsf(entryErr.x) < 25.0f && fabsf(entryErr.y) < 25.0f && pitchOffDeg == 0.0f
+            && preset->box != BOXFSPIN) {
             const float assistDeg = figureAltitudeAssistDeg(preset->pitchDeg + pitchTrim, holdRefAltCm);
             orientationHoldTargetFromRP(&qDesired, preset->rollDeg, preset->pitchDeg + pitchTrim + assistDeg);
         } else {

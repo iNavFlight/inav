@@ -73,6 +73,12 @@ typedef enum {
                              // segment catches the attitude afterwards
     FIGSEG_WAIT_POS = 7,     // airspace containment: bank toward HOME until
                              // distance < p1 m; p2: max bank deg (0 = 30)
+    FIGSEG_SPIN = 8,         // controlled flat spin: roll/pitch CLOSED LOOP
+                             // on the flat attitude, rudder open loop for
+                             // the autorotation. p1: full turns (sign =
+                             // direction), p2: rudder % (0 = 100),
+                             // p3: timeout ms (0 = 15000). Enter stalled
+                             // via a preceding IMPULSE segment.
     FIGSEG_TYPE_COUNT
 } figureSegmentType_e;
 
@@ -109,3 +115,8 @@ bool figureSequencerGetRateCommand(float ratesNorm[3]);
 // True while a WAIT_POS segment banks toward home; returns the commanded
 // bank (deg) for coordinated-turn rate feedforward
 bool figureSequencerGetTurnBank(float *bankDeg);
+
+// True while a SPIN segment runs; returns the open-loop rudder command
+// normalized to -1..1. Roll and pitch stay CLOSED LOOP on the flat
+// attitude while this is active - only the yaw axis goes open loop.
+bool figureSequencerGetSpinCommand(float *yawNorm);

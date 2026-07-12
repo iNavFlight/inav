@@ -762,8 +762,19 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
     // must not also feed roll/pitch as rate commands -- yaw stays a rate,
     // it is the free axis
     const bool stickOffsets = orientationHoldSticksAreTargetOffsets();
+    // controlled flat spin (figure SPIN segment): the rudder goes open loop
+    // for the autorotation while roll and pitch stay CLOSED loop on the
+    // flat target attitude
+    float spinYawNorm;
+    const bool spinYaw = figureSequencerGetSpinCommand(&spinYawNorm);
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        if (spinYaw && axis == FD_YAW) {
+            pidStates[FD_YAW].rateTarget = constrainf(
+                spinYawNorm * currentControlProfile->stabilized.rates[FD_YAW] * 10.0f,
+                -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+            continue;
+        }
         // Same gain and rate limit handling as pidLevel()
         float rateTarget = constrainf(errDeg.v[axis] * levelGainScale * (pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
                                       -currentControlProfile->stabilized.rates[axis] * 10.0f,

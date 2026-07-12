@@ -90,6 +90,11 @@ static bool seqImpulseActive;
 static float seqImpulseRates[3];
 static bool seqTurnCoordination;
 static float seqTurnBankDeg;
+static bool seqSpinActive;
+static float seqSpinYawNorm;
+static bool seqSpinTracking;    // turn counter armed
+static float seqSpinTurnDeg;    // accumulated (wrap-aware) yaw rotation
+static float seqSpinPrevYawDeg;
 
 static figureType_e requestedFigure(void)
 {
@@ -150,6 +155,7 @@ void figureSequencerUpdate(void)
         startAltitudeCm = getEstimatedActualPosition(Z);
         seqIndex = 0;
         seqSegStartMs = startTimeMs;
+        seqSpinTracking = false;
         seqBaseRoll = 0.0f;
         seqBasePitch = 0.0f;
         seqSegAltCm = startAltitudeCm;
@@ -161,6 +167,7 @@ void figureSequencerUpdate(void)
     bool assist = false;
     seqImpulseActive = false;   // recomputed below while an IMPULSE runs
     seqTurnCoordination = false;
+    seqSpinActive = false;      // recomputed below while a SPIN runs
 
     switch (activeFigure) {
         case FIGURE_ROLL: {
@@ -272,6 +279,41 @@ void figureSequencerUpdate(void)
                         segDone = tSeg * 1000.0f >= seg->p3;
                         break;
 
+                    case FIGSEG_SPIN: {
+                        // controlled flat spin: roll and pitch stay CLOSED
+                        // LOOP on the flat attitude (the controller actively
+                        // keeps the plane flat and damps the wobble) while
+                        // the rudder is held open loop for the autorotation.
+                        // The segment ends after p1 full turns or the p3
+                        // timeout; the altitude floor preempts globally.
+                        seqSpinActive = true;
+                        seqSpinYawNorm = ((seg->p2 != 0) ? constrainf(seg->p2, -100, 100) : 100.0f)
+                                         * 0.01f * (seg->p1 < 0 ? -1.0f : 1.0f);
+                        seqBaseRoll = 0.0f;
+                        seqBasePitch = 0.0f;
+                        roll = 0.0f;
+                        pitch = 0.0f;
+                        assist = false;      // the spin descends by design
+                        const float yawDeg = DECIDEGREES_TO_DEGREES((float)attitude.values.yaw);
+                        if (!seqSpinTracking) {
+                            seqSpinTracking = true;
+                            seqSpinTurnDeg = 0.0f;
+                        } else {
+                            float d = yawDeg - seqSpinPrevYawDeg;
+                            while (d > 180.0f) { d -= 360.0f; }
+                            while (d < -180.0f) { d += 360.0f; }
+                            seqSpinTurnDeg += d;
+                        }
+                        seqSpinPrevYawDeg = yawDeg;
+                        const float timeoutMs = (seg->p3 > 0) ? seg->p3 : 15000.0f;
+                        segDone = fabsf(seqSpinTurnDeg) >= ABS(seg->p1) * 360.0f
+                               || tSeg * 1000.0f >= timeoutMs;
+                        if (segDone) {
+                            seqSpinTracking = false;
+                        }
+                        break;
+                    }
+
                     case FIGSEG_WAIT_POS: {
                         // airspace containment: bank toward HOME until the
                         // distance drops below the radius. The course loop
@@ -376,6 +418,15 @@ bool figureSequencerGetRateCommand(float ratesNorm[3])
     for (int i = 0; i < 3; i++) {
         ratesNorm[i] = seqImpulseRates[i];
     }
+    return true;
+}
+
+bool figureSequencerGetSpinCommand(float *yawNorm)
+{
+    if (!seqSpinActive) {
+        return false;
+    }
+    *yawNorm = seqSpinYawNorm;
     return true;
 }
 

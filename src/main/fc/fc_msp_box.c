@@ -119,6 +119,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXFIGPOINTROLL,     .boxName = "F 4PT",   .permanentId = 76 },
     { .boxId = BOXFIGSEQ,           .boxName = "F SEQ",        .permanentId = 77 },
     { .boxId = BOXATTLOCK,          .boxName = "3DLOCK",           .permanentId = 78 },
+    { .boxId = BOXFSPIN,            .boxName = "FLAT SPIN",        .permanentId = 79 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -304,6 +305,7 @@ void initActiveBoxIds(void)
             ADD_ACTIVE_BOX(BOXFIGPOINTROLL);
             ADD_ACTIVE_BOX(BOXFIGSEQ);
             ADD_ACTIVE_BOX(BOXATTLOCK);
+            ADD_ACTIVE_BOX(BOXFSPIN);
 #endif
         }
     }
@@ -482,6 +484,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFIGPOINTROLL)),    BOXFIGPOINTROLL);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFIGSEQ)),          BOXFIGSEQ);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXATTLOCK)),         BOXATTLOCK);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFSPIN)),           BOXFSPIN);
 #endif
 
 #ifdef USE_SERIAL_GIMBAL
