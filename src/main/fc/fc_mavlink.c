@@ -243,12 +243,18 @@ mavlinkFcDispatchResult_e mavlinkFcDispatchIncomingMessage(uint8_t ingressPortIn
     switch (mavlinkContext.recvMsg.msgid) {
     case MAVLINK_MSG_ID_HEARTBEAT:
         return mavlinkHandleIncomingHeartbeat() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_PING:
+        return mavlinkHandleIncomingPing() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_TIMESYNC:
+        return mavlinkHandleIncomingTimesync() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
         return handleIncoming_PARAM_REQUEST_LIST() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_COMMAND_LONG:
         return mavlinkHandleIncomingCommandLong() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_COMMAND_INT:
         return mavlinkHandleIncomingCommandInt() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
+        return mavlinkHandleIncomingRequestDataStream() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
         handleIncoming_RC_CHANNELS_OVERRIDE();
         return MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY;
