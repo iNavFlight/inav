@@ -119,9 +119,12 @@ for complete documentation on using JavaScript to program your flight controller
 | 54            | Mag calibration               | Trigger a magnetometer calibration. |
 | 55            | Set Gimbal Sensitivity        | Scales `Operand A` from [`-16` : `15`]
 | 56            | Override Minimum Ground Speed | When active, sets the minimum ground speed to the value specified in `Operand A` [m/s]. Minimum allowed value is set in `nav_min_ground_speed`. Maximum value is `150` |
+| 57            | Set Altitude Target           | Sets the navigation altitude target. `Operand A` selects the altitude datum and `Operand B` supplies the target altitude in centimetres. |
 | 58            | Trigonometry: ACos            | Computes ACOS of (`Operand A` / `Operand B`) using the fast approximation. If `Operand B` is `0`, `1000` is used. Input is clamped to [-1, 1] and the result is returned in degrees. |
 | 59            | Trigonometry: ASin            | Computes ASIN of (`Operand A` / `Operand B`) using the fast approximation. If `Operand B` is `0`, `1000` is used. Input is clamped to [-1, 1] and the result is returned in degrees. |
 | 60            | Trigonometry: ATan2           | Computes ATAN2 using `Operand A` as Y and `Operand B` as X with the fast approximation. Returns a signed angle in degrees in `(-180, 180]`. |
+| 61            | Activate RTH                  | While armed, activates normal return-to-home mode through the same mode selector path as RC RTH. Returns true when RTH mode is accepted. |
+| 62            | Activate Landing              | While armed with usable navigation estimates, commands a normal landing at the current position through the waypoint LAND path. This is not emergency landing. |
 
 ### Operands
 
