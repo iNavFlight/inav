@@ -4552,6 +4552,26 @@ Waypoint radius [cm]. Waypoint would be considered reached if machine is within 
 
 ---
 
+### ohold_assist_thr_i
+
+Knife edge / inverted throttle assist: trim rate, throttle us per m/s of climb per second. The assist slowly trims the throttle around the pilot's stick until the hold stops sinking (or climbing). 0 disables the assist.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 0 | 255 |
+
+---
+
+### ohold_assist_thr_p
+
+Knife edge / inverted throttle assist: damping term, throttle us per m/s of climb rate
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 40 | 0 | 255 |
+
+---
+
 ### ohold_entry_rate
 
 Target slew rate [deg/s] for entering an orientation hold preset (INVERTED, KNIFE EDGE, PROP HANG). The entry rolls the hold target from the current attitude to the preset at this rate; figures keep their own fig_roll_rate / fig_loop_rate
