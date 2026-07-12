@@ -89,6 +89,7 @@ static bool hoverActive = false;
 static bool hoverLatched = false;
 static float targetAltCm;
 static float iTermUs;
+static int16_t stickRefUs;
 static timeUs_t lastUpdateUs;
 
 // ---- Knife/inverted throttle assist ----------------------------------------
@@ -161,8 +162,18 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
     const float elevGate = hoverActive ? HOVER_RELEASE_NOSE_ELEVATION_DEG
                                        : HOVER_ENGAGE_NOSE_ELEVATION_DEG;
 
+    // The altitude ownership follows the ATTITUDE, not the selected box:
+    // above the elevation gate the thrust carries the weight (T*sin(alpha))
+    // and the hover controller owns the altitude - also when the pilot
+    // pulled a knife edge or inverted hold up into a harrier with the stick
+    // offsets. Below the gate the vz trim is the (indirect) energy path.
+    // This is the alpha continuum: knife -> harrier -> hover is one
+    // mechanism whose direct-thrust share is the tilt compensation.
+    const bool thrustAxisHold = orientationHoldIsPropHang()
+                             || orientationHoldIsKnifeOrInverted();
+
     if (!ARMING_FLAG(ARMED)
-        || !orientationHoldIsPropHang()
+        || !thrustAxisHold
         || !navIsAltitudeEstimateTrusted()
         || elevDeg < elevGate) {
         hoverActive = false;
@@ -183,20 +194,6 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
         return pilotThrottle;
     }
 
-    // pilot throttle outside the mid deadband: a climb-rate command, the
-    // controller keeps the throttle (see HOVER_STICK_CLIMB_MS). The stick
-    // maps linearly beyond the deadband, full deflection = full rate.
-    float stickClimbMs = 0.0f;
-    const int16_t stickOff = pilotThrottle - PWM_RANGE_MIDDLE;
-    if (ABS(stickOff) > rcControlsConfig()->mid_throttle_deadband) {
-        const float span = (PWM_RANGE_MAX - PWM_RANGE_MIDDLE) - rcControlsConfig()->mid_throttle_deadband;
-        const float beyond = (float)(ABS(stickOff) - rcControlsConfig()->mid_throttle_deadband);
-        stickClimbMs = constrainf(beyond / MAX(span, 1.0f), 0.0f, 1.0f) * HOVER_STICK_CLIMB_MS;
-        if (stickOff < 0) {
-            stickClimbMs = -stickClimbMs;
-        }
-    }
-
     if (!hoverActive) {
         hoverActive = true;
         hoverLatched = false;
@@ -204,7 +201,25 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
         // seed the I-term with the last pilot throttle: learns the model's
         // hover throttle online instead of requiring a setting
         iTermUs = pilotThrottle;
+        // the climb-rate stick references the ENGAGE position: entering the
+        // hover regime out of a knife/harrier pull-up at cruise throttle
+        // must not read as a climb command
+        stickRefUs = pilotThrottle;
         lastUpdateUs = micros();
+    }
+
+    // pilot throttle outside the deadband around the engage reference: a
+    // climb-rate command, the controller keeps the throttle (see
+    // HOVER_STICK_CLIMB_MS). Linear beyond the deadband, full = full rate.
+    float stickClimbMs = 0.0f;
+    const int16_t stickOff = pilotThrottle - stickRefUs;
+    if (ABS(stickOff) > rcControlsConfig()->mid_throttle_deadband) {
+        const float span = (PWM_RANGE_MAX - PWM_RANGE_MIDDLE) - rcControlsConfig()->mid_throttle_deadband;
+        const float beyond = (float)(ABS(stickOff) - rcControlsConfig()->mid_throttle_deadband);
+        stickClimbMs = constrainf(beyond / MAX(span, 1.0f), 0.0f, 1.0f) * HOVER_STICK_CLIMB_MS;
+        if (stickOff < 0) {
+            stickClimbMs = -stickClimbMs;
+        }
     }
 
     const timeUs_t nowUs = micros();
