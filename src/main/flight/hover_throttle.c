@@ -43,6 +43,7 @@
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
+#include "flight/altitude_floor.h"
 #include "flight/hover_throttle.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -52,6 +53,8 @@
 #include "navigation/navigation.h"
 
 #include "rx/rx.h"
+
+#include "sensors/battery.h"
 
 PG_REGISTER_WITH_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig, PG_HOVER_THROTTLE_CONFIG, 2);
 
@@ -239,6 +242,17 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
             return knifeInvertedAssistApply(pilotThrottle, elevDeg);
         }
         assistActive = false;
+        // the altitude floor recovery must not climb on whatever throttle
+        // the pilot froze in the dive (a panic chop leaves idle): the climb
+        // gets at least the airframe's cruise throttle plus the standard
+        // pitch-to-throttle compensation for the recovery climb angle -
+        // more pilot throttle always wins
+        if (ARMING_FLAG(ARMED) && altitudeFloorRecoveryActive()) {
+            const int16_t climbThrottle = currentBatteryProfile->nav.fw.cruise_throttle
+                + lrintf(altitudeFloorRecoveryPitchDeg() * currentBatteryProfile->nav.fw.pitch_to_throttle);
+            return constrain(MAX(pilotThrottle, climbThrottle),
+                             getThrottleIdleValue(), getMaxThrottle());
+        }
         return pilotThrottle;
     }
     assistActive = false;

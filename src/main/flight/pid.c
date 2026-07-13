@@ -43,6 +43,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/altitude_floor.h"
 #include "flight/figure_sequencer.h"
 #include "flight/mixer_profile.h"
 #include "flight/orientation_hold.h"
@@ -760,8 +761,11 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
     const float levelGainScale = orientationHoldLevelGainScale();
     // when the sticks act as target offsets (preset holds), the rate path
     // must not also feed roll/pitch as rate commands -- yaw stays a rate,
-    // it is the free axis
-    const bool stickOffsets = orientationHoldSticksAreTargetOffsets();
+    // it is the free axis. The altitude floor recovery suppresses them too:
+    // it must catch AGAINST a panic-held down-elevator (the pilot override
+    // is switching the floor box off), yaw stays live for steering
+    const bool stickOffsets = orientationHoldSticksAreTargetOffsets()
+                           || altitudeFloorRecoveryActive();
     // controlled spin (FLAT SPIN family or figure SPIN segment): the spin
     // command is a rotation about the EARTH VERTICAL - exactly the axis the
     // reduced attitude error leaves free - distributed onto the body axes

@@ -46,6 +46,7 @@
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
+#include "flight/altitude_floor.h"
 #include "flight/crash_detection.h"
 #include "flight/hover_throttle.h"
 #include "flight/imu.h"
@@ -688,6 +689,14 @@ motorStatus_e getMotorStatus(void)
     const bool fixedWingOrAirmodeNotActive = STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE);
 
     if (throttleStickIsLow() && fixedWingOrAirmodeNotActive) {
+#ifdef USE_ORIENTATION_HOLD
+        // the altitude floor recovery climbs on its own throttle floor - a
+        // panic-chopped stick must not stop the motor that climb needs (the
+        // same override navigation gets via nav_overrides_motor_stop)
+        if (STATE(AIRPLANE) && altitudeFloorRecoveryActive()) {
+            return MOTOR_RUNNING;
+        }
+#endif
         if ((navConfig()->general.flags.nav_overrides_motor_stop == NOMS_OFF_ALWAYS) && failsafeIsActive()) {
             // If we are in failsafe and user was holding stick low before it was triggered and nav_overrides_motor_stop is set to OFF_ALWAYS
             // and either on a plane or on a quad with inactive airmode - stop motor
