@@ -43,11 +43,14 @@
 #include "flight/crash_detection.h"
 #include "flight/mixer.h"
 
+#include "io/gps.h"
+
 #include "navigation/navigation.h"
 
 #include "rx/rx.h"
 
 #include "sensors/acceleration.h"
+#include "sensors/barometer.h"
 #include "sensors/gyro.h"
 
 PG_REGISTER_WITH_RESET_TEMPLATE(crashDetectionConfig_t, crashDetectionConfig, PG_CRASH_DETECTION_CONFIG, 0);
@@ -64,12 +67,26 @@ PG_RESET_TEMPLATE(crashDetectionConfig_t, crashDetectionConfig,
 #define CRASH_INFLIGHT_HOLD_S        1.0f
 
 // Impact -> stillness confirmation window. A flying aircraft is never
-// still, so aggressive maneuvers (snap, spin, gust) cannot confirm.
-#define CRASH_WINDOW_S               2.0f
-#define CRASH_STILL_RATE_DPS         25.0f
-#define CRASH_STILL_ACC_G_LO         0.7f
-#define CRASH_STILL_ACC_G_HI         1.3f
-#define CRASH_STILL_CONFIRM_S        0.5f
+// still, so aggressive maneuvers (snap, spin, gust) cannot confirm; the
+// window must close before the post-figure flight smooths out (a level
+// line a few seconds after a hard snap IS rate-still and 1 g).
+#define CRASH_WINDOW_S               3.0f
+// Stillness must exclude QUASI-STEADY FLIGHT, not only maneuvering: a
+// smooth mushing climb also has low rates and ~1 g (found as a false
+// positive in SITL - a hard pull spiked the impact latch and the steady
+// climb after it read as "lying still"). The vertical-motion condition is
+// the discriminator: a crashed aircraft has a FROZEN baro, flight does
+// not. The RAW baro rate is used, not the fused vertical speed: the
+// impact spike corrupts the INS for ~4.5 s (bench-measured, 12 g pulse),
+// far beyond the window, while the baro is honest half a second after
+// the airframe stops.
+#define CRASH_STILL_RATE_DPS         15.0f
+#define CRASH_STILL_ACC_G_LO         0.9f
+#define CRASH_STILL_ACC_G_HI         1.1f
+#define CRASH_STILL_VZ_CMS          100.0f
+#define CRASH_STILL_CONFIRM_S        1.0f
+#define CRASH_BARO_RATE_TAU_S        0.5f
+#define CRASH_STILL_GS_CMS           300
 
 static bool inFlight = false;
 static float inFlightTimerS;
@@ -77,6 +94,22 @@ static float impactWindowS;
 static float stillTimerS;
 static bool motorCut = false;
 static bool cutAckLow = false;
+static float baroRateCms;
+static float lastBaroAltCm;
+
+static float crashVerticalRateCms(float dT)
+{
+#ifdef USE_BARO
+    if (sensors(SENSOR_BARO)) {
+        const float baroAltCm = baro.BaroAlt;
+        const float rawRate = (baroAltCm - lastBaroAltCm) / dT;
+        lastBaroAltCm = baroAltCm;
+        baroRateCms += (rawRate - baroRateCms) * MIN(dT / CRASH_BARO_RATE_TAU_S, 1.0f);
+        return baroRateCms;
+    }
+#endif
+    return getEstimatedActualVelocity(Z);
+}
 
 void crashDetectionUpdate(float dT)
 {
@@ -89,6 +122,10 @@ void crashDetectionUpdate(float dT)
         stillTimerS = 0.0f;
         motorCut = false;
         cutAckLow = false;
+        baroRateCms = 0.0f;
+#ifdef USE_BARO
+        lastBaroAltCm = baro.BaroAlt;
+#endif
         return;
     }
 
@@ -123,6 +160,8 @@ void crashDetectionUpdate(float dT)
         }
     }
 
+    const float vertRateCms = crashVerticalRateCms(dT);
+
     fpVector3_t accG;
     accGetMeasuredAcceleration(&accG);          // cm/s^2
     const float accMagG = fast_fsqrtf(sq(accG.x) + sq(accG.y) + sq(accG.z)) / GRAVITY_CMSS;
@@ -140,9 +179,20 @@ void crashDetectionUpdate(float dT)
     const float rateMagDps = fast_fsqrtf(sq((float)gyroRateDps(FD_ROLL))
                                        + sq((float)gyroRateDps(FD_PITCH))
                                        + sq((float)gyroRateDps(FD_YAW)));
-    const bool still = rateMagDps < CRASH_STILL_RATE_DPS
-                    && accMagG > CRASH_STILL_ACC_G_LO
-                    && accMagG < CRASH_STILL_ACC_G_HI;
+    bool still = rateMagDps < CRASH_STILL_RATE_DPS
+              && accMagG > CRASH_STILL_ACC_G_LO
+              && accMagG < CRASH_STILL_ACC_G_HI
+              && fabsf(vertRateCms) < CRASH_STILL_VZ_CMS;
+#ifdef USE_GPS
+    // a valid fix adds the discriminator IMU + baro cannot provide: a
+    // coordinated line or shallow turn right after a hard pull is
+    // rate-still, 1 g and baro-flat - but it MOVES, a crashed airframe
+    // does not. Without GPS (or without a fix) the g threshold has to
+    // separate figures from impacts on its own.
+    if (still && sensors(SENSOR_GPS) && gpsSol.fixType >= GPS_FIX_3D) {
+        still = gpsSol.groundSpeed < CRASH_STILL_GS_CMS;
+    }
+#endif
 
     if (still) {
         stillTimerS += dT;
