@@ -19,8 +19,10 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 #define MAVLINK_COMM_NUM_BUFFERS 1
-#include "common/mavlink.h"
+#include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
 
 void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg);
