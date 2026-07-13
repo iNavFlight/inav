@@ -116,7 +116,7 @@
 #undef USE_SPI
 
 // Some dummys
-#define TARGET_FLASH_SIZE 2048
+#define MCU_FLASH_SIZE 2048
 
 #define LED_STRIP_TIMER 1
 #define SOFTSERIAL_1_TIMER 2
