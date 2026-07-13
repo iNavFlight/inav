@@ -146,6 +146,11 @@ automatic level-off yet.
 
 ### Crash detection (`crash_g_threshold`)
 
+*Note: crash detection is a standalone feature (`USE_CRASH_DETECTION`),
+independent of the orientation-hold modes and intended for any platform
+including multirotors. It is described here for completeness but is being
+moved to its own pull request.*
+
 Problem being solved: after an unscheduled arrival the prop keeps
 churning until you walk over and disarm.
 
@@ -159,24 +164,97 @@ Without GPS, keep the threshold above your figures' g load - a smooth
 level line right after a hard pull is indistinguishable from lying
 still on IMU + baro alone.
 
-## Learned gains
+## Learned gains — do not hand-tune these
 
-Normal-flight gains are the reference. Each hold regime (hover;
-inverted/knife/figures) learns its own damping scale from its own limit
-cycles and persists it on disarm - fly a figure repeatedly and it gets
-better. No per-regime hand tuning.
+Four settings look like gains but are **written by the firmware, not by
+you**: `ohold_hover_gain`, `ohold_inverted_gain`, `ohold_knife_gain`,
+`ohold_figure_gain`. Each is a per-regime damping scale (in %) relative
+to your normal-flight PIDs. A limit-cycle detector watches for a buzz in
+that regime and backs the scale off, recovering slowly when the buzz is
+gone; the value is saved on disarm. Fly a hold or figure a few times and
+it settles itself. You only touch these to RESET them (set to 100) if
+you changed props/airframe and want the learner to start over. Leave
+them alone otherwise.
 
-## Setup order
+Everything else below is yours to set.
 
-1. Trim the airframe physically first (level trim, CG via the 45-degree
-   inverted test, per-side knife-edge coupling, thrust line, aileron
-   differential). Never paper over a bad CG with software trim.
-2. Set the per-attitude pitch trims from those flights.
-3. Let the hover gain learner converge (a few prop hangs).
-4. Then figure rates and the altitude assist.
+## First flights and tuning
 
-All `ohold_*`, `alt_floor_*`, `fig_*` and `crash_g_threshold` settings
-are documented in [Settings.md](Settings.md).
+Do this in order. Each step depends on the one before it being right;
+skipping ahead just moves the symptom.
+
+**Step 0 — bench, props off.** Run the level-1 MSP check (bench repo)
+and confirm on the ground: each hold box drives the surfaces the right
+way (roll the model by hand in INVERT, the ailerons should fight back to
+inverted), and the FLOOR box, when you fake a low altitude, commands
+nose-up. Wrong sign here is a reversed servo or a wrong mode range, not
+a gain.
+
+**Step 1 — trim the airframe physically. This is not optional.** In the
+order of the trimming checklist (see the bench repo quick guide):
+level trim; CG via the 45-degree inverted test (only a breath of down
+elevator should hold the line - move the battery, never the software);
+per-side knife-edge coupling; thrust line; aileron differential. Every
+later step assumes a trimmed airframe. A hold buzzing or a figure
+drifting almost always traces back to a trim you skipped here.
+
+**Step 2 — per-attitude pitch trims.** From those trim flights, set
+`ohold_inverted_pitch_trim`, and `ohold_knife_left_pitch_trim` /
+`ohold_knife_right_pitch_trim` separately (the sides are not symmetric).
+Symptom of too little: the hold sinks or the nose drops in that
+attitude. Too much: it balloons/climbs. Aim for a hold that neither
+climbs nor sinks with the sticks centered.
+
+**Step 3 — entry feel.** `ohold_entry_rate` (deg/s) is how fast the
+target rolls into a hold when you flip the box. Too slow feels mushy and
+lags your intent; too fast snaps and can overshoot on a heavy model.
+Start at the default and adjust to taste.
+
+**Step 4 — hover.** Hold a prop hang. `ohold_hover_thr_min` is the
+throttle floor that keeps prop-wash authority in updrafts - raise it if
+the model feels rudderless/limp at the top of the hover, lower it if it
+climbs when you back off. The hover altitude itself is a learned gain
+(step above) - give it a few hangs to settle. The throttle stick is a
+climb-rate command while hovering; a slammed-low stick is still a hard
+cut.
+
+**Step 5 — knife edge energy.** `ohold_knife_speed_ff` adds nose-up
+angle as throttle (the speed proxy) drops, so the edge holds height at
+low speed. Symptom of too little: the knife sinks as you slow down.
+Too much: the nose climbs and it balloons off the line. `ohold_stick_angle`
+is how far a full roll/pitch stick carves the held attitude off the
+preset - taste, larger = more authority to reshape the line by hand.
+
+**Step 6 — figures.** `fig_roll_rate`, `fig_loop_rate`,
+`fig_point_dwell` set the one-switch figure speeds. Loop radius follows
+from rate and speed (R = v / omega): halve `fig_loop_rate` for double
+the radius. The altitude assist (`fig_assist_z_gain`,
+`fig_assist_vz_gain`, `fig_assist_max`) holds the entry altitude through
+a figure - raise the gains if figures drift down, lower them if the
+model pumps altitude during a slow roll.
+
+**Step 7 — the safety floor.** Only once the above is trusted, set
+`alt_floor_altitude` (m above home) and `alt_floor_margin`. Test it high:
+climb above floor + margin, then push over and HOLD the down elevator -
+the floor must catch and level against the held stick.
+`alt_floor_climb_pitch` is the recovery climb angle.
+
+## Troubleshooting — symptom to setting
+
+| Symptom | Look at |
+| --- | --- |
+| Hold buzzes / oscillates in one attitude | first check trim (step 1); to reset a learned gain set the matching `ohold_*_gain` to 100 |
+| Inverted / knife sinks with sticks centered | that attitude's pitch trim too low; knife also `ohold_knife_speed_ff` |
+| Hold balloons / climbs | pitch trim too high |
+| Hover feels limp / rudderless up high | raise `ohold_hover_thr_min` |
+| Knife edge drops as it slows | raise `ohold_knife_speed_ff` |
+| Entry into a hold snaps / overshoots | lower `ohold_entry_rate` |
+| Loop too tight / too wide | `fig_loop_rate` (radius = speed / rate) |
+| Figure drifts down | raise `fig_assist_z_gain` / `fig_assist_max` |
+| Wrong surface direction in a hold | reversed servo or wrong mode range, not a gain (step 0) |
+| Floor does not catch | `alt_floor_altitude`/`margin`, and confirm it armed (climb above floor+margin once) |
+
+All settings with their exact ranges are in [Settings.md](Settings.md).
 
 ## Simulation
 
