@@ -28,16 +28,16 @@
 
 #include "config/parameter_group.h"
 
-// Crash detection for fixed wing: after an impact the motor otherwise keeps
-// running on the pilot's throttle. An impact (acceleration spike) followed
-// by stillness (no rotation, resting 1 g) within a short window CUTS the
-// motor while staying armed; the pilot re-allows it by moving the throttle
-// to zero and up again (short bursts help locating the aircraft in high
-// grass or corn). A flying aircraft is never still, so aggressive maneuvers
-// (snaps, spins, hard gusts) cannot trigger it - the stillness confirmation
-// is the filter. Only armed AFTER the aircraft is clearly in the air (hand
-// launch rule): nav launch completed, or throttle held above cruise level
-// for a moment.
+// Crash detection for any flying platform (fixed wing and multirotor):
+// after an impact the motor otherwise keeps running on the pilot's
+// throttle. An impact (acceleration spike) followed by stillness (no
+// rotation, resting 1 g) within a short window CUTS the motor while staying
+// armed; the pilot re-allows it by moving the throttle to zero and up again
+// (short bursts help locating the aircraft in high grass or corn). A flying
+// aircraft is never still, so aggressive maneuvers (snaps, spins, hard
+// gusts, freestyle) cannot trigger it - the stillness confirmation is the
+// filter. Only armed AFTER the aircraft is clearly in the air: a fixed-wing
+// hand launch, or throttle held above cruise for a moment (both platforms).
 
 typedef struct crashDetectionConfig_s {
     uint8_t crashGThreshold;       // impact threshold [g * 10]; 0 disables

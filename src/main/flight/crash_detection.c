@@ -113,8 +113,12 @@ static float crashVerticalRateCms(float dT)
 
 void crashDetectionUpdate(float dT)
 {
+    // Runs on anything that flies and can crash - fixed wing and
+    // multirotor alike (a crashed copter with its props chewing the ground
+    // or a bystander is exactly what the motor cut is for). Rovers and
+    // boats are excluded: an impact there is not a reason to cut the motor.
     if (crashDetectionConfig()->crashGThreshold == 0
-        || !STATE(AIRPLANE)
+        || !(STATE(AIRPLANE) || STATE(MULTIROTOR))
         || !ARMING_FLAG(ARMED)) {
         inFlight = false;
         inFlightTimerS = 0.0f;
@@ -145,7 +149,12 @@ void crashDetectionUpdate(float dT)
         return;
     }
 
-    // in-flight latch (hand launch rule)
+    // In-flight latch: the detector must not fire while the armed aircraft
+    // sits on the ground or is carried (it IS still then). It arms once the
+    // aircraft is clearly flying. The throttle-held rule is platform-general
+    // (a copter above hover, a plane under power); a fixed-wing hand launch
+    // arms it earlier via the launch state. GPS-less models are covered -
+    // this never depends on a position fix.
     if (!inFlight) {
         if (isNavLaunchEnabled()) {
             inFlight = fixedWingLaunchStatus() >= FW_LAUNCH_FLYING;

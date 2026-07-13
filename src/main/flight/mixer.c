@@ -595,13 +595,8 @@ void FAST_CODE mixTable(void)
         // hover throttle owns the altitude axis while PROP HANG is held
         mixerThrottleCommand = hoverThrottleApply(mixerThrottleCommand);
 #endif
-#ifdef USE_CRASH_DETECTION
-        // after a detected crash the motor stays cut until the pilot
-        // re-allows it (throttle to zero, then up again)
-        if (crashDetectionMotorCut()) {
-            mixerThrottleCommand = throttleIdleValue;
-        }
-#endif
+        // (a detected crash stops the motor via getMotorStatus() above, the
+        // only path that also holds a multirotor's PID-mixed motors down)
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = getMaxThrottle();
 
@@ -684,6 +679,18 @@ uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop)
 
 motorStatus_e getMotorStatus(void)
 {
+#ifdef USE_CRASH_DETECTION
+    // After a detected crash the motor stays cut until the pilot re-allows
+    // it. Stopping via the motor status (not just the throttle command) is
+    // what actually holds a MULTIROTOR still: the throttle command is added
+    // to the per-motor PID mix, so lowering it alone would let the attitude
+    // loops keep spinning motors on a crashed copter - the stopped status
+    // forces every motor to idle directly.
+    if (crashDetectionMotorCut()) {
+        return MOTOR_STOPPED_USER;
+    }
+#endif
+
     if (STATE(NAV_MOTOR_STOP_OR_IDLE)) {
         return MOTOR_STOPPED_AUTO;
     }
