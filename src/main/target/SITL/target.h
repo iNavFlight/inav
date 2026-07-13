@@ -83,6 +83,12 @@
 #define MAX_GEOZONES_IN_CONFIG 63
 #define MAX_VERTICES_IN_CONFIG 126
 
+// The orientation-hold aerobatics suite is flash-gated to > 512 KB in
+// common.h; SITL has no MCU_FLASH_SIZE, so enable it explicitly here (the
+// bench needs it), same as USE_GEOZONE above.
+#define USE_ORIENTATION_HOLD
+#define USE_THRUST_VECTORING
+
 #undef USE_GYRO_KALMAN // Strange behaviour under x86/x64 ?!?
 #undef USE_VCP
 #undef USE_PPM
