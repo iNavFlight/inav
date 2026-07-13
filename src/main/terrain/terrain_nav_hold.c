@@ -39,6 +39,8 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
+#include "flight/imu.h"
+
 #include "io/gps.h"
 
 #include "navigation/navigation.h"
@@ -137,7 +139,10 @@ static void terrainNavHoldRunQueries(timeMs_t currentTimeMs)
     queryAglValid = terrainNavGetAGLCm(&queryAglCm);
     queryLookaheadValid = false;
 
-    if (terrainNavConfig()->lookaheadDistM == 0 || gpsSol.groundSpeed < TERRAIN_NAV_HOLD_MIN_LOOKAHEAD_SPEED_CM_S) {
+    // No course to scan along: lookahead disabled by config, too slow for a
+    // usable course over ground, or the heading estimate itself is invalid
+    // (the cog would be stale - never scan a direction we cannot trust)
+    if (terrainNavConfig()->lookaheadDistM == 0 || gpsSol.groundSpeed < TERRAIN_NAV_HOLD_MIN_LOOKAHEAD_SPEED_CM_S || !isImuHeadingValid()) {
         return;
     }
 
@@ -188,6 +193,7 @@ void terrainNavCruiseHoldUpdate(void)
     in.currentZCm = navGetCurrentActualPositionAndVelocity()->pos.z;
     in.lookaheadValid = queryLookaheadValid;
     in.lookaheadClimbCm = queryLookaheadClimbCm;
+    in.lookaheadDegraded = terrainNavConfig()->lookaheadDistM != 0 && !isImuHeadingValid();
     in.minAglCm = terrainNavConfig()->minAglCm;
     in.maxAltCm = navConfig()->general.max_altitude;
 

@@ -49,6 +49,7 @@ typedef enum {
     TERRAIN_NAV_HOLD_WARN_DATA_LOST,    // frozen: holding last altitude on stale map data
     TERRAIN_NAV_HOLD_WARN_MAX_ALT,      // terrain needs more altitude than nav_max_altitude allows
     TERRAIN_NAV_HOLD_WARN_PULL_UP,      // capped at nav_max_altitude AND below the minimum AGL
+    TERRAIN_NAV_HOLD_WARN_NO_HEADING,   // heading estimate invalid: lookahead off, reactive hold continues
 } terrainNavHoldWarning_e;
 
 typedef struct {
@@ -61,6 +62,7 @@ typedef struct {
     float currentZCm;           // current altitude in the local frame (same frame as the target funnel)
     bool lookaheadValid;        // lookahead answer available
     float lookaheadClimbCm;     // worst height deficit along the path ahead (>= 0)
+    bool lookaheadDegraded;     // lookahead wanted but unavailable for an abnormal reason (heading estimate invalid) - warn the pilot
     int32_t minAglCm;           // configured minimum AGL
     int32_t maxAltCm;           // nav_max_altitude in the same frame, 0 = no ceiling
 } terrainNavHoldInput_t;

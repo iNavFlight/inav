@@ -39,6 +39,13 @@ static void computeTarget(terrainNavHoldState_t *state, const terrainNavHoldInpu
     // above ground we have and the one we are holding
     float targetZCm = in->currentZCm + (state->targetAglCm - in->aglCm);
 
+    // The lookahead cannot scan ahead (heading estimate invalid) - the
+    // reactive hold keeps tracking, but the pilot loses the early-climb
+    // layer and must be told. The ceiling warnings below override this one
+    if (in->lookaheadDegraded) {
+        out->warning = TERRAIN_NAV_HOLD_WARN_NO_HEADING;
+    }
+
     // Lookahead: if terrain ahead demands more, climb early so the worst
     // point along the path still clears the minimum AGL
     if (in->lookaheadValid && in->lookaheadClimbCm > 0.0f) {

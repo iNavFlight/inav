@@ -6281,6 +6281,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     case TERRAIN_NAV_HOLD_WARN_PULL_UP:
                         ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_PULL_UP));
                         break;
+                    case TERRAIN_NAV_HOLD_WARN_NO_HEADING:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_NO_HEADING));
+                        break;
                     case TERRAIN_NAV_HOLD_WARN_NONE:
                         break;
                 }
