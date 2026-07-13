@@ -4515,7 +4515,7 @@ groups:
         min: 5
         max: 500
       - name: alt_floor_margin
-        description: "Margin above the altitude floor [m] to arm the floor after takeoff and to release the recovery"
+        description: "Margin above the altitude floor [m]: the floor arms after climbing above floor + margin once, and the recovery climb ends there - back above floor + margin and climbing, control returns to the pilot. A roll/pitch input after the catch (sticks centered once first) releases the recovery immediately."
         default_value: 10
         field: floorMargin
         min: 2

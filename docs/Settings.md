@@ -414,7 +414,7 @@ Nose up pitch target [deg] flown during altitude floor recovery
 
 ### alt_floor_margin
 
-Margin above the altitude floor [m] to arm the floor after takeoff and to release the recovery
+Margin above the altitude floor [m]: the floor arms after climbing above floor + margin once, and the recovery climb ends there - back above floor + margin and climbing, control returns to the pilot. A roll/pitch input after the catch (sticks centered once first) releases the recovery immediately.
 
 | Default | Min | Max |
 | --- | --- | --- |

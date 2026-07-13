@@ -34,6 +34,7 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
@@ -58,6 +59,7 @@ PG_RESET_TEMPLATE(altitudeFloorConfig_t, altitudeFloorConfig,
 
 static bool floorArmed = false;      // climbed above floor + margin once
 static bool floorRecovery = false;
+static bool sticksSeenCentered = false;
 
 void altitudeFloorUpdate(void)
 {
@@ -85,10 +87,23 @@ void altitudeFloorUpdate(void)
         // Predictive engage: catch before the floor, not at it
         if (vz < 0.0f && (z + vz * ALT_FLOOR_LOOKAHEAD_S) < floorCm) {
             floorRecovery = true;
+            sticksSeenCentered = false;
         }
     } else {
-        // Release when back above floor + margin and climbing
+        // Release when back above floor + margin and climbing - the climb
+        // ends at the margin, it does not run away upward
         if (z > (floorCm + marginCm) && vz > 0.0f) {
+            floorRecovery = false;
+        }
+        // ... or when the pilot takes over after the catch: the sticks must
+        // return to center ONCE first (the panic-held down-elevator from
+        // the dive is not a takeover), a fresh roll/pitch deflection then
+        // hands control back immediately. Yaw stays steering, not release.
+        const bool deflected = ABS(rcCommand[ROLL]) > rcControlsConfig()->deadband
+                            || ABS(rcCommand[PITCH]) > rcControlsConfig()->deadband;
+        if (!sticksSeenCentered) {
+            sticksSeenCentered = !deflected;
+        } else if (deflected) {
             floorRecovery = false;
         }
     }
