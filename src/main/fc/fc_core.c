@@ -258,20 +258,21 @@ static void updateArmingStatus(void)
         }
 
         /* CHECK: CPU load */
+        if (isSystemOverloaded()
 #if defined(SITL_BUILD)
-        /* A SITL loop is paced by the simulator frame stream (lockstep:
-         * exactly one 1 kHz tick per injected frame), not by the wall
-         * clock - host load reads as a scheduler backlog and would block
-         * arming with a false SYSTEM_OVERLOADED. */
-        DISABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
-#else
-        if (isSystemOverloaded()) {
+            /* Under --lockstep the loop is paced by the simulator frame
+             * stream (exactly one 1 kHz tick per injected frame), not by
+             * the wall clock - host load reads as a scheduler backlog and
+             * would block arming with a false SYSTEM_OVERLOADED. Default
+             * SITL keeps the stock check. */
+            && !sitlLockstepEnabled
+#endif
+            ) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
         }
         else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
         }
-#endif
 
         /* CHECK: Navigation safety */
         if (navigationIsBlockingArming(NULL) != NAV_ARMING_BLOCKER_NONE) {
