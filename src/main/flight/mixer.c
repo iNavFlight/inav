@@ -590,15 +590,17 @@ void FAST_CODE mixTable(void)
         }
 #endif
     } else {
+        mixerThrottleCommand = rcCommand[THROTTLE];
 #ifdef USE_ORIENTATION_HOLD
-        // hover throttle owns the altitude axis while PROP HANG is held;
+        // hover throttle owns the altitude axis while PROP HANG is held
+        mixerThrottleCommand = hoverThrottleApply(mixerThrottleCommand);
+#endif
+#ifdef USE_CRASH_DETECTION
         // after a detected crash the motor stays cut until the pilot
         // re-allows it (throttle to zero, then up again)
-        mixerThrottleCommand = crashDetectionMotorCut()
-                             ? throttleIdleValue
-                             : hoverThrottleApply(rcCommand[THROTTLE]);
-#else
-        mixerThrottleCommand = rcCommand[THROTTLE];
+        if (crashDetectionMotorCut()) {
+            mixerThrottleCommand = throttleIdleValue;
+        }
 #endif
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = getMaxThrottle();

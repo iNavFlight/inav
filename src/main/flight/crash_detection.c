@@ -27,7 +27,7 @@
 
 #include <platform.h>
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_CRASH_DETECTION
 
 #include "common/maths.h"
 #include "common/vector.h"
@@ -211,4 +211,4 @@ bool crashDetectionMotorCut(void)
     return motorCut;
 }
 
-#endif // USE_ORIENTATION_HOLD
+#endif // USE_CRASH_DETECTION

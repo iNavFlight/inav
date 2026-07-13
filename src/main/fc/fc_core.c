@@ -1010,7 +1010,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     processPilotAndFailSafeActions(dT);
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_CRASH_DETECTION
     // impact followed by stillness stops the motor (hand-launch aware)
     crashDetectionUpdate(dT);
 #endif

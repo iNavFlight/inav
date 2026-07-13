@@ -76,6 +76,10 @@
 #define USE_EXTENDED_CMS_MENUS
 #define USE_ORIENTATION_HOLD
 #define USE_THRUST_VECTORING
+// Crash detection (impact + stillness -> motor cut) is small and useful on
+// any platform, not only with the orientation-hold modes, so it is its own
+// feature.
+#define USE_CRASH_DETECTION
 
 // Allow default rangefinders
 #define USE_RANGEFINDER
