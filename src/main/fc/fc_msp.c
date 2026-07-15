@@ -561,7 +561,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, customServoMixers(i)->targetChannel);
             sbufWriteU8(dst, customServoMixers(i)->inputSource);
             sbufWriteU16(dst, customServoMixers(i)->rate);
-            sbufWriteU8(dst, customServoMixers(i)->speed);
+            sbufWriteU8(dst, MIN(customServoMixers(i)->speed, 255));  // legacy message stays 8-bit, clamped
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 100);
             sbufWriteU8(dst, 0);
@@ -584,7 +584,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, customServoMixers(i)->targetChannel);
             sbufWriteU8(dst, customServoMixers(i)->inputSource);
             sbufWriteU16(dst, customServoMixers(i)->rate);
-            sbufWriteU8(dst, customServoMixers(i)->speed);
+            sbufWriteU8(dst, MIN(customServoMixers(i)->speed, 255));  // legacy message stays 8-bit, clamped
         #ifdef USE_PROGRAMMING_FRAMEWORK
             sbufWriteU8(dst, customServoMixers(i)->conditionId);
         #else
@@ -596,7 +596,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].targetChannel);
             sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].inputSource);
             sbufWriteU16(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].rate);
-            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].speed);
+            sbufWriteU8(dst, MIN(mixerServoMixersByIndex(nextMixerProfileIndex)[i].speed, 255));  // legacy message stays 8-bit, clamped
         #ifdef USE_PROGRAMMING_FRAMEWORK
             sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].conditionId);
         #else

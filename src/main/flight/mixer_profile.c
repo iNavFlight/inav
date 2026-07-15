@@ -37,7 +37,7 @@ bool isMixerTransitionMixing_requested;
 mixerProfileAT_t mixerProfileAT;
 int nextMixerProfileIndex;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 2);
 
 void pgResetFn_mixerProfiles(mixerProfile_t *instance)
 {
