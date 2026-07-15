@@ -30,6 +30,7 @@
 #ifdef USE_CRASH_DETECTION
 
 #include "common/maths.h"
+#include "common/utils.h"
 #include "common/vector.h"
 
 #include "config/parameter_group.h"
@@ -94,8 +95,10 @@ static float impactWindowS;
 static float stillTimerS;
 static bool motorCut = false;
 static bool cutAckLow = false;
+#ifdef USE_BARO
 static float baroRateCms;
 static float lastBaroAltCm;
+#endif
 
 static float crashVerticalRateCms(float dT)
 {
@@ -107,6 +110,8 @@ static float crashVerticalRateCms(float dT)
         baroRateCms += (rawRate - baroRateCms) * MIN(dT / CRASH_BARO_RATE_TAU_S, 1.0f);
         return baroRateCms;
     }
+#else
+    UNUSED(dT);   // no-baro builds fall through to the fused estimate
 #endif
     return getEstimatedActualVelocity(Z);
 }
@@ -126,8 +131,8 @@ void crashDetectionUpdate(float dT)
         stillTimerS = 0.0f;
         motorCut = false;
         cutAckLow = false;
-        baroRateCms = 0.0f;
 #ifdef USE_BARO
+        baroRateCms = 0.0f;
         lastBaroAltCm = baro.BaroAlt;
 #endif
         return;
