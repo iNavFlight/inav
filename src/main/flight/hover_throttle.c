@@ -47,6 +47,8 @@
 #include "flight/hover_throttle.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+
+#include "sensors/acceleration.h"
 #include "flight/orientation_hold.h"
 #include "flight/pid.h"
 
@@ -56,17 +58,36 @@
 
 #include "sensors/battery.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig, PG_HOVER_THROTTLE_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig, PG_HOVER_THROTTLE_CONFIG, 3);
 
 PG_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig,
-    .pGain = SETTING_OHOLD_HOVER_THR_P_DEFAULT,
-    .iGain = SETTING_OHOLD_HOVER_THR_I_DEFAULT,
-    .dGain = SETTING_OHOLD_HOVER_THR_D_DEFAULT,
     .minThrottle = SETTING_OHOLD_HOVER_THR_MIN_DEFAULT,
-    .assistVzP = SETTING_OHOLD_ASSIST_THR_P_DEFAULT,
-    .assistVzI = SETTING_OHOLD_ASSIST_THR_I_DEFAULT,
     .hoverBaroWeight = SETTING_OHOLD_HOVER_BARO_WEIGHT_DEFAULT,
 );
+
+// Derived throttle gains. The one airframe fact they all share is the
+// throttle-to-thrust slope: at the hover point thrust equals weight, so
+// (hover throttle - idle) is the throttle span per 1 g of specific force.
+// The hover point is LEARNED at engage (I-term seeded from the pilot's
+// stick), so every "throttle us per unit of motion" gain derives from it at
+// runtime; the loop-shaping constants below are dimensionless rates, fixed
+// at the values the rig sweep found, and scale to any airframe through the
+// learned span. Replaces the former ohold_hover_thr_p/i/d and
+// ohold_assist_thr_p/i settings - nobody can set "throttle us per m/s"
+// better than this identity derives it.
+#define HOVER_THR_STIFFNESS_S2   1.5f    // [1/s^2] altitude error -> accel
+#define HOVER_THR_DAMPING_S      1.8f    // [1/s]   climb rate -> decel
+#define HOVER_THR_TRIM_S2        0.18f   // [1/s^2] slow altitude trim (I)
+#define ASSIST_DAMPING_S         0.8f    // [1/s]   knife/inverted vz damping
+#define ASSIST_TRIM_S2           0.4f    // [1/s^2] knife/inverted vz trim
+#define GRAVITY_MSS              (GRAVITY_CMSS / 100.0f)
+
+// throttle us that produce 1 g of specific-force change, from the learned
+// base throttle (floored: a wrong low base must not collapse the gains)
+static float usPerG(float baseUs)
+{
+    return MAX(baseUs - getThrottleIdleValue(), 100.0f);
+}
 
 // Engage only when the nose is this close to the zenith; once engaged,
 // stay active down to the release threshold. Without the hysteresis the
@@ -95,6 +116,12 @@ static float targetAltCm;
 static float iTermUs;
 static int16_t stickRefUs;
 static timeUs_t lastUpdateUs;
+// slow filter of the APPLIED hover throttle: the thrust that actually
+// carries the weight is the true 1 g point, independent of where the
+// pilot's stick happened to sit at engage - the derived gains anchor here
+// (an engage seed 200 us low made the altitude loop 36% too soft in SITL)
+#define HOVER_THR_ANCHOR_TAU_S 2.0f
+static float hoverThrAnchorUs;
 
 // ---- Knife/inverted throttle assist ----------------------------------------
 //
@@ -151,7 +178,6 @@ static int16_t knifeInvertedAssistApply(int16_t pilotThrottle, float elevDeg)
 {
     // a deliberate throttle cut stays a throttle cut
     if (!navIsAltitudeEstimateTrusted()
-        || hoverThrottleConfig()->assistVzI == 0
         || pilotThrottle < getThrottleIdleValue() + 50) {
         assistActive = false;
         return pilotThrottle;
@@ -176,9 +202,13 @@ static int16_t knifeInvertedAssistApply(int16_t pilotThrottle, float elevDeg)
     const float baseUs = getThrottleIdleValue()
         + (pilotThrottle - getThrottleIdleValue()) * (assistCosRef / cosNow);
 
+    // gains derived from the pilot's own operating point: the throttle span
+    // above idle is the thrust the pilot flies with, and the us-per-motion
+    // gains scale with it (same identity as the hover PID above)
+    const float assistUsPerG = usPerG(baseUs);
     const float climbMs = getEstimatedActualVelocity(Z) / 100.0f;
     if (fabsf(climbMs) < ASSIST_VZ_CLAMP_MS) {
-        assistTrimUs = constrainf(assistTrimUs - hoverThrottleConfig()->assistVzI * climbMs * dT,
+        assistTrimUs = constrainf(assistTrimUs - ASSIST_TRIM_S2 * assistUsPerG / GRAVITY_MSS * climbMs * dT,
                                   -ASSIST_TRIM_MAX_US, ASSIST_TRIM_MAX_US);
     }
     // an oscillating hold means the surfaces are starving: raise the
@@ -198,7 +228,7 @@ static int16_t knifeInvertedAssistApply(int16_t pilotThrottle, float elevDeg)
         assistTrimUs = constrainf(assistTrimUs + ASSIST_EFFORT_RAISE_US_S * urgency * dT,
                                   -ASSIST_TRIM_MAX_US, ASSIST_TRIM_MAX_US);
     }
-    const float damping = -hoverThrottleConfig()->assistVzP
+    const float damping = -ASSIST_DAMPING_S * assistUsPerG / GRAVITY_MSS
                           * constrainf(climbMs, -ASSIST_VZ_CLAMP_MS, ASSIST_VZ_CLAMP_MS);
 
     return constrain(lrintf(baseUs + assistTrimUs + damping),
@@ -273,6 +303,7 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
         // seed the I-term with the last pilot throttle: learns the model's
         // hover throttle online instead of requiring a setting
         iTermUs = pilotThrottle;
+        hoverThrAnchorUs = pilotThrottle;
         // the climb-rate stick references the ENGAGE position: entering the
         // hover regime out of a knife/harrier pull-up at cruise throttle
         // must not read as a climb command
@@ -324,17 +355,24 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
     const int16_t floorThrottle = MAX(getThrottleIdleValue(),
                                       (int16_t)hoverThrottleConfig()->minThrottle);
 
-    iTermUs = constrainf(iTermUs + hoverThrottleConfig()->iGain * zErrM * dT,
+    // gains derived from the learned hover point (see the constants above):
+    // us-per-motion = loop constant x (hover span per 1 g). The anchor is
+    // the slow-filtered APPLIED throttle - the thrust that actually holds
+    // the aircraft - not the engage seed
+    const float spanUsPerG = usPerG(hoverThrAnchorUs);
+    iTermUs = constrainf(iTermUs + HOVER_THR_TRIM_S2 * spanUsPerG / GRAVITY_MSS * zErrM * dT,
                          floorThrottle, getMaxThrottle());
 
     // thrust supports the weight with its vertical component only:
     // compensate the tilt away from the zenith (capped, the elevation
     // gate keeps this bounded anyway)
     const float vertical = constrainf(sin_approx(DEGREES_TO_RADIANS(elevDeg)), 0.5f, 1.0f);
-    const float correction = (hoverThrottleConfig()->pGain * zErrM
-                              - hoverThrottleConfig()->dGain * climbMs) / vertical;
+    const float correction = (HOVER_THR_STIFFNESS_S2 * spanUsPerG / GRAVITY_MSS * zErrM
+                              - HOVER_THR_DAMPING_S * spanUsPerG / GRAVITY_MSS * climbMs) / vertical;
 
-    return constrain(lrintf(iTermUs + correction), floorThrottle, getMaxThrottle());
+    const int16_t outUs = constrain(lrintf(iTermUs + correction), floorThrottle, getMaxThrottle());
+    hoverThrAnchorUs += (outUs - hoverThrAnchorUs) * MIN(dT / HOVER_THR_ANCHOR_TAU_S, 1.0f);
+    return outUs;
 }
 
 #endif // USE_ORIENTATION_HOLD

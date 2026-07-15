@@ -784,6 +784,16 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
         // the pilot's rudder rate command becomes the spin rate
         spinRateDps = pidStates[FD_YAW].rateTarget;
     }
+    // A controlled spin is a display maneuver, not a tumble: full rudder
+    // commands at most half a turn per second (360 deg in 2 s), regardless
+    // of the yaw rate the ACRO tune allows. The stalled airframe can still
+    // autorotate beyond the command (SITL: median 330 deg/s, peaks 875 -
+    // at idle the rudder has little authority to hold it back); the cap
+    // keeps a hot ACRO yaw tune from actively driving it faster, and the
+    // load governor below backs the command off with the measured load.
+    #define SPIN_ABOUT_VERTICAL_MAX_DPS 180.0f
+    spinRateDps = constrainf(spinRateDps, -SPIN_ABOUT_VERTICAL_MAX_DPS, SPIN_ABOUT_VERTICAL_MAX_DPS)
+                * orientationHoldLoadGovernorScale();
     if (spinSegment || spinPreset) {
         orientationHoldUpInBody(&upBody);
         // AIRCRAFT-referenced stick sense: the body axis nearest the
@@ -805,11 +815,20 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
         }
     }
 
+    // Two scale factors bound the RATE CLAMP of the hold: the load governor
+    // (the hardest load of a figure is not the rotation but the catch-up
+    // pull toward a distant target - a loop exit's level recapture pulled
+    // 13 g ungoverned; load a ~ v * omega, so backing the allowed rate off
+    // caps the pull the same way it caps the figure) and the thrust-first-
+    // guess authority scale (above cruise thrust the surfaces bite hard -
+    // the same commanded rate needs less deflection, so command less).
+    const float rateClampScale = orientationHoldLoadGovernorScale()
+                               * orientationHoldAuthorityScale();
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
         // Same gain and rate limit handling as pidLevel()
         float rateTarget = constrainf(errDeg.v[axis] * levelGainScale * (pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
-                                      -currentControlProfile->stabilized.rates[axis] * 10.0f,
-                                       currentControlProfile->stabilized.rates[axis] * 10.0f);
+                                      -currentControlProfile->stabilized.rates[axis] * 10.0f * rateClampScale,
+                                       currentControlProfile->stabilized.rates[axis] * 10.0f * rateClampScale);
 
         if (pidBank()->pid[PID_LEVEL].I) {
             // I8[PIDLEVEL] is used as a PT1 cutoff frequency (Hz), same as pidLevel()

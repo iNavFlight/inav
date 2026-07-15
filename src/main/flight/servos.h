@@ -204,3 +204,7 @@ void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
 int getServoCount(void);
 uint8_t getMinServoIndex(void);
+// True when the active servo mixer routes a yaw command to any effector
+// (rudder or TVC yaw vane). A flying wing has none - knife-edge modes are
+// physically impossible there and are not offered.
+bool servoMixerHasYawControl(void);

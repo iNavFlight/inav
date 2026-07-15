@@ -45,15 +45,23 @@
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
+#include "drivers/time.h"
+
 #include "flight/altitude_floor.h"
 #include "flight/figure_sequencer.h"
 
 #include "navigation/navigation.h"
 #include "flight/imu.h"
+#include "flight/mixer.h"
 #include "flight/orientation_hold.h"
 #include "flight/pid.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, PG_ORIENTATION_HOLD_CONFIG, 1);
+#include "flight/servos.h"
+
+#include "sensors/acceleration.h"
+#include "sensors/battery.h"
+
+PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, PG_ORIENTATION_HOLD_CONFIG, 2);
 
 PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     .invertedPitchTrim = SETTING_OHOLD_INVERTED_PITCH_TRIM_DEFAULT,
@@ -67,6 +75,7 @@ PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     .stickAngleMaxDeg = SETTING_OHOLD_STICK_ANGLE_DEFAULT,
     .stickReturnRateDps = SETTING_OHOLD_STICK_RETURN_RATE_DEFAULT,
     .knifeSpeedFF = SETTING_OHOLD_KNIFE_SPEED_FF_DEFAULT,
+    .loadLimitG = SETTING_OHOLD_LOAD_LIMIT_DEFAULT,
 );
 
 typedef struct {
@@ -103,14 +112,23 @@ static const orientationHoldPreset_t orientationHoldSpinPresets[] = {
 
 static const orientationHoldPreset_t * orientationHoldActivePreset(void)
 {
+    // A knife edge is physically held on the yaw effector (rudder or TVC
+    // yaw vane). On a mixer without one (flying wing) the knife boxes are
+    // not offered (fc_msp_box), and a stale configuration that still maps
+    // them is ignored here - the laws of aerodynamics outrank the switch.
+    const bool knifePossible = servoMixerHasYawControl();
     if (IS_RC_MODE_ACTIVE(BOXFSPIN)) {
         if (IS_RC_MODE_ACTIVE(BOXINVERTED))   return &orientationHoldSpinPresets[0];
-        if (IS_RC_MODE_ACTIVE(BOXKNIFELEFT))  return &orientationHoldSpinPresets[1];
-        if (IS_RC_MODE_ACTIVE(BOXKNIFERIGHT)) return &orientationHoldSpinPresets[2];
+        if (IS_RC_MODE_ACTIVE(BOXKNIFELEFT) && knifePossible)  return &orientationHoldSpinPresets[1];
+        if (IS_RC_MODE_ACTIVE(BOXKNIFERIGHT) && knifePossible) return &orientationHoldSpinPresets[2];
         if (IS_RC_MODE_ACTIVE(BOXPROPHANG))   return &orientationHoldSpinPresets[3];
         return &orientationHoldSpinPresets[4];
     }
     for (unsigned i = 0; i < ARRAYLEN(orientationHoldPresets); i++) {
+        if ((orientationHoldPresets[i].box == BOXKNIFELEFT
+             || orientationHoldPresets[i].box == BOXKNIFERIGHT) && !knifePossible) {
+            continue;
+        }
         if (IS_RC_MODE_ACTIVE(orientationHoldPresets[i].box)) {
             return &orientationHoldPresets[i];
         }
@@ -937,9 +955,14 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
     }
 
     if (slewRateDegS > 0.0f) {
+        // the load governor also paces the target slew: the hardest load of
+        // a maneuver is the catch-up pull toward a distant target (the loop
+        // exit's level recapture read 13 g ungoverned) - and that pull is
+        // set by the slew rate, not by the rate clamp
+        const float governedStepDeg = slewRateDegS * orientationHoldLoadGovernorScale() * dT;
         const float remainingDeg = figureLineAnchored
-            ? orientationHoldSlewTargetFull(&qSollState, &qDesired, slewRateDegS * dT)
-            : orientationHoldSlewTarget(&qSollState, &qDesired, slewRateDegS * dT);
+            ? orientationHoldSlewTargetFull(&qSollState, &qDesired, governedStepDeg)
+            : orientationHoldSlewTarget(&qSollState, &qDesired, governedStepDeg);
         if (remainingDeg < 1.0f) {
             presetSlewCaptured = true;
         }
@@ -950,6 +973,124 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
     orientationHoldRegulate(errDeg);
     regimeGainUpdate(errDeg, dT);
     return true;
+}
+
+// ---- Load governor ----------------------------------------------------------
+//
+// A display figure flies "fast AND tight" - and both are the same boundary:
+// the load budget (ohold_load_limit, a fact about the airframe). Centripetal
+// load a = v * omega, radius r = v^2 / a, so at a given speed the budget is
+// simultaneously the fastest rotation and the tightest radius the airframe
+// pulls (ungoverned SITL loops read 13 g at the exit pull). Two channels:
+//
+//  - rotation/slew scale, INTEGRAL: trims down while the filtered load sits
+//    above budget, recovers while below - no proportional droop, the load
+//    converges ON the budget instead of somewhere above it.
+//  - throttle scale, PROPORTIONAL, only while a figure or spin flies: a
+//    governed rotation at full power just converts into speed (a = v*omega
+//    stays, the loop only widens - measured); bleeding throttle with the
+//    overload breaks that energy feedback. Plain holds at 1 g never touch
+//    the pilot's throttle.
+#define LOAD_GOVERNOR_TAU_S           0.15f
+#define LOAD_GOVERNOR_MIN_SCALE       0.2f
+#define LOAD_GOVERNOR_TRIM_PER_S      1.5f    // integral trim speed at 100% overload
+#define LOAD_GOVERNOR_RECOVER_PER_S   0.5f
+#define LOAD_GOVERNOR_THR_MIN_SCALE   0.6f
+
+static float loadGovScale = 1.0f;
+static float loadGovThrScale = 1.0f;
+static float loadGovAccG = 1.0f;
+static timeMs_t loadGovLastMs;
+
+void orientationHoldLoadGovernorUpdate(void)
+{
+    const timeMs_t nowMs = millis();
+    const float dT = constrainf((nowMs - loadGovLastMs) * 0.001f, 0.0f, 0.1f);
+    loadGovLastMs = nowMs;
+
+    fpVector3_t accG;
+    accGetMeasuredAcceleration(&accG);          // cm/s^2
+    const float magG = fast_fsqrtf(sq(accG.x) + sq(accG.y) + sq(accG.z)) / GRAVITY_CMSS;
+    loadGovAccG += (magG - loadGovAccG) * MIN(dT / LOAD_GOVERNOR_TAU_S, 1.0f);
+
+    if (orientationHoldConfig()->loadLimitG == 0) {
+        loadGovScale = 1.0f;
+        loadGovThrScale = 1.0f;
+        return;
+    }
+    const float budgetG = orientationHoldConfig()->loadLimitG / 10.0f;
+    const float over = loadGovAccG / budgetG - 1.0f;
+    if (over > 0.0f) {
+        loadGovScale -= LOAD_GOVERNOR_TRIM_PER_S * over * dT;
+    } else {
+        loadGovScale += LOAD_GOVERNOR_RECOVER_PER_S * dT;
+    }
+    loadGovScale = constrainf(loadGovScale, LOAD_GOVERNOR_MIN_SCALE, 1.0f);
+    loadGovThrScale = constrainf(1.0f / (1.0f + MAX(over, 0.0f)),
+                                 LOAD_GOVERNOR_THR_MIN_SCALE, 1.0f);
+}
+
+float orientationHoldLoadGovernorScale(void)
+{
+    // The governor owns MANEUVERS: figures and spins, including their exit
+    // pulls while the box is still up. A plain hold fighting a gust keeps
+    // its full slew and rate authority - the load spikes there ARE the
+    // gust, not a commanded trajectory, and throttling the recovery lets
+    // the disturbance win (a governed TVC hang oscillated itself into
+    // never recapturing the hold in the SITL gust matrix).
+    if (!(figureSequencerRequested() || orientationHoldIsSpinAboutVertical())) {
+        return 1.0f;
+    }
+    return loadGovScale;
+}
+
+int16_t orientationHoldLoadGovernorThrottle(int16_t throttle)
+{
+    // only a governed maneuver (figure or spin) bleeds throttle; plain
+    // holds and normal flight pass through untouched
+    if (loadGovThrScale >= 1.0f
+        || !(figureSequencerRequested() || orientationHoldIsSpinAboutVertical())) {
+        return throttle;
+    }
+    const int16_t idle = getThrottleIdleValue();
+    return idle + lrintf((throttle - idle) * loadGovThrScale);
+}
+
+// ---- Thrust-first-guess authority scaling ------------------------------------
+//
+// The moment a control surface produces scales with the airflow over it
+// squared - forward speed at cruise, prop wash in the slow regimes. Without
+// an airspeed sensor (not carried; GPS is gone in aerobatic attitudes) the
+// THRUST is the first guess for that airflow: above the airframe's cruise
+// throttle (an existing fact the floor recovery already uses) the commanded
+// hold authority is scaled back, so a hot 3D throw does not command
+// over-deflection at speed - the "45 deg throws vs a smooth cruise tune"
+// dilemma. At or below cruise the full authority applies, and the HOVER
+// regime always gets it (high thrust but zero forward speed: the surfaces
+// need their full throw against the wash alone). The guess only bounds the
+// COMMAND; the closed rate loop refines it - it deflects no further than
+// the achieved rate demands.
+#define AUTHORITY_MIN_SCALE 0.5f
+#define AUTHORITY_HOVER_ELEVATION_DEG 45.0f
+
+float orientationHoldAuthorityScale(void)
+{
+    // hover/harrier band: nose high, airflow = wash, full throw
+    fpVector3_t nose = { .v = { 1.0f, 0.0f, 0.0f } };
+    quaternionRotateVectorInv(&nose, &nose, &orientation);
+    const float elevDeg = RADIANS_TO_DEGREES(asin_approx(constrainf(-nose.z, -1.0f, 1.0f)));
+    if (elevDeg > AUTHORITY_HOVER_ELEVATION_DEG) {
+        return 1.0f;
+    }
+
+    const int16_t idle = getThrottleIdleValue();
+    const float cruiseSpan = MAX(currentBatteryProfile->nav.fw.cruise_throttle - idle, 100);
+    const float thrustNorm = (mixerThrottleCommand - idle) / cruiseSpan;
+    if (thrustNorm <= 1.0f) {
+        return 1.0f;
+    }
+    // surface moment ~ airflow^2 ~ thrust: scale the command with 1/thrust
+    return constrainf(1.0f / thrustNorm, AUTHORITY_MIN_SCALE, 1.0f);
 }
 
 #endif // USE_ORIENTATION_HOLD

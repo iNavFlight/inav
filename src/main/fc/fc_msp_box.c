@@ -31,6 +31,7 @@
 #include "fc/runtime_config.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
+#include "flight/servos.h"
 
 #include "io/osd.h"
 
@@ -296,8 +297,13 @@ void initActiveBoxIds(void)
             ADD_ACTIVE_BOX(BOXANGLEHOLD);
 #ifdef USE_ORIENTATION_HOLD
             ADD_ACTIVE_BOX(BOXINVERTED);
-            ADD_ACTIVE_BOX(BOXKNIFELEFT);
-            ADD_ACTIVE_BOX(BOXKNIFERIGHT);
+            // a knife edge is held on the rudder (or a TVC yaw vane): a
+            // model without any yaw effector (flying wing) cannot fly one,
+            // so the knife modes are not offered on such a mixer
+            if (servoMixerHasYawControl()) {
+                ADD_ACTIVE_BOX(BOXKNIFELEFT);
+                ADD_ACTIVE_BOX(BOXKNIFERIGHT);
+            }
             ADD_ACTIVE_BOX(BOXPROPHANG);
             ADD_ACTIVE_BOX(BOXALTFLOOR);
             ADD_ACTIVE_BOX(BOXFIGROLL);

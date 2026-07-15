@@ -4568,6 +4568,12 @@ groups:
         field: knifeSpeedFF
         min: 0
         max: 30
+      - name: ohold_load_limit
+        description: "Load budget [g x 10] the governor holds figures and spins to - a fact about the airframe (what it may pull), not a tuning knob. Load is speed times rotation rate, so at a given speed the budget is simultaneously the fastest rotation and the tightest radius (r = v^2/a): the governor slows the commanded rotation and the target slew with the measured overload, and bleeds throttle while a figure or spin flies (a governed rotation at full power just converts into speed, the load would stay). Plain holds at 1 g are untouched. 0 disables the governor."
+        default_value: 40
+        field: loadLimitG
+        min: 0
+        max: 160
       - name: ohold_inverted_gain
         description: "Learned angle-gain scale [%] for the inverted hold, relative to the normal-flight gains. Maintained by the firmware's limit-cycle detector and saved on disarm; editable. 100 = reference gains."
         default_value: 100
@@ -4664,42 +4670,12 @@ groups:
     headers: ["flight/hover_throttle.h"]
     condition: USE_ORIENTATION_HOLD
     members:
-      - name: ohold_hover_thr_p
-        description: "Hover throttle P gain [throttle us per m of altitude error] while PROP HANG is held. The hover base throttle is learned online (I-term seeded from the pilot's throttle at engage)"
-        default_value: 85
-        field: pGain
-        min: 0
-        max: 100
-      - name: ohold_hover_thr_i
-        description: "Hover throttle I gain [throttle us per m per second]"
-        default_value: 10
-        field: iGain
-        min: 0
-        max: 100
-      - name: ohold_hover_thr_d
-        description: "Hover throttle D gain [throttle us per m/s of climb rate]"
-        default_value: 100
-        field: dGain
-        min: 0
-        max: 100
       - name: ohold_hover_thr_min
-        description: "Hover throttle floor [us]. The hover altitude controller never cuts the throttle below this, preserving the control authority that scales with thrust - prop wash over the control surfaces as well as thrust vectoring (an updraft otherwise starves the attitude authority; excess lift is accepted as a climb). Find it by experiment, slightly below the hover throttle. 1000 = no floor beyond motor idle."
+        description: "Hover throttle floor [us]. The hover altitude controller never cuts the throttle below this, preserving the control authority that scales with thrust - prop wash over the control surfaces as well as thrust vectoring (an updraft otherwise starves the attitude authority; excess lift is accepted as a climb). Find it by experiment, slightly below the hover throttle. 1000 = no floor beyond motor idle. The altitude/vz loop gains themselves are not settings: they derive at runtime from the learned hover point (throttle-to-thrust slope), see hover_throttle.c."
         default_value: 1000
         field: minThrottle
         min: 1000
         max: 1800
-      - name: ohold_assist_thr_p
-        description: "Knife edge / inverted throttle assist: damping term, throttle us per m/s of climb rate"
-        default_value: 40
-        field: assistVzP
-        min: 0
-        max: 255
-      - name: ohold_assist_thr_i
-        description: "Knife edge / inverted throttle assist: trim rate, throttle us per m/s of climb per second. The assist slowly trims the throttle around the pilot's stick until the hold stops sinking (or climbing). 0 disables the assist."
-        default_value: 20
-        field: assistVzI
-        min: 0
-        max: 255
       - name: ohold_hover_baro_weight
         description: "Baro position weight (x100) while the hover throttle owns the altitude, applied as a floor over inav_w_z_baro_p. Hovering thrust pollutes the accelerometer, the baro deserves more trust than in forward flight. 0 keeps the global weight."
         default_value: 100
@@ -4712,9 +4688,8 @@ groups:
     headers: ["flight/crash_detection.h"]
     condition: USE_CRASH_DETECTION
     members:
-      - name: crash_g_threshold
-        description: "Crash detection impact threshold [g x 10]: an acceleration spike above this, followed by the aircraft lying still within 3 s (no rotation, resting 1 g, frozen baro altitude and - with a GPS fix - no ground speed), CUTS the motor while staying armed. Moving the throttle to zero and up again re-allows the motor (short bursts help locating the aircraft in high grass). Arms only once clearly in flight (nav launch completed or throttle held above cruise for a moment), so a hand-launched aircraft can be carried armed. Without GPS a smooth level line flown within 3 s of a hard pull can read as still - raise the threshold above the figure g load on GPS-less models. 0 = off."
-        default_value: 80
-        field: crashGThreshold
-        min: 0
-        max: 160
+      - name: crash_detection
+        description: "Cut the motor after a crash while staying armed: a sharp acceleration spike near the accelerometer's full-scale, followed by the airframe lying still within 3 s (no rotation, resting 1 g, frozen baro altitude and - with a GPS fix - no ground speed). Moving the throttle to zero and up again re-allows the motor (short bursts help locating the aircraft in high grass). Arms only once clearly in flight (nav launch completed or throttle held above cruise for a moment), so a hand-launched aircraft can be carried armed. The impact threshold is DERIVED from the detected accelerometer (15% below full-scale), not set here - a spike that near saturation is an impact on any airframe, and the stillness that must follow is what tells a crash from a hard 3D figure. ON by default."
+        default_value: ON
+        field: crashDetection
+        type: bool

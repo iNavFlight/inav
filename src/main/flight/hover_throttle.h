@@ -35,10 +35,14 @@
 // tilt compensated. Moving the throttle stick out of the mid deadband
 // hands control back to the pilot and re-captures the target.
 
+// The altitude/vz loop gains are NOT settings: throttle-us per unit of
+// motion all share one airframe fact - the throttle-to-thrust slope, which
+// at the hover point is (hover throttle - idle) per 1 g. The controller
+// learns the hover point online (I-term seeded from the pilot's stick), so
+// every gain derives from it at runtime with fixed dimensionless loop
+// constants; no pilot can pick "microseconds per meter per second" better
+// than that identity does.
 typedef struct hoverThrottleConfig_s {
-    uint8_t pGain;         // throttle us per m of altitude error
-    uint8_t iGain;         // throttle us per m per second
-    uint8_t dGain;         // throttle us per m/s of climb rate
     uint16_t minThrottle;  // throttle floor [us] while hovering: preserves
                            // the control authority that scales with thrust,
                            // prop wash over the surfaces as well as thrust
@@ -48,10 +52,6 @@ typedef struct hoverThrottleConfig_s {
                            // covers both steering paths. Found by
                            // experiment near the model's hover throttle;
                            // 1000 = no floor beyond the motor idle.
-    uint8_t assistVzP;     // knife/inverted throttle assist: us per m/s of
-                           // climb rate (damping)
-    uint8_t assistVzI;     // knife/inverted throttle assist: trim rate,
-                           // us per m/s per second; 0 disables the assist
     uint8_t hoverBaroWeight; // baro position weight (x100) while the hover
                              // throttle owns the altitude: hovering thrust
                              // pollutes the accelerometer Z, the baro

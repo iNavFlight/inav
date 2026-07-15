@@ -17,10 +17,15 @@ hardware flights are upcoming. Treat everything here as experimental.
 ## Requirements
 
 - Fixed wing (`platform_type = AIRPLANE`). Multirotors are untouched.
-- A target built with `USE_ORIENTATION_HOLD` (F7/H7 class; F411 fits).
+- A target with more than 512 KB flash (F405, F765, H743, ...): the
+  feature is excluded on F722/F411 builds to preserve their flash space.
 - Barometer required (altitude assist, floor, hover throttle).
 - GPS optional but recommended: it gates crash detection in flight and
   hardens the altitude estimate during aerobatics.
+- Thrust-vectoring models: assign the servo mixer inputs TVC ROLL /
+  PITCH / YAW (61-63) to the vane servos. `tvc_gain` scales them,
+  `tvc_thrust_comp` raises vane deflection as thrust drops so the loop
+  gain stays constant (vane torque follows thrust).
 
 ## The modes
 
@@ -38,6 +43,15 @@ hardware flights are upcoming. Treat everything here as experimental.
 INVERT, KNIFE L, KNIFE R and P-HANG are four separate boxes; the
 natural mapping is one multi-position selector switch with one band per
 hold, plus a separate switch for FLOOR and one for the figure bands.
+
+Platform capability is enforced: a knife edge is held on the yaw
+effector (rudder or a TVC yaw vane), so on a mixer without one - a
+flying wing - the KNIFE boxes are not offered, and a stale
+configuration that still maps them is ignored in flight. The laws of
+aerodynamics outrank the switch; a wing can still prop-hang, fly
+inverted and use every figure. What thrust cannot deliver, no mode can
+promise: expect roughly half the work from excess power and half from
+the airframe.
 
 ### Holds (INVERT, KNIFE L/R, P-HANG)
 
@@ -58,6 +72,12 @@ the maneuver. The hold takes over the attitude; you keep flying.
 - Per-attitude pitch trims: `ohold_inverted_pitch_trim`,
   `ohold_knife_left_pitch_trim`, `ohold_knife_right_pitch_trim` (the
   sides are separate on purpose - prop effects are not symmetric).
+- Big 3D throws and a smooth fast tune coexist: above the airframe's
+  cruise throttle the commanded hold authority scales back with thrust
+  (the airflow proxy - surface moment goes with airflow squared), so
+  the same throws that hover the model do not over-deflect at speed.
+  The hover regime always keeps the full throw. No setting; the closed
+  rate loop refines the guess.
 
 ### Throttle behavior per hold
 
@@ -73,10 +93,10 @@ throttle means:
   controller takes the altitude over seamlessly.
 - **KNIFE / INVERT**: the base is your throttle scaled so the forward
   thrust component keeps the speed you chose; a slow vz-to-zero trim
-  adds power while the hold sinks (`ohold_assist_thr_p/i`), and a speed
-  feedforward puts more nose on the knife immediately when the throttle
-  (the v-squared proxy without an airspeed sensor) is low
-  (`ohold_knife_speed_ff`).
+  adds power while the hold sinks (its gains derive from your own
+  operating point - no settings), and a speed feedforward puts more
+  nose on the knife immediately when the throttle (the v-squared proxy
+  without an airspeed sensor) is low (`ohold_knife_speed_ff`).
 - **Stall reserve**: sustained control effort toward saturation raises
   power while the attitude still looks clean - the early warning. By
   the time an attitude degrades, the escalation chain has already gone
@@ -101,6 +121,13 @@ right rudder spins the airframe right when upright AND when inverted -
 seen from above, an inverted spin reverses, like a real aircraft.
 Releasing the rudder stops the rotation with the attitude still held;
 releasing the box recovers.
+
+Full rudder commands at most half a turn per second (a display spin,
+not a tumble - independent of your ACRO yaw rate), and the load
+governor backs the command off with the measured load (see below). A
+stalled airframe can still autorotate faster than commanded; at idle
+power the rudder has little authority to hold it back - that is
+physics, not a tune.
 
 ### 3DLOCK
 
@@ -141,10 +168,27 @@ Figures fly ON A LINE: the heading captured at figure start anchors the
 trajectory, and the full attitude error is regulated - a slow roll
 stays on its string instead of walking off course. An altitude assist
 holds the entry altitude through the figure. After the last segment the
-sequencer is done - switch back to your normal mode; there is no
-automatic level-off yet.
+sequencer holds LEVEL at the entry altitude (assist active) until you
+release the box; switching the box off at any time aborts instantly.
 
-### Crash detection (`crash_g_threshold`)
+### Load governor (`ohold_load_limit`)
+
+Problem being solved: a figure flown "fast AND tight" is bounded by one
+number - the load. Centripetal load is speed times rotation rate
+(radius r = v^2 / a), so an aggressive loop rate at full power reads
+double-digit g at the exit pull.
+
+`ohold_load_limit` [g x 10, default 40 = 4 g] is a fact about your
+airframe: what it may pull. While the measured load sits above it, the
+governor slows the figure's rotation, the target slew (the catch-up
+pull toward a distant target is the hardest load of a maneuver, not the
+rotation) and - only while a figure or spin flies - bleeds throttle,
+because a governed rotation at full power just converts into speed and
+keeps the load. Plain holds at 1 g and your normal flying are never
+touched. Set it to your airframe's structural rating; 0 disables the
+governor entirely.
+
+### Crash detection (`crash_detection`)
 
 *Note: crash detection is a standalone feature (`USE_CRASH_DETECTION`),
 independent of the orientation-hold modes and intended for any platform
@@ -154,17 +198,21 @@ moved to its own pull request.*
 Problem being solved: after an unscheduled arrival the prop keeps
 churning until you walk over and disarm.
 
-An impact spike above the threshold, followed by the airframe lying
-still (no rotation, resting 1 g, frozen raw baro, and - with a GPS
-fix - zero ground speed) CUTS the motor while staying armed. Moving the
-throttle to zero and up again re-allows it deliberately: short motor
-bursts are the most reliable way to find a plane in high grass or corn.
-Hand-launch safe (it arms only once clearly flying). Opt-in, 0 = off.
-Without GPS, keep the threshold above your figures' g load - a smooth
-level line right after a hard pull is indistinguishable from lying
-still on IMU + baro alone.
+A crash has one signature: a sharp acceleration spike, then NOTHING. A
+spike near the accelerometer's full-scale, followed by the airframe
+lying still (no rotation, resting 1 g, frozen raw baro, and - with a
+GPS fix - zero ground speed) CUTS the motor while staying armed. Moving
+the throttle to zero and up again re-allows it deliberately: short
+motor bursts are the most reliable way to find a plane in high grass or
+corn. Hand-launch safe (it arms only once clearly flying).
 
-## Learned gains — do not hand-tune these
+There is no threshold to tune: the impact level is derived from the
+detected accelerometer (15% below its full-scale - ~13.6 g on a 16 g
+IMU), which even the hardest 3D figure stays clear of, and the
+stillness that must follow is what tells a crash from a hard maneuver.
+`crash_detection` is ON by default; set it to OFF to disable.
+
+## Learned gains - do not hand-tune these
 
 Four settings look like gains but are **written by the firmware, not by
 you**: `ohold_hover_gain`, `ohold_inverted_gain`, `ohold_knife_gain`,
@@ -183,14 +231,14 @@ Everything else below is yours to set.
 Do this in order. Each step depends on the one before it being right;
 skipping ahead just moves the symptom.
 
-**Step 0 — bench, props off.** Run the level-1 MSP check (bench repo)
+**Step 0 - bench, props off.** Run the level-1 MSP check (bench repo)
 and confirm on the ground: each hold box drives the surfaces the right
 way (roll the model by hand in INVERT, the ailerons should fight back to
 inverted), and the FLOOR box, when you fake a low altitude, commands
 nose-up. Wrong sign here is a reversed servo or a wrong mode range, not
 a gain.
 
-**Step 1 — trim the airframe physically. This is not optional.** In the
+**Step 1 - trim the airframe physically. This is not optional.** In the
 order of the trimming checklist (see the bench repo quick guide):
 level trim; CG via the 45-degree inverted test (only a breath of down
 elevator should hold the line - move the battery, never the software);
@@ -198,48 +246,58 @@ per-side knife-edge coupling; thrust line; aileron differential. Every
 later step assumes a trimmed airframe. A hold buzzing or a figure
 drifting almost always traces back to a trim you skipped here.
 
-**Step 2 — per-attitude pitch trims.** From those trim flights, set
+**Step 2 - per-attitude pitch trims.** From those trim flights, set
 `ohold_inverted_pitch_trim`, and `ohold_knife_left_pitch_trim` /
 `ohold_knife_right_pitch_trim` separately (the sides are not symmetric).
 Symptom of too little: the hold sinks or the nose drops in that
 attitude. Too much: it balloons/climbs. Aim for a hold that neither
 climbs nor sinks with the sticks centered.
 
-**Step 3 — entry feel.** `ohold_entry_rate` (deg/s) is how fast the
+**Step 3 - entry feel.** `ohold_entry_rate` (deg/s) is how fast the
 target rolls into a hold when you flip the box. Too slow feels mushy and
 lags your intent; too fast snaps and can overshoot on a heavy model.
 Start at the default and adjust to taste.
 
-**Step 4 — hover.** Hold a prop hang. `ohold_hover_thr_min` is the
+**Step 4 - hover.** Hold a prop hang. `ohold_hover_thr_min` is the
 throttle floor that keeps prop-wash authority in updrafts - raise it if
 the model feels rudderless/limp at the top of the hover, lower it if it
-climbs when you back off. The hover altitude itself is a learned gain
-(step above) - give it a few hangs to settle. The throttle stick is a
+climbs when you back off. There is no hover PID to tune: the hover base
+throttle is learned online (from your own stick at engage), and the
+altitude-loop gains derive from that learned point at runtime - the
+throttle-to-thrust slope is the one airframe fact they all share.
+`ohold_hover_baro_weight` raises the baro share of the altitude estimate
+in the hover regime and normally stays put. The throttle stick is a
 climb-rate command while hovering; a slammed-low stick is still a hard
 cut.
 
-**Step 5 — knife edge energy.** `ohold_knife_speed_ff` adds nose-up
+**Step 5 - knife edge energy.** `ohold_knife_speed_ff` adds nose-up
 angle as throttle (the speed proxy) drops, so the edge holds height at
 low speed. Symptom of too little: the knife sinks as you slow down.
 Too much: the nose climbs and it balloons off the line. `ohold_stick_angle`
 is how far a full roll/pitch stick carves the held attitude off the
-preset - taste, larger = more authority to reshape the line by hand.
+preset - taste, larger = more authority to reshape the line by hand;
+`ohold_stick_return_rate` is how fast the target eases back to the
+preset after you let go.
 
-**Step 6 — figures.** `fig_roll_rate`, `fig_loop_rate`,
+**Step 6 - figures.** `fig_roll_rate`, `fig_loop_rate`,
 `fig_point_dwell` set the one-switch figure speeds. Loop radius follows
 from rate and speed (R = v / omega): halve `fig_loop_rate` for double
-the radius. The altitude assist (`fig_assist_z_gain`,
+the radius. The rate settings are the CEILING - the load governor
+(`ohold_load_limit`, see above) slows the figure and bleeds throttle
+whenever the measured load exceeds the budget, so an aggressive rate is
+safe to program: at the budget the figure flies as fast and as tight as
+the load allows. The altitude assist (`fig_assist_z_gain`,
 `fig_assist_vz_gain`, `fig_assist_max`) holds the entry altitude through
 a figure - raise the gains if figures drift down, lower them if the
 model pumps altitude during a slow roll.
 
-**Step 7 — the safety floor.** Only once the above is trusted, set
+**Step 7 - the safety floor.** Only once the above is trusted, set
 `alt_floor_altitude` (m above home) and `alt_floor_margin`. Test it high:
 climb above floor + margin, then push over and HOLD the down elevator -
 the floor must catch and level against the held stick.
 `alt_floor_climb_pitch` is the recovery climb angle.
 
-## Troubleshooting — symptom to setting
+## Troubleshooting - symptom to setting
 
 | Symptom | Look at |
 | --- | --- |
@@ -250,6 +308,7 @@ the floor must catch and level against the held stick.
 | Knife edge drops as it slows | raise `ohold_knife_speed_ff` |
 | Entry into a hold snaps / overshoots | lower `ohold_entry_rate` |
 | Loop too tight / too wide | `fig_loop_rate` (radius = speed / rate) |
+| Figure slower / wider than the rate says, throttle dips in it | the load governor at work - raise `ohold_load_limit` if the airframe is rated for more, or accept the wider line |
 | Figure drifts down | raise `fig_assist_z_gain` / `fig_assist_max` |
 | Wrong surface direction in a hold | reversed servo or wrong mode range, not a gain (step 0) |
 | Floor does not catch | `alt_floor_altitude`/`margin`, and confirm it armed (climb above floor+margin once) |

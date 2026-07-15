@@ -43,6 +43,7 @@
 
 #include "flight/figure_sequencer.h"
 #include "flight/imu.h"
+#include "flight/orientation_hold.h"
 
 #include "navigation/navigation.h"
 
@@ -79,6 +80,10 @@ static timeMs_t startTimeMs;
 static float startAltitudeCm;
 static float targetRollDeg;
 static float targetPitchDeg;
+// governed rotation phase of the active figure / rotating segment (deg);
+// advances by rate * load-governor * dT, resets at figure and segment start
+static float figPhaseDeg;
+static timeMs_t figPhaseLastMs;
 
 // sequence (FIGURE SEQ) state
 static int seqIndex;
@@ -140,6 +145,10 @@ float figureAltitudeAssistDeg(float nosePitchDeg, float refAltCm)
 
 void figureSequencerUpdate(void)
 {
+    // the load governor also serves the FLAT SPIN preset (no figure active),
+    // so it updates before the early return below
+    orientationHoldLoadGovernorUpdate();
+
     const figureType_e req = requestedFigure();
 
     if (req == FIGURE_NONE || !ARMING_FLAG(ARMED) || !STATE(AIRPLANE)) {
@@ -159,7 +168,19 @@ void figureSequencerUpdate(void)
         seqBaseRoll = 0.0f;
         seqBasePitch = 0.0f;
         seqSegAltCm = startAltitudeCm;
+        figPhaseDeg = 0.0f;
+        figPhaseLastMs = startTimeMs;
     }
+
+    // Rotating trajectories advance a GOVERNED phase instead of wall time:
+    // theta += rate * governor * dT, so the figure slows down exactly while
+    // the measured load exceeds the display budget ("fast AND tight" - the
+    // budget is the tightest radius the current speed allows, r = v^2/a).
+    // WAIT/dwell segments stay on wall time - a pause is a pause.
+    const float govScale = orientationHoldLoadGovernorScale();
+    const timeMs_t phaseNowMs = millis();
+    const float phaseDtS = constrainf((phaseNowMs - figPhaseLastMs) * 0.001f, 0.0f, 0.1f);
+    figPhaseLastMs = phaseNowMs;
 
     const float tS = (millis() - startTimeMs) * 0.001f;
     float roll = 0.0f;
@@ -171,10 +192,10 @@ void figureSequencerUpdate(void)
 
     switch (activeFigure) {
         case FIGURE_ROLL: {
-            const float theta = figureSequencerConfig()->rollRate * tS;
-            roll = MIN(theta, 360.0f);
+            figPhaseDeg += figureSequencerConfig()->rollRate * govScale * phaseDtS;
+            roll = MIN(figPhaseDeg, 360.0f);
             assist = true;
-            if (theta >= 360.0f) {
+            if (figPhaseDeg >= 360.0f) {
                 state = FIG_STATE_DONE;
                 roll = 0.0f;    // 360 == 0, hold level
             }
@@ -182,9 +203,9 @@ void figureSequencerUpdate(void)
         }
 
         case FIGURE_LOOP: {
-            const float theta = figureSequencerConfig()->loopRate * tS;
-            pitch = MIN(theta, 360.0f);
-            if (theta >= 360.0f) {
+            figPhaseDeg += figureSequencerConfig()->loopRate * govScale * phaseDtS;
+            pitch = MIN(figPhaseDeg, 360.0f);
+            if (figPhaseDeg >= 360.0f) {
                 state = FIG_STATE_DONE;
                 pitch = 0.0f;
                 assist = true;  // level again: hold the entry altitude
@@ -209,7 +230,8 @@ void figureSequencerUpdate(void)
                 switch (seg->type) {
                     case FIGSEG_ROLL: {
                         const float span = ABS((float)seg->p1);
-                        const float theta = MIN(figureSequencerConfig()->rollRate * tSeg, span);
+                        figPhaseDeg += figureSequencerConfig()->rollRate * govScale * phaseDtS;
+                        const float theta = MIN(figPhaseDeg, span);
                         roll = seqBaseRoll + (seg->p1 < 0 ? -theta : theta);
                         pitch = seqBasePitch;
                         assist = seg->flags & FIGSEG_FLAG_ASSIST;
@@ -222,7 +244,8 @@ void figureSequencerUpdate(void)
 
                     case FIGSEG_PITCH: {
                         const float span = ABS((float)seg->p1);
-                        const float theta = MIN(figureSequencerConfig()->loopRate * tSeg, span);
+                        figPhaseDeg += figureSequencerConfig()->loopRate * govScale * phaseDtS;
+                        const float theta = MIN(figPhaseDeg, span);
                         roll = seqBaseRoll;
                         pitch = seqBasePitch + (seg->p1 < 0 ? -theta : theta);
                         assist = false;
@@ -352,6 +375,7 @@ void figureSequencerUpdate(void)
                 }
                 seqIndex++;
                 seqSegStartMs = millis();
+                figPhaseDeg = 0.0f;            // fresh governed phase per segment
                 if (figureSequence(MIN(seqIndex, MAX_FIGURE_SEQUENCE_SEGMENTS - 1))->type != FIGSEG_WAIT_ALT) {
                     seqSegAltCm = getEstimatedActualPosition(Z);   // assist reference for the next segment
                 }
@@ -365,7 +389,9 @@ void figureSequencerUpdate(void)
         }
 
         case FIGURE_POINT_ROLL: {
-            // 4 points: rotate 90 deg at roll rate, dwell, repeat
+            // 4 points: rotate 90 deg at roll rate, dwell, repeat.
+            // Stays on wall time (ungoverned): an axial roll pulls no
+            // meaningful load, and the dwell timing must remain exact.
             const float rotS = 90.0f / figureSequencerConfig()->rollRate;
             const float dwellS = figureSequencerConfig()->pointDwellMs / 1000.0f;
             const float segS = rotS + dwellS;

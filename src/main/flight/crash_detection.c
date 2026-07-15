@@ -56,7 +56,7 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(crashDetectionConfig_t, crashDetectionConfig, PG_CRASH_DETECTION_CONFIG, 0);
 
 PG_RESET_TEMPLATE(crashDetectionConfig_t, crashDetectionConfig,
-    .crashGThreshold = SETTING_CRASH_G_THRESHOLD_DEFAULT,
+    .crashDetection = SETTING_CRASH_DETECTION_DEFAULT,
 );
 
 // In-flight latch: the detector must never fire while the armed aircraft is
@@ -117,7 +117,7 @@ void crashDetectionUpdate(float dT)
     // multirotor alike (a crashed copter with its props chewing the ground
     // or a bystander is exactly what the motor cut is for). Rovers and
     // boats are excluded: an impact there is not a reason to cut the motor.
-    if (crashDetectionConfig()->crashGThreshold == 0
+    if (!crashDetectionConfig()->crashDetection
         || !(STATE(AIRPLANE) || STATE(MULTIROTOR))
         || !ARMING_FLAG(ARMED)) {
         inFlight = false;
@@ -175,8 +175,16 @@ void crashDetectionUpdate(float dT)
     accGetMeasuredAcceleration(&accG);          // cm/s^2
     const float accMagG = fast_fsqrtf(sq(accG.x) + sq(accG.y) + sq(accG.z)) / GRAVITY_CMSS;
 
+    // Impact threshold = 15% below the DETECTED accelerometer's full-scale
+    // (13.6 g on a 16 g IMU, 27 g on a 32 g one). This is NOT a user setting:
+    // a spike that near saturation is an impact on any airframe, and the exact
+    // g need not be tuned per aircraft - a hard 3D figure can briefly reach a
+    // similar peak, but a crash is "a spike and then NOTHING": the stillness
+    // that must follow (below) is the real discriminator, not the g value.
+    const float accFullScaleG = (acc.dev.acc_1G > 0) ? (32767.0f / acc.dev.acc_1G) : 16.0f;
+    const float thresholdG = 0.85f * accFullScaleG;
     // impact latches the confirmation window
-    if (accMagG > crashDetectionConfig()->crashGThreshold / 10.0f) {
+    if (accMagG > thresholdG) {
         impactWindowS = CRASH_WINDOW_S;
         stillTimerS = 0.0f;
     }

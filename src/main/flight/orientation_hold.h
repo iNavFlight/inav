@@ -73,6 +73,9 @@ typedef struct orientationHoldConfig_s {
                                    // half-throttle of speed deficit: the
                                    // fuselage side force scales with v^2,
                                    // throttle is the v^2 proxy. 0 = off.
+    uint8_t loadLimitG;            // display load budget [g x 10] the load
+                                   // governor holds figures and spins to;
+                                   // 0 = governor off
 } orientationHoldConfig_t;
 
 PG_DECLARE(orientationHoldConfig_t, orientationHoldConfig);
@@ -150,3 +153,23 @@ bool orientationHoldSticksAreTargetOffsets(void);
 // off fast, quiet time recovers it slowly; 1.0 outside the hang. Apply to
 // the angle error before the LEVEL P gain.
 float orientationHoldLevelGainScale(void);
+
+// Load governor: figures and spins fly "fast AND tight" - at the load
+// budget (ohold_load_limit), never beyond it. Update once per
+// figure-sequencer tick (self-timed). The scale (0.2..1.0) multiplies the
+// COMMANDED rotation rate of figures, the spin about the vertical and the
+// target slew; the throttle hook bleeds power while a governed maneuver
+// exceeds the budget (full power would just convert the governed rotation
+// into speed and keep the load).
+void orientationHoldLoadGovernorUpdate(void);
+float orientationHoldLoadGovernorScale(void);
+// Throttle hook (mixer): bleeds power while a governed figure or spin
+// exceeds the budget; passes through unchanged otherwise
+int16_t orientationHoldLoadGovernorThrottle(int16_t throttle);
+
+// Thrust-first-guess authority scaling (0.5..1.0): surface moment scales
+// with airflow^2, and thrust is the airflow proxy without a pitot. Above
+// the airframe's cruise throttle the commanded hold authority backs off;
+// the hover regime always keeps full throw (wash-only airflow). Multiplies
+// the orientation-hold rate clamp.
+float orientationHoldAuthorityScale(void);

@@ -622,13 +622,13 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
-### crash_g_threshold
+### crash_detection
 
-Crash detection impact threshold [g x 10]: an acceleration spike above this, followed by the aircraft lying still within 3 s (no rotation, resting 1 g, frozen baro altitude and - with a GPS fix - no ground speed), CUTS the motor while staying armed. Moving the throttle to zero and up again re-allows the motor (short bursts help locating the aircraft in high grass). Arms only once clearly in flight (nav launch completed or throttle held above cruise for a moment), so a hand-launched aircraft can be carried armed. Without GPS a smooth level line flown within 3 s of a hard pull can read as still - raise the threshold above the figure g load on GPS-less models. 0 = off.
+Cut the motor after a crash while staying armed: a sharp acceleration spike near the accelerometer's full-scale, followed by the airframe lying still within 3 s (no rotation, resting 1 g, frozen baro altitude and - with a GPS fix - no ground speed). Moving the throttle to zero and up again re-allows the motor (short bursts help locating the aircraft in high grass). Arms only once clearly in flight (nav launch completed or throttle held above cruise for a moment), so a hand-launched aircraft can be carried armed. The impact threshold is DERIVED from the detected accelerometer (15% below full-scale), not set here - a spike that near saturation is an impact on any airframe, and the stillness that must follow is what tells a crash from a hard 3D figure. ON by default.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 80 | 0 | 160 |
+| ON | OFF | ON |
 
 ---
 
@@ -4562,26 +4562,6 @@ Waypoint radius [cm]. Waypoint would be considered reached if machine is within 
 
 ---
 
-### ohold_assist_thr_i
-
-Knife edge / inverted throttle assist: trim rate, throttle us per m/s of climb per second. The assist slowly trims the throttle around the pilot's stick until the hold stops sinking (or climbing). 0 disables the assist.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 20 | 0 | 255 |
-
----
-
-### ohold_assist_thr_p
-
-Knife edge / inverted throttle assist: damping term, throttle us per m/s of climb rate
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 40 | 0 | 255 |
-
----
-
 ### ohold_entry_rate
 
 Target slew rate [deg/s] for entering an orientation hold preset (INVERTED, KNIFE EDGE, PROP HANG). The entry rolls the hold target from the current attitude to the preset at this rate; figures keep their own fig_roll_rate / fig_loop_rate
@@ -4622,43 +4602,13 @@ LEARNED hover angle-gain scale [%]. The prop hang limit-cycle detector writes th
 
 ---
 
-### ohold_hover_thr_d
-
-Hover throttle D gain [throttle us per m/s of climb rate]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 100 | 0 | 100 |
-
----
-
-### ohold_hover_thr_i
-
-Hover throttle I gain [throttle us per m per second]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10 | 0 | 100 |
-
----
-
 ### ohold_hover_thr_min
 
-Hover throttle floor [us]. The hover altitude controller never cuts the throttle below this, preserving the control authority that scales with thrust - prop wash over the control surfaces as well as thrust vectoring (an updraft otherwise starves the attitude authority; excess lift is accepted as a climb). Find it by experiment, slightly below the hover throttle. 1000 = no floor beyond motor idle.
+Hover throttle floor [us]. The hover altitude controller never cuts the throttle below this, preserving the control authority that scales with thrust - prop wash over the control surfaces as well as thrust vectoring (an updraft otherwise starves the attitude authority; excess lift is accepted as a climb). Find it by experiment, slightly below the hover throttle. 1000 = no floor beyond motor idle. The altitude/vz loop gains themselves are not settings: they derive at runtime from the learned hover point (throttle-to-thrust slope), see hover_throttle.c.
 
 | Default | Min | Max |
 | --- | --- | --- |
 | 1000 | 1000 | 1800 |
-
----
-
-### ohold_hover_thr_p
-
-Hover throttle P gain [throttle us per m of altitude error] while PROP HANG is held. The hover base throttle is learned online (I-term seeded from the pilot's throttle at engage)
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 85 | 0 | 100 |
 
 ---
 
@@ -4719,6 +4669,16 @@ Knife edge speed feedforward: extra nose-above-horizon angle [deg] per half thro
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 30 |
+
+---
+
+### ohold_load_limit
+
+Load budget [g x 10] the governor holds figures and spins to - a fact about the airframe (what it may pull), not a tuning knob. Load is speed times rotation rate, so at a given speed the budget is simultaneously the fastest rotation and the tightest radius (r = v^2/a): the governor slows the commanded rotation and the target slew with the measured overload, and bleeds throttle while a figure or spin flies (a governed rotation at full power just converts into speed, the load would stay). Plain holds at 1 g are untouched. 0 disables the governor.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 40 | 0 | 160 |
 
 ---
 

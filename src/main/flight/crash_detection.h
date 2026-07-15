@@ -40,7 +40,8 @@
 // hand launch, or throttle held above cruise for a moment (both platforms).
 
 typedef struct crashDetectionConfig_s {
-    uint8_t crashGThreshold;       // impact threshold [g * 10]; 0 disables
+    uint8_t crashDetection;        // master enable; the impact threshold itself
+                                   // is derived from the accel full-scale, not set
 } crashDetectionConfig_t;
 
 PG_DECLARE(crashDetectionConfig_t, crashDetectionConfig);

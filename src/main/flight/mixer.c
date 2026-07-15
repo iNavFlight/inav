@@ -49,6 +49,7 @@
 #include "flight/altitude_floor.h"
 #include "flight/crash_detection.h"
 #include "flight/hover_throttle.h"
+#include "flight/orientation_hold.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -594,6 +595,9 @@ void FAST_CODE mixTable(void)
 #ifdef USE_ORIENTATION_HOLD
         // hover throttle owns the altitude axis while PROP HANG is held
         mixerThrottleCommand = hoverThrottleApply(mixerThrottleCommand);
+        // the load governor bleeds throttle while a governed figure or spin
+        // exceeds the load budget (see orientation_hold.c)
+        mixerThrottleCommand = orientationHoldLoadGovernorThrottle(mixerThrottleCommand);
 #endif
         // (a detected crash stops the motor via getMotorStatus() above, the
         // only path that also holds a multirotor's PID-mixed motors down)
