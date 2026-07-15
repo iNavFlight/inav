@@ -17,11 +17,11 @@
 
 #pragma once
 
+#include "target/common.h"
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-#define MAVLINK_COMM_NUM_BUFFERS 1
+#define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
 #include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
 
