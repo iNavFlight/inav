@@ -73,6 +73,14 @@ set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GI
 set_property(SOURCE terrain_unittest.cc PROPERTY depends "terrain/terrain_utils.c" "terrain/terrain_location.c" "drivers/time.c")
 set_property(SOURCE terrain_unittest.cc PROPERTY definitions TERRAIN_UNIT_TEST USE_TERRAIN USE_SDCARD USE_SDCARD_SDIO TERRAIN_GRID_BLOCK_CACHE_SIZE=8)
 
+set_property(SOURCE mavlink_unittest.cc PROPERTY depends
+    "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"
+    "mavlink/mavlink_routing.c" "mavlink/mavlink_runtime.c" "mavlink/mavlink_streams.c" "telemetry/mavlink.c"
+    "common/crc.c" "common/maths.c" "common/streambuf.c" "common/string_light.c" "msp/msp_serial.c")
+set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK)
+set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
+    "../../lib/main/MAVLink")
+
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
     string(REPLACE ".cc" "" name ${basename} )
@@ -81,6 +89,7 @@ function(unit_test src)
     list(TRANSFORM headers REPLACE "\.c$" ".h")
     list(APPEND deps ${headers})
     get_property(defs SOURCE ${src} PROPERTY definitions)
+    get_property(extra_includes SOURCE ${src} PROPERTY includes)
     set(test_definitions "UNIT_TEST")
     if (defs)
         list(APPEND test_definitions ${defs})

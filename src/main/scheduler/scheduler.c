@@ -43,6 +43,11 @@ STATIC_FASTRAM uint32_t totalWaitingTasksSamples;
 
 FASTRAM uint16_t averageSystemLoadPercent = 0;
 
+#if defined(SITL_BUILD)
+STATIC_FASTRAM timeUs_t sitlLoadWindowStartUs;
+STATIC_FASTRAM timeUs_t sitlLoadBusyTimeUs;
+#endif
+
 
 STATIC_FASTRAM int taskQueuePos = 0;
 STATIC_FASTRAM int taskQueueSize = 0;
@@ -125,12 +130,28 @@ void taskSystem(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
+#if defined(SITL_BUILD)
+    if (sitlLoadWindowStartUs == 0) {
+        sitlLoadWindowStartUs = currentTimeUs;
+        sitlLoadBusyTimeUs = 0;
+        return;
+    }
+
+    const timeDelta_t elapsedUs = cmpTimeUs(currentTimeUs, sitlLoadWindowStartUs);
+    if (elapsedUs > 0) {
+        const timeUs_t loadPercent = (100U * sitlLoadBusyTimeUs) / (timeUs_t)elapsedUs;
+        averageSystemLoadPercent = loadPercent > 100U ? 100U : (uint16_t)loadPercent;
+        sitlLoadWindowStartUs = currentTimeUs;
+        sitlLoadBusyTimeUs = 0;
+    }
+#else
     // Calculate system load
     if (totalWaitingTasksSamples > 0) {
         averageSystemLoadPercent = 100 * totalWaitingTasks / totalWaitingTasksSamples;
         totalWaitingTasksSamples = 0;
         totalWaitingTasks = 0;
     }
+#endif
 }
 
 #define TASK_MOVING_SUM_COUNT           32
@@ -324,6 +345,11 @@ void FAST_CODE NOINLINE scheduler(void)
 
 #if defined(SITL_BUILD)
     {
+        const timeDelta_t sitlBusyTimeUs = cmpTimeUs(micros(), currentTimeUs);
+        if (sitlBusyTimeUs > 0) {
+            sitlLoadBusyTimeUs += sitlBusyTimeUs;
+        }
+
         // Avoid busy-waiting and burning 100% CPU in SITL.  After executing the
         // current task (or finding nothing to do), sleep until just before the
         // next task is due.  For event-driven tasks (checkFunc) we limit the
