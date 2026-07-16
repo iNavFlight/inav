@@ -133,22 +133,14 @@ typedef struct servoMixer_s {
     uint8_t targetChannel;                  // servo that receives the output of the rule
     uint8_t inputSource;                    // input channel for this rule
     int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
-    uint16_t speed;                         // limits the speed of the rule, in 10 us/s;
-                                            // 0 = unlimited. uint16 so a real servo's
-                                            // ceiling is expressible (0.08 s/60 deg
-                                            // needs ~625; the old uint8 topped out at
-                                            // ~0.20 s/60 deg). Legacy MSP messages
-                                            // clamp to 255 on output, CLI is unaffected.
+    uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
 #ifdef USE_PROGRAMMING_FRAMEWORK
     int8_t conditionId;
 #endif
 } servoMixer_t;
 
 #define MAX_SERVO_RULES (2 * MAX_SUPPORTED_SERVOS)
-// 1000 = 10000 us/s = full sweep in 0.1 s (~0.05 s/60 deg): the fastest
-// aerobatic HV servo class - values beyond that command nothing a servo
-// can follow
-#define MAX_SERVO_SPEED 1000
+#define MAX_SERVO_SPEED UINT8_MAX
 #define SERVO_OUTPUT_MAX 2500
 #define SERVO_OUTPUT_MIN 500
 
@@ -158,7 +150,7 @@ typedef struct servoMixerSwitch_s {
     //this is used to keep track of servoSpeedLimitFilter of servo rules during the mixer switch
     uint8_t targetChannel;                  // servo that receives the output of the rule
     int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
-    uint16_t speed;                         // limits the speed of the rule, 0=unlimited (see servoMixer_t)
+    uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
     float speedLimitFilterState;     // rate limit filter for this rule
 } servoMixerSwitch_t;
 #define MAX_SERVO_RULES_SWITCH_CARRY (MAX_SERVO_RULES / 2)
