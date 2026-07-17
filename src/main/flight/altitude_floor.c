@@ -51,12 +51,6 @@ PG_RESET_TEMPLATE(altitudeFloorConfig_t, altitudeFloorConfig,
     .floorClimbPitch = SETTING_ALT_FLOOR_CLIMB_PITCH_DEFAULT,
 );
 
-// How far ahead the sink prediction looks. Must cover the roll-to-upright
-// time AND the Z estimator lag: under sustained sink the estimated altitude
-// trails the true altitude by roughly vz * estimator time constant (~2-3 s
-// with default baro weighting), so a short lookahead catches far too low.
-#define ALT_FLOOR_LOOKAHEAD_S 3.0f
-
 static bool floorArmed = false;      // climbed above floor + margin once
 static bool floorRecovery = false;
 static bool sticksSeenCentered = false;
@@ -84,8 +78,15 @@ void altitudeFloorUpdate(void)
     }
 
     if (!floorRecovery) {
-        // Predictive engage: catch before the floor, not at it
-        if (vz < 0.0f && (z + vz * ALT_FLOOR_LOOKAHEAD_S) < floorCm) {
+        // Engage when the aircraft BREAKS THROUGH the floor, sinking - no
+        // prediction. A piloted trajectory is not predictable (a loop
+        // downline at 30 m/s "predicts" a 90 m crash and pulls out in 15;
+        // measured as the floor silently co-flying every fast loop under
+        // the old 3 s lookahead). The line is the contract: above it the
+        // sky belongs to the pilot, crossing it downward triggers the
+        // recovery, and the height below the line is the recovery budget
+        // the user chooses with alt_floor_altitude.
+        if (vz < 0.0f && z < floorCm) {
             floorRecovery = true;
             sticksSeenCentered = false;
         }
