@@ -4527,6 +4527,36 @@ groups:
         min: 5
         max: 45
 
+  - name: PG_ROTOR_GUARD_CONFIG
+    type: rotorGuardConfig_t
+    headers: ["flight/rotor_guard.h"]
+    condition: USE_ORIENTATION_HOLD
+    members:
+      - name: rotor_guard_bank
+        description: "Autogyro tip-over guard (ROTOR GUARD mode): bank angle [deg] beyond which, while sinking, the roll excursion counts as a tip-over (rotor rpm decayed, lateral tilt authority gone). Recovery: wings level, nose slightly down, throttle floor - thrust is the only lever that restores rotor rpm."
+        default_value: 60
+        field: bankDeg
+        min: 30
+        max: 90
+      - name: rotor_guard_sink
+        description: "Minimum sink rate [cm/s] for the tip-over detection - a banked climb or a flown figure does not trip the guard"
+        default_value: 100
+        field: sinkCms
+        min: 10
+        max: 1000
+      - name: rotor_guard_pitch
+        description: "Pitch target [deg] during rotor guard recovery, negative = nose down: feeds the disk (inflow -> rotor rpm -> authority)"
+        default_value: -5
+        field: recoveryPitchDeg
+        min: -20
+        max: 10
+      - name: rotor_guard_throttle_add
+        description: "Recovery throttle floor = cruise throttle + this [us]. More pilot throttle always wins; the motor keeps running through a low stick during recovery."
+        default_value: 250
+        field: throttleAddUs
+        min: 0
+        max: 800
+
   - name: PG_THRUST_VECTORING_CONFIG
     type: thrustVectoringConfig_t
     headers: ["flight/thrust_vectoring.h"]

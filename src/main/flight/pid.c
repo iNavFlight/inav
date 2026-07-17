@@ -44,6 +44,7 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/altitude_floor.h"
+#include "flight/rotor_guard.h"
 #include "flight/figure_sequencer.h"
 #include "flight/mixer_profile.h"
 #include "flight/orientation_hold.h"
@@ -765,7 +766,8 @@ static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
     // it must catch AGAINST a panic-held down-elevator (the pilot override
     // is switching the floor box off), yaw stays live for steering
     const bool stickOffsets = orientationHoldSticksAreTargetOffsets()
-                           || altitudeFloorRecoveryActive();
+                           || altitudeFloorRecoveryActive()
+                           || rotorGuardRecoveryActive();
     // controlled spin (FLAT SPIN family or figure SPIN segment): the spin
     // command is a rotation about the EARTH VERTICAL - exactly the axis the
     // reduced attitude error leaves free - distributed onto the body axes

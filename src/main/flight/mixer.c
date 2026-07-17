@@ -47,6 +47,7 @@
 
 #include "flight/failsafe.h"
 #include "flight/altitude_floor.h"
+#include "flight/rotor_guard.h"
 #include "flight/crash_detection.h"
 #include "flight/hover_throttle.h"
 #include "flight/orientation_hold.h"
@@ -705,8 +706,10 @@ motorStatus_e getMotorStatus(void)
 #ifdef USE_ORIENTATION_HOLD
         // the altitude floor recovery climbs on its own throttle floor - a
         // panic-chopped stick must not stop the motor that climb needs (the
-        // same override navigation gets via nav_overrides_motor_stop)
-        if (STATE(AIRPLANE) && altitudeFloorRecoveryActive()) {
+        // same override navigation gets via nav_overrides_motor_stop). The
+        // rotor guard recovery NEEDS the motor even more: thrust is its
+        // only means of restoring rotor rpm.
+        if (STATE(AIRPLANE) && (altitudeFloorRecoveryActive() || rotorGuardRecoveryActive())) {
             return MOTOR_RUNNING;
         }
 #endif

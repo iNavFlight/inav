@@ -121,6 +121,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXFIGSEQ,           .boxName = "F SEQ",        .permanentId = 77 },
     { .boxId = BOXATTLOCK,          .boxName = "3DLOCK",           .permanentId = 78 },
     { .boxId = BOXFSPIN,            .boxName = "FLAT SPIN",        .permanentId = 79 },
+    { .boxId = BOXROTORGUARD,       .boxName = "ROTOR GUARD",      .permanentId = 80 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -306,6 +307,7 @@ void initActiveBoxIds(void)
             }
             ADD_ACTIVE_BOX(BOXPROPHANG);
             ADD_ACTIVE_BOX(BOXALTFLOOR);
+            ADD_ACTIVE_BOX(BOXROTORGUARD);
             ADD_ACTIVE_BOX(BOXFIGROLL);
             ADD_ACTIVE_BOX(BOXFIGLOOP);
             ADD_ACTIVE_BOX(BOXFIGPOINTROLL);
@@ -485,6 +487,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKNIFERIGHT)),      BOXKNIFERIGHT);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXPROPHANG)),        BOXPROPHANG);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXALTFLOOR)),        BOXALTFLOOR);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXROTORGUARD)),      BOXROTORGUARD);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFIGROLL)),         BOXFIGROLL);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFIGLOOP)),         BOXFIGLOOP);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFIGPOINTROLL)),    BOXFIGPOINTROLL);

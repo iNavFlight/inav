@@ -88,6 +88,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/altitude_floor.h"
+#include "flight/rotor_guard.h"
 #include "flight/figure_sequencer.h"
 #include "flight/crash_detection.h"
 #include "flight/orientation_hold.h"
@@ -705,6 +706,7 @@ void processRx(timeUs_t currentTimeUs)
 #ifdef USE_ORIENTATION_HOLD
     DISABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
     altitudeFloorUpdate();
+    rotorGuardUpdate();
     figureSequencerUpdate();
 #endif
 
@@ -712,9 +714,10 @@ void processRx(timeUs_t currentTimeUs)
         if (autoEnableAngle) {
             ENABLE_FLIGHT_MODE(ANGLE_MODE);
 #ifdef USE_ORIENTATION_HOLD
-        } else if (STATE(AIRPLANE) && altitudeFloorRecoveryActive()) {
-            // Automatic floor recovery: upright + climb, overrides the pilot's
-            // stabilised mode selection until back above the floor
+        } else if (STATE(AIRPLANE) && (altitudeFloorRecoveryActive() || rotorGuardRecoveryActive())) {
+            // Automatic safety recovery (altitude floor, or the autogyro
+            // tip-over guard): overrides the pilot's stabilised mode
+            // selection until the aircraft is caught
             ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
 #endif
         } else if (IS_RC_MODE_ACTIVE(BOXANGLE)) {

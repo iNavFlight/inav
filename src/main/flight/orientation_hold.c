@@ -48,6 +48,7 @@
 #include "drivers/time.h"
 
 #include "flight/altitude_floor.h"
+#include "flight/rotor_guard.h"
 #include "flight/figure_sequencer.h"
 
 #include "navigation/navigation.h"
@@ -434,6 +435,7 @@ static void orientationHoldRegulate(fpVector3_t *errDeg)
 #define OHOLD_SOURCE_FIGURE (-3)
 #define OHOLD_SOURCE_LOCK   (-4)
 #define OHOLD_SOURCE_EXIT   (-5)
+#define OHOLD_SOURCE_ROTOR  (-6)
 
 // Exit handover thresholds: engage only when the released attitude is far
 // enough from level that the instant Euler error would command full rates;
@@ -818,6 +820,14 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
     if (altitudeFloorRecoveryActive()) {
         orientationHoldCheckSourceSwitch(OHOLD_SOURCE_FLOOR);
         orientationHoldTargetFromRP(&qDesired, 0.0f, altitudeFloorRecoveryPitchDeg());
+        slewRateDegS = 0.0f;
+    } else if (rotorGuardRecoveryActive()) {
+        // Autogyro tip-over catch: wings level, nose slightly DOWN - the
+        // disk needs inflow before the lateral tilt has any authority
+        // again; the throttle floor (hover_throttle) provides the thrust.
+        // The floor outranks this: height beats rotor rpm.
+        orientationHoldCheckSourceSwitch(OHOLD_SOURCE_ROTOR);
+        orientationHoldTargetFromRP(&qDesired, 0.0f, rotorGuardRecoveryPitchDeg());
         slewRateDegS = 0.0f;
     } else if (figureSequencerRequested()) {
         float figRoll, figPitch;

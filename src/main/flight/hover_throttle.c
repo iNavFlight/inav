@@ -44,6 +44,7 @@
 #include "fc/settings.h"
 
 #include "flight/altitude_floor.h"
+#include "flight/rotor_guard.h"
 #include "flight/hover_throttle.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -281,6 +282,16 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
             const int16_t climbThrottle = currentBatteryProfile->nav.fw.cruise_throttle
                 + lrintf(altitudeFloorRecoveryPitchDeg() * currentBatteryProfile->nav.fw.pitch_to_throttle);
             return constrain(MAX(pilotThrottle, climbThrottle),
+                             getThrottleIdleValue(), getMaxThrottle());
+        }
+        // autogyro tip-over recovery: thrust is the ONLY lever that brings
+        // the rotor rpm (and with it the roll authority) back - a fixed
+        // floor above cruise, NOT pitch-scaled (the recovery pitch is nose
+        // DOWN, pitch-to-throttle would reduce it); more pilot throttle wins
+        if (ARMING_FLAG(ARMED) && rotorGuardRecoveryActive()) {
+            const int16_t guardThrottle = currentBatteryProfile->nav.fw.cruise_throttle
+                + rotorGuardConfig()->throttleAddUs;
+            return constrain(MAX(pilotThrottle, guardThrottle),
                              getThrottleIdleValue(), getMaxThrottle());
         }
         return pilotThrottle;
