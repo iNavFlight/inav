@@ -58,11 +58,20 @@ PG_RESET_TEMPLATE(rotorGuardConfig_t, rotorGuardConfig,
 // The excursion must persist: a gust or a crisp figure entry crosses the
 // bank line for a moment, a tip-over stays there (authority is gone)
 #define ROTOR_GUARD_TRIP_MS     300
-// Release hysteresis: wings back under this bank AND no longer sinking
+// Release hysteresis: wings back under this bank, held for the window
 #define ROTOR_GUARD_RELEASE_BANK_DEG 20
+// Minimum time on the recovery before any release: the wings answering is
+// the CATCH dynamics, not proof the rotor is healthy - the rpm rebuilds
+// from inflow with a seconds-long time constant, and a release into a
+// still-starved rotor re-tips DEEPER (measured: -48 caught, released
+// after 1.5 s, re-tipped to -138 and into the ground). Time on the
+// throttle floor is the honest rpm proxy when no rpm feedback exists.
+#define ROTOR_GUARD_MIN_HOLD_MS 5000
 
 static bool guardRecovery = false;
 static timeMs_t tripStartMs = 0;
+static timeMs_t recoveryStartMs = 0;
+static timeMs_t levelSinceMs = 0;
 static bool sticksSeenCentered = false;
 
 void rotorGuardUpdate(void)
@@ -87,17 +96,32 @@ void rotorGuardUpdate(void)
                 tripStartMs = millis();
             } else if (millis() - tripStartMs > ROTOR_GUARD_TRIP_MS) {
                 guardRecovery = true;
+                recoveryStartMs = millis();
+                levelSinceMs = 0;
                 sticksSeenCentered = false;
             }
         } else {
             tripStartMs = 0;
         }
     } else {
-        // Release when the tilt authority is visibly back: wings level-ish
-        // and the sink arrested (the thrust floor restored the inflow)
-        if (bankDeg < ROTOR_GUARD_RELEASE_BANK_DEG && vz >= 0.0f) {
-            guardRecovery = false;
-            tripStartMs = 0;
+        // Release when the tilt authority is visibly back: wings held
+        // level-ish for a sustained window. Height is deliberately NOT a
+        // release condition - that is the altitude floor's job, and a
+        // T/W<1 autogyro settles in a slow descent at any sane recovery
+        // attitude (measured: an arrest-the-sink condition pinned the
+        // recovery active all the way to the ground). The box stays
+        // armed; a renewed excursion simply trips it again.
+        if (millis() - recoveryStartMs > ROTOR_GUARD_MIN_HOLD_MS
+            && bankDeg < ROTOR_GUARD_RELEASE_BANK_DEG) {
+            if (levelSinceMs == 0) {
+                levelSinceMs = millis();
+            } else if (millis() - levelSinceMs > 1500) {
+                guardRecovery = false;
+                tripStartMs = 0;
+                levelSinceMs = 0;
+            }
+        } else {
+            levelSinceMs = 0;
         }
         // ... or the pilot takes over: sticks must return to center ONCE
         // (a deflection held through the tip-over is not a takeover), a
@@ -121,7 +145,16 @@ bool rotorGuardRecoveryActive(void)
 
 float rotorGuardRecoveryPitchDeg(void)
 {
-    return (float)rotorGuardConfig()->recoveryPitchDeg;
+    // Nose-down only while the roll excursion persists: it exists to feed
+    // the disk while the tilt has no authority. Once the wings answer
+    // again the recovery levels off - a T/W<1 autogyro can never climb
+    // nose-down, and the release condition (sink arrested) would
+    // otherwise never arrive (measured: a stable 1.2 m/s descent all the
+    // way into the ground).
+    if (ABS(attitude.values.roll) / 10.0f > ROTOR_GUARD_RELEASE_BANK_DEG + 10) {
+        return (float)rotorGuardConfig()->recoveryPitchDeg;
+    }
+    return 0.0f;
 }
 
 #endif // USE_ORIENTATION_HOLD
