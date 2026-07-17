@@ -708,6 +708,13 @@ void processRx(timeUs_t currentTimeUs)
     altitudeFloorUpdate();
     rotorGuardUpdate();
     figureSequencerUpdate();
+    // Safety-state word for the bench (SITL debug slot 7): the replay and
+    // the gates must SEE when a recovery owns the aircraft - an engaged
+    // floor is invisible in the box readback and a figure silently flown
+    // under recovery override would fake the figure's proof
+    debug[7] = (altitudeFloorArmed() ? 1 : 0)
+             | (altitudeFloorRecoveryActive() ? 2 : 0)
+             | (rotorGuardRecoveryActive() ? 4 : 0);
 #endif
 
     if (sensors(SENSOR_ACC) && (!FLIGHT_MODE(MANUAL_MODE) || autoEnableAngle)) {

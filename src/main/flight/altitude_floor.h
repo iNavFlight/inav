@@ -49,5 +49,8 @@ void altitudeFloorUpdate(void);
 // True while the automatic recovery is flying the aircraft
 bool altitudeFloorRecoveryActive(void);
 
+// True once the floor is armed (climbed above floor + margin)
+bool altitudeFloorArmed(void);
+
 // Recovery pitch target (deg, nose up)
 float altitudeFloorRecoveryPitchDeg(void);

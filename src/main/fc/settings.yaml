@@ -4533,7 +4533,7 @@ groups:
     condition: USE_ORIENTATION_HOLD
     members:
       - name: rotor_guard_bank
-        description: "Autogyro tip-over guard (ROTOR GUARD mode): bank angle [deg] beyond which, while sinking, the roll excursion counts as a tip-over (rotor rpm decayed, lateral tilt authority gone). Recovery: wings level, nose slightly down, throttle floor - thrust is the only lever that restores rotor rpm."
+        description: "Autogyro tip-over guard (ROTOR GUARD mode): bank angle [deg] beyond which, while sinking, the roll excursion counts as a tip-over (rotor rpm decayed, lateral tilt authority gone). Recovery: wings level, nose slightly down, throttle floor - thrust is the only lever that restores rotor rpm. TUNE PER AIRFRAME to just above the steepest bank it flies on purpose; the default is deliberately conservative, the SITL-proven Durafly Auto-G2 value is 45."
         default_value: 60
         field: bankDeg
         min: 30
@@ -4551,7 +4551,7 @@ groups:
         min: -20
         max: 10
       - name: rotor_guard_throttle_add
-        description: "Recovery throttle floor = cruise throttle + this [us]. More pilot throttle always wins; the motor keeps running through a low stick during recovery."
+        description: "Recovery throttle floor = cruise throttle + this [us]. More pilot throttle always wins; the motor keeps running through a low stick during recovery. Must be enough that the airframe LEVELS OFF at the recovery attitude - a T/W below 1 needs a fatter floor (the SITL-proven Auto-G2 value is 380; the default merely arrests the roll, not the sink)."
         default_value: 250
         field: throttleAddUs
         min: 0

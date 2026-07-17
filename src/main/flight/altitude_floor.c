@@ -114,6 +114,11 @@ bool altitudeFloorRecoveryActive(void)
     return floorRecovery;
 }
 
+bool altitudeFloorArmed(void)
+{
+    return floorArmed;
+}
+
 float altitudeFloorRecoveryPitchDeg(void)
 {
     return (float)altitudeFloorConfig()->floorClimbPitch;
