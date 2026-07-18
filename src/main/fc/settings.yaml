@@ -1567,6 +1567,12 @@ groups:
         field: acc_ignore_slope
         min: 0
         max: 10
+      - name: ahrs_gps_aiding_max_tilt
+        description: "Tilt from level [deg] beyond which ALL GPS-derived AHRS aiding (yaw from course, centrifugal compensation) fades out on an airplane - both assume coordinated forward flight and actively bend the attitude estimate in a hang, knife edge, inverted or spin (measured). Instant fade-out, 2 s fade-in after returning below the limit. 0 disables the gate."
+        default_value: 60
+        field: gps_aiding_max_tilt
+        min: 0
+        max: 90
       - name: ahrs_gps_yaw_windcomp
         description: "Wind compensation in heading estimation from gps groundcourse(fixed wing only)"
         default_value: ON

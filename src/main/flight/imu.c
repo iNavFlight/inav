@@ -121,8 +121,10 @@ FASTRAM bool imuUpdated = false;
 
 static float imuCalculateAccelerometerWeightNearness(fpVector3_t* accBF);
 static float imuCalculateAccelerometerWeightRateIgnore(const float acc_ignore_slope_multipiler);
+static void imuUpdateGpsAidingTiltWeight(float dT);
+static float gpsAidingTiltWeight = 1.0f;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 3);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_acc = SETTING_AHRS_DCM_KP_DEFAULT,                   // 0.20 * 10000
@@ -134,7 +136,8 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .acc_ignore_slope = SETTING_AHRS_ACC_IGNORE_SLOPE_DEFAULT,
     .gps_yaw_windcomp = SETTING_AHRS_GPS_YAW_WINDCOMP_DEFAULT,
     .inertia_comp_method = SETTING_AHRS_INERTIA_COMP_METHOD_DEFAULT,
-    .gps_yaw_weight = SETTING_AHRS_GPS_YAW_WEIGHT_DEFAULT
+    .gps_yaw_weight = SETTING_AHRS_GPS_YAW_WEIGHT_DEFAULT,
+    .gps_aiding_max_tilt = SETTING_AHRS_GPS_AIDING_MAX_TILT_DEFAULT
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -458,6 +461,13 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed) / 2.0f, 400.0f, 1000.0f), 400.0f, 1000.0f, 0.0f, 1.0f);
             } else { //vCOG is not avaliable and vCOGAcc is avaliable, set the weight of vCOG to zero
                 wCoG = 0.0f;
+            }
+            if (STATE(AIRPLANE)) {
+                // attitude gate: yaw-from-course is meaningless with the
+                // nose far from the horizon (course != heading in a hang
+                // or knife edge; the pull-up entry corrupts yaw exactly
+                // when the figure begins)
+                wCoG *= gpsAidingTiltWeight;
             }
             if (STATE(MULTIROTOR)) {
                 //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
@@ -863,6 +873,15 @@ static void imuCalculateEstimatedAttitude(float dT)
         imuCalculateTurnRateacceleration(&vEstcentrifugalAccelBF_turnrate, dT, &acc_ignore_slope_multipiler);
     }
 
+    // attitude gate (see imuUpdateGpsAidingTiltWeight): beyond the tilt
+    // limit the centrifugal models are wrong - fade them out entirely,
+    // the raw accelerometer is the lesser error there
+    imuUpdateGpsAidingTiltWeight(dT);
+    if (STATE(AIRPLANE) && gpsAidingTiltWeight < 1.0f) {
+        vectorScale(&vEstcentrifugalAccelBF_velned, &vEstcentrifugalAccelBF_velned, gpsAidingTiltWeight);
+        vectorScale(&vEstcentrifugalAccelBF_turnrate, &vEstcentrifugalAccelBF_turnrate, gpsAidingTiltWeight);
+    }
+
     if (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE && isGPSTrustworthy() && STATE(AIRPLANE)) {
         //pick the best centrifugal acceleration between velned and turnrate
         fpVector3_t compensatedGravityBF_velned;
@@ -967,6 +986,29 @@ bool isImuHeadingValid(void)
 float calculateCosTiltAngle(void)
 {
     return 1.0f - 2.0f * sq(orientation.q1) - 2.0f * sq(orientation.q2);
+}
+
+// ATTITUDE GATE for every GPS-derived aiding on an airplane: yaw-from-
+// course and the centrifugal compensation both assume coordinated forward
+// flight (heading follows course, lateral acceleration is v x omega).
+// Beyond the tilt threshold - hang, knife edge, inverted, spins - the
+// assumption is broken and the aiding actively BENDS the attitude
+// (measured in SITL with truth GPS: +4.6 deg pitch bias and 19 deg tilt
+// divergence in a prop hang that is clean without GPS). Drop instantly on
+// entering the aerobatic domain, fade back over 2 s after returning; the
+// normal flight regime keeps full GPS support.
+static void imuUpdateGpsAidingTiltWeight(float dT)
+{
+    if (!STATE(AIRPLANE) || !imuConfig()->gps_aiding_max_tilt) {
+        gpsAidingTiltWeight = 1.0f;
+        return;
+    }
+    const float cosLimit = cos_approx(DEGREES_TO_RADIANS(imuConfig()->gps_aiding_max_tilt));
+    if (calculateCosTiltAngle() < cosLimit) {
+        gpsAidingTiltWeight = 0.0f;
+    } else {
+        gpsAidingTiltWeight = MIN(1.0f, gpsAidingTiltWeight + dT / 2.0f);
+    }
 }
 #if defined(USE_GPS)
 bool isYawZeroResetAllowed(void)

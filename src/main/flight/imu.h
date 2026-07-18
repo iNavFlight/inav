@@ -53,6 +53,7 @@ typedef struct imuConfig_s {
     uint8_t gps_yaw_windcomp;
     uint8_t inertia_comp_method;
     uint16_t gps_yaw_weight;
+    uint8_t gps_aiding_max_tilt;            // [deg from level] beyond this tilt ALL GPS aiding fades out (0 = off)
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);
