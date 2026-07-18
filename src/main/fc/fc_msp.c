@@ -2390,16 +2390,18 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_INAV_SET_FIGURE_SEQUENCE:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 9) && (tmp_u8 < MAX_FIGURE_SEQUENCE_SEGMENTS)) {
+            // validate BEFORE touching the PG: a rejected frame must not
+            // leave half-written parameters behind (review finding)
+            const uint8_t segType = sbufReadU8(src);
+            if (segType >= FIGSEG_TYPE_COUNT) {
+                return MSP_RESULT_ERROR;
+            }
             figureSegment_t *seg = figureSequenceMutable(tmp_u8);
-            seg->type = sbufReadU8(src);
+            seg->type = segType;
             seg->p1 = sbufReadU16(src);
             seg->p2 = sbufReadU16(src);
             seg->p3 = sbufReadU16(src);
             seg->flags = sbufReadU8(src);
-            if (seg->type >= FIGSEG_TYPE_COUNT) {
-                seg->type = FIGSEG_END;
-                return MSP_RESULT_ERROR;
-            }
         } else
             return MSP_RESULT_ERROR;
         break;

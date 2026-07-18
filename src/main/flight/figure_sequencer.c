@@ -154,6 +154,15 @@ void figureSequencerUpdate(void)
     if (req == FIGURE_NONE || !ARMING_FLAG(ARMED) || !STATE(AIRPLANE)) {
         activeFigure = FIGURE_NONE;
         state = FIG_STATE_IDLE;
+        // the transient command flags MUST die with the figure: aborting
+        // mid-IMPULSE/SPIN (box off, disarm) otherwise leaves them
+        // latched, and pidOrientationHold keeps applying stale open-loop
+        // full-rate commands - AHEAD of the floor/rotor recovery target,
+        // defeating the catch (review finding, verified at pid.c impulse
+        // branch: it returns before the recovery error is computed)
+        seqImpulseActive = false;
+        seqSpinActive = false;
+        seqTurnCoordination = false;
         return;
     }
 
