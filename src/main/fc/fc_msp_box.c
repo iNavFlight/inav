@@ -297,23 +297,29 @@ void initActiveBoxIds(void)
         if (sensors(SENSOR_ACC)) {
             ADD_ACTIVE_BOX(BOXANGLEHOLD);
 #ifdef USE_ORIENTATION_HOLD
-            ADD_ACTIVE_BOX(BOXINVERTED);
-            // a knife edge is held on the rudder (or a TVC yaw vane): a
-            // model without any yaw effector (flying wing) cannot fly one,
-            // so the knife modes are not offered on such a mixer
-            if (servoMixerHasYawControl()) {
-                ADD_ACTIVE_BOX(BOXKNIFELEFT);
-                ADD_ACTIVE_BOX(BOXKNIFERIGHT);
+            // the whole aerobatics suite sits behind one runtime feature
+            // (FW_LAUNCH pattern, Daniel's call): feature off = none of
+            // these boxes exist, the Modes tab looks exactly like upstream
+            if (feature(FEATURE_FW_AEROBATICS)) {
+                ADD_ACTIVE_BOX(BOXINVERTED);
+                // a knife edge is held on the rudder (or a TVC yaw vane):
+                // a model without any yaw effector (flying wing) cannot
+                // fly one, so the knife modes are not offered on such a
+                // mixer
+                if (servoMixerHasYawControl()) {
+                    ADD_ACTIVE_BOX(BOXKNIFELEFT);
+                    ADD_ACTIVE_BOX(BOXKNIFERIGHT);
+                }
+                ADD_ACTIVE_BOX(BOXPROPHANG);
+                ADD_ACTIVE_BOX(BOXALTFLOOR);
+                ADD_ACTIVE_BOX(BOXROTORGUARD);
+                ADD_ACTIVE_BOX(BOXFIGROLL);
+                ADD_ACTIVE_BOX(BOXFIGLOOP);
+                ADD_ACTIVE_BOX(BOXFIGPOINTROLL);
+                ADD_ACTIVE_BOX(BOXFIGSEQ);
+                ADD_ACTIVE_BOX(BOXATTLOCK);
+                ADD_ACTIVE_BOX(BOXFSPIN);
             }
-            ADD_ACTIVE_BOX(BOXPROPHANG);
-            ADD_ACTIVE_BOX(BOXALTFLOOR);
-            ADD_ACTIVE_BOX(BOXROTORGUARD);
-            ADD_ACTIVE_BOX(BOXFIGROLL);
-            ADD_ACTIVE_BOX(BOXFIGLOOP);
-            ADD_ACTIVE_BOX(BOXFIGPOINTROLL);
-            ADD_ACTIVE_BOX(BOXFIGSEQ);
-            ADD_ACTIVE_BOX(BOXATTLOCK);
-            ADD_ACTIVE_BOX(BOXFSPIN);
 #endif
         }
     }

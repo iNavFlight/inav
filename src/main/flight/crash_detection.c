@@ -122,7 +122,10 @@ void crashDetectionUpdate(float dT)
     // multirotor alike (a crashed copter with its props chewing the ground
     // or a bystander is exactly what the motor cut is for). Rovers and
     // boats are excluded: an impact there is not a reason to cut the motor.
-    if (!crashDetectionConfig()->crashDetection
+    // Part of the FW_AEROBATICS suite: without the feature the FC behaves
+    // exactly like upstream.
+    if (!feature(FEATURE_FW_AEROBATICS)
+        || !crashDetectionConfig()->crashDetection
         || !(STATE(AIRPLANE) || STATE(MULTIROTOR))
         || !ARMING_FLAG(ARMED)) {
         inFlight = false;

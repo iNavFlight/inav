@@ -918,10 +918,14 @@ static void imuCalculateEstimatedAttitude(float dT)
     float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness(&compensatedGravityBF);
     accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(acc_ignore_slope_multipiler);
     const bool useAcc = (accWeight > 0.001f);
+#if defined(SITL_BUILD)
     // bench instrumentation (SITL debug slot 6): the EFFECTIVE acc weight,
     // 1000 = full trust - answers whether the estimator still listens to
-    // the (centrifugally poisoned) accelerometer during sustained spins
+    // the (centrifugally poisoned) accelerometer during sustained spins.
+    // SITL only: a raw debug[] write on a real target would clobber the
+    // user's selected debug channel (review finding).
     debug[6] = lrintf(accWeight * 1000.0f);
+#endif
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
     fpVector3_t measuredMagBF = {.v = {mag.magADC[X], mag.magADC[Y], mag.magADC[Z]}};
@@ -1003,7 +1007,10 @@ float calculateCosTiltAngle(void)
 // normal flight regime keeps full GPS support.
 static void imuUpdateGpsAidingTiltWeight(float dT)
 {
-    if (!STATE(AIRPLANE) || !imuConfig()->gps_aiding_max_tilt) {
+    // the gate exists for the aerobatic envelope; without the feature
+    // the estimator behaves exactly like upstream (weight pinned at 1)
+    if (!feature(FEATURE_FW_AEROBATICS)
+        || !STATE(AIRPLANE) || !imuConfig()->gps_aiding_max_tilt) {
         gpsAidingTiltWeight = 1.0f;
         return;
     }
