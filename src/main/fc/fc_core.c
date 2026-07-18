@@ -719,7 +719,8 @@ void processRx(timeUs_t currentTimeUs)
              | (altitudeFloorRecoveryActive() ? 2 : 0)
              | (rotorGuardRecoveryActive() ? 4 : 0)
              | (navigationPositionEstimateIsHealthy() ? 8 : 0)
-             | (altitudeFloorOrbitActive() ? 16 : 0);
+             | (altitudeFloorOrbitActive() ? 16 : 0)
+             | (altitudeFloorOrbitViaNav() ? 32 : 0);
 #endif
 #endif
 

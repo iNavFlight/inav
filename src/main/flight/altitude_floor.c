@@ -23,10 +23,13 @@
  */
 
 #include <stdbool.h>
+#include <math.h>
 
 #include <platform.h>
 
 #ifdef USE_ORIENTATION_HOLD
+
+#include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/maths.h"
@@ -124,6 +127,20 @@ void altitudeFloorUpdate(void)
             breachPos.z = floorCm + marginCm;
         }
     } else {
+        // RE-BREACH GUARD: the nav poshold honors the pilot's pitch stick
+        // as a climb-rate override, so a panic-HELD down-elevator rides
+        // the orbit back through the line (measured: orbit descending to
+        // 24 m under a held stick, floor at 55). A held stick is NOT a
+        // takeover - sinking back through the floor drops the orbit and
+        // re-engages the aggressive climb (attitude force + throttle
+        // floor own the aircraft again) until the height is recaptured.
+        if (floorOrbit && vz < 0.0f && z < floorCm) {
+            floorOrbit = false;
+            if (orbitViaNav) {
+                navAbortFloorOrbit();
+                orbitViaNav = false;
+            }
+        }
         // Climb done (back above floor + margin, climbing): do NOT hand
         // back - transition to the ORBIT. The aircraft circles at the
         // floor around the breach point and WAITS; after the shock the
@@ -144,6 +161,18 @@ void altitudeFloorUpdate(void)
             // keep the breach point asserted every cycle
             navAssertFloorOrbitTarget(&breachPos);
         }
+#if defined(SITL_BUILD)
+        // bench telemetry (demuxed into the flight CSV): how the recovery
+        // relates to the breach anchor - heading error to it and distance
+        // from it. SITL only, same rationale as the safety word.
+        {
+            const float dx = breachPos.x - getEstimatedActualPosition(X);
+            const float dy = breachPos.y - getEstimatedActualPosition(Y);
+            const int32_t brg = wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(dy, dx)));
+            debug[4] = wrap_18000(brg - attitude.values.yaw * 10) / 10;  // deg x10
+            debug[5] = (int32_t)(calc_length_pythagorean_2D(dx, dy) / 100.0f);  // m
+        }
+#endif
         // The ONLY releases: the pilot takes over (sticks must return to
         // center ONCE first - the panic-held down-elevator from the dive
         // is not a takeover - then a fresh roll/pitch deflection hands

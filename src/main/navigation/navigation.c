@@ -1359,16 +1359,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE(n
         // current position each time and circles itself (measured: clean
         // 52 m circle drifting 250 m from the breach)
         if (posControl.flags.forcedPosholdActive && floorOrbitTargetValid) {
-#if defined(SITL_BUILD)
-            debug[4] = 4242;   // orbit-anchor init path taken
-#endif
             setDesiredPosition(&floorOrbitTarget, posControl.actualState.yaw,
                                NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
             return NAV_FSM_EVENT_SUCCESS;
         }
-#if defined(SITL_BUILD)
-        debug[4] = 1111;       // default hold-here init path
-#endif
 #endif
         setDesiredPosition(&targetHoldPos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
     }
