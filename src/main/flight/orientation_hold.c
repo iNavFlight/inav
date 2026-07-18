@@ -359,7 +359,8 @@ static void orientationHoldComputeFullAttitudeError(fpVector3_t *errDeg, const f
 // to a yaw-anchored figure target (the slewed target simply inherits the
 // drifted heading). Anchored figures slew the FULL rotation instead. No
 // antipode axis preference needed: figures start on the current attitude
-// and the trajectory is fortgeschrieben, the relative angle stays small.
+// and the trajectory is carried forward from there, the relative angle
+// stays small.
 static float orientationHoldSlewTargetFull(fpQuaternion_t *qSoll, const fpQuaternion_t *qDesired, float maxStepDeg)
 {
     fpVector3_t errDeg;
@@ -389,8 +390,9 @@ static float orientationHoldSlewTargetFull(fpQuaternion_t *qSoll, const fpQuater
 // re-anchor q_soll on the attitude composed with that error. The twist (the
 // free axis: heading in level/inverted flight, body roll at prop hang) of
 // the target thereby follows the actual attitude every cycle -- axis
-// compliance w_yaw = 0. Held-twist sources (course hold bridging) will skip
-// this re-anchoring and feed the full error instead.
+// compliance w_yaw = 0. Yaw-anchored figures (figureLineAnchored) feed the
+// FULL rotation through orientationHoldComputeFullAttitudeError instead;
+// for them the re-anchoring below is a mathematical no-op.
 static bool figureLineAnchored = false;
 static fpQuaternion_t qFigureYawAnchor;
 static void orientationHoldComputeFullAttitudeError(fpVector3_t *errDeg, const fpQuaternion_t *qEst, const fpQuaternion_t *qTarget);
@@ -632,7 +634,10 @@ static bool hoverOscDetectAxis(hoverOscDetector_t *d, float sigDeg, float dT)
 }
 
 // freeze the learned value when a regime ends; write it back once so the
-// disarm save picks it up
+// disarm save picks it up. The limit-cycle detector dies with the regime:
+// a frozen sinceFlipS/peakDeg would otherwise register a spurious
+// half-wave on re-entry and back the learned gain off once (review
+// finding).
 static void regimeGainFreeze(oholdRegime_e regime)
 {
     regimeGainState_t *g = &regimeGain[regime];
@@ -644,6 +649,7 @@ static void regimeGainFreeze(oholdRegime_e regime)
         }
         g->wasActive = false;
     }
+    g->osc[0] = g->osc[1] = (hoverOscDetector_t){ 0 };
 }
 
 static void regimeGainFreezeAll(void)
@@ -652,6 +658,11 @@ static void regimeGainFreezeAll(void)
         regimeGainFreeze((oholdRegime_e)r);
     }
 }
+
+// nose-elevation threshold shared by the hover regime gate and the
+// authority scale (one constant, one concept - review finding: the same
+// 45 existed once named and once as a bare literal)
+#define AUTHORITY_HOVER_ELEVATION_DEG 45.0f
 
 // which learning regime the current target source belongs to; spins and
 // the special sources (lock / floor / exit handover) learn nothing
@@ -662,7 +673,7 @@ static oholdRegime_e regimeGainActiveRegime(void)
             // nose elevation gate, same release threshold as the hover throttle
             fpVector3_t nose = { .v = { 1.0f, 0.0f, 0.0f } };
             quaternionRotateVectorInv(&nose, &nose, &orientation);
-            return RADIANS_TO_DEGREES(asin_approx(constrainf(-nose.z, -1.0f, 1.0f))) > 45.0f
+            return RADIANS_TO_DEGREES(asin_approx(constrainf(-nose.z, -1.0f, 1.0f))) > AUTHORITY_HOVER_ELEVATION_DEG
                  ? OHOLD_REGIME_HOVER : OHOLD_REGIME_NONE;
         }
         case BOXINVERTED:
@@ -690,8 +701,7 @@ static void regimeGainUpdate(const fpVector3_t *errDeg, float dT)
     const oholdRegime_e active = regimeGainActiveRegime();
     for (int r = 0; r < OHOLD_REGIME_COUNT; r++) {
         if (r != active && regimeGain[r].wasActive) {
-            regimeGainFreeze((oholdRegime_e)r);
-            regimeGain[r].osc[0] = regimeGain[r].osc[1] = (hoverOscDetector_t){ 0 };
+            regimeGainFreeze((oholdRegime_e)r);   // clears the osc detector too
         }
     }
     if (active == OHOLD_REGIME_NONE) {
@@ -1081,7 +1091,8 @@ int16_t orientationHoldLoadGovernorThrottle(int16_t throttle)
 // COMMAND; the closed rate loop refines it - it deflects no further than
 // the achieved rate demands.
 #define AUTHORITY_MIN_SCALE 0.5f
-#define AUTHORITY_HOVER_ELEVATION_DEG 45.0f
+// AUTHORITY_HOVER_ELEVATION_DEG is defined once, further up (shared with
+// the hover learning-regime gate)
 
 float orientationHoldAuthorityScale(void)
 {

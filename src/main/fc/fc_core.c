@@ -698,7 +698,7 @@ void processRx(timeUs_t currentTimeUs)
     bool autoEnableAngle = failsafeRequiresAngleMode() || navigationRequiresAngleMode() || emergRearmAngleEnforce;
 
     /* Disable stabilised modes initially, will be enabled as required with priority
-     * auto ANGLE (failsafe/nav) > ALT FLOOR recovery > ANGLE > HORIZON > ORIENTATION HOLD > ANGLEHOLD
+     * auto ANGLE (failsafe/nav) > ALT FLOOR / ROTOR GUARD recovery > ANGLE > HORIZON > ORIENTATION HOLD > ANGLEHOLD
      * MANUAL mode has priority over these modes except when ANGLE auto enabled */
     DISABLE_FLIGHT_MODE(ANGLE_MODE);
     DISABLE_FLIGHT_MODE(HORIZON_MODE);
@@ -708,13 +708,17 @@ void processRx(timeUs_t currentTimeUs)
     altitudeFloorUpdate();
     rotorGuardUpdate();
     figureSequencerUpdate();
+#if defined(SITL_BUILD)
     // Safety-state word for the bench (SITL debug slot 7): the replay and
     // the gates must SEE when a recovery owns the aircraft - an engaged
     // floor is invisible in the box readback and a figure silently flown
-    // under recovery override would fake the figure's proof
+    // under recovery override would fake the figure's proof. SITL only:
+    // on a real target a raw debug[] write would clobber whatever debug
+    // channel the user selected (review finding).
     debug[7] = (altitudeFloorArmed() ? 1 : 0)
              | (altitudeFloorRecoveryActive() ? 2 : 0)
              | (rotorGuardRecoveryActive() ? 4 : 0);
+#endif
 #endif
 
     if (sensors(SENSOR_ACC) && (!FLIGHT_MODE(MANUAL_MODE) || autoEnableAngle)) {

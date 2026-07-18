@@ -63,7 +63,6 @@
 #define USE_MAG
 #define USE_BARO
 #define USE_PITOT_FAKE
-#define MSP_PORT_OUTBUF_SIZE 1024   // no FLASHFS on SITL; the full box-name list exceeds 512
 #define USE_IMU_FAKE
 #define USE_FAKE_BARO
 #define USE_FAKE_MAG
@@ -83,11 +82,12 @@
 #define MAX_GEOZONES_IN_CONFIG 63
 #define MAX_VERTICES_IN_CONFIG 126
 
-// The orientation-hold aerobatics suite is flash-gated to > 512 KB in
-// common.h; SITL has no MCU_FLASH_SIZE, so enable it explicitly here (the
-// bench needs it), same as USE_GEOZONE above.
+// The FW_AEROBATICS suite is flash-gated to > 512 KB in common.h; SITL
+// has no MCU_FLASH_SIZE, so enable it explicitly here (the bench needs
+// it), same as USE_GEOZONE above.
 #define USE_ORIENTATION_HOLD
 #define USE_THRUST_VECTORING
+#define USE_CRASH_DETECTION
 
 #undef USE_GYRO_KALMAN // Strange behaviour under x86/x64 ?!?
 #undef USE_VCP

@@ -74,18 +74,6 @@
 #define USE_SMITH_PREDICTOR
 #define USE_RATE_DYNAMICS
 #define USE_EXTENDED_CMS_MENUS
-// The orientation-hold aerobatics suite (holds, figures, thrust vectoring)
-// is large (~12 KB) and experimental. Restrict it to targets with room to
-// spare: 512 KB boards (F722, F411, ...) are exempt and keep their flash.
-// SITL has no MCU_FLASH_SIZE and enables it in its own target.h.
-#if (MCU_FLASH_SIZE > 512)
-#define USE_ORIENTATION_HOLD
-#define USE_THRUST_VECTORING
-#endif
-// Crash detection (impact + stillness -> motor cut) is small and useful on
-// any platform, not only with the orientation-hold modes, so it is its own
-// feature.
-#define USE_CRASH_DETECTION
 
 // Allow default rangefinders
 #define USE_RANGEFINDER
@@ -217,6 +205,13 @@
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
+// FW_AEROBATICS suite (orientation holds, figures, thrust vectoring,
+// crash detection): ~13 KB, experimental, runtime-gated by the
+// FW_AEROBATICS feature. 512 KB boards keep their flash; SITL enables
+// it in its own target.h (no MCU_FLASH_SIZE there).
+#define USE_ORIENTATION_HOLD
+#define USE_THRUST_VECTORING
+#define USE_CRASH_DETECTION
 #define USE_VTX_FFPV
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT

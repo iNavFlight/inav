@@ -106,9 +106,11 @@ bool orientationHoldExitSlewPending(void);
 
 // Body frame attitude error (deg) for the currently selected target.
 // The target is a persistent attitude quaternion seeded on the actual
-// attitude at engage and slewed toward the requested attitude (fig_roll_rate
-// for preset entries), so the error stays small and the entry path is an
-// explicit trajectory. Returns false when no orientation hold box is active.
+// attitude at engage and slewed toward the requested attitude
+// (ohold_entry_rate for preset entries - separate from fig_roll_rate on
+// purpose, see entryRateDps), so the error stays small and the entry path
+// is an explicit trajectory. Returns false when no orientation hold box is
+// active.
 bool orientationHoldComputeError(fpVector3_t *errDeg, float dT);
 
 // Re-seed the persistent target on the actual attitude. Call every cycle

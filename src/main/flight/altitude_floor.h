@@ -30,10 +30,12 @@
 #include "config/parameter_group.h"
 
 // Altitude floor ("training floor"): while the ALT FLOOR box is active and
-// the aircraft has climbed above floor + margin once, a predicted floor
-// breach engages an automatic recovery (shortest-path roll to upright plus
-// climb pitch via the orientation hold controller) until the aircraft is
-// back above the floor and climbing. Switch the box off to land.
+// the aircraft has climbed above floor + margin once, BREAKING THROUGH the
+// floor while sinking engages an automatic recovery (shortest-path roll to
+// upright plus climb pitch via the orientation hold controller) until the
+// aircraft is back above the floor and climbing. No prediction - a piloted
+// trajectory is not predictable; the line itself is the law. Switch the
+// box off to land.
 
 typedef struct altitudeFloorConfig_s {
     uint16_t floorAltitude;     // m above home
