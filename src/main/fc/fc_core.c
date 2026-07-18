@@ -717,7 +717,9 @@ void processRx(timeUs_t currentTimeUs)
     // channel the user selected (review finding).
     debug[7] = (altitudeFloorArmed() ? 1 : 0)
              | (altitudeFloorRecoveryActive() ? 2 : 0)
-             | (rotorGuardRecoveryActive() ? 4 : 0);
+             | (rotorGuardRecoveryActive() ? 4 : 0)
+             | (navigationPositionEstimateIsHealthy() ? 8 : 0)
+             | (altitudeFloorOrbitActive() ? 16 : 0);
 #endif
 #endif
 
@@ -725,10 +727,14 @@ void processRx(timeUs_t currentTimeUs)
         if (autoEnableAngle) {
             ENABLE_FLIGHT_MODE(ANGLE_MODE);
 #ifdef USE_ORIENTATION_HOLD
-        } else if (STATE(AIRPLANE) && (altitudeFloorRecoveryActive() || rotorGuardRecoveryActive())) {
+        } else if (STATE(AIRPLANE)
+                   && ((altitudeFloorRecoveryActive() && !altitudeFloorOrbitViaNav())
+                       || rotorGuardRecoveryActive())) {
             // Automatic safety recovery (altitude floor, or the autogyro
             // tip-over guard): overrides the pilot's stabilised mode
-            // selection until the aircraft is caught
+            // selection until the aircraft is caught. The floor's ORBIT
+            // phase flies on the real nav loiter instead - the nav mode
+            // owns the aircraft there, not the orientation hold.
             ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
 #endif
         } else if (IS_RC_MODE_ACTIVE(BOXANGLE)) {

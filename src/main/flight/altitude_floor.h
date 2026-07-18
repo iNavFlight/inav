@@ -54,5 +54,22 @@ bool altitudeFloorRecoveryActive(void);
 // True once the floor is armed (climbed above floor + margin)
 bool altitudeFloorArmed(void);
 
-// Recovery pitch target (deg, nose up)
+// Recovery pitch target (deg, nose up): full climb pitch while below the
+// floor, a gentle altitude-hold pitch once orbiting
 float altitudeFloorRecoveryPitchDeg(void);
+
+// Recovery roll target (deg): wings level during the climb, the orbit
+// bank once the aircraft is back at the floor waiting for the pilot
+float altitudeFloorRecoveryRollDeg(void);
+
+// True in recovery phase 2: circling at the floor around the breach
+// point until the pilot takes over (stick input) or switches the box off
+bool altitudeFloorOrbitActive(void);
+
+// True while the orbit is flown by the forced nav loiter (healthy
+// position estimate); false in the degraded constant-bank circle
+bool altitudeFloorOrbitViaNav(void);
+
+// Metres above (positive) / below (negative) the floor line - the
+// telemetry/OSD readout of how much sky is left before the net
+float altitudeFloorDistanceM(void);

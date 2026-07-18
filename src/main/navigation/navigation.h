@@ -233,6 +233,14 @@ void abortForcedPosHold(void);
 
 #endif
 
+#ifdef USE_ORIENTATION_HOLD
+// Altitude-floor orbit: forced fixed-wing loiter anchored on the floor
+// breach point (the real nav loiter - wind-corrected, nav_fw_loiter_radius)
+void navActivateFloorOrbitAt(const fpVector3_t *pos);
+void navAssertFloorOrbitTarget(const fpVector3_t *pos);
+void navAbortFloorOrbit(void);
+#endif
+
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
 #endif

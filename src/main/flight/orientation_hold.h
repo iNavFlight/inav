@@ -104,6 +104,12 @@ bool orientationHoldIsRequested(void);
 // deflects a stick, or a timeout expires.
 bool orientationHoldExitSlewPending(void);
 
+// Coordinated-turn feedforward for deliberately turning holds (sequencer
+// WAIT_POS, altitude-floor orbit): true with the current turn bank in
+// *bankDeg when the yaw rate must follow the banked turn instead of
+// being regulated to zero by the heading-free hold.
+bool orientationHoldTurnCoordinationBank(float *bankDeg);
+
 // Body frame attitude error (deg) for the currently selected target.
 // The target is a persistent attitude quaternion seeded on the actual
 // attitude at engage and slewed toward the requested attitude

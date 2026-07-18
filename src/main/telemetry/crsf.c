@@ -45,6 +45,7 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
+#include "flight/altitude_floor.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 
@@ -465,6 +466,24 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     crsfSerialize8(dst, CRSF_FRAMETYPE_FLIGHT_MODE);
 
     static uint8_t hrstSent = 0;
+#ifdef USE_ORIENTATION_HOLD
+    // the radio SPEAKS flight-mode changes (EdgeTX voice): the floor
+    // announces itself to the pilot (Daniel's telemetry contract).
+    // Persistent CTCH/ORBT while a recovery owns the aircraft; floor
+    // armed/disarmed as transient announcements in the HRST idiom (a
+    // few frames, then back to the normal mode text).
+    static uint8_t florSent = 0;
+    static uint8_t flofSent = 0;
+    static bool floorWasArmed = false;
+    if (altitudeFloorArmed() && !floorWasArmed) {
+        florSent = 4;
+        flofSent = 0;
+    } else if (!altitudeFloorArmed() && floorWasArmed && ARMING_FLAG(ARMED)) {
+        flofSent = 4;
+        florSent = 0;
+    }
+    floorWasArmed = altitudeFloorArmed();
+#endif
 
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
     const char *flightMode = "OK";
@@ -480,6 +499,16 @@ static void crsfFrameFlightMode(sbuf_t *dst)
         } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent < 4 && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "HRST";
             hrstSent++;
+#ifdef USE_ORIENTATION_HOLD
+        } else if (altitudeFloorRecoveryActive()) {
+            flightMode = altitudeFloorOrbitActive() ? "ORBT" : "CTCH";
+        } else if (florSent > 0) {
+            flightMode = "FLOR";
+            florSent--;
+        } else if (flofSent > 0) {
+            flightMode = "FLOF";
+            flofSent--;
+#endif
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";
 #ifdef USE_GEOZONE

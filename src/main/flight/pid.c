@@ -1440,11 +1440,14 @@ void FAST_CODE pidController(float dT)
     }
 #ifdef USE_ORIENTATION_HOLD
     else if (FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
-        // WAIT_POS banks toward home: feed the coordinated turn rates
+        // Turning holds (WAIT_POS banks toward home, the floor orbit
+        // circles the breach point): feed the coordinated turn rates
         // forward, otherwise the heading-free hold regulates the physical
         // turn yaw rate back to zero and the aircraft never turns
+        // (measured on the floor orbit: 35 deg bank held on a frozen
+        // heading, a knife-edge-style straight slip away from the anchor)
         float bankDeg;
-        if (figureSequencerGetTurnBank(&bankDeg)) {
+        if (orientationHoldTurnCoordinationBank(&bankDeg)) {
             pidTurnAssistant(pidState, DEGREES_TO_RADIANS(bankDeg), 0.0f);
         }
     }

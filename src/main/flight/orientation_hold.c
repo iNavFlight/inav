@@ -137,10 +137,71 @@ static const orientationHoldPreset_t * orientationHoldActivePreset(void)
     return NULL;
 }
 
+// Rate-loop I-term reset on target-source switches (e.g. prop hang ->
+// knife edge): the accumulated I trims the OLD attitude's holding load
+// (propwash vs knife rudder load) and would discharge as a disturbance
+// into the new attitude. Within a figure (continuous trajectory) the
+// source stays the same and the I-term is kept.
+#define OHOLD_SOURCE_NONE   (-1)
+#define OHOLD_SOURCE_FLOOR  (-2)
+#define OHOLD_SOURCE_FIGURE (-3)
+#define OHOLD_SOURCE_LOCK   (-4)
+#define OHOLD_SOURCE_EXIT   (-5)
+#define OHOLD_SOURCE_ROTOR  (-6)
+
+// FLOOR CATCH LATCH (Daniel's contract): the pilot sets the floor high
+// enough; if it has to CATCH while a hold/figure box is active (switch
+// forgotten), that box is latched OUT - the figure must not restart on
+// recovery release and dive into the floor again in a loop. The latch
+// clears only when the pilot moves the switch away from that mode;
+// re-selecting it afterwards starts fresh.
+static int floorLatchedSource = OHOLD_SOURCE_NONE;
+
+static bool orientationHoldFloorLatchBlocks(int source)
+{
+    return floorLatchedSource != OHOLD_SOURCE_NONE && source == floorLatchedSource;
+}
+
+static void orientationHoldFloorLatchTick(void)
+{
+    if (floorLatchedSource == OHOLD_SOURCE_NONE) {
+        return;
+    }
+    bool stillSelected;
+    switch (floorLatchedSource) {
+        case OHOLD_SOURCE_FIGURE:
+            stillSelected = figureSequencerRequested();
+            break;
+        case OHOLD_SOURCE_LOCK:
+            stillSelected = IS_RC_MODE_ACTIVE(BOXATTLOCK);
+            break;
+        default: {
+            const orientationHoldPreset_t *p = orientationHoldActivePreset();
+            stillSelected = (p != NULL && p->box == floorLatchedSource);
+            break;
+        }
+    }
+    if (!stillSelected) {
+        floorLatchedSource = OHOLD_SOURCE_NONE;
+    }
+}
+
 bool orientationHoldIsRequested(void)
 {
-    return figureSequencerRequested() || orientationHoldActivePreset() != NULL
-        || IS_RC_MODE_ACTIVE(BOXATTLOCK);
+    // a floor-latched box does not count as a request: the mode falls
+    // back to ANGLE until the pilot switches away (see floorLatchedSource)
+    orientationHoldFloorLatchTick();
+    if (figureSequencerRequested() && !orientationHoldFloorLatchBlocks(OHOLD_SOURCE_FIGURE)) {
+        return true;
+    }
+    const orientationHoldPreset_t *preset = orientationHoldActivePreset();
+    if (preset != NULL && !orientationHoldFloorLatchBlocks(preset->box)) {
+        return true;
+    }
+    if (IS_RC_MODE_ACTIVE(BOXATTLOCK) && !orientationHoldFloorLatchBlocks(OHOLD_SOURCE_LOCK)) {
+        return true;
+    }
+    return false;
 }
 
 static bool orientationHoldSticksDeflected(void)
@@ -427,18 +488,6 @@ static void orientationHoldRegulate(fpVector3_t *errDeg)
     quaternionNormalize(&qSollState, &qSollState);
 }
 
-// Rate-loop I-term reset on target-source switches (e.g. prop hang ->
-// knife edge): the accumulated I trims the OLD attitude's holding load
-// (propwash vs knife rudder load) and would discharge as a disturbance
-// into the new attitude. Within a figure (continuous trajectory) the
-// source stays the same and the I-term is kept.
-#define OHOLD_SOURCE_NONE   (-1)
-#define OHOLD_SOURCE_FLOOR  (-2)
-#define OHOLD_SOURCE_FIGURE (-3)
-#define OHOLD_SOURCE_LOCK   (-4)
-#define OHOLD_SOURCE_EXIT   (-5)
-#define OHOLD_SOURCE_ROTOR  (-6)
-
 // Exit handover thresholds: engage only when the released attitude is far
 // enough from level that the instant Euler error would command full rates;
 // hand to ANGLE once the attitude has followed the target to the horizon
@@ -477,6 +526,25 @@ static void orientationHoldCheckSourceSwitch(int source)
 bool orientationHoldIsPropHang(void)
 {
     return activeTargetSource == BOXPROPHANG;
+}
+
+// A hold that is deliberately TURNING needs its coordinated yaw rate fed
+// forward (the heading-free error otherwise regulates the physical turn
+// rate to zero). Sources: the sequencer's WAIT_POS leg, and the altitude
+// floor's orbit around the breach point.
+bool orientationHoldTurnCoordinationBank(float *bankDeg)
+{
+    if (figureSequencerGetTurnBank(bankDeg)) {
+        return true;
+    }
+    if (altitudeFloorRecoveryActive() && altitudeFloorOrbitActive()
+        && !altitudeFloorOrbitViaNav()) {
+        // degraded (GPS-less) constant-bank circle only - the nav loiter
+        // flies its own coordination
+        *bankDeg = altitudeFloorRecoveryRollDeg();
+        return true;
+    }
+    return false;
 }
 
 bool orientationHoldIsKnifeOrInverted(void)
@@ -771,6 +839,7 @@ void orientationHoldResetSourceTracking(void)
         activeTargetSource = OHOLD_SOURCE_NONE;
     }
     exitSlewActive = false;
+    floorLatchedSource = OHOLD_SOURCE_NONE;   // disarm/mode-exit hygiene
 
     // leaving the mode ends every learning regime: freeze the learned
     // gains (landing straight out of a hold and disarming must not lose them)
@@ -828,8 +897,20 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
     // Altitude floor recovery overrides any selected preset: upright + climb.
     // Safety recovery tracks the requested attitude directly, no entry slew.
     if (altitudeFloorRecoveryActive()) {
+        // the catch LATCHES the hold/figure box it interrupted (pilot
+        // forgot the switch): without this the figure re-engages on
+        // recovery release and dives straight back into the floor
+        if (activeTargetSource != OHOLD_SOURCE_NONE
+            && activeTargetSource != OHOLD_SOURCE_FLOOR
+            && activeTargetSource != OHOLD_SOURCE_ROTOR
+            && activeTargetSource != OHOLD_SOURCE_EXIT) {
+            floorLatchedSource = activeTargetSource;
+        }
         orientationHoldCheckSourceSwitch(OHOLD_SOURCE_FLOOR);
-        orientationHoldTargetFromRP(&qDesired, 0.0f, altitudeFloorRecoveryPitchDeg());
+        // climb: wings level + climb pitch; orbit: gentle bank circling
+        // at the floor while the pilot collects themselves
+        orientationHoldTargetFromRP(&qDesired, altitudeFloorRecoveryRollDeg(),
+                                    altitudeFloorRecoveryPitchDeg());
         slewRateDegS = 0.0f;
     } else if (rotorGuardRecoveryActive()) {
         // Autogyro tip-over catch: wings level, nose slightly DOWN - the
@@ -839,7 +920,8 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         orientationHoldCheckSourceSwitch(OHOLD_SOURCE_ROTOR);
         orientationHoldTargetFromRP(&qDesired, 0.0f, rotorGuardRecoveryPitchDeg());
         slewRateDegS = 0.0f;
-    } else if (figureSequencerRequested()) {
+    } else if (figureSequencerRequested()
+               && !orientationHoldFloorLatchBlocks(OHOLD_SOURCE_FIGURE)) {
         float figRoll, figPitch;
         orientationHoldCheckSourceSwitch(OHOLD_SOURCE_FIGURE);
         figureSequencerGetTarget(&figRoll, &figPitch);
@@ -866,7 +948,8 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         // absorbs the heading drift instead of holding the line (seen as
         // 12 deg of FC-frame course walk during one slow roll)
         slewRateDegS = MAX(figureSequencerConfig()->rollRate, figureSequencerConfig()->loopRate) + 90.0f;
-    } else if (orientationHoldActivePreset() == NULL && IS_RC_MODE_ACTIVE(BOXATTLOCK)) {
+    } else if (orientationHoldActivePreset() == NULL && IS_RC_MODE_ACTIVE(BOXATTLOCK)
+               && !orientationHoldFloorLatchBlocks(OHOLD_SOURCE_LOCK)) {
         // 3D LOCK: sticks centered = hold the attitude captured at release;
         // sticks deflected = pure rate flying, the lock target follows the
         // aircraft and freezes on the NEW attitude when the sticks center
@@ -894,7 +977,7 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         }
     } else {
         const orientationHoldPreset_t *preset = orientationHoldActivePreset();
-        if (!preset) {
+        if (!preset || orientationHoldFloorLatchBlocks(preset->box)) {
             return false;
         }
         orientationHoldCheckSourceSwitch(preset->box);
