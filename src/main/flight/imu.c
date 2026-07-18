@@ -918,6 +918,10 @@ static void imuCalculateEstimatedAttitude(float dT)
     float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness(&compensatedGravityBF);
     accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(acc_ignore_slope_multipiler);
     const bool useAcc = (accWeight > 0.001f);
+    // bench instrumentation (SITL debug slot 6): the EFFECTIVE acc weight,
+    // 1000 = full trust - answers whether the estimator still listens to
+    // the (centrifugally poisoned) accelerometer during sustained spins
+    debug[6] = lrintf(accWeight * 1000.0f);
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
     fpVector3_t measuredMagBF = {.v = {mag.magADC[X], mag.magADC[Y], mag.magADC[Z]}};
