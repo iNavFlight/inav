@@ -4515,7 +4515,7 @@ groups:
     condition: USE_ORIENTATION_HOLD
     members:
       - name: alt_floor_altitude
-        description: "Altitude floor [m above home]. With the ALT FLOOR mode active and armed (climbed above floor + margin once), SINKING THROUGH the floor engages an automatic upright + climb recovery - no prediction, the crossing is the trigger. Set the floor high enough that the recovery fits below it (a dive recovery consumes roughly 15-25 m). Switch the mode off to land."
+        description: "Altitude floor [m above home]. With the ALT FLOOR mode active and armed (climbed above floor + margin once), SINKING THROUGH the floor engages an automatic upright + climb recovery - no prediction, the crossing is the trigger. Set the floor high enough that the recovery fits below it (a dive recovery consumes roughly 15-25 m). THE PILOT OVERRIDES THE AUTOPILOT: held sticks keep steering (a full held rudder drives a spin straight through the floor) - release the sticks and the floor catches. Switch the mode off to land."
         default_value: 30
         field: floorAltitude
         min: 5
