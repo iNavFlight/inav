@@ -82,6 +82,19 @@ void rotorGuardUpdate(void)
         return;
     }
 
+    // THE PILOT OVERRIDES THE AUTOPILOT, throttle included: an idle stick
+    // is landing intent - the guard must never spin the thrust up against
+    // it (a tip in the flare would otherwise force a go-around, and a
+    // rollout tip would get POWER on the ground). No trip at idle, and
+    // pulling the throttle to idle releases a running recovery instantly.
+    // The guard's only lever is thrust anyway - without permission to use
+    // it a recovery is pointless.
+    if (throttleStickIsLow()) {
+        guardRecovery = false;
+        tripStartMs = 0;
+        return;
+    }
+
     const float bankDeg = ABS(attitude.values.roll) / 10.0f;
     const float vz = getEstimatedActualVelocity(Z);         // cm/s
 

@@ -4557,7 +4557,7 @@ groups:
         min: -20
         max: 10
       - name: rotor_guard_throttle_add
-        description: "Recovery throttle floor = cruise throttle + this [us]. More pilot throttle always wins; the motor keeps running through a low stick during recovery. Must be enough that the airframe LEVELS OFF at the recovery attitude - a T/W below 1 needs a fatter floor (the SITL-proven Auto-G2 value is 380; the default merely arrests the roll, not the sink)."
+        description: "Recovery throttle floor = cruise throttle + this [us]. More pilot throttle always wins, and an IDLE throttle stick disables the guard entirely (landing intent - the guard never spins the thrust up against a deliberate throttle-zero; pulling to idle releases a running recovery). Must be enough that the airframe LEVELS OFF at the recovery attitude - a T/W below 1 needs a fatter floor (the SITL-proven Auto-G2 value is 380; the default merely arrests the roll, not the sink)."
         default_value: 250
         field: throttleAddUs
         min: 0
