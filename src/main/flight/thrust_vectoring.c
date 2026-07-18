@@ -22,6 +22,8 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include <math.h>
+
 #include <platform.h>
 
 #ifdef USE_THRUST_VECTORING
@@ -33,6 +35,7 @@
 
 #include "fc/settings.h"
 
+#include "flight/servos.h"
 #include "flight/thrust_vectoring.h"
 
 PG_REGISTER_WITH_RESET_TEMPLATE(thrustVectoringConfig_t, thrustVectoringConfig, PG_THRUST_VECTORING_CONFIG, 0);
@@ -52,6 +55,17 @@ float thrustVectoringGain(float thrustFraction)
     const float fullComp = 1.0f / t;    // 1 .. 1/floor
     const float comp = 1.0f + (fullComp - 1.0f) * (thrustVectoringConfig()->thrustComp / 100.0f);
     return (thrustVectoringConfig()->gain / 100.0f) * comp;
+}
+
+void thrustVectoringApplyInputs(int16_t *input, int16_t mixerThrottleCommand)
+{
+    // Same stabilized commands as the surfaces, but with inverse thrust
+    // compensation so vectoring vane / tilt motor authority stays
+    // roughly constant across the throttle range
+    const float tvcGain = thrustVectoringGain((mixerThrottleCommand - 1000) / 1000.0f);
+    input[INPUT_TVC_ROLL] = constrain(lrintf(input[INPUT_STABILIZED_ROLL] * tvcGain), -1000, 1000);
+    input[INPUT_TVC_PITCH] = constrain(lrintf(input[INPUT_STABILIZED_PITCH] * tvcGain), -1000, 1000);
+    input[INPUT_TVC_YAW] = constrain(lrintf(input[INPUT_STABILIZED_YAW] * tvcGain), -1000, 1000);
 }
 
 #endif // USE_THRUST_VECTORING

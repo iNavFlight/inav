@@ -48,6 +48,8 @@
 
 #include "navigation/navigation.h"
 
+#include "sensors/battery.h"
+
 #include "rx/rx.h"
 
 PG_REGISTER_WITH_RESET_TEMPLATE(altitudeFloorConfig_t, altitudeFloorConfig, PG_ALTITUDE_FLOOR_CONFIG, 0);
@@ -237,6 +239,22 @@ float altitudeFloorRecoveryRollDeg(void)
 bool altitudeFloorOrbitActive(void)
 {
     return floorOrbit;
+}
+
+int16_t altitudeFloorClimbThrottleUs(void)
+{
+    // The recovery climb must not ride whatever throttle the pilot froze
+    // in the dive (a panic chop leaves idle): at least the airframe's
+    // cruise throttle plus the standard pitch-to-throttle compensation
+    // for the climb angle. NOT while the orbit runs on the nav loiter -
+    // the nav owns pitch AND throttle there, and a parallel climb floor
+    // pumps energy against its altitude hold (measured: ballooned the
+    // 70 m orbit to 212 m). 0 = no claim on the throttle.
+    if (!floorRecovery || orbitViaNav) {
+        return 0;
+    }
+    return currentBatteryProfile->nav.fw.cruise_throttle
+         + lrintf(altitudeFloorRecoveryPitchDeg() * currentBatteryProfile->nav.fw.pitch_to_throttle);
 }
 
 bool altitudeFloorOrbitViaNav(void)

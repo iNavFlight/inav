@@ -44,3 +44,7 @@ PG_DECLARE(thrustVectoringConfig_t, thrustVectoringConfig);
 
 // Combined TVC gain for the current thrust fraction [0..1]
 float thrustVectoringGain(float thrustFraction);
+
+// Feed the TVC mixer input rows from the stabilized commands, scaled by
+// the thrust dependent gain (servo mixer hook)
+void thrustVectoringApplyInputs(int16_t *input, int16_t mixerThrottleCommand);

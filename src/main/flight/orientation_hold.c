@@ -1197,4 +1197,141 @@ float orientationHoldAuthorityScale(void)
     return constrainf(1.0f / thrustNorm, AUTHORITY_MIN_SCALE, 1.0f);
 }
 
+// The full rate-target controller, moved here from pid.c so the upstream
+// hook stays a thin adapter. Body-identical to the historical pid.c
+// implementation; the per-axis pid state is reached through the
+// oholdAxisRate_t view (stick rate in, LEVEL PT1 shared, target out).
+bool orientationHoldApplyRateTargets(oholdAxisRate_t axes[XYZ_AXIS_COUNT], float dT)
+{
+    fpVector3_t errDeg;
+
+    // open-loop rate impulse (figure sequencer snap/spin entry): command
+    // the profile's full rates directly, saturating the surfaces
+    float impulseNorm[3];
+    if (figureSequencerGetRateCommand(impulseNorm)) {
+        for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+            axes[axis].rateTargetDps = constrainf(
+                impulseNorm[axis] * currentControlProfile->stabilized.rates[axis] * 10.0f,
+                -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+        }
+        // keep the persistent hold target on the attitude while flying
+        // open loop, so the catch segment slews from where the spin ends
+        orientationHoldSyncTargetToAttitude();
+        return true;
+    }
+
+    if (!orientationHoldComputeError(&errDeg, dT)) {
+        return false;
+    }
+
+    // learned damping reserve: backs the angle gain off while a hover
+    // limit cycle is detected (1.0 anywhere outside the hang)
+    const float levelGainScale = orientationHoldLevelGainScale();
+    // when the sticks act as target offsets (preset holds), the rate path
+    // must not also feed roll/pitch as rate commands -- yaw stays a rate,
+    // it is the free axis. The altitude floor recovery suppresses them too:
+    // it must catch AGAINST a panic-held down-elevator (the pilot override
+    // is switching the floor box off), yaw stays live for steering
+    const bool stickOffsets = orientationHoldSticksAreTargetOffsets()
+                           || altitudeFloorRecoveryActive()
+                           || rotorGuardRecoveryActive();
+    // controlled spin (FLAT SPIN family or figure SPIN segment): the spin
+    // command is a rotation about the EARTH VERTICAL - exactly the axis the
+    // reduced attitude error leaves free - distributed onto the body axes
+    // via the earth-up direction in the body frame. At flat/inverted that
+    // is the yaw axis, at knife edge the pitch axis, at the hang the roll
+    // axis (torque roll). Rates along this axis leave the tilt untouched,
+    // so holding and spinning never fight (bench math mirror, section H).
+    float spinYawNorm;
+    const bool spinSegment = figureSequencerGetSpinCommand(&spinYawNorm);
+    const bool spinPreset = orientationHoldIsSpinAboutVertical();
+    float spinRateDps = 0.0f;
+    fpVector3_t upBody;
+    if (spinSegment) {
+        spinRateDps = spinYawNorm * currentControlProfile->stabilized.rates[FD_YAW] * 10.0f;
+    } else if (spinPreset) {
+        // the pilot's rudder rate command becomes the spin rate
+        spinRateDps = axes[FD_YAW].stickRateDps;
+    }
+    // A controlled spin is a display maneuver, not a tumble: full rudder
+    // commands at most half a turn per second (360 deg in 2 s), regardless
+    // of the yaw rate the ACRO tune allows. The stalled airframe can still
+    // autorotate beyond the command (SITL: median 330 deg/s, peaks 875 -
+    // at idle the rudder has little authority to hold it back); the cap
+    // keeps a hot ACRO yaw tune from actively driving it faster, and the
+    // load governor below backs the command off with the measured load.
+    #define SPIN_ABOUT_VERTICAL_MAX_DPS 180.0f
+    spinRateDps = constrainf(spinRateDps, -SPIN_ABOUT_VERTICAL_MAX_DPS, SPIN_ABOUT_VERTICAL_MAX_DPS)
+                * orientationHoldLoadGovernorScale();
+    if (spinSegment || spinPreset) {
+        orientationHoldUpInBody(&upBody);
+        // AIRCRAFT-referenced stick sense: the body axis nearest the
+        // vertical receives the stick with its own positive sign - right
+        // rudder yaws the airframe right at flat AND inverted (so the
+        // rotation seen from above reverses when inverted, exactly like a
+        // real aircraft), and maps to positive pitch at the knife edge.
+        // The sign flip does not disturb the tilt (the distribution stays
+        // along the free axis either way).
+        float dominant = upBody.z;
+        if (fabsf(upBody.y) > fabsf(dominant)) {
+            dominant = upBody.y;
+        }
+        if (fabsf(upBody.x) > fabsf(dominant)) {
+            dominant = upBody.x;
+        }
+        if (dominant < 0.0f) {
+            vectorScale(&upBody, &upBody, -1.0f);
+        }
+    }
+
+    // Two scale factors bound the RATE CLAMP of the hold: the load governor
+    // (the hardest load of a figure is not the rotation but the catch-up
+    // pull toward a distant target - a loop exit's level recapture pulled
+    // 13 g ungoverned; load a ~ v * omega, so backing the allowed rate off
+    // caps the pull the same way it caps the figure) and the thrust-first-
+    // guess authority scale (above cruise thrust the surfaces bite hard -
+    // the same commanded rate needs less deflection, so command less).
+    const float rateClampScale = orientationHoldLoadGovernorScale()
+                               * orientationHoldAuthorityScale();
+    for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        // Same gain and rate limit handling as pidLevel()
+        float rateTarget = constrainf(errDeg.v[axis] * levelGainScale * (pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
+                                      -currentControlProfile->stabilized.rates[axis] * 10.0f * rateClampScale,
+                                       currentControlProfile->stabilized.rates[axis] * 10.0f * rateClampScale);
+
+        if (pidBank()->pid[PID_LEVEL].I) {
+            // I8[PIDLEVEL] is used as a PT1 cutoff frequency (Hz), same as pidLevel()
+            rateTarget = pt1FilterApply4(axes[axis].levelFilter, rateTarget, pidBank()->pid[PID_LEVEL].I, dT);
+        }
+
+        float stickRate = (stickOffsets && axis != FD_YAW) ? 0.0f : axes[axis].stickRateDps;
+        if (spinSegment || spinPreset) {
+            if (axis == FD_YAW) {
+                stickRate = 0.0f;   // the rudder is consumed by the spin command
+            }
+            rateTarget += spinRateDps * upBody.v[axis];
+        }
+        axes[axis].rateTargetDps = constrainf(stickRate + rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+    }
+    return true;
+}
+
+#if defined(SITL_BUILD)
+uint32_t orientationHoldDebugSafetyWord(void)
+{
+    // Safety-state word for the bench (SITL debug slot 7): the replay and
+    // the gates must SEE when a recovery owns the aircraft - an engaged
+    // floor is invisible in the box readback and a figure silently flown
+    // under recovery override would fake the figure's proof. SITL only:
+    // on a real target a raw debug[] write would clobber whatever debug
+    // channel the user selected (review finding).
+    return (altitudeFloorArmed() ? 1 : 0)
+         | (altitudeFloorRecoveryActive() ? 2 : 0)
+         | (rotorGuardRecoveryActive() ? 4 : 0)
+         | (navigationPositionEstimateIsHealthy() ? 8 : 0)
+         | (altitudeFloorOrbitActive() ? 16 : 0)
+         | (altitudeFloorOrbitViaNav() ? 32 : 0);
+}
+#endif
+
 #endif // USE_ORIENTATION_HOLD

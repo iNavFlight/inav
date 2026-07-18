@@ -50,3 +50,7 @@ PG_DECLARE(rotorGuardConfig_t, rotorGuardConfig);
 void rotorGuardUpdate(void);
 bool rotorGuardRecoveryActive(void);
 float rotorGuardRecoveryPitchDeg(void);
+
+// Recovery throttle floor [us] (cruise + rotor_guard_throttle_add);
+// 0 while inactive. Consumed as a MAX claim by the throttle path.
+int16_t rotorGuardThrottleFloorUs(void);

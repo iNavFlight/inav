@@ -46,6 +46,8 @@
 
 #include "navigation/navigation.h"
 
+#include "sensors/battery.h"
+
 PG_REGISTER_WITH_RESET_TEMPLATE(rotorGuardConfig_t, rotorGuardConfig, PG_ROTOR_GUARD_CONFIG, 0);
 
 PG_RESET_TEMPLATE(rotorGuardConfig_t, rotorGuardConfig,
@@ -154,6 +156,19 @@ void rotorGuardUpdate(void)
 bool rotorGuardRecoveryActive(void)
 {
     return guardRecovery;
+}
+
+int16_t rotorGuardThrottleFloorUs(void)
+{
+    // Thrust is the ONLY lever that brings the rotor rpm (and with it
+    // the roll authority) back: a fixed floor above cruise, NOT
+    // pitch-scaled - the recovery pitch is nose DOWN and pitch-to-
+    // throttle would reduce it. 0 = no claim on the throttle.
+    if (!guardRecovery) {
+        return 0;
+    }
+    return currentBatteryProfile->nav.fw.cruise_throttle
+         + rotorGuardConfig()->throttleAddUs;
 }
 
 float rotorGuardRecoveryPitchDeg(void)

@@ -70,6 +70,12 @@ bool altitudeFloorOrbitActive(void);
 // position estimate); false in the degraded constant-bank circle
 bool altitudeFloorOrbitViaNav(void);
 
+// Throttle floor for the recovery climb [us]: cruise throttle plus
+// pitch-to-throttle for the climb angle; 0 while inactive or while the
+// nav loiter owns the throttle. The throttle path takes the MAX of all
+// module claims - more pilot throttle always wins there.
+int16_t altitudeFloorClimbThrottleUs(void);
+
 // Metres above (positive) / below (negative) the floor line - the
 // telemetry/OSD readout of how much sky is left before the net
 float altitudeFloorDistanceM(void);

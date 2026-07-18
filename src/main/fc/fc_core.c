@@ -709,18 +709,8 @@ void processRx(timeUs_t currentTimeUs)
     rotorGuardUpdate();
     figureSequencerUpdate();
 #if defined(SITL_BUILD)
-    // Safety-state word for the bench (SITL debug slot 7): the replay and
-    // the gates must SEE when a recovery owns the aircraft - an engaged
-    // floor is invisible in the box readback and a figure silently flown
-    // under recovery override would fake the figure's proof. SITL only:
-    // on a real target a raw debug[] write would clobber whatever debug
-    // channel the user selected (review finding).
-    debug[7] = (altitudeFloorArmed() ? 1 : 0)
-             | (altitudeFloorRecoveryActive() ? 2 : 0)
-             | (rotorGuardRecoveryActive() ? 4 : 0)
-             | (navigationPositionEstimateIsHealthy() ? 8 : 0)
-             | (altitudeFloorOrbitActive() ? 16 : 0)
-             | (altitudeFloorOrbitViaNav() ? 32 : 0);
+    // bench safety word (SITL only); composed by the module
+    debug[7] = orientationHoldDebugSafetyWord();
 #endif
 #endif
 

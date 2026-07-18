@@ -27,6 +27,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "common/axis.h"
+#include "common/filter.h"
 #include "common/quaternion.h"
 #include "common/vector.h"
 
@@ -181,3 +183,23 @@ int16_t orientationHoldLoadGovernorThrottle(int16_t throttle);
 // the hover regime always keeps full throw (wash-only airflow). Multiplies
 // the orientation-hold rate clamp.
 float orientationHoldAuthorityScale(void);
+
+// The full rate-target controller (error -> per-axis rate targets, spin
+// distribution about the earth vertical, figure impulse passthrough).
+// The pid loop adapts its per-axis state through this view: the pilot's
+// rate command in, pid's LEVEL PT1 filter state shared, the hold's final
+// rate target out. Returns false when the hold has nothing to command
+// (no active source) - the caller keeps its own targets untouched.
+typedef struct oholdAxisRate_s {
+    float stickRateDps;        // in: pilot rate command for this axis
+    pt1Filter_t *levelFilter;  // pid's per-axis LEVEL filter state
+    float rateTargetDps;       // out: the hold's final rate target
+} oholdAxisRate_t;
+bool orientationHoldApplyRateTargets(oholdAxisRate_t axes[XYZ_AXIS_COUNT], float dT);
+
+#if defined(SITL_BUILD)
+// Safety-state word for the SITL bench (debug slot 7): bit0 floor armed,
+// bit1 floor recovery, bit2 rotor guard, bit3 estimate healthy, bit4
+// orbit, bit5 orbit via nav loiter.
+uint32_t orientationHoldDebugSafetyWord(void);
+#endif

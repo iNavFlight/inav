@@ -273,30 +273,14 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
             return knifeInvertedAssistApply(pilotThrottle, elevDeg);
         }
         assistActive = false;
-        // the altitude floor recovery must not climb on whatever throttle
-        // the pilot froze in the dive (a panic chop leaves idle): the climb
-        // gets at least the airframe's cruise throttle plus the standard
-        // pitch-to-throttle compensation for the recovery climb angle -
-        // more pilot throttle always wins
-        // ... but NOT while the orbit runs on the nav loiter: the nav owns
-        // pitch AND throttle there, and a parallel climb-throttle floor
-        // pumps energy against its altitude hold (measured: ballooned the
-        // 70 m orbit to 212 m)
-        if (ARMING_FLAG(ARMED) && altitudeFloorRecoveryActive()
-            && !altitudeFloorOrbitViaNav()) {
-            const int16_t climbThrottle = currentBatteryProfile->nav.fw.cruise_throttle
-                + lrintf(altitudeFloorRecoveryPitchDeg() * currentBatteryProfile->nav.fw.pitch_to_throttle);
-            return constrain(MAX(pilotThrottle, climbThrottle),
-                             getThrottleIdleValue(), getMaxThrottle());
-        }
-        // autogyro tip-over recovery: thrust is the ONLY lever that brings
-        // the rotor rpm (and with it the roll authority) back - a fixed
-        // floor above cruise, NOT pitch-scaled (the recovery pitch is nose
-        // DOWN, pitch-to-throttle would reduce it); more pilot throttle wins
-        if (ARMING_FLAG(ARMED) && rotorGuardRecoveryActive()) {
-            const int16_t guardThrottle = currentBatteryProfile->nav.fw.cruise_throttle
-                + rotorGuardConfig()->throttleAddUs;
-            return constrain(MAX(pilotThrottle, guardThrottle),
+        // Recovery throttle floors are OWNED by their modules (the floor's
+        // climb math and its nav-orbit suppression, the rotor guard's
+        // fixed add): this path only takes the highest claim - and more
+        // pilot throttle always wins.
+        const int16_t recoveryFloor = MAX(altitudeFloorClimbThrottleUs(),
+                                          rotorGuardThrottleFloorUs());
+        if (ARMING_FLAG(ARMED) && recoveryFloor > 0) {
+            return constrain(MAX(pilotThrottle, recoveryFloor),
                              getThrottleIdleValue(), getMaxThrottle());
         }
         return pilotThrottle;
