@@ -233,12 +233,13 @@ void abortForcedPosHold(void);
 
 #endif
 
-#ifdef USE_ORIENTATION_HOLD
-// Altitude-floor orbit: forced fixed-wing loiter anchored on the floor
-// breach point (the real nav loiter - wind-corrected, nav_fw_loiter_radius)
-void navActivateFloorOrbitAt(const fpVector3_t *pos);
-void navAssertFloorOrbitTarget(const fpVector3_t *pos);
-void navAbortFloorOrbit(void);
+#if defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
+// Forced fixed-wing loiter anchored on a point (the real nav loiter -
+// wind-corrected, nav_fw_loiter_radius). Shared by the altitude-floor
+// orbit (breach point) and thermal soaring (thermal centre estimate).
+void navForcedPosholdActivateAt(const fpVector3_t *pos);
+void navForcedPosholdAssert(const fpVector3_t *pos);
+void navForcedPosholdClear(void);
 #endif
 
 #ifndef NAV_MAX_WAYPOINTS

@@ -116,6 +116,9 @@ void soaringUpdate(float dT)
     // any of these the module is inert - the FC behaves exactly as upstream.
     if (!IS_RC_MODE_ACTIVE(BOXSOARING) || !ARMING_FLAG(ARMED)
         || !STATE(AIRPLANE) || !sensors(SENSOR_PITOT)) {
+        if (thermalling) {
+            navForcedPosholdClear();   // release the loiter
+        }
         soarActive = false;
         thermalling = false;
         return;
@@ -139,6 +142,8 @@ void soaringUpdate(float dT)
             breachAnchor.y = thermalCentre.y = getEstimatedActualPosition(Y);
             breachAnchor.z = thermalCentre.z = getEstimatedActualPosition(Z);
             gradN = gradE = 0.0f;
+            // hand the loiter to the real nav machinery, anchored here
+            navForcedPosholdActivateAt(&thermalCentre);
         }
         return;
     }
@@ -159,6 +164,9 @@ void soaringUpdate(float dT)
     const float k = (soaringConfig()->centreGainPct / 100.0f) * SOAR_CENTRE_GAIN_SCALE;
     thermalCentre.x += (k * gradN + getEstimatedWindSpeed(X)) * dT;   // cm
     thermalCentre.y += (k * gradE + getEstimatedWindSpeed(Y)) * dT;
+    // keep the loiter anchored on the moving centre estimate (the POSHOLD
+    // initialize re-fires per RX cycle and would otherwise re-anchor "here")
+    navForcedPosholdAssert(&thermalCentre);
 
     // clamp the estimate to a sane radius around where the climb was found
     const float driftX = thermalCentre.x - breachAnchor.x;
@@ -181,6 +189,7 @@ void soaringUpdate(float dT)
     if (netVario < exitMs
         || alt > soaringConfig()->altMaxM || alt < soaringConfig()->altMinM) {
         thermalling = false;
+        navForcedPosholdClear();   // hand the loiter back to the pilot / cruise
     }
 }
 

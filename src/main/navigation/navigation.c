@@ -253,11 +253,12 @@ navigationPosControl_t posControl;
 navSystemStatus_t NAV_Status;
 static bool landingDetectorIsActive;
 
-#ifdef USE_ORIENTATION_HOLD
-// altitude-floor orbit anchor: consumed by the POSHOLD initialize while
-// the forced hold is active (see navActivateFloorOrbitAt)
-static fpVector3_t floorOrbitTarget;
-static bool floorOrbitTargetValid = false;
+#if defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
+// Forced-poshold anchor shared by the altitude-floor orbit and thermal
+// soaring: consumed by the POSHOLD initialize while the forced hold is
+// active (see navForcedPosholdActivateAt).
+static fpVector3_t navForcedPosholdAnchor;
+static bool navForcedPosholdAnchorValid = false;
 #endif
 
 EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
@@ -1352,14 +1353,15 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE(n
 
         fpVector3_t targetHoldPos;
         calculateInitialHoldPosition(&targetHoldPos);
-#ifdef USE_ORIENTATION_HOLD
-        // altitude-floor orbit: loiter the BREACH POINT, not "here". The
-        // forced-poshold event re-fires every RX cycle and re-runs this
-        // initialize - without the override the loiter re-anchors on the
-        // current position each time and circles itself (measured: clean
-        // 52 m circle drifting 250 m from the breach)
-        if (posControl.flags.forcedPosholdActive && floorOrbitTargetValid) {
-            setDesiredPosition(&floorOrbitTarget, posControl.actualState.yaw,
+#if defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
+        // Forced-poshold anchor (floor orbit / soaring thermal): loiter
+        // the anchored point, not "here". The forced-poshold event
+        // re-fires every RX cycle and re-runs this initialize - without
+        // the override the loiter re-anchors on the current position each
+        // time and circles itself (measured: clean 52 m circle drifting
+        // 250 m from the anchor).
+        if (posControl.flags.forcedPosholdActive && navForcedPosholdAnchorValid) {
+            setDesiredPosition(&navForcedPosholdAnchor, posControl.actualState.yaw,
                                NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
             return NAV_FSM_EVENT_SUCCESS;
         }
@@ -4616,9 +4618,9 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 #endif
 
-#if defined(USE_GEOZONE) || defined(USE_ORIENTATION_HOLD)
-        // geozone avoidance hold, or the altitude-floor orbit loitering
-        // the breach point
+#if defined(USE_GEOZONE) || defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
+        // geozone avoidance hold, the altitude-floor orbit, or thermal
+        // soaring - all loitering an anchored point via forced poshold
         if (posControl.flags.forcedPosholdActive) {
             return NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D;
         }
@@ -5236,32 +5238,32 @@ void abortForcedPosHold(void)
 }
 #endif
 
-#ifdef USE_ORIENTATION_HOLD
+#if defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
 /*-----------------------------------------------------------
- * Altitude-floor orbit: the recovery hands the aircraft to the REAL
- * fixed-wing loiter (Daniel: use the loitering machinery, not a
- * hand-rolled orbit) - forced position hold anchored on the breach
- * point. Reuses the forcedPoshold flag/FSM path the geozone built; the
- * anchor itself is injected in the POSHOLD initialize (the forced event
- * re-fires per RX cycle and would otherwise re-anchor "here").
+ * Forced position hold on an anchored point - the REAL fixed-wing
+ * loiter (Daniel: use the loitering machinery, not a hand-rolled orbit).
+ * Shared by the altitude-floor orbit (breach point) and thermal soaring
+ * (thermal centre). Reuses the forcedPoshold flag/FSM path the geozone
+ * built; the anchor is injected in the POSHOLD initialize (the forced
+ * event re-fires per RX cycle and would otherwise re-anchor "here").
  *-----------------------------------------------------------*/
-void navActivateFloorOrbitAt(const fpVector3_t *pos)
+void navForcedPosholdActivateAt(const fpVector3_t *pos)
 {
-    floorOrbitTarget = *pos;
-    floorOrbitTargetValid = true;
+    navForcedPosholdAnchor = *pos;
+    navForcedPosholdAnchorValid = true;
     posControl.flags.forcedPosholdActive = true;
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
 }
 
-void navAssertFloorOrbitTarget(const fpVector3_t *pos)
+void navForcedPosholdAssert(const fpVector3_t *pos)
 {
     // keep the stored anchor fresh (cheap; the initialize consumes it)
-    floorOrbitTarget = *pos;
+    navForcedPosholdAnchor = *pos;
 }
 
-void navAbortFloorOrbit(void)
+void navForcedPosholdClear(void)
 {
-    floorOrbitTargetValid = false;
+    navForcedPosholdAnchorValid = false;
     posControl.flags.forcedPosholdActive = false;
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
 }

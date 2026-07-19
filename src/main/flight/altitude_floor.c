@@ -90,7 +90,7 @@ void altitudeFloorUpdate(void)
         floorRecovery = false;
         floorOrbit = false;
         if (orbitViaNav) {
-            navAbortFloorOrbit();
+            navForcedPosholdClear();
             orbitViaNav = false;
         }
         return;
@@ -139,7 +139,7 @@ void altitudeFloorUpdate(void)
         if (floorOrbit && vz < 0.0f && z < floorCm) {
             floorOrbit = false;
             if (orbitViaNav) {
-                navAbortFloorOrbit();
+                navForcedPosholdClear();
                 orbitViaNav = false;
             }
         }
@@ -154,14 +154,14 @@ void altitudeFloorUpdate(void)
         if (!floorOrbit && z > (floorCm + marginCm) && vz > 0.0f) {
             floorOrbit = true;
             if (navigationPositionEstimateIsHealthy()) {
-                navActivateFloorOrbitAt(&breachPos);
+                navForcedPosholdActivateAt(&breachPos);
                 orbitViaNav = true;
             }
         }
         if (orbitViaNav) {
             // the poshold FSM re-anchors on current position at init -
             // keep the breach point asserted every cycle
-            navAssertFloorOrbitTarget(&breachPos);
+            navForcedPosholdAssert(&breachPos);
         }
 #if defined(SITL_BUILD)
         // bench telemetry (demuxed into the flight CSV): how the recovery
@@ -191,7 +191,7 @@ void altitudeFloorUpdate(void)
             floorRecovery = false;
             floorOrbit = false;
             if (orbitViaNav) {
-                navAbortFloorOrbit();
+                navForcedPosholdClear();
                 orbitViaNav = false;
             }
         }
