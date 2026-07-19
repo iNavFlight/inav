@@ -145,6 +145,7 @@ typedef struct mavlinkPortRuntime_s {
     uint8_t lastStatusTextSeverity;
     timeMs_t firstStatusTextMs;
     timeMs_t lastStatusTextMs;
+    timeMs_t lastRemoteHeartbeatMs;
     uint8_t txSeq;
     uint32_t txDroppedFrames;
     mavlink_message_t mavRecvMsg;

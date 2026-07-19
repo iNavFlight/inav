@@ -125,6 +125,7 @@ void mavlinkRuntimeCheckState(void)
             configureMAVLinkTelemetryPort(portIndex);
             if (state->telemetryEnabled) {
                 configureMAVLinkStreamRates(portIndex);
+                mavlinkPortReconnected(portIndex);
             }
         } else {
             freeMAVLinkTelemetryPortByIndex(portIndex);
@@ -278,6 +279,9 @@ static bool isMAVLinkTelemetryHalfDuplex(uint8_t portIndex)
 
 void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
 {
+    mavlinkSendModeStatusText();
+    mavlinkSendArmingStatusText();
+
     for (uint8_t portIndex = 0; portIndex < mavPortCount; portIndex++) {
         mavlinkPortRuntime_t *state = &mavPortStates[portIndex];
         if (!state->telemetryEnabled || !state->port) {

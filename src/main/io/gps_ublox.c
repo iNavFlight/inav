@@ -633,9 +633,11 @@ static bool gpsParseFrameUBLOX(void)
         gpsSolDRV.llh.lon = _buffer.posllh.longitude;
         gpsSolDRV.llh.lat = _buffer.posllh.latitude;
         gpsSolDRV.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.ellipsoidAltitude = _buffer.posllh.altitude_ellipsoid / 10;
         gpsSolDRV.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
         gpsSolDRV.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
         gpsSolDRV.flags.validEPE = true;
+        gpsSolDRV.flags.validEllipsoidAltitude = true;
         if (next_fix_type != GPS_NO_FIX)
             gpsSolDRV.fixType = next_fix_type;
         _new_position = true;
@@ -658,8 +660,12 @@ static bool gpsParseFrameUBLOX(void)
         gpsSolDRV.velNED[X] = _buffer.velned.ned_north;
         gpsSolDRV.velNED[Y] = _buffer.velned.ned_east;
         gpsSolDRV.velNED[Z] = _buffer.velned.ned_down;
+        gpsSolDRV.speedAccuracy = _buffer.velned.speed_accuracy * 10;
+        gpsSolDRV.headingAccuracy = _buffer.velned.heading_accuracy;
         gpsSolDRV.flags.validVelNE = true;
         gpsSolDRV.flags.validVelD = true;
+        gpsSolDRV.flags.validSpeedAccuracy = true;
+        gpsSolDRV.flags.validHeadingAccuracy = true;
         _new_speed = true;
         break;
     case MSG_TIMEUTC:
@@ -689,11 +695,14 @@ static bool gpsParseFrameUBLOX(void)
         gpsSolDRV.llh.lon = _buffer.pvt.longitude;
         gpsSolDRV.llh.lat = _buffer.pvt.latitude;
         gpsSolDRV.llh.alt = _buffer.pvt.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.ellipsoidAltitude = _buffer.pvt.altitude_ellipsoid / 10;
         gpsSolDRV.velNED[X]=_buffer.pvt.ned_north / 10;  // to cm/s
         gpsSolDRV.velNED[Y]=_buffer.pvt.ned_east / 10;   // to cm/s
         gpsSolDRV.velNED[Z]=_buffer.pvt.ned_down / 10;   // to cm/s
         gpsSolDRV.groundSpeed = _buffer.pvt.speed_2d / 10;    // to cm/s
         gpsSolDRV.groundCourse = (uint16_t) (_buffer.pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSolDRV.speedAccuracy = _buffer.pvt.speed_accuracy;
+        gpsSolDRV.headingAccuracy = _buffer.pvt.heading_accuracy;
         gpsSolDRV.numSat = _buffer.pvt.satellites;
         gpsSolDRV.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
         gpsSolDRV.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
@@ -701,6 +710,9 @@ static bool gpsParseFrameUBLOX(void)
         gpsSolDRV.flags.validVelNE = true;
         gpsSolDRV.flags.validVelD = true;
         gpsSolDRV.flags.validEPE = true;
+        gpsSolDRV.flags.validEllipsoidAltitude = true;
+        gpsSolDRV.flags.validSpeedAccuracy = true;
+        gpsSolDRV.flags.validHeadingAccuracy = true;
 
         if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
             gpsSolDRV.time.year = _buffer.pvt.year;

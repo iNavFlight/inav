@@ -117,6 +117,62 @@ static bool handleIncoming_COMMAND(
                 mavlinkSendCommandAck(command, result, ackTargetSystem, ackTargetComponent);
                 return true;
             }
+        case MAV_CMD_SET_MESSAGE_INTERVAL:
+            {
+                mavlinkPeriodicMessage_e periodicMessage;
+                MAV_RESULT result = MAV_RESULT_UNSUPPORTED;
+                uint32_t messageId;
+
+                if (!mavlinkCommandParamToUint32(param1, UINT16_MAX, &messageId) || !isfinite(param2)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                if (mavlinkPeriodicMessageFromMessageId((uint16_t)messageId, &periodicMessage)) {
+                    if (param2 == 0.0f) {
+                        mavlinkSetMessageOverrideIntervalUs(periodicMessage, 0);
+                        result = MAV_RESULT_ACCEPTED;
+                    } else if (param2 < 0.0f) {
+                        mavlinkSetMessageOverrideIntervalUs(periodicMessage, -1);
+                        result = MAV_RESULT_ACCEPTED;
+                    } else if ((double)param2 <= INT32_MAX) {
+                        uint32_t intervalUs = (uint32_t)param2;
+                        if (intervalUs > 0) {
+                            const uint32_t minIntervalUs = 1000000UL / TELEMETRY_MAVLINK_MAXRATE;
+                            if (intervalUs < minIntervalUs) {
+                                intervalUs = minIntervalUs;
+                            }
+
+                            mavlinkSetMessageOverrideIntervalUs(periodicMessage, (int32_t)intervalUs);
+                            result = MAV_RESULT_ACCEPTED;
+                        }
+                    }
+                }
+
+                mavlinkSendCommandAck(command, result, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
+        case MAV_CMD_GET_MESSAGE_INTERVAL:
+            {
+                mavlinkPeriodicMessage_e periodicMessage;
+                uint32_t messageId;
+                if (!mavlinkCommandParamToUint32(param1, UINT16_MAX, &messageId) ||
+                    !mavlinkPeriodicMessageFromMessageId((uint16_t)messageId, &periodicMessage)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                mavlink_msg_message_interval_pack(
+                    mavSystemId,
+                    mavComponentId,
+                    &mavSendMsg,
+                    (uint16_t)messageId,
+                    mavlinkMessageIntervalUs(periodicMessage));
+                mavlinkSendMessage();
+
+                mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
         case MAV_CMD_CONTROL_HIGH_LATENCY:
             if (param1 == 0.0f || param1 == 1.0f) {
                 if (mavlinkGetProtocolVersion() == 1 && param1 > 0.5f) {
@@ -133,6 +189,86 @@ static bool handleIncoming_COMMAND(
                 mavlinkSendCommandAck(command, MAV_RESULT_FAILED, ackTargetSystem, ackTargetComponent);
             }
             return true;
+        case MAV_CMD_REQUEST_PROTOCOL_VERSION:
+            if (mavlinkGetProtocolVersion() == 1) {
+                mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+            } else {
+                mavlinkSendProtocolVersion();
+                mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
+            }
+            return true;
+        case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
+            {
+                uint32_t request;
+                if (!mavlinkCommandParamToUint32(param1, 1, &request)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                } else if (mavlinkGetProtocolVersion() == 1) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                } else {
+                    if (request == 1) {
+                        mavlinkSendAutopilotVersion();
+                    }
+                    mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
+                }
+                return true;
+            }
+        case MAV_CMD_REQUEST_MESSAGE:
+            {
+                uint32_t messageId;
+                if (!mavlinkCommandParamToUint32(param1, UINT16_MAX, &messageId)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                bool sent;
+                switch (messageId) {
+#ifdef USE_MAVLINK_STANDARD_MODES
+                    case MAVLINK_MSG_ID_AVAILABLE_MODES:
+                        {
+                            uint32_t modeIndex;
+                            sent = mavlinkCommandParamToUint32(param2, UINT8_MAX, &modeIndex) &&
+                                modeIndex > 0 &&
+                                mavlinkSendAvailableModeForCurrentVehicle((uint8_t)modeIndex);
+                            break;
+                        }
+                    case MAVLINK_MSG_ID_AVAILABLE_MODES_MONITOR:
+                        mavlinkSendAvailableModesMonitor();
+                        sent = true;
+                        break;
+#endif
+                    case MAVLINK_MSG_ID_MESSAGE_INTERVAL:
+                        {
+                            uint32_t intervalMessageId;
+                            mavlinkPeriodicMessage_e periodicMessage;
+                            sent = mavlinkCommandParamToUint32(param2, UINT16_MAX, &intervalMessageId) &&
+                                mavlinkPeriodicMessageFromMessageId((uint16_t)intervalMessageId, &periodicMessage);
+                            if (sent) {
+                                mavlink_msg_message_interval_pack(
+                                    mavSystemId,
+                                    mavComponentId,
+                                    &mavSendMsg,
+                                    (uint16_t)intervalMessageId,
+                                    mavlinkMessageIntervalUs(periodicMessage));
+                                mavlinkSendMessage();
+                            }
+                            break;
+                        }
+                    default:
+                        sent = mavlinkSendRequestedMessage((uint16_t)messageId);
+                        break;
+                }
+                mavlinkSendCommandAck(command, sent ? MAV_RESULT_ACCEPTED : MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
+#ifdef USE_GPS
+        case MAV_CMD_GET_HOME_POSITION:
+            if (mavlinkSendRequestedMessage(MAVLINK_MSG_ID_HOME_POSITION)) {
+                mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
+            } else {
+                mavlinkSendCommandAck(command, MAV_RESULT_FAILED, ackTargetSystem, ackTargetComponent);
+            }
+            return true;
+#endif
         default:
             mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
             return true;

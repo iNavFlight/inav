@@ -90,6 +90,10 @@ typedef struct mavlinkContext_s {
     uint8_t autopilotType;
     uint8_t componentId;
     uint8_t recvPortIndex;
+    uint32_t lastArmingDisableFlags;
+    flightModeForTelemetry_e lastFlightMode;
+    bool lastGCSNavMode;
+    bool modeStatusTextInitialized;
 } mavlinkContext_t;
 
 extern mavlinkContext_t mavlinkContext;

@@ -262,6 +262,9 @@ void processDisableGPSFix(void)
         gpsSol.flags.validVelD = false;  
         gpsSol.flags.validEPE = false;
         gpsSol.flags.validTime = false;
+        gpsSol.flags.validEllipsoidAltitude = false;
+        gpsSol.flags.validSpeedAccuracy = false;
+        gpsSol.flags.validHeadingAccuracy = false;
 
         //freeze coordinates
         gpsSol.llh.lat = last_lat;
@@ -432,6 +435,9 @@ static void gpsResetSolution(gpsSolutionData_t* gpsSol)
     gpsSol->flags.validVelD = false;
     gpsSol->flags.validEPE = false;
     gpsSol->flags.validTime = false;
+    gpsSol->flags.validEllipsoidAltitude = false;
+    gpsSol->flags.validSpeedAccuracy = false;
+    gpsSol->flags.validHeadingAccuracy = false;
 }
 
 void gpsTryEstimateOnTimeout(void)
