@@ -44,13 +44,16 @@ static void mavlinkClearMissionUploadBuffer(void)
 
 void mavlinkSendPendingMissionItemReached(void)
 {
-    uint16_t seq;
-    if (!navigationConsumeWaypointReached(&seq)) {
+    // Check for a delivery target before consuming the one-slot latch: a
+    // shared port can close on disarm right after landing, and consuming
+    // first would silently destroy the final item's notification.
+    const uint8_t sendMask = mavlinkActivePortMask();
+    if (sendMask == 0) {
         return;
     }
 
-    const uint8_t sendMask = mavlinkActivePortMask();
-    if (sendMask == 0) {
+    uint16_t seq;
+    if (!navigationConsumeWaypointReached(&seq)) {
         return;
     }
 
@@ -435,6 +438,15 @@ static bool mavlinkCommitMissionUpload(void)
 
 void mavlinkMissionUpdate(timeMs_t currentTimeMs)
 {
+    // A fresh WP-mode engagement starts a new mission run: forget the
+    // previous run's completion so a re-flown mission reports ACTIVE, not a
+    // stale COMPLETE.
+    const bool wpModeActive = FLIGHT_MODE(NAV_WP_MODE);
+    if (wpModeActive && !mavlinkContext.lastWpModeActive) {
+        mavlinkContext.missionCompleted = false;
+    }
+    mavlinkContext.lastWpModeActive = wpModeActive;
+
     if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING &&
         currentTimeMs - mavMissionTransfer.lastActivityMs >= MAVLINK_MISSION_UPLOAD_RETRY_MS) {
         mavSendMask = MAVLINK_PORT_MASK(mavMissionTransfer.ingressPortIndex);
@@ -472,10 +484,15 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
     MISSION_STATE missionState;
     if (total == 0) {
         missionState = MISSION_STATE_NO_MISSION;
+    } else if (mavlinkContext.missionCompleted) {
+        // Completion outranks WP-mode activity: after the final item (e.g. a
+        // LAND) the FSM parks in NAV_STATE_WAYPOINT_FINISHED, which still
+        // maps to NAV_WP_MODE - a landed vehicle must not report ACTIVE
+        // until the pilot flips the mode switch. A re-flight clears
+        // missionCompleted on the WP-mode rising edge above.
+        missionState = MISSION_STATE_COMPLETE;
     } else if (active) {
         missionState = MISSION_STATE_ACTIVE;
-    } else if (mavlinkContext.missionCompleted) {
-        missionState = MISSION_STATE_COMPLETE;
     } else {
         missionState = MISSION_STATE_NOT_STARTED;
     }

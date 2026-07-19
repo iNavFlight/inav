@@ -97,6 +97,7 @@ typedef struct mavlinkContext_s {
     mavlinkMissionTransfer_t missionTransfer;
     timeMs_t lastMissionCurrentMs;
     bool missionCompleted;
+    bool lastWpModeActive;
     uint32_t lastArmingDisableFlags;
     flightModeForTelemetry_e lastFlightMode;
     bool lastGCSNavMode;
