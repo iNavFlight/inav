@@ -64,3 +64,56 @@ The typical value to be set in target.h for DEFAULT_FEATURES is:
 7. Now update your build scripts by running `cmake` and build the target you just created. The target name can be checked in the generated `CMakeLists.txt`, but should match the Betaflight target name.
 
 For information on how to build INAV, check the documents in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.
+
+## Naming Convention
+
+Betaflight is not upstream for INAV — don't refer to it by name in `target.h`/`target.c`/`config.c` comments, commit messages, or PR descriptions, even for a target ported from its config. Say "the manufacturer's public unified-target config" instead.
+
+## Known Generator Gaps
+
+- `buildMap()` rewrites `ICM42688P` → `ICM42605` in `empty_defines`. This is correct behavior, not a bug — see "IMU/flash chip IDs on an existing bus" below for why.
+- No handling for `LSM6DSV16X` / `LSM6DSK320X` at all — these silently vanish rather than warning that no driver exists.
+
+## Recurring Translation Rules
+
+These apply whether you're fixing up the generator's output or hand-porting/updating a target without running it.
+
+### PINIO → `config.c`
+
+The generator writes `pinioBoxConfigMutable()->permanentId[n]` lines for any `PINIOn` pin present in the source config.h. If you're hand-editing instead: index `n` in `permanentId[n]` is 0-based; `USERn+1` is 1-based. Only add the entries for PINIO pins that actually exist on this board — don't add `permanentId[1]` if there's no `PINIO2_PIN`.
+
+**Config bit → INAV flag:** the manufacturer config's `PINIOn_CONFIG` value's `0x80` bit corresponds to INAV's `PINIOx_FLAGS PINIO_FLAGS_INVERTED` (`src/main/drivers/pinio.h`). There is no `PINIOx_CONFIG` macro in INAV at all — `PINIOx_FLAGS` is the real equivalent. The generator doesn't currently translate this bit, so check it by hand.
+
+### `CAMERA_CONTROL_PIN`
+
+No driver currently consumes this — nothing in `src/main/fc` or `src/main/drivers` reads `CAMERA_CONTROL_PIN` or tests `USE_CAMERA_CONTROL`; the generator's own output comments this. It's carried over mechanically from source-config conversions with no effect today, pending the planned PWM-capable PINIO feature. If hand-porting, match existing convention: a bare `#define CAMERA_CONTROL_PIN <pin>` with no `#ifndef USE_CAMERA_CONTROL` guard — but double-check the pin isn't claimed by something else in `target.c`'s timer table first, since the source config's timer mapping sometimes assigns it a channel INAV doesn't currently use for it.
+
+### IMU/flash chip IDs on an existing bus
+
+When the source config lists a chip your existing target doesn't have (e.g. `USE_ACC_SPI_ICM42688P` alongside existing `USE_GYRO_SPI_MPU6000`), first check whether INAV already has a driver under `src/main/drivers/accgyro/` (or `drivers/flash/`) — grep for the chip name, don't assume you need a new driver.
+
+**Before adding a `USE_IMU_<CHIP>` block, verify that exact macro name is tested somewhere real** — grep the target's own `target.c` (if it registers buses manually) or `src/main/target/common_hardware.c`. Don't stop at "a driver file with this chip's name exists" — some chip families share one driver file gated by only *one* of the macros, with the others only present as harmless-looking copy-paste in target.h that do nothing at build time.
+
+**Concrete example:** `ICM42605`, `ICM42686P`, and `ICM42688P` are one driver (`src/main/drivers/accgyro/accgyro_icm42605.c`), gated by `USE_IMU_ICM42605` only — its `WHO_AM_I` switch matches all three chip IDs (`ICM42605_WHO_AM_I_CONST`, `ICM42686P_WHO_AM_I_CONST`, `ICM42688P_WHO_AM_I_CONST`). `common_hardware.c` registers buses only under `#if defined(USE_IMU_ICM42605)` — `USE_IMU_ICM42688P` appears in no `.c` file's bus-registration logic anywhere in the tree. If a board's source config lists only `ICM42688P` with no `ICM42605`, the correct INAV translation is `USE_IMU_ICM42605` + `ICM42605_CS_PIN`/`ICM42605_SPI_BUS`/`IMU_ICM42605_ALIGN` (the "605" name, even though the physical chip is a 688P) — **not** `USE_IMU_ICM42688P` alone, which would leave the gyro completely undetected on real hardware. This is exactly what the generator's own `ICM42688P` → `ICM42605` rewrite does automatically.
+
+Once you've confirmed the real macro, add it as an *additional* block on the **same** bus/CS/EXTI as the sibling entries already in that target.h when a target genuinely has multiple distinct chip options (INAV auto-detects at boot via `WHO_AM_I`) — just don't assume every `USE_ACC_SPI_<X>` in a source config maps 1:1 to its own working INAV macro.
+
+If no driver exists for a listed chip, do not write a new driver as a side effect of a target-update — that needs the chip's register map/datasheet and its own design and review, not just target.h wiring.
+
+### `USE_UARTn_PIN_SWAP` is a per-board hardware fact, not a convention
+
+`USE_UART7_PIN_SWAP` (and the equivalent for other UARTs) tells the STM32 UART peripheral to swap which of two AF-identical pins it treats as TX vs RX (`UART_ADVFEATURE_SWAP` in `serial_uart_stm32h7xx.c`) — this exists because some UART pin pairs share one AF value for both roles, so the silicon needs a separate register to say which one is actually TX. In practice it exists to **match the board's silkscreen labeling** — the schematic brings both pins out to pads/pins, and the manufacturer picks which physical pin gets printed "TX" vs "RX" on the board; the swap flag makes the firmware's TX/RX assignment match what's printed, not the other way around.
+
+**Whether a given board needs it depends on that board's own PCB routing, not on what other targets do.** Several targets share the exact same `UART7_TX_PIN`/`UART7_RX_PIN` assignment, but only some of them set `USE_UART7_PIN_SWAP` — this is genuinely correct per-board, not a copy-paste inconsistency. Don't infer swap correctness from cross-target consistency; instead trust (in order): (a) the source manufacturer config for *this specific* board, if it says anything about a swap, (b) a sibling target from the **same manufacturer/board family** if one exists.
+
+### Reference-target selection
+
+When picking an existing INAV target to diff against for a hand-edit, prefer, in order: (a) another target from the **same manufacturer** (config.c/PINIO naming conventions tend to be copy-pasted within a manufacturer's target family), (b) another target with the **same MCU** and similar gyro count/bus layout, (c) the generic simplest target for that MCU family. For dual-gyro-with-CLKIN-sync boards specifically, search for existing `GYRO_2_CLKIN_PIN`/`GYRO_CONFIG_USE_GYRO_BOTH` usage — this combination is rare enough that most targets won't have it.
+
+## Process Checklist
+
+1. Confirm the target doesn't already exist under `src/main/target/`.
+2. Diff the source config.h against existing `target.h` line-by-line (or, for a new target, run `bf2inav.py` for a first draft, then apply the rules above to what it gets wrong).
+3. Apply the pin/timer/DMA conflict rules above when editing `target.h`/`config.c`/`target.c` by hand.
+4. Build the **hardware target**, not SITL.
+5. If a required chip has no INAV driver, flag it — don't silently drop it and don't write a new driver inline.
