@@ -4718,14 +4718,3 @@ groups:
         field: hoverBaroWeight
         min: 0
         max: 150
-
-  - name: PG_CRASH_DETECTION_CONFIG
-    type: crashDetectionConfig_t
-    headers: ["flight/crash_detection.h"]
-    condition: USE_CRASH_DETECTION
-    members:
-      - name: crash_detection
-        description: "Cut the motor after a crash while staying armed: a sharp acceleration spike near the accelerometer's full-scale, followed by the airframe lying still within 3 s (no rotation, resting 1 g, frozen baro altitude and - with a GPS fix - no ground speed). Moving the throttle to zero and up again re-allows the motor (short bursts help locating the aircraft in high grass). Arms only once clearly in flight (nav launch completed or throttle held above cruise for a moment), so a hand-launched aircraft can be carried armed. The impact threshold is DERIVED from the detected accelerometer (15% below full-scale), not set here - a spike that near saturation is an impact on any airframe, and the stillness that must follow is what tells a crash from a hard 3D figure. OFF by default - an explicit opt-in."
-        default_value: OFF
-        field: crashDetection
-        type: bool

@@ -54,11 +54,9 @@
 #include "sensors/barometer.h"
 #include "sensors/gyro.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(crashDetectionConfig_t, crashDetectionConfig, PG_CRASH_DETECTION_CONFIG, 0);
-
-PG_RESET_TEMPLATE(crashDetectionConfig_t, crashDetectionConfig,
-    .crashDetection = SETTING_CRASH_DETECTION_DEFAULT,
-);
+// The master enable is the FEATURE_CRASH_DETECTION bit (a GUI feature
+// toggle, default off) - no config group of its own; the impact
+// threshold is derived from the accelerometer full-scale, not a setting.
 
 // In-flight latch: the detector must never fire while the armed aircraft is
 // carried to the strip or waits for a hand launch (it IS still then). It
@@ -122,10 +120,10 @@ void crashDetectionUpdate(float dT)
     // multirotor alike (a crashed copter with its props chewing the ground
     // or a bystander is exactly what the motor cut is for). Rovers and
     // boats are excluded: an impact there is not a reason to cut the motor.
-    // Part of the FW_AEROBATICS suite: without the feature the FC behaves
-    // exactly like upstream.
-    if (!feature(FEATURE_FW_AEROBATICS)
-        || !crashDetectionConfig()->crashDetection
+    // Its own feature bit (default off): without FEATURE_CRASH_DETECTION
+    // the FC behaves exactly like upstream. Independent of the aerobatics
+    // suite - a crash detector is useful on any airframe.
+    if (!feature(FEATURE_CRASH_DETECTION)
         || !(STATE(AIRPLANE) || STATE(MULTIROTOR))
         || !ARMING_FLAG(ARMED)) {
         inFlight = false;

@@ -39,12 +39,8 @@
 // filter. Only armed AFTER the aircraft is clearly in the air: a fixed-wing
 // hand launch, or throttle held above cruise for a moment (both platforms).
 
-typedef struct crashDetectionConfig_s {
-    uint8_t crashDetection;        // master enable; the impact threshold itself
-                                   // is derived from the accel full-scale, not set
-} crashDetectionConfig_t;
-
-PG_DECLARE(crashDetectionConfig_t, crashDetectionConfig);
+// Master enable is FEATURE_CRASH_DETECTION (a GUI feature toggle,
+// default off) - no config group of its own.
 
 // Call once per main PID loop iteration (after the IMU update)
 void crashDetectionUpdate(float dT);

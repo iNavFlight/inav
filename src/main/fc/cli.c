@@ -161,7 +161,7 @@ static uint8_t  commandBatchErrorCount = 0;
 static const char * const featureNames[] = {
     "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "GEOZONE",
     "FW_AEROBATICS", "SOFTSERIAL", "GPS", "RPM_FILTERS",
-    "", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
+    "CRASH_DETECTION", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
     "SUPEREXPO", "VTX", "", "", "", "PWM_OUTPUT_ENABLE",
