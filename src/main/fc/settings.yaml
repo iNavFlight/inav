@@ -4755,8 +4755,8 @@ groups:
         min: 15
         max: 50
       - name: soar_sink_level
-        description: "Level-flight sink rate [cm/s] at the tuning airspeed, used to compensate the aircraft's own sink out of the net vario. Raise it if the vario reads high in still air, lower it if it reads low."
-        default_value: 80
+        description: "Level-flight sink rate [cm/s] at the tuning airspeed, used to compensate the aircraft's own sink out of the net vario. Raise it if the vario reads high in still air, lower it if it reads low. Default ~60 is a 1.8 m motor glider (measured min sink 0.6 m/s); a clean sailplane is lower."
+        default_value: 60
         field: sinkLevelCms
         min: 0
         max: 500
