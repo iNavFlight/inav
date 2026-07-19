@@ -61,6 +61,11 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
 #endif
 }
 
+__attribute__((weak)) void uartConfigurePinSwap(uartPort_t *uartPort)
+{
+    UNUSED(uartPort);
+}
+
 static void uartReconfigure(uartPort_t *uartPort)
 {
     /*RCC_PeriphCLKInitTypeDef RCC_PeriphClkInit;
@@ -92,6 +97,7 @@ static void uartReconfigure(uartPort_t *uartPort)
 
 
     usartConfigurePinInversion(uartPort);
+    uartConfigurePinSwap(uartPort);
 
     if (uartPort->port.options & SERIAL_BIDIR)
     {

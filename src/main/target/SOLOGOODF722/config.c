@@ -15,14 +15,10 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
 #include <stdint.h>
-
-#include <platform.h>
-
-#include "io/serial.h"
-#include "rx/rx.h"
+#include "platform.h"
 #include "fc/fc_msp_box.h"
+#include "fc/config.h"
 #include "io/piniobox.h"
 
 void targetConfiguration(void)

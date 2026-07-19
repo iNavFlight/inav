@@ -36,26 +36,41 @@
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_SPI
 #define USE_IMU_ICM42605
+#define USE_IMU_BMI088
+#define USE_IMU_BMI270
 
-// *************** SPI1 IMU0 ICM42688 ****************
+// *************** SPI1 IMU0 ICM42688 or BMI088 ****************
 #define USE_SPI_DEVICE_1
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PD7
+#define SPI1_NSS_PIN           PC15
 
 #define IMU_ICM42688_0_ALIGN       CW0_DEG_FLIP
 #define ICM42688_0_SPI_BUS         BUS_SPI1
-#define ICM42688_0_CS_PIN          PC15
+#define ICM42688_0_CS_PIN          SPI1_NSS_PIN
 
-// *************** SPI4 IMU1 ICM42688 **************
+#define IMU_BMI088_ALIGN        CW270_DEG_FLIP
+#define BMI088_SPI_BUS          BUS_SPI1
+#define BMI088_GYRO_CS_PIN      PE11
+#define BMI088_GYRO_EXTI_PIN    PE2
+#define BMI088_ACC_CS_PIN       SPI1_NSS_PIN
+#define BMI088_ACC_EXTI_PIN     PD4
+
+// *************** SPI4 IMU1 ICM42688 or BMI270 **************
 #define USE_SPI_DEVICE_4
 #define SPI4_SCK_PIN            PE12
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE14
+#define SPI4_NSS_PIN           PC13
 
 #define IMU_ICM42688_1_ALIGN      CW90_DEG_FLIP
 #define ICM42688_1_SPI_BUS        BUS_SPI4
-#define ICM42688_1_CS_PIN         PC13
+#define ICM42688_1_CS_PIN         SPI4_NSS_PIN
+
+#define IMU_BMI270_ALIGN        CW270_DEG_FLIP
+#define BMI270_SPI_BUS          BUS_SPI4
+#define BMI270_CS_PIN           SPI4_NSS_PIN
 
 // *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2
@@ -80,6 +95,7 @@
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_SPL06
+#define USE_BARO_DPS310
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

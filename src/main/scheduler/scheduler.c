@@ -128,6 +128,25 @@ STATIC_INLINE_UNIT_TESTED cfTask_t *queueNext(void)
 
 void taskSystem(timeUs_t currentTimeUs)
 {
+#if defined(SITL_BUILD)
+    // SITL sleeps between task invocations (see the SITL_BUILD block in scheduler())
+    // instead of busy-polling, so the sample-based estimate below always finds a task
+    // already due and reads pinned near 100%. Use busy/elapsed wall-clock time instead,
+    // which stays meaningful whether or not the loop busy-polls (issue #11710).
+    if (sitlLoadWindowStartUs == 0) {
+        sitlLoadWindowStartUs = currentTimeUs;
+        sitlLoadBusyTimeUs = 0;
+        return;
+    }
+
+    const timeDelta_t elapsedUs = cmpTimeUs(currentTimeUs, sitlLoadWindowStartUs);
+    if (elapsedUs > 0) {
+        const timeUs_t loadPercent = (100U * sitlLoadBusyTimeUs) / (timeUs_t)elapsedUs;
+        averageSystemLoadPercent = loadPercent > 100U ? 100U : (uint16_t)loadPercent;
+        sitlLoadWindowStartUs = currentTimeUs;
+        sitlLoadBusyTimeUs = 0;
+    }
+#else
     UNUSED(currentTimeUs);
 
 #if defined(SITL_BUILD)
