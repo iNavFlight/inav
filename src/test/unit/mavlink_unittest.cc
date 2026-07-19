@@ -2337,6 +2337,152 @@ TEST(MavlinkTelemetryTest, MissionCurrentReportsLoadedMission)
     EXPECT_EQ(current.mission_mode, 2);
 }
 
+TEST(MavlinkTelemetryTest, MissionCurrentCompletionOutranksWpModeAndClearsOnReengage)
+{
+    initMavlinkTestState();
+    waypointCount = 2;
+    flightModeFlags = NAV_WP_MODE;
+
+    handleMAVLinkTelemetry(1000000);
+
+    mavlink_message_t currentMsg;
+    mavlink_mission_current_t current;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_CURRENT, &currentMsg));
+    mavlink_msg_mission_current_decode(&currentMsg, &current);
+    EXPECT_EQ(current.mission_state, MISSION_STATE_ACTIVE);
+
+    // Final item reached; the FSM parks in WAYPOINT_FINISHED which still maps
+    // to NAV_WP_MODE - the landed vehicle must report COMPLETE, not ACTIVE.
+    posControl.wpReachedSeq = 1;
+    posControl.wpReachedNotificationPending = true;
+    resetSerialBuffers();
+    handleMAVLinkTelemetry(2000000);
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_CURRENT, &currentMsg));
+    mavlink_msg_mission_current_decode(&currentMsg, &current);
+    EXPECT_EQ(current.mission_state, MISSION_STATE_COMPLETE);
+
+    // Leaving WP mode keeps COMPLETE.
+    flightModeFlags = 0;
+    resetSerialBuffers();
+    handleMAVLinkTelemetry(3000000);
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_CURRENT, &currentMsg));
+    mavlink_msg_mission_current_decode(&currentMsg, &current);
+    EXPECT_EQ(current.mission_state, MISSION_STATE_COMPLETE);
+
+    // Re-engaging WP mode is a new run: stale COMPLETE must clear.
+    flightModeFlags = NAV_WP_MODE;
+    resetSerialBuffers();
+    handleMAVLinkTelemetry(4000000);
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_CURRENT, &currentMsg));
+    mavlink_msg_mission_current_decode(&currentMsg, &current);
+    EXPECT_EQ(current.mission_state, MISSION_STATE_ACTIVE);
+}
+
+TEST(MavlinkTelemetryTest, MissionItemReachedSurvivesPortlessCycle)
+{
+    initMavlinkTestState();
+    waypointCount = 2;
+    posControl.wpReachedSeq = 1;
+    posControl.wpReachedNotificationPending = true;
+
+    // No active port: the latch must not be consumed and discarded (a shared
+    // port closing on disarm right after landing would otherwise eat the
+    // final item's notification).
+    mavlinkRuntimeFreePorts();
+    handleMAVLinkTelemetry(1000);
+    EXPECT_TRUE(posControl.wpReachedNotificationPending);
+
+    checkMAVLinkTelemetryState();
+    resetSerialBuffers();
+    handleMAVLinkTelemetry(2000);
+
+    mavlink_message_t reachedMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ITEM_REACHED, &reachedMsg));
+
+    mavlink_mission_item_reached_t reached;
+    mavlink_msg_mission_item_reached_decode(&reachedMsg, &reached);
+    EXPECT_EQ(reached.seq, 1);
+}
+
+TEST(MavlinkTelemetryTest, MissionClearAllDeniedForNonOwningSender)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 2, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t reqMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &reqMsg));
+    resetSerialBuffers();
+
+    // A different GCS may not cancel another partner's transfer.
+    mavlink_msg_mission_clear_all_pack(
+        43, 200, &msg,
+        1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(2000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_MISSION_ACK);
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_DENIED);
+    EXPECT_EQ(resetWaypointCalls, 0);
+
+    // The owning sender's transfer is still alive: item 0 is accepted and
+    // item 1 requested.
+    resetSerialBuffers();
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(3000);
+
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &reqMsg));
+    mavlink_mission_request_int_t req;
+    mavlink_msg_mission_request_int_decode(&reqMsg, &req);
+    EXPECT_EQ(req.seq, 1);
+}
+
+TEST(MavlinkTelemetryTest, MissionClearAllFromOwnerCancelsOwnTransfer)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 2, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_msg_mission_clear_all_pack(
+        42, 200, &msg,
+        1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(2000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_MISSION_ACK);
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(resetWaypointCalls, 1);
+}
+
 TEST(MavlinkTelemetryTest, ArmingDisableChangeSendsStatusTextOnce)
 {
     initMavlinkTestState();
