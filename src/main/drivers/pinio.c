@@ -154,7 +154,17 @@ void pinioInit(void)
         }
         if (pinioInitTimerPWM(runtimeCount, io, timHw, false)) {
             runtimeCount++;
+            continue;
         }
+
+        // GPIO fallback: pad's timer is already running at a fixed frequency
+        // for another purpose (e.g. BEEPER), so PWM duty control isn't available.
+        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(runtimeCount));
+        IOConfigGPIO(io, IOCFG_OUT_PP);
+        pinioRuntime[runtimeCount].inverted = false;
+        pinioRuntime[runtimeCount].io = io;
+        IOLo(io);
+        runtimeCount++;
     }
 
     pinioRuntimeCount = runtimeCount;

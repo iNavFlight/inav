@@ -47,3 +47,4 @@ telemetryConfig_t               58 8
 timeConfig_t                     4 1
 vtxConfig_t                     55 4
 vtxSettingsConfig_t             12 2
+pinioBoxConfig_t                 4 1

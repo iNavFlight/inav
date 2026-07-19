@@ -110,7 +110,7 @@ typedef struct {
     biquadFilter_t dBoostGyroLpf;
     float dBoostTargetAcceleration;
 #endif
-    filterApply4FnPtr ptermFilterApplyFn;
+    filterApply3FnPtr ptermFilterApplyFn;
     bool itermLimitActive;
     bool itermFreezeActive;
 
@@ -152,7 +152,7 @@ static EXTENDED_FASTRAM float antigravityAccelerator;
 #endif
 
 #define D_BOOST_GYRO_LPF_HZ 80    // Biquad lowpass input cutoff to peak D around propwash frequencies
-#define D_BOOST_LPF_HZ 7          // PT1 lowpass cutoff to smooth the boost effect
+#define D_BOOST_LPF_HZ 7.0f       // PT1 lowpass cutoff to smooth the boost effect
 
 #ifdef USE_D_BOOST
 static EXTENDED_FASTRAM float dBoostMin;
@@ -355,6 +355,11 @@ bool pidInitFilters(void)
     pt1FilterInit(&antigravityThrottleLpf, pidProfile()->antigravityCutoff, US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)));
 #endif
 
+    pt1FilterSetCutoff(&pidState->ptermLpfState, yawLpfHz);
+    pt1FilterSetCutoff(&pidState->angleFilterState, pidBank()->pid[PID_LEVEL].I);
+    pt1FilterSetCutoff(&pidState->dBoostLpf, D_BOOST_LPF_HZ);
+    pt1FilterSetCutoff(&headingHoldRateFilter, HEADING_HOLD_ERROR_LPF_FREQ);
+
 #ifdef USE_D_BOOST
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         biquadFilterInitLPF(&pidState[axis].dBoostGyroLpf, pidProfile()->dBoostGyroDeltaLpfHz, getLooptime());
@@ -399,7 +404,8 @@ bool pidInitFilters(void)
 void pidResetTPAFilter(void)
 {
     if (usedPidControllerType == PID_TYPE_PIFF && currentControlProfile->throttle.fixedWingTauMs > 0) {
-        pt1FilterInitRC(&fixedWingTpaFilter, MS2S(currentControlProfile->throttle.fixedWingTauMs), US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)));
+        pt1FilterInit(&fixedWingTpaFilter, 1.0f, HZ2S(TASK_AUX_RATE_HZ));
+        pt1FilterSetTimeConstant(&fixedWingTpaFilter, MS2S(currentControlProfile->throttle.fixedWingTauMs));
         pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
 }
@@ -564,11 +570,11 @@ void updatePIDCoefficients(void)
     for (int axis = 0; axis < 3; axis++) {
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
-    
+
     float tpaFactor=1.0f;
     float iTermFactor=1.0f;  // Separate factor for I-term scaling
     if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
-        if(currentControlProfile->throttle.apa_pow>0 && pitotValidForAirspeed()){
+        if(currentControlProfile->throttle.apa_pow>0 && pitotGetValidForAirspeed()){
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
             iTermFactor = calculateFixedWingAirspeedITermFactor();  // Less aggressive I-term scaling
         }else{
@@ -584,13 +590,13 @@ void updatePIDCoefficients(void)
     }
     tpaFactorprev = tpaFactor;
 
-    
+
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
         return;
     }
 
-    
+
     // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
     for (int axis = 0; axis < 3; axis++) {
@@ -729,7 +735,7 @@ static void pidLevel(const float angleTarget, pidState_t *pidState, flight_dynam
     //     response to rapid attitude changes and smoothing out self-leveling reaction
     if (pidBank()->pid[PID_LEVEL].I) {
         // I8[PIDLEVEL] is filter cutoff frequency (Hz). Practical values of filtering frequency is 5-10 Hz
-        angleRateTarget = pt1FilterApply4(&pidState->angleFilterState, angleRateTarget, pidBank()->pid[PID_LEVEL].I, dT);
+        angleRateTarget = pt1FilterApply3(&pidState->angleFilterState, angleRateTarget, dT);
     }
 
     // P[LEVEL] defines self-leveling strength (both for ANGLE and HORIZON modes)
@@ -753,7 +759,7 @@ static void FAST_CODE pidApplySetpointRateLimiting(pidState_t *pidState, flight_
 static float FAST_CODE pTermProcess(pidState_t *pidState, float rateError, float dT) {
     float newPTerm = rateError * pidState->kP;
 
-    return pidState->ptermFilterApplyFn(&pidState->ptermLpfState, newPTerm, yawLpfHz, dT);
+    return pidState->ptermFilterApplyFn(&pidState->ptermLpfState, newPTerm, dT);
 }
 
 #ifdef USE_D_BOOST
@@ -773,7 +779,7 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, float currentRateTarget
         dBoost = scaleRangef(dBoostRateAcceleration, 0.0f, pidState->dBoostTargetAcceleration, 1.0f, dBoostMin);
     }
 
-    dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
+    dBoost = pt1FilterApply3(&pidState->dBoostLpf, dBoost, dT);
     dBoost = constrainf(dBoost, dBoostMin, dBoostMax);
 
     return dBoost;
@@ -1071,7 +1077,7 @@ float pidHeadingHold(float dT)
 
     headingHoldRate = error * pidBank()->pid[PID_HEADING].P / 30.0f;
     headingHoldRate = constrainf(headingHoldRate, -pidProfile()->heading_hold_rate_limit, pidProfile()->heading_hold_rate_limit);
-    headingHoldRate = pt1FilterApply4(&headingHoldRateFilter, headingHoldRate, HEADING_HOLD_ERROR_LPF_FREQ, dT);
+    headingHoldRate = pt1FilterApply3(&headingHoldRateFilter, headingHoldRate, dT);
 
     return headingHoldRate;
 }
@@ -1398,14 +1404,11 @@ void pidInit(void)
 
         pidState[axis].axis = axis;
         pidState[axis].pidSumLimit = getPidSumLimit(axis);
-        if (axis == FD_YAW) {
-            if (yawLpfHz) {
-                pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) pt1FilterApply4;
-            } else {
-                pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
-            }
+
+        if (axis == FD_YAW && yawLpfHz) {
+            pidState[axis].ptermFilterApplyFn = (filterApply3FnPtr) pt1FilterApply3;
         } else {
-            pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
+            pidState[axis].ptermFilterApplyFn = (filterApply3FnPtr) nullFilterApply3;
         }
     }
 

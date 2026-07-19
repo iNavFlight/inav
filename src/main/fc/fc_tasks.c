@@ -169,7 +169,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     if (feature(FEATURE_GPS)) {
         if (gpsUpdate()) {
 #ifdef USE_WIND_ESTIMATOR
-            updateWindEstimator(currentTimeUs);
+            if (STATE(AIRPLANE)) updateWindEstimator(currentTimeUs);
 #endif
         }
     }
@@ -462,8 +462,8 @@ void fcTasksInit(void)
 
 #ifdef USE_ADAPTIVE_FILTER
     setTaskEnabled(TASK_ADAPTIVE_FILTER, (
-        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE && 
-        gyroConfig()->adaptiveFilterMinHz > 0 && 
+        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE &&
+        gyroConfig()->adaptiveFilterMinHz > 0 &&
         gyroConfig()->adaptiveFilterMaxHz > 0
     ));
 #endif

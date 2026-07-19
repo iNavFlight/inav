@@ -211,27 +211,34 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
     return false;
 }
 
-static void timerHardwareOverride(timerHardware_t * timer) {
-    // Never modify a beeper timer — beeperPwmInit() must find TIM_USE_BEEPER intact
-    if (timer->usageFlags & TIM_USE_BEEPER) {
-        return;
-    }
+static void timerHardwareOverride(timerHardware_t * timer, bool isCanonicalBeeperPad) {
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
-            timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED);
+            timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED|TIM_USE_BEEPER);
             timer->usageFlags |= TIM_USE_MOTOR;
             break;
         case OUTPUT_MODE_SERVOS:
-            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_LED);
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_LED|TIM_USE_BEEPER);
             timer->usageFlags |= TIM_USE_SERVO;
             break;
         case OUTPUT_MODE_LED:
-            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO);
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_BEEPER);
             timer->usageFlags |= TIM_USE_LED;
             break;
         case OUTPUT_MODE_PINIO:
-            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED);
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED|TIM_USE_BEEPER);
             timer->usageFlags |= TIM_USE_PINIO;
+            break;
+        case OUTPUT_MODE_BEEPER:
+            // Other channels of this timer share its period register, so they can't
+            // be repurposed as motor/servo/LED either. They can still drive a GPIO-only
+            // PINIO (binary on/off, no PWM), since that doesn't need the timer's period.
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED|TIM_USE_BEEPER);
+            timer->usageFlags |= TIM_USE_PINIO;
+            if (isCanonicalBeeperPad) {
+                timer->usageFlags &= ~TIM_USE_PINIO;
+                timer->usageFlags |= TIM_USE_BEEPER;
+            }
             break;
     }
 }
@@ -319,8 +326,16 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
     uint8_t servoCount = anyServo ? (uint8_t)(1 + maxServo - minServo) : 0;
 
     // Apply all timerOverrides upfront so flag state is stable for both passes
+    bool beeperClaimed[HARDWARE_TIMER_DEFINITION_COUNT] = { false };
     for (int idx = 0; idx < timerHardwareCount; idx++) {
-        timerHardwareOverride(&timerHardware[idx]);
+        timerHardware_t *timHw = &timerHardware[idx];
+        uint8_t timId = timer2id(timHw->tim);
+        bool isCanonicalBeeperPad = false;
+        if (timerOverrides(timId)->outputMode == OUTPUT_MODE_BEEPER && !beeperClaimed[timId]) {
+            beeperClaimed[timId] = true;
+            isCanonicalBeeperPad = true;
+        }
+        timerHardwareOverride(timHw, isCanonicalBeeperPad);
     }
 
     // Assign outputs in priority order: dedicated first, then auto.

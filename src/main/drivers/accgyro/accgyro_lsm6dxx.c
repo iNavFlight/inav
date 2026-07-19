@@ -49,8 +49,18 @@ typedef struct __attribute__ ((__packed__)) lsm6DContextData_s {
 #define LSM6DSO_CHIP_ID 0x6C
 #define LSM6DSL_CHIP_ID 0x6A
 #define LSM6DS3_CHIP_ID 0x69
+// "Gen V" chips - reorganized register map vs. the DSO/DSL/DS3 above, see lsm6dxxConfigGenV()
+#define LSM6DSV16X_CHIP_ID 0x70
+#define LSM6DSK320X_CHIP_ID 0x75
 
+// Single physical instance assumed: set once by lsm6dxxDetect() and read by lsm6dxxConfig()/
+// lsm6dxxIsGenV() afterward for the same instance - gyro detect always runs before config.
 static uint8_t lsm6dID = 0x6C;
+
+static inline bool lsm6dxxIsGenV(void)
+{
+    return lsm6dID == LSM6DSV16X_CHIP_ID || lsm6dID == LSM6DSK320X_CHIP_ID;
+}
 
 static void lsm6dxxWriteRegister(const  busDevice_t *dev, lsm6dxxRegister_e registerID, uint8_t value, unsigned delayMs)
 {
@@ -85,8 +95,88 @@ static uint8_t getLsmDlpfBandwidth(gyroDev_t *gyro)
     return 0;
 }
 
+// LPF1 bandwidth options for the Gen V chips, at the fixed 7.68kHz LPF1+LPF2 table row this
+// driver uses. Values cross-checked against atbetaflight's accgyro_spi_lsm6dsv16x.c, which
+// uses this same mapping on real hardware.
+static uint8_t getLsmVDlpfBandwidth(gyroDev_t *gyro)
+{
+    switch (gyro->lpf) {
+        case GYRO_HARDWARE_LPF_NORMAL:
+            return LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_288HZ;
+        case GYRO_HARDWARE_LPF_OPTION_1:
+            return LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_157HZ;
+        case GYRO_HARDWARE_LPF_OPTION_2:
+            return LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_215HZ;
+        case GYRO_HARDWARE_LPF_EXPERIMENTAL:
+            return LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_455HZ;
+    }
+    return LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_288HZ;
+}
+
+// Configuration for LSM6DSV16X / LSM6DSK320X ("Gen V" chips - see lsm6dxxIsGenV()). These
+// reorganized CTRL1_XL/CTRL2_G to hold ODR + operating mode only (full scale moved to
+// CTRL6_C/CTRL8_XL) with a different ODR bit encoding, so they need their own config sequence
+// rather than sharing the legacy DSO/DSL/DS3 one below. Sequence and register values are
+// cross-checked against the LSM6DSV16X and LSM6DSK320X datasheets and atbetaflight's
+// accgyro_spi_lsm6dsv16x.c (hardware-validated there for LSM6DSV16X).
+static void lsm6dxxConfigGenV(gyroDev_t *gyro)
+{
+    busDevice_t * dev = gyro->busDev;
+
+    busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
+
+    // Software reset, then wait for the device to clear the bit itself
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_CTRL3_C, LSM6DXX_MASK_CTRL3_C_RESET, 0);
+    uint8_t ctrl3 = LSM6DXX_MASK_CTRL3_C_RESET;
+    unsigned attemptsRemaining = 10;
+    while ((ctrl3 & LSM6DXX_MASK_CTRL3_C_RESET) && attemptsRemaining--) {
+        delay(1);
+        if (!busRead(dev, LSM6DXX_REG_CTRL3_C, &ctrl3)) {
+            break; // bus read failed - fall through to config once attempts are exhausted below
+        }
+    }
+
+    // Auto-increment addresses for burst reads; hold output registers stable across a burst read
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_CTRL3_C, LSM6DXX_VAL_CTRL3_C_IF_INC | LSM6DXX_VAL_CTRL3_C_BDU, 0);
+
+    // Selects the high-accuracy ODR table used by the CTRL1_XL/CTRL2_G writes below
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_HAODR_CFG, LSM6DXX_VAL_HAODR_CFG_MODE1, 0);
+
+    // Accelerometer: high-accuracy mode, 1kHz ODR, +-16g full scale
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_CTRL1_XL,
+        (LSM6DXX_VAL_CTRL1_XL_V_OPMODE_HIGH_ACCURACY << 4) | LSM6DXX_VAL_CTRL1_XL_V_ODR_1000HZ_HAODR1, 0);
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_CTRL8_XL, LSM6DXX_VAL_CTRL8_XL_V_FS_16G, 0);
+
+    // Gyroscope: high-accuracy mode, 8kHz ODR, +-2000dps full scale, LPF1 bandwidth per user setting
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_CTRL2_G,
+        (LSM6DXX_VAL_CTRL2_G_V_OPMODE_HIGH_ACCURACY << 4) | LSM6DXX_VAL_CTRL2_G_V_ODR_8000HZ_HAODR1, 0);
+    // LSM6DSK320X requires bit 3 of this register set to 1 ("must be set to 1 for correct operation of
+    // the device" per its datasheet) - it isn't part of the FS_G field there like it is on LSM6DSV16X
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_CTRL6_C,
+        (getLsmVDlpfBandwidth(gyro) << 4) | LSM6DXX_VAL_CTRL6_C_V_FS_G_2000DPS
+        | (lsm6dID == LSM6DSK320X_CHIP_ID ? LSM6DXX_VAL_CTRL6_C_V_DSK320X_RESERVED_BIT3 : 0), 0);
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_CTRL7_G, LSM6DXX_VAL_CTRL7_G_V_LPF1_EN, 0);
+
+    // Data-ready interrupt is a pulse (no read required to clear it), routed to pin 1
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_CTRL4_C, LSM6DXX_VAL_CTRL4_C_V_DRDY_PULSED, 0);
+    lsm6dxxWriteRegister(dev, LSM6DXX_REG_INT1_CTRL, LSM6DXX_VAL_INT1_CTRL, 0);
+
+    // Datasheet section 4.1 (Mechanical characteristics): 70mdps/LSB at +-2000dps full scale.
+    // This differs from the 1/16.4 constant the legacy DSO/DSL/DS3 path below uses - that
+    // existing value is left untouched since it's out of scope here and already shipped.
+    gyro->scale = 0.070f;
+    gyro->sampleRateIntervalUs = 125; // 8kHz gyro ODR configured above
+
+    busSetSpeed(dev, BUS_SPEED_FAST);
+}
+
 static void lsm6dxxConfig(gyroDev_t *gyro)
-{ 
+{
+    if (lsm6dxxIsGenV()) {
+        lsm6dxxConfigGenV(gyro);
+        return;
+    }
+
     busDevice_t * dev = gyro->busDev;
     const gyroFilterAndRateConfig_t * config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
     gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
@@ -153,7 +243,9 @@ static bool lsm6dxxDetect(busDevice_t * dev)
 
         switch (tmp) {
             case LSM6DSO_CHIP_ID:
-            case LSM6DSL_CHIP_ID: 
+            case LSM6DSL_CHIP_ID:
+            case LSM6DSV16X_CHIP_ID:
+            case LSM6DSK320X_CHIP_ID:
                  lsm6dID = tmp;
                 // Compatible chip detected
                 return true;

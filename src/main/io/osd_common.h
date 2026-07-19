@@ -105,7 +105,3 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
 // grid slots.
 void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading);
 void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas);
-
-#ifdef USE_GPS
-int16_t osdGet3DSpeed(void);
-#endif

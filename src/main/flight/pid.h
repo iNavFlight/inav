@@ -33,7 +33,7 @@
 
 #define AXIS_ACCEL_MIN_LIMIT        50
 
-#define HEADING_HOLD_ERROR_LPF_FREQ 2
+#define HEADING_HOLD_ERROR_LPF_FREQ 2.0f
 
 /*
 FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
