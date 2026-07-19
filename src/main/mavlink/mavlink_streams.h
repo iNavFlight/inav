@@ -26,4 +26,6 @@ bool mavlinkHandleIncomingPing(void);
 bool mavlinkHandleIncomingTimesync(void);
 void mavlinkSendModeStatusText(void);
 void mavlinkSendArmingStatusText(void);
+void mavlinkSendArmingStatusTextToPort(uint8_t portIndex);
+void mavlinkPortReconnected(uint8_t portIndex);
 bool mavlinkHandleIncomingRequestDataStream(void);

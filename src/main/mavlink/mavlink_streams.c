@@ -24,6 +24,10 @@ const uint8_t mavSecondaryRates[MAVLINK_STREAM_COUNT] = {
 #define MAVLINK_STATUS_TEXT_WARNING_REPEAT_MS 10000
 #define MAVLINK_STATUS_TEXT_CRITICAL_REPEAT_MS 5000
 
+// GCS heartbeats nominally arrive at 1 Hz; a gap this long means the peer on
+// this port went away and whatever comes back needs fresh one-shot state.
+#define MAVLINK_HEARTBEAT_RECONNECT_GAP_MS 5000
+
 static const char * const mavlinkInavFlightModeNames[FLM_COUNT] = {
     [FLM_MANUAL] = "MANUAL",
     [FLM_ACRO] = "ACRO",
@@ -1211,6 +1215,17 @@ bool mavlinkHandleIncomingHeartbeat(void)
     mavlink_heartbeat_t msg;
     mavlink_msg_heartbeat_decode(&mavlinkContext.recvMsg, &msg);
 
+    // A framed HEARTBEAT is the protocol's presence signal. First one ever on
+    // this port, or one arriving after a gap, means a peer just (re)connected.
+    mavlinkPortRuntime_t *ingressState = &mavPortStates[mavRecvPortIndex];
+    const timeMs_t nowMs = millis();
+    const bool firstHeartbeat = ingressState->lastRemoteHeartbeatMs == 0;
+    const bool heartbeatGap = nowMs - ingressState->lastRemoteHeartbeatMs >= MAVLINK_HEARTBEAT_RECONNECT_GAP_MS;
+    ingressState->lastRemoteHeartbeatMs = nowMs;
+    if (firstHeartbeat || heartbeatGap) {
+        mavlinkPortReconnected(mavRecvPortIndex);
+    }
+
     switch (msg.type) {
 #ifdef USE_ADSB
         case MAV_TYPE_ADSB:
@@ -1267,6 +1282,32 @@ bool mavlinkHandleIncomingTimesync(void)
     return true;
 }
 
+#if !defined(CLI_MINIMAL_VERBOSITY)
+static void mavlinkBuildArmingDisabledText(char *text, size_t size, uint32_t disableFlags)
+{
+    strncpy(text, "Arming disabled:", size - 1);
+    text[size - 1] = '\0';
+    size_t pos = strlen(text);
+    for (unsigned bit = 6; bit <= 30 && pos < size - 1; bit++) {
+        if (!(disableFlags & (1U << bit))) {
+            continue;
+        }
+
+        const char *name = armingDisableFlagNames[bit - 6];
+        if (size - pos < 3) {
+            break;
+        }
+
+        text[pos++] = ' ';
+        const size_t remaining = size - 1 - pos;
+        const size_t nameLength = MIN(strlen(name), remaining);
+        memcpy(text + pos, name, nameLength);
+        pos += nameLength;
+    }
+    text[pos] = '\0';
+}
+#endif
+
 void mavlinkSendArmingStatusText(void)
 {
 #if !defined(CLI_MINIMAL_VERBOSITY)
@@ -1280,25 +1321,8 @@ void mavlinkSendArmingStatusText(void)
         return;
     }
 
-    char text[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = "Arming disabled:";
-    size_t pos = strlen(text);
-    for (unsigned bit = 6; bit <= 30 && pos < sizeof(text) - 1; bit++) {
-        if (!(disableFlags & (1U << bit))) {
-            continue;
-        }
-
-        const char *name = armingDisableFlagNames[bit - 6];
-        if (sizeof(text) - pos < 3) {
-            break;
-        }
-
-        text[pos++] = ' ';
-        const size_t remaining = sizeof(text) - 1 - pos;
-        const size_t nameLength = MIN(strlen(name), remaining);
-        memcpy(text + pos, name, nameLength);
-        pos += nameLength;
-    }
-    text[pos] = '\0';
+    char text[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
+    mavlinkBuildArmingDisabledText(text, sizeof(text), disableFlags);
 
     if (!mavlinkSendNoticeStatusText(text)) {
         return;
@@ -1306,6 +1330,61 @@ void mavlinkSendArmingStatusText(void)
 
     mavlinkContext.lastArmingDisableFlags = disableFlags;
 #endif
+}
+
+// Snapshot send of the current arming-disable reason to one port. Read-only
+// with respect to the global lastArmingDisableFlags edge detector.
+void mavlinkSendArmingStatusTextToPort(uint8_t portIndex)
+{
+#if !defined(CLI_MINIMAL_VERBOSITY)
+    if (portIndex >= mavPortCount) {
+        return;
+    }
+
+    const uint32_t disableFlags = armingFlags & ARMING_DISABLED_ALL_FLAGS;
+    if (disableFlags == 0) {
+        return;
+    }
+
+    char text[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
+    mavlinkBuildArmingDisabledText(text, sizeof(text), disableFlags);
+
+    const uint8_t previousSendMask = mavSendMask;
+    mavSendMask = MAVLINK_PORT_MASK(portIndex);
+    mavlink_msg_statustext_pack(
+        mavlinkGetCommonConfig()->sysid,
+        MAV_COMP_ID_AUTOPILOT1,
+        &mavSendMsg,
+        MAV_SEVERITY_NOTICE,
+        text,
+        0,
+        0);
+    mavlinkSendMessage();
+    mavSendMask = previousSendMask;
+#else
+    UNUSED(portIndex);
+#endif
+}
+
+// Fired when a port is judged to have just (re)connected: shared-port enable
+// transition, or a remote HEARTBEAT after a gap on an always-open port.
+void mavlinkPortReconnected(uint8_t portIndex)
+{
+    if (portIndex >= mavPortCount) {
+        return;
+    }
+
+    mavlinkPortRuntime_t *state = &mavPortStates[portIndex];
+
+    // Don't make a reconnecting client wait out a stale de-spam window.
+    state->lastStatusText[0] = '\0';
+    state->lastStatusTextSeverity = 0;
+    state->firstStatusTextMs = 0;
+    state->lastStatusTextMs = 0;
+
+    // Give this port the current arming-disable reason now, independent of
+    // whether the global flags have changed since the last broadcast.
+    mavlinkSendArmingStatusTextToPort(portIndex);
 }
 
 void mavlinkSendModeStatusText(void)
