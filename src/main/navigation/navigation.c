@@ -2170,11 +2170,16 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND(navig
     const navigationFSMEvent_t landEvent = navOnEnteringState_NAV_STATE_RTH_LANDING(previousState);
 
     if (landEvent == NAV_FSM_EVENT_SUCCESS) {
+        const bool commandedLanding = posControl.flags.forcedLandingActivated;
         posControl.flags.forcedLandingActivated = false;
         // Landing controller returned success - invoke RTH finish states and finish the waypoint.
         // Success maps straight to NAV_STATE_WAYPOINT_FINISHED, bypassing NAV_STATE_WAYPOINT_NEXT,
-        // so the LAND item must be marked reached here or it never reports completion.
-        navMarkWaypointReached(posControl.activeWaypointIndex);
+        // so the LAND item must be marked reached here or it never reports completion. A
+        // command-triggered landing borrows this state with a transient waypoint and must
+        // not credit an unrelated mission item.
+        if (!commandedLanding) {
+            navMarkWaypointReached(posControl.activeWaypointIndex);
+        }
         navOnEnteringState_NAV_STATE_RTH_FINISHING(previousState);
         navOnEnteringState_NAV_STATE_RTH_FINISHED(previousState);
     }
@@ -2576,16 +2581,19 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FINISHED(nav
 {
     UNUSED(previousState);
 
+    const bool commandedLanding = posControl.flags.forcedLandingActivated;
+    posControl.flags.forcedLandingActivated = false;
+
     // A mission LAND item handed off to the autoland FSM finishes here, not
     // through NAV_STATE_WAYPOINT_RTH_LAND's success branch - credit the item
     // or the mission never reports completion. landState guards re-entry
-    // (this state self-loops on timeout).
-    if (posControl.fwLandState.landWp && posControl.fwLandState.landState != FW_AUTOLAND_STATE_IDLE) {
+    // (this state self-loops on timeout). A command-triggered landing must
+    // not credit an unrelated mission item.
+    if (!commandedLanding && posControl.fwLandState.landWp && posControl.fwLandState.landState != FW_AUTOLAND_STATE_IDLE) {
         navMarkWaypointReached(posControl.activeWaypointIndex);
     }
 
     posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
-    posControl.flags.forcedLandingActivated = false;
 
     return NAV_FSM_EVENT_NONE;
 }
