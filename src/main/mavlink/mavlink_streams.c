@@ -3,6 +3,7 @@
 #include "common/time.h"
 
 #include "mavlink/mavlink_modes.h"
+#include "mavlink/mavlink_routing.h"
 #include "mavlink/mavlink_runtime.h"
 #include "mavlink/mavlink_streams.h"
 
@@ -24,9 +25,14 @@ const uint8_t mavSecondaryRates[MAVLINK_STREAM_COUNT] = {
 #define MAVLINK_STATUS_TEXT_WARNING_REPEAT_MS 10000
 #define MAVLINK_STATUS_TEXT_CRITICAL_REPEAT_MS 5000
 
-// GCS heartbeats nominally arrive at 1 Hz; a gap this long means the peer on
-// this port went away and whatever comes back needs fresh one-shot state.
+// GCS heartbeats nominally arrive at 1 Hz; a gap this long means the peer
+// went away and needs fresh one-shot state when it returns.
 #define MAVLINK_HEARTBEAT_RECONNECT_GAP_MS 5000
+
+// Peers heartbeating slower than the gap threshold trigger a reconnect on
+// every beat; this floor caps the arming-snapshot rate per port regardless
+// of peer behavior.
+#define MAVLINK_ARMING_SNAPSHOT_MIN_INTERVAL_MS 10000
 
 static const char * const mavlinkInavFlightModeNames[FLM_COUNT] = {
     [FLM_MANUAL] = "MANUAL",
@@ -1215,15 +1221,24 @@ bool mavlinkHandleIncomingHeartbeat(void)
     mavlink_heartbeat_t msg;
     mavlink_msg_heartbeat_decode(&mavlinkContext.recvMsg, &msg);
 
-    // A framed HEARTBEAT is the protocol's presence signal. First one ever on
-    // this port, or one arriving after a gap, means a peer just (re)connected.
-    mavlinkPortRuntime_t *ingressState = &mavPortStates[mavRecvPortIndex];
-    const timeMs_t nowMs = millis();
-    const bool firstHeartbeat = ingressState->lastRemoteHeartbeatMs == 0;
-    const bool heartbeatGap = nowMs - ingressState->lastRemoteHeartbeatMs >= MAVLINK_HEARTBEAT_RECONNECT_GAP_MS;
-    ingressState->lastRemoteHeartbeatMs = nowMs;
-    if (firstHeartbeat || heartbeatGap) {
-        mavlinkPortReconnected(mavRecvPortIndex);
+    // A framed HEARTBEAT is the protocol's presence signal. Track it per peer
+    // (route table entry) rather than per port, so a steady peer cannot mask a
+    // newly joining one behind the same port, and a peer moving to another
+    // port (failover) registers as a reconnect there. mavlinkLearnRoute() ran
+    // before dispatch, so the sender already has a route entry unless the
+    // table is full - in which case reconnect detection degrades gracefully
+    // to the pre-existing broadcast-only behavior for that peer.
+    mavlinkRouteEntry_t *route = mavlinkFindRoute(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid);
+    if (route) {
+        const timeMs_t nowMs = millis();
+        const bool firstHeartbeat = route->lastHeartbeatMs == 0;
+        const bool heartbeatGap = nowMs - route->lastHeartbeatMs >= MAVLINK_HEARTBEAT_RECONNECT_GAP_MS;
+        const bool portChanged = !firstHeartbeat && route->lastHeartbeatPortIndex != mavRecvPortIndex;
+        route->lastHeartbeatMs = nowMs;
+        route->lastHeartbeatPortIndex = mavRecvPortIndex;
+        if (firstHeartbeat || heartbeatGap || portChanged) {
+            mavlinkPortReconnected(mavRecvPortIndex);
+        }
     }
 
     switch (msg.type) {
@@ -1346,6 +1361,14 @@ void mavlinkSendArmingStatusTextToPort(uint8_t portIndex)
         return;
     }
 
+    mavlinkPortRuntime_t *state = &mavPortStates[portIndex];
+    const timeMs_t nowMs = millis();
+    if (state->lastArmingSnapshotMs != 0 &&
+        nowMs - state->lastArmingSnapshotMs < MAVLINK_ARMING_SNAPSHOT_MIN_INTERVAL_MS) {
+        return;
+    }
+    state->lastArmingSnapshotMs = nowMs;
+
     char text[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
     mavlinkBuildArmingDisabledText(text, sizeof(text), disableFlags);
 
@@ -1366,8 +1389,8 @@ void mavlinkSendArmingStatusTextToPort(uint8_t portIndex)
 #endif
 }
 
-// Fired when a port is judged to have just (re)connected: shared-port enable
-// transition, or a remote HEARTBEAT after a gap on an always-open port.
+// Fired when a peer is judged to have just (re)connected on this port: its
+// first HEARTBEAT, one after a gap, or one after moving from another port.
 void mavlinkPortReconnected(uint8_t portIndex)
 {
     if (portIndex >= mavPortCount) {
