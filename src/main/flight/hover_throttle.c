@@ -59,11 +59,13 @@
 
 #include "sensors/battery.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig, PG_HOVER_THROTTLE_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig, PG_HOVER_THROTTLE_CONFIG, 4);
 
 PG_RESET_TEMPLATE(hoverThrottleConfig_t, hoverThrottleConfig,
-    .minThrottle = SETTING_OHOLD_HOVER_THR_MIN_DEFAULT,
-    .hoverBaroWeight = SETTING_OHOLD_HOVER_BARO_WEIGHT_DEFAULT,
+    // Baro trust while the hover throttle owns the altitude. Kept as a field
+    // (runtime-tunable) but no longer a CLI setting; 100 = the experimentally
+    // found floor over inav_w_z_baro_p for the hover regime.
+    .hoverBaroWeight = 100,
 );
 
 // Derived throttle gains. The one airframe fact they all share is the
@@ -349,11 +351,10 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
     const float zErrM = (targetAltCm - z) / 100.0f;
     const float climbMs = climbCms / 100.0f;
 
-    // throttle floor: never cut the throttle below what keeps the prop wash
-    // (and with it the control authority) alive -- excess lift, e.g. in an
-    // updraft, is accepted as a climb instead
-    const int16_t floorThrottle = MAX(getThrottleIdleValue(),
-                                      (int16_t)hoverThrottleConfig()->minThrottle);
+    // throttle floor: never cut the throttle below the motor idle, which keeps
+    // the prop wash (and with it the control authority) alive -- excess lift,
+    // e.g. in an updraft, is accepted as a climb instead
+    const int16_t floorThrottle = getThrottleIdleValue();
 
     // gains derived from the learned hover point (see the constants above):
     // us-per-motion = loop constant x (hover span per 1 g). The anchor is

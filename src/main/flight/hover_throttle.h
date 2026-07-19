@@ -43,15 +43,6 @@
 // constants; no pilot can pick "microseconds per meter per second" better
 // than that identity does.
 typedef struct hoverThrottleConfig_s {
-    uint16_t minThrottle;  // throttle floor [us] while hovering: preserves
-                           // the control authority that scales with thrust,
-                           // prop wash over the surfaces as well as thrust
-                           // vectoring (an updraft otherwise makes the PID
-                           // cut the throttle and with it the authority).
-                           // One propeller, one floor: the same value
-                           // covers both steering paths. Found by
-                           // experiment near the model's hover throttle;
-                           // 1000 = no floor beyond the motor idle.
     uint8_t hoverBaroWeight; // baro position weight (x100) while the hover
                              // throttle owns the altitude: hovering thrust
                              // pollutes the accelerometer Z, the baro

@@ -29,6 +29,8 @@
 
 #ifdef USE_FW_AEROBATICS
 
+#include "build/debug.h"
+
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/quaternion.h"
@@ -65,17 +67,25 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, PG_ORIENTATION_HOLD_CONFIG, 2);
 
 PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
-    .invertedPitchTrim = SETTING_OHOLD_INVERTED_PITCH_TRIM_DEFAULT,
-    .knifeLeftPitchTrim = SETTING_OHOLD_KNIFE_LEFT_PITCH_TRIM_DEFAULT,
-    .knifeRightPitchTrim = SETTING_OHOLD_KNIFE_RIGHT_PITCH_TRIM_DEFAULT,
-    .hoverGainLearned = SETTING_OHOLD_HOVER_GAIN_DEFAULT,
-    .invertedGainLearned = SETTING_OHOLD_INVERTED_GAIN_DEFAULT,
-    .knifeGainLearned = SETTING_OHOLD_KNIFE_GAIN_DEFAULT,
-    .figureGainLearned = SETTING_OHOLD_FIGURE_GAIN_DEFAULT,
+    // The per-regime pitch trims and the knife speed FF are feed-forwards the
+    // integrating knife/inverted throttle assist regulates away (it drives
+    // vz -> 0), so they are not CLI settings - they seed at neutral (0).
+    .invertedPitchTrim = 0,
+    .knifeLeftPitchTrim = 0,
+    .knifeRightPitchTrim = 0,
+    .knifeSpeedFF = 0,
+    // The regime angle-gain scales are maintained by the limit-cycle learner
+    // (written at regime exit, saved on disarm) and read back on the
+    // DEBUG_FW_AEROBATICS blackbox channel - not hand-set. 100 % = the
+    // reference gains, the seed the learner starts from.
+    .hoverGainLearned = 100,
+    .invertedGainLearned = 100,
+    .knifeGainLearned = 100,
+    .figureGainLearned = 100,
+    // CLI-tunable per airframe / pilot.
     .entryRateDps = SETTING_OHOLD_ENTRY_RATE_DEFAULT,
     .stickAngleMaxDeg = SETTING_OHOLD_STICK_ANGLE_DEFAULT,
     .stickReturnRateDps = SETTING_OHOLD_STICK_RETURN_RATE_DEFAULT,
-    .knifeSpeedFF = SETTING_OHOLD_KNIFE_SPEED_FF_DEFAULT,
     .loadLimitG = SETTING_OHOLD_LOAD_LIMIT_DEFAULT,
 );
 
@@ -765,6 +775,14 @@ static void regimeGainUpdate(const fpVector3_t *errDeg, float dT)
         }
         regimeGainInitialized = true;
     }
+
+    // blackbox readback of the learned regime gains (no longer CLI settings):
+    // scale [%] hover / inverted / knife / figure. A no-op unless
+    // debug_mode = FW_AEROBATICS.
+    DEBUG_SET(DEBUG_FW_AEROBATICS, 0, lrintf(regimeGain[OHOLD_REGIME_HOVER].scale * 100.0f));
+    DEBUG_SET(DEBUG_FW_AEROBATICS, 1, lrintf(regimeGain[OHOLD_REGIME_INVERTED].scale * 100.0f));
+    DEBUG_SET(DEBUG_FW_AEROBATICS, 2, lrintf(regimeGain[OHOLD_REGIME_KNIFE].scale * 100.0f));
+    DEBUG_SET(DEBUG_FW_AEROBATICS, 3, lrintf(regimeGain[OHOLD_REGIME_FIGURE].scale * 100.0f));
 
     const oholdRegime_e active = regimeGainActiveRegime();
     for (int r = 0; r < OHOLD_REGIME_COUNT; r++) {

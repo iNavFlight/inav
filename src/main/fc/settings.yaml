@@ -1567,12 +1567,6 @@ groups:
         field: acc_ignore_slope
         min: 0
         max: 10
-      - name: ahrs_gps_aiding_max_tilt
-        description: "Tilt from level [deg] beyond which ALL GPS-derived AHRS aiding (yaw from course, centrifugal compensation) fades out on an airplane - both assume coordinated forward flight and actively bend the attitude estimate in a hang, knife edge, inverted or spin (measured). Instant fade-out, 2 s fade-in after returning below the limit. 0 disables the gate."
-        default_value: 60
-        field: gps_aiding_max_tilt
-        min: 0
-        max: 90
       - name: ahrs_gps_yaw_windcomp
         description: "Wind compensation in heading estimation from gps groundcourse(fixed wing only)"
         default_value: ON
@@ -4586,60 +4580,12 @@ groups:
     headers: ["flight/orientation_hold.h"]
     condition: USE_FW_AEROBATICS
     members:
-      - name: ohold_inverted_pitch_trim
-        description: "Pitch trim [deg] on the INVERTED hold target, positive = nose above the horizon. Inverted flight typically needs a few degrees to hold altitude (down-elevator bias)"
-        default_value: 0
-        field: invertedPitchTrim
-        min: -15
-        max: 15
-      - name: ohold_knife_left_pitch_trim
-        description: "Pitch trim [deg] on the KNIFE EDGE LEFT hold target, positive = nose above the horizon, held via the rudder. Separate per side: the body-fixed prop effects (spiral slipstream, torque, P-factor) point to the vertically opposite direction after the 180 deg roll to the other side, so left/right = shared fuselage-lift part +/- prop part. Reversed prop rotation swaps the sides"
-        default_value: 0
-        field: knifeLeftPitchTrim
-        min: -15
-        max: 15
-      - name: ohold_knife_speed_ff
-        description: "Knife edge speed feedforward: extra nose-above-horizon angle [deg] per half throttle of speed deficit. The fuselage side force carries the weight and scales with speed squared, so flying slower needs more nose angle immediately - this feeds it forward from the throttle (the speed proxy) instead of waiting for an altitude error. 0 = off."
-        default_value: 0
-        field: knifeSpeedFF
-        min: 0
-        max: 30
       - name: ohold_load_limit
         description: "Load budget [g x 10] the governor holds figures and spins to - a fact about the airframe (what it may pull), not a tuning knob. Load is speed times rotation rate, so at a given speed the budget is simultaneously the fastest rotation and the tightest radius (r = v^2/a): the governor slows the commanded rotation and the target slew with the measured overload, and bleeds throttle while a figure or spin flies (a governed rotation at full power just converts into speed, the load would stay). Plain holds at 1 g are untouched. 0 disables the governor."
         default_value: 40
         field: loadLimitG
         min: 0
         max: 160
-      - name: ohold_inverted_gain
-        description: "Learned angle-gain scale [%] for the inverted hold, relative to the normal-flight gains. Maintained by the firmware's limit-cycle detector and saved on disarm; editable. 100 = reference gains."
-        default_value: 100
-        field: invertedGainLearned
-        min: 30
-        max: 100
-      - name: ohold_knife_gain
-        description: "Learned angle-gain scale [%] for the knife edge holds, relative to the normal-flight gains. Maintained by the firmware's limit-cycle detector and saved on disarm; editable. 100 = reference gains."
-        default_value: 100
-        field: knifeGainLearned
-        min: 30
-        max: 100
-      - name: ohold_figure_gain
-        description: "Learned angle-gain scale [%] while a figure flies, relative to the normal-flight gains. Maintained by the firmware's limit-cycle detector and saved on disarm; editable - flying the same figures repeatedly converges it. 100 = reference gains."
-        default_value: 100
-        field: figureGainLearned
-        min: 30
-        max: 100
-      - name: ohold_hover_gain
-        description: "LEARNED hover angle-gain scale [%]. The prop hang limit-cycle detector writes this at hang exit and it is saved on disarm; the next hang and the next flight start at the learned value instead of oscillating down again. Editable, but normally maintained by the firmware. 100 = full angle gain."
-        default_value: 100
-        field: hoverGainLearned
-        min: 30
-        max: 100
-      - name: ohold_knife_right_pitch_trim
-        description: "Pitch trim [deg] on the KNIFE EDGE RIGHT hold target, positive = nose above the horizon, held via the rudder. See ohold_knife_left_pitch_trim for why the sides differ"
-        default_value: 0
-        field: knifeRightPitchTrim
-        min: -15
-        max: 15
       - name: ohold_entry_rate
         description: "Target slew rate [deg/s] for entering an orientation hold preset (INVERTED, KNIFE EDGE, PROP HANG). The entry rolls the hold target from the current attitude to the preset at this rate; figures keep their own fig_roll_rate / fig_loop_rate"
         default_value: 180
@@ -4700,24 +4646,6 @@ groups:
         field: assistMax
         min: 0
         max: 30
-
-  - name: PG_HOVER_THROTTLE_CONFIG
-    type: hoverThrottleConfig_t
-    headers: ["flight/hover_throttle.h"]
-    condition: USE_FW_AEROBATICS
-    members:
-      - name: ohold_hover_thr_min
-        description: "Hover throttle floor [us]. The hover altitude controller never cuts the throttle below this, preserving the control authority that scales with thrust - prop wash over the control surfaces as well as thrust vectoring (an updraft otherwise starves the attitude authority; excess lift is accepted as a climb). Find it by experiment, slightly below the hover throttle. 1000 = no floor beyond motor idle. The altitude/vz loop gains themselves are not settings: they derive at runtime from the learned hover point (throttle-to-thrust slope), see hover_throttle.c."
-        default_value: 1000
-        field: minThrottle
-        min: 1000
-        max: 1800
-      - name: ohold_hover_baro_weight
-        description: "Baro position weight (x100) while the hover throttle owns the altitude, applied as a floor over inav_w_z_baro_p. Hovering thrust pollutes the accelerometer, the baro deserves more trust than in forward flight. 0 keeps the global weight."
-        default_value: 100
-        field: hoverBaroWeight
-        min: 0
-        max: 150
 
   - name: PG_SOARING_CONFIG
     type: soaringConfig_t

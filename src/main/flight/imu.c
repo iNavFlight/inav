@@ -124,7 +124,7 @@ static float imuCalculateAccelerometerWeightRateIgnore(const float acc_ignore_sl
 static void imuUpdateGpsAidingTiltWeight(float dT);
 static float gpsAidingTiltWeight = 1.0f;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 4);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_acc = SETTING_AHRS_DCM_KP_DEFAULT,                   // 0.20 * 10000
@@ -136,8 +136,7 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .acc_ignore_slope = SETTING_AHRS_ACC_IGNORE_SLOPE_DEFAULT,
     .gps_yaw_windcomp = SETTING_AHRS_GPS_YAW_WINDCOMP_DEFAULT,
     .inertia_comp_method = SETTING_AHRS_INERTIA_COMP_METHOD_DEFAULT,
-    .gps_yaw_weight = SETTING_AHRS_GPS_YAW_WEIGHT_DEFAULT,
-    .gps_aiding_max_tilt = SETTING_AHRS_GPS_AIDING_MAX_TILT_DEFAULT
+    .gps_yaw_weight = SETTING_AHRS_GPS_YAW_WEIGHT_DEFAULT
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -1055,16 +1054,20 @@ float calculateCosTiltAngle(void)
 // divergence in a prop hang that is clean without GPS). Drop instantly on
 // entering the aerobatic domain, fade back over 2 s after returning; the
 // normal flight regime keeps full GPS support.
+// Tilt beyond which GPS aiding is fully faded out [deg from level]. A fixed
+// property of the coordinated-flight assumption, not a pilot tuning knob;
+// on/off is governed by the FW_AEROBATICS feature bit, not by this value.
+#define GPS_AIDING_MAX_TILT_DEG 60
+
 static void imuUpdateGpsAidingTiltWeight(float dT)
 {
     // the gate exists for the aerobatic envelope; without the feature
     // the estimator behaves exactly like upstream (weight pinned at 1)
-    if (!feature(FEATURE_FW_AEROBATICS)
-        || !STATE(AIRPLANE) || !imuConfig()->gps_aiding_max_tilt) {
+    if (!feature(FEATURE_FW_AEROBATICS) || !STATE(AIRPLANE)) {
         gpsAidingTiltWeight = 1.0f;
         return;
     }
-    const float cosLimit = cos_approx(DEGREES_TO_RADIANS(imuConfig()->gps_aiding_max_tilt));
+    const float cosLimit = cos_approx(DEGREES_TO_RADIANS(GPS_AIDING_MAX_TILT_DEG));
     if (calculateCosTiltAngle() < cosLimit) {
         gpsAidingTiltWeight = 0.0f;
     } else {
