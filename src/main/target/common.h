@@ -209,7 +209,7 @@
 // crash detection): ~13 KB, experimental, runtime-gated by the
 // FW_AEROBATICS feature. 512 KB boards keep their flash; SITL enables
 // it in its own target.h (no MCU_FLASH_SIZE there).
-#define USE_ORIENTATION_HOLD
+#define USE_FW_AEROBATICS
 #define USE_THRUST_VECTORING
 #define USE_CRASH_DETECTION
 // Thermal soaring (net-energy vario + wind-shifted thermal centering):

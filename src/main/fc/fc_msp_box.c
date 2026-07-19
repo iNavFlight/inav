@@ -296,7 +296,7 @@ void initActiveBoxIds(void)
         }
         if (sensors(SENSOR_ACC)) {
             ADD_ACTIVE_BOX(BOXANGLEHOLD);
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
             // the whole aerobatics suite sits behind one runtime feature
             // (FW_LAUNCH pattern, Daniel's call): feature off = none of
             // these boxes exist, the Modes tab looks exactly like upstream
@@ -487,7 +487,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)), BOXMIXERTRANSITION);
 #endif
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANGLEHOLD)),       BOXANGLEHOLD);
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXINVERTED)),        BOXINVERTED);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKNIFELEFT)),       BOXKNIFELEFT);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKNIFERIGHT)),      BOXKNIFERIGHT);

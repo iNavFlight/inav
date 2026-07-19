@@ -26,7 +26,7 @@
 
 #include <platform.h>
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
 
 #include "common/axis.h"
 #include "common/maths.h"
@@ -481,4 +481,4 @@ void figureSequencerGetTarget(float *rollDeg, float *pitchDeg)
     *pitchDeg = targetPitchDeg;
 }
 
-#endif // USE_ORIENTATION_HOLD
+#endif // USE_FW_AEROBATICS

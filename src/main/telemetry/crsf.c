@@ -466,7 +466,7 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     crsfSerialize8(dst, CRSF_FRAMETYPE_FLIGHT_MODE);
 
     static uint8_t hrstSent = 0;
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
     // the radio SPEAKS flight-mode changes (EdgeTX voice): the floor
     // announces itself to the pilot (Daniel's telemetry contract).
     // Persistent CTCH/ORBT while a recovery owns the aircraft; floor
@@ -499,7 +499,7 @@ static void crsfFrameFlightMode(sbuf_t *dst)
         } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent < 4 && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "HRST";
             hrstSent++;
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
         } else if (altitudeFloorRecoveryActive()) {
             flightMode = altitudeFloorOrbitActive() ? "ORBT" : "CTCH";
         } else if (florSent > 0) {

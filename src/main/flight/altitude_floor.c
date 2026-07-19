@@ -27,7 +27,7 @@
 
 #include <platform.h>
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
 
 #include "build/debug.h"
 
@@ -270,4 +270,4 @@ float altitudeFloorDistanceM(void)
     return (getEstimatedActualPosition(Z) - floorCm) / 100.0f;
 }
 
-#endif // USE_ORIENTATION_HOLD
+#endif // USE_FW_AEROBATICS

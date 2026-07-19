@@ -704,7 +704,7 @@ void processRx(timeUs_t currentTimeUs)
     DISABLE_FLIGHT_MODE(ANGLE_MODE);
     DISABLE_FLIGHT_MODE(HORIZON_MODE);
     DISABLE_FLIGHT_MODE(ANGLEHOLD_MODE);
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
     DISABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
     altitudeFloorUpdate();
     rotorGuardUpdate();
@@ -718,7 +718,7 @@ void processRx(timeUs_t currentTimeUs)
     if (sensors(SENSOR_ACC) && (!FLIGHT_MODE(MANUAL_MODE) || autoEnableAngle)) {
         if (autoEnableAngle) {
             ENABLE_FLIGHT_MODE(ANGLE_MODE);
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
         } else if (STATE(AIRPLANE)
                    && ((altitudeFloorRecoveryActive() && !altitudeFloorOrbitViaNav())
                        || rotorGuardRecoveryActive())) {
@@ -730,7 +730,7 @@ void processRx(timeUs_t currentTimeUs)
             ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
 #endif
         } else if (IS_RC_MODE_ACTIVE(BOXANGLE)) {
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
             // leaving a hold far from level: the hold slews its target to
             // the horizon first, ANGLE takes over once the attitude is
             // there (a hover exit otherwise whips through nose down)
@@ -743,7 +743,7 @@ void processRx(timeUs_t currentTimeUs)
             }
         } else if (IS_RC_MODE_ACTIVE(BOXHORIZON)) {
             ENABLE_FLIGHT_MODE(HORIZON_MODE);
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
         } else if (STATE(AIRPLANE) && orientationHoldIsRequested()) {
             ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
 #endif
@@ -752,7 +752,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
     if (!FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
         orientationHoldResetSourceTracking();
     }

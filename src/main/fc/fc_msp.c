@@ -567,7 +567,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
         }
         break;
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
     case MSP2_INAV_FIGURE_SEQUENCE:
         for (int i = 0; i < MAX_FIGURE_SEQUENCE_SEGMENTS; i++) {
             sbufWriteU8(dst, figureSequence(i)->type);
@@ -2386,7 +2386,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
     case MSP2_INAV_SET_FIGURE_SEQUENCE:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 9) && (tmp_u8 < MAX_FIGURE_SEQUENCE_SEGMENTS)) {
@@ -4498,7 +4498,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
     case MSP2_INAV_ORIENTATION_HOLD_TEST: {
         // Level-1 test injection (bench/HIL): evaluate the orientation hold
         // error function and the level gain on the given quaternions.

@@ -4512,7 +4512,7 @@ groups:
   - name: PG_ALTITUDE_FLOOR_CONFIG
     type: altitudeFloorConfig_t
     headers: ["flight/altitude_floor.h"]
-    condition: USE_ORIENTATION_HOLD
+    condition: USE_FW_AEROBATICS
     members:
       - name: alt_floor_altitude
         description: "Altitude floor [m above home]. With the ALT FLOOR mode active and armed (climbed above floor + margin once), SINKING THROUGH the floor engages an automatic upright + climb recovery - no prediction, the crossing is the trigger. Set the floor high enough that the recovery fits below it (a dive recovery consumes roughly 15-25 m). Back at the floor the aircraft ORBITS the breach point on the fixed-wing loiter (nav_fw_loiter_radius) and waits - GPS-anchored while the position estimate is healthy (level flight restores the antenna's sky view), a constant-bank circle otherwise; the pilot gets time to collect themselves, there is no automatic hand-back. SET nav_fw_loiter_radius TO MATCH YOUR SPEED: the circle must be physically flyable, radius >= v^2 / (9.81 * tan(bank)) - an aerobatic airframe at 25 m/s needs roughly 150 m; too small a radius makes the loiter hunt at full bank. THE PILOT OVERRIDES THE AUTOPILOT: held sticks keep steering (a full held rudder drives a spin straight through the floor) - release the sticks and the floor catches; centering the sticks once and then deflecting roll/pitch takes over and releases the orbit. A catch that interrupts ANY active aerobatic mode (every hold, every figure, the sequencer) LATCHES that mode out until the pilot switches it away. Switch the ALT FLOOR mode off to land."
@@ -4536,7 +4536,7 @@ groups:
   - name: PG_ROTOR_GUARD_CONFIG
     type: rotorGuardConfig_t
     headers: ["flight/rotor_guard.h"]
-    condition: USE_ORIENTATION_HOLD
+    condition: USE_FW_AEROBATICS
     members:
       - name: rotor_guard_bank
         description: "Autogyro tip-over guard (ROTOR GUARD mode): bank angle [deg] beyond which, while sinking, the roll excursion counts as a tip-over (rotor rpm decayed, lateral tilt authority gone). Recovery: wings level, nose slightly down, throttle floor - thrust is the only lever that restores rotor rpm. TUNE PER AIRFRAME to just above the steepest bank it flies on purpose; the default is deliberately conservative, the SITL-proven Durafly Auto-G2 value is 45."
@@ -4584,7 +4584,7 @@ groups:
   - name: PG_ORIENTATION_HOLD_CONFIG
     type: orientationHoldConfig_t
     headers: ["flight/orientation_hold.h"]
-    condition: USE_ORIENTATION_HOLD
+    condition: USE_FW_AEROBATICS
     members:
       - name: ohold_inverted_pitch_trim
         description: "Pitch trim [deg] on the INVERTED hold target, positive = nose above the horizon. Inverted flight typically needs a few degrees to hold altitude (down-elevator bias)"
@@ -4662,7 +4662,7 @@ groups:
   - name: PG_FIGURE_SEQUENCER_CONFIG
     type: figureSequencerConfig_t
     headers: ["flight/figure_sequencer.h"]
-    condition: USE_ORIENTATION_HOLD
+    condition: USE_FW_AEROBATICS
     members:
       - name: fig_roll_rate
         description: "Roll rate [deg/s] flown by the FIGURE ROLL and FIGURE 4PT ROLL modes"
@@ -4704,7 +4704,7 @@ groups:
   - name: PG_HOVER_THROTTLE_CONFIG
     type: hoverThrottleConfig_t
     headers: ["flight/hover_throttle.h"]
-    condition: USE_ORIENTATION_HOLD
+    condition: USE_FW_AEROBATICS
     members:
       - name: ohold_hover_thr_min
         description: "Hover throttle floor [us]. The hover altitude controller never cuts the throttle below this, preserving the control authority that scales with thrust - prop wash over the control surfaces as well as thrust vectoring (an updraft otherwise starves the attitude authority; excess lift is accepted as a climb). Find it by experiment, slightly below the hover throttle. 1000 = no floor beyond motor idle. The altitude/vz loop gains themselves are not settings: they derive at runtime from the learned hover point (throttle-to-thrust slope), see hover_throttle.c."

@@ -253,7 +253,7 @@ navigationPosControl_t posControl;
 navSystemStatus_t NAV_Status;
 static bool landingDetectorIsActive;
 
-#if defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
+#if defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
 // Forced-poshold anchor shared by the altitude-floor orbit and thermal
 // soaring: consumed by the POSHOLD initialize while the forced hold is
 // active (see navForcedPosholdActivateAt).
@@ -1353,7 +1353,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE(n
 
         fpVector3_t targetHoldPos;
         calculateInitialHoldPosition(&targetHoldPos);
-#if defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
+#if defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
         // Forced-poshold anchor (floor orbit / soaring thermal): loiter
         // the anchored point, not "here". The forced-poshold event
         // re-fires every RX cycle and re-runs this initialize - without
@@ -4618,7 +4618,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 #endif
 
-#if defined(USE_GEOZONE) || defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
+#if defined(USE_GEOZONE) || defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
         // geozone avoidance hold, the altitude-floor orbit, or thermal
         // soaring - all loitering an anchored point via forced poshold
         if (posControl.flags.forcedPosholdActive) {
@@ -5238,7 +5238,7 @@ void abortForcedPosHold(void)
 }
 #endif
 
-#if defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
+#if defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
 /*-----------------------------------------------------------
  * Forced position hold on an anchored point - the REAL fixed-wing
  * loiter (Daniel: use the loitering machinery, not a hand-rolled orbit).

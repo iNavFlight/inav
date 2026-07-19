@@ -26,7 +26,7 @@
 
 #include <platform.h>
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
 
 #include "common/axis.h"
 #include "common/maths.h"
@@ -185,4 +185,4 @@ float rotorGuardRecoveryPitchDeg(void)
     return 0.0f;
 }
 
-#endif // USE_ORIENTATION_HOLD
+#endif // USE_FW_AEROBATICS

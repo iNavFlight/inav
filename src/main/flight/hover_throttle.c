@@ -27,7 +27,7 @@
 
 #include <platform.h>
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
 
 #include "common/axis.h"
 #include "common/maths.h"
@@ -375,4 +375,4 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
     return outUs;
 }
 
-#endif // USE_ORIENTATION_HOLD
+#endif // USE_FW_AEROBATICS

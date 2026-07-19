@@ -726,7 +726,7 @@ static void pidLevel(const float angleTarget, pidState_t *pidState, flight_dynam
     }
 }
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
 // Quaternion based attitude hold for arbitrary target attitudes (inverted,
 // knife edge, prop hang). Works on all three body axes and stays defined at
 // pitch = +/-90 deg where the Euler based pidLevel() is singular. The full
@@ -1300,7 +1300,7 @@ void FAST_CODE pidController(float dT)
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     angleHoldIsLevel = false;
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
     if (FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
         // Quaternion attitude hold replaces the Euler level controllers on all three axes
         pidOrientationHold(pidState, dT);
@@ -1337,7 +1337,7 @@ void FAST_CODE pidController(float dT)
         pidTurnAssistant(pidState, bankAngleTarget, pitchAngleTarget);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
     else if (FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
         // Turning holds (WAIT_POS banks toward home, the floor orbit
         // circles the breach point): feed the coordinated turn rates

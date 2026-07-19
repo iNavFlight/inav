@@ -85,7 +85,7 @@
 // The FW_AEROBATICS suite is flash-gated to > 512 KB in common.h; SITL
 // has no MCU_FLASH_SIZE, so enable it explicitly here (the bench needs
 // it), same as USE_GEOZONE above.
-#define USE_ORIENTATION_HOLD
+#define USE_FW_AEROBATICS
 #define USE_THRUST_VECTORING
 #define USE_CRASH_DETECTION
 #define USE_SOARING

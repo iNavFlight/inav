@@ -593,7 +593,7 @@ void FAST_CODE mixTable(void)
 #endif
     } else {
         mixerThrottleCommand = rcCommand[THROTTLE];
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
         // hover throttle owns the altitude axis while PROP HANG is held
         mixerThrottleCommand = hoverThrottleApply(mixerThrottleCommand);
         // the load governor bleeds throttle while a governed figure or spin
@@ -703,7 +703,7 @@ motorStatus_e getMotorStatus(void)
     const bool fixedWingOrAirmodeNotActive = STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE);
 
     if (throttleStickIsLow() && fixedWingOrAirmodeNotActive) {
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
         // the altitude floor recovery climbs on its own throttle floor - a
         // panic-chopped stick must not stop the motor that climb needs (the
         // same override navigation gets via nav_overrides_motor_stop). The

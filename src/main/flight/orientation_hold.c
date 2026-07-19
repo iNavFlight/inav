@@ -27,7 +27,7 @@
 
 #include <platform.h>
 
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
 
 #include "common/axis.h"
 #include "common/maths.h"
@@ -1334,4 +1334,4 @@ uint32_t orientationHoldDebugSafetyWord(void)
 }
 #endif
 
-#endif // USE_ORIENTATION_HOLD
+#endif // USE_FW_AEROBATICS

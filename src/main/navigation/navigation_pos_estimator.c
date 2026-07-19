@@ -501,7 +501,7 @@ static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
         ((currentTimeUs - posEstimator.gps.lastUpdateTime) <= MS2US(INAV_GPS_TIMEOUT_MS)) &&
         (posEstimator.gps.eph < max_eph_epv)) {
         if (posEstimator.gps.epv < max_eph_epv
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
             // lock-quality gate for the Z axis: aerobatic attitudes shade
             // the antenna and the reported epv lags the real degradation.
             // The vertical solution degrades first on a thin constellation,
@@ -640,7 +640,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             const float baroVelZResidual = isAirCushionEffectDetected ? 0.0f : wBaro * (posEstimator.baro.baroAltRate - posEstimator.est.vel.z);
             float w_z_baro_p = positionEstimationConfig()->w_z_baro_p;
             const float w_z_baro_v = positionEstimationConfig()->w_z_baro_v;
-#ifdef USE_ORIENTATION_HOLD
+#ifdef USE_FW_AEROBATICS
             // hovering on the prop: the thrust pollutes the accelerometer Z
             // and the inertial estimate wanders meters around the truth; the
             // baro deserves more trust for as long as the hover throttle

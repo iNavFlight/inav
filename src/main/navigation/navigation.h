@@ -233,7 +233,7 @@ void abortForcedPosHold(void);
 
 #endif
 
-#if defined(USE_ORIENTATION_HOLD) || defined(USE_SOARING)
+#if defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
 // Forced fixed-wing loiter anchored on a point (the real nav loiter -
 // wind-corrected, nav_fw_loiter_radius). Shared by the altitude-floor
 // orbit (breach point) and thermal soaring (thermal centre estimate).
