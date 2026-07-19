@@ -88,6 +88,7 @@
 #define USE_ORIENTATION_HOLD
 #define USE_THRUST_VECTORING
 #define USE_CRASH_DETECTION
+#define USE_SOARING
 
 #undef USE_GYRO_KALMAN // Strange behaviour under x86/x64 ?!?
 #undef USE_VCP

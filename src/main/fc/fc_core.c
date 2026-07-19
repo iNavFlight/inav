@@ -91,6 +91,7 @@
 #include "flight/rotor_guard.h"
 #include "flight/figure_sequencer.h"
 #include "flight/crash_detection.h"
+#include "flight/soaring.h"
 #include "flight/orientation_hold.h"
 #include "flight/rate_dynamics.h"
 
@@ -1024,6 +1025,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 #ifdef USE_CRASH_DETECTION
     // impact followed by stillness stops the motor (hand-launch aware)
     crashDetectionUpdate(dT);
+#endif
+
+#ifdef USE_SOARING
+    // thermal soaring: net vario + wind-shifted thermal centering
+    soaringUpdate(dT);
 #endif
 
     // Check battery, GPS signal, arming status etc @ 200 Hz

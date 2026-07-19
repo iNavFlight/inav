@@ -337,6 +337,8 @@ main_sources(COMMON_SRC
     flight/altitude_floor.h
     flight/rotor_guard.c
     flight/rotor_guard.h
+    flight/soaring.c
+    flight/soaring.h
     flight/crash_detection.c
     flight/crash_detection.h
     flight/hover_throttle.c

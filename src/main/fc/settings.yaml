@@ -4718,3 +4718,51 @@ groups:
         field: hoverBaroWeight
         min: 0
         max: 150
+
+  - name: PG_SOARING_CONFIG
+    type: soaringConfig_t
+    headers: ["flight/soaring.h"]
+    condition: USE_SOARING
+    members:
+      - name: soar_vario_trigger
+        description: "Net (total-energy) climb rate [cm/s] above which the SOARING mode stops cruising and starts circling a thermal. Requires a pitot - the net vario is meaningless without airspeed."
+        default_value: 50
+        field: varioTriggerCms
+        min: 0
+        max: 1000
+      - name: soar_vario_exit
+        description: "Net climb rate [cm/s] below which circling stops and the aircraft returns to cruise (the thermal was flown through or died)."
+        default_value: 0
+        field: varioExitCms
+        min: 0
+        max: 1000
+      - name: soar_alt_min
+        description: "Do not enter a thermal below this altitude [m] - a safety floor for autonomous soaring."
+        default_value: 50
+        field: altMinM
+        min: 0
+        max: 3000
+      - name: soar_alt_max
+        description: "Leave the thermal once this altitude [m] is reached."
+        default_value: 500
+        field: altMaxM
+        min: 0
+        max: 5000
+      - name: soar_bank
+        description: "Bank angle [deg] flown while circling a thermal."
+        default_value: 35
+        field: bankDeg
+        min: 15
+        max: 50
+      - name: soar_sink_level
+        description: "Level-flight sink rate [cm/s] at the tuning airspeed, used to compensate the aircraft's own sink out of the net vario. Raise it if the vario reads high in still air, lower it if it reads low."
+        default_value: 80
+        field: sinkLevelCms
+        min: 0
+        max: 500
+      - name: soar_centre_gain
+        description: "Gain [%] on the thermal-centering gradient shift. Higher centres faster but chases turbulence; the wind-drift shift is always applied at full wind speed regardless."
+        default_value: 100
+        field: centreGainPct
+        min: 0
+        max: 300

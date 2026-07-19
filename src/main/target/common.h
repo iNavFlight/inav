@@ -212,6 +212,10 @@
 #define USE_ORIENTATION_HOLD
 #define USE_THRUST_VECTORING
 #define USE_CRASH_DETECTION
+// Thermal soaring (net-energy vario + wind-shifted thermal centering):
+// ~2 KB, experimental, runtime-gated by the SOARING feature. Own PR,
+// independent of the aerobatics suite.
+#define USE_SOARING
 #define USE_VTX_FFPV
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT
