@@ -4498,7 +4498,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
-#ifdef USE_FW_AEROBATICS
+// Bench/HIL level-1 test injection - SITL only, kept off flight hardware
+#if defined(SITL_BUILD) && defined(USE_FW_AEROBATICS)
     case MSP2_INAV_ORIENTATION_HOLD_TEST: {
         // Level-1 test injection (bench/HIL): evaluate the orientation hold
         // error function and the level gain on the given quaternions.

@@ -136,4 +136,4 @@
 
 #define MSP2_INAV_FIGURE_SEQUENCE               0x2240
 #define MSP2_INAV_SET_FIGURE_SEQUENCE           0x2241
-#define MSP2_INAV_ORIENTATION_HOLD_TEST         0x2242  //in/out: level-1 test injection, 8x float32 (q_est wxyz, q_target wxyz) -> 6x float32 (err_deg xyz, rate_target_dps xyz); pure computation
+#define MSP2_INAV_ORIENTATION_HOLD_TEST         0x2242  //in/out (SITL only): level-1 test injection, 8x float32 (q_est wxyz, q_target wxyz) -> 6x float32 (err_deg xyz, rate_target_dps xyz); pure computation
