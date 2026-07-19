@@ -937,6 +937,10 @@ bool mavlinkHandleIncomingMissionClearAll(void)
         mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
         return true;
     }
+    if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_IDLE && !mavlinkMissionSenderOwnsTransfer()) {
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
+        return true;
+    }
 
     mavlinkResetMissionTransfer();
     mavlinkSendMissionAckTo(
@@ -1144,51 +1148,36 @@ bool mavlinkFillMissionItemFromWaypoint(const navWaypoint_t *wp, bool useIntMess
     return true;
 }
 
-static bool mavlinkSendMissionItemResponse(uint16_t seq, bool useIntMessages)
+// Downloads always answer with MISSION_ITEM_INT, even for a legacy (float)
+// MISSION_REQUEST: MAVLink deprecated MISSION_REQUEST (2020-06) with the
+// explicit guidance to treat it as MISSION_REQUEST_INT. A float MISSION_ITEM
+// encoder used to live here but was unreachable and has been removed.
+static bool mavlinkSendMissionItemResponse(uint16_t seq)
 {
     navWaypoint_t wp;
     getWaypoint(seq + 1, &wp);
 
     mavlinkMissionItemData_t item;
-    if (!mavlinkFillMissionItemFromWaypoint(&wp, useIntMessages, &item)) {
+    if (!mavlinkFillMissionItemFromWaypoint(&wp, true, &item)) {
         return false;
     }
 
-    if (useIntMessages) {
-        mavlink_msg_mission_item_int_pack(
-            mavSystemId,
-            mavComponentId,
-            &mavSendMsg,
-            mavlinkContext.recvMsg.sysid,
-            mavlinkContext.recvMsg.compid,
-            seq,
-            item.frame,
-            item.command,
-            FLIGHT_MODE(NAV_WP_MODE) && getActiveWpNumber() == seq + 1,
-            1,
-            item.param1, item.param2, item.param3, item.param4,
-            item.lat,
-            item.lon,
-            item.alt,
-            MAV_MISSION_TYPE_MISSION);
-    } else {
-        mavlink_msg_mission_item_pack(
-            mavSystemId,
-            mavComponentId,
-            &mavSendMsg,
-            mavlinkContext.recvMsg.sysid,
-            mavlinkContext.recvMsg.compid,
-            seq,
-            item.frame,
-            item.command,
-            FLIGHT_MODE(NAV_WP_MODE) && getActiveWpNumber() == seq + 1,
-            1,
-            item.param1, item.param2, item.param3, item.param4,
-            item.lat / 1e7f,
-            item.lon / 1e7f,
-            item.alt,
-            MAV_MISSION_TYPE_MISSION);
-    }
+    mavlink_msg_mission_item_int_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        mavlinkContext.recvMsg.sysid,
+        mavlinkContext.recvMsg.compid,
+        seq,
+        item.frame,
+        item.command,
+        FLIGHT_MODE(NAV_WP_MODE) && getActiveWpNumber() == seq + 1,
+        1,
+        item.param1, item.param2, item.param3, item.param4,
+        item.lat,
+        item.lon,
+        item.alt,
+        MAV_MISSION_TYPE_MISSION);
 
     mavlinkSendMessage();
     return true;
@@ -1211,11 +1200,10 @@ bool mavlinkHandleIncomingMissionRequest(void)
         return true;
     }
     if (msg.seq < mavMissionTransfer.count) {
-        if (mavlinkSendMissionItemResponse(msg.seq, true)) {
+        if (mavlinkSendMissionItemResponse(msg.seq)) {
             if (msg.seq >= mavMissionTransfer.nextSequence) {
                 mavMissionTransfer.nextSequence = msg.seq + 1;
             }
-            mavMissionTransfer.useIntMessages = true;
             mavMissionTransfer.lastActivityMs = millis();
         } else {
             mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
@@ -1278,11 +1266,10 @@ bool mavlinkHandleIncomingMissionRequestInt(void)
         return true;
     }
     if (msg.seq < mavMissionTransfer.count) {
-        if (mavlinkSendMissionItemResponse(msg.seq, true)) {
+        if (mavlinkSendMissionItemResponse(msg.seq)) {
             if (msg.seq >= mavMissionTransfer.nextSequence) {
                 mavMissionTransfer.nextSequence = msg.seq + 1;
             }
-            mavMissionTransfer.useIntMessages = true;
             mavMissionTransfer.lastActivityMs = millis();
         } else {
             mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
