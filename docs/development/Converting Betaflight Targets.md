@@ -5,6 +5,8 @@ Locate your Flight Controller target config.h in BetaFlight's repo, eg.: [config
 
 It is also advisable to record the output of the timer command from BetaFlight, as it will provide useful information on `timer` usage that can be used to adjust the generated target later.
 
+The script generates `CAMERA_CONTROL_PIN` and PINIO `permanentId` wiring in `config.c` automatically when present in the source `config.h`.
+
 ```
 # timer
 timer B08 AF3
@@ -38,37 +40,27 @@ Using the BETAFPVF405 target mentioned above, to create the target now we need t
 3. Create a target folder that will be used as the output folder for the `bf2inav.py` script, eg: `inav/src/main/targets/BETAFPVF405`
 4. Navigate to the script folder in `inav/src/utils/`
 5. `python3 ./bf2inav.py -i config.h -o ../main/target/BETAFPVF405/`
-6. Edit generated `target.c` and  chose the correct timer definitions to match Betaflight's timer definitions.
+6. Edit generated `target.c` and  chose the correct timer definitions to match Betaflight's timer definitions for motor, servo, and LED timers (not gyro).
 ```
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PB0, TIM_USE_OUTPUT_AUTO, 0, 0),
-    //DEF_TIM(TIM8, CH2N, PB0, TIM_USE_OUTPUT_AUTO, 0, 0),
-    //DEF_TIM(TIM1, CH2N, PB0, TIM_USE_OUTPUT_AUTO, 0, 0),
-
     DEF_TIM(TIM3, CH4, PB1, TIM_USE_OUTPUT_AUTO, 0, 0),
-    //DEF_TIM(TIM8, CH3N, PB1, TIM_USE_OUTPUT_AUTO, 0, 0),
-    //DEF_TIM(TIM1, CH3N, PB1, TIM_USE_OUTPUT_AUTO, 0, 0),
-
-    //DEF_TIM(TIM5, CH4, PA3, TIM_USE_OUTPUT_AUTO, 0, 0),
-    //DEF_TIM(TIM9, CH2, PA3, TIM_USE_OUTPUT_AUTO, 0, 0),
     DEF_TIM(TIM2, CH4, PA3, TIM_USE_OUTPUT_AUTO, 0, 0),
-
-    //DEF_TIM(TIM5, CH3, PA2, TIM_USE_OUTPUT_AUTO, 0, 0),
-    //DEF_TIM(TIM9, CH1, PA2, TIM_USE_OUTPUT_AUTO, 0, 0),
     DEF_TIM(TIM2, CH3, PA2, TIM_USE_OUTPUT_AUTO, 0, 0),
 
     DEF_TIM(TIM8, CH3, PC8, TIM_USE_OUTPUT_AUTO, 0, 0),
-    //DEF_TIM(TIM3, CH3, PC8, TIM_USE_OUTPUT_AUTO, 0, 0),
-
     DEF_TIM(TIM1, CH1, PA8, TIM_USE_OUTPUT_AUTO, 0, 0),
 
-    //DEF_TIM(TIM3, CH1, PB4, TIM_USE_BEEPER, 0, 0),
 
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_LED, 0, 0),
 
 };
 ```
-In this particular example, PA3, PA2 were changed to match Betaflight's mapping, and the timer PB4 was disabled, due to a timer conflict. Normal channels are prefered over N channels (CH1, over CH1N) or C channels in AT32 architectures.
-7. Now update yout build scripts by running `cmake` and build the target you just created. The target name can be checked in the generated `CMakeLists.txt`, but should match the Betaflight target name.
+Normal channels are prefered over N channels (CH1, over CH1N) or C channels in AT32 architectures.
+
+The typical value to be set in target.h for DEFAULT_FEATURES is:
+#define DEFAULT_FEATURES   (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
+
+7. Now update your build scripts by running `cmake` and build the target you just created. The target name can be checked in the generated `CMakeLists.txt`, but should match the Betaflight target name.
 
 For information on how to build INAV, check the documents in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.

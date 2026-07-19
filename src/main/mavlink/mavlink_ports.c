@@ -6,6 +6,31 @@
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
 
+static void resetMAVLinkPortRuntimeState(uint8_t portIndex)
+{
+    mavlinkPortRuntime_t *state = &mavPortStates[portIndex];
+
+    state->txbuffValid = false;
+    state->txbuffFree = 100;
+    state->lastMavlinkMessageUs = 0;
+    state->lastRxFrameUs = 0;
+    state->lastHighLatencyMessageUs = 0;
+    state->highLatencyEnabled = mavlinkGetPortConfig(portIndex)->high_latency;
+    state->txSeq = 0;
+    state->txDroppedFrames = 0;
+    state->lastStatusText[0] = '\0';
+    state->lastStatusTextSeverity = 0;
+    state->firstStatusTextMs = 0;
+    state->lastStatusTextMs = 0;
+    state->lastRemoteHeartbeatMs = 0;
+    memset(state->mavStreamNextDue, 0, sizeof(state->mavStreamNextDue));
+    memset(state->mavMessageOverrideIntervalsUs, 0, sizeof(state->mavMessageOverrideIntervalsUs));
+    memset(state->mavMessageNextDue, 0, sizeof(state->mavMessageNextDue));
+    memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
+    memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
+    memset(&state->mlrs, 0, sizeof(state->mlrs));
+}
+
 void freeMAVLinkTelemetryPortByIndex(uint8_t portIndex)
 {
     mavlinkPortRuntime_t *state = &mavPortStates[portIndex];
@@ -16,20 +41,7 @@ void freeMAVLinkTelemetryPortByIndex(uint8_t portIndex)
 
     state->port = NULL;
     state->telemetryEnabled = false;
-    state->txbuffValid = false;
-    state->txbuffFree = 100;
-    state->lastMavlinkMessageUs = 0;
-    state->lastRxFrameUs = 0;
-    state->lastHighLatencyMessageUs = 0;
-    state->highLatencyEnabled = mavlinkGetPortConfig(portIndex)->high_latency;
-    state->txSeq = 0;
-    state->txDroppedFrames = 0;
-    memset(state->mavStreamNextDue, 0, sizeof(state->mavStreamNextDue));
-    memset(state->mavMessageOverrideIntervalsUs, 0, sizeof(state->mavMessageOverrideIntervalsUs));
-    memset(state->mavMessageNextDue, 0, sizeof(state->mavMessageNextDue));
-    memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
-    memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
-    memset(&state->mlrs, 0, sizeof(state->mlrs));
+    resetMAVLinkPortRuntimeState(portIndex);
 }
 
 void configureMAVLinkTelemetryPort(uint8_t portIndex)
@@ -52,20 +64,7 @@ void configureMAVLinkTelemetryPort(uint8_t portIndex)
     }
 
     state->telemetryEnabled = true;
-    state->txbuffValid = false;
-    state->txbuffFree = 100;
-    state->lastMavlinkMessageUs = 0;
-    state->lastRxFrameUs = 0;
-    state->lastHighLatencyMessageUs = 0;
-    state->highLatencyEnabled = mavlinkGetPortConfig(portIndex)->high_latency;
-    state->txSeq = 0;
-    state->txDroppedFrames = 0;
-    memset(state->mavStreamNextDue, 0, sizeof(state->mavStreamNextDue));
-    memset(state->mavMessageOverrideIntervalsUs, 0, sizeof(state->mavMessageOverrideIntervalsUs));
-    memset(state->mavMessageNextDue, 0, sizeof(state->mavMessageNextDue));
-    memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
-    memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
-    memset(&state->mlrs, 0, sizeof(state->mlrs));
+    resetMAVLinkPortRuntimeState(portIndex);
 }
 
 #endif

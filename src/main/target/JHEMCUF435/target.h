@@ -137,7 +137,7 @@
 #define UART6_TX_PIN            PC6
 
 #define USE_UART7
-//#define USE_UART7_PIN_SWAP
+#define USE_UART7_PIN_SWAP
 #define UART7_RX_PIN            PC0
 #define UART7_TX_PIN            PC1
 
@@ -149,7 +149,7 @@
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
-#define SERIALRX_UART           SERIAL_PORT_USART5
+#define SERIALRX_UART           SERIAL_PORT_USART2
 
 // *************** ADC *****************************
 #define USE_ADC
