@@ -18,7 +18,7 @@ if (++armingStatusDivider >= 10) {
 
 `updateArmingStatus()` only checks slowly-changing state (calibration status, arming-blocking flags), so it doesn't need to run at the full PID-loop rate — a divider like this trades a small amount of arming-status latency for reduced per-tick work.
 
-**Lesson:** When profiling shows a high-frequency loop spending time on a function that only reads slowly-changing state, this divider pattern is the fix — audit for other functions in the scheduler's hot path that could use the same treatment.
+**Lesson:** When profiling shows a high-frequency loop spending time on a function that only reads slowly-changing state, this divider pattern may help — audit for other functions in the scheduler's hot path that could use the same treatment.
 
 ## Measuring Task Performance
 
