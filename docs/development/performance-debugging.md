@@ -36,13 +36,7 @@ Output shows:
 
 ## GPIO Constraints: Backup Domain Pins
 
-Some MCU backup-domain GPIO pins (used for things like the RTC/VBAT-backed circuitry) have lower current/speed limits than the chip's other GPIOs — check your MCU's datasheet electrical characteristics for backup-domain pin limits before configuring one for a high-drive-strength use.
-
-**Lesson:** Don't reach for `GPIO_DRIVE_STRENGTH_STRONGER` on a backup domain pin without checking the datasheet limit first.
-
-**Symptoms if exceeded:** LEDs or other outputs on that pin don't behave correctly, unexpected GPIO behavior.
-
-**Fix:** Use `GPIO_DRIVE_STRENGTH_MODERATE` or weaker on backup-domain pins.
+Some MCU backup-domain GPIO pins (used for things like the RTC/VBAT-backed circuitry) have lower current/speed limits than the chip's other GPIOs — check your MCU's datasheet electrical characteristics for backup-domain pin limits.
 
 ## Serial Printf Debugging
 
