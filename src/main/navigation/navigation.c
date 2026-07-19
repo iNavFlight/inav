@@ -2170,7 +2170,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND(navig
     const navigationFSMEvent_t landEvent = navOnEnteringState_NAV_STATE_RTH_LANDING(previousState);
 
     if (landEvent == NAV_FSM_EVENT_SUCCESS) {
-        // Landing controller returned success - invoke RTH finish states and finish the waypoint
+        // Landing controller returned success - invoke RTH finish states and finish the waypoint.
+        // Success maps straight to NAV_STATE_WAYPOINT_FINISHED, bypassing NAV_STATE_WAYPOINT_NEXT,
+        // so the LAND item must be marked reached here or it never reports completion.
+        navMarkWaypointReached(posControl.activeWaypointIndex);
         navOnEnteringState_NAV_STATE_RTH_FINISHING(previousState);
         navOnEnteringState_NAV_STATE_RTH_FINISHED(previousState);
     }
@@ -2571,6 +2574,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FLARE(naviga
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FINISHED(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
+
+    // A mission LAND item handed off to the autoland FSM finishes here, not
+    // through NAV_STATE_WAYPOINT_RTH_LAND's success branch - credit the item
+    // or the mission never reports completion. landState guards re-entry
+    // (this state self-loops on timeout).
+    if (posControl.fwLandState.landWp && posControl.fwLandState.landState != FW_AUTOLAND_STATE_IDLE) {
+        navMarkWaypointReached(posControl.activeWaypointIndex);
+    }
 
     posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
 
