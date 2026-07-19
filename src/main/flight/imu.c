@@ -430,45 +430,54 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
                 vectorCrossProduct(&vMagErr, &vMag, &vCorrectedMagNorth);
 
-                // Antipode escape: the cross-product torque scales with
-                // sin(error) and VANISHES as the heading error approaches
-                // 180 deg even though the error is maximal - after a flat
-                // spin the estimate can park there (measured: 184 deg off,
-                // stable for 60+ s, GPS-COG equally blind since it uses
-                // the same idiom). Past 90 deg (dot < 0) rescale the error
-                // to full pull so the estimate walks off the saddle; below
-                // 90 deg the natural sin scaling is untouched.
-                const float magNorthDot = vectorDotProduct(&vMag, &vCorrectedMagNorth);
-                if (magNorthDot < 0.0f && vectorNormSquared(&vMagErr) > 1.0e-6f) {
-                    vectorNormalize(&vMagErr, &vMagErr);
-                }
+                // Antipode handling, gated behind FW_AEROBATICS: the core
+                // Mahony mag correction above stays byte-identical for
+                // every other user. The failure mode is 3D-only - a
+                // fixed wing only parks the heading estimate on the
+                // antipode after a sustained sub-cruise flat spin, never
+                // in normal flight - so the extra pull belongs to the
+                // aerobatics feature, not the shared estimator.
+                if (feature(FEATURE_FW_AEROBATICS)) {
+                    // Antipode escape: the cross-product torque scales with
+                    // sin(error) and VANISHES as the heading error approaches
+                    // 180 deg even though the error is maximal - after a flat
+                    // spin the estimate can park there (measured: 184 deg off,
+                    // stable for 60+ s, GPS-COG equally blind since it uses
+                    // the same idiom). Past 90 deg (dot < 0) rescale the error
+                    // to full pull so the estimate walks off the saddle; below
+                    // 90 deg the natural sin scaling is untouched.
+                    const float magNorthDot = vectorDotProduct(&vMag, &vCorrectedMagNorth);
+                    if (magNorthDot < 0.0f && vectorNormSquared(&vMagErr) > 1.0e-6f) {
+                        vectorNormalize(&vMagErr, &vMagErr);
+                    }
 
-                // HARD RE-SEED (Daniel's go): if the heading error stays
-                // beyond 90 deg for a full second while the mag is clean,
-                // the gentle kp pull is losing (a circling aircraft turns
-                // faster than kp 0.2 corrects - measured 30..135 deg of
-                // wandering error through a whole loiter). Rotate the
-                // estimate about earth Z so mag north snaps into place -
-                // the same philosophy as the existing GPS yaw reset for
-                // multirotors, driven by the mag instead.
-                static float magAntipodeTimeS = 0.0f;
-                if (magNorthDot < 0.0f) {
-                    magAntipodeTimeS += dt;
-                    if (magAntipodeTimeS > 1.0f) {
-                        const float yawErrRad = atan2_approx(
-                            vMag.x * vCorrectedMagNorth.y - vMag.y * vCorrectedMagNorth.x,
-                            magNorthDot);
-                        fpAxisAngle_t seed = { .axis = { .v = { 0.0f, 0.0f, 1.0f } },
-                                               .angle = yawErrRad };
-                        fpQuaternion_t qSeed;
-                        axisAngleToQuaternion(&qSeed, &seed);
-                        quaternionMultiply(&orientation, &qSeed, &orientation);
-                        quaternionNormalize(&orientation, &orientation);
-                        vMagErr.x = vMagErr.y = vMagErr.z = 0.0f;
+                    // HARD RE-SEED (Daniel's go): if the heading error stays
+                    // beyond 90 deg for a full second while the mag is clean,
+                    // the gentle kp pull is losing (a circling aircraft turns
+                    // faster than kp 0.2 corrects - measured 30..135 deg of
+                    // wandering error through a whole loiter). Rotate the
+                    // estimate about earth Z so mag north snaps into place -
+                    // the same philosophy as the existing GPS yaw reset for
+                    // multirotors, driven by the mag instead.
+                    static float magAntipodeTimeS = 0.0f;
+                    if (magNorthDot < 0.0f) {
+                        magAntipodeTimeS += dt;
+                        if (magAntipodeTimeS > 1.0f) {
+                            const float yawErrRad = atan2_approx(
+                                vMag.x * vCorrectedMagNorth.y - vMag.y * vCorrectedMagNorth.x,
+                                magNorthDot);
+                            fpAxisAngle_t seed = { .axis = { .v = { 0.0f, 0.0f, 1.0f } },
+                                                   .angle = yawErrRad };
+                            fpQuaternion_t qSeed;
+                            axisAngleToQuaternion(&qSeed, &seed);
+                            quaternionMultiply(&orientation, &qSeed, &orientation);
+                            quaternionNormalize(&orientation, &orientation);
+                            vMagErr.x = vMagErr.y = vMagErr.z = 0.0f;
+                            magAntipodeTimeS = 0.0f;
+                        }
+                    } else {
                         magAntipodeTimeS = 0.0f;
                     }
-                } else {
-                    magAntipodeTimeS = 0.0f;
                 }
 
                 // Rotate error back into body frame
