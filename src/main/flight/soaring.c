@@ -43,6 +43,7 @@
 #include "fc/settings.h"
 
 #include "flight/imu.h"
+#include "flight/mixer.h"
 #include "flight/soaring.h"
 #include "flight/wind_estimator.h"
 
@@ -183,6 +184,7 @@ void soaringUpdate(float dT)
     debug[1] = lrintf(drift);                 // |centre - anchor| [cm]
     debug[2] = lrintf(driftX);                // centre shift north [cm]
     debug[3] = lrintf(driftY);                // centre shift east [cm]
+    debug[4] = getThrottleIdleValue();        // applied idle throttle [us]
 #endif
 
     // leave the thermal: lift collapsed, or out of the altitude band
@@ -211,6 +213,19 @@ void soaringThermalCentre(fpVector3_t *centre)
 float soaringNetVarioCms(void)
 {
     return netVarioCms;
+}
+
+int16_t soaringThrottleApply(int16_t throttle)
+{
+    // While circling a thermal the glider soars on the lift with the motor
+    // idled: a throttle-to-idle override, NOT a motor stop - the control
+    // surfaces keep flying the loiter. Normal throttle returns the instant
+    // the thermal is left or the aircraft sinks below soar_alt_min, both of
+    // which drop 'thermalling'.
+    if (thermalling) {
+        return getThrottleIdleValue();
+    }
+    return throttle;
 }
 
 #endif // USE_SOARING

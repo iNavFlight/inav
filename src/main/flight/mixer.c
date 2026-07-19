@@ -51,6 +51,7 @@
 #include "flight/crash_detection.h"
 #include "flight/hover_throttle.h"
 #include "flight/orientation_hold.h"
+#include "flight/soaring.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -593,6 +594,14 @@ void FAST_CODE mixTable(void)
 #endif
     } else {
         mixerThrottleCommand = rcCommand[THROTTLE];
+#ifdef USE_SOARING
+        // while circling a thermal the motor is idled so the glider soars on
+        // the lift (a throttle-to-idle override, not a motor stop). Applied
+        // before the recovery paths below so an altitude-floor / rotor-guard
+        // climb can still override the idle; normal throttle also returns on
+        // thermal exit or below soar_alt_min (see soaring.c)
+        mixerThrottleCommand = soaringThrottleApply(mixerThrottleCommand);
+#endif
 #ifdef USE_FW_AEROBATICS
         // hover throttle owns the altitude axis while PROP HANG is held
         mixerThrottleCommand = hoverThrottleApply(mixerThrottleCommand);

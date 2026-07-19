@@ -68,3 +68,8 @@ void soaringThermalCentre(fpVector3_t *centre);
 
 // The net (total-energy compensated) variometer [cm/s], for telemetry/OSD
 float soaringNetVarioCms(void);
+
+// Mixer throttle hook (FW only): idles the motor while circling a thermal so
+// the glider soars on the lift - a throttle-to-idle override, not a motor
+// stop; returns the throttle unchanged otherwise.
+int16_t soaringThrottleApply(int16_t throttle);
