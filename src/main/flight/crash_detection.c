@@ -199,10 +199,18 @@ void crashDetectionUpdate(float dT)
     }
     impactWindowS -= dT;
 
-    const float rateMagDps = fast_fsqrtf(sq((float)gyroRateDps(FD_ROLL))
-                                       + sq((float)gyroRateDps(FD_PITCH))
-                                       + sq((float)gyroRateDps(FD_YAW)));
-    bool still = rateMagDps < CRASH_STILL_RATE_DPS
+    // Rotation compared as the squared magnitude, to skip the per-loop sqrt
+    // (these boards run flash- and cycle-tight). It is the vector magnitude,
+    // deliberately NOT the mean of the axes like the landing detector's
+    // averageAbsGyroRates(): the mean blinds to a single-axis rate, and a wing
+    // dropping the wreck onto its back is exactly a single-axis rate. This is
+    // also why the crash stillness is its own test and not the landing
+    // detector's - that one fuses the vertical/horizontal velocity the impact
+    // corrupts for ~4.5 s (above), which our baro rate + GPS ground speed do not.
+    const float sqRateDps = sq((float)gyroRateDps(FD_ROLL))
+                          + sq((float)gyroRateDps(FD_PITCH))
+                          + sq((float)gyroRateDps(FD_YAW));
+    bool still = sqRateDps < sq(CRASH_STILL_RATE_DPS)
               && accMagG > CRASH_STILL_ACC_G_LO
               && accMagG < CRASH_STILL_ACC_G_HI
               && fabsf(vertRateCms) < CRASH_STILL_VZ_CMS;
