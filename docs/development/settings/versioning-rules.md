@@ -78,10 +78,7 @@ typedef struct myConfig_s {
 PG_REGISTER_WITH_RESET_TEMPLATE(myConfig_t, myConfig, PG_MY_CONFIG, 4);  // Increment!
 ```
 
-**Why**: Size changed. If you don't increment:
-- Old EEPROM: 6 bytes
-- New firmware: 10 bytes
-- pgLoad() copies 6 bytes, leaving field3 uninitialized (undefined behavior)
+**Why increment anyway, if `pgLoad()` resets to defaults first**: `pgLoad()` calls `pgReset()` before copying, so `field3` does end up at its `PG_RESET_TEMPLATE` default, not garbage — appending a field at the end is technically safe without a bump (see the "Technical Note on Appending" in [README.md](README.md)). The recommendation to increment anyway is about not silently depending on that fallback: it keeps the on-disk format change explicit and self-documenting, and it avoids surprises if a later change ever touches more than just the tail of the struct. Removing, reordering, or resizing a field is a different story — see below, where skipping the increment is an actual correctness bug, not just a style choice.
 
 ### 2. Removing a Field
 

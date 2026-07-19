@@ -67,7 +67,7 @@ For information on how to build INAV, check the documents in the [docs/developme
 
 ## Naming Convention
 
-Betaflight is not upstream for INAV — don't refer to it by name in `target.h`/`target.c`/`config.c` comments, commit messages, or PR descriptions, even for a target ported from its config. Say "the manufacturer's public unified-target config" instead.
+Betaflight is not upstream for INAV — don't refer to it by name in `target.h`/`target.c`/`config.c` comments, commit messages, or PR descriptions, even for a target ported from its config. Say "the manufacturer's public unified-target config" instead. (This applies to those code/commit artifacts specifically — not to this doc's own title and prose, which is naming the source project for a reader's benefit.)
 
 ## Known Generator Gaps
 
@@ -102,7 +102,7 @@ If no driver exists for a listed chip, do not write a new driver as a side effec
 
 ### `USE_UARTn_PIN_SWAP` is a per-board hardware fact, not a convention
 
-`USE_UART7_PIN_SWAP` (and the equivalent for other UARTs) tells the STM32 UART peripheral to swap which of two AF-identical pins it treats as TX vs RX (`UART_ADVFEATURE_SWAP` in `serial_uart_stm32h7xx.c`) — this exists because some UART pin pairs share one AF value for both roles, so the silicon needs a separate register to say which one is actually TX. In practice it exists to **match the board's silkscreen labeling** — the schematic brings both pins out to pads/pins, and the manufacturer picks which physical pin gets printed "TX" vs "RX" on the board; the swap flag makes the firmware's TX/RX assignment match what's printed, not the other way around.
+`USE_UART7_PIN_SWAP` (and the equivalent for other UARTs) tells the STM32 UART peripheral to swap which of two AF-identical pins it treats as TX vs RX (`UART_ADVFEATURE_SWAP_INIT`/`UART_ADVFEATURE_SWAP_ENABLE` in `serial_uart_stm32h7xx.c`) — this exists because some UART pin pairs share one AF value for both roles, so the silicon needs a separate register to say which one is actually TX. In practice it exists to **match the board's silkscreen labeling** — the schematic brings both pins out to pads/pins, and the manufacturer picks which physical pin gets printed "TX" vs "RX" on the board; the swap flag makes the firmware's TX/RX assignment match what's printed, not the other way around.
 
 **Whether a given board needs it depends on that board's own PCB routing, not on what other targets do.** Several targets share the exact same `UART7_TX_PIN`/`UART7_RX_PIN` assignment, but only some of them set `USE_UART7_PIN_SWAP` — this is genuinely correct per-board, not a copy-paste inconsistency. Don't infer swap correctness from cross-target consistency; instead trust (in order): (a) the source manufacturer config for *this specific* board, if it says anything about a swap, (b) a sibling target from the **same manufacturer/board family** if one exists.
 

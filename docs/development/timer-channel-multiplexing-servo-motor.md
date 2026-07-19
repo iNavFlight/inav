@@ -50,6 +50,19 @@ Both modes can coexist on different channels of the same timer.
 
 ## Implementation Sketch
 
+**This pattern is a design proposal, not an implemented feature** — there is no
+working reference implementation in the tree today. The sketch below shows the
+timing/logic concept only; it is not something to copy directly. In particular,
+`TIM3_IRQHandler` is already defined via the generic
+`_TIM_IRQ_HANDLER(TIM3_IRQHandler, 3)` macro (`src/main/drivers/timer_stm32f4xx.c`
+and the F7/H7 equivalents), which dispatches through INAV's existing per-channel
+callback registration (`timer.c`) — the same mechanism the motor PWM/DSHOT output
+on this exact TIM3/CH3 already depends on. A bare second definition of
+`TIM3_IRQHandler` as shown below would not link, and bypassing the existing
+dispatcher would break every other TIM3 consumer's callback dispatch. A real
+implementation needs to register an Output Compare callback through that existing
+mechanism, not a raw `IRQHandler` function.
+
 ```c
 // TIM3 configured: ARR = 2499 (400 Hz), CH3 in PWM mode (motor)
 // CH3 CCR set normally by motor output code — no changes needed there.

@@ -135,12 +135,16 @@ When a user with **old EEPROM data** flashes **new firmware**:
 6. **Result: Field values corrupted!**
    ```
    includeFlags should be: 0x000003FF
-   includeFlags actually:  0x000001FF  (read bytes 5-8: [1][0xFF][0x03][0x00])
-                                        ^-- This is the old invertedCardDetection byte!
+   includeFlags actually:  0x0003FF01  (read bytes 5-8: [0x01][0xFF][0x03][0x00])
+                                         ^-- byte 5 is the old invertedCardDetection value (1),
+                                             now read as the low byte of includeFlags!
 
    arm_control should be:  0
    arm_control actually:   0x00  (read byte 9: [0x00])
-                                  ^-- This is the low byte of old includeFlags!
+                                  ^-- This is the high byte of old includeFlags — happens to
+                                      also be 0, which is why this particular field looks
+                                      unaffected. A different includeFlags value could just
+                                      as easily have left arm_control non-zero.
    ```
 
 ### User Impact
@@ -200,9 +204,9 @@ The user sees:
 
 ## Developer Review Comment
 
-From Pawel (DzikuVx) on PR #11236:
+DzikuVx's review comment on PR #11236:
 
-> "Removing a field from `blackboxConfig_t` requires incrementing the PG version number from 4 to 5, or settings will be broken after flashing."
+> "In this file, `PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 4);` needs to use bigger PG version or settings will be broken after flashing"
 
 This comment highlights why code review is critical for PG changes. The version increment requirement isn't obvious without understanding the PG system internals. The PR was ultimately closed without merging, but the review comment's point stands on its own as the general rule below.
 
@@ -291,7 +295,7 @@ This kind of refactoring replaces a **runtime setting** with a **compile-time de
 
 **Target-specific configuration** (e.g., in `target.h`):
 ```c
-#ifdef MATEKF405
+#ifdef MY_TARGET_NAME
   // This target has inverted SD card detection
   #define SDCARD_DETECT_INVERTED
 #endif

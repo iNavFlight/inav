@@ -40,10 +40,11 @@ bad setting: it's really `hover_throttle` wearing a disguise, named after
 one call site, so it can't be reused elsewhere and invites a near-duplicate
 setting every time another feature wants the same fact.
 
-## Worked example: compass auto-orientation-detection
+## Worked example: compass auto-orientation-detection (proposed feature)
 
-Three candidate settings came up while designing this feature and all three
-were dropped:
+This walks through the settings design for a proposed (not yet merged)
+compass auto-orientation-detection feature. Three candidate settings came up
+during design and all three were dropped:
 
 1. `align_mag_auto` (enable/disable flag) — dropped. The right gating
    signal already existed: `!STATE(COMPASS_CALIBRATED) &&
@@ -64,7 +65,7 @@ were dropped:
    ordering to prefer generally: look for a computable/derivable signal
    before reaching for a new setting.
 
-Net result: the feature shipped with zero new settings.yaml entries.
+Net result: as designed, the feature needs zero new settings.yaml entries.
 
 ## See also
 
