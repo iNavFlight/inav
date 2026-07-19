@@ -95,22 +95,6 @@ Messages to look for and what they mean:
 | `Bus device found` + `0x3C:NAK 0x3D:ACK` | Module has SA0 high — INAV uses 0x3C, module needs address fix in `common_hardware.c` |
 | `Failed to send display OFF command` | I2C ACKs address but rejects commands — possible wrong I2C bus (I2C1 vs I2C2) |
 
-### Checking DASHBOARD feature is on
-
-After any full-erase flash, all settings are reset. Always verify:
-
-```
-feature
-```
-
-If `DASHBOARD` is absent:
-
-```
-feature DASHBOARD
-save
-```
-
-Then reboot. The OLED only initializes when this feature is enabled (`dashboardInit()` is gated by `feature(FEATURE_DASHBOARD)` in `fc_init.c`).
 
 ---
 
