@@ -22,7 +22,7 @@ static void resetMAVLinkPortRuntimeState(uint8_t portIndex)
     state->lastStatusTextSeverity = 0;
     state->firstStatusTextMs = 0;
     state->lastStatusTextMs = 0;
-    state->lastRemoteHeartbeatMs = 0;
+    state->lastArmingSnapshotMs = 0;
     memset(state->mavStreamNextDue, 0, sizeof(state->mavStreamNextDue));
     memset(state->mavMessageOverrideIntervalsUs, 0, sizeof(state->mavMessageOverrideIntervalsUs));
     memset(state->mavMessageNextDue, 0, sizeof(state->mavMessageNextDue));
