@@ -50,13 +50,15 @@ It is also advised to read about clean code, here are some useful links:
 
 **Multi-platform support:** INAV supports F4, F7, H7, and AT32 microcontrollers. When working with target-specific code, check `target.h` for pin mappings and hardware configuration, use hardware abstraction layers where possible, and test on SITL before flashing to hardware. F411 targets are excluded from official release builds (flagged `SKIP_RELEASES` in every F411 target's `CMakeLists.txt`) — don't assume they get the same test coverage as F4/F7/H7/AT32.
 
-**Changing settings:** Settings are defined in `src/main/fc/settings.yaml`, not written directly as C code — the build regenerates the C code from the YAML. After editing `settings.yaml`, run:
+**Changing settings:** Exposing a new setting to the CLI/MSP is done by adding an entry to `src/main/fc/settings.yaml` — but that's a separate step from defining the setting itself, which is still real C code: a struct field, registered with the parameter group (PG) system's `PG_DECLARE`/`PG_REGISTER_*` macros and a `PG_RESET_TEMPLATE` for its default. Settings are persisted to EEPROM automatically once registered this way (`src/main/config/parameter_group.h`) — no manual save/load code is needed per setting, but the struct/registration code itself isn't generated from the YAML. See [`settings/`](settings/) for the full registration guide and when/how to add a setting.
+
+After editing `settings.yaml`, run:
 
 ```bash
 python3 src/utils/update_cli_docs.py
 ```
 
-to regenerate `docs/Settings.md` to match. CI checks that this file is up to date and will fail the build if it's stale. Settings are persisted to EEPROM automatically via the parameter group (PG) system (`src/main/config/parameter_group.h`) — no manual save/load code is needed per setting.
+to regenerate `docs/Settings.md` to match. CI checks that this file is up to date and will fail the build if it's stale.
 
 ## Unit testing
 
