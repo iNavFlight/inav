@@ -2,6 +2,7 @@
 
 #include "fc/fc_mavlink.h"
 
+#include "mavlink/mavlink_mission.h"
 #include "mavlink/mavlink_ports.h"
 #include "mavlink/mavlink_routing.h"
 #include "mavlink/mavlink_runtime.h"
@@ -279,6 +280,8 @@ static bool isMAVLinkTelemetryHalfDuplex(uint8_t portIndex)
 
 void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
 {
+    mavlinkSendPendingMissionItemReached();
+    mavlinkMissionUpdate(currentTimeUs / 1000);
     mavlinkSendModeStatusText();
     mavlinkSendArmingStatusText();
 

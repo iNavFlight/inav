@@ -4,6 +4,7 @@
 
 #include "mavlink/mavlink_command.h"
 #include "mavlink/mavlink_guided.h"
+#include "mavlink/mavlink_mission.h"
 #include "mavlink/mavlink_runtime.h"
 #include "mavlink/mavlink_streams.h"
 
@@ -249,6 +250,22 @@ mavlinkFcDispatchResult_e mavlinkFcDispatchIncomingMessage(uint8_t ingressPortIn
         return mavlinkHandleIncomingTimesync() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
         return handleIncoming_PARAM_REQUEST_LIST() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
+        return mavlinkHandleIncomingMissionClearAll() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_MISSION_COUNT:
+        return mavlinkHandleIncomingMissionCount() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_MISSION_ITEM:
+        return mavlinkHandleIncomingMissionItem() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_MISSION_ITEM_INT:
+        return mavlinkHandleIncomingMissionItemInt() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
+        return mavlinkHandleIncomingMissionRequestList() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_MISSION_REQUEST:
+        return mavlinkHandleIncomingMissionRequest() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_MISSION_REQUEST_INT:
+        return mavlinkHandleIncomingMissionRequestInt() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_MISSION_ACK:
+        return mavlinkHandleIncomingMissionAck() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_COMMAND_LONG:
         return mavlinkHandleIncomingCommandLong() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_COMMAND_INT:

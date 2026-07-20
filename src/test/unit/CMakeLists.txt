@@ -77,7 +77,7 @@ set_property(SOURCE terrain_unittest.cc PROPERTY depends "terrain/terrain_utils.
 set_property(SOURCE terrain_unittest.cc PROPERTY definitions TERRAIN_UNIT_TEST USE_TERRAIN USE_SDCARD USE_SDCARD_SDIO TERRAIN_GRID_BLOCK_CACHE_SIZE=8)
 
 set_property(SOURCE mavlink_unittest.cc PROPERTY depends
-    "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"
+    "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_mission.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"
     "mavlink/mavlink_routing.c" "mavlink/mavlink_runtime.c" "mavlink/mavlink_streams.c" "telemetry/mavlink.c"
     "common/crc.c" "common/maths.c" "common/streambuf.c" "common/string_light.c" "msp/msp_serial.c")
 set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK)

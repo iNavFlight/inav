@@ -802,6 +802,7 @@ bool isProbablyStillFlying(void);
 void resetLandingDetectorActiveState(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
+bool navigationConsumeWaypointReached(uint16_t *seq);
 
 int32_t navigationGetHeadingError(void);
 float navigationGetCrossTrackError(void);
