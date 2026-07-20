@@ -158,14 +158,19 @@ that prevents the crash; the floor just makes the aircraft take one.
   pitch compensation, the motor keeps running through a panic-chopped
   stick, and held roll/pitch sticks are ignored (they used to drag the
   recovery target down). Yaw stays live for steering.
-- The catch LATCHES the aerobatic mode out: the interrupted mode stays
-  locked until the pilot moves the flight-mode switch away and back - a
-  forgotten or held-on switch cannot drop the aircraft straight back
-  into the ground.
-- The climb ends at floor + `alt_floor_margin`; back above it and
-  climbing, control returns. To take over earlier: center the sticks
-  once, then any fresh roll/pitch input hands control back immediately.
-  Switching the FLOOR box off always ends it.
+- The catch LATCHES OUT whatever aerobatic mode it interrupted - any
+  hold, any figure, a flat spin, all the same. The pilot flies again the
+  instant they touch the sticks, but the interrupted figure does NOT
+  restart on its own: it stays suppressed until the pilot switches its
+  mode OFF and back ON. This is the fix for the fly-up / fall-back loop -
+  where the figure re-engaged the moment the recovery released and dived
+  straight back into the floor, over and over. A forgotten or held-on
+  switch cannot drop the aircraft back into the ground.
+- The climb ends at floor + `alt_floor_margin` and the aircraft loiters
+  there, waiting. Touching the sticks hands manual control back (in your
+  base ANGLE/ACRO mode); the latched figure still will not restart until
+  you cycle its switch. To land, switch the FLOOR box OFF - only then
+  does the aircraft descend through the line instead of being caught.
 
 ### Figures (F ROLL, F LOOP, F 4PT, F SEQ)
 
