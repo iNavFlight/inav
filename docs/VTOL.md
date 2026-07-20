@@ -454,16 +454,19 @@ Examples:
 - `mixer_switch_trans_timer = 50`: transition completes by timer after `5.0s` if pitot is not used.
 - `vtol_transition_to_fw_min_airspeed_cm_s = 1300`: MC -> FW waits for `13 m/s` airspeed when a usable transition airspeed source is available.
 - `vtol_transition_to_mc_max_airspeed_cm_s = 850`: FW -> MC waits until airspeed falls to `8.5 m/s` or lower when a usable transition airspeed source is available.
-- `mixer_vtol_transition_airspeed_timeout_ms = 6500`: if the airspeed source remains usable but the requested airspeed is not reached within `6.5s`, that airspeed-controlled transition attempt is aborted.
+- `mixer_vtol_transition_airspeed_timeout_ms = 6500`: if the airspeed source remains usable but the requested airspeed is not reached and confirmed within `6.5s`, that airspeed-controlled transition attempt is aborted.
 
 Important pitot behavior:
 
 - If a usable transition airspeed source is available and a non-zero airspeed threshold is configured, INAV prefers airspeed for transition completion.
 - A usable transition airspeed source is either a valid real pitot sensor or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate.
-- The configured airspeed must be reached before `mixer_vtol_transition_airspeed_timeout_ms` expires. For example, with `vtol_transition_to_fw_min_airspeed_cm_s = 1300` and `mixer_vtol_transition_airspeed_timeout_ms = 6500`, MC -> FW must reach `13 m/s` within `6.5s`.
+- The configured airspeed must be reached and remain on the safe side of the threshold for the internal `300ms` confirmation before `mixer_vtol_transition_airspeed_timeout_ms` expires. For example, with `vtol_transition_to_fw_min_airspeed_cm_s = 1300` and `mixer_vtol_transition_airspeed_timeout_ms = 6500`, MC -> FW must reach and confirm `13 m/s` within the total `6.5s` timeout.
 - If that timeout expires during a manual transition, the transition attempt is aborted and INAV does not force the target profile switch from that timeout.
 - If that timeout expires during a mission transition, mission retry/failure handling is used: retry can run if `nav_vtol_transition_retry_on_airspeed_timeout = ON`; otherwise the configured mission fail action is used.
-- If the airspeed source becomes unavailable during the transition, INAV falls back to `mixer_switch_trans_timer`.
+- If the airspeed source becomes unavailable during the transition, INAV ignores a dropout shorter than the internal `300ms` confirmation window. If the source remains unavailable, INAV falls back to `mixer_switch_trans_timer`.
+- With dynamic scaling enabled, a single high or low airspeed sample does not immediately change lift or stabilisation authority. INAV checks the direction of the airspeed-linked progress over an internal `300ms` confirmation window. Lift and MC/FW authority move forward only after a sustained increase in transition progress, and can move back together only after a sustained decrease. This allows real loss of airspeed to restore lift and MC authority during MC -> FW without reacting to short sensor steps.
+- The same `300ms` airspeed window validates the final speed condition before the profile switch, including when dynamic scaling is OFF. There is no second independent airspeed confirmation timer.
+- The airspeed confirmation does not delay the time-based forward-motor or tilt-servo movement. Those outputs still use `mixer_vtol_transition_scale_ramp_time_ms`, which avoids a tiltrotor waiting for airspeed before it starts tilting.
 - If `pitot_hardware = VIRTUAL` is selected but virtual airspeed is not valid, for example no usable GPS/estimate, INAV falls back to `mixer_switch_trans_timer`.
 - Raw ground speed is not used as an automatic pitot replacement for transition completion. If you want an estimated airspeed source, select `pitot_hardware = VIRTUAL`; then the Virtual Pitot logic owns the estimate.
 - `mixer_vtol_transition_airspeed_timeout_ms` does not complete a transition. It only stops an airspeed-controlled attempt that is taking too long.
@@ -523,7 +526,7 @@ save
 What dynamic scaling changes:
 
 - MC -> FW can smoothly bring in the forward motor before the profile switch.
-- MC -> FW can reduce lift motor power and MC motor stabilisation while fixed-wing control is increased.
+- MC -> FW can reduce lift motor power and MC motor stabilisation while fixed-wing control is increased. These three airspeed-linked changes use the same confirmed progress, so they stay synchronised and do not react independently to an airspeed spike.
 - FW -> MC can remove the forward motor while lift motors and MC motor stabilisation come back.
 - FW -> MC can reduce fixed-wing control as MC control comes back.
 - Transition-linked servos continue from their current output if the profile switch would otherwise cause a step.
@@ -840,6 +843,13 @@ Example mission:
 
 For MC -> FW mission transition, INAV uses a straight acceleration segment. It does not try to loiter to build airspeed. Normal waypoint advancement is paused until the transition is finished.
 
+For either direction, a successful transition requested by an ordinary `WAYPOINT` finishes that waypoint and proceeds directly to the next one. This avoids an unwanted circle after a transition-induced climb: for example, if an MC -> FW transition starts at `120m` and forward thrust briefly carries the aircraft to `127m`, INAV does not make a fixed-wing aircraft loiter back down to `120m` before continuing.
+
+- This shortcut is used only after the transition has completed normally, including its output handover period.
+- The aircraft must still not be below the waypoint altitude minus the `nav_wp_enforce_altitude` tolerance. A transition that finishes too low continues using the normal altitude hold behavior.
+- It applies to ordinary `WAYPOINT` actions in both MC -> FW and FW -> MC directions.
+- `HOLD_TIME` and `LAND` actions always keep their requested behavior. Abort, an ultimately failed retry, and forced-profile fallback also do not mark the waypoint complete.
+
 ### Altitude settings that matter in missions
 
 `nav_vtol_mission_transition_min_altitude_cm`
@@ -1147,8 +1157,22 @@ Useful debug modes:
 - `debug[3]`: main transition progress x1000 (`0..1000`).
 - `debug[4]`: pusher/forward motor scale x1000 (`0..1000`).
 - `debug[5]`: lift motor scale x1000 (`0..1000`).
-- `debug[6]`: packed MC/FW stabilisation scales. Low 16 bits are MC stabilisation scale x1000, high 16 bits are FW control scale x1000.
-- `debug[7]`: packed progress values. Bits `0..9` are airspeed-linked scaling progress, bits `10..19` are motor ramp progress, and bits `20..29` are after-switch smoothing progress.
+- `debug[6]`: while transition is active, packed MC/FW stabilisation scales. Low 16 bits are MC stabilisation scale x1000, high 16 bits are FW control scale x1000. When the transition controller is idle, this becomes servo diagnostic slot 0.
+- `debug[7]`: while transition is active, packed progress values. Bits `0..9` are airspeed-linked scaling progress, bits `10..19` are motor ramp progress, and bits `20..29` are after-switch smoothing progress. When the transition controller is idle, this becomes servo diagnostic slot 1.
+
+When dynamic scaling and airspeed are used, `debug[3]` is the immediate raw progress and the low 10 bits of `debug[7]` are the confirmed progress actually used for airspeed-linked scaling. A short pitot step can therefore appear in `debug[3]` without moving lift or authority in `debug[5]`/`debug[6]`. A real sustained airspeed decrease can move the confirmed progress back after the confirmation window.
+
+Idle servo diagnostic slots are intended for bench/debug logs after a transition has finished. They help determine whether a servo output is already wrong in the servo mixer, is changed by transition preview/smoothing, or is changed later by the output/filter path.
+
+Decode `debug[6]` or `debug[7]` in idle state as:
+
+- servo index: `debug & 0x0f`.
+- servo output before transition preview/smoothing: `((debug >> 4) & 0x7ff) + 900` microseconds.
+- servo output after transition preview/smoothing: `((debug >> 15) & 0x7ff) + 900` microseconds.
+- flags: `(debug >> 26) & 0x3f`.
+- flag bit `0`: transition preview/smoothing changed this servo output.
+- flag bit `1`: after-switch servo smoothing still owns this servo.
+- flag bit `2`: target-profile transition preview captured this servo.
 
 `VTOL_MC_PROTECT` debug channels:
 

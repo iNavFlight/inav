@@ -100,6 +100,39 @@ static inline bool mixerTransitionCompletedAutoSessionOwnsProfileSwitch(
            currentProfileIndex != requestedProfileIndex;
 }
 
+static inline bool mixerTransitionCompletedAutoSessionEndpointConfirmed(
+    mixerTransitionManualSessionMode_e sessionMode,
+    bool hotSwitchDone,
+    bool transitionModeActive,
+    int currentProfileIndex,
+    int requestedProfileIndex)
+{
+    return sessionMode == MIXER_TRANSITION_MANUAL_SESSION_AUTO &&
+           hotSwitchDone &&
+           !transitionModeActive &&
+           currentProfileIndex == requestedProfileIndex;
+}
+
+static inline bool mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+    mixerTransitionManualSessionMode_e sessionMode,
+    bool autoTransitionActive,
+    bool transitionModeActive,
+    bool hotSwitchDone,
+    bool transitionAborted,
+    bool directSwitchAbort,
+    int currentProfileIndex,
+    int requestedProfileIndex)
+{
+    // A direct profile selection has no transition-owned servo phase. Any
+    // leftover handoff state would keep the target profile's surfaces slow.
+    return sessionMode == MIXER_TRANSITION_MANUAL_SESSION_NONE &&
+           !autoTransitionActive &&
+           !transitionModeActive &&
+           !hotSwitchDone &&
+           (!transitionAborted || directSwitchAbort) &&
+           currentProfileIndex == requestedProfileIndex;
+}
+
 static inline mixerProfileATDirection_e mixerTransitionManualSwitchReminderDirection(
     mixerTransitionManualSessionMode_e sessionMode,
     bool autoTransitionActive,
@@ -291,23 +324,6 @@ static inline bool mixerTransitionFwToMcProtectionTriggered(
            airspeedCmS <= thresholdCmS;
 }
 
-static inline bool mixerTransitionAirspeedHotSwitchConfirmed(
-    const bool usedAirspeed,
-    const bool readyForHotSwitch,
-    const bool confirmationTimerRunning,
-    const uint32_t confirmationElapsedMs,
-    const uint16_t confirmationTimeMs)
-{
-    if (!readyForHotSwitch) {
-        return false;
-    }
-
-    if (!usedAirspeed || confirmationTimeMs == 0) {
-        return true;
-    }
-
-    return confirmationTimerRunning && confirmationElapsedMs >= confirmationTimeMs;
-}
 #endif
 
 static inline bool mixerTransitionShouldAbortForFailsafe(
@@ -352,28 +368,175 @@ static inline uint16_t mixerTransitionComputeServoHandoffDurationMs(
     return scaleRampTimeMs;
 }
 
+static inline bool mixerTransitionServoHandoffExpired(uint32_t elapsedMs, uint16_t durationMs)
+{
+    return durationMs == 0 || elapsedMs >= durationMs;
+}
+
+static inline float mixerTransitionServoHandoffProgress(uint32_t elapsedMs, uint16_t durationMs)
+{
+    if (durationMs == 0) {
+        return 1.0f;
+    }
+
+    return mixerTransitionClamp((float)elapsedMs / (float)durationMs, 0.0f, 1.0f);
+}
+
 static inline int16_t mixerTransitionRoundFloatToInt16(float value)
 {
     return (int16_t)(value >= 0.0f ? value + 0.5f : value - 0.5f);
+}
+
+static inline void mixerTransitionResetAirspeedProgressFilter(mixerTransitionAirspeedProgressFilter_t *filter)
+{
+    if (!filter) {
+        return;
+    }
+
+    filter->active = false;
+    filter->windowMature = false;
+    filter->bucketCount = 0;
+    filter->nextBucket = 0;
+    filter->windowStartTime = 0;
+    filter->recentMinProgress = 0.0f;
+    filter->recentMaxProgress = 0.0f;
+}
+
+static inline bool mixerTransitionAirspeedProgressEndpointConfirmed(
+    const mixerTransitionAirspeedProgressFilter_t *filter)
+{
+    return filter &&
+           filter->active &&
+           filter->windowMature &&
+           filter->recentMinProgress >= 1.0f;
+}
+
+static inline bool mixerTransitionAirspeedProgressHasRecentSample(
+    const mixerTransitionAirspeedProgressFilter_t *filter,
+    timeMs_t currentTimeMs,
+    uint16_t maximumAgeMs)
+{
+    if (!filter || !filter->active || filter->bucketCount == 0 || maximumAgeMs == 0) {
+        return false;
+    }
+
+    const uint8_t currentBucket = filter->nextBucket == 0 ?
+        MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT - 1 :
+        filter->nextBucket - 1;
+
+    return (currentTimeMs - filter->bucketEndTime[currentBucket]) < maximumAgeMs;
 }
 
 static inline float mixerTransitionResolveHandoffProgress(
     bool dynamicMixerEnabled,
     bool usedAirspeed,
     float previousHandoffProgress,
-    float rawProgress)
+    float rawProgress,
+    timeMs_t currentTimeMs,
+    uint16_t confirmationTimeMs,
+    uint16_t bucketTimeMs,
+    mixerTransitionAirspeedProgressFilter_t *filter)
 {
     const float clampedProgress = mixerTransitionClamp(rawProgress, 0.0f, 1.0f);
+
+    if (!usedAirspeed || !filter || confirmationTimeMs == 0 || bucketTimeMs == 0) {
+        mixerTransitionResetAirspeedProgressFilter(filter);
+        if (!dynamicMixerEnabled) {
+            return 1.0f;
+        }
+        return previousHandoffProgress > clampedProgress ? previousHandoffProgress : clampedProgress;
+    }
+
+    if (!filter->active) {
+        filter->active = true;
+        filter->bucketCount = 0;
+        filter->nextBucket = 0;
+        filter->windowStartTime = currentTimeMs;
+    }
+
+    uint8_t currentBucket = filter->nextBucket == 0 ?
+        MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT - 1 :
+        filter->nextBucket - 1;
+
+    if (filter->bucketCount > 0 &&
+        (currentTimeMs - filter->bucketEndTime[currentBucket]) > (uint32_t)bucketTimeMs * 2U) {
+        mixerTransitionResetAirspeedProgressFilter(filter);
+        filter->active = true;
+        filter->windowStartTime = currentTimeMs;
+    }
+
+    currentBucket = filter->nextBucket == 0 ?
+        MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT - 1 :
+        filter->nextBucket - 1;
+    const bool startNewBucket = filter->bucketCount == 0 ||
+        (currentTimeMs - filter->bucketStartTime[currentBucket]) >= bucketTimeMs;
+
+    if (startNewBucket) {
+        currentBucket = filter->nextBucket;
+        filter->bucketStartTime[currentBucket] = currentTimeMs;
+        filter->bucketEndTime[currentBucket] = currentTimeMs;
+        filter->bucketMinProgress[currentBucket] = clampedProgress;
+        filter->bucketMaxProgress[currentBucket] = clampedProgress;
+        filter->nextBucket = (filter->nextBucket + 1) % MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT;
+        if (filter->bucketCount < MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT) {
+            filter->bucketCount++;
+        }
+    } else {
+        filter->bucketEndTime[currentBucket] = currentTimeMs;
+        if (clampedProgress < filter->bucketMinProgress[currentBucket]) {
+            filter->bucketMinProgress[currentBucket] = clampedProgress;
+        }
+        if (clampedProgress > filter->bucketMaxProgress[currentBucket]) {
+            filter->bucketMaxProgress[currentBucket] = clampedProgress;
+        }
+    }
+
+    const float acceptedProgress = mixerTransitionClamp(previousHandoffProgress, 0.0f, 1.0f);
+    filter->windowMature = false;
+    if ((currentTimeMs - filter->windowStartTime) < confirmationTimeMs) {
+        return dynamicMixerEnabled ? acceptedProgress : 1.0f;
+    }
+
+    bool hasRecentBucket = false;
+    float recentMinProgress = 1.0f;
+    float recentMaxProgress = 0.0f;
+
+    for (uint8_t i = 0; i < filter->bucketCount; i++) {
+        if ((currentTimeMs - filter->bucketEndTime[i]) > confirmationTimeMs) {
+            continue;
+        }
+
+        hasRecentBucket = true;
+        if (filter->bucketMinProgress[i] < recentMinProgress) {
+            recentMinProgress = filter->bucketMinProgress[i];
+        }
+        if (filter->bucketMaxProgress[i] > recentMaxProgress) {
+            recentMaxProgress = filter->bucketMaxProgress[i];
+        }
+    }
+
+    if (!hasRecentBucket) {
+        return dynamicMixerEnabled ? acceptedProgress : 1.0f;
+    }
+
+    filter->windowMature = true;
+    filter->recentMinProgress = recentMinProgress;
+    filter->recentMaxProgress = recentMaxProgress;
 
     if (!dynamicMixerEnabled) {
         return 1.0f;
     }
 
-    if (usedAirspeed) {
-        return clampedProgress;
+    // Advance only when the complete confirmation window stayed above the
+    // accepted progress, and retreat only when it stayed below it.
+    if (recentMinProgress > acceptedProgress) {
+        return recentMinProgress;
+    }
+    if (recentMaxProgress < acceptedProgress) {
+        return recentMaxProgress;
     }
 
-    return previousHandoffProgress > clampedProgress ? previousHandoffProgress : clampedProgress;
+    return acceptedProgress;
 }
 
 static inline float mixerTransitionBlendScale(float from, float to, float progress)
@@ -481,7 +644,14 @@ static inline mixerTransitionHotSwitchProgress_t mixerTransitionEvaluateHotSwitc
         }
 
         if (result.transitionStartAirspeedCmS <= airspeedThresholdCmS) {
-            result.progress = 1.0f;
+            // The transition started inside the MC speed envelope, so there is
+            // no deceleration range to normalize against. Keep progress at the
+            // endpoint only while the current sample also satisfies the limit;
+            // otherwise the shared confirmation window would forget a later
+            // speed increase and could allow an early hot-switch.
+            result.progress = currentAirspeedCmS <= airspeedThresholdCmS ?
+                1.0f :
+                mixerTransitionClamp((float)airspeedThresholdCmS / currentAirspeedCmS, 0.0f, 1.0f);
         } else {
             result.progress = mixerTransitionClamp(
                 (result.transitionStartAirspeedCmS - currentAirspeedCmS) /

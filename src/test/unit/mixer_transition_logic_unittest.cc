@@ -83,6 +83,135 @@ TEST(MixerTransitionLogicTest, CompletedAutoSessionReleasesWhenSwitchMatchesActi
         1));
 }
 
+TEST(MixerTransitionLogicTest, CompletedAutoSessionEndpointConfirmationIsDetected)
+{
+    EXPECT_TRUE(mixerTransitionCompletedAutoSessionEndpointConfirmed(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        true,
+        false,
+        0,
+        0));
+
+    EXPECT_FALSE(mixerTransitionCompletedAutoSessionEndpointConfirmed(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        true,
+        true,
+        0,
+        0));
+
+    EXPECT_FALSE(mixerTransitionCompletedAutoSessionEndpointConfirmed(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        true,
+        false,
+        0,
+        1));
+
+    EXPECT_FALSE(mixerTransitionCompletedAutoSessionEndpointConfirmed(
+        MIXER_TRANSITION_MANUAL_SESSION_LEGACY,
+        true,
+        false,
+        0,
+        0));
+}
+
+TEST(MixerTransitionLogicTest, DirectSwitchEndpointReleasesAnyStaleServoHandoff)
+{
+    EXPECT_TRUE(mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+        MIXER_TRANSITION_MANUAL_SESSION_NONE,
+        false,
+        false,
+        false,
+        false,
+        false,
+        1,
+        1));
+
+    EXPECT_FALSE(mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        false,
+        false,
+        false,
+        false,
+        false,
+        1,
+        1));
+    EXPECT_FALSE(mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+        MIXER_TRANSITION_MANUAL_SESSION_NONE,
+        true,
+        false,
+        false,
+        false,
+        false,
+        1,
+        1));
+    EXPECT_FALSE(mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+        MIXER_TRANSITION_MANUAL_SESSION_NONE,
+        false,
+        true,
+        false,
+        false,
+        false,
+        1,
+        1));
+    EXPECT_FALSE(mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+        MIXER_TRANSITION_MANUAL_SESSION_NONE,
+        false,
+        false,
+        true,
+        false,
+        false,
+        1,
+        1));
+    EXPECT_FALSE(mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+        MIXER_TRANSITION_MANUAL_SESSION_NONE,
+        false,
+        false,
+        false,
+        true,
+        false,
+        1,
+        1));
+    EXPECT_TRUE(mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+        MIXER_TRANSITION_MANUAL_SESSION_NONE,
+        false,
+        false,
+        false,
+        true,
+        true,
+        1,
+        1));
+    EXPECT_FALSE(mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+        MIXER_TRANSITION_MANUAL_SESSION_NONE,
+        false,
+        false,
+        false,
+        false,
+        false,
+        0,
+        1));
+}
+
+TEST(MixerTransitionLogicTest, EndpointConfirmationMustBeCheckedBeforeFallingEdgeClearsSession)
+{
+    mixerTransitionManualSessionMode_e sessionMode = MIXER_TRANSITION_MANUAL_SESSION_AUTO;
+    const bool shouldClearHandoff = mixerTransitionCompletedAutoSessionEndpointConfirmed(
+        sessionMode,
+        true,
+        false,
+        0,
+        0);
+
+    sessionMode = mixerTransitionUpdateManualSessionMode(
+        sessionMode,
+        false,
+        true,
+        true,
+        false);
+
+    EXPECT_TRUE(shouldClearHandoff);
+    EXPECT_EQ(MIXER_TRANSITION_MANUAL_SESSION_NONE, sessionMode);
+}
+
 TEST(MixerTransitionLogicTest, CompletedAutoSessionClearsStaleMixingWhileSwitchRemainsInTransition)
 {
     EXPECT_TRUE(mixerTransitionShouldClearCompletedAutoMixingRequest(
@@ -610,6 +739,24 @@ TEST(MixerTransitionLogicTest, ServoHandoffUsesConfiguredScaleRampWhenDynamicMix
     EXPECT_EQ(1000, mixerTransitionComputeServoHandoffDurationMs(false, 1000, 0));
     EXPECT_EQ(1000, mixerTransitionComputeServoHandoffDurationMs(false, 1000, 750));
     EXPECT_EQ(0, mixerTransitionComputeServoHandoffDurationMs(false, 0, 750));
+}
+
+TEST(MixerTransitionLogicTest, ServoHandoffExpiresAtConfiguredDuration)
+{
+    EXPECT_FALSE(mixerTransitionServoHandoffExpired(0, 1000));
+    EXPECT_FALSE(mixerTransitionServoHandoffExpired(999, 1000));
+    EXPECT_TRUE(mixerTransitionServoHandoffExpired(1000, 1000));
+    EXPECT_TRUE(mixerTransitionServoHandoffExpired(1500, 1000));
+    EXPECT_TRUE(mixerTransitionServoHandoffExpired(0, 0));
+}
+
+TEST(MixerTransitionLogicTest, ServoHandoffProgressIsBounded)
+{
+    EXPECT_FLOAT_EQ(0.0f, mixerTransitionServoHandoffProgress(0, 1000));
+    EXPECT_FLOAT_EQ(0.5f, mixerTransitionServoHandoffProgress(500, 1000));
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionServoHandoffProgress(1000, 1000));
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionServoHandoffProgress(1500, 1000));
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionServoHandoffProgress(0, 0));
 }
 
 TEST(MixerTransitionLogicTest, ServoHandoffBlendStartsFromCapturedOutputAfterHotSwitch)

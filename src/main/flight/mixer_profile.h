@@ -51,6 +51,25 @@ typedef enum {
 } mixerProfileATRequest_e;
 
 #ifdef USE_AUTO_TRANSITION
+#define MIXER_TRANSITION_AIRSPEED_CONFIRM_MS 300
+#define MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_MS 100
+#define MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT \
+    (MIXER_TRANSITION_AIRSPEED_CONFIRM_MS / MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_MS + 1)
+
+typedef struct mixerTransitionAirspeedProgressFilter_s {
+    bool active;
+    bool windowMature;
+    uint8_t bucketCount;
+    uint8_t nextBucket;
+    timeMs_t windowStartTime;
+    float recentMinProgress;
+    float recentMaxProgress;
+    timeMs_t bucketStartTime[MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT];
+    timeMs_t bucketEndTime[MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT];
+    float bucketMinProgress[MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT];
+    float bucketMaxProgress[MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT];
+} mixerTransitionAirspeedProgressFilter_t;
+
 typedef enum {
     MIXERAT_DIRECTION_NONE = 0,
     MIXERAT_DIRECTION_TO_FW,
@@ -93,17 +112,17 @@ typedef struct mixerProfileAT_s {
     mixerProfileATDirection_e direction;
     mixerProfileATRequest_e request;
     bool aborted;
+    bool directSwitchAbort;
     bool abortedByAirspeedTimeout;
     bool hotSwitchDone;
     bool usedAirspeed;
     mixerProfileATWaitReason_e waitReason;
     bool transitionStartAirspeedCaptured;
-    bool airspeedHotSwitchConfirmActive;
     float progress;
     float handoffScalingProgress;
+    mixerTransitionAirspeedProgressFilter_t airspeedProgressFilter;
     float motorRampProgress;
     float transitionStartAirspeedCmS;
-    timeMs_t airspeedHotSwitchConfirmStartTime;
     float blendToFw;
     float pusherScale;
     float liftScale;
@@ -160,6 +179,7 @@ bool mixerATGetOsdStatus(mixerProfileATOsdStatus_t *status);
 bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output);
 float mixerATGetPostSwitchFadeProgress(void);
 bool mixerATGetServoHandoffOutput(uint8_t servoIndex, int16_t currentOutput, int16_t *output);
+bool outputProfileDirectSwitchImmediate(int profile_index);
 #endif
 bool isMixerProfile2ModeReportedActive(void);
 bool isMixerTransitionModeReportedActive(void);

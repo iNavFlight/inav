@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -40,7 +41,6 @@
 #ifdef USE_AUTO_TRANSITION
 #define MIXER_TRANSITION_OSD_EVENT_DISPLAY_MS 3000
 #define MIXER_TRANSITION_MC_SPEED_HIGH_MARGIN_CM_S 100.0f
-#define MIXER_TRANSITION_AIRSPEED_HOT_SWITCH_CONFIRM_MS 300
 #endif
 
 mixerConfig_t currentMixerConfig;
@@ -153,17 +153,17 @@ void setMixerProfileAT(void)
 
     mixerProfileAT.transitionStartTime = now;
     mixerProfileAT.aborted = false;
+    mixerProfileAT.directSwitchAbort = false;
     mixerProfileAT.abortedByAirspeedTimeout = false;
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.usedAirspeed = false;
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
-    mixerProfileAT.airspeedHotSwitchConfirmActive = false;
     mixerProfileAT.progress = 0.0f;
     mixerProfileAT.handoffScalingProgress = 0.0f;
+    memset(&mixerProfileAT.airspeedProgressFilter, 0, sizeof(mixerProfileAT.airspeedProgressFilter));
     mixerProfileAT.motorRampProgress = 0.0f;
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
-    mixerProfileAT.airspeedHotSwitchConfirmStartTime = 0;
     mixerProfileAT.blendToFw = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW ? 0.0f : 1.0f;
     mixerProfileAT.pusherScale = 1.0f;
     mixerProfileAT.liftScale = 1.0f;
@@ -447,6 +447,21 @@ static void startServoHandoffFade(void)
     mixerProfileAT.servoHandoffStartTime = millis();
 }
 
+static bool updateServoHandoffFadeExpiration(void)
+{
+    if (mixerProfileAT.servoHandoffMask == 0) {
+        return false;
+    }
+
+    const uint32_t elapsedMs = millis() - mixerProfileAT.servoHandoffStartTime;
+    if (!mixerTransitionServoHandoffExpired(elapsedMs, mixerProfileAT.servoHandoffDurationMs)) {
+        return true;
+    }
+
+    clearServoHandoffFade();
+    return false;
+}
+
 static void startTransitionEntryServoHandoffFade(void)
 {
     // Smooth only target-preview surfaces at transition entry. Tilt servos that
@@ -455,12 +470,23 @@ static void startTransitionEntryServoHandoffFade(void)
     startServoHandoffFade();
 }
 
-static bool outputProfileDirectSwitch(const int profileIndex)
+static bool outputProfileDirectSwitch(const int profileIndex, const bool immediateServoResponse)
 {
     clearServoHandoffFade();
+    if (immediateServoResponse) {
+        // VTOL direct switches must not inherit speed-limited servo carryover
+        // from the old profile; the target profile should take over immediately.
+        servoMixerSetCarryoverOnNextLoad(false);
+    }
     const bool switched = outputProfileHotSwitch(profileIndex);
+    servoMixerSetCarryoverOnNextLoad(true);
     clearServoHandoffFade();
     return switched;
+}
+
+bool outputProfileDirectSwitchImmediate(const int profileIndex)
+{
+    return outputProfileDirectSwitch(profileIndex, true);
 }
 
 static bool requestTransitionsToFixedWing(const mixerProfileATRequest_e required_action)
@@ -489,10 +515,9 @@ static mixerProfileATDirection_e directionForRequest(const mixerProfileATRequest
 static void resetTransitionScales(void)
 {
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
-    mixerProfileAT.airspeedHotSwitchConfirmActive = false;
-    mixerProfileAT.airspeedHotSwitchConfirmStartTime = 0;
     mixerProfileAT.progress = 0.0f;
     mixerProfileAT.handoffScalingProgress = 0.0f;
+    memset(&mixerProfileAT.airspeedProgressFilter, 0, sizeof(mixerProfileAT.airspeedProgressFilter));
     mixerProfileAT.motorRampProgress = 0.0f;
     mixerProfileAT.blendToFw = 0.0f;
     mixerProfileAT.pusherScale = 0.0f;
@@ -512,6 +537,7 @@ static void setLegacyTransitionScales(void)
 {
     mixerProfileAT.progress = 1.0f;
     mixerProfileAT.handoffScalingProgress = 1.0f;
+    memset(&mixerProfileAT.airspeedProgressFilter, 0, sizeof(mixerProfileAT.airspeedProgressFilter));
     mixerProfileAT.motorRampProgress = 1.0f;
     mixerProfileAT.blendToFw = 1.0f;
     mixerProfileAT.pusherScale = 1.0f;
@@ -547,13 +573,17 @@ static uint16_t getServoHandoffDurationMs(void)
         elapsedMs);
 }
 
-static float getHandoffScalingProgress(void)
+static float updateHandoffScalingProgress(const timeMs_t currentTimeMs)
 {
     mixerProfileAT.handoffScalingProgress = mixerTransitionResolveHandoffProgress(
         currentMixerConfig.vtolTransitionDynamicMixer,
         mixerProfileAT.usedAirspeed,
         mixerProfileAT.handoffScalingProgress,
-        mixerProfileAT.progress);
+        mixerProfileAT.progress,
+        currentTimeMs,
+        MIXER_TRANSITION_AIRSPEED_CONFIRM_MS,
+        MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_MS,
+        &mixerProfileAT.airspeedProgressFilter);
     return mixerProfileAT.handoffScalingProgress;
 }
 
@@ -568,9 +598,15 @@ static bool hasUsableTransitionAirspeed(float *airspeedCmS)
         return false;
     }
 
-    *airspeedCmS = detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL ?
-        MAX(getAirspeedEstimate(), 0.0f) :
-        MAX(pitot.airSpeed, 0.0f);
+    const float measuredAirspeedCmS = detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL ?
+        getAirspeedEstimate() :
+        pitot.airSpeed;
+
+    if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {
+        return false;
+    }
+
+    *airspeedCmS = MAX(measuredAirspeedCmS, 0.0f);
     return true;
 #else
     UNUSED(airspeedCmS);
@@ -725,7 +761,7 @@ static void updateTransitionScales(void)
         systemConfig()->vtolTransitionLiftMinPercent / 100.0f,
         systemConfig()->vtolTransitionMcAuthorityMinPercent / 100.0f,
         systemConfig()->vtolTransitionFwAuthorityMinPercent / 100.0f,
-        getHandoffScalingProgress(),
+        mixerProfileAT.handoffScalingProgress,
         getMotorRampProgress());
 
     mixerProfileAT.blendToFw = scales.blendToFw;
@@ -755,6 +791,7 @@ static void abortTransition(const bool byAirspeedTimeout, const bool directSwitc
     manualProfileSwitchAutoTransitionActive = false;
     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
     mixerProfileAT.aborted = wasActive;
+    mixerProfileAT.directSwitchAbort = wasActive && directSwitchAbort;
     mixerProfileAT.abortedByAirspeedTimeout = wasActive && byAirspeedTimeout;
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.request = MIXERAT_REQUEST_NONE;
@@ -762,9 +799,7 @@ static void abortTransition(const bool byAirspeedTimeout, const bool directSwitc
     mixerProfileAT.usedAirspeed = false;
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
-    mixerProfileAT.airspeedHotSwitchConfirmActive = false;
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
-    mixerProfileAT.airspeedHotSwitchConfirmStartTime = 0;
     resetTransitionScales();
 
     if (servoHandoffMask != 0) {
@@ -776,7 +811,8 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
 {
     const mixerProfileATDirection_e direction = directionForRequest(required_action);
     const uint16_t airspeedThresholdCmS = getAirspeedThresholdForDirection(direction);
-    const uint32_t elapsedMs = millis() - mixerProfileAT.transitionStartTime;
+    const timeMs_t currentTimeMs = millis();
+    const uint32_t elapsedMs = currentTimeMs - mixerProfileAT.transitionStartTime;
     const uint32_t transitionTimerMs = MAX(0, currentMixerConfig.switchTransitionTimer) * 100;
     float airspeedCmS = 0.0f;
     const bool usableAirspeedAvailable =
@@ -790,6 +826,25 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
         mixerProfileAT.transitionStartAirspeedCmS,
         elapsedMs,
         transitionTimerMs);
+
+    const bool holdForAirspeedRecovery =
+        airspeedThresholdCmS > 0 &&
+        !hotSwitchProgress.usedAirspeed &&
+        mixerTransitionAirspeedProgressHasRecentSample(
+            &mixerProfileAT.airspeedProgressFilter,
+            currentTimeMs,
+            MIXER_TRANSITION_AIRSPEED_CONFIRM_MS);
+
+    if (holdForAirspeedRecovery) {
+        // A single validity dropout must not turn an airspeed-controlled
+        // transition into an immediate timer hot-switch. Keep the last safe
+        // progress briefly; persistent loss still falls back to the timer.
+        mixerProfileAT.usedAirspeed = false;
+        mixerProfileAT.waitReason = direction == MIXERAT_DIRECTION_TO_MC ?
+            MIXERAT_WAIT_REASON_NO_SPEED :
+            MIXERAT_WAIT_REASON_NONE;
+        return false;
+    }
 
     mixerProfileAT.usedAirspeed = hotSwitchProgress.usedAirspeed;
     mixerProfileAT.transitionStartAirspeedCaptured = hotSwitchProgress.transitionStartAirspeedCaptured;
@@ -809,23 +864,11 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
         }
     }
 
-    if (!hotSwitchProgress.readyForHotSwitch || !hotSwitchProgress.usedAirspeed) {
-        mixerProfileAT.airspeedHotSwitchConfirmActive = false;
-        mixerProfileAT.airspeedHotSwitchConfirmStartTime = 0;
-    } else if (!mixerProfileAT.airspeedHotSwitchConfirmActive) {
-        mixerProfileAT.airspeedHotSwitchConfirmActive = true;
-        mixerProfileAT.airspeedHotSwitchConfirmStartTime = millis();
-    }
+    updateHandoffScalingProgress(currentTimeMs);
 
-    const uint32_t confirmationElapsedMs = mixerProfileAT.airspeedHotSwitchConfirmActive ?
-        millis() - mixerProfileAT.airspeedHotSwitchConfirmStartTime :
-        0;
-    return mixerTransitionAirspeedHotSwitchConfirmed(
-        hotSwitchProgress.usedAirspeed,
-        hotSwitchProgress.readyForHotSwitch,
-        mixerProfileAT.airspeedHotSwitchConfirmActive,
-        confirmationElapsedMs,
-        MIXER_TRANSITION_AIRSPEED_HOT_SWITCH_CONFIRM_MS);
+    return hotSwitchProgress.usedAirspeed ?
+        mixerTransitionAirspeedProgressEndpointConfirmed(&mixerProfileAT.airspeedProgressFilter) :
+        hotSwitchProgress.readyForHotSwitch;
 }
 #endif
 
@@ -1068,6 +1111,12 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         (navStateFlags & NAV_AUTO_RTH) != 0,
         (navStateFlags & NAV_CTL_LAND) != 0,
         (navStateFlags & NAV_MIXERAT) != 0);
+    const bool completedAutoSessionEndpointConfirmed = mixerTransitionCompletedAutoSessionEndpointConfirmed(
+        manualTransitionSessionMode,
+        mixerProfileAT.hotSwitchDone,
+        transitionModeActive,
+        currentMixerProfileIndex,
+        requestedProfileIndex);
 
     manualTransitionSessionMode = mixerTransitionUpdateManualSessionMode(
         manualTransitionSessionMode,
@@ -1076,15 +1125,29 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         manualControllerConfigured,
         false);
 
+    const bool directSwitchEndpointOwnsServoOutput = mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+        manualTransitionSessionMode,
+        mixerAT_inuse,
+        transitionModeActive,
+        mixerProfileAT.hotSwitchDone,
+        mixerProfileAT.aborted,
+        mixerProfileAT.directSwitchAbort,
+        currentMixerProfileIndex,
+        requestedProfileIndex);
+
     if (transitionModeRisingEdge) {
         manualFwToMcProtectionLatched = false;
     }
 
-    if (!transitionModeActive &&
-        manualTransitionSessionMode == MIXER_TRANSITION_MANUAL_SESSION_AUTO &&
-        mixerProfileAT.hotSwitchDone &&
-        requestedProfileIndex == currentMixerProfileIndex) {
+    if (directSwitchEndpointOwnsServoOutput) {
+        clearServoHandoffFade();
+    } else {
+        updateServoHandoffFadeExpiration();
+    }
+
+    if (completedAutoSessionEndpointConfirmed) {
         manualTransitionSessionMode = MIXER_TRANSITION_MANUAL_SESSION_NONE;
+        clearServoHandoffFade();
     }
 
     if (requestedMultirotorProfile || (!mixerAT_inuse && !STATE(MULTIROTOR))) {
@@ -1178,7 +1241,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
                     }
                 } else {
                     if (profileSwitchDirectSwitchAllowed) {
-                        outputProfileDirectSwitch(requestedProfileIndex);
+                        outputProfileDirectSwitch(requestedProfileIndex, vtolProfilePairConfigured);
                     }
                 }
             }
@@ -1249,7 +1312,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
                 mixerProfileModePresent &&
                 !navigationOwnsProfileSwitch &&
                 requestedProfileIndex != currentMixerProfileIndex) {
-                outputProfileDirectSwitch(requestedProfileIndex);
+                outputProfileDirectSwitch(requestedProfileIndex, true);
             }
         }
 
@@ -1321,16 +1384,19 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     // [3] raw transition progress x1000
     // [4] pusherScale x1000
     // [5] liftScale x1000
-    // [6] mcAuthorityScale x1000 | (fwAuthorityScale x1000 << 16)
-    // [7] handoffProgress 10-bit | motorRampProgress 10-bit | postSwitchFadeProgress 10-bit
+    // [6] active: mcAuthorityScale x1000 | (fwAuthorityScale x1000 << 16)
+    //     idle:   servo debug slot 0, see servoMixerGetVtolTransitionDebug()
+    // [7] active: handoffProgress 10-bit | motorRampProgress 10-bit | postSwitchFadeProgress 10-bit
+    //     idle:   servo debug slot 1, see servoMixerGetVtolTransitionDebug()
+    const bool useIdleServoDebug = !mixerATIsActive() && mixerProfileAT.phase == MIXERAT_PHASE_IDLE;
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 0, mixerProfileAT.phase);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, (int32_t)(((uint32_t)mixerProfileAT.request & 0xFFU) | (((uint32_t)mixerProfileAT.direction & 0xFFU) << 8) | (((uint32_t)mixerProfileAT.waitReason & 0xFFU) << 16)));
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 2, (int32_t)transitionDebugFlags);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 3, progressScaled);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 4, pusherScaled);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 5, liftScaled);
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 6, (int32_t)((uint32_t)mcAuthorityScaled | ((uint32_t)fwAuthorityScaled << 16)));
-    DEBUG_SET(DEBUG_VTOL_TRANSITION, 7, (int32_t)packedProgress);
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 6, useIdleServoDebug ? servoMixerGetVtolTransitionDebug(0) : (int32_t)((uint32_t)mcAuthorityScaled | ((uint32_t)fwAuthorityScaled << 16)));
+    DEBUG_SET(DEBUG_VTOL_TRANSITION, 7, useIdleServoDebug ? servoMixerGetVtolTransitionDebug(1) : (int32_t)packedProgress);
 
     if (!isMixerTransitionMixing && !mixerATIsActive()) {
         mixerTransitionServoInput = 0;
@@ -1491,18 +1557,18 @@ bool mixerATGetServoHandoffOutput(uint8_t servoIndex, int16_t currentOutput, int
         return false;
     }
 
-    const float progress = mixerProfileAT.servoHandoffDurationMs == 0 ?
-        1.0f :
-        constrainf((float)(millis() - mixerProfileAT.servoHandoffStartTime) / (float)mixerProfileAT.servoHandoffDurationMs, 0.0f, 1.0f);
+    const uint32_t elapsedMs = millis() - mixerProfileAT.servoHandoffStartTime;
+    if (mixerTransitionServoHandoffExpired(elapsedMs, mixerProfileAT.servoHandoffDurationMs)) {
+        clearServoHandoffFade();
+        return false;
+    }
+
+    const float progress = mixerTransitionServoHandoffProgress(elapsedMs, mixerProfileAT.servoHandoffDurationMs);
 
     *output = mixerTransitionBlendCapturedServoOutput(
         mixerProfileAT.servoHandoffOutput[servoIndex],
         currentOutput,
         progress);
-
-    if (progress >= 1.0f) {
-        clearServoHandoffFade();
-    }
 
     return true;
 }

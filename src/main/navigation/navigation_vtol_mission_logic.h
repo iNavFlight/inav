@@ -72,6 +72,35 @@ static inline navMissionVtolTransitionStartValidation_e navMissionVtolTransition
     return NAV_MISSION_VTOL_START_VALIDATION_READY;
 }
 
+static inline bool navMissionTransitionWaypointAcceptedForAdvance(
+    const bool transitionStartedAtWaypoint,
+    const bool ordinaryWaypoint,
+    const uint16_t waypointEnforceAltitudeCm,
+    const float transitionStartAltitudeCm,
+    const float waypointAltitudeCm)
+{
+    return transitionStartedAtWaypoint &&
+           ordinaryWaypoint &&
+           (waypointEnforceAltitudeCm == 0 ||
+            transitionStartAltitudeCm >= waypointAltitudeCm - waypointEnforceAltitudeCm);
+}
+
+static inline bool navMissionShouldAdvanceWaypointAfterTransition(
+    const bool waypointAcceptedForAdvance,
+    const bool transitionCompletedNormally,
+    const uint16_t waypointEnforceAltitudeCm,
+    const float currentAltitudeCm,
+    const float waypointAltitudeCm)
+{
+    // A transition may add altitude after the waypoint was accepted. Do not
+    // make the aircraft loiter back down to the old waypoint, but never skip
+    // a waypoint while below its enforced minimum altitude.
+    return waypointAcceptedForAdvance &&
+           transitionCompletedNormally &&
+           (waypointEnforceAltitudeCm == 0 ||
+            currentAltitudeCm >= waypointAltitudeCm - waypointEnforceAltitudeCm);
+}
+
 static inline bool navMissionVtolTransitionSuppressesWaypointRestartGuard(
     const bool missionTransitionInProgress)
 {

@@ -3233,7 +3233,7 @@ Makes `MIXER TRANSITION` start one automatic VTOL transition each time the switc
 
 ### mixer_vtol_transition_airspeed_timeout_ms
 
-Maximum wait time [ms] for the required airspeed during an airspeed-controlled transition. This timer does not complete the transition; it only aborts it if the target airspeed is still not reached in time while the transition airspeed source remains usable. Real pitot and explicitly configured `pitot_hardware = VIRTUAL` can both be used. If the source becomes unavailable, INAV falls back to `mixer_switch_trans_timer` instead. Set to 0 to disable. Available only on targets with more than 512 KB flash.
+Maximum wait time [ms] for the required airspeed during an airspeed-controlled transition. The airspeed condition must be reached and remain satisfied for the internal 300 ms confirmation within this total time. This timer does not complete the transition; it only aborts it if the condition is not confirmed in time while the transition airspeed source remains usable. Real pitot and explicitly configured `pitot_hardware = VIRTUAL` can both be used. A source dropout shorter than 300 ms is ignored; persistent loss falls back to `mixer_switch_trans_timer`. Set to 0 to disable. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4741,7 +4741,7 @@ If ON, INAV gets one extra MC->FW attempt after an airspeed timeout during missi
 
 ### nav_wp_enforce_altitude
 
-Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on. 0 = disabled, otherwise setting defines altitude capture tolerance [cm], e.g. 100 means required altitude is achieved when within 100cm of waypoint altitude setting.
+Forces craft to achieve the set WP altitude as well as position before moving to next WP. Position is held and altitude adjusted as required before moving on. 0 = disabled, otherwise setting defines altitude capture tolerance [cm], e.g. 100 means required altitude is achieved when within 100cm of waypoint altitude setting. After a successful mission VTOL transition from an ordinary WAYPOINT, a temporary transition-induced climb does not require loitering back down; the mission advances unless the aircraft is below the target altitude minus this tolerance. HOLD_TIME and LAND waypoints keep their normal behavior.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7173,7 +7173,7 @@ Lowest multicopter stabilisation authority used during transition, in percent. T
 
 ### vtol_transition_to_fw_min_airspeed_cm_s
 
-Minimum airspeed [cm/s] needed before MC->FW transition is considered complete while a usable transition airspeed source is available. A usable source is a valid real pitot sensor, or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate. If no usable source is available, or if this is set to 0, INAV uses `mixer_switch_trans_timer` instead. If the source remains usable but this target is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
+Minimum airspeed [cm/s] needed before MC->FW transition is considered complete while a usable transition airspeed source is available. The speed must remain at or above this value for the internal 300 ms confirmation. A usable source is a valid real pitot sensor, or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate. If no usable source is available, or if this is set to 0, INAV uses `mixer_switch_trans_timer` instead. If the source remains usable but this target is not confirmed before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7183,7 +7183,7 @@ Minimum airspeed [cm/s] needed before MC->FW transition is considered complete w
 
 ### vtol_transition_to_mc_max_airspeed_cm_s
 
-When slowing down from FW to MC, the transition is considered complete once airspeed falls to this value [cm/s] or lower while a usable transition airspeed source is available. A usable source is a valid real pitot sensor, or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate. If no usable source is available, or if this is set to 0, INAV uses `mixer_switch_trans_timer` instead. If the source remains usable but this condition is still not reached before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
+When slowing down from FW to MC, the transition is considered complete once airspeed remains at this value [cm/s] or lower for the internal 300 ms confirmation while a usable transition airspeed source is available. A usable source is a valid real pitot sensor, or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate. If no usable source is available, or if this is set to 0, INAV uses `mixer_switch_trans_timer` instead. If the source remains usable but this condition is not confirmed before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |

@@ -113,6 +113,8 @@ static uint32_t targetTransitionServoPreviewCaptureMask = 0;
 static int targetTransitionServoPreviewTargetProfileIndex = -1;
 static mixerProfileATDirection_e targetTransitionServoPreviewDirection = MIXERAT_DIRECTION_NONE;
 static int16_t targetTransitionServoPreviewCapturedOutput[MAX_SUPPORTED_SERVOS];
+static int16_t vtolTransitionServoDebugPreHandoff[MAX_SUPPORTED_SERVOS];
+static int16_t vtolTransitionServoDebugPostHandoff[MAX_SUPPORTED_SERVOS];
 #endif
 /*
 //Was used to keep track of servo rules in all mixer_profile, In order to Apply mixer speed limit when rules turn off
@@ -131,6 +133,7 @@ static bool servoFilterIsSet;
 
 static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
 static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
+static bool carryOverServoSpeedLimitsOnNextLoad = true;
 
 STATIC_FASTRAM pt1Filter_t rotRateFilter;
 STATIC_FASTRAM pt1Filter_t targetRateFilter;
@@ -223,19 +226,25 @@ void loadCustomServoMixer(void)
     int movefilterCount = 0;
     static servoMixerSwitch_t servoMixerSwitchHelper[MAX_SERVO_RULES_SWITCH_CARRY]; // helper to keep track of servoSpeedLimitFilter of servo rules
     memset(servoMixerSwitchHelper, 0, sizeof(servoMixerSwitchHelper));
-    for (int i = 0; i < servoRuleCount; i++) {
-        if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
-            //will not carry over INPUT_MIXER_SWITCH_HELPER rules
-            break;
-        }
-        if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) > 0.01f) {
-            servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
-            servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
-            servoMixerSwitchHelper[movefilterCount].rate = currentServoMixer[i].rate;
-            servoMixerSwitchHelper[movefilterCount].speedLimitFilterState = servoSpeedLimitFilter[i].state;
-            movefilterCount++;
+    // Profile hot-switches normally preserve speed-limited rule outputs so old
+    // rules can decay smoothly. Direct switches can opt out for an immediate
+    // target-profile response.
+    if (carryOverServoSpeedLimitsOnNextLoad) {
+        for (int i = 0; i < servoRuleCount; i++) {
+            if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
+                //will not carry over INPUT_MIXER_SWITCH_HELPER rules
+                break;
+            }
+            if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) > 0.01f) {
+                servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
+                servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
+                servoMixerSwitchHelper[movefilterCount].rate = currentServoMixer[i].rate;
+                servoMixerSwitchHelper[movefilterCount].speedLimitFilterState = servoSpeedLimitFilter[i].state;
+                movefilterCount++;
+            }
         }
     }
+    carryOverServoSpeedLimitsOnNextLoad = true;
 
     servoRuleCount = 0;
     memset(currentServoMixer, 0, sizeof(currentServoMixer));
@@ -263,6 +272,11 @@ void loadCustomServoMixer(void)
         servoSpeedLimitFilter[servoRuleCount].state = servoMixerSwitchHelper[i].speedLimitFilterState;
         servoRuleCount++;
     }
+}
+
+void servoMixerSetCarryoverOnNextLoad(bool enabled)
+{
+    carryOverServoSpeedLimitsOnNextLoad = enabled;
 }
 
 static void filterServos(void)
@@ -293,6 +307,65 @@ static bool isAutoTransitionTargetInputSource(const uint8_t inputSource)
 {
     return inputSource >= INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL &&
            inputSource <= INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS;
+}
+
+static uint16_t packServoDebugOutput(int16_t output)
+{
+    return constrain(output - 900, 0, 0x7FF);
+}
+
+static uint32_t packVtolTransitionServoDebug(const uint8_t servoIndex)
+{
+    uint8_t flags = 0;
+
+    if (vtolTransitionServoDebugPreHandoff[servoIndex] != vtolTransitionServoDebugPostHandoff[servoIndex]) {
+        flags |= 1 << 0;
+    }
+
+    if ((mixerProfileAT.servoHandoffMask & (1U << servoIndex)) != 0) {
+        flags |= 1 << 1;
+    }
+
+    if ((targetTransitionServoPreviewCaptureMask & (1U << servoIndex)) != 0) {
+        flags |= 1 << 2;
+    }
+
+    return ((uint32_t)servoIndex & 0xFU) |
+           ((uint32_t)packServoDebugOutput(vtolTransitionServoDebugPreHandoff[servoIndex]) << 4) |
+           ((uint32_t)packServoDebugOutput(vtolTransitionServoDebugPostHandoff[servoIndex]) << 15) |
+           ((uint32_t)flags << 26);
+}
+
+static int16_t vtolTransitionServoDebugActivity(const uint8_t servoIndex)
+{
+    const int16_t middle = servoParams(servoIndex)->middle;
+    const int16_t preDelta = ABS(vtolTransitionServoDebugPreHandoff[servoIndex] - middle);
+    const int16_t postDelta = ABS(vtolTransitionServoDebugPostHandoff[servoIndex] - middle);
+    const int16_t handoffDelta = ABS(vtolTransitionServoDebugPostHandoff[servoIndex] - vtolTransitionServoDebugPreHandoff[servoIndex]);
+
+    return MAX(MAX(preDelta, postDelta), handoffDelta);
+}
+
+int32_t servoMixerGetVtolTransitionDebug(const uint8_t slot)
+{
+    uint8_t bestIndex[2] = { 0, 0 };
+    int16_t bestActivity[2] = { -1, -1 };
+
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        const int16_t activity = vtolTransitionServoDebugActivity(i);
+
+        if (activity > bestActivity[0]) {
+            bestActivity[1] = bestActivity[0];
+            bestIndex[1] = bestIndex[0];
+            bestActivity[0] = activity;
+            bestIndex[0] = i;
+        } else if (activity > bestActivity[1]) {
+            bestActivity[1] = activity;
+            bestIndex[1] = i;
+        }
+    }
+
+    return (int32_t)packVtolTransitionServoDebug(bestIndex[slot > 0 ? 1 : 0]);
 }
 
 static bool isTransitionServoPreviewInputSource(const uint8_t inputSource)
@@ -795,6 +868,8 @@ void servoMixer(float dT)
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
 
 #ifdef USE_AUTO_TRANSITION
+        vtolTransitionServoDebugPreHandoff[i] = servo[i];
+
         int16_t targetPreviewOutput = 0;
         if (getTargetTransitionServoPreviewMixedOutput(i, input, servo[i], &targetPreviewOutput)) {
             servo[i] = constrain(targetPreviewOutput, servoParams(i)->min, servoParams(i)->max);
@@ -804,6 +879,8 @@ void servoMixer(float dT)
         if (mixerATGetServoHandoffOutput(i, servo[i], &handoffOutput)) {
             servo[i] = constrain(handoffOutput, servoParams(i)->min, servoParams(i)->max);
         }
+
+        vtolTransitionServoDebugPostHandoff[i] = servo[i];
 #endif
     }
 

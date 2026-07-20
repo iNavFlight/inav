@@ -206,6 +206,10 @@ void setServoOutputEnabled(bool flag);
 bool isMixerUsingServos(void);
 void writeServos(void);
 void loadCustomServoMixer(void);
+void servoMixerSetCarryoverOnNextLoad(bool enabled);
+#ifdef USE_AUTO_TRANSITION
+int32_t servoMixerGetVtolTransitionDebug(uint8_t slot);
+#endif
 void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);

@@ -299,6 +299,7 @@ typedef struct navMixerATMissionTransition_s {
     mixerProfileATRequest_e request;
     int32_t heading;
     bool active;
+    bool waypointAcceptedForAdvance;
     bool retryAttempted;
     uint8_t retryStage;
     int32_t retryScanStartHeading;
@@ -1151,6 +1152,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME]        = NAV_STATE_RTH_HEAD_HOME, //switch to its pending state
             [NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING]          = NAV_STATE_RTH_LANDING, //switch to its pending state
 #ifdef USE_AUTO_TRANSITION
+            [NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE]        = NAV_STATE_WAYPOINT_NEXT,
             [NAV_FSM_EVENT_MIXERAT_MISSION_RESUME]         = NAV_STATE_WAYPOINT_IN_PROGRESS,
 #endif
         }
@@ -2370,7 +2372,7 @@ static bool tryForceSwitchAfterFwToMcFailure(const mixerProfileATRequest_e reque
         return false;
     }
 
-    return STATE(AIRPLANE) && outputProfileHotSwitch(nextMixerProfileIndex);
+    return STATE(AIRPLANE) && outputProfileDirectSwitchImmediate(nextMixerProfileIndex);
 }
 
 static void clearMissionVTOLTransitionState(void)
@@ -2378,6 +2380,7 @@ static void clearMissionVTOLTransitionState(void)
     navMixerATMissionTransition.active = false;
     navMixerATMissionTransition.request = MIXERAT_REQUEST_NONE;
     navMixerATMissionTransition.heading = posControl.actualState.yaw;
+    navMixerATMissionTransition.waypointAcceptedForAdvance = false;
     navMixerATMissionTransition.retryAttempted = false;
     navMixerATMissionTransition.retryStage = NAV_MIXERAT_RETRY_STAGE_IDLE;
     navMixerATMissionTransition.retryScanStartHeading = posControl.actualState.yaw;
@@ -2648,6 +2651,12 @@ static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const 
     navMixerATMissionTransition.request = requestedAction;
     navMixerATMissionTransition.heading = wrap_36000(transitionHeading);
     navMixerATMissionTransition.active = true;
+    navMixerATMissionTransition.waypointAcceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
+        true,
+        waypoint->action == NAV_WP_ACTION_WAYPOINT,
+        navConfig()->general.waypoint_enforce_altitude,
+        navGetCurrentActualPositionAndVelocity()->pos.z,
+        posControl.activeWaypoint.pos.z);
     navMixerATMissionTransition.transitionHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
     return NAV_MISSION_VTOL_TRANSITION_START;
 }
@@ -3249,6 +3258,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
     if (mixerATUpdateState(required_action)){
         // MixerAT is done, switch to next state
         bool transitionAborted = mixerATWasAborted();
+        const bool transitionCompletedNormally = !transitionAborted;
         const bool transitionTimeout = mixerATWasAbortedByAirspeedTimeout();
         const bool missionTransitionWasActive = navMixerATMissionTransition.active;
         if (transitionAborted &&
@@ -3272,6 +3282,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
         if (transitionAborted) {
             nextEvent = getTransitionFailEvent(required_action);
         } else {
+            const bool advanceMissionWaypoint = missionTransitionWasActive &&
+                navMissionShouldAdvanceWaypointAfterTransition(
+                    navMixerATMissionTransition.waypointAcceptedForAdvance,
+                    transitionCompletedNormally,
+                    navConfig()->general.waypoint_enforce_altitude,
+                    navGetCurrentActualPositionAndVelocity()->pos.z,
+                    posControl.activeWaypoint.pos.z);
             if (required_action == MIXERAT_REQUEST_FW_TO_MC_PROTECTION) {
                 switch (navMixerATPendingState)
                 {
@@ -3304,7 +3321,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
                     break;
                 case NAV_STATE_WAYPOINT_PRE_ACTION:
                     if (missionTransitionWasActive) {
-                        nextEvent = NAV_FSM_EVENT_MIXERAT_MISSION_RESUME;
+                        nextEvent = advanceMissionWaypoint ?
+                            NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE :
+                            NAV_FSM_EVENT_MIXERAT_MISSION_RESUME;
                     }
                     break;
                 default:

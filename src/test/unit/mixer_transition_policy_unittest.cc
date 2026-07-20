@@ -342,15 +342,246 @@ TEST(MixerTransitionPolicyTest, FwToMcDynamicScalingUsesTimerRampForLiftAndPushe
     EXPECT_FLOAT_EQ(0.70f, scales.blendToFw);
 }
 
-TEST(MixerTransitionPolicyTest, HandoffProgressUsesAirspeedDirectlyWhenAvailable)
+TEST(MixerTransitionPolicyTest, AirspeedProgressRejectsAnIsolatedHighSpike)
 {
-    EXPECT_FLOAT_EQ(0.35f, mixerTransitionResolveHandoffProgress(true, true, 0.80f, 0.35f));
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.50f;
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.50f, 0, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.95f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.50f, 200, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.55f, 300, 300, 100, &filter);
+
+    EXPECT_FLOAT_EQ(0.50f, accepted);
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.55f, 400, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.55f, 500, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.55f, 600, 300, 100, &filter);
+
+    EXPECT_FLOAT_EQ(0.55f, accepted);
 }
 
-TEST(MixerTransitionPolicyTest, HandoffProgressPreservesPreviousPeakWhenAirspeedDropsOut)
+TEST(MixerTransitionPolicyTest, AirspeedProgressRejectsAnIsolatedLowSpike)
 {
-    EXPECT_FLOAT_EQ(0.62f, mixerTransitionResolveHandoffProgress(true, false, 0.62f, 0.41f));
-    EXPECT_FLOAT_EQ(0.91f, mixerTransitionResolveHandoffProgress(true, false, 0.62f, 0.91f));
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.80f;
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.80f, 0, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.25f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.80f, 200, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.75f, 300, 300, 100, &filter);
+
+    EXPECT_FLOAT_EQ(0.80f, accepted);
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.75f, 400, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.75f, 500, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.75f, 600, 300, 100, &filter);
+
+    EXPECT_FLOAT_EQ(0.75f, accepted);
+}
+
+TEST(MixerTransitionPolicyTest, AirspeedProgressUsesTheConservativeEdgeOfASustainedRise)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 8.0f / 13.0f;
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 11.0f / 13.0f, 0, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 12.0f / 13.0f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 1.0f, 200, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 1.0f, 300, 300, 100, &filter);
+
+    EXPECT_FLOAT_EQ(11.0f / 13.0f, accepted);
+}
+
+TEST(MixerTransitionPolicyTest, AirspeedProgressUsesTheConservativeEdgeOfASustainedFall)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.80f;
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.75f, 0, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.60f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.50f, 200, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.45f, 300, 300, 100, &filter);
+
+    EXPECT_FLOAT_EQ(0.75f, accepted);
+}
+
+TEST(MixerTransitionPolicyTest, ConfirmedMcToFwAirspeedLossRestoresScalesTogether)
+{
+    const mixerTransitionScaleState_t beforeLoss = mixerTransitionComputeScales(
+        true,
+        MIXERAT_DIRECTION_TO_FW,
+        0.20f,
+        0.30f,
+        0.40f,
+        0.80f,
+        0.65f);
+    const mixerTransitionScaleState_t afterLoss = mixerTransitionComputeScales(
+        true,
+        MIXERAT_DIRECTION_TO_FW,
+        0.20f,
+        0.30f,
+        0.40f,
+        0.60f,
+        0.65f);
+
+    EXPECT_FLOAT_EQ(beforeLoss.pusherScale, afterLoss.pusherScale);
+    EXPECT_GT(afterLoss.liftScale, beforeLoss.liftScale);
+    EXPECT_GT(afterLoss.mcAuthorityScale, beforeLoss.mcAuthorityScale);
+    EXPECT_LT(afterLoss.fwAuthorityScale, beforeLoss.fwAuthorityScale);
+}
+
+TEST(MixerTransitionPolicyTest, TimerFallbackIsMonotonicAndResetsAirspeedHistory)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.40f;
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.90f, 0, 300, 100, &filter);
+    EXPECT_TRUE(filter.active);
+
+    accepted = mixerTransitionResolveHandoffProgress(true, false, accepted, 0.55f, 100, 300, 100, &filter);
+    EXPECT_FLOAT_EQ(0.55f, accepted);
+    EXPECT_FALSE(filter.active);
+
+    accepted = mixerTransitionResolveHandoffProgress(true, false, accepted, 0.45f, 200, 300, 100, &filter);
+    EXPECT_FLOAT_EQ(0.55f, accepted);
+}
+
+TEST(MixerTransitionPolicyTest, ReturningAirspeedNeedsANewConfirmationWindow)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = mixerTransitionResolveHandoffProgress(true, false, 0.60f, 0.60f, 0, 300, 100, &filter);
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.30f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.30f, 300, 300, 100, &filter);
+    EXPECT_FLOAT_EQ(0.60f, accepted);
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.30f, 400, 300, 100, &filter);
+    EXPECT_FLOAT_EQ(0.30f, accepted);
+}
+
+TEST(MixerTransitionPolicyTest, InterruptedAirspeedSamplesRestartConfirmation)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.40f;
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.80f, 0, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.80f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.80f, 500, 300, 100, &filter);
+
+    EXPECT_FLOAT_EQ(0.40f, accepted);
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.80f, 700, 300, 100, &filter);
+    EXPECT_FLOAT_EQ(0.40f, accepted);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.80f, 800, 300, 100, &filter);
+    EXPECT_FLOAT_EQ(0.80f, accepted);
+}
+
+TEST(MixerTransitionPolicyTest, DynamicScalingOffAndTimerOnlyKeepExistingBehavior)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionResolveHandoffProgress(
+        false, true, 0.25f, 0.10f, 0, 300, 100, &filter));
+    EXPECT_TRUE(filter.active);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+
+    EXPECT_FLOAT_EQ(0.65f, mixerTransitionResolveHandoffProgress(
+        true, false, 0.50f, 0.65f, 100, 300, 100, &filter));
+    EXPECT_FALSE(filter.active);
+}
+
+TEST(MixerTransitionPolicyTest, DynamicScalingOffStillRejectsAnEndpointSpike)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.0f;
+
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 0.80f, 0, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.00f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 0.80f, 200, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.00f, 300, 300, 100, &filter);
+
+    EXPECT_FLOAT_EQ(1.0f, accepted);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+}
+
+TEST(MixerTransitionPolicyTest, AirspeedEndpointConfirmationRestartsAfterTimerFallback)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.0f;
+
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 0, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, false, accepted, 0.2f, 200, 300, 100, &filter);
+    EXPECT_FALSE(filter.active);
+
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 300, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 400, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 500, 300, 100, &filter);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 600, 300, 100, &filter);
+    EXPECT_TRUE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+}
+
+TEST(MixerTransitionPolicyTest, AirspeedConfirmationHandlesMillisWraparound)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.0f;
+    const timeMs_t startTime = UINT32_MAX - 150U;
+
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, startTime, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, startTime + 100U, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, startTime + 200U, 300, 100, &filter);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, startTime + 300U, 300, 100, &filter);
+    EXPECT_TRUE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+}
+
+TEST(MixerTransitionPolicyTest, RecentAirspeedSampleSuppressesOnlyBriefSourceDropouts)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = mixerTransitionResolveHandoffProgress(
+        false, true, 0.0f, 0.5f, 100, 300, 100, &filter);
+
+    EXPECT_FLOAT_EQ(1.0f, accepted);
+    EXPECT_TRUE(mixerTransitionAirspeedProgressHasRecentSample(&filter, 200, 300));
+    EXPECT_TRUE(mixerTransitionAirspeedProgressHasRecentSample(&filter, 399, 300));
+    EXPECT_FALSE(mixerTransitionAirspeedProgressHasRecentSample(&filter, 400, 300));
+
+    mixerTransitionResetAirspeedProgressFilter(&filter);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressHasRecentSample(&filter, 200, 300));
+}
+
+TEST(MixerTransitionPolicyTest, FwToMcAirspeedProgressUsesTheSameSpikeFilter)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.0f;
+    bool startCaptured = false;
+    float startAirspeedCmS = 0.0f;
+    const float samples[] = { 1400.0f, 1200.0f, 1000.0f, 800.0f };
+
+    for (uint32_t i = 0; i < 4; i++) {
+        const mixerTransitionHotSwitchProgress_t raw = mixerTransitionEvaluateHotSwitch(
+            MIXERAT_DIRECTION_TO_MC,
+            800,
+            true,
+            samples[i],
+            startCaptured,
+            startAirspeedCmS,
+            i * 100,
+            5000);
+        startCaptured = raw.transitionStartAirspeedCaptured;
+        startAirspeedCmS = raw.transitionStartAirspeedCmS;
+        accepted = mixerTransitionResolveHandoffProgress(
+            true, raw.usedAirspeed, accepted, raw.progress, i * 100, 300, 100, &filter);
+    }
+
+    EXPECT_FLOAT_EQ(0.0f, accepted);
+
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 1.0f, 400, 300, 100, &filter);
+    EXPECT_NEAR(1.0f / 3.0f, accepted, 0.0001f);
 }
 
 TEST(MixerTransitionPolicyTest, MotorRampProgressFallsBackToFullWhenDisabledOrZeroRamp)
@@ -442,48 +673,36 @@ TEST(MixerTransitionPolicyTest, HotSwitchUsesAirspeedWhenAvailableForMcToFw)
     EXPECT_FLOAT_EQ(1.0f, progress.progress);
 }
 
-TEST(MixerTransitionPolicyTest, AirspeedHotSwitchRequiresConfirmationWindow)
+TEST(MixerTransitionPolicyTest, AirspeedEndpointUsesTheConfirmedProgressWindow)
 {
-    EXPECT_FALSE(mixerTransitionAirspeedHotSwitchConfirmed(
-        true,
-        true,
-        true,
-        100,
-        300));
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.0f;
 
-    EXPECT_TRUE(mixerTransitionAirspeedHotSwitchConfirmed(
-        true,
-        true,
-        true,
-        300,
-        300));
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 0, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 200, 300, 100, &filter);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 300, 300, 100, &filter);
+    EXPECT_TRUE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+    EXPECT_FLOAT_EQ(1.0f, accepted);
 }
 
-TEST(MixerTransitionPolicyTest, AirspeedHotSwitchConfirmationRejectsSpikeBeforeTimerStarts)
+TEST(MixerTransitionPolicyTest, AirspeedEndpointRejectsABriefDropBelowThreshold)
 {
-    EXPECT_FALSE(mixerTransitionAirspeedHotSwitchConfirmed(
-        true,
-        true,
-        false,
-        0,
-        300));
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    float accepted = 0.0f;
 
-    EXPECT_FALSE(mixerTransitionAirspeedHotSwitchConfirmed(
-        true,
-        false,
-        true,
-        500,
-        300));
-}
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 1.0f, 0, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 0.95f, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 1.0f, 200, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 1.0f, 300, 300, 100, &filter);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
 
-TEST(MixerTransitionPolicyTest, TimerBasedHotSwitchDoesNotNeedAirspeedConfirmation)
-{
-    EXPECT_TRUE(mixerTransitionAirspeedHotSwitchConfirmed(
-        false,
-        true,
-        false,
-        0,
-        300));
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 1.0f, 400, 300, 100, &filter);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+    accepted = mixerTransitionResolveHandoffProgress(true, true, accepted, 1.0f, 500, 300, 100, &filter);
+    EXPECT_TRUE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
 }
 
 TEST(MixerTransitionPolicyTest, HotSwitchWithoutAirspeedCompletesImmediatelyWhenTimerIsZero)
@@ -547,6 +766,90 @@ TEST(MixerTransitionPolicyTest, HotSwitchCapturesAndReusesStartAirspeedForFwToMc
 
     EXPECT_TRUE(progress.readyForHotSwitch);
     EXPECT_FLOAT_EQ(1.0f, progress.progress);
+}
+
+TEST(MixerTransitionPolicyTest, FwToMcProgressLeavesEndpointIfSpeedRisesAfterStartingBelowThreshold)
+{
+    mixerTransitionAirspeedProgressFilter_t filter = {};
+    mixerTransitionHotSwitchProgress_t progress = mixerTransitionEvaluateHotSwitch(
+        MIXERAT_DIRECTION_TO_MC,
+        850,
+        true,
+        800.0f,
+        false,
+        0.0f,
+        0,
+        5000);
+
+    EXPECT_TRUE(progress.readyForHotSwitch);
+    EXPECT_FLOAT_EQ(1.0f, progress.progress);
+
+    float accepted = mixerTransitionResolveHandoffProgress(
+        false, progress.usedAirspeed, 0.0f, progress.progress, 0, 300, 100, &filter);
+
+    progress = mixerTransitionEvaluateHotSwitch(
+        MIXERAT_DIRECTION_TO_MC,
+        850,
+        true,
+        1000.0f,
+        progress.transitionStartAirspeedCaptured,
+        progress.transitionStartAirspeedCmS,
+        100,
+        5000);
+
+    EXPECT_FALSE(progress.readyForHotSwitch);
+    EXPECT_LT(progress.progress, 1.0f);
+
+    accepted = mixerTransitionResolveHandoffProgress(
+        false, progress.usedAirspeed, accepted, progress.progress, 100, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 200, 300, 100, &filter);
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 300, 300, 100, &filter);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 400, 300, 100, &filter);
+    EXPECT_FALSE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+    accepted = mixerTransitionResolveHandoffProgress(false, true, accepted, 1.0f, 500, 300, 100, &filter);
+    EXPECT_TRUE(mixerTransitionAirspeedProgressEndpointConfirmed(&filter));
+}
+
+TEST(MixerTransitionPolicyTest, AirspeedEndpointProgressMatchesTheHotSwitchConditionInBothDirections)
+{
+    const float airspeedsCmS[] = { 0.0f, 800.0f, 850.0f, 851.0f, 1000.0f, 1600.0f };
+
+    for (const float airspeedCmS : airspeedsCmS) {
+        const mixerTransitionHotSwitchProgress_t toFw = mixerTransitionEvaluateHotSwitch(
+            MIXERAT_DIRECTION_TO_FW,
+            850,
+            true,
+            airspeedCmS,
+            false,
+            0.0f,
+            0,
+            5000);
+        EXPECT_EQ(toFw.readyForHotSwitch, toFw.progress >= 1.0f);
+
+        const mixerTransitionHotSwitchProgress_t toMcFromAbove = mixerTransitionEvaluateHotSwitch(
+            MIXERAT_DIRECTION_TO_MC,
+            850,
+            true,
+            airspeedCmS,
+            true,
+            1600.0f,
+            0,
+            5000);
+        EXPECT_EQ(toMcFromAbove.readyForHotSwitch, toMcFromAbove.progress >= 1.0f);
+
+        const mixerTransitionHotSwitchProgress_t toMcFromBelow = mixerTransitionEvaluateHotSwitch(
+            MIXERAT_DIRECTION_TO_MC,
+            850,
+            true,
+            airspeedCmS,
+            true,
+            800.0f,
+            0,
+            5000);
+        EXPECT_EQ(toMcFromBelow.readyForHotSwitch, toMcFromBelow.progress >= 1.0f);
+    }
 }
 
 TEST(MixerTransitionPolicyTest, PostSwitchFadeMaskCapturesOldLiftAndNewPusherButNotSharedTiltMotors)

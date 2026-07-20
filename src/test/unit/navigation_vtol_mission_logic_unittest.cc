@@ -136,6 +136,108 @@ TEST(NavigationVtolMissionLogicTest, StartValidationAllowsValidTransitionStart)
             true));
 }
 
+TEST(NavigationVtolMissionLogicTest, SuccessfulMissionToFixedWingAdvancesPlainWaypointAfterClimb)
+{
+    const bool acceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
+        true,
+        true,
+        100,
+        12000.0f,
+        12000.0f);
+
+    EXPECT_TRUE(navMissionShouldAdvanceWaypointAfterTransition(
+        acceptedForAdvance,
+        true,
+        100,
+        12680.0f,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, SuccessfulMissionToMultirotorAdvancesPlainWaypointAfterClimb)
+{
+    const bool acceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
+        true,
+        true,
+        100,
+        12000.0f,
+        12000.0f);
+
+    EXPECT_TRUE(navMissionShouldAdvanceWaypointAfterTransition(
+        acceptedForAdvance,
+        true,
+        100,
+        13290.0f,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MissionTransitionDoesNotAdvanceBelowEnforcedAltitude)
+{
+    const bool acceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
+        true,
+        true,
+        100,
+        12000.0f,
+        12000.0f);
+
+    EXPECT_FALSE(navMissionShouldAdvanceWaypointAfterTransition(
+        acceptedForAdvance,
+        true,
+        100,
+        11899.0f,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MissionTransitionStartedBelowEnforcedAltitudeDoesNotLatchWaypoint)
+{
+    EXPECT_FALSE(navMissionTransitionWaypointAcceptedForAdvance(
+        true,
+        true,
+        100,
+        11899.0f,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MissionTransitionKeepsLegacyAdvanceWhenAltitudeEnforcementIsDisabled)
+{
+    const bool acceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
+        true,
+        true,
+        0,
+        11000.0f,
+        12000.0f);
+
+    EXPECT_TRUE(navMissionShouldAdvanceWaypointAfterTransition(
+        acceptedForAdvance,
+        true,
+        0,
+        11000.0f,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, MissionTransitionDoesNotAdvanceHoldWaypointOrAbort)
+{
+    const bool holdWaypointAccepted = navMissionTransitionWaypointAcceptedForAdvance(
+        true,
+        false,
+        100,
+        12000.0f,
+        12000.0f);
+
+    EXPECT_FALSE(navMissionShouldAdvanceWaypointAfterTransition(
+        holdWaypointAccepted,
+        true,
+        100,
+        12680.0f,
+        12000.0f));
+
+    EXPECT_FALSE(navMissionShouldAdvanceWaypointAfterTransition(
+        true,
+        false,
+        100,
+        12680.0f,
+        12000.0f));
+}
+
 TEST(NavigationVtolMissionLogicTest, MissionTransitionSuppressesWaypointFallbackOnlyWhileInProgress)
 {
     EXPECT_TRUE(navMissionVtolTransitionSuppressesWaypointRestartGuard(true));
