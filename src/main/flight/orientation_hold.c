@@ -857,7 +857,16 @@ void orientationHoldResetSourceTracking(void)
         activeTargetSource = OHOLD_SOURCE_NONE;
     }
     exitSlewActive = false;
-    floorLatchedSource = OHOLD_SOURCE_NONE;   // disarm/mode-exit hygiene
+    // The floor latch must OUTLIVE the hold going un-requested. The latch is
+    // the REASON the hold is un-requested (it blocks the interrupted box), and
+    // fc_core calls this whenever ORIENTATION_HOLD_MODE is inactive - so
+    // clearing it here let the interrupted box re-engage the instant the
+    // recovery ended: the fly-up / fall-back loop. It clears only when the
+    // pilot DESELECTS the latched mode (orientationHoldFloorLatchTick) or on
+    // disarm - never just because the latch made the hold un-requested.
+    if (!ARMING_FLAG(ARMED)) {
+        floorLatchedSource = OHOLD_SOURCE_NONE;
+    }
 
     // leaving the mode ends every learning regime: freeze the learned
     // gains (landing straight out of a hold and disarming must not lose them)
