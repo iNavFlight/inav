@@ -509,6 +509,8 @@ typedef struct {
     float                       wpInitialDistance;          // Distance when starting flight to WP
     float                       wpDistance;                 // Distance to active WP
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
+    uint16_t                    wpReachedSeq;               // Last reached mission item sequence relative to startWpIndex
+    bool                        wpReachedNotificationPending;
     bool                        wpAltitudeReached;          // WP altitude achieved
     bool                        wpAltitudeEnforceActive;    // WP entered altitude enforcement window
     bool                        wpAltitudeEnforceFromStart; // First MC WP is climbing before horizontal travel
