@@ -149,21 +149,6 @@ void taskSystem(timeUs_t currentTimeUs)
 #else
     UNUSED(currentTimeUs);
 
-#if defined(SITL_BUILD)
-    if (sitlLoadWindowStartUs == 0) {
-        sitlLoadWindowStartUs = currentTimeUs;
-        sitlLoadBusyTimeUs = 0;
-        return;
-    }
-
-    const timeDelta_t elapsedUs = cmpTimeUs(currentTimeUs, sitlLoadWindowStartUs);
-    if (elapsedUs > 0) {
-        const timeUs_t loadPercent = (100U * sitlLoadBusyTimeUs) / (timeUs_t)elapsedUs;
-        averageSystemLoadPercent = loadPercent > 100U ? 100U : (uint16_t)loadPercent;
-        sitlLoadWindowStartUs = currentTimeUs;
-        sitlLoadBusyTimeUs = 0;
-    }
-#else
     // Calculate system load
     if (totalWaitingTasksSamples > 0) {
         averageSystemLoadPercent = 100 * totalWaitingTasks / totalWaitingTasksSamples;
