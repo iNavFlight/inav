@@ -1,0 +1,231 @@
+# Building AutoComplete Cache ... Done!
+# 
+# diff all 
+
+# version
+# INAV/SITL 9.1.0 Jul 10 2026 / 12:06:40 (abfc1f39) 
+# GCC-13.4.0
+
+# start the command batch
+batch start
+
+# reset configuration to default settings
+defaults noreboot
+
+# resources
+
+# Timer overrides
+
+# Outputs [servo]
+
+# safehome
+
+# Fixed Wing Approach
+
+# geozone
+
+# geozone vertices
+
+# features
+feature TELEMETRY
+feature BLACKBOX
+feature PWM_OUTPUT_ENABLE
+
+# blackbox
+blackbox -NAV_ACC
+blackbox NAV_POS
+blackbox NAV_PID
+blackbox MAG
+blackbox ACC
+blackbox ATTI
+blackbox RC_DATA
+blackbox RC_COMMAND
+blackbox MOTORS
+blackbox -GYRO_RAW
+blackbox -PEAKS_R
+blackbox -PEAKS_P
+blackbox -PEAKS_Y
+blackbox SERVOS
+
+# Receiver: Channel map
+
+# Ports
+serial 1 1 115200 115200 0 2470000
+serial 2 256 115200 115200 460800 115200
+serial 3 256 115200 115200 115200 115200
+serial 6 33554432 115200 115200 0 115200
+serial 7 2 115200 115200 0 115200
+
+# Modes [aux]
+aux 0 0 0 1300 2100
+aux 1 1 1 1300 1700
+aux 2 53 3 1325 1725
+aux 3 11 1 1700 2100
+aux 4 10 2 1700 2100
+aux 5 28 3 1700 2100
+aux 6 31 2 1300 1700
+aux 7 3 6 1700 2100
+aux 8 27 4 1300 2100
+
+# Adjustments [adjrange]
+
+# Receiver rxrange
+
+# temp_sensor
+
+# Mission Control Waypoints [wp]
+#wp 7 valid
+wp 0 1 456392480 -743752489 5000 0 0 0 0
+wp 1 1 456445849 -743652167 5000 0 0 0 0
+wp 2 1 456443268 -743791597 5000 2100 0 0 0
+wp 3 1 456412128 -743773235 5000 1500 0 0 0
+wp 4 3 456400630 -743818396 15000 30 1500 0 0
+wp 5 1 456392518 -743756609 15000 1500 0 0 0
+wp 6 4 0 0 0 0 0 0 165
+
+# OSD [osd_layout]
+osd_layout 0 0 0 12 V
+osd_layout 0 1 2 1 V
+osd_layout 0 2 0 0 V
+osd_layout 0 3 8 6 V
+osd_layout 0 9 2 5 V
+osd_layout 0 13 23 7 V
+osd_layout 0 15 22 6 V
+osd_layout 0 23 24 1 V
+osd_layout 0 26 23 8 V
+osd_layout 0 32 2 2 V
+osd_layout 0 110 0 9 V
+osd_layout 0 129 10 1 V
+osd_layout 0 144 11 14 V
+osd_layout 0 145 22 2 V
+osd_layout 0 159 0 10 V
+
+# Programming: logic
+
+# Programming: global variables
+
+# Programming: PID controllers
+
+# OSD: custom elements
+
+# master
+set gyro_main_lpf_hz = 25
+set ins_gravity_cmss =  980.443
+set acc_hardware = FAKE
+set align_mag = CW270FLIP
+set mag_hardware = FAKE
+set baro_hardware = FAKE
+set pitot_hardware = VIRTUAL
+set receiver_type = SERIAL
+set serialrx_provider = MAVLINK
+set blackbox_rate_denom = 2
+set motor_pwm_protocol = STANDARD
+set small_angle = 180
+set applied_defaults = 3
+set airmode_type = STICK_CENTER_ONCE
+set nav_wp_radius = 800
+set nav_wp_max_safe_distance = 500
+set nav_rth_altitude = 5000
+set nav_fw_control_smoothness = 2
+set nav_fw_launch_motor_delay = 100
+set nav_fw_launch_max_altitude = 5000
+set nav_fw_launch_climb_angle = 25
+set mavlink_port1_ext_status_rate = 0
+set mavlink_autopilot_type = ARDUPILOT
+set mavlink_port1_rc_chan_rate = 0
+set mavlink_port1_pos_rate = 0
+set mavlink_port1_extra1_rate = 0
+set mavlink_port1_extra2_rate = 0
+set mavlink_port1_extra3_rate = 0
+set mavlink_port1_min_txbuffer = 0
+set mavlink_port2_min_txbuffer = 0
+set mavlink_port3_min_txbuffer = 0
+set mavlink_port4_min_txbuffer = 0
+set osd_video_system = PAL
+
+# control_profile
+control_profile 1
+
+set fw_p_pitch = 15
+set fw_i_pitch = 5
+set fw_d_pitch = 5
+set fw_ff_pitch = 80
+set fw_p_roll = 15
+set fw_i_roll = 3
+set fw_d_roll = 7
+set fw_p_yaw = 50
+set fw_i_yaw = 0
+set fw_d_yaw = 20
+set fw_ff_yaw = 255
+set dterm_lpf_hz = 10
+set fw_turn_assist_pitch_gain =  0.400
+set nav_fw_pos_z_p = 22
+set nav_fw_pos_z_i = 6
+set nav_fw_pos_z_d = 2
+set nav_fw_pos_xy_p = 55
+set d_boost_min =  1.000
+set d_boost_max =  1.000
+set tpa_rate = 80
+set rc_expo = 30
+set rc_yaw_expo = 30
+set roll_rate = 18
+set pitch_rate = 9
+set yaw_rate = 3
+
+# control_profile
+control_profile 2
+
+
+# control_profile
+control_profile 3
+
+
+# mixer_profile
+mixer_profile 1
+
+set platform_type = AIRPLANE
+set has_flaps = ON
+set model_preview_type = 14
+
+# Mixer: motor mixer
+
+mmix reset
+
+mmix 0  1.000  0.000  0.000  0.000
+
+# Mixer: servo mixer
+smix reset
+
+smix 0 1 1 100 0 -1
+smix 1 2 0 100 0 -1
+smix 2 3 0 100 0 -1
+smix 3 4 2 100 0 -1
+
+# mixer_profile
+mixer_profile 2
+
+
+# Mixer: motor mixer
+
+# Mixer: servo mixer
+
+# battery_profile
+battery_profile 1
+
+set throttle_idle =  5.000
+
+# battery_profile
+battery_profile 2
+
+
+# battery_profile
+battery_profile 3
+
+
+# restore original profile selection
+control_profile 1
+mixer_profile 1
+battery_profile 1
+
+# save configuration
+save
