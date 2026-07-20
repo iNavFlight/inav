@@ -138,23 +138,34 @@ it as "hold whatever I'm doing" for improvised 3D.
 
 ### FLOOR (altitude safety floor)
 
-Problem being solved: practicing low 3D means a mistake reaches the
-ground before you do.
+Problem being solved: this is the PANIC net. Practicing low 3D, a bad
+moment ends at the ground - the aircraft dives and the pilot, in the
+panic, forgets to flip the aerobatic mode switch back to normal. The
+floor is what saves the airframe: whatever mode is selected - any hold,
+any figure, a flat spin - sinking through the floor line switches the
+aerobatic mode OUT and flies a normal, stable, upright attitude that
+pulls up and away from the ground. A stable flight attitude is the thing
+that prevents the crash; the floor just makes the aircraft take one.
 
 - Set the floor with `alt_floor_altitude` (meters above home). The
   floor ARMS only after you have climbed above floor + margin once, so
   switching it on before takeoff never grabs the aircraft.
-- A predicted breach (sink rate looked ahead a few seconds) engages an
-  automatic upright + climb recovery that OVERRIDES the selected mode.
-  It catches out of a dive with the elevator still held, and out of a
-  spin.
+- Sinking THROUGH the floor line is the trigger - no prediction, the
+  crossing fires it - and engages an automatic upright + climb recovery
+  that OVERRIDES the selected aerobatic mode. It catches out of a dive
+  with the elevator still held, and out of a spin.
 - The recovery brings its own energy: a throttle floor of cruise +
   pitch compensation, the motor keeps running through a panic-chopped
   stick, and held roll/pitch sticks are ignored (they used to drag the
   recovery target down). Yaw stays live for steering.
-- The climb ends at floor + `alt_floor_margin`. To take over earlier:
-  center the sticks once, then any fresh roll/pitch input hands control
-  back immediately. Switching the box off always ends it.
+- The catch LATCHES the aerobatic mode out: the interrupted mode stays
+  locked until the pilot moves the flight-mode switch away and back - a
+  forgotten or held-on switch cannot drop the aircraft straight back
+  into the ground.
+- The climb ends at floor + `alt_floor_margin`; back above it and
+  climbing, control returns. To take over earlier: center the sticks
+  once, then any fresh roll/pitch input hands control back immediately.
+  Switching the FLOOR box off always ends it.
 
 ### Figures (F ROLL, F LOOP, F 4PT, F SEQ)
 
