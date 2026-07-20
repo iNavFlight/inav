@@ -212,7 +212,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         } else if (spikeFilterDynAdjustment || US2S(cmpTimeUs(currentTimeUs, lastValidWindEstimateUs)) > 30) {  // 30s estimate update timeout
             if (spikeFilterDynAdjustment < WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR) {
                 spikeFilterDynAdjustment++;
-                if (hasValidWindEstimate && validityScore) validityScore--;   // degrade valid estimate if update stuck too long
+                if (hasValidWindEstimate && validityScore > 0) validityScore--;   // degrade valid estimate if update stuck too long
             }
         }
 
