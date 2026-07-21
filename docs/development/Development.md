@@ -186,7 +186,7 @@ This matters most for the generated files above: if `--ours`/`--theirs` is used 
 
 ## Branching and release workflow
 
-INAV uses maintenance branches for active development and releases. **`master` is not a development branch — don't branch from it, and don't target it with a pull request.** Maintainers periodically merge the current maintenance branch (or a release-candidate branch cut from it) into `master` (e.g. "Maintenance 9.x to master" or "Release/9.1 to master") to keep it as a lagging mirror of the current major version. This is deliberate: it's a safety net for anyone who clones the repo without knowing the branch model and ends up on `master` by default — they get something that resembles a recent release rather than something arbitrarily stale or broken. It is not, however, where development happens, and contributors should always branch from and target the appropriate `maintenance-X.x` branch instead.
+INAV uses version branches for active development and releases. **`master` is not a development branch — don't branch from it, and don't target it with a pull request.** Maintainers periodically merge the current maintenance branch (or a release-candidate branch cut from it) into `master` (e.g. "Maintenance 9.x to master" or "Release/9.1 to master") to keep it as a lagging mirror of the current major version. This is deliberate: it's a safety net for anyone who clones the repo without knowing the branch model and ends up on `master` by default — they get something that resembles a recent release rather than something arbitrarily stale or broken. It is not, however, where development happens, and contributors should always branch from and target the appropriate `maintenance-X.x` branch instead.
 
 ### Branch Types
 
