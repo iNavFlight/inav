@@ -186,7 +186,7 @@ This matters most for the generated files above: if `--ours`/`--theirs` is used 
 
 ## Branching and release workflow
 
-INAV uses maintenance branches for active development and releases. **`master` is not an active development branch and is not part of the merge flow.** It was retired because merges into it were too often misused — compatible and incompatible changes ended up tangled together on the same branch, which made isolating a clean release nearly impossible. Do not branch from `master`, merge into it, or target it with a pull request.
+INAV uses maintenance branches for active development and releases. **`master` is not a development branch — don't branch from it, and don't target it with a pull request.** Maintainers periodically merge the current maintenance branch (or a release-candidate branch cut from it) into `master` (e.g. "Maintenance 9.x to master" or "Release/9.1 to master") to keep it as a lagging mirror of the current major version. This is deliberate: it's a safety net for anyone who clones the repo without knowing the branch model and ends up on `master` by default — they get something that resembles a recent release rather than something arbitrarily stale or broken. It is not, however, where development happens, and contributors should always branch from and target the appropriate `maintenance-X.x` branch instead.
 
 ### Branch Types
 
@@ -226,12 +226,12 @@ When creating a pull request, target the appropriate branch:
 1. Development occurs on the current version maintenance branch (e.g., `maintenance-9.x`)
 2. When ready for release, a release candidate is tagged from the maintenance branch
 3. Bug fixes during the RC period continue on the maintenance branch
-4. Fixes that also apply to the next major version are carried forward directly to it — see "Propagating Changes Between Branches" below. `master` plays no role in this.
+4. Fixes that also apply to the next major version are carried forward directly to it — see "Propagating Changes Between Branches" below. This is separate from, and doesn't involve, the periodic maintainer-only merges that keep `master` in sync.
 5. The cycle continues with the maintenance branch receiving new changes for the next release
 
 ### Propagating Changes Between Branches
 
-Changes needed on both the current and next major version branch flow **directly** from the current branch to the next — lower version to higher version, never through `master`. The reverse direction (merging a newer branch into an older one) is never done — it would drag months of newer development into an old release branch.
+Changes needed on both the current and next major version branch flow **directly** from the current branch to the next — lower version to higher version. This is a separate, contributor-facing flow from the periodic maintainer-only merges that keep `master` in sync (see above); developers propagating their own changes between maintenance branches never need to touch `master`. The reverse direction (merging a newer branch into an older one) is never done — it would drag months of newer development into an old release branch.
 
 **For an individual fix**, cherry-pick the specific commit:
 
@@ -248,12 +248,12 @@ git push upstream maintenance-10.x
 **Current state (example - during 9.x series):**
 - `maintenance-9.x` - Active development for INAV 9.1, 9.2, etc.
 - `maintenance-10.x` - Breaking changes for future INAV 10.0
-- `master` - Retired, not part of active development
+- `master` - Not developed on directly; periodically updated by maintainers to mirror `maintenance-9.x`
 
 **After INAV 10.0 is released:**
 - `maintenance-10.x` - Becomes active development for INAV 10.1, 10.2, etc.
 - `maintenance-11.x` - Breaking changes for future INAV 11.0
-- `master` - Still retired
+- `master` - Now mirrors `maintenance-10.x` instead
 
 ### Working with Maintenance Branches
 
