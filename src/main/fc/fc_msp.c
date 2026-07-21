@@ -1726,6 +1726,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, osdConfig()->sidebar_scroll_arrows);
         sbufWriteU8(dst, osdConfig()->units);
         sbufWriteU8(dst, osdConfig()->stats_energy_unit);
+        sbufWriteU8(dst, osdConfig()->show_radar_peer_name);
 #ifdef USE_ADSB
         sbufWriteU8(dst, osdConfig()->adsb_warning_style);
 #else
@@ -3257,16 +3258,45 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
     case MSP2_COMMON_SET_RADAR_POS:
         if (dataSize == 19) {
-            const uint8_t msp_radar_no = MIN(sbufReadU8(src), RADAR_MAX_POIS - 1); // Radar poi number, 0 to 3
-            radar_pois[msp_radar_no].state = sbufReadU8(src);                      // 0=undefined, 1=armed, 2=lost
-            radar_pois[msp_radar_no].gps.lat = sbufReadU32(src);                   // lat 10E7
-            radar_pois[msp_radar_no].gps.lon = sbufReadU32(src);                   // lon 10E7
-            radar_pois[msp_radar_no].gps.alt = sbufReadU32(src);                   // altitude (cm)
-            radar_pois[msp_radar_no].heading = sbufReadU16(src);                   // °
-            radar_pois[msp_radar_no].speed = sbufReadU16(src);                     // cm/s
-            radar_pois[msp_radar_no].lq = sbufReadU8(src);                         // Link quality, from 0 to 4
-        } else
+            const uint8_t msp_radar_no = sbufReadU8(src); // Radar poi number, 0 to 5
+            if(msp_radar_no < RADAR_MAX_POIS) {
+                radar_pois[msp_radar_no].state = sbufReadU8(src);                      // 0=undefined, 1=armed, 2=lost
+
+                if (radar_pois[msp_radar_no].state == 0) {
+                    memset(radar_pois[msp_radar_no].name, 0, sizeof(radar_pois[msp_radar_no].name));
+                }
+
+                radar_pois[msp_radar_no].gps.lat = sbufReadU32(src);                   // lat 10E7
+                radar_pois[msp_radar_no].gps.lon = sbufReadU32(src);                   // lon 10E7
+                radar_pois[msp_radar_no].gps.alt = sbufReadU32(src);                   // altitude (cm)
+                radar_pois[msp_radar_no].heading = sbufReadU16(src);                   // °
+                radar_pois[msp_radar_no].speed = sbufReadU16(src);                     // cm/s
+                radar_pois[msp_radar_no].lq = sbufReadU8(src);                         // Link quality, from 0 to 4
+            }else{
+                return MSP_RESULT_ERROR;
+            }
+        } else {
             return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_COMMON_SET_RADAR_PEER_NAME:
+        if (dataSize > 3) {
+            const uint8_t msp_radar_no = sbufReadU8(src); // Radar poi number, 0 to 5
+            if (msp_radar_no < RADAR_MAX_POIS) {
+                const uint8_t msp_peer_max_length = sbufReadU8(src);
+                const uint8_t nameLength = MIN(msp_peer_max_length, (uint8_t)(sizeof(radar_pois[msp_radar_no].name)));
+
+                // clear current name, leaves the trailing '\0' in place regardless of nameLength
+                memset(radar_pois[msp_radar_no].name, 0, sizeof(radar_pois[msp_radar_no].name));
+                // ignored (no-op) if the peer's claimed length exceeds what was actually sent
+                sbufReadDataSafe(src, radar_pois[msp_radar_no].name, nameLength);
+            } else {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
         break;
 
     case MSP_SET_FEATURE:
@@ -3653,9 +3683,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_INAV_OSD_SET_PREFERENCES:
         {
             if (
-                    dataSize == 9
+                    dataSize == 10
 #ifdef USE_ADSB
-                    || dataSize == 10
+                    || dataSize == 11
 #endif
             ) {
                 osdConfigMutable()->video_system = sbufReadU8(src);
@@ -3667,8 +3697,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 osdConfigMutable()->sidebar_scroll_arrows = sbufReadU8(src);
                 osdConfigMutable()->units = sbufReadU8(src);
                 osdConfigMutable()->stats_energy_unit = sbufReadU8(src);
+                osdConfigMutable()->show_radar_peer_name = sbufReadU8(src);
 #ifdef USE_ADSB
-                if(dataSize == 10) {
+                if(dataSize == 11) {
                     osdConfigMutable()->adsb_warning_style = sbufReadU8(src);
                 }
 #endif

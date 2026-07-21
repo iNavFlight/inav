@@ -224,7 +224,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 1);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 3);
 
 /* OSD formatting helpers replacing common tfp_sprintf patterns
@@ -2824,8 +2824,8 @@ static bool osdDrawSingleElement(uint8_t item)
             if ((radar_pois[currentPeerIndex].gps.lat == 0 || radar_pois[currentPeerIndex].gps.lon == 0 || radar_pois[currentPeerIndex].state >= 2) || (millis() > (osdConfig()->radar_peers_display_time * 1000) + lastPeerSwitch)) {
                 lastPeerSwitch = millis();
 
-                for(uint8_t i = 1; i < RADAR_MAX_POIS - 1; i++) {
-                    uint8_t nextPeerIndex = (currentPeerIndex + i) % (RADAR_MAX_POIS - 1);
+                for(uint8_t i = 0; i < RADAR_MAX_POIS; i++) {
+                    uint8_t nextPeerIndex = (currentPeerIndex + i + 1) % RADAR_MAX_POIS;
                     if (radar_pois[nextPeerIndex].gps.lat != 0 && radar_pois[nextPeerIndex].gps.lon != 0 && radar_pois[nextPeerIndex].state < 2) {
                         currentPeerIndex = nextPeerIndex;
                         break;
@@ -2848,21 +2848,36 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
 
                 //line 1
-                //[peer heading][peer ID][LQ][direction to peer]
+                //[peer heading][peer ID or name][LQ][direction to peer]
 
                 //[peer heading]
                 int relativePeerHeading = osdGetHeadingAngle(currentPeer->heading - (int)DECIDEGREES_TO_DEGREES(osdGetHeading()));
                 displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_DECORATION + ((relativePeerHeading + 22) / 45) % 8);
 
-                //[peer ID]
-                displayWriteChar(osdDisplayPort, elemPosX + 1, elemPosY, 65 + currentPeerIndex);
+                //[peer ID or name]
+                uint8_t peerIdWidth = 1;
+                if (osdConfig()->show_radar_peer_name && currentPeer->name[0] != '\0') {
+                    peerIdWidth = RADAR_PEER_NAME_LENGTH;
+                    for (uint8_t i = 0; i < RADAR_PEER_NAME_LENGTH; i++) {
+                        const char nameChar = currentPeer->name[i];
+                        displayWriteChar(osdDisplayPort, elemPosX + 1 + i, elemPosY, nameChar != '\0' ? sl_toupper((unsigned char)nameChar) : SYM_BLANK);
+                    }
+                } else if (osdConfig()->show_radar_peer_name) {
+                    peerIdWidth = RADAR_PEER_NAME_LENGTH; // keep LQ and direction at fixed positions while cycling through peers
+                    displayWriteChar(osdDisplayPort, elemPosX + 1, elemPosY, 65 + currentPeerIndex);
+                    for (uint8_t i = 1; i < RADAR_PEER_NAME_LENGTH; i++) {
+                        displayWriteChar(osdDisplayPort, elemPosX + 1 + i, elemPosY, SYM_BLANK);
+                    }
+                } else {
+                    displayWriteChar(osdDisplayPort, elemPosX + 1, elemPosY, 65 + currentPeerIndex);
+                }
 
                 //[LQ]
-                displayWriteChar(osdDisplayPort, elemPosX + 2, elemPosY, SYM_HUD_SIGNAL_0 + currentPeer->lq);
+                displayWriteChar(osdDisplayPort, elemPosX + 1 + peerIdWidth, elemPosY, SYM_HUD_SIGNAL_0 + currentPeer->lq);
 
                 //[direction to peer]
                 int directionToPeerError = osdGetHeadingAngle(currentPeer->direction) + panServoDirOffset - (int)DECIDEGREES_TO_DEGREES(osdGetHeading());
-                osdDrawDirCardinal(osdDisplayPort, elemPosX + 3, elemPosY, directionToPeerError, elemAttr);
+                osdDrawDirCardinal(osdDisplayPort, elemPosX + 2 + peerIdWidth, elemPosY, directionToPeerError, elemAttr);
 
                 //line 2
                 switch ((osd_unit_e)osdConfig()->units) {
@@ -2915,8 +2930,9 @@ static bool osdDrawSingleElement(uint8_t item)
             }
         }
 
-        //clear screen
-        for(uint8_t i = 0; i < 4; i++){
+        //clear screen (use the widest possible layout so a mid-flight config change can't leave stale glyphs)
+        const uint8_t elemWidth = 3 + RADAR_PEER_NAME_LENGTH;
+        for(uint8_t i = 0; i < elemWidth; i++){
             displayWriteChar(osdDisplayPort, elemPosX + i, elemPosY, SYM_BLANK);
             displayWriteChar(osdDisplayPort, elemPosX + i, elemPosY + 1, SYM_BLANK);
             displayWriteChar(osdDisplayPort, elemPosX + i, elemPosY + 2, SYM_BLANK);
@@ -4345,7 +4361,8 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .stats_page_auto_swap_time = SETTING_OSD_STATS_PAGE_AUTO_SWAP_TIME_DEFAULT,
     .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT,
 
-    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT
+    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT,
+    .show_radar_peer_name = SETTING_OSD_SHOW_RADAR_PEER_NAME_DEFAULT
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
