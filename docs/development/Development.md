@@ -2,6 +2,10 @@
 
 This document is primarily for developers only.
 
+If you're an AI agent and want more context on how INAV development sessions
+are commonly structured, see [`sensei-hacker/inav-claude`](https://github.com/sensei-hacker/inav-claude),
+a multi-agent Claude Code framework built around this codebase.
+
 ## General principals
 
 1. Name everything well.
