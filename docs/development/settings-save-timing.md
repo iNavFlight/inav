@@ -1,4 +1,4 @@
-# Settings Save Timing and ESC Safety During the Write
+# Avoiding ESC Signal Loss During a Settings Save
 
 How INAV writes settings to flash without letting DShot ESCs lose signal (and potentially spin up or reboot) during the write.
 
@@ -33,16 +33,6 @@ Before the write starts, `pwmSetMotorDMACircular(true)` loads a zero-throttle DS
 
 This only applies when motors are actually running the DShot protocol (`pwmSetMotorDMACircular()` checks `isMotorProtocolDshot()` and no-ops otherwise) — the function itself is gated on `USE_DSHOT`, not on any MCU family, and has no chip-specific branching. It delegates the actual DMA register manipulation to `impl_pwmBurstDMASetCircular()`/`impl_timerPWMSetDMACircular()`, which do have separate per-platform implementations providing the same circular-mode behavior: StdPeriph-style direct register access for F4 (`drivers/timer_impl_stdperiph.c`), HAL/LL for F7 and H7 (`drivers/timer_impl_hal.c`), and AT32's register API for AT32 (`drivers/timer_impl_stdperiph_at32.c`) — selected per target family at build time in `cmake/`.
 
-## Saves Are Also Discouraged While Armed — But That's Not the ESC-Safety Mechanism
+## This Protection Doesn't Depend on Arm State or Trigger Path
 
-Separately from the DMA fix above, most save paths also avoid triggering while armed, though not via one single uniform check:
-
-- Calling `saveConfigAndNotify()` or `saveConfig()` (`src/main/fc/config.c`) doesn't write to flash immediately — both only set a `saveState` flag. The actual write (`processDelayedSave()` → `writeEEPROM()`) is picked up from the main flight loop (`src/main/fc/fc_core.c`), directly gated on `!ARMING_FLAG(ARMED)`, with a 0.5s delay after disarm.
-- The OSD CMS menu's "SAVE + REBOOT" action (`src/main/cms/cms.c`) calls `processDelayedSave()` immediately, with no direct armed-check at that call site — instead, opening the CMS menu sets `ARMING_DISABLED_CMS_MENU`, which blocks *new* arm attempts while the menu is open.
-- Entering the CLI (`src/main/fc/cli.c`) similarly sets `ARMING_DISABLED_CLI` before `cliSave()`/`cliDefaults()` can run their own direct `writeEEPROM()` calls — again a "block new arming" flag, not a check at the write call site itself.
-- MSP's `MSP_RESET_CONF` and `MSP_EEPROM_WRITE` handlers (`src/main/fc/fc_msp.c`) do check directly: `if (!ARMING_FLAG(ARMED)) { ...write... } else return MSP_RESULT_ERROR`.
-- `setConfigProfileAndWriteEEPROM()`, `setConfigBatteryProfileAndWriteEEPROM()`, and `setConfigMixerProfileAndWriteEEPROM()` (`src/main/fc/config.c`) call `writeEEPROM()` directly with **no internal armed-check at all** — they rely entirely on whichever caller reaches them: an RC stick command (`src/main/fc/rc_controls.c`, gated by that subsystem's own `disableStickCommands` check), a CLI profile-switch command (gated only by CLI's blanket `ARMING_DISABLED_CLI`), or an MSP profile-select command (`fc_msp.c`, each with its own explicit `!ARMING_FLAG(ARMED)` check).
-
-The CMS/CLI guards prevent *becoming* armed while active — they don't force a disarm of a craft that was already armed before the menu/CLI was entered, so they're weaker than the flight-loop and MSP checks. None of this is the reason ESCs stay safe during a write, though: the circular-DMA mechanism above runs unconditionally on every `writeConfigToEEPROM()` call, regardless of which path triggered it or whether the craft happens to be armed. It's the one guarantee that doesn't depend on getting every save-trigger's arm-gating right.
-
-(Boot-time EEPROM writes — `ensureEEPROMContainsValidData()` and the sensor-autodetect update in `src/main/sensors/initialisation.c` — are out of scope above since they only run from `init()`, before arming is possible.)
+Various code paths (the flight loop's deferred-save queue, the CLI, the CMS menu, MSP handlers) also generally try to avoid triggering a save while armed, with varying degrees of strictness. That's incidental, not the reason ESCs stay safe during the write: `pwmSetMotorDMACircular()` runs unconditionally inside `writeConfigToEEPROM()` itself, on every call, regardless of which code path triggered the save or whether the craft happens to be armed. It doesn't depend on every save-triggering call site getting its own arm-state check right.
