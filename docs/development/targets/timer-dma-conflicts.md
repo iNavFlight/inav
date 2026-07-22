@@ -25,7 +25,7 @@ DEF_TIM(TIM2, CH3, PB10, TIM_USE_OUTPUT_AUTO, 0, 0), // Also uses DMA1_Stream4!
 
 ### H7: DMAMUX (Flexible)
 
-H7 series uses DMAMUX which allows any timer to use any DMA channel - much more flexible and fewer conflicts. See `reading-schematics.md` for a real example of an H7 timer channel (`TIM15_CH2`) that has **no** DMA request line at all, which is a hardware constraint DMAMUX can't route around.
+H7 series uses DMAMUX which allows any timer to use any DMA channel - much more flexible and fewer conflicts. Still check for outright *missing* DMA request lines, though — e.g. `TIM15_CH2` has **no** DMA request line at all on H7 (only `TIM15_CH1` does, confirmed in `drivers/timer_def_stm32h7xx.h`), which is a hardware constraint DMAMUX can't route around, not a conflict to resolve.
 
 ## Detecting DMA Conflicts
 
@@ -148,14 +148,13 @@ STM32H7 uses DMAMUX which eliminates most DMA conflicts:
 - Any timer can use any DMA channel
 - Much more flexible
 - Fewer headaches for target developers
-- Conflicts still possible but rare, and some channels have no DMA request line at all regardless of DMAMUX (see `reading-schematics.md`)
+- Conflicts still possible but rare, and some channels (e.g. `TIM15_CH2`, see above) have no DMA request line at all regardless of DMAMUX
 
 ## Related Documentation
 
 - **overview.md** - Target system basics
 - **common-issues.md** - See "Timer Configuration" section for real examples
 - **creating-targets.md** - Timer setup during target creation
-- **reading-schematics.md** - DMA analysis workflow when building a target from a schematic
 - **STM32 Reference Manual** - Complete DMA tables
 
 ## External Resources

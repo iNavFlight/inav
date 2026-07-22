@@ -116,8 +116,6 @@ target.h:
 #define MPU6000_SPI_BUS         BUS_SPI1
 ```
 
-See `reading-schematics.md` for a detailed workflow when working from raw KiCad/Altium schematic files rather than a finished pinout table.
-
 ## Step 5: Create target.c (Optional)
 
 **File:** `target.c`
@@ -231,7 +229,6 @@ See `troubleshooting-guide.md` for systematic debugging.
 ## Related Documentation
 
 - **overview.md** - Target system architecture
-- **reading-schematics.md** - How to analyze manufacturer KiCad/Altium schematics and build a verified pin map before writing target.h
 - **common-issues.md** - Avoid these mistakes
 - **timer-dma-conflicts.md** - Resolve DMA conflicts
 - **troubleshooting-guide.md** - Debug issues systematically

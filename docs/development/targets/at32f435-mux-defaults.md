@@ -27,5 +27,4 @@ defined in `timer_def_at32f43x.h`. The `af` (flags) parameter in
 
 ## Related Documentation
 
-- `reading-schematics.md` — DMA analysis and general target-creation workflow
 - `timer-dma-conflicts.md` — DMA conflict theory (AT32 uses DMAMUX, similar to STM32H7)
