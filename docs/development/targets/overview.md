@@ -122,42 +122,31 @@ void targetConfiguration(void)
 
 ## How Targets Are Built
 
-1. **User selects target:** `cmake -DINAVTARGET=MATEKF722 ..`
-2. **CMake finds target directory:** `src/main/target/MATEKF722/`
-3. **CMake reads CMakeLists.txt:** Determines MCU type (F722), flash size (512KB)
-4. **Preprocessor includes target.h:** All hardware #defines become active
-5. **Build system compiles:**
+1. **CMake configures the build environment:** `cmake ..` (run once, from a `build/` directory)
+2. **User selects and builds a target:** `make MATEKF722` — target selection happens at `make` time, not via a `cmake -D...` flag
+3. **CMake finds target directory:** `src/main/target/MATEKF722/`
+4. **CMake reads CMakeLists.txt:** Determines MCU type (F722), flash size (512KB)
+5. **Preprocessor includes target.h:** All hardware #defines become active
+6. **Build system compiles:**
    - Common code uses target.h defines
    - Conditionally includes drivers based on USE_* flags
    - Links with appropriate STM32 HAL libraries
-6. **Linker creates binary:** Creates .hex/.bin files for flashing
+7. **Linker creates binary:** Creates .hex/.bin files for flashing
 
 ## Flash Memory Constraints
 
 STM32F4/F7 targets are **CRITICALLY FLASH-LIMITED**:
-- F405/F411 with 512KB → Very tight (~500KB usable)
-- F722 with 512KB → Tight, can fit most features
-- F745/H743 with 1-2MB → Comfortable
+- F411/F722 with 512KB → Very tight (~500KB usable)
+- F405 with 1MB, F745/H743 with 1-2MB → Comfortable
 
-### Flash Optimization Strategies
+`src/main/target/common.h` already gates a number of features globally by
+`MCU_FLASH_SIZE`, applied automatically to every target — see
+`common-issues.md`'s Flash Size Issues section for what that baseline
+already covers before doing any manual per-target pruning.
 
-When flash is tight, disable unused features:
-
-```c
-#undef USE_SERIALRX_FPORT      // Saves ~2-3KB
-#undef USE_VTX_SMARTAUDIO       // Saves ~2KB
-#undef USE_TELEMETRY_IBUS       // Saves ~1KB
-```
-
-Or reduce sensor support:
-```c
-// Instead of USE_BARO_ALL, support only what's present
-#define USE_BARO
-#define BARO_I2C_BUS            BUS_I2C1
-#define USE_BARO_BMP280         // Only this model
-```
-
-See `common-issues.md` for real examples from git history.
+See `common-issues.md` for manual flash-reduction techniques and real
+examples from git history, if still overflowing after the automatic
+baseline.
 
 ## Common Target Patterns
 

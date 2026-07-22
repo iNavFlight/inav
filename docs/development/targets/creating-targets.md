@@ -170,10 +170,10 @@ void targetConfiguration(void)
 
 ## Step 7: Build Target
 
-**Use inav-builder agent:**
-
-```
-Use inav-builder agent to build NEWTARGETNAME
+```bash
+cd build
+cmake ..          # only needed once, or after adding a new target directory
+make NEWTARGETNAME
 ```
 
 **Fix any build errors:**

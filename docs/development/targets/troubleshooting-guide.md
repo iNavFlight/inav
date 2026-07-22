@@ -186,8 +186,8 @@ See `common-issues.md` → "I2C Bus Configuration"
 ### Step 1: Verify Basic Build
 
 ```bash
-# Use inav-builder agent
-"Build TARGETNAME target"
+cd build
+make TARGETNAME
 # Should complete without errors
 ```
 

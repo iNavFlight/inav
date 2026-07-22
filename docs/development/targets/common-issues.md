@@ -74,10 +74,19 @@ region `FLASH' overflowed by XXXXX bytes
 
 **Detection:**
 - Build fails with overflow error
-- Target uses F405/F411 with 512KB flash
+- Target uses F411 or F722 (512KB flash) — F405 has 1MB and rarely overflows
 - Many USE_* features defined
 
-**Fixes (in order of preference):**
+**Before doing anything manually:** `src/main/target/common.h` already gates
+a number of features globally by `MCU_FLASH_SIZE`, applied to every target
+automatically — e.g. `SKIP_CLI_COMMAND_HELP` and dropping
+`USE_SERIALRX_SPEKTRUM`/`USE_TELEMETRY_SRXL` for any target at or below
+512KB, and a larger feature set (MAVLink, SUMD, HOTT, geozones, etc.) gated
+on `MCU_FLASH_SIZE > 512`. Check whether the overflow persists after that
+baseline before doing per-target manual pruning below — the automatic
+mechanism already covers the common case.
+
+**Fixes (in order of preference), if still overflowing after the above:**
 
 #### 1. Disable Unused Features
 
@@ -132,22 +141,7 @@ Changed from USE_BARO_ALL to specific barometer defines
 to save flash space on constrained target
 ```
 
-#### 3. Disable CLI Help Text
-
-Last resort - removes in-CLI help text:
-
-```c
-#define SKIP_CLI_COMMAND_HELP   // Saves ~3KB
-```
-
-**Real Example:**
-
-**Commit 447cc8f89** - Disable CLI help -> saves 3kB of flash
-```
-Added SKIP_CLI_COMMAND_HELP to save 3KB on flash-limited target
-```
-
-#### 4. Global Flash Optimizations
+#### 3. Global Flash Optimizations
 
 These are already applied globally but documented here:
 - Compiler optimization level (-Os for size)
@@ -408,42 +402,6 @@ on F7 targets with split flash layout
 
 ## Build System Issues
 
-### Problem: Wrong MCU Variant in CMakeLists.txt
-
-**Symptom:**
-- Build fails with linker errors
-- Flash size mismatched
-- Wrong peripheral definitions
-
-**Cause:** CMakeLists.txt specifies wrong STM32 variant
-
-**Detection:**
-- Check actual MCU chip markings
-- Compare flash size in error vs expected
-
-**Fix:** Correct the MCU variant
-
-```cmake
-# Wrong - chip is actually F405, not F411
-target_stm32f411ce(TARGETNAME)
-
-# Correct
-target_stm32f405rg(TARGETNAME)
-```
-
-**Common Variants:**
-- `f405rg` - F405, 1MB flash
-- `f411ce` - F411, 512KB flash
-- `f722re` - F722, 512KB flash
-- `f722xe` - F722, 512KB flash (alternate)
-- `f745vg` - F745, 1MB flash
-- `h743xi` - H743, 2MB flash
-
-**Prevention:**
-- Read MCU chip markings carefully
-- Check manufacturer's datasheet
-- Verify flash size with ST-Link utility
-
 ### Problem: Linker Script Flash Overflow
 
 **Symptom:** `.text` section overflows FLASH region
@@ -471,7 +429,7 @@ target_stm32f405rg(TARGETNAME)
 | Problem | Symptom | Quick Fix | Git Example |
 |---------|---------|-----------|-------------|
 | UART/I2C conflict | Device not working | Add `I2C_DEVICE_X_SHARES_UARTX` | 3c2c62b2b, 95a979574 |
-| Flash overflow | Build fails | Disable unused features with `#undef` | a54adea74, 447cc8f89 |
+| Flash overflow | Build fails | Disable unused features with `#undef` | a54adea74 |
 | Wrong I2C bus | Sensor not detected | Fix bus assignment | ad8d8c2ba |
 | Wrong I2C address | Specific sensor fails | Use sensor-specific address | 8533e08f1 |
 | Wrong CS pin | SPI device fails | Use actual GPIO pin | 8533e08f1 |
