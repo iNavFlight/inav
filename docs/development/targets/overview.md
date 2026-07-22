@@ -20,7 +20,7 @@ src/main/target/
 ├── MATEKF722/
 │   ├── CMakeLists.txt     # Build system integration (REQUIRED)
 │   ├── target.h           # Hardware configuration (REQUIRED)
-│   ├── target.c           # Timer definitions (optional)
+│   ├── target.c           # Timer definitions (REQUIRED for motor/servo/LED output)
 │   └── config.c           # Default settings (optional)
 ```
 
@@ -77,7 +77,7 @@ Example structure:
 #define MPU6500_SPI_BUS         BUS_SPI1
 ```
 
-### 3. target.c - Timer Definitions (OPTIONAL)
+### 3. target.c - Timer Definitions (REQUIRED for motor/servo/LED output)
 
 Defines which MCU timers control which pins for motors/servos/LEDs.
 
@@ -123,7 +123,7 @@ void targetConfiguration(void)
 ## How Targets Are Built
 
 1. **CMake configures the build environment:** `cmake ..` (run once, from a `build/` directory)
-2. **User selects and builds a target:** `make MATEKF722` — target selection happens at `make` time, not via a `cmake -D...` flag
+2. **User selects and builds a target:** `make MATEKF722` — target selection happens at `make` time
 3. **CMake finds target directory:** `src/main/target/MATEKF722/`
 4. **CMake reads CMakeLists.txt:** Determines MCU type (F722), flash size (512KB)
 5. **Preprocessor includes target.h:** All hardware #defines become active
@@ -207,7 +207,7 @@ See `common-issues.md` for more resource conflict examples.
 A target is defined by:
 1. **CMakeLists.txt** - MCU selection
 2. **target.h** - Hardware configuration
-3. **target.c** - Timer mappings (optional)
+3. **target.c** - Timer mappings (required for motor/servo/LED output)
 4. **config.c** - Default settings (optional)
 
 The build system uses these files to create firmware tailored to specific hardware.
