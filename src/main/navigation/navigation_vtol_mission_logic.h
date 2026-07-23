@@ -85,9 +85,19 @@ static inline bool navMissionTransitionWaypointAcceptedForAdvance(
             transitionStartAltitudeCm >= waypointAltitudeCm - waypointEnforceAltitudeCm);
 }
 
+static inline bool navMissionTransitionReachedTargetProfile(
+    const bool mixerAtAborted,
+    const bool forcedProfileSwitchCompleted)
+{
+    // A configured FORCE_SWITCH completes the requested profile change after
+    // an airspeed timeout, so mission handling must distinguish it from a
+    // real abort that leaves the old profile active.
+    return !mixerAtAborted || forcedProfileSwitchCompleted;
+}
+
 static inline bool navMissionShouldAdvanceWaypointAfterTransition(
     const bool waypointAcceptedForAdvance,
-    const bool transitionCompletedNormally,
+    const bool transitionReachedTargetProfile,
     const uint16_t waypointEnforceAltitudeCm,
     const float currentAltitudeCm,
     const float waypointAltitudeCm)
@@ -96,9 +106,40 @@ static inline bool navMissionShouldAdvanceWaypointAfterTransition(
     // make the aircraft loiter back down to the old waypoint, but never skip
     // a waypoint while below its enforced minimum altitude.
     return waypointAcceptedForAdvance &&
-           transitionCompletedNormally &&
+           transitionReachedTargetProfile &&
            (waypointEnforceAltitudeCm == 0 ||
             currentAltitudeCm >= waypointAltitudeCm - waypointEnforceAltitudeCm);
+}
+
+static inline bool navMissionTransitionShouldCaptureBeforeWaypointResume(
+    const bool missionTransitionActive,
+    const bool transitionSucceeded,
+    const bool transitionedToMultirotor,
+    const bool currentStateIsMultirotor,
+    const bool waypointShouldAdvance)
+{
+    // A fixed-wing model may travel well beyond the transition waypoint while
+    // it decelerates. Capture its real MC motion before trying to revisit a
+    // HOLD_TIME, LAND, or altitude-incomplete waypoint.
+    return missionTransitionActive &&
+           transitionSucceeded &&
+           transitionedToMultirotor &&
+           currentStateIsMultirotor &&
+           !waypointShouldAdvance;
+}
+
+static inline bool navMissionTransitionShouldRebaseWaypointBeforeResume(
+    const bool missionTransitionActive,
+    const bool transitionSucceeded,
+    const bool waypointShouldAdvance,
+    const bool missionCapturePending)
+{
+    // Do not let the bearing that authorized the transition immediately mark
+    // the same waypoint as reached after the new platform takes control.
+    return missionTransitionActive &&
+           transitionSucceeded &&
+           !waypointShouldAdvance &&
+           !missionCapturePending;
 }
 
 static inline bool navMissionVtolTransitionSuppressesWaypointRestartGuard(

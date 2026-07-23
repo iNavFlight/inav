@@ -238,6 +238,94 @@ TEST(NavigationVtolMissionLogicTest, MissionTransitionDoesNotAdvanceHoldWaypoint
         12000.0f));
 }
 
+TEST(NavigationVtolMissionLogicTest, ForcedFwToMcProfileSwitchAdvancesAcceptedWaypoint)
+{
+    const bool acceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
+        true,
+        true,
+        300,
+        12042.0f,
+        12000.0f);
+
+    EXPECT_TRUE(navMissionTransitionReachedTargetProfile(true, true));
+    EXPECT_TRUE(navMissionShouldAdvanceWaypointAfterTransition(
+        acceptedForAdvance,
+        navMissionTransitionReachedTargetProfile(true, true),
+        300,
+        13975.0f,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, AbortedTransitionWithoutProfileSwitchDoesNotAdvanceWaypoint)
+{
+    EXPECT_FALSE(navMissionTransitionReachedTargetProfile(true, false));
+    EXPECT_FALSE(navMissionShouldAdvanceWaypointAfterTransition(
+        true,
+        navMissionTransitionReachedTargetProfile(true, false),
+        300,
+        13975.0f,
+        12000.0f));
+}
+
+TEST(NavigationVtolMissionLogicTest, FwToMcHoldWaypointCapturesBeforeMissionResume)
+{
+    EXPECT_TRUE(navMissionTransitionShouldCaptureBeforeWaypointResume(
+        true,
+        true,
+        true,
+        true,
+        false));
+
+    EXPECT_FALSE(navMissionTransitionShouldRebaseWaypointBeforeResume(
+        true,
+        true,
+        false,
+        true));
+}
+
+TEST(NavigationVtolMissionLogicTest, McToFwHoldWaypointRebasesWithoutMultirotorCapture)
+{
+    EXPECT_FALSE(navMissionTransitionShouldCaptureBeforeWaypointResume(
+        true,
+        true,
+        false,
+        false,
+        false));
+
+    EXPECT_TRUE(navMissionTransitionShouldRebaseWaypointBeforeResume(
+        true,
+        true,
+        false,
+        false));
+}
+
+TEST(NavigationVtolMissionLogicTest, WaypointAdvanceAndAbortedTransitionSkipResumeHandling)
+{
+    EXPECT_FALSE(navMissionTransitionShouldCaptureBeforeWaypointResume(
+        true,
+        true,
+        true,
+        true,
+        true));
+    EXPECT_FALSE(navMissionTransitionShouldRebaseWaypointBeforeResume(
+        true,
+        true,
+        true,
+        false));
+
+    EXPECT_FALSE(navMissionTransitionShouldCaptureBeforeWaypointResume(
+        true,
+        false,
+        true,
+        true,
+        false));
+    EXPECT_FALSE(navMissionTransitionShouldRebaseWaypointBeforeResume(
+        true,
+        false,
+        false,
+        false));
+}
+
 TEST(NavigationVtolMissionLogicTest, MissionTransitionSuppressesWaypointFallbackOnlyWhileInProgress)
 {
     EXPECT_TRUE(navMissionVtolTransitionSuppressesWaypointRestartGuard(true));

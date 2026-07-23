@@ -393,6 +393,40 @@ TEST(MixerTransitionLogicTest, NavigationHandbackClearsForNewNavigationOrExplici
         1));
 }
 
+TEST(MixerTransitionLogicTest, NavigationOwnershipIgnoresManualTransitionInput)
+{
+    EXPECT_FALSE(mixerTransitionManualInputAllowed(true));
+    EXPECT_FALSE(mixerTransitionManualMixingRequestMayUpdate(false, false, true));
+    EXPECT_TRUE(mixerTransitionManualMixingRequestMayUpdate(false, false, false));
+
+    // Entering navigation clears a previous manual session. A physical switch
+    // movement during the mission cannot create another manual session.
+    EXPECT_EQ(MIXER_TRANSITION_MANUAL_SESSION_NONE, mixerTransitionUpdateManualSessionMode(
+        MIXER_TRANSITION_MANUAL_SESSION_AUTO,
+        false,
+        false,
+        true,
+        true));
+    EXPECT_EQ(MIXER_TRANSITION_MANUAL_SESSION_NONE, mixerTransitionUpdateManualSessionMode(
+        MIXER_TRANSITION_MANUAL_SESSION_NONE,
+        true,
+        false,
+        true,
+        true));
+}
+
+TEST(MixerTransitionLogicTest, ActiveModesReportEffectiveVtolStateInsteadOfRawSwitchState)
+{
+    EXPECT_FALSE(mixerTransitionProfile2ShouldReportActive(0));
+    EXPECT_TRUE(mixerTransitionProfile2ShouldReportActive(1));
+
+    // A transition switch in the middle position is not an active transition
+    // when navigation ignores it. Both real transition phases remain visible.
+    EXPECT_FALSE(mixerTransitionModeShouldReportActive(false, false));
+    EXPECT_TRUE(mixerTransitionModeShouldReportActive(false, true));
+    EXPECT_TRUE(mixerTransitionModeShouldReportActive(true, false));
+}
+
 TEST(MixerTransitionLogicTest, ProfileSwitchAutotransitionStartsOnlyWhenArmedAndClear)
 {
     EXPECT_TRUE(mixerTransitionProfileSwitchShouldStartAutoTransition(

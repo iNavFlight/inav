@@ -314,6 +314,11 @@ typedef struct navMixerATMissionTransition_s {
     fpVector3_t transitionHoldPos;
 } navMixerATMissionTransition_t;
 
+typedef struct navMixerATMissionCapture_s {
+    bool active;
+    vtolMcProtectionSettleState_t settle;
+} navMixerATMissionCapture_t;
+
 typedef enum {
     NAV_MIXERAT_RETRY_STAGE_IDLE = 0,
     NAV_MIXERAT_RETRY_STAGE_SCAN,
@@ -339,6 +344,7 @@ static navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
 static mixerProfileATRequest_e navMixerATRequestOverride = MIXERAT_REQUEST_NONE;
 static bool navVtolFwToMcProtectionLatched;
 static navMixerATMissionTransition_t navMixerATMissionTransition;
+static navMixerATMissionCapture_t navMixerATMissionCapture;
 #else
 static navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
 #endif
@@ -436,6 +442,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigationFSMState_t previousState);
+#ifdef USE_AUTO_TRANSITION
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_MISSION_CAPTURE(navigationFSMState_t previousState);
+#endif
 #ifdef USE_AUTO_TRANSITION
 static bool beginNavigationFwToMcProtectionTransition(void);
 #endif
@@ -1153,6 +1162,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING]          = NAV_STATE_RTH_LANDING, //switch to its pending state
 #ifdef USE_AUTO_TRANSITION
             [NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE]        = NAV_STATE_WAYPOINT_NEXT,
+            [NAV_FSM_EVENT_MIXERAT_MISSION_CAPTURE]        = NAV_STATE_MIXERAT_MISSION_CAPTURE,
             [NAV_FSM_EVENT_MIXERAT_MISSION_RESUME]         = NAV_STATE_WAYPOINT_IN_PROGRESS,
 #endif
         }
@@ -1171,6 +1181,30 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
 
         }
     },
+
+#ifdef USE_AUTO_TRANSITION
+    [NAV_STATE_MIXERAT_MISSION_CAPTURE] = {
+        .persistentId = NAV_PERSISTENT_ID_MIXERAT_MISSION_CAPTURE,
+        .onEntry = navOnEnteringState_NAV_STATE_MIXERAT_MISSION_CAPTURE,
+        .timeoutMs = 10,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_HOLD | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
+        .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
+        .mwState = MW_NAV_STATE_WP_ENROUTE,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_TIMEOUT]                        = NAV_STATE_MIXERAT_MISSION_CAPTURE,
+            [NAV_FSM_EVENT_MIXERAT_MISSION_RESUME]         = NAV_STATE_WAYPOINT_IN_PROGRESS,
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]              = NAV_STATE_ALTHOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]           = NAV_STATE_POSHOLD_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP]        = NAV_STATE_WAYPOINT_PRE_ACTION,
+        }
+    },
+#endif
 
 /** Advanced Fixed Wing Autoland **/
 #ifdef USE_FW_AUTOLAND
@@ -2393,6 +2427,63 @@ static void clearMissionVTOLTransitionState(void)
     navMixerATMissionTransition.retryStepStartTimeMs = 0;
     navMixerATMissionTransition.retryHeadingReachedTimeMs = 0;
     navMixerATMissionTransition.transitionHoldPos = navGetCurrentActualPositionAndVelocity()->pos;
+    navMixerATMissionCapture.active = false;
+    navMixerATMissionCapture.settle.stableSinceMs = 0;
+    navMixerATMissionCapture.settle.elapsedMs = 0;
+}
+
+static void startMissionVTOLTransitionCapture(void)
+{
+    navMixerATMissionCapture.active = true;
+    navMixerATMissionCapture.settle.stableSinceMs = 0;
+    navMixerATMissionCapture.settle.elapsedMs = 0;
+}
+
+static uint16_t missionVTOLTransitionHorizontalSettleLimitCmS(void)
+{
+#ifdef USE_MR_BRAKING_MODE
+    return vtolMcProtectionHorizontalSettleSpeedCmS(navConfig()->mc.braking_disengage_speed);
+#else
+    return vtolMcProtectionHorizontalSettleSpeedCmS(0);
+#endif
+}
+
+static bool missionVTOLTransitionCaptureIsReady(void)
+{
+    const bool horizontalVelocityUsable = posControl.flags.estVelStatus == EST_TRUSTED;
+    const bool verticalVelocityUsable = posControl.flags.estAltStatus >= EST_USABLE;
+    const uint16_t maxAbsAttitudeDeciDeg = MAX(ABS(attitude.values.roll), ABS(attitude.values.pitch));
+    const bool conditionsMet = vtolMcProtectionSettleConditionsMetWithFallback(
+        horizontalVelocityUsable,
+        verticalVelocityUsable,
+        posControl.actualState.velXY,
+        navGetCurrentActualPositionAndVelocity()->vel.z,
+        maxAbsAttitudeDeciDeg,
+        missionVTOLTransitionHorizontalSettleLimitCmS(),
+        vtolMcProtectionVerticalSettleSpeedCmS(navConfig()->general.land_minalt_vspd),
+        vtolMcProtectionSettleAttitudeLimitDeciDeg(navConfig()->mc.max_bank_angle));
+
+    return vtolMcProtectionUpdateSettleState(
+        &navMixerATMissionCapture.settle,
+        conditionsMet,
+        vtolMcProtectionSettleTimeMs(horizontalVelocityUsable),
+        millis());
+}
+
+static void rebaseMissionWaypointAfterTransition(void)
+{
+    const fpVector3_t actualPosition = navGetCurrentActualPositionAndVelocity()->pos;
+
+    // The transition was authorized using the old platform's bearing. Restart
+    // the waypoint geometry from the actual post-transition position instead.
+    posControl.activeWaypoint.bearing = calculateBearingToDestination(&posControl.activeWaypoint.pos);
+    posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
+    posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
+    posControl.wpAltitudeReached = false;
+    posControl.wpAltitudeEnforceActive = false;
+    posControl.wpAltitudeEnforceFromStart = false;
+    posControl.wpAltitudeEnforceHoldPos = actualPosition;
+    posControl.wpReachedTime = 0;
 }
 
 static bool navMixerATStateActive(void)
@@ -3279,7 +3370,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
     if (mixerATUpdateState(required_action)){
         // MixerAT is done, switch to next state
         bool transitionAborted = mixerATWasAborted();
-        const bool transitionCompletedNormally = !transitionAborted;
+        const bool mixerATAborted = transitionAborted;
         const bool transitionTimeout = mixerATWasAbortedByAirspeedTimeout();
         const bool missionTransitionWasActive = navMixerATMissionTransition.active;
         if (transitionAborted &&
@@ -3295,18 +3386,26 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
             return NAV_FSM_EVENT_NONE;
         }
 
-        if (transitionAborted && tryForceSwitchAfterFwToMcFailure(required_action)) {
+        const bool forcedProfileSwitchCompleted = transitionAborted &&
+            tryForceSwitchAfterFwToMcFailure(required_action);
+        if (forcedProfileSwitchCompleted) {
             transitionAborted = false;
         }
 
+        const bool transitionReachedTargetProfile = navMissionTransitionReachedTargetProfile(
+            mixerATAborted,
+            forcedProfileSwitchCompleted);
+
         navigationFSMEvent_t nextEvent = NAV_FSM_EVENT_SWITCH_TO_IDLE;
+        bool startMissionCapture = false;
+        bool rebaseMissionWaypoint = false;
         if (transitionAborted) {
             nextEvent = getTransitionFailEvent(required_action);
         } else {
             const bool advanceMissionWaypoint = missionTransitionWasActive &&
                 navMissionShouldAdvanceWaypointAfterTransition(
                     navMixerATMissionTransition.waypointAcceptedForAdvance,
-                    transitionCompletedNormally,
+                    transitionReachedTargetProfile,
                     navConfig()->general.waypoint_enforce_altitude,
                     navGetCurrentActualPositionAndVelocity()->pos.z,
                     posControl.activeWaypoint.pos.z);
@@ -3342,9 +3441,20 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
                     break;
                 case NAV_STATE_WAYPOINT_PRE_ACTION:
                     if (missionTransitionWasActive) {
+                        startMissionCapture = navMissionTransitionShouldCaptureBeforeWaypointResume(
+                            missionTransitionWasActive,
+                            !transitionAborted,
+                            required_action == MIXERAT_REQUEST_MISSION_TO_MC,
+                            STATE(MULTIROTOR),
+                            advanceMissionWaypoint);
+                        rebaseMissionWaypoint = navMissionTransitionShouldRebaseWaypointBeforeResume(
+                            missionTransitionWasActive,
+                            !transitionAborted,
+                            advanceMissionWaypoint,
+                            startMissionCapture);
                         nextEvent = advanceMissionWaypoint ?
                             NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE :
-                            NAV_FSM_EVENT_MIXERAT_MISSION_RESUME;
+                            (startMissionCapture ? NAV_FSM_EVENT_MIXERAT_MISSION_CAPTURE : NAV_FSM_EVENT_MIXERAT_MISSION_RESUME);
                     }
                     break;
                 default:
@@ -3358,6 +3468,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
         mixerATUpdateState(MIXERAT_REQUEST_ABORT);
         navMixerATRequestOverride = MIXERAT_REQUEST_NONE;
         clearMissionVTOLTransitionState();
+        if (startMissionCapture) {
+            startMissionVTOLTransitionCapture();
+        } else if (rebaseMissionWaypoint) {
+            rebaseMissionWaypointAfterTransition();
+        }
         if (nextEvent != NAV_FSM_EVENT_SWITCH_TO_IDLE) {
             setupAltitudeController();
         }
@@ -3418,6 +3533,38 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigatio
 #endif
     return NAV_FSM_EVENT_SUCCESS;
 }
+
+#ifdef USE_AUTO_TRANSITION
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_MISSION_CAPTURE(navigationFSMState_t previousState)
+{
+    UNUSED(previousState);
+
+    // Match normal waypoint navigation: capture still depends on position and
+    // heading estimates, so do not remain in it after a sensor timeout.
+    if (checkForPositionSensorTimeout() || posControl.flags.estHeadingStatus == EST_NONE) {
+        return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+    }
+
+    if (!navMixerATMissionCapture.active || !STATE(MULTIROTOR)) {
+        return NAV_FSM_EVENT_MIXERAT_MISSION_RESUME;
+    }
+
+    // Keep the target at the real vehicle position until its fixed-wing
+    // momentum has decayed. This damps velocity without rubber-banding to the
+    // transition waypoint.
+    setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos,
+        posControl.actualState.yaw,
+        NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+
+    if (!missionVTOLTransitionCaptureIsReady()) {
+        return NAV_FSM_EVENT_NONE;
+    }
+
+    navMixerATMissionCapture.active = false;
+    rebaseMissionWaypointAfterTransition();
+    return NAV_FSM_EVENT_MIXERAT_MISSION_RESUME;
+}
+#endif
 
 #ifdef USE_FW_AUTOLAND
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOITER(navigationFSMState_t previousState)
@@ -3749,6 +3896,16 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
 
         lastStateProcessTime = currentMillis;
     }
+
+#ifdef USE_AUTO_TRANSITION
+    if (navMixerATMissionCapture.active && posControl.navState != NAV_STATE_MIXERAT_MISSION_CAPTURE) {
+        // A mode/failsafe change interrupted capture. Never leak it into a
+        // later mission or navigation session.
+        navMixerATMissionCapture.active = false;
+        navMixerATMissionCapture.settle.stableSinceMs = 0;
+        navMixerATMissionCapture.settle.elapsedMs = 0;
+    }
+#endif
 
     /* Update public system state information */
     NAV_Status.mode = MW_GPS_MODE_NONE;

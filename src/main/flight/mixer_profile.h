@@ -53,6 +53,7 @@ typedef enum {
 #ifdef USE_AUTO_TRANSITION
 #define MIXER_TRANSITION_AIRSPEED_CONFIRM_MS 300
 #define MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_MS 100
+#define MIXER_TRANSITION_MC_LIFT_OUTPUT_HANDOFF_MAX_MS MIXER_TRANSITION_AIRSPEED_CONFIRM_MS
 #define MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT \
     (MIXER_TRANSITION_AIRSPEED_CONFIRM_MS / MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_MS + 1)
 
@@ -62,6 +63,8 @@ typedef struct mixerTransitionAirspeedProgressFilter_s {
     uint8_t bucketCount;
     uint8_t nextBucket;
     timeMs_t windowStartTime;
+    timeMs_t acceptedProgressUpdateTime;
+    bool acceptedProgressUpdateValid;
     float recentMinProgress;
     float recentMaxProgress;
     timeMs_t bucketStartTime[MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT];
@@ -132,6 +135,7 @@ typedef struct mixerProfileAT_s {
     float postSwitchFadeInitialScale;
     uint16_t postSwitchFadeMotorMask;
     uint16_t postSwitchFadeToCurrentMotorMask;
+    uint16_t postSwitchFadeFastToCurrentMotorMask;
     uint16_t postSwitchFadeDurationMs;
     uint16_t postSwitchFadeMotorOutput[MAX_SUPPORTED_MOTORS];
     timeMs_t postSwitchFadeStartTime;

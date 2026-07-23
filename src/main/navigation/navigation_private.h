@@ -190,12 +190,18 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
     NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
 #ifdef USE_AUTO_TRANSITION
-    // Only valid while NAV_STATE_MIXERAT_IN_PROGRESS is active. The same
-    // state-specific slots are intentionally reused by other FSM states.
+    // Only valid while MixerAT is in progress. The state-specific slots are
+    // intentionally reused by other FSM states.
     NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE = NAV_FSM_EVENT_STATE_SPECIFIC_1,
-    NAV_FSM_EVENT_MIXERAT_MISSION_RESUME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
+    NAV_FSM_EVENT_MIXERAT_MISSION_CAPTURE = NAV_FSM_EVENT_STATE_SPECIFIC_2,
 #endif
     NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_5,
+
+#ifdef USE_AUTO_TRANSITION
+    // Capture must also accept MSP waypoint jumps, which already use state
+    // specific slot 4. Keep resume distinct so those events cannot alias.
+    NAV_FSM_EVENT_MIXERAT_MISSION_RESUME,
+#endif
 
     NAV_FSM_EVENT_COUNT,
 } navigationFSMEvent_t;
@@ -267,7 +273,8 @@ typedef enum {
 
     NAV_PERSISTENT_ID_SEND_TO_INITALIZE                         = 49,
     NAV_PERSISTENT_ID_SEND_TO_IN_PROGRES                        = 50,
-    NAV_PERSISTENT_ID_SEND_TO_FINISHED                          = 51
+    NAV_PERSISTENT_ID_SEND_TO_FINISHED                          = 51,
+    NAV_PERSISTENT_ID_MIXERAT_MISSION_CAPTURE                  = 52,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -326,6 +333,7 @@ typedef enum {
     NAV_STATE_MIXERAT_INITIALIZE,
     NAV_STATE_MIXERAT_IN_PROGRESS,
     NAV_STATE_MIXERAT_ABORT,
+    NAV_STATE_MIXERAT_MISSION_CAPTURE,
 
     NAV_STATE_SEND_TO_INITALIZE,
     NAV_STATE_SEND_TO_IN_PROGESS,

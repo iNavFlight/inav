@@ -11,6 +11,20 @@ typedef enum {
     MIXER_TRANSITION_MANUAL_SESSION_AUTO,
 } mixerTransitionManualSessionMode_e;
 
+static inline bool mixerTransitionProfile2ShouldReportActive(int currentProfileIndex)
+{
+    return currentProfileIndex > 0;
+}
+
+static inline bool mixerTransitionModeShouldReportActive(
+    bool autoTransitionActive,
+    bool transitionMixingActive)
+{
+    // Active Modes reports the effective output state, not the position of a
+    // switch that may currently be ignored by navigation.
+    return autoTransitionActive || transitionMixingActive;
+}
+
 #ifdef USE_AUTO_TRANSITION
 typedef struct {
     bool readyForHotSwitch;
@@ -31,6 +45,7 @@ typedef struct {
 typedef struct {
     uint16_t motorMask;
     uint16_t toCurrentMotorMask;
+    uint16_t fastToCurrentMotorMask;
 } mixerTransitionPostSwitchFadeMask_t;
 #endif
 
@@ -203,6 +218,23 @@ static inline bool mixerTransitionNavigationOwnsProfileSwitch(
     return armed &&
            vtolProfilePairConfigured &&
            (navWaypointActive || navRthActive || navLandingActive || navMixerAtActive);
+}
+
+static inline bool mixerTransitionManualInputAllowed(bool navigationOwnsProfileSwitch)
+{
+    // The RC modes remain visible to the pilot, but navigation-owned VTOL
+    // transitions must not inherit a transient middle switch position.
+    return !navigationOwnsProfileSwitch;
+}
+
+static inline bool mixerTransitionManualMixingRequestMayUpdate(
+    bool failsafeActive,
+    bool autoTransitionActive,
+    bool navigationOwnsProfileSwitch)
+{
+    return !failsafeActive &&
+           !autoTransitionActive &&
+           mixerTransitionManualInputAllowed(navigationOwnsProfileSwitch);
 }
 
 static inline bool mixerTransitionProfileSwitchShouldStartAutoTransition(
@@ -387,7 +419,7 @@ static inline int16_t mixerTransitionRoundFloatToInt16(float value)
     return (int16_t)(value >= 0.0f ? value + 0.5f : value - 0.5f);
 }
 
-static inline void mixerTransitionResetAirspeedProgressFilter(mixerTransitionAirspeedProgressFilter_t *filter)
+static inline void mixerTransitionClearAirspeedProgressConfirmation(mixerTransitionAirspeedProgressFilter_t *filter)
 {
     if (!filter) {
         return;
@@ -400,6 +432,48 @@ static inline void mixerTransitionResetAirspeedProgressFilter(mixerTransitionAir
     filter->windowStartTime = 0;
     filter->recentMinProgress = 0.0f;
     filter->recentMaxProgress = 0.0f;
+}
+
+static inline void mixerTransitionResetAirspeedProgressFilter(mixerTransitionAirspeedProgressFilter_t *filter)
+{
+    if (!filter) {
+        return;
+    }
+
+    mixerTransitionClearAirspeedProgressConfirmation(filter);
+    filter->acceptedProgressUpdateTime = 0;
+    filter->acceptedProgressUpdateValid = false;
+}
+
+static inline float mixerTransitionSlewAcceptedProgress(
+    float acceptedProgress,
+    float targetProgress,
+    timeMs_t currentTimeMs,
+    uint16_t durationMs,
+    bool holdAtFirstUpdate,
+    mixerTransitionAirspeedProgressFilter_t *filter)
+{
+    if (!filter || durationMs == 0) {
+        return targetProgress;
+    }
+
+    if (!filter->acceptedProgressUpdateValid) {
+        filter->acceptedProgressUpdateTime = currentTimeMs;
+        filter->acceptedProgressUpdateValid = true;
+        return holdAtFirstUpdate ? acceptedProgress : targetProgress;
+    }
+
+    const uint32_t elapsedMs = currentTimeMs - filter->acceptedProgressUpdateTime;
+    filter->acceptedProgressUpdateTime = currentTimeMs;
+    const float maximumStep = (float)elapsedMs / (float)durationMs;
+
+    if (targetProgress > acceptedProgress) {
+        const float nextProgress = acceptedProgress + maximumStep;
+        return nextProgress < targetProgress ? nextProgress : targetProgress;
+    }
+
+    const float nextProgress = acceptedProgress - maximumStep;
+    return nextProgress > targetProgress ? nextProgress : targetProgress;
 }
 
 static inline bool mixerTransitionAirspeedProgressEndpointConfirmed(
@@ -440,11 +514,19 @@ static inline float mixerTransitionResolveHandoffProgress(
     const float clampedProgress = mixerTransitionClamp(rawProgress, 0.0f, 1.0f);
 
     if (!usedAirspeed || !filter || confirmationTimeMs == 0 || bucketTimeMs == 0) {
-        mixerTransitionResetAirspeedProgressFilter(filter);
+        mixerTransitionClearAirspeedProgressConfirmation(filter);
         if (!dynamicMixerEnabled) {
             return 1.0f;
         }
-        return previousHandoffProgress > clampedProgress ? previousHandoffProgress : clampedProgress;
+        const float timerFallbackProgress = previousHandoffProgress > clampedProgress ?
+            previousHandoffProgress : clampedProgress;
+        return mixerTransitionSlewAcceptedProgress(
+            previousHandoffProgress,
+            timerFallbackProgress,
+            currentTimeMs,
+            confirmationTimeMs,
+            false,
+            filter);
     }
 
     if (!filter->active) {
@@ -452,6 +534,9 @@ static inline float mixerTransitionResolveHandoffProgress(
         filter->bucketCount = 0;
         filter->nextBucket = 0;
         filter->windowStartTime = currentTimeMs;
+        // A returning airspeed source starts a new confirmation period. Do
+        // not use a timestamp from timer fallback to apply its result at once.
+        filter->acceptedProgressUpdateValid = false;
     }
 
     uint8_t currentBucket = filter->nextBucket == 0 ?
@@ -528,15 +613,23 @@ static inline float mixerTransitionResolveHandoffProgress(
     }
 
     // Advance only when the complete confirmation window stayed above the
-    // accepted progress, and retreat only when it stayed below it.
+    // accepted progress, and retreat only when it stayed below it.  The
+    // confirmation window can establish a large delta at once, so rate-limit
+    // the accepted value afterwards to avoid a common-mode lift step.
+    float targetProgress = acceptedProgress;
     if (recentMinProgress > acceptedProgress) {
-        return recentMinProgress;
-    }
-    if (recentMaxProgress < acceptedProgress) {
-        return recentMaxProgress;
+        targetProgress = recentMinProgress;
+    } else if (recentMaxProgress < acceptedProgress) {
+        targetProgress = recentMaxProgress;
     }
 
-    return acceptedProgress;
+    return mixerTransitionSlewAcceptedProgress(
+        acceptedProgress,
+        targetProgress,
+        currentTimeMs,
+        confirmationTimeMs,
+        true,
+        filter);
 }
 
 static inline float mixerTransitionBlendScale(float from, float to, float progress)
@@ -564,6 +657,26 @@ static inline int16_t mixerTransitionBlendCapturedMotorOutput(
     }
 
     return (int16_t)blendedOutput;
+}
+
+static inline uint16_t mixerTransitionComputePostSwitchFadeDurationMs(
+    uint16_t scaleRampTimeMs,
+    uint16_t motorMask,
+    uint16_t fastToCurrentMotorMask)
+{
+    if (scaleRampTimeMs == 0 || motorMask == 0) {
+        return 0;
+    }
+
+    // A new MC lift output is an output-continuity guard, not a deliberate
+    // slow authority fade. Do not leave the MC PID handoff sluggish merely
+    // because the user selected a long pusher/lift transition ramp.
+    if ((motorMask & ~fastToCurrentMotorMask) == 0) {
+        return scaleRampTimeMs < MIXER_TRANSITION_MC_LIFT_OUTPUT_HANDOFF_MAX_MS ?
+            scaleRampTimeMs : MIXER_TRANSITION_MC_LIFT_OUTPUT_HANDOFF_MAX_MS;
+    }
+
+    return scaleRampTimeMs;
 }
 
 static inline mixerTransitionScaleState_t mixerTransitionComputeScales(
@@ -680,7 +793,7 @@ static inline mixerTransitionPostSwitchFadeMask_t mixerTransitionComputePostSwit
     const motorMixer_t *currentMotorMixer,
     const motorMixer_t *targetMotorMixer)
 {
-    mixerTransitionPostSwitchFadeMask_t mask = { 0, 0 };
+    mixerTransitionPostSwitchFadeMask_t mask = { 0, 0, 0 };
 
     if (!dynamicMixerEnabled ||
         scaleRampTimeMs == 0 ||
@@ -705,11 +818,18 @@ static inline mixerTransitionPostSwitchFadeMask_t mixerTransitionComputePostSwit
                                          currentProfileIsMultirotor &&
                                          !currentMotorActive &&
                                          targetMotorActive;
+        const bool targetMcLiftMotor = direction == MIXERAT_DIRECTION_TO_MC &&
+                                       !currentProfileIsMultirotor &&
+                                       !currentMotorActive &&
+                                       targetMotorActive;
 
-        if (oldLiftMotor || oldPusherMotor || targetFwPusherMotor) {
+        if (oldLiftMotor || oldPusherMotor || targetFwPusherMotor || targetMcLiftMotor) {
             mask.motorMask |= (1U << i);
-            if (targetFwPusherMotor) {
+            if (targetFwPusherMotor || targetMcLiftMotor) {
                 mask.toCurrentMotorMask |= (1U << i);
+            }
+            if (targetMcLiftMotor) {
+                mask.fastToCurrentMotorMask |= (1U << i);
             }
         }
     }

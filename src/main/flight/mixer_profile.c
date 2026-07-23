@@ -173,6 +173,7 @@ void setMixerProfileAT(void)
     mixerProfileAT.postSwitchFadeInitialScale = 0.0f;
     mixerProfileAT.postSwitchFadeMotorMask = 0;
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    mixerProfileAT.postSwitchFadeFastToCurrentMotorMask = 0;
     mixerProfileAT.postSwitchFadeDurationMs = 0;
     mixerProfileAT.postSwitchFadeStartTime = 0;
     memset(mixerProfileAT.postSwitchFadeMotorOutput, 0, sizeof(mixerProfileAT.postSwitchFadeMotorOutput));
@@ -528,6 +529,7 @@ static void resetTransitionScales(void)
     mixerProfileAT.postSwitchFadeInitialScale = 0.0f;
     mixerProfileAT.postSwitchFadeMotorMask = 0;
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    mixerProfileAT.postSwitchFadeFastToCurrentMotorMask = 0;
     mixerProfileAT.postSwitchFadeDurationMs = 0;
     mixerProfileAT.postSwitchFadeStartTime = 0;
     memset(mixerProfileAT.postSwitchFadeMotorOutput, 0, sizeof(mixerProfileAT.postSwitchFadeMotorOutput));
@@ -548,6 +550,7 @@ static void setLegacyTransitionScales(void)
     mixerProfileAT.postSwitchFadeInitialScale = 0.0f;
     mixerProfileAT.postSwitchFadeMotorMask = 0;
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    mixerProfileAT.postSwitchFadeFastToCurrentMotorMask = 0;
     mixerProfileAT.postSwitchFadeDurationMs = 0;
     mixerProfileAT.postSwitchFadeStartTime = 0;
     memset(mixerProfileAT.postSwitchFadeMotorOutput, 0, sizeof(mixerProfileAT.postSwitchFadeMotorOutput));
@@ -618,6 +621,7 @@ static void preparePostSwitchFade(const int targetProfileIndex)
 {
     mixerProfileAT.postSwitchFadeMotorMask = 0;
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    mixerProfileAT.postSwitchFadeFastToCurrentMotorMask = 0;
     mixerProfileAT.postSwitchFadeProgress = 0.0f;
     mixerProfileAT.postSwitchFadeInitialScale = 0.0f;
     mixerProfileAT.postSwitchFadeDurationMs = 0;
@@ -647,6 +651,7 @@ static void preparePostSwitchFade(const int targetProfileIndex)
 
     mixerProfileAT.postSwitchFadeMotorMask = fadeMask.motorMask;
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = fadeMask.toCurrentMotorMask;
+    mixerProfileAT.postSwitchFadeFastToCurrentMotorMask = fadeMask.fastToCurrentMotorMask;
 
     for (uint8_t i = 0; i < count && i < MAX_SUPPORTED_MOTORS; i++) {
         if (mixerProfileAT.postSwitchFadeMotorMask & (1U << i)) {
@@ -658,7 +663,10 @@ static void preparePostSwitchFade(const int targetProfileIndex)
         return;
     }
 
-    mixerProfileAT.postSwitchFadeDurationMs = currentMixerConfig.vtolTransitionScaleRampTimeMs;
+    mixerProfileAT.postSwitchFadeDurationMs = mixerTransitionComputePostSwitchFadeDurationMs(
+        currentMixerConfig.vtolTransitionScaleRampTimeMs,
+        mixerProfileAT.postSwitchFadeMotorMask,
+        mixerProfileAT.postSwitchFadeFastToCurrentMotorMask);
     mixerProfileAT.postSwitchFadeInitialScale = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW ?
         constrainf(mixerProfileAT.liftScale, 0.0f, 1.0f) :
         constrainf(mixerProfileAT.pusherScale, 0.0f, 1.0f);
@@ -717,6 +725,7 @@ static bool updatePostSwitchFade(void)
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.postSwitchFadeMotorMask = 0;
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    mixerProfileAT.postSwitchFadeFastToCurrentMotorMask = 0;
     manualProfileSwitchAutoTransitionActive = false;
     return true;
 }
@@ -1111,6 +1120,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         (navStateFlags & NAV_AUTO_RTH) != 0,
         (navStateFlags & NAV_CTL_LAND) != 0,
         (navStateFlags & NAV_MIXERAT) != 0);
+    const bool manualSwitchInputAllowed = mixerTransitionManualInputAllowed(navigationOwnsProfileSwitch);
     const bool completedAutoSessionEndpointConfirmed = mixerTransitionCompletedAutoSessionEndpointConfirmed(
         manualTransitionSessionMode,
         mixerProfileAT.hotSwitchDone,
@@ -1120,12 +1130,13 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
 
     manualTransitionSessionMode = mixerTransitionUpdateManualSessionMode(
         manualTransitionSessionMode,
-        transitionModeRisingEdge,
-        transitionModeFallingEdge && !keepCompletedAutoSession,
+        transitionModeRisingEdge && manualSwitchInputAllowed,
+        transitionModeFallingEdge && manualSwitchInputAllowed && !keepCompletedAutoSession,
         manualControllerConfigured,
-        false);
+        !manualSwitchInputAllowed);
 
-    const bool directSwitchEndpointOwnsServoOutput = mixerTransitionDirectSwitchEndpointOwnsServoOutput(
+    const bool directSwitchEndpointOwnsServoOutput = manualSwitchInputAllowed &&
+        mixerTransitionDirectSwitchEndpointOwnsServoOutput(
         manualTransitionSessionMode,
         mixerAT_inuse,
         transitionModeActive,
@@ -1135,7 +1146,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         currentMixerProfileIndex,
         requestedProfileIndex);
 
-    if (transitionModeRisingEdge) {
+    if (transitionModeRisingEdge && manualSwitchInputAllowed) {
         manualFwToMcProtectionLatched = false;
     }
 
@@ -1150,7 +1161,8 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         clearServoHandoffFade();
     }
 
-    if (requestedMultirotorProfile || (!mixerAT_inuse && !STATE(MULTIROTOR))) {
+    if (manualSwitchInputAllowed &&
+        (requestedMultirotorProfile || (!mixerAT_inuse && !STATE(MULTIROTOR)))) {
         manualFwToMcProtectionLatched = false;
     }
 
@@ -1265,7 +1277,14 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
 
     if (!manualControllerEnabled) {
         // Backward-compatible manual path: level-controlled transition mixing request.
-        if (!FLIGHT_MODE(FAILSAFE_MODE) && (!mixerAT_inuse)) {
+        if (navigationOwnsProfileSwitch && !mixerAT_inuse) {
+            // A mission/RTH/landing transition owns this state. Do not leave a
+            // manual request behind when its RC switch briefly crosses middle.
+            isMixerTransitionMixing_requested = false;
+        } else if (mixerTransitionManualMixingRequestMayUpdate(
+                       FLIGHT_MODE(FAILSAFE_MODE),
+                       mixerAT_inuse,
+                       navigationOwnsProfileSwitch)) {
             isMixerTransitionMixing_requested = transitionModeActive;
             if (isMixerTransitionMixing_requested) {
                 setLegacyTransitionScales();
@@ -1584,11 +1603,21 @@ bool NOINLINE mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t id
     const int16_t capturedOutput = mixerProfileAT.postSwitchFadeMotorOutput[motorIndex];
     const bool fadeToCurrentOutput = (mixerProfileAT.postSwitchFadeToCurrentMotorMask & (1U << motorIndex)) != 0;
     const int16_t targetOutput = fadeToCurrentOutput ? currentOutput : idleOutput;
+    float progress = mixerProfileAT.postSwitchFadeProgress;
+
+    if (mixerProfileAT.postSwitchFadeFastToCurrentMotorMask & (1U << motorIndex)) {
+        const uint16_t durationMs = mixerProfileAT.postSwitchFadeDurationMs < MIXER_TRANSITION_MC_LIFT_OUTPUT_HANDOFF_MAX_MS ?
+            mixerProfileAT.postSwitchFadeDurationMs : MIXER_TRANSITION_MC_LIFT_OUTPUT_HANDOFF_MAX_MS;
+        progress = durationMs == 0 ? 1.0f : constrainf(
+            (float)(millis() - mixerProfileAT.postSwitchFadeStartTime) / (float)durationMs,
+            0.0f,
+            1.0f);
+    }
 
     *output = mixerTransitionBlendCapturedMotorOutput(
         capturedOutput,
         targetOutput,
-        mixerProfileAT.postSwitchFadeProgress);
+        progress);
     return true;
 }
 
@@ -1601,7 +1630,7 @@ float mixerATGetPostSwitchFadeProgress(void)
 bool isMixerProfile2ModeReportedActive(void)
 {
 #if (MAX_MIXER_PROFILE_COUNT > 1)
-    return currentMixerProfileIndex > 0;
+    return mixerTransitionProfile2ShouldReportActive(currentMixerProfileIndex);
 #else
     return false;
 #endif
@@ -1609,21 +1638,7 @@ bool isMixerProfile2ModeReportedActive(void)
 
 bool isMixerTransitionModeReportedActive(void)
 {
-#ifdef USE_AUTO_TRANSITION
-    // Transition is actively running in the internal controller.
-    if (mixerATIsActive()) {
-        return true;
-    }
-
-    // With manual auto-transition enabled (or session latched), treat RC as trigger only.
-    if (mixerTransitionManualControllerEnabled(currentMixerConfig.manualVtolTransitionController, manualTransitionSessionMode)) {
-        return false;
-    }
-
-    return IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION);
-#else
-    return IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION);
-#endif
+    return mixerTransitionModeShouldReportActive(mixerATIsActive(), isMixerTransitionMixing);
 }
 
 // switch mixerprofile without reboot
