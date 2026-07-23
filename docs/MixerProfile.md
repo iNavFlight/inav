@@ -420,8 +420,8 @@ For display only, reason `3` means the usable airspeed value is more than about 
 
 Final motor outputs are available in the normal Blackbox motor traces. During after-switch smoothing, the old lift or pusher motor output should move smoothly toward idle there.
 
-## TailSitter (planned for INAV 7.1)
-TailSitter is supported by add a 90deg offset to the board alignment. Set the board aliment normally in the mixer_profile for FW mode(`set platform_type = AIRPLANE`), The motor trust axis should be same direction as the airplane nose. Then, in the mixer_profile for takeoff and landing set `tailsitter_orientation_offset = ON ` to apply orientation offset. orientation offset will also add a 45deg orientation offset.
+## TailSitter
+Configure the fixed-wing mixer profile normally with `set platform_type = AIRPLANE`; the motor thrust axis should point in the same direction as the airplane nose. Configure the takeoff and landing profile as a normal multirotor profile, then set `tailsitter_orientation_offset = ON`. There is no separate `TAILSITTER` platform type. The orientation offset changes the active board/mixer orientation for the multicopter profile. While `MIXER TRANSITION` is active, INAV also applies the tailsitter's 45-degree transition target in ANGLE mode.
 
 ## Parameter list (Partial List)
 ####  Please be aware of what parameter is shared among FW/MC modes and what isn't. 
@@ -455,7 +455,7 @@ TailSitter is supported by add a 90deg offset to the board alignment. Set the bo
   - ·······
 
 ### TailSitter support
-TailSitter is supported by add a 90deg offset to the board alignment. Set the board aliment normally in the mixer_profile for FW mode(`set platform_type = AIRPLANE`), The motor trust axis should be same direction as the airplane nose. Then, in the mixer_profile for takeoff and landing `set platform_type = TAILSITTER`. The `TAILSITTER` platform type is same as `MULTIROTOR` platform type, expect for a 90 deg board alignment offset. In `TAILSITTER` mixer_profile, when motor trust/airplane nose is pointing to the sky, 'airplane bottom'/'multi rotor front' should facing forward in model preview. Set the motor/servo mixer according to multirotor orientation, Model should roll around geography's longitudinal axis, the roll axis of `TAILSITTER` will be yaw axis of `AIRPLANE`. In addition, When `MIXER TRANSITION` input is activated, a 45deg offset will be add to the target angle for angle mode.
+TailSitter uses two ordinary mixer profiles. The fixed-wing profile uses `set platform_type = AIRPLANE`, with the motor thrust axis pointing in the same direction as the airplane nose. The takeoff/landing profile uses a multirotor `platform_type` and `set tailsitter_orientation_offset = ON`; there is no `TAILSITTER` platform type. When the motor thrust/airplane nose points upward in the multicopter profile, the airplane bottom/multirotor front should face forward in the Configurator model preview. Configure motors and servos for that multirotor orientation: the aircraft's fixed-wing roll axis becomes the multicopter yaw axis. When `MIXER TRANSITION` is active, INAV adds the 45-degree tailsitter transition target for ANGLE mode.
 
 ## Happy flying
 

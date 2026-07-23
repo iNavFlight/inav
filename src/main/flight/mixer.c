@@ -332,6 +332,7 @@ static void NOINLINE prepareAutoTransitionMotorMixState(autoTransitionMotorMixSt
 {
     if (!(isMixerTransitionMixing &&
           mixerATIsActive() &&
+          mixerProfileAT.phase == MIXERAT_PHASE_TRANSITIONING &&
           mixerProfileAT.direction != MIXERAT_DIRECTION_NONE &&
           nextMixerProfileIndex >= 0 &&
           nextMixerProfileIndex < MAX_MIXER_PROFILE_COUNT)) {
@@ -848,7 +849,12 @@ void FAST_CODE mixTable(void)
         }
 #endif
         //spin stopped motors only in mixer transition mode
-        if (isMixerTransitionMixing && currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f && !feature(FEATURE_REVERSIBLE_MOTORS)) {
+        if (isMixerTransitionMixing &&
+#ifdef USE_AUTO_TRANSITION
+            mixerProfileAT.phase != MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE &&
+#endif
+            currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f &&
+            !feature(FEATURE_REVERSIBLE_MOTORS)) {
 #ifdef USE_AUTO_TRANSITION
             const float pusherTarget = -currentMixer[i].throttle * 1000.0f;
             const float pusherIdle = throttleRangeMin;

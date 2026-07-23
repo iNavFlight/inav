@@ -43,6 +43,74 @@ TEST(MixerTransitionLogicTest, AutoManualSessionStaysAutoAcrossProfileChanges)
     EXPECT_TRUE(mixerTransitionManualControllerEnabled(false, sessionMode));
 }
 
+TEST(MixerTransitionLogicTest, TailsitterPairRequiresTheOrientationOffsetOnlyInMcProfile)
+{
+    EXPECT_TRUE(mixerTransitionIsTailSitterProfilePair(
+        false, true, true,
+        true, false, false));
+
+    EXPECT_TRUE(mixerTransitionIsTailSitterProfilePair(
+        true, false, false,
+        false, true, true));
+
+    EXPECT_FALSE(mixerTransitionIsTailSitterProfilePair(
+        false, true, false,
+        true, false, false));
+
+    EXPECT_FALSE(mixerTransitionIsTailSitterProfilePair(
+        true, false, true,
+        false, true, true));
+}
+
+TEST(MixerTransitionLogicTest, TailsitterFirstVersionAllowsOnlyManualNonDynamicRequests)
+{
+    EXPECT_TRUE(mixerTransitionTailSitterRequestIsSupported(
+        MIXERAT_REQUEST_MANUAL_TO_FW, true, false, false));
+    EXPECT_TRUE(mixerTransitionTailSitterRequestIsSupported(
+        MIXERAT_REQUEST_MANUAL_TO_MC, true, false, false));
+
+    EXPECT_FALSE(mixerTransitionTailSitterRequestIsSupported(
+        MIXERAT_REQUEST_MISSION_TO_FW, true, false, false));
+    EXPECT_FALSE(mixerTransitionTailSitterRequestIsSupported(
+        MIXERAT_REQUEST_RTH, true, false, false));
+    EXPECT_FALSE(mixerTransitionTailSitterRequestIsSupported(
+        MIXERAT_REQUEST_MANUAL_TO_FW, true, true, false));
+    EXPECT_FALSE(mixerTransitionTailSitterRequestIsSupported(
+        MIXERAT_REQUEST_MANUAL_TO_MC, true, false, true));
+
+    // Non-tailsitter profile pairs preserve their existing request policy.
+    EXPECT_TRUE(mixerTransitionTailSitterRequestIsSupported(
+        MIXERAT_REQUEST_MISSION_TO_FW, false, true, true));
+}
+
+TEST(MixerTransitionLogicTest, TailsitterMcCaptureUsesTheExistingFortyFiveDegreeTarget)
+{
+    EXPECT_FALSE(mixerTransitionTailSitterCapturePitchReached(349));
+    EXPECT_TRUE(mixerTransitionTailSitterCapturePitchReached(350));
+    EXPECT_TRUE(mixerTransitionTailSitterCapturePitchReached(450));
+    EXPECT_TRUE(mixerTransitionTailSitterCapturePitchReached(550));
+    EXPECT_FALSE(mixerTransitionTailSitterCapturePitchReached(551));
+
+    EXPECT_TRUE(mixerTransitionTailSitterNeedsMcCapture(MIXERAT_REQUEST_MANUAL_TO_MC, true));
+    EXPECT_FALSE(mixerTransitionTailSitterNeedsMcCapture(MIXERAT_REQUEST_MANUAL_TO_FW, true));
+    EXPECT_FALSE(mixerTransitionTailSitterNeedsMcCapture(MIXERAT_REQUEST_MANUAL_TO_MC, false));
+}
+
+TEST(MixerTransitionLogicTest, TailsitterMcCaptureReversesThroughTheMcToFwPath)
+{
+    EXPECT_TRUE(mixerTransitionTailSitterCaptureShouldReverse(
+        true, true, false, true, 1, 0));
+
+    EXPECT_FALSE(mixerTransitionTailSitterCaptureShouldReverse(
+        true, true, true, true, 1, 0));
+    EXPECT_FALSE(mixerTransitionTailSitterCaptureShouldReverse(
+        true, true, false, false, 1, 0));
+    EXPECT_FALSE(mixerTransitionTailSitterCaptureShouldReverse(
+        true, true, false, true, 1, 1));
+    EXPECT_FALSE(mixerTransitionTailSitterCaptureShouldReverse(
+        false, true, false, true, 1, 0));
+}
+
 TEST(MixerTransitionLogicTest, CompletedAutoSessionReleasesOnFallingEdgeToEndpoint)
 {
     EXPECT_FALSE(mixerTransitionKeepCompletedAutoSession(

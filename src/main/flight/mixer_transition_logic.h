@@ -91,6 +91,71 @@ static inline bool mixerTransitionManualControllerEnabled(
 }
 
 #ifdef USE_AUTO_TRANSITION
+static inline bool mixerTransitionIsTailSitterProfilePair(
+    bool currentProfileIsAirplane,
+    bool currentProfileIsMultirotor,
+    bool currentProfileIsTailSitter,
+    bool targetProfileIsAirplane,
+    bool targetProfileIsMultirotor,
+    bool targetProfileIsTailSitter)
+{
+    return (currentProfileIsMultirotor && currentProfileIsTailSitter &&
+            targetProfileIsAirplane && !targetProfileIsTailSitter) ||
+           (currentProfileIsAirplane && !currentProfileIsTailSitter &&
+            targetProfileIsMultirotor && targetProfileIsTailSitter);
+}
+
+static inline bool mixerTransitionTailSitterRequestIsSupported(
+    mixerProfileATRequest_e requiredAction,
+    bool tailSitterProfilePair,
+    bool currentDynamicMixerEnabled,
+    bool targetDynamicMixerEnabled)
+{
+    if (!tailSitterProfilePair) {
+        return true;
+    }
+
+    // The first tailsitter implementation deliberately keeps automatic
+    // navigation and dynamic mixer paths out of the unvalidated airframe.
+    return (requiredAction == MIXERAT_REQUEST_MANUAL_TO_FW ||
+            requiredAction == MIXERAT_REQUEST_MANUAL_TO_MC) &&
+           !currentDynamicMixerEnabled &&
+           !targetDynamicMixerEnabled;
+}
+
+static inline bool mixerTransitionTailSitterNeedsMcCapture(
+    mixerProfileATRequest_e requiredAction,
+    bool tailSitterProfilePair)
+{
+    return tailSitterProfilePair && requiredAction == MIXERAT_REQUEST_MANUAL_TO_MC;
+}
+
+static inline bool mixerTransitionTailSitterCapturePitchReached(int16_t pitchDeciDegrees)
+{
+    return pitchDeciDegrees >=
+               MIXER_TRANSITION_TAILSITTER_CAPTURE_PITCH_DECIDEGREES - MIXER_TRANSITION_TAILSITTER_CAPTURE_PITCH_TOLERANCE_DECIDEGREES &&
+           pitchDeciDegrees <=
+               MIXER_TRANSITION_TAILSITTER_CAPTURE_PITCH_DECIDEGREES + MIXER_TRANSITION_TAILSITTER_CAPTURE_PITCH_TOLERANCE_DECIDEGREES;
+}
+
+static inline bool mixerTransitionTailSitterCaptureShouldReverse(
+    bool tailSitterManualTransition,
+    bool captureActive,
+    bool transitionModeActive,
+    bool currentProfileIsMultirotor,
+    int currentProfileIndex,
+    int requestedProfileIndex)
+{
+    // After the FW->MC hot-switch the output frame has already changed. A
+    // pilot request for FW must therefore run the known MC->FW path, never a
+    // direct profile switch back through the changing reference frame.
+    return tailSitterManualTransition &&
+           captureActive &&
+           !transitionModeActive &&
+           currentProfileIsMultirotor &&
+           currentProfileIndex != requestedProfileIndex;
+}
+
 static inline bool mixerTransitionKeepCompletedAutoSession(
     mixerTransitionManualSessionMode_e sessionMode,
     bool transitionModeFallingEdge,

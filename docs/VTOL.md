@@ -164,11 +164,28 @@ You must also assign the tilting servos values using the Fixed Value values (for
 
 ![Alt text](Screenshots/mixerprofile_mc_mixer.png)
 
-5. **Tailsitters:planned for INAV 7.1**
+5. **Tailsitters**
    - Configure the fixed-wing mode/profile sets normally. Use MultiCopter platform type for tail_sitting flying mode/profile sets. 
    - The baseline board aliment is FW mode (ROLL axis is the thrust axis). Set `tailsitter_orientation_offset = ON ` in the tail_sitting MC mode.
    - Configure mixer ROLL/YAW mixing according to tail_sitting orientation in the tail_sitting MC mode. YAW axis is the thrust axis.
    - Conduct a bench test and see the orientation of the model changes in inav-configurator setup tab
+
+### Experimental manual tailsitter auto-transition
+
+The first auto-transition implementation for a tailsitter is deliberately limited to manual switch requests. It is intended for supervised bench and initial flight testing only. It does not change the tilt-motor or pusher transition paths.
+
+Use the normal two-profile arrangement:
+
+- **FW profile:** `platform_type = AIRPLANE`, with `tailsitter_orientation_offset = OFF`.
+- **MC profile:** a multirotor platform type, with `tailsitter_orientation_offset = ON`.
+- Enable `mixer_vtol_manualswitch_autotransition_controller = ON` in both profiles.
+- Keep `mixer_vtol_transition_dynamic_mixer = OFF` in both profiles. Dynamic motor/authority blending is not validated for a tailsitter yet.
+
+For a FW-to-MC request, configure a non-zero `vtol_transition_to_mc_max_airspeed_cm_s` and use a valid airspeed source. Real pitot and a valid virtual pitot are accepted. The controller does **not** use `mixer_switch_trans_timer` as a FW-to-MC fallback for tailsitters: changing a tailsitter into MC orientation at unknown airspeed is unsafe. If valid airspeed is not available, OSD shows `VTOL NO SPEED`; after `mixer_vtol_transition_airspeed_timeout_ms`, the transition aborts and the aircraft remains in FW.
+
+When measured airspeed is at or below the configured MC limit, INAV switches to the MC profile and keeps the existing 45 degree tailsitter transition pitch target. OSD shows `VTOL TAILSITTER CAPTURE` until the MC-orientation pitch estimate stays within 35 to 55 degrees for 300 ms. It then clears the transition and reports completion. If the pilot moves the switch back to the FW endpoint during this capture phase, INAV starts the ordinary MC-to-FW transition instead of direct-switching the profile.
+
+This first version intentionally does not support tailsitter auto-transition from missions, RTH, landing, failsafe, low-FW-airspeed protection, or VTOL MC protection. Those paths are rejected for the canonical tailsitter profile pair rather than running the unvalidated generic auto-transition sequence. Test without propellers first, verify the orientation change in the Configurator, and inspect a `DEBUG_VTOL_TRANSITION` log before attempting a flight.
 
 
 # STEP 3: Mode Tab Settings:

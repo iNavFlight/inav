@@ -209,6 +209,9 @@ const char *osdVtolTransitionMessage(void)
     case MIXERAT_PHASE_POST_SWITCH_FADE:
         return OSD_MSG_VTOL_FINISH_SWITCH;
 
+    case MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE:
+        return OSD_MSG_VTOL_TAILSITTER_CAPTURE;
+
     case MIXERAT_PHASE_IDLE:
     default:
         break;

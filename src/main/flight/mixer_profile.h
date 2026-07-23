@@ -54,6 +54,9 @@ typedef enum {
 #define MIXER_TRANSITION_AIRSPEED_CONFIRM_MS 300
 #define MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_MS 100
 #define MIXER_TRANSITION_MC_LIFT_OUTPUT_HANDOFF_MAX_MS MIXER_TRANSITION_AIRSPEED_CONFIRM_MS
+#define MIXER_TRANSITION_TAILSITTER_CAPTURE_PITCH_DECIDEGREES 450
+#define MIXER_TRANSITION_TAILSITTER_CAPTURE_PITCH_TOLERANCE_DECIDEGREES 100
+#define MIXER_TRANSITION_TAILSITTER_CAPTURE_CONFIRM_MS 300
 #define MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT \
     (MIXER_TRANSITION_AIRSPEED_CONFIRM_MS / MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_MS + 1)
 
@@ -103,6 +106,7 @@ typedef enum {
     MIXERAT_PHASE_TRANSITIONING,
 #ifdef USE_AUTO_TRANSITION
     MIXERAT_PHASE_POST_SWITCH_FADE,
+    MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE,
 #endif
 #ifndef USE_AUTO_TRANSITION
     MIXERAT_PHASE_DONE,
@@ -119,6 +123,7 @@ typedef struct mixerProfileAT_s {
     bool abortedByAirspeedTimeout;
     bool hotSwitchDone;
     bool usedAirspeed;
+    bool tailSitterManualTransition;
     mixerProfileATWaitReason_e waitReason;
     bool transitionStartAirspeedCaptured;
     float progress;
@@ -145,6 +150,7 @@ typedef struct mixerProfileAT_s {
     int16_t servoHandoffOutput[MAX_SUPPORTED_SERVOS];
     timeMs_t servoHandoffStartTime;
     timeMs_t servoHandoffHoldStartTime;
+    timeMs_t tailSitterCaptureStableSince;
     timeMs_t transitionStartTime;
 #else
     bool transitionInputMixing;

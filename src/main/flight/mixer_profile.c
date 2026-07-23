@@ -20,6 +20,7 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 #include "flight/failsafe.h"
+#include "flight/imu.h"
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 #include "sensors/pitotmeter.h"
@@ -61,6 +62,8 @@ static mixerProfileATDirection_e mixerATOsdSwitchReminderDirection;
 static bool navigationProfileSwitchWasOwned;
 static bool navigationProfileHandbackPending;
 static bool manualProfileSwitchAutoTransitionActive;
+static bool isTailSitterProfilePairConfigured(void);
+static bool isTailSitterManualToMcCapture(void);
 #endif
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored mixer profile layout only on >512 KB targets.
@@ -157,6 +160,7 @@ void setMixerProfileAT(void)
     mixerProfileAT.abortedByAirspeedTimeout = false;
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.usedAirspeed = false;
+    mixerProfileAT.tailSitterManualTransition = false;
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
     mixerProfileAT.progress = 0.0f;
@@ -182,6 +186,7 @@ void setMixerProfileAT(void)
     mixerProfileAT.servoHandoffHoldDurationMs = 0;
     mixerProfileAT.servoHandoffStartTime = 0;
     mixerProfileAT.servoHandoffHoldStartTime = 0;
+    mixerProfileAT.tailSitterCaptureStableSince = 0;
     memset(mixerProfileAT.servoHandoffOutput, 0, sizeof(mixerProfileAT.servoHandoffOutput));
 #else
     mixerProfileAT.transitionStartTime = millis();
@@ -745,7 +750,7 @@ static uint16_t getAirspeedThresholdForDirection(const mixerProfileATDirection_e
 
 static bool shouldRequestManualFwToMcProtection(const bool manualControllerEnabled)
 {
-    if (!manualControllerEnabled || !STATE(AIRPLANE)) {
+    if (!manualControllerEnabled || !STATE(AIRPLANE) || isTailSitterProfilePairConfigured()) {
         return false;
     }
 
@@ -809,6 +814,8 @@ static void abortTransition(const bool byAirspeedTimeout, const bool directSwitc
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
     mixerProfileAT.transitionStartAirspeedCmS = 0.0f;
+    mixerProfileAT.tailSitterManualTransition = false;
+    mixerProfileAT.tailSitterCaptureStableSince = 0;
     resetTransitionScales();
 
     if (servoHandoffMask != 0) {
@@ -826,6 +833,15 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
     float airspeedCmS = 0.0f;
     const bool usableAirspeedAvailable =
         airspeedThresholdCmS > 0 && hasUsableTransitionAirspeed(&airspeedCmS);
+
+    if (isTailSitterManualToMcCapture() && !usableAirspeedAvailable) {
+        // Timer fallback is acceptable for the established tilt/pusher paths,
+        // but a tailsitter must not rotate into MC at an unknown airspeed.
+        mixerProfileAT.usedAirspeed = false;
+        mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NO_SPEED;
+        updateHandoffScalingProgress(currentTimeMs);
+        return false;
+    }
     const mixerTransitionHotSwitchProgress_t hotSwitchProgress = mixerTransitionEvaluateHotSwitch(
         direction,
         airspeedThresholdCmS,
@@ -902,6 +918,82 @@ static bool missionTransitionToMultirotorTypeConfigured(void)
 #endif
 
 #ifdef USE_AUTO_TRANSITION
+static bool isTailSitterProfilePairConfigured(void)
+{
+    if (nextMixerProfileIndex < 0 || nextMixerProfileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        return false;
+    }
+
+    const mixerConfig_t *targetMixerConfig = mixerConfigByIndex(nextMixerProfileIndex);
+    return mixerTransitionIsTailSitterProfilePair(
+        currentMixerConfig.platformType == PLATFORM_AIRPLANE,
+        isMultirotorTypePlatform(currentMixerConfig.platformType),
+        currentMixerConfig.tailsitterOrientationOffset,
+        targetMixerConfig->platformType == PLATFORM_AIRPLANE,
+        isMultirotorTypePlatform(targetMixerConfig->platformType),
+        targetMixerConfig->tailsitterOrientationOffset);
+}
+
+static bool isTailSitterTransitionRequestSupported(const mixerProfileATRequest_e requiredAction)
+{
+    if (nextMixerProfileIndex < 0 || nextMixerProfileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        return false;
+    }
+
+    return mixerTransitionTailSitterRequestIsSupported(
+        requiredAction,
+        isTailSitterProfilePairConfigured(),
+        currentMixerConfig.vtolTransitionDynamicMixer,
+        mixerConfigByIndex(nextMixerProfileIndex)->vtolTransitionDynamicMixer);
+}
+
+static bool isTailSitterManualToMcCapture(void)
+{
+    return mixerTransitionTailSitterNeedsMcCapture(
+        mixerProfileAT.request,
+        mixerProfileAT.tailSitterManualTransition);
+}
+
+static void completeTransition(void)
+{
+    setMixerATOsdEvent(MIXERAT_OSD_EVENT_DONE);
+    mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
+    mixerProfileAT.request = MIXERAT_REQUEST_NONE;
+    mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
+    mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
+    mixerProfileAT.postSwitchFadeMotorMask = 0;
+    mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
+    mixerProfileAT.postSwitchFadeFastToCurrentMotorMask = 0;
+    mixerProfileAT.tailSitterManualTransition = false;
+    mixerProfileAT.tailSitterCaptureStableSince = 0;
+    isMixerTransitionMixing_requested = false;
+    manualProfileSwitchAutoTransitionActive = false;
+}
+
+static bool updateTailSitterToMcCapture(void)
+{
+    const timeMs_t currentTimeMs = millis();
+
+    isMixerTransitionMixing_requested = true;
+
+    if (!mixerTransitionTailSitterCapturePitchReached(attitude.values.pitch)) {
+        mixerProfileAT.tailSitterCaptureStableSince = 0;
+        return false;
+    }
+
+    if (mixerProfileAT.tailSitterCaptureStableSince == 0) {
+        mixerProfileAT.tailSitterCaptureStableSince = currentTimeMs;
+        return false;
+    }
+
+    if ((currentTimeMs - mixerProfileAT.tailSitterCaptureStableSince) < MIXER_TRANSITION_TAILSITTER_CAPTURE_CONFIRM_MS) {
+        return false;
+    }
+
+    completeTransition();
+    return true;
+}
+
 static bool isLegacyManualTransitionSessionActive(void)
 {
     return manualTransitionSessionMode == MIXER_TRANSITION_MANUAL_SESSION_LEGACY;
@@ -911,7 +1003,7 @@ static bool isLegacyManualTransitionSessionActive(void)
 bool checkMixerATRequired(mixerProfileATRequest_e required_action)
 {
 #ifdef USE_AUTO_TRANSITION
-    return mixerTransitionIsRequestAllowed(
+    const bool requestAllowed = mixerTransitionIsRequestAllowed(
         required_action,
         STATE(AIRPLANE),
         STATE(MULTIROTOR),
@@ -919,6 +1011,8 @@ bool checkMixerATRequired(mixerProfileATRequest_e required_action)
         currentMixerConfig.automated_switch,
         platformTypeConfigured(PLATFORM_AIRPLANE),
         missionTransitionToMultirotorTypeConfigured());
+
+    return requestAllowed && isTailSitterTransitionRequestSupported(required_action);
 #else
     // Legacy 512 KB targets keep the original automated-switch behaviour.
     if(currentMixerConfig.automated_switch){
@@ -971,6 +1065,9 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
             mixerProfileAT.request = required_action;
             mixerProfileAT.direction = directionForRequest(required_action);
             setMixerProfileAT();
+            mixerProfileAT.tailSitterManualTransition =
+                isTailSitterProfilePairConfigured() &&
+                isTailSitterTransitionRequestSupported(required_action);
             startTransitionEntryServoHandoffFade();
             mixerProfileAT.phase = MIXERAT_PHASE_TRANSITIONING;
             reprocessState = true;
@@ -983,7 +1080,10 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
             }
 
             if (mixerATReadyForHotSwitch(mixerProfileAT.request)) {
-                isMixerTransitionMixing_requested = false;
+                const bool tailSitterToMcCapture = isTailSitterManualToMcCapture();
+                if (!tailSitterToMcCapture) {
+                    isMixerTransitionMixing_requested = false;
+                }
                 mixerProfileAT.progress = 1.0f;
                 updateTransitionScales();
                 prepareServoHandoffFade(collectServoHandoffMask(nextMixerProfileIndex, true));
@@ -994,16 +1094,16 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                 }
                 mixerProfileAT.hotSwitchDone = true;
                 startServoHandoffFade();
+                if (tailSitterToMcCapture) {
+                    mixerProfileAT.tailSitterCaptureStableSince = 0;
+                    mixerProfileAT.phase = MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE;
+                    return false;
+                }
                 if (!startPostSwitchFade()) {
-                    setMixerATOsdEvent(MIXERAT_OSD_EVENT_DONE);
-                    mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
-                    mixerProfileAT.request = MIXERAT_REQUEST_NONE;
-                    mixerProfileAT.direction = MIXERAT_DIRECTION_NONE;
-                    mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
-                    manualProfileSwitchAutoTransitionActive = false;
+                    completeTransition();
                 }
                 return true;
-            } else if (mixerProfileAT.usedAirspeed &&
+            } else if ((mixerProfileAT.usedAirspeed || isTailSitterManualToMcCapture()) &&
                        currentMixerConfig.vtolTransitionAirspeedTimeoutMs > 0 &&
                        (millis() - mixerProfileAT.transitionStartTime) >= currentMixerConfig.vtolTransitionAirspeedTimeoutMs) {
                 abortTransition(true, false);
@@ -1016,6 +1116,20 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
         case MIXERAT_PHASE_POST_SWITCH_FADE:
             isMixerTransitionMixing_requested = false;
             updatePostSwitchFade();
+            return true;
+        case MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE:
+            if (required_action == MIXERAT_REQUEST_MANUAL_TO_FW) {
+                // The MC profile is already active. Reverse through the normal
+                // MC->FW sequence rather than direct-switching its reference frame.
+                mixerProfileAT.request = required_action;
+                mixerProfileAT.direction = MIXERAT_DIRECTION_TO_FW;
+                mixerProfileAT.hotSwitchDone = false;
+                mixerProfileAT.phase = MIXERAT_PHASE_TRANSITION_INITIALIZE;
+                reprocessState = true;
+                break;
+            }
+
+            updateTailSitterToMcCapture();
             return true;
         default:
             break;
@@ -1335,9 +1449,20 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
             }
         }
 
+        mixerProfileATRequest_e activeManualTransitionRequest = mixerProfileAT.request;
+        if (mixerTransitionTailSitterCaptureShouldReverse(
+                mixerProfileAT.tailSitterManualTransition,
+                mixerProfileAT.phase == MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE,
+                transitionModeActive,
+                STATE(MULTIROTOR),
+                currentMixerProfileIndex,
+                requestedProfileIndex)) {
+            activeManualTransitionRequest = MIXERAT_REQUEST_MANUAL_TO_FW;
+        }
+
         if (mixerAT_inuse &&
             (mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_FW || mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_MC)) {
-            mixerATUpdateState(mixerProfileAT.request);
+            mixerATUpdateState(activeManualTransitionRequest);
             mixerAT_inuse = mixerATIsActive();
         }
     }
