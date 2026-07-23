@@ -28,7 +28,9 @@
 
 #include "platform.h"
 
-#if defined(USE_OSD) && defined(USE_MSP_OSD)
+// OSD_UNIT_TEST's minimal build doesn't link the DJI/MSP displayport driver's
+// dependencies, so this file compiles to an empty translation unit for it.
+#if defined(USE_OSD) && defined(USE_MSP_OSD) && !defined(OSD_UNIT_TEST)
 
 #include "common/utils.h"
 #include "common/printf.h"
