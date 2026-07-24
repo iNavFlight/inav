@@ -113,7 +113,7 @@ rxLinkStatistics_t rxLinkStatistics;
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 13);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 14);
 
 #ifndef SERIALRX_PROVIDER
 #define SERIALRX_PROVIDER 0
@@ -365,11 +365,35 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 }
 #endif
 
+// Serial RX drivers that carry per-link parser/channel state and so can safely
+// run the same provider on both the primary and secondary link. The remaining
+// drivers still keep that state in shared module storage.
+static bool serialRxProviderIsDualLinkSafe(uint8_t provider)
+{
+    switch (provider) {
+    case SERIALRX_SBUS:
+    case SERIALRX_SBUS_FAST:
+    case SERIALRX_SBUS2:
+    case SERIALRX_CRSF:
+        return true;
+    default:
+        return false;
+    }
+}
+
 void rxInit(void)
 {
     rcSampleIndex = 0;
     dualRxEnabled = rxConfig()->dualRxEnabled;
     if (rxConfig()->receiverType == RX_TYPE_MSP || rxConfig()->receiverTypeSecondary == RX_TYPE_MSP) {
+        dualRxEnabled = false;
+    }
+    // Two links running the same not-yet-instance-safe serial provider would alias
+    // that driver's shared parser buffers and corrupt both. Refuse dual RX for that
+    // combination; different providers use different drivers and are unaffected.
+    if (rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->receiverTypeSecondary == RX_TYPE_SERIAL &&
+        rxConfig()->serialrx_provider == rxConfig()->serialrx_provider_secondary &&
+        !serialRxProviderIsDualLinkSafe(rxConfig()->serialrx_provider)) {
         dualRxEnabled = false;
     }
 
@@ -554,8 +578,13 @@ static void rxSelectActiveLink(void)
 
     if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RX_LINK)) {
         const rxLink_e forcedLink = logicConditionValuesByType[LOGIC_CONDITION_RX_SELECT_OVERRIDE] == RX_LINK_SECONDARY ? RX_LINK_SECONDARY : RX_LINK_PRIMARY;
-        rxApplyActiveLink(forcedLink);
-        return;
+        // Only honour the forced link while it actually has signal; otherwise fall
+        // through to automatic selection so a dead forced link can't strand control
+        // on stale channel data with failsafe suppressed.
+        if (rxLinkHasValidSignal(&rxLinks[forcedLink])) {
+            rxApplyActiveLink(forcedLink);
+            return;
+        }
     }
 
     const bool primaryValid = rxLinkHasValidSignal(&rxLinks[RX_LINK_PRIMARY]);
@@ -626,6 +655,8 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
 #endif
 
     if (!result && !isRxSuspended) {
+        // Re-select even when no frame needs processing so a link that has just
+        // timed out hands control over without waiting for the next (absent) frame.
         rxSelectActiveLink();
     }
 

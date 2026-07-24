@@ -3516,11 +3516,6 @@
             "RX_LINK_SECONDARY": "1",
             "RX_LINK_COUNT": "2"
         },
-        "rxReceiverRole_e": {
-            "_source": "inav/src/main/rx/rx.h",
-            "RX_ROLE_PRIMARY": "0",
-            "RX_ROLE_SECONDARY": "1"
-        },
         "rxReceiverType_e": {
             "_source": "inav/src/main/rx/rx.h",
             "RX_TYPE_NONE": "0",

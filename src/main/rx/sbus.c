@@ -226,11 +226,17 @@ static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
 static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, uint32_t sbusBaudRate, serialPortFunction_e portFunction)
 {
-    static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
-    static sbusFrameData_t sbusFrameData = { .is26channels = false};
+    // Per-link storage so a primary and secondary SBUS receiver don't share
+    // parser/channel state. Primary stays index 0, so the single-RX path is
+    // unchanged.
+    static uint16_t sbusChannelData[RX_LINK_COUNT][SBUS_MAX_CHANNEL];
+    static sbusFrameData_t sbusFrameData[RX_LINK_COUNT];
+    const unsigned link = (portFunction == FUNCTION_RX_SERIAL_SECONDARY) ? RX_LINK_SECONDARY : RX_LINK_PRIMARY;
 
-    rxRuntimeConfig->channelData = sbusChannelData;
-    rxRuntimeConfig->frameData = &sbusFrameData;
+    sbusFrameData[link].is26channels = false;
+
+    rxRuntimeConfig->channelData = sbusChannelData[link];
+    rxRuntimeConfig->frameData = &sbusFrameData[link];
 
     sbusChannelsInit(rxRuntimeConfig);
 
@@ -252,7 +258,7 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
     serialPort_t *sBusPort = openSerialPort(portConfig->identifier,
         portFunction,
         sbusDataReceive,
-        &sbusFrameData,
+        &sbusFrameData[link],
         sbusBaudRate,
         (portShared || rxConfig->serialrx_provider == SERIALRX_SBUS2) ? MODE_RXTX : MODE_RX,
         SBUS_PORT_OPTIONS |

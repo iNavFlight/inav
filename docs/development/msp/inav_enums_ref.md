@@ -279,7 +279,6 @@
 - [rthTrackbackMode_e](#enum-rthtrackbackmode_e)
 - [rxFrameState_e](#enum-rxframestate_e)
 - [rxLink_e](#enum-rxlink_e)
-- [rxReceiverRole_e](#enum-rxreceiverrole_e)
 - [rxReceiverType_e](#enum-rxreceivertype_e)
 - [rxSerialReceiverType_e](#enum-rxserialreceivertype_e)
 - [safehomeUsageMode_e](#enum-safehomeusagemode_e)
@@ -5136,16 +5135,6 @@
 | `RX_LINK_PRIMARY` | 0 |  |
 | `RX_LINK_SECONDARY` | 1 |  |
 | `RX_LINK_COUNT` | 2 |  |
-
----
-## <a id="enum-rxreceiverrole_e"></a>`rxReceiverRole_e`
-
-> Source: ../../../src/main/rx/rx.h
-
-| Enumerator | Value | Condition |
-|---|---:|---|
-| `RX_ROLE_PRIMARY` | 0 |  |
-| `RX_ROLE_SECONDARY` | 1 |  |
 
 ---
 ## <a id="enum-rxreceivertype_e"></a>`rxReceiverType_e`

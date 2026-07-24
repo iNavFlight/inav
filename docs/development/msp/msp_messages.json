@@ -7098,9 +7098,9 @@
                     {
                         "name": "activeRX",
                         "ctype": "uint8_t",
-                        "desc": "Enum `rxReceiverRole_e` Current active receiver if dual RX activated; otherwise always 0",
+                        "desc": "Enum `rxLink_e` Current active receiver link if dual RX activated; otherwise always 0",
                         "units": "Enum",
-                        "enum": "rxReceiverRole_e"
+                        "enum": "rxLink_e"
                     }
                 ]
             },

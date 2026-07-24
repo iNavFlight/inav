@@ -68,11 +68,6 @@ typedef enum {
 } rxReceiverType_e;
 
 typedef enum {
-    RX_ROLE_PRIMARY = 0,
-    RX_ROLE_SECONDARY = 1
-} rxReceiverRole_e;
-
-typedef enum {
     SERIALRX_SPEKTRUM1024 = 0,
     SERIALRX_SPEKTRUM2048,
     SERIALRX_SBUS,
