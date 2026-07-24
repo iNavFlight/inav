@@ -38,9 +38,11 @@ bool navigationVtolMcProtectionShouldFreezeAltitudeIntegrator(void);
 int16_t navigationVtolMcProtectionApplyBailoutThrottle(int16_t requestedThrottle, const vtolMcProtectionThrottleBounds_t *bounds, int16_t hoverThrottle);
 
 bool navigationVtolMcProtectionApplyCapture(uint32_t navStateFlags);
+void navigationVtolMcProtectionResetCapture(void);
 bool navigationVtolMcProtectionApplySoftAltitudeCapture(uint32_t navStateFlags);
 bool navigationVtolMcProtectionLandingSettleConditionsMet(const fpVector3_t *landingPos);
 bool navigationVtolMcProtectionLandingSettleReady(const fpVector3_t *landingPos);
+bool navigationVtolMcProtectionLandingDescentNeedsResettle(void);
 void navigationVtolMcProtectionResetLandingSettle(void);
 void navigationVtolMcProtectionApplyStabilizedCommandShaping(int16_t *rollCommand, int16_t *pitchCommand, int16_t *yawCommand);
 void navigationVtolMcProtectionPublishThrottleDebug(const vtolMcProtectionThrottleBounds_t *bounds, int16_t protectedThrottle);
@@ -66,6 +68,7 @@ static inline bool navigationVtolMcProtectionApplyCapture(uint32_t navStateFlags
     (void)navStateFlags;
     return false;
 }
+static inline void navigationVtolMcProtectionResetCapture(void) {}
 static inline bool navigationVtolMcProtectionApplySoftAltitudeCapture(uint32_t navStateFlags)
 {
     (void)navStateFlags;
@@ -81,6 +84,7 @@ static inline bool navigationVtolMcProtectionLandingSettleReady(const fpVector3_
     (void)landingPos;
     return true;
 }
+static inline bool navigationVtolMcProtectionLandingDescentNeedsResettle(void) { return false; }
 static inline void navigationVtolMcProtectionResetLandingSettle(void) {}
 static inline void navigationVtolMcProtectionApplyStabilizedCommandShaping(int16_t *rollCommand, int16_t *pitchCommand, int16_t *yawCommand)
 {

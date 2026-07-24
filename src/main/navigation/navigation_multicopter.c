@@ -834,6 +834,13 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
                                     navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI &&
                                     posControl.flags.isAdjustingPosition;
 
+    // Pilot position input always takes priority over the VTOL braking
+    // capture. This also prevents a stale capture from overwriting the stop
+    // target established when the stick is released.
+    if (posControl.flags.isAdjustingPosition) {
+        navigationVtolMcProtectionResetCapture();
+    }
+
     if (posControl.flags.horizontalPositionDataNew) {
         // Indicate that information is no longer usable
         posControl.flags.horizontalPositionDataConsumed = true;
@@ -849,7 +856,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
         // If we have new position data - update velocity and acceleration controllers
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
             if (navigationVtolMcProtectionApplyCapture(navGetCurrentStateFlags())) {
-                setMulticopterCurrentPositionAsHoldTarget(NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
+                setMulticopterStopPosition();
             }
 
             // Get max speed for current NAV mode

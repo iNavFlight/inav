@@ -1412,7 +1412,7 @@ static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
         navMixerATPendingState == NAV_STATE_WAYPOINT_PRE_ACTION &&
         navMixerATMissionTransition.active &&
         navMixerATMissionTransition.request == MIXERAT_REQUEST_MISSION_TO_FW) {
-        stateFlags |= NAV_CTL_YAW;
+        stateFlags |= NAV_CTL_YAW | NAV_REQUIRE_MAGHOLD;
     }
 
     // During one-shot retry scan/alignment, command heading only. Avoid XY
@@ -1420,7 +1420,7 @@ static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
     if (mixerATState &&
         navMixerATMissionTransition.retryStage != NAV_MIXERAT_RETRY_STAGE_IDLE &&
         isTransitionRetryToFixedWingRequest(navMixerATMissionTransition.request)) {
-        stateFlags |= NAV_CTL_YAW;
+        stateFlags |= NAV_CTL_YAW | NAV_REQUIRE_MAGHOLD;
     }
 #endif
 
@@ -2081,11 +2081,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     }
 
     const fpVector3_t *landingSettlePos = FLIGHT_MODE(NAV_WP_MODE) ? &posControl.activeWaypoint.pos : rthGetHomeTargetPosition(RTH_HOME_FINAL_LAND);
-    if (!navigationVtolMcProtectionLandingSettleReady(landingSettlePos)) {
+    if (navigationVtolMcProtectionLandingDescentNeedsResettle() ||
+        !navigationVtolMcProtectionLandingSettleReady(landingSettlePos)) {
+        fpVector3_t landingHoldPos = *landingSettlePos;
+        landingHoldPos.z = navGetCurrentActualPositionAndVelocity()->pos.z;
         if (FLIGHT_MODE(NAV_WP_MODE)) {
-            setDesiredPosition(landingSettlePos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            setDesiredPosition(&landingHoldPos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
         } else {
-            setDesiredPosition(landingSettlePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            setDesiredPosition(&landingHoldPos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
         }
         updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
         return NAV_FSM_EVENT_NONE;

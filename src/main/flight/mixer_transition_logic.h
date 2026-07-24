@@ -253,13 +253,11 @@ static inline bool mixerTransitionNavigationHandbackShouldHoldProfile(
 
 static inline bool mixerTransitionNavigationHandbackShouldClear(
     bool navigationOwnsProfileSwitch,
-    bool transitionModeRisingEdge,
     bool transitionModeActive,
     int currentProfileIndex,
     int requestedProfileIndex)
 {
     return navigationOwnsProfileSwitch ||
-           transitionModeRisingEdge ||
            (!transitionModeActive && currentProfileIndex == requestedProfileIndex);
 }
 
@@ -285,21 +283,26 @@ static inline bool mixerTransitionNavigationOwnsProfileSwitch(
            (navWaypointActive || navRthActive || navLandingActive || navMixerAtActive);
 }
 
-static inline bool mixerTransitionManualInputAllowed(bool navigationOwnsProfileSwitch)
+static inline bool mixerTransitionManualInputAllowed(
+    bool navigationOwnsProfileSwitch,
+    bool navigationProfileHandbackPending)
 {
     // The RC modes remain visible to the pilot, but navigation-owned VTOL
-    // transitions must not inherit a transient middle switch position.
-    return !navigationOwnsProfileSwitch;
+    // transitions must not inherit a transient middle switch position. Keep
+    // doing this while waiting for the pilot to match the profile selected by
+    // a completed mission/RTH transition.
+    return !navigationOwnsProfileSwitch && !navigationProfileHandbackPending;
 }
 
 static inline bool mixerTransitionManualMixingRequestMayUpdate(
     bool failsafeActive,
     bool autoTransitionActive,
-    bool navigationOwnsProfileSwitch)
+    bool navigationOwnsProfileSwitch,
+    bool navigationProfileHandbackPending)
 {
     return !failsafeActive &&
            !autoTransitionActive &&
-           mixerTransitionManualInputAllowed(navigationOwnsProfileSwitch);
+           mixerTransitionManualInputAllowed(navigationOwnsProfileSwitch, navigationProfileHandbackPending);
 }
 
 static inline bool mixerTransitionProfileSwitchShouldStartAutoTransition(

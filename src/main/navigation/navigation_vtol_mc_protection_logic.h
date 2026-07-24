@@ -23,6 +23,7 @@
 #include "common/time.h"
 
 #define VTOL_MC_LANDING_CAPTURE_RADIUS_CAP_CM      100
+#define VTOL_MC_LANDING_RESETTLE_SPEED_MULTIPLIER   2
 #define VTOL_MC_VERTICAL_SETTLE_SPEED_CAP_CM_S     100
 #define VTOL_MC_SETTLE_ATTITUDE_CAP_DEG            20
 #define VTOL_MC_BAILOUT_ANGLE_EXTRA_DEG            15
@@ -89,6 +90,48 @@ static inline uint16_t vtolMcProtectionSettleAttitudeLimitDeciDeg(const uint8_t 
 static inline bool vtolMcProtectionSuppressesMulticopterBrakingMode(const bool active)
 {
     return active;
+}
+
+static inline bool vtolMcProtectionPositionCaptureAllowed(
+    const bool protectionActive,
+    const bool positionHoldActive,
+    const bool navigationOwnsPositionTarget,
+    const bool pilotPositionInputActive)
+{
+    // RTH, mission holds and landing own an explicit destination. Re-latching
+    // a stop target would move that destination. Pilot input must likewise
+    // retain control of the target in both GPS_ATTI and GPS_CRUISE modes.
+    return protectionActive && positionHoldActive &&
+           !navigationOwnsPositionTarget && !pilotPositionInputActive;
+}
+
+static inline bool vtolMcProtectionCaptureShouldSetTarget(
+    const bool captureWasActive,
+    const bool captureIsActive)
+{
+    // Capturing the target on every GPS update turns position hold into a
+    // velocity damper. Only capture the braking target when the phase starts.
+    return !captureWasActive && captureIsActive;
+}
+
+static inline bool vtolMcProtectionLandingDescentNeedsResettle(
+    const bool protectionActive,
+    const bool landingSettleApproved,
+    const bool horizontalVelocityUsable,
+    const float horizontalSpeedCmS,
+    const uint16_t maxAbsAttitudeDeciDeg,
+    const uint16_t horizontalSettleLimitCmS,
+    const uint16_t attitudeSettleLimitDeciDeg)
+{
+    if (!protectionActive || !landingSettleApproved) {
+        return false;
+    }
+
+    // A normal descent must not invalidate the gate. Re-settle only for a
+    // substantial horizontal excursion or a clearly unsafe attitude.
+    return (horizontalVelocityUsable &&
+            horizontalSpeedCmS > (float)horizontalSettleLimitCmS * VTOL_MC_LANDING_RESETTLE_SPEED_MULTIPLIER) ||
+           maxAbsAttitudeDeciDeg > attitudeSettleLimitDeciDeg;
 }
 
 static inline bool vtolMcProtectionRthLandingYawSettleAssistActive(

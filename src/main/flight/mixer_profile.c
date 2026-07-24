@@ -1234,7 +1234,18 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         (navStateFlags & NAV_AUTO_RTH) != 0,
         (navStateFlags & NAV_CTL_LAND) != 0,
         (navStateFlags & NAV_MIXERAT) != 0);
-    const bool manualSwitchInputAllowed = mixerTransitionManualInputAllowed(navigationOwnsProfileSwitch);
+    const bool navigationProfileHandbackShouldHold = navigationProfileHandbackPending ||
+        mixerTransitionNavigationHandbackShouldHoldProfile(
+            navigationProfileSwitchWasOwned,
+            navigationOwnsProfileSwitch,
+            mixerProfileModePresent,
+            mixerAT_inuse,
+            transitionModeActive,
+            currentMixerProfileIndex,
+            requestedProfileIndex);
+    const bool manualSwitchInputAllowed = mixerTransitionManualInputAllowed(
+        navigationOwnsProfileSwitch,
+        navigationProfileHandbackShouldHold);
     const bool completedAutoSessionEndpointConfirmed = mixerTransitionCompletedAutoSessionEndpointConfirmed(
         manualTransitionSessionMode,
         mixerProfileAT.hotSwitchDone,
@@ -1303,19 +1314,11 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         navigationProfileHandbackPending = false;
     } else if (mixerTransitionNavigationHandbackShouldClear(
                    navigationOwnsProfileSwitch,
-                   transitionModeRisingEdge,
                    transitionModeActive,
                    currentMixerProfileIndex,
                    requestedProfileIndex)) {
         navigationProfileHandbackPending = false;
-    } else if (mixerTransitionNavigationHandbackShouldHoldProfile(
-                   navigationProfileSwitchWasOwned,
-                   navigationOwnsProfileSwitch,
-                   mixerProfileModePresent,
-                   mixerAT_inuse,
-                   transitionModeActive,
-                   currentMixerProfileIndex,
-                   requestedProfileIndex)) {
+    } else if (navigationProfileHandbackShouldHold) {
         navigationProfileHandbackPending = true;
     }
     navigationProfileSwitchWasOwned = navigationOwnsProfileSwitch;
@@ -1398,7 +1401,8 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         } else if (mixerTransitionManualMixingRequestMayUpdate(
                        FLIGHT_MODE(FAILSAFE_MODE),
                        mixerAT_inuse,
-                       navigationOwnsProfileSwitch)) {
+                       navigationOwnsProfileSwitch,
+                       navigationProfileHandbackPending)) {
             isMixerTransitionMixing_requested = transitionModeActive;
             if (isMixerTransitionMixing_requested) {
                 setLegacyTransitionScales();
@@ -1417,7 +1421,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
                        mixerAT_inuse,
                        mixerProfileAT.hotSwitchDone)) {
             isMixerTransitionMixing_requested = false;
-        } else if (transitionModeRisingEdge && manualTransitionReadyForEdge && manualTransitionAllowed && !mixerAT_inuse) {
+        } else if (transitionModeRisingEdge && manualSwitchInputAllowed && manualTransitionReadyForEdge && manualTransitionAllowed && !mixerAT_inuse) {
             manualTransitionReadyForEdge = false;
             if (STATE(MULTIROTOR)) {
                 mixerATUpdateState(MIXERAT_REQUEST_MANUAL_TO_FW);

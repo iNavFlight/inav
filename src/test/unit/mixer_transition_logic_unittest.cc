@@ -422,31 +422,27 @@ TEST(MixerTransitionLogicTest, NavigationHandbackHoldsProfileWhenSwitchStillInTr
 
     EXPECT_FALSE(mixerTransitionNavigationHandbackShouldClear(
         false,
-        false,
         true,
         1,
         1));
 
     EXPECT_TRUE(mixerTransitionNavigationHandbackShouldClear(
-        false,
         false,
         false,
         1,
         1));
 }
 
-TEST(MixerTransitionLogicTest, NavigationHandbackClearsForNewNavigationOrExplicitTransition)
+TEST(MixerTransitionLogicTest, NavigationHandbackClearsForNewNavigationOrMatchingEndpoint)
 {
     EXPECT_TRUE(mixerTransitionNavigationHandbackShouldClear(
         true,
         false,
-        false,
         0,
         1));
 
-    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldClear(
+    EXPECT_FALSE(mixerTransitionNavigationHandbackShouldClear(
         false,
-        true,
         true,
         0,
         1));
@@ -463,9 +459,11 @@ TEST(MixerTransitionLogicTest, NavigationHandbackClearsForNewNavigationOrExplici
 
 TEST(MixerTransitionLogicTest, NavigationOwnershipIgnoresManualTransitionInput)
 {
-    EXPECT_FALSE(mixerTransitionManualInputAllowed(true));
-    EXPECT_FALSE(mixerTransitionManualMixingRequestMayUpdate(false, false, true));
-    EXPECT_TRUE(mixerTransitionManualMixingRequestMayUpdate(false, false, false));
+    EXPECT_FALSE(mixerTransitionManualInputAllowed(true, false));
+    EXPECT_FALSE(mixerTransitionManualInputAllowed(false, true));
+    EXPECT_FALSE(mixerTransitionManualMixingRequestMayUpdate(false, false, true, false));
+    EXPECT_FALSE(mixerTransitionManualMixingRequestMayUpdate(false, false, false, true));
+    EXPECT_TRUE(mixerTransitionManualMixingRequestMayUpdate(false, false, false, false));
 
     // Entering navigation clears a previous manual session. A physical switch
     // movement during the mission cannot create another manual session.
@@ -481,6 +479,53 @@ TEST(MixerTransitionLogicTest, NavigationOwnershipIgnoresManualTransitionInput)
         false,
         true,
         true));
+}
+
+TEST(MixerTransitionLogicTest, NavigationHandbackIgnoresIntermediatePositionUntilEndpointMatches)
+{
+    // A mission ended in FW/profile 0 while the pilot switch remains at MC/profile 1.
+    // Passing the three-position switch through transition must not create a new FW->MC request.
+    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldHoldProfile(
+        true,
+        false,
+        true,
+        false,
+        true,
+        0,
+        1));
+    EXPECT_FALSE(mixerTransitionManualInputAllowed(false, true));
+    EXPECT_FALSE(mixerTransitionNavigationHandbackShouldClear(
+        false,
+        true,
+        0,
+        1));
+
+    // The handback ends only after the FW endpoint is reached.
+    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldClear(
+        false,
+        false,
+        0,
+        0));
+
+    // The reciprocal MC handback follows exactly the same rule.
+    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldHoldProfile(
+        true,
+        false,
+        true,
+        false,
+        true,
+        1,
+        0));
+    EXPECT_FALSE(mixerTransitionNavigationHandbackShouldClear(
+        false,
+        true,
+        1,
+        0));
+    EXPECT_TRUE(mixerTransitionNavigationHandbackShouldClear(
+        false,
+        false,
+        1,
+        1));
 }
 
 TEST(MixerTransitionLogicTest, ActiveModesReportEffectiveVtolStateInsteadOfRawSwitchState)

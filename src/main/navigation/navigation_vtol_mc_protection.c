@@ -63,6 +63,7 @@ typedef struct vtolMcProtectionRuntimeState_s {
     bool captureActive;
     bool softAltitudeActive;
     bool landingSettleActive;
+    bool landingSettleApproved;
     bool bailoutActive;
     bool reserveShrunk;
     bool stabilizedCommandShaped;
@@ -243,6 +244,7 @@ void navigationVtolMcProtectionResetTransientStates(void)
     vtolMcProtection.captureActive = false;
     vtolMcProtection.softAltitudeActive = false;
     vtolMcProtection.landingSettleActive = false;
+    vtolMcProtection.landingSettleApproved = false;
     vtolMcProtection.bailoutActive = false;
     vtolMcProtection.reserveShrunk = false;
     vtolMcProtection.stabilizedCommandShaped = false;
@@ -256,6 +258,15 @@ void navigationVtolMcProtectionResetLandingSettle(void)
     vtolMcProtection.landingSettle.stableSinceMs = 0;
     vtolMcProtection.landingSettle.elapsedMs = 0;
     vtolMcProtection.landingSettleActive = false;
+    vtolMcProtection.landingSettleApproved = false;
+}
+
+void navigationVtolMcProtectionResetCapture(void)
+{
+    vtolMcProtection.captureSettle.stableSinceMs = 0;
+    vtolMcProtection.captureSettle.elapsedMs = 0;
+    vtolMcProtection.captureActive = false;
+    navigationVtolMcProtectionPublishDebug();
 }
 
 vtolMcProtectionThrottleBounds_t navigationVtolMcProtectionGetThrottleBounds(const int16_t idleThrottle, const int16_t hoverThrottle, const int16_t maxThrottle)
@@ -363,14 +374,14 @@ int16_t navigationVtolMcProtectionApplyBailoutThrottle(const int16_t requestedTh
 
 bool navigationVtolMcProtectionApplyCapture(const uint32_t navStateFlags)
 {
-    const bool captureAllowed = navigationVtolMcProtectionIsNavActive() &&
-                                (navStateFlags & NAV_CTL_POS) &&
-                                (navStateFlags & NAV_CTL_HOLD);
+    const bool captureAllowed = vtolMcProtectionPositionCaptureAllowed(
+        navigationVtolMcProtectionIsNavActive(),
+        (navStateFlags & NAV_CTL_POS) && (navStateFlags & NAV_CTL_HOLD),
+        (navStateFlags & (NAV_AUTO_RTH | NAV_AUTO_WP | NAV_CTL_LAND)) != 0,
+        posControl.flags.isAdjustingPosition);
 
     if (!captureAllowed) {
-        vtolMcProtection.captureActive = false;
-        vtolMcProtection.captureSettle.stableSinceMs = 0;
-        vtolMcProtection.captureSettle.elapsedMs = 0;
+        navigationVtolMcProtectionResetCapture();
         navigationVtolMcProtectionPublishDebug();
         return false;
     }
@@ -383,9 +394,10 @@ bool navigationVtolMcProtectionApplyCapture(const uint32_t navStateFlags)
         settleTimeMs,
         millis());
 
+    const bool captureWasActive = vtolMcProtection.captureActive;
     vtolMcProtection.captureActive = !ready;
     navigationVtolMcProtectionPublishDebug();
-    return vtolMcProtection.captureActive;
+    return vtolMcProtectionCaptureShouldSetTarget(captureWasActive, vtolMcProtection.captureActive);
 }
 
 bool navigationVtolMcProtectionApplySoftAltitudeCapture(const uint32_t navStateFlags)
@@ -450,17 +462,39 @@ bool navigationVtolMcProtectionLandingSettleReady(const fpVector3_t *landingPos)
         return true;
     }
 
-    uint16_t settleTimeMs;
-    const bool settleConditionsMet = navigationVtolMcProtectionLandingSettleConditionsMetInternal(landingPos, &settleTimeMs);
-    const bool ready = vtolMcProtectionUpdateSettleState(
-        &vtolMcProtection.landingSettle,
-        settleConditionsMet,
-        settleTimeMs,
-        millis());
+    if (!vtolMcProtection.landingSettleApproved) {
+        uint16_t settleTimeMs;
+        const bool settleConditionsMet = navigationVtolMcProtectionLandingSettleConditionsMetInternal(landingPos, &settleTimeMs);
+        vtolMcProtection.landingSettleApproved = vtolMcProtectionUpdateSettleState(
+            &vtolMcProtection.landingSettle,
+            settleConditionsMet,
+            settleTimeMs,
+            millis());
+    }
 
-    vtolMcProtection.landingSettleActive = !ready;
+    vtolMcProtection.landingSettleActive = !vtolMcProtection.landingSettleApproved;
     navigationVtolMcProtectionPublishDebug();
-    return ready;
+    return vtolMcProtection.landingSettleApproved;
+}
+
+bool navigationVtolMcProtectionLandingDescentNeedsResettle(void)
+{
+    const bool needsResettle = vtolMcProtectionLandingDescentNeedsResettle(
+        navigationVtolMcProtectionIsNavActive(),
+        vtolMcProtection.landingSettleApproved,
+        navigationVtolMcProtectionVelocityUsable(),
+        posControl.actualState.velXY,
+        navigationVtolMcProtectionMaxAbsAttitudeDeciDeg(),
+        navigationVtolMcProtectionHorizontalSettleLimitCmS(),
+        navigationVtolMcProtectionAttitudeSettleLimitDeciDeg());
+
+    if (needsResettle) {
+        navigationVtolMcProtectionResetLandingSettle();
+        vtolMcProtection.landingSettleActive = true;
+    }
+
+    navigationVtolMcProtectionPublishDebug();
+    return needsResettle;
 }
 
 void navigationVtolMcProtectionApplyStabilizedCommandShaping(int16_t *rollCommand, int16_t *pitchCommand, int16_t *yawCommand)

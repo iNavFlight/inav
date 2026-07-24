@@ -163,6 +163,45 @@ TEST(VtolMcProtectionLogicTest, LandingCaptureRadiusCapsLargeWaypointRadius)
     EXPECT_EQ(80, vtolMcProtectionLandingCaptureRadiusCm(80));
 }
 
+TEST(VtolMcProtectionLogicTest, PositionCaptureDoesNotOverrideNavigationOrPilotTarget)
+{
+    EXPECT_TRUE(vtolMcProtectionPositionCaptureAllowed(true, true, false, false));
+    EXPECT_FALSE(vtolMcProtectionPositionCaptureAllowed(false, true, false, false));
+    EXPECT_FALSE(vtolMcProtectionPositionCaptureAllowed(true, false, false, false));
+    EXPECT_FALSE(vtolMcProtectionPositionCaptureAllowed(true, true, true, false));
+    EXPECT_FALSE(vtolMcProtectionPositionCaptureAllowed(true, true, false, true));
+}
+
+TEST(VtolMcProtectionLogicTest, PositionCaptureSetsBrakingTargetOnlyOnEntry)
+{
+    EXPECT_FALSE(vtolMcProtectionCaptureShouldSetTarget(false, false));
+    EXPECT_TRUE(vtolMcProtectionCaptureShouldSetTarget(false, true));
+    EXPECT_FALSE(vtolMcProtectionCaptureShouldSetTarget(true, true));
+    EXPECT_FALSE(vtolMcProtectionCaptureShouldSetTarget(true, false));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingDescentDoesNotInvalidateApprovedSettle)
+{
+    // Normal vertical descent is deliberately not an input to this gate.
+    EXPECT_FALSE(vtolMcProtectionLandingDescentNeedsResettle(
+        true, true, true, 120.0f, 150, 75, 200));
+    EXPECT_FALSE(vtolMcProtectionLandingDescentNeedsResettle(
+        true, true, false, 1000.0f, 150, 75, 200));
+
+    EXPECT_TRUE(vtolMcProtectionLandingDescentNeedsResettle(
+        true, true, true, 151.0f, 150, 75, 200));
+    EXPECT_TRUE(vtolMcProtectionLandingDescentNeedsResettle(
+        true, true, true, 20.0f, 201, 75, 200));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingResettleRequiresProtectionAndPriorApproval)
+{
+    EXPECT_FALSE(vtolMcProtectionLandingDescentNeedsResettle(
+        false, true, true, 300.0f, 300, 75, 200));
+    EXPECT_FALSE(vtolMcProtectionLandingDescentNeedsResettle(
+        true, false, true, 300.0f, 300, 75, 200));
+}
+
 TEST(VtolMcProtectionLogicTest, SoftAltitudeRelaxationOnlyAppliesDuringCaptureOrTransition)
 {
     EXPECT_TRUE(vtolMcProtectionShouldRelaxAltitude(
