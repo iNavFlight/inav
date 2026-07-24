@@ -43,13 +43,13 @@ INAV builds against the checked-in generated `storm32` MAVLink headers/dialect b
 - `mavlink_sysid` - system ID used in every outbound packet (default 1); most inbound handlers only act on packets targeted to this system ID.
 - `mavlink_autopilot_type` - heartbeat autopilot ID (`GENERIC` or `ARDUPILOT`).
 - `mavlink_version` - MAVLink version to use (`2` by default, `1` only when forced for compatibility).
-- Stream rates (Hz): each group is polled up to 50 Hz; a rate of 0 disables the group.
-  - `mavlink_port{1-4}_ext_status_rate`
-  - `mavlink_port{1-4}_rc_chan_rate`
-  - `mavlink_port{1-4}_pos_rate`
-  - `mavlink_port{1-4}_extra1_rate`
-  - `mavlink_port{1-4}_extra2_rate`
-  - `mavlink_port{1-4}_extra3_rate`
+- Stream rates (Hz): each group is polled up to 50 Hz; a rate of 0 disables the group. These CLI rates exist for port 1 only; ports 2..4 have no configurable stream-rate settings and are controlled at runtime (see below).
+  - `mavlink_port1_ext_status_rate`
+  - `mavlink_port1_rc_chan_rate`
+  - `mavlink_port1_pos_rate`
+  - `mavlink_port1_extra1_rate`
+  - `mavlink_port1_extra2_rate`
+  - `mavlink_port1_extra3_rate`
 - Port 1 uses configured CLI rates (`mavlink_port1_*_rate`).
 - Ports 2..4 start with heartbeat only (1 Hz), all other streams disabled.
 - `mavlink_port{1-4}_min_txbuffer` - minimum remote TX buffer level before sending when per-port flow-control information is available.
@@ -99,6 +99,15 @@ Ports 2..N use a secondary startup profile (heartbeat at 1 Hz, other streams dis
   - `MAV_CMD_CONTROL_HIGH_LATENCY`
 - Other incoming commands/messages are handled once on the resolved local ingress path, but broadcast-targeted control requests still execute locally.
 
+### Reconnect and status re-announcement
+
+INAV tracks each remote peer's presence from its `HEARTBEAT` frames, keyed per `(sysid, compid)` route entry rather than per port. A peer counts as having just (re)connected on a port when INAV sees its first heartbeat, a heartbeat after a gap of more than 5 seconds, or a heartbeat that has moved to a different port (failover). On such a (re)connect INAV:
+
+- resets that port's `STATUSTEXT` de-spam state, so the next OSD/system message is sent immediately instead of waiting out the repeat interval, and
+- re-sends the current arming-disable reason to that port, independent of whether the global arming-disable flags have changed, rate-limited to once per 10 seconds per port.
+
+If the route table is full when a new peer first appears, reconnect detection for that peer degrades gracefully to the broadcast-only behavior (no per-peer re-announcement).
+
 ## Native MLRS receiver integration
 
 When `mavlink_port{1-4}_radio_type = MLRS`, INAV uses native receiver-emitted MLRS messages rather than treating `RADIO_STATUS` as the real MLRS data source.
@@ -135,7 +144,7 @@ Messages are organized into MAVLink datastream groups. Each group sends one mess
 - `BATTERY_STATUS`: per-cell voltages (cells 11-14 in `voltages_ext`), current draw, consumed mAh/Wh, and remaining percentage when available.
 - `SCALED_PRESSURE`: baro pressure and temperature data.
 - `SYSTEM_TIME`: boot time plus RTC Unix time when the RTC is valid.
-- `STATUSTEXT`: pending OSD/system messages and changed arming-disable reasons with mapped severity. Repeated OSD-derived status text is suppressed per MAVLink port; changed text is sent immediately, while unchanged notices/warnings/critical messages are re-announced at progressively shorter severity-based intervals. INAV flight-mode transitions are broadcast as notices in the form `Notice: INAV: Entering <mode name>`, with explicit `Notice: INAV: Entering GCS NAV mode` / `Notice: INAV: Exiting GCS NAV mode` transitions while GCS-assisted navigation engages or ends.
+- `STATUSTEXT`: pending OSD/system messages, changed arming-disable reasons, and flight-mode transitions. OSD/system messages carry a mapped severity (NOTICE by default, WARNING when the source OSD element is inverted, CRITICAL when it blinks); arming-disable and mode notices are always sent at NOTICE severity. Repeated OSD-derived status text is suppressed per MAVLink port; changed text is sent immediately, while unchanged notice/warning/critical messages are re-announced at progressively shorter severity-based intervals (30 s / 10 s / 5 s). Changed arming-disable reasons are broadcast to every enabled port as `Arming disabled: <reasons>`. INAV flight-mode transitions are broadcast as notices in the form `Notice: INAV: Entering <mode name>`, with explicit `Notice: INAV: Entering GCS NAV mode` / `Notice: INAV: Exiting GCS NAV mode` transitions while GCS-assisted navigation engages or ends. See [Reconnect and status re-announcement](#reconnect-and-status-re-announcement) for how these are re-sent when a peer (re)connects.
 - `MISSION_CURRENT`: broadcast at 1 Hz with mission count, current item, execution mode, and mission state.
 - `MISSION_ITEM_REACHED`: sent when navigation reports a mission waypoint reached and broadcast to all enabled MAVLink ports.
 - `AUTOPILOT_VERSION`: on request, advertises ArduPilot-compatible version `4.7.0` and the capabilities listed above (MAVLink2 only).
@@ -176,7 +185,7 @@ INAV implements a selective but useful subset of the MAVLink Command protocol. U
 - `MAV_CMD_DO_SET_MODE`: supports the ArduPilot-style RTL/RTH custom-mode request and routes it to the same normal RTH mode path as `MAV_CMD_NAV_RETURN_TO_LAUNCH`. It also accepts the ArduPilot Loiter/PosHold pause modes (`PLANE_MODE_LOITER`, `COPTER_MODE_LOITER`, `COPTER_MODE_POSHOLD`, `COPTER_MODE_BRAKE`) and enters normal INAV PosHold at the current position and altitude. Other mode changes remain unsupported.
 - `MAV_CMD_NAV_LAND`: while armed with usable navigation estimates, creates a transient LAND waypoint at the current position and enters the same normal landing path used by a mission `NAV_WP_ACTION_LAND`. It does not use emergency landing and does not modify the uploaded mission. Command location fields are ignored; mission items retain their supplied landing position.
 - `MAV_CMD_DO_SET_HOME`: writes the existing INAV waypoint `0` home through `setWaypoint(0, ...)`. `param1 = 1` uses the current GNSS position; `param1 = 0` uses the supplied global location. The existing WP#0 gates still apply: armed state, usable position estimate, valid GPS origin, and GCS-assisted navigation enabled.
-- `MAV_CMD_DO_REPOSITION`: sets the Follow Me / GCS-nav waypoint when GCS nav is valid. Accepts `MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, and `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`; otherwise `UNSUPPORTED`. `param3` is the optional fixed-wing PosHold loiter-radius override in meters; `0` clears the temporary override back to `nav_fw_loiter_radius`, and `NaN` leaves it unchanged.
+- `MAV_CMD_DO_REPOSITION`: sets the Follow Me / GCS-nav waypoint when GCS nav is valid. Accepts `MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, and `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`; otherwise `UNSUPPORTED`. `param3` is the optional fixed-wing PosHold loiter-radius override in meters; `0` clears the temporary override back to `nav_fw_loiter_radius`, and `NaN` leaves it unchanged. `param4`, when finite and in the range `0`–`360`, sets a target heading for the reposition point; other values leave the heading unset.
 - `MAV_CMD_DO_CHANGE_ALTITUDE`: changes the current altitude target. `param1` is the target altitude in meters and `param2` is interpreted as the MAVLink frame (`MAV_FRAME_GLOBAL`, `MAV_FRAME_GLOBAL_INT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT`, `MAV_FRAME_GLOBAL_RELATIVE_ALT_INT`); unsupported frames are rejected.
 - `MAV_CMD_CONDITION_YAW`: changes the current heading target when the active navigation state has yaw control. Accepts absolute heading (`param4 = 0`) and relative turns (`param4 != 0`); turn rate is ignored.
 - `MAV_CMD_SET_MESSAGE_INTERVAL` / `MAV_CMD_GET_MESSAGE_INTERVAL`: adjust or query per-message periodic output for `HEARTBEAT`, `SYS_STATUS`, `EXTENDED_SYS_STATE`, RC channels, `GPS_RAW_INT`, `GLOBAL_POSITION_INT`, `GPS_GLOBAL_ORIGIN`, `ATTITUDE`, `VFR_HUD`, `BATTERY_STATUS`, `SCALED_PRESSURE`, and `SYSTEM_TIME`. `REQUEST_DATA_STREAM` still controls the legacy base stream groups; `SET_MESSAGE_INTERVAL` overrides individual messages on top.
@@ -219,11 +228,11 @@ The default ArduPilot-compatible path reports modes through `HEARTBEAT.custom_mo
 
 ## MAVLink missions
 
-INAV supports MAVLink mission upload, download, clear, live mission-state reporting, and waypoint-reached notifications. Uploads retry the outstanding request every 1.5 seconds and abort after five unsuccessful retries. Downloads time out after five seconds of inactivity. Only the system/component and ingress port that started a transfer may continue it. Completed uploads and clears update nonvolatile waypoint storage on targets that provide it.
+INAV supports MAVLink mission upload, download, clear, live mission-state reporting, and waypoint-reached notifications. Uploads retry the outstanding request every 1.5 seconds and abort after five unsuccessful retries. Downloads time out after five seconds of inactivity. Only the system/component and ingress port that started a transfer may continue it. Completed uploads and clears update nonvolatile waypoint storage on targets that provide it. Mission downloads always reply with `MISSION_ITEM_INT`, including in response to a legacy float `MISSION_REQUEST`.
 
 Mission upload is staged before it touches the live INAV waypoint list. The MAVLink stream is translated into a temporary INAV mission, validated, and committed only after the full upload succeeds, so rejected uploads do not leave a half-written mission in the FC. QGC planned home item `0` is skipped because INAV stores home separately; MAVLink sequence `1` becomes INAV waypoint `1`.
 
-The upload translator handles MAVLink mission items that are modifiers rather than standalone INAV waypoints. `MAV_CMD_NAV_WAYPOINT` stores a normal waypoint, or `POSHOLD_TIME` when hold time is set. `MAV_CMD_NAV_LOITER_TIME` stores `POSHOLD_TIME`; `MAV_CMD_NAV_LAND` stores `LAND`; `MAV_CMD_DO_JUMP` stores `JUMP` with its target remapped after translation. `MAV_CMD_DO_CHANGE_SPEED` sets a pending leg speed for following geographic waypoints. `MAV_CMD_CONDITION_DELAY`, `MAV_CMD_CONDITION_CHANGE_ALT`, and `MAV_CMD_DO_CHANGE_ALTITUDE` modify the previous applicable geographic waypoint instead of consuming an INAV waypoint slot.
+The upload translator handles MAVLink mission items that are modifiers rather than standalone INAV waypoints. `MAV_CMD_NAV_WAYPOINT` stores a normal waypoint, or `POSHOLD_TIME` when hold time is set. `MAV_CMD_NAV_LOITER_TIME` stores `POSHOLD_TIME`; `MAV_CMD_NAV_LAND` stores `LAND`; `MAV_CMD_DO_JUMP` stores `JUMP` with its target remapped after translation. `MAV_CMD_NAV_RETURN_TO_LAUNCH` stores `RTH` (with the land-after-RTH flag and, for coordinate frames, an altitude); `MAV_CMD_DO_SET_ROI` (with `MAV_ROI_LOCATION`) stores `SET_POI`; `MAV_CMD_CONDITION_YAW` stores `SET_HEAD`. `MAV_CMD_DO_CHANGE_SPEED` sets a pending leg speed for following geographic waypoints. `MAV_CMD_CONDITION_DELAY`, `MAV_CMD_CONDITION_CHANGE_ALT`, and `MAV_CMD_DO_CHANGE_ALTITUDE` modify the previous applicable geographic waypoint instead of consuming an INAV waypoint slot.
 
 The implementation works with common MAVLink mission planners such as QGC for simple mission flows. However, the differences between MAVLink missions and INAV's fuller MSP navigation model mean MAVLink still cannot represent every INAV mission feature. Use MultiWii Planner or the INAV Configurator when you need full MSP mission semantics.
 
@@ -233,12 +242,12 @@ Warning: a mission downloaded over MAVLink is a best-effort reconstruction from 
 
 - WAYPOINT: MSP->MAV sends lat/lon/alt but drops leg speed `p1` and all user-action bits in `p3` (only alt-mode bit drives frame). MAV->MSP stores lat/lon/alt, can apply pending leg speed into `p1`, and keeps only alt-mode bit in `p3`; user bits are lost.
 - POSHOLD_TIME / LOITER_TIME: loiter time `p1` OK; pending leg speed can be stored in `p2` on upload. User-action bits in `p3` are discarded both directions.
-- LAND: lat/lon/alt OK; leg speed `p1`, ground elevation `p2`, and user-action bits in `p3` are cleared in both directions (only alt-mode bit is retained from frame on upload).
-- RTH: RTH land-if-nonzero flag in `p1` is ignored both ways (always zeroed); user-action bits dropped; alt is sent only if the MAVLink frame is coordinate and returns with alt-mode bit set on upload.
+- LAND: lat/lon/alt OK. As with WAYPOINT, a pending `DO_CHANGE_SPEED` leg speed can be written into `p1` on upload, but leg speed is dropped on download. Ground elevation `p2` and user-action bits in `p3` are cleared in both directions (only the alt-mode bit is retained from frame on upload).
+- RTH: the land-after-RTH flag in `p1` is captured on upload (`p1 = 1` when `MAV_CMD_NAV_RETURN_TO_LAUNCH param1 > 0`) but dropped on download (always sent as `0`), so it does not survive a round trip; user-action bits dropped; alt is sent only if the MAVLink frame is a coordinate frame, and returns with the alt-mode bit set on upload.
 - JUMP: target and repeat count OK.
 - SET_POI: lat/lon/alt OK; `param1` is fixed to `MAV_ROI_LOCATION`; user-action bits in `p3` are dropped (alt-mode bit respected on upload).
 - SET_HEAD: heading `p1` OK; user-action bits in `p3` are not represented.
-- Net effect: actions and positions OK, but MSP-specific fields (leg speed, LAND elevation adjustment, RTH land flag, user-action bits in `p3`) are lost, so MAVLink missions cannot fully conform to `MSP-Navigation-Messages.md`.
+- Net effect: actions and positions OK, but MSP-specific fields (leg speed, LAND elevation adjustment, RTH land flag, user-action bits in `p3`) do not survive a MAV -> MSP -> MAV round trip — some are captured on upload, but downloads drop them — so MAVLink missions cannot fully represent INAV's native MSP waypoint model (see the `wp` field definitions in [Navigation.md](Navigation.md#cli-command-wp-to-manage-waypoints)).
 
 ## MSP over MAVLink tunnel
 
