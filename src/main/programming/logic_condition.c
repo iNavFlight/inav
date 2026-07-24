@@ -498,6 +498,12 @@ static int logicConditionCompute(
             return activateForcedLanding();
             break;
 
+        case LOGIC_CONDITION_RX_SELECT_OVERRIDE:
+            logicConditionValuesByType[LOGIC_CONDITION_RX_SELECT_OVERRIDE] = constrain(operandA, RX_LINK_PRIMARY, RX_LINK_SECONDARY);
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RX_LINK);
+            return true;
+            break;
+
         case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 

@@ -74,23 +74,35 @@ static timeUs_t lastMspRssiUpdateUs = 0;
 #define RX_LQ_INTERVAL_MS       200
 #define RX_LQ_TIMEOUT_MS        1000
 
-static rxLinkQualityTracker_e rxLQTracker;
 static rssiSource_e activeRssiSource;
 
-static bool rxDataProcessingRequired = false;
-static bool auxiliaryProcessingRequired = false;
+static bool rxSignalReceived = false;
+static bool rxFlightChannelsValid = false;
+
+static bool isRxSuspended = false;
+static bool dualRxEnabled = false;
+
+typedef struct rxLinkState_s {
+    rxRuntimeConfig_t runtimeConfig;
+    rxLinkStatistics_t statistics;
+    rxLinkQualityTracker_e linkQuality;
+    rcChannel_t channels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+    uint16_t channelData[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+    bool dataProcessingRequired;
+    bool auxiliaryProcessingRequired;
+    bool signalReceived;
+    bool flightChannelsValid;
+    uint8_t frameStatus;
+    timeUs_t nextUpdateAtUs;
+    timeUs_t needRxSignalBefore;
+} rxLinkState_t;
+
+static rxLinkState_t rxLinks[RX_LINK_COUNT];
+static rxLink_e activeLink = RX_LINK_PRIMARY;
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
 static bool mspOverrideDataProcessingRequired = false;
 #endif
-
-static bool rxSignalReceived = false;
-static bool rxFlightChannelsValid = false;
-static uint8_t rxChannelCount;
-
-static timeUs_t rxNextUpdateAtUs = 0;
-static timeUs_t needRxSignalBefore = 0;
-static bool isRxSuspended = false;
 
 static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
@@ -114,13 +126,28 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 13);
 #define RX_MIN_USEX 885
 PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .receiverType = DEFAULT_RX_TYPE,
+    .dualRxEnabled = 0,
     .rcmap = {0, 1, 3, 2},      // Default to AETR map
     .halfDuplex = SETTING_SERIALRX_HALFDUPLEX_DEFAULT,
+    .receiverTypeSecondary = RX_TYPE_NONE,
+#ifdef USE_SERIAL_RX
     .serialrx_provider = SERIALRX_PROVIDER,
+    .serialrx_inverted = SETTING_SERIALRX_INVERTED_DEFAULT,
+    .serialrx_provider_secondary = SERIALRX_PROVIDER,
+    .serialrx_inverted_secondary = SETTING_SERIALRX_INVERTED_DEFAULT,
+    .halfDuplexSecondary = SETTING_SERIALRX_HALFDUPLEX_DEFAULT,
+    .sbusSyncIntervalSecondary = SETTING_SBUS_SYNC_INTERVAL_DEFAULT,
+#else
+    .serialrx_provider = SERIALRX_PROVIDER,
+    .serialrx_inverted = 0,
+    .serialrx_provider_secondary = SERIALRX_PROVIDER,
+    .serialrx_inverted_secondary = 0,
+    .halfDuplexSecondary = 0,
+    .sbusSyncIntervalSecondary = SETTING_SBUS_SYNC_INTERVAL_DEFAULT,
+#endif
 #ifdef USE_SPEKTRUM_BIND
     .spektrum_sat_bind = SETTING_SPEKTRUM_SAT_BIND_DEFAULT,
 #endif
-    .serialrx_inverted = SETTING_SERIALRX_INVERTED_DEFAULT,
     .mincheck = SETTING_MIN_CHECK_DEFAULT,
     .maxcheck = SETTING_MAX_CHECK_DEFAULT,
     .rx_min_usec = SETTING_RX_MIN_USEC_DEFAULT,          // any of first 4 channels below this value will trigger rx loss detection
@@ -176,78 +203,158 @@ static uint8_t nullFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     return RX_FRAME_PENDING;
 }
 
+static bool nullProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
+{
+    UNUSED(rxRuntimeConfig);
+    return true;
+}
+
 bool isRxPulseValid(uint16_t pulseDuration)
 {
     return  pulseDuration >= rxConfig()->rx_min_usec &&
             pulseDuration <= rxConfig()->rx_max_usec;
 }
 
+static void rxInitChannelState(rcChannel_t *channels, timeMs_t nowMs)
+{
+    for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
+        channels[i].raw = PWM_RANGE_MIDDLE;
+        channels[i].data = PWM_RANGE_MIDDLE;
+        channels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
+    }
+
+    channels[THROTTLE].raw = feature(FEATURE_REVERSIBLE_MOTORS) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
+    channels[THROTTLE].data = channels[THROTTLE].raw;
+
+    for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
+        if (modeActivationConditions(i)->modeId == BOXARM && IS_RANGE_USABLE(&modeActivationConditions(i)->range)) {
+            uint16_t value;
+            if (modeActivationConditions(i)->range.startStep > 0) {
+                value = MODE_STEP_TO_CHANNEL_VALUE((modeActivationConditions(i)->range.startStep - 1));
+            } else {
+                value = MODE_STEP_TO_CHANNEL_VALUE((modeActivationConditions(i)->range.endStep + 1));
+            }
+            rcChannel_t *armChannel = &channels[modeActivationConditions(i)->auxChannelIndex + NON_AUX_CHANNEL_COUNT];
+            armChannel->raw = value;
+            armChannel->data = value;
+        }
+    }
+}
+
+static void rxResetLinkState(rxLinkState_t *link, timeMs_t nowMs)
+{
+    lqTrackerReset(&link->linkQuality);
+    memset(&link->statistics, 0, sizeof(link->statistics));
+    memset(link->channelData, 0, sizeof(link->channelData));
+
+    link->runtimeConfig.lqTracker = &link->linkQuality;
+    link->runtimeConfig.linkStatistics = &link->statistics;
+    link->runtimeConfig.rcReadRawFn = nullReadRawRC;
+    link->runtimeConfig.rcFrameStatusFn = nullFrameStatus;
+    link->runtimeConfig.rcProcessFrameFn = nullProcessFrame;
+    link->runtimeConfig.rxSignalTimeout = DELAY_10_HZ;
+    link->runtimeConfig.receiverType = RX_TYPE_NONE;
+    link->runtimeConfig.channelData = link->channelData;
+    link->runtimeConfig.channelCount = 0;
+    link->runtimeConfig.frameData = NULL;
+
+    link->dataProcessingRequired = false;
+    link->auxiliaryProcessingRequired = false;
+    link->signalReceived = false;
+    link->flightChannelsValid = false;
+    link->frameStatus = RX_FRAME_PENDING;
+    link->nextUpdateAtUs = 0;
+    link->needRxSignalBefore = 0;
+
+    rxInitChannelState(link->channels, nowMs);
+}
+
+static void populateLinkConfig(rxConfig_t *dst, const rxConfig_t *src, rxLink_e link)
+{
+    *dst = *src;
+
 #ifdef USE_SERIAL_RX
-bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+    if (link == RX_LINK_SECONDARY) {
+        dst->receiverType = src->receiverTypeSecondary;
+        dst->serialrx_provider = src->serialrx_provider_secondary;
+        dst->serialrx_inverted = src->serialrx_inverted_secondary;
+        dst->halfDuplex = src->halfDuplexSecondary;
+        dst->sbusSyncInterval = src->sbusSyncIntervalSecondary;
+    }
+#else
+    if (link == RX_LINK_SECONDARY) {
+        dst->receiverType = RX_TYPE_NONE;
+    }
+    UNUSED(src);
+#endif
+}
+
+#ifdef USE_SERIAL_RX
+bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction)
 {
     bool enabled = false;
     switch (rxConfig->serialrx_provider) {
 #ifdef USE_SERIALRX_SRXL2
     case SERIALRX_SRXL2:
-        enabled = srxl2RxInit(rxConfig, rxRuntimeConfig);
+        enabled = srxl2RxInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_SPEKTRUM
     case SERIALRX_SPEKTRUM1024:
     case SERIALRX_SPEKTRUM2048:
-        enabled = spektrumInit(rxConfig, rxRuntimeConfig);
+        enabled = spektrumInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_SBUS
     case SERIALRX_SBUS2:
     case SERIALRX_SBUS:
-        enabled = sbusInit(rxConfig, rxRuntimeConfig);
+        enabled = sbusInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
     case SERIALRX_SBUS_FAST:
-        enabled = sbusInitFast(rxConfig, rxRuntimeConfig);
+        enabled = sbusInitFast(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_SUMD
     case SERIALRX_SUMD:
-        enabled = sumdInit(rxConfig, rxRuntimeConfig);
+        enabled = sumdInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_IBUS
     case SERIALRX_IBUS:
-        enabled = ibusInit(rxConfig, rxRuntimeConfig);
+        enabled = ibusInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_JETIEXBUS
     case SERIALRX_JETIEXBUS:
-        enabled = jetiExBusInit(rxConfig, rxRuntimeConfig);
+        enabled = jetiExBusInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_CRSF
     case SERIALRX_CRSF:
-        enabled = crsfRxInit(rxConfig, rxRuntimeConfig);
+        enabled = crsfRxInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_FPORT
     case SERIALRX_FPORT:
-        enabled = fportRxInit(rxConfig, rxRuntimeConfig);
+        enabled = fportRxInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_FPORT2
     case SERIALRX_FPORT2:
-        enabled = fport2RxInit(rxConfig, rxRuntimeConfig, false);
+        enabled = fport2RxInit(rxConfig, rxRuntimeConfig, false, portFunction);
         break;
     case SERIALRX_FBUS:
-        enabled = fport2RxInit(rxConfig, rxRuntimeConfig, true);
+        enabled = fport2RxInit(rxConfig, rxRuntimeConfig, true, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_GHST
     case SERIALRX_GHST:
-        enabled = ghstRxInit(rxConfig, rxRuntimeConfig);
+        enabled = ghstRxInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
 #ifdef USE_SERIALRX_MAVLINK
     case SERIALRX_MAVLINK:
-        enabled = mavlinkRxInit(rxConfig, rxRuntimeConfig);
+        enabled = mavlinkRxInit(rxConfig, rxRuntimeConfig, portFunction);
         break;
 #endif
     default:
@@ -260,72 +367,74 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 
 void rxInit(void)
 {
-    lqTrackerReset(&rxLQTracker);
-
-    rxRuntimeConfig.lqTracker = &rxLQTracker;
-    rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
-    rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
-    rxRuntimeConfig.rxSignalTimeout = DELAY_10_HZ;
     rcSampleIndex = 0;
-
-    timeMs_t nowMs = millis();
-
-    for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
-        rcChannels[i].raw = PWM_RANGE_MIDDLE;
-        rcChannels[i].data = PWM_RANGE_MIDDLE;
-        rcChannels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
+    dualRxEnabled = rxConfig()->dualRxEnabled;
+    if (rxConfig()->receiverType == RX_TYPE_MSP || rxConfig()->receiverTypeSecondary == RX_TYPE_MSP) {
+        dualRxEnabled = false;
     }
 
-    rcChannels[THROTTLE].raw = (feature(FEATURE_REVERSIBLE_MOTORS)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
-    rcChannels[THROTTLE].data = rcChannels[THROTTLE].raw;
+    const timeMs_t nowMs = millis();
 
-    // Initialize ARM switch to OFF position when arming via switch is defined
-    for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
-        if (modeActivationConditions(i)->modeId == BOXARM && IS_RANGE_USABLE(&modeActivationConditions(i)->range)) {
-            // ARM switch is defined, determine an OFF value
-            uint16_t value;
-            if (modeActivationConditions(i)->range.startStep > 0) {
-                value = MODE_STEP_TO_CHANNEL_VALUE((modeActivationConditions(i)->range.startStep - 1));
-            } else {
-                value = MODE_STEP_TO_CHANNEL_VALUE((modeActivationConditions(i)->range.endStep + 1));
-            }
-            // Initialize ARM AUX channel to OFF value
-            rcChannel_t *armChannel = &rcChannels[modeActivationConditions(i)->auxChannelIndex + NON_AUX_CHANNEL_COUNT];
-            armChannel->raw = value;
-            armChannel->data = value;
-        }
+    for (int linkIndex = 0; linkIndex < RX_LINK_COUNT; linkIndex++) {
+        rxResetLinkState(&rxLinks[linkIndex], nowMs);
     }
 
-    switch (rxConfig()->receiverType) {
+    rxConfig_t linkConfigs[RX_LINK_COUNT];
+    populateLinkConfig(&linkConfigs[RX_LINK_PRIMARY], rxConfig(), RX_LINK_PRIMARY);
+    populateLinkConfig(&linkConfigs[RX_LINK_SECONDARY], rxConfig(), RX_LINK_SECONDARY);
+
+    if (!dualRxEnabled) {
+        linkConfigs[RX_LINK_SECONDARY].receiverType = RX_TYPE_NONE;
+    }
+
+    for (int linkIndex = 0; linkIndex < RX_LINK_COUNT; linkIndex++) {
+        rxLinkState_t *link = &rxLinks[linkIndex];
+        rxConfig_t *linkConfig = &linkConfigs[linkIndex];
+        link->runtimeConfig.receiverType = linkConfig->receiverType;
+
+        switch (linkConfig->receiverType) {
 
 #ifdef USE_SERIAL_RX
         case RX_TYPE_SERIAL:
-            if (!serialRxInit(rxConfig(), &rxRuntimeConfig)) {
-                rxConfigMutable()->receiverType = RX_TYPE_NONE;
-                rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
-                rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
+        {
+            const serialPortFunction_e linkPortFunction = linkIndex == RX_LINK_PRIMARY ? FUNCTION_RX_SERIAL : FUNCTION_RX_SERIAL_SECONDARY;
+            if (!serialRxInit(linkConfig, &link->runtimeConfig, linkPortFunction)) {
+                if (linkIndex == RX_LINK_PRIMARY) {
+                    rxConfigMutable()->receiverType = RX_TYPE_NONE;
+                } else {
+                    rxConfigMutable()->receiverTypeSecondary = RX_TYPE_NONE;
+                }
+                link->runtimeConfig.receiverType = RX_TYPE_NONE;
+                link->runtimeConfig.rcReadRawFn = nullReadRawRC;
+                link->runtimeConfig.rcFrameStatusFn = nullFrameStatus;
+                link->runtimeConfig.rcProcessFrameFn = nullProcessFrame;
             }
             break;
+        }
 #endif
 
 #ifdef USE_RX_MSP
         case RX_TYPE_MSP:
-            rxMspInit(rxConfig(), &rxRuntimeConfig);
+            rxMspInit(linkConfig, &link->runtimeConfig);
             break;
 #endif
 
 #ifdef USE_RX_SIM
-    case RX_TYPE_SIM:
-        rxSimInit(rxConfig(), &rxRuntimeConfig);
-        break;
+        case RX_TYPE_SIM:
+            rxSimInit(linkConfig, &link->runtimeConfig);
+            break;
 #endif
 
         default:
         case RX_TYPE_NONE:
-            rxConfigMutable()->receiverType = RX_TYPE_NONE;
-            rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
-            rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
+            link->runtimeConfig.receiverType = RX_TYPE_NONE;
+            link->runtimeConfig.rcReadRawFn = nullReadRawRC;
+            link->runtimeConfig.rcFrameStatusFn = nullFrameStatus;
+            link->runtimeConfig.rcProcessFrameFn = nullProcessFrame;
             break;
+        }
+
+        link->runtimeConfig.channelCount = MIN(MAX_SUPPORTED_RC_CHANNEL_COUNT, link->runtimeConfig.channelCount);
     }
 
     rxUpdateRSSISource();
@@ -336,7 +445,7 @@ void rxInit(void)
     }
 #endif
 
-    rxChannelCount = MIN(MAX_SUPPORTED_RC_CHANNEL_COUNT, rxRuntimeConfig.channelCount);
+    rxSetActiveLink(RX_LINK_PRIMARY);
 }
 
 void rxUpdateRSSISource(void)
@@ -379,12 +488,86 @@ uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapE
 
 bool rxIsReceivingSignal(void)
 {
-    return rxSignalReceived;
+    return rxSignalReceived && rxFlightChannelsValid;
 }
 
 bool rxAreFlightChannelsValid(void)
 {
     return rxFlightChannelsValid;
+}
+
+rxLink_e rxGetActiveLink(void)
+{
+    return activeLink;
+}
+
+static bool rxLinkHasValidSignal(const rxLinkState_t *link)
+{
+    return link->signalReceived && link->flightChannelsValid;
+}
+
+bool rxIsLinkReceivingSignal(rxLink_e link)
+{
+    if ((unsigned)link >= RX_LINK_COUNT) {
+        return false;
+    }
+
+    return rxLinkHasValidSignal(&rxLinks[link]);
+}
+
+bool rxIsPrimaryFailsafe(void)
+{
+    return !rxIsLinkReceivingSignal(RX_LINK_PRIMARY);
+}
+
+static void rxApplyActiveLink(rxLink_e link)
+{
+    activeLink = link;
+
+    rxRuntimeConfig = rxLinks[link].runtimeConfig;
+    rxLinkStatistics = rxLinks[link].statistics;
+
+    rxSignalReceived = rxLinks[link].signalReceived;
+    rxFlightChannelsValid = rxLinks[link].flightChannelsValid;
+    memcpy(rcChannels, rxLinks[link].channels, sizeof(rcChannels));
+}
+
+void rxSetActiveLink(rxLink_e link)
+{
+    if ((unsigned)link >= RX_LINK_COUNT) {
+        return;
+    }
+
+    if (!dualRxEnabled && link != RX_LINK_PRIMARY) {
+        return;
+    }
+
+    rxApplyActiveLink(link);
+}
+
+static void rxSelectActiveLink(void)
+{
+    if (!dualRxEnabled) {
+        rxApplyActiveLink(RX_LINK_PRIMARY);
+        return;
+    }
+
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RX_LINK)) {
+        const rxLink_e forcedLink = logicConditionValuesByType[LOGIC_CONDITION_RX_SELECT_OVERRIDE] == RX_LINK_SECONDARY ? RX_LINK_SECONDARY : RX_LINK_PRIMARY;
+        rxApplyActiveLink(forcedLink);
+        return;
+    }
+
+    const bool primaryValid = rxLinkHasValidSignal(&rxLinks[RX_LINK_PRIMARY]);
+    const bool secondaryValid = rxLinkHasValidSignal(&rxLinks[RX_LINK_SECONDARY]);
+
+    if (primaryValid) {
+        rxApplyActiveLink(RX_LINK_PRIMARY);
+    } else if (secondaryValid) {
+        rxApplyActiveLink(RX_LINK_SECONDARY);
+    } else {
+        rxApplyActiveLink(RX_LINK_PRIMARY);
+    }
 }
 
 void suspendRxSignal(void)
@@ -403,41 +586,48 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
 {
     UNUSED(currentDeltaTime);
 
-    if (rxSignalReceived) {
-        if (currentTimeUs >= needRxSignalBefore) {
-            rxSignalReceived = false;
+    bool result = false;
+
+    const int linkCount = dualRxEnabled ? RX_LINK_COUNT : 1;
+    for (int linkIndex = 0; linkIndex < linkCount; linkIndex++) {
+        rxLinkState_t *link = &rxLinks[linkIndex];
+
+        if (link->signalReceived && currentTimeUs >= link->needRxSignalBefore) {
+            link->signalReceived = false;
         }
-    }
 
-    const uint8_t frameStatus = rxRuntimeConfig.rcFrameStatusFn(&rxRuntimeConfig);
+        const uint8_t frameStatus = link->runtimeConfig.rcFrameStatusFn(&link->runtimeConfig);
+        link->frameStatus = frameStatus;
 
-    if (frameStatus & RX_FRAME_COMPLETE) {
-        // RX_FRAME_COMPLETE updated the failsafe status regardless
-        rxSignalReceived = (frameStatus & RX_FRAME_FAILSAFE) == 0;
-        needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
-        rxDataProcessingRequired = true;
-    }
-    else if ((frameStatus & RX_FRAME_FAILSAFE) && rxSignalReceived) {
-        // All other receiver statuses are allowed to report failsafe, but not allowed to leave it
-        rxSignalReceived = false;
-    }
+        if (frameStatus & RX_FRAME_COMPLETE) {
+            link->signalReceived = (frameStatus & RX_FRAME_FAILSAFE) == 0;
+            link->needRxSignalBefore = currentTimeUs + link->runtimeConfig.rxSignalTimeout;
+            link->dataProcessingRequired = true;
+        } else if ((frameStatus & RX_FRAME_FAILSAFE) && link->signalReceived) {
+            link->signalReceived = false;
+        }
 
-    if (frameStatus & RX_FRAME_PROCESSING_REQUIRED) {
-        auxiliaryProcessingRequired = true;
-    }
+        if (frameStatus & RX_FRAME_PROCESSING_REQUIRED) {
+            link->auxiliaryProcessingRequired = true;
+        }
 
-    if (cmpTimeUs(currentTimeUs, rxNextUpdateAtUs) > 0) {
-        rxDataProcessingRequired = true;
-    }
+        if (cmpTimeUs(currentTimeUs, link->nextUpdateAtUs) > 0) {
+            link->dataProcessingRequired = true;
+        }
 
-    bool result = rxDataProcessingRequired || auxiliaryProcessingRequired;
+        result = result || link->dataProcessingRequired || link->auxiliaryProcessingRequired;
+    }
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    if (rxConfig()->receiverType != RX_TYPE_MSP) {
+    if (rxRuntimeConfig.receiverType != RX_TYPE_MSP) {
         mspOverrideDataProcessingRequired = mspOverrideUpdateCheck(currentTimeUs, currentDeltaTime);
         result = result || mspOverrideDataProcessingRequired;
     }
 #endif
+
+    if (!result && !isRxSuspended) {
+        rxSelectActiveLink();
+    }
 
     return result;
 }
@@ -448,66 +638,74 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     const timeMs_t currentTimeMs = millis();
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    if ((rxConfig()->receiverType != RX_TYPE_MSP) && mspOverrideDataProcessingRequired) {
+    if ((rxRuntimeConfig.receiverType != RX_TYPE_MSP) && mspOverrideDataProcessingRequired) {
         mspOverrideCalculateChannels(currentTimeUs);
     }
 #endif
 
-    if (auxiliaryProcessingRequired) {
-        auxiliaryProcessingRequired = !rxRuntimeConfig.rcProcessFrameFn(&rxRuntimeConfig);
-    }
+    bool processed = false;
 
-    if (!rxDataProcessingRequired) {
-        return false;
-    }
+    const int linkCount = dualRxEnabled ? RX_LINK_COUNT : 1;
+    for (int linkIndex = 0; linkIndex < linkCount; linkIndex++) {
+        rxLinkState_t *link = &rxLinks[linkIndex];
 
-    rxDataProcessingRequired = false;
-    rxNextUpdateAtUs = currentTimeUs + DELAY_10_HZ;
-
-    // If RX is suspended, do not process any data
-    if (isRxSuspended) {
-        return true;
-    }
-
-    rxFlightChannelsValid = true;
-
-    // Read and process channel data
-    for (int channel = 0; channel < rxChannelCount; channel++) {
-        const uint8_t rawChannel = calculateChannelRemapping(rxConfig()->rcmap, REMAPPABLE_CHANNEL_COUNT, channel);
-
-        // sample the channel
-        uint16_t sample = (*rxRuntimeConfig.rcReadRawFn)(&rxRuntimeConfig, rawChannel);
-
-        // apply the rx calibration to flight channel
-        if (channel < NON_AUX_CHANNEL_COUNT && sample != 0) {
-            sample = scaleRange(sample, rxChannelRangeConfigs(channel)->min, rxChannelRangeConfigs(channel)->max, PWM_RANGE_MIN, PWM_RANGE_MAX);
-            sample = MIN(MAX(PWM_PULSE_MIN, sample), PWM_PULSE_MAX);
+        if (link->auxiliaryProcessingRequired) {
+            link->auxiliaryProcessingRequired = !link->runtimeConfig.rcProcessFrameFn(&link->runtimeConfig);
         }
 
-        // Store as rxRaw
-        rcChannels[channel].raw = sample;
+        if (!link->dataProcessingRequired) {
+            continue;
+        }
 
-        // Apply invalid pulse value logic
-        if (!isRxPulseValid(sample)) {
-            sample = rcChannels[channel].data;   // hold channel, replace with old value
-            if ((currentTimeMs > rcChannels[channel].expiresAt) && (channel < NON_AUX_CHANNEL_COUNT)) {
-                rxFlightChannelsValid = false;
+        link->dataProcessingRequired = false;
+        link->nextUpdateAtUs = currentTimeUs + DELAY_10_HZ;
+        processed = true;
+
+        if (isRxSuspended) {
+            continue;
+        }
+
+        link->flightChannelsValid = true;
+
+        const uint8_t channelCount = MIN(MAX_SUPPORTED_RC_CHANNEL_COUNT, link->runtimeConfig.channelCount);
+        link->runtimeConfig.channelCount = channelCount;
+
+        for (int channel = 0; channel < channelCount; channel++) {
+            const uint8_t rawChannel = calculateChannelRemapping(rxConfig()->rcmap, REMAPPABLE_CHANNEL_COUNT, channel);
+
+            uint16_t sample = (*link->runtimeConfig.rcReadRawFn)(&link->runtimeConfig, rawChannel);
+
+            if (channel < NON_AUX_CHANNEL_COUNT && sample != 0) {
+                sample = scaleRange(sample, rxChannelRangeConfigs(channel)->min, rxChannelRangeConfigs(channel)->max, PWM_RANGE_MIN, PWM_RANGE_MAX);
+                sample = MIN(MAX(PWM_PULSE_MIN, sample), PWM_PULSE_MAX);
             }
-        } else {
-            rcChannels[channel].expiresAt = currentTimeMs + MAX_INVALID_RX_PULSE_TIME;
+
+            link->channels[channel].raw = sample;
+
+            if (!isRxPulseValid(sample)) {
+                sample = link->channels[channel].data;
+                if ((currentTimeMs > link->channels[channel].expiresAt) && (channel < NON_AUX_CHANNEL_COUNT)) {
+                    link->flightChannelsValid = false;
+                }
+            } else {
+                link->channels[channel].expiresAt = currentTimeMs + MAX_INVALID_RX_PULSE_TIME;
+            }
+
+            rcStaging[channel] = sample;
         }
 
-        // Save channel value
-        rcStaging[channel] = sample;
-    }
-
-    // Update channel input value if receiver is not in failsafe mode
-    // If receiver is in failsafe (not receiving signal or sending invalid channel values) - last good input values are retained
-    if (rxFlightChannelsValid && rxSignalReceived) {
-        for (int channel = 0; channel < rxChannelCount; channel++) {
-            rcChannels[channel].data = rcStaging[channel];
+        if (link->flightChannelsValid && link->signalReceived) {
+            for (int channel = 0; channel < channelCount; channel++) {
+                link->channels[channel].data = rcStaging[channel];
+            }
         }
     }
+
+    if (isRxSuspended) {
+        return processed;
+    }
+
+    rxSelectActiveLink();
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe()) {
@@ -540,15 +738,18 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         }
     }
 
-    // Update failsafe
-    if (rxFlightChannelsValid && rxSignalReceived) {
+    // Update failsafe — main failsafe only fires when both RX links are down
+    if (rxIsLinkReceivingSignal(RX_LINK_PRIMARY) || (dualRxEnabled && rxIsLinkReceivingSignal(RX_LINK_SECONDARY))) {
         failsafeOnValidDataReceived();
     } else {
         failsafeOnValidDataFailed();
     }
 
-    rcSampleIndex++;
-    return true;
+    if (processed) {
+        rcSampleIndex++;
+    }
+
+    return processed;
 }
 
 void parseRcChannels(const char *input)
@@ -645,7 +846,11 @@ static void updateRSSIFromADC(void)
 
 static void updateRSSIFromProtocol(void)
 {
-    setRSSIValue(lqTrackerGet(&rxLQTracker), RSSI_SOURCE_RX_PROTOCOL, false);
+    if (!rxRuntimeConfig.lqTracker) {
+        return;
+    }
+
+    setRSSIValue(lqTrackerGet(rxRuntimeConfig.lqTracker), RSSI_SOURCE_RX_PROTOCOL, false);
 }
 
 void updateRSSI(timeUs_t currentTimeUs)
@@ -734,3 +939,14 @@ uint16_t lqTrackerGet(rxLinkQualityTracker_e * lqTracker)
 
     return lqTracker->lqValue;
 }
+
+#ifdef UNIT_TEST
+rxRuntimeConfig_t *rxTestRuntimeConfig(rxLink_e link)
+{
+    if ((unsigned)link >= RX_LINK_COUNT) {
+        return NULL;
+    }
+
+    return &rxLinks[link].runtimeConfig;
+}
+#endif

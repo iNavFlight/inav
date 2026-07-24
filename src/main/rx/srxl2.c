@@ -478,7 +478,7 @@ void srxl2RxWriteData(const void *data, int len)
     writeBufferIdx = len;
 }
 
-bool srxl2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+bool srxl2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction)
 {
     static uint16_t channelData[SRXL2_MAX_CHANNELS];
     for (size_t i = 0; i < SRXL2_MAX_CHANNELS; ++i) {
@@ -494,7 +494,7 @@ bool srxl2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     rxRuntimeConfig->rcFrameStatusFn = srxl2FrameStatus;
     rxRuntimeConfig->rcProcessFrameFn = srxl2ProcessFrame;
 
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
+    const serialPortConfig_t *portConfig = findSerialPortConfig(portFunction);
     if (!portConfig) {
         return false;
     }
@@ -507,7 +507,7 @@ bool srxl2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         options |= SERIAL_BIDIR;
     }
 
-    serialPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, srxl2DataReceive,
+    serialPort = openSerialPort(portConfig->identifier, portFunction, srxl2DataReceive,
         NULL, SRXL2_PORT_BAUDRATE_DEFAULT, SRXL2_PORT_MODE, options);
 
     if (!serialPort) {

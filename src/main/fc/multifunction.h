@@ -28,7 +28,7 @@
 #include "drivers/display.h"
 
 typedef struct multiFunctionWarning_s {
-    uint8_t osdWarningsFlags;  // bitfield
+    uint16_t osdWarningsFlags;  // bitfield
     bool newWarningActive;
 } multiFunctionWarning_t;
 

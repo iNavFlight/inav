@@ -3853,6 +3853,37 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+    case OSD_ACTIVE_RX_LINK:
+        {
+            const rxLink_e link = rxGetActiveLink();
+            const bool primaryValid = rxIsLinkReceivingSignal(RX_LINK_PRIMARY);
+            const bool secondaryValid = rxIsLinkReceivingSignal(RX_LINK_SECONDARY);
+
+            buff[0] = 'R';
+            buff[1] = 'X';
+            buff[2] = ':';
+
+            if (link == RX_LINK_PRIMARY && primaryValid) {
+                buff[3] = 'P';
+            } else if (link == RX_LINK_SECONDARY && secondaryValid) {
+                buff[3] = 'S';
+            } else if (primaryValid) {
+                buff[3] = 'P';
+            } else if (secondaryValid) {
+                buff[3] = 'S';
+            } else {
+                buff[3] = '-';
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+
+            buff[4] = '\0';
+
+            if (!primaryValid && secondaryValid) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+            break;
+        }
+
 #if defined(USE_ESC_SENSOR)
     case OSD_ESC_RPM:
         {
@@ -4512,6 +4543,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     osdLayoutsConfig->item_pos[0][OSD_RC_SOURCE] = OSD_POS(3, 4);
 #endif
+    osdLayoutsConfig->item_pos[0][OSD_ACTIVE_RX_LINK] = OSD_POS(3, 5);
 
 #ifdef USE_POWER_LIMITS
     osdLayoutsConfig->item_pos[0][OSD_PLIMIT_REMAINING_BURST_TIME] = OSD_POS(3, 4);

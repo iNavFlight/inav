@@ -979,6 +979,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, currentBatteryProfile->capacity.warning);
         sbufWriteU32(dst, currentBatteryProfile->capacity.critical);
         sbufWriteU8(dst, batteryMetersConfig()->capacity_unit);
+        sbufWriteU8(dst, rxGetActiveLink());
         break;
 
     case MSP2_INAV_MISC2:

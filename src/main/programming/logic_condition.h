@@ -92,6 +92,7 @@ typedef enum {
     LOGIC_CONDITION_ATAN2                       = 60,
     LOGIC_CONDITION_ACTIVATE_RTH                = 61,
     LOGIC_CONDITION_ACTIVATE_LANDING            = 62,
+    LOGIC_CONDITION_RX_SELECT_OVERRIDE          = 63,
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 
@@ -213,6 +214,7 @@ typedef enum {
     LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX = (1 << 11),
 #endif
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED = (1 << 12),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RX_LINK = (1 << 13),
 } logicConditionsGlobalFlags_t;
 
 typedef enum {

@@ -290,6 +290,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     OSD_ELEMENT_ENTRY("RC SOURCE", OSD_RC_SOURCE),
 #endif
+    OSD_ELEMENT_ENTRY("RX LINK", OSD_ACTIVE_RX_LINK),
 
     OSD_ELEMENT_ENTRY("IMU TEMP", OSD_IMU_TEMPERATURE),
 #ifdef USE_BARO

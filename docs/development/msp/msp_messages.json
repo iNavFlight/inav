@@ -7094,6 +7094,13 @@
                         "desc": "Enum `batCapacityUnit_e` Capacity unit (`batteryMetersConfig()->capacity_unit`)",
                         "units": "Enum",
                         "enum": "batCapacityUnit_e"
+                    },
+                    {
+                        "name": "activeRX",
+                        "ctype": "uint8_t",
+                        "desc": "Enum `rxReceiverRole_e` Current active receiver if dual RX activated; otherwise always 0",
+                        "units": "Enum",
+                        "enum": "rxReceiverRole_e"
                     }
                 ]
             },

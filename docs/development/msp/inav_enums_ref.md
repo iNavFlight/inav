@@ -278,6 +278,8 @@
 - [rthTargetMode_e](#enum-rthtargetmode_e)
 - [rthTrackbackMode_e](#enum-rthtrackbackmode_e)
 - [rxFrameState_e](#enum-rxframestate_e)
+- [rxLink_e](#enum-rxlink_e)
+- [rxReceiverRole_e](#enum-rxreceiverrole_e)
 - [rxReceiverType_e](#enum-rxreceivertype_e)
 - [rxSerialReceiverType_e](#enum-rxserialreceivertype_e)
 - [safehomeUsageMode_e](#enum-safehomeusagemode_e)
@@ -3037,6 +3039,7 @@
 | `LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS` | (1 << 10) |  |
 | `LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX` | (1 << 11) | USE_GPS_FIX_ESTIMATION |
 | `LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED` | (1 << 12) |  |
+| `LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RX_LINK` | (1 << 13) |  |
 
 ---
 ## <a id="enum-logicflightmodeoperands_e"></a>`logicFlightModeOperands_e`
@@ -3208,7 +3211,8 @@
 | `LOGIC_CONDITION_ATAN2` | 60 |  |
 | `LOGIC_CONDITION_ACTIVATE_RTH` | 61 |  |
 | `LOGIC_CONDITION_ACTIVATE_LANDING` | 62 |  |
-| `LOGIC_CONDITION_LAST` | 63 |  |
+| `LOGIC_CONDITION_RX_SELECT_OVERRIDE` | 63 |  |
+| `LOGIC_CONDITION_LAST` | 64 |  |
 
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
@@ -3289,6 +3293,7 @@
 | `LSM6DXX_VAL_CTRL1_XL_LPF2` | 1 |  |
 | `LSM6DXX_VAL_CTRL2_G_ODR6664` | 10 |  |
 | `LSM6DXX_VAL_CTRL2_G_2000DPS` | 3 |  |
+| `LSM6DXX_VAL_CTRL3_C_BDU` | BIT(6) |  |
 | `LSM6DXX_VAL_CTRL3_C_H_LACTIVE` | 0 |  |
 | `LSM6DXX_VAL_CTRL3_C_PP_OD` | 0 |  |
 | `LSM6DXX_VAL_CTRL3_C_SIM` | 0 |  |
@@ -3307,6 +3312,20 @@
 | `LSM6DXX_VAL_CTRL7_G_HPM_G_260` | 2 |  |
 | `LSM6DXX_VAL_CTRL7_G_HPM_G_1040` | 3 |  |
 | `LSM6DXX_VAL_CTRL9_XL_I3C_DISABLE` | BIT(1) |  |
+| `LSM6DXX_VAL_CTRL1_XL_V_OPMODE_HIGH_ACCURACY` | 1 |  |
+| `LSM6DXX_VAL_CTRL1_XL_V_ODR_1000HZ_HAODR1` | 9 |  |
+| `LSM6DXX_VAL_CTRL2_G_V_OPMODE_HIGH_ACCURACY` | 1 |  |
+| `LSM6DXX_VAL_CTRL2_G_V_ODR_8000HZ_HAODR1` | 12 |  |
+| `LSM6DXX_VAL_HAODR_CFG_MODE1` | 1 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_FS_G_2000DPS` | 4 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_DSK320X_RESERVED_BIT3` | BIT(3) |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_288HZ` | 0 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_215HZ` | 1 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_157HZ` | 2 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_455HZ` | 3 |  |
+| `LSM6DXX_VAL_CTRL7_G_V_LPF1_EN` | BIT(0) |  |
+| `LSM6DXX_VAL_CTRL8_XL_V_FS_16G` | 3 |  |
+| `LSM6DXX_VAL_CTRL4_C_V_DRDY_PULSED` | BIT(1) |  |
 
 ---
 ## <a id="enum-lsm6dxxregister_e"></a>`lsm6dxxRegister_e`
@@ -3344,6 +3363,7 @@
 | `LSM6DXX_REG_OUTY_H_A` | 43 |  |
 | `LSM6DXX_REG_OUTZ_L_A` | 44 |  |
 | `LSM6DXX_REG_OUTZ_H_A` | 45 |  |
+| `LSM6DXX_REG_HAODR_CFG` | 98 |  |
 
 ---
 ## <a id="enum-ltm_frame_e"></a>`ltm_frame_e`
@@ -4405,7 +4425,8 @@
 | `OSD_NAV_MIN_GROUND_SPEED` | 167 |  |
 | `OSD_THROTTLE_GAUGE` | 168 |  |
 | `OSD_GPS_EXTRA_STATS` | 169 |  |
-| `OSD_ITEM_COUNT` | 170 |  |
+| `OSD_ACTIVE_RX_LINK` | 170 |  |
+| `OSD_ITEM_COUNT` | 171 |  |
 
 ---
 ## <a id="enum-osd_sidebar_arrow_e"></a>`osd_sidebar_arrow_e`
@@ -5106,6 +5127,27 @@
 | `RX_FRAME_DROPPED` | (1 << 3) |  |
 
 ---
+## <a id="enum-rxlink_e"></a>`rxLink_e`
+
+> Source: ../../../src/main/rx/rx.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `RX_LINK_PRIMARY` | 0 |  |
+| `RX_LINK_SECONDARY` | 1 |  |
+| `RX_LINK_COUNT` | 2 |  |
+
+---
+## <a id="enum-rxreceiverrole_e"></a>`rxReceiverRole_e`
+
+> Source: ../../../src/main/rx/rx.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `RX_ROLE_PRIMARY` | 0 |  |
+| `RX_ROLE_SECONDARY` | 1 |  |
+
+---
 ## <a id="enum-rxreceivertype_e"></a>`rxReceiverType_e`
 
 > Source: ../../../src/main/rx/rx.h
@@ -5335,7 +5377,7 @@
 | `FUNCTION_RCDEVICE` | (1 << 10) |  |
 | `FUNCTION_VTX_SMARTAUDIO` | (1 << 11) |  |
 | `FUNCTION_VTX_TRAMP` | (1 << 12) |  |
-| `FUNCTION_UNUSED_1` | (1 << 13) |  |
+| `FUNCTION_RX_SERIAL_SECONDARY` | (1 << 13) |  |
 | `FUNCTION_OPTICAL_FLOW` | (1 << 14) |  |
 | `FUNCTION_LOG` | (1 << 15) |  |
 | `FUNCTION_RANGEFINDER` | (1 << 16) |  |

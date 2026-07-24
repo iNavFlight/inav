@@ -73,9 +73,10 @@ static uint16_t mavlinkReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8
     return mavlinkChannelData[channel];
 }
 
-bool mavlinkRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+bool mavlinkRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction)
 {
     UNUSED(rxConfig);
+    UNUSED(portFunction);
 
     frameReceived = false;
 

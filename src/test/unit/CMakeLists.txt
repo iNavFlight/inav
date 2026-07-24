@@ -27,6 +27,13 @@ set_property(SOURCE rcdevice_unittest.cc PROPERTY depends
     "common/bitarray.c" "common/crc.c" "io/rcdevice.c" "io/rcdevice_cam.c"
     "fc/rc_modes.c" "common/maths.c")
 
+set_property(SOURCE rx_rx_unittest.cc PROPERTY depends
+    "rx/rx.c"
+    "fc/rc_modes.c"
+    "common/bitarray.c"
+    "common/maths.c")
+set_property(SOURCE rx_rx_unittest.cc PROPERTY extra_includes "../../lib/main/MAVLink")
+
 set_property(SOURCE sensor_gyro_unittest.cc PROPERTY depends
     "build/debug.c" "common/maths.c" "common/calibration.c" "common/filter.c"
     "drivers/accgyro/accgyro_fake.c" "sensors/gyro.c" "sensors/boardalignment.c")

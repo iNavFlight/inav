@@ -959,6 +959,16 @@ Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`,
 
 ---
 
+### dual_rx_enabled
+
+Enable dual receiver (RX) handling. When OFF, only the primary receiver is used even if secondary settings are configured.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### dynamic_gyro_notch_3d_q
 
 Q factor for 3D dynamic notches
@@ -6290,6 +6300,19 @@ Selection of receiver (RX) type. Additional configuration of a `serialrx_provide
 
 ---
 
+### receiver_type_secondary
+
+Selection of the secondary receiver (RX) type for dual RX setups. Set to `NONE` to disable the secondary link. Additional configuration of `serialrx_provider_secondary` and a UART is needed for `SERIAL`.
+
+| Allowed Values |  |
+| --- | --- |
+| NONE | Default |
+| SERIAL |  |
+| MSP |  |
+| SIM (SITL) |  |
+
+---
+
 ### report_cell_voltage
 
 S.Port and IBUS telemetry: Send the average cell voltage if set to ON
@@ -6467,6 +6490,16 @@ SBUS sync interval in us. Default value is 3000us. Lower values may cause issues
 
 ---
 
+### sbus_sync_interval_secondary
+
+SBUS sync interval in us for the secondary receiver. Default value is 3000us. Lower values may cause issues with some receivers.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3000 | 500 | 10000 |
+
+---
+
 ### sdcard_detect_inverted
 
 This setting drives the way SD card is detected in card slot. On some targets (AnyFC F7 clone) different card slot was used and depending of hardware revision ON or OFF setting might be required. If card is not detected, change this value.
@@ -6489,6 +6522,18 @@ Allow serial receiver to operate on UART TX pin. With some receivers will allow 
 
 ---
 
+### serialrx_halfduplex_secondary
+
+Allow the secondary serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire.
+
+| Allowed Values |  |
+| --- | --- |
+| AUTO | Default |
+| ON |  |
+| OFF |  |
+
+---
+
 ### serialrx_inverted
 
 Reverse the serial inversion of the serial RX protocol. When this value is OFF, each protocol will use its default signal (e.g. SBUS will use an inverted signal). Some OpenLRS receivers produce a non-inverted SBUS signal. This setting supports this type of receivers (including modified FrSKY).
@@ -6499,9 +6544,44 @@ Reverse the serial inversion of the serial RX protocol. When this value is OFF, 
 
 ---
 
+### serialrx_inverted_secondary
+
+Secondary serial RX inversion flag. Reverse the default inversion of the protocol for the secondary link.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### serialrx_provider
 
 When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section.
+
+| Allowed Values |  |
+| --- | --- |
+| SPEK1024 |  |
+| SPEK2048 |  |
+| SBUS |  |
+| SUMD |  |
+| IBUS |  |
+| JETIEXBUS |  |
+| CRSF |  |
+| FPORT |  |
+| SBUS_FAST |  |
+| FPORT2 |  |
+| SRXL2 |  |
+| GHST |  |
+| MAVLINK |  |
+| FBUS |  |
+| SBUS2 |  |
+| _target default_ | Default |
+
+---
+
+### serialrx_provider_secondary
+
+Secondary UART-based receiver provider. Only used when `receiver_type_secondary` is `SERIAL`.
 
 | Allowed Values |  |
 | --- | --- |

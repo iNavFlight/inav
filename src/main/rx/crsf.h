@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "rx/rx.h"
+
 #define CRSF_BAUDRATE           420000
 #define CRSF_PORT_OPTIONS       (SERIAL_STOPBITS_1 | SERIAL_PARITY_NO)
 #define CRSF_PORT_MODE          MODE_RXTX
@@ -138,7 +140,7 @@ bool crsfRxIsTelemetryBufEmpty(void);
 
 struct rxConfig_s;
 struct rxRuntimeConfig_s;
-bool crsfRxInit(const struct rxConfig_s *initialRxConfig, struct rxRuntimeConfig_s *rxRuntimeConfig);
+bool crsfRxInit(const struct rxConfig_s *initialRxConfig, struct rxRuntimeConfig_s *rxRuntimeConfig, serialPortFunction_e portFunction);
 bool crsfRxIsActive(void);
 
 void crsfBind(void);

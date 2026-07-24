@@ -747,6 +747,11 @@ groups:
         default_value: 30
         min: 1
         max: 100
+      - name: dual_rx_enabled
+        description: "Enable dual receiver (RX) handling. When OFF, only the primary receiver is used even if secondary settings are configured."
+        type: bool
+        default_value: OFF
+        field: dualRxEnabled
       - name: serialrx_provider
         description: "When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section."
         default_value: :target
@@ -794,6 +799,36 @@ groups:
         condition: USE_MSP_RC_OVERRIDE
         min: 0
         max: UINT32_MAX
+      - name: receiver_type_secondary
+        description: "Selection of the secondary receiver (RX) type for dual RX setups. Set to `NONE` to disable the secondary link. Additional configuration of `serialrx_provider_secondary` and a UART is needed for `SERIAL`."
+        default_value: "NONE"
+        field: receiverTypeSecondary
+        table: receiver_type
+      - name: serialrx_provider_secondary
+        description: "Secondary UART-based receiver provider. Only used when `receiver_type_secondary` is `SERIAL`."
+        default_value: :target
+        condition: USE_SERIAL_RX
+        field: serialrx_provider_secondary
+        table: serial_rx
+      - name: serialrx_inverted_secondary
+        description: "Secondary serial RX inversion flag. Reverse the default inversion of the protocol for the secondary link."
+        default_value: OFF
+        condition: USE_SERIAL_RX
+        type: bool
+        field: serialrx_inverted_secondary
+      - name: serialrx_halfduplex_secondary
+        description: "Allow the secondary serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire."
+        default_value: "AUTO"
+        condition: USE_SERIAL_RX
+        field: halfDuplexSecondary
+        table: tristate
+      - name: sbus_sync_interval_secondary
+        description: "SBUS sync interval in us for the secondary receiver. Default value is 3000us. Lower values may cause issues with some receivers."
+        min: 500
+        max: 10000
+        default_value: 3000
+        condition: USE_SERIAL_RX
+        field: sbusSyncIntervalSecondary
 
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t

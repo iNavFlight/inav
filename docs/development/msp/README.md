@@ -3219,6 +3219,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `capacityWarning` | `uint32_t` | 4 | mAh/mWh | Capacity warning threshold (`currentBatteryProfile->capacity.warning`) |
 | `capacityCritical` | `uint32_t` | 4 | mAh/mWh | Capacity critical threshold (`currentBatteryProfile->capacity.critical`) |
 | `capacityUnit` | `uint8_t` | 1 | [batCapacityUnit_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-batcapacityunit_e) | Enum `batCapacityUnit_e` Capacity unit (`batteryMetersConfig()->capacity_unit`) |
+| `activeRX` | `uint8_t` | 1 | [rxReceiverRole_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-rxreceiverrole_e) | Enum `rxReceiverRole_e` Current active receiver if dual RX activated; otherwise always 0 |
 
 ## <a id="msp2_inav_set_misc"></a>`MSP2_INAV_SET_MISC (8196 / 0x2004)`
 **Description:** Sets miscellaneous configuration settings, superseding `MSP_SET_MISC`.  

@@ -340,7 +340,7 @@ STATIC_UNIT_TESTED uint16_t ghstReadRawRC(const rxRuntimeConfig_t *rxRuntimeStat
     return (5 * (ghstChannelData[chan]+1) / 8) + 880;
 }
 
-bool ghstRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeState)
+bool ghstRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeState, serialPortFunction_e portFunction)
 {
     for (int iChan = 0; iChan < GHST_MAX_NUM_CHANNELS; ++iChan) {
         ghstChannelData[iChan] = (16 * PWM_RANGE_MIDDLE) / 10 - 1408;
@@ -351,13 +351,13 @@ bool ghstRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeState)
     rxRuntimeState->rcFrameStatusFn = ghstFrameStatus;
     rxRuntimeState->rcProcessFrameFn = ghstProcessFrame;
 
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
+    const serialPortConfig_t *portConfig = findSerialPortConfig(portFunction);
     if (!portConfig) {
         return false;
     }
 
     serialPort = openSerialPort(portConfig->identifier,
-        FUNCTION_RX_SERIAL,
+        portFunction,
         ghstDataReceive,
         NULL,
         GHST_RX_BAUDRATE,
