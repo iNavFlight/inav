@@ -365,20 +365,28 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 }
 #endif
 
-// Serial RX drivers that carry per-link parser/channel state and so can safely
-// run the same provider on both the primary and secondary link. The remaining
-// drivers still keep that state in shared module storage.
-static bool serialRxProviderIsDualLinkSafe(uint8_t provider)
+// Identifies the driver backing a serial RX provider. Providers that map to the
+// same group share that driver's module-static parser state, so two links in the
+// same group alias each other unless the driver has been made instance-safe.
+static uint8_t serialRxDriverGroup(uint8_t provider)
 {
     switch (provider) {
     case SERIALRX_SBUS:
     case SERIALRX_SBUS_FAST:
     case SERIALRX_SBUS2:
-    case SERIALRX_CRSF:
-        return true;
+        return SERIALRX_SBUS;
+    case SERIALRX_FPORT2:
+    case SERIALRX_FBUS:
+        return SERIALRX_FPORT2;
     default:
-        return false;
+        return provider;
     }
+}
+
+// Driver groups that carry per-link state and so can run on both links at once.
+static bool serialRxDriverGroupIsDualLinkSafe(uint8_t group)
+{
+    return group == SERIALRX_SBUS || group == SERIALRX_CRSF;
 }
 
 void rxInit(void)
@@ -388,13 +396,15 @@ void rxInit(void)
     if (rxConfig()->receiverType == RX_TYPE_MSP || rxConfig()->receiverTypeSecondary == RX_TYPE_MSP) {
         dualRxEnabled = false;
     }
-    // Two links running the same not-yet-instance-safe serial provider would alias
-    // that driver's shared parser buffers and corrupt both. Refuse dual RX for that
-    // combination; different providers use different drivers and are unaffected.
-    if (rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->receiverTypeSecondary == RX_TYPE_SERIAL &&
-        rxConfig()->serialrx_provider == rxConfig()->serialrx_provider_secondary &&
-        !serialRxProviderIsDualLinkSafe(rxConfig()->serialrx_provider)) {
-        dualRxEnabled = false;
+    // Two links sharing a not-yet-instance-safe serial driver would alias its module
+    // parser buffers and corrupt both. Refuse dual RX for that combination; links on
+    // different drivers are unaffected.
+    if (rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->receiverTypeSecondary == RX_TYPE_SERIAL) {
+        const uint8_t primaryGroup = serialRxDriverGroup(rxConfig()->serialrx_provider);
+        const uint8_t secondaryGroup = serialRxDriverGroup(rxConfig()->serialrx_provider_secondary);
+        if (primaryGroup == secondaryGroup && !serialRxDriverGroupIsDualLinkSafe(primaryGroup)) {
+            dualRxEnabled = false;
+        }
     }
 
     const timeMs_t nowMs = millis();
