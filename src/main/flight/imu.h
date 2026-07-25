@@ -32,9 +32,9 @@ typedef union {
     int16_t raw[XYZ_AXIS_COUNT];
     struct {
         // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
-        int16_t roll;
-        int16_t pitch;
-        int16_t yaw;
+        int16_t roll;       // +ve = Roll right
+        int16_t pitch;      // +ve = Pitch down !
+        int16_t yaw;        // +ve = Yaw right
     } values;
 } attitudeEulerAngles_t;
 

@@ -132,5 +132,6 @@ void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
 bool areMotorsRunning(void);
+bool areMotorsStopped(void);
 
 uint16_t getMaxThrottle(void);
