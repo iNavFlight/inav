@@ -271,7 +271,7 @@ void navigationVtolMcProtectionResetCapture(void)
 
 vtolMcProtectionThrottleBounds_t navigationVtolMcProtectionGetThrottleBounds(const int16_t idleThrottle, const int16_t hoverThrottle, const int16_t maxThrottle)
 {
-    const bool active = navigationVtolMcProtectionIsNavActive() && navigationInAutomaticThrottleMode();
+    const bool active = navigationVtolMcProtectionIsNavActive() && navigationRequiresAutoThrottleMode();
     vtolMcProtectionThrottleBounds_t bounds = vtolMcProtectionComputeThrottleBounds(
         active,
         idleThrottle,
@@ -296,7 +296,7 @@ vtolMcProtectionThrottleBounds_t navigationVtolMcProtectionGetThrottleBounds(con
 static bool navigationVtolMcProtectionBailoutEntryCondition(void)
 {
     return navigationVtolMcProtectionIsNavActive() &&
-           navigationInAutomaticThrottleMode() &&
+           navigationRequiresAutoThrottleMode() &&
            navigationVtolMcProtectionMaxAbsAttitudeDeciDeg() >= navigationVtolMcProtectionBailoutLimitDeciDeg();
 }
 
@@ -406,7 +406,7 @@ bool navigationVtolMcProtectionApplySoftAltitudeCapture(const uint32_t navStateF
                                        (navStateFlags & NAV_MIXERAT);
     const bool shouldRelaxAltitude = vtolMcProtectionShouldRelaxAltitude(
         navigationVtolMcProtectionIsNavActive(),
-        navigationInAutomaticThrottleMode(),
+        navigationRequiresAutoThrottleMode(),
         navigationVtolMcProtectionVelocityUsable(),
         holdOrTransitionState,
         navStateFlags & NAV_CTL_LAND,

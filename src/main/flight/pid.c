@@ -235,7 +235,7 @@ static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination);
 float pidRcCommandToRate(int16_t stick, uint8_t rate);
 int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis);
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 11);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 12);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -278,6 +278,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .P = 0,
                     .I = 0,
                     .D = 0,
+                    .FF = 0,
+                },
+                [PID_AUTO_SPEED] = {
+                    .P = 0,
+                    .I = 0,
+                    .D = 0,
                     .FF = 0
                 }
             }
@@ -311,6 +317,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .P = SETTING_NAV_FW_POS_HDG_P_DEFAULT,
                     .I = SETTING_NAV_FW_POS_HDG_I_DEFAULT,
                     .D = SETTING_NAV_FW_POS_HDG_D_DEFAULT,
+                    .FF = 0,
+                },
+                [PID_AUTO_SPEED] = {
+                    .P = SETTING_NAV_FW_AUTO_SPEED_P_DEFAULT,
+                    .I = SETTING_NAV_FW_AUTO_SPEED_I_DEFAULT,
+                    .D = SETTING_NAV_FW_AUTO_SPEED_D_DEFAULT,
                     .FF = 0
                 }
             }

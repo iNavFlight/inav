@@ -68,6 +68,7 @@ typedef enum {
     PID_HEADING,    //   +       +
     PID_VEL_Z,      //   +       n/a
     PID_POS_HEADING,//   n/a     +
+    PID_AUTO_SPEED, //   n/a     +
     PID_ITEM_COUNT
 } pidIndex_e;
 

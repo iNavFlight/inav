@@ -108,7 +108,7 @@ static pt1Filter_t amperageFilterState;
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 3);
+PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 4);
 
 void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
@@ -155,6 +155,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                     .pitch_to_throttle = SETTING_NAV_FW_PITCH2THR_DEFAULT,                          // pwm units per degree of pitch (10pwm units ~ 1% throttle)
                     .launch_throttle = SETTING_NAV_FW_LAUNCH_THR_DEFAULT,
                     .launch_idle_throttle = SETTING_NAV_FW_LAUNCH_IDLE_THR_DEFAULT,                 // Motor idle or MOTOR_STOP
+                    .auto_speed_level_min_thr = SETTING_FW_AUTO_SPEED_LEVEL_MIN_THR_DEFAULT,        // 1300 us
                 }
             },
 
