@@ -1392,7 +1392,7 @@ Minimum allowed speed demand for Auto Speed mode [m/s].
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 11 | 5 | 50 |
+| 14 | 5 | 50 |
 
 ---
 

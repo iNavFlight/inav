@@ -3027,7 +3027,7 @@ groups:
         max: 65535
       - name: fw_auto_speed_min_speed
         description: "Minimum allowed speed demand for Auto Speed mode [m/s]."
-        default_value: 11
+        default_value: 14
         field: fw.auto_speed_min_speed
         min: 5
         max: 50
