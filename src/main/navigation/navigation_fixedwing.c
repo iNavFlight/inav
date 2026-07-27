@@ -111,6 +111,20 @@ void resetFixedWingAltitudeController(void)
 
 bool adjustFixedWingAltitudeFromRCInput(void)
 {
+#if defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
+    // Forced poshold (floor orbit / thermal loiter): NO RC altitude adjust.
+    // The nav loiter WRITES rcCommand to fly the circle, and this adjust
+    // reads rcCommand[PITCH] - the loiter's own pitch output fed back as a
+    // "pilot climb command" is a positive feedback loop that rode the
+    // floor orbit away from its anchor with the sticks untouched
+    // (measured: smooth pitch 8->23 deg, ~+4 m/s, 60 m past the anchor
+    // Z while nav actual == estimator Z). The anchor Z is the contract;
+    // pilot pitch is a TAKEOVER there, not a climb knob - same raw-stick
+    // lesson as the floor's release detection.
+    if (posControl.flags.forcedPosholdActive) {
+        return false;
+    }
+#endif
     int16_t rcAdjustment = applyDeadbandRescaled(rcCommand[PITCH], rcControlsConfig()->alt_hold_deadband, -500, 500);
 
     if (rcAdjustment) {

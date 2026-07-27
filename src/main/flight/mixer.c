@@ -713,14 +713,12 @@ motorStatus_e getMotorStatus(void)
 
     if (throttleStickIsLow() && fixedWingOrAirmodeNotActive) {
 #ifdef USE_FW_AEROBATICS
-        // the altitude floor recovery climbs on its own throttle floor - a
-        // panic-chopped stick must not stop the motor that climb needs (the
-        // same override navigation gets via nav_overrides_motor_stop). The
-        // rotor guard recovery NEEDS the motor even more: thrust is its
-        // only means of restoring rotor rpm.
-        if (STATE(AIRPLANE) && (altitudeFloorRecoveryActive() || rotorGuardRecoveryActive())) {
-            return MOTOR_RUNNING;
-        }
+        // throttle_rule (cap-only, NO exceptions - Daniel 2026-07-23): the
+        // recoveries no longer keep the motor alive through a chopped
+        // stick - the pilot's thumb is the catch's power budget, a chopped
+        // stick is an unpowered attitude-only catch. PILOT WARNING in the
+        // manual (fat print): KEEP THE THROTTLE UP during a floor or
+        // rotor-guard catch. (The former recovery keep-alive lived here.)
 #endif
         if ((navConfig()->general.flags.nav_overrides_motor_stop == NOMS_OFF_ALWAYS) && failsafeIsActive()) {
             // If we are in failsafe and user was holding stick low before it was triggered and nav_overrides_motor_stop is set to OFF_ALWAYS

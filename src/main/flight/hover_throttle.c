@@ -234,8 +234,13 @@ static int16_t knifeInvertedAssistApply(int16_t pilotThrottle, float elevDeg)
     const float damping = -ASSIST_DAMPING_S * assistUsPerG / GRAVITY_MSS
                           * constrainf(climbMs, -ASSIST_VZ_CLAMP_MS, ASSIST_VZ_CLAMP_MS);
 
+    // throttle_rule (flight contract, cap-only): the pilot's stick is the
+    // MAXIMUM - trim, damping, cos scale and stall reserve shape the power
+    // BELOW it, never above. Too little stick = controlled descent with the
+    // attitude held; an estimator faking "sinking" can never command
+    // unexpected power. The thumb is the motor.
     return constrain(lrintf(baseUs + assistTrimUs + damping),
-                     getThrottleIdleValue(), getMaxThrottle());
+                     getThrottleIdleValue(), pilotThrottle);
 }
 
 bool hoverThrottleIsEngaged(void)
@@ -275,15 +280,21 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
             return knifeInvertedAssistApply(pilotThrottle, elevDeg);
         }
         assistActive = false;
-        // Recovery throttle floors are OWNED by their modules (the floor's
-        // climb math and its nav-orbit suppression, the rotor guard's
-        // fixed add): this path only takes the highest claim - and more
-        // pilot throttle always wins.
+        // Recovery throttle claims are OWNED by their modules (the floor's
+        // climb math, the rotor guard's boost/burst) - and per the
+        // throttle_rule (cap-only, NO exceptions - Daniel) they too are
+        // CAPPED at the pilot's stick: the recovery flies its computed
+        // need bounded by the thumb. PILOT WARNING (manual, fat print):
+        // during a floor or rotor-guard catch KEEP THE THROTTLE UP - the
+        // stick is the catch's power budget; a chopped stick leaves the
+        // catch attitude authority but NO climb power.
         const int16_t recoveryFloor = MAX(altitudeFloorClimbThrottleUs(),
                                           rotorGuardThrottleFloorUs());
         if (ARMING_FLAG(ARMED) && recoveryFloor > 0) {
-            return constrain(MAX(pilotThrottle, recoveryFloor),
-                             getThrottleIdleValue(), getMaxThrottle());
+            // MIN, not constrain-to-idle: a chopped stick stays a chopped
+            // stick (throttle-0 rule) - the mixer's normal armed handling
+            // applies, exactly as in the passthrough below
+            return MIN(recoveryFloor, pilotThrottle);
         }
         return pilotThrottle;
     }
@@ -361,8 +372,10 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
     // the slow-filtered APPLIED throttle - the thrust that actually holds
     // the aircraft - not the engage seed
     const float spanUsPerG = usPerG(hoverThrAnchorUs);
+    // throttle_rule (cap-only): the I-term may never wind above the pilot's
+    // stick - the stick is the power ceiling AND the anti-windup bound
     iTermUs = constrainf(iTermUs + HOVER_THR_TRIM_S2 * spanUsPerG / GRAVITY_MSS * zErrM * dT,
-                         floorThrottle, getMaxThrottle());
+                         floorThrottle, pilotThrottle);
 
     // thrust supports the weight with its vertical component only:
     // compensate the tilt away from the zenith (capped, the elevation
@@ -371,7 +384,12 @@ int16_t hoverThrottleApply(int16_t pilotThrottle)
     const float correction = (HOVER_THR_STIFFNESS_S2 * spanUsPerG / GRAVITY_MSS * zErrM
                               - HOVER_THR_DAMPING_S * spanUsPerG / GRAVITY_MSS * climbMs) / vertical;
 
-    const int16_t outUs = constrain(lrintf(iTermUs + correction), floorThrottle, getMaxThrottle());
+    // throttle_rule (cap-only): the hover PID owns the altitude BELOW the
+    // pilot's stick - the stick must sit above the hover point, the loop
+    // trims down from it (stick low = commanded sink, stick up = climb
+    // command AND the headroom for it). Recovery floors keep their own
+    // raise path above (the two contract exceptions).
+    const int16_t outUs = constrain(lrintf(iTermUs + correction), floorThrottle, pilotThrottle);
     hoverThrAnchorUs += (outUs - hoverThrAnchorUs) * MIN(dT / HOVER_THR_ANCHOR_TAU_S, 1.0f);
     return outUs;
 }

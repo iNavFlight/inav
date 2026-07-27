@@ -241,16 +241,29 @@ bool altitudeFloorOrbitActive(void)
     return floorOrbit;
 }
 
+bool altitudeFloorRecoveryNoseUp(void)
+{
+    // ATTITUDE GATE for the recovery power (flight contract): while the
+    // nose points DOWN the pilot's chopped throttle is followed - the
+    // recovery must NEVER accelerate toward the ground (a powered
+    // nose-down bank is the death spiral). Power is allowed only once the
+    // attitude points UP: upright-ish and the nose above the horizon.
+    return floorRecovery
+        && attitude.values.pitch >= 0
+        && calculateCosTiltAngle() >= 0.5f;   // within ~60 deg of upright
+}
+
 int16_t altitudeFloorClimbThrottleUs(void)
 {
-    // The recovery climb must not ride whatever throttle the pilot froze
-    // in the dive (a panic chop leaves idle): at least the airframe's
-    // cruise throttle plus the standard pitch-to-throttle compensation
-    // for the climb angle. NOT while the orbit runs on the nav loiter -
-    // the nav owns pitch AND throttle there, and a parallel climb floor
-    // pumps energy against its altitude hold (measured: ballooned the
-    // 70 m orbit to 212 m). 0 = no claim on the throttle.
-    if (!floorRecovery || orbitViaNav) {
+    // The recovery climb tops the pilot's throttle up to what the climb
+    // needs (cruise + the standard pitch-to-throttle compensation) - but
+    // ONLY once the attitude points up (altitudeFloorRecoveryNoseUp):
+    // nose down, the chopped throttle is followed and the motor stays
+    // off. NOT while the orbit runs on the nav loiter - the nav owns
+    // pitch AND throttle there, and a parallel climb floor pumps energy
+    // against its altitude hold (measured: ballooned the 70 m orbit to
+    // 212 m). 0 = no claim on the throttle.
+    if (!floorRecovery || orbitViaNav || !altitudeFloorRecoveryNoseUp()) {
         return 0;
     }
     return currentBatteryProfile->nav.fw.cruise_throttle

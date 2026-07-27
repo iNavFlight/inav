@@ -74,6 +74,9 @@ bool altitudeFloorOrbitViaNav(void);
 // pitch-to-throttle for the climb angle; 0 while inactive or while the
 // nav loiter owns the throttle. The throttle path takes the MAX of all
 // module claims - more pilot throttle always wins there.
+// attitude gate for the recovery power: true only when the nose points up
+// (upright-ish, nose above the horizon) - the contract's death-spiral guard
+bool altitudeFloorRecoveryNoseUp(void);
 int16_t altitudeFloorClimbThrottleUs(void);
 
 // Metres above (positive) / below (negative) the floor line - the
