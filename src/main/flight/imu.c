@@ -402,6 +402,16 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
         if (magBF && vectorNormSquared(magBF) > 0.01f) {
             wMag *= bellCurve((fast_fsqrtf(vectorNormSquared(magBF)) - 1024.0f) / 1024.0f, MAX_MAG_NEARNESS);
+            // MAG TILT GATE (flight contract): beyond the aerobatic tilt the
+            // flat-projection heading is unusable - the body-frame field
+            // lines are rotated (knife edge is 90 deg either side, inverted
+            // is 180) and the real earth field dips 60+ deg, so every small
+            // tilt-estimate error leaks tan(inclination)-amplified into the
+            // heading (measured in SITL: est-vs-truth walked 30..168 deg in
+            // an inverted hold, while the gyro coasts it at ~0 deg/s). Same
+            // internal gate as the GPS aiding; feature-gated - the weight is
+            // pinned 1.0 without FEATURE_FW_AEROBATICS.
+            wMag *= gpsAidingTiltWeight;
             fpVector3_t vMag;
 
             // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
@@ -436,7 +446,12 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 // antipode after a sustained sub-cruise flat spin, never
                 // in normal flight - so the extra pull belongs to the
                 // aerobatics feature, not the shared estimator.
-                if (feature(FEATURE_FW_AEROBATICS)) {
+                if (feature(FEATURE_FW_AEROBATICS) && gpsAidingTiltWeight >= 0.99f) {
+                    // (Gated on the tilt weight too: the escape and the hard
+                    // re-seed exist for the POST-SPIN case - a flat attitude,
+                    // gate open. At knife/inverted the mag heading itself is
+                    // unusable (see the tilt gate above) and a re-seed there
+                    // would snap the estimate onto projection garbage.)
                     // Antipode escape: the cross-product torque scales with
                     // sin(error) and VANISHES as the heading error approaches
                     // 180 deg even though the error is maximal - after a flat
@@ -921,6 +936,13 @@ static void imuCalculateEstimatedAttitude(float dT)
     if (STATE(AIRPLANE)) {
         imuCalculateTurnRateacceleration(&vEstcentrifugalAccelBF_turnrate, dT, &acc_ignore_slope_multipiler);
     }
+    // NOTE (aerobatic estimator contract, layer 3 "acc-cut on GPS loss"):
+    // a tightened rate-ignore for the GPS-less case was implemented and
+    // A/B-measured here - REDUNDANT: the nearness bellCurve plus the
+    // rate-ignore already cut the effective acc weight to a mean of 0.15
+    // (min 0) through a GPS-less inverted spin, attitude divergence
+    // identical with and without the extra cut. The intent of the layer
+    // is in-tree; no additional code.
 
     // attitude gate (see imuUpdateGpsAidingTiltWeight): beyond the tilt
     // limit the centrifugal models are wrong - fade them out entirely,
