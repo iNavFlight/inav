@@ -290,7 +290,8 @@ static void resetTargetLiftMotorPreviewCapture(void)
     memset(targetLiftMotorPreviewCapturedOutput, 0, sizeof(targetLiftMotorPreviewCapturedOutput));
 }
 
-static void updateTargetLiftMotorPreviewSession(const autoTransitionMotorMixState_t *state)
+// Keep transition-only session bookkeeping out of mixTable's F7 ITCM hot path.
+static void NOINLINE updateTargetLiftMotorPreviewSession(const autoTransitionMotorMixState_t *state)
 {
     if (!state->active ||
         mixerProfileAT.phase != MIXERAT_PHASE_TRANSITIONING ||
@@ -314,7 +315,7 @@ static void updateTargetLiftMotorPreviewSession(const autoTransitionMotorMixStat
     }
 }
 
-static int16_t getTargetLiftMotorPreviewOutput(uint8_t motorIndex, int16_t currentOutput, int16_t targetOutput)
+static int16_t NOINLINE getTargetLiftMotorPreviewOutput(uint8_t motorIndex, int16_t currentOutput, int16_t targetOutput)
 {
     const uint16_t motorMask = 1U << motorIndex;
     if (!(targetLiftMotorPreviewCaptureMask & motorMask)) {
