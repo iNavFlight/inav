@@ -712,6 +712,15 @@ void processRx(timeUs_t currentTimeUs)
 #if defined(SITL_BUILD)
     // bench safety word (SITL only); composed by the module
     debug[7] = orientationHoldDebugSafetyWord();
+    // bench estimator XY (SITL only): the false-valid GPS audit compares the
+    // FC's local position estimate against the injected GPS and the plant
+    // truth; while thermalling the soaring module owns slots 0..4 instead
+    if (!soaringActive()) {
+        // slot 0 is free outside thermalling (past probes lived there)
+        debug[1] = lrintf(getEstimatedActualPosition(Z));   // [cm]
+        debug[2] = lrintf(getEstimatedActualPosition(X));   // [cm]
+        debug[3] = lrintf(getEstimatedActualPosition(Y));   // [cm]
+    }
 #endif
 #endif
 

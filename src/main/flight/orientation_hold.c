@@ -63,8 +63,10 @@
 
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
+#include "sensors/pitotmeter.h"
+#include "sensors/sensors.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, PG_ORIENTATION_HOLD_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig, PG_ORIENTATION_HOLD_CONFIG, 4);
 
 PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     // The per-regime pitch trims and the knife speed FF are feed-forwards the
@@ -86,6 +88,8 @@ PG_RESET_TEMPLATE(orientationHoldConfig_t, orientationHoldConfig,
     .entryRateDps = SETTING_OHOLD_ENTRY_RATE_DEFAULT,
     .stickAngleMaxDeg = SETTING_OHOLD_STICK_ANGLE_DEFAULT,
     .stickReturnRateDps = SETTING_OHOLD_STICK_RETURN_RATE_DEFAULT,
+    .turnRollLimitDeg = SETTING_OHOLD_TURN_ROLL_LIMIT_DEFAULT,
+    .turnRollReturnMs = SETTING_OHOLD_TURN_ROLL_RETURN_DEFAULT,
     .loadLimitG = SETTING_OHOLD_LOAD_LIMIT_DEFAULT,
 );
 
@@ -117,8 +121,9 @@ static const orientationHoldPreset_t orientationHoldSpinPresets[] = {
     { BOXFSPIN,         180.0f,  0.0f },   // + INVERTED
     { BOXFSPIN,         -90.0f,  0.0f },   // + KNIFE LEFT
     { BOXFSPIN,          90.0f,  0.0f },   // + KNIFE RIGHT
-    { BOXFSPIN,           0.0f, 90.0f },   // + PROP HANG (torque roll)
     { BOXFSPIN,           0.0f,  0.0f },   // alone: flat spin
+    // P-HANG cannot be combined (flight contract): the torque roll is the
+    // hang's own aileron function, the spin mode has no job there
 };
 
 static const orientationHoldPreset_t * orientationHoldActivePreset(void)
@@ -132,8 +137,9 @@ static const orientationHoldPreset_t * orientationHoldActivePreset(void)
         if (IS_RC_MODE_ACTIVE(BOXINVERTED))   return &orientationHoldSpinPresets[0];
         if (IS_RC_MODE_ACTIVE(BOXKNIFELEFT) && knifePossible)  return &orientationHoldSpinPresets[1];
         if (IS_RC_MODE_ACTIVE(BOXKNIFERIGHT) && knifePossible) return &orientationHoldSpinPresets[2];
-        if (IS_RC_MODE_ACTIVE(BOXPROPHANG))   return &orientationHoldSpinPresets[3];
-        return &orientationHoldSpinPresets[4];
+        // + P-HANG is not a combination (contract) - FSPIN with the hang box
+        // still selected flies the plain flat spin
+        return &orientationHoldSpinPresets[3];
     }
     for (unsigned i = 0; i < ARRAYLEN(orientationHoldPresets); i++) {
         if ((orientationHoldPresets[i].box == BOXKNIFELEFT
@@ -466,13 +472,23 @@ static float orientationHoldSlewTargetFull(fpQuaternion_t *qSoll, const fpQuater
 // for them the re-anchoring below is a mathematical no-op.
 static bool figureLineAnchored = false;
 static fpQuaternion_t qFigureYawAnchor;
+// NO FREE AXIS (flight contract): pilot holds regulate the FULL attitude, yaw
+// included. The target heading is a persistent ANCHOR: captured at engage,
+// rotated by the stick component along the earth vertical (proportional turn
+// rate), FROZEN hands-off. While a tilt carve or a spin runs it FOLLOWS the
+// aircraft (a commanded curve is never fought); releasing holds the heading
+// where the input left it. Tilt returns to the pose, yaw stays - sollage_rule.
+static float pilotAnchorPsiDeg = 0.0f;
+static bool pilotAnchored = false;
+static bool pilotFullError = false;   // set per cycle by the target sources
+static float pilotLeanDeg = 0.0f;     // slewed curve lean (turn_roll_limit/return)
 static void orientationHoldComputeFullAttitudeError(fpVector3_t *errDeg, const fpQuaternion_t *qEst, const fpQuaternion_t *qTarget);
 
 static void orientationHoldRegulate(fpVector3_t *errDeg)
 {
-    if (figureLineAnchored) {
-        // figure on a line: the full error adds the heading (twist)
-        // component the reduced error deliberately drops
+    if (figureLineAnchored || pilotFullError) {
+        // full attitude error: figures on a line AND the pilot holds (no free
+        // axis - the yaw component holds the anchored heading)
         orientationHoldComputeFullAttitudeError(errDeg, &orientation, &qSollState);
     } else {
         orientationHoldComputeAttitudeError(errDeg, &orientation, &qSollState);
@@ -530,6 +546,8 @@ static void orientationHoldCheckSourceSwitch(int source)
         // error starts at zero and the entry happens as a target slew
         qSollState = orientation;
         presetSlewCaptured = false;
+        pilotAnchored = false;   // heading anchor re-captures on the new source
+        pilotLeanDeg = 0.0f;
     }
 }
 
@@ -589,7 +607,9 @@ void orientationHoldUpInBody(fpVector3_t *upBody)
 // hold is purely additive. State lives next to the source tracking above.
 static void figureCaptureYawAnchor(void)
 {
-    const float halfPsiRad = DECIDEGREES_TO_RADIANS(attitude.values.yaw) * 0.5f;
+    // NEGATED-heading frame: INAV's attitude quaternion carries -yaw
+    // (imu.c) - see the pilot anchor for the measured failure of +yaw
+    const float halfPsiRad = -DECIDEGREES_TO_RADIANS(attitude.values.yaw) * 0.5f;
     qFigureYawAnchor.q0 = cos_approx(halfPsiRad);
     qFigureYawAnchor.q1 = 0.0f;
     qFigureYawAnchor.q2 = 0.0f;
@@ -920,6 +940,8 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
     // a figure segment, but a snappy entry and a deliberate slow roll figure
     // are different intents with different rates
     float slewRateDegS = orientationHoldConfig()->entryRateDps;
+    // full-attitude regulation is opted into by the pilot-hold / lock branches
+    pilotFullError = false;
 
     // Altitude floor recovery overrides any selected preset: upright + climb.
     // Safety recovery tracks the requested attitude directly, no entry slew.
@@ -986,6 +1008,9 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         }
         qDesired = qSollState;
         slewRateDegS = 0.0f;
+        // the captured target contains the full attitude - hold ALL of it
+        // (no free axis), heading included
+        pilotFullError = true;
     } else if (exitSlewActive && orientationHoldActivePreset() == NULL) {
         // exit handover: slew the target to level at the entry rate, then
         // hand to ANGLE. The pilot deflecting a stick takes over instantly.
@@ -1038,12 +1063,14 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         // during the entry the transient altitude error would deflect the
         // target (seen as a knife-edge entry stalling at half the bank) and
         // the entry itself must stay a pure attitude move.
-        // Pilot stick offsets, ANGLE semantics around the rotated reference:
-        // deflection = body-frame angle offset from the preset, held while
-        // deflected; centered sticks return the target slowly. Yaw stays a
-        // rate command (the free axis). While this is active the rate path
-        // must not also feed roll/pitch sticks as rates, see
-        // orientationHoldSticksAreTargetOffsets().
+        // Pilot sticks SHIFT the target (sollage_rule, flight contract):
+        // roll/pitch deflection = proportional body-frame angle offset from
+        // the preset; the stick component that lies ALONG the earth vertical
+        // rotates the heading ANCHOR instead (a commanded turn) - the
+        // projection picks the right stick per pose by geometry: the rudder
+        // at level/inverted, the elevator at the knife, the aileron at the
+        // hang. While these act on the target the rate path must not feed
+        // them again as rates, see orientationHoldSticksAreTargetOffsets().
         float rollOffDeg = 0.0f;
         float pitchOffDeg = 0.0f;
         if (orientationHoldConfig()->stickAngleMaxDeg > 0) {
@@ -1051,6 +1078,66 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
                          * orientationHoldConfig()->stickAngleMaxDeg;
             pitchOffDeg = orientationHoldStickNorm(rcCommand[PITCH], rcControlsConfig()->deadband)
                           * orientationHoldConfig()->stickAngleMaxDeg;
+        }
+        fpVector3_t upB;
+        orientationHoldUpInBody(&upB);
+        if (!pilotAnchored) {
+            pilotAnchorPsiDeg = DECIDEGREES_TO_DEGREES((float)attitude.values.yaw);
+            pilotAnchored = true;
+        }
+        // commanded turn rate about the vertical: proportional to the stick
+        // deflection along up_body (proportionality_rule)
+        const float vertRateDps =
+              orientationHoldStickNorm(rcCommand[ROLL], rcControlsConfig()->deadband)
+                  * currentControlProfile->stabilized.rates[FD_ROLL] * 10.0f * upB.x
+            + orientationHoldStickNorm(rcCommand[PITCH], rcControlsConfig()->deadband)
+                  * currentControlProfile->stabilized.rates[FD_PITCH] * 10.0f * upB.y
+            + orientationHoldStickNorm(rcCommand[YAW], rcControlsConfig()->yaw_deadband)
+                  * currentControlProfile->stabilized.rates[FD_YAW] * 10.0f * upB.z;
+        // tilt carve = the roll/pitch offset share ORTHOGONAL to the vertical
+        // (the parallel share is the turn, consumed by the anchor above)
+        fpVector3_t carveVec = { .v = { rollOffDeg, pitchOffDeg, 0.0f } };
+        const float carveVert = carveVec.x * upB.x + carveVec.y * upB.y;
+        carveVec.x -= carveVert * upB.x;
+        carveVec.y -= carveVert * upB.y;
+        carveVec.z = -carveVert * upB.z;
+        const bool tiltCarve = fabsf(carveVec.x) > 0.5f || fabsf(carveVec.y) > 0.5f
+                            || fabsf(carveVec.z) > 0.5f;
+        float leanTargetDeg = 0.0f;
+        if (preset->box == BOXFSPIN || tiltCarve) {
+            // a spin or a held bank flies the curve itself: the anchor
+            // FOLLOWS the aircraft, a commanded curve is never fought;
+            // releasing holds the heading where the curve ended
+            pilotAnchorPsiDeg = DECIDEGREES_TO_DEGREES((float)attitude.values.yaw);
+        } else if (fabsf(vertRateDps) > 1.0f) {
+            pilotAnchorPsiDeg += vertRateDps * dT;
+            while (pilotAnchorPsiDeg > 180.0f)  { pilotAnchorPsiDeg -= 360.0f; }
+            while (pilotAnchorPsiDeg < -180.0f) { pilotAnchorPsiDeg += 360.0f; }
+            // flight model: the curve's coordinated lean, tan(bank) =
+            // omega * v / g, commanded INTO the target (the physics is
+            // flown, not fought), clamped to the configurable limit.
+            // The lean exists ONLY while yaw is commanded.
+            if (orientationHoldConfig()->turnRollLimitDeg > 0) {
+                float vCms = pidProfile()->fixedWingReferenceAirspeed;
+#ifdef USE_PITOT
+                if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+                    vCms = getAirspeedEstimate();
+                }
+#endif
+                leanTargetDeg = constrainf(
+                    RADIANS_TO_DEGREES(atan2_approx(DEGREES_TO_RADIANS(fabsf(vertRateDps)) * vCms, GRAVITY_CMSS)),
+                    0.0f, orientationHoldConfig()->turnRollLimitDeg)
+                    * (vertRateDps > 0.0f ? 1.0f : -1.0f)
+                    * (calculateCosTiltAngle() >= 0.0f ? 1.0f : -1.0f);
+            }
+        }
+        // the lean eases in AND out over the configurable return time
+        // (gentle, no snap - contract: ~1 s after the yaw stick centres)
+        {
+            const float leanStepDeg = orientationHoldConfig()->turnRollLimitDeg
+                * dT * 1000.0f / MAX((uint16_t)100, orientationHoldConfig()->turnRollReturnMs);
+            pilotLeanDeg += constrainf(leanTargetDeg - pilotLeanDeg, -leanStepDeg, leanStepDeg);
+            carveVec.x += pilotLeanDeg;
         }
 
         orientationHoldTargetFromRP(&qDesired, preset->rollDeg, preset->pitchDeg + pitchTrim);
@@ -1061,7 +1148,11 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         // altitude while the pitch stick is deflected, and the reference
         // tracks so the release locks the NEW altitude. The FLAT SPIN mode
         // never gets the assist: a spin descends by design.
-        if (fabsf(entryErr.x) < 25.0f && fabsf(entryErr.y) < 25.0f && pitchOffDeg == 0.0f
+        // FULL error length gates the assist (review finding: |x|,|y| alone
+        // are BOTH zero in a 90-deg roll excursion - the z component holds
+        // the whole error there, and the assist then engaged mid-excursion
+        // and pushed pitch onto the target, driving deeper into the trough)
+        if (vectorNormSquared(&entryErr) < 625.0f && pitchOffDeg == 0.0f
             && preset->box != BOXFSPIN) {
             const float assistDeg = figureAltitudeAssistDeg(preset->pitchDeg + pitchTrim, holdRefAltCm);
             orientationHoldTargetFromRP(&qDesired, preset->rollDeg, preset->pitchDeg + pitchTrim + assistDeg);
@@ -1072,16 +1163,49 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
             holdRefAltCm = getEstimatedActualPosition(Z);
         }
 
-        if (rollOffDeg != 0.0f || pitchOffDeg != 0.0f) {
-            const fpVector3_t offVec = { .v = { rollOffDeg, pitchOffDeg, 0.0f } };
+        if (fabsf(carveVec.x) > 0.01f || fabsf(carveVec.y) > 0.01f || fabsf(carveVec.z) > 0.01f) {
             fpQuaternion_t qOff;
-            quatFromRotVecDeg(&qOff, &offVec);
+            quatFromRotVecDeg(&qOff, &carveVec);
             quaternionMultiply(&qDesired, &qDesired, &qOff);
-            // carving: keep following at the entry rate
+            // carving / leaning: keep following at the entry rate
         } else if (orientationHoldConfig()->stickAngleMaxDeg > 0 && presetSlewCaptured) {
-            // sticks centered after capture: gentle return to the preset
+            // sticks centered after capture: the TILT eases back to the
+            // perfect pose (sollage_rule); the heading anchor stays put
             slewRateDegS = orientationHoldConfig()->stickReturnRateDps;
         }
+        // heading anchor composes in FRONT (earth frame), exactly like the
+        // figure line anchor: the full attitude error then HOLDS the heading.
+        // SIGN: INAV's attitude quaternion carries the NEGATED heading
+        // (imuComputeQuaternionFromRPY feeds -yaw, imu.c; the bench mirrors
+        // it in q_from_rpy(r,p,-y)) - an anchor built with +heading targets
+        // the MIRRORED heading, a 2*psi yaw error that the full-error
+        // regulator pours into the yaw channel (measured: rudder saturated,
+        // ele/ail at zero despite 20 deg tilt errors).
+        {
+            const float halfPsiRad = -DEGREES_TO_RADIANS(pilotAnchorPsiDeg) * 0.5f;
+            fpQuaternion_t qAnchor;
+            qAnchor.q0 = cos_approx(halfPsiRad);
+            qAnchor.q1 = 0.0f;
+            qAnchor.q2 = 0.0f;
+            qAnchor.q3 = sin_approx(halfPsiRad);
+            quaternionMultiply(&qDesired, &qAnchor, &qDesired);
+        }
+        if (preset->box == BOXFSPIN && presetSlewCaptured) {
+            // spin: the anchor follows the rotation, so the target must track
+            // it 1:1 - a slew lag would regulate AGAINST the spin (measured:
+            // the commanded spin rate halved)
+            slewRateDegS = 0.0f;
+        }
+        // NOTE (P-HANG entry, review history): with the anchor built in
+        // the WRONG heading frame (+psi instead of -psi, fixed above) the
+        // geodesic slew to the vertical ran through the roll/yaw diagonal
+        // and a rudderless airframe hung in the knife trough. With the
+        // sign corrected, level -> hang is a pure pitch+roll rotation and
+        // the plain governed slew flies it; an attitude-driven pitch ramp
+        // (lead-limited under the regulator leash) was measured as a
+        // working alternative and lives in the session notes should a
+        // future entry ever leave the pitch plane again.
+        pilotFullError = true;
     }
 
     if (slewRateDegS > 0.0f) {
@@ -1090,7 +1214,7 @@ bool orientationHoldComputeError(fpVector3_t *errDeg, float dT)
         // exit's level recapture read 13 g ungoverned) - and that pull is
         // set by the slew rate, not by the rate clamp
         const float governedStepDeg = slewRateDegS * orientationHoldLoadGovernorScale() * dT;
-        const float remainingDeg = figureLineAnchored
+        const float remainingDeg = (figureLineAnchored || pilotFullError)
             ? orientationHoldSlewTargetFull(&qSollState, &qDesired, governedStepDeg)
             : orientationHoldSlewTarget(&qSollState, &qDesired, governedStepDeg);
         if (remainingDeg < 1.0f) {
@@ -1262,18 +1386,19 @@ bool orientationHoldApplyRateTargets(oholdAxisRate_t axes[XYZ_AXIS_COUNT], float
     const bool stickOffsets = orientationHoldSticksAreTargetOffsets()
                            || altitudeFloorRecoveryActive()
                            || rotorGuardRecoveryActive();
-    // controlled spin (FLAT SPIN family or figure SPIN segment): the spin
-    // command is a rotation about the EARTH VERTICAL - exactly the axis the
-    // reduced attitude error leaves free - distributed onto the body axes
-    // via the earth-up direction in the body frame. At flat/inverted that
-    // is the yaw axis, at knife edge the pitch axis, at the hang the roll
-    // axis (torque roll). Rates along this axis leave the tilt untouched,
-    // so holding and spinning never fight (bench math mirror, section H).
+    // Controlled spin (FLAT SPIN family or figure SPIN segment). Flight
+    // contract: the spin axis is the BODY YAW (rudder) axis of the held
+    // pose - vertical at flat/inverted, HORIZONTAL at the knife edge. The
+    // rudder defines the rotation direction and rate (proportional); the
+    // sense is aircraft-referenced by construction (right rudder = nose
+    // right in the body frame, so seen from above an inverted spin
+    // reverses, like a real aircraft). Exception +P-HANG: the torque roll
+    // rotates about body ROLL (the prop axis) - contract question on the
+    // combination still open, current behaviour kept.
     float spinYawNorm;
     const bool spinSegment = figureSequencerGetSpinCommand(&spinYawNorm);
     const bool spinPreset = orientationHoldIsSpinAboutVertical();
     float spinRateDps = 0.0f;
-    fpVector3_t upBody;
     if (spinSegment) {
         spinRateDps = spinYawNorm * currentControlProfile->stabilized.rates[FD_YAW] * 10.0f;
     } else if (spinPreset) {
@@ -1290,26 +1415,10 @@ bool orientationHoldApplyRateTargets(oholdAxisRate_t axes[XYZ_AXIS_COUNT], float
     #define SPIN_ABOUT_VERTICAL_MAX_DPS 180.0f
     spinRateDps = constrainf(spinRateDps, -SPIN_ABOUT_VERTICAL_MAX_DPS, SPIN_ABOUT_VERTICAL_MAX_DPS)
                 * orientationHoldLoadGovernorScale();
-    if (spinSegment || spinPreset) {
-        orientationHoldUpInBody(&upBody);
-        // AIRCRAFT-referenced stick sense: the body axis nearest the
-        // vertical receives the stick with its own positive sign - right
-        // rudder yaws the airframe right at flat AND inverted (so the
-        // rotation seen from above reverses when inverted, exactly like a
-        // real aircraft), and maps to positive pitch at the knife edge.
-        // The sign flip does not disturb the tilt (the distribution stays
-        // along the free axis either way).
-        float dominant = upBody.z;
-        if (fabsf(upBody.y) > fabsf(dominant)) {
-            dominant = upBody.y;
-        }
-        if (fabsf(upBody.x) > fabsf(dominant)) {
-            dominant = upBody.x;
-        }
-        if (dominant < 0.0f) {
-            vectorScale(&upBody, &upBody, -1.0f);
-        }
-    }
+    // the spin axis is ALWAYS the body yaw (rudder) axis of the pose:
+    // vertical at flat/inverted, horizontal at the knife (contract; the
+    // P-HANG combination does not exist - torque roll = hang + aileron)
+    const uint8_t spinAxis = FD_YAW;
 
     // Two scale factors bound the RATE CLAMP of the hold: the load governor
     // (the hardest load of a figure is not the rotation but the catch-up
@@ -1331,12 +1440,21 @@ bool orientationHoldApplyRateTargets(oholdAxisRate_t axes[XYZ_AXIS_COUNT], float
             rateTarget = pt1FilterApply4(axes[axis].levelFilter, rateTarget, pidBank()->pid[PID_LEVEL].I, dT);
         }
 
-        float stickRate = (stickOffsets && axis != FD_YAW) ? 0.0f : axes[axis].stickRateDps;
+        // While the sticks act on the TARGET they must not also feed the rate
+        // path: roll/pitch always (carve offsets); yaw too for the anchored
+        // pilot holds (the rudder rotates the heading anchor - no free axis).
+        // The floor keeps yaw live for steering (pilotFullError false there);
+        // 3D LOCK keeps all sticks as rates by design (its source is not a
+        // target-offset source).
+        const bool stickConsumed = stickOffsets && (axis != FD_YAW || pilotFullError);
+        float stickRate = stickConsumed ? 0.0f : axes[axis].stickRateDps;
         if (spinSegment || spinPreset) {
             if (axis == FD_YAW) {
                 stickRate = 0.0f;   // the rudder is consumed by the spin command
             }
-            rateTarget += spinRateDps * upBody.v[axis];
+            if (axis == spinAxis) {
+                rateTarget += spinRateDps;   // body-axis rotation per contract
+            }
         }
         axes[axis].rateTargetDps = constrainf(stickRate + rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
     }

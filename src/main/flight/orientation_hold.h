@@ -71,6 +71,14 @@ typedef struct orientationHoldConfig_s {
                                    // 0 = sticks stay raw rate commands.
     uint8_t stickReturnRateDps;    // deg/s the target returns to the preset
                                    // after the sticks center
+    uint8_t turnRollLimitDeg;      // deg of automatic roll lean allowed while
+                                   // a commanded turn (vertical-axis stick)
+                                   // flies the curve - the lean IS the curve
+                                   // physics (tan(bank) = omega*v/g) and is
+                                   // commanded into the target, not fought.
+                                   // 0 = no lean (flat turns only).
+    uint16_t turnRollReturnMs;     // ms the lean eases back out after the
+                                   // yaw stick returns to 0 (gentle, no snap)
     uint8_t knifeSpeedFF;          // deg of extra knife-edge nose angle per
                                    // half-throttle of speed deficit: the
                                    // fuselage side force scales with v^2,
