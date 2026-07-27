@@ -42,19 +42,23 @@
 #include "fc/settings.h"
 
 #include "flight/imu.h"
+#include "flight/mixer.h"
 #include "flight/rotor_guard.h"
 
 #include "navigation/navigation.h"
 
 #include "sensors/battery.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rotorGuardConfig_t, rotorGuardConfig, PG_ROTOR_GUARD_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(rotorGuardConfig_t, rotorGuardConfig, PG_ROTOR_GUARD_CONFIG, 2);
 
 PG_RESET_TEMPLATE(rotorGuardConfig_t, rotorGuardConfig,
     .bankDeg = SETTING_ROTOR_GUARD_BANK_DEFAULT,
     .sinkCms = SETTING_ROTOR_GUARD_SINK_DEFAULT,
     .recoveryPitchDeg = SETTING_ROTOR_GUARD_PITCH_DEFAULT,
-    .throttleAddUs = SETTING_ROTOR_GUARD_THROTTLE_ADD_DEFAULT,
+    .throttleBoostPct = SETTING_ROTOR_GUARD_THROTTLE_BOOST_DEFAULT,
+    .minHeightM = SETTING_ROTOR_GUARD_MIN_HEIGHT_DEFAULT,
+    .rollLimitDeg = SETTING_ROTOR_GUARD_ROLL_LIMIT_DEFAULT,
+    .pitchLimitDeg = SETTING_ROTOR_GUARD_PITCH_LIMIT_DEFAULT,
 );
 
 // The excursion must persist: a gust or a crisp figure entry crosses the
@@ -69,12 +73,16 @@ PG_RESET_TEMPLATE(rotorGuardConfig_t, rotorGuardConfig,
 // after 1.5 s, re-tipped to -138 and into the ground). Time on the
 // throttle floor is the honest rpm proxy when no rpm feedback exists.
 #define ROTOR_GUARD_MIN_HOLD_MS 5000
+// Length of the initial max-throttle burst of the recovery
+#define ROTOR_GUARD_BURST_MS    2000
 
 static bool guardRecovery = false;
 static timeMs_t tripStartMs = 0;
 static timeMs_t recoveryStartMs = 0;
 static timeMs_t levelSinceMs = 0;
 static bool sticksSeenCentered = false;
+static int16_t preTripThrottleUs = 0;   // the operating throttle when the trip
+                                        // fired - the RELATIVE boost baseline
 
 void rotorGuardUpdate(void)
 {
@@ -114,6 +122,12 @@ void rotorGuardUpdate(void)
                 recoveryStartMs = millis();
                 levelSinceMs = 0;
                 sticksSeenCentered = false;
+                // the RELATIVE boost baseline: the throttle the aircraft was
+                // operating on when the trip fired (a headwind day flies on
+                // a higher trim throttle and the recovery scales with it),
+                // never below the cruise value
+                preTripThrottleUs = MAX(rcCommand[THROTTLE],
+                                        currentBatteryProfile->nav.fw.cruise_throttle);
             }
         } else {
             tripStartMs = 0;
@@ -160,25 +174,39 @@ bool rotorGuardRecoveryActive(void)
 
 int16_t rotorGuardThrottleFloorUs(void)
 {
-    // Thrust is the ONLY lever that brings the rotor rpm (and with it
-    // the roll authority) back: a fixed floor above cruise, NOT
-    // pitch-scaled - the recovery pitch is nose DOWN and pitch-to-
-    // throttle would reduce it. 0 = no claim on the throttle.
+    // Thrust (with the rotor LOADED) is the lever that brings the rotor
+    // rpm - and with it the roll authority - back. The floor is RELATIVE:
+    // the pre-trip operating throttle raised by rotor_guard_throttle_boost
+    // percent, so a headwind trim point scales the recovery with it.
+    // HEIGHT-GATED: below rotor_guard_min_height (baro above the start
+    // altitude) no aggressive recovery power is flown - near the ground it
+    // is wings-level + cushion only. 0 = no claim on the throttle.
     if (!guardRecovery) {
         return 0;
     }
-    return currentBatteryProfile->nav.fw.cruise_throttle
-         + rotorGuardConfig()->throttleAddUs;
+    if (getEstimatedActualPosition(Z) < rotorGuardConfig()->minHeightM * 100.0f) {
+        return 0;
+    }
+    // the FIRST moments of the recovery fly a BRIEF MAX-THROTTLE burst: with
+    // the rotor LOADED that is the fastest way back to authority (thrust ->
+    // speed -> inflow -> rpm; contract). After the burst the relative boost
+    // floor holds until the release conditions clear the recovery.
+    if (millis() - recoveryStartMs < ROTOR_GUARD_BURST_MS) {
+        return getMaxThrottle();
+    }
+    return preTripThrottleUs
+         + (preTripThrottleUs - 1000) * rotorGuardConfig()->throttleBoostPct / 100;
 }
 
 float rotorGuardRecoveryPitchDeg(void)
 {
-    // Nose-down only while the roll excursion persists: it exists to feed
-    // the disk while the tilt has no authority. Once the wings answer
-    // again the recovery levels off - a T/W<1 autogyro can never climb
-    // nose-down, and the release condition (sink arrested) would
-    // otherwise never arrive (measured: a stable 1.2 m/s descent all the
-    // way into the ground).
+    // REAL-GYRO DOCTRINE: the rotor must stay LOADED - a nose-down push
+    // unloads the disk and decays the rpm FASTER (power push-over). The
+    // recovery pitch therefore defaults to 0 (hold the load, wings level,
+    // let the max-throttle boost rebuild speed -> inflow -> rpm). The
+    // parameter stays for airframes that need a small bias; keep it >= 0.
+    // (The old -5 nose-down default came from a plant whose rpm model
+    // coupled to airspeed only, without the load term.)
     if (ABS(attitude.values.roll) / 10.0f > ROTOR_GUARD_RELEASE_BANK_DEG + 10) {
         return (float)rotorGuardConfig()->recoveryPitchDeg;
     }

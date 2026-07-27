@@ -40,9 +40,22 @@ typedef struct rotorGuardConfig_s {
                             // purpose - excursion past it while sinking is
                             // the tip-over signature
     uint16_t sinkCms;       // minimum sink rate [cm/s] to qualify
-    int8_t recoveryPitchDeg; // nose-down pitch target during recovery
-                             // (negative = down): restores inflow
-    uint16_t throttleAddUs;  // recovery throttle floor = cruise + this
+    int8_t recoveryPitchDeg; // recovery pitch target; keep >= 0 per real-gyro
+                             // doctrine (nose-down UNLOADS the rotor and
+                             // decays the rpm faster - power-push-over)
+    uint8_t throttleBoostPct; // recovery throttle floor = the pre-trip
+                              // operating throttle (at least cruise) raised
+                              // by this PERCENTAGE - relative, so a headwind
+                              // trim point scales the recovery with it
+    uint8_t minHeightM;      // below this height (baro above the START
+                             // altitude) no aggressive recovery power -
+                             // wings level + cushion only
+    // Attitude LIMITER (flight contract): with the GYRO mode on, the
+    // COMMANDED curve flight is limited - the bank clamp keeps a commanded
+    // attitude out of the region where the rotor's vertical lift collapses;
+    // the tip-AWAY (uncommanded excursion) is what the guard above catches.
+    uint8_t rollLimitDeg;    // max commanded bank while the mode is on
+    uint8_t pitchLimitDeg;   // max commanded pitch while the mode is on
 } rotorGuardConfig_t;
 
 PG_DECLARE(rotorGuardConfig_t, rotorGuardConfig);
