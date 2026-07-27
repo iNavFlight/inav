@@ -4545,17 +4545,35 @@ groups:
         min: 10
         max: 1000
       - name: rotor_guard_pitch
-        description: "Pitch target [deg] during rotor guard recovery, negative = nose down: feeds the disk (inflow -> rotor rpm -> authority)"
-        default_value: -5
+        description: "Pitch target [deg] during rotor guard recovery. Keep >= 0: the rotor must stay LOADED - a nose-down push unloads the disk and decays the rotor rpm FASTER (real-gyro doctrine, power push-over). Small negative values only for airframes proven to need them."
+        default_value: 0
         field: recoveryPitchDeg
         min: -20
         max: 10
-      - name: rotor_guard_throttle_add
-        description: "Recovery throttle floor = cruise throttle + this [us]. More pilot throttle always wins, and an IDLE throttle stick disables the guard entirely (landing intent - the guard never spins the thrust up against a deliberate throttle-zero; pulling to idle releases a running recovery). Must be enough that the airframe LEVELS OFF at the recovery attitude - a T/W below 1 needs a fatter floor (the SITL-proven Auto-G2 value is 380; the default merely arrests the roll, not the sink)."
-        default_value: 250
-        field: throttleAddUs
+      - name: rotor_guard_throttle_boost
+        description: "Recovery throttle boost [%], RELATIVE: the floor is the throttle the aircraft was operating on when the guard tripped (at least cruise) raised by this percentage of its thrust - a headwind day flies on a higher trim throttle and the recovery scales with it, instead of guessing an absolute value. With the rotor loaded, the brief power burst is the fastest way back to authority (thrust -> speed -> inflow -> rpm). More pilot throttle always wins, and an IDLE stick disables the guard entirely (landing intent). Must be enough that the airframe LEVELS OFF - a T/W below 1 needs more."
+        default_value: 25
+        field: throttleBoostPct
         min: 0
-        max: 800
+        max: 100
+      - name: rotor_guard_min_height
+        description: "Below this height [m, baro above the arming/start altitude] the guard flies NO aggressive recovery power - near the ground the power burst does more harm than good; wings level + cushion only."
+        default_value: 15
+        field: minHeightM
+        min: 0
+        max: 100
+      - name: rotor_guard_roll_limit
+        description: "Attitude limiter, bank [deg]: with the ROTOR GUARD mode on, the COMMANDED curve flight is limited to this bank - past ~35 deg an autogyro's vertical lift collapses and no catch has anything left to work with, so a commanded attitude is never allowed there. The tip-AWAY (uncommanded excursion when the rotor starves) is what the guard's recovery catches."
+        default_value: 35
+        field: rollLimitDeg
+        min: 10
+        max: 60
+      - name: rotor_guard_pitch_limit
+        description: "Attitude limiter, pitch [deg]: max commanded pitch while the ROTOR GUARD mode is on - a steep nose-up bleeds the airspeed that drives the rotor, a steep nose-down unloads the disk; both starve the rpm."
+        default_value: 30
+        field: pitchLimitDeg
+        min: 10
+        max: 45
 
   - name: PG_THRUST_VECTORING_CONFIG
     type: thrustVectoringConfig_t
@@ -4604,6 +4622,18 @@ groups:
         field: stickReturnRateDps
         min: 5
         max: 180
+      - name: ohold_turn_roll_limit
+        description: "Automatic roll lean [deg] allowed while a commanded turn (the stick of the pose's vertical axis: rudder at level/inverted, elevator at the knife) flies a curve in a hold. The lean IS the curve physics - tan(bank) = turn rate x speed / g - and is commanded into the target instead of being fought; this caps it. The lean exists only WHILE yaw is commanded. 0 = no lean, flat turns only."
+        default_value: 15
+        field: turnRollLimitDeg
+        min: 0
+        max: 60
+      - name: ohold_turn_roll_return
+        description: "Time [ms] the automatic curve lean eases back out after the yaw stick returns to centre (gentle, no snap)."
+        default_value: 1000
+        field: turnRollReturnMs
+        min: 100
+        max: 5000
 
   - name: PG_FIGURE_SEQUENCER_CONFIG
     type: figureSequencerConfig_t

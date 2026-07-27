@@ -10,9 +10,19 @@ scripted aerobatic figures flown on a line. It is a quaternion
 controller, so there is no gimbal lock and no special-casing at pitch
 90 - a loop is just "pitch rotation, 360 degrees".
 
-Status: bench-validated against a closed-loop JSBSim simulation
-(deterministic lockstep, 50-case gust matrix, replay videos); first
-hardware flights are upcoming. Treat everything here as experimental.
+Status: implemented and flown in a closed-loop JSBSim SITL simulation
+(deterministic lockstep, replay videos); first hardware flights are
+upcoming, so treat everything here as experimental. Be honest about what
+the simulation proves, because it is uneven. The actively driven
+behaviours - the flat-spin family, the scripted figures, and the floor
+recovery - command real, measured control authority in the bench. The
+static holds (inverted, knife edge, prop hang) do NOT yet: the SITL
+aerobatic airframes are near-symmetric and self-trim at those attitudes,
+and the bench disturbance is a uniform vertical gust that shifts angle of
+attack without producing a rolling or pitching moment, so the controller
+is never forced to work to hold them. The holds are implemented but
+unproven until a hardware flight - or a deliberately destabilised bench
+model - makes the airframe actually want to leave the attitude.
 
 ## Requirements
 

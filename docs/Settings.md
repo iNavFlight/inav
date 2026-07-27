@@ -4592,6 +4592,26 @@ Rate [deg/s] the hold target returns to the preset after the roll/pitch sticks c
 
 ---
 
+### ohold_turn_roll_limit
+
+Automatic roll lean [deg] allowed while a commanded turn (the stick of the pose's vertical axis: rudder at level/inverted, elevator at the knife) flies a curve in a hold. The lean IS the curve physics - tan(bank) = turn rate x speed / g - and is commanded into the target instead of being fought; this caps it. The lean exists only WHILE yaw is commanded. 0 = no lean, flat turns only.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 0 | 60 |
+
+---
+
+### ohold_turn_roll_return
+
+Time [ms] the automatic curve lean eases back out after the yaw stick returns to centre (gentle, no snap).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 100 | 5000 |
+
+---
+
 ### opflow_hardware
 
 Selection of OPFLOW hardware.
@@ -6002,13 +6022,43 @@ Autogyro tip-over guard (ROTOR GUARD mode): bank angle [deg] beyond which, while
 
 ---
 
-### rotor_guard_pitch
+### rotor_guard_min_height
 
-Pitch target [deg] during rotor guard recovery, negative = nose down: feeds the disk (inflow -> rotor rpm -> authority)
+Below this height [m, baro above the arming/start altitude] the guard flies NO aggressive recovery power - near the ground the power burst does more harm than good; wings level + cushion only.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| -5 | -20 | 10 |
+| 15 | 0 | 100 |
+
+---
+
+### rotor_guard_pitch
+
+Pitch target [deg] during rotor guard recovery. Keep >= 0: the rotor must stay LOADED - a nose-down push unloads the disk and decays the rotor rpm FASTER (real-gyro doctrine, power push-over). Small negative values only for airframes proven to need them.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -20 | 10 |
+
+---
+
+### rotor_guard_pitch_limit
+
+Attitude limiter, pitch [deg]: max commanded pitch while the ROTOR GUARD mode is on - a steep nose-up bleeds the airspeed that drives the rotor, a steep nose-down unloads the disk; both starve the rpm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 10 | 45 |
+
+---
+
+### rotor_guard_roll_limit
+
+Attitude limiter, bank [deg]: with the ROTOR GUARD mode on, the COMMANDED curve flight is limited to this bank - past ~35 deg an autogyro's vertical lift collapses and no catch has anything left to work with, so a commanded attitude is never allowed there. The tip-AWAY (uncommanded excursion when the rotor starves) is what the guard's recovery catches.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 35 | 10 | 60 |
 
 ---
 
@@ -6022,13 +6072,13 @@ Minimum sink rate [cm/s] for the tip-over detection - a banked climb or a flown 
 
 ---
 
-### rotor_guard_throttle_add
+### rotor_guard_throttle_boost
 
-Recovery throttle floor = cruise throttle + this [us]. More pilot throttle always wins, and an IDLE throttle stick disables the guard entirely (landing intent - the guard never spins the thrust up against a deliberate throttle-zero; pulling to idle releases a running recovery). Must be enough that the airframe LEVELS OFF at the recovery attitude - a T/W below 1 needs a fatter floor (the SITL-proven Auto-G2 value is 380; the default merely arrests the roll, not the sink).
+Recovery throttle boost [%], RELATIVE: the floor is the throttle the aircraft was operating on when the guard tripped (at least cruise) raised by this percentage of its thrust - a headwind day flies on a higher trim throttle and the recovery scales with it, instead of guessing an absolute value. With the rotor loaded, the brief power burst is the fastest way back to authority (thrust -> speed -> inflow -> rpm). More pilot throttle always wins, and an IDLE stick disables the guard entirely (landing intent). Must be enough that the airframe LEVELS OFF - a T/W below 1 needs more.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 250 | 0 | 800 |
+| 25 | 0 | 100 |
 
 ---
 
