@@ -591,6 +591,40 @@ static uint8_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
     return UBX_HW_VERSION_UNKNOWN;
 }
 
+// Mean C/N0 of the 5 strongest tracked signals - the shading discriminant
+// (aerobatic GPS contract, layer 1): an antenna turned away from the sky
+// collapses the STRONGEST satellites together, before the receiver's
+// solution or its quality numbers degrade. Consumed by the C/N0 gate in
+// gps.c (processCnoGate).
+static void updateTopCnoMean(void)
+{
+    uint8_t top[5] = {0};
+    for (int i = 0; i < UBLOX_MAX_SIGNALS; i++) {
+        if (satelites[i].svId == 0xFF) {
+            continue;
+        }
+        uint8_t c = satelites[i].cno;
+        for (int j = 0; j < 5; j++) {
+            if (c > top[j]) {
+                for (int k = 4; k > j; k--) {
+                    top[k] = top[k - 1];
+                }
+                top[j] = c;
+                break;
+            }
+        }
+    }
+    int n = 0, sum = 0;
+    for (int j = 0; j < 5; j++) {
+        if (top[j]) {
+            sum += top[j];
+            n++;
+        }
+    }
+    gpsSolDRV.cnoMean = n ? (uint8_t)(sum / n) : 0;
+    gpsSolDRV.flags.validCno = n > 0;
+}
+
 static bool gpsParseFrameUBLOX(void)
 {
     switch (_msg_id) {
@@ -749,6 +783,7 @@ static bool gpsParseFrameUBLOX(void)
                 satelites[i].gnssId = 0xFF;
                 satelites[i].svId = 0xFF;
             }
+            updateTopCnoMean();
         }
         break;
     case MSG_NAV_SIG:
@@ -770,6 +805,7 @@ static bool gpsParseFrameUBLOX(void)
                     satelites[i].gnssId = 0xFF;
                 }
             }
+            updateTopCnoMean();
         }
         break;
     case MSG_ACK_ACK:

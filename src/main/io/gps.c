@@ -341,10 +341,69 @@ void updateEstimatedGPSFix(void)
 #endif
 
 
+// Latency-free loss detection, layer 1 of the aerobatic GPS contract: an
+// antenna turned away from the sky collapses the C/N0 of the STRONGEST
+// satellites together, within fractions of a second - long before the
+// receiver's coasted solution degrades or its quality numbers react
+// (fixType keeps claiming 3D while the internal filter free-runs; measured
+// on the SITL bench: at typical speeds that erroneous coast walks the
+// position estimate tens of meters). Detecting the collapse against a slow
+// baseline and degrading the fix to NO_FIX right here hands the SAME cycle
+// over to the estimated-fix layer below - no timeout latency, and honest
+// re-acquisition releases it just as fast.
+#define GPS_CNO_COLLAPSE_DB     12      // drop below baseline that declares shading
+#define GPS_CNO_RECOVER_DB      6       // release hysteresis
+#define GPS_CNO_BASELINE_TAU_S  20.0f   // healthy-signal EMA time constant
+
+static void processCnoGate(void)
+{
+    static float cnoBaseline = 0.0f;
+    static timeMs_t lastUpdateMs = 0;
+    static bool collapsed = false;
+
+    if (!gpsSol.flags.validCno || gpsSol.cnoMean == 0) {
+        collapsed = false;
+        cnoBaseline = 0.0f;
+        return;
+    }
+
+    const timeMs_t t = millis();
+    const float dt = MIN((t - lastUpdateMs) * 0.001f, 1.0f);
+    lastUpdateMs = t;
+
+    if (gpsSol.fixType != GPS_FIX_3D) {     // honest loss needs no help
+        collapsed = false;
+        return;
+    }
+
+    if (cnoBaseline <= 0.0f) {
+        cnoBaseline = gpsSol.cnoMean;
+        return;
+    }
+
+    if (!collapsed) {
+        // baseline learns only while healthy - it must not follow the collapse down
+        cnoBaseline += (gpsSol.cnoMean - cnoBaseline) * (dt / GPS_CNO_BASELINE_TAU_S);
+        collapsed = gpsSol.cnoMean < cnoBaseline - GPS_CNO_COLLAPSE_DB;
+    } else {
+        collapsed = gpsSol.cnoMean < cnoBaseline - GPS_CNO_RECOVER_DB;
+    }
+
+    if (collapsed) {
+        gpsSol.fixType = GPS_NO_FIX;
+        gpsSol.hdop = 9999;
+        gpsSol.numSat = 0;
+        gpsSol.flags.validVelNE = false;
+        gpsSol.flags.validVelD = false;
+        gpsSol.flags.validEPE = false;
+    }
+}
+
 void gpsProcessNewDriverData(void)
 {
     gpsSol = gpsSolDRV;
 
+    processCnoGate();
 #ifdef USE_GPS_FIX_ESTIMATION
     processDisableGPSFix();
     updateEstimatedGPSFix();

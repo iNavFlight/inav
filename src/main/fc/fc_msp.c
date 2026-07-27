@@ -4283,6 +4283,13 @@ static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_
     }
 
     if (feature(FEATURE_GPS) && SIMULATOR_HAS_OPTION(HITL_HAS_NEW_GPS_DATA)) {
+        // injected signal strength (HITL_GPS_CNO): the byte itself sits at
+        // the message tail and was stored LAST frame - the GPS block is
+        // processed mid-parse, one sim frame of lag is physical anyway
+        if (SIMULATOR_HAS_OPTION(HITL_GPS_CNO)) {
+            gpsSolDRV.cnoMean = simulatorData.gpsCno;
+            gpsSolDRV.flags.validCno = true;
+        }
         gpsSolDRV.fixType = sbufReadU8(src);
         gpsSolDRV.hdop = gpsSolDRV.fixType == GPS_NO_FIX ? 9999 : 100;
         gpsSolDRV.numSat = sbufReadU8(src);
@@ -4395,6 +4402,13 @@ static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_
         }
 
         rxSimSetFailsafe(SIMULATOR_HAS_OPTION(HITL_FAILSAFE_TRIGGERED));
+
+        // optional trailing byte, only present when the sender sets the
+        // option (official HITL plugins do not): mean C/N0 [dBHz] of the
+        // strongest signals - consumed by the NEXT GPS block above
+        if (SIMULATOR_HAS_OPTION(HITL_GPS_CNO)) {
+            simulatorData.gpsCno = sbufReadU8(src);
+        }
     }
 
     // Backward compatibility for HITL Plugin 1.X

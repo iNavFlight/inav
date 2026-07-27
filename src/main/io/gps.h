@@ -129,10 +129,14 @@ typedef struct gpsSolutionData_s {
         bool validVelD;
         bool validEPE;      // EPH/EPV values are valid - actual accuracy
         bool validTime;
+        bool validCno;      // cnoMean carries live signal-strength data
     } flags;
 
     gpsFixType_e fixType;
     uint8_t numSat;
+    uint8_t cnoMean;    // mean C/N0 of the strongest tracked signals [dBHz]; the
+                        // shading discriminant - collapses BEFORE the receiver's
+                        // solution degrades (0 = no data)
 
     gpsLocation_t llh;
     int16_t       velNED[3];
