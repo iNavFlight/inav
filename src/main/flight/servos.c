@@ -53,6 +53,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/thrust_vectoring.h"
 
 #include "io/gps.h"
 
@@ -204,6 +205,29 @@ int getServoCount(void)
     }
 }
 
+bool servoMixerHasYawControl(void)
+{
+    // Does the active servo mixer route ANY yaw command to an effector -
+    // a rudder (stabilized yaw, plus/minus variants) or a thrust-vectoring
+    // yaw vane? A flying wing has none: it cannot hold a knife edge, no
+    // matter what the attitude controller commands, so knife-edge modes
+    // are not offered on such a model.
+    for (int i = 0; i < servoRuleCount; i++) {
+        switch (currentServoMixer[i].inputSource) {
+            case INPUT_STABILIZED_YAW:
+            case INPUT_STABILIZED_YAW_PLUS:
+            case INPUT_STABILIZED_YAW_MINUS:
+#ifdef USE_THRUST_VECTORING
+            case INPUT_TVC_YAW:
+#endif
+                return true;
+            default:
+                break;
+        }
+    }
+    return false;
+}
+
 void loadCustomServoMixer(void)
 {
     
@@ -352,6 +376,10 @@ void servoMixer(float dT)
     }
 
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
+
+#ifdef USE_THRUST_VECTORING
+    thrustVectoringApplyInputs(input, mixerThrottleCommand);
+#endif
 
     input[INPUT_MIXER_TRANSITION] = isMixerTransitionMixing * 500; //fixed value
     input[INPUT_MIXER_SWITCH_HELPER] = 0; // no input, used to apply speed limit filter from previous servo rules

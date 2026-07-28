@@ -392,6 +392,36 @@ Optical flow module alignment (default CW0_DEG_FLIP)
 
 ---
 
+### alt_floor_altitude
+
+Altitude floor [m above home]. With the ALT FLOOR mode active and armed (climbed above floor + margin once), SINKING THROUGH the floor engages an automatic upright + climb recovery - no prediction, the crossing is the trigger. Set the floor high enough that the recovery fits below it (a dive recovery consumes roughly 15-25 m). Back at the floor the aircraft ORBITS the breach point on the fixed-wing loiter (nav_fw_loiter_radius) and waits - GPS-anchored while the position estimate is healthy (level flight restores the antenna's sky view), a constant-bank circle otherwise; the pilot gets time to collect themselves, there is no automatic hand-back. SET nav_fw_loiter_radius TO MATCH YOUR SPEED: the circle must be physically flyable, radius >= v^2 / (9.81 * tan(bank)) - an aerobatic airframe at 25 m/s needs roughly 150 m; too small a radius makes the loiter hunt at full bank. THE PILOT OVERRIDES THE AUTOPILOT: held sticks keep steering (a full held rudder drives a spin straight through the floor) - release the sticks and the floor catches; centering the sticks once and then deflecting roll/pitch takes over and releases the orbit. A catch that interrupts ANY active aerobatic mode (every hold, every figure, the sequencer) LATCHES that mode out until the pilot switches it away. Switch the ALT FLOOR mode off to land.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 5 | 500 |
+
+---
+
+### alt_floor_climb_pitch
+
+Nose up pitch target [deg] flown during altitude floor recovery
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 5 | 45 |
+
+---
+
+### alt_floor_margin
+
+Margin above the altitude floor [m]: the floor arms after climbing above floor + margin once, and the recovery climb ends there - back above floor + margin and climbing, control returns to the pilot. A roll/pitch input after the catch (sticks centered once first) releases the recovery immediately.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 2 | 100 |
+
+---
+
 ### alt_hold_deadband
 
 Defines the deadband of throttle during alt_hold [r/c points]
@@ -1159,6 +1189,66 @@ If failsafe activated when throttle is low for this much time - bypass failsafe 
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 300 |
+
+---
+
+### fig_assist_max
+
+Cap [deg] on the altitude assist nose-up offset
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 12 | 0 | 30 |
+
+---
+
+### fig_assist_vz_gain
+
+Altitude assist: nose-up offset [deg per m/s] of sink rate during figures. Keep low: the climb rate estimate lags and a strong damping term fights fast figures
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 20 |
+
+---
+
+### fig_assist_z_gain
+
+Altitude assist: nose-up offset [deg per 10 m] of altitude error during figures. The controller distributes the offset to elevator and rudder as the roll phase demands
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 0 | 100 |
+
+---
+
+### fig_loop_rate
+
+Pitch rate [deg/s] flown by the FIGURE LOOP mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 90 | 30 | 360 |
+
+---
+
+### fig_point_dwell
+
+Dwell time [ms] on each point of the FIGURE 4PT ROLL
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 100 | 2000 |
+
+---
+
+### fig_roll_rate
+
+Roll rate [deg/s] flown by the FIGURE ROLL and FIGURE 4PT ROLL modes
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 90 | 30 | 360 |
 
 ---
 
@@ -4462,6 +4552,66 @@ Waypoint radius [cm]. Waypoint would be considered reached if machine is within 
 
 ---
 
+### ohold_entry_rate
+
+Target slew rate [deg/s] for entering an orientation hold preset (INVERTED, KNIFE EDGE, PROP HANG). The entry rolls the hold target from the current attitude to the preset at this rate; figures keep their own fig_roll_rate / fig_loop_rate
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 180 | 30 | 720 |
+
+---
+
+### ohold_load_limit
+
+Load budget [g x 10] the governor holds figures and spins to - a fact about the airframe (what it may pull), not a tuning knob. Load is speed times rotation rate, so at a given speed the budget is simultaneously the fastest rotation and the tightest radius (r = v^2/a): the governor slows the commanded rotation and the target slew with the measured overload, and bleeds throttle while a figure or spin flies (a governed rotation at full power just converts into speed, the load would stay). Plain holds at 1 g are untouched. 0 disables the governor.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 40 | 0 | 160 |
+
+---
+
+### ohold_stick_angle
+
+Body-frame target offset [deg] at full roll/pitch stick while an orientation hold preset is active: the deflection is a held angle offset from the rotated reference (carving), centered sticks return the target at ohold_stick_return_rate. Yaw stays a rate command. 0 = sticks act as raw rate commands like before
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 0 | 90 |
+
+---
+
+### ohold_stick_return_rate
+
+Rate [deg/s] the hold target returns to the preset after the roll/pitch sticks center
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 45 | 5 | 180 |
+
+---
+
+### ohold_turn_roll_limit
+
+Automatic roll lean [deg] allowed while a commanded turn (the stick of the pose's vertical axis: rudder at level/inverted, elevator at the knife) flies a curve in a hold. The lean IS the curve physics - tan(bank) = turn rate x speed / g - and is commanded into the target instead of being fought; this caps it. The lean exists only WHILE yaw is commanded. 0 = no lean, flat turns only.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 0 | 60 |
+
+---
+
+### ohold_turn_roll_return
+
+Time [ms] the automatic curve lean eases back out after the yaw stick returns to centre (gentle, no snap).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 100 | 5000 |
+
+---
+
 ### opflow_hardware
 
 Selection of OPFLOW hardware.
@@ -5862,6 +6012,76 @@ Defines rotation rate on ROLL axis that UAV will try to archive on max. stick de
 
 ---
 
+### rotor_guard_bank
+
+Autogyro tip-over guard (ROTOR GUARD mode): bank angle [deg] beyond which, while sinking, the roll excursion counts as a tip-over (rotor rpm decayed, lateral tilt authority gone). Recovery: wings level, nose slightly down, throttle floor - thrust is the only lever that restores rotor rpm. TUNE PER AIRFRAME to just above the steepest bank it flies on purpose; the default is deliberately conservative, the SITL-proven Durafly Auto-G2 value is 45.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 60 | 30 | 90 |
+
+---
+
+### rotor_guard_min_height
+
+Below this height [m, baro above the arming/start altitude] the guard flies NO aggressive recovery power - near the ground the power burst does more harm than good; wings level + cushion only.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 0 | 100 |
+
+---
+
+### rotor_guard_pitch
+
+Pitch target [deg] during rotor guard recovery. Keep >= 0: the rotor must stay LOADED - a nose-down push unloads the disk and decays the rotor rpm FASTER (real-gyro doctrine, power push-over). Small negative values only for airframes proven to need them.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -20 | 10 |
+
+---
+
+### rotor_guard_pitch_limit
+
+Attitude limiter, pitch [deg]: max commanded pitch while the ROTOR GUARD mode is on - a steep nose-up bleeds the airspeed that drives the rotor, a steep nose-down unloads the disk; both starve the rpm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 10 | 45 |
+
+---
+
+### rotor_guard_roll_limit
+
+Attitude limiter, bank [deg]: with the ROTOR GUARD mode on, the COMMANDED curve flight is limited to this bank - past ~35 deg an autogyro's vertical lift collapses and no catch has anything left to work with, so a commanded attitude is never allowed there. The tip-AWAY (uncommanded excursion when the rotor starves) is what the guard's recovery catches.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 35 | 10 | 60 |
+
+---
+
+### rotor_guard_sink
+
+Minimum sink rate [cm/s] for the tip-over detection - a banked climb or a flown figure does not trip the guard
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 10 | 1000 |
+
+---
+
+### rotor_guard_throttle_boost
+
+Recovery throttle boost [%], RELATIVE: the floor is the throttle the aircraft was operating on when the guard tripped (at least cruise) raised by this percentage of its thrust - a headwind day flies on a higher trim throttle and the recovery scales with it, instead of guessing an absolute value. With the rotor loaded, the brief power burst is the fastest way back to authority (thrust -> speed -> inflow -> rpm). More pilot throttle always wins, and an IDLE stick disables the guard entirely (landing intent). Must be enough that the airframe LEVELS OFF - a T/W below 1 needs more.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 25 | 0 | 100 |
+
+---
+
 ### rpm_gyro_filter_enabled
 
 Enables gyro RPM filtere. Set to `ON` only when ESC telemetry is working and rotation speed of the motors is correctly reported to INAV
@@ -6242,6 +6462,76 @@ The strength factor of a Smith Predictor of PID measurement. In percents
 
 ---
 
+### soar_alt_max
+
+Leave the thermal once this altitude [m] is reached.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 0 | 5000 |
+
+---
+
+### soar_alt_min
+
+Do not enter a thermal below this altitude [m] - a safety floor for autonomous soaring.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 3000 |
+
+---
+
+### soar_bank
+
+Bank angle [deg] flown while circling a thermal.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 35 | 15 | 50 |
+
+---
+
+### soar_centre_gain
+
+Gain [%] on the thermal-centering gradient shift. Higher centres faster but chases turbulence; the wind-drift shift is always applied at full wind speed regardless.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 300 |
+
+---
+
+### soar_sink_level
+
+Level-flight sink rate [cm/s] at the tuning airspeed, used to compensate the aircraft's own sink out of the net vario. Raise it if the vario reads high in still air, lower it if it reads low. Default ~60 is a 1.8 m motor glider (measured min sink 0.6 m/s); a clean sailplane is lower.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 60 | 0 | 500 |
+
+---
+
+### soar_vario_exit
+
+Net climb rate [cm/s] below which circling stops and the aircraft returns to cruise (the thermal was flown through or died).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 1000 |
+
+---
+
+### soar_vario_trigger
+
+Net (total-energy) climb rate [cm/s] above which the SOARING mode stops cruising and starts circling a thermal. Requires a pitot - the net vario is meaningless without airspeed.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 1000 |
+
+---
+
 ### spektrum_sat_bind
 
 0 = disabled. Used to bind the spektrum satellite to RX
@@ -6519,6 +6809,26 @@ Turtle mode power factor
 | Default | Min | Max |
 | --- | --- | --- |
 | 55 | 0 | 100 |
+
+---
+
+### tvc_gain
+
+Overall thrust vectoring deflection gain [%] at full thrust, applied to the TVC servo mixer input sources. Values above 100 use more of the mechanical vectoring travel per stabilized unit (the output stays clamped at full deflection); hover-heavy setups typically need 200 or more.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 400 |
+
+---
+
+### tvc_thrust_comp
+
+Inverse thrust compensation [%] for the TVC inputs: vane/tilt authority scales with thrust, 100 compensates fully (deflection ~ 1/thrust, capped at low thrust), 0 disables
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 100 |
 
 ---
 

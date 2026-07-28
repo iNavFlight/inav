@@ -1,0 +1,213 @@
+/*
+ * This file is part of INAV Project.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * Alternatively, the contents of this file may be used under the terms
+ * of the GNU General Public License Version 3, as described below:
+ *
+ * This file is free software: you may copy, redistribute and/or modify
+ * it under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ */
+
+#pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "common/axis.h"
+#include "common/filter.h"
+#include "common/quaternion.h"
+#include "common/vector.h"
+
+#include "config/parameter_group.h"
+
+// Orientation hold: quaternion based attitude controller that can stabilise
+// arbitrary target attitudes (inverted, knife edge, prop hang) on fixed wing.
+// Unlike the Euler based ANGLE controller it has no singularity at
+// pitch = +/-90 deg. Heading (rotation about the earth vertical axis) is
+// always left free, matching ANGLE mode behaviour in normal flight.
+
+// Per attitude pitch trim on the hold target, applied as the Euler pitch of
+// the target (before the attitude's roll): positive = nose above the
+// horizon in every attitude. Inverted flight needs it to hold altitude
+// (down-elevator bias), knife edge to carry the fuselage lift.
+typedef struct orientationHoldConfig_s {
+    int8_t invertedPitchTrim;      // deg, nose above horizon in inverted flight
+    int8_t knifeLeftPitchTrim;     // deg, nose above horizon in left knife edge
+    int8_t knifeRightPitchTrim;    // deg, nose above horizon in right knife edge
+                                   // (separate per side: prop effects break the symmetry)
+    uint8_t hoverGainLearned;      // %, LEARNED angle-gain scale per regime:
+                                   // the normal-flight gains are the reference
+                                   // (100), the limit-cycle detector backs the
+                                   // scale off while that regime oscillates and
+                                   // writes it back at regime exit; saved on
+                                   // disarm. The next entry (and the next
+                                   // flight) starts at the learned value
+                                   // instead of oscillating its way down again.
+    uint8_t invertedGainLearned;   // %, learned scale for the inverted hold
+    uint8_t knifeGainLearned;      // %, learned scale for the knife edge holds
+    uint8_t figureGainLearned;     // %, learned scale while a figure flies
+    uint16_t entryRateDps;         // deg/s target slew for PRESET entries.
+                                   // Separate from fig_roll_rate on purpose:
+                                   // a deliberate slow roll figure and a snappy
+                                   // entry into a hold are different intents.
+    uint8_t stickAngleMaxDeg;      // deg of body-frame target offset at full
+                                   // roll/pitch stick: ANGLE semantics around
+                                   // the rotated reference (deflection = held
+                                   // angle offset, release = slow return).
+                                   // 0 = sticks stay raw rate commands.
+    uint8_t stickReturnRateDps;    // deg/s the target returns to the preset
+                                   // after the sticks center
+    uint8_t turnRollLimitDeg;      // deg of automatic roll lean allowed while
+                                   // a commanded turn (vertical-axis stick)
+                                   // flies the curve - the lean IS the curve
+                                   // physics (tan(bank) = omega*v/g) and is
+                                   // commanded into the target, not fought.
+                                   // 0 = no lean (flat turns only).
+    uint16_t turnRollReturnMs;     // ms the lean eases back out after the
+                                   // yaw stick returns to 0 (gentle, no snap)
+    uint8_t knifeSpeedFF;          // deg of extra knife-edge nose angle per
+                                   // half-throttle of speed deficit: the
+                                   // fuselage side force scales with v^2,
+                                   // throttle is the v^2 proxy. 0 = off.
+    uint8_t loadLimitG;            // display load budget [g x 10] the load
+                                   // governor holds figures and spins to;
+                                   // 0 = governor off
+} orientationHoldConfig_t;
+
+PG_DECLARE(orientationHoldConfig_t, orientationHoldConfig);
+
+// Compute the body frame attitude error (deg, per body axis) between qEst
+// and the tilt part of qTarget. The rotation of qEst about the earth
+// vertical axis (heading / twist) is removed before the error is formed, so
+// the returned error never asks for a heading change. Pure shortest-tilt
+// rotation: large-error entry paths are shaped by the target slew inside
+// orientationHoldComputeError(), not here.
+void orientationHoldComputeAttitudeError(fpVector3_t *errDeg, const fpQuaternion_t *qEst, const fpQuaternion_t *qTarget);
+
+// Build a target quaternion from roll/pitch (deg, yaw = 0) using the same
+// Euler convention as the attitude estimator.
+void orientationHoldTargetFromRP(fpQuaternion_t *qTarget, float rollDeg, float pitchDeg);
+
+// True when any orientation hold box (INVERTED / KNIFE EDGE / PROP HANG) is
+// selected on the transmitter.
+bool orientationHoldIsRequested(void);
+
+// True while a released hold still owns the exit handover toward ANGLE:
+// the hold slews its target to level first so the Euler level controller
+// never sees the full attitude error as one step (a prop hang exit whips
+// through nose down otherwise). Latches on the release edge when the
+// attitude is far from level; clears when level is captured, the pilot
+// deflects a stick, or a timeout expires.
+bool orientationHoldExitSlewPending(void);
+
+// Coordinated-turn feedforward for deliberately turning holds (sequencer
+// WAIT_POS, altitude-floor orbit): true with the current turn bank in
+// *bankDeg when the yaw rate must follow the banked turn instead of
+// being regulated to zero by the heading-free hold.
+bool orientationHoldTurnCoordinationBank(float *bankDeg);
+
+// Body frame attitude error (deg) for the currently selected target.
+// The target is a persistent attitude quaternion seeded on the actual
+// attitude at engage and slewed toward the requested attitude
+// (ohold_entry_rate for preset entries - separate from fig_roll_rate on
+// purpose, see entryRateDps), so the error stays small and the entry path
+// is an explicit trajectory. Returns false when no orientation hold box is
+// active.
+bool orientationHoldComputeError(fpVector3_t *errDeg, float dT);
+
+// Re-seed the persistent target on the actual attitude. Call every cycle
+// the regulator is bypassed while a source is active (figure IMPULSE
+// segments), so the catch afterwards starts from the actual attitude.
+void orientationHoldSyncTargetToAttitude(void);
+
+// Call while ORIENTATION_HOLD_MODE is inactive: resets the target-source
+// tracking (and the rate-loop I accumulators once on the exit edge)
+void orientationHoldResetSourceTracking(void);
+
+// True while the PROP HANG preset is the active hold target (used by the
+// hover throttle to own the altitude axis)
+bool orientationHoldIsPropHang(void);
+
+// True while a knife edge or inverted preset is the active hold target
+// (used by the knife/inverted throttle assist, criterion vz -> 0)
+bool orientationHoldIsKnifeOrInverted(void);
+
+// True while the active regime's limit-cycle detector holds the learned
+// gain scale measurably below the reference (the hold is oscillating);
+// the knife/inverted throttle assist raises the speed on this signal
+bool orientationHoldRegimeOscillating(void);
+
+// True while the FLAT SPIN family owns the target (flat / inverted / knife /
+// torque roll): the pilot's rudder commands rotation about the earth
+// vertical instead of the body yaw axis
+bool orientationHoldIsSpinAboutVertical(void);
+
+// Earth-up direction expressed in the body frame (the spin distribution
+// axis; also the axis the reduced attitude error leaves free)
+void orientationHoldUpInBody(fpVector3_t *upBody);
+
+// True while roll/pitch sticks act as TARGET OFFSETS around the rotated
+// reference (preset hold active and ohold_stick_angle > 0): the rate path
+// must then not also feed them as rate commands. Yaw stays a rate command,
+// it is the free axis.
+bool orientationHoldSticksAreTargetOffsets(void);
+
+// Learned damping reserve for the hover regime: scale factor (0.3..1.0) on
+// the angle-loop gain. A detected limit cycle around the vertical backs it
+// off fast, quiet time recovers it slowly; 1.0 outside the hang. Apply to
+// the angle error before the LEVEL P gain.
+float orientationHoldLevelGainScale(void);
+
+// Load governor: figures and spins fly "fast AND tight" - at the load
+// budget (ohold_load_limit), never beyond it. Update once per
+// figure-sequencer tick (self-timed). The scale (0.2..1.0) multiplies the
+// COMMANDED rotation rate of figures, the spin about the vertical and the
+// target slew; the throttle hook bleeds power while a governed maneuver
+// exceeds the budget (full power would just convert the governed rotation
+// into speed and keep the load).
+void orientationHoldLoadGovernorUpdate(void);
+float orientationHoldLoadGovernorScale(void);
+// Throttle hook (mixer): bleeds power while a governed figure or spin
+// exceeds the budget; passes through unchanged otherwise
+int16_t orientationHoldLoadGovernorThrottle(int16_t throttle);
+
+// Thrust-first-guess authority scaling (0.5..1.0): surface moment scales
+// with airflow^2, and thrust is the airflow proxy without a pitot. Above
+// the airframe's cruise throttle the commanded hold authority backs off;
+// the hover regime always keeps full throw (wash-only airflow). Multiplies
+// the orientation-hold rate clamp.
+float orientationHoldAuthorityScale(void);
+
+// The full rate-target controller (error -> per-axis rate targets, spin
+// distribution about the earth vertical, figure impulse passthrough).
+// The pid loop adapts its per-axis state through this view: the pilot's
+// rate command in, pid's LEVEL PT1 filter state shared, the hold's final
+// rate target out. Returns false when the hold has nothing to command
+// (no active source) - the caller keeps its own targets untouched.
+typedef struct oholdAxisRate_s {
+    float stickRateDps;        // in: pilot rate command for this axis
+    pt1Filter_t *levelFilter;  // pid's per-axis LEVEL filter state
+    float rateTargetDps;       // out: the hold's final rate target
+} oholdAxisRate_t;
+bool orientationHoldApplyRateTargets(oholdAxisRate_t axes[XYZ_AXIS_COUNT], float dT);
+
+#if defined(SITL_BUILD)
+// Safety-state word for the SITL bench (debug slot 7): bit0 floor armed,
+// bit1 floor recovery, bit2 rotor guard, bit3 estimate healthy, bit4
+// orbit, bit5 orbit via nav loiter.
+uint32_t orientationHoldDebugSafetyWord(void);
+#endif

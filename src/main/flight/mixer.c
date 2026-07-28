@@ -46,6 +46,12 @@
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
+#include "flight/altitude_floor.h"
+#include "flight/rotor_guard.h"
+#include "flight/crash_detection.h"
+#include "flight/hover_throttle.h"
+#include "flight/orientation_hold.h"
+#include "flight/soaring.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -588,6 +594,23 @@ void FAST_CODE mixTable(void)
 #endif
     } else {
         mixerThrottleCommand = rcCommand[THROTTLE];
+#ifdef USE_SOARING
+        // while circling a thermal the motor is idled so the glider soars on
+        // the lift (a throttle-to-idle override, not a motor stop). Applied
+        // before the recovery paths below so an altitude-floor / rotor-guard
+        // climb can still override the idle; normal throttle also returns on
+        // thermal exit or below soar_alt_min (see soaring.c)
+        mixerThrottleCommand = soaringThrottleApply(mixerThrottleCommand);
+#endif
+#ifdef USE_FW_AEROBATICS
+        // hover throttle owns the altitude axis while PROP HANG is held
+        mixerThrottleCommand = hoverThrottleApply(mixerThrottleCommand);
+        // the load governor bleeds throttle while a governed figure or spin
+        // exceeds the load budget (see orientation_hold.c)
+        mixerThrottleCommand = orientationHoldLoadGovernorThrottle(mixerThrottleCommand);
+#endif
+        // (a detected crash stops the motor via getMotorStatus() above, the
+        // only path that also holds a multirotor's PID-mixed motors down)
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = getMaxThrottle();
 
@@ -670,6 +693,18 @@ uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop)
 
 motorStatus_e getMotorStatus(void)
 {
+#ifdef USE_CRASH_DETECTION
+    // After a detected crash the motor stays cut until the pilot re-allows
+    // it. Stopping via the motor status (not just the throttle command) is
+    // what actually holds a MULTIROTOR still: the throttle command is added
+    // to the per-motor PID mix, so lowering it alone would let the attitude
+    // loops keep spinning motors on a crashed copter - the stopped status
+    // forces every motor to idle directly.
+    if (crashDetectionMotorCut()) {
+        return MOTOR_STOPPED_USER;
+    }
+#endif
+
     if (STATE(NAV_MOTOR_STOP_OR_IDLE)) {
         return MOTOR_STOPPED_AUTO;
     }
@@ -677,6 +712,14 @@ motorStatus_e getMotorStatus(void)
     const bool fixedWingOrAirmodeNotActive = STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE);
 
     if (throttleStickIsLow() && fixedWingOrAirmodeNotActive) {
+#ifdef USE_FW_AEROBATICS
+        // throttle_rule (cap-only, NO exceptions - Daniel 2026-07-23): the
+        // recoveries no longer keep the motor alive through a chopped
+        // stick - the pilot's thumb is the catch's power budget, a chopped
+        // stick is an unpowered attitude-only catch. PILOT WARNING in the
+        // manual (fat print): KEEP THE THROTTLE UP during a floor or
+        // rotor-guard catch. (The former recovery keep-alive lived here.)
+#endif
         if ((navConfig()->general.flags.nav_overrides_motor_stop == NOMS_OFF_ALWAYS) && failsafeIsActive()) {
             // If we are in failsafe and user was holding stick low before it was triggered and nav_overrides_motor_stop is set to OFF_ALWAYS
             // and either on a plane or on a quad with inactive airmode - stop motor

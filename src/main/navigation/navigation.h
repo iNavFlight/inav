@@ -233,6 +233,15 @@ void abortForcedPosHold(void);
 
 #endif
 
+#if defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
+// Forced fixed-wing loiter anchored on a point (the real nav loiter -
+// wind-corrected, nav_fw_loiter_radius). Shared by the altitude-floor
+// orbit (breach point) and thermal soaring (thermal centre estimate).
+void navForcedPosholdActivateAt(const fpVector3_t *pos);
+void navForcedPosholdAssert(const fpVector3_t *pos);
+void navForcedPosholdClear(void);
+#endif
+
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
 #endif
@@ -683,6 +692,7 @@ int8_t navigationGetHeadingControlState(void);
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass);
 bool navigationPositionEstimateIsHealthy(void);
 bool navIsCalibrationComplete(void);
+bool navIsAltitudeEstimateTrusted(void);
 bool navigationTerrainFollowingEnabled(void);
 
 /* Access to estimated position and velocity */

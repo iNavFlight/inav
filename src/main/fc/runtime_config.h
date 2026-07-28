@@ -108,6 +108,7 @@ typedef enum {
     ANGLEHOLD_MODE        = (1 << 17),
     NAV_FW_AUTOLAND       = (1 << 18),
     NAV_SEND_TO           = (1 << 19),
+    ORIENTATION_HOLD_MODE = (1 << 20),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
@@ -202,6 +203,7 @@ typedef enum {
     HITL_RANGEFINDER            = (1 << 12), // Simulate Rangefinder data
     HITL_FAILSAFE_TRIGGERED     = (1 << 13), // Simulate Failsafe triggered condition
     HITL_SITL_MODE              = (1 << 14), // For INAV XITL in Sitl mode (sends no emulated sensor data)
+    HITL_GPS_CNO                = (1 << 15), // Optional trailing byte: mean C/N0 of the strongest signals [dBHz] (antenna-shading model)
 } simulatorFlags_t;
 
 typedef struct {
@@ -214,6 +216,7 @@ typedef struct {
     uint16_t rssi;
     uint16_t current;  // dA (deciamperes; * 10 = cA)
     uint16_t rangefinder; // cm
+    uint8_t gpsCno;    // HITL_GPS_CNO: injected mean C/N0 [dBHz], applied to the next GPS block
 
 } simulatorData_t;
 

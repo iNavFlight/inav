@@ -205,6 +205,17 @@
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
+// FW_AEROBATICS suite (orientation holds, figures, thrust vectoring,
+// crash detection): ~13 KB, experimental, runtime-gated by the
+// FW_AEROBATICS feature. 512 KB boards keep their flash; SITL enables
+// it in its own target.h (no MCU_FLASH_SIZE there).
+#define USE_FW_AEROBATICS
+#define USE_THRUST_VECTORING
+#define USE_CRASH_DETECTION
+// Thermal soaring (net-energy vario + wind-shifted thermal centering):
+// ~2 KB, experimental, runtime-gated by the SOARING feature. Own PR,
+// independent of the aerobatics suite.
+#define USE_SOARING
 #define USE_VTX_FFPV
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT

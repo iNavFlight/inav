@@ -31,6 +31,7 @@
 #include "fc/runtime_config.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
+#include "flight/servos.h"
 
 #include "io/osd.h"
 
@@ -109,6 +110,18 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXGIMBALRLOCK,      .boxName = "GIMBAL LEVEL ROLL", .permanentId = 66 },
     { .boxId = BOXGIMBALCENTER,     .boxName = "GIMBAL CENTER",     .permanentId = 67 },
     { .boxId = BOXGIMBALHTRK,       .boxName = "GIMBAL HEADTRACKER", .permanentId = 68 },
+    { .boxId = BOXINVERTED,         .boxName = "INVERT",          .permanentId = 69 },
+    { .boxId = BOXKNIFELEFT,        .boxName = "KNIFE L",   .permanentId = 70 },
+    { .boxId = BOXKNIFERIGHT,       .boxName = "KNIFE R",  .permanentId = 71 },
+    { .boxId = BOXPROPHANG,         .boxName = "P-HANG",         .permanentId = 72 },
+    { .boxId = BOXALTFLOOR,         .boxName = "FLOOR",         .permanentId = 73 },
+    { .boxId = BOXFIGROLL,          .boxName = "F ROLL",       .permanentId = 74 },
+    { .boxId = BOXFIGLOOP,          .boxName = "F LOOP",       .permanentId = 75 },
+    { .boxId = BOXFIGPOINTROLL,     .boxName = "F 4PT",   .permanentId = 76 },
+    { .boxId = BOXFIGSEQ,           .boxName = "F SEQ",        .permanentId = 77 },
+    { .boxId = BOXATTLOCK,          .boxName = "3DLOCK",           .permanentId = 78 },
+    { .boxId = BOXFSPIN,            .boxName = "FLAT SPIN",        .permanentId = 79 },
+    { .boxId = BOXROTORGUARD,       .boxName = "ROTOR GUARD",      .permanentId = 80 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -283,6 +296,31 @@ void initActiveBoxIds(void)
         }
         if (sensors(SENSOR_ACC)) {
             ADD_ACTIVE_BOX(BOXANGLEHOLD);
+#ifdef USE_FW_AEROBATICS
+            // the whole aerobatics suite sits behind one runtime feature
+            // (FW_LAUNCH pattern, Daniel's call): feature off = none of
+            // these boxes exist, the Modes tab looks exactly like upstream
+            if (feature(FEATURE_FW_AEROBATICS)) {
+                ADD_ACTIVE_BOX(BOXINVERTED);
+                // a knife edge is held on the rudder (or a TVC yaw vane):
+                // a model without any yaw effector (flying wing) cannot
+                // fly one, so the knife modes are not offered on such a
+                // mixer
+                if (servoMixerHasYawControl()) {
+                    ADD_ACTIVE_BOX(BOXKNIFELEFT);
+                    ADD_ACTIVE_BOX(BOXKNIFERIGHT);
+                }
+                ADD_ACTIVE_BOX(BOXPROPHANG);
+                ADD_ACTIVE_BOX(BOXALTFLOOR);
+                ADD_ACTIVE_BOX(BOXROTORGUARD);
+                ADD_ACTIVE_BOX(BOXFIGROLL);
+                ADD_ACTIVE_BOX(BOXFIGLOOP);
+                ADD_ACTIVE_BOX(BOXFIGPOINTROLL);
+                ADD_ACTIVE_BOX(BOXFIGSEQ);
+                ADD_ACTIVE_BOX(BOXATTLOCK);
+                ADD_ACTIVE_BOX(BOXFSPIN);
+            }
+#endif
         }
     }
 
@@ -449,6 +487,20 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)), BOXMIXERTRANSITION);
 #endif
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANGLEHOLD)),       BOXANGLEHOLD);
+#ifdef USE_FW_AEROBATICS
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXINVERTED)),        BOXINVERTED);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKNIFELEFT)),       BOXKNIFELEFT);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKNIFERIGHT)),      BOXKNIFERIGHT);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXPROPHANG)),        BOXPROPHANG);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXALTFLOOR)),        BOXALTFLOOR);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXROTORGUARD)),      BOXROTORGUARD);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFIGROLL)),         BOXFIGROLL);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFIGLOOP)),         BOXFIGLOOP);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFIGPOINTROLL)),    BOXFIGPOINTROLL);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFIGSEQ)),          BOXFIGSEQ);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXATTLOCK)),         BOXATTLOCK);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFSPIN)),           BOXFSPIN);
+#endif
 
 #ifdef USE_SERIAL_GIMBAL
     if(IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {

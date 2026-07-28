@@ -237,6 +237,8 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--parity=[Even|None|Odd]       Serial receiver parity (default: None).\n");
     fprintf(stderr, "--fcproxy                      Use inav/betaflight FC as a proxy for serial receiver.\n");
     fprintf(stderr, "--tcpbaseport=[port]           Base TCP port for UART sockets (default: 5760)\n");
+    fprintf(stderr, "--lockstep                     Simulated time advances exactly 1 ms per MSP_SIMULATOR frame\n");
+    fprintf(stderr, "                               (deterministic HITL benches; real time until the first frame)\n");
     fprintf(stderr, "--chanmap=[mapstring]          Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
     fprintf(stderr, "                               The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
     fprintf(stderr, "                               For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
@@ -268,6 +270,7 @@ void parseArguments(int argc, char *argv[])
             {"parity", required_argument, 0, '4'},
             {"fcproxy", no_argument, 0, '5'},
             {"tcpbaseport", required_argument, 0, '6'},
+            {"lockstep", no_argument, 0, '7'},
             {NULL, 0, NULL, 0}
         };
 
@@ -353,6 +356,10 @@ void parseArguments(int argc, char *argv[])
             case '5':
                 serialFCProxy = true;
                 break;
+            case '7':
+                sitlLockstepEnabled = true;
+                fprintf(stderr, "[SIM] Lockstep: sim time advances 1 ms per MSP_SIMULATOR frame\n");
+                break;
             case '6': {
                 char *endptr = NULL;
                 long basePort = strtol(optarg, &endptr, 10);
@@ -387,11 +394,105 @@ void unlockMainPID(void)
 }
 
 // Replacements for system functions
-timeUs_t micros(void) {
+
+// Lockstep (--lockstep): simulated time is driven by the HITL sensor
+// injection, one fixed millisecond per MSP_SIMULATOR frame, equidistant and
+// independent of host load or wall time. Between frames the clock creeps
+// with real time but is CAPPED just below the next tick, so the scheduler
+// (and with it the serial task that parses the next frame) keeps running
+// while simulated time can never run ahead of the injected sensor data.
+// Until the first frame arrives (boot, gyro calibration) time runs on the
+// host clock as before.
+bool sitlLockstepEnabled = false;
+volatile int32_t sitlRxBytesPending = 0;
+static bool lockstepActive = false;
+static uint64_t lockstepTickTimeUs;    // sim time of the last tick (base of the 1 ms grid)
+static uint64_t lockstepAnchorSimUs;   // sim time the creep window starts from
+static uint64_t lockstepAnchorRealUs;  // wall clock the creep window starts from
+static uint64_t lockstepLastUs;        // monotonicity high-water mark
+// the anchors are written by the TCP receive thread and read by the main
+// thread: unsynchronized 64-bit accesses produced torn values (an anchor
+// in the future freezes the clock until the next arrival)
+static pthread_mutex_t lockstepMutex = PTHREAD_MUTEX_INITIALIZER;
+
+static uint64_t realMicros(void) {
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     return (now.tv_sec - start_time.tv_sec) * 1000000 + (now.tv_nsec - start_time.tv_nsec) / 1000;
+}
+
+// callers hold lockstepMutex
+static uint64_t lockstepMicrosLocked(void) {
+    // creep window: up to one sub-tick millisecond of real time from the
+    // last ANCHOR (tick or byte arrival). It keeps the scheduler and the
+    // serial task alive between frames while simulated time can never
+    // run more than ~1 ms past the last received data. Every arrival
+    // re-opens the window (see sitlLockstepRxArrival), so a late frame
+    // or an interleaved non-simulator request can never starve the
+    // serial pass that would advance the clock.
+    const uint64_t nowReal = realMicros();
+    uint64_t creepUs = (nowReal > lockstepAnchorRealUs) ? nowReal - lockstepAnchorRealUs : 0;
+    // while received bytes wait unparsed, the window stays open: the last
+    // in-window serial pass can otherwise land right at the cap with its
+    // next execution just beyond it, freezing the clock with work still
+    // queued (seen as a rare late-flight stall under parallel host load)
+    if (creepUs > 999 && sitlRxBytesPending <= 0) {
+        creepUs = 999;
+    }
+    uint64_t t = lockstepAnchorSimUs + creepUs;
+    if (t < lockstepLastUs) {
+        t = lockstepLastUs;              // strictly monotonic across anchors
+    } else {
+        lockstepLastUs = t;
+    }
+    return t;
+}
+
+timeUs_t micros(void) {
+    if (lockstepActive) {
+        pthread_mutex_lock(&lockstepMutex);
+        const uint64_t t = lockstepMicrosLocked();
+        pthread_mutex_unlock(&lockstepMutex);
+        return t;
+    }
+    return realMicros();
+}
+
+void sitlLockstepTick(void) {
+    if (!sitlLockstepEnabled) {
+        return;
+    }
+    pthread_mutex_lock(&lockstepMutex);
+    if (!lockstepActive) {
+        lockstepTickTimeUs = realMicros();
+        lockstepActive = true;
+    } else {
+        // ABSOLUTE grid: exactly N milliseconds after N frames, always.
+        // Creep chains (request bursts between frames) may run micros()
+        // past this grid point; the monotonicity clamp in micros() then
+        // holds the OUTPUT flat until the grid catches up. Inheriting the
+        // high-water mark into the base instead would stretch the grid
+        // permanently - measured as 14 percent clock inflation against
+        // the injected sensor stream on a faster-than-realtime bench.
+        lockstepTickTimeUs += 1000;
+    }
+    lockstepAnchorSimUs = lockstepTickTimeUs;
+    lockstepAnchorRealUs = realMicros();
+    pthread_mutex_unlock(&lockstepMutex);
+}
+
+// Called by the TCP receive thread on arriving bytes: restart the creep
+// window at the current simulated time so the (frozen) scheduler wakes up
+// and the serial task parses what just arrived.
+void sitlLockstepRxArrival(void) {
+    if (!lockstepActive) {
+        return;
+    }
+    pthread_mutex_lock(&lockstepMutex);
+    lockstepAnchorSimUs = lockstepMicrosLocked();
+    lockstepAnchorRealUs = realMicros();
+    pthread_mutex_unlock(&lockstepMutex);
 }
 
 uint64_t microsISR(void)

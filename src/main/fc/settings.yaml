@@ -4502,3 +4502,225 @@ groups:
         field: noWayHomeAction
         table: geozone_rth_no_way_home
         type: uint8_t
+
+  - name: PG_ALTITUDE_FLOOR_CONFIG
+    type: altitudeFloorConfig_t
+    headers: ["flight/altitude_floor.h"]
+    condition: USE_FW_AEROBATICS
+    members:
+      - name: alt_floor_altitude
+        description: "Altitude floor [m above home]. With the ALT FLOOR mode active and armed (climbed above floor + margin once), SINKING THROUGH the floor engages an automatic upright + climb recovery - no prediction, the crossing is the trigger. Set the floor high enough that the recovery fits below it (a dive recovery consumes roughly 15-25 m). Back at the floor the aircraft ORBITS the breach point on the fixed-wing loiter (nav_fw_loiter_radius) and waits - GPS-anchored while the position estimate is healthy (level flight restores the antenna's sky view), a constant-bank circle otherwise; the pilot gets time to collect themselves, there is no automatic hand-back. SET nav_fw_loiter_radius TO MATCH YOUR SPEED: the circle must be physically flyable, radius >= v^2 / (9.81 * tan(bank)) - an aerobatic airframe at 25 m/s needs roughly 150 m; too small a radius makes the loiter hunt at full bank. THE PILOT OVERRIDES THE AUTOPILOT: held sticks keep steering (a full held rudder drives a spin straight through the floor) - release the sticks and the floor catches; centering the sticks once and then deflecting roll/pitch takes over and releases the orbit. A catch that interrupts ANY active aerobatic mode (every hold, every figure, the sequencer) LATCHES that mode out until the pilot switches it away. Switch the ALT FLOOR mode off to land."
+        default_value: 30
+        field: floorAltitude
+        min: 5
+        max: 500
+      - name: alt_floor_margin
+        description: "Margin above the altitude floor [m]: the floor arms after climbing above floor + margin once, and the recovery climb ends there - back above floor + margin and climbing, control returns to the pilot. A roll/pitch input after the catch (sticks centered once first) releases the recovery immediately."
+        default_value: 10
+        field: floorMargin
+        min: 2
+        max: 100
+      - name: alt_floor_climb_pitch
+        description: "Nose up pitch target [deg] flown during altitude floor recovery"
+        default_value: 15
+        field: floorClimbPitch
+        min: 5
+        max: 45
+
+  - name: PG_ROTOR_GUARD_CONFIG
+    type: rotorGuardConfig_t
+    headers: ["flight/rotor_guard.h"]
+    condition: USE_FW_AEROBATICS
+    members:
+      - name: rotor_guard_bank
+        description: "Autogyro tip-over guard (ROTOR GUARD mode): bank angle [deg] beyond which, while sinking, the roll excursion counts as a tip-over (rotor rpm decayed, lateral tilt authority gone). Recovery: wings level, nose slightly down, throttle floor - thrust is the only lever that restores rotor rpm. TUNE PER AIRFRAME to just above the steepest bank it flies on purpose; the default is deliberately conservative, the SITL-proven Durafly Auto-G2 value is 45."
+        default_value: 60
+        field: bankDeg
+        min: 30
+        max: 90
+      - name: rotor_guard_sink
+        description: "Minimum sink rate [cm/s] for the tip-over detection - a banked climb or a flown figure does not trip the guard"
+        default_value: 100
+        field: sinkCms
+        min: 10
+        max: 1000
+      - name: rotor_guard_pitch
+        description: "Pitch target [deg] during rotor guard recovery. Keep >= 0: the rotor must stay LOADED - a nose-down push unloads the disk and decays the rotor rpm FASTER (real-gyro doctrine, power push-over). Small negative values only for airframes proven to need them."
+        default_value: 0
+        field: recoveryPitchDeg
+        min: -20
+        max: 10
+      - name: rotor_guard_throttle_boost
+        description: "Recovery throttle boost [%], RELATIVE: the floor is the throttle the aircraft was operating on when the guard tripped (at least cruise) raised by this percentage of its thrust - a headwind day flies on a higher trim throttle and the recovery scales with it, instead of guessing an absolute value. With the rotor loaded, the brief power burst is the fastest way back to authority (thrust -> speed -> inflow -> rpm). More pilot throttle always wins, and an IDLE stick disables the guard entirely (landing intent). Must be enough that the airframe LEVELS OFF - a T/W below 1 needs more."
+        default_value: 25
+        field: throttleBoostPct
+        min: 0
+        max: 100
+      - name: rotor_guard_min_height
+        description: "Below this height [m, baro above the arming/start altitude] the guard flies NO aggressive recovery power - near the ground the power burst does more harm than good; wings level + cushion only."
+        default_value: 15
+        field: minHeightM
+        min: 0
+        max: 100
+      - name: rotor_guard_roll_limit
+        description: "Attitude limiter, bank [deg]: with the ROTOR GUARD mode on, the COMMANDED curve flight is limited to this bank - past ~35 deg an autogyro's vertical lift collapses and no catch has anything left to work with, so a commanded attitude is never allowed there. The tip-AWAY (uncommanded excursion when the rotor starves) is what the guard's recovery catches."
+        default_value: 35
+        field: rollLimitDeg
+        min: 10
+        max: 60
+      - name: rotor_guard_pitch_limit
+        description: "Attitude limiter, pitch [deg]: max commanded pitch while the ROTOR GUARD mode is on - a steep nose-up bleeds the airspeed that drives the rotor, a steep nose-down unloads the disk; both starve the rpm."
+        default_value: 30
+        field: pitchLimitDeg
+        min: 10
+        max: 45
+
+  - name: PG_THRUST_VECTORING_CONFIG
+    type: thrustVectoringConfig_t
+    headers: ["flight/thrust_vectoring.h"]
+    condition: USE_THRUST_VECTORING
+    members:
+      - name: tvc_gain
+        description: "Overall thrust vectoring deflection gain [%] at full thrust, applied to the TVC servo mixer input sources. Values above 100 use more of the mechanical vectoring travel per stabilized unit (the output stays clamped at full deflection); hover-heavy setups typically need 200 or more."
+        default_value: 100
+        field: gain
+        min: 0
+        max: 400
+      - name: tvc_thrust_comp
+        description: "Inverse thrust compensation [%] for the TVC inputs: vane/tilt authority scales with thrust, 100 compensates fully (deflection ~ 1/thrust, capped at low thrust), 0 disables"
+        default_value: 100
+        field: thrustComp
+        min: 0
+        max: 100
+
+  - name: PG_ORIENTATION_HOLD_CONFIG
+    type: orientationHoldConfig_t
+    headers: ["flight/orientation_hold.h"]
+    condition: USE_FW_AEROBATICS
+    members:
+      - name: ohold_load_limit
+        description: "Load budget [g x 10] the governor holds figures and spins to - a fact about the airframe (what it may pull), not a tuning knob. Load is speed times rotation rate, so at a given speed the budget is simultaneously the fastest rotation and the tightest radius (r = v^2/a): the governor slows the commanded rotation and the target slew with the measured overload, and bleeds throttle while a figure or spin flies (a governed rotation at full power just converts into speed, the load would stay). Plain holds at 1 g are untouched. 0 disables the governor."
+        default_value: 40
+        field: loadLimitG
+        min: 0
+        max: 160
+      - name: ohold_entry_rate
+        description: "Target slew rate [deg/s] for entering an orientation hold preset (INVERTED, KNIFE EDGE, PROP HANG). The entry rolls the hold target from the current attitude to the preset at this rate; figures keep their own fig_roll_rate / fig_loop_rate"
+        default_value: 180
+        field: entryRateDps
+        min: 30
+        max: 720
+      - name: ohold_stick_angle
+        description: "Body-frame target offset [deg] at full roll/pitch stick while an orientation hold preset is active: the deflection is a held angle offset from the rotated reference (carving), centered sticks return the target at ohold_stick_return_rate. Yaw stays a rate command. 0 = sticks act as raw rate commands like before"
+        default_value: 30
+        field: stickAngleMaxDeg
+        min: 0
+        max: 90
+      - name: ohold_stick_return_rate
+        description: "Rate [deg/s] the hold target returns to the preset after the roll/pitch sticks center"
+        default_value: 45
+        field: stickReturnRateDps
+        min: 5
+        max: 180
+      - name: ohold_turn_roll_limit
+        description: "Automatic roll lean [deg] allowed while a commanded turn (the stick of the pose's vertical axis: rudder at level/inverted, elevator at the knife) flies a curve in a hold. The lean IS the curve physics - tan(bank) = turn rate x speed / g - and is commanded into the target instead of being fought; this caps it. The lean exists only WHILE yaw is commanded. 0 = no lean, flat turns only."
+        default_value: 15
+        field: turnRollLimitDeg
+        min: 0
+        max: 60
+      - name: ohold_turn_roll_return
+        description: "Time [ms] the automatic curve lean eases back out after the yaw stick returns to centre (gentle, no snap)."
+        default_value: 1000
+        field: turnRollReturnMs
+        min: 100
+        max: 5000
+
+  - name: PG_FIGURE_SEQUENCER_CONFIG
+    type: figureSequencerConfig_t
+    headers: ["flight/figure_sequencer.h"]
+    condition: USE_FW_AEROBATICS
+    members:
+      - name: fig_roll_rate
+        description: "Roll rate [deg/s] flown by the FIGURE ROLL and FIGURE 4PT ROLL modes"
+        default_value: 90
+        field: rollRate
+        min: 30
+        max: 360
+      - name: fig_loop_rate
+        description: "Pitch rate [deg/s] flown by the FIGURE LOOP mode"
+        default_value: 90
+        field: loopRate
+        min: 30
+        max: 360
+      - name: fig_point_dwell
+        description: "Dwell time [ms] on each point of the FIGURE 4PT ROLL"
+        default_value: 500
+        field: pointDwellMs
+        min: 100
+        max: 2000
+      - name: fig_assist_z_gain
+        description: "Altitude assist: nose-up offset [deg per 10 m] of altitude error during figures. The controller distributes the offset to elevator and rudder as the roll phase demands"
+        default_value: 20
+        field: assistZGain
+        min: 0
+        max: 100
+      - name: fig_assist_vz_gain
+        description: "Altitude assist: nose-up offset [deg per m/s] of sink rate during figures. Keep low: the climb rate estimate lags and a strong damping term fights fast figures"
+        default_value: 1
+        field: assistVzGain
+        min: 0
+        max: 20
+      - name: fig_assist_max
+        description: "Cap [deg] on the altitude assist nose-up offset"
+        default_value: 12
+        field: assistMax
+        min: 0
+        max: 30
+
+  - name: PG_SOARING_CONFIG
+    type: soaringConfig_t
+    headers: ["flight/soaring.h"]
+    condition: USE_SOARING
+    members:
+      - name: soar_vario_trigger
+        description: "Net (total-energy) climb rate [cm/s] above which the SOARING mode stops cruising and starts circling a thermal. Requires a pitot - the net vario is meaningless without airspeed."
+        default_value: 50
+        field: varioTriggerCms
+        min: 0
+        max: 1000
+      - name: soar_vario_exit
+        description: "Net climb rate [cm/s] below which circling stops and the aircraft returns to cruise (the thermal was flown through or died)."
+        default_value: 0
+        field: varioExitCms
+        min: 0
+        max: 1000
+      - name: soar_alt_min
+        description: "Do not enter a thermal below this altitude [m] - a safety floor for autonomous soaring."
+        default_value: 50
+        field: altMinM
+        min: 0
+        max: 3000
+      - name: soar_alt_max
+        description: "Leave the thermal once this altitude [m] is reached."
+        default_value: 500
+        field: altMaxM
+        min: 0
+        max: 5000
+      - name: soar_bank
+        description: "Bank angle [deg] flown while circling a thermal."
+        default_value: 35
+        field: bankDeg
+        min: 15
+        max: 50
+      - name: soar_sink_level
+        description: "Level-flight sink rate [cm/s] at the tuning airspeed, used to compensate the aircraft's own sink out of the net vario. Raise it if the vario reads high in still air, lower it if it reads low. Default ~60 is a 1.8 m motor glider (measured min sink 0.6 m/s); a clean sailplane is lower."
+        default_value: 60
+        field: sinkLevelCms
+        min: 0
+        max: 500
+      - name: soar_centre_gain
+        description: "Gain [%] on the thermal-centering gradient shift. Higher centres faster but chases turbulence; the wind-drift shift is always applied at full wind speed regardless."
+        default_value: 100
+        field: centreGainPct
+        min: 0
+        max: 300

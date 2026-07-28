@@ -75,7 +75,9 @@
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
+#include "flight/figure_sequencer.h"
 #include "flight/imu.h"
+#include "flight/orientation_hold.h"
 #include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -565,6 +567,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
         }
         break;
+#ifdef USE_FW_AEROBATICS
+    case MSP2_INAV_FIGURE_SEQUENCE:
+        for (int i = 0; i < MAX_FIGURE_SEQUENCE_SEGMENTS; i++) {
+            sbufWriteU8(dst, figureSequence(i)->type);
+            sbufWriteU16(dst, figureSequence(i)->p1);
+            sbufWriteU16(dst, figureSequence(i)->p2);
+            sbufWriteU16(dst, figureSequence(i)->p3);
+            sbufWriteU8(dst, figureSequence(i)->flags);
+        }
+        break;
+#endif
+
     case MSP2_INAV_SERVO_MIXER:
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
             sbufWriteU8(dst, customServoMixers(i)->targetChannel);
@@ -2371,6 +2385,28 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
+
+#ifdef USE_FW_AEROBATICS
+    case MSP2_INAV_SET_FIGURE_SEQUENCE:
+        sbufReadU8Safe(&tmp_u8, src);
+        if ((dataSize == 9) && (tmp_u8 < MAX_FIGURE_SEQUENCE_SEGMENTS)) {
+            // validate BEFORE touching the PG: a rejected frame must not
+            // leave half-written parameters behind (review finding)
+            const uint8_t segType = sbufReadU8(src);
+            if (segType >= FIGSEG_TYPE_COUNT) {
+                return MSP_RESULT_ERROR;
+            }
+            figureSegment_t *seg = figureSequenceMutable(tmp_u8);
+            seg->type = segType;
+            seg->p1 = sbufReadU16(src);
+            seg->p2 = sbufReadU16(src);
+            seg->p3 = sbufReadU16(src);
+            seg->flags = sbufReadU8(src);
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+#endif
+
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_SET_LOGIC_CONDITIONS:
         sbufReadU8Safe(&tmp_u8, src);
@@ -4247,6 +4283,13 @@ static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_
     }
 
     if (feature(FEATURE_GPS) && SIMULATOR_HAS_OPTION(HITL_HAS_NEW_GPS_DATA)) {
+        // injected signal strength (HITL_GPS_CNO): the byte itself sits at
+        // the message tail and was stored LAST frame - the GPS block is
+        // processed mid-parse, one sim frame of lag is physical anyway
+        if (SIMULATOR_HAS_OPTION(HITL_GPS_CNO)) {
+            gpsSolDRV.cnoMean = simulatorData.gpsCno;
+            gpsSolDRV.flags.validCno = true;
+        }
         gpsSolDRV.fixType = sbufReadU8(src);
         gpsSolDRV.hdop = gpsSolDRV.fixType == GPS_NO_FIX ? 9999 : 100;
         gpsSolDRV.numSat = sbufReadU8(src);
@@ -4359,6 +4402,13 @@ static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_
         }
 
         rxSimSetFailsafe(SIMULATOR_HAS_OPTION(HITL_FAILSAFE_TRIGGERED));
+
+        // optional trailing byte, only present when the sender sets the
+        // option (official HITL plugins do not): mean C/N0 [dBHz] of the
+        // strongest signals - consumed by the NEXT GPS block above
+        if (SIMULATOR_HAS_OPTION(HITL_GPS_CNO)) {
+            simulatorData.gpsCno = sbufReadU8(src);
+        }
     }
 
     // Backward compatibility for HITL Plugin 1.X
@@ -4372,6 +4422,12 @@ static mspResult_e mspProcessSimulatorCommand(sbuf_t *dst, sbuf_t *src, const in
     if (dataSize < 2) {
         return MSP_RESULT_ERROR;
     }
+
+#ifdef SITL_BUILD
+    // lockstep (--lockstep): every simulator frame advances the simulated
+    // clock by exactly one millisecond, see target/SITL/target.c
+    sitlLockstepTick();
+#endif
 
     const uint8_t simMspVersion = sbufReadU8(src); // Get the Simulator MSP version
     if (simMspVersion != SIMULATOR_MSP_VERSION_2 && simMspVersion != SIMULATOR_MSP_VERSION_3) {
@@ -4454,6 +4510,43 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         mspFcDataFlashReadCommand(dst, src);
         *ret = MSP_RESULT_ACK;
         break;
+#endif
+
+// Bench/HIL level-1 test injection - SITL only, kept off flight hardware
+#if defined(SITL_BUILD) && defined(USE_FW_AEROBATICS)
+    case MSP2_INAV_ORIENTATION_HOLD_TEST: {
+        // Level-1 test injection (bench/HIL): evaluate the orientation hold
+        // error function and the level gain on the given quaternions.
+        // Pure computation on this MCU's float32 - no controller or
+        // estimator state is touched, safe in any build/flight state.
+        if (dataSize != 8 * sizeof(uint32_t)) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+        union { uint32_t u; float f; } pun;
+        fpQuaternion_t qEst, qTarget;
+        float * const in[8] = { &qEst.q0, &qEst.q1, &qEst.q2, &qEst.q3,
+                                &qTarget.q0, &qTarget.q1, &qTarget.q2, &qTarget.q3 };
+        for (int i = 0; i < 8; i++) {
+            pun.u = sbufReadU32(src);
+            *in[i] = pun.f;
+        }
+
+        fpVector3_t errDeg;
+        orientationHoldComputeAttitudeError(&errDeg, &qEst, &qTarget);
+        for (int i = 0; i < 3; i++) {
+            pun.f = errDeg.v[i];
+            sbufWriteU32(dst, pun.u);
+        }
+        for (int axis = 0; axis < 3; axis++) {
+            pun.f = constrainf(errDeg.v[axis] * (pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER),
+                               -currentControlProfile->stabilized.rates[axis] * 10.0f,
+                                currentControlProfile->stabilized.rates[axis] * 10.0f);
+            sbufWriteU32(dst, pun.u);
+        }
+        *ret = MSP_RESULT_ACK;
+        break;
+    }
 #endif
 
     case MSP2_COMMON_SETTING:

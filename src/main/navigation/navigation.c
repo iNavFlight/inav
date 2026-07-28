@@ -253,6 +253,14 @@ navigationPosControl_t posControl;
 navSystemStatus_t NAV_Status;
 static bool landingDetectorIsActive;
 
+#if defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
+// Forced-poshold anchor shared by the altitude-floor orbit and thermal
+// soaring: consumed by the POSHOLD initialize while the forced hold is
+// active (see navForcedPosholdActivateAt).
+static fpVector3_t navForcedPosholdAnchor;
+static bool navForcedPosholdAnchorValid = false;
+#endif
+
 EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
 // Blackbox states
@@ -1345,6 +1353,19 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE(n
 
         fpVector3_t targetHoldPos;
         calculateInitialHoldPosition(&targetHoldPos);
+#if defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
+        // Forced-poshold anchor (floor orbit / soaring thermal): loiter
+        // the anchored point, not "here". The forced-poshold event
+        // re-fires every RX cycle and re-runs this initialize - without
+        // the override the loiter re-anchors on the current position each
+        // time and circles itself (measured: clean 52 m circle drifting
+        // 250 m from the anchor).
+        if (posControl.flags.forcedPosholdActive && navForcedPosholdAnchorValid) {
+            setDesiredPosition(&navForcedPosholdAnchor, posControl.actualState.yaw,
+                               NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            return NAV_FSM_EVENT_SUCCESS;
+        }
+#endif
         setDesiredPosition(&targetHoldPos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
     }
 
@@ -4595,8 +4616,11 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         if (posControl.flags.sendToActive) {
             return NAV_FSM_EVENT_SWITCH_TO_SEND_TO;
         }
+#endif
 
-
+#if defined(USE_GEOZONE) || defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
+        // geozone avoidance hold, the altitude-floor orbit, or thermal
+        // soaring - all loitering an anchored point via forced poshold
         if (posControl.flags.forcedPosholdActive) {
             return NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D;
         }
@@ -4759,6 +4783,11 @@ uint32_t distanceToFirstWP(void)
 bool navigationPositionEstimateIsHealthy(void)
 {
     return posControl.flags.estPosStatus >= EST_USABLE && posControl.flags.estAltStatus >= EST_USABLE && STATE(GPS_FIX_HOME);
+}
+
+bool navIsAltitudeEstimateTrusted(void)
+{
+    return posControl.flags.estAltStatus >= EST_USABLE;
 }
 
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
@@ -5204,6 +5233,37 @@ void activateForcedPosHold(void)
 
 void abortForcedPosHold(void)
 {
+    posControl.flags.forcedPosholdActive = false;
+    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+}
+#endif
+
+#if defined(USE_FW_AEROBATICS) || defined(USE_SOARING)
+/*-----------------------------------------------------------
+ * Forced position hold on an anchored point - the REAL fixed-wing
+ * loiter (Daniel: use the loitering machinery, not a hand-rolled orbit).
+ * Shared by the altitude-floor orbit (breach point) and thermal soaring
+ * (thermal centre). Reuses the forcedPoshold flag/FSM path the geozone
+ * built; the anchor is injected in the POSHOLD initialize (the forced
+ * event re-fires per RX cycle and would otherwise re-anchor "here").
+ *-----------------------------------------------------------*/
+void navForcedPosholdActivateAt(const fpVector3_t *pos)
+{
+    navForcedPosholdAnchor = *pos;
+    navForcedPosholdAnchorValid = true;
+    posControl.flags.forcedPosholdActive = true;
+    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+}
+
+void navForcedPosholdAssert(const fpVector3_t *pos)
+{
+    // keep the stored anchor fresh (cheap; the initialize consumes it)
+    navForcedPosholdAnchor = *pos;
+}
+
+void navForcedPosholdClear(void)
+{
+    navForcedPosholdAnchorValid = false;
     posControl.flags.forcedPosholdActive = false;
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
 }

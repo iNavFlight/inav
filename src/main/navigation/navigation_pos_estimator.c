@@ -38,6 +38,7 @@
 #include "fc/settings.h"
 #include "fc/rc_modes.h"
 
+#include "flight/hover_throttle.h"
 #include "flight/imu.h"
 
 #include "io/gps.h"
@@ -499,7 +500,24 @@ static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
         ) && posControl.gpsOrigin.valid &&
         ((currentTimeUs - posEstimator.gps.lastUpdateTime) <= MS2US(INAV_GPS_TIMEOUT_MS)) &&
         (posEstimator.gps.eph < max_eph_epv)) {
-        if (posEstimator.gps.epv < max_eph_epv) {
+        if (posEstimator.gps.epv < max_eph_epv
+#ifdef USE_FW_AEROBATICS
+            // lock-quality gate for the Z axis: aerobatic attitudes shade
+            // the antenna and the reported epv lags the real degradation.
+            // The vertical solution degrades first on a thin constellation,
+            // so GPS altitude requires a MARGIN over the fix threshold
+            // (gps_min_sats keeps gating the fix/XY as before); below it
+            // the altitude stays baro-first
+            && gpsSol.numSat >= gpsConfig()->gpsMinSats + 2
+#endif
+#ifdef USE_GPS_FIX_ESTIMATION
+            // the estimated fix's altitude IS the baro (origin + BaroAlt) -
+            // routing it through the GPS-Z path would double-count the baro
+            // at full GPS weight and bypass the ram fade below; Z stays on
+            // the honest baro path while dead reckoning
+            && !STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
             newFlags |= EST_GPS_XY_VALID | EST_GPS_Z_VALID;
         }
         else {
@@ -627,8 +645,58 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             }
 
             const float baroVelZResidual = isAirCushionEffectDetected ? 0.0f : wBaro * (posEstimator.baro.baroAltRate - posEstimator.est.vel.z);
-            const float w_z_baro_p = positionEstimationConfig()->w_z_baro_p;
-            const float w_z_baro_v = positionEstimationConfig()->w_z_baro_v;
+            float w_z_baro_p = positionEstimationConfig()->w_z_baro_p;
+            float w_z_baro_v = positionEstimationConfig()->w_z_baro_v;
+#ifdef USE_FW_AEROBATICS
+            // Aerobatic estimator contract, layer 4: in KNIFE flight and
+            // fast rolled passes the DYNAMIC PRESSURE reaches the static
+            // port (ram/venturi) and the baro reads meters off - fade the
+            // baro toward the IMU-Z integral while the airframe is BOTH
+            // rolled past ~60 deg AND fast, and hand it back with the
+            // attitude. Tilt alone must NOT fade (the prop hang is tilted
+            // 90 deg at zero airspeed - no dynamic pressure, and the hover
+            // boost below NEEDS the baro); the horizontal estimate speed
+            // stands in for q, it stays valid on GPS loss via the
+            // estimated fix.
+            // TIME-BOUNDED: the IMU-Z integral can only carry the altitude
+            // for SECONDS (measured: ~24 m drift over a 25 s knife hold vs
+            // the ~10 m ram error itself) - the fade is strong when the
+            // shading begins (a normal knife pass is over before the
+            // integral drifts) and relaxes back to the baro as the lesser
+            // evil if the attitude persists.
+            if (STATE(AIRPLANE)) {
+                static float ramFadeActiveS = 0.0f;
+                // Ram exposure is the SIDE of the fuselage facing the flow
+                // (the knife case of the contract) - the wing axis gone
+                // vertical, |rMat[2][1]|: knife = 1, dive/level/inverted = 0.
+                // The earlier cosTilt schedule also faded in steep DIVES,
+                // where the fuselage streams lengthwise and the static
+                // port sees no dynamic pressure - there the baro is honest
+                // and cutting it away only costs Z quality for nothing.
+                const float tiltFactor = scaleRangef(constrainf(fabsf(rMat[2][1]), 0.5f, 0.87f), 0.5f, 0.87f, 0.0f, 1.0f);
+                const float speedXY = calc_length_pythagorean_2D(posEstimator.est.vel.x, posEstimator.est.vel.y);
+                const float speedFactor = scaleRangef(constrainf(speedXY, 800.0f, 1200.0f), 800.0f, 1200.0f, 0.0f, 1.0f);
+                const float ramExposure = tiltFactor * speedFactor;
+                if (ramExposure > 0.5f) {
+                    ramFadeActiveS += dT;
+                } else {
+                    ramFadeActiveS = MAX(0.0f, ramFadeActiveS - 4.0f * dT);
+                }
+                const float strength = constrainf(1.0f - ramFadeActiveS / 10.0f, 0.0f, 1.0f);
+                const float wBaroRam = 1.0f - 0.85f * ramExposure * strength;
+                w_z_baro_p *= wBaroRam;
+                w_z_baro_v *= wBaroRam;
+            }
+#endif
+#ifdef USE_FW_AEROBATICS
+            // hovering on the prop: the thrust pollutes the accelerometer Z
+            // and the inertial estimate wanders meters around the truth; the
+            // baro deserves more trust for as long as the hover throttle
+            // owns the altitude
+            if (hoverThrottleIsEngaged()) {
+                w_z_baro_p = MAX(w_z_baro_p, hoverThrottleConfig()->hoverBaroWeight / 100.0f);
+            }
+#endif
 
             ctx->estPosCorr.z = baroAltResidual * w_z_baro_p * dT;
             ctx->estVelCorr.z = baroVelZResidual * w_z_baro_v * dT;
@@ -707,7 +775,26 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
             const float gpsVelYResidual = posEstimator.gps.vel.y - posEstimator.est.vel.y;
             const float gpsPosResidualMag = calc_length_pythagorean_2D(gpsPosXResidual, gpsPosYResidual);
 
-            //const float gpsWeightScaler = scaleRangef(bellCurve(gpsPosResidualMag, INAV_GPS_ACCEPTANCE_EPE), 0.0f, 1.0f, 0.1f, 1.0f);
+            // A soft residual gate (bellCurve of this residual scaling the
+            // weight to a 0.1 floor) was implemented and A/B-measured here
+            // against a false-valid receiver model (SITL, 2 s and 5 s
+            // coasted-fix windows). It does NOT pay in this estimator:
+            // (a) a short coast (~2 s) drags the estimate <= 1.7 m even
+            //     ungated - the correction bandwidth low-passes the error;
+            // (b) a long coast (5 s) defeats the gate through the EPE
+            //     machinery: rejected updates still blend eph toward the
+            //     large residual (line below), EST_XY_VALID drops within
+            //     ~2 s and the reset path re-anchors onto the very fix the
+            //     gate was rejecting - same endpoint as no gate (p90 45 m
+            //     vs 48 m);
+            // (c) the cost is real: with the INERTIAL side wrong and GPS
+            //     honest, recovery crawls at the floor weight (clean-tail
+            //     6.6 -> 37 m measured).
+            // The false-valid defence belongs upstream instead: C/N0
+            // collapse detection (UBX-NAV-SIG is already parsed) discards
+            // a shaded fix seconds before the receiver admits the loss,
+            // and the commanded-figure feed-forward coasts the estimator
+            // through the maneuver.
             const float gpsWeightScaler = 1.0f;
 
             const float w_xy_gps_p = positionEstimationConfig()->w_xy_gps_p * gpsWeightScaler;

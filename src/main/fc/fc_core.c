@@ -87,6 +87,12 @@
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
+#include "flight/altitude_floor.h"
+#include "flight/rotor_guard.h"
+#include "flight/figure_sequencer.h"
+#include "flight/crash_detection.h"
+#include "flight/soaring.h"
+#include "flight/orientation_hold.h"
 #include "flight/rate_dynamics.h"
 
 #include "flight/failsafe.h"
@@ -254,7 +260,16 @@ static void updateArmingStatus(void)
         }
 
         /* CHECK: CPU load */
-        if (isSystemOverloaded()) {
+        if (isSystemOverloaded()
+#if defined(SITL_BUILD)
+            /* Under --lockstep the loop is paced by the simulator frame
+             * stream (exactly one 1 kHz tick per injected frame), not by
+             * the wall clock - host load reads as a scheduler backlog and
+             * would block arming with a false SYSTEM_OVERLOADED. Default
+             * SITL keeps the stock check. */
+            && !sitlLockstepEnabled
+#endif
+            ) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
         }
         else {
@@ -683,21 +698,74 @@ void processRx(timeUs_t currentTimeUs)
     bool emergRearmAngleEnforce = STATE(MULTIROTOR) && emergRearmStabiliseTimeout > US2MS(currentTimeUs);
     bool autoEnableAngle = failsafeRequiresAngleMode() || navigationRequiresAngleMode() || emergRearmAngleEnforce;
 
-    /* Disable stabilised modes initially, will be enabled as required with priority ANGLE > HORIZON > ANGLEHOLD
+    /* Disable stabilised modes initially, will be enabled as required with priority
+     * auto ANGLE (failsafe/nav) > ALT FLOOR / ROTOR GUARD recovery > ANGLE > HORIZON > ORIENTATION HOLD > ANGLEHOLD
      * MANUAL mode has priority over these modes except when ANGLE auto enabled */
     DISABLE_FLIGHT_MODE(ANGLE_MODE);
     DISABLE_FLIGHT_MODE(HORIZON_MODE);
     DISABLE_FLIGHT_MODE(ANGLEHOLD_MODE);
+#ifdef USE_FW_AEROBATICS
+    DISABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
+    altitudeFloorUpdate();
+    rotorGuardUpdate();
+    figureSequencerUpdate();
+#if defined(SITL_BUILD)
+    // bench safety word (SITL only); composed by the module
+    debug[7] = orientationHoldDebugSafetyWord();
+    // bench estimator XY (SITL only): the false-valid GPS audit compares the
+    // FC's local position estimate against the injected GPS and the plant
+    // truth; while thermalling the soaring module owns slots 0..4 instead
+    if (!soaringActive()) {
+        // slot 0 is free outside thermalling (past probes lived there)
+        debug[1] = lrintf(getEstimatedActualPosition(Z));   // [cm]
+        debug[2] = lrintf(getEstimatedActualPosition(X));   // [cm]
+        debug[3] = lrintf(getEstimatedActualPosition(Y));   // [cm]
+    }
+#endif
+#endif
 
     if (sensors(SENSOR_ACC) && (!FLIGHT_MODE(MANUAL_MODE) || autoEnableAngle)) {
-        if (IS_RC_MODE_ACTIVE(BOXANGLE) || autoEnableAngle) {
+        if (autoEnableAngle) {
             ENABLE_FLIGHT_MODE(ANGLE_MODE);
+#ifdef USE_FW_AEROBATICS
+        } else if (STATE(AIRPLANE)
+                   && ((altitudeFloorRecoveryActive() && !altitudeFloorOrbitViaNav())
+                       || rotorGuardRecoveryActive())) {
+            // Automatic safety recovery (altitude floor, or the autogyro
+            // tip-over guard): overrides the pilot's stabilised mode
+            // selection until the aircraft is caught. The floor's ORBIT
+            // phase flies on the real nav loiter instead - the nav mode
+            // owns the aircraft there, not the orientation hold.
+            ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
+#endif
+        } else if (IS_RC_MODE_ACTIVE(BOXANGLE)) {
+#ifdef USE_FW_AEROBATICS
+            // leaving a hold far from level: the hold slews its target to
+            // the horizon first, ANGLE takes over once the attitude is
+            // there (a hover exit otherwise whips through nose down)
+            if (STATE(AIRPLANE) && orientationHoldExitSlewPending()) {
+                ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
+            } else
+#endif
+            {
+                ENABLE_FLIGHT_MODE(ANGLE_MODE);
+            }
         } else if (IS_RC_MODE_ACTIVE(BOXHORIZON)) {
             ENABLE_FLIGHT_MODE(HORIZON_MODE);
+#ifdef USE_FW_AEROBATICS
+        } else if (STATE(AIRPLANE) && orientationHoldIsRequested()) {
+            ENABLE_FLIGHT_MODE(ORIENTATION_HOLD_MODE);
+#endif
         } else if (STATE(AIRPLANE) && IS_RC_MODE_ACTIVE(BOXANGLEHOLD)) {
             ENABLE_FLIGHT_MODE(ANGLEHOLD_MODE);
         }
     }
+
+#ifdef USE_FW_AEROBATICS
+    if (!FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
+        orientationHoldResetSourceTracking();
+    }
+#endif
 
     if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
         LED1_ON;
@@ -962,6 +1030,16 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 #endif
 
     processPilotAndFailSafeActions(dT);
+
+#ifdef USE_CRASH_DETECTION
+    // impact followed by stillness stops the motor (hand-launch aware)
+    crashDetectionUpdate(dT);
+#endif
+
+#ifdef USE_SOARING
+    // thermal soaring: net vario + wind-shifted thermal centering
+    soaringUpdate(dT);
+#endif
 
     // Check battery, GPS signal, arming status etc @ 200 Hz
     static uint8_t armingStatusDivider = 0;

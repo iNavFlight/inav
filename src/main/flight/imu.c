@@ -121,8 +121,10 @@ FASTRAM bool imuUpdated = false;
 
 static float imuCalculateAccelerometerWeightNearness(fpVector3_t* accBF);
 static float imuCalculateAccelerometerWeightRateIgnore(const float acc_ignore_slope_multipiler);
+static void imuUpdateGpsAidingTiltWeight(float dT);
+static float gpsAidingTiltWeight = 1.0f;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 4);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_acc = SETTING_AHRS_DCM_KP_DEFAULT,                   // 0.20 * 10000
@@ -400,6 +402,16 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
         if (magBF && vectorNormSquared(magBF) > 0.01f) {
             wMag *= bellCurve((fast_fsqrtf(vectorNormSquared(magBF)) - 1024.0f) / 1024.0f, MAX_MAG_NEARNESS);
+            // MAG TILT GATE (flight contract): beyond the aerobatic tilt the
+            // flat-projection heading is unusable - the body-frame field
+            // lines are rotated (knife edge is 90 deg either side, inverted
+            // is 180) and the real earth field dips 60+ deg, so every small
+            // tilt-estimate error leaks tan(inclination)-amplified into the
+            // heading (measured in SITL: est-vs-truth walked 30..168 deg in
+            // an inverted hold, while the gyro coasts it at ~0 deg/s). Same
+            // internal gate as the GPS aiding; feature-gated - the weight is
+            // pinned 1.0 without FEATURE_FW_AEROBATICS.
+            wMag *= gpsAidingTiltWeight;
             fpVector3_t vMag;
 
             // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
@@ -426,6 +438,61 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
                 // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
                 vectorCrossProduct(&vMagErr, &vMag, &vCorrectedMagNorth);
+
+                // Antipode handling, gated behind FW_AEROBATICS: the core
+                // Mahony mag correction above stays byte-identical for
+                // every other user. The failure mode is 3D-only - a
+                // fixed wing only parks the heading estimate on the
+                // antipode after a sustained sub-cruise flat spin, never
+                // in normal flight - so the extra pull belongs to the
+                // aerobatics feature, not the shared estimator.
+                if (feature(FEATURE_FW_AEROBATICS) && gpsAidingTiltWeight >= 0.99f) {
+                    // (Gated on the tilt weight too: the escape and the hard
+                    // re-seed exist for the POST-SPIN case - a flat attitude,
+                    // gate open. At knife/inverted the mag heading itself is
+                    // unusable (see the tilt gate above) and a re-seed there
+                    // would snap the estimate onto projection garbage.)
+                    // Antipode escape: the cross-product torque scales with
+                    // sin(error) and VANISHES as the heading error approaches
+                    // 180 deg even though the error is maximal - after a flat
+                    // spin the estimate can park there (measured: 184 deg off,
+                    // stable for 60+ s, GPS-COG equally blind since it uses
+                    // the same idiom). Past 90 deg (dot < 0) rescale the error
+                    // to full pull so the estimate walks off the saddle; below
+                    // 90 deg the natural sin scaling is untouched.
+                    const float magNorthDot = vectorDotProduct(&vMag, &vCorrectedMagNorth);
+                    if (magNorthDot < 0.0f && vectorNormSquared(&vMagErr) > 1.0e-6f) {
+                        vectorNormalize(&vMagErr, &vMagErr);
+                    }
+
+                    // HARD RE-SEED (Daniel's go): if the heading error stays
+                    // beyond 90 deg for a full second while the mag is clean,
+                    // the gentle kp pull is losing (a circling aircraft turns
+                    // faster than kp 0.2 corrects - measured 30..135 deg of
+                    // wandering error through a whole loiter). Rotate the
+                    // estimate about earth Z so mag north snaps into place -
+                    // the same philosophy as the existing GPS yaw reset for
+                    // multirotors, driven by the mag instead.
+                    static float magAntipodeTimeS = 0.0f;
+                    if (magNorthDot < 0.0f) {
+                        magAntipodeTimeS += dt;
+                        if (magAntipodeTimeS > 1.0f) {
+                            const float yawErrRad = atan2_approx(
+                                vMag.x * vCorrectedMagNorth.y - vMag.y * vCorrectedMagNorth.x,
+                                magNorthDot);
+                            fpAxisAngle_t seed = { .axis = { .v = { 0.0f, 0.0f, 1.0f } },
+                                                   .angle = yawErrRad };
+                            fpQuaternion_t qSeed;
+                            axisAngleToQuaternion(&qSeed, &seed);
+                            quaternionMultiply(&orientation, &qSeed, &orientation);
+                            quaternionNormalize(&orientation, &orientation);
+                            vMagErr.x = vMagErr.y = vMagErr.z = 0.0f;
+                            magAntipodeTimeS = 0.0f;
+                        }
+                    } else {
+                        magAntipodeTimeS = 0.0f;
+                    }
+                }
 
                 // Rotate error back into body frame
                 quaternionRotateVector(&vMagErr, &vMagErr, &orientation);
@@ -458,6 +525,13 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed) / 2.0f, 400.0f, 1000.0f), 400.0f, 1000.0f, 0.0f, 1.0f);
             } else { //vCOG is not avaliable and vCOGAcc is avaliable, set the weight of vCOG to zero
                 wCoG = 0.0f;
+            }
+            if (STATE(AIRPLANE)) {
+                // attitude gate: yaw-from-course is meaningless with the
+                // nose far from the horizon (course != heading in a hang
+                // or knife edge; the pull-up entry corrupts yaw exactly
+                // when the figure begins)
+                wCoG *= gpsAidingTiltWeight;
             }
             if (STATE(MULTIROTOR)) {
                 //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
@@ -862,6 +936,22 @@ static void imuCalculateEstimatedAttitude(float dT)
     if (STATE(AIRPLANE)) {
         imuCalculateTurnRateacceleration(&vEstcentrifugalAccelBF_turnrate, dT, &acc_ignore_slope_multipiler);
     }
+    // NOTE (aerobatic estimator contract, layer 3 "acc-cut on GPS loss"):
+    // a tightened rate-ignore for the GPS-less case was implemented and
+    // A/B-measured here - REDUNDANT: the nearness bellCurve plus the
+    // rate-ignore already cut the effective acc weight to a mean of 0.15
+    // (min 0) through a GPS-less inverted spin, attitude divergence
+    // identical with and without the extra cut. The intent of the layer
+    // is in-tree; no additional code.
+
+    // attitude gate (see imuUpdateGpsAidingTiltWeight): beyond the tilt
+    // limit the centrifugal models are wrong - fade them out entirely,
+    // the raw accelerometer is the lesser error there
+    imuUpdateGpsAidingTiltWeight(dT);
+    if (STATE(AIRPLANE) && gpsAidingTiltWeight < 1.0f) {
+        vectorScale(&vEstcentrifugalAccelBF_velned, &vEstcentrifugalAccelBF_velned, gpsAidingTiltWeight);
+        vectorScale(&vEstcentrifugalAccelBF_turnrate, &vEstcentrifugalAccelBF_turnrate, gpsAidingTiltWeight);
+    }
 
     if (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE && isGPSTrustworthy() && STATE(AIRPLANE)) {
         //pick the best centrifugal acceleration between velned and turnrate
@@ -899,6 +989,14 @@ static void imuCalculateEstimatedAttitude(float dT)
     float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness(&compensatedGravityBF);
     accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(acc_ignore_slope_multipiler);
     const bool useAcc = (accWeight > 0.001f);
+#if defined(SITL_BUILD)
+    // bench instrumentation (SITL debug slot 6): the EFFECTIVE acc weight,
+    // 1000 = full trust - answers whether the estimator still listens to
+    // the (centrifugally poisoned) accelerometer during sustained spins.
+    // SITL only: a raw debug[] write on a real target would clobber the
+    // user's selected debug channel (review finding).
+    debug[6] = lrintf(accWeight * 1000.0f);
+#endif
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
     fpVector3_t measuredMagBF = {.v = {mag.magADC[X], mag.magADC[Y], mag.magADC[Z]}};
@@ -967,6 +1065,36 @@ bool isImuHeadingValid(void)
 float calculateCosTiltAngle(void)
 {
     return 1.0f - 2.0f * sq(orientation.q1) - 2.0f * sq(orientation.q2);
+}
+
+// ATTITUDE GATE for every GPS-derived aiding on an airplane: yaw-from-
+// course and the centrifugal compensation both assume coordinated forward
+// flight (heading follows course, lateral acceleration is v x omega).
+// Beyond the tilt threshold - hang, knife edge, inverted, spins - the
+// assumption is broken and the aiding actively BENDS the attitude
+// (measured in SITL with truth GPS: +4.6 deg pitch bias and 19 deg tilt
+// divergence in a prop hang that is clean without GPS). Drop instantly on
+// entering the aerobatic domain, fade back over 2 s after returning; the
+// normal flight regime keeps full GPS support.
+// Tilt beyond which GPS aiding is fully faded out [deg from level]. A fixed
+// property of the coordinated-flight assumption, not a pilot tuning knob;
+// on/off is governed by the FW_AEROBATICS feature bit, not by this value.
+#define GPS_AIDING_MAX_TILT_DEG 60
+
+static void imuUpdateGpsAidingTiltWeight(float dT)
+{
+    // the gate exists for the aerobatic envelope; without the feature
+    // the estimator behaves exactly like upstream (weight pinned at 1)
+    if (!feature(FEATURE_FW_AEROBATICS) || !STATE(AIRPLANE)) {
+        gpsAidingTiltWeight = 1.0f;
+        return;
+    }
+    const float cosLimit = cos_approx(DEGREES_TO_RADIANS(GPS_AIDING_MAX_TILT_DEG));
+    if (calculateCosTiltAngle() < cosLimit) {
+        gpsAidingTiltWeight = 0.0f;
+    } else {
+        gpsAidingTiltWeight = MIN(1.0f, gpsAidingTiltWeight + dT / 2.0f);
+    }
 }
 #if defined(USE_GPS)
 bool isYawZeroResetAllowed(void)

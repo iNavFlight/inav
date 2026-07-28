@@ -79,6 +79,7 @@ typedef enum {
     DEBUG_GPS,
     DEBUG_LULU,
     DEBUG_SBUS2,
+    DEBUG_FW_AEROBATICS,   // 0-3: learned regime gain scale [%] hover/inverted/knife/figure
     DEBUG_COUNT // also update debugModeNames in cli.c
 } debugType_e;
 

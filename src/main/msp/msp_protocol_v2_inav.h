@@ -133,3 +133,7 @@
 #define MSP2_INAV_SET_CRUISE_HEADING            0x2223  //in message  set heading while in Cruise/Course Hold mode; payload: I32 heading_centidegrees (0-35999)
 
 #define MSP2_INAV_SET_AUX_RC                    0x2230
+
+#define MSP2_INAV_FIGURE_SEQUENCE               0x2240
+#define MSP2_INAV_SET_FIGURE_SEQUENCE           0x2241
+#define MSP2_INAV_ORIENTATION_HOLD_TEST         0x2242  //in/out (SITL only): level-1 test injection, 8x float32 (q_est wxyz, q_target wxyz) -> 6x float32 (err_deg xyz, rate_target_dps xyz); pure computation

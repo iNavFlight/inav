@@ -82,7 +82,9 @@ static int16_t fakeAccData[XYZ_AXIS_COUNT];
 
 static void fakeAccInit(accDev_t *acc)
 {
-    acc->acc_1G = 9806;
+    acc->acc_1G = 2048; // 16 G scale, matching a real IMU (HITL injects
+                        // acc.accADCf directly in g, so this only sets the
+                        // full-scale the crash detector reads back)
 }
 
 void fakeAccSet(int16_t x, int16_t y, int16_t z)

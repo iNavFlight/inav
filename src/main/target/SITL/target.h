@@ -82,6 +82,14 @@
 #define MAX_GEOZONES_IN_CONFIG 63
 #define MAX_VERTICES_IN_CONFIG 126
 
+// The FW_AEROBATICS suite is flash-gated to > 512 KB in common.h; SITL
+// has no MCU_FLASH_SIZE, so enable it explicitly here (the bench needs
+// it), same as USE_GEOZONE above.
+#define USE_FW_AEROBATICS
+#define USE_THRUST_VECTORING
+#define USE_CRASH_DETECTION
+#define USE_SOARING
+
 #undef USE_GYRO_KALMAN // Strange behaviour under x86/x64 ?!?
 #undef USE_VCP
 #undef USE_PPM
@@ -200,6 +208,16 @@ typedef enum
 extern bool lockMainPID(void);
 extern void unlockMainPID(void);
 extern void parseArguments(int argc, char *argv[]);
+// Lockstep (--lockstep): simulated time advances exactly 1 ms per
+// MSP_SIMULATOR frame; sitlLockstepTick() is called from the frame handler,
+// sitlLockstepRxArrival() by the TCP receive thread on arriving bytes
+extern bool sitlLockstepEnabled;
+extern void sitlLockstepTick(void);
+extern void sitlLockstepRxArrival(void);
+// unparsed received bytes (maintained by the TCP serial driver): while
+// nonzero the lockstep creep window stays open so the pending work is
+// always reachable by the scheduler
+extern volatile int32_t sitlRxBytesPending;
 extern char *strnstr(const char *s, const char *find, size_t slen);
 extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);
 

@@ -44,6 +44,8 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
+#include "flight/orientation_hold.h"
+#include "flight/rotor_guard.h"
 #include "flight/rpm_filter.h"
 #include "flight/kalman.h"
 #include "flight/smith_predictor.h"
@@ -646,6 +648,18 @@ static float computePidLevelTarget(flight_dynamics_index_t axis) {
     // Limit max bank angle for multirotor during Nav mode Angle controlled position adjustment
     uint16_t maxBankAngle = STATE(MULTIROTOR) && navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI && isAdjustingPosition() ?
                             DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle) : pidProfile()->max_angle_inclination[axis];
+#ifdef USE_FW_AEROBATICS
+    // Autogyro attitude limiter (flight contract): with the GYRO mode on,
+    // the COMMANDED curve flight is limited - bank and pitch are clamped so
+    // a commanded attitude never reaches the region where the rotor's
+    // vertical lift collapses. The tip-AWAY is the rotor guard's catch.
+    if (STATE(AIRPLANE) && IS_RC_MODE_ACTIVE(BOXROTORGUARD)) {
+        const uint16_t gyroLimit = DEGREES_TO_DECIDEGREES(
+            (axis == FD_ROLL) ? rotorGuardConfig()->rollLimitDeg
+                              : rotorGuardConfig()->pitchLimitDeg);
+        maxBankAngle = MIN(maxBankAngle, gyroLimit);
+    }
+#endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     float angleTarget = pidRcCommandToAngle(getRcCommandOverride(rcCommand, axis), maxBankAngle);
@@ -724,6 +738,28 @@ static void pidLevel(const float angleTarget, pidState_t *pidState, flight_dynam
         pidState->rateTarget = angleRateTarget;
     }
 }
+
+#ifdef USE_FW_AEROBATICS
+// Quaternion based attitude hold for arbitrary target attitudes (inverted,
+// knife edge, prop hang). Works on all three body axes and stays defined at
+// pitch = +/-90 deg where the Euler based pidLevel() is singular. The full
+// controller lives in flight/orientation_hold.c; this adapter only maps the
+// per-axis pid state (stick rate in, shared LEVEL filter, target out).
+static void NOINLINE pidOrientationHold(pidState_t *pidStates, float dT)
+{
+    oholdAxisRate_t axes[XYZ_AXIS_COUNT];
+    for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        axes[axis].stickRateDps = pidStates[axis].rateTarget;
+        axes[axis].levelFilter = &pidStates[axis].angleFilterState;
+    }
+    if (!orientationHoldApplyRateTargets(axes, dT)) {
+        return;   // no active hold source: the stick rate targets stand
+    }
+    for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+        pidStates[axis].rateTarget = axes[axis].rateTargetDps;
+    }
+}
+#endif
 
 /* Apply angular acceleration limit to rate target to limit extreme stick inputs to respect physical capabilities of the machine */
 static void FAST_CODE pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
@@ -1277,6 +1313,14 @@ void FAST_CODE pidController(float dT)
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     angleHoldIsLevel = false;
 
+#ifdef USE_FW_AEROBATICS
+    if (FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
+        // Quaternion attitude hold replaces the Euler level controllers on all three axes
+        pidOrientationHold(pidState, dT);
+        restartAngleHoldMode = true;
+        canUseFpvCameraMix = false;     // not compatible with FPVANGLEMIX
+    } else
+#endif
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ANGLEHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             // If axis angle override, get the correct angle from Logic Conditions
@@ -1306,6 +1350,20 @@ void FAST_CODE pidController(float dT)
         pidTurnAssistant(pidState, bankAngleTarget, pitchAngleTarget);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
+#ifdef USE_FW_AEROBATICS
+    else if (FLIGHT_MODE(ORIENTATION_HOLD_MODE)) {
+        // Turning holds (WAIT_POS banks toward home, the floor orbit
+        // circles the breach point): feed the coordinated turn rates
+        // forward, otherwise the heading-free hold regulates the physical
+        // turn yaw rate back to zero and the aircraft never turns
+        // (measured on the floor orbit: 35 deg bank held on a frozen
+        // heading, a knife-edge-style straight slip away from the anchor)
+        float bankDeg;
+        if (orientationHoldTurnCoordinationBank(&bankDeg)) {
+            pidTurnAssistant(pidState, DEGREES_TO_RADIANS(bankDeg), 0.0f);
+        }
+    }
+#endif
 
     // Apply FPV camera mix
     if (canUseFpvCameraMix && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && currentControlProfile->misc.fpvCamAngleDegrees && STATE(MULTIROTOR)) {

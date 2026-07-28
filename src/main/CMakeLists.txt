@@ -323,6 +323,8 @@ main_sources(COMMON_SRC
 
     flight/failsafe.c
     flight/failsafe.h
+    flight/figure_sequencer.c
+    flight/figure_sequencer.h
     flight/imu.c
     flight/imu.h
     flight/kalman.c
@@ -331,8 +333,20 @@ main_sources(COMMON_SRC
     flight/smith_predictor.h
     flight/rate_dynamics.c
     flight/rate_dynamics.h
+    flight/altitude_floor.c
+    flight/altitude_floor.h
+    flight/rotor_guard.c
+    flight/rotor_guard.h
+    flight/soaring.c
+    flight/soaring.h
+    flight/crash_detection.c
+    flight/crash_detection.h
+    flight/hover_throttle.c
+    flight/hover_throttle.h
     flight/mixer.c
     flight/mixer.h
+    flight/orientation_hold.c
+    flight/orientation_hold.h
     flight/pid.c
     flight/pid.h
     flight/pid_autotune.c
@@ -340,6 +354,8 @@ main_sources(COMMON_SRC
     flight/power_limits.h
     flight/rth_estimator.c
     flight/rth_estimator.h
+    flight/thrust_vectoring.c
+    flight/thrust_vectoring.h
     flight/servos.c
     flight/servos.h
     flight/mixer_profile.c

@@ -206,8 +206,9 @@ void validateAndFixConfig(void)
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
 
-    // Disable unused features
-    featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
+    // Disable unused features (bit 5 FEATURE_FW_AEROBATICS and bit 9
+    // FEATURE_CRASH_DETECTION are real now and must survive the boot scrub)
+    featureClear(FEATURE_UNUSED_3 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
 
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {

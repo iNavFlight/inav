@@ -57,12 +57,21 @@ typedef enum {
 } mspPendingSystemRequest_e;
 
 #define MSP_PORT_INBUF_SIZE 192
+#ifndef MSP_PORT_OUTBUF_SIZE
 #ifdef USE_FLASHFS
 #define MSP_PORT_DATAFLASH_BUFFER_SIZE 4096
 #define MSP_PORT_DATAFLASH_INFO_SIZE 16
 #define MSP_PORT_OUTBUF_SIZE (MSP_PORT_DATAFLASH_BUFFER_SIZE + MSP_PORT_DATAFLASH_INFO_SIZE)    // WARNING! Must fit in stack!
+#elif defined(USE_FW_AEROBATICS)
+// the FW_AEROBATICS boxes push the full box-name list past 512 bytes
+// (~736 B with everything active) - without FLASHFS the reply buffer
+// must still hold it or serializeBoxNamesReply() fails and the Modes
+// tab breaks (review finding; comfortably stack-safe vs the 4 KB
+// FLASHFS variant)
+#define MSP_PORT_OUTBUF_SIZE 1024
 #else
 #define MSP_PORT_OUTBUF_SIZE 512
+#endif
 #endif
 
 typedef struct __attribute__((packed)) {
