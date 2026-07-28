@@ -184,27 +184,32 @@ static uint16_t mavlinkDbmToMilliwatts(int8_t powerDbm)
     return powerDbm <= 0 ? 0 : lrintf(powf(10.0f, powerDbm / 10.0f));
 }
 
-static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
+static void mavlinkParseRxStats(const mavlink_radio_status_t *msg)
+{
+    rxLinkStatistics_t *statistics = rxGetLinkStatisticsMutable(RX_LINK_PRIMARY);
+
     switch(mavActiveConfig->radio_type) {
         case MAVLINK_RADIO_SIK:
-            rxLinkStatistics.uplinkRSSI = (msg->rssi / 1.9) - 127;
-            rxLinkStatistics.uplinkSNR = msg->noise / 1.9;
-            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            statistics->uplinkRSSI = (msg->rssi / 1.9) - 127;
+            statistics->uplinkSNR = msg->noise / 1.9;
+            statistics->uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
             break;
         case MAVLINK_RADIO_ELRS:
-            rxLinkStatistics.uplinkRSSI = -msg->remrssi;
-            rxLinkStatistics.uplinkSNR = msg->noise;
-            rxLinkStatistics.uplinkLQ = scaleRange(msg->rssi, 0, 255, 0, 100);
+            statistics->uplinkRSSI = -msg->remrssi;
+            statistics->uplinkSNR = msg->noise;
+            statistics->uplinkLQ = scaleRange(msg->rssi, 0, 255, 0, 100);
             break;
         case MAVLINK_RADIO_MLRS:
             break;
         case MAVLINK_RADIO_GENERIC:
         default:
-            rxLinkStatistics.uplinkRSSI = msg->rssi;
-            rxLinkStatistics.uplinkSNR = msg->noise;
-            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            statistics->uplinkRSSI = msg->rssi;
+            statistics->uplinkSNR = msg->noise;
+            statistics->uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
             break;
     }
+
+    rxLinkStatisticsUpdated(RX_LINK_PRIMARY);
 }
 
 static bool handleIncoming_RADIO_STATUS(void) {
@@ -269,11 +274,13 @@ static bool handleIncoming_MLRS_RADIO_LINK_STATS(uint8_t ingressPortIndex)
         return true;
     }
 
-    rxLinkStatistics.uplinkLQ = stats->rxLinkQualityRc;
-    rxLinkStatistics.downlinkLQ = stats->rxLinkQualitySerial;
-    rxLinkStatistics.uplinkRSSI = stats->rxRssi;
-    rxLinkStatistics.uplinkSNR = stats->rxSnr;
-    rxLinkStatistics.activeAntenna = stats->activeAntenna;
+    rxLinkStatistics_t *statistics = rxGetLinkStatisticsMutable(RX_LINK_PRIMARY);
+    statistics->uplinkLQ = stats->rxLinkQualityRc;
+    statistics->downlinkLQ = stats->rxLinkQualitySerial;
+    statistics->uplinkRSSI = stats->rxRssi;
+    statistics->uplinkSNR = stats->rxSnr;
+    statistics->activeAntenna = stats->activeAntenna;
+    rxLinkStatisticsUpdated(RX_LINK_PRIMARY);
 
     return true;
 }
@@ -310,14 +317,16 @@ static bool handleIncoming_MLRS_RADIO_LINK_INFORMATION(uint8_t ingressPortIndex)
         return true;
     }
 
-    rxLinkStatistics.uplinkTXPower = info->txPowerMw;
-    rxLinkStatistics.downlinkTXPower = info->rxPowerMw;
-    memset(rxLinkStatistics.band, 0, sizeof(rxLinkStatistics.band));
-    memset(rxLinkStatistics.mode, 0, sizeof(rxLinkStatistics.mode));
-    memcpy(rxLinkStatistics.band, info->bandStr, sizeof(rxLinkStatistics.band) - 1);
-    memcpy(rxLinkStatistics.mode, info->modeStr, sizeof(rxLinkStatistics.mode) - 1);
-    sl_toupperptr(rxLinkStatistics.band);
-    sl_toupperptr(rxLinkStatistics.mode);
+    rxLinkStatistics_t *statistics = rxGetLinkStatisticsMutable(RX_LINK_PRIMARY);
+    statistics->uplinkTXPower = info->txPowerMw;
+    statistics->downlinkTXPower = info->rxPowerMw;
+    memset(statistics->band, 0, sizeof(statistics->band));
+    memset(statistics->mode, 0, sizeof(statistics->mode));
+    memcpy(statistics->band, info->bandStr, sizeof(statistics->band) - 1);
+    memcpy(statistics->mode, info->modeStr, sizeof(statistics->mode) - 1);
+    sl_toupperptr(statistics->band);
+    sl_toupperptr(statistics->mode);
+    rxLinkStatisticsUpdated(RX_LINK_PRIMARY);
 
     return true;
 }

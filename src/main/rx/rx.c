@@ -396,6 +396,10 @@ void rxInit(void)
     if (rxConfig()->receiverType == RX_TYPE_MSP || rxConfig()->receiverTypeSecondary == RX_TYPE_MSP) {
         dualRxEnabled = false;
     }
+    if ((rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_MAVLINK) ||
+        (rxConfig()->receiverTypeSecondary == RX_TYPE_SERIAL && rxConfig()->serialrx_provider_secondary == SERIALRX_MAVLINK)) {
+        dualRxEnabled = false;
+    }
     // Two links sharing a not-yet-instance-safe serial driver would alias its module
     // parser buffers and corrupt both. Refuse dual RX for that combination; links on
     // different drivers are unaffected.
@@ -552,6 +556,22 @@ bool rxIsLinkReceivingSignal(rxLink_e link)
 bool rxIsPrimaryFailsafe(void)
 {
     return !rxIsLinkReceivingSignal(RX_LINK_PRIMARY);
+}
+
+rxLinkStatistics_t *rxGetLinkStatisticsMutable(rxLink_e link)
+{
+    if ((unsigned)link >= RX_LINK_COUNT) {
+        return NULL;
+    }
+
+    return &rxLinks[link].statistics;
+}
+
+void rxLinkStatisticsUpdated(rxLink_e link)
+{
+    if (link == activeLink) {
+        rxLinkStatistics = rxLinks[link].statistics;
+    }
 }
 
 static void rxApplyActiveLink(rxLink_e link)

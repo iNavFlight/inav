@@ -79,6 +79,10 @@
 
 #define CRSF_MSP_BUFFER_SIZE 96
 #define CRSF_MSP_LENGTH_OFFSET 1
+#define CRSF_MSP_START_MASK 0x10
+#define CRSF_MSP_VERSION_MASK 0x60
+#define CRSF_MSP_VERSION_SHIFT 5
+#define CRSF_MSP_TRANSACTION_TIMEOUT_US 1000000
 
 static uint8_t crsfCrc;
 static bool crsfTelemetryEnabled;
@@ -89,60 +93,127 @@ static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX];
 typedef struct mspBuffer_s {
     uint8_t bytes[CRSF_MSP_BUFFER_SIZE];
     int len;
+    uint16_t expectedPayloadLength;
+    uint16_t receivedPayloadLength;
+    timeUs_t lastActivityTimeUs;
+    bool started;
+    bool complete;
 } mspBuffer_t;
 
-static mspBuffer_t mspRxBuffer;
+static mspBuffer_t mspRxBuffers[RX_LINK_COUNT];
+static bool mspResponsePending[RX_LINK_COUNT];
+static rxLink_e mspIngressOwner = RX_LINK_COUNT;
 
 void initCrsfMspBuffer(void)
 {
-    mspRxBuffer.len = 0;
+    memset(mspRxBuffers, 0, sizeof(mspRxBuffers));
+    memset(mspResponsePending, 0, sizeof(mspResponsePending));
+    mspIngressOwner = RX_LINK_COUNT;
 }
 
-bool bufferCrsfMspFrame(uint8_t *frameStart, int frameLength)
+bool bufferCrsfMspFrame(rxLink_e link, uint8_t *frameStart, int frameLength)
 {
-    if (mspRxBuffer.len + CRSF_MSP_LENGTH_OFFSET + frameLength > CRSF_MSP_BUFFER_SIZE) {
-        return false;
-    } else {
-        uint8_t *p = mspRxBuffer.bytes + mspRxBuffer.len;
-        *p++ = frameLength;
-        memcpy(p, frameStart, frameLength);
-        mspRxBuffer.len += CRSF_MSP_LENGTH_OFFSET + frameLength;
-        return true;
-    }
-}
+    mspBuffer_t *buffer = &mspRxBuffers[link];
+    const timeUs_t currentTimeUs = micros();
+    const uint8_t status = frameStart[0];
+    const bool start = status & CRSF_MSP_START_MASK;
 
-bool handleCrsfMspFrameBuffer(uint8_t payloadSize, mspResponseFnPtr responseFn)
-{
-    static bool replyPending = false;
-    if (replyPending) {
-        if (crsfRxIsTelemetryBufEmpty()) {
-            replyPending = sendMspReply(payloadSize, responseFn);
+    if (mspIngressOwner != RX_LINK_COUNT && !mspResponsePending[mspIngressOwner]) {
+        mspBuffer_t *ownerBuffer = &mspRxBuffers[mspIngressOwner];
+        if (cmpTimeUs(currentTimeUs, ownerBuffer->lastActivityTimeUs) > CRSF_MSP_TRANSACTION_TIMEOUT_US) {
+            ownerBuffer->len = 0;
+            ownerBuffer->started = false;
+            ownerBuffer->complete = false;
+            mspIngressOwner = RX_LINK_COUNT;
         }
-        return replyPending;
     }
 
-    if (!mspRxBuffer.len) {
+    if (start) {
+        if (mspIngressOwner != RX_LINK_COUNT) {
+            return false;
+        }
+        mspIngressOwner = link;
+        buffer->len = 0;
+        buffer->receivedPayloadLength = 0;
+        buffer->started = true;
+        buffer->complete = false;
+
+        const uint8_t version = (status & CRSF_MSP_VERSION_MASK) >> CRSF_MSP_VERSION_SHIFT;
+        if (version == 1) {
+            if (frameLength < 3) {
+                buffer->started = false;
+                mspIngressOwner = RX_LINK_COUNT;
+                return false;
+            }
+            buffer->expectedPayloadLength = frameStart[1];
+            buffer->receivedPayloadLength = frameLength - 3;
+        } else {
+            if (frameLength < 6) {
+                buffer->started = false;
+                mspIngressOwner = RX_LINK_COUNT;
+                return false;
+            }
+            buffer->expectedPayloadLength = frameStart[4] | (frameStart[5] << 8);
+            buffer->receivedPayloadLength = frameLength - 6;
+        }
+    } else {
+        if (mspIngressOwner != link || !buffer->started || frameLength < 1) {
+            return false;
+        }
+        buffer->receivedPayloadLength += frameLength - 1;
+    }
+
+    if (buffer->len + CRSF_MSP_LENGTH_OFFSET + frameLength > CRSF_MSP_BUFFER_SIZE) {
+        buffer->started = false;
+        buffer->complete = false;
+        buffer->len = 0;
+        mspIngressOwner = RX_LINK_COUNT;
+        return false;
+    }
+
+    buffer->lastActivityTimeUs = currentTimeUs;
+    uint8_t *p = buffer->bytes + buffer->len;
+    *p++ = frameLength;
+    memcpy(p, frameStart, frameLength);
+    buffer->len += CRSF_MSP_LENGTH_OFFSET + frameLength;
+    buffer->complete = buffer->receivedPayloadLength >= buffer->expectedPayloadLength;
+    return true;
+}
+
+static bool handleCrsfMspFrameBuffer(rxLink_e link, uint8_t payloadSize, mspResponseFnPtr responseFn)
+{
+    mspBuffer_t *buffer = &mspRxBuffers[link];
+
+    if (mspResponsePending[link]) {
+        if (crsfRxIsTelemetryBufEmpty(link)) {
+            mspResponsePending[link] = sendMspReply(payloadSize, responseFn);
+        }
+        return mspResponsePending[link];
+    }
+
+    if (!buffer->len) {
         return false;
     }
     int pos = 0;
     while (true) {
-        const int mspFrameLength = mspRxBuffer.bytes[pos];
-        if (handleMspFrame(&mspRxBuffer.bytes[CRSF_MSP_LENGTH_OFFSET + pos], mspFrameLength)) {
-            if (crsfRxIsTelemetryBufEmpty()) {
-                replyPending = sendMspReply(payloadSize, responseFn);
+        const int mspFrameLength = buffer->bytes[pos];
+        if (handleMspFrame(&buffer->bytes[CRSF_MSP_LENGTH_OFFSET + pos], mspFrameLength)) {
+            buffer->complete = true;
+            if (crsfRxIsTelemetryBufEmpty(link)) {
+                mspResponsePending[link] = sendMspReply(payloadSize, responseFn);
             } else {
-                replyPending = true;
+                mspResponsePending[link] = true;
             }
         }
         pos += CRSF_MSP_LENGTH_OFFSET + mspFrameLength;
         ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {
-            if (pos >= mspRxBuffer.len) {
-                mspRxBuffer.len = 0;
-                return replyPending ;
+            if (pos >= buffer->len) {
+                buffer->len = 0;
+                return mspResponsePending[link];
             }
         }
     }
-    return replyPending;
+    return mspResponsePending[link];
 }
 #endif
 
@@ -599,15 +670,16 @@ static uint16_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
 
 #if defined(USE_MSP_OVER_TELEMETRY)
 
-static bool mspReplyPending;
+static bool mspRequestPending[RX_LINK_COUNT];
+static rxLink_e mspActiveLink = RX_LINK_COUNT;
 
 //Id of the last receiver MSP frame over CRSF. Needed to send response with correct frame ID
-static uint8_t mspRequestOriginID = 0;
+static uint8_t mspRequestOriginID[RX_LINK_COUNT];
 
-void crsfScheduleMspResponse(uint8_t requestOriginID)
+void crsfScheduleMspResponse(rxLink_e link, uint8_t requestOriginID)
 {
-    mspReplyPending = true;
-    mspRequestOriginID = requestOriginID;
+    mspRequestPending[link] = true;
+    mspRequestOriginID[link] = requestOriginID;
 }
 
 void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
@@ -618,16 +690,18 @@ void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
     crsfInitializeFrame(dst);
     sbufWriteU8(dst, payloadSize + CRSF_FRAME_LENGTH_EXT_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_MSP_RESP);
-    crsfSerialize8(dst, mspRequestOriginID);
+    crsfSerialize8(dst, mspRequestOriginID[mspActiveLink]);
     crsfSerialize8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
     crsfSerializeData(dst, (const uint8_t*)payload, payloadSize);
-    crsfFinalize(dst);
+    sbufWriteU8(dst, crsfCrc);
+    sbufSwitchToReader(dst, crsfFrame);
+    crsfRxWriteTelemetryDataForLink(mspActiveLink, sbufPtr(dst), sbufBytesRemaining(dst));
 }
 #endif
 
 static void processCrsf(void)
 {
-    if (!crsfRxIsTelemetryBufEmpty()) {
+    if (!crsfRxAreTelemetryBufsEmpty()) {
         return; // do nothing if telemetry ouptut buffer is not empty yet.
     }
 
@@ -705,7 +779,9 @@ void initCrsfTelemetry(void)
 
     deviceInfoReplyPending = false;
 #if defined(USE_MSP_OVER_TELEMETRY)
-    mspReplyPending = false;
+    initCrsfMspBuffer();
+    memset(mspRequestPending, 0, sizeof(mspRequestPending));
+    mspActiveLink = RX_LINK_COUNT;
 #endif
 
     int index = 0;
@@ -781,8 +857,27 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 
     // Send ad-hoc response frames as soon as possible
 #if defined(USE_MSP_OVER_TELEMETRY)
-    if (mspReplyPending) {
-        mspReplyPending = handleCrsfMspFrameBuffer(CRSF_FRAME_TX_MSP_FRAME_SIZE, &crsfSendMspResponse);
+    if (mspActiveLink == RX_LINK_COUNT) {
+        for (rxLink_e link = RX_LINK_PRIMARY; link < RX_LINK_COUNT; link++) {
+            if (mspRequestPending[link]) {
+                mspActiveLink = link;
+                break;
+            }
+        }
+    }
+    if (mspActiveLink != RX_LINK_COUNT) {
+        if (!crsfRxIsTelemetryBufEmpty(mspActiveLink)) {
+            return;
+        }
+        mspRequestPending[mspActiveLink] = handleCrsfMspFrameBuffer(mspActiveLink, CRSF_FRAME_TX_MSP_FRAME_SIZE, &crsfSendMspResponse);
+        if (!mspRequestPending[mspActiveLink]) {
+            if (mspRxBuffers[mspActiveLink].complete) {
+                mspRxBuffers[mspActiveLink].started = false;
+                mspRxBuffers[mspActiveLink].complete = false;
+                mspIngressOwner = RX_LINK_COUNT;
+            }
+            mspActiveLink = RX_LINK_COUNT;
+        }
         crsfLastCycleTime = currentTimeUs; // reset telemetry timing due to ad-hoc request
         return;
     }

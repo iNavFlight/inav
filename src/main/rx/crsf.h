@@ -135,8 +135,10 @@ typedef union crsfFrame_u {
 
 
 void crsfRxWriteTelemetryData(const void *data, int len);
+void crsfRxWriteTelemetryDataForLink(rxLink_e link, const void *data, int len);
 void crsfRxSendTelemetryData(void);
-bool crsfRxIsTelemetryBufEmpty(void);
+bool crsfRxIsTelemetryBufEmpty(rxLink_e link);
+bool crsfRxAreTelemetryBufsEmpty(void);
 
 struct rxConfig_s;
 struct rxRuntimeConfig_s;

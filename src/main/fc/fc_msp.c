@@ -3362,11 +3362,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 uint8_t sublinkID = sbufReadU8(src); // Sublink ID
                 sbufReadU8(src); // Valid link (Failsafe backup)
                 if (sublinkID == 0) {
+                    rxLinkStatistics_t *statistics = rxGetLinkStatisticsMutable(RX_LINK_PRIMARY);
                     setRSSIFromMSP_RC(sbufReadU8(src)); // RSSI %
-                    rxLinkStatistics.uplinkRSSI = -sbufReadU8(src);
-                    rxLinkStatistics.downlinkLQ = sbufReadU8(src);
-                    rxLinkStatistics.uplinkLQ = sbufReadU8(src);
-                    rxLinkStatistics.uplinkSNR = sbufReadI8(src);
+                    statistics->uplinkRSSI = -sbufReadU8(src);
+                    statistics->downlinkLQ = sbufReadU8(src);
+                    statistics->uplinkLQ = sbufReadU8(src);
+                    statistics->uplinkSNR = sbufReadI8(src);
+                    rxLinkStatisticsUpdated(RX_LINK_PRIMARY);
                 }
 
                 return MSP_RESULT_NO_REPLY;
@@ -3380,20 +3382,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 uint8_t sublinkID = sbufReadU8(src);
 
                 if (sublinkID == 0) {
-                    rxLinkStatistics.uplinkTXPower = sbufReadU16(src);
-                    rxLinkStatistics.downlinkTXPower = sbufReadU16(src);
+                    rxLinkStatistics_t *statistics = rxGetLinkStatisticsMutable(RX_LINK_PRIMARY);
+                    statistics->uplinkTXPower = sbufReadU16(src);
+                    statistics->downlinkTXPower = sbufReadU16(src);
 
                     for (int i = 0; i < 4; i++) {
-                        rxLinkStatistics.band[i] = sbufReadU8(src);
+                        statistics->band[i] = sbufReadU8(src);
                     }
 
-                    sl_toupperptr(rxLinkStatistics.band);
+                    sl_toupperptr(statistics->band);
 
                     for (int i = 0; i < 6; i++) {
-                        rxLinkStatistics.mode[i] = sbufReadU8(src);
+                        statistics->mode[i] = sbufReadU8(src);
                     }
 
-                    sl_toupperptr(rxLinkStatistics.mode);
+                    sl_toupperptr(statistics->mode);
+                    rxLinkStatisticsUpdated(RX_LINK_PRIMARY);
                 }
 
                 return MSP_RESULT_NO_REPLY;

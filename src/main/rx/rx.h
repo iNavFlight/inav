@@ -251,6 +251,8 @@ rxLink_e rxGetActiveLink(void);
 void rxSetActiveLink(rxLink_e link);
 bool rxIsLinkReceivingSignal(rxLink_e link);
 bool rxIsPrimaryFailsafe(void);
+rxLinkStatistics_t *rxGetLinkStatisticsMutable(rxLink_e link);
+void rxLinkStatisticsUpdated(rxLink_e link);
 #ifdef UNIT_TEST
 rxRuntimeConfig_t *rxTestRuntimeConfig(rxLink_e link);
 #endif

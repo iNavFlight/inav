@@ -55,16 +55,16 @@ typedef struct crsfLinkState_s {
     uint32_t channelData[CRSF_MAX_CHANNEL];
     timeUs_t frameStartAtUs;
     uint8_t framePosition;
+    serialPort_t *port;
+    uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
+    uint8_t telemetryBufLen;
+    rxLink_e link;
 } crsfLinkState_t;
 
 // Per-link parser and channel state so a primary and secondary CRSF receiver
 // don't share frame/channel buffers. Primary is index 0, so the single-RX path
 // is unchanged.
 static crsfLinkState_t crsfLinkStates[RX_LINK_COUNT];
-
-static serialPort_t *serialPort;
-static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
-static uint8_t telemetryBufLen = 0;
 
 const uint16_t crsfTxPowerStatesmW[CRSF_POWER_COUNT] = {0, 10, 25, 100, 500, 1000, 2000, 250, 50};
 
@@ -186,8 +186,8 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
                         case CRSF_FRAMETYPE_MSP_WRITE: {
                             if (link->frame.frame.frameLength >= 4) {
                                 uint8_t *frameStart = (uint8_t *)&link->frame.frame.payload + CRSF_FRAME_ORIGIN_DEST_SIZE;
-                                if (bufferCrsfMspFrame(frameStart, link->frame.frame.frameLength - 4)) {
-                                    crsfScheduleMspResponse(link->frame.frame.payload[1]);
+                                if (bufferCrsfMspFrame(link->link, frameStart, link->frame.frame.frameLength - 4)) {
+                                    crsfScheduleMspResponse(link->link, link->frame.frame.payload[1]);
                                 }
                             } else {
                                 link->frameDone = false;
@@ -295,33 +295,60 @@ STATIC_UNIT_TESTED uint16_t crsfReadRawRC(const rxRuntimeConfig_t *rxRuntimeConf
 
 void crsfRxWriteTelemetryData(const void *data, int len)
 {
-    len = MIN(len, (int)sizeof(telemetryBuf));
-    memcpy(telemetryBuf, data, len);
-    telemetryBufLen = len;
+    for (rxLink_e link = RX_LINK_PRIMARY; link < RX_LINK_COUNT; link++) {
+        if (crsfLinkStates[link].port) {
+            crsfRxWriteTelemetryDataForLink(link, data, len);
+        }
+    }
 }
 
-void crsfRxSendTelemetryData(void)
+void crsfRxWriteTelemetryDataForLink(rxLink_e linkIndex, const void *data, int len)
 {
-    // if there is telemetry data to write
-    if (telemetryBufLen > 0) {
+    crsfLinkState_t *link = &crsfLinkStates[linkIndex];
+    len = MIN(len, (int)sizeof(link->telemetryBuf));
+    memcpy(link->telemetryBuf, data, len);
+    link->telemetryBufLen = len;
+}
+
+static void crsfRxSendTelemetryDataForLink(crsfLinkState_t *link)
+{
+    if (link->telemetryBufLen > 0) {
         // check that we are not in bi dir mode or that we are not currently receiving data (ie in the middle of an RX frame)
         // and that there is time to send the telemetry frame before the next RX frame arrives
         if (CRSF_PORT_OPTIONS & SERIAL_BIDIR) {
-            // Telemetry shares the primary link's port, so pace against its frame timing.
-            const timeDelta_t timeSinceStartOfFrame = cmpTimeUs(micros(), crsfLinkStates[RX_LINK_PRIMARY].frameStartAtUs);
+            const timeDelta_t timeSinceStartOfFrame = cmpTimeUs(micros(), link->frameStartAtUs);
             if ((timeSinceStartOfFrame < CRSF_TIME_NEEDED_PER_FRAME_US) ||
                 (timeSinceStartOfFrame > CRSF_TIME_BETWEEN_FRAMES_US - CRSF_TIME_NEEDED_PER_FRAME_US)) {
                 return;
             }
         }
-        serialWriteBuf(serialPort, telemetryBuf, telemetryBufLen);
-        telemetryBufLen = 0; // reset telemetry buffer
+        serialWriteBuf(link->port, link->telemetryBuf, link->telemetryBufLen);
+        link->telemetryBufLen = 0;
     }
 }
 
-bool crsfRxIsTelemetryBufEmpty(void)
+void crsfRxSendTelemetryData(void)
 {
-    return telemetryBufLen == 0;
+    for (rxLink_e link = RX_LINK_PRIMARY; link < RX_LINK_COUNT; link++) {
+        if (crsfLinkStates[link].port) {
+            crsfRxSendTelemetryDataForLink(&crsfLinkStates[link]);
+        }
+    }
+}
+
+bool crsfRxIsTelemetryBufEmpty(rxLink_e link)
+{
+    return crsfLinkStates[link].telemetryBufLen == 0;
+}
+
+bool crsfRxAreTelemetryBufsEmpty(void)
+{
+    for (rxLink_e link = RX_LINK_PRIMARY; link < RX_LINK_COUNT; link++) {
+        if (crsfLinkStates[link].port && !crsfRxIsTelemetryBufEmpty(link)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction)
@@ -331,6 +358,8 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, 
 
     link->frameDone = false;
     link->framePosition = 0;
+    link->telemetryBufLen = 0;
+    link->link = linkIndex;
     for (int ii = 0; ii < CRSF_MAX_CHANNEL; ++ii) {
         link->channelData[ii] = (16 * PWM_RANGE_MIDDLE) / 10 - 1408;
     }
@@ -345,7 +374,7 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, 
         return false;
     }
 
-    serialPort_t *port = openSerialPort(portConfig->identifier,
+    link->port = openSerialPort(portConfig->identifier,
         portFunction,
         crsfDataReceive,
         link,
@@ -354,23 +383,18 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, 
         CRSF_PORT_OPTIONS | (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
 
-    // Telemetry replies go out the primary link's port.
-    if (linkIndex == RX_LINK_PRIMARY) {
-        serialPort = port;
-    }
-
-    return port != NULL;
+    return link->port != NULL;
 }
 
 bool crsfRxIsActive(void)
 {
-    return serialPort != NULL;
+    return crsfLinkStates[RX_LINK_PRIMARY].port || crsfLinkStates[RX_LINK_SECONDARY].port;
 }
 
 
 void crsfBind(void)
 {
-    if (serialPort != NULL) {
+    if (crsfLinkStates[RX_LINK_PRIMARY].port) {
         uint8_t bindFrame[] = {
             CRSF_SYNC_BYTE,
             0x07,  // frame length
@@ -382,7 +406,7 @@ void crsfBind(void)
             0x9E,  // Command CRC8
             0xE8,  // Packet CRC8
         };
-        serialWriteBuf(serialPort, bindFrame, 9);
+        serialWriteBuf(crsfLinkStates[RX_LINK_PRIMARY].port, bindFrame, 9);
     }
 }
 
