@@ -43,6 +43,11 @@ STATIC_FASTRAM uint32_t totalWaitingTasksSamples;
 
 FASTRAM uint16_t averageSystemLoadPercent = 0;
 
+#if defined(SITL_BUILD)
+STATIC_FASTRAM timeUs_t sitlLoadWindowStartUs;
+STATIC_FASTRAM timeUs_t sitlLoadBusyTimeUs;
+#endif
+
 
 STATIC_FASTRAM int taskQueuePos = 0;
 STATIC_FASTRAM int taskQueueSize = 0;
@@ -123,6 +128,25 @@ STATIC_INLINE_UNIT_TESTED cfTask_t *queueNext(void)
 
 void taskSystem(timeUs_t currentTimeUs)
 {
+#if defined(SITL_BUILD)
+    // SITL sleeps between task invocations (see the SITL_BUILD block in scheduler())
+    // instead of busy-polling, so the sample-based estimate below always finds a task
+    // already due and reads pinned near 100%. Use busy/elapsed wall-clock time instead,
+    // which stays meaningful whether or not the loop busy-polls (issue #11710).
+    if (sitlLoadWindowStartUs == 0) {
+        sitlLoadWindowStartUs = currentTimeUs;
+        sitlLoadBusyTimeUs = 0;
+        return;
+    }
+
+    const timeDelta_t elapsedUs = cmpTimeUs(currentTimeUs, sitlLoadWindowStartUs);
+    if (elapsedUs > 0) {
+        const timeUs_t loadPercent = (100U * sitlLoadBusyTimeUs) / (timeUs_t)elapsedUs;
+        averageSystemLoadPercent = loadPercent > 100U ? 100U : (uint16_t)loadPercent;
+        sitlLoadWindowStartUs = currentTimeUs;
+        sitlLoadBusyTimeUs = 0;
+    }
+#else
     UNUSED(currentTimeUs);
 
     // Calculate system load
@@ -131,6 +155,7 @@ void taskSystem(timeUs_t currentTimeUs)
         totalWaitingTasksSamples = 0;
         totalWaitingTasks = 0;
     }
+#endif
 }
 
 #define TASK_MOVING_SUM_COUNT           32
@@ -324,6 +349,11 @@ void FAST_CODE NOINLINE scheduler(void)
 
 #if defined(SITL_BUILD)
     {
+        const timeDelta_t sitlBusyTimeUs = cmpTimeUs(micros(), currentTimeUs);
+        if (sitlBusyTimeUs > 0) {
+            sitlLoadBusyTimeUs += sitlBusyTimeUs;
+        }
+
         // Avoid busy-waiting and burning 100% CPU in SITL.  After executing the
         // current task (or finding nothing to do), sleep until just before the
         // next task is due.  For event-driven tasks (checkFunc) we limit the
