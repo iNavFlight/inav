@@ -31,6 +31,49 @@ void terrainNavHoldCoreReset(terrainNavHoldState_t *state)
     state->usableSinceMs = 0;
     state->lastUsableMs = 0;
     state->reCapturePending = false;
+    state->minAglReached = false;
+    state->climbBestAglCm = 0;
+    state->pullUpActive = false;
+}
+
+// Floor alarm: PULL UP must fire on real AGL, ceiling or not. Once the
+// minimum has been reached, dropping below (min - margin) latches the alarm
+// and only climbing back to the minimum clears it. During the initial
+// automatic climb the aircraft is legitimately below the minimum, so there
+// the alarm fires only when height above terrain is actually being LOST
+// (terrain outclimbing the aircraft), not merely still low
+static void updateFloorAlarm(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in)
+{
+    if (in->aglCm >= in->minAglCm) {
+        state->minAglReached = true;
+        state->pullUpActive = false;
+        return;
+    }
+
+    if (state->minAglReached) {
+        if (in->aglCm < in->minAglCm - TERRAIN_NAV_HOLD_PULLUP_HYST_CM) {
+            state->pullUpActive = true;
+        }
+    } else {
+        if (in->aglCm > state->climbBestAglCm) {
+            state->climbBestAglCm = in->aglCm;
+        } else if (in->aglCm < state->climbBestAglCm - TERRAIN_NAV_HOLD_PULLUP_HYST_CM) {
+            state->pullUpActive = true;
+        }
+    }
+}
+
+// Every capture (engagement or stick release) starts a fresh floor-alarm
+// phase: capturing at/above the minimum arms the alarm immediately, below it
+// the automatic climb to the minimum begins
+static void startCapture(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in)
+{
+    state->targetAglCm = (in->aglCm > in->minAglCm) ? in->aglCm : in->minAglCm;
+    state->reCapturePending = false;
+    state->minAglReached = false;
+    state->climbBestAglCm = in->aglCm;
+    state->pullUpActive = false;
+    updateFloorAlarm(state, in);
 }
 
 static void computeTarget(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in, terrainNavHoldOutput_t *out)
@@ -38,13 +81,6 @@ static void computeTarget(terrainNavHoldState_t *state, const terrainNavHoldInpu
     // Hold: climb or descend by exactly the difference between the height
     // above ground we have and the one we are holding
     float targetZCm = in->currentZCm + (state->targetAglCm - in->aglCm);
-
-    // The lookahead cannot scan ahead (heading estimate invalid) - the
-    // reactive hold keeps tracking, but the pilot loses the early-climb
-    // layer and must be told. The ceiling warnings below override this one
-    if (in->lookaheadDegraded) {
-        out->warning = TERRAIN_NAV_HOLD_WARN_NO_HEADING;
-    }
 
     // Lookahead: if terrain ahead demands more, climb early so the worst
     // point along the path still clears the minimum AGL
@@ -55,11 +91,27 @@ static void computeTarget(terrainNavHoldState_t *state, const terrainNavHoldInpu
         }
     }
 
+    // Warning ladder, least severe first - a later assignment overrides.
+    // The lookahead cannot scan ahead (heading estimate invalid) - the
+    // reactive hold keeps tracking, but the pilot loses the early-climb
+    // layer and must be told
+    if (in->lookaheadDegraded) {
+        out->warning = TERRAIN_NAV_HOLD_WARN_NO_HEADING;
+    }
+    // Engaged below the minimum: the hold itself is climbing to the floor -
+    // information, not an alarm, the pilot has nothing to do
+    if (!state->minAglReached && in->aglCm < in->minAglCm) {
+        out->warning = TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB;
+    }
     // Ceiling arbitration: nav_max_altitude always wins - the funnel clamps
     // the target for real, here we only detect the conflict and warn. Warns
     // ahead of the pinch too, because the lookahead demand is in targetZCm
     if (in->maxAltCm > 0 && targetZCm > in->maxAltCm) {
-        out->warning = (in->aglCm < in->minAglCm) ? TERRAIN_NAV_HOLD_WARN_PULL_UP : TERRAIN_NAV_HOLD_WARN_MAX_ALT;
+        out->warning = TERRAIN_NAV_HOLD_WARN_MAX_ALT;
+    }
+    // The floor alarm outranks everything: too low and not recovering
+    if (state->pullUpActive) {
+        out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
     }
 
     out->writeTarget = true;
@@ -71,8 +123,7 @@ static void engage(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in
     // Capture the current AGL: zero commanded movement at engagement.
     // Sole exception: below the minimum - the target becomes the minimum and
     // the slew-limited funnel turns that into a gentle climb
-    state->targetAglCm = (in->aglCm > in->minAglCm) ? in->aglCm : in->minAglCm;
-    state->reCapturePending = false;
+    startCapture(state, in);
     state->status = TERRAIN_NAV_HOLD_ACTIVE;
 
     if (in->stickAdjusting) {
@@ -135,15 +186,21 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                 // target updates for a cycle - no drama, no warning
                 break;
             }
+            updateFloorAlarm(state, in);
             if (in->stickAdjusting) {
                 // Pilot input wins: stock climb-rate control runs, and the
-                // AGL present at release becomes the new held target
+                // AGL present at release becomes the new held target. The
+                // floor alarm stays live - it reports the aircraft's real
+                // state, not the hold's commands
                 state->reCapturePending = true;
+                if (state->pullUpActive) {
+                    out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
+                }
                 break;
             }
             if (state->reCapturePending) {
-                state->targetAglCm = (in->aglCm > in->minAglCm) ? in->aglCm : in->minAglCm;
-                state->reCapturePending = false;
+                // A release is a fresh capture - fresh floor-alarm phase too
+                startCapture(state, in);
             }
             computeTarget(state, in, out);
             break;
@@ -152,6 +209,7 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
             if (usableStable) {
                 // Resume the same held AGL, slew-limited by the funnel rate
                 state->status = TERRAIN_NAV_HOLD_ACTIVE;
+                updateFloorAlarm(state, in);
                 computeTarget(state, in, out);
             } else {
                 out->warning = TERRAIN_NAV_HOLD_WARN_DATA_LOST;

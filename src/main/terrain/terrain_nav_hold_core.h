@@ -48,8 +48,9 @@ typedef enum {
     TERRAIN_NAV_HOLD_WARN_NOT_READY,    // switch is on but terrain data is not usable
     TERRAIN_NAV_HOLD_WARN_DATA_LOST,    // frozen: holding last altitude on stale map data
     TERRAIN_NAV_HOLD_WARN_MAX_ALT,      // terrain needs more altitude than nav_max_altitude allows
-    TERRAIN_NAV_HOLD_WARN_PULL_UP,      // capped at nav_max_altitude AND below the minimum AGL
+    TERRAIN_NAV_HOLD_WARN_PULL_UP,      // below the minimum AGL and not recovering - fires with or without a ceiling
     TERRAIN_NAV_HOLD_WARN_NO_HEADING,   // heading estimate invalid: lookahead off, reactive hold continues
+    TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB,   // engaged below the minimum AGL - automatic climb to the minimum in progress
 } terrainNavHoldWarning_e;
 
 typedef struct {
@@ -80,6 +81,9 @@ typedef struct {
     uint32_t usableSinceMs;     // 0 = data not usable right now (for the re-engage hysteresis)
     uint32_t lastUsableMs;      // last time data was usable (for the freeze grace period)
     bool reCapturePending;      // stick released - capture a new target AGL on the next usable cycle
+    bool minAglReached;         // AGL has reached the minimum since this capture - arms the floor alarm
+    int32_t climbBestAglCm;     // best AGL seen while still below the minimum (the auto-climb phase)
+    bool pullUpActive;          // floor alarm latched: on below (min - margin), off at/above the minimum
 } terrainNavHoldState_t;
 
 // A momentary AGL gap (single cache miss) only pauses target updates; the hold
@@ -89,6 +93,12 @@ typedef struct {
 // After a freeze, data must be continuously usable this long before the hold
 // resumes (slew-limited); prevents flapping on marginal data
 #define TERRAIN_NAV_HOLD_RESUME_HYSTERESIS_MS 3000
+
+// Floor alarm margin: terrain naturally breathes around the minimum when
+// riding the floor, so once the minimum has been reached PULL UP fires only
+// below (min - margin) and clears at/above the minimum. The same margin
+// decides "losing height" during the initial automatic climb
+#define TERRAIN_NAV_HOLD_PULLUP_HYST_CM 500
 
 void terrainNavHoldCoreReset(terrainNavHoldState_t *state);
 void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in, terrainNavHoldOutput_t *out);

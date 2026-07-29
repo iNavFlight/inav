@@ -2645,6 +2645,10 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "LOTR";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
                 p = "HOLD";
+#ifdef USE_TERRAIN
+            else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE) && terrainNavHoldIsEngaged())
+                p = "TERR";
+#endif
             else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE))
                 p = "CRUZ";
             else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE))
@@ -6283,6 +6287,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         break;
                     case TERRAIN_NAV_HOLD_WARN_NO_HEADING:
                         ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_NO_HEADING));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AUTO_CLIMB));
                         break;
                     case TERRAIN_NAV_HOLD_WARN_NONE:
                         break;
