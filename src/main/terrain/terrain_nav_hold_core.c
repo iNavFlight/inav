@@ -34,6 +34,47 @@ void terrainNavHoldCoreReset(terrainNavHoldState_t *state)
     state->minAglReached = false;
     state->climbBestAglCm = 0;
     state->pullUpActive = false;
+    state->stickWasAdjusting = false;
+    state->blendActive = false;
+    state->blendRateCmS = 0.0f;
+    state->blendStartMs = 0;
+    state->blendLastMs = 0;
+    state->stickQuietSinceMs = 0;
+}
+
+// Handover blend: one continuous writer across the whole stick episode.
+// Seeded from the aircraft's real climb rate at the grab (zero step by
+// construction), it chases the wish - the stick's clamped demand while
+// deflected, zero after release (the stock release semantics) - and goes
+// silent once close enough or past the lifetime bound. While it runs the
+// caller commands out->rateCmS; the stock writer takes over seamlessly after
+static void runBlend(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in, terrainNavHoldOutput_t *out, float wishCmS)
+{
+    if (!state->blendActive) {
+        return;
+    }
+
+    if (in->nowMs - state->blendStartMs >= TERRAIN_NAV_HOLD_BLEND_MAX_MS) {
+        state->blendActive = false;
+        return;
+    }
+
+    // First-order chase, dt-based so the loop rate does not matter
+    float alpha = (float)(in->nowMs - state->blendLastMs) / TERRAIN_NAV_HOLD_BLEND_TAU_MS;
+    if (alpha > 1.0f) {
+        alpha = 1.0f;
+    }
+    state->blendLastMs = in->nowMs;
+    state->blendRateCmS += (wishCmS - state->blendRateCmS) * alpha;
+
+    const float remaining = wishCmS - state->blendRateCmS;
+    if (remaining < TERRAIN_NAV_HOLD_BLEND_DONE_CM_S && remaining > -TERRAIN_NAV_HOLD_BLEND_DONE_CM_S) {
+        state->blendActive = false;
+        return;
+    }
+
+    out->writeRate = true;
+    out->rateCmS = state->blendRateCmS;
 }
 
 // Floor alarm: PULL UP must fire on real AGL, ceiling or not. Once the
@@ -138,6 +179,8 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
 {
     out->writeTarget = false;
     out->targetZCm = 0.0f;
+    out->writeRate = false;
+    out->rateCmS = 0.0f;
     out->warning = TERRAIN_NAV_HOLD_WARN_NONE;
 
     if (!in->eligible) {
@@ -178,8 +221,10 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
             if (!usable) {
                 if (in->nowMs - state->lastUsableMs > TERRAIN_NAV_HOLD_FREEZE_GRACE_MS) {
                     // Freeze: stop commanding, the last target holds.
-                    // Never descend on dead data
+                    // Never descend on dead data. A running handover blend
+                    // dies with the writes - health gates every output
                     state->status = TERRAIN_NAV_HOLD_FROZEN;
+                    state->blendActive = false;
                     out->warning = TERRAIN_NAV_HOLD_WARN_DATA_LOST;
                 }
                 // Inside the grace period: a single missed read just pauses
@@ -193,13 +238,42 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                 // floor alarm stays live - it reports the aircraft's real
                 // state, not the hold's commands
                 state->reCapturePending = true;
+                state->stickQuietSinceMs = 0;
+                if (!state->blendActive && !state->stickWasAdjusting) {
+                    // The grab: seed the handover blend from the aircraft's
+                    // real climb rate - zero command step by construction.
+                    // (Not re-seeded when a blend already runs: a stick
+                    // re-crossing the deadband keeps one continuous command)
+                    state->blendActive = true;
+                    state->blendRateCmS = in->actualClimbRateCmS;
+                    state->blendStartMs = in->nowMs;
+                    state->blendLastMs = in->nowMs;
+                }
+                runBlend(state, in, out, in->stickWishValid ? in->stickWishCmS : 0.0f);
                 if (state->pullUpActive) {
                     out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
                 }
                 break;
             }
             if (state->reCapturePending) {
+                // Retake dwell: the stick must stay inside the deadband this
+                // long before the hold takes back - a stick hovering at the
+                // edge otherwise alternates two writers within milliseconds.
+                // The blend keeps running through the dwell, chasing zero
+                // (the stock release semantics), so the whole episode has
+                // one continuous writer
+                if (state->stickQuietSinceMs == 0) {
+                    state->stickQuietSinceMs = (in->nowMs != 0) ? in->nowMs : 1;
+                }
+                if (in->nowMs - state->stickQuietSinceMs < TERRAIN_NAV_HOLD_RETAKE_DWELL_MS) {
+                    runBlend(state, in, out, 0.0f);
+                    if (state->pullUpActive) {
+                        out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
+                    }
+                    break;
+                }
                 // A release is a fresh capture - fresh floor-alarm phase too
+                state->blendActive = false;
                 startCapture(state, in);
             }
             computeTarget(state, in, out);
@@ -210,6 +284,15 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                 // Resume the same held AGL, slew-limited by the funnel rate
                 state->status = TERRAIN_NAV_HOLD_ACTIVE;
                 updateFloorAlarm(state, in);
+                if (in->stickAdjusting) {
+                    // Pilot is commanding at the moment of resume: yield
+                    // immediately, the release becomes a fresh capture
+                    state->reCapturePending = true;
+                    if (state->pullUpActive) {
+                        out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
+                    }
+                    break;
+                }
                 computeTarget(state, in, out);
             } else {
                 out->warning = TERRAIN_NAV_HOLD_WARN_DATA_LOST;
@@ -217,5 +300,6 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
             break;
     }
 
+    state->stickWasAdjusting = in->stickAdjusting;
     out->status = state->status;
 }

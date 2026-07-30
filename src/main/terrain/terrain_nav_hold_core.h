@@ -61,6 +61,9 @@ typedef struct {
     bool aglValid;              // AGL answer available (may lag one query cycle behind healthy)
     int32_t aglCm;              // current height above ground, valid only when aglValid
     float currentZCm;           // current altitude in the local frame (same frame as the target funnel)
+    float actualClimbRateCmS;   // the aircraft's real vertical speed (seeds the handover blend)
+    bool stickWishValid;        // the pilot's stick climb-rate wish is known this cycle
+    float stickWishCmS;         // what the stick currently asks for, manual-clamped by the caller
     bool lookaheadValid;        // lookahead answer available
     float lookaheadClimbCm;     // worst height deficit along the path ahead (>= 0)
     bool lookaheadDegraded;     // lookahead wanted but unavailable for an abnormal reason (heading estimate invalid) - warn the pilot
@@ -71,6 +74,8 @@ typedef struct {
 typedef struct {
     bool writeTarget;           // when true the caller commands targetZCm through the funnel
     float targetZCm;
+    bool writeRate;             // when true the caller commands rateCmS instead (handover blend window)
+    float rateCmS;              // signed climb rate; bounded by the caller's clamp on the blend inputs
     terrainNavHoldStatus_e status;
     terrainNavHoldWarning_e warning;
 } terrainNavHoldOutput_t;
@@ -84,6 +89,12 @@ typedef struct {
     bool minAglReached;         // AGL has reached the minimum since this capture - arms the floor alarm
     int32_t climbBestAglCm;     // best AGL seen while still below the minimum (the auto-climb phase)
     bool pullUpActive;          // floor alarm latched: on below (min - margin), off at/above the minimum
+    bool stickWasAdjusting;     // previous-cycle stick state (grab-edge detection for the blend)
+    bool blendActive;           // handover blend running (stick grab through the retake dwell)
+    float blendRateCmS;         // the blend's current climb-rate command
+    uint32_t blendStartMs;      // when this blend began (hard lifetime bound)
+    uint32_t blendLastMs;       // last blend update (dt for the first-order chase)
+    uint32_t stickQuietSinceMs; // stick back inside the deadband since (retake dwell); 0 = not quiet
 } terrainNavHoldState_t;
 
 // A momentary AGL gap (single cache miss) only pauses target updates; the hold
@@ -99,6 +110,27 @@ typedef struct {
 // below (min - margin) and clears at/above the minimum. The same margin
 // decides "losing height" during the initial automatic climb
 #define TERRAIN_NAV_HOLD_PULLUP_HYST_CM 500
+
+// Handover blend: when the pilot grabs the stick during an active hold the
+// climb-rate command must not step (a large hold demand collapsing into a
+// small stick demand pitches the nose the wrong way). The blend seeds from
+// the aircraft's real climb rate and chases the stick's wish with this time
+// constant - most of the pilot's wish arrives within the first tau
+#define TERRAIN_NAV_HOLD_BLEND_TAU_MS 300
+
+// The blend never outlives this: a hard bound on the shared-authority window,
+// after which the stock stick control flies alone
+#define TERRAIN_NAV_HOLD_BLEND_MAX_MS 1000
+
+// The blend ends early once this close to the stick's wish - close enough
+// that the switch to the stock writer is seamless
+#define TERRAIN_NAV_HOLD_BLEND_DONE_CM_S 25.0f
+
+// Retake dwell: after the stick returns inside the deadband it must stay
+// there this long before the hold captures and resumes writing - a stick
+// hovering at the deadband edge otherwise alternates two writers within
+// milliseconds (the LOG00010 whiplash)
+#define TERRAIN_NAV_HOLD_RETAKE_DWELL_MS 250
 
 void terrainNavHoldCoreReset(terrainNavHoldState_t *state);
 void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in, terrainNavHoldOutput_t *out);

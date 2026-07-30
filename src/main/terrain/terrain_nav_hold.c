@@ -40,6 +40,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
+#include "flight/pid.h"
 
 #include "io/gps.h"
 
@@ -197,12 +198,37 @@ void terrainNavCruiseHoldUpdate(void)
     in.minAglCm = terrainNavConfig()->minAglCm;
     in.maxAltCm = navConfig()->general.max_altitude;
 
+    // Handover blend inputs. The blend seed is the aircraft's real vertical
+    // speed, bounded by the same authority limit as every hold command. The
+    // stick's wish is read back from the funnel - the stock stick writer ran
+    // earlier this same cycle (fc_core.c ordering) - with the same manual
+    // clamp getDesiredClimbRate applies to it
+    in.actualClimbRateCmS = constrainf(navGetCurrentActualPositionAndVelocity()->vel.z,
+                                       -(float)navConfig()->fw.max_auto_climb_rate,
+                                       (float)navConfig()->fw.max_auto_climb_rate);
+    if (in.stickAdjusting && posControl.flags.rocToAltMode == ROC_TO_ALT_CONSTANT) {
+        in.stickWishValid = true;
+        in.stickWishCmS = constrainf(posControl.desiredState.climbRateDemand,
+                                     -(float)navConfig()->fw.max_manual_climb_rate,
+                                     (float)navConfig()->fw.max_manual_climb_rate);
+    }
+
     terrainNavHoldCoreUpdate(&holdState, &in, &holdOutput);
 
     if (holdOutput.writeTarget) {
         // The one gate into the altitude target path. The funnel enforces the
         // slew limit (climb rate) and the nav_max_altitude clamp downstream
         updateClimbRateToAltitudeController(navConfig()->fw.max_auto_climb_rate, holdOutput.targetZCm, ROC_TO_ALT_TARGET);
+    } else if (holdOutput.writeRate) {
+        // Handover blend: a signed climb rate expressed through the funnel's
+        // own target math (rate = response_factor * altitude_error / 100),
+        // so the command is smooth in both directions and the ceiling clamp
+        // still applies downstream. The rate itself is already bounded by
+        // max_auto_climb_rate through the blend inputs above
+        const float responseFactor = MAX(pidProfile()->fwAltControlResponseFactor, 1);
+        const float blendTargetZCm = navGetCurrentActualPositionAndVelocity()->pos.z
+                                     + holdOutput.rateCmS * 100.0f / responseFactor;
+        updateClimbRateToAltitudeController(navConfig()->fw.max_auto_climb_rate, blendTargetZCm, ROC_TO_ALT_TARGET);
     }
 }
 
