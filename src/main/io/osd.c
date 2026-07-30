@@ -1992,7 +1992,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
      case OSD_AUTO_SPEED:
-        if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED)) {
+        if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED) || isFixedwingAutoSpeedActive()) {
             buff[0] = posControl.autoSpeedSpdSource == FW_AUTO_SPD_GROUND ? 'G' : 'A';
             strcpy(buff + 1, ": OFF");
             if (isFixedwingAutoSpeedActive()) {
