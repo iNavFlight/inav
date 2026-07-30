@@ -103,6 +103,16 @@
 #define ICM42605_CS_PIN         PA4
 #define ICM42605_SPI_BUS        BUS_SPI1
 
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW90_DEG
+#define BMI270_SPI_BUS          BUS_SPI1
+#define BMI270_CS_PIN           PA4
+
+#define USE_IMU_LSM6DXX
+#define IMU_LSM6DXX_ALIGN       CW270_DEG
+#define LSM6DXX_SPI_BUS         BUS_SPI1
+#define LSM6DXX_CS_PIN          PA4
+
 // Baro
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -136,7 +146,8 @@
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
-#define SERIALRX_UART           SERIAL_PORT_USART1
+#define SERIALRX_UART           SERIAL_PORT_USART2
+#define GPS_UART                SERIAL_PORT_USART4
 
 // *************** ADC ***************************
 #define USE_ADC
