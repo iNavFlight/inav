@@ -74,10 +74,12 @@ typedef struct sdioPin_s {
 
 #define SDIO_MAX_PINDEFS 2
 
+#define IOCFG_SDMMC_CLK   IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
+
 #if defined(USE_SDIO_PULLUP)
-#define IOCFG_SDMMC       IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_PULLUP)
+#define IOCFG_SDMMC_DATA  IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_PULLUP)
 #else
-#define IOCFG_SDMMC       IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
+#define IOCFG_SDMMC_DATA  IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
 #endif
 
 #ifdef STM32F7
@@ -263,14 +265,14 @@ void HAL_SD_MspInit(SD_HandleTypeDef* hsd)
     const IO_t d2 = IOGetByTag(sdioPin[SDIO_PIN_D2].pin);
     const IO_t d3 = IOGetByTag(sdioPin[SDIO_PIN_D3].pin);
 
-    IOConfigGPIOAF(clk, IOCFG_SDMMC, sdioPin[SDIO_PIN_CK].af);
-    IOConfigGPIOAF(cmd, IOCFG_SDMMC, sdioPin[SDIO_PIN_CMD].af);
-    IOConfigGPIOAF(d0, IOCFG_SDMMC, sdioPin[SDIO_PIN_D0].af);
+    IOConfigGPIOAF(clk, IOCFG_SDMMC_CLK, sdioPin[SDIO_PIN_CK].af);
+    IOConfigGPIOAF(cmd, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_CMD].af);
+    IOConfigGPIOAF(d0, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_D0].af);
 
 #ifdef SDCARD_SDIO_4BIT
-    IOConfigGPIOAF(d1, IOCFG_SDMMC, sdioPin[SDIO_PIN_D1].af);
-    IOConfigGPIOAF(d2, IOCFG_SDMMC, sdioPin[SDIO_PIN_D2].af);
-    IOConfigGPIOAF(d3, IOCFG_SDMMC, sdioPin[SDIO_PIN_D3].af);
+    IOConfigGPIOAF(d1, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_D1].af);
+    IOConfigGPIOAF(d2, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_D2].af);
+    IOConfigGPIOAF(d3, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_D3].af);
 #endif
 
 #ifdef STM32F7
