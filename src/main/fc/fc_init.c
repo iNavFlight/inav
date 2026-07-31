@@ -670,9 +670,7 @@ void init(void)
 #endif
 
 #ifdef USE_PITOT
-    if (detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL) {
-        pitotStartCalibration();
-    }
+    if (detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL) pitotStartCalibration();
 #endif
 
 #if defined(USE_VTX_CONTROL)
