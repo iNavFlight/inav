@@ -924,7 +924,7 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
         uint16_t groundSpeedBoost = 0;
 
 #ifdef USE_PITOT
-        if (pitotValidateAirspeed()) {
+        if (pitotGetValidForAirspeed()) {
             static bool airspeedBoost = false;
             // Pitot available and airspeed source selected or low airspeed boost applied when using ground speed source
             if (!LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED) || airspeedBoost) {
