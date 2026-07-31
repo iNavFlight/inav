@@ -16,6 +16,8 @@ Currently supported are
 
 INAV SITL communicates for sensor data and control directly with the corresponding simulator, see the documentation of the individual simulators and the Configurator or the command line options.
 
+SITL system load is calculated from scheduler busy time and excludes intentional host sleeps used to avoid pegging a CPU core.
+
 AS SITL is still an inav software, but running on PC, it is possible to use HITL interface for communication.
 
 [INAV-X-Plane-HITL](https://github.com/RomanLut/INAV-X-Plane-HITL) or [INAV-X-Plane-XITL](https://github.com/Scavanger/INAV-X-Plane-XITL) plugin can be used with SITL.

@@ -110,6 +110,23 @@ static bool pinioInitTimerPWM(int slot, IO_t io, const timerHardware_t *timHw, b
     return true;
 }
 
+// True if another channel on the same physical timer is dedicated to a fixed-period
+// output (WS2811 LED strip or BEEPER tone). pinioInitTimerPWM() has no per-timer
+// exclusivity check of its own -- timerGetTCH() will happily hand out a TCH for any
+// channel regardless of what else is running on that timer -- so without this guard,
+// configuring such a pad as timer-PWM would call timerConfigBase() and reprogram the
+// period/prescaler shared by every channel on the timer, corrupting the fixed-period
+// output it belongs to.
+static bool timerHasFixedPeriodSibling(const timerHardware_t *timHw)
+{
+    for (int i = 0; i < timerHardwareCount; i++) {
+        if (timerHardware[i].tim == timHw->tim && (timerHardware[i].usageFlags & (TIM_USE_LED | TIM_USE_BEEPER))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void pinioInit(void)
 {
     int runtimeCount = 0;
@@ -126,7 +143,7 @@ void pinioInit(void)
 
         bool inverted = (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) != 0;
         const timerHardware_t *timHw = timerGetByTag(pinioHardware[i].ioTag, TIM_USE_ANY);
-        if (timHw && IOGetOwner(io) == OWNER_FREE && pinioInitTimerPWM(runtimeCount, io, timHw, inverted)) {
+        if (timHw && IOGetOwner(io) == OWNER_FREE && !timerHasFixedPeriodSibling(timHw) && pinioInitTimerPWM(runtimeCount, io, timHw, inverted)) {
             runtimeCount++;
             continue;
         }
@@ -152,9 +169,19 @@ void pinioInit(void)
         if (!io || IOGetOwner(io) != OWNER_FREE) {
             continue;
         }
-        if (pinioInitTimerPWM(runtimeCount, io, timHw, false)) {
+        if (!timerHasFixedPeriodSibling(timHw) && pinioInitTimerPWM(runtimeCount, io, timHw, false)) {
             runtimeCount++;
+            continue;
         }
+
+        // GPIO fallback: pad's timer is already running at a fixed frequency
+        // for another purpose (e.g. BEEPER or LED), so PWM duty control isn't available.
+        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(runtimeCount));
+        IOConfigGPIO(io, IOCFG_OUT_PP);
+        pinioRuntime[runtimeCount].inverted = false;
+        pinioRuntime[runtimeCount].io = io;
+        IOLo(io);
+        runtimeCount++;
     }
 
     pinioRuntimeCount = runtimeCount;

@@ -166,7 +166,9 @@ static const char pidnames[] =
     "NavR;"
     "LEVEL;"
     "MAG;"
-    "VEL;";
+    "VEL;"
+    "HEADING;"
+    "SPEED;";
 
 typedef enum {
     MSP_SDCARD_STATE_NOT_PRESENT = 0,
@@ -1772,7 +1774,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                     sbufWriteU8(dst, timer2id(timerHardware[i].tim));
                     #endif
                     sbufWriteU32(dst, timerHardware[i].usageFlags);
-                  
+
                     #if defined(SITL_BUILD) || defined(WASM_BUILD)
                     sbufWriteU8(dst, 0);
                     #else
@@ -1812,13 +1814,21 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             const timMotorServoHardware_t *hw = pwmGetOutputAssignment();
             for (int m = 0; m < hw->maxTimMotorCount; m++) {
                 sbufWriteU8(dst, (uint8_t)(hw->timMotors[m] - timerHardware));
-                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_MOTOR);
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_MOTOR));
                 sbufWriteU8(dst, (uint8_t)(m + 1));
             }
             for (int s = 0; s < hw->maxTimServoCount; s++) {
                 sbufWriteU8(dst, (uint8_t)(hw->timServos[s] - timerHardware));
-                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_SERVO);
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_SERVO));
                 sbufWriteU8(dst, (uint8_t)(s + 1));
+            }
+            for (int idx = 0; idx < timerHardwareCount; idx++) {
+                if (timerOverrides(timer2id(timerHardware[idx].tim))->outputMode == OUTPUT_MODE_BEEPER) {
+                    sbufWriteU8(dst, (uint8_t)idx);
+                    sbufWriteU8(dst, __builtin_ctz(TIM_USE_BEEPER));
+                    sbufWriteU8(dst, 1);
+                    break;
+                }
             }
         }
         break;
@@ -3054,7 +3064,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             osdDrawCustomItem(item);
 
             return MSP_RESULT_ACK;
-            
+
         } else{
             return MSP_RESULT_ERROR;
         }
@@ -4410,7 +4420,7 @@ static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_
         }
         // Feed data to navigation
         gpsProcessNewDriverData();
-        gpsProcessNewSolutionData(false);                          
+        gpsProcessNewSolutionData(false);
     } else {
         sbufAdvance(src, sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
     }
@@ -4463,26 +4473,26 @@ static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_
         sbufReadU16(src);
     }
 
-    if (simMspVersion == SIMULATOR_MSP_VERSION_3) {  
-        
+    if (simMspVersion == SIMULATOR_MSP_VERSION_3) {
+
         if (SIMULATOR_HAS_OPTION(HITL_RANGEFINDER)) {
             simulatorData.rangefinder = sbufReadU16(src);
             if (simulatorData.rangefinder == 0xFFFF) {
                 fakeRangefindersSetData(-1);
             } else {
-                fakeRangefindersSetData(simulatorData.rangefinder); 
+                fakeRangefindersSetData(simulatorData.rangefinder);
             }
-            
+
         } else {
             sbufReadU16(src);
         }
-        
+
         if (SIMULATOR_HAS_OPTION(HITL_CURRENT_SENSOR)) {
             simulatorData.current = sbufReadU16(src);
         } else {
             sbufReadU16(src);
         }
-        
+
         if (SIMULATOR_HAS_OPTION(HITL_SIM_RC_INPUT)) {
             for (int i = 0; i < HITL_SIM_MAX_RC_INPUTS; i++) {
                 simulatorData.rcInput[i] = sbufReadU16(src);
@@ -4911,13 +4921,21 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
             for (int m = 0; m < tempOut.maxTimMotorCount; m++) {
                 sbufWriteU8(dst, (uint8_t)(tempOut.timMotors[m] - timerHardware));
-                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_MOTOR);
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_MOTOR));
                 sbufWriteU8(dst, (uint8_t)(m + 1));
             }
             for (int s = 0; s < tempOut.maxTimServoCount; s++) {
                 sbufWriteU8(dst, (uint8_t)(tempOut.timServos[s] - timerHardware));
-                sbufWriteU8(dst, OUTPUT_ASSIGNMENT_TYPE_SERVO);
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_SERVO));
                 sbufWriteU8(dst, (uint8_t)(s + 1));
+            }
+            for (int idx = 0; idx < timerHardwareCount; idx++) {
+                if (proposedModes[timer2id(timerHardware[idx].tim)] == OUTPUT_MODE_BEEPER) {
+                    sbufWriteU8(dst, (uint8_t)idx);
+                    sbufWriteU8(dst, __builtin_ctz(TIM_USE_BEEPER));
+                    sbufWriteU8(dst, 1);
+                    break;
+                }
             }
             *ret = MSP_RESULT_ACK;
         }

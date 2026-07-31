@@ -128,6 +128,8 @@
 #define JEDEC_ID_WINBOND_W25N01GV 0xEFAA21
 #define JEDEC_ID_WINBOND_W25N02KV 0xEFAA22
 #define JEDEC_ID_MACRONIX_MX35LF2G 0xC22603
+#define JEDEC_ID_Giantec_GT25Q64EZ 0x1C7117
+#define JEDEC_ID_Giantec_GT25Q128EZ 0x1C7118
 
 static busDevice_t *busDev = NULL;
 static flashGeometry_t geometry;
