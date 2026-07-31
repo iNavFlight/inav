@@ -40,6 +40,54 @@ void terrainNavHoldCoreReset(terrainNavHoldState_t *state)
     state->blendStartMs = 0;
     state->blendLastMs = 0;
     state->stickQuietSinceMs = 0;
+    state->terrainAheadActive = false;
+    state->escapeBadSinceMs = 0;
+    state->escapeClearSinceMs = 0;
+}
+
+// TERRAIN AHEAD - the predictive escape test. Fails when even the FULL
+// configured climb rate, applied from this moment, arrives below the
+// minimum AGL at some point along the course ahead ("at this speed, this
+// slope will beat you"). Persistence keeps single noisy samples silent;
+// clearing needs the test to pass WITH margin for a while - normally the
+// pilot turning away (the scan follows the course), slowing or climbing.
+// Without a trusted view ahead the alarm cannot exist - the reactive floor
+// alarm stands alone and TERRAIN LOOKAHEAD OFF explains why
+static void updateEscapeAlarm(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in)
+{
+    if (!in->escapeDeficitValid) {
+        state->terrainAheadActive = false;
+        state->escapeBadSinceMs = 0;
+        state->escapeClearSinceMs = 0;
+        return;
+    }
+
+    // How far below the minimum the aircraft arrives at the worst point
+    // ahead, climbing at full rate from now
+    const float shortfallCm = in->escapeDeficitCm + (in->minAglCm - in->aglCm);
+
+    if (shortfallCm > 0.0f) {
+        state->escapeClearSinceMs = 0;
+        if (state->escapeBadSinceMs == 0) {
+            state->escapeBadSinceMs = (in->nowMs != 0) ? in->nowMs : 1;
+        }
+        if (in->nowMs - state->escapeBadSinceMs >= TERRAIN_NAV_HOLD_ESCAPE_PERSIST_MS) {
+            state->terrainAheadActive = true;
+        }
+    } else {
+        state->escapeBadSinceMs = 0;
+        if (shortfallCm < -(float)TERRAIN_NAV_HOLD_ESCAPE_CLEAR_MARGIN_CM) {
+            if (state->escapeClearSinceMs == 0) {
+                state->escapeClearSinceMs = (in->nowMs != 0) ? in->nowMs : 1;
+            }
+            if (in->nowMs - state->escapeClearSinceMs >= TERRAIN_NAV_HOLD_ESCAPE_CLEAR_MS) {
+                state->terrainAheadActive = false;
+            }
+        } else {
+            // Passing, but without margin: no fresh alarm, no clearing either
+            state->escapeClearSinceMs = 0;
+        }
+    }
 }
 
 // Handover blend: one continuous writer across the whole stick episode.
@@ -150,7 +198,12 @@ static void computeTarget(terrainNavHoldState_t *state, const terrainNavHoldInpu
     if (in->maxAltCm > 0 && targetZCm > in->maxAltCm) {
         out->warning = TERRAIN_NAV_HOLD_WARN_MAX_ALT;
     }
-    // The floor alarm outranks everything: too low and not recovering
+    // Predictive: the terrain ahead cannot be out-climbed at full rate -
+    // the pilot has time to act (turn, throttle, slow) and must use it
+    if (state->terrainAheadActive) {
+        out->warning = TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD;
+    }
+    // The floor alarm outranks everything: too low NOW and not recovering
     if (state->pullUpActive) {
         out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
     }
@@ -222,9 +275,13 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                 if (in->nowMs - state->lastUsableMs > TERRAIN_NAV_HOLD_FREEZE_GRACE_MS) {
                     // Freeze: stop commanding, the last target holds.
                     // Never descend on dead data. A running handover blend
-                    // dies with the writes - health gates every output
+                    // and the predictive alarm die with the writes - health
+                    // gates every output
                     state->status = TERRAIN_NAV_HOLD_FROZEN;
                     state->blendActive = false;
+                    state->terrainAheadActive = false;
+                    state->escapeBadSinceMs = 0;
+                    state->escapeClearSinceMs = 0;
                     out->warning = TERRAIN_NAV_HOLD_WARN_DATA_LOST;
                 }
                 // Inside the grace period: a single missed read just pauses
@@ -232,11 +289,12 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                 break;
             }
             updateFloorAlarm(state, in);
+            updateEscapeAlarm(state, in);
             if (in->stickAdjusting) {
                 // Pilot input wins: stock climb-rate control runs, and the
                 // AGL present at release becomes the new held target. The
-                // floor alarm stays live - it reports the aircraft's real
-                // state, not the hold's commands
+                // alarms stay live - they report the aircraft's real state,
+                // not the hold's commands
                 state->reCapturePending = true;
                 state->stickQuietSinceMs = 0;
                 if (!state->blendActive && !state->stickWasAdjusting) {
@@ -250,6 +308,9 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                     state->blendLastMs = in->nowMs;
                 }
                 runBlend(state, in, out, in->stickWishValid ? in->stickWishCmS : 0.0f);
+                if (state->terrainAheadActive) {
+                    out->warning = TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD;
+                }
                 if (state->pullUpActive) {
                     out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
                 }
@@ -267,6 +328,9 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                 }
                 if (in->nowMs - state->stickQuietSinceMs < TERRAIN_NAV_HOLD_RETAKE_DWELL_MS) {
                     runBlend(state, in, out, 0.0f);
+                    if (state->terrainAheadActive) {
+                        out->warning = TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD;
+                    }
                     if (state->pullUpActive) {
                         out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
                     }
@@ -284,6 +348,7 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                 // Resume the same held AGL, slew-limited by the funnel rate
                 state->status = TERRAIN_NAV_HOLD_ACTIVE;
                 updateFloorAlarm(state, in);
+                updateEscapeAlarm(state, in);
                 if (in->stickAdjusting) {
                     // Pilot is commanding at the moment of resume: yield
                     // immediately, the release becomes a fresh capture

@@ -39,6 +39,7 @@
 
 typedef struct {
     float climbNeededM;     // extra climb needed now to clear terrain along the path (>= 0)
+    float escapeDeficitM;   // worst height deficit vs the escapeRatio slope (>= 0) - the escape test's raw input
     uint8_t samplesTotal;   // points sampled along the path
     uint8_t samplesMissed;  // points that had no terrain data (loads were scheduled)
     bool complete;          // true when every sampled point had terrain data
@@ -63,4 +64,7 @@ bool terrainNavGetHomeTerrainHeight(float *heightM);
 // and report the worst height deficit found. A descending path (negative
 // climbRatio) correctly increases the reported deficit. Sampled blocks not
 // yet cached are scheduled for loading and counted in samplesMissed.
-bool terrainNavLookahead(float bearingDeg, float distanceM, float climbRatio, terrainNavLookaheadResult_t *result);
+// One walk, two slopes: climbNeededM is the deficit vs climbRatio (the
+// early-climb demand model), escapeDeficitM the deficit vs escapeRatio (the
+// full-capability escape test) - same samples, no extra SD load
+bool terrainNavLookahead(float bearingDeg, float distanceM, float climbRatio, float escapeRatio, terrainNavLookaheadResult_t *result);

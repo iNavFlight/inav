@@ -130,13 +130,14 @@ bool terrainNavGetHomeTerrainHeight(float *heightM)
     return terrainNavGetHeightAtLocation(&homeLoc, heightM);
 }
 
-bool terrainNavLookahead(float bearingDeg, float distanceM, float climbRatio, terrainNavLookaheadResult_t *result)
+bool terrainNavLookahead(float bearingDeg, float distanceM, float climbRatio, float escapeRatio, terrainNavLookaheadResult_t *result)
 {
     if (result == NULL || !terrainNavIsHealthy()) {
         return false;
     }
 
     result->climbNeededM = 0.0f;
+    result->escapeDeficitM = 0.0f;
     result->samplesTotal = 0;
     result->samplesMissed = 0;
     result->complete = true;
@@ -151,8 +152,10 @@ bool terrainNavLookahead(float bearingDeg, float distanceM, float climbRatio, te
     const float stepNorthM = cosf(bearingRad) * TERRAIN_NAV_STEP_M;
     const float stepEastM = sinf(bearingRad) * TERRAIN_NAV_STEP_M;
     const float climbPerStepM = climbRatio * TERRAIN_NAV_STEP_M;
+    const float escapePerStepM = escapeRatio * TERRAIN_NAV_STEP_M;
 
     float achievableClimbM = 0.0f;
+    float escapeClimbM = 0.0f;
 
     for (float travelledM = TERRAIN_NAV_STEP_M; travelledM <= distanceM; travelledM += TERRAIN_NAV_STEP_M) {
         if (result->samplesTotal >= TERRAIN_NAV_LOOKAHEAD_MAX_SAMPLES) {
@@ -161,13 +164,19 @@ bool terrainNavLookahead(float bearingDeg, float distanceM, float climbRatio, te
 
         offsetLatlng(&pos, stepNorthM, stepEastM);
         achievableClimbM += climbPerStepM;
+        escapeClimbM += escapePerStepM;
         result->samplesTotal++;
 
         float heightM;
         if (terrainNavGetHeightAtLocation(&pos, &heightM)) {
-            const float deficitM = (heightM - baseHeightM) - achievableClimbM;
+            const float riseM = heightM - baseHeightM;
+            const float deficitM = riseM - achievableClimbM;
             if (deficitM > result->climbNeededM) {
                 result->climbNeededM = deficitM;
+            }
+            const float escapeM = riseM - escapeClimbM;
+            if (escapeM > result->escapeDeficitM) {
+                result->escapeDeficitM = escapeM;
             }
         } else {
             result->samplesMissed++;

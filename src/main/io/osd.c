@@ -6291,6 +6291,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     case TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB:
                         ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AUTO_CLIMB));
                         break;
+                    case TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AHEAD));
+                        break;
                     case TERRAIN_NAV_HOLD_WARN_NONE:
                         break;
                 }

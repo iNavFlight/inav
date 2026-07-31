@@ -51,6 +51,7 @@ typedef enum {
     TERRAIN_NAV_HOLD_WARN_PULL_UP,      // below the minimum AGL and not recovering - fires with or without a ceiling
     TERRAIN_NAV_HOLD_WARN_NO_HEADING,   // heading estimate invalid: lookahead off, reactive hold continues
     TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB,   // engaged below the minimum AGL - automatic climb to the minimum in progress
+    TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD, // escape test failing: terrain ahead cannot be out-climbed at full rate
 } terrainNavHoldWarning_e;
 
 typedef struct {
@@ -66,6 +67,8 @@ typedef struct {
     float stickWishCmS;         // what the stick currently asks for, manual-clamped by the caller
     bool lookaheadValid;        // lookahead answer available
     float lookaheadClimbCm;     // worst height deficit along the path ahead (>= 0)
+    bool escapeDeficitValid;    // escape-test answer available (same walk as the lookahead)
+    float escapeDeficitCm;      // worst deficit vs the FULL climb rate along the path (>= 0)
     bool lookaheadDegraded;     // lookahead wanted but unavailable for an abnormal reason (heading estimate invalid) - warn the pilot
     int32_t minAglCm;           // configured minimum AGL
     int32_t maxAltCm;           // nav_max_altitude in the same frame, 0 = no ceiling
@@ -95,6 +98,9 @@ typedef struct {
     uint32_t blendStartMs;      // when this blend began (hard lifetime bound)
     uint32_t blendLastMs;       // last blend update (dt for the first-order chase)
     uint32_t stickQuietSinceMs; // stick back inside the deadband since (retake dwell); 0 = not quiet
+    bool terrainAheadActive;    // predictive escape alarm latched
+    uint32_t escapeBadSinceMs;  // escape test failing since (persistence); 0 = not failing
+    uint32_t escapeClearSinceMs;// escape test passing with margin since (clear hysteresis); 0 = not counting
 } terrainNavHoldState_t;
 
 // A momentary AGL gap (single cache miss) only pauses target updates; the hold
@@ -131,6 +137,15 @@ typedef struct {
 // hovering at the deadband edge otherwise alternates two writers within
 // milliseconds (the LOG00010 whiplash)
 #define TERRAIN_NAV_HOLD_RETAKE_DWELL_MS 250
+
+// TERRAIN AHEAD (predictive escape test): the failing condition must hold
+// this long before the alarm fires - no flicker on single noisy samples
+#define TERRAIN_NAV_HOLD_ESCAPE_PERSIST_MS 1000
+
+// ...and clears only after the test passes with the margin below for this
+// long (typically because the pilot turned, slowed or climbed)
+#define TERRAIN_NAV_HOLD_ESCAPE_CLEAR_MS 2000
+#define TERRAIN_NAV_HOLD_ESCAPE_CLEAR_MARGIN_CM 1000
 
 void terrainNavHoldCoreReset(terrainNavHoldState_t *state);
 void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in, terrainNavHoldOutput_t *out);

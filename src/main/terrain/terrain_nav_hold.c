@@ -69,6 +69,14 @@ PG_RESET_TEMPLATE(terrainNavConfig_t, terrainNavConfig,
 // Below this ground speed the course over ground is too noisy for a lookahead
 #define TERRAIN_NAV_HOLD_MIN_LOOKAHEAD_SPEED_CM_S 300
 
+// Time horizon of the lookahead scan: distance is additionally capped at
+// groundspeed x this many seconds. Fixes both ends of the fixed-distance
+// problem (LOG00010 analysis, docs/01 "Task 2"): slow flight stops climbing
+// for peaks a minute away, and the escape test inherently reasons in time.
+// At full nav_fw_auto_climb_rate the aircraft gains more height over this
+// horizon than the largest demand ever seen in the logs
+#define TERRAIN_NAV_HOLD_TIME_HORIZON_S 35
+
 static terrainNavHoldState_t holdState;
 static terrainNavHoldOutput_t holdOutput;
 
@@ -78,6 +86,7 @@ static bool queryAglValid;
 static int32_t queryAglCm;
 static bool queryLookaheadValid;
 static float queryLookaheadClimbCm;
+static float queryEscapeDeficitCm;
 
 // The hard-disengage conditions: launch, any landing, emergency landing,
 // VTOL transition, non-altitude platforms, degraded GPS, rangefinder SURFACE
@@ -151,21 +160,31 @@ static void terrainNavHoldRunQueries(timeMs_t currentTimeMs)
     // query above uses the current block, so the lookahead may touch at most
     // cacheSize - 3 new blocks - its distance is capped accordingly
     const int32_t lookaheadBudgetM = (TERRAIN_GRID_BLOCK_CACHE_SIZE - 3) * TERRAIN_NAV_HOLD_M_PER_BLOCK_WORST;
-    const float lookaheadDistM = MIN((int32_t)terrainNavConfig()->lookaheadDistM, lookaheadBudgetM);
+    float lookaheadDistM = MIN((int32_t)terrainNavConfig()->lookaheadDistM, lookaheadBudgetM);
 
     // Conservative achievable climb slope: half the configured climb rate at
     // the current ground speed - underestimating it makes climbs start early
     const float groundSpeedCmS = MAX(gpsSol.groundSpeed, 800);
     const float climbRatio = 0.5f * navConfig()->fw.max_auto_climb_rate / groundSpeedCmS;
 
+    // Time cap on the scan (the fixed-distance fix): never look further ahead
+    // than the aircraft flies in the time horizon
+    lookaheadDistM = MIN(lookaheadDistM, groundSpeedCmS * 0.01f * TERRAIN_NAV_HOLD_TIME_HORIZON_S);
+
+    // The escape slope: the FULL configured climb rate at the current ground
+    // speed - a deficit against it means "even climbing at maximum from this
+    // moment, that point ahead arrives below the minimum"
+    const float escapeRatio = (float)navConfig()->fw.max_auto_climb_rate / groundSpeedCmS;
+
     const float bearingDeg = CENTIDEGREES_TO_DEGREES((float)posControl.actualState.cog);
 
     terrainNavLookaheadResult_t lookahead;
-    if (terrainNavLookahead(bearingDeg, lookaheadDistM, climbRatio, &lookahead)) {
+    if (terrainNavLookahead(bearingDeg, lookaheadDistM, climbRatio, escapeRatio, &lookahead)) {
         // A partial answer (samples missed at the far end) is still a valid
         // lower bound; the missed blocks are already scheduled for loading
         queryLookaheadValid = true;
         queryLookaheadClimbCm = lookahead.climbNeededM * 100.0f;
+        queryEscapeDeficitCm = lookahead.escapeDeficitM * 100.0f;
     }
 }
 
@@ -194,6 +213,8 @@ void terrainNavCruiseHoldUpdate(void)
     in.currentZCm = navGetCurrentActualPositionAndVelocity()->pos.z;
     in.lookaheadValid = queryLookaheadValid;
     in.lookaheadClimbCm = queryLookaheadClimbCm;
+    in.escapeDeficitValid = queryLookaheadValid;
+    in.escapeDeficitCm = queryEscapeDeficitCm;
     in.lookaheadDegraded = terrainNavConfig()->lookaheadDistM != 0 && !isImuHeadingValid();
     in.minAglCm = terrainNavConfig()->minAglCm;
     in.maxAltCm = navConfig()->general.max_altitude;
