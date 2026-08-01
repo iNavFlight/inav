@@ -92,6 +92,22 @@ static inline bool vtolMcProtectionSuppressesMulticopterBrakingMode(const bool a
     return active;
 }
 
+static inline bool vtolMcProtectionDebugNavActive(
+    const bool protectionActive,
+    const bool automaticThrottleActive)
+{
+    return protectionActive && automaticThrottleActive;
+}
+
+static inline bool vtolMcProtectionDebugNavStateActive(
+    const bool debugNavActive,
+    const bool stateActive)
+{
+    // Do not expose retained MC controller state after NAV or the MC profile
+    // has stopped owning the corresponding output path.
+    return debugNavActive && stateActive;
+}
+
 static inline bool vtolMcProtectionPositionCaptureAllowed(
     const bool protectionActive,
     const bool positionHoldActive,

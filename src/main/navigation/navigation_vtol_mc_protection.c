@@ -174,6 +174,14 @@ static bool navigationVtolMcProtectionSettleConditionsMet(uint16_t *settleTimeMs
 static void navigationVtolMcProtectionPublishDebug(void)
 {
     uint32_t flags = 0;
+    const bool protectionActive = navigationVtolMcProtectionIsNavActive();
+    const bool navProtectionActive = vtolMcProtectionDebugNavActive(
+        protectionActive,
+        navigationRequiresAutoThrottleMode());
+    const bool stabilizedProtectionActive =
+        (vtolMcProtectionMode_e)systemConfig()->vtolMcProtectionMode == VTOL_MC_PROTECTION_NAV_AND_STABILIZED &&
+        ARMING_FLAG(ARMED) && navigationVtolMcProtectionIsVtolMcMode() &&
+        (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE));
 
     if (navigationVtolMcProtectionConfigured()) {
         flags |= VTOL_MC_PROTECT_FLAG_CONFIGURED;
@@ -181,52 +189,50 @@ static void navigationVtolMcProtectionPublishDebug(void)
     if (navigationVtolMcProtectionIsVtolMcMode()) {
         flags |= VTOL_MC_PROTECT_FLAG_VTOL_MC;
     }
-    if (navigationVtolMcProtectionIsNavActive()) {
+    if (navProtectionActive) {
         flags |= VTOL_MC_PROTECT_FLAG_NAV_ACTIVE;
     }
-    if ((vtolMcProtectionMode_e)systemConfig()->vtolMcProtectionMode == VTOL_MC_PROTECTION_NAV_AND_STABILIZED &&
-        ARMING_FLAG(ARMED) && navigationVtolMcProtectionIsVtolMcMode() &&
-        (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+    if (stabilizedProtectionActive) {
         flags |= VTOL_MC_PROTECT_FLAG_STABILIZED_ACTIVE;
     }
-    if (vtolMcProtection.captureActive) {
+    if (vtolMcProtectionDebugNavStateActive(navProtectionActive, vtolMcProtection.captureActive)) {
         flags |= VTOL_MC_PROTECT_FLAG_CAPTURE_ACTIVE;
     }
-    if (vtolMcProtection.landingSettleActive) {
+    if (vtolMcProtectionDebugNavStateActive(navProtectionActive, vtolMcProtection.landingSettleActive)) {
         flags |= VTOL_MC_PROTECT_FLAG_LANDING_SETTLE;
     }
-    if (vtolMcProtection.bailoutActive) {
+    if (vtolMcProtectionDebugNavStateActive(navProtectionActive, vtolMcProtection.bailoutActive)) {
         flags |= VTOL_MC_PROTECT_FLAG_BAILOUT_ACTIVE;
     }
-    if (vtolMcProtection.reserveShrunk) {
+    if (vtolMcProtectionDebugNavStateActive(navProtectionActive, vtolMcProtection.reserveShrunk)) {
         flags |= VTOL_MC_PROTECT_FLAG_RESERVE_SHRUNK;
     }
-    if (vtolMcProtection.softAltitudeActive) {
+    if (vtolMcProtectionDebugNavStateActive(navProtectionActive, vtolMcProtection.softAltitudeActive)) {
         flags |= VTOL_MC_PROTECT_FLAG_SOFT_ALTITUDE;
     }
-    if (vtolMcProtection.stabilizedCommandShaped) {
+    if (stabilizedProtectionActive && vtolMcProtection.stabilizedCommandShaped) {
         flags |= VTOL_MC_PROTECT_FLAG_COMMAND_SHAPED;
     }
-    if (vtolMcProtection.velocityFallbackActive &&
+    if (navProtectionActive && vtolMcProtection.velocityFallbackActive &&
         (vtolMcProtection.captureActive || vtolMcProtection.landingSettleActive || vtolMcProtection.bailoutActive)) {
         flags |= VTOL_MC_PROTECT_FLAG_VELOCITY_FALLBACK;
     }
 
     uint16_t debugProgress = 1000;
-    if (vtolMcProtection.captureActive) {
+    if (vtolMcProtectionDebugNavStateActive(navProtectionActive, vtolMcProtection.captureActive)) {
         debugProgress = vtolMcProtection.captureSettle.elapsedMs;
-    } else if (vtolMcProtection.landingSettleActive) {
+    } else if (vtolMcProtectionDebugNavStateActive(navProtectionActive, vtolMcProtection.landingSettleActive)) {
         debugProgress = vtolMcProtection.landingSettle.elapsedMs;
-    } else if (vtolMcProtection.bailoutActive) {
+    } else if (vtolMcProtectionDebugNavStateActive(navProtectionActive, vtolMcProtection.bailoutActive)) {
         debugProgress = vtolMcProtection.bailoutSettle.elapsedMs;
-    } else if (vtolMcProtection.stabilizedCommandShaped) {
+    } else if (stabilizedProtectionActive && vtolMcProtection.stabilizedCommandShaped) {
         debugProgress = vtolMcProtection.commandScalePermille;
     }
 
     DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 0, (int32_t)flags);
-    DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 1, vtolMcProtection.safeThrottleMin);
-    DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 2, vtolMcProtection.safeThrottleMax);
-    DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 3, vtolMcProtection.protectedThrottle);
+    DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 1, navProtectionActive ? vtolMcProtection.safeThrottleMin : 0);
+    DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 2, navProtectionActive ? vtolMcProtection.safeThrottleMax : 0);
+    DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 3, navProtectionActive ? vtolMcProtection.protectedThrottle : 0);
     DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 4, (int32_t)lrintf(posControl.actualState.velXY));
     DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 5, (int32_t)lrintf(navGetCurrentActualPositionAndVelocity()->vel.z));
     DEBUG_SET(DEBUG_VTOL_MC_PROTECT, 6, navigationVtolMcProtectionMaxAbsAttitudeDeciDeg());

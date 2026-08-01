@@ -136,7 +136,7 @@ TEST(NavigationVtolMissionLogicTest, StartValidationAllowsValidTransitionStart)
             true));
 }
 
-TEST(NavigationVtolMissionLogicTest, SuccessfulMissionToFixedWingAdvancesPlainWaypointAfterClimb)
+TEST(NavigationVtolMissionLogicTest, SuccessfulMissionToFixedWingAdvancesAcceptedPlainWaypoint)
 {
     const bool acceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
         true,
@@ -147,13 +147,10 @@ TEST(NavigationVtolMissionLogicTest, SuccessfulMissionToFixedWingAdvancesPlainWa
 
     EXPECT_TRUE(navMissionShouldAdvanceWaypointAfterTransition(
         acceptedForAdvance,
-        true,
-        100,
-        12680.0f,
-        12000.0f));
+        true));
 }
 
-TEST(NavigationVtolMissionLogicTest, SuccessfulMissionToMultirotorAdvancesPlainWaypointAfterClimb)
+TEST(NavigationVtolMissionLogicTest, SuccessfulMissionToMultirotorAdvancesAcceptedPlainWaypoint)
 {
     const bool acceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
         true,
@@ -164,13 +161,10 @@ TEST(NavigationVtolMissionLogicTest, SuccessfulMissionToMultirotorAdvancesPlainW
 
     EXPECT_TRUE(navMissionShouldAdvanceWaypointAfterTransition(
         acceptedForAdvance,
-        true,
-        100,
-        13290.0f,
-        12000.0f));
+        true));
 }
 
-TEST(NavigationVtolMissionLogicTest, MissionTransitionDoesNotAdvanceBelowEnforcedAltitude)
+TEST(NavigationVtolMissionLogicTest, AcceptedWaypointAdvancesDespiteAltitudeLossDuringTransition)
 {
     const bool acceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
         true,
@@ -179,22 +173,24 @@ TEST(NavigationVtolMissionLogicTest, MissionTransitionDoesNotAdvanceBelowEnforce
         12000.0f,
         12000.0f);
 
-    EXPECT_FALSE(navMissionShouldAdvanceWaypointAfterTransition(
+    EXPECT_TRUE(navMissionShouldAdvanceWaypointAfterTransition(
         acceptedForAdvance,
-        true,
-        100,
-        11899.0f,
-        12000.0f));
+        true));
 }
 
 TEST(NavigationVtolMissionLogicTest, MissionTransitionStartedBelowEnforcedAltitudeDoesNotLatchWaypoint)
 {
-    EXPECT_FALSE(navMissionTransitionWaypointAcceptedForAdvance(
+    const bool acceptedForAdvance = navMissionTransitionWaypointAcceptedForAdvance(
         true,
         true,
         100,
         11899.0f,
-        12000.0f));
+        12000.0f);
+
+    EXPECT_FALSE(acceptedForAdvance);
+    EXPECT_FALSE(navMissionShouldAdvanceWaypointAfterTransition(
+        acceptedForAdvance,
+        true));
 }
 
 TEST(NavigationVtolMissionLogicTest, MissionTransitionKeepsLegacyAdvanceWhenAltitudeEnforcementIsDisabled)
@@ -208,10 +204,7 @@ TEST(NavigationVtolMissionLogicTest, MissionTransitionKeepsLegacyAdvanceWhenAlti
 
     EXPECT_TRUE(navMissionShouldAdvanceWaypointAfterTransition(
         acceptedForAdvance,
-        true,
-        0,
-        11000.0f,
-        12000.0f));
+        true));
 }
 
 TEST(NavigationVtolMissionLogicTest, MissionTransitionDoesNotAdvanceHoldWaypointOrAbort)
@@ -225,17 +218,11 @@ TEST(NavigationVtolMissionLogicTest, MissionTransitionDoesNotAdvanceHoldWaypoint
 
     EXPECT_FALSE(navMissionShouldAdvanceWaypointAfterTransition(
         holdWaypointAccepted,
-        true,
-        100,
-        12680.0f,
-        12000.0f));
+        true));
 
     EXPECT_FALSE(navMissionShouldAdvanceWaypointAfterTransition(
         true,
-        false,
-        100,
-        12680.0f,
-        12000.0f));
+        false));
 }
 
 TEST(NavigationVtolMissionLogicTest, ForcedFwToMcProfileSwitchAdvancesAcceptedWaypoint)
@@ -250,10 +237,7 @@ TEST(NavigationVtolMissionLogicTest, ForcedFwToMcProfileSwitchAdvancesAcceptedWa
     EXPECT_TRUE(navMissionTransitionReachedTargetProfile(true, true));
     EXPECT_TRUE(navMissionShouldAdvanceWaypointAfterTransition(
         acceptedForAdvance,
-        navMissionTransitionReachedTargetProfile(true, true),
-        300,
-        13975.0f,
-        12000.0f));
+        navMissionTransitionReachedTargetProfile(true, true)));
 }
 
 TEST(NavigationVtolMissionLogicTest, AbortedTransitionWithoutProfileSwitchDoesNotAdvanceWaypoint)
@@ -261,10 +245,7 @@ TEST(NavigationVtolMissionLogicTest, AbortedTransitionWithoutProfileSwitchDoesNo
     EXPECT_FALSE(navMissionTransitionReachedTargetProfile(true, false));
     EXPECT_FALSE(navMissionShouldAdvanceWaypointAfterTransition(
         true,
-        navMissionTransitionReachedTargetProfile(true, false),
-        300,
-        13975.0f,
-        12000.0f));
+        navMissionTransitionReachedTargetProfile(true, false)));
 }
 
 TEST(NavigationVtolMissionLogicTest, FwToMcHoldWaypointCapturesBeforeMissionResume)

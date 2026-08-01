@@ -419,6 +419,17 @@ TEST(VtolMcProtectionLogicTest, ActiveProtectionSuppressesMulticopterBrakingMode
     EXPECT_TRUE(vtolMcProtectionSuppressesMulticopterBrakingMode(true));
 }
 
+TEST(VtolMcProtectionLogicTest, DebugNavStateRequiresActiveAutomaticThrottleProtection)
+{
+    EXPECT_TRUE(vtolMcProtectionDebugNavActive(true, true));
+    EXPECT_FALSE(vtolMcProtectionDebugNavActive(false, true));
+    EXPECT_FALSE(vtolMcProtectionDebugNavActive(true, false));
+
+    EXPECT_TRUE(vtolMcProtectionDebugNavStateActive(true, true));
+    EXPECT_FALSE(vtolMcProtectionDebugNavStateActive(false, true));
+    EXPECT_FALSE(vtolMcProtectionDebugNavStateActive(true, false));
+}
+
 TEST(VtolMcProtectionLogicTest, RthLandingYawSettleAssistRequiresSettledVtolMcLanding)
 {
     EXPECT_TRUE(vtolMcProtectionRthLandingYawSettleAssistActive(

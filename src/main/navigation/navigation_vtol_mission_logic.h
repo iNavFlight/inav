@@ -97,18 +97,12 @@ static inline bool navMissionTransitionReachedTargetProfile(
 
 static inline bool navMissionShouldAdvanceWaypointAfterTransition(
     const bool waypointAcceptedForAdvance,
-    const bool transitionReachedTargetProfile,
-    const uint16_t waypointEnforceAltitudeCm,
-    const float currentAltitudeCm,
-    const float waypointAltitudeCm)
+    const bool transitionReachedTargetProfile)
 {
-    // A transition may add altitude after the waypoint was accepted. Do not
-    // make the aircraft loiter back down to the old waypoint, but never skip
-    // a waypoint while below its enforced minimum altitude.
-    return waypointAcceptedForAdvance &&
-           transitionReachedTargetProfile &&
-           (waypointEnforceAltitudeCm == 0 ||
-            currentAltitudeCm >= waypointAltitudeCm - waypointEnforceAltitudeCm);
+    // Acceptance is latched before transition starts. Rechecking altitude
+    // afterwards can send a fast FW aircraft back to an already passed
+    // waypoint when the transition itself temporarily loses altitude.
+    return waypointAcceptedForAdvance && transitionReachedTargetProfile;
 }
 
 static inline bool navMissionTransitionShouldCaptureBeforeWaypointResume(

@@ -3412,10 +3412,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
             const bool advanceMissionWaypoint = missionTransitionWasActive &&
                 navMissionShouldAdvanceWaypointAfterTransition(
                     navMixerATMissionTransition.waypointAcceptedForAdvance,
-                    transitionReachedTargetProfile,
-                    navConfig()->general.waypoint_enforce_altitude,
-                    navGetCurrentActualPositionAndVelocity()->pos.z,
-                    posControl.activeWaypoint.pos.z);
+                    transitionReachedTargetProfile);
             if (required_action == MIXERAT_REQUEST_FW_TO_MC_PROTECTION) {
                 switch (navMixerATPendingState)
                 {

@@ -870,12 +870,14 @@ Example mission:
 
 For MC -> FW mission transition, INAV uses a straight acceleration segment. It does not try to loiter to build airspeed. Normal waypoint advancement is paused until the transition is finished.
 
-For either direction, a successful transition requested by an ordinary `WAYPOINT` finishes that waypoint and proceeds directly to the next one. This avoids an unwanted circle after a transition-induced climb: for example, if an MC -> FW transition starts at `120m` and forward thrust briefly carries the aircraft to `127m`, INAV does not make a fixed-wing aircraft loiter back down to `120m` before continuing.
+For either direction, a successful transition requested by an ordinary `WAYPOINT` finishes that waypoint and proceeds directly to the next one. This avoids an unwanted return to a point that the aircraft already reached before transition. For example, if MC -> FW starts at a `120m` waypoint and the aircraft temporarily climbs to `127m` or descends to `116m` while accelerating, INAV continues toward the next waypoint instead of commanding a high-speed turn back to the transition point.
 
-- This shortcut is used only after the transition has completed normally, including its output handover period.
-- The aircraft must still not be below the waypoint altitude minus the `nav_wp_enforce_altitude` tolerance. A transition that finishes too low continues using the normal altitude hold behavior.
+- Waypoint acceptance is recorded when the transition starts. At that moment the normal horizontal waypoint test, `nav_wp_enforce_altitude`, and the mission transition minimum altitude must already allow the transition.
+- Once recorded, temporary altitude movement during the transition does not cancel that acceptance. The next waypoint takes responsibility for the following altitude target.
+- The waypoint advances after the requested target profile is reached. Motor and servo outputs may still be completing their configured smooth movement.
 - It applies to ordinary `WAYPOINT` actions in both MC -> FW and FW -> MC directions.
-- `HOLD_TIME` and `LAND` actions always keep their requested behavior. Abort, an ultimately failed retry, and forced-profile fallback also do not mark the waypoint complete.
+- `HOLD_TIME` and `LAND` actions always keep their requested behavior.
+- Abort or an ultimately failed retry that leaves the aircraft in the original profile does not mark the waypoint complete. A configured `FORCE_SWITCH` may advance an already accepted ordinary waypoint only when the requested target profile was actually activated.
 
 ### Altitude settings that matter in missions
 
