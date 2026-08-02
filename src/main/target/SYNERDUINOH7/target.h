@@ -106,31 +106,31 @@
 #define USE_IMU_MPU6000
 
 #define IMU_MPU6000_ALIGN       CW90_DEG
-#define MPU6000_SPI_BUS         BUS_SPI1 // BUS_SPI2
+#define MPU6000_SPI_BUS         BUS_SPI2 // BUS_SPI2
 #define MPU6000_CS_PIN          PA4 // PB12
 
 #define USE_IMU_MPU6500
 
 #define IMU_MPU6500_ALIGN       CW90_DEG
-#define MPU6500_SPI_BUS         BUS_SPI1 // BUS_SPI2
+#define MPU6500_SPI_BUS         BUS_SPI2 // BUS_SPI2
 #define MPU6500_CS_PIN          PA4 // PB12
 
 #define USE_IMU_MPU9250
 
 #define IMU_MPU9250_ALIGN       CW90_DEG
-#define MPU9250_SPI_BUS          BUS_SPI1 // BUS_SPI2
+#define MPU9250_SPI_BUS          BUS_SPI2 // BUS_SPI2
 #define MPU9250_CS_PIN          PA4 // PB12
 
 #define USE_IMU_BMI160
 
 #define IMU_BMI160_ALIGN       CW270_DEG
-#define BMI160_SPI_BUS          BUS_SPI1 // BUS_SPI2
+#define BMI160_SPI_BUS          BUS_SPI2 // BUS_SPI2
 #define BMI160_CS_PIN          PA4 // PB12
 
 #define USE_IMU_BMI270
 
 #define IMU_BMI270_ALIGN       CW270_DEG
-#define BMI270_SPI_BUS          BUS_SPI1 // BUS_SPI2
+#define BMI270_SPI_BUS          BUS_SPI2 // BUS_SPI2
 #define BMI270_CS_PIN          PA4 // PB12
 
 // *************** SPI4 OSD **********Some readon the SPI OLED was there***********
