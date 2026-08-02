@@ -33,9 +33,9 @@
 #define USE_DUAL_GYRO
 //#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
-// *************** SPI2 IMU0 BMI BNO ****************
+// *************** SPI1 IMU0 BMI BNO ****************
 #define USE_SPI
-#define USE_SPI_DEVICE_2
+#define USE_SPI_DEVICE_1
 #define SPI2_SCK_PIN            PA5
 #define SPI2_MISO_PIN           PA6
 #define SPI2_MOSI_PIN           PA7
@@ -43,19 +43,19 @@
 #define USE_IMU_BMI160
 
 #define IMU_BMI160_ALIGN       CW270_DEG
-#define BMI160_SPI_BUS         BUS_SPI2 
+#define BMI160_SPI_BUS         BUS_SPI1 
 #define BMI160_CS_PIN          PA4
 
 #define USE_IMU_BMI270
 
 #define IMU_BMI270_ALIGN       CW270_DEG
-#define BMI270_SPI_BUS         BUS_SPI2 
+#define BMI270_SPI_BUS         BUS_SPI1 
 #define BMI270_CS_PIN          PA4
 
 
 
-// *************** SPI1 IMU1  ICM MPU **************
-#define USE_SPI_DEVICE_1
+// *************** SPI2 IMU1  ICM MPU **************
+#define USE_SPI_DEVICE_2
 #define SPI1_SCK_PIN            PB13
 #define SPI1_MISO_PIN           PB14
 #define SPI1_MOSI_PIN           PB15
@@ -63,31 +63,31 @@
 #define USE_IMU_MPU6000
 
 #define IMU_MPU6000_ALIGN       CW0_DEG_FLIP
-#define MPU6000_SPI_BUS          BUS_SPI1
+#define MPU6000_SPI_BUS          BUS_SPI2
 #define MPU6000_CS_PIN          PB12
 
 #define USE_IMU_MPU6500
 
 #define IMU_MPU6500_ALIGN       CW0_DEG_FLIP
-#define MPU6500_SPI_BUS         BUS_SPI1
+#define MPU6500_SPI_BUS         BUS_SPI2
 #define MPU6500_CS_PIN          PB12
 
 #define USE_IMU_MPU9250
 
 #define IMU_MPU9250_ALIGN       CW90_DEG
-#define MPU9250_SPI_BUS         BUS_SPI1
+#define MPU9250_SPI_BUS         BUS_SPI2
 #define MPU9250_CS_PIN          PB12 
 
 #define USE_IMU_ICM42605
 
 #define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
-#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_SPI_BUS        BUS_SPI2
 #define ICM42605_CS_PIN         PB12
 
 #define USE_IMU_ICM20689
 
 #define IMU_ICM20689_ALIGN      CW90_DEG_FLIP
-#define ICM20689_SPI_BUS        BUS_SPI1
+#define ICM20689_SPI_BUS        BUS_SPI2
 #define ICM20689_CS_PIN         PB12
 
 // *************** SPI2 OSD ***********************
