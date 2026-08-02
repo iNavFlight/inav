@@ -133,6 +133,9 @@
 #include "sensors/opflow.h"
 #include "sensors/temperature.h"
 #include "sensors/esc_sensor.h"
+#ifdef USE_WIND_ESTIMATOR
+#include "flight/wind_estimator.h"
+#endif
 
 #include "telemetry/telemetry.h"
 
@@ -1594,6 +1597,23 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, getAirspeedEstimate());
 #else
         sbufWriteU32(dst, 0);
+#endif
+        break;
+
+    case MSP2_INAV_WIND:
+#ifdef USE_WIND_ESTIMATOR
+        {
+            uint16_t windAngle = 0;
+            uint16_t windSpeed = (uint16_t)getEstimatedHorizontalWindSpeed(&windAngle);
+            uint8_t windFlags = isEstimatedWindSpeedValid() ? 1 : 0;
+            sbufWriteU16(dst, windSpeed);
+            sbufWriteU16(dst, windAngle / 100);
+            sbufWriteU8(dst, windFlags);
+        }
+#else
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU8(dst, 0);
 #endif
         break;
 
