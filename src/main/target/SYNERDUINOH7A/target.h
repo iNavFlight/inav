@@ -36,9 +36,9 @@
 // *************** SPI1 IMU0 BMI BNO ****************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
-#define SPI2_SCK_PIN            PA5
-#define SPI2_MISO_PIN           PA6
-#define SPI2_MOSI_PIN           PA7
+#define SPI1_SCK_PIN            PA5
+#define SPI1_MISO_PIN           PA6
+#define SPI1_MOSI_PIN           PA7
 
 #define USE_IMU_BMI160
 
@@ -56,14 +56,14 @@
 
 // *************** SPI2 IMU1  ICM MPU **************
 #define USE_SPI_DEVICE_2
-#define SPI1_SCK_PIN            PB13
-#define SPI1_MISO_PIN           PB14
-#define SPI1_MOSI_PIN           PB15
+#define SPI2_SCK_PIN            PB13
+#define SPI2_MISO_PIN           PB14
+#define SPI2_MOSI_PIN           PB15
 
 #define USE_IMU_MPU6000
 
 #define IMU_MPU6000_ALIGN       CW0_DEG_FLIP
-#define MPU6000_SPI_BUS          BUS_SPI2
+#define MPU6000_SPI_BUS         BUS_SPI2
 #define MPU6000_CS_PIN          PB12
 
 #define USE_IMU_MPU6500
