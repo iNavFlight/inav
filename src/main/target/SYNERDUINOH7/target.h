@@ -98,7 +98,7 @@
 
 // *************** SPI1 IMU0 ******************************
 #define USE_SPI
-#define USE_SPI_DEVICE_1
+#define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PA5 // PB13 
 #define SPI2_MISO_PIN           PA6 // PB14
 #define SPI2_MOSI_PIN           PA7 // PB15
