@@ -4337,9 +4337,9 @@ float getActiveSpeed(void)
 
         uint16_t wpSpecificSpeed = 0;
         if (posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_HOLD_TIME) {
-            wpSpecificSpeed = posControl.waypointList[posControl.activeWaypointIndex].p2; // P1 is hold time
+            wpSpecificSpeed = ABS(posControl.waypointList[posControl.activeWaypointIndex].p2); // P1 is hold time
         } else {
-            wpSpecificSpeed = posControl.waypointList[posControl.activeWaypointIndex].p1; // default case
+            wpSpecificSpeed = ABS(posControl.waypointList[posControl.activeWaypointIndex].p1); // default case
         }
 
         if (STATE(AIRPLANE)) {

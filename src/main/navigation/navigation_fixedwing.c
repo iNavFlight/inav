@@ -73,8 +73,8 @@ static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static float navCrossTrackError;
 static int8_t loiterDirYaw = 1;
-bool needToCalculateCircularLoiter;
-bool autoSpeedIsActive = false;
+static bool needToCalculateCircularLoiter;
+static bool autoSpeedIsActive = false;
 
 // Calculates the cutoff frequency for smoothing out roll/pitch commands
 // control_smoothness valid range from 0 to 9
