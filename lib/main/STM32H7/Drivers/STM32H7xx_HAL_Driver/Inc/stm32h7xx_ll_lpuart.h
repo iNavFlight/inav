@@ -56,6 +56,10 @@ static const uint16_t LPUART_PRESCALER_TAB[] =
   (uint16_t)32,
   (uint16_t)64,
   (uint16_t)128,
+  (uint16_t)256,
+  (uint16_t)256,
+  (uint16_t)256,
+  (uint16_t)256,
   (uint16_t)256
 };
 /**

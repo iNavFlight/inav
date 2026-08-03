@@ -117,6 +117,7 @@ typedef enum {
     //TIM_USE_FW_SERVO      = (1 << 6),
     TIM_USE_LED             = (1 << 24),    // Remapping needs to be in the lower 8 bits.
     TIM_USE_BEEPER          = (1 << 25),
+    TIM_USE_PINIO           = (1 << 26),
 } timerUsageFlag_e;
 
 #define TIM_USE_OUTPUT_AUTO (TIM_USE_MOTOR | TIM_USE_SERVO)
@@ -124,6 +125,7 @@ typedef enum {
 #define TIM_IS_MOTOR(flags) ((flags) & TIM_USE_MOTOR)
 #define TIM_IS_SERVO(flags) ((flags) & TIM_USE_SERVO)
 #define TIM_IS_LED(flags) ((flags) & TIM_USE_LED)
+#define TIM_IS_PINIO(flags) ((flags) & TIM_USE_PINIO)
 
 #define TIM_IS_MOTOR_ONLY(flags) (TIM_IS_MOTOR(flags) && !TIM_IS_SERVO(flags))
 #define TIM_IS_SERVO_ONLY(flags) (!TIM_IS_MOTOR(flags) && TIM_IS_SERVO(flags))

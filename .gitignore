@@ -7,6 +7,7 @@
 *.bak
 *.uvgui.*
 *.ubx
+*.log
 .project
 .settings
 .cproject
@@ -46,6 +47,12 @@ launch.json
 # Assitnow token and files for test script
 tokens.yaml
 *.ubx
+/testing/
+/.idea/
+
+# Build output directories (catch-all for ad-hoc build dirs)
+/build_*/
+/build_hw/
 
 # Local development files
 .semgrepignore

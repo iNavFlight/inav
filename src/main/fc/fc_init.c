@@ -121,6 +121,7 @@
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/smartport_master.h"
+#include "io/crsf_sensor.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
@@ -128,6 +129,8 @@
 #include "io/vtx_msp.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
+
+#include "drivers/dronecan/dronecan.h"
 
 #include "msp/msp_serial.h"
 
@@ -285,6 +288,7 @@ void init(void)
 
     serialInit(feature(FEATURE_SOFTSERIAL));
 
+
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
@@ -299,11 +303,16 @@ void init(void)
     smartportMasterInit();
 #endif
 
+#if defined(USE_CRSF_SENSOR_INPUT)
+    crsfSensorInputInit();
+#endif
+
 #if defined(USE_LOG)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
 #endif
+
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     gvInit();
@@ -523,6 +532,10 @@ void init(void)
 
 #ifdef USE_EZ_TUNE
     ezTuneUpdate();
+#endif
+
+#ifdef USE_DRONECAN
+    dronecanInit();
 #endif
 
 #ifndef USE_GEOZONE

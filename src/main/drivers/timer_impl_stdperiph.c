@@ -279,8 +279,8 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
 
         tch->dmaState = TCH_DMA_IDLE;
 
-        DMA_Cmd(tch->dma->ref, DISABLE);
         TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
+        DMA_Cmd(tch->dma->ref, DISABLE);
 
         DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
     }
@@ -518,8 +518,8 @@ void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
     // Clear the flag as well, so even if DMA transfer finishes while within ATOMIC_BLOCK
     // the resulting IRQ won't mess up the DMA state
     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
-        DMA_Cmd(tch->dma->ref, DISABLE);
         TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
+        DMA_Cmd(tch->dma->ref, DISABLE);
         DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
     }
 
@@ -561,8 +561,8 @@ void impl_timerPWMStartDMA(TCH_t * tch)
 
 void impl_timerPWMStopDMA(TCH_t * tch)
 {
-    DMA_Cmd(tch->dma->ref, DISABLE);
     TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
+    DMA_Cmd(tch->dma->ref, DISABLE);
     tch->dmaState = TCH_DMA_IDLE;
     TIM_Cmd(tch->timHw->tim, ENABLE);
 }

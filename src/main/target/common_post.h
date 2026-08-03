@@ -87,7 +87,6 @@ extern uint8_t __config_end;
 #define USE_MAG_QMC5883
 #define USE_MAG_QMC5883P
 
-//#if (MCU_FLASH_SIZE > 512)
 #define USE_MAG_AK8963
 #define USE_MAG_AK8975
 #define USE_MAG_IST8308
@@ -99,7 +98,6 @@ extern uint8_t __config_end;
 
 #define USE_MAG_RM3100
 #define USE_MAG_VCM5883
-//#endif // MCU_FLASH_SIZE
 
 #endif // USE_MAG_ALL
 
@@ -129,6 +127,18 @@ extern uint8_t __config_end;
 #define BARO_I2C_BUS DEFAULT_I2C_BUS
 #endif
 
+#endif
+
+// CRSF sensor input on a dedicated UART
+#if defined(USE_SERIALRX_CRSF)
+#define USE_CRSF_SENSOR_INPUT
+#define USE_BATTERY_SENSOR_CRSF
+#if defined(USE_GPS)
+#define USE_GPS_PROTO_CRSF
+#endif
+#if defined(USE_BARO)
+#define USE_BARO_CRSF
+#endif
 #endif
 
 #if defined(USE_ESC_SENSOR) || defined(USE_DSHOT)

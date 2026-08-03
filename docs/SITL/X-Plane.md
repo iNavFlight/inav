@@ -7,6 +7,13 @@ X-Plane is not a model flight simulator, but is based on real world data and is 
 ## Aircraft
 It is recommended to use the "AR Wing" of the INAV HITL project: https://github.com/RomanLut/INAV-X-Plane-HITL
 
+## INAV Plugin
+For advanced SITL features (like OSD, virtual RX, simulated hardware failures, power train simulation) you can use the [INAV-X-Plane-XITL plugin](https://github.com/Scavanger/INAV-X-Plane-XITL)
+
+## SITL sensor feed
+
+SITL feeds INAV GPS altitude and GPS NED velocity from X-Plane aircraft position and local velocity. Fake barometer pressure is derived from aircraft elevation, matching the RealFlight SITL path, so altitude hold uses aircraft altitude instead of X-Plane's weather altimeter setting.
+
 ## General settings
 In Settings / Network select "Accept incoming connections".
 The port can be found under "UDP PORTS", "Port we receive on". If no connection is established, the port can be changed.

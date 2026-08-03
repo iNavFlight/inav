@@ -1123,7 +1123,7 @@ void pwmWriteBeeper(bool onoffBeep)
     }
 }
 
-void beeperPwmInit(ioTag_t tag, uint16_t frequency)
+bool beeperPwmInit(ioTag_t tag, uint16_t frequency)
 {
     beeperPwm = NULL;
 
@@ -1133,14 +1133,17 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency)
         // Attempt to allocate TCH
         TCH_t * tch = timerGetTCH(timHw);
         if (tch == NULL) {
-            return;
+            return false;
         }
 
         beeperPwm = &beeperPwmPort;
         beeperFrequency = frequency;
         IOConfigGPIOAF(IOGetByTag(tag), IOCFG_AF_PP, timHw->alternateFunction);
         pwmOutConfigTimer(beeperPwm, tch, PWM_TIMER_HZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
+        return true;
     }
+
+    return false;
 }
 
 #endif
