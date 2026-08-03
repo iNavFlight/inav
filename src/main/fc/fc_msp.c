@@ -1604,8 +1604,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #ifdef USE_WIND_ESTIMATOR
         {
             uint16_t windAngle = 0;
-            uint16_t windSpeed = (uint16_t)getEstimatedHorizontalWindSpeed(&windAngle);
-            uint8_t windFlags = isEstimatedWindSpeedValid() ? 1 : 0;
+            uint16_t windSpeed = 0;
+            uint8_t windFlags = 0;
+            if (isEstimatedWindSpeedValid()) {
+                windSpeed = (uint16_t)getEstimatedHorizontalWindSpeed(&windAngle);
+                windFlags = 1;
+            }
             sbufWriteU16(dst, windSpeed);
             sbufWriteU16(dst, windAngle / 100);
             sbufWriteU8(dst, windFlags);
