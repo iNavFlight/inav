@@ -9,7 +9,7 @@
 - **Language**: C (C99/C11), with some C++ for unit tests
 - **Build System**: CMake (version 3.13+)
 - **License**: GNU GPL v3
-- **Version**: 9.0.1 (as of this writing)
+- **Version**: see `project(INAV VERSION ...)` in the top-level `CMakeLists.txt` for the current version — don't hardcode it here, it drifts every release
 - **Codebase History**: Evolved from Cleanflight/Baseflight
 
 ## Architecture and Structure
@@ -162,23 +162,24 @@ INAV uses a sophisticated configuration system called "Parameter Groups" for per
 ```c
 // Define a configuration structure
 typedef struct {
-    uint8_t gyro_lpf_hz;
-    uint16_t gyro_kalman_q;
+    uint16_t gyro_main_lpf_hz;
+#ifdef USE_GYRO_KALMAN
+    uint16_t kalman_q;
+#endif
     // ...
 } gyroConfig_t;
 
 // Register with reset template
 PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 12);
 
-// Define default values
+// Define default values (usually via a SETTING_*_DEFAULT macro from settings.yaml)
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
-    .gyro_lpf_hz = 60,
-    .gyro_kalman_q = 200,
+    .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,
     // ...
 );
 
 // Access in code
-gyroConfig()->gyro_lpf_hz
+gyroConfig()->gyro_main_lpf_hz
 ```
 
 **Key Functions:**
@@ -241,7 +242,7 @@ IOInit(pin, OWNER_SPI, RESOURCE_SPI_SCK, 1);
 const timerHardware_t *timer = timerGetByTag(IO_TAG(PA8), TIM_USE_ANY);
 
 // DMA
-dmaIdentifier_e dma = dmaGetIdentifier(DMA1_Stream0);
+DMA_t dma = dmaGetByRef(DMA1_Stream0);
 ```
 
 ### Error Handling
@@ -290,14 +291,20 @@ make
 
 - **`maintenance-X.x`**: Current version development (e.g., `maintenance-9.x`)
 - **`maintenance-Y.x`**: Next major version (e.g., `maintenance-10.x`)
-- **`master`**: Tracks current version, receives merges from maintenance branches
+- **`master`**: Not a development branch — don't branch from it or target it
+  with a PR. Maintainers periodically merge the current maintenance branch
+  (or a release-candidate branch cut from it) into it to keep it as a
+  lagging mirror, mainly as a safety net for anyone who clones the repo
+  without knowing this branch model. See
+  [`docs/development/Development.md`](docs/development/Development.md#branching-and-release-workflow)
+  for the full model.
 
 ### Pull Request Guidelines
 
 1. **Target Branch**: 
    - Bug fixes and backward-compatible features → current maintenance branch
    - Breaking changes → next major version maintenance branch
-   - **Never** target `master` directly
+   - **Never** target `master`
 
 2. **Keep PRs Focused**: One feature/fix per PR
 
@@ -309,11 +316,18 @@ make
 
 4. **Commit Messages**: Clear, descriptive messages
 
-### Important Files to Check
+### Development Documentation
 
-Before making changes, review:
-- `docs/development/Development.md` - Development principles
-- `docs/development/Contributing.md` - Contribution guidelines
+`docs/development/` is the canonical source for contributor-facing technical
+docs — check it before assuming something isn't documented:
+
+- `Development.md` - Coding principles, git workflow, branching/release model
+- `Contributing.md` - Contribution guidelines
+- `settings/` - How to add/register a CLI setting (registration guide,
+  versioning rules, when a new setting is warranted)
+- `build-system.md` - CMake build system internals
+- `pid-to-servo-computation.md` - PID-to-servo signal path (fixed-wing)
+- `msp/` - MSP protocol doc generation tooling
 - Target-specific files in `/src/main/target/`
 
 ## Important Files and Directories
@@ -353,8 +367,8 @@ Before making changes, review:
 5. **Update Documentation**: Add/update files in `/docs` 
 6. **Consider Target Support**: Use `#ifdef USE_FEATURE` for optional features
 7. **Generate CLI setting docs**: Remember to inform user to run `python src/utils/update_cli_docs.py`
-8. **Follow conding standard**: Follow MISRA C rules
-9. **Increase Paremeterer Group Version**: When changing PG structure, increase version corresponding in `PG_REGISTER`, `PG_REGISTER_WITH_RESET_FN`, `PG_REGISTER_WITH_RESET_TEMPLATE`, `PG_REGISTER_ARRAY` or `PG_REGISTER_ARRAY_WITH_RESET_FN`
+8. **Follow the project's coding standard**: see [`docs/development/Development.md`](docs/development/Development.md) — INAV does not follow MISRA C
+9. **Increase Parameter Group Version**: When changing PG structure, increase version corresponding in `PG_REGISTER`, `PG_REGISTER_WITH_RESET_FN`, `PG_REGISTER_WITH_RESET_TEMPLATE`, `PG_REGISTER_ARRAY` or `PG_REGISTER_ARRAY_WITH_RESET_FN`
 
 ### When Fixing Bugs
 
@@ -454,7 +468,7 @@ Always test on target or use `#if defined()` guards for MCU-specific code.
 
 ## Version Information
 
-This document is accurate for INAV 9.0.1. As the project evolves, some details may change. Always refer to the latest documentation and code for authoritative information.
+As the project evolves, some details in this document may change. Always refer to the latest documentation and code for authoritative information.
 
 ---
 

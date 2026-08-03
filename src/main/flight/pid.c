@@ -227,6 +227,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .P = 0,
                     .I = 0,
                     .D = 0,
+                    .FF = 0,
+                },
+                [PID_AUTO_SPEED] = {
+                    .P = 0,
+                    .I = 0,
+                    .D = 0,
                     .FF = 0
                 }
             }
@@ -260,6 +266,12 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .P = SETTING_NAV_FW_POS_HDG_P_DEFAULT,
                     .I = SETTING_NAV_FW_POS_HDG_I_DEFAULT,
                     .D = SETTING_NAV_FW_POS_HDG_D_DEFAULT,
+                    .FF = 0,
+                },
+                [PID_AUTO_SPEED] = {
+                    .P = SETTING_NAV_FW_AUTO_SPEED_P_DEFAULT,
+                    .I = SETTING_NAV_FW_AUTO_SPEED_I_DEFAULT,
+                    .D = SETTING_NAV_FW_AUTO_SPEED_D_DEFAULT,
                     .FF = 0
                 }
             }
