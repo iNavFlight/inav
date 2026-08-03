@@ -763,10 +763,13 @@ class Generator
         value
     end
 
+    # cstddef for offsetof(). Shared by every probe so they all see the same
+    # base macro state.
+    BASE_HEADERS = ["platform.h", "cstddef"]
+
     def compile_test_file(prog)
         buf = StringIO.new
-        # cstddef for offsetof()
-        headers = ["platform.h", "cstddef"]
+        headers = BASE_HEADERS.dup
         @data["groups"].each do |group|
             gh = group["headers"]
             if gh
@@ -780,6 +783,10 @@ class Generator
         end
         buf << "\n"
         buf << prog.string
+        compile_raw(buf)
+    end
+
+    def compile_raw(buf)
         mktmpdir do |dir|
             file = File.join(dir, "test.cpp")
             File.open(file, 'w') {|file| file.write(buf.string)}
@@ -792,6 +799,10 @@ class Generator
 
     def check_conditions
         buf = StringIO.new
+        BASE_HEADERS.each do |h|
+            buf << "#include \"#{h}\"\n"
+        end
+
         conditions = Set.new
         add_condition = -> (c) {
             if c && !conditions.include?(c)
@@ -822,12 +833,24 @@ class Generator
             end
         }
 
-        foreach_member do |group, member|
+        # Check each condition right after that group's own headers, matching
+        # the position resolve_types() implicitly relies on: a header's own
+        # #ifdef guard only sees macros defined by headers earlier in this
+        # sequence.
+        @data["groups"].each do |group|
+            gh = group["headers"]
+            if gh
+                gh.each do |h|
+                    buf << "#include \"#{h}\"\n" if h
+                end
+            end
             add_condition.call(group["condition"])
-            add_condition.call(member["condition"])
+            group["members"].each do |member|
+                add_condition.call(member["condition"])
+            end
         end
 
-        stderr = compile_test_file(buf)
+        stderr = compile_raw(buf)
         @true_conditions = Set.new
         stderr.scan(/#pragma message\(\"(.*)\"\)/).each do |m|
             @true_conditions << m[0]
