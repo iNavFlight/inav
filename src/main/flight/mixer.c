@@ -703,7 +703,7 @@ motorStatus_e getMotorStatus(void)
 
     const bool fixedWingOrAirmodeNotActive = STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE);
 
-    if (throttleStickIsLow() && fixedWingOrAirmodeNotActive) {
+    if (throttleStickIsLow() && fixedWingOrAirmodeNotActive && !isFixedwingAutoSpeedActive()) {
         if ((navConfig()->general.flags.nav_overrides_motor_stop == NOMS_OFF_ALWAYS) && failsafeIsActive()) {
             // If we are in failsafe and user was holding stick low before it was triggered and nav_overrides_motor_stop is set to OFF_ALWAYS
             // and either on a plane or on a quad with inactive airmode - stop motor
@@ -715,7 +715,7 @@ motorStatus_e getMotorStatus(void)
 
             switch (navConfig()->general.flags.nav_overrides_motor_stop) {
                 case NOMS_ALL_NAV:
-                    return navigationInAutomaticThrottleMode() ? MOTOR_RUNNING : MOTOR_STOPPED_USER;
+                    return navigationRequiresAutoThrottleMode() ? MOTOR_RUNNING : MOTOR_STOPPED_USER;
 
                 case NOMS_AUTO_ONLY:
                     return navigationIsFlyingAutonomousMode() ? MOTOR_RUNNING : MOTOR_STOPPED_USER;
@@ -749,6 +749,11 @@ bool areMotorsRunning(void)
     }
 
     return false;
+}
+
+bool areMotorsStopped(void)
+{
+    return motor[0] == motorZeroCommand;
 }
 
 uint16_t getMaxThrottle(void) {
