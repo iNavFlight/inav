@@ -925,7 +925,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 {
 
     cycleTime = getTaskDeltaTime(TASK_SELF);
-    dT = (float)cycleTime * 0.000001f;
+    dT = US2S(cycleTime);
 
     bool fwLaunchIsActive = STATE(AIRPLANE) && isNavLaunchEnabled() && armTime == 0;
 
@@ -992,7 +992,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     // Calculate stabilisation
     pidController(dT);
 
-    mixTable();
+    mixTable(dT);
 
     if (isMixerUsingServos()) {
         servoMixer(dT);
