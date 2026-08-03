@@ -1177,6 +1177,12 @@ groups:
         field: nav.fw.launch_idle_throttle
         min: 1000
         max: 2000
+      - name: fw_throttle_rate_limiter
+        description: "Minimum time allowed for throttle to increase from minimum to maximum throttle (1000 to 2000) in milliseconds. Negative values limit decreasing as well as increasing throttle. Positive values only limit increasing throttle. Set to 0 to disable. Fixed wing only."
+        default_value: 0
+        field: motor.throttleRateLimiter
+        min: -5000
+        max: 5000
       - name: fw_auto_speed_level_min_thr
         description: "Minimum throttle for LEVEL flight in auto speed mode when using ground speed as speed reference [us]. This should be set with just enough margin to avoid stalling. Throttle can go lower than this setting when pitching down to a minimum of nav_fw_min_thr."
         default_value: 1300
