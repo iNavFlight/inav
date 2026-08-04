@@ -6,6 +6,15 @@
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
 
+#ifdef USE_MAVLINK_MSP_TUNNEL
+void mavlinkResetTunnelPortState(uint8_t portIndex)
+{
+    resetMspPort(&mavTunnelMspPorts[portIndex], NULL);
+    mavTunnelRemoteSystemIds[portIndex] = 0;
+    mavTunnelRemoteComponentIds[portIndex] = 0;
+}
+#endif
+
 static void resetMAVLinkPortRuntimeState(uint8_t portIndex)
 {
     mavlinkPortRuntime_t *state = &mavPortStates[portIndex];
@@ -29,9 +38,9 @@ static void resetMAVLinkPortRuntimeState(uint8_t portIndex)
     memset(&state->mavRecvStatus, 0, sizeof(state->mavRecvStatus));
     memset(&state->mavRecvMsg, 0, sizeof(state->mavRecvMsg));
     memset(&state->mlrs, 0, sizeof(state->mlrs));
-    resetMspPort(&mavTunnelMspPorts[portIndex], NULL);
-    mavTunnelRemoteSystemIds[portIndex] = 0;
-    mavTunnelRemoteComponentIds[portIndex] = 0;
+#ifdef USE_MAVLINK_MSP_TUNNEL
+    mavlinkResetTunnelPortState(portIndex);
+#endif
 }
 
 void freeMAVLinkTelemetryPortByIndex(uint8_t portIndex)

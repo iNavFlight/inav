@@ -5,16 +5,19 @@
 #include "mavlink/mavlink_command.h"
 #include "mavlink/mavlink_guided.h"
 #include "mavlink/mavlink_mission.h"
+#include "mavlink/mavlink_ports.h"
 #include "mavlink/mavlink_runtime.h"
 #include "mavlink/mavlink_streams.h"
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
 
-static void mavlinkResetTunnelState(uint8_t ingressPortIndex)
+#ifdef USE_MAVLINK_MSP_TUNNEL
+static void mavlinkReleaseTunnelOwnerIfIdle(uint8_t ingressPortIndex)
 {
-    resetMspPort(&mavTunnelMspPorts[ingressPortIndex], NULL);
-    mavTunnelRemoteSystemIds[ingressPortIndex] = 0;
-    mavTunnelRemoteComponentIds[ingressPortIndex] = 0;
+    if (mavTunnelMspPorts[ingressPortIndex].c_state == MSP_IDLE) {
+        mavTunnelRemoteSystemIds[ingressPortIndex] = 0;
+        mavTunnelRemoteComponentIds[ingressPortIndex] = 0;
+    }
 }
 
 static void mavlinkSendTunnelReply(uint8_t targetSystem, uint8_t targetComponent, const uint8_t *payload, uint8_t payloadLength)
@@ -34,19 +37,103 @@ static void mavlinkSendTunnelReply(uint8_t targetSystem, uint8_t targetComponent
     mavlinkSendMessage();
 }
 
-static void mavlinkSendTunnelMspReply(uint8_t targetSystem, uint8_t targetComponent, mspPacket_t *reply, uint8_t *replyPayloadHead, mspVersion_e mspVersion)
+static bool mavlinkSendTunnelMspReply(uint8_t targetSystem, uint8_t targetComponent, mspPacket_t *reply, uint8_t *replyPayloadHead, mspVersion_e mspVersion)
 {
     sbufSwitchToReader(&reply->buf, replyPayloadHead);
 
-    const int frameLength = mspSerialEncodePacket(reply, mspVersion, mavTunnelFrameBuf, sizeof(mavTunnelFrameBuf));
-    for (int offset = 0; offset < frameLength; offset += MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
-        const uint8_t chunkLength = MIN(MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN, frameLength - offset);
-        mavlinkSendTunnelReply(
-            targetSystem,
-            targetComponent,
-            mavTunnelFrameBuf + offset,
-            chunkLength);
+    mspEncodedFrame_t frame;
+    if (!mspSerialPrepareFrame(reply, mspVersion, &frame)) {
+        return false;
     }
+
+    uint8_t chunk[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN];
+    for (int offset = 0; offset < frame.totalLength; offset += MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
+        const int chunkLength = mspSerialFrameCopyRange(&frame, offset, chunk, sizeof(chunk));
+        if (chunkLength <= 0) {
+            return false;
+        }
+        mavlinkSendTunnelReply(targetSystem, targetComponent, chunk, chunkLength);
+    }
+    return true;
+}
+
+static bool mavlinkTunnelMessageTargetsLocalFc(const mavlink_tunnel_t *msg)
+{
+    return msg->payload_type == MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP &&
+        msg->target_system == mavSystemId &&
+        (msg->target_component == 0 || msg->target_component == mavComponentId);
+}
+
+static void mavlinkPrepareTunnelParser(uint8_t ingressPortIndex, timeMs_t now)
+{
+    mspPort_t *mspPort = &mavTunnelMspPorts[ingressPortIndex];
+    const bool senderChanged =
+        mavTunnelRemoteSystemIds[ingressPortIndex] != mavlinkContext.recvMsg.sysid ||
+        mavTunnelRemoteComponentIds[ingressPortIndex] != mavlinkContext.recvMsg.compid;
+    const bool timedOut = (now - mspPort->lastActivityMs) >= MAVLINK_TUNNEL_MSP_TIMEOUT_MS;
+
+    if (mspPort->c_state != MSP_IDLE && (timedOut || senderChanged)) {
+        mavlinkResetTunnelPortState(ingressPortIndex);
+    }
+
+    mavTunnelRemoteSystemIds[ingressPortIndex] = mavlinkContext.recvMsg.sysid;
+    mavTunnelRemoteComponentIds[ingressPortIndex] = mavlinkContext.recvMsg.compid;
+    mspPort->lastActivityMs = now;
+}
+
+static bool mavlinkProcessCompletedTunnelCommand(uint8_t ingressPortIndex)
+{
+    mspPort_t *mspPort = &mavTunnelMspPorts[ingressPortIndex];
+    const mspVersion_e mspVersion = mspPort->mspVersion;
+
+    mspPacket_t reply = {
+        .buf = { .ptr = mavTunnelReplyPayloadBuf, .end = ARRAYEND(mavTunnelReplyPayloadBuf), },
+        .cmd = -1,
+        .flags = 0,
+        .result = 0,
+    };
+    uint8_t *replyPayloadHead = reply.buf.ptr;
+
+    if (mspPort->cmdMSP == MSP_SET_PASSTHROUGH) {
+        reply.cmd = MSP_SET_PASSTHROUGH;
+        reply.result = MSP_RESULT_ERROR;
+        mspPort->c_state = MSP_IDLE;
+        mavlinkSendTunnelMspReply(
+            mavlinkContext.recvMsg.sysid,
+            mavlinkContext.recvMsg.compid,
+            &reply,
+            replyPayloadHead,
+            mspVersion);
+        return false;
+    }
+
+    mspPostProcessFnPtr mspPostProcessFn = NULL;
+    const uint16_t command = mspPort->cmdMSP;
+    mspResult_e status = mspSerialProcessCommand(mspPort, mspFcProcessCommand, &reply, &mspPostProcessFn);
+
+    if (mspPostProcessFn && command != MSP_REBOOT) {
+        sbufInit(&reply.buf, mavTunnelReplyPayloadBuf, ARRAYEND(mavTunnelReplyPayloadBuf));
+        reply.result = MSP_RESULT_ERROR;
+        mspPostProcessFn = NULL;
+        status = MSP_RESULT_ERROR;
+    }
+
+    if (status != MSP_RESULT_NO_REPLY) {
+        mavlinkSendTunnelMspReply(
+            mavlinkContext.recvMsg.sysid,
+            mavlinkContext.recvMsg.compid,
+            &reply,
+            replyPayloadHead,
+            mspVersion);
+    }
+
+    if (!mspPostProcessFn) {
+        return false;
+    }
+
+    waitForSerialPortToFinishTransmitting(mavPortStates[ingressPortIndex].port);
+    mspPostProcessFn(mavPortStates[ingressPortIndex].port);
+    return true;
 }
 
 static bool handleIncoming_TUNNEL(uint8_t ingressPortIndex)
@@ -58,36 +145,18 @@ static bool handleIncoming_TUNNEL(uint8_t ingressPortIndex)
     mavlink_tunnel_t msg;
     mavlink_msg_tunnel_decode(&mavlinkContext.recvMsg, &msg);
 
-    if (msg.payload_type != MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP) {
+    if (!mavlinkTunnelMessageTargetsLocalFc(&msg)) {
         return false;
     }
 
-    if (msg.target_system != mavSystemId) {
+    if (msg.payload_length > MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
+        mavlinkResetTunnelPortState(ingressPortIndex);
         return false;
     }
 
-    if (msg.target_component != 0 && msg.target_component != mavComponentId) {
-        return false;
-    }
+    mavlinkPrepareTunnelParser(ingressPortIndex, millis());
 
     mspPort_t *mspPort = &mavTunnelMspPorts[ingressPortIndex];
-    const timeMs_t now = millis();
-    if (msg.payload_length > MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
-        mavlinkResetTunnelState(ingressPortIndex);
-        return false;
-    }
-
-    if (mspPort->c_state != MSP_IDLE &&
-        ((now - mspPort->lastActivityMs) > MAVLINK_TUNNEL_MSP_TIMEOUT_MS ||
-         mavTunnelRemoteSystemIds[ingressPortIndex] != mavlinkContext.recvMsg.sysid ||
-         mavTunnelRemoteComponentIds[ingressPortIndex] != mavlinkContext.recvMsg.compid)) {
-        mavlinkResetTunnelState(ingressPortIndex);
-    }
-
-    mavTunnelRemoteSystemIds[ingressPortIndex] = mavlinkContext.recvMsg.sysid;
-    mavTunnelRemoteComponentIds[ingressPortIndex] = mavlinkContext.recvMsg.compid;
-    mspPort->lastActivityMs = now;
-
     bool handled = false;
     for (uint8_t payloadIndex = 0; payloadIndex < msg.payload_length; payloadIndex++) {
         if (!mspSerialProcessReceivedByte(mspPort, msg.payload[payloadIndex])) {
@@ -99,49 +168,16 @@ static bool handleIncoming_TUNNEL(uint8_t ingressPortIndex)
             continue;
         }
 
-        mspPacket_t reply = {
-            .buf = { .ptr = mavTunnelReplyPayloadBuf, .end = ARRAYEND(mavTunnelReplyPayloadBuf), },
-            .cmd = -1,
-            .flags = 0,
-            .result = 0,
-        };
-        uint8_t *replyPayloadHead = reply.buf.ptr;
-
-        if (mspPort->cmdMSP == MSP_SET_PASSTHROUGH) {
-            reply.cmd = MSP_SET_PASSTHROUGH;
-            reply.result = MSP_RESULT_ERROR;
-            mavlinkSendTunnelMspReply(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, &reply, replyPayloadHead, mspPort->mspVersion);
-            mavlinkResetTunnelState(ingressPortIndex);
+        if (mavlinkProcessCompletedTunnelCommand(ingressPortIndex)) {
+            mavlinkResetTunnelPortState(ingressPortIndex);
             break;
         }
-
-        mspPostProcessFnPtr mspPostProcessFn = NULL;
-        const uint16_t command = mspPort->cmdMSP;
-        mspResult_e status = mspSerialProcessCommand(mspPort, mspFcProcessCommand, &reply, &mspPostProcessFn);
-
-        if (mspPostProcessFn && command != MSP_REBOOT) {
-            sbufInit(&reply.buf, mavTunnelReplyPayloadBuf, ARRAYEND(mavTunnelReplyPayloadBuf));
-            reply.result = MSP_RESULT_ERROR;
-            mspPostProcessFn = NULL;
-            status = MSP_RESULT_ERROR;
-        }
-
-        if (status != MSP_RESULT_NO_REPLY) {
-            mavlinkSendTunnelMspReply(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, &reply, replyPayloadHead, mspPort->mspVersion);
-        }
-
-        mavlinkResetTunnelState(ingressPortIndex);
-
-        if (mspPostProcessFn) {
-            waitForSerialPortToFinishTransmitting(mavPortStates[ingressPortIndex].port);
-            mspPostProcessFn(mavPortStates[ingressPortIndex].port);
-        }
-
-        break;
     }
 
+    mavlinkReleaseTunnelOwnerIfIdle(ingressPortIndex);
     return handled;
 }
+#endif
 
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
@@ -425,8 +461,10 @@ mavlinkFcDispatchResult_e mavlinkFcDispatchIncomingMessage(uint8_t ingressPortIn
     case MAVLINK_MSG_ID_RADIO_STATUS:
         handleIncoming_RADIO_STATUS();
         return MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY;
+#ifdef USE_MAVLINK_MSP_TUNNEL
     case MAVLINK_MSG_ID_TUNNEL:
         return handleIncoming_TUNNEL(ingressPortIndex) ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+#endif
     default:
         return MAVLINK_FC_DISPATCH_NOT_HANDLED;
     }
