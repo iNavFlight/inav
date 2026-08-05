@@ -86,8 +86,8 @@
 // **** BMI IMU ****// 
 #define USE_IMU_BMI088
 #define IMU_BMI088_ALIGN       CW270_DEG
-#define BMI160_CS_PIN          PB12
-#define BMI160_SPI_BUS         BUS_SPI2
+#define BMI088_CS_PIN          PB12
+#define BMI088_SPI_BUS         BUS_SPI2
 
 #define USE_IMU_BMI160
 #define IMU_BMI160_ALIGN       CW270_DEG
