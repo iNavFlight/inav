@@ -48,9 +48,14 @@ void terrainNavHoldCoreReset(terrainNavHoldState_t *state)
 // TERRAIN AHEAD - the predictive escape test. Fails when even the FULL
 // configured climb rate, applied from this moment, arrives below the
 // minimum AGL at some point along the course ahead ("at this speed, this
-// slope will beat you"). Persistence keeps single noisy samples silent;
-// clearing needs the test to pass WITH margin for a while - normally the
-// pilot turning away (the scan follows the course), slowing or climbing.
+// slope will beat you"). Below the minimum, closeness alone is not a
+// forward threat - AUTO CLIMB and PULL UP own that situation - so only the
+// terrain-relative deficit counts there; above the minimum the altitude
+// cushion legitimately buys escape headroom and stays in the sum.
+// Persistence keeps single noisy samples silent; clearing needs the test
+// passing AND the aircraft at/above the minimum, both sustained - normally
+// the pilot turning away (the scan follows the course), slowing or
+// climbing. A threat that returns simply re-fires the series.
 // Without a trusted view ahead the alarm cannot exist - the reactive floor
 // alarm stands alone and TERRAIN LOOKAHEAD OFF explains why
 static void updateEscapeAlarm(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in)
@@ -62,9 +67,14 @@ static void updateEscapeAlarm(terrainNavHoldState_t *state, const terrainNavHold
         return;
     }
 
-    // How far below the minimum the aircraft arrives at the worst point
-    // ahead, climbing at full rate from now
-    const float shortfallCm = in->escapeDeficitCm + (in->minAglCm - in->aglCm);
+    // Altitude cushion above the minimum offsets the deficit; below the
+    // minimum the same term would fire the alarm over flat ground, so
+    // there it is clamped out and only a real forward deficit remains
+    float cushionCm = in->minAglCm - in->aglCm;
+    if (cushionCm > 0.0f) {
+        cushionCm = 0.0f;
+    }
+    const float shortfallCm = in->escapeDeficitCm + cushionCm;
 
     if (shortfallCm > 0.0f) {
         state->escapeClearSinceMs = 0;
@@ -76,7 +86,7 @@ static void updateEscapeAlarm(terrainNavHoldState_t *state, const terrainNavHold
         }
     } else {
         state->escapeBadSinceMs = 0;
-        if (shortfallCm < -(float)TERRAIN_NAV_HOLD_ESCAPE_CLEAR_MARGIN_CM) {
+        if (in->aglCm >= in->minAglCm) {
             if (state->escapeClearSinceMs == 0) {
                 state->escapeClearSinceMs = (in->nowMs != 0) ? in->nowMs : 1;
             }
@@ -84,7 +94,8 @@ static void updateEscapeAlarm(terrainNavHoldState_t *state, const terrainNavHold
                 state->terrainAheadActive = false;
             }
         } else {
-            // Passing, but without margin: no fresh alarm, no clearing either
+            // Passing but still below the minimum: not clear yet - the
+            // aircraft is not where it should be until the minimum is back
             state->escapeClearSinceMs = 0;
         }
     }
@@ -161,7 +172,9 @@ static void startCapture(terrainNavHoldState_t *state, const terrainNavHoldInput
     state->reCapturePending = false;
     state->minAglReached = false;
     state->climbBestAglCm = in->aglCm;
-    state->pullUpActive = false;
+    // An active PULL UP deliberately survives a capture below the minimum:
+    // releasing the stick at the lowest point must not extinguish the red
+    // alarm; updateFloorAlarm clears it the moment the minimum is back
     updateFloorAlarm(state, in);
 }
 

@@ -142,10 +142,10 @@ typedef struct {
 // this long before the alarm fires - no flicker on single noisy samples
 #define TERRAIN_NAV_HOLD_ESCAPE_PERSIST_MS 1000
 
-// ...and clears only after the test passes with the margin below for this
-// long (typically because the pilot turned, slowed or climbed)
+// ...and clears only after the test passes with the aircraft at/above the
+// minimum, both sustained this long (typically because the pilot turned,
+// slowed or climbed); a returning threat simply re-fires the series
 #define TERRAIN_NAV_HOLD_ESCAPE_CLEAR_MS 2000
-#define TERRAIN_NAV_HOLD_ESCAPE_CLEAR_MARGIN_CM 1000
 
 void terrainNavHoldCoreReset(terrainNavHoldState_t *state);
 void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in, terrainNavHoldOutput_t *out);
