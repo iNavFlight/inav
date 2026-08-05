@@ -2,6 +2,8 @@
 #include "common/log.h"
 #include "common/time.h"
 #include "drivers/time.h"
+#include "drivers/nvic.h"
+#include "build/atomic.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include "fc/settings.h"
@@ -43,17 +45,6 @@ static uint8_t activeNodeCount = 0;
 static dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
 static volatile uint32_t txErrCount = 0;
 static uint32_t busOffCount = 0;
-
-#if defined(STM32H7)
-static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(FDCAN1_IT0_IRQn); }
-static inline void dronecanUnmaskTxISR(void) { NVIC_EnableIRQ(FDCAN1_IT0_IRQn); }
-#elif defined(STM32F7)
-static inline void dronecanMaskTxISR(void)   { NVIC_DisableIRQ(CAN1_TX_IRQn); }
-static inline void dronecanUnmaskTxISR(void) { NVIC_EnableIRQ(CAN1_TX_IRQn); }
-#else
-static inline void dronecanMaskTxISR(void)   {}
-static inline void dronecanUnmaskTxISR(void) {}
-#endif
 
 /* Forward declarations ------------------------------------------------------*/
 
@@ -149,7 +140,9 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 	             }
 	             else if (rx_res > 0)        // Success - process the frame
 	             {
-		             canardHandleRxFrame(&canard, &rx_frame, timestamp);
+		             ATOMIC_BLOCK(NVIC_PRIO_CAN) {
+		                 canardHandleRxFrame(&canard, &rx_frame, timestamp);
+		             }
 	             }
              }
             // Drain any TX frames queued by RX handlers (e.g. GetNodeInfo responses)
@@ -168,10 +161,11 @@ void dronecanUpdate(timeUs_t currentTimeUs)
                 }
 
                 uint32_t rxDrops = canardSTM32GetAndClearRxDropCount();
-                dronecanMaskTxISR();
-                uint32_t txErrs = txErrCount;
-                txErrCount = 0;
-                dronecanUnmaskTxISR();
+                uint32_t txErrs;
+                ATOMIC_BLOCK(NVIC_PRIO_CAN) {
+                    txErrs = txErrCount;
+                    txErrCount = 0;
+                }
                 if (rxDrops > 0) {
                     LOG_DEBUG(CAN, "RX drops: %" PRIu32, rxDrops);
                 }
@@ -296,22 +290,28 @@ void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) { UNUSED(hcan);
 
 static void processCanardTxQueueSafe(void) {
     for (;;) {
-        dronecanMaskTxISR();
-        const CanardCANFrame *tx_frame = canardPeekTxQueue(&canard);
-        if (tx_frame == NULL) {
-            dronecanUnmaskTxISR();
-            break;
-        }
-        const int16_t tx_res = canardSTM32Transmit(tx_frame);  // HAL register write, ~1µs
-        if (tx_res != 0) {
-            if (tx_res < 0) {
-                LOG_DEBUG(CAN, "Transmit error %d", tx_res);
+        bool queueEmpty = false;
+        bool hwFull = false;
+
+        ATOMIC_BLOCK(NVIC_PRIO_CAN) {
+            const CanardCANFrame *tx_frame = canardPeekTxQueue(&canard);
+            if (tx_frame == NULL) {
+                queueEmpty = true;
+            } else {
+                const int16_t tx_res = canardSTM32Transmit(tx_frame);  // HAL register write, ~1µs
+                if (tx_res != 0) {
+                    if (tx_res < 0) {
+                        LOG_DEBUG(CAN, "Transmit error %d", tx_res);
+                    }
+                    canardPopTxQueue(&canard);
+                } else {
+                    hwFull = true;  // HW TX full, ISR will refill when a slot opens
+                }
             }
-            canardPopTxQueue(&canard);
         }
-        dronecanUnmaskTxISR();
-        if (tx_res == 0) {
-            break;  // HW TX full, ISR will refill when a slot opens
+
+        if (queueEmpty || hwFull) {
+            break;
         }
     }
 }
@@ -347,15 +347,16 @@ static void send_NodeStatus(void) {
     // loss
     static uint8_t transfer_id;
 
-    dronecanMaskTxISR();
-    const int16_t bc_res = canardBroadcast(&canard,
-                    UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
-                    UAVCAN_PROTOCOL_NODESTATUS_ID,
-                    &transfer_id,
-                    CANARD_TRANSFER_PRIORITY_LOW,
-                    buffer,
-                    len);
-    dronecanUnmaskTxISR();
+    int16_t bc_res;
+    ATOMIC_BLOCK(NVIC_PRIO_CAN) {
+        bc_res = canardBroadcast(&canard,
+                        UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
+                        UAVCAN_PROTOCOL_NODESTATUS_ID,
+                        &transfer_id,
+                        CANARD_TRANSFER_PRIORITY_LOW,
+                        buffer,
+                        len);
+    }
     if (bc_res < 0) {
         LOG_DEBUG(CAN, "NodeStatus broadcast failed: %d", bc_res);
     }
@@ -370,9 +371,9 @@ static void process1HzTasks(timeUs_t timestamp_usec)
    /*
       Purge transfers that are no longer transmitted. This can free up some memory
     */
-    dronecanMaskTxISR();
-    canardCleanupStaleTransfers(&canard, timestamp_usec);
-    dronecanUnmaskTxISR();
+    ATOMIC_BLOCK(NVIC_PRIO_CAN) {
+        canardCleanupStaleTransfers(&canard, timestamp_usec);
+    }
 
     /*
       Transmit the node status message
@@ -568,8 +569,9 @@ static void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) 
 
 	uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
 
-    dronecanMaskTxISR();
-    const int16_t rr_res = canardRequestOrRespond(ins,
+    int16_t rr_res;
+    ATOMIC_BLOCK(NVIC_PRIO_CAN) {
+        rr_res = canardRequestOrRespond(ins,
 						   transfer->source_node_id,
 						   UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE,
 						   UAVCAN_PROTOCOL_GETNODEINFO_ID,
@@ -578,7 +580,7 @@ static void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) 
 						   CanardResponse,
 						   &buffer[0],
 						   total_size);
-    dronecanUnmaskTxISR();
+    }
     if (rr_res < 0) {
         LOG_DEBUG(CAN, "GetNodeInfo response failed: %d", rr_res);
     }
