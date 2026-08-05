@@ -252,20 +252,8 @@ STATIC_PROTOTHREAD(pitotThread)
     }
 
     while(1) {
-#ifdef USE_SIMULATOR
-    	while (SIMULATOR_HAS_OPTION(HITL_AIRSPEED) && SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE))
-        {
-            ptDelayUs(10000);
-    	}
-#endif
-        if (pitot.lastSeenHealthyMs == 0) {
-            if (pitot.dev.start(&pitot.dev)) {
-                pitot.lastSeenHealthyMs = millis();
-            }
-        }
-
         if ((millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
-            if (pitot.dev.get(&pitot.dev)) {    // read current data
+            if (pitot.dev.get(&pitot.dev) && pitot.lastSeenHealthyMs > 0) {    // read current data
                 pitot.lastSeenHealthyMs = millis();
             }
 
@@ -276,17 +264,9 @@ STATIC_PROTOTHREAD(pitotThread)
 
         pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperatureTmp);
 
-        bool usePressureCalculation = true;
 #if defined(USE_PITOT_FAKE)
-        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) {
+        if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_FAKE) {
             pitot.airSpeed = fakePitotGetAirspeed();
-            usePressureCalculation = false;
-        }
-#endif
-#ifdef USE_SIMULATOR
-        if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-            pitot.airSpeed = simulatorData.airSpeed;
-            usePressureCalculation = false;
         }
 #endif
 
@@ -304,7 +284,7 @@ STATIC_PROTOTHREAD(pitotThread)
 
             // NOTE ::filter pressure - apply filter when NOT calibrating for zero !!!
             currentTimeUs = micros();
-            if (usePressureCalculation) {
+            if (detectedSensors[SENSOR_INDEX_PITOT] != PITOT_FAKE) {
                 if (pitotmeterConfig()->pitot_lpf_milli_hz) {
                     pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
                 } else {
@@ -320,9 +300,6 @@ STATIC_PROTOTHREAD(pitotThread)
             performPitotCalibrationCycle();
             pitot.airSpeed = 0.0f;
         }
-
-        // Check pitot airspeed validity and cache result for use by external functions
-        pitotAirspeedValidCached = isPitotAirspeedValid();
 
         ptYield();
     }
@@ -367,7 +344,6 @@ static float getWindEstimatedVirtualAirspeed(void)
 #endif
 static float getVirtualAirspeedEstimate(void)
 {
-    pitot.lastSeenHealthyMs = millis();
 #if defined(USE_GPS)
     if (STATE(GPS_FIX)) {
 #if defined(USE_WIND_ESTIMATOR)
@@ -385,14 +361,26 @@ static float getVirtualAirspeedEstimate(void)
 
 void pitotUpdate(void)
 {
+#ifdef USE_SIMULATOR
+    if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
+        if (!SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE)) {
+            pitot.airSpeed = simulatorData.airSpeed;
+            pitot.lastSeenHealthyMs = millis();
+        }
+    } else
+#endif
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
     if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
         pitot.airSpeed = getVirtualAirspeedEstimate();
-        pitotAirspeedValidCached = isPitotAirspeedValid();
-        return;
-    }
+        pitot.lastSeenHealthyMs = millis();
+    } else
 #endif
-    pitotThread();
+    {
+        pitotThread();
+    }
+
+    // Check pitot airspeed validity and cache result for external use
+    pitotAirspeedValidCached = isPitotAirspeedValid();
 }
 
 /*
