@@ -56,12 +56,10 @@
 
 // GYRO_FS_SEL = 0 -> +/-2000dps, 16.4 LSB/(deg/s)
 #define ICM40609D_GYRO_FS_SEL_2000DPS                (0 << 5)
-#define ICM40609D_GYRO_ODR_1KHZ                      6
 
 // ACCEL_FS_SEL = 1 -> +/-16g, 2048 LSB/g (FS_SEL=0 is +/-32g on this chip,
 // unlike ICM42605 where 0 is the narrowest common range)
 #define ICM40609D_ACCEL_FS_SEL_16G                   (1 << 5)
-#define ICM40609D_ACCEL_ODR_1KHZ                     6
 
 // Low-latency UI filter bandwidth select, both fields set to the "trivial"
 // low-latency option (verified numeric meaning against the same bit layout
@@ -79,6 +77,20 @@
 
 #define ICM40609D_RA_INT_SOURCE0                     0x65
 #define ICM40609D_UI_DRDY_INT1_EN_ENABLED            (1 << 3)
+
+// ODR select values (bits[3:0] of GYRO_CONFIG0/ACCEL_CONFIG0) verified
+// against the datasheet's ODR tables -- identical encoding to ICM42605
+// for these five rates, so reusing the same gyroFilterAndRateConfig_t
+// mechanism and DLPF tag (unused here; this driver doesn't vary the UI
+// filter bandwidth by requested LPF, see icm40609dAccAndGyroInit).
+static const gyroFilterAndRateConfig_t icm40609dGyroConfigs[] = {
+    /*                            DLPF  ODR */
+    { GYRO_LPF_256HZ,   8000,   { 0,    3  } },
+    { GYRO_LPF_256HZ,   4000,   { 0,    4  } },
+    { GYRO_LPF_256HZ,   2000,   { 0,    5  } },
+    { GYRO_LPF_256HZ,   1000,   { 0,    6  } },
+    { GYRO_LPF_256HZ,    500,   { 0,    15 } },
+};
 
 static void icm40609dAccInit(accDev_t *acc)
 {
@@ -123,18 +135,19 @@ bool icm40609dAccDetect(accDev_t *acc)
 static void icm40609dAccAndGyroInit(gyroDev_t *gyro)
 {
     busDevice_t * dev = gyro->busDev;
-
-    gyro->sampleRateIntervalUs = 1000; // 1kHz ODR
+    const gyroFilterAndRateConfig_t * config = chooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs,
+                                                                 &icm40609dGyroConfigs[0], ARRAYLEN(icm40609dGyroConfigs));
+    gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
     busWrite(dev, ICM40609D_RA_PWR_MGMT0, ICM40609D_PWR_MGMT0_TEMP_DISABLE_OFF | ICM40609D_PWR_MGMT0_ACCEL_MODE_LN | ICM40609D_PWR_MGMT0_GYRO_MODE_LN);
     delay(15);
 
-    busWrite(dev, ICM40609D_RA_GYRO_CONFIG0, ICM40609D_GYRO_FS_SEL_2000DPS | ICM40609D_GYRO_ODR_1KHZ);
+    busWrite(dev, ICM40609D_RA_GYRO_CONFIG0, ICM40609D_GYRO_FS_SEL_2000DPS | (config->gyroConfigValues[1] & 0x0F));
     delay(15);
 
-    busWrite(dev, ICM40609D_RA_ACCEL_CONFIG0, ICM40609D_ACCEL_FS_SEL_16G | ICM40609D_ACCEL_ODR_1KHZ);
+    busWrite(dev, ICM40609D_RA_ACCEL_CONFIG0, ICM40609D_ACCEL_FS_SEL_16G | (config->gyroConfigValues[1] & 0x0F));
     delay(15);
 
     // Low latency, same convention as ICM42605
@@ -144,6 +157,11 @@ static void icm40609dAccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, ICM40609D_RA_INT_CONFIG, ICM40609D_INT1_MODE_PULSED | ICM40609D_INT1_DRIVE_CIRCUIT_PP | ICM40609D_INT1_POLARITY_ACTIVE_HIGH);
     delay(15);
 
+    // Unlike ICM42605, this chip's Bank 0 register map has no INT_CONFIG1
+    // (0x64) / ASYNC_RESET bit -- confirmed absent from DS-000272 rev 0.8
+    // (register map jumps from INT_CONFIG0 at 0x63 straight to INT_SOURCE0
+    // at 0x65). ICM42605's "clear ASYNC_RESET for proper INT1/INT2
+    // operation" erratum step is therefore intentionally omitted here.
     busWrite(dev, ICM40609D_RA_INT_CONFIG0, ICM40609D_UI_DRDY_INT_CLEAR_ON_SBR);
     delay(100);
 
