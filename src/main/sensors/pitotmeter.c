@@ -252,8 +252,14 @@ STATIC_PROTOTHREAD(pitotThread)
     }
 
     while(1) {
+        if (pitot.lastSeenHealthyMs == 0) {
+            if (pitot.dev.start(&pitot.dev)) {
+                pitot.lastSeenHealthyMs = millis();
+            }
+        }
+
         if ((millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
-            if (pitot.dev.get(&pitot.dev) && pitot.lastSeenHealthyMs > 0) {    // read current data
+            if (pitot.dev.get(&pitot.dev)) {    // read current data
                 pitot.lastSeenHealthyMs = millis();
             }
 
