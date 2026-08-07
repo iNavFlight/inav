@@ -33,6 +33,6 @@ typedef struct lightsConfig_s {
 PG_DECLARE(lightsConfig_t, lightsConfig);
 
 void lightsUpdate(timeUs_t currentTimeUs);
-void lightsInit();
+void lightsInit(void);
 
 #endif /* USE_LIGHTS */

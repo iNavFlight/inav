@@ -18,21 +18,16 @@
 #include <stdint.h>
 
 #include <platform.h>
-
 #include "config/config_master.h"
-
-#include "flight/mixer.h"
-
+#include "flight/mixer_profile.h"
 #include "rx/rx.h"
-
 #include "io/serial.h"
-
 #include "telemetry/telemetry.h"
+#include "sensors/compass.h"
 
-// alternative defaults settings for FF_F35_LIGHTNING targets
 void targetConfiguration(void)
 {
-    motorConfigMutable()->maxthrottle = 2000;
+    compassConfigMutable()->mag_align = CW90_DEG;
 
     serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
     serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;
@@ -48,7 +43,6 @@ void targetConfiguration(void)
     rxConfigMutable()->serialrx_provider = SERIALRX_CRSF;
 
     serialConfigMutable()->portConfigs[6].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-    telemetryConfigMutable()->uartUnidirectional = 1;
 
     mixerConfigMutable()->platformType = PLATFORM_AIRPLANE;
 }

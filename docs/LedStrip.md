@@ -7,7 +7,7 @@ require that all the LEDs in the strip show the same color.
 Addressable LED strips can be used to show information from the flight controller system, the current implementation
 supports the following:
 
-* Up to 32 LEDs.
+* Up to 128 LEDs. _If using more than 20 LEDs, you should look to use a separate power supply._
 * Indicators showing pitch/roll stick positions.
 * Heading/Orientation lights.
 * Flight mode specific color schemes.
@@ -17,12 +17,12 @@ supports the following:
 * RSSI level.
 * Battery level.
 
-Support for more than 32 LEDs is possible, it just requires additional development.
+Support for more than 128 LEDs is possible, it just requires additional development.
 
 ## Supported hardware
 
-Only strips of 32 WS2811/WS2812 LEDs are supported currently.  If the strip is longer than 32 LEDs it does not matter,
-but only the first 32 are used.
+Only strips of 128 WS2811/WS2812 LEDs are supported currently.  If the strip is longer than 128 LEDs it does not matter,
+but only the first 128 are used.
 
 WS2812 LEDs require an 800khz signal and precise timings and thus requires the use of a dedicated hardware timer.
 
@@ -42,11 +42,11 @@ It could be possible to be able to specify the timings required via CLI if users
 
 WS2812 LED strips generally require a single data line, 5V and GND.
 
-WS2812 LEDs on full brightness can consume quite a bit of current.  It is recommended to verify the current draw and ensure your
-supply can cope with the load.  On a multirotor that uses multiple BEC ESC's you can try use a different BEC to the one the FC
-uses.  e.g. ESC1/BEC1 -> FC, ESC2/BEC2 -> LED strip.   It's also possible to power one half of the strip from one BEC and the other half
-from another BEC.  Just ensure that the GROUND is the same for all BEC outputs and LEDs.
+WS2812 LEDs on full brightness can consume quite a bit of current.  **It is recommended to verify the current draw of you LEDs and ensure your supply can cope with the load. Remember, your flight controller will likely be using the same BEC to operate.** Check the specs of the LED chips. Some are more power hungry than others. Remember that if using the flight controller's 5v supply. This is also powering other components on your flight controller. Make sure there is enough overhead so that they don't brownout.
 
+On a multirotor that uses multiple BEC ESC's you can try use a different BEC to the one the FC uses. e.g. ESC1/BEC1 -> FC, ESC2/BEC2 -> LED strip. It's also possible to power one half of the strip from one BEC and the other half from another BEC. Just ensure that the GROUND is the same for all BEC outputs and LEDs.
+
+If using a large number of LEDs. It would be more efficient to use 12v LEDs and power them with a separate regulated supply. Especially if using long strips. You would use the data line (LED pad) from the flight controller. Make sure there is continuity between the ground on the LEDS and the ground on the flight controller.
 
 | Target                | Pin  | LED Strip | Signal |
 | --------------------- | ---- | --------- | -------|
@@ -71,7 +71,7 @@ Enable the Led Strip feature via the GUI under setup.
 Configure the leds from the Led Strip tab in the INAV GUI.
 First setup how the led's are laid out so that you can visualize it later as you configure and so the flight controller knows how many led's there are available.
 
-There is a step by step guide on how to use the GUI to configure the Led Strip feature using the GUI http://blog.oscarliang.net/setup-rgb-led-cleanflight/ which was published early 2015 by Oscar Liang which may or may not be up-to-date by the time you read this.
+There is a step by step guide on how to use the GUI to configure the Led Strip feature using the GUI https://oscarliang.com/setup-led-betaflight/ which was published early 2015 by Oscar Liang which may or may not be up-to-date by the time you read this.
 
 CLI:
 Enable the `LED_STRIP` feature via the cli:
@@ -115,6 +115,7 @@ Each LED has one base function:
 * `G` - `G`PS state.
 * `S` - R`S`SSI level.
 * `L` - Battery `L`evel.
+* `H` - C`H`annel.
 
 And each LED has overlays:
 
@@ -124,8 +125,9 @@ And each LED has overlays:
 * `B` - `B`link (flash twice) mode.
 * `O` - Lars`O`n Scanner (Cylon Effect).
 * `N` - Blink on la`N`ding (throttle < 50%).
+* `E` - Strob`E` Blink white on top of selected color.
 
-`cc` specifies the color number (0 based index).
+`cc` specifies the color number (0 based index), or Channel number to adjust Hue
 
 Example:
 
@@ -137,6 +139,7 @@ led 3 0,15:SD:AWI:0
 led 4 7,7::C:1
 led 5 8,8::C:2
 led 6 8,9::B:1
+led 7 8,10::H:6
 ```
 
 To erase an led, and to mark the end of the chain, use `0,0::` as the second argument, like this:
@@ -233,6 +236,12 @@ That is, south facing LEDs have priority.
 The mapping between modes led placement and colors is currently fixed and cannot be changed.
 
 #### Indicator
+
+##### For fixed wing (INAV 6.1 onwards)
+
+This mode flashes LEDs that correspond to the roll stick position. Rolling left will flash any `indicator` LED on the left half of the grid. Rolling right will flash any `indicator` on the right side of the grid.
+
+##### For other platforms (all platforms pre INAV 6.1)
 
 This mode flashes LEDs that correspond to roll and pitch stick positions.  i.e.  they indicate the direction the craft is going to turn.
 
@@ -536,7 +545,7 @@ LEDs 14-15 should be placed facing up, in the middle
 ### Exmple 28 LED config
 
 ```
-#right rear cluster
+# right rear cluster
 led 0 9,9:S:FWT:0
 led 1 10,10:S:FWT:0
 led 2 11,11:S:IA:0

@@ -30,11 +30,12 @@
 #include "drivers/time.h"
 #include "common/calibration.h"
 
+
 void zeroCalibrationStartS(zeroCalibrationScalar_t * s, timeMs_t window, float threshold, bool allowFailure)
 {
     // Reset parameters and state
     s->params.state = ZERO_CALIBRATION_IN_PROGRESS;
-    s->params.startTimeMs = millis();
+    s->params.startTimeMs = 0;
     s->params.windowSizeMs = window;
     s->params.stdDevThreshold = threshold;
     s->params.allowFailure = allowFailure;
@@ -60,6 +61,13 @@ void zeroCalibrationAddValueS(zeroCalibrationScalar_t * s, const float v)
         return;
     }
 
+    // An unknown delay may have passed between `zeroCalibrationStartS` and first sample acquisition
+    // therefore our window measurement might be incorrect
+    // To account for that we reset the startTimeMs when acquiring the first sample
+    if (s->params.sampleCount == 0 && s->params.startTimeMs == 0) {
+        s->params.startTimeMs = millis();
+    }
+
     // Add value
     s->val.accumulatedValue += v;
     s->params.sampleCount++;
@@ -68,9 +76,11 @@ void zeroCalibrationAddValueS(zeroCalibrationScalar_t * s, const float v)
     // Check if calibration is complete
     if ((millis() - s->params.startTimeMs) > s->params.windowSizeMs) {
         const float stddev = devStandardDeviation(&s->val.stdDev);
+
         if (stddev > s->params.stdDevThreshold) {
             if (!s->params.allowFailure) {
-                // If deviation is too big - restart calibration
+                // If deviation is too big && no failure allowed - restart calibration
+                // TODO :: some safeguard should exist which will not allow to keep on calibrating for ever
                 s->params.startTimeMs = millis();
                 s->params.sampleCount = 0;
                 s->val.accumulatedValue = 0;

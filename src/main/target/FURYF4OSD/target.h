@@ -35,29 +35,21 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW180_DEG
-
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
+// ICM42605/ICM42688P
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW180_DEG
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_CS_PIN         PA4
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define USE_SPI_DEVICE_3
@@ -77,7 +69,6 @@
 #define SPI2_MISO_PIN   	      PB14
 #define SPI2_MOSI_PIN   	      PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
@@ -127,26 +118,16 @@
 
 #define USE_BARO
 #define BARO_I2C_BUS                DEFAULT_I2C_BUS
-#define USE_BARO_BMP280
-#define USE_BARO_MS5611
-#define USE_BARO_BMP085
+#define USE_BARO_ALL
 
 #define USE_MAG
 #define MAG_I2C_BUS                 DEFAULT_I2C_BUS
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
@@ -189,5 +170,3 @@
 #define USE_ESC_SENSOR
 
 #define MAX_PWM_OUTPUT_PORTS       6
-
-#define PCA9685_I2C_BUS             DEFAULT_I2C_BUS

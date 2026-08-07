@@ -15,7 +15,7 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// iNav specific IDs start from 0x2000
+// INAV specific IDs start from 0x2000
 // See https://github.com/iNavFlight/inav/wiki/MSP-V2#msp-v2-message-catalogue
 
 #define MSP2_INAV_STATUS                        0x2000
@@ -31,6 +31,10 @@
 #define MSP2_INAV_OUTPUT_MAPPING                0x200A
 #define MSP2_INAV_MC_BRAKING                    0x200B
 #define MSP2_INAV_SET_MC_BRAKING                0x200C
+#define MSP2_INAV_OUTPUT_MAPPING_EXT            0x200D // Obsolete, replaced by MSP2_INAV_OUTPUT_MAPPING_EXT2
+#define MSP2_INAV_TIMER_OUTPUT_MODE             0x200E
+#define MSP2_INAV_SET_TIMER_OUTPUT_MODE         0x200F
+#define MSP2_INAV_OUTPUT_MAPPING_EXT2           0x210D
 
 #define MSP2_INAV_MIXER                         0x2010
 #define MSP2_INAV_SET_MIXER                     0x2011
@@ -41,6 +45,8 @@
 #define MSP2_INAV_OSD_SET_ALARMS                0x2015
 #define MSP2_INAV_OSD_PREFERENCES               0x2016
 #define MSP2_INAV_OSD_SET_PREFERENCES           0x2017
+
+#define MSP2_INAV_OSD_UPDATE_POSITION           0x2118
 
 #define MSP2_INAV_SELECT_BATTERY_PROFILE        0x2018
 
@@ -53,6 +59,8 @@
 #define MSP2_INAV_SET_TEMP_SENSOR_CONFIG        0x201D
 #define MSP2_INAV_TEMPERATURES                  0x201E
 
+#define MSP_SIMULATOR							0x201F
+
 #define MSP2_INAV_SERVO_MIXER                   0x2020
 #define MSP2_INAV_SET_SERVO_MIXER               0x2021
 #define MSP2_INAV_LOGIC_CONDITIONS              0x2022
@@ -60,8 +68,68 @@
 #define MSP2_INAV_GLOBAL_FUNCTIONS              0x2024
 #define MSP2_INAV_SET_GLOBAL_FUNCTIONS          0x2025
 #define MSP2_INAV_LOGIC_CONDITIONS_STATUS       0x2026
+#define MSP2_INAV_GVAR_STATUS                   0x2027
+#define MSP2_INAV_PROGRAMMING_PID               0x2028
+#define MSP2_INAV_SET_PROGRAMMING_PID           0x2029
+#define MSP2_INAV_PROGRAMMING_PID_STATUS        0x202A
 
 #define MSP2_PID                                0x2030
 #define MSP2_SET_PID                            0x2031
 
 #define MSP2_INAV_OPFLOW_CALIBRATION            0x2032
+
+#define MSP2_INAV_FWUPDT_PREPARE                0x2033
+#define MSP2_INAV_FWUPDT_STORE                  0x2034
+#define MSP2_INAV_FWUPDT_EXEC                   0x2035
+#define MSP2_INAV_FWUPDT_ROLLBACK_PREPARE       0x2036
+#define MSP2_INAV_FWUPDT_ROLLBACK_EXEC          0x2037
+
+#define MSP2_INAV_SAFEHOME                      0x2038
+#define MSP2_INAV_SET_SAFEHOME                  0x2039
+
+#define MSP2_INAV_MISC2                         0x203A
+#define MSP2_INAV_LOGIC_CONDITIONS_SINGLE       0x203B
+#define MSP2_INAV_LOGIC_CONDITIONS_CONFIGURED   0x203C  // Returns 8-byte bitmask of non-default logic conditions
+
+#define MSP2_INAV_ESC_RPM                       0x2040
+#define MSP2_INAV_ESC_TELEM                     0x2041
+
+#define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
+#define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
+
+#define MSP2_INAV_FW_APPROACH                   0x204A
+#define MSP2_INAV_SET_FW_APPROACH               0x204B
+
+#define MSP2_INAV_GPS_UBLOX_COMMAND             0x2050
+
+#define MSP2_INAV_RATE_DYNAMICS                 0x2060
+#define MSP2_INAV_SET_RATE_DYNAMICS             0x2061
+
+#define MSP2_INAV_EZ_TUNE                       0x2070
+#define MSP2_INAV_EZ_TUNE_SET                   0x2071
+
+#define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
+
+#define MSP2_ADSB_VEHICLE_LIST                  0x2090
+
+#define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
+#define MSP2_INAV_CUSTOM_OSD_ELEMENT            0x2101
+#define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2102
+
+#define MSP2_INAV_GET_LINK_STATS                0x2103
+
+#define MSP2_INAV_SERVO_CONFIG                  0x2200
+#define MSP2_INAV_SET_SERVO_CONFIG              0x2201
+
+#define MSP2_INAV_GEOZONE                       0x2210
+#define MSP2_INAV_SET_GEOZONE                   0x2211
+#define MSP2_INAV_GEOZONE_VERTEX                0x2212
+#define MSP2_INAV_SET_GEOZONE_VERTEX            0x2213
+#define MSP2_INAV_SET_GVAR                      0x2214
+
+#define MSP2_INAV_FULL_LOCAL_POSE               0x2220
+
+#define MSP2_INAV_SET_WP_INDEX                  0x2221  //in message  jump to waypoint N during active WP mission; payload: U8 wp_index (0-based, relative to mission start)
+#define MSP2_INAV_SET_CRUISE_HEADING            0x2223  //in message  set heading while in Cruise/Course Hold mode; payload: I32 heading_centidegrees (0-35999)
+
+#define MSP2_INAV_SET_AUX_RC                    0x2230

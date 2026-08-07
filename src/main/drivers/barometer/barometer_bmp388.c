@@ -1,5 +1,5 @@
 /*
- * This file is part of iNav.
+ * This file is part of INAV.
  *
  * Cleanflight and Betaflight are free software. You can redistribute
  * this software and/or modify this software under the terms of the
@@ -18,7 +18,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  * BMP388 Driver author: Dominic Clifton
- * iNav port: Michel Pastor
+ * INAV port: Michel Pastor
  */
 
 #include <stdbool.h>
@@ -37,10 +37,13 @@
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_bmp388.h"
 
-#if defined(USE_BARO) && (defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388))
+#if defined(USE_BARO) && (defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388) || defined(USE_BARO_BMP390) || defined(USE_BARO_SPI_BMP390))
 
+#if !defined(BMP388_I2C_ADDR)
 #define BMP388_I2C_ADDR                                 (0x76) // same as BMP280/BMP180
+#endif
 #define BMP388_DEFAULT_CHIP_ID                          (0x50) // from https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3_defs.h#L130
+#define BMP390_DEFAULT_CHIP_ID                          (0x60) // from https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3_defs.h#L133
 
 #define BMP388_CMD_REG                                  (0x7E)
 #define BMP388_RESERVED_UPPER_REG                       (0x7D)
@@ -197,7 +200,13 @@ static bool bmp388StartUP(baroDev_t *baro)
 
 static bool bmp388GetUP(baroDev_t *baro)
 {
-    busReadBuf(baro->busDev, BMP388_DATA_0_REG, sensor_data, BMP388_DATA_FRAME_SIZE + 1);
+    if (baro->busDev->busType == BUSTYPE_SPI) {
+        // In SPI mode, first byte read is a dummy byte
+        busReadBuf(baro->busDev, BMP388_DATA_0_REG, &sensor_data[0], BMP388_DATA_FRAME_SIZE + 1);
+    } else {
+        // In I2C mode, no dummy byte is read
+        busReadBuf(baro->busDev, BMP388_DATA_0_REG, &sensor_data[1], BMP388_DATA_FRAME_SIZE);
+    }
 
     bmp388_up = sensor_data[1] << 0 | sensor_data[2] << 8 | sensor_data[3] << 16;
     bmp388_ut = sensor_data[4] << 0 | sensor_data[5] << 8 | sensor_data[6] << 16;
@@ -289,14 +298,26 @@ STATIC_UNIT_TESTED bool bmp388Calculate(baroDev_t *baro, int32_t *pressure, int3
 #define DETECTION_MAX_RETRY_COUNT   5
 static bool deviceDetect(busDevice_t * busDev)
 {
-    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
-        uint8_t chipId[2];
+    uint8_t chipId[2];
+    uint8_t nRead;
+    uint8_t * pId;
 
+    if (busDev->busType == BUSTYPE_SPI) {
+        // In SPI mode, first byte read is a dummy byte
+        nRead = 2;
+        pId = &chipId[1];
+    } else {
+        // In I2C mode, no dummy byte is read
+        nRead = 1;
+        pId = &chipId[0];
+    }
+
+    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
         delay(100);
 
-        bool ack = busReadBuf(busDev, BMP388_CHIP_ID_REG, chipId, 2);
+        bool ack = busReadBuf(busDev, BMP388_CHIP_ID_REG, chipId, nRead);
 
-        if (ack && chipId[1] == BMP388_DEFAULT_CHIP_ID) {
+        if (ack && (*pId == BMP388_DEFAULT_CHIP_ID || *pId == BMP390_DEFAULT_CHIP_ID)) {
             return true;
         }
     };
@@ -318,11 +339,16 @@ bool bmp388Detect(baroDev_t *baro)
         return false;
     }
 
-    uint8_t calibration_buf[sizeof(bmp388_calib_param_t) + 1];
-
     // read calibration
-    busReadBuf(baro->busDev, BMP388_TRIMMING_NVM_PAR_T1_LSB_REG, calibration_buf, sizeof(bmp388_calib_param_t) + 1);
-    memcpy(&bmp388_cal, calibration_buf + 1, sizeof(bmp388_calib_param_t));
+    if (baro->busDev->busType == BUSTYPE_SPI) {
+        // In SPI mode, first byte read is a dummy byte
+        uint8_t calibration_buf[sizeof(bmp388_calib_param_t) + 1];
+        busReadBuf(baro->busDev, BMP388_TRIMMING_NVM_PAR_T1_LSB_REG, calibration_buf, sizeof(bmp388_calib_param_t) + 1);
+        memcpy(&bmp388_cal, calibration_buf + 1, sizeof(bmp388_calib_param_t));
+    } else {
+        // In I2C mode, no dummy byte is read
+        busReadBuf(baro->busDev, BMP388_TRIMMING_NVM_PAR_T1_LSB_REG, (uint8_t*)&bmp388_cal, sizeof(bmp388_calib_param_t));
+    }
 
     // set oversampling + power mode (forced), and start sampling
     busWrite(baro->busDev, BMP388_OSR_REG,

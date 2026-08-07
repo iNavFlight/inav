@@ -26,7 +26,7 @@ On the first battery connection is always advisable to use a current limiter dev
 
 ### Sparky
 
-See the [Sparky board chapter](Board - Sparky.md).
+See the [Sparky board chapter](Board%20-%20Sparky.md).
 
 ## Voltage measurement
 
@@ -169,6 +169,155 @@ current_meter_scale = (reported_draw_mAh / charging_data_mAh) * old_current_mete
                     = 435
 ```
 
+## Power and Current Limiting
+
+INAV includes an advanced power and current limiting system to protect your battery and ESCs from excessive discharge rates. This feature automatically reduces throttle output when current or power draw exceeds configured limits.
+
+### Why Use Power Limiting?
+
+Power and current limiting helps:
+- **Protect batteries** from exceeding their C-rating and getting damaged
+- **Prevent voltage sag** and brown-outs during high-throttle maneuvers
+- **Extend battery lifespan** by avoiding excessive discharge rates
+- **Improve safety** by preventing ESC or battery overheating
+- **Comply with regulations** that may limit power output
+
+### How It Works
+
+The power limiter uses a PI (Proportional-Integral) controller to smoothly reduce throttle when current or power exceeds limits. It supports two operating modes:
+
+1. **Continuous Limit**: The sustained current/power that can be drawn indefinitely
+2. **Burst Limit**: A higher current/power allowed for a short duration before falling back to the continuous limit
+
+This burst mode allows brief high-power maneuvers (like punch-outs or quick climbs) while protecting the battery during sustained high-throttle flight.
+
+### Configuration
+
+Power limiting requires a current sensor (`CURRENT_METER` feature). Power-based limiting additionally requires voltage measurement (`VBAT` feature).
+
+#### Basic Settings (per battery profile)
+
+| Setting | Description | Unit | Range |
+|---------|-------------|------|-------|
+| `limit_cont_current` | Continuous current limit | dA (deci-amps) | 0-2000 (0-200A) |
+| `limit_burst_current` | Burst current limit | dA | 0-2000 (0-200A) |
+| `limit_burst_current_time` | Duration burst is allowed | ds (deci-seconds) | 0-600 (0-60s) |
+| `limit_burst_current_falldown_time` | Ramp-down duration from burst to continuous | ds | 0-600 (0-60s) |
+| `limit_cont_power` | Continuous power limit | dW (deci-watts) | 0-20000 (0-2000W) |
+| `limit_burst_power` | Burst power limit | dW | 0-20000 (0-2000W) |
+| `limit_burst_power_time` | Duration burst power is allowed | ds | 0-600 (0-60s) |
+| `limit_burst_power_falldown_time` | Ramp-down duration for power | ds | 0-600 (0-60s) |
+
+**Note**: Set any limit to `0` to disable that specific limiter.
+
+#### Advanced Tuning Settings
+
+| Setting | Description | Default | Range |
+|---------|-------------|---------|-------|
+| `limit_pi_p` | Proportional gain for PI controller | 100 | 10-500 |
+| `limit_pi_i` | Integral gain for PI controller | 15 | 10-200 |
+| `limit_attn_filter_cutoff` | Low-pass filter cutoff frequency | 50 Hz | 10-200 |
+
+### Example Configurations
+
+#### Example 1: Simple Current Limiting (50A continuous)
+
+Protect a 1500mAh 4S 50C battery (75A max burst, 50A continuous safe):
+
+```
+battery_profile 1
+
+set limit_cont_current = 500         # 50A continuous
+set limit_burst_current = 750        # 75A burst
+set limit_burst_current_time = 100   # 10 seconds
+set limit_burst_current_falldown_time = 20   # 2 second ramp-down
+```
+
+#### Example 2: Power Limiting for Racing (500W limit)
+
+Limit total system power for racing class restrictions:
+
+```
+battery_profile 1
+
+set limit_cont_power = 4500          # 450W continuous
+set limit_burst_power = 5000         # 500W burst
+set limit_burst_power_time = 50      # 5 seconds
+set limit_burst_power_falldown_time = 10    # 1 second ramp-down
+```
+
+#### Example 3: Combined Current and Power Limiting
+
+Protect both battery (current) and ESCs (power):
+
+```
+battery_profile 1
+
+# Current limits (battery protection)
+set limit_cont_current = 600         # 60A continuous
+set limit_burst_current = 800        # 80A burst
+set limit_burst_current_time = 100   # 10 seconds
+
+# Power limits (ESC protection)
+set limit_cont_power = 8000          # 800W continuous
+set limit_burst_power = 10000        # 1000W burst
+set limit_burst_power_time = 100     # 10 seconds
+```
+
+### Understanding Burst Mode
+
+When you exceed the continuous limit, the system uses "burst reserve" (like a capacitor):
+- **Burst reserve** starts full and depletes when current/power exceeds the continuous limit
+- When reserve is empty, the limit drops to the continuous value
+- The `falldown_time` setting creates a smooth ramp-down instead of an abrupt drop
+- Reserve recharges when current/power drops below the continuous limit
+
+**Example timeline** (60A continuous, 80A burst, 10s burst time, 2s falldown):
+```
+Time    Limit    Reason
+----    -----    ------
+0s      80A      Full burst reserve
+5s      80A      Still have reserve (using 5s of 10s)
+10s     80A      Reserve depleted
+10-12s  80→60A   Ramping down over 2 seconds
+12s+    60A      Continuous limit active
+```
+
+### OSD Elements
+
+Three OSD elements display power limiting status:
+
+- **`OSD_PLIMIT_REMAINING_BURST_TIME`**: Shows remaining burst time in seconds
+- **`OSD_PLIMIT_ACTIVE_CURRENT_LIMIT`**: Shows current limit being enforced (blinks when limiting)
+- **`OSD_PLIMIT_ACTIVE_POWER_LIMIT`**: Shows power limit being enforced (blinks when limiting)
+
+Enable these in the OSD tab to monitor limiting during flight.
+
+### Calibration Tips
+
+1. **Find your battery's limits**: Check manufacturer specifications for continuous and burst C-ratings
+   - Continuous limit = `battery_capacity_mAh × continuous_C_rating / 100` (in dA)
+   - Burst limit = `battery_capacity_mAh × burst_C_rating / 100` (in dA)
+
+2. **Test incrementally**: Start with conservative limits and increase gradually
+
+3. **Monitor in flight**: Use OSD elements to see when limiting activates
+
+4. **Calibrate current sensor**: Accurate current readings are critical - see "Current Monitoring" section above
+
+5. **Tune PI controller**: If limiting feels abrupt or causes oscillation, adjust `limit_pi_p` and `limit_pi_i`:
+   - Increase P for faster response (may cause oscillation)
+   - Increase I for better steady-state accuracy
+   - Decrease if throttle oscillates during limiting
+
+### Notes
+
+- Power limiting is part of the battery profile system - each profile can have different limits
+- Both current and power limiting can be active simultaneously - the most restrictive applies
+- Limiting is applied smoothly via PI controller to avoid abrupt throttle cuts
+- The system uses instantaneous current/power readings for responsive limiting
+- Set limits to `0` to disable a specific limiter while keeping others active
+
 ## Battery capacity monitoring
 
 For the capacity monitoring to work you need a current sensor (`CURRENT_METER` feature). For monitoring energy in milliWatt hour you also need voltage measurement (`VBAT` feature). For best results the current and voltage readings have to be calibrated.
@@ -195,7 +344,26 @@ Note that in this example even though your warning capacity (`battery_capacity_w
 
 ## Battery profiles
 
-Up to 3 battery profiles are supported. You can select the battery profile from the GUI, OSD menu, [stick commands](Controls.md) and CLI command `battery_profile n`. Battery profiles store the following settings (see above for an explanation of each setting): `bat_cells`, `vbat_cell_detect_voltage`, `vbat_max_cell_voltage`, `vbat_warning_cell_voltage`, `vbat_min_cell_voltage`, `battery_capacity_unit`, `battery_capacity`, `battery_capacity_warning`, `battery_capacity_critical`
+Up to 3 battery profiles are supported. You can select the battery profile from the GUI, OSD menu, [stick commands](Controls.md) and CLI command `battery_profile n`. Battery profiles store the following settings (see above for an explanation of each setting): 
+- `bat_cells`
+- `vbat_cell_detect_voltage`
+- `vbat_max_cell_voltage`
+- `vbat_warning_cell_voltage`
+- `vbat_min_cell_voltage`
+- `battery_capacity`
+- `battery_capacity_warning`
+- `battery_capacity_critical`
+- `throttle_idle`
+- `throttle_scale`
+- `turtle_mode_power_factor`
+- `nav_fw_cruise_thr`
+- `nav_fw_min_thr`
+- `nav_fw_max_thr`
+- `nav_fw_pitch2thr`
+- `nav_fw_launch_thr`
+- `nav_fw_launch_idle_thr`
+- `failsafe_throttle`
+- `nav_mc_hover_thr`
 
 To enable the automatic battery profile switching based on battery voltage enable the `BAT_PROF_AUTOSWITCH` feature. For a profile to be automatically selected the number of cells of the battery needs to be specified (>0).
 
@@ -224,7 +392,7 @@ set vbat_min_cell_voltage = 250
 
 #### Simple example with automatic profile switching
 
-In this example we want to use two different batteries for the same aircraft and automatically switch between them when the battery is plugged in. The first battery is a Li-Po 2200mAh 3S and the second battery is a LiPo 1500mAh 4S. Since the iNav defaults for the cell detection voltage and max voltage are adequate for standard LiPo batteries they will not be modified. The warning and minimum voltage are not modified either in this example but you can set them to the value you like. Since we are using battery capacities only the warning voltage (kept at default in this example) will be used and only for triggering the battery voltage indicator blinking in the OSD.
+In this example we want to use two different batteries for the same aircraft and automatically switch between them when the battery is plugged in. The first battery is a Li-Po 2200mAh 3S and the second battery is a LiPo 1500mAh 4S. Since the INAV defaults for the cell detection voltage and max voltage are adequate for standard LiPo batteries they will not be modified. The warning and minimum voltage are not modified either in this example but you can set them to the value you like. Since we are using battery capacities only the warning voltage (kept at default in this example) will be used and only for triggering the battery voltage indicator blinking in the OSD.
 
 ```
 feature BAT_PROF_AUTOSWITCH
@@ -233,7 +401,6 @@ feature BAT_PROF_AUTOSWITCH
 battery_profile 1
 
 set bat_cells = 3
-set battery_capacity_unit = MAH
 set battery_capacity = 2200
 set battery_capacity_warning = 440
 set battery_capacity_critical = 220
@@ -242,7 +409,6 @@ set battery_capacity_critical = 220
 battery_profile 2
 
 set bat_cells = 4
-set battery_capacity_unit = MAH
 set battery_capacity = 1500
 set battery_capacity_warning = 300
 set battery_capacity_critical = 150
@@ -291,6 +457,25 @@ set vbat_min_cell_voltage = 330
 set battery_capacity = 1500
 set battery_capacity_warning = 300
 set battery_capacity_critical = 150
+```
+
+#### Change control profile based on battery profile
+
+You can change the control profile, automatically, based on the battery profile. This allows for fine tuning of each power choice.
+
+```
+feature BAT_PROF_AUTOSWITCH
+
+
+battery_profile 1
+
+set bat_cells = 3
+set controlrate_profile = 1
+
+battery_profile 2
+
+set bat_cells = 4
+set controlrate_profile = 2
 ```
 
 ## Remaining flight time and flight distance estimation

@@ -21,7 +21,7 @@
 #include "common/filter.h"
 #include "common/calibration.h"
 
-#include "drivers/pitotmeter.h"
+#include "drivers/pitotmeter/pitotmeter.h"
 
 typedef enum {
     PITOT_NONE = 0,
@@ -30,6 +30,9 @@ typedef enum {
     PITOT_ADC = 3,
     PITOT_VIRTUAL = 4,
     PITOT_FAKE = 5,
+    PITOT_MSP = 6,
+    PITOT_DLVR = 7,
+    PITOT_MS5525 = 8,
 } pitotSensor_e;
 
 #define PITOT_MAX  PITOT_FAKE
@@ -54,12 +57,10 @@ typedef struct pito_s {
 
     float pressureZero;
     float pressure;
+    float temperature;
 } pitot_t;
 
 #ifdef USE_PITOT
-
-#define AIR_DENSITY_SEA_LEVEL_15C   1.225f      // Air density at sea level and 15 degrees Celsius
-#define P0                          101325.0f   // standard pressure [Pa]
 
 extern pitot_t pitot;
 
@@ -67,7 +68,10 @@ bool pitotInit(void);
 bool pitotIsCalibrationComplete(void);
 void pitotStartCalibration(void);
 void pitotUpdate(void);
-int32_t pitotCalculateAirSpeed(void);
+float getAirspeedEstimate(void);
 bool pitotIsHealthy(void);
+bool pitotValidateAirspeed(void);
+bool pitotGetValidForAirspeed(void);
+bool pitotHasFailed(void);
 
 #endif

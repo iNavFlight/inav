@@ -29,7 +29,7 @@ static olc_coord_t initial_resolution;
 
 static void init_constants(void)
 {
-    static int inited = 0;
+    static bool inited = 0;
     if (inited) {
         return;
     }
@@ -45,20 +45,6 @@ static void init_constants(void)
     initial_resolution = powf(ENCODING_BASE, initial_exponent) * OLC_DEG_MULTIPLIER;
 }
 
-// Raises a number to an exponent, handling negative exponents.
-static float pow_negf(float base, float exponent)
-{
-    if (exponent == 0) {
-        return 1;
-    }
-
-    if (exponent > 0) {
-        return powf(base, exponent);
-    }
-
-    return 1 / powf(base, -exponent);
-}
-
 // Compute the latitude precision value for a given code length.  Lengths <= 10
 // have the same precision for latitude and longitude, but lengths > 10 have
 // different precisions due to the grid method having fewer columns than rows.
@@ -66,10 +52,10 @@ static float compute_precision_for_length(int length)
 {
     // Magic numbers!
     if (length <= (int)PAIR_CODE_LEN) {
-        return pow_negf(ENCODING_BASE, floorf((length / -2) + 2));
+        return powf(ENCODING_BASE, floorf((length / -2) + 2));
     }
 
-    return pow_negf(ENCODING_BASE, -3) / powf(5, length - (int)PAIR_CODE_LEN);
+    return powf(ENCODING_BASE, -3) / powf(5, length - (int)PAIR_CODE_LEN);
 }
 
 static olc_coord_t adjust_latitude(olc_coord_t lat, size_t code_len)

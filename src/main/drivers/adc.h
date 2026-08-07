@@ -33,7 +33,9 @@ typedef enum {
     ADC_CHN_2,
     ADC_CHN_3,
     ADC_CHN_4,
-    ADC_CHN_MAX = ADC_CHN_4,
+	ADC_CHN_5,
+	ADC_CHN_6,
+    ADC_CHN_MAX = ADC_CHN_6,
     ADC_CHN_COUNT
 } adcChannel_e;
 

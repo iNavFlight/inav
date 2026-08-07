@@ -41,6 +41,7 @@
 #include "drivers/io.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
+#include "drivers/persistent.h"
 #include "drivers/time.h"
 #include "drivers/usb_msc.h"
 
@@ -110,18 +111,10 @@ uint8_t mscStart(void)
 
     // NVIC configuration for SYSTick
     NVIC_DisableIRQ(SysTick_IRQn);
-    NVIC_SetPriority(SysTick_IRQn, NVIC_BUILD_PRIORITY(0, 0));
+    NVIC_SetPriority(SysTick_IRQn, 0);
     NVIC_EnableIRQ(SysTick_IRQn);
 
     return 0;
-}
-
-bool mscCheckBoot(void)
-{
-    if (*((__IO uint32_t *)BKPSRAM_BASE + 16) == MSC_MAGIC) {
-        return true;
-    }
-    return false;
 }
 
 bool mscCheckButton(void)

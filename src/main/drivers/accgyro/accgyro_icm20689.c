@@ -31,14 +31,13 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 
-#if (defined(USE_GYRO_ICM20689) || defined(USE_ACC_ICM20689))
+#if defined(USE_IMU_ICM20689)
 
 static uint8_t icm20689DeviceDetect(const busDevice_t *busDev)
 {
@@ -82,6 +81,7 @@ bool icm20689AccDetect(accDev_t *acc)
 
     acc->initFn = icm20689AccInit;
     acc->readFn = mpuAccReadScratchpad;
+    acc->accAlign = acc->busDev->param;
 
     return true;
 }
@@ -91,8 +91,6 @@ static void icm20689AccAndGyroInit(gyroDev_t *gyro)
     busDevice_t * busDev = gyro->busDev;
     const gyroFilterAndRateConfig_t * config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
     gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
-
-    gyroIntExtiInit(gyro);
 
     busSetSpeed(busDev, BUS_SPEED_INITIALIZATION);
 
@@ -111,14 +109,8 @@ static void icm20689AccAndGyroInit(gyroDev_t *gyro)
     busWrite(busDev, MPU_RA_SMPLRT_DIV, config->gyroConfigValues[1]); // Get Divider Drops
     delay(100);
 
-    // Data ready interrupt configuration
-    busWrite(busDev, MPU_RA_INT_PIN_CFG, 0x10);  // INT_ANYRD_2CLEAR, BYPASS_EN
-
-    delay(15);
-
-#ifdef USE_MPU_DATA_READY_SIGNAL
-    busWrite(busDev, MPU_RA_INT_ENABLE, 0x01); // RAW_RDY_EN interrupt enable
-#endif
+    // Switch SPI to fast speed
+    busSetSpeed(busDev, BUS_SPEED_FAST);
 }
 
 bool icm20689GyroDetect(gyroDev_t *gyro)
@@ -142,6 +134,7 @@ bool icm20689GyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
+    gyro->gyroAlign = gyro->busDev->param;
 
     return true;
 }

@@ -46,6 +46,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
+#include "flight/mixer.h"
 
 #include "io/gps.h"
 #include "io/serial.h"
@@ -56,7 +57,10 @@
 #include "rx/rx.h"
 
 #include "sensors/battery.h"
+#include "sensors/esc_sensor.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
+#include "sensors/temperature.h"
 
 #include "telemetry/crsf.h"
 #include "telemetry/telemetry.h"
@@ -107,7 +111,14 @@ bool bufferCrsfMspFrame(uint8_t *frameStart, int frameLength)
 
 bool handleCrsfMspFrameBuffer(uint8_t payloadSize, mspResponseFnPtr responseFn)
 {
-    bool requestHandled = false;
+    static bool replyPending = false;
+    if (replyPending) {
+        if (crsfRxIsTelemetryBufEmpty()) {
+            replyPending = sendMspReply(payloadSize, responseFn);
+        }
+        return replyPending;
+    }
+
     if (!mspRxBuffer.len) {
         return false;
     }
@@ -115,17 +126,21 @@ bool handleCrsfMspFrameBuffer(uint8_t payloadSize, mspResponseFnPtr responseFn)
     while (true) {
         const int mspFrameLength = mspRxBuffer.bytes[pos];
         if (handleMspFrame(&mspRxBuffer.bytes[CRSF_MSP_LENGTH_OFFSET + pos], mspFrameLength)) {
-            requestHandled |= sendMspReply(payloadSize, responseFn);
+            if (crsfRxIsTelemetryBufEmpty()) {
+                replyPending = sendMspReply(payloadSize, responseFn);
+            } else {
+                replyPending = true;
+            }
         }
         pos += CRSF_MSP_LENGTH_OFFSET + mspFrameLength;
-        ATOMIC_BLOCK(NVIC_PRIO_SERIALUART1) {
+        ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {
             if (pos >= mspRxBuffer.len) {
                 mspRxBuffer.len = 0;
-                return requestHandled;
+                return replyPending ;
             }
         }
     }
-    return requestHandled;
+    return replyPending;
 }
 #endif
 
@@ -150,6 +165,16 @@ static void crsfSerialize16(sbuf_t *dst, uint16_t v)
     crsfSerialize8(dst,  (v >> 8));
     crsfSerialize8(dst, (uint8_t)v);
 }
+
+#ifdef USE_ESC_SENSOR
+static void crsfSerialize24(sbuf_t *dst, uint32_t v)
+{
+    // Use BigEndian format
+    crsfSerialize8(dst, (v >> 16));
+    crsfSerialize8(dst, (v >> 8));
+    crsfSerialize8(dst, (uint8_t)v);
+}
+#endif
 
 static void crsfSerialize32(sbuf_t *dst, uint32_t v)
 {
@@ -245,13 +270,134 @@ static void crsfFrameBatterySensor(sbuf_t *dst)
     // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_BATTERY_SENSOR);
-    crsfSerialize16(dst, getBatteryVoltage() / 10); // vbat is in units of 0.01V
+    if (telemetryConfig()->report_cell_voltage) {
+        crsfSerialize16(dst, getBatteryAverageCellVoltage() / 10);
+    } else {
+        crsfSerialize16(dst, getBatteryVoltage() / 10); // vbat is in units of 0.01V
+    }
     crsfSerialize16(dst, getAmperage() / 10);
     const uint8_t batteryRemainingPercentage = calculateBatteryPercentage();
     crsfSerialize8(dst, (getMAhDrawn() >> 16));
     crsfSerialize8(dst, (getMAhDrawn() >> 8));
     crsfSerialize8(dst, (uint8_t)getMAhDrawn());
     crsfSerialize8(dst, batteryRemainingPercentage);
+}
+
+const int32_t ALT_MIN_DM = 10000;
+const int32_t ALT_THRESHOLD_DM = 0x8000 - ALT_MIN_DM;
+const int32_t ALT_MAX_DM = 0x7ffe * 10 - 5;
+
+/*
+0x09 Barometer altitude and vertical speed
+Payload:
+uint16_t    altitude_packed ( dm - 10000 )
+*/
+static void crsfBarometerAltitude(sbuf_t *dst)
+{
+    int32_t altitude_dm = lrintf(getEstimatedActualPosition(Z) / 10);
+    uint16_t altitude_packed;
+    if (altitude_dm < -ALT_MIN_DM) {
+        altitude_packed = 0;
+    } else if (altitude_dm > ALT_MAX_DM) {
+        altitude_packed = 0xfffe;
+    } else if (altitude_dm < ALT_THRESHOLD_DM) {
+        altitude_packed = altitude_dm + ALT_MIN_DM;
+    } else {
+        altitude_packed = ((altitude_dm + 5) / 10) | 0x8000;
+    }
+    sbufWriteU8(dst, CRSF_FRAME_BAROMETER_ALTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_BAROMETER_ALTITUDE);
+    crsfSerialize16(dst, altitude_packed);
+}
+
+#ifdef USE_PITOT
+/*
+0x0A Airspeed sensor
+Payload:
+int16      Air speed ( dm/s )
+*/
+static void crsfFrameAirSpeedSensor(sbuf_t *dst)
+{
+    // use sbufWrite since CRC does not include frame length
+    sbufWriteU8(dst, CRSF_FRAME_AIRSPEED_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_AIRSPEED_SENSOR);
+    crsfSerialize16(dst, (uint16_t)(getAirspeedEstimate() * 36.0f / 100.0f));
+}
+#endif
+
+#ifdef USE_ESC_SENSOR
+/*
+0x0C RPM
+Payload:
+uint8_t    rpm_source_id;  // Identifies the source of the RPM data (e.g., 0 = Motor 1, 1 = Motor 2, etc.)
+int24_t    rpm_value[];     // 1 - 19 RPM values with negative ones representing the motor spinning in reverse
+*/
+static bool crsfRpm(sbuf_t *dst)
+{
+    const uint8_t MAX_CRSF_RPM_VALUES = 19;  // CRSF protocol limit: 1-19 RPM values
+    uint8_t motorCount = getMotorCount();
+
+    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        // Enforce protocol limit
+        if (motorCount > MAX_CRSF_RPM_VALUES) {
+            motorCount = MAX_CRSF_RPM_VALUES;
+        }
+
+        sbufWriteU8(dst, 1 + (motorCount * 3) + CRSF_FRAME_LENGTH_TYPE_CRC);
+        crsfSerialize8(dst, CRSF_FRAMETYPE_RPM);
+        // 0 = FC including all ESCs
+        crsfSerialize8(dst, 0);
+
+        for (uint8_t i = 0; i < motorCount; i++) {
+            const escSensorData_t *escState = getEscTelemetry(i);
+            crsfSerialize24(dst, (escState) ? escState->rpm : 0);
+        }
+        return true;
+    }
+    return false;
+}
+#endif
+
+/*
+0x0D TEMP
+Payload:
+uint8_t temp_source_id; // Identifies the source of the temperature data (e.g., 0 = FC including all ESCs, 1 = Ambient, etc.)
+int16_t temperature[]; // up to 20 temperature values in deci-degree (tenths of a degree) Celsius (e.g., 250 = 25.0°C, -50 = -5.0°C)
+*/
+static bool crsfTemperature(sbuf_t *dst)
+{
+    const uint8_t MAX_CRSF_TEMPS = 20;  // Maximum temperatures per CRSF frame
+    uint8_t tempCount = 0;
+    int16_t temperatures[20];
+
+#ifdef USE_ESC_SENSOR
+    uint8_t motorCount = getMotorCount();
+    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        for (uint8_t i = 0; i < motorCount && tempCount < MAX_CRSF_TEMPS; i++) {
+            const escSensorData_t *escState = getEscTelemetry(i);
+            temperatures[tempCount++] = (escState) ? escState->temperature * 10 : TEMPERATURE_INVALID_VALUE;
+        }
+    }
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    for (uint8_t i = 0; i < MAX_TEMP_SENSORS && tempCount < MAX_CRSF_TEMPS; i++) {
+        int16_t value;
+        if (getSensorTemperature(i, &value))
+            temperatures[tempCount++] = value;
+    }
+#endif
+
+    if (tempCount > 0) {
+        sbufWriteU8(dst, 1 + (tempCount * 2) + CRSF_FRAME_LENGTH_TYPE_CRC);
+        crsfSerialize8(dst, CRSF_FRAMETYPE_TEMP);
+        // 0 = FC including all ESCs
+        crsfSerialize8(dst, 0);
+        for (uint8_t i = 0; i < tempCount; i++)
+            crsfSerialize16(dst, temperatures[i]);
+        return true;
+    }
+    return false;
 }
 
 typedef enum {
@@ -272,7 +418,8 @@ typedef enum {
     CRSF_RF_POWER_100_mW = 3,
     CRSF_RF_POWER_500_mW = 4,
     CRSF_RF_POWER_1000_mW = 5,
-    CRSF_RF_POWER_2000_mW = 6
+    CRSF_RF_POWER_2000_mW = 6,
+    CRSF_RF_POWER_250_mW = 7
 } crsrRfPower_e;
 
 /*
@@ -283,15 +430,25 @@ int16_t     Roll angle ( rad / 10000 )
 int16_t     Yaw angle ( rad / 10000 )
 */
 
-#define DECIDEGREES_TO_RADIANS10000(angle) ((int16_t)(1000.0f * (angle) * RAD))
+// convert andgle in decidegree to radians/10000 with reducing angle to +/-180 degree range
+static int16_t decidegrees2Radians10000(int16_t angle_decidegree)
+{
+    while (angle_decidegree > 1800) {
+        angle_decidegree -= 3600;
+    }
+    while (angle_decidegree < -1800) {
+        angle_decidegree += 3600;
+    }
+    return (int16_t)(RAD * 1000.0f * angle_decidegree);
+}
 
 static void crsfFrameAttitude(sbuf_t *dst)
 {
      sbufWriteU8(dst, CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
      crsfSerialize8(dst, CRSF_FRAMETYPE_ATTITUDE);
-     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.pitch));
-     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.roll));
-     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.yaw));
+     crsfSerialize16(dst, decidegrees2Radians10000(attitude.values.pitch));
+     crsfSerialize16(dst, decidegrees2Radians10000(attitude.values.roll));
+     crsfSerialize16(dst, decidegrees2Radians10000(attitude.values.yaw));
 }
 
 /*
@@ -307,36 +464,50 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     sbufWriteU8(dst, 0);
     crsfSerialize8(dst, CRSF_FRAMETYPE_FLIGHT_MODE);
 
+    static uint8_t hrstSent = 0;
+
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
     const char *flightMode = "OK";
     if (ARMING_FLAG(ARMED)) {
-        if (STATE(AIRMODE_ACTIVE)) {
-            flightMode = "AIR";
-        } else {
-            flightMode = "ACRO";
-        }
+        flightMode = "ACRO";
+#ifdef USE_FW_AUTOLAND
+        if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+            flightMode = "LAND";
+        } else
+#endif
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
             flightMode = "!FS!";
-        } else if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
+        } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent < 4 && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "HRST";
+            hrstSent++;
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";
+#ifdef USE_GEOZONE
+        } else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE)) {
+            flightMode = "GEO";
+#endif  
+        } else if (FLIGHT_MODE(TURTLE_MODE)) {
+            flightMode = "TURT";
         } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
-            flightMode = "RTH";
+            flightMode = isWaypointMissionRTHActive() ? "WRTH" : "RTH";
+        } else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE)) {
+            flightMode = "LOTR";
         } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
             flightMode = "HOLD";
-        } else if (FLIGHT_MODE(NAV_CRUISE_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
-            flightMode = "3CRS";
-        } else if (FLIGHT_MODE(NAV_CRUISE_MODE)) {
-            flightMode = "CRS";
-        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
-            flightMode = "AH";
+        } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+            flightMode = "CRUZ";
+        } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+            flightMode = "CRSH";
         } else if (FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "WP";
+        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
+            flightMode = "AH";
         } else if (FLIGHT_MODE(ANGLE_MODE)) {
             flightMode = "ANGL";
         } else if (FLIGHT_MODE(HORIZON_MODE)) {
             flightMode = "HOR";
+        } else if (FLIGHT_MODE(ANGLEHOLD_MODE)) {
+            flightMode = "ANGH";
         }
 #ifdef USE_GPS
     } else if (feature(FEATURE_GPS) && navConfig()->general.flags.extra_arming_safety && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
@@ -345,6 +516,9 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     } else if (isArmingDisabled()) {
         flightMode = "!ERR";
     }
+
+    if (!IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent > 0)
+        hrstSent = 0;
 
     crsfSerializeData(dst, (const uint8_t*)flightMode, strlen(flightMode));
     crsfSerialize8(dst, 0); // zero terminator for string
@@ -394,40 +568,52 @@ typedef enum {
     CRSF_FRAME_FLIGHT_MODE_INDEX,
     CRSF_FRAME_GPS_INDEX,
     CRSF_FRAME_VARIO_SENSOR_INDEX,
+    CRSF_FRAME_BAROMETER_ALTITUDE_INDEX,
+    CRSF_FRAME_TEMP_INDEX,
+    CRSF_FRAME_RPM_INDEX,
+    CRSF_FRAME_AIRSPEED_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
 static uint8_t crsfScheduleCount;
-static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
+static uint16_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
 
 #if defined(USE_MSP_OVER_TELEMETRY)
 
 static bool mspReplyPending;
 
-void crsfScheduleMspResponse(void)
+//Id of the last receiver MSP frame over CRSF. Needed to send response with correct frame ID
+static uint8_t mspRequestOriginID = 0;
+
+void crsfScheduleMspResponse(uint8_t requestOriginID)
 {
     mspReplyPending = true;
+    mspRequestOriginID = requestOriginID;
 }
 
-void crsfSendMspResponse(uint8_t *payload)
+void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
 {
     sbuf_t crsfPayloadBuf;
     sbuf_t *dst = &crsfPayloadBuf;
 
     crsfInitializeFrame(dst);
-    sbufWriteU8(dst, CRSF_FRAME_TX_MSP_FRAME_SIZE + CRSF_FRAME_LENGTH_EXT_TYPE_CRC);
+    sbufWriteU8(dst, payloadSize + CRSF_FRAME_LENGTH_EXT_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_MSP_RESP);
-    crsfSerialize8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
+    crsfSerialize8(dst, mspRequestOriginID);
     crsfSerialize8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
-    crsfSerializeData(dst, (const uint8_t*)payload, CRSF_FRAME_TX_MSP_FRAME_SIZE);
+    crsfSerializeData(dst, (const uint8_t*)payload, payloadSize);
     crsfFinalize(dst);
 }
 #endif
 
 static void processCrsf(void)
 {
+    if (!crsfRxIsTelemetryBufEmpty()) {
+        return; // do nothing if telemetry ouptut buffer is not empty yet.
+    }
+
     static uint8_t crsfScheduleIndex = 0;
-    const uint8_t currentSchedule = crsfSchedule[crsfScheduleIndex];
+    const uint16_t currentSchedule = crsfSchedule[crsfScheduleIndex];
 
     sbuf_t crsfPayloadBuf;
     sbuf_t *dst = &crsfPayloadBuf;
@@ -447,6 +633,22 @@ static void processCrsf(void)
         crsfFrameFlightMode(dst);
         crsfFinalize(dst);
     }
+#ifdef USE_ESC_SENSOR
+    if (currentSchedule & BV(CRSF_FRAME_RPM_INDEX)) {
+        crsfInitializeFrame(dst);
+        if (crsfRpm(dst)) {
+            crsfFinalize(dst);
+        }
+    }
+#endif
+#if defined(USE_ESC_SENSOR) || defined(USE_TEMPERATURE_SENSOR)
+    if (currentSchedule & BV(CRSF_FRAME_TEMP_INDEX)) {
+        crsfInitializeFrame(dst);
+        if (crsfTemperature(dst)) {
+            crsfFinalize(dst);
+        }
+    }
+#endif
 #ifdef USE_GPS
     if (currentSchedule & BV(CRSF_FRAME_GPS_INDEX)) {
         crsfInitializeFrame(dst);
@@ -458,6 +660,18 @@ static void processCrsf(void)
     if (currentSchedule & BV(CRSF_FRAME_VARIO_SENSOR_INDEX)) {
         crsfInitializeFrame(dst);
         crsfFrameVarioSensor(dst);
+        crsfFinalize(dst);
+    }
+    if (currentSchedule & BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfBarometerAltitude(dst);
+        crsfFinalize(dst);
+    }
+#endif
+#ifdef USE_PITOT
+    if (currentSchedule & BV(CRSF_FRAME_AIRSPEED_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameAirSpeedSensor(dst);
         crsfFinalize(dst);
     }
 #endif
@@ -490,8 +704,47 @@ void initCrsfTelemetry(void)
     }
 #endif
 #if defined(USE_BARO) || defined(USE_GPS)
-    if (sensors(SENSOR_BARO) || (STATE(FIXED_WING) && feature(FEATURE_GPS))) {
+    if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
         crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+    }
+#endif
+#ifdef USE_BARO
+    if (sensors(SENSOR_BARO)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX);
+    }
+#endif
+#ifdef USE_ESC_SENSOR
+    if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_RPM_INDEX);
+    }
+#endif
+#if defined(USE_ESC_SENSOR) || defined(USE_TEMPERATURE_SENSOR)
+    // Only schedule temperature frame if we have temperature sources available
+    bool hasTemperatureSources = false;
+#ifdef USE_ESC_SENSOR
+    if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+        hasTemperatureSources = true;
+    }
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    if (!hasTemperatureSources) {
+        // Check if any temperature sensors are configured
+        for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
+            int16_t value;
+            if (getSensorTemperature(i, &value)) {
+                hasTemperatureSources = true;
+                break;
+            }
+        }
+    }
+#endif
+    if (hasTemperatureSources) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_TEMP_INDEX);
+    }
+#endif
+#ifdef USE_PITOT
+    if (sensors(SENSOR_PITOT)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_AIRSPEED_INDEX);
     }
 #endif
     crsfScheduleCount = (uint8_t)index;

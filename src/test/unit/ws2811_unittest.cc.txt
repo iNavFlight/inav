@@ -45,13 +45,7 @@ TEST(WS2812, updateDMABuffer) {
     dmaBufferOffset = 0;
 
     // when
-#if 0
-    updateLEDDMABuffer(color1.rgb.g);
-    updateLEDDMABuffer(color1.rgb.r);
-    updateLEDDMABuffer(color1.rgb.b);
-#else
     fastUpdateLEDDMABuffer(&color1);
-#endif
 
     // then
     EXPECT_EQ(24, dmaBufferOffset);

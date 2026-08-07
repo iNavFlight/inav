@@ -110,7 +110,7 @@ void dmaSetHandler(DMA_t dma, dmaCallbackHandlerFuncPtr callback, uint32_t prior
     dma->irqHandlerCallback = callback;
     dma->userParam = userParam;
 
-    HAL_NVIC_SetPriority(dma->irqNumber, NVIC_PRIORITY_BASE(priority), NVIC_PRIORITY_SUB(priority));
+    HAL_NVIC_SetPriority(dma->irqNumber, priority, 0);
     HAL_NVIC_EnableIRQ(dma->irqNumber);
 }
 
@@ -122,7 +122,7 @@ uint32_t dmaGetChannelByTag(dmaTag_t tag)
 
 DMA_t dmaGetByRef(const DMA_Stream_TypeDef* ref)
 {
-    for (unsigned i = 0; i < (sizeof(dmaDescriptors) / sizeof(dmaDescriptors[0])); i++) {
+    for (unsigned i = 0; i < ARRAYLEN(dmaDescriptors); i++) {
         if (ref == dmaDescriptors[i].ref) {
             return &dmaDescriptors[i];
         }

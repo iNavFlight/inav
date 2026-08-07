@@ -95,14 +95,21 @@ static bool sdcardSdio_isFunctional(void)
  */
 static void sdcardSdio_reset(void)
 {
-    if (SD_Init() != 0) {
-        sdcard.failureCount++;
-        if (sdcard.failureCount >= SDCARD_MAX_CONSECUTIVE_FAILURES || !sdcard_isInserted()) {
-            sdcard.state = SDCARD_STATE_NOT_PRESENT;
-        } else {
-            sdcard.operationStartTime = millis();
-            sdcard.state = SDCARD_STATE_RESET;
-        }
+    if (!sdcard_isInserted()) {
+        sdcard.state = SDCARD_STATE_NOT_PRESENT;
+        return;
+    }
+    if (SD_Init() != SD_OK) {
+        sdcard.state = SDCARD_STATE_NOT_PRESENT;
+        return;
+    }
+
+    sdcard.failureCount++;
+    if (sdcard.failureCount >= SDCARD_MAX_CONSECUTIVE_FAILURES) {
+        sdcard.state = SDCARD_STATE_NOT_PRESENT;
+    } else {
+        sdcard.operationStartTime = millis();
+        sdcard.state = SDCARD_STATE_RESET;
     }
 }
 
@@ -241,11 +248,12 @@ static sdcardOperationStatus_e sdcard_endWriteBlocks(void)
  */
 static bool sdcardSdio_poll(void)
 {
+#if !defined(STM32H7) // H7 uses IDMA
     if (!sdcard.dma) {
         sdcard.state = SDCARD_STATE_NOT_PRESENT;
         return false;
     }
-
+#endif
     doMore:
     switch (sdcard.state) {
         case SDCARD_STATE_RESET:
@@ -310,7 +318,7 @@ static bool sdcardSdio_poll(void)
 #endif
                     sdcard.state = SDCARD_STATE_WRITING_MULTIPLE_BLOCKS;
                 } else if (sdcard.multiWriteBlocksRemain == 1) {
-                    // This function changes the sd card state for us whether immediately succesful or delayed:
+                    // This function changes the sd card state for us whether immediately successful or delayed:
                     sdcard_endWriteBlocks();
                 } else {
                     sdcard.state = SDCARD_STATE_READY;
@@ -346,8 +354,20 @@ static bool sdcardSdio_poll(void)
                         break; // Timeout not reached yet so keep waiting
                     }
                     // Timeout has expired, so fall through to convert to a fatal error
+                    FALLTHROUGH;
 
                 case SDCARD_RECEIVE_ERROR:
+                    sdcardSdio_reset();
+
+                    if (sdcard.pendingOperation.callback) {
+                        sdcard.pendingOperation.callback(
+                            SDCARD_BLOCK_OPERATION_READ,
+                            sdcard.pendingOperation.blockIndex,
+                            NULL,
+                            sdcard.pendingOperation.callbackData
+                        );
+                    }
+
                     goto doMore;
                 break;
             }
@@ -437,21 +457,34 @@ static sdcardOperationStatus_e sdcardSdio_writeBlock(uint32_t blockIndex, uint8_
     sdcard.pendingOperation.callback = callback;
     sdcard.pendingOperation.callbackData = callbackData;
     sdcard.pendingOperation.chunkIndex = 1; // (for non-DMA transfers) we've sent chunk #0 already
-    sdcard.state = SDCARD_STATE_SENDING_WRITE;
 
     if (SD_WriteBlocks_DMA(blockIndex, (uint32_t*) buffer, 512, block_count) != SD_OK) {
-        /* Our write was rejected! This could be due to a bad address but we hope not to attempt that, so assume
-         * the card is broken and needs reset.
+        /* Our write was rejected! Try a few times before giving up.
+         * This handles transient DMA/bus issues without a full card reset.
+         * Returning busy without blocking: the blackbox/asyncfatfs flush re-issues
+         * this operation on the next PID loop, which paces the retries for us.
          */
+        if (sdcard.operationRetries < SDCARD_MAX_OPERATION_RETRIES) {
+            sdcard.operationRetries++;
+            return SDCARD_OPERATION_BUSY;
+        }
+
+        // Max retries exceeded, reset card
+        sdcard.operationRetries = 0;
         sdcardSdio_reset();
 
         // Announce write failure:
         if (sdcard.pendingOperation.callback) {
             sdcard.pendingOperation.callback(SDCARD_BLOCK_OPERATION_WRITE, sdcard.pendingOperation.blockIndex, NULL, sdcard.pendingOperation.callbackData);
         }
-            return SDCARD_OPERATION_FAILURE;
+        return SDCARD_OPERATION_FAILURE;
     }
 
+    // DMA started successfully - only set state after confirming operation will proceed
+    sdcard.state = SDCARD_STATE_SENDING_WRITE;
+
+    // Success - reset retry counter
+    sdcard.operationRetries = 0;
     return SDCARD_OPERATION_IN_PROGRESS;
 }
 
@@ -466,7 +499,7 @@ static sdcardOperationStatus_e sdcardSdio_writeBlock(uint32_t blockIndex, uint8_
  * Returns:
  *     SDCARD_OPERATION_SUCCESS     - Multi-block write has been queued
  *     SDCARD_OPERATION_BUSY        - The card is already busy and cannot accept your write
- *     SDCARD_OPERATION_FAILURE     - A fatal error occured, card will be reset
+ *     SDCARD_OPERATION_FAILURE     - A fatal error occurred, card will be reset
  */
 static sdcardOperationStatus_e sdcardSdio_beginWriteBlocks(uint32_t blockIndex, uint32_t blockCount)
 {
@@ -525,8 +558,22 @@ static bool sdcardSdio_readBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_op
         sdcard.state = SDCARD_STATE_READING;
         sdcard.operationStartTime = millis();
 
+        // Success - reset retry counter
+        sdcard.operationRetries = 0;
         return true;
     } else {
+        /* Read was rejected! Try a few times before giving up.
+         * This handles transient DMA/bus issues without full card reset.
+         * Returning busy without blocking: the asyncfatfs read re-issues
+         * this operation on the next PID loop, which paces the retries for us.
+         */
+        if (sdcard.operationRetries < SDCARD_MAX_OPERATION_RETRIES) {
+            sdcard.operationRetries++;
+            return false;
+        }
+
+        // Max retries exceeded, reset card
+        sdcard.operationRetries = 0;
         sdcardSdio_reset();
         if (sdcard.pendingOperation.callback) {
             sdcard.pendingOperation.callback(
@@ -545,6 +592,7 @@ static bool sdcardSdio_readBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_op
  */
 void sdcardSdio_init(void)
 {
+#if !defined(STM32H7) // H7 uses IDMA
     sdcard.dma = dmaGetByTag(SDCARD_SDIO_DMA);
 
     if (!sdcard.dma) {
@@ -559,11 +607,12 @@ void sdcardSdio_init(void)
         return;
     }
 
-    if (!SD_Initialize_LL(sdcard.dma->ref)) {
+    if (!SD_Initialize_LL(sdcard.dma)) {
         sdcard.dma = NULL;
         sdcard.state = SDCARD_STATE_NOT_PRESENT;
         return;
     }
+#endif
 
     // We don't support hot insertion
     if (!sdcard_isInserted()) {
@@ -579,6 +628,7 @@ void sdcardSdio_init(void)
     sdcard.operationStartTime = millis();
     sdcard.state = SDCARD_STATE_RESET;
     sdcard.failureCount = 0;
+    sdcard.operationRetries = 0;
 }
 
 /**

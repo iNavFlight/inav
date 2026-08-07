@@ -31,6 +31,7 @@
 
 #include "build/version.h"
 
+#include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 
@@ -40,6 +41,7 @@
 
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/config.h"
 
 static uint8_t currentMotorMixerIndex = 0;
 static uint8_t tmpcurrentMotorMixerIndex = 1;
@@ -202,7 +204,7 @@ static const OSD_Entry cmsx_menuServoMixerEntries[] =
        OSD_UINT8_CALLBACK_ENTRY("SERVO MIX", cmsx_menuServoMixerIndexOnChange, (&(const OSD_UINT8_t){ &tmpcurrentServoMixerIndex, 1, MAX_SERVO_RULES, 1})),
        OSD_UINT8_DYN_ENTRY("SERVO", (&(const OSD_UINT8_t){ &tmpServoMixer.targetChannel, 0, MAX_SUPPORTED_SERVOS, 1})),
        OSD_TAB_DYN_ENTRY("INPUT", (&(const OSD_TAB_t){ &tmpServoMixer.inputSource, SERVO_MIXER_INPUT_CMS_NAMES_COUNT - 1, servoMixerInputCmsNames})),
-       OSD_INT16_DYN_ENTRY("WEIGHT", (&(const OSD_INT16_t){&tmpServoMixer.rate, 0, 1000, 1})),
+       OSD_INT16_DYN_ENTRY("WEIGHT", (&(const OSD_INT16_t){&tmpServoMixer.rate, -1000, 1000, 1})),
        OSD_UINT8_DYN_ENTRY("SPEED", (&(const OSD_UINT8_t){&tmpServoMixer.speed, 0, 255, 1})),
        OSD_BACK_AND_END_ENTRY
 };

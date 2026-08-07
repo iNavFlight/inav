@@ -22,14 +22,18 @@
 #include "drivers/rangefinder/rangefinder.h"
 
 typedef enum {
-    RANGEFINDER_NONE        = 0,
-    RANGEFINDER_HCSR04      = 1,
-    RANGEFINDER_SRF10       = 2,
-    RANGEFINDER_HCSR04I2C   = 3,
-    RANGEFINDER_VL53L0X     = 4,
-    RANGEFINDER_MSP         = 5,
-    RANGEFINDER_UIB         = 6,
-    RANGEFINDER_BENEWAKE    = 7,
+    RANGEFINDER_NONE                = 0,
+    RANGEFINDER_SRF10               = 1,
+    RANGEFINDER_VL53L0X             = 2,
+    RANGEFINDER_MSP                 = 3,
+    RANGEFINDER_BENEWAKE            = 4,
+    RANGEFINDER_VL53L1X             = 5,
+    RANGEFINDER_US42                = 6,
+    RANGEFINDER_TOF10102I2C         = 7,
+    RANGEFINDER_FAKE                = 8,
+    RANGEFINDER_TERARANGER_EVO      = 9,
+    RANGEFINDER_USD1_V0             = 10,
+    RANGEFINDER_NANORADAR           = 11,
 } rangefinderType_e;
 
 typedef struct rangefinderConfig_s {
@@ -48,8 +52,6 @@ typedef struct rangefinder_s {
 } rangefinder_t;
 
 extern rangefinder_t rangefinder;
-
-const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void);
 
 bool rangefinderInit(void);
 

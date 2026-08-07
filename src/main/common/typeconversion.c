@@ -20,6 +20,7 @@
 #include "build/build_config.h"
 
 #include "maths.h"
+#include "platform.h"
 
 #ifdef REQUIRE_PRINTF_LONG_SUPPORT
 
@@ -185,7 +186,7 @@ char *ftoa(float x, char *floatString)
 
     dpLocation = strlen(intString2) - 3;
 
-    strncpy(floatString, intString2, dpLocation);
+    memcpy(floatString, intString2, dpLocation);
     floatString[dpLocation] = '\0';
     strcat(floatString, decimalPoint);
     strcat(floatString, intString2 + dpLocation);
@@ -320,7 +321,7 @@ int fastA2I(const char *s)
     }
 
     while ((digit = a2d(*s)) >= 0) {
-        if (digit > 10)
+        if (digit > 9)
             break;
         num = num * 10 + digit;
         s++;

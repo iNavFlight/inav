@@ -34,24 +34,11 @@
 //#define CAMERA_CONTROL_PIN      PB7
 /*---------------------------------*/
 
-/*------------SENSORS--------------*/
-// MPU interrupt
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define MPU6500_CS_PIN          PA8
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW180_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
 /*---------------------------------*/
 
 /*------------FLASH----------------*/
@@ -63,7 +50,6 @@
 /*---------------------------------*/
 
 /*-------------OSD-----------------*/
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PB3
@@ -146,6 +132,7 @@
 /*---------------------------------*/
 
 /*--------DEFAULT VALUES-----------*/
+#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_TX_PROF_SEL)
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART3
 

@@ -40,6 +40,10 @@
 #include "drivers/serial_uart.h"
 #endif
 
+#if defined(SITL_BUILD)
+#include "drivers/serial_tcp.h"
+#endif
+
 #include "drivers/light_led.h"
 
 #if defined(USE_VCP)
@@ -49,6 +53,7 @@
 #include "io/serial.h"
 
 #include "fc/cli.h"
+#include "fc/settings.h"
 
 #include "msp/msp_serial.h"
 
@@ -99,9 +104,9 @@ static uint8_t serialPortCount;
 const uint32_t baudRates[] = { 0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 250000,
         460800, 921600, 1000000, 1500000, 2000000, 2470000 }; // see baudRate_e
 
-#define BAUD_RATE_COUNT (sizeof(baudRates) / sizeof(baudRates[0]))
+#define BAUD_RATE_COUNT ARRAYLEN(baudRates)
 
-PG_REGISTER_WITH_RESET_FN(serialConfig_t, serialConfig, PG_SERIAL_CONFIG, 1);
+PG_REGISTER_WITH_RESET_FN(serialConfig_t, serialConfig, PG_SERIAL_CONFIG, 2);
 
 void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 {
@@ -132,9 +137,9 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 #endif
 
 #ifdef SMARTAUDIO_UART
-    serialPortConfig_t *gpsUartConfig = serialFindPortConfiguration(SMARTAUDIO_UART);
-    if (SMARTAUDIO_UART) {
-        gpsUartConfig->functionMask = FUNCTION_VTX_SMARTAUDIO;
+    serialPortConfig_t *smartAudioUartConfig = serialFindPortConfiguration(SMARTAUDIO_UART);
+    if (smartAudioUartConfig) {
+        smartAudioUartConfig->functionMask = FUNCTION_VTX_SMARTAUDIO;
     }
 #endif
 
@@ -146,8 +151,6 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
         }
     }
 #endif
-
-    serialConfig->reboot_character = 'R';
 }
 
 baudRate_e lookupBaudRateIndex(uint32_t baudRate)
@@ -262,7 +265,7 @@ serialPort_t *findNextSharedSerialPort(uint32_t functionMask, serialPortFunction
     return NULL;
 }
 
-#define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
+#define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
 #define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_LOG)
 
 bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
@@ -326,6 +329,13 @@ bool doesConfigurationUsePort(serialPortIdentifier_e identifier)
     serialPortConfig_t *candidate = serialFindPortConfiguration(identifier);
     return candidate != NULL && candidate->functionMask;
 }
+
+#if defined(SITL_BUILD)
+serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
+{
+    return tcpOpen(USARTx, callback, rxCallbackData, baudRate, mode, options);
+}
+#endif
 
 serialPort_t *openSerialPort(
     serialPortIdentifier_e identifier,
@@ -440,7 +450,7 @@ void closeSerialPort(serialPort_t *serialPort)
     serialPortUsage->serialPort = NULL;
 }
 
-void serialInit(bool softserialEnabled, serialPortIdentifier_e serialPortToDisable)
+void serialInit(bool softserialEnabled)
 {
     uint8_t index;
 
@@ -450,12 +460,6 @@ void serialInit(bool softserialEnabled, serialPortIdentifier_e serialPortToDisab
     for (index = 0; index < SERIAL_PORT_COUNT; index++) {
         serialPortUsageList[index].identifier = serialPortIdentifiers[index];
 
-        if (serialPortToDisable != SERIAL_PORT_NONE) {
-            if (serialPortUsageList[index].identifier == serialPortToDisable) {
-                serialPortUsageList[index].identifier = SERIAL_PORT_NONE;
-                serialPortCount--;
-            }
-        }
         if (!softserialEnabled) {
             if (0
 #ifdef USE_SOFTSERIAL1
@@ -505,6 +509,85 @@ void waitForSerialPortToFinishTransmitting(serialPort_t *serialPort)
     };
 }
 
+void escapeSequenceInit(escapeSequenceState_t *state)
+{
+    state->lastCharTime = 0;
+    state->lastPlusTime = 0;
+    state->count = 0;
+}
+
+void escapeSequenceProcessChar(escapeSequenceState_t *state, uint8_t c, uint32_t now)
+{
+    if (c == '+') {
+        if (state->count == 0) {
+            // First '+': check for leading guard interval
+            if (now - state->lastCharTime >= 1000) {
+                state->count = 1;
+                state->lastPlusTime = now;
+            }
+        } else if (state->count < 3) {
+            // Subsequent '+': must arrive within 1 second of previous '+'
+            if (now - state->lastPlusTime < 1000) {
+                state->count++;
+                state->lastPlusTime = now;
+            } else {
+                state->count = 0; // too much time between pluses
+            }
+        } else {
+            // More than 3 pluses - not a valid escape sequence
+            state->count = 0;
+        }
+    } else {
+        // Non-'+' character resets sequence
+        state->count = 0;
+    }
+    state->lastCharTime = now;
+}
+
+bool escapeSequenceCheckGuard(escapeSequenceState_t *state, uint32_t now)
+{
+    if (state->count == 3) {
+        if (now - state->lastPlusTime >= 1000) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool serialPassthroughTransfer(serialPort_t *src, serialPort_t *dst, serialConsumer *consumer, escapeSequenceState_t *escapeState, uint32_t now)
+{
+    uint8_t buf[64];
+    uint32_t available = serialRxBytesWaiting(src);
+    uint32_t free = serialTxBytesFree(dst);
+    uint32_t count = (available < free) ? available : free;
+    if (count > sizeof(buf)) {
+        count = sizeof(buf);
+    }
+
+    if (count > 0) {
+        LED0_ON;
+        serialBeginWrite(dst);
+        serialReadBuf(src, buf, count);
+        serialWriteBuf(dst, buf, count);
+        for (uint32_t i = 0; i < count; i++) {
+            consumer(buf[i]);
+            // Hayes escape sequence detection: [1s silence]+++[1s silence]
+            // https://en.wikipedia.org/wiki/Escape_sequence#Modem_control
+            if (escapeState) {
+                escapeSequenceProcessChar(escapeState, buf[i], now);
+            }
+        }
+        serialEndWrite(dst);
+        LED0_OFF;
+    } else {
+        if (escapeState) {
+            return escapeSequenceCheckGuard(escapeState, now);
+        }
+    }
+
+    return false;
+}
+
 #if defined(USE_GPS) || defined(USE_SERIAL_PASSTHROUGH)
 // Default data consumer for serialPassThrough.
 static void nopConsumer(uint8_t data)
@@ -531,28 +614,54 @@ void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer
     LED0_OFF;
     LED1_OFF;
 
+#ifdef USE_VCP
+    // Track current encoding applied to right port for VCP mirroring
+    portOptions_t currentOptions = right->options;
+    uint32_t currentBaudRate = right->baudRate;
+    bool leftIsVcp = (left->identifier == SERIAL_PORT_USB_VCP);
+    uint32_t lastMirrorTime = 0;
+#endif
+
+    static escapeSequenceState_t escapeSequenceState;
+    escapeSequenceInit(&escapeSequenceState);
+
     // Either port might be open in a mode other than MODE_RXTX. We rely on
     // serialRxBytesWaiting() to do the right thing for a TX only port. No
     // special handling is necessary OR performed.
     while (1) {
-        // TODO: maintain a timestamp of last data received. Use this to
-        // implement a guard interval and check for `+++` as an escape sequence
-        // to return to CLI command mode.
-        // https://en.wikipedia.org/wiki/Escape_sequence#Modem_control
-        if (serialRxBytesWaiting(left)) {
-            LED0_ON;
-            uint8_t c = serialRead(left);
-            serialWrite(right, c);
-            leftC(c);
-            LED0_OFF;
-         }
-         if (serialRxBytesWaiting(right)) {
-             LED0_ON;
-             uint8_t c = serialRead(right);
-             serialWrite(left, c);
-             rightC(c);
-             LED0_OFF;
-         }
+        uint32_t now = millis();
+#ifdef USE_VCP
+        // Mirror line coding from host PC to passthrough port (rate-limited to 15ms)
+        if (leftIsVcp) {
+            if (now - lastMirrorTime >= 15) {
+                lastMirrorTime = now;
+                uint32_t hostBaudRate = usbVcpGetBaudRate(left);
+                portOptions_t hostOptions = usbVcpGetLineCoding();
+
+                // apply baud rate change
+                if (hostBaudRate != currentBaudRate && hostBaudRate != 0) {
+                    serialSetBaudRate(right, hostBaudRate);
+                    currentBaudRate = hostBaudRate;
+                }
+
+                // apply encoding change (parity/stop bits)
+                if (hostOptions != currentOptions) {
+                    serialSetOptions(right, hostOptions);
+                    currentOptions = hostOptions;
+                }
+            }
+        }
+#endif
+
+        // Left (USB) to right (UART)
+        if (serialPassthroughTransfer(left, right, leftC, &escapeSequenceState, now)) {
+            return;
+        }
+
+        // Right (UART) to left (USB)
+        serialPassthroughTransfer(right, left, rightC, NULL, now);
      }
  }
  #endif
+
+

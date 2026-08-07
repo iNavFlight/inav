@@ -24,10 +24,19 @@
 
 #include "config/parameter_group.h"
 
-// time difference, 32 bits always sufficient
+// time difference, signed 32 bits of microseconds overflows at ~35 minutes
+// this is worth leaving as int32_t for performance reasons, use timeDeltaLarge_t for deltas that can be big
 typedef int32_t timeDelta_t;
+#define TIMEDELTA_MAX INT32_MAX
+
+// time difference large, signed 64 bits of microseconds overflows at ~300000 years
+typedef int64_t timeDeltaLarge_t;
+#define TIMEDELTALARGE_MAX INT64_MAX
+
 // millisecond time
-typedef uint32_t timeMs_t ;
+typedef uint32_t timeMs_t;
+#define TIMEMS_MAX UINT32_MAX
+
 // microsecond time
 #ifdef USE_64BIT_TIME
 typedef uint64_t timeUs_t;
@@ -42,12 +51,16 @@ typedef uint32_t timeUs_t;
 #define USECS_PER_SEC (1000 * 1000)
 
 #define HZ2US(hz)   (1000000 / (hz))
+#define HZ2MS(hz)   (1000 / (hz))
 #define US2S(us)    ((us) * 1e-6f)
 #define US2MS(us)   ((us) * 1e-3f)
 #define MS2US(ms)   ((ms) * 1000)
 #define MS2S(ms)    ((ms) * 1e-3f)
-#define HZ2S(hz)    US2S(HZ2US(hz))
+#define S2MS(s)     ((s) * MILLISECS_PER_SEC)
+#define DS2MS(ds)   ((ds) * 100)
+#define HZ2S(hz)    (1.0f / (hz))
 
+// Use this function only to get small deltas (difference overflows at ~35 minutes)
 static inline timeDelta_t cmpTimeUs(timeUs_t a, timeUs_t b) { return (timeDelta_t)(a - b); }
 
 typedef enum {

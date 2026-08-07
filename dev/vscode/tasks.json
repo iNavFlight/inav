@@ -5,14 +5,13 @@
     "options": {
         "env": {
             "TARGET": "${config:TARGET}",
-            "SEMIHOSTING": "${config:SEMIHOSTING}"
         }
     },
     "tasks": [
         {
-            "label": "hex",
+            "label": "target",
             "type": "shell",
-            "command": "make", "args": ["hex"],
+            "command": "make", "args": ["-C", "${config:BUILD_DIR}", "${config:TARGET}"],
             "problemMatcher": "$gcc",
             "group": {
                 "kind": "build",
@@ -25,45 +24,27 @@
             }
         },
         {
-            "label": "elf",
+            "label": "flash",
             "type": "shell",
-            "command": "make", "args": ["elf"],
-            "problemMatcher": "$gcc",
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-            }
-        },
-        {
-            "label": "openocd-flash",
-            "type": "shell",
-            "command": "make", "args": ["openocd-flash"],
+            "command": "make", "args":  ["-C", "${config:BUILD_DIR}", "openocd_flash_${config:TARGET}"],
             "dependsOn": "elf"
-        },
-        {
-            "label": "clean",
-            "type": "shell",
-            "command": "make", "args": ["clean"],
-            "problemMatcher": []
         },
         {
             "label": "svd",
             "type": "shell",
-            "command": "make", "args": ["svd"],
+            "command": "make", "args":  ["-C", "${config:BUILD_DIR}", "svd_${config:TARGET}"],
             "problemMatcher": []
         },
         {
             "label": "openocd-cfg",
             "type": "shell",
-            "command": "make", "args": ["openocd-cfg"],
+            "command": "make", "args":  ["-C", "${config:BUILD_DIR}", "openocd_cfg_${config:TARGET}"],
             "problemMatcher": []
         },
         {
             "label": "openocd-debug-prepare",
             "type": "shell",
-            "dependsOn": ["svd", "openocd-cfg", "openocd-flash"],
+            "dependsOn": ["svd", "openocd-cfg", "flash"],
             "problemMatcher": []
         }
     ]

@@ -26,7 +26,7 @@
 
 typedef struct {
     uint8_t dataAge;
-    int8_t temperature;
+    int16_t temperature;
     int16_t voltage;
     int32_t current;
     uint32_t rpm;
@@ -34,6 +34,7 @@ typedef struct {
 
 typedef struct escSensorConfig_s {
     uint16_t currentOffset;             // offset consumed by the flight controller / VTX / cam / ... in mA
+    uint8_t  listenOnly;
 } escSensorConfig_t;
 
 PG_DECLARE(escSensorConfig_t, escSensorConfig);

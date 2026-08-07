@@ -30,30 +30,38 @@ typedef enum {
 } portSharing_e;
 
 typedef enum {
-    FUNCTION_NONE                = 0,
-    FUNCTION_MSP                 = (1 << 0), // 1
-    FUNCTION_GPS                 = (1 << 1), // 2
-    FUNCTION_TELEMETRY_FRSKY     = (1 << 2), // 4
-    FUNCTION_TELEMETRY_HOTT      = (1 << 3), // 8
-    FUNCTION_TELEMETRY_LTM       = (1 << 4), // 16
-    FUNCTION_TELEMETRY_SMARTPORT = (1 << 5), // 32
-    FUNCTION_RX_SERIAL           = (1 << 6), // 64
-    FUNCTION_BLACKBOX            = (1 << 7), // 128
-    FUNCTION_TELEMETRY_MAVLINK   = (1 << 8), // 256
-    FUNCTION_TELEMETRY_IBUS      = (1 << 9), // 512
-    FUNCTION_RCDEVICE            = (1 << 10), // 1024
-    FUNCTION_VTX_SMARTAUDIO      = (1 << 11), // 2048
-    FUNCTION_VTX_TRAMP           = (1 << 12), // 4096
-    FUNCTION_UAV_INTERCONNECT    = (1 << 13), // 8192
-    FUNCTION_OPTICAL_FLOW        = (1 << 14), // 16384
-    FUNCTION_LOG                 = (1 << 15), // 32768
-    FUNCTION_RANGEFINDER         = (1 << 16), // 65536
-    FUNCTION_VTX_FFPV            = (1 << 17), // 131072
-    FUNCTION_ESCSERIAL           = (1 << 18), // 262144: this is used for both SERIALSHOT and ESC_SENSOR telemetry
-    FUNCTION_TELEMETRY_SIM       = (1 << 19), // 524288
-    FUNCTION_FRSKY_OSD           = (1 << 20), // 1048576
-    FUNCTION_DJI_HD_OSD          = (1 << 21), // 2097152
+    FUNCTION_NONE                       = 0,
+    FUNCTION_MSP                        = (1 << 0), // 1
+    FUNCTION_GPS                        = (1 << 1), // 2
+    FUNCTION_UNUSED_3                   = (1 << 2), // 4 //Was FUNCTION_TELEMETRY_FRSKY
+    FUNCTION_TELEMETRY_HOTT             = (1 << 3), // 8
+    FUNCTION_TELEMETRY_LTM              = (1 << 4), // 16
+    FUNCTION_TELEMETRY_SMARTPORT        = (1 << 5), // 32
+    FUNCTION_RX_SERIAL                  = (1 << 6), // 64
+    FUNCTION_BLACKBOX                   = (1 << 7), // 128
+    FUNCTION_TELEMETRY_MAVLINK          = (1 << 8), // 256
+    FUNCTION_TELEMETRY_IBUS             = (1 << 9), // 512
+    FUNCTION_RCDEVICE                   = (1 << 10), // 1024
+    FUNCTION_VTX_SMARTAUDIO             = (1 << 11), // 2048
+    FUNCTION_VTX_TRAMP                  = (1 << 12), // 4096
+    FUNCTION_UNUSED_1                   = (1 << 13), // 8192: former\ UAV_INTERCONNECT
+    FUNCTION_OPTICAL_FLOW               = (1 << 14), // 16384
+    FUNCTION_LOG                        = (1 << 15), // 32768
+    FUNCTION_RANGEFINDER                = (1 << 16), // 65536
+    FUNCTION_VTX_FFPV                   = (1 << 17), // 131072
+    FUNCTION_ESCSERIAL                  = (1 << 18), // 262144: this is used for both SERIALSHOT and ESC_SENSOR telemetry
+    FUNCTION_TELEMETRY_SIM              = (1 << 19), // 524288
+    FUNCTION_FRSKY_OSD                  = (1 << 20), // 1048576
+    FUNCTION_DJI_HD_OSD                 = (1 << 21), // 2097152
+    FUNCTION_SERVO_SERIAL               = (1 << 22), // 4194304
+    FUNCTION_TELEMETRY_SMARTPORT_MASTER = (1 << 23), // 8388608
+    FUNCTION_UNUSED_2                   = (1 << 24), // 16777216
+    FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
+    FUNCTION_GIMBAL                     = (1 << 26), // 67108864
+    FUNCTION_GIMBAL_HEADTRACKER         = (1 << 27), // 134217728
 } serialPortFunction_e;
+
+#define FUNCTION_VTX_MSP FUNCTION_MSP_OSD
 
 typedef enum {
     BAUD_AUTO = 0,
@@ -72,7 +80,10 @@ typedef enum {
     BAUD_1000000,
     BAUD_1500000,
     BAUD_2000000,
-    BAUD_2470000
+    BAUD_2470000,
+
+    BAUD_MIN = BAUD_AUTO,
+    BAUD_MAX = BAUD_2470000,
 } baudRate_e;
 
 extern const uint32_t baudRates[];
@@ -122,17 +133,28 @@ typedef struct serialPortConfig_s {
 
 typedef struct serialConfig_s {
     serialPortConfig_t portConfigs[SERIAL_PORT_COUNT];
-    uint8_t reboot_character;               // which byte is used to reboot. Default 'R', could be changed carefully to something else.
 } serialConfig_t;
 
 PG_DECLARE(serialConfig_t, serialConfig);
 
 typedef void serialConsumer(uint8_t);
 
+// Hayes escape sequence detection state: [1s silence]+++[1s silence]
+// https://en.wikipedia.org/wiki/Escape_sequence#Modem_control
+typedef struct escapeSequenceState_s {
+    uint32_t lastCharTime;
+    uint32_t lastPlusTime;
+    uint8_t count;
+} escapeSequenceState_t;
+
+void escapeSequenceInit(escapeSequenceState_t *state);
+void escapeSequenceProcessChar(escapeSequenceState_t *state, uint8_t c, uint32_t now);
+bool escapeSequenceCheckGuard(escapeSequenceState_t *state, uint32_t now);
+
 //
 // configuration
 //
-void serialInit(bool softserialEnabled, serialPortIdentifier_e serialPortToDisable);
+void serialInit(bool softserialEnabled);
 void serialRemovePort(serialPortIdentifier_e identifier);
 uint8_t serialGetAvailablePortCount(void);
 bool serialIsPortAvailable(serialPortIdentifier_e identifier);

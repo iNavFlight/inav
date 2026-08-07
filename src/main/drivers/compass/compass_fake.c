@@ -37,7 +37,7 @@ static bool fakeMagInit(magDev_t *magDev)
 {
     UNUSED(magDev);
     // initially point north
-    fakeMagData[X] = 4096;
+    fakeMagData[X] = 1024;
     fakeMagData[Y] = 0;
     fakeMagData[Z] = 0;
     return true;

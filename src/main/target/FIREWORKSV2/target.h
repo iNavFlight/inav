@@ -58,35 +58,28 @@
 #define I2C_DEVICE_2_SHARES_UART3
 #endif
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC8
-// #define USE_MPU_DATA_READY_SIGNAL        // Not connected on FireworksV2
-
-#define USE_GYRO
-#define USE_ACC
-
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
+#define USE_DUAL_GYRO
+#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS     // Don't use common busdev descriptors for IMU
+#define USE_IMU_MPU6500
+#define USE_IMU_MPU6000
 
 #if defined(OMNIBUSF4V6)
-#define MPU6500_CS_PIN          PC14
-#define MPU6500_SPI_BUS         BUS_SPI1
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-#define ACC_MPU6500_ALIGN       CW0_DEG
+#   define IMU_1_CS_PIN            PA4
+#   define IMU_1_SPI_BUS           BUS_SPI1
+#   define IMU_1_ALIGN             CW180_DEG
+#   define IMU_2_CS_PIN            PC14
+#   define IMU_2_SPI_BUS           BUS_SPI1
+#   define IMU_2_ALIGN             CW0_DEG
 #else
-#define MPU6500_CS_PIN          PD2
-#define MPU6500_SPI_BUS         BUS_SPI3
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-#define ACC_MPU6500_ALIGN       CW180_DEG
+    // IMU_1 is verified to work on OBF4V6 and Omnibus Fireworks board
+#   define IMU_1_CS_PIN            PA4
+#   define IMU_1_SPI_BUS           BUS_SPI1
+#   define IMU_1_ALIGN             CW0_DEG_FLIP
+    // IMU_2 is sketchy and was not verified on actual hardware
+#   define IMU_2_CS_PIN            PD2
+#   define IMU_2_SPI_BUS           BUS_SPI3
+#   define IMU_2_ALIGN             CW180_DEG
 #endif
-
-// OmnibusF4 Nano v6 and OmnibusF4 V6 has a MPU6000
-#define USE_GYRO_MPU6000
-#define USE_ACC_MPU6000
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_BUS         BUS_SPI1
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-#define ACC_MPU6000_ALIGN       CW180_DEG
 
 #define USE_MAG
 #if defined(OMNIBUSF4V6)
@@ -94,11 +87,7 @@
 #else
 #define MAG_I2C_BUS             BUS_I2C2
 #endif
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #if defined(OMNIBUSF4V6)
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
@@ -126,7 +115,6 @@
 #else
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 #endif
-#define USE_RANGEFINDER_HCSR04_I2C
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
@@ -178,7 +166,6 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
@@ -232,8 +219,3 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#if defined(OMNIBUSF4V6)
-#define PCA9685_I2C_BUS         BUS_I2C1
-#else
-#define PCA9685_I2C_BUS         BUS_I2C2
-#endif

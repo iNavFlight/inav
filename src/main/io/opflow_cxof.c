@@ -73,7 +73,7 @@ static bool cxofOpflowInit(void)
         return false;
     }
 
-    flowPort = openSerialPort(portConfig->identifier, FUNCTION_OPTICAL_FLOW, NULL, NULL, baudRates[BAUD_19200], MODE_RX, SERIAL_NOT_INVERTED);
+    flowPort = openSerialPort(portConfig->identifier, FUNCTION_OPTICAL_FLOW, NULL, NULL, baudRates[portConfig->gps_baudrateIndex], MODE_RX, SERIAL_NOT_INVERTED);
     if (!flowPort) {
         return false;
     }

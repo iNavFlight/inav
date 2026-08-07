@@ -41,42 +41,35 @@
 #define MPU6000_CS_PIN          PC2
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC3
-#define USE_MPU_DATA_READY_SIGNAL
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW180_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG
+// *************** SPI3 ********************
+#define USE_SPI_DEVICE_3
+#define SPI3_SCK_PIN            PB3
+#define SPI3_MISO_PIN   	    PB4
+#define SPI3_MOSI_PIN   	    PB5
 
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW180_DEG
+#ifdef MATEKF405MINI
+// *************** M25P256 flash ********************
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define M25P16_SPI_BUS          BUS_SPI3
+#define M25P16_CS_PIN           PC0
 
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG
-
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#else
 // *************** SD Card **************************
 #define USE_SDCARD
 #define USE_SDCARD_SPI
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PC1
 
-#define USE_SPI_DEVICE_3
-#define SPI3_SCK_PIN            PB3
-#define SPI3_MISO_PIN   	    PB4
-#define SPI3_MOSI_PIN   	    PB5
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
-// *************** M25P256 flash ********************
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define M25P16_SPI_BUS          BUS_SPI3
-#define M25P16_CS_PIN           PC0
+#endif
 
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2
@@ -84,7 +77,6 @@
 #define SPI2_MISO_PIN   	    PB14
 #define SPI2_MOSI_PIN   	    PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB10
@@ -155,23 +147,17 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+#define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS                 DEFAULT_I2C_BUS
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
@@ -187,11 +173,11 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
-#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY )
+#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_BLACKBOX )
 #define CURRENT_METER_SCALE   179
 
 #define USE_LED_STRIP
-#define WS2811_PIN                      PA15 // S5 pad for iNav
+#define WS2811_PIN                      PA15 // S5 pad for INAV
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 //  RX2
@@ -205,8 +191,5 @@
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
 
 #define MAX_PWM_OUTPUT_PORTS       6
-
-#define PCA9685_I2C_BUS             DEFAULT_I2C_BUS

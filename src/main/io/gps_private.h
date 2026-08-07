@@ -23,7 +23,7 @@
 
 #define GPS_HDOP_TO_EPH_MULTIPLIER      2   // empirical value
 
-// GPS timeout for wrong baud rate/disconnection/etc in milliseconds (default 2000 ms)
+// GPS timeout for wrong baud rate/disconnection/etc in milliseconds (default 1000 ms)
 #define GPS_TIMEOUT             (1000)
 #define GPS_SHORT_TIMEOUT       (500)
 #define GPS_BAUD_CHANGE_DELAY   (100)
@@ -42,20 +42,32 @@ typedef struct {
     const serialConfig_t * serialConfig;
     serialPort_t *  gpsPort;                // Serial GPS only
 
-    uint32_t        hwVersion;
+    uint8_t         hwVersion;          // See UBX_HW_VERSION_* in gps_ublox.h
+    uint8_t         swVersionMajor;
+    uint8_t         swVersionMinor;
 
     gpsState_e      state;
     gpsBaudRate_e   baudrateIndex;
     gpsBaudRate_e   autoBaudrateIndex;      // Driver internal use (for autoBaud)
     uint8_t         autoConfigStep;         // Driver internal use (for autoConfig)
+    struct
+    {
+        uint8_t pvt : 1;
+        uint8_t sig : 1;
+        uint8_t sat : 1;
+    } flags;
 
     timeMs_t        lastStateSwitchMs;
     timeMs_t        lastLastMessageMs;
     timeMs_t        lastMessageMs;
     timeMs_t        timeoutMs;
+    timeMs_t        baseTimeoutMs;
+    timeMs_t        lastCapaPoolMs;
+    timeMs_t        lastCapaUpdMs;
 } gpsReceiverData_t;
 
 extern gpsReceiverData_t gpsState;
+extern gpsSolutionData_t gpsSolDRV;
 
 extern baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT];
 
@@ -65,17 +77,20 @@ extern void gpsFinalizeChangeBaud(void);
 extern uint16_t gpsConstrainEPE(uint32_t epe);
 extern uint16_t gpsConstrainHDOP(uint32_t hdop);
 
-void gpsProcessNewSolutionData(void);
+void gpsProcessNewDriverData(void);
+void gpsProcessNewSolutionData(bool);
 void gpsSetProtocolTimeout(timeMs_t timeoutMs);
 
 extern void gpsRestartUBLOX(void);
 extern void gpsHandleUBLOX(void);
 
-extern void gpsRestartNMEA_MTK(void);
-extern void gpsHandleNMEA(void);
-extern void gpsHandleMTK(void);
+extern void gpsRestartMSP(void);
+extern void gpsHandleMSP(void);
 
-extern void gpsRestartNAZA(void);
-extern void gpsHandleNAZA(void);
+#if defined(USE_GPS_FAKE)
+extern void gpsFakeRestart(void);
+extern void gpsFakeHandle(void);
+#endif
+
 
 #endif

@@ -30,17 +30,24 @@ require 'rbconfig'
 require 'shellwords'
 
 class Compiler
-    def initialize
+    def initialize(use_host_gcc)
         # Look for the compiler in PATH manually, since there
         # are some issues with the built-in search by spawn()
         # on Windows if PATH contains spaces.
         #dirs = ((ENV["CPP_PATH"] || "") + File::PATH_SEPARATOR + (ENV["PATH"] || "")).split(File::PATH_SEPARATOR)
         dirs = ((ENV["CPP_PATH"] || "") + File::PATH_SEPARATOR + (ENV["PATH"] || "")).split(File::PATH_SEPARATOR)
-        bin = "arm-none-eabi-g++"
+        bin = ENV["SETTINGS_CXX"]
+        if bin.empty?
+            if use_host_gcc
+                bin = "g++"
+            else
+                bin = "arm-none-eabi-g++"
+            end
+        end
         dirs.each do |dir|
             p = File.join(dir, bin)
             ['', '.exe'].each do |suffix|
-                f = p + suffix
+                f = File.expand_path(p + suffix)
                 if File.executable?(f)
                     if @verbose
                         puts "Found #{bin} at #{f}"
@@ -57,6 +64,7 @@ class Compiler
     def default_args
         cflags = Shellwords.split(ENV["CFLAGS"] || "")
         args = [@path]
+        args << "-std=c++11"
         cflags.each do |flag|
             # Don't generate temporary files
             if flag == "" || flag == "-MMD" || flag == "-MP" || flag.start_with?("-save-temps")
@@ -67,7 +75,7 @@ class Compiler
                 next
             end
             if flag.start_with? "-std="
-                flag = "-std=c++11"
+                next
             end
             if flag.start_with? "-D'"
                 # Cleanup flag. Done by the shell when called from

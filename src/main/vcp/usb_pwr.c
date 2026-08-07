@@ -172,20 +172,12 @@ void Suspend(void)
     /* Store the new value */
     PWR->CR = tmpreg;
     /* Set SLEEPDEEP bit of Cortex System Control Register */
-#if defined (STM32F303xC) || defined (STM32F37X)
-    SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-#else
     SCB->SCR |= SCB_SCR_SLEEPDEEP;
-#endif
     /* enter system in STOP mode, only when wakeup flag in not set */
     if ((_GetISTR() & ISTR_WKUP) == 0) {
         __WFI();
         /* Reset SLEEPDEEP bit of Cortex System Control Register */
-#if defined (STM32F303xC) || defined (STM32F37X)
-        SCB->SCR &= (uint32_t)~((uint32_t)SCB_SCR_SLEEPDEEP_Msk);
-#else
         SCB->SCR &= (uint32_t)~((uint32_t)SCB_SCR_SLEEPDEEP);
-#endif
     } else {
         /* Clear Wakeup flag */
         _SetISTR(CLR_WKUP);
@@ -199,12 +191,7 @@ void Suspend(void)
         PWR->CR = savePWR_CR;
 
         /* Reset SLEEPDEEP bit of Cortex System Control Register */
-#if defined (STM32F303xC) || defined (STM32F37X)
-        SCB->SCR &= (uint32_t)~((uint32_t)SCB_SCR_SLEEPDEEP_Msk);
-#else
         SCB->SCR &= (uint32_t)~((uint32_t)SCB_SCR_SLEEPDEEP);
-#endif
-
     }
 }
 

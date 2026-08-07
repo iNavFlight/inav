@@ -32,23 +32,35 @@
 /*** Hardware definitions ***/
 const pinioHardware_t pinioHardware[] = {
 #if defined(PINIO1_PIN)
-    { .ioTag = IO_TAG(PINIO1_PIN), .ioMode = IOCFG_OUT_PP, .flags = 0 },
+#if !defined(PINIO1_FLAGS)
+#define PINIO1_FLAGS 0
+#endif
+    { .ioTag = IO_TAG(PINIO1_PIN), .ioMode = IOCFG_OUT_PP, .flags = PINIO1_FLAGS },
 #endif
 
 #if defined(PINIO2_PIN)
-    { .ioTag = IO_TAG(PINIO2_PIN), .ioMode = IOCFG_OUT_PP, .flags = 0 },
+#if !defined(PINIO2_FLAGS)
+#define PINIO2_FLAGS 0
+#endif
+    { .ioTag = IO_TAG(PINIO2_PIN), .ioMode = IOCFG_OUT_PP, .flags = PINIO2_FLAGS },
 #endif
 
 #if defined(PINIO3_PIN)
-    { .ioTag = IO_TAG(PINIO3_PIN), .ioMode = IOCFG_OUT_PP, .flags = 0 },
+#if !defined(PINIO3_FLAGS)
+#define PINIO3_FLAGS 0
+#endif
+    { .ioTag = IO_TAG(PINIO3_PIN), .ioMode = IOCFG_OUT_PP, .flags = PINIO3_FLAGS },
 #endif
 
 #if defined(PINIO4_PIN)
-    { .ioTag = IO_TAG(PINIO4_PIN), .ioMode = IOCFG_OUT_PP, .flags = 0 },
+#if !defined(PINIO4_FLAGS)
+#define PINIO4_FLAGS 0
+#endif
+    { .ioTag = IO_TAG(PINIO4_PIN), .ioMode = IOCFG_OUT_PP, .flags = PINIO4_FLAGS },
 #endif
 };
 
-const int pinioHardwareCount = sizeof(pinioHardware) / sizeof(pinioHardware[0]);
+const int pinioHardwareCount = ARRAYLEN(pinioHardware);
 
 /*** Runtime configuration ***/
 typedef struct pinioRuntime_s {
@@ -88,16 +100,14 @@ void pinioInit(void)
     }
 }
 
-void pinioSet(int index, bool on)
+void pinioSet(int index, bool newState)
 {
-    const bool newState = on ^ pinioRuntime[index].inverted;
-
     if (!pinioRuntime[index].io) {
         return;
     }
 
     if (newState != pinioRuntime[index].state) {
-        IOWrite(pinioRuntime[index].io, newState);
+        IOWrite(pinioRuntime[index].io, newState ^ pinioRuntime[index].inverted);
         pinioRuntime[index].state = newState;
     }
 }

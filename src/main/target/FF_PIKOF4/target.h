@@ -42,14 +42,6 @@
 // #define CAMERA_CONTROL_PIN      PB7
 /*---------------------------------*/
 
-/*------------SENSORS--------------*/
-// MPU interrupt
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #if defined(FF_PIKOF4OSD)
 #define MPU6000_CS_PIN          PA15
 #define MPU6000_SPI_BUS         BUS_SPI3
@@ -64,24 +56,15 @@
 #define MPU6500_SPI_BUS         BUS_SPI1
 #endif
 
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 
-#define USE_GYRO_MPU6500
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
-
-#define USE_ACC_MPU6500
-#define ACC_MPU6500_ALIGN       CW180_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
 /*---------------------------------*/
 
 #if defined(FF_PIKOF4OSD)
 /*-------------OSD-----------------*/
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PA4

@@ -40,7 +40,7 @@
 #endif
 
 #ifdef __APPLE__
-#define FASTRAM                     __attribute__ ((section("__DATA,__.fastram_bss"), aligned(4)))
+#define FASTRAM                     __attribute__ ((section("__DATA,__.fastram_bss"), aligned(8)))
 #else
 #define FASTRAM                     __attribute__ ((section(".fastram_bss"), aligned(4)))
 #endif
@@ -49,6 +49,17 @@
 #define EXTENDED_FASTRAM FASTRAM
 #else
 #define EXTENDED_FASTRAM
+#endif
+
+#if defined (STM32H7)
+#define DMA_RAM __attribute__ ((section(".DMA_RAM")))
+#define SLOW_RAM __attribute__ ((section(".SLOW_RAM")))
+#elif defined (AT32F43x)
+#define DMA_RAM __attribute__ ((section(".DMA_RAM")))
+#define SLOW_RAM __attribute__ ((section(".SLOW_RAM")))
+#else
+#define DMA_RAM
+#define SLOW_RAM
 #endif
 
 #define STATIC_FASTRAM              static FASTRAM

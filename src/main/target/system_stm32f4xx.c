@@ -315,7 +315,9 @@
   */
 
 #include "stm32f4xx.h"
+#include "system.h"
 #include "system_stm32f4xx.h"
+#include "drivers/system.h"
 
 uint32_t hse_value = HSE_VALUE;
 
@@ -351,9 +353,9 @@ uint32_t hse_value = HSE_VALUE;
      through STLINK MCO pin of STM32F103 microcontroller. The frequency cannot be changed
      and is fixed at 8 MHz.
      Hardware configuration needed for Nucleo Board:
-     – SB54, SB55 OFF
-     – R35 removed
-     – SB16, SB50 ON */
+     - SB54, SB55 OFF
+     - R35 removed
+     - SB16, SB50 ON */
 /* #define USE_HSE_BYPASS */
 
 #if defined(USE_HSE_BYPASS)
@@ -370,7 +372,9 @@ uint32_t hse_value = HSE_VALUE;
 
 /************************* PLL Parameters *************************************/
 #if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F469_479xx) || defined (STM32F446xx) || defined (STM32F410xx) || defined (STM32F411xE)
-    #if HSE_VALUE == 24000000
+    #if HSE_VALUE == 25000000
+	#define PLL_M   25
+    #elif HSE_VALUE == 24000000
         #define PLL_M   24
     #elif HSE_VALUE == 16000000
         #define PLL_M   16
@@ -474,6 +478,8 @@ static void SystemInit_ExtMemCtl(void);
   */
 void SystemInit(void)
 {
+  initialiseMemorySections();
+
   /* FPU settings ------------------------------------------------------------*/
   #if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
     SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
@@ -509,7 +515,7 @@ void SystemInit(void)
 #ifdef VECT_TAB_SRAM
   SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
-  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+  SCB->VTOR = (uint32_t) &isr_vector_table_base; /* Vector Table Relocation in Internal FLASH */
 #endif
 }
 
@@ -732,7 +738,7 @@ void SetSysClock(void)
     RCC->CFGR |= RCC_CFGR_SW_PLL;
 
     /* Wait till the main PLL is used as system clock source */
-    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS ) != RCC_CFGR_SWS_PLL);
+    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS ) != RCC_CFGR_SWS_PLL)
     {
     }
   }

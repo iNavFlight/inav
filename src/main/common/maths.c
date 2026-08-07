@@ -25,6 +25,10 @@
 #include "quaternion.h"
 #include "platform.h"
 
+#ifdef USE_ARM_MATH
+#include "arm_math.h"
+#endif
+
 // http://lolengine.net/blog/2011/12/21/better-function-approximations
 // Chebyshev http://stackoverflow.com/questions/345085/how-do-trigonometric-functions-work/345117#345117
 // Thanks for ledvinap for making such accuracy possible! See: https://github.com/cleanflight/cleanflight/issues/940#issuecomment-110323384
@@ -93,7 +97,7 @@ float atan2_approx(float y, float x)
 float acos_approx(float x)
 {
     float xa = fabsf(x);
-    float result = sqrtf(1.0f - xa) * (1.5707288f + xa * (-0.2121144f + xa * (0.0742610f + (-0.0187293f * xa))));
+    float result = fast_fsqrtf(1.0f - xa) * (1.5707288f + xa * (-0.2121144f + xa * (0.0742610f + (-0.0187293f * xa))));
     if (x < 0.0f)
         return M_PIf - result;
     else
@@ -119,9 +123,18 @@ int32_t wrap_18000(int32_t angle)
     return angle;
 }
 
+int16_t wrap_180(int16_t angle)
+{
+    if (angle > 180)
+        angle -= 360;
+    if (angle < -180)
+        angle += 360;
+    return angle;
+}
+
 int32_t wrap_36000(int32_t angle)
 {
-    if (angle > 36000)
+    if (angle >= 36000)
         angle -= 36000;
     if (angle < 0)
         angle += 36000;
@@ -140,16 +153,19 @@ int32_t applyDeadband(int32_t value, int32_t deadband)
     return value;
 }
 
-float fapplyDeadbandf(float value, float deadband)
+int32_t applyDeadbandRescaled(int32_t value, int32_t deadband, int32_t min, int32_t max)
 {
-    if (fabsf(value) < deadband) {
-        return 0;
+    if (ABS(value) < deadband) {
+        value = 0;
+    } else if (value > 0) {
+        value = scaleRange(value - deadband, 0, max - deadband, 0, max);
+    } else if (value < 0) {
+        value = scaleRange(value + deadband, min + deadband, 0, min, 0);
     }
-
-    return value >= 0 ? value - deadband : value + deadband;
+    return value;
 }
 
-int constrain(int amt, int low, int high)
+int32_t FAST_CODE constrain(int32_t amt, int32_t low, int32_t high)
 {
     if (amt < low)
         return low;
@@ -159,7 +175,7 @@ int constrain(int amt, int low, int high)
         return amt;
 }
 
-float FAST_CODE NOINLINE constrainf(float amt, float low, float high)
+float FAST_CODE constrainf(float amt, float low, float high)
 {
     if (amt < low)
         return low;
@@ -195,7 +211,7 @@ float devVariance(stdev_t *dev)
 
 float devStandardDeviation(stdev_t *dev)
 {
-    return sqrtf(devVariance(dev));
+    return fast_fsqrtf(devVariance(dev));
 }
 
 float degreesToRadians(int16_t degrees)
@@ -209,7 +225,7 @@ int scaleRange(int x, int srcMin, int srcMax, int destMin, int destMax) {
     return ((a / b) + destMin);
 }
 
-float scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax) {
+float FAST_CODE scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax) {
     float a = (destMax - destMin) * (x - srcMin);
     float b = srcMax - srcMin;
     return ((a / b) + destMin);
@@ -373,36 +389,36 @@ void sensorCalibrationResetState(sensorCalibrationState_t * state)
     }
 }
 
-void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, int32_t sample[3])
+void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, float sample[3])
 {
-    state->XtX[0][0] += (float)sample[0] * sample[0];
-    state->XtX[0][1] += (float)sample[0] * sample[1];
-    state->XtX[0][2] += (float)sample[0] * sample[2];
-    state->XtX[0][3] += (float)sample[0];
+    state->XtX[0][0] += sample[0] * sample[0];
+    state->XtX[0][1] += sample[0] * sample[1];
+    state->XtX[0][2] += sample[0] * sample[2];
+    state->XtX[0][3] += sample[0];
 
-    state->XtX[1][0] += (float)sample[1] * sample[0];
-    state->XtX[1][1] += (float)sample[1] * sample[1];
-    state->XtX[1][2] += (float)sample[1] * sample[2];
-    state->XtX[1][3] += (float)sample[1];
+    state->XtX[1][0] += sample[1] * sample[0];
+    state->XtX[1][1] += sample[1] * sample[1];
+    state->XtX[1][2] += sample[1] * sample[2];
+    state->XtX[1][3] += sample[1];
 
-    state->XtX[2][0] += (float)sample[2] * sample[0];
-    state->XtX[2][1] += (float)sample[2] * sample[1];
-    state->XtX[2][2] += (float)sample[2] * sample[2];
-    state->XtX[2][3] += (float)sample[2];
+    state->XtX[2][0] += sample[2] * sample[0];
+    state->XtX[2][1] += sample[2] * sample[1];
+    state->XtX[2][2] += sample[2] * sample[2];
+    state->XtX[2][3] += sample[2];
 
-    state->XtX[3][0] += (float)sample[0];
-    state->XtX[3][1] += (float)sample[1];
-    state->XtX[3][2] += (float)sample[2];
+    state->XtX[3][0] += sample[0];
+    state->XtX[3][1] += sample[1];
+    state->XtX[3][2] += sample[2];
     state->XtX[3][3] += 1;
 
-    float squareSum = ((float)sample[0] * sample[0]) + ((float)sample[1] * sample[1]) + ((float)sample[2] * sample[2]);
+    float squareSum = (sample[0] * sample[0]) + (sample[1] * sample[1]) + (sample[2] * sample[2]);
     state->XtY[0] += sample[0] * squareSum;
     state->XtY[1] += sample[1] * squareSum;
     state->XtY[2] += sample[2] * squareSum;
     state->XtY[3] += squareSum;
 }
 
-void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target)
+void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, float sample[3], int target)
 {
     for (int i = 0; i < 3; i++) {
         float scaledSample = (float)sample[i] / (float)target;
@@ -473,7 +489,19 @@ static void sensorCalibration_SolveLGS(float A[4][4], float x[4], float b[4]) {
     sensorCalibration_BackwardSubstitution(A, x, y);
 }
 
-void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3])
+bool sensorCalibrationValidateResult(const float result[3])
+{
+    // Validate that result is not INF and not NAN
+    for (int i = 0; i < 3; i++) {
+        if (isnan(result[i]) && isinf(result[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3])
 {
     float beta[4];
     sensorCalibration_SolveLGS(state->XtX, beta, state->XtY);
@@ -481,19 +509,111 @@ void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float res
     for (int i = 0; i < 3; i++) {
         result[i] = beta[i] / 2;
     }
+
+    return sensorCalibrationValidateResult(result);
 }
 
-void sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3])
+bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3])
 {
     float beta[4];
     sensorCalibration_SolveLGS(state->XtX, beta, state->XtY);
 
     for (int i = 0; i < 3; i++) {
-        result[i] = sqrtf(beta[i]);
+        result[i] = fast_fsqrtf(beta[i]);
     }
+
+    return sensorCalibrationValidateResult(result);
+}
+
+float gaussian(const float x, const float mu, const float sigma) {
+    return expf(-((x - mu) * (x - mu)) / (2.0f * sigma * sigma));
 }
 
 float bellCurve(const float x, const float curveWidth)
 {
-    return powf(M_Ef, -sq(x) / (2.0f * sq(curveWidth)));
+    return gaussian(x, 0.0f, curveWidth);
 }
+
+/**
+ * @brief Calculate the attenuation of a value using a Gaussian function.
+ * Retuns 1 for input 0 and ~0 for input width.
+ * @param input The input value.
+ * @param width The width of the Gaussian function.
+ * @return The attenuation of the input value.
+*/
+float attenuation(const float input, const float width) {
+    const float sigma = width / 2.35482f; // Approximately width / sqrt(2 * ln(2))
+    return gaussian(input, 0.0f, sigma);
+}
+
+float fast_fsqrtf(const float value) {
+    float ret = 0.0f;
+#ifdef USE_ARM_MATH
+    arm_sqrt_f32(value, &ret);
+#else
+    ret = sqrtf(value);
+#endif
+    if (isnan(ret))
+    {
+        return 0.0f;
+    }
+    return ret;
+}
+
+// function to calculate the normalization (pythagoras) of a 2-dimensional vector
+float NOINLINE calc_length_pythagorean_2D(const float firstElement, const float secondElement)
+{
+    return fast_fsqrtf(sq(firstElement) + sq(secondElement));
+}
+
+// function to calculate the normalization (pythagoras) of a 3-dimensional vector
+float NOINLINE calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement)
+{
+    return fast_fsqrtf(sq(firstElement) + sq(secondElement) + sq(thirdElement));
+}
+
+#ifdef SITL_BUILD
+
+/**
+ * @brief Floating-point vector subtraction, equivalent of CMSIS arm_sub_f32.
+*/
+void arm_sub_f32(
+  float * pSrcA,
+  float * pSrcB,
+  float * pDst,
+  uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrcA[i] - pSrcB[i];
+    }
+}
+
+/**
+ * @brief Floating-point vector scaling, equivalent of CMSIS arm_scale_f32.
+*/
+void arm_scale_f32(
+  float * pSrc,
+  float scale,
+  float * pDst,
+  uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrc[i] * scale;
+    }
+}
+
+/**
+ * @brief Floating-point vector multiplication, equivalent of CMSIS arm_mult_f32.
+*/
+void arm_mult_f32(
+  float * pSrcA,
+  float * pSrcB,
+  float * pDst,
+  uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrcA[i] * pSrcB[i];
+    }
+}
+
+#endif

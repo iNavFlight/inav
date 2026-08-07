@@ -10,10 +10,9 @@ Telemetry is enabled using the 'TELEMETRY' feature.
 feature TELEMETRY
 ```
 
-Multiple telemetry providers are currently supported, FrSky, Graupner
-HoTT V4, SmartPort (S.Port) and LightTelemetry (LTM)
+Multiple telemetry providers are currently supported, FrSky, Graupner HoTT V4, SmartPort (S.Port), LightTelemetry (LTM). MAVLink, IBUS, Crossfire and GSM SMS.
 
-All telemetry systems use serial ports, configure serial ports to use the telemetry system required.
+All telemetry systems use serial ports, configure serial ports to use the telemetry system required. Multiple telemetry streams may be enabled, but only one of each type, e.g. Smartport + LTM or MAVLink + CRSF.
 
 ## SmartPort (S.Port) telemetry
 
@@ -25,31 +24,30 @@ Smartport devices are using _inverted_ serial protocol and as such can not be di
 
 | CPU family  | Direct connection   | Receiver _uninverted_ hack  | SoftwareSerial  | Additional hardware inverter  |
 | -----       | -----               | -----                       | -----           | -----                         |
-| STM32F1     | no possible (*)     | possible                    | possible        | possible                      |
-| STM32F3     | possible            | not required                | possible        | not required                  |
 | STM32F4     | not possible (*)    | possible                    | possible        | possible                      |
 | STM32F7     | possible            | not required                | possible        | not required                  |
+| STM32H7     | possible            | not required                | possible        | not required                  |
 
 > * possible if flight controller has dedicated, additional, hardware inverter
 
 Smartport uses _57600bps_ serial speed.
 
-### Direct connection for F3/F7
+### Direct connection for F7/H7
 
-Only TX serial pin has to be connected to Smartport receiver. Disable `telemetry_inverted`.
+Only TX serial pin has to be connected to Smartport receiver.
 
 ```
 set telemetry_inverted = OFF
-set telemetry_uart_unidir = OFF
+set telemetry_halfduplex = ON
 ```
 
-### Receiver univerted hack
+### Receiver uninverted hack
 
 Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport signal. In this case connect uninverted signal to TX pad of chosen serial port and enable `telemetry_inverted`.
 
 ```
 set telemetry_inverted = ON
-set telemetry_uart_unidir = OFF
+set telemetry_halfduplex = ON
 ```
 
 ### Software Serial
@@ -58,9 +56,10 @@ Software emulated serial port allows to connect to Smartport receivers without a
 
 ```
 set telemetry_inverted = OFF
+set telemetry_halfduplex = ON
 ```
 
-If solution above is not working, there is an alternative RX and TX lines have to be bridged using
+If the solution above is not working, there is an alternative RX and TX lines have to be bridged using
 1kOhm resistor (confirmed working with 100Ohm, 1kOhm and 10kOhm)
 
 ```
@@ -73,7 +72,7 @@ set telemetry_inverted = OFF
 
 ### SmartPort (S.Port) with external hardware inverter
 
-It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and F4 based flight controllers. This method does not require hardware hack of S.Port receiver.
+It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and F4 based flight controllers. This method does not require a hardware hack of S.Port receiver.
 
 #### SmartPort inverter using bipolar transistors
 ![Inverter](assets/images/smartport_inverter.png)
@@ -83,10 +82,10 @@ It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and
 
 **Warning** Chosen UART has to be 5V tolerant. If not, use 3.3V power supply instead (not tested)
 
-When external inverter is used, following configuration has to be applied:
+When the external inverter is used, following configuration has to be applied:
 
 ```
-set telemetry_uart_unidir = ON
+set telemetry_halfduplex = OFF
 set telemetry_inverted = ON
 ```
 
@@ -103,61 +102,34 @@ The following sensors are transmitted
 * **VSpd** : vertical speed, unit is cm/s.
 * **Hdg** : heading, North is 0°, South is 180°.
 * **AccX,Y,Z** : accelerometer values (not sent if `frsky_pitch_roll = ON`).
-* **Tmp1** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
-  * **A** : 1 = flaperon mode, 2 = auto tune mode, 4 = failsafe mode
-  * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
-  * **C** : 1 = heading hold, 2 = altitude hold, 4 = position hold
-  * **D** : 1 = angle mode, 2 = horizon mode, 4 = passthru mode
-  * **E** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
-* **Tmp2** : GPS lock status, accuracy, home reset trigger, and number of satellites. Number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
+* **470** : flight mode, sent as 7 digits. Number is sent as **ABCDEFG** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
+  * **A** : 1 = WRTH mode, 2 = Angle hold mode
+  * **B** : 1 = Fixed Wing Auto-land, 2 = Turtle mode, 4 = Geofence action mode, 8 = Loiter mode
+  * **C** : 1 = flaperon mode, 2 = auto tune mode, 4 = failsafe mode
+  * **D** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode, 8 = Course Hold
+  * **E** : 1 = heading hold, 2 = altitude hold, 4 = position hold
+  * **F** : 1 = angle mode, 2 = horizon mode, 4 = passthru mode
+  * **G** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
+  
+  _NOTE_ This sensor used to be **Tmp1**. The ID has been reassigned in INAV 8.0. The old ID of **Tmp1** can still be used, by using `set frsky_use_legacy_gps_mode_sensor_ids = ON`. This is deprecated and will be removed in INAV 10.0. All tools and scripts using the old IDs should be updated to use the new ID.
+* **480** : GPS lock status, accuracy, home reset trigger, and number of satellites. Number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
   * **A** : 1 = GPS fix, 2 = GPS home fix, 4 = home reset (numbers are additive)
   * **B** : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
   * **C** : number of satellites locked (digit C & D are the number of locked satellites)
   * **D** : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
+  
+  _NOTE_ This sensor used to be **Tmp2**. The ID has been reassigned in INAV 8.0. The old ID of **Tmp2** can still be used, by using `set frsky_use_legacy_gps_mode_sensor_ids = ON`. This is deprecated and will be removed in INAV 10.0. All tools and scripts using the old IDs should be updated to use the new ID.
 * **GAlt** : GPS altitude, sea level is zero.
-* **ASpd** : true air speed, from pitot sensor.
+* **ASpd** : true air speed, from pitot sensor. This is _Knots * 10_
 * **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
 * **0420** : distance to GPS home fix, in meters
 * **0430** : if `frsky_pitch_roll = ON` set this will be pitch degrees*10
 * **0440** : if `frsky_pitch_roll = ON` set this will be roll degrees*10
 * **0450** : 'Flight Path Vector' or 'Course over ground' in degrees*10
+* **0460** : Azimuth in degrees*10
 ### Compatible SmartPort/INAV telemetry flight status
 
-To quickly and easily monitor these SmartPort sensors and flight modes, install [iNav LuaTelemetry](https://github.com/iNavFlight/LuaTelemetry) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
-
-## FrSky telemetry
-
-FrSky telemetry is for older FrSky transmitters and D-series receivers.  For newer transmitters paired with X-series receivers see SmartPort (S.Port) telemetry above.
-
-FrSky telemetry is transmit only and just requires a single connection from the TX pin of a serial port to the RX pin on an FrSky telemetry receiver.
-
-FrSky telemetry signals are inverted.  To connect a INAV capable board to an FrSKy receiver you have some options.
-
-1. A hardware inverter - Built in to some flight controllers.
-2. Use software serial.
-3. Use a flight controller that has software configurable hardware inversion (e.g. F3 or F7).
-
-For 1, just connect your inverter to a usart or software serial port.
-
-For 2 and 3 use the CLI command as follows:
-
-```
-set telemetry_inverted = OFF
-```
-
-### Precision setting for VFAS
-
-INAV can send VFAS (FrSky Ampere Sensor Voltage) in two ways:
-
-```
-set frsky_vfas_precision  = 0
-```
-This is default setting which supports VFAS resolution of 0.2 volts and is supported on all FrSky hardware.
-
-```
-set frsky_vfas_precision  = 1
-```
-This is new setting which supports VFAS resolution of 0.1 volts and is supported by OpenTX and er9x/ersky9x firmware (this method uses custom ID 0x39).
+To quickly and easily monitor these SmartPort sensors and flight modes, install [OpenTX Telemetry Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
 
 
 ### Notes
@@ -176,7 +148,7 @@ Use the latest Graupner firmware for your transmitter and receiver.
 
 Older HoTT transmitters required the EAM and GPS modules to be enabled in the telemetry menu of the transmitter. (e.g. on MX-20)
 
-You can use a single connection, connect HoTT RX/TX only to serial TX, leave serial RX open and make sure the setting `telemetry_uart_unidir` is OFF.
+You can use a single connection, connect HoTT RX/TX only to serial TX, leave serial RX open and make sure the setting `telemetry_halfduplex` is OFF.
 
 The following information is deprecated, use only for compatibility:
 Serial ports use two wires but HoTT uses a single wire so some electronics are required so that the signals don't get mixed up.  The TX and RX pins of
@@ -195,7 +167,7 @@ The diode should be arranged to allow the data signals to flow the right way
 
 1N4148 diodes have been tested and work with the GR-24.
 
-When using the diode enable `telemetry_uart_unidir`, go to CLI and type `set telemetry_uart_unidir = ON`, don't forget a `save` afterwards.
+When using the diode enable `telemetry_halfduplex`, go to CLI and type `set telemetry_halfduplex = ON`, don't forget a `save` afterwards.
 
 As noticed by Skrebber the GR-12 (and probably GR-16/24, too) are based on a PIC 24FJ64GA-002, which has 5V tolerant digital pins.
 
@@ -203,50 +175,38 @@ Note: The SoftSerial ports may not be 5V tolerant on your board.  Verify if you 
 
 ## LightTelemetry (LTM)
 
-LTM is a lightweight streaming telemetry protocol supported by a
-number of OSDs, ground stations and antenna trackers.
+LTM is a lightweight streaming telemetry protocol supported by a number of OSDs, ground stations and antenna trackers.
 
 The INAV implementation of LTM implements the following frames:
 
-* G-FRAME: GPS information (lat, long, ground speed, altitude, sat
-  info)
+* G-FRAME: GPS information (lat, long, ground speed, altitude, sat info)
 * A-FRAME: Attitude (pitch, roll, heading)
-* S-FRAME: Status (voltage, current+, RSSI, airspeed+, status). Item
-  suffixed '+' not implemented in INAV.
+* S-FRAME: Status (voltage, current+, RSSI, airspeed+, status). Item suffixed '+' not implemented in INAV.
 * O-FRAME: Origin (home position, lat, long, altitude, fix)
 
-In addition, in  iNav:
+In addition, in INAV:
 
-* N-FRAME: Navigation information (GPS mode, Nav mode, Nav action,
-  Waypoint number, Nav Error, Nav Flags).
+* N-FRAME: Navigation information (GPS mode, Nav mode, Nav action, Waypoint number, Nav Error, Nav Flags).
 * X-FRAME: Extra information. Currently HDOP is reported.
 
-LTM is transmit only, and can work at any supported baud rate. It is
-designed to operate over 2400 baud (9600 in INAV) and does not
-benefit from higher rates. It is thus usable on soft serial.
+LTM is transmit only, and can work at any supported baud rate. It is designed to operate over 2400 baud (9600 in INAV) and does not benefit from higher rates. It is thus usable on soft serial.
 
-A CLI variable `ltm_update_rate` may be used to configure the update
-rate and hence band-width used by LTM, with the following enumerations:
+A CLI variable `ltm_update_rate` may be used to configure the update rate and hence band-width used by LTM, with the following enumerations:
 
 * NORMAL: Legacy rate, currently 303 bytes/second (requires 4800 bps)
 * MEDIUM: 164 bytes/second (requires 2400 bps)
 * SLOW: 105 bytes/second (requires 1200 bps)
 
-For many telemetry devices, there is direction correlation between the
-air-speed of the radio link and range; thus a lower value may
-facilitate longer range links.
+For many telemetry devices, there is direction correlation between the air-speed of the radio link and range; thus a lower value may facilitate longer range links.
 
-More information about the fields, encoding and enumerations may be
-found at https://github.com/iNavFlight/inav/wiki/Lightweight-Telemetry-(LTM).
+More information about the fields, encoding and enumerations may be found [on the wiki](https://github.com/iNavFlight/inav/wiki/Lightweight-Telemetry-(LTM)).
 
 
 ## MAVLink telemetry
 
-MAVLink is a very lightweight, header-only message marshalling library for micro air vehicles.
-INAV supports MAVLink for compatibility with ground stations, OSDs and antenna trackers built
-for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
+MAVLink is a lightweight header-only message marshalling library for micro air vehicles. INAV supports MAVLink for compatibility with ground stations, OSDs and antenna trackers built for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
 
-MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial.
+MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial (requires 19200 baud). MAVLink V1 and V2 are supported.
 
 
 ## Cellular telemetry via text messages
@@ -374,7 +334,7 @@ sensor 10 is of type GALT,
 sensor 12 is of type GPS_LON,
 sensor 13 is of type GPS_LAT,
 sensor 14 is of type ACC_X,
-sensor 15 is of type ACC_Y, 
+sensor 15 is of type ACC_Y,
 sensor 16 is of type SPEED.
 
 4.This same as 3, but support 4 byte sensors. (fix_updater_03_16_21_33_1 from https://github.com/qba667/FlySkyI6/tree/master/release):
@@ -436,3 +396,21 @@ In configurator set IBUS telemetry and RX on this same port, enable telemetry fe
 
 Warning:
 Schematic above work also for connect telemetry only, but not work for connect rx only - will stop FC.
+
+
+## Futaba SBUS2 telemetry
+
+SBUS2 telemetry requires a single connection from the TX pin of a bidirectional serial port to the SBUS2 pin on a Futaba T-FHSS or FASSTest telemetry receiver. (tested T16IZ radio and R7108SB and R3204SB receivers)
+
+It shares 1 line for both TX and RX, the rx pin cannot be used for other serial port stuff.
+It runs at a fixed baud rate of 100000, so it needs a hardware uart capable of inverted signals. It is not available on F4 mcus.
+
+```
+     _______
+    /       \                                              /-------------\
+    | STM32 |-->UART TX-->[Bi-directional @ 100000 baud]-->| Futaba RX   |
+    |  uC   |-  UART RX--x[not connected]                  | SBUS2 port  |
+    \_______/                                              \-------------/
+```
+
+For more information and sensor slot numbering, refer to [SBUS2 Documentation](SBUS2_Telemetry.md)

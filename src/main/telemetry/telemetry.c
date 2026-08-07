@@ -23,6 +23,8 @@
 
 #ifdef USE_TELEMETRY
 
+#include "build/debug.h"
+
 #include "common/utils.h"
 
 #include "config/parameter_group.h"
@@ -34,13 +36,13 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "io/serial.h"
 
 #include "rx/rx.h"
 
 #include "telemetry/telemetry.h"
-#include "telemetry/frsky_d.h"
 #include "telemetry/hott.h"
 #include "telemetry/smartport.h"
 #include "telemetry/ltm.h"
@@ -48,48 +50,59 @@
 #include "telemetry/jetiexbus.h"
 #include "telemetry/ibus.h"
 #include "telemetry/crsf.h"
+#include "telemetry/srxl.h"
+#include "telemetry/sbus2.h"
 #include "telemetry/sim.h"
+#include "telemetry/ghst.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 8);
 
 PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
-    .gpsNoFixLatitude = 0,
-    .gpsNoFixLongitude = 0,
-    .telemetry_switch = 0,
-    .telemetry_inverted = 0,
-    .frsky_coordinate_format = FRSKY_FORMAT_DMS,
-    .frsky_unit = FRSKY_UNIT_METRICS,
-    .frsky_vfas_precision = 0,
-    .frsky_pitch_roll = 0,
-    .report_cell_voltage = 0,
-    .hottAlarmSoundInterval = 5,
-    .uartUnidirectional = 0,
-    .smartportFuelUnit = SMARTPORT_FUEL_UNIT_MAH,
-    .ibusTelemetryType = 0,
-    .ltmUpdateRate = LTM_RATE_NORMAL,
-    .simTransmitInterval = SIM_DEFAULT_TRANSMIT_INTERVAL,
-    .simTransmitFlags = SIM_DEFAULT_TX_FLAGS,
-    .simLowAltitude = INT16_MIN,
-    .simPin = SIM_PIN,
-    .accEventThresholdHigh = 0,
-    .accEventThresholdLow = 0,
-    .accEventThresholdNegX = 0,
+    .telemetry_switch = SETTING_TELEMETRY_SWITCH_DEFAULT,
+    .telemetry_inverted = SETTING_TELEMETRY_INVERTED_DEFAULT,
+    .frsky_pitch_roll = SETTING_FRSKY_PITCH_ROLL_DEFAULT,
+    .frsky_use_legacy_gps_mode_sensor_ids = SETTING_FRSKY_USE_LEGACY_GPS_MODE_SENSOR_IDS_DEFAULT,
+    .report_cell_voltage = SETTING_REPORT_CELL_VOLTAGE_DEFAULT,
+    .hottAlarmSoundInterval = SETTING_HOTT_ALARM_SOUND_INTERVAL_DEFAULT,
+    .halfDuplex = SETTING_TELEMETRY_HALFDUPLEX_DEFAULT,
+#if !defined(SETTING_SMARTPORT_FUEL_UNIT_DEFAULT)  // SITL
+    .smartportFuelUnit = 1,
+#else
+    .smartportFuelUnit = SETTING_SMARTPORT_FUEL_UNIT_DEFAULT,
+#endif
+    .ibusTelemetryType = SETTING_IBUS_TELEMETRY_TYPE_DEFAULT,
+    .ltmUpdateRate = SETTING_LTM_UPDATE_RATE_DEFAULT,
+
+#ifdef USE_TELEMETRY_SIM
+    .simTransmitInterval = SETTING_SIM_TRANSMIT_INTERVAL_DEFAULT,
+    .simTransmitFlags = SETTING_SIM_TRANSMIT_FLAGS_DEFAULT,
+    .simLowAltitude = SETTING_SIM_LOW_ALTITUDE_DEFAULT,
+    .simPin = SETTING_SIM_PIN_DEFAULT,
+    .simGroundStationNumber = SETTING_SIM_GROUND_STATION_NUMBER_DEFAULT,
+
+    .accEventThresholdHigh = SETTING_ACC_EVENT_THRESHOLD_HIGH_DEFAULT,
+    .accEventThresholdLow = SETTING_ACC_EVENT_THRESHOLD_LOW_DEFAULT,
+    .accEventThresholdNegX = SETTING_ACC_EVENT_THRESHOLD_NEG_X_DEFAULT,
+#endif
 
     .mavlink = {
-        .extended_status_rate = 2,
-        .rc_channels_rate = 5,
-        .position_rate = 2,
-        .extra1_rate = 10,
-        .extra2_rate = 2
+        .autopilot_type = SETTING_MAVLINK_AUTOPILOT_TYPE_DEFAULT,
+        .extended_status_rate = SETTING_MAVLINK_EXT_STATUS_RATE_DEFAULT,
+        .rc_channels_rate = SETTING_MAVLINK_RC_CHAN_RATE_DEFAULT,
+        .position_rate = SETTING_MAVLINK_POS_RATE_DEFAULT,
+        .extra1_rate = SETTING_MAVLINK_EXTRA1_RATE_DEFAULT,
+        .extra2_rate = SETTING_MAVLINK_EXTRA2_RATE_DEFAULT,
+        .extra3_rate = SETTING_MAVLINK_EXTRA3_RATE_DEFAULT,
+        .version = SETTING_MAVLINK_VERSION_DEFAULT,
+        .min_txbuff = SETTING_MAVLINK_MIN_TXBUFFER_DEFAULT,
+        .radio_type = SETTING_MAVLINK_RADIO_TYPE_DEFAULT,
+        .sysid = SETTING_MAVLINK_SYSID_DEFAULT
     }
 );
 
 void telemetryInit(void)
 {
-#if defined(USE_TELEMETRY_FRSKY)
-    initFrSkyTelemetry();
-#endif
 
 #if defined(USE_TELEMETRY_HOTT)
     initHoTTTelemetry();
@@ -107,7 +120,7 @@ void telemetryInit(void)
     initMAVLinkTelemetry();
 #endif
 
-#if defined(TELEMETRY_JETIEXBUS)
+#if defined(USE_TELEMETRY_JETIEXBUS)
     initJetiExBusTelemetry();
 #endif
 
@@ -121,6 +134,14 @@ void telemetryInit(void)
 
 #if defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
     initCrsfTelemetry();
+#endif
+
+#ifdef USE_TELEMETRY_SRXL
+    initSrxlTelemetry();
+#endif
+
+#ifdef USE_TELEMETRY_GHST
+    initGhstTelemetry();
 #endif
 
     telemetryCheckState();
@@ -149,9 +170,6 @@ serialPort_t *telemetrySharedPort = NULL;
 
 void telemetryCheckState(void)
 {
-#if defined(USE_TELEMETRY_FRSKY)
-    checkFrSkyTelemetryState();
-#endif
 
 #if defined(USE_TELEMETRY_HOTT)
     checkHoTTTelemetryState();
@@ -169,7 +187,7 @@ void telemetryCheckState(void)
     checkMAVLinkTelemetryState();
 #endif
 
-#if defined(TELEMETRY_JETIEXBUS)
+#if defined(USE_TELEMETRY_JETIEXBUS)
     checkJetiExBusTelemetryState();
 #endif
 
@@ -184,15 +202,18 @@ void telemetryCheckState(void)
 #if defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
     checkCrsfTelemetryState();
 #endif
+
+#ifdef USE_TELEMETRY_SRXL
+    checkSrxlTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_GHST
+    checkGhstTelemetryState();
+#endif
 }
 
 void telemetryProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs); // since not used by all the telemetry protocols
-
-#if defined(USE_TELEMETRY_FRSKY)
-    handleFrSkyTelemetry();
-#endif
 
 #if defined(USE_TELEMETRY_HOTT)
     handleHoTTTelemetry(currentTimeUs);
@@ -210,7 +231,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
     handleMAVLinkTelemetry(currentTimeUs);
 #endif
 
-#if defined(TELEMETRY_JETIEXBUS)
+#if defined(USE_TELEMETRY_JETIEXBUS)
     handleJetiExBusTelemetry();
 #endif
 
@@ -224,6 +245,17 @@ void telemetryProcess(timeUs_t currentTimeUs)
 
 #if defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
     handleCrsfTelemetry(currentTimeUs);
+#endif
+
+#ifdef USE_TELEMETRY_SRXL
+    handleSrxlTelemetry(currentTimeUs);
+#endif
+#ifdef USE_TELEMETRY_GHST
+    handleGhstTelemetry(currentTimeUs);
+#endif
+
+#ifdef USE_TELEMETRY_SBUS2
+    handleSbus2Telemetry(currentTimeUs);
 #endif
 }
 

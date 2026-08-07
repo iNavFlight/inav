@@ -38,4 +38,4 @@ extern const pinioHardware_t pinioHardware[];
 extern const int pinioHardwareCount;
 
 void pinioInit(void);
-void pinioSet(int index, bool on);
+void pinioSet(int index, bool newState);

@@ -30,8 +30,8 @@
 #include "drivers/display_font_metadata.h"
 #include "drivers/time.h"
 
-
-#define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
+#include "fc/settings.h"
+#include "fc/runtime_config.h"
 
 // XXX: This is the number of characters in a MAX7456 line.
 // Increment this number appropiately or enable support for
@@ -43,7 +43,7 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(displayConfig_t, displayConfig, PG_DISPLAY_CONFIG, 0);
 
 PG_RESET_TEMPLATE(displayConfig_t, displayConfig,
-    .force_sw_blink = false,
+    .force_sw_blink = SETTING_DISPLAY_FORCE_SW_BLINK_DEFAULT
 );
 
 static bool displayAttributesRequireEmulation(displayPort_t *instance, textAttributes_t attr)
@@ -64,7 +64,7 @@ static bool displayEmulateTextAttributes(displayPort_t *instance,
     // We only emulate blink for now, so there's no need to test
     // for it again.
     TEXT_ATTRIBUTES_REMOVE_BLINK(*attr);
-    if ((millis() / SW_BLINK_CYCLE_MS) % 2) {
+    if (getBlinkOnOff()) {
         memset(buf, ' ', length);
         buf[length] = '\0';
         // Tell the caller to use buf
@@ -175,6 +175,18 @@ int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c)
     if (instance->maxChar == 0) {
         displayUpdateMaxChar(instance);
     }
+
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
+        //some FCs do not power max7456 from USB power 
+        //driver can not read font metadata 
+        //chip assumed to not support second bank of font
+        //artifical horizon, variometer and home direction are not drawn ( display.c: displayUpdateMaxChar())
+        //return dummy metadata to let all OSD elements to work in simulator mode
+        instance->maxChar = 512;
+    }
+#endif
+
     if (c > instance->maxChar) {
         return -1;
     }
@@ -192,9 +204,9 @@ int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint
         return -1;
     }
     if (displayAttributesRequireEmulation(instance, attr)) {
-        char ec;
-        if (displayEmulateTextAttributes(instance, &ec, 1, &attr)) {
-            c = ec;
+        char ec[2];
+        if (displayEmulateTextAttributes(instance, ec, 1, &attr)) {
+            c = ec[0];
         }
     }
     instance->posX = x + 1;
@@ -317,4 +329,3 @@ void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
     instance->maxChar = 0;
     displayUpdateMaxChar(instance);
 }
-

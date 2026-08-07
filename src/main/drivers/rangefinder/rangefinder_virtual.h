@@ -26,6 +26,8 @@
 
 #include "drivers/rangefinder/rangefinder.h"
 
+#define RANGEFINDER_VIRTUAL_MAX_RANGE_CM                250
+#define RANGEFINDER_VIRTUAL_DETECTION_CONE_DECIDEGREES  900
 #define RANGEFINDER_VIRTUAL_TASK_PERIOD_MS  30
 
 typedef struct virtualRangefinderVTable_s {

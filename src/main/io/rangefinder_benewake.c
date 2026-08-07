@@ -55,14 +55,19 @@ typedef struct __attribute__((packed)) {
 
 #define BENEWAKE_PACKET_SIZE    sizeof(tfminiPacket_t)
 #define BENEWAKE_MIN_QUALITY    0
+#define BENEWAKE_TIMEOUT_MS     200 // 200ms
 
 static serialPort_t * serialPort = NULL;
 static serialPortConfig_t * portConfig;
 static uint8_t  buffer[BENEWAKE_PACKET_SIZE];
 static unsigned bufferPtr;
+static timeMs_t lastProtocolActivityMs;
 
 static bool hasNewData = false;
 static int32_t sensorData = RANGEFINDER_NO_NEW_DATA;
+
+// TFmini command to initiate 100Hz sampling
+static const uint8_t initCmd100Hz[] = { 0x42, 0x57, 0x02, 0x00, 0x00, 0x00, 0x01, 0x06 };
 
 static bool benewakeRangefinderDetect(void)
 {
@@ -80,16 +85,27 @@ static void benewakeRangefinderInit(void)
         return;
     }
 
-    serialPort = openSerialPort(portConfig->identifier, FUNCTION_RANGEFINDER, NULL, NULL, baudRates[BAUD_115200], MODE_RX, SERIAL_NOT_INVERTED);
+    serialPort = openSerialPort(portConfig->identifier, FUNCTION_RANGEFINDER, NULL, NULL, 115200, MODE_RXTX, SERIAL_NOT_INVERTED);
     if (!serialPort) {
         return;
     }
 
+    lastProtocolActivityMs = 0;
     bufferPtr = 0;
 }
 
 static void benewakeRangefinderUpdate(void)
 {
+    // Initialize the sensor
+    if (lastProtocolActivityMs == 0 || (millis() - lastProtocolActivityMs) > BENEWAKE_TIMEOUT_MS) {
+        // Initialize the sensor to do 100Hz sampling to make sure we get the most recent data always
+        serialWriteBuf(serialPort, initCmd100Hz, sizeof(initCmd100Hz));
+
+        // Send the init command every BENEWAKE_TIMEOUT_MS
+        lastProtocolActivityMs = millis();
+    }
+
+    // Process incoming bytes
     tfminiPacket_t *tfminiPacket = (tfminiPacket_t *)buffer;
     while (serialRxBytesWaiting(serialPort) > 0) {
         uint8_t c = serialRead(serialPort);
@@ -117,6 +133,7 @@ static void benewakeRangefinderUpdate(void)
                 // Valid packet
                 hasNewData = true;
                 sensorData = (tfminiPacket->distL << 0) | (tfminiPacket->distH << 8);
+                lastProtocolActivityMs = millis();
 
                 uint16_t qual = (tfminiPacket->strengthL << 0) | (tfminiPacket->strengthH << 8);
 

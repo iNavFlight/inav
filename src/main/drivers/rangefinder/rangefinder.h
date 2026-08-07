@@ -27,13 +27,6 @@
 
 struct rangefinderDev_s;
 
-typedef struct rangefinderHardwarePins_s {
-    ioTag_t triggerTag;
-    ioTag_t echoTag;
-} rangefinderHardwarePins_t;
-
-struct rangefinderDev_s;
-
 typedef void (*rangefinderOpInitFuncPtr)(struct rangefinderDev_s * dev);
 typedef void (*rangefinderOpStartFuncPtr)(struct rangefinderDev_s * dev);
 typedef int32_t (*rangefinderOpReadFuncPtr)(struct rangefinderDev_s * dev);

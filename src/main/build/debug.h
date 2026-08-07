@@ -15,9 +15,13 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#include "platform.h"
 
 #define DEBUG32_VALUE_COUNT 8
 extern int32_t debug[DEBUG32_VALUE_COUNT];
@@ -50,12 +54,9 @@ extern timeUs_t sectionTimes[2][4];
 
 typedef enum {
     DEBUG_NONE,
-    DEBUG_GYRO,
     DEBUG_AGL,
     DEBUG_FLOW_RAW,
     DEBUG_FLOW,
-    DEBUG_SBUS,
-    DEBUG_FPORT,
     DEBUG_ALWAYS,
     DEBUG_SAG_COMP_VOLTAGE,
     DEBUG_VIBE,
@@ -63,9 +64,26 @@ typedef enum {
     DEBUG_REM_FLIGHT_TIME,
     DEBUG_SMARTAUDIO,
     DEBUG_ACC,
-    DEBUG_ITERM_RELAX,
-    DEBUG_ERPM,
-    DEBUG_RPM_FILTER,
-    DEBUG_RPM_FREQ,
-    DEBUG_COUNT
+    DEBUG_NAV_YAW,
+    DEBUG_PCF8574,
+    DEBUG_DYNAMIC_GYRO_LPF,
+    DEBUG_AUTOLEVEL,
+    DEBUG_ALTITUDE,
+    DEBUG_AUTOTRIM,
+    DEBUG_AUTOTUNE,
+    DEBUG_RATE_DYNAMICS,
+    DEBUG_LANDING,
+    DEBUG_POS_EST,
+    DEBUG_ADAPTIVE_FILTER,
+    DEBUG_HEADTRACKING,
+    DEBUG_GPS,
+    DEBUG_LULU,
+    DEBUG_SBUS2,
+    DEBUG_COUNT // also update debugModeNames in cli.c
 } debugType_e;
+
+#ifdef SITL_BUILD
+#define SD(X) (X)
+#else
+#define SD(X)
+#endif

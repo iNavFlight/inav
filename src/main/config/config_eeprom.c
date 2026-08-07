@@ -25,17 +25,21 @@
 #include "build/build_config.h"
 
 #include "common/crc.h"
+#include "common/utils.h"
 
 #include "config/config_eeprom.h"
 #include "config/config_streamer.h"
 #include "config/parameter_group.h"
 
 #include "drivers/system.h"
+#include "drivers/flash.h"
+#include "drivers/pwm_output.h"
 
 #include "fc/config.h"
 
-extern uint8_t __config_start;   // configured via linker script when building binaries.
-extern uint8_t __config_end;
+#if defined(CONFIG_IN_FILE)
+    void config_streamer_impl_unlock(void);
+#endif
 
 static uint16_t eepromConfigSize;
 
@@ -79,6 +83,31 @@ typedef struct {
     uint32_t word;
 } PG_PACKED packingTest_t;
 
+#if defined(CONFIG_IN_EXTERNAL_FLASH)
+bool loadEEPROMFromExternalFlash(void)
+{
+    const flashPartition_t *flashPartition = flashPartitionFindByType(FLASH_PARTITION_TYPE_CONFIG);
+    const flashGeometry_t *flashGeometry = flashGetGeometry();
+
+    uint32_t flashStartAddress = flashPartition->startSector * flashGeometry->sectorSize;
+
+    uint32_t totalBytesRead = 0;
+    int bytesRead = 0;
+
+    bool success = false;
+
+    do {
+        bytesRead = flashReadBytes(flashStartAddress + totalBytesRead, &eepromData[totalBytesRead], EEPROM_SIZE - totalBytesRead);
+        if (bytesRead > 0) {
+            totalBytesRead += bytesRead;
+            success = (totalBytesRead == EEPROM_SIZE);
+        }
+    } while (!success && bytesRead > 0);
+
+    return success;
+}
+#endif /* defined(CONFIG_IN_EXTERNAL_FLASH) */
+
 void initEEPROM(void)
 {
     // Verify that this architecture packs as expected.
@@ -89,17 +118,22 @@ void initEEPROM(void)
     BUILD_BUG_ON(sizeof(configHeader_t) != 1);
     BUILD_BUG_ON(sizeof(configFooter_t) != 2);
     BUILD_BUG_ON(sizeof(configRecord_t) != 6);
-}
 
-static uint16_t updateCRC(uint16_t crc, const void *data, uint32_t length)
-{
-    const uint8_t *p = (const uint8_t *)data;
-    const uint8_t *pend = p + length;
+#ifdef STM32H7A3xx
+    BUILD_BUG_ON(CONFIG_STREAMER_BUFFER_SIZE != 16);
+#elif defined(STM32H743xx)
+    BUILD_BUG_ON(CONFIG_STREAMER_BUFFER_SIZE != 32);
+#endif
 
-    for (; p != pend; p++) {
-        crc = crc16_ccitt(crc, *p);
+#if defined(CONFIG_IN_EXTERNAL_FLASH)
+    bool eepromLoaded = loadEEPROMFromExternalFlash();
+    if (!eepromLoaded) {
+        // Flash read failed - just die now
+        failureMode(FAILURE_FLASH_READ_FAILED);
     }
-    return crc;
+#elif defined(CONFIG_IN_FILE)
+    config_streamer_impl_unlock();
+#endif
 }
 
 // Scan the EEPROM config. Returns true if the config is valid.
@@ -111,7 +145,7 @@ bool isEEPROMContentValid(void)
     if (header->format != EEPROM_CONF_VERSION) {
         return false;
     }
-    uint16_t crc = updateCRC(0, header, sizeof(*header));
+    uint16_t crc = crc16_ccitt_update(0, header, sizeof(*header));
     p += sizeof(*header);
 
     for (;;) {
@@ -121,19 +155,24 @@ bool isEEPROMContentValid(void)
             // Found the end.  Stop scanning.
             break;
         }
-        if (p + record->size >= &__config_end
-            || record->size < sizeof(*record)) {
+
+        if (p + sizeof(*record) >= &__config_end) {
+            // Too big. Further checking for size doesn't make sense
+            return false;
+        }
+
+        if (p + record->size >= &__config_end || record->size < sizeof(*record)) {
             // Too big or too small.
             return false;
         }
 
-        crc = updateCRC(crc, p, record->size);
+        crc = crc16_ccitt_update(crc, p, record->size);
 
         p += record->size;
     }
 
     const configFooter_t *footer = (const configFooter_t *)p;
-    crc = updateCRC(crc, footer, sizeof(*footer));
+    crc = crc16_ccitt_update(crc, footer, sizeof(*footer));
     p += sizeof(*footer);
     const uint16_t checkSum = *(uint16_t *)p;
     p += sizeof(checkSum);
@@ -155,13 +194,21 @@ static const configRecord_t *findEEPROM(const pgRegistry_t *reg, configRecordFla
     p += sizeof(configHeader_t);             // skip header
     while (true) {
         const configRecord_t *record = (const configRecord_t *)p;
-        if (record->size == 0
-            || p + record->size >= &__config_end
-            || record->size < sizeof(*record))
+        // Ensure that the record header fits into config memory, otherwise accessing size and flags may cause a hardfault.
+        if (p + sizeof(*record) >= &__config_end) {
             break;
-        if (pgN(reg) == record->pgn
-            && (record->flags & CR_CLASSIFICATION_MASK) == classification)
+        }
+
+        // Check that record header makes sense
+        if (record->size == 0 || p + record->size >= &__config_end || record->size < sizeof(*record)) {
+            break;
+        }
+
+        // Check if this is the record we're looking for (check for size)
+        if (pgN(reg) == record->pgn && (record->flags & CR_CLASSIFICATION_MASK) == classification) {
             return record;
+        }
+
         p += record->size;
     }
     // record not found
@@ -207,8 +254,10 @@ static bool writeSettingsToEEPROM(void)
         .format = EEPROM_CONF_VERSION,
     };
 
-    config_streamer_write(&streamer, (uint8_t *)&header, sizeof(header));
-    uint16_t crc = updateCRC(0, (uint8_t *)&header, sizeof(header));
+    if (config_streamer_write(&streamer, (uint8_t *)&header, sizeof(header)) < 0) {
+        return false;
+    }
+    uint16_t crc = crc16_ccitt_update(0, (uint8_t *)&header, sizeof(header));
     PG_FOREACH(reg) {
         const uint16_t regSize = pgSize(reg);
         configRecord_t record = {
@@ -221,21 +270,29 @@ static bool writeSettingsToEEPROM(void)
         if (pgIsSystem(reg)) {
             // write the only instance
             record.flags |= CR_CLASSICATION_SYSTEM;
-            config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record));
-            crc = updateCRC(crc, (uint8_t *)&record, sizeof(record));
-            config_streamer_write(&streamer, reg->address, regSize);
-            crc = updateCRC(crc, reg->address, regSize);
+            if (config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record)) < 0) {
+                return false;
+            }
+            crc = crc16_ccitt_update(crc, (uint8_t *)&record, sizeof(record));
+            if (config_streamer_write(&streamer, reg->address, regSize) < 0) {
+                return false;
+            }
+            crc = crc16_ccitt_update(crc, reg->address, regSize);
         } else {
             // write one instance for each profile
             for (uint8_t profileIndex = 0; profileIndex < MAX_PROFILE_COUNT; profileIndex++) {
                 record.flags = 0;
 
                 record.flags |= ((profileIndex + 1) & CR_CLASSIFICATION_MASK);
-                config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record));
-                crc = updateCRC(crc, (uint8_t *)&record, sizeof(record));
+                if (config_streamer_write(&streamer, (uint8_t *)&record, sizeof(record)) < 0) {
+                    return false;
+                }
+                crc = crc16_ccitt_update(crc, (uint8_t *)&record, sizeof(record));
                 const uint8_t *address = reg->address + (regSize * profileIndex);
-                config_streamer_write(&streamer, address, regSize);
-                crc = updateCRC(crc, address, regSize);
+                if (config_streamer_write(&streamer, address, regSize) < 0) {
+                    return false;
+                }
+                crc = crc16_ccitt_update(crc, address, regSize);
             }
         }
     }
@@ -244,13 +301,19 @@ static bool writeSettingsToEEPROM(void)
         .terminator = 0,
     };
 
-    config_streamer_write(&streamer, (uint8_t *)&footer, sizeof(footer));
-    crc = updateCRC(crc, (uint8_t *)&footer, sizeof(footer));
+    if (config_streamer_write(&streamer, (uint8_t *)&footer, sizeof(footer)) < 0) {
+        return false;
+    }
+    crc = crc16_ccitt_update(crc, (uint8_t *)&footer, sizeof(footer));
 
     // append checksum now
-    config_streamer_write(&streamer, (uint8_t *)&crc, sizeof(crc));
+    if (config_streamer_write(&streamer, (uint8_t *)&crc, sizeof(crc)) < 0) {
+        return false;
+    }
 
-    config_streamer_flush(&streamer);
+    if (config_streamer_flush(&streamer) < 0) {
+        return false;
+    }
 
     bool success = config_streamer_finish(&streamer) == 0;
 
@@ -259,13 +322,28 @@ static bool writeSettingsToEEPROM(void)
 
 void writeConfigToEEPROM(void)
 {
+#if !defined(SITL_BUILD) && defined(USE_DSHOT)
+    // Enable circular DMA so hardware keeps repeating zero-throttle DShot
+    // packets during flash writes (which block the CPU for 20-200ms).
+    // Without this, ESCs lose signal and may spin up or reboot.
+    pwmSetMotorDMACircular(true);
+#endif
+
     bool success = false;
     // write it
     for (int attempt = 0; attempt < 3 && !success; attempt++) {
         if (writeSettingsToEEPROM()) {
             success = true;
+#ifdef CONFIG_IN_EXTERNAL_FLASH
+            // copy it back from flash to the in-memory buffer.
+            success = loadEEPROMFromExternalFlash();
+#endif
         }
     }
+
+#if !defined(SITL_BUILD) && defined(USE_DSHOT)
+    pwmSetMotorDMACircular(false);
+#endif
 
     if (success && isEEPROMContentValid()) {
         return;

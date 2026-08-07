@@ -20,7 +20,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "drivers/time.h"
+
 #include "config/parameter_group.h"
+
+#define SW_BLINK_CYCLE_MS 500 // Xms on / Xms off
+
+#define getBlinkOnOff()  ( (millis() / SW_BLINK_CYCLE_MS) & 1 )
 
 typedef struct osdCharacter_s osdCharacter_t;
 
@@ -69,6 +75,7 @@ typedef struct displayPortVTable_s displayPortVTable_t;
 typedef struct displayPort_s {
     const displayPortVTable_t *vTable;
     void *device;
+    const char* displayPortType;
     uint8_t rows;
     uint8_t cols;
     uint8_t posX;

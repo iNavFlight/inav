@@ -30,10 +30,9 @@
 
 typedef enum {
     OPFLOW_NONE         = 0,
-    OPFLOW_PMW3901      = 1,
-    OPFLOW_CXOF         = 2,
-    OPFLOW_MSP          = 3,
-    OPFLOW_FAKE         = 4,
+    OPFLOW_CXOF         = 1,
+    OPFLOW_MSP          = 2,
+    OPFLOW_FAKE         = 3,
 } opticalFlowSensor_e;
 
 typedef enum {
@@ -54,6 +53,7 @@ typedef struct opflow_s {
 
     opflowQuality_e flowQuality;
     timeUs_t        lastValidUpdate;
+    float           updateDt;
     bool            isHwHealty;
     float           flowRate[2];    // optical flow angular rate in rad/sec measured about the X and Y body axis
     float           bodyRate[2];    // body inertial angular rate in rad/sec measured about the X and Y body axis

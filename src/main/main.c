@@ -27,6 +27,11 @@
 
 #include "scheduler/scheduler.h"
 
+#if defined(SITL_BUILD)
+#include "target/SITL/serial_proxy.h"
+#endif
+
+
 #ifdef SOFTSERIAL_LOOPBACK
 serialPort_t *loopbackPort;
 #endif
@@ -53,12 +58,21 @@ static void processLoopback(void)
 #endif
 }
 
+#if defined(SITL_BUILD)
+int main(int argc, char *argv[])
+{
+    parseArguments(argc, argv);
+#else
 int main(void)
 {
+#endif
     init();
     loopbackInit();
 
     while (true) {
+#if defined(SITL_BUILD)
+        serialProxyProcess();
+#endif
         scheduler();
         processLoopback();
     }

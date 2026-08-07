@@ -1,36 +1,23 @@
 # Flight controller hardware
 
-### Sponsored and recommended boards
-
-These boards come from companies that support INAV development. Buying one of these boards you make your small contribution for improving INAV as well. 
-
-Also these boards are tested by INAV development team and usually flown on daily basis.
-
-| Board name                | CPU Family | Target name(s)            | GPS  | Compass | Barometer      | Telemetry | RX                             | Blackbox             |
-|---------------------------|:----------:|:-------------------------:|:----:|:-------:|:--------------:|:---------:|:------------------------------:|:--------------------:|
-| [Airbot OMNIBUS F4 PRO](https://inavflight.com/shop/p/OMNIBUSF4PRO)| F4         | OMNIBUSF4PRO   | All  | All     | All            | All       | All                            | SERIAL, SD |
-| [Airbot OMNIBUS F4](https://inavflight.com/shop/s/bg/1319176)| F4         | OMNIBUSF4  | All  | All     | All            | All       | All                            | SERIAL, SD |
-
-Note: In the above and following tables, the sensor columns indicates firmware support for the sensor category; it does not necessarily mean there is an on-board sensor.
-
 ### Recommended boards
 
 These boards are well tested with INAV and are known to be of good quality and reliability.
 
 | Board name                | CPU Family | Target name(s)            | GPS  | Compass | Barometer      | Telemetry | RX                             | Blackbox             |
 |---------------------------|:----------:|:-------------------------:|:----:|:-------:|:--------------:|:---------:|:------------------------------:|:--------------------:|
-| [Matek F405-CTR](https://inavflight.com/shop/p/MATEKF405CTR)       | F4         | MATEKF405                | All  | All     | All            | All       | All                            | SERIAL, SD     |
-| [Matek F405-STD](https://inavflight.com/shop/p/MATEKF405STD)       | F4         | MATEKF405                | All  | All     | All            | All       | All                            | SERIAL, SD     |
-| [Matek F405-WING](https://inavflight.com/shop/p/MATEKF405WING)       | F4         | MATEKF405SE                | All  | All     | All            | All       | All                            | SERIAL, SD     |
-| [Matek F722 WING](https://inavflight.com/shop/p/MATEKF722WING)       | F7         | MATEKF722SE                | All  | All     | All            | All       | All                            | SERIAL, SD     |
-| [Matek F722-SE](https://inavflight.com/shop/p/MATEKF722SE)       | F7         | MATEKF722SE               | All  | All     | All            | All       | All                            | SERIAL, SD     |
-| [Matek F722-STD](https://inavflight.com/shop/p/MATEKF722STD)       | F7         | MATEKF722               | All  | All     | All            | All       | All                            | SERIAL, SD     |
-| [Matek F722-MINI](https://inavflight.com/shop/p/MATEKF722MINI)       | F7         | MATEKF722SE               | All  | All     | All            | All       | All                            | SPIFLASH    |
+| [Diatone Mamba H743](https://inavflight.com/shop/s/bg/1929033)       | H7         | MAMBAH743                | All  | All     | All            | All       | All   | SERIAL, SD     |
+| [Matek F765-WSE](https://inavflight.com/shop/s/bg/1890404)       | F7         | MATEKF765SE                | All  | All     | All            | All       | All     | SERIAL, SD     |
+| [Matek F722-SE](https://inavflight.com/shop/p/MATEKF722SE)       | F7         | MATEKF722SE               | All  | All     | All            | All       | All      | SERIAL, SD     |
+| [Holybro Kakute H7](https://inavflight.com/shop/s/bg/1914066)       | H7         | KAKUTEH7               | All  | All     | All            | All       | All      | SERIAL, SD     |
 
 It's possible to find more supported and tested boards [here](https://github.com/iNavFlight/inav/wiki/Welcome-to-INAV,-useful-links-and-products)
+
+There is also a [full list of all supported boards](https://github.com/iNavFlight/inav/wiki/Boards,-Targets-and-PWM-allocations).
+
 ### Boards documentation
 
-See the [docs](https://github.com/iNavFlight/inav/tree/master/docs) folder for additional information regards to many targets in INAV, to example help in finding pinout and features. _Feel free to help improve the docs._
+See the [docs/boards](https://github.com/iNavFlight/inav/tree/master/docs/boards) folder for additional information regards to many targets in INAV, to example help in finding pinout and features. _Feel free to help improve the docs._
 
 ### Boards based on F4/F7 CPUs
 
@@ -38,7 +25,7 @@ These boards are powerful and in general support everything INAV is capable of. 
 
 ### Boards based on F3 CPUs
 
-Boards based on F3 boards will be supported for as long as practical, sometimes with reduced features due to lack of resources. No new features will be added so F3 boards are not recommended for new builds.
+Boards based on STM32F3 MCUs are no longer supported by latest INAV version. Last release is 2.6.1.
 
 ### Boards based on F1 CPUs
 

@@ -38,7 +38,7 @@
 #include "common/typeconversion.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/runtime_config.h"
 #include "fc/rc_controls.h"
 
@@ -68,7 +68,7 @@
 #include "config/feature.h"
 
 
-controlRateConfig_t *getControlRateConfig(uint8_t profileIndex);
+controlConfig_t *getControlConfig(uint8_t profileIndex);
 
 #define MICROSECONDS_IN_A_SECOND (1000 * 1000)
 
@@ -172,8 +172,8 @@ static const char* const gpsFixTypeText[] = {
     "3D"
 };
 
-static const char* tickerCharacters = "|/-\\"; // use 2/4/8 characters so that the divide is optimal.
-#define TICKER_CHARACTER_COUNT (sizeof(tickerCharacters) / sizeof(char))
+static const char tickerCharacters[] = "|/-\\"; // use 2/4/8 characters so that the divide is optimal.
+#define TICKER_CHARACTER_COUNT (sizeof(tickerCharacters) - 1)
 
 static timeUs_t nextPageAt;
 static bool forcePageChange;
@@ -264,11 +264,9 @@ static void updateFailsafeStatus(void)
         case FAILSAFE_RX_LOSS_IDLE:
             failsafeIndicator = 'I';
             break;
-#if defined(USE_NAV)
         case FAILSAFE_RETURN_TO_HOME:
             failsafeIndicator = 'H';
             break;
-#endif
         case FAILSAFE_LANDING:
             failsafeIndicator = 'l';
             break;
@@ -402,7 +400,7 @@ static void showStatusPage(void)
 
 #ifdef USE_MAG
     if (sensors(SENSOR_MAG)) {
-        tfp_sprintf(lineBuffer, "HDG: %d", DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+        tfp_sprintf(lineBuffer, "HDG: %d", (int)DECIDEGREES_TO_DEGREES(attitude.values.yaw));
         padHalfLineBuffer();
         i2c_OLED_set_line(rowIndex);
         i2c_OLED_send_string(lineBuffer);
@@ -418,14 +416,6 @@ static void showStatusPage(void)
         i2c_OLED_send_string(lineBuffer);
     }
 #endif
-
-    rowIndex++;
-    char rollTrim[7], pitchTrim[7];
-    formatTrimDegrees(rollTrim, boardAlignment()->rollDeciDegrees);
-    formatTrimDegrees(pitchTrim, boardAlignment()->pitchDeciDegrees);
-    tfp_sprintf(lineBuffer, "Acc: %sR, %sP", rollTrim, pitchTrim );
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
 }
 
 void dashboardUpdate(timeUs_t currentTimeUs)
@@ -549,18 +539,6 @@ void dashboardInit(void)
 void dashboardSetNextPageChangeAt(timeUs_t futureMicros)
 {
     nextPageAt = futureMicros;
-}
-
-void formatTrimDegrees ( char *formattedTrim, int16_t trimValue ) {
-    char trim[6];
-    tfp_sprintf(trim, "%d", trimValue);
-    int x = strlen(trim)-1;
-    strncpy(formattedTrim,trim,x);
-    formattedTrim[x] = '\0';
-    if (trimValue !=0) {
-        strcat(formattedTrim,".");
-    }
-    strcat(formattedTrim,trim+x);
 }
 
 #endif

@@ -19,6 +19,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#if defined(SITL_BUILD)
+#include <unistd.h>
+#endif
+
 #include "platform.h"
 
 #include "scheduler.h"
@@ -38,6 +42,11 @@ STATIC_FASTRAM uint32_t totalWaitingTasks;
 STATIC_FASTRAM uint32_t totalWaitingTasksSamples;
 
 FASTRAM uint16_t averageSystemLoadPercent = 0;
+
+#if defined(SITL_BUILD)
+STATIC_FASTRAM timeUs_t sitlLoadWindowStartUs;
+STATIC_FASTRAM timeUs_t sitlLoadBusyTimeUs;
+#endif
 
 
 STATIC_FASTRAM int taskQueuePos = 0;
@@ -119,6 +128,25 @@ STATIC_INLINE_UNIT_TESTED cfTask_t *queueNext(void)
 
 void taskSystem(timeUs_t currentTimeUs)
 {
+#if defined(SITL_BUILD)
+    // SITL sleeps between task invocations (see the SITL_BUILD block in scheduler())
+    // instead of busy-polling, so the sample-based estimate below always finds a task
+    // already due and reads pinned near 100%. Use busy/elapsed wall-clock time instead,
+    // which stays meaningful whether or not the loop busy-polls (issue #11710).
+    if (sitlLoadWindowStartUs == 0) {
+        sitlLoadWindowStartUs = currentTimeUs;
+        sitlLoadBusyTimeUs = 0;
+        return;
+    }
+
+    const timeDelta_t elapsedUs = cmpTimeUs(currentTimeUs, sitlLoadWindowStartUs);
+    if (elapsedUs > 0) {
+        const timeUs_t loadPercent = (100U * sitlLoadBusyTimeUs) / (timeUs_t)elapsedUs;
+        averageSystemLoadPercent = loadPercent > 100U ? 100U : (uint16_t)loadPercent;
+        sitlLoadWindowStartUs = currentTimeUs;
+        sitlLoadBusyTimeUs = 0;
+    }
+#else
     UNUSED(currentTimeUs);
 
     // Calculate system load
@@ -127,9 +155,9 @@ void taskSystem(timeUs_t currentTimeUs)
         totalWaitingTasksSamples = 0;
         totalWaitingTasks = 0;
     }
+#endif
 }
 
-#ifndef SKIP_TASK_STATISTICS
 #define TASK_MOVING_SUM_COUNT           32
 FASTRAM timeUs_t checkFuncMaxExecutionTime;
 FASTRAM timeUs_t checkFuncTotalExecutionTime;
@@ -153,7 +181,6 @@ void getTaskInfo(cfTaskId_e taskId, cfTaskInfo_t * taskInfo)
     taskInfo->averageExecutionTime = cfTasks[taskId].movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
     taskInfo->latestDeltaTime = cfTasks[taskId].taskLatestDeltaTime;
 }
-#endif
 
 void rescheduleTask(cfTaskId_e taskId, timeDelta_t newPeriodUs)
 {
@@ -178,7 +205,7 @@ void setTaskEnabled(cfTaskId_e taskId, bool enabled)
     }
 }
 
-timeDelta_t FAST_CODE NOINLINE getTaskDeltaTime(cfTaskId_e taskId)
+timeDelta_t getTaskDeltaTime(cfTaskId_e taskId)
 {
     if (taskId == TASK_SELF) {
         return currentTask->taskLatestDeltaTime;
@@ -191,9 +218,6 @@ timeDelta_t FAST_CODE NOINLINE getTaskDeltaTime(cfTaskId_e taskId)
 
 void schedulerResetTaskStatistics(cfTaskId_e taskId)
 {
-#ifdef SKIP_TASK_STATISTICS
-    UNUSED(taskId);
-#else
     if (taskId == TASK_SELF) {
         currentTask->movingSumExecutionTime = 0;
         currentTask->totalExecutionTime = 0;
@@ -201,9 +225,7 @@ void schedulerResetTaskStatistics(cfTaskId_e taskId)
     } else if (taskId < TASK_COUNT) {
         cfTasks[taskId].movingSumExecutionTime = 0;
         cfTasks[taskId].totalExecutionTime = 0;
-        cfTasks[taskId].totalExecutionTime = 0;
     }
-#endif
 }
 
 void schedulerInit(void)
@@ -217,28 +239,27 @@ void FAST_CODE NOINLINE scheduler(void)
     // Cache currentTime
     const timeUs_t currentTimeUs = micros();
 
-    // Check for realtime tasks
-    timeUs_t timeToNextRealtimeTask = TIMEUS_MAX;
-    for (const cfTask_t *task = queueFirst(); task != NULL && task->staticPriority >= TASK_PRIORITY_REALTIME; task = queueNext()) {
-        const timeUs_t nextExecuteAt = task->lastExecutedAt + task->desiredPeriod;
-        if ((int32_t)(currentTimeUs - nextExecuteAt) >= 0) {
-            timeToNextRealtimeTask = 0;
-        } else {
-            const timeUs_t newTimeInterval = nextExecuteAt - currentTimeUs;
-            timeToNextRealtimeTask = MIN(timeToNextRealtimeTask, newTimeInterval);
-        }
-    }
-    const bool outsideRealtimeGuardInterval = (timeToNextRealtimeTask > 0);
-
     // The task to be invoked
     cfTask_t *selectedTask = NULL;
     uint16_t selectedTaskDynamicPriority = 0;
+    bool forcedRealTimeTask = false;
+
+#if defined(SITL_BUILD)
+    // Track the earliest time at which the next task will become due so we can
+    // sleep until then instead of busy-waiting.  Cap at 1 ms so event-driven
+    // tasks (checkFunc) are still polled frequently enough.
+    timeUs_t sitlEarliestNextTaskAt = currentTimeUs + 1000;
+    bool sitlHasCheckFuncTask = false;
+#endif
 
     // Update task dynamic priorities
     uint16_t waitingTasks = 0;
     for (cfTask_t *task = queueFirst(); task != NULL; task = queueNext()) {
         // Task has checkFunc - event driven
         if (task->checkFunc) {
+#if defined(SITL_BUILD)
+            sitlHasCheckFuncTask = true;
+#endif
             const timeUs_t currentTimeBeforeCheckFuncCallUs = micros();
 
             // Increase priority for event driven tasks
@@ -247,13 +268,11 @@ void FAST_CODE NOINLINE scheduler(void)
                 task->dynamicPriority = 1 + task->staticPriority * task->taskAgeCycles;
                 waitingTasks++;
             } else if (task->checkFunc(currentTimeBeforeCheckFuncCallUs, currentTimeBeforeCheckFuncCallUs - task->lastExecutedAt)) {
-#ifndef SKIP_TASK_STATISTICS
                 const timeUs_t checkFuncExecutionTime = micros() - currentTimeBeforeCheckFuncCallUs;
                 checkFuncMovingSumExecutionTime -= checkFuncMovingSumExecutionTime / TASK_MOVING_SUM_COUNT;
                 checkFuncMovingSumExecutionTime += checkFuncExecutionTime;
                 checkFuncTotalExecutionTime += checkFuncExecutionTime;   // time consumed by scheduler + task
                 checkFuncMaxExecutionTime = MAX(checkFuncMaxExecutionTime, checkFuncExecutionTime);
-#endif
                 task->lastSignaledAt = currentTimeBeforeCheckFuncCallUs;
                 task->taskAgeCycles = 1;
                 task->dynamicPriority = 1 + task->staticPriority;
@@ -261,7 +280,27 @@ void FAST_CODE NOINLINE scheduler(void)
             } else {
                 task->taskAgeCycles = 0;
             }
+        } else if (task->staticPriority == TASK_PRIORITY_REALTIME) {
+            //realtime tasks take absolute priority. Any RT tasks that is overdue, should be execute immediately
+            if (((timeDelta_t)(currentTimeUs - task->lastExecutedAt)) > task->desiredPeriod) {
+                selectedTaskDynamicPriority = task->dynamicPriority;
+                selectedTask = task;
+                waitingTasks++;
+                forcedRealTimeTask = true;
+            }
+#if defined(SITL_BUILD)
+            const timeUs_t taskNextAt = task->lastExecutedAt + (timeUs_t)task->desiredPeriod;
+            if (taskNextAt < sitlEarliestNextTaskAt) {
+                sitlEarliestNextTaskAt = taskNextAt;
+            }            
+#endif
         } else {
+#if defined(SITL_BUILD)
+            const timeUs_t taskNextAt = task->lastExecutedAt + (timeUs_t)task->desiredPeriod;
+            if (taskNextAt < sitlEarliestNextTaskAt) {
+                sitlEarliestNextTaskAt = taskNextAt;
+            }            
+#endif
             // Task is time-driven, dynamicPriority is last execution age (measured in desiredPeriods)
             // Task age is calculated from last execution
             task->taskAgeCycles = ((timeDelta_t)(currentTimeUs - task->lastExecutedAt)) / task->desiredPeriod;
@@ -271,15 +310,9 @@ void FAST_CODE NOINLINE scheduler(void)
             }
         }
 
-        if (task->dynamicPriority > selectedTaskDynamicPriority) {
-            const bool taskCanBeChosenForScheduling =
-                (outsideRealtimeGuardInterval) ||
-                (task->taskAgeCycles > 1) ||
-                (task->staticPriority == TASK_PRIORITY_REALTIME);
-            if (taskCanBeChosenForScheduling) {
-                selectedTaskDynamicPriority = task->dynamicPriority;
-                selectedTask = task;
-            }
+        if (!forcedRealTimeTask && task->dynamicPriority > selectedTaskDynamicPriority) {
+            selectedTaskDynamicPriority = task->dynamicPriority;
+            selectedTask = task;
         }
     }
 
@@ -297,30 +330,48 @@ void FAST_CODE NOINLINE scheduler(void)
         // Execute task
         const timeUs_t currentTimeBeforeTaskCall = micros();
         selectedTask->taskFunc(currentTimeBeforeTaskCall);
-
-#ifndef SKIP_TASK_STATISTICS
         const timeUs_t taskExecutionTime = micros() - currentTimeBeforeTaskCall;
         selectedTask->movingSumExecutionTime += taskExecutionTime - selectedTask->movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
         selectedTask->totalExecutionTime += taskExecutionTime;   // time consumed by scheduler + task
         selectedTask->maxExecutionTime = MAX(selectedTask->maxExecutionTime, taskExecutionTime);
-#endif
-#if defined(SCHEDULER_DEBUG)
-        DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs - taskExecutionTime); // time spent in scheduler
-#endif
-    } else {
+    } 
+    
+    if (!selectedTask || forcedRealTimeTask) {
         // Execute system real-time callbacks and account for them to SYSTEM account
         const timeUs_t currentTimeBeforeTaskCall = micros();
         taskRunRealtimeCallbacks(currentTimeBeforeTaskCall);
-
-#ifndef SKIP_TASK_STATISTICS
         selectedTask = &cfTasks[TASK_SYSTEM];
         const timeUs_t taskExecutionTime = micros() - currentTimeBeforeTaskCall;
         selectedTask->movingSumExecutionTime += taskExecutionTime - selectedTask->movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
         selectedTask->totalExecutionTime += taskExecutionTime;   // time consumed by scheduler + task
         selectedTask->maxExecutionTime = MAX(selectedTask->maxExecutionTime, taskExecutionTime);
-#endif
-#if defined(SCHEDULER_DEBUG)
-        DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs);
-#endif
     }
+
+#if defined(SITL_BUILD)
+    {
+        const timeDelta_t sitlBusyTimeUs = cmpTimeUs(micros(), currentTimeUs);
+        if (sitlBusyTimeUs > 0) {
+            sitlLoadBusyTimeUs += sitlBusyTimeUs;
+        }
+
+        // Avoid busy-waiting and burning 100% CPU in SITL.  After executing the
+        // current task (or finding nothing to do), sleep until just before the
+        // next task is due.  For event-driven tasks (checkFunc) we limit the
+        // sleep so the check function is still called frequently.
+        if (sitlHasCheckFuncTask) {
+            // Poll event-driven tasks at least every 500 µs
+            const timeUs_t eventCap = micros() + 500;
+            if (eventCap < sitlEarliestNextTaskAt) {
+                sitlEarliestNextTaskAt = eventCap;
+            }
+        }
+        const timeUs_t nowUs = micros();
+        if (sitlEarliestNextTaskAt > nowUs + 50) {
+            const timeDelta_t sleepUs = (timeDelta_t)(sitlEarliestNextTaskAt - nowUs) - 50;
+            if (sleepUs > 0) {
+                usleep((useconds_t)sleepUs);
+            }
+        }
+    }
+#endif
 }

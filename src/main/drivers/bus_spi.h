@@ -21,17 +21,22 @@
 #include "drivers/rcc_types.h"
 #include "drivers/dma.h"
 
-#if defined(STM32F4) || defined(STM32F3)
+#if defined(STM32F4)
 #define SPI_IO_AF_CFG           IO_CONFIG(GPIO_Mode_AF,  GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL)
 #define SPI_IO_AF_SCK_CFG       IO_CONFIG(GPIO_Mode_AF,  GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_DOWN)
 #define SPI_IO_AF_MISO_CFG      IO_CONFIG(GPIO_Mode_AF,  GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_UP)
 #define SPI_IO_CS_CFG           IO_CONFIG(GPIO_Mode_OUT, GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL)
-#elif defined(STM32F7)
+#elif defined(STM32F7) || defined(STM32H7)
 #define SPI_IO_AF_CFG           IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
 #define SPI_IO_AF_SCK_CFG_HIGH  IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_PULLUP)
 #define SPI_IO_AF_SCK_CFG_LOW   IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_PULLDOWN)
 #define SPI_IO_AF_MISO_CFG      IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_PULLUP)
 #define SPI_IO_CS_CFG           IO_CONFIG(GPIO_MODE_OUTPUT_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
+#elif defined(AT32F43x)
+#define SPI_IO_AF_CFG           IO_CONFIG(GPIO_MODE_MUX,  GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_NONE)
+#define SPI_IO_AF_SCK_CFG       IO_CONFIG(GPIO_MODE_MUX,  GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_DOWN)
+#define SPI_IO_AF_MISO_CFG      IO_CONFIG(GPIO_MODE_MUX,  GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_UP)
+#define SPI_IO_CS_CFG           IO_CONFIG(GPIO_MODE_OUTPUT, GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_NONE)
 #endif
 
 /*
@@ -54,39 +59,63 @@ typedef enum SPIDevice {
     SPIDEV_4
 } SPIDevice;
 
-#if defined(STM32F3) || defined(STM32F4)
+#if defined(STM32F4)
 #define SPIDEV_COUNT 3
-#elif defined(STM32F7)
+#elif defined(STM32F7) || defined(STM32H7)|| defined(AT32F43x)
 #define SPIDEV_COUNT 4
 #else
 #define SPIDEV_COUNT 4
 #endif
 
+#if defined(AT32F43x)
+typedef spi_type SPI_TypeDef;
+#endif
+
 typedef struct SPIDevice_s {
-    SPI_TypeDef *dev;
+#if defined(AT32F43x)
+     spi_type *dev;
+#else
+     SPI_TypeDef *dev;
+#endif
     ioTag_t nss;
     ioTag_t sck;
     ioTag_t mosi;
     ioTag_t miso;
     rccPeriphTag_t rcc;
+#if defined(STM32F7) || defined(STM32H7) || defined(AT32F43x)
+    uint8_t sckAF;
+    uint8_t misoAF;
+    uint8_t mosiAF;
+#else
     uint8_t af;
-    const uint16_t * divisorMap;
+#endif
+    const uint32_t * divisorMap;
     volatile uint16_t errorCount;
     bool initDone;
 } spiDevice_t;
 
 bool spiInitDevice(SPIDevice device, bool leadingEdge);
-bool spiIsBusBusy(SPI_TypeDef *instance);
-void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed);
-uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t in);
-bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, int len);
 
-uint16_t spiGetErrorCounter(SPI_TypeDef *instance);
-void spiResetErrorCounter(SPI_TypeDef *instance);
-SPIDevice spiDeviceByInstance(SPI_TypeDef *instance);
-SPI_TypeDef * spiInstanceByDevice(SPIDevice device);
+#if defined(AT32F43x)
 
-#if defined(USE_HAL_DRIVER)
-SPI_HandleTypeDef* spiHandleByInstance(SPI_TypeDef *instance);
-DMA_HandleTypeDef* spiSetDMATransmit(DMA_Stream_TypeDef *Stream, uint32_t Channel, SPI_TypeDef *Instance, uint8_t *pData, uint16_t Size);
+    bool spiIsBusBusy(spi_type *instance);
+    void spiSetSpeed(spi_type *instance, SPIClockSpeed_e speed);
+    uint8_t spiTransferByte(spi_type *instance, uint8_t in);
+    bool spiTransfer(spi_type *instance, uint8_t *rxData, const uint8_t *txData, int len);
+
+    uint16_t spiGetErrorCounter(spi_type *instance);
+    void spiResetErrorCounter(spi_type *instance);
+    SPIDevice spiDeviceByInstance(spi_type *instance);
+    spi_type * spiInstanceByDevice(SPIDevice device);
+
+#else
+    bool spiIsBusBusy(SPI_TypeDef *instance);
+    void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed);
+    uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t in);
+    bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, int len);
+
+    uint16_t spiGetErrorCounter(SPI_TypeDef *instance);
+    void spiResetErrorCounter(SPI_TypeDef *instance);
+    SPIDevice spiDeviceByInstance(SPI_TypeDef *instance);
+    SPI_TypeDef * spiInstanceByDevice(SPIDevice device);
 #endif

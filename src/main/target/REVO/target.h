@@ -20,9 +20,6 @@
 #define TARGET_BOARD_IDENTIFIER "REVO"
 
 #define USBD_PRODUCT_STRING     "Revolution"
-#ifdef OPBL
-#define USBD_SERIALNUMBER_STRING "0x8020000"
-#endif
 
 // Use target-specific MAG hardware descriptors (don't use common_hardware.h)
 #define USE_TARGET_MAG_HARDWARE_DESCRIPTORS
@@ -34,35 +31,17 @@
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT
 
-// MPU6000 interrupts
-#define USE_EXTI
-#define GYRO_INT_EXTI           PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
-
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG
-
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG
 
 #define USE_MAG
 #define USE_DUAL_MAG
 #define MAG_I2C_BUS_EXT         BUS_I2C2
 #define MAG_I2C_BUS_INT         BUS_I2C1
-#define MAG_HMC5883_ALIGN       CW90_DEG
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 
@@ -139,8 +118,6 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define MAG_GPS_ALIGN           CW180_DEG_FLIP
-
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 
@@ -156,5 +133,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
-
-#define PCA9685_I2C_BUS         BUS_I2C2

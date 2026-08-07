@@ -1,6 +1,6 @@
 # Servo configuration
 
-Servos can be configured from the graphical user interface's `Servos` tab.
+Servos can be configured from the graphical user interface's `Outputs` tab.
 
 * MID: middle/neutral point of the servo
 * MIN: the minimum value that can be sent to the servo is MIN * Rate

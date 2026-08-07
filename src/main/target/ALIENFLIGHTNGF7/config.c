@@ -47,6 +47,7 @@
 #include "config/feature.h"
 
 #include "sensors/battery.h"
+#include "sensors/compass.h"
 
 #include "hardware_revision.h"
 
@@ -58,6 +59,8 @@
 // alternative defaults settings for AlienFlight targets
 void targetConfiguration(void)
 {
+    compassConfigMutable()->mag_align = CW90_DEG;
+
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
     batteryMetersConfigMutable()->current.offset = CURRENTOFFSET;
     batteryMetersConfigMutable()->current.scale = CURRENTSCALE;
@@ -72,7 +75,6 @@ void targetConfiguration(void)
         rxConfigMutable()->spektrum_sat_bind_autoreset = 1;
     } else {
         rxConfigMutable()->serialrx_provider = SERIALRX_SBUS;
-        serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_TELEMETRY_FRSKY;
         featureConfigMutable()->enabledFeatures |= (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY);
     }
 

@@ -21,7 +21,7 @@
 #define TARGET_BOARD_IDENTIFIER "MF7P"
 #define USBD_PRODUCT_STRING  "MATEKF722PX"
 
-#define LED0                    PA14  //Blue   SWCLK 
+#define LED0                    PA14  //Blue   SWCLK
 #define LED1                    PA13  //Green  SWDIO
 
 #define BEEPER                  PC13
@@ -34,19 +34,10 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_ACC
-#define USE_GYRO
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-
-#define USE_ACC_MPU6000
-#define USE_GYRO_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define MPU6000_EXTI_PIN        PC4
-
-#define GYRO_MPU6000_ALIGN      CW180_DEG_FLIP
-#define ACC_MPU6000_ALIGN       CW180_DEG_FLIP
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -58,19 +49,14 @@
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
+#define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
@@ -82,16 +68,21 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PC3
 
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define M25P16_SPI_BUS          BUS_SPI2
-#define M25P16_CS_PIN           PB12
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI2
-#define SDCARD_CS_PIN           PC15
+//F722-PX,F722-HD
+#if defined(MATEKF722PX)
+ #define USE_FLASHFS
+ #define USE_FLASH_M25P16
+ #define M25P16_SPI_BUS          BUS_SPI2
+ #define M25P16_CS_PIN           PB12
+ #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#else
+//F722-WPX
+ #define USE_SDCARD
+ #define USE_SDCARD_SPI
+ #define SDCARD_SPI_BUS          BUS_SPI2
+ #define SDCARD_CS_PIN           PC15
+ #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#endif
 
 // *************** UART *****************************
 #define USE_VCP
@@ -114,19 +105,25 @@
 #define UART4_TX_PIN            PA0
 #define UART4_RX_PIN            PA1
 
+#ifndef MATEKF722PX_PINIO
 #define USE_UART5
 #define UART5_TX_PIN            PC12
 #define UART5_RX_PIN            PD2
+#endif
 
 #define USE_UART6
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
-     
+
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TX_PIN      PA2 //TX2 pad
-#define SOFTSERIAL_1_RX_PIN      PA2
+#define SOFTSERIAL_1_RX_PIN      NONE
 
+#ifdef MATEKF722PX_PINIO
+#define SERIAL_PORT_COUNT       7
+#else
 #define SERIAL_PORT_COUNT       8
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -153,6 +150,11 @@
 #define PINIO1_PIN                  PA15 // Power switch
 #define PINIO2_PIN                  PB3  // Camera switch
 
+#ifdef MATEKF722PX_PINIO
+#define PINIO3_PIN                  PC12 // UART 5 TX - USER 3 PINIO
+#define PINIO4_PIN                  PD2  // UART 5 RX - USER 4 PINIO
+#endif
+
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
 #define WS2811_PIN                  PA8
@@ -168,10 +170,5 @@
 #define TARGET_IO_PORTD 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS        10
-#define USE_OSD
 #define USE_DSHOT
-#define USE_SERIALSHOT
 #define USE_ESC_SENSOR
-
-//#define USE_CAMERA_CONTROL
-//#define CAMERA_CONTROL_PIN         	PB15

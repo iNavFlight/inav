@@ -32,7 +32,7 @@
 #include "drivers/bus.h"
 #include "drivers/io.h"
 
-#define BUSDEV_MAX_DEVICES 8
+#define BUSDEV_MAX_DEVICES 16
 
 #ifdef USE_SPI
 static void busDevPreInit_SPI(const busDeviceDescriptor_t * descriptor)
@@ -66,10 +66,12 @@ static void busDevPreInit(const busDeviceDescriptor_t * descriptor)
 
 void busInit(void)
 {
+#if !defined(SITL_BUILD)
     /* Pre-initialize bus devices */
     for (const busDeviceDescriptor_t * descriptor = __busdev_registry_start; (descriptor) < __busdev_registry_end; descriptor++) {
         busDevPreInit(descriptor);
     }
+#endif
 }
 
 #ifdef USE_I2C
@@ -113,6 +115,11 @@ void busDeviceDeInit(busDevice_t * dev)
 busDevice_t * busDeviceInit(busType_e bus, devHardwareType_e hw, uint8_t tag, resourceOwner_e owner)
 {
     UNUSED(owner);
+#if defined(SITL_BUILD)
+    UNUSED(bus);
+    UNUSED(hw);
+    UNUSED(tag);
+#else       
 
     for (const busDeviceDescriptor_t * descriptor = __busdev_registry_start; (descriptor) < __busdev_registry_end; descriptor++) {
         if (hw == descriptor->devHwType && (bus == descriptor->busType || bus == BUSTYPE_ANY) && (tag == descriptor->tag)) {
@@ -124,6 +131,7 @@ busDevice_t * busDeviceInit(busType_e bus, devHardwareType_e hw, uint8_t tag, re
                 dev->descriptorPtr = descriptor;
                 dev->busType = descriptor->busType;
                 dev->flags = descriptor->flags;
+                dev->param = descriptor->param;
 
                 switch (descriptor->busType) {
                     default:
@@ -162,12 +170,17 @@ busDevice_t * busDeviceInit(busType_e bus, devHardwareType_e hw, uint8_t tag, re
             }
         }
     }
-
+#endif
     return NULL;
 }
 
 busDevice_t * busDeviceOpen(busType_e bus, devHardwareType_e hw, uint8_t tag)
 {
+#if defined(SITL_BUILD)
+    UNUSED(bus);
+    UNUSED(hw);
+    UNUSED(tag);
+#else
     for (const busDeviceDescriptor_t * descriptor = __busdev_registry_start; (descriptor) < __busdev_registry_end; descriptor++) {
         if (hw == descriptor->devHwType && (bus == descriptor->busType || bus == BUSTYPE_ANY) && (tag == descriptor->tag)) {
             // Found a hardware descriptor. Now check if device context is valid
@@ -177,7 +190,7 @@ busDevice_t * busDeviceOpen(busType_e bus, devHardwareType_e hw, uint8_t tag)
             }
         }
     }
-
+#endif
     return NULL;
 }
 
@@ -257,6 +270,12 @@ bool busTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * dsc,
 
 bool busWriteBuf(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length)
 {
+#if !defined(USE_SPI) && !defined(USE_I2C)
+    UNUSED(reg);
+    UNUSED(data);
+    UNUSED(length);
+#endif
+    
     switch (dev->busType) {
         case BUSTYPE_SPI:
 #ifdef USE_SPI
@@ -264,7 +283,7 @@ bool busWriteBuf(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uin
                 return spiBusWriteBuffer(dev, reg, data, length);
             }
             else {
-                return spiBusWriteBuffer(dev, reg | 0x80, data, length);
+                return spiBusWriteBuffer(dev, reg & 0x7F, data, length);
             }
 #else
             return false;
@@ -284,6 +303,11 @@ bool busWriteBuf(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uin
 
 bool busWrite(const busDevice_t * dev, uint8_t reg, uint8_t data)
 {
+#if !defined(USE_SPI) && !defined(USE_I2C)
+    UNUSED(reg);
+    UNUSED(data);
+#endif    
+    
     switch (dev->busType) {
         case BUSTYPE_SPI:
 #ifdef USE_SPI
@@ -311,6 +335,11 @@ bool busWrite(const busDevice_t * dev, uint8_t reg, uint8_t data)
 
 bool busReadBuf(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
 {
+#if !defined(USE_SPI) && !defined(USE_I2C)
+    UNUSED(reg);
+    UNUSED(data);
+    UNUSED(length);
+#endif
     switch (dev->busType) {
         case BUSTYPE_SPI:
 #ifdef USE_SPI
@@ -338,6 +367,11 @@ bool busReadBuf(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t le
 
 bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 {
+#if !defined(USE_SPI) && !defined(USE_I2C)
+    UNUSED(reg);
+    UNUSED(data);
+#endif  
+
     switch (dev->busType) {
         case BUSTYPE_SPI:
 #ifdef USE_SPI
@@ -357,7 +391,6 @@ bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 #else
             return false;
 #endif
-
         default:
             return false;
     }
@@ -395,11 +428,13 @@ bool busIsBusy(const busDevice_t * dev)
             UNUSED(dev);
             return false;
 #endif
-
         case BUSTYPE_I2C:
-            // Not implemented for I2C, respond as always free
+#ifdef USE_I2C
+            return i2cBusBusy(dev,NULL);
+#else
+            UNUSED(dev);
             return false;
-
+#endif
         default:
             return false;
     }

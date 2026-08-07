@@ -1,0 +1,41 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build AOCODARCH7DUAL",
+            "type": "shell",
+            "command": "make AOCODARCH7DUAL",
+            "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            }
+        },
+        {
+            "label": "Build AOCODARCH7DUAL",
+            "type": "shell",
+            "command": "make AOCODARCH7DUAL",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            }
+        }
+        ,
+        {
+            "label": "CMAKE Update",
+            "type": "shell",
+            "command": "cmake ..",
+            "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            }
+        }
+    ]
+}

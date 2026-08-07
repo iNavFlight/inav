@@ -16,11 +16,20 @@
  */
 
 #include <stdint.h>
+
 #include "platform.h"
+
+#include "drivers/pwm_mapping.h"
+
+#include "fc/fc_msp_box.h"
+
 #include "io/piniobox.h"
 
 void targetConfiguration(void)
 {
-    pinioBoxConfigMutable()->permanentId[0] = 47;
-    pinioBoxConfigMutable()->permanentId[1] = 48;
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM4))->outputMode = OUTPUT_MODE_MOTORS;
 }

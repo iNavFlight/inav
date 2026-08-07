@@ -37,7 +37,6 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/system.h"
-#include "drivers/rx_spi.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 #include "drivers/serial.h"
@@ -59,16 +58,16 @@
 #include "io/osd.h"
 
 #include "rx/rx.h"
-#include "rx/rx_spi.h"
 
 #include "flight/mixer.h"
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/failsafe.h"
+#include "flight/ez_tune.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
@@ -80,9 +79,6 @@
 
 #ifndef DEFAULT_FEATURES
 #define DEFAULT_FEATURES 0
-#endif
-#ifndef RX_SPI_DEFAULT_PROTOCOL
-#define RX_SPI_DEFAULT_PROTOCOL 0
 #endif
 
 #define BRUSHED_MOTORS_PWM_RATE 16000
@@ -107,19 +103,33 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
     .current_battery_profile_index = 0,
-    .debug_mode = DEBUG_NONE,
-    .i2c_speed = I2C_SPEED_400KHZ,
-    .cpuUnderclock = 0,
-    .throttle_tilt_compensation_strength = 0,      // 0-100, 0 - disabled
-    .name = { 0 }
+    .current_mixer_profile_index = 0,
+    .debug_mode = SETTING_DEBUG_MODE_DEFAULT,
+#ifdef USE_DEV_TOOLS
+    .groundTestMode = SETTING_GROUND_TEST_MODE_DEFAULT,     // disables motors, set heading trusted for FW (for dev use)
+#endif
+#ifdef USE_I2C
+    .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
+#endif
+    .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
+    .craftName = SETTING_NAME_DEFAULT,
+    .pilotName = SETTING_NAME_DEFAULT
 );
 
-PG_REGISTER(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 2);
+
+PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
+                  .beeper_off_flags = 0,
+                  .preferred_beeper_off_flags = 0,
+                  .dshot_beeper_enabled = SETTING_DSHOT_BEEPER_ENABLED_DEFAULT,
+                  .dshot_beeper_tone = SETTING_DSHOT_BEEPER_TONE_DEFAULT,
+                  .pwmMode = SETTING_BEEPER_PWM_MODE_DEFAULT,
+);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig, PG_ADC_CHANNEL_CONFIG, 0);
 
@@ -132,26 +142,33 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     }
 );
 
-#ifdef USE_NAV
+#define SAVESTATE_NONE 0
+#define SAVESTATE_SAVEONLY 1
+#define SAVESTATE_SAVEANDNOTIFY 2
+
+static uint8_t saveState = SAVESTATE_NONE;
+
 void validateNavConfig(void)
 {
     // Make sure minAlt is not more than maxAlt, maxAlt cannot be set lower than 500.
     navConfigMutable()->general.land_slowdown_minalt = MIN(navConfig()->general.land_slowdown_minalt, navConfig()->general.land_slowdown_maxalt - 100);
 }
-#endif
 
 
 // Stubs to handle target-specific configs
 __attribute__((weak)) void validateAndFixTargetConfig(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
 
 __attribute__((weak)) void targetConfiguration(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
-
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
 #define FIRST_PORT_INDEX 1
@@ -161,50 +178,36 @@ __attribute__((weak)) void targetConfiguration(void)
 #define SECOND_PORT_INDEX 1
 #endif
 
-uint32_t getLooptime(void) {
+uint32_t getLooptime(void)
+{
+    return gyroConfig()->looptime;
+}
+
+uint32_t getGyroLooptime(void)
+{
     return gyro.targetLooptime;
-} 
+}
 
 void validateAndFixConfig(void)
 {
-    if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {
-        gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;
+
+#ifdef USE_ADAPTIVE_FILTER
+//     gyroConfig()->adaptiveFilterMinHz has to be at least 5 units lower than gyroConfig()->gyro_main_lpf_hz
+     if (gyroConfig()->adaptiveFilterMinHz + 5 > gyroConfig()->gyro_main_lpf_hz) {
+        gyroConfigMutable()->adaptiveFilterMinHz = gyroConfig()->gyro_main_lpf_hz - 5;
     }
-    if (gyroConfig()->gyro_soft_notch_cutoff_2 >= gyroConfig()->gyro_soft_notch_hz_2) {
-        gyroConfigMutable()->gyro_soft_notch_hz_2 = 0;
+    //gyroConfig()->adaptiveFilterMaxHz has to be at least 5 units higher than gyroConfig()->gyro_main_lpf_hz
+    if (gyroConfig()->adaptiveFilterMaxHz - 5 < gyroConfig()->gyro_main_lpf_hz) {
+        gyroConfigMutable()->adaptiveFilterMaxHz = gyroConfig()->gyro_main_lpf_hz + 5;
     }
-    if (pidProfile()->dterm_soft_notch_cutoff >= pidProfile()->dterm_soft_notch_hz) {
-        pidProfileMutable()->dterm_soft_notch_hz = 0;
-    }
+#endif
+
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
 
     // Disable unused features
-    featureClear(FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
-
-#if defined(DISABLE_RX_PWM_FEATURE) || !defined(USE_RX_PWM)
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-        rxConfigMutable()->receiverType = RX_TYPE_NONE;
-    }
-#endif
-
-#if !defined(USE_RX_PPM)
-    if (rxConfig()->receiverType == RX_TYPE_PPM) {
-        rxConfigMutable()->receiverType = RX_TYPE_NONE;
-    }
-#endif
-
-
-    if (rxConfig()->receiverType == RX_TYPE_PWM) {
-#if defined(CHEBUZZ) || defined(STM32F3DISCOVERY)
-        // led strip needs the same ports
-        featureClear(FEATURE_LED_STRIP);
-#endif
-
-        // software serial needs free PWM ports
-        featureClear(FEATURE_SOFTSERIAL);
-    }
+    featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 | FEATURE_UNUSED_10);
 
 #if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
@@ -232,77 +235,34 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#ifndef USE_PWM_SERVO_DRIVER
-    featureClear(FEATURE_PWM_SERVO_DRIVER);
+#ifndef USE_SERVO_SBUS
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS || servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM) {
+        servoConfigMutable()->servo_protocol = SERVO_TYPE_PWM;
+    }
 #endif
 
     if (!isSerialConfigValid(serialConfigMutable())) {
         pgResetCopy(serialConfigMutable(), PG_SERIAL_CONFIG);
     }
 
-#if defined(USE_NAV)
     // Ensure sane values of navConfig settings
     validateNavConfig();
-#endif
 
     // Limitations of different protocols
 #if !defined(USE_DSHOT)
     if (motorConfig()->motorPwmProtocol > PWM_TYPE_BRUSHED) {
-        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
+        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_MULTISHOT;
     }
-#endif
-
-#ifdef BRUSHED_MOTORS
-    motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
-#else
-    switch (motorConfig()->motorPwmProtocol) {
-    default:
-    case PWM_TYPE_STANDARD: // Limited to 490 Hz
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 490);
-        break;
-    case PWM_TYPE_ONESHOT125:   // Limited to 3900 Hz
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 3900);
-        break;
-    case PWM_TYPE_ONESHOT42:    // 2-8 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 8000);
-        break;
-    case PWM_TYPE_MULTISHOT:    // 2-16 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 16000);
-        break;
-    case PWM_TYPE_BRUSHED:      // 500Hz - 32kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
-        break;
-#ifdef USE_DSHOT
-    // One DSHOT packet takes 16 bits x 19 ticks + 2uS = 304 timer ticks + 2uS
-    case PWM_TYPE_DSHOT150:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 4000);
-        break;
-    case PWM_TYPE_DSHOT300:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 8000);
-        break;
-    // Although DSHOT 600+ support >16kHz update rate it's not practical because of increased CPU load
-    // It's more reasonable to use slower-speed DSHOT at higher rate for better reliability
-    case PWM_TYPE_DSHOT600:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 16000);
-        break;
-    case PWM_TYPE_DSHOT1200:
-        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
-        break;
-#endif
-#ifdef USE_SERIALSHOT
-    case PWM_TYPE_SERIALSHOT:   // 2-4 kHz
-        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 4000);
-        break;
-#endif
-    }
-#endif
-
-#if !defined(USE_MPU_DATA_READY_SIGNAL)
-    gyroConfigMutable()->gyroSync = false;
 #endif
 
     // Call target-specific validation function
     validateAndFixTargetConfig();
+
+#ifdef USE_MAG
+    if (compassConfig()->mag_align == ALIGN_DEFAULT) {
+        compassConfigMutable()->mag_align = CW270_DEG_FLIP;
+    }
+#endif
 
     if (settingsValidate(NULL)) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING);
@@ -336,6 +296,14 @@ void createDefaultConfig(void)
     featureSet(FEATURE_AIRMODE);
 
     targetConfiguration();
+
+#ifdef MSP_UART
+    int port = findSerialPortIndexByIdentifier(MSP_UART);
+    if (port) {
+        serialConfigMutable()->portConfigs[port].functionMask = FUNCTION_MSP;
+        serialConfigMutable()->portConfigs[port].msp_baudrateIndex = BAUD_115200;
+    }
+#endif
 }
 
 void resetConfigs(void)
@@ -353,8 +321,9 @@ void resetConfigs(void)
 
 static void activateConfig(void)
 {
-    activateControlRateConfig();
+    activateControlConfig();
     activateBatteryProfile();
+    activateMixerConfig();
 
     resetAdjustmentStates();
 
@@ -369,15 +338,11 @@ static void activateConfig(void)
 
     pidInit();
 
-#ifdef USE_NAV
     navigationUsePIDs();
-#endif
 }
 
 void readEEPROM(void)
 {
-    suspendRxSignal();
-
     // Sanity check, read flash
     if (!loadEEPROM()) {
         failureMode(FAILURE_INVALID_EEPROM_CONTENTS);
@@ -385,26 +350,32 @@ void readEEPROM(void)
 
     setConfigProfile(getConfigProfile());
     setConfigBatteryProfile(getConfigBatteryProfile());
+    setConfigMixerProfile(getConfigMixerProfile());
 
     validateAndFixConfig();
     activateConfig();
+}
 
+void processSaveConfigAndNotify(void)
+{
+    suspendRxSignal();
+    writeEEPROM();
+    readEEPROM();
     resumeRxSignal();
+    beeperConfirmationBeeps(1);
+#ifdef USE_OSD
+    osdShowEEPROMSavedNotification();
+#endif
 }
 
 void writeEEPROM(void)
 {
-    suspendRxSignal();
-
     writeConfigToEEPROM();
-
-    resumeRxSignal();
 }
 
 void resetEEPROM(void)
 {
     resetConfigs();
-    writeEEPROM();
 }
 
 void ensureEEPROMContainsValidData(void)
@@ -413,13 +384,46 @@ void ensureEEPROMContainsValidData(void)
         return;
     }
     resetEEPROM();
+    suspendRxSignal();
+    writeEEPROM();
+    resumeRxSignal();
 }
 
+/*
+ * Used to save the EEPROM and notify the user with beeps and OSD notifications.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned in the next loop, if the model is disarmed.
+ */
 void saveConfigAndNotify(void)
 {
-    writeEEPROM();
-    readEEPROM();
-    beeperConfirmationBeeps(1);
+#ifdef USE_OSD
+    osdStartedSaveProcess();
+#endif
+    saveState = SAVESTATE_SAVEANDNOTIFY;
+}
+
+/*
+ * Used to save the EEPROM without notifications. Can be used instead of writeEEPROM() if no reboot is called after the write.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned in the next loop, if the model is disarmed.
+ * If any save with notifications are requested, notifications are shown.
+ */
+void saveConfig(void)
+{
+    if (saveState != SAVESTATE_SAVEANDNOTIFY) {
+        saveState = SAVESTATE_SAVEONLY;
+    }
+}
+
+void processDelayedSave(void)
+{
+    if (saveState == SAVESTATE_SAVEANDNOTIFY) {
+        processSaveConfigAndNotify();
+        saveState = SAVESTATE_NONE;
+    } else if (saveState == SAVESTATE_SAVEONLY) {
+        suspendRxSignal();
+        writeEEPROM();
+        resumeRxSignal();
+        saveState = SAVESTATE_NONE;
+    }
 }
 
 uint8_t getConfigProfile(void)
@@ -439,7 +443,10 @@ bool setConfigProfile(uint8_t profileIndex)
     pgActivateProfile(profileIndex);
     systemConfigMutable()->current_profile_index = profileIndex;
     // set the control rate profile to match
-    setControlRateProfile(profileIndex);
+    setControlProfile(profileIndex);
+#ifdef USE_EZ_TUNE
+    ezTuneUpdate();
+#endif
     return ret;
 }
 
@@ -447,8 +454,10 @@ void setConfigProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
         writeEEPROM();
         readEEPROM();
+        resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
 }
@@ -476,10 +485,54 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigBatteryProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
         writeEEPROM();
         readEEPROM();
+        resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
+}
+
+uint8_t getConfigMixerProfile(void)
+{
+    return systemConfig()->current_mixer_profile_index;
+}
+
+bool setConfigMixerProfile(uint8_t profileIndex)
+{
+    bool ret = true; // return true if current_mixer_profile_index has changed
+    if (systemConfig()->current_mixer_profile_index == profileIndex) {
+        ret =  false;
+    }
+    if (profileIndex >= MAX_MIXER_PROFILE_COUNT) {// sanity check
+        profileIndex = 0;
+    }
+    systemConfigMutable()->current_mixer_profile_index = profileIndex;
+    return ret;
+}
+
+void setConfigMixerProfileAndWriteEEPROM(uint8_t profileIndex)
+{
+    if (setConfigMixerProfile(profileIndex)) {
+        // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
+        writeEEPROM();
+        readEEPROM();
+        resumeRxSignal();
+    }
+    beeperConfirmationBeeps(profileIndex + 1);
+}
+
+void setGyroCalibration(float getGyroZero[XYZ_AXIS_COUNT])
+{
+    gyroConfigMutable()->gyro_zero_cal[X] = (int16_t) getGyroZero[X];
+    gyroConfigMutable()->gyro_zero_cal[Y] = (int16_t) getGyroZero[Y];
+    gyroConfigMutable()->gyro_zero_cal[Z] = (int16_t) getGyroZero[Z];
+}
+
+void setGravityCalibration(float getGravity)
+{
+    gyroConfigMutable()->gravity_cmss_cal = getGravity;
 }
 
 void beeperOffSet(uint32_t mask)

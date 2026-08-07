@@ -22,6 +22,8 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include "platform.h"
+
 #include "flight/rpm_filter.h"
 
 #include "config/parameter_group.h"
@@ -36,24 +38,21 @@
 #include "flight/mixer.h"
 #include "sensors/esc_sensor.h"
 #include "fc/config.h"
+#include "fc/settings.h"
 
 #ifdef USE_RPM_FILTER
 
-#define RPM_TO_HZ 60.0f
+#define HZ_TO_RPM 1/60.0f
 #define RPM_FILTER_RPM_LPF_HZ 150
 #define RPM_FILTER_HARMONICS 3
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig, PG_RPM_FILTER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig, PG_RPM_FILTER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig,
-                  .gyro_filter_enabled = 0,
-                  .dterm_filter_enabled = 0,
-                  .gyro_harmonics = 1,
-                  .gyro_min_hz = 100,
-                  .gyro_q = 500,
-                  .dterm_harmonics = 1,
-                  .dterm_min_hz = 100,
-                  .dterm_q = 500, );
+                  .gyro_filter_enabled = SETTING_RPM_GYRO_FILTER_ENABLED_DEFAULT,
+                  .gyro_harmonics = SETTING_RPM_GYRO_HARMONICS_DEFAULT,
+                  .gyro_min_hz = SETTING_RPM_GYRO_MIN_HZ_DEFAULT,
+                  .gyro_q = SETTING_RPM_GYRO_Q_DEFAULT, );
 
 typedef struct
 {
@@ -68,13 +67,9 @@ typedef float (*rpmFilterApplyFnPtr)(rpmFilterBank_t *filter, uint8_t axis, floa
 typedef void (*rpmFilterUpdateFnPtr)(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency);
 
 static EXTENDED_FASTRAM pt1Filter_t motorFrequencyFilter[MAX_SUPPORTED_MOTORS];
-static EXTENDED_FASTRAM float erpmToHz;
 static EXTENDED_FASTRAM rpmFilterBank_t gyroRpmFilters;
-static EXTENDED_FASTRAM rpmFilterBank_t dtermRpmFilters;
 static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmGyroApplyFn;
-static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmDtermApplyFn;
 static EXTENDED_FASTRAM rpmFilterUpdateFnPtr rpmGyroUpdateFn;
-static EXTENDED_FASTRAM rpmFilterUpdateFnPtr rpmDtermUpdateFn;
 
 float nullRpmFilterApply(rpmFilterBank_t *filter, uint8_t axis, float input)
 {
@@ -89,7 +84,7 @@ void nullRpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseF
     UNUSED(baseFrequency);
 }
 
-float FAST_CODE rpmFilterApply(rpmFilterBank_t *filterBank, uint8_t axis, float input)
+float rpmFilterApply(rpmFilterBank_t *filterBank, uint8_t axis, float input)
 {
     float output = input;
 
@@ -141,10 +136,9 @@ static void rpmFilterInit(rpmFilterBank_t *filter, uint16_t q, uint8_t minHz, ui
 
 void disableRpmFilters(void) {
     rpmGyroApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
-    rpmDtermApplyFn = (rpmFilterApplyFnPtr)nullRpmFilterApply;
 }
 
-void FAST_CODE NOINLINE rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency)
+void rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++)
     {
@@ -167,12 +161,10 @@ void rpmFiltersInit(void)
 {
     for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++)
     {
-        pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, RPM_FILTER_UPDATE_RATE_US * 1e-6f);
+        pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, US2S(RPM_FILTER_UPDATE_RATE_US));
     }
-    erpmToHz = ERPM_PER_LSB / (motorConfig()->motorPoleCount / 2) / RPM_TO_HZ;
 
     rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;
-    rpmDtermUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;
 
     if (rpmFilterConfig()->gyro_filter_enabled)
     {
@@ -184,20 +176,9 @@ void rpmFiltersInit(void)
         rpmGyroApplyFn = (rpmFilterApplyFnPtr)rpmFilterApply;
         rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)rpmFilterUpdate;
     }
-
-    if (rpmFilterConfig()->dterm_filter_enabled)
-    {
-        rpmFilterInit(
-            &dtermRpmFilters,
-            rpmFilterConfig()->dterm_q,
-            rpmFilterConfig()->dterm_min_hz,
-            rpmFilterConfig()->dterm_harmonics);
-        rpmDtermApplyFn = (rpmFilterApplyFnPtr)rpmFilterApply;
-        rpmDtermUpdateFn = (rpmFilterUpdateFnPtr)rpmFilterUpdate;
-    }
 }
 
-void FAST_CODE NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs)
+void rpmFilterUpdateTask(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
@@ -208,25 +189,15 @@ void FAST_CODE NOINLINE rpmFilterUpdateTask(timeUs_t currentTimeUs)
     for (uint8_t i = 0; i < motorCount; i++)
     {
         const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
-        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * erpmToHz); //Filter motor frequency
-
-        if (i < 4) {
-            DEBUG_SET(DEBUG_RPM_FREQ, i, (int)baseFrequency);
-        }
+        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * HZ_TO_RPM); //Filter motor frequency
 
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
-        rpmDtermUpdateFn(&dtermRpmFilters, i, baseFrequency);
     }
 }
 
-float FAST_CODE rpmFilterGyroApply(uint8_t axis, float input)
+float rpmFilterGyroApply(uint8_t axis, float input)
 {
     return rpmGyroApplyFn(&gyroRpmFilters, axis, input);
-}
-
-float FAST_CODE rpmFilterDtermApply(uint8_t axis, float input)
-{
-    return rpmDtermApplyFn(&dtermRpmFilters, axis, input);
 }
 
 #endif

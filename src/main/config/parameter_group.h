@@ -49,7 +49,7 @@ typedef struct pgRegistry_s {
     uint8_t **ptr;         // The pointer to update after loading the record into ram.
     union {
         void *ptr;         // Pointer to init template
-        pgResetFunc *fn;   // Popinter to pgResetFunc
+        pgResetFunc *fn;   // Pointer to pgResetFunc
     } reset;
 } pgRegistry_t;
 
@@ -64,7 +64,7 @@ static inline uint16_t pgIsProfile(const pgRegistry_t* reg) {return (reg->size &
 #ifdef __APPLE__
 extern const pgRegistry_t __pg_registry_start[] __asm("section$start$__DATA$__pg_registry");
 extern const pgRegistry_t __pg_registry_end[] __asm("section$end$__DATA$__pg_registry");
-#define PG_REGISTER_ATTRIBUTES __attribute__ ((section("__DATA,__pg_registry"), used, aligned(4)))
+#define PG_REGISTER_ATTRIBUTES __attribute__ ((section("__DATA,__pg_registry"), used, aligned(8)))
 
 extern const uint8_t __pg_resetdata_start[] __asm("section$start$__DATA$__pg_resetdata");
 extern const uint8_t __pg_resetdata_end[] __asm("section$end$__DATA$__pg_resetdata");
@@ -182,14 +182,6 @@ extern const uint8_t __pg_resetdata_end[];
     extern void pgResetFn_ ## _name(_type *);    \
     PG_REGISTER_ARRAY_I(_type, _size, _name, _pgn, _version, .reset = {.fn = (pgResetFunc*)&pgResetFn_ ## _name}) \
     /**/
-
-#if 0
-// ARRAY reset mechanism is not implemented yet, only few places in code would benefit from it - See pgResetInstance
-#define PG_REGISTER_ARRAY_WITH_RESET_TEMPLATE(_type, _size, _name, _pgn, _version) \
-    extern const _type pgResetTemplate_ ## _name;                       \
-    PG_REGISTER_ARRAY_I(_type, _size, _name, _pgn, _version, .reset = {.ptr = (void*)&pgResetTemplate_ ## _name}) \
-    /**/
-#endif
 
 #ifdef UNIT_TEST
 # define _PG_PROFILE_CURRENT_DECL(_type, _name)                  \

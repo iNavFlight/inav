@@ -171,7 +171,7 @@ static void updateChannelData(void) {
     for (i = 0, offset = ibusChannelOffset; i < IBUS_MAX_SLOTS; i++, offset += 2) {
         ibusChannelData[i] = ibus[offset] + ((ibus[offset + 1] & 0x0F) << 8);
     }
-    //latest IBUS recievers are using prviously not used 4 bits on every channel to incresse total channel count
+    //latest IBUS receivers are using previously not used 4 bits on every channel to increase total channel count
     for (i = IBUS_MAX_SLOTS, offset = ibusChannelOffset + 1; i < IBUS_MAX_CHANNEL; i++, offset += 6) {
         ibusChannelData[i] = ((ibus[offset] & 0xF0) >> 4) | (ibus[offset + 2] & 0xF0) | ((ibus[offset + 4] & 0xF0) << 4);
     }
@@ -218,8 +218,6 @@ bool ibusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     ibusSyncByte = 0;
 
     rxRuntimeConfig->channelCount = IBUS_MAX_CHANNEL;
-    rxRuntimeConfig->rxRefreshRate = 20000; // TODO - Verify speed
-
     rxRuntimeConfig->rcReadRawFn = ibusReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = ibusFrameStatus;
 
@@ -241,7 +239,7 @@ bool ibusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         NULL,
         IBUS_BAUDRATE,
         portShared ? MODE_RXTX : MODE_RX,
-        SERIAL_NOT_INVERTED | (rxConfig->halfDuplex || portShared ? SERIAL_BIDIR : 0)
+        SERIAL_NOT_INVERTED | ((tristateWithDefaultOffIsActive(rxConfig->halfDuplex) || portShared) ? SERIAL_BIDIR : 0)
         );
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_IBUS)

@@ -49,7 +49,6 @@ typedef enum {
     BOXAIRMODE       = 20,
     BOXHOMERESET     = 21,
     BOXGCSNAV        = 22,
-    BOXKILLSWITCH    = 23,   // old HEADING LOCK
     BOXSURFACE       = 24,
     BOXFLAPERON      = 25,
     BOXTURNASSIST    = 26,
@@ -61,20 +60,38 @@ typedef enum {
     BOXOSDALT1       = 32,
     BOXOSDALT2       = 33,
     BOXOSDALT3       = 34,
-    BOXNAVCRUISE     = 35,
+    BOXNAVCOURSEHOLD = 35,
     BOXBRAKING       = 36,
     BOXUSER1         = 37,
     BOXUSER2         = 38,
     BOXFPVANGLEMIX   = 39,
     BOXLOITERDIRCHN  = 40,
     BOXMSPRCOVERRIDE = 41,
+    BOXPREARM        = 42,
+    BOXTURTLE        = 43,
+    BOXNAVCRUISE     = 44,
+    BOXAUTOLEVEL     = 45,
+    BOXPLANWPMISSION = 46,
+    BOXSOARING       = 47,
+    BOXUSER3         = 48,
+    BOXUSER4         = 49,
+    BOXCHANGEMISSION = 50,
+    BOXBEEPERMUTE    = 51,
+    BOXMULTIFUNCTION = 52,
+    BOXMIXERPROFILE  = 53,
+    BOXMIXERTRANSITION = 54,
+    BOXANGLEHOLD     = 55,
+    BOXGIMBALTLOCK   = 56,
+    BOXGIMBALRLOCK   = 57,
+    BOXGIMBALCENTER  = 58,
+    BOXGIMBALHTRK    = 59,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
 // type to hold enough bits for CHECKBOX_ITEM_COUNT. Struct used for value-like behavior
 typedef struct boxBitmask_s { BITARRAY_DECLARE(bits, CHECKBOX_ITEM_COUNT); } boxBitmask_t;
 
-#define MAX_MODE_ACTIVATION_CONDITION_COUNT 20
+#define MAX_MODE_ACTIVATION_CONDITION_COUNT 40
 
 #define CHANNEL_RANGE_MIN 900
 #define CHANNEL_RANGE_MAX 2100
@@ -127,4 +144,4 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range);
 
 void updateActivatedModes(void);
 void updateUsedModeActivationConditionFlags(void);
-void configureModeActivationCondition(int macIndex, boxId_e modeId, uint8_t auxChannelIndex, uint16_t startPwm, uint16_t endPwm);
+bool isFwAutoModeActive(boxId_e mode);

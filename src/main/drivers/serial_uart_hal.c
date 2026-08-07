@@ -52,6 +52,18 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
             uartPort->Handle.AdvancedInit.TxPinLevelInvert = UART_ADVFEATURE_TXINV_ENABLE;
         }
     }
+
+#ifdef USE_UART4_SWAP
+    if (uartPort->Handle.Instance == UART4) {
+        uartPort->Handle.AdvancedInit.AdvFeatureInit |= UART_ADVFEATURE_SWAP_INIT;
+        uartPort->Handle.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
+    }
+#endif
+}
+
+__attribute__((weak)) void uartConfigurePinSwap(uartPort_t *uartPort)
+{
+    UNUSED(uartPort);
 }
 
 static void uartReconfigure(uartPort_t *uartPort)
@@ -71,7 +83,7 @@ static void uartReconfigure(uartPort_t *uartPort)
 
     HAL_UART_DeInit(&uartPort->Handle);
     uartPort->Handle.Init.BaudRate = uartPort->port.baudRate;
-    uartPort->Handle.Init.WordLength = UART_WORDLENGTH_8B;
+    uartPort->Handle.Init.WordLength = (uartPort->port.options & SERIAL_PARITY_EVEN) ? UART_WORDLENGTH_9B : UART_WORDLENGTH_8B;
     uartPort->Handle.Init.StopBits = (uartPort->port.options & SERIAL_STOPBITS_2) ? USART_STOPBITS_2 : USART_STOPBITS_1;
     uartPort->Handle.Init.Parity = (uartPort->port.options & SERIAL_PARITY_EVEN) ? USART_PARITY_EVEN : USART_PARITY_NONE;
     uartPort->Handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
@@ -85,6 +97,7 @@ static void uartReconfigure(uartPort_t *uartPort)
 
 
     usartConfigurePinInversion(uartPort);
+    uartConfigurePinSwap(uartPort);
 
     if (uartPort->port.options & SERIAL_BIDIR)
     {
@@ -185,6 +198,13 @@ void uartSetMode(serialPort_t *instance, portMode_t mode)
     uartReconfigure(uartPort);
 }
 
+void uartSetOptions(serialPort_t *instance, portOptions_t options)
+{
+    uartPort_t *uartPort = (uartPort_t *)instance;
+    uartPort->port.options = options;
+    uartReconfigure(uartPort);
+}
+
 uint32_t uartTotalRxBytesWaiting(const serialPort_t *instance)
 {
     uartPort_t *s = (uartPort_t*)instance;
@@ -246,6 +266,17 @@ void uartWrite(serialPort_t *instance, uint8_t ch)
     __HAL_UART_ENABLE_IT(&s->Handle, UART_IT_TXE);
 }
 
+bool isUartIdle(serialPort_t *instance)
+{
+    uartPort_t *s = (uartPort_t *)instance;
+    if(__HAL_UART_GET_FLAG(&s->Handle, UART_FLAG_IDLE)) {
+        __HAL_UART_CLEAR_IDLEFLAG(&s->Handle);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 const struct serialPortVTable uartVTable[] = {
     {
         .serialWrite = uartWrite,
@@ -255,9 +286,11 @@ const struct serialPortVTable uartVTable[] = {
         .serialSetBaudRate = uartSetBaudRate,
         .isSerialTransmitBufferEmpty = isUartTransmitBufferEmpty,
         .setMode = uartSetMode,
+        .setOptions = uartSetOptions,
         .isConnected = NULL,
         .writeBuf = NULL,
         .beginWrite = NULL,
         .endWrite = NULL,
+        .isIdle = isUartIdle,
     }
 };

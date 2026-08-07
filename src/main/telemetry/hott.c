@@ -234,7 +234,12 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
     const int32_t climbrate3s = MAX(0, 3.0f * getEstimatedActualVelocity(Z) / 100 + 120);
     hottGPSMessage->climbrate3s = climbrate3s & 0xFF;
 
-    if (!STATE(GPS_FIX)) {
+#ifdef USE_GPS_FIX_ESTIMATION
+    if (!(STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)))
+#else
+    if (!(STATE(GPS_FIX)))
+#endif
+         {
         hottGPSMessage->gps_fix_char = GPS_FIX_CHAR_NONE;
         return;
     }
@@ -334,8 +339,6 @@ void hottPrepareEAMResponse(HOTT_EAM_MSG_t *hottEAMMessage)
 
 static void hottSerialWrite(uint8_t c)
 {
-    static uint8_t serialWrites = 0;
-    serialWrites++;
     serialWrite(hottPort, c);
 }
 
@@ -368,7 +371,7 @@ void configureHoTTTelemetryPort(void)
         return;
     }
 
-    portOptions_t portOptions = (telemetryConfig()->uartUnidirectional ? SERIAL_UNIDIR : SERIAL_BIDIR) | (SERIAL_NOT_INVERTED);
+    portOptions_t portOptions = (telemetryConfig()->halfDuplex ? SERIAL_BIDIR : SERIAL_UNIDIR) | (SERIAL_NOT_INVERTED);
 
     hottPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_HOTT, NULL, NULL, HOTT_BAUDRATE, HOTT_INITIAL_PORT_MODE, portOptions);
 
@@ -476,7 +479,11 @@ static bool processBinaryModeRequest(uint8_t address)
     switch (address) {
 #ifdef USE_GPS
     case 0x8A:
-        if (sensors(SENSOR_GPS)) {
+        if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+                || STATE(GPS_ESTIMATED_FIX)
+#endif
+            ) {
             hottPrepareGPSResponse(&hottGPSMessage);
             hottQueueSendResponse((uint8_t *)&hottGPSMessage, sizeof(hottGPSMessage));
             return true;

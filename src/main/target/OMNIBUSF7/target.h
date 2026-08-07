@@ -31,51 +31,34 @@
 #define BEEPER   PD15
 #define BEEPER_INVERTED
 
-#define USE_ACC
-#define USE_GYRO
 #define USE_DUAL_GYRO
 
 // ICM-20608-G
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU6500
 
 // MPU6000
-#define USE_ACC_MPU6000
-#define USE_GYRO_MPU6000
 
 #ifdef OMNIBUSF7V2
-#   define MPU6000_CS_PIN           SPI1_NSS_PIN
-#   define MPU6000_SPI_BUS          BUS_SPI1
-#   define MPU6000_EXTI_PIN         PE8
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN        CW0_DEG
+#define MPU6000_CS_PIN           SPI1_NSS_PIN
+#define MPU6000_SPI_BUS          BUS_SPI1
 
-#   define MPU6500_CS_PIN           SPI3_NSS_PIN
-#   define MPU6500_SPI_BUS          BUS_SPI3
-#   define MPU6500_EXTI_PIN         PD0
-// #   define GYRO_1_CS_PIN           MPU6500_CS_PIN
-// #   define GYRO_0_CS_PIN           MPU6000_CS_PIN
-// #   define GYRO_1_INT_EXTI         PD0
-// #   define GYRO_0_INT_EXTI         PE8
-#   define GYRO_MPU6500_ALIGN       CW90_DEG
-#   define ACC_MPU6500_ALIGN        CW90_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN        CW90_DEG
+#define MPU6500_CS_PIN           SPI3_NSS_PIN
+#define MPU6500_SPI_BUS          BUS_SPI3
 #else
-#   define MPU6000_CS_PIN           SPI3_NSS_PIN
-#   define MPU6000_SPI_BUS          BUS_SPI3
-#   define MPU6000_EXTI_PIN         PD0
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN        CW0_DEG
+#define MPU6000_CS_PIN           SPI3_NSS_PIN
+#define MPU6000_SPI_BUS          BUS_SPI3
 
-#   define MPU6500_CS_PIN           SPI1_NSS_PIN
-#   define MPU6500_SPI_BUS          BUS_SPI1
-#   define MPU6500_EXTI_PIN         PE8
-
-// #   define GYRO_0_CS_PIN           MPU6000_CS_PIN
-// #   define GYRO_1_CS_PIN           MPU6500_CS_PIN
-// #   define GYRO_0_INT_EXTI         PD0
-// #   define GYRO_1_INT_EXTI         PE8
-#   define GYRO_MPU6000_ALIGN      CW0_DEG
-#   define ACC_MPU6000_ALIGN       CW0_DEG
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN        CW0_DEG
+#define MPU6500_CS_PIN           SPI1_NSS_PIN
+#define MPU6500_SPI_BUS          BUS_SPI1
 #endif
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_VCP
 #define VBUS_SENSING_PIN PC4
@@ -84,7 +67,6 @@
 #define UART1_RX_PIN PA10
 #define UART1_TX_PIN PA9
 
-//#define AVOID_UART2_FOR_PWM_PPM
 #define USE_UART2
 #define UART2_TX_PIN PA2 //not wired
 #define UART2_RX_PIN PA3
@@ -137,7 +119,6 @@
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
@@ -160,18 +141,11 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)
@@ -202,11 +176,11 @@
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    4
 #define TARGET_MOTOR_COUNT      4
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
-
-#define PCA9685_I2C_BUS         BUS_I2C2

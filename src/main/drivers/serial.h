@@ -49,6 +49,10 @@ typedef enum portOptions_t {
     SERIAL_BIDIR_OD      = 0 << 4,
     SERIAL_BIDIR_PP      = 1 << 4,
     SERIAL_BIDIR_NOPULL  = 1 << 5, // disable pulls in BIDIR RX mode
+    SERIAL_BIDIR_UP      = 0 << 5, // enable pullup in BIDIR mode
+
+    SERIAL_LONGSTOP      = 0 << 6,
+    SERIAL_SHORTSTOP     = 1 << 6,
 } portOptions_t;
 
 typedef void (*serialReceiveCallbackPtr)(uint16_t data, void *rxCallbackData);   // used by serial drivers to return frames to app
@@ -91,9 +95,13 @@ struct serialPortVTable {
 
     void (*setMode)(serialPort_t *instance, portMode_t mode);
 
+    void (*setOptions)(serialPort_t *instance, portOptions_t options);
+
     void (*writeBuf)(serialPort_t *instance, const void *data, int count);
 
     bool (*isConnected)(const serialPort_t *instance);
+
+    bool (*isIdle)(serialPort_t *instance);
 
     // Optional functions used to buffer large writes.
     void (*beginWrite)(serialPort_t *instance);
@@ -105,12 +113,15 @@ uint32_t serialRxBytesWaiting(const serialPort_t *instance);
 uint32_t serialTxBytesFree(const serialPort_t *instance);
 void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count);
 uint8_t serialRead(serialPort_t *instance);
+uint32_t serialReadBuf(serialPort_t *instance, uint8_t *data, uint32_t maxLen);
 void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate);
 void serialSetMode(serialPort_t *instance, portMode_t mode);
+void serialSetOptions(serialPort_t *instance, portOptions_t options);
 bool isSerialTransmitBufferEmpty(const serialPort_t *instance);
 void serialPrint(serialPort_t *instance, const char *str);
 uint32_t serialGetBaudRate(serialPort_t *instance);
 bool serialIsConnected(const serialPort_t *instance);
+bool serialIsIdle(serialPort_t *instance);
 
 // A shim that adapts the bufWriter API to the serialWriteBuf() API.
 void serialWriteBufShim(void *instance, const uint8_t *data, int count);

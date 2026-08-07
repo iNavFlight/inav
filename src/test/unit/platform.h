@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #define U_ID_0 0
 #define U_ID_1 1
 #define U_ID_2 2

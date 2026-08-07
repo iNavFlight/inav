@@ -167,9 +167,14 @@ displayPort_t *cmsDisplayPortGetCurrent(void)
 //   30 cols x 13 rows
 // HoTT Telemetry Screen
 //   21 cols x 8 rows
+// HDZERO
+//   50 cols x 18 rows
+// DJIWTF
+//   60 cols x 22 rows
 //
 
 #define NORMAL_SCREEN_MIN_COLS 18      // Less is a small screen
+#define NORMAL_SCREEN_MAX_COLS 30      // More is a big screen
 static bool smallScreen;
 static uint8_t leftMenuColumn;
 static uint8_t rightMenuColumn;
@@ -271,7 +276,7 @@ static void cmsPagePrev(displayPort_t *instance)
 
 static bool cmsElementIsLabel(OSD_MenuElement element)
 {
-    return element == OME_Label || element == OME_LabelFunc;
+    return element == OME_Label || element == OME_LabelFunc || element == OME_Label_PAGE2_DATA;
 }
 
 static void cmsFormatFloat(int32_t value, char *floatString)
@@ -572,7 +577,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
             CLR_PRINTVALUE(p, screenRow);
         }
         break;
-
+    case OME_Label_PAGE2_DATA:
     case OME_OSD_Exit:
     case OME_END:
     case OME_Back:
@@ -651,7 +656,30 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
         if (IS_PRINTLABEL(p, i)) {
             uint8_t coloff = leftMenuColumn;
             coloff += cmsElementIsLabel(p->type) ? 0 : 1;
-            room -= displayWrite(pDisplay, coloff, top + i * linesPerMenuItem, p->text);
+
+            if (p->type == OME_Label_PAGE2_DATA) {
+#ifdef USE_CMS_FONT_PREVIEW
+                // A label with immediately following text in page2
+                int printed = 0;
+                if (p->text)  {
+                    size_t textLen = strlen(p->text);
+                    for(size_t k = 0; k < textLen; k++) {
+                        displayWriteChar(pDisplay,
+                            coloff + printed, top + i * linesPerMenuItem, p->text[k]);
+                        printed++;
+                    }
+                }
+                if (p->data) {
+                    const char *p2text = (const char *)p->data;
+                    for (size_t k = 0; k < strlen(p2text); ++k) {
+                        displayWriteChar(pDisplay,
+                            coloff + printed + k, top + i * linesPerMenuItem, (p2text[k] | (1 << 8)));
+                    }
+                }
+#endif
+            } else {
+                room -= displayWrite(pDisplay, coloff, top + i * linesPerMenuItem, p->text);
+            }
             CLR_PRINTLABEL(p, i);
             if (room < 30) {
                 return;
@@ -766,7 +794,7 @@ void cmsMenuOpen(void)
 {
     if (!cmsInMenu) {
         // New open
-	setServoOutputEnabled(false);
+        setServoOutputEnabled(false);
         pCurrentDisplay = cmsDisplayPortSelectCurrent();
         if (!pCurrentDisplay)
             return;
@@ -797,9 +825,14 @@ void cmsMenuOpen(void)
     } else {
         smallScreen = false;
         linesPerMenuItem = 1;
-        leftMenuColumn = 2;
-        rightMenuColumn = pCurrentDisplay->cols - 2;
         maxMenuItems = pCurrentDisplay->rows - 2;
+        if (pCurrentDisplay->cols > NORMAL_SCREEN_MAX_COLS) {
+            leftMenuColumn = 7;
+            rightMenuColumn = pCurrentDisplay->cols - 7;
+        } else {
+            leftMenuColumn = 2;
+            rightMenuColumn = pCurrentDisplay->cols - 2;
+        }
     }
 
     if (pCurrentDisplay->useFullscreen) {
@@ -829,7 +862,11 @@ static void cmsTraverseGlobalExit(const CMS_Menu *pMenu)
 
 long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 {
-    int exitType = (int)ptr;
+#if defined(SITL_BUILD)
+    unsigned long exitType = (uintptr_t)ptr;   
+#else
+    int exitType = (int)ptr;  
+#endif
     switch (exitType) {
     case CMS_EXIT_SAVE:
     case CMS_EXIT_SAVEREBOOT:
@@ -865,6 +902,7 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
     setServoOutputEnabled(true);
 
     if ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT)) {
+        processDelayedSave();
         displayClearScreen(pDisplay);
         displayWrite(pDisplay, 5, 3, "REBOOTING...");
 
@@ -1314,6 +1352,7 @@ void cmsUpdate(uint32_t currentTimeUs)
             rcDelayMs = BUTTON_PAUSE;    // Tends to overshoot if BUTTON_TIME
         }
     } else {
+        displayBeginTransaction(pCurrentDisplay, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
 
         // Check if we're yielding and its's time to stop it
         if (cmsYieldUntil > 0 && currentTimeMs > cmsYieldUntil) {
@@ -1339,6 +1378,7 @@ void cmsUpdate(uint32_t currentTimeUs)
             displayHeartbeat(pCurrentDisplay);
             lastCmsHeartBeatMs = currentTimeMs;
         }
+        displayCommitTransaction(pCurrentDisplay);
     }
 
     // Some key (command), notably flash erase, takes too long to use the

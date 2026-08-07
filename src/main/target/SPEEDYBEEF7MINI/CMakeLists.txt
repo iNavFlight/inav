@@ -1,0 +1,2 @@
+target_stm32f722xe(SPEEDYBEEF7MINI)
+target_stm32f722xe(SPEEDYBEEF7MINIV2)

@@ -21,7 +21,6 @@
 #include <string.h>
 
 #include "platform.h"
-
 #ifdef USE_SERIALRX_CRSF
 
 #include "build/build_config.h"
@@ -36,17 +35,19 @@
 #include "drivers/serial_uart.h"
 
 #include "io/serial.h"
+#include "io/osd.h"
 
 #include "rx/rx.h"
 #include "rx/crsf.h"
 
 #include "telemetry/crsf.h"
-#define CRSF_TIME_NEEDED_PER_FRAME_US   1100 // 700 ms + 400 ms for potential ad-hoc request
+#define CRSF_TIME_NEEDED_PER_FRAME_US   1750 // 700 ms + 400 ms for potential ad-hoc request
 #define CRSF_TIME_BETWEEN_FRAMES_US     6667 // At fastest, frames are sent by the transmitter every 6.667 milliseconds, 150 Hz
 
 #define CRSF_DIGITAL_CHANNEL_MIN 172
 #define CRSF_DIGITAL_CHANNEL_MAX 1811
 #define CRSF_PAYLOAD_OFFSET offsetof(crsfFrameDef_t, type)
+#define CRSF_POWER_COUNT 9
 
 STATIC_UNIT_TESTED bool crsfFrameDone = false;
 STATIC_UNIT_TESTED crsfFrame_t crsfFrame;
@@ -54,10 +55,11 @@ STATIC_UNIT_TESTED crsfFrame_t crsfFrame;
 STATIC_UNIT_TESTED uint32_t crsfChannelData[CRSF_MAX_CHANNEL];
 
 static serialPort_t *serialPort;
-static timeUs_t crsfFrameStartAt = 0;
+static timeUs_t crsfFrameStartAtUs = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
 
+const uint16_t crsfTxPowerStatesmW[CRSF_POWER_COUNT] = {0, 10, 25, 100, 500, 1000, 2000, 250, 50};
 
 /*
  * CRSF protocol
@@ -108,7 +110,7 @@ struct crsfPayloadRcChannelsPacked_s {
 
 typedef struct crsfPayloadRcChannelsPacked_s crsfPayloadRcChannelsPacked_t;
 
-struct crsfPayloadLinkStatistics_s {
+typedef struct crsfPayloadLinkStatistics_s {
     uint8_t     uplinkRSSIAnt1;
     uint8_t     uplinkRSSIAnt2;
     uint8_t     uplinkLQ;
@@ -119,7 +121,7 @@ struct crsfPayloadLinkStatistics_s {
     uint8_t     downlinkRSSI;
     uint8_t     downlinkLQ;
     int8_t      downlinkSNR;
-} __attribute__ ((__packed__));
+} __attribute__ ((__packed__)) crsfPayloadLinkStatistics_t;
 
 typedef struct crsfPayloadLinkStatistics_s crsfPayloadLinkStatistics_t;
 
@@ -139,24 +141,29 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
     UNUSED(rxCallbackData);
 
     static uint8_t crsfFramePosition = 0;
-    const timeUs_t now = micros();
+    const timeUs_t currentTimeUs = microsISR();
 
 #ifdef DEBUG_CRSF_PACKETS
     debug[2] = now - crsfFrameStartAt;
 #endif
 
-    if (now > crsfFrameStartAt + CRSF_TIME_NEEDED_PER_FRAME_US) {
+    if (cmpTimeUs(currentTimeUs, crsfFrameStartAtUs) > CRSF_TIME_NEEDED_PER_FRAME_US) {
         // We've received a character after max time needed to complete a frame,
         // so this must be the start of a new frame.
         crsfFramePosition = 0;
     }
 
     if (crsfFramePosition == 0) {
-        crsfFrameStartAt = now;
+        crsfFrameStartAtUs = currentTimeUs;
     }
     // assume frame is 5 bytes long until we have received the frame length
     // full frame length includes the length of the address and framelength fields
     const int fullFrameLength = crsfFramePosition < 3 ? 5 : crsfFrame.frame.frameLength + CRSF_FRAME_LENGTH_ADDRESS + CRSF_FRAME_LENGTH_FRAMELENGTH;
+
+    if (fullFrameLength > CRSF_FRAME_SIZE_MAX) {
+        crsfFramePosition = 0;
+        return;
+    }
 
     if (crsfFramePosition < fullFrameLength) {
         crsfFrame.bytes[crsfFramePosition++] = (uint8_t)c;
@@ -171,9 +178,13 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
 #if defined(USE_MSP_OVER_TELEMETRY)
                         case CRSF_FRAMETYPE_MSP_REQ:
                         case CRSF_FRAMETYPE_MSP_WRITE: {
-                            uint8_t *frameStart = (uint8_t *)&crsfFrame.frame.payload + CRSF_FRAME_ORIGIN_DEST_SIZE;
-                            if (bufferCrsfMspFrame(frameStart, CRSF_FRAME_RX_MSP_FRAME_SIZE)) {
-                                crsfScheduleMspResponse();
+                            if (crsfFrame.frame.frameLength >= 4) {
+                                uint8_t *frameStart = (uint8_t *)&crsfFrame.frame.payload + CRSF_FRAME_ORIGIN_DEST_SIZE;
+                                if (bufferCrsfMspFrame(frameStart, crsfFrame.frame.frameLength - 4)) {
+                                    crsfScheduleMspResponse(crsfFrame.frame.payload[1]);
+                                }
+                            } else {
+                                crsfFrameDone = false;
                             }
                             break;
                         }
@@ -229,13 +240,29 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             }
             crsfFrame.frame.frameLength = CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC;
 
-            // Inject link quality into channel 17
             const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
+            const uint8_t crsftxpowerindex = (linkStats->uplinkTXPower < CRSF_POWER_COUNT) ? linkStats->uplinkTXPower : 0;
 
-            crsfChannelData[16] = scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range
+            rxLinkStatistics.uplinkRSSI = -1* (linkStats->activeAntenna ? linkStats->uplinkRSSIAnt2 : linkStats->uplinkRSSIAnt1);
+            rxLinkStatistics.uplinkLQ = linkStats->uplinkLQ;
+            rxLinkStatistics.uplinkSNR = linkStats->uplinkSNR;
+            rxLinkStatistics.rfMode = linkStats->rfMode;
+            rxLinkStatistics.uplinkTXPower = crsfTxPowerStatesmW[crsftxpowerindex];
+            rxLinkStatistics.activeAntenna = linkStats->activeAntenna;
 
-            lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 0, RSSI_MAX_VALUE));
-
+#ifdef USE_OSD
+            if (rxLinkStatistics.uplinkLQ > 0) {
+                int16_t uplinkStrength;   // RSSI dBm converted to %
+                uplinkStrength = constrain((100 * sq((osdConfig()->rssi_dbm_max - osdConfig()->rssi_dbm_min)) - (100 * sq((osdConfig()->rssi_dbm_max  - rxLinkStatistics.uplinkRSSI)))) / sq((osdConfig()->rssi_dbm_max - osdConfig()->rssi_dbm_min)),0,100);
+                if (rxLinkStatistics.uplinkRSSI >= osdConfig()->rssi_dbm_max )
+                    uplinkStrength = 99;
+                else if (rxLinkStatistics.uplinkRSSI < osdConfig()->rssi_dbm_min)
+                    uplinkStrength = 0;
+                lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(uplinkStrength, 0, 99, 0, RSSI_MAX_VALUE));
+            } else {
+                lqTrackerSet(rxRuntimeConfig->lqTracker, 0);
+            }
+#endif
             // This is not RC channels frame, update channel value but don't indicate frame completion
             return RX_FRAME_PENDING;
         }
@@ -271,7 +298,7 @@ void crsfRxSendTelemetryData(void)
         // check that we are not in bi dir mode or that we are not currently receiving data (ie in the middle of an RX frame)
         // and that there is time to send the telemetry frame before the next RX frame arrives
         if (CRSF_PORT_OPTIONS & SERIAL_BIDIR) {
-            const timeDelta_t timeSinceStartOfFrame = cmpTimeUs(micros(), crsfFrameStartAt);
+            const timeDelta_t timeSinceStartOfFrame = cmpTimeUs(micros(), crsfFrameStartAtUs);
             if ((timeSinceStartOfFrame < CRSF_TIME_NEEDED_PER_FRAME_US) ||
                 (timeSinceStartOfFrame > CRSF_TIME_BETWEEN_FRAMES_US - CRSF_TIME_NEEDED_PER_FRAME_US)) {
                 return;
@@ -282,6 +309,11 @@ void crsfRxSendTelemetryData(void)
     }
 }
 
+bool crsfRxIsTelemetryBufEmpty(void)
+{
+    return telemetryBufLen == 0;
+}
+
 bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     for (int ii = 0; ii < CRSF_MAX_CHANNEL; ++ii) {
@@ -289,8 +321,6 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     }
 
     rxRuntimeConfig->channelCount = CRSF_MAX_CHANNEL;
-    rxRuntimeConfig->rxRefreshRate = CRSF_TIME_BETWEEN_FRAMES_US; //!!TODO this needs checking
-
     rxRuntimeConfig->rcReadRawFn = crsfReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = crsfFrameStatus;
 
@@ -305,7 +335,7 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         NULL,
         CRSF_BAUDRATE,
         CRSF_PORT_MODE,
-        CRSF_PORT_OPTIONS | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
+        CRSF_PORT_OPTIONS | (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
 
     return serialPort != NULL;
@@ -315,4 +345,24 @@ bool crsfRxIsActive(void)
 {
     return serialPort != NULL;
 }
+
+
+void crsfBind(void)
+{
+    if (serialPort != NULL) {
+        uint8_t bindFrame[] = {
+            CRSF_SYNC_BYTE,
+            0x07,  // frame length
+            CRSF_FRAMETYPE_COMMAND,
+            CRSF_ADDRESS_CRSF_RECEIVER,
+            CRSF_ADDRESS_FLIGHT_CONTROLLER,
+            CRSF_COMMAND_SUBCMD_RX,
+            CRSF_COMMAND_SUBCMD_RX_BIND,
+            0x9E,  // Command CRC8
+            0xE8,  // Packet CRC8
+        };
+        serialWriteBuf(serialPort, bindFrame, 9);
+    }
+}
+
 #endif

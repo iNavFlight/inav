@@ -26,6 +26,7 @@
 
 extern fpVector3_t imuMeasuredAccelBF;         // cm/s/s
 extern fpVector3_t imuMeasuredRotationBF;       // rad/s
+extern fpVector3_t HeadVecEFFiltered;
 
 typedef union {
     int16_t raw[XYZ_AXIS_COUNT];
@@ -49,6 +50,9 @@ typedef struct imuConfig_s {
     uint8_t small_angle;
     uint8_t acc_ignore_rate;
     uint8_t acc_ignore_slope;
+    uint8_t gps_yaw_windcomp;
+    uint8_t inertia_comp_method;
+    uint16_t gps_yaw_weight;
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);
@@ -58,8 +62,20 @@ typedef struct imuRuntimeConfig_s {
     float dcm_ki_acc;
     float dcm_kp_mag;
     float dcm_ki_mag;
+    /* Precomputed anti-windup limit for imuMahonyAHRSupdate(): equals
+     * DEGREES_TO_RADIANS(2) * (dcm_kp_acc + dcm_kp_mag) / 2.
+     * Updated once by imuConfigure() whenever settings are saved, so the
+     * hot PID path reads a single float instead of doing arithmetic. */
+    float dcm_i_limit;
     uint8_t small_angle;
 } imuRuntimeConfig_t;
+
+typedef enum
+{
+    COMPMETHOD_VELNED = 0,
+    COMPMETHOD_TURNRATE,
+    COMPMETHOD_ADAPTIVE
+} imu_inertia_comp_method_e;
 
 void imuConfigure(void);
 
@@ -69,8 +85,13 @@ void imuUpdateAccelerometer(void);
 float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);
+bool isYawZeroResetAllowed(void);
 
 void imuTransformVectorBodyToEarth(fpVector3_t * v);
 void imuTransformVectorEarthToBody(fpVector3_t * v);
 
 void imuInit(void);
+
+#if defined(SITL_BUILD)
+void imuSetAttitudeRPY(int16_t roll, int16_t pitch, int16_t yaw);
+#endif

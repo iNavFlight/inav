@@ -18,8 +18,10 @@
 
 // Get target build configuration
 #include "platform.h"
+#include "build/debug.h"
 
 #include "common/maths.h"
+#include "common/log.h"
 
 #include "config/config_eeprom.h"
 #include "config/parameter_group.h"
@@ -31,19 +33,22 @@
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "io/beeper.h"
 #include "io/osd.h"
 #include "io/vtx_control.h"
 
-
 #if defined(USE_VTX_CONTROL)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(vtxConfig_t, vtxConfig, PG_VTX_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(vtxConfig_t, vtxConfig, PG_VTX_CONFIG, 4);
 
 PG_RESET_TEMPLATE(vtxConfig_t, vtxConfig,
-//    .vtxChannelActivationConditions = { 0 },
-      .halfDuplex = true,
+      .halfDuplex = SETTING_VTX_HALFDUPLEX_DEFAULT,
+      .smartAudioEarlyAkkWorkaroundEnable = SETTING_VTX_SMARTAUDIO_EARLY_AKK_WORKAROUND_DEFAULT,
+      .smartAudioAltSoftSerialMethod = SETTING_VTX_SMARTAUDIO_ALTERNATE_SOFTSERIAL_METHOD_DEFAULT,
+      .softSerialShortStop = SETTING_VTX_SOFTSERIAL_SHORTSTOP_DEFAULT,
+      .smartAudioStopBits = SETTING_VTX_SMARTAUDIO_STOPBITS_DEFAULT,
 );
 
 static uint8_t locked = 0;
@@ -182,4 +187,3 @@ void vtxCyclePower(const uint8_t powerStep)
 }
 
 #endif
-

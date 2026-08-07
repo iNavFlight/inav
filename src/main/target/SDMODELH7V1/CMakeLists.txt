@@ -1,0 +1,1 @@
+target_stm32h743xi(SDMODELH7V1)

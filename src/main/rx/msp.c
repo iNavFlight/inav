@@ -31,6 +31,7 @@
 
 static uint16_t mspFrame[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 static bool rxMspFrameDone = false;
+static uint8_t mspLastChannelCount = 0;
 
 static uint16_t rxMspReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfigPtr, uint8_t chan)
 {
@@ -49,7 +50,13 @@ void rxMspFrameReceive(uint16_t *frame, int channelCount)
         mspFrame[i] = 0;
     }
 
+    mspLastChannelCount = channelCount;
     rxMspFrameDone = true;
+}
+
+uint8_t rxMspGetLastChannelCount(void)
+{
+    return mspLastChannelCount;
 }
 
 static uint8_t rxMspFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
@@ -69,7 +76,6 @@ void rxMspInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     UNUSED(rxConfig);
 
     rxRuntimeConfig->channelCount = MAX_SUPPORTED_RC_CHANNEL_COUNT;
-    rxRuntimeConfig->rxRefreshRate = 20000;
     rxRuntimeConfig->rxSignalTimeout = DELAY_5_HZ;
     rxRuntimeConfig->rcReadRawFn = rxMspReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = rxMspFrameStatus;

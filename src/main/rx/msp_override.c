@@ -59,7 +59,7 @@ static timeMs_t validRxDataFailedAt = 0;
 static timeUs_t rxNextUpdateAtUs = 0;
 static timeUs_t needRxSignalBefore = 0;
 
-static uint16_t mspOverrideCtrlChannels = 0; // bitmask representing which channels are used to control MSP override
+static uint32_t mspOverrideCtrlChannels = 0; // bitmask representing which channels are used to control MSP override
 static rcChannel_t mspRcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 static rxRuntimeConfig_t rxRuntimeConfigMSP;
@@ -75,7 +75,7 @@ void mspOverrideInit(void)
         mspRcChannels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
     }
 
-    mspRcChannels[THROTTLE].raw = (feature(FEATURE_3D)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
+    mspRcChannels[THROTTLE].raw = (feature(FEATURE_REVERSIBLE_MOTORS)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
     mspRcChannels[THROTTLE].data = mspRcChannels[THROTTLE].raw;
 
     // Initialize ARM switch to OFF position when arming via switch is defined
@@ -131,6 +131,12 @@ bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime
         }
     }
 
+    // Changing receiver_type from MSP to anything can cause a race with
+    // the function pointer as NULL. This will not end well, so bail out early.
+    if(rxRuntimeConfigMSP.rcFrameStatusFn == NULL) {
+	return false;
+    }
+
     const uint8_t frameStatus = rxRuntimeConfigMSP.rcFrameStatusFn(&rxRuntimeConfigMSP);
     if (frameStatus & RX_FRAME_COMPLETE) {
         rxDataProcessingRequired = true;
@@ -167,7 +173,7 @@ bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
         uint16_t sample = (*rxRuntimeConfigMSP.rcReadRawFn)(&rxRuntimeConfigMSP, rawChannel);
 
         // apply the rx calibration to flight channel
-        if (channel < NON_AUX_CHANNEL_COUNT && sample != PPM_RCVR_TIMEOUT) {
+        if (channel < NON_AUX_CHANNEL_COUNT && sample != 0) {
             sample = scaleRange(sample, rxChannelRangeConfigs(channel)->min, rxChannelRangeConfigs(channel)->max, PWM_RANGE_MIN, PWM_RANGE_MAX);
             sample = MIN(MAX(PWM_PULSE_MIN, sample), PWM_PULSE_MAX);
         }
@@ -215,16 +221,11 @@ bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
 
 void mspOverrideChannels(rcChannel_t *rcChannels)
 {
-    for (uint16_t channel = 0, channelMask = 1; channel < rxRuntimeConfigMSP.channelCount; ++channel, channelMask <<= 1) {
+    for (uint32_t channel = 0, channelMask = 1; channel < rxRuntimeConfigMSP.channelCount; ++channel, channelMask <<= 1) {
         if (rxConfig()->mspOverrideChannels & ~mspOverrideCtrlChannels & channelMask) {
             rcChannels[channel].raw = rcChannels[channel].data = mspRcChannels[channel].data;
         }
     }
-}
-
-uint16_t mspOverrideGetRefreshRate(void)
-{
-    return rxRuntimeConfigMSP.rxRefreshRate;
 }
 
 int16_t mspOverrideGetChannelValue(unsigned channelNumber)

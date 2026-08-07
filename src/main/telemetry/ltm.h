@@ -28,9 +28,7 @@ typedef enum {
     LTM_OFRAME, // Origin Frame
     LTM_XFRAME, // Extended information data frame
 #endif
-#if defined(USE_NAV)
     LTM_NFRAME, // Navigation Frame (inav extension)
-#endif
     LTM_FRAME_COUNT
 } ltm_frame_e;
 
@@ -67,7 +65,7 @@ typedef enum {
     LTM_MODE_FLYBYWIRE2,
     LTM_MODE_CRUISE,
     LTM_MODE_UNKNOWN,
-        // iNav specific extensions
+        // INAV specific extensions
     LTM_MODE_LAUNCH,
     LTM_MODE_AUTOTUNE
 } ltm_modes_e;

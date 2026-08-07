@@ -15,14 +15,14 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define FC_VERSION_MAJOR            2  // increment when a major release is made (big new feature, etc)
-#define FC_VERSION_MINOR            4  // increment when a minor release is made (small new feature, change etc)
-#define FC_VERSION_PATCH_LEVEL      0  // increment when a bug is fixed
-
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 #define FC_VERSION_STRING STR(FC_VERSION_MAJOR) "." STR(FC_VERSION_MINOR) "." STR(FC_VERSION_PATCH_LEVEL)
+#ifndef FC_VERSION_TYPE
+#define FC_VERSION_TYPE ""
+#endif
 #define FC_FIRMWARE_NAME "INAV"
+
 
 #define MW_VERSION              231
 

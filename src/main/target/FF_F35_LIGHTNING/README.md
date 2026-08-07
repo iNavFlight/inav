@@ -6,7 +6,7 @@ will be available at: http://furiousfpv.com
 - Rugged & Robust Aluminum Case for Maximum Crash Protection
 - Exclusively Designed for INAV Firmware
 - Ultra Simplistic to Install with Standing USB Ports & Pads
-- Fully Supported iNav Firmware
+- Fully Supported INAV Firmware
 - Integrated OSD for Maximum Data Feedback
 - Built In Camera & VTx Port with Peripheral Pass
 - Maximum (6) Port UART Layout 

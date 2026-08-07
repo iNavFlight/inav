@@ -26,20 +26,11 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-#define USE_GYRO
-#define USE_ACC
-
 // MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PB0
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW180_DEG
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW180_DEG
-
-#define USE_EXTI
-#define GYRO_INT_EXTI            PB10
-#define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_VCP
 
@@ -72,22 +63,14 @@
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
-#define USE_BARO_BMP280
-#define USE_BARO_MS5611
-#define USE_BARO_BMP085
+#define USE_BARO_ALL
 
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_SPI
@@ -108,7 +91,6 @@
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
@@ -143,6 +125,8 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define MAX_PWM_OUTPUT_PORTS    6
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

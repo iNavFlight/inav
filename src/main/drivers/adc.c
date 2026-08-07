@@ -20,17 +20,16 @@
 #include <string.h>
 
 #include "platform.h"
-
 #include "build/build_config.h"
 #include "build/debug.h"
-
 #include "drivers/time.h"
-
-#include "drivers/io.h"
-#include "drivers/adc.h"
-#include "drivers/adc_impl.h"
-
 #include "common/utils.h"
+
+#include "drivers/adc.h"
+#if defined(USE_ADC) && !defined(SITL_BUILD)
+#include "drivers/io.h"
+
+#include "drivers/adc_impl.h"
 
 #ifndef ADC_INSTANCE
 #define ADC_INSTANCE                ADC1
@@ -48,6 +47,13 @@
 #ifndef ADC_CHANNEL_4_INSTANCE
 #define ADC_CHANNEL_4_INSTANCE  ADC_INSTANCE
 #endif
+#ifndef ADC_CHANNEL_5_INSTANCE
+#define ADC_CHANNEL_5_INSTANCE  ADC_INSTANCE
+#endif
+#ifndef ADC_CHANNEL_6_INSTANCE
+#define ADC_CHANNEL_6_INSTANCE  ADC_INSTANCE
+#endif
+
 
 #ifdef USE_ADC
 
@@ -57,9 +63,9 @@ static uint8_t activeChannelCount[ADCDEV_COUNT] = {0};
 
 static int adcFunctionMap[ADC_FUNCTION_COUNT];
 adc_config_t adcConfig[ADC_CHN_COUNT];  // index 0 is dummy for ADC_CHN_NONE
-volatile uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT * ADC_AVERAGE_N_SAMPLES];
+volatile ADC_VALUES_ALIGNMENT(uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT * ADC_AVERAGE_N_SAMPLES]);
 
-uint8_t adcChannelByTag(ioTag_t ioTag)
+uint32_t adcChannelByTag(ioTag_t ioTag)
 {
     for (uint8_t i = 0; i < ARRAYLEN(adcTagMap); i++) {
         if (ioTag == adcTagMap[i].tag)
@@ -100,7 +106,7 @@ uint16_t adcGetChannel(uint8_t function)
     }
 }
 
-#if defined(ADC_CHANNEL_1_PIN) || defined(ADC_CHANNEL_2_PIN) || defined(ADC_CHANNEL_3_PIN) || defined(ADC_CHANNEL_4_PIN)
+#if defined(ADC_CHANNEL_1_PIN) || defined(ADC_CHANNEL_2_PIN) || defined(ADC_CHANNEL_3_PIN) || defined(ADC_CHANNEL_4_PIN) || defined(ADC_CHANNEL_5_PIN) || defined(ADC_CHANNEL_6_PIN)
 static bool isChannelInUse(int channel)
 {
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
@@ -112,7 +118,7 @@ static bool isChannelInUse(int channel)
 }
 #endif
 
-#if !defined(ADC_CHANNEL_1_PIN) || !defined(ADC_CHANNEL_2_PIN) || !defined(ADC_CHANNEL_3_PIN) || !defined(ADC_CHANNEL_4_PIN)
+#if !defined(ADC_CHANNEL_1_PIN) || !defined(ADC_CHANNEL_2_PIN) || !defined(ADC_CHANNEL_3_PIN) || !defined(ADC_CHANNEL_4_PIN) || !defined(ADC_CHANNEL_5_PIN) || !defined(ADC_CHANNEL_6_PIN)
 static void disableChannelMapping(int channel)
 {
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
@@ -193,6 +199,33 @@ void adcInit(drv_adc_config_t *init)
     disableChannelMapping(ADC_CHN_4);
 #endif
 
+#ifdef ADC_CHANNEL_5_PIN
+    if (isChannelInUse(ADC_CHN_5)) {
+        adcConfig[ADC_CHN_5].adcDevice = adcDeviceByInstance(ADC_CHANNEL_5_INSTANCE);
+        if (adcConfig[ADC_CHN_5].adcDevice != ADCINVALID) {
+            adcConfig[ADC_CHN_5].tag = IO_TAG(ADC_CHANNEL_5_PIN);
+#if defined(USE_ADC_AVERAGING)
+            activeChannelCount[adcConfig[ADC_CHN_5].adcDevice] += 1;
+#endif
+        }
+    }
+#else
+    disableChannelMapping(ADC_CHN_5);
+#endif
+
+#ifdef ADC_CHANNEL_6_PIN
+    if (isChannelInUse(ADC_CHN_6)) {
+        adcConfig[ADC_CHN_6].adcDevice = adcDeviceByInstance(ADC_CHANNEL_6_INSTANCE);
+        if (adcConfig[ADC_CHN_6].adcDevice != ADCINVALID) {
+            adcConfig[ADC_CHN_6].tag = IO_TAG(ADC_CHANNEL_6_PIN);
+#if defined(USE_ADC_AVERAGING)
+            activeChannelCount[adcConfig[ADC_CHN_6].adcDevice] += 1;
+#endif
+        }
+    }
+#else
+    disableChannelMapping(ADC_CHN_6);
+#endif
 
     adcHardwareInit(init);
 }
@@ -205,4 +238,24 @@ uint16_t adcGetChannel(uint8_t channel)
     return 0;
 }
 
+#endif
+
+#else // USE_ADC
+
+bool adcIsFunctionAssigned(uint8_t function)
+{
+    UNUSED(function);
+    return false;
+}
+
+void adcInit(drv_adc_config_t *init)
+{
+    UNUSED(init);
+}
+
+uint16_t adcGetChannel(uint8_t channel)
+{
+    UNUSED(channel);
+    return 0;
+}
 #endif

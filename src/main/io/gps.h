@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <time.h>
 
 #include "config/parameter_group.h"
 
@@ -32,12 +33,9 @@
 #define GPS_DEGREES_DIVIDER 10000000L
 
 typedef enum {
-    GPS_NMEA = 0,
-    GPS_UBLOX,
-    GPS_I2CNAV,
-    GPS_NAZA,
-    GPS_UBLOX7PLUS,
-    GPS_MTK,
+    GPS_UBLOX = 0,
+    GPS_MSP,
+    GPS_FAKE,
     GPS_PROVIDER_COUNT
 } gpsProvider_e;
 
@@ -47,6 +45,7 @@ typedef enum {
     SBAS_WAAS,
     SBAS_MSAS,
     SBAS_GAGAN,
+    SBAS_SPAN,
     SBAS_NONE
 } sbasMode_e;
 
@@ -58,6 +57,9 @@ typedef enum {
     GPS_BAUDRATE_38400,
     GPS_BAUDRATE_19200,
     GPS_BAUDRATE_9600,
+    GPS_BAUDRATE_230400,
+    GPS_BAUDRATE_460800,
+    GPS_BAUDRATE_921600,
     GPS_BAUDRATE_COUNT
 } gpsBaudRate_e;
 
@@ -73,8 +75,12 @@ typedef enum {
 
 typedef enum {
     GPS_DYNMODEL_PEDESTRIAN = 0,
+    GPS_DYNMODEL_AUTOMOTIVE,
     GPS_DYNMODEL_AIR_1G,
+    GPS_DYNMODEL_AIR_2G,
     GPS_DYNMODEL_AIR_4G,
+    GPS_DYNMODEL_SEA,
+    GPS_DYNMODEL_MOWER,
 } gpsDynModel_e;
 
 typedef enum {
@@ -92,7 +98,11 @@ typedef struct gpsConfig_s {
     gpsAutoBaud_e autoBaud;
     gpsDynModel_e dynModel;
     bool ubloxUseGalileo;
+    bool ubloxUseBeidou;
+    bool ubloxUseGlonass;
     uint8_t gpsMinSats;
+    uint8_t ubloxNavHz;
+    gpsBaudRate_e autoBaudMax;
 } gpsConfig_t;
 
 PG_DECLARE(gpsConfig_t, gpsConfig);
@@ -117,7 +127,6 @@ typedef struct gpsSolutionData_s {
         bool gpsHeartbeat;  // Toggle each update
         bool validVelNE;
         bool validVelD;
-        bool validMag;
         bool validEPE;      // EPH/EPV values are valid - actual accuracy
         bool validTime;
     } flags;
@@ -126,7 +135,6 @@ typedef struct gpsSolutionData_s {
     uint8_t numSat;
 
     gpsLocation_t llh;
-    int16_t       magData[3];
     int16_t       velNED[3];
 
     int16_t groundSpeed;
@@ -152,7 +160,6 @@ extern gpsSolutionData_t gpsSol;
 extern gpsStatistics_t   gpsStats;
 
 struct magDev_s;
-bool gpsMagDetect(struct magDev_s *mag);
 void gpsPreInit(void);
 void gpsInit(void);
 // Called periodically from GPS task. Returns true iff the GPS
@@ -163,3 +170,26 @@ bool isGPSHealthy(void);
 bool isGPSHeadingValid(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
+void mspGPSReceiveNewData(const uint8_t * bufferPtr);
+
+const char *getGpsHwVersion(void);
+uint8_t getGpsProtoMajorVersion(void);
+uint8_t getGpsProtoMinorVersion(void);
+
+int getGpsBaudrate(void);
+int gpsBaudRateToInt(gpsBaudRate_e baudrate);
+
+#if defined(USE_GPS_FAKE)
+void gpsFakeSet(
+    gpsFixType_e fixType,
+    uint8_t numSat,
+    int32_t lat, 
+    int32_t lon, 
+    int32_t alt, 
+    int16_t groundSpeed, 
+    int16_t groundCourse, 
+    int16_t velNED_X,  
+    int16_t velNED_Y,  
+    int16_t velNED_Z,
+    time_t time);
+#endif

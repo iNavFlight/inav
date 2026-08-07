@@ -20,6 +20,22 @@
 #include "drivers/io_types.h"
 #include "drivers/time.h"
 
+
+#if defined(WS2811_PIN)
+#define MAX_PWM_OUTPUTS (MAX_PWM_OUTPUT_PORTS + 1)
+#else
+#define MAX_PWM_OUTPUTS (MAX_PWM_OUTPUT_PORTS)
+#endif
+typedef enum {
+    DSHOT_CMD_SPIN_DIRECTION_NORMAL = 20,
+    DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
+} dshotCommands_e;
+
+typedef struct {
+    dshotCommands_e cmd;
+    int remainingRepeats;
+} currentExecutingCommand_t;
+
 void pwmRequestMotorTelemetry(int motorIndex);
 
 ioTag_t pwmGetMotorPinTag(int motorIndex);
@@ -28,11 +44,13 @@ void pwmWriteMotor(uint8_t index, uint16_t value);
 void pwmShutdownPulsesForAllMotors(uint8_t motorCount);
 void pwmCompleteMotorUpdate(void);
 bool isMotorProtocolDigital(void);
+bool isMotorProtocolDshot(void);
 
 void pwmWriteServo(uint8_t index, uint16_t value);
 
 void pwmDisableMotors(void);
 void pwmEnableMotors(void);
+void pwmSetMotorDMACircular(bool circular);
 struct timerHardware_s;
 
 void pwmMotorPreconfigure(void);
@@ -42,3 +60,8 @@ void pwmServoPreconfigure(void);
 bool pwmServoConfig(const struct timerHardware_s *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput);
 void pwmWriteBeeper(bool onoffBeep);
 void beeperPwmInit(ioTag_t tag, uint16_t frequency);
+
+void sendDShotCommand(dshotCommands_e cmd);
+void initDShotCommands(void);
+
+uint32_t getEscUpdateFrequency(void);

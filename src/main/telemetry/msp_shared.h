@@ -4,7 +4,7 @@
 #include "telemetry/crsf.h"
 #include "telemetry/smartport.h"
 
-typedef void (*mspResponseFnPtr)(uint8_t *payload);
+typedef void (*mspResponseFnPtr)(uint8_t *payload, const uint8_t payloadSize);
 
 struct mspPacket_s;
 typedef struct mspPackage_s {
@@ -26,5 +26,5 @@ typedef union mspTxBuffer_u {
 } mspTxBuffer_t;
 
 void initSharedMsp(void);
-bool handleMspFrame(uint8_t *frameStart, int frameLength);
+bool handleMspFrame(uint8_t *frameStart, int payloadLength);
 bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn);

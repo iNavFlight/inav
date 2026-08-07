@@ -30,26 +30,14 @@
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC13
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_MAG_DATA_READY_SIGNAL
 #define ENSURE_MAG_DATA_READY_IS_HIGH
 
-#define USE_GYRO
-#define USE_GYRO_MPU6500
-#define USE_GYRO_MPU9250
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW0_DEG
 
-#define USE_ACC
-#define USE_ACC_MPU6500
-#define USE_ACC_MPU9250
-
-#define ACC_MPU6500_ALIGN       CW0_DEG
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-
-#define ACC_MPU9250_ALIGN       CW0_DEG
-#define GYRO_MPU9250_ALIGN      CW0_DEG
+#define USE_IMU_MPU9250
+#define IMU_MPU9250_ALIGN       CW0_DEG
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -58,13 +46,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_MPU9250
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 
@@ -126,12 +108,6 @@
 #define SPI3_MISO_PIN           PB4  // NC
 #define SPI3_MOSI_PIN           PB5  // NC
 
-#define USE_VTX_RTC6705
-#define VTX_RTC6705_OPTIONAL    // SPI3 on an F4 EVO may be used for RTC6705 VTX control.
-
-#define RTC6705_CS_PIN          SPI3_NSS_PIN
-#define RTC6705_SPI_INSTANCE    SPI3
-
 #define USE_SDCARD
 #define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
@@ -156,7 +132,6 @@
 // PC4 - NC - Free for ADC12_IN14 / VTX CS
 // PC5 - NC - Free for ADC12_IN15 / VTX Enable / OSD VSYNC
 
-//#define USE_OSD
 //#define USE_MAX7456
 //#define USE_OSD_OVER_MSP_DISPLAYPORT
 

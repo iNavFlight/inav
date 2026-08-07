@@ -45,7 +45,13 @@ typedef struct displayCanvas_s displayCanvas_t;
 typedef enum {
     VIDEO_SYSTEM_AUTO = 0,
     VIDEO_SYSTEM_PAL,
-    VIDEO_SYSTEM_NTSC
+    VIDEO_SYSTEM_NTSC,
+    VIDEO_SYSTEM_HDZERO,
+    VIDEO_SYSTEM_DJIWTF,
+    VIDEO_SYSTEM_AVATAR,
+    VIDEO_SYSTEM_DJICOMPAT,
+    VIDEO_SYSTEM_DJICOMPAT_HD,
+    VIDEO_SYSTEM_DJI_NATIVE
 } videoSystem_e;
 
 typedef enum {
@@ -61,14 +67,23 @@ typedef struct osdCharacter_s {
     uint8_t data[OSD_CHAR_BYTES];
 } osdCharacter_t;
 
+typedef struct osdUnit_t
+{
+    uint16_t scale;             // The scale between the value and the represented unit. e.g. if you're providing cms but you want to draw meters this should be 100 ([0, 1023])
+    uint16_t symbol;            // Symbol to append/prepend to the value when it's not scaled [0, 511]
+    uint16_t divisor;           // If abs(value) > divisor, divide it by this. e.g. for meters and km you'd set this to 1000 [0, UINT16_MAX)
+    uint16_t divided_symbol;    // Symbol to append/prepend to the value when it's divided (e.g. the km symbol) [0, 511]
+} osdUnit_t;
+
 #define OSD_CHARACTER_GRID_MAX_WIDTH 30
 #define OSD_CHARACTER_GRID_MAX_HEIGHT 16
 #define OSD_CHARACTER_GRID_BUFFER_SIZE (OSD_CHARACTER_GRID_MAX_WIDTH * OSD_CHARACTER_GRID_MAX_HEIGHT)
 
 extern uint16_t osdCharacterGridBuffer[OSD_CHARACTER_GRID_BUFFER_SIZE] ALIGNED(4);
 
-// Sets all buffer entries to 0
+// Sets all buffer entries to SYM_BLANK
 void osdCharacterGridBufferClear(void);
 void osdGridBufferClearGridRect(int x, int y, int w, int h);
 void osdGridBufferClearPixelRect(displayCanvas_t *canvas, int x, int y, int w, int h);
+
 uint16_t *osdCharacterGridBufferGetEntryPtr(unsigned x, unsigned y);

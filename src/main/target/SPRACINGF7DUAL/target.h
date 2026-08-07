@@ -36,43 +36,19 @@
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define USE_EXTI
-#define GYRO_1_EXTI_PIN         PC13
-#define GYRO_2_EXTI_PIN         PC14
-#define GYRO_INT_EXTI           GYRO_1_EXTI_PIN
-
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
-#define USE_GYRO
-#define USE_GYRO_MPU6500
 
-#define USE_ACC
-#define USE_ACC_MPU6500
+#define USE_IMU_MPU6500
+#define IMU_1_ALIGN                 IMU_MPU6500_1_ALIGN
+#define IMU_2_ALIGN                 IMU_MPU6500_2_ALIGN
 
 #if (SPRACINGF7DUAL_REV >= 2)
-#define ACC_MPU6500_1_ALIGN           CW0_DEG
-#define GYRO_MPU6500_1_ALIGN          CW0_DEG
-
-#define ACC_MPU6500_2_ALIGN         CW270_DEG
-#define GYRO_MPU6500_2_ALIGN        CW270_DEG
+#define IMU_MPU6500_1_ALIGN         CW0_DEG
+#define IMU_MPU6500_2_ALIGN         CW270_DEG
 #else
-#define ACC_MPU6500_1_ALIGN           CW180_DEG
-#define GYRO_MPU6500_1_ALIGN          CW180_DEG
-
-#define ACC_MPU6500_2_ALIGN         CW270_DEG
-#define GYRO_MPU6500_2_ALIGN        CW270_DEG
+#define IMU_MPU6500_1_ALIGN         CW180_DEG
+#define IMU_MPU6500_2_ALIGN         CW270_DEG
 #endif
-
-
-#define GYRO_1_ALIGN                GYRO_MPU6500_1_ALIGN
-#define GYRO_2_ALIGN                GYRO_MPU6500_2_ALIGN
-#define ACC_1_ALIGN                 ACC_MPU6500_1_ALIGN
-#define ACC_2_ALIGN                 ACC_MPU6500_2_ALIGN
-
-#define ACC_MPU6500_ALIGN       ACC_1_ALIGN
-#define GYRO_MPU6500_ALIGN      GYRO_1_ALIGN
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -81,12 +57,7 @@
 
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 
@@ -155,16 +126,6 @@
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PC3
 
-// disabled for motor outputs 5-8:
-//#define USE_VTX_RTC6705
-//#define USE_VTX_RTC6705_SOFTSPI
-//#define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
-
-//#define RTC6705_SPI_MOSI_PIN                PB0  // Shared with PWM8
-//#define RTC6705_CS_PIN                      PB6  // Shared with PWM5
-//#define RTC6705_SPICLK_PIN                  PB1  // Shared with PWM7
-//#define RTC6705_POWER_PIN                   PB7  // Shared with PWM6
-
 #define GYRO_1_CS_PIN                       SPI1_NSS_PIN
 #define GYRO_1_SPI_INSTANCE                 BUS_SPI1
 #define GYRO_2_CS_PIN                       PB2
@@ -192,8 +153,6 @@
 #define RSSI_ADC_CHANNEL                    ADC_CHN_3
 
 #define CURRENT_METER_SCALE         300
-
-#define USE_OSD
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA1

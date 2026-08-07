@@ -25,35 +25,26 @@
 #define BEEPER                  PA4
 #define BEEPER_INVERTED
 
-/*** IMU sensors ***/
-#define USE_EXTI
-#define USE_ACC
-#define USE_GYRO
-
 // We use dual IMU sensors, they have to be described in the target file
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
-#define USE_MPU_DATA_READY_SIGNAL
+
+#ifdef FOXEERF722DUAL
 #define USE_DUAL_GYRO
+#endif
 
 // MPU6000
-#define USE_GYRO_MPU6000
-#define USE_ACC_MPU6000
-
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define MPU6000_EXTI_PIN        PC4
-#define GYRO_MPU6000_ALIGN      CW270_DEG
-#define ACC_MPU6000_ALIGN       CW270_DEG
 
 // ICM20602 - handled by MPU6500 driver
-#define USE_GYRO_MPU6500
-#define USE_ACC_MPU6500
-
+#ifdef FOXEERF722DUAL
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW180_DEG
 #define MPU6500_CS_PIN          PB1
 #define MPU6500_SPI_BUS         BUS_SPI1
-#define MPU6500_EXTI_PIN        PB0
-#define GYRO_MPU6500_ALIGN      CW180_DEG
-#define ACC_MPU6500_ALIGN       CW180_DEG
+#endif
 
 /*** SPI/I2C bus ***/
 #define USE_SPI
@@ -84,7 +75,6 @@
 #define M25P16_SPI_BUS          BUS_SPI2
 
 /*** OSD ***/
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PC3
@@ -122,11 +112,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 /*** ADC ***/
 #define USE_ADC
@@ -143,6 +129,7 @@
 #define WS2811_PIN                      PA15
  
 /*** Default settings ***/
+#define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define SERIALRX_UART                   SERIAL_PORT_USART1
 #define DEFAULT_RX_TYPE                 RX_TYPE_SERIAL
@@ -160,3 +147,14 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
+
+
+// *************** PINIO ***************************
+#if defined(FOXEERF722V2)
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PC6 // Enable GPS power
+#define PINIO1_FLAGS            PINIO_FLAGS_INVERTED
+#endif
+
+

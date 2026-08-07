@@ -26,6 +26,12 @@
 
 //type of elements
 
+#ifndef __APPLE__
+#define OSD_ENTRY_ATTR __attribute__((packed))
+#else
+#define OSD_ENTRY_ATTR
+#endif
+
 typedef enum
 {
     OME_Label,
@@ -47,6 +53,7 @@ typedef enum
     OME_TAB,
     OME_END,
     OME_BACK_AND_END,
+    OME_Label_PAGE2_DATA,
 
     // Debug aid
     OME_MENU,
@@ -70,7 +77,7 @@ typedef struct
     const void * const data;
     const uint8_t type; // from OSD_MenuElement
     uint8_t flags;
-} __attribute__((packed)) OSD_Entry;
+} OSD_ENTRY_ATTR OSD_Entry;
 
 // Bits in flags
 #define PRINT_VALUE    (1 << 0)  // Value has been changed, need to redraw
@@ -83,6 +90,7 @@ typedef struct
 #define OSD_LABEL_DATA_ENTRY(label, data)       ((OSD_Entry){ label, {.func = NULL}, data, OME_Label, 0 })
 #define OSD_LABEL_DATA_DYN_ENTRY(label, data)   ((OSD_Entry){ label, {.func = NULL}, data, OME_Label, DYNAMIC })
 #define OSD_LABEL_FUNC_DYN_ENTRY(label, fn)     ((OSD_Entry){ label, {.func = NULL}, fn, OME_LabelFunc, DYNAMIC })
+#define OSD_LABEL_PAGE2_ENTRY(label, p2text)    ((OSD_Entry){ label, {.func = NULL}, p2text, OME_Label_PAGE2_DATA, 0 })
 #define OSD_BACK_ENTRY                          ((OSD_Entry){ "BACK", {.func = NULL}, NULL, OME_Back, 0 })
 #define OSD_BACK_AND_END_ENTRY                  ((OSD_Entry){ "BACK", {.func = NULL}, NULL, OME_BACK_AND_END, 0 })
 #define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, {.func = NULL}, menu, OME_Submenu, 0 })
@@ -190,7 +198,7 @@ typedef struct OSD_SETTING_s {
     const uint8_t step;
 } __attribute__((packed)) OSD_SETTING_t;
 
-#define OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, type)  { name, NULL, &(const OSD_SETTING_t){ setting, step }, OME_Setting, type }
+#define OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, type)  { name, { NULL }, &(const OSD_SETTING_t){ setting, step }, OME_Setting, type }
 #define OSD_SETTING_ENTRY_TYPE(name, setting, type)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, 0, type)
 #define OSD_SETTING_ENTRY_STEP(name, setting, step)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, 0)
 #define OSD_SETTING_ENTRY(name, setting)                        OSD_SETTING_ENTRY_STEP(name, setting, 0)

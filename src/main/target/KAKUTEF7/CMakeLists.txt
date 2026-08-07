@@ -1,0 +1,3 @@
+target_stm32f745xg(KAKUTEF7)
+target_stm32f745xg(KAKUTEF7HDV)
+target_stm32f745xg(KAKUTEF7MINI)

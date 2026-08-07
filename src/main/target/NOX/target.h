@@ -43,18 +43,10 @@
 
 
 // *************** SPI Gyro & ACC **********************
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW0_DEG
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_BUS         BUS_SPI2
-
-#define USE_EXTI
-#define GYRO_INT_EXTI           PA8
-#define USE_MPU_DATA_READY_SIGNAL
-
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-
-#define USE_ACC
-#define USE_ACC_MPU6000
 
 // *************** SPI BARO *****************************
 #define USE_BARO
@@ -64,7 +56,6 @@
 #define BMP280_CS_PIN           PA9
 
 // *************** SPI OSD *****************************
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PA10

@@ -50,8 +50,8 @@
 #define __USBD_CDC_IF_H
 
 /* Includes ------------------------------------------------------------------*/
+
 #include "usbd_cdc.h"
-#include "stm32f7xx_hal.h"
 #include "usbd_core.h"
 #include "usbd_desc.h"
 
@@ -86,6 +86,8 @@ uint32_t CDC_Receive_BytesAvailable(void);
 uint8_t usbIsConfigured(void);
 uint8_t usbIsConnected(void);
 uint32_t CDC_BaudRate(void);
+uint8_t CDC_StopBits(void);
+uint8_t CDC_Parity(void);
 void CDC_SetCtrlLineStateCb(void (*cb)(void *context, uint16_t ctrlLineState), void *context);
 void CDC_SetBaudRateCb(void (*cb)(void *context, uint32_t baud), void *context);
 

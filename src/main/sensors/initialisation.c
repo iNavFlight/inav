@@ -27,20 +27,22 @@
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 
-#include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
-#include "sensors/pitotmeter.h"
-#include "sensors/gyro.h"
 #include "sensors/compass.h"
-#include "sensors/rangefinder.h"
-#include "sensors/opflow.h"
-#include "sensors/temperature.h"
+#include "sensors/gyro.h"
 #include "sensors/initialisation.h"
+#include "sensors/irlock.h"
+#include "sensors/opflow.h"
+#include "sensors/pitotmeter.h"
+#include "sensors/rangefinder.h"
+#include "sensors/sensors.h"
+#include "sensors/temperature.h"
+#include "sensors/temperature.h"
+#include "rx/rx.h"
 
 uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
 uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
-
 
 bool sensorsAutodetect(void)
 {
@@ -102,8 +104,14 @@ bool sensorsAutodetect(void)
     }
 #endif
 
+#ifdef USE_IRLOCK
+    irlockInit();
+#endif
+
     if (eepromUpdatePending) {
+        suspendRxSignal();
         writeEEPROM();
+        resumeRxSignal();
     }
 
     return true;

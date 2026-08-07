@@ -98,8 +98,11 @@ void uartInverterInit(void)
 #endif
 
 }
-
+ #if defined(AT32F43x) 
+void uartInverterSet(usart_type *USARTx, uartInverterLine_e line, bool enable)
+#else
 void uartInverterSet(USART_TypeDef *USARTx, uartInverterLine_e line, bool enable)
+#endif
 {
     IO_t rx_pin = IO_NONE;
     IO_t tx_pin = IO_NONE;
@@ -142,7 +145,12 @@ void uartInverterSet(USART_TypeDef *USARTx, uartInverterLine_e line, bool enable
 
 // UART4
 #if defined(INVERTER_PIN_UART4_RX) || defined(INVERTER_PIN_UART4_TX)
-    if (USARTx == USART4) {
+#if defined(STM32F4)
+    if (USARTx == UART4)
+#else
+    if (USARTx == USART4)
+#endif
+    {
 #if defined(INVERTER_PIN_UART4_RX)
         rx_pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART4_RX));
 #endif

@@ -18,9 +18,9 @@
 #pragma once
 
 #include "config/parameter_group.h"
-#include "common/logic_condition.h"
+#include "programming/logic_condition.h"
 
-#define MAX_SUPPORTED_SERVOS 16
+#define MAX_SUPPORTED_SERVOS 18
 
 // These must be consecutive
 typedef enum {
@@ -53,8 +53,38 @@ typedef enum {
     INPUT_STABILIZED_PITCH_MINUS    = 26,
     INPUT_STABILIZED_YAW_PLUS       = 27,
     INPUT_STABILIZED_YAW_MINUS      = 28,
-    INPUT_LOGIC_ONE                 = 29,
-
+    INPUT_MAX                       = 29,
+    INPUT_GVAR_0                    = 30,
+    INPUT_GVAR_1                    = 31,
+    INPUT_GVAR_2                    = 32,
+    INPUT_GVAR_3                    = 33,
+    INPUT_GVAR_4                    = 34,
+    INPUT_GVAR_5                    = 35,
+    INPUT_GVAR_6                    = 36,
+    INPUT_GVAR_7                    = 37,
+    INPUT_MIXER_TRANSITION          = 38,
+    INPUT_HEADTRACKER_PAN           = 39,
+    INPUT_HEADTRACKER_TILT          = 40,
+    INPUT_HEADTRACKER_ROLL          = 41,
+    INPUT_RC_CH17                   = 42,
+    INPUT_RC_CH18                   = 43,
+    INPUT_RC_CH19                   = 44,
+    INPUT_RC_CH20                   = 45,
+    INPUT_RC_CH21                   = 46,
+    INPUT_RC_CH22                   = 47,
+    INPUT_RC_CH23                   = 48,
+    INPUT_RC_CH24                   = 49,
+    INPUT_RC_CH25                   = 50,
+    INPUT_RC_CH26                   = 51,
+    INPUT_RC_CH27                   = 52,
+    INPUT_RC_CH28                   = 53,
+    INPUT_RC_CH29                   = 54,
+    INPUT_RC_CH30                   = 55,
+    INPUT_RC_CH31                   = 56,
+    INPUT_RC_CH32                   = 57,
+    INPUT_RC_CH33                   = 58,
+    INPUT_RC_CH34                   = 59,
+    INPUT_MIXER_SWITCH_HELPER       = 60,
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
@@ -101,7 +131,7 @@ typedef struct servoMixer_s {
     uint8_t inputSource;                    // input channel for this rule
     int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
     uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
     int8_t conditionId;
 #endif
 } servoMixer_t;
@@ -113,6 +143,15 @@ typedef struct servoMixer_s {
 
 PG_DECLARE_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers);
 
+typedef struct servoMixerSwitch_s {
+    //this is used to keep track of servoSpeedLimitFilter of servo rules during the mixer switch
+    uint8_t targetChannel;                  // servo that receives the output of the rule
+    int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
+    uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
+    float speedLimitFilterState;     // rate limit filter for this rule
+} servoMixerSwitch_t;
+#define MAX_SERVO_RULES_SWITCH_CARRY (MAX_SERVO_RULES / 2)
+
 typedef struct servoParam_s {
     int16_t min;                            // servo min
     int16_t max;                            // servo max
@@ -122,14 +161,24 @@ typedef struct servoParam_s {
 
 PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
 
+
+#define SERVO_AUTOTRIM_FILTER_CUTOFF    1.0f     // LPF cutoff frequency
+#define SERVO_AUTOTRIM_CENTER_MIN       1300
+#define SERVO_AUTOTRIM_CENTER_MAX       1700
+#define SERVO_AUTOTRIM_UPDATE_SIZE      5
+#define SERVO_AUTOTRIM_ATTITUDE_LIMIT   50       // 5 degrees
+#define SERVO_AUTOTRIM_ITERM_RATE_LIMIT 30       // ~90th percentile during stable cruise (blackbox-derived)
+
 typedef struct servoConfig_s {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
     uint16_t servoCenterPulse;              // This is the value for servos when they should be in the middle. e.g. 1500.
     uint16_t servoPwmRate;                  // The update rate of servo outputs (50-498Hz)
     int16_t servo_lowpass_freq;             // lowpass servo filter frequency selection; 1/1000ths of loop freq
     uint16_t flaperon_throw_offset;
-    uint8_t __reserved;
+    uint8_t servo_protocol;                 // See servoProtocolType_e
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
+    uint8_t servo_autotrim_rotation_limit;  // Max rotation for servo midpoints to be updated
+    uint8_t servo_autotrim_iterm_threshold; // How much of the Iterm is carried over to the servo midpoints on each update
 } servoConfig_t;
 
 PG_DECLARE(servoConfig_t, servoConfig);
@@ -141,6 +190,7 @@ typedef struct servoMetadata_s {
 
 extern int16_t servo[MAX_SUPPORTED_SERVOS];
 
+void Reset_servoMixers(servoMixer_t* instance);
 bool isServoOutputEnabled(void);
 void setServoOutputEnabled(bool flag);
 bool isMixerUsingServos(void);
@@ -150,3 +200,4 @@ void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
 int getServoCount(void);
+uint8_t getMinServoIndex(void);

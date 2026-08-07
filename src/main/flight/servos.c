@@ -28,6 +28,7 @@
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
+#include "programming/global_variables.h"
 
 #include "config/config_reset.h"
 #include "config/feature.h"
@@ -35,51 +36,59 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/time.h"
+#include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 
 #include "fc/config.h"
+#include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
+#include "fc/settings.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "io/gps.h"
+
 #include "rx/rx.h"
 
 #include "sensors/gyro.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 3);
 
 PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
-    .servoCenterPulse = 1500,
-    .servoPwmRate = 50,             // Default for analog servos
-    .servo_lowpass_freq = 20,       // Default servo update rate is 50Hz, everything above Nyquist frequency (25Hz) is going to fold and cause distortions
-    .flaperon_throw_offset = FLAPERON_THROW_DEFAULT,
-    .tri_unarmed_servo = 1
+    .servoCenterPulse = SETTING_SERVO_CENTER_PULSE_DEFAULT,
+    .servoPwmRate = SETTING_SERVO_PWM_RATE_DEFAULT,             // Default for analog servos
+    .servo_lowpass_freq = SETTING_SERVO_LPF_HZ_DEFAULT,         // Default servo update rate is 50Hz, everything above Nyquist frequency (25Hz) is going to fold and cause distortions
+    .servo_protocol = SETTING_SERVO_PROTOCOL_DEFAULT,
+    .flaperon_throw_offset = SETTING_FLAPERON_THROW_OFFSET_DEFAULT,
+    .tri_unarmed_servo = SETTING_TRI_UNARMED_SERVO_DEFAULT,
+    .servo_autotrim_rotation_limit = SETTING_SERVO_AUTOTRIM_ROTATION_LIMIT_DEFAULT
 );
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 1);
 
-void pgResetFn_customServoMixers(servoMixer_t *instance)
+void Reset_servoMixers(servoMixer_t *instance)
 {
-    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+    for (int i = 0; i < MAX_SERVO_RULES; i++){
         RESET_CONFIG(servoMixer_t, &instance[i],
             .targetChannel = 0,
             .inputSource = 0,
             .rate = 0,
             .speed = 0
-#ifdef USE_LOGIC_CONDITIONS
+#ifdef USE_PROGRAMMING_FRAMEWORK
             ,.conditionId = -1
 #endif
         );
     }
 }
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams, PG_SERVO_PARAMS, 2);
+PG_REGISTER_ARRAY_WITH_RESET_FN(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams, PG_SERVO_PARAMS, 3);
 
 void pgResetFn_servoParams(servoParam_t *instance)
 {
@@ -97,9 +106,15 @@ int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
-static int servoOutputEnabled;
+/*
+//Was used to keep track of servo rules in all mixer_profile, In order to Apply mixer speed limit when rules turn off
+static servoMixer_t currentServoMixer[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];
+static bool currentServoMixerActivative[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT]; // if true, the rule is used by current servo mixer
+*/
 
-static uint8_t mixerUsesServos;
+static bool servoOutputEnabled;
+
+static bool mixerUsesServos;
 static uint8_t minServoIndex;
 static uint8_t maxServoIndex;
 
@@ -108,6 +123,9 @@ static bool servoFilterIsSet;
 
 static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
 static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
+
+STATIC_FASTRAM pt1Filter_t rotRateFilter;
+STATIC_FASTRAM pt1Filter_t targetRateFilter;
 
 int16_t getFlaperonDirection(uint8_t servoPin)
 {
@@ -126,22 +144,49 @@ void servoComputeScalingFactors(uint8_t servoIndex) {
     servoMetadata[servoIndex].scaleMin = (servoParams(servoIndex)->middle - servoParams(servoIndex)->min) / 500.0f;
 }
 
+void computeServoCount(void)
+{
+    static bool firstRun = true;
+    if (!firstRun) {
+        return;
+    }
+    minServoIndex = 255;
+    maxServoIndex = 0;
+    for (int j = 0; j < MAX_MIXER_PROFILE_COUNT; j++) {
+        for (int i = 0; i < MAX_SERVO_RULES; i++) {
+            // check if done
+            if (mixerServoMixersByIndex(j)[i].rate == 0){
+                break;
+            }
+            if (mixerServoMixersByIndex(j)[i].targetChannel < minServoIndex) {
+                minServoIndex = mixerServoMixersByIndex(j)[i].targetChannel;
+            }
+
+            if (mixerServoMixersByIndex(j)[i].targetChannel > maxServoIndex) {
+                maxServoIndex = mixerServoMixersByIndex(j)[i].targetChannel;
+            }
+            mixerUsesServos = true;
+        }
+    }
+    firstRun = false;
+}
+
 void servosInit(void)
 {
     // give all servos a default command
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servo[i] = DEFAULT_SERVO_MIDDLE;
+        servo[i] = servoParams(i)->middle;
     }
 
     /*
      * load mixer
      */
+    computeServoCount();
     loadCustomServoMixer();
 
     // If there are servo rules after all, update variables
-    if (servoRuleCount > 0) {
-        servoOutputEnabled = 1;
-        mixerUsesServos = 1;
+    if (mixerUsesServos) {
+        servoOutputEnabled = true;
     }
 
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
@@ -151,7 +196,7 @@ void servosInit(void)
 
 int getServoCount(void)
 {
-    if (servoRuleCount) {
+    if (mixerUsesServos) {
         return 1 + maxServoIndex - minServoIndex;
     }
     else {
@@ -161,27 +206,49 @@ int getServoCount(void)
 
 void loadCustomServoMixer(void)
 {
-    // reset settings
+    
+    //move the rate filter to new servo rules
+    int movefilterCount = 0;
+    static servoMixerSwitch_t servoMixerSwitchHelper[MAX_SERVO_RULES_SWITCH_CARRY]; // helper to keep track of servoSpeedLimitFilter of servo rules
+    memset(servoMixerSwitchHelper, 0, sizeof(servoMixerSwitchHelper));
+    for (int i = 0; i < servoRuleCount; i++) {
+        if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
+            //will not carry over INPUT_MIXER_SWITCH_HELPER rules
+            break;
+        }
+        if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) > 0.01f) {
+            servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
+            servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
+            servoMixerSwitchHelper[movefilterCount].rate = currentServoMixer[i].rate;
+            servoMixerSwitchHelper[movefilterCount].speedLimitFilterState = servoSpeedLimitFilter[i].state;
+            movefilterCount++;
+        }
+    }
+
     servoRuleCount = 0;
-    minServoIndex = 255;
-    maxServoIndex = 0;
     memset(currentServoMixer, 0, sizeof(currentServoMixer));
 
     // load custom mixer into currentServoMixer
     for (int i = 0; i < MAX_SERVO_RULES; i++) {
         // check if done
-        if (customServoMixers(i)->rate == 0)
+        if (customServoMixers(i)->rate == 0){
             break;
-
-        if (customServoMixers(i)->targetChannel < minServoIndex) {
-            minServoIndex = customServoMixers(i)->targetChannel;
         }
+        currentServoMixer[servoRuleCount] = *customServoMixers(i);
+        servoSpeedLimitFilter[servoRuleCount].state = 0;
+        servoRuleCount++;
+    }
 
-        if (customServoMixers(i)->targetChannel > maxServoIndex) {
-            maxServoIndex = customServoMixers(i)->targetChannel;
+    // add servo rules to handle the rate limit filter
+    for (int i = 0; i < movefilterCount; i++) {
+        if (servoRuleCount >= MAX_SERVO_RULES) {
+            break; // prevent overflow
         }
-
-        memcpy(&currentServoMixer[i], customServoMixers(i), sizeof(servoMixer_t));
+        currentServoMixer[servoRuleCount].targetChannel = servoMixerSwitchHelper[i].targetChannel;
+        currentServoMixer[servoRuleCount].speed = servoMixerSwitchHelper[i].speed;
+        currentServoMixer[servoRuleCount].rate = servoMixerSwitchHelper[i].rate;
+        currentServoMixer[servoRuleCount].inputSource = INPUT_MIXER_SWITCH_HELPER; // no input
+        servoSpeedLimitFilter[servoRuleCount].state = servoMixerSwitchHelper[i].speedLimitFilterState;
         servoRuleCount++;
     }
 }
@@ -192,7 +259,7 @@ static void filterServos(void)
         // Initialize servo lowpass filter (servos are calculated at looptime rate)
         if (!servoFilterIsSet) {
             for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-                biquadFilterInitLPF(&servoFilter[i], servoConfig()->servo_lowpass_freq, gyro.targetLooptime);
+                biquadFilterInitLPF(&servoFilter[i], servoConfig()->servo_lowpass_freq, getLooptime());
                 biquadFilterReset(&servoFilter[i], servo[i]);
             }
             servoFilterIsSet = true;
@@ -213,13 +280,14 @@ void writeServos(void)
 {
     filterServos();
 
+#if !defined(SITL_BUILD)
     int servoIndex = 0;
     bool zeroServoValue = false;
 
     /*
      * in case of tricopters, there might me a need to zero servo output when unarmed
      */
-    if (mixerConfig()->platformType == PLATFORM_TRICOPTER && !ARMING_FLAG(ARMED) && !servoConfig()->tri_unarmed_servo) {
+    if (currentMixerConfig.platformType == PLATFORM_TRICOPTER && !ARMING_FLAG(ARMED) && !servoConfig()->tri_unarmed_servo) {
         zeroServoValue = true;
     }
 
@@ -230,6 +298,7 @@ void writeServos(void)
             pwmWriteServo(servoIndex++, servo[i]);
         }
     }
+#endif
 }
 
 void servoMixer(float dT)
@@ -247,8 +316,8 @@ void servoMixer(float dT)
         input[INPUT_STABILIZED_YAW] = axisPID[YAW];
 
         // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
-        if (feature(FEATURE_3D) && (rxGetChannelValue(THROTTLE) < PWM_RANGE_MIDDLE) &&
-        (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER)) {
+        if (feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) < PWM_RANGE_MIDDLE) &&
+        (currentMixerConfig.platformType == PLATFORM_MULTIROTOR || currentMixerConfig.platformType == PLATFORM_TRICOPTER)) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }
     }
@@ -262,7 +331,17 @@ void servoMixer(float dT)
 
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
 
-    input[INPUT_LOGIC_ONE] = 500;
+    input[INPUT_MAX] = 500;
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    input[INPUT_GVAR_0] = constrain(gvGet(0), -1000, 1000);
+    input[INPUT_GVAR_1] = constrain(gvGet(1), -1000, 1000);
+    input[INPUT_GVAR_2] = constrain(gvGet(2), -1000, 1000);
+    input[INPUT_GVAR_3] = constrain(gvGet(3), -1000, 1000);
+    input[INPUT_GVAR_4] = constrain(gvGet(4), -1000, 1000);
+    input[INPUT_GVAR_5] = constrain(gvGet(5), -1000, 1000);
+    input[INPUT_GVAR_6] = constrain(gvGet(6), -1000, 1000);
+    input[INPUT_GVAR_7] = constrain(gvGet(7), -1000, 1000);
+#endif
 
     if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {
         input[INPUT_GIMBAL_PITCH] = scaleRange(attitude.values.pitch, -900, 900, -500, +500);
@@ -273,6 +352,9 @@ void servoMixer(float dT)
     }
 
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
+
+    input[INPUT_MIXER_TRANSITION] = isMixerTransitionMixing * 500; //fixed value
+    input[INPUT_MIXER_SWITCH_HELPER] = 0; // no input, used to apply speed limit filter from previous servo rules
 
     // center the RC input value around the RC middle value
     // by subtracting the RC middle value from the RC input value, we get:
@@ -297,7 +379,61 @@ void servoMixer(float dT)
     input[INPUT_RC_CH14]     = GET_RX_CHANNEL_INPUT(AUX10);
     input[INPUT_RC_CH15]     = GET_RX_CHANNEL_INPUT(AUX11);
     input[INPUT_RC_CH16]     = GET_RX_CHANNEL_INPUT(AUX12);
+    input[INPUT_RC_CH17]     = GET_RX_CHANNEL_INPUT(AUX13);
+    input[INPUT_RC_CH18]     = GET_RX_CHANNEL_INPUT(AUX14);
+#ifdef USE_34CHANNELS
+    input[INPUT_RC_CH19]     = GET_RX_CHANNEL_INPUT(AUX15);
+    input[INPUT_RC_CH20]     = GET_RX_CHANNEL_INPUT(AUX16);
+    input[INPUT_RC_CH21]     = GET_RX_CHANNEL_INPUT(AUX17);
+    input[INPUT_RC_CH22]     = GET_RX_CHANNEL_INPUT(AUX18);
+    input[INPUT_RC_CH23]     = GET_RX_CHANNEL_INPUT(AUX19);
+    input[INPUT_RC_CH24]     = GET_RX_CHANNEL_INPUT(AUX20);
+    input[INPUT_RC_CH25]     = GET_RX_CHANNEL_INPUT(AUX21);
+    input[INPUT_RC_CH26]     = GET_RX_CHANNEL_INPUT(AUX22);
+    input[INPUT_RC_CH27]     = GET_RX_CHANNEL_INPUT(AUX23);
+    input[INPUT_RC_CH28]     = GET_RX_CHANNEL_INPUT(AUX24);
+    input[INPUT_RC_CH29]     = GET_RX_CHANNEL_INPUT(AUX25);
+    input[INPUT_RC_CH30]     = GET_RX_CHANNEL_INPUT(AUX26);
+    input[INPUT_RC_CH31]     = GET_RX_CHANNEL_INPUT(AUX27);
+    input[INPUT_RC_CH32]     = GET_RX_CHANNEL_INPUT(AUX28);
+    input[INPUT_RC_CH33]     = GET_RX_CHANNEL_INPUT(AUX29);
+    input[INPUT_RC_CH34]     = GET_RX_CHANNEL_INPUT(AUX30);
+#endif
 #undef GET_RX_CHANNEL_INPUT
+
+#ifdef USE_HEADTRACKER
+    headTrackerDevice_t *dev = headTrackerCommonDevice();
+    if(dev && headTrackerCommonIsValid(dev) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
+        input[INPUT_HEADTRACKER_PAN] = headTrackerCommonGetPanPWM(dev) - PWM_RANGE_MIDDLE;
+        input[INPUT_HEADTRACKER_TILT] = headTrackerCommonGetTiltPWM(dev) - PWM_RANGE_MIDDLE;
+        input[INPUT_HEADTRACKER_ROLL] = headTrackerCommonGetRollPWM(dev) - PWM_RANGE_MIDDLE;
+    } else {
+        input[INPUT_HEADTRACKER_PAN] = 0;
+        input[INPUT_HEADTRACKER_TILT] = 0;
+        input[INPUT_HEADTRACKER_ROLL] = 0;
+    }
+#else
+        input[INPUT_HEADTRACKER_PAN] = 0;
+        input[INPUT_HEADTRACKER_TILT] = 0;
+        input[INPUT_HEADTRACKER_ROLL] = 0;
+#endif
+
+#ifdef USE_SIMULATOR
+	simulatorData.input[INPUT_STABILIZED_ROLL] = input[INPUT_STABILIZED_ROLL];
+	simulatorData.input[INPUT_STABILIZED_PITCH] = input[INPUT_STABILIZED_PITCH];
+	simulatorData.input[INPUT_STABILIZED_YAW] = input[INPUT_STABILIZED_YAW];
+	simulatorData.input[INPUT_STABILIZED_THROTTLE] = input[INPUT_STABILIZED_THROTTLE];
+#endif
+
+    /*
+     * When disarmed, force throttle inputs to minimum so the mixer pipeline
+     * computes the correct safe servo position accounting for servo reversal
+     * and negative mixer weights.
+     */
+    if (!ARMING_FLAG(ARMED)) {
+        input[INPUT_STABILIZED_THROTTLE] = -500;
+        input[INPUT_RC_THROTTLE] = -500;
+    }
 
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servo[i] = 0;
@@ -305,19 +441,19 @@ void servoMixer(float dT)
 
     // mix servos according to rules
     for (int i = 0; i < servoRuleCount; i++) {
+        const uint8_t target = currentServoMixer[i].targetChannel;
+        const uint8_t from = currentServoMixer[i].inputSource;
+
+        int16_t inputRaw = input[from];
 
         /*
          * Check if conditions for a rule are met, not all conditions apply all the time
          */
-    #ifdef USE_LOGIC_CONDITIONS
+    #ifdef USE_PROGRAMMING_FRAMEWORK
         if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
-            continue; 
+            inputRaw = 0;
         }
     #endif
-
-        const uint8_t target = currentServoMixer[i].targetChannel;
-        const uint8_t from = currentServoMixer[i].inputSource;
-
         /*
          * Apply mixer speed limit. 1 [one] speed unit is defined as 10us/s:
          * 0 = no limiting
@@ -325,7 +461,7 @@ void servoMixer(float dT)
          * 10 = 100us/s -> full sweep (from 1000 to 2000)  is performed in 10s
          * 100 = 1000us/s -> full sweep in 1s
          */
-        int16_t inputLimited = (int16_t) rateLimitFilterApply4(&servoSpeedLimitFilter[i], input[from], currentServoMixer[i].speed * 10, dT);
+        int16_t inputLimited = (int16_t) rateLimitFilterApply4(&servoSpeedLimitFilter[i], inputRaw, currentServoMixer[i].speed * 10, dT);
 
         servo[target] += ((int32_t)inputLimited * currentServoMixer[i].rate) / 100;
     }
@@ -360,6 +496,7 @@ void servoMixer(float dT)
          */
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
     }
+
 }
 
 #define SERVO_AUTOTRIM_TIMER_MS     2000
@@ -371,27 +508,32 @@ typedef enum {
     AUTOTRIM_DONE,
 } servoAutotrimState_e;
 
-void processServoAutotrim(void)
+void processServoAutotrimMode(void)
 {
     static servoAutotrimState_e trimState = AUTOTRIM_IDLE;
     static timeMs_t trimStartedAt;
 
     static int16_t servoMiddleBackup[MAX_SUPPORTED_SERVOS];
     static int32_t servoMiddleAccum[MAX_SUPPORTED_SERVOS];
-    static int32_t servoMiddleAccumCount;
+    static int32_t servoMiddleAccumCount[MAX_SUPPORTED_SERVOS];
 
-    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+    if (isFwAutoModeActive(BOXAUTOTRIM)) {
         switch (trimState) {
             case AUTOTRIM_IDLE:
                 if (ARMING_FLAG(ARMED)) {
-                    // We are activating servo trim - backup current middles and prepare to average the data
-                    for (int servoIndex = SERVO_ELEVATOR; servoIndex <= MIN(SERVO_RUDDER, MAX_SUPPORTED_SERVOS); servoIndex++) {
-                        servoMiddleBackup[servoIndex] = servoParams(servoIndex)->middle;
-                        servoMiddleAccum[servoIndex] = 0;
+                    for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
+                        for (int i = 0; i < servoRuleCount; i++) {
+                                // Reset servo middle accumulator
+                            const uint8_t target = currentServoMixer[i].targetChannel;
+                            const uint8_t source = currentServoMixer[i].inputSource;
+                            if (source == axis) {
+                                servoMiddleBackup[target] = servoParams(target)->middle;
+                                servoMiddleAccum[target] = 0;
+                                servoMiddleAccumCount[target] = 0;
+                            }
+                        }
                     }
-
                     trimStartedAt = millis();
-                    servoMiddleAccumCount = 0;
                     trimState = AUTOTRIM_COLLECTING;
                 }
                 else {
@@ -401,15 +543,26 @@ void processServoAutotrim(void)
 
             case AUTOTRIM_COLLECTING:
                 if (ARMING_FLAG(ARMED)) {
-                    servoMiddleAccumCount++;
-
-                    for (int servoIndex = SERVO_ELEVATOR; servoIndex <= MIN(SERVO_RUDDER, MAX_SUPPORTED_SERVOS); servoIndex++) {
-                        servoMiddleAccum[servoIndex] += servo[servoIndex];
+                    for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
+                        for (int i = 0; i < servoRuleCount; i++) {
+                            const uint8_t target = currentServoMixer[i].targetChannel;
+                            const uint8_t source = currentServoMixer[i].inputSource;
+                            if (source == axis) {
+                                servoMiddleAccum[target] += servo[target];
+                                servoMiddleAccumCount[target]++;
+                            }
+                        }
                     }
 
                     if ((millis() - trimStartedAt) > SERVO_AUTOTRIM_TIMER_MS) {
-                        for (int servoIndex = SERVO_ELEVATOR; servoIndex <= MIN(SERVO_RUDDER, MAX_SUPPORTED_SERVOS); servoIndex++) {
-                            servoParamsMutable(servoIndex)->middle = servoMiddleAccum[servoIndex] / servoMiddleAccumCount;
+                        for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
+                            for (int i = 0; i < servoRuleCount; i++) {
+                                const uint8_t target = currentServoMixer[i].targetChannel;
+                                const uint8_t source = currentServoMixer[i].inputSource;
+                                if (source == axis) {
+                                    servoParamsMutable(target)->middle = servoMiddleAccum[target] / servoMiddleAccumCount[target];
+                                }
+                            }
                         }
                         trimState = AUTOTRIM_SAVE_PENDING;
                         pidResetErrorAccumulators(); //Reset Iterm since new midpoints override previously acumulated errors
@@ -435,8 +588,14 @@ void processServoAutotrim(void)
     else {
         // We are deactivating servo trim - restore servo midpoints
         if (trimState == AUTOTRIM_SAVE_PENDING) {
-            for (int servoIndex = SERVO_ELEVATOR; servoIndex <= MIN(SERVO_RUDDER, MAX_SUPPORTED_SERVOS); servoIndex++) {
-                servoParamsMutable(servoIndex)->middle = servoMiddleBackup[servoIndex];
+            for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
+                for (int i = 0; i < servoRuleCount; i++) {
+                    const uint8_t target = currentServoMixer[i].targetChannel;
+                    const uint8_t source = currentServoMixer[i].inputSource;
+                    if (source == axis) {
+                        servoParamsMutable(target)->middle = servoMiddleBackup[target];
+                    }
+                }
             }
         }
 
@@ -444,17 +603,122 @@ void processServoAutotrim(void)
     }
 }
 
-bool FAST_CODE NOINLINE isServoOutputEnabled(void)
+
+void processContinuousServoAutotrim(const float dT)
+{
+    static timeMs_t lastUpdateTimeMs;
+    static servoAutotrimState_e trimState = AUTOTRIM_IDLE;
+    static uint32_t servoMiddleUpdateCount;
+    static float prevAxisIterm[2] = {0};  // Track previous I-term for rate-of-change calculation
+
+    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+    const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, getTotalRateTarget(), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+
+    if (ARMING_FLAG(ARMED)) {
+        trimState = AUTOTRIM_COLLECTING;
+        if ((millis() - lastUpdateTimeMs) > 500) {
+            static float itermRateOfChange[2];
+            for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
+                const float currentIterm = getAxisIterm(axis);
+                itermRateOfChange[axis] = fabsf(currentIterm - prevAxisIterm[axis]) / 0.5f;
+                prevAxisIterm[axis] = currentIterm;
+            }
+
+            const bool planeIsFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
+            const bool noRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
+            const bool sticksAreCentered = !areSticksDeflected();
+            const bool planeIsFlyingLevel = ABS(attitude.values.pitch + DEGREES_TO_DECIDEGREES(getFixedWingLevelTrim())) <= SERVO_AUTOTRIM_ATTITUDE_LIMIT
+                                            && ABS(attitude.values.roll) <= SERVO_AUTOTRIM_ATTITUDE_LIMIT;
+            if (
+                planeIsFlyingStraight &&
+                noRotationCommanded &&
+                planeIsFlyingLevel &&
+                sticksAreCentered &&
+                !FLIGHT_MODE(MANUAL_MODE) &&
+                isGPSHeadingValid() // TODO: proper flying detection
+            ) {
+                // Plane is flying straight and level: trim servos
+                for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
+                    // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
+                    const float axisIterm = getAxisIterm(axis);
+                    const bool itermIsStable = itermRateOfChange[axis] < SERVO_AUTOTRIM_ITERM_RATE_LIMIT;
+
+                    if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE && itermIsStable) {
+                        const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;
+                        for (int i = 0; i < servoRuleCount; i++) {
+#ifdef USE_PROGRAMMING_FRAMEWORK
+                            if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
+                                continue;
+                            }
+#endif
+                            const uint8_t target = currentServoMixer[i].targetChannel;
+                            const uint8_t source = currentServoMixer[i].inputSource;
+                            if (source == axis) {
+                                // Convert axis I-term to servo PWM and add to midpoint
+                                const float mixerRate = currentServoMixer[i].rate / 100.0f;
+                                const float servoRate = servoParams(target)->rate / 100.0f;
+                                servoParamsMutable(target)->middle += (int16_t)(ItermUpdate * mixerRate * servoRate);
+                                servoParamsMutable(target)->middle = constrain(servoParamsMutable(target)->middle, SERVO_AUTOTRIM_CENTER_MIN, SERVO_AUTOTRIM_CENTER_MAX);
+                                }
+                        }
+                        pidReduceErrorAccumulators(ItermUpdate, axis);
+                    }
+                }
+                servoMiddleUpdateCount++;
+            }
+            // Reset timer
+            lastUpdateTimeMs = millis();
+        }
+    } else if (trimState == AUTOTRIM_COLLECTING) {
+        // We have disarmed, save midpoints to EEPROM
+        saveConfigAndNotify();
+        trimState = AUTOTRIM_IDLE;
+    }
+
+    // Debug
+    DEBUG_SET(DEBUG_AUTOTRIM, 0, servoParams(2)->middle);
+    DEBUG_SET(DEBUG_AUTOTRIM, 2, servoParams(3)->middle);
+    DEBUG_SET(DEBUG_AUTOTRIM, 4, servoParams(4)->middle);
+    DEBUG_SET(DEBUG_AUTOTRIM, 6, servoParams(5)->middle);
+    DEBUG_SET(DEBUG_AUTOTRIM, 1, servoMiddleUpdateCount);
+    DEBUG_SET(DEBUG_AUTOTRIM, 3, MAX(RADIANS_TO_DEGREES(rotRateMagnitudeFiltered), targetRateMagnitudeFiltered));
+    DEBUG_SET(DEBUG_AUTOTRIM, 5, axisPID_I[FD_ROLL]);
+    DEBUG_SET(DEBUG_AUTOTRIM, 7, axisPID_I[FD_PITCH]);
+}
+
+void processServoAutotrim(const float dT) {
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
+        return;
+    }
+#endif
+    if(!STATE(AIRPLANE))
+    {
+        return;
+    }
+    if (feature(FEATURE_FW_AUTOTRIM)) {
+        processContinuousServoAutotrim(dT);
+    } else {
+        processServoAutotrimMode();
+    }
+}
+
+bool isServoOutputEnabled(void)
 {
     return servoOutputEnabled;
 }
 
-void NOINLINE setServoOutputEnabled(bool flag)
+void setServoOutputEnabled(bool flag)
 {
     servoOutputEnabled = flag;
 }
 
-bool FAST_CODE NOINLINE isMixerUsingServos(void)
+bool isMixerUsingServos(void)
 {
     return mixerUsesServos;
+}
+
+uint8_t getMinServoIndex(void)
+{
+    return minServoIndex;
 }

@@ -1,23 +1,23 @@
-FROM ubuntu:bionic
+FROM ubuntu:jammy
 
-# Configuration
-VOLUME /home/src/
-WORKDIR /home/src/
-ARG TOOLCHAIN_VERSION_SHORT
-ENV TOOLCHAIN_VERSION_SHORT ${TOOLCHAIN_VERSION_SHORT:-"8-2018q4"}
-ARG TOOLCHAIN_VERSION_LONG
-ENV TOOLCHAIN_VERSION_LONG ${TOOLCHAIN_VERSION_LONG:-"8-2018-q4-major"}
+ARG USER_ID
+ARG GROUP_ID
+ARG GDB
 
-# Essentials
-RUN mkdir -p /home/src && \
-    apt-get update && \
-    apt-get install -y software-properties-common ruby make git gcc wget curl bzip2
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Toolchain
-RUN wget -P /tmp "https://developer.arm.com/-/media/Files/downloads/gnu-rm/$TOOLCHAIN_VERSION_SHORT/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG-linux.tar.bz2"
-RUN mkdir -p /opt && \
-	cd /opt && \
-    tar xvjf "/tmp/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG-linux.tar.bz2" -C /opt && \
-	chmod -R -w "/opt/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG"
+RUN apt-get update && apt-get install -y git cmake make ruby gcc python3 python3-yaml ninja-build gcc-arm-none-eabi
 
-ENV PATH="/opt/gcc-arm-none-eabi-$TOOLCHAIN_VERSION_LONG/bin:$PATH"
+RUN if [ "$GDB" = "yes" ]; then apt-get install -y gdb; fi
+
+# If a group and user with the same IDs already exist, rename the group and recreate the user after deleting the existing one.
+RUN GROUP="$(id -n -g $GROUP_ID)"; if [ -n "$GROUP" ]; then groupmod -n inav "$GROUP"; else groupadd --gid $GROUP_ID inav; fi
+RUN USER="$(id -n -u $USER_ID)"; if [ -n "$USER" ]; then userdel -r "$USER"; fi && useradd -m --uid $USER_ID --gid $GROUP_ID inav
+
+USER inav
+
+RUN git config --global --add safe.directory /src
+
+WORKDIR /src/build
+
+ENTRYPOINT ["/src/cmake/docker.sh"]

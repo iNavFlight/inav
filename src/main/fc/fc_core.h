@@ -27,9 +27,9 @@ typedef enum disarmReason_e {
     DISARM_STICKS       = 2,
     DISARM_SWITCH_3D    = 3,
     DISARM_SWITCH       = 4,
-    DISARM_KILLSWITCH   = 5,
     DISARM_FAILSAFE     = 6,
     DISARM_NAVIGATION   = 7,
+    DISARM_LANDING      = 8,
     DISARM_REASON_COUNT
 } disarmReason_t;
 
@@ -37,12 +37,15 @@ typedef enum disarmReason_e {
 void handleInflightCalibrationStickPosition(void);
 
 void disarm(disarmReason_t disarmReason);
+timeUs_t getLastDisarmTimeUs(void);
 void tryArm(void);
 disarmReason_t getDisarmReason(void);
 
-void emergencyArmingUpdate(bool armingSwitchIsOn);
+bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm);
 
-bool isCalibrating(void);
+bool areSensorsCalibrating(void);
 float getFlightTime(void);
-
+void resetFlightTime(void);
+float getArmTime(void);
 void fcReboot(bool bootLoader);
+bool isMspConfigActive(bool isActive);

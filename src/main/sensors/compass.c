@@ -38,14 +38,20 @@
 #include "drivers/compass/compass_ist8310.h"
 #include "drivers/compass/compass_ist8308.h"
 #include "drivers/compass/compass_qmc5883l.h"
+#include "drivers/compass/compass_qmc5883p.h"
 #include "drivers/compass/compass_mpu9250.h"
 #include "drivers/compass/compass_lis3mdl.h"
+#include "drivers/compass/compass_rm3100.h"
+#include "drivers/compass/compass_vcm5883.h"
+#include "drivers/compass/compass_mlx90393.h"
+#include "drivers/compass/compass_msp.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
 #include "drivers/time.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "io/gps.h"
 #include "io/beeper.h"
@@ -57,27 +63,25 @@
 
 mag_t mag;                   // mag access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 3);
-
 #ifdef USE_MAG
-#define MAG_HARDWARE_DEFAULT    MAG_AUTODETECT
-#else
-#define MAG_HARDWARE_DEFAULT    MAG_NONE
-#endif
+
+PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 6);
+
 PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
-    .mag_align = ALIGN_DEFAULT,
-    .mag_hardware = MAG_HARDWARE_DEFAULT,
-    .mag_declination = 0,
-    .mag_to_use = 0,
-    .magCalibrationTimeLimit = 30,
-    .rollDeciDegrees = 0,
-    .pitchDeciDegrees = 0,
-    .yawDeciDegrees = 0,
+    .mag_align = SETTING_ALIGN_MAG_DEFAULT,
+    .mag_hardware = SETTING_MAG_HARDWARE_DEFAULT,
+    .mag_declination = SETTING_MAG_DECLINATION_DEFAULT,
+#ifdef USE_DUAL_MAG
+    .mag_to_use = SETTING_MAG_TO_USE_DEFAULT,
+#endif
+    .magCalibrationTimeLimit = SETTING_MAG_CALIBRATION_TIME_DEFAULT,
+    .rollDeciDegrees = SETTING_ALIGN_MAG_ROLL_DEFAULT,
+    .pitchDeciDegrees = SETTING_ALIGN_MAG_PITCH_DEFAULT,
+    .yawDeciDegrees = SETTING_ALIGN_MAG_YAW_DEFAULT,
+    .magGain = {SETTING_MAGGAIN_X_DEFAULT, SETTING_MAGGAIN_Y_DEFAULT, SETTING_MAGGAIN_Z_DEFAULT},
 );
 
-#ifdef USE_MAG
-
-static uint8_t magUpdatedAtLeastOnce = 0;
+static bool magUpdatedAtLeastOnce = false;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -94,10 +98,20 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_QMC5883:
 #ifdef USE_MAG_QMC5883
         if (qmc5883Detect(dev)) {
-#ifdef MAG_QMC5883_ALIGN
-            dev->magAlign.onBoard = MAG_QMC5883_ALIGN;
-#endif
             magHardware = MAG_QMC5883;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_QMC5883P:
+#ifdef USE_MAG_QMC5883P
+        if (qmc5883pDetect(dev)) {
+            magHardware = MAG_QMC5883P;
             break;
         }
 #endif
@@ -110,9 +124,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_HMC5883:
 #ifdef USE_MAG_HMC5883
         if (hmc5883lDetect(dev)) {
-#ifdef MAG_HMC5883_ALIGN
-            dev->magAlign.onBoard = MAG_HMC5883_ALIGN;
-#endif
             magHardware = MAG_HMC5883;
             break;
         }
@@ -126,9 +137,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_AK8975:
 #ifdef USE_MAG_AK8975
         if (ak8975Detect(dev)) {
-#ifdef MAG_AK8975_ALIGN
-            dev->magAlign.onBoard = MAG_AK8975_ALIGN;
-#endif
             magHardware = MAG_AK8975;
             break;
         }
@@ -142,26 +150,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_AK8963:
 #ifdef USE_MAG_AK8963
         if (ak8963Detect(dev)) {
-#ifdef MAG_AK8963_ALIGN
-            dev->magAlign.onBoard = MAG_AK8963_ALIGN;
-#endif
             magHardware = MAG_AK8963;
-            break;
-        }
-#endif
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (magHardwareToUse != MAG_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-
-    case MAG_GPS:
-#ifdef USE_GPS
-        if (gpsMagDetect(dev)) {
-#ifdef MAG_GPS_ALIGN
-            dev->magAlign.onBoard = MAG_GPS_ALIGN;
-#endif
-            magHardware = MAG_GPS;
             break;
         }
 #endif
@@ -174,9 +163,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_MAG3110:
 #ifdef USE_MAG_MAG3110
         if (mag3110detect(dev)) {
-#ifdef MAG_MAG3110_ALIGN
-            dev->magAlign.onBoard = MAG_MAG3110_ALIGN;
-#endif
             magHardware = MAG_MAG3110;
             break;
         }
@@ -190,9 +176,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_IST8310:
 #ifdef USE_MAG_IST8310
         if (ist8310Detect(dev)) {
-#ifdef MAG_IST8310_ALIGN
-            dev->magAlign.onBoard = MAG_IST8310_ALIGN;
-#endif
             magHardware = MAG_IST8310;
             break;
         }
@@ -206,9 +189,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_IST8308:
 #ifdef USE_MAG_IST8308
         if (ist8308Detect(dev)) {
-#ifdef MAG_IST8308_ALIGN
-            dev->magAlign.onBoard = MAG_IST8308_ALIGN;
-#endif
             magHardware = MAG_IST8308;
             break;
         }
@@ -222,9 +202,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_MPU9250:
 #ifdef USE_MAG_MPU9250
         if (mpu9250CompassDetect(dev)) {
-#ifdef MAG_MPU9250_ALIGN
-            dev->magAlign.onBoard = MAG_MPU9250_ALIGN;
-#endif
             magHardware = MAG_MPU9250;
             break;
         }
@@ -234,14 +211,64 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_LIS3MDL:
 #ifdef USE_MAG_LIS3MDL
         if (lis3mdlDetect(dev)) {
-#ifdef MAG_LIS3MDL_ALIGN
-            dev->magAlign = MAG_LIS3MDL_ALIGN;
-#endif
             magHardware = MAG_LIS3MDL;
             break;
         }
 #endif
 
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_MSP:
+#ifdef USE_MAG_MSP
+        // Skip autodetection for MSP mag
+        if (magHardwareToUse != MAG_AUTODETECT && mspMagDetect(dev)) {
+            magHardware = MAG_MSP;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_RM3100:
+#ifdef USE_MAG_RM3100
+        if (rm3100MagDetect(dev)) {
+            magHardware = MAG_RM3100;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_VCM5883:
+#ifdef USE_MAG_VCM5883
+        if (vcm5883Detect(dev)) {
+            magHardware = MAG_VCM5883;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_MLX90393:
+#ifdef USE_MAG_MLX90393
+        if (mlx90393Detect(dev)) {
+            magHardware = MAG_MLX90393;
+            break;
+        }
+#endif
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
@@ -313,6 +340,8 @@ bool compassInit(void)
         mag.dev.magAlign.useExternal = false;
         if (compassConfig()->mag_align != ALIGN_DEFAULT) {
             mag.dev.magAlign.onBoard = compassConfig()->mag_align;
+        } else {
+            mag.dev.magAlign.onBoard = CW270_DEG_FLIP;  // The most popular default is 270FLIP for external mags
         }
     }
 
@@ -329,19 +358,43 @@ bool compassIsReady(void)
     return magUpdatedAtLeastOnce;
 }
 
+bool compassIsCalibrationComplete(void)
+{
+    if (STATE(COMPASS_CALIBRATED)) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
 void compassUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
+		magUpdatedAtLeastOnce = true;
+		return;
+	}
+#endif
     static sensorCalibrationState_t calState;
     static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
+    static int magAxisDeviation[XYZ_AXIS_COUNT];
 
+#if defined(SITL_BUILD)
+    ENABLE_STATE(COMPASS_CALIBRATED);
+#else
     // Check magZero
-    if ((compassConfig()->magZero.raw[X] == 0) && (compassConfig()->magZero.raw[Y] == 0) && (compassConfig()->magZero.raw[Z] == 0)) {
+    if (
+        compassConfig()->magZero.raw[X] == 0 && compassConfig()->magZero.raw[Y] == 0 && compassConfig()->magZero.raw[Z] == 0 &&
+        compassConfig()->magGain[X] == 1024 && compassConfig()->magGain[Y] == 1024 && compassConfig()->magGain[Z] == 1024  
+    ) {
         DISABLE_STATE(COMPASS_CALIBRATED);
     }
     else {
         ENABLE_STATE(COMPASS_CALIBRATED);
     }
+#endif
 
     if (!mag.dev.read(&mag.dev)) {
         mag.magADC[X] = 0;
@@ -359,7 +412,9 @@ void compassUpdate(timeUs_t currentTimeUs)
 
         for (int axis = 0; axis < 3; axis++) {
             compassConfigMutable()->magZero.raw[axis] = 0;
+            compassConfigMutable()->magGain[axis] = 1024;
             magPrev[axis] = 0;
+            magAxisDeviation[axis] = 0;  // Gain is based on the biggest absolute deviation from the mag zero point. Gain computation starts at 0
         }
 
         beeper(BEEPER_ACTION_SUCCESS);
@@ -375,9 +430,15 @@ void compassUpdate(timeUs_t currentTimeUs)
             float diffMag = 0;
             float avgMag = 0;
 
-            for (int axis = 0; axis < 3; axis++) {
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 diffMag += (mag.magADC[axis] - magPrev[axis]) * (mag.magADC[axis] - magPrev[axis]);
                 avgMag += (mag.magADC[axis] + magPrev[axis]) * (mag.magADC[axis] + magPrev[axis]) / 4.0f;
+
+                // Find the biggest sample deviation together with sample' sign
+                if (ABS(mag.magADC[axis]) > ABS(magAxisDeviation[axis])) {
+                    magAxisDeviation[axis] = mag.magADC[axis];
+                }
+
             }
 
             // sqrtf(diffMag / avgMag) is a rough approximation of tangent of angle between magADC and magPrev. tan(8 deg) = 0.14
@@ -396,14 +457,23 @@ void compassUpdate(timeUs_t currentTimeUs)
                 compassConfigMutable()->magZero.raw[axis] = lrintf(magZerof[axis]);
             }
 
+            /*
+             * Scale calibration
+             * We use max absolute value of each axis as scale calibration with constant 1024 as base
+             * It is dirty, but worth checking if this will solve the problem of changing mag vector when UAV is tilted
+             */
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                compassConfigMutable()->magGain[axis] = ABS(magAxisDeviation[axis] - compassConfig()->magZero.raw[axis]);
+            }
+
             calStartedAt = 0;
             saveConfigAndNotify();
         }
     }
     else {
-        mag.magADC[X] -= compassConfig()->magZero.raw[X];
-        mag.magADC[Y] -= compassConfig()->magZero.raw[Y];
-        mag.magADC[Z] -= compassConfig()->magZero.raw[Z];
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            mag.magADC[axis] = (mag.magADC[axis] - compassConfig()->magZero.raw[axis]) * 1024 / compassConfig()->magGain[axis];
+        }
     }
 
     if (mag.dev.magAlign.useExternal) {
@@ -416,7 +486,7 @@ void compassUpdate(timeUs_t currentTimeUs)
         fpVector3_t rotated;
 
         rotationMatrixRotateVector(&rotated, &v, &mag.dev.magAlign.externalRotation);
-
+        applyTailSitterAlignment(&rotated);
          mag.magADC[X] = rotated.x;
          mag.magADC[Y] = rotated.y;
          mag.magADC[Z] = rotated.z;
@@ -427,6 +497,7 @@ void compassUpdate(timeUs_t currentTimeUs)
         applyBoardAlignment(mag.magADC);
     }
 
-    magUpdatedAtLeastOnce = 1;
+    magUpdatedAtLeastOnce = true;
 }
+
 #endif

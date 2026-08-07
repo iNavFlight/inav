@@ -21,8 +21,15 @@
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_TARGET_CONFIG
 
-#define TARGET_BOARD_IDENTIFIER "M765"
-#define USBD_PRODUCT_STRING     "MATEKF765"
+#if defined(MATEKF765SE)
+  #define TARGET_BOARD_IDENTIFIER "M7SE"
+  #define USBD_PRODUCT_STRING     "MATEKF765SE"
+
+  #define BEEPER_PWM_FREQUENCY    2500
+#else
+  #define TARGET_BOARD_IDENTIFIER "M765"
+  #define USBD_PRODUCT_STRING     "MATEKF765"
+#endif
 
 #define LED0                    PD10
 #define LED1                    PD11
@@ -42,30 +49,24 @@
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
 
-#define USE_ACC
-#define USE_GYRO
 #define USE_DUAL_GYRO
 
-#define USE_ACC_MPU6000
-#define USE_GYRO_MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG_FLIP
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PC4
-#define MPU6000_EXTI_PIN        PB2
 
-#define USE_ACC_MPU6500
-#define USE_GYRO_MPU6500
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW270_DEG_FLIP
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define MPU6500_CS_PIN          PD7
-#define MPU6500_EXTI_PIN        PD4
 
-#define GYRO_MPU6000_ALIGN      CW90_DEG_FLIP
-#define ACC_MPU6000_ALIGN       CW90_DEG_FLIP
-
-#define GYRO_MPU6500_ALIGN      CW270_DEG_FLIP
-#define ACC_MPU6500_ALIGN       CW270_DEG_FLIP
-
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+#if defined(MATEKF765SE)
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW0_DEG_FLIP
+#define ICM42605_SPI_BUS        BUS_SPI4
+#define ICM42605_CS_PIN         PE11
+#endif
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -81,18 +82,14 @@
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
+#define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_RANGEFINDER
@@ -104,18 +101,15 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
 
 // *************** SPI4 ******************************
-/*
 #define USE_SPI_DEVICE_4
 #define SPI4_SCK_PIN            PE12
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE14
-*/
 
 // *************** UART *****************************
 #define USE_VCP
@@ -134,9 +128,10 @@
 #define UART3_TX_PIN            PD8
 #define UART3_RX_PIN            PD9
 
-#define USE_UART4
-#define UART4_TX_PIN            PD1
-#define UART4_RX_PIN            PD0
+#define USE_UART5
+#define UART5_TX_PIN            NONE
+#define UART5_RX_PIN            PB8
+#define UART5_AF                7
 
 #define USE_UART6
 #define UART6_TX_PIN            PC6
@@ -150,13 +145,20 @@
 #define UART8_TX_PIN            PE1
 #define UART8_RX_PIN            PE0
 
-/*
-#define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_TX_PIN      PA2
-#define SOFTSERIAL_1_RX_PIN      PA2
-*/
 
-#define SERIAL_PORT_COUNT       8
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_TX_PIN      PC6  //TX6 pad
+#define SOFTSERIAL_1_RX_PIN      PC6  //TX6 pad
+
+#if defined(MATEKF765SE)
+  #define SERIAL_PORT_COUNT       9
+  // PD1 and PD0 are used for CAN
+#else
+  #define USE_UART4
+  #define UART4_TX_PIN            PD1
+  #define UART4_RX_PIN            PD0
+  #define SERIAL_PORT_COUNT       10
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -167,6 +169,7 @@
 #define USE_SDCARD_SDIO
 #define SDCARD_SDIO_DMA         DMA_TAG(2,3,4)
 #define SDCARD_SDIO_4BIT
+#define SDCARD_SDIO_DEVICE		SDIODEV_1
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** ADC *****************************
@@ -177,6 +180,8 @@
 #define ADC_CHANNEL_2_PIN           PC3
 #define ADC_CHANNEL_3_PIN           PC1
 #define ADC_CHANNEL_4_PIN           PC0
+#define ADC_CHANNEL_5_PIN           PA4 //VBAT2
+#define ADC_CHANNEL_6_PIN           PC5 //CURR2
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
@@ -194,7 +199,14 @@
 #define WS2811_PIN                  PA8
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
-#define CURRENT_METER_SCALE         250
+
+#if defined(MATEKF765SE)
+  #define VBAT_SCALE_DEFAULT        2100
+  #define CURRENT_METER_SCALE       150
+#else
+  #define VBAT_SCALE_DEFAULT        1100
+  #define CURRENT_METER_SCALE       250
+#endif
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -204,7 +216,6 @@
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 
-#define MAX_PWM_OUTPUT_PORTS        15
+#define MAX_PWM_OUTPUT_PORTS        16
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define USE_SERIALSHOT

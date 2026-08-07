@@ -5,6 +5,8 @@
  * rather already known hardware status should be returned.
  */
 
+#pragma once
+
 typedef enum {
     HW_SENSOR_NONE          = 0,    // Not selected
     HW_SENSOR_OK            = 1,    // Selected, detected and healthy (ready to be used)
