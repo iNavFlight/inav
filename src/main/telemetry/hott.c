@@ -245,6 +245,9 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
 #endif
          {
         hottGPSMessage->gps_fix_char = GPS_FIX_CHAR_NONE;
+		hottGPSMessage->free_char1 = 45;	//"-";
+		hottGPSMessage->free_char2 = 45;	//"-";
+		hottGPSMessage->free_char3 = 45;	//"-";
         return;
     }
 
@@ -252,6 +255,7 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
         hottGPSMessage->gps_fix_char = GPS_FIX_CHAR_3D;
     } else {
         hottGPSMessage->gps_fix_char = GPS_FIX_CHAR_2D;
+		hottGPSMessage->free_char3 = 50;	//"2";
     }
 
     addGPSCoordinates(hottGPSMessage, gpsSol.llh.lat, gpsSol.llh.lon);
@@ -378,7 +382,10 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
 			hottGPSMessage->free_char1 = 69;	//"E";
 			hottGPSMessage->free_char2 = 82;	//"R";
 			hottGPSMessage->free_char3 = 82;	//"R";
+			hrstSent = 0;
     }
+	if (!IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent > 0)
+        hrstSent = 0;
 }
 #endif
 
