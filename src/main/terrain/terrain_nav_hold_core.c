@@ -172,9 +172,11 @@ static void startCapture(terrainNavHoldState_t *state, const terrainNavHoldInput
     state->reCapturePending = false;
     state->minAglReached = false;
     state->climbBestAglCm = in->aglCm;
-    // An active PULL UP deliberately survives a capture below the minimum:
-    // releasing the stick at the lowest point must not extinguish the red
-    // alarm; updateFloorAlarm clears it the moment the minimum is back
+    // A fresh capture hands a below-minimum situation to the automatic climb
+    // (info message): the red alarm means a live threat only, and returns via
+    // the losing-ground ratchet, a pilot push below the margin, or a breached
+    // floor - never just for starting low
+    state->pullUpActive = false;
     updateFloorAlarm(state, in);
 }
 
