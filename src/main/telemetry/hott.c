@@ -87,6 +87,10 @@
 #include "telemetry/hott.h"
 #include "telemetry/telemetry.h"
 
+#ifdef USE_GPS
+#include "fc/rc_modes.h"
+#endif	//USE_GPS
+
 #if defined (USE_HOTT_TEXTMODE) && defined (USE_CMS)
 #include "scheduler/scheduler.h"
 #include "io/displayport_hott.h"
@@ -106,10 +110,10 @@ typedef enum {
     HOTT_ENDING_TRANSMISSION
 } hottState_e;
 
-#define HOTT_MESSAGE_PREPARATION_FREQUENCY_5_HZ ((1000 * 1000) / 5)
+#define HOTT_MESSAGE_PREPARATION_FREQUENCY_10_HZ ((1000 * 1000) / 10)
 #define HOTT_RX_SCHEDULE 4000
 #define HOTT_TX_SCHEDULE 5000
-#define HOTT_TX_DELAY_US 2000
+#define HOTT_TX_DELAY_US 600
 #define MILLISECONDS_IN_A_SECOND 1000
 
 static uint32_t rxSchedule = HOTT_RX_SCHEDULE;
@@ -265,7 +269,116 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
     hottGPSMessage->altitude_L = hottGpsAltitude & 0x00FF;
     hottGPSMessage->altitude_H = hottGpsAltitude >> 8;
 
-    hottGPSMessage->home_direction = GPS_directionToHome;
+    hottGPSMessage->home_direction = GPS_directionToHome/2;
+	
+	if (gpsSol.groundCourse < 0)
+		{
+		hottGPSMessage->flight_direction = gpsSol.groundCourse/20 + 180;
+		}
+	else
+		{
+		hottGPSMessage->flight_direction = gpsSol.groundCourse/20;	//GPS_direction;		//gpsSol.groundCourse
+		}
+		
+    static uint8_t hrstSent = 0;
+	hottGPSMessage->free_char1 = 79;	//"O";
+	hottGPSMessage->free_char2 = 75;	//"K";
+	hottGPSMessage->free_char3 = 51;	//"3";	32 " "
+    if (ARMING_FLAG(ARMED)) 
+		{
+	hottGPSMessage->free_char1 = 65;	//"A";
+	hottGPSMessage->free_char2 = 67;	//"C";
+	hottGPSMessage->free_char3 = 82;	//"R";
+#ifdef USE_FW_AUTOLAND
+        if (FLIGHT_MODE(NAV_FW_AUTOLAND)) 
+		{
+	hottGPSMessage->free_char1 = 76;	//"L";
+	hottGPSMessage->free_char2 = 78;	//"N";
+	hottGPSMessage->free_char3 = 68;	//"D";
+        } else
+#endif
+        if (FLIGHT_MODE(FAILSAFE_MODE)) {
+	hottGPSMessage->free_char1 = 70;	//"F";
+	hottGPSMessage->free_char2 = 83;	//"S";
+	hottGPSMessage->free_char3 = 33;	//"!";
+        } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent < 4 && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
+	hottGPSMessage->free_char1 = 72;	//"H";
+	hottGPSMessage->free_char2 = 82;	//"R";
+	hottGPSMessage->free_char3 = 83;	//"S";
+            hrstSent++;
+        } else if (FLIGHT_MODE(MANUAL_MODE)) {
+	hottGPSMessage->free_char1 = 77;	//"M";
+	hottGPSMessage->free_char2 = 65;	//"A";
+	hottGPSMessage->free_char3 = 78;	//"N";
+#ifdef USE_GEOZONE
+        } else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE)) {
+	hottGPSMessage->free_char1 = 71;	//"G";
+	hottGPSMessage->free_char2 = 69;	//"E";
+	hottGPSMessage->free_char3 = 79;	//"O";
+#endif  
+        } else if (FLIGHT_MODE(TURTLE_MODE)) {
+			hottGPSMessage->free_char1 = 84;	//"T";
+			hottGPSMessage->free_char2 = 82;	//"R";
+			hottGPSMessage->free_char3 = 84;	//"T";
+        } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
+            if (isWaypointMissionRTHActive())
+			{
+			hottGPSMessage->free_char1 = 87;	//"W";
+			hottGPSMessage->free_char2 = 82;	//"R";
+			hottGPSMessage->free_char3 = 72;	//"H";
+			}
+			else
+			{
+			hottGPSMessage->free_char1 = 82;	//"R";
+			hottGPSMessage->free_char2 = 84;	//"T";
+			hottGPSMessage->free_char3 = 72;	//"H";
+			};
+        } else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE)) {
+			hottGPSMessage->free_char1 = 76;	//"L";
+			hottGPSMessage->free_char2 = 79;	//"O";
+			hottGPSMessage->free_char3 = 84;	//"T";
+        } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
+			hottGPSMessage->free_char1 = 72;	//"H";
+			hottGPSMessage->free_char2 = 76;	//"L";
+			hottGPSMessage->free_char3 = 68;	//"D";
+        } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+			hottGPSMessage->free_char1 = 67;	//"C";
+			hottGPSMessage->free_char2 = 82;	//"R";
+			hottGPSMessage->free_char3 = 83;	//"S";
+        } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+			hottGPSMessage->free_char1 = 67;	//"C";
+			hottGPSMessage->free_char2 = 82;	//"R";
+			hottGPSMessage->free_char3 = 72;	//"H";
+        } else if (FLIGHT_MODE(NAV_WP_MODE)) {
+			hottGPSMessage->free_char1 = 87;	//"W";
+			hottGPSMessage->free_char2 = 80;	//"P";
+			hottGPSMessage->free_char3 = 32;	//" ";
+        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
+			hottGPSMessage->free_char1 = 65;	//"A";
+			hottGPSMessage->free_char2 = 72;	//"H";
+			hottGPSMessage->free_char3 = 32;	//" ";
+        } else if (FLIGHT_MODE(ANGLE_MODE)) {
+			hottGPSMessage->free_char1 = 65;	//"A";
+			hottGPSMessage->free_char2 = 78;	//"N";
+			hottGPSMessage->free_char3 = 71;	//"G";
+        } else if (FLIGHT_MODE(HORIZON_MODE)) {
+			hottGPSMessage->free_char1 = 72;	//"H";
+			hottGPSMessage->free_char2 = 79;	//"O";
+			hottGPSMessage->free_char3 = 82;	//"R";
+        } else if (FLIGHT_MODE(ANGLEHOLD_MODE)) {
+			hottGPSMessage->free_char1 = 65;	//"A";
+			hottGPSMessage->free_char2 = 78;	//"N";
+			hottGPSMessage->free_char3 = 72;	//"H";
+        }
+    } else if (navConfig()->general.flags.extra_arming_safety && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
+			hottGPSMessage->free_char1 = 87;	//"W";
+			hottGPSMessage->free_char2 = 65;	//"A";
+			hottGPSMessage->free_char3 = 73;	//"I"; // Waiting for GPS lock
+    } else if (isArmingDisabled()) {
+			hottGPSMessage->free_char1 = 69;	//"E";
+			hottGPSMessage->free_char2 = 82;	//"R";
+			hottGPSMessage->free_char3 = 82;	//"R";
+    }
 }
 #endif
 
