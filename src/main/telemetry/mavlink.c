@@ -1322,7 +1322,7 @@ static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
             break;
         case MAVLINK_RADIO_GENERIC:
         default:
-            rxLinkStatistics.uplinkRSSI = msg->rssi;
+            rxLinkStatistics.uplinkRSSI = -msg->rssi;
             rxLinkStatistics.uplinkSNR = msg->noise;
             rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
             break;
