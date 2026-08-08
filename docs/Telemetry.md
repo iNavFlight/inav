@@ -206,7 +206,7 @@ More information about the fields, encoding and enumerations may be found [on th
 
 MAVLink is a lightweight header-only message marshalling library for micro air vehicles. INAV supports MAVLink for compatibility with ground stations, OSDs and antenna trackers built for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
 
-MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial (requires 19200 baud). MAVLink V1 and V2 are supported.
+MAVLink implementation in INAV is transmit-only, is usable at low baud rates. MAVLink V1 and V2 are supported.
 
 
 ## Cellular telemetry via text messages
@@ -233,7 +233,7 @@ To receive acceleration event messages, set one or more of the acceleration even
 Ibus telemetry requires a single connection from the TX pin of a bidirectional serial port to the Ibus sens pin on an FlySky telemetry receiver. (tested with fs-iA6B receiver, iA10 should work)
 
 It shares 1 line for both TX and RX, the rx pin cannot be used for other serial port stuff.
-It runs at a fixed baud rate of 115200, so it need hardware uart (softserial is limit to 19200).
+It runs at a fixed baud rate of 115200.
 ```
      _______
     /       \                                              /-------------\
