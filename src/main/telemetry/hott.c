@@ -231,13 +231,13 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
     hottGPSMessage->gps_satelites = gpsSol.numSat;
 
     // Report climb rate regardless of GPS fix
-    const int32_t climbrate = MAX(0, getEstimatedActualVelocity(Z) + 30000);
-    hottGPSMessage->climbrate_L = climbrate & 0xFF;
-    hottGPSMessage->climbrate_H = climbrate >> 8;
-
-    const int32_t climbrate3s = MAX(0, 3.0f * getEstimatedActualVelocity(Z) / 100 + 120);
-    hottGPSMessage->climbrate3s = climbrate3s & 0xFF;
-
+    const uint16_t encoded_climbrate = (uint16_t)(MAX(0, getEstimatedActualVelocity(Z) + 30000));
+    hottGPSMessage->climbrate_L = (uint8_t)(encoded_climbrate & 0x00FFU);
+    hottGPSMessage->climbrate_H = (uint8_t)(encoded_climbrate >> 8);
+    uint16_t encoded_climbrate3s = (uint16_t)(MAX(0, 3.0f * getEstimatedActualVelocity(Z) / 100 + 120));
+	if (encoded_climbrate3s > 255)
+		encoded_climbrate3s = HOTT_EAM_OFFSET_M3S;
+    hottGPSMessage->climbrate3s = (uint8_t)(encoded_climbrate3s);
 #ifdef USE_GPS_FIX_ESTIMATION
     if (!(STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)))
 #else
@@ -437,12 +437,13 @@ static inline void hottEAMUpdateAltitudeAndClimbrate(HOTT_EAM_MSG_t *hottEAMMess
     hottEAMMessage->altitude_L = alt & 0xFF;
     hottEAMMessage->altitude_H = alt >> 8;
 
-    const int32_t climbrate = MAX(0, (int32_t)(getEstimatedActualVelocity(Z) + 30000));
-    hottEAMMessage->climbrate_L = climbrate & 0xFF;
-    hottEAMMessage->climbrate_H = climbrate >> 8;
-
-    const int32_t climbrate3s = MAX(0, (int32_t)(3.0f * getEstimatedActualVelocity(Z) / 100 + 120));
-    hottEAMMessage->climbrate3s = climbrate3s & 0xFF;
+    const uint16_t encoded_climbrate = (uint16_t)(MAX(0, getEstimatedActualVelocity(Z) + 30000));
+    hottEAMMessage->climbrate_L = (uint8_t)(encoded_climbrate & 0x00FFU);
+    hottEAMMessage->climbrate_H = (uint8_t)(encoded_climbrate >> 8);
+    uint16_t encoded_climbrate3s = (uint16_t)(MAX(0, 3.0f * getEstimatedActualVelocity(Z) / 100 + 120));
+	if (encoded_climbrate3s > 255)
+		encoded_climbrate3s = HOTT_EAM_OFFSET_M3S;
+    hottEAMMessage->climbrate3s = (uint8_t)(encoded_climbrate3s);
 }
 
 void hottPrepareEAMResponse(HOTT_EAM_MSG_t *hottEAMMessage)
