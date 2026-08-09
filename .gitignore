@@ -27,6 +27,8 @@ cov-int*
 /debug/
 /release/
 /*_SITL/
+.conda/
+.venv/
 
 # script-generated files
 docs/Manual.pdf
