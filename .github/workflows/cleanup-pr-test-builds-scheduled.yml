@@ -1,0 +1,28 @@
+name: Cleanup PR Test Builds (scheduled sweep)
+
+# Safety net for cleanup-pr-test-builds.yml: runs .github/scripts/cleanup-old-pr-test-builds.py
+# on a schedule to catch anything the merge-triggered workflow missed (a failed API
+# call, a PR merged before that workflow existed, etc.) and to gradually clear the
+# pre-existing backlog. --older-than 14 also deletes releases for PRs that are still
+# open but haven't been touched in 14 days, not just merged ones.
+#
+# Requires the same repository secret PR_BUILDS_TOKEN used by pr-test-builds.yml
+# and cleanup-pr-test-builds.yml (Contents: write access to iNavFlight/pr-test-builds).
+on:
+  schedule:
+    - cron: '17 4 * * *'  # daily, off-the-hour to avoid GitHub's top-of-hour load spike
+  workflow_dispatch: {}    # allow manual runs
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Run cleanup sweep
+        env:
+          GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+        run: python3 .github/scripts/cleanup-old-pr-test-builds.py --older-than 14

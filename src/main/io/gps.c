@@ -103,7 +103,9 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
 #endif
 
     /* MSP GPS */
-#ifdef USE_GPS_PROTO_MSP
+    // GPS_NULL_PORT_UNIT_TEST's minimal build links only io/gps.c, so optional
+    // protocols/features that pull in other production globals are excluded here.
+#if defined(USE_GPS_PROTO_MSP) && !defined(GPS_NULL_PORT_UNIT_TEST)
     { true, 0, &gpsRestartMSP, &gpsHandleMSP },
 #else
     { false, 0, NULL, NULL },
@@ -123,7 +125,7 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
 #endif
 
     /* DRONECAN GPS */
-#ifdef USE_DRONECAN
+#if defined(USE_DRONECAN) && !defined(GPS_NULL_PORT_UNIT_TEST)
     {true, 0, &gpsRestartDronecan, &gpsHandleDronecan },
 #else
     {false, 0, NULL, NULL },
@@ -228,7 +230,7 @@ void gpsSetProtocolTimeout(timeMs_t timeoutMs)
     gpsState.timeoutMs = timeoutMs;
 }
 
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
 bool canEstimateGPSFix(void)
 {
 #if defined(USE_GPS) && defined(USE_BARO)
@@ -246,8 +248,8 @@ bool canEstimateGPSFix(void)
 }
 #endif
 
-#ifdef USE_GPS_FIX_ESTIMATION
-void processDisableGPSFix(void) 
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
+void processDisableGPSFix(void)
 {
     static int32_t last_lat = 0;
     static int32_t last_lon = 0;
@@ -262,6 +264,9 @@ void processDisableGPSFix(void)
         gpsSol.flags.validVelD = false;  
         gpsSol.flags.validEPE = false;
         gpsSol.flags.validTime = false;
+        gpsSol.flags.validEllipsoidAltitude = false;
+        gpsSol.flags.validSpeedAccuracy = false;
+        gpsSol.flags.validHeadingAccuracy = false;
 
         //freeze coordinates
         gpsSol.llh.lat = last_lat;
@@ -275,7 +280,7 @@ void processDisableGPSFix(void)
 }
 #endif
 
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
 //called after gpsSolDRV is copied to gpsSol and processed by "Disable GPS Fix logical condition"
 void updateEstimatedGPSFix(void) 
 {
@@ -359,7 +364,7 @@ void gpsProcessNewDriverData(void)
 {
     gpsSol = gpsSolDRV;
 
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
     processDisableGPSFix();
     updateEstimatedGPSFix();
 #endif
@@ -372,7 +377,7 @@ void gpsProcessNewDriverData(void)
 //On GPS sensor timeout - called after updateEstimatedGPSFix()
 void gpsProcessNewSolutionData(bool timeout)
 {
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
     if ( gpsSol.numSat == 99 ) {
         ENABLE_STATE(GPS_ESTIMATED_FIX);
         DISABLE_STATE(GPS_FIX);
@@ -391,7 +396,7 @@ void gpsProcessNewSolutionData(bool timeout)
             gpsSol.flags.validEPE = false;
             DISABLE_STATE(GPS_FIX);
         }
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
     }
 #endif
 
@@ -432,6 +437,9 @@ static void gpsResetSolution(gpsSolutionData_t* gpsSol)
     gpsSol->flags.validVelD = false;
     gpsSol->flags.validEPE = false;
     gpsSol->flags.validTime = false;
+    gpsSol->flags.validEllipsoidAltitude = false;
+    gpsSol->flags.validSpeedAccuracy = false;
+    gpsSol->flags.validHeadingAccuracy = false;
 }
 
 void gpsTryEstimateOnTimeout(void)
@@ -439,7 +447,7 @@ void gpsTryEstimateOnTimeout(void)
     gpsResetSolution(&gpsSol);
     DISABLE_STATE(GPS_FIX);
 
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
     if ( canEstimateGPSFix() ) {
         updateEstimatedGPSFix();
 
@@ -544,7 +552,7 @@ bool gpsUpdate(void)
         return false;
     }
 
-#ifdef USE_SIMULATOR
+#if defined(USE_SIMULATOR) && !defined(GPS_NULL_PORT_UNIT_TEST)
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         if ( SIMULATOR_HAS_OPTION(HITL_GPS_TIMEOUT)) {
             gpsSetState(GPS_LOST_COMMUNICATION);
@@ -560,6 +568,13 @@ bool gpsUpdate(void)
         return res;
     }
 #endif
+
+    // Driver-based providers (MSP, FAKE) never open a serial port; gpsPort stays NULL.
+    // If gps_provider is changed via CLI to a serial-based provider without rebooting,
+    // the serial handler would dereference NULL on the next tick and hard-fault.
+    if (!gpsProviders[gpsState.gpsConfig->provider].isDriverBased && !gpsState.gpsPort) {
+        return false;
+    }
 
     switch (gpsState.state) {
     default:
@@ -611,6 +626,10 @@ bool gpsUpdate(void)
 
 void gpsEnablePassthrough(serialPort_t *gpsPassthroughPort)
 {
+    if (!gpsState.gpsPort) {
+        return;
+    }
+
     waitForSerialPortToFinishTransmitting(gpsState.gpsPort);
     waitForSerialPortToFinishTransmitting(gpsPassthroughPort);
 
