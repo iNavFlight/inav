@@ -136,6 +136,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
             .motor = {
                 .throttleIdle = SETTING_THROTTLE_IDLE_DEFAULT,
                 .throttleScale = SETTING_THROTTLE_SCALE_DEFAULT,
+                .throttleRateLimiter = SETTING_FW_THROTTLE_RATE_LIMITER_DEFAULT,                  // 100 millis
 #ifdef USE_DSHOT
                 .turtleModePowerFactor = SETTING_TURTLE_MODE_POWER_FACTOR_DEFAULT,
 #endif

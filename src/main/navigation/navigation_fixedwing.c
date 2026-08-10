@@ -73,7 +73,8 @@ static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static float navCrossTrackError;
 static int8_t loiterDirYaw = 1;
-bool needToCalculateCircularLoiter;
+static bool needToCalculateCircularLoiter;
+static bool autoSpeedIsActive = false;
 
 // Calculates the cutoff frequency for smoothing out roll/pitch commands
 // control_smoothness valid range from 0 to 9
@@ -888,17 +889,37 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
  *-----------------------------------------------------------*/
 bool isFixedwingAutoSpeedActive(void)
 {
-    bool thrStickEmergStop = navConfig()->fw.auto_speed_channel != (THROTTLE + 1) && throttleStickIsLow();
+    return autoSpeedIsActive;
+}
 
-    return STATE(AIRPLANE) && ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXAUTOSPEED) && isProbablyStillFlying() && !thrStickEmergStop &&
-            !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
-            posControl.flags.estVelStatus == EST_TRUSTED && posControl.flags.estAltStatus == EST_TRUSTED &&
-            !(navigationRequiresAutoThrottleMode() && !(navGetCurrentStateFlags() & NAV_CTL_SPEED));
+static int8_t isAutoSpeedRequiredByNav(void)
+{
+    int8_t result = -1;
+    if (FLIGHT_MODE(NAV_WP_MODE) && getActiveSpeed() > 0) {
+        result = FW_AUTO_SPD_GROUND;
+    }
+
+    return result;
+}
+
+static bool isAutoSpeedEnabled(void)
+{
+    bool thrStickEmergStop = navConfig()->fw.auto_speed_channel != (THROTTLE + 1) && throttleStickIsLow();
+    bool autoSpeedRequested = IS_RC_MODE_ACTIVE(BOXAUTOSPEED) || isAutoSpeedRequiredByNav() >= 0;
+
+    return ARMING_FLAG(ARMED) && autoSpeedRequested && isProbablyStillFlying() && !thrStickEmergStop &&
+           !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
+           posControl.flags.estVelStatus == EST_TRUSTED && posControl.flags.estAltStatus == EST_TRUSTED &&
+           !(navigationRequiresAutoThrottleMode() && !(navGetCurrentStateFlags() & NAV_CTL_SPEED));
 }
 
 void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTimeUs)
 {
-    if (!isFixedwingAutoSpeedActive()) return;
+    if (!STATE(AIRPLANE) || !isAutoSpeedEnabled()) {
+        autoSpeedIsActive = false;
+        return;
+    }
+    autoSpeedIsActive = true;
 
     static uint16_t autoSpeedThrottleCommand = PWM_RANGE_MIDDLE;
 
@@ -918,7 +939,14 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
         uint16_t minThrottle = MAX(getThrottleIdleValue(), currentBatteryProfile->nav.fw.min_throttle);
         uint16_t maxThrottle = currentBatteryProfile->nav.fw.max_throttle;
 
-        posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(navConfig()->fw.auto_speed_channel - 1), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
+        bool useAirSpeed = !LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED);
+        if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED)) {
+            posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(navConfig()->fw.auto_speed_channel - 1), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
+        } else {
+            posControl.desiredState.autoSpeedDemand = constrain(getActiveSpeed(), minSpeed, maxSpeed);
+            useAirSpeed = isAutoSpeedRequiredByNav() == FW_AUTO_SPD_AIR;
+        }
+
         uint16_t actualSpeed = posControl.actualState.vel3D;
         posControl.autoSpeedSpdSource = FW_AUTO_SPD_GROUND;
         uint16_t groundSpeedBoost = 0;
@@ -926,8 +954,9 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
 #ifdef USE_PITOT
         if (pitotValidateAirspeed()) {
             static bool airspeedBoost = false;
+
             // Pitot available and airspeed source selected or low airspeed boost applied when using ground speed source
-            if (!LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED) || airspeedBoost) {
+            if (useAirSpeed || airspeedBoost) {
                 actualSpeed = getAirspeedEstimate();
                 if (airspeedBoost && actualSpeed > minSpeed) {
                     airspeedBoost = false;

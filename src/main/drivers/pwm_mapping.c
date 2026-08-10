@@ -211,7 +211,7 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
     return false;
 }
 
-static void timerHardwareOverride(timerHardware_t * timer, bool isCanonicalBeeperPad) {
+static void timerHardwareOverride(timerHardware_t * timer, bool isCanonicalBeeperPad, bool isCanonicalLedPad) {
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
             timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED|TIM_USE_BEEPER);
@@ -222,8 +222,17 @@ static void timerHardwareOverride(timerHardware_t * timer, bool isCanonicalBeepe
             timer->usageFlags |= TIM_USE_SERVO;
             break;
         case OUTPUT_MODE_LED:
-            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_BEEPER);
-            timer->usageFlags |= TIM_USE_LED;
+            // Other channels of this timer share its period register, so they can't
+            // be repurposed as motor/servo/BEEPER either. Only the first (canonical)
+            // pad is the one ws2811LedStripInit() actually wires up; siblings can still
+            // drive a GPIO-only PINIO (binary on/off, no PWM), since that doesn't need
+            // the timer's fixed WS2811-bitrate period.
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_BEEPER|TIM_USE_LED);
+            timer->usageFlags |= TIM_USE_PINIO;
+            if (isCanonicalLedPad) {
+                timer->usageFlags &= ~TIM_USE_PINIO;
+                timer->usageFlags |= TIM_USE_LED;
+            }
             break;
         case OUTPUT_MODE_PINIO:
             timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED|TIM_USE_BEEPER);
@@ -292,8 +301,14 @@ static void pwmAssignOutput(timMotorServoHardware_t *timOutputs, timerHardware_t
             pwmClaimTimer(timHw->tim, timHw->usageFlags);
             break;
         case MAP_TO_LED_OUTPUT:
+            // Unlike motor/servo, do NOT pwmClaimTimer() here: that propagates
+            // this pad's flags to every sibling pad sharing the physical timer,
+            // which is correct for motor/servo (a multi-channel timer should
+            // offer multiple motor/servo outputs) but wrong for LED — only this
+            // one canonical pad is ever driven, and propagating TIM_USE_LED would
+            // overwrite siblings' correct TIM_USE_PINIO/BEEPER (from the earlier
+            // canonical-pad pass in timerHardwareOverride()) back to a false LED flag.
             timHw->usageFlags &= TIM_USE_LED;
-            pwmClaimTimer(timHw->tim, timHw->usageFlags);
             break;
         default:
             break;
@@ -327,6 +342,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
 
     // Apply all timerOverrides upfront so flag state is stable for both passes
     bool beeperClaimed[HARDWARE_TIMER_DEFINITION_COUNT] = { false };
+    bool ledClaimed[HARDWARE_TIMER_DEFINITION_COUNT] = { false };
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         timerHardware_t *timHw = &timerHardware[idx];
         uint8_t timId = timer2id(timHw->tim);
@@ -335,7 +351,12 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
             beeperClaimed[timId] = true;
             isCanonicalBeeperPad = true;
         }
-        timerHardwareOverride(timHw, isCanonicalBeeperPad);
+        bool isCanonicalLedPad = false;
+        if (timerOverrides(timId)->outputMode == OUTPUT_MODE_LED && !ledClaimed[timId]) {
+            ledClaimed[timId] = true;
+            isCanonicalLedPad = true;
+        }
+        timerHardwareOverride(timHw, isCanonicalBeeperPad, isCanonicalLedPad);
     }
 
     // Assign outputs in priority order: dedicated first, then auto.
