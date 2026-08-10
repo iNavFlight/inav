@@ -34,6 +34,9 @@ void terrainNavHoldCoreReset(terrainNavHoldState_t *state)
     state->minAglReached = false;
     state->climbBestAglCm = 0;
     state->pullUpActive = false;
+    state->pullUpRatchet = false;
+    state->pullUpCapFight = false;
+    state->uncoverCapFight = false;
     state->stickWasAdjusting = false;
     state->blendActive = false;
     state->blendRateCmS = 0.0f;
@@ -64,6 +67,7 @@ static void updateEscapeAlarm(terrainNavHoldState_t *state, const terrainNavHold
         state->terrainAheadActive = false;
         state->escapeBadSinceMs = 0;
         state->escapeClearSinceMs = 0;
+        state->uncoverCapFight = false;
         return;
     }
 
@@ -75,6 +79,20 @@ static void updateEscapeAlarm(terrainNavHoldState_t *state, const terrainNavHold
         cushionCm = 0.0f;
     }
     const float shortfallCm = in->escapeDeficitCm + cushionCm;
+
+    // A red that ran against the ceiling clamp just cleared: a latched
+    // caution pointing at sky the aircraft has already escaped must not
+    // linger - if the escape test passes RIGHT NOW it drops immediately.
+    // Every other uncover keeps the sustained clear below (anti-flicker)
+    if (state->uncoverCapFight) {
+        state->uncoverCapFight = false;
+        if (state->terrainAheadActive && shortfallCm <= 0.0f) {
+            state->terrainAheadActive = false;
+            state->escapeBadSinceMs = 0;
+            state->escapeClearSinceMs = 0;
+            return;
+        }
+    }
 
     if (shortfallCm > 0.0f) {
         state->escapeClearSinceMs = 0;
@@ -136,7 +154,20 @@ static void runBlend(terrainNavHoldState_t *state, const terrainNavHoldInput_t *
     out->rateCmS = state->blendRateCmS;
 }
 
-// Floor alarm: PULL UP must fire on real AGL, ceiling or not. Once the
+// The red text is the honest instruction. Where pulling the stick genuinely
+// fixes the lowness (a breached floor, floor breathing, stick pressure) it
+// says PULL UP; where pulling cannot help and may delay the right reaction
+// it says TURN AWAY - the losing auto-climb (a manual pull commands the
+// MANUAL rate, by default LESS than the automatic climb already failing)
+// and the fight pinned at the ceiling (the funnel clamps every nav climb)
+static terrainNavHoldWarning_e pullUpWarning(const terrainNavHoldState_t *state)
+{
+    return (state->pullUpRatchet || state->pullUpCapFight)
+        ? TERRAIN_NAV_HOLD_WARN_TURN_AWAY
+        : TERRAIN_NAV_HOLD_WARN_PULL_UP;
+}
+
+// Floor alarm: the red must fire on real AGL, ceiling or not. Once the
 // minimum has been reached, dropping below (min - margin) latches the alarm
 // and only climbing back to the minimum clears it. During the initial
 // automatic climb the aircraft is legitimately below the minimum, so there
@@ -146,7 +177,14 @@ static void updateFloorAlarm(terrainNavHoldState_t *state, const terrainNavHoldI
 {
     if (in->aglCm >= in->minAglCm) {
         state->minAglReached = true;
+        // The uncover moment: a red that ran against the ceiling clamp just
+        // cleared - the escape alarm may drop its stale caution this cycle
+        if (state->pullUpActive && state->pullUpCapFight) {
+            state->uncoverCapFight = true;
+        }
         state->pullUpActive = false;
+        state->pullUpRatchet = false;
+        state->pullUpCapFight = false;
         return;
     }
 
@@ -159,6 +197,7 @@ static void updateFloorAlarm(terrainNavHoldState_t *state, const terrainNavHoldI
             state->climbBestAglCm = in->aglCm;
         } else if (in->aglCm < state->climbBestAglCm - TERRAIN_NAV_HOLD_PULLUP_HYST_CM) {
             state->pullUpActive = true;
+            state->pullUpRatchet = true;
         }
     }
 }
@@ -177,6 +216,8 @@ static void startCapture(terrainNavHoldState_t *state, const terrainNavHoldInput
     // the losing-ground ratchet, a pilot push below the margin, or a breached
     // floor - never just for starting low
     state->pullUpActive = false;
+    state->pullUpRatchet = false;
+    state->pullUpCapFight = false;
     updateFloorAlarm(state, in);
 }
 
@@ -210,7 +251,8 @@ static void computeTarget(terrainNavHoldState_t *state, const terrainNavHoldInpu
     // Ceiling arbitration: nav_max_altitude always wins - the funnel clamps
     // the target for real, here we only detect the conflict and warn. Warns
     // ahead of the pinch too, because the lookahead demand is in targetZCm
-    if (in->maxAltCm > 0 && targetZCm > in->maxAltCm) {
+    const bool capConflict = (in->maxAltCm > 0 && targetZCm > in->maxAltCm);
+    if (capConflict) {
         out->warning = TERRAIN_NAV_HOLD_WARN_MAX_ALT;
     }
     // Predictive: the terrain ahead cannot be out-climbed at full rate -
@@ -218,9 +260,15 @@ static void computeTarget(terrainNavHoldState_t *state, const terrainNavHoldInpu
     if (state->terrainAheadActive) {
         out->warning = TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD;
     }
-    // The floor alarm outranks everything: too low NOW and not recovering
+    // The floor alarm outranks everything: too low NOW and not recovering.
+    // Latched against the ceiling clamp the red sticks to TURN AWAY for the
+    // whole episode - a demand dipping under the cap mid-fight must not
+    // flip the instruction on screen
     if (state->pullUpActive) {
-        out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
+        if (capConflict) {
+            state->pullUpCapFight = true;
+        }
+        out->warning = pullUpWarning(state);
     }
 
     out->writeTarget = true;
@@ -297,6 +345,7 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                     state->terrainAheadActive = false;
                     state->escapeBadSinceMs = 0;
                     state->escapeClearSinceMs = 0;
+                    state->uncoverCapFight = false;
                     out->warning = TERRAIN_NAV_HOLD_WARN_DATA_LOST;
                 }
                 // Inside the grace period: a single missed read just pauses
@@ -327,7 +376,7 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                     out->warning = TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD;
                 }
                 if (state->pullUpActive) {
-                    out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
+                    out->warning = pullUpWarning(state);
                 }
                 break;
             }
@@ -347,7 +396,7 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                         out->warning = TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD;
                     }
                     if (state->pullUpActive) {
-                        out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
+                        out->warning = pullUpWarning(state);
                     }
                     break;
                 }
@@ -369,7 +418,7 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                     // immediately, the release becomes a fresh capture
                     state->reCapturePending = true;
                     if (state->pullUpActive) {
-                        out->warning = TERRAIN_NAV_HOLD_WARN_PULL_UP;
+                        out->warning = pullUpWarning(state);
                     }
                     break;
                 }

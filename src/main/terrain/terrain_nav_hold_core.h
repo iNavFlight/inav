@@ -52,6 +52,7 @@ typedef enum {
     TERRAIN_NAV_HOLD_WARN_NO_HEADING,   // heading estimate invalid: lookahead off, reactive hold continues
     TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB,   // engaged below the minimum AGL - automatic climb to the minimum in progress
     TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD, // escape test failing: terrain ahead cannot be out-climbed at full rate
+    TERRAIN_NAV_HOLD_WARN_TURN_AWAY,    // floor alarm where pulling cannot help: the full-rate climb is losing, or the target is pinned at the ceiling
 } terrainNavHoldWarning_e;
 
 typedef struct {
@@ -92,6 +93,9 @@ typedef struct {
     bool minAglReached;         // AGL has reached the minimum since this capture - arms the floor alarm
     int32_t climbBestAglCm;     // best AGL seen while still below the minimum (the auto-climb phase)
     bool pullUpActive;          // floor alarm latched: on below (min - margin), off at/above the minimum
+    bool pullUpRatchet;         // this red latched via the losing-auto-climb ratchet - pulling cannot help, the text says TURN AWAY
+    bool pullUpCapFight;        // this red episode ran against the ceiling clamp - same TURN AWAY text, latched for the episode
+    bool uncoverCapFight;       // one-shot: a cap-fight red just cleared at the minimum - the escape alarm may fast-clear this cycle
     bool stickWasAdjusting;     // previous-cycle stick state (grab-edge detection for the blend)
     bool blendActive;           // handover blend running (stick grab through the retake dwell)
     float blendRateCmS;         // the blend's current climb-rate command
