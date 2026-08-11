@@ -81,5 +81,6 @@ void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
+bool compassIsCalibrating(void);
 
 #endif
