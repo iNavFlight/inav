@@ -232,7 +232,13 @@ void terrainNavCruiseHoldUpdate(void)
         in.stickWishCmS = constrainf(posControl.desiredState.climbRateDemand,
                                      -(float)navConfig()->fw.max_manual_climb_rate,
                                      (float)navConfig()->fw.max_manual_climb_rate);
+        // Near-full pull = the pilot's vertical channel is maxed (for the
+        // red-text reserve question; 90% leaves room for stick noise)
+        in.stickFullPull = in.stickWishCmS >= 0.9f * (float)navConfig()->fw.max_manual_climb_rate;
     }
+    // Which side holds the unused climb reserve, from the two stock rates
+    in.pilotHasMoreClimb = navConfig()->fw.max_manual_climb_rate > navConfig()->fw.max_auto_climb_rate;
+    in.autoBeatsManual = navConfig()->fw.max_auto_climb_rate > navConfig()->fw.max_manual_climb_rate;
 
     terrainNavHoldCoreUpdate(&holdState, &in, &holdOutput);
 
@@ -261,6 +267,11 @@ terrainNavHoldStatus_e terrainNavHoldGetStatus(void)
 terrainNavHoldWarning_e terrainNavHoldGetWarning(void)
 {
     return holdOutput.warning;
+}
+
+bool terrainNavHoldAutoClimbRunning(void)
+{
+    return holdOutput.autoClimbRunning;
 }
 
 bool terrainNavHoldIsEngaged(void)

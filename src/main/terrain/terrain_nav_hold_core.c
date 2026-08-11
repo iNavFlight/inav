@@ -154,12 +154,27 @@ static void runBlend(terrainNavHoldState_t *state, const terrainNavHoldInput_t *
     out->rateCmS = state->blendRateCmS;
 }
 
-// The red text is the honest instruction. Where pulling the stick genuinely
-// fixes the lowness (a breached floor, floor breathing, stick pressure) it
-// says PULL UP; where pulling cannot help and may delay the right reaction
-// it says TURN AWAY - the losing auto-climb (a manual pull commands the
-// MANUAL rate, by default LESS than the automatic climb already failing)
-// and the fight pinned at the ceiling (the funnel clamps every nav climb)
+// The red text is the honest instruction: PULL UP while unused vertical
+// reserve remains (release a push, deepen a pull, or - with manual rate
+// above auto - pull at all); TURN AWAY once the vertical channel is
+// exhausted and still losing, or clamped by the ceiling. The reserve
+// question at the moment height is being LOST:
+//  - hands off: the hold already commands the full auto rate, so reserve
+//    exists only when a manual pull outclimbs it (manual > auto)
+//  - full pull: the pilot's channel is maxed, so reserve exists only when
+//    releasing hands the climb to a FASTER autopilot (auto > manual)
+//  - a push or partial pull always leaves reserve (release / pull deeper)
+static bool noStickReserve(const terrainNavHoldInput_t *in)
+{
+    if (!in->stickAdjusting) {
+        return !in->pilotHasMoreClimb;
+    }
+    if (in->stickFullPull) {
+        return !in->autoBeatsManual;
+    }
+    return false;
+}
+
 static terrainNavHoldWarning_e pullUpWarning(const terrainNavHoldState_t *state)
 {
     return (state->pullUpRatchet || state->pullUpCapFight)
@@ -190,15 +205,42 @@ static void updateFloorAlarm(terrainNavHoldState_t *state, const terrainNavHoldI
 
     if (state->minAglReached) {
         if (in->aglCm < in->minAglCm - TERRAIN_NAV_HOLD_PULLUP_HYST_CM) {
-            state->pullUpActive = true;
+            if (!state->pullUpActive) {
+                state->pullUpActive = true;
+                // The breach fight starts: track its best AGL to detect a
+                // losing climb (the field is otherwise idle in this phase)
+                state->climbBestAglCm = in->aglCm;
+            }
+        }
+        if (state->pullUpActive) {
+            if (in->aglCm > state->climbBestAglCm) {
+                state->climbBestAglCm = in->aglCm;
+            } else if (in->aglCm < state->climbBestAglCm - TERRAIN_NAV_HOLD_PULLUP_HYST_CM
+                       && noStickReserve(in)) {
+                // Still losing height with nothing left to give vertically
+                state->pullUpRatchet = true;
+            }
         }
     } else {
         if (in->aglCm > state->climbBestAglCm) {
             state->climbBestAglCm = in->aglCm;
         } else if (in->aglCm < state->climbBestAglCm - TERRAIN_NAV_HOLD_PULLUP_HYST_CM) {
+            // The red fires regardless of cause (a pilot push below the
+            // margin re-arms it too - sealed semantics); TURN AWAY only
+            // when no vertical reserve remains
             state->pullUpActive = true;
-            state->pullUpRatchet = true;
+            if (noStickReserve(in)) {
+                state->pullUpRatchet = true;
+            }
         }
+    }
+
+    // Prospective upgrade, any red, any moment: a latched TERRAIN AHEAD has
+    // already proven that even the FULL climb rate loses the path ahead -
+    // releasing or pulling cannot save the margin, so the red must not
+    // promise it. Born-red-under-caution starts as TURN AWAY outright
+    if (state->pullUpActive && state->terrainAheadActive) {
+        state->pullUpRatchet = true;
     }
 }
 
@@ -244,9 +286,12 @@ static void computeTarget(terrainNavHoldState_t *state, const terrainNavHoldInpu
         out->warning = TERRAIN_NAV_HOLD_WARN_NO_HEADING;
     }
     // Engaged below the minimum: the hold itself is climbing to the floor -
-    // information, not an alarm, the pilot has nothing to do
+    // information, not an alarm, the pilot has nothing to do. The flag lets
+    // the OSD alternate this fact under a covering warning: the pilot must
+    // always see both the danger and the action already being taken
     if (!state->minAglReached && in->aglCm < in->minAglCm) {
         out->warning = TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB;
+        out->autoClimbRunning = true;
     }
     // Ceiling arbitration: nav_max_altitude always wins - the funnel clamps
     // the target for real, here we only detect the conflict and warn. Warns
@@ -297,6 +342,7 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
     out->targetZCm = 0.0f;
     out->writeRate = false;
     out->rateCmS = 0.0f;
+    out->autoClimbRunning = false;
     out->warning = TERRAIN_NAV_HOLD_WARN_NONE;
 
     if (!in->eligible) {

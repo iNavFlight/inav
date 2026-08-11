@@ -66,6 +66,9 @@ typedef struct {
     float actualClimbRateCmS;   // the aircraft's real vertical speed (seeds the handover blend)
     bool stickWishValid;        // the pilot's stick climb-rate wish is known this cycle
     float stickWishCmS;         // what the stick currently asks for, manual-clamped by the caller
+    bool stickFullPull;         // the pitch stick is at (or near) full pull - the pilot's vertical channel is maxed
+    bool pilotHasMoreClimb;     // nav_fw_manual_climb_rate > nav_fw_auto_climb_rate: a pull adds climb the hold cannot
+    bool autoBeatsManual;       // nav_fw_auto_climb_rate > nav_fw_manual_climb_rate: releasing the stick adds climb a pull cannot
     bool lookaheadValid;        // lookahead answer available
     float lookaheadClimbCm;     // worst height deficit along the path ahead (>= 0)
     bool escapeDeficitValid;    // escape-test answer available (same walk as the lookahead)
@@ -80,6 +83,7 @@ typedef struct {
     float targetZCm;
     bool writeRate;             // when true the caller commands rateCmS instead (handover blend window)
     float rateCmS;              // signed climb rate; bounded by the caller's clamp on the blend inputs
+    bool autoClimbRunning;      // the hold is climbing to the minimum right now (for the OSD to alternate the info under a covering warning)
     terrainNavHoldStatus_e status;
     terrainNavHoldWarning_e warning;
 } terrainNavHoldOutput_t;
@@ -91,7 +95,7 @@ typedef struct {
     uint32_t lastUsableMs;      // last time data was usable (for the freeze grace period)
     bool reCapturePending;      // stick released - capture a new target AGL on the next usable cycle
     bool minAglReached;         // AGL has reached the minimum since this capture - arms the floor alarm
-    int32_t climbBestAglCm;     // best AGL seen while still below the minimum (the auto-climb phase)
+    int32_t climbBestAglCm;     // best AGL of the current below-minimum fight (the auto-climb phase, and the breach episode after the minimum was reached)
     bool pullUpActive;          // floor alarm latched: on below (min - margin), off at/above the minimum
     bool pullUpRatchet;         // this red latched via the losing-auto-climb ratchet - pulling cannot help, the text says TURN AWAY
     bool pullUpCapFight;        // this red episode ran against the ceiling clamp - same TURN AWAY text, latched for the episode

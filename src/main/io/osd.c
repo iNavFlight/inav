@@ -6272,7 +6272,11 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 }
 #endif
 #ifdef USE_TERRAIN
-                switch (terrainNavHoldGetWarning()) {   /* ADDS MAXIMUM OF 1 MESSAGE TO TOTAL */
+                /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL: the worst warning, and -
+                 * while the hold is actually climbing to the minimum - the
+                 * auto-climb info alternating beneath it, so the pilot always
+                 * sees both the danger and the action being taken */
+                switch (terrainNavHoldGetWarning()) {
                     case TERRAIN_NAV_HOLD_WARN_NOT_READY:
                         ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_NOT_READY));
                         break;
@@ -6299,6 +6303,11 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         break;
                     case TERRAIN_NAV_HOLD_WARN_NONE:
                         break;
+                }
+                if (terrainNavHoldAutoClimbRunning()
+                        && terrainNavHoldGetWarning() != TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB
+                        && terrainNavHoldGetWarning() != TERRAIN_NAV_HOLD_WARN_NONE) {
+                    ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AUTO_CLIMB));
                 }
 #endif
                 if (STATE(AIRPLANE)) {      /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */

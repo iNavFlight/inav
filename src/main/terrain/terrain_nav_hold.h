@@ -56,6 +56,7 @@ void terrainNavCruiseHoldUpdate(void);
 
 terrainNavHoldStatus_e terrainNavHoldGetStatus(void);
 terrainNavHoldWarning_e terrainNavHoldGetWarning(void);
+bool terrainNavHoldAutoClimbRunning(void);
 
 // True while the hold owns the altitude target (active or frozen)
 bool terrainNavHoldIsEngaged(void);
