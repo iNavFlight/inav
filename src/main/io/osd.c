@@ -6140,6 +6140,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         const char *messages[8];
         unsigned messageCount = 0;
         #define ADD_MSG(msg) do { if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg); } while(0)
+#ifdef USE_TERRAIN
+        /* The terrain floor warnings are crash-avoidance class: they blink
+         * like the failsafe info text below. Remembering the stored pointer
+         * lets the blink decision match the exact message on display */
+        const char *terrainUrgentMessage = NULL;
+#endif
 
         const char *failsafeInfoMessage = NULL;
         const char *invertedInfoMessage = NULL;
@@ -6288,9 +6294,15 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         break;
                     case TERRAIN_NAV_HOLD_WARN_PULL_UP:
                         ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_PULL_UP));
+                        if (messageCount) {
+                            terrainUrgentMessage = messages[messageCount - 1];
+                        }
                         break;
                     case TERRAIN_NAV_HOLD_WARN_TURN_AWAY:
                         ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_TURN_AWAY));
+                        if (messageCount) {
+                            terrainUrgentMessage = messages[messageCount - 1];
+                        }
                         break;
                     case TERRAIN_NAV_HOLD_WARN_NO_HEADING:
                         ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_NO_HEADING));
@@ -6437,6 +6449,13 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 // a lost model, but might help avoiding a crash.
                 // Blink to grab user attention.
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+#ifdef USE_TERRAIN
+            } else if (terrainUrgentMessage && message == terrainUrgentMessage) {
+                // The terrain floor warnings are the same class: act NOW to
+                // avoid the terrain. The no-blink note below protects
+                // recovery info, not urgent warnings
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+#endif
             } else if (message == invertedInfoMessage) {
                 TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
             }
