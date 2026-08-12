@@ -257,6 +257,27 @@ bool checkBitmap(gridBlock_t *grid, uint8_t idx_x, uint8_t idx_y)
     return (grid->bitmap & (((uint64_t)1U) << bitnum)) != 0;
 }
 
+/*
+  decode a single 10-bit height offset from the packed heightOffset[] array.
+
+  Values are stored in row-major order (idx_x * TERRAIN_GRID_BLOCK_SIZE_Y +
+  idx_y), little-endian bit-packed, 10 bits each (4 values per 5 bytes). The
+  bit offset within a byte is therefore always 0, 2, 4 or 6, so a single value
+  never spans more than two bytes: read those two bytes little-endian, shift
+  down by the bit offset and mask off the low 10 bits.
+ */
+uint16_t getHeightOffsetByIndex(gridBlock_t *grid, uint8_t idx_x, uint8_t idx_y)
+{
+    uint32_t valueIndex = (uint32_t)idx_x * TERRAIN_GRID_BLOCK_SIZE_Y + idx_y;
+    uint32_t bitPos = valueIndex * 10;
+    uint32_t bytePos = bitPos / 8;
+    uint32_t bitOffset = bitPos % 8;
+
+    uint16_t twoBytes = grid->heightOffset[bytePos] | ((uint16_t)grid->heightOffset[bytePos + 1] << 8);
+
+    return (twoBytes >> bitOffset) & 0x3FF;
+}
+
 uint16_t getBlockCrc(gridBlock_t *grid){
     // crc is taken over the whole block with the crc field zeroed
     uint16_t saved_crc = grid->crc;

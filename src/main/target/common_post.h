@@ -135,7 +135,7 @@ extern uint8_t __config_end;
 #if (MCU_FLASH_SIZE > 1024)
 #define TERRAIN_GRID_BLOCK_CACHE_SIZE 8 // 2048 bytes = 1 grid block
 #else
-#define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 4 // 2048 bytes = 1 grid block
 #endif
 
 #endif

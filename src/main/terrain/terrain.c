@@ -115,11 +115,12 @@ static float getHeightAmslMeters(const gpsLocation_t *loc)
         return TERRAIN_STATUS_NO_AMSL_DATA;
     }
 
-    // hXY are the heights of the 4 surrounding grid points
-    const int16_t h00 = grid->height[info.idx_x+0][info.idx_y+0];
-    const int16_t h01 = grid->height[info.idx_x+0][info.idx_y+1];
-    const int16_t h10 = grid->height[info.idx_x+1][info.idx_y+0];
-    const int16_t h11 = grid->height[info.idx_x+1][info.idx_y+1];
+    // hXY are the heights of the 4 surrounding grid points, reconstructed from
+    // the packed 10-bit offsets plus the block's heightBase
+    const int16_t h00 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x+0, info.idx_y+0);
+    const int16_t h01 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x+0, info.idx_y+1);
+    const int16_t h10 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x+1, info.idx_y+0);
+    const int16_t h11 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x+1, info.idx_y+1);
 
     // do a simple dual linear interpolation. We could do something
     // fancier, but it probably isn't worth it as long as the

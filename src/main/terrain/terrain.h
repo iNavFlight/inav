@@ -56,7 +56,13 @@
 // giving a total grid size of a disk grid_block of 32x28
 #define TERRAIN_GRID_BLOCK_SIZE_X (TERRAIN_GRID_MAVLINK_SIZE*TERRAIN_GRID_BLOCK_MUL_X)
 #define TERRAIN_GRID_BLOCK_SIZE_Y (TERRAIN_GRID_MAVLINK_SIZE*TERRAIN_GRID_BLOCK_MUL_Y)
-
+// heights are packed 10 bits each, so the whole 32x28 grid needs
+// TERRAIN_GRID_BLOCK_SIZE_X * TERRAIN_GRID_BLOCK_SIZE_Y * 10 / 8 bytes.
+// Integer math keeps this a valid array dimension (896 values -> 1120 bytes).
+#define TERRAIN_GRID_BLOCK_DATA_SIZE ((TERRAIN_GRID_BLOCK_SIZE_X * TERRAIN_GRID_BLOCK_SIZE_Y * 10) / 8)
+// each 10-bit height offset is stored at 2 m resolution, so a raw code of
+// 0..1023 maps to 0..2046 m above heightBase
+#define TERRAIN_HEIGHT_OFFSET_RESOLUTION_M 2
 
 #define TASK_TERRAIN_RATE_MS   10
 #define TERRAIN_MAX_DISTANCE_CM INT16_MAX
@@ -85,8 +91,11 @@ typedef struct __attribute__((packed)){
         // grid spacing in meters
         uint16_t spacing;
 
-        // heights in meters over a 32*28 grid
-        int16_t height[TERRAIN_GRID_BLOCK_SIZE_X][TERRAIN_GRID_BLOCK_SIZE_Y];
+        // heights in meters over a 32*28 grid, stored as 10-bit offsets from
+        // heightBase, little-endian bit-packed (4 values / 5 bytes). Use
+        // getHeightOffsetByIndex() to decode a single value.
+        uint8_t heightOffset[TERRAIN_GRID_BLOCK_DATA_SIZE];
+        int16_t heightBase;
 
         // indices info 32x28 grids for this degree reference
         uint16_t grid_idx_x;
