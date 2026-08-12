@@ -132,10 +132,12 @@ extern uint8_t __config_end;
 #if defined(USE_BARO) && defined(USE_SDCARD) && (MCU_FLASH_SIZE > 512) && !defined(USE_TERRAIN)
 #define USE_TERRAIN
 
+// number of grid blocks held in the RAM cache; each entry is a gridCache_t
+// wrapping one packed gridBlock_t (~1.1 KB), no longer the old 2048-byte block
 #if (MCU_FLASH_SIZE > 1024)
-#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8 // 2048 bytes = 1 grid block
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8
 #else
-#define TERRAIN_GRID_BLOCK_CACHE_SIZE 4 // 2048 bytes = 1 grid block
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 4
 #endif
 
 #endif

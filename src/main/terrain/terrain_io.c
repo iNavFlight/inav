@@ -478,6 +478,8 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
         LOG_DEBUG(TERRAIN, "TERRAIN READING DATA %d/%d", (int)terrainIoState.bytesRead, (int)sizeof(gridBlock_t));
         if(terrainIoState.bytesRead == 0 && !(sdcard_isInserted() && sdcard_isFunctional() && afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY)){
             LOG_DEBUG(TERRAIN, "TERRAIN READ, SD CARD FAILURE");
+            //the block is left half-overwritten by the partial read, drop it out of READING so the slot is reusable
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
             hardFailure();
             return;
         }
