@@ -313,7 +313,7 @@ When the aircraft is in a normal fixed-wing flight state and `AUTO SPEED` is ena
 
 **INAV intentionally disables Auto Speed for the entire time that the VTOL auto-transition controller owns the transition.** This applies to manual, mission, RTH, failsafe, retry, abort, and post-switch completion phases. The transition's own pusher, lift, motor-authority, and servo logic remains the only logic that can change transition power or control scaling.
 
-After the controller has finished and the aircraft is in its normal FW navigation or flight state, Auto Speed can become active again if its RC mode is enabled and its usual sensor and safety conditions are met. Leave the `AUTO SPEED` mode disabled while validating a new VTOL configuration. Test it separately in stable FW flight before deliberately combining it with an established VTOL mission.
+After the controller has finished and the aircraft is in its normal FW navigation or flight state, Auto Speed can become active again if its RC mode is enabled and its usual sensor and safety conditions are met. It starts from the throttle command that was actually present at the end of the transition, clears the previous Auto Speed controller state, and waits for a fresh velocity update. This prevents an earlier Auto Speed command from returning immediately after the mixer change. Leave the `AUTO SPEED` mode disabled while validating a new VTOL configuration. Test it separately in stable FW flight before deliberately combining it with an established VTOL mission.
 
 ## 1. Manual switch auto transition
 

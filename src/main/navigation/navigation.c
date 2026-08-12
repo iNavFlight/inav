@@ -57,6 +57,7 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#include "navigation/navigation_waypoint_logic.h"
 #include "navigation/navigation_vtol_mc_protection.h"
 #include "navigation/navigation_vtol_mission_logic.h"
 #include "navigation/rth_trackback.h"
@@ -5114,6 +5115,24 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
     }
 }
 
+bool navGetMissionWaypointByRelativeIndex(int16_t relativeIndex, navWaypoint_t *wpData)
+{
+    int16_t absoluteIndex;
+    if (!wpData ||
+        !posControl.waypointListValid ||
+        !navMissionRelativeWaypointIndexToAbsolute(
+            relativeIndex,
+            posControl.startWpIndex,
+            posControl.waypointCount,
+            NAV_MAX_WAYPOINTS,
+            &absoluteIndex)) {
+        return false;
+    }
+
+    *wpData = posControl.waypointList[absoluteIndex];
+    return true;
+}
+
 int isGCSValid(void)
 {
     return (ARMING_FLAG(ARMED) &&
@@ -5537,16 +5556,19 @@ float getActiveSpeed(void)
         waypointSpeed = navConfig()->general.auto_speed;
     }
 
-    if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP && posControl.waypointCount > 0 &&
-        (posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_WAYPOINT ||
-         posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_HOLD_TIME ||
-         posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_LAND)) {
+    navWaypoint_t activeWaypoint;
+    const int16_t relativeWaypointIndex = posControl.activeWaypointIndex - posControl.startWpIndex;
+    if ((navGetStateFlags(posControl.navState) & NAV_AUTO_WP) &&
+        navGetMissionWaypointByRelativeIndex(relativeWaypointIndex, &activeWaypoint) &&
+        (activeWaypoint.action == NAV_WP_ACTION_WAYPOINT ||
+         activeWaypoint.action == NAV_WP_ACTION_HOLD_TIME ||
+         activeWaypoint.action == NAV_WP_ACTION_LAND)) {
 
         uint16_t wpSpecificSpeed = 0;
-        if (posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_HOLD_TIME) {
-            wpSpecificSpeed = ABS(posControl.waypointList[posControl.activeWaypointIndex].p2); // P1 is hold time
+        if (activeWaypoint.action == NAV_WP_ACTION_HOLD_TIME) {
+            wpSpecificSpeed = ABS(activeWaypoint.p2); // P1 is hold time
         } else {
-            wpSpecificSpeed = ABS(posControl.waypointList[posControl.activeWaypointIndex].p1); // default case
+            wpSpecificSpeed = ABS(activeWaypoint.p1); // default case
         }
 
         if (STATE(AIRPLANE)) {

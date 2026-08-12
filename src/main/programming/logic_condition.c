@@ -591,6 +591,13 @@ void logicConditionProcess(uint8_t i) {
     }
 }
 
+static bool logicConditionMissionWaypointHasUserAction(int16_t relativeIndex, uint16_t userAction)
+{
+    navWaypoint_t waypoint;
+    return navGetMissionWaypointByRelativeIndex(relativeIndex, &waypoint) &&
+           (waypoint.p3 & userAction) == userAction;
+}
+
 static int logicConditionGetWaypointOperandValue(int operand) {
 
     switch (operand) {
@@ -608,9 +615,10 @@ static int logicConditionGetWaypointOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_NEXT_WAYPOINT_ACTION:
             {
-                uint8_t wpIndex = posControl.activeWaypointIndex + 1;
-                if ((wpIndex > 0) && (wpIndex < NAV_MAX_WAYPOINTS)) {
-                    return posControl.waypointList[wpIndex].action;
+                navWaypoint_t waypoint;
+                const int16_t relativeIndex = (int16_t)NAV_Status.activeWpIndex + 1;
+                if (navGetMissionWaypointByRelativeIndex(relativeIndex, &waypoint)) {
+                    return waypoint.action;
                 }
                 return false;
             }
@@ -622,10 +630,14 @@ static int logicConditionGetWaypointOperandValue(int operand) {
                 if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
                     fpVector3_t poi;
                     gpsLocation_t wp;
-                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex].lat;
-                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex].lon;
-                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex].alt;
-                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
+                    navWaypoint_t waypoint;
+                    if (!navGetMissionWaypointByRelativeIndex(NAV_Status.activeWpIndex, &waypoint)) {
+                        return 0;
+                    }
+                    wp.lat = waypoint.lat;
+                    wp.lon = waypoint.lon;
+                    wp.alt = waypoint.alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, waypointMissionAltConvMode(waypoint.p3));
 
                     distance = calculateDistanceToDestination(&poi) / 100;
                 }
@@ -640,10 +652,14 @@ static int logicConditionGetWaypointOperandValue(int operand) {
                 if ((navGetCurrentStateFlags() & NAV_AUTO_WP) && NAV_Status.activeWpIndex > 0) {
                     fpVector3_t poi;
                     gpsLocation_t wp;
-                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex-1].lat;
-                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex-1].lon;
-                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex-1].alt;
-                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
+                    navWaypoint_t waypoint;
+                    if (!navGetMissionWaypointByRelativeIndex((int16_t)NAV_Status.activeWpIndex - 1, &waypoint)) {
+                        return 0;
+                    }
+                    wp.lat = waypoint.lat;
+                    wp.lon = waypoint.lon;
+                    wp.alt = waypoint.alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, waypointMissionAltConvMode(waypoint.p3));
 
                     distance = calculateDistanceToDestination(&poi) / 100;
                 }
@@ -653,35 +669,35 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION:
-            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER1) == NAV_WP_USER1) : 0;
+            return logicConditionMissionWaypointHasUserAction((int16_t)NAV_Status.activeWpIndex - 1, NAV_WP_USER1);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION:
-            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER2) == NAV_WP_USER2) : 0;
+            return logicConditionMissionWaypointHasUserAction((int16_t)NAV_Status.activeWpIndex - 1, NAV_WP_USER2);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION:
-            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER3) == NAV_WP_USER3) : 0;
+            return logicConditionMissionWaypointHasUserAction((int16_t)NAV_Status.activeWpIndex - 1, NAV_WP_USER3);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION:
-            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER4) == NAV_WP_USER4) : 0;
+            return logicConditionMissionWaypointHasUserAction((int16_t)NAV_Status.activeWpIndex - 1, NAV_WP_USER4);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION_NEXT_WP:
-            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER1) == NAV_WP_USER1);
+            return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER1);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION_NEXT_WP:
-            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER2) == NAV_WP_USER2);
+            return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER2);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION_NEXT_WP:
-            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER3) == NAV_WP_USER3);
+            return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER3);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION_NEXT_WP:
-            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER4) == NAV_WP_USER4);
+            return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER4);
             break;
 
         default:

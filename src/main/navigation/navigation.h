@@ -750,6 +750,7 @@ int getWaypointCount(void);
 bool isWaypointListValid(void);
 int isGCSValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
+bool navGetMissionWaypointByRelativeIndex(int16_t relativeIndex, navWaypoint_t *wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
 bool navSetActiveWaypointIndex(uint8_t index);  // MSP2_INAV_SET_WP_INDEX: jump to WP during active mission
