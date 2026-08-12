@@ -46,6 +46,7 @@ void terrainNavHoldCoreReset(terrainNavHoldState_t *state)
     state->terrainAheadActive = false;
     state->escapeBadSinceMs = 0;
     state->escapeClearSinceMs = 0;
+    state->escapeDeepFail = false;
 }
 
 // TERRAIN AHEAD - the predictive escape test. Fails when even the FULL
@@ -67,6 +68,7 @@ static void updateEscapeAlarm(terrainNavHoldState_t *state, const terrainNavHold
         state->terrainAheadActive = false;
         state->escapeBadSinceMs = 0;
         state->escapeClearSinceMs = 0;
+        state->escapeDeepFail = false;
         state->uncoverCapFight = false;
         return;
     }
@@ -79,6 +81,11 @@ static void updateEscapeAlarm(terrainNavHoldState_t *state, const terrainNavHold
         cushionCm = 0.0f;
     }
     const float shortfallCm = in->escapeDeficitCm + cushionCm;
+
+    // Depth of the failure, stashed for the floor alarm's prospective
+    // upgrade: only a shortfall this deep proves the vertical channel
+    // truly exhausted (a marginal map-step deficit must not birth TURN AWAY)
+    state->escapeDeepFail = (shortfallCm >= TERRAIN_NAV_HOLD_ESCAPE_DEEP_CM);
 
     // A red that ran against the ceiling clamp just cleared: a latched
     // caution pointing at sky the aircraft has already escaped must not
@@ -238,8 +245,10 @@ static void updateFloorAlarm(terrainNavHoldState_t *state, const terrainNavHoldI
     // Prospective upgrade, any red, any moment: a latched TERRAIN AHEAD has
     // already proven that even the FULL climb rate loses the path ahead -
     // releasing or pulling cannot save the margin, so the red must not
-    // promise it. Born-red-under-caution starts as TURN AWAY outright
-    if (state->pullUpActive && state->terrainAheadActive) {
+    // promise it. Born-red-under-caution starts as TURN AWAY outright.
+    // Only a DEEP shortfall qualifies: a marginal deficit stays PULL UP
+    // (and escalates within a second if a real wall deepens it)
+    if (state->pullUpActive && state->terrainAheadActive && state->escapeDeepFail) {
         state->pullUpRatchet = true;
     }
 }
@@ -391,6 +400,7 @@ void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHold
                     state->terrainAheadActive = false;
                     state->escapeBadSinceMs = 0;
                     state->escapeClearSinceMs = 0;
+                    state->escapeDeepFail = false;
                     state->uncoverCapFight = false;
                     out->warning = TERRAIN_NAV_HOLD_WARN_DATA_LOST;
                 }

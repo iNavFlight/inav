@@ -109,6 +109,7 @@ typedef struct {
     bool terrainAheadActive;    // predictive escape alarm latched
     uint32_t escapeBadSinceMs;  // escape test failing since (persistence); 0 = not failing
     uint32_t escapeClearSinceMs;// escape test passing with margin since (clear hysteresis); 0 = not counting
+    bool escapeDeepFail;        // the current escape shortfall is at least the deep threshold - only such a failure births TURN AWAY prospectively
 } terrainNavHoldState_t;
 
 // A momentary AGL gap (single cache miss) only pauses target updates; the hold
@@ -154,6 +155,13 @@ typedef struct {
 // minimum, both sustained this long (typically because the pilot turned,
 // slowed or climbed); a returning threat simply re-fires the series
 #define TERRAIN_NAV_HOLD_ESCAPE_CLEAR_MS 2000
+
+// A red born under a latched TERRAIN AHEAD says TURN AWAY outright only when
+// the current escape shortfall is at least this deep: a marginal map-step
+// deficit self-resolves in seconds and stays PULL UP, while the deficit of a
+// genuine wall grows so fast at cruise closure that it crosses this line
+// within a second of the alarm
+#define TERRAIN_NAV_HOLD_ESCAPE_DEEP_CM 1000.0f
 
 void terrainNavHoldCoreReset(terrainNavHoldState_t *state);
 void terrainNavHoldCoreUpdate(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in, terrainNavHoldOutput_t *out);
