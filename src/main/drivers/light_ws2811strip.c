@@ -49,7 +49,10 @@
 #define WS2811_BIT_COMPARE_1 ((WS2811_PERIOD * 2) / 3)
 #define WS2811_BIT_COMPARE_0 (WS2811_PERIOD / 3)
 
-static DMA_RAM timerDMASafeType_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
+// TIM3/TIM4 are 16-bit timers — CCR is a 16-bit register, so DMA must write
+// it at that width or the high byte is left stale, corrupting the compare
+// value.
+static DMA_RAM uint16_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 
 static IO_t ws2811IO = IO_NONE;
 static TCH_t * ws2811TCH = NULL;
