@@ -23,7 +23,6 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include "platform.h"
 
 #ifdef USE_TERRAIN
@@ -208,7 +207,7 @@ void terrainIoOpenedFileCallback(afatfsFilePtr_t file)
 
     if(file == NULL){
         LOG_DEBUG(TERRAIN, "TERRAIN OPEN CALLBACK, FILE NULL, RESET STATE");
-        markGridBlockInvalid(terrainIoState.gridBlock);
+        setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
         increaseFileStatusErrorCount(terrainIoState.gridBlock->latDegrees, terrainIoState.gridBlock->lonDegrees);
         resetStateMachine();
         return;
@@ -291,7 +290,7 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
         terrainIoFileOpenStatus_t* fileOpenStatus = getFileOpenStatusIndex(gridBlock->latDegrees, gridBlock->lonDegrees);
         if(fileOpenStatus->errorOpenCount >= 3){
             LOG_DEBUG(TERRAIN, "TERRAIN TOO MANY OPEN ERRORS, BLOCK INVALID");
-            markGridBlockInvalid(gridBlock);
+            setGridStatus(gridBlock, GRID_CACHE_INVALID);
             return;
         }
 
@@ -349,7 +348,7 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
         //change dir to ROOT (null)
         if(!afatfs_chdir(NULL)){
             LOG_DEBUG(TERRAIN, "TERRAIN CHANGE_DIR ERROR");
-            markGridBlockInvalid(terrainIoState.gridBlock);
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
             resetStateMachine();
             return;
         }
@@ -366,7 +365,7 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
     if(terrainIoState.status == TERRAIN_IO_OPEN_FILE){
         if(terrainIoState.gridBlock == NULL){
             LOG_DEBUG(TERRAIN, "TERRAIN OPEN_FILE, GRID BLOCK NULL, RESET STATE");
-            markGridBlockInvalid(terrainIoState.gridBlock);
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
             resetStateMachine();
             return;
         }
@@ -387,7 +386,7 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
         //of most of the time is callback terrainIoOpenedFileCallback called immediately, not in next cycle
         if(!afatfs_fopen(filename, "r", terrainIoOpenedFileCallback)){
             LOG_DEBUG(TERRAIN, "TERRAIN OPEN_FILE ERROR");
-            markGridBlockInvalid(terrainIoState.gridBlock);
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
             resetStateMachine();
             return;
         }
@@ -403,7 +402,7 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
     if(terrainIoState.status == TERRAIN_IO_OPEN_FILE_PENDING){
         if(millis() - terrainIoState.openFileStartTimeMs > 3000){
             LOG_DEBUG(TERRAIN, "TERRAIN OPEN_FILE_PENDING TIMEOUT, RESET STATE");
-            markGridBlockInvalid(terrainIoState.gridBlock);
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
             increaseFileStatusErrorCount(terrainIoState.gridBlock->latDegrees, terrainIoState.gridBlock->lonDegrees);
             resetStateMachine();
             return;
@@ -415,7 +414,7 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
     /////// SEEK TO BLOCK ///////////////////////////////////////////////
     if(terrainIoState.status == TERRAIN_IO_SEEK){
         if(terrainIoState.datFile == NULL || terrainIoState.gridBlock == NULL){
-            markGridBlockInvalid(terrainIoState.gridBlock);
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
             cleanUp();
             return;
         }
@@ -431,10 +430,10 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
 
         //calculate file offset
         uint32_t blocknum = (eastBlocks(terrainIoState.gridBlock) * terrainIoState.gridBlock->grid_idx_x) + terrainIoState.gridBlock->grid_idx_y;
-        uint64_t fileOffset64 = (uint64_t)blocknum * sizeof(terrainIoState.ioBlock);
+        uint64_t fileOffset64 = (uint64_t)blocknum * TERRAIN_GRID_BLOCK_SIZE_SD_CARD;
 
         if(fileOffset64 > UINT32_MAX) {
-            markGridBlockInvalid(terrainIoState.gridBlock);
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
             cleanUp();
             return;
         }
@@ -442,12 +441,16 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
         afatfsOperationStatus_e seekState = afatfs_fseek(terrainIoState.datFile, (int32_t)fileOffset64, AFATFS_SEEK_SET);
         if(seekState != AFATFS_OPERATION_FAILURE){
             LOG_DEBUG(TERRAIN, "TERRAIN SEEK OK -> READ");
+            //the read overwrites the destination block, stash the expected idx for the completion check
+            terrainIoState.expectedIdxX = terrainIoState.gridBlock->grid_idx_x;
+            terrainIoState.expectedIdxY = terrainIoState.gridBlock->grid_idx_y;
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_READING);
             terrainIoState.status = TERRAIN_IO_READ; // we don't wait to end of seek, after seek done, reading will be available in next task call
             return;
         }
 
         LOG_DEBUG(TERRAIN, "TERRAIN SEEK ERROR");
-        markGridBlockInvalid(terrainIoState.gridBlock);
+        setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
         cleanUp();
         return;
     }
@@ -457,7 +460,7 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
     /////// READING BLOCK DATA /////////////////////////////////////////////
     if(terrainIoState.status == TERRAIN_IO_READ){
         if(terrainIoState.datFile == NULL || terrainIoState.gridBlock == NULL){
-            markGridBlockInvalid(terrainIoState.gridBlock);
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
             cleanUp();
             return;
         }
@@ -469,10 +472,10 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
         }
         ////////////////////////////////////////////////////////////////
 
-        uint32_t readNow = afatfs_fread(terrainIoState.datFile, (uint8_t*)&terrainIoState.ioBlock + terrainIoState.bytesRead, sizeof(terrainIoState.ioBlock) - terrainIoState.bytesRead);
+        uint32_t readNow = afatfs_fread(terrainIoState.datFile, (uint8_t*)terrainIoState.gridBlock + terrainIoState.bytesRead, sizeof(gridBlock_t) - terrainIoState.bytesRead);
         terrainIoState.bytesRead += readNow;
 
-        LOG_DEBUG(TERRAIN, "TERRAIN READING DATA %d/%d", (int)terrainIoState.bytesRead, (int)sizeof(terrainIoState.ioBlock));
+        LOG_DEBUG(TERRAIN, "TERRAIN READING DATA %d/%d", (int)terrainIoState.bytesRead, (int)sizeof(gridBlock_t));
         if(terrainIoState.bytesRead == 0 && !(sdcard_isInserted() && sdcard_isFunctional() && afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY)){
             LOG_DEBUG(TERRAIN, "TERRAIN READ, SD CARD FAILURE");
             hardFailure();
@@ -484,24 +487,26 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
         }
 
         // if readNow is zero, it could mean something bad happen, broken file, or any other problem with SD card
-        // block is 2048, asyncfatfs reads 512. so we accept (2048 / 512) * 2 errors for a single reading.
-        if(terrainIoState.readsZeroBytesCount > (sizeof(terrainIoState.ioBlock) / 512) * 2){
+        // a block needs ceil(sizeof(gridBlock_t) / 512) sector reads, asyncfatfs reads 512. so we accept 2 errors per sector for a single reading.
+        if(terrainIoState.readsZeroBytesCount > ((sizeof(gridBlock_t) + 511) / 512) * 2){
             LOG_DEBUG(TERRAIN, "TERRAIN READ, TOO MANY ZERO READS");
-            markGridBlockInvalid(terrainIoState.gridBlock);
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
 
             //we have to increase error for file, for case if error for file reach threshold, and mark file as invalid
-            increaseFileStatusErrorCount(terrainIoState.gridBlock->latDegrees, terrainIoState.gridBlock->lonDegrees);
+            //use the open-file tile, the block's own degrees may already be overwritten by the partial read
+            increaseFileStatusErrorCount(terrainIoState.openFileLatDegrees, terrainIoState.openFileLonDegrees);
             cleanUp();
             return;
         }
 
-        if(terrainIoState.bytesRead < sizeof(terrainIoState.ioBlock)){
+        if(terrainIoState.bytesRead < sizeof(gridBlock_t)){
             //file should be divided by 2048, reading up to end of file and not have all data should never happen
             if (afatfs_feof(terrainIoState.datFile)) {
                 LOG_DEBUG(TERRAIN, "TERRAIN READ, UNEXPECTED EOF");
                 //if it happens we have to close file and increase error count for file
-                increaseFileStatusErrorCount(terrainIoState.gridBlock->latDegrees, terrainIoState.gridBlock->lonDegrees);
-                markGridBlockInvalid(terrainIoState.gridBlock);
+                //use the open-file tile, the block's own degrees may already be overwritten by the partial read
+                increaseFileStatusErrorCount(terrainIoState.openFileLatDegrees, terrainIoState.openFileLonDegrees);
+                setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
                 cleanUp();
                 return;
             }
@@ -512,16 +517,19 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
             }
 
         } else {
-            //check if idx and idy is same for terrainIoState.ioBlock and terrainIoState.gridBlock, to be sure we loaded from file correct block
-            if(terrainIoState.ioBlock.block.grid_idx_x != terrainIoState.gridBlock->grid_idx_x || terrainIoState.ioBlock.block.grid_idx_y != terrainIoState.gridBlock->grid_idx_y) {
+            if(
+                    terrainIoState.gridBlock->grid_idx_x != terrainIoState.expectedIdxX
+                    || terrainIoState.gridBlock->grid_idx_y != terrainIoState.expectedIdxY
+                    || terrainIoState.gridBlock->crc != getBlockCrc(terrainIoState.gridBlock)
+
+            ) {
                 LOG_DEBUG(TERRAIN, "TERRAIN READ, BLOCK IDX MISMATCH");
-                markGridBlockInvalid(terrainIoState.gridBlock);
+                setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
                 cleanUp();
                 return;
             }
 
-            memcpy(terrainIoState.gridBlock, &terrainIoState.ioBlock.block, sizeof(gridBlock_t));
-            markGridBlockAsRead(terrainIoState.gridBlock);
+            setGridStatus(terrainIoState.gridBlock, GRID_CACHE_VALID);
 
             //keep the file open, next block from the same tile skips the expensive open
             finishGridBlockRead();

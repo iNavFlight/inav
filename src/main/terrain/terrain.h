@@ -65,6 +65,7 @@ enum GridCacheState {
     GRID_CACHE_INVALID      = 0,    // when first initialised
     GRID_CACHE_DISKWAIT     = 1,    // when waiting for disk read
     GRID_CACHE_VALID        = 2,    // when at least partially valid
+    GRID_CACHE_READING      = 3,    // disk read in flight, block content is partially overwritten
 };
 
 typedef struct __attribute__((packed)){
@@ -97,11 +98,6 @@ typedef struct __attribute__((packed)){
 
 } gridBlock_t;
 
-
-typedef union {
-    gridBlock_t block;
-    uint8_t buffer[2048];
-} gridIoBlock_t;
 
 /*
   grid_info is a broken down representation of a Location, giving
@@ -137,6 +133,11 @@ typedef struct {
     enum GridCacheState state;
     // the last time access was requested to this block, used for LRU
     timeMs_t lastAccessMs;
+    // lat/lon this slot is expected to hold, captured when entering
+    // GRID_CACHE_DISKWAIT. The disk read overwrites gridBlock (including its
+    // lat/lon), so a READING slot can only be identified by these fields
+    int32_t expectedLat;
+    int32_t expectedLon;
 } gridCache_t;
 
 

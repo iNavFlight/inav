@@ -32,11 +32,11 @@
 
 bool calculateGridInfo(const gpsLocation_t *loc, gridInfo_t *info);
 bool checkBitmap(gridBlock_t *grid, uint8_t idx_x, uint8_t idx_y);
+uint16_t getBlockCrc(gridBlock_t *grid);
 
 gridCache_t* findGridCache(gridInfo_t *info);
 gridBlock_t* getGridBlockToRead(void);
 
 uint32_t eastBlocks(gridBlock_t *gridBlock);
-void markGridBlockAsRead(gridBlock_t *gridBlock);
+void setGridStatus(gridBlock_t *gridBlock, enum GridCacheState state);
 void markGridBlockNeedRead(gridBlock_t *gridBlock);
-void markGridBlockInvalid(gridBlock_t *gridBlock);

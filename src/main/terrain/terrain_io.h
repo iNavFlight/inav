@@ -31,6 +31,8 @@
 #define TERRAIN_IO_MAX_FILE_OPEN_STATUS 4 //supposed max 4 files opened for a single flight
 #define TERRAIN_IO_KEEP_OPEN_IDLE_MS 60000 //close the kept-open .DAT file after this long without any block read
 
+#define TERRAIN_GRID_BLOCK_SIZE_SD_CARD 2048
+
 /**
  * @brief Enumeration of terrain IO status states.
  */
@@ -62,11 +64,12 @@ typedef struct {
 typedef struct {
     terrainIoStatus_e status;
     gridBlock_t *gridBlock;
-    gridIoBlock_t ioBlock; // 2048 bytes because block in disk is exactly 2048 bytes
     afatfsFilePtr_t datFile;
     terrainIoFileOpenStatus_t fileOpenStatus[TERRAIN_IO_MAX_FILE_OPEN_STATUS];
     uint32_t bytesRead;
     uint32_t readsZeroBytesCount;
+    uint16_t expectedIdxX; //grid_idx of the block being read, stashed before the direct read overwrites the destination
+    uint16_t expectedIdxY;
     timeMs_t openFileStartTimeMs;
     int8_t openFileLatDegrees; //tile of the currently open datFile, valid only while datFile != NULL
     int16_t openFileLonDegrees;

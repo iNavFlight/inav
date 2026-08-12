@@ -33,6 +33,8 @@
 
 #include "navigation/navigation.h"
 
+#include "common/crc.h"
+
 #include "drivers/time.h"
 
 
@@ -76,35 +78,9 @@ gridBlock_t* getGridBlockToRead(void)
 }
 
 /**
-  mark a grid block as needing to be read from disk
+  set the cache state of a grid block
  */
-void markGridBlockNeedRead(gridBlock_t *gridBlock)
-{
-    for (uint16_t i = 0; i < TERRAIN_GRID_BLOCK_CACHE_SIZE; i++) {
-        if (&(cache[i].gridBlock) == gridBlock) {
-            cache[i].state = GRID_CACHE_DISKWAIT;
-            return;
-        }
-    }
-}
-
-/**
-  mark a grid block as having been read from disk
- */
-void markGridBlockAsRead(gridBlock_t *gridBlock)
-{
-    for (uint16_t i = 0; i < TERRAIN_GRID_BLOCK_CACHE_SIZE; i++) {
-        if (&(cache[i].gridBlock) == gridBlock) {
-            cache[i].state = GRID_CACHE_VALID;
-            return;
-        }
-    }
-}
-
-/**
-  mark a grid block as having been read from disk
- */
-void markGridBlockInvalid(gridBlock_t *gridBlock)
+void setGridStatus(gridBlock_t *gridBlock, enum GridCacheState state)
 {
     if (gridBlock == NULL) {
         return;
@@ -112,10 +88,24 @@ void markGridBlockInvalid(gridBlock_t *gridBlock)
 
     for (uint16_t i = 0; i < TERRAIN_GRID_BLOCK_CACHE_SIZE; i++) {
         if (&(cache[i].gridBlock) == gridBlock) {
-            cache[i].state = GRID_CACHE_INVALID;
+            if (state == GRID_CACHE_DISKWAIT) {
+                //block lat/lon are still valid here, stash them so the slot
+                //stays identifiable while the disk read overwrites the block
+                cache[i].expectedLat = gridBlock->lat;
+                cache[i].expectedLon = gridBlock->lon;
+            }
+            cache[i].state = state;
             return;
         }
     }
+}
+
+/**
+  mark a grid block as needing to be read from disk
+ */
+void markGridBlockNeedRead(gridBlock_t *gridBlock)
+{
+    setGridStatus(gridBlock, GRID_CACHE_DISKWAIT);
 }
 
 /**
@@ -177,7 +167,8 @@ uint32_t eastBlocks(gridBlock_t *gridBlock)
 }
 
 /**
-  find or allocate a grid cache entry for a given grid info
+  find or allocate a grid cache entry for a given grid info; returns NULL
+  while the block is not readable yet (DISKWAIT/READING or newly allocated)
  */
 gridCache_t* findGridCache(gridInfo_t *info)
 {
@@ -189,10 +180,31 @@ gridCache_t* findGridCache(gridInfo_t *info)
 
     for (uint16_t i = 0; i < TERRAIN_GRID_BLOCK_CACHE_SIZE; i++) {
         gridBlock_t *grid = & cache[i].gridBlock;
-        if (TERRAIN_LATLON_EQUAL(grid->lat, info->gridLat) &&
+
+        if (cache[i].state == GRID_CACHE_READING) {
+            //block content is being overwritten by the disk read, match by the
+            //identity stashed at DISKWAIT time instead, otherwise a repeat query
+            //would allocate a duplicate slot for the same block
+            if (TERRAIN_LATLON_EQUAL(cache[i].expectedLat, info->gridLat) &&
+                TERRAIN_LATLON_EQUAL(cache[i].expectedLon, info->gridLon)) {
+                cache[i].lastAccessMs = nowMs;
+                //not readable until the disk read finished
+                return NULL;
+            }
+            //never evict while the read is in flight
+            continue;
+        }
+
+        //INVALID blocks never match by content, a failed direct read leaves partial file data in them
+        if (cache[i].state != GRID_CACHE_INVALID &&
+            TERRAIN_LATLON_EQUAL(grid->lat, info->gridLat) &&
             TERRAIN_LATLON_EQUAL(grid->lon , info->gridLon) &&
             cache[i].gridBlock.spacing == grid_spacing) {
             cache[i].lastAccessMs = nowMs;
+            //not readable until the disk read finished
+            if (cache[i].state == GRID_CACHE_DISKWAIT) {
+                return NULL;
+            }
             return &cache[i];
         }
         if (cache[i].state != GRID_CACHE_DISKWAIT) {
@@ -222,10 +234,13 @@ gridCache_t* findGridCache(gridInfo_t *info)
     gridCache->gridBlock.version = 1;
     gridCache->lastAccessMs = nowMs;
 
-    // mark as waiting for disk read
+    // mark as waiting for disk read; a DISKWAIT block is not readable,
+    // so the caller gets NULL until the disk read has finished
+    gridCache->expectedLat = info->gridLat;
+    gridCache->expectedLon = info->gridLon;
     gridCache->state = GRID_CACHE_DISKWAIT;
 
-    return gridCache;
+    return NULL;
 }
 
 /*
@@ -241,5 +256,15 @@ bool checkBitmap(gridBlock_t *grid, uint8_t idx_x, uint8_t idx_y)
 
     return (grid->bitmap & (((uint64_t)1U) << bitnum)) != 0;
 }
+
+uint16_t getBlockCrc(gridBlock_t *grid){
+    // crc is taken over the whole block with the crc field zeroed
+    uint16_t saved_crc = grid->crc;
+    grid->crc = 0;
+    uint16_t ret = crc16_ccitt_update(0, grid, sizeof(*grid));
+    grid->crc = saved_crc;
+    return ret;
+}
+
 
 #endif
