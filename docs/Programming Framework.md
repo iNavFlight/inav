@@ -233,6 +233,8 @@ The flight mode operands return `true` when the mode is active. These are modes 
 | 12            | Next Waypoint User Action 3   | `true` when User Action 3 is active on the next waypoint leg [boolean `0`/`1`] |
 | 13            | Next Waypoint User Action 4   | `true` when User Action 4 is active on the next waypoint leg [boolean `0`/`1`] |
 
+Waypoint operands are relative to the currently selected mission. This also applies when several missions share the stored waypoint list. A request before the first waypoint, after the last waypoint, or while the mission list is invalid returns `0` instead of reading a waypoint from another mission.
+
 
 #### ACTIVE_WAYPOINT_ACTION
 

@@ -41,6 +41,11 @@
 
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
+// A landed multicopter should have near-zero vertical speed. Keep this independent
+// from nav_land_detect_sensitivity so higher sensitivity cannot disarm during descent.
+#define MC_LAND_DETECT_MAX_VEL_Z            50.0f   // cm/s
+// Only allow autonomous land detection near the configured final slow-descent phase.
+#define MC_LAND_DETECT_DESCENT_DEMAND_MARGIN 25.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
@@ -184,7 +189,19 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK = NAV_FSM_EVENT_STATE_SPECIFIC_2,
     NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
     NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
+#ifdef USE_AUTO_TRANSITION
+    // Only valid while MixerAT is in progress. The state-specific slots are
+    // intentionally reused by other FSM states.
+    NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE = NAV_FSM_EVENT_STATE_SPECIFIC_1,
+    NAV_FSM_EVENT_MIXERAT_MISSION_CAPTURE = NAV_FSM_EVENT_STATE_SPECIFIC_2,
+#endif
     NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_5,
+
+#ifdef USE_AUTO_TRANSITION
+    // Capture must also accept MSP waypoint jumps, which already use state
+    // specific slot 4. Keep resume distinct so those events cannot alias.
+    NAV_FSM_EVENT_MIXERAT_MISSION_RESUME,
+#endif
 
     NAV_FSM_EVENT_COUNT,
 } navigationFSMEvent_t;
@@ -256,7 +273,8 @@ typedef enum {
 
     NAV_PERSISTENT_ID_SEND_TO_INITALIZE                         = 49,
     NAV_PERSISTENT_ID_SEND_TO_IN_PROGRES                        = 50,
-    NAV_PERSISTENT_ID_SEND_TO_FINISHED                          = 51
+    NAV_PERSISTENT_ID_SEND_TO_FINISHED                          = 51,
+    NAV_PERSISTENT_ID_MIXERAT_MISSION_CAPTURE                  = 52,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -315,6 +333,7 @@ typedef enum {
     NAV_STATE_MIXERAT_INITIALIZE,
     NAV_STATE_MIXERAT_IN_PROGRESS,
     NAV_STATE_MIXERAT_ABORT,
+    NAV_STATE_MIXERAT_MISSION_CAPTURE,
 
     NAV_STATE_SEND_TO_INITALIZE,
     NAV_STATE_SEND_TO_IN_PROGESS,
@@ -509,6 +528,9 @@ typedef struct {
     uint16_t                    wpReachedSeq;               // Last reached mission item sequence relative to startWpIndex
     bool                        wpReachedNotificationPending;
     bool                        wpAltitudeReached;          // WP altitude achieved
+    bool                        wpAltitudeEnforceActive;    // WP entered altitude enforcement window
+    bool                        wpAltitudeEnforceFromStart; // First MC WP is climbing before horizontal travel
+    fpVector3_t                 wpAltitudeEnforceHoldPos;   // XY position captured before first-WP climb
 
 #ifdef USE_FW_AUTOLAND
     /* Fixedwing autoland */
@@ -586,6 +608,8 @@ void resetMulticopterAltitudeController(void);
 void resetMulticopterPositionController(void);
 void resetMulticopterHeadingController(void);
 void resetMulticopterBrakingMode(void);
+bool navigationMulticopterBrakingActive(void);
+bool navigationMulticopterBrakingBoostActive(void);
 
 bool adjustMulticopterAltitudeFromRCInput(void);
 bool adjustMulticopterHeadingFromRCInput(void);

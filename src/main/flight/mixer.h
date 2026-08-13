@@ -43,6 +43,13 @@ typedef enum {
     PLATFORM_BOAT           = 5
 } flyingPlatformType_e;
 
+static inline bool isMultirotorTypePlatform(const flyingPlatformType_e platformType)
+{
+    return platformType == PLATFORM_MULTIROTOR ||
+           platformType == PLATFORM_TRICOPTER ||
+           platformType == PLATFORM_HELICOPTER;
+}
+
 
 typedef enum {
     OUTPUT_MODE_AUTO     = 0,
