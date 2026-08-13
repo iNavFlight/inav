@@ -861,12 +861,73 @@ How waypoint USER selection works:
 - every navigable waypoint should intentionally set or clear that USER bit
 - if the aircraft is already in the requested profile, INAV continues without starting a transition
 
-Example mission:
+The USER bit selects the platform mode required at that waypoint. It does not start or stop the mission itself. The WP mode still controls mission activation. A transition request is processed only after the aircraft reaches that waypoint and the position, altitude, and transition safety conditions allow it.
+
+### Recommended mission start: climb in MC, then transition
+
+For initial setup and normal autonomous VTOL missions, the recommended layout separates the MC climb from the transition request:
+
+- WP1: place it near or directly above the takeoff area, set the required safe altitude, and leave USER1 clear (`0`)
+- WP2: place it at the same altitude, either at the same location or slightly ahead in the intended departure direction, and set USER1 to `1`
+- WP3: place it well ahead on the first fixed-wing leg and keep USER1 set to `1`
+
+The resulting sequence is:
+
+1. The mission starts while the aircraft is in MC.
+2. INAV flies and climbs to WP1 in MC without requesting a transition.
+3. After WP1 is accepted, the mission proceeds to WP2.
+4. When WP2 is accepted, INAV starts MC -> FW and aligns the transition heading toward WP3.
+5. After the target FW profile is reached, the mission continues toward WP3 in FW.
+
+This layout is recommended because the climb and transition are two explicit mission steps. It is easier to verify that the aircraft reached a safe altitude in MC before acceleration begins, and WP3 provides a clear fixed-wing departure direction. WP1 and WP2 may share the same coordinates when no horizontal MC segment is required, but both must use a safe transition altitude.
+
+### Compact alternative: transition at WP1
+
+The first waypoint can request FW directly. This is the simplest layout when the required sequence is vertical MC takeoff, climb to a safe altitude, and immediate MC -> FW transition:
+
+- WP1: place it near or directly above the takeoff area, set a safe transition altitude, and set USER1 to `1`
+- WP2: place it well ahead in the intended fixed-wing departure direction and keep USER1 set to `1`
+- following fixed-wing waypoints: keep USER1 set to `1`
+
+The resulting sequence is:
+
+1. The mission starts while the aircraft is in MC.
+2. INAV flies and climbs to WP1 in MC.
+3. After WP1 is accepted and the transition altitude conditions are satisfied, INAV starts MC -> FW.
+4. After the target FW profile is reached, WP1 is complete and the mission continues toward WP2 in FW.
+
+This does not require a separate USER1=`0` waypoint unless the aircraft must perform an MC action before transitioning. It is a valid compact alternative, but the separate WP1=`0`, WP2=`1` layout above is recommended for first tests and when an explicit MC climb stage is preferred. WP1 should normally be close to the takeoff position. If WP1 is tens or hundreds of metres away, the aircraft will travel to it in MC and will not begin MC -> FW when the mission switch is first activated.
+
+Use `nav_wp_enforce_altitude` together with `nav_vtol_mission_transition_min_altitude_cm` so a WP1 located directly above the aircraft cannot be accepted while it is still too low. For example:
+
+```
+set nav_wp_enforce_altitude = 100
+set nav_vtol_mission_transition_min_altitude_cm = 1200
+save
+```
+
+In this example, WP1 must be within about `1m` of its requested altitude and the aircraft must be at least `12m` above the navigation altitude reference before MC -> FW can start.
+
+During mission MC -> FW, INAV pauses normal waypoint advancement and does not command the MC position controller to chase an XY point while the forward motor or tilt mechanism builds speed. Altitude control and ANGLE stabilisation remain active, and heading is aligned toward the following waypoint. The transition does not require the aircraft to have zero horizontal speed or to be perfectly level, so WP1 and WP2 should define a clear departure direction and should not require a sharp turn at the start of transition.
+
+### Holding in MC before MC -> FW
+
+If the aircraft must reach a location, remain there in MC with `HOLD_TIME`, and only then transition to FW, use two waypoint actions:
+
+- WP1: `HOLD_TIME`, USER1 clear (`0`), at the required MC hold position and altitude
+- WP2: ordinary `WAYPOINT`, USER1 set (`1`), at the same location or slightly ahead in the intended departure direction
+- WP3: USER1 set (`1`), well ahead on the first fixed-wing leg
+
+WP1 explicitly requires MC while the hold action is running. WP2 explicitly requests FW after that hold has completed. Two actions are necessary because one USER bit describes one target platform for one waypoint; a single waypoint cannot unambiguously mean both "arrive and hold in MC" and "depart in FW". Keeping those operations separate also avoids hidden timing rules when waypoints are close together or the transition needs more time than expected.
+
+### Complete mission example
 
 - WP1: USER1 not set, climb in MC near the takeoff area
 - WP2: USER1 set, request MC -> FW transition
 - WP3: USER1 set, continue fixed-wing navigation
-- LAND or final approach waypoint: USER1 not set, request FW -> MC before landing
+- waypoint before `HOLD_TIME` or `LAND`: USER1 not set, request FW -> MC
+- `HOLD_TIME` or `LAND`: USER1 not set, perform the action in MC
+- waypoint after an MC hold: USER1 set only if another MC -> FW transition is required
 
 For MC -> FW mission transition, INAV uses a straight acceleration segment. It does not try to loiter to build airspeed. Normal waypoint advancement is paused until the transition is finished.
 
