@@ -161,6 +161,28 @@ static const CMS_Menu cmsx_menuEzTune = {
     .entries = cmsx_menuEzTuneEntries
 };
 
+static long cmsx_PidWriteback_Confirm(displayPort_t *displayPort, const void *ptr)
+{
+    UNUSED(displayPort);
+    UNUSED(ptr);
+    cmsx_PidWriteback(NULL);
+    return MENU_CHAIN_BACK;
+}
+
+static const OSD_Entry cmsx_menuPidConfirmEntries[] = {
+    OSD_LABEL_ENTRY("--- CONFIRM ---"),
+    OSD_FUNC_CALL_ENTRY("YES", cmsx_PidWriteback_Confirm),
+    { "NO", {.func = NULL}, NULL, OME_Back, 0 },
+    OSD_END_ENTRY
+};
+
+static const CMS_Menu cmsx_menuPidConfirm = {
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuPidConfirmEntries,
+};
+
 static const OSD_Entry cmsx_menuPidEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
@@ -180,6 +202,7 @@ static const OSD_Entry cmsx_menuPidEntries[] =
     RPY_PIDFF_ENTRY("YAW   D", &cmsx_pidYaw.D),
     RPY_PIDFF_ENTRY("YAW   FF", &cmsx_pidYaw.FF),
 
+    OSD_SUBMENU_ENTRY("SET", &cmsx_menuPidConfirm),
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -189,7 +212,7 @@ static const CMS_Menu cmsx_menuPid = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_PidOnEnter,
-    .onExit = cmsx_PidWriteback,
+    .onExit = NULL,
     .onGlobalExit = NULL,
     .entries = cmsx_menuPidEntries
 };
@@ -218,6 +241,28 @@ static long cmsx_menuPidAltMag_onExit(const OSD_Entry *self)
     return 0;
 }
 
+static long cmsx_menuPidAltMag_onExit_Confirm(displayPort_t *displayPort, const void *ptr)
+{
+    UNUSED(displayPort);
+    UNUSED(ptr);
+    cmsx_menuPidAltMag_onExit(NULL);
+    return MENU_CHAIN_BACK;
+}
+
+static const OSD_Entry cmsx_menuPidAltMagConfirmEntries[] = {
+    OSD_LABEL_ENTRY("--- CONFIRM ---"),
+    OSD_FUNC_CALL_ENTRY("YES", cmsx_menuPidAltMag_onExit_Confirm),
+    { "NO", {.func = NULL}, NULL, OME_Back, 0 },
+    OSD_END_ENTRY
+};
+
+static const CMS_Menu cmsx_menuPidAltMagConfirm = {
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuPidAltMagConfirmEntries,
+};
+
 static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- ALT&MAG --", profileIndexString),
@@ -235,6 +280,7 @@ static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 
     OTHER_PIDFF_ENTRY("MAG P", &cmsx_pidHead.P),
 
+    OSD_SUBMENU_ENTRY("SET", &cmsx_menuPidAltMagConfirm),
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -244,7 +290,7 @@ static const CMS_Menu cmsx_menuPidAltMag = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_menuPidAltMag_onEnter,
-    .onExit = cmsx_menuPidAltMag_onExit,
+    .onExit = NULL,
     .onGlobalExit = NULL,
     .entries = cmsx_menuPidAltMagEntries,
 };
@@ -271,6 +317,28 @@ static long cmsx_menuPidGpsnav_onExit(const OSD_Entry *self)
     return 0;
 }
 
+static long cmsx_menuPidGpsnav_onExit_Confirm(displayPort_t *displayPort, const void *ptr)
+{
+    UNUSED(displayPort);
+    UNUSED(ptr);
+    cmsx_menuPidGpsnav_onExit(NULL);
+    return MENU_CHAIN_BACK;
+}
+
+static const OSD_Entry cmsx_menuPidGpsnavConfirmEntries[] = {
+    OSD_LABEL_ENTRY("--- CONFIRM ---"),
+    OSD_FUNC_CALL_ENTRY("YES", cmsx_menuPidGpsnav_onExit_Confirm),
+    { "NO", {.func = NULL}, NULL, OME_Back, 0 },
+    OSD_END_ENTRY
+};
+
+static const CMS_Menu cmsx_menuPidGpsnavConfirm = {
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuPidGpsnavConfirmEntries,
+};
+
 static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- GPSNAV --", profileIndexString),
@@ -284,6 +352,7 @@ static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
     OTHER_PIDFF_ENTRY("VEL D", &cmsx_pidVelXY.D),
     OTHER_PIDFF_ENTRY("VEL FF", &cmsx_pidVelXY.FF),
 
+    OSD_SUBMENU_ENTRY("SET", &cmsx_menuPidGpsnavConfirm),
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -293,7 +362,7 @@ static const CMS_Menu cmsx_menuPidGpsnav = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_menuPidGpsnav_onEnter,
-    .onExit = cmsx_menuPidGpsnav_onExit,
+    .onExit = NULL,
     .onGlobalExit = NULL,
     .entries = cmsx_menuPidGpsnavEntries,
 };
