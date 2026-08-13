@@ -187,14 +187,14 @@ static const OSD_Entry menuMainInFlightEntries[] =
 {
     OSD_LABEL_ENTRY("-- MAIN --"),
 
-    OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImu),
+    OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImuInFlight),
     OSD_SUBMENU_ENTRY("FEATURES", &menuFeaturesInFlight),
 #if defined(USE_OSD) && defined(CMS_MENU_OSD)
     OSD_SUBMENU_ENTRY("OSD", &cmsx_menuOsd),
 #endif
-    OSD_SUBMENU_ENTRY("BATTERY", &cmsx_menuBattery),
+    OSD_SUBMENU_ENTRY("BATTERY", &cmsx_menuBatteryInFlight),
     OSD_SUBMENU_ENTRY("FC+FW INFO", &menuInfo),
-    OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMisc),
+    OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMiscInFlight),
 
     {"EXIT"       , {.func = cmsMenuExit}, (void*)CMS_EXIT, OME_OSD_Exit, 0},
 #ifdef CMS_MENU_DEBUG
