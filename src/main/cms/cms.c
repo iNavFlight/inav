@@ -950,19 +950,17 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 
     if (!cmsOpenedInFlight) {
         setServoOutputEnabled(true);
-    }
 
-    if (!cmsOpenedInFlight && ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT))) {
-        processDelayedSave();
-        displayClearScreen(pDisplay);
-        displayWrite(pDisplay, 5, 3, "REBOOTING...");
+        if ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT)) {
+            processDelayedSave();
+            displayClearScreen(pDisplay);
+            displayWrite(pDisplay, 5, 3, "REBOOTING...");
 
-        displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
+            displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
 
-        fcReboot(false);
-    }
+            fcReboot(false);
+        }
 
-    if (!cmsOpenedInFlight) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
     } else {
         // Latch the switch so it doesn't reopen immediately if still ON
