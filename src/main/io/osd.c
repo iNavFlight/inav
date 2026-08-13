@@ -86,6 +86,7 @@
 #include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/settings.h"
 
 #include "flight/imu.h"
@@ -6213,6 +6214,17 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             } else {
                 /* Messages shown only when Failsafe, WP, RTH or Emergency Landing not active and landed state inactive */
                 /* ADDS MAXIMUM OF 5 MESSAGES TO TOTAL */
+#ifdef USE_CMS
+                uint32_t menuCountdownMs = cmsGetOpenCountdownRemaining();
+                if (menuCountdownMs > 0) {
+                    unsigned sec = menuCountdownMs / 1000;
+                    unsigned dec = (menuCountdownMs % 1000) / 100;
+                    tfp_sprintf(messageBuf, "MENU IN %u.%u", sec, dec);
+                    ADD_MSG(messageBuf);
+                } else if (IS_RC_MODE_ACTIVE(BOXUSER4) && !cmsInMenu && !cmsIsMenuSwitchLatched()) {
+                    ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_MENU_NAV_REQ));
+                }
+#endif
 #ifdef USE_GEOZONE
                 char buf[12], buf1[12];
                 switch (geozone.messageState) {     /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
@@ -6393,7 +6405,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
-            if (message == failsafeInfoMessage) {
+            if (message == failsafeInfoMessage || message == OSD_MESSAGE_STR(OSD_MSG_MENU_NAV_REQ)) {
                 // failsafeInfoMessage is not useful for recovering
                 // a lost model, but might help avoiding a crash.
                 // Blink to grab user attention.
