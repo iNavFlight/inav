@@ -41,6 +41,9 @@
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
 #include "sensors/boardalignment.h"
+#ifdef USE_CMS
+#include "cms/cms.h"
+#endif
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
@@ -391,6 +394,24 @@ static void processPilotAndFailSafeActions(float dT)
         failsafeApplyControlInput();
     }
     else {
+#ifdef USE_CMS
+        // In-flight CMS menu: override stick commands with neutral values
+        // so the aircraft continues flying in its current nav mode.
+        // Throttle passes through since nav modes manage it automatically.
+        // IMPORTANT: Do not skip failsafeUpdateRcCommandValues() - the failsafe
+        // system must keep receiving updates to detect RC link loss.
+        if (cmsInMenu && ARMING_FLAG(ARMED)) {
+            rcCommand[ROLL]  = 0;
+            rcCommand[PITCH] = 0;
+            rcCommand[YAW]   = 0;
+            rcCommand[THROTTLE] = throttleStickMixedValue();
+
+            if (isRXDataNew) {
+                failsafeUpdateRcCommandValues();
+            }
+            return;
+        }
+#endif
         // Compute ROLL PITCH and YAW command.
         // Only recompute when the RX task has delivered new data (~50 Hz).
         {
