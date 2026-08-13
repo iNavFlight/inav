@@ -157,4 +157,61 @@ const CMS_Menu menuMain = {
     .onGlobalExit = NULL,
     .entries = menuMainEntries,
 };
+
+static const OSD_Entry menuFeaturesInFlightEntries[] =
+{
+    OSD_LABEL_ENTRY("--- FEATURES ---"),
+    OSD_SUBMENU_ENTRY("NAVIGATION", &cmsx_menuNavigation),
+#if defined(USE_VTX_CONTROL)
+    OSD_SUBMENU_ENTRY("VTX", &cmsx_menuVtxControl),
+#endif // VTX_CONTROL
+#ifdef USE_LED_STRIP
+    OSD_SUBMENU_ENTRY("LED STRIP", &cmsx_menuLedstrip),
+#endif // LED_STRIP
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+static const CMS_Menu menuFeaturesInFlight = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUFEAT_IF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuFeaturesInFlightEntries,
+};
+
+static const OSD_Entry menuMainInFlightEntries[] =
+{
+    OSD_LABEL_ENTRY("-- MAIN --"),
+
+    OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImu),
+    OSD_SUBMENU_ENTRY("FEATURES", &menuFeaturesInFlight),
+#if defined(USE_OSD) && defined(CMS_MENU_OSD)
+    OSD_SUBMENU_ENTRY("OSD", &cmsx_menuOsd),
+#endif
+    OSD_SUBMENU_ENTRY("BATTERY", &cmsx_menuBattery),
+    OSD_SUBMENU_ENTRY("FC+FW INFO", &menuInfo),
+    OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMisc),
+
+    {"EXIT"       , {.func = cmsMenuExit}, (void*)CMS_EXIT, OME_OSD_Exit, 0},
+#ifdef CMS_MENU_DEBUG
+    OSD_SUBMENU_ENTRY("ERR SAMPLE", &menuInfoEntries[0]),
+#endif
+
+    OSD_END_ENTRY,
+};
+
+const CMS_Menu menuMainInFlight = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUMAIN_IF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuMainInFlightEntries,
+};
 #endif
