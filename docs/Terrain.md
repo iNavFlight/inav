@@ -29,29 +29,31 @@ of 4 GB** and format it to FAT32.
 
 # Data Generation and Copying
 
-To generate elevation maps, use the terrain generator web tool available at https://martinovem.github.io/High-Resolution-Map-Generator/ or https://terrain.ardupilot.org/
+To generate elevation maps, use the terrain generator web tool available at https://martinovem.github.io/High-Resolution-Map-Generator/
+
+The generated `.TER` files use an iNav-specific format and are **not compatible with ArduPilot terrain data**. Do not use files from https://terrain.ardupilot.org/ or copy `.DAT` files from an ArduPilot setup — they will not be read correctly.
 
 **Before copying any terrain data files, the SD card must be formatted. Always format the card before each new terrain data
 installation to avoid file system errors.**
 
-In iNav, **only 30 m resolution (SRTM1)** is currently supported, so this option must be selected during data generation.
+The generator always produces **30 m resolution** data, which is the only resolution iNav supports — there is no resolution setting to choose.
 The generated files are then copied to the SD card into the root directory structure.
 
 For example
 ```
 SDCARD:\
-├── N47E014.DAT
-├── N47E015.DAT
-├── N47E016.DAT
-├── N49E015.DAT
-├── N49E016.DAT
-├── N49E017.DAT
-└── N50E016.DAT
+├── N47E014.TER
+├── N47E015.TER
+├── N47E016.TER
+├── N49E015.TER
+├── N49E016.TER
+├── N49E017.TER
+└── N50E016.TER
 ```
 
 Copying can be done via **iNav MSC (Mass Storage Class)** is not recommended.
 
-> **Important:** The `.DAT` file covering your **home position** (the location where you arm) must always be present on the SD
+> **Important:** The `.TER` file covering your **home position** (the location where you arm) must always be present on the SD
 > card. The terrain system first reads the ground elevation at the home position to establish an altitude reference. Until this
 > succeeds, terrain data will not be displayed for any position — even if tiles for your entire flight area are present. Make
 > sure the tile for your take-off site is included when generating and copying terrain files.
@@ -84,13 +86,12 @@ stability and reliability of the terrain feature.
   - Confirm the SD card is mounted: check `status` in the CLI for SD card state
   - Confirm a valid GPS fix is present before expecting any terrain value to appear
   - Terrain data is only loaded **after the first valid GPS fix**. If the fix is acquired after a long wait, allow a few seconds for the first read to complete
-  - Check that the `.DAT` file covering your **home position** exists on the SD card — see note in *Data Generation and Copying* above
+  - Check that the `.TER` file covering your **home position** exists on the SD card — see note in *Data Generation and Copying* above
 - Feature disables itself mid-flight:
   - The terrain subsystem disables itself on any SD card read failure. This is most commonly caused by a slow or low-quality SD card. Replace the card with a branded, high-speed card
   - On F4-based flight controllers, SD card compatibility issues are more common. If problems persist, test with a different card model or switch to an H7-based flight controller
   - Ensure the SD card partition is ≤ 4 GB and formatted FAT32. Larger partitions or exFAT formatting can cause intermittent read failures
 - Value appears but is clearly wrong:
-  - Confirm you selected **30 m resolution (SRTM1)** when generating data at https://terrain.ardupilot.org/. Other resolutions are not supported and will produce incorrect values
   - Reformat the SD card and recopy the terrain files. A corrupted or partially overwritten FAT32 filesystem can produce plausible but incorrect altitude values
   - The displayed value is altitude **above terrain at the current GPS position**, not distance to the nearest object below the aircraft. Trees, buildings, and local obstacles are not accounted for
 - Terrain data was not loaded before arming:

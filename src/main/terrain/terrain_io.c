@@ -375,7 +375,7 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
 
         char filename[20];
         snprintf(filename, sizeof(filename),
-                 "%c%02ld%c%03ld.DAT",
+                 "%c%02ld%c%03ld.TER",
                  terrainIoState.gridBlock->latDegrees < 0 ? 'S' : 'N',
                  labs(terrainIoState.gridBlock->latDegrees),
                  terrainIoState.gridBlock->lonDegrees < 0 ? 'W' : 'E',
@@ -523,9 +523,11 @@ void loadGridToCacheTask(timeUs_t currentTimeUs)
                     terrainIoState.gridBlock->grid_idx_x != terrainIoState.expectedIdxX
                     || terrainIoState.gridBlock->grid_idx_y != terrainIoState.expectedIdxY
                     || terrainIoState.gridBlock->crc != getBlockCrc(terrainIoState.gridBlock)
+                    || terrainIoState.gridBlock->version != TERRAIN_TER_FILE_FORMAT_VERSION
+                    || terrainIoState.gridBlock->spacing != TERRAIN_SPACING
 
             ) {
-                LOG_DEBUG(TERRAIN, "TERRAIN READ, BLOCK IDX MISMATCH");
+                LOG_DEBUG(TERRAIN, "TERRAIN READ, BLOCK VALIDATION FAILED");
                 setGridStatus(terrainIoState.gridBlock, GRID_CACHE_INVALID);
                 cleanUp();
                 return;

@@ -32,6 +32,9 @@
 #define TERRAIN_TASK_RATE_HZ 5
 #define TERRAIN_NO_DATA_DELAY_MS 1000
 
+#define TERRAIN_TER_FILE_FORMAT_VERSION 50
+#define TERRAIN_SPACING 30
+
 // Sentinel returned by the terrain getters when no valid height/distance is
 // available. It must lie outside the range of any real altitude or distance:
 // terrain can legitimately be negative (below sea level), so INT32_MIN is used
