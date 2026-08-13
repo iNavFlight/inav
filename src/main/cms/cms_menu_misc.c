@@ -70,4 +70,34 @@ const CMS_Menu cmsx_menuMisc = {
     .entries = menuMiscEntries
 };
 
+static const OSD_Entry menuMiscInFlightEntries[]=
+{
+    OSD_LABEL_ENTRY("-- MISC --"),
+
+    OSD_SETTING_ENTRY("THR IDLE", SETTING_THROTTLE_IDLE),
+#ifdef USE_DEV_TOOLS
+    OSD_SETTING_ENTRY("GROUND TEST MODE", SETTING_GROUND_TEST_MODE),
+#endif
+#ifdef USE_OSD
+#ifdef USE_ADC
+    OSD_SETTING_ENTRY("OSD VOLT DECIMALS", SETTING_OSD_MAIN_VOLTAGE_DECIMALS),
+    OSD_SETTING_ENTRY("STATS ENERGY UNIT", SETTING_OSD_STATS_ENERGY_UNIT),
+#endif // ADC
+    OSD_SETTING_ENTRY("STATS PAGE SWAP TIME", SETTING_OSD_STATS_PAGE_AUTO_SWAP_TIME),
+#endif // OSD
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+const CMS_Menu cmsx_menuMiscInFlight = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "XMISC_IF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuMiscInFlightEntries
+};
+
 #endif // CMS

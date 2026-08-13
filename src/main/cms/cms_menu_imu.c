@@ -101,6 +101,9 @@ static long cmsx_profileIndexOnChange(displayPort_t *displayPort, const void *pt
     profileIndex = tmpProfileIndex - 1;
     profileIndexString[1] = '0' + tmpProfileIndex;
     setConfigProfile(profileIndex);
+    schedulePidGainsUpdate();
+    navigationUsePIDs();
+    activateControlConfig();
 
     return 0;
 }
@@ -585,5 +588,34 @@ const CMS_Menu cmsx_menuImu = {
     .onExit = NULL,
     .onGlobalExit = NULL,
     .entries = cmsx_menuImuEntries,
+};
+
+static const OSD_Entry cmsx_menuImuInFlightEntries[] =
+{
+    OSD_LABEL_ENTRY("-- PID TUNING --"),
+
+    // Profile dependent
+    OSD_UINT8_CALLBACK_ENTRY("PID PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_PROFILE_COUNT, 1})),
+    OSD_SUBMENU_ENTRY("PID", &cmsx_menuPid),
+    OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMag),
+    OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnav),
+
+    // Rate profile dependent
+    OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_PROFILE_COUNT, 1})),
+    OSD_SUBMENU_ENTRY("RATE", &cmsx_menuRateProfile),
+    OSD_SUBMENU_ENTRY("MANU RATE", &cmsx_menuManualRateProfile),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+const CMS_Menu cmsx_menuImuInFlight = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "XIMU_IF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = cmsx_menuImu_onEnter,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuImuInFlightEntries,
 };
 #endif // CMS

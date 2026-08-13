@@ -162,4 +162,25 @@ CMS_Menu cmsx_menuBattery = {
     .entries = menuBatteryEntries
 };
 
+static OSD_Entry menuBatteryInFlightEntries[]=
+{
+    OSD_LABEL_ENTRY("-- BATTERY --"),
+
+    OSD_UINT8_CALLBACK_ENTRY("PROF", cmsx_onBatteryProfileIndexChange, (&(const OSD_UINT8_t){ &battDispProfileIndex, 1, MAX_BATTERY_PROFILE_COUNT, 1})),
+    OSD_SUBMENU_ENTRY("SETTINGS", &cmsx_menuBattSettings),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+const CMS_Menu cmsx_menuBatteryInFlight = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "XBATT_IF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = cmsx_menuBattery_onEnter,
+    .onExit = cmsx_menuBattery_onExit,
+    .onGlobalExit = NULL,
+    .entries = menuBatteryInFlightEntries
+};
+
 #endif // CMS
