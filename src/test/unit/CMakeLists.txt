@@ -4,6 +4,10 @@ set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/main")
 
 # Keep these alphabetically sorted by test name
 
+set_property(SOURCE adsb_unittest.cc PROPERTY depends "io/adsb.c" "common/maths.c")
+set_property(SOURCE adsb_unittest.cc PROPERTY definitions USE_ADSB MAX_ADSB_VEHICLES=5 ADSB_LIMIT_CM=6400000)
+set_property(SOURCE adsb_unittest.cc PROPERTY extra_includes "../../lib/main/MAVLink")
+
 set_property(SOURCE alignsensor_unittest.cc PROPERTY depends
     "common/maths.c" "sensors/boardalignment.c")
 
@@ -58,13 +62,24 @@ set_property(SOURCE canard_unittest.cc PROPERTY extra_includes
 set_property(SOURCE canard_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0 CANARD_INTERNAL=)
 
 set_property(SOURCE osd_unittest.cc PROPERTY depends "io/osd_utils.c" "io/displayport_msp_osd.c" "common/typeconversion.c")
-set_property(SOURCE osd_unittest.cc PROPERTY definitions OSD_UNIT_TEST USE_MSP_DISPLAYPORT DISABLE_MSP_BF_COMPAT)
+set_property(SOURCE osd_unittest.cc PROPERTY definitions OSD_UNIT_TEST USE_MSP_DISPLAYPORT)
 
 set_property(SOURCE gps_ublox_unittest.cc PROPERTY depends "io/gps_ublox_utils.c")
 set_property(SOURCE gps_ublox_unittest.cc PROPERTY definitions GPS_UBLOX_UNIT_TEST)
 
+set_property(SOURCE gps_null_port_unittest.cc PROPERTY depends "io/gps.c")
+set_property(SOURCE gps_null_port_unittest.cc PROPERTY definitions GPS_NULL_PORT_UNIT_TEST USE_GPS_PROTO_UBLOX)
+
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
+
+set_property(SOURCE mavlink_unittest.cc PROPERTY depends
+    "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_mission.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"
+    "mavlink/mavlink_routing.c" "mavlink/mavlink_runtime.c" "mavlink/mavlink_streams.c" "telemetry/mavlink.c"
+    "common/crc.c" "common/maths.c" "common/streambuf.c" "common/string_light.c" "msp/msp_serial.c")
+set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK)
+set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
+    "../../lib/main/MAVLink")
 
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
@@ -74,6 +89,7 @@ function(unit_test src)
     list(TRANSFORM headers REPLACE "\.c$" ".h")
     list(APPEND deps ${headers})
     get_property(defs SOURCE ${src} PROPERTY definitions)
+    get_property(extra_includes SOURCE ${src} PROPERTY includes)
     set(test_definitions "UNIT_TEST")
     if (defs)
         list(APPEND test_definitions ${defs})

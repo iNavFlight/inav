@@ -59,7 +59,7 @@
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
-#include "drivers/light_ws2811strip.h"
+#include "drivers/pinio.h"
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 4);
 
@@ -525,16 +525,11 @@ static int logicConditionCompute(
             }
             break;
 
-#ifdef USE_LED_STRIP
-        case LOGIC_CONDITION_LED_PIN_PWM:
-
-            if (operandA >=0 && operandA <= 100) {
-                ledPinStartPWM((uint8_t)operandA);
-            } else {
-                ledPinStopPWM();
-            }
+#ifdef USE_PINIO
+        case LOGIC_CONDITION_PINIO_PWM:
+            // operandA = duty cycle (0-100), operandB = channel (0=LED idle, 1-4=PINIO)
+            pinioSetDuty(operandB, (uint8_t)constrain(operandA, 0, 100));
             return operandA;
-            break;
 #endif
 #ifdef USE_GPS_FIX_ESTIMATION
         case LOGIC_CONDITION_DISABLE_GPS_FIX:
@@ -543,9 +538,17 @@ static int logicConditionCompute(
             } else {
                 LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
             }
-                return true;
+            return true;
             break;
 #endif
+        case LOGIC_CONDITION_DISABLE_AUTOSPEED_AIRSPEED:
+            if (operandA > 0) {
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED);
+            } else {
+                LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED);
+            }
+            return true;
+            break;
 
         default:
             return false;
@@ -752,9 +755,8 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return getMinGroundSpeed(navConfig()->general.min_ground_speed);
             break;
 
-        //FIXME align with osdGet3DSpeed
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_SPEED: // cm/s
-            return osdGet3DSpeed();
+            return posControl.actualState.vel3D;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
@@ -786,7 +788,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
                 uint16_t windAngle;
                 getEstimatedHorizontalWindSpeed(&windAngle);
                 int32_t windHeading = (int32_t)windAngle + 18000; // Correct heading to display correctly.
-        
+
                 while (windHeading < 0) windHeading += 36000;
                 while (windHeading >= 36000) windHeading -= 36000;
 
@@ -806,10 +808,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
                 uint16_t windAngle;
                 getEstimatedHorizontalWindSpeed(&windAngle);
                 int32_t relativeWindHeading = (int32_t)windAngle + 18000 - DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw);
-        
+
                 while (relativeWindHeading < 0) relativeWindHeading += 36000;
                 while (relativeWindHeading >= 36000) relativeWindHeading -= 36000;
-                
+
                 relativeWindHeading = -relativeWindHeading;
                 if (relativeWindHeading <= -18000)
                     relativeWindHeading = 18000 + (relativeWindHeading + 18000);
@@ -821,7 +823,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 #else
         return 0;
 #endif
-        break;        
+        break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
             return constrain(getEstimatedActualPosition(Z), INT32_MIN, INT32_MAX);
@@ -913,7 +915,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return rxLinkStatistics.uplinkRSSI;
 #else
             return 0;
-#endif        
+#endif
             break;
 
 case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK:

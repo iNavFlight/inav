@@ -32,6 +32,7 @@ typedef enum {
     CURRENT_SENSOR_FAKE,
     CURRENT_SENSOR_ESC,
     CURRENT_SENSOR_SMARTPORT,
+    CURRENT_SENSOR_CRSF,
     CURRENT_SENSOR_CAN,
     CURRENT_SENSOR_MAX = CURRENT_SENSOR_CAN
 } currentSensor_e;
@@ -42,6 +43,7 @@ typedef enum {
     VOLTAGE_SENSOR_ESC,
     VOLTAGE_SENSOR_FAKE,
     VOLTAGE_SENSOR_SMARTPORT,
+    VOLTAGE_SENSOR_CRSF,
     VOLTAGE_SENSOR_CAN,
     VOLTAGE_SENSOR_MAX = VOLTAGE_SENSOR_CAN
 } voltageSensor_e;
@@ -107,28 +109,28 @@ typedef struct batteryProfile_s {
     struct {
         float throttleIdle;                 // Throttle IDLE value based on min_command, max_throttle, in percent
         float throttleScale;                // Scaling factor for throttle.
+        int16_t throttleRateLimiter;        // Min time in millis for fixed wing throttle to go from min to max
 #ifdef USE_DSHOT
         uint8_t turtleModePowerFactor;      // Power factor from 0 to 100% of flip over after crash
 #endif
     } motor;
 
-    uint16_t failsafe_throttle;             // Throttle level used for landing - specify value between 1000..2000 (pwm pulse width for slightly below hover). center throttle = 1500.
+    uint16_t failsafe_throttle;             // Throttle level used for landing - slightly below hover for MC, probably motor off for FW.
 
     struct {
-
         struct {
-            uint16_t hover_throttle;        // multicopter hover throttle
+            uint16_t hover_throttle;            // multicopter hover throttle
         } mc;
 
         struct {
-            uint16_t cruise_throttle;       // Cruise throttle
-            uint16_t min_throttle;          // Minimum allowed throttle in auto mode
-            uint16_t max_throttle;          // Maximum allowed throttle in auto mode
-            uint8_t  pitch_to_throttle;     // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
-            uint16_t launch_idle_throttle;  // Throttle to keep at launch idle
-            uint16_t launch_throttle;       // Launch throttle
+            uint16_t cruise_throttle;           // Cruise throttle
+            uint16_t min_throttle;              // Minimum allowed throttle in auto mode
+            uint16_t max_throttle;              // Maximum allowed throttle in auto mode
+            uint8_t  pitch_to_throttle;         // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
+            uint16_t launch_idle_throttle;      // Throttle to keep at launch idle
+            uint16_t launch_throttle;           // Launch throttle
+            uint16_t auto_speed_level_min_thr;  // Minimum allowed auto speed throttle during level flight
         } fw;
-
     } nav;
 
 #if defined(USE_POWER_LIMITS)

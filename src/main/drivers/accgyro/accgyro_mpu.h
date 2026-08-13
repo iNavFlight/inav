@@ -29,6 +29,7 @@
 #define ICM20608G_WHO_AM_I_CONST            (0xAF)
 #define ICM20689_WHO_AM_I_CONST             (0x98)
 #define ICM42605_WHO_AM_I_CONST             (0x42)
+#define ICM42686P_WHO_AM_I_CONST            (0x44)
 #define ICM42688P_WHO_AM_I_CONST            (0x47)
 #define ICM45686_WHO_AM_I_CONST             (0xE9)
 

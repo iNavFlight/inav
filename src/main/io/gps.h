@@ -36,6 +36,7 @@
 typedef enum {
     GPS_UBLOX = 0,
     GPS_MSP,
+    GPS_CRSF,
     GPS_FAKE,
     GPS_DRONECAN,
     GPS_PROVIDER_COUNT
@@ -131,6 +132,9 @@ typedef struct gpsSolutionData_s {
         bool validVelD;
         bool validEPE;      // EPH/EPV values are valid - actual accuracy
         bool validTime;
+        bool validEllipsoidAltitude;
+        bool validSpeedAccuracy;
+        bool validHeadingAccuracy;
     } flags;
 
     gpsFixType_e fixType;
@@ -144,6 +148,9 @@ typedef struct gpsSolutionData_s {
 
     uint16_t eph;   // horizontal accuracy (cm)
     uint16_t epv;   // vertical accuracy (cm)
+    int32_t ellipsoidAltitude; // centimeters above the WGS84 ellipsoid
+    uint32_t speedAccuracy;    // millimeters per second
+    uint32_t headingAccuracy;  // degrees * 1E5
 
     uint16_t hdop;  // generic HDOP value (*HDOP_SCALE)
 

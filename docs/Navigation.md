@@ -4,8 +4,8 @@ The navigation system in INAV is responsible for assisting the pilot allowing al
 
 ## NAV ALTHOLD mode - altitude hold
 
-Altitude hold requires a valid source of altitude - barometer, GPS or rangefinder. The best source is chosen automatically. 
-In this mode THROTTLE stick controls climb rate (vertical velocity). When pilot moves stick up - aircraft goes up, pilot moves stick down - 
+Altitude hold requires a valid source of altitude - barometer, GPS or rangefinder. The best source is chosen automatically.
+In this mode THROTTLE stick controls climb rate (vertical velocity). When pilot moves stick up - aircraft goes up, pilot moves stick down -
 aircraft descends, you keep stick at neutral position - aircraft maintains current altitude.
 
 
@@ -31,7 +31,7 @@ When activated, this mode will attempt to keep copter where it is (based on GPS 
 ### CLI parameters affecting POSHOLD mode:
 * *nav_user_control_mode* - can be set to "0" (GPS_ATTI) or "1" (GPS_CRUISE), controls how firmware will respond to roll/pitch stick movement. When in GPS_ATTI mode, right stick controls attitude, when it is released, new position is recorded and held. When in GPS_CRUISE mode right stick controls velocity and firmware calculates required attitude on its own.
 
- 
+
 ### Related PIDs
 PIDs affecting position hold: POS, POSR
 PID meaning:
@@ -151,9 +151,9 @@ Parameters:
 
   * `<alt>` - Altitude in cm. See `p3` bit 0 for datum definition.
 
-  * `<p1>` - For a RTH waypoint, p1 > 0 enables landing. For a normal waypoint it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For POSHOLD TIME waypoint it is time to loiter in seconds. For JUMP it is the target WP **index** (not number). For SET_HEAD, it is the desired heading (0-359) or -1 to cancel a previous SET_HEAD or SET_POI.
+  * `<p1>` - For a RTH waypoint, p1 > 0 enables landing. For a normal waypoint it is the speed to this waypoint (cm/s). For multicopters it works for speeds > 0.5 m/s and < nav_auto_speed. The speed setting also applies for fixed wing from V10.0 where setting a speed activates fixed wing auto speed mode. For POSHOLD TIME waypoint it is time to loiter in seconds. For JUMP it is the target WP **index** (not number). For SET_HEAD, it is the desired heading (0-359) or -1 to cancel a previous SET_HEAD or SET_POI.
 
-  * `<p2>` - For a POSHOLD TIME it is the speed to this waypoint (cm/s), it is taken into account only for multicopters and when > 50 and < nav_auto_speed. For JUMP it is the number of iterations of the JUMP.
+  * `<p2>` - For a POSHOLD TIME it is the speed to this waypoint (cm/s). For multicopters it works for speeds > 0.5 m/s and < nav_auto_speed. The speed setting also applies for fixed wing from V10.0 where setting a speed activates fixed wing auto speed mode. For JUMP it is the number of iterations of the JUMP.
 
   * `<p3>` - A  bitfield with four bits reserved for user specified actions. It is anticipated that these actions will be exposed through the logic conditions.
       * Bit 0 - Altitude (`alt`) : Relative (to home altitude) (0) or Absolute (AMSL) (1).

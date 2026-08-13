@@ -72,7 +72,15 @@
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA4
 
-//Baro 
+#define USE_IMU_LSM6DXX
+#define IMU_LSM6DXX_ALIGN       CW90_DEG
+#define LSM6DXX_SPI_BUS         BUS_SPI1
+#define LSM6DXX_CS_PIN          PA4
+
+// ICM42688P driver handled by USE_IMU_ICM42605 above (shares WHO_AM_I detection)
+// LSM6DSV16X / LSM6DSK320X driver handled by USE_IMU_LSM6DXX above (shares WHO_AM_I detection)
+
+//Baro
 #define USE_BARO
 #define USE_BARO_BMP280
 #define BMP280_SPI_BUS          BUS_SPI2
@@ -94,6 +102,11 @@
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
+
+// CAMERA_CONTROL
+// PA8 has no consuming driver prior to 10.0. From 10.0 forward this will be set up as a
+// PWM-capable PINIO pin instead -- see the October 2026 migration project.
+#define CAMERA_CONTROL_PIN      PA8
 
 // Serial ports
 #define USE_VCP
@@ -171,3 +184,5 @@
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PC5
 #define PINIO1_FLAGS                PINIO_FLAGS_INVERTED
+#define PINIO2_PIN                  PB4
+#define PINIO2_FLAGS                PINIO_FLAGS_INVERTED
