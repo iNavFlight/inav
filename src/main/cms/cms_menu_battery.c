@@ -32,6 +32,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
 #include "fc/settings.h"
 
 #include "sensors/battery.h"
@@ -62,6 +63,9 @@ static long cmsx_menuBattery_onExit(const OSD_Entry *self)
 
     setConfigBatteryProfile(battProfileIndex);
     activateBatteryProfile();
+    if (ARMING_FLAG(ARMED)) {
+        batteryInit();
+    }
 
     if (featureProfAutoswitchEnabled) {
         featureSet(FEATURE_BAT_PROFILE_AUTOSWITCH);
@@ -93,6 +97,17 @@ static long cmsx_menuBattSettings_onEnter(const OSD_Entry *from)
     return 0;
 }
 
+static long cmsx_menuBattSettings_onExit(const OSD_Entry *self)
+{
+    UNUSED(self);
+
+    if (ARMING_FLAG(ARMED)) {
+        batteryInit();
+    }
+
+    return 0;
+}
+
 static const OSD_Entry menuBattSettingsEntries[]=
 {
     OSD_LABEL_DATA_ENTRY("-- BATT SETTINGS --", battProfileIndexString),
@@ -118,7 +133,7 @@ static CMS_Menu cmsx_menuBattSettings = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_menuBattSettings_onEnter,
-    .onExit = NULL,
+    .onExit = cmsx_menuBattSettings_onExit,
     .onGlobalExit = NULL,
     .entries = menuBattSettingsEntries
 };
