@@ -219,6 +219,27 @@ void batteryInit(void)
     pt1FilterSetCutoff(&amperageFilterState, AMPERAGE_LPF_FREQ);
 }
 
+void batteryUpdateThresholdsAndCells(void)
+{
+    if (batteryState == BATTERY_NOT_PRESENT) {
+        return;
+    }
+
+    if (currentBatteryProfile->cells > 0) {
+        batteryCellCount = currentBatteryProfile->cells;
+    } else if (currentBatteryProfile->voltage.cellDetect > 0) {
+        batteryCellCount = (vbat / currentBatteryProfile->voltage.cellDetect) + 1;
+        if (batteryCellCount == 7 || batteryCellCount == 9 || batteryCellCount == 11) {
+            batteryCellCount += 1;
+        }
+        batteryCellCount = MIN(batteryCellCount, 12);
+    }
+
+    batteryFullVoltage = batteryCellCount * currentBatteryProfile->voltage.cellMax;
+    batteryWarningVoltage = batteryCellCount * currentBatteryProfile->voltage.cellWarning;
+    batteryCriticalVoltage = batteryCellCount * currentBatteryProfile->voltage.cellMin;
+}
+
 #ifdef USE_ADC
 // profileDetect() profile sorting compare function
 static int profile_compare(profile_comp_t *a, profile_comp_t *b) {

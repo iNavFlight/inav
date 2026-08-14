@@ -940,6 +940,16 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
         break;
 
     case CMS_EXIT:
+        if (cmsOpenedInFlight) {
+            if (currentCtx.menu && currentCtx.menu->onExit) {
+                currentCtx.menu->onExit((OSD_Entry *)NULL);
+            }
+            for (int i = menuStackIdx - 1; i >= 0; i--) {
+                if (menuStack[i].menu && menuStack[i].menu->onExit) {
+                    menuStack[i].menu->onExit((OSD_Entry *)NULL);
+                }
+            }
+        }
         break;
     }
 

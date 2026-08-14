@@ -64,7 +64,7 @@ static long cmsx_menuBattery_onExit(const OSD_Entry *self)
     setConfigBatteryProfile(battProfileIndex);
     activateBatteryProfile();
     if (ARMING_FLAG(ARMED)) {
-        batteryInit();
+        batteryUpdateThresholdsAndCells();
     }
 
     if (featureProfAutoswitchEnabled) {
@@ -102,7 +102,7 @@ static long cmsx_menuBattSettings_onExit(const OSD_Entry *self)
     UNUSED(self);
 
     if (ARMING_FLAG(ARMED)) {
-        batteryInit();
+        batteryUpdateThresholdsAndCells();
     }
 
     return 0;
