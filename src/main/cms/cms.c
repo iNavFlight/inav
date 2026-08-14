@@ -1392,7 +1392,6 @@ static bool cmsIsNavModeActive(void)
     return FLIGHT_MODE(NAV_POSHOLD_MODE) ||
            FLIGHT_MODE(NAV_RTH_MODE) ||
            FLIGHT_MODE(NAV_WP_MODE) ||
-           FLIGHT_MODE(NAV_COURSE_HOLD_MODE) ||
            FLIGHT_MODE(NAV_ALTHOLD_MODE);
 }
 
