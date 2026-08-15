@@ -201,7 +201,7 @@ bind_msp_rx <port>
 
 ## MultiWii serial protocol (MSP RX)
 
-Allows you to use MSP commands as the RC input. Up to 18 channels are supported.
+Allows you to use MSP commands as the RC input. Up to 34 channels are supported.
 Note:
 * It is necessary to update `MSP_SET_RAW_RC` at 5Hz or faster.
 * `MSP_SET_RAW_RC` uses the defined RC channel map
@@ -212,6 +212,31 @@ Note:
 ## SIM (SITL) Joystick
 
 Enables the use of a joystick in the INAV SITL with a flight simulator. See the [SITL documentation](SITL/SITL.md).
+
+## MSP Auxiliary RC Channel Overlay (MSP2_INAV_SET_AUX_RC)
+
+Allows extending the available RC channel count beyond the native RC link capacity using `MSP2_INAV_SET_AUX_RC` (`0x2230`). This is a lightweight, bandwidth-efficient alternative to `MSP_SET_RAW_RC` for auxiliary channels only.
+
+**Key properties:**
+- Controls **CH13–CH32** only (CH1–CH12 are protected and rejected)
+- Configurable resolution: 2-bit (3 positions), 4-bit (~71µs steps), 8-bit (~3.9µs steps), or 16-bit (raw PWM)
+- Value `0` = skip (no update) — previous value persists indefinitely
+- No flight mode or special configuration required — always active
+- Does **not** affect failsafe detection
+- Recommended to send with `MSP_FLAG_DONT_REPLY` (`flags=0x01`) on telemetry passthrough links
+
+**Typical use case:** A Lua script on the radio sends `MSP2_INAV_SET_AUX_RC` via SmartPort/CRSF/ELRS telemetry passthrough to control auxiliary functions (lights, camera triggers, gimbal modes) on channels beyond the RC link's native capacity.
+
+**Priority order** (last writer wins):
+1. Primary RX (SBUS, CRSF, FPort, etc.)
+2. MSP RC Override (if active)
+3. **MSP AUX Overlay** (CH13–CH32)
+
+**Important:** For serial RX protocols, the firmware cannot detect which channels the sender actively uses. If AUX_RC targets a channel that the RX link also sends, AUX_RC will override it. Configure the start channel above your RC link's active channel range.
+
+When MSP is the primary RX provider (`receiver_type = MSP`), channels covered by `MSP_SET_RAW_RC` are automatically protected. Channels in the `msp_override_channels` bitmask are also protected when MSP RC Override mode is active.
+
+See the [MSP documentation](development/msp/README.md) for the full message format.
 
 ## Configuration
 

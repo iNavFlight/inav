@@ -199,10 +199,19 @@ typedef struct
   * @{
   */
 #if (STM32H7_DEV_ID == 0x450UL)
+#if defined(STM32H742xx) || defined(STM32H743xx) || defined(STM32H750xx) || defined(STM32H753xx)
 #define LL_UTILS_PACKAGETYPE_LQFP100            LL_SYSCFG_LQFP100_PACKAGE          /*!< LQFP100 package type             */
 #define LL_UTILS_PACKAGETYPE_TQFP144            LL_SYSCFG_TQFP144_PACKAGE          /*!< TQFP144 package type             */
 #define LL_UTILS_PACKAGETYPE_TQFP176_UFBGA176   LL_SYSCFG_TQFP176_UFBGA176_PACKAGE /*!< TQFP176 or UFBGA176 package type */
 #define LL_UTILS_PACKAGETYPE_LQFP208_TFBGA240   LL_SYSCFG_LQFP208_TFBGA240_PACKAGE /*!< LQFP208 or TFBGA240 package type */
+#else
+#define LL_UTILS_PACKAGETYPE_UFBGA169_LQFP176   LL_SYSCFG_UFBGA169_LQFP176_PACKAGE  /*!< UFBGA169 or LQFP176 package type */
+#define LL_UTILS_PACKAGETYPE_LQFP144            LL_SYSCFG_LQFP144_PACKAGE           /*!< LQFP144 package type             */
+#define LL_UTILS_PACKAGETYPE_LQFP176            LL_SYSCFG_LQFP176_PACKAGE           /*!< LQFP176 package type             */
+#define LL_UTILS_PACKAGETYPE_UFBGA176           LL_SYSCFG_UFBGA176_PACKAGE          /*!< UFBGA176 package type            */
+#define LL_UTILS_PACKAGETYPE_LQFP208_STM32H7x7  LL_SYSCFG_LQFP208_STM32H7x7_PACKAGE /*!< LQFP208 package type for STM32H7x7 products */
+#define LL_UTILS_PACKAGETYPE_LQFP208_STM32H7x5  LL_SYSCFG_LQFP208_STM32H7x5_PACKAGE /*!< LQFP208 package type for STM32H7x5 products */
+#endif
 #elif (STM32H7_DEV_ID == 0x480UL)
 #define LL_UTILS_PACKAGETYPE_LQFP64                  0x00000000UL                  /*!< LQFP64 package type              */
 #define LL_UTILS_PACKAGETYPE_TFBGA100_LQFP100        0x00000001UL                  /*!< TFBGA100 or LQFP100 package type */
@@ -294,6 +303,11 @@ __STATIC_INLINE uint32_t LL_GetFlashSize(void)
   *         @arg @ref LL_UTILS_PACKAGETYPE_TQFP144
   *         @arg @ref LL_UTILS_PACKAGETYPE_TQFP176_UFBGA176
   *         @arg @ref LL_UTILS_PACKAGETYPE_LQFP208_TFBGA240
+  *         @arg @ref LL_UTILS_PACKAGETYPE_UFBGA169_LQFP176
+  *         @arg @ref LL_UTILS_PACKAGETYPE_LQFP176
+  *         @arg @ref LL_UTILS_PACKAGETYPE_UFBGA176
+  *         @arg @ref LL_UTILS_PACKAGETYPE_LQFP208_STM32H7x7
+  *         @arg @ref LL_UTILS_PACKAGETYPE_LQFP208_STM32H7x5
   *         @arg @ref LL_UTILS_PACKAGETYPE_LQFP64 (*)
   *         @arg @ref LL_UTILS_PACKAGETYPE_TFBGA100_LQFP100  (*)
   *         @arg @ref LL_UTILS_PACKAGETYPE_LQFP100_SMPS  (*)

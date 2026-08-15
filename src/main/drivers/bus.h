@@ -85,6 +85,7 @@ typedef enum {
     DEVHW_ICM42605,
     DEVHW_BMI270,
     DEVHW_LSM6D,
+    DEVHW_ICM45686,
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,
 
@@ -140,6 +141,7 @@ typedef enum {
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
+    DEVHW_MS5525,       // Pitot meter
     DEVHW_DLVR,         // Pitot meter
     DEVHW_M25P16,       // SPI NOR flash
     DEVHW_W25N,         // SPI 128MB or 256MB flash from Winbond W25N family

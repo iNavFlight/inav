@@ -82,6 +82,10 @@
         BUSDEV_REGISTER_SPI(busdev_lsm6dxx,      DEVHW_LSM6D,       LSM6DXX_SPI_BUS,     LSM6DXX_CS_PIN,      NONE,  DEVFLAGS_NONE,  IMU_LSM6DXX_ALIGN);
     #endif
 
+    #if defined(USE_IMU_ICM45686)
+        BUSDEV_REGISTER_SPI(busdev_icm45686,    DEVHW_ICM45686,     ICM45686_SPI_BUS,   ICM45686_CS_PIN,    NONE,  DEVFLAGS_NONE,  IMU_ICM45686_ALIGN);
+    #endif
+
 #endif
 
 
@@ -395,6 +399,14 @@
 
 #if defined(USE_PITOT_MS4525) && defined(MS4525_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_ms4525,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);    // Requires 0xFF to passthrough
+#endif
+
+#if defined(PITOT_I2C_BUS) && !defined(MS5525_I2C_BUS)
+    #define MS5525_I2C_BUS PITOT_I2C_BUS
+#endif
+
+#if defined(USE_PITOT_MS5525) && defined(MS5525_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_ms5525,      DEVHW_MS5525,       MS5525_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE,               0);
 #endif
 
 

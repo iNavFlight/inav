@@ -231,11 +231,11 @@
 #define SDIO_INIT_FREQ         400000U /*!< Initialization phase : 400 kHz max */
 #define SDIO_TIMEOUT           1000U   /*!< SDIO timeout millisecond           */
 
-#define SDIO_FUNCTION_0        0x00U   /*!< SDIO_Functions 0                   */
-#define SDIO_FUNCTION_1        0x01U   /*!< SDIO_Functions 1                   */
+#define SDIO_FUNCTION_0        0x00UL  /*!< SDIO_Functions 0                   */
+#define SDIO_FUNCTION_1        0x01UL  /*!< SDIO_Functions 1                   */
 
-#define SDIO_READ              0x0U    /*!< Read flag for cmd52 and cmd53      */
-#define SDIO_WRITE             0x1U    /*!< Write flag for cmd52 and cmd53     */
+#define SDIO_READ              0x0UL   /*!< Read flag for cmd52 and cmd53      */
+#define SDIO_WRITE             0x1UL   /*!< Write flag for cmd52 and cmd53     */
 
 #define SDIO_BUS_SPEED_SDR12   0x00U   /*!< SDIO bus speed mode SDR12          */
 #define SDIO_BUS_SPEED_SDR25   0x02U   /*!< SDIO bus speed mode SDR25          */
@@ -244,8 +244,8 @@
 
 #define SDIO_CCCR_REG_NUMBER   0x16U   /*!< SDIO card cccr register number     */
 
-#define SDIO_OCR_VDD_32_33     (1U << 20U)
-#define SDIO_OCR_SDIO_S18R     (1U << 24U)
+#define SDIO_OCR_VDD_32_33     (1UL << 20U)
+#define SDIO_OCR_SDIO_S18R     (1UL << 24U)
 /**
   * @}
   */
@@ -256,18 +256,18 @@
 
 #define IS_SDIO_FUNCTION(FN)        (((FN) >= HAL_SDIO_FUNCTION_1) && ((FN) <= HAL_SDIO_FUNCTION_7))
 
-#define IS_SDIO_SUPPORTED_BLOCK_SIZE(BLOCKSIZE) (((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_1BYTE)    || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_2BYTE)    || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_4BYTE)    || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_8BYTE)    || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_16BYTE)   || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_32BYTE)   || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_64BYTE)   || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_128BYTE)  || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_256BYTE)  || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_512BYTE)  || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_1024BYTE) || \
-                                                 ((BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_2048BYTE))
+#define IS_SDIO_SUPPORTED_BLOCK_SIZE(SDIO_BLOCKSIZE) (((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_1BYTE)    || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_2BYTE)    || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_4BYTE)    || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_8BYTE)    || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_16BYTE)   || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_32BYTE)   || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_64BYTE)   || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_128BYTE)  || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_256BYTE)  || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_512BYTE)  || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_1024BYTE) || \
+                                                      ((SDIO_BLOCKSIZE) == HAL_SDIO_DATA_BLOCK_SIZE_2048BYTE))
 
 /* Private functions -------------------------------------------------------------------------------------------------*/
 /** @defgroup SDIO_Private_Functions SDIO Private Functions
@@ -277,10 +277,10 @@ static HAL_StatusTypeDef SDIO_InitCard(SDIO_HandleTypeDef *hsdio);
 static HAL_StatusTypeDef SDIO_ReadDirect(SDIO_HandleTypeDef *hsdio, uint32_t addr, uint32_t raw, uint32_t function_nbr,
                                          uint8_t *pData);
 static HAL_StatusTypeDef SDIO_WriteDirect(SDIO_HandleTypeDef *hsdio, uint32_t addr, uint32_t raw, uint32_t function_nbr,
-                                          uint8_t *pData);
-static HAL_StatusTypeDef SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_ExtendedCmd_TypeDef *cmd_arg,
+                                          const uint8_t *pData);
+static HAL_StatusTypeDef SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, const HAL_SDIO_ExtendedCmd_TypeDef *cmd_arg,
                                             uint8_t *pData, uint16_t Size_byte);
-static uint8_t SDIO_Convert_Block_Size(SDIO_HandleTypeDef *hsdio, uint32_t block_size);
+static uint8_t SDIO_Convert_Block_Size(const SDIO_HandleTypeDef *hsdio, uint32_t block_size);
 static HAL_StatusTypeDef SDIO_IOFunction_IRQHandler(SDIO_HandleTypeDef *hsdio);
 /**
   * @}
@@ -312,7 +312,7 @@ static HAL_StatusTypeDef SDIO_IOFunction_IRQHandler(SDIO_HandleTypeDef *hsdio);
   */
 HAL_StatusTypeDef HAL_SDIO_Init(SDIO_HandleTypeDef *hsdio)
 {
-  SDIO_InitTypeDef Init;
+  SDIO_InitTypeDef Init = {0U};
   uint32_t sdmmc_clk;
   uint8_t data;
 
@@ -376,8 +376,15 @@ HAL_StatusTypeDef HAL_SDIO_Init(SDIO_HandleTypeDef *hsdio)
   (void)SDMMC_PowerState_ON(hsdio->Instance);
 
   /* wait 74 Cycles: required power up waiting time before starting the SDIO initialization sequence */
-  sdmmc_clk = sdmmc_clk / (2U * Init.ClockDiv);
-  HAL_Delay(1U + (74U * 1000U / (sdmmc_clk)));
+  if (Init.ClockDiv != 0U)
+  {
+    sdmmc_clk = sdmmc_clk / (2U * Init.ClockDiv);
+  }
+
+  if (sdmmc_clk != 0U)
+  {
+    HAL_Delay(1U + (74U * 1000U / (sdmmc_clk)));
+  }
 
   if (hsdio->SDIO_IdentifyCard == NULL)
   {
@@ -805,7 +812,8 @@ HAL_StatusTypeDef HAL_SDIO_GetCardFBRRegister(SDIO_HandleTypeDef *hsdio, HAL_SDI
   * @param  pData: pointer to the buffer that will contain the received data.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_SDIO_ReadDirect(SDIO_HandleTypeDef *hsdio, HAL_SDIO_DirectCmd_TypeDef *Argument, uint8_t *pData)
+HAL_StatusTypeDef HAL_SDIO_ReadDirect(SDIO_HandleTypeDef *hsdio, const HAL_SDIO_DirectCmd_TypeDef *Argument,
+                                      uint8_t *pData)
 {
   uint32_t cmd;
   uint32_t errorstate;
@@ -870,7 +878,8 @@ HAL_StatusTypeDef HAL_SDIO_ReadDirect(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Direct
   * @param  Data: pointer to the buffer that will contain the received data.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_SDIO_WriteDirect(SDIO_HandleTypeDef *hsdio, HAL_SDIO_DirectCmd_TypeDef *Argument, uint8_t Data)
+HAL_StatusTypeDef HAL_SDIO_WriteDirect(SDIO_HandleTypeDef *hsdio, const HAL_SDIO_DirectCmd_TypeDef *Argument,
+                                       uint8_t Data)
 {
   uint32_t cmd;
   uint32_t errorstate;
@@ -934,7 +943,7 @@ HAL_StatusTypeDef HAL_SDIO_WriteDirect(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Direc
   * @param  Timeout_Ms:  Specify timeout value
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_SDIO_ReadExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_ExtendedCmd_TypeDef *Argument,
+HAL_StatusTypeDef HAL_SDIO_ReadExtended(SDIO_HandleTypeDef *hsdio, const HAL_SDIO_ExtendedCmd_TypeDef *Argument,
                                         uint8_t *pData, uint32_t Size_byte, uint32_t Timeout_Ms)
 {
   uint32_t cmd;
@@ -1009,7 +1018,14 @@ HAL_StatusTypeDef HAL_SDIO_ReadExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Exte
     cmd |= Argument->Block_Mode << 27U;
     cmd |= Argument->OpCode << 26U;
     cmd |= (Argument->Reg_Addr & 0x1FFFFU) << 9U;
-    cmd |= (Size_byte & 0x1FFU);
+    if (Argument->Block_Mode == HAL_SDIO_MODE_BYTE)
+    {
+      cmd |= (((uint32_t)Size_byte) & 0x1FFU);
+    }
+    else /* HAL_SDIO_BLOCK_MODE_BLOCK */
+    {
+      cmd |= nbr_of_block & 0x1FFU;
+    }
     errorstate = SDMMC_SDIO_CmdReadWriteExtended(hsdio->Instance, cmd);
     if (errorstate != HAL_SDIO_ERROR_NONE)
     {
@@ -1032,10 +1048,10 @@ HAL_StatusTypeDef HAL_SDIO_ReadExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Exte
     while (!__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_RXOVERR | SDMMC_FLAG_DCRCFAIL |
                                 SDMMC_FLAG_DTIMEOUT | SDMMC_FLAG_DATAEND))
     {
-      if (__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_RXFIFOHF) && (dataremaining >= 32U))
+      if (__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_RXFIFOHF) && (dataremaining >= SDMMC_FIFO_SIZE))
       {
         /* Read data from SDMMC Rx FIFO */
-        for (regCount = 0U; regCount < 8U; regCount++)
+        for (regCount = 0U; regCount < (SDMMC_FIFO_SIZE / 4U); regCount++)
         {
           data = SDMMC_ReadFIFO(hsdio->Instance);
           *tempbuff = (uint8_t)(data & 0xFFU);
@@ -1047,11 +1063,11 @@ HAL_StatusTypeDef HAL_SDIO_ReadExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Exte
           *tempbuff = (uint8_t)((data >> 24U) & 0xFFU);
           tempbuff++;
         }
-        dataremaining -= 32U;
+        dataremaining -= SDMMC_FIFO_SIZE;
       }
-      else if (dataremaining < 32U)
+      else if (dataremaining < SDMMC_FIFO_SIZE)
       {
-        while ((dataremaining > 0U) && !(__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_RXFIFOE)))
+        while (!(__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_RXFIFOE)) && (dataremaining > 0U))
         {
           data = SDMMC_ReadFIFO(hsdio->Instance);
           for (byteCount = 0U; byteCount < 4U; byteCount++)
@@ -1143,7 +1159,7 @@ HAL_StatusTypeDef HAL_SDIO_ReadExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Exte
   * @param  Timeout_Ms:  Specify timeout value
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_ExtendedCmd_TypeDef *Argument,
+HAL_StatusTypeDef HAL_SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, const HAL_SDIO_ExtendedCmd_TypeDef *Argument,
                                          uint8_t *pData, uint32_t Size_byte, uint32_t Timeout_Ms)
 {
   uint32_t cmd;
@@ -1154,7 +1170,7 @@ HAL_StatusTypeDef HAL_SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Ext
   uint8_t byteCount;
   uint32_t data;
   uint32_t dataremaining;
-  uint8_t *u32tempbuff = pData;
+  uint32_t *u32tempbuff = (uint32_t *)(uint32_t)pData;
   uint32_t nbr_of_block;
 
   /* Check the parameters */
@@ -1214,7 +1230,14 @@ HAL_StatusTypeDef HAL_SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Ext
     cmd |= Argument->Block_Mode << 27U;
     cmd |= Argument->OpCode << 26U;
     cmd |= (Argument->Reg_Addr & 0x1FFFFU) << 9U;
-    cmd |= (Size_byte & 0x1FFU);
+    if (Argument->Block_Mode == HAL_SDIO_MODE_BYTE)
+    {
+      cmd |= (((uint32_t)Size_byte) & 0x1FFU);
+    }
+    else /* HAL_SDIO_BLOCK_MODE_BLOCK */
+    {
+      cmd |= nbr_of_block & 0x1FFU;
+    }
     errorstate = SDMMC_SDIO_CmdReadWriteExtended(hsdio->Instance, cmd);
     if (errorstate != HAL_SDIO_ERROR_NONE)
     {
@@ -1236,19 +1259,20 @@ HAL_StatusTypeDef HAL_SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Ext
                                 SDMMC_FLAG_DATAEND))
     {
 
-      if (__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_TXFIFOHE) && (dataremaining >= 32U))
+      if (__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_TXFIFOHE) && (dataremaining >= SDMMC_FIFO_SIZE))
       {
         /* Read data from SDMMC Rx FIFO */
-        for (regCount = 0U; regCount < 8U; regCount++)
+        for (regCount = 0U; regCount < (SDMMC_FIFO_SIZE / 4U); regCount++)
         {
           hsdio->Instance->FIFO = *u32tempbuff;
           u32tempbuff++;
         }
-        dataremaining -= 32U;
+        dataremaining -= SDMMC_FIFO_SIZE;
       }
-      else if ((dataremaining < 32U) && (__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_TXFIFOHE | SDMMC_FLAG_TXFIFOE)))
+      else if ((__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_TXFIFOHE | SDMMC_FLAG_TXFIFOE)) &&
+               (dataremaining < SDMMC_FIFO_SIZE))
       {
-        uint8_t *u8buff = (uint8_t *)u32tempbuff;
+        const uint8_t *u8buff = (uint8_t *)u32tempbuff;
         while (dataremaining > 0U)
         {
           data = 0U;
@@ -1335,7 +1359,7 @@ HAL_StatusTypeDef HAL_SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_Ext
   * @param  Size_byte:  Block size to write.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_SDIO_ReadExtended_DMA(SDIO_HandleTypeDef *hsdio, HAL_SDIO_ExtendedCmd_TypeDef *Argument,
+HAL_StatusTypeDef HAL_SDIO_ReadExtended_DMA(SDIO_HandleTypeDef *hsdio, const HAL_SDIO_ExtendedCmd_TypeDef *Argument,
                                             uint8_t *pData, uint32_t Size_byte)
 {
   SDMMC_DataInitTypeDef config;
@@ -1467,7 +1491,7 @@ HAL_StatusTypeDef HAL_SDIO_ReadExtended_DMA(SDIO_HandleTypeDef *hsdio, HAL_SDIO_
   * @param  Size_byte:  Block size to write.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_SDIO_WriteExtended_DMA(SDIO_HandleTypeDef *hsdio, HAL_SDIO_ExtendedCmd_TypeDef *Argument,
+HAL_StatusTypeDef HAL_SDIO_WriteExtended_DMA(SDIO_HandleTypeDef *hsdio, const HAL_SDIO_ExtendedCmd_TypeDef *Argument,
                                              uint8_t *pData, uint32_t Size_byte)
 {
   uint32_t cmd;
@@ -1665,7 +1689,6 @@ void HAL_SDIO_IRQHandler(SDIO_HandleTypeDef *hsdio)
       }
 
       hsdio->Context = SDIO_CONTEXT_NONE;
-      hsdio->State = HAL_SDIO_STATE_READY;
     }
 
     if (hsdio->remaining_data != 0U)
@@ -2489,7 +2512,7 @@ static HAL_StatusTypeDef SDIO_InitCard(SDIO_HandleTypeDef *hsdio)
   uint32_t errorstate;
   uint32_t timeout = 0U;
   uint16_t sdio_rca = 1U;
-  uint32_t Resp4;
+  uint32_t Resp4 = 0U;
   uint32_t nbr_of_func;
 
   /* Identify card operating voltage */
@@ -2606,7 +2629,7 @@ static HAL_StatusTypeDef SDIO_ReadDirect(SDIO_HandleTypeDef *hsdio, uint32_t add
   * @retval HAL status
   */
 static HAL_StatusTypeDef SDIO_WriteDirect(SDIO_HandleTypeDef *hsdio, uint32_t addr, uint32_t raw,
-                                          uint32_t function_nbr, uint8_t *pData)
+                                          uint32_t function_nbr, const uint8_t *pData)
 {
   uint32_t errorstate;
   uint32_t cmd;
@@ -2644,7 +2667,7 @@ static HAL_StatusTypeDef SDIO_WriteDirect(SDIO_HandleTypeDef *hsdio, uint32_t ad
   * @param  pData: pointer to write or read data
   * @retval HAL status
   */
-static HAL_StatusTypeDef SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_ExtendedCmd_TypeDef *cmd_arg,
+static HAL_StatusTypeDef SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, const HAL_SDIO_ExtendedCmd_TypeDef *cmd_arg,
                                             uint8_t *pData, uint16_t Size_byte)
 {
   SDMMC_DataInitTypeDef config;
@@ -2719,18 +2742,20 @@ static HAL_StatusTypeDef SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_
   while (!__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_TXUNDERR | SDMMC_FLAG_DCRCFAIL | SDMMC_FLAG_DTIMEOUT |
                               SDMMC_FLAG_DATAEND))
   {
-    if (__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_TXFIFOHE) && (dataremaining >= 32U))
+    if (__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_TXFIFOHE) &&
+        (dataremaining >= SDMMC_FIFO_SIZE))
     {
-      for (regCount = 8U; regCount > 0U; regCount--)
+      for (regCount = SDMMC_FIFO_SIZE / 4U; regCount > 0U; regCount--)
       {
         SDMMCx->FIFO = *u32tempbuff;
         u32tempbuff++;
       }
-      dataremaining -= 32U;
+      dataremaining -= SDMMC_FIFO_SIZE;
     }
-    else if ((dataremaining < 32U) && (__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_TXFIFOHE | SDMMC_FLAG_TXFIFOE)))
+    else if ((__HAL_SDIO_GET_FLAG(hsdio, SDMMC_FLAG_TXFIFOHE | SDMMC_FLAG_TXFIFOE)) &&
+             (dataremaining < SDMMC_FIFO_SIZE))
     {
-      uint8_t *u8buff = (uint8_t *)u32tempbuff;
+      const uint8_t *u8buff = (uint8_t *)u32tempbuff;
       while (dataremaining > 0U)
       {
         data = 0U;
@@ -2801,7 +2826,7 @@ static HAL_StatusTypeDef SDIO_WriteExtended(SDIO_HandleTypeDef *hsdio, HAL_SDIO_
   * @param  block_size: block size in bytes
   * @retval block size as DBLOCKSIZE[3:0] bits format
   */
-static uint8_t SDIO_Convert_Block_Size(SDIO_HandleTypeDef *hsdio, uint32_t block_size)
+static uint8_t SDIO_Convert_Block_Size(const SDIO_HandleTypeDef *hsdio, uint32_t block_size)
 {
   UNUSED(hsdio);
 
@@ -2824,7 +2849,7 @@ static uint8_t SDIO_Convert_Block_Size(SDIO_HandleTypeDef *hsdio, uint32_t block
 static HAL_StatusTypeDef SDIO_IOFunction_IRQHandler(SDIO_HandleTypeDef *hsdio)
 {
   uint8_t count;
-  uint8_t pendingInt;
+  uint8_t pendingInt = 0U;
 
   if (hsdio->IOInterruptNbr == 1U)
   {

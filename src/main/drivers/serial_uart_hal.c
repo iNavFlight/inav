@@ -52,6 +52,18 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
             uartPort->Handle.AdvancedInit.TxPinLevelInvert = UART_ADVFEATURE_TXINV_ENABLE;
         }
     }
+
+#ifdef USE_UART4_SWAP
+    if (uartPort->Handle.Instance == UART4) {
+        uartPort->Handle.AdvancedInit.AdvFeatureInit |= UART_ADVFEATURE_SWAP_INIT;
+        uartPort->Handle.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
+    }
+#endif
+}
+
+__attribute__((weak)) void uartConfigurePinSwap(uartPort_t *uartPort)
+{
+    UNUSED(uartPort);
 }
 
 static void uartReconfigure(uartPort_t *uartPort)
@@ -85,6 +97,7 @@ static void uartReconfigure(uartPort_t *uartPort)
 
 
     usartConfigurePinInversion(uartPort);
+    uartConfigurePinSwap(uartPort);
 
     if (uartPort->port.options & SERIAL_BIDIR)
     {

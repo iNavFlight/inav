@@ -55,6 +55,9 @@
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/pwm_mapping.h"
+#ifdef USE_PINIO
+#include "drivers/pinio.h"
+#endif
 #include "drivers/sdcard/sdcard.h"
 #include "drivers/serial.h"
 #include "drivers/system.h"
@@ -106,6 +109,7 @@
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
 #include "msp/msp_serial.h"
+#include "io/rangefinder.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h" //for MSP_SIMULATOR
@@ -113,8 +117,10 @@
 
 #include "rx/rx.h"
 #include "rx/msp.h"
+#include "rx/msp_override.h"
 #include "rx/srxl2.h"
 #include "rx/crsf.h"
+#include "rx/sim.h"
 
 #include "scheduler/scheduler.h"
 
@@ -138,6 +144,10 @@
 #include "hardware_revision.h"
 #endif
 
+#ifdef USE_DRONECAN
+#include "drivers/dronecan/dronecan.h"
+#endif
+
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 
 static const char * const flightControllerIdentifier = INAV_IDENTIFIER; // 4 UPPER CASE alpha numeric characters that identify the flight controller.
@@ -156,7 +166,9 @@ static const char pidnames[] =
     "NavR;"
     "LEVEL;"
     "MAG;"
-    "VEL;";
+    "VEL;"
+    "HEADING;"
+    "SPEED;";
 
 typedef enum {
     MSP_SDCARD_STATE_NOT_PRESENT = 0,
@@ -379,6 +391,68 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 }
 #endif
 
+// Calibration data is stored as int16_t but transmitted as raw bytes via sbufWriteU16.
+static void sbufWriteAxisU16(sbuf_t *dst, const int16_t *arr)
+{
+    sbufWriteU16(dst, arr[X]);
+    sbufWriteU16(dst, arr[Y]);
+    sbufWriteU16(dst, arr[Z]);
+}
+
+static void sbufReadAxisU16(sbuf_t *src, int16_t *arr)
+{
+    arr[X] = sbufReadU16(src);
+    arr[Y] = sbufReadU16(src);
+    arr[Z] = sbufReadU16(src);
+}
+
+static void mspReadRates(sbuf_t *src, uint8_t *rates)
+{
+    for (int i = 0; i < 3; ++i) {
+        uint8_t v = sbufReadU8(src);
+        rates[i] = (i == FD_YAW) ? constrain(v, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX)
+                                  : constrain(v, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
+    }
+}
+
+static void mspDeserializeServoParams(sbuf_t *src, uint8_t servoIndex)
+{
+    servoParamsMutable(servoIndex)->min    = sbufReadU16(src);
+    servoParamsMutable(servoIndex)->max    = sbufReadU16(src);
+    servoParamsMutable(servoIndex)->middle = sbufReadU16(src);
+    servoParamsMutable(servoIndex)->rate   = sbufReadU8(src);
+    servoComputeScalingFactors(servoIndex);
+}
+
+static void mspSerializeServoParams(sbuf_t *dst, const servoParam_t *sp)
+{
+    sbufWriteU16(dst, sp->min);
+    sbufWriteU16(dst, sp->max);
+    sbufWriteU16(dst, sp->middle);
+    sbufWriteU8(dst, sp->rate);
+}
+
+static void mspSerializeMotorMixer(sbuf_t *dst, const motorMixer_t *m)
+{
+    sbufWriteU16(dst, constrainf(m->throttle + 2.0f, 0.0f, 4.0f) * 1000);
+    sbufWriteU16(dst, constrainf(m->roll    + 2.0f, 0.0f, 4.0f) * 1000);
+    sbufWriteU16(dst, constrainf(m->pitch   + 2.0f, 0.0f, 4.0f) * 1000);
+    sbufWriteU16(dst, constrainf(m->yaw     + 2.0f, 0.0f, 4.0f) * 1000);
+}
+
+static void mspSerializeServoMixer(sbuf_t *dst, const servoMixer_t *m)
+{
+    sbufWriteU8(dst, m->targetChannel);
+    sbufWriteU8(dst, m->inputSource);
+    sbufWriteU16(dst, m->rate);
+    sbufWriteU8(dst, m->speed);
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    sbufWriteU8(dst, m->conditionId);
+#else
+    sbufWriteU8(dst, -1);
+#endif
+}
+
 /*
  * Returns true if the command was processd, false otherwise.
  * May set mspPostProcessFunc to a function to be called once the command has been processed
@@ -534,10 +608,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP_SERVO_CONFIGURATIONS:
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            sbufWriteU16(dst, servoParams(i)->min);
-            sbufWriteU16(dst, servoParams(i)->max);
-            sbufWriteU16(dst, servoParams(i)->middle);
-            sbufWriteU8(dst, servoParams(i)->rate);
+            mspSerializeServoParams(dst, servoParams(i));
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 255); // used to be forwardFromChannel, not used anymore, send 0xff for compatibility reasons
@@ -546,10 +617,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP2_INAV_SERVO_CONFIG:
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            sbufWriteU16(dst, servoParams(i)->min);
-            sbufWriteU16(dst, servoParams(i)->max);
-            sbufWriteU16(dst, servoParams(i)->middle);
-            sbufWriteU8(dst, servoParams(i)->rate);
+            mspSerializeServoParams(dst, servoParams(i));
         }
         break;
     case MSP_SERVO_MIX_RULES:
@@ -565,27 +633,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP2_INAV_SERVO_MIXER:
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
-            sbufWriteU8(dst, customServoMixers(i)->targetChannel);
-            sbufWriteU8(dst, customServoMixers(i)->inputSource);
-            sbufWriteU16(dst, customServoMixers(i)->rate);
-            sbufWriteU8(dst, customServoMixers(i)->speed);
-        #ifdef USE_PROGRAMMING_FRAMEWORK
-            sbufWriteU8(dst, customServoMixers(i)->conditionId);
-        #else
-            sbufWriteU8(dst, -1);
-        #endif
+            mspSerializeServoMixer(dst, customServoMixers(i));
         }
         if(MAX_MIXER_PROFILE_COUNT==1) break;
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
-            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].targetChannel);
-            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].inputSource);
-            sbufWriteU16(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].rate);
-            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].speed);
-        #ifdef USE_PROGRAMMING_FRAMEWORK
-            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].conditionId);
-        #else
-            sbufWriteU8(dst, -1);
-        #endif
+            mspSerializeServoMixer(dst, &mixerServoMixersByIndex(nextMixerProfileIndex)[i]);
         }
         break;
 #ifdef USE_PROGRAMMING_FRAMEWORK
@@ -645,17 +697,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->throttle + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->roll + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->pitch + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->yaw + 2.0f, 0.0f, 4.0f) * 1000);
+            mspSerializeMotorMixer(dst, primaryMotorMixer(i));
         }
         if (MAX_MIXER_PROFILE_COUNT==1) break;
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].throttle + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].roll + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].pitch + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].yaw + 2.0f, 0.0f, 4.0f) * 1000);
+            mspSerializeMotorMixer(dst, &mixerMotorMixersByIndex(nextMixerProfileIndex)[i]);
         }
         break;
 
@@ -740,6 +786,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, getBatteryRemainingCapacity());
         sbufWriteU8(dst, calculateBatteryPercentage());
         sbufWriteU16(dst, getRSSI());
+        break;
+
+    case MSP2_INAV_GET_LINK_STATS:
+        sbufWriteU8(dst, (uint8_t)-rxLinkStatistics.uplinkRSSI);
+        sbufWriteU8(dst, rxLinkStatistics.uplinkLQ);
+        sbufWriteU8(dst, (uint8_t)rxLinkStatistics.uplinkSNR);
         break;
 
     case MSP_LOOP_TIME:
@@ -1009,7 +1061,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, gpsSol.hdop);
         sbufWriteU16(dst, gpsSol.eph);
         sbufWriteU16(dst, gpsSol.epv);
-        sbufWriteU32(dst, gpsState.hwVersion);
+        sbufWriteU8(dst, gpsState.hwVersion);
         break;
 #endif
     case MSP2_ADSB_VEHICLE_LIST:
@@ -1041,6 +1093,49 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0);
         sbufWriteU32(dst, 0);
         sbufWriteU32(dst, 0);
+#endif
+        break;
+    case MSP2_ADSB_LIMITS:
+#ifdef USE_ADSB
+        sbufWriteU16(dst, osdConfig()->adsb_distance_warning);
+        sbufWriteU16(dst, osdConfig()->adsb_distance_alert);
+        sbufWriteU16(dst, osdConfig()->adsb_ignore_plane_above_me_limit);
+#else
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+#endif
+        break;
+    case MSP2_ADSB_WARNING_VEHICLE_ICAO:
+#ifdef USE_ADSB
+        if(isEnvironmentOkForCalculatingADSBDistanceBearing()) {
+            adsbVehicle_t *vehicle = NULL;
+            bool isAlert = true;
+            vehicle = findVehicleForAlert(
+                    METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert),
+                    METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning),
+                    METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit)
+            );
+
+            if(vehicle == NULL) {
+                vehicle = findVehicleForWarning(METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning), METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
+                isAlert = false;
+            }
+
+            if(vehicle != NULL) {
+                sbufWriteU32(dst, vehicle->vehicleValues.icao);
+                sbufWriteU8(dst, isAlert ? 1 : 0);;
+            } else {
+                sbufWriteU32(dst, 0);
+                sbufWriteU8(dst, 0);;
+            }
+        } else {
+            sbufWriteU32(dst, 0);
+            sbufWriteU8(dst, 0);
+        }
+#else
+        sbufWriteU32(dst, 0);
+        sbufWriteU8(dst, 0);
 #endif
             break;
     case MSP_DEBUG:
@@ -1443,17 +1538,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_CALIBRATION_DATA:
         sbufWriteU8(dst, accGetCalibrationAxisFlags());
-        sbufWriteU16(dst, accelerometerConfig()->accZero.raw[X]);
-        sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Y]);
-        sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Z]);
-        sbufWriteU16(dst, accelerometerConfig()->accGain.raw[X]);
-        sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Y]);
-        sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Z]);
+        sbufWriteAxisU16(dst, accelerometerConfig()->accZero.raw);
+        sbufWriteAxisU16(dst, accelerometerConfig()->accGain.raw);
 
     #ifdef USE_MAG
-        sbufWriteU16(dst, compassConfig()->magZero.raw[X]);
-        sbufWriteU16(dst, compassConfig()->magZero.raw[Y]);
-        sbufWriteU16(dst, compassConfig()->magZero.raw[Z]);
+        sbufWriteAxisU16(dst, compassConfig()->magZero.raw);
     #else
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
@@ -1659,7 +1748,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_OUTPUT_MAPPING_EXT:
         for (uint8_t i = 0; i < timerHardwareCount; ++i)
             if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
-                #if defined(SITL_BUILD)
+                #if defined(SITL_BUILD) || defined(WASM_BUILD)
                 sbufWriteU8(dst, i);
                 #else
                 sbufWriteU8(dst, timer2id(timerHardware[i].tim));
@@ -1670,29 +1759,80 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP2_INAV_OUTPUT_MAPPING_EXT2:
         {
-            #if !defined(SITL_BUILD) && defined(WS2811_PIN)
+            #if !(defined(SITL_BUILD) || defined(WASM_BUILD)) && defined(WS2811_PIN)
             ioTag_t led_tag = IO_TAG(WS2811_PIN);
+            #endif
+            #ifdef USE_PINIO
+            int nextPinioIndex = pinioHardwareCount;
             #endif
             for (uint8_t i = 0; i < timerHardwareCount; ++i)
 
                 if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
-                    #if defined(SITL_BUILD)
+                    #if defined(SITL_BUILD) || defined(WASM_BUILD)
                     sbufWriteU8(dst, i);
                     #else
                     sbufWriteU8(dst, timer2id(timerHardware[i].tim));
                     #endif
                     sbufWriteU32(dst, timerHardware[i].usageFlags);
-                    #if defined(SITL_BUILD) || !defined(WS2811_PIN)
+
+                    #if defined(SITL_BUILD) || defined(WASM_BUILD)
                     sbufWriteU8(dst, 0);
                     #else
-                    // Extra label to help identify repurposed PINs.
-                    // Eventually, we can try to add more labels for PPM pins, etc.
-                    sbufWriteU8(dst, timerHardware[i].tag == led_tag ? PIN_LABEL_LED : PIN_LABEL_NONE);
+                    {
+                        uint8_t specialLabel = PIN_LABEL_NONE;
+                        #if defined(WS2811_PIN)
+                        if (timerHardware[i].tag == led_tag) {
+                            specialLabel = PIN_LABEL_LED;
+                        }
+                        #endif
+                        #ifdef USE_PINIO
+                        if (specialLabel == PIN_LABEL_NONE) {
+                            for (int j = 0; j < pinioHardwareCount; j++) {
+                                if (timerHardware[i].tag == pinioHardware[j].ioTag) {
+                                    specialLabel = PIN_LABEL_PINIO_BASE + j;
+                                    break;
+                                }
+                            }
+                        }
+                        // Timer-override PINIO pins: assign next USER index (up to PINIO_COUNT)
+                        if (specialLabel == PIN_LABEL_NONE && (timerHardware[i].usageFlags & TIM_USE_PINIO) && nextPinioIndex < PINIO_COUNT) {
+                            specialLabel = PIN_LABEL_PINIO_BASE + nextPinioIndex;
+                            nextPinioIndex++;
+                        }
+                        #endif
+                        sbufWriteU8(dst, specialLabel);
+                    }
                     #endif
             }
         }
         break;
 
+
+#ifndef SITL_BUILD
+    case MSP2_INAV_OUTPUT_ASSIGNMENT:
+        {
+            const timMotorServoHardware_t *hw = pwmGetOutputAssignment();
+            for (int m = 0; m < hw->maxTimMotorCount; m++) {
+                sbufWriteU8(dst, (uint8_t)(hw->timMotors[m] - timerHardware));
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_MOTOR));
+                sbufWriteU8(dst, (uint8_t)(m + 1));
+            }
+            for (int s = 0; s < hw->maxTimServoCount; s++) {
+                sbufWriteU8(dst, (uint8_t)(hw->timServos[s] - timerHardware));
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_SERVO));
+                sbufWriteU8(dst, (uint8_t)(s + 1));
+            }
+            for (int idx = 0; idx < timerHardwareCount; idx++) {
+                if (timerOverrides(timer2id(timerHardware[idx].tim))->outputMode == OUTPUT_MODE_BEEPER) {
+                    sbufWriteU8(dst, (uint8_t)idx);
+                    sbufWriteU8(dst, __builtin_ctz(TIM_USE_BEEPER));
+                    sbufWriteU8(dst, 1);
+                    break;
+                }
+            }
+        }
+        break;
+#endif
 
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
@@ -1753,6 +1893,24 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             for (uint8_t i = 0; i < motorCount; i++){
                 const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
                 sbufWriteDataSafe(dst, escState, sizeof(escSensorData_t));
+            }
+        }
+        break;
+#endif
+
+#ifdef USE_DRONECAN
+    case MSP2_INAV_DRONECAN_NODES:
+        {
+            uint8_t count = dronecanGetNodeCount();
+            sbufWriteU8(dst, count);
+            for (uint8_t i = 0; i < count; i++) {
+                const dronecanNodeInfo_t *node = dronecanGetNode(i);
+                sbufWriteDataSafe(dst, &(dronecanNodeStatus_t){
+                    .nodeID      = node->nodeID,
+                    .health      = node->health,
+                    .mode        = node->mode,
+                    .last_seen_ms = node->last_seen_ms,
+                }, sizeof(dronecanNodeStatus_t));
             }
         }
         break;
@@ -1967,9 +2125,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_HEAD:
-        if (sbufReadU16Safe(&tmp_u16, src))
-            updateHeadingHoldTarget(tmp_u16);
-        else
+        if (sbufReadU16Safe(&tmp_u16, src)) {
+            const int32_t headingCentidegrees = wrap_36000(DEGREES_TO_CENTIDEGREES(tmp_u16));
+            updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(headingCentidegrees));
+
+            if (navGetCurrentStateFlags() & NAV_CTL_YAW) {
+                posControl.desiredState.yaw = headingCentidegrees;
+                posControl.cruise.course = headingCentidegrees;
+                posControl.cruise.previousCourse = headingCentidegrees;
+            }
+        } else
             return MSP_RESULT_ERROR;
         break;
 
@@ -2057,15 +2222,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); //Read rcRate8, kept for protocol compatibility reasons
             // need to cast away const to set controlProfile
             ((controlConfig_t*)currentControlProfile)->stabilized.rcExpo8 = sbufReadU8(src);
-            for (int i = 0; i < 3; i++) {
-                tmp_u8 = sbufReadU8(src);
-                if (i == FD_YAW) {
-                    ((controlConfig_t*)currentControlProfile)->stabilized.rates[i] = constrain(tmp_u8, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
-                }
-                else {
-                    ((controlConfig_t*)currentControlProfile)->stabilized.rates[i] = constrain(tmp_u8, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
-                }
-            }
+            mspReadRates(src, ((controlConfig_t*)currentControlProfile)->stabilized.rates);
             tmp_u8 = sbufReadU8(src);
             ((controlConfig_t*)currentControlProfile)->throttle.dynPID = MIN(tmp_u8, SETTING_TPA_RATE_MAX);
             ((controlConfig_t*)currentControlProfile)->throttle.rcMid8 = sbufReadU8(src);
@@ -2094,26 +2251,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             // stabilized
             currentControlProfile_p->stabilized.rcExpo8 = sbufReadU8(src);
             currentControlProfile_p->stabilized.rcYawExpo8 = sbufReadU8(src);
-            for (uint8_t i = 0; i < 3; ++i) {
-                tmp_u8 = sbufReadU8(src);
-                if (i == FD_YAW) {
-                    currentControlProfile_p->stabilized.rates[i] = constrain(tmp_u8, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
-                } else {
-                    currentControlProfile_p->stabilized.rates[i] = constrain(tmp_u8, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
-                }
-            }
+            mspReadRates(src, currentControlProfile_p->stabilized.rates);
 
             // manual
             currentControlProfile_p->manual.rcExpo8 = sbufReadU8(src);
             currentControlProfile_p->manual.rcYawExpo8 = sbufReadU8(src);
-            for (uint8_t i = 0; i < 3; ++i) {
-                tmp_u8 = sbufReadU8(src);
-                if (i == FD_YAW) {
-                    currentControlProfile_p->manual.rates[i] = constrain(tmp_u8, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
-                } else {
-                    currentControlProfile_p->manual.rates[i] = constrain(tmp_u8, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
-                }
-            }
+            mspReadRates(src, currentControlProfile_p->manual.rates);
 
         } else {
             return MSP_RESULT_ERROR;
@@ -2305,15 +2448,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (tmp_u8 >= MAX_SUPPORTED_SERVOS) {
             return MSP_RESULT_ERROR;
         } else {
-            servoParamsMutable(tmp_u8)->min = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->max = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->middle = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->rate = sbufReadU8(src);
+            mspDeserializeServoParams(src, tmp_u8);
             sbufReadU8(src);
             sbufReadU8(src);
             sbufReadU8(src); // used to be forwardFromChannel, ignored
             sbufReadU32(src); // used to be reversedSources
-            servoComputeScalingFactors(tmp_u8);
         }
         break;
 
@@ -2325,11 +2464,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (tmp_u8 >= MAX_SUPPORTED_SERVOS) {
             return MSP_RESULT_ERROR;
         } else {
-            servoParamsMutable(tmp_u8)->min = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->max = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->middle = sbufReadU16(src);
-            servoParamsMutable(tmp_u8)->rate = sbufReadU8(src);
-            servoComputeScalingFactors(tmp_u8);
+            mspDeserializeServoParams(src, tmp_u8);
         }
         break;
 
@@ -2391,6 +2526,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             programmingPidsMutable(tmp_u8)->gains.I = sbufReadU16(src);
             programmingPidsMutable(tmp_u8)->gains.D = sbufReadU16(src);
             programmingPidsMutable(tmp_u8)->gains.FF = sbufReadU16(src);
+
+            programmingPidInit();
+
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2409,6 +2547,138 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 return MSP_RESULT_ERROR;
             }
             gvSet(gvarIndex, gvarValue);
+        }
+        break;
+#endif
+
+    case MSP2_INAV_SET_AUX_RC:
+        {
+            // Max valid payload: 1 def byte + 24 channels × 2 bytes (16-bit) = 49 bytes
+            if (dataSize < 2 || dataSize > 49) {
+                return MSP_RESULT_ERROR;
+            }
+
+            const uint8_t defByte = sbufReadU8(src);
+            const uint8_t startChannel = defByte >> 3;          // Bits 7-3: start channel index (0-31)
+            const uint8_t resolutionMode = defByte & 0x07;      // Bits 2-0: resolution
+
+            // Safety: CH1-CH12 (index 0-11) are protected
+            if (startChannel < 12) {
+                return MSP_RESULT_ERROR;
+            }
+
+            const uint8_t dataBytes = dataSize - 1;
+            uint8_t channelCount;
+            uint8_t bitsPerChannel;
+
+            switch (resolutionMode) {
+                case 0: // 2-bit
+                    bitsPerChannel = 2;
+                    channelCount = dataBytes * 4;
+                    break;
+                case 1: // 4-bit
+                    bitsPerChannel = 4;
+                    channelCount = dataBytes * 2;
+                    break;
+                case 2: // 8-bit
+                    bitsPerChannel = 8;
+                    channelCount = dataBytes;
+                    break;
+                case 3: // 16-bit
+                    bitsPerChannel = 16;
+                    if (dataBytes % 2 != 0) {
+                        return MSP_RESULT_ERROR;
+                    }
+                    channelCount = dataBytes / 2;
+                    break;
+                default:
+                    return MSP_RESULT_ERROR;
+            }
+
+            if (channelCount == 0 || startChannel + channelCount > 32) {
+                return MSP_RESULT_ERROR;
+            }
+
+            // Decode and apply channel values
+            if (bitsPerChannel >= 8) {
+                // Byte-aligned modes: 8-bit and 16-bit
+                for (int i = 0; i < channelCount; i++) {
+                    uint16_t rawValue;
+                    if (bitsPerChannel == 16) {
+                        rawValue = sbufReadU16(src);
+                    } else {
+                        rawValue = sbufReadU8(src);
+                    }
+
+                    if (rawValue == 0) {
+                        continue; // skip: no update
+                    }
+
+                    uint16_t pwmValue;
+                    if (bitsPerChannel == 16) {
+                        pwmValue = constrain(rawValue, 750, 2250);
+                    } else {
+                        // 8-bit: 1-255 → 1000-2000
+                        pwmValue = 1000 + ((uint32_t)(rawValue - 1) * 1000) / 254;
+                    }
+
+                    rxMspAuxOverlaySet(startChannel + i, pwmValue);
+                }
+            } else {
+                // Sub-byte modes: 2-bit and 4-bit
+                const uint8_t mask = (1 << bitsPerChannel) - 1;
+                const uint8_t channelsPerByte = 8 / bitsPerChannel;
+                int ch = 0;
+
+                for (int byteIdx = 0; byteIdx < (int)dataBytes && ch < channelCount; byteIdx++) {
+                    const uint8_t dataByte = sbufReadU8(src);
+                    for (int sub = channelsPerByte - 1; sub >= 0 && ch < channelCount; sub--, ch++) {
+                        const uint8_t rawValue = (dataByte >> (sub * bitsPerChannel)) & mask;
+
+                        if (rawValue == 0) {
+                            continue; // skip: no update
+                        }
+
+                        uint16_t pwmValue;
+                        if (bitsPerChannel == 2) {
+                            // 2-bit: 1→1000, 2→1500, 3→2000
+                            pwmValue = 1000 + (rawValue - 1) * 500;
+                        } else {
+                            // 4-bit: 1-15 → 1000-2000
+                            pwmValue = 1000 + ((uint32_t)(rawValue - 1) * 1000) / 14;
+                        }
+
+                        rxMspAuxOverlaySet(startChannel + ch, pwmValue);
+                    }
+                }
+            }
+        }
+        break;
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    case MSP2_INAV_FLIGHT_AXIS_ANGLE_OVERRIDE:
+        if (dataSize != 7) {
+            return MSP_RESULT_ERROR;
+        }
+        {
+            const uint8_t overrideMask = sbufReadU8(src);
+            const int16_t rollTarget = (int16_t)sbufReadU16(src);
+            const int16_t pitchTarget = (int16_t)sbufReadU16(src);
+            const int16_t yawTarget = (int16_t)sbufReadU16(src);
+            mspOverrideSetFlightAxisAngleOverride(overrideMask, rollTarget, pitchTarget, yawTarget);
+        }
+        break;
+
+    case MSP2_INAV_FLIGHT_AXIS_RATE_OVERRIDE:
+        if (dataSize != 7) {
+            return MSP_RESULT_ERROR;
+        }
+        {
+            const uint8_t overrideMask = sbufReadU8(src);
+            const int16_t rollTarget = (int16_t)sbufReadU16(src);
+            const int16_t pitchTarget = (int16_t)sbufReadU16(src);
+            const int16_t yawTarget = (int16_t)sbufReadU16(src);
+            mspOverrideSetFlightAxisRateOverride(overrideMask, rollTarget, pitchTarget, yawTarget);
         }
         break;
 #endif
@@ -2648,17 +2918,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_CALIBRATION_DATA:
         if (dataSize >= 18) {
-            accelerometerConfigMutable()->accZero.raw[X] = sbufReadU16(src);
-            accelerometerConfigMutable()->accZero.raw[Y] = sbufReadU16(src);
-            accelerometerConfigMutable()->accZero.raw[Z] = sbufReadU16(src);
-            accelerometerConfigMutable()->accGain.raw[X] = sbufReadU16(src);
-            accelerometerConfigMutable()->accGain.raw[Y] = sbufReadU16(src);
-            accelerometerConfigMutable()->accGain.raw[Z] = sbufReadU16(src);
+            sbufReadAxisU16(src, accelerometerConfigMutable()->accZero.raw);
+            sbufReadAxisU16(src, accelerometerConfigMutable()->accGain.raw);
 
 #ifdef USE_MAG
-            compassConfigMutable()->magZero.raw[X] = sbufReadU16(src);
-            compassConfigMutable()->magZero.raw[Y] = sbufReadU16(src);
-            compassConfigMutable()->magZero.raw[Z] = sbufReadU16(src);
+            sbufReadAxisU16(src, compassConfigMutable()->magZero.raw);
 #else
             sbufReadU16(src);
             sbufReadU16(src);
@@ -2671,9 +2935,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
 #ifdef USE_MAG
             if (dataSize >= 22) {
-                compassConfigMutable()->magGain[X] = sbufReadU16(src);
-                compassConfigMutable()->magGain[Y] = sbufReadU16(src);
-                compassConfigMutable()->magGain[Z] = sbufReadU16(src);
+                sbufReadAxisU16(src, compassConfigMutable()->magGain);
             }
 #else
             if (dataSize >= 22) {
@@ -2802,7 +3064,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             osdDrawCustomItem(item);
 
             return MSP_RESULT_ACK;
-            
+
         } else{
             return MSP_RESULT_ERROR;
         }
@@ -3684,6 +3946,28 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
+    case MSP2_INAV_SET_CRUISE_HEADING:
+        // Set heading while Cruise / Course Hold is active.
+        // Payload: I32  heading_centidegrees  (0–35999)
+        if (dataSize == 4) {
+            int32_t headingCd;
+            if (sbufReadI32Safe(&headingCd, src) && navSetCruiseHeading(headingCd)) {
+                break;
+            }
+        }
+        return MSP_RESULT_ERROR;
+
+    case MSP2_INAV_SET_WP_INDEX:
+        // Jump to waypoint N during an active WP mission.
+        // Payload: U8  wp_index  (0-based, relative to mission start waypoint)
+        if (dataSize == 1) {
+            uint8_t wpIndex;
+            if (sbufReadU8Safe(&wpIndex, src) && navSetActiveWaypointIndex(wpIndex)) {
+                break;
+            }
+        }
+        return MSP_RESULT_ERROR;
+
     default:
         return MSP_RESULT_ERROR;
     }
@@ -3928,6 +4212,7 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
 }
 
 #ifdef USE_SIMULATOR
+
 bool isOSDTypeSupportedBySimulator(void)
 {
 #ifdef USE_OSD
@@ -4073,11 +4358,234 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 		sbufWriteU8(dst, 0);
 	}
 }
+
+static void readMspSimulatorValues(sbuf_t *src, const int dataSize, const uint8_t simMspVersion)
+{
+    if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
+#ifdef USE_BARO
+        if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
+            sensorsSet(SENSOR_BARO);
+            setTaskEnabled(TASK_BARO, true);
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+            baroStartCalibration();
+        }
 #endif
+
+#ifdef USE_MAG
+        if (compassConfig()->mag_hardware != MAG_NONE) {
+            sensorsSet(SENSOR_MAG);
+            ENABLE_STATE(COMPASS_CALIBRATED);
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+            mag.magADC[X] = 800;
+            mag.magADC[Y] = 0;
+            mag.magADC[Z] = 0;
+        }
+#endif
+        ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
+        ENABLE_STATE(ACCELEROMETER_CALIBRATED);
+        LOG_DEBUG(SYSTEM, "Simulator enabled");
+    }
+
+    const int minSensorBytes = (simMspVersion == SIMULATOR_MSP_VERSION_3) ? 11 : 12;
+    if (dataSize < minSensorBytes) {
+        DISABLE_STATE(GPS_FIX);
+        return;
+    }
+
+    if (feature(FEATURE_GPS) && SIMULATOR_HAS_OPTION(HITL_HAS_NEW_GPS_DATA)) {
+        gpsSolDRV.fixType = sbufReadU8(src);
+        gpsSolDRV.hdop = gpsSolDRV.fixType == GPS_NO_FIX ? 9999 : 100;
+        gpsSolDRV.numSat = sbufReadU8(src);
+
+        if (gpsSolDRV.fixType != GPS_NO_FIX) {
+            gpsSolDRV.flags.validVelNE = true;
+            gpsSolDRV.flags.validVelD = true;
+            gpsSolDRV.flags.validEPE = true;
+            gpsSolDRV.flags.validTime = false;
+
+            gpsSolDRV.llh.lat = sbufReadU32(src);
+            gpsSolDRV.llh.lon = sbufReadU32(src);
+            gpsSolDRV.llh.alt = sbufReadU32(src);
+            gpsSolDRV.groundSpeed = (int16_t)sbufReadU16(src);
+            gpsSolDRV.groundCourse = (int16_t)sbufReadU16(src);
+
+            gpsSolDRV.velNED[X] = (int16_t)sbufReadU16(src);
+            gpsSolDRV.velNED[Y] = (int16_t)sbufReadU16(src);
+            gpsSolDRV.velNED[Z] = (int16_t)sbufReadU16(src);
+
+            gpsSolDRV.eph = 100;
+            gpsSolDRV.epv = 100;
+        } else {
+            sbufAdvance(src, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
+        }
+        // Feed data to navigation
+        gpsProcessNewDriverData();
+        gpsProcessNewSolutionData(false);
+    } else {
+        sbufAdvance(src, sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
+    }
+
+    if (!SIMULATOR_HAS_OPTION(HITL_USE_IMU)) {
+        attitude.values.roll = (int16_t)sbufReadU16(src);
+        attitude.values.pitch = (int16_t)sbufReadU16(src);
+        attitude.values.yaw = (int16_t)sbufReadU16(src);
+    } else {
+        sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
+    }
+
+    // Get the acceleration in 1G units
+    acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;
+    acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
+    acc.accADCf[Z] = ((int16_t)sbufReadU16(src)) / 1000.0f;
+    acc.accVibeSq[X] = 0.0f;
+    acc.accVibeSq[Y] = 0.0f;
+    acc.accVibeSq[Z] = 0.0f;
+
+    // Get the angular velocity in DPS
+    gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
+    gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
+    gyro.gyroADCf[Z] = ((int16_t)sbufReadU16(src)) / 16.0f;
+
+    if (sensors(SENSOR_BARO)) {
+        baro.baroPressure = (int32_t)sbufReadU32(src);
+        baro.baroTemperature = DEGREES_TO_CENTIDEGREES(SIMULATOR_BARO_TEMP);
+    } else {
+        sbufAdvance(src, sizeof(uint32_t));
+    }
+
+    if (sensors(SENSOR_MAG)) {
+        mag.magADC[X] = ((int16_t)sbufReadU16(src)) / 20;  // 16000 / 20 = 800uT
+        mag.magADC[Y] = ((int16_t)sbufReadU16(src)) / 20;   //note that mag failure is simulated by setting all readings to zero
+        mag.magADC[Z] = ((int16_t)sbufReadU16(src)) / 20;
+    } else {
+        sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
+    }
+
+    if (SIMULATOR_HAS_OPTION(HITL_EXT_BATTERY_VOLTAGE)) {
+        simulatorData.vbat = sbufReadU8(src);
+    } else {
+        simulatorData.vbat = SIMULATOR_FULL_BATTERY;
+    }
+
+    if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
+        simulatorData.airSpeed = sbufReadU16(src);
+    } else if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
+        sbufReadU16(src);
+    }
+
+    if (simMspVersion == SIMULATOR_MSP_VERSION_3) {
+
+        if (SIMULATOR_HAS_OPTION(HITL_RANGEFINDER)) {
+            simulatorData.rangefinder = sbufReadU16(src);
+            if (simulatorData.rangefinder == 0xFFFF) {
+                fakeRangefindersSetData(-1);
+            } else {
+                fakeRangefindersSetData(simulatorData.rangefinder);
+            }
+
+        } else {
+            sbufReadU16(src);
+        }
+
+        if (SIMULATOR_HAS_OPTION(HITL_CURRENT_SENSOR)) {
+            simulatorData.current = sbufReadU16(src);
+        } else {
+            sbufReadU16(src);
+        }
+
+        if (SIMULATOR_HAS_OPTION(HITL_SIM_RC_INPUT)) {
+            for (int i = 0; i < HITL_SIM_MAX_RC_INPUTS; i++) {
+                simulatorData.rcInput[i] = sbufReadU16(src);
+            }
+            rxSimSetChannelValue(simulatorData.rcInput, HITL_SIM_MAX_RC_INPUTS);
+            simulatorData.rssi = sbufReadU16(src);
+            rxSimSetRssi(simulatorData.rssi);
+        } else {
+            sbufAdvance(src, sizeof(uint16_t) * HITL_SIM_MAX_RC_INPUTS + sizeof(uint16_t)); // + RSSI
+        }
+
+        rxSimSetFailsafe(SIMULATOR_HAS_OPTION(HITL_FAILSAFE_TRIGGERED));
+    }
+
+    // Backward compatibility for HITL Plugin 1.X
+    if (simMspVersion == SIMULATOR_MSP_VERSION_2 && SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
+        simulatorData.flags |= ((uint16_t)sbufReadU8(src)) << 8;
+    }
+}
+
+static mspResult_e mspProcessSimulatorCommand(sbuf_t *dst, sbuf_t *src, const int dataSize)
+{
+    if (dataSize < 2) {
+        return MSP_RESULT_ERROR;
+    }
+
+    const uint8_t simMspVersion = sbufReadU8(src); // Get the Simulator MSP version
+    if (simMspVersion != SIMULATOR_MSP_VERSION_2 && simMspVersion != SIMULATOR_MSP_VERSION_3) {
+        return MSP_RESULT_ERROR;
+    }
+
+    if (simMspVersion == SIMULATOR_MSP_VERSION_3) {
+        if (dataSize < 3) {
+            return MSP_RESULT_ERROR;
+        }
+        simulatorData.flags = sbufReadU16(src);
+    } else {
+        simulatorData.flags = sbufReadU8(src);
+    }
+
+    const int remainingPayload = (int)sbufBytesRemaining(src);
+
+    if (!SIMULATOR_HAS_OPTION(HITL_SITL_MODE)) {
+        if (!SIMULATOR_HAS_OPTION(HITL_ENABLE)) {
+            if (simulatorData.flags) {
+                // Non-zero flags but HITL_ENABLE cleared — reboot to clean state
+                fcReboot(false);
+                return MSP_RESULT_NO_REPLY;
+            }
+            // flags == 0: clean stop signal — disable HITL and disarm
+            if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
+                DISABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
+                simulatorData.flags = HITL_RESET_FLAGS;
+                disarm(DISARM_SWITCH);
+            }
+        } else {
+            readMspSimulatorValues(src, remainingPayload, simMspVersion);
+        }
+    }
+
+    sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_ROLL]);
+    sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_PITCH]);
+    sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_YAW]);
+    sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? simulatorData.input[INPUT_STABILIZED_THROTTLE] : -500));
+
+    simulatorData.debugIndex++;
+    if (simulatorData.debugIndex == 8) {
+        simulatorData.debugIndex = 0;
+    }
+
+    const uint8_t debugIndex = simulatorData.debugIndex |
+        ((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) |
+        (ARMING_FLAG(ARMED) ? 64 : 0) |
+        (!feature(FEATURE_OSD) ? 32: 0) |
+        (!isOSDTypeSupportedBySimulator() ? 16 : 0);
+
+    sbufWriteU8(dst, debugIndex);
+    sbufWriteU32(dst, debug[simulatorData.debugIndex]);
+
+    sbufWriteU16(dst, attitude.values.roll);
+    sbufWriteU16(dst, attitude.values.pitch);
+    sbufWriteU16(dst, attitude.values.yaw);
+
+    mspWriteSimulatorOSD(dst);
+
+    return MSP_RESULT_ACK;
+}
+
+#endif
+
 
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {
-    uint8_t tmp_u8;
     const unsigned int dataSize = sbufBytesRemaining(src);
 
     switch (cmdMSP) {
@@ -4086,6 +4594,44 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         mspFcWaypointOutCommand(dst, src);
         *ret = MSP_RESULT_ACK;
         break;
+
+#ifdef USE_DRONECAN
+    case MSP2_INAV_DRONECAN_NODE_INFO:
+        {
+            if (sbufBytesRemaining(src) < 1) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+            uint8_t nodeId = sbufReadU8(src);
+            uint8_t count = dronecanGetNodeCount();
+            bool found = false;
+            for (uint8_t i = 0; i < count; i++) {
+                const dronecanNodeInfo_t *node = dronecanGetNode(i);
+                if (node->nodeID == nodeId) {
+                    found = true;
+                    if (sbufBytesRemaining(dst) < 46) {
+                        *ret = MSP_RESULT_ERROR;
+                        break;
+                    }
+                    sbufWriteU8(dst, node->nodeID);
+                    sbufWriteU8(dst, node->health);
+                    sbufWriteU8(dst, node->mode);
+                    sbufWriteU32(dst, node->uptime_sec);
+                    sbufWriteU16(dst, node->vendor_status_code);
+                    sbufWriteU32(dst, node->last_seen_ms);
+                    sbufWriteU8(dst, node->name_len);
+                    sbufWriteDataSafe(dst, node->name, 32);
+                    found = true;
+                    *ret = MSP_RESULT_ACK;
+                    break;
+                }
+            }
+            if (!found) {
+                *ret = MSP_RESULT_ERROR;
+            }
+        }
+        break;
+#endif
 
 #if defined(USE_FLASHFS)
     case MSP_DATAFLASH_READ:
@@ -4182,181 +4728,131 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = mspFcGeozoneVerteciesOutCommand(dst, src);
         break;
 #endif
-#ifdef USE_SIMULATOR
-    case MSP_SIMULATOR:
-        tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version
 
-        // Check the MSP version of simulator
-        if (tmp_u8 != SIMULATOR_MSP_VERSION) {
+#if defined(USE_BARO) || defined(USE_GPS)
+    case MSP2_INAV_SET_ALT_TARGET:
+        if (dataSize != (sizeof(int32_t) + sizeof(uint8_t))) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+        uint8_t setAltDatum = (geoAltitudeDatumFlag_e)sbufReadU8(src);
+        int32_t setNewAlt = sbufReadU32(src);
+        if (navigationSetAltitudeTargetWithDatum(setAltDatum, setNewAlt)) {
+            *ret = MSP_RESULT_ACK;
             break;
         }
 
-        simulatorData.flags = sbufReadU8(src);
-
-        if (!SIMULATOR_HAS_OPTION(HITL_ENABLE)) {
-
-            if (ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
-                DISABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
-
-#ifdef USE_BARO
-            if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
-                baroStartCalibration();
-            }
-#endif
-#ifdef USE_MAG
-                DISABLE_STATE(COMPASS_CALIBRATED);
-                compassInit();
-#endif
-                simulatorData.flags = HITL_RESET_FLAGS;
-                // Review: Many states were affected. Reboot?
-
-                disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
-			}
-        } else {
-            if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
-#ifdef USE_BARO
-                if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
-                    sensorsSet(SENSOR_BARO);
-                    setTaskEnabled(TASK_BARO, true);
-                    DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
-                    baroStartCalibration();
-                }
+        *ret = MSP_RESULT_ERROR;
+        break;
 #endif
 
-#ifdef USE_MAG
-                if (compassConfig()->mag_hardware != MAG_NONE) {
-                    sensorsSet(SENSOR_MAG);
-                    ENABLE_STATE(COMPASS_CALIBRATED);
-                    DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
-                    mag.magADC[X] = 800;
-                    mag.magADC[Y] = 0;
-                    mag.magADC[Z] = 0;
-                }
-#endif
-                ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
-                ENABLE_STATE(ACCELEROMETER_CALIBRATED);
-                LOG_DEBUG(SYSTEM, "Simulator enabled");
-            }
-
-            if (dataSize >= 14) {
-
-                if (feature(FEATURE_GPS) && SIMULATOR_HAS_OPTION(HITL_HAS_NEW_GPS_DATA)) {
-                    gpsSolDRV.fixType = sbufReadU8(src);
-                    gpsSolDRV.hdop = gpsSolDRV.fixType == GPS_NO_FIX ? 9999 : 100;
-                    gpsSolDRV.numSat = sbufReadU8(src);
-
-                    if (gpsSolDRV.fixType != GPS_NO_FIX) {
-                        gpsSolDRV.flags.validVelNE = true;
-                        gpsSolDRV.flags.validVelD = true;
-                        gpsSolDRV.flags.validEPE = true;
-                        gpsSolDRV.flags.validTime = false;
-
-                        gpsSolDRV.llh.lat = sbufReadU32(src);
-                        gpsSolDRV.llh.lon = sbufReadU32(src);
-                        gpsSolDRV.llh.alt = sbufReadU32(src);
-                        gpsSolDRV.groundSpeed = (int16_t)sbufReadU16(src);
-                        gpsSolDRV.groundCourse = (int16_t)sbufReadU16(src);
-
-                        gpsSolDRV.velNED[X] = (int16_t)sbufReadU16(src);
-                        gpsSolDRV.velNED[Y] = (int16_t)sbufReadU16(src);
-                        gpsSolDRV.velNED[Z] = (int16_t)sbufReadU16(src);
-
-                        gpsSolDRV.eph = 100;
-                        gpsSolDRV.epv = 100;
-                    } else {
-                        sbufAdvance(src, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
-                    }
-                    // Feed data to navigation
-                    gpsProcessNewDriverData();
-                    gpsProcessNewSolutionData(false);
-                } else {
-                    sbufAdvance(src, sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
-                }
-
-                if (!SIMULATOR_HAS_OPTION(HITL_USE_IMU)) {
-                    attitude.values.roll = (int16_t)sbufReadU16(src);
-                    attitude.values.pitch = (int16_t)sbufReadU16(src);
-                    attitude.values.yaw = (int16_t)sbufReadU16(src);
-                } else {
-                    sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
-                }
-
-                // Get the acceleration in 1G units
-                acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;
-                acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
-                acc.accADCf[Z] = ((int16_t)sbufReadU16(src)) / 1000.0f;
-                acc.accVibeSq[X] = 0.0f;
-                acc.accVibeSq[Y] = 0.0f;
-                acc.accVibeSq[Z] = 0.0f;
-
-                // Get the angular velocity in DPS
-                gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
-                gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
-                gyro.gyroADCf[Z] = ((int16_t)sbufReadU16(src)) / 16.0f;
-
-                if (sensors(SENSOR_BARO)) {
-                    baro.baroPressure = (int32_t)sbufReadU32(src);
-                    baro.baroTemperature = DEGREES_TO_CENTIDEGREES(SIMULATOR_BARO_TEMP);
-                } else {
-                    sbufAdvance(src, sizeof(uint32_t));
-                }
-
-                if (sensors(SENSOR_MAG)) {
-                    mag.magADC[X] = ((int16_t)sbufReadU16(src)) / 20;  // 16000 / 20 = 800uT
-                    mag.magADC[Y] = ((int16_t)sbufReadU16(src)) / 20;   //note that mag failure is simulated by setting all readings to zero
-                    mag.magADC[Z] = ((int16_t)sbufReadU16(src)) / 20;
-                } else {
-                    sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
-                }
-
-                if (SIMULATOR_HAS_OPTION(HITL_EXT_BATTERY_VOLTAGE)) {
-                    simulatorData.vbat = sbufReadU8(src);
-                } else {
-                    simulatorData.vbat = SIMULATOR_FULL_BATTERY;
-                }
-
-                if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-                    simulatorData.airSpeed = sbufReadU16(src);
-                } else {
-                    if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
-                        sbufReadU16(src);
-                    }
-                }
-
-                if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
-                    simulatorData.flags |= ((uint16_t)sbufReadU8(src)) << 8;
-                }
-            } else {
-                DISABLE_STATE(GPS_FIX);
-            }
+    case MSP2_INAV_SET_LOCAL_TARGET:
+        if (dataSize != 3 * sizeof(int32_t) || !isGCSValid()) {
+            *ret = MSP_RESULT_ERROR;
+            break;
         }
 
-        sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_ROLL]);
-        sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_PITCH]);
-        sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_YAW]);
-        sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? simulatorData.input[INPUT_STABILIZED_THROTTLE] : -500));
+        {
+            fpVector3_t targetPos = posControl.desiredState.pos;
 
-        simulatorData.debugIndex++;
-        if (simulatorData.debugIndex == 8) {
-            simulatorData.debugIndex = 0;
+            const navEstimatedPosVel_t *actual = navGetCurrentActualPositionAndVelocity();
+            const float offsetBodyX = (float)(int32_t)sbufReadU32(src);
+            const float offsetBodyY = (float)(int32_t)sbufReadU32(src);
+            const float offsetBodyZ = (float)(int32_t)sbufReadU32(src);
+
+            const float cosYaw = posControl.actualState.cosYaw;
+            const float sinYaw = posControl.actualState.sinYaw;
+
+            // Rotate body-frame offsets into NEU and apply relative to current position
+            const float offsetN = offsetBodyX * cosYaw - offsetBodyY * sinYaw;
+            const float offsetE = offsetBodyX * sinYaw + offsetBodyY * cosYaw;
+
+            targetPos.x = actual->pos.x + offsetN;
+            targetPos.y = actual->pos.y + offsetE;
+
+            navSetWaypointFlags_t updateMask = NAV_POS_UPDATE_XY;
+            if (offsetBodyZ != 0.0f) {
+                targetPos.z = actual->pos.z + offsetBodyZ;
+            }
+            updateMask |= NAV_POS_UPDATE_Z;
+
+            setDesiredPosition(&targetPos, posControl.desiredState.yaw, updateMask);
+            *ret = MSP_RESULT_ACK;
         }
+        break;
 
-        tmp_u8 = simulatorData.debugIndex |
-            ((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) |
-            (ARMING_FLAG(ARMED) ? 64 : 0) |
-            (!feature(FEATURE_OSD) ? 32: 0) |
-            (!isOSDTypeSupportedBySimulator() ? 16 : 0);
-
-        sbufWriteU8(dst, tmp_u8);
-        sbufWriteU32(dst, debug[simulatorData.debugIndex]);
-
-        sbufWriteU16(dst, attitude.values.roll);
-        sbufWriteU16(dst, attitude.values.pitch);
-        sbufWriteU16(dst, attitude.values.yaw);
-
-        mspWriteSimulatorOSD(dst);
-
+    case MSP2_INAV_LOCAL_TARGET:
+        sbufWriteU32(dst, lrintf(posControl.desiredState.pos.x));
+        sbufWriteU32(dst, lrintf(posControl.desiredState.pos.y));
+        sbufWriteU32(dst, lrintf(posControl.desiredState.pos.z));
+        sbufWriteU16(dst, (int16_t)lrintf(posControl.desiredState.vel.x));
+        sbufWriteU16(dst, (int16_t)lrintf(posControl.desiredState.vel.y));
+        sbufWriteU16(dst, (int16_t)lrintf(posControl.desiredState.vel.z));
+        sbufWriteU32(dst, posControl.desiredState.yaw);
+        sbufWriteU16(dst, posControl.desiredState.climbRateDemand);
         *ret = MSP_RESULT_ACK;
+        break;
+
+    case MSP2_INAV_SET_GLOBAL_TARGET:
+        if (dataSize != (3 * sizeof(int32_t) + sizeof(uint8_t)) || !isGCSValid()) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        {
+            gpsLocation_t targetLlh;
+            targetLlh.lat = (int32_t)sbufReadU32(src);
+            targetLlh.lon = (int32_t)sbufReadU32(src);
+            targetLlh.alt = (int32_t)sbufReadU32(src);
+
+            const geoAltitudeDatumFlag_e datumFlag = (geoAltitudeDatumFlag_e)sbufReadU8(src);
+
+            if (datumFlag == NAV_WP_TERRAIN_DATUM) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+
+            fpVector3_t targetPos;
+            if (!geoConvertGeodeticToLocal(&targetPos, &posControl.gpsOrigin, &targetLlh, waypointMissionAltConvMode(datumFlag))) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+
+            navSetWaypointFlags_t updateMask = NAV_POS_UPDATE_XY;
+
+            if (targetLlh.alt != 0) {
+                updateMask |= NAV_POS_UPDATE_Z;
+            }
+
+            setDesiredPosition(&targetPos, posControl.desiredState.yaw, updateMask);
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
+
+    case MSP2_INAV_NAV_TARGET:
+        if (!posControl.gpsOrigin.valid) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        {
+            gpsLocation_t targetLlh;
+            geoConvertLocalToGeodetic(&targetLlh, &posControl.gpsOrigin, &posControl.desiredState.pos);
+
+            sbufWriteU32(dst, targetLlh.lat);
+            sbufWriteU32(dst, targetLlh.lon);
+            sbufWriteU32(dst, lrintf(posControl.desiredState.pos.z));
+
+            const uint16_t headingTarget = CENTIDEGREES_TO_DEGREES(wrap_36000(DEGREES_TO_CENTIDEGREES(getHeadingHoldTarget())));
+            sbufWriteU16(dst, headingTarget);
+            sbufWriteU16(dst, posControl.desiredState.climbRateDemand);
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
+
+#ifdef USE_SIMULATOR
+    case MSP_SIMULATOR:
+        *ret = mspProcessSimulatorCommand(dst, src, dataSize);
         break;
 #endif
 #ifndef SITL_BUILD
@@ -4392,6 +4888,56 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             }
         } else {
             *ret = MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_INAV_QUERY_OUTPUT_ASSIGNMENT:
+        {
+            // Build proposed overrides array (defaults to current stored overrides)
+            uint8_t proposedModes[HARDWARE_TIMER_DEFINITION_COUNT];
+            for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+                proposedModes[i] = timerOverrides(i)->outputMode;
+            }
+
+            if (dataSize >= 1) {
+                uint8_t timerCount = sbufReadU8(src);
+                // Reject malformed payloads: must be exactly timerCount pairs.
+                if (timerCount > HARDWARE_TIMER_DEFINITION_COUNT ||
+                    sbufBytesRemaining(src) != (int)(timerCount * 2)) {
+                    *ret = MSP_RESULT_ERROR;
+                    break;
+                }
+                for (int i = 0; i < timerCount; i++) {
+                    uint8_t timerId = sbufReadU8(src);
+                    uint8_t outputMode = sbufReadU8(src);
+                    if (timerId < HARDWARE_TIMER_DEFINITION_COUNT) {
+                        proposedModes[timerId] = outputMode;
+                    }
+                }
+            }
+
+            timMotorServoHardware_t tempOut = {0};
+            pwmCalculateAssignment(&tempOut, proposedModes);
+
+            for (int m = 0; m < tempOut.maxTimMotorCount; m++) {
+                sbufWriteU8(dst, (uint8_t)(tempOut.timMotors[m] - timerHardware));
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_MOTOR));
+                sbufWriteU8(dst, (uint8_t)(m + 1));
+            }
+            for (int s = 0; s < tempOut.maxTimServoCount; s++) {
+                sbufWriteU8(dst, (uint8_t)(tempOut.timServos[s] - timerHardware));
+                sbufWriteU8(dst, __builtin_ctz(TIM_USE_SERVO));
+                sbufWriteU8(dst, (uint8_t)(s + 1));
+            }
+            for (int idx = 0; idx < timerHardwareCount; idx++) {
+                if (proposedModes[timer2id(timerHardware[idx].tim)] == OUTPUT_MODE_BEEPER) {
+                    sbufWriteU8(dst, (uint8_t)idx);
+                    sbufWriteU8(dst, __builtin_ctz(TIM_USE_BEEPER));
+                    sbufWriteU8(dst, 1);
+                    break;
+                }
+            }
+            *ret = MSP_RESULT_ACK;
         }
         break;
 #endif
@@ -4486,6 +5032,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     sbuf_t *dst = &reply->buf;
     sbuf_t *src = &cmd->buf;
     const uint16_t cmdMSP = cmd->cmd;
+
     // initialize reply by default
     reply->cmd = cmd->cmd;
 

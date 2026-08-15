@@ -10,7 +10,7 @@
 
 ## Details
 
-* By default UART1 is set up for a serial receiver (SBUS/CRSF/etc.), UART3 for GPS, and UART6 for MSP.
+* By default UART2 is set up for a serial receiver (SBUS/CRSF/etc.), UART4 for GPS, and UART6 for MSP.
 * Out of the box the board is configured for 2 motors, on S1 and S2.
 * S3 through S10 default to servo outputs. Most of them can be switched over to additional DSHOT-capable motor outputs — see below.
 * **S4 and S5 can never run DSHOT**, regardless of configuration. They are always plain PWM/servo outputs.

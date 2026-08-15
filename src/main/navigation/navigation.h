@@ -197,7 +197,7 @@ typedef struct geozone_s {
     int32_t distanceHorToNearestZone;
     int32_t distanceVertToNearestZone;
     int32_t zoneInfo;
-    int32_t currentzoneMaxAltitude; 
+    int32_t currentzoneMaxAltitude;
     int32_t currentzoneMinAltitude;
     bool nearestHorZoneHasAction;
     bool sticksLocked;
@@ -473,6 +473,10 @@ typedef struct navConfig_s {
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
+        uint16_t auto_speed_min_speed;       // Minimum allowed speed for auto speed mode (m/s)
+        uint16_t auto_speed_max_speed;       // Maximum allowed speed for auto speed mode (m/s)
+        uint8_t  auto_speed_channel;         // Input channel number for auto speed mode
+        uint8_t  auto_speed_thr_smoothing;   // Throttle smoothing filtering adjustment factor
         uint8_t  control_smoothness;         // The amount of smoothing to apply to controls for navigation
         uint16_t pitch_to_throttle_smooth;   // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
         uint8_t  pitch_to_throttle_thresh;   // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
@@ -598,6 +602,7 @@ typedef struct navigationPIDControllers_s {
     pidController_t fw_alt;
     pidController_t fw_nav;
     pidController_t fw_heading;
+    pidController_t fw_autoSpeed;
 } navigationPIDControllers_t;
 
 /* MultiWii-compatible params for telemetry */
@@ -708,6 +713,8 @@ int isGCSValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
+bool navSetActiveWaypointIndex(uint8_t index);  // MSP2_INAV_SET_WP_INDEX: jump to WP during active mission
+bool navSetCruiseHeading(int32_t headingCd);    // MSP2_INAV_SET_CRUISE_HEADING: set cruise/course-hold heading (centidegrees)
 bool loadNonVolatileWaypointList(bool clearIfLoaded);
 bool saveNonVolatileWaypointList(void);
 #ifdef USE_MULTI_MISSION
@@ -729,7 +736,8 @@ typedef enum {
 
 typedef enum {
     NAV_WP_TAKEOFF_DATUM,
-    NAV_WP_MSL_DATUM
+    NAV_WP_MSL_DATUM,
+    NAV_WP_TERRAIN_DATUM
 } geoAltitudeDatumFlag_e;
 
 // geoSetOrigin stores the location provided in llh as a GPS origin in the
@@ -773,12 +781,13 @@ void abortForcedEmergLanding(void);
 emergLandState_e getStateOfForcedEmergLanding(void);
 
 /* Getter functions which return data about the state of the navigation system */
-bool navigationInAutomaticThrottleMode(void);
+bool navigationRequiresAutoThrottleMode(void);
 bool navigationIsControllingThrottle(void);
 bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
 bool navigationIsExecutingAnEmergencyLanding(void);
 bool navigationIsControllingAltitude(void);
+bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm);
 /* Returns true if navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */
@@ -798,6 +807,7 @@ bool isProbablyStillFlying(void);
 void resetLandingDetectorActiveState(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
+bool navigationConsumeWaypointReached(uint16_t *seq);
 
 int32_t navigationGetHeadingError(void);
 float navigationGetCrossTrackError(void);
@@ -815,6 +825,8 @@ bool rthAltControlStickOverrideCheck(uint8_t axis);
 int8_t navCheckActiveAngleHoldAxis(void);
 uint8_t getActiveWpNumber(void);
 uint16_t getFlownLoiterRadius(void);
+bool isFixedwingAutoSpeedActive(void);
+void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTimeUs);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles
