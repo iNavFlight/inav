@@ -17,7 +17,7 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "DAK4"
+#define TARGET_BOARD_IDENTIFIER "DK4W"
 #define USBD_PRODUCT_STRING  "DAKEFPV F405 WING"
 
 // LEDs
@@ -63,8 +63,8 @@
 #define UART2_RX_PIN            PA3
 
 #define USE_UART3
-#define UART3_TX_PIN            PB11
-#define UART3_RX_PIN            PB10
+#define UART3_TX_PIN            PB10
+#define UART3_RX_PIN            PB11
 
 #define USE_UART4
 #define UART4_TX_PIN            PC10

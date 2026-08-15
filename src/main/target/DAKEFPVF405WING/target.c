@@ -27,15 +27,15 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,   CH3, PB0,  TIM_USE_OUTPUT_AUTO,   1, 0), // S2
     DEF_TIM(TIM3,   CH4, PB1,  TIM_USE_OUTPUT_AUTO,   1, 0), // S3
 
-    DEF_TIM(TIM12,  CH1,PB14, TIM_USE_OUTPUT_AUTO,   1, 0), // S4
-    DEF_TIM(TIM12,  CH2,PB15, TIM_USE_OUTPUT_AUTO,   1, 0), // S5
+    DEF_TIM(TIM12,  CH1,PB14, TIM_USE_SERVO,   1, 0), // S4 - TIM12 has no DMA on F405, servo-only
+    DEF_TIM(TIM12,  CH2,PB15, TIM_USE_SERVO,   1, 0), // S5 - TIM12 has no DMA on F405, servo-only
     
-    DEF_TIM(TIM8,   CH3, PC8,  TIM_USE_OUTPUT_AUTO,   1, 0), // S6
+    DEF_TIM(TIM8,   CH3, PC8,  TIM_USE_OUTPUT_AUTO,   1, 1), // S6
     DEF_TIM(TIM8,   CH4, PC9,  TIM_USE_OUTPUT_AUTO,   1, 0), // S7
     
-    DEF_TIM(TIM1,   CH1, PA8,  TIM_USE_OUTPUT_AUTO,   0, 0), // S8
-    DEF_TIM(TIM1,   CH2, PA9,  TIM_USE_OUTPUT_AUTO,   0, 0), // S9
-    DEF_TIM(TIM1,   CH3, PA10, TIM_USE_OUTPUT_AUTO,   0, 0), // S10
+    DEF_TIM(TIM1,   CH1, PA8,  TIM_USE_OUTPUT_AUTO,   0, 1), // S8 - DMA2 Stream1)
+    DEF_TIM(TIM1,   CH2, PA9,  TIM_USE_OUTPUT_AUTO,   0, 1), // S9 - DMA2 Stream2
+    DEF_TIM(TIM1,   CH3, PA10, TIM_USE_OUTPUT_AUTO,   0, 1), // S10 - Stream6
     
 
     DEF_TIM(TIM5,   CH1, PA0,  TIM_USE_LED,   1, 0), // 2812LED 
