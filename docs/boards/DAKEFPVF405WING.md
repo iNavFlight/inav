@@ -11,7 +11,7 @@
 ## Details
 
 * By default UART1 is set up for a serial receiver (SBUS/CRSF/etc.), UART3 for GPS, and UART6 for MSP.
-* Out of the box the board is configured for 2 motors, on S1 and S2, with the LED strip working.
+* Out of the box the board is configured for 2 motors, on S1 and S2.
 * S3 through S10 default to servo outputs. Most of them can be switched over to additional DSHOT-capable motor outputs — see below.
 * **S4 and S5 can never run DSHOT**, regardless of configuration. They are always plain PWM/servo outputs.
 
@@ -90,8 +90,7 @@ not work once you have 3 or more motors.
   fails completely and *no* motors will work, not just the extra ones.
 * Prefer setting a timer to **Servo** to keep its outputs away from motors,
   rather than forcing timers to **Motor**. Forcing Motor mode can consume more
-  output slots than you expect, and can silently leave an output you wanted as a
-  motor configured as a servo instead.
+  output slots than you expect.
 
 After changing any output mode, save and let the board reboot, then set up your
 motors in the Mixer tab. **Before flying, verify each motor output individually**
