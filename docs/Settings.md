@@ -6948,6 +6948,26 @@ Enable load terrain data from SD card
 
 ---
 
+### terrain_nav_lookahead
+
+TERRAIN AGL HOLD: check terrain up to this distance ahead along the flight path and climb early for rising ground [m]. 0 disables the lookahead. The effective distance is also limited by the terrain block cache of the flight controller
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 0 | 2000 |
+
+---
+
+### terrain_nav_min_agl
+
+TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb to it. Covers worst-case terrain map error on steep slopes plus canopy - lowering it below the default is not recommended
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 6000 | 3000 | 12000 |
+
+---
+
 ### thr_comp_weight
 
 Weight used for the throttle compensation based on battery voltage. See the [battery documentation](Battery.md#automatic-throttle-compensation-based-on-battery-voltage)
