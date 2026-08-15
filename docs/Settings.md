@@ -6960,11 +6960,11 @@ TERRAIN AGL HOLD: check terrain up to this distance ahead along the flight path 
 
 ### terrain_nav_min_agl
 
-TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb to it. Covers worst-case terrain map error on steep slopes plus canopy - lowering it below the default is not recommended
+TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb to it. The floor absorbs worst-case terrain map error on steep slopes plus canopy - the minimum is the lowest value where that error budget still clears
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 6000 | 3000 | 12000 |
+| 6000 | 5000 | 12000 |
 
 ---
 
