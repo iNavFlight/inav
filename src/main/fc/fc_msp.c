@@ -374,8 +374,8 @@ static void serializeDataflashSummaryReply(sbuf_t *dst)
 #ifdef USE_FLASHFS
 static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t size)
 {
-    // Check how much bytes we can read
-    const int bytesRemainingInBuf = sbufBytesRemaining(dst);
+    // Check how much bytes we can read - leave room for the address written below
+    const int bytesRemainingInBuf = sbufBytesRemaining(dst) - (int)sizeof(address);
     uint16_t readLen = (size > bytesRemainingInBuf) ? bytesRemainingInBuf : size;
 
     // size will be lower than that requested if we reach end of volume
