@@ -79,8 +79,9 @@
 #define MAVLINK_TUNNEL_MSP_TIMEOUT_MS 1000
 // Independent of MSP_PORT_OUTBUF_SIZE, which is sized for full-page USE_FLASHFS
 // reads that self-clamp to available buffer space (serializeDataflashReadReply())
-// and so don't need it here. 512 covers the largest ordinary MSP2 reply found
-// (MSP2_INAV_SERVO_MIXER, 432 bytes); sbufWrite*() isn't bounds-checked, so
+// and so don't need it here. 512 matches the non-FLASHFS MSP_PORT_OUTBUF_SIZE
+// already shipping on every such board; MSP_LED_STRIP_CONFIG is the largest
+// reply that fits it, with no margin. sbufWrite*() isn't bounds-checked, so
 // re-audit before shrinking further.
 #define MAVLINK_TUNNEL_MSP_REPLY_BUF_SIZE 512
 #endif
