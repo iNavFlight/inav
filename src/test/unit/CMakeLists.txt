@@ -76,6 +76,7 @@ set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY definitions USE_DR
 set_property(SOURCE dronecan_application_unittest.cc PROPERTY depends
     "drivers/dronecan/dronecan.c"
     "drivers/dronecan/dronecan_async.c"
+    "drivers/dronecan/dronecan_node_status.c"
     "drivers/dronecan/dronecan_dna_server.c"
     "drivers/dronecan/libcanard/canard.c")
 set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_sources

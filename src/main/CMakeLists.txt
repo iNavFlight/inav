@@ -180,6 +180,8 @@ main_sources(COMMON_SRC
     drivers/dronecan/dronecan_async.h
     drivers/dronecan/dronecan_dna_server.c
     drivers/dronecan/dronecan_dna_server.h
+    drivers/dronecan/dronecan_node_status.c
+    drivers/dronecan/dronecan_node_status.h
     drivers/dronecan/dronecan.h
 
     drivers/display.c
