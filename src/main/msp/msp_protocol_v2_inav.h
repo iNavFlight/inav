@@ -152,3 +152,5 @@
 #define MSP2_INAV_TIMESYNC                      0x2228  //out message local monotonic boot time in nanoseconds; payload: U64 time_ns
 
 #define MSP2_INAV_SET_AUX_RC                    0x2230
+
+#define MSP2_INAV_WIND                          0x2231

@@ -1670,6 +1670,16 @@ Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually shoul
 
 ---
 
+### fw_throttle_rate_limiter
+
+Minimum time allowed for throttle to increase from minimum to maximum throttle (1000 to 2000) in milliseconds. Negative values limit decreasing as well as increasing throttle. Positive values only limit increasing throttle. Set to 0 to disable. Fixed wing only.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -5000 | 5000 |
+
+---
+
 ### fw_tpa_time_constant
 
 TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. See **PID Attenuation and scaling** Wiki for full details.
@@ -2905,19 +2915,9 @@ Autopilot type to advertise for MAVLink telemetry
 
 ---
 
-### mavlink_ext_status_rate
+### mavlink_port1_ext_status_rate
 
-Rate of the extended status message for MAVLink telemetry
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 2 | 0 | 255 |
-
----
-
-### mavlink_extra1_rate
-
-Rate of the extra1 message for MAVLink telemetry
+Rate of the extended status message for MAVLink telemetry on port 1
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2925,9 +2925,9 @@ Rate of the extra1 message for MAVLink telemetry
 
 ---
 
-### mavlink_extra2_rate
+### mavlink_port1_extra1_rate
 
-Rate of the extra2 message for MAVLink telemetry
+Rate of the extra1 message for MAVLink telemetry on port 1
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2935,9 +2935,19 @@ Rate of the extra2 message for MAVLink telemetry
 
 ---
 
-### mavlink_extra3_rate
+### mavlink_port1_extra2_rate
 
-Rate of the extra3 message for MAVLink telemetry
+Rate of the extra2 message for MAVLink telemetry on port 1
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 255 |
+
+---
+
+### mavlink_port1_extra3_rate
+
+Rate of the extra3 message for MAVLink telemetry on port 1
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2945,9 +2955,19 @@ Rate of the extra3 message for MAVLink telemetry
 
 ---
 
-### mavlink_min_txbuffer
+### mavlink_port1_high_latency
 
-Minimum percent of TX buffer space free, before attempting to transmit telemetry. Requuires RADIO_STATUS messages to be processed. 0 = always transmits.
+Enable MAVLink high-latency mode on port 1
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mavlink_port1_min_txbuffer
+
+Minimum percent of TX buffer space free for MAVLink port 1. Requires RADIO_STATUS messages.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2955,9 +2975,9 @@ Minimum percent of TX buffer space free, before attempting to transmit telemetry
 
 ---
 
-### mavlink_pos_rate
+### mavlink_port1_pos_rate
 
-Rate of the position message for MAVLink telemetry
+Rate of the position message for MAVLink telemetry on port 1
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2965,25 +2985,125 @@ Rate of the position message for MAVLink telemetry
 
 ---
 
-### mavlink_radio_type
+### mavlink_port1_radio_type
 
-Mavlink radio type. Affects how RSSI and LQ are reported on OSD.
+MAVLink radio type for port 1. Affects RSSI and LQ reporting on OSD.
 
 | Allowed Values |  |
 | --- | --- |
 | GENERIC | Default |
 | ELRS |  |
 | SIK |  |
+| MLRS |  |
 
 ---
 
-### mavlink_rc_chan_rate
+### mavlink_port1_rc_chan_rate
 
-Rate of the RC channels message for MAVLink telemetry
+Rate of the RC channels message for MAVLink telemetry on port 1
 
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | 0 | 255 |
+
+---
+
+### mavlink_port2_high_latency
+
+Enable MAVLink high-latency mode on port 2
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mavlink_port2_min_txbuffer
+
+Minimum percent of TX buffer space free for MAVLink port 2. Requires RADIO_STATUS messages.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 33 | 0 | 100 |
+
+---
+
+### mavlink_port2_radio_type
+
+MAVLink radio type for port 2. Affects RSSI and LQ reporting on OSD.
+
+| Allowed Values |  |
+| --- | --- |
+| GENERIC | Default |
+| ELRS |  |
+| SIK |  |
+| MLRS |  |
+
+---
+
+### mavlink_port3_high_latency
+
+Enable MAVLink high-latency mode on port 3
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mavlink_port3_min_txbuffer
+
+Minimum percent of TX buffer space free for MAVLink port 3. Requires RADIO_STATUS messages.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 33 | 0 | 100 |
+
+---
+
+### mavlink_port3_radio_type
+
+MAVLink radio type for port 3. Affects RSSI and LQ reporting on OSD.
+
+| Allowed Values |  |
+| --- | --- |
+| GENERIC | Default |
+| ELRS |  |
+| SIK |  |
+| MLRS |  |
+
+---
+
+### mavlink_port4_high_latency
+
+Enable MAVLink high-latency mode on port 4
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mavlink_port4_min_txbuffer
+
+Minimum percent of TX buffer space free for MAVLink port 4. Requires RADIO_STATUS messages.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 33 | 0 | 100 |
+
+---
+
+### mavlink_port4_radio_type
+
+MAVLink radio type for port 4. Affects RSSI and LQ reporting on OSD.
+
+| Allowed Values |  |
+| --- | --- |
+| GENERIC | Default |
+| ELRS |  |
+| SIK |  |
+| MLRS |  |
 
 ---
 

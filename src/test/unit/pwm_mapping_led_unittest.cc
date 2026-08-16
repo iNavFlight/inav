@@ -1,70 +1,61 @@
 /*
- * Unit test: timerHardwareOverride() must not corrupt/misassign TIM_USE_BEEPER
- * flags on shared timers.
+ * Unit test: timerHardwareOverride() must not falsely flag sibling timer
+ * channels as TIM_USE_LED when OUTPUT_MODE_LED is applied to a shared timer.
  *
- * History (this file previously tested an intermediate, now-superseded fix —
- * see below; it was found to be STALE and was rewritten to match current
- * source while adding pwm_mapping_led_unittest.cc):
+ * Bug (pre-fix, same bug class as the BEEPER bug fixed by commits
+ * 8c16aeed85 / 31bb99ea0b, see pwm_mapping_beeper_unittest.cc):
+ *   timerHardwareOverride() applied TIM_USE_LED to every pad sharing a timer
+ *   set to OUTPUT_MODE_LED, but the WS2811 LED strip driver
+ *   (light_ws2811strip.c) only ever wires up the FIRST matching pad, found
+ *   via timerGetByUsageFlag(TIM_USE_LED). All channels of one timer share a
+ *   single period register (fixed at the WS2811 bit rate), so only one pad
+ *   can actually drive the LED strip. This caused sibling pads on the same
+ *   timer to be falsely reported/claimed as LED outputs while being
+ *   functionally dead (or worse, stealing a pad that could have been used
+ *   for something else).
  *
- *   1. Bug (original, issue #11492): if a user applied a timer_output_mode
- *      override (e.g. OUTPUT_MODE_SERVOS) to a timer that also had
- *      TIM_USE_BEEPER set (e.g. MATEKH743 TIM2/PA15), timerHardwareOverride()
- *      would apply the servo-mode mask without protecting the beeper flag.
- *      The subsequent pwmAssignOutput(servo) call then strips everything
- *      except TIM_USE_SERVO, leaving beeperPwmInit() unable to find its
- *      timer.
+ * Fix (mirrors the BEEPER fix exactly):
+ *   timerHardwareOverride() now takes an `isCanonicalLedPad` bool. The
+ *   OUTPUT_MODE_LED case always clears TIM_USE_MOTOR|TIM_USE_SERVO|
+ *   TIM_USE_BEEPER|TIM_USE_LED, and sets TIM_USE_PINIO as a GPIO-only
+ *   fallback (binary on/off, no PWM — doesn't need the timer's fixed
+ *   WS2811-bitrate period). Only if isCanonicalLedPad is true (i.e. this is
+ *   the first timerHardware[] entry, in ascending scan order, seen for this
+ *   physical timer with outputMode == OUTPUT_MODE_LED) does it clear
+ *   TIM_USE_PINIO and set TIM_USE_LED instead.
  *
- *   2. Intermediate fix (commit 7eebdf6345, "pwm_mapping: guard beeper timer
- *      from timerHardwareOverride()"): guard added at the top of
- *      timerHardwareOverride() —
- *          if (timer->usageFlags & TIM_USE_BEEPER) { return; }
- *      This made ANY timer carrying TIM_USE_BEEPER completely immune to all
- *      output-mode overrides, regardless of the override applied to it. This
- *      is what the ORIGINAL version of this test file verified.
- *
- *   3. CURRENT fix (commits 8c16aeed85 "Fix BEEPER output mode falsely
- *      flagging sibling timer channels" and 31bb99ea0b "Expose BEEPER-timer
- *      sibling pads as GPIO-only PINIO outputs"): the step-2 early-return
- *      guard was replaced entirely. BEEPER is now its own explicit
- *      OUTPUT_MODE_BEEPER (rather than being inferred from a pre-existing
- *      TIM_USE_BEEPER flag), and timerHardwareOverride() takes an
- *      `isCanonicalBeeperPad` bool: only the first (canonical) pad on a
- *      physical timer set to OUTPUT_MODE_BEEPER gets TIM_USE_BEEPER; sibling
- *      pads on that same timer fall back to TIM_USE_PINIO (GPIO-only —
- *      binary on/off, no PWM, since that doesn't need the timer's fixed
- *      buzzer-tone period). This is the exact same fix pattern later applied
- *      to LED (see pwm_mapping_led_unittest.cc) via a parallel
- *      `isCanonicalLedPad` parameter.
- *
- *   NOTE ON DISCOVERED STALENESS: this file previously (incorrectly) still
- *   tested the step-2 guard-based logic long after the real source had moved
- *   to step-3 — it kept passing the whole time because it only exercised its
- *   own frozen, hand-copied logic and never re-checked the live file. It has
- *   been rewritten here to match the CURRENT source in
- *   src/main/drivers/pwm_mapping.c, and a SourceSync test suite (see bottom
- *   of this file) has been added specifically to catch this class of drift
- *   automatically in the future.
+ *   pwmBuildTimerOutputList() computes isCanonicalLedPad via a
+ *   `ledClaimed[HARDWARE_TIMER_DEFINITION_COUNT]` array, parallel to the
+ *   existing `beeperClaimed[]` array used for OUTPUT_MODE_BEEPER.
  *
  * This file contains:
- *   1. A minimal inline reproduction of both a BUGGY version (unconditional
- *      TIM_USE_BEEPER on every pad of a BEEPER-mode timer, no canonical-pad
- *      tracking — the same bug class fixed by commit 8c16aeed85) and the
- *      CURRENT FIXED version of timerHardwareOverride(), since pwm_mapping.c
- *      is excluded from the SITL/unit build by its own
- *      `#if !defined(SITL_BUILD)` guard and depends on PG (parameter-group)
- *      infrastructure not available in a host unit build.
- *   2. TEST BugReproduction — demonstrates that the old, unconditional-BEEPER
- *      code gives TIM_USE_BEEPER to every pad sharing a BEEPER-mode timer.
+ *   1. A minimal inline reproduction of both the BUGGY and FIXED versions of
+ *      timerHardwareOverride() (LED case only, plus MOTORS/SERVOS/BEEPER/
+ *      PINIO for regression coverage) so the test is fully self-contained.
+ *      pwm_mapping.c is excluded from the SITL/unit build by
+ *      `#if !defined(SITL_BUILD)`, and the real function depends on PG
+ *      (parameter-group) infrastructure not available in a host unit build.
+ *   2. TEST BugReproduction — demonstrates that the old, unconditional-LED
+ *      code gives TIM_USE_LED to every pad sharing an LED-mode timer.
  *   3. TEST FixVerification — only the canonical (first) pad on a shared
- *      timer gets TIM_USE_BEEPER; sibling pads fall back to TIM_USE_PINIO.
- *   4. Multi-pad / multi-timer canonical-tracking tests.
- *   5. Regression tests for MOTORS/SERVOS/LED/PINIO overrides on the fixed
- *      function, including timers mixed with a BEEPER-mode timer.
+ *      timer gets TIM_USE_LED; sibling pads fall back to TIM_USE_PINIO.
+ *   4. Multi-pad (3 siblings) test — only the first scanned pad is canonical.
+ *   5. Regression tests for MOTORS/SERVOS/BEEPER/PINIO overrides on the
+ *      fixed function, including timers mixed with LED-mode timers.
  *   6. TEST SUITE SourceSync — reads the ACTUAL LIVE
  *      src/main/drivers/pwm_mapping.c off disk at test time and asserts the
- *      real timerHardwareOverride() BEEPER-case source text still matches
- *      the logic the inline reproduction above assumes, so this file cannot
- *      silently go stale again the way it did before.
+ *      real timerHardwareOverride() source text still matches the logic the
+ *      inline reproduction above assumes. This exists specifically because
+ *      the sibling pwm_mapping_beeper_unittest.cc was found to have drifted:
+ *      it kept passing for months after commits 8c16aeed85/31bb99ea0b
+ *      changed the real BEEPER logic, because it only ever exercised its own
+ *      frozen, hand-copied logic and never looked at the live file again.
+ *      An inline reproduction is unavoidable here (see point 1), but it
+ *      should not be allowed to silently go stale — if pwm_mapping.c's real
+ *      OUTPUT_MODE_LED case (or the canonical-pad tracking loop in
+ *      pwmBuildTimerOutputList()) changes without this file being updated to
+ *      match, SourceSync must fail loudly instead of the rest of the suite
+ *      quietly passing against dead logic.
  */
 
 #include <stdint.h>
@@ -79,9 +70,9 @@
 
 /* -------------------------------------------------------------------------
  * Minimal type/flag definitions — mirrors the real firmware headers on this
- * branch (src/main/drivers/timer.h, src/main/flight/mixer.h). This branch
- * has TIM_USE_PINIO / TIM_USE_BEEPER and OUTPUT_MODE_PINIO / OUTPUT_MODE_BEEPER
- * (unlike release/9.1).
+ * branch (src/main/drivers/timer.h, src/main/flight/mixer.h). Unlike
+ * release/9.1, this branch has TIM_USE_PINIO / TIM_USE_BEEPER and
+ * OUTPUT_MODE_PINIO / OUTPUT_MODE_BEEPER.
  * ------------------------------------------------------------------------- */
 
 /* timerUsageFlag_e — must match src/main/drivers/timer.h exactly */
@@ -136,11 +127,12 @@ typedef struct timerHardware_s {
  * ------------------------------------------------------------------------- */
 
 /*
- * BUGGY version — reproduces the pre-8c16aeed85 BEEPER behaviour:
- * OUTPUT_MODE_BEEPER unconditionally sets TIM_USE_BEEPER on every pad
- * sharing the timer, with no canonical-pad tracking at all. MOTORS/SERVOS/
- * LED/PINIO cases are included only for contrast; this reproduction focuses
- * on the BEEPER bug.
+ * BUGGY version — reproduces the pre-fix LED behaviour: OUTPUT_MODE_LED
+ * unconditionally sets TIM_USE_LED on every pad sharing the timer, with no
+ * canonical-pad tracking at all (same bug class as the pre-fix BEEPER code
+ * in commit history before 8c16aeed85). MOTORS/SERVOS/PINIO/BEEPER cases are
+ * included only for completeness / contrast; this reproduction focuses on
+ * the LED bug.
  */
 static void timerHardwareOverride_buggy(timerHardware_t *timer,
                                          outputMode_e outputMode)
@@ -155,6 +147,9 @@ static void timerHardwareOverride_buggy(timerHardware_t *timer,
             timer->usageFlags |= (uint32_t)TIM_USE_SERVO;
             break;
         case OUTPUT_MODE_LED:
+            /* BUG: unconditionally sets TIM_USE_LED on every pad of this
+             * timer, even though only one pad is actually wired up by
+             * ws2811LedStripInit(). No canonical-pad tracking whatsoever. */
             timer->usageFlags &= ~(uint32_t)(TIM_USE_MOTOR | TIM_USE_SERVO | TIM_USE_BEEPER);
             timer->usageFlags |= (uint32_t)TIM_USE_LED;
             break;
@@ -163,9 +158,6 @@ static void timerHardwareOverride_buggy(timerHardware_t *timer,
             timer->usageFlags |= (uint32_t)TIM_USE_PINIO;
             break;
         case OUTPUT_MODE_BEEPER:
-            /* BUG: unconditionally sets TIM_USE_BEEPER on every pad of this
-             * timer, even though only one pad is actually wired up by
-             * beeperPwmInit(). No canonical-pad tracking whatsoever. */
             timer->usageFlags &= ~(uint32_t)(TIM_USE_MOTOR | TIM_USE_SERVO | TIM_USE_LED);
             timer->usageFlags |= (uint32_t)TIM_USE_BEEPER;
             break;
@@ -261,35 +253,34 @@ static void applyFixedOverridesToArray(timerHardware_t *pads, int count,
 }
 
 /* =========================================================================
- * TEST SUITE: BeeperTimerSiblingPads
+ * TEST SUITE: LedTimerSiblingPads
  * ========================================================================= */
 
 /*
  * TEST 1 — BugReproduction
  *
- * Two pads share timer id 5, both overridden to OUTPUT_MODE_BEEPER. On the
+ * Two pads share timer id 5, both overridden to OUTPUT_MODE_LED. On the
  * BUGGY code path (no canonical-pad tracking at all), BOTH pads get
- * TIM_USE_BEEPER, even though only one of them will ever actually be wired
- * up by beeperPwmInit(). This test PASSES (i.e. the bug reproduces) on the
- * buggy code — confirming the observable symptom of the bug that commit
- * 8c16aeed85 fixed.
+ * TIM_USE_LED, even though only one of them will ever actually be wired up
+ * by ws2811LedStripInit()/timerGetByUsageFlag(TIM_USE_LED). This test
+ * PASSES (i.e. the bug reproduces) on the buggy code — confirming the
+ * observable symptom of the bug.
  */
-TEST(BeeperTimerSiblingPads, BugReproduction_BothSiblingsGetBeeperFlag)
+TEST(LedTimerSiblingPads, BugReproduction_BothSiblingsGetLedFlag)
 {
     timerHardware_t padA; padA.usageFlags = 0; padA.timId = 5;
     timerHardware_t padB; padB.usageFlags = 0; padB.timId = 5;
 
-    timerHardwareOverride_buggy(&padA, OUTPUT_MODE_BEEPER);
-    timerHardwareOverride_buggy(&padB, OUTPUT_MODE_BEEPER);
+    timerHardwareOverride_buggy(&padA, OUTPUT_MODE_LED);
+    timerHardwareOverride_buggy(&padB, OUTPUT_MODE_LED);
 
-    EXPECT_TRUE(padA.usageFlags & (uint32_t)TIM_USE_BEEPER)
-        << "First pad should get TIM_USE_BEEPER (expected)";
-    EXPECT_TRUE(padB.usageFlags & (uint32_t)TIM_USE_BEEPER)
-        << "BUG CONFIRMED: sibling pad on the SAME timer also got TIM_USE_BEEPER, "
-           "but beeperPwmInit() only wires up the first pad found for the buzzer. "
-           "This sibling would be falsely reported as \"Buzzer\" over MSP/in the "
-           "configurator while being functionally dead (oscilloscope showed a real "
-           "waveform only on the first pad of the timer).";
+    EXPECT_TRUE(padA.usageFlags & (uint32_t)TIM_USE_LED)
+        << "First pad should get TIM_USE_LED (expected)";
+    EXPECT_TRUE(padB.usageFlags & (uint32_t)TIM_USE_LED)
+        << "BUG CONFIRMED: sibling pad on the SAME timer also got TIM_USE_LED, "
+           "but light_ws2811strip.c only wires up the first pad found via "
+           "timerGetByUsageFlag(TIM_USE_LED). This sibling would be falsely "
+           "reported as an LED output while being functionally dead.";
 }
 
 /*
@@ -297,105 +288,95 @@ TEST(BeeperTimerSiblingPads, BugReproduction_BothSiblingsGetBeeperFlag)
  *
  * Same scenario as above, but using the FIXED function with proper
  * canonical-pad computation (as pwmBuildTimerOutputList() does). Only the
- * first-scanned pad on the shared timer should get TIM_USE_BEEPER; the
- * sibling must fall back to TIM_USE_PINIO (GPIO-only), NOT TIM_USE_BEEPER,
- * and NOT be left flagless (commit 31bb99ea0b added the PINIO fallback).
+ * first-scanned pad on the shared timer should get TIM_USE_LED; the sibling
+ * must fall back to TIM_USE_PINIO (GPIO-only), NOT TIM_USE_LED, and NOT be
+ * left flagless (this branch has the PINIO fallback, unlike release/9.1).
  */
-TEST(BeeperTimerSiblingPads, FixVerification_OnlyCanonicalPadGetsBeeper)
+TEST(LedTimerSiblingPads, FixVerification_OnlyCanonicalPadGetsLed)
 {
     timerHardware_t pads[2];
     pads[0].usageFlags = 0; pads[0].timId = 5;
     pads[1].usageFlags = 0; pads[1].timId = 5;
-    outputMode_e modes[2] = { OUTPUT_MODE_BEEPER, OUTPUT_MODE_BEEPER };
+    outputMode_e modes[2] = { OUTPUT_MODE_LED, OUTPUT_MODE_LED };
 
     applyFixedOverridesToArray(pads, 2, modes, 6);
 
-    EXPECT_TRUE(pads[0].usageFlags & (uint32_t)TIM_USE_BEEPER)
-        << "Canonical (first-scanned) pad must get TIM_USE_BEEPER";
+    EXPECT_TRUE(pads[0].usageFlags & (uint32_t)TIM_USE_LED)
+        << "Canonical (first-scanned) pad must get TIM_USE_LED";
     EXPECT_FALSE(pads[0].usageFlags & (uint32_t)TIM_USE_PINIO)
         << "Canonical pad must not also carry the PINIO fallback flag";
 
-    EXPECT_FALSE(pads[1].usageFlags & (uint32_t)TIM_USE_BEEPER)
-        << "FIX VERIFIED: sibling pad on the same timer must NOT get TIM_USE_BEEPER";
+    EXPECT_FALSE(pads[1].usageFlags & (uint32_t)TIM_USE_LED)
+        << "FIX VERIFIED: sibling pad on the same timer must NOT get TIM_USE_LED";
     EXPECT_TRUE(pads[1].usageFlags & (uint32_t)TIM_USE_PINIO)
         << "Sibling pad must fall back to TIM_USE_PINIO (GPIO-only), not be left flagless";
 }
 
 /*
  * TEST 3 — Three-pad case: only the first scanned pad is canonical
+ *
+ * Confirms the canonical tracking generalizes beyond two pads: with three
+ * pads sharing a timer, only pads[0] should be canonical; pads[1] and
+ * pads[2] must both fall back to PINIO.
  */
-TEST(BeeperTimerSiblingPads, ThreePads_OnlyFirstScannedIsCanonical)
+TEST(LedTimerSiblingPads, ThreePads_OnlyFirstScannedIsCanonical)
 {
     timerHardware_t pads[3];
     for (int i = 0; i < 3; i++) {
         pads[i].usageFlags = 0;
         pads[i].timId = 7;
     }
-    outputMode_e modes[3] = { OUTPUT_MODE_BEEPER, OUTPUT_MODE_BEEPER, OUTPUT_MODE_BEEPER };
+    outputMode_e modes[3] = { OUTPUT_MODE_LED, OUTPUT_MODE_LED, OUTPUT_MODE_LED };
 
     applyFixedOverridesToArray(pads, 3, modes, 8);
 
-    EXPECT_TRUE(pads[0].usageFlags & (uint32_t)TIM_USE_BEEPER)
-        << "pads[0] (first scanned) must be canonical and get TIM_USE_BEEPER";
+    EXPECT_TRUE(pads[0].usageFlags & (uint32_t)TIM_USE_LED)
+        << "pads[0] (first scanned) must be canonical and get TIM_USE_LED";
     EXPECT_FALSE(pads[0].usageFlags & (uint32_t)TIM_USE_PINIO);
 
     for (int i = 1; i < 3; i++) {
-        EXPECT_FALSE(pads[i].usageFlags & (uint32_t)TIM_USE_BEEPER)
-            << "pads[" << i << "] must NOT be canonical, so must not get TIM_USE_BEEPER";
+        EXPECT_FALSE(pads[i].usageFlags & (uint32_t)TIM_USE_LED)
+            << "pads[" << i << "] must NOT be canonical, so must not get TIM_USE_LED";
         EXPECT_TRUE(pads[i].usageFlags & (uint32_t)TIM_USE_PINIO)
             << "pads[" << i << "] must fall back to TIM_USE_PINIO";
     }
 }
 
 /*
- * TEST 4 — Two independent BEEPER timers each get their own canonical pad
+ * TEST 4 — Two independent LED timers each get their own canonical pad
+ *
+ * Pads on timer id 5 and pads on timer id 9 are independent: each timer
+ * should get exactly one canonical (LED) pad, tracked separately via the
+ * per-timer ledClaimed[] array.
  */
-TEST(BeeperTimerSiblingPads, IndependentTimers_EachGetsOwnCanonicalPad)
+TEST(LedTimerSiblingPads, IndependentTimers_EachGetsOwnCanonicalPad)
 {
     timerHardware_t pads[4];
     pads[0].usageFlags = 0; pads[0].timId = 5; // timer A, pad 1 -> canonical
     pads[1].usageFlags = 0; pads[1].timId = 5; // timer A, pad 2 -> sibling
     pads[2].usageFlags = 0; pads[2].timId = 9; // timer B, pad 1 -> canonical
     pads[3].usageFlags = 0; pads[3].timId = 9; // timer B, pad 2 -> sibling
-    outputMode_e modes[4] = { OUTPUT_MODE_BEEPER, OUTPUT_MODE_BEEPER, OUTPUT_MODE_BEEPER, OUTPUT_MODE_BEEPER };
+    outputMode_e modes[4] = { OUTPUT_MODE_LED, OUTPUT_MODE_LED, OUTPUT_MODE_LED, OUTPUT_MODE_LED };
 
     applyFixedOverridesToArray(pads, 4, modes, 10);
 
-    EXPECT_TRUE(pads[0].usageFlags & (uint32_t)TIM_USE_BEEPER);
+    EXPECT_TRUE(pads[0].usageFlags & (uint32_t)TIM_USE_LED);
     EXPECT_TRUE(pads[1].usageFlags & (uint32_t)TIM_USE_PINIO);
-    EXPECT_FALSE(pads[1].usageFlags & (uint32_t)TIM_USE_BEEPER);
+    EXPECT_FALSE(pads[1].usageFlags & (uint32_t)TIM_USE_LED);
 
-    EXPECT_TRUE(pads[2].usageFlags & (uint32_t)TIM_USE_BEEPER)
+    EXPECT_TRUE(pads[2].usageFlags & (uint32_t)TIM_USE_LED)
         << "Timer B's first pad must independently become canonical";
     EXPECT_TRUE(pads[3].usageFlags & (uint32_t)TIM_USE_PINIO);
-    EXPECT_FALSE(pads[3].usageFlags & (uint32_t)TIM_USE_BEEPER);
-}
-
-/*
- * TEST 5 — Edge case: a pure BEEPER-only timer (single pad) still gets
- * TIM_USE_BEEPER — the canonical-pad logic must not accidentally suppress
- * the common single-pad case.
- */
-TEST(BeeperTimerSiblingPads, SinglePadTimer_StillGetsBeeperFlag)
-{
-    timerHardware_t pads[1];
-    pads[0].usageFlags = 0;
-    pads[0].timId = 2;
-    outputMode_e modes[1] = { OUTPUT_MODE_BEEPER };
-
-    applyFixedOverridesToArray(pads, 1, modes, 3);
-
-    EXPECT_TRUE(pads[0].usageFlags & (uint32_t)TIM_USE_BEEPER);
-    EXPECT_FALSE(pads[0].usageFlags & (uint32_t)TIM_USE_PINIO);
+    EXPECT_FALSE(pads[3].usageFlags & (uint32_t)TIM_USE_LED);
 }
 
 /* =========================================================================
- * Negative / regression tests — MOTORS/SERVOS/LED/PINIO overrides must still
- * work correctly with the fixed function, including when mixed with a
- * BEEPER-mode timer in the same scan.
+ * Negative / regression tests — MOTORS/SERVOS/BEEPER overrides must still
+ * work correctly with the fixed function, including when mixed with an
+ * LED-mode timer in the same scan.
  * ========================================================================= */
 
-TEST(BeeperTimerRegression, MotorOverride_Unaffected)
+TEST(LedTimerRegression, MotorOverride_Unaffected)
 {
     timerHardware_t timer;
     timer.usageFlags = (uint32_t)(TIM_USE_MOTOR | TIM_USE_SERVO);
@@ -411,7 +392,7 @@ TEST(BeeperTimerRegression, MotorOverride_Unaffected)
     EXPECT_FALSE(timer.usageFlags & (uint32_t)TIM_USE_BEEPER);
 }
 
-TEST(BeeperTimerRegression, ServoOverride_Unaffected)
+TEST(LedTimerRegression, ServoOverride_Unaffected)
 {
     timerHardware_t timer;
     timer.usageFlags = (uint32_t)(TIM_USE_MOTOR | TIM_USE_SERVO);
@@ -423,41 +404,42 @@ TEST(BeeperTimerRegression, ServoOverride_Unaffected)
 
     EXPECT_TRUE(timer.usageFlags & (uint32_t)TIM_USE_SERVO);
     EXPECT_FALSE(timer.usageFlags & (uint32_t)TIM_USE_MOTOR);
-    EXPECT_FALSE(timer.usageFlags & (uint32_t)TIM_USE_BEEPER);
+    EXPECT_FALSE(timer.usageFlags & (uint32_t)TIM_USE_LED);
 }
 
-TEST(BeeperTimerRegression, LedCanonicalPad_StillGetsLedFlag)
+TEST(LedTimerRegression, BeeperCanonicalPad_StillGetsBeeperFlag)
 {
-    /* Regression: the LED canonical-pad logic (isCanonicalLedPad) must be
-     * completely unaffected by the BEEPER-specific test coverage here. */
+    /* Regression: the BEEPER canonical-pad logic (isCanonicalBeeperPad) must
+     * be completely unaffected by the addition of isCanonicalLedPad. */
     timerHardware_t timer;
     timer.usageFlags = 0;
     timer.timId = 3;
 
-    timerHardwareOverride_fixed(&timer, OUTPUT_MODE_LED,
-                                 /*isCanonicalBeeperPad=*/false,
-                                 /*isCanonicalLedPad=*/true);
+    timerHardwareOverride_fixed(&timer, OUTPUT_MODE_BEEPER,
+                                 /*isCanonicalBeeperPad=*/true,
+                                 /*isCanonicalLedPad=*/false);
 
-    EXPECT_TRUE(timer.usageFlags & (uint32_t)TIM_USE_LED);
+    EXPECT_TRUE(timer.usageFlags & (uint32_t)TIM_USE_BEEPER);
     EXPECT_FALSE(timer.usageFlags & (uint32_t)TIM_USE_PINIO);
 }
 
-TEST(BeeperTimerRegression, LedSiblingPad_FallsBackToPinio)
+TEST(LedTimerRegression, BeeperSiblingPad_FallsBackToPinio)
 {
     timerHardware_t timer;
     timer.usageFlags = 0;
     timer.timId = 3;
 
-    timerHardwareOverride_fixed(&timer, OUTPUT_MODE_LED,
+    timerHardwareOverride_fixed(&timer, OUTPUT_MODE_BEEPER,
                                  /*isCanonicalBeeperPad=*/false,
                                  /*isCanonicalLedPad=*/false);
 
-    EXPECT_FALSE(timer.usageFlags & (uint32_t)TIM_USE_LED);
+    EXPECT_FALSE(timer.usageFlags & (uint32_t)TIM_USE_BEEPER);
     EXPECT_TRUE(timer.usageFlags & (uint32_t)TIM_USE_PINIO)
-        << "Non-canonical LED pad must fall back to PINIO";
+        << "Non-canonical BEEPER pad must fall back to PINIO (regression check "
+           "for the pre-existing BEEPER fix, unaffected by the LED fix)";
 }
 
-TEST(BeeperTimerRegression, PinioOverride_Unaffected)
+TEST(LedTimerRegression, PinioOverride_Unaffected)
 {
     timerHardware_t timer;
     timer.usageFlags = (uint32_t)(TIM_USE_MOTOR | TIM_USE_SERVO | TIM_USE_LED);
@@ -473,7 +455,7 @@ TEST(BeeperTimerRegression, PinioOverride_Unaffected)
     EXPECT_TRUE(timer.usageFlags & (uint32_t)TIM_USE_PINIO);
 }
 
-TEST(BeeperTimerRegression, AutoMode_LeavesTimerUnchanged)
+TEST(LedTimerRegression, AutoMode_LeavesTimerUnchanged)
 {
     timerHardware_t timer;
     timer.usageFlags = (uint32_t)(TIM_USE_MOTOR | TIM_USE_SERVO);
@@ -489,48 +471,46 @@ TEST(BeeperTimerRegression, AutoMode_LeavesTimerUnchanged)
 }
 
 /*
- * TEST — Mixed scan: MOTOR timer, BEEPER timer (2 pads), LED timer
- * (canonical pad only) all processed together via
- * applyFixedOverridesToArray(), matching a realistic
- * pwmBuildTimerOutputList() scenario where different timers on the board
- * have different output-mode overrides. Confirms none of the per-timer
- * canonical tracking (beeperClaimed[] vs ledClaimed[]) interferes across
- * timer ids or across output modes — the mirror image of the equivalent test
- * in pwm_mapping_led_unittest.cc.
+ * TEST — Mixed scan: MOTOR timer, LED timer (2 pads), BEEPER timer (canonical
+ * pad only) all processed together via applyFixedOverridesToArray(), matching
+ * a realistic pwmBuildTimerOutputList() scenario where different timers on
+ * the board have different output-mode overrides. Confirms none of the
+ * per-timer canonical tracking (ledClaimed[] vs beeperClaimed[]) interferes
+ * across timer ids or across output modes.
  */
-TEST(BeeperTimerRegression, MixedScan_MotorBeeperLedTimersDoNotInterfere)
+TEST(LedTimerRegression, MixedScan_MotorLedBeeperTimersDoNotInterfere)
 {
     timerHardware_t pads[5];
     for (int i = 0; i < 5; i++) pads[i].usageFlags = 0;
 
     pads[0].timId = 1; // MOTOR timer
-    pads[1].timId = 2; // BEEPER timer, canonical
-    pads[2].timId = 2; // BEEPER timer, sibling
-    pads[3].timId = 3; // LED timer, canonical
-    pads[4].timId = 3; // LED timer, sibling
+    pads[1].timId = 2; // LED timer, canonical
+    pads[2].timId = 2; // LED timer, sibling
+    pads[3].timId = 3; // BEEPER timer, canonical
+    pads[4].timId = 3; // BEEPER timer, sibling
 
     outputMode_e modes[5] = {
         OUTPUT_MODE_MOTORS,
-        OUTPUT_MODE_BEEPER,
-        OUTPUT_MODE_BEEPER,
         OUTPUT_MODE_LED,
         OUTPUT_MODE_LED,
+        OUTPUT_MODE_BEEPER,
+        OUTPUT_MODE_BEEPER,
     };
 
     applyFixedOverridesToArray(pads, 5, modes, 4);
 
     EXPECT_TRUE(pads[0].usageFlags & (uint32_t)TIM_USE_MOTOR);
 
-    EXPECT_TRUE(pads[1].usageFlags & (uint32_t)TIM_USE_BEEPER);
+    EXPECT_TRUE(pads[1].usageFlags & (uint32_t)TIM_USE_LED);
     EXPECT_FALSE(pads[1].usageFlags & (uint32_t)TIM_USE_PINIO);
 
-    EXPECT_FALSE(pads[2].usageFlags & (uint32_t)TIM_USE_BEEPER);
+    EXPECT_FALSE(pads[2].usageFlags & (uint32_t)TIM_USE_LED);
     EXPECT_TRUE(pads[2].usageFlags & (uint32_t)TIM_USE_PINIO);
 
-    EXPECT_TRUE(pads[3].usageFlags & (uint32_t)TIM_USE_LED);
+    EXPECT_TRUE(pads[3].usageFlags & (uint32_t)TIM_USE_BEEPER);
     EXPECT_FALSE(pads[3].usageFlags & (uint32_t)TIM_USE_PINIO);
 
-    EXPECT_FALSE(pads[4].usageFlags & (uint32_t)TIM_USE_LED);
+    EXPECT_FALSE(pads[4].usageFlags & (uint32_t)TIM_USE_BEEPER);
     EXPECT_TRUE(pads[4].usageFlags & (uint32_t)TIM_USE_PINIO);
 }
 
@@ -544,8 +524,7 @@ TEST(BeeperTimerRegression, MixedScan_MotorBeeperLedTimersDoNotInterfere)
  * whitespace and comments). If a future change to pwm_mapping.c alters this
  * logic without updating the inline reproduction above, these tests fail —
  * loudly, in `make check` / CI — instead of the rest of the file silently
- * continuing to pass against a stale copy, which is exactly what happened to
- * this file for months after commits 8c16aeed85/31bb99ea0b.
+ * continuing to pass against a stale copy.
  *
  * This does not (and structurally cannot, given the SITL_BUILD guard around
  * the entire file — see block comment above) substitute for actually linking
@@ -610,12 +589,12 @@ std::string normalizeSource(const std::string &text)
 
 // Locates the live pwm_mapping.c relative to this test file's own path.
 // __FILE__ is emitted as an absolute path by this project's CMake/Makefiles
-// (verified: `c++ ... -c /abs/path/to/pwm_mapping_beeper_unittest.cc`), so
-// this resolves correctly regardless of the build directory or CWD the test
-// is invoked from.
+// (verified: `c++ ... -c /abs/path/to/pwm_mapping_led_unittest.cc`), so this
+// resolves correctly regardless of the build directory or CWD the test is
+// invoked from.
 std::string pwmMappingSourcePath()
 {
-    std::string thisFile = __FILE__; // .../src/test/unit/pwm_mapping_beeper_unittest.cc
+    std::string thisFile = __FILE__; // .../src/test/unit/pwm_mapping_led_unittest.cc
     size_t lastSlash = thisFile.find_last_of("/\\");
     std::string testUnitDir = (lastSlash == std::string::npos) ? "." : thisFile.substr(0, lastSlash);
     return testUnitDir + "/../../main/drivers/pwm_mapping.c";
@@ -660,15 +639,12 @@ TEST(SourceSync, TimerHardwareOverrideSignatureMatchesLiveSource)
         << "timerHardwareOverride()'s signature in the LIVE "
            "src/main/drivers/pwm_mapping.c no longer matches what this test's "
            "inline reproduction assumes. If the signature legitimately "
-           "changed (e.g. the step-2 guard-based approach was reinstated, or "
-           "a new parameter was added), update timerHardwareOverride_fixed()/"
-           "_buggy() in this file (and pwm_mapping_led_unittest.cc) to match, "
-           "then update this expected string too. THIS is the exact class of "
-           "drift that made this file stale for months previously — do not "
-           "let it happen again.";
+           "changed, update timerHardwareOverride_fixed()/_buggy() in "
+           "pwm_mapping_led_unittest.cc (and pwm_mapping_beeper_unittest.cc) "
+           "to match, then update this expected string too.";
 }
 
-TEST(SourceSync, BeeperCaseMatchesLiveSource)
+TEST(SourceSync, LedCaseMatchesLiveSource)
 {
     std::string normalizedSource;
     ASSERT_TRUE(loadNormalizedPwmMappingSource(&normalizedSource));
@@ -678,23 +654,24 @@ TEST(SourceSync, BeeperCaseMatchesLiveSource)
     // changes don't cause false failures; only the executable statements are
     // checked, which is exactly the logic the FixVerification tests above
     // depend on.
-    const std::string expectedBeeperCase = normalizeSource(
-        "case OUTPUT_MODE_BEEPER: "
-        "timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_LED|TIM_USE_BEEPER); "
+    const std::string expectedLedCase = normalizeSource(
+        "case OUTPUT_MODE_LED: "
+        "timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO|TIM_USE_BEEPER|TIM_USE_LED); "
         "timer->usageFlags |= TIM_USE_PINIO; "
-        "if (isCanonicalBeeperPad) { "
+        "if (isCanonicalLedPad) { "
         "timer->usageFlags &= ~TIM_USE_PINIO; "
-        "timer->usageFlags |= TIM_USE_BEEPER; "
+        "timer->usageFlags |= TIM_USE_LED; "
         "} "
         "break;");
 
-    EXPECT_NE(normalizedSource.find(expectedBeeperCase), std::string::npos)
-        << "The OUTPUT_MODE_BEEPER case in the LIVE "
-           "src/main/drivers/pwm_mapping.c no longer matches "
-           "timerHardwareOverride_fixed()'s BEEPER case in this test file. "
-           "Update the inline reproduction (and the FixVerification/"
-           "BugReproduction tests, if the fix strategy itself changed) to "
-           "match the live source.";
+    EXPECT_NE(normalizedSource.find(expectedLedCase), std::string::npos)
+        << "The OUTPUT_MODE_LED case in the LIVE src/main/drivers/pwm_mapping.c "
+           "no longer matches timerHardwareOverride_fixed()'s LED case in this "
+           "test file. This is exactly the kind of drift that let "
+           "pwm_mapping_beeper_unittest.cc silently stop verifying real "
+           "behavior after commits 8c16aeed85/31bb99ea0b. Update the inline "
+           "reproduction (and the FixVerification/BugReproduction tests, if "
+           "the fix strategy itself changed) to match the live source.";
 }
 
 TEST(SourceSync, CanonicalPadTrackingLoopMatchesLiveSource)
@@ -724,5 +701,5 @@ TEST(SourceSync, CanonicalPadTrackingLoopMatchesLiveSource)
            "src/main/drivers/pwm_mapping.c no longer matches what "
            "applyFixedOverridesToArray() in this test file reproduces. Update "
            "applyFixedOverridesToArray() to match the live source (e.g. if the "
-           "beeperClaimed[]/ledClaimed[] scanning strategy changes).";
+           "ledClaimed[]/beeperClaimed[] scanning strategy changes).";
 }
