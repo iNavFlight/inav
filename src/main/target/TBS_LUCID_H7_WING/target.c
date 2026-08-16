@@ -50,14 +50,14 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM4, CH1, PD12, TIM_USE_OUTPUT_AUTO, 0, 6),   // S7
     DEF_TIM(TIM4, CH2, PD13, TIM_USE_OUTPUT_AUTO, 0, 7),   // S8
-    DEF_TIM(TIM4, CH3, PD14, TIM_USE_OUTPUT_AUTO, 0, 0),   // S9
+    DEF_TIM(TIM4, CH3, PD14, TIM_USE_OUTPUT_AUTO, 0, 11),   // S9
     DEF_TIM(TIM4, CH4, PD15, TIM_USE_OUTPUT_AUTO, 0, 0),   // S10 DMA_NONE
 
-    DEF_TIM(TIM15, CH1, PE5, TIM_USE_OUTPUT_AUTO, 0, 0),   // S11
+    DEF_TIM(TIM15, CH1, PE5, TIM_USE_OUTPUT_AUTO, 0, 12),   // S11
     DEF_TIM(TIM15, CH2, PE6, TIM_USE_OUTPUT_AUTO, 0, 0),   // S12 DMA_NONE
 
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 9),   // S13
-    DEF_TIM(TIM2,  CH1, PA15, TIM_USE_OUTPUT_AUTO | TIM_USE_LED, 0, 8),   // LED_STRIP
+    DEF_TIM(TIM2,  CH1, PA15, TIM_USE_OUTPUT_AUTO | TIM_USE_LED, 0, 10),   // LED_STRIP
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
