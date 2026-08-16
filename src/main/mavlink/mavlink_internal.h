@@ -77,6 +77,12 @@
 #ifdef USE_MAVLINK_MSP_TUNNEL
 #define MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP 0x8001
 #define MAVLINK_TUNNEL_MSP_TIMEOUT_MS 1000
+// Independent of MSP_PORT_OUTBUF_SIZE, which is sized for full-page USE_FLASHFS
+// reads that self-clamp to available buffer space (serializeDataflashReadReply())
+// and so don't need it here. 512 covers the largest ordinary MSP2 reply found
+// (MSP2_INAV_SERVO_MIXER, 432 bytes); sbufWrite*() isn't bounds-checked, so
+// re-audit before shrinking further.
+#define MAVLINK_TUNNEL_MSP_REPLY_BUF_SIZE 512
 #endif
 #define MAVLINK_MISSION_UPLOAD_RETRY_MS 1500
 #define MAVLINK_MISSION_UPLOAD_MAX_RETRIES 5
@@ -93,7 +99,7 @@ typedef struct mavlinkContext_s {
     mspPort_t tunnelMspPorts[MAX_MAVLINK_PORTS];
     uint8_t tunnelRemoteSystemIds[MAX_MAVLINK_PORTS];
     uint8_t tunnelRemoteComponentIds[MAX_MAVLINK_PORTS];
-    uint8_t tunnelReplyPayloadBuf[MSP_PORT_OUTBUF_SIZE];
+    uint8_t tunnelReplyPayloadBuf[MAVLINK_TUNNEL_MSP_REPLY_BUF_SIZE];
 #endif
     uint8_t sendMask;
     mavlinkPortRuntime_t *activePort;
