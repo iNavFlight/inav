@@ -59,7 +59,7 @@ extern dronecanNodeInfo_t nodeTable[];
 extern CanardInstance canard;
 
 /* Private functions not exposed in dronecan.h */
-void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer);
+void dronecanNodeStatusHandleBroadcast(CanardInstance *ins, CanardRxTransfer *transfer);
 bool shouldAcceptTransfer(const CanardInstance *ins,
                           uint64_t *out_data_type_signature,
                           uint16_t data_type_id,
@@ -257,7 +257,7 @@ TEST_F(DroneCANNodeTableTest, NewNodeAddedOnFirstStatus)
             UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK,
             UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL,
             0xABCD, buf);
-    handle_NodeStatus(&ins, &xfer);
+    dronecanNodeStatusHandleBroadcast(&ins, &xfer);
 
     EXPECT_EQ(dronecanGetNodeCount(), 1u);
 
@@ -274,9 +274,9 @@ TEST_F(DroneCANNodeTableTest, NewNodeAddedOnFirstStatus)
 TEST_F(DroneCANNodeTableTest, TwoDistinctNodesStoredSeparately)
 {
     CanardRxTransfer x1 = makeNodeStatusTransfer(10, 100, 0, 0, 0, buf);
-    handle_NodeStatus(&ins, &x1);
+    dronecanNodeStatusHandleBroadcast(&ins, &x1);
     CanardRxTransfer x2 = makeNodeStatusTransfer(20, 200, 0, 0, 0, buf);
-    handle_NodeStatus(&ins, &x2);
+    dronecanNodeStatusHandleBroadcast(&ins, &x2);
 
     EXPECT_EQ(dronecanGetNodeCount(), 2u);
     EXPECT_EQ(dronecanGetNode(0)->nodeID, 10u);
@@ -291,7 +291,7 @@ TEST_F(DroneCANNodeTableTest, ExistingNodeUpdatedInPlace)
             UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK,
             UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL,
             0x0000, buf);
-    handle_NodeStatus(&ins, &x1);
+    dronecanNodeStatusHandleBroadcast(&ins, &x1);
     ASSERT_EQ(dronecanGetNodeCount(), 1u);
 
     CanardRxTransfer x2 = makeNodeStatusTransfer(
@@ -299,7 +299,7 @@ TEST_F(DroneCANNodeTableTest, ExistingNodeUpdatedInPlace)
             UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING,
             UAVCAN_PROTOCOL_NODESTATUS_MODE_MAINTENANCE,
             0xBEEF, buf);
-    handle_NodeStatus(&ins, &x2);
+    dronecanNodeStatusHandleBroadcast(&ins, &x2);
 
     EXPECT_EQ(dronecanGetNodeCount(), 1u);   /* still one node */
 
@@ -316,7 +316,7 @@ TEST_F(DroneCANNodeTableTest, LastSeenMsFollowsMillis)
 {
     mock_time_ms = 1000;
     CanardRxTransfer x1 = makeNodeStatusTransfer(20, 10, 0, 0, 0, buf);
-    handle_NodeStatus(&ins, &x1);
+    dronecanNodeStatusHandleBroadcast(&ins, &x1);
 
     const dronecanNodeInfo_t *node = dronecanGetNode(0);
     ASSERT_NE(node, nullptr);
@@ -324,7 +324,7 @@ TEST_F(DroneCANNodeTableTest, LastSeenMsFollowsMillis)
 
     mock_time_ms = 2500;
     CanardRxTransfer x2 = makeNodeStatusTransfer(20, 20, 0, 0, 0, buf);
-    handle_NodeStatus(&ins, &x2);
+    dronecanNodeStatusHandleBroadcast(&ins, &x2);
 
     EXPECT_EQ(node->last_seen_ms, 2500u);
 }
@@ -334,7 +334,7 @@ TEST_F(DroneCANNodeTableTest, LastSeenMsSetOnInsert)
 {
     mock_time_ms = 9999;
     CanardRxTransfer xfer = makeNodeStatusTransfer(5, 0, 0, 0, 0, buf);
-    handle_NodeStatus(&ins, &xfer);
+    dronecanNodeStatusHandleBroadcast(&ins, &xfer);
 
     const dronecanNodeInfo_t *node = dronecanGetNode(0);
     ASSERT_NE(node, nullptr);
@@ -347,13 +347,13 @@ TEST_F(DroneCANNodeTableTest, TableFullNodeRejected)
 {
     for (uint8_t i = 1; i <= DRONECAN_MAX_NODES; i++) {
         CanardRxTransfer xfer = makeNodeStatusTransfer(i, 0, 0, 0, 0, buf);
-        handle_NodeStatus(&ins, &xfer);
+        dronecanNodeStatusHandleBroadcast(&ins, &xfer);
     }
     ASSERT_EQ(dronecanGetNodeCount(), (uint8_t)DRONECAN_MAX_NODES);
 
     /* Try to add a 33rd node (ID 100, not in 1..32) */
     CanardRxTransfer overflow = makeNodeStatusTransfer(100, 0, 0, 0, 0, buf);
-    handle_NodeStatus(&ins, &overflow);
+    dronecanNodeStatusHandleBroadcast(&ins, &overflow);
 
     EXPECT_EQ(dronecanGetNodeCount(), (uint8_t)DRONECAN_MAX_NODES);
 
@@ -517,7 +517,7 @@ TEST_F(DroneCANDispatchTest, GetNodeInfoResponsePopulatesAsyncSlot)
     /* Pre-insert node 42 via a NodeStatus (node table is independent of async slot) */
     uint8_t ns_buf[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE + 4];
     CanardRxTransfer ns_xfer = makeNodeStatusTransfer(42, 10, 0, 0, 0, ns_buf);
-    handle_NodeStatus(&ins, &ns_xfer);
+    dronecanNodeStatusHandleBroadcast(&ins, &ns_xfer);
     ASSERT_EQ(dronecanGetNodeCount(), 1u);
 
     /* Prime the async slot — handle_AsyncServiceResponse guards on state, service_id,
