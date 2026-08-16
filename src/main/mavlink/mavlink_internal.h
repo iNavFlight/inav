@@ -79,11 +79,12 @@
 #define MAVLINK_TUNNEL_MSP_TIMEOUT_MS 1000
 // Independent of MSP_PORT_OUTBUF_SIZE, which is sized for full-page USE_FLASHFS
 // reads that self-clamp to available buffer space (serializeDataflashReadReply())
-// and so don't need it here. 512 matches the non-FLASHFS MSP_PORT_OUTBUF_SIZE
-// already shipping on every such board; MSP_LED_STRIP_CONFIG is the largest
-// reply that fits it, with no margin. sbufWrite*() isn't bounds-checked, so
-// re-audit before shrinking further.
-#define MAVLINK_TUNNEL_MSP_REPLY_BUF_SIZE 512
+// and so don't need it here. Sized instead off the largest MSP reply reachable
+// through the tunnel: MSP2_INAV_LED_STRIP_CONFIG_EX at LED_MAX_STRIP_LENGTH (128)
+// x sizeof(ledConfig_t) (5, packed bitfield) = 640 bytes. That one truncates
+// rather than overflows, but sbufWrite*() is not bounds-checked in general, so
+// re-audit the handlers in fc_msp.c before shrinking this.
+#define MAVLINK_TUNNEL_MSP_REPLY_BUF_SIZE 768
 #endif
 #define MAVLINK_MISSION_UPLOAD_RETRY_MS 1500
 #define MAVLINK_MISSION_UPLOAD_MAX_RETRIES 5
