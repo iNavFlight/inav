@@ -84,7 +84,16 @@ set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_sources
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.power.BatteryInfo.c"
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.RTCMStream.c"
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.Timestamp.c"
-    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.ECEFPositionVelocity.c")
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.ECEFPositionVelocity.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.GetSet_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.GetSet_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.ExecuteOpcode_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.ExecuteOpcode_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.RestartNode_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.RestartNode_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Value.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.NumericValue.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Empty.c")
 set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_includes
     "../../lib/main/Dronecan/dsdlc_generated/include")
 set_property(SOURCE dronecan_application_unittest.cc PROPERTY definitions
