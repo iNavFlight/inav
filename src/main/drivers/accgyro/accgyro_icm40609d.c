@@ -174,7 +174,6 @@ static void icm40609dAccAndGyroInit(gyroDev_t *gyro)
 static bool icm40609dDeviceDetect(busDevice_t * dev)
 {
     uint8_t tmp;
-    uint8_t attemptsRemaining = 5;
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
@@ -184,7 +183,7 @@ static bool icm40609dDeviceDetect(busDevice_t * dev)
     // against the datasheet directly rather than trusting either revision.
     busWrite(dev, ICM40609D_RA_DEVICE_CONFIG, ICM40609D_DEVICE_CONFIG_SOFT_RESET);
 
-    do {
+    for (int attempt = 0; attempt < 5; attempt++) {
         delay(150);
 
         busRead(dev, MPU_RA_WHO_AM_I, &tmp);
@@ -192,7 +191,7 @@ static bool icm40609dDeviceDetect(busDevice_t * dev)
         if (tmp == ICM40609D_WHO_AM_I_CONST) {
             return true;
         }
-    } while (attemptsRemaining--);
+    }
 
     return false;
 }
