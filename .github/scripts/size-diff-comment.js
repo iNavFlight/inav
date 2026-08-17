@@ -8,6 +8,11 @@
 
 'use strict';
 
+// 4 representative targets spanning flash/RAM size tiers (manager-approved
+// set, 2026-08-17). Note MATEKF722 and MATEKF765 are both STM32F7 parts —
+// "one per family" in the loose sense of distinct flash/RAM budgets, not
+// one per silicon line. No AT32 target is covered; flagged back to the
+// manager as a possible coverage gap, not decided unilaterally here.
 const REPRESENTATIVE_TARGETS = ['MATEKF405', 'MATEKF722', 'MATEKF765', 'MATEKH743'];
 
 // Below this magnitude a delta is noise (rounding/toolchain jitter), not a
@@ -45,6 +50,8 @@ function diffSizeReports(prReport, baselineReport) {
             status: 'compared',
             flash: pr.flash,
             ram: pr.ram,
+            baseFlash: base.flash,
+            baseRam: base.ram,
             flashDelta,
             ramDelta,
             notable: Math.abs(flashDelta) >= NOISE_THRESHOLD_BYTES || Math.abs(ramDelta) >= NOISE_THRESHOLD_BYTES,
@@ -71,8 +78,8 @@ function renderComment({ prReport, baselineReport, shortSha, docLink, marker }) 
         lines.push('| Target | Flash Δ | RAM Δ |', '|---|---|---|');
         for (const row of rows) {
             if (row.status === 'compared') {
-                const flashCell = formatDelta(row.flashDelta, row.flash - row.flashDelta);
-                const ramCell = formatDelta(row.ramDelta, row.ram - row.ramDelta);
+                const flashCell = formatDelta(row.flashDelta, row.baseFlash);
+                const ramCell = formatDelta(row.ramDelta, row.baseRam);
                 const notableMark = row.notable ? ' ⚠️' : '';
                 lines.push(`| ${row.target}${notableMark} | ${flashCell} | ${ramCell} |`);
             } else if (row.status === 'no-baseline') {

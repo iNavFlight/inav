@@ -19,12 +19,6 @@ const {
     formatDelta,
 } = require('./size-diff-comment.js');
 
-// Sanity on the fixed constants the rest of the tests assume.
-test('REPRESENTATIVE_TARGETS is the expected 4 targets, NOISE_THRESHOLD_BYTES is 32', () => {
-    assert.deepEqual(REPRESENTATIVE_TARGETS, ['MATEKF405', 'MATEKF722', 'MATEKF765', 'MATEKH743']);
-    assert.equal(NOISE_THRESHOLD_BYTES, 32);
-});
-
 // ---------------------------------------------------------------------------
 // formatDelta
 // ---------------------------------------------------------------------------
@@ -71,21 +65,21 @@ test('diffSizeReports: target present in both PR and baseline with a real delta 
     assert.equal(row.ramDelta, -200);
 });
 
-test('diffSizeReports: notable is gated at exactly NOISE_THRESHOLD_BYTES (32 notable, 31 not)', () => {
+test('diffSizeReports: notable is gated at exactly NOISE_THRESHOLD_BYTES', () => {
     const baseSizes = { flash: 100000, ram: 50000 };
 
-    const prAt32 = { MATEKF405: { flash: baseSizes.flash + 32, ram: baseSizes.ram } };
-    const prAt31 = { MATEKF405: { flash: baseSizes.flash + 31, ram: baseSizes.ram } };
+    const atThreshold = { MATEKF405: { flash: baseSizes.flash + NOISE_THRESHOLD_BYTES, ram: baseSizes.ram } };
+    const belowThreshold = { MATEKF405: { flash: baseSizes.flash + NOISE_THRESHOLD_BYTES - 1, ram: baseSizes.ram } };
     const base = { MATEKF405: baseSizes };
 
-    const rowAt32 = diffSizeReports(prAt32, base).find((r) => r.target === 'MATEKF405');
-    const rowAt31 = diffSizeReports(prAt31, base).find((r) => r.target === 'MATEKF405');
+    const rowAtThreshold = diffSizeReports(atThreshold, base).find((r) => r.target === 'MATEKF405');
+    const rowBelowThreshold = diffSizeReports(belowThreshold, base).find((r) => r.target === 'MATEKF405');
 
-    assert.equal(rowAt32.flashDelta, 32);
-    assert.equal(rowAt32.notable, true, 'delta of exactly 32 (the threshold) should be notable');
+    assert.equal(rowAtThreshold.flashDelta, NOISE_THRESHOLD_BYTES);
+    assert.equal(rowAtThreshold.notable, true, 'a delta of exactly NOISE_THRESHOLD_BYTES should be notable');
 
-    assert.equal(rowAt31.flashDelta, 31);
-    assert.equal(rowAt31.notable, false, 'delta of 31 (below the threshold) should not be notable');
+    assert.equal(rowBelowThreshold.flashDelta, NOISE_THRESHOLD_BYTES - 1);
+    assert.equal(rowBelowThreshold.notable, false, 'a delta one byte below NOISE_THRESHOLD_BYTES should not be notable');
 });
 
 test('diffSizeReports: notable also triggers from ramDelta alone, and honors negative deltas via Math.abs', () => {
