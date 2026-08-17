@@ -38,6 +38,7 @@ extern "C" {
 /* INAV headers pulled in by dronecan.c — included here so the types are
    available when we define stub globals below. */
 #include "io/gps.h"
+#include "io/gps_dronecan.h"
 #include "sensors/battery_sensor_dronecan.h"
 #include "fc/runtime_config.h"
 #include "sensors/diagnostics.h"
@@ -96,8 +97,9 @@ void _logf(logTopic_e topic, unsigned level, const char *fmt, ...) { (void)topic
 
 /* GPS and battery DroneCAN receive stubs */
 void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix *p) { (void)p; }
-void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 *p) { (void)p; }
-void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliary *p) { (void)p; }
+void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 *p, uint8_t sourceNodeId) { (void)p; (void)sourceNodeId; }
+void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliary *p, uint8_t sourceNodeId) { (void)p; (void)sourceNodeId; }
+void dronecanGpsOnNodeEvicted(uint8_t nodeID) { (void)nodeID; }
 void dronecanBatterySensorReceiveInfo(struct uavcan_equipment_power_BatteryInfo *p) { (void)p; }
 
 /* STM32 CAN driver stubs */

@@ -26,6 +26,8 @@ typedef struct dronecanConfig_s {
     uint8_t nodeID;
     dronecanBitrate_e bitRateKbps;
     bool dronecanUseDNAServer;
+    uint8_t batteryId;
+    uint8_t gpsNodeId;
     // Note: any in-flight branch that adds a field below this line
     // (e.g. feature/dronecan-actuator-control's servoOutputBitmask) must
     // also bump PG_DRONECAN_CONFIG's registered version by 1, and bump

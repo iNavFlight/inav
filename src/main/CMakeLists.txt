@@ -582,6 +582,7 @@ main_sources(COMMON_SRC
     io/gps_msp.c
     io/gps_crsf.c
     io/gps_dronecan.c
+    io/gps_dronecan.h
     io/gps_fake.c
     io/gps_private.h
     io/ledstrip.c

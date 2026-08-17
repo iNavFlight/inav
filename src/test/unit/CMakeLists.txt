@@ -125,6 +125,45 @@ set_property(SOURCE dronecan_dna_server_unittest.cc PROPERTY extra_includes
 set_property(SOURCE dronecan_dna_server_unittest.cc PROPERTY definitions
     USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0)
 
+# DroneCAN GPS health guard tests - links the real gps_dronecan.c against the
+# real dronecan.c (node table / health lookups), unlike
+# dronecan_application_unittest.cc which stubs GNSS receive as no-ops.
+set_property(SOURCE gps_dronecan_unittest.cc PROPERTY depends
+    "drivers/dronecan/dronecan.c"
+    "drivers/dronecan/dronecan_async.c"
+    "drivers/dronecan/dronecan_node_status.c"
+    "drivers/dronecan/dronecan_dna_server.c"
+    "drivers/dronecan/libcanard/canard.c"
+    "io/gps_dronecan.c"
+    "common/maths.c")
+set_property(SOURCE gps_dronecan_unittest.cc PROPERTY extra_sources
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.SoftwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.HardwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix2.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Auxiliary.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.RTCMStream.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.power.BatteryInfo.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.Timestamp.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.GetSet_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.GetSet_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.ExecuteOpcode_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.ExecuteOpcode_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.RestartNode_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.RestartNode_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Value.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.NumericValue.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Empty.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.dynamic_node_id.Allocation.c")
+set_property(SOURCE gps_dronecan_unittest.cc PROPERTY extra_includes
+    "../../lib/main/Dronecan/dsdlc_generated/include")
+set_property(SOURCE gps_dronecan_unittest.cc PROPERTY definitions
+    USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0
+    FC_VERSION_MAJOR=10 FC_VERSION_MINOR=0 FC_VERSION_PATCH_LEVEL=0)
+
 # CAN bit-timing solver tests - links the real, HAL-free timing core shared
 # by the F7 (bxCAN) and H7 (FDCAN) drivers, so there is nothing to keep in sync
 set_property(SOURCE bxcan_timing_unittest.cc PROPERTY depends

@@ -21,6 +21,8 @@
 
 #include <dronecan_msgs.h>
 
+#include "io/gps_dronecan.h"
+
 #include "dronecan.h"
 #include "dronecan_node_status.h"
 
@@ -154,6 +156,7 @@ void dronecanNodeStatusUpdate(timeUs_t timestamp_usec)
     // Remove nodes that have stopped broadcasting NodeStatus
     for (uint8_t i = 0; i < activeNodeCount; ) {
         if (millis() - nodeTable[i].last_seen_ms > DRONECAN_NODE_STALE_TIMEOUT_MS) {
+            dronecanGpsOnNodeEvicted(nodeTable[i].nodeID);
             nodeTable[i] = nodeTable[activeNodeCount - 1];
             activeNodeCount--;
         } else {

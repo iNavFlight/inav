@@ -96,8 +96,10 @@ extern void gpsFakeRestart(void);
 extern void gpsFakeHandle(void);
 #endif
 
+#ifdef USE_DRONECAN
 void gpsRestartDronecan(void);
 void gpsHandleDronecan(void);
+#endif
 
 
 #endif
