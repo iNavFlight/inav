@@ -150,6 +150,7 @@
 - [ibusSensorType1_e](#enum-ibussensortype1_e)
 - [ibusSensorType_e](#enum-ibussensortype_e)
 - [ibusSensorValue_e](#enum-ibussensorvalue_e)
+- [icm42605Variant_e](#enum-icm42605variant_e)
 - [inputSource_e](#enum-inputsource_e)
 - [itermRelax_e](#enum-itermrelax_e)
 - [led_pin_pwm_mode_e](#enum-led_pin_pwm_mode_e)
@@ -1455,13 +1456,14 @@
 | `DEVHW_TOF10120_I2C` | 48 |  |
 | `DEVHW_TERARANGER_EVO_I2C` | 49 |  |
 | `DEVHW_MS4525` | 50 |  |
-| `DEVHW_DLVR` | 51 |  |
-| `DEVHW_M25P16` | 52 |  |
-| `DEVHW_W25N` | 53 |  |
-| `DEVHW_UG2864` | 54 |  |
-| `DEVHW_SDCARD` | 55 |  |
-| `DEVHW_IRLOCK` | 56 |  |
-| `DEVHW_PCF8574` | 57 |  |
+| `DEVHW_MS5525` | 51 |  |
+| `DEVHW_DLVR` | 52 |  |
+| `DEVHW_M25P16` | 53 |  |
+| `DEVHW_W25N` | 54 |  |
+| `DEVHW_UG2864` | 55 |  |
+| `DEVHW_SDCARD` | 56 |  |
+| `DEVHW_IRLOCK` | 57 |  |
+| `DEVHW_PCF8574` | 58 |  |
 
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
@@ -2798,6 +2800,17 @@
 | `IBUS_MEAS_VALUE_GPS` | 253 |  |
 
 ---
+## <a id="enum-icm42605variant_e"></a>`icm42605Variant_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_icm42605.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `ICM42605_VARIANT_42605` | 0 |  |
+| `ICM42605_VARIANT_42686P` | 1 |  |
+| `ICM42605_VARIANT_42688P` | 2 |  |
+
+---
 ## <a id="enum-inputsource_e"></a>`inputSource_e`
 
 > Source: ../../../src/main/flight/servos.h
@@ -3243,6 +3256,7 @@
 | `LSM6DXX_VAL_CTRL1_XL_LPF2` | 1 |  |
 | `LSM6DXX_VAL_CTRL2_G_ODR6664` | 10 |  |
 | `LSM6DXX_VAL_CTRL2_G_2000DPS` | 3 |  |
+| `LSM6DXX_VAL_CTRL3_C_BDU` | BIT(6) |  |
 | `LSM6DXX_VAL_CTRL3_C_H_LACTIVE` | 0 |  |
 | `LSM6DXX_VAL_CTRL3_C_PP_OD` | 0 |  |
 | `LSM6DXX_VAL_CTRL3_C_SIM` | 0 |  |
@@ -3261,6 +3275,20 @@
 | `LSM6DXX_VAL_CTRL7_G_HPM_G_260` | 2 |  |
 | `LSM6DXX_VAL_CTRL7_G_HPM_G_1040` | 3 |  |
 | `LSM6DXX_VAL_CTRL9_XL_I3C_DISABLE` | BIT(1) |  |
+| `LSM6DXX_VAL_CTRL1_XL_V_OPMODE_HIGH_ACCURACY` | 1 |  |
+| `LSM6DXX_VAL_CTRL1_XL_V_ODR_1000HZ_HAODR1` | 9 |  |
+| `LSM6DXX_VAL_CTRL2_G_V_OPMODE_HIGH_ACCURACY` | 1 |  |
+| `LSM6DXX_VAL_CTRL2_G_V_ODR_8000HZ_HAODR1` | 12 |  |
+| `LSM6DXX_VAL_HAODR_CFG_MODE1` | 1 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_FS_G_2000DPS` | 4 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_DSK320X_RESERVED_BIT3` | BIT(3) |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_288HZ` | 0 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_215HZ` | 1 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_157HZ` | 2 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_455HZ` | 3 |  |
+| `LSM6DXX_VAL_CTRL7_G_V_LPF1_EN` | BIT(0) |  |
+| `LSM6DXX_VAL_CTRL8_XL_V_FS_16G` | 3 |  |
+| `LSM6DXX_VAL_CTRL4_C_V_DRDY_PULSED` | BIT(1) |  |
 
 ---
 ## <a id="enum-lsm6dxxregister_e"></a>`lsm6dxxRegister_e`
@@ -3298,6 +3326,7 @@
 | `LSM6DXX_REG_OUTY_H_A` | 43 |  |
 | `LSM6DXX_REG_OUTZ_L_A` | 44 |  |
 | `LSM6DXX_REG_OUTZ_H_A` | 45 |  |
+| `LSM6DXX_REG_HAODR_CFG` | 98 |  |
 
 ---
 ## <a id="enum-ltm_frame_e"></a>`ltm_frame_e`
@@ -3541,7 +3570,8 @@
 | `MULTI_FUNC_3` | 3 |  |
 | `MULTI_FUNC_4` | 4 |  |
 | `MULTI_FUNC_5` | 5 |  |
-| `MULTI_FUNC_END` | 6 |  |
+| `MULTI_FUNC_6` | 6 |  |
+| `MULTI_FUNC_END` | 7 |  |
 
 ---
 ## <a id="enum-multifunctionflags_e"></a>`multiFunctionFlags_e`
@@ -4544,6 +4574,7 @@
 | `PITOT_FAKE` | 5 |  |
 | `PITOT_MSP` | 6 |  |
 | `PITOT_DLVR` | 7 |  |
+| `PITOT_MS5525` | 8 |  |
 
 ---
 ## <a id="enum-polltype_e"></a>`pollType_e`
@@ -5080,7 +5111,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5091,7 +5122,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5422,6 +5453,11 @@
 | `HITL_EXTENDED_FLAGS` | (1 << 7) |  |
 | `HITL_GPS_TIMEOUT` | (1 << 8) |  |
 | `HITL_PITOT_FAILURE` | (1 << 9) |  |
+| `HITL_CURRENT_SENSOR` | (1 << 10) |  |
+| `HITL_SIM_RC_INPUT` | (1 << 11) |  |
+| `HITL_RANGEFINDER` | (1 << 12) |  |
+| `HITL_FAILSAFE_TRIGGERED` | (1 << 13) |  |
+| `HITL_SITL_MODE` | (1 << 14) |  |
 
 ---
 ## <a id="enum-smartaudioversion_e"></a>`smartAudioVersion_e`
@@ -5637,7 +5673,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.c
+> Source: ../../../src/main/fc/fc_init.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5651,7 +5687,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.h
+> Source: ../../../src/main/fc/fc_init.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5672,6 +5708,7 @@
 | `TCH_DMA_IDLE` | 0 |  |
 | `TCH_DMA_READY` | 1 |  |
 | `TCH_DMA_ACTIVE` | 2 |  |
+| `TCH_DMA_CIRCULAR` | 3 |  |
 
 ---
 ## <a id="enum-tempsensortype_e"></a>`tempSensorType_e`
