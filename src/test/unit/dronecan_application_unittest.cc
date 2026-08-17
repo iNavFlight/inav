@@ -102,6 +102,8 @@ int32_t canardSTM32GetRxFifoFillLevel(void) { return 0; }
 void    canardSTM32RecoverFromBusOff(void) {}
 void    canardSTM32GetUniqueID(uint8_t id[16]) { memset(id, 0, 16); }
 
+void saveConfig(void) {}
+
 /* Version strings declared in build/version.h */
 const char* const shortGitRevision = "00000000";
 const char* const compilerVersion  = "test";

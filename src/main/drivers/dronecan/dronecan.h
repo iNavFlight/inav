@@ -25,6 +25,7 @@ typedef enum {
 typedef struct dronecanConfig_s {
     uint8_t nodeID;
     dronecanBitrate_e bitRateKbps;
+    bool dronecanUseDNAServer;
 } dronecanConfig_t;
 
 typedef struct dronecanNodeInfo_s {

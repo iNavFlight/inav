@@ -905,6 +905,16 @@ Unique identifier for this device. Valid values are 1 to 127. 126 and 127 are re
 
 ---
 
+### dronecan_use_dna_server
+
+Enable the DNA server to manage plug and play dronecan devices
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### dshot_beeper_enabled
 
 Whether using DShot motors as beepers is enabled

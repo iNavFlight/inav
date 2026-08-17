@@ -4793,7 +4793,67 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             *ret = MSP_RESULT_ACK;
         }
         break;
-#endif
+
+    case MSP2_INAV_DRONECAN_ASYNC_RESULT:
+        {
+            sbufWriteU8(dst, (uint8_t)dronecanAsyncSlot.state);
+            sbufWriteU8(dst, dronecanAsyncSlot.seq);
+            sbufWriteU16(dst, dronecanAsyncSlot.service_id);
+            sbufWriteU8(dst, dronecanAsyncSlot.node_id);
+
+            if (dronecanAsyncSlot.state == DRONECAN_ASYNC_READY) {
+                switch (dronecanAsyncSlot.service_id) {
+                    case DRONECAN_SERVICE_GETNODEINFO: {
+                        const dronecanGetNodeInfoResult_t *r = &dronecanAsyncSlot.result.node_info;
+                        sbufWriteU8(dst, r->name_len);
+                        sbufWriteDataSafe(dst, r->name, r->name_len);
+                        sbufWriteU8(dst,  r->sw_major);
+                        sbufWriteU8(dst,  r->sw_minor);
+                        sbufWriteU8(dst,  r->sw_optional_field_flags);
+                        sbufWriteU32(dst, r->sw_vcs_commit);
+                        sbufWriteU8(dst,  r->hw_major);
+                        sbufWriteU8(dst,  r->hw_minor);
+                        sbufWriteDataSafe(dst, r->hw_unique_id, 16);
+                        break;
+                    }
+                    case DRONECAN_SERVICE_PARAM_GETSET: {
+                        const dronecanParamResult_t *r = &dronecanAsyncSlot.result.param;
+                        sbufWriteU8(dst, r->name_len);
+                        sbufWriteDataSafe(dst, r->name, r->name_len);
+                        sbufWriteU8(dst, r->type);
+                        switch (r->type) {
+                            case DRONECAN_PARAM_TYPE_INT: {
+                                uint32_t lo = (uint32_t)(r->value_int & 0xFFFFFFFF);
+                                uint32_t hi = (uint32_t)((r->value_int >> 32) & 0xFFFFFFFF);
+                                sbufWriteU32(dst, lo);
+                                sbufWriteU32(dst, hi);
+                                break;
+                            }
+                            case DRONECAN_PARAM_TYPE_FLOAT: {
+                                uint32_t raw;
+                                memcpy(&raw, &r->value_float, 4);
+                                sbufWriteU32(dst, raw);
+                                break;
+                            }
+                            case DRONECAN_PARAM_TYPE_BOOL:
+                                sbufWriteU8(dst, r->value_bool);
+                                break;
+                            case DRONECAN_PARAM_TYPE_STRING:
+                                sbufWriteU8(dst, r->value_str_len);
+                                sbufWriteDataSafe(dst, r->value_str, r->value_str_len);
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    }
+                }
+                dronecanAsyncSlot.state = DRONECAN_ASYNC_IDLE;
+            }
+            *ret = MSP_RESULT_ACK;
+        }
+        break;
+#endif  
 
 #if defined(USE_FLASHFS)
     case MSP_DATAFLASH_READ:
