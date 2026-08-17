@@ -9830,128 +9830,123 @@
                         "units": ""
                     },
                     {
-                        "name": "nodeData",
-                        "desc": "Array of per-node status records, one per detected node. Each record: nodeID(1)+health(1)+mode(1)+last_seen_ms(4) = 7 bytes. Full detail available via MSP2_INAV_DRONECAN_NODE_INFO.",
-                        "ctype": "dronecanNodeStatus_t",
+                        "name": "nodeID",
+                        "ctype": "uint8_t",
+                        "desc": "[per node] DroneCAN node ID (1-127)",
+                        "units": "",
                         "array": true,
-                        "array_size": 0,
+                        "array_size": 0
+                    },
+                    {
+                        "name": "health",
+                        "ctype": "uint8_t",
+                        "desc": "[per node] Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL",
+                        "units": ""
+                    },
+                    {
+                        "name": "mode",
+                        "ctype": "uint8_t",
+                        "desc": "[per node] Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE",
+                        "units": ""
+                    },
+                    {
+                        "name": "last_seen_ms",
+                        "ctype": "uint32_t",
+                        "desc": "[per node] Milliseconds since this node was last seen (FC-local timestamp delta)",
+                        "units": "ms"
+                    },
+                    {
+                        "name": "uptime_sec",
+                        "ctype": "uint32_t",
+                        "desc": "[per node] Node uptime in seconds (from NodeStatus broadcast)",
+                        "units": "s"
+                    },
+                    {
+                        "name": "vendor_status_code",
+                        "ctype": "uint16_t",
+                        "desc": "[per node] Vendor-specific status code",
                         "units": ""
                     }
                 ]
             },
             "variable_len": true,
-            "notes": "Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 7 bytes each: nodeID(1)+health(1)+mode(1)+elapsed_ms(4), where elapsed_ms is milliseconds since the node was last seen. Maximum payload 1 + (DRONECAN_MAX_NODES * 7) = 225 bytes. Full node detail including uptime, vendor status, and name is available via MSP2_INAV_DRONECAN_NODE_INFO.",
+            "notes": "Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 13 bytes each: nodeID(1)+health(1)+mode(1)+last_seen_ms(4)+uptime_sec(4)+vendor_status_code(2). Maximum payload 1 + (DRONECAN_MAX_NODES * 13) = 417 bytes. For full node detail (name, SW/HW version, unique ID) use MSP2_INAV_DRONECAN_ASYNC_REQUEST with service_id=DRONECAN_SERVICE_GETNODEINFO(1).",
             "description": "Returns the list of all detected DroneCAN nodes with their current status."
-        },                                                                                                        
-        "MSP2_INAV_DRONECAN_NODE_INFO": {                                                   
-            "code": 8259,                                                                                         
-            "mspv": 2,                                                                                            
+        },
+        "MSP2_INAV_DRONECAN_ASYNC_REQUEST": {
+            "code": 8259,
+            "mspv": 2,
             "request": {
-                "payload": [                                                                                      
-                    {                                                                       
-                        "name": "nodeID",
-                        "ctype": "uint8_t",
-                        "desc": "DroneCAN node ID to query (1-127)",
-                        "units": ""                                                                               
-                    }
-                ]                                                                                                 
-            },                                                                              
-            "reply": {
                 "payload": [
                     {
-                        "name": "nodeID",
-                        "ctype": "uint8_t",                                                                       
-                        "desc": "DroneCAN node ID",
-                        "units": ""                                                                               
-                    },                                                                      
-                    {
-                        "name": "health",
-                        "ctype": "uint8_t",
-                        "desc": "Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL",
-                        "units": ""
-                    },
-                    {
-                        "name": "mode",
-                        "ctype": "uint8_t",                                                                       
-                        "desc": "Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE",                                                                                                       
-                        "units": ""                                                         
-                    },                                                                                            
-                    {
-                        "name": "uptime_sec",                                                                     
-                        "ctype": "uint32_t",                                                
-                        "desc": "Node uptime in seconds",
-                        "units": "s"
-                    },
-                    {
-                        "name": "vendor_status_code",                                                             
+                        "name": "service_id",
                         "ctype": "uint16_t",
-                        "desc": "Vendor-specific status code",                                                    
-                        "units": ""                                                         
-                    },
-                    {
-                        "name": "elapsed_ms",
-                        "ctype": "uint32_t",
-                        "desc": "Milliseconds elapsed since this node was last seen (millis() - last_seen_ms at time of request)",
-                        "units": "ms"
-                    },                                                                      
-                    {
-                        "name": "name_len",
-                        "ctype": "uint8_t",                                                                       
-                        "desc": "Length of node name string (0 if unknown)",
-                        "units": ""                                                                               
-                    },                                                                      
-                    {
-                        "name": "name",
-                        "ctype": "char[80]",
-                        "desc": "Node name up to 80 bytes, zero-padded",
+                        "desc": "Service to invoke: 1=GETNODEINFO, 5=RESTART_NODE, 10=EXECUTE_OPCODE, 11=PARAM_GETSET. Transmitted as u16 for MSP alignment; only low 8 bits used.",
                         "units": ""
                     },
                     {
-                        "name": "sw_major",
+                        "name": "nodeID",
                         "ctype": "uint8_t",
-                        "desc": "Software version major (from GetNodeInfo response)",
-                        "units": ""
-                    },
-                    {
-                        "name": "sw_minor",
-                        "ctype": "uint8_t",
-                        "desc": "Software version minor (from GetNodeInfo response)",
-                        "units": ""
-                    },
-                    {
-                        "name": "sw_optional_field_flags",
-                        "ctype": "uint8_t",
-                        "desc": "UAVCAN SoftwareVersion optional_field_flags: bit 0 = vcs_commit valid, bit 1 = image_crc valid",
-                        "units": ""
-                    },
-                    {
-                        "name": "sw_vcs_commit",
-                        "ctype": "uint32_t",
-                        "desc": "Git commit hash (valid when sw_optional_field_flags bit 0 is set)",
-                        "units": ""
-                    },
-                    {
-                        "name": "hw_major",
-                        "ctype": "uint8_t",
-                        "desc": "Hardware version major (from GetNodeInfo response)",
-                        "units": ""
-                    },
-                    {
-                        "name": "hw_minor",
-                        "ctype": "uint8_t",
-                        "desc": "Hardware version minor (from GetNodeInfo response)",
-                        "units": ""
-                    },
-                    {
-                        "name": "hw_unique_id",
-                        "ctype": "uint8_t[16]",
-                        "desc": "128-bit hardware unique ID (from GetNodeInfo response)",
+                        "desc": "Target DroneCAN node ID (1-127)",
                         "units": ""
                     }
                 ]
             },
-            "notes": "Requires `USE_DRONECAN`. Returns `MSP_RESULT_ERROR` if the requested node ID is not in the node table. Response is always 119 bytes.",
-            "description": "Returns full status detail for a single DroneCAN node by ID, including software and hardware version data retrieved via the DroneCAN GetNodeInfo service."
+            "reply": {
+                "payload": [
+                    {
+                        "name": "accepted",
+                        "ctype": "uint8_t",
+                        "desc": "0=request accepted; 1=busy (slot in use) or unrecognised service_id; 0xFF=bus not in STATE_DRONECAN_NORMAL (not ready)",
+                        "units": ""
+                    },
+                    {
+                        "name": "seq",
+                        "ctype": "uint8_t",
+                        "desc": "Sequence number; correlate with MSP2_INAV_DRONECAN_ASYNC_RESULT to verify the result belongs to this request",
+                        "units": ""
+                    }
+                ]
+            },
+            "variable_len": true,
+            "notes": "Requires `USE_DRONECAN`. Initiates an async DroneCAN service request; poll MSP2_INAV_DRONECAN_ASYNC_RESULT at ~100ms intervals until state=READY(2) or ERROR(3). Only one request in-flight at a time. Service-specific request fields follow the common header in the request payload: EXECUTE_OPCODE appends opcode(u8); PARAM_GETSET appends index(u16)+is_write(u8) and optionally value_type(u8)+value(variable) for writes, then req_name_len(u8)+req_name(bytes) for named lookup. Param value encoding: INT=lo(u32)+hi(u32), FLOAT=raw(u32), BOOL=u8, STRING=len(u8)+data. Requests time out after DRONECAN_ASYNC_TIMEOUT_MS (2000ms). If bus is not in STATE_DRONECAN_NORMAL, returns accepted=0xFF without dispatching.",
+            "description": "Initiates an asynchronous DroneCAN service request (GetNodeInfo, ParamGetSet, ExecuteOpcode, RestartNode) to a specific node. Result retrieved via MSP2_INAV_DRONECAN_ASYNC_RESULT."
+        },
+        "MSP2_INAV_DRONECAN_ASYNC_RESULT": {
+            "code": 8260,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "state",
+                        "ctype": "uint8_t",
+                        "desc": "Async slot state: 0=IDLE, 1=PENDING, 2=READY, 3=ERROR",
+                        "units": ""
+                    },
+                    {
+                        "name": "seq",
+                        "ctype": "uint8_t",
+                        "desc": "Sequence number matching the originating MSP2_INAV_DRONECAN_ASYNC_REQUEST reply",
+                        "units": ""
+                    },
+                    {
+                        "name": "service_id",
+                        "ctype": "uint16_t",
+                        "desc": "Service ID of the in-flight or just-completed request",
+                        "units": ""
+                    },
+                    {
+                        "name": "node_id",
+                        "ctype": "uint8_t",
+                        "desc": "Node ID of the target",
+                        "units": ""
+                    }
+                ]
+            },
+            "variable_len": true,
+            "notes": "Requires `USE_DRONECAN`. When state=READY(2), service-specific result fields follow the 5-byte common header. GETNODEINFO: name_len(u8)+name(bytes)+sw_major(u8)+sw_minor(u8)+sw_optional_field_flags(u8)+sw_vcs_commit(u32)+hw_major(u8)+hw_minor(u8)+hw_unique_id(u8[16]). PARAM_GETSET: name_len(u8)+name(bytes)+type(u8)+value(variable)+min_type(u8)+min(variable)+max_type(u8)+max(variable); value/min/max encoding: INT=lo(u32)+hi(u32), FLOAT=raw(u32), BOOL=u8, STRING=len(u8)+data; EMPTY(0) min/max type means no bound is present. EXECUTE_OPCODE and RESTART_NODE: ok(u8) where 1=success. Reading result when state=READY transitions slot back to IDLE.",
+            "description": "Polls the result of the most recent MSP2_INAV_DRONECAN_ASYNC_REQUEST. Poll at ~100ms intervals until state is READY(2) or ERROR(3)."
         },                                        
         "MSP2_INAV_LED_STRIP_CONFIG_EX": {
             "code": 8264,

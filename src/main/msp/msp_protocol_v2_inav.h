@@ -97,12 +97,8 @@
 #define MSP2_INAV_ESC_TELEM                     0x2041
 
 #define MSP2_INAV_DRONECAN_NODES                0x2042
-#define MSP2_INAV_DRONECAN_NODE_INFO            0x2043
-// MSP2_INAV_DRONECAN_NODE_INFO reply size:
-// nodeID(1)+health(1)+mode(1)+uptime_sec(4)+vendor_status_code(2)+elapsed_ms(4)
-// +name_len(1)+name(80)+sw_major(1)+sw_minor(1)+sw_optional_field_flags(1)
-// +sw_vcs_commit(4)+hw_major(1)+hw_minor(1)+hw_unique_id(16) = 119
-#define MSP2_DRONECAN_NODE_INFO_SIZE            119
+#define MSP2_INAV_DRONECAN_ASYNC_REQUEST        0x2043
+#define MSP2_INAV_DRONECAN_ASYNC_RESULT         0x2044
 
 #define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
 #define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
