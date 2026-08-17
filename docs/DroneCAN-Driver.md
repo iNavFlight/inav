@@ -560,7 +560,9 @@ A peripheral that has no node ID broadcasts anonymous Allocation messages carryi
 
 Each stage must arrive within 500 ms (`FOLLOWUP_TIMEOUT_MS`) of the previous one, or the accumulator resets and the peripheral must start over from Stage 1.
 
-After Stage 3 the server has the full 16-byte UID and calls `dnaLookupOrAssignNode()`.
+A transport capable of a larger single frame (e.g. CAN-FD) may instead send the full 16-byte UID in one message with `first_part_of_unique_id = true` and `unique_id.len = 16`; the server accepts this as Stage 1 and completes the allocation immediately without waiting for Stage 2/3.
+
+After the full 16-byte UID has been assembled — whether over three stages or in one single-frame message — the server calls `dnaLookupOrAssignNode()`.
 
 ### Node ID assignment
 
@@ -599,7 +601,7 @@ case UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID:
 
 ### Unit tests
 
-Thirteen tests in `src/test/unit/dronecan_dna_server_unittest.cc` cover the full handshake, UID re-use, table-full rejection, non-broadcast source rejection, stage ordering, timeout reset, FC node ID exclusion, preferred node ID honouring, top-down sequential assignment, reserved-range and taken-preferred-ID fallback, and live-network reassignment of a stored ID (DNA-1 through DNA-13).
+Sixteen tests in `src/test/unit/dronecan_dna_server_unittest.cc` cover the full handshake, UID re-use, table-full rejection, non-broadcast source rejection, stage ordering, timeout reset, FC node ID exclusion, preferred node ID honouring, top-down sequential assignment, reserved-range and taken-preferred-ID fallback, live-network reassignment of a stored ID, single-frame (e.g. CAN-FD) full-UID delivery, and rejection of a malformed 4-byte stage-1 message without poisoning a legitimate follow-up handshake (DNA-1 through DNA-16).
 
 ---
 
