@@ -19,6 +19,9 @@
  *   DNA-11 Preferred ID in reserved range (126-127) → falls back to sequential
  *   DNA-12 Preferred ID already taken → falls back to sequential
  *   DNA-13 Stored ID in use on live network → reassigned, table entry updated
+ *   DNA-14 Full 16-byte UID in a single stage-1 message → completes immediately
+ *   DNA-15 Full-length message without the stage-1 flag → rejected
+ *   DNA-16 Malformed 4-byte stage-1 message rejected, doesn't block real handshake
  */
 
 #include "gtest/gtest.h"
@@ -36,6 +39,7 @@ extern "C" {
 #include "drivers/dronecan/dronecan_dna_server.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
+#include "common/log.h"
 
 /* Global canard instance — extern-declared in dronecan_dna_server.h.
    PG_REGISTER in dronecan_dna_server.c already emits dnaServerData_System
@@ -48,6 +52,13 @@ uint32_t millis(void) { return mock_time_ms; }
 
 /* saveConfig — called when a new allocation is persisted */
 void saveConfig(void) {}
+
+/* Logging — USE_LOG is unconditionally defined by target/common.h (pulled in
+   via platform.h), so LOG_ERROR/LOG_WARNING/LOG_DEBUG in dronecan_dna_server.c
+   expand to real _logf() calls. Stubbed as a no-op rather than linking
+   common/log.c, which would pull in unrelated production dependencies
+   (serial.h, msp.h, msp_serial.h, fc/config.h, config/feature.h). */
+void _logf(logTopic_e topic, unsigned level, const char *fmt, ...) { (void)topic; (void)level; (void)fmt; }
 
 /* Controllable live node table — populated by tests that need it (DNA-13).
    All other tests leave mock_node_count = 0 so the allocator sees no live nodes. */
@@ -536,4 +547,118 @@ TEST_F(DroneCANDnaServerTest, ConflictingLiveNodeCausesReassignment)
     }
     EXPECT_EQ(count, 1)      << "Must be exactly one table entry for this UID";
     EXPECT_EQ(tableId, second) << "Table entry must reflect the newly assigned ID";
+}
+
+/* =========================================================================
+ * DNA-14: Full 16-byte UID delivered in a single stage-1 message
+ *
+ * A transport capable of a larger single frame (e.g. CAN-FD) can carry the
+ * entire 16-byte unique ID in one message instead of the classic 6+6+4
+ * split. detectRequestStage() must accept first_part_of_unique_id=true with
+ * unique_id.len=16 as a valid Stage 1, and the handler must complete the
+ * allocation immediately without waiting for Stage 2/3 messages.
+ * ========================================================================= */
+TEST_F(DroneCANDnaServerTest, SingleFrameFullUidCompletesImmediately)
+{
+    const uint8_t uid[16] = {
+        0xE0,0xE0,0xE0,0xE0,0xE0,0xE0,
+        0xE0,0xE0,0xE0,0xE0,0xE0,0xE0,
+        0xE0,0xE0,0xE0,0xE0
+    };
+    uint8_t buf[UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_SIZE + 4];
+
+    CanardRxTransfer xfer = makeAllocationTransfer(0, true, uid, 16, buf);
+    dronecanDnaHandleAllocation(NULL, &xfer);
+
+    uint8_t assigned = 0;
+    for (int i = 0; i < DRONECAN_MAX_NODES; i++) {
+        if (dnaServerData()->entries[i].nodeId != 0 &&
+            memcmp(dnaServerData()->entries[i].uniqueId, uid, 16) == 0) {
+            assigned = dnaServerData()->entries[i].nodeId;
+            break;
+        }
+    }
+
+    EXPECT_NE(assigned, 0u)
+        << "A single-frame 16-byte stage-1 message must complete allocation "
+        << "without needing follow-up Stage 2/3 messages";
+}
+
+/* =========================================================================
+ * DNA-15: Full-length message not marked as stage 1 is rejected
+ *
+ * A 16-byte unique_id.len is only a valid length when paired with
+ * first_part_of_unique_id=true (DNA-14). The same length with the flag
+ * false must be rejected as DNA_INVALID_STAGE rather than silently
+ * accepted as some other stage.
+ * ========================================================================= */
+TEST_F(DroneCANDnaServerTest, NonFirstPartFullLengthRejected)
+{
+    const uint8_t uid[16] = {
+        0xE1,0xE1,0xE1,0xE1,0xE1,0xE1,
+        0xE1,0xE1,0xE1,0xE1,0xE1,0xE1,
+        0xE1,0xE1,0xE1,0xE1
+    };
+    uint8_t buf[UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_SIZE + 4];
+
+    CanardRxTransfer xfer = makeAllocationTransfer(0, false, uid, 16, buf);
+    dronecanDnaHandleAllocation(NULL, &xfer);
+
+    for (int i = 0; i < DRONECAN_MAX_NODES; i++) {
+        EXPECT_NE(0, memcmp(dnaServerData()->entries[i].uniqueId, uid, 16))
+            << "A rejected (non-first-part, full-length) message must not "
+            << "create a table entry at slot " << i;
+    }
+}
+
+/* =========================================================================
+ * DNA-16: Malformed 4-byte stage-1 message is rejected and does not poison
+ * the accumulator against a legitimate follow-up handshake
+ *
+ * Before this fix, first_part_of_unique_id=true with unique_id.len=4 (the
+ * DNA_STAGE3_UID_LEN length) was accepted as a valid Stage 1, since the old
+ * detectRequestStage() only checked the first_part flag, not the length,
+ * once the length passed the top-level {4,6,16} whitelist. That set
+ * currentUniqueId.len=4, and getExpectedStage(4) falls through to
+ * DNA_INVALID_STAGE (4 is neither 0, nor >=12, nor >=6) — so *any*
+ * legitimate follow-up message arriving within the 500ms followup window
+ * was rejected as a stage mismatch, silently blocking real allocation
+ * until the timeout reset the accumulator. This is the actual regression
+ * this fix guards against; DNA-14/DNA-15 do not exercise it since both of
+ * their (length, first_part) combinations were already handled correctly
+ * before this fix.
+ * ========================================================================= */
+TEST_F(DroneCANDnaServerTest, MalformedFourByteStage1DoesNotBlockRealHandshake)
+{
+    const uint8_t bogus_uid[4] = {0xBA, 0xD0, 0xBA, 0xD0};
+    uint8_t buf[UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_SIZE + 4];
+
+    /* Malformed message: first_part=true with the stage-3-only 4-byte length.
+       Must be rejected outright and must not touch the accumulator at all. */
+    CanardRxTransfer bogus = makeAllocationTransfer(0, true, bogus_uid, 4, buf);
+    dronecanDnaHandleAllocation(NULL, &bogus);
+
+    /* Immediately after, a legitimate single-frame 16-byte stage-1 handshake
+       (well within the 500ms followup window) must still succeed. */
+    const uint8_t real_uid[16] = {
+        0xE2,0xE2,0xE2,0xE2,0xE2,0xE2,
+        0xE2,0xE2,0xE2,0xE2,0xE2,0xE2,
+        0xE2,0xE2,0xE2,0xE2
+    };
+    mock_time_ms += 10;
+    CanardRxTransfer real = makeAllocationTransfer(0, true, real_uid, 16, buf);
+    dronecanDnaHandleAllocation(NULL, &real);
+
+    uint8_t assigned = 0;
+    for (int i = 0; i < DRONECAN_MAX_NODES; i++) {
+        if (dnaServerData()->entries[i].nodeId != 0 &&
+            memcmp(dnaServerData()->entries[i].uniqueId, real_uid, 16) == 0) {
+            assigned = dnaServerData()->entries[i].nodeId;
+            break;
+        }
+    }
+
+    EXPECT_NE(assigned, 0u)
+        << "A malformed 4-byte stage-1 message must not poison the accumulator "
+        << "and block a legitimate handshake that follows it";
 }
