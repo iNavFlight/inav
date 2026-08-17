@@ -64,6 +64,27 @@ const dronecanNodeInfo_t *dronecanGetNodeByID(uint8_t nodeID)
     return findNodeByID(nodeID);
 }
 
+static void logNodeHealth(uint8_t nodeID, uint8_t health)
+{
+    UNUSED(nodeID); // only referenced inside LOG_* macros, which expand to nothing when USE_LOG is undefined
+    switch (health) {
+    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK:
+        LOG_INFO(CAN, "Node %d health: OK", nodeID);
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_WARNING:
+        LOG_WARNING(CAN, "Node %d health: WARNING", nodeID);
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_ERROR:
+        LOG_ERROR(CAN, "Node %d health: ERROR", nodeID);
+        break;
+    case UAVCAN_PROTOCOL_NODESTATUS_HEALTH_CRITICAL:
+        LOG_ERROR(CAN, "Node %d health: CRITICAL", nodeID);
+        break;
+    default:
+        break;
+    }
+}
+
 void dronecanNodeStatusHandleBroadcast(CanardInstance *ins, CanardRxTransfer *transfer)
 {
     UNUSED(ins);
@@ -78,6 +99,9 @@ void dronecanNodeStatusHandleBroadcast(CanardInstance *ins, CanardRxTransfer *tr
     uint8_t nodeID = transfer->source_node_id;
     dronecanNodeInfo_t *node = findNodeByID(nodeID);
     if (node) {
+        if (node->health != nodeStatus.health) {
+            logNodeHealth(nodeID, nodeStatus.health);
+        }
         node->health = nodeStatus.health;
         node->mode = nodeStatus.mode;
         node->uptime_sec = nodeStatus.uptime_sec;
@@ -94,6 +118,7 @@ void dronecanNodeStatusHandleBroadcast(CanardInstance *ins, CanardRxTransfer *tr
         nodeTable[activeNodeCount].uptime_sec = nodeStatus.uptime_sec;
         nodeTable[activeNodeCount].vendor_status_code = nodeStatus.vendor_specific_status_code;
         nodeTable[activeNodeCount].last_seen_ms = millis();
+        logNodeHealth(nodeID, nodeStatus.health);
         activeNodeCount++;
     } else {
         LOG_WARNING(CAN, "DroneCAN: node table full (%u nodes), ignoring node %u", DRONECAN_MAX_NODES, nodeID);
