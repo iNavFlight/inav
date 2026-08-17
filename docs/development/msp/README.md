@@ -4170,10 +4170,10 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `nodeCount` | `uint8_t` | 1 | Number of detected DroneCAN nodes |
 | `nodeData` | `dronecanNodeStatus_t[]` | array | Array of per-node status records, one per detected node. Each record: nodeID(1)+health(1)+mode(1)+last_seen_ms(4) = 7 bytes. Full detail available via MSP2_INAV_DRONECAN_NODE_INFO. |
 
-**Notes:** Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 7 bytes each: nodeID(1)+health(1)+mode(1)+last_seen_ms(4). Maximum payload 1 + (DRONECAN_MAX_NODES * 7) = 225 bytes. Full node detail including uptime, vendor status, and name is available via MSP2_INAV_DRONECAN_NODE_INFO.
+**Notes:** Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 7 bytes each: nodeID(1)+health(1)+mode(1)+elapsed_ms(4), where elapsed_ms is milliseconds since the node was last seen. Maximum payload 1 + (DRONECAN_MAX_NODES * 7) = 225 bytes. Full node detail including uptime, vendor status, and name is available via MSP2_INAV_DRONECAN_NODE_INFO.
 
 ## <a id="msp2_inav_dronecan_node_info"></a>`MSP2_INAV_DRONECAN_NODE_INFO (8259 / 0x2043)`
-**Description:** Returns full status detail for a single DroneCAN node by ID.  
+**Description:** Returns full status detail for a single DroneCAN node by ID, including software and hardware version data retrieved via the DroneCAN GetNodeInfo service.  
   
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Description|
@@ -4188,11 +4188,18 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `mode` | `uint8_t` | 1 | - | Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE |
 | `uptime_sec` | `uint32_t` | 4 | s | Node uptime in seconds |
 | `vendor_status_code` | `uint16_t` | 2 | - | Vendor-specific status code |
-| `last_seen_ms` | `uint32_t` | 4 | ms | FC millisecond timestamp when this node was last seen |
+| `elapsed_ms` | `uint32_t` | 4 | ms | Milliseconds elapsed since this node was last seen (millis() - last_seen_ms at time of request) |
 | `name_len` | `uint8_t` | 1 | - | Length of node name string (0 if unknown) |
-| `name` | `char[32]` | 32 | - | Node name up to 32 bytes, zero-padded |
+| `name` | `char[80]` | 80 | - | Node name up to 80 bytes, zero-padded |
+| `sw_major` | `uint8_t` | 1 | - | Software version major (from GetNodeInfo response) |
+| `sw_minor` | `uint8_t` | 1 | - | Software version minor (from GetNodeInfo response) |
+| `sw_optional_field_flags` | `uint8_t` | 1 | - | UAVCAN SoftwareVersion optional_field_flags: bit 0 = vcs_commit valid, bit 1 = image_crc valid |
+| `sw_vcs_commit` | `uint32_t` | 4 | - | Git commit hash (valid when sw_optional_field_flags bit 0 is set) |
+| `hw_major` | `uint8_t` | 1 | - | Hardware version major (from GetNodeInfo response) |
+| `hw_minor` | `uint8_t` | 1 | - | Hardware version minor (from GetNodeInfo response) |
+| `hw_unique_id` | `uint8_t[16]` | 16 | - | 128-bit hardware unique ID (from GetNodeInfo response) |
 
-**Notes:** Requires `USE_DRONECAN`. Returns `MSP_RESULT_ERROR` if the requested node ID is not in the node table.
+**Notes:** Requires `USE_DRONECAN`. Returns `MSP_RESULT_ERROR` if the requested node ID is not in the node table. Response is always 119 bytes.
 
 ## <a id="msp2_inav_led_strip_config_ex"></a>`MSP2_INAV_LED_STRIP_CONFIG_EX (8264 / 0x2048)`
 **Description:** Retrieves the full configuration for each LED on the strip using the `ledConfig_t` structure. Supersedes `MSP_LED_STRIP_CONFIG`.  

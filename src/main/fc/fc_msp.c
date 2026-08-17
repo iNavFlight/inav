@@ -4626,33 +4626,32 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 *ret = MSP_RESULT_ERROR;
                 break;
             }
-            uint8_t nodeId = sbufReadU8(src);
-            uint8_t count = dronecanGetNodeCount();
-            bool found = false;
-            for (uint8_t i = 0; i < count; i++) {
-                const dronecanNodeInfo_t *node = dronecanGetNode(i);
-                if (node->nodeID == nodeId) {
-                    found = true;
-                    if (sbufBytesRemaining(dst) < 46) {
-                        *ret = MSP_RESULT_ERROR;
-                        break;
-                    }
-                    sbufWriteU8(dst, node->nodeID);
-                    sbufWriteU8(dst, node->health);
-                    sbufWriteU8(dst, node->mode);
-                    sbufWriteU32(dst, node->uptime_sec);
-                    sbufWriteU16(dst, node->vendor_status_code);
-                    sbufWriteU32(dst, millis() - node->last_seen_ms);
-                    sbufWriteU8(dst, node->name_len);
-                    sbufWriteDataSafe(dst, node->name, 32);
-                    found = true;
-                    *ret = MSP_RESULT_ACK;
-                    break;
-                }
-            }
-            if (!found) {
+            uint8_t nodeID = sbufReadU8(src);
+            const dronecanNodeInfo_t *node = dronecanGetNodeByID(nodeID);
+            if (!node) {
                 *ret = MSP_RESULT_ERROR;
+                break;
             }
+            if (sbufBytesRemaining(dst) < MSP2_DRONECAN_NODE_INFO_SIZE) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+            sbufWriteU8(dst, node->nodeID);
+            sbufWriteU8(dst, node->health);
+            sbufWriteU8(dst, node->mode);
+            sbufWriteU32(dst, node->uptime_sec);
+            sbufWriteU16(dst, node->vendor_status_code);
+            sbufWriteU32(dst, millis() - node->last_seen_ms);
+            sbufWriteU8(dst, node->name_len);
+            sbufWriteDataSafe(dst, node->name, 80);
+            sbufWriteU8(dst,  node->sw_major);
+            sbufWriteU8(dst,  node->sw_minor);
+            sbufWriteU8(dst,  node->sw_optional_field_flags);
+            sbufWriteU32(dst, node->sw_vcs_commit);
+            sbufWriteU8(dst,  node->hw_major);
+            sbufWriteU8(dst,  node->hw_minor);
+            sbufWriteDataSafe(dst, node->hw_unique_id, 16);
+            *ret = MSP_RESULT_ACK;
         }
         break;
 #endif
