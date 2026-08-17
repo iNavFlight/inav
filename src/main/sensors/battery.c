@@ -33,6 +33,9 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/adc.h"
+#if defined(USE_INA226)
+#include "drivers/ina226.h"
+#endif
 #include "drivers/time.h"
 
 #include "fc/config.h"
@@ -70,6 +73,11 @@
 #endif
 #if defined(USE_DRONECAN)
 #include "sensors/battery_sensor_dronecan.h"
+#endif
+
+#if defined(USE_INA226)
+static ina226Dev_t ina226Dev;
+static bool ina226Detected = false;
 #endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
@@ -179,7 +187,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
     }
 }
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 4);
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
@@ -195,6 +203,14 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
         .scale = CURRENT_METER_SCALE,
         .offset = CURRENT_METER_OFFSET
     },
+
+#ifdef USE_INA226
+    .ina226 = {
+        .shuntResistanceMicroOhm = INA226_SHUNT_RES_UOHM_DEFAULT,
+        .i2cBus = INA226_I2C_BUS + 1,
+        .i2cAddress = INA226_I2C_ADDRESS,
+    },
+#endif
 
     .voltageSource = SETTING_BAT_VOLTAGE_SRC_DEFAULT,
 
@@ -217,6 +233,19 @@ void batteryInit(void)
     batteryCriticalVoltage = 0;
 
     pt1FilterSetCutoff(&amperageFilterState, AMPERAGE_LPF_FREQ);
+
+#if defined(USE_INA226)
+    ina226Detected = false;
+    bool ina226Configured = batteryMetersConfig()->current.type == CURRENT_SENSOR_INA226;
+#ifdef USE_ADC
+    ina226Configured = ina226Configured || batteryMetersConfig()->voltage.type == VOLTAGE_SENSOR_INA226;
+#endif
+    if (ina226Configured) {
+        ina226Detected = ina226Init(&ina226Dev,
+            batteryMetersConfig()->ina226.i2cBus,
+            batteryMetersConfig()->ina226.i2cAddress);
+    }
+#endif
 }
 
 #ifdef USE_ADC
@@ -336,6 +365,14 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
         break;
 #endif
 
+#if defined(USE_INA226)
+    case VOLTAGE_SENSOR_INA226:
+        if (ina226Detected && ina226ReadBusVoltage(&ina226Dev, &vbat)) {
+            break;
+        }
+        vbat = 0;
+        break;
+#endif
     case VOLTAGE_SENSOR_NONE:
         default:
             vbat = 0;
@@ -516,6 +553,51 @@ uint16_t getVBatSample(void) {
 }
 #endif
 
+#ifdef USE_ADC
+uint16_t getBatteryVoltageSample(void)
+{
+    switch (batteryMetersConfig()->voltage.type) {
+        case VOLTAGE_SENSOR_ADC:
+            return getVBatSample();
+#if defined(USE_ESC_SENSOR)
+        case VOLTAGE_SENSOR_ESC: {
+            escSensorData_t *escSensor = escSensorGetData();
+            return (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) ? escSensor->voltage : 0;
+        }
+#endif
+#if defined(USE_FAKE_BATT_SENSOR)
+        case VOLTAGE_SENSOR_FAKE:
+            return fakeBattSensorGetVBat();
+#endif
+#if defined(USE_SMARTPORT_MASTER)
+        case VOLTAGE_SENSOR_SMARTPORT: {
+            int16_t *smartportVoltageData = smartportMasterGetVoltageData();
+            return smartportVoltageData ? *smartportVoltageData : 0;
+        }
+#endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+        case VOLTAGE_SENSOR_CRSF: {
+            int16_t *crsfVoltageData = crsfBatterySensorGetVoltageData();
+            return crsfVoltageData ? *crsfVoltageData : 0;
+        }
+#endif
+#if defined(USE_DRONECAN)
+        case VOLTAGE_SENSOR_CAN:
+            return dronecanBattSensorGetVBat();
+#endif
+#if defined(USE_INA226)
+        case VOLTAGE_SENSOR_INA226: {
+            uint16_t ina226Voltage;
+            return (ina226Detected && ina226ReadBusVoltage(&ina226Dev, &ina226Voltage)) ? ina226Voltage : 0;
+        }
+#endif
+        case VOLTAGE_SENSOR_NONE:
+        default:
+            return 0;
+    }
+}
+#endif
+
 uint16_t getBatteryVoltage(void)
 {
     if (batteryMetersConfig()->voltageSource == BAT_VOLTAGE_SAG_COMP) {
@@ -586,8 +668,51 @@ int16_t getAmperage(void)
 
 int16_t getAmperageSample(void)
 {
-    int32_t microvolts = ((uint32_t)adcGetChannel(ADC_CURRENT) * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
-    return microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
+    switch (batteryMetersConfig()->current.type) {
+        case CURRENT_SENSOR_ADC: {
+            int32_t microvolts = ((uint32_t)adcGetChannel(ADC_CURRENT) * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
+            return microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
+        }
+#if defined(USE_ESC_SENSOR)
+        case CURRENT_SENSOR_ESC: {
+            escSensorData_t *escSensor = escSensorGetData();
+            return (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) ? escSensor->current : 0;
+        }
+#endif
+#if defined(USE_SMARTPORT_MASTER)
+        case CURRENT_SENSOR_SMARTPORT: {
+            int16_t *smartportCurrentData = smartportMasterGetCurrentData();
+            return smartportCurrentData ? *smartportCurrentData : 0;
+        }
+#endif
+#if defined(USE_BATTERY_SENSOR_CRSF)
+        case CURRENT_SENSOR_CRSF: {
+            int16_t *crsfCurrentData = crsfBatterySensorGetCurrentData();
+            return crsfCurrentData ? *crsfCurrentData : 0;
+        }
+#endif
+#if defined(USE_DRONECAN)
+        case CURRENT_SENSOR_CAN:
+            return dronecanBattSensorGetAmperage();
+#endif
+#if defined(USE_INA226)
+        case CURRENT_SENSOR_INA226: {
+            int16_t ina226Current;
+            return (ina226Detected && ina226ReadShuntCurrent(&ina226Dev, batteryMetersConfig()->ina226.shuntResistanceMicroOhm, &ina226Current))
+                ? ina226Current
+                : 0;
+        }
+#endif
+#if defined(USE_FAKE_BATT_SENSOR)
+        case CURRENT_SENSOR_FAKE:
+            return fakeBattSensorGetAmerperage();
+#endif
+        case CURRENT_SENSOR_VIRTUAL:
+            return getAmperage();
+        case CURRENT_SENSOR_NONE:
+        default:
+            return 0;
+    }
 }
 
 int32_t getPower(void)
@@ -670,6 +795,18 @@ void currentMeterUpdate(timeUs_t timeDelta)
 #if defined(USE_DRONECAN)
         case CURRENT_SENSOR_CAN:
             amperage = dronecanBattSensorGetAmperage();
+            break;
+#endif
+#if defined(USE_INA226)
+        case CURRENT_SENSOR_INA226:
+            {
+                int16_t ina226Current;
+                if (ina226Detected && ina226ReadShuntCurrent(&ina226Dev, batteryMetersConfig()->ina226.shuntResistanceMicroOhm, &ina226Current)) {
+                    amperage = pt1FilterApply3(&amperageFilterState, ina226Current, US2S(timeDelta));
+                } else {
+                    amperage = 0;
+                }
+            }
             break;
 #endif
 #if defined(USE_FAKE_BATT_SENSOR)

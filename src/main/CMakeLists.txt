@@ -103,6 +103,9 @@ main_sources(COMMON_SRC
     drivers/adc.c
     drivers/adc.h
 
+    drivers/ina226.c
+    drivers/ina226.h
+
     drivers/barometer/barometer.h
     drivers/barometer/barometer_bmp085.c
     drivers/barometer/barometer_bmp085.h
