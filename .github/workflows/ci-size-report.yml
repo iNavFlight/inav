@@ -101,40 +101,54 @@ jobs:
 
       - name: Read PR number and base ref
         id: pr
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           PR_NUM=$(tr -dc '0-9' < pr_number.txt)
           if [ -z "$PR_NUM" ]; then
             echo "::error::Invalid PR number in artifact"
             exit 1
           fi
-          echo "number=${PR_NUM}" >> $GITHUB_OUTPUT
-          echo "base_ref=$(cat base_ref.txt)" >> $GITHUB_OUTPUT
-          echo "short_sha=$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
+
+          # base_ref.txt round-trips through an artifact produced by the
+          # (less-trusted) PR build, so validate it against safe git-ref
+          # characters before it's ever used to build a shell command or
+          # release tag downstream — never trust artifact content blindly.
+          BASE_REF=$(head -n1 base_ref.txt | tr -d '\r\n')
+          if ! [[ "$BASE_REF" =~ ^[A-Za-z0-9._/-]{1,100}$ ]]; then
+            echo "::error::Invalid base ref in artifact: $BASE_REF"
+            exit 1
+          fi
+
+          echo "number=${PR_NUM}" >> "$GITHUB_OUTPUT"
+          echo "base_ref=${BASE_REF}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
       - name: Fetch base branch baseline
         id: baseline
         env:
           GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
         run: |
-          TAG="size-baseline-${{ steps.pr.outputs.base_ref }}"
+          TAG="size-baseline-${BASE_REF}"
           mkdir -p baseline
           if gh release download "$TAG" --repo iNavFlight/pr-test-builds --pattern size-report.json --dir baseline 2>/dev/null; then
-            echo "found=true" >> $GITHUB_OUTPUT
+            echo "found=true" >> "$GITHUB_OUTPUT"
           else
-            echo "found=false" >> $GITHUB_OUTPUT
+            echo "found=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check for doc on PR head commit
         id: doc
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
         run: |
-          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
-          HEAD_REPO="${{ github.event.workflow_run.head_repository.full_name }}"
           if gh api "repos/${HEAD_REPO}/contents/docs/development/ram-and-flash-optimization.md?ref=${HEAD_SHA}" >/dev/null 2>&1; then
-            echo "link=https://github.com/${HEAD_REPO}/blob/${HEAD_SHA}/docs/development/ram-and-flash-optimization.md" >> $GITHUB_OUTPUT
+            echo "link=https://github.com/${HEAD_REPO}/blob/${HEAD_SHA}/docs/development/ram-and-flash-optimization.md" >> "$GITHUB_OUTPUT"
           else
-            echo "link=" >> $GITHUB_OUTPUT
+            echo "link=" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Post or update PR comment
