@@ -126,6 +126,8 @@ int16_t canardSTM32Receive(CanardCANFrame *f) {
     return 1;
 }
 
+void saveConfig(void) {}
+
 /* Version strings declared in build/version.h */
 const char* const shortGitRevision = "00000000";
 const char* const compilerVersion  = "test";
