@@ -173,6 +173,12 @@ main_sources(COMMON_SRC
     drivers/dronecan/libcanard/canard.h
     drivers/dronecan/libcanard/canard_stm32_driver.h
     drivers/dronecan/dronecan.c
+    drivers/dronecan/dronecan_async.c
+    drivers/dronecan/dronecan_async.h
+    drivers/dronecan/dronecan_dna_server.c
+    drivers/dronecan/dronecan_dna_server.h
+    drivers/dronecan/dronecan_node_status.c
+    drivers/dronecan/dronecan_node_status.h
     drivers/dronecan/dronecan.h
 
     drivers/display.c
