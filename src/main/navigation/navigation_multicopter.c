@@ -1243,7 +1243,11 @@ void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlag
         if (navStateFlags & NAV_CTL_POS)
             applyMulticopterPositionController(currentTimeUs);
 
-        if (navStateFlags & NAV_CTL_YAW)
+        if (navStateFlags & NAV_CTL_YAW) {
+#ifdef USE_MARKER_GUIDANCE
+            markerGuidanceApplyHeadingOverride(&posControl.desiredState.yaw);
+#endif
             applyMulticopterHeadingController();
+        }
     }
 }

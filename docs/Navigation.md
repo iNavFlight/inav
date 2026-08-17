@@ -50,12 +50,38 @@ This feature is compiled only when `USE_MARKER_GUIDANCE` is enabled for the targ
 On flash-constrained targets, it can be excluded at build time to preserve headroom.
 
 ### MSP payload
-`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET` request payload is 4 bytes:
-* `int16_t offsetForwardCm`
-* `int16_t offsetRightCm`
+`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET` (`8754 / 0x2232`) has one fixed 8-byte little-endian request:
 
-* every received packet is treated as a fresh target sample
-* target freshness is based on FC receive time (`nav_marker_guidance_max_target_age_ms`)
+| Bytes | Type | Field | Meaning |
+|---|---|---|---|
+| 0..1 | `int16_t` | `offsetForwardCm` | Levelled horizontal offset from the vehicle to touchdown, forward in the yaw-only body frame |
+| 2..3 | `int16_t` | `offsetRightCm` | Levelled horizontal offset from the vehicle to touchdown, right in the yaw-only body frame |
+| 4..5 | `int16_t` | `yawErrorDeciDeg` | Signed shortest turn from current heading to landing heading, from `-1800` to `1800` |
+| 6..7 | `uint16_t` | `markerAglCm` | Positive distance from vehicle body origin to the landing reference plane |
+
+The old 4-byte request and all other request sizes are rejected. There is no version, confidence, frame, timestamp, validity flag or marker identity field. Each accepted packet replaces the complete XY, heading and marker-relative height sample. Freshness is based on FC receive time and `nav_marker_guidance_max_target_age_ms`.
+
+Example: forward `-123 cm`, right `456 cm`, yaw error `-90.0 deg` and marker AGL `321 cm` are encoded as `85 FF C8 01 7C FC 41 01`.
+
+On receipt, INAV converts forward/right into local North/East using the current vehicle yaw and stores that result. The stored target does not rotate if the vehicle turns before the next packet. INAV also converts the relative yaw error into one absolute heading target at receipt time. The same cached North/East reference is used by precision landing and containment.
+
+The five-byte reply is `accepted`, `used_now`, `nav_guidance_state`, `reason`, `retry_count`. `accepted = 1` means the complete sample passed validation and was atomically stored. `used_now = 1` means it can currently affect an allowed navigation controller; a valid sample can be accepted with `used_now = 0` outside an allowed mode.
+
+ACK `reason` values are:
+
+| Value | Reason |
+|---|---|
+| 0 | `OK` |
+| 1 | `NOT_ENABLED` |
+| 2 | `STALE` |
+| 3 | `OFFSET_TOO_LARGE` |
+| 4 | `NOT_MC_PROFILE` |
+| 5 | `NOT_IN_POSHOLD_OR_LAND` |
+| 6 | `FAILSAFE` |
+| 7 | `INVALID_TARGET` |
+| 8 | `NOT_ARMED` |
+
+Disabled guidance, zero marker AGL, yaw error outside `[-1800, 1800]`, or an excessive horizontal offset returns `accepted = 0` and does not change the previous cache or its receive timestamp.
 
 ### Mode gating
 Marker guidance can influence navigation only when:
@@ -67,6 +93,8 @@ Outside those contexts, updates may still be cached but do not affect navigation
 ### POSHOLD behavior
 When `nav_marker_guidance_mode = PL`:
 * FC uses marker offsets to center above the target in POSHOLD.
+* while the target is fresh, FC uses the marker heading immediately before the MC heading controller
+* marker heading never overrides disarmed, failsafe, fixed-wing or manual yaw control
 
 When `nav_marker_guidance_mode = CONTAINMENT`:
 * FC uses marker-relative hold target:
@@ -75,14 +103,18 @@ When `nav_marker_guidance_mode = CONTAINMENT`:
 * FC applies containment behavior with `nav_marker_guidance_radius_cm`:
   * inside radius: no correction
   * outside radius: FC corrects back toward allowed boundary
+* containment does not take yaw control
 
 ### LAND behavior
 When `nav_marker_guidance_mode = PL` and target is fresh:
 * FC performs precision horizontal alignment to marker center during LAND
+* FC uses the absolute marker heading calculated when the latest packet was accepted
 * vertical descent profile remains normal LAND behavior (`nav_land_*`)
 
 With stale/lost target:
-* at or below `nav_marker_guidance_retry_min_alt_cm` AGL, FC skips retry and continues normal LAND behavior
+* FC stops marker XY correction
+* after a marker heading was acquired in this LAND context, FC keeps that last heading through lost hold, climb-and-retry and normal-landing fallback
+* at or below `nav_marker_guidance_retry_min_alt_cm`, either usable INAV AGL or the last fresh marker AGL suppresses retry and continues normal LAND behavior
 * if `nav_marker_guidance_low_alt_lock_xy = ON`, FC locks the current XY position when entering low-altitude fallback
 * above that altitude, FC enters hold for `nav_marker_guidance_lost_hold_time_ms`
 * optionally performs climb-and-retry up to `nav_marker_guidance_retry_count`
@@ -93,6 +125,7 @@ Retry safety rule:
 * if no target was ever acquired in that LAND context, no retry is performed
 * set `nav_marker_guidance_retry_min_alt_cm = 0` to disable the low-altitude retry suppression
 * set `nav_marker_guidance_low_alt_lock_xy = OFF` to keep the normal LAND XY target during low-altitude fallback
+* marker AGL is only an additional reason to suppress a climb; it never starts a retry and never replaces INAV altitude, AGL or rangefinder estimates
 
 ### Shared radius setting
 `nav_marker_guidance_radius_cm` is used by both modes:

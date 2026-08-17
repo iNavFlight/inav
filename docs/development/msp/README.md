@@ -451,9 +451,10 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8731 - MSP2_INAV_NAV_TARGET](#msp2_inav_nav_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [8737 - MSP2_INAV_SET_WP_INDEX](#msp2_inav_set_wp_index)  
-[8754 - MSP2_INAV_SET_MARKER_GUIDANCE_TARGET](#msp2_inav_set_marker_guidance_target)  
 [8739 - MSP2_INAV_SET_CRUISE_HEADING](#msp2_inav_set_cruise_heading)  
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
+[8753 - MSP2_INAV_WIND](#msp2_inav_wind)  
+[8754 - MSP2_INAV_SET_MARKER_GUIDANCE_TARGET](#msp2_inav_set_marker_guidance_target)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -4737,26 +4738,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Notes:** Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.
 
-## <a id="msp2_inav_set_marker_guidance_target"></a>`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET (8754 / 0x2232)`
-**Description:** Updates the external marker target sample used by marker-guidance NAV correction. This message does not arm/disarm, does not switch flight modes, and does not start landing by itself.
-
-**Request Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `offset_forward_cm` | `int16_t` | 2 | cm | Marker offset forward from vehicle body origin |
-| `offset_right_cm` | `int16_t` | 2 | cm | Marker offset right from vehicle body origin |
-
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Description|
-|---|---|---|---|
-| `accepted` | `uint8_t` | 1 | Payload accepted into target-processing path |
-| `used_now` | `uint8_t` | 1 | Target is currently influencing navigation correction |
-| `nav_guidance_state` | `uint8_t` | 1 | Internal marker-guidance state |
-| `reason` | `uint8_t` | 1 | Result reason (`OK`, `NOT_ENABLED`, `STALE`, `OFFSET_TOO_LARGE`, `NOT_MC_PROFILE`, `NOT_IN_POSHOLD_OR_LAND`, etc.) |
-| `retry_count` | `uint8_t` | 1 | Current retry-attempt counter in PL LAND retry flow |
-
-**Notes:** Hard break: request payload is now fixed at **4 bytes** (`int16_t`, `int16_t`). Legacy request fields `valid`, `confidence`, `frame`, `timestamp_ms`, and `distance_cm` were removed. Companion implementations must migrate to the new layout. Available only when firmware is built with `USE_MARKER_GUIDANCE`. Corrections are mode-gated to MC/VTOL-hover-capable POSHOLD/LAND contexts; outside those contexts updates may still be cached (`used_now = 0`). Freshness is evaluated using FC receive time.
-
 ## <a id="msp2_inav_set_cruise_heading"></a>`MSP2_INAV_SET_CRUISE_HEADING (8739 / 0x2223)`
 **Description:** Sets the course heading target while Cruise or Course Hold mode is active, causing the aircraft to turn to and maintain the new heading.  
   
@@ -4781,6 +4762,42 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** CH1-CH12 (index 0-11) are protected and will return `MSP_RESULT_ERROR`. Payload size must be 2-49 bytes. Constraint: `startChannel + channelCount <= 32`. Values persist until overwritten; no timeout. Applied as a post-RX overlay in `calculateRxChannelsAndUpdateFailsafe()` after MSP RC Override but before failsafe. Does not require `USE_RX_MSP` or MSP-RC-OVERRIDE flight mode. Does not affect failsafe detection. When MSP is the primary RX provider, channels covered by `MSP_SET_RAW_RC` are automatically skipped. Channels in the `mspOverrideChannels` bitmask are skipped when MSP RC Override mode is active. Recommended to send with `MSP_FLAG_DONT_REPLY` (flags=0x01) to save bandwidth on telemetry passthrough links. 16-bit mode requires even number of data bytes and values are clamped to 750-2250us.
+
+## <a id="msp2_inav_wind"></a>`MSP2_INAV_WIND (8753 / 0x2231)`
+**Description:** Retrieves the estimated horizontal wind speed and direction from the internal wind estimator.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `windSpeed` | `uint16_t` | 2 | cm/s | Estimated horizontal wind speed (`getEstimatedHorizontalWindSpeed()`). 0 if unavailable. |
+| `windAngle` | `uint16_t` | 2 | degrees | Estimated wind direction in degrees (0–359, 0 = North). Derived from centidegree value divided by 100. 0 if unavailable. |
+| `flags` | `uint8_t` | 1 | - | Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved. |
+
+**Notes:** Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.
+
+## <a id="msp2_inav_set_marker_guidance_target"></a>`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET (8754 / 0x2232)`
+**Description:** Updates the complete marker-relative position, landing heading and marker AGL sample consumed by marker-guidance navigation.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `offset_forward_cm` | `int16_t` | 2 | cm | Levelled horizontal offset from vehicle body origin to the touchdown point, forward in the yaw-only body frame at measurement time. |
+| `offset_right_cm` | `int16_t` | 2 | cm | Levelled horizontal offset from vehicle body origin to the touchdown point, right in the yaw-only body frame at measurement time. |
+| `yaw_error_decideg` | `int16_t` | 2 | decidegrees | Signed shortest rotation from current vehicle heading to the requested landing heading. Valid range is -1800 to 1800. |
+| `marker_agl_cm` | `uint16_t` | 2 | cm | Positive vertical distance from vehicle body origin to the marker landing reference plane. |
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `accepted` | `uint8_t` | 1 | - | 1 only when the complete pose passed validation and was atomically committed to the target cache. |
+| `used_now` | `uint8_t` | 1 | - | 1 when the accepted target is currently influencing an allowed marker-guidance navigation context. |
+| `nav_guidance_state` | `uint8_t` | 1 | enum | Current internal marker-guidance state. |
+| `reason` | `uint8_t` | 1 | enum | Result code: 0 OK, 1 NOT_ENABLED, 2 STALE, 3 OFFSET_TOO_LARGE, 4 NOT_MC_PROFILE, 5 NOT_IN_POSHOLD_OR_LAND, 6 FAILSAFE, 7 INVALID_TARGET, 8 NOT_ARMED. |
+| `retry_count` | `uint8_t` | 1 | - | Current retry-attempt counter in PL LAND retry flow. |
+
+**Notes:** Hard break: the request is exactly 8 little-endian bytes and the old 4-byte request is rejected. There is no version, validity, confidence, frame, identity or capture timestamp field. Forward/right are converted to local North/East once at FC receive time; yaw error is converted once to an absolute INAV heading; marker AGL is used only as an additional low-altitude retry suppression. Invalid or disabled requests do not refresh any cache field or timestamp. Freshness uses FC receive time. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD/LAND contexts. The command is 8754/0x2232 because current maintenance-10.x assigns 8753/0x2231 to MSP2_INAV_WIND.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
@@ -4807,3 +4824,4 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `reserved_for_custom_use` | `uint8_t[3]` | 3 | Reserved for custom use |
 
 **Notes:** Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.
+

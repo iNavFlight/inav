@@ -7,12 +7,11 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#include "navigation/marker_guidance_logic.h"
 
 typedef enum {
     MARKER_GUIDANCE_REASON_OK = 0,
     MARKER_GUIDANCE_REASON_NOT_ENABLED,
-    MARKER_GUIDANCE_REASON_LOW_CONFIDENCE,
-    MARKER_GUIDANCE_REASON_BAD_FRAME,
     MARKER_GUIDANCE_REASON_STALE,
     MARKER_GUIDANCE_REASON_OFFSET_TOO_LARGE,
     MARKER_GUIDANCE_REASON_NOT_MC_PROFILE,
@@ -39,10 +38,7 @@ typedef enum {
     MARKER_GUIDANCE_LAND_CTRL_CLIMB,
 } markerGuidanceLandControlMode_e;
 
-typedef struct {
-    int16_t offsetForwardCm;
-    int16_t offsetRightCm;
-} markerGuidanceTargetUpdate_t;
+typedef markerGuidancePoseUpdate_t markerGuidanceTargetUpdate_t;
 
 typedef struct {
     uint8_t accepted;
@@ -60,6 +56,7 @@ typedef struct {
 void markerGuidanceReset(void);
 void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 void markerGuidanceApplyHorizontalVelocityCorrection(float *velX, float *velY);
+bool markerGuidanceApplyHeadingOverride(int32_t *desiredYawCd);
 void markerGuidanceGetLandControl(markerGuidanceLandControl_t *controlOut);
 navSystemStatus_State_e markerGuidanceOverrideNavStatusState(navSystemStatus_State_e defaultState);
 bool markerGuidanceHandleMspTargetUpdate(const markerGuidanceTargetUpdate_t *update, markerGuidanceMspResponse_t *responseOut);

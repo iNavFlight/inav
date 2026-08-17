@@ -4775,15 +4775,20 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 #ifdef USE_MARKER_GUIDANCE
     case MSP2_INAV_SET_MARKER_GUIDANCE_TARGET:
-        if (dataSize != (2 * sizeof(int16_t))) {
+        if (!markerGuidanceMspPayloadSizeIsValid(dataSize)) {
             *ret = MSP_RESULT_ERROR;
             break;
         }
         {
-            markerGuidanceTargetUpdate_t update = {
-                .offsetForwardCm = (int16_t)sbufReadU16(src),
-                .offsetRightCm = (int16_t)sbufReadU16(src),
-            };
+            const uint16_t offsetForwardRaw = sbufReadU16(src);
+            const uint16_t offsetRightRaw = sbufReadU16(src);
+            const uint16_t yawErrorRaw = sbufReadU16(src);
+            const uint16_t markerAglRaw = sbufReadU16(src);
+            const markerGuidanceTargetUpdate_t update = markerGuidanceDecodeMspWords(
+                offsetForwardRaw,
+                offsetRightRaw,
+                yawErrorRaw,
+                markerAglRaw);
 
             markerGuidanceMspResponse_t response = { 0 };
             if (!markerGuidanceHandleMspTargetUpdate(&update, &response)) {
