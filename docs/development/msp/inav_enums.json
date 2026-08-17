@@ -3301,8 +3301,9 @@
         "_source": "inav/src/main/io/displayport_msp_osd.c",
         "SD_3016": "0",
         "HD_5018": "1",
-        "HD_6022": "2",
-        "HD_5320": "3"
+        "HD_3016": "2",
+        "HD_6022": "3",
+        "HD_5320": "4"
     },
     "resourceOwner_e": {
         "_source": "inav/src/main/drivers/resource.h",
