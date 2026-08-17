@@ -48,6 +48,35 @@ This directory contains automated CI/CD workflows for the INAV project.
 
 ### Pull Request Helpers
 
+#### `ci-size-report.yml` - RAM/Flash Usage Delta PR Comment
+**Triggers:** `workflow_run` after "Build firmware" (`ci.yml`) completes
+**Purpose:** Posts/updates a PR comment showing flash and RAM usage delta vs.
+the PR's base branch, for 4 representative targets spanning flash/RAM size
+tiers (MATEKF405, MATEKF722, MATEKF765, MATEKH743 — note MATEKF722 and
+MATEKF765 are both STM32F7 parts; no AT32 target is currently covered).
+Surfaces RAM/flash regressions and creep before they become an overflow, on
+every PR.
+
+**How it works:**
+1. `ci.yml` extracts a small per-target size report (`arm-none-eabi-size`
+   on each built `.elf`) right after each build and uploads it as an
+   artifact — no second build anywhere in this flow.
+2. On pushes to a branch, `ci-size-report.yml` persists that size report as
+   a release asset (`size-baseline-<branch>`) in the companion
+   `iNavFlight/pr-test-builds` repo — the "known good" baseline for that
+   branch, overwritten on every push.
+3. On PR builds, it fetches the PR's base branch's persisted baseline (no
+   rebuild), diffs it against the PR's own size report, and posts/updates a
+   comment (marker `<!-- pr-size-diff -->`).
+
+**Script:** `.github/scripts/extract-size-report.sh` (size extraction),
+`.github/scripts/merge-size-reports.sh` (merges per-shard reports),
+`.github/scripts/size-diff-comment.js` (pure diff + markdown rendering,
+unit tested in `.github/scripts/size-diff-comment.test.js`)
+
+**Uses the same `PR_BUILDS_TOKEN` secret and `workflow_run` trigger pattern
+as `pr-test-builds.yml`** (secrets available even for fork PRs).
+
 #### `pr-branch-suggestion.yml` - Branch Targeting Suggestion
 **Triggers:** PRs targeting master branch
 **Purpose:** Suggests using maintenance-9.x or maintenance-10.x instead
