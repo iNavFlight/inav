@@ -17,7 +17,24 @@ set -euo pipefail
 
 BUILD_DIR=${1:?usage: extract-size-report.sh <build-dir> <output-json> [size-tool]}
 OUTPUT_JSON=${2:?usage: extract-size-report.sh <build-dir> <output-json> [size-tool]}
-SIZE_TOOL=${3:-arm-none-eabi-size}
+SIZE_TOOL=${3:-}
+
+if [ -z "$SIZE_TOOL" ]; then
+    if command -v arm-none-eabi-size >/dev/null 2>&1; then
+        SIZE_TOOL=arm-none-eabi-size
+    else
+        # cmake/arm-none-eabi-checks.cmake downloads its own toolchain into
+        # tools/ and adds it to PATH — but only inside that cmake process
+        # via set(ENV{PATH} ...), which doesn't persist to a later CI step's
+        # shell. Fall back to the same location CMake would have used,
+        # relative to the repo root (this script must be run from there).
+        SIZE_TOOL=$(compgen -G 'tools/arm-gnu-toolchain-*/bin/arm-none-eabi-size' 2>/dev/null | head -n1 || true)
+        if [ -z "$SIZE_TOOL" ]; then
+            echo "::error::arm-none-eabi-size not found on PATH or under tools/arm-gnu-toolchain-*/bin/" >&2
+            exit 1
+        fi
+    fi
+fi
 
 # CMake's RUNTIME_OUTPUT_DIRECTORY puts built executables under
 # <build-dir>/bin/ (see cmake/main.cmake), not <build-dir> directly — search
