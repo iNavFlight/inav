@@ -271,7 +271,17 @@ static int8_t detectRequestStage(struct uavcan_protocol_dynamic_node_id_Allocati
     }
     if (msg->first_part_of_unique_id)
     {
-        return DNA_STAGE_1;
+        // Stage 1 is either the classic 6-byte first chunk of a multi-frame
+        // handshake, or the full 16-byte UID delivered in a single message
+        // (e.g. CAN-FD, which can carry the whole UID in one frame). The
+        // 4-byte DNA_STAGE3_UID_LEN length is not a valid stage-1 length
+        // under either scheme.
+        if (msg->unique_id.len == UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST ||
+            msg->unique_id.len == DNA_UNIQUE_ID_LENGTH)
+        {
+            return DNA_STAGE_1;
+        }
+        return DNA_INVALID_STAGE;
     }
     if (msg->unique_id.len == UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST)
     {
