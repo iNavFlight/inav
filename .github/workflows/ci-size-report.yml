@@ -54,12 +54,21 @@ jobs:
         run: |
           BRANCH=$(cat branch.txt)
           TAG="size-baseline-${BRANCH}"
-          gh release delete "$TAG" --repo iNavFlight/pr-test-builds --cleanup-tag --yes 2>/dev/null || true
-          gh release create "$TAG" size-report.json \
-            --repo iNavFlight/pr-test-builds \
-            --prerelease \
-            --title "Size baseline: ${BRANCH}" \
-            --notes "Latest per-target flash/RAM size report for ${BRANCH}. Auto-updated on every push. Not for human consumption."
+          # Never delete+recreate the release: that leaves a window where
+          # the release doesn't exist at all, which a concurrent PR's
+          # "Fetch base branch baseline" step could hit and misreport as
+          # "no baseline available yet". Create it once, then only ever
+          # replace the asset in place (--clobber) on later pushes — the
+          # release/tag itself stays continuously resolvable.
+          if gh release view "$TAG" --repo iNavFlight/pr-test-builds >/dev/null 2>&1; then
+            gh release upload "$TAG" size-report.json --repo iNavFlight/pr-test-builds --clobber
+          else
+            gh release create "$TAG" size-report.json \
+              --repo iNavFlight/pr-test-builds \
+              --prerelease \
+              --title "Size baseline: ${BRANCH}" \
+              --notes "Latest per-target flash/RAM size report for ${BRANCH}. Auto-updated on every push. Not for human consumption."
+          fi
 
   pr-comment:
     runs-on: ubuntu-latest
@@ -135,11 +144,22 @@ jobs:
         run: |
           TAG="size-baseline-${BASE_REF}"
           mkdir -p baseline
-          if gh release download "$TAG" --repo iNavFlight/pr-test-builds --pattern size-report.json --dir baseline 2>/dev/null; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "found=false" >> "$GITHUB_OUTPUT"
-          fi
+
+          # publish-baseline replaces the asset in place (--clobber) rather
+          # than deleting/recreating the release, but an individual asset
+          # replace still briefly deletes-then-uploads under the hood. A
+          # few short retries absorb that narrow window instead of a
+          # concurrent run misreporting "no baseline available yet" for a
+          # baseline that actually exists.
+          FOUND=false
+          for attempt in 1 2 3; do
+            if gh release download "$TAG" --repo iNavFlight/pr-test-builds --pattern size-report.json --dir baseline 2>/dev/null; then
+              FOUND=true
+              break
+            fi
+            sleep 3
+          done
+          echo "found=${FOUND}" >> "$GITHUB_OUTPUT"
 
       - name: Check for doc on PR head commit
         id: doc
