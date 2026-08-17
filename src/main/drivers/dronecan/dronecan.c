@@ -13,6 +13,7 @@
 #if defined(USE_DRONECAN)
 
 #include "io/gps.h"
+#include "io/gps_dronecan.h"
 #include "sensors/battery_sensor_dronecan.h"
 
 #include "config/parameter_group.h"
@@ -35,22 +36,26 @@
 CanardInstance canard; /* non-static: dronecan_async.c needs extern access */
 static uint8_t memory_pool[1024];
 
-PG_REGISTER_WITH_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig, PG_DRONECAN_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig, PG_DRONECAN_CONFIG, 1);
 
 PG_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig,
     .nodeID = SETTING_DRONECAN_NODE_ID_DEFAULT,
     .bitRateKbps = SETTING_DRONECAN_BITRATE_KBPS_DEFAULT,
-    .dronecanUseDNAServer = SETTING_DRONECAN_USE_DNA_SERVER_DEFAULT
+    .dronecanUseDNAServer = SETTING_DRONECAN_USE_DNA_SERVER_DEFAULT,
+    .batteryId = SETTING_DRONECAN_BATTERY_ID_DEFAULT,
+    .gpsNodeId = SETTING_DRONECAN_GPS_NODE_ID_DEFAULT
 );
-
-static dronecanState_e dronecanState = STATE_DRONECAN_INIT;
 
 #ifdef UNIT_TEST
 static uint32_t busOffCount = 0;
 static volatile uint32_t txErrCount = 0;
+dronecanState_e dronecanState = STATE_DRONECAN_INIT;
+timeUs_t next_1hz_service_at = 0;
 #else
 static uint32_t busOffCount = 0;
 static volatile uint32_t txErrCount = 0;
+static dronecanState_e dronecanState = STATE_DRONECAN_INIT;
+static timeUs_t next_1hz_service_at = 0;
 #endif
 
 /* Forward declarations ------------------------------------------------------*/
@@ -125,7 +130,6 @@ void dronecanInit(void)
 
 void dronecanUpdate(timeUs_t currentTimeUs)
 {
-    static timeUs_t next_1hz_service_at = 0;
     static timeUs_t busoffTimeUs = 0;
     CanardCANFrame rx_frame;
     int numMessagesToProcess = 0;
@@ -430,7 +434,7 @@ static void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer
 		LOG_WARNING(CAN, "GNSSAuxiliary decode failed");
 		return;
 	}
-    dronecanGPSReceiveGNSSAuxiliary(&gnssAuxiliary);
+    dronecanGPSReceiveGNSSAuxiliary(&gnssAuxiliary, transfer->source_node_id);
 }
 
 static void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -454,7 +458,7 @@ static void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
 		LOG_WARNING(CAN, "GNSSFix2 decode failed");
 		return;
 	}
-    dronecanGPSReceiveGNSSFix2(&gnssFix2);
+    dronecanGPSReceiveGNSSFix2(&gnssFix2, transfer->source_node_id);
 }
 
 static void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -476,6 +480,9 @@ static void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) 
 		LOG_WARNING(CAN, "BatteryInfo decode failed");
 		return;
 	}
+    if (batteryInfo.battery_id != dronecanConfig()->batteryId) {
+        return;
+    }
     dronecanBatterySensorReceiveInfo(&batteryInfo);
 }
 

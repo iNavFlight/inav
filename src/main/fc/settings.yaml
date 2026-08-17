@@ -4648,3 +4648,17 @@ groups:
         type: bool
         default_value: ON
         field: dronecanUseDNAServer
+      - name: dronecan_battery_id
+        description: "Only accept BatteryInfo messages whose battery_id field (battery slot) matches this value. Every value 0-255 is a valid battery_id on the wire, so there is no wildcard; the default (0) matches the conventional primary-battery ID used by most peripherals."
+        default_value: 0
+        field: batteryId
+        min: 0
+        max: 255
+        type: uint8_t
+      - name: dronecan_gps_node_id
+        description: "Filter GPS messages by source Node ID. 0 = use any node."
+        default_value: 0
+        field: gpsNodeId
+        min: 0
+        max: 127
+        type: uint8_t

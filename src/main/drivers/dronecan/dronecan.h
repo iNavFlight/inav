@@ -26,6 +26,8 @@ typedef struct dronecanConfig_s {
     uint8_t nodeID;
     dronecanBitrate_e bitRateKbps;
     bool dronecanUseDNAServer;
+    uint8_t batteryId;
+    uint8_t gpsNodeId;
 } dronecanConfig_t;
 
 typedef struct dronecanNodeInfo_s {
