@@ -5,10 +5,13 @@ name: CI Size Report
 # from forks — same reasoning as pr-test-builds.yml.
 #
 # Two jobs:
-#  - publish-baseline: on branch pushes (maintenance-*), persists the size
-#    report as a release asset in the companion iNavFlight/pr-test-builds
-#    repo, so PR runs never need to rebuild the base branch to get a
-#    comparison point.
+#  - publish-baseline: on any branch push that triggers ci.yml (in practice,
+#    almost always maintenance-9.x/maintenance-10.x — see ci.yml's own push
+#    trigger for the exact filter), persists the size report as a release
+#    asset in the companion iNavFlight/pr-test-builds repo, so PR runs never
+#    need to rebuild the base branch to get a comparison point. Stale
+#    baselines for since-deleted branches aren't cleaned up automatically
+#    (same known limitation pr-test-builds has for old PR releases).
 #  - pr-comment: on PR builds, fetches that persisted baseline, diffs the
 #    4 representative targets, and posts/updates a PR comment.
 #

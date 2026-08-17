@@ -51,9 +51,11 @@ This directory contains automated CI/CD workflows for the INAV project.
 #### `ci-size-report.yml` - RAM/Flash Usage Delta PR Comment
 **Triggers:** `workflow_run` after "Build firmware" (`ci.yml`) completes
 **Purpose:** Posts/updates a PR comment showing flash and RAM usage delta vs.
-the PR's base branch, for 4 representative targets (one per MCU family:
-MATEKF405, MATEKF722, MATEKF765, MATEKH743). Surfaces RAM/flash regressions
-and creep before they become an overflow, on every PR.
+the PR's base branch, for 4 representative targets spanning flash/RAM size
+tiers (MATEKF405, MATEKF722, MATEKF765, MATEKH743 — note MATEKF722 and
+MATEKF765 are both STM32F7 parts; no AT32 target is currently covered).
+Surfaces RAM/flash regressions and creep before they become an overflow, on
+every PR.
 
 **How it works:**
 1. `ci.yml` extracts a small per-target size report (`arm-none-eabi-size`
