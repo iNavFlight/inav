@@ -72,6 +72,11 @@ set_property(SOURCE gps_null_port_unittest.cc PROPERTY definitions GPS_NULL_PORT
 
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
+set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE mixer_transition_scenarios_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE navigation_vtol_mission_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE vtol_mc_protection_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 
 set_property(SOURCE mavlink_unittest.cc PROPERTY depends
     "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_mission.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"

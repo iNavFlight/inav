@@ -148,5 +148,5 @@
 #define MSP2_INAV_SET_CRUISE_HEADING            0x2223  //in message  set heading while in Cruise/Course Hold mode; payload: I32 heading_centidegrees (0-35999)
 
 #define MSP2_INAV_SET_AUX_RC                    0x2230
-
 #define MSP2_INAV_WIND                          0x2231
+#define MSP2_INAV_SET_MARKER_GUIDANCE_TARGET    0x2232  //in message  marker-guidance pose: forward/right offset, yaw error, marker AGL (8 bytes)

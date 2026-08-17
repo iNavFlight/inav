@@ -328,6 +328,31 @@ typedef enum {
     WP_MISSION_SWITCH,
 } navMissionRestart_e;
 
+#ifdef USE_AUTO_TRANSITION
+typedef enum {
+    NAV_MISSION_USER_ACTION_OFF = 0,
+    NAV_MISSION_USER_ACTION_1,
+    NAV_MISSION_USER_ACTION_2,
+    NAV_MISSION_USER_ACTION_3,
+    NAV_MISSION_USER_ACTION_4,
+} navMissionUserAction_e;
+
+typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_POSH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_EMERGENCY_LANDING,
+} navVtolTransitionFailActionMcToFw_e;
+
+typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_LOITER,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_EMERGENCY_LANDING,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH,
+} navVtolTransitionFailActionFwToMc_e;
+#endif
+
 typedef enum {
     RTH_TRACKBACK_OFF,
     RTH_TRACKBACK_ON,
@@ -386,6 +411,18 @@ typedef struct positionEstimationConfig_s {
 
 PG_DECLARE(positionEstimationConfig_t, positionEstimationConfig);
 
+#ifdef USE_MARKER_GUIDANCE
+typedef enum {
+    NAV_MARKER_GUIDANCE_SOURCE_MSP = 0,
+} navMarkerGuidanceSource_e;
+
+typedef enum {
+    NAV_MARKER_GUIDANCE_MODE_OFF = 0,
+    NAV_MARKER_GUIDANCE_MODE_PL,
+    NAV_MARKER_GUIDANCE_MODE_CONTAINMENT,
+} navMarkerGuidanceMode_e;
+#endif
+
 typedef struct navConfig_s {
 
     struct {
@@ -413,6 +450,13 @@ typedef struct navConfig_s {
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;                   // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;            // Waypoint mission sanity check distance
+#ifdef USE_AUTO_TRANSITION
+        uint8_t  vtol_mission_transition_user_action; // User action slot that requests mission VTOL transition
+        uint16_t vtol_mission_transition_min_altitude; // Minimum altitude [cm] to start mission VTOL transition (0 = disabled)
+        bool     vtol_transition_retry_on_airspeed_timeout; // Enables one-shot yaw-scan retry for failed airspeed-gated MC->FW auto-transition
+        uint8_t  vtol_transition_fail_action_mc_to_fw; // Action after final MC->FW transition failure
+        uint8_t  vtol_transition_fail_action_fw_to_mc; // Action after final FW->MC transition failure
+#endif
 #ifdef USE_MULTI_MISSION
         uint8_t  waypoint_multi_mission_index;      // Index of mission to be loaded in multi mission entry
 #endif
@@ -441,6 +485,21 @@ typedef struct navConfig_s {
         uint16_t rth_linear_descent_start_distance; // Distance from home to start the linear descent (0 = immediately)
         uint8_t  cruise_yaw_rate;                   // Max yaw rate (dps) when CRUISE MODE is enabled
         uint16_t rth_fs_landing_delay;              // Delay upon reaching home before starting landing if in FS (0 = immediate)
+#ifdef USE_MARKER_GUIDANCE
+        uint8_t  marker_guidance_mode;            // navMarkerGuidanceMode_e
+        uint8_t  marker_guidance_source;          // navMarkerGuidanceSource_e
+        uint16_t marker_guidance_max_target_age_ms;
+        uint16_t marker_guidance_max_offset_cm;
+        uint16_t marker_guidance_radius_cm;
+        int16_t  marker_containment_hold_north_cm;
+        int16_t  marker_containment_hold_east_cm;
+        uint16_t marker_guidance_lost_hold_time_ms;
+        uint8_t  marker_guidance_retry_count;
+        uint16_t marker_guidance_retry_min_alt_cm;
+        bool     marker_guidance_low_alt_lock_xy;
+        uint16_t marker_guidance_retry_altitude_cm;
+        uint16_t marker_guidance_retry_timeout_ms;
+#endif
     } general;
 
     struct {
@@ -458,7 +517,6 @@ typedef struct navConfig_s {
         uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
         uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
 #endif
-
         uint8_t posDecelerationTime;            // Brake time parameter
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
         bool slowDownForTurning;                // Slow down during WP missions when changing heading on next waypoint
@@ -631,6 +689,14 @@ typedef enum {
     MW_NAV_STATE_HOVER_ABOVE_HOME,        // Hover/Loitering above home
     MW_NAV_STATE_EMERGENCY_LANDING,       // Emergency landing
     MW_NAV_STATE_RTH_CLIMB,               // RTH Climb safe altitude
+#ifdef USE_MARKER_GUIDANCE
+    MW_NAV_STATE_MARKER_GUIDANCE_STANDBY,
+    MW_NAV_STATE_MARKER_GUIDANCE_POSHOLD_CORRECTION,
+    MW_NAV_STATE_MARKER_GUIDANCE_LAND_CORRECTION,
+    MW_NAV_STATE_MARKER_GUIDANCE_TARGET_LOST_HOLD,
+    MW_NAV_STATE_MARKER_GUIDANCE_CLIMB_AND_RETRY,
+    MW_NAV_STATE_MARKER_GUIDANCE_FALLBACK_NORMAL_LAND,
+#endif
 } navSystemStatus_State_e;
 
 typedef enum {
@@ -652,6 +718,14 @@ typedef enum {
     MW_NAV_FLAG_ADJUSTING_POSITION  = 1 << 0,
     MW_NAV_FLAG_ADJUSTING_ALTITUDE  = 1 << 1,
 } navSystemStatus_Flags_e;
+
+#ifdef USE_AUTO_TRANSITION
+typedef enum {
+    NAV_VTOL_TRANSITION_OSD_NONE = 0,
+    NAV_VTOL_TRANSITION_OSD_RETRY_SCAN,
+    NAV_VTOL_TRANSITION_OSD_RETRY_ALIGN,
+} navVtolTransitionOsdState_e;
+#endif
 
 typedef struct {
     navSystemStatus_Mode_e  mode;
@@ -711,6 +785,7 @@ int getWaypointCount(void);
 bool isWaypointListValid(void);
 int isGCSValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
+bool navGetMissionWaypointByRelativeIndex(int16_t relativeIndex, navWaypoint_t *wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
 bool navSetActiveWaypointIndex(uint8_t index);  // MSP2_INAV_SET_WP_INDEX: jump to WP during active mission
@@ -793,6 +868,9 @@ bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int3
  */
 bool navigationRTHAllowsLanding(void);
 bool isWaypointMissionRTHActive(void);
+#ifdef USE_AUTO_TRANSITION
+navVtolTransitionOsdState_e navigationVtolTransitionOsdState(void);
+#endif
 
 bool rthClimbStageActiveAndComplete(void);
 
