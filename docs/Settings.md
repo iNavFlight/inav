@@ -886,6 +886,16 @@ Re-purpose the craft name field for messages.
 
 ---
 
+### dronecan_battery_id
+
+Only accept BatteryInfo messages whose battery_id field (battery slot) matches this value. Every value 0-255 is a valid battery_id on the wire, so there is no wildcard; the default (0) matches the conventional primary-battery ID used by most peripherals.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 255 |
+
+---
+
 ### dronecan_bitrate_kbps
 
 The speed of the CANbus network in kbps. Set all devices to the same speed. 
@@ -896,6 +906,16 @@ The speed of the CANbus network in kbps. Set all devices to the same speed.
 | 250 |  |
 | 500 |  |
 | 1000 | Default |
+
+---
+
+### dronecan_gps_node_id
+
+Filter GPS messages by source Node ID. 0 = use any node.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 127 |
 
 ---
 
