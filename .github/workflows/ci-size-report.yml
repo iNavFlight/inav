@@ -1,31 +1,42 @@
 name: CI Size Report
 
-# Runs after "Build firmware" completes. Uses workflow_run (rather than
-# pull_request/push directly) so that secrets are available even for PRs
-# from forks — same reasoning as pr-test-builds.yml.
+# Uses workflow_run (rather than pull_request/push directly) so that
+# secrets are available even for PRs from forks — same reasoning as
+# pr-test-builds.yml.
 #
-# Two jobs:
-#  - publish-baseline: on any branch push that triggers ci.yml (in practice,
-#    almost always maintenance-9.x/maintenance-10.x — see ci.yml's own push
-#    trigger for the exact filter), persists the size report as a release
-#    asset in the companion iNavFlight/pr-test-builds repo, so PR runs never
-#    need to rebuild the base branch to get a comparison point. Stale
-#    baselines for since-deleted branches aren't cleaned up automatically
-#    (same known limitation pr-test-builds has for old PR releases).
-#  - pr-comment: on PR builds, fetches that persisted baseline, diffs the
-#    4 representative targets, and posts/updates a PR comment.
+# Listens to two different upstream workflows, for two different jobs:
+#  - publish-baseline listens for "Build pre-release" (nightly-build.yml),
+#    NOT "Build firmware" directly. ci.yml's own `on: push:` trigger is
+#    broken (a branches: list with only a negative pattern matches
+#    nothing — confirmed empirically, zero push-triggered "Build firmware"
+#    runs exist). "Build pre-release" is push-triggered correctly and
+#    already invokes ci.yml's jobs via `uses:` (workflow_call) as part of
+#    building nightly releases — piggybacking here costs nothing extra,
+#    no second build. Persists the size report as a release asset in the
+#    companion iNavFlight/pr-test-builds repo, so PR runs never need to
+#    rebuild the base branch to get a comparison point. Only fires for
+#    branches nightly-build.yml's own push trigger covers (currently
+#    master, maintenance-9.x, maintenance-10.x, release/9.1 — see that
+#    file). Stale baselines for since-deleted branches aren't cleaned up
+#    automatically (same known limitation pr-test-builds has for old PR
+#    releases).
+#  - pr-comment listens for "Build firmware" (ci.yml) directly — PR builds
+#    genuinely do trigger it via `pull_request`, that part isn't broken.
+#    Fetches the persisted baseline, diffs the 4 representative targets,
+#    and posts/updates a PR comment.
 #
 # Requires the same repository secret PR_BUILDS_TOKEN as pr-test-builds.yml
 # (Contents: write access to iNavFlight/pr-test-builds).
 on:
   workflow_run:
-    workflows: ["Build firmware"]
+    workflows: ["Build firmware", "Build pre-release"]
     types: [completed]
 
 jobs:
   publish-baseline:
     runs-on: ubuntu-latest
     if: >
+      github.event.workflow_run.name == 'Build pre-release' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.conclusion == 'success'
     concurrency:
@@ -73,6 +84,7 @@ jobs:
   pr-comment:
     runs-on: ubuntu-latest
     if: >
+      github.event.workflow_run.name == 'Build firmware' &&
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
     concurrency:
