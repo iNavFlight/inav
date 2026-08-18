@@ -160,6 +160,8 @@
 #define USE_BARO_MS5611
 #define USE_BARO_DPS310
 #define USE_BARO_SPL06
+#define USE_BARO_BMP388
+
 //** MAG **//
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
