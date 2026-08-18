@@ -88,56 +88,6 @@ static uint8_t gpsMapFixType(uint8_t dronecanFixType)
     return GPS_NO_FIX;
 }
 
-void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix)
-{
-    gpsSolDRV.fixType   = gpsMapFixType(pgnssFix->status);
-    gpsSolDRV.numSat    = pgnssFix->sats_used;
-    gpsSolDRV.llh.lon   = pgnssFix->longitude_deg_1e8 / 10; // convert to deg_1e7
-    gpsSolDRV.llh.lat   = pgnssFix->latitude_deg_1e8 / 10; // convert to deg_1e7
-    gpsSolDRV.llh.alt   = pgnssFix->height_msl_mm / 10; // convert to cm
-    gpsSolDRV.velNED[X] = pgnssFix->ned_velocity[0] * 100; // Dronecan is North, East, Down
-    gpsSolDRV.velNED[Y] = pgnssFix->ned_velocity[1] * 100;
-    gpsSolDRV.velNED[Z] = pgnssFix->ned_velocity[2] * 100;
-    gpsSolDRV.groundSpeed = calc_length_pythagorean_2D((float)pgnssFix->ned_velocity[0], (float)pgnssFix->ned_velocity[1]) * 100;
-    float groundCourse = atan2_approx(pgnssFix->ned_velocity[1], pgnssFix->ned_velocity[0]); // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
-    if (groundCourse < 0) {
-        groundCourse += 2 * M_PIf;
-    }
-    gpsSolDRV.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
-    // TODO where to get EPH gpsSolDRV.eph = gpsConstrainEPE(pgnssFix-> / 10);
-    // TODO where to get EPV gpsSolDRV.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
-    if(pgnssFix->pdop > 0){
-        gpsSolDRV.hdop = gpsConstrainHDOP(pgnssFix->pdop * 100);  // Only update if populated
-    } else if((9999 > lastHDOP) && (lastHDOP> 0)) {
-        gpsSolDRV.hdop = lastHDOP;
-    }
-    gpsSolDRV.flags.validVelNE = true;
-    gpsSolDRV.flags.validVelD = true;
-    gpsSolDRV.flags.validEPE = false;  // assume invalid unless the covariance is filled in.
-    if (pgnssFix->position_covariance.len >= 6) {
-        float var_x = pgnssFix->position_covariance.data[0];  // meters²
-        float var_y = pgnssFix->position_covariance.data[2];  // meters²
-        float var_z = pgnssFix->position_covariance.data[5];  // meters²
-
-        gpsSolDRV.eph = gpsConstrainEPE((uint32_t)(sqrtf(var_x + var_y) * 100));  // cm
-        gpsSolDRV.epv = gpsConstrainEPE((uint32_t)(sqrtf(var_z) * 100));          // cm
-        gpsSolDRV.flags.validEPE = true;
-    } 
-
-    // gpsSolDRV.time.year   = pkt->year;
-    // gpsSolDRV.time.month  = pkt->month;
-    // gpsSolDRV.time.day    = pkt->day;
-    // gpsSolDRV.time.hours  = pkt->hour;
-    // gpsSolDRV.time.minutes = pkt->min;
-    // gpsSolDRV.time.seconds = pkt->sec;
-    // gpsSolDRV.time.millis  = 0;
-
-    gpsSolDRV.flags.validTime = 0; //(pkt->fixType >= 3);
-
-    gpsProcessNewDriverData();
-    newDataReady = true;
-}
-
 /* Shared acceptance gate for GNSS Fix2/Auxiliary messages: rejects
  * unhealthy nodes and non-matching gpsNodeId, then applies the
  * first-over-fence lock so two GPS nodes can't race to write gpsSolDRV.

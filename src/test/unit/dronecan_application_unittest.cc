@@ -96,7 +96,6 @@ bool isHardwareHealthy(void) { return true; }
 void _logf(logTopic_e topic, unsigned level, const char *fmt, ...) { (void)topic; (void)level; (void)fmt; }
 
 /* GPS and battery DroneCAN receive stubs */
-void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix *p) { (void)p; }
 void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 *p, uint8_t sourceNodeId) { (void)p; (void)sourceNodeId; }
 void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliary *p, uint8_t sourceNodeId) { (void)p; (void)sourceNodeId; }
 void dronecanGpsOnNodeEvicted(uint8_t nodeID) { (void)nodeID; }
