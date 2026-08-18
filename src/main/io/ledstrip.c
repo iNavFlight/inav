@@ -894,10 +894,11 @@ static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
 
         if (ledGetOverlayBit(ledConfig, LED_OVERLAY_RAINBOW)) {
-            hsvColor_t ledColor;
-            getLedHsv(i, &ledColor);
-            ledColor.h = (rainbowHue + (i * rainbowSpacing)) % 360;
-            setLedHsv(i, &ledColor);
+    hsvColor_t ledColor;
+    ledColor.h = (rainbowHue + (i * rainbowSpacing)) % 360;
+    ledColor.s = 0;      // 0 = fully saturated in this codebase's convention
+    ledColor.v = 255;    // full brightness
+    setLedHsv(i, &ledColor);
         }
     }
 }
