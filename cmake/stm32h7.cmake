@@ -163,6 +163,7 @@ main_sources(STM32H7_SRC
     drivers/sdio.h
     drivers/sdcard/sdmmc_sdio_hal.c
     drivers/dronecan/libcanard/canard_stm32h7xx_driver.c
+    drivers/dronecan/libcanard/canard_stm32_timing.c
 
 )
 

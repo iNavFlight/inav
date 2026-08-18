@@ -11,7 +11,7 @@ DroneCAN (formerly UAVCAN v0) is a lightweight protocol designed for reliable co
 | Battery Current | Supported | Current sensing from DroneCAN battery monitors |
 | Parameter Get/Set | Planned | Remote parameter configuration |
 | ESC Control | Planned | Motor control via DroneCAN ESCs |
-| Dynamic Node Assignment | Planned | Manage node IDs dynamically to minimize first time configuration |
+| Dynamic Node Assignment | Supported | Automatically assign CAN node IDs to plug-and-play DroneCAN peripherals |
 
 ## Supported Hardware
 
@@ -38,10 +38,11 @@ save
 
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
-| `dronecan_node_id` | 1-127 | 10 | CAN node ID for the flight controller |
-| `dronecan_bitrate` | 125KBPS, 250KBPS, 500KBPS, 1000KBPS | 1000KBPS | CAN bus bitrate |
+| `dronecan_node_id` | 1-127 | 1 | CAN node ID for the flight controller |
+| `dronecan_bitrate_kbps` | 125, 250, 500, 1000 | 1000 | CAN bus bitrate in kbps |
+| `dronecan_use_dna_server` | ON, OFF | ON | Enable automatic node ID assignment for plug-and-play peripherals |
 
-All peripherals need to have the node ID and the bitrate set manually through the dronecan_gui for now.  You can use your flight controller as a CAN interface by loading an Ardupilot image on it.  Once the set up is complete, you can reflash it to Inav.
+With `dronecan_use_dna_server = ON` (the default), peripherals that support Dynamic Node Allocation and have their node ID set to 0 (anonymous/unset) negotiate their node IDs automatically at power-up. Only the CAN bitrate needs to match across the bus. Peripherals that do not support DNA, or that already have a static node ID configured, will not send Allocation requests and must have their node ID set manually via a tool such as dronecan_gui. You can use your flight controller as a CAN interface by loading an ArduPilot image on it; once configuration is complete, reflash to INAV.
 
 ### GPS via DroneCAN
 
@@ -154,13 +155,14 @@ Setting up multiple DroneCAN peripherals on a single CAN bus:
 
 ```
 # Flight Controller Configuration
-set dronecan_node_id = 10           # Flight controller = node 10
-set dronecan_bitrate = 1000KBPS
+set dronecan_node_id = 1            # Flight controller = node 1
+set dronecan_bitrate_kbps = 1000
+set dronecan_use_dna_server = ON    # Enable plug-and-play node assignment (default)
 
-# Configure GPS (from node 1)
+# Configure GPS
 set gps_provider = DRONECAN
 
-# Configure battery monitor (from node 2)
+# Configure battery monitor
 set bat_voltage_src = CAN
 feature CURRENT_METER
 set current_meter_type = CAN
@@ -168,10 +170,13 @@ set current_meter_type = CAN
 save
 ```
 
-**Peripheral Configuration (using dronecan_gui or similar tool):**
-- **GPS Receiver:** Node ID = 1, Bitrate = 1000 KBPS
-- **Battery Monitor:** Node ID = 2, Bitrate = 1000 KBPS
-- **Potential Future Peripheral:** Node ID = 3, etc.
+**Peripheral Configuration:**
+
+With `dronecan_use_dna_server = ON`, peripherals that support Dynamic Node Allocation negotiate their node IDs automatically — no manual per-device configuration needed. Just set the CAN bitrate to match on every device.
+
+For peripherals that do not support DNA, use dronecan_gui to assign a static node ID:
+- **GPS Receiver:** Node ID = 2, Bitrate = 1000 KBPS
+- **Battery Monitor:** Node ID = 3, Bitrate = 1000 KBPS
 
 **CAN Bus Layout:**
 ```
@@ -294,6 +299,40 @@ gps_provider = DRONECAN
 bat_voltage_src = CAN
 current_meter_type = CAN
 ```
+
+## Dynamic Node Allocation (Plug and Play)
+
+DroneCAN supports a three-stage handshake protocol (defined in UAVCAN Specification §6.4.9) that lets peripherals negotiate a unique node ID at power-up without any manual configuration. INAV implements a non-redundant (single-master) DNA server.
+
+### How it works
+
+1. The peripheral powers on without a node ID (anonymous mode).
+2. It broadcasts an Allocation request containing the first 6 bytes of its 16-byte hardware unique ID, optionally including a preferred node ID.
+3. INAV responds with an echo of the bytes received so far, prompting the peripheral to send the next 6 bytes.
+4. After three stages (6 + 6 + 4 bytes), INAV has the full UID and assigns a node ID.
+5. INAV stores the UID→node ID mapping in flash so the same peripheral receives the same ID on every power cycle.
+
+All three stages must arrive within 500 ms of each other, or the handshake resets.
+
+### Preferred node IDs
+
+A peripheral may include a preferred node ID in its Stage 1 request. INAV honours the request if the ID is in the valid range (1–127) and not already assigned. If the requested ID is unavailable, INAV falls back to the next free ID in sequence.
+
+### Allocation table
+
+INAV stores up to 32 UID→node ID mappings in persistent flash storage. The table survives power cycles, so peripherals receive consistent node IDs across reboots. The table is managed automatically and is not directly user-configurable.
+
+The flight controller's own node ID is never assigned to a peripheral.
+
+### Enabling / disabling
+
+```
+set dronecan_use_dna_server = ON    # default — plug-and-play enabled
+set dronecan_use_dna_server = OFF   # static node IDs only
+save
+```
+
+---
 
 ## Hardware Setup
 
