@@ -30,7 +30,9 @@
 // updates, so a few cached entries catch most repeats without the cost of a
 // full RGB-native color store. Round-robin replacement is enough here: the
 // working set per frame is normally <= 4 distinct colors, so eviction order
-// doesn't matter much.
+// doesn't matter much. Not safe for concurrent callers (e.g. one from an
+// ISR, one from task context) — currently fine since the sole caller
+// (light_ws2811strip.c) never does that.
 static struct {
     hsvColor_t in;
     rgbColor24bpp_t out;

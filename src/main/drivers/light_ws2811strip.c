@@ -122,19 +122,24 @@ bool ledConfigureDMA(void) {
     return timerPWMConfigChannelDMA(ws2811TCH, ledStripDMABuffer, sizeof(ledStripDMABuffer[0]), WS2811_CHUNK_BUFFER_SIZE);
 }
 
+// Written from both task context and the DMA refill ISR (never truly
+// concurrently — the ISR only runs while a transfer is active, and task
+// context only touches these once it isn't — but volatile documents that
+// and guards against the compiler assuming otherwise).
+
 // Number of LEDs in the most recent transfer; bounds the DMA transfer (and
 // ws2811SetIdleHigh's target) to what's actually configured.
-static uint16_t activeLedCount = WS2811_LED_STRIP_LENGTH;
+static volatile uint16_t activeLedCount = WS2811_LED_STRIP_LENGTH;
 
 // groupInHalf[i]: group index currently in half i, so the refill callback
 // can tell when the group it just finished sending was the last one.
-static uint16_t totalGroups;
-static uint16_t nextGroupToAssign;
-static uint16_t groupInHalf[2];
+static volatile uint16_t totalGroups;
+static volatile uint16_t nextGroupToAssign;
+static volatile uint16_t groupInHalf[2];
 
 // Shared between normal transfer completion and ws2811SetIdleHigh (PINIO).
-static bool lineIdleLow = true;
-static timeUs_t lastLowAtUs = 0;
+static volatile bool lineIdleLow = true;
+static volatile timeUs_t lastLowAtUs = 0;
 
 void ws2811LedStripInit(void)
 {
