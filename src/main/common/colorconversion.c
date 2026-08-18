@@ -16,6 +16,7 @@
  */
 
 #include "stdint.h"
+#include "stdbool.h"
 
 #include "color.h"
 #include "colorconversion.h"
@@ -24,9 +25,33 @@
  * Source below found here: http://www.kasperkamperman.com/blog/arduino/arduino-programming-hsb-to-rgb/
  */
 
+// Small direct-mapped cache of recent HSV->RGB conversions. LED strip
+// patterns tend to reuse a handful of distinct colors across many LEDs and
+// updates, so a few cached entries catch most repeats without the cost of a
+// full RGB-native color store. Round-robin replacement is enough here: the
+// working set per frame is normally <= 4 distinct colors, so eviction order
+// doesn't matter much.
+static struct {
+    hsvColor_t in;
+    rgbColor24bpp_t out;
+    bool valid;
+} hsvToRgbCache[4];
+static uint8_t hsvToRgbCacheNextSlot = 0;
+
+static bool hsvColorEqual(const hsvColor_t *a, const hsvColor_t *b)
+{
+    return a->h == b->h && a->s == b->s && a->v == b->v;
+}
+
 rgbColor24bpp_t* hsvToRgb24(const hsvColor_t* c)
 {
-    static rgbColor24bpp_t r;
+    for (int i = 0; i < 4; i++) {
+        if (hsvToRgbCache[i].valid && hsvColorEqual(&hsvToRgbCache[i].in, c)) {
+            return &hsvToRgbCache[i].out;
+        }
+    }
+
+    rgbColor24bpp_t r;
 
     uint16_t val = c->v;
     uint16_t sat = 255 - c->s;
@@ -79,6 +104,13 @@ rgbColor24bpp_t* hsvToRgb24(const hsvColor_t* c)
 
         }
     }
-    return &r;
+
+    hsvToRgbCache[hsvToRgbCacheNextSlot].in = *c;
+    hsvToRgbCache[hsvToRgbCacheNextSlot].out = r;
+    hsvToRgbCache[hsvToRgbCacheNextSlot].valid = true;
+    rgbColor24bpp_t *cached = &hsvToRgbCache[hsvToRgbCacheNextSlot].out;
+    hsvToRgbCacheNextSlot = (hsvToRgbCacheNextSlot + 1) % 4;
+
+    return cached;
 }
 
