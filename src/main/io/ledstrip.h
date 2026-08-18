@@ -26,7 +26,7 @@
 #define LED_MODE_COUNT                  7
 #define LED_DIRECTION_COUNT             6
 #define LED_BASEFUNCTION_COUNT          8
-#define LED_OVERLAY_COUNT               7
+#define LED_OVERLAY_COUNT               8
 #define LED_SPECIAL_COLOR_COUNT         9
 
 #define LED_FUNCTION_OFFSET             8
@@ -122,7 +122,8 @@ typedef enum {
     LED_OVERLAY_LANDING_FLASH,
     LED_OVERLAY_INDICATOR,
     LED_OVERLAY_WARNING,
-    LED_OVERLAY_STROBE
+    LED_OVERLAY_STROBE,
+    LED_OVERLAY_RAINBOW
 } ledOverlayId_e;
 
 typedef struct modeColorIndexes_s {
