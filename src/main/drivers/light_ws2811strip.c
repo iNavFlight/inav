@@ -141,6 +141,10 @@ static volatile uint16_t groupInHalf[2];
 static volatile bool lineIdleLow = true;
 static volatile timeUs_t lastLowAtUs = 0;
 
+// Idle level PINIO last asked for; persists across transfers so
+// ws2811StopTransfer() knows what to restore the line to.
+static volatile bool idleHighRequested = false;
+
 void ws2811LedStripInit(void)
 {
     const timerHardware_t * timHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
@@ -223,13 +227,20 @@ static void ws2811RefillHalf(uint8_t halfIndex)
 }
 
 // CCR is preload/shadow-buffered, so the direct write below takes effect
-// cleanly at the next period boundary without needing further DMA.
+// cleanly at the next period boundary without needing further DMA. Restores
+// whatever idle level PINIO last asked for, rather than always going low —
+// a transfer finishing shouldn't silently override that.
 static void ws2811StopTransfer(void)
 {
     timerPWMStopDMA(ws2811TCH);
-    *timerCCR(ws2811TCH) = 0;
-    lineIdleLow = true;
-    lastLowAtUs = micros();
+    if (idleHighRequested) {
+        *timerCCR(ws2811TCH) = 255;
+        lineIdleLow = false;
+    } else {
+        *timerCCR(ws2811TCH) = 0;
+        lineIdleLow = true;
+        lastLowAtUs = micros();
+    }
 }
 
 // transferComplete: true = half 1 just finished (DMA wrapped to half 0),
@@ -292,6 +303,12 @@ void ws2811UpdateStrip(uint16_t usedLedCount)
 
 void ws2811SetIdleHigh(bool high)
 {
+    idleHighRequested = high;  // record even if not initialised yet
+
+    if (!ws2811Initialised || !ws2811TCH) {
+        return;
+    }
+
     lineIdleLow = !high;
     *timerCCR(ws2811TCH) = high ? 255 : 0;
     if (!high) {
