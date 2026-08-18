@@ -155,6 +155,8 @@ typedef struct ledStripConfig_s {
     hsvColor_t colors[LED_CONFIGURABLE_COLOR_COUNT];
     modeColorIndexes_t modeColors[LED_MODE_COUNT];
     specialColorIndexes_t specialColors;
+    uint16_t ledstrip_rainbow_freq_hz;   // update rate driving the rainbow overlay's hue sweep, 1-2000Hz
+    uint16_t ledstrip_rainbow_delta_deg; // hue offset between adjacent rainbow-overlay LEDs, 0-359 degrees
 } ledStripConfig_t;
 
 PG_DECLARE(ledStripConfig_t, ledStripConfig);

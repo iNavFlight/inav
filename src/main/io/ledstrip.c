@@ -73,7 +73,7 @@
 #include "telemetry/telemetry.h"
 
 
-PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 2);
+PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 3);
 
 static bool ledStripInitialised = false;
 static bool ledStripEnabled = true;
@@ -154,6 +154,8 @@ void pgResetFn_ledStripConfig(ledStripConfig_t *instance)
     }
     memcpy_fn(&instance->modeColors, &defaultModeColors, sizeof(defaultModeColors));
     memcpy_fn(&instance->specialColors, &defaultSpecialColors, sizeof(defaultSpecialColors));
+    instance->ledstrip_rainbow_freq_hz = 60;
+    instance->ledstrip_rainbow_delta_deg = 30;
 }
 
 static int scaledThrottle;
@@ -239,10 +241,9 @@ bool parseLedStripConfig(int ledIndex, const char *config)
         DIRECTIONS,
         FUNCTIONS,
         RING_COLORS,
-        PARAMS,
         PARSE_STATE_COUNT
     };
-    static const char chunkSeparators[PARSE_STATE_COUNT] = {',', ':', ':',':', ':', '\0'};
+    static const char chunkSeparators[PARSE_STATE_COUNT] = {',', ':', ':',':', '\0'};
 
     ledConfig_t *ledConfig = &ledStripConfigMutable()->ledConfigs[ledIndex];
     memset(ledConfig, 0, sizeof(ledConfig_t));
@@ -251,7 +252,6 @@ bool parseLedStripConfig(int ledIndex, const char *config)
     int baseFunction = 0;
     int overlay_flags = 0;
     int direction_flags = 0;
-    int params = 0;
 
     for (enum parseState_e parseState = 0; parseState < PARSE_STATE_COUNT; parseState++) {
         char chunk[CHUNK_BUFFER_SIZE];
@@ -263,15 +263,9 @@ bool parseLedStripConfig(int ledIndex, const char *config)
             }
             chunk[chunkIndex++] = 0; // zero-terminate chunk
             if (*config != chunkSeparator) {
-                // tolerate config strings saved before the PARAMS field existed - they end
-                // right after RING_COLORS with no trailing ':params'. Anything else is a
-                // genuine parse error.
-                if (!(parseState == RING_COLORS && *config == '\0')) {
-                    return false;
-                }
-            } else {
-                config++;   // skip separator
+                return false;
             }
+            config++;   // skip separator
         }
         switch (parseState) {
             case X_COORDINATE:
@@ -312,16 +306,11 @@ bool parseLedStripConfig(int ledIndex, const char *config)
                 if (color >= LED_CONFIGURABLE_COLOR_COUNT)
                     color = 0;
                 break;
-            case PARAMS:
-                params = fastA2I(chunk);
-                if (params > ((1 << LED_PARAMS_BITCNT) - 1))
-                    params = (1 << LED_PARAMS_BITCNT) - 1;
-                break;
             case PARSE_STATE_COUNT:; // prevent warning
         }
     }
 
-    DEFINE_LED(ledConfig, x, y, color, direction_flags, baseFunction, overlay_flags, params);
+    DEFINE_LED(ledConfig, x, y, color, direction_flags, baseFunction, overlay_flags, 0);
 
     reevaluateLedConfig();
 
@@ -354,7 +343,7 @@ void generateLedConfig(ledConfig_t *ledConfig, char *ledConfigBuffer, size_t buf
     *fptr = 0;
 
     // TODO - check buffer length
-    tfp_sprintf(ledConfigBuffer, "%u,%u:%s:%s:%u:%u", ledGetX(ledConfig), ledGetY(ledConfig), directions, baseFunctionOverlays, ledGetColor(ledConfig), ledGetParams(ledConfig));
+    tfp_sprintf(ledConfigBuffer, "%u,%u:%s:%s:%u", ledGetX(ledConfig), ledGetY(ledConfig), directions, baseFunctionOverlays, ledGetColor(ledConfig));
 }
 
 typedef enum {
@@ -854,51 +843,35 @@ static void applyLarsonScannerLayer(bool updateNow, timeUs_t *timer)
     }
 }
 
-// bit layout of led_params (6 bits) when the LED carries LED_OVERLAY_RAINBOW:
-//   bits [2:0] - spacing index 0-7  -> (index * 10) degrees of hue offset between adjacent LEDs
-//   bits [5:3] - speed index   0-7  -> (index + 1) degrees of hue shift per update tick
-// only the first LED (lowest index) carrying the overlay is consulted; the sweep uses one
-// shared clock for the whole strip (mirroring how the Larson scanner keeps a single shared
-// larsonParameters state rather than per-LED state), so params on any later rainbow LED are
-// ignored.
-#define LED_RAINBOW_SPACING_BITS   3
-#define LED_RAINBOW_SPACING_MASK   ((1 << LED_RAINBOW_SPACING_BITS) - 1)
-#define LED_RAINBOW_SPEED_OFFSET   LED_RAINBOW_SPACING_BITS
-#define LED_RAINBOW_SPEED_MASK     ((1 << LED_RAINBOW_SPACING_BITS) - 1)
-
-// sweep hue across all LEDs carrying the rainbow overlay bit; saturation/value
-// are left as configured for the LED so brightness-based effects (e.g. thrust
-// ring, battery) still compose correctly with this overlay.
+// rainbow overlay sweep, tuned by two global settings (ledstrip_rainbow_freq_hz,
+// ledstrip_rainbow_delta_deg)
+//   ledstrip_rainbow_freq_hz   - how often hue advances by 1 degree (1-2000Hz)
+//   ledstrip_rainbow_delta_deg - hue offset between adjacent rainbow LEDs (0-359)
 static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
 {
     static uint16_t rainbowHue = 0;
-    static uint16_t rainbowSpacing = 20; // degrees offset between adjacent LEDs
-    static uint16_t rainbowSpeed = 2;    // degrees of hue shift per update tick
 
     if (updateNow) {
-        for (unsigned i = 0; i < ledCounts.count; i++) {
-            const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
-            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_RAINBOW)) {
-                uint8_t params = ledGetParams(ledConfig);
-                rainbowSpacing = (params & LED_RAINBOW_SPACING_MASK) * 10;
-                rainbowSpeed = ((params >> LED_RAINBOW_SPEED_OFFSET) & LED_RAINBOW_SPEED_MASK) + 1;
-                break;
-            }
+        uint16_t freqHz = ledStripConfig()->ledstrip_rainbow_freq_hz;
+        if (freqHz == 0) {
+            freqHz = 1; // guard against divide-by-zero in LED_STRIP_HZ()
         }
 
-        rainbowHue = (rainbowHue + rainbowSpeed) % 360;
-        *timer += LED_STRIP_HZ(50);
+        rainbowHue = (rainbowHue + 1) % 360;
+        *timer += LED_STRIP_HZ(freqHz);
     }
+
+    const uint16_t rainbowDelta = ledStripConfig()->ledstrip_rainbow_delta_deg % 360;
 
     for (unsigned i = 0; i < ledCounts.count; i++) {
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
 
         if (ledGetOverlayBit(ledConfig, LED_OVERLAY_RAINBOW)) {
-    hsvColor_t ledColor;
-    ledColor.h = (rainbowHue + (i * rainbowSpacing)) % 360;
-    ledColor.s = 0;      // 0 = fully saturated in this codebase's convention
-    ledColor.v = 255;    // full brightness
-    setLedHsv(i, &ledColor);
+            hsvColor_t ledColor;
+            ledColor.h = (rainbowHue + (i * rainbowDelta)) % 360;
+            ledColor.s = 0;      // 0 = fully saturated in this codebase's convention
+            ledColor.v = 255;    // full brightness
+            setLedHsv(i, &ledColor);
         }
     }
 }
