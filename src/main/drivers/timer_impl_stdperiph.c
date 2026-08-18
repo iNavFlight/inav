@@ -584,6 +584,13 @@ void impl_timerPWMStopDMA(TCH_t * tch)
 {
     TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
     DMA_Cmd(tch->dma->ref, DISABLE);
+
+    // STM32F4/F7 RM: poll EN bit until stream is actually disabled
+    uint32_t timeout = 10000; // ~60us at 168MHz, well above worst-case disable latency
+    while ((tch->dma->ref->CR & DMA_SxCR_EN) && timeout--) {
+        __NOP();
+    }
+
     tch->dmaState = TCH_DMA_IDLE;
     TIM_Cmd(tch->timHw->tim, ENABLE);
 }
