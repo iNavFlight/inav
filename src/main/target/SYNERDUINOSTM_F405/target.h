@@ -58,8 +58,8 @@
 // **** BMI IMU ****// 
 #define USE_IMU_BMI088
 #define IMU_BMI088_ALIGN       CW270_DEG
-#define BMI088_CS_PIN          PB12
-#define BMI088_SPI_BUS         BUS_SPI2
+#define BMI160_CS_PIN          PB12
+#define BMI160_SPI_BUS         BUS_SPI2
 
 #define USE_IMU_BMI160
 #define IMU_BMI160_ALIGN       CW270_DEG
@@ -140,14 +140,13 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
-#define USE_MAG_MPU9250
-
-//#define USE_MAG_ALL
+//#define USE_MAG_HMC5883
+//#define USE_MAG_QMC5883
+//#define USE_MAG_IST8310
+//#define USE_MAG_MAG3110
+//#define USE_MAG_LIS3MDL
+//#define USE_MAG_MPU9250
+#define USE_MAG_ALL
 
 
 // *************** I2C PITOT*****************************
