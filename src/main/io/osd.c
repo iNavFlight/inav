@@ -6214,17 +6214,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             } else {
                 /* Messages shown only when Failsafe, WP, RTH or Emergency Landing not active and landed state inactive */
                 /* ADDS MAXIMUM OF 5 MESSAGES TO TOTAL */
-#ifdef USE_CMS
-                uint32_t menuCountdownMs = cmsGetOpenCountdownRemaining();
-                if (menuCountdownMs > 0) {
-                    unsigned sec = menuCountdownMs / 1000;
-                    unsigned dec = (menuCountdownMs % 1000) / 100;
-                    tfp_sprintf(messageBuf, "MENU IN %u.%u", sec, dec);
-                    ADD_MSG(messageBuf);
-                } else if (IS_RC_MODE_ACTIVE(BOXUSER4) && !cmsInMenu && !cmsIsMenuSwitchLatched()) {
-                    ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_MENU_NAV_REQ));
-                }
-#endif
 #ifdef USE_GEOZONE
                 char buf[12], buf1[12];
                 switch (geozone.messageState) {     /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
@@ -6351,6 +6340,23 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                 }
             }
+#ifdef USE_CMS
+            // In-flight CMS menu messages - shown alongside any active NAV messages
+            // (RTH, WP, etc.) via OSD message rotation. Uses a dedicated buffer
+            // to avoid overwriting messageBuf which may contain NAV state messages.
+            {
+                uint32_t menuCountdownMs = cmsGetOpenCountdownRemaining();
+                if (menuCountdownMs > 0) {
+                    static char cmsMenuBuf[16];
+                    unsigned sec = menuCountdownMs / 1000;
+                    unsigned dec = (menuCountdownMs % 1000) / 100;
+                    tfp_sprintf(cmsMenuBuf, "MENU IN %u.%u", sec, dec);
+                    ADD_MSG(cmsMenuBuf);
+                } else if (IS_RC_MODE_ACTIVE(BOXUSER4) && !cmsInMenu && !cmsIsMenuSwitchLatched()) {
+                    ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_MENU_NAV_REQ));
+                }
+            }
+#endif
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {    /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
             unsigned invalidIndex;
 
