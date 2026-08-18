@@ -412,9 +412,6 @@ static bool shouldAcceptTransfer(const CanardInstance *ins,
         case UAVCAN_EQUIPMENT_GNSS_FIX2_ID:
             *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_FIX2_SIGNATURE;
             return true;
-        case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID:
-            *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_SIGNATURE;
-            return true;
         case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID:
             *out_data_type_signature = UAVCAN_EQUIPMENT_POWER_BATTERYINFO_SIGNATURE;
             return true;
@@ -437,18 +434,6 @@ static void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer
     dronecanGPSReceiveGNSSAuxiliary(&gnssAuxiliary, transfer->source_node_id);
 }
 
-static void handle_GNSSFix(CanardInstance *ins, CanardRxTransfer *transfer) {
-	UNUSED(ins);
-    if (gpsConfig()->provider != GPS_DRONECAN) return;
-    struct uavcan_equipment_gnss_Fix gnssFix;
-
-	if (uavcan_equipment_gnss_Fix_decode(transfer, &gnssFix)) {
-		LOG_WARNING(CAN, "GNSSFix decode failed");
-		return;
-	}
-    dronecanGPSReceiveGNSSFix(&gnssFix);
-}
-
 static void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
 	UNUSED(ins);
     if (gpsConfig()->provider != GPS_DRONECAN) return;
@@ -459,17 +444,6 @@ static void handle_GNSSFix2(CanardInstance *ins, CanardRxTransfer *transfer) {
 		return;
 	}
     dronecanGPSReceiveGNSSFix2(&gnssFix2, transfer->source_node_id);
-}
-
-static void handle_GNSSRCTMStream(CanardInstance *ins, CanardRxTransfer *transfer) {
-	UNUSED(ins);
-    if (gpsConfig()->provider != GPS_DRONECAN) return;
-    struct uavcan_equipment_gnss_RTCMStream gnssRTCMStream;
-
-	if (uavcan_equipment_gnss_RTCMStream_decode(transfer, &gnssRTCMStream)) {
-		LOG_WARNING(CAN, "RTCMStream decode failed");
-		return;
-	}
 }
 
 static void handle_BatteryInfo(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -577,16 +551,18 @@ static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) 
                 handle_GNSSAuxiliary(ins, transfer);
                 break;
 
-            case UAVCAN_EQUIPMENT_GNSS_FIX_ID:
-                handle_GNSSFix(ins, transfer);
+            case UAVCAN_EQUIPMENT_GNSS_FIX_ID: {
+                static bool warned = false;
+                if (!warned) {
+                    LOG_WARNING(CAN, "Node %d: Fix (deprecated) ignored, node must send Fix2",
+                                transfer->source_node_id);
+                    warned = true;
+                }
                 break;
+            }
 
             case UAVCAN_EQUIPMENT_GNSS_FIX2_ID:
                 handle_GNSSFix2(ins, transfer);
-                break;
-
-            case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID:
-                handle_GNSSRCTMStream(ins, transfer);
                 break;
 
             case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID:

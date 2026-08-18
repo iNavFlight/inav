@@ -21,7 +21,6 @@
 #include <time.h>
 
 #include "config/parameter_group.h"
-#include <dronecan_msgs.h>
 
 #include "common/time.h"
 
@@ -180,7 +179,6 @@ bool isGPSHeadingValid(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
 void mspGPSReceiveNewData(const uint8_t * bufferPtr);
-void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix);
 
 const char *getGpsHwVersion(void);
 uint8_t getGpsProtoMajorVersion(void);
