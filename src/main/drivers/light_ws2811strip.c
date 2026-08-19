@@ -64,9 +64,9 @@
 // this is a threshold to check against, not a preamble to budget for.
 #define WS2811_RESET_US 60
 
-// CCR is a 16-bit register on TIM3/TIM4; DMA must write it at that width or
-// the high byte is left stale.
-static DMA_RAM uint16_t ledStripDMABuffer[WS2811_CHUNK_BUFFER_SIZE];
+// timerDMASafeType_t, not a narrower type: DMA writes to CCR must be
+// word-width on every supported platform.
+static DMA_RAM timerDMASafeType_t ledStripDMABuffer[WS2811_CHUNK_BUFFER_SIZE];
 
 static IO_t ws2811IO = IO_NONE;
 static TCH_t * ws2811TCH = NULL;
@@ -188,7 +188,7 @@ bool isWS2811LedStripReady(void)
     return !timerPWMDMAInProgress(ws2811TCH);
 }
 
-static void writeLedBits(uint16_t *dest, const rgbColor24bpp_t *color)
+static void writeLedBits(timerDMASafeType_t *dest, const rgbColor24bpp_t *color)
 {
     uint32_t grb = (color->rgb.g << 16) | (color->rgb.r << 8) | (color->rgb.b);
 
@@ -202,11 +202,11 @@ static void writeLedBits(uint16_t *dest, const rgbColor24bpp_t *color)
 // configured strip actually ends.
 static void ws2811FillGroup(uint8_t halfIndex, uint16_t groupIndex)
 {
-    uint16_t *half = &ledStripDMABuffer[halfIndex * WS2811_GROUP_BITS];
+    timerDMASafeType_t *half = &ledStripDMABuffer[halfIndex * WS2811_GROUP_BITS];
     uint16_t baseLed = groupIndex * WS2811_LEDS_PER_GROUP;
 
     for (uint8_t slot = 0; slot < WS2811_LEDS_PER_GROUP; slot++) {
-        uint16_t *dest = &half[slot * WS2811_BITS_PER_LED];
+        timerDMASafeType_t *dest = &half[slot * WS2811_BITS_PER_LED];
         uint16_t ledIdx = baseLed + slot;
 
         if (ledIdx < activeLedCount) {
@@ -251,12 +251,15 @@ static void ws2811DMARefillCallback(TCH_t * tch, bool transferComplete)
 
     uint8_t finishedHalf = transferComplete ? 1 : 0;
 
-    if (groupInHalf[finishedHalf] == totalGroups - 1) {
+    // Bounds-check nextGroupToAssign itself, not just the group that just
+    // finished — the other half may already hold the true last group, so
+    // checking groupInHalf[finishedHalf] alone lags by one refill and can
+    // assign a group index past totalGroups-1.
+    if (nextGroupToAssign < totalGroups) {
+        ws2811RefillHalf(finishedHalf);
+    } else if (groupInHalf[finishedHalf] == totalGroups - 1) {
         ws2811StopTransfer();
-        return;
     }
-
-    ws2811RefillHalf(finishedHalf);
 }
 
 static void ws2811EnsureResetGap(void)
@@ -306,6 +309,13 @@ void ws2811SetIdleHigh(bool high)
     idleHighRequested = high;  // record even if not initialised yet
 
     if (!ws2811Initialised || !ws2811TCH) {
+        return;
+    }
+
+    // DMA drives CCR directly during an active transfer; don't race it with
+    // a CPU write here. ws2811StopTransfer() applies idleHighRequested once
+    // the in-flight transfer finishes.
+    if (timerPWMDMAInProgress(ws2811TCH)) {
         return;
     }
 
