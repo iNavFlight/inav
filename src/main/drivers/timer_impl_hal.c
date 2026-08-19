@@ -398,7 +398,7 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
             break;
         case 2:
             init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_HALFWORD;
-            init.PeriphOrM2MSrcDataSize = LL_DMA_MDATAALIGN_HALFWORD;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_HALFWORD;
             break;
         case 4:
             init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
