@@ -76,7 +76,7 @@
 #define USE_SDCARD
 #define USE_SDCARD_SITL
 #define USE_TERRAIN
-#define TERRAIN_GRID_BLOCK_CACHE_SIZE 5 // 2048 bytes = 1 grid block; 5 mirrors the small-cache (F405 class) tier
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 4 // mirror the small-RAM (F7/AT32) terrain cache tier of the new base (each entry ~1.1 KB packed)
 #define USE_DRONECAN
 #define DRONECAN_SITL_INTERFACE "vcan0"
 
