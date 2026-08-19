@@ -103,10 +103,10 @@ bool terrainNavGetHeightAtLocation(const gpsLocation_t *loc, float *heightM)
         return false;
     }
 
-    const int16_t h00 = grid->height[info.idx_x][info.idx_y];
-    const int16_t h01 = grid->height[info.idx_x][info.idx_y + 1];
-    const int16_t h10 = grid->height[info.idx_x + 1][info.idx_y];
-    const int16_t h11 = grid->height[info.idx_x + 1][info.idx_y + 1];
+    const int16_t h00 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x, info.idx_y);
+    const int16_t h01 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x, info.idx_y + 1);
+    const int16_t h10 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x + 1, info.idx_y);
+    const int16_t h11 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x + 1, info.idx_y + 1);
 
     const float avg1 = (1.0f - info.frac_x) * h00 + info.frac_x * h10;
     const float avg2 = (1.0f - info.frac_x) * h01 + info.frac_x * h11;
