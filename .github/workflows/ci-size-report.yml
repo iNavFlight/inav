@@ -37,15 +37,46 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event.workflow_run.name == 'Build pre-release' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.conclusion == 'success'
+      github.event.workflow_run.event == 'push'
     concurrency:
       group: size-baseline-${{ github.event.workflow_run.head_branch }}
       cancel-in-progress: true
     permissions:
-      actions: read   # to download artifacts from the triggering workflow run
+      actions: read   # to download artifacts and query job conclusions from the triggering workflow run
     steps:
+      # Don't gate on github.event.workflow_run.conclusion: "Build
+      # pre-release" also runs a separate Release job (nightly upload to
+      # iNavFlight/inav-nightly) that can fail for reasons unrelated to the
+      # build itself (e.g. an expired NIGHTLY_TOKEN) and drags the whole
+      # run's conclusion to failure even when the build succeeded and
+      # produced the artifacts we actually need. Check the specific job
+      # that produces them instead.
+      - name: Check build job succeeded
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          CONCLUSION=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}/jobs" --paginate \
+            --jq '.jobs[] | select(.name == "build / upload-artifacts") | .conclusion')
+          if [ -z "$CONCLUSION" ]; then
+            # Job not found at all usually means the caller/callee job names
+            # changed (e.g. nightly-build.yml's "build" job or ci.yml's
+            # "upload-artifacts" job got renamed) — that's a workflow
+            # structure mismatch, not an expected build failure, and is
+            # exactly the kind of thing that silently broke baseline
+            # publishing before. Warn louder than a plain failed build.
+            echo "::warning::build / upload-artifacts job not found in run ${RUN_ID} — job name may have changed, skipping baseline publish"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          elif [ "$CONCLUSION" != "success" ]; then
+            echo "::notice::build / upload-artifacts did not succeed (conclusion: ${CONCLUSION}), skipping baseline publish"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download size report
+        if: steps.check.outputs.proceed == 'true'
         uses: actions/download-artifact@v4
         with:
           name: size-report
@@ -53,6 +84,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download branch name
+        if: steps.check.outputs.proceed == 'true'
         uses: actions/download-artifact@v4
         with:
           name: branch-name
@@ -60,6 +92,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish baseline
+        if: steps.check.outputs.proceed == 'true'
         env:
           GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
         run: |
