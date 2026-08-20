@@ -116,6 +116,8 @@ static timeUs_t fwLastNavRollCmdTimeUs = 0; // nav-to-nav transition apart from 
 static float fwEffectiveBankLimit = 0.0f;   // adaptive nav bank limit (energy guard), deg; 0 = not yet initialised
 static float fwActiveLoiterRadius = 0.0f;   // effective loiter radius in use (cm), for the turn feed-forward
 static bool fwArcActive = false;            // arc turn coordinator is driving the turn (-> bank headroom, suppress cross-track, roll override)
+static bool fwArcEngaged = false;           // arc coordinator latch across loops; must be cleared on controller reset or a stale arc resumes after a nav interruption
+static int32_t fwArcPrevLegBearing = -1;    // last seen WP leg bearing [centideg] for leg-change detection (-1 = unseeded)
 static bool fwFlyByCappedLatch = false;     // the pending FLY_BY turn hit the lead-time cap -> fly it direct, not as an arc
 static int8_t fwArcDir = 1;                 // active arc turn direction (+1 right / -1 left)
 static float fwArcBankCmd = 0.0f;           // direct-radius arc bank command [centideg] (Approach B), applied to roll while fwArcActive
@@ -319,6 +321,8 @@ void resetFixedWingPositionController(void)
     virtualDesiredPosition.y = 0;
     virtualDesiredPosition.z = 0;
     fwArcActive = false;
+    fwArcEngaged = false;
+    fwArcPrevLegBearing = -1;
     fwFlyByCappedLatch = false;
 
     navPidReset(&posControl.pids.fw_nav);
@@ -658,9 +662,7 @@ static float fwTurnEaseTimeMs(float phiNomDeg)
 static void updateFwTurnArc(timeDelta_t deltaMicros)
 {
     enum { ARC_RAMP_IN = 0, ARC_STEADY, ARC_CAPTURE };
-    static bool    active = false;
     static uint8_t phase;
-    static int32_t prevLegBearing = -1;
     static float   arcCx, arcCy, arcR;
     static int8_t  arcDir;
     static int32_t arcOutBearing;
@@ -672,8 +674,8 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
 
     const bool wpTracking = isWaypointNavTrackingActive() && !needToCalculateCircularLoiter;
     if (navConfig()->fw.wp_turn_coordination != NAV_FW_WP_TURN_COORDINATED || !wpTracking) {
-        active = false;
-        prevLegBearing = -1;
+        fwArcEngaged = false;
+        fwArcPrevLegBearing = -1;
         return;
     }
 
@@ -682,9 +684,9 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
     const float v = posControl.actualState.velXY;
 
-    if (!active) {
-        const bool legChanged = (prevLegBearing >= 0) && (ABS(wrap_18000(legBearing - prevLegBearing)) > 500);
-        prevLegBearing = legBearing;
+    if (!fwArcEngaged) {
+        const bool legChanged = (fwArcPrevLegBearing >= 0) && (ABS(wrap_18000(legBearing - fwArcPrevLegBearing)) > 500);
+        fwArcPrevLegBearing = legBearing;
         if (legChanged) {
             const bool capped = fwFlyByCappedLatch;             // a capped FLY_BY turn is flown direct, not as an arc
             fwFlyByCappedLatch = false;                         // consume the latch on any leg change
@@ -696,7 +698,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                 const float omegaNomCds = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(v / arcRtmp));   // v/R == g*tan(phi)/v
                 const float psiTmp = 0.5f * omegaNomCds * (tTmp / 1000.0f);
                 if (2.0f * psiTmp < (float)ABS(hdgErr)) {       // enough turn left for a steady arc between the ease ramps
-                    active = true;
+                    fwArcEngaged = true;
                     phase = ARC_RAMP_IN;
                     rampMs = 0.0f;
                     arcR = arcRtmp;
@@ -727,11 +729,19 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                 }
             }
         }
-        if (!active) {
+        if (!fwArcEngaged) {
             return;
         }
     } else {
-        prevLegBearing = legBearing;
+        // Mission advanced mid-arc (short leg): retarget the closed-loop capture onto the new leg instead
+        // of finishing the turn onto the stale out-bearing. The capture law is bounded (+/- phiNom) and
+        // hands back once aligned, so consecutive quick corners degrade gracefully instead of being skipped.
+        if (ABS(wrap_18000(legBearing - fwArcPrevLegBearing)) > 500) {
+            fwFlyByCappedLatch = false;
+            arcOutBearing = legBearing;
+            phase = ARC_CAPTURE;
+        }
+        fwArcPrevLegBearing = legBearing;
     }
 
     rampMs += US2S(deltaMicros) * 1000.0f;
@@ -766,7 +776,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         // exactly as cog reaches the out-leg. Robust to roll-lag / cog-lag / tan nonlinearity -> cannot overshoot.
         fwArcBankCmd = constrainf(NAV_FW_ARC_EXIT_GAIN * (float)hdgErrOut, -phiNomCd, phiNomCd);
         if (ABS(hdgErrOut) <= NAV_FW_ARC_EXIT_HANDOFF_CD) {    // aligned -> hand back to the standard controller
-            active = false;
+            fwArcEngaged = false;
             return;
         }
         break;
