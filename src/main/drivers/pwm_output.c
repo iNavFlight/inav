@@ -364,19 +364,16 @@ static uint32_t dshotDmaSource(const pwmOutputPort_t *port)
     return sources[port->tch->timHw->channelIndex];
 }
 
+#if defined(USE_HAL_DRIVER)
 static uint32_t dshotDmaStream(const pwmOutputPort_t *port)
 {
-#if defined(USE_HAL_DRIVER)
     static const uint32_t streams[] = {
         LL_DMA_STREAM_0, LL_DMA_STREAM_1, LL_DMA_STREAM_2, LL_DMA_STREAM_3,
         LL_DMA_STREAM_4, LL_DMA_STREAM_5, LL_DMA_STREAM_6, LL_DMA_STREAM_7
     };
     return streams[DMATAG_GET_STREAM(port->tch->timHw->dmaTag)];
-#else
-    UNUSED(port);
-    return 0;
-#endif
 }
+#endif
 
 static uint32_t dshotTimChannel(const pwmOutputPort_t *port)
 {
