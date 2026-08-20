@@ -3640,7 +3640,7 @@ Max pitch angle when climbing in GPS assisted modes, is also restrained by globa
 
 ### nav_fw_control_smoothness
 
-How smoothly the autopilot controls the airplane to correct the navigation error
+How smoothly the autopilot corrects the navigation error. Pitch uses a low-pass filter. Roll uses an S-curve easing window of n x 100 ms (max 900 ms) applied only when the commanded bank changes abruptly, so steady course tracking is never lagged. 0 = no roll smoothing.
 
 | Default | Min | Max |
 | --- | --- | --- |

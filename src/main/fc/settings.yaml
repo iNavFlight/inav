@@ -3056,7 +3056,7 @@ groups:
         min: 1
         max: 10
       - name: nav_fw_control_smoothness
-        description: "How smoothly the autopilot controls the airplane to correct the navigation error"
+        description: "How smoothly the autopilot corrects the navigation error. Pitch uses a low-pass filter. Roll uses an S-curve easing window of n x 100 ms (max 900 ms) applied only when the commanded bank changes abruptly, so steady course tracking is never lagged. 0 = no roll smoothing."
         default_value: 0
         field: fw.control_smoothness
         min: 0
