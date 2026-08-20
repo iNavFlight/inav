@@ -121,7 +121,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 12);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -253,7 +253,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .wp_turn_mode = SETTING_NAV_FW_WP_TURN_MODE_DEFAULT,                                // FLY_BY, WP mission turn mode
         .turn_ff_gain = SETTING_NAV_FW_TURN_FF_GAIN_DEFAULT,                                // 100, turn FF
         .wp_turn_coordination = SETTING_NAV_FW_WP_TURN_COORDINATION_DEFAULT,                // COORDINATED, arc-based turns
-        .wp_turn_handback_angle = SETTING_NAV_FW_WP_TURN_HANDBACK_ANGLE_DEFAULT,            // 15 deg
         .wp_turn_max_lead_time = SETTING_NAV_FW_WP_TURN_MAX_LEAD_TIME_DEFAULT,              // 3000 ms
         .wp_turn_control_ease = SETTING_NAV_FW_WP_TURN_CONTROL_EASE_DEFAULT,                // 100 ms
     }

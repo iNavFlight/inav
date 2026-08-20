@@ -77,7 +77,6 @@
 #define NAV_FW_LOITER_RADIUS_DECAY   100.0f     // [cm/s] max rate the held loiter radius eases back down (1 m/s)
 #define NAV_FW_TURN_LEAD_TAN_MAX     3.7f       // tan(half turn angle) cap (~150 deg) to bound the lead distance
 #define NAV_FW_ARC_MIN_TURN_ANGLE_CD 3000       // [centideg] only fly the coordinated arc for turns sharper than 30 deg
-#define NAV_FW_ARC_HANDBACK_GUARD_MS 300.0f     // [ms] min time in the arc before handback may fire (anti early-handback)
 #define NAV_FW_ARC_RADIAL_GAIN       0.5f       // [centideg bank / cm radial error] pull back onto the arc radius (TBD from flight)
 #define NAV_FW_ARC_HEADING_GAIN      0.3f       // [centideg bank / centideg tangent heading error] align to the arc (TBD from flight)
 #define NAV_FW_ARC_EXIT_GAIN         2.0f       // [centideg bank / centideg heading error] proportional roll-out capture: bank -> 0 as cog reaches the out-leg (no overshoot)
@@ -119,7 +118,6 @@ static bool fwArcActive = false;            // arc turn coordinator is driving t
 static bool fwArcEngaged = false;           // arc coordinator latch across loops; must be cleared on controller reset or a stale arc resumes after a nav interruption
 static int32_t fwArcPrevLegBearing = -1;    // last seen WP leg bearing [centideg] for leg-change detection (-1 = unseeded)
 static bool fwFlyByCappedLatch = false;     // the pending FLY_BY turn hit the lead-time cap -> fly it direct, not as an arc
-static int8_t fwArcDir = 1;                 // active arc turn direction (+1 right / -1 left)
 static float fwArcBankCmd = 0.0f;           // direct-radius arc bank command [centideg] (Approach B), applied to roll while fwArcActive
 static int8_t loiterDirYaw = 1;
 static bool needToCalculateCircularLoiter;
@@ -566,10 +564,7 @@ static float getFwTurnFeedForward(int32_t navHeadingError)
 
     float ffRadius = 0.0f;
     float ffSign = 0.0f;
-    if (fwArcActive) {                                  // arc turn: full coordinated bank, NO taper (the arc, not the heading error, sets the bank)
-        ffRadius = getFwCoordinatedTurnRadius();
-        ffSign = (float)fwArcDir;
-    } else if (needToCalculateCircularLoiter) {         // loiter circle: known radius
+    if (needToCalculateCircularLoiter) {                // loiter circle: known radius
         ffRadius = fwActiveLoiterRadius;
         ffSign = (float)loiterDirection();
     } else if (isWaypointNavTrackingActive() && ABS(navHeadingError) > NAV_FW_FF_HEADING_DEADBAND_CD) {
@@ -789,7 +784,6 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     DEBUG_SET(DEBUG_FW_TURN, 4, lrintf(fwArcBankCmd));          // bank command [centideg], all phases
     DEBUG_SET(DEBUG_FW_TURN, 5, hdgErrOut);                     // remaining heading to out-leg [centideg]; closed-loop capture -> 0 (should not overshoot)
     DEBUG_SET(DEBUG_FW_TURN, 6, lrintf(tEaseMs));               // roll-in ease time [ms] -> sizes the turn-start lead (V*tEase)
-    fwArcDir = arcDir;
     fwArcActive = true;
 }
 
@@ -1042,17 +1036,17 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                         DEGREES_TO_CENTIDEGREES(navBankLimit),
                                         pidFlags);
 
-    // Coordinated-turn feed-forward: command the bank for the active turn radius so the PID only trims.
-    rollAdjustment += getFwTurnFeedForward(navHeadingError);
-
-    // Arc turn coordinator drives the roll directly while active (overrides PID+FF). Its smoothstep ramps are
-    // already gentle, so control_smoothness is bypassed during the arc (CS is folded into the ease time instead);
-    // the smoother is re-seeded on the first direct frame after an arc handback or a controller reset so a
-    // stale internal state cannot smear or falsely trigger the S-curve.
+    // Arc turn coordinator drives the roll directly while active (overrides the PID; FF is skipped, the
+    // arc bank command already is the coordinated bank). Its smoothstep ramps are already gentle, so
+    // control_smoothness is bypassed during the arc (CS is folded into the ease time instead); the smoother
+    // is re-seeded on the first direct frame after an arc handback or a controller reset so a stale
+    // internal state cannot smear or falsely trigger the S-curve.
     if (fwArcActive) {
         rollAdjustment = fwArcBankCmd;
         fwRollSmoothReseed = true;
     } else {
+        // Coordinated-turn feed-forward: command the bank for the active turn radius so the PID only trims.
+        rollAdjustment += getFwTurnFeedForward(navHeadingError);
         rollAdjustment = applyFwRollInSmoothing(rollAdjustment, deltaMicros, fwRollSmoothReseed);
         fwRollSmoothReseed = false;
     }
