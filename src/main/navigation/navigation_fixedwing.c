@@ -467,7 +467,7 @@ static float getFwControlBankLimit(void)
 
 // Reduce the effective bank limit when a commanded climb can't be sustained near the pitch/throttle
 // limit while banked, so the turn/loiter widens and the climb recovers. Uses target-vs-actual Vz.
-static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t correctedThrottleValue)
+static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t autoThrottleValue)
 {
     static timeUs_t lastUpdateUs = 0;
     static timeUs_t lastTriggerUs = 0;
@@ -523,7 +523,10 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t correctedTh
 
     const float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES((float)navConfig()->fw.max_climb_angle);
     const bool nearPitchLimit = (float)posControl.rcAdjustment[PITCH] >= NAV_FW_GUARD_PITCH_FRAC * maxClimbDeciDeg;
-    const bool nearThrottleLimit = correctedThrottleValue >= (currentBatteryProfile->nav.fw.max_throttle - NAV_FW_GUARD_THROTTLE_MARGIN);
+    // Throttle branch means "auto-throttle authority exhausted": compare the AUTO demand only, so a
+    // pilot holding manual full throttle (allow_manual_thr_increase) does not permanently arm it.
+    // A genuine energy crisis is still caught by the pitch branch (climb pitch saturates).
+    const bool nearThrottleLimit = autoThrottleValue >= (currentBatteryProfile->nav.fw.max_throttle - NAV_FW_GUARD_THROTTLE_MARGIN);
     const bool climbCommanded = targetVz > NAV_FW_GUARD_VZ_CLIMB_MIN;
 
     const bool trigger = banked && climbCommanded && deficitLatched && (nearPitchLimit || nearThrottleLimit);
@@ -1212,6 +1215,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             }
 
             uint16_t correctedThrottleValue = constrain(cruiseThrottle + throttleCorrection, minThrottle, maxThrottle);
+            const uint16_t autoThrottleValue = correctedThrottleValue;   // auto demand before manual increase, for the energy guard
 
             // Manual throttle increase
             if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
@@ -1228,7 +1232,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
 
             // Update the energy guard now that this cycle's pitch + throttle commands are known.
-            updateFwEnergyBankGuard(currentTimeUs, correctedThrottleValue);
+            updateFwEnergyBankGuard(currentTimeUs, autoThrottleValue);
         }
     }
 
