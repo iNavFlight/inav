@@ -99,6 +99,10 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+#ifdef USE_TERRAIN
+#include "terrain/terrain_nav_hold.h"
+#endif
+
 #include "rx/rx.h"
 #include "rx/msp_override.h"
 
@@ -117,6 +121,10 @@
 
 #ifdef USE_BLACKBOX
 #include "blackbox/blackbox_io.h"
+#endif
+
+#ifdef USE_TERRAIN
+#include "terrain/terrain.h"
 #endif
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
@@ -2479,19 +2487,29 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-#ifdef USE_RANGEFINDER
-    case OSD_RANGEFINDER:
+#if defined(USE_RANGEFINDER) || defined(USE_TERRAIN)
+        case OSD_RANGEFINDER:
         {
-            int32_t range = rangefinderGetLatestRawAltitude();
+            int32_t range = -1;
+
+#if defined(USE_RANGEFINDER)
+            range = rangefinderGetLatestRawAltitude();
+#ifdef USE_TERRAIN
+            if (!rangefinderIsHealthy() || range == RANGEFINDER_OUT_OF_RANGE) {
+                range = terrainGetLastDistanceCm();
+            }
+#endif
+#elif defined(USE_TERRAIN)
+            range = terrainGetLastDistanceCm();
+#endif
+
             if (range < 0) {
-                buff[0] = '-';
-                buff[1] = '-';
-                buff[2] = '-';
+                buff[0] = buff[1] = buff[2] = '-';
             } else {
-                osdFormatDistanceSymbol(buff, range, 1, 3);
+                osdFormatDistanceSymbol(buff, range, 0, 3);
             }
         }
-        break;
+            break;
 #endif
 
     case OSD_ONTIME:
@@ -2627,6 +2645,10 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "LOTR";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
                 p = "HOLD";
+#ifdef USE_TERRAIN
+            else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE) && terrainNavHoldIsEngaged())
+                p = "TERR";
+#endif
             else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE))
                 p = "CRUZ";
             else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE))
@@ -5437,7 +5459,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 
                 int32_t logNumber = blackboxGetLogNumber();
                 if (logNumber >= 0) {
-                    tfp_sprintf(buff, ": %05ld ", logNumber);
+                    tfp_sprintf(buff, ": %05ld ", (long)logNumber);
                 } else {
                     strcat(buff, ": INVALID");
                 }
@@ -6118,6 +6140,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         const char *messages[8];
         unsigned messageCount = 0;
         #define ADD_MSG(msg) do { if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg); } while(0)
+#ifdef USE_TERRAIN
+        /* The terrain floor warnings are crash-avoidance class: they blink
+         * like the failsafe info text below. Remembering the stored pointer
+         * lets the blink decision match the exact message on display */
+        const char *terrainUrgentMessage = NULL;
+#endif
 
         const char *failsafeInfoMessage = NULL;
         const char *invertedInfoMessage = NULL;
@@ -6249,6 +6277,51 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         break;
                 }
 #endif
+#ifdef USE_TERRAIN
+                /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL: the worst warning, and -
+                 * while the hold is actually climbing to the minimum - the
+                 * auto-climb info alternating beneath it, so the pilot always
+                 * sees both the danger and the action being taken */
+                switch (terrainNavHoldGetWarning()) {
+                    case TERRAIN_NAV_HOLD_WARN_NOT_READY:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_NOT_READY));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_DATA_LOST:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_DATA_LOST));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_MAX_ALT:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_VS_MAX_ALT));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_PULL_UP:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_PULL_UP));
+                        if (messageCount) {
+                            terrainUrgentMessage = messages[messageCount - 1];
+                        }
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_TURN_AWAY:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_TURN_AWAY));
+                        if (messageCount) {
+                            terrainUrgentMessage = messages[messageCount - 1];
+                        }
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_NO_HEADING:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_NO_HEADING));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AUTO_CLIMB));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AHEAD));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_NONE:
+                        break;
+                }
+                if (terrainNavHoldAutoClimbRunning()
+                        && terrainNavHoldGetWarning() != TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB
+                        && terrainNavHoldGetWarning() != TERRAIN_NAV_HOLD_WARN_NONE) {
+                    ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AUTO_CLIMB));
+                }
+#endif
                 if (STATE(AIRPLANE)) {      /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
 #ifdef USE_FW_AUTOLAND
                     if (canFwLandingBeCancelled()) {
@@ -6376,6 +6449,13 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 // a lost model, but might help avoiding a crash.
                 // Blink to grab user attention.
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+#ifdef USE_TERRAIN
+            } else if (terrainUrgentMessage && message == terrainUrgentMessage) {
+                // The terrain floor warnings are the same class: act NOW to
+                // avoid the terrain. The no-blink note below protects
+                // recovery info, not urgent warnings
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+#endif
             } else if (message == invertedInfoMessage) {
                 TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
             }
