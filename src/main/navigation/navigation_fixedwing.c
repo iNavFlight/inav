@@ -59,12 +59,12 @@
 // Base frequency for smoothing the pitch command and the pitch-to-throttle correction
 #define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f
 
-// Roll-command S-curve smoothing: control_smoothness (0..9) -> easing window = n*100 ms (0 = off),
-// capped at 1000 ms. Triggered only on an abrupt commanded-bank step (>20% of the configured roll
+// Roll-command S-curve smoothing: control_smoothness (0..9) -> easing window = n*100 ms (0 = off,
+// max 900 ms). Triggered only on an abrupt commanded-bank step (>20% of the configured roll
 // rate between nav loops), then eased over the window and passed 1:1 afterwards. Unlike the previous
 // PT1 low-pass this never lags steady tracking, so the controller command stays deterministic.
 #define NAV_FW_SMOOTH_TCONST_PER_STEP_MS  100.0f
-#define NAV_FW_SMOOTH_TCONST_MAX_MS       1000.0f
+#define NAV_FW_SMOOTH_TCONST_MAX_MS       900.0f
 #define NAV_FW_SMOOTH_STEP_FRACTION       0.2f
 
 // If we are going slower than the minimum ground speed (navConfig()->general.min_ground_speed) - boost throttle to fight against the wind

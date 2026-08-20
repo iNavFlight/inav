@@ -1457,7 +1457,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
             // until the roll-out is complete, else the locked course is overshot and reverse-corrected.
             posControl.cruise.course = posControl.actualState.cog;
         } else {
-            posControl.cruise.course = posControl.actualState.cog - DEGREES_TO_CENTIDEGREES(gyroRateDps(YAW));
+            // Rolled out: lock to the current COG. The former yaw-rate lead term mixed a rate into an
+            // angle; with the bank gate the residual turn rate at lock time is negligible anyway.
+            posControl.cruise.course = posControl.actualState.cog;
             resetPositionController();
             fwCruiseCourseLockPending = false;
         }
