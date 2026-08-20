@@ -135,9 +135,8 @@ static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
 static currentExecutingCommand_t currentExecutingCommand;
 
 static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry);
-#ifndef USE_DSHOT_DMAR
 static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet);
-#else
+#ifdef USE_DSHOT_DMAR
 static void loadDmaBufferDshotStride(timerDMASafeType_t *dmaBuffer, int stride, uint16_t packet);
 #endif
 
@@ -731,7 +730,11 @@ static void loadDmaBufferDshotStride(timerDMASafeType_t *dmaBuffer, int stride, 
     dmaBuffer[i++ * stride] = 0;
     dmaBuffer[i++ * stride] = 0;
 }
-#else
+#endif
+
+// Needed on every target, DMAR or not: DMAR targets fall back to this
+// per-channel loader whenever bidir telemetry is enabled, since burst DMA
+// can't drive per-channel direction switching.
 static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet)
 {
     for (int i = 0; i < 16; i++) {
@@ -741,7 +744,6 @@ static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet)
     dmaBuffer[16] = 0;
     dmaBuffer[17] = 0;
 }
-#endif
 
 static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
 {
