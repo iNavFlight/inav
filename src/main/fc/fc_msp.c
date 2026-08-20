@@ -3287,11 +3287,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             const uint8_t msp_radar_no = sbufReadU8(src); // Radar poi number, 0 to 5
             if(msp_radar_no < RADAR_MAX_POIS) {
                 radar_pois[msp_radar_no].state = sbufReadU8(src);                      // 0=undefined, 1=armed, 2=lost
-
-                if (radar_pois[msp_radar_no].state == 0) {
-                    memset(radar_pois[msp_radar_no].name, 0, sizeof(radar_pois[msp_radar_no].name));
-                }
-
                 radar_pois[msp_radar_no].gps.lat = sbufReadU32(src);                   // lat 10E7
                 radar_pois[msp_radar_no].gps.lon = sbufReadU32(src);                   // lon 10E7
                 radar_pois[msp_radar_no].gps.alt = sbufReadU32(src);                   // altitude (cm)
