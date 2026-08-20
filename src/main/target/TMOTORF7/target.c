@@ -30,12 +30,12 @@
 
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8,  CH1,  PC6,  TIM_USE_OUTPUT_AUTO, 0, 1),
-    DEF_TIM(TIM8,  CH2,  PC7,  TIM_USE_OUTPUT_AUTO, 0, 1),
+    DEF_TIM(TIM8,  CH2,  PC7,  TIM_USE_OUTPUT_AUTO, 0, 0), // dmavar 0: dedicated stream on F7 (index order is reversed vs F4 for TIM8 CH1-3), avoids sharing CH1's combined-channel request
     DEF_TIM(TIM3,  CH3,  PB0,  TIM_USE_OUTPUT_AUTO, 0, 0),
     DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_OUTPUT_AUTO, 0, 0),
 
     DEF_TIM(TIM4,  CH1,  PB6,  TIM_USE_OUTPUT_AUTO, 0, 0),
-    DEF_TIM(TIM4,  CH3,  PB8,  TIM_USE_OUTPUT_AUTO, 0, 0),
+    DEF_TIM(TIM4,  CH3,  PB8,  TIM_USE_OUTPUT_AUTO, 0, 0), // shares TIM3_CH3's DMA stream (both have only one DMA option); DSHOT does not work on this output
 
     // DEF_TIM(TIM2,  CH1,  PA15, TIM_USE_PPM,                 0, 0),
     DEF_TIM(TIM11, CH1,  PB9,  TIM_USE_ANY,                 0, 0),
