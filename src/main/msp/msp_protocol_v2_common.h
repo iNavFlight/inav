@@ -32,6 +32,7 @@
 // radar commands
 #define MSP2_COMMON_SET_RADAR_POS           0x100B //SET radar position information
 #define MSP2_COMMON_SET_RADAR_ITD           0x100C //SET radar information to display
+#define MSP2_COMMON_SET_RADAR_PEER_NAME     0x1010
 
 #define MSP2_COMMON_SET_MSP_RC_LINK_STATS   0x100D //in message        Sets the MSP RC stats
 #define MSP2_COMMON_SET_MSP_RC_INFO         0x100E //in message        Sets the MSP RC info

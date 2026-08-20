@@ -565,6 +565,8 @@ typedef struct {
     fpVector3_t poi_pos; // POI location in local coordinates (SET_POI)
 } navWapointHeading_t;
 
+#define RADAR_MAX_POIS 6
+#define RADAR_PEER_NAME_LENGTH 3
 typedef struct radar_pois_s {
     gpsLocation_t gps;
     uint8_t state;
@@ -574,9 +576,8 @@ typedef struct radar_pois_s {
     uint16_t distance; // m
     int16_t altitude; // m
     int16_t direction; // °
+    char name[RADAR_PEER_NAME_LENGTH];
 } radar_pois_t;
-
-#define RADAR_MAX_POIS 5
 
 extern radar_pois_t radar_pois[RADAR_MAX_POIS];
 
