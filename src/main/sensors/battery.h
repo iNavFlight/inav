@@ -69,6 +69,7 @@ bool batteryUsesCapacityThresholds(void);
 void batteryInit(void);
 void setBatteryProfile(uint8_t profileIndex);
 void activateBatteryProfile(void);
+void batteryUpdateThresholdsAndCells(void);
 void batteryDisableProfileAutoswitch(void);
 
 bool isBatteryVoltageConfigured(void);

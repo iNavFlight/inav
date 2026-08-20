@@ -84,6 +84,7 @@
 #include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/settings.h"
 
 #include "flight/imu.h"
@@ -6359,6 +6360,23 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                 }
             }
+#ifdef USE_CMS
+            // In-flight CMS menu messages - shown alongside any active NAV messages
+            // (RTH, WP, etc.) via OSD message rotation. Uses a dedicated buffer
+            // to avoid overwriting messageBuf which may contain NAV state messages.
+            {
+                uint32_t menuCountdownMs = cmsGetOpenCountdownRemaining();
+                if (menuCountdownMs > 0) {
+                    static char cmsMenuBuf[16];
+                    unsigned sec = menuCountdownMs / 1000;
+                    unsigned dec = (menuCountdownMs % 1000) / 100;
+                    tfp_sprintf(cmsMenuBuf, "MENU IN %u.%u", sec, dec);
+                    ADD_MSG(cmsMenuBuf);
+                } else if (IS_RC_MODE_ACTIVE(BOXUSER4) && !cmsInMenu && !cmsIsMenuSwitchLatched()) {
+                    ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_MENU_NAV_REQ));
+                }
+            }
+#endif
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {    /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
             unsigned invalidIndex;
 
@@ -6413,7 +6431,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
-            if (message == failsafeInfoMessage) {
+            if (message == failsafeInfoMessage || message == OSD_MESSAGE_STR(OSD_MSG_MENU_NAV_REQ)) {
                 // failsafeInfoMessage is not useful for recovering
                 // a lost model, but might help avoiding a crash.
                 // Blink to grab user attention.
