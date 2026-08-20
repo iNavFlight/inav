@@ -144,6 +144,11 @@ typedef enum {
     TASK_GEOZONE,
 #endif
 
+#if defined (USE_TERRAIN)
+    TASK_TERRAIN,
+    TASK_TERRAIN_IO,
+#endif
+
 #ifdef USE_DRONECAN
     TASK_DRONECAN,
 #endif

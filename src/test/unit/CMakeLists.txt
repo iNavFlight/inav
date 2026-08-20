@@ -73,6 +73,9 @@ set_property(SOURCE gps_null_port_unittest.cc PROPERTY definitions GPS_NULL_PORT
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
 
+set_property(SOURCE terrain_unittest.cc PROPERTY depends "common/crc.c" "common/streambuf.c" "terrain/terrain_utils.c" "terrain/terrain_location.c" "drivers/time.c")
+set_property(SOURCE terrain_unittest.cc PROPERTY definitions TERRAIN_UNIT_TEST USE_TERRAIN USE_SDCARD USE_SDCARD_SDIO TERRAIN_GRID_BLOCK_CACHE_SIZE=8)
+
 set_property(SOURCE mavlink_unittest.cc PROPERTY depends
     "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_mission.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"
     "mavlink/mavlink_routing.c" "mavlink/mavlink_runtime.c" "mavlink/mavlink_streams.c" "telemetry/mavlink.c"
