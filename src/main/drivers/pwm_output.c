@@ -373,6 +373,18 @@ static uint32_t dshotDmaStream(const pwmOutputPort_t *port)
     };
     return streams[DMATAG_GET_STREAM(port->tch->timHw->dmaTag)];
 }
+
+// The LL driver only exposes per-channel LL_TIM_{En,Dis}ableDMAReq_CC1..CC4;
+// there is no runtime-channel variant, so set/clear the DIER bit directly.
+static inline void LL_TIM_EnableDMAReq_CCx(TIM_TypeDef *TIMx, uint16_t dmaSources)
+{
+    SET_BIT(TIMx->DIER, dmaSources & (TIM_DMA_CC1 | TIM_DMA_CC2 | TIM_DMA_CC3 | TIM_DMA_CC4));
+}
+
+static inline void LL_TIM_DisableDMAReq_CCx(TIM_TypeDef *TIMx, uint16_t dmaSources)
+{
+    CLEAR_BIT(TIMx->DIER, dmaSources & (TIM_DMA_CC1 | TIM_DMA_CC2 | TIM_DMA_CC3 | TIM_DMA_CC4));
+}
 #endif
 
 static uint32_t dshotTimChannel(const pwmOutputPort_t *port)
