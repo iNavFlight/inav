@@ -5459,7 +5459,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 
                 int32_t logNumber = blackboxGetLogNumber();
                 if (logNumber >= 0) {
-                    tfp_sprintf(buff, ": %05ld ", logNumber);
+                    tfp_sprintf(buff, ": %05ld ", (long)logNumber);
                 } else {
                     strcat(buff, ": INVALID");
                 }
