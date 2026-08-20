@@ -4212,11 +4212,11 @@ DEVELOPER/EXPERIMENTAL (to be hardcoded before release): heading error to the ne
 
 ### nav_fw_wp_turn_max_lead_time
 
-DEVELOPER/EXPERIMENTAL (to be hardcoded before release): FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. Stops extreme early turn-in at high speed / large angles; above this the turn waits, then flies a non-tangent recovery.
+FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. Stops extreme early turn-in at high speed / large turn angles; when the cap limits the turn it starts later and flies a non-tangent recovery onto the next leg.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 3000 | 0 | 10000 |
+| 3000 | 1000 | 10000 |
 
 ---
 
