@@ -4200,16 +4200,6 @@ How FW waypoint turns are flown. COORDINATED (default) commands an explicit coor
 
 ---
 
-### nav_fw_wp_turn_handback_angle
-
-DEVELOPER/EXPERIMENTAL (to be hardcoded before release): heading error to the next leg [deg] at which the arc turn coordinator hands control back to the normal heading PID.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 15 | 5 | 45 |
-
----
-
 ### nav_fw_wp_turn_max_lead_time
 
 FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. Stops extreme early turn-in at high speed / large turn angles; when the cap limits the turn it starts later and flies a non-tangent recovery onto the next leg.

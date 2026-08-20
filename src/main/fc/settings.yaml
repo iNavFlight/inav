@@ -2689,12 +2689,6 @@ groups:
         default_value: "COORDINATED"
         field: fw.wp_turn_coordination
         table: nav_fw_wp_turn_coordination
-      - name: nav_fw_wp_turn_handback_angle
-        description: "DEVELOPER/EXPERIMENTAL (to be hardcoded before release): heading error to the next leg [deg] at which the arc turn coordinator hands control back to the normal heading PID."
-        default_value: 15
-        field: fw.wp_turn_handback_angle
-        min: 5
-        max: 45
       - name: nav_fw_wp_turn_max_lead_time
         description: "FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. Stops extreme early turn-in at high speed / large turn angles; when the cap limits the turn it starts later and flies a non-tangent recovery onto the next leg."
         default_value: 3000
