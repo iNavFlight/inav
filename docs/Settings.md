@@ -4202,11 +4202,11 @@ How FW waypoint turns are flown. COORDINATED (default) commands an explicit coor
 
 ### nav_fw_wp_turn_max_lead_time
 
-FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. Stops extreme early turn-in at high speed / large turn angles; when the cap limits the turn it starts later and flies a non-tangent recovery onto the next leg.
+FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 3000 | 1000 | 10000 |
+| 6000 | 3000 | 12000 |
 
 ---
 

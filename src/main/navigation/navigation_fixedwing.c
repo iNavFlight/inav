@@ -81,6 +81,7 @@
 #define NAV_FW_ARC_HEADING_GAIN      0.3f       // [centideg bank / centideg tangent heading error] align to the arc (TBD from flight)
 #define NAV_FW_ARC_EXIT_GAIN         2.0f       // [centideg bank / centideg heading error] proportional roll-out capture: bank -> 0 as cog reaches the out-leg (no overshoot)
 #define NAV_FW_ARC_EXIT_HANDOFF_CD   150        // [centideg] hand back to the PID within this heading error of the out-leg (keep low: residual bank = gain*this)
+#define NAV_FW_ARC_SHARP_TURN_CD     15000      // [centideg] beyond this the tangent points explode toward the 180 deg reversal -> capture-only turn
 
 // FW energy/altitude bank guard thresholds (conservative; observable via DEBUG_FW_TURN)
 #define NAV_FW_GUARD_PHI_FLOOR_DEG       15.0f    // minimum effective bank limit
@@ -98,6 +99,8 @@
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
 #define NAV_FW_FF_HEADING_FULL_CD        3000.0f  // heading error for full WP-turn FF
+#define NAV_FW_LOITER_FF_RADIAL_BAND     0.3f     // fraction of R: loiter FF only within this band around the circle radius
+#define NAV_FW_LOITER_FF_ALIGN_CD        6000     // [centideg] loiter FF only when cog is roughly tangential to the circle
 
 // If this is enabled navigation won't be applied if velocity is below 3 m/s
 //#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
@@ -564,9 +567,22 @@ static float getFwTurnFeedForward(int32_t navHeadingError)
 
     float ffRadius = 0.0f;
     float ffSign = 0.0f;
-    if (needToCalculateCircularLoiter) {                // loiter circle: known radius
-        ffRadius = fwActiveLoiterRadius;
-        ffSign = (float)loiterDirection();
+    if (needToCalculateCircularLoiter) {
+        // Loiter FF only once established on the circle - fed during the (much larger) approach
+        // cone it fights the approach carrot and slews the entry across the circle.
+        const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
+        const float dcx = pos->x - posControl.desiredState.pos.x;
+        const float dcy = pos->y - posControl.desiredState.pos.y;
+        const float distToCenter = calc_length_pythagorean_2D(dcx, dcy);
+        const int8_t dir = loiterDirection();
+        const float alpha = atan2_approx(dcy, dcx);
+        const int32_t tangentBearing = lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(dir * cos_approx(alpha), -dir * sin_approx(alpha)))));
+        const int32_t tangentErr = wrap_18000(tangentBearing - posControl.actualState.cog);
+        if (fabsf(distToCenter - fwActiveLoiterRadius) < NAV_FW_LOITER_FF_RADIAL_BAND * fwActiveLoiterRadius
+            && ABS(tangentErr) < NAV_FW_LOITER_FF_ALIGN_CD) {
+            ffRadius = fwActiveLoiterRadius;
+            ffSign = (float)dir;
+        }
     } else if (isWaypointNavTrackingActive() && ABS(navHeadingError) > NAV_FW_FF_HEADING_DEADBAND_CD) {
         ffRadius = getFwCoordinatedTurnRadius();        // WP turn: dynamic radius, tapered by heading error
         ffSign = (navHeadingError > 0 ? 1.0f : -1.0f) * constrainf((float)ABS(navHeadingError) / NAV_FW_FF_HEADING_FULL_CD, 0.0f, 1.0f);
@@ -686,16 +702,26 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         const bool legChanged = (fwArcPrevLegBearing >= 0) && (ABS(wrap_18000(legBearing - fwArcPrevLegBearing)) > 500);
         fwArcPrevLegBearing = legBearing;
         if (legChanged) {
-            const bool capped = fwFlyByCappedLatch;             // a capped FLY_BY turn is flown direct, not as an arc
+            const bool capped = fwFlyByCappedLatch;             // lead-time-capped FLY_BY: the tangent geometry no longer fits
             fwFlyByCappedLatch = false;                         // consume the latch on any leg change
             const int32_t hdgErr = wrap_18000(legBearing - cog);
-            if (!capped && ABS(hdgErr) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
+            if (ABS(hdgErr) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
                 const float arcRtmp = getFwCoordinatedTurnRadius();
                 const float phiTmp = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * arcRtmp)));
                 const float tTmp = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiTmp));
                 const float omegaNomCds = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(v / arcRtmp));   // v/R == g*tan(phi)/v
                 const float psiTmp = 0.5f * omegaNomCds * (tTmp / 1000.0f);
-                if (2.0f * psiTmp < (float)ABS(hdgErr)) {       // enough turn left for a steady arc between the ease ramps
+                if (capped || ABS(hdgErr) > NAV_FW_ARC_SHARP_TURN_CD) {
+                    // No valid tangent circle (turn started late via the cap, or near-reversal):
+                    // fly the bounded closed-loop capture directly instead of PID / degenerate circle.
+                    fwArcEngaged = true;
+                    phase = ARC_CAPTURE;
+                    rampMs = 0.0f;
+                    arcDir = (hdgErr > 0) ? 1 : -1;
+                    arcOutBearing = legBearing;
+                    phiNomCd = phiTmp;
+                    tEaseMs = tTmp;
+                } else if (2.0f * psiTmp < (float)ABS(hdgErr)) {   // enough turn left for a steady arc between the ease ramps
                     fwArcEngaged = true;
                     phase = ARC_RAMP_IN;
                     rampMs = 0.0f;
@@ -770,9 +796,20 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     }
     case ARC_CAPTURE:
     default: {
-        // Closed-loop roll-out: bank proportional to the heading still to go, so bank (and turn rate) reach zero
-        // exactly as cog reaches the out-leg. Robust to roll-lag / cog-lag / tan nonlinearity -> cannot overshoot.
-        fwArcBankCmd = constrainf(NAV_FW_ARC_EXIT_GAIN * (float)hdgErrOut, -phiNomCd, phiNomCd);
+        // Closed-loop roll-out, led by the heading the physical roll-out consumes: the angle-P response
+        // is exponential (tau = 1/(LEVEL_P * multiplier)), so the residual turn integrates to omega*tau,
+        // plus the unmodelled servo/aero delay (control_ease). Omega from the actual bank and speed.
+        int32_t captureErr = hdgErrOut;
+        if (ABS(captureErr) > 17000) {
+            captureErr = arcDir * ABS(captureErr);              // ambiguous reversal: hold the engagement direction
+        }
+        const float bankNowRad = CENTIDEGREES_TO_RADIANS((float)ABS(attitude.values.roll) * 10.0f);
+        const float omegaCds = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(GRAVITY_CMSS * tan_approx(bankNowRad) / MAX(v, NAV_FW_TURN_MIN_SPEED)));
+        const float levelGain = pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER;    // [1/s]
+        const float rollOutS = ((levelGain > 0.1f) ? (1.0f / levelGain) : 1.0f) + (float)navConfig()->fw.wp_turn_control_ease * 0.001f;
+        const float psiLeadCd = omegaCds * rollOutS;
+        const float errLeadCd = MAX((float)ABS(captureErr) - psiLeadCd, 0.0f);
+        fwArcBankCmd = constrainf(NAV_FW_ARC_EXIT_GAIN * ((captureErr > 0) ? errLeadCd : -errLeadCd), -phiNomCd, phiNomCd);
         if (ABS(hdgErrOut) <= NAV_FW_ARC_EXIT_HANDOFF_CD) {    // aligned -> hand back to the standard controller
             fwArcEngaged = false;
             return;
@@ -1043,6 +1080,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     // internal state cannot smear or falsely trigger the S-curve.
     if (fwArcActive) {
         rollAdjustment = fwArcBankCmd;
+        fwRollSmoothSeedCd = fwArcBankCmd;      // else the handback re-seeds from a stale reset value (brief roll twitch)
         fwRollSmoothReseed = true;
     } else {
         // Coordinated-turn feed-forward: command the bank for the active turn radius so the PID only trims.
