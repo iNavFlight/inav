@@ -40,7 +40,7 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM2,   CH3,    PB10,   TIM_USE_OUTPUT_AUTO,    0, 0), // S3
 
-    DEF_TIM(TIM2,   CH4,    PB11,   TIM_USE_OUTPUT_AUTO,    0, 0), // S4
+    DEF_TIM(TIM2,   CH4,    PB11,   TIM_USE_OUTPUT_AUTO,    0, 1), // S4 -- dmavar 1: dedicated stream, avoids sharing S1's DMA stream
 
     // DEF_TIM(TIM3,   CH4,    PC9,    TIM_USE_OUTPUT_AUTO,    0, 0), // S5
     DEF_TIM(TIM8, CH4, PC9, TIM_USE_OUTPUT_AUTO, 0, 0),

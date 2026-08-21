@@ -26,14 +26,14 @@
 
 timerHardware_t timerHardware[] = {
 #if defined(FF_PIKOF4OSD)
-    DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_OUTPUT_AUTO,  0, 0 ),
+    DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_OUTPUT_AUTO,  0, 1 ), // dmavar 1: dedicated stream, avoids sharing TIM3_CH3's DMA1 Stream7 (TIM3_CH3 has no other option)
     DEF_TIM(TIM3,  CH3, PB1,  TIM_USE_OUTPUT_AUTO,  0, 0 ),
     DEF_TIM(TIM5,  CH3, PA2,  TIM_USE_OUTPUT_AUTO,  0, 0 ),
     DEF_TIM(TIM3,  CH4, PB0,  TIM_USE_OUTPUT_AUTO,  0, 0 ),
-    DEF_TIM(TIM12, CH1, PB14, TIM_USE_OUTPUT_AUTO,  0, 0 ),
-    DEF_TIM(TIM12, CH2, PB15, TIM_USE_OUTPUT_AUTO,  0, 0 ),
+    DEF_TIM(TIM12, CH1, PB14, TIM_USE_OUTPUT_AUTO,  0, 0 ), // no DMA request line on this MCU for TIM12 -- DSHOT will not work on this output regardless of dmavar
+    DEF_TIM(TIM12, CH2, PB15, TIM_USE_OUTPUT_AUTO,  0, 0 ), // no DMA request line on this MCU for TIM12 -- DSHOT will not work on this output regardless of dmavar
 #else
-    DEF_TIM(TIM2, CH4, PA3, TIM_USE_OUTPUT_AUTO,    0, 0 ),
+    DEF_TIM(TIM2, CH4, PA3, TIM_USE_OUTPUT_AUTO,    0, 1 ), // dmavar 1: dedicated stream, avoids sharing TIM3_CH3's DMA1 Stream7 (TIM3_CH3 has no other option)
     DEF_TIM(TIM3, CH3, PB0, TIM_USE_OUTPUT_AUTO,    0, 0 ),
     DEF_TIM(TIM5, CH3, PA2, TIM_USE_OUTPUT_AUTO,    0, 0 ),
     DEF_TIM(TIM3, CH4, PB1, TIM_USE_OUTPUT_AUTO,    0, 0 ),

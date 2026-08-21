@@ -28,8 +28,8 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S2 (1,4)
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S3 (2,4)
     DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S4 (2,7)  
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S5 (2,2) 
-    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S6 (2,3)
+    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S5 (2,2)  -- clash with S3, DSHOT does not work
+    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S6 (2,3) -- clash with S3, DSHOT does not work
     
     DEF_TIM(TIM1,  CH3, PA10, TIM_USE_LED,                        0, 0),   // LED STRIP(2,6)
 
