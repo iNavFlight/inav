@@ -4212,7 +4212,7 @@ FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. The req
 
 ### nav_fw_wp_turn_mode
 
-How the aircraft turns at waypoints during FW WP missions. FLY_BY anticipates the turn using the real coordinated-turn radius (from speed and nav_fw_bank_angle) so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). FLY_OVER flies over the waypoint, then turns onto the next leg.
+How the aircraft turns at waypoints during FW WP missions. FLY_BY anticipates the turn using the real coordinated-turn radius (from speed and nav_fw_bank_angle) so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). FLY_OVER flies over the waypoint, then flies a coordinated turn that rolls out exactly on the tangent line to the next waypoint.
 
 | Allowed Values |  |
 | --- | --- |
