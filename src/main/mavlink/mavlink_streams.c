@@ -1226,8 +1226,10 @@ bool mavlinkHandleIncomingHeartbeat(void)
     // newly joining one behind the same port, and a peer moving to another
     // port (failover) registers as a reconnect there. mavlinkLearnRoute() ran
     // before dispatch, so the sender already has a route entry unless the
-    // table is full - in which case reconnect detection degrades gracefully
-    // to the pre-existing broadcast-only behavior for that peer.
+    // route table is full. A peer that finds no free slot gets no reconnect
+    // snapshot at all: the broadcast path is edge-triggered on the arming
+    // flags changing, so it stays silent while they hold steady. The table
+    // holds MAVLINK_MAX_ROUTES peers and is not expected to fill in practice.
     mavlinkRouteEntry_t *route = mavlinkFindRoute(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid);
     if (route) {
         const timeMs_t nowMs = millis();
@@ -1237,7 +1239,7 @@ bool mavlinkHandleIncomingHeartbeat(void)
         route->lastHeartbeatMs = nowMs;
         route->lastHeartbeatPortIndex = mavRecvPortIndex;
         if (firstHeartbeat || heartbeatGap || portChanged) {
-            mavlinkPortReconnected(mavRecvPortIndex);
+            mavlinkPeerReconnected(mavRecvPortIndex, route);
         }
     }
 
@@ -1361,14 +1363,6 @@ void mavlinkSendArmingStatusTextToPort(uint8_t portIndex)
         return;
     }
 
-    mavlinkPortRuntime_t *state = &mavPortStates[portIndex];
-    const timeMs_t nowMs = millis();
-    if (state->lastArmingSnapshotMs != 0 &&
-        nowMs - state->lastArmingSnapshotMs < MAVLINK_ARMING_SNAPSHOT_MIN_INTERVAL_MS) {
-        return;
-    }
-    state->lastArmingSnapshotMs = nowMs;
-
     char text[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
     mavlinkBuildArmingDisabledText(text, sizeof(text), disableFlags);
 
@@ -1391,7 +1385,7 @@ void mavlinkSendArmingStatusTextToPort(uint8_t portIndex)
 
 // Fired when a peer is judged to have just (re)connected on this port: its
 // first HEARTBEAT, one after a gap, or one after moving from another port.
-void mavlinkPortReconnected(uint8_t portIndex)
+void mavlinkPeerReconnected(uint8_t portIndex, mavlinkRouteEntry_t *route)
 {
     if (portIndex >= mavPortCount) {
         return;
@@ -1404,6 +1398,16 @@ void mavlinkPortReconnected(uint8_t portIndex)
     state->lastStatusTextSeverity = 0;
     state->firstStatusTextMs = 0;
     state->lastStatusTextMs = 0;
+
+    // A peer heartbeating slower than the gap threshold looks like it
+    // reconnects on every beat; floor the snapshot rate per peer, so peers
+    // sharing a port keep their own allowance.
+    const timeMs_t nowMs = millis();
+    if (route->lastArmingSnapshotMs != 0 &&
+        nowMs - route->lastArmingSnapshotMs < MAVLINK_ARMING_SNAPSHOT_MIN_INTERVAL_MS) {
+        return;
+    }
+    route->lastArmingSnapshotMs = nowMs;
 
     // Give this port the current arming-disable reason now, independent of
     // whether the global flags have changed since the last broadcast.

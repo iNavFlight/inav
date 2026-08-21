@@ -1,6 +1,7 @@
 #include "mavlink/mavlink_internal.h"
 
 #include "mavlink/mavlink_ports.h"
+#include "mavlink/mavlink_routing.h"
 #include "mavlink/mavlink_runtime.h"
 #include "mavlink/mavlink_streams.h"
 
@@ -22,7 +23,6 @@ static void resetMAVLinkPortRuntimeState(uint8_t portIndex)
     state->lastStatusTextSeverity = 0;
     state->firstStatusTextMs = 0;
     state->lastStatusTextMs = 0;
-    state->lastArmingSnapshotMs = 0;
     memset(state->mavStreamNextDue, 0, sizeof(state->mavStreamNextDue));
     memset(state->mavMessageOverrideIntervalsUs, 0, sizeof(state->mavMessageOverrideIntervalsUs));
     memset(state->mavMessageNextDue, 0, sizeof(state->mavMessageNextDue));
@@ -42,6 +42,10 @@ void freeMAVLinkTelemetryPortByIndex(uint8_t portIndex)
     state->port = NULL;
     state->telemetryEnabled = false;
     resetMAVLinkPortRuntimeState(portIndex);
+
+    // The port's one-shot state is gone, so peers last heard here must not be
+    // able to resume inside the gap window and skip a fresh snapshot.
+    mavlinkForgetHeartbeatsForPort(portIndex);
 }
 
 void configureMAVLinkTelemetryPort(uint8_t portIndex)

@@ -48,6 +48,17 @@ mavlinkRouteEntry_t *mavlinkFindRoute(uint8_t sysid, uint8_t compid)
     return NULL;
 }
 
+void mavlinkForgetHeartbeatsForPort(uint8_t portIndex)
+{
+    for (uint8_t routeIndex = 0; routeIndex < mavRouteCount; routeIndex++) {
+        mavlinkRouteEntry_t *route = &mavRouteTable[routeIndex];
+        if (route->lastHeartbeatMs != 0 && route->lastHeartbeatPortIndex == portIndex) {
+            route->lastHeartbeatMs = 0;
+            route->lastArmingSnapshotMs = 0;
+        }
+    }
+}
+
 void mavlinkExtractTargets(const mavlink_message_t *msg, int16_t *targetSystem, int16_t *targetComponent)
 {
     *targetSystem = -1;
