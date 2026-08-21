@@ -2690,11 +2690,11 @@ groups:
         field: fw.wp_turn_coordination
         table: nav_fw_wp_turn_coordination
       - name: nav_fw_wp_turn_max_lead_time
-        description: "FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. Stops extreme early turn-in at high speed / large turn angles; when the cap limits the turn it starts later and flies a non-tangent recovery onto the next leg."
-        default_value: 3000
+        description: "FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint."
+        default_value: 6000
         field: fw.wp_turn_max_lead_time
-        min: 1000
-        max: 10000
+        min: 3000
+        max: 12000
       - name: nav_fw_wp_turn_control_ease
         description: "DEVELOPER/EXPERIMENTAL: unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramp; SIM low, real models higher."
         default_value: 100
