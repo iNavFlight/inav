@@ -747,6 +747,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+    case MSP2_INAV_TIMESYNC:
+        {
+            const uint64_t timeNs = (uint64_t)micros() * 1000ULL;
+            sbufWriteU32(dst, (uint32_t)timeNs);
+            sbufWriteU32(dst, (uint32_t)(timeNs >> 32));
+        }
+        break;
+
     case MSP_SONAR_ALTITUDE:
 #ifdef USE_RANGEFINDER
         sbufWriteU32(dst, rangefinderGetLatestAltitude());
@@ -3992,6 +4000,27 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         return MSP_RESULT_ERROR;
 
+    case MSP2_INAV_ACTIVATE_LANDING:
+        if (dataSize == 0 && activateForcedLanding()) {
+            break;
+        }
+        return MSP_RESULT_ERROR;
+
+    case MSP2_INAV_ACTIVATE_RTH:
+        if (dataSize == 0 && activateRTHMode()) {
+            break;
+        }
+        return MSP_RESULT_ERROR;
+
+    case MSP2_INAV_ARM_DISARM:
+        if (dataSize == 1) {
+            uint8_t arm;
+            if (sbufReadU8Safe(&arm, src) && arm <= 1 && fcSetArmState(arm)) {
+                break;
+            }
+        }
+        return MSP_RESULT_ERROR;
+
     default:
         return MSP_RESULT_ERROR;
     }
@@ -4818,7 +4847,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 
     case MSP2_INAV_SET_GLOBAL_TARGET:
-        if (dataSize != (3 * sizeof(int32_t) + sizeof(uint8_t)) || !isGCSValid()) {
+        if ((dataSize != (3 * sizeof(int32_t) + sizeof(uint8_t)) && dataSize != (4 * sizeof(int32_t) + sizeof(uint8_t))) || !isGCSValid()) {
             *ret = MSP_RESULT_ERROR;
             break;
         }
@@ -4830,8 +4859,10 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             targetLlh.alt = (int32_t)sbufReadU32(src);
 
             const geoAltitudeDatumFlag_e datumFlag = (geoAltitudeDatumFlag_e)sbufReadU8(src);
+            const bool hasLoiterRadius = dataSize == (4 * sizeof(int32_t) + sizeof(uint8_t));
+            const int32_t loiterRadius = hasLoiterRadius ? (int32_t)sbufReadU32(src) : 0;
 
-            if (datumFlag == NAV_WP_TERRAIN_DATUM) {
+            if (datumFlag == NAV_WP_TERRAIN_DATUM || loiterRadius < 0) {
                 *ret = MSP_RESULT_ERROR;
                 break;
             }
@@ -4849,6 +4880,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             }
 
             setDesiredPosition(&targetPos, posControl.desiredState.yaw, updateMask);
+            if (hasLoiterRadius) {
+                navigationSetLoiterRadiusOverride((uint32_t)loiterRadius);
+            }
             *ret = MSP_RESULT_ACK;
         }
         break;
@@ -4870,6 +4904,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             const uint16_t headingTarget = CENTIDEGREES_TO_DEGREES(wrap_36000(DEGREES_TO_CENTIDEGREES(getHeadingHoldTarget())));
             sbufWriteU16(dst, headingTarget);
             sbufWriteU16(dst, posControl.desiredState.climbRateDemand);
+            sbufWriteU32(dst, navigationGetLoiterRadiusOverride());
             *ret = MSP_RESULT_ACK;
         }
         break;
