@@ -336,7 +336,8 @@ typedef enum {
 
 typedef enum {
     NAV_FW_WP_TURN_MODE_FLY_BY = 0,     // corner cut: turn anticipated so the arc joins the next leg, WP passed abeam
-    NAV_FW_WP_TURN_MODE_FLY_OVER = 1,   // fly over the WP, then turn onto the next leg
+    NAV_FW_WP_TURN_MODE_FLY_OVER = 1,   // fly over the WP, then roll out on the tangent line to the next WP
+    NAV_FW_WP_TURN_MODE_FLY_INTO = 2,   // ease away before the WP, then cross it already aligned on the outbound course
 } navFwWpTurnMode_e;
 
 typedef enum {
