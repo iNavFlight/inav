@@ -274,6 +274,13 @@ void pwmEnsureEnoughtMotors(uint8_t motorCount)
 {
     uint8_t motorOnlyOutputs = 0;
 
+    // pwmClaimTimer() syncs every sibling pad sharing a physical timer as soon
+    // as the first motor-only pad in a group is processed, so later siblings
+    // already satisfy TIM_IS_MOTOR_ONLY on their own turn below. Without this
+    // guard each of them would be counted again, inflating motorOnlyOutputs
+    // for an n-pad shared-timer group to 2n-1 instead of n.
+    bool timerCounted[HARDWARE_TIMER_DEFINITION_COUNT] = { false };
+
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         timerHardware_t *timHw = &timerHardware[idx];
 
@@ -283,7 +290,8 @@ void pwmEnsureEnoughtMotors(uint8_t motorCount)
             continue;
         }
 
-        if (TIM_IS_MOTOR_ONLY(timHw->usageFlags)) {
+        if (TIM_IS_MOTOR_ONLY(timHw->usageFlags) && !timerCounted[timer2id(timHw->tim)]) {
+            timerCounted[timer2id(timHw->tim)] = true;
             motorOnlyOutputs++;
             motorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
         }
