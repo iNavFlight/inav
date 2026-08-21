@@ -209,13 +209,19 @@ void rcModeUpdate(boxBitmask_t *newState)
     rcModeUpdateEffectiveActivationMask();
 }
 
-void rcModeSetActivationOverride(boxId_e boxId)
+boxId_e rcModeSetActivationOverride(boxId_e boxId)
 {
+    const int previousOverride = rcModeActivationOverrideActive
+        ? BITARRAY_FIND_FIRST_SET(rcModeActivationOverrideMask.bits, 0)
+        : -1;
+
     rcModeActivationOverrideSnapshot = rcModeFlightModeMask(&rcModeRawActivationMask);
     BITARRAY_CLR_ALL(rcModeActivationOverrideMask.bits);
     bitArraySet(rcModeActivationOverrideMask.bits, boxId);
     rcModeActivationOverrideActive = true;
     rcModeUpdateEffectiveActivationMask();
+
+    return previousOverride >= 0 ? (boxId_e)previousOverride : (boxId_e)BOXID_NONE;
 }
 
 void rcModeClearActivationOverride(boxId_e boxId)

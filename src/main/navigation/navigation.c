@@ -2610,7 +2610,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_ABORT(naviga
 
     if (posControl.flags.forcedLandingActivated) {
         posControl.flags.forcedLandingActivated = false;
-        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+        return NAV_FSM_EVENT_SWITCH_TO_RTH;
     }
 
     return posControl.fwLandState.landWp ? NAV_FSM_EVENT_SWITCH_TO_WAYPOINT : NAV_FSM_EVENT_SWITCH_TO_RTH;
@@ -2696,6 +2696,9 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
     /* Process new injected event if event defined,
      * otherwise process timeout event if defined */
     if (injectedEvent == NAV_FSM_EVENT_SWITCH_TO_LANDING) {
+        // Commanded LAND is a deliberate cross-state transition: it must preempt
+        // arbitrary navigation states, including RTH, without duplicating a
+        // landing edge in every FSM state.
         previousState = navSetNewFSMState(NAV_STATE_WAYPOINT_RTH_LAND);
     } else if (injectedEvent != NAV_FSM_EVENT_NONE && navFSM[posControl.navState].onEvent[injectedEvent] != NAV_STATE_UNDEFINED) {
         /* Update state */
@@ -5276,7 +5279,7 @@ bool activateRTHMode(void)
 
     abortFixedWingLaunch();
     posControl.flags.forcedLandingActivated = false;
-    rcModeSetActivationOverride(BOXNAVRTH);
+    const boxId_e previousOverride = rcModeSetActivationOverride(BOXNAVRTH);
 #ifdef USE_SAFE_HOME
     checkSafeHomeState(true);
 #endif
@@ -5287,6 +5290,10 @@ bool activateRTHMode(void)
     }
 
     rcModeClearActivationOverride(BOXNAVRTH);
+    if (previousOverride != BOXID_NONE) {
+        rcModeSetActivationOverride(previousOverride);
+        navProcessFSMEvents(selectNavEventFromBoxModeInput());
+    }
     return false;
 }
 
@@ -5303,7 +5310,7 @@ bool activatePositionHoldMode(void)
     abortFixedWingLaunch();
     posControl.flags.forcedRTHActivated = false;
     posControl.flags.forcedLandingActivated = false;
-    rcModeSetActivationOverride(BOXNAVPOSHOLD);
+    const boxId_e previousOverride = rcModeSetActivationOverride(BOXNAVPOSHOLD);
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
 
     if (navGetStateFlags(posControl.navState) & NAV_CTL_HOLD) {
@@ -5312,6 +5319,10 @@ bool activatePositionHoldMode(void)
     }
 
     rcModeClearActivationOverride(BOXNAVPOSHOLD);
+    if (previousOverride != BOXID_NONE) {
+        rcModeSetActivationOverride(previousOverride);
+        navProcessFSMEvents(selectNavEventFromBoxModeInput());
+    }
     return false;
 }
 
