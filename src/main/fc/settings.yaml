@@ -181,7 +181,7 @@ tables:
     values: ["2D", "3D"]
     enum: dynamicGyroNotchMode_e
   - name: nav_fw_wp_turn_mode
-    values: ["FLY_BY", "FLY_OVER"]
+    values: ["FLY_BY", "FLY_OVER", "FLY_INTO"]
     enum: navFwWpTurnMode_e
   - name: nav_fw_wp_turn_coordination
     values: ["DIRECT", "COORDINATED"]
@@ -2674,7 +2674,7 @@ groups:
         min: 30
         max: 80
       - name: nav_fw_wp_turn_mode
-        description: "How the aircraft turns at waypoints during FW WP missions. FLY_BY anticipates the turn using the real coordinated-turn radius (from speed and nav_fw_bank_angle) so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). FLY_OVER flies over the waypoint, then flies a coordinated turn that rolls out exactly on the tangent line to the next waypoint."
+        description: "How the aircraft turns at waypoints during FW WP missions. FLY_BY anticipates the turn using the real coordinated-turn radius (from speed and nav_fw_bank_angle) so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). FLY_OVER flies over the waypoint, then flies a coordinated turn that rolls out exactly on the tangent line to the next waypoint. FLY_INTO eases away from the corner before the waypoint, then flies an arc that crosses the waypoint already aligned on the outbound course (survey/mapping line entries)."
         default_value: "FLY_BY"
         field: fw.wp_turn_mode
         table: nav_fw_wp_turn_mode

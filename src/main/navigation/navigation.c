@@ -122,7 +122,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 12);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 13);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -4319,8 +4319,8 @@ static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
     mapWaypointToLocalPosition(&localPos, waypoint, waypointMissionAltConvMode(waypoint->p3));
     calculateAndSetActiveWaypointToLocalPosition(&localPos);
 
-    // Turn anticipation (nextTurnAngle) is only needed for FLY_BY; FLY_OVER flies to the WP then turns.
-    if (navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_MODE_FLY_BY) {
+    // Turn anticipation (nextTurnAngle) is needed for FLY_BY and FLY_INTO; FLY_OVER flies to the WP then turns.
+    if (navConfig()->fw.wp_turn_mode != NAV_FW_WP_TURN_MODE_FLY_OVER) {
         fpVector3_t posNextWp;
         if (getLocalPosNextWaypoint(&posNextWp)) {
             int32_t bearingToNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, &posNextWp);
