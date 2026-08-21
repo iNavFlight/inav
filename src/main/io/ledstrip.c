@@ -843,10 +843,6 @@ static void applyLarsonScannerLayer(bool updateNow, timeUs_t *timer)
     }
 }
 
-// rainbow overlay sweep, tuned by two global settings (ledstrip_rainbow_freq_hz,
-// ledstrip_rainbow_delta_deg)
-//   ledstrip_rainbow_freq_hz   - how often hue advances by 1 degree (1-2000Hz)
-//   ledstrip_rainbow_delta_deg - hue offset between adjacent rainbow LEDs (0-359)
 static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
 {
     static uint16_t rainbowHue = 0;
