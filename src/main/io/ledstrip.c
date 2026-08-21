@@ -154,7 +154,7 @@ void pgResetFn_ledStripConfig(ledStripConfig_t *instance)
     }
     memcpy_fn(&instance->modeColors, &defaultModeColors, sizeof(defaultModeColors));
     memcpy_fn(&instance->specialColors, &defaultSpecialColors, sizeof(defaultSpecialColors));
-    instance->ledstrip_rainbow_freq_hz = 60;
+    instance->ledstrip_rainbow_sweep_rate = 1;
     instance->ledstrip_rainbow_delta_deg = 30;
 }
 
@@ -846,15 +846,14 @@ static void applyLarsonScannerLayer(bool updateNow, timeUs_t *timer)
 static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
 {
     static uint16_t rainbowHue = 0;
+    static uint8_t rainbowCounter = 0;
 
     if (updateNow) {
-        uint16_t freqHz = ledStripConfig()->ledstrip_rainbow_freq_hz;
-        if (freqHz == 0) {
-            freqHz = 1; // guard against divide-by-zero in LED_STRIP_HZ()
+        *timer += LED_STRIP_HZ(100);
+        if (++rainbowCounter >= ledStripConfig()->ledstrip_rainbow_sweep_rate) {
+            rainbowCounter = 0;
+            rainbowHue = (rainbowHue + 2) % 360;
         }
-
-        rainbowHue = (rainbowHue + 1) % 360;
-        *timer += LED_STRIP_HZ(freqHz);
     }
 
     const uint16_t rainbowDelta = ledStripConfig()->ledstrip_rainbow_delta_deg % 360;
@@ -865,8 +864,8 @@ static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
         if (ledGetOverlayBit(ledConfig, LED_OVERLAY_RAINBOW)) {
             hsvColor_t ledColor;
             ledColor.h = (rainbowHue + (i * rainbowDelta)) % 360;
-            ledColor.s = 0;      // 0 = fully saturated in this codebase's convention
-            ledColor.v = 255;    // full brightness
+            ledColor.s = 0;
+            ledColor.v = 255;
             setLedHsv(i, &ledColor);
         }
     }
