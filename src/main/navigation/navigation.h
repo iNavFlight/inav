@@ -441,6 +441,7 @@ typedef struct navConfig_s {
         uint16_t rth_linear_descent_start_distance; // Distance from home to start the linear descent (0 = immediately)
         uint8_t  cruise_yaw_rate;                   // Max yaw rate (dps) when CRUISE MODE is enabled
         uint16_t rth_fs_landing_delay;              // Delay upon reaching home before starting landing if in FS (0 = immediate)
+        bool     cruise_lock_on_level;              // FW: lock the course hold course only once rolled out level (OFF = lock on stick release)
     } general;
 
     struct {

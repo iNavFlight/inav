@@ -83,6 +83,8 @@
 #define FW_LAND_LOITER_MIN_TIME 30000000 // usec (30 sec)
 #define FW_LAND_LOITER_ALT_TOLERANCE 150
 
+#define FW_COURSE_LOCK_MAX_BANK_DECIDEG 100 // lock the cruise course only once rolled out below this bank angle (10 deg)
+
 /*-----------------------------------------------------------
  * Compatibility for home position
  *-----------------------------------------------------------*/
@@ -119,7 +121,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 8);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 9);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -177,6 +179,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_linear_descent_start_distance = SETTING_NAV_RTH_LINEAR_DESCENT_START_DISTANCE_DEFAULT,
         .cruise_yaw_rate = SETTING_NAV_CRUISE_YAW_RATE_DEFAULT,                                 // 20dps
         .rth_fs_landing_delay = SETTING_NAV_RTH_FS_LANDING_DELAY_DEFAULT,                       // Delay before landing in FS. 0 = immedate landing
+        .cruise_lock_on_level = SETTING_NAV_CRUISE_LOCK_ON_LEVEL_DEFAULT,
     },
 
     // MC-specific
@@ -1371,6 +1374,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS(
     return NAV_FSM_EVENT_NONE;
 }
 
+// FW course hold: the course lock is pending while a turn is still being rolled out (mode entry from
+// a banked turn or heading adjustment just released) - the course follows the actual COG until then.
+// Gated by nav_cruise_lock_on_level; when OFF the course locks as soon as the sticks are centered.
+static bool fwCruiseCourseLockPending = false;
+
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_INITIALIZE(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
@@ -1389,6 +1397,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_INITIALIZE(
 
     if (STATE(AIRPLANE)) {
         posControl.cruise.course = posControl.actualState.cog;  // Store the course to follow
+        // Entering from a banked turn (e.g. mode switch out of RTH mid-turn): course hold means
+        // "fly straight from here", so follow the COG until the roll-out is complete, then lock.
+        fwCruiseCourseLockPending = navConfig()->general.cruise_lock_on_level && ABS(attitude.values.roll) > FW_COURSE_LOCK_MAX_BANK_DECIDEG;
     } else {    // Multicopter
         posControl.cruise.course = posControl.actualState.yaw;
         posControl.cruise.multicopterSpeed = constrainf(posControl.actualState.velXY, 10.0f, navConfig()->general.max_manual_speed);
@@ -1419,7 +1430,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
     }
 
     const bool mcRollStickHeadingAdjustmentActive = STATE(MULTIROTOR) && ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband;
-    static bool adjustmentWasActive = false;
 
     // User demanding yaw -> yaw stick on FW, yaw or roll sticks on MR
     // We record the desired course and change the desired target in the meanwhile
@@ -1440,13 +1450,21 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
         }
 
         posControl.cruise.lastCourseAdjustmentTime = currentTimeMs;
-        adjustmentWasActive = true;
+        fwCruiseCourseLockPending = true;
 
         DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.course));
-    } else if (STATE(AIRPLANE) && adjustmentWasActive) {
-        posControl.cruise.course = posControl.actualState.cog - DEGREES_TO_CENTIDEGREES(gyroRateDps(YAW));
-        resetPositionController();
-        adjustmentWasActive = false;
+    } else if (STATE(AIRPLANE) && fwCruiseCourseLockPending) {
+        if (navConfig()->general.cruise_lock_on_level && ABS(attitude.values.roll) > FW_COURSE_LOCK_MAX_BANK_DECIDEG) {
+            // Still banked (adjustment turn or banked mode entry): keep following the actual course
+            // until the roll-out is complete, else the locked course is overshot and reverse-corrected.
+            posControl.cruise.course = posControl.actualState.cog;
+        } else {
+            // Rolled out: lock to the current COG. The former yaw-rate lead term mixed a rate into an
+            // angle; with the bank gate the residual turn rate at lock time is negligible anyway.
+            posControl.cruise.course = posControl.actualState.cog;
+            resetPositionController();
+            fwCruiseCourseLockPending = false;
+        }
     } else if (currentTimeMs - posControl.cruise.lastCourseAdjustmentTime > 4000) {
         posControl.cruise.previousCourse = posControl.cruise.course;
     }
@@ -1461,8 +1479,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_ADJUSTING(n
     UNUSED(previousState);
     DEBUG_SET(DEBUG_CRUISE, 0, 3);
 
-    // User is rolling, changing manually direction. Wait until it is done and then restore CRUISE
-    if (posControl.flags.isAdjustingPosition) {
+    // User is rolling, changing manually direction. Wait until it is done AND the roll-out is
+    // complete before locking the course and re-engaging: a course locked while still banked is
+    // overshot during the level-off (the turn continues), forcing a reverse correction.
+    if (posControl.flags.isAdjustingPosition || (STATE(AIRPLANE) && navConfig()->general.cruise_lock_on_level && ABS(attitude.values.roll) > FW_COURSE_LOCK_MAX_BANK_DECIDEG)) {
         posControl.cruise.course = posControl.actualState.cog;  //store current course
         posControl.cruise.lastCourseAdjustmentTime = millis();
         return NAV_FSM_EVENT_NONE;  // reprocess the state

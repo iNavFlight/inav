@@ -56,9 +56,16 @@
 
 #include "sensors/battery.h"
 
-// Base frequencies for smoothing pitch and roll
+// Base frequency for smoothing the pitch command and the pitch-to-throttle correction
 #define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f
-#define NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ     10.0f
+
+// Roll-command S-curve smoothing: control_smoothness (0..9) -> easing window = n*100 ms (0 = off,
+// max 900 ms). Triggered only on an abrupt commanded-bank step (>20% of the configured roll
+// rate between nav loops), then eased over the window and passed 1:1 afterwards. Unlike the previous
+// PT1 low-pass this never lags steady tracking, so the controller command stays deterministic.
+#define NAV_FW_SMOOTH_TCONST_PER_STEP_MS  100.0f
+#define NAV_FW_SMOOTH_TCONST_MAX_MS       900.0f
+#define NAV_FW_SMOOTH_STEP_FRACTION       0.2f
 
 // If we are going slower than the minimum ground speed (navConfig()->general.min_ground_speed) - boost throttle to fight against the wind
 #define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.5f
@@ -72,6 +79,10 @@ static bool isYawAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static float navCrossTrackError;
+static bool fwRollSmoothReseed = false;     // re-sync the roll S-curve smoother on the next frame (after a controller reset)
+static float fwRollSmoothSeedCd = 0.0f;     // baseline the smoother re-seeds to (set by the controller reset)
+static float fwLastNavRollCmdCd = 0.0f;     // last applied nav roll command [centideg] + timestamp, to tell a
+static timeUs_t fwLastNavRollCmdTimeUs = 0; // nav-to-nav transition apart from a pilot handover at reset time
 static int8_t loiterDirYaw = 1;
 static bool needToCalculateCircularLoiter;
 static bool autoSpeedIsActive = false;
@@ -261,7 +272,6 @@ bool adjustFixedWingHeadingFromRCInput(void)
  * XY-position controller
  *-----------------------------------------------------------*/
 static fpVector3_t virtualDesiredPosition;
-static pt1Filter_t fwPosControllerCorrectionFilterState;
 static pt1Filter_t fwCrossTrackErrorRateFilterState;
 
 /*
@@ -280,10 +290,14 @@ void resetFixedWingPositionController(void)
     isRollAdjustmentValid = false;
     isYawAdjustmentValid = false;
 
+    // Re-seed the roll S-curve smoother. If nav commanded roll until just now (nav-mode to nav-mode
+    // transition, e.g. RTH -> CRUISE) seed from the last applied command so the level-off/turn change
+    // is eased; after a pilot-flown phase seed neutral so a roll-out in progress is not re-commanded.
+    fwRollSmoothSeedCd = ((micros() - fwLastNavRollCmdTimeUs) < MAX_POSITION_UPDATE_INTERVAL_US) ? fwLastNavRollCmdCd : 0.0f;
+    fwRollSmoothReseed = true;
+
     pt1FilterSetCutoff(&fwCrossTrackErrorRateFilterState, 3.0f);
     pt1FilterReset(&fwCrossTrackErrorRateFilterState, 0.0f);
-    pt1FilterSetCutoff(&fwPosControllerCorrectionFilterState, getSmoothnessCutoffFreq(NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ));
-    pt1FilterReset(&fwPosControllerCorrectionFilterState, 0.0f);
 }
 
 static int8_t loiterDirection(void) {
@@ -317,6 +331,62 @@ static int8_t loiterDirection(void) {
 #endif
 
     return dir;
+}
+
+// Triggered S-curve roll-in [centideg]: on an abrupt commanded-bank step (new heading), ease toward the
+// target with a smoothstep over a control_smoothness-derived time constant, then pass 1:1. The timer is
+// not reset by further steps mid-ramp, so we never get stuck damping steady tracking.
+static float applyFwRollInSmoothing(float rollTargetCd, timeDelta_t deltaMicros, bool reseed)
+{
+    static float prevTarget = 0.0f;
+    static float prevRate = 0.0f;
+    static float rampStart = 0.0f;
+    static float prevOut = 0.0f;
+    static float elapsedMs = 0.0f;
+    static bool active = false;
+
+    if (reseed) {                                               // controller reset: re-seed to the baseline chosen at reset time
+        active = false;                                          // (last nav command on a nav-to-nav transition, else neutral), so
+        elapsedMs = 0.0f;                                        // the cross-mode command step is detected and eased while stale
+        prevTarget = fwRollSmoothSeedCd;                         // state can never fire a spurious ramp
+        prevRate = 0.0f;
+        prevOut = fwRollSmoothSeedCd;
+    }
+
+    const float tConstMs = MIN((float)navConfig()->fw.control_smoothness * NAV_FW_SMOOTH_TCONST_PER_STEP_MS, NAV_FW_SMOOTH_TCONST_MAX_MS);
+    const float dtS = US2S(deltaMicros);
+    if (tConstMs <= 0.0f || dtS <= 0.0f) {                       // smoothing off: pass through
+        active = false;
+        prevTarget = rollTargetCd;
+        prevRate = 0.0f;
+        prevOut = rollTargetCd;
+        return rollTargetCd;
+    }
+
+    const float cmdRate = (rollTargetCd - prevTarget) / dtS;     // commanded bank rate [centideg/s]
+    const float stepThreshold = NAV_FW_SMOOTH_STEP_FRACTION * (currentControlProfile->stabilized.rates[FD_ROLL] * 10.0f) * 100.0f;  // 20% of roll rate [centideg/s]
+    if (!active && fabsf(cmdRate - prevRate) > stepThreshold) {  // abrupt setpoint-rate change -> start the S-curve
+        active = true;
+        elapsedMs = 0.0f;
+        rampStart = prevOut;
+    }
+
+    float out = rollTargetCd;                                    // default: 1:1 pass-through
+    if (active) {
+        elapsedMs += dtS * 1000.0f;                             // timer does NOT reset on further steps
+        if (elapsedMs >= tConstMs) {
+            active = false;                                      // window elapsed -> back to 1:1
+        } else {
+            const float p = elapsedMs / tConstMs;
+            const float s = p * p * (3.0f - 2.0f * p);          // smoothstep (S-curve)
+            out = rampStart + s * (rollTargetCd - rampStart);
+        }
+    }
+
+    prevTarget = rollTargetCd;
+    prevRate = cmdRate;
+    prevOut = out;
+    return out;
 }
 
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
@@ -560,11 +630,15 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                         DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
                                         pidFlags);
 
-    // Apply low-pass filter to prevent rapid correction
-    rollAdjustment = pt1FilterApply3(&fwPosControllerCorrectionFilterState, rollAdjustment, US2S(deltaMicros));
+    // Triggered S-curve smoothing on the roll command (control_smoothness); re-seeded after a
+    // controller reset so stale smoother state cannot fire a spurious ramp.
+    rollAdjustment = applyFwRollInSmoothing(rollAdjustment, deltaMicros, fwRollSmoothReseed);
+    fwRollSmoothReseed = false;
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
     posControl.rcAdjustment[ROLL] = CENTIDEGREES_TO_DECIDEGREES(rollAdjustment);
+    fwLastNavRollCmdCd = rollAdjustment;
+    fwLastNavRollCmdTimeUs = currentTimeUs;
 
     /*
      * Yaw adjustment
