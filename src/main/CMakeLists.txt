@@ -311,6 +311,8 @@ main_sources(COMMON_SRC
     fc/fc_msp.h
     fc/fc_msp_box.c
     fc/fc_msp_box.h
+    fc/fc_msp_dronecan.c
+    fc/fc_msp_dronecan.h
     fc/firmware_update.c
     fc/firmware_update.h
     fc/firmware_update_common.c
