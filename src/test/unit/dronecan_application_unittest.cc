@@ -27,6 +27,7 @@ extern "C" {
 #include "uavcan.protocol.NodeStatus.h"
 #include "uavcan.protocol.GetNodeInfo.h"
 #include "uavcan.protocol.param.GetSet_res.h"
+#include "uavcan.protocol.param.GetSet.h"
 #include "uavcan.protocol.param.ExecuteOpcode_res.h"
 #include "uavcan.protocol.RestartNode_res.h"
 
@@ -49,6 +50,13 @@ extern "C" {
 /* Private state made non-static in UNIT_TEST builds */
 extern uint8_t activeNodeCount;
 extern dronecanNodeInfo_t nodeTable[];
+
+/* dronecan.c's module-global CanardInstance used by dronecanUpdate() and
+   dronecan_async.c (declared non-static there for that reason). Tests that
+   call dronecanUpdate() directly must initialize this instance themselves;
+   it is distinct from the local `ins` CanardInstance used by fixtures below
+   that call onTransferReceived()/handle_NodeStatus() directly. */
+extern CanardInstance canard;
 
 /* Private functions not exposed in dronecan.h */
 void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer);
@@ -94,13 +102,29 @@ void dronecanBatterySensorReceiveInfo(struct uavcan_equipment_power_BatteryInfo 
 
 /* STM32 CAN driver stubs */
 int16_t canardSTM32CAN1_Init(uint32_t b) { (void)b; return CANARD_OK; }
-int16_t canardSTM32Receive(CanardCANFrame *f) { (void)f; return 0; }
 uint32_t canardSTM32GetAndClearRxDropCount(void) { return 0; }
 int16_t canardSTM32Transmit(const CanardCANFrame *f) { (void)f; return 1; }
 void    canardSTM32GetProtocolStatus(canardProtocolStatus_t *s) { memset(s, 0, sizeof(*s)); }
-int32_t canardSTM32GetRxFifoFillLevel(void) { return 0; }
 void    canardSTM32RecoverFromBusOff(void) {}
 void    canardSTM32GetUniqueID(uint8_t id[16]) { memset(id, 0, 16); }
+
+/* Controllable mock RX FIFO, used only by tests that call dronecanUpdate()
+ * directly (currently just DronecanUpdate_TimeoutCheckedAfterRxDrain_ResponseNotDropped).
+ * Defaults to empty (count == pos == 0), which is observably identical to the
+ * previous hardcoded "always empty" stubs — canardSTM32GetRxFifoFillLevel()
+ * returned 0 and canardSTM32Receive() returned 0 either way. No other test in
+ * this file calls dronecanUpdate(), so none of them touch this queue. */
+static CanardCANFrame mock_rx_queue[4];
+static int mock_rx_queue_count = 0;
+static int mock_rx_queue_pos = 0;
+int32_t canardSTM32GetRxFifoFillLevel(void) { return mock_rx_queue_count - mock_rx_queue_pos; }
+int16_t canardSTM32Receive(CanardCANFrame *f) {
+    if (mock_rx_queue_pos >= mock_rx_queue_count) {
+        return 0;
+    }
+    *f = mock_rx_queue[mock_rx_queue_pos++];
+    return 1;
+}
 
 /* Version strings declared in build/version.h */
 const char* const shortGitRevision = "00000000";
@@ -850,4 +874,115 @@ TEST_F(DroneCANDispatchTest, AsyncRequest_RejectedWhilePending)
 
     EXPECT_FALSE(dronecanAsyncRequest(DRONECAN_SERVICE_RESTART_NODE, 42, nullptr));
     EXPECT_EQ(dronecanAsyncSlot.state, DRONECAN_ASYNC_PENDING);
+}
+
+/* =========================================================================
+ * Qodo PR #11683 Finding 1 — timeout-before-drain race
+ *
+ * Regression test for dronecanUpdate() itself (not just the handlers it
+ * calls). The original bug was in the *call order* inside dronecanUpdate()'s
+ * STATE_DRONECAN_NORMAL case: dronecanAsyncCheckTimeout() ran BEFORE the CAN
+ * RX FIFO was drained. If a response for a pending async request was already
+ * sitting in the RX FIFO when the timeout deadline was reached, the timeout
+ * check flipped the slot to ERROR before the RX-drain loop had a chance to
+ * process the response, so a legitimately on-time response was silently
+ * dropped (dronecanAsyncHandleServiceResponse() only accepts slots in the
+ * PENDING state).
+ *
+ * A prior version of this test called dronecanAsyncCheckTimeout() and
+ * onTransferReceived() directly, in a hardcoded order chosen by the test
+ * itself — it never called dronecanUpdate() at all, so it could not actually
+ * validate the production call order in dronecan.c. This version drives the
+ * real dronecanUpdate() state machine so it fails/passes based on the actual
+ * order of operations in dronecan.c.
+ * ========================================================================= */
+
+TEST_F(DroneCANDispatchTest, DronecanUpdate_TimeoutCheckedAfterRxDrain_ResponseNotDropped)
+{
+    /* dronecanUpdate() operates on the module's own global `canard` instance
+     * (declared non-static in dronecan.c), not the fixture's local `ins` used
+     * by the direct onTransferReceived() tests elsewhere in this file.
+     * Initialize it the way dronecanInit() would. */
+    static uint8_t canard_memory_pool[4096];
+    canardInit(&canard, canard_memory_pool, sizeof(canard_memory_pool),
+               onTransferReceived, shouldAcceptTransfer, NULL);
+    canardSetLocalNodeID(&canard, 1);
+
+    /* Ensure this test starts with an empty mock RX queue regardless of
+     * execution order relative to other tests. */
+    mock_rx_queue_count = 0;
+    mock_rx_queue_pos   = 0;
+
+    /* Prime the async slot as if a PARAM_GETSET request is in flight to node 42. */
+    dronecanAsyncSlot.state           = DRONECAN_ASYNC_PENDING;
+    dronecanAsyncSlot.service_id      = DRONECAN_SERVICE_PARAM_GETSET;
+    dronecanAsyncSlot.node_id         = 42;
+    dronecanAsyncSlot.transfer_id     = 1; /* in-flight id expected by the guard: (1-1)&0x1F = 0 */
+    dronecanAsyncSlot.requested_at_ms = 0;
+
+    /* Build a real, correctly-encoded response frame using canard's own
+     * encoder from a throwaway "peer" CanardInstance representing node 42
+     * responding to node 1 — this avoids hand-rolling the UAVCAN extended CAN
+     * ID bit layout (priority/data_type_id/transfer_type/dest/src bits). */
+    CanardInstance peer_ins;
+    uint8_t peer_memory_pool[1024];
+    canardInit(&peer_ins, peer_memory_pool, sizeof(peer_memory_pool), NULL, NULL, NULL);
+    canardSetLocalNodeID(&peer_ins, 42);
+
+    struct uavcan_protocol_param_GetSetResponse resp;
+    memset(&resp, 0, sizeof(resp));
+    resp.value.union_tag     = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+    resp.value.integer_value = 7;
+    uint8_t payload[UAVCAN_PROTOCOL_PARAM_GETSET_RESPONSE_MAX_SIZE];
+    uint32_t payload_len = uavcan_protocol_param_GetSetResponse_encode(&resp, payload);
+
+    /* Response transfer IDs must NOT be altered by canardRequestOrRespond
+     * (see canard.c canardRequestOrRespondObj: only CanardTransferTypeRequest
+     * increments inout_transfer_id). Use 0 to match the slot's expected
+     * in-flight id above. */
+    uint8_t peer_transfer_id = 0;
+    int16_t enq_res = canardRequestOrRespond(&peer_ins, /*destination_node_id=*/1,
+        UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE, UAVCAN_PROTOCOL_PARAM_GETSET_RESPONSE_ID,
+        &peer_transfer_id, CANARD_TRANSFER_PRIORITY_MEDIUM, CanardResponse,
+        payload, (uint16_t)payload_len);
+    ASSERT_GT(enq_res, 0) << "failed to encode/enqueue the fake response frame";
+
+    /* The GetSetResponse payload (12 bytes here) exceeds a single CAN frame's
+     * 7-byte capacity (8 bytes minus the tail byte), so canard splits it into
+     * a multi-frame transfer. Drain every frame libcanard queued for the
+     * peer into dronecanUpdate()'s mocked RX FIFO, in order, so its real
+     * RX-drain loop (canardSTM32GetRxFifoFillLevel/canardSTM32Receive)
+     * reconstructs the complete transfer before dispatching it. */
+    const CanardCANFrame *queued;
+    while ((queued = canardPeekTxQueue(&peer_ins)) != nullptr) {
+        ASSERT_LT(mock_rx_queue_count, (int)(sizeof(mock_rx_queue) / sizeof(mock_rx_queue[0])))
+            << "mock_rx_queue too small for this transfer's frame count";
+        mock_rx_queue[mock_rx_queue_count++] = *queued;
+        canardPopTxQueue(&peer_ins);
+    }
+    ASSERT_GT(mock_rx_queue_count, 0) << "no frames were queued for the fake response";
+    mock_rx_queue_pos = 0;
+
+    /* First call: STATE_DRONECAN_INIT -> STATE_DRONECAN_NORMAL transition.
+     * This branch does not touch the RX queue or the async slot at all, so
+     * it's safe to call before setting up the "real" scenario timing. */
+    mock_time_ms = 0;
+    dronecanUpdate(0);
+
+    /* Second call is the one under test: the response frame is already
+     * queued, and mock_time_ms is set exactly at the timeout deadline for the
+     * pending request — the exact race window Qodo Finding 1 describes.
+     * currentTimeUs=1000 is far below next_1hz_service_at (set to 1,000,000
+     * by the first call), so this stays in the STATE_DRONECAN_NORMAL branch
+     * without also triggering process1HzTasks(). */
+    mock_time_ms = DRONECAN_ASYNC_TIMEOUT_MS;
+    dronecanUpdate(1000);
+
+    EXPECT_EQ(dronecanAsyncSlot.state, DRONECAN_ASYNC_READY)
+        << "response arrived within DRONECAN_ASYNC_TIMEOUT_MS but was dropped "
+           "because dronecanAsyncCheckTimeout() ran before the RX frame was "
+           "processed (PR #11683 Qodo Finding 1)";
+    const dronecanParamResult_t *r = &dronecanAsyncSlot.result.param;
+    EXPECT_EQ(r->type,      (uint8_t)DRONECAN_PARAM_TYPE_INT);
+    EXPECT_EQ(r->value_int, 7);
 }

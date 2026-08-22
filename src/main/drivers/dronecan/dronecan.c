@@ -145,8 +145,6 @@ void dronecanUpdate(timeUs_t currentTimeUs)
         case STATE_DRONECAN_NORMAL:
             processCanardTxQueueSafe();
 
-            dronecanAsyncCheckTimeout();
-
              for (numMessagesToProcess = canardSTM32GetRxFifoFillLevel(); numMessagesToProcess > 0; numMessagesToProcess--)
              {
 	            timestamp = millis() * 1000ULL;
@@ -165,6 +163,11 @@ void dronecanUpdate(timeUs_t currentTimeUs)
             // Drain any TX frames queued by RX handlers (e.g. GetNodeInfo responses)
             // in the same task cycle so multi-frame transfers complete before timeout.
             processCanardTxQueueSafe();
+
+            // Check for async request timeout only after this tick's RX frames have
+            // been processed, so a response already queued this tick can complete
+            // the request before it's considered expired.
+            dronecanAsyncCheckTimeout();
 
             if (currentTimeUs >= next_1hz_service_at)
             {
