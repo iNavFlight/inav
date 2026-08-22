@@ -659,6 +659,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     static float   arcCx, arcCy, arcR;
     static int8_t  arcDir;
     static int32_t arcOutBearing;
+    static bool    arcToLegLine;        // fallback capture: converge onto the leg line itself, not just its course
     static float   phiNomCd;            // coordinated nominal bank for this turn [centideg]
     static float   tEaseMs;             // roll-in ease time
     static float   rampMs;              // elapsed time in the ramp-in phase
@@ -689,6 +690,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     const float v = posControl.actualState.velXY;
 
     if (!fwArcEngaged) {
+        arcToLegLine = false;
         const bool legChanged = (fwArcPrevLegBearing >= 0) && (ABS(wrap_18000(legBearing - fwArcPrevLegBearing)) > 500);
         fwArcPrevLegBearing = legBearing;
         if (legChanged) {
@@ -797,6 +799,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                     rampStartCd = 0.0f;
                     arcDir = (hdgErr > 0) ? 1 : -1;
                     arcOutBearing = legBearing;
+                    arcToLegLine = true;
                     phiNomCd = phiTmp;
                     tEaseMs = tTmp;
                 } else if (2.0f * psiTmp < (float)ABS(hdgErr)) {   // enough turn left for a steady arc between the ease ramps
@@ -898,6 +901,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         if (ABS(wrap_18000(legBearing - fwArcPrevLegBearing)) > 500) {
             fwFlyByCappedLatch = false;
             arcOutBearing = legBearing;
+            arcToLegLine = true;
             phase = ARC_CAPTURE;
             if (intoStage == FW_INTO_AWAY) {
                 intoStage = FW_INTO_DONE;                       // staged S is stale: release the hand-back block
@@ -942,6 +946,17 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
             arcOutBearing = intoBOut;
             intoStage = FW_INTO_MAIN;
         }
+    }
+
+    // Leg-line capture (path tracking on): steer onto the track itself, not merely parallel to it -
+    // a reversal fallback otherwise ends a turn-diameter off the leg. Intercept angle tapers with
+    // the cross-track offset (1 cd/cm), capped at the tracker's own convergence limit.
+    if (arcToLegLine && navConfig()->fw.wp_tracking_accuracy) {
+        const float legRadT = CENTIDEGREES_TO_RADIANS((float)legBearing);
+        const float offLeg = (pos->x - posControl.activeWaypoint.pos.x) * (-sin_approx(legRadT))
+                           + (pos->y - posControl.activeWaypoint.pos.y) * cos_approx(legRadT);
+        const float gammaCd = constrainf(fabsf(offLeg), 0.0f, DEGREES_TO_CENTIDEGREES(navConfig()->fw.wp_tracking_max_angle));
+        arcOutBearing = wrap_36000(legBearing - lrintf(SIGN(offLeg) * gammaCd));
     }
 
     rampMs += US2S(deltaMicros) * 1000.0f;
