@@ -2676,7 +2676,7 @@ groups:
         field: fw.wp_turn_mode
         table: nav_fw_wp_turn_mode
       - name: nav_fw_turn_ff_gain
-        description: "DEVELOPER/EXPERIMENTAL (to be hardcoded before release): turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn/loiter radius forward to the roll controller so the PID only trims the residual, giving cleaner coordinated turns and more precise loiter circles. 0 disables the feed-forward (pure PID)."
+        description: "Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven."
         default_value: 100
         field: fw.turn_ff_gain
         min: 0
@@ -2688,7 +2688,7 @@ groups:
         min: 3000
         max: 12000
       - name: nav_fw_wp_turn_control_ease
-        description: "DEVELOPER/EXPERIMENTAL: unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramp; SIM low, real models higher."
+        description: "Unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramps; increase for large or slow-responding airframes."
         default_value: 100
         field: fw.wp_turn_control_ease
         min: 0
@@ -2990,7 +2990,7 @@ groups:
         field: mc.slowDownForTurning
         type: bool
       - name: nav_fw_bank_angle
-        description: "Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll"
+        description: "Maximum sustained roll angle when turning in GPS assisted modes: the target bank that turn and loiter radii are planned for. Corrections may exceed it temporarily; the absolute ceiling remains max_angle_inclination_rll"
         default_value: 35
         field: fw.max_bank_angle
         min: 5

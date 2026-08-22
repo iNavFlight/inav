@@ -3631,7 +3631,7 @@ P gain of auto speed PID controller.
 
 ### nav_fw_bank_angle
 
-Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll
+Maximum sustained roll angle when turning in GPS assisted modes: the target bank that turn and loiter radii are planned for. Corrections may exceed it temporarily; the absolute ceiling remains max_angle_inclination_rll
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4151,7 +4151,7 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ### nav_fw_turn_ff_gain
 
-DEVELOPER/EXPERIMENTAL (to be hardcoded before release): turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn/loiter radius forward to the roll controller so the PID only trims the residual, giving cleaner coordinated turns and more precise loiter circles. 0 disables the feed-forward (pure PID).
+Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4181,7 +4181,7 @@ Sets the maximum allowed alignment convergence angle to the waypoint course line
 
 ### nav_fw_wp_turn_control_ease
 
-DEVELOPER/EXPERIMENTAL: unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramp; SIM low, real models higher.
+Unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramps; increase for large or slow-responding airframes.
 
 | Default | Min | Max |
 | --- | --- | --- |
