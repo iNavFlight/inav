@@ -335,15 +335,11 @@ typedef enum {
 } rthTrackbackMode_e;
 
 typedef enum {
-    NAV_FW_WP_TURN_MODE_FLY_BY = 0,     // corner cut: turn anticipated so the arc joins the next leg, WP passed abeam
-    NAV_FW_WP_TURN_MODE_FLY_OVER = 1,   // fly over the WP, then roll out on the tangent line to the next WP
-    NAV_FW_WP_TURN_MODE_FLY_INTO = 2,   // ease away before the WP, then cross it already aligned on the outbound course
-} navFwWpTurnMode_e;
-
-typedef enum {
     NAV_FW_WP_TURN_DIRECT = 0,          // legacy heading-PID turn (fallback)
-    NAV_FW_WP_TURN_COORDINATED = 1,     // arc-based coordinated turn (default)
-} navFwWpTurnCoordination_e;
+    NAV_FW_WP_TURN_COORD_FLY_BY = 1,    // corner cut: turn anticipated so the arc joins the next leg, WP passed abeam
+    NAV_FW_WP_TURN_COORD_FLY_OVER = 2,  // fly over the WP, then roll out on the tangent line to the next WP
+    NAV_FW_WP_TURN_COORD_FLY_INTO = 3,  // ease away before the WP, then cross it already aligned on the outbound course
+} navFwWpTurnMode_e;
 
 typedef enum {
     MC_ALT_HOLD_STICK,
@@ -512,9 +508,8 @@ typedef struct navConfig_s {
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
         uint8_t  wp_tracking_accuracy;       // fixed wing tracking accuracy response factor
         uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
-        uint8_t  wp_turn_mode;               // WP mission turn mode (navFwWpTurnMode_e: FLY_BY / FLY_OVER)
+        uint8_t  wp_turn_mode;               // WP mission turn mode (navFwWpTurnMode_e: DIRECT / COORD_FLYBY / COORD_FLYOVER / COORD_FLYINTO)
         uint8_t  turn_ff_gain;               // turn coordination feed-forward gain [%] (0 = off; dev tuning, to be hardcoded)
-        uint8_t  wp_turn_coordination;       // turn handling (navFwWpTurnCoordination_e: DIRECT / COORDINATED)
         uint16_t wp_turn_max_lead_time;      // FLY_BY: cap on how early the turn may start before the WP [ms] (dev tuning)
         uint16_t wp_turn_control_ease;       // unmodelled roll-response lag added to the computed turn ease time [ms]
     } fw;

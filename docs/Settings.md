@@ -4189,20 +4189,9 @@ DEVELOPER/EXPERIMENTAL: unmodelled roll-response lag (servo + airframe inertia) 
 
 ---
 
-### nav_fw_wp_turn_coordination
-
-How FW waypoint turns are flown. COORDINATED (default) commands an explicit coordinated arc of the planned radius at nav_fw_bank_angle and tracks it to the next leg. DIRECT uses the legacy heading-PID turn (fallback for users who prefer the old behaviour).
-
-| Allowed Values |  |
-| --- | --- |
-| DIRECT |  |
-| COORDINATED | Default |
-
----
-
 ### nav_fw_wp_turn_max_lead_time
 
-FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint.
+COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4212,13 +4201,14 @@ FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. The req
 
 ### nav_fw_wp_turn_mode
 
-How the aircraft turns at waypoints during FW WP missions. FLY_BY anticipates the turn using the real coordinated-turn radius (from speed and nav_fw_bank_angle) so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). FLY_OVER flies over the waypoint, then flies a coordinated turn that rolls out exactly on the tangent line to the next waypoint - or, with nav_fw_wp_tracking_accuracy enabled, an S-turn that rolls out directly ON the new leg. FLY_INTO eases away from the corner before the waypoint, then flies an arc that crosses the waypoint already aligned on the outbound course (survey/mapping line entries).
+How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn (fallback for users who prefer the old behaviour). The COORD modes command an explicit coordinated arc of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY anticipates the turn so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). COORD_FLYOVER flies over the waypoint, then rolls out exactly on the tangent line to the next waypoint - or, with nav_fw_wp_tracking_accuracy enabled, an S-turn that rolls out directly ON the new leg. COORD_FLYINTO eases away from the corner before the waypoint, then flies an arc that crosses the waypoint already aligned on the outbound course (survey/mapping line entries).
 
 | Allowed Values |  |
 | --- | --- |
-| FLY_BY | Default |
-| FLY_OVER |  |
-| FLY_INTO |  |
+| DIRECT |  |
+| COORD_FLYBY | Default |
+| COORD_FLYOVER |  |
+| COORD_FLYINTO |  |
 
 ---
 
