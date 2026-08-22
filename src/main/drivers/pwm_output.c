@@ -619,7 +619,9 @@ static void pwmDshotDmaIrqHandler(DMA_t descriptor)
     DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
 }
 
-static bool pwmDshotDecodeTelemetry(void)
+// DMA has already captured the telemetry waveform before this runs. Keep the
+// decode path out of the fast motor-update caller on constrained F7 targets.
+static bool NOINLINE pwmDshotDecodeTelemetry(void)
 {
     if (!useDshotTelemetry || !dshotTelemetryPending) {
         return true;
