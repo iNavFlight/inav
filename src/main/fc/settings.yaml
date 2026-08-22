@@ -851,6 +851,16 @@ groups:
         default_value: "ONESHOT125"
         field: motorPwmProtocol
         table: motor_pwm_protocol
+      - name: dshot_bidir_enabled
+        description: "Enable bidirectional DShot telemetry on motor outputs. Required for RPM filtering without a separate ESC telemetry UART"
+        field: useDshotTelemetry
+        type: bool
+        default_value: OFF
+      - name: dshot_edt_enabled
+        description: "Enable extended DShot telemetry decoding (temperature, voltage, current in addition to eRPM)"
+        field: useDshotEdt
+        type: bool
+        default_value: OFF
       - name: motor_poles
         field: motorPoleCount
         description: "The number of motor poles. Required to compute motor RPM"
