@@ -552,8 +552,9 @@ static float getFwCoordinatedTurnRadius(void)
 static float getFwTurnFeedForward(int32_t navHeadingError)
 {
     const uint8_t ffGain = navConfig()->fw.turn_ff_gain;
-    if (ffGain == 0 || posControl.actualState.velXY <= NAV_FW_TURN_MIN_SPEED) {
-        return 0.0f;
+    if (ffGain == 0 || posControl.actualState.velXY <= NAV_FW_TURN_MIN_SPEED
+        || (navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_DIRECT && posControl.navState != NAV_STATE_FW_LANDING_APPROACH)) {
+        return 0.0f;                                    // DIRECT = pure legacy PID (landing approach forces FLY_BY)
     }
 
     float ffRadius = 0.0f;
@@ -1121,12 +1122,12 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
     }
 
     /* FLY_BY corner cut: start the turn R*tan(angle/2) before the WP so the arc joins the next leg
-     * at any speed. Only runs when nextTurnAngle is set (FLY_BY waypoints + landing); FLY_OVER skips it. */
+     * at any speed. FLY_BY legs only - the landing approach forces FLY_BY in every mode. */
     int32_t waypointTurnAngle = posControl.activeWaypoint.nextTurnAngle == -1 ? -1 : ABS(posControl.activeWaypoint.nextTurnAngle);
     posControl.flags.wpTurnSmoothingActive = false;
-    const bool flyIntoMissionLeg = navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_COORD_FLY_INTO && (navGetCurrentStateFlags() & NAV_AUTO_WP)
-                                   && posControl.navState != NAV_STATE_FW_LANDING_APPROACH;   // landing approach keeps FLY_BY corner cuts
-    if (waypointTurnAngle > 3000 && waypointTurnAngle < 16000 && !flyIntoMissionLeg && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
+    const bool flyByLeg = navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_COORD_FLY_BY
+                          || posControl.navState == NAV_STATE_FW_LANDING_APPROACH;
+    if (flyByLeg && waypointTurnAngle > 3000 && waypointTurnAngle < 16000 && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
         const float turnRadius = getFwCoordinatedTurnRadius();
         const float halfAngleTan = constrainf(tan_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f)), 0.0f, NAV_FW_TURN_LEAD_TAN_MAX);
         // Roll-in lead: the ramp is back-loaded and the ground track lags the bank (k calibrated in flight)
