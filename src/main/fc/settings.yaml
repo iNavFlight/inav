@@ -181,11 +181,8 @@ tables:
     values: ["2D", "3D"]
     enum: dynamicGyroNotchMode_e
   - name: nav_fw_wp_turn_mode
-    values: ["FLY_BY", "FLY_OVER", "FLY_INTO"]
+    values: ["DIRECT", "COORD_FLYBY", "COORD_FLYOVER", "COORD_FLYINTO"]
     enum: navFwWpTurnMode_e
-  - name: nav_fw_wp_turn_coordination
-    values: ["DIRECT", "COORDINATED"]
-    enum: navFwWpTurnCoordination_e
   - name: gps_auto_baud_max
     values: [ '115200', '57600', '38400', '19200', '9600', '230400', '460800', '921600']
     enum: gpsBaudRate_e
@@ -2674,8 +2671,8 @@ groups:
         min: 30
         max: 80
       - name: nav_fw_wp_turn_mode
-        description: "How the aircraft turns at waypoints during FW WP missions. FLY_BY anticipates the turn using the real coordinated-turn radius (from speed and nav_fw_bank_angle) so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). FLY_OVER flies over the waypoint, then flies a coordinated turn that rolls out exactly on the tangent line to the next waypoint - or, with nav_fw_wp_tracking_accuracy enabled, an S-turn that rolls out directly ON the new leg. FLY_INTO eases away from the corner before the waypoint, then flies an arc that crosses the waypoint already aligned on the outbound course (survey/mapping line entries)."
-        default_value: "FLY_BY"
+        description: "How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn (fallback for users who prefer the old behaviour). The COORD modes command an explicit coordinated arc of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY anticipates the turn so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). COORD_FLYOVER flies over the waypoint, then rolls out exactly on the tangent line to the next waypoint - or, with nav_fw_wp_tracking_accuracy enabled, an S-turn that rolls out directly ON the new leg. COORD_FLYINTO eases away from the corner before the waypoint, then flies an arc that crosses the waypoint already aligned on the outbound course (survey/mapping line entries)."
+        default_value: "COORD_FLYBY"
         field: fw.wp_turn_mode
         table: nav_fw_wp_turn_mode
       - name: nav_fw_turn_ff_gain
@@ -2684,13 +2681,8 @@ groups:
         field: fw.turn_ff_gain
         min: 0
         max: 200
-      - name: nav_fw_wp_turn_coordination
-        description: "How FW waypoint turns are flown. COORDINATED (default) commands an explicit coordinated arc of the planned radius at nav_fw_bank_angle and tracks it to the next leg. DIRECT uses the legacy heading-PID turn (fallback for users who prefer the old behaviour)."
-        default_value: "COORDINATED"
-        field: fw.wp_turn_coordination
-        table: nav_fw_wp_turn_coordination
       - name: nav_fw_wp_turn_max_lead_time
-        description: "FLY_BY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint."
+        description: "COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint."
         default_value: 6000
         field: fw.wp_turn_max_lead_time
         min: 3000
