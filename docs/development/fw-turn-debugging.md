@@ -15,7 +15,7 @@ blackbox logging.
 | 2 | Exit course of the active arc | centideg | Arc coordinator, only while engaged |
 | 3 | Remaining heading to the exit course | centideg | Arc coordinator, only while engaged |
 | 4 | Arc bank command | centideg | Arc coordinator, only while engaged; clamped to the effective bank ceiling |
-| 5 | Turn/loiter roll feed-forward | centideg | Feed-forward (0 when disabled, not established on the loiter circle, or inside the heading deadband) |
+| 5 | WP-turn roll feed-forward | centideg | Feed-forward (0 when disabled, loitering, or inside the heading deadband) |
 | 6 | Energy-guard bank ceiling | deg | Energy bank guard (sits at `max_angle_inclination_rll` unless the guard is reducing it) |
 | 7 | Roll ease time | ms | Arc coordinator, only while engaged (sizes the entry/exit ramps and the turn-start lead) |
 
@@ -25,7 +25,9 @@ whether the coordinator is active.
 ## Channel 1: coordinator state
 
 While the arc coordinator is engaged the value is `(arc phase + 1) * 10 + S stage`; while idle
-it is the S stage alone.
+it is the S stage alone. Two loiter states use their own values: `4` = holding, approach on the
+stock carrot guidance; `40` = loiter circle controller engaged (steady arc law holds the
+radius).
 
 Arc phase (tens digit):
 

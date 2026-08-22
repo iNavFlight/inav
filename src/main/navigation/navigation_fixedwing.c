@@ -99,8 +99,9 @@
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
 #define NAV_FW_FF_HEADING_FULL_CD        3000.0f  // heading error for full WP-turn FF
-#define NAV_FW_LOITER_FF_RADIAL_BAND     0.3f     // fraction of R: loiter FF only within this band around the circle radius
-#define NAV_FW_LOITER_FF_ALIGN_CD        6000     // [centideg] loiter FF only when cog is roughly tangential to the circle
+#define NAV_FW_LOITER_CAPTURE_BAND       0.15f    // fraction of R: engage the loiter circle controller inside this radial band
+#define NAV_FW_LOITER_CAPTURE_ALIGN_CD   4500     // [centideg] and only roughly tangential to the circle
+#define NAV_FW_LOITER_RELEASE_BAND       0.5f     // fraction of R: grossly displaced -> hand back to the carrot guidance
 
 // If this is enabled navigation won't be applied if velocity is below 3 m/s
 //#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
@@ -116,7 +117,7 @@ static float fwRollSmoothSeedCd = 0.0f;     // baseline the smoother re-seeds to
 static float fwLastNavRollCmdCd = 0.0f;     // last applied nav roll command [centideg] + timestamp, to tell a
 static timeUs_t fwLastNavRollCmdTimeUs = 0; // nav-to-nav transition apart from a pilot handover at reset time
 static float fwEffectiveBankLimit = 0.0f;   // adaptive nav bank limit (energy guard), deg; 0 = not yet initialised
-static float fwActiveLoiterRadius = 0.0f;   // effective loiter radius in use (cm), for the turn feed-forward
+static float fwActiveLoiterRadius = 0.0f;   // effective loiter radius in use (cm), for the loiter circle controller
 static bool fwArcActive = false;            // arc turn coordinator is driving the turn (-> bank headroom, suppress cross-track, roll override)
 static bool fwArcEngaged = false;           // arc coordinator latch across loops; must be cleared on controller reset or a stale arc resumes after a nav interruption
 static int32_t fwArcPrevLegBearing = -1;    // last seen WP leg bearing [centideg] for leg-change detection (-1 = unseeded)
@@ -454,10 +455,10 @@ static float getFwPlanningBankDeg(void)
     return MIN((float)navConfig()->fw.max_bank_angle, getFwEffectiveBankLimit());
 }
 
-// Roll-command bank limit [deg]: held loiter / active arc may use the reserve up to the ceiling to hold the radius against wind; everywhere else the target
+// Roll-command bank limit [deg]: an active arc may use the reserve up to the ceiling to hold the radius against wind; everywhere else the target
 static float getFwControlBankLimit(void)
 {
-    return ((navGetCurrentStateFlags() & NAV_CTL_HOLD) || fwArcActive) ? getFwEffectiveBankLimit() : getFwPlanningBankDeg();
+    return fwArcActive ? getFwEffectiveBankLimit() : getFwPlanningBankDeg();
 }
 
 // Reduce the bank ceiling when a commanded climb stalls near the pitch/throttle limit while banked, so the turn widens and the climb recovers
@@ -547,7 +548,7 @@ static float getFwCoordinatedTurnRadius(void)
     return constrainf(radius, NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX);
 }
 
-// Coordinated-turn feed-forward bank [centideg] for the active loiter/WP turn (0 if disabled or straight).
+// Coordinated-turn feed-forward bank [centideg] for the active WP turn (loiter has its own circle controller).
 static float getFwTurnFeedForward(int32_t navHeadingError)
 {
     const uint8_t ffGain = navConfig()->fw.turn_ff_gain;
@@ -557,22 +558,7 @@ static float getFwTurnFeedForward(int32_t navHeadingError)
 
     float ffRadius = 0.0f;
     float ffSign = 0.0f;
-    if (needToCalculateCircularLoiter) {
-        // FF only once established on the circle - during the approach it fights the approach guidance
-        const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
-        const float dcx = pos->x - posControl.desiredState.pos.x;
-        const float dcy = pos->y - posControl.desiredState.pos.y;
-        const float distToCenter = calc_length_pythagorean_2D(dcx, dcy);
-        const int8_t dir = loiterDirection();
-        const float alpha = atan2_approx(dcy, dcx);
-        const int32_t tangentBearing = lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(dir * cos_approx(alpha), -dir * sin_approx(alpha)))));
-        const int32_t tangentErr = wrap_18000(tangentBearing - posControl.actualState.cog);
-        if (fabsf(distToCenter - fwActiveLoiterRadius) < NAV_FW_LOITER_FF_RADIAL_BAND * fwActiveLoiterRadius
-            && ABS(tangentErr) < NAV_FW_LOITER_FF_ALIGN_CD) {
-            ffRadius = fwActiveLoiterRadius;
-            ffSign = (float)dir;
-        }
-    } else if (isWaypointNavTrackingActive() && ABS(navHeadingError) > NAV_FW_FF_HEADING_DEADBAND_CD) {
+    if (!needToCalculateCircularLoiter && isWaypointNavTrackingActive() && ABS(navHeadingError) > NAV_FW_FF_HEADING_DEADBAND_CD) {
         ffRadius = getFwCoordinatedTurnRadius();        // WP turn: dynamic radius, tapered by heading error
         ffSign = (navHeadingError > 0 ? 1.0f : -1.0f) * constrainf((float)ABS(navHeadingError) / NAV_FW_FF_HEADING_FULL_CD, 0.0f, 1.0f);
     }
@@ -1045,6 +1031,55 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     fwArcActive = true;
 }
 
+// Loiter circle controller: once established on the hold circle, the steady arc law replaces the
+// carrot PID - live FF bank plus radial/tangent feedback hold the stabilised radius exactly
+static void updateFwLoiterArc(timeDelta_t deltaMicros)
+{
+    static bool established = false;
+
+    if (!needToCalculateCircularLoiter || fwArcEngaged) {
+        established = false;
+        return;
+    }
+
+    const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
+    const float dcx = pos->x - posControl.desiredState.pos.x;
+    const float dcy = pos->y - posControl.desiredState.pos.y;
+    const float dist = calc_length_pythagorean_2D(dcx, dcy);
+    const float arcRadius = MAX(fwActiveLoiterRadius, (float)NAV_FW_TURN_RADIUS_MIN);
+    const int8_t dir = loiterDirection();
+    const float alpha = atan2_approx(dcy, dcx);
+    const int32_t tangentBearing = lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(dir * cos_approx(alpha), -dir * sin_approx(alpha)))));
+    const int32_t eH = wrap_18000(tangentBearing - posControl.actualState.cog);
+    const float eR = dist - arcRadius;
+
+    if (!established) {
+        if (fabsf(eR) < NAV_FW_LOITER_CAPTURE_BAND * arcRadius && ABS(eH) < NAV_FW_LOITER_CAPTURE_ALIGN_CD) {
+            established = true;
+            fwArcBankCmd = fwLastNavRollCmdCd;      // blend from the current command: no engage step
+        } else {
+            DEBUG_SET(DEBUG_FW_TURN, 1, 4);         // loiter approach, carrot guidance
+            return;
+        }
+    } else if (fabsf(eR) > NAV_FW_LOITER_RELEASE_BAND * arcRadius) {
+        established = false;                        // grossly displaced: hand back to the carrot
+        return;
+    }
+
+    const float v = posControl.actualState.velXY;
+    const float phiLiveCd = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * arcRadius)));
+    const float targetCd = dir * (phiLiveCd + NAV_FW_ARC_RADIAL_GAIN * eR) + NAV_FW_ARC_HEADING_GAIN * (float)eH;
+    const float tEase = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiLiveCd));
+    const float maxStepCd = phiLiveCd * (US2S(deltaMicros) * 1000.0f) / MAX(tEase, 1.0f);
+    fwArcBankCmd += constrainf(targetCd - fwArcBankCmd, -maxStepCd, maxStepCd);
+    const float cmdLimitCd = DEGREES_TO_CENTIDEGREES(getFwEffectiveBankLimit());
+    fwArcBankCmd = constrainf(fwArcBankCmd, -cmdLimitCd, cmdLimitCd);
+
+    DEBUG_SET(DEBUG_FW_TURN, 1, 40);                // loiter circle controller engaged
+    DEBUG_SET(DEBUG_FW_TURN, 4, lrintf(fwArcBankCmd));
+    fwArcActive = true;
+}
+
 static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t deltaMicros)
 {
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
@@ -1122,6 +1157,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
 
     // Arc turn coordinator: manages the turn state and commands the roll bank directly
     updateFwTurnArc(deltaMicros);
+    updateFwLoiterArc(deltaMicros);
 
     // Calculate virtual waypoint
     virtualDesiredPosition.x = navGetCurrentActualPositionAndVelocity()->pos.x + posErrorX * (trackingDistance / distanceToActualTarget);
