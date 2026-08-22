@@ -2671,7 +2671,7 @@ groups:
         min: 30
         max: 80
       - name: nav_fw_wp_turn_mode
-        description: "How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn (fallback for users who prefer the old behaviour). The COORD modes command an explicit coordinated arc of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY anticipates the turn so the arc joins the next leg without over/undershoot; the waypoint is passed abeam (corner cut). COORD_FLYOVER flies over the waypoint, then rolls out exactly on the tangent line to the next waypoint - or, with nav_fw_wp_tracking_accuracy enabled, an S-turn that rolls out directly ON the new leg. COORD_FLYINTO eases away from the corner before the waypoint, then flies an arc that crosses the waypoint already aligned on the outbound course (survey/mapping line entries)."
+        description: "How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn. The COORD modes fly coordinated arcs of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY cuts the corner and passes the waypoint abeam, COORD_FLYOVER overflies the waypoint before turning onto the next leg, COORD_FLYINTO crosses the waypoint already aligned with the outbound leg (survey line entries)."
         default_value: "COORD_FLYBY"
         field: fw.wp_turn_mode
         table: nav_fw_wp_turn_mode

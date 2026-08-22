@@ -676,8 +676,14 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
 
     fwArcActive = false;
 
+    // Landing approach always flies coordinated FLY_BY turns, whatever mode is configured
+    navFwWpTurnMode_e turnMode = navConfig()->fw.wp_turn_mode;
+    if (posControl.navState == NAV_STATE_FW_LANDING_APPROACH) {
+        turnMode = NAV_FW_WP_TURN_COORD_FLY_BY;
+    }
+
     const bool wpTracking = isWaypointNavTrackingActive() && !needToCalculateCircularLoiter;
-    if (navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_DIRECT || !wpTracking) {
+    if (turnMode == NAV_FW_WP_TURN_DIRECT || !wpTracking) {
         fwArcEngaged = false;
         fwArcPrevLegBearing = -1;
         intoStage = FW_INTO_IDLE;
@@ -697,7 +703,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
             intoStage = FW_INTO_IDLE;                           // a new leg invalidates any staged S geometry
             const bool capped = fwFlyByCappedLatch;             // lead-time-capped FLY_BY: the tangent geometry no longer fits
             fwFlyByCappedLatch = false;                         // consume the latch on any leg change
-            if (navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_COORD_FLY_OVER) {
+            if (turnMode == NAV_FW_WP_TURN_COORD_FLY_OVER) {
                 // FLY_OVER: circle pinned at the overfly point. Tracking OFF: exit on the tangent
                 // through the next WP; tracking ON: bounded-intercept S onto the new leg itself.
                 const float px = posControl.activeWaypoint.pos.x;
@@ -784,7 +790,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                 }
             }
             const int32_t hdgErr = wrap_18000(legBearing - cog);
-            if (navConfig()->fw.wp_turn_mode != NAV_FW_WP_TURN_COORD_FLY_OVER && ABS(hdgErr) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
+            if (turnMode != NAV_FW_WP_TURN_COORD_FLY_OVER && ABS(hdgErr) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
                 const float arcRtmp = getFwCoordinatedTurnRadius();
                 const float phiTmp = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * arcRtmp)));
                 const float tTmp = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiTmp));
@@ -833,12 +839,12 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                 }
             }
         }
-        if (!fwArcEngaged && navConfig()->fw.wp_turn_mode != NAV_FW_WP_TURN_COORD_FLY_BY && (navGetCurrentStateFlags() & NAV_AUTO_WP)) {
+        if (!fwArcEngaged && turnMode != NAV_FW_WP_TURN_COORD_FLY_BY && (navGetCurrentStateFlags() & NAV_AUTO_WP)) {
             if (intoStage == FW_INTO_MAIN) {
                 // crossing flown: re-arm once the leg has switched (normally it already has, mid-arc)
                 intoStage = (ABS(wrap_18000(legBearing - intoBOut)) < 500) ? FW_INTO_IDLE : FW_INTO_DONE;
             }
-            if (intoStage == FW_INTO_IDLE && navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_COORD_FLY_INTO) {
+            if (intoStage == FW_INTO_IDLE && turnMode == NAV_FW_WP_TURN_COORD_FLY_INTO) {
                 const int32_t nta = posControl.activeWaypoint.nextTurnAngle;
                 if (nta != -1 && ABS(nta) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
                     const float arcRtmp = getFwCoordinatedTurnRadius();
@@ -1083,7 +1089,8 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
      * at any speed. Only runs when nextTurnAngle is set (FLY_BY waypoints + landing); FLY_OVER skips it. */
     int32_t waypointTurnAngle = posControl.activeWaypoint.nextTurnAngle == -1 ? -1 : ABS(posControl.activeWaypoint.nextTurnAngle);
     posControl.flags.wpTurnSmoothingActive = false;
-    const bool flyIntoMissionLeg = navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_COORD_FLY_INTO && (navGetCurrentStateFlags() & NAV_AUTO_WP);
+    const bool flyIntoMissionLeg = navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_COORD_FLY_INTO && (navGetCurrentStateFlags() & NAV_AUTO_WP)
+                                   && posControl.navState != NAV_STATE_FW_LANDING_APPROACH;   // landing approach keeps FLY_BY corner cuts
     if (waypointTurnAngle > 3000 && waypointTurnAngle < 16000 && !flyIntoMissionLeg && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
         const float turnRadius = getFwCoordinatedTurnRadius();
         const float halfAngleTan = constrainf(tan_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f)), 0.0f, NAV_FW_TURN_LEAD_TAN_MAX);
