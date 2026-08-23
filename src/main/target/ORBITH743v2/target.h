@@ -128,6 +128,12 @@
 #define ICM40609_SPI_BUS          BUS_SPI3
 #define ICM40609_EXTI_PIN         PD2
 
+#define USE_IMU_LSM6DXX
+#define IMU_LSM6DXX_ALIGN       CW270_DEG
+#define LSM6DXX_SPI_BUS         BUS_SPI1
+#define LSM6DXX_CS_PIN          PE11
+#define LSM6DXX_EXTI_PIN        PE10
+
 
 // *************** OSD *****************************
 #define USE_MAX7456
