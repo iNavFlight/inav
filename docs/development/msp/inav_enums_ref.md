@@ -1444,31 +1444,32 @@
 | `DEVHW_RM3100` | 31 |  |
 | `DEVHW_VCM5883` | 32 |  |
 | `DEVHW_MLX90393` | 33 |  |
-| `DEVHW_LM75_0` | 34 |  |
-| `DEVHW_LM75_1` | 35 |  |
-| `DEVHW_LM75_2` | 36 |  |
-| `DEVHW_LM75_3` | 37 |  |
-| `DEVHW_LM75_4` | 38 |  |
-| `DEVHW_LM75_5` | 39 |  |
-| `DEVHW_LM75_6` | 40 |  |
-| `DEVHW_LM75_7` | 41 |  |
-| `DEVHW_DS2482` | 42 |  |
-| `DEVHW_MAX7456` | 43 |  |
-| `DEVHW_SRF10` | 44 |  |
-| `DEVHW_VL53L0X` | 45 |  |
-| `DEVHW_VL53L1X` | 46 |  |
-| `DEVHW_US42` | 47 |  |
-| `DEVHW_TOF10120_I2C` | 48 |  |
-| `DEVHW_TERARANGER_EVO_I2C` | 49 |  |
-| `DEVHW_MS4525` | 50 |  |
-| `DEVHW_MS5525` | 51 |  |
-| `DEVHW_DLVR` | 52 |  |
-| `DEVHW_M25P16` | 53 |  |
-| `DEVHW_W25N` | 54 |  |
-| `DEVHW_UG2864` | 55 |  |
-| `DEVHW_SDCARD` | 56 |  |
-| `DEVHW_IRLOCK` | 57 |  |
-| `DEVHW_PCF8574` | 58 |  |
+| `DEVHW_LIS2MDL` | 34 |  |
+| `DEVHW_LM75_0` | 35 |  |
+| `DEVHW_LM75_1` | 36 |  |
+| `DEVHW_LM75_2` | 37 |  |
+| `DEVHW_LM75_3` | 38 |  |
+| `DEVHW_LM75_4` | 39 |  |
+| `DEVHW_LM75_5` | 40 |  |
+| `DEVHW_LM75_6` | 41 |  |
+| `DEVHW_LM75_7` | 42 |  |
+| `DEVHW_DS2482` | 43 |  |
+| `DEVHW_MAX7456` | 44 |  |
+| `DEVHW_SRF10` | 45 |  |
+| `DEVHW_VL53L0X` | 46 |  |
+| `DEVHW_VL53L1X` | 47 |  |
+| `DEVHW_US42` | 48 |  |
+| `DEVHW_TOF10120_I2C` | 49 |  |
+| `DEVHW_TERARANGER_EVO_I2C` | 50 |  |
+| `DEVHW_MS4525` | 51 |  |
+| `DEVHW_MS5525` | 52 |  |
+| `DEVHW_DLVR` | 53 |  |
+| `DEVHW_M25P16` | 54 |  |
+| `DEVHW_W25N` | 55 |  |
+| `DEVHW_UG2864` | 56 |  |
+| `DEVHW_SDCARD` | 57 |  |
+| `DEVHW_IRLOCK` | 58 |  |
+| `DEVHW_PCF8574` | 59 |  |
 
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
@@ -3417,7 +3418,8 @@
 | `MAG_RM3100` | 13 |  |
 | `MAG_VCM5883` | 14 |  |
 | `MAG_MLX90393` | 15 |  |
-| `MAG_FAKE` | 16 |  |
+| `MAG_LIS2MDL` | 16 |  |
+| `MAG_FAKE` | 17 |  |
 | `MAG_MAX` | MAG_FAKE |  |
 
 ---
