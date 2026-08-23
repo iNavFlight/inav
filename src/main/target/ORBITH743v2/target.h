@@ -101,9 +101,9 @@
 #define UART8_RX_PIN PE0
 
 #define USE_DRONECAN
-#define CAN1_RX                 PD0
-#define CAN1_TX                 PD1
-#define CAN1_STANDBY            PD3
+#define CAN1_RX                 PB8
+#define CAN1_TX                 PB9
+#define CAN1_STANDBY            PA4
 
 #define SERIAL_PORT_COUNT 9 //VCP, UART1, UART2, UART3, UART4, UART5, UART6, UART7, UART8
 
