@@ -154,7 +154,7 @@ void pgResetFn_ledStripConfig(ledStripConfig_t *instance)
     }
     memcpy_fn(&instance->modeColors, &defaultModeColors, sizeof(defaultModeColors));
     memcpy_fn(&instance->specialColors, &defaultSpecialColors, sizeof(defaultSpecialColors));
-    instance->ledstrip_rainbow_sweep_rate = 1;
+    instance->ledstrip_rainbow_sweep_rate = 10;
     instance->ledstrip_rainbow_delta_deg = 30;
 }
 
@@ -845,17 +845,24 @@ static void applyLarsonScannerLayer(bool updateNow, timeUs_t *timer)
 
 static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
 {
-    static uint16_t rainbowHue = 0;
-    static uint8_t rainbowCounter = 0;
+    static uint16_t accumulator = 0;
+    static uint8_t stepCount = 0;
 
     if (updateNow) {
         *timer += LED_STRIP_HZ(100);
-        if (++rainbowCounter >= ledStripConfig()->ledstrip_rainbow_sweep_rate) {
-            rainbowCounter = 0;
-            rainbowHue = (rainbowHue + 2) % 360;
+        const uint8_t speed = ledStripConfig()->ledstrip_rainbow_sweep_rate;
+        if (speed > 0) {
+            accumulator += speed;
+            while (accumulator >= 256) {
+                accumulator -= 256;
+                if (++stepCount >= 180) {
+                    stepCount = 0;
+                }
+            }
         }
     }
 
+    const uint16_t rainbowHue = (uint16_t)stepCount << 1;
     const uint16_t rainbowDelta = ledStripConfig()->ledstrip_rainbow_delta_deg % 360;
 
     for (unsigned i = 0; i < ledCounts.count; i++) {
