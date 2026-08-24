@@ -55,6 +55,9 @@ static bool manualTransitionModeWasActive;
 static bool manualTransitionReadyForEdge = true;
 static mixerTransitionManualSessionMode_e manualTransitionSessionMode;
 static bool manualFwToMcProtectionLatched;
+static bool manualFwToMcProtectionTransitionActive;
+static bool fwToMcProtectionAirspeedConfirmed;
+static mixerTransitionConditionConfirmationState_t fwToMcProtectionAirspeedConfirmation;
 static int16_t mixerTransitionServoInput;
 static mixerProfileATOsdEvent_e mixerATOsdEvent;
 static timeMs_t mixerATOsdEventUntil;
@@ -130,6 +133,10 @@ void activateMixerConfig(void){
 
 void mixerConfigInit(void)
 {
+#ifdef USE_AUTO_TRANSITION
+    fwToMcProtectionAirspeedConfirmed = false;
+    fwToMcProtectionAirspeedConfirmation = (mixerTransitionConditionConfirmationState_t){ 0 };
+#endif
     activateMixerConfig();
     servosInit();
     mixerUpdateStateFlags();
@@ -732,6 +739,7 @@ static bool updatePostSwitchFade(void)
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
     mixerProfileAT.postSwitchFadeFastToCurrentMotorMask = 0;
     manualProfileSwitchAutoTransitionActive = false;
+    manualFwToMcProtectionTransitionActive = false;
     return true;
 }
 
@@ -748,23 +756,45 @@ static uint16_t getAirspeedThresholdForDirection(const mixerProfileATDirection_e
     return 0;
 }
 
-static bool shouldRequestManualFwToMcProtection(const bool manualControllerEnabled)
+static bool shouldRequestManualFwToMcProtection(
+    const bool manualControllerEnabled,
+    const bool navigationOwnsProfileSwitch,
+    const bool failsafeActive,
+    const bool airspeedConfirmed)
 {
-    if (!manualControllerEnabled || !STATE(AIRPLANE) || isTailSitterProfilePairConfigured()) {
+    if (!mixerTransitionManualFwToMcProtectionAllowed(
+            manualControllerEnabled,
+            navigationOwnsProfileSwitch,
+            failsafeActive) ||
+        !STATE(AIRPLANE) ||
+        isTailSitterProfilePairConfigured()) {
         return false;
     }
 
+    return airspeedConfirmed;
+}
+
+static bool updateFwToMcProtectionAirspeedConfirmation(const bool transitionActive)
+{
     const uint16_t thresholdCmS = systemConfig()->vtolFwToMcAutoSwitchAirspeed;
-    if (thresholdCmS == 0) {
-        return false;
-    }
-
     float airspeedCmS = 0.0f;
-    if (!hasUsableTransitionAirspeed(&airspeedCmS)) {
-        return false;
-    }
+    const bool usableAirspeedAvailable = hasUsableTransitionAirspeed(&airspeedCmS);
+    const bool triggerCondition = !transitionActive &&
+        !areSensorsCalibrating() &&
+        mixerTransitionFwToMcProtectionTriggered(
+            ARMING_FLAG(ARMED),
+            STATE(AIRPLANE),
+            thresholdCmS,
+            usableAirspeedAvailable,
+            airspeedCmS);
 
-    return mixerTransitionFwToMcProtectionTriggered(ARMING_FLAG(ARMED), STATE(AIRPLANE), thresholdCmS, true, airspeedCmS);
+    fwToMcProtectionAirspeedConfirmed = mixerTransitionUpdateConditionConfirmation(
+        &fwToMcProtectionAirspeedConfirmation,
+        triggerCondition,
+        millis(),
+        MIXER_TRANSITION_AIRSPEED_CONFIRM_MS);
+
+    return fwToMcProtectionAirspeedConfirmed;
 }
 
 static void updateTransitionScales(void)
@@ -803,6 +833,7 @@ static void abortTransition(const bool byAirspeedTimeout, const bool directSwitc
 
     isMixerTransitionMixing_requested = false;
     manualProfileSwitchAutoTransitionActive = false;
+    manualFwToMcProtectionTransitionActive = false;
     mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
     mixerProfileAT.aborted = wasActive;
     mixerProfileAT.directSwitchAbort = wasActive && directSwitchAbort;
@@ -898,7 +929,7 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
 #endif
 
 bool platformTypeConfigured(flyingPlatformType_e platformType)
-{   
+{
     if (!isModeActivationConditionPresent(BOXMIXERPROFILE)){
         return false;
     }
@@ -968,6 +999,7 @@ static void completeTransition(void)
     mixerProfileAT.tailSitterCaptureStableSince = 0;
     isMixerTransitionMixing_requested = false;
     manualProfileSwitchAutoTransitionActive = false;
+    manualFwToMcProtectionTransitionActive = false;
 }
 
 static bool updateTailSitterToMcCapture(void)
@@ -1382,11 +1414,18 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         (currentMixerConfig.manualVtolTransitionController || autotransitionAlways) && !missionActive,
         manualTransitionSessionMode);
 
+    const bool protectionAirspeedConfirmed = updateFwToMcProtectionAirspeedConfirmation(mixerAT_inuse);
+
     if (!mixerAT_inuse &&
-        shouldRequestManualFwToMcProtection(manualControllerEnabled) &&
-        checkMixerATRequired(MIXERAT_REQUEST_MANUAL_TO_MC)) {
-        mixerATUpdateState(MIXERAT_REQUEST_MANUAL_TO_MC);
+        shouldRequestManualFwToMcProtection(
+            manualControllerEnabled,
+            navigationOwnsProfileSwitch,
+            FLIGHT_MODE(FAILSAFE_MODE),
+            protectionAirspeedConfirmed) &&
+        checkMixerATRequired(MIXERAT_REQUEST_FW_TO_MC_PROTECTION)) {
+        mixerATUpdateState(MIXERAT_REQUEST_FW_TO_MC_PROTECTION);
         mixerAT_inuse = mixerATIsActive();
+        manualFwToMcProtectionTransitionActive = mixerAT_inuse;
         if (mixerAT_inuse || STATE(MULTIROTOR)) {
             manualFwToMcProtectionLatched = true;
         }
@@ -1442,7 +1481,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         if ((transitionSwitchAbort || profileSwitchAbort) &&
             mixerAT_inuse &&
             !mixerProfileAT.hotSwitchDone &&
-            (mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_FW || mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_MC)) {
+            mixerTransitionRequestUsesManualSwitchAbort(mixerProfileAT.request)) {
             abortTransition(false, true);
             mixerAT_inuse = false;
             if (!FLIGHT_MODE(FAILSAFE_MODE) &&
@@ -1464,11 +1503,21 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
             activeManualTransitionRequest = MIXERAT_REQUEST_MANUAL_TO_FW;
         }
 
-        if (mixerAT_inuse &&
-            (mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_FW || mixerProfileAT.request == MIXERAT_REQUEST_MANUAL_TO_MC)) {
+        if (mixerAT_inuse && mixerTransitionRequestUsesManualSwitchAbort(mixerProfileAT.request)) {
             mixerATUpdateState(activeManualTransitionRequest);
             mixerAT_inuse = mixerATIsActive();
         }
+    }
+
+    // A safety-triggered transition must keep running if a mission/RTH mode
+    // disables the manual controller before the navigation FSM takes ownership.
+    const bool manualProtectionNeedsUpdate = mixerTransitionManualFwToMcProtectionNeedsUpdate(
+        manualFwToMcProtectionTransitionActive,
+        (navStateFlags & NAV_MIXERAT) != 0,
+        mixerProfileAT.request);
+    if (mixerAT_inuse && manualProtectionNeedsUpdate) {
+        mixerATUpdateState(mixerProfileAT.request);
+        mixerAT_inuse = mixerATIsActive();
     }
 
     updateMixerATSwitchReminder(transitionModeActive, requestedProfileIndex);
@@ -1570,6 +1619,27 @@ bool NOINLINE mixerATIsActive(void)
 }
 
 #ifdef USE_AUTO_TRANSITION
+bool mixerATManualFwToMcProtectionIsLatched(void)
+{
+    return manualFwToMcProtectionLatched;
+}
+
+bool mixerATFwToMcProtectionAirspeedConfirmed(void)
+{
+    float airspeedCmS = 0.0f;
+    const bool usableAirspeedAvailable = hasUsableTransitionAirspeed(&airspeedCmS);
+
+    return fwToMcProtectionAirspeedConfirmed &&
+           !mixerATIsActive() &&
+           !areSensorsCalibrating() &&
+           mixerTransitionFwToMcProtectionTriggered(
+               ARMING_FLAG(ARMED),
+               STATE(AIRPLANE),
+               systemConfig()->vtolFwToMcAutoSwitchAirspeed,
+               usableAirspeedAvailable,
+               airspeedCmS);
+}
+
 bool mixerATGetOsdStatus(mixerProfileATOsdStatus_t *status)
 {
     if (!status) {

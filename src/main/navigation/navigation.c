@@ -724,6 +724,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]         = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING]               = NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                      = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]                   = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -744,6 +745,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -1706,6 +1708,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
+#ifdef USE_AUTO_TRANSITION
+    if (beginNavigationFwToMcProtectionTransition()) {
+        return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
+    }
+#endif
+
     if (previousState != NAV_STATE_FW_LANDING_ABORT) {
 #ifdef USE_FW_AUTOLAND
         posControl.fwLandState.landAborted = false;
@@ -1791,6 +1799,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         (checkForPositionSensorTimeout() && !navConfig()->general.flags.rth_climb_ignore_emerg)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
+
+#ifdef USE_AUTO_TRANSITION
+    if (beginNavigationFwToMcProtectionTransition()) {
+        return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
+    }
+#endif
 
     const uint8_t rthClimbMarginPercent = STATE(FIXED_WING_LEGACY) ? FW_RTH_CLIMB_MARGIN_PERCENT : MR_RTH_CLIMB_MARGIN_PERCENT;
     const float rthAltitudeMargin = MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (rthClimbMarginPercent/100.0f) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));
@@ -2334,9 +2348,15 @@ static bool hasUsableTransitionAirspeed(float *airspeedCmS)
         return false;
     }
 
-    *airspeedCmS = detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL ?
-        MAX(getAirspeedEstimate(), 0.0f) :
-        MAX(pitot.airSpeed, 0.0f);
+    const float measuredAirspeedCmS = detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL ?
+        getAirspeedEstimate() :
+        pitot.airSpeed;
+
+    if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {
+        return false;
+    }
+
+    *airspeedCmS = MAX(measuredAirspeedCmS, 0.0f);
     return true;
 }
 #else
@@ -2353,16 +2373,30 @@ static bool beginNavigationFwToMcProtectionTransition(void)
         return false;
     }
 
-    const uint16_t thresholdCmS = systemConfig()->vtolFwToMcAutoSwitchAirspeed;
-    float airspeedCmS = 0.0f;
-    const bool usableAirspeedAvailable = hasUsableTransitionAirspeed(&airspeedCmS);
-
-    if (!mixerTransitionFwToMcProtectionTriggered(ARMING_FLAG(ARMED), STATE(AIRPLANE), thresholdCmS, usableAirspeedAvailable, airspeedCmS)) {
+    if (mixerTransitionNavigationShouldAdoptCompletedFwToMcProtection(
+            mixerATManualFwToMcProtectionIsLatched(),
+            STATE(MULTIROTOR))) {
+        navVtolFwToMcProtectionLatched = true;
         return false;
     }
 
-    if (!checkMixerATRequired(MIXERAT_REQUEST_FW_TO_MC_PROTECTION)) {
+    const bool adoptActiveProtection = mixerTransitionNavigationShouldAdoptFwToMcProtection(
+        mixerATIsActive(),
+        mixerProfileAT.request);
+    if (!mixerTransitionNavigationFwToMcProtectionAllowed(
+            currentMixerConfig.automated_switch,
+            adoptActiveProtection)) {
         return false;
+    }
+
+    if (!adoptActiveProtection) {
+        if (!mixerATFwToMcProtectionAirspeedConfirmed()) {
+            return false;
+        }
+
+        if (!checkMixerATRequired(MIXERAT_REQUEST_FW_TO_MC_PROTECTION)) {
+            return false;
+        }
     }
 
     navMixerATRequestOverride = MIXERAT_REQUEST_FW_TO_MC_PROTECTION;
@@ -2905,6 +2939,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
 
 #ifdef USE_AUTO_TRANSITION
             clearMissionVTOLTransitionState();
+            if (beginNavigationFwToMcProtectionTransition()) {
+                return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
+            }
+
             const navMissionVtolTransitionDisposition_e transitionAction = prepareMissionVTOLTransition(activeWaypoint);
             if (transitionAction == NAV_MISSION_VTOL_TRANSITION_WAIT) {
                 return NAV_FSM_EVENT_NONE;
@@ -3454,6 +3492,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
             if (required_action == MIXERAT_REQUEST_FW_TO_MC_PROTECTION) {
                 switch (navMixerATPendingState)
                 {
+                case NAV_STATE_RTH_INITIALIZE:
+                case NAV_STATE_RTH_CLIMB_TO_SAFE_ALT:
                 case NAV_STATE_RTH_TRACKBACK:
                     nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH;
                     break;
@@ -3464,6 +3504,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
                 case NAV_STATE_RTH_LOITER_ABOVE_HOME:
                     nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH;
                     break;
+                case NAV_STATE_WAYPOINT_PRE_ACTION:
                 case NAV_STATE_WAYPOINT_IN_PROGRESS:
                 case NAV_STATE_WAYPOINT_HOLD_TIME:
                     nextEvent = NAV_FSM_EVENT_MIXERAT_MISSION_RESUME;

@@ -72,6 +72,7 @@ static sqrt_controller_t alt_hold_sqrt_controller;
 // Confirm touchdown by lightly reducing lift throttle and watching for descent.
 typedef struct mcLandingProbeState_s {
     bool active;
+    bool throttleReductionApplied;
     timeMs_t startedAtMs;
     int16_t startThrottle;
     bool startAglTrusted;
@@ -123,7 +124,12 @@ static bool updateMulticopterLandingProbe(timeMs_t currentTimeMs, bool *probeAbo
         return false;
     }
 
-    return currentTimeMs - mcLandingProbe.startedAtMs >= VTOL_MC_LANDING_PROBE_CONFIRM_TIME_MS;
+    const bool trustedAglTouchdown = mcLandingProbe.startAglTrusted &&
+                                     posControl.flags.estAglStatus == EST_TRUSTED;
+    return vtolMcProtectionLandingProbeCanConfirm(
+               mcLandingProbe.throttleReductionApplied,
+               trustedAglTouchdown) &&
+           currentTimeMs - mcLandingProbe.startedAtMs >= VTOL_MC_LANDING_PROBE_CONFIRM_TIME_MS;
 }
 
 static int16_t applyMulticopterLandingProbeThrottle(const int16_t requestedThrottle, const int16_t idleThrottle, const int16_t hoverThrottle)
@@ -131,6 +137,8 @@ static int16_t applyMulticopterLandingProbeThrottle(const int16_t requestedThrot
     if (!mcLandingProbe.active) {
         return requestedThrottle;
     }
+
+    mcLandingProbe.throttleReductionApplied = true;
 
     const int16_t probeThrottle = vtolMcProtectionLandingProbeThrottle(
         mcLandingProbe.startThrottle,

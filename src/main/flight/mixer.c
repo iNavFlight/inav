@@ -369,6 +369,45 @@ static void NOINLINE prepareAutoTransitionMotorMixState(autoTransitionMotorMixSt
     state->targetInput[PITCH] = state->targetInput[PITCH] * (state->targetMixerConfig->transition_PID_mmix_multiplier_pitch / 1000.0f) * targetAuthorityScale;
     state->targetInput[YAW] = state->targetInput[YAW] * (state->targetMixerConfig->transition_PID_mmix_multiplier_yaw / 1000.0f) * targetAuthorityScale;
 }
+
+// This path is only used while a transition is active. Keep it out of the
+// always-running mixer body so constrained F7 targets retain ITCM headroom.
+static int16_t NOINLINE getAutoTransitionRpyMix(
+    uint8_t motorIndex,
+    const int16_t input[3],
+    const autoTransitionMotorMixState_t *state)
+{
+    const motorMixer_t *targetMixer = &state->targetMotorMixer[motorIndex];
+    const bool currentMotorActive = currentMixer[motorIndex].throttle > 0.0f;
+    const bool targetMotorActive = targetMixer->throttle > 0.0f;
+    const float activeRpyMix = currentMotorActive ?
+        (input[PITCH] * currentMixer[motorIndex].pitch +
+        input[ROLL] * currentMixer[motorIndex].roll +
+        -motorYawMultiplier * input[YAW] * currentMixer[motorIndex].yaw) :
+        0;
+    const float targetRpyMix = targetMotorActive ?
+        (state->targetInput[PITCH] * targetMixer->pitch +
+        state->targetInput[ROLL] * targetMixer->roll +
+        -motorYawMultiplier * state->targetInput[YAW] * targetMixer->yaw) :
+        0;
+    float sharedRpyNormalizer = 1.0f;
+
+    if (currentMotorActive && targetMotorActive) {
+        const float activeAuthorityScale = state->currentProfileIsMultirotor ?
+            mixerATGetMcAuthorityScale() :
+            mixerATGetFwAuthorityScale();
+        const float targetAuthorityScale = state->targetProfileIsMultirotor ?
+            mixerATGetMcAuthorityScale() :
+            mixerATGetFwAuthorityScale();
+        const float authorityScaleSum = activeAuthorityScale + targetAuthorityScale;
+
+        if (authorityScaleSum > 1.0f) {
+            sharedRpyNormalizer = 1.0f / authorityScaleSum;
+        }
+    }
+
+    return (activeRpyMix + targetRpyMix) * sharedRpyNormalizer * mixerScale;
+}
 #endif
 
 #if !defined(SITL_BUILD)
@@ -662,36 +701,14 @@ void FAST_CODE mixTable(float dT)
     // motors for non-servo mixes
     for (int i = 0; i < motorCount; i++) {
 #ifdef USE_AUTO_TRANSITION
-        const motorMixer_t *targetMixer = autoTransition.active ? &autoTransition.targetMotorMixer[i] : NULL;
         const bool currentMotorActive = currentMixer[i].throttle > 0.0f;
-        const bool targetMotorActive = targetMixer && targetMixer->throttle > 0.0f;
-        const float activeRpyMix = currentMotorActive ?
-            (input[PITCH] * currentMixer[i].pitch +
-            input[ROLL] * currentMixer[i].roll +
-            -motorYawMultiplier * input[YAW] * currentMixer[i].yaw) :
-            0;
-        const float targetRpyMix = targetMotorActive ?
-            (autoTransition.targetInput[PITCH] * targetMixer->pitch +
-            autoTransition.targetInput[ROLL] * targetMixer->roll +
-            -motorYawMultiplier * autoTransition.targetInput[YAW] * targetMixer->yaw) :
-            0;
-        float sharedRpyNormalizer = 1.0f;
-
-        if (currentMotorActive && targetMotorActive) {
-            const float activeAuthorityScale = autoTransition.currentProfileIsMultirotor ?
-                mixerATGetMcAuthorityScale() :
-                mixerATGetFwAuthorityScale();
-            const float targetAuthorityScale = autoTransition.targetProfileIsMultirotor ?
-                mixerATGetMcAuthorityScale() :
-                mixerATGetFwAuthorityScale();
-            const float authorityScaleSum = activeAuthorityScale + targetAuthorityScale;
-
-            if (authorityScaleSum > 1.0f) {
-                sharedRpyNormalizer = 1.0f / authorityScaleSum;
-            }
-        }
-
-        rpyMix[i] = (activeRpyMix + targetRpyMix) * sharedRpyNormalizer * mixerScale;
+        rpyMix[i] = autoTransition.active ?
+            getAutoTransitionRpyMix(i, input, &autoTransition) :
+            (currentMotorActive ?
+                (input[PITCH] * currentMixer[i].pitch +
+                input[ROLL] * currentMixer[i].roll +
+                -motorYawMultiplier * input[YAW] * currentMixer[i].yaw) * mixerScale :
+                0);
 #else
         rpyMix[i] =
             (input[PITCH] * currentMixer[i].pitch +

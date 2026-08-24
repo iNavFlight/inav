@@ -60,6 +60,11 @@ typedef enum {
 #define MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_COUNT \
     (MIXER_TRANSITION_AIRSPEED_CONFIRM_MS / MIXER_TRANSITION_AIRSPEED_PROGRESS_BUCKET_MS + 1)
 
+typedef struct mixerTransitionConditionConfirmationState_s {
+    bool active;
+    timeMs_t conditionStartTime;
+} mixerTransitionConditionConfirmationState_t;
+
 typedef struct mixerTransitionAirspeedProgressFilter_s {
     bool active;
     bool windowMature;
@@ -186,6 +191,8 @@ float mixerATGetBlendToFw(void);
 int16_t mixerATGetTransitionServoInput(void);
 #ifdef USE_AUTO_TRANSITION
 bool mixerATGetOsdStatus(mixerProfileATOsdStatus_t *status);
+bool mixerATManualFwToMcProtectionIsLatched(void);
+bool mixerATFwToMcProtectionAirspeedConfirmed(void);
 bool mixerATGetPostSwitchFadeMotorOutput(uint8_t motorIndex, int16_t idleOutput, int16_t currentOutput, int16_t *output);
 float mixerATGetPostSwitchFadeProgress(void);
 bool mixerATGetServoHandoffOutput(uint8_t servoIndex, int16_t currentOutput, int16_t *output);

@@ -403,6 +403,16 @@ static inline bool vtolMcProtectionLandingProbeAirborneResponse(
             currentVerticalSpeedCmS < -VTOL_MC_LANDING_PROBE_VEL_ABS_CM_S);
 }
 
+static inline bool vtolMcProtectionLandingProbeCanConfirm(
+    const bool throttleReductionApplied,
+    const bool aglTrusted)
+{
+    // Without automatic throttle control there is no safe path to perturb the
+    // lift output. In that case require a trusted near-ground AGL gate instead
+    // of treating a passive timeout as proof of touchdown.
+    return throttleReductionApplied || aglTrusted;
+}
+
 static inline float vtolMcProtectionCommandScaleForSpeed(const float horizontalSpeedCmS)
 {
     if (horizontalSpeedCmS <= VTOL_MC_COMMAND_SHAPE_START_CM_S) {

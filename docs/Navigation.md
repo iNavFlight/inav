@@ -259,7 +259,7 @@ RTH and failsafe VTOL transitions:
 
 Targets with more than 512 KB flash can enable extra protection for VTOL aircraft flying in MC mode:
 
-- `vtol_mc_protection_mode = OFF`: disabled, legacy behavior.
+- `vtol_mc_protection_mode = OFF`: NAV capture, throttle reserve, landing settle, bailout, and command shaping are disabled. The independent VTOL MC touchdown confirmation described below remains active.
 - `vtol_mc_protection_mode = NAV`: protects VTOL MC navigation and altitude-control behavior.
 - `vtol_mc_protection_mode = NAV_AND_STABILIZED`: also shapes ANGLE/HORIZON roll, pitch, and yaw commands at higher horizontal speed.
 
@@ -290,13 +290,13 @@ Higher values relax these thresholds and can make landing detection faster, but 
 - vertical speed must be near zero when altitude/vertical-speed estimate is available,
 - NAV landing must be in the final slow-descent context,
 - trusted surface/AGL data, if available, must show near-ground,
-- all VTOL MC landing candidates must pass a throttle-probe confirmation before `LANDING_DETECTED`.
+- all VTOL MC landing candidates must pass touchdown confirmation before `LANDING_DETECTED`.
 
-The VTOL MC throttle probe gently reduces lift throttle for a short confirmation window. If the aircraft starts descending, shows unloading acceleration, or trusted AGL drops, the candidate is rejected and the detector waits again. This is intended to avoid false disarm during slow descent or ground-effect bounce, without relying on barometric altitude as AGL.
+When automatic throttle control is active, the VTOL MC throttle probe gently reduces lift throttle for a short confirmation window. If the aircraft starts descending, shows unloading acceleration, or trusted AGL drops, the candidate is rejected and the detector waits again. In a manual-throttle mode INAV does not alter pilot throttle for this test, so touchdown cannot be confirmed from a passive timeout unless trusted AGL also shows near-ground. This avoids false disarm while still airborne without adding an unexpected motor command to ANGLE, HORIZON, or manual flight.
 
-`nav_landing_bump_detection = ON` allows G-bump touchdown detection to create a landing candidate. For VTOL MC it is not an immediate disarm shortcut: trusted high AGL blocks it, and accepted candidates still go through the throttle probe. For non-VTOL multirotors it keeps the existing landing detector behavior.
+`nav_landing_bump_detection = ON` allows G-bump touchdown detection to create a landing candidate. For VTOL MC it is not an immediate disarm shortcut: trusted high AGL blocks it, and accepted candidates still go through touchdown confirmation. For non-VTOL multirotors it keeps the existing landing detector behavior.
 
-Automatic disarm still requires `nav_disarm_on_landing = ON`. `nav_auto_disarm_delay` is applied after a landing candidate is detected; in VTOL MC mode the throttle probe must also confirm before the global `LANDING_DETECTED` state is set.
+Automatic disarm still requires `nav_disarm_on_landing = ON`. `nav_auto_disarm_delay` is applied after a landing candidate is detected; in VTOL MC mode the additional touchdown confirmation must also pass before the global `LANDING_DETECTED` state is set.
 
 Debugging:
 

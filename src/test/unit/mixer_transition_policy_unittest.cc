@@ -121,9 +121,9 @@ TEST(MixerTransitionPolicyTest, LandRequestNeedsAutomatedSwitchWhenMultirotorPro
         isMultirotorTypePlatform(profileTypes[targetMcIndex])));
 }
 
-TEST(MixerTransitionPolicyTest, NavigationFwToMcProtectionNeedsAutomatedSwitch)
+TEST(MixerTransitionPolicyTest, FwToMcProtectionRequestNeedsMatchingProfiles)
 {
-    EXPECT_FALSE(mixerTransitionIsRequestAllowed(
+    EXPECT_TRUE(mixerTransitionIsRequestAllowed(
         MIXERAT_REQUEST_FW_TO_MC_PROTECTION,
         true,
         false,
@@ -149,6 +149,50 @@ TEST(MixerTransitionPolicyTest, NavigationFwToMcProtectionNeedsAutomatedSwitch)
         true,
         true,
         false));
+}
+
+TEST(MixerTransitionPolicyTest, FwToMcProtectionOriginUsesTheCorrectController)
+{
+    EXPECT_TRUE(mixerTransitionManualFwToMcProtectionAllowed(true, false, false));
+    EXPECT_FALSE(mixerTransitionManualFwToMcProtectionAllowed(false, false, false));
+    EXPECT_FALSE(mixerTransitionManualFwToMcProtectionAllowed(true, true, false));
+    EXPECT_FALSE(mixerTransitionManualFwToMcProtectionAllowed(true, false, true));
+
+    EXPECT_TRUE(mixerTransitionNavigationFwToMcProtectionAllowed(true, false));
+    EXPECT_FALSE(mixerTransitionNavigationFwToMcProtectionAllowed(false, false));
+    EXPECT_TRUE(mixerTransitionNavigationFwToMcProtectionAllowed(false, true));
+
+    EXPECT_TRUE(mixerTransitionNavigationShouldAdoptFwToMcProtection(
+        true, MIXERAT_REQUEST_FW_TO_MC_PROTECTION));
+    EXPECT_FALSE(mixerTransitionNavigationShouldAdoptFwToMcProtection(
+        false, MIXERAT_REQUEST_FW_TO_MC_PROTECTION));
+    EXPECT_FALSE(mixerTransitionNavigationShouldAdoptFwToMcProtection(
+        true, MIXERAT_REQUEST_MANUAL_TO_MC));
+
+    EXPECT_TRUE(mixerTransitionNavigationShouldAdoptCompletedFwToMcProtection(true, true));
+    EXPECT_FALSE(mixerTransitionNavigationShouldAdoptCompletedFwToMcProtection(false, true));
+    EXPECT_FALSE(mixerTransitionNavigationShouldAdoptCompletedFwToMcProtection(true, false));
+}
+
+TEST(MixerTransitionPolicyTest, AutomaticFwToMcProtectionIgnoresManualSwitchAbort)
+{
+    EXPECT_TRUE(mixerTransitionRequestUsesManualSwitchAbort(MIXERAT_REQUEST_MANUAL_TO_FW));
+    EXPECT_TRUE(mixerTransitionRequestUsesManualSwitchAbort(MIXERAT_REQUEST_MANUAL_TO_MC));
+    EXPECT_FALSE(mixerTransitionRequestUsesManualSwitchAbort(MIXERAT_REQUEST_FW_TO_MC_PROTECTION));
+    EXPECT_FALSE(mixerTransitionRequestUsesManualSwitchAbort(MIXERAT_REQUEST_MISSION_TO_MC));
+    EXPECT_FALSE(mixerTransitionRequestUsesManualSwitchAbort(MIXERAT_REQUEST_LAND));
+}
+
+TEST(MixerTransitionPolicyTest, ManualFwToMcProtectionUpdatesUntilNavigationTakesOwnership)
+{
+    EXPECT_TRUE(mixerTransitionManualFwToMcProtectionNeedsUpdate(
+        true, false, MIXERAT_REQUEST_FW_TO_MC_PROTECTION));
+    EXPECT_FALSE(mixerTransitionManualFwToMcProtectionNeedsUpdate(
+        true, true, MIXERAT_REQUEST_FW_TO_MC_PROTECTION));
+    EXPECT_FALSE(mixerTransitionManualFwToMcProtectionNeedsUpdate(
+        false, false, MIXERAT_REQUEST_FW_TO_MC_PROTECTION));
+    EXPECT_FALSE(mixerTransitionManualFwToMcProtectionNeedsUpdate(
+        true, false, MIXERAT_REQUEST_MANUAL_TO_MC));
 }
 
 TEST(MixerTransitionPolicyTest, ManualRequestsNeedMixerProfileModeAndMatchingTargetType)
@@ -227,6 +271,33 @@ TEST(MixerTransitionPolicyTest, FwToMcProtectionAirspeedTriggerNeedsTrustedLowAi
 
     EXPECT_TRUE(mixerTransitionFwToMcProtectionTriggered(true, true, 700, true, 700.0f));
     EXPECT_TRUE(mixerTransitionFwToMcProtectionTriggered(true, true, 700, true, 650.0f));
+}
+
+TEST(MixerTransitionPolicyTest, FwToMcProtectionRequiresContinuousLowAirspeedConfirmation)
+{
+    mixerTransitionConditionConfirmationState_t state = {};
+
+    EXPECT_FALSE(mixerTransitionUpdateConditionConfirmation(&state, true, 1000, 300));
+    EXPECT_FALSE(mixerTransitionUpdateConditionConfirmation(&state, true, 1299, 300));
+    EXPECT_TRUE(mixerTransitionUpdateConditionConfirmation(&state, true, 1300, 300));
+
+    EXPECT_FALSE(mixerTransitionUpdateConditionConfirmation(&state, false, 1301, 300));
+    EXPECT_FALSE(mixerTransitionUpdateConditionConfirmation(&state, true, 1400, 300));
+    EXPECT_FALSE(mixerTransitionUpdateConditionConfirmation(&state, true, 1699, 300));
+    EXPECT_TRUE(mixerTransitionUpdateConditionConfirmation(&state, true, 1700, 300));
+}
+
+TEST(MixerTransitionPolicyTest, FwToMcProtectionConfirmationHandlesTimerWrapAndZeroDuration)
+{
+    mixerTransitionConditionConfirmationState_t state = {};
+
+    EXPECT_FALSE(mixerTransitionUpdateConditionConfirmation(&state, true, UINT32_MAX - 99U, 300));
+    EXPECT_FALSE(mixerTransitionUpdateConditionConfirmation(&state, true, 199, 300));
+    EXPECT_TRUE(mixerTransitionUpdateConditionConfirmation(&state, true, 200, 300));
+
+    state = {};
+    EXPECT_TRUE(mixerTransitionUpdateConditionConfirmation(&state, true, 500, 0));
+    EXPECT_FALSE(mixerTransitionUpdateConditionConfirmation(nullptr, true, 500, 300));
 }
 
 TEST(MixerTransitionPolicyTest, NavigationOwnsProfileSwitchOnlyForArmedVtolAutoStates)
