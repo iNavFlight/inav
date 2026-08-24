@@ -1461,15 +1461,16 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
 
         DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.course));
     } else if (STATE(AIRPLANE) && fwCruiseCourseLockPending) {
-        // Follow the actual course until rolled out, else the locked course is overshot and
-        // reverse-corrected; the timeout forces the lock if the roll-out never completes.
+        // Locking while still banked overshoots the course; the timeout covers a roll-out that never completes
         const bool rolledOut = !navConfig()->general.cruise_lock_on_level
                                || ABS(attitude.values.roll) <= FW_COURSE_LOCK_MAX_BANK_DECIDEG
                                || currentTimeMs - fwCruiseStickCentreTimeMs >= FW_COURSE_LOCK_FORCE_TIMEOUT_MS;
-        posControl.cruise.course = posControl.actualState.cog;
+        // Without the level gate the turn continues through the roll-out: keep the legacy yaw-rate lead
+        posControl.cruise.course = navConfig()->general.cruise_lock_on_level ? posControl.actualState.cog
+                                   : posControl.actualState.cog - DEGREES_TO_CENTIDEGREES(gyroRateDps(YAW));
 
         if (fwCruiseHeadingAdjustActive || rolledOut) {
-            resetPositionController();      // the adjustment's course lead wound up the integrator; a zero error can never unwind it
+            resetPositionController();      // the adjustment wound up the integrator; a zero error cannot unwind it
             fwCruiseHeadingAdjustActive = false;
         }
         fwCruiseCourseLockPending = !rolledOut;
