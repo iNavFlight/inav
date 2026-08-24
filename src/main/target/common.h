@@ -86,9 +86,6 @@
 #ifndef USE_GPS_PROTO_MSP
 #define USE_GPS_PROTO_MSP
 #endif
-#ifndef USE_GPS_PROTO_DRONECAN
-#define USE_GPS_PROTO_DRONECAN
-#endif
 #ifndef USE_TELEMETRY
 #define USE_TELEMETRY
 #endif
