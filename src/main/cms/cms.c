@@ -184,7 +184,7 @@ static uint8_t linesPerMenuItem;
 static cms_key_e externKey = CMS_KEY_NONE;
 
 bool cmsInMenu = false;
-static bool cmsOpenedInFlight = false;  // true when menu was opened via BOXUSER4 while armed
+static bool cmsOpenedInFlight = false;  // true when menu was opened via BOXINFLIGHTMENU while armed
 static bool cmsMenuSwitchLatched = false;
 static uint32_t cmsOpenCountdownStartTime = 0;
 static timeMs_t cmsLastInputMs = 0;
@@ -974,7 +974,7 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
         DISABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
     } else {
         // Latch the switch so it doesn't reopen immediately if still ON
-        cmsMenuSwitchLatched = IS_RC_MODE_ACTIVE(BOXUSER4);
+        cmsMenuSwitchLatched = IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU);
     }
 
     cmsOpenedInFlight = false;
@@ -1463,7 +1463,7 @@ void cmsUpdate(uint32_t currentTimeUs)
 
     const timeMs_t currentTimeMs = currentTimeUs / 1000;
 
-    if (!IS_RC_MODE_ACTIVE(BOXUSER4)) {
+    if (!IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU)) {
         cmsMenuSwitchLatched = false;
         cmsOpenCountdownStartTime = 0;
     }
@@ -1474,10 +1474,10 @@ void cmsUpdate(uint32_t currentTimeUs)
             cmsMenuOpen();
             rcDelayMs = BUTTON_PAUSE;    // Tends to overshoot if BUTTON_TIME
         }
-        // In-flight menu via BOXUSER4 mode - requires armed state, a NAV mode,
+        // In-flight menu via BOXINFLIGHTMENU mode - requires armed state, a NAV mode,
         // and no active failsafe. Without a NAV mode the stick override would
         // leave the aircraft with zeroed control inputs.
-        else if (IS_RC_MODE_ACTIVE(BOXUSER4) && ARMING_FLAG(ARMED)
+        else if (IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU) && ARMING_FLAG(ARMED)
                  && cmsIsNavModeActive() && !FLIGHT_MODE(FAILSAFE_MODE)) {
             
             if (!cmsMenuSwitchLatched) {
@@ -1494,12 +1494,12 @@ void cmsUpdate(uint32_t currentTimeUs)
         }
     } else {
         // Close menu immediately if opened in-flight and any safety condition is lost:
-        //  - BOXUSER4 switch deactivated (user wants to exit)
+        //  - BOXINFLIGHTMENU switch deactivated (user wants to exit)
         //  - Aircraft disarmed
         //  - Failsafe activated (pilot must regain situational awareness)
         //  - NAV mode lost (stick override would leave aircraft without stabilization)
         //  - Panic / rapid / multi-axis stick movement detected (immediate evasive override)
-        if (cmsOpenedInFlight && (!IS_RC_MODE_ACTIVE(BOXUSER4) || !ARMING_FLAG(ARMED)
+        if (cmsOpenedInFlight && (!IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU) || !ARMING_FLAG(ARMED)
                                   || FLIGHT_MODE(FAILSAFE_MODE) || !cmsIsNavModeActive()
                                   || cmsDetectPanicStickMovement(currentTimeMs))) {
             cmsMenuExit(pCurrentDisplay, (void *)CMS_EXIT);

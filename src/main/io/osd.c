@@ -6352,7 +6352,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     unsigned dec = (menuCountdownMs % 1000) / 100;
                     tfp_sprintf(cmsMenuBuf, "MENU IN %u.%u", sec, dec);
                     ADD_MSG(cmsMenuBuf);
-                } else if (IS_RC_MODE_ACTIVE(BOXUSER4) && !cmsInMenu && !cmsIsMenuSwitchLatched()) {
+                } else if (IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU) && !cmsInMenu && !cmsIsMenuSwitchLatched()) {
                     ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_MENU_NAV_REQ));
                 }
             }
