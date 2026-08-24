@@ -258,7 +258,9 @@ static void updateFloorAlarm(terrainNavHoldState_t *state, const terrainNavHoldI
 // the automatic climb to the minimum begins
 static void startCapture(terrainNavHoldState_t *state, const terrainNavHoldInput_t *in)
 {
-    state->targetAglCm = (in->aglCm > in->minAglCm) ? in->aglCm : in->minAglCm;
+    state->targetAglCm = (in->aglCm > in->minAglCm)
+        ? in->aglCm
+        : in->minAglCm + TERRAIN_NAV_HOLD_RECOVER_MARGIN_CM;
     state->reCapturePending = false;
     state->minAglReached = false;
     state->climbBestAglCm = in->aglCm;

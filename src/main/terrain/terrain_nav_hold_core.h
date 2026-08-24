@@ -126,6 +126,12 @@ typedef struct {
 // decides "losing height" during the initial automatic climb
 #define TERRAIN_NAV_HOLD_PULLUP_HYST_CM 500
 
+// Below-minimum recovery margin: a capture that starts under the floor
+// targets (min + margin) instead of the bare minimum, so the recovery does
+// not deliver the aircraft onto the very edge of the alarm band - riding
+// exactly at the floor turns normal terrain breathing into constant warnings
+#define TERRAIN_NAV_HOLD_RECOVER_MARGIN_CM 1000
+
 // Handover blend: when the pilot grabs the stick during an active hold the
 // climb-rate command must not step (a large hold demand collapsing into a
 // small stick demand pitches the nose the wrong way). The blend seeds from

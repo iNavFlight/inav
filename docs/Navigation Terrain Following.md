@@ -24,7 +24,7 @@ Multirotor **SURFACE** mode follows the ground *reactively* from a physical rang
 ## What it does
 
 - **Captures** your current height above ground when you switch it on, and holds it. Move the **pitch stick** to set a new height; centre the stick and it holds the new one.
-- Engage **below the safety floor** → it climbs smoothly up to the floor first.
+- Engage **below the safety floor** → it climbs smoothly up to about **10 m above the floor**, so the recovery does not leave you on the edge of the warning band.
 - **Looks ahead** along your track (up to 2 km, 1 km by default) with a per-airframe **escape test** — *"at this speed, with your configured climb rate, will you clear what's ahead?"* — and warns you **early, while there's still time**.
 - If the terrain data is lost mid-flight, it **holds the last valid altitude target and warns** on the OSD — it never descends on dead data.
 - The stock 3D Cruise altitude controller is **untouched**; this only feeds it a moving target.
@@ -47,7 +47,7 @@ Multirotor **SURFACE** mode follows the ground *reactively* from a physical rang
 
 | Setting | Default | Range | Meaning |
 |---|---|---|---|
-| `terrain_nav_min_agl` | 60 m | 50 – 120 m | The **safety floor** — the lowest height above ground the mode will hold. Engage below it and it climbs up to it. (Stored in centimetres: 6000 = 60 m.) |
+| `terrain_nav_min_agl` | 60 m | 50 – 120 m | The **safety floor** — the lowest height above ground the mode will hold. Engage below it and it climbs up to ~10 m above it. (Stored in centimetres: 6000 = 60 m.) |
 | `terrain_nav_lookahead` | 1000 m | 0 – 2000 m | How far ahead along your track the **forward scan** looks for rising terrain. The scan is additionally capped at **35 s of flight at your current ground speed**, because the horizon is really *time*, not distance: the same 1000 m is nearly a minute of flying at 20 m/s but only ~18 s at 55 m/s. The time cap stops slow flight from climbing absurdly early for terrain a minute away, while fast flight still uses the full distance. `0` disables the early *TERRAIN AHEAD!* warning, leaving only the reactive floor. |
 
 > **NB — keep your climb rates honest.** The climb authority is your existing **`nav_fw_auto_climb_rate`** — there is no separate terrain climb setting, and the *TERRAIN AHEAD!* escape warning **trusts that number**, so set it to a rate your model genuinely sustains. Keep **`nav_fw_manual_climb_rate` at least equal to `nav_fw_auto_climb_rate`** (they default to 300 / 500) — or **greater**, if you want pulling the stick to actually add climb. If `nav_fw_manual_climb_rate` is **lower** than `nav_fw_auto_climb_rate`, grabbing pitch during an auto-climb commands the lower rate: the nose visibly eases and it can even **slow** the climb.
@@ -55,7 +55,7 @@ Multirotor **SURFACE** mode follows the ground *reactively* from a physical rang
 ## Behaviour in the air
 
 - **Engage at or above the floor** → captures your current AGL and holds it.
-- **Engage below the floor** → climbs to the floor (*TERRAIN AUTO CLIMB TO MIN*).
+- **Engage below the floor** → climbs to ~10 m above the floor (*TERRAIN AUTO CLIMB TO MIN*).
 - **Pitch stick** → sets a new held AGL. The stick always wins: it pauses the hold the moment it moves (smooth blend, no jump); centre it and the current height is re-captured.
 - **Hands off over a hill** → the target rides the terrain up and back down.
 - **Sharp turns while riding the floor** clip the safety margin — bank with height in hand.
@@ -75,7 +75,7 @@ The mode narrates itself on the OSD. In plain terms: **TERRAIN AHEAD!** talks ab
 | **TERRAIN LOST - ALT FROZEN** | Caution | The terrain data stopped coming while the mode was holding your height — the altitude target is **frozen at the last good value** (it never descends on dead data). | Never descend blind; navigate out on the frozen altitude (it resumes after a few seconds of good data). |
 | **TERRAIN LOOKAHEAD OFF** | Info | The forward scan is unavailable (no heading estimate). | Only the reactive floor guards you now — do **not** expect the early “TERRAIN AHEAD!” warning while this shows. |
 
-> **Seeing "TERRAIN! PULL UP!" often while riding low? That is the geometry of the floor, not a fault.** The floor (default 60 m) is already the lowest safe height, so the warning band sits only 5 m under it — below a minimum there is no room to spare. And the mode does not glue AGL to the ground 1:1: the climb is rate-limited, so on rising slopes the real height sags a little under the held value, which is exactly when the warning earns its keep. **If you want quiet — hold height in hand:** engage at 80 m and it holds 80; the warning still starts only below 55 m, so you fly with 25 m of calm. Engage below the floor and it simply climbs to it by itself (*TERRAIN AUTO CLIMB TO MIN*), no alarm while the climb is winning.
+> **Seeing "TERRAIN! PULL UP!" often while riding low? That is the geometry of the floor, not a fault.** The floor (default 60 m) is already the lowest safe height, so the warning band sits only 5 m under it — below a minimum there is no room to spare. And the mode does not glue AGL to the ground 1:1: the climb is rate-limited, so on rising slopes the real height sags a little under the held value, which is exactly when the warning earns its keep. **If you want quiet — hold height in hand:** engage at 80 m and it holds 80; the warning still starts only below 55 m, so you fly with 25 m of calm. Engage below the floor and it simply climbs to ~10 m above it by itself (*TERRAIN AUTO CLIMB TO MIN*), no alarm while the climb is winning.
 
 > **About `nav_max_altitude`:** that ceiling is **barometric altitude above your Home point** — it is *not* terrain-AGL aware. So over rising ground the terrain can legitimately need more altitude than the ceiling allows; that is exactly when *TERRAIN VS MAX ALT* appears.
 
