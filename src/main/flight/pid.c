@@ -1170,7 +1170,11 @@ static int16_t applyAutoTransitionTargetMulticopterRateController(autoTransition
 static void NOINLINE updateAutoTransitionTargetAxisPID(float dT)
 {
     if (!pidFiltersConfigured || !isAutoTransitionTargetPidActive()) {
-        resetAutoTransitionTargetPidState();
+        // The preview state is large. Clear it once when preview ownership
+        // ends instead of writing the whole buffer on every inactive PID loop.
+        if (autoTransitionTargetControlProfileIndex >= 0) {
+            resetAutoTransitionTargetPidState();
+        }
         return;
     }
 
@@ -2058,7 +2062,9 @@ void FAST_CODE pidController(float dT)
 
     if (!pidFiltersConfigured) {
 #ifdef USE_AUTO_TRANSITION
-        resetAutoTransitionTargetPidState();
+        if (autoTransitionTargetControlProfileIndex >= 0) {
+            resetAutoTransitionTargetPidState();
+        }
 #endif
         return;
     }

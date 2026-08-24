@@ -172,6 +172,8 @@ You must also assign the tilting servos values using the Fixed Value values (for
 
 ### Experimental manual tailsitter auto-transition
 
+> **Tailsitter warning:** The auto-transition functionality is not yet fully adapted for tailsitters and has not been validated on a physical tailsitter in bench or flight testing. The limited implementation below is experimental and must not be treated as equivalent to the tested tilt-motor and pusher paths.
+
 The first auto-transition implementation for a tailsitter is deliberately limited to manual switch requests. It is intended for supervised bench and initial flight testing only. It does not change the tilt-motor or pusher transition paths.
 
 Use the normal two-profile arrangement:
@@ -289,6 +291,8 @@ No additional settings needed, 45 deg offset will be added to target pitch angle
 # Smooth VTOL Auto-Transition Setup
 
 This section describes the new VTOL auto-transition features as a practical setup path. It is written as a sequence of small steps:
+
+> **Tailsitter warning:** This setup guide describes the tested tilt-motor and pusher workflows. Auto-transition is not yet fully adapted for tailsitters and has not been validated on a physical tailsitter in bench or flight testing. Do not apply the mission, RTH, failsafe, dynamic-scaling, low-speed protection, or VTOL MC protection examples in this section to a tailsitter. See [Experimental manual tailsitter auto-transition](#experimental-manual-tailsitter-auto-transition) for the deliberately limited implementation, starting with propeller-free bench checks.
 
 1. Manual switch auto transition
 2. Manual switch auto transition with dynamic scaling
@@ -504,7 +508,7 @@ Optional low-speed protection:
 set vtol_fw_to_mc_auto_switch_airspeed_cm_s = 750
 ```
 
-With this set, fixed-wing flight automatically starts FW -> MC when the usable transition airspeed source drops to `7.5 m/s` or lower. Set it to `0` to disable this protection.
+With this set, fixed-wing flight automatically starts FW -> MC after the usable transition airspeed source remains at `7.5 m/s` or lower continuously for 300 ms. A sample above the threshold or an invalid sample restarts confirmation, so one short sensor dip cannot trigger the fallback. Set it to `0` to disable this protection.
 
 This is a safety fallback for cases where fixed-wing flight no longer looks safe, for example a pusher problem or another failure that prevents the aircraft from keeping enough airspeed.
 
@@ -1011,18 +1015,20 @@ The VTOL MC protection feature is disabled by default:
 set vtol_mc_protection_mode = OFF
 ```
 
-This means:
+This means the optional navigation and command-shaping protection is disabled:
 
 - normal multicopters do not change
 - fixed-wing mode does not change
-- existing VTOL behavior does not change unless you enable the feature
+- VTOL NAV capture, throttle reserve, landing settle, bailout, and ANGLE/HORIZON command shaping do not run
+
+The independent VTOL MC touchdown confirmation remains active even with this setting OFF. It prevents the general landing detector from treating a calm airborne VTOL as landed.
 
 ### Protection modes
 
 `vtol_mc_protection_mode = OFF`
 
-- Current behavior: no new VTOL MC protection.
-- Use this when comparing against older behavior.
+- No VTOL NAV capture, throttle reserve, landing settle, bailout, or command shaping.
+- The independent VTOL MC touchdown confirmation remains active.
 
 `vtol_mc_protection_mode = NAV`
 
@@ -1165,7 +1171,7 @@ Examples:
 
 ### VTOL MC throttle-probe confirmation
 
-VTOL MC landing candidates must pass a short lift-throttle confirmation.
+VTOL MC landing candidates must pass an additional touchdown confirmation.
 
 In plain language:
 
@@ -1179,6 +1185,8 @@ This avoids a common false positive: the aircraft is still high in the air, vert
 The confirmation is not meant to reject every bounce, rocking motion, or pitch/roll wobble by itself. A VTOL can bounce in ground effect shortly before real touchdown. The important question for this check is whether reducing lift throttle causes the aircraft to continue descending like it is still flying. If it does, INAV rejects the candidate and waits for another landing opportunity.
 
 The confirmation does not rely on barometric altitude as proof of AGL. If a trusted surface/AGL sensor is available, it is used as an additional safety input. Without trusted AGL, vertical motion and acceleration are more important than baro altitude.
+
+The active throttle reduction is available when INAV owns throttle, such as NAV/RTH/WP landing or another automatic-throttle state. In ANGLE, HORIZON, or another manual-throttle mode, INAV does not change the pilot's throttle just to test for landing. Without trusted AGL, a passive timeout in those modes is therefore not accepted as proof of touchdown; automatic disarm waits instead of risking a false landing report in the air.
 
 `nav_mc_hover_thr` matters here, but the probe does not assume that landing throttle is equal to hover throttle. It starts from the current adjusted throttle at the moment of the landing candidate, which during descent may already be below `nav_mc_hover_thr`. `nav_mc_hover_thr` is used to size a small bounded throttle reduction relative to idle/hover range. If the current landing throttle is already below that probe limit, INAV does not raise it just to run the probe. Tune hover throttle before relying on automatic VTOL landing because it still affects throttle reserve and the probe reduction size.
 
@@ -1315,7 +1323,7 @@ Global VTOL transition settings:
 
 - `vtol_transition_to_fw_min_airspeed_cm_s`: new preferred MC -> FW completion threshold when pitot is trusted. `0` uses the timer path.
 - `vtol_transition_to_mc_max_airspeed_cm_s`: new preferred FW -> MC completion threshold when pitot is trusted. `0` uses the timer path.
-- `vtol_fw_to_mc_auto_switch_airspeed_cm_s`: new low-speed fixed-wing safety fallback. When non-zero, FW flight can automatically start FW -> MC if the usable transition airspeed source falls too low. In manual FW flight it requires the manual auto-transition controller. In mission/RTH/failsafe it requires `mixer_automated_switch = ON` and keeps the current navigation task in MC after the switch.
+- `vtol_fw_to_mc_auto_switch_airspeed_cm_s`: new low-speed fixed-wing safety fallback. When non-zero, FW flight can automatically start FW -> MC after usable transition airspeed remains below the threshold continuously for 300 ms. In manual FW flight it requires the manual auto-transition controller. In mission/RTH/failsafe it requires `mixer_automated_switch = ON` and keeps the current navigation task in MC after the switch.
 - `vtol_autotransition_always`: new optional two-position manual workflow. When ON and armed, selecting the other VTOL mixer profile starts the auto-transition controller instead of switching profiles directly. Disarmed direct profile switching remains available for bench/preflight checks. OFF keeps direct manual profile switching available when `MIXER TRANSITION` is not active.
 - `vtol_transition_lift_min_percent`: new lowest lift motor power during dynamic transition scaling. `100` keeps full lift power.
 - `vtol_transition_mc_authority_min_percent`: new lowest MC motor stabilisation strength during dynamic transition scaling. `100` keeps full MC stabilisation.
@@ -1328,7 +1336,7 @@ Global VTOL transition settings:
 
 Global VTOL MC protection and landing settings:
 
-- `vtol_mc_protection_mode`: new master switch for VTOL MC protection. OFF changes nothing; NAV protects navigation/altitude behavior; NAV_AND_STABILIZED also shapes ANGLE/HORIZON roll, pitch, and yaw commands at speed.
+- `vtol_mc_protection_mode`: master switch for VTOL MC navigation and command-shaping protection. OFF disables capture, throttle reserve, landing settle, bailout, and command shaping; the independent VTOL MC touchdown confirmation remains active. NAV enables navigation/altitude protection; NAV_AND_STABILIZED also shapes ANGLE/HORIZON roll, pitch, and yaw commands at speed.
 - `vtol_mc_thr_reserve_percent`: new throttle reserve for attitude authority while altitude/NAV owns throttle. Applied before altitude anti-windup bounds.
 - `nav_mc_hover_thr`: existing MC hover throttle hint. New VTOL protection use is to keep hover throttle inside the protected range and to make landing throttle confirmation more accurate.
 - `nav_wp_radius`: existing normal waypoint acceptance radius. New VTOL landing use is capped internally for landing settle so a large waypoint radius cannot by itself start landing too early.

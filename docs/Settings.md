@@ -4224,7 +4224,7 @@ Deadband for heading trajectory PID controller. When heading error is below the 
 
 ### nav_land_detect_sensitivity
 
-Scales the generic landing detector velocity and gyro thresholds. `5` is nominal sensitivity: for MC this is about 100 cm/s horizontal and vertical speed plus 4 deg/s average pitch/roll gyro rate. Higher values relax these thresholds and can detect landing sooner, but increase false-detect risk. VTOL MC landing detection also uses additional hard vertical-speed and throttle-probe safety gates that this setting does not bypass.
+Scales the generic landing detector velocity and gyro thresholds. `5` is nominal sensitivity: for MC this is about 100 cm/s horizontal and vertical speed plus 4 deg/s average pitch/roll gyro rate. Higher values relax these thresholds and can detect landing sooner, but increase false-detect risk. VTOL MC landing detection also uses additional hard vertical-speed and touchdown-confirmation safety gates that this setting does not bypass.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4274,7 +4274,7 @@ Defines at what altitude the descent velocity should start to be `nav_land_minal
 
 ### nav_landing_bump_detection
 
-Allows landing detection to use a touchdown G-bump candidate when set to ON. Requires a barometer and GPS and currently only works for multirotors (Note: will work during Failsafe without need for a GPS). For VTOL MC mode the G-bump is not an immediate disarm shortcut: trusted high AGL blocks it, and accepted candidates must still pass the VTOL MC throttle-probe confirmation.
+Allows landing detection to use a touchdown G-bump candidate when set to ON. Requires a barometer and GPS and currently only works for multirotors (Note: will work during Failsafe without need for a GPS). For VTOL MC mode the G-bump is not an immediate disarm shortcut: trusted high AGL blocks it, and accepted candidates must still pass the VTOL MC touchdown confirmation.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7312,7 +7312,7 @@ When enabled, an armed manual VTOL profile switch between a multicopter-like pro
 
 ### vtol_fw_to_mc_auto_switch_airspeed_cm_s
 
-Extra low-speed fixed-wing safety fallback [cm/s]. If a usable transition airspeed source falls to this value or lower while in FW, INAV automatically starts FW->MC. Real pitot and explicitly configured `pitot_hardware = VIRTUAL` can both be used. In manual FW flight this requires `mixer_vtol_manualswitch_autotransition_controller` to be ON and keeps MC until the pilot deliberately commands another manual profile change. In mission/RTH/failsafe this requires `mixer_automated_switch` to be ON and keeps the current navigation task in MC after the safety switch, blocking automatic MC->FW re-entry for that navigation session. `vtol_transition_to_mc_max_airspeed_cm_s` still controls when the FW->MC transition is safe to complete. Set to 0 to disable. Available only on targets with more than 512 KB flash.
+Extra low-speed fixed-wing safety fallback [cm/s]. If a usable transition airspeed source remains at or below this value continuously for 300 ms while in FW, INAV automatically starts FW->MC. A high or invalid sample restarts confirmation, preventing a single sensor dip from triggering the fallback. Real pitot and explicitly configured `pitot_hardware = VIRTUAL` can both be used. In manual FW flight this requires `mixer_vtol_manualswitch_autotransition_controller` to be ON and keeps MC until the pilot deliberately commands another manual profile change. In mission/RTH/failsafe this requires `mixer_automated_switch` to be ON and keeps the current navigation task in MC after the safety switch, blocking automatic MC->FW re-entry for that navigation session. `vtol_transition_to_mc_max_airspeed_cm_s` still controls when the FW->MC transition is safe to complete. Set to 0 to disable. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7322,7 +7322,7 @@ Extra low-speed fixed-wing safety fallback [cm/s]. If a usable transition airspe
 
 ### vtol_mc_protection_mode
 
-Enables extra protection for VTOL aircraft while the active mixer profile is multicopter-like and another mixer profile is fixed-wing. OFF keeps legacy behavior. NAV protects altitude/NAV throttle authority, NAV capture/settle, landing settle, VTOL MC landing confirmation, and conservative bailout. NAV_AND_STABILIZED also applies speed-based roll/pitch/yaw command shaping in ANGLE/HORIZON when armed, VTOL MC mode is detected, velocity is trusted, and horizontal speed is high enough. Available only on targets with more than 512 KB flash.
+Enables extra protection for VTOL aircraft while the active mixer profile is multicopter-like and another mixer profile is fixed-wing. OFF disables NAV capture, throttle reserve, landing settle, bailout, and command shaping; the independent VTOL MC touchdown confirmation remains active. NAV enables those navigation and altitude-control protections. NAV_AND_STABILIZED also applies speed-based roll/pitch/yaw command shaping in ANGLE/HORIZON when armed, VTOL MC mode is detected, velocity is trusted, and horizontal speed is high enough. Available only on targets with more than 512 KB flash.
 
 | Allowed Values |  |
 | --- | --- |

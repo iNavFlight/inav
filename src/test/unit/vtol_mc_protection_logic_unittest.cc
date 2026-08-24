@@ -361,6 +361,14 @@ TEST(VtolMcProtectionLogicTest, LandingProbeDetectsAirborneByAglDrop)
         1.0f));
 }
 
+TEST(VtolMcProtectionLogicTest, LandingProbeRequiresAppliedThrottleReductionOrTrustedAgl)
+{
+    EXPECT_TRUE(vtolMcProtectionLandingProbeCanConfirm(true, false));
+    EXPECT_TRUE(vtolMcProtectionLandingProbeCanConfirm(false, true));
+    EXPECT_TRUE(vtolMcProtectionLandingProbeCanConfirm(true, true));
+    EXPECT_FALSE(vtolMcProtectionLandingProbeCanConfirm(false, false));
+}
+
 TEST(VtolMcProtectionLogicTest, LandingProbeDetectsAirborneByLowG)
 {
     EXPECT_TRUE(vtolMcProtectionLandingProbeAirborneResponse(

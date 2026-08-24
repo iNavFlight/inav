@@ -352,6 +352,56 @@ static inline bool mixerTransitionProfileSwitchShouldAbortToCurrentProfile(
            !hotSwitchDone &&
            currentProfileIndex == requestedProfileIndex;
 }
+
+static inline bool mixerTransitionRequestUsesManualSwitchAbort(const mixerProfileATRequest_e request)
+{
+    return request == MIXERAT_REQUEST_MANUAL_TO_FW ||
+           request == MIXERAT_REQUEST_MANUAL_TO_MC;
+}
+
+static inline bool mixerTransitionManualFwToMcProtectionAllowed(
+    const bool manualControllerEnabled,
+    const bool navigationOwnsProfileSwitch,
+    const bool failsafeActive)
+{
+    return manualControllerEnabled &&
+           !navigationOwnsProfileSwitch &&
+           !failsafeActive;
+}
+
+static inline bool mixerTransitionNavigationFwToMcProtectionAllowed(
+    const bool automatedSwitch,
+    const bool adoptingActiveProtection)
+{
+    // Starting a navigation-owned fallback requires automated switching. If
+    // the safety transition already started manually, NAV may adopt it so the
+    // request cannot be orphaned by a flight-mode change.
+    return automatedSwitch || adoptingActiveProtection;
+}
+
+static inline bool mixerTransitionNavigationShouldAdoptFwToMcProtection(
+    const bool transitionActive,
+    const mixerProfileATRequest_e request)
+{
+    return transitionActive && request == MIXERAT_REQUEST_FW_TO_MC_PROTECTION;
+}
+
+static inline bool mixerTransitionNavigationShouldAdoptCompletedFwToMcProtection(
+    const bool manualProtectionLatched,
+    const bool stateMultirotor)
+{
+    return manualProtectionLatched && stateMultirotor;
+}
+
+static inline bool mixerTransitionManualFwToMcProtectionNeedsUpdate(
+    const bool manualProtectionActive,
+    const bool navigationTransitionActive,
+    const mixerProfileATRequest_e request)
+{
+    return manualProtectionActive &&
+           !navigationTransitionActive &&
+           request == MIXERAT_REQUEST_FW_TO_MC_PROTECTION;
+}
 #endif
 
 static inline bool mixerTransitionIsRequestAllowed(
@@ -384,7 +434,9 @@ static inline bool mixerTransitionIsRequestAllowed(
         return stateAirplane && targetProfileIsMultirotor;
 
     case MIXERAT_REQUEST_FW_TO_MC_PROTECTION:
-        return automatedSwitch && stateAirplane && targetProfileIsMultirotor;
+        // The request origin validates either the manual controller or the
+        // navigation automated-switch setting before starting this request.
+        return stateAirplane && targetProfileIsMultirotor;
 #endif
 
     default:
@@ -422,6 +474,35 @@ static inline bool mixerTransitionFwToMcProtectionTriggered(
            thresholdCmS > 0 &&
            trustedAirspeedAvailable &&
            airspeedCmS <= thresholdCmS;
+}
+
+static inline bool mixerTransitionUpdateConditionConfirmation(
+    mixerTransitionConditionConfirmationState_t *state,
+    const bool conditionMet,
+    const timeMs_t currentTimeMs,
+    const uint16_t confirmationTimeMs)
+{
+    if (!state) {
+        return false;
+    }
+
+    if (!conditionMet) {
+        state->active = false;
+        state->conditionStartTime = 0;
+        return false;
+    }
+
+    if (confirmationTimeMs == 0) {
+        return true;
+    }
+
+    if (!state->active) {
+        state->active = true;
+        state->conditionStartTime = currentTimeMs;
+        return false;
+    }
+
+    return currentTimeMs - state->conditionStartTime >= confirmationTimeMs;
 }
 
 #endif
