@@ -62,18 +62,20 @@ Multirotor **SURFACE** mode follows the ground *reactively* from a physical rang
 
 ## OSD messages — the alarm ladder
 
-The mode narrates itself on the OSD. Higher-priority messages take the slot; while the autopilot is auto-climbing under a warning, the two alternate so you always see both the danger and the action.
+The mode narrates itself on the OSD. In plain terms: **TERRAIN AHEAD!** talks about *later* — keep this up and you will end up below your safety floor (default 60 m). The other two talk about *now*, when you are already too low: **TERRAIN! PULL UP!** means climbing will still get you out of it; **TERRAIN! TURN AWAY!** means climbing is no longer enough — turn aside. Higher-priority messages take the slot; while the autopilot is auto-climbing under a warning, the two alternate so you always see both the danger and the action.
 
 | Message | Kind | Meaning | What to do |
 |---|---|---|---|
 | **TERRAIN! TURN AWAY!** | Warning | Too low **and** climbing can no longer save you (full climb still loses, or you're sinking, or pinned at your altitude ceiling). | **Turn away immediately** (manual + full throttle). Don't count on pulling up. |
-| **TERRAIN! PULL UP!** | Warning | Too low, but climbing **still works**. | Release the stick — the autopilot climbs at full rate — or pull **if `nav_fw_manual_climb_rate` > `nav_fw_auto_climb_rate`**; if in doubt, turn as well. |
-| **TERRAIN AHEAD!** | Caution | The forward scan says that at this speed the slope ahead beats a full-rate climb — **you have time now**. | Turn, slow down, or climb early — while it's cheap. |
+| **TERRAIN! PULL UP!** | Warning | Too low — below (floor − 5 m), i.e. under 55 m at the default floor — but climbing **still works**. | Release the stick — the autopilot climbs at full rate — or pull **if `nav_fw_manual_climb_rate` > `nav_fw_auto_climb_rate`**; if in doubt, turn as well. |
+| **TERRAIN AHEAD!** | Caution | The forward scan says that at this speed, even a full-rate climb would leave you **below your safety floor** somewhere ahead — not necessarily hitting anything, just lower than the floor you set. **You have time now.** | Turn, slow down, or climb early — while it's cheap. |
 | **TERRAIN VS MAX ALT** | Caution | The terrain needs more altitude than your `nav_max_altitude` ceiling allows (only if a ceiling is set). | Raise/remove the ceiling, or accept reduced clearance at the wall. |
-| **TERRAIN AUTO CLIMB TO MIN** | Info | The autopilot is already climbing you to the floor. | Nothing — it's handled. |
+| **TERRAIN AUTO CLIMB TO MIN** | Info | You engaged (or ended up) below the safety floor — the minimum height above ground the mode will hold (default 60 m) — and the autopilot is already climbing you up to it. | Nothing — it's handled. |
 | **TERRAIN NOT READY** | Info | Engagement refused — no usable terrain data yet. | Fly stock cruise; check tiles / SD card if it persists. |
-| **TERRAIN LOST - ALT FROZEN** | Caution | Data lost mid-hold — the altitude target is **frozen at the last valid value**. | Never descend blind; navigate out on the frozen altitude (it resumes after a few seconds of good data). |
-| **TERRAIN LOOKAHEAD OFF** | Info | The forward scan is unavailable (no heading estimate). | Only the reactive floor guards you now. |
+| **TERRAIN LOST - ALT FROZEN** | Caution | The terrain data stopped coming while the mode was holding your height — the altitude target is **frozen at the last good value** (it never descends on dead data). | Never descend blind; navigate out on the frozen altitude (it resumes after a few seconds of good data). |
+| **TERRAIN LOOKAHEAD OFF** | Info | The forward scan is unavailable (no heading estimate). | Only the reactive floor guards you now — do **not** expect the early “TERRAIN AHEAD!” warning while this shows. |
+
+> **Seeing "TERRAIN! PULL UP!" often while riding low? That is the geometry of the floor, not a fault.** The floor (default 60 m) is already the lowest safe height, so the warning band sits only 5 m under it — below a minimum there is no room to spare. And the mode does not glue AGL to the ground 1:1: the climb is rate-limited, so on rising slopes the real height sags a little under the held value, which is exactly when the warning earns its keep. **If you want quiet — hold height in hand:** engage at 80 m and it holds 80; the warning still starts only below 55 m, so you fly with 25 m of calm. Engage below the floor and it simply climbs to it by itself (*TERRAIN AUTO CLIMB TO MIN*), no alarm while the climb is winning.
 
 > **About `nav_max_altitude`:** that ceiling is **barometric altitude above your Home point** — it is *not* terrain-AGL aware. So over rising ground the terrain can legitimately need more altitude than the ceiling allows; that is exactly when *TERRAIN VS MAX ALT* appears.
 
