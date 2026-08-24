@@ -17,7 +17,7 @@ const REPRESENTATIVE_TARGETS = ['MATEKF405', 'MATEKF722', 'MATEKF765', 'MATEKH74
 
 // Below this magnitude a delta is noise (rounding/toolchain jitter), not a
 // real change worth calling out.
-const NOISE_THRESHOLD_BYTES = 32;
+const NOISE_THRESHOLD_BYTES = 256;
 
 function formatDelta(deltaBytes, baseBytes) {
     const sign = deltaBytes > 0 ? '+' : deltaBytes < 0 ? '' : '±';
