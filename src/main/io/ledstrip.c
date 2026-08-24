@@ -154,7 +154,7 @@ void pgResetFn_ledStripConfig(ledStripConfig_t *instance)
     }
     memcpy_fn(&instance->modeColors, &defaultModeColors, sizeof(defaultModeColors));
     memcpy_fn(&instance->specialColors, &defaultSpecialColors, sizeof(defaultSpecialColors));
-    instance->ledstrip_rainbow_sweep_rate = 10;
+    instance->ledstrip_rainbow_sweep_rate = 100;
     instance->ledstrip_rainbow_delta_deg = 30;
 }
 
