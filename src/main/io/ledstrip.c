@@ -870,10 +870,10 @@ static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
 
         if (ledGetOverlayBit(ledConfig, LED_OVERLAY_RAINBOW)) {
             hsvColor_t ledColor;
-            ledColor.h = (rainbowHue + (i * rainbowDelta)) % 360;
-            ledColor.s = 0;
-            ledColor.v = 255;
+            getLedHsv(i, &ledColor);
+            ledColor.h = (currentHue + (rainbowIndex * rainbowDelta)) % 360;
             setLedHsv(i, &ledColor);
+            rainbowIndex++;
         }
     }
 }
@@ -942,9 +942,9 @@ static void applyLedAnimationLayer(bool updateNow, timeUs_t *timer)
 #endif
 
 typedef enum {
-    timBlink = 0,
+    timRainbow = 0,
+    timBlink,
     timLarson,
-    timRainbow,
     timBattery,
     timRssi,
 #ifdef USE_GPS
@@ -969,9 +969,9 @@ static timeUs_t timerVal[timTimerCount];
 typedef void applyLayerFn_timed(bool updateNow, timeUs_t *timer);
 
 static applyLayerFn_timed* layerTable[timTimerCount] = {
+    [timRainbow] = &applyLedRainbowLayer,
     [timBlink] = &applyLedBlinkLayer,
     [timLarson] = &applyLarsonScannerLayer,
-    [timRainbow] = &applyLedRainbowLayer,
     [timBattery] = &applyLedBatteryLayer,
     [timRssi] = &applyLedRssiLayer,
 #ifdef USE_GPS
