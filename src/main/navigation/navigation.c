@@ -1379,6 +1379,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS(
 // a banked turn or heading adjustment just released) - the course follows the actual COG until then.
 // Gated by nav_cruise_lock_on_level; when OFF the course locks as soon as the sticks are centered.
 static bool fwCruiseCourseLockPending = false;
+static bool fwCruiseHeadingAdjustActive = false; // yaw adjustment running: its sustained course lead winds up the nav PID
 static timeMs_t fwCruiseStickCentreTimeMs = 0;  // last time the roll/yaw sticks went to centre
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_INITIALIZE(navigationFSMState_t previousState)
@@ -1402,6 +1403,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_INITIALIZE(
         // Entering from a banked turn (e.g. mode switch out of RTH mid-turn): course hold means
         // "fly straight from here", so follow the COG until the roll-out is complete, then lock.
         fwCruiseCourseLockPending = navConfig()->general.cruise_lock_on_level && ABS(attitude.values.roll) > FW_COURSE_LOCK_MAX_BANK_DECIDEG;
+        fwCruiseHeadingAdjustActive = false;
         fwCruiseStickCentreTimeMs = millis();
     } else {    // Multicopter
         posControl.cruise.course = posControl.actualState.yaw;
@@ -1454,23 +1456,23 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
 
         posControl.cruise.lastCourseAdjustmentTime = currentTimeMs;
         fwCruiseCourseLockPending = true;
+        fwCruiseHeadingAdjustActive = true;
         fwCruiseStickCentreTimeMs = currentTimeMs;
 
         DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.course));
     } else if (STATE(AIRPLANE) && fwCruiseCourseLockPending) {
-        if (navConfig()->general.cruise_lock_on_level && ABS(attitude.values.roll) > FW_COURSE_LOCK_MAX_BANK_DECIDEG
-            && currentTimeMs - fwCruiseStickCentreTimeMs < FW_COURSE_LOCK_FORCE_TIMEOUT_MS) {
-            // Still banked (adjustment turn or banked mode entry): keep following the actual course
-            // until the roll-out is complete, else the locked course is overshot and reverse-corrected.
-            // The timeout forces the lock if the roll-out never completes (badly tuned model in wind).
-            posControl.cruise.course = posControl.actualState.cog;
-        } else {
-            // Rolled out: lock to the current COG. The former yaw-rate lead term mixed a rate into an
-            // angle; with the bank gate the residual turn rate at lock time is negligible anyway.
-            posControl.cruise.course = posControl.actualState.cog;
-            resetPositionController();
-            fwCruiseCourseLockPending = false;
+        // Follow the actual course until rolled out, else the locked course is overshot and
+        // reverse-corrected; the timeout forces the lock if the roll-out never completes.
+        const bool rolledOut = !navConfig()->general.cruise_lock_on_level
+                               || ABS(attitude.values.roll) <= FW_COURSE_LOCK_MAX_BANK_DECIDEG
+                               || currentTimeMs - fwCruiseStickCentreTimeMs >= FW_COURSE_LOCK_FORCE_TIMEOUT_MS;
+        posControl.cruise.course = posControl.actualState.cog;
+
+        if (fwCruiseHeadingAdjustActive || rolledOut) {
+            resetPositionController();      // the adjustment's course lead wound up the integrator; a zero error can never unwind it
+            fwCruiseHeadingAdjustActive = false;
         }
+        fwCruiseCourseLockPending = !rolledOut;
     } else if (currentTimeMs - posControl.cruise.lastCourseAdjustmentTime > 4000) {
         posControl.cruise.previousCourse = posControl.cruise.course;
     }
