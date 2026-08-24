@@ -28,7 +28,7 @@
 #include "navigation/navigation.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
-#define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
+#define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4.0f    // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
 #define NAV_VEL_Z_DERIVATIVE_CUT_HZ         5.0f
@@ -113,7 +113,6 @@ typedef struct navigationFlags_s {
     bool rthTrackbackActive;                // Activation status of RTH trackback
     bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
     bool manualEmergLandActive;             // Activation status of manual emergency landing
-
 #ifdef USE_GEOZONE
     bool sendToActive;
     bool forcedPosholdActive;
@@ -137,6 +136,7 @@ typedef struct {
     float                   cosYaw;
     float                   surfaceMin;
     float                   velXY;
+    float                   vel3D;
 } navigationEstimatedState_t;
 
 typedef struct {
@@ -144,6 +144,7 @@ typedef struct {
     fpVector3_t vel;
     int32_t     yaw;
     int16_t     climbRateDemand;
+    uint16_t    autoSpeedDemand;
 } navigationDesiredState_t;
 
 typedef enum {
@@ -351,6 +352,8 @@ typedef enum {
 
     NAV_MIXERAT             = (1 << 16),    // MIXERAT in progress
     NAV_CTL_HOLD            = (1 << 17),    // Nav loiter active at position
+
+    NAV_CTL_SPEED           = (1 << 18),    // Auto speed allowed
 } navigationFSMStateFlags_t;
 
 typedef struct {
@@ -420,6 +423,12 @@ typedef enum {
     RTH_HOME_FINAL_LOITER,          // Final loiter altitude (if rth_home_altitude is set)
     RTH_HOME_FINAL_LAND,            // Home position and altitude
 } rthTargetMode_e;
+
+typedef enum {
+    FW_AUTO_SPD_GROUND,
+    FW_AUTO_SPD_AIR,
+    FW_AUTO_SPD_GROUND_OVERRIDE,
+} fwAutoSpeedSpdSource_e;
 
 #ifdef USE_GEOZONE
 typedef struct navSendTo_s {
@@ -497,6 +506,8 @@ typedef struct {
     float                       wpInitialDistance;          // Distance when starting flight to WP
     float                       wpDistance;                 // Distance to active WP
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
+    uint16_t                    wpReachedSeq;               // Last reached mission item sequence relative to startWpIndex
+    bool                        wpReachedNotificationPending;
     bool                        wpAltitudeReached;          // WP altitude achieved
 
 #ifdef USE_FW_AUTOLAND
@@ -507,6 +518,8 @@ typedef struct {
 #ifdef USE_GEOZONE
     navSendTo_t                  sendTo; // Used for Geozones
 #endif
+
+    uint8_t autoSpeedSpdSource;             // Auto Speed mode speed source
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];

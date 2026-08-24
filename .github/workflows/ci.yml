@@ -241,12 +241,16 @@ jobs:
           path: base_ref.txt
           retention-days: 1
       - name: Save branch name
-        if: github.event_name == 'push'
+        # Covers both a direct push and being invoked via workflow_call
+        # (e.g. from nightly-build.yml) — github.event_name reports
+        # 'workflow_call' in the latter case, not 'push', even though
+        # github.ref_name still correctly reflects the branch either way.
+        if: github.event_name != 'pull_request'
         env:
           REF_NAME: ${{ github.ref_name }}
         run: echo "$REF_NAME" > branch.txt
       - name: Upload branch name
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: branch-name

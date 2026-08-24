@@ -150,3 +150,5 @@ Then in the CLI you can run `bootlog` to see the buffered log.
 
 Note bootlog also requires that a serial port be defined for serial debugging.
 
+See [bootlog-debugging.md](bootlog-debugging.md) for a detailed walkthrough, common pitfalls, and using bootlog for I2C/OLED init debugging.
+

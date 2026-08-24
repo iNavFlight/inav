@@ -6,7 +6,7 @@
 
 typedef struct __mavlink_camera_information_t {
  uint32_t time_boot_ms; /*< [ms] Timestamp (time since system boot).*/
- uint32_t firmware_version; /*<  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 \| (Patch & 0xff) << 16 \| (Minor & 0xff) << 8 \| (Major & 0xff)`. Use 0 if not known.*/
+ uint32_t firmware_version; /*<  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 + (Patch & 0xff) << 16 + (Minor & 0xff) << 8 + (Major & 0xff)`. Use 0 if not known.*/
  float focal_length; /*< [mm] Focal length. Use NaN if not known.*/
  float sensor_size_h; /*< [mm] Image sensor size horizontal. Use NaN if not known.*/
  float sensor_size_v; /*< [mm] Image sensor size vertical. Use NaN if not known.*/
@@ -88,7 +88,7 @@ typedef struct __mavlink_camera_information_t {
  * @param time_boot_ms [ms] Timestamp (time since system boot).
  * @param vendor_name  Name of the camera vendor
  * @param model_name  Name of the camera model
- * @param firmware_version  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 \| (Patch & 0xff) << 16 \| (Minor & 0xff) << 8 \| (Major & 0xff)`. Use 0 if not known.
+ * @param firmware_version  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 + (Patch & 0xff) << 16 + (Minor & 0xff) << 8 + (Major & 0xff)`. Use 0 if not known.
  * @param focal_length [mm] Focal length. Use NaN if not known.
  * @param sensor_size_h [mm] Image sensor size horizontal. Use NaN if not known.
  * @param sensor_size_v [mm] Image sensor size vertical. Use NaN if not known.
@@ -157,7 +157,7 @@ static inline uint16_t mavlink_msg_camera_information_pack(uint8_t system_id, ui
  * @param time_boot_ms [ms] Timestamp (time since system boot).
  * @param vendor_name  Name of the camera vendor
  * @param model_name  Name of the camera model
- * @param firmware_version  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 \| (Patch & 0xff) << 16 \| (Minor & 0xff) << 8 \| (Major & 0xff)`. Use 0 if not known.
+ * @param firmware_version  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 + (Patch & 0xff) << 16 + (Minor & 0xff) << 8 + (Major & 0xff)`. Use 0 if not known.
  * @param focal_length [mm] Focal length. Use NaN if not known.
  * @param sensor_size_h [mm] Image sensor size horizontal. Use NaN if not known.
  * @param sensor_size_v [mm] Image sensor size vertical. Use NaN if not known.
@@ -229,7 +229,7 @@ static inline uint16_t mavlink_msg_camera_information_pack_status(uint8_t system
  * @param time_boot_ms [ms] Timestamp (time since system boot).
  * @param vendor_name  Name of the camera vendor
  * @param model_name  Name of the camera model
- * @param firmware_version  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 \| (Patch & 0xff) << 16 \| (Minor & 0xff) << 8 \| (Major & 0xff)`. Use 0 if not known.
+ * @param firmware_version  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 + (Patch & 0xff) << 16 + (Minor & 0xff) << 8 + (Major & 0xff)`. Use 0 if not known.
  * @param focal_length [mm] Focal length. Use NaN if not known.
  * @param sensor_size_h [mm] Image sensor size horizontal. Use NaN if not known.
  * @param sensor_size_v [mm] Image sensor size vertical. Use NaN if not known.
@@ -337,7 +337,7 @@ static inline uint16_t mavlink_msg_camera_information_encode_status(uint8_t syst
  * @param time_boot_ms [ms] Timestamp (time since system boot).
  * @param vendor_name  Name of the camera vendor
  * @param model_name  Name of the camera model
- * @param firmware_version  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 \| (Patch & 0xff) << 16 \| (Minor & 0xff) << 8 \| (Major & 0xff)`. Use 0 if not known.
+ * @param firmware_version  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 + (Patch & 0xff) << 16 + (Minor & 0xff) << 8 + (Major & 0xff)`. Use 0 if not known.
  * @param focal_length [mm] Focal length. Use NaN if not known.
  * @param sensor_size_h [mm] Image sensor size horizontal. Use NaN if not known.
  * @param sensor_size_v [mm] Image sensor size vertical. Use NaN if not known.
@@ -495,7 +495,7 @@ static inline uint16_t mavlink_msg_camera_information_get_model_name(const mavli
 /**
  * @brief Get field firmware_version from camera_information message
  *
- * @return  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 \| (Patch & 0xff) << 16 \| (Minor & 0xff) << 8 \| (Major & 0xff)`. Use 0 if not known.
+ * @return  Version of the camera firmware, encoded as: `(Dev & 0xff) << 24 + (Patch & 0xff) << 16 + (Minor & 0xff) << 8 + (Major & 0xff)`. Use 0 if not known.
  */
 static inline uint32_t mavlink_msg_camera_information_get_firmware_version(const mavlink_message_t* msg)
 {

@@ -46,6 +46,12 @@ copy screen output to a file and save it.
 
 Alternatively, use the `diff` command to dump only those settings that differ from their default values (those that have been changed).
 
+Adding `showdefaults` to the Dump and Diff commands, e.g. `diff showdefaults`, will add a comment line showing the default value where it differs from the set value.
+
+```
+#default set fw_ff_pitch = 50
+set fw_ff_pitch = 120
+```
 
 ## Restore via CLI.
 
@@ -102,6 +108,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `msc` | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information. |
 | `osd_layout` | Get or set the layout of OSD items |
 | `pid` | Configurable PID controllers |
+| `piniopwm` | Set PINIO PWM duty cycle. See [PINIO PWM](PINIO%20PWM.md) |
 | `play_sound` | `<index>`, or none for next item |
 | `control_profile` | Change profile |
 | `resource` | View currently used resources |
