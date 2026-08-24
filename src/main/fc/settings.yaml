@@ -4659,7 +4659,7 @@ groups:
     condition: USE_TERRAIN
     members:
       - name: terrain_nav_min_agl
-        description: "TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb to it. The floor absorbs worst-case terrain map error on steep slopes plus canopy - the minimum is the lowest value where that error budget still clears"
+        description: "TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb that levels off about 10 m above the floor. The floor absorbs worst-case terrain map error on steep slopes plus canopy - the minimum is the lowest value where that error budget still clears"
         default_value: 6000
         field: minAglCm
         min: 5000
