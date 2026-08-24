@@ -2342,6 +2342,26 @@ PWM mode of LED pin.
 
 ---
 
+### ledstrip_rainbow_delta_deg
+
+Hue offset in degrees between adjacent LEDs carrying the rainbow overlay. 0 makes every rainbow LED the same color; larger values spread more of the spectrum across the strip.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 0 | 359 |
+
+---
+
+### ledstrip_rainbow_sweep_rate
+
+Rainbow overlay sweep rate. Higher values sweep faster. 0 freezes the rainbow.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 255 |
+
+---
+
 ### limit_attn_filter_cutoff
 
 Throttle attenuation PI control output filter cutoff frequency
