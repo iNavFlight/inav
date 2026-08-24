@@ -4511,7 +4511,7 @@ groups:
       description: "Rainbow overlay sweep rate. Higher values sweep faster. 0 freezes the rainbow."
       default_value: 10
       field: ledstrip_rainbow_sweep_rate
-      min: 1
+      min: 0
       max: 255
     - name: ledstrip_rainbow_delta_deg
       description: "Hue offset in degrees between adjacent LEDs carrying the rainbow overlay. 0 makes every rainbow LED the same color; larger values spread more of the spectrum across the strip."
