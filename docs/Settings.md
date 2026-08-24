@@ -2583,17 +2583,6 @@ Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened w
 
 ---
 
-<<<<<<< HEAD
-### led_pin_pwm_mode
-
-PWM mode of LED pin.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| SHARED_LOW |  |  |
-
----
-
 ### ledstrip_rainbow_delta_deg
 
 Hue offset in degrees between adjacent LEDs carrying the rainbow overlay. 0 makes every rainbow LED the same color; larger values spread more of the spectrum across the strip.
@@ -2614,8 +2603,6 @@ Rainbow overlay sweep rate. Higher values sweep faster. 0 freezes the rainbow.
 
 ---
 
-=======
->>>>>>> 52cbdfd8f1ca064038e635e89d7dfd8c9ad0b3a9
 ### limit_attn_filter_cutoff
 
 Throttle attenuation PI control output filter cutoff frequency
