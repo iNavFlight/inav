@@ -48,7 +48,7 @@ Multirotor **SURFACE** mode follows the ground *reactively* from a physical rang
 | Setting | Default | Range | Meaning |
 |---|---|---|---|
 | `terrain_nav_min_agl` | 60 m | 50 – 120 m | The **safety floor** — the lowest height above ground the mode will hold. Engage below it and it climbs up to it. (Stored in centimetres: 6000 = 60 m.) |
-| `terrain_nav_lookahead` | 1000 m | 0 – 2000 m | How far ahead along your track the **forward scan** looks for rising terrain. `0` disables the early *TERRAIN AHEAD!* warning, leaving only the reactive floor. |
+| `terrain_nav_lookahead` | 1000 m | 0 – 2000 m | How far ahead along your track the **forward scan** looks for rising terrain. The scan is additionally capped at **35 s of flight at your current ground speed**, because the horizon is really *time*, not distance: the same 1000 m is nearly a minute of flying at 20 m/s but only ~18 s at 55 m/s. The time cap stops slow flight from climbing absurdly early for terrain a minute away, while fast flight still uses the full distance. `0` disables the early *TERRAIN AHEAD!* warning, leaving only the reactive floor. |
 
 > **NB — keep your climb rates honest.** The climb authority is your existing **`nav_fw_auto_climb_rate`** — there is no separate terrain climb setting, and the *TERRAIN AHEAD!* escape warning **trusts that number**, so set it to a rate your model genuinely sustains. Keep **`nav_fw_manual_climb_rate` at least equal to `nav_fw_auto_climb_rate`** (they default to 300 / 500) — or **greater**, if you want pulling the stick to actually add climb. If `nav_fw_manual_climb_rate` is **lower** than `nav_fw_auto_climb_rate`, grabbing pitch during an auto-climb commands the lower rate: the nose visibly eases and it can even **slow** the climb.
 
