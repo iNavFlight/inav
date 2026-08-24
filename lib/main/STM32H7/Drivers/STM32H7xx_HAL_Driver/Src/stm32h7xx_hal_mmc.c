@@ -490,7 +490,7 @@ HAL_StatusTypeDef HAL_MMC_Init(MMC_HandleTypeDef *hmmc)
 HAL_StatusTypeDef HAL_MMC_InitCard(MMC_HandleTypeDef *hmmc)
 {
   uint32_t errorstate;
-  MMC_InitTypeDef Init;
+  MMC_InitTypeDef Init = {0U};
   uint32_t sdmmc_clk;
 
   /* Default SDMMC peripheral configuration for MMC card initialization */
@@ -507,7 +507,14 @@ HAL_StatusTypeDef HAL_MMC_InitCard(MMC_HandleTypeDef *hmmc)
     hmmc->ErrorCode = SDMMC_ERROR_INVALID_PARAMETER;
     return HAL_ERROR;
   }
-  Init.ClockDiv = sdmmc_clk / (2U * MMC_INIT_FREQ);
+  if (sdmmc_clk <= MMC_INIT_FREQ)
+  {
+    Init.ClockDiv = 0U;
+  }
+  else
+  {
+    Init.ClockDiv = (sdmmc_clk / (2U * MMC_INIT_FREQ)) + 1U;
+  }
 
 #if (USE_SD_TRANSCEIVER != 0U)
   Init.TranceiverPresent = SDMMC_TRANSCEIVER_NOT_PRESENT;
@@ -3411,7 +3418,7 @@ HAL_StatusTypeDef HAL_MMC_SleepDevice(MMC_HandleTypeDef *hmmc)
                   {
                     /* Send CMD5 CMD_MMC_SLEEP_AWAKE with RCA and SLEEP as argument */
                     errorstate = SDMMC_CmdSleepMmc(hmmc->Instance,
-                                                   ((hmmc->MmcCard.RelCardAdd << 16U) | (0x1U << 15U)));
+                                                   ((hmmc->MmcCard.RelCardAdd << 16UL) | (0x1UL << 15UL)));
                     if (errorstate == HAL_MMC_ERROR_NONE)
                     {
                       /* Wait that the device is ready by checking the D0 line */
@@ -4029,7 +4036,7 @@ static uint32_t MMC_HighSpeed(MMC_HandleTypeDef *hmmc, FunctionalState state)
   uint32_t response = 0U;
   uint32_t count;
   uint32_t sdmmc_clk;
-  SDMMC_InitTypeDef Init;
+  SDMMC_InitTypeDef Init = {0U};
 
   if (((hmmc->Instance->CLKCR & SDMMC_CLKCR_BUSSPEED) != 0U) && (state == DISABLE))
   {

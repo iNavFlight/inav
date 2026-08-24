@@ -161,7 +161,6 @@ typedef struct servoParam_s {
 
 PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
 
-
 #define SERVO_AUTOTRIM_FILTER_CUTOFF    1.0f     // LPF cutoff frequency
 #define SERVO_AUTOTRIM_CENTER_MIN       1300
 #define SERVO_AUTOTRIM_CENTER_MAX       1700

@@ -48,7 +48,9 @@ typedef enum {
     OUTPUT_MODE_AUTO     = 0,
     OUTPUT_MODE_MOTORS,
     OUTPUT_MODE_SERVOS,
-    OUTPUT_MODE_LED
+    OUTPUT_MODE_LED,
+    OUTPUT_MODE_PINIO,
+    OUTPUT_MODE_BEEPER
 } outputMode_e;
 
 typedef struct motorAxisCorrectionLimits_s {
@@ -119,7 +121,7 @@ void writeAllMotors(int16_t mc);
 void mixerInit(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
-void mixTable(void);
+void mixTable(float dT);
 void writeMotors(void);
 void processServoAutotrim(const float dT);
 void processServoAutotrimMode(void);
@@ -130,5 +132,6 @@ void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
 bool areMotorsRunning(void);
+bool areMotorsStopped(void);
 
 uint16_t getMaxThrottle(void);

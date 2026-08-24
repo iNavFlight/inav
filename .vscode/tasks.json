@@ -4,9 +4,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build AOCODARCH7DUAL",
+            "label": "Build MATEKH743",
             "type": "shell",
-            "command": "make AOCODARCH7DUAL",
+            "command": "ninja MATEKH743",
             "group": "build",
             "problemMatcher": [],
             "options": {
@@ -14,9 +14,9 @@
             }
         },
         {
-            "label": "Build AOCODARCH7DUAL",
+            "label": "Build MATEKH743",
             "type": "shell",
-            "command": "make AOCODARCH7DUAL",
+            "command": "ninja MATEKH743",
             "group": {
                 "kind": "build",
                 "isDefault": true

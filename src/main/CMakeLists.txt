@@ -85,6 +85,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_fake.h
     drivers/accgyro/accgyro_icm20689.c
     drivers/accgyro/accgyro_icm20689.h
+    drivers/accgyro/accgyro_icm40609d.c
+    drivers/accgyro/accgyro_icm40609d.h
     drivers/accgyro/accgyro_icm42605.c
     drivers/accgyro/accgyro_icm42605.h
     drivers/accgyro/accgyro_icm45686.c
@@ -122,6 +124,8 @@ main_sources(COMMON_SRC
     drivers/barometer/barometer_spl06.h
     drivers/barometer/barometer_msp.c
     drivers/barometer/barometer_msp.h
+    drivers/barometer/barometer_crsf.c
+    drivers/barometer/barometer_crsf.h
     drivers/barometer/barometer_2smpb_02b.c
     drivers/barometer/barometer_2smpb_02b.h
 
@@ -164,6 +168,12 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mlx90393.h
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
+
+    drivers/dronecan/libcanard/canard.c
+    drivers/dronecan/libcanard/canard.h
+    drivers/dronecan/libcanard/canard_stm32_driver.h
+    drivers/dronecan/dronecan.c
+    drivers/dronecan/dronecan.h
 
     drivers/display.c
     drivers/display.h
@@ -225,8 +235,6 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_dlvr_l10d.h
     drivers/pitotmeter/pitotmeter_msp.c
     drivers/pitotmeter/pitotmeter_msp.h
-    drivers/pitotmeter/pitotmeter_virtual.c
-    drivers/pitotmeter/pitotmeter_virtual.h
     drivers/pitotmeter/pitotmeter_fake.h
     drivers/pitotmeter/pitotmeter_fake.c
     drivers/pwm_esc_detect.c
@@ -280,6 +288,7 @@ main_sources(COMMON_SRC
     drivers/vtx_common.c
     drivers/vtx_common.h
 
+
     fc/cli.c
     fc/cli.h
     fc/config.c
@@ -294,6 +303,8 @@ main_sources(COMMON_SRC
     fc/fc_tasks.c
     fc/fc_tasks.h
     fc/fc_hardfaults.c
+    fc/fc_mavlink.c
+    fc/fc_mavlink.h
     fc/fc_msp.c
     fc/fc_msp.h
     fc/fc_msp_box.c
@@ -362,6 +373,7 @@ main_sources(COMMON_SRC
     flight/adaptive_filter.h
 
     io/adsb.c
+    io/adsb.h
     io/beeper.c
     io/beeper.h
     io/servo_sbus.c
@@ -394,6 +406,25 @@ main_sources(COMMON_SRC
     io/rcdevice_cam.h
 
     io/osd/custom_elements.c
+
+    mavlink/mavlink_command.c
+    mavlink/mavlink_command.h
+    mavlink/mavlink_guided.c
+    mavlink/mavlink_guided.h
+    mavlink/mavlink_internal.h
+    mavlink/mavlink_mission.c
+    mavlink/mavlink_mission.h
+    mavlink/mavlink_modes.c
+    mavlink/mavlink_modes.h
+    mavlink/mavlink_types.h
+    mavlink/mavlink_ports.c
+    mavlink/mavlink_ports.h
+    mavlink/mavlink_routing.c
+    mavlink/mavlink_routing.h
+    mavlink/mavlink_runtime.c
+    mavlink/mavlink_runtime.h
+    mavlink/mavlink_streams.c
+    mavlink/mavlink_streams.h
 
     msp/msp_serial.c
     msp/msp_serial.h
@@ -452,6 +483,8 @@ main_sources(COMMON_SRC
     sensors/battery.c
     sensors/battery.h
     sensors/battery_config_structs.h
+    sensors/battery_sensor_dronecan.c
+    sensors/battery_sensor_dronecan.h
     sensors/boardalignment.c
     sensors/boardalignment.h
     sensors/compass.c
@@ -536,6 +569,8 @@ main_sources(COMMON_SRC
     io/gps_ublox.c
     io/gps_ublox_utils.c
     io/gps_msp.c
+    io/gps_crsf.c
+    io/gps_dronecan.c
     io/gps_fake.c
     io/gps_private.h
     io/ledstrip.c
@@ -556,6 +591,8 @@ main_sources(COMMON_SRC
     io/osd_joystick.h
     io/smartport_master.c
     io/smartport_master.h
+    io/crsf_sensor.c
+    io/crsf_sensor.h
     io/vtx.c
     io/vtx.h
     io/vtx_string.c
@@ -599,6 +636,8 @@ main_sources(COMMON_SRC
     sensors/opflow.h
     sensors/battery_sensor_fake.c
     sensors/battery_sensor_fake.h
+    sensors/battery_sensor_crsf.c
+    sensors/battery_sensor_crsf.h
 
     telemetry/crsf.c
     telemetry/crsf.h
@@ -631,5 +670,7 @@ main_sources(COMMON_SRC
     telemetry/telemetry.c
     telemetry/telemetry.h
 )
+
+list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})
 
 add_subdirectory(target)

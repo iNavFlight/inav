@@ -1111,7 +1111,6 @@ HAL_StatusTypeDef  FMC_NAND_GetECC(const FMC_NAND_TypeDef *Device, uint32_t *ECC
   * @}
   */
 
-
 /** @defgroup FMC_LL_SDRAM SDRAM
   *  @{
   */

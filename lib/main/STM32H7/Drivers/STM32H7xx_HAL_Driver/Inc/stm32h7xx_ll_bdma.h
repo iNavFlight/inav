@@ -1125,7 +1125,7 @@ __STATIC_INLINE void LL_BDMA_DisableDoubleBufferMode(const BDMA_TypeDef *BDMAx, 
   */
 __STATIC_INLINE uint32_t LL_BDMA_IsEnabledDoubleBufferMode(const BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return ((READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_DBM) == (BDMA_CCR_DBM)) ? 1UL : 0UL);
 }

@@ -112,8 +112,8 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
     const int16_t thrCorrectionMax = getMaxThrottle() - currentBatteryProfile->nav.mc.hover_throttle;
 
     float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrCorrectionMin, thrCorrectionMax, 0);
-
-    int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+    
+    int16_t rcThrottleCorrection = pt1FilterApply3(&altholdThrottleFilterState, velocity_controller, US2S(deltaMicros));
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
     posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, false);
@@ -212,6 +212,7 @@ void resetMulticopterAltitudeController(void)
 
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
 
+    pt1FilterSetCutoff(&altholdThrottleFilterState, NAV_THROTTLE_CUTOFF_FREQENCY_HZ);
     pt1FilterReset(&altholdThrottleFilterState, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].error_filter_state, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
@@ -785,7 +786,7 @@ static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
             if (acc.accADCf[Z] < 1.0f && baroAltRate < -200.0f) {
                 const uint16_t idleThrottle = getThrottleIdleValue();
                 const uint16_t hoverThrottleRange = currentBatteryProfile->nav.mc.hover_throttle - idleThrottle;
-                return rcCommand[THROTTLE] < idleThrottle + ((navigationInAutomaticThrottleMode() ? 0.8 : 0.5) * hoverThrottleRange);
+                return rcCommand[THROTTLE] < idleThrottle + ((navigationRequiresAutoThrottleMode() ? 0.8 : 0.5) * hoverThrottleRange);
             }
         } else if (acc.accADCf[Z] <= 1.0f) {
             gSpikeDetectTimeMs = 0;
