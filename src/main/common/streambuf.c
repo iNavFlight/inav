@@ -24,6 +24,7 @@ sbuf_t *sbufInit(sbuf_t *sbuf, uint8_t *ptr, uint8_t *end)
 {
     sbuf->ptr = ptr;
     sbuf->end = end;
+    sbuf->overrun = false;
     return sbuf;
 }
 
@@ -95,12 +96,16 @@ void sbufWriteStringWithZeroTerminator(sbuf_t *dst, const char *string)
 
 uint8_t sbufReadU8(sbuf_t *src)
 {
+    if (src->ptr >= src->end) {
+        src->overrun = true;
+        return 0;
+    }
     return *src->ptr++;
 }
 
 int8_t sbufReadI8(sbuf_t *src)
 {
-    return *src->ptr++;
+    return (int8_t)sbufReadU8(src);
 }
 
 uint16_t sbufReadU16(sbuf_t *src)
@@ -216,4 +221,5 @@ void sbufSwitchToReader(sbuf_t *buf, uint8_t *base)
 {
     buf->end = buf->ptr;
     buf->ptr = base;
+    buf->overrun = false;
 }
