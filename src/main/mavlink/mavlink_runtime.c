@@ -279,8 +279,10 @@ static bool isMAVLinkTelemetryHalfDuplex(uint8_t portIndex)
 
 void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
 {
+#ifndef USE_TELEMETRY_MAVLINK_CONSTRAINED
     mavlinkSendPendingMissionItemReached();
     mavlinkMissionUpdate(currentTimeUs / 1000);
+#endif
     mavlinkSendModeStatusText();
     mavlinkSendArmingStatusText();
 
