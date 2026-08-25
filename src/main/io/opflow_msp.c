@@ -71,8 +71,12 @@ static bool mspOpflowUpdate(opflowData_t * data)
     return false;
 }
 
-void mspOpflowReceiveNewData(uint8_t * bufferPtr)
+void mspOpflowReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
+    if (dataSize != sizeof(mspSensorOpflowDataMessage_t)) {
+        return;
+    }
+
     const timeUs_t currentTimeUs = micros();
     const mspSensorOpflowDataMessage_t * pkt = (const mspSensorOpflowDataMessage_t *)bufferPtr;
 

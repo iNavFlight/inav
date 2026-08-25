@@ -77,8 +77,12 @@ static uint8_t gpsMapFixType(uint8_t mspFixType)
     return GPS_NO_FIX;
 }
 
-void mspGPSReceiveNewData(const uint8_t * bufferPtr)
+void mspGPSReceiveNewData(const uint8_t * bufferPtr, unsigned int dataSize)
 {
+    if (dataSize != sizeof(mspSensorGpsDataMessage_t)) {
+        return;
+    }
+
     const mspSensorGpsDataMessage_t * pkt = (const mspSensorGpsDataMessage_t *)bufferPtr;
 
     gpsSolDRV.fixType   = gpsMapFixType(pkt->fixType);

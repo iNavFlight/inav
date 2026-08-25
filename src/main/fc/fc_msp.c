@@ -4642,42 +4642,41 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     int dataSize = sbufBytesRemaining(src);
-    UNUSED(dataSize);
 
     switch (cmdMSP) {
 #if defined(USE_RANGEFINDER_MSP)
         case MSP2_SENSOR_RANGEFINDER:
-            mspRangefinderReceiveNewData(sbufPtr(src));
+            mspRangefinderReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_OPFLOW_MSP)
         case MSP2_SENSOR_OPTIC_FLOW:
-            mspOpflowReceiveNewData(sbufPtr(src));
+            mspOpflowReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_GPS_PROTO_MSP)
         case MSP2_SENSOR_GPS:
-            mspGPSReceiveNewData(sbufPtr(src));
+            mspGPSReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_MAG_MSP)
         case MSP2_SENSOR_COMPASS:
-            mspMagReceiveNewData(sbufPtr(src));
+            mspMagReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_BARO_MSP)
         case MSP2_SENSOR_BAROMETER:
-            mspBaroReceiveNewData(sbufPtr(src));
+            mspBaroReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_PITOT_MSP)
         case MSP2_SENSOR_AIRSPEED:
-            mspPitotmeterReceiveNewData(sbufPtr(src));
+            mspPitotmeterReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 

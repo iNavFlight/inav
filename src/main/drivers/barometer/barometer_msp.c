@@ -78,8 +78,12 @@ static bool mspBaroCalculate(baroDev_t * baro, int32_t *pressure, int32_t *tempe
     return true;
 }
 
-void mspBaroReceiveNewData(uint8_t * bufferPtr)
+void mspBaroReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
+    if (dataSize != sizeof(mspSensorBaroDataMessage_t)) {
+        return;
+    }
+
     const mspSensorBaroDataMessage_t * pkt = (const mspSensorBaroDataMessage_t *)bufferPtr;
 
     mspBaroPressure = pkt->pressurePa;
