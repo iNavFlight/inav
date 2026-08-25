@@ -191,7 +191,12 @@
 - [mspSDCardState_e](#enum-mspsdcardstate_e)
 - [multi_function_e](#enum-multi_function_e)
 - [multiFunctionFlags_e](#enum-multifunctionflags_e)
+- [nav_control_type_e](#enum-nav_control_type_e)
+- [nav_heading_control_e](#enum-nav_heading_control_e)
+- [nav_loiter_type_e](#enum-nav_loiter_type_e)
 - [nav_reset_type_e](#enum-nav_reset_type_e)
+- [nav_rth_alt_profile_e](#enum-nav_rth_alt_profile_e)
+- [nav_rth_climb_profile_e](#enum-nav_rth_climb_profile_e)
 - [navAGLEstimateQuality_e](#enum-navaglestimatequality_e)
 - [navArmingBlocker_e](#enum-navarmingblocker_e)
 - [navDefaultAltitudeSensor_e](#enum-navdefaultaltitudesensor_e)
@@ -2246,6 +2251,7 @@
 | `NAV_WP_TAKEOFF_DATUM` | 0 |  |
 | `NAV_WP_MSL_DATUM` | 1 |  |
 | `NAV_WP_TERRAIN_DATUM` | 2 |  |
+| `NAV_WP_RELATIVE_DATUM` | 3 |  |
 
 ---
 ## <a id="enum-geooriginresetmode_e"></a>`geoOriginResetMode_e`
@@ -3200,7 +3206,10 @@
 | `LOGIC_CONDITION_ACOS` | 58 |  |
 | `LOGIC_CONDITION_ASIN` | 59 |  |
 | `LOGIC_CONDITION_ATAN2` | 60 |  |
-| `LOGIC_CONDITION_LAST` | 61 |  |
+| `LOGIC_CONDITION_DISABLE_AUTOSPEED_AIRSPEED` | 61 |  |
+| `LOGIC_CONDITION_ACTIVATE_RTH` | 62 |  |
+| `LOGIC_CONDITION_ACTIVATE_LANDING` | 63 |  |
+| `LOGIC_CONDITION_LAST` | 64 |  |
 
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
@@ -3608,6 +3617,38 @@
 | `MF_TURTLE_MODE` | (1 << 2) |  |
 
 ---
+## <a id="enum-nav_control_type_e"></a>`nav_control_type_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_GPS_ATTI` | 0 |  |
+| `NAV_GPS_CRUISE` | 1 |  |
+
+---
+## <a id="enum-nav_heading_control_e"></a>`nav_heading_control_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_HEADING_CONTROL_NONE` | 0 |  |
+| `NAV_HEADING_CONTROL_AUTO` | 1 |  |
+| `NAV_HEADING_CONTROL_MANUAL` | 2 |  |
+
+---
+## <a id="enum-nav_loiter_type_e"></a>`nav_loiter_type_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_LOITER_RIGHT` | 0 |  |
+| `NAV_LOITER_LEFT` | 1 |  |
+| `NAV_LOITER_YAW` | 2 |  |
+
+---
 ## <a id="enum-nav_reset_type_e"></a>`nav_reset_type_e`
 
 > Source: ../../../src/main/navigation/navigation.h
@@ -3617,6 +3658,30 @@
 | `NAV_RESET_NEVER` | 0 |  |
 | `NAV_RESET_ON_FIRST_ARM` | 1 |  |
 | `NAV_RESET_ON_EACH_ARM` | 2 |  |
+
+---
+## <a id="enum-nav_rth_alt_profile_e"></a>`nav_rth_alt_profile_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_RTH_NO_ALT` | 0 |  |
+| `NAV_RTH_EXTRA_ALT` | 1 |  |
+| `NAV_RTH_CONST_ALT` | 2 |  |
+| `NAV_RTH_MAX_ALT` | 3 |  |
+| `NAV_RTH_AT_LEAST_ALT` | 4 |  |
+| `NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT` | 5 |  |
+
+---
+## <a id="enum-nav_rth_climb_profile_e"></a>`nav_rth_climb_profile_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_RTH_CLIMB_STAGE_AT_LEAST` | 0 |  |
+| `NAV_RTH_CLIMB_STAGE_EXTRA` | 1 |  |
 
 ---
 ## <a id="enum-navaglestimatequality_e"></a>`navAGLEstimateQuality_e`
@@ -3710,11 +3775,12 @@
 | `NAV_FSM_EVENT_SWITCH_TO_MIXERAT` | 14 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING` | 15 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_SEND_TO` | 16 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_1` | 17 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_2` | 18 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_3` | 19 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_4` | 20 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_5` | 21 |  |
+| `NAV_FSM_EVENT_SWITCH_TO_LANDING` | 17 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_1` | 18 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_2` | 19 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_3` | 20 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_4` | 21 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_5` | 22 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT` | NAV_FSM_EVENT_STATE_SPECIFIC_1 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED` | NAV_FSM_EVENT_STATE_SPECIFIC_2 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME` | NAV_FSM_EVENT_STATE_SPECIFIC_1 |  |
