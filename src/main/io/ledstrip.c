@@ -73,7 +73,7 @@
 #include "telemetry/telemetry.h"
 
 
-PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 2);
+PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 3);
 
 static bool ledStripInitialised = false;
 static bool ledStripEnabled = true;
@@ -92,7 +92,7 @@ static void ledStripDisable(void);
 const hsvColor_t hsv[] = {
     //                        H    S    V
     [COLOR_BLACK] =        {  0,   0,   0},
-    [COLOR_WHITE] =        {  0, 255, 255},
+    [COLOR_WHITE] =        {  0,   0, 255},
     [COLOR_RED] =          {  0,   0, 255},
     [COLOR_ORANGE] =       { 30,   0, 255},
     [COLOR_YELLOW] =       { 60,   0, 255},
@@ -865,13 +865,17 @@ static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
     const uint16_t rainbowHue = (uint16_t)stepCount << 1;
     const uint16_t rainbowDelta = ledStripConfig()->ledstrip_rainbow_delta_deg % 360;
 
+    uint8_t rainbowIndex = 0;
+
     for (unsigned i = 0; i < ledCounts.count; i++) {
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
 
         if (ledGetOverlayBit(ledConfig, LED_OVERLAY_RAINBOW)) {
             hsvColor_t ledColor;
             getLedHsv(i, &ledColor);
-            ledColor.h = (currentHue + (rainbowIndex * rainbowDelta)) % 360;
+            ledColor.h = (rainbowHue + (rainbowIndex * rainbowDelta)) % 360;
+            ledColor.s = 0;   // Force full color saturation (Required)
+            ledColor.v = 255; // Force full brightness (Required)
             setLedHsv(i, &ledColor);
             rainbowIndex++;
         }
