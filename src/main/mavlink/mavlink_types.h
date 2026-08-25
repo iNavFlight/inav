@@ -71,6 +71,14 @@ typedef struct mavlinkRouteEntry_s {
     uint8_t sysid;
     uint8_t compid;
     uint8_t ingressPortIndex;
+    // Reconnect detection state, updated only on HEARTBEAT from this peer.
+    // ingressPortIndex above is refreshed by every routed message, so it
+    // cannot be used to detect the port a heartbeat last arrived on.
+    uint8_t lastHeartbeatPortIndex;
+    timeMs_t lastHeartbeatMs;
+    // Snapshot rate limit, per peer rather than per port: two peers sharing a
+    // port must not consume each other's allowance.
+    timeMs_t lastArmingSnapshotMs;
 } mavlinkRouteEntry_t;
 
 typedef enum {
@@ -145,7 +153,6 @@ typedef struct mavlinkPortRuntime_s {
     uint8_t lastStatusTextSeverity;
     timeMs_t firstStatusTextMs;
     timeMs_t lastStatusTextMs;
-    timeMs_t lastRemoteHeartbeatMs;
     uint8_t txSeq;
     uint32_t txDroppedFrames;
     mavlink_message_t mavRecvMsg;
