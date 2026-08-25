@@ -19,6 +19,7 @@ typedef enum {
     MARKER_GUIDANCE_REASON_FAILSAFE,
     MARKER_GUIDANCE_REASON_INVALID_TARGET,
     MARKER_GUIDANCE_REASON_NOT_ARMED,
+    MARKER_GUIDANCE_REASON_POSITION_UNAVAILABLE,
 } markerGuidanceReason_e;
 
 typedef enum {
@@ -55,8 +56,10 @@ typedef struct {
 
 void markerGuidanceReset(void);
 void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
-void markerGuidanceApplyHorizontalVelocityCorrection(float *velX, float *velY);
+void markerGuidanceUpdateDebug(void);
 bool markerGuidanceApplyHeadingOverride(int32_t *desiredYawCd);
+bool markerGuidanceOwnsPositionTarget(void);
+bool markerGuidanceGetActiveLandingPositionTarget(fpVector3_t *targetOut);
 void markerGuidanceGetLandControl(markerGuidanceLandControl_t *controlOut);
 navSystemStatus_State_e markerGuidanceOverrideNavStatusState(navSystemStatus_State_e defaultState);
 bool markerGuidanceHandleMspTargetUpdate(const markerGuidanceTargetUpdate_t *update, markerGuidanceMspResponse_t *responseOut);

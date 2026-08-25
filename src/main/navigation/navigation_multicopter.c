@@ -618,18 +618,6 @@ static float getVelocityExpoAttenuationFactor(float velTotal, float velMax)
     return 1.0f - posControl.posResponseExpo * (1.0f - (velScale * velScale));  // x^3 expo factor
 }
 
-#ifdef USE_MARKER_GUIDANCE
-static void constrainDesiredHorizontalVelocity(float maxSpeed)
-{
-    const float speed = calc_length_pythagorean_2D(posControl.desiredState.vel.x, posControl.desiredState.vel.y);
-    if (maxSpeed > 0.0f && speed > maxSpeed) {
-        const float scale = maxSpeed / speed;
-        posControl.desiredState.vel.x *= scale;
-        posControl.desiredState.vel.y *= scale;
-    }
-}
-#endif
-
 static void updatePositionVelocityController_MC(const float maxSpeed)
 {
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
@@ -681,11 +669,6 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     posControl.desiredState.vel.x = neuVelX * velHeadFactor * velExpoFactor;
     posControl.desiredState.vel.y = neuVelY * velHeadFactor * velExpoFactor;
 
-    // Optional external marker-guidance correction (MC/VTOL hover contexts only).
-#ifdef USE_MARKER_GUIDANCE
-    markerGuidanceApplyHorizontalVelocityCorrection(&posControl.desiredState.vel.x, &posControl.desiredState.vel.y);
-    constrainDesiredHorizontalVelocity(maxSpeed);
-#endif
 }
 
 static float computeNormalizedVelocity(const float value, const float maxValue)
@@ -884,7 +867,11 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 
         // If we have new position data - update velocity and acceleration controllers
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-            if (navigationVtolMcProtectionApplyCapture(navGetCurrentStateFlags())) {
+            bool markerGuidanceOwnsPosition = false;
+#ifdef USE_MARKER_GUIDANCE
+            markerGuidanceOwnsPosition = markerGuidanceOwnsPositionTarget();
+#endif
+            if (!markerGuidanceOwnsPosition && navigationVtolMcProtectionApplyCapture(navGetCurrentStateFlags())) {
                 setMulticopterStopPosition();
             }
 

@@ -797,6 +797,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | OSD_REFRESH |  |
 | VTOL_TRANSITION |  |
 | VTOL_MC_PROTECT |  |
+| MARKER_GUIDANCE |  |
 
 ---
 
@@ -4314,7 +4315,7 @@ Marker-relative hold target for vehicle North position [cm], relative to marker.
 
 ### nav_marker_guidance_lost_hold_time_ms
 
-Hold duration after target loss before falling back to normal LAND behavior [ms].
+Minimum hold duration after target loss before a LAND retry can start or normal LAND fallback can continue [ms].
 
 | Default | Min | Max |
 | --- | --- | --- |

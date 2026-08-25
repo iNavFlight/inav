@@ -29,6 +29,7 @@
 #define VTOL_MC_BAILOUT_ANGLE_EXTRA_DEG            15
 #define VTOL_MC_BAILOUT_ANGLE_MIN_DEG              45
 #define VTOL_MC_BAILOUT_ANGLE_MAX_DEG              60
+#define VTOL_MC_LANDING_GUIDANCE_RECOVERY_MARGIN_DEG 10
 #define VTOL_MC_COMMAND_SHAPE_START_CM_S           300
 #define VTOL_MC_COMMAND_SHAPE_FULL_CM_S            800
 #define VTOL_MC_COMMAND_SHAPE_MIN_SCALE            0.5f
@@ -130,6 +131,28 @@ static inline bool vtolMcProtectionCaptureShouldSetTarget(
     return !captureWasActive && captureIsActive;
 }
 
+static inline bool vtolMcProtectionPositionCapturePending(
+    const bool captureAllowed,
+    const bool settleConditionsMet,
+    const timeMs_t stableSinceMs,
+    const uint16_t settleTimeMs,
+    const timeMs_t nowMs)
+{
+    if (!captureAllowed) {
+        return false;
+    }
+
+    if (!settleConditionsMet) {
+        return true;
+    }
+
+    if (settleTimeMs == 0) {
+        return false;
+    }
+
+    return stableSinceMs == 0 || (nowMs - stableSinceMs) < settleTimeMs;
+}
+
 static inline bool vtolMcProtectionLandingDescentNeedsResettle(
     const bool protectionActive,
     const bool landingSettleApproved,
@@ -148,6 +171,28 @@ static inline bool vtolMcProtectionLandingDescentNeedsResettle(
     return (horizontalVelocityUsable &&
             horizontalSpeedCmS > (float)horizontalSettleLimitCmS * VTOL_MC_LANDING_RESETTLE_SPEED_MULTIPLIER) ||
            maxAbsAttitudeDeciDeg > attitudeSettleLimitDeciDeg;
+}
+
+static inline bool vtolMcProtectionLandingGuidanceRecoveryNeeded(
+    const bool protectionActive,
+    const uint16_t maxAbsAttitudeDeciDeg,
+    const uint16_t attitudeSettleLimitDeciDeg)
+{
+    return protectionActive &&
+           maxAbsAttitudeDeciDeg > attitudeSettleLimitDeciDeg;
+}
+
+static inline uint16_t vtolMcProtectionLandingGuidanceRecoveryAngleLimitDeciDeg(
+    const uint16_t landingSettleAngleLimitDeciDeg,
+    const uint16_t configuredBankAngleLimitDeciDeg,
+    const uint16_t bailoutAngleLimitDeciDeg)
+{
+    const uint16_t normalCommandLimitDeciDeg =
+        landingSettleAngleLimitDeciDeg > configuredBankAngleLimitDeciDeg ?
+        landingSettleAngleLimitDeciDeg : configuredBankAngleLimitDeciDeg;
+    const uint16_t recoveryLimitDeciDeg = normalCommandLimitDeciDeg +
+        (VTOL_MC_LANDING_GUIDANCE_RECOVERY_MARGIN_DEG * 10U);
+    return recoveryLimitDeciDeg < bailoutAngleLimitDeciDeg ? recoveryLimitDeciDeg : bailoutAngleLimitDeciDeg;
 }
 
 static inline bool vtolMcProtectionRthLandingYawSettleAssistActive(
@@ -175,6 +220,18 @@ static inline uint16_t vtolMcProtectionBailoutAngleLimitDeciDeg(const uint8_t na
     }
 
     return (uint16_t)bailoutAngleDeg * 10U;
+}
+
+static inline bool vtolMcProtectionGuidanceRecoveryActive(
+    const bool protectionActive,
+    const bool automaticThrottleActive,
+    const bool bailoutActive,
+    const uint16_t maxAbsAttitudeDeciDeg,
+    const uint16_t bailoutAngleLimitDeciDeg)
+{
+    return protectionActive &&
+           automaticThrottleActive &&
+           (bailoutActive || maxAbsAttitudeDeciDeg >= bailoutAngleLimitDeciDeg);
 }
 
 static inline vtolMcProtectionThrottleBounds_t vtolMcProtectionComputeThrottleBounds(

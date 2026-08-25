@@ -82,6 +82,7 @@ typedef enum {
     DEBUG_OSD_REFRESH,
     DEBUG_VTOL_TRANSITION,
     DEBUG_VTOL_MC_PROTECT,
+    DEBUG_MARKER_GUIDANCE,
     DEBUG_COUNT // also update debugModeNames in cli.c
 } debugType_e;
 

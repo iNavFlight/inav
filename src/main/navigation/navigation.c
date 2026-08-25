@@ -2122,6 +2122,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     }
 
     const fpVector3_t *landingSettlePos = FLIGHT_MODE(NAV_WP_MODE) ? &posControl.activeWaypoint.pos : rthGetHomeTargetPosition(RTH_HOME_FINAL_LAND);
+#ifdef USE_MARKER_GUIDANCE
+    fpVector3_t markerLandingSettlePos = *landingSettlePos;
+    if (markerGuidanceGetActiveLandingPositionTarget(&markerLandingSettlePos)) {
+        landingSettlePos = &markerLandingSettlePos;
+    }
+#endif
     if (navigationVtolMcProtectionLandingDescentNeedsResettle() ||
         !navigationVtolMcProtectionLandingSettleReady(landingSettlePos)) {
         fpVector3_t landingHoldPos = *landingSettlePos;
@@ -5738,6 +5744,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         resetRthTrackBack();
 #ifdef USE_MARKER_GUIDANCE
         markerGuidanceReset();
+        markerGuidanceUpdateDebug();
 #endif
 
 #ifdef USE_GEOZONE
@@ -5771,6 +5778,9 @@ void applyWaypointNavigationAndAltitudeHold(void)
     else {
         applyMulticopterNavigationController(navStateFlags, currentTimeUs);
     }
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceUpdateDebug();
+#endif
     applyAutoSpeedThrottleDemand(&rcCommand[THROTTLE], currentTimeUs);
 
     /* Consume position data */

@@ -50,6 +50,60 @@ TEST(MarkerGuidanceLogicTest, FreshnessUsesFcReceiveTimeAndHandlesTimerWrap)
     EXPECT_TRUE(markerGuidanceSampleIsFresh(true, 5, UINT32_MAX - 4, 10));
 }
 
+TEST(MarkerGuidanceLogicTest, RetrySettleUsesConservativeSpeedLimit)
+{
+    EXPECT_EQ(75, markerGuidanceRetrySettleSpeedLimit(0));
+    EXPECT_EQ(50, markerGuidanceRetrySettleSpeedLimit(50));
+    EXPECT_EQ(75, markerGuidanceRetrySettleSpeedLimit(75));
+    EXPECT_EQ(75, markerGuidanceRetrySettleSpeedLimit(500));
+}
+
+TEST(MarkerGuidanceLogicTest, RetrySettleRequiresTrustedLowSpeedAndLevelAttitude)
+{
+    EXPECT_TRUE(markerGuidanceRetrySettleConditionsMet(true, 75.0f, 100, 75));
+    EXPECT_FALSE(markerGuidanceRetrySettleConditionsMet(false, 0.0f, 0, 75));
+    EXPECT_FALSE(markerGuidanceRetrySettleConditionsMet(true, 75.1f, 0, 75));
+    EXPECT_FALSE(markerGuidanceRetrySettleConditionsMet(true, 0.0f, 101, 75));
+}
+
+TEST(MarkerGuidanceLogicTest, RetrySettleMustRemainStableAndResetsOnMotion)
+{
+    markerGuidanceRetrySettleState_t state = { };
+
+    EXPECT_FALSE(markerGuidanceUpdateRetrySettle(&state, true, 1000));
+    EXPECT_FALSE(markerGuidanceUpdateRetrySettle(&state, true, 1499));
+    EXPECT_TRUE(markerGuidanceUpdateRetrySettle(&state, true, 1500));
+
+    EXPECT_FALSE(markerGuidanceUpdateRetrySettle(&state, false, 1501));
+    EXPECT_FALSE(state.active);
+    EXPECT_FALSE(markerGuidanceUpdateRetrySettle(&state, true, 1600));
+    EXPECT_TRUE(markerGuidanceUpdateRetrySettle(&state, true, 2100));
+}
+
+TEST(MarkerGuidanceLogicTest, RetrySettleHandlesTimerWrap)
+{
+    markerGuidanceRetrySettleState_t state = { };
+
+    const uint32_t startMs = UINT32_MAX - 99;
+    EXPECT_FALSE(markerGuidanceUpdateRetrySettle(&state, true, startMs));
+    EXPECT_FALSE(markerGuidanceUpdateRetrySettle(&state, true, 399));
+    EXPECT_TRUE(markerGuidanceUpdateRetrySettle(&state, true, 400));
+}
+
+TEST(MarkerGuidanceLogicTest, RetryClimbStopsAtRequestedAltitudeOrTimeout)
+{
+    EXPECT_FALSE(markerGuidanceRetryClimbFinished(true, 1000.0f, 1199.9f, 200, false));
+    EXPECT_TRUE(markerGuidanceRetryClimbFinished(true, 1000.0f, 1200.0f, 200, false));
+    EXPECT_TRUE(markerGuidanceRetryClimbFinished(true, 1000.0f, 1300.0f, 200, false));
+    EXPECT_TRUE(markerGuidanceRetryClimbFinished(true, 1000.0f, 1000.0f, 200, true));
+}
+
+TEST(MarkerGuidanceLogicTest, RetryClimbUsesTimeoutWhenAltitudeIsUnavailable)
+{
+    EXPECT_FALSE(markerGuidanceRetryClimbFinished(false, 1000.0f, 1500.0f, 200, false));
+    EXPECT_TRUE(markerGuidanceRetryClimbFinished(false, 1000.0f, 1000.0f, 200, true));
+}
+
 TEST(MarkerGuidanceLogicTest, InvalidPoseDoesNotModifyResolvedOutput)
 {
     const markerGuidancePoseUpdate_t invalidUpdate = { 10, 20, 1801, 100 };
@@ -77,34 +131,63 @@ TEST(MarkerGuidanceLogicTest, BodyOffsetsResolveToSameEarthTargetAtZeroNinetyAnd
     expectNorthTarget({ -100, 0, 0, 100 }, -1.0f, 0.0f);
 }
 
-TEST(MarkerGuidanceLogicTest, CorrectionUsesResolvedEarthOffsetWithoutCurrentYaw)
+TEST(MarkerGuidanceLogicTest, PositionTargetUsesResolvedEarthOffsetWithoutCurrentYaw)
 {
     const markerGuidancePoseUpdate_t update = { 100, 0, 0, 100 };
     markerGuidanceResolvedPose_t resolved = { };
     ASSERT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 1.0f, 0.0f, 0, &resolved));
 
-    float velocityNorth = 0.0f;
-    float velocityEast = 0.0f;
-    ASSERT_TRUE(markerGuidanceComputeHorizontalCorrection(
-        resolved.offsetNorthCm, resolved.offsetEastCm, 0.0f, 0.0f, 0.0f, 500.0f,
-        &velocityNorth, &velocityEast));
+    float targetNorth = 0.0f;
+    float targetEast = 0.0f;
+    ASSERT_TRUE(markerGuidanceComputeHorizontalPositionTarget(
+        1000.0f, 2000.0f,
+        1000.0f + resolved.offsetNorthCm, 2000.0f + resolved.offsetEastCm,
+        0.0f, 0.0f, 0.0f,
+        &targetNorth, &targetEast));
 
-    EXPECT_FLOAT_EQ(100.0f, velocityNorth);
-    EXPECT_FLOAT_EQ(0.0f, velocityEast);
+    EXPECT_FLOAT_EQ(1100.0f, targetNorth);
+    EXPECT_FLOAT_EQ(2000.0f, targetEast);
 }
 
-TEST(MarkerGuidanceLogicTest, ContainmentRadiusAndSpeedLimitRemainEnforced)
+TEST(MarkerGuidanceLogicTest, AbsoluteMarkerTargetDoesNotMoveWithVehicle)
 {
-    float velocityNorth = 0.0f;
-    float velocityEast = 0.0f;
+    float targetNorth = 0.0f;
+    float targetEast = 0.0f;
 
-    EXPECT_FALSE(markerGuidanceComputeHorizontalCorrection(
-        80.0f, 0.0f, 0.0f, 0.0f, 100.0f, 50.0f, &velocityNorth, &velocityEast));
+    ASSERT_TRUE(markerGuidanceComputeHorizontalPositionTarget(
+        0.0f, 0.0f, 200.0f, 0.0f, 0.0f, 0.0f, 100.0f,
+        &targetNorth, &targetEast));
+    EXPECT_FLOAT_EQ(100.0f, targetNorth);
 
-    ASSERT_TRUE(markerGuidanceComputeHorizontalCorrection(
-        200.0f, 0.0f, 0.0f, 0.0f, 100.0f, 50.0f, &velocityNorth, &velocityEast));
-    EXPECT_FLOAT_EQ(50.0f, velocityNorth);
-    EXPECT_FLOAT_EQ(0.0f, velocityEast);
+    ASSERT_TRUE(markerGuidanceComputeHorizontalPositionTarget(
+        50.0f, 0.0f, 200.0f, 0.0f, 0.0f, 0.0f, 100.0f,
+        &targetNorth, &targetEast));
+    EXPECT_FLOAT_EQ(100.0f, targetNorth);
+    EXPECT_FLOAT_EQ(0.0f, targetEast);
+}
+
+TEST(MarkerGuidanceLogicTest, PositionTargetStopsAtCurrentPositionInsideRadius)
+{
+    float targetNorth = 0.0f;
+    float targetEast = 0.0f;
+
+    EXPECT_FALSE(markerGuidanceComputeHorizontalPositionTarget(
+        20.0f, -30.0f, 100.0f, -30.0f, 0.0f, 0.0f, 100.0f,
+        &targetNorth, &targetEast));
+    EXPECT_FLOAT_EQ(20.0f, targetNorth);
+    EXPECT_FLOAT_EQ(-30.0f, targetEast);
+}
+
+TEST(MarkerGuidanceLogicTest, ContainmentOffsetAndRadiusSelectNearestAllowedBoundary)
+{
+    float targetNorth = 0.0f;
+    float targetEast = 0.0f;
+
+    ASSERT_TRUE(markerGuidanceComputeHorizontalPositionTarget(
+        300.0f, 0.0f, 0.0f, 0.0f, 100.0f, 0.0f, 50.0f,
+        &targetNorth, &targetEast));
+    EXPECT_FLOAT_EQ(150.0f, targetNorth);
+    EXPECT_FLOAT_EQ(0.0f, targetEast);
 }
 
 TEST(MarkerGuidanceLogicTest, ResolvesHeadingSignAndWrapExamples)
@@ -164,6 +247,56 @@ TEST(MarkerGuidanceLogicTest, LandRetainsLatchedHeadingAfterTargetLoss)
         true, MARKER_GUIDANCE_CONTEXT_LAND, true, false, false, false,
         false, true, 0, true, 12000, &desiredHeadingCd));
     EXPECT_EQ(12000, desiredHeadingCd);
+}
+
+TEST(MarkerGuidanceLogicTest, PosholdRetainsLatchedHeadingAfterTargetLoss)
+{
+    int32_t desiredHeadingCd = 27000;
+    EXPECT_TRUE(markerGuidanceSelectHeadingOverride(
+        true, MARKER_GUIDANCE_CONTEXT_POSHOLD, true, false, false, false,
+        false, true, 0, true, 12000, &desiredHeadingCd));
+    EXPECT_EQ(12000, desiredHeadingCd);
+}
+
+TEST(MarkerGuidanceLogicTest, ManualYawRejectedSampleRequiresANewerPacket)
+{
+    EXPECT_FALSE(markerGuidanceHeadingSampleAllowed(10, 10));
+    EXPECT_TRUE(markerGuidanceHeadingSampleAllowed(11, 10));
+    EXPECT_FALSE(markerGuidanceHeadingSampleAllowed(0, 0));
+}
+
+TEST(MarkerGuidanceLogicTest, PositionTargetWaitsForBrakingCaptureAndManualControl)
+{
+    EXPECT_TRUE(markerGuidancePositionTargetAllowed(true, true, false, false, false));
+    EXPECT_FALSE(markerGuidancePositionTargetAllowed(false, true, false, false, false));
+    EXPECT_FALSE(markerGuidancePositionTargetAllowed(true, false, false, false, false));
+    EXPECT_FALSE(markerGuidancePositionTargetAllowed(true, true, true, false, false));
+    EXPECT_FALSE(markerGuidancePositionTargetAllowed(true, true, false, true, false));
+    EXPECT_FALSE(markerGuidancePositionTargetAllowed(true, true, false, false, true));
+}
+
+TEST(MarkerGuidanceLogicTest, AcquisitionRequiresFreshContextSampleAndAvailablePositionPath)
+{
+    EXPECT_TRUE(markerGuidanceTargetCanBeAcquired(true, true, true, true));
+    EXPECT_FALSE(markerGuidanceTargetCanBeAcquired(false, true, true, true));
+    EXPECT_FALSE(markerGuidanceTargetCanBeAcquired(true, false, true, true));
+    EXPECT_FALSE(markerGuidanceTargetCanBeAcquired(true, true, false, true));
+    EXPECT_FALSE(markerGuidanceTargetCanBeAcquired(true, true, true, false));
+}
+
+TEST(MarkerGuidanceLogicTest, SuspendedPositionSampleRequiresANewerPacket)
+{
+    EXPECT_FALSE(markerGuidanceHeadingSampleAllowed(42, 42));
+    EXPECT_TRUE(markerGuidanceHeadingSampleAllowed(43, 42));
+}
+
+TEST(MarkerGuidanceLogicTest, VtolRecoveryPausesOnlyAcquiredMarkerContext)
+{
+    EXPECT_TRUE(markerGuidanceVtolRecoveryShouldPause(true, true, MARKER_GUIDANCE_CONTEXT_POSHOLD));
+    EXPECT_TRUE(markerGuidanceVtolRecoveryShouldPause(true, true, MARKER_GUIDANCE_CONTEXT_LAND));
+    EXPECT_FALSE(markerGuidanceVtolRecoveryShouldPause(false, true, MARKER_GUIDANCE_CONTEXT_LAND));
+    EXPECT_FALSE(markerGuidanceVtolRecoveryShouldPause(true, false, MARKER_GUIDANCE_CONTEXT_LAND));
+    EXPECT_FALSE(markerGuidanceVtolRecoveryShouldPause(true, true, MARKER_GUIDANCE_CONTEXT_NONE));
 }
 
 TEST(MarkerGuidanceLogicTest, LandWithoutAcquisitionRetainsNavigationHeading)
