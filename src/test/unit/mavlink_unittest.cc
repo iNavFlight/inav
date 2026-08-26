@@ -154,6 +154,7 @@ static uint32_t lastLoiterRadiusOverride;
 static int activateLandingCalls;
 static bool activateLandingResult;
 static bool canSetHome;
+static navigationFSMStateFlags_t testNavStateFlags;
 static bool testModeActivationConditions[CHECKBOX_ITEM_COUNT];
 static char testOsdSystemMessage[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN + 1];
 static textAttributes_t testOsdSystemMessageAttributes;
@@ -357,6 +358,7 @@ static void initMavlinkTestState(void)
     activateLandingCalls = 0;
     activateLandingResult = true;
     canSetHome = true;
+    testNavStateFlags = (navigationFSMStateFlags_t)0;
     memset(testModeActivationConditions, 0, sizeof(testModeActivationConditions));
     strcpy(testOsdSystemMessage, " ");
     testOsdSystemMessageAttributes = TEXT_ATTRIBUTES_NONE;
@@ -1149,6 +1151,54 @@ TEST(MavlinkTelemetryTest, LandUsesNormalForcedLandingPath)
 
     EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
     EXPECT_EQ(activateLandingCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, ConditionYawIsAcceptedDuringNormalYawControl)
+{
+    initMavlinkTestState();
+    testNavStateFlags = NAV_CTL_YAW;
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_CONDITION_YAW,
+        0,
+        90.0f, 0, 1.0f, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+}
+
+TEST(MavlinkTelemetryTest, ConditionYawIsDeniedDuringMixerAT)
+{
+    initMavlinkTestState();
+    testNavStateFlags = (navigationFSMStateFlags_t)(NAV_CTL_YAW | NAV_MIXERAT);
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_CONDITION_YAW,
+        0,
+        90.0f, 0, 1.0f, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.result, MAV_RESULT_DENIED);
 }
 
 TEST(MavlinkTelemetryTest, TakeoffFoundationReturnsUnsupported)
@@ -3795,7 +3845,7 @@ bool navigationConsumeWaypointReached(uint16_t *seq)
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void)
 {
-    return (navigationFSMStateFlags_t)0;
+    return testNavStateFlags;
 }
 
 void updateHeadingHoldTarget(int16_t heading)

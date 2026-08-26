@@ -32,6 +32,35 @@ typedef enum {
     NAV_MISSION_VTOL_START_VALIDATION_REJECT,
 } navMissionVtolTransitionStartValidation_e;
 
+typedef enum {
+    NAV_VTOL_MIXERAT_MODE_NONE = 0,
+    NAV_VTOL_MIXERAT_MODE_WAYPOINT,
+    NAV_VTOL_MIXERAT_MODE_RTH,
+    NAV_VTOL_MIXERAT_MODE_LAND,
+    NAV_VTOL_MIXERAT_MODE_POSHOLD,
+    NAV_VTOL_MIXERAT_MODE_EMERGENCY_LANDING,
+} navVtolMixerATMode_e;
+
+static inline bool navVtolMixerATModeRequestIsOwned(
+    const bool mixerAtActive,
+    const navVtolMixerATMode_e owner,
+    const navVtolMixerATMode_e requestedMode)
+{
+    return mixerAtActive &&
+           owner != NAV_VTOL_MIXERAT_MODE_NONE &&
+           owner == requestedMode;
+}
+
+static inline bool navVtolMixerATModeRequestShouldPreempt(
+    const bool mixerAtActive,
+    const navVtolMixerATMode_e owner,
+    const navVtolMixerATMode_e requestedMode)
+{
+    return mixerAtActive &&
+           requestedMode != NAV_VTOL_MIXERAT_MODE_NONE &&
+           !navVtolMixerATModeRequestIsOwned(mixerAtActive, owner, requestedMode);
+}
+
 static inline navMissionVtolTransitionPrecondition_e navMissionVtolTransitionPreconditionDisposition(
     const bool armed,
     const bool failsafeActive,
