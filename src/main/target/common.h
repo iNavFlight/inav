@@ -423,8 +423,9 @@
 #define USE_TELEMETRY_SBUS2
 #endif
 
-//Designed to free space of F722 and F411 MCUs
+// Keep larger optional features off 512 KB targets to preserve flash space.
 #if (MCU_FLASH_SIZE > 512)
+#define USE_AUTO_TRANSITION
 #define USE_TELEMETRY_MAVLINK
 #define USE_SERIALRX_MAVLINK
 #define USE_TELEMETRY_SIM
