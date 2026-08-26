@@ -19,6 +19,13 @@
 
 #pragma once
 
+// MSP-over-MAVLink is independently removable from MAVLink targets that cannot
+// afford its reply buffer. Define DISABLE_MAVLINK_MSP_TUNNEL in a target to
+// retain normal MAVLink without the tunnel RAM/code cost.
+#if defined(USE_TELEMETRY_MAVLINK) && !defined(DISABLE_MAVLINK_MSP_TUNNEL)
+#define USE_MAVLINK_MSP_TUNNEL
+#endif
+
 // Config storage in memory-mapped flash
 extern uint8_t __config_start;
 extern uint8_t __config_end;

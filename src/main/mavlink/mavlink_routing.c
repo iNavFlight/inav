@@ -31,7 +31,32 @@ void mavlinkLearnRoute(uint8_t ingressPortIndex)
     mavRouteTable[mavRouteCount].sysid = mavlinkContext.recvMsg.sysid;
     mavRouteTable[mavRouteCount].compid = mavlinkContext.recvMsg.compid;
     mavRouteTable[mavRouteCount].ingressPortIndex = ingressPortIndex;
+    mavRouteTable[mavRouteCount].lastHeartbeatPortIndex = 0;
+    mavRouteTable[mavRouteCount].lastHeartbeatMs = 0;
     mavRouteCount++;
+}
+
+mavlinkRouteEntry_t *mavlinkFindRoute(uint8_t sysid, uint8_t compid)
+{
+    for (uint8_t routeIndex = 0; routeIndex < mavRouteCount; routeIndex++) {
+        mavlinkRouteEntry_t *route = &mavRouteTable[routeIndex];
+        if (route->sysid == sysid && route->compid == compid) {
+            return route;
+        }
+    }
+
+    return NULL;
+}
+
+void mavlinkForgetHeartbeatsForPort(uint8_t portIndex)
+{
+    for (uint8_t routeIndex = 0; routeIndex < mavRouteCount; routeIndex++) {
+        mavlinkRouteEntry_t *route = &mavRouteTable[routeIndex];
+        if (route->lastHeartbeatMs != 0 && route->lastHeartbeatPortIndex == portIndex) {
+            route->lastHeartbeatMs = 0;
+            route->lastArmingSnapshotMs = 0;
+        }
+    }
 }
 
 void mavlinkExtractTargets(const mavlink_message_t *msg, int16_t *targetSystem, int16_t *targetComponent)

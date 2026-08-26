@@ -28,6 +28,7 @@ extern "C" {
     #include "build/debug.h"
 
     #include "common/axis.h"
+    #include "common/crc.h"
     #include "common/maths.h"
     #include "common/streambuf.h"
     #include "common/time.h"
@@ -109,7 +110,7 @@ static const uint8_t testTunnelSourceSystem = 42;
 static const uint8_t testTunnelSourceComponent = 200;
 static const uint8_t testSimpleMspCommand = 90;
 static const uint8_t testLargeReplyMspCommand = 91;
-static const size_t testMspFrameBufSize = MSP_PORT_OUTBUF_SIZE + 16;
+static uint16_t testReplyPayloadLength;
 static const timeMs_t testMissionUploadRetryMs = 1500;
 static timeMs_t fakeMillis;
 static timeUs_t fakeMicros;
@@ -180,6 +181,33 @@ static std::vector<uint8_t> makeMspV1Request(uint8_t cmd, const std::vector<uint
     return frame;
 }
 
+static std::vector<uint8_t> encodeMspReply(uint16_t cmd, int16_t result, mspVersion_e version, const std::vector<uint8_t> &payload = {}, uint8_t flags = 0)
+{
+    uint8_t payloadBuf[MSP_PORT_OUTBUF_SIZE];
+    mspPacket_t reply = {
+        .buf = { .ptr = payloadBuf, .end = ARRAYEND(payloadBuf), },
+        .cmd = cmd,
+        .flags = flags,
+        .result = result,
+    };
+    uint8_t *payloadHead = reply.buf.ptr;
+    if (!payload.empty()) {
+        sbufWriteData(&reply.buf, payload.data(), (int)payload.size());
+    }
+    sbufSwitchToReader(&reply.buf, payloadHead);
+
+    mspEncodedFrame_t frame;
+    EXPECT_TRUE(mspSerialPrepareFrame(&reply, version, &frame));
+    std::vector<uint8_t> encoded(frame.totalLength);
+    EXPECT_EQ(mspSerialFrameCopyRange(&frame, 0, encoded.data(), (int)encoded.size()), (int)encoded.size());
+    return encoded;
+}
+
+static std::vector<uint8_t> encodeMspV1Reply(uint8_t cmd, int16_t result, const std::vector<uint8_t> &payload = {})
+{
+    return encodeMspReply(cmd, result, MSP_V1, payload);
+}
+
 static void pushRxMessage(const mavlink_message_t *msg)
 {
     uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
@@ -195,7 +223,12 @@ static void handleMavlinkUntilRxEmpty(timeUs_t currentTimeUs)
     }
 }
 
-static void pushTunnelPayload(uint8_t payloadLength, const std::vector<uint8_t> &payload, uint8_t targetComponent = testTargetComponent)
+static void pushTunnelPayload(
+    uint8_t payloadLength,
+    const std::vector<uint8_t> &payload,
+    uint8_t targetComponent = testTargetComponent,
+    uint8_t sourceSystem = testTunnelSourceSystem,
+    uint8_t sourceComponent = testTunnelSourceComponent)
 {
     uint8_t tunnelPayload[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN] = { 0 };
     size_t copyLength = payload.size();
@@ -208,8 +241,8 @@ static void pushTunnelPayload(uint8_t payloadLength, const std::vector<uint8_t> 
 
     mavlink_message_t msg;
     mavlink_msg_tunnel_pack(
-        testTunnelSourceSystem,
-        testTunnelSourceComponent,
+        sourceSystem,
+        sourceComponent,
         &msg,
         telemetryConfig()->mavlink_common.sysid,
         targetComponent,
@@ -263,7 +296,10 @@ static std::vector<mavlink_message_t> parseTxMessages(void)
     return messages;
 }
 
-static std::vector<uint8_t> collectTunnelPayload(const std::vector<mavlink_message_t> &messages)
+static std::vector<uint8_t> collectTunnelPayload(
+    const std::vector<mavlink_message_t> &messages,
+    uint8_t expectedTargetSystem = testTunnelSourceSystem,
+    uint8_t expectedTargetComponent = testTunnelSourceComponent)
 {
     std::vector<uint8_t> payload;
 
@@ -274,8 +310,8 @@ static std::vector<uint8_t> collectTunnelPayload(const std::vector<mavlink_messa
         mavlink_msg_tunnel_decode(&msg, &tunnel);
 
         EXPECT_EQ(tunnel.payload_type, 0x8001);
-        EXPECT_EQ(tunnel.target_system, testTunnelSourceSystem);
-        EXPECT_EQ(tunnel.target_component, testTunnelSourceComponent);
+        EXPECT_EQ(tunnel.target_system, expectedTargetSystem);
+        EXPECT_EQ(tunnel.target_component, expectedTargetComponent);
 
         payload.insert(payload.end(), tunnel.payload, tunnel.payload + tunnel.payload_length);
     }
@@ -295,6 +331,7 @@ static void initMavlinkTestState(void)
     saveWaypointResult = true;
     mavlinkRxHandleCalls = 0;
     mspCommandCallCount = 0;
+    testReplyPayloadLength = 300;
     mspPassthroughDispatchCount = 0;
     mspRebootPostProcessCount = 0;
     waitForSerialPortToFinishTransmittingCalls = 0;
@@ -358,10 +395,247 @@ static void initMavlinkTestState(void)
     checkMAVLinkTelemetryState();
 }
 
+TEST(MavlinkTelemetryTest, TunnelMalformedPayloadLengthIsDroppedAndDoesNotPoisonState)
+{
+    initMavlinkTestState();
+
+    std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    request.resize(MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN, 0);
+
+    pushTunnelPayload(MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN + 1, request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 0);
+    EXPECT_TRUE(parseTxMessages().empty());
+
+    resetSerialBuffers();
+    pushTunnelPayload((uint8_t)makeMspV1Request(testSimpleMspCommand).size(), makeMspV1Request(testSimpleMspCommand));
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelRejectsPassthroughBeforeDispatch)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request((uint8_t)MSP_SET_PASSTHROUGH);
+
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 0);
+    EXPECT_EQ(mspPassthroughDispatchCount, 0);
+    EXPECT_EQ(waitForSerialPortToFinishTransmittingCalls, 0);
+    EXPECT_EQ(mspRebootPostProcessCount, 0);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply((uint8_t)MSP_SET_PASSTHROUGH, MSP_RESULT_ERROR));
+}
+
+TEST(MavlinkTelemetryTest, TunnelRebootUsesIngressPortForPostProcess)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request((uint8_t)MSP_REBOOT);
+
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(waitForSerialPortToFinishTransmittingCalls, 1);
+    EXPECT_EQ(mspRebootPostProcessCount, 1);
+    EXPECT_EQ(lastPostProcessPort, &testSerialPort);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply((uint8_t)MSP_REBOOT, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelStalePartialFrameResetsBeforeNextRequest)
+{
+    initMavlinkTestState();
+
+    pushTunnelPayload(3, {'$', 'M', '<'});
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 0);
+    EXPECT_TRUE(parseTxMessages().empty());
+
+    resetSerialBuffers();
+    fakeMillis = 2000;
+
+    const std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelLargeReplyFragmentsAcrossMultipleMessages)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    const std::vector<mavlink_message_t> messages = parseTxMessages();
+    ASSERT_EQ(messages.size(), 3U);
+
+    std::vector<uint8_t> expectedPayload(300);
+    for (size_t i = 0; i < expectedPayload.size(); i++) {
+        expectedPayload[i] = (uint8_t)i;
+    }
+
+    EXPECT_EQ(collectTunnelPayload(messages), encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, expectedPayload));
+}
 
 
+TEST(MavlinkTelemetryTest, TunnelProcessesEveryCompleteFrameInOnePayload)
+{
+    initMavlinkTestState();
 
+    const std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    std::vector<uint8_t> combined = request;
+    combined.insert(combined.end(), request.begin(), request.end());
 
+    pushTunnelPayload((uint8_t)combined.size(), combined);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 2);
+    const std::vector<uint8_t> singleReply = encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK);
+    std::vector<uint8_t> expected = singleReply;
+    expected.insert(expected.end(), singleReply.begin(), singleReply.end());
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), expected);
+}
+
+TEST(MavlinkTelemetryTest, TunnelPreservesPartialFrameAfterCompletedFrame)
+{
+    initMavlinkTestState();
+
+    const std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    std::vector<uint8_t> firstPayload = request;
+    firstPayload.insert(firstPayload.end(), request.begin(), request.begin() + 3);
+
+    pushTunnelPayload((uint8_t)firstPayload.size(), firstPayload);
+    handleMAVLinkTelemetry(1000);
+    EXPECT_EQ(mspCommandCallCount, 1);
+
+    resetSerialBuffers();
+    const std::vector<uint8_t> remainder(request.begin() + 3, request.end());
+    pushTunnelPayload((uint8_t)remainder.size(), remainder);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 2);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelTimeoutResetsAtExactBoundary)
+{
+    initMavlinkTestState();
+    fakeMillis = 1000;
+
+    pushTunnelPayload(3, {'$', 'M', '<'});
+    handleMAVLinkTelemetry(1000);
+    EXPECT_EQ(mspCommandCallCount, 0);
+
+    resetSerialBuffers();
+    fakeMillis = 2000;
+    const std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelDifferentSenderDisplacesPartialTransaction)
+{
+    initMavlinkTestState();
+
+    pushTunnelPayload(3, {'$', 'M', '<'});
+    handleMAVLinkTelemetry(1000);
+
+    resetSerialBuffers();
+    const uint8_t replacementSystem = testTunnelSourceSystem + 1;
+    const std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    pushTunnelPayload(
+        (uint8_t)request.size(),
+        request,
+        testTargetComponent,
+        replacementSystem,
+        testTunnelSourceComponent);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(
+        collectTunnelPayload(parseTxMessages(), replacementSystem, testTunnelSourceComponent),
+        encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelReplyFragmentationIsExactAt127128And129Bytes)
+{
+    const uint16_t payloadLengths[] = { 121, 122, 123 };
+    const size_t expectedMessageCounts[] = { 1, 1, 2 };
+
+    for (size_t caseIndex = 0; caseIndex < ARRAYLEN(payloadLengths); caseIndex++) {
+        initMavlinkTestState();
+        testReplyPayloadLength = payloadLengths[caseIndex];
+
+        const std::vector<uint8_t> request = makeMspV1Request(testLargeReplyMspCommand);
+        pushTunnelPayload((uint8_t)request.size(), request);
+        handleMAVLinkTelemetry(1000);
+
+        std::vector<uint8_t> expectedPayload(testReplyPayloadLength);
+        for (size_t i = 0; i < expectedPayload.size(); i++) {
+            expectedPayload[i] = (uint8_t)i;
+        }
+
+        const std::vector<mavlink_message_t> messages = parseTxMessages();
+        EXPECT_EQ(messages.size(), expectedMessageCounts[caseIndex]);
+        EXPECT_EQ(
+            collectTunnelPayload(messages),
+            encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, expectedPayload));
+    }
+}
+
+TEST(MavlinkTelemetryTest, PreparedFrameMatchesExactV1V2AndV2OverV1Bytes)
+{
+    const std::vector<uint8_t> payload = { 0x10, 0x20 };
+
+    std::vector<uint8_t> v1 = encodeMspReply(0x5a, MSP_RESULT_ACK, MSP_V1, payload);
+    std::vector<uint8_t> expectedV1 = { '$', 'M', '>', 2, 0x5a, 0x10, 0x20 };
+    expectedV1.push_back(2 ^ 0x5a ^ 0x10 ^ 0x20);
+    EXPECT_EQ(v1, expectedV1);
+
+    const uint16_t v2Command = 0x1234;
+    const uint8_t flags = 0x07;
+    std::vector<uint8_t> native = encodeMspReply(v2Command, MSP_RESULT_ACK, MSP_V2_NATIVE, payload, flags);
+    std::vector<uint8_t> expectedNative = {
+        '$', 'X', '>', flags,
+        (uint8_t)v2Command, (uint8_t)(v2Command >> 8),
+        2, 0,
+        0x10, 0x20,
+    };
+    uint8_t nativeCrc = crc8_dvb_s2_update(0, expectedNative.data() + 3, 5);
+    nativeCrc = crc8_dvb_s2_update(nativeCrc, payload.data(), payload.size());
+    expectedNative.push_back(nativeCrc);
+    EXPECT_EQ(native, expectedNative);
+
+    std::vector<uint8_t> overV1 = encodeMspReply(v2Command, MSP_RESULT_ACK, MSP_V2_OVER_V1, payload, flags);
+    std::vector<uint8_t> expectedOverV1 = {
+        '$', 'M', '>', 8, MSP_V2_FRAME_ID,
+        flags, (uint8_t)v2Command, (uint8_t)(v2Command >> 8), 2, 0,
+        0x10, 0x20,
+    };
+    uint8_t overV1Crc = crc8_dvb_s2_update(0, expectedOverV1.data() + 5, 5);
+    overV1Crc = crc8_dvb_s2_update(overV1Crc, payload.data(), payload.size());
+    expectedOverV1.push_back(overV1Crc);
+    uint8_t v1Checksum = 0;
+    for (size_t i = 3; i < expectedOverV1.size(); i++) {
+        v1Checksum ^= expectedOverV1[i];
+    }
+    expectedOverV1.push_back(v1Checksum);
+    EXPECT_EQ(overV1, expectedOverV1);
+}
 
 TEST(MavlinkTelemetryTest, MlrsRadioLinkStatsUpdateRxStatisticsOnMavlinkSerialRxPort)
 {
@@ -643,17 +917,323 @@ TEST(MavlinkTelemetryTest, CommandLongRepositionUsesGlobalFrameAndParams)
     EXPECT_EQ(lastWaypoint.p1, 123);
 }
 
+TEST(MavlinkTelemetryTest, ComponentArmDisarmUsesFcArmingPath)
+{
+    initMavlinkTestState();
 
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_COMPONENT_ARM_DISARM,
+        0,
+        1.0f, 0, 0, 0, 0, 0, 0);
 
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
 
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
 
+    EXPECT_EQ(ack.command, MAV_CMD_COMPONENT_ARM_DISARM);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(setArmStateCalls, 1);
+    EXPECT_TRUE(requestedArmState);
+}
 
+TEST(MavlinkTelemetryTest, ReturnToLaunchRequiresArmedState)
+{
+    initMavlinkTestState();
 
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_NAV_RETURN_TO_LAUNCH,
+        0,
+        0, 0, 0, 0, 0, 0, 0);
 
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
 
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
 
+    EXPECT_EQ(ack.result, MAV_RESULT_DENIED);
+    EXPECT_EQ(activateRthCalls, 0);
+}
 
+TEST(MavlinkTelemetryTest, ReturnToLaunchUsesNormalRthModePath)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    forcedRthState = RTH_IN_PROGRESS;
 
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_NAV_RETURN_TO_LAUNCH,
+        0,
+        0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(activateRthCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeRtlRequiresArmedState)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, PLANE_MODE_RTL, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_DENIED);
+    EXPECT_EQ(activateRthCalls, 0);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeRtlUsesNormalRthModePath)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    forcedRthState = RTH_IN_PROGRESS;
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, PLANE_MODE_RTL, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(activateRthCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeCopterRtlUsesNormalRthModePath)
+{
+    initMavlinkTestState();
+    mixerProfilesMutable(0)->mixer_config.platformType = PLATFORM_MULTIROTOR;
+    ENABLE_ARMING_FLAG(ARMED);
+    forcedRthState = RTH_IN_PROGRESS;
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, COPTER_MODE_RTL, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(activateRthCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeLoiterUsesNormalPositionHoldModePath)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, PLANE_MODE_LOITER, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(activateRthCalls, 0);
+    EXPECT_EQ(activatePositionHoldCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, DoSetModeUnsupportedModeStaysUnsupported)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_MODE,
+        0,
+        MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, PLANE_MODE_CRUISE, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_SET_MODE);
+    EXPECT_EQ(ack.result, MAV_RESULT_UNSUPPORTED);
+    EXPECT_EQ(activateRthCalls, 0);
+    EXPECT_EQ(activatePositionHoldCalls, 0);
+}
+
+TEST(MavlinkTelemetryTest, LandUsesNormalForcedLandingPath)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_NAV_LAND,
+        0,
+        0, 0, 0, 0, 37.5f, -122.25f, 12.3f);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(activateLandingCalls, 1);
+}
+
+TEST(MavlinkTelemetryTest, TakeoffFoundationReturnsUnsupported)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_NAV_TAKEOFF,
+        0,
+        0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.result, MAV_RESULT_UNSUPPORTED);
+}
+
+TEST(MavlinkTelemetryTest, SetHomeUsesWaypointZeroAndConvertsAbsoluteAltitude)
+{
+    initMavlinkTestState();
+    posControl.gpsOrigin.alt = 1000;
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_int_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_FRAME_GLOBAL_INT,
+        MAV_CMD_DO_SET_HOME,
+        0, 0,
+        0, 0, 0, 0,
+        375000000, -1222500000, 34.56f);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(lastWaypointNumber, 0);
+    EXPECT_EQ(lastWaypoint.lat, 375000000);
+    EXPECT_NEAR((double)lastWaypoint.lon, -1222500000.0, 100.0);
+    EXPECT_EQ(lastWaypoint.alt, 2456);
+}
+
+TEST(MavlinkTelemetryTest, SetHomeCurrentPositionUsesGpsLocation)
+{
+    initMavlinkTestState();
+    posControl.gpsOrigin.alt = 1000;
+    gpsSol.llh.lat = 375000000;
+    gpsSol.llh.lon = -1222500000;
+    gpsSol.llh.alt = 3456;
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_DO_SET_HOME,
+        0,
+        1.0f, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(lastWaypointNumber, 0);
+    EXPECT_EQ(lastWaypoint.lat, 375000000);
+    EXPECT_EQ(lastWaypoint.lon, -1222500000);
+    EXPECT_EQ(lastWaypoint.alt, 2456);
+}
 
 TEST(MavlinkTelemetryTest, BroadcastCommandLongRepositionExecutesLocally)
 {
@@ -772,6 +1352,34 @@ TEST(MavlinkTelemetryTest, CommandIntRepositionScalesCoordinates)
     EXPECT_EQ(lastWaypoint.p1, 45);
 }
 
+TEST(MavlinkTelemetryTest, CommandIntRepositionSetsLoiterRadiusOverride)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_int_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_DO_REPOSITION,
+        0, 0,
+        0, 0, 42.5f, 45.6f,
+        375000000, -1222500000, 12.3f);
+
+    pushRxMessage(&cmd);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_COMMAND_ACK);
+
+    mavlink_command_ack_t ack;
+    mavlink_msg_command_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.command, MAV_CMD_DO_REPOSITION);
+    EXPECT_EQ(ack.result, MAV_RESULT_ACCEPTED);
+    EXPECT_EQ(lastLoiterRadiusOverride, 4250U);
+}
 
 TEST(MavlinkTelemetryTest, MissionClearAllAcksAndResets)
 {
@@ -1080,7 +1688,61 @@ TEST(MavlinkTelemetryTest, MissionItemIntNonFinalAutocontinueZeroIsRejected)
     EXPECT_EQ(ack.type, MAV_MISSION_UNSUPPORTED);
 }
 
+TEST(MavlinkTelemetryTest, MissionItemIntGuidedWhileArmedUpdatesWaypoint)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
 
+    mavlink_message_t msg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 2, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypoint.lat, 375000000);
+    EXPECT_EQ(lastWaypoint.lon, -1222500000);
+    EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
+    EXPECT_EQ(lastWaypoint.p3, 0);
+}
+
+TEST(MavlinkTelemetryTest, MissionItemIntGuidedWhileArmedCurrentThreeChangesAltitude)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 3, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_MISSION_ACK);
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.type, MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(altitudeTargetSetCalls, 1);
+    EXPECT_EQ(lastAltitudeTargetDatum, NAV_WP_TAKEOFF_DATUM);
+    EXPECT_EQ(lastAltitudeTargetCm, 1230);
+}
 
 TEST(MavlinkTelemetryTest, MissionRequestListSendsCount)
 {
@@ -1170,6 +1832,27 @@ TEST(MavlinkTelemetryTest, MissionItemReachedIsBroadcastOnceWhenPending)
     EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ITEM_REACHED, &reachedMsg));
 }
 
+TEST(MavlinkTelemetryTest, LegacyGuidedMissionItemUsesAbsoluteAltitude)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_item_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL,
+        MAV_CMD_NAV_WAYPOINT, 2, 1,
+        0, 0, 0, 0,
+        37.5f, -122.25f, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
+}
 
 TEST(MavlinkTelemetryTest, ParamRequestListRespondsWithEmptyParam)
 {
@@ -1216,12 +1899,183 @@ TEST(MavlinkTelemetryTest, BroadcastParamRequestListRespondsWithEmptyParam)
     EXPECT_EQ(param.param_index, 0);
 }
 
+TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntSetsWaypoint)
+{
+    initMavlinkTestState();
 
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_global_int_pack(
+        42, 200, &msg,
+        0, 1, testTargetComponent,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, 0,
+        375000000, -1222500000, 12.3f,
+        0, 0, 0, 0, 0, 0, 0, 0);
 
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
 
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypoint.lat, 375000000);
+    EXPECT_EQ(lastWaypoint.lon, -1222500000);
+    EXPECT_EQ(lastWaypoint.alt, (int32_t)(12.3f * 100.0f));
+    EXPECT_EQ(lastWaypoint.p3, 0);
+}
 
+TEST(MavlinkTelemetryTest, BroadcastSetPositionTargetGlobalIntSetsWaypoint)
+{
+    initMavlinkTestState();
 
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_global_int_pack(
+        42, 200, &msg,
+        0, 0, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, 0,
+        375000000, -1222500000, 12.3f,
+        0, 0, 0, 0, 0, 0, 0, 0);
 
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypoint.lat, 375000000);
+    EXPECT_EQ(lastWaypoint.lon, -1222500000);
+}
+
+TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntUsesAbsoluteAltitude)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_global_int_pack(
+        42, 200, &msg,
+        0, 1, testTargetComponent,
+        MAV_FRAME_GLOBAL_INT, 0,
+        375000000, -1222500000, 12.3f,
+        0, 0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    EXPECT_EQ(setWaypointCalls, 1);
+    EXPECT_EQ(lastWaypoint.p3, NAV_WP_ALTMODE);
+}
+
+TEST(MavlinkTelemetryTest, SetPositionTargetGlobalIntAltitudeOnlyRequiresValidGcs)
+{
+    initMavlinkTestState();
+    gcsValid = false;
+
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_global_int_pack(
+        42, 200, &msg,
+        0, 1, testTargetComponent,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        POSITION_TARGET_TYPEMASK_X_IGNORE |
+            POSITION_TARGET_TYPEMASK_Y_IGNORE |
+            POSITION_TARGET_TYPEMASK_VX_IGNORE |
+            POSITION_TARGET_TYPEMASK_VY_IGNORE |
+            POSITION_TARGET_TYPEMASK_VZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_AX_IGNORE |
+            POSITION_TARGET_TYPEMASK_AY_IGNORE |
+            POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE,
+        0, 0, 12.3f,
+        0, 0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    EXPECT_EQ(altitudeTargetSetCalls, 0);
+}
+
+TEST(MavlinkTelemetryTest, SetPositionTargetLocalNedAltitudeOnlySetsAltitudeTarget)
+{
+    initMavlinkTestState();
+    estimatedPosition[Z] = 1000.0f;
+
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_local_ned_pack(
+        42, 200, &msg,
+        0, 1, testTargetComponent,
+        MAV_FRAME_LOCAL_OFFSET_NED,
+        POSITION_TARGET_TYPEMASK_X_IGNORE |
+            POSITION_TARGET_TYPEMASK_Y_IGNORE |
+            POSITION_TARGET_TYPEMASK_VX_IGNORE |
+            POSITION_TARGET_TYPEMASK_VY_IGNORE |
+            POSITION_TARGET_TYPEMASK_VZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_AX_IGNORE |
+            POSITION_TARGET_TYPEMASK_AY_IGNORE |
+            POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE,
+        0.0f, 0.0f, -2.5f,
+        0, 0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    EXPECT_EQ(altitudeTargetSetCalls, 1);
+    EXPECT_EQ(lastAltitudeTargetDatum, NAV_WP_TAKEOFF_DATUM);
+    EXPECT_EQ(lastAltitudeTargetCm, 1250);
+}
+
+TEST(MavlinkTelemetryTest, BroadcastSetPositionTargetLocalNedAltitudeOnlySetsAltitudeTarget)
+{
+    initMavlinkTestState();
+    estimatedPosition[Z] = 1000.0f;
+
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_local_ned_pack(
+        42, 200, &msg,
+        0, 0, 0,
+        MAV_FRAME_LOCAL_OFFSET_NED,
+        POSITION_TARGET_TYPEMASK_X_IGNORE |
+            POSITION_TARGET_TYPEMASK_Y_IGNORE |
+            POSITION_TARGET_TYPEMASK_VX_IGNORE |
+            POSITION_TARGET_TYPEMASK_VY_IGNORE |
+            POSITION_TARGET_TYPEMASK_VZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_AX_IGNORE |
+            POSITION_TARGET_TYPEMASK_AY_IGNORE |
+            POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE,
+        0.0f, 0.0f, -2.5f,
+        0, 0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    EXPECT_EQ(altitudeTargetSetCalls, 1);
+    EXPECT_EQ(lastAltitudeTargetCm, 1250);
+}
+
+TEST(MavlinkTelemetryTest, SetPositionTargetLocalNedIgnoresXyMotionRequests)
+{
+    initMavlinkTestState();
+    estimatedPosition[Z] = 1000.0f;
+
+    mavlink_message_t msg;
+    mavlink_msg_set_position_target_local_ned_pack(
+        42, 200, &msg,
+        0, 1, testTargetComponent,
+        MAV_FRAME_LOCAL_OFFSET_NED,
+        POSITION_TARGET_TYPEMASK_VX_IGNORE |
+            POSITION_TARGET_TYPEMASK_VY_IGNORE |
+            POSITION_TARGET_TYPEMASK_VZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_AX_IGNORE |
+            POSITION_TARGET_TYPEMASK_AY_IGNORE |
+            POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+            POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE,
+        1.0f, 0.0f, -2.5f,
+        0, 0, 0, 0, 0, 0, 0, 0);
+
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000);
+
+    EXPECT_EQ(altitudeTargetSetCalls, 0);
+}
 
 TEST(MavlinkTelemetryTest, RequestDataStreamStopsStream)
 {
@@ -3049,7 +3903,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
         }
         return MSP_RESULT_ACK;
     case testLargeReplyMspCommand:
-        for (uint16_t i = 0; i < 300; i++) {
+        for (uint16_t i = 0; i < testReplyPayloadLength; i++) {
             sbufWriteU8(&reply->buf, (uint8_t)i);
         }
         return MSP_RESULT_ACK;

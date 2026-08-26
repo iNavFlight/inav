@@ -109,6 +109,7 @@ typedef struct navigationFlags_s {
 
     // Failsafe actions
     bool forcedRTHActivated;
+    bool forcedLandingActivated;
     bool forcedEmergLandingActivated;
 
     /* Landing detector */
@@ -172,6 +173,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_MIXERAT,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING,
     NAV_FSM_EVENT_SWITCH_TO_SEND_TO,
+    NAV_FSM_EVENT_SWITCH_TO_LANDING,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
@@ -482,6 +484,7 @@ typedef struct {
     /* Local system state, both actual (estimated) and desired (target setpoint)*/
     navigationEstimatedState_t  actualState;
     navigationDesiredState_t    desiredState;   // waypoint coordinates + velocity
+    uint32_t                    gcsLoiterRadiusOverride; // Temporary GCS PosHold loiter radius override, cm; 0 = configured default
 
     uint32_t                    lastValidPositionTimeMs;
     uint32_t                    lastValidAltitudeTimeMs;
@@ -504,6 +507,7 @@ typedef struct {
 
     /* Waypoint list */
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
+    navWaypoint_t               commandLandingWaypoint;
     bool                        waypointListValid;
     int8_t                      waypointCount;              // number of WPs in loaded mission
     int8_t                      startWpIndex;               // index of first waypoint in mission
@@ -525,9 +529,9 @@ typedef struct {
     float                       wpInitialDistance;          // Distance when starting flight to WP
     float                       wpDistance;                 // Distance to active WP
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
+    bool                        wpAltitudeReached;          // WP altitude achieved
     uint16_t                    wpReachedSeq;               // Last reached mission item sequence relative to startWpIndex
     bool                        wpReachedNotificationPending;
-    bool                        wpAltitudeReached;          // WP altitude achieved
     bool                        wpAltitudeEnforceActive;    // WP entered altitude enforcement window
     bool                        wpAltitudeEnforceFromStart; // First MC WP is climbing before horizontal travel
     fpVector3_t                 wpAltitudeEnforceHoldPos;   // XY position captured before first-WP climb

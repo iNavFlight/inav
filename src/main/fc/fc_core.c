@@ -624,6 +624,17 @@ void tryArm(void)
     }
 }
 
+bool fcSetArmState(bool arm)
+{
+    if (arm) {
+        tryArm();
+    } else {
+        disarm(DISARM_SWITCH);
+    }
+
+    return ARMING_FLAG(ARMED) == arm;
+}
+
 #define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
 
 void releaseSharedTelemetryPorts(void) {
