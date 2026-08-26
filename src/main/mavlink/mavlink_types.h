@@ -29,7 +29,9 @@
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
 #endif
 /* Single external definition lives in mavlink/mavlink_helpers.c. */
+#ifndef MAVLINK_SEPARATE_HELPERS
 #define MAVLINK_SEPARATE_HELPERS
+#endif
 #include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
 

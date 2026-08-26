@@ -22,15 +22,14 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-/* Single translation unit that compiles the MAVLink helper definitions
- * (mavlink_get_msg_entry, mavlink_parse_char, ...) with external linkage.
- * All other TUs include the MAVLink headers with MAVLINK_SEPARATE_HELPERS
- * set (see rx/mavlink.h and mavlink/mavlink_types.h), so they see only the
- * extern prototypes from protocol.h and no longer each instantiate a
- * private static copy of every helper — including the ~3.7 KB
- * mavlink_message_crcs[] table inside mavlink_get_msg_entry(), which was
- * duplicated once per including TU. */
+/* Single external-linkage definition TU for the MAVLink helpers. All
+ * other TUs include the MAVLink headers with MAVLINK_SEPARATE_HELPERS set
+ * (see rx/mavlink.h, mavlink/mavlink_types.h) and get only the extern
+ * prototypes from protocol.h, so each helper — and its local static data,
+ * e.g. the mavlink_message_crcs[] table — exists exactly once. */
+#ifndef MAVLINK_COMM_NUM_BUFFERS
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
+#endif
 #define MAVLINK_SEPARATE_HELPERS
 #include "storm32/mavlink.h"
 #include "mavlink_helpers.h"

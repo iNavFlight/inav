@@ -22,9 +22,10 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
-/* Helpers compile once with external linkage in mavlink/mavlink_helpers.c;
- * without this every TU gets a static copy, incl. the ~3.7 KB CRC table. */
+/* Helpers compile once with external linkage in mavlink/mavlink_helpers.c. */
+#ifndef MAVLINK_SEPARATE_HELPERS
 #define MAVLINK_SEPARATE_HELPERS
+#endif
 #include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
 
