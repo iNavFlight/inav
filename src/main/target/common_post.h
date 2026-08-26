@@ -19,6 +19,13 @@
 
 #pragma once
 
+// Constrained MAVLink, selected by flash size in common.h: the full subsystem
+// minus MAVLink mission transfer, which does not fit on a 512 KB target.
+// Missions themselves are unaffected - they are managed over MSP.
+#ifdef USE_TELEMETRY_MAVLINK_CONSTRAINED
+#define USE_TELEMETRY_MAVLINK
+#endif
+
 // MSP-over-MAVLink is independently removable from MAVLink targets that cannot
 // afford its reply buffer. Define DISABLE_MAVLINK_MSP_TUNNEL in a target to
 // retain normal MAVLink without the tunnel RAM/code cost.

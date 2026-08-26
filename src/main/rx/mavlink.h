@@ -22,6 +22,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
+#include "mavlink/mavlink_msg_entry.h"
 #include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
 

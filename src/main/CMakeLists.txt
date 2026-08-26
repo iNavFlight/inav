@@ -415,6 +415,8 @@ main_sources(COMMON_SRC
     mavlink/mavlink_mission.c
     mavlink/mavlink_mission.h
     mavlink/mavlink_modes.c
+    mavlink/mavlink_msg_entry.c
+    mavlink/mavlink_msg_entry.h
     mavlink/mavlink_modes.h
     mavlink/mavlink_types.h
     mavlink/mavlink_ports.c

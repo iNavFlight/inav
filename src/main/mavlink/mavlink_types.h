@@ -28,6 +28,7 @@
 #ifndef MAVLINK_COMM_NUM_BUFFERS
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
 #endif
+#include "mavlink/mavlink_msg_entry.h"
 #include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
 

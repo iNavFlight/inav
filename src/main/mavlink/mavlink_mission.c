@@ -4,7 +4,7 @@
 #include "mavlink/mavlink_mission.h"
 #include "mavlink/mavlink_runtime.h"
 
-#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK) && !defined(USE_TELEMETRY_MAVLINK_CONSTRAINED)
 
 /*
  * Mission transfer retry and partner tracking are adapted from Betaflight's
