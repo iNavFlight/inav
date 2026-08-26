@@ -229,7 +229,8 @@ static bool handleIncoming_COMMAND(
                     mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
                     return true;
                 }
-                if (!(navGetCurrentStateFlags() & NAV_CTL_YAW)) {
+                const navigationFSMStateFlags_t navStateFlags = navGetCurrentStateFlags();
+                if (!(navStateFlags & NAV_CTL_YAW) || (navStateFlags & NAV_MIXERAT)) {
                     mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
                     return true;
                 }
