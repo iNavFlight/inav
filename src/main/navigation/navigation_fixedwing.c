@@ -853,7 +853,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                     const float wu = wx * ux + wy * uy;
                     const float disc = wu * wu - (wx * wx + wy * wy) + 4.0f * arcRtmp * arcRtmp + Ls * Ls;
                     if (disc > 0.0f) {
-                        const float s = wu - sqrtf(disc);       // signed along-leg offset of the S start from the WP
+                        const float s = wu - fast_fsqrtf(disc); // signed along-leg offset of the S start from the WP
                         const float triggerDist = -s + 1.5f * v * (tTmp / 1000.0f);
                         if (s < 0.0f && posControl.wpDistance < triggerDist) {
                             const float o1x = ax + s * ux;
@@ -925,7 +925,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
             const float w2u = w2x * u2x + w2y * u2y;
             const float disc2 = w2u * w2u - (w2x * w2x + w2y * w2y) + r2 * r2;
             if (disc2 > 0.0f) {
-                const float t2 = w2u + sqrtf(disc2);
+                const float t2 = w2u + fast_fsqrtf(disc2);
                 arcR = r2;
                 arcCx = b0x + t2 * u2x;
                 arcCy = b0y + t2 * u2y;
