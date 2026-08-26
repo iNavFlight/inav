@@ -12,7 +12,7 @@ It reads the ground elevation from the terrain elevation data on the SD card (se
 
 ## Requirements
 
-- A flight controller with terrain support (SD card + barometer): **STM32H7, STM32F7 (F745 / F746 / F765), or AT32F43x**. F4 boards are not enabled for terrain by default.
+- A flight controller with terrain support (SD card + barometer) and **more than 256 KB of RAM: STM32H7 or STM32F7 (F745 / F746 / F765)**. F4 and AT32 boards are not enabled for terrain by default.
 - **Fixed-wing only.** A valid **GPS fix** and a **barometer**.
 - **Terrain tiles** (`.TER`) on the SD card, **including the tile for your take-off site** — see [Terrain](Terrain.md).
 - **3D Cruise must be active.** At this stage Terrain AGL Hold works **only together with NAV CRUISE** — this is a mandatory safety condition for now, not just a recommendation.
