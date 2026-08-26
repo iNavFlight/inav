@@ -939,8 +939,11 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
             return;
         }
     } else {
-        // Mission advanced mid-arc: retarget the bounded capture onto the new leg instead of the stale out-bearing
-        if (ABS(wrap_18000(legBearing - fwArcPrevLegBearing)) > 500) {
+        // Mission advanced mid-arc: retarget the bounded capture onto the new leg instead of the stale
+        // out-bearing - unless the arc already flies toward that leg (the FLY_INTO commit above advances
+        // the WP mid-main-arc by design; retargeting would degrade the shaped arc to a bare capture)
+        if (ABS(wrap_18000(legBearing - fwArcPrevLegBearing)) > 500
+            && ABS(wrap_18000(legBearing - arcOutBearing)) > 500) {
             fwFlyByCappedLatch = false;
             arcOutBearing = legBearing;
             arcToLegLine = true;
@@ -1003,6 +1006,12 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
             }
             arcOutBearing = intoBOut;
             intoStage = FW_INTO_MAIN;
+            if (turnMode == NAV_FW_WP_TURN_COORD_FLY_INTO) {
+                /* Committed onto the outbound leg: mark the WP reached (as FLY_BY does at turn start).
+                 * The corner cut never crosses the passage plane through the WP, so no geometric check
+                 * can fire - the stale carrot would steer back toward the old leg after hand-back. */
+                posControl.flags.wpTurnSmoothingActive = true;
+            }
         }
     }
 
