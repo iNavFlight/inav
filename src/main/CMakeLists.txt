@@ -85,6 +85,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_fake.h
     drivers/accgyro/accgyro_icm20689.c
     drivers/accgyro/accgyro_icm20689.h
+    drivers/accgyro/accgyro_icm40609d.c
+    drivers/accgyro/accgyro_icm40609d.h
     drivers/accgyro/accgyro_icm42605.c
     drivers/accgyro/accgyro_icm42605.h
     drivers/accgyro/accgyro_icm45686.c
@@ -172,7 +174,7 @@ main_sources(COMMON_SRC
     drivers/dronecan/libcanard/canard_stm32_driver.h
     drivers/dronecan/dronecan.c
     drivers/dronecan/dronecan.h
-     
+
     drivers/display.c
     drivers/display.h
     drivers/display_canvas.c
@@ -233,8 +235,6 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_dlvr_l10d.h
     drivers/pitotmeter/pitotmeter_msp.c
     drivers/pitotmeter/pitotmeter_msp.h
-    drivers/pitotmeter/pitotmeter_virtual.c
-    drivers/pitotmeter/pitotmeter_virtual.h
     drivers/pitotmeter/pitotmeter_fake.h
     drivers/pitotmeter/pitotmeter_fake.c
     drivers/pwm_esc_detect.c
@@ -288,7 +288,7 @@ main_sources(COMMON_SRC
     drivers/vtx_common.c
     drivers/vtx_common.h
 
-    
+
     fc/cli.c
     fc/cli.h
     fc/config.c

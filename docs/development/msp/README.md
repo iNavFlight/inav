@@ -452,6 +452,10 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [8737 - MSP2_INAV_SET_WP_INDEX](#msp2_inav_set_wp_index)  
 [8739 - MSP2_INAV_SET_CRUISE_HEADING](#msp2_inav_set_cruise_heading)  
+[8740 - MSP2_INAV_ACTIVATE_LANDING](#msp2_inav_activate_landing)  
+[8741 - MSP2_INAV_ACTIVATE_RTH](#msp2_inav_activate_rth)  
+[8743 - MSP2_INAV_ARM_DISARM](#msp2_inav_arm_disarm)  
+[8744 - MSP2_INAV_TIMESYNC](#msp2_inav_timesync)  
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
@@ -4603,7 +4607,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
-| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` and `NAV_WP_RELATIVE_DATUM` (not implemented yet) |
 | `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum |
 
 **Reply Payload:** **None**  
@@ -4683,10 +4687,11 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `longitude` | `int32_t` | 4 | deg * 1e7 | Longitude coordinate |
 | `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum (0 keeps current altitude) |
 | `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+| `loiterRadius` | `int32_t` | 4 | cm | Optional temporary fixed-wing PosHold loiter radius override. Appended field; omit to leave unchanged. `0` clears the override and uses `navConfig()->fw.loiter_radius`. |
 
 **Reply Payload:** **None**  
 
-**Notes:** Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged.
+**Notes:** Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged. Existing 13-byte payloads are still accepted; 17-byte payloads append `loiterRadius`, where `0` clears the temporary override and non-zero values are centimeters.
 
 ## <a id="msp2_inav_nav_target"></a>`MSP2_INAV_NAV_TARGET (8731 / 0x221b)`
 **Description:** Returns the current navigation desired global target (lat/lon/alt, heading, climb rate).  
@@ -4701,8 +4706,9 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target (takeoff datum, cm) as used by altitude/position hold |
 | `headingTarget` | `uint16_t` | 2 | degrees | Current heading-hold target (`getHeadingHoldTarget()`), wrapped to 0–359.99 |
 | `climbRate` | `int16_t` | 2 | cm/s | Desired climb rate demand (`posControl.desiredState.climbRateDemand`) |
+| `loiterRadius` | `uint32_t` | 4 | cm | Temporary fixed-wing PosHold loiter radius override. `0` means no override; the configured `navConfig()->fw.loiter_radius` is used. |
 
-**Notes:** Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome).
+**Notes:** Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome). The appended `loiterRadius` reports the temporary override only; `0` means the configured default is active.
 
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  
@@ -4747,6 +4753,48 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.
+
+## <a id="msp2_inav_activate_landing"></a>`MSP2_INAV_ACTIVATE_LANDING (8740 / 0x2224)`
+**Description:** Commands an immediate normal landing at the current position.  
+
+**Request Payload:** **None**  
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires the aircraft to be armed with usable position, altitude, and heading estimates. Creates a transient LAND waypoint at the current position without changing the uploaded mission, then enters the normal `NAV_STATE_WAYPOINT_RTH_LAND` path. This is not emergency landing.
+
+## <a id="msp2_inav_activate_rth"></a>`MSP2_INAV_ACTIVATE_RTH (8741 / 0x2225)`
+**Description:** Commands the aircraft to execute its configured return-to-home sequence.  
+
+**Request Payload:** **None**  
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires the aircraft to be armed. Enters normal return-to-home mode through the same mode selector path as RC RTH, without setting the failsafe/geozone forced-RTH latch.
+
+## <a id="msp2_inav_arm_disarm"></a>`MSP2_INAV_ARM_DISARM (8743 / 0x2227)`
+**Description:** Arms or disarms the flight controller using the normal FC arming path.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `arm` | `uint8_t` | 1 | Boolean | Requested armed state: 0 disarms, 1 arms through the normal arming checks. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns an error for values other than 0 or 1, or when the requested armed state is not reached.
+
+## <a id="msp2_inav_timesync"></a>`MSP2_INAV_TIMESYNC (8744 / 0x2228)`
+**Description:** Returns the local monotonic boot time in nanoseconds.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `timeNs` | `uint64_t` | 8 | ns | Monotonic flight-controller boot time, calculated as `(uint64_t)micros() * 1000`. |
+
+**Notes:** The value is little-endian like other MSP integer fields and uses the same boot-time clock returned by MAVLink `TIMESYNC`.
 
 ## <a id="msp2_inav_set_aux_rc"></a>`MSP2_INAV_SET_AUX_RC (8752 / 0x2230)`
 **Description:** Bandwidth-efficient auxiliary RC channel update. Sets CH13-CH32 with configurable resolution (2/4/8/16-bit) without affecting primary flight controls. Designed for extending channel count beyond native RC link capacity via MSP passthrough.  

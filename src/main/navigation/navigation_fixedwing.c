@@ -333,7 +333,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     // Limit minimum forward velocity to 1 m/s
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
 
-    uint32_t navLoiterRadius = getLoiterRadius(navConfig()->fw.loiter_radius);
+    uint32_t navLoiterRadius = getLoiterRadius(navigationGetLoiterRadius());
     fpVector3_t loiterCenterPos = posControl.desiredState.pos;
     int8_t loiterTurnDirection = loiterDirection();
 
@@ -952,7 +952,7 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
         uint16_t groundSpeedBoost = 0;
 
 #ifdef USE_PITOT
-        if (pitotValidateAirspeed()) {
+        if (pitotGetValidForAirspeed()) {
             static bool airspeedBoost = false;
 
             // Pitot available and airspeed source selected or low airspeed boost applied when using ground speed source

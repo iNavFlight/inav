@@ -90,6 +90,7 @@ Selection of acc hardware. See Wiki Sensor auto detect and hardware failure dete
 | BMI270 |  |
 | LSM6DXX |  |
 | ICM45686 |  |
+| ICM40609D |  |
 | FAKE |  |
 
 ---

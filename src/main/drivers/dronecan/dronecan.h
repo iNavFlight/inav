@@ -2,6 +2,7 @@
 
 #include "common/time.h"
 #include "config/parameter_group.h"
+#include "drivers/dronecan/libcanard/canard.h"
 
 typedef enum {
     DRONECAN_BITRATE_125KBPS = 0,
@@ -14,7 +15,9 @@ typedef enum {
 typedef enum {
     STATE_DRONECAN_INIT,
     STATE_DRONECAN_NORMAL,
-    STATE_DRONECAN_BUS_OFF
+    STATE_DRONECAN_BUS_OFF,
+    STATE_DRONECAN_FAILED,
+    STATE_DRONECAN_COUNT
 } dronecanState_e;
 
 #define DRONECAN_MAX_NODES 32 // Reasonably expected number of devices on the bus.  If this is regularly hit, we could go higher but it consumes more ram.
@@ -45,9 +48,11 @@ typedef struct dronecanNodeStatus_s {
 
 void dronecanInit(void);
 void dronecanUpdate(timeUs_t currentTimeUs);
-dronecanState_e dronecanGetState(void);                                               
-uint8_t dronecanGetNodeCount(void);                                                                                                                                                                                                       
+dronecanState_e dronecanGetState(void);
+uint8_t dronecanGetNodeCount(void);
 uint32_t dronecanGetBitrateKbps(void);
 const dronecanNodeInfo_t *dronecanGetNode(uint8_t index);
+uint32_t dronecanGetBusOffCount(void);
+CanardPoolAllocatorStatistics dronecanGetPoolStats(void);
 
 PG_DECLARE(dronecanConfig_t, dronecanConfig);
