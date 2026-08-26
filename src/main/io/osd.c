@@ -2637,6 +2637,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "TURT";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
                 p = isWaypointMissionRTHActive() ? "WRTH" : "RTH ";
+            else if (isGCSValid())
+                p = "GCSN";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE))
                 p = "LOTR";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE))

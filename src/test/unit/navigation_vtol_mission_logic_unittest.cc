@@ -319,6 +319,71 @@ TEST(NavigationVtolMissionLogicTest, MissionTransitionSuppressesWaypointFallback
     EXPECT_FALSE(navMissionVtolTransitionHoldsWaypointSelector(true, false));
 }
 
+TEST(NavigationVtolMissionLogicTest, MixerATOwnerKeepsMatchingNavigationMode)
+{
+    EXPECT_TRUE(navVtolMixerATModeRequestIsOwned(
+        true,
+        NAV_VTOL_MIXERAT_MODE_WAYPOINT,
+        NAV_VTOL_MIXERAT_MODE_WAYPOINT));
+    EXPECT_TRUE(navVtolMixerATModeRequestIsOwned(
+        true,
+        NAV_VTOL_MIXERAT_MODE_RTH,
+        NAV_VTOL_MIXERAT_MODE_RTH));
+    EXPECT_TRUE(navVtolMixerATModeRequestIsOwned(
+        true,
+        NAV_VTOL_MIXERAT_MODE_LAND,
+        NAV_VTOL_MIXERAT_MODE_LAND));
+
+    EXPECT_FALSE(navVtolMixerATModeRequestShouldPreempt(
+        true,
+        NAV_VTOL_MIXERAT_MODE_RTH,
+        NAV_VTOL_MIXERAT_MODE_RTH));
+}
+
+TEST(NavigationVtolMissionLogicTest, DifferentNavigationModePreemptsMixerAT)
+{
+    EXPECT_TRUE(navVtolMixerATModeRequestShouldPreempt(
+        true,
+        NAV_VTOL_MIXERAT_MODE_WAYPOINT,
+        NAV_VTOL_MIXERAT_MODE_RTH));
+    EXPECT_TRUE(navVtolMixerATModeRequestShouldPreempt(
+        true,
+        NAV_VTOL_MIXERAT_MODE_RTH,
+        NAV_VTOL_MIXERAT_MODE_LAND));
+    EXPECT_TRUE(navVtolMixerATModeRequestShouldPreempt(
+        true,
+        NAV_VTOL_MIXERAT_MODE_LAND,
+        NAV_VTOL_MIXERAT_MODE_POSHOLD));
+    EXPECT_TRUE(navVtolMixerATModeRequestShouldPreempt(
+        true,
+        NAV_VTOL_MIXERAT_MODE_WAYPOINT,
+        NAV_VTOL_MIXERAT_MODE_EMERGENCY_LANDING));
+}
+
+TEST(NavigationVtolMissionLogicTest, NavigationModePreemptsUnownedManualMixerAT)
+{
+    EXPECT_TRUE(navVtolMixerATModeRequestShouldPreempt(
+        true,
+        NAV_VTOL_MIXERAT_MODE_NONE,
+        NAV_VTOL_MIXERAT_MODE_RTH));
+}
+
+TEST(NavigationVtolMissionLogicTest, InactiveMixerATNeverOwnsOrPreemptsNavigation)
+{
+    EXPECT_FALSE(navVtolMixerATModeRequestIsOwned(
+        false,
+        NAV_VTOL_MIXERAT_MODE_RTH,
+        NAV_VTOL_MIXERAT_MODE_RTH));
+    EXPECT_FALSE(navVtolMixerATModeRequestShouldPreempt(
+        false,
+        NAV_VTOL_MIXERAT_MODE_WAYPOINT,
+        NAV_VTOL_MIXERAT_MODE_LAND));
+    EXPECT_FALSE(navVtolMixerATModeRequestShouldPreempt(
+        true,
+        NAV_VTOL_MIXERAT_MODE_WAYPOINT,
+        NAV_VTOL_MIXERAT_MODE_NONE));
+}
+
 TEST(NavigationVtolMissionLogicTest, MultirotorWaypointHoldsForEnforcedAltitudeInsideRadius)
 {
     EXPECT_TRUE(navMissionShouldHoldMultirotorWaypointForAltitude(
