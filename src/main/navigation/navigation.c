@@ -3164,6 +3164,19 @@ bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBe
         return true;
     }
 
+    /* The bearing check above settles at (180 - turn angle) once the aircraft is established on the
+     * outbound leg, so beyond a ~80 deg turn it can only fire on the brief swing next to the WP.
+     * Miss that and the WP stays active behind the aircraft, which then turns back to it. Catch the
+     * pass geometrically: the WP is behind once the aircraft crosses the plane through it normal to
+     * the inbound leg. Cannot fire early - at WP activation the aircraft sits a leg length short. */
+    if (STATE(AIRPLANE) && FLIGHT_MODE(NAV_WP_MODE)) {
+        const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
+        const float legRad = CENTIDEGREES_TO_RADIANS((float)*waypointBearing);
+        if ((pos->x - waypointPos->x) * cos_approx(legRad) + (pos->y - waypointPos->y) * sin_approx(legRad) >= 0.0f) {
+            return true;
+        }
+    }
+
     return posControl.wpDistance <= (navConfig()->general.waypoint_radius);
 }
 
