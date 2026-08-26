@@ -552,7 +552,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     }
 
     // Only allow PID integrator to shrink if error is decreasing over time
-    const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0);
+    const pidControllerFlags_e pidFlags = errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0;
 
     // Input error in (deg*100), output roll angle (deg*100)
     float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.cog + navHeadingError, posControl.actualState.cog, US2S(deltaMicros),
