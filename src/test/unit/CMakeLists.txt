@@ -53,6 +53,11 @@ set_property(SOURCE dronecan_messages_unittest.cc PROPERTY extra_includes
     "../../lib/main/Dronecan/dsdlc_generated/include")
 set_property(SOURCE dronecan_messages_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0)
 
+# CAN bit-timing solver tests - links the real, HAL-free timing core shared
+# by the F7 (bxCAN) and H7 (FDCAN) drivers, so there is nothing to keep in sync
+set_property(SOURCE bxcan_timing_unittest.cc PROPERTY depends
+    "drivers/dronecan/libcanard/canard_stm32_timing.c")
+
 # Libcanard core tests - CANARD_INTERNAL= makes static functions accessible
 set_property(SOURCE canard_unittest.cc PROPERTY depends
     "drivers/dronecan/libcanard/canard.c")
@@ -77,7 +82,7 @@ set_property(SOURCE mavlink_unittest.cc PROPERTY depends
     "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_mission.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"
     "mavlink/mavlink_routing.c" "mavlink/mavlink_runtime.c" "mavlink/mavlink_streams.c" "telemetry/mavlink.c"
     "common/crc.c" "common/maths.c" "common/streambuf.c" "common/string_light.c" "msp/msp_serial.c")
-set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK)
+set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK USE_MAVLINK_MSP_TUNNEL)
 set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
     "../../lib/main/MAVLink")
 

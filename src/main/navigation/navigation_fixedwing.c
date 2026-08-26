@@ -1095,7 +1095,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
     // Limit minimum forward velocity to 1 m/s
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
 
-    uint32_t navLoiterRadius = getLoiterRadius(navConfig()->fw.loiter_radius);
+    uint32_t navLoiterRadius = getLoiterRadius(navigationGetLoiterRadius());
 
     /* Loiter-radius floor with per-revolution peak hold (see getFwStableLoiterRadius): keep the circle
      * stable for the fixed-radius loiter tracker instead of chasing the wind-varying instantaneous value. */
