@@ -15,18 +15,24 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "platform.h"
 
 #include "target/common.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+
+/* Single translation unit that compiles the MAVLink helper definitions
+ * (mavlink_get_msg_entry, mavlink_parse_char, ...) with external linkage.
+ * All other TUs include the MAVLink headers with MAVLINK_SEPARATE_HELPERS
+ * set (see rx/mavlink.h and mavlink/mavlink_types.h), so they see only the
+ * extern prototypes from protocol.h and no longer each instantiate a
+ * private static copy of every helper — including the ~3.7 KB
+ * mavlink_message_crcs[] table inside mavlink_get_msg_entry(), which was
+ * duplicated once per including TU. */
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
-/* Helpers compile once with external linkage in mavlink/mavlink_helpers.c;
- * without this every TU gets a static copy, incl. the ~3.7 KB CRC table. */
 #define MAVLINK_SEPARATE_HELPERS
 #include "storm32/mavlink.h"
-#pragma GCC diagnostic pop
+#include "mavlink_helpers.h"
 
-void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg);
-bool mavlinkRxInit(const struct rxConfig_s *initialRxConfig, struct rxRuntimeConfig_s *rxRuntimeConfig);
+#pragma GCC diagnostic pop
