@@ -136,6 +136,21 @@ extern uint8_t __config_end;
 
 #endif
 
+// Terrain keeps a sizeable grid cache in RAM, so restrict it to MCUs with enough of it.
+// MCU_RAM_SIZE is in KiB, defined per MCU next to MCU_FLASH_SIZE in cmake/.
+#if defined(USE_BARO) && defined(USE_SDCARD) && !defined(USE_TERRAIN) && (MCU_RAM_SIZE > 256)
+#define USE_TERRAIN
+
+// number of grid blocks held in the RAM cache; each entry is a gridCache_t
+// wrapping one packed gridBlock_t (~1.1 KB), no longer the old 2048-byte block
+#if (MCU_RAM_SIZE >= 512)
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8
+#else
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 4
+#endif
+
+#endif
+
 // CRSF sensor input on a dedicated UART
 #if defined(USE_SERIALRX_CRSF)
 #define USE_CRSF_SENSOR_INPUT
