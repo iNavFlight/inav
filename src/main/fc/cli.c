@@ -231,6 +231,8 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "LULU",
     "SBUS2",
     "OSD_REFRESH",
+    "VTOL_TRANSITION",
+    "VTOL_MC_PROTECT",
     "FW_TURN"
 };
 

@@ -620,6 +620,9 @@ main_sources(COMMON_SRC
     navigation/navigation_pos_estimator_flow.c
     navigation/navigation_private.h
     navigation/navigation_rover_boat.c
+    navigation/navigation_vtol_mc_protection.c
+    navigation/navigation_vtol_mc_protection.h
+    navigation/navigation_vtol_mc_protection_logic.h
     navigation/navigation_geozone.c
     navigation/sqrt_controller.c
     navigation/sqrt_controller.h
@@ -669,6 +672,15 @@ main_sources(COMMON_SRC
     telemetry/sim.h
     telemetry/telemetry.c
     telemetry/telemetry.h
+
+    terrain/terrain.h
+    terrain/terrain.c
+    terrain/terrain_utils.h
+    terrain/terrain_utils.c
+    terrain/terrain_io.h
+    terrain/terrain_io.c
+    terrain/terrain_location.h
+    terrain/terrain_location.c
 )
 
 list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})
