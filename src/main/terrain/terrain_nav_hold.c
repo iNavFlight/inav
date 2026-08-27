@@ -92,8 +92,10 @@ static float latchedStickWishCmS;
 static bool latchedStickWishValid;
 
 // The hard-disengage conditions: launch, any landing, emergency landing,
-// VTOL transition, non-altitude platforms, degraded GPS, rangefinder SURFACE
-// mode. The cruise whitelist is the primary defense - this is the explicit
+// VTOL transition, non-altitude platforms, rangefinder SURFACE mode. Position
+// validity is the terrain layer's business (terrainNavIsHealthy follows the
+// estimator, not the raw GPS fix) - a lost position freezes the hold
+// The cruise whitelist is the primary defense - this is the explicit
 // override on top of it
 static bool terrainNavHoldMustDisengage(void)
 {
@@ -108,16 +110,6 @@ static bool terrainNavHoldMustDisengage(void)
     if (!STATE(ALTITUDE_CONTROL)) {
         return true;
     }
-
-    if (!STATE(GPS_FIX)) {
-        return true;
-    }
-
-#ifdef USE_GPS_FIX_ESTIMATION
-    if (STATE(GPS_ESTIMATED_FIX)) {
-        return true;
-    }
-#endif
 
     // Never stack with the rangefinder surface mode
     if (posControl.flags.isTerrainFollowEnabled) {

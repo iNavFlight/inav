@@ -28,6 +28,8 @@
 
 #include "platform.h"
 
+#include "common/maths.h"
+
 #ifdef USE_TERRAIN
 
 #include "terrain.h"
@@ -48,15 +50,55 @@
 // at 30 m cover ~1.9 km ahead, well beyond a practical climb-planning horizon
 #define TERRAIN_NAV_LOOKAHEAD_MAX_SAMPLES 64
 
+// Home terrain height, latched once the GPS origin is known and re-latched if
+// the origin moves - the same relative datum the data layer uses for its own
+// AGL, so map-datum errors cancel (docs: C-2)
+static bool homeHeightValid;
+static float homeHeightM;
+static int32_t homeHeightLat;
+static int32_t homeHeightLon;
+
+static bool terrainNavUpdateHomeHeight(void)
+{
+    if (!posControl.gpsOrigin.valid) {
+        homeHeightValid = false;
+        return false;
+    }
+    if (homeHeightValid && homeHeightLat == posControl.gpsOrigin.lat && homeHeightLon == posControl.gpsOrigin.lon) {
+        return true;
+    }
+    float heightM;
+    homeHeightValid = terrainNavGetHomeTerrainHeight(&heightM);
+    if (homeHeightValid) {
+        homeHeightM = heightM;
+        homeHeightLat = posControl.gpsOrigin.lat;
+        homeHeightLon = posControl.gpsOrigin.lon;
+    }
+    return homeHeightValid;
+}
+
+// The aircraft's position as the estimator sees it (not the raw GPS fix), so
+// the layer follows whatever INAV trusts for position
+static bool terrainNavCurrentLocation(gpsLocation_t *llh)
+{
+    if (posControl.flags.estPosStatus < EST_USABLE) {
+        return false;
+    }
+    return geoConvertLocalToGeodetic(llh, &posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos);
+}
+
+// Healthy = terrain enabled, the SD reader alive, a usable position estimate
+// and the home terrain height known. Per-sample data availability is answered
+// by the height queries themselves (no data = block not loaded yet)
 bool terrainNavIsHealthy(void)
 {
     if (!terrainConfig()->terrainEnabled || isTerrainIoFailure()) {
         return false;
     }
-
-    // terrainGetLastAMSL returns its no-data sentinel unless the home anchor
-    // is latched AND the last update is fresher than TERRAIN_NO_DATA_DELAY_MS
-    return terrainGetLastAMSL() != TERRAIN_STATUS_NO_AMSL_DATA;
+    if (posControl.flags.estPosStatus < EST_USABLE) {
+        return false;
+    }
+    return terrainNavUpdateHomeHeight();
 }
 
 bool terrainNavGetAGLCm(int32_t *aglCm)
@@ -65,48 +107,33 @@ bool terrainNavGetAGLCm(int32_t *aglCm)
         return false;
     }
 
-    const int32_t agl = terrainGetLastDistanceCm();
-    if (agl == TERRAIN_STATUS_NO_AGL_DATA) {
+    gpsLocation_t here;
+    float heightHereM;
+    if (!terrainNavCurrentLocation(&here) || !terrainNavGetHeightAtLocation(&here, &heightHereM)) {
         return false;
     }
 
-    *aglCm = agl;
+    // AGL = estimated altitude above home minus the terrain rise above home
+    const int32_t agl = (int32_t)navGetCurrentActualPositionAndVelocity()->pos.z
+                        - (int32_t)((heightHereM - homeHeightM) * 100.0f);
+    *aglCm = MAX(0, agl);
     return true;
 }
 
 bool terrainNavGetHeightAtLocation(const gpsLocation_t *loc, float *heightM)
 {
-    if (!terrainConfig()->terrainEnabled || isTerrainIoFailure()) {
+    if (!terrainConfig()->terrainEnabled) {
         return false;
     }
 
-    gridInfo_t info;
-    calculateGridInfo(loc, &info);
-
-    gridCache_t *cache = findGridCache(&info);
-    if (cache == NULL) {
-        return false;
-    }
-    gridBlock_t *grid = &cache->gridBlock;
-
-    // all four surrounding grid points must have been loaded from the SD card
-    if (!checkBitmap(grid, info.idx_x, info.idx_y) ||
-        !checkBitmap(grid, info.idx_x, info.idx_y + 1) ||
-        !checkBitmap(grid, info.idx_x + 1, info.idx_y) ||
-        !checkBitmap(grid, info.idx_x + 1, info.idx_y + 1)) {
-        markGridBlockNeedRead(grid);
+    // The data layer's own lookup: block cache only, schedules the SD read
+    // when the block is not loaded yet and reports no data meanwhile
+    const float heightAmslM = getHeightAmslMeters(loc);
+    if (heightAmslM == (float)TERRAIN_STATUS_NO_AMSL_DATA) {
         return false;
     }
 
-    const int16_t h00 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x, info.idx_y);
-    const int16_t h01 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x, info.idx_y + 1);
-    const int16_t h10 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x + 1, info.idx_y);
-    const int16_t h11 = grid->heightBase + TERRAIN_HEIGHT_OFFSET_RESOLUTION_M * getHeightOffsetByIndex(grid, info.idx_x + 1, info.idx_y + 1);
-
-    const float avg1 = (1.0f - info.frac_x) * h00 + info.frac_x * h10;
-    const float avg2 = (1.0f - info.frac_x) * h01 + info.frac_x * h11;
-
-    *heightM = (1.0f - info.frac_y) * avg1 + info.frac_y * avg2;
+    *heightM = heightAmslM;
     return true;
 }
 
@@ -136,7 +163,10 @@ bool terrainNavLookahead(float bearingDeg, float distanceM, float climbRatio, fl
     result->samplesTotal = 0;
     result->samplesMissed = 0;
 
-    gpsLocation_t pos = gpsSol.llh;
+    gpsLocation_t pos;
+    if (!terrainNavCurrentLocation(&pos)) {
+        return false;
+    }
     float baseHeightM;
     if (!terrainNavGetHeightAtLocation(&pos, &baseHeightM)) {
         return false;
