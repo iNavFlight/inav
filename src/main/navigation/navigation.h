@@ -239,18 +239,18 @@ void abortForcedPosHold(void);
 
 #define NAV_ACCEL_CUTOFF_FREQUENCY_HZ 2       // low-pass filter on XY-acceleration target
 
-enum {
+typedef enum {
     NAV_GPS_ATTI    = 0,                    // Pitch/roll stick controls attitude (pitch/roll lean angles)
     NAV_GPS_CRUISE  = 1                     // Pitch/roll stick controls velocity (forward/right speed)
-};
+} nav_control_type_e;
 
-enum {
+typedef enum {
     NAV_LOITER_RIGHT = 0,                    // Loitering direction right
     NAV_LOITER_LEFT  = 1,                    // Loitering direction left
     NAV_LOITER_YAW   = 2
-};
+} nav_loiter_type_e;
 
-enum {
+typedef enum {
     NAV_RTH_NO_ALT                       = 0, // Maintain current altitude
     NAV_RTH_EXTRA_ALT                    = 1, // Maintain current altitude + predefined safety margin
     NAV_RTH_CONST_ALT                    = 2, // Climb/descend to predefined altitude
@@ -258,18 +258,18 @@ enum {
     NAV_RTH_AT_LEAST_ALT                 = 4, // Climb to predefined altitude if below it
     NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT  = 5, // Climb to predefined altitude if below it,
                                               // descend linearly to reach home at predefined altitude if above it
-};
+} nav_rth_alt_profile_e;
 
-enum {
+typedef enum {
     NAV_RTH_CLIMB_STAGE_AT_LEAST        = 0, // Will climb to the lesser of rth_climb_first_stage_altitude or rth_altitude, before turning
     NAV_RTH_CLIMB_STAGE_EXTRA           = 1, // Will climb the lesser of rth_climb_first_stage_altitude above the current altitude or to nav_rth_altitude, before turning
-};
+} nav_rth_climb_profile_e;
 
-enum {
+typedef enum {
     NAV_HEADING_CONTROL_NONE = 0,
     NAV_HEADING_CONTROL_AUTO,
     NAV_HEADING_CONTROL_MANUAL
-};
+} nav_heading_control_e;
 
 typedef enum {
     NAV_RESET_NEVER = 0,
@@ -327,6 +327,31 @@ typedef enum {
     WP_MISSION_RESUME,
     WP_MISSION_SWITCH,
 } navMissionRestart_e;
+
+#ifdef USE_AUTO_TRANSITION
+typedef enum {
+    NAV_MISSION_USER_ACTION_OFF = 0,
+    NAV_MISSION_USER_ACTION_1,
+    NAV_MISSION_USER_ACTION_2,
+    NAV_MISSION_USER_ACTION_3,
+    NAV_MISSION_USER_ACTION_4,
+} navMissionUserAction_e;
+
+typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_POSH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_EMERGENCY_LANDING,
+} navVtolTransitionFailActionMcToFw_e;
+
+typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_LOITER,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_EMERGENCY_LANDING,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH,
+} navVtolTransitionFailActionFwToMc_e;
+#endif
 
 typedef enum {
     RTH_TRACKBACK_OFF,
@@ -413,6 +438,13 @@ typedef struct navConfig_s {
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;                   // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;            // Waypoint mission sanity check distance
+#ifdef USE_AUTO_TRANSITION
+        uint8_t  vtol_mission_transition_user_action; // User action slot that requests mission VTOL transition
+        uint16_t vtol_mission_transition_min_altitude; // Minimum altitude [cm] to start mission VTOL transition (0 = disabled)
+        bool     vtol_transition_retry_on_airspeed_timeout; // Enables one-shot yaw-scan retry for failed airspeed-gated MC->FW auto-transition
+        uint8_t  vtol_transition_fail_action_mc_to_fw; // Action after final MC->FW transition failure
+        uint8_t  vtol_transition_fail_action_fw_to_mc; // Action after final FW->MC transition failure
+#endif
 #ifdef USE_MULTI_MISSION
         uint8_t  waypoint_multi_mission_index;      // Index of mission to be loaded in multi mission entry
 #endif
@@ -459,7 +491,6 @@ typedef struct navConfig_s {
         uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
         uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
 #endif
-
         uint8_t posDecelerationTime;            // Brake time parameter
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
         bool slowDownForTurning;                // Slow down during WP missions when changing heading on next waypoint
@@ -654,6 +685,14 @@ typedef enum {
     MW_NAV_FLAG_ADJUSTING_ALTITUDE  = 1 << 1,
 } navSystemStatus_Flags_e;
 
+#ifdef USE_AUTO_TRANSITION
+typedef enum {
+    NAV_VTOL_TRANSITION_OSD_NONE = 0,
+    NAV_VTOL_TRANSITION_OSD_RETRY_SCAN,
+    NAV_VTOL_TRANSITION_OSD_RETRY_ALIGN,
+} navVtolTransitionOsdState_e;
+#endif
+
 typedef struct {
     navSystemStatus_Mode_e  mode;
     navSystemStatus_State_e state;
@@ -712,7 +751,11 @@ int getWaypointCount(void);
 bool isWaypointListValid(void);
 int isGCSValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
+bool navGetMissionWaypointByRelativeIndex(int16_t relativeIndex, navWaypoint_t *wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
+void navigationSetLoiterRadiusOverride(uint32_t loiterRadiusCm);
+uint32_t navigationGetLoiterRadiusOverride(void);
+uint32_t navigationGetLoiterRadius(void);
 void resetWaypointList(void);
 bool navSetActiveWaypointIndex(uint8_t index);  // MSP2_INAV_SET_WP_INDEX: jump to WP during active mission
 bool navSetCruiseHeading(int32_t headingCd);    // MSP2_INAV_SET_CRUISE_HEADING: set cruise/course-hold heading (centidegrees)
@@ -738,7 +781,8 @@ typedef enum {
 typedef enum {
     NAV_WP_TAKEOFF_DATUM,
     NAV_WP_MSL_DATUM,
-    NAV_WP_TERRAIN_DATUM
+    NAV_WP_TERRAIN_DATUM,
+    NAV_WP_RELATIVE_DATUM
 } geoAltitudeDatumFlag_e;
 
 // geoSetOrigin stores the location provided in llh as a GPS origin in the
@@ -771,10 +815,19 @@ bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * waypoint
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);   // NOT USED
 uint32_t distanceToFirstWP(void);
 
+/* Commanded normal RTH mode */
+bool activateRTHMode(void);
+
+/* Commanded normal position hold mode */
+bool activatePositionHoldMode(void);
+
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);
 void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
+
+/* Commanded normal landing mode */
+bool activateForcedLanding(void);
 
 /* Failsafe-forced Emergency Landing mode */
 void activateForcedEmergLanding(void);
@@ -789,11 +842,16 @@ bool navigationIsFlyingAutonomousMode(void);
 bool navigationIsExecutingAnEmergencyLanding(void);
 bool navigationIsControllingAltitude(void);
 bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm);
+bool navigationConsumeWaypointReached(uint16_t *seq);
+bool navCanSetHome(void);
 /* Returns true if navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */
 bool navigationRTHAllowsLanding(void);
 bool isWaypointMissionRTHActive(void);
+#ifdef USE_AUTO_TRANSITION
+navVtolTransitionOsdState_e navigationVtolTransitionOsdState(void);
+#endif
 
 bool rthClimbStageActiveAndComplete(void);
 
@@ -808,7 +866,6 @@ bool isProbablyStillFlying(void);
 void resetLandingDetectorActiveState(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
-bool navigationConsumeWaypointReached(uint16_t *seq);
 
 int32_t navigationGetHeadingError(void);
 float navigationGetCrossTrackError(void);

@@ -163,6 +163,7 @@ main_sources(STM32H7_SRC
     drivers/sdio.h
     drivers/sdcard/sdmmc_sdio_hal.c
     drivers/dronecan/libcanard/canard_stm32h7xx_driver.c
+    drivers/dronecan/libcanard/canard_stm32_timing.c
 
 )
 
@@ -199,7 +200,7 @@ function(target_stm32h7xx)
     )
 endfunction()
 
-macro(define_target_stm32h7 subfamily size)
+macro(define_target_stm32h7 subfamily size ram)
     function(target_stm32h7${subfamily}x${size} name)
         set(func_ARGV ARGV)
         string(TOUPPER ${size} upper_size)
@@ -211,6 +212,7 @@ macro(define_target_stm32h7 subfamily size)
             # stm32h743xx.h defined FLASH_SIZE, used by HAL, but in bytes
             # use MCU_FLASH_SIZE since we use KiB in our code
             MCU_FLASH_SIZE=${flash_size}
+            MCU_RAM_SIZE=${ram}
         )
         target_stm32h7xx(
             NAME ${name}
@@ -223,5 +225,5 @@ macro(define_target_stm32h7 subfamily size)
     endfunction()
 endmacro()
 
-define_target_stm32h7(43 i)
-define_target_stm32h7(A3 i)
+define_target_stm32h7(43 i 1024)
+define_target_stm32h7(A3 i 1376)
