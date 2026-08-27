@@ -87,6 +87,9 @@ static int32_t queryAglCm;
 static bool queryLookaheadValid;
 static float queryLookaheadClimbCm;
 static float queryEscapeDeficitCm;
+// Pilot's climb wish, latched across RX frames (see the handover block)
+static float latchedStickWishCmS;
+static bool latchedStickWishValid;
 
 // The hard-disengage conditions: launch, any landing, emergency landing,
 // VTOL transition, non-altitude platforms, degraded GPS, rangefinder SURFACE
@@ -215,7 +218,10 @@ void terrainNavCruiseHoldUpdate(void)
     in.lookaheadClimbCm = queryLookaheadClimbCm;
     in.escapeDeficitValid = queryLookaheadValid;
     in.escapeDeficitCm = queryEscapeDeficitCm;
-    in.lookaheadDegraded = terrainNavConfig()->lookaheadDistM != 0 && !isImuHeadingValid();
+    // Lookahead unavailable: no trusted heading, or too slow for a usable
+    // course over ground (the same speed gate the query uses)
+    in.lookaheadDegraded = terrainNavConfig()->lookaheadDistM != 0
+        && (!isImuHeadingValid() || gpsSol.groundSpeed < TERRAIN_NAV_HOLD_MIN_LOOKAHEAD_SPEED_CM_S);
     in.minAglCm = terrainNavConfig()->minAglCm;
     in.maxAltCm = navConfig()->general.max_altitude;
 
@@ -227,11 +233,21 @@ void terrainNavCruiseHoldUpdate(void)
     in.actualClimbRateCmS = constrainf(navGetCurrentActualPositionAndVelocity()->vel.z,
                                        -(float)navConfig()->fw.max_auto_climb_rate,
                                        (float)navConfig()->fw.max_auto_climb_rate);
-    if (in.stickAdjusting && posControl.flags.rocToAltMode == ROC_TO_ALT_CONSTANT) {
+    // The stock stick writer runs only on RX-new cycles (fc_core.c) and sets
+    // ROC_TO_ALT_CONSTANT; the blend below rewrites the mode every cycle, so
+    // the wish is latched while the pilot keeps adjusting - the blend chases
+    // the pilot, not zero, between RX frames
+    if (!in.stickAdjusting) {
+        latchedStickWishValid = false;
+    } else if (posControl.flags.rocToAltMode == ROC_TO_ALT_CONSTANT) {
+        latchedStickWishCmS = constrainf(posControl.desiredState.climbRateDemand,
+                                         -(float)navConfig()->fw.max_manual_climb_rate,
+                                         (float)navConfig()->fw.max_manual_climb_rate);
+        latchedStickWishValid = true;
+    }
+    if (latchedStickWishValid) {
         in.stickWishValid = true;
-        in.stickWishCmS = constrainf(posControl.desiredState.climbRateDemand,
-                                     -(float)navConfig()->fw.max_manual_climb_rate,
-                                     (float)navConfig()->fw.max_manual_climb_rate);
+        in.stickWishCmS = latchedStickWishCmS;
         // Near-full pull = the pilot's vertical channel is maxed (for the
         // red-text reserve question; 90% leaves room for stick noise)
         in.stickFullPull = in.stickWishCmS >= 0.9f * (float)navConfig()->fw.max_manual_climb_rate;

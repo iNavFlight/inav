@@ -83,11 +83,6 @@ bool terrainNavGetHeightAtLocation(const gpsLocation_t *loc, float *heightM)
     gridInfo_t info;
     calculateGridInfo(loc, &info);
 
-    // the +1 neighbours used for interpolation must lie inside the same block
-    if (info.idx_x > TERRAIN_GRID_BLOCK_SIZE_X - 2 || info.idx_y > TERRAIN_GRID_BLOCK_SIZE_Y - 2) {
-        return false;
-    }
-
     gridCache_t *cache = findGridCache(&info);
     if (cache == NULL) {
         return false;
@@ -140,7 +135,6 @@ bool terrainNavLookahead(float bearingDeg, float distanceM, float climbRatio, fl
     result->escapeDeficitM = 0.0f;
     result->samplesTotal = 0;
     result->samplesMissed = 0;
-    result->complete = true;
 
     gpsLocation_t pos = gpsSol.llh;
     float baseHeightM;
@@ -183,7 +177,6 @@ bool terrainNavLookahead(float bearingDeg, float distanceM, float climbRatio, fl
         }
     }
 
-    result->complete = (result->samplesMissed == 0);
     return true;
 }
 

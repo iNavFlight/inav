@@ -42,7 +42,6 @@ typedef struct {
     float escapeDeficitM;   // worst height deficit vs the escapeRatio slope (>= 0) - the escape test's raw input
     uint8_t samplesTotal;   // points sampled along the path
     uint8_t samplesMissed;  // points that had no terrain data (loads were scheduled)
-    bool complete;          // true when every sampled point had terrain data
 } terrainNavLookaheadResult_t;
 
 // True only while terrain data is usable: module enabled, no IO failure
