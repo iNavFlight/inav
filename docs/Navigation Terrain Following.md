@@ -79,6 +79,21 @@ The mode narrates itself on the OSD. In plain terms: **TERRAIN AHEAD!** talks ab
 
 > **About `nav_max_altitude`:** that ceiling is **barometric altitude above your Home point** — it is *not* terrain-AGL aware. So over rising ground the terrain can legitimately need more altitude than the ceiling allows; that is exactly when *TERRAIN VS MAX ALT* appears.
 
+## Watching it in a log
+
+`set debug_mode = TERRAIN_NAV` publishes the hold's state on the eight debug values (blackbox log and the Configurator's debug view). Otherwise the mode is dormant — nothing is read or computed for it.
+
+| Slot | Value |
+|---|---|
+| 0 | Flags: bit 0 terrain data healthy, bit 1 AGL valid, bit 2 hold engaged; bits 8–9 / 10–11 / 12–13 / 14–15 the estimator's position / velocity / heading / altitude status (0 none, 1 usable, 2 trusted) |
+| 1 | Height above ground, cm (0 when not valid) |
+| 2 | Estimated altitude, cm |
+| 3 | Commanded altitude target, cm |
+| 4 | Held AGL, cm (0 unless engaged) |
+| 5 | Hold status: 0 inactive, 1 waiting for usable terrain data, 2 active, 3 frozen |
+| 6 | Warning: 0 none, 1 *TERRAIN NOT READY*, 2 *TERRAIN LOST - ALT FROZEN*, 3 *TERRAIN VS MAX ALT*, 4 *TERRAIN! PULL UP!*, 5 *TERRAIN LOOKAHEAD OFF*, 6 *TERRAIN AUTO CLIMB TO MIN*, 7 *TERRAIN AHEAD!*, 8 *TERRAIN! TURN AWAY!* |
+| 7 | Navigation state × 1000 + a running counter |
+
 ## Safety & limitations
 
 - **Fixed-wing only.** It never runs on multirotors, rovers, or boats, and it works **only inside 3D Cruise** (mandatory at this stage).

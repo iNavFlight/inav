@@ -797,6 +797,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | OSD_REFRESH |  |
 | VTOL_TRANSITION |  |
 | VTOL_MC_PROTECT |  |
+| TERRAIN_NAV |  |
 
 ---
 

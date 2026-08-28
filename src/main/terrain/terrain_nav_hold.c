@@ -22,6 +22,7 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -29,6 +30,7 @@
 
 #ifdef USE_TERRAIN
 
+#include "build/debug.h"
 #include "common/maths.h"
 
 #include "config/parameter_group.h"
@@ -183,8 +185,64 @@ static void terrainNavHoldRunQueries(timeMs_t currentTimeMs)
     }
 }
 
+// Debug observer (debug_mode = TERRAIN_NAV): the hold's inputs and outputs on
+// the eight debug values, for blackbox and the Configurator. Reads cached
+// module state only - no grid query, no cache pressure - and stays dormant
+// unless this debug mode is selected.
+//   0: flags - bit 0 terrain healthy, bit 1 AGL valid, bit 2 hold engaged;
+//      bits 8-9 / 10-11 / 12-13 / 14-15 estimator position / velocity /
+//      heading / altitude status
+//   1: AGL, cm (0 when not valid)
+//   2: estimated altitude, cm
+//   3: commanded altitude target, cm
+//   4: held AGL, cm (0 unless engaged)
+//   5: hold status (terrainNavHoldStatus_e)
+//   6: hold warning (terrainNavHoldWarning_e)
+//   7: navigation state * 1000 + a running counter
+#define TERRAIN_NAV_DEBUG_FLAG_HEALTHY  (1 << 0)
+#define TERRAIN_NAV_DEBUG_FLAG_AGL_OK   (1 << 1)
+#define TERRAIN_NAV_DEBUG_FLAG_ENGAGED  (1 << 2)
+
+static void terrainNavHoldPublishDebug(void)
+{
+    if (debugMode != DEBUG_TERRAIN_NAV) {
+        return;
+    }
+
+    static uint32_t cycle = 0;
+    cycle++;
+
+    int32_t flags = 0;
+    if (terrainNavIsHealthy()) {
+        flags |= TERRAIN_NAV_DEBUG_FLAG_HEALTHY;
+    }
+    int32_t aglCm = 0;
+    if (terrainNavGetAGLCm(&aglCm)) {
+        flags |= TERRAIN_NAV_DEBUG_FLAG_AGL_OK;
+    }
+    int32_t targetAglCm = 0;
+    if (terrainNavHoldGetTargetAglCm(&targetAglCm)) {
+        flags |= TERRAIN_NAV_DEBUG_FLAG_ENGAGED;
+    }
+    flags |= (posControl.flags.estPosStatus & 3) << 8;
+    flags |= (posControl.flags.estVelStatus & 3) << 10;
+    flags |= (posControl.flags.estHeadingStatus & 3) << 12;
+    flags |= (posControl.flags.estAltStatus & 3) << 14;
+
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 0, flags);
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 1, (flags & TERRAIN_NAV_DEBUG_FLAG_AGL_OK) ? aglCm : 0);
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 2, lroundf(navGetCurrentActualPositionAndVelocity()->pos.z));
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 3, lroundf(posControl.desiredState.pos.z));
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 4, targetAglCm);
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 5, (int32_t)terrainNavHoldGetStatus());
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 6, (int32_t)terrainNavHoldGetWarning());
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 7, (int32_t)posControl.navState * 1000 + (int32_t)(cycle % 1000));
+}
+
 void terrainNavCruiseHoldUpdate(void)
 {
+    terrainNavHoldPublishDebug();
+
     const timeMs_t currentTimeMs = millis();
 
     terrainNavHoldInput_t in = { 0 };
