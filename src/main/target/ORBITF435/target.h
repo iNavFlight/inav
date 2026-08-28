@@ -95,6 +95,11 @@
 #define ICM42688_CS_PIN         PA4
 #define ICM42688_SPI_BUS        BUS_SPI1
 
+#define USE_IMU_LSM6DXX
+#define IMU_LSM6DXX_ALIGN       CW270_DEG
+#define LSM6DXX_SPI_BUS         BUS_SPI1
+#define LSM6DXX_CS_PIN          PA4
+
 // *************** I2C(Baro & I2C) **************************
 #define USE_I2C
 #define USE_BARO

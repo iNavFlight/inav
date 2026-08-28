@@ -173,6 +173,8 @@ main_sources(COMMON_SRC
     drivers/dronecan/libcanard/canard.h
     drivers/dronecan/libcanard/canard_stm32_driver.h
     drivers/dronecan/dronecan.c
+    drivers/dronecan/dronecan_async.c
+    drivers/dronecan/dronecan_async.h
     drivers/dronecan/dronecan.h
 
     drivers/display.c
@@ -309,6 +311,8 @@ main_sources(COMMON_SRC
     fc/fc_msp.h
     fc/fc_msp_box.c
     fc/fc_msp_box.h
+    fc/fc_msp_dronecan.c
+    fc/fc_msp_dronecan.h
     fc/firmware_update.c
     fc/firmware_update.h
     fc/firmware_update_common.c
@@ -620,6 +624,9 @@ main_sources(COMMON_SRC
     navigation/navigation_pos_estimator_flow.c
     navigation/navigation_private.h
     navigation/navigation_rover_boat.c
+    navigation/navigation_vtol_mc_protection.c
+    navigation/navigation_vtol_mc_protection.h
+    navigation/navigation_vtol_mc_protection_logic.h
     navigation/navigation_geozone.c
     navigation/sqrt_controller.c
     navigation/sqrt_controller.h
@@ -669,6 +676,15 @@ main_sources(COMMON_SRC
     telemetry/sim.h
     telemetry/telemetry.c
     telemetry/telemetry.h
+
+    terrain/terrain.h
+    terrain/terrain.c
+    terrain/terrain_utils.h
+    terrain/terrain_utils.c
+    terrain/terrain_io.h
+    terrain/terrain_io.c
+    terrain/terrain_location.h
+    terrain/terrain_location.c
 )
 
 list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})

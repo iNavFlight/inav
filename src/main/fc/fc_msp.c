@@ -70,6 +70,7 @@
 #include "fc/control_profile.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_msp_box.h"
+#include "fc/fc_msp_dronecan.h"
 #include "fc/firmware_update.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
@@ -145,10 +146,6 @@
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
-#endif
-
-#ifdef USE_DRONECAN
-#include "drivers/dronecan/dronecan.h"
 #endif
 
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
@@ -374,8 +371,8 @@ static void serializeDataflashSummaryReply(sbuf_t *dst)
 #ifdef USE_FLASHFS
 static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t size)
 {
-    // Check how much bytes we can read
-    const int bytesRemainingInBuf = sbufBytesRemaining(dst);
+    // Check how much bytes we can read - leave room for the address written below
+    const int bytesRemainingInBuf = sbufBytesRemaining(dst) - (int)sizeof(address);
     uint16_t readLen = (size > bytesRemainingInBuf) ? bytesRemainingInBuf : size;
 
     // size will be lower than that requested if we reach end of volume
@@ -744,6 +741,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             sbufWriteU32(dst, (int32_t)lrintf(absoluteActualState->pos.v[axis]));
             sbufWriteU16(dst, (int16_t)lrintf(absoluteActualState->vel.v[axis]));
+        }
+        break;
+
+    case MSP2_INAV_TIMESYNC:
+        {
+            const uint64_t timeNs = (uint64_t)micros() * 1000ULL;
+            sbufWriteU32(dst, (uint32_t)timeNs);
+            sbufWriteU32(dst, (uint32_t)(timeNs >> 32));
         }
         break;
 
@@ -1924,19 +1929,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
 #ifdef USE_DRONECAN
     case MSP2_INAV_DRONECAN_NODES:
-        {
-            uint8_t count = dronecanGetNodeCount();
-            sbufWriteU8(dst, count);
-            for (uint8_t i = 0; i < count; i++) {
-                const dronecanNodeInfo_t *node = dronecanGetNode(i);
-                sbufWriteDataSafe(dst, &(dronecanNodeStatus_t){
-                    .nodeID      = node->nodeID,
-                    .health      = node->health,
-                    .mode        = node->mode,
-                    .last_seen_ms = millis() - node->last_seen_ms,
-                }, sizeof(dronecanNodeStatus_t));
-            }
-        }
+        mspSerializeDronecanNodes(dst);
         break;
 #endif
 
@@ -3992,6 +3985,27 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         return MSP_RESULT_ERROR;
 
+    case MSP2_INAV_ACTIVATE_LANDING:
+        if (dataSize == 0 && activateForcedLanding()) {
+            break;
+        }
+        return MSP_RESULT_ERROR;
+
+    case MSP2_INAV_ACTIVATE_RTH:
+        if (dataSize == 0 && activateRTHMode()) {
+            break;
+        }
+        return MSP_RESULT_ERROR;
+
+    case MSP2_INAV_ARM_DISARM:
+        if (dataSize == 1) {
+            uint8_t arm;
+            if (sbufReadU8Safe(&arm, src) && arm <= 1 && fcSetArmState(arm)) {
+                break;
+            }
+        }
+        return MSP_RESULT_ERROR;
+
     default:
         return MSP_RESULT_ERROR;
     }
@@ -4620,40 +4634,13 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 
 #ifdef USE_DRONECAN
-    case MSP2_INAV_DRONECAN_NODE_INFO:
-        {
-            if (sbufBytesRemaining(src) < 1) {
-                *ret = MSP_RESULT_ERROR;
-                break;
-            }
-            uint8_t nodeId = sbufReadU8(src);
-            uint8_t count = dronecanGetNodeCount();
-            bool found = false;
-            for (uint8_t i = 0; i < count; i++) {
-                const dronecanNodeInfo_t *node = dronecanGetNode(i);
-                if (node->nodeID == nodeId) {
-                    found = true;
-                    if (sbufBytesRemaining(dst) < 46) {
-                        *ret = MSP_RESULT_ERROR;
-                        break;
-                    }
-                    sbufWriteU8(dst, node->nodeID);
-                    sbufWriteU8(dst, node->health);
-                    sbufWriteU8(dst, node->mode);
-                    sbufWriteU32(dst, node->uptime_sec);
-                    sbufWriteU16(dst, node->vendor_status_code);
-                    sbufWriteU32(dst, millis() - node->last_seen_ms);
-                    sbufWriteU8(dst, node->name_len);
-                    sbufWriteDataSafe(dst, node->name, 32);
-                    found = true;
-                    *ret = MSP_RESULT_ACK;
-                    break;
-                }
-            }
-            if (!found) {
-                *ret = MSP_RESULT_ERROR;
-            }
-        }
+    case MSP2_INAV_DRONECAN_ASYNC_REQUEST:
+        mspHandleDronecanAsyncRequest(src, dst, ret);
+        break;
+
+    case MSP2_INAV_DRONECAN_ASYNC_RESULT:
+        mspSerializeDronecanAsyncResult(dst);
+        *ret = MSP_RESULT_ACK;
         break;
 #endif
 
@@ -4818,7 +4805,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 
     case MSP2_INAV_SET_GLOBAL_TARGET:
-        if (dataSize != (3 * sizeof(int32_t) + sizeof(uint8_t)) || !isGCSValid()) {
+        if ((dataSize != (3 * sizeof(int32_t) + sizeof(uint8_t)) && dataSize != (4 * sizeof(int32_t) + sizeof(uint8_t))) || !isGCSValid()) {
             *ret = MSP_RESULT_ERROR;
             break;
         }
@@ -4830,8 +4817,10 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             targetLlh.alt = (int32_t)sbufReadU32(src);
 
             const geoAltitudeDatumFlag_e datumFlag = (geoAltitudeDatumFlag_e)sbufReadU8(src);
+            const bool hasLoiterRadius = dataSize == (4 * sizeof(int32_t) + sizeof(uint8_t));
+            const int32_t loiterRadius = hasLoiterRadius ? (int32_t)sbufReadU32(src) : 0;
 
-            if (datumFlag == NAV_WP_TERRAIN_DATUM) {
+            if (datumFlag == NAV_WP_TERRAIN_DATUM || loiterRadius < 0) {
                 *ret = MSP_RESULT_ERROR;
                 break;
             }
@@ -4849,6 +4838,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             }
 
             setDesiredPosition(&targetPos, posControl.desiredState.yaw, updateMask);
+            if (hasLoiterRadius) {
+                navigationSetLoiterRadiusOverride((uint32_t)loiterRadius);
+            }
             *ret = MSP_RESULT_ACK;
         }
         break;
@@ -4870,6 +4862,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             const uint16_t headingTarget = CENTIDEGREES_TO_DEGREES(wrap_36000(DEGREES_TO_CENTIDEGREES(getHeadingHoldTarget())));
             sbufWriteU16(dst, headingTarget);
             sbufWriteU16(dst, posControl.desiredState.climbRateDemand);
+            sbufWriteU32(dst, navigationGetLoiterRadiusOverride());
             *ret = MSP_RESULT_ACK;
         }
         break;

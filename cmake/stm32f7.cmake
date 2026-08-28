@@ -121,7 +121,7 @@ function(target_stm32f7xx)
     )
 endfunction()
 
-macro(define_target_stm32f7 subfamily size)
+macro(define_target_stm32f7 subfamily size ram)
     function(target_stm32f7${subfamily}x${size} name)
         set(func_ARGV ARGV)
         string(TOUPPER ${size} upper_size)
@@ -136,6 +136,7 @@ macro(define_target_stm32f7 subfamily size)
             STM32F7${subfamily}xx
             STM32F7${subfamily}x${upper_size}
             MCU_FLASH_SIZE=${flash_size}
+            MCU_RAM_SIZE=${ram}
         )
         target_stm32f7xx(
             NAME ${name}
@@ -149,8 +150,8 @@ macro(define_target_stm32f7 subfamily size)
     endfunction()
 endmacro()
 
-define_target_stm32f7(22 e)
-define_target_stm32f7(45 g)
-define_target_stm32f7(46 g)
-define_target_stm32f7(65 g)
-define_target_stm32f7(65 i)
+define_target_stm32f7(22 e 256)
+define_target_stm32f7(45 g 320)
+define_target_stm32f7(46 g 320)
+define_target_stm32f7(65 g 512)
+define_target_stm32f7(65 i 512)
