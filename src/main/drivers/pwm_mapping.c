@@ -292,8 +292,20 @@ void pwmEnsureEnoughtMotors(uint8_t motorCount)
 
         if (TIM_IS_MOTOR_ONLY(timHw->usageFlags) && !timerCounted[timer2id(timHw->tim)]) {
             timerCounted[timer2id(timHw->tim)] = true;
-            motorOnlyOutputs++;
-            motorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
+            pwmClaimTimer(timHw->tim, timHw->usageFlags);
+
+            // Count every non-conflicted pad on this physical timer. After the
+            // claim sync each pad carries the same motor-only flags, so the
+            // group contributes its TRUE size n -- counting "1 + claim changes"
+            // would undercount an all-motor-only group (the claim changes
+            // nothing there) to 1 instead of n, which then over-promotes AUTO
+            // outputs in pass 2 and silently removes servo-capable outputs.
+            for (int j = 0; j < timerHardwareCount; j++) {
+                timerHardware_t *sibling = &timerHardware[j];
+                if (sibling->tim == timHw->tim && !checkPwmTimerConflicts(sibling) && TIM_IS_MOTOR_ONLY(sibling->usageFlags)) {
+                    motorOnlyOutputs++;
+                }
+            }
         }
     }
 
