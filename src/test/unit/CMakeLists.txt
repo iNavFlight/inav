@@ -53,6 +53,60 @@ set_property(SOURCE dronecan_messages_unittest.cc PROPERTY extra_includes
     "../../lib/main/Dronecan/dsdlc_generated/include")
 set_property(SOURCE dronecan_messages_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0)
 
+# GetNodeInfo, SoftwareVersion, HardwareVersion, RTCMStream tests
+set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY depends
+    "drivers/dronecan/libcanard/canard.c")
+set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY extra_sources
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.SoftwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.HardwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.RTCMStream.c")
+set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY extra_includes
+    "../../lib/main/Dronecan/dsdlc_generated/include")
+set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0)
+
+# DroneCAN application-layer tests - compiles dronecan.c with INAV stubs.
+# UNIT_TEST exposes activeNodeCount and nodeTable as non-static for SetUp reset.
+set_property(SOURCE dronecan_application_unittest.cc PROPERTY depends
+    "drivers/dronecan/dronecan.c"
+    "drivers/dronecan/dronecan_async.c"
+    "drivers/dronecan/libcanard/canard.c")
+set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_sources
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.SoftwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.HardwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix2.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Auxiliary.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.power.BatteryInfo.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.RTCMStream.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.Timestamp.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.ECEFPositionVelocity.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.GetSet_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.GetSet_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.ExecuteOpcode_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.ExecuteOpcode_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.RestartNode_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.RestartNode_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Value.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.NumericValue.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Empty.c")
+set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_includes
+    "../../lib/main/Dronecan/dsdlc_generated/include")
+set_property(SOURCE dronecan_application_unittest.cc PROPERTY definitions
+    USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0
+    FC_VERSION_MAJOR=10 FC_VERSION_MINOR=0 FC_VERSION_PATCH_LEVEL=0)
+
+# PARAM_GETSET MSP payload parser - extracted from fc_msp.c's giant command
+# switch (PR #11683 Qodo review Finding 2) specifically so it's unit testable.
+set_property(SOURCE fc_msp_dronecan_unittest.cc PROPERTY depends
+    "fc/fc_msp_dronecan.c" "common/streambuf.c")
+set_property(SOURCE fc_msp_dronecan_unittest.cc PROPERTY definitions USE_DRONECAN)
+
 # CAN bit-timing solver tests - links the real, HAL-free timing core shared
 # by the F7 (bxCAN) and H7 (FDCAN) drivers, so there is nothing to keep in sync
 set_property(SOURCE bxcan_timing_unittest.cc PROPERTY depends

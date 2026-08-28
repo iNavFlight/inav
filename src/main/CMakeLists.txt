@@ -173,6 +173,8 @@ main_sources(COMMON_SRC
     drivers/dronecan/libcanard/canard.h
     drivers/dronecan/libcanard/canard_stm32_driver.h
     drivers/dronecan/dronecan.c
+    drivers/dronecan/dronecan_async.c
+    drivers/dronecan/dronecan_async.h
     drivers/dronecan/dronecan.h
 
     drivers/display.c
@@ -309,6 +311,8 @@ main_sources(COMMON_SRC
     fc/fc_msp.h
     fc/fc_msp_box.c
     fc/fc_msp_box.h
+    fc/fc_msp_dronecan.c
+    fc/fc_msp_dronecan.h
     fc/firmware_update.c
     fc/firmware_update.h
     fc/firmware_update_common.c
