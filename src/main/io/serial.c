@@ -603,6 +603,23 @@ static void nopConsumer(uint8_t data)
 void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer
                        *leftC, serialConsumer *rightC)
 {
+#ifdef USE_VCP
+    // Track current encoding applied to right port for VCP mirroring.
+    // Baseline from the HOST's line coding at passthrough entry, not from the
+    // right port's settings: the mirror must only react to host-side CHANGES
+    // during the session. Initializing from right->baudRate/options would make
+    // the first mirror tick rewrite the passthrough UART's explicitly-requested
+    // encoding (e.g. CLI `serialpassthrough <id> 420000`) with whatever the
+    // host COM port is currently set to (115200 during the CLI session),
+    // breaking ELRS/Betaflight passthrough flashing (issue #11783).
+    // Captured before the drain waits below so a host line-coding change made
+    // while either wait is running is still treated as a session change.
+    portOptions_t currentOptions = usbVcpGetLineCoding();
+    uint32_t currentBaudRate = usbVcpGetBaudRate(left);
+    bool leftIsVcp = (left->identifier == SERIAL_PORT_USB_VCP);
+    uint32_t lastMirrorTime = 0;
+#endif
+
     waitForSerialPortToFinishTransmitting(left);
     waitForSerialPortToFinishTransmitting(right);
 
@@ -613,21 +630,6 @@ void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer
 
     LED0_OFF;
     LED1_OFF;
-
-#ifdef USE_VCP
-    // Track current encoding applied to right port for VCP mirroring.
-    // Baseline from the HOST's line coding at passthrough entry, not from the
-    // right port's settings: the mirror must only react to host-side CHANGES
-    // during the session. Initializing from right->baudRate/options would make
-    // the first mirror tick rewrite the passthrough UART's explicitly-requested
-    // encoding (e.g. CLI `serialpassthrough <id> 420000`) with whatever the
-    // host COM port is currently set to (115200 during the CLI session),
-    // breaking ELRS/Betaflight passthrough flashing (issue #11783).
-    portOptions_t currentOptions = usbVcpGetLineCoding();
-    uint32_t currentBaudRate = usbVcpGetBaudRate(left);
-    bool leftIsVcp = (left->identifier == SERIAL_PORT_USB_VCP);
-    uint32_t lastMirrorTime = 0;
-#endif
 
     static escapeSequenceState_t escapeSequenceState;
     escapeSequenceInit(&escapeSequenceState);
