@@ -52,6 +52,19 @@ extern uint8_t __config_end;
 
 #endif
 
+// Compile INA226 support for every target with a usable hardware I2C bus.
+#if defined(USE_I2C) && defined(DEFAULT_I2C_BUS)
+#define USE_INA226
+
+#ifndef BATTERY_I2C_BUS
+#define BATTERY_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
+#ifndef INA226_I2C_ADDRESS
+#define INA226_I2C_ADDRESS 0x40
+#endif
+#endif
+
 // Airspeed sensors
 #if defined(USE_PITOT) && defined(DEFAULT_I2C_BUS)
 
