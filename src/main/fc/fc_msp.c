@@ -2273,7 +2273,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_RC_TUNING:
-        if ((dataSize == sizeof(mspSetRcTuning_t)) || (dataSize == sizeof(mspSetRcTuning_t) + 1)) {
+        // Lenient gate: accept payloads longer than the current struct from newer
+        // senders (MSP payloads only gain fields at the end); trailing bytes ignored.
+        if (dataSize >= sizeof(mspSetRcTuning_t)) {
             mspSetRcTuning_t pkt;
             if (!sbufReadDataSafe(src, &pkt, sizeof(pkt))) {
                 return MSP_RESULT_ERROR;
@@ -2306,7 +2308,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_RATE_PROFILE:
-        if (dataSize == sizeof(mspSetRateProfile_t)) {
+        // Lenient gate: accept payloads longer than the current struct from newer
+        // senders (MSP payloads only gain fields at the end); trailing bytes ignored.
+        if (dataSize >= sizeof(mspSetRateProfile_t)) {
             mspSetRateProfile_t pkt;
             if (!sbufReadDataSafe(src, &pkt, sizeof(pkt))) {
                 return MSP_RESULT_ERROR;
