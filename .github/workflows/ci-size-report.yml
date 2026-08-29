@@ -12,18 +12,22 @@ name: CI Size Report
 #    runs exist). "Build pre-release" is push-triggered correctly and
 #    already invokes ci.yml's jobs via `uses:` (workflow_call) as part of
 #    building nightly releases — piggybacking here costs nothing extra,
-#    no second build. Persists the size report as a release asset in the
+#    no second build. Persists the size report as release assets in the
 #    companion iNavFlight/pr-test-builds repo, so PR runs never need to
-#    rebuild the base branch to get a comparison point. Only fires for
-#    branches nightly-build.yml's own push trigger covers (currently
-#    master, maintenance-9.x, maintenance-10.x, release/9.1 — see that
-#    file). Stale baselines for since-deleted branches aren't cleaned up
-#    automatically (same known limitation pr-test-builds has for old PR
-#    releases).
+#    rebuild the base branch to get a comparison point. Two assets are
+#    written per push: size-baseline-<BRANCH> (latest-tip pointer, kept
+#    for backward compatibility) and size-baseline-<COMMIT_SHA> (primary —
+#    PR comparisons key off the exact base commit). Per-commit baselines
+#    are pruned to the newest 50 per branch (plus a global cap) so the
+#    companion repo doesn't grow unbounded; baselines for since-deleted
+#    branches aren't otherwise cleaned up (same known limitation
+#    pr-test-builds has for old PR releases).
 #  - pr-comment listens for "Build firmware" (ci.yml) directly — PR builds
 #    genuinely do trigger it via `pull_request`, that part isn't broken.
-#    Fetches the persisted baseline, diffs the 4 representative targets,
-#    and posts/updates a PR comment.
+#    Resolves the PR's TRUE base commit (merge-base of head and base ref),
+#    fetches the per-commit baseline for it (falling back to the nearest
+#    ancestor commit that has one), diffs the 4 representative targets,
+#    and posts/updates a PR comment showing which baseline was used.
 #
 # Requires the same repository secret PR_BUILDS_TOKEN as pr-test-builds.yml
 # (Contents: write access to iNavFlight/pr-test-builds).
@@ -95,24 +99,22 @@ jobs:
         if: steps.check.outputs.proceed == 'true'
         env:
           GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           BRANCH=$(cat branch.txt)
-          TAG="size-baseline-${BRANCH}"
-          # Never delete+recreate the release: that leaves a window where
-          # the release doesn't exist at all, which a concurrent PR's
-          # "Fetch base branch baseline" step could hit and misreport as
-          # "no baseline available yet". Create it once, then only ever
-          # replace the asset in place (--clobber) on later pushes — the
-          # release/tag itself stays continuously resolvable.
-          if gh release view "$TAG" --repo iNavFlight/pr-test-builds >/dev/null 2>&1; then
-            gh release upload "$TAG" size-report.json --repo iNavFlight/pr-test-builds --clobber
-          else
-            gh release create "$TAG" size-report.json \
-              --repo iNavFlight/pr-test-builds \
-              --prerelease \
-              --title "Size baseline: ${BRANCH}" \
-              --notes "Latest per-target flash/RAM size report for ${BRANCH}. Auto-updated on every push. Not for human consumption."
-          fi
+          # Publishes size-baseline-<BRANCH> (latest-tip pointer) and
+          # size-baseline-<COMMIT_SHA> (primary), then prunes old per-commit
+          # baselines. Never delete+recreate the release: that leaves a
+          # window where the release doesn't exist at all, which a concurrent
+          # PR's "Fetch base branch baseline" step could hit and misreport as
+          # "no baseline available yet". Assets are replaced in place
+          # (--clobber) on later pushes — the release/tag stays continuously
+          # resolvable.
+          bash .github/scripts/publish-size-baseline.sh \
+            iNavFlight/pr-test-builds \
+            "${BRANCH}" \
+            "${COMMIT_SHA}" \
+            size-report.json
 
   pr-comment:
     runs-on: ubuntu-latest
@@ -181,30 +183,49 @@ jobs:
           echo "base_ref=${BASE_REF}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
-      - name: Fetch base branch baseline
+      - name: Compute PR base commit (merge-base)
+        id: mergebase
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # The PR's TRUE base commit is the merge-base of the PR head and
+          # base ref — NOT the base branch's latest tip (comparing against
+          # the tip includes unrelated changes merged after the PR forked).
+          # The compare API resolves fork-PR head SHAs too (verified).
+          # base_ref was already regex-validated in the step above; the
+          # returned SHA is validated here before any use.
+          MERGE_BASE=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${BASE_REF}...${HEAD_SHA}" \
+            --jq '.merge_base_commit.sha // empty' 2>/dev/null || true)
+          if [[ "$MERGE_BASE" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "merge_base=${MERGE_BASE}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::could not determine merge-base for ${BASE_REF}...${HEAD_SHA}"
+            echo "merge_base=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch size baseline for PR base commit
         id: baseline
         env:
           GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          MERGE_BASE: ${{ steps.mergebase.outputs.merge_base }}
         run: |
-          TAG="size-baseline-${BASE_REF}"
           mkdir -p baseline
-
-          # publish-baseline replaces the asset in place (--clobber) rather
-          # than deleting/recreating the release, but an individual asset
-          # replace still briefly deletes-then-uploads under the hood. A
-          # few short retries absorb that narrow window instead of a
-          # concurrent run misreporting "no baseline available yet" for a
-          # baseline that actually exists.
-          FOUND=false
-          for attempt in 1 2 3; do
-            if gh release download "$TAG" --repo iNavFlight/pr-test-builds --pattern size-report.json --dir baseline 2>/dev/null; then
-              FOUND=true
-              break
-            fi
-            sleep 3
-          done
-          echo "found=${FOUND}" >> "$GITHUB_OUTPUT"
+          if [ -n "${MERGE_BASE}" ]; then
+            # Exact per-commit baseline for the merge-base first, then the
+            # nearest ancestor commit that has one; the branch-tip baseline
+            # is deliberately NOT a fallback (stale-delta bug).
+            bash .github/scripts/fetch-size-baseline.sh \
+              "${GITHUB_REPOSITORY}" \
+              iNavFlight/pr-test-builds \
+              "${BASE_REF}" \
+              "${MERGE_BASE}" \
+              baseline >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Check for doc on PR head commit
         id: doc
@@ -225,6 +246,8 @@ jobs:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           SHORT_SHA: ${{ steps.pr.outputs.short_sha }}
           BASELINE_FOUND: ${{ steps.baseline.outputs.found }}
+          BASELINE_COMMIT: ${{ steps.baseline.outputs.baseline_commit_short }}
+          BASELINE_EXACT: ${{ steps.baseline.outputs.baseline_exact }}
           DOC_LINK: ${{ steps.doc.outputs.link }}
         with:
           script: |
@@ -247,6 +270,8 @@ jobs:
               prReport,
               baselineReport,
               shortSha: process.env.SHORT_SHA,
+              baselineCommit: process.env.BASELINE_COMMIT || null,
+              baselineIsNearest: !!process.env.BASELINE_COMMIT && process.env.BASELINE_EXACT !== 'true',
               docLink: process.env.DOC_LINK || null,
               marker,
             });

@@ -288,13 +288,12 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
 static bool icm42605DeviceDetect(busDevice_t * dev)
 {
     uint8_t tmp;
-    uint8_t attemptsRemaining = 5;
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
     busWrite(dev, ICM42605_RA_PWR_MGMT0, 0x00);
 
-    do {
+    for (int attempt = 0; attempt < 5; attempt++) {
         delay(150);
 
         busRead(dev, MPU_RA_WHO_AM_I, &tmp);
@@ -315,7 +314,7 @@ static bool icm42605DeviceDetect(busDevice_t * dev)
                 // Retry detection
                 break;
         }
-    } while (attemptsRemaining--);
+    }
 
     return false;
 }
