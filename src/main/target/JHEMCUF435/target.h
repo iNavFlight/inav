@@ -114,15 +114,11 @@
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 
-// UART2 TX does not work due currently unknown software issue
-// Leaving this info here for future work.
-/*
 #define USE_UART2
 #define UART2_RX_AF             6
 #define UART2_TX_AF             8
 #define UART2_RX_PIN            PB0
 #define UART2_TX_PIN            PA8
-*/
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -141,7 +137,7 @@
 #define UART6_TX_PIN            PC6
 
 #define USE_UART7
-//#define USE_UART7_PIN_SWAP
+#define USE_UART7_PIN_SWAP
 #define UART7_RX_PIN            PC0
 #define UART7_TX_PIN            PC1
 
@@ -149,11 +145,11 @@
 #define UART8_RX_PIN            PC3
 #define UART8_TX_PIN            PC2
 
-#define SERIAL_PORT_COUNT       8
+#define SERIAL_PORT_COUNT       9
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
-#define SERIALRX_UART           SERIAL_PORT_USART5
+#define SERIALRX_UART           SERIAL_PORT_USART2
 
 // *************** ADC *****************************
 #define USE_ADC

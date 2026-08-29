@@ -51,6 +51,17 @@ USBD_HandleTypeDef USBD_Device;
 
 static vcpPort_t vcpPort;
 
+// Track DTR (Data Terminal Ready) state - indicates if host has COM port open
+// Default to true - assume connected until host explicitly clears DTR
+static volatile bool cdcPortOpened = true;
+
+static void cdcCtrlLineStateCallback(void *context, uint16_t ctrlLineState)
+{
+    UNUSED(context);
+    // DTR is bit 0 of control line state
+    cdcPortOpened = (ctrlLineState & 0x01) != 0;
+}
+
 static void usbVcpSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     UNUSED(instance);
@@ -103,7 +114,8 @@ static uint8_t usbVcpRead(serialPort_t *instance)
 static bool usbVcpIsConnected(const serialPort_t *instance)
 {
     (void)instance;
-    return usbIsConnected() && usbIsConfigured();
+    // Check USB hardware state AND whether host has opened the COM port (DTR)
+    return usbIsConnected() && usbIsConfigured() && cdcPortOpened;
 }
 
 static void usbVcpWriteBuf(serialPort_t *instance, const void *data, int count)
@@ -209,6 +221,9 @@ void usbVcpInitHardware(void)
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, RESOURCE_INPUT, 0);
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, RESOURCE_OUTPUT, 0);
     USBD_Init(&USB_OTG_dev, USB_OTG_FS_CORE_ID, &USR_desc, &USBD_CDC_cb, &USR_cb);
+
+    // Register callback for DTR state changes
+    CDC_SetCtrlLineStateCb(cdcCtrlLineStateCallback, NULL);
 #elif defined(STM32F7) || defined(STM32H7)
     usbGenerateDisconnectPulse();
 
@@ -225,7 +240,10 @@ void usbVcpInitHardware(void)
 
     /* Start Device Process */
     USBD_Start(&USBD_Device);
-    
+
+    // Register callback for DTR state changes
+    CDC_SetCtrlLineStateCb(cdcCtrlLineStateCallback, NULL);
+
 #ifdef STM32H7
     HAL_PWREx_EnableUSBVoltageDetector();
     delay(100); // Cold boot failures observed without this, even when USB cable is not connected
@@ -254,6 +272,23 @@ uint32_t usbVcpGetBaudRate(serialPort_t *instance)
     UNUSED(instance);
 
     return CDC_BaudRate();
+}
+
+portOptions_t usbVcpGetLineCoding(void)
+{
+    portOptions_t options = SERIAL_NOT_INVERTED;
+
+    // stop bits: CDC format 0=1 stop, 2=2 stop (1.5 not supported)
+    if (CDC_StopBits() == 2) {
+        options |= SERIAL_STOPBITS_2;
+    }
+
+    // parity: CDC 0=none, 2=even (odd parity not supported in INAV)
+    if (CDC_Parity() == 2) {
+        options |= SERIAL_PARITY_EVEN;
+    }
+
+    return options;
 }
 
 #endif

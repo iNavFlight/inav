@@ -28,7 +28,7 @@
 #include "navigation/navigation.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
-#define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
+#define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4.0f    // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
 #define NAV_VEL_Z_DERIVATIVE_CUT_HZ         5.0f
@@ -41,6 +41,11 @@
 
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
+// A landed multicopter should have near-zero vertical speed. Keep this independent
+// from nav_land_detect_sensitivity so higher sensitivity cannot disarm during descent.
+#define MC_LAND_DETECT_MAX_VEL_Z            50.0f   // cm/s
+// Only allow autonomous land detection near the configured final slow-descent phase.
+#define MC_LAND_DETECT_DESCENT_DEMAND_MARGIN 25.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
@@ -104,6 +109,7 @@ typedef struct navigationFlags_s {
 
     // Failsafe actions
     bool forcedRTHActivated;
+    bool forcedLandingActivated;
     bool forcedEmergLandingActivated;
 
     /* Landing detector */
@@ -113,7 +119,6 @@ typedef struct navigationFlags_s {
     bool rthTrackbackActive;                // Activation status of RTH trackback
     bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
     bool manualEmergLandActive;             // Activation status of manual emergency landing
-
 #ifdef USE_GEOZONE
     bool sendToActive;
     bool forcedPosholdActive;
@@ -137,6 +142,7 @@ typedef struct {
     float                   cosYaw;
     float                   surfaceMin;
     float                   velXY;
+    float                   vel3D;
 } navigationEstimatedState_t;
 
 typedef struct {
@@ -144,6 +150,7 @@ typedef struct {
     fpVector3_t vel;
     int32_t     yaw;
     int16_t     climbRateDemand;
+    uint16_t    autoSpeedDemand;
 } navigationDesiredState_t;
 
 typedef enum {
@@ -166,6 +173,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_MIXERAT,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING,
     NAV_FSM_EVENT_SWITCH_TO_SEND_TO,
+    NAV_FSM_EVENT_SWITCH_TO_LANDING,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
@@ -178,11 +186,24 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_2,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_3,
+    NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP     = NAV_FSM_EVENT_STATE_SPECIFIC_4,  // jump to a different WP index mid-mission
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK = NAV_FSM_EVENT_STATE_SPECIFIC_2,
     NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
     NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
+#ifdef USE_AUTO_TRANSITION
+    // Only valid while MixerAT is in progress. The state-specific slots are
+    // intentionally reused by other FSM states.
+    NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE = NAV_FSM_EVENT_STATE_SPECIFIC_1,
+    NAV_FSM_EVENT_MIXERAT_MISSION_CAPTURE = NAV_FSM_EVENT_STATE_SPECIFIC_2,
+#endif
     NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_5,
+
+#ifdef USE_AUTO_TRANSITION
+    // Capture must also accept MSP waypoint jumps, which already use state
+    // specific slot 4. Keep resume distinct so those events cannot alias.
+    NAV_FSM_EVENT_MIXERAT_MISSION_RESUME,
+#endif
 
     NAV_FSM_EVENT_COUNT,
 } navigationFSMEvent_t;
@@ -254,7 +275,8 @@ typedef enum {
 
     NAV_PERSISTENT_ID_SEND_TO_INITALIZE                         = 49,
     NAV_PERSISTENT_ID_SEND_TO_IN_PROGRES                        = 50,
-    NAV_PERSISTENT_ID_SEND_TO_FINISHED                          = 51
+    NAV_PERSISTENT_ID_SEND_TO_FINISHED                          = 51,
+    NAV_PERSISTENT_ID_MIXERAT_MISSION_CAPTURE                  = 52,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -313,6 +335,7 @@ typedef enum {
     NAV_STATE_MIXERAT_INITIALIZE,
     NAV_STATE_MIXERAT_IN_PROGRESS,
     NAV_STATE_MIXERAT_ABORT,
+    NAV_STATE_MIXERAT_MISSION_CAPTURE,
 
     NAV_STATE_SEND_TO_INITALIZE,
     NAV_STATE_SEND_TO_IN_PROGESS,
@@ -350,6 +373,8 @@ typedef enum {
 
     NAV_MIXERAT             = (1 << 16),    // MIXERAT in progress
     NAV_CTL_HOLD            = (1 << 17),    // Nav loiter active at position
+
+    NAV_CTL_SPEED           = (1 << 18),    // Auto speed allowed
 } navigationFSMStateFlags_t;
 
 typedef struct {
@@ -420,6 +445,12 @@ typedef enum {
     RTH_HOME_FINAL_LAND,            // Home position and altitude
 } rthTargetMode_e;
 
+typedef enum {
+    FW_AUTO_SPD_GROUND,
+    FW_AUTO_SPD_AIR,
+    FW_AUTO_SPD_GROUND_OVERRIDE,
+} fwAutoSpeedSpdSource_e;
+
 #ifdef USE_GEOZONE
 typedef struct navSendTo_s {
     fpVector3_t targetPos;
@@ -453,6 +484,7 @@ typedef struct {
     /* Local system state, both actual (estimated) and desired (target setpoint)*/
     navigationEstimatedState_t  actualState;
     navigationDesiredState_t    desiredState;   // waypoint coordinates + velocity
+    uint32_t                    gcsLoiterRadiusOverride; // Temporary GCS PosHold loiter radius override, cm; 0 = configured default
 
     uint32_t                    lastValidPositionTimeMs;
     uint32_t                    lastValidAltitudeTimeMs;
@@ -475,6 +507,7 @@ typedef struct {
 
     /* Waypoint list */
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
+    navWaypoint_t               commandLandingWaypoint;
     bool                        waypointListValid;
     int8_t                      waypointCount;              // number of WPs in loaded mission
     int8_t                      startWpIndex;               // index of first waypoint in mission
@@ -497,6 +530,11 @@ typedef struct {
     float                       wpDistance;                 // Distance to active WP
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
     bool                        wpAltitudeReached;          // WP altitude achieved
+    uint16_t                    wpReachedSeq;               // Last reached mission item sequence relative to startWpIndex
+    bool                        wpReachedNotificationPending;
+    bool                        wpAltitudeEnforceActive;    // WP entered altitude enforcement window
+    bool                        wpAltitudeEnforceFromStart; // First MC WP is climbing before horizontal travel
+    fpVector3_t                 wpAltitudeEnforceHoldPos;   // XY position captured before first-WP climb
 
 #ifdef USE_FW_AUTOLAND
     /* Fixedwing autoland */
@@ -506,6 +544,8 @@ typedef struct {
 #ifdef USE_GEOZONE
     navSendTo_t                  sendTo; // Used for Geozones
 #endif
+
+    uint8_t autoSpeedSpdSource;             // Auto Speed mode speed source
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
@@ -572,6 +612,8 @@ void resetMulticopterAltitudeController(void);
 void resetMulticopterPositionController(void);
 void resetMulticopterHeadingController(void);
 void resetMulticopterBrakingMode(void);
+bool navigationMulticopterBrakingActive(void);
+bool navigationMulticopterBrakingBoostActive(void);
 
 bool adjustMulticopterAltitudeFromRCInput(void);
 bool adjustMulticopterHeadingFromRCInput(void);

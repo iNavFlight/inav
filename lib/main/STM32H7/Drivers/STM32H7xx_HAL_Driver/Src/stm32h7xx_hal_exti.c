@@ -24,25 +24,25 @@
                     ##### EXTI Peripheral features #####
   ==============================================================================
   [..]
-    (+) Each Exti line can be configured within this driver.
+    (+) Each EXTI line can be configured within this driver.
 
-    (+) Exti line can be configured in 3 different modes
+    (+) EXTI line can be configured in 3 different modes
         (++) Interrupt (CORE1 or CORE2 in case of dual core line )
         (++) Event (CORE1 or CORE2 in case of dual core line )
         (++) a combination of the previous
 
-    (+) Configurable Exti lines can be configured with 3 different triggers
+    (+) Configurable EXTI lines can be configured with 3 different triggers
         (++) Rising
         (++) Falling
         (++) Both of them
 
-    (+) When set in interrupt mode, configurable Exti lines have two diffenrents
+    (+) When set in interrupt mode, configurable EXTI lines have two diffenrents
         interrupt pending registers which allow to distinguish which transition
         occurs:
         (++) Rising edge pending interrupt
         (++) Falling
 
-    (+) Exti lines 0 to 15 are linked to gpio pin number 0 to 15. Gpio port can
+    (+) EXTI lines 0 to 15 are linked to gpio pin number 0 to 15. Gpio port can
         be selected through multiplexer.
 
     (+) PendClearSource used to set the D3 Smart Run Domain autoamtic pend clear source.
@@ -87,22 +87,22 @@
              EXTI_ConfigTypeDef structure.
         (++) For configurable lines, configure rising and/or falling trigger
              "Trigger" member from EXTI_ConfigTypeDef structure.
-        (++) For Exti lines linked to gpio, choose gpio port using "GPIOSel"
+        (++) For EXTI lines linked to gpio, choose gpio port using "GPIOSel"
              member from GPIO_InitTypeDef structure.
-        (++) For Exti lines with wkaeup target is Any (CPU1 , CPU2 and D3 smart run domain),
+        (++) For EXTI lines with wkaeup target is Any (CPU1 , CPU2 and D3 smart run domain),
              choose gpio D3 PendClearSource using PendClearSource
              member from EXTI_PendClear_Source structure.
 
-    (#) Get current Exti configuration of a dedicated line using
+    (#) Get current EXTI configuration of a dedicated line using
         HAL_EXTI_GetConfigLine().
-        (++) Provide exiting handle as parameter.
+        (++) Provide EXTI handle as parameter.
         (++) Provide pointer on EXTI_ConfigTypeDef structure as second parameter.
 
-    (#) Clear Exti configuration of a dedicated line using HAL_EXTI_ClearConfigLine().
-        (++) Provide exiting handle as parameter.
+    (#) Clear EXTI configuration of a dedicated line using HAL_EXTI_ClearConfigLine().
+        (++) Provide EXTI handle as parameter.
 
-    (#) Register callback to treat Exti interrupts using HAL_EXTI_RegisterCallback().
-        (++) Provide exiting handle as first parameter.
+    (#) Register callback to treat EXTI interrupts using HAL_EXTI_RegisterCallback().
+        (++) Provide EXTI handle as first parameter.
         (++) Provide which callback will be registered using one value from
              EXTI_CallbackIDTypeDef.
         (++) Provide callback function pointer.
@@ -162,8 +162,8 @@
   */
 
 /**
-  * @brief  Set configuration of a dedicated Exti line.
-  * @param  hexti Exti handle.
+  * @brief  Set configuration of a dedicated EXTI line.
+  * @param  hexti EXTI handle.
   * @param  pExtiConfig Pointer on EXTI configuration to be set.
   * @retval HAL Status.
   */
@@ -366,9 +366,9 @@ HAL_StatusTypeDef HAL_EXTI_SetConfigLine(EXTI_HandleTypeDef *hexti, EXTI_ConfigT
 
 
 /**
-  * @brief  Get configuration of a dedicated Exti line.
-  * @param  hexti Exti handle.
-  * @param  pExtiConfig Pointer on structure to store Exti configuration.
+  * @brief  Get configuration of a dedicated EXTI line.
+  * @param  hexti EXTI handle.
+  * @param  pExtiConfig Pointer on structure to store EXTI configuration.
   * @retval HAL Status.
   */
 HAL_StatusTypeDef HAL_EXTI_GetConfigLine(EXTI_HandleTypeDef *hexti, EXTI_ConfigTypeDef *pExtiConfig)
@@ -505,8 +505,8 @@ HAL_StatusTypeDef HAL_EXTI_GetConfigLine(EXTI_HandleTypeDef *hexti, EXTI_ConfigT
 
 
 /**
-  * @brief  Clear whole configuration of a dedicated Exti line.
-  * @param  hexti Exti handle.
+  * @brief  Clear whole configuration of a dedicated EXTI line.
+  * @param  hexti EXTI handle.
   * @retval HAL Status.
   */
 HAL_StatusTypeDef HAL_EXTI_ClearConfigLine(const EXTI_HandleTypeDef *hexti)
@@ -602,8 +602,8 @@ HAL_StatusTypeDef HAL_EXTI_ClearConfigLine(const EXTI_HandleTypeDef *hexti)
 
 
 /**
-  * @brief  Register callback for a dedicated Exti line.
-  * @param  hexti Exti handle.
+  * @brief  Register callback for a dedicated EXTI line.
+  * @param  hexti EXTI handle.
   * @param  CallbackID User callback identifier.
   *         This parameter can be one of @arg @ref EXTI_CallbackIDTypeDef values.
   * @param  pPendingCbfn function pointer to be stored as callback.
@@ -636,8 +636,8 @@ HAL_StatusTypeDef HAL_EXTI_RegisterCallback(EXTI_HandleTypeDef *hexti, EXTI_Call
 
 /**
   * @brief  Store line number as handle private field.
-  * @param  hexti Exti handle.
-  * @param  ExtiLine Exti line number.
+  * @param  hexti EXTI handle.
+  * @param  ExtiLine EXTI line number.
   *         This parameter can be from 0 to @ref EXTI_LINE_NB.
   * @retval HAL Status.
   */
@@ -679,7 +679,7 @@ HAL_StatusTypeDef HAL_EXTI_GetHandle(EXTI_HandleTypeDef *hexti, uint32_t ExtiLin
 
 /**
   * @brief  Handle EXTI interrupt request.
-  * @param  hexti Exti handle.
+  * @param  hexti EXTI handle.
   * @retval none.
   */
 void HAL_EXTI_IRQHandler(const EXTI_HandleTypeDef *hexti)
@@ -727,7 +727,7 @@ void HAL_EXTI_IRQHandler(const EXTI_HandleTypeDef *hexti)
 
 /**
   * @brief  Get interrupt pending bit of a dedicated line.
-  * @param  hexti Exti handle.
+  * @param  hexti EXTI handle.
   * @param  Edge Specify which pending edge as to be checked.
   *         This parameter can be one of the following values:
   *           @arg @ref EXTI_TRIGGER_RISING_FALLING
@@ -778,7 +778,7 @@ uint32_t HAL_EXTI_GetPending(const EXTI_HandleTypeDef *hexti, uint32_t Edge)
 
 /**
   * @brief  Clear interrupt pending bit of a dedicated line.
-  * @param  hexti Exti handle.
+  * @param  hexti EXTI handle.
   * @param  Edge Specify which pending edge as to be clear.
   *         This parameter can be one of the following values:
   *           @arg @ref EXTI_TRIGGER_RISING_FALLING
@@ -824,7 +824,7 @@ void HAL_EXTI_ClearPending(const EXTI_HandleTypeDef *hexti, uint32_t Edge)
 
 /**
   * @brief  Generate a software interrupt for a dedicated line.
-  * @param  hexti Exti handle.
+  * @param  hexti EXTI handle.
   * @retval None.
   */
 void HAL_EXTI_GenerateSWI(const EXTI_HandleTypeDef *hexti)

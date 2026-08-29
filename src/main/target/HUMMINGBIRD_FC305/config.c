@@ -27,7 +27,7 @@
 
 void targetConfiguration(void)
 {
-    barometerConfigMutable()->baro_hardware = BARO_SPL06;
+    barometerConfigMutable()->baro_hardware = BARO_AUTODETECT;
     serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_ESCSERIAL;
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
 }

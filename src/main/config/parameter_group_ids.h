@@ -77,6 +77,7 @@
 // #define PG_ELERES_CONFIG 55
 #define PG_TEMP_SENSOR_CONFIG 56
 #define PG_CF_END 56
+#define PG_TERRAIN_CONFIG 57
 
 // Driver configuration
 //#define PG_DRIVER_PWM_RX_CONFIG 100
@@ -132,12 +133,13 @@
 #define PG_GEOZONE_CONFIG 1042
 #define PG_GEOZONES 1043
 #define PG_GEOZONE_VERTICES 1044
+#define PG_DRONECAN_CONFIG 1045
 #ifdef USE_MZTC
-#define PG_MZTC_CAMERA_CONFIG 1045
-#define PG_MZTC_OSD_CONFIG 1046
+#define PG_MZTC_CAMERA_CONFIG 1046
+#define PG_MZTC_OSD_CONFIG 1047
 #define PG_INAV_END PG_MZTC_OSD_CONFIG
 #else
-#define PG_INAV_END PG_GEOZONE_VERTICES
+#define PG_INAV_END PG_DRONECAN_CONFIG
 #endif
 
 // OSD configuration (subject to change)

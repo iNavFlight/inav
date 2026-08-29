@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-
+#include <limits.h>
 #include "platform.h"
 
 #if defined(USE_TELEMETRY) && defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
@@ -46,6 +46,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
+#include "flight/mixer.h"
 
 #include "io/gps.h"
 #include "io/serial.h"
@@ -56,11 +57,16 @@
 #include "rx/rx.h"
 
 #include "sensors/battery.h"
+#include "sensors/esc_sensor.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
+#include "sensors/temperature.h"
 
 #include "telemetry/crsf.h"
 #include "telemetry/telemetry.h"
 #include "telemetry/msp_shared.h"
+
+#include "io/crsf_sensor.h"
 
 
 #define CRSF_CYCLETIME_US                   100000  // 100ms, 10 Hz
@@ -162,6 +168,16 @@ static void crsfSerialize16(sbuf_t *dst, uint16_t v)
     crsfSerialize8(dst, (uint8_t)v);
 }
 
+#ifdef USE_ESC_SENSOR
+static void crsfSerialize24(sbuf_t *dst, uint32_t v)
+{
+    // Use BigEndian format
+    crsfSerialize8(dst, (v >> 16));
+    crsfSerialize8(dst, (v >> 8));
+    crsfSerialize8(dst, (uint8_t)v);
+}
+#endif
+
 static void crsfSerialize32(sbuf_t *dst, uint32_t v)
 {
     // Use BigEndian format
@@ -225,8 +241,7 @@ static void crsfFrameGps(sbuf_t *dst)
     crsfSerialize32(dst, gpsSol.llh.lon);
     crsfSerialize16(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // gpsSol.groundSpeed is in cm/s
     crsfSerialize16(dst, DECIDEGREES_TO_CENTIDEGREES(gpsSol.groundCourse)); // gpsSol.groundCourse is 0.1 degrees, need 0.01 deg
-    const uint16_t altitude = (getEstimatedActualPosition(Z) / 100) + 1000;
-    crsfSerialize16(dst, altitude);
+    crsfSerialize16(dst, (uint16_t)( (telemetryConfig()->crsf_use_legacy_baro_packet ? getEstimatedActualPosition(Z) : gpsSol.llh.alt ) / 100 + 1000) );
     crsfSerialize8(dst, gpsSol.numSat);
 }
 
@@ -240,7 +255,16 @@ static void crsfFrameVarioSensor(sbuf_t *dst)
     // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAME_VARIO_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_VARIO_SENSOR);
-    crsfSerialize16(dst, lrintf(getEstimatedActualVelocity(Z)));
+    int16_t vario;
+#ifdef USE_CRSF_SENSOR_INPUT
+    if (crsfSensorVarioIsValid()) {
+        vario = crsfSensorGetVario();
+    } else
+#endif
+    {
+        vario = lrintf(getEstimatedActualVelocity(Z));
+    }
+    crsfSerialize16(dst, vario);
 }
 
 /*
@@ -269,16 +293,20 @@ static void crsfFrameBatterySensor(sbuf_t *dst)
     crsfSerialize8(dst, batteryRemainingPercentage);
 }
 
-const int32_t ALT_MIN_DM = 10000;
-const int32_t ALT_THRESHOLD_DM = 0x8000 - ALT_MIN_DM;
-const int32_t ALT_MAX_DM = 0x7ffe * 10 - 5;
 
 /*
 0x09 Barometer altitude and vertical speed
 Payload:
 uint16_t    altitude_packed ( dm - 10000 )
 */
-static void crsfBarometerAltitude(sbuf_t *dst)
+
+const int32_t ALT_MIN_DM = 10000;
+const int32_t ALT_THRESHOLD_DM = 0x8000 - ALT_MIN_DM;
+const int32_t ALT_MAX_DM = 0x7ffe * 10 - 5;
+const float VARIO_KL = 100.0f;   // TBS CRSF standard
+const float VARIO_KR = .026f;    // TBS CRSF standard
+
+static void crsfFrameBarometerAltitudeVarioSensor(sbuf_t *dst)
 {
     int32_t altitude_dm = lrintf(getEstimatedActualPosition(Z) / 10);
     uint16_t altitude_packed;
@@ -291,9 +319,105 @@ static void crsfBarometerAltitude(sbuf_t *dst)
     } else {
         altitude_packed = ((altitude_dm + 5) / 10) | 0x8000;
     }
-    sbufWriteU8(dst, CRSF_FRAME_BAROMETER_ALTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
-    crsfSerialize8(dst, CRSF_FRAMETYPE_BAROMETER_ALTITUDE);
+
+    float vario_sm = getEstimatedActualVelocity(Z);
+    int8_t sign = vario_sm < 0 ? -1 : ( vario_sm > 0 ? 1 : 0 );
+    int8_t vario_packed = (int8_t)constrain( lrintf(__builtin_logf(ABS(vario_sm) / VARIO_KL + 1) / VARIO_KR * sign ), SCHAR_MIN, SCHAR_MAX );
+
+    sbufWriteU8(dst, CRSF_FRAME_BAROMETER_ALTITUDE_VARIO_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR);
     crsfSerialize16(dst, altitude_packed);
+    crsfSerialize8(dst, vario_packed);
+}
+
+#ifdef USE_PITOT
+/*
+0x0A Airspeed sensor
+Payload:
+int16      Air speed ( dm/s )
+*/
+static void crsfFrameAirSpeedSensor(sbuf_t *dst)
+{
+    // use sbufWrite since CRC does not include frame length
+    sbufWriteU8(dst, CRSF_FRAME_AIRSPEED_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_AIRSPEED_SENSOR);
+    crsfSerialize16(dst, (uint16_t)(getAirspeedEstimate() * 36.0f / 100.0f));
+}
+#endif
+
+#ifdef USE_ESC_SENSOR
+/*
+0x0C RPM
+Payload:
+uint8_t    rpm_source_id;  // Identifies the source of the RPM data (e.g., 0 = Motor 1, 1 = Motor 2, etc.)
+int24_t    rpm_value[];     // 1 - 19 RPM values with negative ones representing the motor spinning in reverse
+*/
+static bool crsfRpm(sbuf_t *dst)
+{
+    const uint8_t MAX_CRSF_RPM_VALUES = 19;  // CRSF protocol limit: 1-19 RPM values
+    uint8_t motorCount = getMotorCount();
+
+    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        // Enforce protocol limit
+        if (motorCount > MAX_CRSF_RPM_VALUES) {
+            motorCount = MAX_CRSF_RPM_VALUES;
+        }
+
+        sbufWriteU8(dst, 1 + (motorCount * 3) + CRSF_FRAME_LENGTH_TYPE_CRC);
+        crsfSerialize8(dst, CRSF_FRAMETYPE_RPM);
+        // 0 = FC including all ESCs
+        crsfSerialize8(dst, 0);
+
+        for (uint8_t i = 0; i < motorCount; i++) {
+            const escSensorData_t *escState = getEscTelemetry(i);
+            crsfSerialize24(dst, (escState) ? escState->rpm : 0);
+        }
+        return true;
+    }
+    return false;
+}
+#endif
+
+/*
+0x0D TEMP
+Payload:
+uint8_t temp_source_id; // Identifies the source of the temperature data (e.g., 0 = FC including all ESCs, 1 = Ambient, etc.)
+int16_t temperature[]; // up to 20 temperature values in deci-degree (tenths of a degree) Celsius (e.g., 250 = 25.0°C, -50 = -5.0°C)
+*/
+static bool crsfTemperature(sbuf_t *dst)
+{
+    const uint8_t MAX_CRSF_TEMPS = 20;  // Maximum temperatures per CRSF frame
+    uint8_t tempCount = 0;
+    int16_t temperatures[20];
+
+#ifdef USE_ESC_SENSOR
+    uint8_t motorCount = getMotorCount();
+    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        for (uint8_t i = 0; i < motorCount && tempCount < MAX_CRSF_TEMPS; i++) {
+            const escSensorData_t *escState = getEscTelemetry(i);
+            temperatures[tempCount++] = (escState) ? escState->temperature * 10 : TEMPERATURE_INVALID_VALUE;
+        }
+    }
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    for (uint8_t i = 0; i < MAX_TEMP_SENSORS && tempCount < MAX_CRSF_TEMPS; i++) {
+        int16_t value;
+        if (getSensorTemperature(i, &value))
+            temperatures[tempCount++] = value;
+    }
+#endif
+
+    if (tempCount > 0) {
+        sbufWriteU8(dst, 1 + (tempCount * 2) + CRSF_FRAME_LENGTH_TYPE_CRC);
+        crsfSerialize8(dst, CRSF_FRAMETYPE_TEMP);
+        // 0 = FC including all ESCs
+        crsfSerialize8(dst, 0);
+        for (uint8_t i = 0; i < tempCount; i++)
+            crsfSerialize16(dst, temperatures[i]);
+        return true;
+    }
+    return false;
 }
 
 typedef enum {
@@ -463,13 +587,15 @@ typedef enum {
     CRSF_FRAME_BATTERY_SENSOR_INDEX,
     CRSF_FRAME_FLIGHT_MODE_INDEX,
     CRSF_FRAME_GPS_INDEX,
-    CRSF_FRAME_VARIO_SENSOR_INDEX,
-    CRSF_FRAME_BAROMETER_ALTITUDE_INDEX,
+    CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX,
+    CRSF_FRAME_TEMP_INDEX,
+    CRSF_FRAME_RPM_INDEX,
+    CRSF_FRAME_AIRSPEED_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
 static uint8_t crsfScheduleCount;
-static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
+static uint16_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
 
 #if defined(USE_MSP_OVER_TELEMETRY)
 
@@ -506,7 +632,7 @@ static void processCrsf(void)
     }
 
     static uint8_t crsfScheduleIndex = 0;
-    const uint8_t currentSchedule = crsfSchedule[crsfScheduleIndex];
+    const uint16_t currentSchedule = crsfSchedule[crsfScheduleIndex];
 
     sbuf_t crsfPayloadBuf;
     sbuf_t *dst = &crsfPayloadBuf;
@@ -526,6 +652,22 @@ static void processCrsf(void)
         crsfFrameFlightMode(dst);
         crsfFinalize(dst);
     }
+#ifdef USE_ESC_SENSOR
+    if (currentSchedule & BV(CRSF_FRAME_RPM_INDEX)) {
+        crsfInitializeFrame(dst);
+        if (crsfRpm(dst)) {
+            crsfFinalize(dst);
+        }
+    }
+#endif
+#if defined(USE_ESC_SENSOR) || defined(USE_TEMPERATURE_SENSOR)
+    if (currentSchedule & BV(CRSF_FRAME_TEMP_INDEX)) {
+        crsfInitializeFrame(dst);
+        if (crsfTemperature(dst)) {
+            crsfFinalize(dst);
+        }
+    }
+#endif
 #ifdef USE_GPS
     if (currentSchedule & BV(CRSF_FRAME_GPS_INDEX)) {
         crsfInitializeFrame(dst);
@@ -534,14 +676,16 @@ static void processCrsf(void)
     }
 #endif
 #if defined(USE_BARO) || defined(USE_GPS)
-    if (currentSchedule & BV(CRSF_FRAME_VARIO_SENSOR_INDEX)) {
+    if (currentSchedule & BV(CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX) ) {
         crsfInitializeFrame(dst);
-        crsfFrameVarioSensor(dst);
+        telemetryConfig()->crsf_use_legacy_baro_packet ? crsfFrameVarioSensor(dst) : crsfFrameBarometerAltitudeVarioSensor(dst);
         crsfFinalize(dst);
     }
-    if (currentSchedule & BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX)) {
+#endif
+#ifdef USE_PITOT
+    if (currentSchedule & BV(CRSF_FRAME_AIRSPEED_INDEX)) {
         crsfInitializeFrame(dst);
-        crsfBarometerAltitude(dst);
+        crsfFrameAirSpeedSensor(dst);
         crsfFinalize(dst);
     }
 #endif
@@ -575,12 +719,41 @@ void initCrsfTelemetry(void)
 #endif
 #if defined(USE_BARO) || defined(USE_GPS)
     if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
-        crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+        crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX);
     }
 #endif
-#ifdef USE_BARO
-    if (sensors(SENSOR_BARO)) {
-        crsfSchedule[index++] = BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX);
+#ifdef USE_ESC_SENSOR
+    if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_RPM_INDEX);
+    }
+#endif
+#if defined(USE_ESC_SENSOR) || defined(USE_TEMPERATURE_SENSOR)
+    // Only schedule temperature frame if we have temperature sources available
+    bool hasTemperatureSources = false;
+#ifdef USE_ESC_SENSOR
+    if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+        hasTemperatureSources = true;
+    }
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    if (!hasTemperatureSources) {
+        // Check if any temperature sensors are configured
+        for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
+            int16_t value;
+            if (getSensorTemperature(i, &value)) {
+                hasTemperatureSources = true;
+                break;
+            }
+        }
+    }
+#endif
+    if (hasTemperatureSources) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_TEMP_INDEX);
+    }
+#endif
+#ifdef USE_PITOT
+    if (sensors(SENSOR_PITOT)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_AIRSPEED_INDEX);
     }
 #endif
     crsfScheduleCount = (uint8_t)index;
@@ -659,7 +832,15 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
     case CRSF_FRAMETYPE_VARIO_SENSOR:
         crsfFrameVarioSensor(sbuf);
         break;
-    }
+    case CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR:
+        crsfFrameBarometerAltitudeVarioSensor(sbuf);
+        break;
+#ifdef USE_PITOT
+    case CRSF_FRAMETYPE_AIRSPEED_SENSOR:
+        crsfFrameAirSpeedSensor(sbuf);
+        break;
+#endif
+    }  
     const int frameSize = crsfFinalizeBuf(sbuf, frame);
     return frameSize;
 }

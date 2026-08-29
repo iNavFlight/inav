@@ -39,6 +39,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 #include <platform.h>
 #include "target.h"
@@ -81,6 +82,25 @@ static void printVersion(void) {
     fprintf(stderr, "INAV %d.%d.%d SITL (%s)\n", FC_VERSION_MAJOR, FC_VERSION_MINOR, FC_VERSION_PATCH_LEVEL, shortGitRevision);
 }
 
+static void cleanupAndExit(int code, bool shouldExit) {
+    if (sitlSim == SITL_SIM_XPLANE) {
+        simXPlaneClose();
+    } else if (sitlSim == SITL_SIM_REALFLIGHT) {
+        simRealFlightClose();
+    }
+    pthread_mutex_destroy(&mainLoopLock);
+
+    if (shouldExit) {
+        exit(code);
+    }
+}
+
+static void on_sigint(int sig) {
+    UNUSED(sig);
+    fprintf(stderr, "\n[SYSTEM] Caught SIGINT, exiting...\n");
+    cleanupAndExit(0, true);
+}
+
 void systemInit(void) {
     printVersion();
     clock_gettime(CLOCK_MONOTONIC, &start_time);
@@ -100,6 +120,12 @@ void systemInit(void) {
         fprintf(stderr, "[SYSTEM] Unable to create mainLoop lock.\n");
         exit(1);
     }
+
+    struct sigaction sa;
+    sa.sa_handler = on_sigint;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
 
     if (sitlSim != SITL_SIM_NONE) {
         fprintf(stderr, "[SIM] Waiting for connection...\n");
@@ -390,6 +416,7 @@ void delay(timeMs_t ms)
 void systemReset(void)
 {
     fprintf(stderr, "[SYSTEM] Reset\n");
+    cleanupAndExit(0, false);
 #if defined(__CYGWIN__) || defined(__APPLE__) || GCC_MAJOR < 12
     for(int j = 3; j < 1024; j++) {
         close(j);
@@ -404,7 +431,7 @@ void systemReset(void)
 void systemResetToBootloader(void)
 {
     fprintf(stderr, "[SYSTEM] Reset to bootloader\n");
-    exit(0);
+    cleanupAndExit(0, true);
 }
 
 void failureMode(failureMode_e mode) {

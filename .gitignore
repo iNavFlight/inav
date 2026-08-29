@@ -7,6 +7,7 @@
 *.bak
 *.uvgui.*
 *.ubx
+*.log
 .project
 .settings
 .cproject
@@ -57,3 +58,14 @@ inav_9.0.0_SITL
 
 # Testing
 /testing
+/testing/
+/.idea/
+
+# Build output directories (catch-all for ad-hoc build dirs)
+/build_*/
+/build-*/
+/build_hw/
+
+# Local development files
+.semgrepignore
+build_sitl/

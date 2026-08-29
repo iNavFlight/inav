@@ -33,6 +33,7 @@
 
 #include "drivers/system.h"
 #include "drivers/flash.h"
+#include "drivers/pwm_output.h"
 
 #include "fc/config.h"
 
@@ -321,6 +322,13 @@ static bool writeSettingsToEEPROM(void)
 
 void writeConfigToEEPROM(void)
 {
+#if !defined(SITL_BUILD) && defined(USE_DSHOT)
+    // Enable circular DMA so hardware keeps repeating zero-throttle DShot
+    // packets during flash writes (which block the CPU for 20-200ms).
+    // Without this, ESCs lose signal and may spin up or reboot.
+    pwmSetMotorDMACircular(true);
+#endif
+
     bool success = false;
     // write it
     for (int attempt = 0; attempt < 3 && !success; attempt++) {
@@ -332,6 +340,10 @@ void writeConfigToEEPROM(void)
 #endif
         }
     }
+
+#if !defined(SITL_BUILD) && defined(USE_DSHOT)
+    pwmSetMotorDMACircular(false);
+#endif
 
     if (success && isEEPROMContentValid()) {
         return;

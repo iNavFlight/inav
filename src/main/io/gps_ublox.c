@@ -87,6 +87,11 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
+// MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
+static uint16_t monRfNoisePerMs = 0;
+static uint16_t monAgcCount = 0;
+static uint8_t monCWSuppresion = 0;
+
 // Packet checksum accumulators
 static uint8_t _ck_a;
 static uint8_t _ck_b;
@@ -151,6 +156,14 @@ static union {
     ubx_nav_sig navsig;
     uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
+
+// OSD controlled flag: when true, OSD requests periodic MON-RF polling
+static volatile bool osdMonRfWidgetEnabled = false;
+
+void gpsSetOsdMonRfWidgetEnabled(bool enabled)
+{
+    osdMonRfWidgetEnabled = enabled;
+}
 
 bool gpsUbloxHasGalileo(void)
 {
@@ -259,6 +272,28 @@ static void pollGnssCapabilities(void)
     send_buffer.message.header.msg_id = MSG_MON_GNSS;
     send_buffer.message.header.length = 0;
     sendConfigMessageUBLOX();
+}
+
+// Poll UBX-MON-RF (no ACK expected) - used periodically for RF status on newer modules
+static void pollMonRf(void)
+{
+    uint8_t pkt[8];
+    uint8_t ck_a = 0, ck_b = 0;
+
+    pkt[0] = PREAMBLE1;
+    pkt[1] = PREAMBLE2;
+    pkt[2] = CLASS_MON;
+    pkt[3] = MSG_MON_RF;
+    pkt[4] = 0; // length LSB
+    pkt[5] = 0; // length MSB
+
+    // compute checksum over CLASS, ID and length (4 bytes)
+    ublox_update_checksum(&pkt[2], 4, &ck_a, &ck_b);
+    pkt[6] = ck_a;
+    pkt[7] = ck_b;
+
+    // send without forcing ACK state (so we don't disturb config ACK handling)
+    serialWriteBuf(gpsState.gpsPort, pkt, sizeof(pkt));
 }
 
 
@@ -549,14 +584,14 @@ static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
     if (bufferLength > 13 && (!strncmp(proto, "PROTVER=", 8) || !strncmp(proto, "PROTVER ", 8))) {
         proto+=8;
 
-        float ver = atof(proto);
+        float ver = fastA2F(proto);
 
         gpsState.swVersionMajor = (uint8_t)ver;
         gpsState.swVersionMinor = (uint8_t)((ver - gpsState.swVersionMajor) * 100.0f);
     }
 }
 
-static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
+static uint8_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
 {
     // ublox_5   hwVersion 00040005
     if (strncmp(szBuf, "00040005", nBufSize) == 0) {
@@ -598,9 +633,11 @@ static bool gpsParseFrameUBLOX(void)
         gpsSolDRV.llh.lon = _buffer.posllh.longitude;
         gpsSolDRV.llh.lat = _buffer.posllh.latitude;
         gpsSolDRV.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.ellipsoidAltitude = _buffer.posllh.altitude_ellipsoid / 10;
         gpsSolDRV.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
         gpsSolDRV.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
         gpsSolDRV.flags.validEPE = true;
+        gpsSolDRV.flags.validEllipsoidAltitude = true;
         if (next_fix_type != GPS_NO_FIX)
             gpsSolDRV.fixType = next_fix_type;
         _new_position = true;
@@ -623,8 +660,12 @@ static bool gpsParseFrameUBLOX(void)
         gpsSolDRV.velNED[X] = _buffer.velned.ned_north;
         gpsSolDRV.velNED[Y] = _buffer.velned.ned_east;
         gpsSolDRV.velNED[Z] = _buffer.velned.ned_down;
+        gpsSolDRV.speedAccuracy = _buffer.velned.speed_accuracy * 10;
+        gpsSolDRV.headingAccuracy = _buffer.velned.heading_accuracy;
         gpsSolDRV.flags.validVelNE = true;
         gpsSolDRV.flags.validVelD = true;
+        gpsSolDRV.flags.validSpeedAccuracy = true;
+        gpsSolDRV.flags.validHeadingAccuracy = true;
         _new_speed = true;
         break;
     case MSG_TIMEUTC:
@@ -635,7 +676,7 @@ static bool gpsParseFrameUBLOX(void)
             gpsSolDRV.time.hours = _buffer.timeutc.hour;
             gpsSolDRV.time.minutes = _buffer.timeutc.min;
             gpsSolDRV.time.seconds = _buffer.timeutc.sec;
-            gpsSolDRV.time.millis = _buffer.timeutc.nano / (1000*1000);
+            gpsSolDRV.time.millis = (uint16_t)(MAX(0, _buffer.timeutc.nano) / (1000*1000));
 
             gpsSolDRV.flags.validTime = true;
         } else {
@@ -654,11 +695,14 @@ static bool gpsParseFrameUBLOX(void)
         gpsSolDRV.llh.lon = _buffer.pvt.longitude;
         gpsSolDRV.llh.lat = _buffer.pvt.latitude;
         gpsSolDRV.llh.alt = _buffer.pvt.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.ellipsoidAltitude = _buffer.pvt.altitude_ellipsoid / 10;
         gpsSolDRV.velNED[X]=_buffer.pvt.ned_north / 10;  // to cm/s
         gpsSolDRV.velNED[Y]=_buffer.pvt.ned_east / 10;   // to cm/s
         gpsSolDRV.velNED[Z]=_buffer.pvt.ned_down / 10;   // to cm/s
         gpsSolDRV.groundSpeed = _buffer.pvt.speed_2d / 10;    // to cm/s
         gpsSolDRV.groundCourse = (uint16_t) (_buffer.pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSolDRV.speedAccuracy = _buffer.pvt.speed_accuracy;
+        gpsSolDRV.headingAccuracy = _buffer.pvt.heading_accuracy;
         gpsSolDRV.numSat = _buffer.pvt.satellites;
         gpsSolDRV.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
         gpsSolDRV.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
@@ -666,6 +710,9 @@ static bool gpsParseFrameUBLOX(void)
         gpsSolDRV.flags.validVelNE = true;
         gpsSolDRV.flags.validVelD = true;
         gpsSolDRV.flags.validEPE = true;
+        gpsSolDRV.flags.validEllipsoidAltitude = true;
+        gpsSolDRV.flags.validSpeedAccuracy = true;
+        gpsSolDRV.flags.validHeadingAccuracy = true;
 
         if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
             gpsSolDRV.time.year = _buffer.pvt.year;
@@ -674,7 +721,7 @@ static bool gpsParseFrameUBLOX(void)
             gpsSolDRV.time.hours = _buffer.pvt.hour;
             gpsSolDRV.time.minutes = _buffer.pvt.min;
             gpsSolDRV.time.seconds = _buffer.pvt.sec;
-            gpsSolDRV.time.millis = _buffer.pvt.nano / (1000*1000);
+            gpsSolDRV.time.millis = (uint16_t)(MAX(0, _buffer.pvt.nano) / (1000*1000));
 
             gpsSolDRV.flags.validTime = true;
         } else {
@@ -730,6 +777,19 @@ static bool gpsParseFrameUBLOX(void)
                 ubx_capabilities.capMaxGnss = _buffer.gnss.maxConcurrent;
                 gpsState.lastCapaUpdMs = millis();
             }
+        }
+        break;
+    case MSG_MON_RF:
+        if (_class == CLASS_MON) {
+            // MON-RF payload contains various RF stats; noisePerMS/agcCnt are U2 fields at offsets 0x10/0x12.
+            if (_payload_length > 0x11) {
+                monRfNoisePerMs = (uint16_t)_buffer.bytes[0x10] | ((uint16_t)_buffer.bytes[0x11] << 8);
+            }
+            if (_payload_length > 0x13) {
+                monAgcCount = (uint16_t)_buffer.bytes[0x12] | ((uint16_t)_buffer.bytes[0x13] << 8);
+            }
+            if (_payload_length > 0x14) 
+                monCWSuppresion = _buffer.bytes[0x14];
         }
         break;
     case MSG_NAV_SAT:
@@ -1220,22 +1280,30 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
 
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
+    static uint32_t lastMonRfMs = 0;
     while (1) {
         ptSemaphoreWait(semNewDataReady);
         gpsProcessNewSolutionData(false);
-
+       
+        bool gnssPolled=false;
         if (gpsState.gpsConfig->autoConfig) {
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
                 gpsState.lastCapaPoolMs = millis();
-
+                gnssPolled=true;
                 if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN)
                 {
                     pollVersion();
-                    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
                 }
 
                 pollGnssCapabilities();
-                ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+            }
+        }
+
+         /* Periodically poll MON-RF (~1s) for HW > UBLOX8 if OSD widget requested. Do not change ACK state. */
+        if ((!gnssPolled) && gpsState.hwVersion > UBX_HW_VERSION_UBLOX8 && osdMonRfWidgetEnabled) {
+            if ((millis() - lastMonRfMs) > 1000) {
+                lastMonRfMs = millis();
+                pollMonRf();
             }
         }
     }
@@ -1311,6 +1379,21 @@ bool ubloxVersionLTE(uint8_t mj, uint8_t mn)
 bool ubloxVersionE(uint8_t mj, uint8_t mn)
 {
     return gpsState.swVersionMajor == mj && gpsState.swVersionMinor == mn;
+}
+
+uint16_t gpsGetMonRfNoisePerMs(void)
+{
+    return monRfNoisePerMs;
+}
+
+uint8_t gpsGetMonAGCPercent(void)
+{
+    return MIN((uint32_t)(monAgcCount * 100U /*+ 4095U*/) / 8191U, 100U); //AGC Monitor, as percentage of maximum gain, range 0 to 8191 (100%)
+}
+
+uint8_t gpsGetMonRfCWSuppression(void)
+{
+    return monCWSuppresion;
 }
 
 #endif

@@ -50,6 +50,7 @@ void pwmWriteServo(uint8_t index, uint16_t value);
 
 void pwmDisableMotors(void);
 void pwmEnableMotors(void);
+void pwmSetMotorDMACircular(bool circular);
 struct timerHardware_s;
 
 void pwmMotorPreconfigure(void);
@@ -58,7 +59,7 @@ bool pwmMotorConfig(const struct timerHardware_s *timerHardware, uint8_t motorIn
 void pwmServoPreconfigure(void);
 bool pwmServoConfig(const struct timerHardware_s *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput);
 void pwmWriteBeeper(bool onoffBeep);
-void beeperPwmInit(ioTag_t tag, uint16_t frequency);
+bool beeperPwmInit(ioTag_t tag, uint16_t frequency);
 
 void sendDShotCommand(dshotCommands_e cmd);
 void initDShotCommands(void);

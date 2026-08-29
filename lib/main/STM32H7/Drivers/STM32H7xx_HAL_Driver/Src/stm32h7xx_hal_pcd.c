@@ -1418,8 +1418,9 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       {
         if (hpcd->OUT_ep[epnum].is_iso_incomplete == 1U)
         {
-          /* Abort current transaction and disable the EP */
-          (void)HAL_PCD_EP_Abort(hpcd, (uint8_t)epnum);
+          /* disable the EP */
+          USBx_OUTEP(epnum)->DOEPCTL |= (USB_OTG_DOEPCTL_SNAK);
+          USBx_OUTEP(epnum)->DOEPCTL |= (USB_OTG_DOEPCTL_EPDIS);
         }
       }
     }
@@ -1453,7 +1454,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
         if ((hpcd->OUT_ep[epnum].type == EP_TYPE_ISOC) &&
             ((RegVal & USB_OTG_DOEPCTL_EPENA) == USB_OTG_DOEPCTL_EPENA) &&
-            (((RegVal & (0x1U << 16)) >> 16U) == (hpcd->FrameNumber & 0x1U)))
+            (((RegVal & (0x1UL << 16)) >> 16U) == (hpcd->FrameNumber & 0x1U)))
         {
           hpcd->OUT_ep[epnum].is_iso_incomplete = 1U;
 
@@ -2101,7 +2102,7 @@ HAL_StatusTypeDef HAL_PCD_SetTestMode(const PCD_HandleTypeDef *hpcd, uint8_t tes
     case TEST_SE0_NAK:
     case TEST_PACKET:
     case TEST_FORCE_EN:
-      USBx_DEVICE->DCTL &= ~(0x7U << 4);
+      USBx_DEVICE->DCTL &= ~(0x7UL << 4);
       USBx_DEVICE->DCTL |= (uint32_t)testmode << 4;
       break;
 
