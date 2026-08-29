@@ -1,5 +1,13 @@
 #!/bin/bash
 #
+# WARNING: This script is invoked from a GitHub Actions job via
+# `bash .github/scripts/...`. It MUST NEVER be called from a job that has
+# not first checked out a known branch (e.g. `- uses: actions/checkout@v4`
+# as the job's first step): the runner workspace is empty until then, so
+# the script doesn't exist and the call fails with exit 127, silently
+# reporting no baseline. Every job calling this script must check out
+# first.
+#
 # Fetch the size baseline for a PR's TRUE base commit — the merge-base of
 # the PR head and base ref — rather than the base branch's latest tip, so
 # the size-diff delta doesn't include unrelated changes merged to the base

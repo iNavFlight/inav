@@ -48,6 +48,14 @@ jobs:
     permissions:
       actions: read   # to download artifacts and query job conclusions from the triggering workflow run
     steps:
+      # REQUIRED FIRST STEP: check out a known branch before any step calls
+      # a script from .github/scripts/. Repo scripts MUST NEVER be invoked
+      # from a job that has not checked out first: the runner workspace is
+      # empty until a checkout, so `bash .github/scripts/...` fails with
+      # exit 127 and the job silently publishes nothing. workflow_run runs
+      # this file from the default branch, so checkout's default ref is the
+      # trusted one to use.
+      - uses: actions/checkout@v4
       # Don't gate on github.event.workflow_run.conclusion: "Build
       # pre-release" also runs a separate Release job (nightly upload to
       # iNavFlight/inav-nightly) that can fail for reasons unrelated to the
