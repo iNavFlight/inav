@@ -697,7 +697,7 @@ This sets the output voltage to current scaling for the current sensor in 0.1 mV
 
 ### current_meter_type
 
-ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
+ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, INA226, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
 
 | Allowed Values |  |
 | --- | --- |
@@ -709,6 +709,7 @@ ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once 
 | SMARTPORT |  |
 | CRSF |  |
 | CAN |  |
+| INA226 |  |
 
 ---
 
@@ -2325,6 +2326,36 @@ Power draw at zero throttle used for remaining flight time/distance estimation i
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 65535 |
+
+---
+
+### ina_address
+
+INA226 7-bit I2C address.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 64 | 79 |
+
+---
+
+### ina_bus
+
+Hardware I2C bus used by the INA226.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 1 | 4 |
+
+---
+
+### ina_shunt_res_uohm
+
+INA226 shunt resistor value in micro-ohms.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 1 | 4294967295 |
 
 ---
 
@@ -7346,7 +7377,7 @@ Maximum voltage per cell in 0.01V units, default is 4.20V
 
 ### vbat_meter_type
 
-Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus.
+Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN', `INA226`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus. `INA226` requires an INA226 I2C sensor.
 
 | Allowed Values |  |
 | --- | --- |
@@ -7357,6 +7388,7 @@ Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. 
 | SMARTPORT |  |
 | CRSF |  |
 | CAN |  |
+| INA226 |  |
 
 ---
 

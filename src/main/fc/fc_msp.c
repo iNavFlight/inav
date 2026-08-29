@@ -406,15 +406,6 @@ static void sbufReadAxisU16(sbuf_t *src, int16_t *arr)
     arr[Z] = sbufReadU16(src);
 }
 
-static void mspReadRates(sbuf_t *src, uint8_t *rates)
-{
-    for (int i = 0; i < 3; ++i) {
-        uint8_t v = sbufReadU8(src);
-        rates[i] = (i == FD_YAW) ? constrain(v, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX)
-                                  : constrain(v, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
-    }
-}
-
 static void mspDeserializeServoParams(sbuf_t *src, uint8_t servoIndex)
 {
     servoParamsMutable(servoIndex)->min    = sbufReadU16(src);
@@ -1087,8 +1078,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, NAV_Status.activeWpAction);
         sbufWriteU8(dst, NAV_Status.activeWpNumber);
         sbufWriteU8(dst, NAV_Status.error);
-        //sbufWriteU16(dst,  (int16_t)(target_bearing/100));
         sbufWriteU16(dst, getHeadingHoldTarget());
+        sbufWriteU16(dst, navDesiredHeading);   // guidance course/track (centideg)
         break;
 
 
@@ -1188,6 +1179,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0);
 #endif
             break;
+
+    case MSP2_ADSB_VEHICLE_COUNT:
+#ifdef USE_ADSB
+        sbufWriteU8(dst, MAX_ADSB_VEHICLES);   // iteration bound for the client
+#else
+        sbufWriteU8(dst, 0);
+#endif
+        break;
+
     case MSP_DEBUG:
         // output some useful QA statistics
         // debug[x] = ((hse_value / 1000000) * 1000) + (SystemCoreClock / 1000000);         // XX0YY [crystal clock : core clock]
@@ -2177,6 +2177,46 @@ static void mspFcDataFlashReadCommand(sbuf_t *dst, sbuf_t *src)
 }
 #endif
 
+typedef struct PACKED {
+    uint8_t  rcRate8;               // unused, kept for protocol compatibility
+    uint8_t  stabilizedRcExpo8;
+    uint8_t  rollRate;
+    uint8_t  pitchRate;
+    uint8_t  yawRate;
+    uint8_t  dynPID;
+    uint8_t  throttleRcMid8;
+    uint8_t  throttleRcExpo8;
+    uint16_t throttlePaBreakpoint;
+} mspSetRcTuning_t;
+STATIC_ASSERT(sizeof(mspSetRcTuning_t) == 10, mspSetRcTuning_t_size);
+
+typedef struct PACKED {
+    uint8_t  throttleRcMid8;
+    uint8_t  throttleRcExpo8;
+    uint8_t  throttleDynPID;
+    uint16_t throttlePaBreakpoint;
+    uint8_t  stabilizedRcExpo8;
+    uint8_t  stabilizedRcYawExpo8;
+    uint8_t  stabilizedRollRate;
+    uint8_t  stabilizedPitchRate;
+    uint8_t  stabilizedYawRate;
+    uint8_t  manualRcExpo8;
+    uint8_t  manualRcYawExpo8;
+    uint8_t  manualRollRate;
+    uint8_t  manualPitchRate;
+    uint8_t  manualYawRate;
+} mspSetRateProfile_t;
+STATIC_ASSERT(sizeof(mspSetRateProfile_t) == 15, mspSetRateProfile_t_size);
+
+typedef struct PACKED {
+    uint8_t  sublinkID;
+    uint16_t uplinkTXPower;
+    uint16_t downlinkTXPower;
+    uint8_t  band[4];
+    uint8_t  mode[6];
+} mspSetMspRcInfo_t;
+STATIC_ASSERT(sizeof(mspSetMspRcInfo_t) == 15, mspSetMspRcInfo_t_size);
+
 static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     uint8_t tmp_u8;
@@ -2286,18 +2326,32 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_RC_TUNING:
-        if ((dataSize == 10) || (dataSize == 11)) {
-            sbufReadU8(src); //Read rcRate8, kept for protocol compatibility reasons
+        // Lenient gate: accept payloads longer than the current struct from newer
+        // senders (MSP payloads only gain fields at the end); trailing bytes ignored.
+        if (dataSize >= sizeof(mspSetRcTuning_t)) {
+            mspSetRcTuning_t pkt;
+            if (!sbufReadDataSafe(src, &pkt, sizeof(pkt))) {
+                return MSP_RESULT_ERROR;
+            }
+            sbufAdvance(src, sizeof(pkt)); // sbufReadDataSafe() does not advance src itself
+
             // need to cast away const to set controlProfile
-            ((controlConfig_t*)currentControlProfile)->stabilized.rcExpo8 = sbufReadU8(src);
-            mspReadRates(src, ((controlConfig_t*)currentControlProfile)->stabilized.rates);
-            tmp_u8 = sbufReadU8(src);
-            ((controlConfig_t*)currentControlProfile)->throttle.dynPID = MIN(tmp_u8, SETTING_TPA_RATE_MAX);
-            ((controlConfig_t*)currentControlProfile)->throttle.rcMid8 = sbufReadU8(src);
-            ((controlConfig_t*)currentControlProfile)->throttle.rcExpo8 = sbufReadU8(src);
-            ((controlConfig_t*)currentControlProfile)->throttle.pa_breakpoint = sbufReadU16(src);
-            if (dataSize > 10) {
-                ((controlConfig_t*)currentControlProfile)->stabilized.rcYawExpo8 = sbufReadU8(src);
+            controlConfig_t *currentControlProfile_p = (controlConfig_t*)currentControlProfile;
+            currentControlProfile_p->stabilized.rcExpo8 = pkt.stabilizedRcExpo8;
+            currentControlProfile_p->stabilized.rates[FD_ROLL] = constrain(pkt.rollRate, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
+            currentControlProfile_p->stabilized.rates[FD_PITCH] = constrain(pkt.pitchRate, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
+            currentControlProfile_p->stabilized.rates[FD_YAW] = constrain(pkt.yawRate, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
+            currentControlProfile_p->throttle.dynPID = MIN(pkt.dynPID, SETTING_TPA_RATE_MAX);
+            currentControlProfile_p->throttle.rcMid8 = pkt.throttleRcMid8;
+            currentControlProfile_p->throttle.rcExpo8 = pkt.throttleRcExpo8;
+            currentControlProfile_p->throttle.pa_breakpoint = pkt.throttlePaBreakpoint;
+
+            if (dataSize > sizeof(mspSetRcTuning_t)) {
+                uint8_t rcYawExpo8;
+                if (!sbufReadDataSafe(src, &rcYawExpo8, sizeof(rcYawExpo8))) {
+                    return MSP_RESULT_ERROR;
+                }
+                currentControlProfile_p->stabilized.rcYawExpo8 = rcYawExpo8;
             }
 
             schedulePidGainsUpdate();
@@ -2307,24 +2361,35 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_RATE_PROFILE:
-        if (dataSize == 15) {
+        // Lenient gate: accept payloads longer than the current struct from newer
+        // senders (MSP payloads only gain fields at the end); trailing bytes ignored.
+        if (dataSize >= sizeof(mspSetRateProfile_t)) {
+            mspSetRateProfile_t pkt;
+            if (!sbufReadDataSafe(src, &pkt, sizeof(pkt))) {
+                return MSP_RESULT_ERROR;
+            }
+
             controlConfig_t *currentControlProfile_p = (controlConfig_t*)currentControlProfile; // need to cast away const to set controlProfile
 
             // throttle
-            currentControlProfile_p->throttle.rcMid8 = sbufReadU8(src);
-            currentControlProfile_p->throttle.rcExpo8 = sbufReadU8(src);
-            currentControlProfile_p->throttle.dynPID = sbufReadU8(src);
-            currentControlProfile_p->throttle.pa_breakpoint = sbufReadU16(src);
+            currentControlProfile_p->throttle.rcMid8 = pkt.throttleRcMid8;
+            currentControlProfile_p->throttle.rcExpo8 = pkt.throttleRcExpo8;
+            currentControlProfile_p->throttle.dynPID = pkt.throttleDynPID;
+            currentControlProfile_p->throttle.pa_breakpoint = pkt.throttlePaBreakpoint;
 
             // stabilized
-            currentControlProfile_p->stabilized.rcExpo8 = sbufReadU8(src);
-            currentControlProfile_p->stabilized.rcYawExpo8 = sbufReadU8(src);
-            mspReadRates(src, currentControlProfile_p->stabilized.rates);
+            currentControlProfile_p->stabilized.rcExpo8 = pkt.stabilizedRcExpo8;
+            currentControlProfile_p->stabilized.rcYawExpo8 = pkt.stabilizedRcYawExpo8;
+            currentControlProfile_p->stabilized.rates[FD_ROLL] = constrain(pkt.stabilizedRollRate, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
+            currentControlProfile_p->stabilized.rates[FD_PITCH] = constrain(pkt.stabilizedPitchRate, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
+            currentControlProfile_p->stabilized.rates[FD_YAW] = constrain(pkt.stabilizedYawRate, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
 
             // manual
-            currentControlProfile_p->manual.rcExpo8 = sbufReadU8(src);
-            currentControlProfile_p->manual.rcYawExpo8 = sbufReadU8(src);
-            mspReadRates(src, currentControlProfile_p->manual.rates);
+            currentControlProfile_p->manual.rcExpo8 = pkt.manualRcExpo8;
+            currentControlProfile_p->manual.rcYawExpo8 = pkt.manualRcYawExpo8;
+            currentControlProfile_p->manual.rates[FD_ROLL] = constrain(pkt.manualRollRate, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
+            currentControlProfile_p->manual.rates[FD_PITCH] = constrain(pkt.manualPitchRate, SETTING_CONSTANT_ROLL_PITCH_RATE_MIN, SETTING_CONSTANT_ROLL_PITCH_RATE_MAX);
+            currentControlProfile_p->manual.rates[FD_YAW] = constrain(pkt.manualYawRate, SETTING_YAW_RATE_MIN, SETTING_YAW_RATE_MAX);
 
         } else {
             return MSP_RESULT_ERROR;
@@ -2719,6 +2784,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         rxMspAuxOverlaySet(startChannel + ch, pwmValue);
                     }
                 }
+            }
+
+            if (src->overrun) {
+                return MSP_RESULT_ERROR;
             }
         }
         break;
@@ -3179,6 +3248,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             for (unsigned ii = 0; ii < MIN(osdCharacterBytes, sizeof(chr.data)); ii++) {
                 chr.data[ii] = sbufReadU8(src);
             }
+
+            if (src->overrun) {
+                return MSP_RESULT_ERROR;
+            }
+
             displayPort_t *osdDisplayPort = osdGetDisplayPort();
             if (osdDisplayPort) {
                 displayWriteFontCharacter(osdDisplayPort, addr, &chr);
@@ -3467,27 +3541,26 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_COMMON_SET_MSP_RC_INFO: {
-            if (dataSize >= 15) {
-                uint8_t sublinkID = sbufReadU8(src);
+            if (dataSize >= sizeof(mspSetMspRcInfo_t)) {
+                mspSetMspRcInfo_t pkt;
+                if (!sbufReadDataSafe(src, &pkt, sizeof(pkt))) {
+                    return MSP_RESULT_ERROR;
+                }
 
-                if (sublinkID == 0) {
+                if (pkt.sublinkID == 0) {
                     const int8_t configuredMspLink = rxGetMspLink();
                     const rxLink_e link = configuredMspLink >= 0 ? (rxLink_e)configuredMspLink : rxGetActiveLink();
                     rxLinkStatistics_t *statistics = rxGetLinkStatisticsMutable(link);
-                    statistics->uplinkTXPower = sbufReadU16(src);
-                    statistics->downlinkTXPower = sbufReadU16(src);
+                    statistics->uplinkTXPower = pkt.uplinkTXPower;
+                    statistics->downlinkTXPower = pkt.downlinkTXPower;
 
-                    for (int i = 0; i < 4; i++) {
-                        statistics->band[i] = sbufReadU8(src);
-                    }
+                    memcpy(statistics->band, pkt.band, sizeof(statistics->band));
 
                     for (int i = 0; i < (int)sizeof(statistics->band); i++) {
                         statistics->band[i] = sl_toupper(statistics->band[i]);
                     }
 
-                    for (int i = 0; i < (int)sizeof(statistics->mode); i++) {
-                        statistics->mode[i] = sbufReadU8(src);
-                    }
+                    memcpy(statistics->mode, pkt.mode, sizeof(statistics->mode));
 
                     for (int i = 0; i < (int)sizeof(statistics->mode); i++) {
                         statistics->mode[i] = sl_toupper(statistics->mode[i]);
@@ -4745,6 +4818,32 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
     case MSP2_INAV_DRONECAN_ASYNC_RESULT:
         mspSerializeDronecanAsyncResult(dst);
+        *ret = MSP_RESULT_ACK;
+        break;
+#endif
+
+#ifdef USE_ADSB
+    case MSP2_ADSB_VEHICLE:
+        if (sbufBytesRemaining(src) >= 1) {
+            adsbVehicle_t *vehicle = findVehicle(sbufReadU8(src));
+            if (vehicle == NULL) {                 // index past MAX_ADSB_VEHICLES
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+            sbufWriteU32(dst, vehicle->vehicleValues.icao);
+            sbufWriteU32(dst, vehicle->vehicleValues.gps.lat);
+            sbufWriteU32(dst, vehicle->vehicleValues.gps.lon);
+            sbufWriteU32(dst, vehicle->vehicleValues.alt);
+            sbufWriteU16(dst, vehicle->vehicleValues.heading);      // centideg, full-res
+            sbufWriteU16(dst, vehicle->vehicleValues.horVelocity);  // cm/s - omitted by the bulk list
+            sbufWriteU8(dst,  vehicle->vehicleValues.tslc);
+            sbufWriteU8(dst,  vehicle->vehicleValues.emitterType);
+            sbufWriteU8(dst,  vehicle->ttl);
+            sbufWriteData(dst, vehicle->vehicleValues.callsign, ADSB_CALL_SIGN_MAX_LENGTH);
+        } else {
+            *ret = MSP_RESULT_ERROR;               // no index supplied
+            break;
+        }
         *ret = MSP_RESULT_ACK;
         break;
 #endif

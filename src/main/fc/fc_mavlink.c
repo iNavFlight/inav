@@ -273,7 +273,7 @@ static void mavlinkParseRxStats(rxLink_e link, uint8_t ingressPortIndex, const m
         case MAVLINK_RADIO_GENERIC:
         default:
             if (msg->rssi != UINT8_MAX) {
-                statistics->uplinkRSSI = msg->rssi;
+                statistics->uplinkRSSI = -msg->rssi;
                 statistics->uplinkLQ = scaleRange(msg->rssi, 0, 254, 0, 100);
                 validFields |= RX_LINK_STATS_UPLINK_RSSI | RX_LINK_STATS_UPLINK_LQ;
             }
