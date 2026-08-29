@@ -2734,6 +2734,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                     }
                 }
             }
+
+            if (src->overrun) {
+                return MSP_RESULT_ERROR;
+            }
         }
         break;
 
@@ -3182,6 +3186,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             for (unsigned ii = 0; ii < MIN(osdCharacterBytes, sizeof(chr.data)); ii++) {
                 chr.data[ii] = sbufReadU8(src);
             }
+
+            if (src->overrun) {
+                return MSP_RESULT_ERROR;
+            }
+
             displayPort_t *osdDisplayPort = osdGetDisplayPort();
             if (osdDisplayPort) {
                 displayWriteFontCharacter(osdDisplayPort, addr, &chr);
