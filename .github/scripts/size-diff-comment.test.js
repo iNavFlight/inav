@@ -84,12 +84,12 @@ test('diffSizeReports: notable is gated at exactly NOISE_THRESHOLD_BYTES', () =>
 
 test('diffSizeReports: notable also triggers from ramDelta alone, and honors negative deltas via Math.abs', () => {
     const base = { MATEKF405: { flash: 100000, ram: 50000 } };
-    const pr = { MATEKF405: { flash: 100000, ram: 50000 - 40 } }; // flash unchanged, ram shrank by 40
+    const pr = { MATEKF405: { flash: 100000, ram: 50000 - 300 } }; // flash unchanged, ram shrank by 300
     const row = diffSizeReports(pr, base).find((r) => r.target === 'MATEKF405');
 
     assert.equal(row.flashDelta, 0);
-    assert.equal(row.ramDelta, -40);
-    assert.equal(row.notable, true, 'a -40 ram delta exceeds the 32-byte threshold in magnitude');
+    assert.equal(row.ramDelta, -300);
+    assert.equal(row.notable, true, 'a -300 ram delta exceeds NOISE_THRESHOLD_BYTES in magnitude');
 });
 
 test('diffSizeReports: target missing from PR report but present in baseline -> missing-from-pr', () => {
@@ -155,9 +155,9 @@ test('renderComment: baseline present, all 4 targets compared, mix of notable/no
         MATEKH743: [530000, 63000],
     });
     const prReport = fullReport({
-        MATEKF405: [500100, 60000], // +100 flash -> notable
+        MATEKF405: [500300, 60000], // +300 flash -> notable
         MATEKF722: [510010, 61000], // +10 flash -> not notable
-        MATEKF765: [519960, 62000], // -40 flash -> notable
+        MATEKF765: [519700, 62000], // -300 flash -> notable
         MATEKH743: [530000, 63000], // no change -> not notable
     });
 
@@ -179,9 +179,9 @@ test('renderComment: baseline present, all 4 targets compared, mix of notable/no
     const matekf765Line = lines.find((l) => l.startsWith('| MATEKF765'));
     const matekh743Line = lines.find((l) => l.startsWith('| MATEKH743'));
 
-    assert.ok(matekf405Line.includes('⚠️'), 'MATEKF405 (+100 flash) should be flagged notable');
+    assert.ok(matekf405Line.includes('⚠️'), 'MATEKF405 (+300 flash) should be flagged notable');
     assert.ok(!matekf722Line.includes('⚠️'), 'MATEKF722 (+10 flash) should NOT be flagged notable');
-    assert.ok(matekf765Line.includes('⚠️'), 'MATEKF765 (-40 flash) should be flagged notable');
+    assert.ok(matekf765Line.includes('⚠️'), 'MATEKF765 (-300 flash) should be flagged notable');
     assert.ok(!matekh743Line.includes('⚠️'), 'MATEKH743 (no change) should NOT be flagged notable');
 
     // No "no baseline available" note when a baseline was supplied.
@@ -285,4 +285,71 @@ test('renderComment: result always ends with exactly one trailing newline', () =
 
     assert.ok(body.endsWith('\n'));
     assert.ok(!body.endsWith('\n\n'));
+});
+
+// ---------------------------------------------------------------------------
+// renderComment: baseline-commit header
+// ---------------------------------------------------------------------------
+
+test('renderComment: baselineCommit supplied -> header names the baseline commit', () => {
+    const body = renderComment({
+        prReport: fullReport({ MATEKF405: [500000, 60000] }),
+        baselineReport: fullReport({ MATEKF405: [499000, 60000] }),
+        shortSha: 'abc1234',
+        baselineCommit: '9e932ba',
+        baselineIsNearest: false,
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(body.includes('vs. base commit `9e932ba`'), 'header should name the baseline commit');
+    assert.ok(body.includes('commit `abc1234`'), 'header should still name the PR head commit');
+    assert.ok(!body.includes('vs. base branch'), 'exact baseline should not use the generic "base branch" wording');
+    assert.ok(!body.includes('nearest available size baseline'), 'exact baseline should not show the fallback note');
+    assert.ok(!body.includes('No size baseline is available yet'), 'baseline present means no "no baseline" note');
+});
+
+test('renderComment: baselineCommit + baselineIsNearest -> fallback note shown', () => {
+    const body = renderComment({
+        prReport: fullReport({ MATEKF405: [500000, 60000] }),
+        baselineReport: fullReport({ MATEKF405: [499000, 60000] }),
+        shortSha: 'abc1234',
+        baselineCommit: '7f133b3',
+        baselineIsNearest: true,
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(body.includes('vs. base commit `7f133b3`'), 'header should name the nearest baseline commit');
+    assert.ok(body.includes('nearest available size baseline'), 'fallback note should explain the nearest-baseline choice');
+});
+
+test('renderComment: baselineCommit omitted -> generic "vs. base branch" wording kept', () => {
+    const body = renderComment({
+        prReport: fullReport({ MATEKF405: [500000, 60000] }),
+        baselineReport: fullReport({ MATEKF405: [499000, 60000] }),
+        shortSha: 'abc1234',
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(body.includes('vs. base branch'), 'legacy callers without baselineCommit keep the old wording');
+    assert.ok(!body.includes('base commit `'), 'no baseline commit rendered when none supplied');
+});
+
+test('renderComment: baselineCommit supplied but no baseline report -> graceful note still wins', () => {
+    // Defensive: the workflow only sets baselineCommit when a baseline was
+    // found, so this combination should not occur; if it ever does, the
+    // "no baseline available" note must still be present (never silently
+    // claim a comparison happened).
+    const body = renderComment({
+        prReport: fullReport({ MATEKF405: [500000, 60000] }),
+        baselineReport: null,
+        shortSha: 'abc1234',
+        baselineCommit: '9e932ba',
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(body.includes('No size baseline is available yet'));
 });

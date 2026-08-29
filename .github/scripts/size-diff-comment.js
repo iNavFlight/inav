@@ -60,15 +60,26 @@ function diffSizeReports(prReport, baselineReport) {
 }
 
 // docLink: string URL to link, or null/undefined to omit the doc-link line.
-function renderComment({ prReport, baselineReport, shortSha, docLink, marker }) {
+// baselineCommit: short SHA of the baseline commit the delta was computed
+//   against, or null/undefined to fall back to the generic "base branch"
+//   wording. baselineIsNearest: true when the exact base commit had no
+//   stored baseline and a nearest-ancestor baseline was used instead.
+function renderComment({ prReport, baselineReport, shortSha, baselineCommit, baselineIsNearest, docLink, marker }) {
     const rows = diffSizeReports(prReport, baselineReport);
-    const lines = [marker, '**RAM / Flash usage vs. base branch** — commit `' + shortSha + '`', ''];
+    const vs = baselineCommit ? `vs. base commit \`${baselineCommit}\`` : 'vs. base branch';
+    const lines = [marker, `**RAM / Flash usage ${vs}** — commit \`${shortSha}\``, ''];
 
     if (!baselineReport) {
         lines.push(
-            '> No size baseline is available yet for this PR\'s base branch ' +
+            '> No size baseline is available yet for this PR\'s base commit ' +
             '(first run after this feature shipped, or a new branch). ' +
             'This comment will show deltas once a baseline exists.',
+            ''
+        );
+    } else if (baselineIsNearest) {
+        lines.push(
+            '> Using the nearest available size baseline — the PR\'s exact base ' +
+            'commit has no stored baseline yet.',
             ''
         );
     }
