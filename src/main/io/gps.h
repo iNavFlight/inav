@@ -21,6 +21,7 @@
 #include <time.h>
 
 #include "config/parameter_group.h"
+#include <dronecan_msgs.h>
 
 #include "common/time.h"
 
@@ -35,7 +36,9 @@
 typedef enum {
     GPS_UBLOX = 0,
     GPS_MSP,
+    GPS_CRSF,
     GPS_FAKE,
+    GPS_DRONECAN,
     GPS_PROVIDER_COUNT
 } gpsProvider_e;
 
@@ -129,6 +132,9 @@ typedef struct gpsSolutionData_s {
         bool validVelD;
         bool validEPE;      // EPH/EPV values are valid - actual accuracy
         bool validTime;
+        bool validEllipsoidAltitude;
+        bool validSpeedAccuracy;
+        bool validHeadingAccuracy;
     } flags;
 
     gpsFixType_e fixType;
@@ -142,6 +148,9 @@ typedef struct gpsSolutionData_s {
 
     uint16_t eph;   // horizontal accuracy (cm)
     uint16_t epv;   // vertical accuracy (cm)
+    int32_t ellipsoidAltitude; // centimeters above the WGS84 ellipsoid
+    uint32_t speedAccuracy;    // millimeters per second
+    uint32_t headingAccuracy;  // degrees * 1E5
 
     uint16_t hdop;  // generic HDOP value (*HDOP_SCALE)
 
@@ -170,7 +179,13 @@ bool isGPSHealthy(void);
 bool isGPSHeadingValid(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
+
 void mspGPSReceiveNewData(const uint8_t * bufferPtr, unsigned int dataSize);
+
+void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix);
+void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssFix2);
+void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliary * pgnssAux);
+
 
 const char *getGpsHwVersion(void);
 uint8_t getGpsProtoMajorVersion(void);

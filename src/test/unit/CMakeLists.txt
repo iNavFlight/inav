@@ -4,8 +4,16 @@ set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/main")
 
 # Keep these alphabetically sorted by test name
 
+set_property(SOURCE adsb_unittest.cc PROPERTY depends "io/adsb.c" "common/maths.c")
+set_property(SOURCE adsb_unittest.cc PROPERTY definitions USE_ADSB MAX_ADSB_VEHICLES=5 ADSB_LIMIT_CM=6400000)
+set_property(SOURCE adsb_unittest.cc PROPERTY extra_includes "../../lib/main/MAVLink")
+
 set_property(SOURCE alignsensor_unittest.cc PROPERTY depends
     "common/maths.c" "sensors/boardalignment.c")
+
+set_property(SOURCE battery_ina226_unittest.cc PROPERTY depends
+    "sensors/battery.c" "drivers/ina226.c" "common/filter.c" "common/lulu.c" "common/maths.c")
+set_property(SOURCE battery_ina226_unittest.cc PROPERTY definitions USE_INA226 USE_I2C USE_I2C_DEVICE_1 BATTERY_I2C_BUS=BUS_I2C1 INA226_I2C_ADDRESS=0x40 USE_HEADTRACKER USE_STATS USE_ADC)
 
 set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
@@ -34,8 +42,90 @@ set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
 set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular_queue.c")
 
+# DroneCAN tests - headers in separate include/ dir, no auto .h transform needed
+set_property(SOURCE dronecan_messages_unittest.cc PROPERTY depends
+    "drivers/dronecan/libcanard/canard.c")
+set_property(SOURCE dronecan_messages_unittest.cc PROPERTY extra_sources
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix2.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Auxiliary.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.power.BatteryInfo.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.Timestamp.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.ECEFPositionVelocity.c")
+set_property(SOURCE dronecan_messages_unittest.cc PROPERTY extra_includes
+    "../../lib/main/Dronecan/dsdlc_generated/include")
+set_property(SOURCE dronecan_messages_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0)
+
+# GetNodeInfo, SoftwareVersion, HardwareVersion, RTCMStream tests
+set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY depends
+    "drivers/dronecan/libcanard/canard.c")
+set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY extra_sources
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.SoftwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.HardwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.RTCMStream.c")
+set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY extra_includes
+    "../../lib/main/Dronecan/dsdlc_generated/include")
+set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0)
+
+# DroneCAN application-layer tests - compiles dronecan.c with INAV stubs.
+# UNIT_TEST exposes activeNodeCount and nodeTable as non-static for SetUp reset.
+set_property(SOURCE dronecan_application_unittest.cc PROPERTY depends
+    "drivers/dronecan/dronecan.c"
+    "drivers/dronecan/dronecan_async.c"
+    "drivers/dronecan/libcanard/canard.c")
+set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_sources
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.GetNodeInfo_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.SoftwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.HardwareVersion.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix2.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Auxiliary.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.power.BatteryInfo.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.RTCMStream.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.Timestamp.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.ECEFPositionVelocity.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.GetSet_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.GetSet_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.ExecuteOpcode_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.ExecuteOpcode_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.RestartNode_req.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.RestartNode_res.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Value.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.NumericValue.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Empty.c")
+set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_includes
+    "../../lib/main/Dronecan/dsdlc_generated/include")
+set_property(SOURCE dronecan_application_unittest.cc PROPERTY definitions
+    USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0
+    FC_VERSION_MAJOR=10 FC_VERSION_MINOR=0 FC_VERSION_PATCH_LEVEL=0)
+
+# PARAM_GETSET MSP payload parser - extracted from fc_msp.c's giant command
+# switch (PR #11683 Qodo review Finding 2) specifically so it's unit testable.
+set_property(SOURCE fc_msp_dronecan_unittest.cc PROPERTY depends
+    "fc/fc_msp_dronecan.c" "common/streambuf.c")
+set_property(SOURCE fc_msp_dronecan_unittest.cc PROPERTY definitions USE_DRONECAN)
+
+# CAN bit-timing solver tests - links the real, HAL-free timing core shared
+# by the F7 (bxCAN) and H7 (FDCAN) drivers, so there is nothing to keep in sync
+set_property(SOURCE bxcan_timing_unittest.cc PROPERTY depends
+    "drivers/dronecan/libcanard/canard_stm32_timing.c")
+
+# Libcanard core tests - CANARD_INTERNAL= makes static functions accessible
+set_property(SOURCE canard_unittest.cc PROPERTY depends
+    "drivers/dronecan/libcanard/canard.c")
+set_property(SOURCE canard_unittest.cc PROPERTY extra_includes
+    "drivers/dronecan/libcanard"
+    "../../lib/main/Dronecan/dsdlc_generated/include")
+set_property(SOURCE canard_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0 CANARD_INTERNAL=)
+
 set_property(SOURCE osd_unittest.cc PROPERTY depends "io/osd_utils.c" "io/displayport_msp_osd.c" "common/typeconversion.c")
-set_property(SOURCE osd_unittest.cc PROPERTY definitions OSD_UNIT_TEST USE_MSP_DISPLAYPORT DISABLE_MSP_BF_COMPAT)
+set_property(SOURCE osd_unittest.cc PROPERTY definitions OSD_UNIT_TEST USE_MSP_DISPLAYPORT)
 
 set_property(SOURCE gps_ublox_unittest.cc PROPERTY depends "io/gps_ublox_utils.c")
 set_property(SOURCE gps_ublox_unittest.cc PROPERTY definitions GPS_UBLOX_UNIT_TEST)
@@ -45,6 +135,25 @@ set_property(SOURCE gps_null_port_unittest.cc PROPERTY definitions GPS_NULL_PORT
 
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
+set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE mixer_transition_scenarios_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE navigation_vtol_mission_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE vtol_mc_protection_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+
+set_property(SOURCE terrain_unittest.cc PROPERTY depends "common/crc.c" "common/streambuf.c" "terrain/terrain_utils.c" "terrain/terrain_location.c" "drivers/time.c")
+set_property(SOURCE terrain_unittest.cc PROPERTY definitions TERRAIN_UNIT_TEST USE_TERRAIN USE_SDCARD USE_SDCARD_SDIO TERRAIN_GRID_BLOCK_CACHE_SIZE=8)
+
+set_property(SOURCE ina226_unittest.cc PROPERTY depends "drivers/ina226.c")
+set_property(SOURCE ina226_unittest.cc PROPERTY definitions USE_INA226 USE_I2C USE_I2C_DEVICE_1 USE_I2C_DEVICE_2 USE_HEADTRACKER)
+
+set_property(SOURCE mavlink_unittest.cc PROPERTY depends
+    "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_mission.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"
+    "mavlink/mavlink_routing.c" "mavlink/mavlink_runtime.c" "mavlink/mavlink_streams.c" "telemetry/mavlink.c"
+    "common/crc.c" "common/maths.c" "common/streambuf.c" "common/string_light.c" "msp/msp_serial.c")
+set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK USE_MAVLINK_MSP_TUNNEL)
+set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
+    "../../lib/main/MAVLink")
 
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
@@ -54,15 +163,30 @@ function(unit_test src)
     list(TRANSFORM headers REPLACE "\.c$" ".h")
     list(APPEND deps ${headers})
     get_property(defs SOURCE ${src} PROPERTY definitions)
+    get_property(extra_includes SOURCE ${src} PROPERTY includes)
     set(test_definitions "UNIT_TEST")
     if (defs)
         list(APPEND test_definitions ${defs})
     endif()
     list(TRANSFORM deps PREPEND "${MAIN_DIR}/")
+    # Handle extra_sources property for files that don't need .h transform (e.g., DSDL generated)
+    get_property(extra_srcs SOURCE ${src} PROPERTY extra_sources)
+    if (extra_srcs)
+        list(TRANSFORM extra_srcs PREPEND "${MAIN_DIR}/")
+        list(APPEND deps ${extra_srcs})
+    endif()
     add_executable(${name} ${src} ${deps})
     set(gen_name ${name}_gen)
     get_generated_files_dir(gen ${gen_name})
-    target_include_directories(${name} PRIVATE . ${MAIN_DIR} ${gen})
+    # Handle extra_includes property for additional include directories (e.g., DSDL generated headers)
+    get_property(extra_incs SOURCE ${src} PROPERTY extra_includes)
+    set(default_incs . ${MAIN_DIR} ${gen} "${MAIN_DIR}/../../lib/main/Dronecan/dsdlc_generated/include")
+    if (extra_incs)
+        list(TRANSFORM extra_incs PREPEND "${MAIN_DIR}/")
+        target_include_directories(${name} PRIVATE ${default_incs} ${extra_incs})
+    else()
+        target_include_directories(${name} PRIVATE ${default_incs})
+    endif()
     target_compile_definitions(${name} PRIVATE ${test_definitions})
     target_compile_options(${name} PRIVATE -pthread -Wall -Wextra -Wno-extern-c-compat -ggdb3 -O0)
     enable_settings(${name} ${gen_name} OUTPUTS setting_files SETTINGS_CXX g++)

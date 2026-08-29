@@ -3267,8 +3267,6 @@ HAL_StatusTypeDef HAL_I2C_IsDeviceReady(I2C_HandleTypeDef *hi2c, uint16_t DevAdd
 
   __IO uint32_t I2C_Trials = 0UL;
 
-  HAL_StatusTypeDef status = HAL_OK;
-
   FlagStatus tmp1;
   FlagStatus tmp2;
 
@@ -3335,10 +3333,6 @@ HAL_StatusTypeDef HAL_I2C_IsDeviceReady(I2C_HandleTypeDef *hi2c, uint16_t DevAdd
             /* Reset the error code for next trial */
             hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
           }
-          else
-          {
-            status = HAL_ERROR;
-          }
         }
         else
         {
@@ -3365,11 +3359,7 @@ HAL_StatusTypeDef HAL_I2C_IsDeviceReady(I2C_HandleTypeDef *hi2c, uint16_t DevAdd
         __HAL_I2C_CLEAR_FLAG(hi2c, I2C_FLAG_AF);
 
         /* Wait until STOPF flag is reset */
-        if (I2C_WaitOnFlagUntilTimeout(hi2c, I2C_FLAG_STOPF, RESET, Timeout, tickstart) != HAL_OK)
-        {
-          status = HAL_ERROR;
-        }
-        else
+        if (I2C_WaitOnFlagUntilTimeout(hi2c, I2C_FLAG_STOPF, RESET, Timeout, tickstart) == HAL_OK)
         {
           /* Clear STOP Flag, auto generated with autoend*/
           __HAL_I2C_CLEAR_FLAG(hi2c, I2C_FLAG_STOPF);
@@ -3378,12 +3368,6 @@ HAL_StatusTypeDef HAL_I2C_IsDeviceReady(I2C_HandleTypeDef *hi2c, uint16_t DevAdd
 
       /* Increment Trials */
       I2C_Trials++;
-
-      if ((I2C_Trials < Trials) && (status == HAL_ERROR))
-      {
-        status = HAL_OK;
-      }
-
     } while (I2C_Trials < Trials);
 
     /* Update I2C state */
@@ -6378,7 +6362,7 @@ static void I2C_ITSlaveCplt(I2C_HandleTypeDef *hi2c, uint32_t ITFlags)
     /* Increment Buffer pointer */
     hi2c->pBuffPtr++;
 
-    if ((hi2c->XferSize > 0U))
+    if (hi2c->XferSize > 0U)
     {
       hi2c->XferSize--;
       hi2c->XferCount--;
@@ -6534,7 +6518,7 @@ static void I2C_ITListenCplt(I2C_HandleTypeDef *hi2c, uint32_t ITFlags)
     /* Increment Buffer pointer */
     hi2c->pBuffPtr++;
 
-    if ((hi2c->XferSize > 0U))
+    if (hi2c->XferSize > 0U)
     {
       hi2c->XferSize--;
       hi2c->XferCount--;
@@ -7003,7 +6987,7 @@ static HAL_StatusTypeDef I2C_WaitOnFlagUntilTimeout(I2C_HandleTypeDef *hi2c, uin
     {
       if (((HAL_GetTick() - Tickstart) > Timeout) || (Timeout == 0U))
       {
-        if ((__HAL_I2C_GET_FLAG(hi2c, Flag) == Status))
+        if (__HAL_I2C_GET_FLAG(hi2c, Flag) == Status)
         {
           hi2c->ErrorCode |= HAL_I2C_ERROR_TIMEOUT;
           hi2c->State = HAL_I2C_STATE_READY;
@@ -7043,7 +7027,7 @@ static HAL_StatusTypeDef I2C_WaitOnTXISFlagUntilTimeout(I2C_HandleTypeDef *hi2c,
     {
       if (((HAL_GetTick() - Tickstart) > Timeout) || (Timeout == 0U))
       {
-        if ((__HAL_I2C_GET_FLAG(hi2c, I2C_FLAG_TXIS) == RESET))
+        if (__HAL_I2C_GET_FLAG(hi2c, I2C_FLAG_TXIS) == RESET)
         {
           hi2c->ErrorCode |= HAL_I2C_ERROR_TIMEOUT;
           hi2c->State = HAL_I2C_STATE_READY;
@@ -7082,7 +7066,7 @@ static HAL_StatusTypeDef I2C_WaitOnSTOPFlagUntilTimeout(I2C_HandleTypeDef *hi2c,
     /* Check for the Timeout */
     if (((HAL_GetTick() - Tickstart) > Timeout) || (Timeout == 0U))
     {
-      if ((__HAL_I2C_GET_FLAG(hi2c, I2C_FLAG_STOPF) == RESET))
+      if (__HAL_I2C_GET_FLAG(hi2c, I2C_FLAG_STOPF) == RESET)
       {
         hi2c->ErrorCode |= HAL_I2C_ERROR_TIMEOUT;
         hi2c->State = HAL_I2C_STATE_READY;
@@ -7160,7 +7144,7 @@ static HAL_StatusTypeDef I2C_WaitOnRXNEFlagUntilTimeout(I2C_HandleTypeDef *hi2c,
     /* Check for the Timeout */
     if ((((HAL_GetTick() - Tickstart) > Timeout) || (Timeout == 0U)) && (status == HAL_OK))
     {
-      if ((__HAL_I2C_GET_FLAG(hi2c, I2C_FLAG_RXNE) == RESET))
+      if (__HAL_I2C_GET_FLAG(hi2c, I2C_FLAG_RXNE) == RESET)
       {
         hi2c->ErrorCode |= HAL_I2C_ERROR_TIMEOUT;
         hi2c->State = HAL_I2C_STATE_READY;
