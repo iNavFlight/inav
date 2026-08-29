@@ -49,8 +49,8 @@ extern uint8_t __config_end;
 #if defined(USE_I2C) && defined(DEFAULT_I2C_BUS)
 #define USE_INA226
 
-#ifndef INA226_I2C_BUS
-#define INA226_I2C_BUS DEFAULT_I2C_BUS
+#ifndef BATTERY_I2C_BUS
+#define BATTERY_I2C_BUS DEFAULT_I2C_BUS
 #endif
 
 #ifndef INA226_I2C_ADDRESS

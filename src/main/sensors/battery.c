@@ -207,7 +207,7 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 #ifdef USE_INA226
     .ina226 = {
         .shuntResistanceMicroOhm = INA226_SHUNT_RES_UOHM_DEFAULT,
-        .i2cBus = INA226_I2C_BUS + 1,
+        .i2cBus = BATTERY_I2C_BUS + 1,
         .i2cAddress = INA226_I2C_ADDRESS,
     },
 #endif

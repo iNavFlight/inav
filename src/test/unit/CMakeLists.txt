@@ -13,7 +13,7 @@ set_property(SOURCE alignsensor_unittest.cc PROPERTY depends
 
 set_property(SOURCE battery_ina226_unittest.cc PROPERTY depends
     "sensors/battery.c" "drivers/ina226.c" "common/filter.c" "common/lulu.c" "common/maths.c")
-set_property(SOURCE battery_ina226_unittest.cc PROPERTY definitions USE_INA226 USE_I2C USE_I2C_DEVICE_1 INA226_I2C_BUS=BUS_I2C1 INA226_I2C_ADDRESS=0x40 USE_HEADTRACKER USE_STATS USE_ADC)
+set_property(SOURCE battery_ina226_unittest.cc PROPERTY definitions USE_INA226 USE_I2C USE_I2C_DEVICE_1 BATTERY_I2C_BUS=BUS_I2C1 INA226_I2C_ADDRESS=0x40 USE_HEADTRACKER USE_STATS USE_ADC)
 
 set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
