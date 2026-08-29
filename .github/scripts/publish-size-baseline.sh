@@ -127,4 +127,7 @@ prune() {
     done
 }
 
-prune
+# Pruning is housekeeping: a failure here must not fail the publish (the
+# baseline itself already landed above), or the nightly would look broken
+# for a cosmetic reason. Warn loudly instead.
+prune || echo "::warning::per-commit baseline pruning failed (see stderr)" >&2
