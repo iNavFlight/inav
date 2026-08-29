@@ -47,6 +47,7 @@ jobs:
       cancel-in-progress: true
     permissions:
       actions: read   # to download artifacts and query job conclusions from the triggering workflow run
+      contents: read  # for the checkout step (scripts live in this repo)
     steps:
       # REQUIRED FIRST STEP: check out a known branch before any step calls
       # a script from .github/scripts/. Repo scripts MUST NEVER be invoked
