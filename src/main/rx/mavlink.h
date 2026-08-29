@@ -24,6 +24,8 @@
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
 #include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
+#include "rx/rx.h"
 
-void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg);
-bool mavlinkRxInit(const struct rxConfig_s *initialRxConfig, struct rxRuntimeConfig_s *rxRuntimeConfig);
+void mavlinkRxHandleMessage(rxLink_e link, const mavlink_rc_channels_override_t *msg);
+int8_t mavlinkRxLinkForPortFunctionMask(uint32_t functionMask);
+bool mavlinkRxInit(const struct rxConfig_s *initialRxConfig, struct rxRuntimeConfig_s *rxRuntimeConfig, serialPortFunction_e portFunction);

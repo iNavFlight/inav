@@ -114,7 +114,7 @@ void mspOverrideInit(void)
     rxDataFailurePeriod = PERIOD_RXDATA_FAILURE + failsafeConfig()->failsafe_delay * MILLIS_PER_TENTH_SECOND;
     rxDataRecoveryPeriod = PERIOD_RXDATA_RECOVERY + failsafeConfig()->failsafe_recovery_delay * MILLIS_PER_TENTH_SECOND;
 
-    rxMspInit(rxConfig(), &rxRuntimeConfigMSP);
+    rxMspOverrideInit(rxConfig(), &rxRuntimeConfigMSP);
 
     for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         mspFlightAxisOverride[axis].angleTargetActive = 0;
@@ -142,8 +142,14 @@ bool mspOverrideIsInFailsafe(void)
 static bool mspFlightAxisOverridesEnabled(void)
 {
     bool enabled;
-    if (rxConfig()->receiverType == RX_TYPE_MSP) {
-        enabled = IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && rxIsReceivingSignal() && rxAreFlightChannelsValid();
+    const int8_t configuredMspLink = rxGetMspLink();
+    if (configuredMspLink >= 0) {
+        // When MSP is one of the two RX transports, it has control authority
+        // only while that link is selected. A healthy standby MSP receiver must
+        // not bypass the Dual RX selector through the flight-axis override path.
+        enabled = IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) &&
+            rxGetActiveLink() == (rxLink_e)configuredMspLink &&
+            rxIsLinkValid((rxLink_e)configuredMspLink);
     } else {
         enabled = IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe();
     }

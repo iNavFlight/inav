@@ -17,4 +17,6 @@
 
 #pragma once
 
-bool fportRxInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+#include "rx/rx.h"
+
+bool fportRxInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction);

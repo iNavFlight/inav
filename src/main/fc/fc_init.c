@@ -267,16 +267,16 @@ void init(void)
 #endif
 
 #if defined(USE_SPEKTRUM_BIND) && defined(USE_SERIALRX_SPEKTRUM)
-    if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
-        switch (rxConfig()->serialrx_provider) {
-            case SERIALRX_SPEKTRUM1024:
-            case SERIALRX_SPEKTRUM2048:
-                // Spektrum satellite binding if enabled on startup.
-                // Must be called before that 100ms sleep so that we don't lose satellite's binding window after startup.
-                // The rest of Spektrum initialization will happen later - via spektrumInit()
-                spektrumBind(rxConfigMutable());
-                break;
-        }
+    const bool rx1Spektrum = rxConfig()->receiverType == RX_TYPE_SERIAL &&
+        (rxConfig()->serialrx_provider == SERIALRX_SPEKTRUM1024 || rxConfig()->serialrx_provider == SERIALRX_SPEKTRUM2048);
+    const bool rx2Spektrum = rxConfig()->dualRxEnabled && rxConfig()->receiverTypeSecondary == RX_TYPE_SERIAL &&
+        (rxConfig()->serialrx_provider_secondary == SERIALRX_SPEKTRUM1024 || rxConfig()->serialrx_provider_secondary == SERIALRX_SPEKTRUM2048);
+    if (rx1Spektrum || rx2Spektrum) {
+        // Spektrum satellite binding if enabled on startup. Must be called
+        // before the startup delay so the bind window is not missed. The bind
+        // settings/pin are board-wide, so this applies whichever RX slot owns
+        // the Spektrum receiver.
+        spektrumBind(rxConfigMutable());
     }
 #endif
 

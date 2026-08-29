@@ -645,10 +645,17 @@ void releaseSharedTelemetryPorts(void) {
     }
 }
 
-void processRx(timeUs_t currentTimeUs)
+static bool processRx(timeUs_t currentTimeUs)
 {
-    // Calculate RPY channel data
-    calculateRxChannelsAndUpdateFailsafe(currentTimeUs);
+    // Calculate RPY channel data. Standby-link traffic is processed by the RX
+    // task but must not look like a new active RC sample to smoothing/navigation.
+    const bool rxOutputUpdated = calculateRxChannelsAndUpdateFailsafe(currentTimeUs);
+    if (!rxOutputUpdated) {
+        // Standby RX traffic has already been decoded and its freshness/state
+        // updated. Do not let it advance stick commands, mode logic, smoothing
+        // or other active-control state machines.
+        return false;
+    }
 
     // in 3D mode, we need to be able to disarm by switch at any time
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
@@ -858,6 +865,8 @@ void processRx(timeUs_t currentTimeUs)
 #endif
     // Sound a beeper if the flight mode state has changed
     updateFlightModeChangeBeeper();
+
+    return rxOutputUpdated;
 }
 
 // Function for loop trigger
@@ -1076,8 +1085,7 @@ bool taskUpdateRxCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
 
 void taskUpdateRxMain(timeUs_t currentTimeUs)
 {
-    processRx(currentTimeUs);
-    isRXDataNew = true;
+    isRXDataNew = processRx(currentTimeUs) || isRXDataNew;
 }
 
 // returns seconds

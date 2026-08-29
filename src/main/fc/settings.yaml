@@ -758,6 +758,11 @@ groups:
         default_value: 30
         min: 1
         max: 100
+      - name: dual_rx_enabled
+        description: "Enable two live receiver links. RX1 is the boot default; the active link remains selected until it is lost or an explicit handover selects the other valid link."
+        type: bool
+        default_value: OFF
+        field: dualRxEnabled
       - name: serialrx_provider
         description: "When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section."
         default_value: :target
@@ -805,6 +810,36 @@ groups:
         condition: USE_MSP_RC_OVERRIDE
         min: 0
         max: UINT32_MAX
+      - name: receiver_type_rx2
+        description: "Selection of the RX2 receiver type. Additional configuration of `serialrx_provider_rx2` and an RX_SERIAL_SECONDARY UART is needed for `SERIAL`."
+        default_value: "NONE"
+        field: receiverTypeSecondary
+        table: receiver_type
+      - name: serialrx_provider_rx2
+        description: "RX2 UART-based receiver provider. Only used when `receiver_type_rx2` is `SERIAL`."
+        default_value: :target
+        condition: USE_SERIAL_RX
+        field: serialrx_provider_secondary
+        table: serial_rx
+      - name: serialrx_inverted_rx2
+        description: "RX2 serial inversion flag. Reverse the protocol default inversion for RX2."
+        default_value: OFF
+        condition: USE_SERIAL_RX
+        type: bool
+        field: serialrx_inverted_secondary
+      - name: serialrx_halfduplex_rx2
+        description: "Allow RX2 to operate on the UART TX pin. Some receivers use this for control and telemetry over a single wire."
+        default_value: "AUTO"
+        condition: USE_SERIAL_RX
+        field: halfDuplexSecondary
+        table: tristate
+      - name: sbus_sync_interval_rx2
+        description: "RX2 SBUS sync interval in us. Default value is 3000us. Lower values may cause issues with some receivers."
+        min: 500
+        max: 10000
+        default_value: 3000
+        condition: USE_SERIAL_RX
+        field: sbusSyncIntervalSecondary
 
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t

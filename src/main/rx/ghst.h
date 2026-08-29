@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "rx/rx.h"
 #include "rx/ghst_protocol.h"
 
 #define GHST_MAX_NUM_CHANNELS           16
@@ -29,5 +30,5 @@ void ghstRxSendTelemetryData(void);
 
 struct rxConfig_s;
 struct rxRuntimeState_s;
-bool ghstRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeState);
+bool ghstRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeState, serialPortFunction_e portFunction);
 bool ghstRxIsActive(void);

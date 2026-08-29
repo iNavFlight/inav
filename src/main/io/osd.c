@@ -229,7 +229,7 @@ static bool osdDisplayHasCanvas;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 3);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 4);
 
 /* OSD formatting helpers replacing common tfp_sprintf patterns
  * for reduced code size and CPU overhead. */
@@ -2734,7 +2734,7 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[0] = SYM_LQ;
             uint8_t lqFormat = osdConfig()->crsf_lq_format;
 
-            if (rxConfig()->receiverType == RX_TYPE_MSP)
+            if (rxGetLinkReceiverType(rxGetActiveLink()) == RX_TYPE_MSP)
                 lqFormat = OSD_CRSF_LQ_TYPE1;
 
             switch (lqFormat) {
@@ -3884,6 +3884,51 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+    case OSD_ACTIVE_RX_LINK:
+        {
+            const rxLink_e link = rxGetActiveLink();
+            tfp_sprintf(buff, "RX:%d", (int)link + 1);
+            if (!rxIsLinkValid(link)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+            break;
+        }
+
+    case OSD_RX1_LINK_STATS:
+    case OSD_RX2_LINK_STATS:
+        {
+            const rxLink_e link = item == OSD_RX1_LINK_STATS ? RX_LINK_PRIMARY : RX_LINK_SECONDARY;
+            const int rxNumber = (int)link + 1;
+            if (!rxIsLinkConfigured(link)) {
+                tfp_sprintf(buff, "RX%d:--", rxNumber);
+            } else if (!rxIsLinkInitialized(link)) {
+                tfp_sprintf(buff, "RX%d:ERR", rxNumber);
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else if (!rxIsLinkValid(link)) {
+                tfp_sprintf(buff, "RX%d:LOST", rxNumber);
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else {
+                const uint16_t validFields = rxGetLinkStatisticsValidFields(link);
+                const rxLinkStatistics_t *statistics = rxGetLinkStatistics(link);
+                if ((validFields & (RX_LINK_STATS_UPLINK_LQ | RX_LINK_STATS_UPLINK_RSSI)) ==
+                    (RX_LINK_STATS_UPLINK_LQ | RX_LINK_STATS_UPLINK_RSSI)) {
+                    tfp_sprintf(buff, "RX%d L%u R%d", rxNumber, statistics->uplinkLQ, statistics->uplinkRSSI);
+                } else if (validFields & RX_LINK_STATS_UPLINK_LQ) {
+                    tfp_sprintf(buff, "RX%d L%u", rxNumber, statistics->uplinkLQ);
+                } else if (validFields & RX_LINK_STATS_UPLINK_RSSI) {
+                    tfp_sprintf(buff, "RX%d R%d", rxNumber, statistics->uplinkRSSI);
+                } else {
+                    const uint16_t quality = rxGetLinkQuality(link);
+                    if (quality > 0) {
+                        tfp_sprintf(buff, "RX%d Q%u", rxNumber, scaleRange(quality, 0, RSSI_MAX_VALUE, 0, 100));
+                    } else {
+                        tfp_sprintf(buff, "RX%d:OK", rxNumber);
+                    }
+                }
+            }
+            break;
+        }
+
 #if defined(USE_ESC_SENSOR)
     case OSD_ESC_RPM:
         {
@@ -4544,6 +4589,9 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     osdLayoutsConfig->item_pos[0][OSD_RC_SOURCE] = OSD_POS(3, 4);
 #endif
+    osdLayoutsConfig->item_pos[0][OSD_ACTIVE_RX_LINK] = OSD_POS(3, 5);
+    osdLayoutsConfig->item_pos[0][OSD_RX1_LINK_STATS] = OSD_POS(3, 6);
+    osdLayoutsConfig->item_pos[0][OSD_RX2_LINK_STATS] = OSD_POS(3, 7);
 
 #ifdef USE_POWER_LIMITS
     osdLayoutsConfig->item_pos[0][OSD_PLIMIT_REMAINING_BURST_TIME] = OSD_POS(3, 4);
@@ -5257,7 +5305,7 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX)
     char buff[20];
 
     tfp_sprintf(buff, "MIN RSSI");
-    if (rxConfig()->serialrx_provider == SERIALRX_CRSF) {
+    if (rxGetLinkSerialProvider(rxGetActiveLink()) == SERIALRX_CRSF) {
         strcat(buff, "/LQ");
 
         if (osdDisplayIsHD()) strcat(buff, "/DBM");
@@ -5269,7 +5317,7 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX)
     itoa(stats.min_rssi, buff + 2, 10);
     strcat(osdFormatTrimWhiteSpace(buff), "%");
 
-    if (rxConfig()->serialrx_provider == SERIALRX_CRSF) {
+    if (rxGetLinkSerialProvider(rxGetActiveLink()) == SERIALRX_CRSF) {
         strcat(osdFormatTrimWhiteSpace(buff), "/");
         itoa(stats.min_lq, buff + strlen(buff), 10);
         strcat(osdFormatTrimWhiteSpace(buff), "%");
@@ -5283,7 +5331,7 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX)
 
     displayWrite(osdDisplayPort, statValX, row++, buff);
 
-    if (!osdDisplayIsHD() && rxConfig()->serialrx_provider == SERIALRX_CRSF) {
+    if (!osdDisplayIsHD() && rxGetLinkSerialProvider(rxGetActiveLink()) == SERIALRX_CRSF) {
         displayWrite(osdDisplayPort, col, row, "MIN RX DBM");
         memset(buff, '\0', strlen(buff));
         tfp_sprintf(buff, ": ");

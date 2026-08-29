@@ -630,7 +630,7 @@ static bool processFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
 }
 
 
-bool fport2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, bool isFBUS)
+bool fport2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, bool isFBUS, serialPortFunction_e portFunction)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
     rxRuntimeConfig->channelData = sbusChannelData;
@@ -640,7 +640,7 @@ bool fport2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
     rxRuntimeConfig->rcFrameStatusFn = frameStatus;
     rxRuntimeConfig->rcProcessFrameFn = processFrame;
 
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
+    const serialPortConfig_t *portConfig = findSerialPortConfig(portFunction);
     if (!portConfig) {
         return false;
     }
@@ -648,7 +648,7 @@ bool fport2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
     uint32_t baudRate = (isFBUS) ? FBUS_BAUDRATE : FPORT2_BAUDRATE;
 
     fportPort = openSerialPort(portConfig->identifier,
-        FUNCTION_RX_SERIAL,
+        portFunction,
         fportDataReceive,
         NULL,
         baudRate,

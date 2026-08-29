@@ -3619,27 +3619,50 @@ static void cliDfu(char *cmdline)
     cliRebootEx(true);
 }
 
-#if defined (USE_SERIALRX_SRXL2)
-void cliRxBind(char *cmdline){
-    UNUSED(cmdline);
-    if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
-        switch (rxConfig()->serialrx_provider) {
-        default:
-            cliPrint("Not supported.");
-            break;
+#if defined(USE_SERIALRX_SRXL2) || defined(USE_SERIALRX_CRSF)
+void cliRxBind(char *cmdline)
+{
+    rxLink_e link = rxGetActiveLink();
+    if (!isEmpty(cmdline)) {
+        const int requestedRx = fastA2I(cmdline);
+        if (requestedRx < 1 || requestedRx > RX_LINK_COUNT) {
+            cliShowArgumentRangeError("rx", 1, RX_LINK_COUNT);
+            return;
+        }
+        link = (rxLink_e)(requestedRx - 1);
+    }
+
+    if (!rxIsLinkConfigured(link)) {
+        cliPrint("RX not configured.");
+        return;
+    }
+
+    const uint8_t receiverType = link == RX_LINK_PRIMARY ? rxConfig()->receiverType : rxConfig()->receiverTypeSecondary;
+    const uint8_t provider = link == RX_LINK_PRIMARY ? rxConfig()->serialrx_provider : rxConfig()->serialrx_provider_secondary;
+    if (receiverType != RX_TYPE_SERIAL) {
+        cliPrint("Not supported.");
+        return;
+    }
+
+    switch (provider) {
+    default:
+        cliPrint("Not supported.");
+        break;
 #if defined(USE_SERIALRX_SRXL2)
-        case SERIALRX_SRXL2:
-            srxl2Bind();
-            cliPrint("Binding SRXL2 receiver...");
-            break;
+    case SERIALRX_SRXL2:
+        srxl2Bind();
+        cliPrint("Binding SRXL2 receiver...");
+        break;
 #endif
 #if defined(USE_SERIALRX_CRSF)
-        case SERIALRX_CRSF:
-            crsfBind();
+    case SERIALRX_CRSF:
+        if (crsfBindLink(link)) {
             cliPrint("Binding CRSF receiver...");
-            break;
-#endif
+        } else {
+            cliPrint("RX not initialized.");
         }
+        break;
+#endif
     }
 }
 #endif
@@ -4960,8 +4983,8 @@ const clicmd_t cmdTable[] = {
             "\t<+|->[name]", cliBeeper),
 #endif
     CLI_COMMAND_DEF("bind_msp_rx", "initiate binding for MSP receivers (mLRS)", "<port>", cliBindMspRx),
-#if defined (USE_SERIALRX_SRXL2)
-    CLI_COMMAND_DEF("bind_rx", "initiate binding for RX SPI or SRXL2", NULL, cliRxBind),
+#if defined(USE_SERIALRX_SRXL2) || defined(USE_SERIALRX_CRSF)
+    CLI_COMMAND_DEF("bind_rx", "bind serial receiver; defaults to active RX", "[1|2]", cliRxBind),
 #endif
 #if defined(USE_BOOTLOG)
     CLI_COMMAND_DEF("bootlog", "show boot log", NULL, printBootLog),

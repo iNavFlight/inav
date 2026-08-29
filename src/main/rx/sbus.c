@@ -67,12 +67,15 @@ typedef struct sbusFrameData_s {
     uint8_t buffer[SBUS_FRAME_SIZE];
     uint8_t position;
     timeUs_t lastActivityTimeUs;
+    timeUs_t frameTime;
+    uint16_t syncInterval;
+    uint8_t activeTelemetryPage;
+    bool shortFrameInterval;
+    bool isSbus2;
 } sbusFrameData_t;
 
-static uint8_t sbus2ActiveTelemetryPage = 0;
-static uint8_t sbus2ActiveTelemetrySlot = 0;
-static uint8_t sbus2ShortFrameInterval = 0;
-timeUs_t frameTime = 0;
+static sbusFrameData_t sbusFrameData[RX_LINK_COUNT];
+static serialPort_t *sbusPorts[RX_LINK_COUNT];
 
 // Receive ISR callback
 static void sbusDataReceive(uint16_t c, void *data)
@@ -82,14 +85,14 @@ static void sbusDataReceive(uint16_t c, void *data)
     const timeDelta_t timeSinceLastByteUs = cmpTimeUs(currentTimeUs, sbusFrameData->lastActivityTimeUs);
     sbusFrameData->lastActivityTimeUs = currentTimeUs;
 
-    const int32_t syncInterval = sbus2ShortFrameInterval
+    const int32_t syncInterval = sbusFrameData->shortFrameInterval
                                      ? ((6300 - SBUS_BYTE_TIME_US(25)) / 2)
-                                     : rxConfig()->sbusSyncInterval;
+                                     : sbusFrameData->syncInterval;
 
 
     // Handle inter-frame gap. We dwell in STATE_SBUS_WAIT_SYNC state ignoring all incoming bytes until we get long enough quite period on the wire
     if ((sbusFrameData->state == STATE_SBUS_WAIT_SYNC && timeSinceLastByteUs >= syncInterval) 
-            || (rxConfig()->serialrx_provider == SERIALRX_SBUS2 && timeSinceLastByteUs >= SBUS_BYTE_TIME_US(3))) {
+            || (sbusFrameData->isSbus2 && timeSinceLastByteUs >= SBUS_BYTE_TIME_US(3))) {
         sbusFrameData->state = STATE_SBUS_SYNC;
     } else if ((sbusFrameData->state == STATE_SBUS_PAYLOAD || sbusFrameData->state == STATE_SBUS26_PAYLOAD) && timeSinceLastByteUs >= SBUS_BYTE_TIME_US(3)) {
         // payload is pausing too long, possible if some telemetry have been sent between frames, or false positves mid frame
@@ -125,14 +128,13 @@ static void sbusDataReceive(uint16_t c, void *data)
                     case 0x24:  // S.BUS 2 telemetry page 3
                     case 0x34:  // S.BUS 2 telemetry page 4
                         if(frame->endByte & 0x4) {
-                            sbus2ActiveTelemetryPage = (frame->endByte >> 4) & 0xF;
-                            frameTime = currentTimeUs;
+                            sbusFrameData->activeTelemetryPage = (frame->endByte >> 4) & 0xF;
+                            sbusFrameData->frameTime = currentTimeUs;
                         } else if(frame->endByte == 0x08) {
-                            sbus2ShortFrameInterval = 1;
+                            sbusFrameData->shortFrameInterval = true;
                         } else {
-                            sbus2ActiveTelemetryPage = 0;
-                            sbus2ActiveTelemetrySlot = 0;
-                            frameTime = -1;
+                            sbusFrameData->activeTelemetryPage = 0;
+                            sbusFrameData->frameTime = -1;
                         }
 
                         frameValid = true;
@@ -167,7 +169,7 @@ static void sbusDataReceive(uint16_t c, void *data)
                     case 0x14:  // S.BUS 2 telemetry page 2
                     case 0x24:  // S.BUS 2 telemetry page 3
                     case 0x34:  // S.BUS 2 telemetry page 4
-                        frameTime = -1; // ignore this one, as you can't fit telemetry between this and the next frame.
+                        sbusFrameData->frameTime = -1; // ignore this one, as you can't fit telemetry between this and the next frame.
                         frameValid = true;
                         sbusFrameData->state = STATE_SBUS_SYNC; // Next piece of data should be a sync byte
                         break;
@@ -224,13 +226,21 @@ static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     return retValue;
 }
 
-static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, uint32_t sbusBaudRate)
+static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, uint32_t sbusBaudRate, serialPortFunction_e portFunction)
 {
-    static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
-    static sbusFrameData_t sbusFrameData = { .is26channels = false};
+    // Per-link storage so a primary and secondary SBUS receiver don't share
+    // parser/channel state. Primary stays index 0, so the single-RX path is
+    // unchanged.
+    static uint16_t sbusChannelData[RX_LINK_COUNT][SBUS_MAX_CHANNEL];
+    const unsigned link = (portFunction == FUNCTION_RX_SERIAL_SECONDARY) ? RX_LINK_SECONDARY : RX_LINK_PRIMARY;
 
-    rxRuntimeConfig->channelData = sbusChannelData;
-    rxRuntimeConfig->frameData = &sbusFrameData;
+    memset(&sbusFrameData[link], 0, sizeof(sbusFrameData[link]));
+    sbusPorts[link] = NULL;
+    sbusFrameData[link].syncInterval = rxConfig->sbusSyncInterval;
+    sbusFrameData[link].isSbus2 = rxConfig->serialrx_provider == SERIALRX_SBUS2;
+
+    rxRuntimeConfig->channelData = sbusChannelData[link];
+    rxRuntimeConfig->frameData = &sbusFrameData[link];
 
     sbusChannelsInit(rxRuntimeConfig);
 
@@ -238,7 +248,7 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
 
     rxRuntimeConfig->rcFrameStatusFn = sbusFrameStatus;
 
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
+    const serialPortConfig_t *portConfig = findSerialPortConfig(portFunction);
     if (!portConfig) {
         return false;
     }
@@ -250,9 +260,9 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
 #endif
 
     serialPort_t *sBusPort = openSerialPort(portConfig->identifier,
-        FUNCTION_RX_SERIAL,
+        portFunction,
         sbusDataReceive,
-        &sbusFrameData,
+        &sbusFrameData[link],
         sbusBaudRate,
         (portShared || rxConfig->serialrx_provider == SERIALRX_SBUS2) ? MODE_RXTX : MODE_RX,
         SBUS_PORT_OPTIONS |
@@ -260,9 +270,13 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
             ((rxConfig->serialrx_provider == SERIALRX_SBUS2) ? SERIAL_BIDIR : 0) |
             (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
+    sbusPorts[link] = sBusPort;
 
 #ifdef USE_TELEMETRY
-    if (portShared || (rxConfig->serialrx_provider == SERIALRX_SBUS2)) {
+    // Generic shared telemetry (currently LTM) has one output port. Claim it
+    // deterministically by initialization order; SBUS2 telemetry has its own
+    // per-link path and does not use telemetrySharedPort.
+    if (portShared && !telemetrySharedPort) {
         telemetrySharedPort = sBusPort;
     }
 #endif
@@ -270,30 +284,30 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
     return sBusPort != NULL;
 }
 
-bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction)
 {
-    return sbusInitEx(rxConfig, rxRuntimeConfig, SBUS_BAUDRATE);
+    return sbusInitEx(rxConfig, rxRuntimeConfig, SBUS_BAUDRATE, portFunction);
 }
 
-bool sbusInitFast(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+bool sbusInitFast(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction)
 {
-    return sbusInitEx(rxConfig, rxRuntimeConfig, SBUS_BAUDRATE_FAST);
+    return sbusInitEx(rxConfig, rxRuntimeConfig, SBUS_BAUDRATE_FAST, portFunction);
 }
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
-timeUs_t sbusGetLastFrameTime(void) {
-    return frameTime;
-}
-
-uint8_t sbusGetCurrentTelemetryNextSlot(void)
+serialPort_t *sbusGetTelemetryPort(rxLink_e link)
 {
-    uint8_t current = sbus2ActiveTelemetrySlot;
-    sbus2ActiveTelemetrySlot++;
-    return current;
+    return sbusPorts[link];
 }
 
-uint8_t sbusGetCurrentTelemetryPage(void) {
-    return sbus2ActiveTelemetryPage;
+timeUs_t sbusGetLastFrameTime(rxLink_e link)
+{
+    return sbusFrameData[link].frameTime;
+}
+
+uint8_t sbusGetCurrentTelemetryPage(rxLink_e link)
+{
+    return sbusFrameData[link].activeTelemetryPage;
 }
 #endif // USE_TELEMETRY && USE_SBUS2_TELEMETRY
 

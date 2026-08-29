@@ -64,7 +64,4 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs);
 // time critical, send sbus2 data
 void taskSendSbus2Telemetry(timeUs_t currentTimeUs);
 
-uint8_t sbus2GetTelemetrySlot(timeUs_t elapsed);
-void sbus2IncrementTelemetrySlot(timeUs_t now);
-
 #endif

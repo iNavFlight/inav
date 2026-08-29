@@ -464,7 +464,10 @@ void fcTasksInit(void)
 #endif
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
-    setTaskEnabled(TASK_TELEMETRY_SBUS2,feature(FEATURE_TELEMETRY) && rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_SBUS2);
+    const bool rx1Sbus2 = rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_SBUS2;
+    const bool rx2Sbus2 = rxIsDualRxEnabled() && rxConfig()->receiverTypeSecondary == RX_TYPE_SERIAL &&
+        rxConfig()->serialrx_provider_secondary == SERIALRX_SBUS2;
+    setTaskEnabled(TASK_TELEMETRY_SBUS2, feature(FEATURE_TELEMETRY) && (rx1Sbus2 || rx2Sbus2));
 #endif
 
 #ifdef USE_ADAPTIVE_FILTER

@@ -27,9 +27,8 @@ void initCrsfTelemetry(void);
 bool checkCrsfTelemetryState(void);
 void handleCrsfTelemetry(timeUs_t currentTimeUs);
 void crsfScheduleDeviceInfoResponse(void);
-void crsfScheduleMspResponse(uint8_t requestOriginID);
 int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType);
 #if defined(USE_MSP_OVER_TELEMETRY)
 void initCrsfMspBuffer(void);
-bool bufferCrsfMspFrame(uint8_t *frameStart, int frameLength);
+bool bufferCrsfMspFrame(rxLink_e link, uint8_t requestOriginId, const uint8_t *frameStart, int frameLength);
 #endif

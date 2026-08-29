@@ -38,6 +38,8 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+#include "rx/rx.h"
+
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/compass.h"
@@ -130,10 +132,10 @@ multi_function_e multiFunctionSelection(void)
 }
 #endif  // multifunction
 
-static bool osdCheckWarning(bool condition, uint8_t warningFlag)
+static bool osdCheckWarning(bool condition, uint16_t warningFlag)
 {
     static timeMs_t newWarningEndTime = 0;
-    static uint8_t newWarningFlags = 0;  // bitfield
+    static uint16_t newWarningFlags = 0;  // bitfield
     const timeMs_t currentTimeMs = millis();
 
     /* New warnings dislayed individually for 10s with blinking after which
@@ -260,10 +262,10 @@ textAttributes_t osdGetMultiFunctionMessage(char *buff)
 #endif  // MULTIFUNCTION - functions only, warnings always defined
 
     /* --- WARNINGS --- */
-    const char *messages[8];
+    const char *messages[12];
     uint8_t messageCount = 0;
     bool warningCondition = false;
-    uint8_t warningFlagID = 1;
+    uint16_t warningFlagID = 1;
 
     // Low Battery Voltage
     const batteryState_e batteryVoltageState = checkBatteryVoltageState();
@@ -320,6 +322,25 @@ textAttributes_t osdGetMultiFunctionMessage(char *buff)
         }
     }
 #endif
+
+    // Dual RX configuration and redundancy state. Arming remains allowed with
+    // one live receiver, but loss of the configured backup must be visible.
+    warningCondition = rxConfig()->dualRxEnabled && rxGetDualRxStatus() != RX_DUAL_STATUS_OK;
+    if (osdCheckWarning(warningCondition, warningFlagID <<= 1)) {
+        messages[messageCount++] = "DUAL RX ERR";
+    }
+
+    warningCondition = rxIsDualRxEnabled() && rxIsLinkInitialized(RX_LINK_PRIMARY) &&
+        !rxIsLinkValid(RX_LINK_PRIMARY) && rxIsLinkValid(RX_LINK_SECONDARY);
+    if (osdCheckWarning(warningCondition, warningFlagID <<= 1)) {
+        messages[messageCount++] = "RX1 LOST";
+    }
+
+    warningCondition = rxIsDualRxEnabled() && rxIsLinkInitialized(RX_LINK_SECONDARY) &&
+        !rxIsLinkValid(RX_LINK_SECONDARY) && rxIsLinkValid(RX_LINK_PRIMARY);
+    if (osdCheckWarning(warningCondition, warningFlagID <<= 1)) {
+        messages[messageCount++] = "RX2 LOST";
+    }
 
     // Vibration levels   TODO - needs better vibration measurement to be useful
     // const float vibrationLevel = accGetVibrationLevel();

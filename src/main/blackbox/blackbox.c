@@ -494,6 +494,11 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"failsafePhase",         -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
     {"rxSignalReceived",      -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
     {"rxFlightChannelsValid", -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
+    {"rxActiveLink",          -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"rxValidLinkMask",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"rxSwitchReason",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"rxSwitchTimeMs",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"rxDualStatus",          -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB)},
 
     {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
@@ -616,6 +621,11 @@ typedef struct blackboxSlowState_s {
     uint8_t failsafePhase;
     bool rxSignalReceived;
     bool rxFlightChannelsValid;
+    uint8_t rxActiveLink;
+    uint8_t rxValidLinkMask;
+    uint8_t rxSwitchReason;
+    uint32_t rxSwitchTimeMs;
+    uint8_t rxDualStatus;
     int32_t hwHealthStatus;
     uint16_t powerSupplyImpedance;
     uint16_t sagCompensatedVBat;
@@ -1397,6 +1407,11 @@ static void writeSlowFrame(void)
     values[1] = slowHistory.rxSignalReceived ? 1 : 0;
     values[2] = slowHistory.rxFlightChannelsValid ? 1 : 0;
     blackboxWriteTag2_3S32(values);
+    blackboxWriteUnsignedVB(slowHistory.rxActiveLink);
+    blackboxWriteUnsignedVB(slowHistory.rxValidLinkMask);
+    blackboxWriteUnsignedVB(slowHistory.rxSwitchReason);
+    blackboxWriteUnsignedVB(slowHistory.rxSwitchTimeMs);
+    blackboxWriteUnsignedVB(slowHistory.rxDualStatus);
 
     blackboxWriteUnsignedVB(slowHistory.rxUpdateRate);
 
@@ -1474,6 +1489,11 @@ static void loadSlowState(blackboxSlowState_t *slow)
     slow->failsafePhase = failsafePhase();
     slow->rxSignalReceived = rxIsReceivingSignal();
     slow->rxFlightChannelsValid = rxAreFlightChannelsValid();
+    slow->rxActiveLink = rxGetActiveLink();
+    slow->rxValidLinkMask = rxGetValidLinkMask();
+    slow->rxSwitchReason = rxGetLastSwitchReason();
+    slow->rxSwitchTimeMs = rxGetLastSwitchTimeMs();
+    slow->rxDualStatus = rxGetDualRxStatus();
     slow->rxUpdateRate = getRcUpdateFrequency();
     slow->hwHealthStatus = (getHwGyroStatus()           << 2 * 0) |     // Pack hardware health status into a bit field.
                            (getHwAccelerometerStatus()  << 2 * 1) |     // Use raw hardwareSensorStatus_e values and pack them using 2 bits per value
@@ -2094,6 +2114,9 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("mag_hardware", "%d",                    MAG_NONE);
 #endif
         BLACKBOX_PRINT_HEADER_LINE("serialrx_provider", "%d",               rxConfig()->serialrx_provider);
+        BLACKBOX_PRINT_HEADER_LINE("dual_rx_enabled", "%d",                  rxConfig()->dualRxEnabled);
+        BLACKBOX_PRINT_HEADER_LINE("receiver_type_rx2", "%d",                rxConfig()->receiverTypeSecondary);
+        BLACKBOX_PRINT_HEADER_LINE("serialrx_provider_rx2", "%d",            rxConfig()->serialrx_provider_secondary);
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_protocol", "%d",              motorConfig()->motorPwmProtocol);
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_rate", "%d",                  getEscUpdateFrequency());
         BLACKBOX_PRINT_HEADER_LINE("debug_mode", "%d",                      systemConfig()->debug_mode);

@@ -204,7 +204,7 @@ bool telemetryDetermineEnabledState(portSharing_e portSharing)
 
 bool telemetryCheckRxPortShared(const serialPortConfig_t *portConfig)
 {
-    return portConfig->functionMask & FUNCTION_RX_SERIAL && portConfig->functionMask & TELEMETRY_SHAREABLE_PORT_FUNCTIONS_MASK;
+    return portConfig->functionMask & (FUNCTION_RX_SERIAL | FUNCTION_RX_SERIAL_SECONDARY) && portConfig->functionMask & TELEMETRY_SHAREABLE_PORT_FUNCTIONS_MASK;
 }
 
 serialPort_t *telemetrySharedPort = NULL;

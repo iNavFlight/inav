@@ -21,13 +21,13 @@
 
 #include "rx/rx.h"
 
-bool sbusInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
-bool sbusInitFast(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+bool sbusInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction);
+bool sbusInitFast(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction);
 
 #define SBUS_BYTE_TIME_US(bytes)    MS2US(10 * 12 * bytes) // 10us per bit * (1 start + 8 data + 1 parity + 2 stop) * number of bytes
 
 #ifdef USE_TELEMETRY_SBUS2
-uint8_t sbusGetCurrentTelemetryPage(void);
-uint8_t sbusGetCurrentTelemetryNextSlot(void);
-timeUs_t sbusGetLastFrameTime(void);
+serialPort_t *sbusGetTelemetryPort(rxLink_e link);
+uint8_t sbusGetCurrentTelemetryPage(rxLink_e link);
+timeUs_t sbusGetLastFrameTime(rxLink_e link);
 #endif

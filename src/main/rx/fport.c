@@ -357,7 +357,7 @@ static bool fportProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
     return true;
 }
 
-bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
     rxRuntimeConfig->channelData = sbusChannelData;
@@ -367,13 +367,13 @@ bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     rxRuntimeConfig->rcFrameStatusFn = fportFrameStatus;
     rxRuntimeConfig->rcProcessFrameFn = fportProcessFrame;
 
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
+    const serialPortConfig_t *portConfig = findSerialPortConfig(portFunction);
     if (!portConfig) {
         return false;
     }
 
     fportPort = openSerialPort(portConfig->identifier,
-        FUNCTION_RX_SERIAL,
+        portFunction,
         fportDataReceive,
         NULL,
         FPORT_BAUDRATE,

@@ -212,7 +212,7 @@ static uint16_t ibusReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t 
 }
 
 
-bool ibusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+bool ibusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction)
 {
     UNUSED(rxConfig);
     ibusSyncByte = 0;
@@ -221,20 +221,20 @@ bool ibusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     rxRuntimeConfig->rcReadRawFn = ibusReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = ibusFrameStatus;
 
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
+    const serialPortConfig_t *portConfig = findSerialPortConfig(portFunction);
     if (!portConfig) {
         return false;
     }
 
 #ifdef USE_TELEMETRY
-    bool portShared = isSerialPortShared(portConfig, FUNCTION_RX_SERIAL, FUNCTION_TELEMETRY_IBUS);
+    bool portShared = isSerialPortShared(portConfig, portFunction, FUNCTION_TELEMETRY_IBUS);
 #else
     bool portShared = false;
 #endif
 
     rxBytesToIgnore = 0;
     serialPort_t *ibusPort = openSerialPort(portConfig->identifier,
-        FUNCTION_RX_SERIAL,
+        portFunction,
         ibusDataReceive,
         NULL,
         IBUS_BAUDRATE,

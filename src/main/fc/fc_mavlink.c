@@ -179,10 +179,29 @@ static bool handleIncoming_TUNNEL(uint8_t ingressPortIndex)
 }
 #endif
 
-static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
+static int8_t mavlinkIngressPortRxLink(uint8_t ingressPortIndex)
+{
+    if (ingressPortIndex >= mavPortCount || !mavPortStates[ingressPortIndex].portConfig) {
+        return -1;
+    }
+    return mavlinkRxLinkForPortFunctionMask(mavPortStates[ingressPortIndex].portConfig->functionMask);
+}
+
+static bool handleIncoming_RC_CHANNELS_OVERRIDE(uint8_t ingressPortIndex)
+{
+    const int8_t link = mavlinkIngressPortRxLink(ingressPortIndex);
+    if (link < 0) {
+        return false;
+    }
+
     mavlink_rc_channels_override_t msg;
     mavlink_msg_rc_channels_override_decode(&mavlinkContext.recvMsg, &msg);
-    mavlinkRxHandleMessage(&msg);
+    if ((msg.target_system != 0 && msg.target_system != mavSystemId) ||
+        (msg.target_component != 0 && msg.target_component != mavComponentId)) {
+        return false;
+    }
+
+    mavlinkRxHandleMessage((rxLink_e)link, &msg);
     return true;
 }
 
@@ -202,15 +221,6 @@ static bool handleIncoming_PARAM_REQUEST_LIST(void) {
     return true;
 }
 
-static bool mavlinkIngressPortIsMavlinkSerialRx(uint8_t ingressPortIndex)
-{
-    return ingressPortIndex < mavPortCount &&
-        mavPortStates[ingressPortIndex].portConfig &&
-        (mavPortStates[ingressPortIndex].portConfig->functionMask & FUNCTION_RX_SERIAL) &&
-        rxConfig()->receiverType == RX_TYPE_SERIAL &&
-        rxConfig()->serialrx_provider == SERIALRX_MAVLINK;
-}
-
 static uint16_t mavlinkDbmToMilliwatts(int8_t powerDbm)
 {
     if (powerDbm == INT8_MAX) {
@@ -220,43 +230,80 @@ static uint16_t mavlinkDbmToMilliwatts(int8_t powerDbm)
     return powerDbm <= 0 ? 0 : lrintf(powf(10.0f, powerDbm / 10.0f));
 }
 
-static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
-    switch(mavActiveConfig->radio_type) {
+static void mavlinkParseRxStats(rxLink_e link, uint8_t ingressPortIndex, const mavlink_radio_status_t *msg)
+{
+    rxLinkStatistics_t *statistics = rxGetLinkStatisticsMutable(link);
+    const mavlinkTelemetryPortConfig_t *portConfig = mavlinkGetPortConfig(ingressPortIndex);
+    uint16_t validFields = 0;
+
+    switch(portConfig->radio_type) {
         case MAVLINK_RADIO_SIK:
-            rxLinkStatistics.uplinkRSSI = (msg->rssi / 1.9) - 127;
-            rxLinkStatistics.uplinkSNR = msg->noise / 1.9;
-            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            if (msg->rssi != UINT8_MAX) {
+                statistics->uplinkRSSI = (msg->rssi / 1.9) - 127;
+                statistics->uplinkLQ = scaleRange(msg->rssi, 0, 254, 0, 100);
+                validFields |= RX_LINK_STATS_UPLINK_RSSI | RX_LINK_STATS_UPLINK_LQ;
+            }
+            if (msg->noise != UINT8_MAX) {
+                statistics->uplinkSNR = msg->noise / 1.9;
+                validFields |= RX_LINK_STATS_UPLINK_SNR;
+            }
             break;
+
         case MAVLINK_RADIO_ELRS:
-            rxLinkStatistics.uplinkRSSI = -msg->remrssi;
-            rxLinkStatistics.uplinkSNR = msg->noise;
-            rxLinkStatistics.uplinkLQ = scaleRange(msg->rssi, 0, 255, 0, 100);
+            if (msg->remrssi != UINT8_MAX) {
+                statistics->uplinkRSSI = -msg->remrssi;
+                validFields |= RX_LINK_STATS_UPLINK_RSSI;
+            }
+            if (msg->rssi != UINT8_MAX) {
+                statistics->uplinkLQ = scaleRange(msg->rssi, 0, 254, 0, 100);
+                validFields |= RX_LINK_STATS_UPLINK_LQ;
+            }
+            if (msg->noise != UINT8_MAX) {
+                statistics->uplinkSNR = msg->noise;
+                validFields |= RX_LINK_STATS_UPLINK_SNR;
+            }
             break;
+
         case MAVLINK_RADIO_MLRS:
-            break;
+            // mLRS exposes its RC-link metrics through the dedicated mLRS
+            // messages below. RADIO_STATUS is still used for transport flow
+            // control, but must not make an empty RX statistics record valid.
+            return;
+
         case MAVLINK_RADIO_GENERIC:
         default:
-            rxLinkStatistics.uplinkRSSI = msg->rssi;
-            rxLinkStatistics.uplinkSNR = msg->noise;
-            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            if (msg->rssi != UINT8_MAX) {
+                statistics->uplinkRSSI = msg->rssi;
+                statistics->uplinkLQ = scaleRange(msg->rssi, 0, 254, 0, 100);
+                validFields |= RX_LINK_STATS_UPLINK_RSSI | RX_LINK_STATS_UPLINK_LQ;
+            }
+            if (msg->noise != UINT8_MAX) {
+                statistics->uplinkSNR = msg->noise;
+                validFields |= RX_LINK_STATS_UPLINK_SNR;
+            }
             break;
+    }
+
+    if (validFields) {
+        rxLinkStatisticsUpdated(link, validFields);
     }
 }
 
-static bool handleIncoming_RADIO_STATUS(void) {
+static bool handleIncoming_RADIO_STATUS(uint8_t ingressPortIndex) {
     mavlink_radio_status_t msg;
     mavlink_msg_radio_status_decode(&mavlinkContext.recvMsg, &msg);
+    mavlinkPortRuntime_t *ingressPort = &mavPortStates[ingressPortIndex];
     if (msg.txbuf > 0) {
-        mavActivePort->txbuffValid = true;
-        mavActivePort->txbuffFree = msg.txbuf;
+        ingressPort->txbuffValid = true;
+        ingressPort->txbuffFree = msg.txbuf;
     } else {
-        mavActivePort->txbuffValid = false;
-        mavActivePort->txbuffFree = 100;
+        ingressPort->txbuffValid = false;
+        ingressPort->txbuffFree = 100;
     }
 
-    if (rxConfig()->receiverType == RX_TYPE_SERIAL &&
-        rxConfig()->serialrx_provider == SERIALRX_MAVLINK) {
-        mavlinkParseRxStats(&msg);
+    const int8_t rxLink = mavlinkIngressPortRxLink(ingressPortIndex);
+    if (rxLink >= 0) {
+        mavlinkParseRxStats((rxLink_e)rxLink, ingressPortIndex, &msg);
     }
 
     return true;
@@ -283,33 +330,50 @@ static bool handleIncoming_MLRS_RADIO_LINK_STATS(uint8_t ingressPortIndex)
     stats->packet = msg;
     stats->rssiIsDbm = (msg.flags & MLRS_RADIO_LINK_STATS_FLAGS_RSSI_DBM) != 0;
     stats->activeAntenna = (msg.flags & MLRS_RADIO_LINK_STATS_FLAGS_RX_RECEIVE_ANTENNA2) ? 1 : 0;
-    stats->rxLinkQualityRc = msg.rx_LQ_rc == UINT8_MAX ? 0 : MIN(msg.rx_LQ_rc, 100);
-    stats->rxLinkQualitySerial = msg.rx_LQ_ser == UINT8_MAX ? 0 : MIN(msg.rx_LQ_ser, 100);
+    const bool uplinkLqValid = msg.rx_LQ_rc != UINT8_MAX;
+    const bool downlinkLqValid = msg.rx_LQ_ser != UINT8_MAX;
+    stats->rxLinkQualityRc = uplinkLqValid ? MIN(msg.rx_LQ_rc, 100) : 0;
+    stats->rxLinkQualitySerial = downlinkLqValid ? MIN(msg.rx_LQ_ser, 100) : 0;
 
     uint8_t rxRssi = stats->activeAntenna ? msg.rx_rssi2 : msg.rx_rssi1;
     if (stats->activeAntenna && rxRssi == UINT8_MAX) {
         rxRssi = msg.rx_rssi1;
     }
-    stats->rxRssi = 0;
-    if (rxRssi != 0 && rxRssi != UINT8_MAX) {
-        stats->rxRssi = stats->rssiIsDbm ? -rxRssi : rxRssi;
-    }
+    const bool rssiValid = stats->rssiIsDbm && rxRssi != 0 && rxRssi != UINT8_MAX;
+    stats->rxRssi = rssiValid ? -rxRssi : 0;
 
     int8_t rxSnr = stats->activeAntenna ? msg.rx_snr2 : msg.rx_snr1;
     if (stats->activeAntenna && rxSnr == INT8_MAX) {
         rxSnr = msg.rx_snr1;
     }
-    stats->rxSnr = rxSnr == INT8_MAX ? 0 : rxSnr;
+    const bool snrValid = rxSnr != INT8_MAX;
+    stats->rxSnr = snrValid ? rxSnr : 0;
 
-    if (!mavlinkIngressPortIsMavlinkSerialRx(ingressPortIndex)) {
+    const int8_t rxLink = mavlinkIngressPortRxLink(ingressPortIndex);
+    if (rxLink < 0) {
         return true;
     }
 
-    rxLinkStatistics.uplinkLQ = stats->rxLinkQualityRc;
-    rxLinkStatistics.downlinkLQ = stats->rxLinkQualitySerial;
-    rxLinkStatistics.uplinkRSSI = stats->rxRssi;
-    rxLinkStatistics.uplinkSNR = stats->rxSnr;
-    rxLinkStatistics.activeAntenna = stats->activeAntenna;
+    rxLinkStatistics_t *statistics = rxGetLinkStatisticsMutable((rxLink_e)rxLink);
+    uint16_t validFields = RX_LINK_STATS_ACTIVE_ANTENNA;
+    statistics->activeAntenna = stats->activeAntenna;
+    if (uplinkLqValid) {
+        statistics->uplinkLQ = stats->rxLinkQualityRc;
+        validFields |= RX_LINK_STATS_UPLINK_LQ;
+    }
+    if (downlinkLqValid) {
+        statistics->downlinkLQ = stats->rxLinkQualitySerial;
+        validFields |= RX_LINK_STATS_DOWNLINK_LQ;
+    }
+    if (rssiValid) {
+        statistics->uplinkRSSI = stats->rxRssi;
+        validFields |= RX_LINK_STATS_UPLINK_RSSI;
+    }
+    if (snrValid) {
+        statistics->uplinkSNR = stats->rxSnr;
+        validFields |= RX_LINK_STATS_UPLINK_SNR;
+    }
+    rxLinkStatisticsUpdated((rxLink_e)rxLink, validFields);
 
     return true;
 }
@@ -342,18 +406,39 @@ static bool handleIncoming_MLRS_RADIO_LINK_INFORMATION(uint8_t ingressPortIndex)
     info->txReceiveSensitivityDbm = msg.tx_receive_sensitivity ? -(int16_t)msg.tx_receive_sensitivity : 0;
     info->rxReceiveSensitivityDbm = msg.rx_receive_sensitivity ? -(int16_t)msg.rx_receive_sensitivity : 0;
 
-    if (!mavlinkIngressPortIsMavlinkSerialRx(ingressPortIndex)) {
+    const int8_t rxLink = mavlinkIngressPortRxLink(ingressPortIndex);
+    if (rxLink < 0) {
         return true;
     }
 
-    rxLinkStatistics.uplinkTXPower = info->txPowerMw;
-    rxLinkStatistics.downlinkTXPower = info->rxPowerMw;
-    memset(rxLinkStatistics.band, 0, sizeof(rxLinkStatistics.band));
-    memset(rxLinkStatistics.mode, 0, sizeof(rxLinkStatistics.mode));
-    memcpy(rxLinkStatistics.band, info->bandStr, sizeof(rxLinkStatistics.band) - 1);
-    memcpy(rxLinkStatistics.mode, info->modeStr, sizeof(rxLinkStatistics.mode) - 1);
-    sl_toupperptr(rxLinkStatistics.band);
-    sl_toupperptr(rxLinkStatistics.mode);
+    rxLinkStatistics_t *statistics = rxGetLinkStatisticsMutable((rxLink_e)rxLink);
+    uint16_t validFields = 0;
+
+    if (msg.tx_power != INT8_MAX) {
+        statistics->uplinkTXPower = info->txPowerMw;
+        validFields |= RX_LINK_STATS_UPLINK_TX_POWER;
+    }
+    if (msg.rx_power != INT8_MAX) {
+        statistics->downlinkTXPower = info->rxPowerMw;
+        validFields |= RX_LINK_STATS_DOWNLINK_TX_POWER;
+    }
+
+    memset(statistics->band, 0, sizeof(statistics->band));
+    memset(statistics->mode, 0, sizeof(statistics->mode));
+    memcpy(statistics->band, info->bandStr, sizeof(statistics->band) - 1);
+    memcpy(statistics->mode, info->modeStr, sizeof(statistics->mode) - 1);
+    sl_toupperptr(statistics->band);
+    sl_toupperptr(statistics->mode);
+    if (statistics->band[0]) {
+        validFields |= RX_LINK_STATS_BAND;
+    }
+    if (statistics->mode[0]) {
+        validFields |= RX_LINK_STATS_MODE;
+    }
+
+    if (validFields) {
+        rxLinkStatisticsUpdated((rxLink_e)rxLink, validFields);
+    }
 
     return true;
 }
@@ -371,12 +456,13 @@ static bool handleIncoming_MLRS_RADIO_LINK_FLOW_CONTROL(uint8_t ingressPortIndex
     flowControl->valid = true;
     flowControl->packet = msg;
 
+    mavlinkPortRuntime_t *ingressPort = &mavPortStates[ingressPortIndex];
     if (msg.txbuf <= 100) {
-        mavActivePort->txbuffValid = true;
-        mavActivePort->txbuffFree = msg.txbuf;
+        ingressPort->txbuffValid = true;
+        ingressPort->txbuffFree = msg.txbuf;
     } else {
-        mavActivePort->txbuffValid = false;
-        mavActivePort->txbuffFree = 100;
+        ingressPort->txbuffValid = false;
+        ingressPort->txbuffFree = 100;
     }
 
     return true;
@@ -442,8 +528,7 @@ mavlinkFcDispatchResult_e mavlinkFcDispatchIncomingMessage(uint8_t ingressPortIn
     case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
         return mavlinkHandleIncomingRequestDataStream() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
-        handleIncoming_RC_CHANNELS_OVERRIDE();
-        return MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY;
+        return handleIncoming_RC_CHANNELS_OVERRIDE(ingressPortIndex) ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
         return mavlinkHandleIncomingSetPositionTargetLocalNed() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_SET_POSITION_TARGET_GLOBAL_INT:
@@ -459,8 +544,7 @@ mavlinkFcDispatchResult_e mavlinkFcDispatchIncomingMessage(uint8_t ingressPortIn
     case MAVLINK_MSG_ID_MLRS_RADIO_LINK_FLOW_CONTROL:
         return handleIncoming_MLRS_RADIO_LINK_FLOW_CONTROL(ingressPortIndex) ? MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_RADIO_STATUS:
-        handleIncoming_RADIO_STATUS();
-        return MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY;
+        return handleIncoming_RADIO_STATUS(ingressPortIndex) ? MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
 #ifdef USE_MAVLINK_MSP_TUNNEL
     case MAVLINK_MSG_ID_TUNNEL:
         return handleIncoming_TUNNEL(ingressPortIndex) ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;

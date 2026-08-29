@@ -6,7 +6,7 @@
 
 struct sbuf_s;
 
-bool srxl2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+bool srxl2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction);
 bool srxl2RxIsActive(void);
 void srxl2RxWriteData(const void *data, int len);
 bool srxl2TelemetryRequested(void);
