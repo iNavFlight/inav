@@ -1,5 +1,12 @@
 #!/bin/bash
 #
+# WARNING: This script is invoked from a GitHub Actions job via
+# `bash .github/scripts/...`. It MUST NEVER be called from a job that has
+# not first checked out a known branch (e.g. `- uses: actions/checkout@v4`
+# as the job's first step): the runner workspace is empty until then, so
+# the script doesn't exist and the call fails with exit 127, silently
+# publishing nothing. Every job calling this script must check out first.
+#
 # Publish the nightly size report as release assets in the companion
 # pr-test-builds repo, keyed by BRANCH (latest-tip pointer, kept for
 # backward compatibility) AND by COMMIT SHA (primary — lets PR size-diff

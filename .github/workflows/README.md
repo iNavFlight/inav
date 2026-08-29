@@ -103,6 +103,13 @@ every PR.
 `.github/scripts/size-diff-comment.js` (pure diff + markdown rendering,
 unit tested in `.github/scripts/size-diff-comment.test.js`)
 
+**⚠️ Every job that calls a `.github/scripts/` file MUST first run
+`- uses: actions/checkout@v4` as its first step.** The runner workspace is
+empty until a checkout — `bash .github/scripts/...` then fails with exit
+127 and the job silently does nothing, so a missing checkout looks like a
+missing baseline/artifact instead of a broken job. Repo scripts MUST NEVER
+be invoked from a job that has not checked out a known branch first.
+
 **Uses the same `PR_BUILDS_TOKEN` secret and `workflow_run` trigger pattern
 as `pr-test-builds.yml`** (secrets available even for fork PRs).
 
