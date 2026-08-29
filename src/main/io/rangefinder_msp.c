@@ -74,7 +74,7 @@ static int32_t mspRangefinderGetDistance(void)
 
 void mspRangefinderReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
-    if (dataSize != sizeof(mspSensorRangefinderDataMessage_t)) {
+    if (dataSize < sizeof(mspSensorRangefinderDataMessage_t)) {
         return;
     }
 

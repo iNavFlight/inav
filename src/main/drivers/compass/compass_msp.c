@@ -60,7 +60,7 @@ static bool mspMagInit(magDev_t *magDev)
 
 void mspMagReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
-    if (dataSize != sizeof(mspSensorCompassDataMessage_t)) {
+    if (dataSize < sizeof(mspSensorCompassDataMessage_t)) {
         return;
     }
 

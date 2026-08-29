@@ -80,7 +80,7 @@ static bool mspBaroCalculate(baroDev_t * baro, int32_t *pressure, int32_t *tempe
 
 void mspBaroReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
-    if (dataSize != sizeof(mspSensorBaroDataMessage_t)) {
+    if (dataSize < sizeof(mspSensorBaroDataMessage_t)) {
         return;
     }
 

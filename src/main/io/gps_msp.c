@@ -79,7 +79,7 @@ static uint8_t gpsMapFixType(uint8_t mspFixType)
 
 void mspGPSReceiveNewData(const uint8_t * bufferPtr, unsigned int dataSize)
 {
-    if (dataSize != sizeof(mspSensorGpsDataMessage_t)) {
+    if (dataSize < sizeof(mspSensorGpsDataMessage_t)) {
         return;
     }
 

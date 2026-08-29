@@ -74,7 +74,7 @@ static void mspPitotCalculate(pitotDev_t *pitot, float *pressure, float *tempera
 
 void mspPitotmeterReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
-    if (dataSize != sizeof(mspSensorAirspeedDataMessage_t)) {
+    if (dataSize < sizeof(mspSensorAirspeedDataMessage_t)) {
         return;
     }
 

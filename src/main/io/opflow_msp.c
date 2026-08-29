@@ -73,7 +73,7 @@ static bool mspOpflowUpdate(opflowData_t * data)
 
 void mspOpflowReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
-    if (dataSize != sizeof(mspSensorOpflowDataMessage_t)) {
+    if (dataSize < sizeof(mspSensorOpflowDataMessage_t)) {
         return;
     }
 
