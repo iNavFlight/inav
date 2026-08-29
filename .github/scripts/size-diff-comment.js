@@ -66,14 +66,19 @@ function diffSizeReports(prReport, baselineReport) {
 //   stored baseline and a nearest-ancestor baseline was used instead.
 function renderComment({ prReport, baselineReport, shortSha, baselineCommit, baselineIsNearest, docLink, marker }) {
     const rows = diffSizeReports(prReport, baselineReport);
-    const vs = baselineCommit ? `vs. base commit \`${baselineCommit}\`` : 'vs. base branch';
+    // Only name the baseline commit when there is actually a baseline to
+    // compare against (the workflow only sets baselineCommit in that case,
+    // but the renderer must not emit a contradictory header otherwise).
+    const vs = (baselineReport && baselineCommit)
+        ? `vs. base commit \`${baselineCommit}\`` : 'vs. base branch';
     const lines = [marker, `**RAM / Flash usage ${vs}** — commit \`${shortSha}\``, ''];
 
     if (!baselineReport) {
         lines.push(
             '> No size baseline is available yet for this PR\'s base commit ' +
-            '(first run after this feature shipped, or a new branch). ' +
-            'This comment will show deltas once a baseline exists.',
+            '(no per-commit baseline has been published for it). This comment ' +
+            'will show deltas once one exists — rebasing the PR refreshes its ' +
+            'base commit.',
             ''
         );
     } else if (baselineIsNearest) {

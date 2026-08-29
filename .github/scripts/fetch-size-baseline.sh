@@ -55,12 +55,10 @@ mkdir -p "$OUT_DIR"
 
 # Set of per-commit baseline SHAs currently stored in the builds repo.
 # One paginated call; tags are built by publish-size-baseline.sh and match
-# the strict 40-hex pattern by construction. @tsv keeps the output raw
-# (gh api has no -r/--raw flag; string filters would JSON-quote values).
+# the strict 40-hex pattern by construction.
 list_baseline_shas() {
     gh api "repos/${BUILDS_REPO}/releases?per_page=100" --paginate \
-        --jq '.[] | select(.tag_name | test("^size-baseline-[0-9a-f]{40}$")) |
-              [.tag_name | sub("^size-baseline-"; "")] | @tsv'
+        --jq '.[].tag_name | select(test("^size-baseline-[0-9a-f]{40}$")) | sub("^size-baseline-"; "")'
 }
 
 # publish-size-baseline replaces the asset in place (--clobber), which still
@@ -87,23 +85,27 @@ emit_found() { # $1 = 40-hex sha, $2 = true|false (exact)
 
 BASELINE_SHAS=$(list_baseline_shas) || true
 
-if grep -qx "$MERGE_BASE_SHA" <<< "$BASELINE_SHAS" && download_baseline "$MERGE_BASE_SHA"; then
-    emit_found "$MERGE_BASE_SHA" true
-    exit 0
-fi
-
-# Nearest-ancestor walk along the base branch's first-parent chain.
+# Exact merge-base first, then nearest ancestors along the base branch's
+# first-parent chain. The loop STARTS at the merge-base itself so a
+# transient download failure on the exact commit is retried here instead
+# of silently degrading to a nearest-ancestor baseline.
 sha="$MERGE_BASE_SHA"
-for _ in $(seq 1 "$MAX_WALK"); do
+first=1
+for _ in $(seq 1 $((MAX_WALK + 1))); do
+    if grep -qx "$sha" <<< "$BASELINE_SHAS" && download_baseline "$sha"; then
+        if [ "$first" = 1 ]; then
+            emit_found "$sha" true
+        else
+            emit_found "$sha" false
+        fi
+        exit 0
+    fi
+    first=0
     parent=$(gh api "repos/${MAIN_REPO}/commits/${sha}" --jq '.parents[0].sha // empty' 2>/dev/null || true)
     if [ -z "$parent" ] || ! [[ "$parent" =~ ^[0-9a-f]{40}$ ]]; then
         break
     fi
     sha="$parent"
-    if grep -qx "$sha" <<< "$BASELINE_SHAS" && download_baseline "$sha"; then
-        emit_found "$sha" false
-        exit 0
-    fi
 done
 
 echo "found=false"

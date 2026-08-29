@@ -337,11 +337,11 @@ test('renderComment: baselineCommit omitted -> generic "vs. base branch" wording
     assert.ok(!body.includes('base commit `'), 'no baseline commit rendered when none supplied');
 });
 
-test('renderComment: baselineCommit supplied but no baseline report -> graceful note still wins', () => {
+test('renderComment: baselineCommit supplied but no baseline report -> graceful note wins, no contradictory header', () => {
     // Defensive: the workflow only sets baselineCommit when a baseline was
     // found, so this combination should not occur; if it ever does, the
-    // "no baseline available" note must still be present (never silently
-    // claim a comparison happened).
+    // header must NOT claim a base commit was compared (no "vs. base
+    // commit") and the "no baseline available" note must be present.
     const body = renderComment({
         prReport: fullReport({ MATEKF405: [500000, 60000] }),
         baselineReport: null,
@@ -352,4 +352,6 @@ test('renderComment: baselineCommit supplied but no baseline report -> graceful 
     });
 
     assert.ok(body.includes('No size baseline is available yet'));
+    assert.ok(!body.includes('vs. base commit `9e932ba`'), 'header must not name a baseline commit when no baseline exists');
+    assert.ok(body.includes('vs. base branch'), 'header should fall back to the generic wording');
 });

@@ -81,14 +81,15 @@ fi
 # ---------------------------------------------------------------------------
 # Emit <created_at>\t<tag>\t<branch> for every per-commit baseline release,
 # newest first (GitHub release listing is newest-first). Branch comes from
-# the notes' `branch: <name>` first line; '?' when unparseable. @tsv keeps
-# the output raw (gh api has no -r/--raw flag; string filters would
-# JSON-quote values).
+# the notes' `branch: <name>` FIRST LINE; the (?m) flag is required — the
+# notes are multi-line, and without it ^/$ anchor to the whole string so
+# the capture never matches and every baseline collapses into the '?'
+# bucket, which would make pruning treat all branches as one.
 list_per_commit_baselines() {
     gh api "repos/${BUILDS_REPO}/releases?per_page=100" --paginate \
         --jq '.[] | select(.tag_name | test("^size-baseline-[0-9a-f]{40}$")) |
               [.created_at, .tag_name,
-               ((.body // "") | capture("^branch: (?<b>[A-Za-z0-9._/-]+)$") | .b // "?")] | @tsv'
+               ((.body // "") | capture("(?m)^branch: (?<b>[A-Za-z0-9._/-]+)$") | .b // "?")] | @tsv'
 }
 
 prune() {
@@ -96,16 +97,17 @@ prune() {
     tmp=$(mktemp)
     trap 'rm -f "$tmp"' RETURN
 
-    # Pass 1 (NR==FNR): per-branch keep-set — newest KEEP_PER_BRANCH tags per
-    # branch. Pass 2: apply the global cap to the kept set in input order.
-    # Prints the tags to DELETE (kept per-branch but cut by the cap, or never
-    # in the keep-set at all). The API lists newest-first but pagination can
-    # interleave pages, so re-sort descending by created_at for a guaranteed
-    # newest-first input to the keep-selection.
+    # Pass 1 (NR==FNR): record every tag in `all`, and the per-branch
+    # keep-set — newest KEEP_PER_BRANCH tags per branch — in `keepTag`.
+    # Pass 2: apply the global cap to the kept set in input order.
+    # END: delete every tag in `all` that did not survive to keepFinal.
+    # (Explicit `all` set so pruning never depends on awk's create-on-
+    # reference semantics of reading keepTag[$2] in pass 2.)
     list_per_commit_baselines | sort -r > "$tmp"
 
     awk -F '\t' -v keep="$KEEP_PER_BRANCH" -v cap="$GLOBAL_CAP" '
         NR == FNR {
+            all[$2] = 1
             if (count[$3] < keep) { count[$3]++; keepTag[$2] = 1 }
             next
         }
@@ -115,7 +117,7 @@ prune() {
             }
         }
         END {
-            for (t in keepTag) if (!keepFinal[t]) print t
+            for (t in all) if (!keepFinal[t]) print t
         }
     ' "$tmp" "$tmp" | while read -r tag; do
         if [ "$DRY_RUN" = "--dry-run" ]; then
