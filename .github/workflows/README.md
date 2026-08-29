@@ -77,20 +77,29 @@ every PR.
    `nightly-build.yml` ("Build pre-release") invokes `ci.yml` via
    `workflow_call` as part of building nightly releases — this already
    produces the size report above at no extra build cost. When that
-   completes, `ci-size-report.yml` persists it as a release asset
-   (`size-baseline-<branch>`) in the companion `iNavFlight/pr-test-builds`
-   repo — the "known good" baseline for that branch, overwritten on every
-   push. (`ci.yml`'s *own* `on: push:` trigger is broken — a `branches:`
-   list containing only a negative pattern matches nothing per GitHub's
-   docs — so this deliberately listens to `nightly-build.yml` instead of
-   trying to fix that separately; verified empirically that `ci.yml` alone
-   has zero push-triggered runs in this repo's history.)
-3. On PR builds, it fetches the PR's base branch's persisted baseline (no
-   rebuild), diffs it against the PR's own size report, and posts/updates a
-   comment (marker `<!-- pr-size-diff -->`).
+   completes, `ci-size-report.yml` persists it as TWO release assets in the
+   companion `iNavFlight/pr-test-builds` repo: `size-baseline-<branch>`
+   (latest-tip pointer, kept for backward compatibility) and
+   `size-baseline-<commit-sha>` (primary — lets PR comparisons key off the
+   exact base commit). Per-commit baselines are pruned to the newest 50 per
+   branch (plus a global cap) so the companion repo doesn't grow unbounded.
+   (`ci.yml`'s *own* `on: push:` trigger is broken — a `branches:` list
+   containing only a negative pattern matches nothing per GitHub's docs —
+   so this deliberately listens to `nightly-build.yml` instead of trying to
+   fix that separately; verified empirically that `ci.yml` alone has zero
+   push-triggered runs in this repo's history.)
+3. On PR builds, it computes the PR's TRUE base commit — the merge-base of
+   the PR head and base ref via the compare API — fetches the per-commit
+   baseline for that exact commit, falling back to the nearest ancestor
+   commit that has one (never the branch tip, which would include unrelated
+   changes merged after the PR forked), diffs it against the PR's own size
+   report, and posts/updates a comment (marker `<!-- pr-size-diff -->`)
+   naming the baseline commit that was used.
 
-**Script:** `.github/scripts/extract-size-report.sh` (size extraction),
+**Scripts:** `.github/scripts/extract-size-report.sh` (size extraction),
 `.github/scripts/merge-size-reports.sh` (merges per-shard reports),
+`.github/scripts/publish-size-baseline.sh` (per-commit publish + pruning),
+`.github/scripts/fetch-size-baseline.sh` (merge-base baseline resolution),
 `.github/scripts/size-diff-comment.js` (pure diff + markdown rendering,
 unit tested in `.github/scripts/size-diff-comment.test.js`)
 
