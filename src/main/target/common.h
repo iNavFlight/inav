@@ -418,8 +418,9 @@
 #define USE_HEADTRACKER_MSP
 #endif
 
-// Thermal Camera Support (off 512 KB targets to preserve flash space)
-#if (MCU_FLASH_SIZE > 512)
+// Thermal Camera Support (off 512 KB targets to preserve flash space;
+// SITL has no flash constraint — SITL_BUILD is set by cmake/sitl.cmake)
+#if defined(SITL_BUILD) || (MCU_FLASH_SIZE > 512)
 #define USE_MZTC
 #endif
 
