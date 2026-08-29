@@ -2173,6 +2173,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     const unsigned int dataSize = sbufBytesRemaining(src);  /* Payload size in Bytes */
 
+    // SET handlers use lenient >= / < gates per forward-compat policy: MSP payloads
+    // only gain fields at the end, so a newer configurator's longer message is
+    // accepted by applying the known prefix and ignoring the trailing bytes.
+
     switch (cmdMSP) {
     case MSP_SELECT_SETTING:
         if (sbufReadU8Safe(&tmp_u8, src) && (!ARMING_FLAG(ARMED)))
@@ -3742,12 +3746,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_OSD_SET_PREFERENCES:
         {
-            if (
-                    dataSize >= 9
-#ifdef USE_ADSB
-                    || dataSize >= 10
-#endif
-            ) {
+            if (dataSize >= 9) {
                 osdConfigMutable()->video_system = sbufReadU8(src);
                 osdConfigMutable()->main_voltage_decimals = sbufReadU8(src);
                 osdConfigMutable()->ahi_reverse_roll = sbufReadU8(src);
