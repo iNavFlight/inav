@@ -97,6 +97,9 @@ typedef enum {
 #ifdef USE_OSD
     TASK_OSD,
 #endif
+#ifdef USE_MZTC
+    TASK_MZTC_CAMERA,
+#endif
 #ifdef USE_CMS
     TASK_CMS,
 #endif

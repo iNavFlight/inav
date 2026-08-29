@@ -418,6 +418,12 @@
 #define USE_HEADTRACKER_MSP
 #endif
 
+// Thermal Camera Support (off 512 KB targets to preserve flash space;
+// SITL has no flash constraint — SITL_BUILD is set by cmake/sitl.cmake)
+#if defined(SITL_BUILD) || (MCU_FLASH_SIZE > 512)
+#define USE_MZTC
+#endif
+
 #if defined(STM32F7) || defined(STM32H7)
 // needs bi-direction inverter, not available on F4 hardware.
 #define USE_TELEMETRY_SBUS2
