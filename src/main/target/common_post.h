@@ -19,6 +19,13 @@
 
 #pragma once
 
+// MSP-over-MAVLink is independently removable from MAVLink targets that cannot
+// afford its reply buffer. Define DISABLE_MAVLINK_MSP_TUNNEL in a target to
+// retain normal MAVLink without the tunnel RAM/code cost.
+#if defined(USE_TELEMETRY_MAVLINK) && !defined(DISABLE_MAVLINK_MSP_TUNNEL)
+#define USE_MAVLINK_MSP_TUNNEL
+#endif
+
 // Config storage in memory-mapped flash
 extern uint8_t __config_start;
 extern uint8_t __config_end;
@@ -87,7 +94,6 @@ extern uint8_t __config_end;
 #define USE_MAG_QMC5883
 #define USE_MAG_QMC5883P
 
-//#if (MCU_FLASH_SIZE > 512)
 #define USE_MAG_AK8963
 #define USE_MAG_AK8975
 #define USE_MAG_IST8308
@@ -99,7 +105,6 @@ extern uint8_t __config_end;
 
 #define USE_MAG_RM3100
 #define USE_MAG_VCM5883
-//#endif // MCU_FLASH_SIZE
 
 #endif // USE_MAG_ALL
 
@@ -129,6 +134,33 @@ extern uint8_t __config_end;
 #define BARO_I2C_BUS DEFAULT_I2C_BUS
 #endif
 
+#endif
+
+// Terrain keeps a sizeable grid cache in RAM, so restrict it to MCUs with enough of it.
+// MCU_RAM_SIZE is in KiB, defined per MCU next to MCU_FLASH_SIZE in cmake/.
+#if defined(USE_BARO) && defined(USE_SDCARD) && !defined(USE_TERRAIN) && (MCU_RAM_SIZE > 256)
+#define USE_TERRAIN
+
+// number of grid blocks held in the RAM cache; each entry is a gridCache_t
+// wrapping one packed gridBlock_t (~1.1 KB), no longer the old 2048-byte block
+#if (MCU_RAM_SIZE >= 512)
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8
+#else
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 4
+#endif
+
+#endif
+
+// CRSF sensor input on a dedicated UART
+#if defined(USE_SERIALRX_CRSF)
+#define USE_CRSF_SENSOR_INPUT
+#define USE_BATTERY_SENSOR_CRSF
+#if defined(USE_GPS)
+#define USE_GPS_PROTO_CRSF
+#endif
+#if defined(USE_BARO)
+#define USE_BARO_CRSF
+#endif
 #endif
 
 #ifdef USE_ESC_SENSOR

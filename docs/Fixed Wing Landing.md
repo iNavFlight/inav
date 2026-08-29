@@ -88,7 +88,7 @@ In cm/s. Min: 0; Max: 3000, Default: 140
 If WP-Tracking is not used, the Plane will head straight to the landiung location without flying in line with the intended landing strip. Wind can intensively alter the final landing heading.
 
 * `nav_fw_pitch2thr`: The navigation throttle modifier has to be tuned well to allow stable navigation during climbs and descents to prevent a stall. Make sure your plane maintains Ground or Airspeed, when climbing in any navigation mode. 
-The Craft should not get slower and not speed ub significantly during a navigation climb, if P2T is tuned properly.
+The Craft should not get slower and not speed ub significantly during a navigation climb, if P2T is tuned properly. See `Fixed Wing Pitch To Throttle Tuning.md` for a full tuning procedure.
 
 * `nav_wp_radius`: This parameter might be too high if you have set up your craft with INAV 6 or INAV 7. With a too high value, the turning points for the Crosswind-Leg and Final Approach are hit too early and make it difficult for the plane to align to the runway or cut short the approach. 
 Make sure this parameter is not set greater than 1000 (cm). The better your craft and navigation system is tuned, the lower this value can be. We recommend to start with 1000 for flying wings and 800 for a Plane with Tail.
