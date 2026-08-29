@@ -3543,9 +3543,11 @@ Low temperature alert threshold
 
 Auto shutter calibration mode
 
-| Default | Min | Max |
-| --- | --- | --- |
-| TIME_AND_TEMP |  |  |
+| Allowed Values |  |
+| --- | --- |
+| TEMP_ONLY |  |
+| TIME_ONLY |  |
+| TIME_AND_TEMP | Default |
 
 ---
 
@@ -3633,9 +3635,12 @@ Flat Field Calibration interval in minutes (0=disabled)
 
 Image mirroring mode
 
-| Default | Min | Max |
-| --- | --- | --- |
-| NONE |  |  |
+| Allowed Values |  |
+| --- | --- |
+| NONE | Default |
+| HORIZONTAL |  |
+| VERTICAL |  |
+| CENTRAL |  |
 
 ---
 
@@ -3643,9 +3648,16 @@ Image mirroring mode
 
 Operating mode for MassZero Thermal Camera
 
-| Default | Min | Max |
-| --- | --- | --- |
-| STANDBY |  |  |
+| Allowed Values |  |
+| --- | --- |
+| DISABLED |  |
+| STANDBY | Default |
+| CONTINUOUS |  |
+| TRIGGERED |  |
+| ALERT |  |
+| RECORDING |  |
+| CALIBRATION |  |
+| SURVEILLANCE |  |
 
 ---
 
@@ -3653,9 +3665,22 @@ Operating mode for MassZero Thermal Camera
 
 Color palette mode
 
-| Default | Min | Max |
-| --- | --- | --- |
-| WHITE_HOT |  |  |
+| Allowed Values |  |
+| --- | --- |
+| WHITE_HOT | Default |
+| BLACK_HOT |  |
+| FUSION_1 |  |
+| RAINBOW |  |
+| FUSION_2 |  |
+| IRON_RED_1 |  |
+| IRON_RED_2 |  |
+| SEPIA |  |
+| COLOR_1 |  |
+| COLOR_2 |  |
+| ICE_FIRE |  |
+| RAIN |  |
+| GREEN_HOT |  |
+| RED_HOT |  |
 
 ---
 
@@ -3693,9 +3718,11 @@ Enable temperature alerts
 
 Temperature unit (Celsius, Fahrenheit, Kelvin)
 
-| Default | Min | Max |
-| --- | --- | --- |
-| CELSIUS |  |  |
+| Allowed Values |  |
+| --- | --- |
+| CELSIUS | Default |
+| FAHRENHEIT |  |
+| KELVIN |  |
 
 ---
 
@@ -3733,9 +3760,12 @@ Enable vignetting correction
 
 Digital zoom level
 
-| Default | Min | Max |
-| --- | --- | --- |
-| 1X |  |  |
+| Allowed Values |  |
+| --- | --- |
+| 1X | Default |
+| 2X |  |
+| 4X |  |
+| 8X |  |
 
 ---
 
