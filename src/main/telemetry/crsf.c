@@ -350,6 +350,14 @@ static bool crsfRpm(sbuf_t *dst)
 
         for (uint8_t i = 0; i < motorCount; i++) {
             const escSensorData_t *escState = getEscTelemetry(i);
+            // 0 is the only sensible "no data" value for a stale slot: the CRSF
+            // spec (tbs-fpv/tbs-crsf-spec 0x0C) defines no invalid/no-data
+            // sentinel for rpm_value (int24; negative = reverse spin), and
+            // transmitters (EdgeTX/OpenTX) render 0 as a stopped motor, which
+            // is the safe interpretation when telemetry has gone stale. A
+            // sentinel like 0x7FFFFF would instead display as a nonsensical
+            // huge RPM. Data is considered stale past ESC_DATA_MAX_AGE, the
+            // same freshness bound the OSD and SBUS2 telemetry use.
             crsfSerialize24(dst, escState->dataAge <= ESC_DATA_MAX_AGE ? escState->rpm : 0);
         }
         return true;
@@ -375,6 +383,12 @@ static bool crsfTemperature(sbuf_t *dst)
     if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
         for (uint8_t i = 0; i < motorCount && tempCount < MAX_CRSF_TEMPS; i++) {
             const escSensorData_t *escState = getEscTelemetry(i);
+            // TEMPERATURE_INVALID_VALUE (-1250 = -125.0°C, same sentinel the
+            // temperature sensor subsystem uses) marks a stale/absent ESC slot:
+            // the CRSF spec (0x0D) defines no no-data sentinel for the int16
+            // deci-degree temperature array, and -125.0°C is outside any real
+            // ESC operating range, so transmitters display it as invalid rather
+            // than as a plausible reading. Freshness bound matches ESC_DATA_MAX_AGE.
             temperatures[tempCount++] = escState->dataAge <= ESC_DATA_MAX_AGE ? (int16_t)(escState->temperature * 10) : TEMPERATURE_INVALID_VALUE;
         }
     }
