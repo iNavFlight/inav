@@ -32,7 +32,7 @@ typedef struct dronecanConfig_s {
     // (e.g. feature/dronecan-actuator-control's servoOutputBitmask) must
     // also bump PG_DRONECAN_CONFIG's registered version by 1, and bump
     // EEPROM_CONF_VERSION in src/main/config/config_eeprom.h by 1.
-    // Currently at 1/127; do not append fields without both bumps.
+    // Currently at 2/127; do not append fields without both bumps.
 } dronecanConfig_t;
 
 typedef struct dronecanNodeInfo_s {
