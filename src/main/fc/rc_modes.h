@@ -78,9 +78,14 @@ typedef enum {
     BOXCHANGEMISSION = 50,
     BOXBEEPERMUTE    = 51,
     BOXMULTIFUNCTION = 52,
-    BOXMIXERPROFILE      = 53,
-    BOXMIXERTRANSITION   = 54,
+    BOXMIXERPROFILE  = 53,
+    BOXMIXERTRANSITION = 54,
     BOXANGLEHOLD     = 55,
+    BOXGIMBALTLOCK   = 56,
+    BOXGIMBALRLOCK   = 57,
+    BOXGIMBALCENTER  = 58,
+    BOXGIMBALHTRK    = 59,
+    BOXAUTOSPEED     = 60,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
@@ -131,6 +136,8 @@ PG_DECLARE(modeActivationOperatorConfig_t, modeActivationOperatorConfig);
 
 bool IS_RC_MODE_ACTIVE(boxId_e boxId);
 void rcModeUpdate(boxBitmask_t *newState);
+boxId_e rcModeSetActivationOverride(boxId_e boxId);
+void rcModeClearActivationOverride(boxId_e boxId);
 
 bool isModeActivationConditionPresent(boxId_e modeId);
 
@@ -140,3 +147,4 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range);
 
 void updateActivatedModes(void);
 void updateUsedModeActivationConditionFlags(void);
+bool isFwAutoModeActive(boxId_e mode);

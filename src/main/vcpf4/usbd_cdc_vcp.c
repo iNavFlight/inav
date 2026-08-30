@@ -21,8 +21,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc_vcp.h"
+#include "usbd_cdc_core.h"
 #include "stm32f4xx_conf.h"
 #include <stdbool.h>
+#include <string.h>
 #include "drivers/time.h"
 
 #ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED
@@ -45,14 +47,18 @@ extern volatile uint32_t APP_Rx_ptr_out;
  start address when writing received data
  in the buffer APP_Rx_Buffer. */
 extern volatile uint32_t APP_Rx_ptr_in;
+static volatile bool packetReceiveStalled;
+#define USB_RX_STALL_THRESHOLD 128  // Must be >= max USB packet size (64)
+
+// runtime-configurable tx poll interval (default matches CDC_IN_FRAME_INTERVAL)
 
 /*
     APP TX is the circular buffer for data that is transmitted from the APP (host)
     to the USB device (flight controller).
 */
 static uint8_t APP_Tx_Buffer[APP_TX_DATA_SIZE];
-static uint32_t APP_Tx_ptr_out = 0;
-static uint32_t APP_Tx_ptr_in = 0;
+static volatile uint32_t APP_Tx_ptr_out = 0;
+static volatile uint32_t APP_Tx_ptr_in = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 static uint16_t VCP_Init(void);
@@ -80,6 +86,12 @@ static uint16_t VCP_Init(void)
     bDeviceState = CONFIGURED;
     ctrlLineStateCb = NULL;
     baudRateCb = NULL;
+
+    // Reset RX flow control state
+    APP_Tx_ptr_in = 0;
+    APP_Tx_ptr_out = 0;
+    packetReceiveStalled = false;
+
     return USBD_OK;
 }
 
@@ -178,13 +190,24 @@ static uint16_t VCP_Ctrl(uint32_t Cmd, uint8_t* Buf, uint32_t Len)
  *******************************************************************************/
 uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
 {
-    VCP_DataTx(ptrBuffer, sendLength);
+    if (VCP_DataTx(ptrBuffer, sendLength) != USBD_OK) {
+        return 0;
+    }
     return sendLength;
 }
 
 uint32_t CDC_Send_FreeBytes(void)
 {
-    return APP_RX_DATA_SIZE - CDC_Receive_BytesAvailable();
+    // Calculate free space in APP_Rx_Buffer (outbound to host)
+    // Using correct circular buffer math with volatile pointers
+    uint32_t ptr_in = APP_Rx_ptr_in;
+    uint32_t ptr_out = APP_Rx_ptr_out;
+
+    if (ptr_out > ptr_in) {
+        return ptr_out - ptr_in - 1;
+    } else {
+        return APP_RX_DATA_SIZE + ptr_out - ptr_in - 1;
+    }
 }
 
 /**
@@ -194,18 +217,29 @@ uint32_t CDC_Send_FreeBytes(void)
  * @param  Len: Number of data to be sent (in bytes)
  * @retval Result of the operation: USBD_OK if all operations are OK else VCP_FAIL
  */
+#define VCP_WRITE_TIMEOUT_MS 50
+
 static uint16_t VCP_DataTx(const uint8_t* Buf, uint32_t Len)
 {
+    uint32_t start = millis();
+
     /*
         make sure that any paragraph end frame is not in play
         could just check for: USB_CDC_ZLP, but better to be safe
         and wait for any existing transmission to complete.
     */
-    while (USB_Tx_State != 0);
+    while (USB_Tx_State != 0) {
+        if (millis() - start > VCP_WRITE_TIMEOUT_MS) {
+            return USBD_FAIL;
+        }
+    }
 
     for (uint32_t i = 0; i < Len; i++) {
         // Stall if the ring buffer is full
         while (((APP_Rx_ptr_in + 1) % APP_RX_DATA_SIZE) == APP_Rx_ptr_out) {
+            if (millis() - start > VCP_WRITE_TIMEOUT_MS) {
+                return USBD_FAIL;
+            }
             delay(1);
         }
 
@@ -218,7 +252,7 @@ static uint16_t VCP_DataTx(const uint8_t* Buf, uint32_t Len)
 
 /*******************************************************************************
  * Function Name  : Receive DATA .
- * Description    : receive the data from the PC to STM32 and send it through USB
+ * Description    : Copy received USB data from the ring buffer to the application buffer
  * Input          : None.
  * Output         : None.
  * Return         : None.
@@ -227,11 +261,22 @@ uint32_t CDC_Receive_DATA(uint8_t* recvBuf, uint32_t len)
 {
     uint32_t count = 0;
 
+    // Drain the ring buffer into the user buffer
     while (APP_Tx_ptr_out != APP_Tx_ptr_in && (count < len)) {
         recvBuf[count] = APP_Tx_Buffer[APP_Tx_ptr_out];
         APP_Tx_ptr_out = (APP_Tx_ptr_out + 1) % APP_TX_DATA_SIZE;
         count++;
     }
+
+    // If stalled, check if we have room to resume receiving
+    if (packetReceiveStalled) {
+        uint32_t free = (APP_TX_DATA_SIZE + APP_Tx_ptr_out - APP_Tx_ptr_in - 1) % APP_TX_DATA_SIZE;
+        if (free > USB_RX_STALL_THRESHOLD) {
+            packetReceiveStalled = false;
+            USBD_CDC_ReceivePacket(&USB_OTG_dev);
+        }
+    }
+
     return count;
 }
 
@@ -258,13 +303,27 @@ uint32_t CDC_Receive_BytesAvailable(void)
  */
 static uint16_t VCP_DataRx(uint8_t* Buf, uint32_t Len)
 {
-    if (CDC_Receive_BytesAvailable() + Len > APP_TX_DATA_SIZE) {
-        return USBD_FAIL;
-    }
+    // Copy received data to ring buffer, handling wrap-around
+    uint32_t ptrIn = APP_Tx_ptr_in;
+    uint32_t tailRoom = APP_TX_DATA_SIZE - ptrIn;
 
-    for (uint32_t i = 0; i < Len; i++) {
-        APP_Tx_Buffer[APP_Tx_ptr_in] = Buf[i];
-        APP_Tx_ptr_in = (APP_Tx_ptr_in + 1) % APP_TX_DATA_SIZE;
+    if (Len <= tailRoom) {
+        // Data fits without wrapping
+        memcpy(&APP_Tx_Buffer[ptrIn], Buf, Len);
+        ptrIn = (ptrIn + Len) % APP_TX_DATA_SIZE;
+    } else {
+        // Data wraps around - copy in two parts
+        memcpy(&APP_Tx_Buffer[ptrIn], Buf, tailRoom);
+        memcpy(&APP_Tx_Buffer[0], Buf + tailRoom, Len - tailRoom);
+        ptrIn = Len - tailRoom;
+    }
+    APP_Tx_ptr_in = ptrIn;
+
+    // Check if we have room for another packet; if not, stall
+    uint32_t free = (APP_TX_DATA_SIZE + APP_Tx_ptr_out - ptrIn - 1) % APP_TX_DATA_SIZE;
+    if (free <= USB_RX_STALL_THRESHOLD) {
+        packetReceiveStalled = true;
+        return USBD_FAIL;  // Don't arm next receive
     }
 
     return USBD_OK;
@@ -304,6 +363,30 @@ uint8_t usbIsConnected(void)
 uint32_t CDC_BaudRate(void)
 {
     return g_lc.bitrate;
+}
+
+/*******************************************************************************
+ * Function Name  : CDC_StopBits.
+ * Description    : Get the current stop bits setting
+ * Input          : None.
+ * Output         : None.
+ * Return         : Stop bits (0=1, 1=1.5, 2=2)
+ *******************************************************************************/
+uint8_t CDC_StopBits(void)
+{
+    return g_lc.format;
+}
+
+/*******************************************************************************
+ * Function Name  : CDC_Parity.
+ * Description    : Get the current parity setting
+ * Input          : None.
+ * Output         : None.
+ * Return         : Parity (0=none, 1=odd, 2=even, 3=mark, 4=space)
+ *******************************************************************************/
+uint8_t CDC_Parity(void)
+{
+    return g_lc.paritytype;
 }
 
 /*******************************************************************************

@@ -46,11 +46,15 @@ typedef struct {
 PG_DECLARE(osdCommonConfig_t, osdCommonConfig);
 
 int16_t osdGetSpeedFromSelectedSource(void);
+const char *osdVtolTransitionMessage(void);
+bool osdVtolTransitionMessageShouldBlink(void);
 
 #endif // defined(USE_OSD) || defined(USE_DJI_HD_OSD)
 
 #define OSD_VARIO_CM_S_PER_ARROW 50 // 1 arrow = 50cm/s
 #define OSD_VARIO_HEIGHT_ROWS 5
+
+#define OSD_THROTTLE_GAUGE_HEIGHT_ROWS 5
 
 #define OSD_AHI_HEIGHT 9
 #define OSD_AHI_WIDTH 11
@@ -92,6 +96,7 @@ typedef struct osdDrawPoint_s {
 void osdDrawPointGetGrid(uint8_t *gx, uint8_t *gy, const displayPort_t *display, const displayCanvas_t *canvas, const osdDrawPoint_t *p);
 void osdDrawPointGetPixels(int *px, int *py, const displayPort_t *display, const displayCanvas_t *canvas, const osdDrawPoint_t *p);
 
+void osdThrottleGauge(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, uint8_t thrPos);
 void osdDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float zvel);
 // Draws an arrow at the given point, where 0 degrees points to the top of the viewport and
 // positive angles result in clockwise rotation. If eraseBefore is true, the rect surrouing
@@ -102,7 +107,3 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
 // grid slots.
 void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading);
 void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas);
-
-#ifdef USE_GPS
-int16_t osdGet3DSpeed(void);
-#endif

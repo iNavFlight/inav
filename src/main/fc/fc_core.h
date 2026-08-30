@@ -39,6 +39,7 @@ void handleInflightCalibrationStickPosition(void);
 void disarm(disarmReason_t disarmReason);
 timeUs_t getLastDisarmTimeUs(void);
 void tryArm(void);
+bool fcSetArmState(bool arm);
 disarmReason_t getDisarmReason(void);
 
 bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm);
@@ -47,5 +48,5 @@ bool areSensorsCalibrating(void);
 float getFlightTime(void);
 void resetFlightTime(void);
 float getArmTime(void);
-
 void fcReboot(bool bootLoader);
+bool isMspConfigActive(bool isActive);

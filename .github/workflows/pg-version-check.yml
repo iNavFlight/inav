@@ -1,0 +1,128 @@
+name: Parameter Group Version Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - maintenance-9.x
+      - maintenance-10.x
+    paths:
+      - 'src/**/*.c'
+      - 'src/**/*.h'
+
+jobs:
+  check-pg-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to compare with base branch
+
+      - name: Fetch base branch
+        run: |
+          git fetch origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
+
+      - name: Run PG version check script
+        id: pg_check
+        run: |
+          set +e  # Don't fail the workflow, just capture exit code
+          # Run script and capture output. Exit code 1 is expected for issues.
+          # The output is captured and encoded to be passed between steps.
+          output=$(bash .github/scripts/check-pg-versions.sh 2>&1)
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
+          echo "output<<EOF" >> $GITHUB_OUTPUT
+          echo "$output" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+
+      - name: Post comment if issues found
+        if: steps.pg_check.outputs.exit_code == '1'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Use the captured output from the previous step
+            const output = '${{ steps.pg_check.outputs.output }}';
+            let issuesContent = '';
+
+            try {
+              // Extract issues from output (everything after the warning line)
+              const lines = output.split('\n');
+              let capturing = false;
+              let issues = [];
+
+              for (const line of lines) {
+                if (line.includes('###')) {
+                  capturing = true;
+                }
+                if (capturing) {
+                  issues.push(line);
+                }
+              }
+
+              issuesContent = issues.join('\n');
+            } catch (err) {
+              console.log('Error capturing issues:', err);
+              issuesContent = '*Unable to extract detailed issues*';
+            }
+
+            const commentBody = '## ⚠️ Parameter Group Version Check\n\n' +
+              'The following parameter groups may need version increments:\n\n' +
+              issuesContent + '\n\n' +
+              '**Why this matters:**\n' +
+              'Modifying PG struct fields without incrementing the version can cause settings corruption when users flash new firmware. The `pgLoad()` function validates versions and will use defaults if there\'s a mismatch, preventing corruption.\n\n' +
+              '**When to increment the version:**\n' +
+              '- ✅ Adding/removing fields\n' +
+              '- ✅ Changing field types or sizes\n' +
+              '- ✅ Reordering fields\n' +
+              '- ✅ Adding/removing packing attributes\n' +
+              '- ❌ Only changing default values in `PG_RESET_TEMPLATE`\n' +
+              '- ❌ Only changing comments\n\n' +
+              '**Reference:**\n' +
+              '- [Parameter Group Documentation](../docs/development/parameter_groups/)\n' +
+              '- Example: [PR #11236](https://github.com/iNavFlight/inav/pull/11236) (field removal requiring version increment)\n\n' +
+              '---\n' +
+              '*This is an automated check. False positives are possible. If you believe the version increment is not needed, please explain in a comment.*';
+
+            try {
+              // Check if we already commented
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+
+              const botComment = comments.find(comment =>
+                comment.user.login === 'github-actions[bot]' &&
+                comment.body.includes('Parameter Group Version Check')
+              );
+
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: commentBody
+                });
+                console.log('Updated existing PG version check comment');
+              } else {
+                // Post new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: commentBody
+                });
+                console.log('Posted new PG version check comment');
+              }
+            } catch (err) {
+              core.setFailed(`Failed to post comment: ${err}`);
+            }

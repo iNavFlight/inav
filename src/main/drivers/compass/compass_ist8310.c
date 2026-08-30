@@ -139,7 +139,7 @@ static bool ist8310Read(magDev_t * mag)
         return false;
     }
 
-    // Looks like datasheet is incorrect and we need to invert Y axis to conform to right hand rule
+    // Invert Y axis to co convert from left to right coordinate system
     mag->magADCRaw[X] =  (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
     mag->magADCRaw[Y] = -(int16_t)(buf[3] << 8 | buf[2]) * LSB2FSV;
     mag->magADCRaw[Z] =  (int16_t)(buf[5] << 8 | buf[4]) * LSB2FSV;

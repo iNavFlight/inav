@@ -70,6 +70,42 @@ static inline uint16_t mavlink_msg_raw_rpm_pack(uint8_t system_id, uint8_t compo
 }
 
 /**
+ * @brief Pack a raw_rpm message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param index  Index of this RPM sensor (0-indexed)
+ * @param frequency [rpm] Indicated rate
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_raw_rpm_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint8_t index, float frequency)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_RAW_RPM_LEN];
+    _mav_put_float(buf, 0, frequency);
+    _mav_put_uint8_t(buf, 4, index);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_RAW_RPM_LEN);
+#else
+    mavlink_raw_rpm_t packet;
+    packet.frequency = frequency;
+    packet.index = index;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_RAW_RPM_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_RAW_RPM;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_RAW_RPM_MIN_LEN, MAVLINK_MSG_ID_RAW_RPM_LEN, MAVLINK_MSG_ID_RAW_RPM_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_RAW_RPM_MIN_LEN, MAVLINK_MSG_ID_RAW_RPM_LEN);
+#endif
+}
+
+/**
  * @brief Pack a raw_rpm message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -129,6 +165,20 @@ static inline uint16_t mavlink_msg_raw_rpm_encode_chan(uint8_t system_id, uint8_
 }
 
 /**
+ * @brief Encode a raw_rpm struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param raw_rpm C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_raw_rpm_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_raw_rpm_t* raw_rpm)
+{
+    return mavlink_msg_raw_rpm_pack_status(system_id, component_id, _status, msg,  raw_rpm->index, raw_rpm->frequency);
+}
+
+/**
  * @brief Send a raw_rpm message
  * @param chan MAVLink channel to send the message
  *
@@ -170,7 +220,7 @@ static inline void mavlink_msg_raw_rpm_send_struct(mavlink_channel_t chan, const
 
 #if MAVLINK_MSG_ID_RAW_RPM_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

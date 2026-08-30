@@ -35,7 +35,8 @@ typedef enum {
     BARO_B2SMPB = 10,
     BARO_MSP    = 11,
     BARO_FAKE   = 12,
-    BARO_MAX    = BARO_FAKE
+    BARO_CRSF   = 13,
+    BARO_MAX    = BARO_CRSF
 } baroSensor_e;
 
 typedef struct baro_s {
@@ -52,10 +53,10 @@ extern baro_t baro;
 typedef struct barometerConfig_s {
     uint8_t baro_hardware;                  // Barometer hardware to use
     uint16_t baro_calibration_tolerance;    // Baro calibration tolerance (cm at sea level)
+    float baro_temp_correction;             // Baro temperature correction value (cm/K)
 } barometerConfig_t;
 
 PG_DECLARE(barometerConfig_t, barometerConfig);
-
 
 bool baroInit(void);
 bool baroIsCalibrationComplete(void);

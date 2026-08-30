@@ -40,15 +40,24 @@ typedef enum {
     PLATFORM_HELICOPTER     = 2,
     PLATFORM_TRICOPTER      = 3,
     PLATFORM_ROVER          = 4,
-    PLATFORM_BOAT           = 5,
-    PLATFORM_OTHER          = 6
+    PLATFORM_BOAT           = 5
 } flyingPlatformType_e;
+
+static inline bool isMultirotorTypePlatform(const flyingPlatformType_e platformType)
+{
+    return platformType == PLATFORM_MULTIROTOR ||
+           platformType == PLATFORM_TRICOPTER ||
+           platformType == PLATFORM_HELICOPTER;
+}
 
 
 typedef enum {
     OUTPUT_MODE_AUTO     = 0,
     OUTPUT_MODE_MOTORS,
-    OUTPUT_MODE_SERVOS
+    OUTPUT_MODE_SERVOS,
+    OUTPUT_MODE_LED,
+    OUTPUT_MODE_PINIO,
+    OUTPUT_MODE_BEEPER
 } outputMode_e;
 
 typedef struct motorAxisCorrectionLimits_s {
@@ -81,7 +90,6 @@ PG_DECLARE(reversibleMotorsConfig_t, reversibleMotorsConfig);
 
 typedef struct motorConfig_s {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
-    uint16_t maxthrottle;                   // This is the maximum value for the ESCs at full power this value can be increased up to 2000
     uint16_t mincommand;                    // This is the value for the ESCs when they are not armed. In some cases, this value must be lowered down to 900 for some specific ESCs
     uint16_t motorPwmRate;                  // The update rate of motor outputs (50-498Hz)
     uint8_t  motorPwmProtocol;
@@ -120,7 +128,7 @@ void writeAllMotors(int16_t mc);
 void mixerInit(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
-void mixTable(void);
+void mixTable(float dT);
 void writeMotors(void);
 void processServoAutotrim(const float dT);
 void processServoAutotrimMode(void);
@@ -131,3 +139,6 @@ void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
 bool areMotorsRunning(void);
+bool areMotorsStopped(void);
+
+uint16_t getMaxThrottle(void);

@@ -62,6 +62,7 @@
 
 #define ICM42605_RA_GYRO_DATA_X1                    0x25
 #define ICM42605_RA_ACCEL_DATA_X1                   0x1F
+#define ICM42605_RA_TEMP_DATA1                      0x1D
 
 #define ICM42605_RA_INT_CONFIG                      0x14
 #define ICM42605_INT1_MODE_PULSED                   (0 << 2)
@@ -102,7 +103,13 @@
 #define ICM426XX_RA_ACCEL_CONFIG_STATIC3            0x04  // User Bank 2
 #define ICM426XX_RA_ACCEL_CONFIG_STATIC4            0x05  // User Bank 2
 
-static bool is42688P = false;
+typedef enum {
+    ICM42605_VARIANT_42605 = 0,
+    ICM42605_VARIANT_42686P,
+    ICM42605_VARIANT_42688P,
+} icm42605Variant_e;
+
+static icm42605Variant_e icm42605DetectedVariant = ICM42605_VARIANT_42605;
 
 typedef struct aafConfig_s {
     uint16_t freq;
@@ -144,7 +151,7 @@ static aafConfig_t aafLUT42605[] = {  // see table in section 5.3 https://invens
     {   0,  0,    0,  0 }
 };
 
-static const aafConfig_t *getGyroAafConfig(bool is42688, const uint16_t desiredLpf);
+static const aafConfig_t *getGyroAafConfig(icm42605Variant_e variant, const uint16_t desiredLpf);
 
 static void setUserBank(const busDevice_t *dev, const uint8_t user_bank)
 {
@@ -213,11 +220,16 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, ICM42605_RA_PWR_MGMT0, ICM42605_PWR_MGMT0_TEMP_DISABLE_OFF | ICM42605_PWR_MGMT0_ACCEL_MODE_LN | ICM42605_PWR_MGMT0_GYRO_MODE_LN);
     delay(15);
 
+    uint8_t fsSel = 0;
+    if (icm42605DetectedVariant == ICM42605_VARIANT_42686P) {
+        fsSel = 1; // ICM-42686-P normal range: 2000 deg/s, 16G.
+    }
+
     /* ODR and dynamic range */
-    busWrite(dev, ICM42605_RA_GYRO_CONFIG0, (0x00) << 5 | (config->gyroConfigValues[1] & 0x0F));    /* 2000 deg/s */
+    busWrite(dev, ICM42605_RA_GYRO_CONFIG0, fsSel << 5 | (config->gyroConfigValues[1] & 0x0F));    /* 2000 deg/s */
     delay(15);
 
-    busWrite(dev, ICM42605_RA_ACCEL_CONFIG0, (0x00) << 5 | (config->gyroConfigValues[1] & 0x0F));    /* 16 G deg/s */
+    busWrite(dev, ICM42605_RA_ACCEL_CONFIG0, fsSel << 5 | (config->gyroConfigValues[1] & 0x0F));    /* 16 G deg/s */
     delay(15);
 
     /* LPF bandwidth */
@@ -227,14 +239,14 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
 
     if (gyro->lpf != GYRO_LPF_NONE) {
         // Configure gyro Anti-Alias Filter (see section 5.3 "ANTI-ALIAS FILTER")
-        const aafConfig_t *aafConfig = getGyroAafConfig(is42688P, gyro->lpf);
+        const aafConfig_t *aafConfig = getGyroAafConfig(icm42605DetectedVariant, gyro->lpf);
     
         setUserBank(dev, ICM426XX_BANK_SELECT1);
         busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC3, aafConfig->delt);
         busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC4, aafConfig->deltSqr & 0xFF);
         busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC5, (aafConfig->deltSqr >> 8) | (aafConfig->bitshift << 4));
 
-        aafConfig = getGyroAafConfig(is42688P, 256);  // This was hard coded on BF
+        aafConfig = getGyroAafConfig(icm42605DetectedVariant, 256);  // This was hard coded on BF
         setUserBank(dev, ICM426XX_BANK_SELECT2);
         busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC2, aafConfig->delt << 1);
         busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC3, aafConfig->deltSqr & 0xFF);
@@ -276,31 +288,33 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
 static bool icm42605DeviceDetect(busDevice_t * dev)
 {
     uint8_t tmp;
-    uint8_t attemptsRemaining = 5;
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
     busWrite(dev, ICM42605_RA_PWR_MGMT0, 0x00);
 
-    do {
+    for (int attempt = 0; attempt < 5; attempt++) {
         delay(150);
 
         busRead(dev, MPU_RA_WHO_AM_I, &tmp);
 
         switch (tmp) {
-            /* ICM42605 and ICM42688P share the register structure*/
+            /* ICM42605, ICM42686P and ICM42688P share the register structure */
             case ICM42605_WHO_AM_I_CONST:
-                is42688P = false;
+                icm42605DetectedVariant = ICM42605_VARIANT_42605;
+                return true;
+            case ICM42686P_WHO_AM_I_CONST:
+                icm42605DetectedVariant = ICM42605_VARIANT_42686P;
                 return true;
             case ICM42688P_WHO_AM_I_CONST:
-                is42688P = true;
+                icm42605DetectedVariant = ICM42605_VARIANT_42688P;
                 return true;
 
             default:
                 // Retry detection
                 break;
         }
-    } while (attemptsRemaining--);
+    }
 
     return false;
 }
@@ -317,6 +331,20 @@ static bool icm42605GyroRead(gyroDev_t *gyro)
     gyro->gyroADCRaw[X] = (float) int16_val_big_endian(data, 0);
     gyro->gyroADCRaw[Y] = (float) int16_val_big_endian(data, 1);
     gyro->gyroADCRaw[Z] = (float) int16_val_big_endian(data, 2);
+
+    return true;
+}
+
+static bool icm42605ReadTemperature(gyroDev_t *gyro, int16_t * temp)
+{
+    uint8_t data[2];
+
+    const bool ack = busReadBuf(gyro->busDev, ICM42605_RA_TEMP_DATA1, data, 2);
+    if (!ack) {
+        return false;
+    }
+    // From datasheet: Temperature in Degrees Centigrade = (TEMP_DATA / 132.48) + 25 
+    *temp = ( int16_val_big_endian(data, 0) / 13.248 ) + 250; // Temperature stored as degC*10
 
     return true;
 }
@@ -340,7 +368,7 @@ bool icm42605GyroDetect(gyroDev_t *gyro)
     gyro->initFn = icm42605AccAndGyroInit;
     gyro->readFn = icm42605GyroRead;
     gyro->intStatusFn = gyroCheckDataReady;
-    gyro->temperatureFn = NULL;
+    gyro->temperatureFn = icm42605ReadTemperature;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
     gyro->gyroAlign = gyro->busDev->param;
 
@@ -370,17 +398,30 @@ static uint16_t getAafFreq(const uint8_t gyroLpf)
     }
 }
 
-static const aafConfig_t *getGyroAafConfig(bool is42688, const uint16_t desiredLpf)
+static const char *icm42605VariantName(icm42605Variant_e variant)
+{
+    switch (variant) {
+    case ICM42605_VARIANT_42686P:
+        return "42686P";
+    case ICM42605_VARIANT_42688P:
+        return "42688P";
+    case ICM42605_VARIANT_42605:
+    default:
+        return "42605";
+    }
+}
+
+static const aafConfig_t *getGyroAafConfig(icm42605Variant_e variant, const uint16_t desiredLpf)
 {
     uint16_t desiredFreq = getAafFreq(desiredLpf);
     const aafConfig_t *aafConfigs = NULL;
-    if (is42688) {
+    if (variant == ICM42605_VARIANT_42686P || variant == ICM42605_VARIANT_42688P) {
         aafConfigs = aafLUT42688;
     } else {
         aafConfigs = aafLUT42605;
     }
     int i;
-    int8_t selectedFreq = aafConfigs[0].freq;
+    uint16_t selectedFreq = aafConfigs[0].freq;
     const aafConfig_t * candidate = &aafConfigs[0];
 
     // Choose closest supported LPF value
@@ -391,8 +432,8 @@ static const aafConfig_t *getGyroAafConfig(bool is42688, const uint16_t desiredL
         }
     }
 
-    LOG_VERBOSE(GYRO, "ICM426%s AAF CONFIG { %d, %d } -> { %d }; delt: %d deltSqr: %d, shift: %d",
-		(is42688P ? "88" : "05"),
+    LOG_VERBOSE(GYRO, "ICM%s AAF CONFIG { %d, %d } -> { %d }; delt: %d deltSqr: %d, shift: %d",
+                icm42605VariantName(variant),
                 desiredLpf, desiredFreq,
                 candidate->freq,
                 candidate->delt, candidate->deltSqr, candidate->bitshift);

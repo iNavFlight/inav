@@ -26,7 +26,7 @@ typedef struct __mavlink_high_latency2_t {
  uint8_t wind_heading; /*< [deg/2] Wind heading*/
  uint8_t eph; /*< [dm] Maximum error horizontal position since last message*/
  uint8_t epv; /*< [dm] Maximum error vertical position since last message*/
- int8_t temperature_air; /*< [degC] Air temperature from airspeed sensor*/
+ int8_t temperature_air; /*< [degC] Air temperature*/
  int8_t climb_rate; /*< [dm/s] Maximum climb rate magnitude since last message*/
  int8_t battery; /*< [%] Battery level (-1 if field not provided).*/
  int8_t custom0; /*<  Field for custom payload.*/
@@ -138,7 +138,7 @@ typedef struct __mavlink_high_latency2_t {
  * @param wind_heading [deg/2] Wind heading
  * @param eph [dm] Maximum error horizontal position since last message
  * @param epv [dm] Maximum error vertical position since last message
- * @param temperature_air [degC] Air temperature from airspeed sensor
+ * @param temperature_air [degC] Air temperature
  * @param climb_rate [dm/s] Maximum climb rate magnitude since last message
  * @param battery [%] Battery level (-1 if field not provided).
  * @param wp_num  Current waypoint number
@@ -220,6 +220,117 @@ static inline uint16_t mavlink_msg_high_latency2_pack(uint8_t system_id, uint8_t
 }
 
 /**
+ * @brief Pack a high_latency2 message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param timestamp [ms] Timestamp (milliseconds since boot or Unix epoch)
+ * @param type  Type of the MAV (quadrotor, helicopter, etc.)
+ * @param autopilot  Autopilot type / class. Use MAV_AUTOPILOT_INVALID for components that are not flight controllers.
+ * @param custom_mode  A bitfield for use for autopilot-specific flags (2 byte version).
+ * @param latitude [degE7] Latitude
+ * @param longitude [degE7] Longitude
+ * @param altitude [m] Altitude above mean sea level
+ * @param target_altitude [m] Altitude setpoint
+ * @param heading [deg/2] Heading
+ * @param target_heading [deg/2] Heading setpoint
+ * @param target_distance [dam] Distance to target waypoint or position
+ * @param throttle [%] Throttle
+ * @param airspeed [m/s*5] Airspeed
+ * @param airspeed_sp [m/s*5] Airspeed setpoint
+ * @param groundspeed [m/s*5] Groundspeed
+ * @param windspeed [m/s*5] Windspeed
+ * @param wind_heading [deg/2] Wind heading
+ * @param eph [dm] Maximum error horizontal position since last message
+ * @param epv [dm] Maximum error vertical position since last message
+ * @param temperature_air [degC] Air temperature
+ * @param climb_rate [dm/s] Maximum climb rate magnitude since last message
+ * @param battery [%] Battery level (-1 if field not provided).
+ * @param wp_num  Current waypoint number
+ * @param failure_flags  Bitmap of failure flags.
+ * @param custom0  Field for custom payload.
+ * @param custom1  Field for custom payload.
+ * @param custom2  Field for custom payload.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_high_latency2_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint32_t timestamp, uint8_t type, uint8_t autopilot, uint16_t custom_mode, int32_t latitude, int32_t longitude, int16_t altitude, int16_t target_altitude, uint8_t heading, uint8_t target_heading, uint16_t target_distance, uint8_t throttle, uint8_t airspeed, uint8_t airspeed_sp, uint8_t groundspeed, uint8_t windspeed, uint8_t wind_heading, uint8_t eph, uint8_t epv, int8_t temperature_air, int8_t climb_rate, int8_t battery, uint16_t wp_num, uint16_t failure_flags, int8_t custom0, int8_t custom1, int8_t custom2)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_HIGH_LATENCY2_LEN];
+    _mav_put_uint32_t(buf, 0, timestamp);
+    _mav_put_int32_t(buf, 4, latitude);
+    _mav_put_int32_t(buf, 8, longitude);
+    _mav_put_uint16_t(buf, 12, custom_mode);
+    _mav_put_int16_t(buf, 14, altitude);
+    _mav_put_int16_t(buf, 16, target_altitude);
+    _mav_put_uint16_t(buf, 18, target_distance);
+    _mav_put_uint16_t(buf, 20, wp_num);
+    _mav_put_uint16_t(buf, 22, failure_flags);
+    _mav_put_uint8_t(buf, 24, type);
+    _mav_put_uint8_t(buf, 25, autopilot);
+    _mav_put_uint8_t(buf, 26, heading);
+    _mav_put_uint8_t(buf, 27, target_heading);
+    _mav_put_uint8_t(buf, 28, throttle);
+    _mav_put_uint8_t(buf, 29, airspeed);
+    _mav_put_uint8_t(buf, 30, airspeed_sp);
+    _mav_put_uint8_t(buf, 31, groundspeed);
+    _mav_put_uint8_t(buf, 32, windspeed);
+    _mav_put_uint8_t(buf, 33, wind_heading);
+    _mav_put_uint8_t(buf, 34, eph);
+    _mav_put_uint8_t(buf, 35, epv);
+    _mav_put_int8_t(buf, 36, temperature_air);
+    _mav_put_int8_t(buf, 37, climb_rate);
+    _mav_put_int8_t(buf, 38, battery);
+    _mav_put_int8_t(buf, 39, custom0);
+    _mav_put_int8_t(buf, 40, custom1);
+    _mav_put_int8_t(buf, 41, custom2);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_HIGH_LATENCY2_LEN);
+#else
+    mavlink_high_latency2_t packet;
+    packet.timestamp = timestamp;
+    packet.latitude = latitude;
+    packet.longitude = longitude;
+    packet.custom_mode = custom_mode;
+    packet.altitude = altitude;
+    packet.target_altitude = target_altitude;
+    packet.target_distance = target_distance;
+    packet.wp_num = wp_num;
+    packet.failure_flags = failure_flags;
+    packet.type = type;
+    packet.autopilot = autopilot;
+    packet.heading = heading;
+    packet.target_heading = target_heading;
+    packet.throttle = throttle;
+    packet.airspeed = airspeed;
+    packet.airspeed_sp = airspeed_sp;
+    packet.groundspeed = groundspeed;
+    packet.windspeed = windspeed;
+    packet.wind_heading = wind_heading;
+    packet.eph = eph;
+    packet.epv = epv;
+    packet.temperature_air = temperature_air;
+    packet.climb_rate = climb_rate;
+    packet.battery = battery;
+    packet.custom0 = custom0;
+    packet.custom1 = custom1;
+    packet.custom2 = custom2;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_HIGH_LATENCY2_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_HIGH_LATENCY2;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_HIGH_LATENCY2_MIN_LEN, MAVLINK_MSG_ID_HIGH_LATENCY2_LEN, MAVLINK_MSG_ID_HIGH_LATENCY2_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_HIGH_LATENCY2_MIN_LEN, MAVLINK_MSG_ID_HIGH_LATENCY2_LEN);
+#endif
+}
+
+/**
  * @brief Pack a high_latency2 message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -244,7 +355,7 @@ static inline uint16_t mavlink_msg_high_latency2_pack(uint8_t system_id, uint8_t
  * @param wind_heading [deg/2] Wind heading
  * @param eph [dm] Maximum error horizontal position since last message
  * @param epv [dm] Maximum error vertical position since last message
- * @param temperature_air [degC] Air temperature from airspeed sensor
+ * @param temperature_air [degC] Air temperature
  * @param climb_rate [dm/s] Maximum climb rate magnitude since last message
  * @param battery [%] Battery level (-1 if field not provided).
  * @param wp_num  Current waypoint number
@@ -354,6 +465,20 @@ static inline uint16_t mavlink_msg_high_latency2_encode_chan(uint8_t system_id, 
 }
 
 /**
+ * @brief Encode a high_latency2 struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param high_latency2 C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_high_latency2_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_high_latency2_t* high_latency2)
+{
+    return mavlink_msg_high_latency2_pack_status(system_id, component_id, _status, msg,  high_latency2->timestamp, high_latency2->type, high_latency2->autopilot, high_latency2->custom_mode, high_latency2->latitude, high_latency2->longitude, high_latency2->altitude, high_latency2->target_altitude, high_latency2->heading, high_latency2->target_heading, high_latency2->target_distance, high_latency2->throttle, high_latency2->airspeed, high_latency2->airspeed_sp, high_latency2->groundspeed, high_latency2->windspeed, high_latency2->wind_heading, high_latency2->eph, high_latency2->epv, high_latency2->temperature_air, high_latency2->climb_rate, high_latency2->battery, high_latency2->wp_num, high_latency2->failure_flags, high_latency2->custom0, high_latency2->custom1, high_latency2->custom2);
+}
+
+/**
  * @brief Send a high_latency2 message
  * @param chan MAVLink channel to send the message
  *
@@ -376,7 +501,7 @@ static inline uint16_t mavlink_msg_high_latency2_encode_chan(uint8_t system_id, 
  * @param wind_heading [deg/2] Wind heading
  * @param eph [dm] Maximum error horizontal position since last message
  * @param epv [dm] Maximum error vertical position since last message
- * @param temperature_air [degC] Air temperature from airspeed sensor
+ * @param temperature_air [degC] Air temperature
  * @param climb_rate [dm/s] Maximum climb rate magnitude since last message
  * @param battery [%] Battery level (-1 if field not provided).
  * @param wp_num  Current waypoint number
@@ -470,7 +595,7 @@ static inline void mavlink_msg_high_latency2_send_struct(mavlink_channel_t chan,
 
 #if MAVLINK_MSG_ID_HIGH_LATENCY2_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
@@ -742,7 +867,7 @@ static inline uint8_t mavlink_msg_high_latency2_get_epv(const mavlink_message_t*
 /**
  * @brief Get field temperature_air from high_latency2 message
  *
- * @return [degC] Air temperature from airspeed sensor
+ * @return [degC] Air temperature
  */
 static inline int8_t mavlink_msg_high_latency2_get_temperature_air(const mavlink_message_t* msg)
 {

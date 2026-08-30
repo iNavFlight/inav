@@ -32,6 +32,5 @@ void targetConfiguration(void)
     // Make sure S1-S4 default to Motors
 
     timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
-    timerOverridesMutable(timer2id(TIM8))->outputMode = OUTPUT_MODE_MOTORS;
     timerOverridesMutable(timer2id(TIM1))->outputMode = OUTPUT_MODE_MOTORS;
 }
