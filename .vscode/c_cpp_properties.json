@@ -3,24 +3,19 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceRoot}/src/main/**",
-                "${workspaceRoot}/lib/main/**",
-                "/usr/include/**"
+                "${workspaceRoot}",
+                "${workspaceRoot}/src/main/**"
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": false,
                 "path": [
-                    "${workspaceRoot}/src/main/**",
-                    "${workspaceRoot}/lib/main/**"
+                    "${workspaceRoot}/**"
                 ]
             },
-            "intelliSenseMode": "linux-gcc-arm",
+            "intelliSenseMode": "msvc-x64",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "defines": [
-                "MCU_FLASH_SIZE 512",
-                "USE_NAV",
-                "NAV_FIXED_WING_LANDING",
                 "USE_OSD",
                 "USE_GYRO_NOTCH_1",
                 "USE_GYRO_NOTCH_2",
@@ -34,8 +29,6 @@
                 "USE_RPM_FILTER",
                 "USE_GLOBAL_FUNCTIONS",
                 "USE_DYNAMIC_FILTERS",
-                "USE_IMU_BNO055",
-                "USE_SECONDARY_IMU",
                 "USE_DSHOT",
                 "FLASH_SIZE 480",
                 "USE_I2C_IO_EXPANDER",
@@ -57,7 +50,10 @@
                 "USE_SDCARD_SDIO",
                 "USE_SDCARD",
                 "USE_Q_TUNE",
-                "USE_GYRO_FFT_FILTER"
+                "USE_GYRO_FFT_FILTER",
+                "USE_BARO_DPS310",
+                "USE_ADAPTIVE_FILTER",
+                "MCU_FLASH_SIZE 1024"
             ],
             "configurationProvider": "ms-vscode.cmake-tools"
         }

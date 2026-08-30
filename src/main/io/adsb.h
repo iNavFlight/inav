@@ -1,24 +1,31 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of INAV Project.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Alternatively, the contents of this file may be used under the terms
+ * of the GNU General Public License Version 3, as described below:
+ *
+ * This file is free software: you may copy, redistribute and/or modify
+ * it under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see http://www.gnu.org/licenses/.
  */
-
 #pragma once
 
 #include <stdint.h>
 #include "common/time.h"
+#include "io/gps.h"
 #include "fc/runtime_config.h"
 
 #define ADSB_CALL_SIGN_MAX_LENGTH 9
@@ -27,16 +34,18 @@
 typedef struct {
     bool valid;
     int32_t dir;   // centidegrees direction to plane, pivot is inav FC
-    uint32_t dist;  // CM distance to plane, pivot is inav FC
-    int32_t verticalDistance; // CM, vertical distance to plane, pivot is inav FC
+    uint32_t dist;              // horisontal distance to plane, cm, pivot is inav FC
+    int32_t verticalDistance;   // vertical distance to plane, cm, pivot is inav FC
+    int32_t meetPointDistance;  // meters,  Closest point
+    int32_t meetPointTime;      // seconds, Time of the closest approach
 } adsbVehicleCalculatedValues_t;
 
 typedef struct {
     uint32_t icao; // ICAO address
-    int32_t lat; // Latitude, expressed as degrees * 1E7
-    int32_t lon; // Longitude, expressed as degrees * 1E7
-    int32_t alt;  // Barometric/Geometric Altitude (ASL), in cm
-    uint16_t heading; // Course over ground in centidegrees
+    uint16_t horVelocity; // [cm/s]
+    gpsLocation_t gps;
+    int32_t alt;  // [cm] Barometric/Geometric Altitude (MSL)
+    uint16_t heading; // [centidegrees] Course over ground
     uint16_t flags; // Flags to indicate various statuses including valid data fields
     uint8_t altitudeType; // Type from ADSB_ALTITUDE_TYPE enum
     char callsign[ADSB_CALL_SIGN_MAX_LENGTH]; // The callsign, 8 chars + NULL
@@ -50,18 +59,19 @@ typedef struct {
     uint8_t ttl;
 } adsbVehicle_t;
 
-
-
 typedef struct {
    uint32_t vehiclesMessagesTotal;
+   uint32_t heartbeatMessagesTotal;
 } adsbVehicleStatus_t;
 
 void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal);
-adsbVehicle_t * findVehicleClosest(void);
+bool adsbHeartbeat(void);
 adsbVehicle_t * findVehicle(uint8_t index);
 uint8_t getActiveVehiclesCount(void);
-void adsbTtlClean(timeUs_t currentTimeUs);
 adsbVehicleStatus_t* getAdsbStatus(void);
 adsbVehicleValues_t* getVehicleForFill(void);
-bool enviromentOkForCalculatingDistaceBearing(void);
-void recalculateVehicle(adsbVehicle_t* vehicle);
+bool isEnvironmentOkForCalculatingADSBDistanceBearing(void);
+void taskAdsb(timeUs_t currentTimeUs);
+
+adsbVehicle_t *findVehicleForWarning(uint32_t warningDistanceCm, int32_t maxVerticalDistance);
+adsbVehicle_t *findVehicleForAlert(uint32_t alertDistanceCm, uint32_t warningDistanceCm, int32_t maxVerticalDistance);

@@ -19,6 +19,7 @@ set(CMSIS_DSP_SRC
     BasicMathFunctions/arm_scale_f32.c
     BasicMathFunctions/arm_sub_f32.c
     BasicMathFunctions/arm_mult_f32.c
+    BasicMathFunctions/arm_offset_f32.c
     TransformFunctions/arm_rfft_fast_f32.c
     TransformFunctions/arm_cfft_f32.c
     TransformFunctions/arm_rfft_fast_init_f32.c
@@ -27,6 +28,9 @@ set(CMSIS_DSP_SRC
     CommonTables/arm_common_tables.c
     ComplexMathFunctions/arm_cmplx_mag_f32.c
     StatisticsFunctions/arm_max_f32.c
+    StatisticsFunctions/arm_rms_f32.c
+    StatisticsFunctions/arm_std_f32.c
+    StatisticsFunctions/arm_mean_f32.c
 )
 list(TRANSFORM CMSIS_DSP_SRC PREPEND "${CMSIS_DSP_DIR}/Source/")
 
@@ -234,7 +238,7 @@ function(add_stm32_executable)
         # Single value arguments
         "FILENAME;NAME;OPTIMIZATION;OUTPUT_BIN_FILENAME;OUTPUT_HEX_FILENAME;OUTPUT_TARGET_NAME"
         # Multi-value arguments
-        "COMPILE_DEFINITIONS;COMPILE_OPTIONS;INCLUDE_DIRECTORIES;LINK_OPTIONS;LINKER_SCRIPT;SOURCES"
+        "COMPILE_DEFINITIONS;COMPILE_OPTIONS;INCLUDE_DIRECTORIES;SYSTEM_INCLUDE_DIRECTORIES;LINK_OPTIONS;LINKER_SCRIPT;SOURCES"
         # Start parsing after the known arguments
         ${ARGN}
     )
@@ -242,6 +246,7 @@ function(add_stm32_executable)
     add_executable(${elf_target})
     target_sources(${elf_target} PRIVATE ${args_SOURCES})
     target_include_directories(${elf_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${args_INCLUDE_DIRECTORIES} ${STM32_INCLUDE_DIRS})
+    target_include_directories(${elf_target} SYSTEM PRIVATE ${args_SYSTEM_INCLUDE_DIRECTORIES})
     target_compile_definitions(${elf_target} PRIVATE ${args_COMPILE_DEFINITIONS})
     target_compile_options(${elf_target} PRIVATE ${STM32_COMPILE_OPTIONS} ${args_COMPILE_OPTIONS})
     if(WARNINGS_AS_ERRORS)
@@ -281,11 +286,11 @@ function(target_stm32)
     cmake_parse_arguments(
         args
         # Boolean arguments
-        "DISABLE_MSC;BOOTLOADER"
+        "DISABLE_MSC;BOOTLOADER;NO_BOOTLOADER"
         # Single value arguments
         "HSE_MHZ;LINKER_SCRIPT;NAME;OPENOCD_TARGET;OPTIMIZATION;STARTUP;SVD"
         # Multi-value arguments
-        "COMPILE_DEFINITIONS;COMPILE_OPTIONS;INCLUDE_DIRECTORIES;LINK_OPTIONS;SOURCES;MSC_SOURCES;MSC_INCLUDE_DIRECTORIES;VCP_SOURCES;VCP_INCLUDE_DIRECTORIES"
+        "COMPILE_DEFINITIONS;COMPILE_OPTIONS;INCLUDE_DIRECTORIES;SYSTEM_INCLUDE_DIRECTORIES;LINK_OPTIONS;SOURCES;MSC_SOURCES;MSC_INCLUDE_DIRECTORIES;VCP_SOURCES;VCP_INCLUDE_DIRECTORIES"
         # Start parsing after the known arguments
         ${ARGN}
     )
@@ -304,6 +309,7 @@ function(target_stm32)
     list(APPEND target_sources ${target_c_sources} ${target_h_sources})
 
     set(target_include_directories ${args_INCLUDE_DIRECTORIES})
+    set(target_system_include_directories ${args_SYSTEM_INCLUDE_DIRECTORIES})
 
     set(target_definitions ${STM32_DEFINITIONS} ${COMMON_COMPILE_DEFINITIONS})
 
@@ -333,6 +339,11 @@ function(target_stm32)
 
     math(EXPR hse_value "${hse_mhz} * 1000000")
     list(APPEND target_definitions "HSE_VALUE=${hse_value}")
+
+    if (MSP_UART) 
+        list(APPEND target_definitions "MSP_UART=${MSP_UART}")
+    endif()
+
     if(args_COMPILE_DEFINITIONS)
         list(APPEND target_definitions ${args_COMPILE_DEFINITIONS})
     endif()
@@ -354,6 +365,7 @@ function(target_stm32)
         COMPILE_DEFINITIONS ${target_definitions}
         COMPILE_OPTIONS ${args_COMPILE_OPTIONS}
         INCLUDE_DIRECTORIES ${target_include_directories}
+        SYSTEM_INCLUDE_DIRECTORIES ${target_system_include_directories}
         LINK_OPTIONS ${args_LINK_OPTIONS}
         LINKER_SCRIPT ${args_LINKER_SCRIPT}
         OPTIMIZATION ${args_OPTIMIZATION}
@@ -368,7 +380,7 @@ function(target_stm32)
 
     setup_firmware_target(${main_target_name} ${name} ${ARGN})
 
-    if(args_BOOTLOADER)
+    if(args_BOOTLOADER AND NOT args_NO_BOOTLOADER)
         # Bootloader for the target
         set(bl_suffix _bl)
         add_stm32_executable(
@@ -378,6 +390,7 @@ function(target_stm32)
             COMPILE_DEFINITIONS ${target_definitions} BOOTLOADER MSP_FIRMWARE_UPDATE
             COMPILE_OPTIONS ${args_COMPILE_OPTIONS}
             INCLUDE_DIRECTORIES ${target_include_directories}
+            SYSTEM_INCLUDE_DIRECTORIES ${target_system_include_directories}
             LINK_OPTIONS ${args_LINK_OPTIONS}
             LINKER_SCRIPT ${args_LINKER_SCRIPT}${bl_suffix}
             OPTIMIZATION ${args_OPTIMIZATION}
@@ -397,6 +410,7 @@ function(target_stm32)
             COMPILE_DEFINITIONS ${target_definitions} MSP_FIRMWARE_UPDATE
             COMPILE_OPTIONS ${args_COMPILE_OPTIONS}
             INCLUDE_DIRECTORIES ${target_include_directories}
+            SYSTEM_INCLUDE_DIRECTORIES ${target_system_include_directories}
             LINK_OPTIONS ${args_LINK_OPTIONS}
             LINKER_SCRIPT ${args_LINKER_SCRIPT}${for_bl_suffix}
             OPTIMIZATION ${args_OPTIMIZATION}

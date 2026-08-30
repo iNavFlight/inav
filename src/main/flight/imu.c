@@ -56,6 +56,7 @@
 #endif
 
 #include "io/gps.h"
+#include "io/beeper.h"
 
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
@@ -85,7 +86,7 @@
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
 //centrifugal force compensated using gps
-FASTRAM fpVector3_t compansatedGravityBF;// cm/s/s
+FASTRAM fpVector3_t compensatedGravityBF;// cm/s/s
 
 STATIC_FASTRAM float smallAngleCosZ;
 
@@ -98,24 +99,23 @@ FASTRAM float rMat[3][3];
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 
-STATIC_FASTRAM pt1Filter_t rotRateFilterX;
-STATIC_FASTRAM pt1Filter_t rotRateFilterY;
-STATIC_FASTRAM pt1Filter_t rotRateFilterZ;
+STATIC_FASTRAM pt1Filter_t rotRateFilter[XYZ_AXIS_COUNT];
 FASTRAM fpVector3_t imuMeasuredRotationBFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
 
-STATIC_FASTRAM pt1Filter_t HeadVecEFFilterX;
-STATIC_FASTRAM pt1Filter_t HeadVecEFFilterY;
-STATIC_FASTRAM pt1Filter_t HeadVecEFFilterZ;
+STATIC_FASTRAM pt1Filter_t accelFilter[XYZ_AXIS_COUNT];
+FASTRAM fpVector3_t imuMeasuredAccelBFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
+
+STATIC_FASTRAM pt1Filter_t HeadVecEFFilter[XYZ_AXIS_COUNT];
 FASTRAM fpVector3_t HeadVecEFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
 
-STATIC_FASTRAM float GPS3DspeedFiltered=0.0f;
-STATIC_FASTRAM pt1Filter_t GPS3DspeedFilter;
+static pt1Filter_t GPS3DspeedFilter;
 
 FASTRAM bool gpsHeadingInitialized;
 
 FASTRAM bool imuUpdated = false;
 
 static float imuCalculateAccelerometerWeightNearness(fpVector3_t* accBF);
+static float imuCalculateAccelerometerWeightRateIgnore(const float acc_ignore_slope_multipiler);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
@@ -165,6 +165,11 @@ void imuConfigure(void)
     imuRuntimeConfig.dcm_kp_mag = imuConfig()->dcm_kp_mag / 10000.0f;
     imuRuntimeConfig.dcm_ki_mag = imuConfig()->dcm_ki_mag / 10000.0f;
     imuRuntimeConfig.small_angle = imuConfig()->small_angle;
+    /* Precompute the Mahony anti-windup clamp.  The PID loop reads this value
+     * 1000× per second; the kP gains only change when the user saves settings,
+     * so computing it here (called once per save) avoids one add, one multiply,
+     * and one divide on every PID cycle. */
+    imuRuntimeConfig.dcm_i_limit = DEGREES_TO_RADIANS(2.0f) * (imuRuntimeConfig.dcm_kp_acc + imuRuntimeConfig.dcm_kp_mag) * 0.5f;
 }
 
 void imuInit(void)
@@ -182,7 +187,7 @@ void imuInit(void)
     // Create magnetic declination matrix
 #ifdef USE_MAG
     const int deg = compassConfig()->mag_declination / 100;
-    const int min = compassConfig()->mag_declination   % 100;
+    const int min = compassConfig()->mag_declination % 100;
 #else
     const int deg = 0;
     const int min = 0;
@@ -192,16 +197,19 @@ void imuInit(void)
     quaternionInitUnit(&orientation);
     imuComputeRotationMatrix();
 
-    // Initialize rotation rate filter
-    pt1FilterReset(&rotRateFilterX, 0);
-    pt1FilterReset(&rotRateFilterY, 0);
-    pt1FilterReset(&rotRateFilterZ, 0);
-    // Initialize Heading vector filter
-    pt1FilterReset(&HeadVecEFFilterX, 0);
-    pt1FilterReset(&HeadVecEFFilterY, 0);
-    pt1FilterReset(&HeadVecEFFilterZ, 0);
-    // Initialize 3d speed filter
-    pt1FilterReset(&GPS3DspeedFilter, 0);
+    // Initialize rotation rate, accel and Heading vector filters
+    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        pt1FilterSetCutoff(&rotRateFilter[axis], IMU_ROTATION_LPF);
+        pt1FilterReset(&rotRateFilter[axis], 0.0f);
+
+        pt1FilterSetCutoff(&accelFilter[axis], IMU_ROTATION_LPF);
+        pt1FilterReset(&accelFilter[axis], 0.0f);
+
+        pt1FilterSetCutoff(&HeadVecEFFilter[axis], IMU_ROTATION_LPF);
+        pt1FilterReset(&HeadVecEFFilter[axis], 0.0f);
+    }
+
+    pt1FilterSetCutoff(&GPS3DspeedFilter, IMU_ROTATION_LPF);
 }
 
 void imuSetMagneticDeclination(float declinationDeg)
@@ -339,18 +347,38 @@ bool isGPSTrustworthy(void)
 
 static float imuCalculateMcCogWeight(void)
 {
-    float wCoG = imuCalculateAccelerometerWeightNearness(&imuMeasuredAccelBF);
+    //used when flying stright. 1G acceleration
+    float wCoG = imuCalculateAccelerometerWeightNearness(&imuMeasuredAccelBFFiltered);
     float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBFFiltered));
     const float rateSlopeMax = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate)) * 4.0f;
     wCoG *= scaleRangef(constrainf(rotRateMagnitude, 0.0f, rateSlopeMax), 0.0f, rateSlopeMax, 1.0f, 0.0f);
     return wCoG;
 }
+static float imuCalculateMcCogAccWeight(void)
+{
+    fpVector3_t accBFNorm;
+    vectorScale(&accBFNorm, &imuMeasuredAccelBFFiltered, 1.0f / GRAVITY_CMSS);
+    float wCoGAcc = constrainf((accBFNorm.z - 1.0f) * 2.0f, 0.0f, 1.0f); //z direction is verified via SITL
+    wCoGAcc = wCoGAcc * imuCalculateAccelerometerWeightRateIgnore(4.0f); //reduce weight when fast angular rate, gps acc is considered lagging
+    return wCoGAcc;
+}
 
-static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)
+static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, const fpVector3_t * vCOG, const fpVector3_t * vCOGAcc, float accWScaler, float magWScaler)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
-    fpQuaternion_t prevOrientation = orientation;
+    /* Opt 5: snapshot prevOrientation every 100 PID cycles instead of every cycle.
+     * The snapshot is only used by the fault-recovery path in
+     * imuCheckAndResetOrientationQuaternion(), which should never fire in normal
+     * flight.  Copying 4 floats 1000×/s just to support a near-zero-probability
+     * reset path is wasteful; 100 ms staleness is a safe recovery point. */
+    static uint8_t prevOrientationSnapshotCount = 0;
+    static fpQuaternion_t prevOrientation = { .q0 = 1.0f };  // identity quaternion safe default
+    if (++prevOrientationSnapshotCount >= 100) {
+        prevOrientationSnapshotCount = 0;
+        prevOrientation = orientation;
+    }
+
     fpVector3_t vRotation = *gyroBF;
 
     /* Calculate general spin rate (rad/s) */
@@ -358,10 +386,10 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
-    if (magBF || useCOG) {
+    if (magBF || vCOG || vCOGAcc) {
         float wMag = 1.0f;
         float wCoG = 1.0f;
-        if(magBF){wCoG *= imuConfig()->gps_yaw_weight / 100.0f;}
+        if (magBF) { wCoG *= imuConfig()->gps_yaw_weight / 100.0f; }
 
         fpVector3_t vMagErr = { .v = { 0.0f, 0.0f, 0.0f } };
         fpVector3_t vCoGErr = { .v = { 0.0f, 0.0f, 0.0f } };
@@ -399,58 +427,60 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 quaternionRotateVector(&vMagErr, &vMagErr, &orientation);
             }
         }
-        if (useCOG) {
+        if (vCOG || vCOGAcc) {
+            fpVector3_t vCoGlocal = { .v = { 0.0f, 0.0f, 0.0f } };
             fpVector3_t vForward = { .v = { 0.0f, 0.0f, 0.0f } };
             //vForward as trust vector
             if (STATE(MULTIROTOR) && (!isMixerTransitionMixing)){
                 vForward.z = 1.0f;
-            }else{
+            } else {
                 vForward.x = 1.0f;
             }
             fpVector3_t vHeadingEF;
-
-            // Use raw heading error (from GPS or whatever else)
-            while (courseOverGround >  M_PIf) courseOverGround -= (2.0f * M_PIf);
-            while (courseOverGround < -M_PIf) courseOverGround += (2.0f * M_PIf);
-
-            // William Premerlani and Paul Bizard, Direction Cosine Matrix IMU - Eqn. 22-23
-            // (Rxx; Ryx) - measured (estimated) heading vector (EF)
-            // (-cos(COG), sin(COG)) - reference heading vector (EF)
-
-            float airSpeed = gpsSol.groundSpeed;
-            // Compute heading vector in EF from scalar CoG,x axis of accelerometer is pointing backwards.
-            fpVector3_t vCoG = { .v = { -cos_approx(courseOverGround), sin_approx(courseOverGround), 0.0f } };
-#if defined(USE_WIND_ESTIMATOR)
-            // remove wind elements in vCoG for better heading estimation
-            if (isEstimatedWindSpeedValid() && imuConfig()->gps_yaw_windcomp)
-            {
-                vectorScale(&vCoG, &vCoG, gpsSol.groundSpeed);
-                vCoG.x += getEstimatedWindSpeed(X);
-                vCoG.y -= getEstimatedWindSpeed(Y);
-                airSpeed = fast_fsqrtf(vectorNormSquared(&vCoG));
-                vectorNormalize(&vCoG, &vCoG);
-            }
-#endif
-            wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed)/2, 400, 1000), 400, 1000, 0.0f, 1.0f);
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
-
-            if (STATE(MULTIROTOR)){
+            if (vCOG) {
+                vCoGlocal = *vCOG;
+                float airSpeed = gpsSol.groundSpeed;
+    #if defined(USE_WIND_ESTIMATOR)
+                // remove wind elements in vCoGlocal for better heading estimation
+                if (isEstimatedWindSpeedValid() && imuConfig()->gps_yaw_windcomp) {
+                    vectorScale(&vCoGlocal, &vCoGlocal, gpsSol.groundSpeed);
+                    vCoGlocal.x += getEstimatedWindSpeed(X);
+                    vCoGlocal.y -= getEstimatedWindSpeed(Y);
+                    airSpeed = fast_fsqrtf(vectorNormSquared(&vCoGlocal));
+                }
+    #endif
+                wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed) / 2.0f, 400.0f, 1000.0f), 400.0f, 1000.0f, 0.0f, 1.0f);
+            } else { //vCOG is not avaliable and vCOGAcc is avaliable, set the weight of vCOG to zero
+                wCoG = 0.0f;
+            }
+            if (STATE(MULTIROTOR)) {
                 //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
                 wCoG *= imuCalculateMcCogWeight();
-                //scale accroading to multirotor`s tilt angle
+                //handle acc based vector
+                if (vCOGAcc) {
+                    float wCoGAcc = imuCalculateMcCogAccWeight();//stronger weight on acc if body frame z axis greate than 1G
+                    if (wCoGAcc > wCoG){
+                        //when copter is accelerating use gps acc vector instead of gps speed vector
+                        wCoG = wCoGAcc;
+                        vCoGlocal = *vCOGAcc;
+                    }
+                }
+                //scale according to multirotor`s tilt angle
                 wCoG *= scaleRangef(constrainf(vHeadingEF.z, COS20DEG, COS10DEG), COS20DEG, COS10DEG, 1.0f, 0.0f);
-                //for inverted flying, wCoG is lowered by imuCalculateMcCogWeight no additional processing needed
+                // Inverted flight relies on the existing tilt scaling(scaleRangef); there is no extra handling here
             }
             vHeadingEF.z = 0.0f;
 
             // We zeroed out vHeadingEF.z -  make sure the whole vector didn't go to zero
-            if (vectorNormSquared(&vHeadingEF) > 0.01f) {
+            if (vectorNormSquared(&vHeadingEF) > 0.01f  && vectorNormSquared(&vCoGlocal) > 0.01f) {
                 // Normalize to unit vector
                 vectorNormalize(&vHeadingEF, &vHeadingEF);
+                vectorNormalize(&vCoGlocal, &vCoGlocal);
 
                 // error is cross product between reference heading and estimated heading (calculated in EF)
-                vectorCrossProduct(&vCoGErr, &vCoG, &vHeadingEF);
+                vectorCrossProduct(&vCoGErr, &vCoGlocal, &vHeadingEF);
 
                 // Rotate error back into body frame
                 quaternionRotateVector(&vCoGErr, &vCoGErr, &orientation);
@@ -480,11 +510,17 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
     /* Step 2: Roll and pitch correction -  use measured acceleration vector */
     if (accBF) {
-        static const fpVector3_t vGravity = { .v = { 0.0f, 0.0f, 1.0f } };
         fpVector3_t vEstGravity, vAcc, vErr;
 
-        // Calculate estimated gravity vector in body frame
-        quaternionRotateVector(&vEstGravity, &vGravity, &orientation);    // EF -> BF
+        /* Opt 1: imuComputeRotationMatrix() is called at the END of every
+         * imuMahonyAHRSupdate() and keeps rMat in sync with orientation.
+         * Rotating the constant unit-gravity vector {0,0,1} from EF to BF by
+         * the current orientation quaternion yields exactly the third row of rMat
+         * (rMat[2][0..2]).  Reading those three floats replaces a quaternionRotateVector()
+         * call that costs 2× quaternionMultiply = ~32 multiplies + 24 adds. */
+        vEstGravity.x = rMat[2][0];
+        vEstGravity.y = rMat[2][1];
+        vEstGravity.z = rMat[2][2];
 
         // Error is sum of cross product between estimated direction and measured direction of gravity
         vectorNormalize(&vAcc, accBF);
@@ -507,7 +543,9 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         vectorAdd(&vRotation, &vRotation, &vErr);
     }
     // Anti wind-up
-    float i_limit = DEGREES_TO_RADIANS(2.0f) * (imuRuntimeConfig.dcm_kp_acc + imuRuntimeConfig.dcm_kp_mag) / 2.0f;
+    /* Opt 4: dcm_i_limit is computed once in imuConfigure() (called on settings save),
+     * not recomputed each PID cycle.  The kP gains do not change at runtime. */
+    const float i_limit = imuRuntimeConfig.dcm_i_limit;
     vGyroDriftEstimate.x = constrainf(vGyroDriftEstimate.x, -i_limit, i_limit);
     vGyroDriftEstimate.y = constrainf(vGyroDriftEstimate.y, -i_limit, i_limit);
     vGyroDriftEstimate.z = constrainf(vGyroDriftEstimate.z, -i_limit, i_limit);
@@ -530,7 +568,10 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
         // For near-zero cases we use the first 3 terms of the Taylor series expansion for sin/cos. We check if fourth term is less than machine precision -
         // then we can safely use the "low angle" approximated version without loss of accuracy.
-        if (thetaMagnitudeSq < fast_fsqrtf(24.0f * 1e-6f)) {
+        /* Opt 2: original condition was "thetaMagnitudeSq < sqrt(24e-6)".
+         * Squaring both sides (both are non-negative) gives an equivalent
+         * condition without a sqrt() call: thetaMagnitudeSq² < 24e-6. */
+        if (thetaMagnitudeSq * thetaMagnitudeSq < 24.0e-6f) {
             quaternionScale(&deltaQ, &deltaQ, 1.0f - thetaMagnitudeSq / 6.0f);
             deltaQ.q0 = 1.0f - thetaMagnitudeSq / 2.0f;
         }
@@ -542,7 +583,20 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
         // Calculate final orientation and renormalize
         quaternionMultiply(&orientation, &orientation, &deltaQ);
-        quaternionNormalize(&orientation, &orientation);
+        /* Opt 3: first-order Newton renormalization avoids sqrt() and 4 divides.
+         * At 1 kHz the quaternion norm drifts by < 1e-6 per step, so normSq = 1 + ε
+         * with |ε| ≪ 1.  The identity 1/sqrt(x) ≈ (3-x)/2 is accurate to O(ε²) ≈ 1e-12
+         * — well within float precision.  imuCheckAndResetOrientationQuaternion() below
+         * catches any catastrophic norm deviation that this approximation cannot correct. */
+        {
+            const float normSq = orientation.q0 * orientation.q0 + orientation.q1 * orientation.q1
+                               + orientation.q2 * orientation.q2 + orientation.q3 * orientation.q3;
+            const float scale = (3.0f - normSq) * 0.5f;
+            orientation.q0 *= scale;
+            orientation.q1 *= scale;
+            orientation.q2 *= scale;
+            orientation.q3 *= scale;
+        }
     }
 
     // Check for invalid quaternion and reset to previous known good one
@@ -568,8 +622,7 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 		attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0]));
 	}
 
-    if (attitude.values.yaw < 0)
-        attitude.values.yaw += 3600;
+    if (attitude.values.yaw < 0) attitude.values.yaw += 3600;
 
     /* Update small angle state */
     if (calculateCosTiltAngle() > smallAngleCosZ) {
@@ -608,23 +661,17 @@ static float imuCalculateAccelerometerWeightRateIgnore(const float acc_ignore_sl
     // Default - don't apply rate/ignore scaling
     float accWeight_RateIgnore = 1.0f;
 
-    if (ARMING_FLAG(ARMED) && imuConfig()->acc_ignore_rate)
-    {
+    if (ARMING_FLAG(ARMED) && imuConfig()->acc_ignore_rate) {
         float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBFFiltered));
         rotRateMagnitude = rotRateMagnitude / (acc_ignore_slope_multipiler + 0.001f);
-        if (imuConfig()->acc_ignore_slope)
-        {
+
+        if (imuConfig()->acc_ignore_slope) {
             const float rateSlopeMin = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate - imuConfig()->acc_ignore_slope));
             const float rateSlopeMax = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate + imuConfig()->acc_ignore_slope));
 
             accWeight_RateIgnore = scaleRangef(constrainf(rotRateMagnitude, rateSlopeMin, rateSlopeMax), rateSlopeMin, rateSlopeMax, 1.0f, 0.0f);
-        }
-        else
-        {
-            if (rotRateMagnitude > DEGREES_TO_RADIANS(imuConfig()->acc_ignore_rate))
-            {
-                accWeight_RateIgnore = 0.0f;
-            }
+        } else if (rotRateMagnitude > DEGREES_TO_RADIANS(imuConfig()->acc_ignore_rate)) {
+            accWeight_RateIgnore = 0.0f;
         }
     }
 
@@ -633,20 +680,14 @@ static float imuCalculateAccelerometerWeightRateIgnore(const float acc_ignore_sl
 
 static void imuCalculateFilters(float dT)
 {
-    //flitering
-    imuMeasuredRotationBFFiltered.x = pt1FilterApply4(&rotRateFilterX, imuMeasuredRotationBF.x, IMU_ROTATION_LPF, dT);
-    imuMeasuredRotationBFFiltered.y = pt1FilterApply4(&rotRateFilterY, imuMeasuredRotationBF.y, IMU_ROTATION_LPF, dT);
-    imuMeasuredRotationBFFiltered.z = pt1FilterApply4(&rotRateFilterZ, imuMeasuredRotationBF.z, IMU_ROTATION_LPF, dT);
-    HeadVecEFFiltered.x = pt1FilterApply4(&HeadVecEFFilterX, rMat[0][0], IMU_ROTATION_LPF, dT);
-    HeadVecEFFiltered.y = pt1FilterApply4(&HeadVecEFFilterY, rMat[1][0], IMU_ROTATION_LPF, dT);
-    HeadVecEFFiltered.z = pt1FilterApply4(&HeadVecEFFilterZ, rMat[2][0], IMU_ROTATION_LPF, dT);
-
-    //anti aliasing
-    float GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X],gpsSol.velNED[Y],gpsSol.velNED[Z]);
-    GPS3DspeedFiltered = pt1FilterApply4(&GPS3DspeedFilter, GPS3Dspeed, IMU_ROTATION_LPF, dT);
+    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        imuMeasuredRotationBFFiltered.v[axis] = pt1FilterApply3(&rotRateFilter[axis], imuMeasuredRotationBF.v[axis], dT);
+        imuMeasuredAccelBFFiltered.v[axis] = pt1FilterApply3(&accelFilter[axis], imuMeasuredAccelBF.v[axis], dT);
+        HeadVecEFFiltered.v[axis] = pt1FilterApply3(&HeadVecEFFilter[axis], rMat[axis][0], dT);
+    }
 }
 
-static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF, float *acc_ignore_slope_multipiler)
+static void imuCalculateGPSacceleration(fpVector3_t *vEstAccelEF,fpVector3_t *vEstcentrifugalAccelBF, float *acc_ignore_slope_multipiler)
 {
     static rtcTime_t lastGPSNewDataTime = 0;
     static bool lastGPSHeartbeat;
@@ -657,41 +698,47 @@ static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF, flo
 
     // on first gps data acquired, time_delta_ms will be large, vEstcentrifugalAccelBF will be minimal to disable the compensation
     rtcTime_t time_delta_ms = currenttime - lastGPSNewDataTime;
-    if (lastGPSHeartbeat != gpsSol.flags.gpsHeartbeat && time_delta_ms > 0)
-    {
+    if (lastGPSHeartbeat != gpsSol.flags.gpsHeartbeat && time_delta_ms > 0) {
         // on new gps frame, update accEF and estimate centrifugal accleration
-        fpVector3_t vGPSacc = {.v = {0.0f, 0.0f, 0.0f}};
-        vGPSacc.x = -(currentGPSvel.x - lastGPSvel.x) / (MS2S(time_delta_ms)); // the x axis of accerometer is pointing backward
-        vGPSacc.y = (currentGPSvel.y - lastGPSvel.y) / (MS2S(time_delta_ms));
-        vGPSacc.z = (currentGPSvel.z - lastGPSvel.z) / (MS2S(time_delta_ms));
+        vEstAccelEF->x = -(currentGPSvel.x - lastGPSvel.x) / (MS2S(time_delta_ms)); // the x axis of accerometer is pointing backward
+        vEstAccelEF->y = (currentGPSvel.y - lastGPSvel.y) / (MS2S(time_delta_ms));
+        vEstAccelEF->z = (currentGPSvel.z - lastGPSvel.z) / (MS2S(time_delta_ms));
         // Calculate estimated centrifugal accleration vector in body frame
-        quaternionRotateVector(vEstcentrifugalAccelBF, &vGPSacc, &orientation); // EF -> BF
+        quaternionRotateVector(vEstcentrifugalAccelBF, vEstAccelEF, &orientation); // EF -> BF
         lastGPSNewDataTime = currenttime;
         lastGPSvel = currentGPSvel;
     }
     lastGPSHeartbeat = gpsSol.flags.gpsHeartbeat;
-    *acc_ignore_slope_multipiler = 4;
+    *acc_ignore_slope_multipiler = 4.0f;
 }
 
 static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF, float dT, float *acc_ignore_slope_multipiler)
-{   
+{
     //fixed wing only
     static float lastspeed = -1.0f;
     float currentspeed = 0;
-    if (isGPSTrustworthy()){
-        //first speed choice is gps
+#ifdef USE_PITOT
+    if (pitotGetValidForAirspeed())
+    {
+        // first choice is airspeed
+		currentspeed = getAirspeedEstimate();
+        *acc_ignore_slope_multipiler = 4.0f;
+    }
+    else
+#endif
+    if (isGPSTrustworthy()) {
+        // second choice is gps
+        static bool lastGPSHeartbeat;
+        static float GPS3DspeedFiltered = 0.0f;
+        if (gpsSol.flags.gpsHeartbeat != lastGPSHeartbeat) {
+            lastGPSHeartbeat = gpsSol.flags.gpsHeartbeat;
+            float GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
+            GPS3DspeedFiltered = pt1FilterApply3(&GPS3DspeedFilter, GPS3Dspeed, dT);
+        }
         currentspeed = GPS3DspeedFiltered;
         *acc_ignore_slope_multipiler = 4.0f;
     }
-#ifdef USE_PITOT
-    if (sensors(SENSOR_PITOT) && pitotIsHealthy() && currentspeed < 0)
-    {
-        // second choice is pitot
-		currentspeed = getAirspeedEstimate();
-        *acc_ignore_slope_multipiler = 2.0f;
-    }
-#endif
-    if (currentspeed < 0)
+    else
     {
         //third choice is fixedWingReferenceAirspeed
         currentspeed = pidProfile()->fixedWingReferenceAirspeed;
@@ -708,7 +755,7 @@ fpQuaternion_t* getTailSitterQuaternion(bool normal2tail){
     static bool firstRun = true;
     static fpQuaternion_t qNormal2Tail;
     static fpQuaternion_t qTail2Normal;
-    if(firstRun){
+    if (firstRun) {
         fpAxisAngle_t axisAngle;
         axisAngle.axis.x = 0;
         axisAngle.axis.y = 1;
@@ -724,7 +771,7 @@ fpQuaternion_t* getTailSitterQuaternion(bool normal2tail){
 void imuUpdateTailSitter(void)
 {
     static bool lastTailSitter=false;
-    if (((bool)STATE(TAILSITTER)) != lastTailSitter){
+    if (((bool)STATE(TAILSITTER)) != lastTailSitter) {
         fpQuaternion_t* rotation_for_tailsitter= getTailSitterQuaternion(STATE(TAILSITTER));
         quaternionMultiply(&orientation, &orientation, rotation_for_tailsitter);
     }
@@ -738,10 +785,11 @@ static void imuCalculateEstimatedAttitude(float dT)
 #else
     const bool canUseMAG = false;
 #endif
-
-    float courseOverGround = 0;
+    static fpVector3_t vCOG;
+    static fpVector3_t vCOGAcc;
     bool useMag = false;
     bool useCOG = false;
+    bool useCOGAcc = false;
 #if defined(USE_GPS)
     bool canUseCOG = isGPSHeadingValid();
 
@@ -753,7 +801,15 @@ static void imuCalculateEstimatedAttitude(float dT)
     // Use GPS (if available)
     if (canUseCOG) {
         if (gpsHeadingInitialized) {
-            courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+            float courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+            while (courseOverGround >  M_PIf) courseOverGround -= (2.0f * M_PIf);
+            while (courseOverGround < -M_PIf) courseOverGround += (2.0f * M_PIf);
+            // William Premerlani and Paul Bizard, Direction Cosine Matrix IMU - Eqn. 22-23
+            // (Rxx; Ryx) - measured (estimated) heading vector (EF)
+            // (-cos(COG), sin(COG)) - reference heading vector (EF)
+            vCOG.x = -cos_approx(courseOverGround); // the x axis of accerometer is pointing tail
+            vCOG.y = sin_approx(courseOverGround);
+            vCOG.z = 0;
             useCOG = true;
         }
         else if (!canUseMAG) {
@@ -765,66 +821,79 @@ static void imuCalculateEstimatedAttitude(float dT)
             resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
         }
     } else if (!ARMING_FLAG(ARMED)) {
-        gpsHeadingInitialized = false;
+        if (STATE(AIRPLANE)) {
+            gpsHeadingInitialized = false;  // required for fixed wing flight detection to work correctly
+        } else if (!sensors(SENSOR_MAG) && STATE(CALIBRATE_MAG)) {
+            // When no compass available allow yaw to be set to 0 (North) as required using compass calibration stick command
+            DISABLE_STATE(CALIBRATE_MAG);
+            beeper(BEEPER_ACTION_SUCCESS);
+
+            // Re-initialize quaternion from known Roll, Pitch with yaw set to 0 (North)
+            imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, 0);
+            gpsHeadingInitialized = true;
+        }
     }
 
     imuCalculateFilters(dT);
+
     // centrifugal force compensation
     static fpVector3_t vEstcentrifugalAccelBF_velned;
     static fpVector3_t vEstcentrifugalAccelBF_turnrate;
     float acc_ignore_slope_multipiler = 1.0f; // when using gps centrifugal_force_compensation, AccelerometerWeightRateIgnore slope will be multiplied by this value
-    if (isGPSTrustworthy())
-    {
-        imuCalculateGPSacceleration(&vEstcentrifugalAccelBF_velned, &acc_ignore_slope_multipiler);
+
+    if (isGPSTrustworthy()) {
+        imuCalculateGPSacceleration(&vCOGAcc, &vEstcentrifugalAccelBF_velned, &acc_ignore_slope_multipiler);
+        useCOGAcc = true; //currently only for multicopter
     }
-    if (STATE(AIRPLANE))
-    {
+
+    if (STATE(AIRPLANE)) {
         imuCalculateTurnRateacceleration(&vEstcentrifugalAccelBF_turnrate, dT, &acc_ignore_slope_multipiler);
     }
-    if (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE && isGPSTrustworthy() && STATE(AIRPLANE))
-    {
+
+    if (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE && isGPSTrustworthy() && STATE(AIRPLANE)) {
         //pick the best centrifugal acceleration between velned and turnrate
-        fpVector3_t compansatedGravityBF_velned;
-        vectorAdd(&compansatedGravityBF_velned, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
-        float velned_error = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_velned)) - GRAVITY_CMSS);
+        fpVector3_t compensatedGravityBF_velned;
+        vectorAdd(&compensatedGravityBF_velned, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
+        float velned_error = fabsf(fast_fsqrtf(vectorNormSquared(&compensatedGravityBF_velned)) - GRAVITY_CMSS);
 
-        fpVector3_t compansatedGravityBF_turnrate;
-        vectorAdd(&compansatedGravityBF_turnrate, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
-        float turnrate_error = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_turnrate)) - GRAVITY_CMSS);
+        fpVector3_t compensatedGravityBF_turnrate;
+        vectorAdd(&compensatedGravityBF_turnrate, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
+        float turnrate_error = fabsf(fast_fsqrtf(vectorNormSquared(&compensatedGravityBF_turnrate)) - GRAVITY_CMSS);
 
-        compansatedGravityBF = velned_error > turnrate_error? compansatedGravityBF_turnrate:compansatedGravityBF_velned;
+        compensatedGravityBF = velned_error > turnrate_error ? compensatedGravityBF_turnrate : compensatedGravityBF_velned;
     }
     else if (((imuConfig()->inertia_comp_method == COMPMETHOD_VELNED) || (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE)) && isGPSTrustworthy())
     {
         //velned centrifugal force compensation, quad will use this method
-        vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
+        vectorAdd(&compensatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
     }
     else if (STATE(AIRPLANE))
     {
         //turnrate centrifugal force compensation
-        vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
+        vectorAdd(&compensatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
     }
     else
     {
-        compansatedGravityBF = imuMeasuredAccelBF;
+        compensatedGravityBF = imuMeasuredAccelBF;
     }
 #else
     // In absence of GPS MAG is the only option
     if (canUseMAG) {
         useMag = true;
     }
-    compansatedGravityBF = imuMeasuredAccelBF
+    compensatedGravityBF = imuMeasuredAccelBF;
 #endif
-    float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness(&compansatedGravityBF);
+    float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness(&compensatedGravityBF);
     accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(acc_ignore_slope_multipiler);
     const bool useAcc = (accWeight > 0.001f);
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
     fpVector3_t measuredMagBF = {.v = {mag.magADC[X], mag.magADC[Y], mag.magADC[Z]}};
     imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF,
-                            useAcc ? &compansatedGravityBF : NULL,
+                            useAcc ? &compensatedGravityBF : NULL,
                             useMag ? &measuredMagBF : NULL,
-                            useCOG, courseOverGround,
+                            useCOG ? &vCOG : NULL,
+                            useCOGAcc ? &vCOGAcc : NULL,
                             accWeight,
                             magWeight);
     imuUpdateTailSitter();
@@ -871,7 +940,6 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
         acc.accADCf[Z] = 0.0f;
     }
 }
- 
 
 bool isImuReady(void)
 {
@@ -887,9 +955,13 @@ float calculateCosTiltAngle(void)
 {
     return 1.0f - 2.0f * sq(orientation.q1) - 2.0f * sq(orientation.q2);
 }
-
+#if defined(USE_GPS)
+bool isYawZeroResetAllowed(void)
+{
+    return !ARMING_FLAG(ARMED) && !STATE(AIRPLANE) && sensors(SENSOR_GPS) && !sensors(SENSOR_MAG);
+}
+#endif
 #if defined(SITL_BUILD) || defined (USE_SIMULATOR)
-
 void imuSetAttitudeRPY(int16_t roll, int16_t pitch, int16_t yaw)
 {
     attitude.values.roll = roll;

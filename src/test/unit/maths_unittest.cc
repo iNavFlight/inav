@@ -128,28 +128,28 @@ void expectVectorsAreEqual(fpVector3_t *a, fpVector3_t *b)
 
 TEST(MathsUnittest, TestRotateVectorWithNoAngle)
 {
-    fpVector3_t vector = { 1.0f, 0.0f, 0.0f};
+    fpVector3_t vector = { .x = 1.0f, .y = 0.0f, .z = 0.0f};
     fp_angles_t euler_angles = {.raw={0.0f, 0.0f, 0.0f}};
 
     fpMat3_t rmat;
     rotationMatrixFromAngles(&rmat, &euler_angles);
     rotationMatrixRotateVector(&vector, &vector, &rmat);
 
-    fpVector3_t expected_result = { 1.0f, 0.0f, 0.0f};
+    fpVector3_t expected_result = { .x = 1.0f, .y = 0.0f, .z = 0.0f};
     expectVectorsAreEqual(&vector, &expected_result);
 }
 
 TEST(MathsUnittest, TestRotateVectorAroundAxis)
 {
     // Rotate a vector <1, 0, 0> around an each axis x y and z.
-    fpVector3_t vector = { 1.0f, 0.0f, 0.0f};
+    fpVector3_t vector = { .x = 1.0f, .y = 0.0f, .z = 0.0f};
     fp_angles_t euler_angles = {.raw={90.0f, 0.0f, 0.0f}};
 
     fpMat3_t rmat;
     rotationMatrixFromAngles(&rmat, &euler_angles);
     rotationMatrixRotateVector(&vector, &vector, &rmat);
 
-    fpVector3_t expected_result = { 1.0f, 0.0f, 0.0f};
+    fpVector3_t expected_result = { .x = 1.0f, .y = 0.0f, .z = 0.0f};
     expectVectorsAreEqual(&vector, &expected_result);
 }
 

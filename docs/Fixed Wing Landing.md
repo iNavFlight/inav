@@ -4,7 +4,9 @@
 
 INAV supports advanced automatic landings for fixed wing aircraft from version 7.1.
 The procedure is based on landings for man-carrying aircraft, so that safe landings at a specific location are possible.
-Supported are landings at safehome after "Return to Home" or at a defined LAND waypoint for missions. 
+Supported are landings at Safehome after "Return to Home" or at a defined LAND waypoint for missions. 
+Every landing locations can be defined with a target point and 2 different approach headings (colinear to the landing strips) with exclusive direction or opposite directions allowed. 
+This enables up to 4 different approach directions, based on the landing site and surrounding area. 
 
 ## General procedure:
 
@@ -13,7 +15,7 @@ Supported are landings at safehome after "Return to Home" or at a defined LAND w
 3. The landing direction and the approach waypoints are calculated on the basis of the measured wind parameters. If no headwind landing is possible or the wind strength is greater than "Max. tailwind" (see Global Parameters), return to point 2.
 4. The landing is initiated. The aircraft flies the downwind course, "Approach Altitude" is held.
 5. Base Leg: the altitude is reduced from 2/3 of "Approach Altitude".
-6. Final Appraoch: The engine power is reduced using "Pitch2throttle modifier" to reduce speed and the altitude is reduced to "Land Altitude".
+6. Final Approach: The engine power is reduced using "Pitch2throttle modifier" to reduce speed and the altitude is gradually reduced towards "Land Altitude" while approaching the Safehome coordinates.
 7. Glide: When "Glide Altitude" is reached, the motor is switched off and the pitch angle of "Glide Pitch" is held.
 7. Flare: Only if a LIDAR/Rangefinder sensor is present: the motor remains switched off and the pitch angle of "Flare Pitch" is held
 8. Landing: As soon as INAV has detected the landing, it is automatically disarmed, see setting `nav_disarm_on_landing`.
@@ -34,7 +36,7 @@ The following graphics illustrate the process:
 
 ### The following parameters are set for each landing site (Safefome/LAND waypoint):
 
-All settings can also be conveniently made in the Configurator via Missionplanner.
+All settings can also be conveniently made in the Configurator via Mission Control.
 
 CLI command `fwapproach`:
 `fwapproach <index> <Approach altitude> <Land altitude> <Approach direction> <approach heading 1> <approach heading 2> <sea level>`
@@ -86,7 +88,7 @@ In cm/s. Min: 0; Max: 3000, Default: 140
 If WP-Tracking is not used, the Plane will head straight to the landiung location without flying in line with the intended landing strip. Wind can intensively alter the final landing heading.
 
 * `nav_fw_pitch2thr`: The navigation throttle modifier has to be tuned well to allow stable navigation during climbs and descents to prevent a stall. Make sure your plane maintains Ground or Airspeed, when climbing in any navigation mode. 
-The Craft should not get slower and not speed ub significantly during a navigation climb, if P2T is tuned properly.
+The Craft should not get slower and not speed ub significantly during a navigation climb, if P2T is tuned properly. See `Fixed Wing Pitch To Throttle Tuning.md` for a full tuning procedure.
 
 * `nav_wp_radius`: This parameter might be too high if you have set up your craft with INAV 6 or INAV 7. With a too high value, the turning points for the Crosswind-Leg and Final Approach are hit too early and make it difficult for the plane to align to the runway or cut short the approach. 
 Make sure this parameter is not set greater than 1000 (cm). The better your craft and navigation system is tuned, the lower this value can be. We recommend to start with 1000 for flying wings and 800 for a Plane with Tail.

@@ -22,28 +22,36 @@ See the other documentation sections for details of the cli commands and setting
 
 ## Backup via CLI
 
+> **Note:** The INAV Configurator now performs automatic backups before flashing and can restore settings afterwards, including migration across major versions. See [Backup and Restore](Backup%20and%20Restore.md) for details. The CLI method below remains available for manual backup.
+
 Disconnect main power, connect to cli via USB/FTDI.
 
 dump using cli
 
 ```
-profile 0
+control_profile 0
 dump
 ```
 
-dump profiles using cli if you use them
+dump control_profiles using cli if you use them
 
 ```
-profile 1
-dump profile
-profile 2
-dump profile
+control_profile 1
+dump control_profile
+control_profile 2
+dump control_profile
 ```
 
 copy screen output to a file and save it.
 
 Alternatively, use the `diff` command to dump only those settings that differ from their default values (those that have been changed).
 
+Adding `showdefaults` to the Dump and Diff commands, e.g. `diff showdefaults`, will add a comment line showing the default value where it differs from the set value.
+
+```
+#default set fw_ff_pitch = 50
+set fw_ff_pitch = 120
+```
 
 ## Restore via CLI.
 
@@ -71,9 +79,10 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `batch` | Start or end a batch of commands |
 | `battery_profile` | Change battery profile |
 | `beeper` | Show/set beeper (buzzer) [usage](Buzzer.md) |
-| `bind_rx` | Initiate binding for RX SPI or SRXL2 |
+| `bind_msp_rx` | Initiate binding for MSP receivers (mLRS) |
+| `bind_rx` | Initiate binding for SRXL2 or CRSF receivers |
 | `blackbox` | Configure blackbox fields |
-| `bootlog` | Show boot events |
+| `bootlog` | Show init logs from [serial_printf_debugging](./development/serial_printf_debugging.md) |
 | `color` | Configure colors |
 | `defaults` | Reset to defaults and reboot |
 | `dfu` | DFU mode on reboot |
@@ -99,15 +108,16 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `msc` | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information. |
 | `osd_layout` | Get or set the layout of OSD items |
 | `pid` | Configurable PID controllers |
+| `piniopwm` | Set PINIO PWM duty cycle. See [PINIO PWM](PINIO%20PWM.md) |
 | `play_sound` | `<index>`, or none for next item |
-| `profile` | Change profile |
+| `control_profile` | Change profile |
 | `resource` | View currently used resources |
 | `rxrange` | Configure rx channel ranges |
 | `safehome` | Define safe home locations. See the [safehome documentation](Safehomes.md) for usage information. |
 | `save` | Save and reboot |
 | `sd_info` | Sdcard info |
 | `serial` | Configure serial ports. [Usage](Serial.md) |
-| `serialpassthrough` | Passthrough serial data to port, with `<id> <baud> <mode>`, where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
+| `serialpassthrough` | Passthrough serial data to port, with `<id> <baud> <mode> <options>`, where `id` is the zero based port index, `baud` is a standard baud rate, mode is `rx`, `tx`, or both (`rxtx`), and options is a short string like `8N1` or `8E2` |
 | `servo` | Configure servos |
 | `set` | Change setting with name=value or blank or * for list |
 | `smix` | Custom servo mixer |
@@ -157,6 +167,8 @@ A shorter form is also supported to enable and disable a single function using `
 | TELEMETRY_SMARTPORT_MASTER | 23       | 8388608 |
 | UNUSED                | 24            | 16777216 |
 | MSP_DISPLAYPORT       | 25            | 33554432 |
+| GIMBAL_SERIAL         | 26            | 67108864 |
+| HEADTRACKER_SERIAL    | 27            | 134217728 |
 
 Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.
 

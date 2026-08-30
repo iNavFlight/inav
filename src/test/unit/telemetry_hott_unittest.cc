@@ -188,7 +188,7 @@ uint32_t millis(void) {
     return fixedMillis;
 }
 
-uint32_t micros(void) { return 0; }
+timeUs_t micros(void) { return 0; }
 
 uint32_t serialRxBytesWaiting(const serialPort_t *instance) {
     UNUSED(instance);

@@ -98,7 +98,7 @@ typedef struct {
     bool                requestTelemetry;
 } pwmOutputMotor_t;
 
-static DMA_RAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
+static DMA_RAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUTS];
 
 static pwmOutputMotor_t        motors[MAX_MOTORS];
 static motorPwmProtocolTypes_e initMotorProtocol;
@@ -124,6 +124,18 @@ static timeUs_t commandPostDelay = 0;
 static circularBuffer_t commandsCircularBuffer;
 static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
 static currentExecutingCommand_t currentExecutingCommand;
+
+static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry);
+#ifndef USE_DSHOT_DMAR
+static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet);
+#else
+static void loadDmaBufferDshotStride(timerDMASafeType_t *dmaBuffer, int stride, uint16_t packet);
+#endif
+
+#ifdef USE_DSHOT_DMAR
+burstDmaTimer_t burstDmaTimers[MAX_DMA_TIMERS];
+uint8_t burstDmaTimersCount = 0;
+#endif
 #endif
 
 static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
@@ -142,7 +154,7 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uin
 
 static pwmOutputPort_t *pwmOutAllocatePort(void)
 {
-    if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
+    if (allocatedOutputPortCount >= MAX_PWM_OUTPUTS) {
         LOG_ERROR(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
         return NULL;
     }
@@ -226,6 +238,56 @@ void pwmEnableMotors(void)
     pwmMotorsEnabled = true;
 }
 
+void pwmSetMotorDMACircular(bool circular)
+{
+#ifdef USE_DSHOT
+    if (!isMotorProtocolDshot()) {
+        return;
+    }
+
+    int motorCount = getMotorCount();
+
+    if (circular) {
+        // Load zero-throttle packets directly into DMA buffers,
+        // bypassing the rate limiter in pwmCompleteMotorUpdate()
+        uint16_t packet = prepareDshotPacket(0, false);
+        for (int i = 0; i < motorCount; i++) {
+            if (motors[i].pwmPort && motors[i].pwmPort->configured) {
+#ifdef USE_DSHOT_DMAR
+                loadDmaBufferDshotStride(&motors[i].pwmPort->dmaBurstBuffer[motors[i].pwmPort->tch->timHw->channelIndex], 4, packet);
+#else
+                loadDmaBufferDshot(motors[i].pwmPort->dmaBuffer, packet);
+#endif
+            }
+        }
+    }
+
+#ifdef USE_DSHOT_DMAR
+    // Burst DMA: one DMA stream per timer, shared across channels
+    for (int i = 0; i < burstDmaTimersCount; i++) {
+        burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[i];
+        // Find the first motor using this timer to get the TCH for DMA state
+        for (int m = 0; m < motorCount; m++) {
+            if (motors[m].pwmPort && motors[m].pwmPort->configured && motors[m].pwmPort->tch
+                && motors[m].pwmPort->tch->timHw->tim == burstDmaTimer->timer) {
+                impl_pwmBurstDMASetCircular(burstDmaTimer, motors[m].pwmPort->tch, circular, DSHOT_DMA_BUFFER_SIZE * 4);
+                break;
+            }
+        }
+    }
+#else
+    // Per-channel DMA: one DMA stream per motor
+    for (int i = 0; i < motorCount; i++) {
+        if (motors[i].pwmPort && motors[i].pwmPort->configured && motors[i].pwmPort->tch) {
+            impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, circular, DSHOT_DMA_BUFFER_SIZE);
+        }
+    }
+#endif
+#else
+    UNUSED(circular);
+#endif
+}
+
 bool isMotorBrushed(uint16_t motorPwmRateHz)
 {
     return (motorPwmRateHz > 500);
@@ -264,9 +326,6 @@ uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType)
 }
 
 #ifdef USE_DSHOT_DMAR
-burstDmaTimer_t burstDmaTimers[MAX_DMA_TIMERS];
-uint8_t burstDmaTimersCount = 0;
-
 static uint8_t getBurstDmaTimerIndex(TIM_TypeDef *timer)
 {
     for (int i = 0; i < burstDmaTimersCount; i++) {
@@ -638,7 +697,7 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
 
 static void pwmServoWriteStandard(uint8_t index, uint16_t value)
 {
-    if (servos[index]) {
+    if (index < MAX_SERVOS && servos[index]) {
         *servos[index]->ccr = value;
     }
 }
@@ -705,7 +764,7 @@ void pwmWriteBeeper(bool onoffBeep)
     }
 }
 
-void beeperPwmInit(ioTag_t tag, uint16_t frequency)
+bool beeperPwmInit(ioTag_t tag, uint16_t frequency)
 {
     beeperPwm = NULL;
 
@@ -715,14 +774,17 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency)
         // Attempt to allocate TCH
         TCH_t * tch = timerGetTCH(timHw);
         if (tch == NULL) {
-            return;
+            return false;
         }
 
         beeperPwm = &beeperPwmPort;
         beeperFrequency = frequency;
         IOConfigGPIOAF(IOGetByTag(tag), IOCFG_AF_PP, timHw->alternateFunction);
         pwmOutConfigTimer(beeperPwm, tch, PWM_TIMER_HZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
+        return true;
     }
+
+    return false;
 }
 
 #endif
