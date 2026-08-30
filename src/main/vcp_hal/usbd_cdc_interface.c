@@ -485,6 +485,12 @@ uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
 {
     USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)USBD_Device.pClassData;
 
+    // The CDC class is not registered in MSC mode; guard against a NULL
+    // class data pointer.
+    if (hcdc == NULL) {
+        return 0;
+    }
+
     uint32_t start = millis();
 
     while (hcdc->TxState != 0) {
