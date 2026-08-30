@@ -1,34 +1,41 @@
 #include "platform.h"
-#include "common/log.h"
-#include "common/time.h"
-#include "drivers/time.h"
-#include "drivers/nvic.h"
-#include "build/atomic.h"
-#include <stdint.h>
-#include <stdlib.h>
-#include "fc/settings.h"
-#include "build/version.h"
-#include "sensors/diagnostics.h"
-#include "fc/runtime_config.h"
+
 #if defined(USE_DRONECAN)
 
-#include "io/gps.h"
-#include "sensors/battery_sensor_dronecan.h"
+#include <dronecan_msgs.h>
+#include <inttypes.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "build/atomic.h"
+#include "build/version.h"
+
+#include "common/log.h"
+#include "common/time.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "libcanard/canard_stm32_driver.h"
-#include "libcanard/canard.h"
-#include "dronecan.h"
+#include "drivers/nvic.h"
+#include "drivers/time.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
-#include <dronecan_msgs.h>
+#include "dronecan.h"
 #include "dronecan_async.h"
 #include "dronecan_dna_server.h"
 #include "dronecan_node_status.h"
+
+#include "fc/runtime_config.h"
+#include "fc/settings.h"
+
+#include "io/gps.h"
+
+#include "libcanard/canard.h"
+#include "libcanard/canard_stm32_driver.h"
+
+#include "sensors/battery_sensor_dronecan.h"
+#include "sensors/diagnostics.h"
 
 /* Private variables ---------------------------------------------------------*/
 
