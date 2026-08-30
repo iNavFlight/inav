@@ -8972,7 +8972,7 @@
             },
             "reply": null,
             "notes": "Expects 7 bytes. Returns error if index invalid. Calls `loadCustomServoMixer()`.",
-            "description": "Sets a single custom servo mixer rule, including programming framework condition ID. Supersedes `MSP_SET_SERVO_MIX_RULE`."
+            "description": "Sets a single custom servo mixer rule, including programming framework condition ID."
         },
         "MSP2_INAV_LOGIC_CONDITIONS": {
             "code": 8226,
