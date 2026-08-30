@@ -385,8 +385,11 @@ static void initMavlinkTestState(void)
     telemetryConfigMutable()->halfDuplex = 0;
 
     rxConfigMutable()->receiverType = RX_TYPE_NONE;
+    rxConfigMutable()->dualRxEnabled = 0;
     rxConfigMutable()->serialrx_provider = SERIALRX_SBUS;
     rxConfigMutable()->halfDuplex = 0;
+    rxConfigMutable()->receiverTypeSecondary = RX_TYPE_NONE;
+    rxConfigMutable()->serialrx_provider_secondary = SERIALRX_SBUS;
 
     systemConfigMutable()->current_mixer_profile_index = 0;
     mixerProfilesMutable(0)->mixer_config.platformType = PLATFORM_AIRPLANE;
@@ -2712,6 +2715,7 @@ TEST(MavlinkTelemetryTest, RadioStatusUpdatesRxLinkStats)
     rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
     rxConfigMutable()->serialrx_provider = SERIALRX_MAVLINK;
     telemetryConfigMutable()->mavlink[0].radio_type = MAVLINK_RADIO_ELRS;
+    testPortConfig.functionMask |= FUNCTION_RX_SERIAL;
 
     mavlink_message_t msg;
     mavlink_msg_radio_status_pack(
@@ -2729,6 +2733,9 @@ TEST(MavlinkTelemetryTest, RadioStatusUpdatesRxLinkStats)
 TEST(MavlinkTelemetryTest, RcChannelsOverrideIsForwarded)
 {
     initMavlinkTestState();
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
+    rxConfigMutable()->serialrx_provider = SERIALRX_MAVLINK;
+    testPortConfig.functionMask |= FUNCTION_RX_SERIAL;
 
     mavlink_message_t msg;
     mavlink_msg_rc_channels_override_pack(
@@ -2743,9 +2750,12 @@ TEST(MavlinkTelemetryTest, RcChannelsOverrideIsForwarded)
     EXPECT_EQ(mavlinkRxHandleCalls, 1);
 }
 
-TEST(MavlinkTelemetryTest, RcChannelsOverrideIgnoresTargetSystemMismatch)
+TEST(MavlinkTelemetryTest, RcChannelsOverrideRejectsTargetSystemMismatch)
 {
     initMavlinkTestState();
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
+    rxConfigMutable()->serialrx_provider = SERIALRX_MAVLINK;
+    testPortConfig.functionMask |= FUNCTION_RX_SERIAL;
 
     mavlink_message_t msg;
     mavlink_msg_rc_channels_override_pack(
@@ -2757,7 +2767,7 @@ TEST(MavlinkTelemetryTest, RcChannelsOverrideIgnoresTargetSystemMismatch)
     pushRxMessage(&msg);
     handleMAVLinkTelemetry(1000);
 
-    EXPECT_EQ(mavlinkRxHandleCalls, 1);
+    EXPECT_EQ(mavlinkRxHandleCalls, 0);
 }
 
 TEST(MavlinkTelemetryTest, PingRequestEchoesSequenceAndTimestamp)
@@ -3728,6 +3738,33 @@ int16_t rxGetChannelValue(unsigned channel)
     return 1500;
 }
 
+rxLinkStatistics_t *rxGetLinkStatisticsMutable(rxLink_e link)
+{
+    return (unsigned)link < RX_LINK_COUNT ? &rxLinkStatistics : NULL;
+}
+
+void rxLinkStatisticsUpdated(rxLink_e link, uint16_t validFields)
+{
+    UNUSED(link);
+    UNUSED(validFields);
+}
+
+int8_t mavlinkRxLinkForPortFunctionMask(uint32_t functionMask)
+{
+    const bool rx1 = (functionMask & FUNCTION_RX_SERIAL) &&
+        rxConfig()->receiverType == RX_TYPE_SERIAL &&
+        rxConfig()->serialrx_provider == SERIALRX_MAVLINK;
+    const bool rx2 = (functionMask & FUNCTION_RX_SERIAL_SECONDARY) &&
+        rxConfig()->dualRxEnabled &&
+        rxConfig()->receiverTypeSecondary == RX_TYPE_SERIAL &&
+        rxConfig()->serialrx_provider_secondary == SERIALRX_MAVLINK;
+
+    if (rx1 == rx2) {
+        return -1;
+    }
+    return rx2 ? RX_LINK_SECONDARY : RX_LINK_PRIMARY;
+}
+
 hardwareSensorStatus_e getHwGyroStatus(void) { return HW_SENSOR_NONE; }
 hardwareSensorStatus_e getHwAccelerometerStatus(void) { return HW_SENSOR_NONE; }
 hardwareSensorStatus_e getHwCompassStatus(void) { return HW_SENSOR_NONE; }
@@ -3921,8 +3958,9 @@ textAttributes_t osdGetSystemMessage(char *message, size_t length, bool remove)
     return testOsdSystemMessageAttributes;
 }
 
-void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg)
+void mavlinkRxHandleMessage(rxLink_e link, const mavlink_rc_channels_override_t *msg)
 {
+    UNUSED(link);
     UNUSED(msg);
     mavlinkRxHandleCalls++;
 }
