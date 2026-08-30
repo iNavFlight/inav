@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -125,6 +126,7 @@ bool cliMode = false;
 #include "sensors/temperature.h"
 #ifdef USE_DRONECAN
 #include "drivers/dronecan/dronecan.h"
+#include "drivers/dronecan/libcanard/canard_stm32_driver.h"
 #endif
 #ifdef USE_ESC_SENSOR
 #include "sensors/esc_sensor.h"
@@ -229,7 +231,10 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "LULU",
     "SBUS2",
     "OSD_REFRESH",
-    "MAG_CALIB"
+    "MAG_CALIB",
+    "VTOL_TRANSITION",
+    "VTOL_MC_PROTECT",
+    "TERRAIN_NAV"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
@@ -237,7 +242,7 @@ static const char *debugModeNames[DEBUG_COUNT] = {
 // sync with gyroSensor_e
 static const char *const gyroNames[] = {
     "NONE",     "AUTO",   "MPU6000",  "MPU6500", "MPU9250", "BMI160",
-    "ICM20689", "BMI088", "ICM42605", "BMI270",  "LSM6DXX", "ICM45686", "FAKE"};
+    "ICM20689", "BMI088", "ICM42605", "BMI270",  "LSM6DXX", "ICM45686", "ICM40609D", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -543,7 +548,7 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
 {
     char name[SETTING_MAX_NAME_LENGTH];
     const char *format = "set %s = ";
-    const char *defaultFormat = "#set %s = ";
+    const char *defaultFormat = "#default set %s = ";
     // During a dump, the PGs have been backed up to their "copy"
     // regions and the actual values have been reset to its
     // defaults. This means that settingGetValuePointer() will
@@ -557,10 +562,10 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
             // if the craftname has a leading space, then enclose the name in quotes
-            if (strcmp(name, "name") == 0 && ((const char *)valuePointer)[0] == ' ') {
-                cliPrintf("\"%s\"", (const char *)valuePointer);
+            if (strcmp(name, "name") == 0 && ((const char *)defaultValuePointer)[0] == ' ') {
+                cliPrintf("\"%s\"", (const char *)defaultValuePointer);
             } else {
-                printValuePointer(value, valuePointer, 0);
+                printValuePointer(value, defaultValuePointer, 0);
             }
             cliPrintLinefeed();
         }
@@ -4204,11 +4209,12 @@ static void cliStatus(char *cmdline)
 #endif
 
 #ifdef USE_DRONECAN
-    static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF"};
+    static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF", "FAILED"};
+    STATIC_ASSERT(ARRAYLEN(dronecanStateNames) == STATE_DRONECAN_COUNT, dronecanStateNames_size_mismatch);
     cliPrintLinef("DroneCAN: nodeID=%d, bitrate=%u kbps, status=%s, nodes=%d",                                                                                                                                                  
         dronecanConfig()->nodeID,                                                                                                                                                                                                     
         (unsigned)dronecanGetBitrateKbps(),                                                                                                                                                                                                     
-        dronecanStateNames[dronecanGetState()],                                                                                                                                                                                       
+        dronecanStateNames[MIN((int)dronecanGetState(), (int)STATE_DRONECAN_COUNT - 1)],                                                                                                                                                                                       
         dronecanGetNodeCount()                                                         
     );
 #endif
@@ -4697,6 +4703,35 @@ static void printConfig(const char *cmdline, bool doDiff)
     restoreConfigs();
 }
 
+#ifdef USE_DRONECAN
+static void cliDronecan(char *cmdline)
+{
+    UNUSED(cmdline);
+    static const char * const lecNames[] = {
+        "None", "Stuff", "Form", "ACK", "BitR", "BitD", "CRC", "SW"
+    };
+    canardProtocolStatus_t stat;
+    canardSTM32GetProtocolStatus(&stat);
+    int32_t txFill = canardSTM32GetTxQueueFillLevel();
+    int32_t rxFill = canardSTM32GetRxFifoFillLevel();
+    uint32_t busOffCount = dronecanGetBusOffCount();
+    CanardPoolAllocatorStatistics poolStats = dronecanGetPoolStats();
+    cliPrintLine("DroneCAN CAN peripheral status:");
+    cliPrintLinef("  BusOff:       %s", stat.BusOff       ? "YES" : "no");
+    cliPrintLinef("  ErrorPassive: %s", stat.ErrorPassive ? "YES" : "no");
+    cliPrintLinef("  TEC:          %u", (unsigned)stat.tec);
+    cliPrintLinef("  REC:          %u", (unsigned)stat.rec);
+    cliPrintLinef("  LEC:          %s (%u)", lecNames[stat.lec], (unsigned)stat.lec);
+    cliPrintLinef("  TX queue:     %" PRId32, txFill);
+    cliPrintLinef("  RX buffer:    %" PRId32, rxFill);
+    cliPrintLinef("  BusOff count: %" PRIu32, busOffCount);
+    cliPrintLinef("  Pool blocks:  %u used, %u peak, %u capacity",
+                  poolStats.current_usage_blocks,
+                  poolStats.peak_usage_blocks,
+                  poolStats.capacity_blocks);
+}
+#endif
+
 static void cliDump(char *cmdline)
 {
     printConfig(cmdline, false);
@@ -4942,6 +4977,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDiff),
+#ifdef USE_DRONECAN
+    CLI_COMMAND_DEF("dronecan", "show DroneCAN CAN peripheral debug status", NULL, cliDronecan),
+#endif
     CLI_COMMAND_DEF("dump", "dump configuration",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES

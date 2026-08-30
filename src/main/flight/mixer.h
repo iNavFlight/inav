@@ -43,6 +43,13 @@ typedef enum {
     PLATFORM_BOAT           = 5
 } flyingPlatformType_e;
 
+static inline bool isMultirotorTypePlatform(const flyingPlatformType_e platformType)
+{
+    return platformType == PLATFORM_MULTIROTOR ||
+           platformType == PLATFORM_TRICOPTER ||
+           platformType == PLATFORM_HELICOPTER;
+}
+
 
 typedef enum {
     OUTPUT_MODE_AUTO     = 0,
@@ -121,7 +128,7 @@ void writeAllMotors(int16_t mc);
 void mixerInit(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
-void mixTable(void);
+void mixTable(float dT);
 void writeMotors(void);
 void processServoAutotrim(const float dT);
 void processServoAutotrimMode(void);
@@ -132,5 +139,6 @@ void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
 bool areMotorsRunning(void);
+bool areMotorsStopped(void);
 
 uint16_t getMaxThrottle(void);

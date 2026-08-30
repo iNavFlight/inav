@@ -559,6 +559,13 @@ When releasing a new major version, create maintenance branches:
 - **maintenance-X.x** - For bugfixes to version X
 - **maintenance-(X+1).x** - For breaking changes targeting the next major version
 
+See [`Development.md`](Development.md#branching-and-release-workflow) for
+the full branch model and rules on choosing a target branch. (For the
+Configurator migration profile requirement on breaking CLI-setting
+changes, see the Documentation checklist above.) This section covers only
+what's release-manager-specific: creating a new maintenance branch and
+carrying a release forward.
+
 ### Creating Maintenance Branches
 
 ```bash
@@ -571,14 +578,12 @@ gh api repos/iNavFlight/inav/git/refs -f ref="refs/heads/maintenance-9.x" -f sha
 gh api repos/iNavFlight/inav-configurator/git/refs -f ref="refs/heads/maintenance-9.x" -f sha="$COMMIT_SHA"
 ```
 
-### Branch Usage
+### Carrying a Release Branch Forward
 
-- **Changes maintaining backward compatibility** → PR to maintenance-X.x (e.g., maintenance-9.x)
-- **Breaking changes** (MSP protocol, settings structure) → PR to maintenance-(X+1).x (e.g., maintenance-10.x)
-  - When breaking changes affect CLI settings (renames, removals, value changes), a **Configurator migration profile** must be created. See [Backup Restore Architecture](Backup%20Restore%20Architecture.md#adding-a-new-migration-profile)
-- **Master** → NOT a PR target (receives merges only)
-
-Lower version branches are periodically merged into higher version branches (e.g., maintenance-9.x → master → maintenance-10.x).
+When a point release's changes also need to land on the next major version
+branch, see [`merging-release-into-next-version.md`](merging-release-into-next-version.md)
+for the full procedure. This flows directly between maintenance branches —
+it never involves `master`.
 
 ## Hotfix Releases
 

@@ -110,6 +110,23 @@ static bool pinioInitTimerPWM(int slot, IO_t io, const timerHardware_t *timHw, b
     return true;
 }
 
+// True if another channel on the same physical timer is dedicated to a fixed-period
+// output (WS2811 LED strip or BEEPER tone). pinioInitTimerPWM() has no per-timer
+// exclusivity check of its own -- timerGetTCH() will happily hand out a TCH for any
+// channel regardless of what else is running on that timer -- so without this guard,
+// configuring such a pad as timer-PWM would call timerConfigBase() and reprogram the
+// period/prescaler shared by every channel on the timer, corrupting the fixed-period
+// output it belongs to.
+static bool timerHasFixedPeriodSibling(const timerHardware_t *timHw)
+{
+    for (int i = 0; i < timerHardwareCount; i++) {
+        if (timerHardware[i].tim == timHw->tim && (timerHardware[i].usageFlags & (TIM_USE_LED | TIM_USE_BEEPER))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void pinioInit(void)
 {
     int runtimeCount = 0;
@@ -119,25 +136,25 @@ void pinioInit(void)
     // pwmMotorAndServoInit() runs before pinioInit(), so motor/servo pins are already
     // owned and the OWNER_FREE check correctly skips dual-assigned pads.
     for (int i = 0; i < pinioHardwareCount && runtimeCount < PINIO_COUNT; i++) {
+        const int slot = runtimeCount++;
         IO_t io = IOGetByTag(pinioHardware[i].ioTag);
-        if (!io) {
+        if (!io || IOGetOwner(io) != OWNER_FREE) {
+            // Keep this slot reserved so later PINIO channels retain their USER index.
             continue;
         }
 
         bool inverted = (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) != 0;
         const timerHardware_t *timHw = timerGetByTag(pinioHardware[i].ioTag, TIM_USE_ANY);
-        if (timHw && IOGetOwner(io) == OWNER_FREE && pinioInitTimerPWM(runtimeCount, io, timHw, inverted)) {
-            runtimeCount++;
+        if (timHw && !timerHasFixedPeriodSibling(timHw) && pinioInitTimerPWM(slot, io, timHw, inverted)) {
             continue;
         }
 
-        // GPIO fallback: no timer available or pin already claimed
-        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(runtimeCount));
+        // GPIO fallback: no timer is available or its period belongs to a sibling output.
+        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(slot));
         IOConfigGPIO(io, pinioHardware[i].ioMode);
-        pinioRuntime[runtimeCount].inverted = inverted;
-        pinioRuntime[runtimeCount].io = io;
+        pinioRuntime[slot].inverted = inverted;
+        pinioRuntime[slot].io = io;
         inverted ? IOHi(io) : IOLo(io);
-        runtimeCount++;
     }
 
     // Pass 2: timer outputs assigned PINIO mode via the mixer (TIM_USE_PINIO flag).
@@ -152,9 +169,19 @@ void pinioInit(void)
         if (!io || IOGetOwner(io) != OWNER_FREE) {
             continue;
         }
-        if (pinioInitTimerPWM(runtimeCount, io, timHw, false)) {
+        if (!timerHasFixedPeriodSibling(timHw) && pinioInitTimerPWM(runtimeCount, io, timHw, false)) {
             runtimeCount++;
+            continue;
         }
+
+        // GPIO fallback: pad's timer is already running at a fixed frequency
+        // for another purpose (e.g. BEEPER or LED), so PWM duty control isn't available.
+        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(runtimeCount));
+        IOConfigGPIO(io, IOCFG_OUT_PP);
+        pinioRuntime[runtimeCount].inverted = false;
+        pinioRuntime[runtimeCount].io = io;
+        IOLo(io);
+        runtimeCount++;
     }
 
     pinioRuntimeCount = runtimeCount;
@@ -174,7 +201,7 @@ void pinioSetDuty(int index, uint8_t duty)
     }
 #endif
     index--;  // user-facing 1-4 → runtime 0-3
-    if ((unsigned)index >= (unsigned)pinioRuntimeCount) {
+    if ((unsigned)index >= (unsigned)pinioRuntimeCount || !pinioRuntime[index].io) {
         return;
     }
     if (duty > 100) {
@@ -198,7 +225,7 @@ void pinioSetDuty(int index, uint8_t duty)
 // called from PINIOBOX, giving the programming framework exclusive uninterrupted control.
 void pinioSet(int index, bool newState)
 {
-    if ((unsigned)index >= (unsigned)pinioRuntimeCount) {
+    if ((unsigned)index >= (unsigned)pinioRuntimeCount || !pinioRuntime[index].io) {
         return;
     }
     if (pinioRuntime[index].ccr) {
