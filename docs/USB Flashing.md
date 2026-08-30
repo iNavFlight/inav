@@ -68,14 +68,26 @@ With the board connected and in bootloader mode (reset it by sending the charact
 
 Put the device into DFU mode by **one** of the following:
 
-* Use the hardware button on the board
-* Send a single 'R' character to the serial device, e.g. on POSIX OS using `/dev/ttyACM0` at 115200 baudrate.
+* **Hardware button:** Press and hold the DFU/BOOT button while plugging in USB
 
+* **Serial CLI sequence:** Send `####\r\n`, wait for CLI prompt, then send `dfu\r\n`
+
+```bash
+# Enter CLI mode
+echo -ne '####\r\n' > /dev/ttyACM0
+
+# Wait for "CLI" prompt (important - don't skip!)
+# Recommended: use a proper script that reads serial response
+
+# Send DFU command
+echo -ne 'dfu\r\n' > /dev/ttyACM0
 ```
-stty 115200 < /dev/ttyACM0
-echo -ne 'R' > /dev/ttyACM0
-```
-* Use the CLI command `dfu`
+
+**Note:** The simple single 'R' character method shown in older documentation is unreliable. The above sequence is required for proper CLI entry.
+
+* **CLI command:** If already connected to CLI via configurator or terminal: type `dfu`
+
+* **MSP command:** Use MSP_REBOOT with DFU parameter (INAV 9.x+) - most reliable programmatic method
 
 It is necessary to convert the `.hex` file into `Intel binary`. This can be done using the GCC `objcopy` command; e.g. for the notional `inav_x.y.z_NNNNNN.hex`.
 

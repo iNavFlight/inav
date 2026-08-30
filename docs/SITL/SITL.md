@@ -16,9 +16,11 @@ Currently supported are
 
 INAV SITL communicates for sensor data and control directly with the corresponding simulator, see the documentation of the individual simulators and the Configurator or the command line options.
 
+SITL system load is calculated from scheduler busy time and excludes intentional host sleeps used to avoid pegging a CPU core.
+
 AS SITL is still an inav software, but running on PC, it is possible to use HITL interface for communication.
 
-INAV-X-Plane-HITL plugin https://github.com/RomanLut/INAV-X-Plane-HITL can be used with SITL.
+[INAV-X-Plane-HITL](https://github.com/RomanLut/INAV-X-Plane-HITL) or [INAV-X-Plane-XITL](https://github.com/Scavanger/INAV-X-Plane-XITL) plugin can be used with SITL.
 
 ## Sensors
 The following sensors are emulated:
@@ -62,7 +64,7 @@ All other interfaces (I2C, SPI, etc.) are not emulated.
 ## Remote control
 Multiple methods for connecting RC Controllers are available:
 - MSP_RX (TCP/IP)
-- joystick (via simulator)
+- joystick / radio attached via USB (via simulator)
 - serial receiver via USB to serial converter
 - any receiver with proxy flight controller
 
@@ -75,6 +77,7 @@ MSP_RX is the default, 18 channels are supported over TCP/IP connection.
 Only 8 channels are supported.
 
 Select "SIM (SITL)" as the receiver and set up a joystick in the simulator.
+Many RC transmittters (radios) can function as a joystick by plugging them in to the computer via USB, making this the simplest option in many cases.
 
 *Not available with INAV-X-Plane-HITL plugin.*
 

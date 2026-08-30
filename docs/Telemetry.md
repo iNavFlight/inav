@@ -102,12 +102,14 @@ The following sensors are transmitted
 * **VSpd** : vertical speed, unit is cm/s.
 * **Hdg** : heading, North is 0°, South is 180°.
 * **AccX,Y,Z** : accelerometer values (not sent if `frsky_pitch_roll = ON`).
-* **470** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
-  * **A** : 1 = flaperon mode, 2 = auto tune mode, 4 = failsafe mode
-  * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
-  * **C** : 1 = heading hold, 2 = altitude hold, 4 = position hold
-  * **D** : 1 = angle mode, 2 = horizon mode, 4 = passthru mode
-  * **E** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
+* **470** : flight mode, sent as 7 digits. Number is sent as **ABCDEFG** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
+  * **A** : 1 = WRTH mode, 2 = Angle hold mode
+  * **B** : 1 = Fixed Wing Auto-land, 2 = Turtle mode, 4 = Geofence action mode, 8 = Loiter mode
+  * **C** : 1 = flaperon mode, 2 = auto tune mode, 4 = failsafe mode
+  * **D** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode, 8 = Course Hold
+  * **E** : 1 = heading hold, 2 = altitude hold, 4 = position hold
+  * **F** : 1 = angle mode, 2 = horizon mode, 4 = passthru mode
+  * **G** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
 * **480** : GPS lock status, accuracy, home reset trigger, and number of satellites. Number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
   * **A** : 1 = GPS fix, 2 = GPS home fix, 4 = home reset (numbers are additive)
   * **B** : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
@@ -407,4 +409,4 @@ It runs at a fixed baud rate of 100000, so it needs a hardware uart capable of i
     \_______/                                              \-------------/
 ```
 
-For more information and sensor slot numbering, refer to [SBUS2 Documentation](SBUS2_telemetry.md)
+For more information and sensor slot numbering, refer to [SBUS2 Documentation](SBUS2_Telemetry.md)

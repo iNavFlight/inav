@@ -48,7 +48,7 @@
 #include "drivers/pwm_output.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -59,12 +59,15 @@
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 #include "flight/rpm_filter.h"
 
 #include "io/beeper.h"
 #include "io/gps.h"
+#include "io/asyncfatfs/asyncfatfs.h"
+
 
 #include "navigation/navigation.h"
 
@@ -84,6 +87,8 @@
 #include "flight/wind_estimator.h"
 #include "sensors/temperature.h"
 
+#include "terrain/terrain.h"
+
 
 #if defined(ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT)
 #define DEFAULT_BLACKBOX_DEVICE     BLACKBOX_DEVICE_FLASH
@@ -99,13 +104,14 @@
 #define BLACKBOX_INVERTED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 4);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
     .rate_num = SETTING_BLACKBOX_RATE_NUM_DEFAULT,
     .rate_denom = SETTING_BLACKBOX_RATE_DENOM_DEFAULT,
     .invertedCardDetection = BLACKBOX_INVERTED_CARD_DETECTION,
+    .arm_control = SETTING_BLACKBOX_ARM_CONTROL_DEFAULT,
     .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS |
         BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE |
         BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND |
@@ -195,6 +201,54 @@ typedef struct blackboxDeltaFieldDefinition_s {
     uint8_t condition; // Decide whether this field should appear in the log
 } blackboxDeltaFieldDefinition_t;
 
+static bool canUseBlackboxWithCurrentConfiguration(void)
+{
+    return feature(FEATURE_BLACKBOX);
+}
+
+#ifdef USE_TERRAIN
+//state machine to get access to other device, it's designed only for one other device, in this case for terrain
+//if you would like to have more devices, some queue must be implemented
+static struct blackboxSDCardAccessStatus_s {
+    bool blackboxAccessToSDGrantedToOtherDevice;
+    bool requestToSdCardAccessState;
+
+} blackboxSDCardAccessStatus = {
+        .blackboxAccessToSDGrantedToOtherDevice = false,
+        .requestToSdCardAccessState = false
+};
+
+
+/**
+ * request access from terrain subsystem
+ * @return
+ */
+bool requestToSdCardAccess(void)
+{
+    if(blackboxConfig()->device != BLACKBOX_DEVICE_SDCARD || !canUseBlackboxWithCurrentConfiguration()){
+        return true;
+    }
+
+    if(blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice){
+        return true;
+    }
+
+    blackboxSDCardAccessStatus.requestToSdCardAccessState = true;
+    return false;
+}
+
+/**
+ * release access from terrain subsystem
+ * @return
+ */
+void releaseSdCardAccess(void)
+{
+    blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice = false;
+    blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
+}
+#endif
+
+
 /**
  * Description of the blackbox fields we are writing in our main intra (I) and inter (P) frames. This description is
  * written into the flight log header so the log can be properly interpreted (but these definitions don't actually cause
@@ -231,6 +285,8 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"fwPosI",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwPosD",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwPosOut",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwAutoSpeedP",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwAutoSpeedI",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
 
     {"mcPosAxisP",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
     {"mcPosAxisP",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
@@ -467,22 +523,11 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
     {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
 #endif
+#ifdef USE_TERRAIN
+    {"terrainAGL",                -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
+    {"terrainAMSL",               -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
+#endif
 };
-
-typedef enum BlackboxState {
-    BLACKBOX_STATE_DISABLED = 0,
-    BLACKBOX_STATE_STOPPED,
-    BLACKBOX_STATE_PREPARE_LOG_FILE,
-    BLACKBOX_STATE_SEND_HEADER,
-    BLACKBOX_STATE_SEND_MAIN_FIELD_HEADER,
-    BLACKBOX_STATE_SEND_GPS_H_HEADER,
-    BLACKBOX_STATE_SEND_GPS_G_HEADER,
-    BLACKBOX_STATE_SEND_SLOW_HEADER,
-    BLACKBOX_STATE_SEND_SYSINFO,
-    BLACKBOX_STATE_PAUSED,
-    BLACKBOX_STATE_RUNNING,
-    BLACKBOX_STATE_SHUTTING_DOWN
-} BlackboxState;
 
 #define BLACKBOX_FIRST_HEADER_SENDING_STATE BLACKBOX_STATE_SEND_HEADER
 #define BLACKBOX_LAST_HEADER_SENDING_STATE BLACKBOX_STATE_SEND_SYSINFO
@@ -507,6 +552,8 @@ typedef struct blackboxMainState_s {
     int32_t fwAltPIDOutput;
     int32_t fwPosPID[3];
     int32_t fwPosPIDOutput;
+    int32_t fwAutoSpeedP;
+    int32_t fwAutoSpeedI;
 
     int16_t rcData[4];
     int16_t rcCommand[4];
@@ -518,7 +565,7 @@ typedef struct blackboxMainState_s {
     int16_t gyroPeaksYaw[DYN_NOTCH_PEAK_COUNT];
 
     int16_t accADC[XYZ_AXIS_COUNT];
-    int16_t accVib;
+    uint16_t accVib;
     int16_t attitude[XYZ_AXIS_COUNT];
     int32_t debug[DEBUG32_VALUE_COUNT];
     int16_t motor[MAX_SUPPORTED_MOTORS];
@@ -586,6 +633,10 @@ typedef struct blackboxSlowState_s {
 #ifdef USE_ESC_SENSOR
     uint32_t escRPM;
     int8_t escTemperature;
+#endif
+#ifdef USE_TERRAIN
+    int32_t terrainAGL;
+    int32_t terrainAMSL;
 #endif
     uint16_t rxUpdateRate;
     uint8_t activeWpNumber;
@@ -889,6 +940,8 @@ static void writeIntraframe(void)
         blackboxWriteSignedVB(blackboxCurrent->fwAltPIDOutput);
         blackboxWriteSignedVBArray(blackboxCurrent->fwPosPID, 3);
         blackboxWriteSignedVB(blackboxCurrent->fwPosPIDOutput);
+        blackboxWriteSignedVB(blackboxCurrent->fwAutoSpeedP);
+        blackboxWriteSignedVB(blackboxCurrent->fwAutoSpeedI);
     }
 
     if (testBlackboxCondition(CONDITION(MC_NAV))) {
@@ -1001,7 +1054,7 @@ static void writeIntraframe(void)
         blackboxWriteSignedVBArray(blackboxCurrent->debug, DEBUG32_VALUE_COUNT);
     }
 
-    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MOTORS)) {
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1)) {
         //Motors can be below minthrottle when disarmed, but that doesn't happen much
         blackboxWriteUnsignedVB(blackboxCurrent->motor[0] - getThrottleIdleValue());
 
@@ -1139,7 +1192,6 @@ static void writeInterframe(void)
     blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
 
     if (testBlackboxCondition(CONDITION(FIXED_WING_NAV))) {
-
         arraySubInt32(deltas, blackboxCurrent->fwAltPID, blackboxLast->fwAltPID, 3);
         blackboxWriteSignedVBArray(deltas, 3);
 
@@ -1150,6 +1202,8 @@ static void writeInterframe(void)
 
         blackboxWriteSignedVB(blackboxCurrent->fwPosPIDOutput - blackboxLast->fwPosPIDOutput);
 
+        blackboxWriteSignedVB(blackboxCurrent->fwAutoSpeedP - blackboxLast->fwAutoSpeedP);
+        blackboxWriteSignedVB(blackboxCurrent->fwAutoSpeedI - blackboxLast->fwAutoSpeedI);
     }
 
     if (testBlackboxCondition(CONDITION(MC_NAV))) {
@@ -1268,7 +1322,7 @@ static void writeInterframe(void)
         blackboxWriteArrayUsingAveragePredictor32(offsetof(blackboxMainState_t, debug), DEBUG32_VALUE_COUNT);
     }
 
-    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MOTORS)) {
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1)) {
         blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, motor),     getMotorCount());
     }
 
@@ -1371,6 +1425,10 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.escRPM);
     blackboxWriteSignedVB(slowHistory.escTemperature);
 #endif
+#ifdef USE_TERRAIN
+    blackboxWriteSignedVB(slowHistory.terrainAGL);
+    blackboxWriteSignedVB(slowHistory.terrainAMSL);
+#endif
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1380,10 +1438,32 @@ static void writeSlowFrame(void)
  */
 static void loadSlowState(blackboxSlowState_t *slow)
 {
+#ifdef USE_AUTO_TRANSITION
+    boxBitmask_t reportedRcModeFlags = rcModeActivationMask;
+#endif
+
     slow->activeWpNumber = getActiveWpNumber();
 
+#ifdef USE_AUTO_TRANSITION
+    // Keep these two mode bits aligned with actual VTOL state/profile activity for status reporting.
+    if (isMixerProfile2ModeReportedActive()) {
+        bitArraySet(reportedRcModeFlags.bits, BOXMIXERPROFILE);
+    } else {
+        bitArrayClr(reportedRcModeFlags.bits, BOXMIXERPROFILE);
+    }
+
+    if (isMixerTransitionModeReportedActive()) {
+        bitArraySet(reportedRcModeFlags.bits, BOXMIXERTRANSITION);
+    } else {
+        bitArrayClr(reportedRcModeFlags.bits, BOXMIXERTRANSITION);
+    }
+
+    slow->rcModeFlags = reportedRcModeFlags.bits[0];   // first 32 bits of boxId_e
+    slow->rcModeFlags2 = reportedRcModeFlags.bits[1];  // remaining bits of boxId_e
+#else
     slow->rcModeFlags = rcModeActivationMask.bits[0];   // first 32 bits of boxId_e
     slow->rcModeFlags2 = rcModeActivationMask.bits[1];  // remaining bits of boxId_e
+#endif
 
     // Also log Nav auto enabled flight modes rather than just those selected by boxmode
     if (navigationGetHeadingControlState() == NAV_HEADING_CONTROL_AUTO) {
@@ -1445,6 +1525,10 @@ static void loadSlowState(blackboxSlowState_t *slow)
     escSensorData_t * escSensor = escSensorGetData();
     slow->escRPM = escSensor->rpm;
     slow->escTemperature = escSensor->temperature;
+#endif
+#ifdef USE_TERRAIN
+    slow->terrainAGL = terrainGetLastDistanceCm();
+    slow->terrainAMSL = terrainGetLastAMSL();
 #endif
 }
 
@@ -1656,7 +1740,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->axisPID_D[i] = axisPID_D[i];
         blackboxCurrent->axisPID_F[i] = axisPID_F[i];
         blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i]);
-        blackboxCurrent->accADC[i] = lrintf(acc.accADCf[i] * acc.dev.acc_1G);
+        blackboxCurrent->accADC[i] = constrain(lrintf(acc.accADCf[i] * acc.dev.acc_1G), -32678, 32767);
         blackboxCurrent->gyroRaw[i] = lrintf(gyro.gyroRaw[i]);
 
 #ifdef USE_DYNAMIC_FILTERS
@@ -1682,10 +1766,10 @@ static void loadMainState(timeUs_t currentTimeUs)
             blackboxCurrent->mcVelAxisOutput[i] = lrintf(nav_pids->vel[i].output_constrained);
         }
     }
-    blackboxCurrent->accVib = lrintf(accGetVibrationLevel() * acc.dev.acc_1G);
+
+    blackboxCurrent->accVib = constrain(lrintf(accGetVibrationLevel() * acc.dev.acc_1G), 0, 65535);
 
     if (STATE(FIXED_WING_LEGACY)) {
-
         // log requested pitch in decidegrees
         blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional);
         blackboxCurrent->fwAltPID[1] = lrintf(nav_pids->fw_alt.integral);
@@ -1698,6 +1782,9 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->fwPosPID[2] = lrintf(nav_pids->fw_nav.derivative / 10);
         blackboxCurrent->fwPosPIDOutput = lrintf(nav_pids->fw_nav.output_constrained / 10);
 
+        // log requested auto speed throttle in us
+        blackboxCurrent->fwAutoSpeedP = lrintf(nav_pids->fw_autoSpeed.proportional);
+        blackboxCurrent->fwAutoSpeedI = lrintf(nav_pids->fw_autoSpeed.integral);
     } else {
         blackboxCurrent->mcSurfacePID[0] = lrintf(nav_pids->surface.proportional / 10);
         blackboxCurrent->mcSurfacePID[1] = lrintf(nav_pids->surface.integral / 10);
@@ -1741,9 +1828,10 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->rssi = getRSSI();
 
+    const uint8_t minServoIndex = getMinServoIndex();
     const int servoCount = getServoCount();
     for (int i = 0; i < servoCount; i++) {
-        blackboxCurrent->servo[i] = servo[i];
+        blackboxCurrent->servo[i] = servo[i + minServoIndex];
     }
 
     blackboxCurrent->navState = navCurrentState;
@@ -1947,15 +2035,15 @@ static bool blackboxWriteSysinfo(void)
 
         BLACKBOX_PRINT_HEADER_LINE("looptime", "%d",                        getLooptime());
         BLACKBOX_PRINT_HEADER_LINE("rc_rate", "%d",                         100); //For compatibility reasons write rc_rate 100
-        BLACKBOX_PRINT_HEADER_LINE("rc_expo", "%d",                         currentControlRateProfile->stabilized.rcExpo8);
-        BLACKBOX_PRINT_HEADER_LINE("rc_yaw_expo", "%d",                     currentControlRateProfile->stabilized.rcYawExpo8);
-        BLACKBOX_PRINT_HEADER_LINE("thr_mid", "%d",                         currentControlRateProfile->throttle.rcMid8);
-        BLACKBOX_PRINT_HEADER_LINE("thr_expo", "%d",                        currentControlRateProfile->throttle.rcExpo8);
-        BLACKBOX_PRINT_HEADER_LINE("tpa_rate", "%d",                        currentControlRateProfile->throttle.dynPID);
-        BLACKBOX_PRINT_HEADER_LINE("tpa_breakpoint", "%d",                  currentControlRateProfile->throttle.pa_breakpoint);
-        BLACKBOX_PRINT_HEADER_LINE("rates", "%d,%d,%d",                     currentControlRateProfile->stabilized.rates[ROLL],
-                                                                            currentControlRateProfile->stabilized.rates[PITCH],
-                                                                            currentControlRateProfile->stabilized.rates[YAW]);
+        BLACKBOX_PRINT_HEADER_LINE("rc_expo", "%d",                         currentControlProfile->stabilized.rcExpo8);
+        BLACKBOX_PRINT_HEADER_LINE("rc_yaw_expo", "%d",                     currentControlProfile->stabilized.rcYawExpo8);
+        BLACKBOX_PRINT_HEADER_LINE("thr_mid", "%d",                         currentControlProfile->throttle.rcMid8);
+        BLACKBOX_PRINT_HEADER_LINE("thr_expo", "%d",                        currentControlProfile->throttle.rcExpo8);
+        BLACKBOX_PRINT_HEADER_LINE("tpa_rate", "%d",                        currentControlProfile->throttle.dynPID);
+        BLACKBOX_PRINT_HEADER_LINE("tpa_breakpoint", "%d",                  currentControlProfile->throttle.pa_breakpoint);
+        BLACKBOX_PRINT_HEADER_LINE("rates", "%d,%d,%d",                     currentControlProfile->stabilized.rates[ROLL],
+                                                                            currentControlProfile->stabilized.rates[PITCH],
+                                                                            currentControlProfile->stabilized.rates[YAW]);
         BLACKBOX_PRINT_HEADER_LINE("rollPID", "%d,%d,%d,%d",                pidBank()->pid[PID_ROLL].P,
                                                                             pidBank()->pid[PID_ROLL].I,
                                                                             pidBank()->pid[PID_ROLL].D,
@@ -2189,6 +2277,25 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
  */
 void blackboxUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_TERRAIN
+    if(blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD){
+        //access to SD card is given to other device
+        if(blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice){
+            return;
+        }
+
+        //incooming request to get access to SD card
+        if(blackboxSDCardAccessStatus.requestToSdCardAccessState && (blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_STOPPED)){
+            //we have to be sure that all writes are already processed and SD card is in idle
+            if(afatfs_isIdle()){
+                blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
+                blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice = true;
+                return;
+            }
+        }
+    }
+#endif
+
     if (blackboxState >= BLACKBOX_FIRST_HEADER_SENDING_STATE && blackboxState <= BLACKBOX_LAST_HEADER_SENDING_STATE) {
         blackboxReplenishHeaderBudget();
     }
@@ -2319,9 +2426,9 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     }
 }
 
-static bool canUseBlackboxWithCurrentConfiguration(void)
+BlackboxState getBlackboxState(void)
 {
-    return feature(FEATURE_BLACKBOX);
+    return blackboxState;
 }
 
 /**

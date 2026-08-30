@@ -33,7 +33,7 @@
 
 #define AXIS_ACCEL_MIN_LIMIT        50
 
-#define HEADING_HOLD_ERROR_LPF_FREQ 2
+#define HEADING_HOLD_ERROR_LPF_FREQ 2.0f
 
 /*
 FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
@@ -68,6 +68,7 @@ typedef enum {
     PID_HEADING,    //   +       +
     PID_VEL_Z,      //   +       n/a
     PID_POS_HEADING,//   n/a     +
+    PID_AUTO_SPEED, //   n/a     +
     PID_ITEM_COUNT
 } pidIndex_e;
 
@@ -103,6 +104,7 @@ typedef struct pidProfile_s {
 
     uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
     uint16_t dterm_lpf_hz;
+    uint16_t dterm_lpf2_hz;                 // Dterm second stage LPF (pre-differentiation, like Betaflight)
 
     uint8_t yaw_lpf_hz;
 
@@ -150,6 +152,7 @@ typedef struct pidProfile_s {
     float fixedWingLevelTrimGain;
 
     uint8_t fwAltControlResponseFactor;
+    bool fwAltControlUsePos;
 #ifdef USE_SMITH_PREDICTOR
     float smithPredictorStrength;
     float smithPredictorDelay;
@@ -186,7 +189,14 @@ const pidBank_t * pidBank(void);
 pidBank_t * pidBankMutable(void);
 
 extern int16_t axisPID[];
+#ifdef USE_AUTO_TRANSITION
+extern int16_t autoTransitionTargetAxisPID[];
+#endif
 extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_F[], axisPID_Setpoint[];
+#ifdef USE_AUTO_TRANSITION
+int16_t getAutoTransitionTargetStabilizedInput(flight_dynamics_index_t axis);
+int16_t getAutoTransitionTargetAxisPID(flight_dynamics_index_t axis);
+#endif
 
 void pidInit(void);
 bool pidInitFilters(void);
@@ -196,7 +206,7 @@ float getAxisIterm(uint8_t axis);
 float getTotalRateTarget(void);
 void pidResetTPAFilter(void);
 
-struct controlRateConfig_s;
+struct controlConfig_s;
 struct motorConfig_s;
 struct rxConfig_s;
 

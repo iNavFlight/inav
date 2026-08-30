@@ -29,7 +29,8 @@
 
 #define PWM_RANGE_MIN 1000
 #define PWM_RANGE_MAX 2000
-#define PWM_RANGE_MIDDLE (PWM_RANGE_MIN + ((PWM_RANGE_MAX - PWM_RANGE_MIN) / 2))
+#define PWM_RANGE_HALF ((PWM_RANGE_MAX - PWM_RANGE_MIN) / 2)
+#define PWM_RANGE_MIDDLE (PWM_RANGE_MIN + PWM_RANGE_HALF)
 
 #define PWM_PULSE_MIN   750       // minimum PWM pulse width which is considered valid
 #define PWM_PULSE_MAX   2250      // maximum PWM pulse width which is considered valid
@@ -126,7 +127,7 @@ typedef struct rxConfig_s {
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
     uint8_t autoSmooth;                     // auto smooth rx input (0 = off, 1 = on)
     uint8_t autoSmoothFactor;               // auto smooth rx input factor (1 = no smoothing, 100 = lots of smoothing)
-    uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
+    uint32_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
     uint8_t rssi_source;
 #ifdef USE_SERIALRX_SRXL2
     uint8_t srxl2_unit_id;
@@ -181,12 +182,16 @@ typedef enum {
 } rssiSource_e;
 
 typedef struct rxLinkStatistics_s {
-    int16_t uplinkRSSI;     // RSSI value in dBm
-    uint8_t uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
-    int8_t uplinkSNR;       // The SNR of the uplink in dB
-    uint8_t rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
-    uint16_t uplinkTXPower; // power in mW
-    uint8_t activeAntenna;
+    int16_t     uplinkRSSI;         // RSSI value in dBm
+    uint8_t     uplinkLQ;           // A protocol specific measure of the link quality in [0..100]
+    uint8_t     downlinkLQ;         // A protocol specific measure of the link quality in [0..100]
+    int8_t      uplinkSNR;          // The SNR of the uplink in dB
+    uint8_t     rfMode;             // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
+    uint16_t    uplinkTXPower;      // power in mW
+    uint16_t    downlinkTXPower;    // power in mW
+    uint8_t     activeAntenna;
+    char        band[4];
+    char        mode[6];
 } rxLinkStatistics_t;
 
 typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
@@ -212,6 +217,7 @@ bool isRxPulseValid(uint16_t pulseDuration);
 uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap);
 void parseRcChannels(const char *input);
 
+void setRSSIFromMSP_RC(uint8_t newMspRssi);
 void setRSSIFromMSP(uint8_t newMspRssi);
 void updateRSSI(timeUs_t currentTimeUs);
 // Returns RSSI in [0, RSSI_MAX_VALUE] range.
@@ -227,3 +233,7 @@ void resumeRxSignal(void);
 // filtering and some extra processing like value holding
 // during failsafe.
 int16_t rxGetChannelValue(unsigned channelNumber);
+
+// MSP aux channel overlay (CH13-CH32). Sets a channel value that persists
+// across RX update cycles. value=0 ignores that channel and skips it.
+void rxMspAuxOverlaySet(uint8_t channelIndex, uint16_t value);

@@ -42,12 +42,14 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
+#include "flight/mixer_transition_logic.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -75,6 +77,7 @@ static EXTENDED_FASTRAM int throttleDeadbandHigh = 0;
 static EXTENDED_FASTRAM int throttleRangeMin = 0;
 static EXTENDED_FASTRAM int throttleRangeMax = 0;
 static EXTENDED_FASTRAM int8_t motorYawMultiplier = 1;
+static EXTENDED_FASTRAM float throttleRateLimit = 0.0f;
 
 int motorZeroCommand = 0;
 
@@ -235,6 +238,10 @@ void mixerInit(void)
     } else {
         motorYawMultiplier = 1;
     }
+
+    if (currentBatteryProfile->motor.throttleRateLimiter) {
+        throttleRateLimit = (PWM_RANGE_MAX - PWM_RANGE_MIN) / MS2S(currentBatteryProfile->motor.throttleRateLimiter);
+    }
 }
 
 void mixerResetDisarmedMotors(void)
@@ -265,7 +272,145 @@ void mixerResetDisarmedMotors(void)
     }
 }
 
-#ifdef USE_DSHOT
+#ifdef USE_AUTO_TRANSITION
+typedef struct autoTransitionMotorMixState_s {
+    bool active;
+    bool currentProfileIsMultirotor;
+    bool targetProfileIsMultirotor;
+    const motorMixer_t *targetMotorMixer;
+    const mixerConfig_t *targetMixerConfig;
+    int16_t targetInput[3];
+} autoTransitionMotorMixState_t;
+
+static uint16_t targetLiftMotorPreviewCaptureMask;
+static int targetLiftMotorPreviewTargetProfileIndex = -1;
+static mixerProfileATDirection_e targetLiftMotorPreviewDirection = MIXERAT_DIRECTION_NONE;
+static int16_t targetLiftMotorPreviewCapturedOutput[MAX_SUPPORTED_MOTORS];
+
+static void resetTargetLiftMotorPreviewCapture(void)
+{
+    targetLiftMotorPreviewCaptureMask = 0;
+    targetLiftMotorPreviewTargetProfileIndex = -1;
+    targetLiftMotorPreviewDirection = MIXERAT_DIRECTION_NONE;
+    memset(targetLiftMotorPreviewCapturedOutput, 0, sizeof(targetLiftMotorPreviewCapturedOutput));
+}
+
+// Keep transition-only session bookkeeping out of mixTable's F7 ITCM hot path.
+static void NOINLINE updateTargetLiftMotorPreviewSession(const autoTransitionMotorMixState_t *state)
+{
+    if (!state->active ||
+        mixerProfileAT.phase != MIXERAT_PHASE_TRANSITIONING ||
+        mixerProfileAT.direction != MIXERAT_DIRECTION_TO_MC ||
+        !currentMixerConfig.vtolTransitionDynamicMixer ||
+        currentMixerConfig.vtolTransitionScaleRampTimeMs == 0 ||
+        state->currentProfileIsMultirotor ||
+        !state->targetProfileIsMultirotor ||
+        nextMixerProfileIndex < 0 ||
+        nextMixerProfileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        resetTargetLiftMotorPreviewCapture();
+        return;
+    }
+
+    if (targetLiftMotorPreviewTargetProfileIndex != nextMixerProfileIndex ||
+        targetLiftMotorPreviewDirection != mixerProfileAT.direction) {
+        targetLiftMotorPreviewCaptureMask = 0;
+        targetLiftMotorPreviewTargetProfileIndex = nextMixerProfileIndex;
+        targetLiftMotorPreviewDirection = mixerProfileAT.direction;
+        memset(targetLiftMotorPreviewCapturedOutput, 0, sizeof(targetLiftMotorPreviewCapturedOutput));
+    }
+}
+
+static int16_t NOINLINE getTargetLiftMotorPreviewOutput(uint8_t motorIndex, int16_t currentOutput, int16_t targetOutput)
+{
+    const uint16_t motorMask = 1U << motorIndex;
+    if (!(targetLiftMotorPreviewCaptureMask & motorMask)) {
+        targetLiftMotorPreviewCapturedOutput[motorIndex] = currentOutput;
+        targetLiftMotorPreviewCaptureMask |= motorMask;
+    }
+
+    return mixerTransitionBlendCapturedMotorOutput(
+        targetLiftMotorPreviewCapturedOutput[motorIndex],
+        targetOutput,
+        mixerProfileAT.motorRampProgress);
+}
+
+static void NOINLINE prepareAutoTransitionMotorMixState(autoTransitionMotorMixState_t *state)
+{
+    if (!(isMixerTransitionMixing &&
+          mixerATIsActive() &&
+          mixerProfileAT.phase == MIXERAT_PHASE_TRANSITIONING &&
+          mixerProfileAT.direction != MIXERAT_DIRECTION_NONE &&
+          nextMixerProfileIndex >= 0 &&
+          nextMixerProfileIndex < MAX_MIXER_PROFILE_COUNT)) {
+        return;
+    }
+
+    state->active = true;
+    state->currentProfileIsMultirotor = isMultirotorTypePlatform(currentMixerConfig.platformType);
+    state->targetMotorMixer = mixerMotorMixersByIndex(nextMixerProfileIndex);
+    state->targetMixerConfig = mixerConfigByIndex(nextMixerProfileIndex);
+    state->targetProfileIsMultirotor = isMultirotorTypePlatform(state->targetMixerConfig->platformType);
+
+    const float targetAuthorityScale = state->targetProfileIsMultirotor ?
+        mixerATGetMcAuthorityScale() :
+        mixerATGetFwAuthorityScale();
+
+    if (!state->targetProfileIsMultirotor && FLIGHT_MODE(MANUAL_MODE)) {
+        state->targetInput[ROLL] = rcCommand[ROLL];
+        state->targetInput[PITCH] = rcCommand[PITCH];
+        state->targetInput[YAW] = rcCommand[YAW];
+    } else {
+        state->targetInput[ROLL] = getAutoTransitionTargetAxisPID(FD_ROLL);
+        state->targetInput[PITCH] = getAutoTransitionTargetAxisPID(FD_PITCH);
+        state->targetInput[YAW] = getAutoTransitionTargetAxisPID(FD_YAW);
+    }
+
+    state->targetInput[ROLL] = state->targetInput[ROLL] * (state->targetMixerConfig->transition_PID_mmix_multiplier_roll / 1000.0f) * targetAuthorityScale;
+    state->targetInput[PITCH] = state->targetInput[PITCH] * (state->targetMixerConfig->transition_PID_mmix_multiplier_pitch / 1000.0f) * targetAuthorityScale;
+    state->targetInput[YAW] = state->targetInput[YAW] * (state->targetMixerConfig->transition_PID_mmix_multiplier_yaw / 1000.0f) * targetAuthorityScale;
+}
+
+// This path is only used while a transition is active. Keep it out of the
+// always-running mixer body so constrained F7 targets retain ITCM headroom.
+static int16_t NOINLINE getAutoTransitionRpyMix(
+    uint8_t motorIndex,
+    const int16_t input[3],
+    const autoTransitionMotorMixState_t *state)
+{
+    const motorMixer_t *targetMixer = &state->targetMotorMixer[motorIndex];
+    const bool currentMotorActive = currentMixer[motorIndex].throttle > 0.0f;
+    const bool targetMotorActive = targetMixer->throttle > 0.0f;
+    const float activeRpyMix = currentMotorActive ?
+        (input[PITCH] * currentMixer[motorIndex].pitch +
+        input[ROLL] * currentMixer[motorIndex].roll +
+        -motorYawMultiplier * input[YAW] * currentMixer[motorIndex].yaw) :
+        0;
+    const float targetRpyMix = targetMotorActive ?
+        (state->targetInput[PITCH] * targetMixer->pitch +
+        state->targetInput[ROLL] * targetMixer->roll +
+        -motorYawMultiplier * state->targetInput[YAW] * targetMixer->yaw) :
+        0;
+    float sharedRpyNormalizer = 1.0f;
+
+    if (currentMotorActive && targetMotorActive) {
+        const float activeAuthorityScale = state->currentProfileIsMultirotor ?
+            mixerATGetMcAuthorityScale() :
+            mixerATGetFwAuthorityScale();
+        const float targetAuthorityScale = state->targetProfileIsMultirotor ?
+            mixerATGetMcAuthorityScale() :
+            mixerATGetFwAuthorityScale();
+        const float authorityScaleSum = activeAuthorityScale + targetAuthorityScale;
+
+        if (authorityScaleSum > 1.0f) {
+            sharedRpyNormalizer = 1.0f / authorityScaleSum;
+        }
+    }
+
+    return (activeRpyMix + targetRpyMix) * sharedRpyNormalizer * mixerScale;
+}
+#endif
+
+#if !defined(SITL_BUILD)
 static uint16_t handleOutputScaling(
     int16_t input,          // Input value from the mixer
     int16_t stopThreshold,  // Threshold value to check if motor should be rotating or not
@@ -277,12 +422,8 @@ static uint16_t handleOutputScaling(
     bool moveForward        // If motor should be rotating FORWARD or BACKWARD
 )
 {
-    int value;
-    if (moveForward && input < stopThreshold) {
-        //Send motor stop command
-        value = onStopValue;
-    }
-    else if (!moveForward && input > stopThreshold) {
+    int16_t value;
+    if ((moveForward && input < stopThreshold) || (!moveForward && input > stopThreshold)) {
         //Send motor stop command
         value = onStopValue;
     }
@@ -291,8 +432,11 @@ static uint16_t handleOutputScaling(
         value = scaleRangef(input, inputScaleMin, inputScaleMax, outputScaleMin, outputScaleMax);
         value = constrain(value, outputScaleMin, outputScaleMax);
     }
+
     return value;
 }
+#endif
+#ifdef USE_DSHOT
 static void applyTurtleModeToMotors(void) {
 
     if (ARMING_FLAG(ARMED)) {
@@ -373,11 +517,9 @@ void FAST_CODE writeMotors(void)
 #if !defined(SITL_BUILD)
     for (int i = 0; i < motorCount; i++) {
         uint16_t motorValue;
-
 #ifdef USE_DSHOT
-        // If we use DSHOT we need to convert motorValue to DSHOT ranges
         if (isMotorProtocolDigital()) {
-
+            // If we use DSHOT we need to convert motorValue to DSHOT ranges
             if (feature(FEATURE_REVERSIBLE_MOTORS)) {
                 if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
                     motorValue = handleOutputScaling(
@@ -416,7 +558,9 @@ void FAST_CODE writeMotors(void)
                 );
             }
         }
-        else {
+        else
+#endif
+        {
             if (feature(FEATURE_REVERSIBLE_MOTORS)) {
                 if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
                     motorValue = handleOutputScaling(
@@ -444,12 +588,7 @@ void FAST_CODE writeMotors(void)
             } else {
                 motorValue = motor[i];
             }
-
         }
-#else
-        // We don't define USE_DSHOT
-        motorValue = motor[i];
-#endif
 
         pwmWriteMotor(i, motorValue);
     }
@@ -493,8 +632,9 @@ static int getReversibleMotorsThrottleDeadband(void)
     return ifMotorstopFeatureEnabled() ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
-void FAST_CODE mixTable(void)
+void FAST_CODE mixTable(float dT)
 {
+    static float lastMixerThrottleCommand = 1000.0f;
 #ifdef USE_DSHOT
     if (FLIGHT_MODE(TURTLE_MODE)) {
         applyTurtleModeToMotors();
@@ -512,6 +652,7 @@ void FAST_CODE mixTable(void)
             motor[i] = isDisarmed ? motor_disarmed[i] : motorValueWhenStopped;
         }
         mixerThrottleCommand = motor[0];
+        lastMixerThrottleCommand = mixerThrottleCommand;
         return;
     }
 
@@ -527,7 +668,30 @@ void FAST_CODE mixTable(void)
         input[ROLL] = axisPID[ROLL];
         input[PITCH] = axisPID[PITCH];
         input[YAW] = axisPID[YAW];
+        if (isMixerTransitionMixing) {
+#ifdef USE_AUTO_TRANSITION
+            const float activeAuthorityScale = isMultirotorTypePlatform(currentMixerConfig.platformType) ?
+                mixerATGetMcAuthorityScale() :
+                mixerATGetFwAuthorityScale();
+            input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f) * activeAuthorityScale;
+            input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f) * activeAuthorityScale;
+            input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f) * activeAuthorityScale;
+#else
+            input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f);
+            input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f);
+            input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f);
+#endif
+        }
     }
+
+#ifdef USE_AUTO_TRANSITION
+    autoTransitionMotorMixState_t autoTransition = { 0 };
+
+    if (isMixerTransitionMixing) {
+        prepareAutoTransitionMotorMixState(&autoTransition);
+    }
+    updateTargetLiftMotorPreviewSession(&autoTransition);
+#endif
 
     // Initial mixer concept by bdoiron74 reused and optimized for Air Mode
     int16_t rpyMix[MAX_SUPPORTED_MOTORS];
@@ -536,10 +700,21 @@ void FAST_CODE mixTable(void)
 
     // motors for non-servo mixes
     for (int i = 0; i < motorCount; i++) {
+#ifdef USE_AUTO_TRANSITION
+        const bool currentMotorActive = currentMixer[i].throttle > 0.0f;
+        rpyMix[i] = autoTransition.active ?
+            getAutoTransitionRpyMix(i, input, &autoTransition) :
+            (currentMotorActive ?
+                (input[PITCH] * currentMixer[i].pitch +
+                input[ROLL] * currentMixer[i].roll +
+                -motorYawMultiplier * input[YAW] * currentMixer[i].yaw) * mixerScale :
+                0);
+#else
         rpyMix[i] =
             (input[PITCH] * currentMixer[i].pitch +
             input[ROLL] * currentMixer[i].roll +
             -motorYawMultiplier * input[YAW] * currentMixer[i].yaw) * mixerScale;
+#endif
 
         if (rpyMix[i] > rpyMixMax) rpyMixMax = rpyMix[i];
         if (rpyMix[i] < rpyMixMin) rpyMixMin = rpyMix[i];
@@ -558,7 +733,6 @@ void FAST_CODE mixTable(void)
     } else
 #endif
     if (feature(FEATURE_REVERSIBLE_MOTORS)) {
-
         if (rcCommand[THROTTLE] >= (throttleDeadbandHigh) || STATE(SET_REVERSIBLE_MOTORS_FORWARD)) {
             /*
              * Throttle is above deadband, FORWARD direction
@@ -576,12 +750,11 @@ void FAST_CODE mixTable(void)
             throttleRangeMin = motorConfig()->mincommand;
         }
 
-
         motorValueWhenStopped = getReversibleMotorsThrottleDeadband();
         mixerThrottleCommand = constrain(rcCommand[THROTTLE], throttleRangeMin, throttleRangeMax);
 
 #ifdef USE_DSHOT
-        if(isMotorProtocolDigital() && feature(FEATURE_REVERSIBLE_MOTORS) && reversibleMotorsThrottleState == MOTOR_DIRECTION_BACKWARD) {
+        if(isMotorProtocolDigital() && reversibleMotorsThrottleState == MOTOR_DIRECTION_BACKWARD) {
             /*
              * We need to start the throttle output from stick input to start in the middle of the stick at the low and.
              * Without this, it's starting at the high side.
@@ -611,6 +784,26 @@ void FAST_CODE mixTable(void)
     throttleMax = throttleRangeMax;
     throttleRange = throttleMax - throttleMin;
 
+    // FW throttle rate limiter
+    if (STATE(AIRPLANE) && throttleRateLimit) {
+        const float deltaThrottle = mixerThrottleCommand - lastMixerThrottleCommand;
+        const float throttleRate = deltaThrottle / dT;
+        bool limitOutput = false;
+
+        if (throttleRateLimit < 0.0f) {
+            limitOutput = fabsf(throttleRate) > -throttleRateLimit;
+        } else if (throttleRate > throttleRateLimit) {
+            limitOutput = true;
+        }
+
+        if (limitOutput) {
+            lastMixerThrottleCommand  += SIGN(throttleRate) * fabsf(throttleRateLimit) * dT;
+            mixerThrottleCommand = lastMixerThrottleCommand;
+        } else {
+            lastMixerThrottleCommand = mixerThrottleCommand;
+        }
+    }
+
     #define THROTTLE_CLIPPING_FACTOR    0.33f
     motorMixRange = (float)rpyMixRange / (float)throttleRange;
     if (motorMixRange > 1.0f) {
@@ -628,24 +821,101 @@ void FAST_CODE mixTable(void)
 
     // Now add in the desired throttle, but keep in a range that doesn't clip adjusted
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
+#ifdef USE_AUTO_TRANSITION
+    const float transitionPusherScale = isMixerTransitionMixing ? mixerATGetPusherScale() : 1.0f;
+#endif
     for (int i = 0; i < motorCount; i++) {
-        motor[i] = rpyMix[i] + constrain(mixerThrottleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
+        float motorThrottle = mixerThrottleCommand * currentMixer[i].throttle;
+#ifdef USE_AUTO_TRANSITION
+        const motorMixer_t *targetMixer = autoTransition.active ? &autoTransition.targetMotorMixer[i] : NULL;
+        const bool currentMotorActive = currentMixer[i].throttle > 0.0f;
+        const bool targetMotorActive = targetMixer && targetMixer->throttle > 0.0f;
+        const bool sharedMotor = currentMotorActive && targetMotorActive;
+        const bool currentMotorPlaceholder = currentMixer[i].throttle <= 0.0f && currentMixer[i].throttle > -1.05f;
+
+        if (autoTransition.active && currentMotorActive) {
+            if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW && autoTransition.currentProfileIsMultirotor) {
+                if (sharedMotor && !autoTransition.targetProfileIsMultirotor) {
+                    const float propulsionBlend = transitionPusherScale;
+                    const float blendedThrottle = currentMixer[i].throttle * (1.0f - propulsionBlend) +
+                        targetMixer->throttle * propulsionBlend;
+                    motorThrottle = mixerThrottleCommand * blendedThrottle;
+                } else {
+                    motorThrottle *= mixerATGetLiftScale();
+                }
+            } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC && !autoTransition.currentProfileIsMultirotor) {
+                if (sharedMotor && autoTransition.targetProfileIsMultirotor) {
+                    const float mcBlend = 1.0f - transitionPusherScale;
+                    const float blendedThrottle = currentMixer[i].throttle * transitionPusherScale +
+                        targetMixer->throttle * mcBlend;
+                    motorThrottle = mixerThrottleCommand * blendedThrottle;
+                } else {
+                    motorThrottle *= transitionPusherScale;
+                }
+            }
+        }
+#endif
+
+        motor[i] = rpyMix[i] + constrain(motorThrottle, throttleMin, throttleMax);
 
         if (failsafeIsActive()) {
             motor[i] = constrain(motor[i], motorConfig()->mincommand, getMaxThrottle());
         } else {
             motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
         }
-        
+
         //stop motors
         if (currentMixer[i].throttle <= 0.0f) {
             motor[i] = motorZeroCommand;
         }
+#ifdef USE_AUTO_TRANSITION
+        if (autoTransition.active &&
+            mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW &&
+            autoTransition.currentProfileIsMultirotor &&
+            currentMotorPlaceholder &&
+            targetMotorActive &&
+            !autoTransition.targetProfileIsMultirotor) {
+            // Smooth auto-transition pusher preview comes from the target FW
+            // mixer rule. A zero current rule reserves the physical motor index.
+            const float targetMotorThrottle = mixerThrottleCommand * targetMixer->throttle * transitionPusherScale;
+            motor[i] = constrain(rpyMix[i] + constrain(targetMotorThrottle, throttleMin, throttleMax), throttleRangeMin, throttleRangeMax);
+        } else if (autoTransition.active &&
+            mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC &&
+            !autoTransition.currentProfileIsMultirotor &&
+            currentMotorPlaceholder &&
+            targetMotorActive &&
+            autoTransition.targetProfileIsMultirotor) {
+            // Target MC lift preview uses the target MC mixer rule and target
+            // MC PID preview. This avoids feeding active FW/PIFF PID into lift
+            // motors while still allowing MC control to fade in before switch.
+            const float targetMotorThrottle = mixerThrottleCommand * targetMixer->throttle * mixerATGetLiftScale();
+            const int16_t targetMotorOutput = constrain(rpyMix[i] + constrain(targetMotorThrottle, throttleMin, throttleMax), throttleRangeMin, throttleRangeMax);
+            motor[i] = getTargetLiftMotorPreviewOutput(i, motor[i], targetMotorOutput);
+        }
+#endif
         //spin stopped motors only in mixer transition mode
-        if (isMixerTransitionMixing && currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f && (!feature(FEATURE_REVERSIBLE_MOTORS))) {
+        if (isMixerTransitionMixing &&
+#ifdef USE_AUTO_TRANSITION
+            mixerProfileAT.phase != MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE &&
+#endif
+            currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f &&
+            !feature(FEATURE_REVERSIBLE_MOTORS)) {
+#ifdef USE_AUTO_TRANSITION
+            const float pusherTarget = -currentMixer[i].throttle * 1000.0f;
+            const float pusherIdle = throttleRangeMin;
+            motor[i] = pusherIdle + (pusherTarget - pusherIdle) * transitionPusherScale;
+#else
             motor[i] = -currentMixer[i].throttle * 1000;
+#endif
             motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
         }
+#ifdef USE_AUTO_TRANSITION
+        int16_t postSwitchFadeOutput = 0;
+        if (mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE &&
+            mixerATGetPostSwitchFadeMotorOutput(i, motorZeroCommand, motor[i], &postSwitchFadeOutput)) {
+            motor[i] = constrain(postSwitchFadeOutput, motorZeroCommand, getMaxThrottle());
+        }
+#endif
     }
 }
 
@@ -680,7 +950,7 @@ motorStatus_e getMotorStatus(void)
 
     const bool fixedWingOrAirmodeNotActive = STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE);
 
-    if (throttleStickIsLow() && fixedWingOrAirmodeNotActive) {
+    if (throttleStickIsLow() && fixedWingOrAirmodeNotActive && !isFixedwingAutoSpeedActive()) {
         if ((navConfig()->general.flags.nav_overrides_motor_stop == NOMS_OFF_ALWAYS) && failsafeIsActive()) {
             // If we are in failsafe and user was holding stick low before it was triggered and nav_overrides_motor_stop is set to OFF_ALWAYS
             // and either on a plane or on a quad with inactive airmode - stop motor
@@ -692,7 +962,7 @@ motorStatus_e getMotorStatus(void)
 
             switch (navConfig()->general.flags.nav_overrides_motor_stop) {
                 case NOMS_ALL_NAV:
-                    return navigationInAutomaticThrottleMode() ? MOTOR_RUNNING : MOTOR_STOPPED_USER;
+                    return navigationRequiresAutoThrottleMode() ? MOTOR_RUNNING : MOTOR_STOPPED_USER;
 
                 case NOMS_AUTO_ONLY:
                     return navigationIsFlyingAutonomousMode() ? MOTOR_RUNNING : MOTOR_STOPPED_USER;
@@ -728,11 +998,16 @@ bool areMotorsRunning(void)
     return false;
 }
 
+bool areMotorsStopped(void)
+{
+    return motor[0] == motorZeroCommand;
+}
+
 uint16_t getMaxThrottle(void) {
 
     static uint16_t throttle = 0;
 
-    if (throttle == 0) { 
+    if (throttle == 0) {
         if (STATE(ROVER) || STATE(BOAT)) {
             throttle = MAX_THROTTLE_ROVER;
         } else {

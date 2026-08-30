@@ -1,0 +1,2 @@
+target_at32f43x_xGT7(ORBITF435)
+target_at32f43x_xGT7(ORBITF435_SD)

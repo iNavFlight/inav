@@ -39,7 +39,7 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
@@ -535,6 +535,7 @@ void failsafeUpdateState(void)
                             abortForcedRTH();
                             failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_AUTO_LANDING);
                             failsafeActivate(FAILSAFE_LANDING);
+                            activateForcedEmergLanding();
                             reprocessState = true;
                             break;
                     }

@@ -116,24 +116,141 @@ void resetFwAutolandApproach(int8_t idx);
 
 #endif
 
+#if defined(USE_GEOZONE)
+
+#ifndef USE_GPS
+    #error "Geozone needs GPS support"
+#endif
+
+typedef enum {
+    GEOZONE_MESSAGE_STATE_NONE,
+    GEOZONE_MESSAGE_STATE_NFZ,
+    GEOZONE_MESSAGE_STATE_LEAVING_FZ,
+    GEOZONE_MESSAGE_STATE_OUTSIDE_FZ,
+    GEOZONE_MESSAGE_STATE_ENTERING_NFZ,
+    GEOZONE_MESSAGE_STATE_AVOIDING_FB,
+    GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE,
+    GEOZONE_MESSAGE_STATE_FLYOUT_NFZ,
+    GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH,
+    GEOZONE_MESSAGE_STATE_POS_HOLD
+} geozoneMessageState_e;
+
+enum fenceAction_e {
+    GEOFENCE_ACTION_NONE,
+    GEOFENCE_ACTION_AVOID,
+    GEOFENCE_ACTION_POS_HOLD,
+    GEOFENCE_ACTION_RTH,
+};
+
+enum noWayHomeAction {
+    NO_WAY_HOME_ACTION_RTH,
+    NO_WAY_HOME_ACTION_EMRG_LAND,
+};
+
+#define GEOZONE_SHAPE_CIRCULAR 0
+#define GEOZONE_SHAPE_POLYGON  1
+
+#define GEOZONE_TYPE_EXCLUSIVE 0
+#define GEOZONE_TYPE_INCLUSIVE 1
+
+typedef struct geoZoneConfig_s
+{
+    uint8_t shape;
+    uint8_t type;
+    int32_t minAltitude;
+    int32_t maxAltitude;
+    bool isSealevelRef;
+    uint8_t fenceAction;
+    uint8_t vertexCount;
+} geoZoneConfig_t;
+
+typedef struct geozone_config_s
+{
+    uint32_t fenceDetectionDistance;
+    uint16_t avoidAltitudeRange;
+    uint16_t safeAltitudeDistance;
+    bool nearestSafeHomeAsInclusivZone;
+    uint8_t safeHomeFenceAction;
+    uint32_t copterFenceStopDistance;
+    uint8_t noWayHomeAction;
+} geozone_config_t;
+
+typedef struct vertexConfig_s
+{
+    int8_t zoneId;
+    uint8_t idx;
+    int32_t lat;
+    int32_t lon;
+} vertexConfig_t;
+
+PG_DECLARE(geozone_config_t, geoZoneConfig);
+PG_DECLARE_ARRAY(geoZoneConfig_t, MAX_GEOZONES_IN_CONFIG, geoZonesConfig);
+PG_DECLARE_ARRAY(vertexConfig_t, MAX_VERTICES_IN_CONFIG, geoZoneVertices);
+
+typedef struct geozone_s {
+    bool insideFz;
+    bool insideNfz;
+    uint32_t distanceToZoneBorder3d;
+    int32_t vertDistanceToZoneBorder;
+    geozoneMessageState_e messageState;
+    int32_t directionToNearestZone;
+    int32_t distanceHorToNearestZone;
+    int32_t distanceVertToNearestZone;
+    int32_t zoneInfo;
+    int32_t currentzoneMaxAltitude;
+    int32_t currentzoneMinAltitude;
+    bool nearestHorZoneHasAction;
+    bool sticksLocked;
+    int8_t loiterDir;
+    bool avoidInRTHInProgress;
+    int32_t maxHomeAltitude;
+    bool homeHasMaxAltitue;
+} geozone_t;
+
+extern geozone_t geozone;
+
+bool geozoneSetVertex(uint8_t zoneId, uint8_t vertexId, int32_t lat, int32_t lon);
+int8_t geozoneGetVertexIdx(uint8_t zoneId, uint8_t vertexId);
+bool isGeozoneActive(void);
+uint8_t geozoneGetUsedVerticesCount(void);
+void geozoneReset(int8_t idx);
+void geozoneResetVertices(int8_t zoneId, int16_t idx);
+void geozoneUpdate(timeUs_t curentTimeUs);
+bool geozoneIsBlockingArming(void);
+void geozoneAdvanceRthAvoidWaypoint(void);
+int8_t geozoneCheckForNFZAtCourse(bool isRTH);
+bool geoZoneIsLastRthWaypoint(void);
+fpVector3_t *geozoneGetCurrentRthAvoidWaypoint(void);
+void geozoneSetupRTH(void);
+void geozoneResetRTH(void);
+void geozoneUpdateMaxHomeAltitude(void);
+uint32_t geozoneGetDetectionDistance(void);
+
+void activateSendTo(void);
+void abortSendTo(void);
+void activateForcedPosHold(void);
+void abortForcedPosHold(void);
+
+#endif
+
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
 #endif
 
 #define NAV_ACCEL_CUTOFF_FREQUENCY_HZ 2       // low-pass filter on XY-acceleration target
 
-enum {
+typedef enum {
     NAV_GPS_ATTI    = 0,                    // Pitch/roll stick controls attitude (pitch/roll lean angles)
     NAV_GPS_CRUISE  = 1                     // Pitch/roll stick controls velocity (forward/right speed)
-};
+} nav_control_type_e;
 
-enum {
+typedef enum {
     NAV_LOITER_RIGHT = 0,                    // Loitering direction right
     NAV_LOITER_LEFT  = 1,                    // Loitering direction left
     NAV_LOITER_YAW   = 2
-};
+} nav_loiter_type_e;
 
-enum {
+typedef enum {
     NAV_RTH_NO_ALT                       = 0, // Maintain current altitude
     NAV_RTH_EXTRA_ALT                    = 1, // Maintain current altitude + predefined safety margin
     NAV_RTH_CONST_ALT                    = 2, // Climb/descend to predefined altitude
@@ -141,18 +258,18 @@ enum {
     NAV_RTH_AT_LEAST_ALT                 = 4, // Climb to predefined altitude if below it
     NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT  = 5, // Climb to predefined altitude if below it,
                                               // descend linearly to reach home at predefined altitude if above it
-};
+} nav_rth_alt_profile_e;
 
-enum {
+typedef enum {
     NAV_RTH_CLIMB_STAGE_AT_LEAST        = 0, // Will climb to the lesser of rth_climb_first_stage_altitude or rth_altitude, before turning
     NAV_RTH_CLIMB_STAGE_EXTRA           = 1, // Will climb the lesser of rth_climb_first_stage_altitude above the current altitude or to nav_rth_altitude, before turning
-};
+} nav_rth_climb_profile_e;
 
-enum {
+typedef enum {
     NAV_HEADING_CONTROL_NONE = 0,
     NAV_HEADING_CONTROL_AUTO,
     NAV_HEADING_CONTROL_MANUAL
-};
+} nav_heading_control_e;
 
 typedef enum {
     NAV_RESET_NEVER = 0,
@@ -211,6 +328,31 @@ typedef enum {
     WP_MISSION_SWITCH,
 } navMissionRestart_e;
 
+#ifdef USE_AUTO_TRANSITION
+typedef enum {
+    NAV_MISSION_USER_ACTION_OFF = 0,
+    NAV_MISSION_USER_ACTION_1,
+    NAV_MISSION_USER_ACTION_2,
+    NAV_MISSION_USER_ACTION_3,
+    NAV_MISSION_USER_ACTION_4,
+} navMissionUserAction_e;
+
+typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_POSH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_EMERGENCY_LANDING,
+} navVtolTransitionFailActionMcToFw_e;
+
+typedef enum {
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_IDLE = 0,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_LOITER,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_RTH,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_EMERGENCY_LANDING,
+    NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH,
+} navVtolTransitionFailActionFwToMc_e;
+#endif
+
 typedef enum {
     RTH_TRACKBACK_OFF,
     RTH_TRACKBACK_ON,
@@ -231,35 +373,37 @@ typedef enum {
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
-    uint8_t reset_altitude_type; // from nav_reset_type_e
-    uint8_t reset_home_type; // nav_reset_type_e
-    uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
+    uint8_t reset_altitude_type;            // from nav_reset_type_e
+    uint8_t reset_home_type;                // nav_reset_type_e
+    uint8_t gravity_calibration_tolerance;  // Tolerance of gravity calibration (cm/s/s)
     uint8_t allow_dead_reckoning;
 
     uint16_t max_surface_altitude;
 
-    float w_z_baro_p;   // Weight (cutoff frequency) for barometer altitude measurements
+    float w_z_baro_p;           // Weight (cutoff frequency) for barometer altitude measurements
+    float w_z_baro_v;           // Weight (cutoff frequency) for barometer climb rate measurements
 
-    float w_z_surface_p;  // Weight (cutoff frequency) for surface altitude measurements
-    float w_z_surface_v;  // Weight (cutoff frequency) for surface velocity measurements
+    float w_z_surface_p;        // Weight (cutoff frequency) for surface altitude measurements
+    float w_z_surface_v;        // Weight (cutoff frequency) for surface velocity measurements
 
-    float w_z_gps_p;    // GPS altitude data is very noisy and should be used only on airplanes
-    float w_z_gps_v;    // Weight (cutoff frequency) for GPS climb rate measurements
+    float w_z_gps_p;            // GPS altitude data is very noisy and should be used only on airplanes
+    float w_z_gps_v;            // Weight (cutoff frequency) for GPS climb rate measurements
 
-    float w_xy_gps_p;   // Weight (cutoff frequency) for GPS position measurements
-    float w_xy_gps_v;   // Weight (cutoff frequency) for GPS velocity measurements
+    float w_xy_gps_p;           // Weight (cutoff frequency) for GPS position measurements
+    float w_xy_gps_v;           // Weight (cutoff frequency) for GPS velocity measurements
 
     float w_xy_flow_p;
     float w_xy_flow_v;
 
-    float w_z_res_v;    // When velocity sources lost slowly decrease estimated velocity with this weight
+    float w_z_res_v;            // When velocity sources lost slowly decrease estimated velocity with this weight
     float w_xy_res_v;
 
-    float w_acc_bias;   // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
+    float w_acc_bias;           // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
 
-    float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
-    float baro_epv;     // Baro position error
+    float max_eph_epv;          // Max estimated position error acceptable for estimation (cm)
+    float baro_epv;             // Baro position error
 
+    uint8_t default_alt_sensor; // default altitude sensor source
 #ifdef USE_GPS_FIX_ESTIMATION
     uint8_t allow_gps_fix_estimation;
 #endif
@@ -294,6 +438,13 @@ typedef struct navConfig_s {
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;                   // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;            // Waypoint mission sanity check distance
+#ifdef USE_AUTO_TRANSITION
+        uint8_t  vtol_mission_transition_user_action; // User action slot that requests mission VTOL transition
+        uint16_t vtol_mission_transition_min_altitude; // Minimum altitude [cm] to start mission VTOL transition (0 = disabled)
+        bool     vtol_transition_retry_on_airspeed_timeout; // Enables one-shot yaw-scan retry for failed airspeed-gated MC->FW auto-transition
+        uint8_t  vtol_transition_fail_action_mc_to_fw; // Action after final MC->FW transition failure
+        uint8_t  vtol_transition_fail_action_fw_to_mc; // Action after final FW->MC transition failure
+#endif
 #ifdef USE_MULTI_MISSION
         uint8_t  waypoint_multi_mission_index;      // Index of mission to be loaded in multi mission entry
 #endif
@@ -339,7 +490,6 @@ typedef struct navConfig_s {
         uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
         uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
 #endif
-
         uint8_t posDecelerationTime;            // Brake time parameter
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
         bool slowDownForTurning;                // Slow down during WP missions when changing heading on next waypoint
@@ -354,6 +504,10 @@ typedef struct navConfig_s {
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
+        uint16_t auto_speed_min_speed;       // Minimum allowed speed for auto speed mode (m/s)
+        uint16_t auto_speed_max_speed;       // Maximum allowed speed for auto speed mode (m/s)
+        uint8_t  auto_speed_channel;         // Input channel number for auto speed mode
+        uint8_t  auto_speed_thr_smoothing;   // Throttle smoothing filtering adjustment factor
         uint8_t  control_smoothness;         // The amount of smoothing to apply to controls for navigation
         uint16_t pitch_to_throttle_smooth;   // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
         uint8_t  pitch_to_throttle_thresh;   // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
@@ -479,6 +633,7 @@ typedef struct navigationPIDControllers_s {
     pidController_t fw_alt;
     pidController_t fw_nav;
     pidController_t fw_heading;
+    pidController_t fw_autoSpeed;
 } navigationPIDControllers_t;
 
 /* MultiWii-compatible params for telemetry */
@@ -528,6 +683,14 @@ typedef enum {
     MW_NAV_FLAG_ADJUSTING_POSITION  = 1 << 0,
     MW_NAV_FLAG_ADJUSTING_ALTITUDE  = 1 << 1,
 } navSystemStatus_Flags_e;
+
+#ifdef USE_AUTO_TRANSITION
+typedef enum {
+    NAV_VTOL_TRANSITION_OSD_NONE = 0,
+    NAV_VTOL_TRANSITION_OSD_RETRY_SCAN,
+    NAV_VTOL_TRANSITION_OSD_RETRY_ALIGN,
+} navVtolTransitionOsdState_e;
+#endif
 
 typedef struct {
     navSystemStatus_Mode_e  mode;
@@ -585,9 +748,16 @@ void getEstimatedPositionAndVelocity(navPositionAndVelocity_t * pos);
 /* Waypoint list access functions */
 int getWaypointCount(void);
 bool isWaypointListValid(void);
+int isGCSValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
+bool navGetMissionWaypointByRelativeIndex(int16_t relativeIndex, navWaypoint_t *wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
+void navigationSetLoiterRadiusOverride(uint32_t loiterRadiusCm);
+uint32_t navigationGetLoiterRadiusOverride(void);
+uint32_t navigationGetLoiterRadius(void);
 void resetWaypointList(void);
+bool navSetActiveWaypointIndex(uint8_t index);  // MSP2_INAV_SET_WP_INDEX: jump to WP during active mission
+bool navSetCruiseHeading(int32_t headingCd);    // MSP2_INAV_SET_CRUISE_HEADING: set cruise/course-hold heading (centidegrees)
 bool loadNonVolatileWaypointList(bool clearIfLoaded);
 bool saveNonVolatileWaypointList(void);
 #ifdef USE_MULTI_MISSION
@@ -609,7 +779,9 @@ typedef enum {
 
 typedef enum {
     NAV_WP_TAKEOFF_DATUM,
-    NAV_WP_MSL_DATUM
+    NAV_WP_MSL_DATUM,
+    NAV_WP_TERRAIN_DATUM,
+    NAV_WP_RELATIVE_DATUM
 } geoAltitudeDatumFlag_e;
 
 // geoSetOrigin stores the location provided in llh as a GPS origin in the
@@ -642,10 +814,19 @@ bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * waypoint
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);   // NOT USED
 uint32_t distanceToFirstWP(void);
 
+/* Commanded normal RTH mode */
+bool activateRTHMode(void);
+
+/* Commanded normal position hold mode */
+bool activatePositionHoldMode(void);
+
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);
 void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
+
+/* Commanded normal landing mode */
+bool activateForcedLanding(void);
 
 /* Failsafe-forced Emergency Landing mode */
 void activateForcedEmergLanding(void);
@@ -653,17 +834,23 @@ void abortForcedEmergLanding(void);
 emergLandState_e getStateOfForcedEmergLanding(void);
 
 /* Getter functions which return data about the state of the navigation system */
-bool navigationInAutomaticThrottleMode(void);
+bool navigationRequiresAutoThrottleMode(void);
 bool navigationIsControllingThrottle(void);
 bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
 bool navigationIsExecutingAnEmergencyLanding(void);
 bool navigationIsControllingAltitude(void);
+bool navigationSetAltitudeTargetWithDatum(geoAltitudeDatumFlag_e datumFlag, int32_t targetAltitudeCm);
+bool navigationConsumeWaypointReached(uint16_t *seq);
+bool navCanSetHome(void);
 /* Returns true if navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */
 bool navigationRTHAllowsLanding(void);
 bool isWaypointMissionRTHActive(void);
+#ifdef USE_AUTO_TRANSITION
+navVtolTransitionOsdState_e navigationVtolTransitionOsdState(void);
+#endif
 
 bool rthClimbStageActiveAndComplete(void);
 
@@ -695,6 +882,8 @@ bool rthAltControlStickOverrideCheck(uint8_t axis);
 int8_t navCheckActiveAngleHoldAxis(void);
 uint8_t getActiveWpNumber(void);
 uint16_t getFlownLoiterRadius(void);
+bool isFixedwingAutoSpeedActive(void);
+void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTimeUs);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles

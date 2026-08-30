@@ -54,12 +54,17 @@
 static serialPort_t * logPort = NULL;
 static mspPort_t * mspLogPort = NULL;
 
-PG_REGISTER(logConfig_t, logConfig, PG_LOG_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(logConfig_t, logConfig, PG_LOG_CONFIG, 0);
 
 PG_RESET_TEMPLATE(logConfig_t, logConfig,
     .level = SETTING_LOG_LEVEL_DEFAULT,
     .topics = SETTING_LOG_TOPICS_DEFAULT
 );
+
+#if defined(USE_BOOTLOG)
+char bootlog_buffer[USE_BOOTLOG];
+char *bootlog_head = bootlog_buffer;
+#endif
 
 void logInit(void)
 {
@@ -135,6 +140,18 @@ static void logPrint(const char *buf, size_t size)
     } else if (mspLogPort) {
         mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, size, mspLogPort, MSP_V2_NATIVE);
     }
+
+#ifdef USE_BOOTLOG
+    if ( (bootlog_head + size + 2) < (bootlog_buffer + USE_BOOTLOG) ) {
+        for (unsigned int ii = 0; ii < size; ii++) {
+		    *bootlog_head = buf[ii];
+			bootlog_head++;
+        }
+		bootlog_head[0] = '\r';
+		bootlog_head[1] = '\n';
+		bootlog_head =  bootlog_head + 2;
+	}
+#endif
 }
 
 static size_t logFormatPrefix(char *buf, const timeMs_t timeMs)
@@ -188,9 +205,13 @@ void _logBufferHex(logTopic_e topic, unsigned level, const void *buffer, size_t 
 {
     // Print lines of up to maxBytes bytes. We need 5 characters per byte
     // 0xAB[space|\n]
-    const size_t charsPerByte = 5;
-    const size_t maxBytes = 8;
-    char buf[LOG_PREFIX_FORMATTED_SIZE + charsPerByte * maxBytes + 1]; // +1 for the null terminator
+    // These must be true compile-time constants so the buffer size below is
+    // a real constant expression, not a VLA.
+    enum {
+        LOG_BUFFER_HEX_CHARS_PER_BYTE = 5,
+        LOG_BUFFER_HEX_MAX_BYTES = 8,
+    };
+    char buf[LOG_PREFIX_FORMATTED_SIZE + LOG_BUFFER_HEX_CHARS_PER_BYTE * LOG_BUFFER_HEX_MAX_BYTES + 1]; // +1 for the null terminator
     size_t bufPos = LOG_PREFIX_FORMATTED_SIZE;
     const uint8_t *inputPtr = buffer;
 
@@ -202,7 +223,7 @@ void _logBufferHex(logTopic_e topic, unsigned level, const void *buffer, size_t 
 
     for (size_t ii = 0; ii < size; ii++) {
         tfp_sprintf(buf + bufPos, "0x%02x ", inputPtr[ii]);
-        bufPos += charsPerByte;
+        bufPos += LOG_BUFFER_HEX_CHARS_PER_BYTE;
         if (bufPos == sizeof(buf)-1) {
             buf[bufPos-1] = '\n';
             buf[bufPos] = '\0';

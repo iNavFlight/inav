@@ -36,6 +36,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/gimbal_common.h"
 #include "drivers/headtracker_common.h"
+#include "drivers/dronecan/dronecan.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -67,6 +68,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/osd_joystick.h"
 #include "io/smartport_master.h"
+#include "io/crsf_sensor.h"
 #include "io/vtx.h"
 #include "io/vtx_msp.h"
 #include "io/osd_dji_hd.h"
@@ -95,6 +97,9 @@
 #include "telemetry/telemetry.h"
 #include "telemetry/sbus2.h"
 
+#include "terrain/terrain.h"
+#include "terrain/terrain_io.h"
+
 #include "config/feature.h"
 
 #if defined(SITL_BUILD)
@@ -120,9 +125,6 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 #ifdef USE_MSP_OSD
 	// Capture MSP Displayport messages to determine if VTX is connected
     mspOsdSerialProcess(mspFcProcessCommand);
-#ifdef USE_VTX_MSP
-    mspVtxSerialProcess(mspFcProcessCommand);
-#endif
 #endif
 
 }
@@ -170,7 +172,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     if (feature(FEATURE_GPS)) {
         if (gpsUpdate()) {
 #ifdef USE_WIND_ESTIMATOR
-            updateWindEstimator(currentTimeUs);
+            if (STATE(AIRPLANE)) updateWindEstimator(currentTimeUs);
 #endif
         }
     }
@@ -187,14 +189,6 @@ void taskUpdateCompass(timeUs_t currentTimeUs)
     if (sensors(SENSOR_MAG)) {
         compassUpdate(currentTimeUs);
     }
-}
-#endif
-
-#ifdef USE_ADSB
-void taskAdsb(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
-    adsbTtlClean(currentTimeUs);
 }
 #endif
 
@@ -298,6 +292,14 @@ void taskSmartportMaster(timeUs_t currentTimeUs)
 }
 #endif
 
+#if defined(USE_CRSF_SENSOR_INPUT)
+void taskCrsfSensor(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    crsfSensorProcess();
+}
+#endif
+
 #ifdef USE_LED_STRIP
 void taskLedStrip(timeUs_t currentTimeUs)
 {
@@ -339,6 +341,22 @@ void taskUpdateAux(timeUs_t currentTimeUs)
 #endif
 }
 
+#ifdef USE_GEOZONE
+void geozoneUpdateTask(timeUs_t currentTimeUs)
+{
+    if (feature(FEATURE_GEOZONE)) {
+        geozoneUpdate(currentTimeUs);
+    }
+}
+#endif
+
+#ifdef USE_DRONECAN
+void dronecanUpdateTask(timeUs_t currentTimeUs)
+{
+    dronecanUpdate(currentTimeUs);
+}
+#endif
+
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -363,6 +381,10 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_RX, true);
 #ifdef USE_GPS
     setTaskEnabled(TASK_GPS, feature(FEATURE_GPS));
+#endif
+#ifdef USE_TERRAIN
+    setTaskEnabled(TASK_TERRAIN, terrainConfig()->terrainEnabled);
+    setTaskEnabled(TASK_TERRAIN_IO, terrainConfig()->terrainEnabled);
 #endif
 #ifdef USE_MAG
     setTaskEnabled(TASK_COMPASS, sensors(SENSOR_MAG));
@@ -409,12 +431,12 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));
 #endif
 #ifdef USE_VTX_CONTROL
-#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP) || defined(USE_VTX_MSP)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif
 #ifdef USE_RCDEVICE
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled() || osdJoystickEnabled());
 #else
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
@@ -428,6 +450,9 @@ void fcTasksInit(void)
 #endif
 #if defined(USE_SMARTPORT_MASTER)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
+#endif
+#if defined(USE_CRSF_SENSOR_INPUT)
+    setTaskEnabled(TASK_CRSF_SENSOR, true);
 #endif
 
 #ifdef USE_SERIAL_GIMBAL
@@ -444,8 +469,8 @@ void fcTasksInit(void)
 
 #ifdef USE_ADAPTIVE_FILTER
     setTaskEnabled(TASK_ADAPTIVE_FILTER, (
-        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE && 
-        gyroConfig()->adaptiveFilterMinHz > 0 && 
+        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE &&
+        gyroConfig()->adaptiveFilterMinHz > 0 &&
         gyroConfig()->adaptiveFilterMaxHz > 0
     ));
 #endif
@@ -453,6 +478,15 @@ void fcTasksInit(void)
 #if defined(SITL_BUILD)
     serialProxyStart();
 #endif
+
+#ifdef USE_GEOZONE
+    setTaskEnabled(TASK_GEOZONE, feature(FEATURE_GEOZONE));
+#endif
+
+#ifdef USE_DRONECAN
+    setTaskEnabled(TASK_DRONECAN, true);
+#endif
+
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -543,7 +577,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         [TASK_ADSB] = {
         .taskName = "ADSB",
         .taskFunc = taskAdsb,
-        .desiredPeriod = TASK_PERIOD_HZ(1),      // ADSB is updated at 1 Hz
+        .desiredPeriod = TASK_PERIOD_MS(500),      // ADSB is updated at 2 Hz, can be select 1 Hz as well
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
@@ -607,6 +641,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "SPORT MASTER",
         .taskFunc = taskSmartportMaster,
         .desiredPeriod = TASK_PERIOD_HZ(500),         // 500 Hz
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+
+#if defined(USE_CRSF_SENSOR_INPUT)
+    [TASK_CRSF_SENSOR] = {
+        .taskName = "CRSF SENSOR",
+        .taskFunc = taskCrsfSensor,
+        .desiredPeriod = TASK_PERIOD_HZ(100),         // 100 Hz
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
@@ -737,6 +780,39 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = taskSendSbus2Telemetry,
         .desiredPeriod = TASK_PERIOD_US(125), // 8kHz 2ms dead time + 650us window / sensor.
         .staticPriority = TASK_PRIORITY_LOW, // timing is critical. Ideally, should be a timer interrupt triggered by sbus packet
+    },
+#endif
+
+#ifdef USE_GEOZONE
+    [TASK_GEOZONE] = {
+        .taskName = "GEOZONE",
+        .taskFunc = geozoneUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(5),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_TERRAIN
+    [TASK_TERRAIN] = {
+        .taskName = "TERRAIN",
+        .taskFunc = terrainUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(TERRAIN_TASK_RATE_HZ),
+        .staticPriority = TASK_PRIORITY_LOW,
+    },
+    [TASK_TERRAIN_IO] = {
+            .taskName = "TERRAIN_IO",
+            .taskFunc = loadGridToCacheTask,
+            .desiredPeriod = TASK_PERIOD_HZ(TERRAIN_IO_TASK_RATE_HZ),
+            .staticPriority = TASK_PRIORITY_LOW,
+    },
+#endif
+
+#ifdef USE_DRONECAN
+    [TASK_DRONECAN] = {
+        .taskName = "DRONECAN",
+        .taskFunc = dronecanUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(500),   // 500 Hz.  1MBps @ 130 bits per frame is 7700 frames per second. 15 frames per task at 100% busload
+        .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
 

@@ -100,7 +100,14 @@
 #define BARO_I2C_BUS            BUS_I2C2
 
 #define USE_MAG
+
+#ifdef MICOAIR743_EXTMAG
+// External compass
 #define MAG_I2C_BUS             BUS_I2C1
+#else
+// Onboard compass
+#define MAG_I2C_BUS             BUS_I2C2
+#endif
 #define USE_MAG_ALL
 
 // *************** ENABLE OPTICAL FLOW & RANGEFINDER *****************************
@@ -131,6 +138,13 @@
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+// *************** CANBUS ****************************
+// CAN bus pins - sourced from ArduPilot board definition
+// Uncomment to enable DroneCAN support (requires custom build)
+// #define USE_DRONECAN
+// #define CAN1_RX                 PB8
+// #define CAN1_TX                 PB9
 
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff

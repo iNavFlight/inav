@@ -67,8 +67,12 @@
 #define USE_FAKE_BARO
 #define USE_FAKE_MAG
 #define USE_GPS_FAKE
+
 #define USE_RANGEFINDER_FAKE
 #define USE_RX_SIM
+#define USE_DRONECAN
+#define DRONECAN_SITL_INTERFACE "vcan0"
+
 #undef MAX_MIXER_PROFILE_COUNT
 #define MAX_MIXER_PROFILE_COUNT 2
 
@@ -78,8 +82,13 @@
 #define USE_HEADTRACKER
 #define USE_HEADTRACKER_SERIAL
 #define USE_HEADTRACKER_MSP
+#define USE_TELEMETRY_MAVLINK
+#define USE_SERIALRX_MAVLINK
 
 #undef USE_DASHBOARD
+#define USE_GEOZONE
+#define MAX_GEOZONES_IN_CONFIG 63
+#define MAX_VERTICES_IN_CONFIG 126
 
 #undef USE_GYRO_KALMAN // Strange behaviour under x86/x64 ?!?
 #undef USE_VCP
@@ -107,7 +116,7 @@
 #undef USE_SPI
 
 // Some dummys
-#define TARGET_FLASH_SIZE 2048
+#define MCU_FLASH_SIZE 2048
 
 #define LED_STRIP_TIMER 1
 #define SOFTSERIAL_1_TIMER 2

@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -58,6 +59,8 @@ bool cliMode = false;
 #include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
+#include "drivers/light_ws2811strip.h"
+#include "drivers/pinio.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/persistent.h"
 #include "drivers/sdcard/sdcard.h"
@@ -68,12 +71,10 @@ bool cliMode = false;
 #include "drivers/time.h"
 #include "drivers/usb_msc.h"
 #include "drivers/vtx_common.h"
-#include "drivers/light_ws2811strip.h"
-
 #include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -106,6 +107,9 @@ bool cliMode = false;
 #include "rx/srxl2.h"
 #include "rx/crsf.h"
 
+#include "msp/msp_serial.h"
+#include "msp/msp_protocol_v2_common.h"
+
 #include "scheduler/scheduler.h"
 
 #include "sensors/acceleration.h"
@@ -120,6 +124,10 @@ bool cliMode = false;
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
+#ifdef USE_DRONECAN
+#include "drivers/dronecan/dronecan.h"
+#include "drivers/dronecan/libcanard/canard_stm32_driver.h"
+#endif
 #ifdef USE_ESC_SENSOR
 #include "sensors/esc_sensor.h"
 #endif
@@ -129,6 +137,11 @@ bool cliMode = false;
 
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
+
+#ifdef USE_BOOTLOG
+extern char bootlog_buffer[USE_BOOTLOG];
+extern char *bootlog_head;
+#endif
 
 static serialPort_t *cliPort;
 
@@ -151,7 +164,7 @@ static uint8_t  commandBatchErrorCount = 0;
 
 // sync this with features_e
 static const char * const featureNames[] = {
-    "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
+    "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "GEOZONE",
     "", "SOFTSERIAL", "GPS", "RPM_FILTERS",
     "", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
@@ -165,6 +178,8 @@ static const char * outputModeNames[] = {
     "MOTORS",
     "SERVOS",
     "LED",
+    "PINIO",
+    "BEEPER",
     NULL
 };
 
@@ -214,7 +229,10 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "HEADTRACKER",
     "GPS",
     "LULU",
-    "SBUS2"
+    "SBUS2",
+    "OSD_REFRESH",
+    "VTOL_TRANSITION",
+    "VTOL_MC_PROTECT"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
@@ -222,7 +240,7 @@ static const char *debugModeNames[DEBUG_COUNT] = {
 // sync with gyroSensor_e
 static const char *const gyroNames[] = {
     "NONE",     "AUTO",   "MPU6000",  "MPU6500", "MPU9250", "BMI160",
-    "ICM20689", "BMI088", "ICM42605", "BMI270",  "LSM6DXX", "FAKE"};
+    "ICM20689", "BMI088", "ICM42605", "BMI270",  "LSM6DXX", "ICM45686", "ICM40609D", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -528,7 +546,7 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
 {
     char name[SETTING_MAX_NAME_LENGTH];
     const char *format = "set %s = ";
-    const char *defaultFormat = "#set %s = ";
+    const char *defaultFormat = "#default set %s = ";
     // During a dump, the PGs have been backed up to their "copy"
     // regions and the actual values have been reset to its
     // defaults. This means that settingGetValuePointer() will
@@ -542,10 +560,10 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
             // if the craftname has a leading space, then enclose the name in quotes
-            if (strcmp(name, "name") == 0 && ((const char *)valuePointer)[0] == ' ') {
-                cliPrintf("\"%s\"", (const char *)valuePointer);
+            if (strcmp(name, "name") == 0 && ((const char *)defaultValuePointer)[0] == ' ') {
+                cliPrintf("\"%s\"", (const char *)defaultValuePointer);
             } else {
-                printValuePointer(value, valuePointer, 0);
+                printValuePointer(value, defaultValuePointer, 0);
             }
             cliPrintLinefeed();
         }
@@ -1561,6 +1579,285 @@ static void cliSafeHomes(char *cmdline)
 }
 
 #endif
+
+#if defined(USE_GEOZONE)
+static void printGeozones(uint8_t dumpMask, const geoZoneConfig_t *geoZone, const geoZoneConfig_t *defaultGeoZone)
+{
+    const char *format = "geozone %u %u %u %d %d %u %u %u";
+    for (uint8_t i = 0; i < MAX_GEOZONES_IN_CONFIG; i++) {
+        bool equalsDefault = false;
+        if (defaultGeoZone) {
+            equalsDefault = geoZone[i].fenceAction == defaultGeoZone->fenceAction
+            && geoZone[i].shape == defaultGeoZone->shape
+            && geoZone[i].type == defaultGeoZone->type
+            && geoZone[i].maxAltitude == defaultGeoZone->maxAltitude
+            && geoZone[i].minAltitude == defaultGeoZone->minAltitude
+            && geoZone[i].isSealevelRef == defaultGeoZone->isSealevelRef
+            && geoZone[i].fenceAction == defaultGeoZone->fenceAction
+            && geoZone[i].vertexCount == defaultGeoZone->vertexCount;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultGeoZone[i].shape, defaultGeoZone[i].type, defaultGeoZone[i].minAltitude, defaultGeoZone[i].maxAltitude, defaultGeoZone[i].isSealevelRef, defaultGeoZone[i].fenceAction, defaultGeoZone[i].vertexCount);
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i, geoZone[i].shape, geoZone[i].type, geoZone[i].minAltitude, geoZone[i].maxAltitude, geoZone[i].isSealevelRef, geoZone[i].fenceAction, geoZone[i].vertexCount);
+    }
+}
+
+static void printGeozoneVertices(uint8_t dumpMask, const vertexConfig_t *vertices, const vertexConfig_t *defaultVertices)
+{
+    const char *format = "geozone vertex %d %u %d %d";
+    for (uint8_t i = 0; i < MAX_VERTICES_IN_CONFIG; i++) {
+        bool equalsDefault = false;
+        if (defaultVertices) {
+            equalsDefault = vertices[i].idx == defaultVertices->idx
+            && vertices[i].lat == defaultVertices->lat
+            && vertices[i].lon == defaultVertices->lon
+            && vertices[i].zoneId == defaultVertices->zoneId;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultVertices[i].zoneId, defaultVertices[i].idx, defaultVertices[i].lat, defaultVertices[i].lon);
+        }
+
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, vertices[i].zoneId, vertices[i].idx, vertices[i].lat, vertices[i].lon);
+    }
+
+    if (!defaultVertices) {
+        uint8_t totalVertices = geozoneGetUsedVerticesCount();
+        cliPrintLinef("# %u vertices free (Used %u of %u)", MAX_VERTICES_IN_CONFIG - totalVertices, totalVertices, MAX_VERTICES_IN_CONFIG);
+    }
+}
+
+static void cliGeozone(char* cmdLine)
+{
+    if (isEmpty(cmdLine)) {
+        printGeozones(DUMP_MASTER, geoZonesConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdLine, "vertex") == 0) {
+        printGeozoneVertices(DUMP_MASTER, geoZoneVertices(0), NULL);
+    } else if (sl_strncasecmp(cmdLine, "vertex reset", 12) == 0) {
+         const char* ptr = &cmdLine[12];
+         uint8_t zoneId = 0, idx = 0;
+         uint8_t argumentCount = 1;
+
+         if ((ptr = nextArg(ptr))) {
+            zoneId = fastA2I(ptr);
+         } else {
+           geozoneResetVertices(-1, -1);
+           return;
+        }
+
+         if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            idx = fastA2I(ptr);
+        } else {
+            geozoneResetVertices(zoneId, -1);
+            return;
+        }
+
+         if (argumentCount != 2) {
+            cliShowParseError();
+            return;
+        }
+
+        geozoneResetVertices(zoneId, idx);
+
+    } else if (sl_strncasecmp(cmdLine, "vertex", 6) == 0) {
+        int32_t lat = 0, lon = 0;
+        int8_t zoneId = 0;
+        int16_t vertexIdx = -1;
+        uint8_t vertexZoneIdx = 0;
+        const char* ptr = cmdLine;
+        uint8_t argumentCount = 1;
+
+        if ((ptr = nextArg(ptr))) {
+            zoneId = fastA2I(ptr);
+            if (zoneId < 0) {
+                return;
+            }
+
+            if (zoneId >= MAX_GEOZONES_IN_CONFIG) {
+                cliShowArgumentRangeError("geozone index", 0, MAX_GEOZONES_IN_CONFIG - 1);
+                return;
+            }
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+         if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            vertexZoneIdx = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            lat = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            lon = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+        }
+
+        if (argumentCount != 4) {
+            cliShowParseError();
+            return;
+        }
+
+        for (uint8_t i = 0; i < MAX_VERTICES_IN_CONFIG; i++) {
+            if (geoZoneVertices(i)->zoneId == zoneId && geoZoneVertices(i)->idx == vertexZoneIdx)  {
+                geoZoneVerticesMutable(i)->lat = lat;
+                geoZoneVerticesMutable(i)->lon = lon;
+                return;
+            }
+        }
+
+        for (uint8_t i = 0; i < MAX_VERTICES_IN_CONFIG; i++) {
+            if (geoZoneVertices(i)->zoneId == -1) {
+                vertexIdx = i;
+                break;
+            }
+        }
+
+        if (vertexIdx < 0 || vertexIdx >= MAX_VERTICES_IN_CONFIG || vertexZoneIdx > MAX_VERTICES_IN_CONFIG) {
+            cliPrintError("Maximum number of vertices reached.");
+            return;
+        }
+
+        geoZoneVerticesMutable(vertexIdx)->lat = lat;
+        geoZoneVerticesMutable(vertexIdx)->lon = lon;
+        geoZoneVerticesMutable(vertexIdx)->zoneId = zoneId;
+        geoZoneVerticesMutable(vertexIdx)->idx = vertexZoneIdx;
+
+        uint8_t totalVertices = geozoneGetUsedVerticesCount();
+        cliPrintLinef("# %u vertices free (Used %u of %u)", MAX_VERTICES_IN_CONFIG - totalVertices, totalVertices, MAX_VERTICES_IN_CONFIG);
+
+    } else if (sl_strncasecmp(cmdLine, "reset", 5) == 0) {
+        const char* ptr = &cmdLine[5];
+        if ((ptr = nextArg(ptr))) {
+            int idx = fastA2I(ptr);
+            geozoneReset(idx);
+            geozoneResetVertices(idx, -1);
+        } else {
+            geozoneReset(-1);
+            geozoneResetVertices(-1, -1);
+        }
+    } else {
+        int8_t idx = 0, isPolygon = 0, isInclusive = 0, fenceAction = 0, seaLevelRef = 0, vertexCount = 0;
+        int32_t minAltitude = 0, maxAltitude = 0;
+        const char* ptr = cmdLine;
+        uint8_t argumentCount = 1;
+
+        idx = fastA2I(ptr);
+        if (idx < 0 || idx > MAX_GEOZONES_IN_CONFIG) {
+            cliShowArgumentRangeError("geozone index", 0, MAX_GEOZONES_IN_CONFIG - 1);
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            isPolygon = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            isInclusive = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            minAltitude = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            maxAltitude = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            seaLevelRef = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            fenceAction = fastA2I(ptr);
+            if (fenceAction < 0 || fenceAction > GEOFENCE_ACTION_RTH) {
+                cliShowArgumentRangeError("fence action", 0, GEOFENCE_ACTION_RTH);
+                return;
+            }
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            vertexCount = fastA2I(ptr);
+            if (vertexCount < 1 || vertexCount > MAX_VERTICES_IN_CONFIG) {
+                cliShowArgumentRangeError("vertex count", 1, MAX_VERTICES_IN_CONFIG);
+                return;
+            }
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+        }
+
+        if (argumentCount != 8) {
+            cliShowParseError();
+            return;
+        }
+
+        if (isPolygon) {
+            geoZonesConfigMutable(idx)->shape = GEOZONE_SHAPE_POLYGON;
+        } else {
+            geoZonesConfigMutable(idx)->shape = GEOZONE_SHAPE_CIRCULAR;
+        }
+
+        if (isInclusive) {
+            geoZonesConfigMutable(idx)->type = GEOZONE_TYPE_INCLUSIVE;
+        } else {
+            geoZonesConfigMutable(idx)->type = GEOZONE_TYPE_EXCLUSIVE;
+        }
+
+        geoZonesConfigMutable(idx)->maxAltitude = maxAltitude;
+        geoZonesConfigMutable(idx)->minAltitude = minAltitude;
+        geoZonesConfigMutable(idx)->isSealevelRef = (bool)seaLevelRef;
+        geoZonesConfigMutable(idx)->fenceAction = fenceAction;
+        geoZonesConfigMutable(idx)->vertexCount = vertexCount;
+    }
+}
+#endif
+
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
@@ -1881,20 +2178,45 @@ static void cliModeColor(char *cmdline)
     }
 }
 
-static void cliLedPinPWM(char *cmdline)
+
+#endif // USE_LED_STRIP
+
+#ifdef USE_PINIO
+// Channel numbering: 0 = LED strip idle level, 1-4 = PINIO channels (matches programming framework)
+static void cliPinioPwm(char *cmdline)
 {
-    int i;
+    int channel = 0;
+    int duty;
 
     if (isEmpty(cmdline)) {
-        ledPinStopPWM();
-        cliPrintLine("PWM stopped");
-    } else {
-        i = fastA2I(cmdline);
-        ledPinStartPWM(i);
-        cliPrintLinef("PWM started: %d%%",i);
+        pinioSetDuty(1, 0);
+        cliPrintLine("PWM stopped on PINIO 1");
+        return;
     }
+
+    const char *dutyStr = nextArg(cmdline);
+    if (dutyStr) {
+        channel = fastA2I(cmdline);
+        duty = fastA2I(dutyStr);
+    } else {
+        // One arg: duty on channel 0 (LED idle, backward compat with old LED_PIN_PWM)
+        duty = fastA2I(cmdline);
+    }
+
+    const int maxChannel = MAX(pinioGetRuntimeCount(), PINIO_COUNT);
+    if (channel < 0 || channel > maxChannel) {
+        cliShowArgumentRangeError("channel", 0, maxChannel);
+        return;
+    }
+    if (duty < 0 || duty > 100) {
+        cliShowArgumentRangeError("duty", 0, 100);
+        return;
+    }
+
+    pinioSetDuty(channel, (uint8_t)duty);
+    cliPrintLinef("PWM ch %d: %d%%", channel, duty);
 }
-#endif
+#endif // USE_PINIO
 
 static void cliDelay(char* cmdLine) {
     int ms = 0;
@@ -2413,6 +2735,8 @@ static void cliPid(char *cmdline) {
             programmingPidsMutable(i)->gains.D = args[D_GAIN];
             programmingPidsMutable(i)->gains.FF = args[FF_GAIN];
 
+            programmingPidInit();
+
             cliPid("");
         } else {
             cliShowParseError();
@@ -2524,11 +2848,11 @@ static void osdCustom(char *cmdline){
         int32_t i = args[INDEX];
         if (
                 i >= 0 && i < MAX_CUSTOM_ELEMENTS &&
-                args[PART0_TYPE] >= 0 && args[PART0_TYPE] <= 7 &&
+                args[PART0_TYPE] >= 0 && args[PART0_TYPE] < CUSTOM_ELEMENT_TYPE_END &&
                 args[PART0_VALUE] >= 0 && args[PART0_VALUE] <= UINT8_MAX &&
-                args[PART1_TYPE] >= 0 && args[PART1_TYPE] <= 7 &&
+                args[PART1_TYPE] >= 0 && args[PART1_TYPE] < CUSTOM_ELEMENT_TYPE_END &&
                 args[PART1_VALUE] >= 0 && args[PART1_VALUE] <= UINT8_MAX &&
-                args[PART2_TYPE] >= 0 && args[PART2_TYPE] <= 7 &&
+                args[PART2_TYPE] >= 0 && args[PART2_TYPE] < CUSTOM_ELEMENT_TYPE_END &&
                 args[PART2_VALUE] >= 0 && args[PART2_VALUE] <= UINT8_MAX &&
                 args[VISIBILITY_TYPE] >= 0 && args[VISIBILITY_TYPE] <= 2 &&
                 args[VISIBILITY_VALUE] >= 0 && args[VISIBILITY_VALUE] <= UINT8_MAX
@@ -2904,6 +3228,10 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_SERVOS;
                 } else if(!sl_strcasecmp("LED", tok)) {
                     mode = OUTPUT_MODE_LED;
+                } else if(!sl_strcasecmp("PINIO", tok)) {
+                    mode = OUTPUT_MODE_PINIO;
+                } else if(!sl_strcasecmp("BEEPER", tok)) {
+                    mode = OUTPUT_MODE_BEEPER;
                 } else {
                     cliShowParseError();
                     return;
@@ -3316,6 +3644,41 @@ void cliRxBind(char *cmdline){
 }
 #endif
 
+static void cliBindMspRx(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        cliShowParseError();
+        return;
+    }
+
+    int portIndex = fastA2I(cmdline);
+
+    if (portIndex < 0 || portIndex > 7) {
+        cliShowArgumentRangeError("port", 0, 7);
+        return;
+    }
+
+    serialPortUsage_t *portUsage = findSerialPortUsageByIdentifier(portIndex);
+    if (!portUsage || !portUsage->serialPort) {
+        cliPrintErrorLinef("Serial port %d is not open", portIndex);
+        return;
+    }
+
+    mspPort_t *mspPort = mspSerialPortFind(portUsage->serialPort);
+    if (!mspPort) {
+        cliPrintErrorLinef("Serial port %d is not configured for MSP", portIndex);
+        return;
+    }
+
+    uint8_t payload[4] = { portIndex, 0, 0, 0 };
+    int sent = mspSerialPushPort(MSP2_RX_BIND, payload, sizeof(payload), mspPort, MSP_V2_NATIVE); // this is sent as a response
+    if (sent > 0) {
+        cliPrintLinef("Sent MSP2_RX_BIND to serial port %d", portIndex);
+    } else {
+        cliPrintErrorLinef("Failed to send MSP2_RX_BIND to serial port %d", portIndex);
+    }
+}
+
 static void cliExit(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3447,7 +3810,7 @@ static void cliDumpControlProfile(uint8_t profileIndex, uint8_t dumpMask)
     cliPrintHashLine("control_profile");
     cliPrintLinef("control_profile %d\r\n", getConfigProfile() + 1);
     dumpAllValues(PROFILE_VALUE, dumpMask);
-    dumpAllValues(CONTROL_RATE_VALUE, dumpMask);
+    dumpAllValues(CONTROL_VALUE, dumpMask);
     dumpAllValues(EZ_TUNE_VALUE, dumpMask);
 }
 
@@ -3714,6 +4077,17 @@ static void cliSet(char *cmdline)
                 }
 
                 if (changeValue) {
+                    // If changing the battery capacity unit, update the osd stats energy unit to match
+                    if (strcmp(name, "battery_capacity_unit") == 0) {
+                        if (batteryMetersConfig()->capacity_unit != (uint8_t)tmp.int_value) {
+                            if (tmp.int_value == BAT_CAPACITY_UNIT_MAH) {
+                                osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_MAH;
+                            } else {
+                                osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_WH;
+                            }
+                        }
+                    }
+
                     cliSetIntFloatVar(val, tmp);
 
                     cliPrintf("%s set to ", name);
@@ -3809,13 +4183,14 @@ static void cliStatus(char *cmdline)
 #endif // for if at32
 #endif // for SITL
 
-    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
+    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, PITOT=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
         hardwareSensorStatusNames[getHwAccelerometerStatus()],
         hardwareSensorStatusNames[getHwCompassStatus()],
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
+        hardwareSensorStatusNames[getHwPitotmeterStatus()],
         hardwareSensorStatusNames[getHwGPSStatus()]
     );
 
@@ -3829,6 +4204,17 @@ static void cliStatus(char *cmdline)
         }
         cliPrintLinefeed();
     }
+#endif
+
+#ifdef USE_DRONECAN
+    static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF", "FAILED"};
+    STATIC_ASSERT(ARRAYLEN(dronecanStateNames) == STATE_DRONECAN_COUNT, dronecanStateNames_size_mismatch);
+    cliPrintLinef("DroneCAN: nodeID=%d, bitrate=%u kbps, status=%s, nodes=%d",                                                                                                                                                  
+        dronecanConfig()->nodeID,                                                                                                                                                                                                     
+        (unsigned)dronecanGetBitrateKbps(),                                                                                                                                                                                                     
+        dronecanStateNames[MIN((int)dronecanGetState(), (int)STATE_DRONECAN_COUNT - 1)],                                                                                                                                                                                       
+        dronecanGetNodeCount()                                                         
+    );
 #endif
 
 #ifdef USE_SDCARD
@@ -3884,7 +4270,9 @@ static void cliStatus(char *cmdline)
     while (flags) {
         int bitpos = ffs(flags) - 1;
         flags &= ~(1 << bitpos);
-	if (bitpos > 6) cliPrintf(" %s", armingDisableFlagNames[bitpos - 7]);
+        if (bitpos > 5) {
+            cliPrintf(" %s", armingDisableFlagNames[bitpos - 6]);
+        }
     }
     cliPrintLinefeed();
     if (armingFlags & ARMING_DISABLED_INVALID_SETTING) {
@@ -3898,14 +4286,19 @@ static void cliStatus(char *cmdline)
 #if defined(USE_OSD)
     if (armingFlags & ARMING_DISABLED_NAVIGATION_UNSAFE) {
 	    navArmingBlocker_e reason = navigationIsBlockingArming(NULL);
-        if (reason & NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR)
+        if (reason == NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR)
             cliPrintLinef("  %s", OSD_MSG_JUMP_WP_MISCONFIG);
-        if (reason & NAV_ARMING_BLOCKER_MISSING_GPS_FIX) {
+        if (reason == NAV_ARMING_BLOCKER_MISSING_GPS_FIX) {
             cliPrintLinef("  %s", OSD_MSG_WAITING_GPS_FIX);
 		} else {
-            if (reason & NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE)
-                cliPrintLinef("  %s", OSD_MSG_DISABLE_NAV_FIRST);
-            if (reason & NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR)
+            if (reason == NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE) {
+		if(armingFlags & ARMING_DISABLED_RC_LINK) {
+		    cliPrintLinef("  ENABLE RX TO CLEAR NAV");
+		} else {
+		    cliPrintLinef("  %s", OSD_MSG_DISABLE_NAV_FIRST);
+		}
+	    }
+            if (reason == NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR)
                 cliPrintLinef("  FIRST WP TOO FAR");
        }
     }
@@ -4167,6 +4560,14 @@ static void printConfig(const char *cmdline, bool doDiff)
         printFwAutolandApproach(dumpMask, fwAutolandApproachConfig_CopyArray, fwAutolandApproachConfig(0));
 #endif
 
+#if defined(USE_GEOZONE)
+        cliPrintHashLine("geozone");
+        printGeozones(dumpMask, geoZonesConfig_CopyArray, geoZonesConfig(0));
+
+        cliPrintHashLine("geozone vertices");
+        printGeozoneVertices(dumpMask, geoZoneVertices_CopyArray, geoZoneVertices(0));
+#endif
+
         cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
@@ -4299,6 +4700,35 @@ static void printConfig(const char *cmdline, bool doDiff)
     // restore configs from copies
     restoreConfigs();
 }
+
+#ifdef USE_DRONECAN
+static void cliDronecan(char *cmdline)
+{
+    UNUSED(cmdline);
+    static const char * const lecNames[] = {
+        "None", "Stuff", "Form", "ACK", "BitR", "BitD", "CRC", "SW"
+    };
+    canardProtocolStatus_t stat;
+    canardSTM32GetProtocolStatus(&stat);
+    int32_t txFill = canardSTM32GetTxQueueFillLevel();
+    int32_t rxFill = canardSTM32GetRxFifoFillLevel();
+    uint32_t busOffCount = dronecanGetBusOffCount();
+    CanardPoolAllocatorStatistics poolStats = dronecanGetPoolStats();
+    cliPrintLine("DroneCAN CAN peripheral status:");
+    cliPrintLinef("  BusOff:       %s", stat.BusOff       ? "YES" : "no");
+    cliPrintLinef("  ErrorPassive: %s", stat.ErrorPassive ? "YES" : "no");
+    cliPrintLinef("  TEC:          %u", (unsigned)stat.tec);
+    cliPrintLinef("  REC:          %u", (unsigned)stat.rec);
+    cliPrintLinef("  LEC:          %s (%u)", lecNames[stat.lec], (unsigned)stat.lec);
+    cliPrintLinef("  TX queue:     %" PRId32, txFill);
+    cliPrintLinef("  RX buffer:    %" PRId32, rxFill);
+    cliPrintLinef("  BusOff count: %" PRIu32, busOffCount);
+    cliPrintLinef("  Pool blocks:  %u used, %u peak, %u capacity",
+                  poolStats.current_usage_blocks,
+                  poolStats.peak_usage_blocks,
+                  poolStats.capacity_blocks);
+}
+#endif
 
 static void cliDump(char *cmdline)
 {
@@ -4490,6 +4920,26 @@ static void cliUbloxPrintSatelites(char *arg)
         }
         cliPrintLinefeed();
     }
+    // Enable and Print MON-RF stats if available
+    gpsSetOsdMonRfWidgetEnabled(true);
+    uint16_t noisePerMs = gpsGetMonRfNoisePerMs();
+    if (noisePerMs==0) {
+        cliPrintLine("MON-RF stat still not available...");
+    } else {    
+        cliPrintLinef("MON-RF noisePerMS: %u", gpsGetMonRfNoisePerMs());
+        cliPrintLinef("MON-RF CW Suppression: %u", gpsGetMonRfCWSuppression());
+        cliPrintLinef("MON-RF AutoGainCtrl(%%): %u", (unsigned)gpsGetMonAGCPercent());   
+    } 
+}
+#endif
+
+#ifdef USE_BOOTLOG
+static void printBootLog(char *cmdline __attribute__((unused))) {
+    int size = bootlog_head - bootlog_buffer;
+	cliPrintLinef("log size written: %i of %i bytes reserved", size, USE_BOOTLOG);
+    for (int ii = 0; ii < size; ii++) {
+        cliWrite(bootlog_buffer[ii]);
+    }
 }
 #endif
 
@@ -4509,11 +4959,12 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif
+    CLI_COMMAND_DEF("bind_msp_rx", "initiate binding for MSP receivers (mLRS)", "<port>", cliBindMspRx),
 #if defined (USE_SERIALRX_SRXL2)
     CLI_COMMAND_DEF("bind_rx", "initiate binding for RX SPI or SRXL2", NULL, cliRxBind),
 #endif
 #if defined(USE_BOOTLOG)
-    CLI_COMMAND_DEF("bootlog", "show boot events", NULL, cliBootlog),
+    CLI_COMMAND_DEF("bootlog", "show boot log", NULL, printBootLog),
 #endif
 #ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("color", "configure colors", NULL, cliColor),
@@ -4524,6 +4975,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDiff),
+#ifdef USE_DRONECAN
+    CLI_COMMAND_DEF("dronecan", "show DroneCAN CAN peripheral debug status", NULL, cliDronecan),
+#endif
     CLI_COMMAND_DEF("dump", "dump configuration",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
@@ -4550,6 +5004,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("fwapproach", "Fixed Wing Approach Settings", NULL, cliFwAutolandApproach),
 #endif
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
+#ifdef USE_GEOZONE
+    CLI_COMMAND_DEF("geozone", "get or set geo zones", NULL, cliGeozone),
+#endif
 #ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
     CLI_COMMAND_DEF("gpssats", "show GPS satellites", NULL, cliUbloxPrintSatelites),
@@ -4557,7 +5014,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
-    CLI_COMMAND_DEF("ledpinpwm", "start/stop PWM on LED pin, 0..100 duty ratio", "[<value>]\r\n", cliLedPinPWM),
+#endif
+#ifdef USE_PINIO
+    CLI_COMMAND_DEF("piniopwm", "set PINIO PWM duty cycle", "[<channel>] <duty>\r\n", cliPinioPwm),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
@@ -4618,7 +5077,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
-    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
+    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS|LED|PINIO|BEEPER>]]", cliTimerOutputMode),
 };
 
 static void cliHelp(char *cmdline)

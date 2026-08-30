@@ -94,11 +94,14 @@ static bool isRxSuspended = false;
 
 static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
+// MSP aux channel overlay: non-zero values override rcChannels[].data for CH9-CH32
+static uint16_t mspAuxOverlay[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+
 rxLinkStatistics_t rxLinkStatistics;
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 12);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 13);
 
 #ifndef SERIALRX_PROVIDER
 #define SERIALRX_PROVIDER 0
@@ -512,6 +515,31 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 #endif
 
+    // Apply MSP aux channel overlay (CH13-CH32)
+    {
+        int overlayStart = 12;
+#ifdef USE_RX_MSP
+        // When MSP is the primary RX, skip channels covered by MSP_SET_RAW_RC
+        if (rxConfig()->receiverType == RX_TYPE_MSP) {
+            const uint8_t mspChannels = rxMspGetLastChannelCount();
+            if (mspChannels > overlayStart) {
+                overlayStart = mspChannels;
+            }
+        }
+#endif
+        for (int i = overlayStart; i < 32; i++) {
+            if (mspAuxOverlay[i] > 0) {
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+                // Skip channels controlled by MSP RC Override when active
+                if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && (rxConfig()->mspOverrideChannels & (1U << i))) {
+                    continue;
+                }
+#endif
+                rcChannels[i].data = mspAuxOverlay[i];
+            }
+        }
+    }
+
     // Update failsafe
     if (rxFlightChannelsValid && rxSignalReceived) {
         failsafeOnValidDataReceived();
@@ -570,6 +598,18 @@ static void setRSSIValue(uint16_t rssiValue, rssiSource_e source, bool filtered)
         rssi = rssiMax >= delta ? rssiMax - delta : 0;
     }
     rssi = constrain(scaleRange(rssi, rssiMin, rssiMax, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
+}
+
+void setRSSIFromMSP_RC(uint8_t newMspRssi)
+{
+    if (activeRssiSource == RSSI_SOURCE_NONE && (rxConfig()->rssi_source == RSSI_SOURCE_MSP || rxConfig()->rssi_source == RSSI_SOURCE_AUTO)) {
+        activeRssiSource = RSSI_SOURCE_MSP;
+    }
+
+    if (activeRssiSource == RSSI_SOURCE_MSP) {
+        rssi = constrain(scaleRange(constrain(newMspRssi, 0, 100), 0, 100, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
+        lastMspRssiUpdateUs = micros();
+    }
 }
 
 void setRSSIFromMSP(uint8_t newMspRssi)
@@ -648,6 +688,13 @@ int16_t rxGetChannelValue(unsigned channelNumber)
         return getRcChannelOverride(channelNumber, rcChannels[channelNumber].data);
     } else {
         return rcChannels[channelNumber].data;
+    }
+}
+
+void rxMspAuxOverlaySet(uint8_t channelIndex, uint16_t value)
+{
+    if (channelIndex >= 12 && channelIndex < 32) {
+        mspAuxOverlay[channelIndex] = value;
     }
 }
 

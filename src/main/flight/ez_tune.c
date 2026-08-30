@@ -32,7 +32,7 @@
 #include "fc/settings.h"
 #include "flight/pid.h"
 #include "sensors/gyro.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 
 #include "rx/rx.h"
 
@@ -136,12 +136,12 @@ void ezTuneUpdate(void) {
         pidProfileMutable()->bank_mc.pid[PID_YAW].FF = pidDefaultsYaw[3] * getYawPidScale(ezTune()->aggressiveness);
 
         //Setup rates
-        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[FD_ROLL] = scaleRange(ezTune()->rate, 0, 200, 30, 90);
-        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[FD_PITCH] = scaleRange(ezTune()->rate, 0, 200, 30, 90);
-        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[FD_YAW] = scaleRange(ezTune()->rate, 0, 200, 30, 90) - 10;
+        ((controlConfig_t*)currentControlProfile)->stabilized.rates[FD_ROLL] = scaleRange(ezTune()->rate, 0, 200, 30, 90);
+        ((controlConfig_t*)currentControlProfile)->stabilized.rates[FD_PITCH] = scaleRange(ezTune()->rate, 0, 200, 30, 90);
+        ((controlConfig_t*)currentControlProfile)->stabilized.rates[FD_YAW] = scaleRange(ezTune()->rate, 0, 200, 30, 90) - 10;
 
-        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
-        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcYawExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
+        ((controlConfig_t*)currentControlProfile)->stabilized.rcExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
+        ((controlConfig_t*)currentControlProfile)->stabilized.rcYawExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
 
         //D-Boost snappiness
         pidProfileMutable()->dBoostMin = scaleRangef(ezTune()->snappiness, 0, 100, 1.0f, 0.0f);

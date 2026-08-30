@@ -42,7 +42,7 @@ typedef struct {
     const serialConfig_t * serialConfig;
     serialPort_t *  gpsPort;                // Serial GPS only
 
-    uint32_t        hwVersion;
+    uint8_t         hwVersion;          // See UBX_HW_VERSION_* in gps_ublox.h
     uint8_t         swVersionMajor;
     uint8_t         swVersionMinor;
 
@@ -87,10 +87,17 @@ extern void gpsHandleUBLOX(void);
 extern void gpsRestartMSP(void);
 extern void gpsHandleMSP(void);
 
+extern void gpsRestartCRSF(void);
+extern void gpsHandleCRSF(void);
+extern void crsfGPSNewDataReady(void);
+
 #if defined(USE_GPS_FAKE)
 extern void gpsFakeRestart(void);
 extern void gpsFakeHandle(void);
 #endif
+
+void gpsRestartDronecan(void);
+void gpsHandleDronecan(void);
 
 
 #endif

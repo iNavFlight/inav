@@ -39,6 +39,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 #include <platform.h>
 #include "target.h"
@@ -50,6 +51,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 #include "drivers/serial.h"
+#include "drivers/serial_tcp.h"
 #include "config/config_streamer.h"
 #include "build/version.h"
 
@@ -80,6 +82,25 @@ static void printVersion(void) {
     fprintf(stderr, "INAV %d.%d.%d SITL (%s)\n", FC_VERSION_MAJOR, FC_VERSION_MINOR, FC_VERSION_PATCH_LEVEL, shortGitRevision);
 }
 
+static void cleanupAndExit(int code, bool shouldExit) {
+    if (sitlSim == SITL_SIM_XPLANE) {
+        simXPlaneClose();
+    } else if (sitlSim == SITL_SIM_REALFLIGHT) {
+        simRealFlightClose();
+    }
+    pthread_mutex_destroy(&mainLoopLock);
+
+    if (shouldExit) {
+        exit(code);
+    }
+}
+
+static void on_sigint(int sig) {
+    UNUSED(sig);
+    fprintf(stderr, "\n[SYSTEM] Caught SIGINT, exiting...\n");
+    cleanupAndExit(0, true);
+}
+
 void systemInit(void) {
     printVersion();
     clock_gettime(CLOCK_MONOTONIC, &start_time);
@@ -99,6 +120,12 @@ void systemInit(void) {
         fprintf(stderr, "[SYSTEM] Unable to create mainLoop lock.\n");
         exit(1);
     }
+
+    struct sigaction sa;
+    sa.sa_handler = on_sigint;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
 
     if (sitlSim != SITL_SIM_NONE) {
         fprintf(stderr, "[SIM] Waiting for connection...\n");
@@ -209,6 +236,7 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--stopbits=[None|One|Two]      Serial receiver stopbits (default: One).\n");
     fprintf(stderr, "--parity=[Even|None|Odd]       Serial receiver parity (default: None).\n");
     fprintf(stderr, "--fcproxy                      Use inav/betaflight FC as a proxy for serial receiver.\n");
+    fprintf(stderr, "--tcpbaseport=[port]           Base TCP port for UART sockets (default: 5760)\n");
     fprintf(stderr, "--chanmap=[mapstring]          Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
     fprintf(stderr, "                               The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
     fprintf(stderr, "                               For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
@@ -239,6 +267,7 @@ void parseArguments(int argc, char *argv[])
             {"stopbits", required_argument, 0, '3'},
             {"parity", required_argument, 0, '4'},
             {"fcproxy", no_argument, 0, '5'},
+            {"tcpbaseport", required_argument, 0, '6'},
             {NULL, 0, NULL, 0}
         };
 
@@ -324,6 +353,16 @@ void parseArguments(int argc, char *argv[])
             case '5':
                 serialFCProxy = true;
                 break;
+            case '6': {
+                char *endptr = NULL;
+                long basePort = strtol(optarg, &endptr, 10);
+                if ((endptr == NULL) || (*endptr != '\0') || basePort <= 0 || basePort > UINT16_MAX || basePort + SERIAL_PORT_COUNT - 1 > UINT16_MAX) {
+                    fprintf(stderr, "[tcpbaseport] Invalid argument\n.");
+                    exit(0);
+                }
+                tcpBasePort = (uint16_t)basePort;
+                break;
+            }
 
             default:
                 printCmdLineOptions();
@@ -377,6 +416,7 @@ void delay(timeMs_t ms)
 void systemReset(void)
 {
     fprintf(stderr, "[SYSTEM] Reset\n");
+    cleanupAndExit(0, false);
 #if defined(__CYGWIN__) || defined(__APPLE__) || GCC_MAJOR < 12
     for(int j = 3; j < 1024; j++) {
         close(j);
@@ -391,7 +431,7 @@ void systemReset(void)
 void systemResetToBootloader(void)
 {
     fprintf(stderr, "[SYSTEM] Reset to bootloader\n");
-    exit(0);
+    cleanupAndExit(0, true);
 }
 
 void failureMode(failureMode_e mode) {

@@ -84,6 +84,18 @@ typedef enum {
     INPUT_RC_CH32                   = 57,
     INPUT_RC_CH33                   = 58,
     INPUT_RC_CH34                   = 59,
+    INPUT_MIXER_SWITCH_HELPER       = 60,
+#ifdef USE_AUTO_TRANSITION
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL     = 61,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH    = 62,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW      = 63,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_PLUS = 64,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_MINUS = 65,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_PLUS = 66,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_MINUS = 67,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_PLUS = 68,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS = 69,
+#endif
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
@@ -142,6 +154,15 @@ typedef struct servoMixer_s {
 
 PG_DECLARE_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers);
 
+typedef struct servoMixerSwitch_s {
+    //this is used to keep track of servoSpeedLimitFilter of servo rules during the mixer switch
+    uint8_t targetChannel;                  // servo that receives the output of the rule
+    int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
+    uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
+    float speedLimitFilterState;     // rate limit filter for this rule
+} servoMixerSwitch_t;
+#define MAX_SERVO_RULES_SWITCH_CARRY (MAX_SERVO_RULES / 2)
+
 typedef struct servoParam_s {
     int16_t min;                            // servo min
     int16_t max;                            // servo max
@@ -150,6 +171,13 @@ typedef struct servoParam_s {
 } servoParam_t;
 
 PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
+
+#define SERVO_AUTOTRIM_FILTER_CUTOFF    1.0f     // LPF cutoff frequency
+#define SERVO_AUTOTRIM_CENTER_MIN       1300
+#define SERVO_AUTOTRIM_CENTER_MAX       1700
+#define SERVO_AUTOTRIM_UPDATE_SIZE      5
+#define SERVO_AUTOTRIM_ATTITUDE_LIMIT   50       // 5 degrees
+#define SERVO_AUTOTRIM_ITERM_RATE_LIMIT 30       // ~90th percentile during stable cruise (blackbox-derived)
 
 typedef struct servoConfig_s {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
@@ -178,7 +206,12 @@ void setServoOutputEnabled(bool flag);
 bool isMixerUsingServos(void);
 void writeServos(void);
 void loadCustomServoMixer(void);
+void servoMixerSetCarryoverOnNextLoad(bool enabled);
+#ifdef USE_AUTO_TRANSITION
+int32_t servoMixerGetVtolTransitionDebug(uint8_t slot);
+#endif
 void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
 int getServoCount(void);
+uint8_t getMinServoIndex(void);
