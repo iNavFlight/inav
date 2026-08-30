@@ -7,10 +7,21 @@
   *           + Initialization and De-initialization.
   *           + LUT configuration.
   *           + Force flush and/or invalidate of cache.
-  *           + Modify physical buffer adresses.
+  *           + Modify physical buffer addresses.
   *           + Modify cache and pre-fetch parameters.
   *           + Error management.
-  *         
+  *
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
   @verbatim
   ==============================================================================
                      ##### How to use this driver #####
@@ -40,7 +51,7 @@
     [..]    
       (#) Use HAL_GFXMMU_ConfigForceCache() to flush and/or invalidate cache.
 
-    *** Modify physical buffer adresses ***
+    *** Modify physical buffer addresses ***
     =======================================
     [..]    
       (#) Use HAL_GFXMMU_ModifyBuffers() to modify physical buffer addresses.
@@ -120,17 +131,6 @@
     and weak (surcharged) callbacks are used.
 
   @endverbatim
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
   ******************************************************************************
   */
 
@@ -250,7 +250,7 @@ HAL_StatusTypeDef HAL_GFXMMU_Init(GFXMMU_HandleTypeDef *hgfxmmu)
     /* Configure default value on GFXMMU_DVR register */
     hgfxmmu->Instance->DVR = hgfxmmu->Init.DefaultValue;
     
-    /* Configure physical buffer adresses on GFXMMU_BxCR registers */
+    /* Configure physical buffer addresses on GFXMMU_BxCR registers */
     hgfxmmu->Instance->B0CR = hgfxmmu->Init.Buffers.Buf0Address;
     hgfxmmu->Instance->B1CR = hgfxmmu->Init.Buffers.Buf1Address;
     hgfxmmu->Instance->B2CR = hgfxmmu->Init.Buffers.Buf2Address;
@@ -501,7 +501,7 @@ HAL_StatusTypeDef HAL_GFXMMU_UnRegisterCallback(GFXMMU_HandleTypeDef        *hgf
     [..]  This section provides functions allowing to:
       (+) Configure LUT.
       (+) Force flush and/or invalidate of cache.
-      (+) Modify physical buffer adresses.
+      (+) Modify physical buffer addresses.
       (+) Modify cache and pre-fetch parameters.
       (+) Manage error.
 @endverbatim
@@ -518,18 +518,18 @@ HAL_StatusTypeDef HAL_GFXMMU_UnRegisterCallback(GFXMMU_HandleTypeDef        *hgf
   * @param  Address Start address of LUT in flash.
   * @retval HAL status.
   */
-HAL_StatusTypeDef HAL_GFXMMU_ConfigLut(GFXMMU_HandleTypeDef *hgfxmmu,
+HAL_StatusTypeDef HAL_GFXMMU_ConfigLut(const GFXMMU_HandleTypeDef *hgfxmmu,
                                        uint32_t FirstLine,
                                        uint32_t LinesNumber,
                                        uint32_t Address)
 {
   HAL_StatusTypeDef status = HAL_OK;
-  
+
   /* Check parameters */
   assert_param(IS_GFXMMU_ALL_INSTANCE(hgfxmmu->Instance));
   assert_param(IS_GFXMMU_LUT_LINE(FirstLine));
   assert_param(IS_GFXMMU_LUT_LINES_NUMBER(LinesNumber));
-  
+
   /* Check GFXMMU state and coherent parameters */
   if((hgfxmmu->State != HAL_GFXMMU_STATE_READY) || ((FirstLine + LinesNumber) > 1024U))
   {
@@ -538,13 +538,13 @@ HAL_StatusTypeDef HAL_GFXMMU_ConfigLut(GFXMMU_HandleTypeDef *hgfxmmu,
   else
   {
     uint32_t current_address, current_line, lutxl_address, lutxh_address;
-    
+
     /* Initialize local variables */
     current_address = Address;
     current_line    = 0U;
     lutxl_address   = (uint32_t) &(hgfxmmu->Instance->LUT[2U * FirstLine]);
     lutxh_address   = (uint32_t) &(hgfxmmu->Instance->LUT[(2U * FirstLine) + 1U]);
-    
+
     /* Copy LUT from flash to look up RAM */
     while(current_line < LinesNumber)
     {
@@ -570,17 +570,17 @@ HAL_StatusTypeDef HAL_GFXMMU_ConfigLut(GFXMMU_HandleTypeDef *hgfxmmu,
   *         This parameter must be a number between Min_Data = 1 and Max_Data = 1024.
   * @retval HAL status.
   */
-HAL_StatusTypeDef HAL_GFXMMU_DisableLutLines(GFXMMU_HandleTypeDef *hgfxmmu,
+HAL_StatusTypeDef HAL_GFXMMU_DisableLutLines(const GFXMMU_HandleTypeDef *hgfxmmu,
                                              uint32_t FirstLine,
                                              uint32_t LinesNumber)
 {
   HAL_StatusTypeDef status = HAL_OK;
-  
+
   /* Check parameters */
   assert_param(IS_GFXMMU_ALL_INSTANCE(hgfxmmu->Instance));
   assert_param(IS_GFXMMU_LUT_LINE(FirstLine));
   assert_param(IS_GFXMMU_LUT_LINES_NUMBER(LinesNumber));
-  
+
   /* Check GFXMMU state and coherent parameters */
   if((hgfxmmu->State != HAL_GFXMMU_STATE_READY) || ((FirstLine + LinesNumber) > 1024U))
   {
@@ -589,12 +589,12 @@ HAL_StatusTypeDef HAL_GFXMMU_DisableLutLines(GFXMMU_HandleTypeDef *hgfxmmu,
   else
   {
     uint32_t current_line, lutxl_address, lutxh_address;
-    
+
     /* Initialize local variables */
     current_line    = 0U;
     lutxl_address   = (uint32_t) &(hgfxmmu->Instance->LUT[2U * FirstLine]);
     lutxh_address   = (uint32_t) &(hgfxmmu->Instance->LUT[(2U * FirstLine) + 1U]);
-    
+
     /* Disable LUT lines */
     while(current_line < LinesNumber)
     {
@@ -615,10 +615,10 @@ HAL_StatusTypeDef HAL_GFXMMU_DisableLutLines(GFXMMU_HandleTypeDef *hgfxmmu,
   * @param  lutLine LUT line parameters.
   * @retval HAL status.
   */
-HAL_StatusTypeDef HAL_GFXMMU_ConfigLutLine(GFXMMU_HandleTypeDef *hgfxmmu, GFXMMU_LutLineTypeDef *lutLine)
+HAL_StatusTypeDef HAL_GFXMMU_ConfigLutLine(const GFXMMU_HandleTypeDef *hgfxmmu, GFXMMU_LutLineTypeDef *lutLine)
 {
   HAL_StatusTypeDef status = HAL_OK;
-  
+
   /* Check parameters */
   assert_param(IS_GFXMMU_ALL_INSTANCE(hgfxmmu->Instance));
   assert_param(IS_GFXMMU_LUT_LINE(lutLine->LineNumber));
@@ -626,7 +626,7 @@ HAL_StatusTypeDef HAL_GFXMMU_ConfigLutLine(GFXMMU_HandleTypeDef *hgfxmmu, GFXMMU
   assert_param(IS_GFXMMU_LUT_BLOCK(lutLine->FirstVisibleBlock));
   assert_param(IS_GFXMMU_LUT_BLOCK(lutLine->LastVisibleBlock));
   assert_param(IS_GFXMMU_LUT_LINE_OFFSET(lutLine->LineOffset));
-  
+
   /* Check GFXMMU state */
   if(hgfxmmu->State != HAL_GFXMMU_STATE_READY)
   {
@@ -635,11 +635,11 @@ HAL_StatusTypeDef HAL_GFXMMU_ConfigLutLine(GFXMMU_HandleTypeDef *hgfxmmu, GFXMMU
   else
   {
     uint32_t lutxl_address, lutxh_address;
-    
+
     /* Initialize local variables */
     lutxl_address   = (uint32_t) &(hgfxmmu->Instance->LUT[2U * lutLine->LineNumber]);
     lutxh_address   = (uint32_t) &(hgfxmmu->Instance->LUT[(2U * lutLine->LineNumber) + 1U]);
-    
+
     /* Configure LUT line */
     if(lutLine->LineStatus == GFXMMU_LUT_LINE_ENABLE)
     {
@@ -670,11 +670,11 @@ HAL_StatusTypeDef HAL_GFXMMU_ConfigLutLine(GFXMMU_HandleTypeDef *hgfxmmu, GFXMMU
 HAL_StatusTypeDef HAL_GFXMMU_ConfigForceCache(GFXMMU_HandleTypeDef *hgfxmmu, uint32_t ForceParam)
 {
   HAL_StatusTypeDef status = HAL_OK;
-  
+
   /* Check parameters */
   assert_param(IS_GFXMMU_ALL_INSTANCE(hgfxmmu->Instance));
   assert_param(IS_GFXMMU_CACHE_FORCE_ACTION(ForceParam));
-  
+
   /* Check GFXMMU state and cache status */
   if(((hgfxmmu->Instance->CR & GFXMMU_CR_CE) != GFXMMU_CR_CE) || (hgfxmmu->State != HAL_GFXMMU_STATE_READY))
   {
@@ -698,14 +698,14 @@ HAL_StatusTypeDef HAL_GFXMMU_ConfigForceCache(GFXMMU_HandleTypeDef *hgfxmmu, uin
 HAL_StatusTypeDef HAL_GFXMMU_ModifyBuffers(GFXMMU_HandleTypeDef *hgfxmmu, GFXMMU_BuffersTypeDef *Buffers)
 {
   HAL_StatusTypeDef status = HAL_OK;
-  
+
   /* Check parameters */
   assert_param(IS_GFXMMU_ALL_INSTANCE(hgfxmmu->Instance));
   assert_param(IS_GFXMMU_BUFFER_ADDRESS(Buffers->Buf0Address));
   assert_param(IS_GFXMMU_BUFFER_ADDRESS(Buffers->Buf1Address));
   assert_param(IS_GFXMMU_BUFFER_ADDRESS(Buffers->Buf2Address));
   assert_param(IS_GFXMMU_BUFFER_ADDRESS(Buffers->Buf3Address));
-  
+
   /* Check GFXMMU state */
   if(hgfxmmu->State != HAL_GFXMMU_STATE_READY)
   {
@@ -713,7 +713,7 @@ HAL_StatusTypeDef HAL_GFXMMU_ModifyBuffers(GFXMMU_HandleTypeDef *hgfxmmu, GFXMMU
   }
   else
   {
-    /* Modify physical buffer adresses on GFXMMU_BxCR registers */
+    /* Modify physical buffer addresses on GFXMMU_BxCR registers */
     hgfxmmu->Instance->B0CR = Buffers->Buf0Address;
     hgfxmmu->Instance->B1CR = Buffers->Buf1Address;
     hgfxmmu->Instance->B2CR = Buffers->Buf2Address;
@@ -734,10 +734,10 @@ HAL_StatusTypeDef HAL_GFXMMU_ModifyCachePrefetch(GFXMMU_HandleTypeDef *hgfxmmu,
 {
   HAL_StatusTypeDef status = HAL_OK;
   assert_param(IS_FUNCTIONAL_STATE(CachePrefetch->Activation));
-  
+
   /* Check parameters */
   assert_param(IS_GFXMMU_ALL_INSTANCE(hgfxmmu->Instance));
-  
+
   /* Check GFXMMU state */
   if(hgfxmmu->State != HAL_GFXMMU_STATE_READY)
   {
@@ -780,20 +780,20 @@ HAL_StatusTypeDef HAL_GFXMMU_ModifyCachePrefetch(GFXMMU_HandleTypeDef *hgfxmmu,
 void HAL_GFXMMU_IRQHandler(GFXMMU_HandleTypeDef *hgfxmmu)
 {
   uint32_t flags, interrupts, error;
-  
+
   /* Read current flags and interrupts and determine which error occurs */
   flags = hgfxmmu->Instance->SR;
   interrupts = (hgfxmmu->Instance->CR & GFXMMU_CR_ITS_MASK);
   error = (flags & interrupts);
-  
+
   if(error != 0U)
   {
     /* Clear flags on GFXMMU_FCR register */
     hgfxmmu->Instance->FCR = error;
-    
+
     /* Update GFXMMU error code */
     hgfxmmu->ErrorCode |= error;
-    
+
     /* Call GFXMMU error callback */
 #if (USE_HAL_GFXMMU_REGISTER_CALLBACKS == 1)
     hgfxmmu->ErrorCallback(hgfxmmu);
@@ -841,7 +841,7 @@ __weak void HAL_GFXMMU_ErrorCallback(GFXMMU_HandleTypeDef *hgfxmmu)
   * @param  hgfxmmu GFXMMU handle.
   * @retval GFXMMU state.
   */
-HAL_GFXMMU_StateTypeDef HAL_GFXMMU_GetState(GFXMMU_HandleTypeDef *hgfxmmu)
+HAL_GFXMMU_StateTypeDef HAL_GFXMMU_GetState(const GFXMMU_HandleTypeDef *hgfxmmu)
 {
   /* Return GFXMMU handle state */
   return hgfxmmu->State;
@@ -855,17 +855,17 @@ HAL_GFXMMU_StateTypeDef HAL_GFXMMU_GetState(GFXMMU_HandleTypeDef *hgfxmmu)
 uint32_t HAL_GFXMMU_GetError(GFXMMU_HandleTypeDef *hgfxmmu)
 {
   uint32_t error_code;
-  
+
   /* Enter in critical section */
   __disable_irq();  
-  
+
   /* Store and reset GFXMMU error code */
   error_code = hgfxmmu->ErrorCode;
   hgfxmmu->ErrorCode = GFXMMU_ERROR_NONE;
-  
+
   /* Exit from critical section */
   __enable_irq();
-  
+
   /* Return GFXMMU error code */
   return error_code;
 }
@@ -890,4 +890,3 @@ uint32_t HAL_GFXMMU_GetError(GFXMMU_HandleTypeDef *hgfxmmu)
   * @}
   */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

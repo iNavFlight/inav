@@ -21,9 +21,13 @@
 #define USE_MAG
 #define USE_BARO
 #define USE_GPS
+#ifndef USE_GPS_PROTO_UBLOX
 #define USE_GPS_PROTO_UBLOX
+#endif
 #define USE_DASHBOARD
+#ifndef USE_TELEMETRY
 #define USE_TELEMETRY
+#endif
 #define USE_TELEMETRY_HOTT
 #define USE_TELEMETRY_IBUS
 #define USE_TELEMETRY_SMARTPORT
@@ -40,6 +44,7 @@
 #define USE_SOFTSERIAL1
 #define USE_SOFTSERIAL2
 
+#undef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS       60
 
 #define SERIAL_PORT_COUNT 8

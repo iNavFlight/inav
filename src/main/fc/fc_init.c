@@ -53,13 +53,14 @@
 #include "drivers/exti.h"
 #include "drivers/io.h"
 #include "drivers/flash.h"
+#include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
 #include "drivers/osd.h"
 #include "drivers/persistent.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_mapping.h"
-#include "drivers/pwm_output.h"
 #include "drivers/pwm_output.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
@@ -88,6 +89,7 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 #include "fc/firmware_update.h"
+#include "fc/stats.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -108,6 +110,8 @@
 #include "io/displayport_msp_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
+#include "io/gimbal_serial.h"
+#include "io/headtracker_msp.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
@@ -116,6 +120,7 @@
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/smartport_master.h"
+#include "io/crsf_sensor.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
@@ -123,6 +128,8 @@
 #include "io/vtx_msp.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
+
+#include "drivers/dronecan/dronecan.h"
 
 #include "msp/msp_serial.h"
 
@@ -146,6 +153,12 @@
 #include "scheduler/scheduler.h"
 
 #include "telemetry/telemetry.h"
+
+#include "terrain/terrain.h"
+
+#if defined(SITL_BUILD)
+#include "target/SITL/serial_proxy.h"
+#endif
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -223,6 +236,10 @@ void init(void)
     flashDeviceInitialized = flashInit();
 #endif
 
+#if defined(SITL_BUILD)
+    serialProxyInit();
+#endif
+
     initEEPROM();
     ensureEEPROMContainsValidData();
     suspendRxSignal();
@@ -272,6 +289,7 @@ void init(void)
 
     serialInit(feature(FEATURE_SOFTSERIAL));
 
+
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
@@ -286,11 +304,16 @@ void init(void)
     smartportMasterInit();
 #endif
 
+#if defined(USE_CRSF_SENSOR_INPUT)
+    crsfSensorInputInit();
+#endif
+
 #if defined(USE_LOG)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
 #endif
+
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     gvInit();
@@ -361,9 +384,8 @@ void init(void)
     updateHardwareRevision();
 #endif
 
-#if defined(USE_SDCARD_SDIO) && defined(STM32H7)
+#if defined(USE_SDCARD_SDIO) && (defined(STM32H7) || defined(STM32F7))
     sdioPinConfigure();
-    SDIO_GPIO_Init();
 #endif
 
 #ifdef USE_USB_MSC
@@ -513,6 +535,14 @@ void init(void)
     ezTuneUpdate();
 #endif
 
+#ifdef USE_DRONECAN
+    dronecanInit();
+#endif
+
+#ifndef USE_GEOZONE
+    featureClear(FEATURE_GEOZONE);
+#endif
+
     if (!sensorsAutodetect()) {
         // if gyro was not detected due to whatever reason, we give up now.
         failureMode(FAILURE_MISSING_ACC);
@@ -596,6 +626,23 @@ void init(void)
     }
 #endif
 
+#ifdef USE_SDCARD
+
+    bool sdcardNeeded = false;
+#ifdef USE_BLACKBOX
+    sdcardNeeded = (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD);
+#endif
+#ifdef USE_TERRAIN
+    sdcardNeeded = sdcardNeeded || terrainConfig()->terrainEnabled;
+#endif
+    if (sdcardNeeded) {
+        sdcardInsertionDetectInit();
+        sdcard_init();
+        afatfs_init();
+    }
+#endif // USE_SDCARD
+
+
 #ifdef USE_BLACKBOX
 
     //Do not allow blackbox to be run faster that 1kHz. It can cause UAV to drop dead when digital ESC protocol is used
@@ -620,19 +667,14 @@ void init(void)
             }
             break;
 #endif
-
-#ifdef USE_SDCARD
-        case BLACKBOX_DEVICE_SDCARD:
-            sdcardInsertionDetectInit();
-            sdcard_init();
-            afatfs_init();
-            break;
-#endif
         default:
             break;
     }
 
     blackboxInit();
+#endif
+#ifdef USE_TERRAIN
+    terrainInit();
 #endif
 
     gyroStartCalibration();
@@ -642,7 +684,7 @@ void init(void)
 #endif
 
 #ifdef USE_PITOT
-    pitotStartCalibration();
+    if (detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL) pitotStartCalibration();
 #endif
 
 #if defined(USE_VTX_CONTROL)
@@ -663,7 +705,9 @@ void init(void)
 #endif
 
 #ifdef USE_VTX_MSP
-    vtxMspInit();
+    if (feature(FEATURE_OSD)) {
+       vtxMspInit();
+    }
 #endif
 
 #endif // USE_VTX_CONTROL
@@ -678,6 +722,23 @@ void init(void)
 
 #ifdef USE_DSHOT
     initDShotCommands();
+#endif
+
+#ifdef USE_SERIAL_GIMBAL
+    gimbalCommonInit();
+    // Needs to be called before gimbalSerialHeadTrackerInit
+    gimbalSerialInit();
+#endif
+
+#ifdef USE_HEADTRACKER
+    headTrackerCommonInit();
+#ifdef USE_HEADTRACKER_SERIAL
+    // Needs to be called after gimbalSerialInit
+    gimbalSerialHeadTrackerInit();
+#endif
+#ifdef USE_HEADTRACKER_MSP
+    mspHeadTrackerInit();
+#endif
 #endif
 
     // Latch active features AGAIN since some may be modified by init().
@@ -712,6 +773,8 @@ void init(void)
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 #endif
+
+    statsInit();
 
     systemState |= SYSTEM_STATE_READY;
 }

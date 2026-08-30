@@ -22,6 +22,7 @@
 #include "platform.h"
 
 #include "blackbox/blackbox.h"
+#include "blackbox/blackbox_io.h"
 
 #include "build/debug.h"
 
@@ -53,7 +54,7 @@
 #include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_smoothing.h"
@@ -73,6 +74,7 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_vtol_mc_protection.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -176,7 +178,7 @@ bool areSensorsCalibrating(void)
     return false;
 }
 
-int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
+int16_t FAST_CODE getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
     int16_t stickDeflection = 0;
 
@@ -278,13 +280,17 @@ static void updateArmingStatus(void)
         }
 #endif
 
+#ifdef USE_GEOZONE
+        if (feature(FEATURE_GEOZONE) && geozoneIsBlockingArming()) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
+        } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
+        }
+#endif
+
         /* CHECK: */
-        if (
-            sensors(SENSOR_ACC) &&
-            !STATE(ACCELEROMETER_CALIBRATED) &&
-            // Require ACC calibration only if any of the setting might require it
-            isAccRequired()
-        ) {
+        // Require ACC calibration only if any of the setting might require it
+        if (sensors(SENSOR_ACC) && !STATE(ACCELEROMETER_CALIBRATED) && isAccRequired()) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED);
         }
         else {
@@ -342,6 +348,10 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
         }
 
+        if (ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED) && !IS_RC_MODE_ACTIVE(BOXARM)) {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
+        }
+
         /* CHECK: Arming switch */
         // If arming is disabled and the ARM switch is on
         // Note that this should be last check so all other blockers could be cleared correctly
@@ -381,27 +391,45 @@ static void processPilotAndFailSafeActions(float dT)
         failsafeApplyControlInput();
     }
     else {
-        // Compute ROLL PITCH and YAW command
-        rcCommand[ROLL] = getAxisRcCommand(rxGetChannelValue(ROLL), FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[PITCH] = getAxisRcCommand(rxGetChannelValue(PITCH), FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[YAW] = -getAxisRcCommand(rxGetChannelValue(YAW), FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcYawExpo8 : currentControlRateProfile->stabilized.rcYawExpo8, rcControlsConfig()->yaw_deadband);
+        // Compute ROLL PITCH and YAW command.
+        // Only recompute when the RX task has delivered new data (~50 Hz).
+        {
+            static int16_t cachedCmd[3] = {0, 0, 0};
+            if (isRXDataNew) {
+                cachedCmd[ROLL]  = getAxisRcCommand(rxGetChannelValue(ROLL),
+                    FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8,
+                    rcControlsConfig()->deadband);
+                cachedCmd[PITCH] = getAxisRcCommand(rxGetChannelValue(PITCH),
+                    FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8,
+                    rcControlsConfig()->deadband);
+                cachedCmd[YAW]   = -getAxisRcCommand(rxGetChannelValue(YAW),
+                    FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcYawExpo8 : currentControlProfile->stabilized.rcYawExpo8,
+                    rcControlsConfig()->yaw_deadband);
+            }
+            rcCommand[ROLL]  = cachedCmd[ROLL];
+            rcCommand[PITCH] = cachedCmd[PITCH];
+            rcCommand[YAW]   = cachedCmd[YAW];
+        }
 
         // Apply manual control rates
         if (FLIGHT_MODE(MANUAL_MODE)) {
-            rcCommand[ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual.rates[FD_ROLL] / 100L;
-            rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
-            rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
+            rcCommand[ROLL] = rcCommand[ROLL] * currentControlProfile->manual.rates[FD_ROLL] / 100L;
+            rcCommand[PITCH] = rcCommand[PITCH] * currentControlProfile->manual.rates[FD_PITCH] / 100L;
+            rcCommand[YAW] = rcCommand[YAW] * currentControlProfile->manual.rates[FD_YAW] / 100L;
         } else {
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
             rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
 
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 2, rcCommand[PITCH]);
             rcCommand[PITCH] = applyRateDynamics(rcCommand[PITCH], PITCH, dT);
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
 
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
             rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
+
+            navigationVtolMcProtectionApplyStabilizedCommandShaping(&rcCommand[ROLL], &rcCommand[PITCH], &rcCommand[YAW]);
+
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
 
         }
@@ -409,8 +437,10 @@ static void processPilotAndFailSafeActions(float dT)
         //Compute THROTTLE command
         rcCommand[THROTTLE] = throttleStickMixedValue();
 
-        // Signal updated rcCommand values to Failsafe system
-        failsafeUpdateRcCommandValues();
+        // Signal updated rcCommand values to Failsafe system when new RC data arrived
+        if (isRXDataNew) {
+            failsafeUpdateRcCommandValues();
+        }
 
         if (FLIGHT_MODE(HEADFREE_MODE)) {
             const float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
@@ -430,12 +460,6 @@ void disarm(disarmReason_t disarmReason)
         lastDisarmTimeUs = micros();
         DISABLE_ARMING_FLAG(ARMED);
         DISABLE_STATE(IN_FLIGHT_EMERG_REARM);
-
-#ifdef USE_BLACKBOX
-        if (feature(FEATURE_BLACKBOX)) {
-            blackboxFinish();
-        }
-#endif
 #ifdef USE_DSHOT
         if (FLIGHT_MODE(TURTLE_MODE)) {
             sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
@@ -444,6 +468,7 @@ void disarm(disarmReason_t disarmReason)
 #endif
         statsOnDisarm();
         logicConditionReset();
+        navigationVtolMcProtectionResetTransientStates();
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
@@ -579,16 +604,6 @@ void tryArm(void)
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
 
-#ifdef USE_BLACKBOX
-        if (feature(FEATURE_BLACKBOX)) {
-            serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
-            if (sharedBlackboxAndMspPort) {
-                mspSerialReleasePortIfAllocated(sharedBlackboxAndMspPort);
-            }
-            blackboxStart();
-        }
-#endif
-
         //beep to indicate arming
         if (navigationPositionEstimateIsHealthy()) {
             beeper(BEEPER_ARMING_GPS_FIX);
@@ -602,8 +617,22 @@ void tryArm(void)
     }
 
     if (!ARMING_FLAG(ARMED)) {
-        beeperConfirmationBeeps(1);
+        // Only beep if blocked by something other than DShot beeper guard delay to avoid feedback loop
+        if (armingFlags & ~ARMING_DISABLED_DSHOT_BEEPER) {
+            beeperConfirmationBeeps(1);
+        }
     }
+}
+
+bool fcSetArmState(bool arm)
+{
+    if (arm) {
+        tryArm();
+    } else {
+        disarm(DISARM_SWITCH);
+    }
+
+    return ARMING_FLAG(ARMED) == arm;
 }
 
 #define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
@@ -663,7 +692,7 @@ void processRx(timeUs_t currentTimeUs)
     if (!cliMode) {
         bool canUseRxData = rxIsReceivingSignal() && !FLIGHT_MODE(FAILSAFE_MODE);
         updateAdjustmentStates(canUseRxData);
-        processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile), canUseRxData);
+        processRcAdjustments(CONST_CAST(controlConfig_t*, currentControlProfile), canUseRxData);
     }
 
     // Angle mode forced on briefly after emergency inflight rearm to help stabilise attitude (currently limited to MR)
@@ -700,7 +729,7 @@ void processRx(timeUs_t currentTimeUs)
     }
 
     /* Turn assistant mode */
-    if (IS_RC_MODE_ACTIVE(BOXTURNASSIST)) {
+    if (IS_RC_MODE_ACTIVE(BOXTURNASSIST) || navigationRequiresTurnAssistance()) {
          ENABLE_FLIGHT_MODE(TURN_ASSISTANT);
     } else {
         DISABLE_FLIGHT_MODE(TURN_ASSISTANT);
@@ -870,13 +899,53 @@ static void applyThrottleTiltCompensation(void)
     }
 }
 
+bool isMspConfigActive(bool isActive)
+{
+    static timeMs_t lastActive = 0;
+
+    if (isActive) {
+        lastActive = millis();
+    }
+
+    return millis() - lastActive < 1000;
+}
+#ifdef USE_BLACKBOX
+static void processBlackbox(void)
+{
+    if (getBlackboxState() == BLACKBOX_STATE_DISABLED || isBlackboxDeviceFull()) {
+        return;
+    }
+
+    /* Logging with arm_control set to -1 inhibited when connected to Configurator to avoid Blackbox setting issues */
+    if (getBlackboxState() == BLACKBOX_STATE_STOPPED) {
+        if ((blackboxConfig()->arm_control == -1 && !areSensorsCalibrating() && !isMspConfigActive(NULL)) || ARMING_FLAG(ARMED)) {
+            serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
+            if (sharedBlackboxAndMspPort) {
+                mspSerialReleasePortIfAllocated(sharedBlackboxAndMspPort);
+            }
+
+            blackboxStart();
+        }
+    } else if (!ARMING_FLAG(ARMED)) {
+        if ((blackboxConfig()->arm_control == -1 && isMspConfigActive(NULL)) ||
+            (blackboxConfig()->arm_control >= 0 && micros() - lastDisarmTimeUs > (timeUs_t)(USECS_PER_SEC * blackboxConfig()->arm_control))) {
+
+            blackboxFinish();
+        }
+    }
+
+    blackboxUpdate(micros());
+}
+#endif
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
 
     cycleTime = getTaskDeltaTime(TASK_SELF);
-    dT = (float)cycleTime * 0.000001f;
+    dT = US2S(cycleTime);
 
-    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED))) {
+    bool fwLaunchIsActive = STATE(AIRPLANE) && isNavLaunchEnabled() && armTime == 0;
+
+    if (ARMING_FLAG(ARMED) && (!STATE(AIRPLANE) || !fwLaunchIsActive || fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED)) {
         flightTime += cycleTime;
         armTime += cycleTime;
         updateAccExtremes();
@@ -896,7 +965,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
 #if defined(SITL_BUILD)
-    if (lockMainPID()) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) || lockMainPID()) {
 #endif
 
     gyroFilter();
@@ -910,7 +979,12 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     processPilotAndFailSafeActions(dT);
 
-    updateArmingStatus();
+    // Check battery, GPS signal, arming status etc @ 200 Hz
+    static uint8_t armingStatusDivider = 0;
+    if (++armingStatusDivider >= 10) {
+        armingStatusDivider = 0;
+        updateArmingStatus();
+    }
 
     if (rxConfig()->rcFilterFrequency) {
         rcInterpolationApply(isRXDataNew, currentTimeUs);
@@ -934,7 +1008,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     // Calculate stabilisation
     pidController(dT);
 
-    mixTable();
+    mixTable(dT);
 
     if (isMixerUsingServos()) {
         servoMixer(dT);
@@ -969,7 +1043,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
 #ifdef USE_BLACKBOX
     if (!cliMode && feature(FEATURE_BLACKBOX)) {
-        blackboxUpdate(micros());
+        processBlackbox();
     }
 #endif
 }

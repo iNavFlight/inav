@@ -283,7 +283,7 @@ bool busWriteBuf(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uin
                 return spiBusWriteBuffer(dev, reg, data, length);
             }
             else {
-                return spiBusWriteBuffer(dev, reg | 0x80, data, length);
+                return spiBusWriteBuffer(dev, reg & 0x7F, data, length);
             }
 #else
             return false;

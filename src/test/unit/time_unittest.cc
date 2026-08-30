@@ -23,7 +23,7 @@
 extern "C" {
     #include "common/time.h"
     #include "drivers/time.h"
-    extern timeUs_t usTicks;
+    extern uint32_t usTicks;
     extern volatile timeMs_t sysTickUptime;
     extern volatile timeMs_t sysTickValStamp;
 }

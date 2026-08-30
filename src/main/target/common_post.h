@@ -19,6 +19,13 @@
 
 #pragma once
 
+// MSP-over-MAVLink is independently removable from MAVLink targets that cannot
+// afford its reply buffer. Define DISABLE_MAVLINK_MSP_TUNNEL in a target to
+// retain normal MAVLink without the tunnel RAM/code cost.
+#if defined(USE_TELEMETRY_MAVLINK) && !defined(DISABLE_MAVLINK_MSP_TUNNEL)
+#define USE_MAVLINK_MSP_TUNNEL
+#endif
+
 // Config storage in memory-mapped flash
 extern uint8_t __config_start;
 extern uint8_t __config_end;
@@ -27,6 +34,54 @@ extern uint8_t __config_end;
 #if !defined(USE_I2C)
 # undef USE_DASHBOARD
 # undef USE_OLED_UG2864
+#endif
+
+
+// Make sure DEFAULT_I2C_BUS is valid
+#ifndef DEFAULT_I2C_BUS
+
+#if defined(USE_I2C_DEVICE_1)
+#define DEFAULT_I2C_BUS BUS_I2C1
+#elif defined(USE_I2C_DEVICE_2)
+#define DEFAULT_I2C_BUS BUS_I2C2
+#elif defined(USE_I2C_DEVICE_3)
+#define DEFAULT_I2C_BUS BUS_I2C3
+#elif defined(USE_I2C_DEVICE_4)
+#define DEFAULT_I2C_BUS BUS_I2C4
+#endif
+
+#endif
+
+// Compile INA226 support for every target with a usable hardware I2C bus.
+#if defined(USE_I2C) && defined(DEFAULT_I2C_BUS)
+#define USE_INA226
+
+#ifndef BATTERY_I2C_BUS
+#define BATTERY_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
+#ifndef INA226_I2C_ADDRESS
+#define INA226_I2C_ADDRESS 0x40
+#endif
+#endif
+
+// Airspeed sensors
+#if defined(USE_PITOT) && defined(DEFAULT_I2C_BUS)
+
+#ifndef PITOT_I2C_BUS
+#define PITOT_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
+#endif
+
+// Temperature sensors
+#if !defined(TEMPERATURE_I2C_BUS) && defined(DEFAULT_I2C_BUS)
+#define TEMPERATURE_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
+// Rangefinder sensors
+#if !defined(RANGEFINDER_I2C_BUS) && defined(DEFAULT_I2C_BUS)
+#define RANGEFINDER_I2C_BUS DEFAULT_I2C_BUS
 #endif
 
 // Enable MSP_DISPLAYPORT for F3 targets without builtin OSD,
@@ -50,8 +105,8 @@ extern uint8_t __config_end;
 #define USE_MAG_LIS3MDL
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_QMC5883P
 
-//#if (MCU_FLASH_SIZE > 512)
 #define USE_MAG_AK8963
 #define USE_MAG_AK8975
 #define USE_MAG_IST8308
@@ -63,9 +118,12 @@ extern uint8_t __config_end;
 
 #define USE_MAG_RM3100
 #define USE_MAG_VCM5883
-//#endif // MCU_FLASH_SIZE
 
 #endif // USE_MAG_ALL
+
+#if defined(DEFAULT_I2C_BUS) && !defined(MAG_I2C_BUS)
+#define MAG_I2C_BUS DEFAULT_I2C_BUS
+#endif
 
 #endif // USE_MAG
 
@@ -76,6 +134,7 @@ extern uint8_t __config_end;
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 #define USE_BARO_BMP388
+#define USE_BARO_BMP390
 #define USE_BARO_DPS310
 #define USE_BARO_LPS25H
 #define USE_BARO_MS5607
@@ -84,6 +143,37 @@ extern uint8_t __config_end;
 #define USE_BARO_SPL06
 #endif
 
+#if defined(DEFAULT_I2C_BUS) && !defined(BARO_I2C_BUS)
+#define BARO_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
+#endif
+
+// Terrain keeps a sizeable grid cache in RAM, so restrict it to MCUs with enough of it.
+// MCU_RAM_SIZE is in KiB, defined per MCU next to MCU_FLASH_SIZE in cmake/.
+#if defined(USE_BARO) && defined(USE_SDCARD) && !defined(USE_TERRAIN) && (MCU_RAM_SIZE > 256)
+#define USE_TERRAIN
+
+// number of grid blocks held in the RAM cache; each entry is a gridCache_t
+// wrapping one packed gridBlock_t (~1.1 KB), no longer the old 2048-byte block
+#if (MCU_RAM_SIZE >= 512)
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 8
+#else
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 4
+#endif
+
+#endif
+
+// CRSF sensor input on a dedicated UART
+#if defined(USE_SERIALRX_CRSF)
+#define USE_CRSF_SENSOR_INPUT
+#define USE_BATTERY_SENSOR_CRSF
+#if defined(USE_GPS)
+#define USE_GPS_PROTO_CRSF
+#endif
+#if defined(USE_BARO)
+#define USE_BARO_CRSF
+#endif
 #endif
 
 #ifdef USE_ESC_SENSOR
