@@ -7021,7 +7021,7 @@
             },
             "reply": null,
             "notes": "Expects 41 bytes. Performs validation on `vbatSource` and `capacityUnit`.",
-            "description": "Sets miscellaneous configuration settings, superseding `MSP_SET_MISC`."
+            "description": "Sets miscellaneous configuration settings."
         },
         "MSP2_INAV_BATTERY_CONFIG": {
             "code": 8197,
