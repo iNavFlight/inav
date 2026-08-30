@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for MX_WIFI Component Driver</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  <link rel="icon" type="image/x-icon" href="_htmresc/favicon.png" />
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<div class="card fluid">
+<div class="sectione dark">
+<center>
+<h1 id="release-notes-for-mx_wifi-component-driver"><small>Release Notes for</small> <mark>MX_WIFI Component Driver</mark></h1>
+<p>Copyright © 2020 STMicroelectronics<br />
+Microcontrollers Division - Application Team</p>
+<a href="https://www.st.com" class="logo"><img src="_htmresc/st_logo.png" alt="ST logo" /></a>
+</center>
+</div>
+</div>
+<h1 id="license">License</h1>
+<p>Licensed by ST under BSD 3-Clause (the “License”). You may not use this package except in compliance with the License.</p>
+<p>You may obtain a copy of the License at: <a href="https://opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a></p>
+<h1 id="purpose">Purpose</h1>
+<p>This directory contains the MX_WIFI component driver.</p>
+</div>
+<div class="col-sm-12 col-lg-8">
+<h1 id="update-history">Update History</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section1" checked aria-hidden="false"> <label for="collapse-section1" aria-hidden="true">V1.0.4 / 15-May-2020 </label>
+<div>
+<h2 id="main-changes">Main changes</h2>
+<ul>
+<li>First official release of MX_WIFI WiFi component.</li>
+</ul>
+</div>
+</div>
+<h1 id="firmware-update-click-to-expand">Firmware update (click to expand)</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section30" aria-hidden="true"> <label for="collapse-section30" aria-hidden="true">Update via UART</label>
+<div>
+<p>This section provides you with a step by step procedure to upload the MXCHIP firmware of an MXCHIP Arduino shield using the MXCHIP UART interface.</p>
+<p>Prerequisites:</p>
+<ul>
+<li>The steps described in this document use Tera Term as a terminal emulator. For the firmware update, you should not use a version more recent than 4.85 as you may encounter some issues when using YModem.</li>
+<li>The material you need to have is:
+<ul>
+<li>a USB to TTL connector</li>
+<li>4 male to female cables with PCX connectors</li>
+<li>1 female to female cable with PCX connectors <br/><br/></li>
+</ul></li>
+</ul>
+<p>Connect the TTL signals to the MXCHIP Arduino shield: 3.3 V, GND, Tx and Rx and loop the Boot MXCHIP Arduino shield – See the below picture:</p>
+<p><img src="_htmresc/fwupdate/picture1.png" title="picture1" /></p>
+<p><br/><br/> Check that the version of your Tera Term is not more recent than 4.85 using the “Help/About Tera Term” … menu:</p>
+<p><img src="_htmresc/fwupdate/picture2.png" title="picture2" /></p>
+<p><br/><br/> Open the Setup/Serial port… and set the Port com correcponding to your setup and the other values as follows:</p>
+<p><img src="_htmresc/fwupdate/picture3.png" title="picture3" /></p>
+<p><br/><br/> Press the “Reset” button of the MXCHIP Arduino shield. A menu will be displayed in the Tera Term window as in the below picture:</p>
+<p><img src="_htmresc/fwupdate/picture4.png" title="picture4" /></p>
+<p><br/><br/> You have to enter this command: 4 -dev 1 -start 0x0 -end 0x160000:</p>
+<p><img src="_htmresc/fwupdate/picture5.png" title="picture5" /></p>
+<p><br/><br/> The board is ready to receive the new firmware:</p>
+<p><img src="_htmresc/fwupdate/picture6.png" title="picture6" /></p>
+<p><br/> Select YMODEM Sending:</p>
+<p><img src="_htmresc/fwupdate/picture7.png" title="picture7" /></p>
+<p><br/><br/> Then select the firmware available under Firmware\Drivers\BSP\Components\mx_wifi\firmware or Firmware\Drivers\BSPv2\Components\mx_wifi\firmware (one option only will be available in your package).</p>
+<p><br/><br/> The firmware download is about to start. It takes up to around 30 seconds.</p>
+<p><img src="_htmresc/fwupdate/picture8.png" title="picture8" /></p>
+<p><br/><br/> The firmware upgrade is started:</p>
+<p><img src="_htmresc/fwupdate/picture9.png" title="picture9" /></p>
+<p><br/><br/> The firmware upgrade is completed:</p>
+<p><img src="_htmresc/fwupdate/picture10.png" title="picture10" /></p>
+<p><br/> More documentation on the MXCHIP bootloader can be found at <a href="https://en.docs.mxchip.com/#/docs/mxoscharacter/1.Bootloader" class="uri">https://en.docs.mxchip.com/#/docs/mxoscharacter/1.Bootloader</a></p>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section31" aria-hidden="true"> <label for="collapse-section31" aria-hidden="true">Update via SWD</label>
+<div>
+<p>This section provides you with a step by step procedure to upload the MXCHIP firmware of an MXCHIP Arduino shield using the SWD interface.</p>
+<p>The MXCHIP-FlashTool is a software tool running on PC in order to download a MXCHIP firmware using the SWD interface.</p>
+<p>The MXCHIP-FlashTool is supported on these PC OS:</p>
+<ul>
+<li>Windows 7/10</li>
+<li>MacOS</li>
+<li>Linux</li>
+</ul>
+<p>And with these debug probes:</p>
+<ul>
+<li>J-LINK</li>
+<li>ST-LINK_V2</li>
+<li>ST-LINK_V2-1</li>
+</ul>
+<p>Prerequisites:</p>
+<ul>
+<li>The MXCHIP-Flash tool is to be installed as described into the below “Tool installation” section.</li>
+<li>The material you need to have is:
+<ul>
+<li>A debug probe</li>
+<li>4 female to female cables with PCX connectors</li>
+<li>A 3.3 V generator. Another board can be used as shown in the below picture supplying the power via 2 male to male cables with PCX connectors Tool installation:</li>
+</ul></li>
+<li>Python3 installation:
+<ul>
+<li>Goto the official website to download python: <a href="https://www.python.org/" class="uri">https://www.python.org/</a></li>
+</ul></li>
+<li>Download and install the MXCHIP-Flash tool with pip3
+<ul>
+<li>run this command: pip3 install mflash -i https://pypi.tuna.tsinghua.edu.cn/simple</li>
+</ul></li>
+<li>For Windows only, install the needed USB driver
+<ul>
+<li>Download zadig from <a href="https://zadig.akeo.ie" class="uri">https://zadig.akeo.ie</a></li>
+<li>Run zadig with administrator rights
+<ul>
+<li>Select: Options / List All Devices / Bulk interface / Replace Driver</li>
+</ul></li>
+</ul></li>
+</ul>
+<p>Connect the debug probe to the MXCHIP board</p>
+<ul>
+<li>Debug probe VCC to MXCHIP VDD</li>
+<li>Debug probe DIO to MXCHIP DIO</li>
+<li>Debug probe SCK to MXCHIP CLK</li>
+<li>Debug probe GND to MXCHIP GND</li>
+</ul>
+<p>Connect the +3.3 V and GND MXCHIP board to a power supply.</p>
+<p><img src="_htmresc/fwupdate/picture11.png" title="picture11" style="width:60.0%" /></p>
+<p><br/><br/></p>
+<p>USB driver verification. Opening your Device Manager (on Windows) you should see the USB driver as per the below picture</p>
+<p><img src="_htmresc/fwupdate/picture12.png" title="picture12" class="center" /> <br/><br/></p>
+<p>Download your image</p>
+<ul>
+<li>Right click on your bin file to download, select mflash-Download, see next picture
+<ul>
+<li>The image to be downloaded shall have the ALL.BIN suffix</li>
+</ul></li>
+</ul>
+<p><img src="_htmresc/fwupdate/picture13.png" title="picture13" /> <br/><br/></p>
+<ul>
+<li>Select chip: mx1290</li>
+<li>Select interface: stlink-v2 (or stlink-v2-1/j-link depend on your hardware)</li>
+<li>Set address: 0</li>
+</ul>
+<p><img src="_htmresc/fwupdate/picture14.png" title="picture14" /> <br/><br/></p>
+<ul>
+<li>Click download button to start.</li>
+<li>Wait until the progress bar reaches 100%.</li>
+</ul>
+<p><img src="_htmresc/fwupdate/picture15.png" title="picture15" /> <br/><br/></p>
+</div>
+</div>
+</div>
+</div>
+<footer class="sticky">
+For complete documentation on <mark>STM32</mark> microcontrollers please visit <a href="http://www.st.com/stm32" class="uri">http://www.st.com/stm32</a>
+</footer>
+</body>
+</html>

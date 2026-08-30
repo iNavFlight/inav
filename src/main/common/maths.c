@@ -123,6 +123,15 @@ int32_t wrap_18000(int32_t angle)
     return angle;
 }
 
+int16_t wrap_180(int16_t angle)
+{
+    if (angle > 180)
+        angle -= 360;
+    if (angle < -180)
+        angle += 360;
+    return angle;
+}
+
 int32_t wrap_36000(int32_t angle)
 {
     if (angle >= 36000)
@@ -156,7 +165,7 @@ int32_t applyDeadbandRescaled(int32_t value, int32_t deadband, int32_t min, int3
     return value;
 }
 
-int32_t constrain(int32_t amt, int32_t low, int32_t high)
+int32_t FAST_CODE constrain(int32_t amt, int32_t low, int32_t high)
 {
     if (amt < low)
         return low;
@@ -166,7 +175,7 @@ int32_t constrain(int32_t amt, int32_t low, int32_t high)
         return amt;
 }
 
-float constrainf(float amt, float low, float high)
+float FAST_CODE constrainf(float amt, float low, float high)
 {
     if (amt < low)
         return low;
@@ -216,7 +225,7 @@ int scaleRange(int x, int srcMin, int srcMax, int destMin, int destMax) {
     return ((a / b) + destMin);
 }
 
-float scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax) {
+float FAST_CODE scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax) {
     float a = (destMax - destMin) * (x - srcMin);
     float b = srcMax - srcMin;
     return ((a / b) + destMin);
@@ -516,9 +525,25 @@ bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float resu
     return sensorCalibrationValidateResult(result);
 }
 
+float gaussian(const float x, const float mu, const float sigma) {
+    return expf(-((x - mu) * (x - mu)) / (2.0f * sigma * sigma));
+}
+
 float bellCurve(const float x, const float curveWidth)
 {
-    return powf(M_Ef, -sq(x) / (2.0f * sq(curveWidth)));
+    return gaussian(x, 0.0f, curveWidth);
+}
+
+/**
+ * @brief Calculate the attenuation of a value using a Gaussian function.
+ * Retuns 1 for input 0 and ~0 for input width.
+ * @param input The input value.
+ * @param width The width of the Gaussian function.
+ * @return The attenuation of the input value.
+*/
+float attenuation(const float input, const float width) {
+    const float sigma = width / 2.35482f; // Approximately width / sqrt(2 * ln(2))
+    return gaussian(input, 0.0f, sigma);
 }
 
 float fast_fsqrtf(const float value) {

@@ -124,6 +124,69 @@ static inline uint16_t mavlink_msg_generator_status_pack(uint8_t system_id, uint
 }
 
 /**
+ * @brief Pack a generator_status message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param status  Status flags.
+ * @param generator_speed [rpm] Speed of electrical generator or alternator. UINT16_MAX: field not provided.
+ * @param battery_current [A] Current into/out of battery. Positive for out. Negative for in. NaN: field not provided.
+ * @param load_current [A] Current going to the UAV. If battery current not available this is the DC current from the generator. Positive for out. Negative for in. NaN: field not provided
+ * @param power_generated [W] The power being generated. NaN: field not provided
+ * @param bus_voltage [V] Voltage of the bus seen at the generator, or battery bus if battery bus is controlled by generator and at a different voltage to main bus.
+ * @param rectifier_temperature [degC] The temperature of the rectifier or power converter. INT16_MAX: field not provided.
+ * @param bat_current_setpoint [A] The target battery current. Positive for out. Negative for in. NaN: field not provided
+ * @param generator_temperature [degC] The temperature of the mechanical motor, fuel cell core or generator. INT16_MAX: field not provided.
+ * @param runtime [s] Seconds this generator has run since it was rebooted. UINT32_MAX: field not provided.
+ * @param time_until_maintenance [s] Seconds until this generator requires maintenance.  A negative value indicates maintenance is past-due. INT32_MAX: field not provided.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_generator_status_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint64_t status, uint16_t generator_speed, float battery_current, float load_current, float power_generated, float bus_voltage, int16_t rectifier_temperature, float bat_current_setpoint, int16_t generator_temperature, uint32_t runtime, int32_t time_until_maintenance)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_GENERATOR_STATUS_LEN];
+    _mav_put_uint64_t(buf, 0, status);
+    _mav_put_float(buf, 8, battery_current);
+    _mav_put_float(buf, 12, load_current);
+    _mav_put_float(buf, 16, power_generated);
+    _mav_put_float(buf, 20, bus_voltage);
+    _mav_put_float(buf, 24, bat_current_setpoint);
+    _mav_put_uint32_t(buf, 28, runtime);
+    _mav_put_int32_t(buf, 32, time_until_maintenance);
+    _mav_put_uint16_t(buf, 36, generator_speed);
+    _mav_put_int16_t(buf, 38, rectifier_temperature);
+    _mav_put_int16_t(buf, 40, generator_temperature);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_GENERATOR_STATUS_LEN);
+#else
+    mavlink_generator_status_t packet;
+    packet.status = status;
+    packet.battery_current = battery_current;
+    packet.load_current = load_current;
+    packet.power_generated = power_generated;
+    packet.bus_voltage = bus_voltage;
+    packet.bat_current_setpoint = bat_current_setpoint;
+    packet.runtime = runtime;
+    packet.time_until_maintenance = time_until_maintenance;
+    packet.generator_speed = generator_speed;
+    packet.rectifier_temperature = rectifier_temperature;
+    packet.generator_temperature = generator_temperature;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_GENERATOR_STATUS_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_GENERATOR_STATUS;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_GENERATOR_STATUS_MIN_LEN, MAVLINK_MSG_ID_GENERATOR_STATUS_LEN, MAVLINK_MSG_ID_GENERATOR_STATUS_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_GENERATOR_STATUS_MIN_LEN, MAVLINK_MSG_ID_GENERATOR_STATUS_LEN);
+#endif
+}
+
+/**
  * @brief Pack a generator_status message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -210,6 +273,20 @@ static inline uint16_t mavlink_msg_generator_status_encode_chan(uint8_t system_i
 }
 
 /**
+ * @brief Encode a generator_status struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param generator_status C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_generator_status_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_generator_status_t* generator_status)
+{
+    return mavlink_msg_generator_status_pack_status(system_id, component_id, _status, msg,  generator_status->status, generator_status->generator_speed, generator_status->battery_current, generator_status->load_current, generator_status->power_generated, generator_status->bus_voltage, generator_status->rectifier_temperature, generator_status->bat_current_setpoint, generator_status->generator_temperature, generator_status->runtime, generator_status->time_until_maintenance);
+}
+
+/**
  * @brief Send a generator_status message
  * @param chan MAVLink channel to send the message
  *
@@ -278,7 +355,7 @@ static inline void mavlink_msg_generator_status_send_struct(mavlink_channel_t ch
 
 #if MAVLINK_MSG_ID_GENERATOR_STATUS_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

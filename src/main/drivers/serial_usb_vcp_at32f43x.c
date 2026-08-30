@@ -308,6 +308,12 @@ static void usbVcpSetMode(serialPort_t *instance, portMode_t mode)
     UNUSED(mode);
 }
 
+static void usbVcpSetOptions(serialPort_t *instance, portOptions_t options)
+{
+    UNUSED(instance);
+    UNUSED(options);
+}
+
 static bool isUsbVcpTransmitBufferEmpty(const serialPort_t *instance)
 {
     UNUSED(instance);
@@ -434,6 +440,7 @@ static const struct serialPortVTable usbVTable[] = {
         .serialSetBaudRate = usbVcpSetBaudRate,
         .isSerialTransmitBufferEmpty = isUsbVcpTransmitBufferEmpty,
         .setMode = usbVcpSetMode,
+        .setOptions = usbVcpSetOptions,
         .isConnected = usbVcpIsConnected,
         .writeBuf = usbVcpWriteBuf,
         .beginWrite = usbVcpBeginWrite,
@@ -488,7 +495,25 @@ uint32_t usbVcpGetBaudRate(serialPort_t *instance)
     UNUSED(instance);
     cdc_struct_type *pcdc = (cdc_struct_type *)otg_core_struct.dev.class_handler->pdata;
     return pcdc->linecoding.bitrate;
-   // return CDC_BaudRate();
+    // return CDC_BaudRate();
+}
+
+portOptions_t usbVcpGetLineCoding(void)
+{
+    portOptions_t options = 0;
+    cdc_struct_type *pcdc = (cdc_struct_type *)otg_core_struct.dev.class_handler->pdata;
+
+    // stop bits: CDC format 0=1 stop, 2=2 stop (1.5 not supported)
+    if (pcdc->linecoding.format == 2) {
+        options |= SERIAL_STOPBITS_2;
+    }
+
+    // parity: CDC 0=none, 2=even (odd parity not supported in INAV)
+    if (pcdc->linecoding.parity == 2) {
+        options |= SERIAL_PARITY_EVEN;
+    }
+
+    return options;
 }
 
 #endif

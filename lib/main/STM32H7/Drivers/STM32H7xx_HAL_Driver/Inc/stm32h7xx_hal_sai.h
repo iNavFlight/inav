@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -115,9 +114,10 @@ typedef struct
   uint32_t AudioFrequency;      /*!< Specifies the audio frequency sampling.
                                      This parameter can be a value of @ref SAI_Audio_Frequency */
 
-  uint32_t Mckdiv;              /*!< Specifies the master clock divider, the parameter will be used if for
-                                     AudioFrequency the user choice
-                                     This parameter must be a number between Min_Data = 0 and Max_Data = 63. */
+  uint32_t Mckdiv;              /*!< Specifies the master clock divider.
+                                     This parameter must be a number between Min_Data = 0 and Max_Data = 63.
+                                     @note This parameter is used only if AudioFrequency is set to
+                                           SAI_AUDIO_FREQUENCY_MCKDIV otherwise it is internally computed. */
 
   uint32_t MckOverSampling;     /*!< Specifies the master clock oversampling.
                                      This parameter can be a value of @ref SAI_Block_Mck_OverSampling */
@@ -154,6 +154,7 @@ typedef struct
 
 /** @defgroup SAI_Frame_Structure_definition SAI Frame Structure definition
   * @brief  SAI Frame Init structure definition
+  * @note   For SPDIF and AC97 protocol, these parameters are not used (set by hardware).
   * @{
   */
 typedef struct
@@ -186,6 +187,8 @@ typedef struct
 
 /** @defgroup SAI_Slot_Structure_definition SAI Slot Structure definition
   * @brief   SAI Block Slot Init Structure definition
+  * @note    For SPDIF protocol, these parameters are not used (set by hardware).
+  * @note    For AC97 protocol, only SlotActive parameter is used (the others are set by hardware).
   * @{
   */
 typedef struct
@@ -813,8 +816,8 @@ void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai);
   * @{
   */
 /* Peripheral State functions  ************************************************/
-HAL_SAI_StateTypeDef HAL_SAI_GetState(SAI_HandleTypeDef *hsai);
-uint32_t HAL_SAI_GetError(SAI_HandleTypeDef *hsai);
+HAL_SAI_StateTypeDef HAL_SAI_GetState(const SAI_HandleTypeDef *hsai);
+uint32_t HAL_SAI_GetError(const SAI_HandleTypeDef *hsai);
 /**
   * @}
   */
@@ -824,7 +827,7 @@ uint32_t HAL_SAI_GetError(SAI_HandleTypeDef *hsai);
   */
 
 /* Private macros ------------------------------------------------------------*/
-/** @addtogroup SAI_Private_Macros
+/** @defgroup SAI_Private_Macros SAI Private Macros
   * @{
   */
 #define IS_SAI_BLOCK_SYNCEXT(STATE) (((STATE) == SAI_SYNCEXT_DISABLE) ||\
@@ -980,4 +983,3 @@ uint32_t HAL_SAI_GetError(SAI_HandleTypeDef *hsai);
 
 #endif /* STM32H7xx_HAL_SAI_H */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

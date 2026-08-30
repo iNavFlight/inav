@@ -240,8 +240,8 @@ static void max7456WaitUntilNoBusy(void)
     }
 }
 
-// Sets wether the OSD drawing is enabled. Returns true iff
-// changes were succesfully performed.
+// Sets whether the OSD drawing is enabled. Returns true iff
+// changes were successfully performed.
 static bool max7456OSDSetEnabled(bool enabled)
 {
     if (enabled && !(state.registers.vm0 | OSD_ENABLE)) {
@@ -291,6 +291,17 @@ static int max7456PrepareBuffer(uint8_t * buf, size_t bufsize, int bufPtr, uint8
     buf[bufPtr++] = add;
     buf[bufPtr++] = data;
     return bufPtr;
+}
+
+static void max7456ApplyBusSpeed(void)
+{
+#if defined(MAX7456_SPI_SPEED)
+    busSpeed_e speed = (MAX7456_SPI_SPEED <= BUS_SPEED_ULTRAFAST) ? MAX7456_SPI_SPEED : BUS_SPEED_STANDARD;
+    busSetSpeed(state.dev, speed);
+#else
+    // Default safe speed for MAX7456
+    busSetSpeed(state.dev, BUS_SPEED_STANDARD);
+#endif
 }
 
 uint16_t max7456GetScreenSize(void)
@@ -386,7 +397,7 @@ void max7456Init(const videoSystem_e videoSystem)
         return;
     }
 
-    busSetSpeed(state.dev, BUS_SPEED_STANDARD);
+    max7456ApplyBusSpeed();
 
     // force soft reset on Max7456
     busWrite(state.dev, MAX7456ADD_VM0, MAX7456_RESET);

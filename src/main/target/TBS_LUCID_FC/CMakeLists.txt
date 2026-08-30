@@ -1,0 +1,1 @@
+target_at32f43x_xMT7(TBS_LUCID_FC)

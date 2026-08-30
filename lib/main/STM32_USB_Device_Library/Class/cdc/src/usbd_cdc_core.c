@@ -674,7 +674,10 @@ uint8_t  usbd_cdc_DataOut (void *pdev, uint8_t epnum)
   
   /* USB data will be immediately processed, this allow next USB traffic being 
   NAKed till the end of the application Xfer */
-  APP_FOPS.pIf_DataRx(USB_Rx_Buffer, USB_Rx_Cnt);
+  if (APP_FOPS.pIf_DataRx(USB_Rx_Buffer, USB_Rx_Cnt) != USBD_OK)
+  {
+      return USBD_OK;
+  }
   
   /* Prepare Out endpoint to receive next packet */
   DCD_EP_PrepareRx(pdev,
@@ -683,6 +686,14 @@ uint8_t  usbd_cdc_DataOut (void *pdev, uint8_t epnum)
                    CDC_DATA_OUT_PACKET_SIZE);
   
   return USBD_OK;
+}
+
+void USBD_CDC_ReceivePacket(void *pdev)
+{
+    DCD_EP_PrepareRx(pdev,
+                     CDC_OUT_EP,
+                     (uint8_t*)(USB_Rx_Buffer),
+                     CDC_DATA_OUT_PACKET_SIZE);
 }
 
 /**
@@ -696,7 +707,7 @@ uint8_t  usbd_cdc_SOF (void *pdev)
 {      
   static uint32_t FrameCount = 0;
   
-  if (FrameCount++ == CDC_IN_FRAME_INTERVAL)
+  if (FrameCount++ >= CDC_IN_FRAME_INTERVAL)
   {
     /* Reset the frame counter */
     FrameCount = 0;
