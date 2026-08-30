@@ -1,8 +1,8 @@
 # DroneCAN Driver Documentation
 
-**Last Updated:** 2026-08-21
-**Status:** Complete for the driver core, param-getset, and node table; DNA server, node/battery ID filtering, and actuator control are separate in-flight branches not yet reflected here
-**Branch:** feature/dronecan-param-getset
+**Last Updated:** 2026-08-28
+**Status:** Complete for the driver core, param-getset, node table, and DNA server; node/battery ID filtering and actuator control are separate in-flight branches not yet reflected here
+**Branch:** feature/dronecan-dna-server
 
 ---
 
@@ -116,6 +116,7 @@ CAN Bus ──[CAN interrupt]──> canardSTM32Receive() ──> shouldAcceptTr
 | `UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID` | `handle_GNSSRCTMStream()` | RTCM Stream | Broadcast | Variable | RTK correction data |
 | `UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID` | `handle_BatteryInfo()` | Battery Info | Broadcast | 1-10 Hz | Integrated with battery system |
 | `UAVCAN_PROTOCOL_GETNODEINFO_ID` | `handle_GetNodeInfo()` | GetNodeInfo | Request/Response | On demand | Responds with FC firmware version |
+| `UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID` | `dronecanDnaHandleAllocation()` | Dynamic Node Allocation | Broadcast | On connect | Assigns node IDs to anonymous peripherals via 3-stage UID handshake |
 
 ### Handler-Based Architecture
 
@@ -289,6 +290,7 @@ The driver uses the following settings from `settings.yaml`:
 |---|---|---|---|---|
 | `dronecan_node_id` | This FC's CAN node ID. 126/127 reserved for diagnostic tools. | uint8 | 1-127 | 1 |
 | `dronecan_bitrate_kbps` | CAN bus bitrate | enum (`dronecan_bitrate_table`) | 125/250/500/1000 | 1000 |
+| `dronecan_use_dna_server` | Enable automatic node ID assignment | bool | ON/OFF | ON |
 
 There is no separate enable/disable setting — DroneCAN support is a compile-time feature (`USE_DRONECAN`);
 whether it's active at runtime is determined by whether the target was built with that flag.
@@ -663,6 +665,65 @@ unique ID; PARAM_GETSET: name + value + min/max; EXECUTE_OPCODE/RESTART_NODE: `o
 
 ---
 
+## DNA Server
+
+The DNA server (`dronecan_dna_server.c`) implements a non-redundant (single-master) Dynamic Node Allocation allocator per UAVCAN Specification §6.4.9. It is guarded by `dronecanConfig()->dronecanUseDNAServer` and can be disabled via `set dronecan_use_dna_server = OFF`.
+
+### Three-stage handshake
+
+A peripheral that has no node ID broadcasts anonymous Allocation messages carrying up to 6 bytes of its 16-byte hardware unique ID per stage:
+
+| Stage | `first_part_of_unique_id` | Bytes sent |
+|-------|--------------------------|------------|
+| 1 | `true` | bytes 0–5 (+ optional preferred node ID) |
+| 2 | `false` | bytes 6–11 |
+| 3 | `false` | bytes 12–15 |
+
+Each stage must arrive within 500 ms (`FOLLOWUP_TIMEOUT_MS`) of the previous one, or the accumulator resets and the peripheral must start over from Stage 1.
+
+After Stage 3 the server has the full 16-byte UID and calls `dnaLookupOrAssignNode()`.
+
+### Node ID assignment
+
+`dnaLookupOrAssignNode()` applies the following priority order:
+
+1. **Existing entry** — if the UID is already in the allocation table and the stored node ID isn't currently claimed by another live node, return the previously assigned node ID. If it *is* claimed by someone else, fall through to reassignment below.
+2. **Preferred ID** — if the peripheral included a preferred node ID in Stage 1 (range 1–125; 126–127 are reserved for network maintenance tools), search upward from that ID first, then downward from `preferred - 1`, assigning the first available ID found either way.
+3. **Top-down fallback** — if there's no preference, or the preferred-ID search found nothing free, scan from node ID 125 downward and assign the first available ID.
+
+The FC's own node ID is never assigned to a peripheral. If all 32 table slots are full and no existing entry matches, the allocation fails silently.
+
+### Allocation table persistence
+
+The allocation table (`dnaServerData_t`) is stored in a Parameter Group (`PG_DRONECAN_DNA_SERVER`) backed by flash. A new entry calls `saveConfig()` (deferred, silent, only while disarmed) so the same peripheral receives the same node ID on every boot without re-negotiating.
+
+The table holds up to `DRONECAN_MAX_NODES` (32) entries, each storing:
+
+```c
+typedef struct {
+    uint8_t uniqueId[16];   // Full 16-byte hardware UID
+    uint8_t nodeId;         // Assigned CAN node ID (1-127)
+} dnaAllocationEntry_t;
+```
+
+### Entry point
+
+`dronecanDnaHandleAllocation()` is called from `onTransferReceived()` when a `UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID` broadcast arrives, but only while `dronecanUseDNAServer` is true:
+
+```c
+case UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_ID:
+    if (dronecanConfig()->dronecanUseDNAServer) {
+        dronecanDnaHandleAllocation(ins, transfer);
+    }
+    break;
+```
+
+### Unit tests
+
+Thirteen tests in `src/test/unit/dronecan_dna_server_unittest.cc` cover the full handshake, UID re-use, table-full rejection, non-broadcast source rejection, stage ordering, timeout reset, FC node ID exclusion, preferred node ID honouring, top-down sequential assignment, reserved-range and taken-preferred-ID fallback, and live-network reassignment of a stored ID (DNA-1 through DNA-13).
+
+---
+
 ## Adding New Message Types
 
 To add support for a new DroneCAN message type:
@@ -1023,7 +1084,9 @@ void broadcastNodeStatus(void) {
 
 | Date | Version | Changes |
 |---|---|---|
+| 2026-08-28 | 1.4 | Rebased onto maintenance-10.x; DNA server is now part of this branch (settings table now includes `dronecan_use_dna_server`); prior 1.3 history preserved below |
 | 2026-08-21 | 1.3 | Documented the on-demand async service client (`dronecan_async.c`): GetNodeInfo/ParamGetSet/ExecuteOpcode/RestartNode requests, the shared slot state machine, and the new `MSP2_INAV_DRONECAN_ASYNC_REQUEST`/`ASYNC_RESULT` messages that replace 0x2043's old NODE_INFO meaning. Corrected `dronecanNodeInfo_t` (name/name_len fields removed), the `MSP2_INAV_DRONECAN_NODES` reply layout (13 bytes/node, not 30; `last_seen_ms` is an elapsed delta, not an absolute timestamp), and the Settings table (real setting names are `dronecan_node_id`/`dronecan_bitrate_kbps`, not `dronecan_mode`/`dronecan_baudrate`). Scoped to the param-getset feature — this pass did not re-verify sections describing DNA server, node/battery ID filtering, or actuator control, which may have their own drift from other in-flight branches. |
+| 2026-06-06 | 1.3 | Added DNA server section; corrected settings table (`dronecan_bitrate_kbps`, `dronecan_use_dna_server`); added DNA allocation to message type table |
 | 2026-04-30 | 1.2 | Added node table (`dronecanNodeInfo_t`), accessor functions, CLI status output, and MSP commands (0x2042/0x2043) |
 | 2026-02-18 | 1.1 | Added error recovery, graceful disable behavior, and safe initialization documentation |
 | 2026-02-16 | 1.0 | Initial version - handler-based architecture documentation |

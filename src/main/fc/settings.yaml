@@ -4793,6 +4793,11 @@ groups:
         field: bitRateKbps
         table: dronecan_bitrate_table
         type: uint8_t
+      - name: dronecan_use_dna_server
+        description: "Enable the DNA server to manage plug and play dronecan devices"
+        type: bool
+        default_value: ON
+        field: dronecanUseDNAServer
   - name: PG_TERRAIN_CONFIG
     type: terrainConfig_t
     headers: ["terrain/terrain.h"]
