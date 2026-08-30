@@ -83,8 +83,8 @@ static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX];
 
 #if defined(USE_MSP_OVER_TELEMETRY)
 static mspSharedContext_t crsfMspContexts[RX_LINK_COUNT];
-static uint8_t crsfMspRxBuffers[RX_LINK_COUNT][CRSF_MSP_RX_BUF_SIZE];
-static uint8_t crsfMspTxBuffers[RX_LINK_COUNT][CRSF_MSP_TX_BUF_SIZE];
+STATIC_FASTRAM uint8_t crsfMspRxBuffers[RX_LINK_COUNT][CRSF_MSP_RX_BUF_SIZE];
+STATIC_FASTRAM uint8_t crsfMspTxBuffers[RX_LINK_COUNT][CRSF_MSP_TX_BUF_SIZE];
 static uint8_t crsfMspRequestOriginId[RX_LINK_COUNT];
 static volatile bool crsfMspRequestOriginValid[RX_LINK_COUNT];
 static bool crsfMspInitialized;

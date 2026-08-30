@@ -99,7 +99,7 @@ typedef struct rxLinkState_s {
     timeUs_t needRxSignalBefore;
 } rxLinkState_t;
 
-static rxLinkState_t rxLinks[RX_LINK_COUNT];
+STATIC_FASTRAM rxLinkState_t rxLinks[RX_LINK_COUNT];
 static rxLink_e activeLink = RX_LINK_PRIMARY;
 static rxLink_e pendingHandoverLink = RX_LINK_COUNT;
 static rxLinkSwitchReason_e pendingHandoverReason = RX_LINK_SWITCH_HANDOVER_API;
@@ -113,10 +113,10 @@ static void rxApplyActiveLink(rxLink_e link, bool copyChannels);
 static bool mspOverrideDataProcessingRequired = false;
 #endif
 
-static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+STATIC_FASTRAM rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 // MSP aux channel overlay: non-zero values override rcChannels[].data for CH9-CH32
-static uint16_t mspAuxOverlay[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+STATIC_FASTRAM uint16_t mspAuxOverlay[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 rxLinkStatistics_t rxLinkStatistics;
 rxRuntimeConfig_t rxRuntimeConfig;

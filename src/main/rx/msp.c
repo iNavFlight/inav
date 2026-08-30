@@ -36,8 +36,10 @@ typedef struct mspRxState_s {
     uint8_t lastChannelCount;
 } mspRxState_t;
 
-static mspRxState_t mspRxStates[RX_LINK_COUNT];
-static mspRxState_t mspOverrideState;
+// MSP+MSP is not a supported Dual RX pair, and the legacy MSP override is only
+// initialized when MSP is not a configured receiver. One state object therefore
+// covers all mutually-exclusive MSP RX roles.
+static mspRxState_t mspRxState;
 
 static uint16_t rxMspReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan)
 {
@@ -71,8 +73,7 @@ static void rxMspInitState(rxRuntimeConfig_t *rxRuntimeConfig, mspRxState_t *sta
 
 void rxMspFrameReceive(uint16_t *frame, int channelCount)
 {
-    const int8_t mspLink = rxGetMspLink();
-    mspRxState_t *state = mspLink >= 0 && mspLink < RX_LINK_COUNT ? &mspRxStates[mspLink] : &mspOverrideState;
+    mspRxState_t *state = &mspRxState;
 
     channelCount = constrain(channelCount, 0, MAX_SUPPORTED_RC_CHANNEL_COUNT);
     for (int i = 0; i < channelCount; i++) {
@@ -87,21 +88,22 @@ void rxMspFrameReceive(uint16_t *frame, int channelCount)
 
 uint8_t rxMspGetLastChannelCount(rxLink_e link)
 {
-    return (unsigned)link < RX_LINK_COUNT ? mspRxStates[link].lastChannelCount : 0;
+    const int8_t mspLink = rxGetMspLink();
+    return mspLink >= 0 && link == (rxLink_e)mspLink ? mspRxState.lastChannelCount : 0;
 }
 
 void rxMspInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, rxLink_e link)
 {
     UNUSED(rxConfig);
     if ((unsigned)link < RX_LINK_COUNT) {
-        rxMspInitState(rxRuntimeConfig, &mspRxStates[link], true);
+        rxMspInitState(rxRuntimeConfig, &mspRxState, true);
     }
 }
 
 void rxMspOverrideInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     UNUSED(rxConfig);
-    rxMspInitState(rxRuntimeConfig, &mspOverrideState, false);
+    rxMspInitState(rxRuntimeConfig, &mspRxState, false);
 }
 
 #endif
