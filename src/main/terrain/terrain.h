@@ -162,5 +162,8 @@ PG_DECLARE(terrainConfig_t, terrainConfig);
 void terrainInit(void);
 void terrainUpdateTask(timeUs_t currentTimeUs);
 int32_t terrainGetLastAMSL(void);
+// Terrain height (m AMSL, map datum) at any location, straight from the block cache;
+// TERRAIN_STATUS_NO_AMSL_DATA when the block is not loaded yet (a read gets scheduled)
+float getHeightAmslMeters(const gpsLocation_t *loc);
 int32_t terrainGetLastDistanceCm(void);
 

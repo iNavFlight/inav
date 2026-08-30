@@ -798,6 +798,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | OSD_REFRESH |  |
 | VTOL_TRANSITION |  |
 | VTOL_MC_PROTECT |  |
+| TERRAIN_NAV |  |
 
 ---
 
@@ -7070,6 +7071,26 @@ Enable load terrain data from SD card
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### terrain_nav_lookahead
+
+TERRAIN AGL HOLD: check terrain up to this distance ahead along the flight path and climb early for rising ground [m]. 0 disables the lookahead. The effective distance is also limited by the terrain block cache of the flight controller
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 0 | 2000 |
+
+---
+
+### terrain_nav_min_agl
+
+TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb that levels off about 10 m above the floor. The floor absorbs worst-case terrain map error on steep slopes plus canopy - the minimum is the lowest value where that error budget still clears
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 6000 | 5000 | 12000 |
 
 ---
 
