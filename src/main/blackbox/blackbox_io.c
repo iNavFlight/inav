@@ -19,6 +19,11 @@
 #include <stdarg.h>
 #include <string.h>
 
+#if defined(SITL_BUILD)
+#include <stdio.h>
+#include <time.h>
+#endif
+
 #include "platform.h"
 
 #ifdef USE_BLACKBOX
@@ -81,6 +86,12 @@ static struct {
 
 #endif
 
+#if defined(SITL_BUILD)
+static struct {
+    FILE *file_handler;
+} blackboxFile;
+#endif
+
 #ifndef UNIT_TEST
 void blackboxOpen(void)
 {
@@ -102,6 +113,11 @@ void blackboxWrite(uint8_t value)
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
         afatfs_fputc(blackboxSDCard.logFile, value);
+        break;
+#endif
+#if defined(SITL_BUILD)
+    case BLACKBOX_DEVICE_FILE:
+        fputc(value, blackboxFile.file_handler);
         break;
 #endif
     case BLACKBOX_DEVICE_SERIAL:
@@ -130,6 +146,13 @@ int blackboxPrint(const char *s)
     case BLACKBOX_DEVICE_SDCARD:
         length = strlen(s);
         afatfs_fwrite(blackboxSDCard.logFile, (const uint8_t*) s, length); // Ignore failures due to buffers filling up
+        break;
+#endif
+
+#if defined(SITL_BUILD)
+    case BLACKBOX_DEVICE_FILE:
+        length = strlen(s);
+        fputs(s, blackboxFile.file_handler);
         break;
 #endif
 
@@ -194,6 +217,12 @@ bool blackboxDeviceFlushForce(void)
          * if it's done yet or not!
          */
         return afatfs_flush();
+#endif
+
+#if defined(SITL_BUILD)
+    case BLACKBOX_DEVICE_FILE:
+        fflush(blackboxFile.file_handler);
+        return true;
 #endif
 
     default:
@@ -271,6 +300,26 @@ bool blackboxDeviceOpen(void)
         return true;
         break;
 #endif
+#if defined(SITL_BUILD)
+    case BLACKBOX_DEVICE_FILE:
+        {
+            const time_t now = time(NULL);
+            const struct tm *t = localtime(&now);
+            char filename[32];
+            strftime(filename, sizeof(filename), "%Y_%m_%d_%H%M%S.TXT", t);
+
+            blackboxFile.file_handler = fopen(filename, "wb");
+            if (blackboxFile.file_handler == NULL) {
+                fprintf(stderr, "[BlackBox] Failed to create log file\n");
+                return false;
+            }
+            fprintf(stderr, "[BlackBox] Created %s\n", filename);
+        }
+
+        blackboxMaxHeaderBytesPerIteration = BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION;
+        return true;
+        break;
+#endif
     default:
         return false;
     }
@@ -301,6 +350,12 @@ void blackboxDeviceClose(void)
     case BLACKBOX_DEVICE_FLASH:
         // Some flash device, e.g., NAND devices, require explicit close to flush internally buffered data.
         flashfsClose();
+        break;
+#endif
+#if defined(SITL_BUILD)
+    case BLACKBOX_DEVICE_FILE:
+        fclose(blackboxFile.file_handler);
+        blackboxFile.file_handler = NULL;
         break;
 #endif
     default:
@@ -380,7 +435,16 @@ static bool blackboxSDCardBeginLog(void)
         if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY) {
             blackboxSDCard.state = BLACKBOX_SDCARD_WAITING;
 
-            afatfs_mkdir("logs", blackboxLogDirCreated);
+            if(afatfs_isCurrentDirRoot()){
+                //we are in root of SD card, we have to create or move to log directory
+                afatfs_mkdir("logs", blackboxLogDirCreated);
+            }
+            else
+            {
+                //we are already in log directory
+                blackboxSDCard.logDirectory = NULL;
+                blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            }
         }
         break;
 
@@ -389,6 +453,12 @@ static bool blackboxSDCardBeginLog(void)
         break;
 
     case BLACKBOX_SDCARD_ENUMERATE_FILES:
+
+        if (blackboxSDCard.logDirectory == NULL) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            break;
+        }
+
         while (afatfs_findNext(blackboxSDCard.logDirectory, &blackboxSDCard.logDirectoryFinder, &directoryEntry) == AFATFS_OPERATION_SUCCESS) {
             if (directoryEntry && !fat_isDirectoryEntryTerminator(directoryEntry)) {
                 // If this is a log file, parse the log number from the filename
@@ -414,6 +484,12 @@ static bool blackboxSDCardBeginLog(void)
         break;
 
     case BLACKBOX_SDCARD_CHANGE_INTO_LOG_DIRECTORY:
+        //if logDirectory is NULL, it would mean change directory to ROOT, we don't want to do that
+        if (blackboxSDCard.logDirectory == NULL) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            break;
+        }
+
         // Change into the log directory:
         if (afatfs_chdir(blackboxSDCard.logDirectory)) {
             // We no longer need our open handle on the log directory
@@ -480,7 +556,7 @@ bool blackboxDeviceEndLog(bool retainLog)
         ) {
             // Don't bother waiting the for the close to complete, it's queued now and will complete eventually
             blackboxSDCard.logFile = NULL;
-            blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            blackboxSDCard.state = BLACKBOX_SDCARD_INITIAL;
             return true;
         }
         return false;
@@ -506,6 +582,11 @@ bool isBlackboxDeviceFull(void)
         return afatfs_isFull();
 #endif
 
+#if defined (SITL_BUILD)
+    case BLACKBOX_DEVICE_FILE:
+        return false;
+#endif
+
     default:
         return false;
     }
@@ -523,6 +604,10 @@ bool isBlackboxDeviceWorking(void)
 #ifdef USE_FLASHFS
         case BLACKBOX_DEVICE_FLASH:
             return flashfsIsReady();
+#endif
+#if defined(SITL_BUILD)
+        case BLACKBOX_DEVICE_FILE:
+            return blackboxFile.file_handler != NULL;
 #endif
     default:
         return false;
@@ -561,6 +646,11 @@ void blackboxReplenishHeaderBudget(void)
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
         freeSpace = afatfs_getFreeBufferSpace();
+        break;
+#endif
+#if defined(SITL_BUILD)
+    case BLACKBOX_DEVICE_FILE:
+        freeSpace = BLACKBOX_MAX_ACCUMULATED_HEADER_BUDGET;
         break;
 #endif
     default:
@@ -628,6 +718,12 @@ blackboxBufferReserveStatus_e blackboxDeviceReserveBufferSpace(int32_t bytes)
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
         // Assume that all writes will fit in the SDCard's buffers
+        return BLACKBOX_RESERVE_TEMPORARY_FAILURE;
+#endif
+
+#if defined(SITL_BUILD)
+    case BLACKBOX_DEVICE_FILE:
+        // Assume that all writes will fit in the file's buffers
         return BLACKBOX_RESERVE_TEMPORARY_FAILURE;
 #endif
 

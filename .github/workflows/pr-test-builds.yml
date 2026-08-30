@@ -1,0 +1,151 @@
+name: PR Test Builds
+
+# Runs after "Build firmware" completes. Uses workflow_run (rather than
+# pull_request directly) so that secrets are available even for PRs from forks.
+#
+# Requires a repository secret PR_BUILDS_TOKEN with Contents: write access
+# to iNavFlight/pr-test-builds (fine-grained PAT or classic PAT with repo scope).
+on:
+  workflow_run:
+    workflows: ["Build firmware"]
+    types: [completed]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Only act on pull_request-triggered runs that succeeded.
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    # Prevent concurrent runs for the same PR branch racing on the
+    # release delete/create cycle.
+    concurrency:
+      group: pr-test-build-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: true
+    permissions:
+      actions: read          # to download artifacts from the triggering workflow run
+      issues: write          # github.rest.issues.* endpoints used to post PR comments
+      pull-requests: write   # to post the PR comment
+
+    steps:
+      - name: Download PR number
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-number
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read PR number
+        id: pr
+        run: |
+          PR_NUM=$(tr -dc '0-9' < pr_number.txt)
+          if [ -z "$PR_NUM" ]; then
+            echo "::error::Invalid PR number in artifact"
+            exit 1
+          fi
+          echo "number=${PR_NUM}" >> $GITHUB_OUTPUT
+
+      - name: Download firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: matrix-inav-*
+          merge-multiple: true
+          path: hexes
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get build info
+        id: info
+        run: |
+          COUNT=$(find hexes -name '*.hex' -type f | wc -l)
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::error::No .hex files found in downloaded artifacts"
+            exit 1
+          fi
+          echo "count=${COUNT}" >> $GITHUB_OUTPUT
+          echo "short_sha=$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      # Delete the previous release for this PR (if any) so assets are replaced
+      # cleanly on each new commit. --cleanup-tag removes the old tag so it is
+      # recreated fresh pointing to the new commit.
+      - name: Delete existing PR release
+        env:
+          GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+        run: |
+          gh release delete "pr-${{ steps.pr.outputs.number }}" \
+            --repo iNavFlight/pr-test-builds --cleanup-tag --yes 2>/dev/null || true
+
+      - name: Create PR release
+        env:
+          GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          SHORT_SHA: ${{ steps.info.outputs.short_sha }}
+          HEX_COUNT: ${{ steps.info.outputs.count }}
+          REPO: ${{ github.repository }}
+        run: |
+          PR_URL="https://github.com/${REPO}/pull/${PR_NUMBER}"
+          printf '%s\n\n%s\n\n%s\n' \
+            "Test build for [PR #${PR_NUMBER}](${PR_URL}) — commit \`${SHORT_SHA}\`" \
+            "**${HEX_COUNT} targets built.** Find your board's \`.hex\` file by name (e.g. \`MATEKF405SE.hex\`)." \
+            "> Development build for testing only. Use Full Chip Erase when flashing." \
+            > release-notes.md
+          gh release create "pr-${PR_NUMBER}" hexes/*.hex \
+            --repo iNavFlight/pr-test-builds \
+            --prerelease \
+            --title "PR #${PR_NUMBER} (${SHORT_SHA})" \
+            --notes-file release-notes.md
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          SHORT_SHA: ${{ steps.info.outputs.short_sha }}
+          HEX_COUNT: ${{ steps.info.outputs.count }}
+        with:
+          script: |
+            const prNumber = parseInt(process.env.PR_NUMBER, 10);
+            if (isNaN(prNumber)) throw new Error(`Invalid PR number: ${process.env.PR_NUMBER}`);
+            const shortSha  = process.env.SHORT_SHA;
+            const count     = process.env.HEX_COUNT;
+            const releaseUrl = `https://github.com/iNavFlight/pr-test-builds/releases/tag/pr-${prNumber}`;
+
+            const body = [
+              '<!-- pr-test-build -->',
+              '**Test firmware build ready** — commit `' + shortSha + '`',
+              '',
+              `[Download firmware for PR #${prNumber}](${releaseUrl})`,
+              '',
+              `${count} targets built. Find your board's \`.hex\` file by name on that page ` +
+              '(e.g. `MATEKF405SE.hex`). Files are individually downloadable — no GitHub login required.',
+              '',
+              '> Development build for testing only. Use Full Chip Erase when flashing.',
+            ].join('\n');
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+              }
+            );
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('<!-- pr-test-build -->')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner:      context.repo.owner,
+                repo:       context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }

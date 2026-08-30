@@ -1,0 +1,160 @@
+@charset "UTF-8";
+
+/* unvisited link */
+a:link {
+    color: blue; }
+
+/* visited link */
+ a:visited {
+    color: purple; }
+
+div.Section1 {
+page: Section1;
+font-family: Arial,Helvetica,sans-serif;
+width: 90%;
+margin-left: auto;
+margin-right: auto; }
+
+#header {
+text-align: center; }
+
+.license_url {
+text-align: center; }
+
+.SW_desc {
+text-align: center; }
+
+.logo {
+font-size: 1.75rem; }
+
+.release_type {
+font-weight: bold; }
+
+h1 {
+font-size: 24pt;
+font-weight: bold;
+font-family: Arial,Helvetica,sans-serif;
+text-align: center;
+color: #3366ff; }
+
+h2 {
+margin: 12pt 0in 3pt;
+page-break-after: avoid;
+font-weight: bold;
+font-family: Arial,Helvetica,sans-serif;
+background-color: #3366ff;
+color: white;
+padding-left: 5px;
+font-size: 16pt; }
+
+h3 {
+margin-left: 0in;
+font-weight: bold;
+font-family: Arial,Helvetica,sans-serif;
+background-color: #3366ff;
+width: 200px;
+margin-right: 500pt;
+color: white;
+padding-left: 5px;
+padding-top: 2px;
+padding-bottom: 2px;
+font-size: 12pt; }
+
+h4 {
+font-family: Arial,Helvetica,sans-serif;
+font-weight: bold;
+text-decoration: underline;
+font-size: 12pt; }
+
+p {
+margin: 0px 0px 0px 0in;
+font-family: Arial,Helvetica,sans-serif;
+padding-top: 3px;
+padding-bottom: 3px;
+font-size: 12pt; }
+
+ul {
+font-family: Arial,Helvetica,sans-serif;
+margin-top: 3px;
+margin-bottom: 3px;
+font-size: 10pt; }
+
+caption {
+margin-top: 10px;
+font-family: Arial,Helvetica,sans-serif;
+font-size: 11pt; }
+
+hr {
+width: 100%; }
+
+.guidance {
+background-color: #e5b8b7;
+font-style: italic;
+font-family: Arial,Helvetica,sans-serif;
+padding-top: 3px;
+padding-bottom: 3px;
+margin-top: 3px;
+margin-bottom: 3px;
+font-size: 10pt; }
+
+.guidance_title {
+font-style: normal;
+font-weight: bold;
+text-decoration: underline;
+font-family: Arial,Helvetica,sans-serif;
+font-size: 10pt; }
+
+.tickets {
+width: 90%;
+table-layout: auto;
+margin-left: auto;
+margin-right: auto;
+border: 2pt solid #9cc2e5;
+border-collapse: collapse;
+font-family: Arial,Helvetica,sans-serif;
+margin-bottom: 3px;
+margin-top: 3px;
+font-size: 10pt; }
+
+.tickets th {
+border: 2pt solid #9cc2e5;
+font-size: 12pt;
+background-color: #39a9dc;
+color: white;
+text-align: center;
+padding: 5px; }
+
+.tickets td {
+border: 2pt solid #9cc2e5;
+min-height: 32px;
+text-align: left;
+padding: 5px; }
+
+tr:nth-child(even) {background-color: #cee2f2;}
+tr:nth-child(odd) {background-color: #e8f1f9;}
+
+.topic1 {
+margin-top: 3px;
+margin-bottom: 3px;
+margin-left: 40px; }
+
+.topic2 {
+margin-top: 3px;
+margin-bottom: 3px; }
+
+.topic3 {
+margin-top: 3px;
+margin-bottom: 3px;
+margin-left: 20px; }
+
+.footer_text {
+text-align: center; }
+
+#purpose {
+margin-top: 3px;
+margin-bottom: 3px; }
+
+#identification {
+margin-top: 3px;
+margin-bottom: 3px; }
+

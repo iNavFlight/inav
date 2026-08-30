@@ -23,15 +23,15 @@ The stick positions are combined to activate different functions:
 
 | Function                      | Throttle | Yaw     | Pitch  | Roll   |
 | ----------------------------- | -------- | ------- | ------ | ------ |
-| Profile 1                     | LOW      | LOW     | CENTER | LOW    |
-| Profile 2                     | LOW      | LOW     | HIGH   | CENTER |
-| Profile 3                     | LOW      | LOW     | CENTER | HIGH   |
+| Control Profile 1             | LOW      | LOW     | CENTER | LOW    |
+| Control Profile 2             | LOW      | LOW     | HIGH   | CENTER |
+| Control Profile 3             | LOW      | LOW     | CENTER | HIGH   |
 | Battery profile 1             | HIGH     | LOW     | CENTER | LOW    |
 | Battery profile 2             | HIGH     | LOW     | HIGH   | CENTER |
 | Battery profile 3             | HIGH     | LOW     | CENTER | HIGH   |
 | Calibrate Gyro                | LOW      | LOW     | LOW    | CENTER |
 | Calibrate Acc                 | HIGH     | LOW     | LOW    | CENTER |
-| Calibrate Mag/Compass         | HIGH     | HIGH    | LOW    | CENTER |
+| Calibrate Compass/Zero Yaw    | HIGH     | HIGH    | LOW    | CENTER |
 | Trim Acc Left                 | HIGH     | CENTER  | CENTER | LOW    |
 | Trim Acc Right                | HIGH     | CENTER  | CENTER | HIGH   |
 | Trim Acc Forwards             | HIGH     | CENTER  | HIGH   | CENTER |
@@ -51,6 +51,14 @@ The stick positions are combined to activate different functions:
 
 For graphical stick position in all transmitter modes, check out [this page](https://www.mrd-rc.com/tutorials-tools-and-testing/inav-flight/inav-stick-commands-for-all-transmitter-modes/).
 ![Stick Positions](assets/images/StickPositions.png)
+
+## Compass Calibration and Yaw Zero Reset
+
+The stick function `Calibrate Compass/Zero Yaw` provides 2 functions depending on whether or not a compass is available.
+
+If a compass is available the stick function initiates the compass calibration routine.
+
+If no compass is available the stick function will reset the current yaw/heading estimate to zero (North) and also set the heading as trusted. This is useful on multirotors, allowing the craft yaw/heading to be correctly aligned to actual North simply by physically pointing the craft North then using the stick function to zero the yaw estimate. Since this also sets the heading as trusted Nav modes reliant on heading will be available immediately after arming without the need to fly fast enough to obtain a valid heading from GPS ground course.
 
 ## Yaw control
 

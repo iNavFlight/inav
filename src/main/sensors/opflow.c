@@ -171,6 +171,7 @@ void opflowUpdate(timeUs_t currentTimeUs)
     if (opflow.dev.updateFn(&opflow.dev)) {
         // Indicate valid update
         opflow.isHwHealty = true;
+        opflow.updateDt = US2S(currentTimeUs - opflow.lastValidUpdate);
         opflow.lastValidUpdate = currentTimeUs;
         opflow.rawQuality = opflow.dev.rawData.quality;
 

@@ -37,6 +37,7 @@ get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 string(SUBSTRING ${GIT_SHA1} 0 8 GIT_REV)
 
 # Load settings related functions, so the tests can use them
+include(dsdlc_generated)
 include(main)
 include(settings)
 
@@ -51,7 +52,9 @@ else()
     endif()
 endif()
 
-project(INAV VERSION 8.0.0)
+
+project(INAV VERSION 9.1.0)
+
 
 enable_language(ASM)
 
@@ -79,6 +82,7 @@ set(COMMON_COMPILE_DEFINITIONS
     FC_VERSION_MAJOR=${CMAKE_PROJECT_VERSION_MAJOR}
     FC_VERSION_MINOR=${CMAKE_PROJECT_VERSION_MINOR}
     FC_VERSION_PATCH_LEVEL=${CMAKE_PROJECT_VERSION_PATCH}
+    FC_VERSION_TYPE="${VERSION_TYPE}"
 )
 
 if (NOT SITL)

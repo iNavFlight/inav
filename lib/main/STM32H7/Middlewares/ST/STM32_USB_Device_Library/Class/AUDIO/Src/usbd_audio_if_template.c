@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2015 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                      www.st.com/SLA0044
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -70,7 +69,7 @@ static int8_t  TEMPLATE_DeInit(uint32_t options);
 static int8_t  TEMPLATE_AudioCmd(uint8_t *pbuf, uint32_t size, uint8_t cmd);
 static int8_t  TEMPLATE_VolumeCtl(uint8_t vol);
 static int8_t  TEMPLATE_MuteCtl(uint8_t cmd);
-static int8_t  TEMPLATE_PeriodicTC(uint8_t cmd);
+static int8_t  TEMPLATE_PeriodicTC(uint8_t *pbuf, uint32_t size, uint8_t cmd);
 static int8_t  TEMPLATE_GetState(void);
 
 USBD_AUDIO_ItfTypeDef USBD_AUDIO_Template_fops =
@@ -94,6 +93,10 @@ USBD_AUDIO_ItfTypeDef USBD_AUDIO_Template_fops =
   */
 static int8_t TEMPLATE_Init(uint32_t  AudioFreq, uint32_t Volume, uint32_t options)
 {
+  UNUSED(AudioFreq);
+  UNUSED(Volume);
+  UNUSED(options);
+
   /*
      Add your initialization code here
   */
@@ -108,6 +111,8 @@ static int8_t TEMPLATE_Init(uint32_t  AudioFreq, uint32_t Volume, uint32_t optio
   */
 static int8_t TEMPLATE_DeInit(uint32_t options)
 {
+  UNUSED(options);
+
   /*
      Add your deinitialization code here
   */
@@ -125,6 +130,10 @@ static int8_t TEMPLATE_DeInit(uint32_t options)
   */
 static int8_t TEMPLATE_AudioCmd(uint8_t *pbuf, uint32_t size, uint8_t cmd)
 {
+  UNUSED(pbuf);
+  UNUSED(size);
+  UNUSED(cmd);
+
   return (0);
 }
 
@@ -135,6 +144,8 @@ static int8_t TEMPLATE_AudioCmd(uint8_t *pbuf, uint32_t size, uint8_t cmd)
   */
 static int8_t TEMPLATE_VolumeCtl(uint8_t vol)
 {
+  UNUSED(vol);
+
   return (0);
 }
 
@@ -145,6 +156,8 @@ static int8_t TEMPLATE_VolumeCtl(uint8_t vol)
   */
 static int8_t TEMPLATE_MuteCtl(uint8_t cmd)
 {
+  UNUSED(cmd);
+
   return (0);
 }
 
@@ -153,8 +166,12 @@ static int8_t TEMPLATE_MuteCtl(uint8_t cmd)
   * @param  cmd
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t TEMPLATE_PeriodicTC(uint8_t cmd)
+static int8_t TEMPLATE_PeriodicTC(uint8_t *pbuf, uint32_t size, uint8_t cmd)
 {
+  UNUSED(pbuf);
+  UNUSED(size);
+  UNUSED(cmd);
+
   return (0);
 }
 
@@ -178,6 +195,4 @@ static int8_t TEMPLATE_GetState(void)
 /**
   * @}
   */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 

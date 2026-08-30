@@ -216,7 +216,7 @@ typedef int8_t VL53L1X_ERROR;
     /*!<  Zone dynamic config GPH ID check failed - API out of sync */
 
 #define VL53L1_ERROR_XTALK_EXTRACTION_NO_SAMPLE_FAIL   ((VL53L1X_ERROR) - 22)
-    /*!<  Thrown when run_xtalk_extraction fn has 0 succesful samples
+    /*!<  Thrown when run_xtalk_extraction fn has 0 successful samples
      * when using the full array to sample the xtalk. In this case there is
      * not enough information to generate new Xtalk parm info. The function
      * will exit and leave the current xtalk parameters unaltered */

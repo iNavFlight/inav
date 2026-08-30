@@ -36,17 +36,14 @@
 #define SPI1_MOSI_PIN	        PA7
 
 #define USE_IMU_MPU6000
-#define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PA4
 
 #define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN        CW180_DEG_FLIP
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA4
 
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW180_DEG_FLIP
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PA4
 
@@ -156,8 +153,18 @@
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 
-#if defined(SKYSTARSF405HD2)
+#if defined(SKYSTARSF405HD2) || defined(SKYSTARSF405AIO)
 #define MAX_PWM_OUTPUT_PORTS    6
 #else
 #define MAX_PWM_OUTPUT_PORTS    4
+#endif
+
+#if defined(SKYSTARSF405AIO)
+#define IMU_MPU6000_ALIGN       CW0_DEG
+#define IMU_BMI270_ALIGN        CW0_DEG
+#define IMU_ICM42605_ALIGN      CW0_DEG
+#else
+#define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
+#define IMU_BMI270_ALIGN        CW180_DEG_FLIP
+#define IMU_ICM42605_ALIGN      CW180_DEG_FLIP
 #endif

@@ -52,6 +52,18 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
             uartPort->Handle.AdvancedInit.TxPinLevelInvert = UART_ADVFEATURE_TXINV_ENABLE;
         }
     }
+
+#ifdef USE_UART4_SWAP
+    if (uartPort->Handle.Instance == UART4) {
+        uartPort->Handle.AdvancedInit.AdvFeatureInit |= UART_ADVFEATURE_SWAP_INIT;
+        uartPort->Handle.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
+    }
+#endif
+}
+
+__attribute__((weak)) void uartConfigurePinSwap(uartPort_t *uartPort)
+{
+    UNUSED(uartPort);
 }
 
 static void uartReconfigure(uartPort_t *uartPort)
@@ -85,6 +97,7 @@ static void uartReconfigure(uartPort_t *uartPort)
 
 
     usartConfigurePinInversion(uartPort);
+    uartConfigurePinSwap(uartPort);
 
     if (uartPort->port.options & SERIAL_BIDIR)
     {
@@ -185,6 +198,13 @@ void uartSetMode(serialPort_t *instance, portMode_t mode)
     uartReconfigure(uartPort);
 }
 
+void uartSetOptions(serialPort_t *instance, portOptions_t options)
+{
+    uartPort_t *uartPort = (uartPort_t *)instance;
+    uartPort->port.options = options;
+    uartReconfigure(uartPort);
+}
+
 uint32_t uartTotalRxBytesWaiting(const serialPort_t *instance)
 {
     uartPort_t *s = (uartPort_t*)instance;
@@ -266,6 +286,7 @@ const struct serialPortVTable uartVTable[] = {
         .serialSetBaudRate = uartSetBaudRate,
         .isSerialTransmitBufferEmpty = isUartTransmitBufferEmpty,
         .setMode = uartSetMode,
+        .setOptions = uartSetOptions,
         .isConnected = NULL,
         .writeBuf = NULL,
         .beginWrite = NULL,

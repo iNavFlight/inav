@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 #include "rate_dynamics.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include <math.h>
 
 static FASTRAM float lastRcCommandData[3];
@@ -48,10 +48,10 @@ FAST_CODE static float calculateK(const float k, const float dT) {
 
 FAST_CODE int applyRateDynamics(int rcCommand, const int axis, const float dT) {
     if (
-        currentControlRateProfile->rateDynamics.sensitivityCenter != 100 || 
-        currentControlRateProfile->rateDynamics.sensitivityEnd != 100 || 
-        currentControlRateProfile->rateDynamics.weightCenter > 0 || 
-        currentControlRateProfile->rateDynamics.weightEnd > 0
+        currentControlProfile->rateDynamics.sensitivityCenter != 100 || 
+        currentControlProfile->rateDynamics.sensitivityEnd != 100 || 
+        currentControlProfile->rateDynamics.weightCenter > 0 || 
+        currentControlProfile->rateDynamics.weightEnd > 0
     ) {
 
         float pterm_centerStick, pterm_endStick, pterm, iterm_centerStick, iterm_endStick, dterm_centerStick, dterm_endStick, dterm;
@@ -62,19 +62,19 @@ FAST_CODE int applyRateDynamics(int rcCommand, const int axis, const float dT) {
         rcCommandPercent = abs(rcCommand) / 500.0f; // make rcCommandPercent go from 0 to 1
         inverseRcCommandPercent = 1.0f - rcCommandPercent;
 
-        pterm_centerStick = inverseRcCommandPercent * rcCommand * (currentControlRateProfile->rateDynamics.sensitivityCenter / 100.0f); // valid pterm values are between 50-150
-        pterm_endStick = rcCommandPercent * rcCommand * (currentControlRateProfile->rateDynamics.sensitivityEnd / 100.0f);
+        pterm_centerStick = inverseRcCommandPercent * rcCommand * (currentControlProfile->rateDynamics.sensitivityCenter / 100.0f); // valid pterm values are between 50-150
+        pterm_endStick = rcCommandPercent * rcCommand * (currentControlProfile->rateDynamics.sensitivityEnd / 100.0f);
         pterm = pterm_centerStick + pterm_endStick;
         rcCommandError = rcCommand - (pterm + iterm[axis]);
         rcCommand = pterm; // add this fake pterm to the rcCommand
 
-        iterm_centerStick = inverseRcCommandPercent * rcCommandError * calculateK(currentControlRateProfile->rateDynamics.correctionCenter / 100.0f, dT); // valid iterm values are between 0-95
-        iterm_endStick = rcCommandPercent * rcCommandError * calculateK(currentControlRateProfile->rateDynamics.correctionEnd / 100.0f, dT);
+        iterm_centerStick = inverseRcCommandPercent * rcCommandError * calculateK(currentControlProfile->rateDynamics.correctionCenter / 100.0f, dT); // valid iterm values are between 0-95
+        iterm_endStick = rcCommandPercent * rcCommandError * calculateK(currentControlProfile->rateDynamics.correctionEnd / 100.0f, dT);
         iterm[axis] += iterm_centerStick + iterm_endStick;
         rcCommand = rcCommand + iterm[axis]; // add the iterm to the rcCommand
 
-        dterm_centerStick = inverseRcCommandPercent * (lastRcCommandData[axis] - rcCommand) * calculateK(currentControlRateProfile->rateDynamics.weightCenter / 100.0f, dT); // valid dterm values are between 0-95
-        dterm_endStick = rcCommandPercent * (lastRcCommandData[axis] - rcCommand) * calculateK(currentControlRateProfile->rateDynamics.weightEnd / 100.0f, dT);
+        dterm_centerStick = inverseRcCommandPercent * (lastRcCommandData[axis] - rcCommand) * calculateK(currentControlProfile->rateDynamics.weightCenter / 100.0f, dT); // valid dterm values are between 0-95
+        dterm_endStick = rcCommandPercent * (lastRcCommandData[axis] - rcCommand) * calculateK(currentControlProfile->rateDynamics.weightEnd / 100.0f, dT);
         dterm = dterm_centerStick + dterm_endStick;
         rcCommand = rcCommand + dterm; // add dterm to the rcCommand (this is real dterm)
 

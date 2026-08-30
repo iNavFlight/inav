@@ -119,9 +119,40 @@ typedef enum {
 #if defined(USE_SMARTPORT_MASTER)
     TASK_SMARTPORT_MASTER,
 #endif
+#if defined(USE_CRSF_SENSOR_INPUT)
+    TASK_CRSF_SENSOR,
+#endif
 #ifdef USE_IRLOCK
     TASK_IRLOCK,
 #endif
+#ifdef USE_ADAPTIVE_FILTER
+    TASK_ADAPTIVE_FILTER,
+#endif
+#ifdef USE_SERIAL_GIMBAL
+    TASK_GIMBAL,
+#endif
+
+#ifdef USE_HEADTRACKER
+    TASK_HEADTRACKER,
+#endif
+
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
+    TASK_TELEMETRY_SBUS2,
+#endif
+
+#if defined (USE_GEOZONE) && defined(USE_GPS)
+    TASK_GEOZONE,
+#endif
+
+#if defined (USE_TERRAIN)
+    TASK_TERRAIN,
+    TASK_TERRAIN_IO,
+#endif
+
+#ifdef USE_DRONECAN
+    TASK_DRONECAN,
+#endif
+
     /* Count of real tasks */
     TASK_COUNT,
 
