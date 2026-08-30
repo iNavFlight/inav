@@ -9,6 +9,17 @@
   *           + Peripheral Control functions
   *           + Peripheral State functions
   *
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
   @verbatim
  ===============================================================================
                      ##### How to use this driver #####
@@ -28,17 +39,6 @@
              (default or non-default) to initiate CRC calculation
 
   @endverbatim
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
   ******************************************************************************
   */
 
@@ -62,10 +62,10 @@
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 /** @defgroup CRC_Private_Functions CRC Private Functions
- * @{
- */
-static uint32_t CRC_Handle_8(CRC_HandleTypeDef *hcrc, uint8_t pBuffer[], uint32_t BufferLength);
-static uint32_t CRC_Handle_16(CRC_HandleTypeDef *hcrc, uint16_t pBuffer[], uint32_t BufferLength);
+  * @{
+  */
+static uint32_t CRC_Handle_8(CRC_HandleTypeDef *hcrc, uint8_t const pBuffer[], uint32_t BufferLength);
+static uint32_t CRC_Handle_16(CRC_HandleTypeDef *hcrc, uint16_t const pBuffer[], uint32_t BufferLength);
 /**
   * @}
   */
@@ -77,8 +77,8 @@ static uint32_t CRC_Handle_16(CRC_HandleTypeDef *hcrc, uint16_t pBuffer[], uint3
   */
 
 /** @defgroup CRC_Exported_Functions_Group1 Initialization and de-initialization functions
- *  @brief    Initialization and Configuration functions.
- *
+  *  @brief    Initialization and Configuration functions.
+  *
 @verbatim
  ===============================================================================
             ##### Initialization and de-initialization functions #####
@@ -200,7 +200,7 @@ HAL_StatusTypeDef HAL_CRC_DeInit(CRC_HandleTypeDef *hcrc)
   __HAL_CRC_DR_RESET(hcrc);
 
   /* Reset IDR register content */
-  CLEAR_BIT(hcrc->Instance->IDR, CRC_IDR_IDR);
+  CLEAR_REG(hcrc->Instance->IDR);
 
   /* DeInit the low level hardware */
   HAL_CRC_MspDeInit(hcrc);
@@ -250,8 +250,8 @@ __weak void HAL_CRC_MspDeInit(CRC_HandleTypeDef *hcrc)
   */
 
 /** @defgroup CRC_Exported_Functions_Group2 Peripheral Control functions
- *  @brief    management functions.
- *
+  *  @brief    management functions.
+  *
 @verbatim
  ===============================================================================
                       ##### Peripheral Control functions #####
@@ -284,7 +284,7 @@ __weak void HAL_CRC_MspDeInit(CRC_HandleTypeDef *hcrc)
   *        handle field hcrc->InputDataFormat.
   * @retval uint32_t CRC (returned value LSBs for CRC shorter than 32 bits)
   */
-uint32_t HAL_CRC_Accumulate(CRC_HandleTypeDef *hcrc, uint32_t pBuffer[], uint32_t BufferLength)
+uint32_t HAL_CRC_Accumulate(CRC_HandleTypeDef *hcrc, const uint32_t pBuffer[], uint32_t BufferLength)
 {
   uint32_t index;      /* CRC input data buffer index */
   uint32_t temp = 0U;  /* CRC output (read from hcrc->Instance->DR register) */
@@ -304,11 +304,12 @@ uint32_t HAL_CRC_Accumulate(CRC_HandleTypeDef *hcrc, uint32_t pBuffer[], uint32_
       break;
 
     case CRC_INPUTDATA_FORMAT_BYTES:
-      temp = CRC_Handle_8(hcrc, (uint8_t *)pBuffer, BufferLength);
+      temp = CRC_Handle_8(hcrc, (uint8_t const *)pBuffer, BufferLength);
       break;
 
     case CRC_INPUTDATA_FORMAT_HALFWORDS:
-      temp = CRC_Handle_16(hcrc, (uint16_t *)(void *)pBuffer, BufferLength);    /* Derogation MisraC2012 R.11.5 */
+      temp =
+        CRC_Handle_16(hcrc, (uint16_t const *)(void const *)pBuffer, BufferLength);  /* Derogation MisraC2012 R.11.5 */
       break;
     default:
       break;
@@ -336,7 +337,7 @@ uint32_t HAL_CRC_Accumulate(CRC_HandleTypeDef *hcrc, uint32_t pBuffer[], uint32_
   *        handle field hcrc->InputDataFormat.
   * @retval uint32_t CRC (returned value LSBs for CRC shorter than 32 bits)
   */
-uint32_t HAL_CRC_Calculate(CRC_HandleTypeDef *hcrc, uint32_t pBuffer[], uint32_t BufferLength)
+uint32_t HAL_CRC_Calculate(CRC_HandleTypeDef *hcrc, const uint32_t pBuffer[], uint32_t BufferLength)
 {
   uint32_t index;      /* CRC input data buffer index */
   uint32_t temp = 0U;  /* CRC output (read from hcrc->Instance->DR register) */
@@ -361,12 +362,13 @@ uint32_t HAL_CRC_Calculate(CRC_HandleTypeDef *hcrc, uint32_t pBuffer[], uint32_t
 
     case CRC_INPUTDATA_FORMAT_BYTES:
       /* Specific 8-bit input data handling  */
-      temp = CRC_Handle_8(hcrc, (uint8_t *)pBuffer, BufferLength);
+      temp = CRC_Handle_8(hcrc, (uint8_t const *)pBuffer, BufferLength);
       break;
 
     case CRC_INPUTDATA_FORMAT_HALFWORDS:
       /* Specific 16-bit input data handling  */
-      temp = CRC_Handle_16(hcrc, (uint16_t *)(void *)pBuffer, BufferLength);    /* Derogation MisraC2012 R.11.5 */
+      temp =
+        CRC_Handle_16(hcrc, (uint16_t const *)(void const *)pBuffer, BufferLength);  /* Derogation MisraC2012 R.11.5 */
       break;
 
     default:
@@ -385,8 +387,8 @@ uint32_t HAL_CRC_Calculate(CRC_HandleTypeDef *hcrc, uint32_t pBuffer[], uint32_t
   */
 
 /** @defgroup CRC_Exported_Functions_Group3 Peripheral State functions
- *  @brief    Peripheral State functions.
- *
+  *  @brief    Peripheral State functions.
+  *
 @verbatim
  ===============================================================================
                       ##### Peripheral State functions #####
@@ -403,7 +405,7 @@ uint32_t HAL_CRC_Calculate(CRC_HandleTypeDef *hcrc, uint32_t pBuffer[], uint32_t
   * @param  hcrc CRC handle
   * @retval HAL state
   */
-HAL_CRC_StateTypeDef HAL_CRC_GetState(CRC_HandleTypeDef *hcrc)
+HAL_CRC_StateTypeDef HAL_CRC_GetState(const CRC_HandleTypeDef *hcrc)
 {
   /* Return CRC handle state */
   return hcrc->State;
@@ -418,8 +420,8 @@ HAL_CRC_StateTypeDef HAL_CRC_GetState(CRC_HandleTypeDef *hcrc)
   */
 
 /** @addtogroup CRC_Private_Functions
- * @{
- */
+  * @{
+  */
 
 /**
   * @brief  Enter 8-bit input data to the CRC calculator.
@@ -429,7 +431,7 @@ HAL_CRC_StateTypeDef HAL_CRC_GetState(CRC_HandleTypeDef *hcrc)
   * @param  BufferLength input data buffer length
   * @retval uint32_t CRC (returned value LSBs for CRC shorter than 32 bits)
   */
-static uint32_t CRC_Handle_8(CRC_HandleTypeDef *hcrc, uint8_t pBuffer[], uint32_t BufferLength)
+static uint32_t CRC_Handle_8(CRC_HandleTypeDef *hcrc, uint8_t const pBuffer[], uint32_t BufferLength)
 {
   uint32_t i; /* input data buffer index */
   uint16_t data;
@@ -452,19 +454,23 @@ static uint32_t CRC_Handle_8(CRC_HandleTypeDef *hcrc, uint8_t pBuffer[], uint32_
     {
       *(__IO uint8_t *)(__IO void *)(&hcrc->Instance->DR) = pBuffer[4U * i];         /* Derogation MisraC2012 R.11.5 */
     }
-    if ((BufferLength % 4U) == 2U)
+    else if ((BufferLength % 4U) == 2U)
     {
       data = ((uint16_t)(pBuffer[4U * i]) << 8U) | (uint16_t)pBuffer[(4U * i) + 1U];
       pReg = (__IO uint16_t *)(__IO void *)(&hcrc->Instance->DR);                    /* Derogation MisraC2012 R.11.5 */
       *pReg = data;
     }
-    if ((BufferLength % 4U) == 3U)
+    else if ((BufferLength % 4U) == 3U)
     {
       data = ((uint16_t)(pBuffer[4U * i]) << 8U) | (uint16_t)pBuffer[(4U * i) + 1U];
       pReg = (__IO uint16_t *)(__IO void *)(&hcrc->Instance->DR);                    /* Derogation MisraC2012 R.11.5 */
       *pReg = data;
 
       *(__IO uint8_t *)(__IO void *)(&hcrc->Instance->DR) = pBuffer[(4U * i) + 2U];  /* Derogation MisraC2012 R.11.5 */
+    }
+    else
+    {
+      /* Nothing to do */
     }
   }
 
@@ -480,7 +486,7 @@ static uint32_t CRC_Handle_8(CRC_HandleTypeDef *hcrc, uint8_t pBuffer[], uint32_
   * @param  BufferLength input data buffer length
   * @retval uint32_t CRC (returned value LSBs for CRC shorter than 32 bits)
   */
-static uint32_t CRC_Handle_16(CRC_HandleTypeDef *hcrc, uint16_t pBuffer[], uint32_t BufferLength)
+static uint32_t CRC_Handle_16(CRC_HandleTypeDef *hcrc, uint16_t const pBuffer[], uint32_t BufferLength)
 {
   uint32_t i;  /* input data buffer index */
   __IO uint16_t *pReg;
@@ -514,5 +520,3 @@ static uint32_t CRC_Handle_16(CRC_HandleTypeDef *hcrc, uint16_t pBuffer[], uint3
 /**
   * @}
   */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -71,6 +71,15 @@ uint8_t serialRead(serialPort_t *instance)
     return instance->vTable->serialRead(instance);
 }
 
+uint32_t serialReadBuf(serialPort_t *instance, uint8_t *data, uint32_t maxLen)
+{
+    uint32_t count = 0;
+    while (count < maxLen && serialRxBytesWaiting(instance)) {
+        data[count++] = instance->vTable->serialRead(instance);
+    }
+    return count;
+}
+
 void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     instance->vTable->serialSetBaudRate(instance, baudRate);
@@ -84,6 +93,11 @@ bool isSerialTransmitBufferEmpty(const serialPort_t *instance)
 void serialSetMode(serialPort_t *instance, portMode_t mode)
 {
     instance->vTable->setMode(instance, mode);
+}
+
+void serialSetOptions(serialPort_t *instance, portOptions_t options)
+{
+    instance->vTable->setOptions(instance, options);
 }
 
 void serialWriteBufShim(void *instance, const uint8_t *data, int count)
@@ -106,7 +120,7 @@ void serialEndWrite(serialPort_t *instance)
 bool serialIsConnected(const serialPort_t *instance)
 {
     if (instance->vTable->isConnected)
-        instance->vTable->isConnected(instance);
+        return(instance->vTable->isConnected(instance));
 
     // If API is not defined - assume connected
     return true;

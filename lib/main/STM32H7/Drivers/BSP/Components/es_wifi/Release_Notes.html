@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for ES_WIFI Component Driver</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" href="../../../../_htmresc/mini-st.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<div class="card fluid">
+<div class="sectione dark">
+<center>
+<h1 id="release-notes-for-es_wifi-component-driver"><small>Release Notes for</small> <mark>ES_WIFI Component Driver</mark></h1>
+<p>Copyright © 2017 STMicroelectronics<br />
+Microcontrollers Division - Application Team</p>
+<a href="https://www.st.com" class="logo"><img src="../../../../_htmresc/st_logo.png" alt="ST logo" /></a>
+</center>
+</div>
+</div>
+<h1 id="license">License</h1>
+<p>Licensed by ST under BSD 3-Clause license (the "License"). You may not use this package except in compliance with the License. You may obtain a copy of the License at:</p>
+<p><a href="https://opensource.org/licenses/BSD-3-Clause">https://opensource.org/licenses/BSD-3-Clause</a></p>
+<h1 id="purpose">Purpose</h1>
+<p>This directory contains the ES_WIFI component driver.</p>
+</div>
+<div class="col-sm-12 col-lg-8">
+<h1 id="update-history">Update History</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section25" checked aria-hidden="true"> <label for="collapse-section25" aria-hidden="true">V1.6.0 / 09-Apr-2020</label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<ul>
+<li>Add country code definition in configuration file to allow higher WiFi channels support</li>
+<li>Replaced strtok() by strtok_r() to be thread-safe</li>
+<li>Add Sock info and Peer info functions</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section24" aria-hidden="true"> <label for="collapse-section24" aria-hidden="true">V1.5.0 / 21-Nov-2019</label>
+<div>
+<h2 id="main-changes-1">Main Changes</h2>
+<ul>
+<li>Add partial support of new Inventek Module for Tiny Shark board</li>
+<li>Fix MISRA deviation</li>
+<li>Improve embedded TLS support API</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section23"  aria-hidden="true"> <label for="collapse-section23" aria-hidden="true">V1.4.0 / 03-July-2019</label>
+<div>
+<h2 id="main-changes-2">Main Changes</h2>
+<ul>
+<li>Set a default value to read and write time-out when non blocking</li>
+<li>Add ES_WIFI_MAX_SO_TIMEOUT</li>
+<li>Apply new template for sources</li>
+<li>New release notes format</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section22" aria-hidden="true"> <label for="collapse-section22" aria-hidden="true">V1.3.0 / 10-Sept-2018</label>
+<div>
+<h2 id="main-changes-3">Main Changes</h2>
+<ul>
+<li>Add support of TLS connection based on internal WIFI module support</li>
+<li>Ability to list Access Point one by one from Inventek firmware version 3.5.2.5</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section20" aria-hidden="true"> <label for="collapse-section20" aria-hidden="true">V1.2.0 / 24-July-2018</label>
+<div>
+<h2 id="main-changes-4">Main Changes</h2>
+<ul>
+<li>Add parameter to ES_WIFI_Ping() API to get the time for each ping.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section19" aria-hidden="true"> <label for="collapse-section19" aria-hidden="true">V1.1.2 / 07-June-2018</label>
+<div>
+<h2 id="main-changes-5">Main Changes</h2>
+<ul>
+<li>Fix in UDP support along new Inventek FW versions &gt;= C3.5.2.4.STM.RC11</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section185" aria-hidden="true"> <label for="collapse-section185" aria-hidden="true">V1.1.1 / 27-February-2018</label>
+<div>
+<h2 id="main-changes-6">Main Changes</h2>
+<ul>
+<li>Improve TCP server command</li>
+<li>Improve Robustness on potential memory overflows</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section18" aria-hidden="true"> <label for="collapse-section18" aria-hidden="true">V1.1.0 / 05-February-2018</label>
+<div>
+<h2 id="main-changes-7">Main Changes</h2>
+<ul>
+<li>Support for UDP sockets</li>
+<li>Spport for projects using RTOS</li>
+<li>Fix issue on never ending reads on stuffing bits</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section17" aria-hidden="true"> <label for="collapse-section17" aria-hidden="true">V1.0.1 / 31-August-2017</label>
+<div>
+<h2 id="main-changes-8">Main Changes</h2>
+<ul>
+<li>Corrections for ES_WIFI WiFi component.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section16" aria-hidden="true"> <label for="collapse-section16" aria-hidden="true">V1.0.0 / 23-February-2017</label>
+<div>
+<h2 id="main-changes-9">Main Changes</h2>
+<ul>
+<li>First official release of ES_WIFI WiFi component.</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<footer class="sticky">
+For complete documentation on <mark>STM32 Microcontrollers</mark> , visit: <a href="http://www.st.com/STM32">http://www.st.com/STM32</a>
+</footer>
+</body>
+</html>

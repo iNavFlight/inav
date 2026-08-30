@@ -1,0 +1,1 @@
+target_stm32f405xg(FRSKYF405 HSE_MHZ 24)

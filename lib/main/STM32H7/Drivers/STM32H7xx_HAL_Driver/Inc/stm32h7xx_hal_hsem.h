@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -58,7 +57,7 @@ extern "C" {
                                             (HSEM->C1IER |= (__SEM_MASK__)) : \
                                             (HSEM->C2IER |= (__SEM_MASK__)))
 #else
-#define __HAL_HSEM_ENABLE_IT(__SEM_MASK__) (HSEM->IER |= (__SEM_MASK__))
+#define __HAL_HSEM_ENABLE_IT(__SEM_MASK__) (HSEM->C1IER |= (__SEM_MASK__))
 #endif /* DUAL_CORE */
 /**
   * @brief  Disables the specified HSEM interrupts.
@@ -70,7 +69,7 @@ extern "C" {
                                              (HSEM->C1IER &= ~(__SEM_MASK__)) :       \
                                              (HSEM->C2IER &= ~(__SEM_MASK__)))
 #else
-#define __HAL_HSEM_DISABLE_IT(__SEM_MASK__) (HSEM->IER &= ~(__SEM_MASK__))
+#define __HAL_HSEM_DISABLE_IT(__SEM_MASK__) (HSEM->C1IER &= ~(__SEM_MASK__))
 #endif /* DUAL_CORE */
 
 /**
@@ -81,9 +80,9 @@ extern "C" {
 #if defined(DUAL_CORE)
 #define __HAL_HSEM_GET_IT(__SEM_MASK__) ((((SCB->CPUID & 0x000000F0) >> 4 )== 0x7) ? \
                                          ((__SEM_MASK__) & HSEM->C1MISR) :        \
-                                         ((__SEM_MASK__) & HSEM->C2MISR1))
+                                         ((__SEM_MASK__) & HSEM->C2MISR))
 #else
-#define __HAL_HSEM_GET_IT(__SEM_MASK__) ((__SEM_MASK__) & HSEM->MISR)
+#define __HAL_HSEM_GET_IT(__SEM_MASK__) ((__SEM_MASK__) & HSEM->C1MISR)
 #endif /* DUAL_CORE */
 
 /**
@@ -96,7 +95,7 @@ extern "C" {
                                            (__SEM_MASK__) & HSEM->C1ISR :           \
                                            (__SEM_MASK__) & HSEM->C2ISR)
 #else
-#define __HAL_HSEM_GET_FLAG(__SEM_MASK__) ((__SEM_MASK__) & HSEM->ISR)
+#define __HAL_HSEM_GET_FLAG(__SEM_MASK__) ((__SEM_MASK__) & HSEM->C1ISR)
 #endif /* DUAL_CORE */
 
 /**
@@ -109,7 +108,7 @@ extern "C" {
                                              (HSEM->C1ICR |= (__SEM_MASK__)) :        \
                                              (HSEM->C2ICR |= (__SEM_MASK__)))
 #else
-#define __HAL_HSEM_CLEAR_FLAG(__SEM_MASK__) (HSEM->ICR |= (__SEM_MASK__))
+#define __HAL_HSEM_CLEAR_FLAG(__SEM_MASK__) (HSEM->C1ICR |= (__SEM_MASK__))
 #endif /* DUAL_CORE */
 
 /**
@@ -130,12 +129,12 @@ extern "C" {
 HAL_StatusTypeDef  HAL_HSEM_Take(uint32_t SemID, uint32_t ProcessID);
 /* HSEM semaphore fast take (lock) using 1-Step  method ***********************/
 HAL_StatusTypeDef  HAL_HSEM_FastTake(uint32_t SemID);
-/* HSEM Check semaphore state Taken or not   **********************************/
-uint32_t HAL_HSEM_IsSemTaken(uint32_t SemID);
 /* HSEM Release  **************************************************************/
 void  HAL_HSEM_Release(uint32_t SemID, uint32_t ProcessID);
 /* HSEM Release All************************************************************/
 void HAL_HSEM_ReleaseAll(uint32_t Key, uint32_t CoreID);
+/* HSEM Check semaphore state Taken or not   **********************************/
+uint32_t HAL_HSEM_IsSemTaken(uint32_t SemID);
 
 /**
   * @}
@@ -210,5 +209,3 @@ void HAL_HSEM_IRQHandler(void);
 #endif
 
 #endif /* STM32H7xx_HAL_HSEM_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

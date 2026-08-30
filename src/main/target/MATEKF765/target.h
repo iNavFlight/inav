@@ -160,6 +160,13 @@
   #define SERIAL_PORT_COUNT       10
 #endif
 
+#if defined(MATEKF765SE)
+  #define USE_DRONECAN
+  #define CAN1_RX                 PD0
+  #define CAN1_TX                 PD1
+  #define CAN1_STANDBY            PD3
+#endif
+
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
@@ -169,6 +176,7 @@
 #define USE_SDCARD_SDIO
 #define SDCARD_SDIO_DMA         DMA_TAG(2,3,4)
 #define SDCARD_SDIO_4BIT
+#define SDCARD_SDIO_DEVICE		SDIODEV_1
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** ADC *****************************

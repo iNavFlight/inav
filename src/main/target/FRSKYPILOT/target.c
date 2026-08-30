@@ -39,13 +39,9 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_OUTPUT_AUTO, 0, 0), // S7
     DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_OUTPUT_AUTO, 0, 0), // S8
     DEF_TIM(TIM4,  CH4, PB9,  TIM_USE_OUTPUT_AUTO, 0, 0), // S9
-#ifdef FRSKYPILOT_LED
-    DEF_TIM(TIM2,  CH2, PA1,  TIM_USE_LED | TIM_USE_LED, 0, 0), // S10 now LED, S11 & S12 UART 3 only
-#else
     DEF_TIM(TIM2,  CH2, PA1,  TIM_USE_OUTPUT_AUTO, 0, 0), // S10
     DEF_TIM(TIM2,  CH3, PB10, TIM_USE_OUTPUT_AUTO, 0, 0), // S11
     DEF_TIM(TIM2,  CH4, PB11, TIM_USE_OUTPUT_AUTO, 0, 0), // S12
-#endif
 
     DEF_TIM(TIM5, CH1,  PA0,  TIM_USE_BEEPER, 0, 0),    // beeper
 };

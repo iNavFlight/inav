@@ -8,6 +8,17 @@
   *           + Initialization and de-initialization functions.
   *           + Peripheral Control functions.
   *           + Interrupt Handling functions.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
   @verbatim
   ==============================================================================
                         ##### PWR peripheral overview #####
@@ -26,18 +37,17 @@
           peripherals. The D2 domain contains peripherals and a CPU
           (Cortex-M4). The D3 domain contains the system control, I/O logic
           and low-power peripherals.
-      (+) STM32H743, STM32H753, STM32H742 and STM32H750 devices have 3 power
-          domains (D1, D2 and D3).
+      (+) STM32H72x, STM32H73x, STM32H742, STM32H743, STM32H750 and STM32H753 
+          devices have 3 power domains (D1, D2 and D3).
           The domain D1 contains a CPU (Cortex-M7), a Flash memory and some
           peripherals. The D2 domain contains peripherals. The D3 domains
           contains the system control, I/O logic and low-power peripherals.
-      (+) STM32H7AxxQ, STM32H7BxxQ, STM32H7Axxx and STM32H7Bxxx devices have 2
-          power domains (CD and SRD).
+      (+) STM32H7Axxx and STM32H7Bxxx devices have 2 power domains (CD and SRD).
           The core domain (CD) contains a CPU (Cortex-M7), a Flash
           memory and peripherals. The SmartRun domain contains the system
           control, I/O logic and low-power peripherals.
 
-   (#) Every entity have low power mode as decribed below :
+   (#) Every entity have low power mode as described below :
    (#) The CPU low power modes are :
       (+) CPU CRUN.
       (+) CPU CSLEEP.
@@ -130,18 +140,6 @@
       (+) __HAL_PWR_CLEAR_FLAG()            : Clear the PWR pending flags.
 
   @endverbatim
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
   */
 
 /* Includes ------------------------------------------------------------------*/
@@ -414,7 +412,7 @@ void HAL_PWR_DisableBkUpAccess (void)
   *         only Cortex-M4 or wake up Cortex-M7 and Cortex-M4.
   * @retval None.
   */
-void HAL_PWR_ConfigPVD (PWR_PVDTypeDef *sConfigPVD)
+void HAL_PWR_ConfigPVD (const PWR_PVDTypeDef *sConfigPVD)
 {
   /* Check the PVD configuration parameter */
   if (sConfigPVD == NULL)
@@ -501,6 +499,9 @@ void HAL_PWR_DisablePVD (void)
   *                 PWR_WAKEUP_PIN5_HIGH, PWR_WAKEUP_PIN5_LOW,
   *                 PWR_WAKEUP_PIN6_HIGH, PWR_WAKEUP_PIN6_LOW.
   * @note   PWR_WAKEUP_PINx and PWR_WAKEUP_PINx_HIGH are equivalent.
+  * @note   The PWR_WAKEUP_PIN3_HIGH, PWR_WAKEUP_PIN3_LOW, PWR_WAKEUP_PIN5_HIGH
+  *         and PWR_WAKEUP_PIN5_LOW are available only for devices that includes
+  *         GPIOI port.
   * @retval None.
   */
 void HAL_PWR_EnableWakeUpPin (uint32_t WakeUpPinPolarity)
@@ -527,6 +528,9 @@ void HAL_PWR_EnableWakeUpPin (uint32_t WakeUpPinPolarity)
   *                 PWR_WAKEUP_PIN4_HIGH, PWR_WAKEUP_PIN4_LOW,
   *                 PWR_WAKEUP_PIN5_HIGH, PWR_WAKEUP_PIN5_LOW,
   *                 PWR_WAKEUP_PIN6_HIGH, PWR_WAKEUP_PIN6_LOW.
+  * @note   The PWR_WAKEUP_PIN3_HIGH, PWR_WAKEUP_PIN3_LOW, PWR_WAKEUP_PIN5_HIGH
+  *         and PWR_WAKEUP_PIN5_LOW are available only for devices that includes
+  *         GPIOI port.
   * @retval None.
   */
 void HAL_PWR_DisableWakeUpPin (uint32_t WakeUpPinx)
@@ -559,11 +563,12 @@ void HAL_PWR_DisableWakeUpPin (uint32_t WakeUpPinx)
   */
 void HAL_PWR_EnterSLEEPMode (uint32_t Regulator, uint8_t SLEEPEntry)
 {
-  UNUSED(Regulator);
-
   /* Check the parameters */
   assert_param (IS_PWR_REGULATOR (Regulator));
   assert_param (IS_PWR_SLEEP_ENTRY (SLEEPEntry));
+
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(Regulator);
 
   /* Clear SLEEPDEEP bit of Cortex System Control Register */
   CLEAR_BIT (SCB->SCR, SCB_SCR_SLEEPDEEP_Msk);
@@ -584,7 +589,7 @@ void HAL_PWR_EnterSLEEPMode (uint32_t Regulator, uint8_t SLEEPEntry)
 /**
   * @brief  Enter STOP mode.
   * @note   For single core devices, this API will enter the system in STOP mode
-  *         with all domains in DSTOP, if RUN_D3/RUN_SRD bit in CPUCR regiter is
+  *         with all domains in DSTOP, if RUN_D3/RUN_SRD bit in CPUCR register is
   *         cleared.
   *         For dual core devices, this API will enter the domain (containing
   *         Cortex-Mx that executing this function) in DSTOP mode. If all
@@ -669,7 +674,7 @@ void HAL_PWR_EnterSTOPMode (uint32_t Regulator, uint8_t STOPEntry)
   * @brief  Enter STANDBY mode.
   * @note   For single core devices, this API will enter the system in STANDBY
   *         mode with all domains in DSTANDBY, if RUN_D3/RUN_SRD bit in CPUCR
-  *         regiter is cleared.
+  *         register is cleared.
   *         For dual core devices, this API will enter the domain (containing
   *         Cortex-Mx that executing this function) in DSTANDBY mode. If all
   *         Cortex-Mx domains are in DSTANDBY and RUN_D3 bit in CPUCR register
@@ -677,6 +682,8 @@ void HAL_PWR_EnterSTOPMode (uint32_t Regulator, uint8_t STOPEntry)
   * @note   The system enters Standby mode only when all domains are in DSTANDBY.
   * @note   When the System exit STANDBY mode by issuing an interrupt or a
   *         wakeup event, the HSI RC oscillator is selected as system clock.
+  * @note   It is recommended to disable all regulators before entring STANDBY
+  *         mode for power consumption saving purpose.
   * @retval None.
   */
 void HAL_PWR_EnterSTANDBYMode (void)
@@ -867,4 +874,3 @@ __weak void HAL_PWR_PVDCallback (void)
   * @}
   */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

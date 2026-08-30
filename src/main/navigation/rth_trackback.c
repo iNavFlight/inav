@@ -37,9 +37,10 @@
 
 rth_trackback_t rth_trackback;
 
-bool rthTrackBackIsActive(void) 
+bool rthTrackBackCanBeActivated(void)
 {
-    return navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_ON ||  (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_FS && posControl.flags.forcedRTHActivated);
+    return posControl.flags.estPosStatus >= EST_USABLE &&
+           (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_ON || (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_FS && posControl.flags.forcedRTHActivated));
 }
 
 void rthTrackBackUpdate(bool forceSaveTrackPoint)
@@ -127,7 +128,7 @@ void rthTrackBackUpdate(bool forceSaveTrackPoint)
 bool rthTrackBackSetNewPosition(void)
 {
     if (posControl.flags.estPosStatus == EST_NONE) {
-        return false;
+        return false;   // will fall back to RTH initialize allowing full RTH to handle position loss correctly
     }
 
     const int32_t distFromStartTrackback = CENTIMETERS_TO_METERS(calculateDistanceToDestination(&rth_trackback.pointsList[rth_trackback.lastSavedIndex]));
@@ -142,7 +143,7 @@ bool rthTrackBackSetNewPosition(void)
     if (rth_trackback.activePointIndex < 0 || cancelTrackback) {
         rth_trackback.WrapAroundCounter = rth_trackback.activePointIndex = -1;
         posControl.flags.rthTrackbackActive = false;
-        return true;    // Procede to home after final trackback point
+        return false;    // No more trackback points to set, procede to home
     }
 
     if (isWaypointReached(&posControl.activeWaypoint.pos, &posControl.activeWaypoint.bearing)) {
@@ -152,16 +153,17 @@ bool rthTrackBackSetNewPosition(void)
             rth_trackback.activePointIndex = NAV_RTH_TRACKBACK_POINTS - 1;
         }
 
-        calculateAndSetActiveWaypointToLocalPosition(getRthTrackBackPosition());
-
-        if (rth_trackback.activePointIndex - rth_trackback.WrapAroundCounter == 0) {
-            rth_trackback.WrapAroundCounter = rth_trackback.activePointIndex = -1;
+        // Last trackback point reached when activePointIndex = WrapAroundCounter so only set position when not equal
+        if (rth_trackback.activePointIndex != rth_trackback.WrapAroundCounter) {
+            calculateAndSetActiveWaypointToLocalPosition(getRthTrackBackPosition());
+        } else {
+            rth_trackback.activePointIndex = -1;  // if not already = -1 set to -1 to end trackback next iteration
         }
     } else {
         setDesiredPosition(getRthTrackBackPosition(), 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
     }
 
-    return false;
+    return true;
 }
 
 fpVector3_t *getRthTrackBackPosition(void)
@@ -174,9 +176,9 @@ fpVector3_t *getRthTrackBackPosition(void)
     return &rth_trackback.pointsList[rth_trackback.activePointIndex];
 }
 
-void resetRthTrackBack(void) 
+void resetRthTrackBack(void)
 {
     rth_trackback.activePointIndex = -1;
     posControl.flags.rthTrackbackActive = false;
-    rth_trackback.WrapAroundCounter = -1;   
+    rth_trackback.WrapAroundCounter = -1;
 }
