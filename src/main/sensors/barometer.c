@@ -42,6 +42,7 @@
 #include "drivers/barometer/barometer_dps310.h"
 #include "drivers/barometer/barometer_2smpb_02b.h"
 #include "drivers/barometer/barometer_msp.h"
+#include "drivers/barometer/barometer_crsf.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
@@ -58,11 +59,12 @@ baro_t baro;                        // barometer access functions
 
 #ifdef USE_BARO
 
-PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 5);
 
 PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .baro_hardware = SETTING_BARO_HARDWARE_DEFAULT,
-    .baro_calibration_tolerance = SETTING_BARO_CAL_TOLERANCE_DEFAULT
+    .baro_calibration_tolerance = SETTING_BARO_CAL_TOLERANCE_DEFAULT,
+    .baro_temp_correction = SETTING_BARO_TEMP_CORRECTION_DEFAULT,
 );
 
 static zeroCalibrationScalar_t zeroCalibration;
@@ -209,6 +211,20 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         }
         FALLTHROUGH;
 
+    case BARO_CRSF:
+#ifdef USE_BARO_CRSF
+        // Skip autodetection for CRSF baro, only allow manual config
+        if (baroHardwareToUse != BARO_AUTODETECT && crsfBaroDetect(dev)) {
+            baroHardware = BARO_CRSF;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case BARO_FAKE:
 #ifdef USE_FAKE_BARO
         if (fakeBaroDetect(dev)) {
@@ -325,6 +341,7 @@ int32_t baroCalculateAltitude(void)
     else {
         // calculates height from ground via baro readings
         baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
+        baro.BaroAlt += applySensorTempCompensation(baro.baroTemperature, baro.BaroAlt, SENSOR_INDEX_BARO);
    }
 
     return baro.BaroAlt;
@@ -336,7 +353,7 @@ int32_t baroGetLatestAltitude(void)
 }
 
 int16_t baroGetTemperature(void)
-{   
+{
     return CENTIDEGREES_TO_DECIDEGREES(baro.baroTemperature);
 }
 

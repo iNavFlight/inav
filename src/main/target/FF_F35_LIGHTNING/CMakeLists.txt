@@ -1,2 +1,2 @@
-target_stm32f405xg(FF_F35_LIGHTNING)
-target_stm32f405xg(WINGFC)
+target_stm32f405xg(FF_F35_LIGHTNING NO_BOOTLOADER)
+target_stm32f405xg(WINGFC NO_BOOTLOADER)

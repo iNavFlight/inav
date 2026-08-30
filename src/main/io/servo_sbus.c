@@ -109,6 +109,8 @@ void sbusServoUpdate(uint8_t index, uint16_t value)
         case 13: sbusFrame.channels.chan13 = sbusEncodeChannelValue(value); break;
         case 14: sbusFrame.channels.chan14 = sbusEncodeChannelValue(value); break;
         case 15: sbusFrame.channels.chan15 = sbusEncodeChannelValue(value); break;
+        case 16: sbusFrame.channels.flags = value > PWM_RANGE_MIDDLE ? (sbusFrame.channels.flags | SBUS_FLAG_CHANNEL_DG1) : (sbusFrame.channels.flags & ~SBUS_FLAG_CHANNEL_DG1) ; break;
+        case 17: sbusFrame.channels.flags = value > PWM_RANGE_MIDDLE ? (sbusFrame.channels.flags | SBUS_FLAG_CHANNEL_DG2) : (sbusFrame.channels.flags & ~SBUS_FLAG_CHANNEL_DG2) ; break;
         default:
             break;
     }

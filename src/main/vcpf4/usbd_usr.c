@@ -21,6 +21,7 @@
 
 #include "usbd_usr.h"
 #include "usbd_ioreq.h"
+#include "usbd_cdc_vcp.h"
 
 USBD_Usr_cb_TypeDef USR_cb =
 {
@@ -102,13 +103,17 @@ void USBD_USR_DeviceDisconnected (void)
 
 /**
 * @brief  USBD_USR_DeviceSuspended
-*         Displays the message on LCD on device suspend Event
+*         Handle device suspend event - treat as disconnect for safety.
+*         This helps on boards without VBUS sensing where hardware
+*         disconnect detection may not work.
 * @param  None
 * @retval None
 */
 void USBD_USR_DeviceSuspended(void)
 {
-  /* Users can do their application actions here for the USB-Reset */
+  // Treat suspend as disconnect - prevents blocking on USB writes
+  // when cable is unplugged on boards without VBUS sensing
+  bDeviceState = UNCONNECTED;
 }
 
 

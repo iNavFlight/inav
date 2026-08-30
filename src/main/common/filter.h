@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "lulu.h"
+
 typedef struct rateLimitFilter_s {
     float state;
 } rateLimitFilter_t;
@@ -45,18 +47,20 @@ typedef struct biquadFilter_s {
     float x1, x2, y1, y2;
 } biquadFilter_t;
 
-typedef union { 
-    biquadFilter_t biquad; 
+typedef union {
+    biquadFilter_t biquad;
     pt1Filter_t pt1;
     pt2Filter_t pt2;
     pt3Filter_t pt3;
+    luluFilter_t lulu;
 } filter_t;
 
 typedef enum {
     FILTER_PT1 = 0,
     FILTER_BIQUAD,
     FILTER_PT2,
-    FILTER_PT3
+    FILTER_PT3,
+    FILTER_LULU
 } filterType_e;
 
 typedef enum {
@@ -84,22 +88,19 @@ typedef struct alphaBetaGammaFilter_s {
 } alphaBetaGammaFilter_t;
 
 typedef float (*filterApplyFnPtr)(void *filter, float input);
-typedef float (*filterApply4FnPtr)(void *filter, float input, float f_cut, float dt);
+typedef float (*filterApply3FnPtr)(void *filter, float input, float dt);
 
 #define BIQUAD_BANDWIDTH 1.9f     /* bandwidth in octaves */
 #define BIQUAD_Q 1.0f / sqrtf(2.0f)     /* quality factor - butterworth*/
 
 float nullFilterApply(void *filter, float input);
-float nullFilterApply4(void *filter, float input, float f_cut, float dt);
-
+float nullFilterApply3(void *filter, float input, float dt);
 void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT);
-void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT);
-void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau);
-void pt1FilterUpdateCutoff(pt1Filter_t *filter, float f_cut);
-float pt1FilterGetLastOutput(pt1Filter_t *filter);
 float pt1FilterApply(pt1Filter_t *filter, float input);
 float pt1FilterApply3(pt1Filter_t *filter, float input, float dT);
-float pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dt);
+void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau);
+void pt1FilterSetCutoff(pt1Filter_t *filter, float f_cut);
+float pt1FilterGetLastOutput(pt1Filter_t *filter);
 void pt1FilterReset(pt1Filter_t *filter, float input);
 
 /*

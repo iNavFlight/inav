@@ -23,7 +23,7 @@ typedef enum {
     WAS_EVER_ARMED                                  = (1 << 3),
     SIMULATOR_MODE_HITL                             = (1 << 4),
     SIMULATOR_MODE_SITL                             = (1 << 5),
-
+    ARMING_DISABLED_GEOZONE                         = (1 << 6),
     ARMING_DISABLED_FAILSAFE_SYSTEM                 = (1 << 7),
     ARMING_DISABLED_NOT_LEVEL                       = (1 << 8),
     ARMING_DISABLED_SENSORS_CALIBRATING             = (1 << 9),
@@ -49,8 +49,8 @@ typedef enum {
     ARMING_DISABLED_DSHOT_BEEPER                    = (1 << 29),
     ARMING_DISABLED_LANDING_DETECTED                = (1 << 30),
 
-    ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | ARMING_DISABLED_SENSORS_CALIBRATING |
-                                                       ARMING_DISABLED_SYSTEM_OVERLOADED | ARMING_DISABLED_NAVIGATION_UNSAFE |
+    ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_GEOZONE | ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | 
+                                                       ARMING_DISABLED_SENSORS_CALIBRATING | ARMING_DISABLED_SYSTEM_OVERLOADED | ARMING_DISABLED_NAVIGATION_UNSAFE |
                                                        ARMING_DISABLED_COMPASS_NOT_CALIBRATED | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED |
                                                        ARMING_DISABLED_ARM_SWITCH | ARMING_DISABLED_HARDWARE_FAILURE | ARMING_DISABLED_BOXFAILSAFE |
                                                        ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI |
@@ -65,7 +65,8 @@ typedef enum {
 // situations where we might just need the motors to spin so the
 // aircraft can move (even unpredictably) and get unstuck (e.g.
 // crashed into a high tree).
-#define ARMING_DISABLED_EMERGENCY_OVERRIDE  (ARMING_DISABLED_NOT_LEVEL \
+#define ARMING_DISABLED_EMERGENCY_OVERRIDE  (ARMING_DISABLED_GEOZONE \
+                                            | ARMING_DISABLED_NOT_LEVEL \
                                             | ARMING_DISABLED_NAVIGATION_UNSAFE \
                                             | ARMING_DISABLED_COMPASS_NOT_CALIBRATED \
                                             | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED \
@@ -106,6 +107,7 @@ typedef enum {
     SOARING_MODE          = (1 << 16),
     ANGLEHOLD_MODE        = (1 << 17),
     NAV_FW_AUTOLAND       = (1 << 18),
+    NAV_SEND_TO           = (1 << 19),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
@@ -176,7 +178,9 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void);
 
 #ifdef USE_SIMULATOR
 
-#define SIMULATOR_MSP_VERSION  2     // Simulator MSP version
+#define SIMULATOR_MSP_VERSION_2  2     // Simulator MSP version
+#define SIMULATOR_MSP_VERSION_3  3 
+#define HITL_SIM_MAX_RC_INPUTS 8 
 #define SIMULATOR_BARO_TEMP    25    // °C
 #define SIMULATOR_FULL_BATTERY 126   // Volts*10
 #define SIMULATOR_HAS_OPTION(flag) ((simulatorData.flags & flag) != 0)
@@ -192,7 +196,12 @@ typedef enum {
     HITL_AIRSPEED               = (1 << 6),
     HITL_EXTENDED_FLAGS         = (1 << 7), // Extend MSP_SIMULATOR format 2
     HITL_GPS_TIMEOUT            = (1 << 8),
-    HITL_PITOT_FAILURE          = (1 << 9)
+    HITL_PITOT_FAILURE          = (1 << 9),
+    HITL_CURRENT_SENSOR         = (1 << 10),
+    HITL_SIM_RC_INPUT           = (1 << 11),  // Simulate RC input from Joystick inputs in XPlane
+    HITL_RANGEFINDER            = (1 << 12), // Simulate Rangefinder data
+    HITL_FAILSAFE_TRIGGERED     = (1 << 13), // Simulate Failsafe triggered condition
+    HITL_SITL_MODE              = (1 << 14), // For INAV XITL in Sitl mode (sends no emulated sensor data)
 } simulatorFlags_t;
 
 typedef struct {
@@ -201,6 +210,11 @@ typedef struct {
     uint8_t vbat;      // 126 -> 12.6V
     uint16_t airSpeed; // cm/s
     int16_t input[4];
+    uint16_t rcInput[HITL_SIM_MAX_RC_INPUTS];
+    uint16_t rssi;
+    uint16_t current;  // dA (deciamperes; * 10 = cA)
+    uint16_t rangefinder; // cm
+
 } simulatorData_t;
 
 extern simulatorData_t simulatorData;
