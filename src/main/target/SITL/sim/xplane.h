@@ -23,7 +23,9 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define XP_MAX_PWM_OUTS 4
 
 bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool imu);
+void simXPlaneClose(void);

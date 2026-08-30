@@ -32,6 +32,7 @@ typedef enum {
     PITOT_FAKE = 5,
     PITOT_MSP = 6,
     PITOT_DLVR = 7,
+    PITOT_MS5525 = 8,
 } pitotSensor_e;
 
 #define PITOT_MAX  PITOT_FAKE
@@ -69,5 +70,7 @@ void pitotStartCalibration(void);
 void pitotUpdate(void);
 float getAirspeedEstimate(void);
 bool pitotIsHealthy(void);
+bool pitotGetValidForAirspeed(void);
+bool pitotHasFailed(void);
 
 #endif

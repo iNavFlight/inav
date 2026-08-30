@@ -67,7 +67,7 @@
 #include "flight/ez_tune.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
@@ -103,7 +103,12 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
+// Keep PG version split because USE_AUTO_TRANSITION changes the stored layout only on >512 KB targets.
+#ifdef USE_AUTO_TRANSITION
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 11);
+#else
 PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
+#endif
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -117,6 +122,17 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
+#ifdef USE_AUTO_TRANSITION
+    .vtolTransitionToFwMinAirspeed = SETTING_VTOL_TRANSITION_TO_FW_MIN_AIRSPEED_CM_S_DEFAULT,
+    .vtolTransitionToMcMaxAirspeed = SETTING_VTOL_TRANSITION_TO_MC_MAX_AIRSPEED_CM_S_DEFAULT,
+    .vtolFwToMcAutoSwitchAirspeed = SETTING_VTOL_FW_TO_MC_AUTO_SWITCH_AIRSPEED_CM_S_DEFAULT,
+    .vtolAutotransitionAlways = SETTING_VTOL_AUTOTRANSITION_ALWAYS_DEFAULT,
+    .vtolTransitionLiftMinPercent = SETTING_VTOL_TRANSITION_LIFT_MIN_PERCENT_DEFAULT,
+    .vtolTransitionMcAuthorityMinPercent = SETTING_VTOL_TRANSITION_MC_AUTHORITY_MIN_PERCENT_DEFAULT,
+    .vtolTransitionFwAuthorityMinPercent = SETTING_VTOL_TRANSITION_FW_AUTHORITY_MIN_PERCENT_DEFAULT,
+    .vtolMcProtectionMode = SETTING_VTOL_MC_PROTECTION_MODE_DEFAULT,
+    .vtolMcThrReservePercent = SETTING_VTOL_MC_THR_RESERVE_PERCENT_DEFAULT,
+#endif
     .craftName = SETTING_NAME_DEFAULT,
     .pilotName = SETTING_NAME_DEFAULT
 );
@@ -190,6 +206,18 @@ uint32_t getGyroLooptime(void)
 
 void validateAndFixConfig(void)
 {
+
+#ifdef USE_ADAPTIVE_FILTER
+//     gyroConfig()->adaptiveFilterMinHz has to be at least 5 units lower than gyroConfig()->gyro_main_lpf_hz
+     if (gyroConfig()->adaptiveFilterMinHz + 5 > gyroConfig()->gyro_main_lpf_hz) {
+        gyroConfigMutable()->adaptiveFilterMinHz = gyroConfig()->gyro_main_lpf_hz - 5;
+    }
+    //gyroConfig()->adaptiveFilterMaxHz has to be at least 5 units higher than gyroConfig()->gyro_main_lpf_hz
+    if (gyroConfig()->adaptiveFilterMaxHz - 5 < gyroConfig()->gyro_main_lpf_hz) {
+        gyroConfigMutable()->adaptiveFilterMaxHz = gyroConfig()->gyro_main_lpf_hz + 5;
+    }
+#endif
+
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
@@ -284,6 +312,14 @@ void createDefaultConfig(void)
     featureSet(FEATURE_AIRMODE);
 
     targetConfiguration();
+
+#ifdef MSP_UART
+    int port = findSerialPortIndexByIdentifier(MSP_UART);
+    if (port) {
+        serialConfigMutable()->portConfigs[port].functionMask = FUNCTION_MSP;
+        serialConfigMutable()->portConfigs[port].msp_baudrateIndex = BAUD_115200;
+    }
+#endif
 }
 
 void resetConfigs(void)
@@ -301,7 +337,7 @@ void resetConfigs(void)
 
 static void activateConfig(void)
 {
-    activateControlRateConfig();
+    activateControlConfig();
     activateBatteryProfile();
     activateMixerConfig();
 
@@ -423,7 +459,7 @@ bool setConfigProfile(uint8_t profileIndex)
     pgActivateProfile(profileIndex);
     systemConfigMutable()->current_profile_index = profileIndex;
     // set the control rate profile to match
-    setControlRateProfile(profileIndex);
+    setControlProfile(profileIndex);
 #ifdef USE_EZ_TUNE
     ezTuneUpdate();
 #endif

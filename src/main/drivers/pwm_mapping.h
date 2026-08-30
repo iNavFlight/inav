@@ -18,18 +18,20 @@
 #pragma once
 
 #include "drivers/io_types.h"
+#include "drivers/timer.h"
+#include "drivers/pwm_output.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
 #include "flight/servos.h"
+#include "common/maths.h"
 
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_MOTORS  TARGET_MOTOR_COUNT
-#define MAX_SERVOS  16
-
 #else
 #define MAX_MOTORS  12
-#define MAX_SERVOS  16
 #endif
+
+#define MAX_SERVOS  18
 
 #define PWM_TIMER_HZ    1000000
 
@@ -54,6 +56,12 @@ typedef enum {
 } servoProtocolType_e;
 
 typedef enum {
+    PIN_LABEL_NONE = 0,
+    PIN_LABEL_LED,
+    PIN_LABEL_PINIO_BASE = 2    // values 2..5 = USER1..USER4 (add channel index 0-3)
+} pinLabel_e;
+
+typedef enum {
     PWM_INIT_ERROR_NONE = 0,
     PWM_INIT_ERROR_TOO_MANY_MOTORS,
     PWM_INIT_ERROR_TOO_MANY_SERVOS,
@@ -72,7 +80,24 @@ typedef struct {
     bool isDSHOT;
 } motorProtocolProperties_t;
 
+#ifndef SITL_BUILD
+typedef struct {
+    int maxTimMotorCount;
+    int maxTimServoCount;
+    const timerHardware_t * timMotors[MAX_PWM_OUTPUTS];
+    const timerHardware_t * timServos[MAX_PWM_OUTPUTS];
+} timMotorServoHardware_t;
+
+// MSP2_INAV_OUTPUT_ASSIGNMENT type byte: bit index of the TIM_USE_* flag.
+// Matches the JavaScript TIM_USE_* constants in outputMapping.js (which are bit indices).
+// Use __builtin_ctz(TIM_USE_x) to derive these from the bit-mask definitions in timer.h.
+#endif // SITL_BUILD
+
 bool pwmMotorAndServoInit(void);
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 pwmInitError_e getPwmInitError(void);
 const char * getPwmInitErrorMessage(void);
+#ifndef SITL_BUILD
+const timMotorServoHardware_t *pwmGetOutputAssignment(void);
+void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *proposedModes);
+#endif // SITL_BUILD

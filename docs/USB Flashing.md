@@ -49,28 +49,45 @@ With the board connected and in bootloader mode (reset it by sending the charact
 * Choose Options > List All Devices
 * Select `STM32 BOOTLOADER` in the device list
 * Choose `WinUSB (v6.x.x.x)` in the right hand box
-
+   
 ![Zadig Driver Procedure](assets/images/zadig-dfu.png)
 
 * Click Replace Driver
 * Restart the Configurator (make sure it is completely closed, logout and login if unsure)
 * Now the DFU device should be seen by Configurator
 
+## While Using USB-C cables
 
+* If you are using a device with only USB-C ports such as a Mac-OS device, you will need a dongle.
+  * A USB-C to USB-C cable is identical on both ends and thus requires extra hardware to let them be auto detected as devices instead of hosts.
+  * Using either a hub with USB-A ports, or a USB-A to C cable or dongle is usually the easiest way to get a working connection but an USB-OTG adapter also works.
+    
 ## Using `dfu-util`
 
 `dfu-util` is a command line tool to flash ARM devices via DFU. It is available via the package manager on most Linux systems or from [source forge](http://sourceforge.net/p/dfu-util).
 
 Put the device into DFU mode by **one** of the following:
 
-* Use the hardware button on the board
-* Send a single 'R' character to the serial device, e.g. on POSIX OS using `/dev/ttyACM0` at 115200 baudrate.
+* **Hardware button:** Press and hold the DFU/BOOT button while plugging in USB
 
+* **Serial CLI sequence:** Send `####\r\n`, wait for CLI prompt, then send `dfu\r\n`
+
+```bash
+# Enter CLI mode
+echo -ne '####\r\n' > /dev/ttyACM0
+
+# Wait for "CLI" prompt (important - don't skip!)
+# Recommended: use a proper script that reads serial response
+
+# Send DFU command
+echo -ne 'dfu\r\n' > /dev/ttyACM0
 ```
-stty 115200 < /dev/ttyACM0
-echo -ne 'R' > /dev/ttyACM0
-```
-* Use the CLI command `dfu`
+
+**Note:** The simple single 'R' character method shown in older documentation is unreliable. The above sequence is required for proper CLI entry.
+
+* **CLI command:** If already connected to CLI via configurator or terminal: type `dfu`
+
+* **MSP command:** Use MSP_REBOOT with DFU parameter (INAV 9.x+) - most reliable programmatic method
 
 It is necessary to convert the `.hex` file into `Intel binary`. This can be done using the GCC `objcopy` command; e.g. for the notional `inav_x.y.z_NNNNNN.hex`.
 

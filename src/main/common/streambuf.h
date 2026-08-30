@@ -26,6 +26,7 @@
 typedef struct sbuf_s {
     uint8_t *ptr;          // data pointer must be first (sbuff_t* is equivalent to uint8_t **)
     uint8_t *end;
+    bool overrun;          // sticky: set by an unsafe sbufRead* call that ran past end
 } sbuf_t;
 
 sbuf_t *sbufInit(sbuf_t *sbuf, uint8_t *ptr, uint8_t *end);
@@ -42,6 +43,7 @@ void sbufWriteU16BigEndian(sbuf_t *dst, uint16_t val);
 void sbufWriteU32BigEndian(sbuf_t *dst, uint32_t val);
 
 uint8_t sbufReadU8(sbuf_t *src);
+int8_t sbufReadI8(sbuf_t *src);
 uint16_t sbufReadU16(sbuf_t *src);
 uint32_t sbufReadU32(sbuf_t *src);
 void sbufReadData(const sbuf_t *dst, void *data, int len);
