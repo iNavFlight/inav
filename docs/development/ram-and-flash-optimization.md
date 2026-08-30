@@ -40,7 +40,7 @@ A narrow audit produces a confident-looking wrong answer.
 
 Example: a first pass on the tunnel buffer checked only MSP2 handlers
 (432 B largest reply); MSP1 legacy handlers reachable through the same
-buffer needed 512 B (`MSP_LED_STRIP_CONFIG`, unbounded).
+buffer needed 512 B.
 
 ### Chunk a large buffer into a circular buffer when the peripheral drains continuously
 
