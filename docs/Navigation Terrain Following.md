@@ -40,7 +40,7 @@ Multirotor **SURFACE** mode follows the ground *reactively* from a physical rang
 2. **Assign the mode.** In the Configurator **Modes** tab (or via CLI `aux`), put **TERRAIN AGL HOLD** on a spare, **deliberately guarded** switch — not next to ARM. It is active only inside 3D Cruise.
    > **Hint (once you are confident with the mode):** you *can* put **NAV CRUISE** and **TERRAIN AGL HOLD** on the **same switch** so one flip arms both. This is **not** the recommended default — keeping them on **separate** switches lets you enter Cruise first, confirm it, and engage terrain hold as a deliberate second step.
 3. **Set the floor and look-ahead** if you want (defaults are sensible — see *Settings*).
-4. **OSD:** add the **Rangefinder** element to see your height above ground (AGL) in flight. The flight-mode field shows **TERR** while the hold is engaged.
+4. **OSD:** add the **Rangefinder** element to see your height above ground (AGL) in flight. If a physical rangefinder is fitted, that element shows the rangefinder instead — Terrain AGL Hold still flies from its map and its alarms are unaffected. The flight-mode field shows **TERR** while the hold is engaged.
 5. **Fly** in 3D Cruise, then flip the switch — it captures and holds your current AGL. **Panic rule: box off = stock cruise instantly; the pitch stick always wins.**
 
 ## Settings
