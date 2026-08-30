@@ -222,7 +222,8 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "HEADTRACKER",
     "GPS",
     "LULU",
-    "SBUS2"
+    "SBUS2",
+    "Q_TUNE"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
