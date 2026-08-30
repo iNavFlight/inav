@@ -40,7 +40,7 @@ A narrow audit produces a confident-looking wrong answer.
 
 Example: a first pass on the tunnel buffer checked only MSP2 handlers
 (432 B largest reply); MSP1 legacy handlers reachable through the same
-buffer needed 512 B (`MSP_LED_STRIP_CONFIG`, unbounded).
+buffer needed 512 B.
 
 ### Chunk a large buffer into a circular buffer when the peripheral drains continuously
 
@@ -50,8 +50,8 @@ array. Refill must come from a real hardware DMA interrupt — a
 task-scheduler tick leaves gaps that read as a protocol reset.
 
 Example: the WS2812 driver buffered all 128 possible LEDs in one static
-array (6,230 B) for a single DMA burst; a circular buffer holding 2 groups
-of 4 LEDs (384 B), refilled from the DMA interrupt as each group finishes,
+array (12,460 B) for a single DMA burst; a circular buffer holding 2 groups
+of 4 LEDs (768 B), refilled from the DMA interrupt as each group finishes,
 cut it >16x with no protocol change.
 
 ### A minimum-duration constraint doesn't need buffer space
@@ -77,6 +77,34 @@ transfer proportionally, at zero cost to full-length users.
 Example: the LED driver processed all 128 possible slots every update;
 threading `ledCounts.count` into the fill loop and DMA transfer length cut
 work for short strips.
+
+### Budget speculative reads against the shared cache they consume
+
+A feature that pre-reads a shared cache (tile cache, lookup tables) must
+size its speculative distance against that cache's capacity, not against
+what the feature would like to know. Otherwise the speculative consumer can
+evict the block the cache's primary consumer needs next, turning the cache
+into a thrash loop. Compute the budget from the cache size with margin for
+the primary consumer, and additionally cap by a time horizon so the scan
+scales with what the aircraft can actually reach.
+
+Example: PR #11785's terrain lookahead caps its scan at
+`(TERRAIN_GRID_BLOCK_CACHE_SIZE - 3) * 540 m` per query cycle — the `-3`
+reserves the current block plus margin — and then at `groundspeed * 35 s`.
+On an 8-entry cache (F765/H743) that is a 2,700 m ceiling, with the time
+horizon usually binding first. The scan can never evict the block the AGL
+query reads.
+
+### Consume an existing cache in place; add no private copy
+
+When a feature needs data from a cache-backed source, read through the
+existing cache and mark misses for loading instead of allocating its own
+shadow buffer "for cleanliness". A miss is a `return not-ready`, not a
+reason to copy.
+
+Example: PR #11785's `terrainNavGetHeightAtLocation()` reads the #11438
+terrain grid cache directly and calls `markGridBlockNeedRead()` on a miss;
+the whole terrain_nav layer holds zero tile buffers of its own.
 
 ## Sending data
 
@@ -153,6 +181,21 @@ Example: PR #11553 added navigation FSM states as
 `[NAV_STATE_...] = { ... }` entries in `navFSM[NAV_STATE_COUNT]`, and its
 mixer-profile transition FSM uses a dense `switch` the compiler can turn
 into a jump table.
+
+### Keep a feature's whole static state in ONE caller-owned struct
+
+When a feature's decision logic has many state fields, don't scatter them
+as file-scope statics across the module — hold them in one struct that the
+caller passes in/out. That makes the feature's RAM cost equal to one
+visible `sizeof()`, keeps the core logic pure (unit-testable without
+linking the subsystem), and makes reset = one memset-style function
+instead of a dozen assignments.
+
+Example: PR #11785's terrain_nav_hold layer keeps its entire state machine
+in `terrainNavHoldState_t` (64 B on MATEKF765, verified via nm) plus one
+small output struct — the whole feature's static RAM is ~100 B, not
+scattered buffers. `terrain_nav_hold_core.c` is pure logic with zero
+file-scope state; `terrain_nav_hold.c` owns the single state struct.
 
 ## Duplication: state vs code
 
