@@ -164,6 +164,14 @@ extern uint8_t __config_end;
 
 #endif
 
+// Compass mounting-orientation auto-detection keeps a ~1.8 KB sample buffer
+// (128 raw mag + attitude samples) for the duration of a calibration spin;
+// restrict it to MCUs with enough RAM headroom, same threshold as USE_TERRAIN
+// above. Falls back to manual mag_align configuration where undefined.
+#if defined(USE_MAG) && !defined(USE_MAG_CALIBRATION_ORIENTATION) && (MCU_RAM_SIZE > 256)
+#define USE_MAG_CALIBRATION_ORIENTATION
+#endif
+
 // CRSF sensor input on a dedicated UART
 #if defined(USE_SERIALRX_CRSF)
 #define USE_CRSF_SENSOR_INPUT

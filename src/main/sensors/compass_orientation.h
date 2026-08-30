@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include "common/quaternion.h"
+#include "common/utils.h"
 
 #ifdef USE_MAG
 
@@ -34,6 +35,8 @@
 // rotation is the one that makes the implied earth field consistent across
 // samples taken at different attitudes. Covers 16 discrete candidates (upright
 // / inverted x 45 degree yaw steps) -- not side mounts or arbitrary tilts.
+
+#ifdef USE_MAG_CALIBRATION_ORIENTATION
 
 // Discards any buffered samples. Call at the start of a calibration spin.
 void compassOrientationBufferReset(void);
@@ -50,5 +53,36 @@ bool compassOrientationDetect(const float magZero[3], const int16_t magGain[3],
                                float confidenceMin,
                                int16_t *outRollDD, int16_t *outPitchDD, int16_t *outYawDD,
                                float *outConfidence);
+
+#else
+
+// Not enough RAM headroom on this MCU for the ~1.8 KB calibration sample
+// buffer (see USE_MAG_CALIBRATION_ORIENTATION in target/common_post.h) --
+// stub out to a permanent "nothing detected" so callers need no #ifdef;
+// mounting orientation falls back to manual mag_align configuration.
+static inline void compassOrientationBufferReset(void) {}
+
+static inline void compassOrientationBufferPush(const int16_t rawMag[3], const fpQuaternion_t *attitude)
+{
+    UNUSED(rawMag);
+    UNUSED(attitude);
+}
+
+static inline bool compassOrientationDetect(const float magZero[3], const int16_t magGain[3],
+                                             float confidenceMin,
+                                             int16_t *outRollDD, int16_t *outPitchDD, int16_t *outYawDD,
+                                             float *outConfidence)
+{
+    UNUSED(magZero);
+    UNUSED(magGain);
+    UNUSED(confidenceMin);
+    UNUSED(outRollDD);
+    UNUSED(outPitchDD);
+    UNUSED(outYawDD);
+    UNUSED(outConfidence);
+    return false;
+}
+
+#endif // USE_MAG_CALIBRATION_ORIENTATION
 
 #endif

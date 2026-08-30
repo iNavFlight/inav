@@ -26,7 +26,7 @@
 #include "common/vector.h"
 #include "common/quaternion.h"
 
-#ifdef USE_MAG
+#if defined(USE_MAG) && defined(USE_MAG_CALIBRATION_ORIENTATION)
 
 #define COMPASS_ORIENTATION_MAX_SAMPLES 128
 #define COMPASS_ORIENTATION_MIN_SAMPLES 30
