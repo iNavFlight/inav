@@ -929,6 +929,26 @@ Sets the DShot beeper tone
 
 ---
 
+### dshot_bidir_enabled
+
+Enable bidirectional DShot telemetry on motor outputs. Required for RPM filtering without a separate ESC telemetry UART
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### dshot_edt_enabled
+
+Enable extended DShot telemetry decoding (temperature, voltage, current in addition to eRPM)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### dterm_lpf2_hz
 
 Dterm pre-differentiation LPF cutoff (Hz). Filters gyro before differentiation to reduce noise amplification. Higher = less delay, more noise. 0 = disabled. Values around 200-250Hz can add smoothing with small delay.

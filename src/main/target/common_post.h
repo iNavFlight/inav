@@ -176,7 +176,7 @@ extern uint8_t __config_end;
 #endif
 #endif
 
-#ifdef USE_ESC_SENSOR
+#if defined(USE_ESC_SENSOR) || defined(USE_DSHOT)
     #define USE_RPM_FILTER
 #endif
 
