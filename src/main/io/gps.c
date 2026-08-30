@@ -56,6 +56,7 @@
 #include "io/gps.h"
 #include "io/gps_private.h"
 #include "io/gps_ublox.h"
+#include "io/gps_dronecan.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -667,6 +668,11 @@ void updateGpsIndicator(timeUs_t currentTimeUs)
 
 bool isGPSHealthy(void)
 {
+#if defined(USE_DRONECAN)
+    if (gpsConfig()->provider == GPS_DRONECAN) {
+        return dronecanGpsIsHealthy();
+    }
+#endif
     return true;
 }
 
