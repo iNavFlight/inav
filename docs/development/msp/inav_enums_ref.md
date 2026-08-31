@@ -73,6 +73,7 @@
 - [displayTransactionOption_e](#enum-displaytransactionoption_e)
 - [displayWidgetType_e](#enum-displaywidgettype_e)
 - [DjiCraftNameElements_t](#enum-djicraftnameelements_t)
+- [dronecanAsyncState_e](#enum-dronecanasyncstate_e)
 - [dronecanBitrate_e](#enum-dronecanbitrate_e)
 - [dronecanState_e](#enum-dronecanstate_e)
 - [dshotCommands_e](#enum-dshotcommands_e)
@@ -1198,7 +1199,8 @@
 | `BOXGIMBALCENTER` | 58 |  |
 | `BOXGIMBALHTRK` | 59 |  |
 | `BOXAUTOSPEED` | 60 |  |
-| `CHECKBOX_ITEM_COUNT` | 61 |  |
+| `BOXTERRAINAGLHOLD` | 61 |  |
+| `CHECKBOX_ITEM_COUNT` | 62 |  |
 
 ---
 ## <a id="enum-busindex_e"></a>`busIndex_e`
@@ -1425,7 +1427,8 @@
 | `CURRENT_SENSOR_SMARTPORT` | 5 |  |
 | `CURRENT_SENSOR_CRSF` | 6 |  |
 | `CURRENT_SENSOR_CAN` | 7 |  |
-| `CURRENT_SENSOR_MAX` | CURRENT_SENSOR_CAN |  |
+| `CURRENT_SENSOR_INA226` | 8 |  |
+| `CURRENT_SENSOR_MAX` | CURRENT_SENSOR_INA226 |  |
 
 ---
 ## <a id="enum-devhardwaretype_e"></a>`devHardwareType_e`
@@ -1494,6 +1497,7 @@
 | `DEVHW_SDCARD` | 57 |  |
 | `DEVHW_IRLOCK` | 58 |  |
 | `DEVHW_PCF8574` | 59 |  |
+| `DEVHW_INA226` | 60 |  |
 
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
@@ -1612,6 +1616,18 @@
 | `DJI_OSD_CN_DISTANCE` | 5 |  |
 | `DJI_OSD_CN_ADJUSTEMNTS` | 6 |  |
 | `DJI_OSD_CN_MAX_ELEMENTS` | 7 |  |
+
+---
+## <a id="enum-dronecanasyncstate_e"></a>`dronecanAsyncState_e`
+
+> Source: ../../../src/main/drivers/dronecan/dronecan.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DRONECAN_ASYNC_IDLE` | 0 |  |
+| `DRONECAN_ASYNC_PENDING` | 1 |  |
+| `DRONECAN_ASYNC_READY` | 2 |  |
+| `DRONECAN_ASYNC_ERROR` | 3 |  |
 
 ---
 ## <a id="enum-dronecanbitrate_e"></a>`dronecanBitrate_e`
@@ -3593,7 +3609,7 @@
 | `MIXERAT_PHASE_TRANSITIONING` | 2 |  |
 | `MIXERAT_PHASE_POST_SWITCH_FADE` | (3) | USE_AUTO_TRANSITION |
 | `MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE` | (4) | USE_AUTO_TRANSITION |
-| `MIXERAT_PHASE_DONE` | (5) | !USE_AUTO_TRANSITION |
+| `MIXERAT_PHASE_DONE` | (3) | !USE_AUTO_TRANSITION |
 
 ---
 ## <a id="enum-mixerprofileatwaitreason_e"></a>`mixerProfileATWaitReason_e`
@@ -5247,7 +5263,8 @@
 | `OWNER_PINIO` | 32 |  |
 | `OWNER_IRLOCK` | 33 |  |
 | `OWNER_DRONECAN` | 34 |  |
-| `OWNER_TOTAL_COUNT` | 35 |  |
+| `OWNER_CURRENT_METER` | 35 |  |
+| `OWNER_TOTAL_COUNT` | 36 |  |
 
 ---
 ## <a id="enum-resourcetype_e"></a>`resourceType_e`
@@ -6333,7 +6350,8 @@
 | `VOLTAGE_SENSOR_SMARTPORT` | 4 |  |
 | `VOLTAGE_SENSOR_CRSF` | 5 |  |
 | `VOLTAGE_SENSOR_CAN` | 6 |  |
-| `VOLTAGE_SENSOR_MAX` | VOLTAGE_SENSOR_CAN |  |
+| `VOLTAGE_SENSOR_INA226` | 7 |  |
+| `VOLTAGE_SENSOR_MAX` | VOLTAGE_SENSOR_INA226 |  |
 
 ---
 ## <a id="enum-vs600band_e"></a>`vs600Band_e`

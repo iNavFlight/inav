@@ -11,6 +11,9 @@ Rules:
   * If no assignment -> auto-increment.
 - If auto-increment occurs inside an active preprocessor condition, wrap the number
   in parentheses to indicate conditional numbering: e.g., 3, 4, #ifdef, (5), (6).
+- Mutually-exclusive branches (#ifdef X / #ifndef X siblings, or #else/#elif within
+  one #if family) restart numbering from the branch base, because only one branch's
+  members exist in any given build.
 - Tracks nested #if/#ifdef/#ifndef/#elif/#else/#endif and shows Condition text.
 - Handles multiline enumerators (split at the first top-level comma).
 """
@@ -81,24 +84,68 @@ def normalize_condition_text(text: str) -> str:
     return t
 
 class ConditionStack:
+    """Tracks preprocessor conditionals and the auto-increment base each branch
+    started from, so mutually-exclusive branches (#ifdef X / #ifndef X siblings,
+    or #else / #elif within one family) restart numbering from the shared base
+    instead of continuing through the other branch's members.
+    """
     def __init__(self):
-        self.stack: List[str] = []
-    def push_ifdef(self, sym: str):  self.stack.append(sym)
-    def push_ifndef(self, sym: str): self.stack.append(f'!{sym}')
-    def push_if(self, expr: str):    self.stack.append(normalize_condition_text(expr))
-    def elif_(self, expr: str):
-        if self.stack: self.stack.pop()
-        self.stack.append(normalize_condition_text(expr))
-    def else_(self):
-        if not self.stack: return
-        top = self.stack.pop()
-        if top.startswith('!'): self.stack.append(top[1:])
-        elif top and all(ch.isalnum() or ch == '_' for ch in top): self.stack.append(f'!{top}')
-        else: self.stack.append(f'NOT({top})')
+        # Open frames: {'text', 'base', 'sym', 'polarity'}
+        self.stack: List[dict] = []
+        # Most recently closed frame per nesting level, for sibling detection
+        self.closed: dict = {}
+
+    def push_ifdef(self, sym: str, base: Optional[int] = None) -> Optional[int]:
+        return self._push({'text': sym, 'base': base, 'sym': sym, 'polarity': True})
+
+    def push_ifndef(self, sym: str, base: Optional[int] = None) -> Optional[int]:
+        return self._push({'text': f'!{sym}', 'base': base, 'sym': sym, 'polarity': False})
+
+    def push_if(self, expr: str, base: Optional[int] = None) -> Optional[int]:
+        return self._push({'text': normalize_condition_text(expr), 'base': base, 'sym': None, 'polarity': None})
+
+    def _push(self, frame: dict) -> Optional[int]:
+        prev = self.closed.get(len(self.stack))
+        if prev and frame['sym'] is not None and prev['sym'] == frame['sym'] \
+                and prev['polarity'] != frame['polarity']:
+            # mutually-exclusive sibling: restart numbering from the sibling's base
+            frame['base'] = prev['base']
+        self.stack.append(frame)
+        return frame['base']
+
+    def elif_(self, expr: str) -> Optional[int]:
+        if not self.stack:
+            return None
+        base = self.stack[-1]['base']
+        self.stack[-1] = {'text': normalize_condition_text(expr), 'base': base, 'sym': None, 'polarity': None}
+        return base
+
+    def else_(self) -> Optional[int]:
+        if not self.stack:
+            return None
+        base = self.stack[-1]['base']
+        text = self.stack[-1]['text']
+        if text.startswith('!'):
+            text = text[1:]
+        elif text and all(ch.isalnum() or ch == '_' for ch in text):
+            text = f'!{text}'
+        else:
+            text = f'NOT({text})'
+        self.stack[-1] = {'text': text, 'base': base, 'sym': None, 'polarity': None}
+        return base
+
     def endif(self):
-        if self.stack: self.stack.pop()
+        if not self.stack:
+            return
+        top = self.stack.pop()
+        if top['sym'] is not None:
+            self.closed[len(self.stack)] = top
+        else:
+            self.closed.pop(len(self.stack), None)
+
     def current(self) -> str:
-        return " AND ".join(self.stack) if self.stack else ""
+        return " AND ".join(f['text'] for f in self.stack) if self.stack else ""
+
     def has_active(self) -> bool:
         return bool(self.stack)
 
@@ -164,12 +211,28 @@ def parse_files(paths: List[Path]) -> List[EnumDef]:
                         while idx < len(body_lines):
                             bl = body_lines[idx]
 
-                            # inner preproc
-                            if m := RE_IFDEF.match(bl):   inner.push_ifdef(m.group(1)); idx += 1; continue
-                            if m := RE_IFNDEF.match(bl):  inner.push_ifndef(m.group(1)); idx += 1; continue
-                            if m := RE_IF.match(bl):      inner.push_if(m.group(1)); idx += 1; continue
-                            if m := RE_ELIF.match(bl):    inner.elif_(m.group(1)); idx += 1; continue
-                            if RE_ELSE.match(bl):         inner.else_(); idx += 1; continue
+                            # inner preproc — reset counter when entering an
+                            # exclusive alternate branch (returns new base)
+                            if m := RE_IFDEF.match(bl):
+                                new_base = inner.push_ifdef(m.group(1), current_numeric)
+                                if new_base is not None: current_numeric = new_base
+                                idx += 1; continue
+                            if m := RE_IFNDEF.match(bl):
+                                new_base = inner.push_ifndef(m.group(1), current_numeric)
+                                if new_base is not None: current_numeric = new_base
+                                idx += 1; continue
+                            if m := RE_IF.match(bl):
+                                new_base = inner.push_if(m.group(1), current_numeric)
+                                if new_base is not None: current_numeric = new_base
+                                idx += 1; continue
+                            if m := RE_ELIF.match(bl):
+                                new_base = inner.elif_(m.group(1))
+                                if new_base is not None: current_numeric = new_base
+                                idx += 1; continue
+                            if RE_ELSE.match(bl):
+                                new_base = inner.else_()
+                                if new_base is not None: current_numeric = new_base
+                                idx += 1; continue
                             if RE_ENDIF.match(bl):        inner.endif(); idx += 1; continue
 
                             # accumulate one item across lines
