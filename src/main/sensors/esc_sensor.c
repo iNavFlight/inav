@@ -84,7 +84,7 @@ PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
     .listenOnly = SETTING_ESC_SENSOR_LISTEN_ONLY_DEFAULT,
 );
 
-static int getTelemetryMotorCount(void)
+int getTelemetryMotorCount(void)
 {
     if (escSensorConfig()->listenOnly) {
         return 1;

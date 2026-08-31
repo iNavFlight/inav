@@ -37,6 +37,18 @@
 #define CURRENT_METER_OFFSET 0
 #endif
 
+#ifndef INA226_SHUNT_RESISTANCE_UOHM
+#define INA226_SHUNT_RESISTANCE_UOHM 2000
+#endif
+
+#ifndef INA226_SHUNT_RES_UOHM
+#define INA226_SHUNT_RES_UOHM INA226_SHUNT_RESISTANCE_UOHM
+#endif
+
+#ifndef INA226_SHUNT_RES_UOHM_DEFAULT
+#define INA226_SHUNT_RES_UOHM_DEFAULT INA226_SHUNT_RES_UOHM
+#endif
+
 #ifndef MAX_BATTERY_PROFILE_COUNT
 #define MAX_BATTERY_PROFILE_COUNT SETTING_CONSTANT_MAX_BATTERY_PROFILE_COUNT
 #endif
@@ -95,6 +107,7 @@ int32_t getMWhDrawn(void);
 void batteryUpdate(timeUs_t timeDelta);
 void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta);
 void powerMeterUpdate(timeUs_t timeDelta);
+uint16_t getBatteryVoltageSample(void);
 uint16_t getVBatSample(void);
 #endif
 

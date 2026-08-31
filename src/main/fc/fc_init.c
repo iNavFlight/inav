@@ -281,8 +281,21 @@ void init(void)
 #endif
 
 #ifdef USE_VCP
-    // Early initialize USB hardware
+    // Early initialize USB hardware.
+#if defined(USE_USB_MSC)
+    // Skip when booting into MSC mode: mscStart() re-initializes the USB
+    // device library for mass storage, and re-initializing an already
+    // running PCD (as done since the STM32F7xx HAL v1.3.3 update, PR #11514)
+    // leaves the USB core in a broken state, breaking EP0 control transfers.
+    // Only the boot flag is checked here: mscCheckButton() cannot run until
+    // mscInit() configures the button pin (later in init), and no current
+    // target uses an MSC button.
+    if (!mscCheckBoot()) {
+        usbVcpInitHardware();
+    }
+#else
     usbVcpInitHardware();
+#endif
 #endif
 
     timerInit();  // timer must be initialized before any channel is allocated
