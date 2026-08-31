@@ -110,9 +110,6 @@
 #define MSP_CALIBRATION_DATA            14
 #define MSP_SET_CALIBRATION_DATA        15
 
-#define MSP_POSITION_ESTIMATION_CONFIG  16      //DEPRECATED in INAV 9.1 - use settings system instead. Will be removed in INAV 10.0
-#define MSP_SET_POSITION_ESTIMATION_CONFIG  17  //DEPRECATED in INAV 9.1 - use settings system instead. Will be removed in INAV 10.0
-
 #define MSP_WP_MISSION_LOAD             18      // Load mission from NVRAM
 #define MSP_WP_MISSION_SAVE             19      // Save mission to NVRAM
 #define MSP_WP_GETINFO                  20

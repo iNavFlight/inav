@@ -1,7 +1,7 @@
 {
     "version": {
-        "major": 2,
-        "minor": 1,
+        "major": 3,
+        "minor": 0,
         "patch": 0
     },
     "messages": {
@@ -675,115 +675,6 @@
             "reply": null,
             "notes": "Minimum payload 18 bytes. Adds +6 bytes for magnetometer zeros, +2 for optical flow scale, and +6 for magnetometer gains when those features (`USE_MAG`, `USE_OPFLOW`) are compiled in.",
             "description": "Sets sensor calibration data."
-        },
-        "MSP_POSITION_ESTIMATION_CONFIG": {
-            "code": 16,
-            "mspv": 1,
-            "replaced_by": ["MSP2_COMMON_SETTING"],
-            "request": null,
-            "reply": {
-                "payload": [
-                    {
-                        "name": "weightZBaroP",
-                        "ctype": "uint16_t",
-                        "desc": "Barometer Z position fusion weight (`positionEstimationConfig()->w_z_baro_p * 100`)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "weightZGPSP",
-                        "ctype": "uint16_t",
-                        "desc": "GPS Z position fusion weight (`positionEstimationConfig()->w_z_gps_p * 100`)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "weightZGPSV",
-                        "ctype": "uint16_t",
-                        "desc": "GPS Z velocity fusion weight (`positionEstimationConfig()->w_z_gps_v * 100`)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "weightXYGPSP",
-                        "ctype": "uint16_t",
-                        "desc": "GPS XY position fusion weight (`positionEstimationConfig()->w_xy_gps_p * 100`)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "weightXYGPSV",
-                        "ctype": "uint16_t",
-                        "desc": "GPS XY velocity fusion weight (`positionEstimationConfig()->w_xy_gps_v * 100`)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "minSats",
-                        "ctype": "uint8_t",
-                        "desc": "Minimum satellites required for GPS use (`gpsConfigMutable()->gpsMinSats`)",
-                        "units": "Count"
-                    },
-                    {
-                        "name": "useGPSVelNED",
-                        "ctype": "uint8_t",
-                        "desc": "Legacy flag, always 1 (GPS velocity is always used if available)",
-                        "units": "Boolean",
-                        "value": 1
-                    }
-                ]
-            },
-            "notes": "",
-            "description": "Retrieves parameters related to the INAV position estimation fusion weights and GPS minimum satellite count."
-        },
-        "MSP_SET_POSITION_ESTIMATION_CONFIG": {
-            "code": 17,
-            "mspv": 1,
-            "replaced_by": ["MSP2_COMMON_SET_SETTING"],
-            "request": {
-                "payload": [
-                    {
-                        "name": "weightZBaroP",
-                        "ctype": "uint16_t",
-                        "desc": "Sets `positionEstimationConfigMutable()->w_z_baro_p = value / 100.0f` (constrained 0.0-10.0)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "weightZGPSP",
-                        "ctype": "uint16_t",
-                        "desc": "Sets `positionEstimationConfigMutable()->w_z_gps_p = value / 100.0f` (constrained 0.0-10.0)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "weightZGPSV",
-                        "ctype": "uint16_t",
-                        "desc": "Sets `positionEstimationConfigMutable()->w_z_gps_v = value / 100.0f` (constrained 0.0-10.0)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "weightXYGPSP",
-                        "ctype": "uint16_t",
-                        "desc": "Sets `positionEstimationConfigMutable()->w_xy_gps_p = value / 100.0f` (constrained 0.0-10.0)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "weightXYGPSV",
-                        "ctype": "uint16_t",
-                        "desc": "Sets `positionEstimationConfigMutable()->w_xy_gps_v = value / 100.0f` (constrained 0.0-10.0)",
-                        "units": "Weight * 100"
-                    },
-                    {
-                        "name": "minSats",
-                        "ctype": "uint8_t",
-                        "desc": "Sets `gpsConfigMutable()->gpsMinSats` (constrained 5-10)",
-                        "units": "Count"
-                    },
-                    {
-                        "name": "useGPSVelNED",
-                        "ctype": "uint8_t",
-                        "desc": "Legacy flag, ignored",
-                        "units": "Boolean"
-                    }
-                ]
-            },
-            "reply": null,
-            "notes": "Expects 12 bytes.",
-            "description": "Sets parameters related to the INAV position estimation fusion weights and GPS minimum satellite count."
         },
         "MSP_WP_MISSION_LOAD": {
             "code": 18,

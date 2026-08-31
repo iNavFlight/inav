@@ -202,8 +202,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [13 - MSP_SET_NAV_POSHOLD](#msp_set_nav_poshold)  
 [14 - MSP_CALIBRATION_DATA](#msp_calibration_data)  
 [15 - MSP_SET_CALIBRATION_DATA](#msp_set_calibration_data)  
-[16 - MSP_POSITION_ESTIMATION_CONFIG](#msp_position_estimation_config)  
-[17 - MSP_SET_POSITION_ESTIMATION_CONFIG](#msp_set_position_estimation_config)  
 [18 - MSP_WP_MISSION_LOAD](#msp_wp_mission_load)  
 [19 - MSP_WP_MISSION_SAVE](#msp_wp_mission_save)  
 [20 - MSP_WP_GETINFO](#msp_wp_getinfo)  
@@ -680,40 +678,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Minimum payload 18 bytes. Adds +6 bytes for magnetometer zeros, +2 for optical flow scale, and +6 for magnetometer gains when those features (`USE_MAG`, `USE_OPFLOW`) are compiled in.
-
-## <a id="msp_position_estimation_config"></a>`MSP_POSITION_ESTIMATION_CONFIG (16 / 0x10)`
-**Description:** Retrieves parameters related to the INAV position estimation fusion weights and GPS minimum satellite count.  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `weightZBaroP` | `uint16_t` | 2 | Weight * 100 | Barometer Z position fusion weight (`positionEstimationConfig()->w_z_baro_p * 100`) |
-| `weightZGPSP` | `uint16_t` | 2 | Weight * 100 | GPS Z position fusion weight (`positionEstimationConfig()->w_z_gps_p * 100`) |
-| `weightZGPSV` | `uint16_t` | 2 | Weight * 100 | GPS Z velocity fusion weight (`positionEstimationConfig()->w_z_gps_v * 100`) |
-| `weightXYGPSP` | `uint16_t` | 2 | Weight * 100 | GPS XY position fusion weight (`positionEstimationConfig()->w_xy_gps_p * 100`) |
-| `weightXYGPSV` | `uint16_t` | 2 | Weight * 100 | GPS XY velocity fusion weight (`positionEstimationConfig()->w_xy_gps_v * 100`) |
-| `minSats` | `uint8_t` | 1 | Count | Minimum satellites required for GPS use (`gpsConfigMutable()->gpsMinSats`) |
-| `useGPSVelNED` | `uint8_t` | 1 | Boolean | Legacy flag, always 1 (GPS velocity is always used if available) |
-
-## <a id="msp_set_position_estimation_config"></a>`MSP_SET_POSITION_ESTIMATION_CONFIG (17 / 0x11)`
-**Description:** Sets parameters related to the INAV position estimation fusion weights and GPS minimum satellite count.  
-  
-**Request Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `weightZBaroP` | `uint16_t` | 2 | Weight * 100 | Sets `positionEstimationConfigMutable()->w_z_baro_p = value / 100.0f` (constrained 0.0-10.0) |
-| `weightZGPSP` | `uint16_t` | 2 | Weight * 100 | Sets `positionEstimationConfigMutable()->w_z_gps_p = value / 100.0f` (constrained 0.0-10.0) |
-| `weightZGPSV` | `uint16_t` | 2 | Weight * 100 | Sets `positionEstimationConfigMutable()->w_z_gps_v = value / 100.0f` (constrained 0.0-10.0) |
-| `weightXYGPSP` | `uint16_t` | 2 | Weight * 100 | Sets `positionEstimationConfigMutable()->w_xy_gps_p = value / 100.0f` (constrained 0.0-10.0) |
-| `weightXYGPSV` | `uint16_t` | 2 | Weight * 100 | Sets `positionEstimationConfigMutable()->w_xy_gps_v = value / 100.0f` (constrained 0.0-10.0) |
-| `minSats` | `uint8_t` | 1 | Count | Sets `gpsConfigMutable()->gpsMinSats` (constrained 5-10) |
-| `useGPSVelNED` | `uint8_t` | 1 | Boolean | Legacy flag, ignored |
-
-**Reply Payload:** **None**  
-
-**Notes:** Expects 12 bytes.
 
 ## <a id="msp_wp_mission_load"></a>`MSP_WP_MISSION_LOAD (18 / 0x12)`
 **Description:** Commands the FC to load the waypoint mission stored in non-volatile memory (e.g., EEPROM or FlashFS) into the active mission buffer.  
