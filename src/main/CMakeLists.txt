@@ -418,6 +418,7 @@ main_sources(COMMON_SRC
     mavlink/mavlink_command.h
     mavlink/mavlink_guided.c
     mavlink/mavlink_guided.h
+    mavlink/mavlink_helpers.c
     mavlink/mavlink_internal.h
     mavlink/mavlink_mission.c
     mavlink/mavlink_mission.h
