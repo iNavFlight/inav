@@ -22,6 +22,7 @@
  *   DNA-14 Full 16-byte UID in a single stage-1 message → completes immediately
  *   DNA-15 Full-length message without the stage-1 flag → rejected
  *   DNA-16 Malformed 4-byte stage-1 message rejected, doesn't block real handshake
+ *   DNA-17 Reboot within the live-node stale window re-issues the stored ID
  */
 
 #include "gtest/gtest.h"
@@ -50,8 +51,20 @@ CanardInstance canard;
 static uint32_t mock_time_ms = 0;
 uint32_t millis(void) { return mock_time_ms; }
 
-/* saveConfig — called when a new allocation is persisted */
-void saveConfig(void) {}
+/* saveConfig — called when a new allocation is persisted.
+   Tracked so DNA-17 can assert that a reboot within the stale window
+   does NOT trigger a write (re-issuing the stored ID is not a
+   configuration change). */
+static int saveConfig_call_count = 0;
+void saveConfig(void) { saveConfig_call_count++; }
+
+/* dronecanNodeStatusRegisterNode — called by the DNA server after a
+   successful allocation to pre-create a live-node entry so the
+   peripheral's first NodeStatus refreshes it in place. The stub adds
+   an entry to mock_node_table keyed by nodeID with the given dnaIdx,
+   mirroring what the production code does in
+   dronecanNodeStatusHandleBroadcast(). */
+void dronecanNodeStatusRegisterNode(uint8_t nodeID, uint8_t dnaIdx);
 
 /* Logging — USE_LOG is unconditionally defined by target/common.h (pulled in
    via platform.h), so LOG_ERROR/LOG_WARNING/LOG_DEBUG in dronecan_dna_server.c
@@ -69,6 +82,22 @@ uint8_t dronecanGetNodeCount(void) { return mock_node_count; }
 const dronecanNodeInfo_t *dronecanGetNode(uint8_t index) {
     if (index >= mock_node_count) return NULL;
     return &mock_node_table[index];
+}
+
+void dronecanNodeStatusRegisterNode(uint8_t nodeID, uint8_t dnaIdx) {
+    /* If already present, update dnaIdx in place. */
+    for (uint8_t i = 0; i < mock_node_count; i++) {
+        if (mock_node_table[i].nodeID == nodeID) {
+            mock_node_table[i].dnaIdx = dnaIdx;
+            return;
+        }
+    }
+    if (mock_node_count >= DRONECAN_MAX_NODES) return;
+    memset(&mock_node_table[mock_node_count], 0, sizeof(dronecanNodeInfo_t));
+    mock_node_table[mock_node_count].nodeID = nodeID;
+    mock_node_table[mock_node_count].dnaIdx = dnaIdx;
+    mock_node_table[mock_node_count].last_seen_ms = mock_time_ms;
+    mock_node_count++;
 }
 
 } /* extern "C" */
@@ -524,8 +553,13 @@ TEST_F(DroneCANDnaServerTest, ConflictingLiveNodeCausesReassignment)
     s_base_ms   += 10000;
     mock_time_ms = s_base_ms;
 
-    /* Simulate a static-ID node claiming that ID on the live network */
+    /* Simulate a static-ID node claiming that ID on the live network.
+       dnaIdx=0xFF marks this as a non-DNA-managed node (a manually
+       configured static-ID peripheral, not the original DNA-allocated
+       peripheral coming back). Without this, the reboot-churn fix would
+       mistake this entry for the same peripheral's own previous broadcast. */
     mock_node_table[0].nodeID = first;
+    mock_node_table[0].dnaIdx = 0xFF;
     mock_node_count = 1;
 
     /* Re-negotiate — server must detect the conflict and assign a new ID */
@@ -661,4 +695,79 @@ TEST_F(DroneCANDnaServerTest, MalformedFourByteStage1DoesNotBlockRealHandshake)
     EXPECT_NE(assigned, 0u)
         << "A malformed 4-byte stage-1 message must not poison the accumulator "
         << "and block a legitimate handshake that follows it";
+}
+
+/* =========================================================================
+ * DNA-17: Reboot within the live-node stale window re-issues the stored ID
+ *
+ * Regression: a peripheral with a known allocation restarts and re-negotiates
+ * before its previous NodeStatus entry has been pruned from the live-node
+ * table (DRONECAN_NODE_STALE_TIMEOUT_MS = 10000). The live-node table still
+ * has an entry at the previously-assigned node ID. Before the fix, the
+ * allocator treated that stale entry as a conflict, reassigned a new ID,
+ * overwrote the table entry, and called saveConfig(). Repeated quick reboots
+ * churned through the entire downward-from-125 ID space and eventually
+ * exhausted it (LOG_ERROR "DNA: no free node IDs available").
+ *
+ * The DNA server pre-creates the live-node entry at allocation time via
+ * dronecanNodeStatusRegisterNode(); the peripheral's first real NodeStatus
+ * refreshes the entry in place. On a subsequent handshake within the stale
+ * window, the cached entry is the same peripheral and the stored ID is
+ * re-issued.
+ * ========================================================================= */
+TEST_F(DroneCANDnaServerTest, RebootWithinStaleWindowReissuesStoredNodeId)
+{
+    const uint8_t uid[16] = {
+        0xB1,0xB1,0xB1,0xB1,0xB1,0xB1,
+        0xB1,0xB1,0xB1,0xB1,0xB1,0xB1,
+        0xB1,0xB1,0xB1,0xB1
+    };
+
+    /* First allocation: gets 125, occupies DNA slot 0, calls saveConfig(). */
+    uint8_t first = runHandshake(uid);
+    ASSERT_EQ(first, (uint8_t)DRONECAN_DNA_MAX_NODE_ID);
+    int saves_after_first = saveConfig_call_count;
+    ASSERT_GE(saves_after_first, 1);
+
+    /* Simulate the peripheral having adopted 125 and broadcast one or more
+       NodeStatus frames. The pre-created entry's dnaIdx is back-linked to
+       the DNA slot. The peripheral's last broadcast was 1 s ago — well
+       inside the 10 s stale window. */
+    s_base_ms   += 5000;  /* 5 s into the peripheral's life */
+    mock_time_ms = s_base_ms;
+
+    mock_node_table[0].nodeID       = first;
+    mock_node_table[0].last_seen_ms = mock_time_ms - 1000;
+    mock_node_table[0].dnaIdx       = 0;  /* back-linked to DNA slot 0 */
+    mock_node_count = 1;
+
+    /* Reboot: peripheral re-negotiates. */
+    uint8_t second = runHandshake(uid);
+
+    /* The FC must recognise the cached live-node entry as the same
+       peripheral's own previous broadcast (matched via dnaIdx == 0) and
+       re-issue 125. Pre-fix this assertion fails: second == 124 because
+       the FC treated the live entry as a foreign occupier. */
+    EXPECT_EQ(second, first)
+        << "Reboot within the 10 s stale window must re-issue the stored "
+        << "node ID " << (int)first << "; the FC assigned " << (int)second
+        << " instead, treating the same-peripheral's cached NodeStatus as a conflict";
+
+    /* The persisted allocation table must still map this UID to the
+       original ID — no overwrite, no saveConfig(). */
+    int count = 0;
+    uint8_t tableId = 0;
+    for (int i = 0; i < DRONECAN_MAX_NODES; i++) {
+        if (memcmp(dnaServerData()->entries[i].uniqueId, uid, 16) == 0 &&
+            dnaServerData()->entries[i].nodeId != 0) {
+            count++;
+            tableId = dnaServerData()->entries[i].nodeId;
+        }
+    }
+    EXPECT_EQ(count, 1)        << "Reboot must not duplicate the table entry";
+    EXPECT_EQ(tableId, first)  << "Reboot must not overwrite the table entry";
+
+    EXPECT_EQ(saveConfig_call_count, saves_after_first)
+        << "Re-issuing the stored ID is not a configuration change; "
+        << "saveConfig() must not be called";
 }

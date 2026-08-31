@@ -62,6 +62,34 @@ const dronecanNodeInfo_t *dronecanGetNodeByID(uint8_t nodeID)
     return findNodeByID(nodeID);
 }
 
+void dronecanNodeStatusRegisterNode(uint8_t nodeID, uint8_t dnaIdx)
+{
+    if (nodeID == 0 || nodeID > CANARD_MAX_NODE_ID) {
+        return;
+    }
+    /* If a live entry already exists for this nodeID (peripheral was
+       already broadcasting before the DNA server finished its response,
+       or a slow path caught up to a fast one), just update the back-link
+       in place. */
+    dronecanNodeInfo_t *node = findNodeByID(nodeID);
+    if (node) {
+        node->dnaIdx = dnaIdx;
+        return;
+    }
+    if (activeNodeCount >= DRONECAN_MAX_NODES) {
+        return;
+    }
+    memset(&nodeTable[activeNodeCount], 0, sizeof(dronecanNodeInfo_t));
+    nodeTable[activeNodeCount].nodeID = nodeID;
+    nodeTable[activeNodeCount].dnaIdx = dnaIdx;
+    /* Set last_seen_ms to the current time so the entry has the full
+       10 s stale window to receive the peripheral's first real
+       NodeStatus before being pruned. millis() == 0 would be pruned on
+       the next 1 Hz update. */
+    nodeTable[activeNodeCount].last_seen_ms = millis();
+    activeNodeCount++;
+}
+
 void dronecanNodeStatusHandleBroadcast(CanardInstance *ins, CanardRxTransfer *transfer)
 {
     UNUSED(ins);
@@ -92,6 +120,10 @@ void dronecanNodeStatusHandleBroadcast(CanardInstance *ins, CanardRxTransfer *tr
         nodeTable[activeNodeCount].uptime_sec = nodeStatus.uptime_sec;
         nodeTable[activeNodeCount].vendor_status_code = nodeStatus.vendor_specific_status_code;
         nodeTable[activeNodeCount].last_seen_ms = millis();
+        /* dnaIdx is set explicitly rather than relying on the surrounding
+           memset, which would leave it at 0 — a valid DNA slot index, not
+           the documented 0xFF sentinel for non-DNA-managed nodes. */
+        nodeTable[activeNodeCount].dnaIdx = 0xFF;
         activeNodeCount++;
     } else {
         LOG_WARNING(CAN, "DroneCAN: node table full (%u nodes), ignoring node %u", DRONECAN_MAX_NODES, nodeID);

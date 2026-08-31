@@ -258,6 +258,17 @@ typedef struct dronecanNodeInfo_s {
     uint32_t uptime_sec;          // Node uptime in seconds
     uint16_t vendor_status_code;  // Vendor-specific status word
     uint32_t last_seen_ms;        // FC millis() timestamp of last NodeStatus
+    uint8_t  dnaIdx;              // DNA-server back-link: 0xFF for
+                                   // non-DNA-managed nodes, otherwise the
+                                   // index into the DNA allocation table
+                                   // for the node ID that was dynamically
+                                   // assigned to this peripheral. Set by
+                                   // dronecanNodeStatusRegisterNode() at
+                                   // DNA allocation time and used by the
+                                   // DNA server to recognise a
+                                   // rebooting peripheral's cached
+                                   // NodeStatus vs a foreign occupier
+                                   // of the same node ID.
 } dronecanNodeInfo_t;
 ```
 

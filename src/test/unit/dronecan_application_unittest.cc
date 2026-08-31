@@ -268,6 +268,14 @@ TEST_F(DroneCANNodeTableTest, NewNodeAddedOnFirstStatus)
     EXPECT_EQ(node->mode,               UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL);
     EXPECT_EQ(node->uptime_sec,         100u);
     EXPECT_EQ(node->vendor_status_code, 0xABCDu);
+    /* First NodeStatus from an unseen node ID — the node has no DNA
+       allocation, so dnaIdx must be 0xFF (the non-DNA-managed sentinel),
+       not 0 (a valid DNA slot index) which is what the surrounding
+       memset would leave it at. The DNA server uses 0xFF to recognise
+       a static-ID device at a previously-DNA-allocated node ID and
+       treat it as a foreign occupier, not a same-peripheral
+       re-handshake. */
+    EXPECT_EQ(node->dnaIdx,             0xFFu);
 }
 
 /* GAP-N1 (second node): Two distinct IDs → two separate entries */

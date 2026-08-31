@@ -11,6 +11,7 @@
 #include "config/parameter_group_ids.h"
 #include "dronecan.h"
 #include "dronecan_dna_server.h"
+#include "dronecan_node_status.h"
 
 #define DNA_INVALID_STAGE          -1
 #define DNA_STAGE_1                1
@@ -25,7 +26,7 @@ PG_REGISTER(dnaServerData_t, dnaServerData, PG_DRONECAN_DNA_SERVER, 0);
 
 static int8_t detectRequestStage(struct uavcan_protocol_dynamic_node_id_Allocation *msg);
 static int8_t getExpectedStage(uint8_t currentUniqueIdLength);
-static uint8_t dnaLookupOrAssignNode(const uint8_t *uid, uint8_t requestedNodeId);
+static uint8_t dnaLookupOrAssignNode(const uint8_t *uid, uint8_t requestedNodeId, uint8_t *outDnaIdx);
 static void dnaSendResponse(uint8_t nodeId, const uint8_t *uid, uint8_t uidLen);
 
 /*
@@ -92,8 +93,16 @@ void dronecanDnaHandleAllocation(CanardInstance *ins, CanardRxTransfer *transfer
 
     if (currentUniqueId.len == DNA_UNIQUE_ID_LENGTH)
     {
-        uint8_t assignedNodeId = dnaLookupOrAssignNode(currentUniqueId.data, requestedNodeId);
+        uint8_t dnaIdx;
+        uint8_t assignedNodeId = dnaLookupOrAssignNode(currentUniqueId.data, requestedNodeId, &dnaIdx);
         if (assignedNodeId != 0) {
+            /* Pre-create the live-node entry so the peripheral's first
+               NodeStatus refreshes it in place rather than creating a
+               new entry that the next handshake might mistake for a
+               foreign occupier. The entry has a full 10 s stale window
+               before being pruned, giving the peripheral time to adopt
+               the ID and start broadcasting. */
+            dronecanNodeStatusRegisterNode(assignedNodeId, dnaIdx);
             LOG_INFO(CAN, "DNA assigned Node ID: %u to peripheral", assignedNodeId);
             dnaSendResponse(assignedNodeId, currentUniqueId.data, currentUniqueId.len);
         }
@@ -164,13 +173,14 @@ static bool isNodeAvailable(uint8_t assignedNodeId)
     Search the allocation table for an existing entry matching the given unique
     identifier. If found, return the previously assigned node ID. If not found,
     find the first unused node ID (skipping our own) and record a new allocation.
-    Returns 0 if the table is full.
+    Returns 0 if the table is full. *outDnaIdx receives the slot index of the
+    matching or newly-created entry (always valid when the return is non-zero).
 */
-static uint8_t dnaLookupOrAssignNode(const uint8_t *uid, uint8_t requestedNodeId)
+static uint8_t dnaLookupOrAssignNode(const uint8_t *uid, uint8_t requestedNodeId, uint8_t *outDnaIdx)
 {
     uint8_t  assignedNodeId = CANARD_BROADCAST_NODE_ID;
     int8_t   conflictIdx = -1;
-    int8_t   writeIdx;
+    int8_t   writeIdx = -1;
     uint8_t  storedId;
     bool     inUse;
 
@@ -182,11 +192,21 @@ static uint8_t dnaLookupOrAssignNode(const uint8_t *uid, uint8_t requestedNodeId
             inUse = (storedId == canard.node_id);
             for (uint8_t j = 0; !inUse && j < dronecanGetNodeCount(); j++) {
                 const dronecanNodeInfo_t *node = dronecanGetNode(j);
-                if (node && node->nodeID == storedId)
+                if (node && node->nodeID == storedId && node->dnaIdx != (uint8_t)i) {
+                    /* A live-node entry at the stored ID is a real conflict
+                       only if it does not belong to this same DNA allocation
+                       (e.g. a different peripheral has come up sitting on the
+                       stored ID, or a static-ID node was configured to use
+                       it). An entry with dnaIdx == i is the same peripheral's
+                       own NodeStatus broadcast — re-issuing the stored ID is
+                       correct, not a collision. */
                     inUse = true;
+                }
             }
-            if (!inUse)
+            if (!inUse) {
+                *outDnaIdx = (uint8_t)i;
                 return storedId;
+            }
             LOG_WARNING(CAN, "DNA: stored node ID %u for UID is already in use — re-assigning", storedId);
             conflictIdx = i;
             break;
@@ -230,7 +250,7 @@ static uint8_t dnaLookupOrAssignNode(const uint8_t *uid, uint8_t requestedNodeId
             }
         }
     }
-    if (writeIdx < 0) { 
+    if (writeIdx < 0) {
         LOG_ERROR(CAN, "DNA: allocation table full");
         return 0;
     }
@@ -238,7 +258,8 @@ static uint8_t dnaLookupOrAssignNode(const uint8_t *uid, uint8_t requestedNodeId
     dnaServerDataMutable()->entries[writeIdx].nodeId = assignedNodeId;
     LOG_INFO(CAN, "DNA added node %u (UID index %u)", assignedNodeId, writeIdx);
     saveConfig();
-    return assignedNodeId;    
+    *outDnaIdx = (uint8_t)writeIdx;
+    return assignedNodeId;
 }
 
 /*

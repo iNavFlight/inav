@@ -40,6 +40,18 @@ typedef struct dronecanNodeInfo_s {
     uint32_t uptime_sec;
     uint16_t vendor_status_code;
     uint32_t last_seen_ms;
+    /*
+       DNA-server back-link. 0xFF means "not DNA-managed" (no entry in
+       the DNA allocation table at this node ID). Otherwise this is the
+       index into dnaServerData()->entries[] for the DNA-allocated
+       peripheral that owns this node ID. The DNA server sets it via
+       dronecanNodeStatusRegisterNode() at allocation time, and uses it
+       to recognise "same peripheral's previous broadcast" (dnaIdx
+       matches the current allocation's index) vs "different live node
+       on the stored ID" (dnaIdx differs or is 0xFF) on a subsequent
+       handshake.
+    */
+    uint8_t  dnaIdx;
 } dronecanNodeInfo_t;
 
 typedef enum {
