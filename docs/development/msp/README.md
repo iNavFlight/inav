@@ -261,8 +261,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [91 - MSP_SET_ADVANCED_CONFIG](#msp_set_advanced_config)  
 [92 - MSP_FILTER_CONFIG](#msp_filter_config)  
 [93 - MSP_SET_FILTER_CONFIG](#msp_set_filter_config)  
-[94 - MSP_PID_ADVANCED](#msp_pid_advanced)  
-[95 - MSP_SET_PID_ADVANCED](#msp_set_pid_advanced)  
 [96 - MSP_SENSOR_CONFIG](#msp_sensor_config)  
 [97 - MSP_SET_SENSOR_CONFIG](#msp_set_sensor_config)  
 [98 - MSP_SPECIAL_PARAMETERS](#msp_special_parameters)  
@@ -1723,50 +1721,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Requires at least 22 bytes; intermediate length checks enforce legacy Betaflight frame layout and call `pidInitFilters()` once the D-term notch placeholders are consumed.
-
-## <a id="msp_pid_advanced"></a>`MSP_PID_ADVANCED (94 / 0x5e)`
-**Description:** Retrieves advanced PID tuning parameters. Many fields are BF compatibility placeholders.  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `legacyRollPitchItermIgnore` | `uint16_t` | 2 | - | Always 0 (Legacy) |
-| `legacyYawItermIgnore` | `uint16_t` | 2 | - | Always 0 (Legacy) |
-| `legacyYawPLimit` | `uint16_t` | 2 | - | Always 0 (Legacy) |
-| `bfCompatDeltaMethod` | `uint8_t` | 1 | - | Always 0 (BF compatibility) |
-| `bfCompatVbatPidComp` | `uint8_t` | 1 | - | Always 0 (BF compatibility) |
-| `bfCompatSetpointRelaxRatio` | `uint8_t` | 1 | - | Always 0 (BF compatibility) |
-| `reserved1` | `uint8_t` | 1 | - | Always 0 |
-| `legacyPidSumLimit` | `uint16_t` | 2 | - | Always 0 (Legacy) |
-| `bfCompatItermThrottleGain` | `uint8_t` | 1 | - | Always 0 (BF compatibility) |
-| `accelLimitRollPitch` | `uint16_t` | 2 | dps / 10 | Axis acceleration limit for Roll/Pitch / 10 (`pidProfile()->axisAccelerationLimitRollPitch / 10`) |
-| `accelLimitYaw` | `uint16_t` | 2 | dps / 10 | Axis acceleration limit for Yaw / 10 (`pidProfile()->axisAccelerationLimitYaw / 10`) |
-
-**Notes:** Acceleration limits are scaled by 10 for compatibility.
-
-## <a id="msp_set_pid_advanced"></a>`MSP_SET_PID_ADVANCED (95 / 0x5f)`
-**Description:** Sets advanced PID tuning parameters.  
-  
-**Request Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `legacyRollPitchItermIgnore` | `uint16_t` | 2 | - | Ignored (legacy compatibility). |
-| `legacyYawItermIgnore` | `uint16_t` | 2 | - | Ignored (legacy compatibility). |
-| `legacyYawPLimit` | `uint16_t` | 2 | - | Ignored (legacy compatibility). |
-| `bfCompatDeltaMethod` | `uint8_t` | 1 | - | Ignored (BF compatibility). |
-| `bfCompatVbatPidComp` | `uint8_t` | 1 | - | Ignored (BF compatibility). |
-| `bfCompatSetpointRelaxRatio` | `uint8_t` | 1 | - | Ignored (BF compatibility). |
-| `reserved1` | `uint8_t` | 1 | - | Ignored (reserved). |
-| `legacyPidSumLimit` | `uint16_t` | 2 | - | Ignored (legacy compatibility). |
-| `bfCompatItermThrottleGain` | `uint8_t` | 1 | - | Ignored (BF compatibility). |
-| `accelLimitRollPitch` | `uint16_t` | 2 | dps / 10 | Sets `pidProfileMutable()->axisAccelerationLimitRollPitch = value * 10`. |
-| `accelLimitYaw` | `uint16_t` | 2 | dps / 10 | Sets `pidProfileMutable()->axisAccelerationLimitYaw = value * 10`. |
-
-**Reply Payload:** **None**  
-
-**Notes:** Expects 17 bytes.
 
 ## <a id="msp_sensor_config"></a>`MSP_SENSOR_CONFIG (96 / 0x60)`
 **Description:** Retrieves the configured hardware type for various sensors.  
