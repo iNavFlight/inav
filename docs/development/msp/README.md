@@ -277,7 +277,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [107 - MSP_COMP_GPS](#msp_comp_gps)  
 [108 - MSP_ATTITUDE](#msp_attitude)  
 [109 - MSP_ALTITUDE](#msp_altitude)  
-[110 - MSP_ANALOG](#msp_analog)  
 [111 - MSP_RC_TUNING](#msp_rc_tuning)  
 [113 - MSP_ACTIVEBOXES](#msp_activeboxes)  
 [114 - MSP_MISC](#msp_misc)  
@@ -1960,21 +1959,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `variometer` | `int16_t` | 2 | cm/s | Estimated vertical speed (`getEstimatedActualVelocity(Z)`) |
 | `baroAltitude` | `int32_t` | 4 | cm | Latest raw altitude from barometer (`baroGetLatestAltitude()`). 0 if `USE_BARO` disabled |
 
-## <a id="msp_analog"></a>`MSP_ANALOG (110 / 0x6e)`
-**Description:** Provides analog sensor readings: battery voltage, current consumption (mAh), RSSI, and current draw (Amps).  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `vbat` | `uint8_t` | 1 | 0.1V | Battery voltage, scaled (`getBatteryVoltage() / 10`), constrained 0-255 |
-| `mAhDrawn` | `uint16_t` | 2 | mAh | Consumed battery capacity (`getMAhDrawn()`), constrained 0-65535 |
-| `rssi` | `uint16_t` | 2 | 0-1023 or % | Received Signal Strength Indicator (`getRSSI()`). Units depend on source |
-| `amperage` | `int16_t` | 2 | 0.01A | Current draw (`getAmperage()`), constrained -32768 to 32767 |
-
-**Notes:** Superseded by `MSP2_INAV_ANALOG` which provides higher precision and more fields.
-
 ## <a id="msp_rc_tuning"></a>`MSP_RC_TUNING (111 / 0x6f)`
 **Description:** Retrieves RC tuning parameters (rates, expos, TPA) for the current control rate profile.  
 
@@ -2206,7 +2190,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `batteryState` | `uint8_t` | 1 | [batteryState_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-batterystate_e) | Enum `batteryState_e` Current battery state (`getBatteryState()`, see `BATTERY_STATE_*`) |
 | `vbatActual` | `uint16_t` | 2 | 0.01V | Actual battery voltage (`getBatteryVoltage()`) |
 
-**Notes:** Only available if `USE_DJI_HD_OSD` or `USE_MSP_DISPLAYPORT` is defined. Some values are duplicated from `MSP_ANALOG` / `MSP2_INAV_ANALOG` but potentially with different scaling/types.
+**Notes:** Only available if `USE_DJI_HD_OSD` or `USE_MSP_DISPLAYPORT` is defined. Some values are duplicated from `MSP2_INAV_ANALOG` but potentially with different scaling/types.
 
 ## <a id="msp_vtxtable_band"></a>`MSP_VTXTABLE_BAND (137 / 0x89)`
 **Description:** Retrieves information about a specific VTX band from the VTX table. (Implementation missing in provided `fc_msp.c`)  
@@ -3172,7 +3156,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Notes:** Requires `USE_OPFLOW`.
 
 ## <a id="msp2_inav_analog"></a>`MSP2_INAV_ANALOG (8194 / 0x2002)`
-**Description:** Provides detailed analog sensor readings, superseding `MSP_ANALOG` with higher precision and additional fields.  
+**Description:** Provides detailed analog sensor readings with higher precision and additional fields.  
 
 **Request Payload:** **None**  
   

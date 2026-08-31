@@ -1,7 +1,7 @@
 {
     "version": {
-        "major": 2,
-        "minor": 1,
+        "major": 3,
+        "minor": 0,
         "patch": 0
     },
     "messages": {
@@ -3928,42 +3928,6 @@
             "notes": "",
             "description": "Provides estimated altitude, vertical speed (variometer), and raw barometric altitude."
         },
-        "MSP_ANALOG": {
-            "code": 110,
-            "mspv": 1,
-            "replaced_by": ["MSP2_INAV_ANALOG"],
-            "request": null,
-            "reply": {
-                "payload": [
-                    {
-                        "name": "vbat",
-                        "ctype": "uint8_t",
-                        "desc": "Battery voltage, scaled (`getBatteryVoltage() / 10`), constrained 0-255",
-                        "units": "0.1V"
-                    },
-                    {
-                        "name": "mAhDrawn",
-                        "ctype": "uint16_t",
-                        "desc": "Consumed battery capacity (`getMAhDrawn()`), constrained 0-65535",
-                        "units": "mAh"
-                    },
-                    {
-                        "name": "rssi",
-                        "ctype": "uint16_t",
-                        "desc": "Received Signal Strength Indicator (`getRSSI()`). Units depend on source",
-                        "units": "0-1023 or %"
-                    },
-                    {
-                        "name": "amperage",
-                        "ctype": "int16_t",
-                        "desc": "Current draw (`getAmperage()`), constrained -32768 to 32767",
-                        "units": "0.01A"
-                    }
-                ]
-            },
-            "notes": "Superseded by `MSP2_INAV_ANALOG` which provides higher precision and more fields.",
-            "description": "Provides analog sensor readings: battery voltage, current consumption (mAh), RSSI, and current draw (Amps)."
-        },
         "MSP_RC_TUNING": {
             "code": 111,
             "mspv": 1,
@@ -4602,7 +4566,7 @@
                     }
                 ]
             },
-            "notes": "Only available if `USE_DJI_HD_OSD` or `USE_MSP_DISPLAYPORT` is defined. Some values are duplicated from `MSP_ANALOG` / `MSP2_INAV_ANALOG` but potentially with different scaling/types.",
+            "notes": "Only available if `USE_DJI_HD_OSD` or `USE_MSP_DISPLAYPORT` is defined. Some values are duplicated from `MSP2_INAV_ANALOG` but potentially with different scaling/types.",
             "description": "Provides battery state information, formatted primarily for DJI FPV Goggles compatibility."
         },
         "MSP_VTXTABLE_BAND": {
@@ -6957,7 +6921,7 @@
                 ]
             },
             "notes": "Requires `USE_CURRENT_METER`/`USE_ADC` for current-related fields; values fall back to zero when unavailable. Capacity fields are reported in the units configured by `batteryMetersConfig()->capacity_unit` (mAh or mWh).",
-            "description": "Provides detailed analog sensor readings, superseding `MSP_ANALOG` with higher precision and additional fields."
+            "description": "Provides detailed analog sensor readings with higher precision and additional fields."
         },
         "MSP2_INAV_MISC": {
             "code": 8195,
