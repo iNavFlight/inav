@@ -259,8 +259,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [89 - MSP_SET_VTX_CONFIG](#msp_set_vtx_config)  
 [90 - MSP_ADVANCED_CONFIG](#msp_advanced_config)  
 [91 - MSP_SET_ADVANCED_CONFIG](#msp_set_advanced_config)  
-[92 - MSP_FILTER_CONFIG](#msp_filter_config)  
-[93 - MSP_SET_FILTER_CONFIG](#msp_set_filter_config)  
 [94 - MSP_PID_ADVANCED](#msp_pid_advanced)  
 [95 - MSP_SET_PID_ADVANCED](#msp_set_pid_advanced)  
 [96 - MSP_SENSOR_CONFIG](#msp_sensor_config)  
@@ -1679,50 +1677,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Expects 9 bytes.
-
-## <a id="msp_filter_config"></a>`MSP_FILTER_CONFIG (92 / 0x5c)`
-**Description:** Retrieves filter configuration settings (Gyro, D-term, Yaw, Accel). Some fields are BF compatibility placeholders or legacy.  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `gyroMainLpfHz` | `uint8_t` | 1 | Hz | Gyro main low-pass filter cutoff frequency (`gyroConfig()->gyro_main_lpf_hz`) |
-| `dtermLpfHz` | `uint16_t` | 2 | Hz | D-term low-pass filter cutoff frequency (`pidProfile()->dterm_lpf_hz`) |
-| `yawLpfHz` | `uint16_t` | 2 | Hz | Yaw low-pass filter cutoff frequency (`pidProfile()->yaw_lpf_hz`) |
-| `legacyGyroNotchHz` | `uint16_t` | 2 | - | Always 0 (Legacy) |
-| `legacyGyroNotchCutoff` | `uint16_t` | 2 | - | Always 1 (Legacy) |
-| `bfCompatDtermNotchHz` | `uint16_t` | 2 | - | Always 0 (BF compatibility) |
-| `bfCompatDtermNotchCutoff` | `uint16_t` | 2 | - | Always 1 (BF compatibility) |
-| `bfCompatGyroNotch2Hz` | `uint16_t` | 2 | - | Always 0 (BF compatibility) |
-| `bfCompatGyroNotch2Cutoff` | `uint16_t` | 2 | - | Always 1 (BF compatibility) |
-| `accNotchHz` | `uint16_t` | 2 | Hz | Accelerometer notch filter center frequency (`accelerometerConfig()->acc_notch_hz`) |
-| `accNotchCutoff` | `uint16_t` | 2 | Hz | Accelerometer notch filter cutoff frequency (`accelerometerConfig()->acc_notch_cutoff`) |
-| `legacyGyroStage2LpfHz` | `uint16_t` | 2 | - | Always 0 (Legacy) |
-
-## <a id="msp_set_filter_config"></a>`MSP_SET_FILTER_CONFIG (93 / 0x5d)`
-**Description:** Sets filter configuration settings. Handles different payload lengths for backward compatibility.  
-  
-**Request Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `gyroMainLpfHz` | `uint8_t` | 1 | Hz | Sets `gyroConfigMutable()->gyro_main_lpf_hz`. (Size >= 5) |
-| `dtermLpfHz` | `uint16_t` | 2 | Hz | Sets `pidProfileMutable()->dterm_lpf_hz` (constrained 0-500). (Size >= 5) |
-| `yawLpfHz` | `uint16_t` | 2 | Hz | Sets `pidProfileMutable()->yaw_lpf_hz` (constrained 0-255). (Size >= 5) |
-| `legacyGyroNotchHz` | `uint16_t` | 2 | - | Ignored. (Size >= 9) |
-| `legacyGyroNotchCutoff` | `uint16_t` | 2 | - | Ignored. (Size >= 9) |
-| `bfCompatDtermNotchHz` | `uint16_t` | 2 | - | Ignored. (Size >= 13) |
-| `bfCompatDtermNotchCutoff` | `uint16_t` | 2 | - | Ignored. (Size >= 13) |
-| `bfCompatGyroNotch2Hz` | `uint16_t` | 2 | - | Ignored. (Size >= 17) |
-| `bfCompatGyroNotch2Cutoff` | `uint16_t` | 2 | - | Ignored. (Size >= 17) |
-| `accNotchHz` | `uint16_t` | 2 | Hz | Sets `accelerometerConfigMutable()->acc_notch_hz` (constrained 0-255). (Size >= 21) |
-| `accNotchCutoff` | `uint16_t` | 2 | Hz | Sets `accelerometerConfigMutable()->acc_notch_cutoff` (constrained 1-255). (Size >= 21) |
-| `legacyGyroStage2LpfHz` | `uint16_t` | 2 | - | Ignored. (Size >= 22) |
-
-**Reply Payload:** **None**  
-
-**Notes:** Requires at least 22 bytes; intermediate length checks enforce legacy Betaflight frame layout and call `pidInitFilters()` once the D-term notch placeholders are consumed.
 
 ## <a id="msp_pid_advanced"></a>`MSP_PID_ADVANCED (94 / 0x5e)`
 **Description:** Retrieves advanced PID tuning parameters. Many fields are BF compatibility placeholders.  
