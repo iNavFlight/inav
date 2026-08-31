@@ -280,7 +280,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [110 - MSP_ANALOG](#msp_analog)  
 [111 - MSP_RC_TUNING](#msp_rc_tuning)  
 [113 - MSP_ACTIVEBOXES](#msp_activeboxes)  
-[114 - MSP_MISC](#msp_misc)  
 [116 - MSP_BOXNAMES](#msp_boxnames)  
 [117 - MSP_PIDNAMES](#msp_pidnames)  
 [118 - MSP_WP](#msp_wp)  
@@ -311,7 +310,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [204 - MSP_SET_RC_TUNING](#msp_set_rc_tuning)  
 [205 - MSP_ACC_CALIBRATION](#msp_acc_calibration)  
 [206 - MSP_MAG_CALIBRATION](#msp_mag_calibration)  
-[207 - MSP_SET_MISC](#msp_set_misc)  
 [208 - MSP_RESET_CONF](#msp_reset_conf)  
 [209 - MSP_SET_WP](#msp_set_wp)  
 [210 - MSP_SELECT_SETTING](#msp_select_setting)  
@@ -2008,33 +2006,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Notes:** Use this instead of `MSP_STATUS` or `MSP_STATUS_EX` if more than 32 modes are possible.
 
-## <a id="msp_misc"></a>`MSP_MISC (114 / 0x72)`
-**Description:** Retrieves miscellaneous configuration settings, mostly related to RC, GPS, Mag, and Battery voltage (legacy formats).  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `midRc` | `uint16_t` | 2 | PWM | Mid RC value (`PWM_RANGE_MIDDLE`, typically 1500) |
-| `legacyMinThrottle` | `uint16_t` | 2 | - | Always 0 (Legacy) |
-| `maxThrottle` | `uint16_t` | 2 | PWM | Maximum throttle command (`getMaxThrottle()`) |
-| `minCommand` | `uint16_t` | 2 | PWM | Minimum motor command when disarmed (`motorConfig()->mincommand`) |
-| `failsafeThrottle` | `uint16_t` | 2 | PWM | Failsafe throttle level (`currentBatteryProfile->failsafe_throttle`) |
-| `gpsType` | `uint8_t` | 1 | [gpsProvider_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-gpsprovider_e) | Enum `gpsProvider_e` GPS provider type (`gpsConfig()->provider`). 0 if `USE_GPS` disabled |
-| `legacyGpsBaud` | `uint8_t` | 1 | - | Always 0 (Legacy) |
-| `gpsSbasMode` | `uint8_t` | 1 | [sbasMode_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-sbasmode_e) | Enum `sbasMode_e` GPS SBAS mode (`gpsConfig()->sbasMode`). 0 if `USE_GPS` disabled |
-| `legacyMwCurrentOut` | `uint8_t` | 1 | - | Always 0 (Legacy) |
-| `rssiChannel` | `uint8_t` | 1 | Index | RSSI channel index (1-based) (`rxConfig()->rssi_channel`) |
-| `reserved1` | `uint8_t` | 1 | - | Always 0 |
-| `magDeclination` | `uint16_t` | 2 | 0.1 degrees | Magnetic declination / 10 (`compassConfig()->mag_declination / 10`). 0 if `USE_MAG` disabled |
-| `vbatScale` | `uint8_t` | 1 | Scale / 10 | Voltage scale / 10 (`batteryMetersConfig()->voltage.scale / 10`). 0 if `USE_ADC` disabled |
-| `vbatMinCell` | `uint8_t` | 1 | 0.1V | Min cell voltage / 10 (`currentBatteryProfile->voltage.cellMin / 10`). 0 if `USE_ADC` disabled |
-| `vbatMaxCell` | `uint8_t` | 1 | 0.1V | Max cell voltage / 10 (`currentBatteryProfile->voltage.cellMax / 10`). 0 if `USE_ADC` disabled |
-| `vbatWarningCell` | `uint8_t` | 1 | 0.1V | Warning cell voltage / 10 (`currentBatteryProfile->voltage.cellWarning / 10`). 0 if `USE_ADC` disabled |
-
-**Notes:** Superseded by `MSP2_INAV_MISC` and other specific commands which offer better precision and more fields.
-
 ## <a id="msp_boxnames"></a>`MSP_BOXNAMES (116 / 0x74)`
 **Description:** Provides a semicolon-separated string containing the names of all available flight modes (boxes).  
 
@@ -2442,33 +2413,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Will fail if armed. Enables the `CALIBRATE_MAG` state flag.
-
-## <a id="msp_set_misc"></a>`MSP_SET_MISC (207 / 0xcf)`
-**Description:** Sets miscellaneous configuration settings (legacy formats/scaling).  
-  
-**Request Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `midRc` | `uint16_t` | 2 | PWM | Ignored |
-| `legacyMinThrottle` | `uint16_t` | 2 | - | Ignored |
-| `legacyMaxThrottle` | `uint16_t` | 2 | - | Ignored |
-| `minCommand` | `uint16_t` | 2 | PWM | Sets `motorConfigMutable()->mincommand` (constrained 0-PWM_RANGE_MAX) |
-| `failsafeThrottle` | `uint16_t` | 2 | PWM | Sets `currentBatteryProfileMutable->failsafe_throttle` (constrained PWM_RANGE_MIN/MAX) |
-| `gpsType` | `uint8_t` | 1 | [gpsProvider_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-gpsprovider_e) | Enum `gpsProvider_e` (Sets `gpsConfigMutable()->provider`) |
-| `legacyGpsBaud` | `uint8_t` | 1 | - | Ignored |
-| `gpsSbasMode` | `uint8_t` | 1 | [sbasMode_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-sbasmode_e) | Enum `sbasMode_e` (Sets `gpsConfigMutable()->sbasMode`) |
-| `legacyMwCurrentOut` | `uint8_t` | 1 | - | Ignored |
-| `rssiChannel` | `uint8_t` | 1 | Index | Sets `rxConfigMutable()->rssi_channel` (constrained 0-MAX_SUPPORTED_RC_CHANNEL_COUNT). Updates source |
-| `reserved1` | `uint8_t` | 1 | - | Ignored |
-| `magDeclination` | `uint16_t` | 2 | 0.1 degrees | Sets `compassConfigMutable()->mag_declination = value * 10` (if `USE_MAG`) |
-| `vbatScale` | `uint8_t` | 1 | Scale / 10 | Sets `batteryMetersConfigMutable()->voltage.scale = value * 10` (if `USE_ADC`) |
-| `vbatMinCell` | `uint8_t` | 1 | 0.1V | Sets `currentBatteryProfileMutable->voltage.cellMin = value * 10` (if `USE_ADC`) |
-| `vbatMaxCell` | `uint8_t` | 1 | 0.1V | Sets `currentBatteryProfileMutable->voltage.cellMax = value * 10` (if `USE_ADC`) |
-| `vbatWarningCell` | `uint8_t` | 1 | 0.1V | Sets `currentBatteryProfileMutable->voltage.cellWarning = value * 10` (if `USE_ADC`) |
-
-**Reply Payload:** **None**  
-
-**Notes:** Expects 22 bytes. Superseded by `MSP2_INAV_SET_MISC`.
 
 ## <a id="msp_reset_conf"></a>`MSP_RESET_CONF (208 / 0xd0)`
 **Description:** Resets all configuration settings to their default values and saves to EEPROM.  
@@ -3192,7 +3136,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Notes:** Requires `USE_CURRENT_METER`/`USE_ADC` for current-related fields; values fall back to zero when unavailable. Capacity fields are reported in the units configured by `batteryMetersConfig()->capacity_unit` (mAh or mWh).
 
 ## <a id="msp2_inav_misc"></a>`MSP2_INAV_MISC (8195 / 0x2003)`
-**Description:** Retrieves miscellaneous configuration settings, superseding `MSP_MISC` with higher precision and capacity fields.  
+**Description:** Retrieves miscellaneous configuration settings with higher precision and capacity fields.  
 
 **Request Payload:** **None**  
   
@@ -3222,7 +3166,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `capacityUnit` | `uint8_t` | 1 | [batCapacityUnit_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-batcapacityunit_e) | Enum `batCapacityUnit_e` Capacity unit (`batteryMetersConfig()->capacity_unit`) |
 
 ## <a id="msp2_inav_set_misc"></a>`MSP2_INAV_SET_MISC (8196 / 0x2004)`
-**Description:** Sets miscellaneous configuration settings, superseding `MSP_SET_MISC`.  
+**Description:** Sets miscellaneous configuration settings.  
   
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|

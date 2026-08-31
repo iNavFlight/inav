@@ -1,7 +1,7 @@
 {
     "version": {
-        "major": 2,
-        "minor": 1,
+        "major": 3,
+        "minor": 0,
         "patch": 0
     },
     "messages": {
@@ -4054,116 +4054,6 @@
             "notes": "Use this instead of `MSP_STATUS` or `MSP_STATUS_EX` if more than 32 modes are possible.",
             "description": "Provides the full bitmask of currently active flight modes (boxes)."
         },
-        "MSP_MISC": {
-            "code": 114,
-            "mspv": 1,
-            "replaced_by": ["MSP2_INAV_MISC"],
-            "request": null,
-            "reply": {
-                "payload": [
-                    {
-                        "name": "midRc",
-                        "ctype": "uint16_t",
-                        "desc": "Mid RC value (`PWM_RANGE_MIDDLE`, typically 1500)",
-                        "units": "PWM"
-                    },
-                    {
-                        "name": "legacyMinThrottle",
-                        "ctype": "uint16_t",
-                        "desc": "Always 0 (Legacy)",
-                        "value": 0
-                    },
-                    {
-                        "name": "maxThrottle",
-                        "ctype": "uint16_t",
-                        "desc": "Maximum throttle command (`getMaxThrottle()`)",
-                        "units": "PWM"
-                    },
-                    {
-                        "name": "minCommand",
-                        "ctype": "uint16_t",
-                        "desc": "Minimum motor command when disarmed (`motorConfig()->mincommand`)",
-                        "units": "PWM"
-                    },
-                    {
-                        "name": "failsafeThrottle",
-                        "ctype": "uint16_t",
-                        "desc": "Failsafe throttle level (`currentBatteryProfile->failsafe_throttle`)",
-                        "units": "PWM"
-                    },
-                    {
-                        "name": "gpsType",
-                        "ctype": "uint8_t",
-                        "desc": "Enum `gpsProvider_e` GPS provider type (`gpsConfig()->provider`). 0 if `USE_GPS` disabled",
-                        "units": "Enum",
-                        "enum": "gpsProvider_e"
-                    },
-                    {
-                        "name": "legacyGpsBaud",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0 (Legacy)",
-                        "value": 0
-                    },
-                    {
-                        "name": "gpsSbasMode",
-                        "ctype": "uint8_t",
-                        "desc": "Enum `sbasMode_e` GPS SBAS mode (`gpsConfig()->sbasMode`). 0 if `USE_GPS` disabled",
-                        "units": "Enum",
-                        "enum": "sbasMode_e"
-                    },
-                    {
-                        "name": "legacyMwCurrentOut",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0 (Legacy)",
-                        "value": 0
-                    },
-                    {
-                        "name": "rssiChannel",
-                        "ctype": "uint8_t",
-                        "desc": "RSSI channel index (1-based) (`rxConfig()->rssi_channel`)",
-                        "units": "Index"
-                    },
-                    {
-                        "name": "reserved1",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0",
-                        "value": 0
-                    },
-                    {
-                        "name": "magDeclination",
-                        "ctype": "uint16_t",
-                        "desc": "Magnetic declination / 10 (`compassConfig()->mag_declination / 10`). 0 if `USE_MAG` disabled",
-                        "units": "0.1 degrees"
-                    },
-                    {
-                        "name": "vbatScale",
-                        "ctype": "uint8_t",
-                        "desc": "Voltage scale / 10 (`batteryMetersConfig()->voltage.scale / 10`). 0 if `USE_ADC` disabled",
-                        "units": "Scale / 10"
-                    },
-                    {
-                        "name": "vbatMinCell",
-                        "ctype": "uint8_t",
-                        "desc": "Min cell voltage / 10 (`currentBatteryProfile->voltage.cellMin / 10`). 0 if `USE_ADC` disabled",
-                        "units": "0.1V"
-                    },
-                    {
-                        "name": "vbatMaxCell",
-                        "ctype": "uint8_t",
-                        "desc": "Max cell voltage / 10 (`currentBatteryProfile->voltage.cellMax / 10`). 0 if `USE_ADC` disabled",
-                        "units": "0.1V"
-                    },
-                    {
-                        "name": "vbatWarningCell",
-                        "ctype": "uint8_t",
-                        "desc": "Warning cell voltage / 10 (`currentBatteryProfile->voltage.cellWarning / 10`). 0 if `USE_ADC` disabled",
-                        "units": "0.1V"
-                    }
-                ]
-            },
-            "notes": "Superseded by `MSP2_INAV_MISC` and other specific commands which offer better precision and more fields.",
-            "description": "Retrieves miscellaneous configuration settings, mostly related to RC, GPS, Mag, and Battery voltage (legacy formats)."
-        },
         "MSP_BOXNAMES": {
             "code": 116,
             "mspv": 1,
@@ -5158,111 +5048,6 @@
             "reply": null,
             "notes": "Will fail if armed. Enables the `CALIBRATE_MAG` state flag.",
             "description": "Starts the magnetometer calibration procedure."
-        },
-        "MSP_SET_MISC": {
-            "code": 207,
-            "mspv": 1,
-            "replaced_by": ["MSP2_INAV_SET_MISC"],
-            "request": {
-                "payload": [
-                    {
-                        "name": "midRc",
-                        "ctype": "uint16_t",
-                        "desc": "Ignored",
-                        "units": "PWM"
-                    },
-                    {
-                        "name": "legacyMinThrottle",
-                        "ctype": "uint16_t",
-                        "desc": "Ignored"
-                    },
-                    {
-                        "name": "legacyMaxThrottle",
-                        "ctype": "uint16_t",
-                        "desc": "Ignored"
-                    },
-                    {
-                        "name": "minCommand",
-                        "ctype": "uint16_t",
-                        "desc": "Sets `motorConfigMutable()->mincommand` (constrained 0-PWM_RANGE_MAX)",
-                        "units": "PWM"
-                    },
-                    {
-                        "name": "failsafeThrottle",
-                        "ctype": "uint16_t",
-                        "desc": "Sets `currentBatteryProfileMutable->failsafe_throttle` (constrained PWM_RANGE_MIN/MAX)",
-                        "units": "PWM"
-                    },
-                    {
-                        "name": "gpsType",
-                        "ctype": "uint8_t",
-                        "desc": "Enum `gpsProvider_e` (Sets `gpsConfigMutable()->provider`)",
-                        "units": "Enum",
-                        "enum": "gpsProvider_e"
-                    },
-                    {
-                        "name": "legacyGpsBaud",
-                        "ctype": "uint8_t",
-                        "desc": "Ignored"
-                    },
-                    {
-                        "name": "gpsSbasMode",
-                        "ctype": "uint8_t",
-                        "desc": "Enum `sbasMode_e` (Sets `gpsConfigMutable()->sbasMode`)",
-                        "units": "Enum",
-                        "enum": "sbasMode_e"
-                    },
-                    {
-                        "name": "legacyMwCurrentOut",
-                        "ctype": "uint8_t",
-                        "desc": "Ignored"
-                    },
-                    {
-                        "name": "rssiChannel",
-                        "ctype": "uint8_t",
-                        "desc": "Sets `rxConfigMutable()->rssi_channel` (constrained 0-MAX_SUPPORTED_RC_CHANNEL_COUNT). Updates source",
-                        "units": "Index"
-                    },
-                    {
-                        "name": "reserved1",
-                        "ctype": "uint8_t",
-                        "desc": "Ignored"
-                    },
-                    {
-                        "name": "magDeclination",
-                        "ctype": "uint16_t",
-                        "desc": "Sets `compassConfigMutable()->mag_declination = value * 10` (if `USE_MAG`)",
-                        "units": "0.1 degrees"
-                    },
-                    {
-                        "name": "vbatScale",
-                        "ctype": "uint8_t",
-                        "desc": "Sets `batteryMetersConfigMutable()->voltage.scale = value * 10` (if `USE_ADC`)",
-                        "units": "Scale / 10"
-                    },
-                    {
-                        "name": "vbatMinCell",
-                        "ctype": "uint8_t",
-                        "desc": "Sets `currentBatteryProfileMutable->voltage.cellMin = value * 10` (if `USE_ADC`)",
-                        "units": "0.1V"
-                    },
-                    {
-                        "name": "vbatMaxCell",
-                        "ctype": "uint8_t",
-                        "desc": "Sets `currentBatteryProfileMutable->voltage.cellMax = value * 10` (if `USE_ADC`)",
-                        "units": "0.1V"
-                    },
-                    {
-                        "name": "vbatWarningCell",
-                        "ctype": "uint8_t",
-                        "desc": "Sets `currentBatteryProfileMutable->voltage.cellWarning = value * 10` (if `USE_ADC`)",
-                        "units": "0.1V"
-                    }
-                ]
-            },
-            "reply": null,
-            "notes": "Expects 22 bytes. Superseded by `MSP2_INAV_SET_MISC`.",
-            "description": "Sets miscellaneous configuration settings (legacy formats/scaling)."
         },
         "MSP_RESET_CONF": {
             "code": 208,
@@ -7098,7 +6883,7 @@
                 ]
             },
             "notes": "",
-            "description": "Retrieves miscellaneous configuration settings, superseding `MSP_MISC` with higher precision and capacity fields."
+            "description": "Retrieves miscellaneous configuration settings with higher precision and capacity fields."
         },
         "MSP2_INAV_SET_MISC": {
             "code": 8196,
@@ -7236,7 +7021,7 @@
             },
             "reply": null,
             "notes": "Expects 41 bytes. Performs validation on `vbatSource` and `capacityUnit`.",
-            "description": "Sets miscellaneous configuration settings, superseding `MSP_SET_MISC`."
+            "description": "Sets miscellaneous configuration settings."
         },
         "MSP2_INAV_BATTERY_CONFIG": {
             "code": 8197,
