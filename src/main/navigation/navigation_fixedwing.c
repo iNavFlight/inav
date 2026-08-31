@@ -48,6 +48,7 @@
 #include "fc/runtime_config.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_fixedwing_autospeed_logic.h"
 #include "navigation/navigation_private.h"
 
 #include "programming/logic_condition.h"
@@ -73,7 +74,13 @@ static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static float navCrossTrackError;
 static int8_t loiterDirYaw = 1;
-bool needToCalculateCircularLoiter;
+static bool needToCalculateCircularLoiter;
+static bool autoSpeedIsActive = false;
+static bool autoSpeedAirspeedBoost = false;
+static bool autoSpeedNeedsFreshSample = true;
+static uint16_t autoSpeedThrottleCommand = PWM_RANGE_MIDDLE;
+static timeUs_t autoSpeedLastUpdateTimeUs = 0;
+static pt1Filter_t speedToThrFilterState;
 
 // Calculates the cutoff frequency for smoothing out roll/pitch commands
 // control_smoothness valid range from 0 to 9
@@ -332,7 +339,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     // Limit minimum forward velocity to 1 m/s
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
 
-    uint32_t navLoiterRadius = getLoiterRadius(navConfig()->fw.loiter_radius);
+    uint32_t navLoiterRadius = getLoiterRadius(navigationGetLoiterRadius());
     fpVector3_t loiterCenterPos = posControl.desiredState.pos;
     int8_t loiterTurnDirection = loiterDirection();
 
@@ -888,28 +895,78 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
  *-----------------------------------------------------------*/
 bool isFixedwingAutoSpeedActive(void)
 {
-    bool thrStickEmergStop = navConfig()->fw.auto_speed_channel != (THROTTLE + 1) && throttleStickIsLow();
+    return navFixedWingAutoSpeedMayControlThrottle(
+        STATE(AIRPLANE),
+        autoSpeedIsActive,
+        mixerATIsActive());
+}
 
-    return STATE(AIRPLANE) && ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXAUTOSPEED) && isProbablyStillFlying() && !thrStickEmergStop &&
-            !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
-            posControl.flags.estVelStatus == EST_TRUSTED && posControl.flags.estAltStatus == EST_TRUSTED &&
-            !(navigationRequiresAutoThrottleMode() && !(navGetCurrentStateFlags() & NAV_CTL_SPEED));
+static int8_t isAutoSpeedRequiredByNav(void)
+{
+    int8_t result = -1;
+    if (FLIGHT_MODE(NAV_WP_MODE) && getActiveSpeed() > 0) {
+        result = FW_AUTO_SPD_GROUND;
+    }
+
+    return result;
+}
+
+static bool isAutoSpeedEnabled(void)
+{
+    bool thrStickEmergStop = navConfig()->fw.auto_speed_channel != (THROTTLE + 1) && throttleStickIsLow();
+    bool autoSpeedRequested = IS_RC_MODE_ACTIVE(BOXAUTOSPEED) || isAutoSpeedRequiredByNav() >= 0;
+
+    return ARMING_FLAG(ARMED) && autoSpeedRequested && isProbablyStillFlying() && !thrStickEmergStop &&
+           !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
+           posControl.flags.estVelStatus == EST_TRUSTED && posControl.flags.estAltStatus == EST_TRUSTED &&
+           !(navigationRequiresAutoThrottleMode() && !(navGetCurrentStateFlags() & NAV_CTL_SPEED));
+}
+
+static void deactivateFixedWingAutoSpeed(int16_t throttleCommand)
+{
+    autoSpeedThrottleCommand = constrain(throttleCommand, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    autoSpeedLastUpdateTimeUs = 0;
+    autoSpeedNeedsFreshSample = true;
+
+    if (autoSpeedIsActive) {
+        navPidReset(&posControl.pids.fw_autoSpeed);
+    }
+
+    // A later Auto Speed session starts from the throttle currently owned by
+    // navigation or the VTOL transition instead of an old controller output.
+    pt1FilterReset(&speedToThrFilterState, autoSpeedThrottleCommand - PWM_RANGE_MIDDLE);
+    autoSpeedAirspeedBoost = false;
+    autoSpeedIsActive = false;
 }
 
 void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTimeUs)
 {
-    if (!isFixedwingAutoSpeedActive()) return;
-
-    static uint16_t autoSpeedThrottleCommand = PWM_RANGE_MIDDLE;
+    const bool isFixedWing = STATE(AIRPLANE);
+    const bool autoSpeedMayRun = navFixedWingAutoSpeedMayControlThrottle(
+        isFixedWing,
+        isFixedWing && isAutoSpeedEnabled(),
+        mixerATIsActive());
+    if (!autoSpeedMayRun) {
+        deactivateFixedWingAutoSpeed(*throttleCommand);
+        return;
+    }
+    autoSpeedIsActive = true;
 
     if (posControl.flags.horizontalPositionDataNew && posControl.flags.verticalPositionDataNew) {
-        static timeUs_t lastUpdateTimeUs = 0;
-        timeUs_t dT = currentTimeUs - lastUpdateTimeUs;
-        lastUpdateTimeUs = currentTimeUs;
-        static pt1Filter_t speedToThrFilterState;
+        if (autoSpeedNeedsFreshSample) {
+            autoSpeedLastUpdateTimeUs = currentTimeUs;
+            autoSpeedNeedsFreshSample = false;
+            if (!speedToThrFilterState.RC) {
+                pt1FilterSetCutoff(&speedToThrFilterState, 1.0f / navConfig()->fw.auto_speed_thr_smoothing);
+            }
+            return;
+        }
+
+        timeUs_t dT = currentTimeUs - autoSpeedLastUpdateTimeUs;
+        autoSpeedLastUpdateTimeUs = currentTimeUs;
 
         if (dT > MAX_POSITION_UPDATE_INTERVAL_US) {
-            if (!speedToThrFilterState.RC) pt1FilterSetCutoff(&speedToThrFilterState, 1.0f / navConfig()->fw.auto_speed_thr_smoothing);
+            autoSpeedNeedsFreshSample = true;
             return;
         }
 
@@ -918,19 +975,25 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
         uint16_t minThrottle = MAX(getThrottleIdleValue(), currentBatteryProfile->nav.fw.min_throttle);
         uint16_t maxThrottle = currentBatteryProfile->nav.fw.max_throttle;
 
-        posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(navConfig()->fw.auto_speed_channel - 1), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
+        bool useAirSpeed = !LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED);
+        if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED)) {
+            posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(navConfig()->fw.auto_speed_channel - 1), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
+        } else {
+            posControl.desiredState.autoSpeedDemand = constrain(getActiveSpeed(), minSpeed, maxSpeed);
+            useAirSpeed = isAutoSpeedRequiredByNav() == FW_AUTO_SPD_AIR;
+        }
+
         uint16_t actualSpeed = posControl.actualState.vel3D;
         posControl.autoSpeedSpdSource = FW_AUTO_SPD_GROUND;
         uint16_t groundSpeedBoost = 0;
 
 #ifdef USE_PITOT
-        if (pitotValidateAirspeed()) {
-            static bool airspeedBoost = false;
+        if (pitotGetValidForAirspeed()) {
             // Pitot available and airspeed source selected or low airspeed boost applied when using ground speed source
-            if (!LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED) || airspeedBoost) {
+            if (useAirSpeed || autoSpeedAirspeedBoost) {
                 actualSpeed = getAirspeedEstimate();
-                if (airspeedBoost && actualSpeed > minSpeed) {
-                    airspeedBoost = false;
+                if (autoSpeedAirspeedBoost && actualSpeed > minSpeed) {
+                    autoSpeedAirspeedBoost = false;
                 }
                 posControl.autoSpeedSpdSource = FW_AUTO_SPD_AIR;
             } else {    // Ground speed source selected
@@ -942,10 +1005,10 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
                 }
 
                 if (airSpeed < 0.95 * minSpeed) {
-                    airspeedBoost = true;
+                    autoSpeedAirspeedBoost = true;
                 }
             }
-            if (airspeedBoost || groundSpeedBoost > 300) {
+            if (autoSpeedAirspeedBoost || groundSpeedBoost > 300) {
                 posControl.autoSpeedSpdSource = FW_AUTO_SPD_GROUND_OVERRIDE;
             }
         } else

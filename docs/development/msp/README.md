@@ -418,7 +418,8 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8256 - MSP2_INAV_ESC_RPM](#msp2_inav_esc_rpm)  
 [8257 - MSP2_INAV_ESC_TELEM](#msp2_inav_esc_telem)  
 [8258 - MSP2_INAV_DRONECAN_NODES](#msp2_inav_dronecan_nodes)  
-[8259 - MSP2_INAV_DRONECAN_NODE_INFO](#msp2_inav_dronecan_node_info)  
+[8259 - MSP2_INAV_DRONECAN_ASYNC_REQUEST](#msp2_inav_dronecan_async_request)  
+[8260 - MSP2_INAV_DRONECAN_ASYNC_RESULT](#msp2_inav_dronecan_async_result)  
 [8264 - MSP2_INAV_LED_STRIP_CONFIG_EX](#msp2_inav_led_strip_config_ex)  
 [8265 - MSP2_INAV_SET_LED_STRIP_CONFIG_EX](#msp2_inav_set_led_strip_config_ex)  
 [8266 - MSP2_INAV_FW_APPROACH](#msp2_inav_fw_approach)  
@@ -452,6 +453,10 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [8737 - MSP2_INAV_SET_WP_INDEX](#msp2_inav_set_wp_index)  
 [8739 - MSP2_INAV_SET_CRUISE_HEADING](#msp2_inav_set_cruise_heading)  
+[8740 - MSP2_INAV_ACTIVATE_LANDING](#msp2_inav_activate_landing)  
+[8741 - MSP2_INAV_ACTIVATE_RTH](#msp2_inav_activate_rth)  
+[8743 - MSP2_INAV_ARM_DISARM](#msp2_inav_arm_disarm)  
+[8744 - MSP2_INAV_TIMESYNC](#msp2_inav_timesync)  
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
@@ -4165,34 +4170,49 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Request Payload:** **None**  
   
 **Reply Payload:**
-|Field|C Type|Size (Bytes)|Description|
-|---|---|---|---|
-| `nodeCount` | `uint8_t` | 1 | Number of detected DroneCAN nodes |
-| `nodeData` | `dronecanNodeStatus_t[]` | array | Array of per-node status records, one per detected node. Each record: nodeID(1)+health(1)+mode(1)+last_seen_ms(4) = 7 bytes. Full detail available via MSP2_INAV_DRONECAN_NODE_INFO. |
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `nodeCount` | `uint8_t` | 1 | - | Number of detected DroneCAN nodes |
+| `nodeID` | `uint8_t[]` | array | - | [per node] DroneCAN node ID (1-127) |
+| `health` | `uint8_t` | 1 | - | [per node] Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL |
+| `mode` | `uint8_t` | 1 | - | [per node] Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE |
+| `last_seen_ms` | `uint32_t` | 4 | ms | [per node] Milliseconds since this node was last seen (FC-local timestamp delta) |
+| `uptime_sec` | `uint32_t` | 4 | s | [per node] Node uptime in seconds (from NodeStatus broadcast) |
+| `vendor_status_code` | `uint16_t` | 2 | - | [per node] Vendor-specific status code |
 
-**Notes:** Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 7 bytes each: nodeID(1)+health(1)+mode(1)+last_seen_ms(4). Maximum payload 1 + (DRONECAN_MAX_NODES * 7) = 225 bytes. Full node detail including uptime, vendor status, and name is available via MSP2_INAV_DRONECAN_NODE_INFO.
+**Notes:** Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 13 bytes each: nodeID(1)+health(1)+mode(1)+last_seen_ms(4)+uptime_sec(4)+vendor_status_code(2). Maximum payload 1 + (DRONECAN_MAX_NODES * 13) = 417 bytes. For full node detail (name, SW/HW version, unique ID) use MSP2_INAV_DRONECAN_ASYNC_REQUEST with service_id=DRONECAN_SERVICE_GETNODEINFO(1).
 
-## <a id="msp2_inav_dronecan_node_info"></a>`MSP2_INAV_DRONECAN_NODE_INFO (8259 / 0x2043)`
-**Description:** Returns full status detail for a single DroneCAN node by ID.  
+## <a id="msp2_inav_dronecan_async_request"></a>`MSP2_INAV_DRONECAN_ASYNC_REQUEST (8259 / 0x2043)`
+**Description:** Initiates an asynchronous DroneCAN service request (GetNodeInfo, ParamGetSet, ExecuteOpcode, RestartNode) to a specific node. Result retrieved via MSP2_INAV_DRONECAN_ASYNC_RESULT.  
   
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Description|
 |---|---|---|---|
-| `nodeID` | `uint8_t` | 1 | DroneCAN node ID to query (1-127) |
+| `service_id` | `uint16_t` | 2 | Service to invoke: 1=GETNODEINFO, 5=RESTART_NODE, 10=EXECUTE_OPCODE, 11=PARAM_GETSET. Transmitted as u16 for MSP alignment; only low 8 bits used. |
+| `nodeID` | `uint8_t` | 1 | Target DroneCAN node ID (1-127) |
   
 **Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `nodeID` | `uint8_t` | 1 | - | DroneCAN node ID |
-| `health` | `uint8_t` | 1 | - | Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL |
-| `mode` | `uint8_t` | 1 | - | Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE |
-| `uptime_sec` | `uint32_t` | 4 | s | Node uptime in seconds |
-| `vendor_status_code` | `uint16_t` | 2 | - | Vendor-specific status code |
-| `last_seen_ms` | `uint32_t` | 4 | ms | FC millisecond timestamp when this node was last seen |
-| `name_len` | `uint8_t` | 1 | - | Length of node name string (0 if unknown) |
-| `name` | `char[32]` | 32 | - | Node name up to 32 bytes, zero-padded |
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `accepted` | `uint8_t` | 1 | 0=request accepted; 1=busy (slot in use) or unrecognised service_id; 0xFF=bus not in STATE_DRONECAN_NORMAL (not ready) |
+| `seq` | `uint8_t` | 1 | Sequence number; correlate with MSP2_INAV_DRONECAN_ASYNC_RESULT to verify the result belongs to this request |
 
-**Notes:** Requires `USE_DRONECAN`. Returns `MSP_RESULT_ERROR` if the requested node ID is not in the node table.
+**Notes:** Requires `USE_DRONECAN`. Initiates an async DroneCAN service request; poll MSP2_INAV_DRONECAN_ASYNC_RESULT at ~100ms intervals until state=READY(2) or ERROR(3). Only one request in-flight at a time. Service-specific request fields follow the common header in the request payload: EXECUTE_OPCODE appends opcode(u8); PARAM_GETSET appends index(u16)+is_write(u8) and optionally value_type(u8)+value(variable) for writes, then req_name_len(u8)+req_name(bytes) for named lookup. Param value encoding: INT=lo(u32)+hi(u32), FLOAT=raw(u32), BOOL=u8, STRING=len(u8)+data. Requests time out after DRONECAN_ASYNC_TIMEOUT_MS (2000ms). If bus is not in STATE_DRONECAN_NORMAL, returns accepted=0xFF without dispatching.
+
+## <a id="msp2_inav_dronecan_async_result"></a>`MSP2_INAV_DRONECAN_ASYNC_RESULT (8260 / 0x2044)`
+**Description:** Polls the result of the most recent MSP2_INAV_DRONECAN_ASYNC_REQUEST. Poll at ~100ms intervals until state is READY(2) or ERROR(3).  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `state` | `uint8_t` | 1 | Async slot state: 0=IDLE, 1=PENDING, 2=READY, 3=ERROR |
+| `seq` | `uint8_t` | 1 | Sequence number matching the originating MSP2_INAV_DRONECAN_ASYNC_REQUEST reply |
+| `service_id` | `uint16_t` | 2 | Service ID of the in-flight or just-completed request |
+| `node_id` | `uint8_t` | 1 | Node ID of the target |
+
+**Notes:** Requires `USE_DRONECAN`. When state=READY(2), service-specific result fields follow the 5-byte common header. GETNODEINFO: name_len(u8)+name(bytes)+sw_major(u8)+sw_minor(u8)+sw_optional_field_flags(u8)+sw_vcs_commit(u32)+hw_major(u8)+hw_minor(u8)+hw_unique_id(u8[16]). PARAM_GETSET: name_len(u8)+name(bytes)+type(u8)+value(variable)+min_type(u8)+min(variable)+max_type(u8)+max(variable); value/min/max encoding: INT=lo(u32)+hi(u32), FLOAT=raw(u32), BOOL=u8, STRING=len(u8)+data; EMPTY(0) min/max type means no bound is present. EXECUTE_OPCODE and RESTART_NODE: ok(u8) where 1=success. Reading result when state=READY transitions slot back to IDLE.
 
 ## <a id="msp2_inav_led_strip_config_ex"></a>`MSP2_INAV_LED_STRIP_CONFIG_EX (8264 / 0x2048)`
 **Description:** Retrieves the full configuration for each LED on the strip using the `ledConfig_t` structure. Supersedes `MSP_LED_STRIP_CONFIG`.  
@@ -4603,7 +4623,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
-| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` (default), `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` and `NAV_WP_RELATIVE_DATUM` (not implemented yet) |
 | `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum |
 
 **Reply Payload:** **None**  
@@ -4683,10 +4703,11 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `longitude` | `int32_t` | 4 | deg * 1e7 | Longitude coordinate |
 | `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum (0 keeps current altitude) |
 | `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+| `loiterRadius` | `int32_t` | 4 | cm | Optional temporary fixed-wing PosHold loiter radius override. Appended field; omit to leave unchanged. `0` clears the override and uses `navConfig()->fw.loiter_radius`. |
 
 **Reply Payload:** **None**  
 
-**Notes:** Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged.
+**Notes:** Uses the GCSNAV/offboard path; rejected when GCSNAV is not active. Rejects `NAV_WP_TERRAIN_DATUM`; other datums are converted to local NEU and applied through `setDesiredPosition()`. Altitude of 0 leaves current Z unchanged. Existing 13-byte payloads are still accepted; 17-byte payloads append `loiterRadius`, where `0` clears the temporary override and non-zero values are centimeters.
 
 ## <a id="msp2_inav_nav_target"></a>`MSP2_INAV_NAV_TARGET (8731 / 0x221b)`
 **Description:** Returns the current navigation desired global target (lat/lon/alt, heading, climb rate).  
@@ -4701,8 +4722,9 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target (takeoff datum, cm) as used by altitude/position hold |
 | `headingTarget` | `uint16_t` | 2 | degrees | Current heading-hold target (`getHeadingHoldTarget()`), wrapped to 0–359.99 |
 | `climbRate` | `int16_t` | 2 | cm/s | Desired climb rate demand (`posControl.desiredState.climbRateDemand`) |
+| `loiterRadius` | `uint32_t` | 4 | cm | Temporary fixed-wing PosHold loiter radius override. `0` means no override; the configured `navConfig()->fw.loiter_radius` is used. |
 
-**Notes:** Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome).
+**Notes:** Altitude target is reported in the takeoff datum frame (local Z). Heading is sourced from the heading-hold target. Intended for monitoring the active navigation desired target (Goto/Followme/RTH/Safehome). The appended `loiterRadius` reports the temporary override only; `0` means the configured default is active.
 
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  
@@ -4747,6 +4769,48 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Returns error if the aircraft is not armed or `NAV_COURSE_HOLD_MODE` is not active. On success, sets both `posControl.cruise.course` and `posControl.cruise.previousCourse` to the normalised value, preventing spurious heading adjustments from `getCruiseHeadingAdjustment()` on the next control cycle.
+
+## <a id="msp2_inav_activate_landing"></a>`MSP2_INAV_ACTIVATE_LANDING (8740 / 0x2224)`
+**Description:** Commands an immediate normal landing at the current position.  
+
+**Request Payload:** **None**  
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires the aircraft to be armed with usable position, altitude, and heading estimates. Creates a transient LAND waypoint at the current position without changing the uploaded mission, then enters the normal `NAV_STATE_WAYPOINT_RTH_LAND` path. This is not emergency landing.
+
+## <a id="msp2_inav_activate_rth"></a>`MSP2_INAV_ACTIVATE_RTH (8741 / 0x2225)`
+**Description:** Commands the aircraft to execute its configured return-to-home sequence.  
+
+**Request Payload:** **None**  
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires the aircraft to be armed. Enters normal return-to-home mode through the same mode selector path as RC RTH, without setting the failsafe/geozone forced-RTH latch.
+
+## <a id="msp2_inav_arm_disarm"></a>`MSP2_INAV_ARM_DISARM (8743 / 0x2227)`
+**Description:** Arms or disarms the flight controller using the normal FC arming path.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `arm` | `uint8_t` | 1 | Boolean | Requested armed state: 0 disarms, 1 arms through the normal arming checks. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns an error for values other than 0 or 1, or when the requested armed state is not reached.
+
+## <a id="msp2_inav_timesync"></a>`MSP2_INAV_TIMESYNC (8744 / 0x2228)`
+**Description:** Returns the local monotonic boot time in nanoseconds.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `timeNs` | `uint64_t` | 8 | ns | Monotonic flight-controller boot time, calculated as `(uint64_t)micros() * 1000`. |
+
+**Notes:** The value is little-endian like other MSP integer fields and uses the same boot-time clock returned by MAVLink `TIMESYNC`.
 
 ## <a id="msp2_inav_set_aux_rc"></a>`MSP2_INAV_SET_AUX_RC (8752 / 0x2230)`
 **Description:** Bandwidth-efficient auxiliary RC channel update. Sets CH13-CH32 with configurable resolution (2/4/8/16-bit) without affecting primary flight controls. Designed for extending channel count beyond native RC link capacity via MSP passthrough.  

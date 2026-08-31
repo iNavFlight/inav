@@ -52,6 +52,7 @@
 #include "drivers/timer.h"
 #include "drivers/serial.h"
 #include "drivers/serial_tcp.h"
+#include "drivers/sdcard/sdcard_sitl.h"
 #include "config/config_streamer.h"
 #include "build/version.h"
 
@@ -237,6 +238,7 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--parity=[Even|None|Odd]       Serial receiver parity (default: None).\n");
     fprintf(stderr, "--fcproxy                      Use inav/betaflight FC as a proxy for serial receiver.\n");
     fprintf(stderr, "--tcpbaseport=[port]           Base TCP port for UART sockets (default: 5760)\n");
+    fprintf(stderr, "--sdcard=[path]                Path to a FAT32 SD-card image file. If not specified, no SD card is simulated.\n");
     fprintf(stderr, "--chanmap=[mapstring]          Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
     fprintf(stderr, "                               The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
     fprintf(stderr, "                               For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
@@ -268,6 +270,7 @@ void parseArguments(int argc, char *argv[])
             {"parity", required_argument, 0, '4'},
             {"fcproxy", no_argument, 0, '5'},
             {"tcpbaseport", required_argument, 0, '6'},
+            {"sdcard", required_argument, 0, '7'},
             {NULL, 0, NULL, 0}
         };
 
@@ -363,6 +366,11 @@ void parseArguments(int argc, char *argv[])
                 tcpBasePort = (uint16_t)basePort;
                 break;
             }
+            case '7':
+                if (!sdcardSitlSetPath(optarg)) {
+                    fprintf(stderr, "[SDCARD] Invalid image path, no SD card will be simulated\n.");
+                }
+                break;
 
             default:
                 printCmdLineOptions();

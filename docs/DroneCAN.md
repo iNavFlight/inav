@@ -9,7 +9,7 @@ DroneCAN (formerly UAVCAN v0) is a lightweight protocol designed for reliable co
 | GPS | Supported | GNSS receivers via DroneCAN |
 | Battery Voltage | Supported | Voltage sensing from DroneCAN battery monitors |
 | Battery Current | Supported | Current sensing from DroneCAN battery monitors |
-| Parameter Get/Set | Planned | Remote parameter configuration |
+| Parameter Get/Set | Supported | Read/write DroneCAN peripheral parameters via the configurator's DroneCAN tab |
 | ESC Control | Planned | Motor control via DroneCAN ESCs |
 | Dynamic Node Assignment | Planned | Manage node IDs dynamically to minimize first time configuration |
 
@@ -30,7 +30,7 @@ DroneCAN settings are configured via CLI:
 
 ```
 set dronecan_node_id = 10
-set dronecan_bitrate = 1000KBPS
+set dronecan_bitrate_kbps = 1000
 save
 ```
 
@@ -38,8 +38,8 @@ save
 
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
-| `dronecan_node_id` | 1-127 | 10 | CAN node ID for the flight controller |
-| `dronecan_bitrate` | 125KBPS, 250KBPS, 500KBPS, 1000KBPS | 1000KBPS | CAN bus bitrate |
+| `dronecan_node_id` | 1-127 (126/127 reserved for diagnostic tools) | 1 | CAN node ID for the flight controller |
+| `dronecan_bitrate_kbps` | 125, 250, 500, 1000 | 1000 | CAN bus bitrate in kbps |
 
 All peripherals need to have the node ID and the bitrate set manually through the dronecan_gui for now.  You can use your flight controller as a CAN interface by loading an Ardupilot image on it.  Once the set up is complete, you can reflash it to Inav.
 
@@ -72,6 +72,25 @@ save
 ```
 
 Both voltage and current come from the same DroneCAN BatteryInfo message, so they update together when using a DroneCAN battery monitor.
+
+### Parameter Get/Set via DroneCAN
+
+DroneCAN peripheral parameters (e.g. GPS or battery monitor settings) are read and written from the
+**DroneCAN tab in the INAV Configurator**, not via the flight controller's CLI — the CLI only configures the
+flight controller's own DroneCAN settings (node ID, bitrate), not settings on other nodes on the bus.
+
+To configure a peripheral's parameters:
+
+1. Connect to the flight controller and open the **DroneCAN** tab.
+2. Select the node from the detected node table.
+3. Edit parameter values in the node's detail panel — values are checked against the min/max range the
+   node itself reports, where the node provides one.
+4. Click **Write** to send a changed value to the node.
+5. Click **Save to EEPROM** to persist changes on that node (writes are held in the node's RAM until saved).
+6. Click **Restart Node** if the node requires a restart to apply the new value. Note: some peripherals
+   (depending on their firmware) may not send an acknowledgement before restarting, so the button can show
+   a timeout/failure even when the node restarted successfully — check the node reappears in the table
+   afterward to confirm.
 
 ## Configuration Examples
 

@@ -85,6 +85,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_fake.h
     drivers/accgyro/accgyro_icm20689.c
     drivers/accgyro/accgyro_icm20689.h
+    drivers/accgyro/accgyro_icm40609d.c
+    drivers/accgyro/accgyro_icm40609d.h
     drivers/accgyro/accgyro_icm42605.c
     drivers/accgyro/accgyro_icm42605.h
     drivers/accgyro/accgyro_icm45686.c
@@ -102,6 +104,9 @@ main_sources(COMMON_SRC
 
     drivers/adc.c
     drivers/adc.h
+
+    drivers/ina226.c
+    drivers/ina226.h
 
     drivers/barometer/barometer.h
     drivers/barometer/barometer_bmp085.c
@@ -171,8 +176,10 @@ main_sources(COMMON_SRC
     drivers/dronecan/libcanard/canard.h
     drivers/dronecan/libcanard/canard_stm32_driver.h
     drivers/dronecan/dronecan.c
+    drivers/dronecan/dronecan_async.c
+    drivers/dronecan/dronecan_async.h
     drivers/dronecan/dronecan.h
-     
+
     drivers/display.c
     drivers/display.h
     drivers/display_canvas.c
@@ -233,8 +240,6 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_dlvr_l10d.h
     drivers/pitotmeter/pitotmeter_msp.c
     drivers/pitotmeter/pitotmeter_msp.h
-    drivers/pitotmeter/pitotmeter_virtual.c
-    drivers/pitotmeter/pitotmeter_virtual.h
     drivers/pitotmeter/pitotmeter_fake.h
     drivers/pitotmeter/pitotmeter_fake.c
     drivers/pwm_esc_detect.c
@@ -288,7 +293,7 @@ main_sources(COMMON_SRC
     drivers/vtx_common.c
     drivers/vtx_common.h
 
-    
+
     fc/cli.c
     fc/cli.h
     fc/config.c
@@ -309,6 +314,8 @@ main_sources(COMMON_SRC
     fc/fc_msp.h
     fc/fc_msp_box.c
     fc/fc_msp_box.h
+    fc/fc_msp_dronecan.c
+    fc/fc_msp_dronecan.h
     fc/firmware_update.c
     fc/firmware_update.h
     fc/firmware_update_common.c
@@ -620,6 +627,9 @@ main_sources(COMMON_SRC
     navigation/navigation_pos_estimator_flow.c
     navigation/navigation_private.h
     navigation/navigation_rover_boat.c
+    navigation/navigation_vtol_mc_protection.c
+    navigation/navigation_vtol_mc_protection.h
+    navigation/navigation_vtol_mc_protection_logic.h
     navigation/navigation_geozone.c
     navigation/sqrt_controller.c
     navigation/sqrt_controller.h
@@ -669,6 +679,21 @@ main_sources(COMMON_SRC
     telemetry/sim.h
     telemetry/telemetry.c
     telemetry/telemetry.h
+
+    terrain/terrain.h
+    terrain/terrain.c
+    terrain/terrain_utils.h
+    terrain/terrain_utils.c
+    terrain/terrain_io.h
+    terrain/terrain_io.c
+    terrain/terrain_location.h
+    terrain/terrain_location.c
+    terrain/terrain_nav.h
+    terrain/terrain_nav.c
+    terrain/terrain_nav_hold_core.h
+    terrain/terrain_nav_hold_core.c
+    terrain/terrain_nav_hold.h
+    terrain/terrain_nav_hold.c
 )
 
 list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})

@@ -7,6 +7,8 @@
 
 bool mavlinkIsFromLocalIdentity(uint8_t sysid, uint8_t compid);
 void mavlinkLearnRoute(uint8_t ingressPortIndex);
+mavlinkRouteEntry_t *mavlinkFindRoute(uint8_t sysid, uint8_t compid);
+void mavlinkForgetHeartbeatsForPort(uint8_t portIndex);
 void mavlinkExtractTargets(const mavlink_message_t *msg, int16_t *targetSystem, int16_t *targetComponent);
 void mavlinkForwardMessage(uint8_t ingressPortIndex, int16_t targetSystem, int16_t targetComponent);
 int8_t mavlinkResolveLocalPortForTarget(int16_t targetSystem, int16_t targetComponent, uint8_t ingressPortIndex);

@@ -86,6 +86,7 @@ typedef enum {
     BOXGIMBALCENTER  = 58,
     BOXGIMBALHTRK    = 59,
     BOXAUTOSPEED     = 60,
+    BOXTERRAINAGLHOLD = 61,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
@@ -136,6 +137,8 @@ PG_DECLARE(modeActivationOperatorConfig_t, modeActivationOperatorConfig);
 
 bool IS_RC_MODE_ACTIVE(boxId_e boxId);
 void rcModeUpdate(boxBitmask_t *newState);
+boxId_e rcModeSetActivationOverride(boxId_e boxId);
+void rcModeClearActivationOverride(boxId_e boxId);
 
 bool isModeActivationConditionPresent(boxId_e modeId);
 
