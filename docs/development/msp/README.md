@@ -282,7 +282,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [113 - MSP_ACTIVEBOXES](#msp_activeboxes)  
 [114 - MSP_MISC](#msp_misc)  
 [116 - MSP_BOXNAMES](#msp_boxnames)  
-[117 - MSP_PIDNAMES](#msp_pidnames)  
 [118 - MSP_WP](#msp_wp)  
 [119 - MSP_BOXIDS](#msp_boxids)  
 [120 - MSP_SERVO_CONFIGURATIONS](#msp_servo_configurations)  
@@ -2046,16 +2045,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `boxNamesString` | `char[]` | array | String containing mode names separated by ';'. Null termination not guaranteed by MSP, relies on payload size. (`serializeBoxNamesReply()`) |
 
 **Notes:** The exact set of names depends on compiled features and configuration. Due to the size of the payload, it is recommended that [`MSP_BOXIDS`](#msp_boxids-119--0x77) is used instead.
-
-## <a id="msp_pidnames"></a>`MSP_PIDNAMES (117 / 0x75)`
-**Description:** Provides a semicolon-separated string containing the names of the PID controllers.  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Description|
-|---|---|---|---|
-| `pidNamesString` | `char[]` | array | String "ROLL;PITCH;YAW;ALT;Pos;PosR;NavR;LEVEL;MAG;VEL;". Null termination not guaranteed by MSP |
 
 ## <a id="msp_wp"></a>`MSP_WP (118 / 0x76)`
 **Description:** Get/Set a single waypoint from the mission plan.  
