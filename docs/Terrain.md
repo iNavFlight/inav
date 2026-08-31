@@ -61,10 +61,14 @@ Copying can be done via **iNav MSC (Mass Storage Class)** is not recommended.
 
 # Enabling and Displaying Terrain Data
 
-To display altitude above terrain in iNav, the OSD element **“Rangefinder distance”** must be enabled. If terrain data are
-available on the SD card and no valid data are available from a dedicated rangefinder, the value calculated by the terrain
-system will be displayed. If a rangefinder is present and providing valid data, its measurements always take priority and the
-actual distance to the ground will be shown.
+There are two OSD elements that can display altitude above terrain:
+
+- **“Terrain AGL”** — a dedicated element that shows the altitude above ground level calculated **exclusively by the terrain
+  subsystem**. Rangefinder measurements are never shown by this element. If no valid terrain value is available, dashes are
+  displayed. Use this element if you want to see the terrain-derived value regardless of whether a rangefinder is fitted.
+- **“Rangefinder distance”** — behaves as before. If a rangefinder is present and providing valid data, its measurements
+  always take priority and the actual distance to the ground is shown. Only when no valid rangefinder data are available and
+  terrain data are present on the SD card is the value calculated by the terrain system displayed instead.
 
 Loading terrain data from the SD card is enabled via the CLI using the following command:
 
@@ -82,7 +86,7 @@ display dropouts, or automatic disabling of the feature during flight. Using a q
 stability and reliability of the terrain feature.
 
 # Troubleshooting
-- OSD shows no terrain value / "Rangefinder distance" is dash:
+- OSD shows no terrain value / "Terrain AGL" or "Rangefinder distance" is dash:
   - Verify `terrain_enabled = ON` is set and saved (`set terrain_enabled = ON` → `save` → reboot)
   - Confirm the SD card is mounted: check `status` in the CLI for SD card state
   - Confirm a valid GPS fix is present before expecting any terrain value to appear

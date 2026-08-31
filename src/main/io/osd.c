@@ -2502,7 +2502,6 @@ static bool osdDrawSingleElement(uint8_t item)
 #elif defined(USE_TERRAIN)
             range = terrainGetLastDistanceCm();
 #endif
-
             if (range < 0) {
                 buff[0] = buff[1] = buff[2] = '-';
             } else {
@@ -2511,7 +2510,21 @@ static bool osdDrawSingleElement(uint8_t item)
         }
             break;
 #endif
-
+#ifdef USE_TERRAIN
+        case OSD_TERRAIN_AGL:
+        {
+            int32_t range =  terrainGetLastDistanceCm();
+            if (range < 0) {
+                for(uint8_t i = 1; i < osdConfig()->decimals_altitude + 1; i++){
+                    buff[i] = '-';
+                }
+            } else {
+                osdFormatAltitudeSymbol(buff, range);
+            }
+            buff[0] = SYM_TERRAIN_FOLLOWING;
+            break;
+        }
+#endif
     case OSD_ONTIME:
         {
             osdFormatOnTime(buff);
