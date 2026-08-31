@@ -1,7 +1,7 @@
 {
     "version": {
-        "major": 2,
-        "minor": 1,
+        "major": 3,
+        "minor": 0,
         "patch": 0
     },
     "messages": {
@@ -5613,116 +5613,6 @@
             "notes": "Not implemented in INAV `fc_msp.c`. Calibration data via `MSP_CALIBRATION_DATA`.",
             "description": "Gets the accelerometer trim values."
         },
-        "MSP_SERVO_MIX_RULES": {
-            "code": 241,
-            "mspv": 1,
-            "replaced_by": ["MSP2_INAV_SERVO_MIXER"],
-            "request": null,
-            "reply": {
-                "payload": [
-                    {
-                        "name": "targetChannel",
-                        "ctype": "uint8_t",
-                        "desc": "Servo output channel index (0-based)",
-                        "units": "Index"
-                    },
-                    {
-                        "name": "inputSource",
-                        "ctype": "uint8_t",
-                        "desc": "Enum `inputSource_e` Input source for the mix (RC chan, Roll, Pitch...)",
-                        "units": "Enum",
-                        "enum": "inputSource_e"
-                    },
-                    {
-                        "name": "rate",
-                        "ctype": "int16_t",
-                        "desc": "Mixing rate/weight (`-1000` to `+1000`, percent with sign)",
-                        "units": "%"
-                    },
-                    {
-                        "name": "speed",
-                        "ctype": "uint8_t",
-                        "desc": "Speed/Slew rate limit (`0`=instant, higher slows response)",
-                        "units": "0-255"
-                    },
-                    {
-                        "name": "reserved1",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0",
-                        "value": 0
-                    },
-                    {
-                        "name": "legacyMax",
-                        "ctype": "uint8_t",
-                        "desc": "Always 100 (Legacy)",
-                        "value": 100
-                    },
-                    {
-                        "name": "legacyBox",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0 (Legacy)",
-                        "value": 0
-                    }
-                ],
-                "repeating": "MAX_SERVO_RULES"
-            },
-            "variable_len": "MAX_SERVO_RULES",
-            "notes": "Superseded by `MSP2_INAV_SERVO_MIXER`.",
-            "description": "Retrieves the custom servo mixer rules (legacy format)."
-        },
-        "MSP_SET_SERVO_MIX_RULE": {
-            "code": 242,
-            "mspv": 1,
-            "replaced_by": ["MSP2_INAV_SET_SERVO_MIXER"],
-            "request": {
-                "payload": [
-                    {
-                        "name": "ruleIndex",
-                        "ctype": "uint8_t",
-                        "desc": "Index of the rule to set (0 to `MAX_SERVO_RULES - 1`)",
-                        "units": "Index"
-                    },
-                    {
-                        "name": "targetChannel",
-                        "ctype": "uint8_t",
-                        "desc": "Servo output channel index",
-                        "units": "Index"
-                    },
-                    {
-                        "name": "inputSource",
-                        "ctype": "uint8_t",
-                        "desc": "Enum `inputSource_e` Input source for the mix",
-                        "units": "Enum",
-                        "enum": "inputSource_e"
-                    },
-                    {
-                        "name": "rate",
-                        "ctype": "int16_t",
-                        "desc": "Mixing rate/weight (`-1000` to `+1000`, percent with sign)",
-                        "units": "%"
-                    },
-                    {
-                        "name": "speed",
-                        "ctype": "uint8_t",
-                        "desc": "Speed/Slew rate limit (`0`=instant, higher slows response)",
-                        "units": "0-255"
-                    },
-                    {
-                        "name": "legacyMinMax",
-                        "ctype": "uint16_t",
-                        "desc": "Ignored"
-                    },
-                    {
-                        "name": "legacyBox",
-                        "ctype": "uint8_t",
-                        "desc": "Ignored"
-                    }
-                ]
-            },
-            "reply": null,
-            "notes": "Expects 9 bytes. Returns error if index invalid. Calls `loadCustomServoMixer()`. Superseded by `MSP2_INAV_SET_SERVO_MIXER`.",
-            "description": "Sets a single custom servo mixer rule (legacy format)."
-        },
         "MSP_SET_PASSTHROUGH": {
             "code": 245,
             "mspv": 1,
@@ -9034,7 +8924,7 @@
             },
             "variable_len": "MAX_SERVO_RULES",
             "notes": "`conditionId` requires `USE_PROGRAMMING_FRAMEWORK`.",
-            "description": "Retrieves the custom servo mixer rules, including programming framework condition IDs, for primary and secondary mixer profiles. Supersedes `MSP_SERVO_MIX_RULES`."
+            "description": "Retrieves the custom servo mixer rules, including programming framework condition IDs, for primary and secondary mixer profiles."
         },
         "MSP2_INAV_SET_SERVO_MIXER": {
             "code": 8225,
@@ -9082,7 +8972,7 @@
             },
             "reply": null,
             "notes": "Expects 7 bytes. Returns error if index invalid. Calls `loadCustomServoMixer()`.",
-            "description": "Sets a single custom servo mixer rule, including programming framework condition ID. Supersedes `MSP_SET_SERVO_MIX_RULE`."
+            "description": "Sets a single custom servo mixer rule, including programming framework condition ID."
         },
         "MSP2_INAV_LOGIC_CONDITIONS": {
             "code": 8226,

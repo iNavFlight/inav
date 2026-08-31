@@ -326,8 +326,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [221 - MSP_SET_LED_STRIP_MODECOLOR](#msp_set_led_strip_modecolor)  
 [239 - MSP_SET_ACC_TRIM](#msp_set_acc_trim)  
 [240 - MSP_ACC_TRIM](#msp_acc_trim)  
-[241 - MSP_SERVO_MIX_RULES](#msp_servo_mix_rules)  
-[242 - MSP_SET_SERVO_MIX_RULE](#msp_set_servo_mix_rule)  
 [245 - MSP_SET_PASSTHROUGH](#msp_set_passthrough)  
 [246 - MSP_RTC](#msp_rtc)  
 [247 - MSP_SET_RTC](#msp_set_rtc)  
@@ -2646,42 +2644,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Notes:** Not implemented in INAV `fc_msp.c`. Calibration data via `MSP_CALIBRATION_DATA`.
 
-## <a id="msp_servo_mix_rules"></a>`MSP_SERVO_MIX_RULES (241 / 0xf1)`
-**Description:** Retrieves the custom servo mixer rules (legacy format).  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `targetChannel` | `uint8_t` | 1 | Index | Servo output channel index (0-based) |
-| `inputSource` | `uint8_t` | 1 | [inputSource_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-inputsource_e) | Enum `inputSource_e` Input source for the mix (RC chan, Roll, Pitch...) |
-| `rate` | `int16_t` | 2 | % | Mixing rate/weight (`-1000` to `+1000`, percent with sign) |
-| `speed` | `uint8_t` | 1 | 0-255 | Speed/Slew rate limit (`0`=instant, higher slows response) |
-| `reserved1` | `uint8_t` | 1 | - | Always 0 |
-| `legacyMax` | `uint8_t` | 1 | - | Always 100 (Legacy) |
-| `legacyBox` | `uint8_t` | 1 | - | Always 0 (Legacy) |
-
-**Notes:** Superseded by `MSP2_INAV_SERVO_MIXER`.
-
-## <a id="msp_set_servo_mix_rule"></a>`MSP_SET_SERVO_MIX_RULE (242 / 0xf2)`
-**Description:** Sets a single custom servo mixer rule (legacy format).  
-  
-**Request Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `ruleIndex` | `uint8_t` | 1 | Index | Index of the rule to set (0 to `MAX_SERVO_RULES - 1`) |
-| `targetChannel` | `uint8_t` | 1 | Index | Servo output channel index |
-| `inputSource` | `uint8_t` | 1 | [inputSource_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-inputsource_e) | Enum `inputSource_e` Input source for the mix |
-| `rate` | `int16_t` | 2 | % | Mixing rate/weight (`-1000` to `+1000`, percent with sign) |
-| `speed` | `uint8_t` | 1 | 0-255 | Speed/Slew rate limit (`0`=instant, higher slows response) |
-| `legacyMinMax` | `uint16_t` | 2 | - | Ignored |
-| `legacyBox` | `uint8_t` | 1 | - | Ignored |
-
-**Reply Payload:** **None**  
-
-**Notes:** Expects 9 bytes. Returns error if index invalid. Calls `loadCustomServoMixer()`. Superseded by `MSP2_INAV_SET_SERVO_MIXER`.
-
 ## <a id="msp_set_passthrough"></a>`MSP_SET_PASSTHROUGH (245 / 0xf5)`
 **Description:** Enables serial passthrough mode to peripherals like ESCs (BLHeli 4-way) or other serial devices.  
 
@@ -3813,7 +3775,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Notes:** Requires `USE_SIMULATOR`. Complex message handling state changes for enabling/disabling HITL. Sensor data is injected directly. OSD data is sent using a custom RLE scheme. See `simulatorData` struct and associated code for details.
 
 ## <a id="msp2_inav_servo_mixer"></a>`MSP2_INAV_SERVO_MIXER (8224 / 0x2020)`
-**Description:** Retrieves the custom servo mixer rules, including programming framework condition IDs, for primary and secondary mixer profiles. Supersedes `MSP_SERVO_MIX_RULES`.  
+**Description:** Retrieves the custom servo mixer rules, including programming framework condition IDs, for primary and secondary mixer profiles.  
 
 **Request Payload:** **None**  
   
@@ -3834,7 +3796,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Notes:** `conditionId` requires `USE_PROGRAMMING_FRAMEWORK`.
 
 ## <a id="msp2_inav_set_servo_mixer"></a>`MSP2_INAV_SET_SERVO_MIXER (8225 / 0x2021)`
-**Description:** Sets a single custom servo mixer rule, including programming framework condition ID. Supersedes `MSP_SET_SERVO_MIX_RULE`.  
+**Description:** Sets a single custom servo mixer rule, including programming framework condition ID.  
   
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|

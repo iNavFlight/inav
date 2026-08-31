@@ -295,8 +295,6 @@
 #define MSP_GPSSTATISTICS        166    //out message         get GPS debugging data
 #define MSP_ACC_TRIM             240    //out message         get acc angle trim values
 #define MSP_SET_ACC_TRIM         239    //in message          set acc angle trim values
-#define MSP_SERVO_MIX_RULES      241    //DEPRECATED in INAV 9.1 - use MSP2_INAV_SERVO_MIXER instead. Will be removed in INAV 10.0
-#define MSP_SET_SERVO_MIX_RULE   242    //DEPRECATED in INAV 9.1 - use MSP2_INAV_SET_SERVO_MIXER instead. Will be removed in INAV 10.0
 #define MSP_SET_PASSTHROUGH      245    //in message          Sets up passthrough to different peripherals (4way interface, uart, etc...)
 #define MSP_RTC                  246    //out message         Gets the RTC clock (returns: secs(i32) millis(u16) - (0,0) if time is not known)
 #define MSP_SET_RTC              247    //in message          Sets the RTC clock (args: secs(i32) millis(u16))
