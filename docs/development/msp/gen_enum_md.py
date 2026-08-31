@@ -143,6 +143,12 @@ class ConditionStack:
         else:
             self.closed.pop(len(self.stack), None)
 
+    def note_item(self):
+        """An enumerator was parsed at this nesting level, so a previously
+        closed sibling here is no longer immediately preceding and must not
+        be treated as the alternate of a later same-symbol block."""
+        self.closed.pop(len(self.stack), None)
+
     def current(self) -> str:
         return " AND ".join(f['text'] for f in self.stack) if self.stack else ""
 
@@ -295,6 +301,7 @@ def parse_files(paths: List[Path]) -> List[EnumDef]:
                                         value_display = str(current_numeric)
 
                             enum.items.append(EnumItem(name=name, value_display=value_display, cond=cond_text))
+                            inner.note_item()
                             idx += 1
 
                         enums.append(enum)
