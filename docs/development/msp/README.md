@@ -251,8 +251,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [81 - MSP_SET_BLACKBOX_CONFIG](#msp_set_blackbox_config)  
 [82 - MSP_TRANSPONDER_CONFIG](#msp_transponder_config)  
 [83 - MSP_SET_TRANSPONDER_CONFIG](#msp_set_transponder_config)  
-[84 - MSP_OSD_CONFIG](#msp_osd_config)  
-[85 - MSP_SET_OSD_CONFIG](#msp_set_osd_config)  
 [86 - MSP_OSD_CHAR_READ](#msp_osd_char_read)  
 [87 - MSP_OSD_CHAR_WRITE](#msp_osd_char_write)  
 [88 - MSP_VTX_CONFIG](#msp_vtx_config)  
@@ -1390,63 +1388,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Not implemented in INAV `fc_msp.c`.
-
-## <a id="msp_osd_config"></a>`MSP_OSD_CONFIG (84 / 0x54)`
-**Description:** Retrieves OSD configuration settings and layout for screen 0. Coordinates are packed as `(Y << 8) | X`. When `USE_OSD` is not compiled in, only `osdDriverType` = `OSD_DRIVER_NONE` is returned.  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `osdDriverType` | `uint8_t` | 1 | [osdDriver_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-osddriver_e) | Enum `osdDriver_e`: `OSD_DRIVER_MAX7456` if `USE_OSD`, else `OSD_DRIVER_NONE`. |
-| `videoSystem` | `uint8_t` | 1 | [videoSystem_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-videosystem_e) | Enum `videoSystem_e`: Video system (Auto/PAL/NTSC) (`osdConfig()->video_system`). Sent even if OSD disabled |
-| `units` | `uint8_t` | 1 | [osd_unit_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-osd_unit_e) | Enum `osd_unit_e` Measurement units (Metric/Imperial) (`osdConfig()->units`). Sent even if OSD disabled |
-| `rssiAlarm` | `uint8_t` | 1 | % | RSSI alarm threshold (`osdConfig()->rssi_alarm`). Sent even if OSD disabled |
-| `capAlarm` | `uint16_t` | 2 | mAh/mWh | Capacity alarm threshold (`currentBatteryProfile->capacity.warning`). Truncated to 16 bits. Sent even if OSD disabled. |
-| `timerAlarm` | `uint16_t` | 2 | minutes | Timer alarm threshold in minutes (`osdConfig()->time_alarm`). Sent even if OSD disabled. |
-| `altAlarm` | `uint16_t` | 2 | meters | Altitude alarm threshold (`osdConfig()->alt_alarm`). Sent even if OSD disabled |
-| `distAlarm` | `uint16_t` | 2 | meters | Distance alarm threshold (`osdConfig()->dist_alarm`). Sent even if OSD disabled |
-| `negAltAlarm` | `uint16_t` | 2 | meters | Negative altitude alarm threshold (`osdConfig()->neg_alt_alarm`). Sent even if OSD disabled |
-| `itemPositions` | `uint16_t[OSD_ITEM_COUNT]` | OSD_ITEM_COUNT | packed | Packed X/Y position for each OSD item on screen 0 (`osdLayoutsConfig()->item_pos[0][i]`). Sent even if OSD disabled |
-
-**Notes:** 1 byte if `USE_OSD` disabled; full payload (1 + fields + 2*OSD_ITEM_COUNT bytes) otherwise.
-
-## <a id="msp_set_osd_config"></a>`MSP_SET_OSD_CONFIG (85 / 0x55)`
-**Description:** Sets OSD configuration or a single item's position on screen 0.  
-#### Variant: `dataSize >= 10`
-
-**Description:** dataSize >= 10  
-  
-**Request Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `selector` | `uint8_t` | 1 | - | Must be 0xFF (-1) to indicate a configuration update. |
-| `videoSystem` | `uint8_t` | 1 | [videoSystem_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-videosystem_e) | Enum `videoSystem_e`: Video system (Auto/PAL/NTSC) (`osdConfig()->video_system`). |
-| `units` | `uint8_t` | 1 | [osd_unit_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-osd_unit_e) | Enum `osd_unit_e` Measurement units (Metric/Imperial) (`osdConfig()->units`). |
-| `rssiAlarm` | `uint8_t` | 1 | % | RSSI alarm threshold (`osdConfig()->rssi_alarm`). |
-| `capAlarm` | `uint16_t` | 2 | mAh/mWh | Capacity alarm threshold (`currentBatteryProfile->capacity.warning`). Truncated to 16 bits. |
-| `timerAlarm` | `uint16_t` | 2 | minutes | Timer alarm threshold in minutes (`osdConfig()->time_alarm`). |
-| `altAlarm` | `uint16_t` | 2 | meters | Altitude alarm threshold (`osdConfig()->alt_alarm`). |
-| `distAlarm` | `uint16_t` | 2 | meters | Distance alarm threshold (`osdConfig()->dist_alarm`). Optional trailing field. |
-| `negAltAlarm` | `uint16_t` | 2 | meters | Negative altitude alarm threshold (`osdConfig()->neg_alt_alarm`). Optional trailing field. |
-
-**Reply Payload:** **None**  
-
-#### Variant: `dataSize == 3`
-
-**Description:** Single item position update  
-  
-**Request Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `itemIndex` | `uint8_t` | 1 | Index | Index of the OSD item to update (0 to `OSD_ITEM_COUNT - 1`). |
-| `itemPosition` | `uint16_t` | 2 | packed | Packed X/Y position (`(Y << 8) | X`) for the specified item. |
-
-**Reply Payload:** **None**  
-
-
-**Notes:** Requires `USE_OSD`. Distinguishes formats based on the first byte. Format 1 requires at least 10 bytes. Format 2 requires 3 bytes. Triggers an OSD redraw. See `MSP2_INAV_OSD_SET_*` for more advanced control.
 
 ## <a id="msp_osd_char_read"></a>`MSP_OSD_CHAR_READ (86 / 0x56)`
 **Description:** Reads character data from the OSD font memory.  
