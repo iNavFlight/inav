@@ -375,7 +375,25 @@ void FAST_CODE writeMotors(void)
         if (isMotorProtocolDigital()) {
             // If we use DSHOT we need to convert motorValue to DSHOT ranges
             if (feature(FEATURE_REVERSIBLE_MOTORS)) {
-                if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
+                if (!ARMING_FLAG(ARMED)) {
+                    // Disarmed (motor test via MSP_SET_MOTOR): mixTable() never
+                    // runs while disarmed, so reversibleMotorsThrottleState and
+                    // throttleRangeMin/Max are stale. Infer direction directly
+                    // from motor[i] against the ESC's real 3D deadband instead.
+                    if (motor[i] > reversibleMotorsConfig()->deadband_high) {
+                        motorValue = scaleRangef(motor[i],
+                            reversibleMotorsConfig()->deadband_high, getMaxThrottle(),
+                            DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
+                        motorValue = constrain(motorValue, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
+                    } else if (motor[i] < reversibleMotorsConfig()->deadband_low) {
+                        motorValue = scaleRangef(motor[i],
+                            motorConfig()->mincommand, reversibleMotorsConfig()->deadband_low,
+                            DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
+                        motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
+                    } else {
+                        motorValue = DSHOT_DISARM_COMMAND;
+                    }
+                } else if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
                     motorValue = handleOutputScaling(
                         motor[i],
                         throttleRangeMin,
