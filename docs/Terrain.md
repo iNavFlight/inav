@@ -7,7 +7,9 @@
 └─────────────────────────────────────────────────┘
 ```
 
-This feature is available **only on H7-based and F4-based flight controllers with an SD card**.
+This feature is available **only on flight controllers with enough RAM (over 256 KB) and an SD card**. In practice this means
+H7-based flight controllers and select F7-based flight controllers (STM32F745, STM32F746, STM32F765). F4-based and AT32-based
+flight controllers do not have enough RAM and are not supported.
 
 This feature in iNav determines the model’s altitude above ground level using preloaded elevation maps
 (terrain / SRTM data) stored on an SD card, without requiring a physical rangefinder. Based on the current GPS position, the
@@ -21,8 +23,7 @@ terrain data are unavailable or a read error occurs, the feature is automaticall
 # SD Card Preparation
 
 Use only quality SD cards from reputable brands. Note that some combinations of flight controllers and SD cards can cause issues, 
-so if you experience any problems, try a different card before troubleshooting further. Compatibility problems have been 
-observed especially with F4-based flight controllers.
+so if you experience any problems, try a different card before troubleshooting further.
 
 For proper operation, the SD card must be prepared in advance. It is recommended to create a **partition with a maximum size
 of 4 GB** and format it to FAT32. 
@@ -89,7 +90,6 @@ stability and reliability of the terrain feature.
   - Check that the `.TER` file covering your **home position** exists on the SD card — see note in *Data Generation and Copying* above
 - Feature disables itself mid-flight:
   - The terrain subsystem disables itself on any SD card read failure. This is most commonly caused by a slow or low-quality SD card. Replace the card with a branded, high-speed card
-  - On F4-based flight controllers, SD card compatibility issues are more common. If problems persist, test with a different card model or switch to an H7-based flight controller
   - Ensure the SD card partition is ≤ 4 GB and formatted FAT32. Larger partitions or exFAT formatting can cause intermittent read failures
 - Value appears but is clearly wrong:
   - Reformat the SD card and recopy the terrain files. A corrupted or partially overwritten FAT32 filesystem can produce plausible but incorrect altitude values

@@ -105,6 +105,9 @@ main_sources(COMMON_SRC
     drivers/adc.c
     drivers/adc.h
 
+    drivers/ina226.c
+    drivers/ina226.h
+
     drivers/barometer/barometer.h
     drivers/barometer/barometer_bmp085.c
     drivers/barometer/barometer_bmp085.h
@@ -173,6 +176,8 @@ main_sources(COMMON_SRC
     drivers/dronecan/libcanard/canard.h
     drivers/dronecan/libcanard/canard_stm32_driver.h
     drivers/dronecan/dronecan.c
+    drivers/dronecan/dronecan_async.c
+    drivers/dronecan/dronecan_async.h
     drivers/dronecan/dronecan.h
 
     drivers/display.c
@@ -309,6 +314,8 @@ main_sources(COMMON_SRC
     fc/fc_msp.h
     fc/fc_msp_box.c
     fc/fc_msp_box.h
+    fc/fc_msp_dronecan.c
+    fc/fc_msp_dronecan.h
     fc/firmware_update.c
     fc/firmware_update.h
     fc/firmware_update_common.c
@@ -683,6 +690,12 @@ main_sources(COMMON_SRC
     terrain/terrain_io.c
     terrain/terrain_location.h
     terrain/terrain_location.c
+    terrain/terrain_nav.h
+    terrain/terrain_nav.c
+    terrain/terrain_nav_hold_core.h
+    terrain/terrain_nav_hold_core.c
+    terrain/terrain_nav_hold.h
+    terrain/terrain_nav_hold.c
 )
 
 list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})

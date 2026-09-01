@@ -26,10 +26,11 @@
 #include <string.h>
 #include <inttypes.h>
 #include <dronecan_msgs.h>
+#include "dronecan_async.h"
 
 /* Private variables ---------------------------------------------------------*/
 
-static CanardInstance canard;
+CanardInstance canard; /* non-static: dronecan_async.c needs extern access */
 static uint8_t memory_pool[1024];
 static struct uavcan_protocol_NodeStatus node_status;
 
@@ -41,17 +42,31 @@ PG_RESET_TEMPLATE(dronecanConfig_t, dronecanConfig,
 );
 
 static dronecanState_e dronecanState = STATE_DRONECAN_INIT;
+
+#ifdef UNIT_TEST
+uint8_t activeNodeCount = 0;
+dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
+static volatile uint32_t txErrCount = 0;
+static uint32_t busOffCount = 0;
+#else
 static uint8_t activeNodeCount = 0;
 static dronecanNodeInfo_t nodeTable[DRONECAN_MAX_NODES];
 static volatile uint32_t txErrCount = 0;
 static uint32_t busOffCount = 0;
+#endif
 
 /* Forward declarations ------------------------------------------------------*/
 
 static void processCanardTxQueueSafe(void);
 static void process1HzTasks(timeUs_t timestamp_usec);
+#ifdef UNIT_TEST
+bool shouldAcceptTransfer(const CanardInstance *ins, uint64_t *out_data_type_signature, uint16_t data_type_id, CanardTransferType transfer_type, uint8_t source_node_id);
+void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer);
+void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer);
+#else
 static bool shouldAcceptTransfer(const CanardInstance *ins, uint64_t *out_data_type_signature, uint16_t data_type_id, CanardTransferType transfer_type, uint8_t source_node_id);
 static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer);
+#endif
 
 // ---- Public API -------------------------------------------------------------
 
@@ -149,6 +164,11 @@ void dronecanUpdate(timeUs_t currentTimeUs)
             // in the same task cycle so multi-frame transfers complete before timeout.
             processCanardTxQueueSafe();
 
+            // Check for async request timeout only after this tick's RX frames have
+            // been processed, so a response already queued this tick can complete
+            // the request before it's considered expired.
+            dronecanAsyncCheckTimeout();
+
             if (currentTimeUs >= next_1hz_service_at)
             {
 		        next_1hz_service_at += 1000000ULL;
@@ -183,11 +203,18 @@ void dronecanUpdate(timeUs_t currentTimeUs)
 
         case STATE_DRONECAN_BUS_OFF:
             if(currentTimeUs > (busoffTimeUs + 20000)) { // Wait 20ms: worst-case 128x11 recovery is 11.264ms at 125kbps
+                static uint8_t busoff_retries = 0;
                 canardSTM32RecoverFromBusOff();
                 busoffTimeUs = currentTimeUs;
                 canardSTM32GetProtocolStatus(&protocolStatus);
                 if(protocolStatus.BusOff == 0) {
+                    busoff_retries = 0;
                     dronecanState = STATE_DRONECAN_NORMAL;
+                } else if (++busoff_retries >= 50) {
+                    // ~1 second of 20ms recovery attempts with no success — permanent fault
+                    busoff_retries = 0;
+                    dronecanState = STATE_DRONECAN_FAILED;
+                    LOG_DEBUG(CAN, "DroneCAN: bus-off recovery failed after 50 attempts, entering FAILED state");
                 }
             }
             break;
@@ -319,6 +346,22 @@ static void processCanardTxQueueSafe(void) {
 // NOTE: All canard handlers and senders are based on this reference: https://dronecan.github.io/Specification/7._List_of_standard_data_types/
 // Alternatively, you can look at the corresponding generated header file in the dsdlc_generated folder
 
+static dronecanNodeInfo_t *findNodeByID(uint8_t nodeID) {
+    for (uint8_t i = 0; i < activeNodeCount; i++) {
+        if (nodeTable[i].nodeID == nodeID) {
+            return &nodeTable[i];
+        }
+    }
+    return NULL;
+}
+
+const dronecanNodeInfo_t *dronecanGetNodeByID(uint8_t nodeID) {
+    return findNodeByID(nodeID);
+}
+
+// Canard Handlers and Senders
+
+
 /*
   send the 1Hz NodeStatus message. This is what allows a node to show
   up in the DroneCAN GUI tool and in the flight controller logs
@@ -375,6 +418,16 @@ static void process1HzTasks(timeUs_t timestamp_usec)
         canardCleanupStaleTransfers(&canard, timestamp_usec);
     }
 
+    // Remove nodes that have stopped broadcasting NodeStatus
+    for (uint8_t i = 0; i < activeNodeCount; ) {
+        if (millis() - nodeTable[i].last_seen_ms > DRONECAN_NODE_STALE_TIMEOUT_MS) {
+            nodeTable[i] = nodeTable[activeNodeCount - 1];
+            activeNodeCount--;
+        } else {
+            i++;
+        }
+    }
+
     /*
       Transmit the node status message
     */
@@ -390,66 +443,74 @@ static void process1HzTasks(timeUs_t timestamp_usec)
 
  This function must fill in the out_data_type_signature to be the signature of the message.
  */
+#ifdef UNIT_TEST
+bool shouldAcceptTransfer(const CanardInstance *ins,
+#else
 static bool shouldAcceptTransfer(const CanardInstance *ins,
+#endif
                                  uint64_t *out_data_type_signature,
                                  uint16_t data_type_id,
                                  CanardTransferType transfer_type,
                                  uint8_t source_node_id)
 {
-	UNUSED(ins);
+    UNUSED(ins);
     UNUSED(source_node_id);
     if (transfer_type == CanardTransferTypeRequest) {
-	// check if we want to handle a specific service request
-		switch (data_type_id) {
-		case UAVCAN_PROTOCOL_GETNODEINFO_ID: {
-			*out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_REQUEST_SIGNATURE;
-			return true;
-		    }
-		}
-	}
-	if (transfer_type == CanardTransferTypeResponse) {
-		// check if we want to handle a specific service request
-		switch (data_type_id) {
-		}
-	}
-	if (transfer_type == CanardTransferTypeBroadcast) {
-		// see if we want to handle a specific broadcast packet
-		switch (data_type_id) {
-
-		case UAVCAN_PROTOCOL_NODESTATUS_ID: {
-			*out_data_type_signature = UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE;
-			return true;
-		}
-        case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID: {
+        switch (data_type_id) {
+        case UAVCAN_PROTOCOL_GETNODEINFO_ID:
+            *out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_REQUEST_SIGNATURE;
+            return true;
+        }
+    }
+    if (transfer_type == CanardTransferTypeResponse) {
+        switch (data_type_id) {
+        case UAVCAN_PROTOCOL_GETNODEINFO_ID:
+            *out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_SIGNATURE;
+            return true;
+        case UAVCAN_PROTOCOL_PARAM_GETSET_ID:
+            *out_data_type_signature = UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE;
+            return true;
+        case UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_ID:
+            *out_data_type_signature = UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_SIGNATURE;
+            return true;
+        case UAVCAN_PROTOCOL_RESTARTNODE_ID:
+            *out_data_type_signature = UAVCAN_PROTOCOL_RESTARTNODE_SIGNATURE;
+            return true;
+        }
+    }
+    if (transfer_type == CanardTransferTypeBroadcast) {
+        switch (data_type_id) {
+        case UAVCAN_PROTOCOL_NODESTATUS_ID:
+            *out_data_type_signature = UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE;
+            return true;
+        case UAVCAN_EQUIPMENT_GNSS_AUXILIARY_ID:
             *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_AUXILIARY_SIGNATURE;
             return true;
-        }
-        case UAVCAN_EQUIPMENT_GNSS_FIX_ID: {
+        case UAVCAN_EQUIPMENT_GNSS_FIX_ID:
             *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_FIX_SIGNATURE;
             return true;
-        }
-        case UAVCAN_EQUIPMENT_GNSS_FIX2_ID: {
+        case UAVCAN_EQUIPMENT_GNSS_FIX2_ID:
             *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_FIX2_SIGNATURE;
             return true;
-        }
-        case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID: {
+        case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID:
             *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_SIGNATURE;
             return true;
-        }
-        case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID: {
+        case UAVCAN_EQUIPMENT_POWER_BATTERYINFO_ID:
             *out_data_type_signature = UAVCAN_EQUIPMENT_POWER_BATTERYINFO_SIGNATURE;
             return true;
         }
-		}
-	}
-	// we don't want any other messages
-	return false;
+    }
+    return false;
 }
 
 // Canard Handlers ( Many have code copied from libcanard esc_node example: https://github.com/dronecan/libcanard/blob/master/examples/ESCNode/esc_node.c )
 
+#ifdef UNIT_TEST
+void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
+#else
 static void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
-	UNUSED(ins);
+#endif
+    UNUSED(ins);
     struct uavcan_protocol_NodeStatus nodeStatus;
 
 	if (uavcan_protocol_NodeStatus_decode(transfer, &nodeStatus)) {
@@ -458,30 +519,29 @@ static void handle_NodeStatus(CanardInstance *ins, CanardRxTransfer *transfer) {
 	}
 
 	uint8_t nodeId = transfer->source_node_id;
-    for (uint8_t i = 0; i < activeNodeCount; i++) {
-        if (nodeTable[i].nodeID == nodeId) {
-            // update health, mode, uptime, vendor_status_code, last_seen_ms
-            nodeTable[i].health = nodeStatus.health;
-            nodeTable[i].mode = nodeStatus.mode;
-            nodeTable[i].uptime_sec = nodeStatus.uptime_sec;
-            nodeTable[i].vendor_status_code = nodeStatus.vendor_specific_status_code;
-            nodeTable[i].last_seen_ms = millis();
-            return;
-        }
+    dronecanNodeInfo_t *node = findNodeByID(nodeId);
+    if (node) {
+        node->health = nodeStatus.health;
+        node->mode = nodeStatus.mode;
+        node->uptime_sec = nodeStatus.uptime_sec;
+        node->vendor_status_code = nodeStatus.vendor_specific_status_code;
+        node->last_seen_ms = millis();
+        return;
     }
     // new node
     if (activeNodeCount < DRONECAN_MAX_NODES) {
+        memset(&nodeTable[activeNodeCount], 0, sizeof(dronecanNodeInfo_t));
         nodeTable[activeNodeCount].nodeID = nodeId;
         nodeTable[activeNodeCount].health = nodeStatus.health;
         nodeTable[activeNodeCount].mode = nodeStatus.mode;
         nodeTable[activeNodeCount].uptime_sec = nodeStatus.uptime_sec;
         nodeTable[activeNodeCount].vendor_status_code = nodeStatus.vendor_specific_status_code;
-        nodeTable[activeNodeCount].name_len = 0;
-        nodeTable[activeNodeCount].name[0] = 0;
         nodeTable[activeNodeCount].last_seen_ms = millis();
         activeNodeCount++;
-    }
 
+    } else {
+        LOG_DEBUG(CAN, "DroneCAN: node table full (%u nodes), ignoring node %u", DRONECAN_MAX_NODES, nodeId);
+    }
 }
 
 static void handle_GNSSAuxiliary(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -589,7 +649,11 @@ static void handle_GetNodeInfo(CanardInstance *ins, CanardRxTransfer *transfer) 
 /*
  This callback is invoked by the library when a new message or request or response is received.
 */
+#ifdef UNIT_TEST
+void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
+#else
 static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) {
+#endif
 	// switch on data type ID to pass to the right handler function
 	if (transfer->transfer_type == CanardTransferTypeRequest) {
 		// check if we want to handle a specific service request
@@ -600,10 +664,11 @@ static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) 
 		}
 		}
 	}
-	if (transfer->transfer_type == CanardTransferTypeResponse) {
-		switch (transfer->data_type_id) {
-		}
-	}
+
+    if (transfer->transfer_type == CanardTransferTypeResponse) {
+        dronecanAsyncHandleServiceResponse(&canard, transfer);
+    }
+
 	if (transfer->transfer_type == CanardTransferTypeBroadcast) {
 		// check if we want to handle a specific broadcast message
 		switch (transfer->data_type_id) {
@@ -635,4 +700,5 @@ static void onTransferReceived(CanardInstance *ins, CanardRxTransfer *transfer) 
         }
 	}
 }
+
 #endif

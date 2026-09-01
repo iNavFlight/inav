@@ -97,7 +97,8 @@
 #define MSP2_INAV_ESC_TELEM                     0x2041
 
 #define MSP2_INAV_DRONECAN_NODES                0x2042
-#define MSP2_INAV_DRONECAN_NODE_INFO            0x2043 
+#define MSP2_INAV_DRONECAN_ASYNC_REQUEST        0x2043
+#define MSP2_INAV_DRONECAN_ASYNC_RESULT         0x2044
 
 #define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
 #define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
@@ -118,6 +119,8 @@
 #define MSP2_ADSB_VEHICLE_LIST                  0x2090
 #define MSP2_ADSB_LIMITS                        0x2091
 #define MSP2_ADSB_WARNING_VEHICLE_ICAO          0x2092
+#define MSP2_ADSB_VEHICLE                       0x2093
+#define MSP2_ADSB_VEHICLE_COUNT                 0x2094
 
 #define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
 #define MSP2_INAV_CUSTOM_OSD_ELEMENT            0x2101

@@ -33,10 +33,10 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "CRSF", "CAN"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "CRSF", "CAN", "INA226"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CRSF", "CAN"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "CRSF", "CAN", "INA226"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
@@ -84,7 +84,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "MARKER_GUIDANCE"]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "TERRAIN_NAV", "MARKER_GUIDANCE"]
   - name: vtol_mc_protection_mode
     values: ["OFF", "NAV", "NAV_AND_STABILIZED"]
   - name: aux_operator
@@ -994,7 +994,7 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus."
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN', `INA226`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus. `INA226` requires an INA226 I2C sensor."
         condition: USE_ADC
         default_value: ADC
         field: voltage.type
@@ -1026,11 +1026,32 @@ groups:
         min: -32768
         max: 32767
       - name: current_meter_type
-        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
+        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, INA226, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
         default_value: "ADC"
         field: current.type
         table: current_sensor
         type: uint8_t
+      - name: ina_shunt_res_uohm
+        description: "INA226 shunt resistor value in micro-ohms."
+        default_value: :target
+        field: ina226.shuntResistanceMicroOhm
+        condition: USE_INA226
+        min: 1
+        max: 4294967295
+      - name: ina_bus
+        description: "Hardware I2C bus used by the INA226."
+        default_value: :target
+        field: ina226.i2cBus
+        condition: USE_INA226
+        min: 1
+        max: 4
+      - name: ina_address
+        description: "INA226 7-bit I2C address."
+        default_value: :target
+        field: ina226.i2cAddress
+        condition: USE_INA226
+        min: 64
+        max: 79
       - name: bat_voltage_src
         description: "Chose between raw and sag compensated battery voltage to use for battery alarms and telemetry. Possible values are `RAW` and `SAG_COMP`"
         default_value: "RAW"
@@ -3350,10 +3371,6 @@ groups:
         description: "S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data"
         default_value: OFF
         type: bool
-      - name: frsky_use_legacy_gps_mode_sensor_ids
-        description: "S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GNSS (Tmp2). These are old IDs, deprecated, and will be removed in INAV 10.0. Tools and scripts using these IDs should be updated to use the new IDs of **470** for Modes and **480** for GNSS. Default: 'OFF'"
-        default_value: OFF
-        type: bool
       - name: report_cell_voltage
         description: "S.Port and IBUS telemetry: Send the average cell voltage if set to ON"
         default_value: OFF
@@ -4874,3 +4891,20 @@ groups:
         default_value: OFF
         field: terrainEnabled
         type: bool
+  - name: PG_TERRAIN_NAV_CONFIG
+    type: terrainNavConfig_t
+    headers: ["terrain/terrain_nav_hold.h"]
+    condition: USE_TERRAIN
+    members:
+      - name: terrain_nav_min_agl
+        description: "TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb that levels off about 10 m above the floor. The floor absorbs worst-case terrain map error on steep slopes plus canopy - the minimum is the lowest value where that error budget still clears"
+        default_value: 6000
+        field: minAglCm
+        min: 5000
+        max: 12000
+      - name: terrain_nav_lookahead
+        description: "TERRAIN AGL HOLD: check terrain up to this distance ahead along the flight path and climb early for rising ground [m]. 0 disables the lookahead. The effective distance is also limited by the terrain block cache of the flight controller"
+        default_value: 1000
+        field: lookaheadDistM
+        min: 0
+        max: 2000
