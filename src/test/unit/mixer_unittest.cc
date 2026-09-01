@@ -17,49 +17,21 @@
 
 /*
  * Verifies writeMotors() (src/main/flight/mixer.c) DShot output for
- * 3D/reversible motors, both while ARMED (normal flight) and while DISARMED
- * (motor-testing via the MSP_SET_MOTOR path used by the configurator's
- * motor-test UI).
+ * 3D/reversible motors, both ARMED and DISARMED (motor-testing via
+ * MSP_SET_MOTOR). While disarmed, direction can't come from
+ * reversibleMotorsThrottleState/throttleRangeMin/Max - mixTable() is the only
+ * thing that updates those, and it never runs while disarmed - so the
+ * disarmed case is a separate, always-compiled helper,
+ * calculateDisarmedReversibleMotorsDshotValue().
  *
- * writeMotors()'s FEATURE_REVERSIBLE_MOTORS DShot branch starts with an
- * `if (!ARMING_FLAG(ARMED))` check. While disarmed, direction is inferred
- * directly from motor[i] against the ESC's real 3D deadband
- * (reversibleMotorsConfig()->deadband_high / ->deadband_low) rather than
- * from `reversibleMotorsThrottleState`/`throttleRangeMin`/`throttleRangeMax`
- * (those statics are only ever updated by mixTable()'s armed-flight
- * direction-switching logic, which never runs while disarmed):
- *   - motor[i] above deadband_high -> scaled into
- *     [DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE] from
- *     [deadband_high, getMaxThrottle()] (forward thrust).
- *   - motor[i] below deadband_low -> scaled into
- *     [DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW] from
- *     [motorConfig()->mincommand, deadband_low] (reverse thrust).
- *   - motor[i] inside [deadband_low, deadband_high] -> DSHOT_DISARM_COMMAND.
- * While armed, the dispatch is based on
- * reversibleMotorsThrottleState/throttleRangeMin/throttleRangeMax via
- * handleOutputScaling(), in the `else if` chain after the disarmed check.
- *
- * Why this file hand-reproduces mixer.c's logic instead of linking it
- * -------------------------------------------------------------------
- * writeMotors()'s entire body (and its helper handleOutputScaling()) is
- * wrapped in `#if !defined(SITL_BUILD)`. Every unit test in this directory
- * is compiled against src/test/unit/target.h, which unconditionally
- * `#define`s SITL_BUILD, so the DShot-scaling code under test can never
- * actually be *compiled* by this test harness - it is structurally excluded.
- * This file hand-reproduces the relevant functions verbatim (labelled
- * `_CurrentSource`) and adds a "SourceSync" test suite at the bottom that
- * reads the ACTUAL LIVE src/main/flight/mixer.c off disk at test time and
- * asserts the key fragments this reproduction depends on - including the
- * presence of the `ARMING_FLAG(ARMED)` check - are still present. If
- * mixer.c changes again in the future, the SourceSync tests will fail,
- * flagging that this file's inline reproduction (and the expectations built
- * on top of it) need to be updated to match.
- *
- * This file is fully self-contained (no CMakeLists.txt `depends` entry
- * needed - it is picked up purely by the `*_unittest.cc` glob): even
- * scaleRangef()/constrain() (used both inside the reproduction and to
- * independently compute "should be" expected values) are hand-reproduced
- * from common/maths.c below, with their own SourceSync check.
+ * Why this file hand-reproduces mixer.c's logic instead of linking it:
+ * writeMotors() and its helpers are `static`, and writeMotors() itself is
+ * `#if !defined(SITL_BUILD)`-gated; every test here is built with SITL_BUILD
+ * defined, so the real functions can't be linked in (and linking mixer.c
+ * wholesale would require stubbing motorConfig(), feature(), ARMING_FLAG(),
+ * etc.). Functions are hand-reproduced verbatim (`_CurrentSource` suffix);
+ * the "SourceSync" suite at the bottom reads the live mixer.c at test time
+ * and fails if it drifts from these reproductions.
  */
 
 #include <stdint.h>
@@ -143,14 +115,59 @@ static uint16_t handleOutputScaling_CurrentSource(
 }
 
 /*
+ * Verbatim reproduction of calculateDisarmedReversibleMotorsDshotValue() from
+ * mixer.c (as of this writing, immediately before writeMotors()). This is the
+ * function that infers forward/reverse/deadband direction for a disarmed
+ * reversible motor directly from motorValue against the ESC's configured 3D
+ * deadband (since mixTable() never runs while disarmed, so
+ * reversibleMotorsThrottleState/throttleRangeMin/Max are stale). See
+ * SourceSync test CalculateDisarmedReversibleMotorsDshotValueMatchesLiveSource
+ * below.
+ *
+ * Boundary values (motorValue == deadbandHigh or == deadbandLow) belong to
+ * the thrust side (inclusive `>=`/`<=`), matching mixTable()'s direction
+ * switch and handleOutputScaling()'s stop check. The two degenerate-config
+ * guards (`maxThrottle <= deadbandHigh`, `deadbandLow <= mincommand`) prevent
+ * a zero/negative-width scaleRangef() denominator - both are reachable via
+ * valid-looking CLI configuration (see the two
+ * *DegenerateConfig*ReturnsClamped* tests below).
+ */
+static uint16_t calculateDisarmedReversibleMotorsDshotValue_CurrentSource(
+    int16_t motorValue,
+    int16_t deadbandLow,
+    int16_t deadbandHigh,
+    int16_t mincommand,
+    int16_t maxThrottle)
+{
+    if (motorValue >= deadbandHigh) {
+        if (maxThrottle <= deadbandHigh) {
+            return DSHOT_MAX_THROTTLE;
+        }
+        int32_t scaled = (int32_t)scaleRangef(motorValue, deadbandHigh, maxThrottle, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
+        return constrain(scaled, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
+    }
+    if (motorValue <= deadbandLow) {
+        if (deadbandLow <= mincommand) {
+            return DSHOT_MIN_THROTTLE;
+        }
+        int32_t scaled = (int32_t)scaleRangef(motorValue, mincommand, deadbandLow, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
+        return constrain(scaled, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
+    }
+    return DSHOT_DISARM_COMMAND;
+}
+
+/*
  * Verbatim reproduction of the FEATURE_REVERSIBLE_MOTORS + isMotorProtocolDigital
- * branch inside writeMotors() (mixer.c, roughly lines 377-419), AS IT EXISTS
- * TODAY (post-fix). Takes an explicit `isArmed` parameter mirroring the live
+ * branch inside writeMotors() (mixer.c, roughly lines 397-437), AS IT EXISTS
+ * TODAY. Takes an explicit `isArmed` parameter mirroring the live
  * `!ARMING_FLAG(ARMED)` check, plus the ESC 3D deadband/mincommand/maxThrottle
- * values needed by the disarmed branch. `reversibleMotorsThrottleState` /
- * `throttleRangeMin` / `throttleRangeMax` are still taken as plain parameters
- * (mixer.c holds them as file-scope statics) - they are only consulted, and
- * only meaningful, when `isArmed` is true, exactly as in the live code.
+ * values needed by the disarmed branch (forwarded straight into
+ * calculateDisarmedReversibleMotorsDshotValue_CurrentSource(), exactly as the
+ * live writeMotors() forwards them into the real function).
+ * `reversibleMotorsThrottleState` / `throttleRangeMin` / `throttleRangeMax`
+ * are still taken as plain parameters (mixer.c holds them as file-scope
+ * statics) - they are only consulted, and only meaningful, when `isArmed` is
+ * true, exactly as in the live code.
  */
 static uint16_t writeMotorsReversibleDshot_CurrentSource(
     int16_t motorValue,        // motor[i]
@@ -170,19 +187,8 @@ static uint16_t writeMotorsReversibleDshot_CurrentSource(
         // while disarmed, so reversibleMotorsThrottleState and
         // throttleRangeMin/Max are stale. Infer direction directly from
         // motor[i] against the ESC's real 3D deadband instead.
-        if (motorValue > deadbandHigh) {
-            motorOutput = scaleRangef(motorValue,
-                deadbandHigh, maxThrottle,
-                DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-            motorOutput = constrain(motorOutput, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-        } else if (motorValue < deadbandLow) {
-            motorOutput = scaleRangef(motorValue,
-                mincommand, deadbandLow,
-                DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
-            motorOutput = constrain(motorOutput, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
-        } else {
-            motorOutput = DSHOT_DISARM_COMMAND;
-        }
+        motorOutput = calculateDisarmedReversibleMotorsDshotValue_CurrentSource(
+            motorValue, deadbandLow, deadbandHigh, mincommand, maxThrottle);
     } else if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
         motorOutput = handleOutputScaling_CurrentSource(
             motorValue,
@@ -212,7 +218,7 @@ static uint16_t writeMotorsReversibleDshot_CurrentSource(
 
 /*
  * Verbatim reproduction of the non-reversible-motors DShot branch inside
- * writeMotors() (mixer.c, roughly lines 421-431). This path does not depend
+ * writeMotors() (mixer.c, roughly lines 439-449). This path does not depend
  * on reversibleMotorsThrottleState at all, and was not touched by the fix -
  * used here purely as a regression guard (item 5 in the task spec).
  */
@@ -236,17 +242,19 @@ static uint16_t writeMotorsNonReversibleDshot_CurrentSource(
 
 /* -------------------------------------------------------------------------
  * "Should be" expected values - computed independently of the reproduction
- * above (never calls handleOutputScaling_CurrentSource or the disarmed-branch
- * logic directly), using the same scaleRangef()/constrain() helpers so this
- * test never embeds a *second*, possibly-diverging copy of the interpolation
- * math. This encodes exactly the mapping the fix implements:
- *   - forward: motor above deadband_high scales into
+ * above (never calls handleOutputScaling_CurrentSource or
+ * calculateDisarmedReversibleMotorsDshotValue_CurrentSource directly), using
+ * the same scaleRangef()/constrain() helpers so this test never embeds a
+ * *second*, possibly-diverging copy of the interpolation math. This encodes
+ * exactly the mapping the fix implements, for the ordinary (non-degenerate-
+ * config) case:
+ *   - forward: motor at or above deadband_high scales into
  *              [DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE] from
  *              [deadband_high, maxThrottle].
- *   - reverse: motor below deadband_low scales into
+ *   - reverse: motor at or below deadband_low scales into
  *              [DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW] from
  *              [mincommand, deadband_low].
- *   - deadband zone (between deadband_low and deadband_high): disarm command.
+ *   - strictly inside (deadband_low, deadband_high) -> disarm command.
  * ------------------------------------------------------------------------- */
 static uint16_t expectedScaledOutput(int16_t input, int16_t inMin, int16_t inMax, int16_t outMin, int16_t outMax)
 {
@@ -255,11 +263,12 @@ static uint16_t expectedScaledOutput(int16_t input, int16_t inMin, int16_t inMax
     return (uint16_t)value;
 }
 
-// Matches the live code's strict `>`/`<` comparisons: exact equality with
-// deadbandHigh/deadbandLow falls through to the disarm case, it does not scale.
+// Matches the live code's inclusive `>=`/`<=` comparisons: exact equality
+// with deadbandHigh/deadbandLow belongs to the thrust side and scales; only
+// strictly-inside values disarm.
 static uint16_t expectedForwardDshot(int16_t motorValue, int16_t deadbandHigh, int16_t maxThrottle)
 {
-    if (motorValue <= deadbandHigh) {
+    if (motorValue < deadbandHigh) {
         return DSHOT_DISARM_COMMAND;
     }
     return expectedScaledOutput(motorValue, deadbandHigh, maxThrottle, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
@@ -267,7 +276,7 @@ static uint16_t expectedForwardDshot(int16_t motorValue, int16_t deadbandHigh, i
 
 static uint16_t expectedReverseDshot(int16_t motorValue, int16_t mincommand, int16_t deadbandLow)
 {
-    if (motorValue >= deadbandLow) {
+    if (motorValue > deadbandLow) {
         return DSHOT_DISARM_COMMAND;
     }
     return expectedScaledOutput(motorValue, mincommand, deadbandLow, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
@@ -364,7 +373,7 @@ TEST(MixerWriteMotorsDisarmed, ReverseValueProducesReverseThrust)
 
 TEST(MixerWriteMotorsDisarmed, DeadbandZoneStillProducesDisarmCommand)
 {
-    // motor value squarely inside [deadband_low, deadband_high] must still
+    // motor value squarely inside (deadband_low, deadband_high) must still
     // disarm the motor regardless of which direction it's evaluated from.
     // This held both before and after the fix.
     const int16_t motorValue = 1460; // == reversibleMotorsConfig()->neutral
@@ -386,13 +395,19 @@ TEST(MixerWriteMotorsDisarmed, DeadbandZoneStillProducesDisarmCommand)
     EXPECT_EQ((uint16_t)DSHOT_DISARM_COMMAND, actual);
 }
 
-TEST(MixerWriteMotorsDisarmed, ExactlyAtDeadbandHighIsDisarmedNotScaled)
+TEST(MixerWriteMotorsDisarmed, ExactlyAtDeadbandHighScalesToMinimalForwardThrust)
 {
-    // motor[i] == deadband_high must NOT scale: the live code's `>` comparison
-    // is strict, so equality falls through to the deadband/disarm case.
+    // motor[i] == deadband_high must SCALE, not disarm: the live code's `>=`
+    // comparison is inclusive, so exact equality belongs to the thrust side
+    // (matching mixTable()'s >=/<= direction switch and
+    // handleOutputScaling()'s strict-inequality stop check, where exact
+    // equality never stops the motor). At this exact boundary the scaled
+    // fractional position is zero, so the result is exactly
+    // DSHOT_3D_DEADBAND_HIGH (1048) - the minimal forward-thrust DShot value.
     const int16_t motorValue = REV_DEADBAND_HIGH;
 
-    ASSERT_EQ((uint16_t)DSHOT_DISARM_COMMAND, expectedForwardDshot(motorValue, REV_DEADBAND_HIGH, MAX_THROTTLE_VAL));
+    const uint16_t expected = expectedForwardDshot(motorValue, REV_DEADBAND_HIGH, MAX_THROTTLE_VAL);
+    ASSERT_EQ((uint16_t)DSHOT_3D_DEADBAND_HIGH, expected) << "test setup sanity check";
 
     const uint16_t actual = writeMotorsReversibleDshot_CurrentSource(
         motorValue,
@@ -405,16 +420,22 @@ TEST(MixerWriteMotorsDisarmed, ExactlyAtDeadbandHighIsDisarmedNotScaled)
         MOTOR_MINCOMMAND,
         MAX_THROTTLE_VAL);
 
-    EXPECT_EQ((uint16_t)DSHOT_DISARM_COMMAND, actual);
+    EXPECT_EQ((uint16_t)DSHOT_3D_DEADBAND_HIGH, actual)
+        << "motor[i] exactly at deadband_high must scale to the minimal forward-thrust DShot "
+           "value (DSHOT_3D_DEADBAND_HIGH), not fall through to DSHOT_DISARM_COMMAND.";
 }
 
-TEST(MixerWriteMotorsDisarmed, ExactlyAtDeadbandLowIsDisarmedNotScaled)
+TEST(MixerWriteMotorsDisarmed, ExactlyAtDeadbandLowScalesToMinimalReverseThrust)
 {
-    // motor[i] == deadband_low must NOT scale: the live code's `<` comparison
-    // is strict, so equality falls through to the deadband/disarm case.
+    // motor[i] == deadband_low must SCALE, not disarm: the live code's `<=`
+    // comparison is inclusive, so exact equality belongs to the thrust side.
+    // At this exact boundary the scaled fractional position is at its
+    // maximum (denominator == numerator), so the result is exactly
+    // DSHOT_3D_DEADBAND_LOW (1047) - the minimal reverse-thrust DShot value.
     const int16_t motorValue = REV_DEADBAND_LOW;
 
-    ASSERT_EQ((uint16_t)DSHOT_DISARM_COMMAND, expectedReverseDshot(motorValue, MOTOR_MINCOMMAND, REV_DEADBAND_LOW));
+    const uint16_t expected = expectedReverseDshot(motorValue, MOTOR_MINCOMMAND, REV_DEADBAND_LOW);
+    ASSERT_EQ((uint16_t)DSHOT_3D_DEADBAND_LOW, expected) << "test setup sanity check";
 
     const uint16_t actual = writeMotorsReversibleDshot_CurrentSource(
         motorValue,
@@ -427,7 +448,52 @@ TEST(MixerWriteMotorsDisarmed, ExactlyAtDeadbandLowIsDisarmedNotScaled)
         MOTOR_MINCOMMAND,
         MAX_THROTTLE_VAL);
 
-    EXPECT_EQ((uint16_t)DSHOT_DISARM_COMMAND, actual);
+    EXPECT_EQ((uint16_t)DSHOT_3D_DEADBAND_LOW, actual)
+        << "motor[i] exactly at deadband_low must scale to the minimal reverse-thrust DShot "
+           "value (DSHOT_3D_DEADBAND_LOW), not fall through to DSHOT_DISARM_COMMAND.";
+}
+
+/* ==========================================================================
+ * Degenerate-config guards inside calculateDisarmedReversibleMotorsDshotValue:
+ * reachable via valid-looking CLI configuration (min_command/3d_deadband_low/
+ * 3d_deadband_high/max_throttle are independently settable), these guards
+ * prevent scaleRangef()'s denominator (srcMax - srcMin) from becoming zero
+ * or negative. Calls the reproduction function directly with the degenerate
+ * parameter combinations, exactly as the task spec requests.
+ * ========================================================================== */
+
+TEST(MixerWriteMotorsDisarmed, ForwardDegenerateConfigMaxThrottleAtDeadbandHighReturnsMaxThrottle)
+{
+    // Degenerate config: max_throttle <= deadband_high (here, equal), so the
+    // forward-scaling source range [deadbandHigh, maxThrottle] has zero
+    // width. Must clamp to DSHOT_MAX_THROTTLE instead of dividing by zero.
+    const int16_t deadbandHigh = 2000;
+    const int16_t maxThrottle = 2000;
+    const int16_t motorValue = 2000; // >= deadbandHigh
+
+    const uint16_t actual = calculateDisarmedReversibleMotorsDshotValue_CurrentSource(
+        motorValue, REV_DEADBAND_LOW, deadbandHigh, MOTOR_MINCOMMAND, maxThrottle);
+
+    EXPECT_EQ((uint16_t)DSHOT_MAX_THROTTLE, actual)
+        << "Degenerate config (deadband_high >= max_throttle) must not divide by a "
+           "zero/negative-width range - it must clamp to DSHOT_MAX_THROTTLE instead.";
+}
+
+TEST(MixerWriteMotorsDisarmed, ReverseDegenerateConfigDeadbandLowAtMincommandReturnsMinThrottle)
+{
+    // Degenerate config: deadband_low <= mincommand (here, equal), so the
+    // reverse-scaling source range [mincommand, deadbandLow] has zero width.
+    // Must clamp to DSHOT_MIN_THROTTLE instead of dividing by zero.
+    const int16_t deadbandLow = 1000;
+    const int16_t mincommand = 1000;
+    const int16_t motorValue = 1000; // <= deadbandLow
+
+    const uint16_t actual = calculateDisarmedReversibleMotorsDshotValue_CurrentSource(
+        motorValue, deadbandLow, REV_DEADBAND_HIGH, mincommand, MAX_THROTTLE_VAL);
+
+    EXPECT_EQ((uint16_t)DSHOT_MIN_THROTTLE, actual)
+        << "Degenerate config (deadband_low <= mincommand) must not divide by a "
+           "zero/negative-width range - it must clamp to DSHOT_MIN_THROTTLE instead.";
 }
 
 /* ==========================================================================
@@ -678,6 +744,44 @@ TEST(SourceSync, HandleOutputScalingMatchesLiveSource)
            "(and the expected-value helpers, if the scaling formula itself changed) to match.";
 }
 
+TEST(SourceSync, CalculateDisarmedReversibleMotorsDshotValueMatchesLiveSource)
+{
+    std::string normalizedSource;
+    ASSERT_TRUE(loadNormalizedFile(pathRelativeToThisFile("../../main/flight/mixer.c"), &normalizedSource));
+
+    const std::string expectedBody = normalizeSource(
+        "static uint16_t calculateDisarmedReversibleMotorsDshotValue( "
+        "int16_t motorValue, "
+        "int16_t deadbandLow, "
+        "int16_t deadbandHigh, "
+        "int16_t mincommand, "
+        "int16_t maxThrottle) "
+        "{ "
+        "if (motorValue >= deadbandHigh) { "
+        "if (maxThrottle <= deadbandHigh) { "
+        "return DSHOT_MAX_THROTTLE; "
+        "} "
+        "int32_t scaled = (int32_t)scaleRangef(motorValue, deadbandHigh, maxThrottle, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE); "
+        "return constrain(scaled, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE); "
+        "} "
+        "if (motorValue <= deadbandLow) { "
+        "if (deadbandLow <= mincommand) { "
+        "return DSHOT_MIN_THROTTLE; "
+        "} "
+        "int32_t scaled = (int32_t)scaleRangef(motorValue, mincommand, deadbandLow, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW); "
+        "return constrain(scaled, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW); "
+        "} "
+        "return DSHOT_DISARM_COMMAND; "
+        "}");
+
+    EXPECT_NE(normalizedSource.find(expectedBody), std::string::npos)
+        << "calculateDisarmedReversibleMotorsDshotValue() in the LIVE src/main/flight/mixer.c "
+           "no longer matches calculateDisarmedReversibleMotorsDshotValue_CurrentSource() in "
+           "this test file. Update the reproduction (and the boundary/degenerate-config guard "
+           "tests, if the guard conditions or comparison operators themselves changed) to "
+           "match.";
+}
+
 TEST(SourceSync, WriteMotorsReversibleDshotBranchMatchesLiveSource)
 {
     std::string normalizedSource;
@@ -690,22 +794,19 @@ TEST(SourceSync, WriteMotorsReversibleDshotBranchMatchesLiveSource)
         normalizeSource("void writeAllMotors(int16_t mc) {"),
         &writeMotorsBody));
 
-    // Covers both the new disarmed branch (direction inferred from motor[i]
-    // against the ESC's real 3D deadband) and the still-unchanged armed
-    // FORWARD/BACKWARD dispatch that now follows it in the else-if chain.
+    // Covers both the disarmed branch (now just a call into
+    // calculateDisarmedReversibleMotorsDshotValue(), direction inferred from
+    // motor[i] against the ESC's real 3D deadband) and the still-unchanged
+    // armed FORWARD/BACKWARD dispatch that follows it in the else-if chain.
     const std::string expectedReversibleDshotBranch = normalizeSource(
         "if (!ARMING_FLAG(ARMED)) { "
-        "if (motor[i] > reversibleMotorsConfig()->deadband_high) { "
-        "motorValue = scaleRangef(motor[i], reversibleMotorsConfig()->deadband_high, getMaxThrottle(), "
-        "DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE); "
-        "motorValue = constrain(motorValue, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE); "
-        "} else if (motor[i] < reversibleMotorsConfig()->deadband_low) { "
-        "motorValue = scaleRangef(motor[i], motorConfig()->mincommand, reversibleMotorsConfig()->deadband_low, "
-        "DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW); "
-        "motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW); "
-        "} else { "
-        "motorValue = DSHOT_DISARM_COMMAND; "
-        "} "
+        "motorValue = calculateDisarmedReversibleMotorsDshotValue( "
+        "motor[i], "
+        "reversibleMotorsConfig()->deadband_low, "
+        "reversibleMotorsConfig()->deadband_high, "
+        "motorConfig()->mincommand, "
+        "getMaxThrottle() "
+        "); "
         "} else if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) { "
         "motorValue = handleOutputScaling( "
         "motor[i], "
@@ -733,7 +834,7 @@ TEST(SourceSync, WriteMotorsReversibleDshotBranchMatchesLiveSource)
     EXPECT_NE(writeMotorsBody.find(expectedReversibleDshotBranch), std::string::npos)
         << "The FEATURE_REVERSIBLE_MOTORS DShot branch inside the LIVE writeMotors() no "
            "longer matches writeMotorsReversibleDshot_CurrentSource() in this test file. "
-           "Update the reproduction (and, if the disarmed-branch formula itself changed, "
+           "Update the reproduction (and, if the disarmed-branch call site itself changed, "
            "the expected-value helpers) to match.";
 }
 

@@ -366,6 +366,32 @@ static void applyTurtleModeToMotors(void) {
 }
 #endif
 
+#ifdef USE_DSHOT
+static uint16_t calculateDisarmedReversibleMotorsDshotValue(
+    int16_t motorValue,
+    int16_t deadbandLow,
+    int16_t deadbandHigh,
+    int16_t mincommand,
+    int16_t maxThrottle)
+{
+    if (motorValue >= deadbandHigh) {
+        if (maxThrottle <= deadbandHigh) {
+            return DSHOT_MAX_THROTTLE; // zero-width range would divide by zero
+        }
+        int32_t scaled = (int32_t)scaleRangef(motorValue, deadbandHigh, maxThrottle, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
+        return constrain(scaled, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
+    }
+    if (motorValue <= deadbandLow) {
+        if (deadbandLow <= mincommand) {
+            return DSHOT_MIN_THROTTLE; // zero-width range would divide by zero
+        }
+        int32_t scaled = (int32_t)scaleRangef(motorValue, mincommand, deadbandLow, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
+        return constrain(scaled, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
+    }
+    return DSHOT_DISARM_COMMAND;
+}
+#endif
+
 void FAST_CODE writeMotors(void)
 {
 #if !defined(SITL_BUILD)
@@ -376,23 +402,14 @@ void FAST_CODE writeMotors(void)
             // If we use DSHOT we need to convert motorValue to DSHOT ranges
             if (feature(FEATURE_REVERSIBLE_MOTORS)) {
                 if (!ARMING_FLAG(ARMED)) {
-                    // Disarmed (motor test via MSP_SET_MOTOR): mixTable() never
-                    // runs while disarmed, so reversibleMotorsThrottleState and
-                    // throttleRangeMin/Max are stale. Infer direction directly
-                    // from motor[i] against the ESC's real 3D deadband instead.
-                    if (motor[i] > reversibleMotorsConfig()->deadband_high) {
-                        motorValue = scaleRangef(motor[i],
-                            reversibleMotorsConfig()->deadband_high, getMaxThrottle(),
-                            DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-                        motorValue = constrain(motorValue, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-                    } else if (motor[i] < reversibleMotorsConfig()->deadband_low) {
-                        motorValue = scaleRangef(motor[i],
-                            motorConfig()->mincommand, reversibleMotorsConfig()->deadband_low,
-                            DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
-                        motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
-                    } else {
-                        motorValue = DSHOT_DISARM_COMMAND;
-                    }
+                    // mixTable() never runs while disarmed, so reversibleMotorsThrottleState is stale.
+                    motorValue = calculateDisarmedReversibleMotorsDshotValue(
+                        motor[i],
+                        reversibleMotorsConfig()->deadband_low,
+                        reversibleMotorsConfig()->deadband_high,
+                        motorConfig()->mincommand,
+                        getMaxThrottle()
+                    );
                 } else if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
                     motorValue = handleOutputScaling(
                         motor[i],
