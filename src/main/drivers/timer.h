@@ -156,6 +156,15 @@ typedef struct timerCallbacks_s {
     timerCallbackFn * callbackOvr;
 } timerCallbacks_t;
 
+// Circular-DMA refill callback: invoked from the DMA IRQ while
+// dmaState == TCH_DMA_CIRCULAR, once per half-cycle, so the consumer can
+// refill the half that was just transmitted. transferComplete is true for
+// the TC (second-half-just-sent) event, false for the HT
+// (first-half-just-sent) event. Optional (NULL) for circular DMA consumers
+// that don't need refilling (e.g. motor DShot idle-packet repeat during
+// EEPROM writes) — those get no HT/TC IRQs at all.
+typedef void timerDmaRefillFn(struct TCH_s * tch, bool transferComplete);
+
 // Run-time TCH (Timer CHannel) context
 typedef struct TCH_s {
     struct timHardwareContext_s *   timCtx;         // Run-time initialized to parent timer
@@ -164,6 +173,7 @@ typedef struct TCH_s {
     DMA_t                           dma;            // Timer channel DMA handle
     volatile tchDmaState_e          dmaState;
     void *                          dmaBuffer;
+    timerDmaRefillFn *              dmaRefillCallback; // optional, see typedef above
 } TCH_t;
 
 // Run-time timer context (dynamically allocated), includes 4x TCH

@@ -989,7 +989,7 @@ void ledStripUpdate(timeUs_t currentTimeUs)
         bool updateNow = timActive & (1 << timId);
         (*layerTable[timId])(updateNow, timer);
     }
-    ws2811UpdateStrip();
+    ws2811UpdateStrip(ledCounts.count);
 }
 
 bool parseColor(int index, const char *colorConfig)
@@ -1077,6 +1077,6 @@ static void ledStripDisable(void)
 {
     setStripColor(&HSV(BLACK));
 
-    ws2811UpdateStrip();
+    ws2811UpdateStrip(ledCounts.count);
 }
 #endif
