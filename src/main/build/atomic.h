@@ -17,7 +17,7 @@
 
 #pragma once
 
-#if defined(RP2350)
+#if defined(RP2350) && !defined(UNIT_TEST) && !defined(SITL_BUILD)
 // RP2350 uses the Pico SDK: the include chain has no CMSIS device header, so
 // the BASEPRI helpers used below (__get_BASEPRI/__set_BASEPRI/__NVIC_PRIO_BITS)
 // are not declared, and the INAV NVIC_PRIO_* numbering does not map to the
@@ -25,6 +25,13 @@
 // ignored. save_and_disable_interrupts() returns the previous PRIMASK state,
 // which the cleanup function restores on exit, so nesting behaves exactly like
 // the BASEPRI version.
+//
+// GUARDRAIL (unlike BASEPRI): PRIMASK masks *all* maskable IRQs, including the
+// 1 ms USB alarm and the UART ISRs, not just IRQs at priority >= prio. Blocks
+// must therefore be SHORT (they already are by convention) and must never wait
+// on an interrupt-driven condition inside the block — a block that spins until
+// an IRQ fires will deadlock. This matters as soon as common code that expands
+// ATOMIC_BLOCK (e.g. CRSF/GHST telemetry) is enabled on an RP2350 target.
 #include "hardware/sync.h"
 
 // cleanup PRIMASK restore function, with global memory barrier

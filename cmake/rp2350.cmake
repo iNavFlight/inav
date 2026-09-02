@@ -340,6 +340,9 @@ function(target_rp2350 name)
     # sections (e.g. the always-compiled DroneCAN DSDL objects that no
     # RP2350 target references): at -O0 they are retained and the link
     # fails with undefined canardEncodeScalar/canardDecodeScalar.
+    # Release-only fix: LTO is enabled for release builds only (see
+    # setup_executable), so Debug (-O0, no LTO) never hits this — plain
+    # --gc-sections already drops the unreferenced DSDL objects there.
     if (IS_RELEASE_BUILD)
         target_compile_options(${exe_target} PRIVATE -O2)
         target_link_options(${exe_target} PRIVATE -O2)

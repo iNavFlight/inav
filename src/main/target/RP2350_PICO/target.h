@@ -51,8 +51,10 @@
 // GP10–13 default to motors 1–4; GP4–7 are reserved for SPI0 (gyro + flash).
 // Motor/servo GPIO assignments come from timerHardware[] in target.c.
 
-// Servo PWM output via hardware PWM slices (GP16–GP19 by default).
-// 50 Hz, 1000–2000 µs pulse width. GP16–19 are free from other peripherals.
+// Servo PWM output via hardware PWM slices on GP8/9, GP14/15 and GP20/21
+// (GP8/9 and GP14/15 are dual-use: they serve UART3/UART4 when those serial
+// ports are active).  50 Hz, 1000–2000 µs pulse width.
+// GP16–19 are reserved: Flash CS (GP16), Beeper (GP17), I2C1 SDA/SCL (GP18/19).
 
 // ADC inputs are hardware-fixed on RP2350A: ADC0–3 map only to GPIO26–29.
 // ADC_CHANNEL_N_PIN cannot be changed without a board respin.
@@ -65,7 +67,8 @@
 #define RSSI_ADC_CHANNEL           ADC_CHN_3
 #define USE_DSHOT
 
-// PWM output channel count (4 motor slices + servo outputs on GP12-15/20-21).
+// PWM output channel count: 10 = 4 motor pins (GP10-13) + 6 servo pins
+// (GP8/9, GP14/15, GP20/21) = timerHardwareCount in target.c.
 // Required by common pwm_output.h; the RP2350 drivers provide their own
 // PWM implementation (USE_PWM is undefined for the STM32 common code).
 #define MAX_PWM_OUTPUT_PORTS 10

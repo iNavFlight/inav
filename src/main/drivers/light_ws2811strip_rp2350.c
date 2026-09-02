@@ -59,10 +59,8 @@
 #include "common/colorconversion.h"
 #include "common/utils.h"
 
-#include "config/parameter_group_ids.h"
 #include "drivers/io.h"
 #include "drivers/light_ws2811strip.h"
-#include "fc/settings.h"
 
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
