@@ -43,7 +43,3 @@ void i2c_OLED_send_string(const char *string);
 bool i2c_OLED_send_byte(uint8_t val);
 void i2c_OLED_clear_display(void);
 void i2c_OLED_clear_display_quick(void);
-
-// Column-offset diagnostic: call once after init to verify SH1106/SSD1306
-// offset correctness. Do NOT call from production code paths.
-void ug2864hsweg01TestPattern(void);

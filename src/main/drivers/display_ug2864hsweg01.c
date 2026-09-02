@@ -25,7 +25,6 @@
 #ifdef USE_OLED_UG2864
 
 #include "drivers/bus.h"
-#include "drivers/bus_i2c.h"
 #include "drivers/time.h"
 
 #include "display_ug2864hsweg01.h"
@@ -207,10 +206,18 @@ bool i2c_OLED_send_byte(uint8_t val)
     return busWrite(busDev, 0x40, val);
 }
 
+// SH1106 has 132-wide GDDRAM but only 128 columns are visible; the first
+// 2 columns are hidden, so writes must start 2 columns in. Other controllers
+// use the full visible width and need no offset.
+static uint8_t oledColumnOffset(void)
+{
+    return (detectedController == OLED_CONTROLLER_SH1106) ? 2 : 0;
+}
+
 void i2c_OLED_clear_display(void)
 {
     // SH1106 only supports page addressing mode; use page-by-page clear for all controllers
-    uint8_t startCol = (detectedController == OLED_CONTROLLER_SH1106) ? 2 : 0;
+    uint8_t startCol = oledColumnOffset();
 
     i2c_OLED_send_cmd(0xa6);  // Set Normal Display
     i2c_OLED_send_cmd(0xae);  // Display OFF
@@ -232,7 +239,7 @@ void i2c_OLED_clear_display(void)
 
 void i2c_OLED_clear_display_quick(void)
 {
-    uint8_t startCol = (detectedController == OLED_CONTROLLER_SH1106) ? 2 : 0;
+    uint8_t startCol = oledColumnOffset();
 
     for (uint8_t page = 0; page < 8; page++) {
         i2c_OLED_send_cmd(0xb0 + page);                      // set page address
@@ -246,10 +253,7 @@ void i2c_OLED_clear_display_quick(void)
 
 void i2c_OLED_set_xy(uint8_t col, uint8_t row)
 {
-    uint8_t pixelCol = CHARACTER_WIDTH_TOTAL * col;
-    if (detectedController == OLED_CONTROLLER_SH1106) {
-        pixelCol += 2;  // SH1106 has 132-wide GDDRAM; first 2 cols are not visible
-    }
+    uint8_t pixelCol = CHARACTER_WIDTH_TOTAL * col + oledColumnOffset();
     i2c_OLED_send_cmd(0xb0 + row);                           // set page address
     i2c_OLED_send_cmd(0x00 + (pixelCol & 0x0f));             // set low col address
     i2c_OLED_send_cmd(0x10 + ((pixelCol >> 4) & 0x0f));     // set high col address
@@ -257,7 +261,7 @@ void i2c_OLED_set_xy(uint8_t col, uint8_t row)
 
 void i2c_OLED_set_line(uint8_t row)
 {
-    uint8_t startCol = (detectedController == OLED_CONTROLLER_SH1106) ? 2 : 0;
+    uint8_t startCol = oledColumnOffset();
     i2c_OLED_send_cmd(0xb0 + row);                           // set page address
     i2c_OLED_send_cmd(0x00 + (startCol & 0x0f));             // set low col address
     i2c_OLED_send_cmd(0x10 + ((startCol >> 4) & 0x0f));     // set high col address
@@ -299,26 +303,14 @@ static oledControllerType_e detectOledController(void)
 {
     uint8_t statusByte = 0;
 
-    // Probe I2C addresses 0x3C and 0x3D — log which ones respond so the
-    // bootlog reveals address mismatches without needing an I2C scanner.
-    uint8_t probeByte = 0;
-    bool found3C = i2cRead(busDev->busdev.i2c.i2cBus, 0x3C, 0xFF, 1, &probeByte, true);
-    bool found3D = i2cRead(busDev->busdev.i2c.i2cBus, 0x3D, 0xFF, 1, &probeByte, true);
-    LOG_DEBUG(SYSTEM, "OLED: I2C probe — 0x3C:%s 0x3D:%s",
-              found3C ? "ACK" : "NAK", found3D ? "ACK" : "NAK");
-
     // Raw status register read (0xFF = no register write phase before read)
     if (!busRead(busDev, 0xFF, &statusByte)) {
         LOG_ERROR(SYSTEM, "OLED: Failed to read status register at 0x3C");
         return OLED_CONTROLLER_UNKNOWN;
     }
 
-    LOG_DEBUG(SYSTEM, "OLED: Raw status register = 0x%02X", statusByte);
-
     // Mask off the upper bits - controller type is in lower nibble
     uint8_t controllerBits = statusByte & 0x0F;
-
-    LOG_DEBUG(SYSTEM, "OLED: Controller ID bits (masked) = 0x%02X", controllerBits);
 
     oledControllerType_e detected;
     const char *controllerName;
@@ -373,8 +365,6 @@ bool ug2864hsweg01InitI2C(void)
         return false;
     }
 
-    LOG_DEBUG(SYSTEM, "OLED: Bus device initialized, detecting controller type...");
-
     // Detect the OLED controller type before initialization
     detectedController = detectOledController();
 
@@ -383,8 +373,6 @@ bool ug2864hsweg01InitI2C(void)
         LOG_ERROR(SYSTEM, "OLED: Failed to send display OFF command");
         return false;
     }
-
-    LOG_DEBUG(SYSTEM, "OLED: Display OFF command sent, starting init sequence");
 
     i2c_OLED_send_cmd(0xD4); // Set Display Clock Divide Ratio / OSC Frequency
     i2c_OLED_send_cmd(0x80); // Display Clock Divide Ratio / OSC Frequency
@@ -410,99 +398,9 @@ bool ug2864hsweg01InitI2C(void)
     i2c_OLED_send_cmd(0xA6); // Set display not inverted
     i2c_OLED_send_cmd(0xAF); // Set display On
 
-    LOG_DEBUG(SYSTEM, "OLED: Init sequence complete, clearing display");
-
     i2c_OLED_clear_display();
-
-    LOG_DEBUG(SYSTEM, "OLED: Initialization complete, controller=%d", detectedController);
 
     return true;
-}
-
-/**
- * Column-offset diagnostic test pattern.
- *
- * Draws a double-outline rectangle using only column-exact pixel writes so
- * that a wrong SH1106 +2-pixel column offset is immediately visible on the
- * physical display.
- *
- * Left edge layout (logical columns, after any controller offset is applied):
- *   col 0  : 0xFF  outer left border  (solid, full page height)
- *   col 1  : 0x00  1-pixel gap
- *   col 2  : 0xFF  inner left border  (solid, full page height)
- *   col 3..124: interior (see below)
- *   col 125: 0xFF  inner right border (solid, full page height)
- *   col 126: 0x00  1-pixel gap
- *   col 127: 0xFF  outer right border (solid, full page height)
- *
- * Top/bottom horizontal lines (1 pixel wide):
- *   page 0, cols 3..124: 0x01  (bit 0 = topmost pixel of the page)
- *   page 7, cols 3..124: 0x80  (bit 7 = bottommost pixel of the page)
- *   pages 1..6, cols 3..124: 0x00 (interior empty)
- *
- * How to read the result on the display:
- *   Correct offset  : outer border flush at physical screen edge, 1-pixel gap,
- *                     then inner border; symmetric on both sides.
- *   Offset off by 1 : one border merges with its neighbour or a gap doubles.
- *   Offset off by 2 : outer border disappears off the left (or right) edge.
- *
- * Call this function once after ug2864hsweg01InitI2C() to verify the column
- * offset.  Do NOT call it from production code paths.
- */
-void ug2864hsweg01TestPattern(void)
-{
-    i2c_OLED_clear_display();
-
-    for (uint8_t page = 0; page < 8; page++) {
-        // Position to the start of this page (col 0, with controller offset applied)
-        i2c_OLED_set_line(page);
-
-        // Determine the fill byte for the interior columns 3..124 on this page
-        uint8_t interiorByte;
-        if (page == 0) {
-            interiorByte = 0x01;  // top horizontal border: only the topmost pixel
-        } else if (page == 7) {
-            interiorByte = 0x80;  // bottom horizontal border: only the bottommost pixel
-        } else {
-            interiorByte = 0x00;  // empty interior
-        }
-
-        // col 0: outer left border (solid vertical stripe)
-        i2c_OLED_send_byte(0xFF);
-
-        // col 1: 1-pixel gap
-        i2c_OLED_send_byte(0x00);
-
-        // col 2: inner left border (solid vertical stripe)
-        i2c_OLED_send_byte(0xFF);
-
-        // cols 3..124: interior (122 columns)
-        for (uint8_t col = 3; col <= 124; col++) {
-            i2c_OLED_send_byte(interiorByte);
-        }
-
-        // col 125: inner right border (solid vertical stripe)
-        i2c_OLED_send_byte(0xFF);
-
-        // col 126: 1-pixel gap
-        i2c_OLED_send_byte(0x00);
-
-        // col 127: outer right border (solid vertical stripe)
-        i2c_OLED_send_byte(0xFF);
-    }
-
-    // Display detected controller name centered on page 3 (vertical middle)
-    const char *name;
-    uint8_t nameLen;
-    switch (detectedController) {
-        case OLED_CONTROLLER_SH1106:  name = "SH1106";  nameLen = 6; break;
-        case OLED_CONTROLLER_SH1107:  name = "SH1107";  nameLen = 6; break;
-        case OLED_CONTROLLER_SSD1309: name = "SSD1309"; nameLen = 7; break;
-        case OLED_CONTROLLER_SSD1306:
-        default:                      name = "SSD1306"; nameLen = 7; break;
-    }
-    i2c_OLED_set_xy((SCREEN_CHARACTER_COLUMN_COUNT - nameLen) / 2, 3);
-    i2c_OLED_send_string(name);
 }
 
 #endif // USE_OLED_UG2864
