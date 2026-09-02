@@ -222,4 +222,25 @@ uint32_t usbVcpGetBaudRate(serialPort_t *instance)
     return coding.bit_rate;
 }
 
+portOptions_t usbVcpGetLineCoding(void)
+{
+    portOptions_t options = SERIAL_NOT_INVERTED;
+
+    // Mirror upstream serial_usb_vcp.c semantics using TinyUSB's line coding:
+    //   stop bits: CDC 0=1 stop, 2=2 stop (1.5 not supported in INAV)
+    //   parity:    CDC 0=none, 2=even (odd parity not supported in INAV)
+    cdc_line_coding_t coding;
+    tud_cdc_get_line_coding(&coding);
+
+    if (coding.stop_bits == 2) {
+        options |= SERIAL_STOPBITS_2;
+    }
+
+    if (coding.parity == 2) {
+        options |= SERIAL_PARITY_EVEN;
+    }
+
+    return options;
+}
+
 #endif // USE_VCP

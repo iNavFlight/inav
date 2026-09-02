@@ -17,6 +17,22 @@
 
 #pragma once
 
+#if defined(RP2350)
+// RP2350 uses the Pico SDK: the include chain has no CMSIS device header, so
+// the BASEPRI helpers used below (__get_BASEPRI/__set_BASEPRI/__NVIC_PRIO_BITS)
+// are not declared, and the INAV NVIC_PRIO_* numbering does not map to the
+// RP2350 NVIC. Mask ALL interrupts with PRIMASK instead: the prio argument is
+// ignored. save_and_disable_interrupts() returns the previous PRIMASK state,
+// which the cleanup function restores on exit, so nesting behaves exactly like
+// the BASEPRI version.
+#include "hardware/sync.h"
+
+// cleanup PRIMASK restore function, with global memory barrier
+static inline void __primaskRestoreMem(uint8_t *val)
+{
+    restore_interrupts(*val);
+}
+#else
 #if defined(UNIT_TEST) || defined(SITL_BUILD)
 static inline void __set_BASEPRI(uint32_t basePri) {(void)basePri;}
 static inline void __set_BASEPRI_MAX(uint32_t basePri) {(void)basePri;}
@@ -41,13 +57,17 @@ static inline uint8_t __basepriSetMemRetVal(uint8_t prio)
 //
 // NOTE: The priority numbering convention used in __set_BASEPRI(priority) is thus different than in the
 // NVIC_SetPriority(priority) function, which expects the “priority” argument not shifted.
+#endif // RP2350
 
-// Run block with elevated BASEPRI (using BASEPRI_MAX), restoring BASEPRI on exit. All exit paths are handled
-// Full memory barrier is placed at start and exit of block
+// Run block with masked interrupts, restoring the previous mask state on exit.
+// All exit paths are handled. Full memory barrier is placed at start and exit of block.
 #if defined(UNIT_TEST) || defined(SITL_BUILD)
 #define ATOMIC_BLOCK(prio) {}
+#elif defined(RP2350)
+#define ATOMIC_BLOCK(prio) for ( uint8_t __primask_save __attribute__((__cleanup__(__primaskRestoreMem))) = (uint8_t)save_and_disable_interrupts(), \
+                                      __ToDo = 1; __ToDo ; __ToDo = 0 )
 #else
 #define ATOMIC_BLOCK(prio) for ( uint8_t __basepri_save __attribute__((__cleanup__(__basepriRestoreMem))) = __get_BASEPRI(), \
                                      __ToDo = __basepriSetMemRetVal((prio) << (8U - __NVIC_PRIO_BITS)); __ToDo ; __ToDo = 0 )
 
-#endif // UNIT_TEST || SITL_BUILD
+#endif // UNIT_TEST || SITL_BUILD || RP2350

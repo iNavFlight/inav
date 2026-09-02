@@ -25,9 +25,7 @@
 #include "blackbox/blackbox_io.h"
 
 #include "build/assert.h"
-#if !defined(SITL_BUILD) && !defined(RP2350)
 #include "build/atomic.h"
-#endif
 #include "build/build_config.h"
 #include "build/debug.h"
 

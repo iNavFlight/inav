@@ -19,7 +19,6 @@ set(RP2350_CMSIS_DSP_INCLUDE_DIR "${RP2350_CMSIS_DSP_DIR}/Include")
 
 # Sources to exclude from COMMON_SRC (same as SITL + additional STM32-specific)
 main_sources(RP2350_COMMON_SRC_EXCLUDES
-    build/atomic.h
     drivers/system.c
     drivers/time.c
     drivers/timer.c
@@ -328,6 +327,17 @@ function(target_rp2350 name)
 
     if(WARNINGS_AS_ERRORS)
         target_compile_options(${exe_target} PRIVATE -Werror)
+    endif()
+
+    # RP2350 targets are built unoptimised by default (no -O flag) — same
+    # release/debug split as STM32 (see stm32.cmake OPTIMIZATION -O2 under
+    # IS_RELEASE_BUILD).  -O2 is required for LTO to drop unreferenced
+    # sections (e.g. the always-compiled DroneCAN DSDL objects that no
+    # RP2350 target references): at -O0 they are retained and the link
+    # fails with undefined canardEncodeScalar/canardDecodeScalar.
+    if (IS_RELEASE_BUILD)
+        target_compile_options(${exe_target} PRIVATE -O2)
+        target_link_options(${exe_target} PRIVATE -O2)
     endif()
 
     target_link_libraries(${exe_target} PRIVATE ${RP2350_LINK_LIBRARIES})

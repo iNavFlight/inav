@@ -186,6 +186,12 @@ static uint8_t servoHwPins[RP2350_MAX_SERVOS];
 static uint8_t servoCount     = 0;
 static bool    servoInitialized = false;
 
+/* Snapshot of the resolved motor/servo → timerHardware assignment, kept in
+ * sync with pwmMotorAndServoInit().  Backs MSP2_INAV_OUTPUT_ASSIGNMENT and
+ * MSP2_INAV_QUERY_OUTPUT_ASSIGNMENT (pwmGetOutputAssignment()).
+ */
+static timMotorServoHardware_t rp2350OutputAssignment;
+
 /* Pending DShot command (e.g. spin direction).  Commands are sent 10×. */
 static dshotCommands_e pendingCmd     = 0;
 static int             pendingCmdReps = 0;
@@ -289,6 +295,20 @@ void pwmEnableMotors(void)
 {
     dshotEnabled    = true;
     motorPwmEnabled = true;
+}
+
+/*
+ * RP2350 PIO DShot has no DMA-circular keep-alive (frames are pushed per
+ * control loop via pio_sm_put(); the PIO state machines idle at `pull block`
+ * when their TX FIFO is empty).  There is therefore nothing to configure
+ * here: during a blocking config write (flash_range_erase/program with
+ * interrupts disabled) DShot frames pause until the write completes, exactly
+ * as they did before this API was merged.  Kept as a no-op so the shared
+ * config_eeprom.c caller links on RP2350; ESCs re-sync when frames resume.
+ */
+void pwmSetMotorDMACircular(bool circular)
+{
+    UNUSED(circular);
 }
 
 /* ── Protocol queries ────────────────────────────────────────────────────── */
@@ -567,6 +587,102 @@ bool pwmMotorAndServoInit(void)
     servoInitialized = true;
 
     return true;
+}
+
+/* ── Output assignment reporting (MSP2_INAV_OUTPUT_ASSIGNMENT) ─────────────
+ *
+ * Shared fc_msp.c calls pwmGetOutputAssignment() / pwmCalculateAssignment()
+ * to back MSP2_INAV_OUTPUT_ASSIGNMENT (READ) and MSP2_INAV_QUERY_OUTPUT_
+ * ASSIGNMENT.  On RP2350 there is no pwm_mapping.c; the authoritative
+ * assignment is whatever pwmMotorAndServoInit() resolved into
+ * timerHardware[].usageFlags (TIM_USE_MOTOR / TIM_USE_SERVO per pin), so we
+ * rebuild the report from those flags.  The simulation flavour
+ * (pwmCalculateAssignment) mirrors the same slice-resolution rules that
+ * pwmMotorAndServoInit() applies, driven by the proposed override modes,
+ * without touching live state.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+static void rp2350BuildOutputAssignment(timMotorServoHardware_t *out)
+{
+    out->maxTimMotorCount = 0;
+    out->maxTimServoCount = 0;
+
+    for (int i = 0; i < timerHardwareCount; i++) {
+        const uint32_t flags = timerHardware[i].usageFlags;
+        if (TIM_IS_MOTOR_ONLY(flags) && out->maxTimMotorCount < MAX_PWM_OUTPUTS) {
+            out->timMotors[out->maxTimMotorCount++] = &timerHardware[i];
+        } else if (TIM_IS_SERVO_ONLY(flags) && out->maxTimServoCount < MAX_PWM_OUTPUTS) {
+            out->timServos[out->maxTimServoCount++] = &timerHardware[i];
+        }
+    }
+}
+
+const timMotorServoHardware_t *pwmGetOutputAssignment(void)
+{
+    /*
+     * usageFlags only carry the resolved MOTOR/SERVO roles after a successful
+     * pwmMotorAndServoInit().  MSP servers start post-init, so by the time
+     * this is queried the flags reflect the real assignment.  Rebuild on
+     * every call (≤10 entries) so reports stay current after re-init.
+     */
+    rp2350BuildOutputAssignment(&rp2350OutputAssignment);
+    return &rp2350OutputAssignment;
+}
+
+void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *proposedModes)
+{
+    out->maxTimMotorCount = 0;
+    out->maxTimServoCount = 0;
+
+    if (proposedModes == NULL) {
+        return;
+    }
+
+    const uint8_t motorCount = getMotorCount();
+    sliceAssign_e sliceAssign[HARDWARE_TIMER_DEFINITION_COUNT];
+    for (int s = 0; s < HARDWARE_TIMER_DEFINITION_COUNT; s++) {
+        sliceAssign[s] = SLICE_UNASSIGNED;
+    }
+
+    uint motorIdx = 0;
+
+    for (int i = 0; i < timerHardwareCount; i++) {
+        const timerHardware_t *timHw = &timerHardware[i];
+        const uint8_t sliceId = timer2id(timHw->tim);
+        if (sliceId >= HARDWARE_TIMER_DEFINITION_COUNT) {
+            continue;  /* safety: unknown slice */
+        }
+
+        /* First pin on this slice: resolve the role for the whole slice. */
+        if (sliceAssign[sliceId] == SLICE_UNASSIGNED) {
+            const uint8_t mode = proposedModes[sliceId];
+            if (mode == OUTPUT_MODE_MOTORS) {
+                sliceAssign[sliceId] = SLICE_AS_MOTOR;
+            } else if (mode == OUTPUT_MODE_SERVOS) {
+                sliceAssign[sliceId] = SLICE_AS_SERVO;
+            } else {
+                /* AUTO: motor if we still need motors, servo otherwise */
+                sliceAssign[sliceId] = (motorIdx < motorCount) ? SLICE_AS_MOTOR
+                                                                : SLICE_AS_SERVO;
+            }
+        }
+
+        if (sliceAssign[sliceId] == SLICE_AS_MOTOR) {
+            /*
+             * Hardware limit: the driver can drive at most DSHOT_MAX_MOTORS
+             * motor pins (PIO SMs / PWM registers).  Real init() would fail
+             * past this point; for the preview just stop listing motors.
+             */
+            if (motorIdx < DSHOT_MAX_MOTORS && out->maxTimMotorCount < MAX_PWM_OUTPUTS) {
+                out->timMotors[out->maxTimMotorCount++] = timHw;
+            }
+            motorIdx++;
+        } else {
+            if (out->maxTimServoCount < RP2350_MAX_SERVOS && out->maxTimServoCount < MAX_PWM_OUTPUTS) {
+                out->timServos[out->maxTimServoCount++] = timHw;
+            }
+        }
+    }
 }
 
 /* ── ESC update frequency ────────────────────────────────────────────────── */
