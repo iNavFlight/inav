@@ -56,7 +56,7 @@ connects to the resulting build normally.
 * **IMU (gyro/accelerometer):** the current firmware runs INAV's *simulated*
   IMU — no physical IMU driver is enabled yet, so **no IMU breakout can be
   detected at this time**. The SPI0 bus pins reserved for a future SPI IMU
-  (and dataflash) are GP4/6/7 (see Section 3.3). Check the target's
+  (and dataflash) are GP2/3/4/5 (see Section 3.3). Check the target's
   `target.h` (`src/main/target/RP2350_PICO/target.h` in the source tree) for
   the enabled IMU driver before buying an IMU breakout.
 * **ESCs/servos:** 4× DShot-capable ESCs (or servos for fixed-wing surfaces)
@@ -102,11 +102,11 @@ hardware UARTs (uart0/uart1); UART3/UART4 are PIO-implemented UARTs.
 |---|---|---|---|---|---|---|
 | UART1 | MSP / CLI / configurator | TX | `PA0` | GPIO0 | **1** | RP2350 uart0. USB VCP also carries MSP/CLI |
 | | | RX | `PA1` | GPIO1 | **2** | |
-| UART2 | Receiver (CRSF / SBUS) | TX | `PA2` | GPIO2 | **4** | RP2350 uart1. SBUS/CRSF can be wired directly — hardware inversion is available, no external inverter needed |
-| | | RX | `PA3` | GPIO3 | **5** | |
-| UART3 | GPS | TX | `PA12` | GPIO12 | **16** | PIO1-implemented UART. Pins double as servo outputs 3/4 — see Section 3.2 |
-| | | RX | `PA13` | GPIO13 | **17** | |
-| UART4 | Telemetry / extra | TX | `PA14` | GPIO14 | **19** | PIO1-implemented UART. Pins double as servo outputs 5/6 — see Section 3.2 |
+| UART2 | Receiver (CRSF / SBUS) | TX | `PA6` | GPIO6 | **9** | RP2350 uart1. Uses function F11 (`GPIO_FUNC_UART_AUX`) — F2 on GP6/7 is only uart1 CTS/RTS. SBUS/CRSF can be wired directly — hardware inversion is available, no external inverter needed |
+| | | RX | `PA7` | GPIO7 | **10** | |
+| UART3 | GPS | TX | `PA8` | GPIO8 | **11** | PIO1-implemented UART. Pins double as servo outputs 1/2 — see Section 3.2 |
+| | | RX | `PA9` | GPIO9 | **12** | |
+| UART4 | Telemetry / extra | TX | `PA14` | GPIO14 | **19** | PIO1-implemented UART. Pins double as servo outputs 3/4 — see Section 3.2 |
 | | | RX | `PA15` | GPIO15 | **20** | |
 
 Assign a function to a UART in the Configurator **Ports** tab (e.g. GPS on
@@ -116,29 +116,30 @@ your RC source for bench tests.
 
 ### 3.2 Motor and servo outputs
 
-Motor outputs 1–4 sit on GP8–11 (DShot enabled; PWM also available). Servo
-outputs are on GP20/21 (dedicated) plus GP12–15 (shared with UART3/UART4).
+Motor outputs 1–4 sit on GP10–13 (DShot enabled; PWM also available), matching
+the Betaflight RP2350A reference motor order. Servo outputs are on GP20/21
+(dedicated) plus GP8/9 and GP14/15 (shared with UART3/UART4).
 Outputs are assigned in the order listed — the first *N* (motor count) become
 motors and the remainder become servos, per your airframe/mixer settings.
 
 | Output | INAV pin | GPIO | Pico 2 pin | PWM slice | Notes |
 |---|---|---|---|---|---|
-| Motor 1 | `PA8` | GPIO8 | **11** | slice 4 | DShot-capable (PIO) |
-| Motor 2 | `PA9` | GPIO9 | **12** | slice 4 | shares slice 4 with M1 → same update rate |
-| Motor 3 | `PA10` | GPIO10 | **14** | slice 5 | |
-| Motor 4 | `PA11` | GPIO11 | **15** | slice 5 | shares slice 5 with M3 |
-| Servo 1 | `PB4` | GPIO20 | **26** | slice 10 | dedicated servo output, 50 Hz, 1000–2000 µs |
-| Servo 2 | `PB5` | GPIO21 | **27** | slice 10 | shares slice 10 with S1 |
-| Servo 3 | `PA12` | GPIO12 | **16** | slice 6 | same pin as UART3 TX — use one or the other |
-| Servo 4 | `PA13` | GPIO13 | **17** | slice 6 | same pin as UART3 RX |
-| Servo 5 | `PA14` | GPIO14 | **19** | slice 7 | same pin as UART4 TX |
-| Servo 6 | `PA15` | GPIO15 | **20** | slice 7 | same pin as UART4 RX |
+| Motor 1 | `PA10` | GPIO10 | **14** | slice 5 | DShot-capable (PIO) |
+| Motor 2 | `PA11` | GPIO11 | **15** | slice 5 | shares slice 5 with M1 → same update rate |
+| Motor 3 | `PA12` | GPIO12 | **16** | slice 6 | |
+| Motor 4 | `PA13` | GPIO13 | **17** | slice 6 | shares slice 6 with M3 |
+| Servo 1 | `PA8` | GPIO8 | **11** | slice 4 | same pin as UART3 TX — use one or the other |
+| Servo 2 | `PA9` | GPIO9 | **12** | slice 4 | same pin as UART3 RX |
+| Servo 3 | `PA14` | GPIO14 | **19** | slice 7 | same pin as UART4 TX |
+| Servo 4 | `PA15` | GPIO15 | **20** | slice 7 | same pin as UART4 RX |
+| Servo 5 | `PB4` | GPIO20 | **26** | slice 10 | dedicated servo output, 50 Hz, 1000–2000 µs |
+| Servo 6 | `PB5` | GPIO21 | **27** | slice 10 | shares slice 10 with S5 |
 
 Notes:
 
-* GP12–15 are dual-purpose: assigning UART3/UART4 in the Ports tab uses them as
-  serial pins; leave those ports unassigned to keep them available as servo
-  outputs. Do not assign the same pin to both.
+* GP8/9 and GP14/15 are dual-purpose: assigning UART3/UART4 in the Ports tab
+  uses them as serial pins; leave those ports unassigned to keep them available
+  as servo outputs. Do not assign the same pin to both.
 * Pins sharing a PWM slice must run at the same update rate, so keep paired
   outputs in the same output class (e.g. both motors on DShot, or both servos).
 
@@ -148,8 +149,8 @@ Notes:
 |---|---|---|---|---|
 | SPI bus (INAV SPI device 1 = RP2350 spi0) | | | | reserved for a future SPI IMU + dataflash |
 | SPI MISO | `PA4` | GPIO4 | **6** | |
-| SPI SCK | `PA6` | GPIO6 | **9** | |
-| SPI MOSI | `PA7` | GPIO7 | **10** | |
+| SPI SCK | `PA2` | GPIO2 | **4** | |
+| SPI MOSI | `PA3` | GPIO3 | **5** | |
 | I2C1 SDA | `PB2` | GPIO18 | **24** | baro + compass auto-detect bus |
 | I2C1 SCL | `PB3` | GPIO19 | **25** | |
 | LED strip (WS2812) | `PB6` | GPIO22 | **29** | PIO2-driven; use 3.3 V-logic strip or level-shift |
@@ -198,12 +199,9 @@ not try to use them.
 * Linux, macOS or WSL; `cmake` (≥ 3.13) and `make` (or Ninja)
 * **GNU Arm Embedded Toolchain** (`arm-none-eabi`), a version with Cortex-M33
   support (the project's tooling targets the ARM GNU 13.2.rel1 release line)
-* The **Pico SDK** submodule, checked out at `lib/main/pico-sdk` inside the
-  INAV source tree:
-  ```bash
-  cd <inav-source>
-  git submodule update --init --recursive
-  ```
+* The **Pico SDK 2.1.0 + TinyUSB 0.17.0** are **vendored in-tree** at
+  `lib/main/pico-sdk` (no git submodule step needed — the tree ships with the
+  trimmed sources the build compiles)
 * **picotool** (https://github.com/raspberrypi/picotool) installed and on your
   `PATH`. The build invokes `picotool uf2 convert … --family rp2350-arm-s` to
   produce the `.uf2` you drag onto the board.
@@ -272,10 +270,10 @@ path:
    any receiver hardware. For a real receiver, wire it to UART2 and configure
    the protocol in the Configurator.
 7. **Outputs:** once the firmware build you are running supports them, use the
-   Configurator **Motors**/**Servos** tabs to verify each output on GP8–11
-   (motors) and GP20/21, GP12–15 (servos) **with no propellers fitted**. Check
-   the current firmware status (Section 7) to see whether output support is
-   confirmed in the build you flashed.
+   Configurator **Motors**/**Servos** tabs to verify each output on GP10–13
+   (motors) and GP8/9, GP14/15, GP20/21 (servos) **with no propellers fitted**.
+   Check the current firmware status (Section 7) to see whether output support
+   is confirmed in the build you flashed.
 
 ## 7. Supported features
 
@@ -299,9 +297,10 @@ trusting it, and watch for new firmware builds that confirm them:
 * **Real IMU (gyro/accelerometer): not yet — the firmware uses a simulated
   IMU.** No physical IMU driver is enabled, so no IMU breakout is detected
   yet. The SPI0 bus pins for a future SPI IMU/dataflash are reserved on
-  GP4/6/7; chip-select lines are not yet assigned.
+  GP2/3/4/5; chip-select lines are not yet assigned.
 * Real GPS (simulated only), pitot and rangefinder (simulated only).
-* Motor outputs (GP8–11, DShot/PWM) and servo outputs (GP20/21, GP12–15).
+* Motor outputs (GP10–13, DShot/PWM) and servo outputs (GP8/9, GP14/15,
+  GP20/21).
 * LED strip output (GP22), ADC channels (GP26–28), I2C1 baro/compass
   auto-detection (GP18/19), UART2 receiver wiring.
 * Beeper: no active-buzzer output is implemented (GP17 is reserved).
