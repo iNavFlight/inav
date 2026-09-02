@@ -48,8 +48,9 @@
 #define SERIAL_PORT_COUNT 5  // VCP + UART1 + UART2 + UART3 + UART4
 
 // DShot motor output via PIO0 (1 SM per motor, up to 4 motors).
-// GP10–13 default to motors 1–4; GP4–7 are reserved for SPI0 (gyro + flash).
-// Motor/servo GPIO assignments come from timerHardware[] in target.c.
+// GP10–13 default to motors 1–4; GP2–5 are used by SPI0 (gyro + flash),
+// GP6/7 by UART2.  Motor/servo GPIO assignments come from timerHardware[] in
+// target.c.
 
 // Servo PWM output via hardware PWM slices on GP8/9, GP14/15 and GP20/21
 // (GP8/9 and GP14/15 are dual-use: they serve UART3/UART4 when those serial

@@ -201,7 +201,6 @@ set(PICO_SDK_INCLUDE_DIRS
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_runtime_init/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_bootrom/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_unique_id/include"
-    "${PICO_SDK_SRC_DIR}/rp2_common/pico_stdlib/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_clib_interface/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_malloc/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_atomic/include"
@@ -212,11 +211,9 @@ set(PICO_SDK_INCLUDE_DIRS
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_mem_ops/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_multicore/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_rand/include"
-    "${PICO_SDK_SRC_DIR}/rp2_common/pico_standard_binary_info/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_aon_timer/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/pico_time_adapter/include"
     "${PICO_SDK_SRC_DIR}/rp2_common/boot_bootrom_headers/include"
-    "${PICO_SDK_SRC_DIR}/rp2_common/pico_divider/include"
 
     # CMSIS
     "${PICO_SDK_SRC_DIR}/rp2_common/cmsis/include"

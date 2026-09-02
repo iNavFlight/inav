@@ -108,9 +108,12 @@ void systemInit(void)
     // SDK runtime already initialized clocks, GPIO, etc. via crt0 → runtime_init
     SystemCoreClock = clock_get_hz(clk_sys);
 
-    // Initialize TinyUSB.  LIB_TINYUSB_DEVICE=1 is defined in cmake/rp2350.cmake so
-    // stdio_usb_init() (called via stdio_init_all() below) will skip its own tusb_init()
-    // and, critically, will not set up a competing tud_task() timer.
+    // Initialize TinyUSB.  Two complementary mechanisms keep pico_stdio_usb
+    // from interfering: LIB_PICO_STDIO_USB=0 (pico_sdk_config.h) means
+    // stdio_init_all() below never calls stdio_usb_init() at all, and
+    // LIB_TINYUSB_DEVICE=1 (cmake/rp2350.cmake) additionally compiles out the
+    // tusb_init()/IRQ/alarm machinery inside stdio_usb.c — so there is no
+    // second tusb_init() and no competing tud_task() timer.
     tusb_init();
 
     // Drive USB CDC from a dedicated 1ms hardware alarm so tud_task() runs even

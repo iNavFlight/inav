@@ -210,8 +210,8 @@ static const struct serialPortVTable usbVTable[] = {
 
 void usbVcpInitHardware(void)
 {
-    // tusb_init() is called in systemInit() before fc_init().
-    // tud_task() is driven by pico_stdio_usb's 1ms repeating alarm.
+    // tusb_init() is called in systemInit() before fc_init(); tud_task() is
+    // driven only by systemInit()'s 1ms repeating timer (usb_task_timer_cb).
     // Nothing additional needed here.
 }
 
