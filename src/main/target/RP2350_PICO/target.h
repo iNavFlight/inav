@@ -151,6 +151,14 @@
 #undef USE_SERIAL_4WAY_SK_BOOTLOADER
 #undef USE_ADAPTIVE_FILTER
 #undef USE_GYRO_KALMAN
+// Dynamic notch (gyroanalyse) needs the CMSIS-DSP FFT library, which cannot be
+// compiled for RP2350 (bundled arm_math.h predates ARMv8-M and conflicts with
+// the pico-sdk CMSIS Core headers).  Stubbing the FFT would run fixed 350 Hz
+// notches that never track the actual noise peak — wrong filtering — so the
+// feature is compiled out entirely (same as SITL).  USE_ARM_MATH stays defined:
+// maths.c's fast_fsqrtf uses arm_sqrt_f32, which arm_math.h provides as a
+// header-inline (no link symbol needed).
+#undef USE_DYNAMIC_FILTERS
 
 // SPI0 — gyro + flash: GP2 (SCK/PA2), GP3 (MOSI/PA3), GP4 (MISO/PA4)
 // GP2/3 freed from UART2 (moved to GP6/7); GP6/7 freed from SPI.

@@ -217,71 +217,44 @@ void getUniqueId(uint8_t *id)
     memset(id + 8, 0, 4);
 }
 
-// --- CMSIS DSP stubs ---
+// --- CMSIS DSP compatibility ---
 //
 // The bundled CMSIS DSP library predates ARMv8-M and conflicts with the newer
-// CMSIS Core headers required by the Pico SDK.  INAV common code that calls
-// these functions is compiled for RP2350, so we provide empty stubs here.
-// Analogous to SITL's stubs in target/SITL/target.c.
-
-arm_status arm_rfft_fast_init_f32(arm_rfft_fast_instance_f32 *S, uint16_t fftLen)
-{
-    UNUSED(S);
-    UNUSED(fftLen);
-    return ARM_MATH_SUCCESS;
-}
-
-void arm_cfft_radix8by4_f32(arm_cfft_instance_f32 *S, float32_t *p1)
-{
-    UNUSED(S);
-    UNUSED(p1);
-}
-
-void arm_bitreversal_32(uint32_t *pSrc, const uint16_t bitRevLen,
-                         const uint16_t *pBitRevTable)
-{
-    UNUSED(pSrc);
-    UNUSED(bitRevLen);
-    UNUSED(pBitRevTable);
-}
-
-void stage_rfft_f32(arm_rfft_fast_instance_f32 *S, float32_t *p, float32_t *pOut)
-{
-    UNUSED(S);
-    UNUSED(p);
-    UNUSED(pOut);
-}
-
-void arm_cmplx_mag_f32(float32_t *pSrc, float32_t *pDst, uint32_t numSamples)
-{
-    UNUSED(pSrc);
-    UNUSED(pDst);
-    UNUSED(numSamples);
-}
-
-void arm_mult_f32(float32_t *pSrcA, float32_t *pSrcB,
-                   float32_t *pDst, uint32_t blockSize)
-{
-    UNUSED(pSrcA);
-    UNUSED(pSrcB);
-    UNUSED(pDst);
-    UNUSED(blockSize);
-}
+// CMSIS Core headers required by the Pico SDK, so its sources are not compiled
+// for RP2350 (see cmake/rp2350.cmake).  Three elementwise vector functions are
+// still referenced unconditionally by INAV's gyro/accel calibration code
+// (gyro.c gyroUpdateAndCalibrate, acceleration.c applyAccelerationZero/
+// accGetMeasuredAcceleration), so we provide real implementations here — these
+// MUST compute, not no-op: a no-op arm_sub_f32/arm_scale_f32 would leave the
+// calibrated gyro rate and measured acceleration unwritten (silently zero).
+//
+// The dynamic-notch FFT entry points (arm_rfft_fast_init_f32,
+// arm_cfft_radix8by4_f32, arm_bitreversal_32, stage_rfft_f32,
+// arm_cmplx_mag_f32) are NOT provided: USE_DYNAMIC_FILTERS is undefined for
+// RP2350 (target.h), so the only caller (flight/gyroanalyse.c) is not compiled
+// and no stub is needed — stubbing them would silently run fixed-frequency
+// notches instead of the requested adaptive ones.
 
 void arm_sub_f32(float32_t *pSrcA, float32_t *pSrcB,
                   float32_t *pDst, uint32_t blockSize)
 {
-    UNUSED(pSrcA);
-    UNUSED(pSrcB);
-    UNUSED(pDst);
-    UNUSED(blockSize);
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrcA[i] - pSrcB[i];
+    }
 }
 
 void arm_scale_f32(float32_t *pSrc, float32_t scale,
                     float32_t *pDst, uint32_t blockSize)
 {
-    UNUSED(pSrc);
-    UNUSED(scale);
-    UNUSED(pDst);
-    UNUSED(blockSize);
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrc[i] * scale;
+    }
+}
+
+void arm_mult_f32(float32_t *pSrcA, float32_t *pSrcB,
+                   float32_t *pDst, uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrcA[i] * pSrcB[i];
+    }
 }

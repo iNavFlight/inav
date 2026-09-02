@@ -23,12 +23,9 @@
 
 void targetConfiguration(void)
 {
-#ifdef USE_DYNAMIC_FILTERS
-    // Disable dynamic notch filter by default (performance optimization for wing)
-    // This board is performance-constrained and wing aircraft typically don't need
-    // dynamic notch filtering (designed for multirotor motor noise)
-    gyroConfigMutable()->dynamicGyroNotchEnabled = 0;
-#endif
+    // NOTE: dynamic gyro notch (USE_DYNAMIC_FILTERS) is compiled out on RP2350 —
+    // the CMSIS-DSP FFT it needs cannot be built for ARMv8-M with the pico-sdk
+    // CMSIS headers (see target.h), so no runtime disable is required here.
 
     // Run PID at 1 kHz. The RP2350 PID loop averages ~360 µs at 192 MHz; the
     // 500 µs default looptime leaves insufficient headroom when GPS/nav tasks
