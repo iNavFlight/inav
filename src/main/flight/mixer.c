@@ -48,6 +48,7 @@
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_disarmed_dshot.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -363,32 +364,6 @@ static void applyTurtleModeToMotors(void) {
         // Disarmed mode
         stopMotors();
     }
-}
-#endif
-
-#ifdef USE_DSHOT
-static uint16_t calculateDisarmedReversibleMotorsDshotValue(
-    int16_t motorValue,
-    int16_t deadbandLow,
-    int16_t deadbandHigh,
-    int16_t mincommand,
-    int16_t maxThrottle)
-{
-    if (motorValue >= deadbandHigh) {
-        if (maxThrottle <= deadbandHigh) {
-            return DSHOT_MAX_THROTTLE; // zero-width range would divide by zero
-        }
-        int32_t scaled = (int32_t)scaleRangef(motorValue, deadbandHigh, maxThrottle, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-        return constrain(scaled, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-    }
-    if (motorValue <= deadbandLow) {
-        if (deadbandLow <= mincommand) {
-            return DSHOT_MIN_THROTTLE; // zero-width range would divide by zero
-        }
-        int32_t scaled = (int32_t)scaleRangef(motorValue, mincommand, deadbandLow, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
-        return constrain(scaled, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
-    }
-    return DSHOT_DISARM_COMMAND;
 }
 #endif
 

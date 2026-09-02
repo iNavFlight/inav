@@ -21,15 +21,16 @@
  * MSP_SET_MOTOR). While disarmed, direction can't come from
  * reversibleMotorsThrottleState/throttleRangeMin/Max - mixTable() is the only
  * thing that updates those, and it never runs while disarmed - so the
- * disarmed case is a separate, always-compiled helper,
- * calculateDisarmedReversibleMotorsDshotValue().
+ * disarmed case lives in its own file, calculateDisarmedReversibleMotorsDshotValue()
+ * in flight/mixer_disarmed_dshot.c, and this test links and calls that real
+ * function directly (via the `depends` entry in CMakeLists.txt) rather than
+ * reproducing it.
  *
- * Why this file hand-reproduces mixer.c's logic instead of linking it:
- * writeMotors() and its helpers are `static`, and writeMotors() itself is
- * `#if !defined(SITL_BUILD)`-gated; every test here is built with SITL_BUILD
- * defined, so the real functions can't be linked in (and linking mixer.c
+ * writeMotors() itself and its other helper, handleOutputScaling(), remain
+ * `static` and `#if !defined(SITL_BUILD)`-gated; every test here is built
+ * with SITL_BUILD defined, so those can't be linked in (and linking mixer.c
  * wholesale would require stubbing motorConfig(), feature(), ARMING_FLAG(),
- * etc.). Functions are hand-reproduced verbatim (`_CurrentSource` suffix);
+ * etc.). Those are still hand-reproduced verbatim (`_CurrentSource` suffix);
  * the "SourceSync" suite at the bottom reads the live mixer.c at test time
  * and fails if it drifts from these reproductions.
  */
@@ -44,6 +45,11 @@
 
 #include "gtest/gtest.h"
 #include "unittest_macros.h"
+
+extern "C" {
+    #include "flight/mixer_disarmed_dshot.h"
+    #include "flight/mixer_dshot_constants.h"
+}
 
 /*
  * Verbatim reproductions of src/main/common/maths.c's scaleRangef()/
@@ -69,16 +75,8 @@ static int32_t constrain(int32_t amt, int32_t low, int32_t high)
         return amt;
 }
 
-/* -------------------------------------------------------------------------
- * Mirrors of src/main/flight/mixer.h constants/enum used by the reproduction
- * below. Checked against the live header by SourceSync test
- * DshotConstantsMatchLiveMixerHeader.
- * ------------------------------------------------------------------------- */
-#define DSHOT_DISARM_COMMAND      0
-#define DSHOT_MIN_THROTTLE       48
-#define DSHOT_MAX_THROTTLE     2047
-#define DSHOT_3D_DEADBAND_LOW  1047
-#define DSHOT_3D_DEADBAND_HIGH 1048
+// DSHOT_* constants come from the real flight/mixer_dshot_constants.h
+// included above - no local copy needed.
 
 typedef enum {
     MOTOR_DIRECTION_FORWARD,
@@ -115,55 +113,13 @@ static uint16_t handleOutputScaling_CurrentSource(
 }
 
 /*
- * Verbatim reproduction of calculateDisarmedReversibleMotorsDshotValue() from
- * mixer.c (as of this writing, immediately before writeMotors()). This is the
- * function that infers forward/reverse/deadband direction for a disarmed
- * reversible motor directly from motorValue against the ESC's configured 3D
- * deadband (since mixTable() never runs while disarmed, so
- * reversibleMotorsThrottleState/throttleRangeMin/Max are stale). See
- * SourceSync test CalculateDisarmedReversibleMotorsDshotValueMatchesLiveSource
- * below.
- *
- * Boundary values (motorValue == deadbandHigh or == deadbandLow) belong to
- * the thrust side (inclusive `>=`/`<=`), matching mixTable()'s direction
- * switch and handleOutputScaling()'s stop check. The two degenerate-config
- * guards (`maxThrottle <= deadbandHigh`, `deadbandLow <= mincommand`) prevent
- * a zero/negative-width scaleRangef() denominator - both are reachable via
- * valid-looking CLI configuration (see the two
- * *DegenerateConfig*ReturnsClamped* tests below).
- */
-static uint16_t calculateDisarmedReversibleMotorsDshotValue_CurrentSource(
-    int16_t motorValue,
-    int16_t deadbandLow,
-    int16_t deadbandHigh,
-    int16_t mincommand,
-    int16_t maxThrottle)
-{
-    if (motorValue >= deadbandHigh) {
-        if (maxThrottle <= deadbandHigh) {
-            return DSHOT_MAX_THROTTLE;
-        }
-        int32_t scaled = (int32_t)scaleRangef(motorValue, deadbandHigh, maxThrottle, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-        return constrain(scaled, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
-    }
-    if (motorValue <= deadbandLow) {
-        if (deadbandLow <= mincommand) {
-            return DSHOT_MIN_THROTTLE;
-        }
-        int32_t scaled = (int32_t)scaleRangef(motorValue, mincommand, deadbandLow, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
-        return constrain(scaled, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
-    }
-    return DSHOT_DISARM_COMMAND;
-}
-
-/*
  * Verbatim reproduction of the FEATURE_REVERSIBLE_MOTORS + isMotorProtocolDigital
  * branch inside writeMotors() (mixer.c, roughly lines 397-437), AS IT EXISTS
  * TODAY. Takes an explicit `isArmed` parameter mirroring the live
  * `!ARMING_FLAG(ARMED)` check, plus the ESC 3D deadband/mincommand/maxThrottle
- * values needed by the disarmed branch (forwarded straight into
- * calculateDisarmedReversibleMotorsDshotValue_CurrentSource(), exactly as the
- * live writeMotors() forwards them into the real function).
+ * values needed by the disarmed branch (forwarded straight into the REAL,
+ * linked calculateDisarmedReversibleMotorsDshotValue(), exactly as the live
+ * writeMotors() does).
  * `reversibleMotorsThrottleState` / `throttleRangeMin` / `throttleRangeMax`
  * are still taken as plain parameters (mixer.c holds them as file-scope
  * statics) - they are only consulted, and only meaningful, when `isArmed` is
@@ -187,7 +143,7 @@ static uint16_t writeMotorsReversibleDshot_CurrentSource(
         // while disarmed, so reversibleMotorsThrottleState and
         // throttleRangeMin/Max are stale. Infer direction directly from
         // motor[i] against the ESC's real 3D deadband instead.
-        motorOutput = calculateDisarmedReversibleMotorsDshotValue_CurrentSource(
+        motorOutput = calculateDisarmedReversibleMotorsDshotValue(
             motorValue, deadbandLow, deadbandHigh, mincommand, maxThrottle);
     } else if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
         motorOutput = handleOutputScaling_CurrentSource(
@@ -242,8 +198,8 @@ static uint16_t writeMotorsNonReversibleDshot_CurrentSource(
 
 /* -------------------------------------------------------------------------
  * "Should be" expected values - computed independently of the reproduction
- * above (never calls handleOutputScaling_CurrentSource or
- * calculateDisarmedReversibleMotorsDshotValue_CurrentSource directly), using
+ * above (never calls handleOutputScaling_CurrentSource or the real
+ * calculateDisarmedReversibleMotorsDshotValue() directly), using
  * the same scaleRangef()/constrain() helpers so this test never embeds a
  * *second*, possibly-diverging copy of the interpolation math. This encodes
  * exactly the mapping the fix implements, for the ordinary (non-degenerate-
@@ -471,7 +427,7 @@ TEST(MixerWriteMotorsDisarmed, ForwardDegenerateConfigMaxThrottleAtDeadbandHighR
     const int16_t maxThrottle = 2000;
     const int16_t motorValue = 2000; // >= deadbandHigh
 
-    const uint16_t actual = calculateDisarmedReversibleMotorsDshotValue_CurrentSource(
+    const uint16_t actual = calculateDisarmedReversibleMotorsDshotValue(
         motorValue, REV_DEADBAND_LOW, deadbandHigh, MOTOR_MINCOMMAND, maxThrottle);
 
     EXPECT_EQ((uint16_t)DSHOT_MAX_THROTTLE, actual)
@@ -488,7 +444,7 @@ TEST(MixerWriteMotorsDisarmed, ReverseDegenerateConfigDeadbandLowAtMincommandRet
     const int16_t mincommand = 1000;
     const int16_t motorValue = 1000; // <= deadbandLow
 
-    const uint16_t actual = calculateDisarmedReversibleMotorsDshotValue_CurrentSource(
+    const uint16_t actual = calculateDisarmedReversibleMotorsDshotValue(
         motorValue, deadbandLow, REV_DEADBAND_HIGH, mincommand, MAX_THROTTLE_VAL);
 
     EXPECT_EQ((uint16_t)DSHOT_MIN_THROTTLE, actual)
@@ -690,20 +646,6 @@ std::string pathRelativeToThisFile(const std::string &relative)
     return ::testing::AssertionSuccess();
 }
 
-TEST(SourceSync, DshotConstantsMatchLiveMixerHeader)
-{
-    std::string normalizedHeader;
-    ASSERT_TRUE(loadNormalizedFile(pathRelativeToThisFile("../../main/flight/mixer.h"), &normalizedHeader));
-
-    EXPECT_NE(normalizedHeader.find(normalizeSource("#define DSHOT_DISARM_COMMAND 0")), std::string::npos);
-    EXPECT_NE(normalizedHeader.find(normalizeSource("#define DSHOT_MIN_THROTTLE 48")), std::string::npos);
-    EXPECT_NE(normalizedHeader.find(normalizeSource("#define DSHOT_MAX_THROTTLE 2047")), std::string::npos);
-    EXPECT_NE(normalizedHeader.find(normalizeSource("#define DSHOT_3D_DEADBAND_LOW 1047")), std::string::npos);
-    EXPECT_NE(normalizedHeader.find(normalizeSource("#define DSHOT_3D_DEADBAND_HIGH 1048")), std::string::npos)
-        << "DSHOT_* constants in the live mixer.h no longer match the values hard-coded "
-           "in this test file - update both this file's #defines and the comments above.";
-}
-
 TEST(SourceSync, MathsHelpersMatchLiveSource)
 {
     std::string normalizedSource;
@@ -742,44 +684,6 @@ TEST(SourceSync, HandleOutputScalingMatchesLiveSource)
         << "handleOutputScaling() in the LIVE src/main/flight/mixer.c no longer matches "
            "handleOutputScaling_CurrentSource() in this test file. Update the reproduction "
            "(and the expected-value helpers, if the scaling formula itself changed) to match.";
-}
-
-TEST(SourceSync, CalculateDisarmedReversibleMotorsDshotValueMatchesLiveSource)
-{
-    std::string normalizedSource;
-    ASSERT_TRUE(loadNormalizedFile(pathRelativeToThisFile("../../main/flight/mixer.c"), &normalizedSource));
-
-    const std::string expectedBody = normalizeSource(
-        "static uint16_t calculateDisarmedReversibleMotorsDshotValue( "
-        "int16_t motorValue, "
-        "int16_t deadbandLow, "
-        "int16_t deadbandHigh, "
-        "int16_t mincommand, "
-        "int16_t maxThrottle) "
-        "{ "
-        "if (motorValue >= deadbandHigh) { "
-        "if (maxThrottle <= deadbandHigh) { "
-        "return DSHOT_MAX_THROTTLE; "
-        "} "
-        "int32_t scaled = (int32_t)scaleRangef(motorValue, deadbandHigh, maxThrottle, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE); "
-        "return constrain(scaled, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE); "
-        "} "
-        "if (motorValue <= deadbandLow) { "
-        "if (deadbandLow <= mincommand) { "
-        "return DSHOT_MIN_THROTTLE; "
-        "} "
-        "int32_t scaled = (int32_t)scaleRangef(motorValue, mincommand, deadbandLow, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW); "
-        "return constrain(scaled, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW); "
-        "} "
-        "return DSHOT_DISARM_COMMAND; "
-        "}");
-
-    EXPECT_NE(normalizedSource.find(expectedBody), std::string::npos)
-        << "calculateDisarmedReversibleMotorsDshotValue() in the LIVE src/main/flight/mixer.c "
-           "no longer matches calculateDisarmedReversibleMotorsDshotValue_CurrentSource() in "
-           "this test file. Update the reproduction (and the boundary/degenerate-config guard "
-           "tests, if the guard conditions or comparison operators themselves changed) to "
-           "match.";
 }
 
 TEST(SourceSync, WriteMotorsReversibleDshotBranchMatchesLiveSource)
