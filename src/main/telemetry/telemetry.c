@@ -56,7 +56,7 @@
 #include "telemetry/ghst.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 8);
+PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 9);
 
 PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .telemetry_switch = SETTING_TELEMETRY_SWITCH_DEFAULT,
@@ -73,6 +73,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
 #endif
     .ibusTelemetryType = SETTING_IBUS_TELEMETRY_TYPE_DEFAULT,
     .ltmUpdateRate = SETTING_LTM_UPDATE_RATE_DEFAULT,
+    .crsfGpsAltSource = SETTING_CRSF_GPS_ALT_SOURCE_DEFAULT,
 
 #ifdef USE_TELEMETRY_SIM
     .simTransmitInterval = SETTING_SIM_TRANSMIT_INTERVAL_DEFAULT,

@@ -204,6 +204,9 @@ tables:
   - name: mavlink_autopilot_type
     values: ["GENERIC", "ARDUPILOT"]
     enum: mavlinkAutopilotType_e
+  - name: crsf_gps_alt_source
+    values: ["ESTIMATED", "MSL"]
+    enum: crsfGpsAltSource_e
   - name: default_altitude_source
     values: ["GPS", "BARO", "GPS_ONLY", "BARO_ONLY"]
     enum: navDefaultAltitudeSensor_e
@@ -3168,6 +3171,12 @@ groups:
         field: ltmUpdateRate
         condition: USE_TELEMETRY_LTM
         table: ltm_rates
+      - name: crsf_gps_alt_source
+        description: "CRSF telemetry only: Altitude source for the GPS frame (GAlt sensor on EdgeTX/OpenTX radios). ESTIMATED sends INAV's estimated altitude relative to the arming point (legacy behaviour), MSL sends the raw GNSS altitude above mean sea level as intended by the CRSF specification. [ESTIMATED/MSL]"
+        default_value: "ESTIMATED"
+        field: crsfGpsAltSource
+        table: crsf_gps_alt_source
+        type: uint8_t
       - name: sim_ground_station_number
         description: "Number of phone that is used to communicate with SIM module. Messages / calls from other numbers are ignored. If undefined, can be set by calling or sending a message to the module."
         default_value: ""
