@@ -697,7 +697,7 @@ This sets the output voltage to current scaling for the current sensor in 0.1 mV
 
 ### current_meter_type
 
-ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
+ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, INA226, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
 
 | Allowed Values |  |
 | --- | --- |
@@ -709,6 +709,7 @@ ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once 
 | SMARTPORT |  |
 | CRSF |  |
 | CAN |  |
+| INA226 |  |
 
 ---
 
@@ -797,6 +798,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | OSD_REFRESH |  |
 | VTOL_TRANSITION |  |
 | VTOL_MC_PROTECT |  |
+| TERRAIN_NAV |  |
 | FW_TURN |  |
 
 ---
@@ -1343,16 +1345,6 @@ The tilt angle of the FPV camera in degrees, used by the FPV ANGLE MIX mode
 ### frsky_pitch_roll
 
 S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### frsky_use_legacy_gps_mode_sensor_ids
-
-S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GNSS (Tmp2). These are old IDs, deprecated, and will be removed in INAV 10.0. Tools and scripts using these IDs should be updated to use the new IDs of **470** for Modes and **480** for GNSS. Default: 'OFF'
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2316,6 +2308,36 @@ Power draw at zero throttle used for remaining flight time/distance estimation i
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 65535 |
+
+---
+
+### ina_address
+
+INA226 7-bit I2C address.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 64 | 79 |
+
+---
+
+### ina_bus
+
+Hardware I2C bus used by the INA226.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 1 | 4 |
+
+---
+
+### ina_shunt_res_uohm
+
+INA226 shunt resistor value in micro-ohms.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 1 | 4294967295 |
 
 ---
 
@@ -7094,6 +7116,26 @@ Enable load terrain data from SD card
 
 ---
 
+### terrain_nav_lookahead
+
+TERRAIN AGL HOLD: check terrain up to this distance ahead along the flight path and climb early for rising ground [m]. 0 disables the lookahead. The effective distance is also limited by the terrain block cache of the flight controller
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 0 | 2000 |
+
+---
+
+### terrain_nav_min_agl
+
+TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb that levels off about 10 m above the floor. The floor absorbs worst-case terrain map error on steep slopes plus canopy - the minimum is the lowest value where that error budget still clears
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 6000 | 5000 | 12000 |
+
+---
+
 ### thr_comp_weight
 
 Weight used for the throttle compensation based on battery voltage. See the [battery documentation](Battery.md#automatic-throttle-compensation-based-on-battery-voltage)
@@ -7308,7 +7350,7 @@ Maximum voltage per cell in 0.01V units, default is 4.20V
 
 ### vbat_meter_type
 
-Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus.
+Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN', `INA226`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus. `INA226` requires an INA226 I2C sensor.
 
 | Allowed Values |  |
 | --- | --- |
@@ -7319,6 +7361,7 @@ Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. 
 | SMARTPORT |  |
 | CRSF |  |
 | CAN |  |
+| INA226 |  |
 
 ---
 

@@ -86,7 +86,7 @@ static struct {
 /**
  * @brief Get the height above mean sea level (AMSL) in meters for a given GPS location.
  */
-static float getHeightAmslMeters(const gpsLocation_t *loc)
+float getHeightAmslMeters(const gpsLocation_t *loc)
 {
     if(isTerrainIoFailure()){
         return TERRAIN_STATUS_NO_AMSL_DATA;

@@ -233,6 +233,7 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "OSD_REFRESH",
     "VTOL_TRANSITION",
     "VTOL_MC_PROTECT",
+    "TERRAIN_NAV",
     "FW_TURN"
 };
 

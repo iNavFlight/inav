@@ -62,6 +62,10 @@
 #include "navigation/navigation_vtol_mission_logic.h"
 #include "navigation/rth_trackback.h"
 
+#ifdef USE_TERRAIN
+#include "terrain/terrain_nav_hold.h"
+#endif
+
 #include "rx/rx.h"
 
 #include "sensors/sensors.h"
@@ -5926,6 +5930,13 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     // Reset all navigation requests - NAV controllers will set them if necessary
     DISABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
+
+#ifdef USE_TERRAIN
+    // TERRAIN AGL HOLD gate - the single entry point for map terrain into the
+    // altitude target path. Runs every cycle (also disarmed) so it engages,
+    // freezes and disengages in the same place it commands
+    terrainNavCruiseHoldUpdate();
+#endif
 
     // No navigation when disarmed
     if (!ARMING_FLAG(ARMED)) {
