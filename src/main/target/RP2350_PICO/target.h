@@ -65,6 +65,11 @@
 #define RSSI_ADC_CHANNEL           ADC_CHN_3
 #define USE_DSHOT
 
+// PWM output channel count (4 motor slices + servo outputs on GP12-15/20-21).
+// Required by common pwm_output.h; the RP2350 drivers provide their own
+// PWM implementation (USE_PWM is undefined for the STM32 common code).
+#define MAX_PWM_OUTPUT_PORTS 10
+
 /*
  * Hardware UART pin assignments for Raspberry Pi Pico 2 — Option C layout.
  *

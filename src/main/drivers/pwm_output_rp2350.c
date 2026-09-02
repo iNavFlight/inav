@@ -628,10 +628,14 @@ void pwmWriteBeeper(bool onoffBeep)
     UNUSED(onoffBeep);
 }
 
-void beeperPwmInit(ioTag_t tag, uint16_t frequency)
+bool beeperPwmInit(ioTag_t tag, uint16_t frequency)
 {
     UNUSED(tag);
     UNUSED(frequency);
+
+    // Beeper PWM is not implemented on RP2350; report failure so the caller
+    // does not believe a PWM beeper is active.
+    return false;
 }
 
 #endif /* RP2350 */

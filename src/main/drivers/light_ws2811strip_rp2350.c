@@ -109,14 +109,6 @@ static uint         ledStripSm    = 0;
 static int          ledStripDmaCh = -1;
 static bool         ledStripInitialised = false;
 
-/* ─── PG registration ─────────────────────────────────────────────────────── */
-
-PG_REGISTER_WITH_RESET_TEMPLATE(ledPinConfig_t, ledPinConfig, PG_LEDPIN_CONFIG, 0);
-
-PG_RESET_TEMPLATE(ledPinConfig_t, ledPinConfig,
-    .led_pin_pwm_mode = SETTING_LED_PIN_PWM_MODE_DEFAULT
-);
-
 /* ─── Color buffer helpers (identical to generic light_ws2811strip.c) ─────── */
 
 void setLedHsv(uint16_t index, const hsvColor_t *color)
