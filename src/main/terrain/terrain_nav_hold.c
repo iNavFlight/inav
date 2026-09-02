@@ -1,0 +1,358 @@
+/*
+ * This file is part of INAV Project.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * Alternatively, the contents of this file may be used under the terms
+ * of the GNU General Public License Version 3, as described below:
+ *
+ * This file is free software: you may copy, redistribute and/or modify
+ * it under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ */
+
+#include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "platform.h"
+
+#ifdef USE_TERRAIN
+
+#include "build/debug.h"
+#include "common/maths.h"
+
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
+#include "drivers/time.h"
+
+#include "fc/rc_modes.h"
+#include "fc/runtime_config.h"
+
+#include "flight/imu.h"
+#include "flight/pid.h"
+
+#include "io/gps.h"
+
+#include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
+
+#include "terrain/terrain_nav.h"
+#include "terrain/terrain_nav_hold.h"
+
+PG_REGISTER_WITH_RESET_TEMPLATE(terrainNavConfig_t, terrainNavConfig, PG_TERRAIN_NAV_CONFIG, 0);
+
+PG_RESET_TEMPLATE(terrainNavConfig_t, terrainNavConfig,
+    .minAglCm = 6000,       // 60 m: worst-case map error in steep terrain + grid blind spots + canopy
+    .lookaheadDistM = 1000,
+);
+
+// Terrain queries run at this interval; the block budget below is defined
+// per query cycle (the cache starves when a cycle exceeds it - C-9)
+#define TERRAIN_NAV_HOLD_QUERY_INTERVAL_MS 100
+
+// Worst-case meters of straight flight per newly touched cache block: block
+// stride is 720 x 840 m ground (24 x 28 points at 30 m), the worst bearing
+// crosses a block boundary every 1/sqrt(1/720^2 + 1/840^2) = 546 m
+#define TERRAIN_NAV_HOLD_M_PER_BLOCK_WORST 540
+
+// Below this ground speed the course over ground is too noisy for a lookahead
+#define TERRAIN_NAV_HOLD_MIN_LOOKAHEAD_SPEED_CM_S 300
+
+// Time horizon of the lookahead scan: distance is additionally capped at
+// groundspeed x this many seconds. Fixes both ends of the fixed-distance
+// problem (LOG00010 analysis, docs/01 "Task 2"): slow flight stops climbing
+// for peaks a minute away, and the escape test inherently reasons in time.
+// At full nav_fw_auto_climb_rate the aircraft gains more height over this
+// horizon than the largest demand ever seen in the logs
+#define TERRAIN_NAV_HOLD_TIME_HORIZON_S 35
+
+static terrainNavHoldState_t holdState;
+static terrainNavHoldOutput_t holdOutput;
+
+// Latest terrain answers, refreshed once per query interval
+static timeMs_t lastQueryTimeMs;
+static bool queryAglValid;
+static int32_t queryAglCm;
+static bool queryLookaheadValid;
+static float queryLookaheadClimbCm;
+static float queryEscapeDeficitCm;
+// Pilot's climb wish, latched across RX frames (see the handover block)
+static float latchedStickWishCmS;
+static bool latchedStickWishValid;
+
+// The hard-disengage conditions: launch, any landing, emergency landing,
+// VTOL transition, non-altitude platforms, rangefinder SURFACE mode. Position
+// validity is the terrain layer's business (terrainNavIsHealthy follows the
+// estimator, not the raw GPS fix) - a lost position freezes the hold
+// The cruise whitelist is the primary defense - this is the explicit
+// override on top of it
+static bool terrainNavHoldMustDisengage(void)
+{
+    if (navGetCurrentStateFlags() & (NAV_CTL_LAUNCH | NAV_CTL_LAND | NAV_CTL_EMERG | NAV_MIXERAT)) {
+        return true;
+    }
+
+    if (FLIGHT_MODE(NAV_LAUNCH_MODE) || FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+        return true;
+    }
+
+    if (!STATE(ALTITUDE_CONTROL)) {
+        return true;
+    }
+
+    // Never stack with the rangefinder surface mode
+    if (posControl.flags.isTerrainFollowEnabled) {
+        return true;
+    }
+
+    return false;
+}
+
+static bool terrainNavHoldEligible(void)
+{
+    if (!ARMING_FLAG(ARMED) || !STATE(AIRPLANE)) {
+        return false;
+    }
+
+    if (!IS_RC_MODE_ACTIVE(BOXTERRAINAGLHOLD)) {
+        return false;
+    }
+
+    // The whitelist: 3D cruise only
+    if (posControl.navState != NAV_STATE_CRUISE_IN_PROGRESS && posControl.navState != NAV_STATE_CRUISE_ADJUSTING) {
+        return false;
+    }
+
+    return !terrainNavHoldMustDisengage();
+}
+
+static void terrainNavHoldRunQueries(timeMs_t currentTimeMs)
+{
+    lastQueryTimeMs = currentTimeMs;
+
+    queryAglValid = terrainNavGetAGLCm(&queryAglCm);
+    queryLookaheadValid = false;
+
+    // No course to scan along: lookahead disabled by config, too slow for a
+    // usable course over ground, or the heading estimate itself is invalid
+    // (the cog would be stale - never scan a direction we cannot trust)
+    if (terrainNavConfig()->lookaheadDistM == 0 || gpsSol.groundSpeed < TERRAIN_NAV_HOLD_MIN_LOOKAHEAD_SPEED_CM_S || !isImuHeadingValid()) {
+        return;
+    }
+
+    // Global block budget per query cycle: cache size minus 2 (C-9). The AGL
+    // query above uses the current block, so the lookahead may touch at most
+    // cacheSize - 3 new blocks - its distance is capped accordingly
+    const int32_t lookaheadBudgetM = (TERRAIN_GRID_BLOCK_CACHE_SIZE - 3) * TERRAIN_NAV_HOLD_M_PER_BLOCK_WORST;
+    float lookaheadDistM = MIN((int32_t)terrainNavConfig()->lookaheadDistM, lookaheadBudgetM);
+
+    // Conservative achievable climb slope: half the configured climb rate at
+    // the current ground speed - underestimating it makes climbs start early
+    const float groundSpeedCmS = MAX(gpsSol.groundSpeed, 800);
+    const float climbRatio = 0.5f * navConfig()->fw.max_auto_climb_rate / groundSpeedCmS;
+
+    // Time cap on the scan (the fixed-distance fix): never look further ahead
+    // than the aircraft flies in the time horizon
+    lookaheadDistM = MIN(lookaheadDistM, groundSpeedCmS * 0.01f * TERRAIN_NAV_HOLD_TIME_HORIZON_S);
+
+    // The escape slope: the FULL configured climb rate at the current ground
+    // speed - a deficit against it means "even climbing at maximum from this
+    // moment, that point ahead arrives below the minimum"
+    const float escapeRatio = (float)navConfig()->fw.max_auto_climb_rate / groundSpeedCmS;
+
+    const float bearingDeg = CENTIDEGREES_TO_DEGREES((float)posControl.actualState.cog);
+
+    terrainNavLookaheadResult_t lookahead;
+    if (terrainNavLookahead(bearingDeg, lookaheadDistM, climbRatio, escapeRatio, &lookahead)) {
+        // A partial answer (samples missed at the far end) is still a valid
+        // lower bound; the missed blocks are already scheduled for loading
+        queryLookaheadValid = true;
+        queryLookaheadClimbCm = lookahead.climbNeededM * 100.0f;
+        queryEscapeDeficitCm = lookahead.escapeDeficitM * 100.0f;
+    }
+}
+
+// Debug observer (debug_mode = TERRAIN_NAV): the hold's inputs and outputs on
+// the eight debug values, for blackbox and the Configurator. Reads cached
+// module state only - no grid query, no cache pressure - and stays dormant
+// unless this debug mode is selected.
+//   0: flags - bit 0 terrain healthy, bit 1 AGL valid, bit 2 hold engaged;
+//      bits 8-9 / 10-11 / 12-13 / 14-15 estimator position / velocity /
+//      heading / altitude status
+//   1: AGL, cm (0 when not valid)
+//   2: estimated altitude, cm
+//   3: commanded altitude target, cm
+//   4: held AGL, cm (0 unless engaged)
+//   5: hold status (terrainNavHoldStatus_e)
+//   6: hold warning (terrainNavHoldWarning_e)
+//   7: navigation state * 1000 + a running counter
+#define TERRAIN_NAV_DEBUG_FLAG_HEALTHY  (1 << 0)
+#define TERRAIN_NAV_DEBUG_FLAG_AGL_OK   (1 << 1)
+#define TERRAIN_NAV_DEBUG_FLAG_ENGAGED  (1 << 2)
+
+static void terrainNavHoldPublishDebug(void)
+{
+    if (debugMode != DEBUG_TERRAIN_NAV) {
+        return;
+    }
+
+    static uint32_t cycle = 0;
+    cycle++;
+
+    int32_t flags = 0;
+    if (terrainNavIsHealthy()) {
+        flags |= TERRAIN_NAV_DEBUG_FLAG_HEALTHY;
+    }
+    int32_t aglCm = 0;
+    if (terrainNavGetAGLCm(&aglCm)) {
+        flags |= TERRAIN_NAV_DEBUG_FLAG_AGL_OK;
+    }
+    int32_t targetAglCm = 0;
+    if (terrainNavHoldGetTargetAglCm(&targetAglCm)) {
+        flags |= TERRAIN_NAV_DEBUG_FLAG_ENGAGED;
+    }
+    flags |= (posControl.flags.estPosStatus & 3) << 8;
+    flags |= (posControl.flags.estVelStatus & 3) << 10;
+    flags |= (posControl.flags.estHeadingStatus & 3) << 12;
+    flags |= (posControl.flags.estAltStatus & 3) << 14;
+
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 0, flags);
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 1, (flags & TERRAIN_NAV_DEBUG_FLAG_AGL_OK) ? aglCm : 0);
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 2, lroundf(navGetCurrentActualPositionAndVelocity()->pos.z));
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 3, lroundf(posControl.desiredState.pos.z));
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 4, targetAglCm);
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 5, (int32_t)terrainNavHoldGetStatus());
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 6, (int32_t)terrainNavHoldGetWarning());
+    DEBUG_SET(DEBUG_TERRAIN_NAV, 7, (int32_t)posControl.navState * 1000 + (int32_t)(cycle % 1000));
+}
+
+void terrainNavCruiseHoldUpdate(void)
+{
+    terrainNavHoldPublishDebug();
+
+    const timeMs_t currentTimeMs = millis();
+
+    terrainNavHoldInput_t in = { 0 };
+    in.nowMs = currentTimeMs;
+    in.eligible = terrainNavHoldEligible();
+
+    if (!in.eligible) {
+        // Resets the core state; cruise and every other mode fly as stock
+        terrainNavHoldCoreUpdate(&holdState, &in, &holdOutput);
+        return;
+    }
+
+    if (currentTimeMs - lastQueryTimeMs >= TERRAIN_NAV_HOLD_QUERY_INTERVAL_MS) {
+        terrainNavHoldRunQueries(currentTimeMs);
+    }
+
+    in.stickAdjusting = posControl.flags.isAdjustingAltitude;
+    in.healthy = terrainNavIsHealthy();
+    in.aglValid = queryAglValid;
+    in.aglCm = queryAglCm;
+    in.currentZCm = navGetCurrentActualPositionAndVelocity()->pos.z;
+    in.lookaheadValid = queryLookaheadValid;
+    in.lookaheadClimbCm = queryLookaheadClimbCm;
+    in.escapeDeficitValid = queryLookaheadValid;
+    in.escapeDeficitCm = queryEscapeDeficitCm;
+    // Lookahead unavailable: no trusted heading, or too slow for a usable
+    // course over ground (the same speed gate the query uses)
+    in.lookaheadDegraded = terrainNavConfig()->lookaheadDistM != 0
+        && (!isImuHeadingValid() || gpsSol.groundSpeed < TERRAIN_NAV_HOLD_MIN_LOOKAHEAD_SPEED_CM_S);
+    in.minAglCm = terrainNavConfig()->minAglCm;
+    in.maxAltCm = navConfig()->general.max_altitude;
+
+    // Handover blend inputs. The blend seed is the aircraft's real vertical
+    // speed, bounded by the same authority limit as every hold command. The
+    // stick's wish is read back from the funnel - the stock stick writer ran
+    // earlier this same cycle (fc_core.c ordering) - with the same manual
+    // clamp getDesiredClimbRate applies to it
+    in.actualClimbRateCmS = constrainf(navGetCurrentActualPositionAndVelocity()->vel.z,
+                                       -(float)navConfig()->fw.max_auto_climb_rate,
+                                       (float)navConfig()->fw.max_auto_climb_rate);
+    // The stock stick writer runs only on RX-new cycles (fc_core.c) and sets
+    // ROC_TO_ALT_CONSTANT; the blend below rewrites the mode every cycle, so
+    // the wish is latched while the pilot keeps adjusting - the blend chases
+    // the pilot, not zero, between RX frames
+    if (!in.stickAdjusting) {
+        latchedStickWishValid = false;
+    } else if (posControl.flags.rocToAltMode == ROC_TO_ALT_CONSTANT) {
+        latchedStickWishCmS = constrainf(posControl.desiredState.climbRateDemand,
+                                         -(float)navConfig()->fw.max_manual_climb_rate,
+                                         (float)navConfig()->fw.max_manual_climb_rate);
+        latchedStickWishValid = true;
+    }
+    if (latchedStickWishValid) {
+        in.stickWishValid = true;
+        in.stickWishCmS = latchedStickWishCmS;
+        // Near-full pull = the pilot's vertical channel is maxed (for the
+        // red-text reserve question; 90% leaves room for stick noise)
+        in.stickFullPull = in.stickWishCmS >= 0.9f * (float)navConfig()->fw.max_manual_climb_rate;
+    }
+    // Which side holds the unused climb reserve, from the two stock rates
+    in.pilotHasMoreClimb = navConfig()->fw.max_manual_climb_rate > navConfig()->fw.max_auto_climb_rate;
+    in.autoBeatsManual = navConfig()->fw.max_auto_climb_rate > navConfig()->fw.max_manual_climb_rate;
+
+    terrainNavHoldCoreUpdate(&holdState, &in, &holdOutput);
+
+    if (holdOutput.writeTarget) {
+        // The one gate into the altitude target path. The funnel enforces the
+        // slew limit (climb rate) and the nav_max_altitude clamp downstream
+        updateClimbRateToAltitudeController(navConfig()->fw.max_auto_climb_rate, holdOutput.targetZCm, ROC_TO_ALT_TARGET);
+    } else if (holdOutput.writeRate) {
+        // Handover blend: a signed climb rate expressed through the funnel's
+        // own target math (rate = response_factor * altitude_error / 100),
+        // so the command is smooth in both directions and the ceiling clamp
+        // still applies downstream. The rate itself is already bounded by
+        // max_auto_climb_rate through the blend inputs above
+        const float responseFactor = MAX(pidProfile()->fwAltControlResponseFactor, 1);
+        const float blendTargetZCm = navGetCurrentActualPositionAndVelocity()->pos.z
+                                     + holdOutput.rateCmS * 100.0f / responseFactor;
+        updateClimbRateToAltitudeController(navConfig()->fw.max_auto_climb_rate, blendTargetZCm, ROC_TO_ALT_TARGET);
+    }
+}
+
+terrainNavHoldStatus_e terrainNavHoldGetStatus(void)
+{
+    return holdState.status;
+}
+
+terrainNavHoldWarning_e terrainNavHoldGetWarning(void)
+{
+    return holdOutput.warning;
+}
+
+bool terrainNavHoldAutoClimbRunning(void)
+{
+    return holdOutput.autoClimbRunning;
+}
+
+bool terrainNavHoldIsEngaged(void)
+{
+    return holdState.status == TERRAIN_NAV_HOLD_ACTIVE || holdState.status == TERRAIN_NAV_HOLD_FROZEN;
+}
+
+bool terrainNavHoldGetTargetAglCm(int32_t *targetAglCm)
+{
+    if (!terrainNavHoldIsEngaged()) {
+        return false;
+    }
+
+    *targetAglCm = holdState.targetAglCm;
+    return true;
+}
+
+#endif

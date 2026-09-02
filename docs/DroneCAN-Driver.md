@@ -1,8 +1,8 @@
 # DroneCAN Driver Documentation
 
-**Last Updated:** 2026-02-16
-**Status:** Complete
-**Branch:** feature-dronecan-sitl
+**Last Updated:** 2026-08-21
+**Status:** Complete for the driver core, param-getset, and node table; DNA server, node/battery ID filtering, and actuator control are separate in-flight branches not yet reflected here
+**Branch:** feature/dronecan-param-getset
 
 ---
 
@@ -16,6 +16,7 @@ The DroneCAN driver (`dronecan.c/dronecan.h`) provides CAN bus communication for
 - **Message Reception:** Receive GPS fixes, battery info, node status, and GNSS auxiliary data
 - **Message Transmission:** Broadcast node status at 1 Hz showing health, mode, and uptime
 - **Service Handling:** Respond to GetNodeInfo requests from other nodes
+- **On-Demand Service Client:** Initiate GetNodeInfo, parameter Get/Set, ExecuteOpcode, and RestartNode requests to other nodes, polled by the configurator/GCS via MSP (see [On-Demand Async Service Client](#on-demand-async-service-client))
 - **Bus Recovery:** Automatic recovery from CAN bus-off errors
 - **Integration:** Direct integration with GPS provider and battery sensor systems
 
@@ -256,10 +257,14 @@ typedef struct dronecanNodeInfo_s {
     uint32_t uptime_sec;          // Node uptime in seconds
     uint16_t vendor_status_code;  // Vendor-specific status word
     uint32_t last_seen_ms;        // FC millis() timestamp of last NodeStatus
-    uint8_t  name_len;            // Length of name (0 until GetNodeInfo implemented)
-    char     name[32];            // Node name, zero-padded
 } dronecanNodeInfo_t;
 ```
+
+**Note:** the `name`/`name_len` fields that previously lived here have been removed. Node names are not
+available from `NodeStatus` broadcasts and are no longer cached in the table — retrieve a node's name
+(and other identity info) on demand via the async service client's `GetNodeInfo` request instead (see
+[On-Demand Async Service Client](#on-demand-async-service-client)). The result is returned directly to
+the caller, not written back into `nodeTable[]`.
 
 The table holds up to `DRONECAN_MAX_NODES` (32) entries, indexed by arrival order. Entries are never removed at runtime; the table persists from boot until power-off.
 
@@ -282,15 +287,17 @@ The driver uses the following settings from `settings.yaml`:
 
 | Setting | Description | Type | Valid Range | Default |
 |---|---|---|---|---|
-| `dronecan_mode` | Enable/disable DroneCAN | bool | 0/1 | 0 |
-| `dronecan_node_id` | This FC's CAN node ID | uint8 | 1-125 | 0 |
-| `dronecan_baudrate` | CAN bus bitrate | enum | 0-3 | 2 (500kbps) |
+| `dronecan_node_id` | This FC's CAN node ID. 126/127 reserved for diagnostic tools. | uint8 | 1-127 | 1 |
+| `dronecan_bitrate_kbps` | CAN bus bitrate | enum (`dronecan_bitrate_table`) | 125/250/500/1000 | 1000 |
 
-**Bitrate Mapping:**
+There is no separate enable/disable setting — DroneCAN support is a compile-time feature (`USE_DRONECAN`);
+whether it's active at runtime is determined by whether the target was built with that flag.
+
+**Bitrate Mapping (`dronecanBitrate_e`):**
 - 0 = 125 kbps
 - 1 = 250 kbps
-- 2 = 500 kbps (default)
-- 3 = 1000 kbps
+- 2 = 500 kbps
+- 3 = 1000 kbps (default)
 
 #### Accessing Configuration
 
@@ -337,7 +344,7 @@ The driver includes 7 built-in message handlers. Each handler decodes a message 
 
 #### `handle_NodeStatus()`
 **Receives:** `uavcan_protocol_NodeStatus` (from other nodes)
-**Processing:** Decodes the message and upserts into the node table (`nodeTable[]`). If the source node ID is already in the table, health, mode, uptime, vendor status, and `last_seen_ms` are updated. If it is a new node and the table is not full, a new entry is appended and `activeNodeCount` is incremented. Node names are not available from NodeStatus broadcasts; they remain empty until `GetNodeInfo` service requests are implemented.
+**Processing:** Decodes the message and upserts into the node table (`nodeTable[]`). If the source node ID is already in the table, health, mode, uptime, vendor status, and `last_seen_ms` are updated. If it is a new node and the table is not full, a new entry is appended and `activeNodeCount` is incremented. Node names are not available from NodeStatus broadcasts and are not cached in the table at all — retrieve them on demand via the async service client's `GetNodeInfo` request (see [On-Demand Async Service Client](#on-demand-async-service-client)).
 **Status:** Node count accessible via `dronecanGetNodeCount()`; per-node detail via `dronecanGetNode()`
 
 ### Service Handlers
@@ -354,6 +361,101 @@ The driver includes 7 built-in message handlers. Each handler decodes a message 
 - Firmware name
 
 **Implementation Note:** Currently returns hardcoded hardware version; version info populated from build system
+
+---
+
+## On-Demand Async Service Client
+
+Unlike the passive `handle_*()` handlers above (which respond to messages other nodes send us), this is
+the driver acting as a **client** — initiating service requests to other nodes on demand, from the
+configurator or a GCS. Implemented in `dronecan_async.c`/`dronecan_async.h`.
+
+### Why a Single Shared Slot
+
+Rather than a request/response queue per service type, there is exactly one in-flight request at a time,
+tracked in a single shared `dronecanAsyncSlot_t` (declared in `dronecan.h`). This keeps the implementation
+small and matches the actual usage pattern: the configurator drives one request, waits for the result, then
+issues the next — there's no need for concurrent in-flight requests to different nodes.
+
+```c
+typedef enum {
+    DRONECAN_ASYNC_IDLE = 0,
+    DRONECAN_ASYNC_PENDING,
+    DRONECAN_ASYNC_READY,
+    DRONECAN_ASYNC_ERROR,
+} dronecanAsyncState_e;
+
+typedef struct dronecanAsyncSlot_s {
+    dronecanAsyncState_e state;
+    uint8_t  seq;              // Incremented on every new request; lets a poller confirm which request a result belongs to
+    uint8_t  service_id;
+    uint8_t  node_id;
+    uint8_t  transfer_id;
+    uint32_t requested_at_ms;
+    union {
+        dronecanGetNodeInfoResult_t node_info;
+        dronecanParamResult_t       param;
+        dronecanSimpleResult_t      simple;
+    } result;
+} dronecanAsyncSlot_t;
+```
+
+### Supported Services
+
+| `service_id` | Constant | UAVCAN Service | Request Payload | Result |
+|---|---|---|---|---|
+| 1 | `DRONECAN_SERVICE_GETNODEINFO` | `uavcan.protocol.GetNodeInfo` | None | Name, SW/HW version, unique ID → `result.node_info` |
+| 5 | `DRONECAN_SERVICE_RESTART_NODE` | `uavcan.protocol.RestartNode` | None | `ok` → `result.simple` |
+| 10 | `DRONECAN_SERVICE_EXECUTE_OPCODE` | `uavcan.protocol.param.ExecuteOpcode` | `dronecanParamRequest_t` (opcode only) | `ok` → `result.simple` |
+| 11 | `DRONECAN_SERVICE_PARAM_GETSET` | `uavcan.protocol.param.GetSet` | `dronecanParamRequest_t` (index or name, write value if writing) | Name, type, value, min/max → `result.param` |
+
+Param values (`dronecanParamRequest_t`/`dronecanParamResult_t`) use a tagged encoding shared across
+INT/FLOAT/BOOL/STRING: `DRONECAN_PARAM_TYPE_{EMPTY,INT,FLOAT,BOOL,STRING}`. `EMPTY` on `min_type`/`max_type`
+means the node didn't provide a bound for that parameter.
+
+### Request Flow
+
+```c
+bool dronecanAsyncRequest(uint8_t service_id, uint8_t node_id, const void *payload);
+```
+
+1. Refuses to start a new request while one is already `DRONECAN_ASYNC_PENDING` and not yet timed out
+   (returns `false` — caller should poll until the current request resolves).
+2. Encodes the service-specific request struct and calls `canardRequestOrRespond()`.
+3. On successful dispatch: sets `state = DRONECAN_ASYNC_PENDING`, increments `seq`, records `service_id`,
+   `node_id`, and `requested_at_ms`.
+
+```c
+void dronecanAsyncCheckTimeout(void);   // called once per dronecanUpdate() tick in STATE_DRONECAN_NORMAL
+```
+
+Expires a pending request that never got a response: if `state == DRONECAN_ASYNC_PENDING` and
+`DRONECAN_ASYNC_TIMEOUT_MS` (2000ms) has elapsed since `requested_at_ms`, sets `state = DRONECAN_ASYNC_ERROR`.
+Note this reflects "no response received in time" accurately — it does not distinguish between the request
+never arriving, the node being too slow, or the node correctly performing the requested action (e.g.
+`RestartNode`) but being unable to transmit its acknowledgement before resetting. A node that legitimately
+restarts in response to `RestartNode` will often still show up as `ERROR` here for exactly that reason.
+
+```c
+void dronecanAsyncHandleServiceResponse(CanardInstance *ins, CanardRxTransfer *transfer);
+```
+
+Called from `onTransferReceived()` for every `CanardTransferTypeResponse` frame. Matches the response
+against the pending slot by `service_id`, `source_node_id`, and `transfer_id` (all three must match — this
+guards against stale frames from a previous request, e.g. after bus-off recovery) before decoding and
+setting `state = DRONECAN_ASYNC_READY` with the result populated.
+
+### MSP Access Pattern
+
+The configurator/GCS drives this over MSP, not by calling the C API directly:
+
+1. Send `MSP2_INAV_DRONECAN_ASYNC_REQUEST` (service_id, node_id, service-specific payload) → FC calls
+   `dronecanAsyncRequest()` and replies with `accepted` + the new `seq`.
+2. Poll `MSP2_INAV_DRONECAN_ASYNC_RESULT` at roughly 100ms intervals until `state` is `READY` (2) or
+   `ERROR` (3). Reading a `READY`/`ERROR` result transitions the slot back to `IDLE`, so each result is
+   consumed exactly once.
+
+See [MSP Commands](#msp-commands) below for the exact wire format.
 
 ---
 
@@ -511,7 +613,9 @@ if (uavcan_equipment_gnss_Fix_decode(transfer, &gnssFix) == 0) {
 
 ## MSP Commands
 
-Two MSP2 commands expose the node table to external tools (configurator, GCS, test scripts):
+Three MSP2 commands expose DroneCAN node/parameter data to external tools (configurator, GCS, test scripts).
+Full wire-level field definitions are the source of truth in `docs/development/msp/msp_messages.json` — the
+summaries below are for orientation; check that file (and its generated `README.md`) for exact byte offsets.
 
 ### `MSP2_INAV_DRONECAN_NODES` (0x2042)
 
@@ -519,33 +623,43 @@ Two MSP2 commands expose the node table to external tools (configurator, GCS, te
 **Handler location:** `mspFcProcessOutCommand()` in `fc_msp.c`  
 **Guard:** `#ifdef USE_DRONECAN`
 
-**Reply layout:**
+**Reply:** `nodeCount` (1 byte) followed by `nodeCount` fixed 13-byte records:
+`nodeID`(1) + `health`(1) + `mode`(1) + `last_seen_ms`(4, **milliseconds since last NodeStatus from this
+node**, not an absolute timestamp) + `uptime_sec`(4) + `vendor_status_code`(2).
 
-| Offset | Size | Field |
-|--------|------|-------|
-| 0 | 1 | `nodeCount` |
-| 1 + N×30 | 1 | `nodeID` |
-| 2 + N×30 | 1 | `health` |
-| 3 + N×30 | 1 | `mode` |
-| 4 + N×30 | 4 | `uptime_sec` (little-endian) |
-| 8 + N×30 | 2 | `vendor_status_code` |
-| 10 + N×30 | 4 | `last_seen_ms` |
-| 14 + N×30 | 1 | `name_len` |
-| 15 + N×30 | 16 | `name` (zero-padded) |
-
-Total: 1 + nodeCount × 30 bytes.
+Total: 1 + nodeCount × 13 bytes (max 417 bytes at `DRONECAN_MAX_NODES` = 32). No name field — per the node
+table change above, names aren't cached; use `MSP2_INAV_DRONECAN_ASYNC_REQUEST` with
+`service_id=DRONECAN_SERVICE_GETNODEINFO` for full node identity.
 
 ---
 
-### `MSP2_INAV_DRONECAN_NODE_INFO` (0x2043)
+### `MSP2_INAV_DRONECAN_ASYNC_REQUEST` (0x2043)
 
-**Direction:** Request (1 byte node ID) → Reply  
-**Handler location:** `mspFCProcessInOutCommand()` in `fc_msp.c`  
+**Direction:** Request → Reply (dispatch acknowledgement only — the actual result comes from
+`MSP2_INAV_DRONECAN_ASYNC_RESULT` below)  
 **Guard:** `#ifdef USE_DRONECAN`
 
-**Request:** 1 byte — target `nodeID`
+**Request:** `service_id` (u16, low byte used: 1=GETNODEINFO, 5=RESTART_NODE, 10=EXECUTE_OPCODE,
+11=PARAM_GETSET) + `nodeID` (u8) + service-specific fields (opcode for EXECUTE_OPCODE; index/name +
+optional write value for PARAM_GETSET).
 
-**Reply layout:** same fields as above but with a 32-byte `name` field (46 bytes total). Returns an empty response if the requested node ID is not in the table.
+**Reply:** `accepted` (u8: 0=accepted, 1=busy or unrecognised service, 0xFF=bus not ready) + `seq` (u8, to
+correlate with the eventual result).
+
+This only *starts* the request — see [On-Demand Async Service Client](#on-demand-async-service-client) for
+the underlying state machine and timeout behaviour.
+
+---
+
+### `MSP2_INAV_DRONECAN_ASYNC_RESULT` (0x2044)
+
+**Direction:** Request (no payload) → Reply  
+**Guard:** `#ifdef USE_DRONECAN`
+
+**Reply:** `state` (u8: 0=IDLE, 1=PENDING, 2=READY, 3=ERROR) + `seq` (u8) + `service_id` (u16) + `node_id`
+(u8), followed by service-specific result fields when `state=READY` (GETNODEINFO: name + SW/HW version +
+unique ID; PARAM_GETSET: name + value + min/max; EXECUTE_OPCODE/RESTART_NODE: `ok` byte). Reading a
+`READY`/`ERROR` result resets the slot to `IDLE`. Poll at ~100ms intervals after issuing a request.
 
 ---
 
@@ -909,6 +1023,7 @@ void broadcastNodeStatus(void) {
 
 | Date | Version | Changes |
 |---|---|---|
+| 2026-08-21 | 1.3 | Documented the on-demand async service client (`dronecan_async.c`): GetNodeInfo/ParamGetSet/ExecuteOpcode/RestartNode requests, the shared slot state machine, and the new `MSP2_INAV_DRONECAN_ASYNC_REQUEST`/`ASYNC_RESULT` messages that replace 0x2043's old NODE_INFO meaning. Corrected `dronecanNodeInfo_t` (name/name_len fields removed), the `MSP2_INAV_DRONECAN_NODES` reply layout (13 bytes/node, not 30; `last_seen_ms` is an elapsed delta, not an absolute timestamp), and the Settings table (real setting names are `dronecan_node_id`/`dronecan_bitrate_kbps`, not `dronecan_mode`/`dronecan_baudrate`). Scoped to the param-getset feature — this pass did not re-verify sections describing DNA server, node/battery ID filtering, or actuator control, which may have their own drift from other in-flight branches. |
 | 2026-04-30 | 1.2 | Added node table (`dronecanNodeInfo_t`), accessor functions, CLI status output, and MSP commands (0x2042/0x2043) |
 | 2026-02-18 | 1.1 | Added error recovery, graceful disable behavior, and safe initialization documentation |
 | 2026-02-16 | 1.0 | Initial version - handler-based architecture documentation |
