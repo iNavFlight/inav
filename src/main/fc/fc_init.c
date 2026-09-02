@@ -344,13 +344,15 @@ void init(void)
         featureClear(FEATURE_AIRMODE);
     }
 #if !defined(SITL_BUILD)
-    // Initialize motor and servo outputs
+    // Initialize motor and servo outpus
     if (pwmMotorAndServoInit()) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
     }
     else {
         ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
     }
+#else
+    DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
 #endif
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
@@ -780,7 +782,7 @@ void init(void)
     powerLimiterInit();
 #endif
 
-#ifndef SITL_BUILD
+#if !defined(SITL_BUILD)
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 #endif
