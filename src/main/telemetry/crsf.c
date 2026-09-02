@@ -240,14 +240,13 @@ static void crsfFrameGps(sbuf_t *dst)
     crsfSerialize16(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // gpsSol.groundSpeed is in cm/s
     crsfSerialize16(dst, DECIDEGREES_TO_CENTIDEGREES(gpsSol.groundCourse)); // gpsSol.groundCourse is 0.1 degrees, need 0.01 deg
     // Altitude source is selectable: the estimated altitude above the arming point (legacy
-    // behaviour) or the raw GNSS altitude above mean sea level, as the CRSF spec intends
-    int32_t altitudeCm;
+    // behaviour) or the GNSS altitude above mean sea level, as the CRSF spec intends
+    uint16_t altitude;
     if (telemetryConfig()->crsfGpsAltSource == CRSF_GPS_ALT_MSL) {
-        altitudeCm = gpsSol.llh.alt;
+        altitude = (gpsSol.llh.alt / 100) + 1000; // gpsSol.llh.alt is in cm
     } else {
-        altitudeCm = lrintf(getEstimatedActualPosition(Z));
+        altitude = (getEstimatedActualPosition(Z) / 100) + 1000;
     }
-    const uint16_t altitude = (altitudeCm / 100) + 1000;
     crsfSerialize16(dst, altitude);
     crsfSerialize8(dst, gpsSol.numSat);
 }

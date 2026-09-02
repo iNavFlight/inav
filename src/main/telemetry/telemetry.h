@@ -55,7 +55,7 @@ typedef enum {
 
 typedef enum {
     CRSF_GPS_ALT_ESTIMATED,     // Estimated altitude above the arming point (legacy behaviour)
-    CRSF_GPS_ALT_MSL            // Raw GNSS altitude above mean sea level
+    CRSF_GPS_ALT_MSL            // GNSS altitude above mean sea level
 } crsfGpsAltSource_e;
 
 typedef struct telemetryConfig_s {
