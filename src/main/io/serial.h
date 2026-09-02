@@ -55,7 +55,7 @@ typedef enum {
     FUNCTION_DJI_HD_OSD                 = (1 << 21), // 2097152
     FUNCTION_SERVO_SERIAL               = (1 << 22), // 4194304
     FUNCTION_TELEMETRY_SMARTPORT_MASTER = (1 << 23), // 8388608
-    FUNCTION_UNUSED_2                   = (1 << 24), // 16777216
+    FUNCTION_CRSF_SENSOR                = (1 << 24), // 16777216
     FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
     FUNCTION_GIMBAL                     = (1 << 26), // 67108864
     FUNCTION_GIMBAL_HEADTRACKER         = (1 << 27), // 134217728
@@ -138,6 +138,18 @@ typedef struct serialConfig_s {
 PG_DECLARE(serialConfig_t, serialConfig);
 
 typedef void serialConsumer(uint8_t);
+
+// Hayes escape sequence detection state: [1s silence]+++[1s silence]
+// https://en.wikipedia.org/wiki/Escape_sequence#Modem_control
+typedef struct escapeSequenceState_s {
+    uint32_t lastCharTime;
+    uint32_t lastPlusTime;
+    uint8_t count;
+} escapeSequenceState_t;
+
+void escapeSequenceInit(escapeSequenceState_t *state);
+void escapeSequenceProcessChar(escapeSequenceState_t *state, uint8_t c, uint32_t now);
+bool escapeSequenceCheckGuard(escapeSequenceState_t *state, uint32_t now);
 
 //
 // configuration

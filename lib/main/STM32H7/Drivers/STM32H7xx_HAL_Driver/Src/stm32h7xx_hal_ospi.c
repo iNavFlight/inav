@@ -165,6 +165,7 @@
     [..]
      After the configuration, the OctoSPI will be used as soon as an access on the AHB is done on
      the address range. HAL_OSPI_TimeOutCallback() will be called when the timeout expires.
+     HAL_OSPI_IsMemoryMapped() can be used to verify whether memory-mapped mode is configured or not.
 
     *** Errors management and abort functionality ***
     =================================================
@@ -1854,6 +1855,29 @@ HAL_StatusTypeDef HAL_OSPI_MemoryMapped(OSPI_HandleTypeDef *hospi, OSPI_MemoryMa
 }
 
 /**
+  * @brief  Check whether the OCTOSPI is configured in Memory-mapped mode or not.
+  * @param  hospi   : OSPI handle
+  * @retval Status (0: Memory-mapped disabled or OCTOSPI not initialized, 1: Memory-mapped enabled)
+  */
+uint32_t HAL_OSPI_IsMemoryMapped(const OSPI_HandleTypeDef *hospi)
+{
+  /* Check the OSPI handle allocation */
+  if (hospi == NULL)
+  {
+    return (0UL);
+  }
+  /* Check if driver is in Reset state */
+  else if (hospi->State == HAL_OSPI_STATE_RESET)
+  {
+    return (0UL);
+  }
+  else
+  {
+    return ((READ_BIT(hospi->Instance->CR, OCTOSPI_CR_FMODE) == OCTOSPI_CR_FMODE) ? 1UL : 0UL);
+  }
+}
+
+/**
   * @brief  Transfer Error callback.
   * @param  hospi : OSPI handle
   * @retval None
@@ -2585,8 +2609,8 @@ HAL_StatusTypeDef HAL_OSPIM_Config(OSPI_HandleTypeDef *hospi, OSPIM_CfgTypeDef *
     /********************* Deactivation of other instance *********************/
     if ((cfg->ClkPort == IOM_cfg[other_instance].ClkPort) || (cfg->NCSPort == IOM_cfg[other_instance].NCSPort) ||
         ((cfg->DQSPort == IOM_cfg[other_instance].DQSPort) && (cfg->DQSPort != 0U)) ||
-        (cfg->IOLowPort == IOM_cfg[other_instance].IOLowPort) ||
-        (cfg->IOHighPort == IOM_cfg[other_instance].IOHighPort))
+        ((cfg->IOLowPort == IOM_cfg[other_instance].IOLowPort) && (cfg->IOLowPort != HAL_OSPIM_IOPORT_NONE)) ||
+        ((cfg->IOHighPort == IOM_cfg[other_instance].IOHighPort) && (cfg->IOHighPort != HAL_OSPIM_IOPORT_NONE)))
     {
       if ((cfg->ClkPort   == IOM_cfg[other_instance].ClkPort)   &&
           (cfg->DQSPort    == IOM_cfg[other_instance].DQSPort)  &&

@@ -44,6 +44,8 @@ typedef enum {
     ACC_ICM42605,
     ACC_BMI270,
     ACC_LSM6DXX,
+    ACC_ICM45686,
+    ACC_ICM40609D,
     ACC_FAKE,
     ACC_MAX = ACC_FAKE
 } accelerationSensor_e;
@@ -62,7 +64,7 @@ typedef struct acc_s {
     uint32_t accClipCount;
     bool isClipped;
     acc_extremes_t extremes[XYZ_AXIS_COUNT];
-    float maxGSq;
+    float maxG;
 } acc_t;
 
 extern acc_t acc;

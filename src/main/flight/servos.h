@@ -85,6 +85,17 @@ typedef enum {
     INPUT_RC_CH33                   = 58,
     INPUT_RC_CH34                   = 59,
     INPUT_MIXER_SWITCH_HELPER       = 60,
+#ifdef USE_AUTO_TRANSITION
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL     = 61,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH    = 62,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW      = 63,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_PLUS = 64,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_MINUS = 65,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_PLUS = 66,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_MINUS = 67,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_PLUS = 68,
+    INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS = 69,
+#endif
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
@@ -161,6 +172,13 @@ typedef struct servoParam_s {
 
 PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
 
+#define SERVO_AUTOTRIM_FILTER_CUTOFF    1.0f     // LPF cutoff frequency
+#define SERVO_AUTOTRIM_CENTER_MIN       1300
+#define SERVO_AUTOTRIM_CENTER_MAX       1700
+#define SERVO_AUTOTRIM_UPDATE_SIZE      5
+#define SERVO_AUTOTRIM_ATTITUDE_LIMIT   50       // 5 degrees
+#define SERVO_AUTOTRIM_ITERM_RATE_LIMIT 30       // ~90th percentile during stable cruise (blackbox-derived)
+
 typedef struct servoConfig_s {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
     uint16_t servoCenterPulse;              // This is the value for servos when they should be in the middle. e.g. 1500.
@@ -188,6 +206,10 @@ void setServoOutputEnabled(bool flag);
 bool isMixerUsingServos(void);
 void writeServos(void);
 void loadCustomServoMixer(void);
+void servoMixerSetCarryoverOnNextLoad(bool enabled);
+#ifdef USE_AUTO_TRANSITION
+int32_t servoMixerGetVtolTransitionDebug(uint8_t slot);
+#endif
 void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);

@@ -122,6 +122,7 @@
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/smartport_master.h"
+#include "io/crsf_sensor.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
@@ -129,6 +130,8 @@
 #include "io/vtx_msp.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
+
+#include "drivers/dronecan/dronecan.h"
 
 #include "msp/msp_serial.h"
 
@@ -152,6 +155,8 @@
 #include "scheduler/scheduler.h"
 
 #include "telemetry/telemetry.h"
+
+#include "terrain/terrain.h"
 
 #if defined(SITL_BUILD)
 #include "target/SITL/serial_proxy.h"
@@ -278,13 +283,27 @@ void init(void)
 #endif
 
 #ifdef USE_VCP
-    // Early initialize USB hardware
+    // Early initialize USB hardware.
+#if defined(USE_USB_MSC)
+    // Skip when booting into MSC mode: mscStart() re-initializes the USB
+    // device library for mass storage, and re-initializing an already
+    // running PCD (as done since the STM32F7xx HAL v1.3.3 update, PR #11514)
+    // leaves the USB core in a broken state, breaking EP0 control transfers.
+    // Only the boot flag is checked here: mscCheckButton() cannot run until
+    // mscInit() configures the button pin (later in init), and no current
+    // target uses an MSC button.
+    if (!mscCheckBoot()) {
+        usbVcpInitHardware();
+    }
+#else
     usbVcpInitHardware();
+#endif
 #endif
 
     timerInit();  // timer must be initialized before any channel is allocated
 
     serialInit(feature(FEATURE_SOFTSERIAL));
+
 
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
@@ -300,11 +319,16 @@ void init(void)
     smartportMasterInit();
 #endif
 
+#if defined(USE_CRSF_SENSOR_INPUT)
+    crsfSensorInputInit();
+#endif
+
 #if defined(USE_LOG)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
 #endif
+
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     gvInit();
@@ -524,6 +548,10 @@ void init(void)
     ezTuneUpdate();
 #endif
 
+#ifdef USE_DRONECAN
+    dronecanInit();
+#endif
+
 #ifndef USE_GEOZONE
     featureClear(FEATURE_GEOZONE);
 #endif
@@ -611,6 +639,23 @@ void init(void)
     }
 #endif
 
+#ifdef USE_SDCARD
+
+    bool sdcardNeeded = false;
+#ifdef USE_BLACKBOX
+    sdcardNeeded = (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD);
+#endif
+#ifdef USE_TERRAIN
+    sdcardNeeded = sdcardNeeded || terrainConfig()->terrainEnabled;
+#endif
+    if (sdcardNeeded) {
+        sdcardInsertionDetectInit();
+        sdcard_init();
+        afatfs_init();
+    }
+#endif // USE_SDCARD
+
+
 #ifdef USE_BLACKBOX
 
     //Do not allow blackbox to be run faster that 1kHz. It can cause UAV to drop dead when digital ESC protocol is used
@@ -635,19 +680,14 @@ void init(void)
             }
             break;
 #endif
-
-#ifdef USE_SDCARD
-        case BLACKBOX_DEVICE_SDCARD:
-            sdcardInsertionDetectInit();
-            sdcard_init();
-            afatfs_init();
-            break;
-#endif
         default:
             break;
     }
 
     blackboxInit();
+#endif
+#ifdef USE_TERRAIN
+    terrainInit();
 #endif
 
     gyroStartCalibration();
@@ -657,7 +697,7 @@ void init(void)
 #endif
 
 #ifdef USE_PITOT
-    pitotStartCalibration();
+    if (detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL) pitotStartCalibration();
 #endif
 
 #if defined(USE_VTX_CONTROL)

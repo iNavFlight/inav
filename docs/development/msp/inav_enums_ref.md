@@ -73,6 +73,8 @@
 - [displayTransactionOption_e](#enum-displaytransactionoption_e)
 - [displayWidgetType_e](#enum-displaywidgettype_e)
 - [DjiCraftNameElements_t](#enum-djicraftnameelements_t)
+- [dronecanBitrate_e](#enum-dronecanbitrate_e)
+- [dronecanState_e](#enum-dronecanstate_e)
 - [dshotCommands_e](#enum-dshotcommands_e)
 - [dumpFlags_e](#enum-dumpflags_e)
 - [dynamicGyroNotchMode_e](#enum-dynamicgyronotchmode_e)
@@ -112,6 +114,7 @@
 - [fwAutolandApproachDirection_e](#enum-fwautolandapproachdirection_e)
 - [fwAutolandState_t](#enum-fwautolandstate_t)
 - [fwAutolandWaypoint_t](#enum-fwautolandwaypoint_t)
+- [fwAutoSpeedSpdSource_e](#enum-fwautospeedspdsource_e)
 - [geoAltitudeConversionMode_e](#enum-geoaltitudeconversionmode_e)
 - [geoAltitudeDatumFlag_e](#enum-geoaltitudedatumflag_e)
 - [geoOriginResetMode_e](#enum-geooriginresetmode_e)
@@ -150,9 +153,9 @@
 - [ibusSensorType1_e](#enum-ibussensortype1_e)
 - [ibusSensorType_e](#enum-ibussensortype_e)
 - [ibusSensorValue_e](#enum-ibussensorvalue_e)
+- [icm42605Variant_e](#enum-icm42605variant_e)
 - [inputSource_e](#enum-inputsource_e)
 - [itermRelax_e](#enum-itermrelax_e)
-- [led_pin_pwm_mode_e](#enum-led_pin_pwm_mode_e)
 - [ledBaseFunctionId_e](#enum-ledbasefunctionid_e)
 - [ledDirectionId_e](#enum-leddirectionid_e)
 - [ledModeIndex_e](#enum-ledmodeindex_e)
@@ -174,10 +177,15 @@
 - [ltmUpdateRate_e](#enum-ltmupdaterate_e)
 - [magSensor_e](#enum-magsensor_e)
 - [mavlinkAutopilotType_e](#enum-mavlinkautopilottype_e)
+- [mavlinkFcDispatchResult_e](#enum-mavlinkfcdispatchresult_e)
 - [mavlinkRadio_e](#enum-mavlinkradio_e)
 - [measurementSteps_e](#enum-measurementsteps_e)
+- [mixerProfileATDirection_e](#enum-mixerprofileatdirection_e)
+- [mixerProfileATOsdEvent_e](#enum-mixerprofileatosdevent_e)
 - [mixerProfileATRequest_e](#enum-mixerprofileatrequest_e)
 - [mixerProfileATState_e](#enum-mixerprofileatstate_e)
+- [mixerProfileATWaitReason_e](#enum-mixerprofileatwaitreason_e)
+- [mixerTransitionManualSessionMode_e](#enum-mixertransitionmanualsessionmode_e)
 - [modeActivationOperator_e](#enum-modeactivationoperator_e)
 - [motorPwmProtocolTypes_e](#enum-motorpwmprotocoltypes_e)
 - [motorStatus_e](#enum-motorstatus_e)
@@ -188,7 +196,12 @@
 - [mspSDCardState_e](#enum-mspsdcardstate_e)
 - [multi_function_e](#enum-multi_function_e)
 - [multiFunctionFlags_e](#enum-multifunctionflags_e)
+- [nav_control_type_e](#enum-nav_control_type_e)
+- [nav_heading_control_e](#enum-nav_heading_control_e)
+- [nav_loiter_type_e](#enum-nav_loiter_type_e)
 - [nav_reset_type_e](#enum-nav_reset_type_e)
+- [nav_rth_alt_profile_e](#enum-nav_rth_alt_profile_e)
+- [nav_rth_climb_profile_e](#enum-nav_rth_climb_profile_e)
 - [navAGLEstimateQuality_e](#enum-navaglestimatequality_e)
 - [navArmingBlocker_e](#enum-navarmingblocker_e)
 - [navDefaultAltitudeSensor_e](#enum-navdefaultaltitudesensor_e)
@@ -202,6 +215,12 @@
 - [navigationPersistentId_e](#enum-navigationpersistentid_e)
 - [navMcAltHoldThrottle_e](#enum-navmcaltholdthrottle_e)
 - [navMissionRestart_e](#enum-navmissionrestart_e)
+- [navMissionUserAction_e](#enum-navmissionuseraction_e)
+- [navMissionVtolTransitionDisposition_e](#enum-navmissionvtoltransitiondisposition_e)
+- [navMissionVtolTransitionPrecondition_e](#enum-navmissionvtoltransitionprecondition_e)
+- [navMissionVtolTransitionStartValidation_e](#enum-navmissionvtoltransitionstartvalidation_e)
+- [navMixerATRetryScanResult_e](#enum-navmixeratretryscanresult_e)
+- [navMixerATRetryStage_e](#enum-navmixeratretrystage_e)
 - [navOverridesMotorStop_e](#enum-navoverridesmotorstop_e)
 - [navPositionEstimationFlags_e](#enum-navpositionestimationflags_e)
 - [navRTHAllowLanding_e](#enum-navrthallowlanding_e)
@@ -211,6 +230,10 @@
 - [navSystemStatus_Flags_e](#enum-navsystemstatus_flags_e)
 - [navSystemStatus_Mode_e](#enum-navsystemstatus_mode_e)
 - [navSystemStatus_State_e](#enum-navsystemstatus_state_e)
+- [navVtolMixerATMode_e](#enum-navvtolmixeratmode_e)
+- [navVtolTransitionFailActionFwToMc_e](#enum-navvtoltransitionfailactionfwtomc_e)
+- [navVtolTransitionFailActionMcToFw_e](#enum-navvtoltransitionfailactionmctofw_e)
+- [navVtolTransitionOsdState_e](#enum-navvtoltransitionosdstate_e)
 - [navWaypointActions_e](#enum-navwaypointactions_e)
 - [navWaypointFlags_e](#enum-navwaypointflags_e)
 - [navWaypointHeadings_e](#enum-navwaypointheadings_e)
@@ -300,6 +323,7 @@
 - [simTransmissionState_e](#enum-simtransmissionstate_e)
 - [simTxFlags_e](#enum-simtxflags_e)
 - [simulatorFlags_t](#enum-simulatorflags_t)
+- [sitlCANMode_e](#enum-sitlcanmode_e)
 - [smartAudioVersion_e](#enum-smartaudioversion_e)
 - [smartportFuelUnit_e](#enum-smartportfuelunit_e)
 - [softSerialPortIndex_e](#enum-softserialportindex_e)
@@ -338,6 +362,8 @@
 - [voltageSensor_e](#enum-voltagesensor_e)
 - [vs600Band_e](#enum-vs600band_e)
 - [vs600Power_e](#enum-vs600power_e)
+- [vtolMcProtectionDebugFlags_e](#enum-vtolmcprotectiondebugflags_e)
+- [vtolMcProtectionMode_e](#enum-vtolmcprotectionmode_e)
 - [vtxDevType_e](#enum-vtxdevtype_e)
 - [vtxFrequencyGroups_e](#enum-vtxfrequencygroups_e)
 - [vtxLowerPowerDisarm_e](#enum-vtxlowerpowerdisarm_e)
@@ -370,7 +396,9 @@
 | `ACC_ICM42605` | 8 |  |
 | `ACC_BMI270` | 9 |  |
 | `ACC_LSM6DXX` | 10 |  |
-| `ACC_FAKE` | 11 |  |
+| `ACC_ICM45686` | 11 |  |
+| `ACC_ICM40609D` | 12 |  |
+| `ACC_FAKE` | 13 |  |
 | `ACC_MAX` | ACC_FAKE |  |
 
 ---
@@ -834,7 +862,8 @@
 | `BARO_B2SMPB` | 10 |  |
 | `BARO_MSP` | 11 |  |
 | `BARO_FAKE` | 12 |  |
-| `BARO_MAX` | BARO_FAKE |  |
+| `BARO_CRSF` | 13 |  |
+| `BARO_MAX` | BARO_CRSF |  |
 
 ---
 ## <a id="enum-batcapacityunit_e"></a>`batCapacityUnit_e`
@@ -1168,7 +1197,8 @@
 | `BOXGIMBALRLOCK` | 57 |  |
 | `BOXGIMBALCENTER` | 58 |  |
 | `BOXGIMBALHTRK` | 59 |  |
-| `CHECKBOX_ITEM_COUNT` | 60 |  |
+| `BOXAUTOSPEED` | 60 |  |
+| `CHECKBOX_ITEM_COUNT` | 61 |  |
 
 ---
 ## <a id="enum-busindex_e"></a>`busIndex_e`
@@ -1316,7 +1346,10 @@
 | `CRSF_FRAMETYPE_GPS` | 2 |  |
 | `CRSF_FRAMETYPE_VARIO_SENSOR` | 7 |  |
 | `CRSF_FRAMETYPE_BATTERY_SENSOR` | 8 |  |
-| `CRSF_FRAMETYPE_BAROMETER_ALTITUDE` | 9 |  |
+| `CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR` | 9 |  |
+| `CRSF_FRAMETYPE_AIRSPEED_SENSOR` | 10 |  |
+| `CRSF_FRAMETYPE_RPM` | 12 |  |
+| `CRSF_FRAMETYPE_TEMP` | 13 |  |
 | `CRSF_FRAMETYPE_LINK_STATISTICS` | 20 |  |
 | `CRSF_FRAMETYPE_RC_CHANNELS_PACKED` | 22 |  |
 | `CRSF_FRAMETYPE_ATTITUDE` | 30 |  |
@@ -1344,8 +1377,10 @@
 | `CRSF_FRAME_BATTERY_SENSOR_INDEX` |  |  |
 | `CRSF_FRAME_FLIGHT_MODE_INDEX` |  |  |
 | `CRSF_FRAME_GPS_INDEX` |  |  |
-| `CRSF_FRAME_VARIO_SENSOR_INDEX` |  |  |
-| `CRSF_FRAME_BAROMETER_ALTITUDE_INDEX` |  |  |
+| `CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX` |  |  |
+| `CRSF_FRAME_TEMP_INDEX` |  |  |
+| `CRSF_FRAME_RPM_INDEX` |  |  |
+| `CRSF_FRAME_AIRSPEED_INDEX` |  |  |
 | `CRSF_SCHEDULE_COUNT_MAX` |  |  |
 
 ---
@@ -1388,7 +1423,9 @@
 | `CURRENT_SENSOR_FAKE` | 3 |  |
 | `CURRENT_SENSOR_ESC` | 4 |  |
 | `CURRENT_SENSOR_SMARTPORT` | 5 |  |
-| `CURRENT_SENSOR_MAX` | CURRENT_SENSOR_SMARTPORT |  |
+| `CURRENT_SENSOR_CRSF` | 6 |  |
+| `CURRENT_SENSOR_CAN` | 7 |  |
+| `CURRENT_SENSOR_MAX` | CURRENT_SENSOR_CAN |  |
 
 ---
 ## <a id="enum-devhardwaretype_e"></a>`devHardwareType_e`
@@ -1407,53 +1444,56 @@
 | `DEVHW_ICM42605` | 7 |  |
 | `DEVHW_BMI270` | 8 |  |
 | `DEVHW_LSM6D` | 9 |  |
-| `DEVHW_MPU9250` | 10 |  |
-| `DEVHW_BMP085` | 11 |  |
-| `DEVHW_BMP280` | 12 |  |
-| `DEVHW_MS5611` | 13 |  |
-| `DEVHW_MS5607` | 14 |  |
-| `DEVHW_LPS25H` | 15 |  |
-| `DEVHW_SPL06` | 16 |  |
-| `DEVHW_BMP388` | 17 |  |
-| `DEVHW_DPS310` | 18 |  |
-| `DEVHW_B2SMPB` | 19 |  |
-| `DEVHW_HMC5883` | 20 |  |
-| `DEVHW_AK8963` | 21 |  |
-| `DEVHW_AK8975` | 22 |  |
-| `DEVHW_IST8310_0` | 23 |  |
-| `DEVHW_IST8310_1` | 24 |  |
-| `DEVHW_IST8308` | 25 |  |
-| `DEVHW_QMC5883` | 26 |  |
-| `DEVHW_QMC5883P` | 27 |  |
-| `DEVHW_MAG3110` | 28 |  |
-| `DEVHW_LIS3MDL` | 29 |  |
-| `DEVHW_RM3100` | 30 |  |
-| `DEVHW_VCM5883` | 31 |  |
-| `DEVHW_MLX90393` | 32 |  |
-| `DEVHW_LM75_0` | 33 |  |
-| `DEVHW_LM75_1` | 34 |  |
-| `DEVHW_LM75_2` | 35 |  |
-| `DEVHW_LM75_3` | 36 |  |
-| `DEVHW_LM75_4` | 37 |  |
-| `DEVHW_LM75_5` | 38 |  |
-| `DEVHW_LM75_6` | 39 |  |
-| `DEVHW_LM75_7` | 40 |  |
-| `DEVHW_DS2482` | 41 |  |
-| `DEVHW_MAX7456` | 42 |  |
-| `DEVHW_SRF10` | 43 |  |
-| `DEVHW_VL53L0X` | 44 |  |
-| `DEVHW_VL53L1X` | 45 |  |
-| `DEVHW_US42` | 46 |  |
-| `DEVHW_TOF10120_I2C` | 47 |  |
-| `DEVHW_TERARANGER_EVO_I2C` | 48 |  |
-| `DEVHW_MS4525` | 49 |  |
-| `DEVHW_DLVR` | 50 |  |
-| `DEVHW_M25P16` | 51 |  |
-| `DEVHW_W25N` | 52 |  |
-| `DEVHW_UG2864` | 53 |  |
-| `DEVHW_SDCARD` | 54 |  |
-| `DEVHW_IRLOCK` | 55 |  |
-| `DEVHW_PCF8574` | 56 |  |
+| `DEVHW_ICM45686` | 10 |  |
+| `DEVHW_ICM40609D` | 11 |  |
+| `DEVHW_MPU9250` | 12 |  |
+| `DEVHW_BMP085` | 13 |  |
+| `DEVHW_BMP280` | 14 |  |
+| `DEVHW_MS5611` | 15 |  |
+| `DEVHW_MS5607` | 16 |  |
+| `DEVHW_LPS25H` | 17 |  |
+| `DEVHW_SPL06` | 18 |  |
+| `DEVHW_BMP388` | 19 |  |
+| `DEVHW_DPS310` | 20 |  |
+| `DEVHW_B2SMPB` | 21 |  |
+| `DEVHW_HMC5883` | 22 |  |
+| `DEVHW_AK8963` | 23 |  |
+| `DEVHW_AK8975` | 24 |  |
+| `DEVHW_IST8310_0` | 25 |  |
+| `DEVHW_IST8310_1` | 26 |  |
+| `DEVHW_IST8308` | 27 |  |
+| `DEVHW_QMC5883` | 28 |  |
+| `DEVHW_QMC5883P` | 29 |  |
+| `DEVHW_MAG3110` | 30 |  |
+| `DEVHW_LIS3MDL` | 31 |  |
+| `DEVHW_RM3100` | 32 |  |
+| `DEVHW_VCM5883` | 33 |  |
+| `DEVHW_MLX90393` | 34 |  |
+| `DEVHW_LM75_0` | 35 |  |
+| `DEVHW_LM75_1` | 36 |  |
+| `DEVHW_LM75_2` | 37 |  |
+| `DEVHW_LM75_3` | 38 |  |
+| `DEVHW_LM75_4` | 39 |  |
+| `DEVHW_LM75_5` | 40 |  |
+| `DEVHW_LM75_6` | 41 |  |
+| `DEVHW_LM75_7` | 42 |  |
+| `DEVHW_DS2482` | 43 |  |
+| `DEVHW_MAX7456` | 44 |  |
+| `DEVHW_SRF10` | 45 |  |
+| `DEVHW_VL53L0X` | 46 |  |
+| `DEVHW_VL53L1X` | 47 |  |
+| `DEVHW_US42` | 48 |  |
+| `DEVHW_TOF10120_I2C` | 49 |  |
+| `DEVHW_TERARANGER_EVO_I2C` | 50 |  |
+| `DEVHW_MS4525` | 51 |  |
+| `DEVHW_MS5525` | 52 |  |
+| `DEVHW_DLVR` | 53 |  |
+| `DEVHW_M25P16` | 54 |  |
+| `DEVHW_W25N` | 55 |  |
+| `DEVHW_UG2864` | 56 |  |
+| `DEVHW_SDCARD` | 57 |  |
+| `DEVHW_IRLOCK` | 58 |  |
+| `DEVHW_PCF8574` | 59 |  |
 
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
@@ -1572,6 +1612,32 @@
 | `DJI_OSD_CN_DISTANCE` | 5 |  |
 | `DJI_OSD_CN_ADJUSTEMNTS` | 6 |  |
 | `DJI_OSD_CN_MAX_ELEMENTS` | 7 |  |
+
+---
+## <a id="enum-dronecanbitrate_e"></a>`dronecanBitrate_e`
+
+> Source: ../../../src/main/drivers/dronecan/dronecan.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DRONECAN_BITRATE_125KBPS` | 0 |  |
+| `DRONECAN_BITRATE_250KBPS` | 1 |  |
+| `DRONECAN_BITRATE_500KBPS` | 2 |  |
+| `DRONECAN_BITRATE_1000KBPS` | 3 |  |
+| `DRONECAN_BITRATE_COUNT` | 4 |  |
+
+---
+## <a id="enum-dronecanstate_e"></a>`dronecanState_e`
+
+> Source: ../../../src/main/drivers/dronecan/dronecan.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `STATE_DRONECAN_INIT` | 0 |  |
+| `STATE_DRONECAN_NORMAL` | 1 |  |
+| `STATE_DRONECAN_BUS_OFF` | 2 |  |
+| `STATE_DRONECAN_FAILED` | 3 |  |
+| `STATE_DRONECAN_COUNT` | 4 |  |
 
 ---
 ## <a id="enum-dshotcommands_e"></a>`dshotCommands_e`
@@ -2188,6 +2254,17 @@
 | `FW_AUTOLAND_WP_COUNT` | 3 |  |
 
 ---
+## <a id="enum-fwautospeedspdsource_e"></a>`fwAutoSpeedSpdSource_e`
+
+> Source: ../../../src/main/navigation/navigation_private.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FW_AUTO_SPD_GROUND` | 0 |  |
+| `FW_AUTO_SPD_AIR` | 1 |  |
+| `FW_AUTO_SPD_GROUND_OVERRIDE` | 2 |  |
+
+---
 ## <a id="enum-geoaltitudeconversionmode_e"></a>`geoAltitudeConversionMode_e`
 
 > Source: ../../../src/main/navigation/navigation.h
@@ -2206,6 +2283,8 @@
 |---|---:|---|
 | `NAV_WP_TAKEOFF_DATUM` | 0 |  |
 | `NAV_WP_MSL_DATUM` | 1 |  |
+| `NAV_WP_TERRAIN_DATUM` | 2 |  |
+| `NAV_WP_RELATIVE_DATUM` | 3 |  |
 
 ---
 ## <a id="enum-geooriginresetmode_e"></a>`geoOriginResetMode_e`
@@ -2430,8 +2509,10 @@
 |---|---:|---|
 | `GPS_UBLOX` | 0 |  |
 | `GPS_MSP` | 1 |  |
-| `GPS_FAKE` | 2 |  |
-| `GPS_PROVIDER_COUNT` | 3 |  |
+| `GPS_CRSF` | 2 |  |
+| `GPS_FAKE` | 3 |  |
+| `GPS_DRONECAN` | 4 |  |
+| `GPS_PROVIDER_COUNT` | 5 |  |
 
 ---
 ## <a id="enum-gpsstate_e"></a>`gpsState_e`
@@ -2488,7 +2569,9 @@
 | `GYRO_ICM42605` | 8 |  |
 | `GYRO_BMI270` | 9 |  |
 | `GYRO_LSM6DXX` | 10 |  |
-| `GYRO_FAKE` | 11 |  |
+| `GYRO_ICM45686` | 11 |  |
+| `GYRO_ICM40609D` | 12 |  |
+| `GYRO_FAKE` | 13 |  |
 
 ---
 ## <a id="enum-hardwaremotortypes_e"></a>`HardwareMotorTypes_e`
@@ -2789,6 +2872,17 @@
 | `IBUS_MEAS_VALUE_GPS` | 253 |  |
 
 ---
+## <a id="enum-icm42605variant_e"></a>`icm42605Variant_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_icm42605.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `ICM42605_VARIANT_42605` | 0 |  |
+| `ICM42605_VARIANT_42686P` | 1 |  |
+| `ICM42605_VARIANT_42688P` | 2 |  |
+
+---
 ## <a id="enum-inputsource_e"></a>`inputSource_e`
 
 > Source: ../../../src/main/flight/servos.h
@@ -2856,7 +2950,16 @@
 | `INPUT_RC_CH33` | 58 |  |
 | `INPUT_RC_CH34` | 59 |  |
 | `INPUT_MIXER_SWITCH_HELPER` | 60 |  |
-| `INPUT_SOURCE_COUNT` | 61 |  |
+| `INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL` | 61 | USE_AUTO_TRANSITION |
+| `INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH` | 62 | USE_AUTO_TRANSITION |
+| `INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW` | 63 | USE_AUTO_TRANSITION |
+| `INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_PLUS` | 64 | USE_AUTO_TRANSITION |
+| `INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_MINUS` | 65 | USE_AUTO_TRANSITION |
+| `INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_PLUS` | 66 | USE_AUTO_TRANSITION |
+| `INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_MINUS` | 67 | USE_AUTO_TRANSITION |
+| `INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_PLUS` | 68 | USE_AUTO_TRANSITION |
+| `INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS` | 69 | USE_AUTO_TRANSITION |
+| `INPUT_SOURCE_COUNT` | 70 |  |
 
 ---
 ## <a id="enum-itermrelax_e"></a>`itermRelax_e`
@@ -2868,18 +2971,6 @@
 | `ITERM_RELAX_OFF` | 0 |  |
 | `ITERM_RELAX_RP` | 1 |  |
 | `ITERM_RELAX_RPY` | 2 |  |
-
----
-## <a id="enum-led_pin_pwm_mode_e"></a>`led_pin_pwm_mode_e`
-
-> Source: ../../../src/main/drivers/light_ws2811strip.h
-
-| Enumerator | Value | Condition |
-|---|---:|---|
-| `LED_PIN_PWM_MODE_SHARED_LOW` | 0 |  |
-| `LED_PIN_PWM_MODE_SHARED_HIGH` | 1 |  |
-| `LED_PIN_PWM_MODE_LOW` | 2 |  |
-| `LED_PIN_PWM_MODE_HIGH` | 3 |  |
 
 ---
 ## <a id="enum-ledbasefunctionid_e"></a>`ledBaseFunctionId_e`
@@ -2924,7 +3015,8 @@
 | `LED_MODE_ANGLE` | 3 |  |
 | `LED_MODE_MAG` | 4 |  |
 | `LED_MODE_BARO` | 5 |  |
-| `LED_SPECIAL` | 6 |  |
+| `LED_MODE_LOITER` | 6 |  |
+| `LED_SPECIAL` | 7 |  |
 
 ---
 ## <a id="enum-ledoverlayid_e"></a>`ledOverlayId_e`
@@ -2988,6 +3080,7 @@
 | `LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS` | (1 << 10) |  |
 | `LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX` | (1 << 11) | USE_GPS_FIX_ESTIMATION |
 | `LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED` | (1 << 12) |  |
+| `LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED` | (1 << 13) |  |
 
 ---
 ## <a id="enum-logicflightmodeoperands_e"></a>`logicFlightModeOperands_e`
@@ -3071,6 +3164,9 @@
 | `LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED` | 47 |  |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION` | 48 |  |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_RELATIVE_WIND_OFFSET` | 49 |  |
+| `LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_ROLL` | (50) | USE_AUTO_TRANSITION |
+| `LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_PITCH` | (51) | USE_AUTO_TRANSITION |
+| `LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_YAW` | (52) | USE_AUTO_TRANSITION |
 
 ---
 ## <a id="enum-logicoperandtype_e"></a>`logicOperandType_e`
@@ -3148,12 +3244,19 @@
 | `LOGIC_CONDITION_TIMER` | 49 |  |
 | `LOGIC_CONDITION_DELTA` | 50 |  |
 | `LOGIC_CONDITION_APPROX_EQUAL` | 51 |  |
-| `LOGIC_CONDITION_LED_PIN_PWM` | 52 |  |
+| `LOGIC_CONDITION_PINIO_PWM` | 52 |  |
 | `LOGIC_CONDITION_DISABLE_GPS_FIX` | 53 |  |
 | `LOGIC_CONDITION_RESET_MAG_CALIBRATION` | 54 |  |
 | `LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY` | 55 |  |
 | `LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED` | 56 |  |
-| `LOGIC_CONDITION_LAST` | 57 |  |
+| `LOGIC_CONDITION_SET_ALTITUDE_TARGET` | 57 |  |
+| `LOGIC_CONDITION_ACOS` | 58 |  |
+| `LOGIC_CONDITION_ASIN` | 59 |  |
+| `LOGIC_CONDITION_ATAN2` | 60 |  |
+| `LOGIC_CONDITION_DISABLE_AUTOSPEED_AIRSPEED` | 61 |  |
+| `LOGIC_CONDITION_ACTIVATE_RTH` | 62 |  |
+| `LOGIC_CONDITION_ACTIVATE_LANDING` | 63 |  |
+| `LOGIC_CONDITION_LAST` | 64 |  |
 
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
@@ -3195,7 +3298,9 @@
 | `LOG_TOPIC_POS_ESTIMATOR` | 8 |  |
 | `LOG_TOPIC_VTX` | 9 |  |
 | `LOG_TOPIC_OSD` | 10 |  |
-| `LOG_TOPIC_COUNT` | 11 |  |
+| `LOG_TOPIC_CAN` | 11 |  |
+| `LOG_TOPIC_TERRAIN` | 12 |  |
+| `LOG_TOPIC_COUNT` | 13 |  |
 
 ---
 ## <a id="enum-lsm6dxxconfigmasks_e"></a>`lsm6dxxConfigMasks_e`
@@ -3233,6 +3338,7 @@
 | `LSM6DXX_VAL_CTRL1_XL_LPF2` | 1 |  |
 | `LSM6DXX_VAL_CTRL2_G_ODR6664` | 10 |  |
 | `LSM6DXX_VAL_CTRL2_G_2000DPS` | 3 |  |
+| `LSM6DXX_VAL_CTRL3_C_BDU` | BIT(6) |  |
 | `LSM6DXX_VAL_CTRL3_C_H_LACTIVE` | 0 |  |
 | `LSM6DXX_VAL_CTRL3_C_PP_OD` | 0 |  |
 | `LSM6DXX_VAL_CTRL3_C_SIM` | 0 |  |
@@ -3251,6 +3357,20 @@
 | `LSM6DXX_VAL_CTRL7_G_HPM_G_260` | 2 |  |
 | `LSM6DXX_VAL_CTRL7_G_HPM_G_1040` | 3 |  |
 | `LSM6DXX_VAL_CTRL9_XL_I3C_DISABLE` | BIT(1) |  |
+| `LSM6DXX_VAL_CTRL1_XL_V_OPMODE_HIGH_ACCURACY` | 1 |  |
+| `LSM6DXX_VAL_CTRL1_XL_V_ODR_1000HZ_HAODR1` | 9 |  |
+| `LSM6DXX_VAL_CTRL2_G_V_OPMODE_HIGH_ACCURACY` | 1 |  |
+| `LSM6DXX_VAL_CTRL2_G_V_ODR_8000HZ_HAODR1` | 12 |  |
+| `LSM6DXX_VAL_HAODR_CFG_MODE1` | 1 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_FS_G_2000DPS` | 4 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_DSK320X_RESERVED_BIT3` | BIT(3) |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_288HZ` | 0 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_215HZ` | 1 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_157HZ` | 2 |  |
+| `LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_455HZ` | 3 |  |
+| `LSM6DXX_VAL_CTRL7_G_V_LPF1_EN` | BIT(0) |  |
+| `LSM6DXX_VAL_CTRL8_XL_V_FS_16G` | 3 |  |
+| `LSM6DXX_VAL_CTRL4_C_V_DRDY_PULSED` | BIT(1) |  |
 
 ---
 ## <a id="enum-lsm6dxxregister_e"></a>`lsm6dxxRegister_e`
@@ -3288,6 +3408,7 @@
 | `LSM6DXX_REG_OUTY_H_A` | 43 |  |
 | `LSM6DXX_REG_OUTZ_L_A` | 44 |  |
 | `LSM6DXX_REG_OUTZ_H_A` | 45 |  |
+| `LSM6DXX_REG_HAODR_CFG` | 98 |  |
 
 ---
 ## <a id="enum-ltm_frame_e"></a>`ltm_frame_e`
@@ -3381,6 +3502,18 @@
 |---|---:|---|
 | `MAVLINK_AUTOPILOT_GENERIC` | 0 |  |
 | `MAVLINK_AUTOPILOT_ARDUPILOT` | 1 |  |
+| `MAVLINK_AUTOPILOT_INAV` | 2 |  |
+
+---
+## <a id="enum-mavlinkfcdispatchresult_e"></a>`mavlinkFcDispatchResult_e`
+
+> Source: ../../../src/main/fc/fc_mavlink.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MAVLINK_FC_DISPATCH_NOT_HANDLED` | 0 |  |
+| `MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY` | 1 |  |
+| `MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY` | 2 |  |
 
 ---
 ## <a id="enum-mavlinkradio_e"></a>`mavlinkRadio_e`
@@ -3392,6 +3525,8 @@
 | `MAVLINK_RADIO_GENERIC` | 0 |  |
 | `MAVLINK_RADIO_ELRS` | 1 |  |
 | `MAVLINK_RADIO_SIK` | 2 |  |
+| `MAVLINK_RADIO_MLRS` | 3 |  |
+| `MAVLINK_RADIO_NONE` | 4 |  |
 
 ---
 ## <a id="enum-measurementsteps_e"></a>`measurementSteps_e`
@@ -3405,6 +3540,31 @@
 | `MEASUREMENT_READ` | 2 |  |
 
 ---
+## <a id="enum-mixerprofileatdirection_e"></a>`mixerProfileATDirection_e`
+
+> Source: ../../../src/main/flight/mixer_profile.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MIXERAT_DIRECTION_NONE` | 0 |  |
+| `MIXERAT_DIRECTION_TO_FW` | 1 |  |
+| `MIXERAT_DIRECTION_TO_MC` | 2 |  |
+
+---
+## <a id="enum-mixerprofileatosdevent_e"></a>`mixerProfileATOsdEvent_e`
+
+> Source: ../../../src/main/flight/mixer_profile.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MIXERAT_OSD_EVENT_NONE` | 0 |  |
+| `MIXERAT_OSD_EVENT_DONE` | 1 |  |
+| `MIXERAT_OSD_EVENT_ABORTED` | 2 |  |
+| `MIXERAT_OSD_EVENT_ABORTED_IN_FW` | 3 |  |
+| `MIXERAT_OSD_EVENT_ABORTED_IN_MC` | 4 |  |
+| `MIXERAT_OSD_EVENT_AIRSPEED_TIMEOUT` | 5 |  |
+
+---
 ## <a id="enum-mixerprofileatrequest_e"></a>`mixerProfileATRequest_e`
 
 > Source: ../../../src/main/flight/mixer_profile.h
@@ -3414,7 +3574,12 @@
 | `MIXERAT_REQUEST_NONE` | 0 |  |
 | `MIXERAT_REQUEST_RTH` | 1 |  |
 | `MIXERAT_REQUEST_LAND` | 2 |  |
-| `MIXERAT_REQUEST_ABORT` | 3 |  |
+| `MIXERAT_REQUEST_MISSION_TO_FW` | (3) | USE_AUTO_TRANSITION |
+| `MIXERAT_REQUEST_MISSION_TO_MC` | (4) | USE_AUTO_TRANSITION |
+| `MIXERAT_REQUEST_MANUAL_TO_FW` | (5) | USE_AUTO_TRANSITION |
+| `MIXERAT_REQUEST_MANUAL_TO_MC` | (6) | USE_AUTO_TRANSITION |
+| `MIXERAT_REQUEST_FW_TO_MC_PROTECTION` | (7) | USE_AUTO_TRANSITION |
+| `MIXERAT_REQUEST_ABORT` | 8 |  |
 
 ---
 ## <a id="enum-mixerprofileatstate_e"></a>`mixerProfileATState_e`
@@ -3426,7 +3591,32 @@
 | `MIXERAT_PHASE_IDLE` | 0 |  |
 | `MIXERAT_PHASE_TRANSITION_INITIALIZE` | 1 |  |
 | `MIXERAT_PHASE_TRANSITIONING` | 2 |  |
-| `MIXERAT_PHASE_DONE` | 3 |  |
+| `MIXERAT_PHASE_POST_SWITCH_FADE` | (3) | USE_AUTO_TRANSITION |
+| `MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE` | (4) | USE_AUTO_TRANSITION |
+| `MIXERAT_PHASE_DONE` | (5) | !USE_AUTO_TRANSITION |
+
+---
+## <a id="enum-mixerprofileatwaitreason_e"></a>`mixerProfileATWaitReason_e`
+
+> Source: ../../../src/main/flight/mixer_profile.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MIXERAT_WAIT_REASON_NONE` | 0 |  |
+| `MIXERAT_WAIT_REASON_MC_SPEED` | 1 |  |
+| `MIXERAT_WAIT_REASON_NO_SPEED` | 2 |  |
+| `MIXERAT_WAIT_REASON_MC_SPEED_HIGH` | 3 |  |
+
+---
+## <a id="enum-mixertransitionmanualsessionmode_e"></a>`mixerTransitionManualSessionMode_e`
+
+> Source: ../../../src/main/flight/mixer_transition_logic.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MIXER_TRANSITION_MANUAL_SESSION_NONE` | 0 |  |
+| `MIXER_TRANSITION_MANUAL_SESSION_LEGACY` | 1 |  |
+| `MIXER_TRANSITION_MANUAL_SESSION_AUTO` | 2 |  |
 
 ---
 ## <a id="enum-modeactivationoperator_e"></a>`modeActivationOperator_e`
@@ -3546,6 +3736,38 @@
 | `MF_TURTLE_MODE` | (1 << 2) |  |
 
 ---
+## <a id="enum-nav_control_type_e"></a>`nav_control_type_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_GPS_ATTI` | 0 |  |
+| `NAV_GPS_CRUISE` | 1 |  |
+
+---
+## <a id="enum-nav_heading_control_e"></a>`nav_heading_control_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_HEADING_CONTROL_NONE` | 0 |  |
+| `NAV_HEADING_CONTROL_AUTO` | 1 |  |
+| `NAV_HEADING_CONTROL_MANUAL` | 2 |  |
+
+---
+## <a id="enum-nav_loiter_type_e"></a>`nav_loiter_type_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_LOITER_RIGHT` | 0 |  |
+| `NAV_LOITER_LEFT` | 1 |  |
+| `NAV_LOITER_YAW` | 2 |  |
+
+---
 ## <a id="enum-nav_reset_type_e"></a>`nav_reset_type_e`
 
 > Source: ../../../src/main/navigation/navigation.h
@@ -3555,6 +3777,30 @@
 | `NAV_RESET_NEVER` | 0 |  |
 | `NAV_RESET_ON_FIRST_ARM` | 1 |  |
 | `NAV_RESET_ON_EACH_ARM` | 2 |  |
+
+---
+## <a id="enum-nav_rth_alt_profile_e"></a>`nav_rth_alt_profile_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_RTH_NO_ALT` | 0 |  |
+| `NAV_RTH_EXTRA_ALT` | 1 |  |
+| `NAV_RTH_CONST_ALT` | 2 |  |
+| `NAV_RTH_MAX_ALT` | 3 |  |
+| `NAV_RTH_AT_LEAST_ALT` | 4 |  |
+| `NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT` | 5 |  |
+
+---
+## <a id="enum-nav_rth_climb_profile_e"></a>`nav_rth_climb_profile_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_RTH_CLIMB_STAGE_AT_LEAST` | 0 |  |
+| `NAV_RTH_CLIMB_STAGE_EXTRA` | 1 |  |
 
 ---
 ## <a id="enum-navaglestimatequality_e"></a>`navAGLEstimateQuality_e`
@@ -3648,21 +3894,26 @@
 | `NAV_FSM_EVENT_SWITCH_TO_MIXERAT` | 14 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING` | 15 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_SEND_TO` | 16 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_1` | 17 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_2` | 18 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_3` | 19 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_4` | 20 |  |
-| `NAV_FSM_EVENT_STATE_SPECIFIC_5` | 21 |  |
+| `NAV_FSM_EVENT_SWITCH_TO_LANDING` | 17 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_1` | 18 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_2` | 19 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_3` | 20 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_4` | 21 |  |
+| `NAV_FSM_EVENT_STATE_SPECIFIC_5` | 22 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT` | NAV_FSM_EVENT_STATE_SPECIFIC_1 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED` | NAV_FSM_EVENT_STATE_SPECIFIC_2 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME` | NAV_FSM_EVENT_STATE_SPECIFIC_1 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND` | NAV_FSM_EVENT_STATE_SPECIFIC_2 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED` | NAV_FSM_EVENT_STATE_SPECIFIC_3 |  |
+| `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP` | NAV_FSM_EVENT_STATE_SPECIFIC_4 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE` | NAV_FSM_EVENT_STATE_SPECIFIC_1 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK` | NAV_FSM_EVENT_STATE_SPECIFIC_2 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME` | NAV_FSM_EVENT_STATE_SPECIFIC_3 |  |
 | `NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME` | NAV_FSM_EVENT_STATE_SPECIFIC_4 |  |
+| `NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE` | NAV_FSM_EVENT_STATE_SPECIFIC_1 | USE_AUTO_TRANSITION |
+| `NAV_FSM_EVENT_MIXERAT_MISSION_CAPTURE` | NAV_FSM_EVENT_STATE_SPECIFIC_2 | USE_AUTO_TRANSITION |
 | `NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING` | NAV_FSM_EVENT_STATE_SPECIFIC_5 |  |
+| `NAV_FSM_EVENT_MIXERAT_MISSION_RESUME` |  | USE_AUTO_TRANSITION |
 | `NAV_FSM_EVENT_COUNT` |  |  |
 
 ---
@@ -3717,10 +3968,11 @@
 | `NAV_STATE_MIXERAT_INITIALIZE` | 42 |  |
 | `NAV_STATE_MIXERAT_IN_PROGRESS` | 43 |  |
 | `NAV_STATE_MIXERAT_ABORT` | 44 |  |
-| `NAV_STATE_SEND_TO_INITALIZE` | 45 |  |
-| `NAV_STATE_SEND_TO_IN_PROGESS` | 46 |  |
-| `NAV_STATE_SEND_TO_FINISHED` | 47 |  |
-| `NAV_STATE_COUNT` | 48 |  |
+| `NAV_STATE_MIXERAT_MISSION_CAPTURE` | 45 |  |
+| `NAV_STATE_SEND_TO_INITALIZE` | 46 |  |
+| `NAV_STATE_SEND_TO_IN_PROGESS` | 47 |  |
+| `NAV_STATE_SEND_TO_FINISHED` | 48 |  |
+| `NAV_STATE_COUNT` | 49 |  |
 
 ---
 ## <a id="enum-navigationfsmstateflags_t"></a>`navigationFSMStateFlags_t`
@@ -3747,6 +3999,7 @@
 | `NAV_AUTO_WP_DONE` | (1 << 15) |  |
 | `NAV_MIXERAT` | (1 << 16) |  |
 | `NAV_CTL_HOLD` | (1 << 17) |  |
+| `NAV_CTL_SPEED` | (1 << 18) |  |
 
 ---
 ## <a id="enum-navigationhomeflags_t"></a>`navigationHomeFlags_t`
@@ -3820,6 +4073,7 @@
 | `NAV_PERSISTENT_ID_SEND_TO_INITALIZE` | 49 |  |
 | `NAV_PERSISTENT_ID_SEND_TO_IN_PROGRES` | 50 |  |
 | `NAV_PERSISTENT_ID_SEND_TO_FINISHED` | 51 |  |
+| `NAV_PERSISTENT_ID_MIXERAT_MISSION_CAPTURE` | 52 |  |
 
 ---
 ## <a id="enum-navmcaltholdthrottle_e"></a>`navMcAltHoldThrottle_e`
@@ -3842,6 +4096,77 @@
 | `WP_MISSION_START` | 0 |  |
 | `WP_MISSION_RESUME` | 1 |  |
 | `WP_MISSION_SWITCH` | 2 |  |
+
+---
+## <a id="enum-navmissionuseraction_e"></a>`navMissionUserAction_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_MISSION_USER_ACTION_OFF` | 0 |  |
+| `NAV_MISSION_USER_ACTION_1` | 1 |  |
+| `NAV_MISSION_USER_ACTION_2` | 2 |  |
+| `NAV_MISSION_USER_ACTION_3` | 3 |  |
+| `NAV_MISSION_USER_ACTION_4` | 4 |  |
+
+---
+## <a id="enum-navmissionvtoltransitiondisposition_e"></a>`navMissionVtolTransitionDisposition_e`
+
+> Source: ../../../src/main/navigation/navigation.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_MISSION_VTOL_TRANSITION_NONE` | 0 |  |
+| `NAV_MISSION_VTOL_TRANSITION_CONTINUE` | 1 |  |
+| `NAV_MISSION_VTOL_TRANSITION_WAIT` | 2 |  |
+| `NAV_MISSION_VTOL_TRANSITION_START` | 3 |  |
+| `NAV_MISSION_VTOL_TRANSITION_FAIL_ACTION` | 4 |  |
+| `NAV_MISSION_VTOL_TRANSITION_REJECT` | 5 |  |
+
+---
+## <a id="enum-navmissionvtoltransitionprecondition_e"></a>`navMissionVtolTransitionPrecondition_e`
+
+> Source: ../../../src/main/navigation/navigation_vtol_mission_logic.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_MISSION_VTOL_PRECONDITION_READY` | 0 |  |
+| `NAV_MISSION_VTOL_PRECONDITION_WAIT` | 1 |  |
+| `NAV_MISSION_VTOL_PRECONDITION_REJECT` | 2 |  |
+
+---
+## <a id="enum-navmissionvtoltransitionstartvalidation_e"></a>`navMissionVtolTransitionStartValidation_e`
+
+> Source: ../../../src/main/navigation/navigation_vtol_mission_logic.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_MISSION_VTOL_START_VALIDATION_READY` | 0 |  |
+| `NAV_MISSION_VTOL_START_VALIDATION_FAIL_ACTION` | 1 |  |
+| `NAV_MISSION_VTOL_START_VALIDATION_REJECT` | 2 |  |
+
+---
+## <a id="enum-navmixeratretryscanresult_e"></a>`navMixerATRetryScanResult_e`
+
+> Source: ../../../src/main/navigation/navigation.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_MIXERAT_RETRY_SCAN_IN_PROGRESS` | 0 |  |
+| `NAV_MIXERAT_RETRY_SCAN_READY_TO_RETRY` | 1 |  |
+| `NAV_MIXERAT_RETRY_SCAN_FAILED` | 2 |  |
+
+---
+## <a id="enum-navmixeratretrystage_e"></a>`navMixerATRetryStage_e`
+
+> Source: ../../../src/main/navigation/navigation.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_MIXERAT_RETRY_STAGE_IDLE` | 0 |  |
+| `NAV_MIXERAT_RETRY_STAGE_SCAN` | 1 |  |
+| `NAV_MIXERAT_RETRY_STAGE_ALIGN` | 2 |  |
 
 ---
 ## <a id="enum-navoverridesmotorstop_e"></a>`navOverridesMotorStop_e`
@@ -3972,6 +4297,56 @@
 | `MW_NAV_STATE_HOVER_ABOVE_HOME` | 13 |  |
 | `MW_NAV_STATE_EMERGENCY_LANDING` | 14 |  |
 | `MW_NAV_STATE_RTH_CLIMB` | 15 |  |
+
+---
+## <a id="enum-navvtolmixeratmode_e"></a>`navVtolMixerATMode_e`
+
+> Source: ../../../src/main/navigation/navigation_vtol_mission_logic.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_VTOL_MIXERAT_MODE_NONE` | 0 |  |
+| `NAV_VTOL_MIXERAT_MODE_WAYPOINT` | 1 |  |
+| `NAV_VTOL_MIXERAT_MODE_RTH` | 2 |  |
+| `NAV_VTOL_MIXERAT_MODE_LAND` | 3 |  |
+| `NAV_VTOL_MIXERAT_MODE_POSHOLD` | 4 |  |
+| `NAV_VTOL_MIXERAT_MODE_EMERGENCY_LANDING` | 5 |  |
+
+---
+## <a id="enum-navvtoltransitionfailactionfwtomc_e"></a>`navVtolTransitionFailActionFwToMc_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_IDLE` | 0 |  |
+| `NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_LOITER` | 1 |  |
+| `NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_RTH` | 2 |  |
+| `NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_EMERGENCY_LANDING` | 3 |  |
+| `NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH` | 4 |  |
+
+---
+## <a id="enum-navvtoltransitionfailactionmctofw_e"></a>`navVtolTransitionFailActionMcToFw_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_IDLE` | 0 |  |
+| `NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_POSH` | 1 |  |
+| `NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_RTH` | 2 |  |
+| `NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_EMERGENCY_LANDING` | 3 |  |
+
+---
+## <a id="enum-navvtoltransitionosdstate_e"></a>`navVtolTransitionOsdState_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_VTOL_TRANSITION_OSD_NONE` | 0 |  |
+| `NAV_VTOL_TRANSITION_OSD_RETRY_SCAN` | 1 |  |
+| `NAV_VTOL_TRANSITION_OSD_RETRY_ALIGN` | 2 |  |
 
 ---
 ## <a id="enum-navwaypointactions_e"></a>`navWaypointActions_e`
@@ -4276,7 +4651,9 @@
 | `OSD_NAV_FW_ALT_CONTROL_RESPONSE` | 166 |  |
 | `OSD_NAV_MIN_GROUND_SPEED` | 167 |  |
 | `OSD_THROTTLE_GAUGE` | 168 |  |
-| `OSD_ITEM_COUNT` | 169 |  |
+| `OSD_GPS_EXTRA_STATS` | 169 |  |
+| `OSD_AUTO_SPEED` | 170 |  |
+| `OSD_ITEM_COUNT` | 171 |  |
 
 ---
 ## <a id="enum-osd_sidebar_arrow_e"></a>`osd_sidebar_arrow_e`
@@ -4429,6 +4806,8 @@
 | `OUTPUT_MODE_MOTORS` | 1 |  |
 | `OUTPUT_MODE_SERVOS` | 2 |  |
 | `OUTPUT_MODE_LED` | 3 |  |
+| `OUTPUT_MODE_PINIO` | 4 |  |
+| `OUTPUT_MODE_BEEPER` | 5 |  |
 
 ---
 ## <a id="enum-pageid_e"></a>`pageId_e`
@@ -4495,7 +4874,8 @@
 | `PID_HEADING` | 8 |  |
 | `PID_VEL_Z` | 9 |  |
 | `PID_POS_HEADING` | 10 |  |
-| `PID_ITEM_COUNT` | 11 |  |
+| `PID_AUTO_SPEED` | 11 |  |
+| `PID_ITEM_COUNT` | 12 |  |
 
 ---
 ## <a id="enum-pidtype_e"></a>`pidType_e`
@@ -4518,6 +4898,7 @@
 |---|---:|---|
 | `PIN_LABEL_NONE` | 0 |  |
 | `PIN_LABEL_LED` | 1 |  |
+| `PIN_LABEL_PINIO_BASE` | 2 |  |
 
 ---
 ## <a id="enum-pitotsensor_e"></a>`pitotSensor_e`
@@ -4534,6 +4915,7 @@
 | `PITOT_FAKE` | 5 |  |
 | `PITOT_MSP` | 6 |  |
 | `PITOT_DLVR` | 7 |  |
+| `PITOT_MS5525` | 8 |  |
 
 ---
 ## <a id="enum-polltype_e"></a>`pollType_e`
@@ -4864,7 +5246,8 @@
 | `OWNER_OLED_DISPLAY` | 31 |  |
 | `OWNER_PINIO` | 32 |  |
 | `OWNER_IRLOCK` | 33 |  |
-| `OWNER_TOTAL_COUNT` | 34 |  |
+| `OWNER_DRONECAN` | 34 |  |
+| `OWNER_TOTAL_COUNT` | 35 |  |
 
 ---
 ## <a id="enum-resourcetype_e"></a>`resourceType_e`
@@ -4886,7 +5269,8 @@
 | `RESOURCE_QUADSPI_BK2IO3` | 10 |  |
 | `RESOURCE_ADC_CH1` | 11 |  |
 | `RESOURCE_RX_CE` | 12 |  |
-| `RESOURCE_TOTAL_COUNT` | 13 |  |
+| `RESOURCE_CAN_TX` | 13 |  |
+| `RESOURCE_TOTAL_COUNT` | 14 |  |
 
 ---
 ## <a id="enum-reversiblemotorsthrottlestate_e"></a>`reversibleMotorsThrottleState_e`
@@ -5070,7 +5454,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5081,7 +5465,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5212,7 +5596,7 @@
 | `FUNCTION_DJI_HD_OSD` | (1 << 21) |  |
 | `FUNCTION_SERVO_SERIAL` | (1 << 22) |  |
 | `FUNCTION_TELEMETRY_SMARTPORT_MASTER` | (1 << 23) |  |
-| `FUNCTION_UNUSED_2` | (1 << 24) |  |
+| `FUNCTION_CRSF_SENSOR` | (1 << 24) |  |
 | `FUNCTION_MSP_OSD` | (1 << 25) |  |
 | `FUNCTION_GIMBAL` | (1 << 26) |  |
 | `FUNCTION_GIMBAL_HEADTRACKER` | (1 << 27) |  |
@@ -5412,6 +5796,21 @@
 | `HITL_EXTENDED_FLAGS` | (1 << 7) |  |
 | `HITL_GPS_TIMEOUT` | (1 << 8) |  |
 | `HITL_PITOT_FAILURE` | (1 << 9) |  |
+| `HITL_CURRENT_SENSOR` | (1 << 10) |  |
+| `HITL_SIM_RC_INPUT` | (1 << 11) |  |
+| `HITL_RANGEFINDER` | (1 << 12) |  |
+| `HITL_FAILSAFE_TRIGGERED` | (1 << 13) |  |
+| `HITL_SITL_MODE` | (1 << 14) |  |
+
+---
+## <a id="enum-sitlcanmode_e"></a>`sitlCANMode_e`
+
+> Source: ../../../src/main/drivers/dronecan/libcanard/canard_sitl_driver.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SITL_CAN_MODE_STUB` | 0 |  |
+| `SITL_CAN_MODE_SOCKETCAN` | 1 |  |
 
 ---
 ## <a id="enum-smartaudioversion_e"></a>`smartAudioVersion_e`
@@ -5662,6 +6061,7 @@
 | `TCH_DMA_IDLE` | 0 |  |
 | `TCH_DMA_READY` | 1 |  |
 | `TCH_DMA_ACTIVE` | 2 |  |
+| `TCH_DMA_CIRCULAR` | 3 |  |
 
 ---
 ## <a id="enum-tempsensortype_e"></a>`tempSensorType_e`
@@ -5719,6 +6119,7 @@
 | `TIM_USE_MC_CHNFW` | (1 << 4) |  |
 | `TIM_USE_LED` | (1 << 24) |  |
 | `TIM_USE_BEEPER` | (1 << 25) |  |
+| `TIM_USE_PINIO` | (1 << 26) |  |
 
 ---
 ## <a id="enum-timid_e"></a>`timId_e`
@@ -5889,6 +6290,7 @@
 | `MSG_CFG_GNSS` | 62 |  |
 | `MSG_MON_GNSS` | 40 |  |
 | `MSG_NAV_SIG` | 67 |  |
+| `MSG_MON_RF` | 56 |  |
 
 ---
 ## <a id="enum-vcselperiodtype_e"></a>`vcselPeriodType_e`
@@ -5929,7 +6331,9 @@
 | `VOLTAGE_SENSOR_ESC` | 2 |  |
 | `VOLTAGE_SENSOR_FAKE` | 3 |  |
 | `VOLTAGE_SENSOR_SMARTPORT` | 4 |  |
-| `VOLTAGE_SENSOR_MAX` | VOLTAGE_SENSOR_SMARTPORT |  |
+| `VOLTAGE_SENSOR_CRSF` | 5 |  |
+| `VOLTAGE_SENSOR_CAN` | 6 |  |
+| `VOLTAGE_SENSOR_MAX` | VOLTAGE_SENSOR_CAN |  |
 
 ---
 ## <a id="enum-vs600band_e"></a>`vs600Band_e`
@@ -5956,6 +6360,36 @@
 | `VS600_POWER_25MW` | 1 |  |
 | `VS600_POWER_200MW` | 2 |  |
 | `VS600_POWER_600MW` | 3 |  |
+
+---
+## <a id="enum-vtolmcprotectiondebugflags_e"></a>`vtolMcProtectionDebugFlags_e`
+
+> Source: ../../../src/main/navigation/navigation_vtol_mc_protection.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `VTOL_MC_PROTECT_FLAG_CONFIGURED` | 1 << 0 |  |
+| `VTOL_MC_PROTECT_FLAG_VTOL_MC` | 1 << 1 |  |
+| `VTOL_MC_PROTECT_FLAG_NAV_ACTIVE` | 1 << 2 |  |
+| `VTOL_MC_PROTECT_FLAG_STABILIZED_ACTIVE` | 1 << 3 |  |
+| `VTOL_MC_PROTECT_FLAG_CAPTURE_ACTIVE` | 1 << 4 |  |
+| `VTOL_MC_PROTECT_FLAG_LANDING_SETTLE` | 1 << 5 |  |
+| `VTOL_MC_PROTECT_FLAG_BAILOUT_ACTIVE` | 1 << 6 |  |
+| `VTOL_MC_PROTECT_FLAG_RESERVE_SHRUNK` | 1 << 7 |  |
+| `VTOL_MC_PROTECT_FLAG_SOFT_ALTITUDE` | 1 << 8 |  |
+| `VTOL_MC_PROTECT_FLAG_COMMAND_SHAPED` | 1 << 9 |  |
+| `VTOL_MC_PROTECT_FLAG_VELOCITY_FALLBACK` | 1 << 10 |  |
+
+---
+## <a id="enum-vtolmcprotectionmode_e"></a>`vtolMcProtectionMode_e`
+
+> Source: ../../../src/main/fc/config.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `VTOL_MC_PROTECTION_OFF` | 0 |  |
+| `VTOL_MC_PROTECTION_NAV` | 1 |  |
+| `VTOL_MC_PROTECTION_NAV_AND_STABILIZED` | 2 |  |
 
 ---
 ## <a id="enum-vtxdevtype_e"></a>`vtxDevType_e`

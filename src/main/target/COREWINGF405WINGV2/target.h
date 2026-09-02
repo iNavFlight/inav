@@ -102,6 +102,10 @@
 #define ICM42605_CS_PIN         PA4
 #define ICM42605_SPI_BUS        BUS_SPI1
 
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW270_DEG
+#define BMI270_CS_PIN           PA4
+#define BMI270_SPI_BUS          BUS_SPI1
 
 // Baro
 #define USE_BARO

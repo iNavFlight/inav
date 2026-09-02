@@ -67,8 +67,19 @@
 #define USE_FAKE_BARO
 #define USE_FAKE_MAG
 #define USE_GPS_FAKE
+
 #define USE_RANGEFINDER_FAKE
 #define USE_RX_SIM
+
+// SD card simulated from a host image file (see drivers/sdcard/sdcard_sitl.c),
+// which also enables the terrain module for SITL
+#define USE_SDCARD
+#define USE_SDCARD_SITL
+#define USE_TERRAIN
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 4 // mirror the small-RAM (F7/AT32) terrain cache tier of the new base (each entry ~1.1 KB packed)
+#define USE_DRONECAN
+#define DRONECAN_SITL_INTERFACE "vcan0"
+
 #undef MAX_MIXER_PROFILE_COUNT
 #define MAX_MIXER_PROFILE_COUNT 2
 
@@ -78,6 +89,8 @@
 #define USE_HEADTRACKER
 #define USE_HEADTRACKER_SERIAL
 #define USE_HEADTRACKER_MSP
+#define USE_TELEMETRY_MAVLINK
+#define USE_SERIALRX_MAVLINK
 
 #undef USE_DASHBOARD
 #define USE_GEOZONE
@@ -110,7 +123,7 @@
 #undef USE_SPI
 
 // Some dummys
-#define TARGET_FLASH_SIZE 2048
+#define MCU_FLASH_SIZE 2048
 
 #define LED_STRIP_TIMER 1
 #define SOFTSERIAL_1_TIMER 2

@@ -645,9 +645,9 @@ void HAL_LPTIM_DirectionDownCallback(LPTIM_HandleTypeDef *hlptim);
 
 /* Callbacks Register/UnRegister functions  ***********************************/
 #if (USE_HAL_LPTIM_REGISTER_CALLBACKS == 1)
-HAL_StatusTypeDef HAL_LPTIM_RegisterCallback(LPTIM_HandleTypeDef *lphtim, HAL_LPTIM_CallbackIDTypeDef CallbackID,
+HAL_StatusTypeDef HAL_LPTIM_RegisterCallback(LPTIM_HandleTypeDef *hlptim, HAL_LPTIM_CallbackIDTypeDef CallbackID,
                                              pLPTIM_CallbackTypeDef pCallback);
-HAL_StatusTypeDef HAL_LPTIM_UnRegisterCallback(LPTIM_HandleTypeDef *lphtim, HAL_LPTIM_CallbackIDTypeDef CallbackID);
+HAL_StatusTypeDef HAL_LPTIM_UnRegisterCallback(LPTIM_HandleTypeDef *hlptim, HAL_LPTIM_CallbackIDTypeDef CallbackID);
 #endif /* USE_HAL_LPTIM_REGISTER_CALLBACKS */
 /**
   * @}

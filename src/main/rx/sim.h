@@ -20,5 +20,6 @@
 #include "rx/rx.h"
 
 void rxSimSetChannelValue(uint16_t* values, uint8_t count);
-void rxSimSetRssi(uint16_t value);
+void rxSimSetRssi(const uint16_t value);
+void rxSimSetFailsafe(const bool value);
 void rxSimInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);

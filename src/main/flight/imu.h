@@ -25,19 +25,16 @@
 #include "config/parameter_group.h"
 
 extern fpVector3_t imuMeasuredAccelBF;         // cm/s/s
-extern fpVector3_t imuMeasuredAccelBFFiltered; // cm/s/s
 extern fpVector3_t imuMeasuredRotationBF;       // rad/s
-extern fpVector3_t imuMeasuredRotationBFFiltered;       // rad/s
-extern fpVector3_t compansatedGravityBF;         // cm/s/s
 extern fpVector3_t HeadVecEFFiltered;
 
 typedef union {
     int16_t raw[XYZ_AXIS_COUNT];
     struct {
         // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
-        int16_t roll;
-        int16_t pitch;
-        int16_t yaw;
+        int16_t roll;       // +ve = Roll right
+        int16_t pitch;      // +ve = Pitch down !
+        int16_t yaw;        // +ve = Yaw right
     } values;
 } attitudeEulerAngles_t;
 
@@ -88,6 +85,7 @@ void imuUpdateAccelerometer(void);
 float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);
+bool isYawZeroResetAllowed(void);
 
 void imuTransformVectorBodyToEarth(fpVector3_t * v);
 void imuTransformVectorEarthToBody(fpVector3_t * v);

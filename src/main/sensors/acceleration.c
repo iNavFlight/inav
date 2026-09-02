@@ -45,6 +45,8 @@
 #include "drivers/accgyro/accgyro_bmi270.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_icm42605.h"
+#include "drivers/accgyro/accgyro_icm45686.h"
+#include "drivers/accgyro/accgyro_icm40609d.h"
 #include "drivers/accgyro/accgyro_lsm6dxx.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/sensor.h"
@@ -239,6 +241,30 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     case ACC_LSM6DXX:
         if (lsm6dAccDetect(dev)) {
             accHardware = ACC_LSM6DXX;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+#ifdef USE_IMU_ICM45686
+    case ACC_ICM45686:
+        if (icm45686AccDetect(dev)) {
+            accHardware = ACC_ICM45686;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+#ifdef USE_IMU_ICM40609D
+    case ACC_ICM40609D:
+        if (icm40609dAccDetect(dev)) {
+            accHardware = ACC_ICM40609D;
             break;
         }
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
@@ -527,11 +553,11 @@ const acc_extremes_t* accGetMeasuredExtremes(void)
 
 float accGetMeasuredMaxG(void)
 {
-    return fast_fsqrtf(acc.maxGSq);
+    return acc.maxG;
 }
 
 void resetGForceStats(void) {
-    acc.maxGSq = 0.0f;
+    acc.maxG = 0.0f;
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         acc.extremes[axis].min = 100;
@@ -586,8 +612,8 @@ void accUpdate(void)
         // calc difference from this sample and 5hz filtered value, square and filter at 2hz
         const float accDiff = acc.accADCf[axis] - accFloorFilt;
         acc.accVibeSq[axis] = pt1FilterApply(&accVibeFilter[axis], accDiff * accDiff);
-        acc.accVibe = fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
     }
+    acc.accVibe = fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
 
     // Filter acceleration
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -610,8 +636,8 @@ void updateAccExtremes(void)
         if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
     }
 
-    float gforceSq = sq(acc.accADCf[X]) + sq(acc.accADCf[Y]) + sq(acc.accADCf[Z]);
-    if (gforceSq > acc.maxGSq) acc.maxGSq = gforceSq;
+    float gforce = calc_length_pythagorean_3D(acc.accADCf[X], acc.accADCf[Y], acc.accADCf[Z]);
+    if (gforce > acc.maxG) acc.maxG = gforce;
 }
 
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)

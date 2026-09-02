@@ -164,6 +164,12 @@
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
 #define SERIALRX_UART           SERIAL_PORT_USART6
 
+// *************** CANBUS ****************************
+#define USE_DRONECAN
+#define CAN1_RX                 PD0
+#define CAN1_TX                 PD1 
+#define CAN1_STANDBY            PD3
+
 // *************** SDIO SD BLACKBOX*******************
 #define USE_SDCARD
 #define USE_SDCARD_SDIO
