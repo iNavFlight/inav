@@ -265,6 +265,12 @@ static inline bool markerGuidancePositionTargetAllowed(
            !cruiseBrakingActive && !vtolCaptureActive && !manualTakeover;
 }
 
+static inline bool markerGuidancePositionTakeoverActive(
+    bool manualPosition)
+{
+    return manualPosition;
+}
+
 static inline bool markerGuidanceTargetCanBeAcquired(
     bool targetFresh,
     bool targetBelongsToContext,

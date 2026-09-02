@@ -58,6 +58,7 @@ void markerGuidanceReset(void);
 void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 void markerGuidanceUpdateDebug(void);
 bool markerGuidanceApplyHeadingOverride(int32_t *desiredYawCd);
+bool markerGuidanceOwnsHeading(void);
 bool markerGuidanceOwnsPositionTarget(void);
 bool markerGuidanceGetActiveLandingPositionTarget(fpVector3_t *targetOut);
 void markerGuidanceGetLandControl(markerGuidanceLandControl_t *controlOut);

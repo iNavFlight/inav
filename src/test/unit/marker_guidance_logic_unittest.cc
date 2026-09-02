@@ -275,6 +275,12 @@ TEST(MarkerGuidanceLogicTest, PositionTargetWaitsForBrakingCaptureAndManualContr
     EXPECT_FALSE(markerGuidancePositionTargetAllowed(true, true, false, false, true));
 }
 
+TEST(MarkerGuidanceLogicTest, MarkerPositionTakeoverOnlyFollowsRollPitchOwnership)
+{
+    EXPECT_TRUE(markerGuidancePositionTakeoverActive(true));
+    EXPECT_FALSE(markerGuidancePositionTakeoverActive(false));
+}
+
 TEST(MarkerGuidanceLogicTest, AcquisitionRequiresFreshContextSampleAndAvailablePositionPath)
 {
     EXPECT_TRUE(markerGuidanceTargetCanBeAcquired(true, true, true, true));

@@ -6349,6 +6349,14 @@ int8_t navigationGetHeadingControlState(void)
         return NAV_HEADING_CONTROL_MANUAL;
     }
 
+#ifdef USE_MARKER_GUIDANCE
+    // POSH does not normally require automatic heading hold. Enable it only
+    // while precision landing has actually supplied the active yaw target.
+    if (markerGuidanceOwnsHeading()) {
+        return NAV_HEADING_CONTROL_AUTO;
+    }
+#endif
+
     // For multirotors it depends on navigation system mode
     // Course hold requires Auto Control to update heading hold target whilst RC adjustment active
     if (navGetStateFlags(posControl.navState) & NAV_REQUIRE_MAGHOLD) {

@@ -173,10 +173,15 @@ static bool markerGuidanceIsLandContext(navigationFSMStateFlags_t navStateFlags)
     return (navStateFlags & NAV_CTL_LAND) && !STATE(AIRPLANE);
 }
 
-static bool markerGuidanceManualTakeoverActive(void)
+static bool markerGuidancePositionTakeoverActiveNow(void)
 {
-    return posControl.flags.isAdjustingAltitude ||
-           posControl.flags.isAdjustingPosition ||
+    return markerGuidancePositionTakeoverActive(posControl.flags.isAdjustingPosition);
+}
+
+static bool markerGuidanceAnyTakeoverActive(void)
+{
+    return markerGuidancePositionTakeoverActiveNow() ||
+           posControl.flags.isAdjustingAltitude ||
            posControl.flags.isAdjustingHeading;
 }
 
@@ -593,7 +598,7 @@ static markerGuidanceDebugReason_e markerGuidanceDebugReason(
     if (markerGuidance.activeContext == MARKER_GUIDANCE_CONTEXT_NONE) {
         return MARKER_GUIDANCE_DEBUG_REASON_NO_CONTEXT;
     }
-    if (markerGuidanceManualTakeoverActive()) {
+    if (markerGuidanceAnyTakeoverActive()) {
         return MARKER_GUIDANCE_DEBUG_REASON_MANUAL_TAKEOVER;
     }
     if (targetFresh && !positionSampleAllowed) {
@@ -681,9 +686,9 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
     markerGuidanceReason_e freshnessReason = MARKER_GUIDANCE_REASON_OK;
     const bool targetFresh = markerGuidanceTargetIsFresh(nowMs, &freshnessReason);
 
-    const bool manualTakeover = markerGuidanceManualTakeoverActive();
     const bool positionEstimateUsable = posControl.flags.estPosStatus >= EST_USABLE;
     const markerGuidanceContext_e selectedContext = markerGuidanceSelectContext(navStateFlags);
+    const bool positionTakeover = markerGuidancePositionTakeoverActiveNow();
 
     updateContextRuntime(selectedContext);
 
@@ -701,7 +706,7 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
         return;
     }
 
-    if (manualTakeover || !positionEstimateUsable) {
+    if (!positionEstimateUsable) {
         suspendPositionAcquisitionUntilNewSample();
         markerGuidance.vtolRecoveryPaused = false;
         markerGuidance.recoveryHeadingLatched = false;
@@ -710,8 +715,39 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
     }
 
     const bool recoveryWasPaused = markerGuidance.vtolRecoveryPaused;
+    const bool vtolRecoveryRequested = navigationVtolMcProtectionGuidanceRecoveryActive();
+    const bool targetBelongsToContext = selectedContext != MARKER_GUIDANCE_CONTEXT_LAND ||
+        markerGuidanceLandSampleIsNewForContext(
+            markerGuidance.target.sequence,
+            markerGuidance.lastLandExitTargetSequence);
+    const bool vtolCaptureBlocksAcquisition = navigationVtolMcProtectionPositionCaptureActive() ||
+        (!markerGuidance.targetAcquiredInContext &&
+         navigationVtolMcProtectionPositionCapturePending(navStateFlags));
+    const bool navigationBlocksMarkerAcquisition = STATE(NAV_CRUISE_BRAKING) || vtolCaptureBlocksAcquisition;
+
+    // Position and heading ownership are independent. Roll/pitch releases XY,
+    // while a fresh marker heading can still be acquired unless yaw itself is
+    // under pilot control or another horizontal navigation owner is active.
+    if (markerGuidanceIsPlMode() &&
+        (selectedContext == MARKER_GUIDANCE_CONTEXT_POSHOLD || selectedContext == MARKER_GUIDANCE_CONTEXT_LAND) &&
+        targetFresh && targetBelongsToContext && !recoveryWasPaused && !vtolRecoveryRequested &&
+        !navigationBlocksMarkerAcquisition && !posControl.flags.isAdjustingHeading &&
+        markerGuidanceHeadingSampleAllowed(markerGuidance.target.sequence, markerGuidance.rejectedHeadingTargetSequence)) {
+        markerGuidance.headingLatched = true;
+        markerGuidance.latchedHeadingCd = markerGuidance.target.targetHeadingCd;
+        markerGuidance.rejectedHeadingTargetSequence = 0;
+    }
+
+    if (positionTakeover) {
+        suspendPositionAcquisitionUntilNewSample();
+        markerGuidance.vtolRecoveryPaused = false;
+        markerGuidance.recoveryHeadingLatched = false;
+        setMarkerGuidanceState(MARKER_GUIDANCE_STANDBY);
+        return;
+    }
+
     markerGuidance.vtolRecoveryPaused = markerGuidanceVtolRecoveryShouldPause(
-        navigationVtolMcProtectionGuidanceRecoveryActive(),
+        vtolRecoveryRequested,
         markerGuidance.targetAcquiredInContext,
         selectedContext);
 
@@ -750,23 +786,16 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
     }
     markerGuidance.recoveryHeadingLatched = false;
 
-    const bool targetBelongsToContext = selectedContext != MARKER_GUIDANCE_CONTEXT_LAND ||
-        markerGuidanceLandSampleIsNewForContext(
-            markerGuidance.target.sequence,
-            markerGuidance.lastLandExitTargetSequence);
     const bool positionSampleAllowed = markerGuidanceHeadingSampleAllowed(
         markerGuidance.target.sequence,
         markerGuidance.rejectedPositionTargetSequence);
-    const bool vtolCaptureBlocksAcquisition = navigationVtolMcProtectionPositionCaptureActive() ||
-        (!markerGuidance.targetAcquiredInContext &&
-         navigationVtolMcProtectionPositionCapturePending(navStateFlags));
 
     const bool positionTargetAllowed = markerGuidancePositionTargetAllowed(
         navStateFlags & NAV_CTL_POS,
         positionEstimateUsable,
         STATE(NAV_CRUISE_BRAKING),
         vtolCaptureBlocksAcquisition,
-        false);
+        positionTakeover);
     if (targetFresh && targetBelongsToContext && positionSampleAllowed && !positionTargetAllowed) {
         // Braking/capture owns the complete horizontal guidance path, including
         // marker yaw acquisition. Require a later packet after that owner exits.
@@ -785,15 +814,6 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
         markerGuidance.targetAcquiredInContext = true;
         markerGuidance.rejectedPositionTargetSequence = 0;
         markerGuidanceResetRetrySettle(&markerGuidance.retrySettle);
-
-        if (markerGuidanceIsPlMode() &&
-            (selectedContext == MARKER_GUIDANCE_CONTEXT_POSHOLD || selectedContext == MARKER_GUIDANCE_CONTEXT_LAND) &&
-            !posControl.flags.isAdjustingHeading &&
-            markerGuidanceHeadingSampleAllowed(markerGuidance.target.sequence, markerGuidance.rejectedHeadingTargetSequence)) {
-            markerGuidance.headingLatched = true;
-            markerGuidance.latchedHeadingCd = markerGuidance.target.targetHeadingCd;
-            markerGuidance.rejectedHeadingTargetSequence = 0;
-        }
 
         if (markerGuidanceIsPlMode() && selectedContext == MARKER_GUIDANCE_CONTEXT_LAND) {
 
@@ -945,6 +965,11 @@ bool markerGuidanceApplyHeadingOverride(int32_t *desiredYawCd)
     return markerGuidance.headingOverrideApplied;
 }
 
+bool markerGuidanceOwnsHeading(void)
+{
+    return markerGuidance.headingOverrideApplied;
+}
+
 bool markerGuidanceOwnsPositionTarget(void)
 {
     return markerGuidance.positionTargetOwned;
@@ -961,7 +986,7 @@ bool markerGuidanceGetActiveLandingPositionTarget(fpVector3_t *targetOut)
         !isMcHoverCapableProfileActive() ||
         FLIGHT_MODE(FAILSAFE_MODE) ||
         areSensorsCalibrating() ||
-        markerGuidanceManualTakeoverActive()) {
+        markerGuidancePositionTakeoverActiveNow()) {
         return false;
     }
 
@@ -1010,7 +1035,7 @@ void markerGuidanceUpdateDebug(void)
         flags |= MARKER_GUIDANCE_DEBUG_FLAG_POSHOLD_CONTEXT;
     }
     if (markerGuidance.activeContext == MARKER_GUIDANCE_CONTEXT_LAND) flags |= MARKER_GUIDANCE_DEBUG_FLAG_LAND_CONTEXT;
-    if (markerGuidanceManualTakeoverActive()) flags |= MARKER_GUIDANCE_DEBUG_FLAG_MANUAL_TAKEOVER;
+    if (markerGuidanceAnyTakeoverActive()) flags |= MARKER_GUIDANCE_DEBUG_FLAG_MANUAL_TAKEOVER;
     if (FLIGHT_MODE(FAILSAFE_MODE)) flags |= MARKER_GUIDANCE_DEBUG_FLAG_FAILSAFE;
     if (areSensorsCalibrating()) flags |= MARKER_GUIDANCE_DEBUG_FLAG_CALIBRATING;
     if (STATE(LANDING_DETECTED)) flags |= MARKER_GUIDANCE_DEBUG_FLAG_LANDING_DETECTED;
@@ -1102,7 +1127,14 @@ void markerGuidanceGetLandControl(markerGuidanceLandControl_t *controlOut)
         return;
     }
 
-    if (markerGuidance.vtolRecoveryPaused && !markerGuidanceManualTakeoverActive()) {
+    // Vertical pilot input releases only marker Z hold/climb ownership. Marker
+    // XY and heading remain independent and continue through their own paths.
+    if (posControl.flags.isAdjustingAltitude) {
+        return;
+    }
+
+    if (markerGuidance.vtolRecoveryPaused &&
+        !markerGuidancePositionTakeoverActiveNow()) {
         controlOut->mode = MARKER_GUIDANCE_LAND_CTRL_HOLD;
         return;
     }
@@ -1205,8 +1237,8 @@ bool markerGuidanceHandleMspTargetUpdate(
 
     const bool mcProfileActive = isMcHoverCapableProfileActive();
     const navigationFSMStateFlags_t navStateFlags = navGetCurrentStateFlags();
-    const bool manualTakeover = markerGuidanceManualTakeoverActive();
     const markerGuidanceContext_e selectedContext = markerGuidanceSelectContext(navStateFlags);
+    const bool positionTakeover = markerGuidancePositionTakeoverActiveNow();
 
     if (!ARMING_FLAG(ARMED)) {
         responseOut->reason = MARKER_GUIDANCE_REASON_NOT_ARMED;
@@ -1229,10 +1261,10 @@ bool markerGuidanceHandleMspTargetUpdate(
             posControl.flags.estPosStatus >= EST_USABLE,
             STATE(NAV_CRUISE_BRAKING),
             vtolCaptureBlocksAcquisition,
-            manualTakeover);
+            positionTakeover);
 
         int32_t headingCd = posControl.desiredState.yaw;
-        const bool headingUsed = horizontalCorrectionUsed && (navStateFlags & NAV_CTL_YAW) && markerGuidanceSelectHeadingOverride(
+        const bool headingUsed = (navStateFlags & NAV_CTL_YAW) && markerGuidanceSelectHeadingOverride(
             markerGuidanceIsPlMode(),
             selectedContext,
             true,

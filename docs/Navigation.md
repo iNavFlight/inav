@@ -97,9 +97,12 @@ When `nav_marker_guidance_mode = PL`:
 * FC uses marker offsets to center above the target in POSHOLD.
 * while a marker sample is fresh, its absolute XY position temporarily replaces the normal POSHOLD XY target; it is not added as a second velocity command
 * the normal MC position controller converts that target into velocity and attitude commands using the configured navigation speed, acceleration and angle limits
+* roll/pitch input releases marker XY control and requires a newer marker packet before marker centering resumes
+* altitude-stick input remains independent in POSHOLD and LAND, so vertical pilot control does not release marker XY or heading
 * while the target is fresh, FC uses the marker heading immediately before the MC heading controller
 * marker heading never overrides disarmed, failsafe, fixed-wing or manual yaw control
-* after a marker heading has been acquired, FC keeps that heading if the marker is temporarily lost; manual yaw releases the stored heading and PL waits for a new marker packet before taking yaw control again
+* marker yaw is independent of marker XY: roll/pitch does not release marker heading, while manual yaw releases only the stored heading and PL waits for a new marker packet before taking yaw control again
+* POSHOLD automatic heading hold is enabled only while PL actually owns marker yaw; ordinary POSHOLD behavior is unchanged outside marker heading control
 * when the target becomes stale, FC latches the current XY position and stops marker correction immediately; the normal position controller then brakes toward that position
 
 When `nav_marker_guidance_mode = CONTAINMENT`:
@@ -130,7 +133,7 @@ With stale/lost target:
 * if the settle conditions are not reached, FC remains in lost-target hold and does not start the retry climb
 * then falls back to normal LAND behavior
 
-While marker guidance is active, INAV retains the underlying LAND/POSHOLD XY target separately. If the navigation state refreshes that target, the saved value is updated before marker guidance writes its own target. A fresh marker replaces a temporary lost-target hold without reactivating the saved target. The saved navigation target is restored when normal landing fallback begins, the pilot takes control, the navigation context changes, the position estimate becomes unusable, or marker guidance is disabled/reset. After pilot takeover or position-estimate loss, a new marker packet is required before PL can take XY ownership again. This prevents a previously cached pose from unexpectedly restoring marker control.
+While marker guidance is active, INAV retains the underlying LAND/POSHOLD XY target separately. If the navigation state refreshes that target, the saved value is updated before marker guidance writes its own target. A fresh marker replaces a temporary lost-target hold without reactivating the saved target. The saved navigation target is restored when normal landing fallback begins, roll/pitch takes XY control, the navigation context changes, the position estimate becomes unusable, or marker guidance is disabled/reset. After roll/pitch takeover or position-estimate loss, a new marker packet is required before PL can take XY ownership again. Manual yaw releases only marker heading. Altitude-stick input releases only marker Z hold/climb control and does not release marker XY or heading. This prevents a previously cached pose from unexpectedly restoring marker control while keeping the three pilot-control axes independent.
 
 On a VTOL with `vtol_mc_protection_mode` enabled, the initial MC stopping/capture phase prevents PL from taking XY or marker-yaw ownership until the aircraft has settled. Marker guidance waits rather than pulling or turning toward the marker during that phase. A new marker packet after capture finishes is required before PL takes ownership. Movement requested by the active marker target does not restart the initial VTOL capture; capture becomes available again after marker guidance releases XY. During protected VTOL landing, the active PL XY target also becomes the reference used by the landing settle gate. The settle check and the position controller therefore agree on the same landing location instead of comparing the aircraft with the original GPS landing point while PL guides it elsewhere.
 
@@ -179,7 +182,7 @@ Set `debug_mode = MARKER_GUIDANCE` and enable Blackbox debug fields. The eight c
 |---|---|
 | 0..5 | enabled, armed, MC profile, target valid, target fresh, target acquired in current context |
 | 6..9 | PL mode, containment mode, POSHOLD context, LAND context |
-| 10..15 | manual takeover, failsafe, calibration, landing detected, XY correction applied, heading applied |
+| 10..15 | axis-specific manual takeover (roll/pitch XY, yaw heading, or altitude Z), failsafe, calibration, landing detected, XY correction applied, heading applied |
 | 16..22 | velocity trusted, retry speed acceptable, retry attitude acceptable, settle timer active, settle ready, state deadline reached, low-altitude retry suppressed |
 | 23..25 | temporary lost-target XY hold active, retry-start altitude usable, low-altitude XY lock configured |
 | 26..29 | horizontal position trusted, altitude usable, INAV AGL usable, marker XY target currently owns the position controller |
