@@ -51,20 +51,24 @@
  *
  * Port A (gpioid 0) = GPIO 0–15; Port B (gpioid 1) = GPIO 16–29.
  *   GP8  = PA8   GP9  = PA9   GP10 = PA10  GP11 = PA11
- *   GP12 = PA12  GP13 = PA13  GP14 = PA14  GP15 = PA15  (dual-use: UART3/4)
+ *   GP12 = PA12  GP13 = PA13  GP14 = PA14  GP15 = PA15
  *   GP20 = PB4   GP21 = PB5
  * GP16-19 are reserved: Flash CS (GP16), Beeper (GP17), I2C1 SDA/SCL (GP18/19).
+ *
+ * Motor pin assignment matches Betaflight RP2350A reference target:
+ *   MOTOR1=GP10, MOTOR2=GP11, MOTOR3=GP12, MOTOR4=GP13.
+ * GP8/9 are dual-use: UART3 (PIO1) when the serial port is active, else servo.
  */
 timerHardware_t timerHardware[] = {
-    /* slice 4 — motor group (GP8/GP9) */
-    DEF_TIM(TIM4,  CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP8  */
-    DEF_TIM(TIM4,  CH2, PA9,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP9  */
-    /* slice 5 — motor group (GP10/GP11) */
+    /* slice 5 — motor group (GP10/GP11) — matches BF MOTOR1/MOTOR2 */
     DEF_TIM(TIM5,  CH1, PA10, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP10 */
     DEF_TIM(TIM5,  CH2, PA11, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP11 */
-    /* slice 6 — servo group (GP12/GP13; dual-use with UART3 TX/RX on PIO1) */
+    /* slice 6 — motor group (GP12/GP13) — matches BF MOTOR3/MOTOR4 */
     DEF_TIM(TIM6,  CH1, PA12, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP12 */
     DEF_TIM(TIM6,  CH2, PA13, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP13 */
+    /* slice 4 — servo group (GP8/GP9; dual-use with UART3 TX/RX on PIO1) */
+    DEF_TIM(TIM4,  CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP8  */
+    DEF_TIM(TIM4,  CH2, PA9,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP9  */
     /* slice 7 — servo group (GP14/GP15; dual-use with UART4 TX/RX on PIO1) */
     DEF_TIM(TIM7,  CH1, PA14, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP14 */
     DEF_TIM(TIM7,  CH2, PA15, TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP15 */

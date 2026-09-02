@@ -205,8 +205,8 @@ uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t option
     s->port.port.txBufferTail = 0;
 
     uart_init(uart0, baudRate);
-    if (mode & MODE_TX) { gpio_set_function(s->tx_pin, GPIO_FUNC_UART); }
-    if (mode & MODE_RX) { gpio_set_function(s->rx_pin, GPIO_FUNC_UART); }
+    if (mode & MODE_TX) { gpio_set_function(s->tx_pin, UART_FUNCSEL_NUM(uart0, s->tx_pin)); }
+    if (mode & MODE_RX) { gpio_set_function(s->rx_pin, UART_FUNCSEL_NUM(uart0, s->rx_pin)); }
 
     rp2350UartHwConfigure(s);
 
@@ -254,8 +254,8 @@ uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t option
     s->port.port.txBufferTail = 0;
 
     uart_init(uart1, baudRate);
-    if (mode & MODE_TX) { gpio_set_function(s->tx_pin, GPIO_FUNC_UART); }
-    if (mode & MODE_RX) { gpio_set_function(s->rx_pin, GPIO_FUNC_UART); }
+    if (mode & MODE_TX) { gpio_set_function(s->tx_pin, UART_FUNCSEL_NUM(uart1, s->tx_pin)); }
+    if (mode & MODE_RX) { gpio_set_function(s->rx_pin, UART_FUNCSEL_NUM(uart1, s->rx_pin)); }
 
     rp2350UartHwConfigure(s);
 

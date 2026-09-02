@@ -48,7 +48,7 @@
 #define SERIAL_PORT_COUNT 5  // VCP + UART1 + UART2 + UART3 + UART4
 
 // DShot motor output via PIO0 (1 SM per motor, up to 4 motors).
-// GP8–11 default to motors 1–4; GP4–7 are reserved for SPI0 (gyro + flash).
+// GP10–13 default to motors 1–4; GP4–7 are reserved for SPI0 (gyro + flash).
 // Motor/servo GPIO assignments come from timerHardware[] in target.c.
 
 // Servo PWM output via hardware PWM slices (GP16–GP19 by default).
@@ -73,23 +73,27 @@
 /*
  * Hardware UART pin assignments for Raspberry Pi Pico 2 — Option C layout.
  *
- * UART1 (INAV) → RP2350 uart0: GP0/1
- * UART2 (INAV) → RP2350 uart1: GP2/3
- * UART3 (INAV) → PIO1 SM0(TX)+SM1(RX): GP12/13
+ * UART1 (INAV) → RP2350 uart0: GP0/1   (F2 = UART0 TX/RX)
+ * UART2 (INAV) → RP2350 uart1: GP6/7   (F11 = UART1 TX/RX via GPIO_FUNC_UART_AUX)
+ * UART3 (INAV) → PIO1 SM0(TX)+SM1(RX): GP8/9
  * UART4 (INAV) → PIO1 SM2(TX)+SM3(RX): GP14/15
  *
- * GP4–7 are reserved for SPI0 (gyro + flash, future M5/M6).
- * GP8–11 are reserved for DShot motors on PIO0 (future M8).
+ * GP2/3 carry SPI0 SCK/MOSI (F1); GP4 SPI0 MISO, GP5 SPI0 CSn.
+ * GP10–13 are reserved for DShot motors on PIO0.
  * PIO2 SM0 is reserved for WS2812 LED strip; SMs 1–3 spare.
+ *
+ * Note: GP6/7 use GPIO function F11 (GPIO_FUNC_UART_AUX), not F2.
+ * See RP2350 datasheet Table 3: F2 on GP6/7 is UART1 CTS/RTS (flow
+ * control only); F11 is UART1 TX/RX.  The driver uses UART_FUNCSEL_NUM().
  */
 #define UART1_TX_PIN  PA0   /* GPIO0  — uart0 TX  (MSP / configurator) */
 #define UART1_RX_PIN  PA1   /* GPIO1  — uart0 RX */
-#define UART2_TX_PIN  PA2   /* GPIO2  — uart1 TX  (receiver: CRSF/SBUS) */
-#define UART2_RX_PIN  PA3   /* GPIO3  — uart1 RX  (HW inversion, no external inverter) */
+#define UART2_TX_PIN  PA6   /* GPIO6  — uart1 TX  (receiver: CRSF/SBUS, F11=UART_AUX) */
+#define UART2_RX_PIN  PA7   /* GPIO7  — uart1 RX  (HW inversion, no external inverter) */
 /* PIO1: UART3 on SM0(TX)+SM1(RX), UART4 on SM2(TX)+SM3(RX) */
 /* PIO2 is reserved for RGB LED strip (SM0) and future UART5/6 (SMs 1–3) */
-#define UART3_TX_PIN  PA12  /* GPIO12 — PIO1 SM0 TX  (GPS) */
-#define UART3_RX_PIN  PA13  /* GPIO13 — PIO1 SM1 RX */
+#define UART3_TX_PIN  PA8   /* GPIO8  — PIO1 SM0 TX  (GPS) */
+#define UART3_RX_PIN  PA9   /* GPIO9  — PIO1 SM1 RX */
 #define UART4_TX_PIN  PA14  /* GPIO14 — PIO1 SM2 TX  (telemetry / extra) */
 #define UART4_RX_PIN  PA15  /* GPIO15 — PIO1 SM3 RX */
 
@@ -144,12 +148,13 @@
 #undef USE_ADAPTIVE_FILTER
 #undef USE_GYRO_KALMAN
 
-// SPI0 — gyro + flash: GP4 (MISO/PA4), GP6 (SCK/PA6), GP7 (MOSI/PA7)
+// SPI0 — gyro + flash: GP2 (SCK/PA2), GP3 (MOSI/PA3), GP4 (MISO/PA4)
+// GP2/3 freed from UART2 (moved to GP6/7); GP6/7 freed from SPI.
 #define USE_SPI
 #define USE_SPI_DEVICE_1
-#define SPI1_SCK_PIN          PA6   /* GPIO6  — spi0 SCK  */
+#define SPI1_SCK_PIN          PA2   /* GPIO2  — spi0 SCK  */
 #define SPI1_MISO_PIN         PA4   /* GPIO4  — spi0 MISO */
-#define SPI1_MOSI_PIN         PA7   /* GPIO7  — spi0 MOSI */
+#define SPI1_MOSI_PIN         PA3   /* GPIO3  — spi0 MOSI */
 
 // FAST_CODE: place hot functions in SRAM (copied from flash at boot) to avoid
 // XIP cache pressure on the large PID/scheduler/gyro code path.
@@ -174,9 +179,9 @@
 /* RP2350 PWM slice "timers" — one TIM_TypeDef per slice, used as group IDs.
  * Analogous to TIM1/TIM3/… on STM32; pins sharing a slice must run at the
  * same update rate.  Defined in drivers/timer_rp2350.c. */
-extern TIM_TypeDef rp2350Pwm4;   /* slice 4:  GP8/GP9   — motors 1-2              */
-extern TIM_TypeDef rp2350Pwm5;   /* slice 5:  GP10/GP11 — motors 3-4              */
-extern TIM_TypeDef rp2350Pwm6;   /* slice 6:  GP12/GP13 — servos (dual-use UART3) */
+extern TIM_TypeDef rp2350Pwm4;   /* slice 4:  GP8/GP9   — servos (dual-use UART3) */
+extern TIM_TypeDef rp2350Pwm5;   /* slice 5:  GP10/GP11 — motors 1-2              */
+extern TIM_TypeDef rp2350Pwm6;   /* slice 6:  GP12/GP13 — motors 3-4              */
 extern TIM_TypeDef rp2350Pwm7;   /* slice 7:  GP14/GP15 — servos (dual-use UART4) */
 extern TIM_TypeDef rp2350Pwm10;  /* slice 10: GP20/GP21 — servos (dedicated)      */
 
