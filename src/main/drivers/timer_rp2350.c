@@ -54,9 +54,9 @@
  * Both channels (A = even GPIO, B = odd GPIO) on a slice share clkdiv/wrap,
  * so they must run at the same update rate — same constraint as STM32 timers.
  */
-TIM_TypeDef rp2350Pwm4  = { NULL };  /* slice 4:  GP8/GP9   (8/2 = 4)    motors 1-2        */
-TIM_TypeDef rp2350Pwm5  = { NULL };  /* slice 5:  GP10/GP11 (10/2 = 5)   motors 3-4        */
-TIM_TypeDef rp2350Pwm6  = { NULL };  /* slice 6:  GP12/GP13 (12/2 = 6)   servos (dual-use UART3) */
+TIM_TypeDef rp2350Pwm4  = { NULL };  /* slice 4:  GP8/GP9   (8/2 = 4)    servos (dual-use UART3) */
+TIM_TypeDef rp2350Pwm5  = { NULL };  /* slice 5:  GP10/GP11 (10/2 = 5)   motors 1-2              */
+TIM_TypeDef rp2350Pwm6  = { NULL };  /* slice 6:  GP12/GP13 (12/2 = 6)   motors 3-4              */
 TIM_TypeDef rp2350Pwm7  = { NULL };  /* slice 7:  GP14/GP15 (14/2 = 7)   servos (dual-use UART4) */
 TIM_TypeDef rp2350Pwm10 = { NULL };  /* slice 10: GP20/GP21 (20/2 = 10)  servos (dedicated)      */
 
