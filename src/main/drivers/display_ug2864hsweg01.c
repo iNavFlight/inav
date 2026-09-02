@@ -327,7 +327,10 @@ static oledControllerType_e detectOledController(void)
     switch (controllerBits) {
         case 0x07:
         case 0x0F:
-            // SH1107 - 128x128 displays
+            // SH1107 - 128x128 displays. Detection only: geometry code below
+            // still assumes the 128x64/8-page layout (SCREEN_HEIGHT is fixed
+            // at 64), so a true 128x128 panel will only get its top half
+            // addressed. Untested on real SH1107 hardware.
             detected = OLED_CONTROLLER_SH1107;
             controllerName = "SH1107";
             break;
@@ -410,7 +413,6 @@ bool ug2864hsweg01InitI2C(void)
     LOG_DEBUG(SYSTEM, "OLED: Init sequence complete, clearing display");
 
     i2c_OLED_clear_display();
-    ug2864hsweg01TestPattern(); // TODO: remove before PR — hardware test only
 
     LOG_DEBUG(SYSTEM, "OLED: Initialization complete, controller=%d", detectedController);
 
