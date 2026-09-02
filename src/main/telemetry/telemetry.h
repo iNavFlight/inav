@@ -75,6 +75,12 @@ typedef struct mavlinkTelemetryPortConfig_s {
     bool high_latency;
 } mavlinkTelemetryPortConfig_t;
 
+typedef enum {
+    CRSF_GPS_ALT_AUTO,          // Follow crsf_use_legacy_baro_packet
+    CRSF_GPS_ALT_ESTIMATED,     // Estimated altitude above the arming point (legacy behaviour)
+    CRSF_GPS_ALT_MSL            // GNSS altitude above mean sea level
+} crsfGpsAltSource_e;
+
 typedef struct telemetryConfig_s {
     uint8_t telemetry_switch;               // Use aux channel to change serial output & baudrate( MSP / Telemetry ). It disables automatic switching to Telemetry when armed.
     uint8_t telemetry_inverted;             // Flip the default inversion of the protocol - Same as serialrx_inverted in rx.c, but for telemetry.
@@ -100,6 +106,7 @@ typedef struct telemetryConfig_s {
     mavlinkTelemetryCommonConfig_t mavlink_common;
     mavlinkTelemetryPortConfig_t mavlink[MAX_MAVLINK_PORTS];
     bool crsf_use_legacy_baro_packet;
+    uint8_t crsfGpsAltSource;               // crsfGpsAltSource_e
 } telemetryConfig_t;
 
 PG_DECLARE(telemetryConfig_t, telemetryConfig);
