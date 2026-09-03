@@ -324,6 +324,17 @@ function(target_rp2350 name)
     target_compile_definitions(${exe_target} PRIVATE ${target_definitions})
     target_compile_options(${exe_target} PRIVATE ${RP2350_COMPILE_OPTIONS})
 
+    # Suppress -Wdouble-promotion in the vendored Pico SDK printf.c: its
+    # float formatting promotes float → double (e.g. "%f" handling), which
+    # trips INAV's -Wdouble-promotion (from MAIN_COMPILE_OPTIONS) under CI's
+    # WARNINGS_AS_ERRORS. We don't control this third-party file; mirror the
+    # per-file suppression pattern used for vendor HAL sources (stm32f7.cmake).
+    set_source_files_properties(
+        "${PICO_SDK_SRC_DIR}/rp2_common/pico_printf/printf.c"
+        DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        PROPERTIES COMPILE_OPTIONS "-Wno-double-promotion"
+    )
+
     # Pico SDK requires C11 (static_assert). Override INAV's global C99 setting.
     set_target_properties(${exe_target} PROPERTIES C_STANDARD 11)
 
@@ -380,17 +391,25 @@ function(target_rp2350 name)
         COMMENT "Generating ${binary_name}.bin"
     )
 
-    # Generate .uf2 output (for BOOTSEL drag-and-drop flashing)
-    # Use picotool which correctly handles the RP2350 IMAGE_DEF metadata block.
-    set(uf2_filename ${CMAKE_BINARY_DIR}/${binary_name}.uf2)
-    add_custom_command(TARGET ${name} POST_BUILD
-        COMMAND picotool uf2 convert
-            $<TARGET_FILE:${exe_target}>
-            ${uf2_filename}
-            --family rp2350-arm-s
-        BYPRODUCTS ${uf2_filename}
-        COMMENT "Generating ${binary_name}.uf2 via picotool"
-    )
+    # Generate .uf2 output (for BOOTSEL drag-and-drop flashing).
+    # picotool correctly handles the RP2350 IMAGE_DEF metadata block; it is
+    # only installed locally / where explicitly provisioned (GitHub Actions
+    # runners do not ship it), so generate the .uf2 only when picotool is on
+    # PATH.  .hex/.bin are always produced and are what CI uploads.
+    find_program(PICOTOOL_EXECUTABLE picotool)
+    if(PICOTOOL_EXECUTABLE)
+        set(uf2_filename ${CMAKE_BINARY_DIR}/${binary_name}.uf2)
+        add_custom_command(TARGET ${name} POST_BUILD
+            COMMAND ${PICOTOOL_EXECUTABLE} uf2 convert
+                $<TARGET_FILE:${exe_target}>
+                ${uf2_filename}
+                --family rp2350-arm-s
+            BYPRODUCTS ${uf2_filename}
+            COMMENT "Generating ${binary_name}.uf2 via picotool"
+        )
+    else()
+        message(STATUS "picotool not found — skipping .uf2 generation for ${name} (BOOTSEL users: install picotool or use the .hex/.bin)")
+    endif()
 
     setup_firmware_target(${exe_target} ${name} ${ARGN})
 

@@ -611,7 +611,7 @@ static void rp2350BuildOutputAssignment(timMotorServoHardware_t *out)
         const uint32_t flags = timerHardware[i].usageFlags;
         if (TIM_IS_MOTOR_ONLY(flags) && out->maxTimMotorCount < MAX_PWM_OUTPUTS) {
             out->timMotors[out->maxTimMotorCount++] = &timerHardware[i];
-        } else if (TIM_IS_SERVO_ONLY(flags) && out->maxTimServoCount < RP2350_MAX_SERVOS) {
+        } else if (TIM_IS_SERVO_ONLY(flags) && (uint)out->maxTimServoCount < RP2350_MAX_SERVOS) {
             out->timServos[out->maxTimServoCount++] = &timerHardware[i];
         }
     }
@@ -678,7 +678,7 @@ void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *propose
             }
             motorIdx++;
         } else {
-            if (out->maxTimServoCount < RP2350_MAX_SERVOS && out->maxTimServoCount < MAX_PWM_OUTPUTS) {
+            if ((uint)out->maxTimServoCount < RP2350_MAX_SERVOS && out->maxTimServoCount < MAX_PWM_OUTPUTS) {
                 out->timServos[out->maxTimServoCount++] = timHw;
             }
         }
