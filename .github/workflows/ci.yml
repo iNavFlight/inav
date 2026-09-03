@@ -97,9 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        # picotool is required to generate .uf2 images (RP2350 targets upload
-        # them alongside .hex); unavailable on the base image.
-        run: sudo apt-get update && sudo apt-get -y install ninja-build picotool
+        run: sudo apt-get update && sudo apt-get -y install ninja-build
       - name: Setup environment
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
@@ -147,9 +145,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        # picotool is required to generate .uf2 images (RP2350 targets upload
-        # them alongside .hex); unavailable on the base image.
-        run: sudo apt-get update && sudo apt-get -y install ninja-build picotool
+        run: sudo apt-get update && sudo apt-get -y install ninja-build
       - name: Setup environment
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
