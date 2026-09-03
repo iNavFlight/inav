@@ -38,10 +38,11 @@ test the board once it is running.
 | Logic level | 3.3 V (not 5 V tolerant) |
 | Config storage | Onboard flash (`CONFIG_IN_FLASH`) |
 
-This target is excluded from the official release firmware builds — there is no
-`RP2350_PICO` entry in the Configurator's release firmware list. You build the
-firmware yourself from the INAV source tree (Section 4); the Configurator still
-connects to the resulting build normally.
+This target is part of the official release firmware builds. During development,
+test builds are also published by the CI for each pull request
+(iNavFlight/pr-test-builds); you can build the firmware yourself from the INAV
+source tree (Section 4) if you want a local build. The Configurator connects to
+the resulting build normally.
 
 ## 2. What you need
 
@@ -253,9 +254,7 @@ path:
    appear on your PC.
 2. Open the **INAV Configurator**, select the Pico 2's serial port and connect.
    The board identifies itself as **RP2350_PICO** (board id `RP2P`) with the
-   firmware version. Because this target is not in the official release
-   firmware list, the Configurator may warn that the firmware is not
-   recognised — this is expected for a self-built firmware; continue anyway.
+   firmware version.
 3. **Check status:** open the CLI and run `status` and `version` — board id,
    firmware version and sensor detection are reported.
 4. **Sensors:** the **Sensors** tab shows the gyro/accelerometer. In the
