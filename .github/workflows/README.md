@@ -7,13 +7,24 @@ This directory contains automated CI/CD workflows for the INAV project.
 ### Build and Test
 
 #### `ci.yml` - Build Firmware
-**Triggers:** Pull requests, pushes to maintenance branches
+**Triggers:** Pull requests (`workflow_call` too, used by `nightly-build.yml`).
+Also declares an `on: push:` trigger, but it's currently a no-op — a
+`branches:` list containing only a negative pattern (`'!maintenance-8.x.x'`)
+matches nothing per GitHub's own docs, confirmed empirically (zero
+push-triggered runs of this workflow exist in this repo's history). Direct
+push builds happen via `nightly-build.yml` instead (see below).
 **Purpose:** Compiles INAV firmware for all targets to verify builds succeed
 **Matrix:** 15 parallel build jobs for faster CI
 
-#### `nightly-build.yml` - Nightly Builds
-**Triggers:** Scheduled nightly
-**Purpose:** Creates nightly development builds for testing
+#### `nightly-build.yml` - "Build pre-release"
+**Triggers:** `push` to `master`, `maintenance-8.x.x`, `maintenance-9.x`,
+`maintenance-10.x`, `release/9.1` — **not** a schedule, despite the
+filename. Invokes `ci.yml`'s jobs via `workflow_call`, then publishes a
+prerelease to the companion `iNavFlight/inav-nightly` repo.
+**Purpose:** Creates nightly development builds for testing, and is the
+actual per-push validation + baseline-generation point for
+`ci-size-report.yml` (see below) since `ci.yml`'s own push trigger doesn't
+fire.
 
 ### Documentation
 
@@ -47,6 +58,60 @@ This directory contains automated CI/CD workflows for the INAV project.
 - ❌ Only changing comments
 
 ### Pull Request Helpers
+
+#### `ci-size-report.yml` - RAM/Flash Usage Delta PR Comment
+**Triggers:** `workflow_run` after "Build firmware" (`ci.yml`, PR builds) or
+"Build pre-release" (`nightly-build.yml`, branch-push builds) completes
+**Purpose:** Posts/updates a PR comment showing flash and RAM usage delta vs.
+the PR's base branch, for 4 representative targets spanning flash/RAM size
+tiers (MATEKF405, MATEKF722, MATEKF765, MATEKH743 — note MATEKF722 and
+MATEKF765 are both STM32F7 parts; no AT32 target is currently covered).
+Surfaces RAM/flash regressions and creep before they become an overflow, on
+every PR.
+
+**How it works:**
+1. `ci.yml` extracts a small per-target size report (`arm-none-eabi-size`
+   on each built `.elf`) right after each build and uploads it as an
+   artifact — no second build anywhere in this flow.
+2. On pushes to `master`/`maintenance-9.x`/`maintenance-10.x`/`release/9.1`,
+   `nightly-build.yml` ("Build pre-release") invokes `ci.yml` via
+   `workflow_call` as part of building nightly releases — this already
+   produces the size report above at no extra build cost. When that
+   completes, `ci-size-report.yml` persists it as TWO release assets in the
+   companion `iNavFlight/pr-test-builds` repo: `size-baseline-<branch>`
+   (latest-tip pointer, kept for backward compatibility) and
+   `size-baseline-<commit-sha>` (primary — lets PR comparisons key off the
+   exact base commit). Per-commit baselines are pruned to the newest 50 per
+   branch (plus a global cap) so the companion repo doesn't grow unbounded.
+   (`ci.yml`'s *own* `on: push:` trigger is broken — a `branches:` list
+   containing only a negative pattern matches nothing per GitHub's docs —
+   so this deliberately listens to `nightly-build.yml` instead of trying to
+   fix that separately; verified empirically that `ci.yml` alone has zero
+   push-triggered runs in this repo's history.)
+3. On PR builds, it computes the PR's TRUE base commit — the merge-base of
+   the PR head and base ref via the compare API — fetches the per-commit
+   baseline for that exact commit, falling back to the nearest ancestor
+   commit that has one (never the branch tip, which would include unrelated
+   changes merged after the PR forked), diffs it against the PR's own size
+   report, and posts/updates a comment (marker `<!-- pr-size-diff -->`)
+   naming the baseline commit that was used.
+
+**Scripts:** `.github/scripts/extract-size-report.sh` (size extraction),
+`.github/scripts/merge-size-reports.sh` (merges per-shard reports),
+`.github/scripts/publish-size-baseline.sh` (per-commit publish + pruning),
+`.github/scripts/fetch-size-baseline.sh` (merge-base baseline resolution),
+`.github/scripts/size-diff-comment.js` (pure diff + markdown rendering,
+unit tested in `.github/scripts/size-diff-comment.test.js`)
+
+**⚠️ Every job that calls a `.github/scripts/` file MUST first run
+`- uses: actions/checkout@v4` as its first step.** The runner workspace is
+empty until a checkout — `bash .github/scripts/...` then fails with exit
+127 and the job silently does nothing, so a missing checkout looks like a
+missing baseline/artifact instead of a broken job. Repo scripts MUST NEVER
+be invoked from a job that has not checked out a known branch first.
+
+**Uses the same `PR_BUILDS_TOKEN` secret and `workflow_run` trigger pattern
+as `pr-test-builds.yml`** (secrets available even for fork PRs).
 
 #### `pr-branch-suggestion.yml` - Branch Targeting Suggestion
 **Triggers:** PRs targeting master branch

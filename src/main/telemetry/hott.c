@@ -236,7 +236,7 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
 
 #ifdef USE_GPS_FIX_ESTIMATION
     if (!(STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)))
-#else            
+#else
     if (!(STATE(GPS_FIX)))
 #endif
          {
@@ -339,8 +339,6 @@ void hottPrepareEAMResponse(HOTT_EAM_MSG_t *hottEAMMessage)
 
 static void hottSerialWrite(uint8_t c)
 {
-    static uint8_t serialWrites = 0;
-    serialWrites++;
     serialWrite(hottPort, c);
 }
 

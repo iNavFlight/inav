@@ -450,6 +450,13 @@ def writeTargetH(folder, map):
         pin = findPinByFunction('MAX7456_SPI_CS', map)
         file.write("#define MAX7456_CS_PIN %s\n" % (pin))
         file.write("#define MAX7456_SPI_BUS BUS_%s\n" % (map['defines']['MAX7456_SPI_INSTANCE']))
+
+    pin = findPinByFunction('CAMERA_CONTROL', map)
+    if pin:
+        file.write("// CAMERA_CONTROL_PIN has no consuming driver prior to 10.0. From 10.0\n")
+        file.write("// forward this will be set up as a PWM-capable PINIO pin instead.\n")
+        file.write("#define CAMERA_CONTROL_PIN %s\n" % (pin))
+
     file.write("// Blackbox\n")
 
     # Flash:
@@ -488,9 +495,10 @@ def writeTargetH(folder, map):
             file.write("#define SDCARD_SDIO_4BIT\n")
             file.write("#define SDCARD_SDIO_DEVICE SDIODEV_%i\n" % (i))
     
-    # PINIO
+    # PINIO_COUNT is 4 (BOX_PERMANENT_ID_USER1..USER4) -- don't emit more than firmware
+    # can actually wire up in writeConfigC below.
     use_pinio = False
-    for i in range(1, 9):
+    for i in range(1, 5):
         pinio = findPinByFunction("PINIO%i" % (i), map)
         if pinio != None:
             if not use_pinio:
@@ -725,9 +733,13 @@ def writeConfigC(folder, map):
 void targetConfiguration(void)
 {
 """)
-    #//pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
-    #//pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
-    #//beeperConfigMutable()->pwmMode = true;
+    # PINIO_COUNT is 4 (BOX_PERMANENT_ID_USER1..USER4) -- don't write more than that
+    # even if Betaflight's source somehow lists more PINIO pins than INAV supports.
+    for i in range(1, 5):
+        pinio = findPinByFunction("PINIO%i" % (i), map)
+        if pinio != None:
+            file.write("    pinioBoxConfigMutable()->permanentId[%i] = BOX_PERMANENT_ID_USER%i;\n" % (i - 1, i))
+
     file.write("""
 }
 

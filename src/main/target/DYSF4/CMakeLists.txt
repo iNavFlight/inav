@@ -1,0 +1,2 @@
+target_stm32f405xg(DYSF4PRO)
+target_stm32f405xg(DYSF4PROV2)

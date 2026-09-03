@@ -11032,6 +11032,35 @@
         "notes": "CH1-CH12 (index 0-11) are protected and will return `MSP_RESULT_ERROR`. Payload size must be 2-49 bytes. Constraint: `startChannel + channelCount <= 32`. Values persist until overwritten; no timeout. Applied as a post-RX overlay in `calculateRxChannelsAndUpdateFailsafe()` after MSP RC Override but before failsafe. Does not require `USE_RX_MSP` or MSP-RC-OVERRIDE flight mode. Does not affect failsafe detection. When MSP is the primary RX provider, channels covered by `MSP_SET_RAW_RC` are automatically skipped. Channels in the `mspOverrideChannels` bitmask are skipped when MSP RC Override mode is active. Recommended to send with `MSP_FLAG_DONT_REPLY` (flags=0x01) to save bandwidth on telemetry passthrough links. 16-bit mode requires even number of data bytes and values are clamped to 750-2250us.",
         "description": "Bandwidth-efficient auxiliary RC channel update. Sets CH13-CH32 with configurable resolution (2/4/8/16-bit) without affecting primary flight controls. Designed for extending channel count beyond native RC link capacity via MSP passthrough."
     },
+    "MSP2_INAV_WIND": {
+        "code": 8753,
+        "mspv": 2,
+        "request": null,
+        "reply": {
+            "payload": [
+                {
+                    "name": "windSpeed",
+                    "ctype": "uint16_t",
+                    "desc": "Estimated horizontal wind speed (`getEstimatedHorizontalWindSpeed()`). 0 if unavailable.",
+                    "units": "cm/s"
+                },
+                {
+                    "name": "windAngle",
+                    "ctype": "uint16_t",
+                    "desc": "Estimated wind direction in degrees (0–359, 0 = North). Derived from centidegree value divided by 100. 0 if unavailable.",
+                    "units": "degrees"
+                },
+                {
+                    "name": "flags",
+                    "ctype": "uint8_t",
+                    "desc": "Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved.",
+                    "units": ""
+                }
+            ]
+        },
+        "notes": "Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.",
+        "description": "Retrieves the estimated horizontal wind speed and direction from the internal wind estimator."
+    },
     "MSP2_BETAFLIGHT_BIND": {
         "code": 12288,
         "mspv": 2,

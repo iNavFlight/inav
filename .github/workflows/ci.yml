@@ -121,11 +121,19 @@ jobs:
           key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
       - name: Build targets (${{ matrix.id }})
         run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -DMAIN_COMPILE_OPTIONS=-pipe -G Ninja .. && ninja -j${{ env.NUM_CORES }} ci
+      - name: Extract size report
+        run: .github/scripts/extract-size-report.sh build build/size-report.json
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: matrix-${{ env.BUILD_NAME }}.${{ matrix.id }}
           path: ./build/*.hex
+          retention-days: 1
+      - name: Upload size report
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-report-${{ matrix.id }}
+          path: ./build/size-report.json
           retention-days: 1
 
   build-single-target:
@@ -153,11 +161,19 @@ jobs:
           key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
       - name: Build targets (${{ needs.detect.outputs.target_names }})
         run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -DMAIN_COMPILE_OPTIONS=-pipe -G Ninja .. && ninja -j${{ env.NUM_CORES }} ${{ needs.detect.outputs.target_names }}
+      - name: Extract size report
+        run: .github/scripts/extract-size-report.sh build build/size-report.json
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: matrix-${{ env.BUILD_NAME }}.single
           path: ./build/*.hex
+          retention-days: 1
+      - name: Upload size report
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-report-single
+          path: ./build/size-report.json
           retention-days: 1
 
   upload-artifacts:
@@ -211,6 +227,47 @@ jobs:
         with:
           name: pr-number
           path: pr_number.txt
+          retention-days: 1
+      - name: Save base ref
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: echo "$BASE_REF" > base_ref.txt
+      - name: Upload base ref
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-ref
+          path: base_ref.txt
+          retention-days: 1
+      - name: Save branch name
+        # Covers both a direct push and being invoked via workflow_call
+        # (e.g. from nightly-build.yml) — github.event_name reports
+        # 'workflow_call' in the latter case, not 'push', even though
+        # github.ref_name still correctly reflects the branch either way.
+        if: github.event_name != 'pull_request'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: echo "$REF_NAME" > branch.txt
+      - name: Upload branch name
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch-name
+          path: branch.txt
+          retention-days: 1
+      - name: Download size reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: size-report-*
+          path: size-reports
+      - name: Merge size reports
+        run: .github/scripts/merge-size-reports.sh size-report.json size-reports/*/size-report.json
+      - name: Upload merged size report
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-report
+          path: size-report.json
           retention-days: 1
 
   build-SITL-Linux-arm64:

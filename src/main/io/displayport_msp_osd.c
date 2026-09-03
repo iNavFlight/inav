@@ -61,11 +61,15 @@
 
 #define FONT_VERSION 3
 
+// Values are wire-protocol constants sent as a raw byte over MSP DisplayPort
+// (MSP_DP_OPTIONS) and must stay fixed — third-party OSD firmware (e.g.
+// WTFOS) hardcodes these ordinals, so don't let enum edits renumber them.
 typedef enum {          // defines are from hdzero code
-    SD_3016,
-    HD_5018,
-    HD_6022,           // added to support DJI wtfos 60x22 grid
-    HD_5320            // added to support Avatar and BetaflightHD
+    SD_3016 = 0,
+    HD_5018 = 1,
+    HD_3016 = 2,       // unused by INAV; reserved to hold hdzero's canonical ordinal 2
+    HD_6022 = 3,       // DJI wtfos 60x22 grid
+    HD_5320 = 4        // Avatar and BetaflightHD
 } resolutionType_e;
 
 #define DRAW_FREQ_DENOM 4 // 60Hz

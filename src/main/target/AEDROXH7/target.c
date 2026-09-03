@@ -42,8 +42,8 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1, CH3, PE13, TIM_USE_OUTPUT_AUTO, 0, 6),  // M7
     DEF_TIM(TIM1, CH4, PE14, TIM_USE_OUTPUT_AUTO, 0, 7),  // M8
 
-    // LED strip: TIM2_CH1 on PA5 (AF1) — separate timer from motors
-    DEF_TIM(TIM2, CH1, PA5,  TIM_USE_LED,         0, 0),  // LED strip
+    // LED strip: TIM2_CH1 on PA5 (AF1) — dmavar=8 selects DMA2 S0, clear of motor streams 0-7
+    DEF_TIM(TIM2, CH1, PA5,  TIM_USE_LED,         0, 8),  // LED strip
 
     // Beeper PWM: TIM3_CH2 on PA7 (AF2)
     DEF_TIM(TIM3, CH2, PA7,  TIM_USE_BEEPER,      0, 0),  // Beeper

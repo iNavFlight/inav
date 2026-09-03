@@ -51,6 +51,7 @@ typedef enum {
     LSM6DXX_REG_OUTY_H_A = 0x2B,   // acc Y axis MSB
     LSM6DXX_REG_OUTZ_L_A = 0x2C,   // acc Z axis LSB
     LSM6DXX_REG_OUTZ_H_A = 0x2D,   // acc Z axis MSB
+    LSM6DXX_REG_HAODR_CFG = 0x62,  // high-accuracy ODR mode select (LSM6DSV16X/LSM6DSK320X only)
 } lsm6dxxRegister_e;
   
 // LSM6DXX register configuration values
@@ -68,7 +69,7 @@ typedef enum {
     LSM6DXX_VAL_CTRL1_XL_LPF2 = 0x01,         // accelerometer output from LPF2
     LSM6DXX_VAL_CTRL2_G_ODR6664 = 0x0A,       // gyro 6664hz output data rate
     LSM6DXX_VAL_CTRL2_G_2000DPS = 0x03,       // gyro 2000dps scale
-    // LSM6DXX_VAL_CTRL3_C_BDU = BIT(6),         // (bit 6) output registers are not updated until MSB and LSB have been read (prevents MSB from being updated while burst reading LSB/MSB)
+    LSM6DXX_VAL_CTRL3_C_BDU = BIT(6),          // (bit 6) output registers are not updated until MSB and LSB have been read (prevents MSB from being updated while burst reading LSB/MSB)
     LSM6DXX_VAL_CTRL3_C_H_LACTIVE = 0,        // (bit 5) interrupt pins active high
     LSM6DXX_VAL_CTRL3_C_PP_OD = 0,            // (bit 4) interrupt pins push/pull
     LSM6DXX_VAL_CTRL3_C_SIM = 0,              // (bit 3) SPI 4-wire interface mode
@@ -87,6 +88,30 @@ typedef enum {
     LSM6DXX_VAL_CTRL7_G_HPM_G_260 = 0x02,     // (bits 5:4) gyro HPF cutoff 260mHz
     LSM6DXX_VAL_CTRL7_G_HPM_G_1040 = 0x03,    // (bits 5:4) gyro HPF cutoff 1.04Hz
     LSM6DXX_VAL_CTRL9_XL_I3C_DISABLE = BIT(1),// (bit 1) disable I3C interface
+
+    // LSM6DSV16X/LSM6DSK320X ("Gen V") register field values. This generation moved ODR/mode
+    // into CTRL1_XL/CTRL2_G bits[6:4]+[3:0] (full scale is no longer here - see CTRL6_C/CTRL8_XL
+    // below) and uses a completely different ODR encoding from the legacy LSM6DSO/DSL/DS3 chips
+    // above, so none of the _ODR*/_*DPS/_*G values above apply to these two chips.
+    LSM6DXX_VAL_CTRL1_XL_V_OPMODE_HIGH_ACCURACY = 0x01, // (bits 6:4) accel high-accuracy ODR mode
+    LSM6DXX_VAL_CTRL1_XL_V_ODR_1000HZ_HAODR1 = 0x09,    // (bits 3:0) 1kHz accel ODR, HAODR mode 1
+    LSM6DXX_VAL_CTRL2_G_V_OPMODE_HIGH_ACCURACY = 0x01,  // (bits 6:4) gyro high-accuracy ODR mode
+    LSM6DXX_VAL_CTRL2_G_V_ODR_8000HZ_HAODR1 = 0x0C,     // (bits 3:0) 8kHz gyro ODR, HAODR mode 1 (0x0B is 4kHz - off by one row)
+    LSM6DXX_VAL_HAODR_CFG_MODE1 = 0x01,                 // (bits 1:0) selects the ODR tables above
+    LSM6DXX_VAL_CTRL6_C_V_FS_G_2000DPS = 0x04,          // (bits 3:0) gyro full-scale +-2000dps
+                                                         // (LSM6DSV16X: 4-bit FS_G field, 0100 = 2000dps; on
+                                                         // LSM6DSK320X, bit 3 of this value is instead a separate
+                                                         // reserved bit the datasheet says "must be set to 1 for
+                                                         // correct operation" - FS_G there is bits[2:0] only, where
+                                                         // 100 also happens to mean 2000dps - see LSM6DXX_VAL_CTRL6_C_V_DSK320X_RESERVED_BIT3)
+    LSM6DXX_VAL_CTRL6_C_V_DSK320X_RESERVED_BIT3 = BIT(3), // must be 1 on LSM6DSK320X only, see above
+    LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_288HZ = 0x00,         // (bits 6:4) gyro LPF1 bandwidth ~288Hz
+    LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_215HZ = 0x01,         // (bits 6:4) gyro LPF1 bandwidth ~215Hz
+    LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_157HZ = 0x02,         // (bits 6:4) gyro LPF1 bandwidth ~157Hz
+    LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_455HZ = 0x03,         // (bits 6:4) gyro LPF1 bandwidth ~455Hz
+    LSM6DXX_VAL_CTRL7_G_V_LPF1_EN = BIT(0),             // (bit 0) enable gyro LPF1
+    LSM6DXX_VAL_CTRL8_XL_V_FS_16G = 0x03,               // (bits 1:0) accel full-scale +-16g
+    LSM6DXX_VAL_CTRL4_C_V_DRDY_PULSED = BIT(1),         // (bit 1) data-ready interrupt is a pulse, not a level
 } lsm6dxxConfigValues_e;
 
 // LSM6DXX register configuration bit masks
