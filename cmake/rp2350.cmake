@@ -386,7 +386,8 @@ function(target_rp2350 name)
     # Generate .bin output
     set(bin_filename ${CMAKE_BINARY_DIR}/${binary_name}.bin)
     add_custom_command(TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${exe_target}> ${bin_filename}
+        COMMAND ${CMAKE_COMMAND} -E env PATH="$ENV{PATH}"
+            ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${exe_target}> ${bin_filename}
         BYPRODUCTS ${bin_filename}
         COMMENT "Generating ${binary_name}.bin"
     )
