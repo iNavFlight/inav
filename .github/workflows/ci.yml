@@ -97,7 +97,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get -y install ninja-build
+        # picotool is required to generate .uf2 images (RP2350 targets upload
+        # them alongside .hex); unavailable on the base image.
+        run: sudo apt-get update && sudo apt-get -y install ninja-build picotool
       - name: Setup environment
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
@@ -127,7 +129,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: matrix-${{ env.BUILD_NAME }}.${{ matrix.id }}
-          path: ./build/*.hex
+          path: |
+            ./build/*.hex
+            ./build/*.uf2
           retention-days: 1
       - name: Upload size report
         uses: actions/upload-artifact@v4
@@ -143,7 +147,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get -y install ninja-build
+        # picotool is required to generate .uf2 images (RP2350 targets upload
+        # them alongside .hex); unavailable on the base image.
+        run: sudo apt-get update && sudo apt-get -y install ninja-build picotool
       - name: Setup environment
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
@@ -167,7 +173,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: matrix-${{ env.BUILD_NAME }}.single
-          path: ./build/*.hex
+          path: |
+            ./build/*.hex
+            ./build/*.uf2
           retention-days: 1
       - name: Upload size report
         uses: actions/upload-artifact@v4
