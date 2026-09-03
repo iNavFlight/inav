@@ -393,33 +393,28 @@ function(target_rp2350 name)
     )
 
     # Generate .uf2 output (for BOOTSEL drag-and-drop flashing).
-    # Prefer picotool when installed (it correctly handles the RP2350
-    # IMAGE_DEF metadata block and gives more diagnostics), but fall back to
-    # the in-tree elf2uf2.py chunker (python3) so the .uf2 is also produced on
-    # CI runners, which do not ship picotool. elf2uf2.py reads the .bin that
-    # objcopy already produced; the ELF carries the IMAGE_DEF, so the output is
-    # equivalent (verified byte-identical to picotool for this image).
+    # Best-effort, never fails the build: the .uf2 is a convenience artifact
+    # for BOOTSEL drag-and-drop, while .hex/.bin are the primary deliverables
+    # and are what CI uploads. RP2350_PICO builds inside a `ninja ci` slice
+    # shared with other targets, so a hard failure here would drop that slice's
+    # .hex uploads too. cmake/rp2350_uf2.cmake tries picotool first (correctly
+    # handles the RP2350 IMAGE_DEF block), falls back to python3 + the in-tree
+    # elf2uf2.py (byte-identical output for this image), skips when there is no
+    # ELF/.bin to convert, and only warns if every path fails.
     find_program(PICOTOOL_EXECUTABLE picotool)
+    find_program(PYTHON3_EXECUTABLE python3)
     set(uf2_filename ${CMAKE_BINARY_DIR}/${binary_name}.uf2)
-    if(PICOTOOL_EXECUTABLE)
-        add_custom_command(TARGET ${name} POST_BUILD
-            COMMAND ${PICOTOOL_EXECUTABLE} uf2 convert
-                $<TARGET_FILE:${exe_target}>
-                ${uf2_filename}
-                --family rp2350-arm-s
-            BYPRODUCTS ${uf2_filename}
-            COMMENT "Generating ${binary_name}.uf2 via picotool"
-        )
-    else()
-        add_custom_command(TARGET ${name} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E env PATH="$ENV{PATH}"
-                python3 ${MAIN_UTILS_DIR}/elf2uf2.py
-                ${bin_filename}
-                ${uf2_filename}
-            BYPRODUCTS ${uf2_filename}
-            COMMENT "Generating ${binary_name}.uf2 via elf2uf2.py (picotool not found)"
-        )
-    endif()
+    add_custom_command(TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DELF=$<TARGET_FILE:${exe_target}>
+            -DBIN=${bin_filename}
+            -DOUT=${uf2_filename}
+            -DPICOTOOL=${PICOTOOL_EXECUTABLE}
+            -DPYTHON3=${PYTHON3_EXECUTABLE}
+            -P ${MAIN_DIR}/cmake/rp2350_uf2.cmake
+        BYPRODUCTS ${uf2_filename}
+        COMMENT "Generating ${binary_name}.uf2 (best-effort)"
+    )
 
     setup_firmware_target(${exe_target} ${name} ${ARGN})
 
