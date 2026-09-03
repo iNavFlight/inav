@@ -125,7 +125,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: matrix-${{ env.BUILD_NAME }}.${{ matrix.id }}
-          path: ./build/*.hex
+          path: |
+            ./build/*.hex
+            ./build/*.uf2
           retention-days: 1
 
   build-single-target:
@@ -157,7 +159,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: matrix-${{ env.BUILD_NAME }}.single
-          path: ./build/*.hex
+          path: |
+            ./build/*.hex
+            ./build/*.uf2
           retention-days: 1
 
   upload-artifacts:
