@@ -393,13 +393,15 @@ function(target_rp2350 name)
     )
 
     # Generate .uf2 output (for BOOTSEL drag-and-drop flashing).
-    # picotool correctly handles the RP2350 IMAGE_DEF metadata block; it is
-    # only installed locally / where explicitly provisioned (GitHub Actions
-    # runners do not ship it), so generate the .uf2 only when picotool is on
-    # PATH.  .hex/.bin are always produced and are what CI uploads.
+    # Prefer picotool when installed (it correctly handles the RP2350
+    # IMAGE_DEF metadata block and gives more diagnostics), but fall back to
+    # the in-tree elf2uf2.py chunker (python3) so the .uf2 is also produced on
+    # CI runners, which do not ship picotool. elf2uf2.py reads the .bin that
+    # objcopy already produced; the ELF carries the IMAGE_DEF, so the output is
+    # equivalent (verified byte-identical to picotool for this image).
     find_program(PICOTOOL_EXECUTABLE picotool)
+    set(uf2_filename ${CMAKE_BINARY_DIR}/${binary_name}.uf2)
     if(PICOTOOL_EXECUTABLE)
-        set(uf2_filename ${CMAKE_BINARY_DIR}/${binary_name}.uf2)
         add_custom_command(TARGET ${name} POST_BUILD
             COMMAND ${PICOTOOL_EXECUTABLE} uf2 convert
                 $<TARGET_FILE:${exe_target}>
@@ -409,7 +411,14 @@ function(target_rp2350 name)
             COMMENT "Generating ${binary_name}.uf2 via picotool"
         )
     else()
-        message(STATUS "picotool not found — skipping .uf2 generation for ${name} (BOOTSEL users: install picotool or use the .hex/.bin)")
+        add_custom_command(TARGET ${name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E env PATH="$ENV{PATH}"
+                python3 ${MAIN_UTILS_DIR}/elf2uf2.py
+                ${bin_filename}
+                ${uf2_filename}
+            BYPRODUCTS ${uf2_filename}
+            COMMENT "Generating ${binary_name}.uf2 via elf2uf2.py (picotool not found)"
+        )
     endif()
 
     setup_firmware_target(${exe_target} ${name} ${ARGN})
