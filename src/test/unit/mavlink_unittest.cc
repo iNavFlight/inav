@@ -131,6 +131,8 @@ static int setWaypointCalls;
 static int resetWaypointCalls;
 static int saveWaypointCalls;
 static bool saveWaypointResult;
+static bool testWaypointMissionRTHActive;
+static bool testWpMissionPlannerActive;
 static int mavlinkRxHandleCalls;
 static bool gcsValid;
 static int waypointCount;
@@ -330,6 +332,8 @@ static void initMavlinkTestState(void)
     resetWaypointCalls = 0;
     saveWaypointCalls = 0;
     saveWaypointResult = true;
+    testWaypointMissionRTHActive = false;
+    testWpMissionPlannerActive = false;
     mavlinkRxHandleCalls = 0;
     mspCommandCallCount = 0;
     testReplyPayloadLength = 300;
@@ -1548,7 +1552,9 @@ TEST(MavlinkTelemetryTest, MissionCountZeroRestoresPreviousMissionOnPersistFailu
     EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
 }
 
-TEST(MavlinkTelemetryTest, MissionCountWhileArmedIsRejected)
+// In-flight upload: while merely armed (WP mode not active) an upload
+// transfer starts normally, matching the MSP policy from #10273.
+TEST(MavlinkTelemetryTest, MissionCountWhileArmedStartsTransfer)
 {
     initMavlinkTestState();
     ENABLE_ARMING_FLAG(ARMED);
@@ -1561,28 +1567,141 @@ TEST(MavlinkTelemetryTest, MissionCountWhileArmedIsRejected)
     pushRxMessage(&msg);
     handleMAVLinkTelemetry(1000);
 
-    mavlink_status_t status;
-    memset(&status, 0, sizeof(status));
-    mavlink_message_t outMsg;
-    bool sawAck = false;
-    bool sawRequest = false;
+    mavlink_message_t requestMsg;
+    EXPECT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &requestMsg));
+    mavlink_message_t ackMsg;
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+}
 
-    for (size_t i = 0; i < serialTxLen; i++) {
-        if (mavlink_parse_char(0, serialTxBuffer[i], &outMsg, &status) == MAVLINK_FRAMING_OK) {
-            if (outMsg.msgid == MAVLINK_MSG_ID_MISSION_ACK) {
-                mavlink_mission_ack_t ack;
-                mavlink_msg_mission_ack_decode(&outMsg, &ack);
-                EXPECT_EQ(ack.type, MAV_MISSION_DENIED);
-                sawAck = true;
-            }
-            if (outMsg.msgid == MAVLINK_MSG_ID_MISSION_REQUEST_INT) {
-                sawRequest = true;
-            }
-        }
-    }
+// While the WP mission is actively being flown, an upload is rejected.
+TEST(MavlinkTelemetryTest, MissionCountWhileWpModeActiveIsRejected)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    flightModeFlags = NAV_WP_MODE;
 
-    EXPECT_TRUE(sawAck);
-    EXPECT_FALSE(sawRequest);
+    mavlink_message_t msg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_DENIED);
+    mavlink_message_t requestMsg;
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &requestMsg));
+}
+
+// An in-flight upload commits to RAM but must not touch the EEPROM:
+// saveNonVolatileWaypointList() refuses while armed, and a flash write
+// mid-flight would stall the main loop.
+TEST(MavlinkTelemetryTest, MissionUploadWhileArmedCommitsToRamWithoutPersist)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_message_t itemMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &itemMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 1, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&itemMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(waypointCount, 1);
+    EXPECT_EQ(waypointStore[0].lat, 375000000);
+    EXPECT_EQ(waypointStore[0].lon, -1222500000);
+    EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
+    EXPECT_EQ(saveWaypointCalls, 0);
+}
+
+// An in-flight clear applies to RAM only, without persisting.
+TEST(MavlinkTelemetryTest, MissionClearAllWhileArmedClearsRamWithoutPersist)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_clear_all_pack(
+        42, 200, &msg,
+        1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(resetWaypointCalls, 1);
+    EXPECT_EQ(saveWaypointCalls, 0);
+}
+
+// The mission's own RTH leg still reads the live list (land/loiter decision
+// at home), so editing stays forbidden during it even though NAV_WP_MODE is
+// no longer asserted.
+TEST(MavlinkTelemetryTest, MissionCountDuringMissionRthLegIsRejected)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    testWaypointMissionRTHActive = true;
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_DENIED);
+}
+
+// Clearing the mission that is actively being flown stays forbidden.
+TEST(MavlinkTelemetryTest, MissionClearAllWhileWpModeActiveIsRejected)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    flightModeFlags = NAV_WP_MODE;
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_clear_all_pack(
+        42, 200, &msg,
+        1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_DENIED);
+    EXPECT_EQ(resetWaypointCalls, 0);
 }
 
 TEST(MavlinkTelemetryTest, MissionItemIntSingleItemAcksAccepted)
@@ -3894,6 +4013,16 @@ bool saveNonVolatileWaypointList(void)
 {
     saveWaypointCalls++;
     return saveWaypointResult;
+}
+
+bool isWaypointMissionRTHActive(void)
+{
+    return testWaypointMissionRTHActive;
+}
+
+bool isWpMissionPlannerActive(void)
+{
+    return testWpMissionPlannerActive;
 }
 
 void resetWaypointList(void)
