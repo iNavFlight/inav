@@ -25,6 +25,12 @@ typedef enum {
 typedef struct dronecanConfig_s {
     uint8_t nodeID;
     dronecanBitrate_e bitRateKbps;
+    bool dronecanUseDNAServer;
+    // Note: any in-flight branch that adds a field below this line
+    // (e.g. feature/dronecan-actuator-control's servoOutputBitmask) must
+    // also bump PG_DRONECAN_CONFIG's registered version by 1, and bump
+    // EEPROM_CONF_VERSION in src/main/config/config_eeprom.h by 1.
+    // Currently at 1/127; do not append fields without both bumps.
 } dronecanConfig_t;
 
 typedef struct dronecanNodeInfo_s {
@@ -34,6 +40,18 @@ typedef struct dronecanNodeInfo_s {
     uint32_t uptime_sec;
     uint16_t vendor_status_code;
     uint32_t last_seen_ms;
+    /*
+       DNA-server back-link. 0xFF means "not DNA-managed" (no entry in
+       the DNA allocation table at this node ID). Otherwise this is the
+       index into dnaServerData()->entries[] for the DNA-allocated
+       peripheral that owns this node ID. The DNA server sets it via
+       dronecanNodeStatusRegisterNode() at allocation time, and uses it
+       to recognise "same peripheral's previous broadcast" (dnaIdx
+       matches the current allocation's index) vs "different live node
+       on the stored ID" (dnaIdx differs or is 0xFF) on a subsequent
+       handshake.
+    */
+    uint8_t  dnaIdx;
 } dronecanNodeInfo_t;
 
 typedef enum {
