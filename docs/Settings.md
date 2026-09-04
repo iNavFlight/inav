@@ -799,6 +799,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | VTOL_TRANSITION |  |
 | VTOL_MC_PROTECT |  |
 | TERRAIN_NAV |  |
+| FW_TURN |  |
 
 ---
 
@@ -3581,6 +3582,16 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 ---
 
+### nav_cruise_lock_on_level
+
+Fixed wing only: when ON the COURSE HOLD/CRUISE course is locked only once the aircraft has rolled out level (below 10 deg bank) after a heading adjustment or a banked mode entry, following the actual course until then. Prevents overshooting the locked course during the level-off. OFF locks the course as soon as the sticks are centered (legacy behaviour).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### nav_cruise_yaw_rate
 
 Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on fixed wing (Note: On multirotor setting to 0 will disable Course Hold/Cruise mode completely) [dps]
@@ -3694,7 +3705,7 @@ P gain of auto speed PID controller.
 
 ### nav_fw_bank_angle
 
-Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll
+Maximum sustained roll angle when turning in GPS assisted modes: the target bank that turn and loiter radii are planned for. Corrections may exceed it temporarily; the absolute ceiling remains max_angle_inclination_rll
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3714,7 +3725,7 @@ Max pitch angle when climbing in GPS assisted modes, is also restrained by globa
 
 ### nav_fw_control_smoothness
 
-How smoothly the autopilot controls the airplane to correct the navigation error
+How smoothly the autopilot corrects the navigation error. Pitch uses a low-pass filter. Roll uses an S-curve easing window of n x 100 ms (max 900 ms) applied only when the commanded bank changes abruptly, so steady course tracking is never lagged. 0 = no roll smoothing.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4212,6 +4223,16 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ---
 
+### nav_fw_turn_ff_gain
+
+Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
 ### nav_fw_wp_tracking_accuracy
 
 Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Setting adjusts tracking deadband distance fom waypoint courseline [m]. Tracking isn't actively controlled within the deadband providing smoother flight adjustments but less accurate tracking. A 2m deadband should work OK in most cases. Setting to 0 disables waypoint tracking accuracy.
@@ -4232,15 +4253,36 @@ Sets the maximum allowed alignment convergence angle to the waypoint course line
 
 ---
 
-### nav_fw_wp_turn_smoothing
+### nav_fw_wp_turn_control_ease
 
-Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner).
+Unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramps; increase for large or slow-responding airframes.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 500 |
+
+---
+
+### nav_fw_wp_turn_max_lead_time
+
+COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 6000 | 3000 | 12000 |
+
+---
+
+### nav_fw_wp_turn_mode
+
+How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn. The COORD modes fly coordinated arcs of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY cuts the corner and passes the waypoint abeam, COORD_FLYOVER overflies the waypoint before turning onto the next leg, COORD_FLYINTO crosses the waypoint already aligned with the outbound leg (survey line entries).
 
 | Allowed Values |  |
 | --- | --- |
-| OFF | Default |
-| ON |  |
-| ON-CUT |  |
+| DIRECT |  |
+| COORD_FLYBY | Default |
+| COORD_FLYOVER |  |
+| COORD_FLYINTO |  |
 
 ---
 

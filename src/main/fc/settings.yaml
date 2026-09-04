@@ -84,7 +84,8 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "TERRAIN_NAV"]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "TERRAIN_NAV",
+      "FW_TURN"]
   - name: vtol_mc_protection_mode
     values: ["OFF", "NAV", "NAV_AND_STABILIZED"]
   - name: aux_operator
@@ -191,9 +192,9 @@ tables:
   - name: dynamic_gyro_notch_mode
     values: ["2D", "3D"]
     enum: dynamicGyroNotchMode_e
-  - name: nav_fw_wp_turn_smoothing
-    values: ["OFF", "ON", "ON-CUT"]
-    enum: wpFwTurnSmoothing_e
+  - name: nav_fw_wp_turn_mode
+    values: ["DIRECT", "COORD_FLYBY", "COORD_FLYOVER", "COORD_FLYINTO"]
+    enum: navFwWpTurnMode_e
   - name: gps_auto_baud_max
     values: [ '115200', '57600', '38400', '19200', '9600', '230400', '460800', '921600']
     enum: gpsBaudRate_e
@@ -2759,11 +2760,29 @@ groups:
         field: fw.wp_tracking_max_angle
         min: 30
         max: 80
-      - name: nav_fw_wp_turn_smoothing
-        description: "Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner)."
-        default_value: "OFF"
-        field: fw.wp_turn_smoothing
-        table: nav_fw_wp_turn_smoothing
+      - name: nav_fw_wp_turn_mode
+        description: "How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn. The COORD modes fly coordinated arcs of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY cuts the corner and passes the waypoint abeam, COORD_FLYOVER overflies the waypoint before turning onto the next leg, COORD_FLYINTO crosses the waypoint already aligned with the outbound leg (survey line entries)."
+        default_value: "COORD_FLYBY"
+        field: fw.wp_turn_mode
+        table: nav_fw_wp_turn_mode
+      - name: nav_fw_turn_ff_gain
+        description: "Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven."
+        default_value: 100
+        field: fw.turn_ff_gain
+        min: 0
+        max: 200
+      - name: nav_fw_wp_turn_max_lead_time
+        description: "COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint."
+        default_value: 6000
+        field: fw.wp_turn_max_lead_time
+        min: 3000
+        max: 12000
+      - name: nav_fw_wp_turn_control_ease
+        description: "Unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramps; increase for large or slow-responding airframes."
+        default_value: 100
+        field: fw.wp_turn_control_ease
+        min: 0
+        max: 500
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 500
@@ -2958,6 +2977,11 @@ groups:
         field: general.cruise_yaw_rate
         min: 0
         max: 120
+      - name: nav_cruise_lock_on_level
+        description: "Fixed wing only: when ON the COURSE HOLD/CRUISE course is locked only once the aircraft has rolled out level (below 10 deg bank) after a heading adjustment or a banked mode entry, following the actual course until then. Prevents overshooting the locked course during the level-off. OFF locks the course as soon as the sticks are centered (legacy behaviour)."
+        default_value: ON
+        field: general.cruise_lock_on_level
+        type: bool
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 35
@@ -3056,7 +3080,7 @@ groups:
         field: mc.slowDownForTurning
         type: bool
       - name: nav_fw_bank_angle
-        description: "Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll"
+        description: "Maximum sustained roll angle when turning in GPS assisted modes: the target bank that turn and loiter radii are planned for. Corrections may exceed it temporarily; the absolute ceiling remains max_angle_inclination_rll"
         default_value: 35
         field: fw.max_bank_angle
         min: 5
@@ -3145,7 +3169,7 @@ groups:
         min: 1
         max: 10
       - name: nav_fw_control_smoothness
-        description: "How smoothly the autopilot controls the airplane to correct the navigation error"
+        description: "How smoothly the autopilot corrects the navigation error. Pitch uses a low-pass filter. Roll uses an S-curve easing window of n x 100 ms (max 900 ms) applied only when the commanded bank changes abruptly, so steady course tracking is never lagged. 0 = no roll smoothing."
         default_value: 0
         field: fw.control_smoothness
         min: 0
