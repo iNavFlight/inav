@@ -558,12 +558,14 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     }
 
     // Only allow PID integrator to shrink if error is decreasing over time
-    const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0);
+    const pidControllerFlags_e pidFlags = PID_USING_HEADING | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0);
 
     // Input error in (deg*100), output roll angle (deg*100)
-    float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.cog + navHeadingError, posControl.actualState.cog, US2S(deltaMicros),
-                                       -DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
-                                        DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
+    uint16_t maxBankAngleCentiDeg = DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle);
+    float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.cog + navHeadingError, posControl.actualState.cog,
+                                        US2S(deltaMicros),
+                                       -maxBankAngleCentiDeg,
+                                        maxBankAngleCentiDeg,
                                         pidFlags);
 
     // Apply low-pass filter to prevent rapid correction
