@@ -498,6 +498,21 @@ static int logicConditionCompute(
             return activateForcedLanding();
             break;
 
+        case LOGIC_CONDITION_RX_HANDOVER:
+            // Handover is edge/event semantics, never a continuously enforced
+            // selection level. One request is consumed for each activator
+            // activation, so a live inactive receiver cannot seize control by
+            // repeatedly presenting its own switch value. Operand A is RX 1/2.
+            if (logicConditionStates[lcIndex].lastValue) {
+                return logicConditionStates[lcIndex].value;
+            }
+            logicConditionStates[lcIndex].lastValue = 1;
+            if (operandA < 1 || operandA > RX_LINK_COUNT) {
+                return false;
+            }
+            return rxRequestLinkHandover((rxLink_e)(operandA - 1), RX_LINK_SWITCH_HANDOVER_LOGIC);
+            break;
+
         case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 
@@ -596,6 +611,9 @@ void logicConditionProcess(uint8_t i) {
         }
     } else {
         logicConditionStates[i].value = false;
+        if (logicConditions(i)->operation == LOGIC_CONDITION_RX_HANDOVER) {
+            logicConditionStates[i].lastValue = 0;
+        }
     }
 }
 
@@ -1196,7 +1214,16 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
 void logicConditionReset(void) {
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionStates[i].value = 0;
-        logicConditionStates[i].lastValue = 0;
+
+        // RX handover is edge-triggered from the external activator. Generic
+        // programming-framework resets (notably disarm) must not manufacture a
+        // new rising edge while the pilot's handover switch is still held. The
+        // normal inactive path clears lastValue once the activator actually goes
+        // false, so a later deliberate re-activation can request another handover.
+        if (logicConditions(i)->operation != LOGIC_CONDITION_RX_HANDOVER) {
+            logicConditionStates[i].lastValue = 0;
+        }
+
         logicConditionStates[i].flags = 0;
         logicConditionStates[i].timeout = 0;
     }

@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "rx/rx.h"
+
 #define EXBUS_HEADER_LEN                6
 #define EXBUS_CRC_LEN                   2
 #define EXBUS_OVERHEAD                  (EXBUS_HEADER_LEN + EXBUS_CRC_LEN)
@@ -51,4 +53,4 @@ extern struct serialPort_s *jetiExBusPort;
 extern volatile bool jetiExBusCanTx;
 
 uint16_t jetiExBusCalcCRC16(uint8_t *pt, uint8_t msgLen);
-bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction);

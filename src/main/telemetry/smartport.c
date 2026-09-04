@@ -157,7 +157,9 @@ typedef struct smartPortFrame_s {
 static smartPortWriteFrameFn *smartPortWriteFrame;
 
 #if defined(USE_MSP_OVER_TELEMETRY)
-static bool smartPortMspReplyPending = false;
+static mspSharedContext_t smartPortMspContext;
+static uint8_t smartPortMspRxBuffer[SMARTPORT_MSP_RX_BUF_SIZE];
+static uint8_t smartPortMspTxBuffer[SMARTPORT_MSP_TX_BUF_SIZE];
 #endif
 
 static uint32_t frskyGetFlightMode(void)
@@ -358,6 +360,11 @@ static void smartPortSendPackage(uint16_t id, uint32_t val)
 bool initSmartPortTelemetry(void)
 {
     if (telemetryState == TELEMETRY_STATE_UNINITIALIZED) {
+#if defined(USE_MSP_OVER_TELEMETRY)
+        initSharedMsp(&smartPortMspContext,
+            smartPortMspRxBuffer, sizeof(smartPortMspRxBuffer),
+            smartPortMspTxBuffer, sizeof(smartPortMspTxBuffer));
+#endif
         portConfig = findSerialPortConfig(FUNCTION_TELEMETRY_SMARTPORT);
         if (portConfig) {
             smartPortPortSharing = determinePortSharing(portConfig, FUNCTION_TELEMETRY_SMARTPORT);
@@ -376,6 +383,11 @@ bool initSmartPortTelemetry(void)
 bool initSmartPortTelemetryExternal(smartPortWriteFrameFn *smartPortWriteFrameExternal)
 {
     if (telemetryState == TELEMETRY_STATE_UNINITIALIZED) {
+#if defined(USE_MSP_OVER_TELEMETRY)
+        initSharedMsp(&smartPortMspContext,
+            smartPortMspRxBuffer, sizeof(smartPortMspRxBuffer),
+            smartPortMspTxBuffer, sizeof(smartPortMspTxBuffer));
+#endif
         smartPortWriteFrame = smartPortWriteFrameExternal;
 
         telemetryState = TELEMETRY_STATE_INITIALIZED_EXTERNAL;
@@ -447,7 +459,7 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
         if (smartPortPayloadContainsMSP(payload)) {
             // Pass only the payload: skip frameId
             uint8_t *frameStart = (uint8_t *)&payload->valueId;
-            smartPortMspReplyPending = handleMspFrame(frameStart, SMARTPORT_MSP_PAYLOAD_SIZE);
+            handleMspFrame(&smartPortMspContext, frameStart, SMARTPORT_MSP_PAYLOAD_SIZE);
         }
 #endif
     }
@@ -466,8 +478,8 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
         }
 
 #if defined(USE_MSP_OVER_TELEMETRY)
-        if (smartPortMspReplyPending) {
-            smartPortMspReplyPending = sendMspReply(SMARTPORT_MSP_PAYLOAD_SIZE, &smartPortSendMspResponse);
+        if (sharedMspReplyPending(&smartPortMspContext)) {
+            sendMspReply(&smartPortMspContext, SMARTPORT_MSP_PAYLOAD_SIZE, &smartPortSendMspResponse, NULL);
             *clearToSend = false;
 
             return;

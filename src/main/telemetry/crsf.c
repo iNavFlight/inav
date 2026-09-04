@@ -23,7 +23,6 @@
 
 #if defined(USE_TELEMETRY) && defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
 
-#include "build/atomic.h"
 #include "build/build_config.h"
 #include "build/version.h"
 
@@ -77,72 +76,59 @@
 // Digitalentity: Using frame address byte as a sync field looks somewhat hacky to me, but seems it's needed to get CRSF working properly
 #define CRSF_DEVICEINFO_PARAMETER_COUNT     0
 
-#define CRSF_MSP_BUFFER_SIZE 96
-#define CRSF_MSP_LENGTH_OFFSET 1
-
 static uint8_t crsfCrc;
 static bool crsfTelemetryEnabled;
 static bool deviceInfoReplyPending;
 static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX];
 
 #if defined(USE_MSP_OVER_TELEMETRY)
-typedef struct mspBuffer_s {
-    uint8_t bytes[CRSF_MSP_BUFFER_SIZE];
-    int len;
-} mspBuffer_t;
-
-static mspBuffer_t mspRxBuffer;
+static mspSharedContext_t crsfMspContexts[RX_LINK_COUNT];
+STATIC_FASTRAM uint8_t crsfMspRxBuffers[RX_LINK_COUNT][CRSF_MSP_RX_BUF_SIZE];
+STATIC_FASTRAM uint8_t crsfMspTxBuffers[RX_LINK_COUNT][CRSF_MSP_TX_BUF_SIZE];
+static uint8_t crsfMspRequestOriginId[RX_LINK_COUNT];
+static volatile bool crsfMspRequestOriginValid[RX_LINK_COUNT];
+static bool crsfMspInitialized;
 
 void initCrsfMspBuffer(void)
 {
-    mspRxBuffer.len = 0;
+    if (crsfMspInitialized) {
+        return;
+    }
+
+    memset(crsfMspRequestOriginId, 0, sizeof(crsfMspRequestOriginId));
+    memset((void *)crsfMspRequestOriginValid, 0, sizeof(crsfMspRequestOriginValid));
+    for (rxLink_e link = RX_LINK_PRIMARY; link < RX_LINK_COUNT; link++) {
+        initSharedMsp(&crsfMspContexts[link],
+            crsfMspRxBuffers[link], sizeof(crsfMspRxBuffers[link]),
+            crsfMspTxBuffers[link], sizeof(crsfMspTxBuffers[link]));
+    }
+    crsfMspInitialized = true;
 }
 
-bool bufferCrsfMspFrame(uint8_t *frameStart, int frameLength)
+bool bufferCrsfMspFrame(rxLink_e link, uint8_t requestOriginId, const uint8_t *frameStart, int frameLength)
 {
-    if (mspRxBuffer.len + CRSF_MSP_LENGTH_OFFSET + frameLength > CRSF_MSP_BUFFER_SIZE) {
-        return false;
-    } else {
-        uint8_t *p = mspRxBuffer.bytes + mspRxBuffer.len;
-        *p++ = frameLength;
-        memcpy(p, frameStart, frameLength);
-        mspRxBuffer.len += CRSF_MSP_LENGTH_OFFSET + frameLength;
-        return true;
-    }
-}
-
-bool handleCrsfMspFrameBuffer(uint8_t payloadSize, mspResponseFnPtr responseFn)
-{
-    static bool replyPending = false;
-    if (replyPending) {
-        if (crsfRxIsTelemetryBufEmpty()) {
-            replyPending = sendMspReply(payloadSize, responseFn);
-        }
-        return replyPending;
-    }
-
-    if (!mspRxBuffer.len) {
+    if ((unsigned)link >= RX_LINK_COUNT || !frameStart || frameLength < 1 || frameLength > CRSF_PAYLOAD_SIZE_MAX) {
         return false;
     }
-    int pos = 0;
-    while (true) {
-        const int mspFrameLength = mspRxBuffer.bytes[pos];
-        if (handleMspFrame(&mspRxBuffer.bytes[CRSF_MSP_LENGTH_OFFSET + pos], mspFrameLength)) {
-            if (crsfRxIsTelemetryBufEmpty()) {
-                replyPending = sendMspReply(payloadSize, responseFn);
-            } else {
-                replyPending = true;
-            }
+
+    mspSharedContext_t *context = &crsfMspContexts[link];
+    const bool start = (frameStart[0] & 0x10) != 0;
+
+    if (start) {
+        // CRSF is request/reply. Once a complete request or response is owned
+        // by the telemetry task, a second request cannot replace it.
+        if (sharedMspEndpointBusy(context)) {
+            return false;
         }
-        pos += CRSF_MSP_LENGTH_OFFSET + mspFrameLength;
-        ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {
-            if (pos >= mspRxBuffer.len) {
-                mspRxBuffer.len = 0;
-                return replyPending ;
-            }
-        }
+        crsfMspRequestOriginId[link] = requestOriginId;
+        crsfMspRequestOriginValid[link] = true;
+    } else if (!crsfMspRequestOriginValid[link] || crsfMspRequestOriginId[link] != requestOriginId) {
+        return false;
     }
-    return replyPending;
+
+    // This is called from the serial RX callback. receiveMspFrame() only
+    // assembles protocol state; it never executes an MSP command.
+    return receiveMspFrame(context, frameStart, frameLength);
 }
 #endif
 
@@ -612,37 +598,85 @@ static uint8_t crsfScheduleCount;
 static uint16_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
 
 #if defined(USE_MSP_OVER_TELEMETRY)
-
-static bool mspReplyPending;
-
-//Id of the last receiver MSP frame over CRSF. Needed to send response with correct frame ID
-static uint8_t mspRequestOriginID = 0;
-
-void crsfScheduleMspResponse(uint8_t requestOriginID)
+static void crsfSendMspResponseForLink(rxLink_e link, uint8_t *payload, uint8_t payloadSize)
 {
-    mspReplyPending = true;
-    mspRequestOriginID = requestOriginID;
-}
+    if ((unsigned)link >= RX_LINK_COUNT || !crsfMspRequestOriginValid[link]) {
+        return;
+    }
 
-void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
-{
     sbuf_t crsfPayloadBuf;
     sbuf_t *dst = &crsfPayloadBuf;
 
     crsfInitializeFrame(dst);
     sbufWriteU8(dst, payloadSize + CRSF_FRAME_LENGTH_EXT_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_MSP_RESP);
-    crsfSerialize8(dst, mspRequestOriginID);
+    crsfSerialize8(dst, crsfMspRequestOriginId[link]);
     crsfSerialize8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
-    crsfSerializeData(dst, (const uint8_t*)payload, payloadSize);
-    crsfFinalize(dst);
+    crsfSerializeData(dst, payload, payloadSize);
+    sbufWriteU8(dst, crsfCrc);
+    sbufSwitchToReader(dst, crsfFrame);
+    crsfRxWriteTelemetryDataForLink(link, sbufPtr(dst), sbufBytesRemaining(dst));
 }
+
+static void crsfSendMspResponseRx1(uint8_t *payload, const uint8_t payloadSize)
+{
+    crsfSendMspResponseForLink(RX_LINK_PRIMARY, payload, payloadSize);
+}
+
+static void crsfSendMspResponseRx2(uint8_t *payload, const uint8_t payloadSize)
+{
+    crsfSendMspResponseForLink(RX_LINK_SECONDARY, payload, payloadSize);
+}
+
+static mspResponseFnPtr crsfMspResponseFn(rxLink_e link)
+{
+    return link == RX_LINK_PRIMARY ? crsfSendMspResponseRx1 : crsfSendMspResponseRx2;
+}
+
+static void crsfMspResponseCompleteRx1(void)
+{
+    crsfMspRequestOriginValid[RX_LINK_PRIMARY] = false;
+}
+
+static void crsfMspResponseCompleteRx2(void)
+{
+    crsfMspRequestOriginValid[RX_LINK_SECONDARY] = false;
+}
+
+static mspResponseCompleteFnPtr crsfMspResponseCompleteFn(rxLink_e link)
+{
+    return link == RX_LINK_PRIMARY ? crsfMspResponseCompleteRx1 : crsfMspResponseCompleteRx2;
+}
+
+static bool serviceCrsfMspLink(rxLink_e link)
+{
+    mspSharedContext_t *context = &crsfMspContexts[link];
+
+    if (sharedMspRequestPending(context)) {
+        const bool replyPending = processMspRequest(context, crsfMspResponseCompleteFn(link));
+        if (!replyPending) {
+            return false;
+        }
+    }
+
+    if (!sharedMspReplyPending(context)) {
+        return false;
+    }
+
+    if (!crsfRxIsTelemetryBufEmpty(link)) {
+        return true;
+    }
+
+    return sendMspReply(context, CRSF_FRAME_TX_MSP_FRAME_SIZE,
+        crsfMspResponseFn(link), crsfMspResponseCompleteFn(link));
+}
+
 #endif
 
 static void processCrsf(void)
 {
-    if (!crsfRxIsTelemetryBufEmpty()) {
-        return; // do nothing if telemetry ouptut buffer is not empty yet.
+    if (!crsfRxHasTelemetryBufSpace()) {
+        return; // No receiver can accept another scheduled telemetry frame yet.
     }
 
     static uint8_t crsfScheduleIndex = 0;
@@ -719,7 +753,7 @@ void initCrsfTelemetry(void)
 
     deviceInfoReplyPending = false;
 #if defined(USE_MSP_OVER_TELEMETRY)
-    mspReplyPending = false;
+    initCrsfMspBuffer();
 #endif
 
     int index = 0;
@@ -795,9 +829,14 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 
     // Send ad-hoc response frames as soon as possible
 #if defined(USE_MSP_OVER_TELEMETRY)
-    if (mspReplyPending) {
-        mspReplyPending = handleCrsfMspFrameBuffer(CRSF_FRAME_TX_MSP_FRAME_SIZE, &crsfSendMspResponse);
-        crsfLastCycleTime = currentTimeUs; // reset telemetry timing due to ad-hoc request
+    bool mspWorkPending = false;
+    for (rxLink_e link = RX_LINK_PRIMARY; link < RX_LINK_COUNT; link++) {
+        if (serviceCrsfMspLink(link)) {
+            mspWorkPending = true;
+        }
+    }
+    if (mspWorkPending) {
+        crsfLastCycleTime = currentTimeUs; // prioritize request/reply traffic over periodic telemetry
         return;
     }
 #endif

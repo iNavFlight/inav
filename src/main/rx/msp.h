@@ -20,5 +20,6 @@
 #include "rx/rx.h"
 
 void rxMspFrameReceive(uint16_t *frame, int channelCount);
-void rxMspInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
-uint8_t rxMspGetLastChannelCount(void);
+void rxMspInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, rxLink_e link);
+void rxMspOverrideInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+uint8_t rxMspGetLastChannelCount(rxLink_e link);

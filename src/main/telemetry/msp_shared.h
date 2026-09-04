@@ -1,30 +1,49 @@
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "common/streambuf.h"
-#include "telemetry/crsf.h"
-#include "telemetry/smartport.h"
+#include "msp/msp.h"
 
 typedef void (*mspResponseFnPtr)(uint8_t *payload, const uint8_t payloadSize);
+typedef void (*mspResponseCompleteFnPtr)(void);
 
-struct mspPacket_s;
-typedef struct mspPackage_s {
-    sbuf_t requestFrame;
+/*
+ * MSP-over-telemetry state belongs to one transport endpoint. The caller owns
+ * the request/response storage so each transport can reserve only the space it
+ * actually needs (for example SmartPort is much smaller than CRSF).
+ */
+typedef struct mspSharedContext_s {
     uint8_t *requestBuffer;
+    uint16_t requestBufferSize;
     uint8_t *responseBuffer;
-    struct mspPacket_s *requestPacket;
-    struct mspPacket_s *responsePacket;
-} mspPackage_t;
+    uint16_t responseBufferSize;
+    mspPacket_t requestPacket;
+    mspPacket_t responsePacket;
+    uint8_t requestVersion;
+    uint8_t lastRxSeq;
+    uint8_t txSeq;
+    volatile bool receivingRequest;
+    volatile bool requestPending;
+    volatile bool responsePending;
+    bool responseHeaderSent;
+} mspSharedContext_t;
 
-typedef union mspRxBuffer_u {
-    uint8_t smartPortMspRxBuffer[SMARTPORT_MSP_RX_BUF_SIZE];
-    uint8_t crsfMspRxBuffer[CRSF_MSP_RX_BUF_SIZE];
-} mspRxBuffer_t;
+void initSharedMsp(mspSharedContext_t *context,
+    uint8_t *requestBuffer, uint16_t requestBufferSize,
+    uint8_t *responseBuffer, uint16_t responseBufferSize);
+void resetSharedMsp(mspSharedContext_t *context);
 
-typedef union mspTxBuffer_u {
-    uint8_t smartPortMspTxBuffer[SMARTPORT_MSP_TX_BUF_SIZE];
-    uint8_t crsfMspTxBuffer[CRSF_MSP_TX_BUF_SIZE];
-} mspTxBuffer_t;
+// receiveMspFrame() only assembles/parses the transport request. It is safe
+// for an RX callback because it never dispatches an MSP command. A completed
+// request is executed later by processMspRequest() in normal task context.
+bool receiveMspFrame(mspSharedContext_t *context, const uint8_t *frameStart, int payloadLength);
+bool processMspRequest(mspSharedContext_t *context, mspResponseCompleteFnPtr completeFn);
 
-void initSharedMsp(void);
-bool handleMspFrame(uint8_t *frameStart, int payloadLength);
-bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn);
+// Convenience path for transports already running in task context.
+bool handleMspFrame(mspSharedContext_t *context, const uint8_t *frameStart, int payloadLength);
+bool sendMspReply(mspSharedContext_t *context, uint8_t payloadSize, mspResponseFnPtr responseFn, mspResponseCompleteFnPtr completeFn);
+bool sharedMspRequestPending(const mspSharedContext_t *context);
+bool sharedMspReplyPending(const mspSharedContext_t *context);
+bool sharedMspEndpointBusy(const mspSharedContext_t *context);

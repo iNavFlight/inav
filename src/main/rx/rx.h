@@ -24,6 +24,7 @@
 #include "common/tristate.h"
 
 #include "config/parameter_group.h"
+#include "io/serial.h"
 
 #define STICK_CHANNEL_COUNT 4
 
@@ -108,10 +109,16 @@ PG_DECLARE_ARRAY(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeCo
 
 typedef struct rxConfig_s {
     uint8_t receiverType;                   // RC receiver type (rxReceiverType_e enum)
+    uint8_t dualRxEnabled;                  // Enable dual RX link handling
     uint8_t rcmap[MAX_MAPPABLE_RX_INPUTS];  // mapping of radio channels to internal RPYTA+ order
     uint8_t serialrx_provider;              // Type of UART-based receiver (rxSerialReceiverType_e enum). Only used if receiverType is RX_TYPE_SERIAL
     uint8_t serialrx_inverted;              // Flip the default inversion of the protocol - e.g. sbus (Futaba, FrSKY) is inverted if this is false, uninverted if it's true. Support for uninverted OpenLRS (and modified FrSKY) receivers.
     uint8_t halfDuplex;                     // allow rx to operate in half duplex mode. From tristate_e.
+    uint8_t receiverTypeSecondary;          // Secondary RX type
+    uint8_t serialrx_provider_secondary;    // Secondary UART-based RX provider
+    uint8_t serialrx_inverted_secondary;    // Secondary inversion flag
+    uint8_t halfDuplexSecondary;            // Secondary half duplex flag. From tristate_e.
+    uint16_t sbusSyncIntervalSecondary;
 #ifdef USE_SPEKTRUM_BIND
     uint8_t spektrum_sat_bind;              // number of bind pulses for Spektrum satellite receivers
     uint8_t spektrum_sat_bind_autoreset;    // whenever we will reset (exit) binding mode after hard reboot
@@ -146,6 +153,60 @@ typedef struct rxLinkQualityTracker_s {
     uint32_t lqValue;
 } rxLinkQualityTracker_e;
 
+typedef enum {
+    RX_LINK_PRIMARY = 0,
+    RX_LINK_SECONDARY,
+    RX_LINK_COUNT
+} rxLink_e;
+
+// User-facing names are RX1/RX2. PRIMARY/SECONDARY are retained internally for
+// compatibility with the existing configuration field names.
+#define RX_LINK_1 RX_LINK_PRIMARY
+#define RX_LINK_2 RX_LINK_SECONDARY
+
+typedef enum {
+    RX_LINK_SWITCH_BOOT = 0,
+    RX_LINK_SWITCH_LINK_LOSS,
+    RX_LINK_SWITCH_HANDOVER_LOGIC,
+    RX_LINK_SWITCH_HANDOVER_MSP,
+    RX_LINK_SWITCH_HANDOVER_API,
+} rxLinkSwitchReason_e;
+
+typedef enum {
+    RX_DUAL_STATUS_DISABLED = 0,
+    RX_DUAL_STATUS_OK,
+    RX_DUAL_STATUS_RX1_NOT_CONFIGURED,
+    RX_DUAL_STATUS_RX2_NOT_CONFIGURED,
+    RX_DUAL_STATUS_UNSUPPORTED_PAIR,
+    RX_DUAL_STATUS_INIT_FAILED,
+} rxDualStatus_e;
+
+typedef enum {
+    RX_LINK_STATS_UPLINK_RSSI       = (1U << 0),
+    RX_LINK_STATS_UPLINK_LQ         = (1U << 1),
+    RX_LINK_STATS_DOWNLINK_LQ       = (1U << 2),
+    RX_LINK_STATS_UPLINK_SNR        = (1U << 3),
+    RX_LINK_STATS_RF_MODE           = (1U << 4),
+    RX_LINK_STATS_UPLINK_TX_POWER   = (1U << 5),
+    RX_LINK_STATS_DOWNLINK_TX_POWER = (1U << 6),
+    RX_LINK_STATS_ACTIVE_ANTENNA    = (1U << 7),
+    RX_LINK_STATS_BAND              = (1U << 8),
+    RX_LINK_STATS_MODE              = (1U << 9),
+} rxLinkStatisticsField_e;
+
+typedef struct rxLinkStatistics_s {
+    int16_t     uplinkRSSI;         // RSSI value in dBm
+    uint8_t     uplinkLQ;           // A protocol specific measure of the link quality in [0..100]
+    uint8_t     downlinkLQ;         // A protocol specific measure of the link quality in [0..100]
+    int8_t      uplinkSNR;          // The SNR of the uplink in dB
+    uint8_t     rfMode;             // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
+    uint16_t    uplinkTXPower;      // power in mW
+    uint16_t    downlinkTXPower;    // power in mW
+    uint8_t     activeAntenna;
+    char        band[4];
+    char        mode[6];
+} rxLinkStatistics_t;
+
 
 struct rxRuntimeConfig_s;
 typedef struct rxRuntimeConfig_s rxRuntimeConfig_t;
@@ -162,6 +223,7 @@ typedef struct rxRuntimeConfig_s {
     rcFrameStatusFnPtr rcFrameStatusFn;
     rcProcessFrameFnPtr rcProcessFrameFn;
     rxLinkQualityTracker_e * lqTracker;     // Pointer to a
+    rxLinkStatistics_t *linkStatistics;
     uint16_t *channelData;
     void *frameData;
 } rxRuntimeConfig_t;
@@ -180,24 +242,6 @@ typedef enum {
     RSSI_SOURCE_RX_PROTOCOL,
     RSSI_SOURCE_MSP,
 } rssiSource_e;
-
-typedef struct rxLinkStatistics_s {
-    int16_t     uplinkRSSI;         // RSSI value in dBm
-    uint8_t     uplinkLQ;           // A protocol specific measure of the link quality in [0..100]
-    uint8_t     downlinkLQ;         // A protocol specific measure of the link quality in [0..100]
-    int8_t      uplinkSNR;          // The SNR of the uplink in dB
-    uint8_t     rfMode;             // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
-    uint16_t    uplinkTXPower;      // power in mW
-    uint16_t    downlinkTXPower;    // power in mW
-    uint8_t     activeAntenna;
-    char        band[4];
-    char        mode[6];
-} rxLinkStatistics_t;
-
-typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
-typedef uint8_t (*rcFrameStatusFnPtr)(rxRuntimeConfig_t *rxRuntimeConfig);
-typedef bool (*rcProcessFrameFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
-typedef uint16_t (*rcGetLinkQualityPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
 
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
 extern rxLinkStatistics_t rxLinkStatistics;
@@ -237,3 +281,27 @@ int16_t rxGetChannelValue(unsigned channelNumber);
 // MSP aux channel overlay (CH13-CH32). Sets a channel value that persists
 // across RX update cycles. value=0 ignores that channel and skips it.
 void rxMspAuxOverlaySet(uint8_t channelIndex, uint16_t value);
+
+rxLink_e rxGetActiveLink(void);
+bool rxRequestLinkHandover(rxLink_e link, rxLinkSwitchReason_e reason);
+bool rxIsDualRxEnabled(void);
+rxDualStatus_e rxGetDualRxStatus(void);
+bool rxIsLinkConfigured(rxLink_e link);
+rxReceiverType_e rxGetLinkReceiverType(rxLink_e link);
+uint8_t rxGetLinkSerialProvider(rxLink_e link);
+bool rxIsLinkInitialized(rxLink_e link);
+bool rxIsLinkReceivingSignal(rxLink_e link);
+bool rxIsLinkValid(rxLink_e link);
+uint8_t rxGetValidLinkMask(void);
+uint8_t rxGetInitializedLinkMask(void);
+rxLinkSwitchReason_e rxGetLastSwitchReason(void);
+timeMs_t rxGetLastSwitchTimeMs(void);
+const rxLinkStatistics_t *rxGetLinkStatistics(rxLink_e link);
+rxLinkStatistics_t *rxGetLinkStatisticsMutable(rxLink_e link);
+bool rxLinkStatisticsAreValid(rxLink_e link);
+uint16_t rxGetLinkStatisticsValidFields(rxLink_e link);
+void rxLinkStatisticsUpdated(rxLink_e link, uint16_t validFields);
+uint16_t rxGetLinkQuality(rxLink_e link);
+#ifdef USE_RX_MSP
+int8_t rxGetMspLink(void);
+#endif

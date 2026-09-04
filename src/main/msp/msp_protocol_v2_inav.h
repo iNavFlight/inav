@@ -157,3 +157,4 @@
 #define MSP2_INAV_SET_AUX_RC                    0x2230
 
 #define MSP2_INAV_WIND                          0x2231
+#define MSP2_INAV_SET_RX_LINK                   0x2232  // in message: request handover, payload U8 rxLink_e (0=RX1, 1=RX2)

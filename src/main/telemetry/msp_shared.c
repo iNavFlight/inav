@@ -8,6 +8,7 @@
 
 #include "build/build_config.h"
 
+#include "common/maths.h"
 #include "common/utils.h"
 
 #include "fc/fc_msp.h"
@@ -19,246 +20,332 @@
 #define TELEMETRY_MSP_VERSION    2
 #define TELEMETRY_MSP_RES_ERROR (-10)
 
-enum { // constants for status of msp-over-telemetry frame
-    TELEMETRY_MSP_SEQ_MASK      = 0x0f, // 0b00001111,   // sequence number mask
-    TELEMETRY_MSP_VER_MASK      = 0x60, // 0b01100000,   // MSP version mask
-    TELEMETRY_MSP_START_MASK    = 0x10, // 0b00010000,   // bit of starting frame (if 1, the frame is a first/single chunk of msp-frame)
-    TELEMETRY_MSP_ERROR_MASK    = 0x80, // 0b10000000,   // Error bit (1 if error)
-    TELEMETRY_MSP_VER_SHIFT     = 5,    // MSP version shift
+enum {
+    TELEMETRY_MSP_SEQ_MASK   = 0x0f,
+    TELEMETRY_MSP_VER_MASK   = 0x60,
+    TELEMETRY_MSP_START_MASK = 0x10,
+    TELEMETRY_MSP_ERROR_MASK = 0x80,
+    TELEMETRY_MSP_VER_SHIFT  = 5,
 };
 
 enum {
-    TELEMETRY_MSP_VER_MISMATCH=0,
-    TELEMETRY_MSP_CRC_ERROR=1,
-    TELEMETRY_MSP_ERROR=2,
+    TELEMETRY_MSP_VER_MISMATCH = 0,
+    TELEMETRY_MSP_ERROR = 2,
     TELEMETRY_MSP_REQUEST_IS_TOO_BIG = 3,
 };
 
-enum { // minimum length for a frame.
-    MIN_LENGTH_CHUNK         = 2, // status + at_least_one_byte
-    MIN_LENGTH_REQUEST_V1    = 3, // status + length + ID
-    MIN_LENGTH_REQUEST_V2    = 6, // status + flag + ID_lo + ID_hi + size_lo + size_hi
+enum {
+    MIN_LENGTH_CHUNK      = 2,
+    MIN_LENGTH_REQUEST_V1 = 3,
+    MIN_LENGTH_REQUEST_V2 = 6,
 };
 
-enum { // byte position(index) in msp-over-telemetry request payload
-    // MSPv1
-    MSP_INDEX_STATUS        = 0,                           // status byte
-    MSP_INDEX_SIZE_V1       = MSP_INDEX_STATUS        + 1, // MSPv1 payload size
-    MSP_INDEX_ID_V1         = MSP_INDEX_SIZE_V1       + 1, // MSPv1 ID/command/function byte
-    MSP_INDEX_PAYLOAD_V1    = MSP_INDEX_ID_V1         + 1, // MSPv1 Payload start / CRC for zero payload
+enum {
+    MSP_INDEX_STATUS     = 0,
+    MSP_INDEX_SIZE_V1    = MSP_INDEX_STATUS + 1,
+    MSP_INDEX_ID_V1      = MSP_INDEX_SIZE_V1 + 1,
+    MSP_INDEX_PAYLOAD_V1 = MSP_INDEX_ID_V1 + 1,
 
-    // MSPv2
-    MSP_INDEX_FLAG_V2       = MSP_INDEX_SIZE_V1,           // MSPv2 flags byte
-    MSP_INDEX_ID_LO         = MSP_INDEX_ID_V1,             // MSPv2 Lo byte of ID/command/function
-    MSP_INDEX_ID_HI         = MSP_INDEX_ID_LO         + 1, // MSPv2 Hi byte of ID/command/function
-    MSP_INDEX_SIZE_V2_LO    = MSP_INDEX_ID_HI         + 1, // MSPv2 Lo byte of payload size
-    MSP_INDEX_SIZE_V2_HI    = MSP_INDEX_SIZE_V2_LO    + 1, // MSPv2 Hi byte of payload size
-    MSP_INDEX_PAYLOAD_V2    = MSP_INDEX_SIZE_V2_HI    + 1, // MSPv2 first byte of payload itself
+    MSP_INDEX_FLAG_V2    = MSP_INDEX_SIZE_V1,
+    MSP_INDEX_ID_LO      = MSP_INDEX_ID_V1,
+    MSP_INDEX_ID_HI      = MSP_INDEX_ID_LO + 1,
+    MSP_INDEX_SIZE_V2_LO = MSP_INDEX_ID_HI + 1,
+    MSP_INDEX_SIZE_V2_HI = MSP_INDEX_SIZE_V2_LO + 1,
+    MSP_INDEX_PAYLOAD_V2 = MSP_INDEX_SIZE_V2_HI + 1,
 };
 
-static uint8_t lastRequestVersion; // MSP version of last request. Temporary solution. It's better to keep it in requestPacket.
-STATIC_UNIT_TESTED mspPackage_t mspPackage;
-static mspRxBuffer_t mspRxBuffer;
-static mspTxBuffer_t mspTxBuffer;
-static mspPacket_t mspRxPacket;
-static mspPacket_t mspTxPacket;
-
-void initSharedMsp(void)
+void resetSharedMsp(mspSharedContext_t *context)
 {
-    mspPackage.requestBuffer = (uint8_t *)&mspRxBuffer;
-    mspPackage.requestPacket = &mspRxPacket;
-    mspPackage.requestPacket->buf.ptr = mspPackage.requestBuffer;
-    mspPackage.requestPacket->buf.end = mspPackage.requestBuffer + sizeof(mspRxBuffer);
+    if (!context) {
+        return;
+    }
 
-    mspPackage.responseBuffer = (uint8_t *)&mspTxBuffer;
-    mspPackage.responsePacket = &mspTxPacket;
-    mspPackage.responsePacket->buf.ptr = mspPackage.responseBuffer;
-    mspPackage.responsePacket->buf.end = mspPackage.responseBuffer;
+    // Preserve caller-owned storage across a protocol-state reset.
+    uint8_t *requestBuffer = context->requestBuffer;
+    const uint16_t requestBufferSize = context->requestBufferSize;
+    uint8_t *responseBuffer = context->responseBuffer;
+    const uint16_t responseBufferSize = context->responseBufferSize;
+
+    memset(context, 0, sizeof(*context));
+    context->requestBuffer = requestBuffer;
+    context->requestBufferSize = requestBufferSize;
+    context->responseBuffer = responseBuffer;
+    context->responseBufferSize = responseBufferSize;
+
+    if (requestBuffer && requestBufferSize) {
+        sbufInit(&context->requestPacket.buf, requestBuffer, requestBuffer + requestBufferSize);
+    }
+    if (responseBuffer) {
+        sbufInit(&context->responsePacket.buf, responseBuffer, responseBuffer);
+    }
 }
 
-static bool processMspPacket(void)
+void initSharedMsp(mspSharedContext_t *context,
+    uint8_t *requestBuffer, uint16_t requestBufferSize,
+    uint8_t *responseBuffer, uint16_t responseBufferSize)
 {
-    mspPackage.responsePacket->cmd = 0;
-    mspPackage.responsePacket->result = 0;
-    mspPackage.responsePacket->buf.ptr = mspPackage.responseBuffer;
-    mspPackage.responsePacket->buf.end = mspPackage.responseBuffer + sizeof(mspTxBuffer);
+    if (!context) {
+        return;
+    }
+
+    memset(context, 0, sizeof(*context));
+    context->requestBuffer = requestBuffer;
+    context->requestBufferSize = requestBufferSize;
+    context->responseBuffer = responseBuffer;
+    context->responseBufferSize = responseBufferSize;
+    resetSharedMsp(context);
+}
+
+bool sharedMspRequestPending(const mspSharedContext_t *context)
+{
+    return context && context->requestPending;
+}
+
+bool sharedMspReplyPending(const mspSharedContext_t *context)
+{
+    return context && context->responsePending;
+}
+
+bool sharedMspEndpointBusy(const mspSharedContext_t *context)
+{
+    return context && (context->requestPending || context->responsePending);
+}
+
+static bool processMspPacket(mspSharedContext_t *context, mspResponseCompleteFnPtr completeFn)
+{
+    mspPacket_t *response = &context->responsePacket;
+
+    response->cmd = 0;
+    response->flags = 0;
+    response->result = 0;
+    sbufInit(&response->buf,
+        context->responseBuffer,
+        context->responseBuffer + context->responseBufferSize);
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
-    const mspResult_e status = mspFcProcessCommand(mspPackage.requestPacket, mspPackage.responsePacket, &mspPostProcessFn);
+    const mspResult_e status = mspFcProcessCommand(&context->requestPacket, response, &mspPostProcessFn);
     if (status == MSP_RESULT_ERROR) {
-        sbufWriteU8(&mspPackage.responsePacket->buf, TELEMETRY_MSP_ERROR);
+        sbufWriteU8(&response->buf, TELEMETRY_MSP_ERROR);
     }
     if (mspPostProcessFn) {
         mspPostProcessFn(NULL);
     }
 
     if (status == MSP_RESULT_NO_REPLY) {
+        context->responsePending = false;
+        sbufInit(&response->buf, context->responseBuffer, context->responseBuffer);
+        // As with the last reply fragment, transport-owned transaction state
+        // must be released before requestPending exposes a free endpoint to an
+        // RX interrupt.
+        if (completeFn) {
+            completeFn();
+        }
+        context->requestPending = false;
         return false;
     }
 
-    sbufSwitchToReader(&mspPackage.responsePacket->buf, mspPackage.responseBuffer);
+    sbufSwitchToReader(&response->buf, context->responseBuffer);
+    // Commit the response before releasing the request buffer. An RX callback
+    // sees requestPending || responsePending and therefore cannot overwrite the
+    // request while mspFcProcessCommand() is reading it.
+    context->responsePending = true;
+    context->requestPending = false;
     return true;
 }
 
-void sendMspErrorResponse(uint8_t error, int16_t cmd)
+static void sendMspErrorResponse(mspSharedContext_t *context, uint8_t error, int16_t cmd)
 {
-    mspPackage.responsePacket->cmd = cmd;
-    mspPackage.responsePacket->result = 0;
-    mspPackage.responsePacket->buf.end = mspPackage.responseBuffer;
-
-    sbufWriteU8(&mspPackage.responsePacket->buf, error);
-    mspPackage.responsePacket->result = TELEMETRY_MSP_RES_ERROR;
-    sbufSwitchToReader(&mspPackage.responsePacket->buf, mspPackage.responseBuffer);
+    mspPacket_t *response = &context->responsePacket;
+    response->cmd = cmd;
+    response->flags = 0;
+    response->result = TELEMETRY_MSP_RES_ERROR;
+    sbufInit(&response->buf,
+        context->responseBuffer,
+        context->responseBuffer + context->responseBufferSize);
+    sbufWriteU8(&response->buf, error);
+    sbufSwitchToReader(&response->buf, context->responseBuffer);
+    context->responsePending = true;
 }
 
-bool handleMspFrame(uint8_t *const frameStart, const int payloadLength)
+static void beginRequest(mspSharedContext_t *context, uint16_t payloadSize)
 {
-    static uint8_t mspStarted = 0;
-    static uint8_t lastSeq = 0;
+    mspPacket_t *request = &context->requestPacket;
+    sbufInit(&request->buf,
+        context->requestBuffer,
+        context->requestBuffer + payloadSize);
+    request->result = 0;
+    context->receivingRequest = true;
+}
 
-    if (sbufBytesRemaining(&mspPackage.responsePacket->buf) > 0) {
-        mspStarted = 0;
-    }
-
-    if (mspStarted == 0) {
-        initSharedMsp();
-    }
-
-    if (payloadLength < MIN_LENGTH_CHUNK) {
-        return false;   // prevent analyzing garbage data
-    }
-
-    mspPacket_t *requestPacket = mspPackage.requestPacket;
-
-    const uint8_t status = frameStart[MSP_INDEX_STATUS];
-    const uint8_t seqNumber = status & TELEMETRY_MSP_SEQ_MASK;
-    lastRequestVersion = (status & TELEMETRY_MSP_VER_MASK) >> TELEMETRY_MSP_VER_SHIFT;
-
-    if (lastRequestVersion > TELEMETRY_MSP_VERSION) {
-        sendMspErrorResponse(TELEMETRY_MSP_VER_MISMATCH, 0);
-        return true;
-    }
-
-    if (status & TELEMETRY_MSP_START_MASK) { // first packet in sequence
-        uint16_t mspPayloadSize;
-
-        if (lastRequestVersion == 1) { // MSPv1
-
-            mspPayloadSize = frameStart[MSP_INDEX_SIZE_V1];
-            requestPacket->cmd = frameStart[MSP_INDEX_ID_V1];
-            sbufInit(&mspPackage.requestFrame, frameStart + MSP_INDEX_PAYLOAD_V1, frameStart + payloadLength);
-
-        } else { // MSPv2
-            if (payloadLength < MIN_LENGTH_REQUEST_V2) {
-                return false;   // prevent analyzing garbage data
-            }
-            requestPacket->flags = frameStart[MSP_INDEX_FLAG_V2];
-            requestPacket->cmd = *(uint16_t *) &frameStart[MSP_INDEX_ID_LO];
-            mspPayloadSize = *(uint16_t *) &frameStart[MSP_INDEX_SIZE_V2_LO];
-            sbufInit(&mspPackage.requestFrame, frameStart + MSP_INDEX_PAYLOAD_V2, frameStart + payloadLength);
-        }
-
-        if (mspPayloadSize <= sizeof(mspRxBuffer)) { // prevent buffer overrun
-            requestPacket->result = 0;
-            requestPacket->buf.ptr = mspPackage.requestBuffer;
-            requestPacket->buf.end = mspPackage.requestBuffer + mspPayloadSize;
-            mspStarted = 1;
-        } else { // this MSP packet is too big to fit in the buffer.
-            sendMspErrorResponse(TELEMETRY_MSP_REQUEST_IS_TOO_BIG, mspPackage.requestPacket->cmd);
-            return true;
-        }
-        mspStarted = 1;
-    } else { // second onward chunk
-        if (!mspStarted) { // no start packet yet, throw this one away
-            return false;
-        } else {
-            if (((lastSeq + 1) & TELEMETRY_MSP_SEQ_MASK) != seqNumber) {
-                // packet loss detected!
-                mspStarted = 0;
-                return false;
-            }
-        }
-        sbufInit(&mspPackage.requestFrame, frameStart + 1, frameStart + payloadLength);
-    }
-
-    const uint8_t payloadExpecting = sbufBytesRemaining(&requestPacket->buf);
-    const uint8_t payloadIncoming = sbufBytesRemaining(&mspPackage.requestFrame);
-    uint8_t payload[payloadIncoming];
-
-    if (payloadExpecting > payloadIncoming) {
-        sbufReadData(&mspPackage.requestFrame, payload, payloadIncoming);
-        sbufAdvance(&mspPackage.requestFrame, payloadIncoming);
-        sbufWriteData(&requestPacket->buf, payload, payloadIncoming);
-        lastSeq = seqNumber;
-
+bool receiveMspFrame(mspSharedContext_t *context, const uint8_t *frameStart, int payloadLength)
+{
+    if (!context || !frameStart || payloadLength < MIN_LENGTH_CHUNK) {
         return false;
     }
 
-    mspStarted = 0;
+    /*
+     * Do not let a new request overwrite a response that is still being
+     * fragmented onto the transport. Endpoints are request/reply channels.
+     */
+    if (sharedMspEndpointBusy(context)) {
+        return false;
+    }
 
-    sbufReadData(&mspPackage.requestFrame, payload, payloadExpecting);
-    sbufAdvance(&mspPackage.requestFrame, payloadExpecting);
-    sbufWriteData(&requestPacket->buf, payload, payloadExpecting);
-    sbufSwitchToReader(&requestPacket->buf, mspPackage.requestBuffer);
-    return processMspPacket();
+    mspPacket_t *request = &context->requestPacket;
+    const uint8_t status = frameStart[MSP_INDEX_STATUS];
+    const uint8_t seqNumber = status & TELEMETRY_MSP_SEQ_MASK;
+    const uint8_t requestVersion = (status & TELEMETRY_MSP_VER_MASK) >> TELEMETRY_MSP_VER_SHIFT;
+
+    if (requestVersion > TELEMETRY_MSP_VERSION) {
+        context->receivingRequest = false;
+        context->requestVersion = requestVersion;
+        sendMspErrorResponse(context, TELEMETRY_MSP_VER_MISMATCH, 0);
+        return true;
+    }
+
+    const uint8_t *payloadStart;
+    int incomingPayloadLength;
+
+    if (status & TELEMETRY_MSP_START_MASK) {
+        uint16_t mspPayloadSize;
+
+        context->receivingRequest = false;
+        context->requestVersion = requestVersion;
+        context->lastRxSeq = seqNumber;
+
+        if (requestVersion == 1) {
+            if (payloadLength < MIN_LENGTH_REQUEST_V1) {
+                return false;
+            }
+            mspPayloadSize = frameStart[MSP_INDEX_SIZE_V1];
+            request->cmd = frameStart[MSP_INDEX_ID_V1];
+            request->flags = 0;
+            payloadStart = frameStart + MSP_INDEX_PAYLOAD_V1;
+            incomingPayloadLength = payloadLength - MSP_INDEX_PAYLOAD_V1;
+        } else {
+            if (payloadLength < MIN_LENGTH_REQUEST_V2) {
+                return false;
+            }
+            request->flags = frameStart[MSP_INDEX_FLAG_V2];
+            request->cmd = (uint16_t)frameStart[MSP_INDEX_ID_LO] |
+                ((uint16_t)frameStart[MSP_INDEX_ID_HI] << 8);
+            mspPayloadSize = (uint16_t)frameStart[MSP_INDEX_SIZE_V2_LO] |
+                ((uint16_t)frameStart[MSP_INDEX_SIZE_V2_HI] << 8);
+            payloadStart = frameStart + MSP_INDEX_PAYLOAD_V2;
+            incomingPayloadLength = payloadLength - MSP_INDEX_PAYLOAD_V2;
+        }
+
+        if (mspPayloadSize > context->requestBufferSize) {
+            sendMspErrorResponse(context, TELEMETRY_MSP_REQUEST_IS_TOO_BIG, request->cmd);
+            return true;
+        }
+
+        beginRequest(context, mspPayloadSize);
+    } else {
+        if (!context->receivingRequest || requestVersion != context->requestVersion) {
+            return false;
+        }
+        if (((context->lastRxSeq + 1) & TELEMETRY_MSP_SEQ_MASK) != seqNumber) {
+            context->receivingRequest = false;
+            return false;
+        }
+        context->lastRxSeq = seqNumber;
+        payloadStart = frameStart + 1;
+        incomingPayloadLength = payloadLength - 1;
+    }
+
+    const int payloadExpected = sbufBytesRemaining(&request->buf);
+    const int bytesToCopy = MIN(payloadExpected, incomingPayloadLength);
+    if (bytesToCopy > 0) {
+        sbufWriteData(&request->buf, payloadStart, bytesToCopy);
+    }
+
+    if (sbufBytesRemaining(&request->buf) > 0) {
+        return false;
+    }
+
+    context->receivingRequest = false;
+    sbufSwitchToReader(&request->buf, context->requestBuffer);
+    context->requestPending = true;
+    return true;
 }
 
-bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
+bool processMspRequest(mspSharedContext_t *context, mspResponseCompleteFnPtr completeFn)
 {
-    static uint8_t seq = 0;
-    static bool headerSent = false;
+    if (!sharedMspRequestPending(context)) {
+        return sharedMspReplyPending(context);
+    }
+    return processMspPacket(context, completeFn);
+}
+
+bool handleMspFrame(mspSharedContext_t *context, const uint8_t *frameStart, int payloadLength)
+{
+    if (receiveMspFrame(context, frameStart, payloadLength) && sharedMspRequestPending(context)) {
+        processMspRequest(context, NULL);
+    }
+    return sharedMspReplyPending(context);
+}
+
+bool sendMspReply(mspSharedContext_t *context, uint8_t payloadSize, mspResponseFnPtr responseFn, mspResponseCompleteFnPtr completeFn)
+{
+    if (!context || !responseFn || payloadSize == 0 || !sharedMspReplyPending(context)) {
+        return false;
+    }
 
     uint8_t payloadOut[payloadSize];
     sbuf_t payload;
     sbuf_t *payloadBuf = sbufInit(&payload, payloadOut, payloadOut + payloadSize);
-    sbuf_t *txBuf = &mspPackage.responsePacket->buf;
+    mspPacket_t *response = &context->responsePacket;
+    sbuf_t *txBuf = &response->buf;
 
-    // detect first reply packet
-    if (!headerSent) {
-
-        // header
-        uint8_t status = TELEMETRY_MSP_START_MASK | (seq++ & TELEMETRY_MSP_SEQ_MASK) | (lastRequestVersion << TELEMETRY_MSP_VER_SHIFT);;
-        if (mspPackage.responsePacket->result < 0) {
+    if (!context->responseHeaderSent) {
+        uint8_t status = TELEMETRY_MSP_START_MASK |
+            (context->txSeq++ & TELEMETRY_MSP_SEQ_MASK) |
+            (context->requestVersion << TELEMETRY_MSP_VER_SHIFT);
+        if (response->result < 0) {
             status |= TELEMETRY_MSP_ERROR_MASK;
         }
         sbufWriteU8(payloadBuf, status);
 
         const uint16_t size = sbufBytesRemaining(txBuf);
-        if (lastRequestVersion == 1) { // MSPv1
+        if (context->requestVersion == 1) {
             sbufWriteU8(payloadBuf, size);
-            sbufWriteU8(payloadBuf, mspPackage.responsePacket->cmd);
-        } else { // MSPv2
-            sbufWriteU8(payloadBuf, mspPackage.responsePacket->flags);  // MSPv2 flags
-            sbufWriteU16(payloadBuf, mspPackage.responsePacket->cmd);    // command is 16 bit in MSPv2
-            sbufWriteU16(payloadBuf, (uint16_t) size);        // size is 16 bit in MSPv2
+            sbufWriteU8(payloadBuf, response->cmd);
+        } else {
+            sbufWriteU8(payloadBuf, response->flags);
+            sbufWriteU16(payloadBuf, response->cmd);
+            sbufWriteU16(payloadBuf, size);
         }
-        headerSent = true;
+        context->responseHeaderSent = true;
     } else {
-        sbufWriteU8(payloadBuf, (seq++ & TELEMETRY_MSP_SEQ_MASK) | (lastRequestVersion << TELEMETRY_MSP_VER_SHIFT)); // header without 'start' flag
+        sbufWriteU8(payloadBuf,
+            (context->txSeq++ & TELEMETRY_MSP_SEQ_MASK) |
+            (context->requestVersion << TELEMETRY_MSP_VER_SHIFT));
     }
 
-    const uint16_t bufferBytesRemaining = sbufBytesRemaining(txBuf);
-    const uint8_t payloadBytesRemaining = sbufBytesRemaining(payloadBuf);
-    uint8_t frame[payloadBytesRemaining];
+    const int responseBytes = sbufBytesRemaining(txBuf);
+    const int payloadBytes = sbufBytesRemaining(payloadBuf);
+    const int bytesToCopy = MIN(responseBytes, payloadBytes);
+    if (bytesToCopy > 0) {
+        sbufWriteData(payloadBuf, sbufPtr(txBuf), bytesToCopy);
+        sbufAdvance(txBuf, bytesToCopy);
+    }
 
-    if (bufferBytesRemaining >= payloadBytesRemaining) {
+    responseFn(payloadOut, (uint8_t)(payloadBuf->ptr - payloadOut));
 
-        sbufReadData(txBuf, frame, payloadBytesRemaining);
-        sbufAdvance(txBuf, payloadBytesRemaining);
-        sbufWriteData(payloadBuf, frame, payloadBytesRemaining);
-        responseFn(payloadOut, payloadSize);
-
+    if (sbufBytesRemaining(txBuf) > 0) {
         return true;
     }
 
-    // last/only chunk
-    sbufReadData(txBuf, frame, bufferBytesRemaining);
-    sbufAdvance(txBuf, bufferBytesRemaining);
-    sbufWriteData(payloadBuf, frame, bufferBytesRemaining);
-    sbufSwitchToReader(txBuf, mspPackage.responseBuffer);
-
-    responseFn(payloadOut, payloadBuf->ptr - payloadOut);
-    headerSent = false; // <-- added: reset for the next response
+    // Keep the endpoint busy until both generic response state and any
+    // transport-owned transaction identity have been reset. An RX callback may
+    // start a new request as soon as responsePending becomes false.
+    context->responseHeaderSent = false;
+    sbufInit(txBuf, context->responseBuffer, context->responseBuffer);
+    if (completeFn) {
+        completeFn();
+    }
+    context->responsePending = false;
     return false;
 }
 

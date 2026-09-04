@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "rx/rx.h"
+
 #define SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT 12
 #define SPEKTRUM_2048_CHANNEL_COUNT          12
 #define SPEKTRUM_1024_CHANNEL_COUNT          7
@@ -35,7 +37,7 @@
 extern bool srxlEnabled;
 
 void spektrumBind(rxConfig_t *rxConfig);
-bool spektrumInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+bool spektrumInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction);
 
 bool srxlTelemetryBufferEmpty(void);
 void srxlRxWriteTelemetryData(const void *data, int len);

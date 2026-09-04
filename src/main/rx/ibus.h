@@ -17,4 +17,6 @@
 
 #pragma once
 
-bool ibusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+#include "rx/rx.h"
+
+bool ibusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction);

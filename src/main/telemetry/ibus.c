@@ -301,7 +301,8 @@ void configureIbusTelemetryPort(void) {
     if (!ibusSerialPortConfig) {
         return;
     }
-    if (isSerialPortShared(ibusSerialPortConfig, FUNCTION_RX_SERIAL, FUNCTION_TELEMETRY_IBUS)) {
+    if (isSerialPortShared(ibusSerialPortConfig, FUNCTION_RX_SERIAL, FUNCTION_TELEMETRY_IBUS) ||
+        isSerialPortShared(ibusSerialPortConfig, FUNCTION_RX_SERIAL_SECONDARY, FUNCTION_TELEMETRY_IBUS)) {
         // serialRx will open port and handle telemetry
         return;
     }

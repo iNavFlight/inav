@@ -276,7 +276,7 @@ static uint16_t jetiExBusReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uin
     return (jetiExBusChannelData[chan]);
 }
 
-bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, serialPortFunction_e portFunction)
 {
     UNUSED(rxConfig);
 
@@ -288,14 +288,14 @@ bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfi
 
     jetiExBusFrameReset();
 
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
+    const serialPortConfig_t *portConfig = findSerialPortConfig(portFunction);
 
     if (!portConfig) {
         return false;
     }
 
     jetiExBusPort = openSerialPort(portConfig->identifier,
-        FUNCTION_RX_SERIAL,
+        portFunction,
         jetiExBusDataReceive,
         NULL,
         JETIEXBUS_BAUDRATE,
