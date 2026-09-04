@@ -3930,7 +3930,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 return MSP_RESULT_ERROR;
             }
 
-            if (geoZonesConfig(geozoneId)->shape == GEOZONE_SHAPE_CIRCULAR && dataSize >= 14) {
+            if (geoZonesConfig(geozoneId)->shape == GEOZONE_SHAPE_CIRCULAR) {
+                if (dataSize < 14) {
+                    return MSP_RESULT_ERROR;
+                }
                 if (!geozoneSetVertex(geozoneId, vertexId + 1, sbufReadU32(src), 0)) {
                     return MSP_RESULT_ERROR;
                 }
