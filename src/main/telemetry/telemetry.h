@@ -53,6 +53,11 @@ typedef enum {
     SMARTPORT_FUEL_UNIT_MWH
 } smartportFuelUnit_e;
 
+typedef enum {
+    CRSF_GPS_ALT_ESTIMATED,     // Estimated altitude above the arming point (legacy behaviour)
+    CRSF_GPS_ALT_MSL            // GNSS altitude above mean sea level
+} crsfGpsAltSource_e;
+
 typedef struct telemetryConfig_s {
     uint8_t telemetry_switch;               // Use aux channel to change serial output & baudrate( MSP / Telemetry ). It disables automatic switching to Telemetry when armed.
     uint8_t telemetry_inverted;             // Flip the default inversion of the protocol - Same as serialrx_inverted in rx.c, but for telemetry.
@@ -64,6 +69,7 @@ typedef struct telemetryConfig_s {
     smartportFuelUnit_e smartportFuelUnit;
     uint8_t ibusTelemetryType;
     uint8_t ltmUpdateRate;
+    uint8_t crsfGpsAltSource;
 
 #ifdef USE_TELEMETRY_SIM
     int16_t simLowAltitude;

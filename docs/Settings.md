@@ -592,6 +592,16 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### crsf_gps_alt_source
+
+CRSF telemetry only: Altitude source for the GPS frame (GAlt sensor on EdgeTX/OpenTX radios). ESTIMATED sends INAV's estimated altitude relative to the arming point (legacy behaviour), MSL sends the GNSS altitude above mean sea level as intended by the CRSF specification. [ESTIMATED/MSL]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ESTIMATED |  |  |
+
+---
+
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
