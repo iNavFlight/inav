@@ -37,6 +37,10 @@
 #define SPI_IO_AF_SCK_CFG       IO_CONFIG(GPIO_MODE_MUX,  GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_DOWN)
 #define SPI_IO_AF_MISO_CFG      IO_CONFIG(GPIO_MODE_MUX,  GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_UP)
 #define SPI_IO_CS_CFG           IO_CONFIG(GPIO_MODE_OUTPUT, GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_NONE)
+#elif defined(RP2350)
+/* RP2350 ioConfig_t: bit 0 = direction (1=output), bit 5 = pull-up, bit 6 = pull-down.
+ * CS is a plain push-pull output with no pull resistors. */
+#define SPI_IO_CS_CFG           0x01
 #endif
 
 /*
