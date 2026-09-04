@@ -36,9 +36,9 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PB0, TIM_USE_MOTOR, 0, 0),                  // S2
     DEF_TIM(TIM3, CH2, PB5, TIM_USE_MOTOR, 0, 0),                  // S3
     DEF_TIM(TIM3, CH4, PB1, TIM_USE_MOTOR, 0, 0),                  // S4
-    DEF_TIM(TIM1, CH1, PE9, TIM_USE_OUTPUT_AUTO, 0, 0),  // S5
-    DEF_TIM(TIM1, CH2, PE11, TIM_USE_OUTPUT_AUTO, 0, 0), // S6 -- clash with S5, DSHOT does not work
-    DEF_TIM(TIM1, CH3, PE13, TIM_USE_OUTPUT_AUTO, 0, 0), // S7 -- clash with S5, DSHOT does not work
+    DEF_TIM(TIM1, CH1, PE9, TIM_USE_OUTPUT_AUTO, 0, 1),  // S5
+    DEF_TIM(TIM1, CH2, PE11, TIM_USE_OUTPUT_AUTO, 0, 1), // S6
+    DEF_TIM(TIM1, CH3, PE13, TIM_USE_OUTPUT_AUTO, 0, 1), // S7
     DEF_TIM(TIM1, CH4, PE14, TIM_USE_OUTPUT_AUTO, 0, 0), // S8
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),  // S9
     DEF_TIM(TIM4, CH2, PB7, TIM_USE_OUTPUT_AUTO, 0, 0),  // S10

@@ -21,7 +21,8 @@
             "ACC_BMI270": "9",
             "ACC_LSM6DXX": "10",
             "ACC_ICM45686": "11",
-            "ACC_FAKE": "12",
+            "ACC_ICM40609D": "12",
+            "ACC_FAKE": "13",
             "ACC_MAX": "ACC_FAKE"
         },
         "accEvent_t": {
@@ -647,7 +648,8 @@
             "BOXGIMBALRLOCK": "57",
             "BOXGIMBALCENTER": "58",
             "BOXGIMBALHTRK": "59",
-            "CHECKBOX_ITEM_COUNT": "60"
+            "BOXAUTOSPEED": "60",
+            "CHECKBOX_ITEM_COUNT": "61"
         },
         "busIndex_e": {
             "_source": "inav/src/main/drivers/bus.h",
@@ -819,54 +821,55 @@
             "DEVHW_BMI270": "8",
             "DEVHW_LSM6D": "9",
             "DEVHW_ICM45686": "10",
-            "DEVHW_MPU9250": "11",
-            "DEVHW_BMP085": "12",
-            "DEVHW_BMP280": "13",
-            "DEVHW_MS5611": "14",
-            "DEVHW_MS5607": "15",
-            "DEVHW_LPS25H": "16",
-            "DEVHW_SPL06": "17",
-            "DEVHW_BMP388": "18",
-            "DEVHW_DPS310": "19",
-            "DEVHW_B2SMPB": "20",
-            "DEVHW_HMC5883": "21",
-            "DEVHW_AK8963": "22",
-            "DEVHW_AK8975": "23",
-            "DEVHW_IST8310_0": "24",
-            "DEVHW_IST8310_1": "25",
-            "DEVHW_IST8308": "26",
-            "DEVHW_QMC5883": "27",
-            "DEVHW_QMC5883P": "28",
-            "DEVHW_MAG3110": "29",
-            "DEVHW_LIS3MDL": "30",
-            "DEVHW_RM3100": "31",
-            "DEVHW_VCM5883": "32",
-            "DEVHW_MLX90393": "33",
-            "DEVHW_LM75_0": "34",
-            "DEVHW_LM75_1": "35",
-            "DEVHW_LM75_2": "36",
-            "DEVHW_LM75_3": "37",
-            "DEVHW_LM75_4": "38",
-            "DEVHW_LM75_5": "39",
-            "DEVHW_LM75_6": "40",
-            "DEVHW_LM75_7": "41",
-            "DEVHW_DS2482": "42",
-            "DEVHW_MAX7456": "43",
-            "DEVHW_SRF10": "44",
-            "DEVHW_VL53L0X": "45",
-            "DEVHW_VL53L1X": "46",
-            "DEVHW_US42": "47",
-            "DEVHW_TOF10120_I2C": "48",
-            "DEVHW_TERARANGER_EVO_I2C": "49",
-            "DEVHW_MS4525": "50",
-            "DEVHW_MS5525": "51",
-            "DEVHW_DLVR": "52",
-            "DEVHW_M25P16": "53",
-            "DEVHW_W25N": "54",
-            "DEVHW_UG2864": "55",
-            "DEVHW_SDCARD": "56",
-            "DEVHW_IRLOCK": "57",
-            "DEVHW_PCF8574": "58"
+            "DEVHW_ICM40609D": "11",
+            "DEVHW_MPU9250": "12",
+            "DEVHW_BMP085": "13",
+            "DEVHW_BMP280": "14",
+            "DEVHW_MS5611": "15",
+            "DEVHW_MS5607": "16",
+            "DEVHW_LPS25H": "17",
+            "DEVHW_SPL06": "18",
+            "DEVHW_BMP388": "19",
+            "DEVHW_DPS310": "20",
+            "DEVHW_B2SMPB": "21",
+            "DEVHW_HMC5883": "22",
+            "DEVHW_AK8963": "23",
+            "DEVHW_AK8975": "24",
+            "DEVHW_IST8310_0": "25",
+            "DEVHW_IST8310_1": "26",
+            "DEVHW_IST8308": "27",
+            "DEVHW_QMC5883": "28",
+            "DEVHW_QMC5883P": "29",
+            "DEVHW_MAG3110": "30",
+            "DEVHW_LIS3MDL": "31",
+            "DEVHW_RM3100": "32",
+            "DEVHW_VCM5883": "33",
+            "DEVHW_MLX90393": "34",
+            "DEVHW_LM75_0": "35",
+            "DEVHW_LM75_1": "36",
+            "DEVHW_LM75_2": "37",
+            "DEVHW_LM75_3": "38",
+            "DEVHW_LM75_4": "39",
+            "DEVHW_LM75_5": "40",
+            "DEVHW_LM75_6": "41",
+            "DEVHW_LM75_7": "42",
+            "DEVHW_DS2482": "43",
+            "DEVHW_MAX7456": "44",
+            "DEVHW_SRF10": "45",
+            "DEVHW_VL53L0X": "46",
+            "DEVHW_VL53L1X": "47",
+            "DEVHW_US42": "48",
+            "DEVHW_TOF10120_I2C": "49",
+            "DEVHW_TERARANGER_EVO_I2C": "50",
+            "DEVHW_MS4525": "51",
+            "DEVHW_MS5525": "52",
+            "DEVHW_DLVR": "53",
+            "DEVHW_M25P16": "54",
+            "DEVHW_W25N": "55",
+            "DEVHW_UG2864": "56",
+            "DEVHW_SDCARD": "57",
+            "DEVHW_IRLOCK": "58",
+            "DEVHW_PCF8574": "59"
         },
         "deviceFlags_e": {
             "_source": "inav/src/main/drivers/bus.h",
@@ -953,7 +956,9 @@
             "_source": "inav/src/main/drivers/dronecan/dronecan.h",
             "STATE_DRONECAN_INIT": "0",
             "STATE_DRONECAN_NORMAL": "1",
-            "STATE_DRONECAN_BUS_OFF": "2"
+            "STATE_DRONECAN_BUS_OFF": "2",
+            "STATE_DRONECAN_FAILED": "3",
+            "STATE_DRONECAN_COUNT": "4"
         },
         "dshotCommands_e": {
             "_source": "inav/src/main/drivers/pwm_output.h",
@@ -1374,6 +1379,12 @@
             "FW_AUTOLAND_WP_LAND": "2",
             "FW_AUTOLAND_WP_COUNT": "3"
         },
+        "fwAutoSpeedSpdSource_e": {
+            "_source": "inav/src/main/navigation/navigation_private.h",
+            "FW_AUTO_SPD_GROUND": "0",
+            "FW_AUTO_SPD_AIR": "1",
+            "FW_AUTO_SPD_GROUND_OVERRIDE": "2"
+        },
         "geoAltitudeConversionMode_e": {
             "_source": "inav/src/main/navigation/navigation.h",
             "GEO_ALT_ABSOLUTE": "0",
@@ -1383,7 +1394,8 @@
             "_source": "inav/src/main/navigation/navigation.h",
             "NAV_WP_TAKEOFF_DATUM": "0",
             "NAV_WP_MSL_DATUM": "1",
-            "NAV_WP_TERRAIN_DATUM": "2"
+            "NAV_WP_TERRAIN_DATUM": "2",
+            "NAV_WP_RELATIVE_DATUM": "3"
         },
         "geoOriginResetMode_e": {
             "_source": "inav/src/main/navigation/navigation.h",
@@ -1564,7 +1576,8 @@
             "GYRO_BMI270": "9",
             "GYRO_LSM6DXX": "10",
             "GYRO_ICM45686": "11",
-            "GYRO_FAKE": "12"
+            "GYRO_ICM40609D": "12",
+            "GYRO_FAKE": "13"
         },
         "HardwareMotorTypes_e": {
             "_source": "inav/src/main/drivers/pwm_esc_detect.h",
@@ -1861,7 +1874,43 @@
             "INPUT_RC_CH33": "58",
             "INPUT_RC_CH34": "59",
             "INPUT_MIXER_SWITCH_HELPER": "60",
-            "INPUT_SOURCE_COUNT": "61"
+            "INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL": [
+                "61",
+                "USE_AUTO_TRANSITION"
+            ],
+            "INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH": [
+                "62",
+                "USE_AUTO_TRANSITION"
+            ],
+            "INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW": [
+                "63",
+                "USE_AUTO_TRANSITION"
+            ],
+            "INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_PLUS": [
+                "64",
+                "USE_AUTO_TRANSITION"
+            ],
+            "INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_MINUS": [
+                "65",
+                "USE_AUTO_TRANSITION"
+            ],
+            "INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_PLUS": [
+                "66",
+                "USE_AUTO_TRANSITION"
+            ],
+            "INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_MINUS": [
+                "67",
+                "USE_AUTO_TRANSITION"
+            ],
+            "INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_PLUS": [
+                "68",
+                "USE_AUTO_TRANSITION"
+            ],
+            "INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS": [
+                "69",
+                "USE_AUTO_TRANSITION"
+            ],
+            "INPUT_SOURCE_COUNT": "70"
         },
         "itermRelax_e": {
             "_source": "inav/src/main/flight/pid.h",
@@ -1944,7 +1993,8 @@
                 "(1 << 11)",
                 "USE_GPS_FIX_ESTIMATION"
             ],
-            "LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED": "(1 << 12)"
+            "LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED": "(1 << 12)",
+            "LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED": "(1 << 13)"
         },
         "logicFlightModeOperands_e": {
             "_source": "inav/src/main/programming/logic_condition.h",
@@ -2017,7 +2067,19 @@
             "LOGIC_CONDITION_OPERAND_FLIGHT_MIN_GROUND_SPEED": "46",
             "LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED": "47",
             "LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION": "48",
-            "LOGIC_CONDITION_OPERAND_FLIGHT_RELATIVE_WIND_OFFSET": "49"
+            "LOGIC_CONDITION_OPERAND_FLIGHT_RELATIVE_WIND_OFFSET": "49",
+            "LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_ROLL": [
+                "(50)",
+                "USE_AUTO_TRANSITION"
+            ],
+            "LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_PITCH": [
+                "(51)",
+                "USE_AUTO_TRANSITION"
+            ],
+            "LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_YAW": [
+                "(52)",
+                "USE_AUTO_TRANSITION"
+            ]
         },
         "logicOperandType_e": {
             "_source": "inav/src/main/programming/logic_condition.h",
@@ -2094,7 +2156,10 @@
             "LOGIC_CONDITION_ACOS": "58",
             "LOGIC_CONDITION_ASIN": "59",
             "LOGIC_CONDITION_ATAN2": "60",
-            "LOGIC_CONDITION_LAST": "61"
+            "LOGIC_CONDITION_DISABLE_AUTOSPEED_AIRSPEED": "61",
+            "LOGIC_CONDITION_ACTIVATE_RTH": "62",
+            "LOGIC_CONDITION_ACTIVATE_LANDING": "63",
+            "LOGIC_CONDITION_LAST": "64"
         },
         "logicWaypointOperands_e": {
             "_source": "inav/src/main/programming/logic_condition.h",
@@ -2127,7 +2192,8 @@
             "LOG_TOPIC_VTX": "9",
             "LOG_TOPIC_OSD": "10",
             "LOG_TOPIC_CAN": "11",
-            "LOG_TOPIC_COUNT": "12"
+            "LOG_TOPIC_TERRAIN": "12",
+            "LOG_TOPIC_COUNT": "13"
         },
         "lsm6dxxConfigMasks_e": {
             "_source": "inav/src/main/drivers/accgyro/accgyro_lsm6dxx.h",
@@ -2155,6 +2221,7 @@
             "LSM6DXX_VAL_CTRL1_XL_LPF2": "1",
             "LSM6DXX_VAL_CTRL2_G_ODR6664": "10",
             "LSM6DXX_VAL_CTRL2_G_2000DPS": "3",
+            "LSM6DXX_VAL_CTRL3_C_BDU": "BIT(6)",
             "LSM6DXX_VAL_CTRL3_C_H_LACTIVE": "0",
             "LSM6DXX_VAL_CTRL3_C_PP_OD": "0",
             "LSM6DXX_VAL_CTRL3_C_SIM": "0",
@@ -2172,7 +2239,21 @@
             "LSM6DXX_VAL_CTRL7_G_HPM_G_65": "1",
             "LSM6DXX_VAL_CTRL7_G_HPM_G_260": "2",
             "LSM6DXX_VAL_CTRL7_G_HPM_G_1040": "3",
-            "LSM6DXX_VAL_CTRL9_XL_I3C_DISABLE": "BIT(1)"
+            "LSM6DXX_VAL_CTRL9_XL_I3C_DISABLE": "BIT(1)",
+            "LSM6DXX_VAL_CTRL1_XL_V_OPMODE_HIGH_ACCURACY": "1",
+            "LSM6DXX_VAL_CTRL1_XL_V_ODR_1000HZ_HAODR1": "9",
+            "LSM6DXX_VAL_CTRL2_G_V_OPMODE_HIGH_ACCURACY": "1",
+            "LSM6DXX_VAL_CTRL2_G_V_ODR_8000HZ_HAODR1": "12",
+            "LSM6DXX_VAL_HAODR_CFG_MODE1": "1",
+            "LSM6DXX_VAL_CTRL6_C_V_FS_G_2000DPS": "4",
+            "LSM6DXX_VAL_CTRL6_C_V_DSK320X_RESERVED_BIT3": "BIT(3)",
+            "LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_288HZ": "0",
+            "LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_215HZ": "1",
+            "LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_157HZ": "2",
+            "LSM6DXX_VAL_CTRL6_C_V_LPF1_BW_455HZ": "3",
+            "LSM6DXX_VAL_CTRL7_G_V_LPF1_EN": "BIT(0)",
+            "LSM6DXX_VAL_CTRL8_XL_V_FS_16G": "3",
+            "LSM6DXX_VAL_CTRL4_C_V_DRDY_PULSED": "BIT(1)"
         },
         "lsm6dxxRegister_e": {
             "_source": "inav/src/main/drivers/accgyro/accgyro_lsm6dxx.h",
@@ -2204,7 +2285,8 @@
             "LSM6DXX_REG_OUTY_L_A": "42",
             "LSM6DXX_REG_OUTY_H_A": "43",
             "LSM6DXX_REG_OUTZ_L_A": "44",
-            "LSM6DXX_REG_OUTZ_H_A": "45"
+            "LSM6DXX_REG_OUTZ_H_A": "45",
+            "LSM6DXX_REG_HAODR_CFG": "98"
         },
         "ltm_frame_e": {
             "_source": "inav/src/main/telemetry/ltm.h",
@@ -2304,19 +2386,78 @@
             "MEASUREMENT_WAIT": "1",
             "MEASUREMENT_READ": "2"
         },
+        "mixerProfileATDirection_e": {
+            "_source": "inav/src/main/flight/mixer_profile.h",
+            "MIXERAT_DIRECTION_NONE": "0",
+            "MIXERAT_DIRECTION_TO_FW": "1",
+            "MIXERAT_DIRECTION_TO_MC": "2"
+        },
+        "mixerProfileATOsdEvent_e": {
+            "_source": "inav/src/main/flight/mixer_profile.h",
+            "MIXERAT_OSD_EVENT_NONE": "0",
+            "MIXERAT_OSD_EVENT_DONE": "1",
+            "MIXERAT_OSD_EVENT_ABORTED": "2",
+            "MIXERAT_OSD_EVENT_ABORTED_IN_FW": "3",
+            "MIXERAT_OSD_EVENT_ABORTED_IN_MC": "4",
+            "MIXERAT_OSD_EVENT_AIRSPEED_TIMEOUT": "5"
+        },
         "mixerProfileATRequest_e": {
             "_source": "inav/src/main/flight/mixer_profile.h",
             "MIXERAT_REQUEST_NONE": "0",
             "MIXERAT_REQUEST_RTH": "1",
             "MIXERAT_REQUEST_LAND": "2",
-            "MIXERAT_REQUEST_ABORT": "3"
+            "MIXERAT_REQUEST_MISSION_TO_FW": [
+                "(3)",
+                "USE_AUTO_TRANSITION"
+            ],
+            "MIXERAT_REQUEST_MISSION_TO_MC": [
+                "(4)",
+                "USE_AUTO_TRANSITION"
+            ],
+            "MIXERAT_REQUEST_MANUAL_TO_FW": [
+                "(5)",
+                "USE_AUTO_TRANSITION"
+            ],
+            "MIXERAT_REQUEST_MANUAL_TO_MC": [
+                "(6)",
+                "USE_AUTO_TRANSITION"
+            ],
+            "MIXERAT_REQUEST_FW_TO_MC_PROTECTION": [
+                "(7)",
+                "USE_AUTO_TRANSITION"
+            ],
+            "MIXERAT_REQUEST_ABORT": "8"
         },
         "mixerProfileATState_e": {
             "_source": "inav/src/main/flight/mixer_profile.h",
             "MIXERAT_PHASE_IDLE": "0",
             "MIXERAT_PHASE_TRANSITION_INITIALIZE": "1",
             "MIXERAT_PHASE_TRANSITIONING": "2",
-            "MIXERAT_PHASE_DONE": "3"
+            "MIXERAT_PHASE_POST_SWITCH_FADE": [
+                "(3)",
+                "USE_AUTO_TRANSITION"
+            ],
+            "MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE": [
+                "(4)",
+                "USE_AUTO_TRANSITION"
+            ],
+            "MIXERAT_PHASE_DONE": [
+                "(5)",
+                "!USE_AUTO_TRANSITION"
+            ]
+        },
+        "mixerProfileATWaitReason_e": {
+            "_source": "inav/src/main/flight/mixer_profile.h",
+            "MIXERAT_WAIT_REASON_NONE": "0",
+            "MIXERAT_WAIT_REASON_MC_SPEED": "1",
+            "MIXERAT_WAIT_REASON_NO_SPEED": "2",
+            "MIXERAT_WAIT_REASON_MC_SPEED_HIGH": "3"
+        },
+        "mixerTransitionManualSessionMode_e": {
+            "_source": "inav/src/main/flight/mixer_transition_logic.h",
+            "MIXER_TRANSITION_MANUAL_SESSION_NONE": "0",
+            "MIXER_TRANSITION_MANUAL_SESSION_LEGACY": "1",
+            "MIXER_TRANSITION_MANUAL_SESSION_AUTO": "2"
         },
         "modeActivationOperator_e": {
             "_source": "inav/src/main/fc/rc_modes.h",
@@ -2385,11 +2526,42 @@
             "MF_SUSPEND_TRACKBACK": "(1 << 1)",
             "MF_TURTLE_MODE": "(1 << 2)"
         },
+        "nav_control_type_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_GPS_ATTI": "0",
+            "NAV_GPS_CRUISE": "1"
+        },
+        "nav_heading_control_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_HEADING_CONTROL_NONE": "0",
+            "NAV_HEADING_CONTROL_AUTO": "1",
+            "NAV_HEADING_CONTROL_MANUAL": "2"
+        },
+        "nav_loiter_type_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_LOITER_RIGHT": "0",
+            "NAV_LOITER_LEFT": "1",
+            "NAV_LOITER_YAW": "2"
+        },
         "nav_reset_type_e": {
             "_source": "inav/src/main/navigation/navigation.h",
             "NAV_RESET_NEVER": "0",
             "NAV_RESET_ON_FIRST_ARM": "1",
             "NAV_RESET_ON_EACH_ARM": "2"
+        },
+        "nav_rth_alt_profile_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_RTH_NO_ALT": "0",
+            "NAV_RTH_EXTRA_ALT": "1",
+            "NAV_RTH_CONST_ALT": "2",
+            "NAV_RTH_MAX_ALT": "3",
+            "NAV_RTH_AT_LEAST_ALT": "4",
+            "NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT": "5"
+        },
+        "nav_rth_climb_profile_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_RTH_CLIMB_STAGE_AT_LEAST": "0",
+            "NAV_RTH_CLIMB_STAGE_EXTRA": "1"
         },
         "navAGLEstimateQuality_e": {
             "_source": "inav/src/main/navigation/navigation_pos_estimator_private.h",
@@ -2448,11 +2620,12 @@
             "NAV_FSM_EVENT_SWITCH_TO_MIXERAT": "14",
             "NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING": "15",
             "NAV_FSM_EVENT_SWITCH_TO_SEND_TO": "16",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_1": "17",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_2": "18",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_3": "19",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_4": "20",
-            "NAV_FSM_EVENT_STATE_SPECIFIC_5": "21",
+            "NAV_FSM_EVENT_SWITCH_TO_LANDING": "17",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_1": "18",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_2": "19",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_3": "20",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_4": "21",
+            "NAV_FSM_EVENT_STATE_SPECIFIC_5": "22",
             "NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT": "NAV_FSM_EVENT_STATE_SPECIFIC_1",
             "NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED": "NAV_FSM_EVENT_STATE_SPECIFIC_2",
             "NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME": "NAV_FSM_EVENT_STATE_SPECIFIC_1",
@@ -2463,7 +2636,19 @@
             "NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK": "NAV_FSM_EVENT_STATE_SPECIFIC_2",
             "NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME": "NAV_FSM_EVENT_STATE_SPECIFIC_3",
             "NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME": "NAV_FSM_EVENT_STATE_SPECIFIC_4",
+            "NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE": [
+                "NAV_FSM_EVENT_STATE_SPECIFIC_1",
+                "USE_AUTO_TRANSITION"
+            ],
+            "NAV_FSM_EVENT_MIXERAT_MISSION_CAPTURE": [
+                "NAV_FSM_EVENT_STATE_SPECIFIC_2",
+                "USE_AUTO_TRANSITION"
+            ],
             "NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING": "NAV_FSM_EVENT_STATE_SPECIFIC_5",
+            "NAV_FSM_EVENT_MIXERAT_MISSION_RESUME": [
+                "",
+                "USE_AUTO_TRANSITION"
+            ],
             "NAV_FSM_EVENT_COUNT": ""
         },
         "navigationFSMState_t": {
@@ -2513,10 +2698,11 @@
             "NAV_STATE_MIXERAT_INITIALIZE": "42",
             "NAV_STATE_MIXERAT_IN_PROGRESS": "43",
             "NAV_STATE_MIXERAT_ABORT": "44",
-            "NAV_STATE_SEND_TO_INITALIZE": "45",
-            "NAV_STATE_SEND_TO_IN_PROGESS": "46",
-            "NAV_STATE_SEND_TO_FINISHED": "47",
-            "NAV_STATE_COUNT": "48"
+            "NAV_STATE_MIXERAT_MISSION_CAPTURE": "45",
+            "NAV_STATE_SEND_TO_INITALIZE": "46",
+            "NAV_STATE_SEND_TO_IN_PROGESS": "47",
+            "NAV_STATE_SEND_TO_FINISHED": "48",
+            "NAV_STATE_COUNT": "49"
         },
         "navigationFSMStateFlags_t": {
             "_source": "inav/src/main/navigation/navigation_private.h",
@@ -2537,7 +2723,8 @@
             "NAV_CTL_LAND": "(1 << 14)",
             "NAV_AUTO_WP_DONE": "(1 << 15)",
             "NAV_MIXERAT": "(1 << 16)",
-            "NAV_CTL_HOLD": "(1 << 17)"
+            "NAV_CTL_HOLD": "(1 << 17)",
+            "NAV_CTL_SPEED": "(1 << 18)"
         },
         "navigationHomeFlags_t": {
             "_source": "inav/src/main/navigation/navigation_private.h",
@@ -2600,7 +2787,8 @@
             "NAV_PERSISTENT_ID_FW_LANDING_FINISHED": "48",
             "NAV_PERSISTENT_ID_SEND_TO_INITALIZE": "49",
             "NAV_PERSISTENT_ID_SEND_TO_IN_PROGRES": "50",
-            "NAV_PERSISTENT_ID_SEND_TO_FINISHED": "51"
+            "NAV_PERSISTENT_ID_SEND_TO_FINISHED": "51",
+            "NAV_PERSISTENT_ID_MIXERAT_MISSION_CAPTURE": "52"
         },
         "navMcAltHoldThrottle_e": {
             "_source": "inav/src/main/navigation/navigation.h",
@@ -2613,6 +2801,47 @@
             "WP_MISSION_START": "0",
             "WP_MISSION_RESUME": "1",
             "WP_MISSION_SWITCH": "2"
+        },
+        "navMissionUserAction_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_MISSION_USER_ACTION_OFF": "0",
+            "NAV_MISSION_USER_ACTION_1": "1",
+            "NAV_MISSION_USER_ACTION_2": "2",
+            "NAV_MISSION_USER_ACTION_3": "3",
+            "NAV_MISSION_USER_ACTION_4": "4"
+        },
+        "navMissionVtolTransitionDisposition_e": {
+            "_source": "inav/src/main/navigation/navigation.c",
+            "NAV_MISSION_VTOL_TRANSITION_NONE": "0",
+            "NAV_MISSION_VTOL_TRANSITION_CONTINUE": "1",
+            "NAV_MISSION_VTOL_TRANSITION_WAIT": "2",
+            "NAV_MISSION_VTOL_TRANSITION_START": "3",
+            "NAV_MISSION_VTOL_TRANSITION_FAIL_ACTION": "4",
+            "NAV_MISSION_VTOL_TRANSITION_REJECT": "5"
+        },
+        "navMissionVtolTransitionPrecondition_e": {
+            "_source": "inav/src/main/navigation/navigation_vtol_mission_logic.h",
+            "NAV_MISSION_VTOL_PRECONDITION_READY": "0",
+            "NAV_MISSION_VTOL_PRECONDITION_WAIT": "1",
+            "NAV_MISSION_VTOL_PRECONDITION_REJECT": "2"
+        },
+        "navMissionVtolTransitionStartValidation_e": {
+            "_source": "inav/src/main/navigation/navigation_vtol_mission_logic.h",
+            "NAV_MISSION_VTOL_START_VALIDATION_READY": "0",
+            "NAV_MISSION_VTOL_START_VALIDATION_FAIL_ACTION": "1",
+            "NAV_MISSION_VTOL_START_VALIDATION_REJECT": "2"
+        },
+        "navMixerATRetryScanResult_e": {
+            "_source": "inav/src/main/navigation/navigation.c",
+            "NAV_MIXERAT_RETRY_SCAN_IN_PROGRESS": "0",
+            "NAV_MIXERAT_RETRY_SCAN_READY_TO_RETRY": "1",
+            "NAV_MIXERAT_RETRY_SCAN_FAILED": "2"
+        },
+        "navMixerATRetryStage_e": {
+            "_source": "inav/src/main/navigation/navigation.c",
+            "NAV_MIXERAT_RETRY_STAGE_IDLE": "0",
+            "NAV_MIXERAT_RETRY_STAGE_SCAN": "1",
+            "NAV_MIXERAT_RETRY_STAGE_ALIGN": "2"
         },
         "navOverridesMotorStop_e": {
             "_source": "inav/src/main/navigation/navigation.h",
@@ -2698,6 +2927,36 @@
             "MW_NAV_STATE_HOVER_ABOVE_HOME": "13",
             "MW_NAV_STATE_EMERGENCY_LANDING": "14",
             "MW_NAV_STATE_RTH_CLIMB": "15"
+        },
+        "navVtolMixerATMode_e": {
+            "_source": "inav/src/main/navigation/navigation_vtol_mission_logic.h",
+            "NAV_VTOL_MIXERAT_MODE_NONE": "0",
+            "NAV_VTOL_MIXERAT_MODE_WAYPOINT": "1",
+            "NAV_VTOL_MIXERAT_MODE_RTH": "2",
+            "NAV_VTOL_MIXERAT_MODE_LAND": "3",
+            "NAV_VTOL_MIXERAT_MODE_POSHOLD": "4",
+            "NAV_VTOL_MIXERAT_MODE_EMERGENCY_LANDING": "5"
+        },
+        "navVtolTransitionFailActionFwToMc_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_IDLE": "0",
+            "NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_LOITER": "1",
+            "NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_RTH": "2",
+            "NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_EMERGENCY_LANDING": "3",
+            "NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH": "4"
+        },
+        "navVtolTransitionFailActionMcToFw_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_IDLE": "0",
+            "NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_POSH": "1",
+            "NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_RTH": "2",
+            "NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_EMERGENCY_LANDING": "3"
+        },
+        "navVtolTransitionOsdState_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_VTOL_TRANSITION_OSD_NONE": "0",
+            "NAV_VTOL_TRANSITION_OSD_RETRY_SCAN": "1",
+            "NAV_VTOL_TRANSITION_OSD_RETRY_ALIGN": "2"
         },
         "navWaypointActions_e": {
             "_source": "inav/src/main/navigation/navigation.h",
@@ -2943,7 +3202,8 @@
             "OSD_NAV_MIN_GROUND_SPEED": "167",
             "OSD_THROTTLE_GAUGE": "168",
             "OSD_GPS_EXTRA_STATS": "169",
-            "OSD_ITEM_COUNT": "170"
+            "OSD_AUTO_SPEED": "170",
+            "OSD_ITEM_COUNT": "171"
         },
         "osd_sidebar_arrow_e": {
             "_source": "inav/src/main/io/osd_grid.c",
@@ -3084,7 +3344,8 @@
             "PID_HEADING": "8",
             "PID_VEL_Z": "9",
             "PID_POS_HEADING": "10",
-            "PID_ITEM_COUNT": "11"
+            "PID_AUTO_SPEED": "11",
+            "PID_ITEM_COUNT": "12"
         },
         "pidType_e": {
             "_source": "inav/src/main/flight/pid.h",
@@ -3348,8 +3609,9 @@
             "_source": "inav/src/main/io/displayport_msp_osd.c",
             "SD_3016": "0",
             "HD_5018": "1",
-            "HD_6022": "2",
-            "HD_5320": "3"
+            "HD_3016": "2",
+            "HD_6022": "3",
+            "HD_5320": "4"
         },
         "resourceOwner_e": {
             "_source": "inav/src/main/drivers/resource.h",
@@ -3518,7 +3780,7 @@
             "SDCARD_OPERATION_FAILURE": "3"
         },
         "sdcardReceiveBlockStatus_e": {
-            "_source": "inav/src/main/drivers/sdcard/sdcard_spi.c",
+            "_source": "inav/src/main/drivers/sdcard/sdcard_sdio.c",
             "SDCARD_RECEIVE_SUCCESS": "0",
             "SDCARD_RECEIVE_BLOCK_IN_PROGRESS": "1",
             "SDCARD_RECEIVE_ERROR": "2"
@@ -3897,7 +4159,7 @@
             "THR_HI": "(2 << (2 * THROTTLE))"
         },
         "systemState_e": {
-            "_source": "inav/src/main/fc/fc_init.h",
+            "_source": "inav/src/main/fc/fc_init.c",
             "SYSTEM_STATE_INITIALISING": "0",
             "SYSTEM_STATE_CONFIG_LOADED": "(1 << 0)",
             "SYSTEM_STATE_SENSORS_READY": "(1 << 1)",
@@ -4110,6 +4372,26 @@
             "VS600_POWER_25MW": "1",
             "VS600_POWER_200MW": "2",
             "VS600_POWER_600MW": "3"
+        },
+        "vtolMcProtectionDebugFlags_e": {
+            "_source": "inav/src/main/navigation/navigation_vtol_mc_protection.c",
+            "VTOL_MC_PROTECT_FLAG_CONFIGURED": "1 << 0",
+            "VTOL_MC_PROTECT_FLAG_VTOL_MC": "1 << 1",
+            "VTOL_MC_PROTECT_FLAG_NAV_ACTIVE": "1 << 2",
+            "VTOL_MC_PROTECT_FLAG_STABILIZED_ACTIVE": "1 << 3",
+            "VTOL_MC_PROTECT_FLAG_CAPTURE_ACTIVE": "1 << 4",
+            "VTOL_MC_PROTECT_FLAG_LANDING_SETTLE": "1 << 5",
+            "VTOL_MC_PROTECT_FLAG_BAILOUT_ACTIVE": "1 << 6",
+            "VTOL_MC_PROTECT_FLAG_RESERVE_SHRUNK": "1 << 7",
+            "VTOL_MC_PROTECT_FLAG_SOFT_ALTITUDE": "1 << 8",
+            "VTOL_MC_PROTECT_FLAG_COMMAND_SHAPED": "1 << 9",
+            "VTOL_MC_PROTECT_FLAG_VELOCITY_FALLBACK": "1 << 10"
+        },
+        "vtolMcProtectionMode_e": {
+            "_source": "inav/src/main/fc/config.h",
+            "VTOL_MC_PROTECTION_OFF": "0",
+            "VTOL_MC_PROTECTION_NAV": "1",
+            "VTOL_MC_PROTECTION_NAV_AND_STABILIZED": "2"
         },
         "vtxDevType_e": {
             "_source": "inav/src/main/drivers/vtx_common.h",

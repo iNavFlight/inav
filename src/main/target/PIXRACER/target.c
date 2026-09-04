@@ -40,9 +40,9 @@ timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM3, CH3, PB0,  TIM_USE_PPM,         0, 0),   // PPM shared uart6 pc7
 
     DEF_TIM(TIM1, CH4, PE14, TIM_USE_OUTPUT_AUTO, 0, 0),   // S1_OUT
-    DEF_TIM(TIM1, CH3, PE13, TIM_USE_OUTPUT_AUTO, 0, 0),   // S2_OUT
-    DEF_TIM(TIM1, CH2, PE11, TIM_USE_OUTPUT_AUTO, 0, 1),   // S3_OUT -- dmavar 1: dedicated stream, avoids sharing S2_OUT's combined-channel request
-    DEF_TIM(TIM1, CH1, PE9,  TIM_USE_OUTPUT_AUTO, 0, 1),   // S4_OUT -- dmavar 1: dedicated stream, avoids sharing S2_OUT's combined-channel request
+    DEF_TIM(TIM1, CH3, PE13, TIM_USE_OUTPUT_AUTO, 0, 1),   // S2_OUT
+    DEF_TIM(TIM1, CH2, PE11, TIM_USE_OUTPUT_AUTO, 0, 1),   // S3_OUT
+    DEF_TIM(TIM1, CH1, PE9,  TIM_USE_OUTPUT_AUTO, 0, 1),   // S4_OUT
 
     DEF_TIM(TIM4, CH2, PD13, TIM_USE_OUTPUT_AUTO, 0, 0),   // S5_OUT
     DEF_TIM(TIM4, CH3, PD14, TIM_USE_OUTPUT_AUTO, 0, 0),   // S6_OUT

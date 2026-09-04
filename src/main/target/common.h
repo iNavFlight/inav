@@ -29,6 +29,12 @@
 #define NOINLINE
 #endif
 
+/* RP2350_FAST_CODE: marks large hot functions for SRAM placement on RP2350 only.
+ * These functions are too large for F7 ITCM (budget ~5 KB free before RP2350 port),
+ * so they cannot use plain FAST_CODE on all targets.  Overridden to FAST_CODE by
+ * the RP2350_PICO target.h.  No-op on all other targets. */
+#define RP2350_FAST_CODE
+
 #define DYNAMIC_HEAP_SIZE   2048
 
 #ifndef MAX_MAVLINK_PORTS
@@ -85,9 +91,6 @@
 #endif
 #ifndef USE_GPS_PROTO_MSP
 #define USE_GPS_PROTO_MSP
-#endif
-#ifndef USE_GPS_PROTO_DRONECAN
-#define USE_GPS_PROTO_DRONECAN
 #endif
 #ifndef USE_TELEMETRY
 #define USE_TELEMETRY
@@ -426,8 +429,9 @@
 #define USE_TELEMETRY_SBUS2
 #endif
 
-//Designed to free space of F722 and F411 MCUs
+// Keep larger optional features off 512 KB targets to preserve flash space.
 #if (MCU_FLASH_SIZE > 512)
+#define USE_AUTO_TRANSITION
 #define USE_TELEMETRY_MAVLINK
 #define USE_SERIALRX_MAVLINK
 #define USE_TELEMETRY_SIM

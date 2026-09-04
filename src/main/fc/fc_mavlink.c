@@ -5,10 +5,179 @@
 #include "mavlink/mavlink_command.h"
 #include "mavlink/mavlink_guided.h"
 #include "mavlink/mavlink_mission.h"
+#include "mavlink/mavlink_ports.h"
 #include "mavlink/mavlink_runtime.h"
 #include "mavlink/mavlink_streams.h"
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
+
+#ifdef USE_MAVLINK_MSP_TUNNEL
+static void mavlinkReleaseTunnelOwnerIfIdle(uint8_t ingressPortIndex)
+{
+    if (mavTunnelMspPorts[ingressPortIndex].c_state == MSP_IDLE) {
+        mavTunnelRemoteSystemIds[ingressPortIndex] = 0;
+        mavTunnelRemoteComponentIds[ingressPortIndex] = 0;
+    }
+}
+
+static void mavlinkSendTunnelReply(uint8_t targetSystem, uint8_t targetComponent, const uint8_t *payload, uint8_t payloadLength)
+{
+    uint8_t tunnelPayload[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN] = { 0 };
+    memcpy(tunnelPayload, payload, payloadLength);
+
+    mavlink_msg_tunnel_pack(
+        mavSystemId,
+        mavComponentId,
+        &mavSendMsg,
+        targetSystem,
+        targetComponent,
+        MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP,
+        payloadLength,
+        tunnelPayload);
+    mavlinkSendMessage();
+}
+
+static bool mavlinkSendTunnelMspReply(uint8_t targetSystem, uint8_t targetComponent, mspPacket_t *reply, uint8_t *replyPayloadHead, mspVersion_e mspVersion)
+{
+    sbufSwitchToReader(&reply->buf, replyPayloadHead);
+
+    mspEncodedFrame_t frame;
+    if (!mspSerialPrepareFrame(reply, mspVersion, &frame)) {
+        return false;
+    }
+
+    uint8_t chunk[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN];
+    for (int offset = 0; offset < frame.totalLength; offset += MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
+        const int chunkLength = mspSerialFrameCopyRange(&frame, offset, chunk, sizeof(chunk));
+        if (chunkLength <= 0) {
+            return false;
+        }
+        mavlinkSendTunnelReply(targetSystem, targetComponent, chunk, chunkLength);
+    }
+    return true;
+}
+
+static bool mavlinkTunnelMessageTargetsLocalFc(const mavlink_tunnel_t *msg)
+{
+    return msg->payload_type == MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP &&
+        msg->target_system == mavSystemId &&
+        (msg->target_component == 0 || msg->target_component == mavComponentId);
+}
+
+static void mavlinkPrepareTunnelParser(uint8_t ingressPortIndex, timeMs_t now)
+{
+    mspPort_t *mspPort = &mavTunnelMspPorts[ingressPortIndex];
+    const bool senderChanged =
+        mavTunnelRemoteSystemIds[ingressPortIndex] != mavlinkContext.recvMsg.sysid ||
+        mavTunnelRemoteComponentIds[ingressPortIndex] != mavlinkContext.recvMsg.compid;
+    const bool timedOut = (now - mspPort->lastActivityMs) >= MAVLINK_TUNNEL_MSP_TIMEOUT_MS;
+
+    if (mspPort->c_state != MSP_IDLE && (timedOut || senderChanged)) {
+        mavlinkResetTunnelPortState(ingressPortIndex);
+    }
+
+    mavTunnelRemoteSystemIds[ingressPortIndex] = mavlinkContext.recvMsg.sysid;
+    mavTunnelRemoteComponentIds[ingressPortIndex] = mavlinkContext.recvMsg.compid;
+    mspPort->lastActivityMs = now;
+}
+
+static bool mavlinkProcessCompletedTunnelCommand(uint8_t ingressPortIndex)
+{
+    mspPort_t *mspPort = &mavTunnelMspPorts[ingressPortIndex];
+    const mspVersion_e mspVersion = mspPort->mspVersion;
+
+    mspPacket_t reply = {
+        .buf = { .ptr = mavTunnelReplyPayloadBuf, .end = ARRAYEND(mavTunnelReplyPayloadBuf), },
+        .cmd = -1,
+        .flags = 0,
+        .result = 0,
+    };
+    uint8_t *replyPayloadHead = reply.buf.ptr;
+
+    if (mspPort->cmdMSP == MSP_SET_PASSTHROUGH) {
+        reply.cmd = MSP_SET_PASSTHROUGH;
+        reply.result = MSP_RESULT_ERROR;
+        mspPort->c_state = MSP_IDLE;
+        mavlinkSendTunnelMspReply(
+            mavlinkContext.recvMsg.sysid,
+            mavlinkContext.recvMsg.compid,
+            &reply,
+            replyPayloadHead,
+            mspVersion);
+        return false;
+    }
+
+    mspPostProcessFnPtr mspPostProcessFn = NULL;
+    const uint16_t command = mspPort->cmdMSP;
+    mspResult_e status = mspSerialProcessCommand(mspPort, mspFcProcessCommand, &reply, &mspPostProcessFn);
+
+    if (mspPostProcessFn && command != MSP_REBOOT) {
+        sbufInit(&reply.buf, mavTunnelReplyPayloadBuf, ARRAYEND(mavTunnelReplyPayloadBuf));
+        reply.result = MSP_RESULT_ERROR;
+        mspPostProcessFn = NULL;
+        status = MSP_RESULT_ERROR;
+    }
+
+    if (status != MSP_RESULT_NO_REPLY) {
+        mavlinkSendTunnelMspReply(
+            mavlinkContext.recvMsg.sysid,
+            mavlinkContext.recvMsg.compid,
+            &reply,
+            replyPayloadHead,
+            mspVersion);
+    }
+
+    if (!mspPostProcessFn) {
+        return false;
+    }
+
+    waitForSerialPortToFinishTransmitting(mavPortStates[ingressPortIndex].port);
+    mspPostProcessFn(mavPortStates[ingressPortIndex].port);
+    return true;
+}
+
+static bool handleIncoming_TUNNEL(uint8_t ingressPortIndex)
+{
+    if (mavlinkGetProtocolVersion() == 1) {
+        return false;
+    }
+
+    mavlink_tunnel_t msg;
+    mavlink_msg_tunnel_decode(&mavlinkContext.recvMsg, &msg);
+
+    if (!mavlinkTunnelMessageTargetsLocalFc(&msg)) {
+        return false;
+    }
+
+    if (msg.payload_length > MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
+        mavlinkResetTunnelPortState(ingressPortIndex);
+        return false;
+    }
+
+    mavlinkPrepareTunnelParser(ingressPortIndex, millis());
+
+    mspPort_t *mspPort = &mavTunnelMspPorts[ingressPortIndex];
+    bool handled = false;
+    for (uint8_t payloadIndex = 0; payloadIndex < msg.payload_length; payloadIndex++) {
+        if (!mspSerialProcessReceivedByte(mspPort, msg.payload[payloadIndex])) {
+            continue;
+        }
+
+        handled = true;
+        if (mspPort->c_state != MSP_COMMAND_RECEIVED) {
+            continue;
+        }
+
+        if (mavlinkProcessCompletedTunnelCommand(ingressPortIndex)) {
+            mavlinkResetTunnelPortState(ingressPortIndex);
+            break;
+        }
+    }
+
+    mavlinkReleaseTunnelOwnerIfIdle(ingressPortIndex);
+    return handled;
+}
+#endif
 
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
@@ -67,9 +236,9 @@ static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
             break;
         case MAVLINK_RADIO_GENERIC:
         default:
-            rxLinkStatistics.uplinkRSSI = msg->rssi;
+            rxLinkStatistics.uplinkRSSI = msg->rssi != UINT8_MAX ? -msg->rssi : 0;
             rxLinkStatistics.uplinkSNR = msg->noise;
-            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            rxLinkStatistics.uplinkLQ = msg->rssi != UINT8_MAX ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
             break;
     }
 }
@@ -260,21 +429,25 @@ mavlinkFcDispatchResult_e mavlinkFcDispatchIncomingMessage(uint8_t ingressPortIn
         return mavlinkHandleIncomingMissionItemInt() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
         return mavlinkHandleIncomingMissionRequestList() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_COMMAND_LONG:
+        return mavlinkHandleIncomingCommandLong() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_COMMAND_INT:
+        return mavlinkHandleIncomingCommandInt() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_MISSION_REQUEST:
         return mavlinkHandleIncomingMissionRequest() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_MISSION_REQUEST_INT:
         return mavlinkHandleIncomingMissionRequestInt() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_MISSION_ACK:
         return mavlinkHandleIncomingMissionAck() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
-    case MAVLINK_MSG_ID_COMMAND_LONG:
-        return mavlinkHandleIncomingCommandLong() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
-    case MAVLINK_MSG_ID_COMMAND_INT:
-        return mavlinkHandleIncomingCommandInt() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
         return mavlinkHandleIncomingRequestDataStream() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
     case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
         handleIncoming_RC_CHANNELS_OVERRIDE();
         return MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY;
+    case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
+        return mavlinkHandleIncomingSetPositionTargetLocalNed() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+    case MAVLINK_MSG_ID_SET_POSITION_TARGET_GLOBAL_INT:
+        return mavlinkHandleIncomingSetPositionTargetGlobalInt() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
 #ifdef USE_ADSB
     case MAVLINK_MSG_ID_ADSB_VEHICLE:
         return handleIncoming_ADSB_VEHICLE() ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
@@ -288,6 +461,10 @@ mavlinkFcDispatchResult_e mavlinkFcDispatchIncomingMessage(uint8_t ingressPortIn
     case MAVLINK_MSG_ID_RADIO_STATUS:
         handleIncoming_RADIO_STATUS();
         return MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY;
+#ifdef USE_MAVLINK_MSP_TUNNEL
+    case MAVLINK_MSG_ID_TUNNEL:
+        return handleIncoming_TUNNEL(ingressPortIndex) ? MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY : MAVLINK_FC_DISPATCH_NOT_HANDLED;
+#endif
     default:
         return MAVLINK_FC_DISPATCH_NOT_HANDLED;
     }

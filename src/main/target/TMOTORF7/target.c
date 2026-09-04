@@ -29,8 +29,8 @@
 // BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,       1,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM8,  CH1,  PC6,  TIM_USE_OUTPUT_AUTO, 0, 1),
-    DEF_TIM(TIM8,  CH2,  PC7,  TIM_USE_OUTPUT_AUTO, 0, 0), // dmavar 0: dedicated stream on F7 (index order is reversed vs F4 for TIM8 CH1-3), avoids sharing CH1's combined-channel request
+    DEF_TIM(TIM8,  CH1,  PC6,  TIM_USE_OUTPUT_AUTO, 0, 0),
+    DEF_TIM(TIM8,  CH2,  PC7,  TIM_USE_OUTPUT_AUTO, 0, 0),
     DEF_TIM(TIM3,  CH3,  PB0,  TIM_USE_OUTPUT_AUTO, 0, 0),
     DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_OUTPUT_AUTO, 0, 0),
 

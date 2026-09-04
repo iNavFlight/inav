@@ -136,25 +136,25 @@ void pinioInit(void)
     // pwmMotorAndServoInit() runs before pinioInit(), so motor/servo pins are already
     // owned and the OWNER_FREE check correctly skips dual-assigned pads.
     for (int i = 0; i < pinioHardwareCount && runtimeCount < PINIO_COUNT; i++) {
+        const int slot = runtimeCount++;
         IO_t io = IOGetByTag(pinioHardware[i].ioTag);
-        if (!io) {
+        if (!io || IOGetOwner(io) != OWNER_FREE) {
+            // Keep this slot reserved so later PINIO channels retain their USER index.
             continue;
         }
 
         bool inverted = (pinioHardware[i].flags & PINIO_FLAGS_INVERTED) != 0;
         const timerHardware_t *timHw = timerGetByTag(pinioHardware[i].ioTag, TIM_USE_ANY);
-        if (timHw && IOGetOwner(io) == OWNER_FREE && !timerHasFixedPeriodSibling(timHw) && pinioInitTimerPWM(runtimeCount, io, timHw, inverted)) {
-            runtimeCount++;
+        if (timHw && !timerHasFixedPeriodSibling(timHw) && pinioInitTimerPWM(slot, io, timHw, inverted)) {
             continue;
         }
 
-        // GPIO fallback: no timer available or pin already claimed
-        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(runtimeCount));
+        // GPIO fallback: no timer is available or its period belongs to a sibling output.
+        IOInit(io, OWNER_PINIO, RESOURCE_OUTPUT, RESOURCE_INDEX(slot));
         IOConfigGPIO(io, pinioHardware[i].ioMode);
-        pinioRuntime[runtimeCount].inverted = inverted;
-        pinioRuntime[runtimeCount].io = io;
+        pinioRuntime[slot].inverted = inverted;
+        pinioRuntime[slot].io = io;
         inverted ? IOHi(io) : IOLo(io);
-        runtimeCount++;
     }
 
     // Pass 2: timer outputs assigned PINIO mode via the mixer (TIM_USE_PINIO flag).
@@ -201,7 +201,7 @@ void pinioSetDuty(int index, uint8_t duty)
     }
 #endif
     index--;  // user-facing 1-4 → runtime 0-3
-    if ((unsigned)index >= (unsigned)pinioRuntimeCount) {
+    if ((unsigned)index >= (unsigned)pinioRuntimeCount || !pinioRuntime[index].io) {
         return;
     }
     if (duty > 100) {
@@ -225,7 +225,7 @@ void pinioSetDuty(int index, uint8_t duty)
 // called from PINIOBOX, giving the programming framework exclusive uninterrupted control.
 void pinioSet(int index, bool newState)
 {
-    if ((unsigned)index >= (unsigned)pinioRuntimeCount) {
+    if ((unsigned)index >= (unsigned)pinioRuntimeCount || !pinioRuntime[index].io) {
         return;
     }
     if (pinioRuntime[index].ccr) {

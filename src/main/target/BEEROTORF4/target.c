@@ -26,11 +26,11 @@
 timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM9, CH2,  PA3, TIM_USE_PPM,                                               0, 0), // PPM IN
 
-    DEF_TIM(TIM1, CH2N, PB0, TIM_USE_OUTPUT_AUTO,    0, 0), // M1 - DMAR: DMA2_ST5
-    DEF_TIM(TIM1, CH3N, PB1, TIM_USE_OUTPUT_AUTO,    0, 0), // M2 - shares M1's DMA stream (TIM1_CH3N has no other option on PB1); DSHOT does not work on M2
+    DEF_TIM(TIM1, CH2N, PB0, TIM_USE_OUTPUT_AUTO,    0, 1), // M1 - DMAR: DMA2_ST5
+    DEF_TIM(TIM1, CH3N, PB1, TIM_USE_OUTPUT_AUTO,    0, 1), // M2 -
     DEF_TIM(TIM2, CH2,  PA1, TIM_USE_OUTPUT_AUTO,    0, 0), // M3 - DMAR: DMA1_ST7
     DEF_TIM(TIM2, CH1,  PA0, TIM_USE_OUTPUT_AUTO,    0, 0), // M4 -
-    DEF_TIM(TIM8, CH1,  PC6, TIM_USE_OUTPUT_AUTO,    0, 0), // M5 - DMAR: DMA2_ST1
+    DEF_TIM(TIM8, CH1,  PC6, TIM_USE_OUTPUT_AUTO,    0, 0), // M5 - DMAR: DMA2_ST1 - shares M1's DMA2 Stream2 (both TIM8_CH1 options are on Stream2, so this cannot be moved); DSHOT does not work on M5
     DEF_TIM(TIM8, CH2,  PC7, TIM_USE_OUTPUT_AUTO,    0, 1), // M6 - dmavar 1: dedicated stream, avoids sharing M5's combined-channel request
     DEF_TIM(TIM3, CH2,  PB5, TIM_USE_OUTPUT_AUTO,    0, 0), // M7 - DMAR: DMA1_ST2 - shares M4's DMA stream (TIM2_CH1/TIM3_CH2 both have only one DMA option); DSHOT does not work on M7
     DEF_TIM(TIM4, CH4,  PB9, TIM_USE_OUTPUT_AUTO,    0, 0), // M8 - DMAR: DMA1_ST6

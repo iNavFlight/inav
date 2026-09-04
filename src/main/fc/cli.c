@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -125,6 +126,7 @@ bool cliMode = false;
 #include "sensors/temperature.h"
 #ifdef USE_DRONECAN
 #include "drivers/dronecan/dronecan.h"
+#include "drivers/dronecan/libcanard/canard_stm32_driver.h"
 #endif
 #ifdef USE_ESC_SENSOR
 #include "sensors/esc_sensor.h"
@@ -228,7 +230,10 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "GPS",
     "LULU",
     "SBUS2",
-    "OSD_REFRESH"
+    "OSD_REFRESH",
+    "VTOL_TRANSITION",
+    "VTOL_MC_PROTECT",
+    "TERRAIN_NAV"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
@@ -4151,7 +4156,7 @@ static void cliStatus(char *cmdline)
         }
     }
     cliPrintLinefeed();
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
 #if defined(AT32F43x)
     cliPrintLine("AT32 system clocks:");
     crm_clocks_freq_type clocks;
@@ -4203,11 +4208,12 @@ static void cliStatus(char *cmdline)
 #endif
 
 #ifdef USE_DRONECAN
-    static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF"};
+    static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF", "FAILED"};
+    STATIC_ASSERT(ARRAYLEN(dronecanStateNames) == STATE_DRONECAN_COUNT, dronecanStateNames_size_mismatch);
     cliPrintLinef("DroneCAN: nodeID=%d, bitrate=%u kbps, status=%s, nodes=%d",                                                                                                                                                  
         dronecanConfig()->nodeID,                                                                                                                                                                                                     
         (unsigned)dronecanGetBitrateKbps(),                                                                                                                                                                                                     
-        dronecanStateNames[dronecanGetState()],                                                                                                                                                                                       
+        dronecanStateNames[MIN((int)dronecanGetState(), (int)STATE_DRONECAN_COUNT - 1)],                                                                                                                                                                                       
         dronecanGetNodeCount()                                                         
     );
 #endif
@@ -4696,6 +4702,35 @@ static void printConfig(const char *cmdline, bool doDiff)
     restoreConfigs();
 }
 
+#ifdef USE_DRONECAN
+static void cliDronecan(char *cmdline)
+{
+    UNUSED(cmdline);
+    static const char * const lecNames[] = {
+        "None", "Stuff", "Form", "ACK", "BitR", "BitD", "CRC", "SW"
+    };
+    canardProtocolStatus_t stat;
+    canardSTM32GetProtocolStatus(&stat);
+    int32_t txFill = canardSTM32GetTxQueueFillLevel();
+    int32_t rxFill = canardSTM32GetRxFifoFillLevel();
+    uint32_t busOffCount = dronecanGetBusOffCount();
+    CanardPoolAllocatorStatistics poolStats = dronecanGetPoolStats();
+    cliPrintLine("DroneCAN CAN peripheral status:");
+    cliPrintLinef("  BusOff:       %s", stat.BusOff       ? "YES" : "no");
+    cliPrintLinef("  ErrorPassive: %s", stat.ErrorPassive ? "YES" : "no");
+    cliPrintLinef("  TEC:          %u", (unsigned)stat.tec);
+    cliPrintLinef("  REC:          %u", (unsigned)stat.rec);
+    cliPrintLinef("  LEC:          %s (%u)", lecNames[stat.lec], (unsigned)stat.lec);
+    cliPrintLinef("  TX queue:     %" PRId32, txFill);
+    cliPrintLinef("  RX buffer:    %" PRId32, rxFill);
+    cliPrintLinef("  BusOff count: %" PRIu32, busOffCount);
+    cliPrintLinef("  Pool blocks:  %u used, %u peak, %u capacity",
+                  poolStats.current_usage_blocks,
+                  poolStats.peak_usage_blocks,
+                  poolStats.capacity_blocks);
+}
+#endif
+
 static void cliDump(char *cmdline)
 {
     printConfig(cmdline, false);
@@ -4941,6 +4976,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDiff),
+#ifdef USE_DRONECAN
+    CLI_COMMAND_DEF("dronecan", "show DroneCAN CAN peripheral debug status", NULL, cliDronecan),
+#endif
     CLI_COMMAND_DEF("dump", "dump configuration",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
