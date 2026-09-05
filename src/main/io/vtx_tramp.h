@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "config/parameter_group.h"
 
 // 5.8 GHz
 #define VTX_TRAMP_5G8_BAND_COUNT        5
@@ -39,4 +40,25 @@
 #define VTX_TRAMP_1G3_MIN_FREQUENCY_MHZ 1000
 #define VTX_TRAMP_1G3_MAX_FREQUENCY_MHZ 1399
 
+// Defines an unconfigured power level
+#define VTX_TRAMP_NULL_PW_CONFIG -1
+
+#define VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS VTX_TRAMP_5G8_MAX_POWER_COUNT
+#define VTX_TRAMP_PL_MAX_MW UINT16_MAX
+#define VTX_TRAMP_PW_OVERRIDE_VER  1
+
+#define VTX_TRAMP_PL_OR_CMD       "tramp_pl_override"
+#define VTX_TRAMP_CONFIG_DUMP_CMD "tramp_dump_config"
+#define VTX_TRAMP_PL_CMD          "tramp_pl_table"
+
+typedef struct {
+    int vtxPwOverrideMw;
+} vtxTrampPwOverride_t;
+
+PG_DECLARE_ARRAY(vtxTrampPwOverride_t, VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS, vtxTrampPwOverride);
+
 bool vtxTrampInit(void);
+
+typedef void (*consolePrintf_t)(const char*, ...);
+
+void dumpLiveVtxTrampConfig(consolePrintf_t consolePrint);
