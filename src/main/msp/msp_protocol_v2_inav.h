@@ -155,5 +155,5 @@
 #define MSP2_INAV_TIMESYNC                      0x2228  //out message local monotonic boot time in nanoseconds; payload: U64 time_ns
 
 #define MSP2_INAV_SET_AUX_RC                    0x2230
-
 #define MSP2_INAV_WIND                          0x2231
+#define MSP2_INAV_SET_MARKER_GUIDANCE_TARGET    0x2232  //in message  marker-guidance pose: forward/right offset, yaw error, marker AGL (8 bytes)

@@ -1274,7 +1274,7 @@ Decode `debug[6]` or `debug[7]` in idle state as:
 
 `VTOL_MC_PROTECT` debug channels:
 
-- `debug[0]`: flags bitmask. Bits show protection configured, VTOL MC detected, NAV protection active, ANGLE/HORIZON protection active, NAV capture active, landing settle active, bailout active, throttle reserve shrunk, soft altitude capture active, roll/pitch/yaw command shaped, and velocity fallback used.
+- `debug[0]`: flags bitmask. Bits show protection configured, VTOL MC detected, NAV protection active, ANGLE/HORIZON protection active, NAV capture active, landing settle active, bailout active, throttle reserve shrunk, soft altitude capture active, roll/pitch/yaw command shaped, velocity fallback used, and marker guidance paused for attitude recovery.
 - `debug[1]`: safe throttle minimum.
 - `debug[2]`: safe throttle maximum.
 - `debug[3]`: protected throttle.

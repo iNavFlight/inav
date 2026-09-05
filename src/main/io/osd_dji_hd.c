@@ -638,6 +638,20 @@ static char * navigationStateMessage(void)
         case MW_NAV_STATE_LAND_START_DESCENT:
             // Not used
             break;
+#ifdef USE_MARKER_GUIDANCE
+        case MW_NAV_STATE_MARKER_GUIDANCE_STANDBY:
+            return OSD_MESSAGE_STR("MARKER STANDBY");
+        case MW_NAV_STATE_MARKER_GUIDANCE_POSHOLD_CORRECTION:
+            return OSD_MESSAGE_STR("MARKER POS ALIGN");
+        case MW_NAV_STATE_MARKER_GUIDANCE_LAND_CORRECTION:
+            return OSD_MESSAGE_STR("MARKER LAND ALIGN");
+        case MW_NAV_STATE_MARKER_GUIDANCE_TARGET_LOST_HOLD:
+            return OSD_MESSAGE_STR("MARKER LOST");
+        case MW_NAV_STATE_MARKER_GUIDANCE_CLIMB_AND_RETRY:
+            return OSD_MESSAGE_STR("MARKER RETRY");
+        case MW_NAV_STATE_MARKER_GUIDANCE_FALLBACK_NORMAL_LAND:
+            return OSD_MESSAGE_STR("MARKER FALLBACK");
+#endif
     }
     return NULL;
 }

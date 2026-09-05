@@ -38,6 +38,168 @@ PID meaning:
 * POS - translated position error to desired velocity, uses P term only
 * POSR - translates velocity error to desired acceleration
 
+## Marker Guidance Target Consumer (MSP)
+
+INAV can consume externally computed marker offsets over MSP and use them for:
+1. precision landing alignment
+2. marker-relative position hold in POSHOLD
+3. marker-relative containment (indoor limiter behavior)
+
+### Build-time availability
+This feature is compiled only when `USE_MARKER_GUIDANCE` is enabled for the target.
+On flash-constrained targets, it can be excluded at build time to preserve headroom.
+
+### MSP payload
+`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET` (`8754 / 0x2232`) has one fixed 8-byte little-endian request:
+
+| Bytes | Type | Field | Meaning |
+|---|---|---|---|
+| 0..1 | `int16_t` | `offsetForwardCm` | Levelled horizontal offset from the vehicle to touchdown, forward in the yaw-only body frame |
+| 2..3 | `int16_t` | `offsetRightCm` | Levelled horizontal offset from the vehicle to touchdown, right in the yaw-only body frame |
+| 4..5 | `int16_t` | `yawErrorDeciDeg` | Signed shortest turn from current heading to landing heading, from `-1800` to `1800` |
+| 6..7 | `uint16_t` | `markerAglCm` | Positive distance from vehicle body origin to the landing reference plane |
+
+The old 4-byte request and all other request sizes are rejected. There is no version, confidence, frame, timestamp, validity flag or marker identity field. Each accepted packet replaces the complete XY, heading and marker-relative height sample. Freshness is based on FC receive time and `nav_marker_guidance_max_target_age_ms`.
+
+Example: forward `-123 cm`, right `456 cm`, yaw error `-90.0 deg` and marker AGL `321 cm` are encoded as `85 FF C8 01 7C FC 41 01`.
+
+On receipt, INAV converts forward/right into local North/East using the current vehicle yaw and stores the resulting absolute marker position. The stored target does not rotate or move with the vehicle before the next packet. INAV also converts the relative yaw error into one absolute heading target at receipt time. The same cached North/East reference is used by precision landing and containment. `markerAglCm` is the PL-provided height above the marker landing plane; INAV uses the last fresh value as an additional low-altitude reason to suppress a climb-and-retry.
+
+The five-byte reply is `accepted`, `used_now`, `nav_guidance_state`, `reason`, `retry_count`. `accepted = 1` means the complete sample passed validation and was atomically stored. `used_now = 1` means it can currently affect an allowed navigation controller; a valid sample can be accepted with `used_now = 0` outside an allowed mode.
+
+ACK `reason` values are:
+
+| Value | Reason |
+|---|---|
+| 0 | `OK` |
+| 1 | `NOT_ENABLED` |
+| 2 | `STALE` |
+| 3 | `OFFSET_TOO_LARGE` |
+| 4 | `NOT_MC_PROFILE` |
+| 5 | `NOT_IN_POSHOLD_OR_LAND` |
+| 6 | `FAILSAFE` |
+| 7 | `INVALID_TARGET` |
+| 8 | `NOT_ARMED` |
+| 9 | `POSITION_UNAVAILABLE` |
+
+Disabled guidance, zero marker AGL, yaw error outside `[-1800, 1800]`, an excessive horizontal offset, or an unavailable local XY estimate returns `accepted = 0` and does not change the previous cache or its receive timestamp. A usable local XY estimate is required because INAV must convert the body-relative packet into one fixed local North/East marker position at receipt time.
+
+### Mode gating
+Marker guidance can influence navigation only when:
+* active profile is MC/VTOL-hover-capable
+* `nav_marker_guidance_mode` is not `OFF`
+* the local XY position estimate is usable
+
+Outside those navigation contexts, updates may still be cached but do not affect navigation loops. A packet observed while the fixed-wing profile is active is never reused after switching to MC; a new MC observation is required. Disabling marker guidance clears its cached target, so re-enabling it also requires a new packet.
+
+### POSHOLD behavior
+When `nav_marker_guidance_mode = PL`:
+* FC uses marker offsets to center above the target in POSHOLD.
+* while a marker sample is fresh, its absolute XY position temporarily replaces the normal POSHOLD XY target; it is not added as a second velocity command
+* the normal MC position controller converts that target into velocity and attitude commands using the configured navigation speed, acceleration and angle limits
+* roll/pitch input releases marker XY control and requires a newer marker packet before marker centering resumes
+* altitude-stick input remains independent in POSHOLD and LAND, so vertical pilot control does not release marker XY or heading
+* while the target is fresh, FC uses the marker heading immediately before the MC heading controller
+* marker heading never overrides disarmed, failsafe, fixed-wing or manual yaw control
+* marker yaw is independent of marker XY: roll/pitch does not release marker heading, while manual yaw releases only the stored heading and PL waits for a new marker packet before taking yaw control again
+* POSHOLD automatic heading hold is enabled only while PL actually owns marker yaw; ordinary POSHOLD behavior is unchanged outside marker heading control
+* when the target becomes stale, FC latches the current XY position and stops marker correction immediately; the normal position controller then brakes toward that position
+
+When `nav_marker_guidance_mode = CONTAINMENT`:
+* FC uses marker-relative hold target:
+  * `nav_marker_containment_hold_north_cm`
+  * `nav_marker_containment_hold_east_cm`
+* FC applies containment behavior with `nav_marker_guidance_radius_cm`:
+  * inside radius: FC brakes at the current position and does not pull toward the center
+  * outside radius: FC corrects back toward allowed boundary
+* containment does not take yaw control
+
+### LAND behavior
+When `nav_marker_guidance_mode = PL` and target is fresh:
+* FC performs precision horizontal alignment to marker center during LAND
+* the marker temporarily owns the XY target, while normal LAND continues to own the vertical descent target
+* FC uses the absolute marker heading calculated when the latest packet was accepted
+* vertical descent profile remains normal LAND behavior (`nav_land_*`)
+
+With stale/lost target:
+* above the low-altitude retry threshold, FC latches the current XY position and stops marker correction immediately, so the normal position controller can brake and level instead of returning toward the pre-marker navigation target
+* after a marker heading was acquired in this LAND context, FC keeps that last heading through lost hold, climb-and-retry and normal-landing fallback; manual yaw releases it until a new marker packet arrives
+* at or below `nav_marker_guidance_retry_min_alt_cm`, either usable INAV AGL or the last fresh marker AGL suppresses retry and continues normal LAND behavior
+* if `nav_marker_guidance_low_alt_lock_xy = ON`, FC locks the current XY position when entering low-altitude fallback
+* above that altitude, FC enters hold for `nav_marker_guidance_lost_hold_time_ms`
+* before climb-and-retry, FC must remain within 10 degrees of level and below the lower of `nav_mc_braking_disengage_speed` or `75 cm/s` horizontal speed for 500 ms; an untrusted horizontal velocity estimate also prevents retry
+* optionally performs climb-and-retry up to `nav_marker_guidance_retry_count`; each climb ends when `nav_marker_guidance_retry_altitude_cm` is reached or `nav_marker_guidance_retry_timeout_ms` expires, whichever happens first
+* a fresh marker packet cancels a pending hold or retry climb immediately
+* if the settle conditions are not reached, FC remains in lost-target hold and does not start the retry climb
+* then falls back to normal LAND behavior
+
+While marker guidance is active, INAV retains the underlying LAND/POSHOLD XY target separately. If the navigation state refreshes that target, the saved value is updated before marker guidance writes its own target. A fresh marker replaces a temporary lost-target hold without reactivating the saved target. The saved navigation target is restored when normal landing fallback begins, roll/pitch takes XY control, the navigation context changes, the position estimate becomes unusable, or marker guidance is disabled/reset. After roll/pitch takeover or position-estimate loss, a new marker packet is required before PL can take XY ownership again. Manual yaw releases only marker heading. Altitude-stick input releases only marker Z hold/climb control and does not release marker XY or heading. This prevents a previously cached pose from unexpectedly restoring marker control while keeping the three pilot-control axes independent.
+
+On a VTOL with `vtol_mc_protection_mode` enabled, the initial MC stopping/capture phase prevents PL from taking XY or marker-yaw ownership until the aircraft has settled. Marker guidance waits rather than pulling or turning toward the marker during that phase. A new marker packet after capture finishes is required before PL takes ownership. Movement requested by the active marker target does not restart the initial VTOL capture; capture becomes available again after marker guidance releases XY. During protected VTOL landing, the active PL XY target also becomes the reference used by the landing settle gate. The settle check and the position controller therefore agree on the same landing location instead of comparing the aircraft with the original GPS landing point while PL guides it elsewhere.
+
+If the VTOL attitude reaches the protection bailout threshold while marker guidance is active, marker movement is paused instead of competing with recovery. During LAND, the same pause starts earlier after a substantial attitude excursion beyond the configured normal MC bank range, capped at the bailout threshold. This applies both before and after the initial landing settle is approved, while the margin above the normal command range prevents an ordinary bank requested by PL from repeatedly pausing itself. INAV holds the current XY position and current heading, gives the existing VTOL throttle reserve/bailout logic priority, pauses LAND descent, and does not advance the marker retry timers. Marker guidance resumes only after the existing VTOL settle check has continuously confirmed safe attitude and low horizontal/vertical speed. It then requires a new marker packet observed from the recovered attitude; until that packet arrives, recovered XY and yaw remain held and the normal lost-target policy applies. Pilot takeover, failsafe, disarm, fixed-wing mode, and `vtol_mc_protection_mode = OFF` keep their existing behavior.
+
+Retry safety rule:
+* retry is only entered if target was acquired at least once in the current LAND context
+* if no target was ever acquired in that LAND context, no retry is performed
+* set `nav_marker_guidance_retry_min_alt_cm = 0` to disable the low-altitude retry suppression
+* set `nav_marker_guidance_low_alt_lock_xy = OFF` to keep the normal LAND XY target during low-altitude fallback
+* marker AGL is only an additional reason to suppress a climb; it never starts a retry and never replaces INAV altitude, AGL or rangefinder estimates
+
+### Shared radius setting
+`nav_marker_guidance_radius_cm` is used by both modes:
+* `PL`: center-alignment deadband around marker center
+* `CONTAINMENT`: allowed radius around marker-containment hold target
+* `0`: continuous correction (no deadband/boundary allowance)
+
+### Core safety semantics
+* new packet == fresh target sample
+* no packet inside timeout window == target lost
+* marker guidance supplies one temporary XY position target, never a second velocity command
+* the standard MC position controller applies the active navigation speed, acceleration, braking and attitude limits
+* active MC CRUISE braking keeps ownership of XY until braking finishes; a still-fresh marker target can take ownership afterward
+* active VTOL MC capture also keeps ownership of XY until its settle conditions pass
+* no dynamic allocation in the runtime path
+
+### Marker guidance debugging
+
+Set `debug_mode = MARKER_GUIDANCE` and enable Blackbox debug fields. The eight channels are:
+
+| Channel | Value |
+|---|---|
+| `debug[0]` | `markerGuidanceState_e` state |
+| `debug[1]` | Runtime flags bitmask described below |
+| `debug[2]` | Packed bytes: context, runtime reason, retry count, last MSP reply reason |
+| `debug[3]` | Cached target age in milliseconds, or `-1` when no valid target is cached |
+| `debug[4]` | Signed `int16` raw forward offset in the low word and raw right offset in the high word, in cm |
+| `debug[5]` | Signed `int16` resolved North offset in the low word and resolved East offset in the high word, in cm |
+| `debug[6]` | Signed `int16` requested North displacement in the low word and East displacement in the high word, in cm |
+| `debug[7]` | Marker AGL in the low unsigned word and absolute target heading in deci-degrees in the high unsigned word |
+
+`debug[1]` flags:
+
+| Bit | Meaning |
+|---|---|
+| 0..5 | enabled, armed, MC profile, target valid, target fresh, target acquired in current context |
+| 6..9 | PL mode, containment mode, POSHOLD context, LAND context |
+| 10..15 | axis-specific manual takeover (roll/pitch XY, yaw heading, or altitude Z), failsafe, calibration, landing detected, XY correction applied, heading applied |
+| 16..22 | velocity trusted, retry speed acceptable, retry attitude acceptable, settle timer active, settle ready, state deadline reached, low-altitude retry suppressed |
+| 23..25 | temporary lost-target XY hold active, retry-start altitude usable, low-altitude XY lock configured |
+| 26..29 | horizontal position trusted, altitude usable, INAV AGL usable, marker XY target currently owns the position controller |
+| 30..31 | marker heading latched, current marker packet rejected for heading after manual yaw until a newer packet arrives |
+
+`debug[2]` runtime reason values:
+
+| Value | Meaning |
+|---|---|
+| 0 | active/no blocking reason |
+| 1..5 | disabled, invalid target, stale target, excessive offset, disarmed |
+| 6..11 | failsafe, wrong profile, no supported NAV context, calibration, landing already detected, manual takeover |
+| 12..17 | low altitude, lost-hold timer, untrusted velocity, excessive horizontal speed, excessive attitude, settle confirmation time |
+| 18..23 | retry climb active, normal LAND fallback active, waiting for VTOL MC capture to finish, paused for VTOL attitude recovery, local XY estimate unavailable, waiting for a new marker packet |
+
+The standard Blackbox attitude, velocity, desired position and navigation state fields should be logged with this mode. They provide the actual values behind the compact retry-condition flags.
+
 ## NAV RTH - return to home mode
 
 Home for RTH is the position where vehicle was first armed. This position may be offset by the CLI settings `nav_rth_home_offset_distance` and `nav_rth_home_offset_direction`. This position may also be overridden with Safehomes. RTH requires accelerometer, compass and GPS sensors.

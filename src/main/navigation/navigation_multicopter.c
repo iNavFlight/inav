@@ -50,6 +50,9 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#ifdef USE_MARKER_GUIDANCE
+#include "navigation/marker_guidance.h"
+#endif
 #include "navigation/sqrt_controller.h"
 #include "navigation/navigation_vtol_mc_protection.h"
 
@@ -665,6 +668,7 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     const float velExpoFactor = getVelocityExpoAttenuationFactor(neuVelTotal, maxSpeed);
     posControl.desiredState.vel.x = neuVelX * velHeadFactor * velExpoFactor;
     posControl.desiredState.vel.y = neuVelY * velHeadFactor * velExpoFactor;
+
 }
 
 static float computeNormalizedVelocity(const float value, const float maxValue)
@@ -863,7 +867,11 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 
         // If we have new position data - update velocity and acceleration controllers
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-            if (navigationVtolMcProtectionApplyCapture(navGetCurrentStateFlags())) {
+            bool markerGuidanceOwnsPosition = false;
+#ifdef USE_MARKER_GUIDANCE
+            markerGuidanceOwnsPosition = markerGuidanceOwnsPositionTarget();
+#endif
+            if (!markerGuidanceOwnsPosition && navigationVtolMcProtectionApplyCapture(navGetCurrentStateFlags())) {
                 setMulticopterStopPosition();
             }
 
@@ -1230,7 +1238,11 @@ void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlag
         if (navStateFlags & NAV_CTL_POS)
             applyMulticopterPositionController(currentTimeUs);
 
-        if (navStateFlags & NAV_CTL_YAW)
+        if (navStateFlags & NAV_CTL_YAW) {
+#ifdef USE_MARKER_GUIDANCE
+            markerGuidanceApplyHeadingOverride(&posControl.desiredState.yaw);
+#endif
             applyMulticopterHeadingController();
+        }
     }
 }

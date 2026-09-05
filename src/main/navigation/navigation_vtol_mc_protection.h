@@ -35,9 +35,12 @@ uint16_t navigationVtolMcProtectionMaxAbsAttitudeDeciDeg(void);
 
 vtolMcProtectionThrottleBounds_t navigationVtolMcProtectionGetThrottleBounds(int16_t idleThrottle, int16_t hoverThrottle, int16_t maxThrottle);
 bool navigationVtolMcProtectionShouldFreezeAltitudeIntegrator(void);
+bool navigationVtolMcProtectionGuidanceRecoveryActive(void);
 int16_t navigationVtolMcProtectionApplyBailoutThrottle(int16_t requestedThrottle, const vtolMcProtectionThrottleBounds_t *bounds, int16_t hoverThrottle);
 
 bool navigationVtolMcProtectionApplyCapture(uint32_t navStateFlags);
+bool navigationVtolMcProtectionPositionCaptureActive(void);
+bool navigationVtolMcProtectionPositionCapturePending(uint32_t navStateFlags);
 void navigationVtolMcProtectionResetCapture(void);
 bool navigationVtolMcProtectionApplySoftAltitudeCapture(uint32_t navStateFlags);
 bool navigationVtolMcProtectionLandingSettleConditionsMet(const fpVector3_t *landingPos);
@@ -57,6 +60,7 @@ static inline vtolMcProtectionThrottleBounds_t navigationVtolMcProtectionGetThro
     return vtolMcProtectionComputeThrottleBounds(false, idleThrottle, hoverThrottle, maxThrottle, 0);
 }
 static inline bool navigationVtolMcProtectionShouldFreezeAltitudeIntegrator(void) { return false; }
+static inline bool navigationVtolMcProtectionGuidanceRecoveryActive(void) { return false; }
 static inline int16_t navigationVtolMcProtectionApplyBailoutThrottle(int16_t requestedThrottle, const vtolMcProtectionThrottleBounds_t *bounds, int16_t hoverThrottle)
 {
     (void)bounds;
@@ -64,6 +68,12 @@ static inline int16_t navigationVtolMcProtectionApplyBailoutThrottle(int16_t req
     return requestedThrottle;
 }
 static inline bool navigationVtolMcProtectionApplyCapture(uint32_t navStateFlags)
+{
+    (void)navStateFlags;
+    return false;
+}
+static inline bool navigationVtolMcProtectionPositionCaptureActive(void) { return false; }
+static inline bool navigationVtolMcProtectionPositionCapturePending(uint32_t navStateFlags)
 {
     (void)navStateFlags;
     return false;

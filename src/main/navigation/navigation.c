@@ -57,6 +57,9 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#ifdef USE_MARKER_GUIDANCE
+#include "navigation/marker_guidance.h"
+#endif
 #include "navigation/navigation_waypoint_logic.h"
 #include "navigation/navigation_vtol_mc_protection.h"
 #include "navigation/navigation_vtol_mission_logic.h"
@@ -138,8 +141,12 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-#ifdef USE_AUTO_TRANSITION
+#if defined(USE_AUTO_TRANSITION) && defined(USE_MARKER_GUIDANCE)
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 12);
+#elif defined(USE_AUTO_TRANSITION)
 PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 11);
+#elif defined(USE_MARKER_GUIDANCE)
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 10);
 #else
 PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 8);
 #endif
@@ -207,6 +214,21 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_linear_descent_start_distance = SETTING_NAV_RTH_LINEAR_DESCENT_START_DISTANCE_DEFAULT,
         .cruise_yaw_rate = SETTING_NAV_CRUISE_YAW_RATE_DEFAULT,                                 // 20dps
         .rth_fs_landing_delay = SETTING_NAV_RTH_FS_LANDING_DELAY_DEFAULT,                       // Delay before landing in FS. 0 = immedate landing
+#ifdef USE_MARKER_GUIDANCE
+        .marker_guidance_mode = SETTING_NAV_MARKER_GUIDANCE_MODE_DEFAULT,
+        .marker_guidance_source = SETTING_NAV_MARKER_GUIDANCE_SOURCE_DEFAULT,
+        .marker_guidance_max_target_age_ms = SETTING_NAV_MARKER_GUIDANCE_MAX_TARGET_AGE_MS_DEFAULT,
+        .marker_guidance_max_offset_cm = SETTING_NAV_MARKER_GUIDANCE_MAX_OFFSET_CM_DEFAULT,
+        .marker_guidance_radius_cm = SETTING_NAV_MARKER_GUIDANCE_RADIUS_CM_DEFAULT,
+        .marker_containment_hold_north_cm = SETTING_NAV_MARKER_CONTAINMENT_HOLD_NORTH_CM_DEFAULT,
+        .marker_containment_hold_east_cm = SETTING_NAV_MARKER_CONTAINMENT_HOLD_EAST_CM_DEFAULT,
+        .marker_guidance_lost_hold_time_ms = SETTING_NAV_MARKER_GUIDANCE_LOST_HOLD_TIME_MS_DEFAULT,
+        .marker_guidance_retry_count = SETTING_NAV_MARKER_GUIDANCE_RETRY_COUNT_DEFAULT,
+        .marker_guidance_retry_min_alt_cm = SETTING_NAV_MARKER_GUIDANCE_RETRY_MIN_ALT_CM_DEFAULT,
+        .marker_guidance_low_alt_lock_xy = SETTING_NAV_MARKER_GUIDANCE_LOW_ALT_LOCK_XY_DEFAULT,
+        .marker_guidance_retry_altitude_cm = SETTING_NAV_MARKER_GUIDANCE_RETRY_ALTITUDE_CM_DEFAULT,
+        .marker_guidance_retry_timeout_ms = SETTING_NAV_MARKER_GUIDANCE_RETRY_TIMEOUT_MS_DEFAULT,
+#endif
     },
 
     // MC-specific
@@ -2124,6 +2146,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     }
 
     const fpVector3_t *landingSettlePos = FLIGHT_MODE(NAV_WP_MODE) ? &posControl.activeWaypoint.pos : rthGetHomeTargetPosition(RTH_HOME_FINAL_LAND);
+#ifdef USE_MARKER_GUIDANCE
+    fpVector3_t markerLandingSettlePos = *landingSettlePos;
+    if (markerGuidanceGetActiveLandingPositionTarget(&markerLandingSettlePos)) {
+        landingSettlePos = &markerLandingSettlePos;
+    }
+#endif
     if (navigationVtolMcProtectionLandingDescentNeedsResettle() ||
         !navigationVtolMcProtectionLandingSettleReady(landingSettlePos)) {
         fpVector3_t landingHoldPos = *landingSettlePos;
@@ -2193,7 +2221,22 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         descentVelLimited = constrainf(descentVelScaled, navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
     }
 
-    updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
+    bool markerGuidanceVerticalOverride = false;
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceLandControl_t markerGuidanceControl = { 0 };
+    markerGuidanceGetLandControl(&markerGuidanceControl);
+
+    if (markerGuidanceControl.mode == MARKER_GUIDANCE_LAND_CTRL_HOLD) {
+        updateClimbRateToAltitudeController(0.0f, 0.0f, ROC_TO_ALT_CONSTANT);
+        markerGuidanceVerticalOverride = true;
+    } else if (markerGuidanceControl.mode == MARKER_GUIDANCE_LAND_CTRL_CLIMB) {
+        updateClimbRateToAltitudeController(markerGuidanceControl.rateCmS, 0.0f, ROC_TO_ALT_CONSTANT);
+        markerGuidanceVerticalOverride = true;
+    }
+#endif
+    if (!markerGuidanceVerticalOverride) {
+        updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
+    }
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -4120,6 +4163,9 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
     }
 
     NAV_Status.state = navFSM[posControl.navState].mwState;
+#ifdef USE_MARKER_GUIDANCE
+    NAV_Status.state = markerGuidanceOverrideNavStatusState(NAV_Status.state);
+#endif
     NAV_Status.error = navFSM[posControl.navState].mwError;
 
     NAV_Status.flags = 0;
@@ -5898,6 +5944,10 @@ void applyWaypointNavigationAndAltitudeHold(void)
         posControl.activeWaypointIndex = posControl.startWpIndex;
         // Reset RTH trackback
         resetRthTrackBack();
+#ifdef USE_MARKER_GUIDANCE
+        markerGuidanceReset();
+        markerGuidanceUpdateDebug();
+#endif
 
 #ifdef USE_GEOZONE
         posControl.flags.sendToActive = false;
@@ -5918,6 +5968,10 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceUpdate(navStateFlags, currentTimeUs);
+#endif
+
     if (STATE(ROVER) || STATE(BOAT)) {
         applyRoverBoatNavigationController(navStateFlags, currentTimeUs);
     } else if (STATE(FIXED_WING_LEGACY)) {
@@ -5926,6 +5980,9 @@ void applyWaypointNavigationAndAltitudeHold(void)
     else {
         applyMulticopterNavigationController(navStateFlags, currentTimeUs);
     }
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceUpdateDebug();
+#endif
     applyAutoSpeedThrottleDemand(&rcCommand[THROTTLE], currentTimeUs);
 
     /* Consume position data */
@@ -6291,6 +6348,14 @@ int8_t navigationGetHeadingControlState(void)
     if (STATE(FIXED_WING_LEGACY)) {
         return NAV_HEADING_CONTROL_MANUAL;
     }
+
+#ifdef USE_MARKER_GUIDANCE
+    // POSH does not normally require automatic heading hold. Enable it only
+    // while precision landing has actually supplied the active yaw target.
+    if (markerGuidanceOwnsHeading()) {
+        return NAV_HEADING_CONTROL_AUTO;
+    }
+#endif
 
     // For multirotors it depends on navigation system mode
     // Course hold requires Auto Control to update heading hold target whilst RC adjustment active
@@ -6677,6 +6742,9 @@ void navigationInit(void)
 
     /* Reset statistics */
     posControl.totalTripDistance = 0.0f;
+#ifdef USE_MARKER_GUIDANCE
+    markerGuidanceReset();
+#endif
 
     /* Use system config */
     navigationUsePIDs();

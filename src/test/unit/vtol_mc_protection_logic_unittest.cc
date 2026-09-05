@@ -180,6 +180,23 @@ TEST(VtolMcProtectionLogicTest, PositionCaptureSetsBrakingTargetOnlyOnEntry)
     EXPECT_FALSE(vtolMcProtectionCaptureShouldSetTarget(true, false));
 }
 
+TEST(VtolMcProtectionLogicTest, PositionCaptureRemainsPendingUntilContinuousSettleCompletes)
+{
+    EXPECT_FALSE(vtolMcProtectionPositionCapturePending(false, false, 0, 1000, 5000));
+    EXPECT_TRUE(vtolMcProtectionPositionCapturePending(true, false, 4000, 1000, 5000));
+    EXPECT_TRUE(vtolMcProtectionPositionCapturePending(true, true, 0, 1000, 5000));
+    EXPECT_TRUE(vtolMcProtectionPositionCapturePending(true, true, 4500, 1000, 5000));
+    EXPECT_FALSE(vtolMcProtectionPositionCapturePending(true, true, 4000, 1000, 5000));
+    EXPECT_FALSE(vtolMcProtectionPositionCapturePending(true, true, 0, 0, 5000));
+}
+
+TEST(VtolMcProtectionLogicTest, PositionCapturePendingHandlesMillisWrap)
+{
+    const timeMs_t stableSinceMs = UINT32_MAX - 499;
+    EXPECT_TRUE(vtolMcProtectionPositionCapturePending(true, true, stableSinceMs, 1000, 499));
+    EXPECT_FALSE(vtolMcProtectionPositionCapturePending(true, true, stableSinceMs, 1000, 500));
+}
+
 TEST(VtolMcProtectionLogicTest, LandingDescentDoesNotInvalidateApprovedSettle)
 {
     // Normal vertical descent is deliberately not an input to this gate.
@@ -200,6 +217,16 @@ TEST(VtolMcProtectionLogicTest, LandingResettleRequiresProtectionAndPriorApprova
         false, true, true, 300.0f, 300, 75, 200));
     EXPECT_FALSE(vtolMcProtectionLandingDescentNeedsResettle(
         true, false, true, 300.0f, 300, 75, 200));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingGuidanceRecoveryRequiresUnsafeAttitudeBeyondNormalCommandRange)
+{
+    EXPECT_EQ(250, vtolMcProtectionLandingGuidanceRecoveryAngleLimitDeciDeg(150, 150, 450));
+    EXPECT_EQ(400, vtolMcProtectionLandingGuidanceRecoveryAngleLimitDeciDeg(200, 300, 450));
+    EXPECT_EQ(450, vtolMcProtectionLandingGuidanceRecoveryAngleLimitDeciDeg(200, 400, 450));
+    EXPECT_FALSE(vtolMcProtectionLandingGuidanceRecoveryNeeded(false, 201, 200));
+    EXPECT_FALSE(vtolMcProtectionLandingGuidanceRecoveryNeeded(true, 200, 200));
+    EXPECT_TRUE(vtolMcProtectionLandingGuidanceRecoveryNeeded(true, 201, 200));
 }
 
 TEST(VtolMcProtectionLogicTest, SoftAltitudeRelaxationOnlyAppliesDuringCaptureOrTransition)
@@ -419,6 +446,15 @@ TEST(VtolMcProtectionLogicTest, BailoutAngleLimitUsesBankAngleWithSafeClamps)
     EXPECT_EQ(450, vtolMcProtectionBailoutAngleLimitDeciDeg(20));
     EXPECT_EQ(500, vtolMcProtectionBailoutAngleLimitDeciDeg(35));
     EXPECT_EQ(600, vtolMcProtectionBailoutAngleLimitDeciDeg(80));
+}
+
+TEST(VtolMcProtectionLogicTest, GuidanceRecoveryRequiresActiveProtectedAutoThrottle)
+{
+    EXPECT_FALSE(vtolMcProtectionGuidanceRecoveryActive(false, true, true, 0, 450));
+    EXPECT_FALSE(vtolMcProtectionGuidanceRecoveryActive(true, false, true, 0, 450));
+    EXPECT_FALSE(vtolMcProtectionGuidanceRecoveryActive(true, true, false, 449, 450));
+    EXPECT_TRUE(vtolMcProtectionGuidanceRecoveryActive(true, true, false, 450, 450));
+    EXPECT_TRUE(vtolMcProtectionGuidanceRecoveryActive(true, true, true, 0, 450));
 }
 
 TEST(VtolMcProtectionLogicTest, ActiveProtectionSuppressesMulticopterBrakingMode)

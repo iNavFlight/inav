@@ -1,7 +1,7 @@
 {
     "version": {
-        "major": 2,
-        "minor": 1,
+        "major": 3,
+        "minor": 0,
         "patch": 0
     },
     "messages": {
@@ -11502,6 +11502,74 @@
             "reply": null,
             "notes": "Returns error if the aircraft is not armed, `NAV_WP_MODE` is not active, or the index is outside the valid mission range (`startWpIndex` to `startWpIndex + waypointCount - 1`). On success, sets `posControl.activeWaypointIndex` to the requested index and fires `NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_JUMP`, transitioning the navigation FSM back to `NAV_STATE_WAYPOINT_PRE_ACTION` so the flight controller re-initialises navigation for the new target.",
             "description": "Jumps to a specific waypoint during an active waypoint mission, causing the aircraft to immediately begin navigating toward the new target waypoint."
+        },
+        "MSP2_INAV_SET_MARKER_GUIDANCE_TARGET": {
+            "code": 8754,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "offset_forward_cm",
+                        "ctype": "int16_t",
+                        "desc": "Levelled horizontal offset from vehicle body origin to the touchdown point, forward in the yaw-only body frame at measurement time.",
+                        "units": "cm"
+                    },
+                    {
+                        "name": "offset_right_cm",
+                        "ctype": "int16_t",
+                        "desc": "Levelled horizontal offset from vehicle body origin to the touchdown point, right in the yaw-only body frame at measurement time.",
+                        "units": "cm"
+                    },
+                    {
+                        "name": "yaw_error_decideg",
+                        "ctype": "int16_t",
+                        "desc": "Signed shortest rotation from current vehicle heading to the requested landing heading. Valid range is -1800 to 1800.",
+                        "units": "decidegrees"
+                    },
+                    {
+                        "name": "marker_agl_cm",
+                        "ctype": "uint16_t",
+                        "desc": "Positive vertical distance from vehicle body origin to the marker landing reference plane.",
+                        "units": "cm"
+                    }
+                ]
+            },
+            "reply": {
+                "payload": [
+                    {
+                        "name": "accepted",
+                        "ctype": "uint8_t",
+                        "desc": "1 only when the complete pose passed validation and was atomically committed to the target cache.",
+                        "units": ""
+                    },
+                    {
+                        "name": "used_now",
+                        "ctype": "uint8_t",
+                        "desc": "1 when the accepted target is currently influencing an allowed marker-guidance navigation context.",
+                        "units": ""
+                    },
+                    {
+                        "name": "nav_guidance_state",
+                        "ctype": "uint8_t",
+                        "desc": "Current internal marker-guidance state.",
+                        "units": "enum"
+                    },
+                    {
+                        "name": "reason",
+                        "ctype": "uint8_t",
+                        "desc": "Result code: 0 OK, 1 NOT_ENABLED, 2 STALE, 3 OFFSET_TOO_LARGE, 4 NOT_MC_PROFILE, 5 NOT_IN_POSHOLD_OR_LAND, 6 FAILSAFE, 7 INVALID_TARGET, 8 NOT_ARMED.",
+                        "units": "enum"
+                    },
+                    {
+                        "name": "retry_count",
+                        "ctype": "uint8_t",
+                        "desc": "Current retry-attempt counter in PL LAND retry flow.",
+                        "units": ""
+                    }
+                ]
+            },
+            "notes": "Hard break: the request is exactly 8 little-endian bytes and the old 4-byte request is rejected. There is no version, validity, confidence, frame, identity or capture timestamp field. Forward/right are converted to local North/East once at FC receive time; yaw error is converted once to an absolute INAV heading; marker AGL is used only as an additional low-altitude retry suppression. Invalid or disabled requests do not refresh any cache field or timestamp. Freshness uses FC receive time. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD/LAND contexts. The command is 8754/0x2232 because current maintenance-10.x assigns 8753/0x2231 to MSP2_INAV_WIND.",
+            "description": "Updates the complete marker-relative position, landing heading and marker AGL sample consumed by marker-guidance navigation."
         },
         "MSP2_INAV_SET_CRUISE_HEADING": {
             "code": 8739,
