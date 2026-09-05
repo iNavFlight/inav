@@ -56,8 +56,11 @@
 #include "io/gps.h"
 #include "io/beeper.h"
 
+#include "flight/imu.h"
+
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
+#include "sensors/compass_orientation.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
@@ -82,6 +85,7 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
 );
 
 static bool magUpdatedAtLeastOnce = false;
+static timeUs_t calStartedAt = 0;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -303,26 +307,12 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     return true;
 }
 
-bool compassInit(void)
+// Rebuilds mag.dev.magAlign (useExternal / externalRotation / onBoard) from the
+// current compassConfig(). Called at init, and again whenever alignment settings
+// change at runtime (e.g. auto-detected orientation) so the cached rotation takes
+// effect immediately instead of only after the next reboot.
+static void compassRefreshAlignment(void)
 {
-#ifdef USE_DUAL_MAG
-    mag.dev.magSensorToUse = compassConfig()->mag_to_use;
-#else
-    mag.dev.magSensorToUse = 0;
-#endif
-
-    if (!compassDetect(&mag.dev, compassConfig()->mag_hardware)) {
-        return false;
-    }
-    // initialize and calibration. turn on led during mag calibration (calibration routine blinks it)
-    LED1_ON;
-    const bool ret = mag.dev.init(&mag.dev);
-    LED1_OFF;
-
-    if (!ret) {
-        sensorsClear(SENSOR_MAG);
-    }
-
     if (compassConfig()->rollDeciDegrees != 0 ||
         compassConfig()->pitchDeciDegrees != 0 ||
         compassConfig()->yawDeciDegrees != 0) {
@@ -344,6 +334,29 @@ bool compassInit(void)
             mag.dev.magAlign.onBoard = CW270_DEG_FLIP;  // The most popular default is 270FLIP for external mags
         }
     }
+}
+
+bool compassInit(void)
+{
+#ifdef USE_DUAL_MAG
+    mag.dev.magSensorToUse = compassConfig()->mag_to_use;
+#else
+    mag.dev.magSensorToUse = 0;
+#endif
+
+    if (!compassDetect(&mag.dev, compassConfig()->mag_hardware)) {
+        return false;
+    }
+    // initialize and calibration. turn on led during mag calibration (calibration routine blinks it)
+    LED1_ON;
+    const bool ret = mag.dev.init(&mag.dev);
+    LED1_OFF;
+
+    if (!ret) {
+        sensorsClear(SENSOR_MAG);
+    }
+
+    compassRefreshAlignment();
 
     return ret;
 }
@@ -368,6 +381,37 @@ bool compassIsCalibrationComplete(void)
     }
 }
 
+bool compassIsCalibrating(void)
+{
+    return calStartedAt != 0;
+}
+
+static void compassPushOrientationSample(void)
+{
+    const int16_t rawMagSample[3] = {
+        (int16_t)mag.magADC[X], (int16_t)mag.magADC[Y], (int16_t)mag.magADC[Z]
+    };
+    compassOrientationBufferPush(rawMagSample, &orientation);
+}
+
+static void compassApplyDetectedOrientation(int16_t rollDD, int16_t pitchDD, int16_t yawDD)
+{
+    // rollDeciDegrees/pitchDeciDegrees/yawDeciDegrees == 0,0,0 means
+    // "unconfigured, fall back to mag_align" (see align_mag_roll in
+    // settings.yaml) - a detected identity rotation would be silently
+    // discarded if written there. mag_align's ALIGN_DEFAULT(0) vs
+    // CW0_DEG(1) encoding can represent "explicitly no rotation"
+    // unambiguously, so route that one case through it instead.
+    if (rollDD == 0 && pitchDD == 0 && yawDD == 0) {
+        compassConfigMutable()->mag_align = CW0_DEG;
+    } else {
+        compassConfigMutable()->rollDeciDegrees = rollDD;
+        compassConfigMutable()->pitchDeciDegrees = pitchDD;
+        compassConfigMutable()->yawDeciDegrees = yawDD;
+    }
+    compassRefreshAlignment();
+}
+
 void compassUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_SIMULATOR
@@ -377,9 +421,9 @@ void compassUpdate(timeUs_t currentTimeUs)
 	}
 #endif
     static sensorCalibrationState_t calState;
-    static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
     static int magAxisDeviation[XYZ_AXIS_COUNT];
+    static bool autoDetectOrientationThisSpin;
 
 #if defined(SITL_BUILD)
     ENABLE_STATE(COMPASS_CALIBRATED);
@@ -421,6 +465,11 @@ void compassUpdate(timeUs_t currentTimeUs)
 
         sensorCalibrationResetState(&calState);
         DISABLE_STATE(CALIBRATE_MAG);
+
+        autoDetectOrientationThisSpin = !STATE(COMPASS_CALIBRATED) && !STATE(ACCELEROMETER_CALIBRATED);
+        if (autoDetectOrientationThisSpin) {
+            compassOrientationBufferReset();
+        }
     }
 
     if (calStartedAt != 0) {
@@ -445,6 +494,10 @@ void compassUpdate(timeUs_t currentTimeUs)
             if ((avgMag > 0.01f) && ((diffMag / avgMag) > (0.14f * 0.14f))) {
                 sensorCalibrationPushSampleForOffsetCalculation(&calState, mag.magADC);
 
+                if (autoDetectOrientationThisSpin) {
+                    compassPushOrientationSample();
+                }
+
                 for (int axis = 0; axis < 3; axis++) {
                     magPrev[axis] = mag.magADC[axis];
                 }
@@ -464,6 +517,19 @@ void compassUpdate(timeUs_t currentTimeUs)
              */
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 compassConfigMutable()->magGain[axis] = ABS(magAxisDeviation[axis] - compassConfig()->magZero.raw[axis]);
+            }
+
+            if (autoDetectOrientationThisSpin) {
+                int16_t detectedRollDD, detectedPitchDD, detectedYawDD;
+                float confidence = 0.0f;
+                // magZerof (float, pre-rounding) rather than the already-rounded
+                // compassConfig()->magZero.raw is deliberate - the more precise
+                // value is available here, use it.
+                if (compassOrientationDetect(magZerof, compassConfig()->magGain, COMPASS_ORIENTATION_CONFIDENCE_MIN,
+                                              &detectedRollDD, &detectedPitchDD, &detectedYawDD, &confidence)) {
+                    compassApplyDetectedOrientation(detectedRollDD, detectedPitchDD, detectedYawDD);
+                }
+                DEBUG_SET(DEBUG_MAG_CALIB, 0, lrintf(confidence * 100.0f));
             }
 
             calStartedAt = 0;
