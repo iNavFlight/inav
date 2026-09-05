@@ -79,6 +79,7 @@ typedef enum {
     DEBUG_GPS,
     DEBUG_LULU,
     DEBUG_SBUS2,
+    DEBUG_Q_TUNE,
     DEBUG_COUNT // also update debugModeNames in cli.c
 } debugType_e;
 
