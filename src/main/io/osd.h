@@ -578,6 +578,7 @@ typedef struct osdConfig_s {
     bool                        adsb_calculation_use_cpa;                  // adsb calculation type, the closest or the closest approach
 #endif
     uint8_t  radar_peers_display_time;                  // in seconds
+    bool     show_radar_peer_name;                      // show the radar peer name instead of the peer ID letter
 #ifdef USE_GEOZONE
     uint8_t geozoneDistanceWarning;                     // Distance to fence or action
     bool geozoneDistanceType;                            // Shows a countdown timer or distance to fence/action
