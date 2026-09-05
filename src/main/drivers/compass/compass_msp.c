@@ -58,8 +58,12 @@ static bool mspMagInit(magDev_t *magDev)
     return true;
 }
 
-void mspMagReceiveNewData(uint8_t * bufferPtr)
+void mspMagReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
+    if (dataSize < sizeof(mspSensorCompassDataMessage_t)) {
+        return;
+    }
+
     const mspSensorCompassDataMessage_t * pkt = (const mspSensorCompassDataMessage_t *)bufferPtr;
 
     mspMagData[X] = (float) pkt->magX;
