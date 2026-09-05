@@ -266,7 +266,7 @@ textAttributes_t osdGetMultiFunctionMessage(char *buff)
     uint8_t warningFlagID = 1;
 
     // Low Battery Voltage
-    const batteryState_e batteryVoltageState = checkBatteryVoltageState();
+    const batteryState_e batteryVoltageState = getBatteryState();
     warningCondition = batteryVoltageState == BATTERY_CRITICAL || batteryVoltageState == BATTERY_WARNING;
     if (osdCheckWarning(warningCondition, warningFlagID)) {
         messages[messageCount++] = batteryVoltageState == BATTERY_CRITICAL ? "VBATT LAND" : "VBATT LOW ";
