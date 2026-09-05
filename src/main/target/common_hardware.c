@@ -456,7 +456,7 @@
        #endif
 
     #endif
-    BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE,  0);
+    BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
 #endif
 
 #if defined(USE_IRLOCK) && defined(USE_I2C)
