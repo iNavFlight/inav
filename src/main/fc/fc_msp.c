@@ -114,6 +114,9 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h" //for MSP_SIMULATOR
+#ifdef USE_MARKER_GUIDANCE
+#include "navigation/marker_guidance.h"
+#endif
 #include "navigation/navigation_pos_estimator_private.h" //for MSP_SIMULATOR
 
 #include "rx/rx.h"
@@ -4853,6 +4856,39 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         }
 
         *ret = MSP_RESULT_ERROR;
+        break;
+#endif
+
+#ifdef USE_MARKER_GUIDANCE
+    case MSP2_INAV_SET_MARKER_GUIDANCE_TARGET:
+        if (!markerGuidanceMspPayloadSizeIsValid(dataSize)) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+        {
+            const uint16_t offsetForwardRaw = sbufReadU16(src);
+            const uint16_t offsetRightRaw = sbufReadU16(src);
+            const uint16_t yawErrorRaw = sbufReadU16(src);
+            const uint16_t markerAglRaw = sbufReadU16(src);
+            const markerGuidanceTargetUpdate_t update = markerGuidanceDecodeMspWords(
+                offsetForwardRaw,
+                offsetRightRaw,
+                yawErrorRaw,
+                markerAglRaw);
+
+            markerGuidanceMspResponse_t response = { 0 };
+            if (!markerGuidanceHandleMspTargetUpdate(&update, &response)) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+
+            sbufWriteU8(dst, response.accepted);
+            sbufWriteU8(dst, response.usedNow);
+            sbufWriteU8(dst, response.navGuidanceState);
+            sbufWriteU8(dst, response.reason);
+            sbufWriteU8(dst, response.retryCount);
+            *ret = MSP_RESULT_ACK;
+        }
         break;
 #endif
 
