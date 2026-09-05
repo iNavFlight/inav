@@ -4772,6 +4772,23 @@ groups:
         field: noWayHomeAction
         table: geozone_rth_no_way_home
         type: uint8_t
+  - name: PG_LED_STRIP_CONFIG
+    type: ledStripConfig_t
+    headers: ["io/ledstrip.h"]
+    condition: USE_LED_STRIP
+    members:
+    - name: ledstrip_rainbow_sweep_rate
+      description: "Rainbow overlay sweep rate. Higher values sweep faster. 0 freezes the rainbow."
+      default_value: 100
+      field: ledstrip_rainbow_sweep_rate
+      min: 0
+      max: 255
+    - name: ledstrip_rainbow_delta_deg
+      description: "Hue offset in degrees between adjacent LEDs carrying the rainbow overlay. 0 makes every rainbow LED the same color; larger values spread more of the spectrum across the strip."
+      default_value: 30
+      field: ledstrip_rainbow_delta_deg
+      min: 0
+      max: 359
   - name: PG_DRONECAN_CONFIG
     type: dronecanConfig_t
     headers: ["drivers/dronecan/dronecan.h"]

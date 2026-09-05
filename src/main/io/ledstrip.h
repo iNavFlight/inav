@@ -26,7 +26,7 @@
 #define LED_MODE_COUNT                  7
 #define LED_DIRECTION_COUNT             6
 #define LED_BASEFUNCTION_COUNT          8
-#define LED_OVERLAY_COUNT               7
+#define LED_OVERLAY_COUNT               8
 #define LED_SPECIAL_COLOR_COUNT         9
 
 #define LED_FUNCTION_OFFSET             8
@@ -122,7 +122,8 @@ typedef enum {
     LED_OVERLAY_LANDING_FLASH,
     LED_OVERLAY_INDICATOR,
     LED_OVERLAY_WARNING,
-    LED_OVERLAY_STROBE
+    LED_OVERLAY_STROBE,
+    LED_OVERLAY_RAINBOW
 } ledOverlayId_e;
 
 typedef struct modeColorIndexes_s {
@@ -154,6 +155,8 @@ typedef struct ledStripConfig_s {
     hsvColor_t colors[LED_CONFIGURABLE_COLOR_COUNT];
     modeColorIndexes_t modeColors[LED_MODE_COUNT];
     specialColorIndexes_t specialColors;
+    uint8_t ledstrip_rainbow_sweep_rate; // hue sweep rate for rainbow overlay, 0-255, 0=stopped, 255=fastest
+    uint16_t ledstrip_rainbow_delta_deg; // hue offset between adjacent rainbow-overlay LEDs, 0-359 degrees
 } ledStripConfig_t;
 
 PG_DECLARE(ledStripConfig_t, ledStripConfig);

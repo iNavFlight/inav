@@ -73,7 +73,7 @@
 #include "telemetry/telemetry.h"
 
 
-PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 2);
+PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 3);
 
 static bool ledStripInitialised = false;
 static bool ledStripEnabled = true;
@@ -92,7 +92,7 @@ static void ledStripDisable(void);
 const hsvColor_t hsv[] = {
     //                        H    S    V
     [COLOR_BLACK] =        {  0,   0,   0},
-    [COLOR_WHITE] =        {  0, 255, 255},
+    [COLOR_WHITE] =        {  0,   0, 255},
     [COLOR_RED] =          {  0,   0, 255},
     [COLOR_ORANGE] =       { 30,   0, 255},
     [COLOR_YELLOW] =       { 60,   0, 255},
@@ -154,6 +154,8 @@ void pgResetFn_ledStripConfig(ledStripConfig_t *instance)
     }
     memcpy_fn(&instance->modeColors, &defaultModeColors, sizeof(defaultModeColors));
     memcpy_fn(&instance->specialColors, &defaultSpecialColors, sizeof(defaultSpecialColors));
+    instance->ledstrip_rainbow_sweep_rate = 100;
+    instance->ledstrip_rainbow_delta_deg = 30;
 }
 
 static int scaledThrottle;
@@ -224,7 +226,7 @@ static const hsvColor_t* getSC(ledSpecialColorIds_e index)
 
 static const char directionCodes[LED_DIRECTION_COUNT] = { 'N', 'E', 'S', 'W', 'U', 'D' };
 static const char baseFunctionCodes[LED_BASEFUNCTION_COUNT]   = { 'C', 'F', 'A', 'L', 'S', 'G', 'R', 'H' };
-static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W', 'E' };
+static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W', 'E', 'V' };
 
 #define CHUNK_BUFFER_SIZE 11
 
@@ -841,6 +843,45 @@ static void applyLarsonScannerLayer(bool updateNow, timeUs_t *timer)
     }
 }
 
+static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
+{
+    static uint16_t accumulator = 0;
+    static uint8_t stepCount = 0;
+
+    if (updateNow) {
+        *timer += LED_STRIP_HZ(100);
+        const uint8_t speed = ledStripConfig()->ledstrip_rainbow_sweep_rate;
+        if (speed > 0) {
+            accumulator += speed;
+            while (accumulator >= 256) {
+                accumulator -= 256;
+                if (++stepCount >= 180) {
+                    stepCount = 0;
+                }
+            }
+        }
+    }
+
+    const uint16_t rainbowHue = (uint16_t)stepCount << 1;
+    const uint16_t rainbowDelta = ledStripConfig()->ledstrip_rainbow_delta_deg % 360;
+
+    uint8_t rainbowIndex = 0;
+
+    for (unsigned i = 0; i < ledCounts.count; i++) {
+        const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
+
+        if (ledGetOverlayBit(ledConfig, LED_OVERLAY_RAINBOW)) {
+            hsvColor_t ledColor;
+            getLedHsv(i, &ledColor);
+            ledColor.h = (rainbowHue + (rainbowIndex * rainbowDelta)) % 360;
+            ledColor.s = 0;   // Force full color saturation (Required)
+            ledColor.v = 255; // Force full brightness (Required)
+            setLedHsv(i, &ledColor);
+            rainbowIndex++;
+        }
+    }
+}
+
 // blink twice, then wait ; either always or just when landing
 static void applyLedBlinkLayer(bool updateNow, timeUs_t *timer)
 {
@@ -905,7 +946,8 @@ static void applyLedAnimationLayer(bool updateNow, timeUs_t *timer)
 #endif
 
 typedef enum {
-    timBlink = 0,
+    timRainbow = 0,
+    timBlink,
     timLarson,
     timBattery,
     timRssi,
@@ -931,6 +973,7 @@ static timeUs_t timerVal[timTimerCount];
 typedef void applyLayerFn_timed(bool updateNow, timeUs_t *timer);
 
 static applyLayerFn_timed* layerTable[timTimerCount] = {
+    [timRainbow] = &applyLedRainbowLayer,
     [timBlink] = &applyLedBlinkLayer,
     [timLarson] = &applyLarsonScannerLayer,
     [timBattery] = &applyLedBatteryLayer,
