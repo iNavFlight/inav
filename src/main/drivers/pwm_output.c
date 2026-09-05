@@ -667,6 +667,34 @@ static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
     port->telemetryInputActive = true;
 }
 
+// Set when bidir pins are held low as plain GPIO until the first frame
+static bool dshotPinsParkedLow = false;
+
+// Connect bidir DSHOT pins to their timer AF (idle-high). Called on the first
+// real motor update so the line only goes high microseconds before frames start,
+// keeping it low through the ESC's boot-time bootloader-entry window.
+static void dshotConnectOutputs(void)
+{
+    for (int index = 0; index < getMotorCount(); index++) {
+        pwmOutputPort_t *port = motors[index].pwmPort;
+        if (port && port->configured) {
+            const timerHardware_t *timHw = port->tch->timHw;
+            const IO_t io = IOGetByTag(timHw->tag);
+            // The pull must match this channel's *un-flipped* polarity
+            // (pwmDshotSetDirectionOutput flips OCPolarity for bidir, but the GCR
+            // listen phase still idles toward the same physical level either way).
+            const bool baseInverted = timHw->output & TIMER_OUTPUT_INVERTED;
+#if defined(STM32H7)
+            // Preset ODR to the bidir idle level once - the H7 OC->IC erratum workaround
+            // in pwmDshotSetDirectionInput() disconnects the pin from the timer and relies
+            // on this cached ODR bit (matches Betaflight) instead of redriving the level.
+            baseInverted ? IOLo(io) : IOHi(io);
+#endif
+            IOConfigGPIOAF(io, baseInverted ? IOCFG_AF_PP_PD : IOCFG_AF_PP_UP, timHw->alternateFunction);
+        }
+    }
+}
+
 static void pwmDshotDmaIrqHandler(DMA_t descriptor)
 {
     if (!DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
@@ -770,18 +798,19 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
     }
 
     if (enableOutput && useDshotTelemetry) {
-        // The idle/listen level always needs a pull matching this channel's *un-flipped*
-        // polarity (pwmDshotSetDirectionOutput flips OCPolarity for bidir, but the GCR
-        // listen phase still idles toward the same physical level either way).
+        // Bidir signalling idles high, but holding the line high with no edges
+        // during ESC boot triggers the BLHeli/Bluejay bootloader-entry check
+        // (~150ms of continuous high right after the ESC's startup melody). The
+        // first INAV frame goes out seconds after this pin is configured, so the
+        // ESC would enter its bootloader, time out and reset - replaying the
+        // startup melody. Park the pin so the ESC sees low, like normal DSHOT
+        // idle, and defer the AF connect until the first frame goes out
+        // (dshotConnectOutputs()). On TIMER_OUTPUT_INVERTED hardware the pin
+        // level is re-inverted downstream, so park high there.
         const IO_t io = IOGetByTag(timerHardware->tag);
-        const bool baseInverted = timerHardware->output & TIMER_OUTPUT_INVERTED;
-#if defined(STM32H7)
-        // Preset ODR to the bidir idle level once - the H7 OC->IC erratum workaround
-        // in pwmDshotSetDirectionInput() disconnects the pin from the timer and relies
-        // on this cached ODR bit (matches Betaflight) instead of redriving the level.
-        baseInverted ? IOLo(io) : IOHi(io);
-#endif
-        IOConfigGPIOAF(io, baseInverted ? IOCFG_AF_PP_PD : IOCFG_AF_PP_UP, timerHardware->alternateFunction);
+        IOConfigGPIO(io, IOCFG_OUT_PP);
+        (timerHardware->output & TIMER_OUTPUT_INVERTED) ? IOHi(io) : IOLo(io);
+        dshotPinsParkedLow = true;
     }
 
     // Configure timer DMA
@@ -996,6 +1025,11 @@ void pwmCompleteMotorUpdate(void) {
 
 #ifdef USE_DSHOT
     if (isMotorProtocolDshot()) {
+
+        if (dshotPinsParkedLow) {
+            dshotConnectOutputs();
+            dshotPinsParkedLow = false;
+        }
 
         if (!executeDShotCommands()) {
             return;
