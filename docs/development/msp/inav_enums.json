@@ -649,7 +649,8 @@
             "BOXGIMBALCENTER": "58",
             "BOXGIMBALHTRK": "59",
             "BOXAUTOSPEED": "60",
-            "CHECKBOX_ITEM_COUNT": "61"
+            "BOXTERRAINAGLHOLD": "61",
+            "CHECKBOX_ITEM_COUNT": "62"
         },
         "busIndex_e": {
             "_source": "inav/src/main/drivers/bus.h",
@@ -806,7 +807,8 @@
             "CURRENT_SENSOR_SMARTPORT": "5",
             "CURRENT_SENSOR_CRSF": "6",
             "CURRENT_SENSOR_CAN": "7",
-            "CURRENT_SENSOR_MAX": "CURRENT_SENSOR_CAN"
+            "CURRENT_SENSOR_INA226": "8",
+            "CURRENT_SENSOR_MAX": "CURRENT_SENSOR_INA226"
         },
         "devHardwareType_e": {
             "_source": "inav/src/main/drivers/bus.h",
@@ -869,7 +871,8 @@
             "DEVHW_UG2864": "56",
             "DEVHW_SDCARD": "57",
             "DEVHW_IRLOCK": "58",
-            "DEVHW_PCF8574": "59"
+            "DEVHW_PCF8574": "59",
+            "DEVHW_INA226": "60"
         },
         "deviceFlags_e": {
             "_source": "inav/src/main/drivers/bus.h",
@@ -943,6 +946,13 @@
             "DJI_OSD_CN_DISTANCE": "5",
             "DJI_OSD_CN_ADJUSTEMNTS": "6",
             "DJI_OSD_CN_MAX_ELEMENTS": "7"
+        },
+        "dronecanAsyncState_e": {
+            "_source": "inav/src/main/drivers/dronecan/dronecan.h",
+            "DRONECAN_ASYNC_IDLE": "0",
+            "DRONECAN_ASYNC_PENDING": "1",
+            "DRONECAN_ASYNC_READY": "2",
+            "DRONECAN_ASYNC_ERROR": "3"
         },
         "dronecanBitrate_e": {
             "_source": "inav/src/main/drivers/dronecan/dronecan.h",
@@ -2442,7 +2452,7 @@
                 "USE_AUTO_TRANSITION"
             ],
             "MIXERAT_PHASE_DONE": [
-                "(5)",
+                "(3)",
                 "!USE_AUTO_TRANSITION"
             ]
         },
@@ -3650,7 +3660,8 @@
             "OWNER_PINIO": "32",
             "OWNER_IRLOCK": "33",
             "OWNER_DRONECAN": "34",
-            "OWNER_TOTAL_COUNT": "35"
+            "OWNER_CURRENT_METER": "35",
+            "OWNER_TOTAL_COUNT": "36"
         },
         "resourceType_e": {
             "_source": "inav/src/main/drivers/resource.h",
@@ -4355,7 +4366,8 @@
             "VOLTAGE_SENSOR_SMARTPORT": "4",
             "VOLTAGE_SENSOR_CRSF": "5",
             "VOLTAGE_SENSOR_CAN": "6",
-            "VOLTAGE_SENSOR_MAX": "VOLTAGE_SENSOR_CAN"
+            "VOLTAGE_SENSOR_INA226": "7",
+            "VOLTAGE_SENSOR_MAX": "VOLTAGE_SENSOR_INA226"
         },
         "vs600Band_e": {
             "_source": "inav/src/main/io/smartport_master.h",
