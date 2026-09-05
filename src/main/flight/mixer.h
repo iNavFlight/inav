@@ -21,18 +21,13 @@
 
 #include "drivers/timer.h"
 
+#include "flight/mixer_dshot_constants.h"
+
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_SUPPORTED_MOTORS TARGET_MOTOR_COUNT
 #else
 #define MAX_SUPPORTED_MOTORS 12
 #endif
-
-// Digital protocol has fixed values
-#define DSHOT_DISARM_COMMAND      0
-#define DSHOT_MIN_THROTTLE       48
-#define DSHOT_MAX_THROTTLE     2047
-#define DSHOT_3D_DEADBAND_LOW  1047
-#define DSHOT_3D_DEADBAND_HIGH 1048
 
 typedef enum {
     PLATFORM_MULTIROTOR     = 0,
