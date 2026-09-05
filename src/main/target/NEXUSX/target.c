@@ -29,7 +29,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH2, PB5,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "S2"
     DEF_TIM(TIM3, CH3, PB0,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "S3"
 
-    DEF_TIM(TIM2, CH1, PA15,  TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "TAIL"
+    DEF_TIM(TIM2, CH1, PA15,  TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "TAIL" - shares S2's DMA stream (TIM2_CH1/TIM3_CH2 both have only one DMA option); DSHOT does not work on TAIL
 
     DEF_TIM(TIM1, CH2, PA9,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "ESC"
 

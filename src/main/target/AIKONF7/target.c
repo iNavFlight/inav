@@ -44,7 +44,7 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),
 
-    DEF_TIM(TIM4, CH3, PB8, TIM_USE_OUTPUT_AUTO, 0, 0),
+    DEF_TIM(TIM4, CH3, PB8, TIM_USE_OUTPUT_AUTO, 0, 0), // Clash with TIM3_CH3, DSHOT does not work
     //DEF_TIM(TIM10, CH1, PB8, TIM_USE_OUTPUT_AUTO, 0, 0),
 
     DEF_TIM(TIM4, CH2, PB7, TIM_USE_OUTPUT_AUTO, 0, 0),
@@ -53,7 +53,7 @@ timerHardware_t timerHardware[] = {
     //DEF_TIM(TIM3, CH4, PB1, TIM_USE_OUTPUT_AUTO, 0, 0),
     //DEF_TIM(TIM8, CH3N, PB1, TIM_USE_OUTPUT_AUTO, 0, 0),
 
-    DEF_TIM(TIM2, CH1, PA15, TIM_USE_LED, 0, 0),
+    DEF_TIM(TIM2, CH1, PA15, TIM_USE_LED, 0, 0), // Clash with TIM3_CH2's DMA stream; LED strip does not light
 
 };
 

@@ -35,7 +35,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S3_OUT
     DEF_TIM(TIM2,  CH3, PA2,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S4_OUT
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S5_OUT - GPIO_PartialRemap_TIM3
-    DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S6_OUT
+    DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S6_OUT -- clash with S2_OUT, DSHOT does not work
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

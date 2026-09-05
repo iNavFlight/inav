@@ -40,12 +40,12 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM2,   CH3,    PB10,   TIM_USE_OUTPUT_AUTO,    0, 0), // S3
 
-    DEF_TIM(TIM2,   CH4,    PB11,   TIM_USE_OUTPUT_AUTO,    0, 0), // S4
+    DEF_TIM(TIM2,   CH4,    PB11,   TIM_USE_OUTPUT_AUTO,    0, 1), // S4 -- dmavar 1: dedicated stream, avoids sharing S1's DMA stream
 
     // DEF_TIM(TIM3,   CH4,    PC9,    TIM_USE_OUTPUT_AUTO,    0, 0), // S5
     DEF_TIM(TIM8, CH4, PC9, TIM_USE_OUTPUT_AUTO, 0, 0),
 
-    DEF_TIM(TIM3,   CH3,    PC8,    TIM_USE_OUTPUT_AUTO,    0, 0), // S6
+    DEF_TIM(TIM3,   CH3,    PC8,    TIM_USE_OUTPUT_AUTO,    0, 0), // S6 -- same (TIM3,CH3) as S1 (PB0) above: one compare register drives both pins, so S6 can only ever mirror S1 -- unusable as an independent output for ANY protocol, not just DSHOT
     //DEF_TIM(TIM8, CH3, PC8, TIM_USE_OUTPUT_AUTO, 0, 0),
 
     // DEF_TIM(TIM3,   CH2,    PC7,    TIM_USE_OUTPUT_AUTO,    0, 0), // S7

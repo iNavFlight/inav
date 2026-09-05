@@ -48,7 +48,7 @@ timerHardware_t timerHardware[] = {
 #else
     DEF_TIM(TIM4, CH1, PB6,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S5
     DEF_TIM(TIM2, CH2, PB3,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S6   D(1, 6, 3)
-    DEF_TIM(TIM2, CH1, PA15,  TIM_USE_OUTPUT_AUTO, 0, 0),    // S7
+    DEF_TIM(TIM2, CH1, PA15,  TIM_USE_OUTPUT_AUTO, 0, 0),    // S7 -- clash with S2, DSHOT does not work (base/non-V2 build only)
 #endif
 
     DEF_TIM(TIM4, CH2, PB7,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S8   D(1, 3, 2)
