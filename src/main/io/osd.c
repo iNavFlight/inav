@@ -6024,6 +6024,19 @@ void osdUpdate(timeUs_t currentTimeUs)
     // boxes take priority.
     unsigned activeLayout;
     if (layoutOverride >= 0) {
+#ifdef USE_CMS
+        // The layout override is only ever set by the CMS layout editor. Drop it
+        // as soon as the menu is gone, since the menu can be closed without the
+        // editor's onExit running (in-flight auto-close), which would otherwise
+        // leave the OSD stuck on the layout being edited.
+        if (!cmsInMenu) {
+            layoutOverrideUntil = 0;
+            layoutOverride = -1;
+        }
+#endif
+    }
+
+    if (layoutOverride >= 0) {
         activeLayout = layoutOverride;
         // Check for timed override, it will go into effect on
         // the next OSD iteration
