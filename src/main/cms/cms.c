@@ -914,6 +914,15 @@ void cmsMenuOpen(void)
         maxMenuItems = pCurrentDisplay->rows;
     }
 
+    if (maxMenuItems > ARRAYLEN(entry_flags)) {
+        // entry_flags[] is indexed by row within the page and sized for the
+        // largest row count any of our display drivers can report. Every
+        // driver derives rows from a compile-time constant except FrSky OSD,
+        // whose grid size is a runtime value read back from the OSD hardware,
+        // so this stays a hard runtime clamp rather than a compile-time check.
+        maxMenuItems = ARRAYLEN(entry_flags);
+    }
+
     cmsMenuChange(pCurrentDisplay, currentCtx.menu, NULL);
 }
 
