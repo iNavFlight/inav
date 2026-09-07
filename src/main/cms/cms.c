@@ -189,6 +189,15 @@ static bool cmsMenuSwitchLatched = false;
 static uint32_t cmsOpenCountdownStartTime = 0;
 static timeMs_t cmsLastInputMs = 0;
 
+// Panic stick detection state - file scope so it can be reset on every menu
+// open, otherwise a partial detection carries over into the next session.
+static uint8_t cmsPanicDualAxisCount = 0;
+static timeMs_t cmsPanicLastCheckMs = 0;
+
+// Set when this module disabled the servo output on open, so that exit always
+// restores exactly what was changed.
+static bool cmsServoOutputDisabled = false;
+
 uint32_t cmsGetOpenCountdownRemaining(void)
 {
     if (cmsOpenCountdownStartTime == 0) {
@@ -836,18 +845,22 @@ void cmsMenuOpen(void)
 {
     if (!cmsInMenu) {
         // New open
-        if (!ARMING_FLAG(ARMED)) {
-            setServoOutputEnabled(false);
-        }
         pCurrentDisplay = cmsDisplayPortSelectCurrent();
         if (!pCurrentDisplay)
             return;
         cmsInMenu = true;
         cmsOpenedInFlight = ARMING_FLAG(ARMED);
         cmsLastInputMs = millis();
+        cmsPanicDualAxisCount = 0;
+        cmsPanicLastCheckMs = 0;
         if (cmsOpenedInFlight) {
             currentCtx = (cmsCtx_t){ &menuMainInFlight, 0, 0 };
         } else {
+            // Note the servo output is only touched after the display check
+            // above has succeeded: disabling it on a failed open would leave the
+            // servos frozen with no menu open and no way to restore them.
+            setServoOutputEnabled(false);
+            cmsServoOutputDisabled = true;
             currentCtx = (cmsCtx_t){ &menuMain, 0, 0 };
             ENABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
         }
@@ -935,7 +948,7 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
         if ((exitType == CMS_POPUP_SAVE) || (exitType == CMS_POPUP_SAVEREBOOT)) {
             // traverse through the menu stack and call their onExit functions
             for (int i = menuStackIdx - 1; i >= 0; i--) {
-                if (menuStack[i].menu->onExit) {
+                if (menuStack[i].menu && menuStack[i].menu->onExit) {
                     menuStack[i].menu->onExit((OSD_Entry *) NULL);
                 }
             }
@@ -945,16 +958,10 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
         break;
 
     case CMS_EXIT:
-        if (cmsOpenedInFlight) {
-            if (currentCtx.menu && currentCtx.menu->onExit) {
-                currentCtx.menu->onExit((OSD_Entry *)NULL);
-            }
-            for (int i = menuStackIdx - 1; i >= 0; i--) {
-                if (menuStack[i].menu && menuStack[i].menu->onExit) {
-                    menuStack[i].menu->onExit((OSD_Entry *)NULL);
-                }
-            }
-        }
+        // Deliberately does not run any onExit handler. Closing the menu - and in
+        // particular the in-flight auto-close on switch off, timeout, panic sticks
+        // or nav mode loss - must never apply pending edits: settings only change
+        // when the pilot explicitly confirms them with BACK or SET/YES.
         break;
     }
 
@@ -967,12 +974,27 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
     menuStackIdx = 0;
     pageTop = NULL;
 
-    displayRelease(pDisplay);
+    // Only release the display if we are still holding it. cmsYieldDisplay()
+    // has already released it when a yield is in progress, and an exit can
+    // happen during that window (in-flight auto-close), which would otherwise
+    // leave the display grab count unbalanced.
+    if (cmsYieldUntil == 0) {
+        displayRelease(pDisplay);
+    }
+    cmsYieldUntil = 0;
+
     currentCtx.menu = NULL;
 
-    if (!cmsOpenedInFlight) {
+    // Always restore what we actually disabled. Keying this off cmsOpenedInFlight
+    // instead left the servo output disabled whenever the armed state seen at open
+    // differed from the one at exit, freezing roll and pitch at centre while
+    // rcCommand and the motor outputs kept working normally.
+    if (cmsServoOutputDisabled) {
         setServoOutputEnabled(true);
+        cmsServoOutputDisabled = false;
+    }
 
+    if (!cmsOpenedInFlight) {
         if ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT)) {
             processDelayedSave();
             displayClearScreen(pDisplay);
@@ -1433,14 +1455,11 @@ static bool cmsDetectPanicStickMovement(timeMs_t currentTimeMs)
     // samples at 50ms intervals (150ms sustained). This gives zero false positives
     // on real navigation data while catching all panic patterns within ~200ms.
 
-    static uint8_t dualAxisCount = 0;
-    static timeMs_t lastCheckMs = 0;
-
     // Sample at ~20 Hz
-    if (currentTimeMs - lastCheckMs < 50) {
+    if (currentTimeMs - cmsPanicLastCheckMs < 50) {
         return false;
     }
-    lastCheckMs = currentTimeMs;
+    cmsPanicLastCheckMs = currentTimeMs;
 
     const int16_t rollDev  = ABS((int16_t)rxGetChannelValue(ROLL)  - 1500);
     const int16_t pitchDev = ABS((int16_t)rxGetChannelValue(PITCH) - 1500);
@@ -1448,13 +1467,13 @@ static bool cmsDetectPanicStickMovement(timeMs_t currentTimeMs)
     #define PANIC_DUAL_AXIS_THRESHOLD 100  // PWM deviation from center
 
     if (rollDev > PANIC_DUAL_AXIS_THRESHOLD && pitchDev > PANIC_DUAL_AXIS_THRESHOLD) {
-        dualAxisCount++;
-        if (dualAxisCount >= 3) {
-            dualAxisCount = 0;
+        cmsPanicDualAxisCount++;
+        if (cmsPanicDualAxisCount >= 3) {
+            cmsPanicDualAxisCount = 0;
             return true;
         }
     } else {
-        dualAxisCount = 0;
+        cmsPanicDualAxisCount = 0;
     }
 
     return false;
