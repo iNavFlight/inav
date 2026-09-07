@@ -519,6 +519,60 @@ It can be used in two contexts:
 
 This setting decides when the emergency FW -> MC fallback starts. `vtol_transition_to_mc_max_airspeed_cm_s` still decides when the FW -> MC profile switch is safe to complete during an airspeed-controlled FW -> MC transition.
 
+### Early FW -> MC start during RTH
+
+When RTH is allowed to land and the armed aircraft is approaching the active Home or SafeHome in FW mode, INAV can start FW -> MC before the aircraft reaches the landing point. No additional radius setting is required.
+
+INAV estimates the distance needed from information that is already available:
+
+1. It projects the current trusted GPS ground velocity toward Home. This produces the **closing speed**: only the part of the ground movement that is actually reducing the remaining distance. A crosswind therefore does not incorrectly count all sideways speed as approach speed.
+2. It builds a time budget from the FW/source profile. `mixer_switch_trans_timer` contributes its value in `100ms` units. If `mixer_vtol_transition_dynamic_mixer = ON`, `mixer_vtol_transition_scale_ramp_time_ms` is added because the target MC outputs can still be moving after the profile switch.
+3. It multiplies closing speed by that time budget. For example, `mixer_switch_trans_timer = 50`, `mixer_vtol_transition_scale_ramp_time_ms = 1200`, and dynamic scaling ON produce a `6.2s` planning budget. At a closing speed of `20m/s`, the predicted start distance is about `124m`.
+4. The result is never smaller than `nav_fw_loiter_radius`. If ground velocity is not trusted, the aircraft is moving sideways, or it is moving away from Home, `nav_fw_loiter_radius` becomes the conservative staging distance.
+5. The aircraft must remain inside the calculated start distance for `300ms` before INAV starts the transition. This prevents one noisy GPS velocity sample from starting FW -> MC far from Home.
+
+For the example above, with the global `nav_fw_loiter_radius = 7500` (`75m`):
+
+| Ground movement toward Home | Time budget | Start boundary |
+| --- | --- | --- |
+| `20m/s` | `6.2s` | `124m` |
+| `10m/s`, for example with more headwind | `6.2s` | `75m`, because the calculated `62m` is inside the staging boundary |
+| `25m/s`, for example with more tailwind | `6.2s` | `155m` |
+| No trusted velocity, purely sideways movement, or movement away from Home | Staging fallback | `75m` |
+
+The boundary is recalculated during the approach; the extra `300ms` confirmation means the actual start can be slightly inside it. Ground velocity already reflects the aircraft's movement in the prevailing wind, so this calculation does not require a separate wind estimate. It cannot predict a later gust.
+
+The mixer timers above belong to the **FW/source mixer profile**. A longer timer or a longer enabled output ramp moves the calculated boundary farther out; a shorter value moves it closer, down to the loiter-radius boundary. With dynamic scaling OFF, the output ramp is excluded from the calculation. With both times at zero, only `nav_fw_loiter_radius` is used. Setting that radius to zero also removes the minimum staging distance; the original arrival/landing path remains available if the early trigger has not fired.
+
+For an airspeed-controlled transition, this time budget is only a planning estimate. The configured backup timer does not measure how long this airframe actually needs to slow down. In particular, a zero backup timer with a valid pitot does not imply an immediate transition: the airspeed condition can still take several seconds to satisfy. The estimate does not include the later time needed to stop and turn in MC, and cannot guarantee that the aircraft will stop before Home.
+
+Ground speed only decides **when the procedure starts**. It does not bypass the configured transition safety condition. If `vtol_transition_to_mc_max_airspeed_cm_s` is non-zero and a usable real or virtual pitot source is available, airspeed still decides when the FW -> MC profile switch is safe. If no usable airspeed source is available, the normal `mixer_switch_trans_timer` fallback completes the transition. `mixer_vtol_transition_airspeed_timeout_ms` remains a failure timeout and is not treated as expected transition time.
+
+This early start is used only for an RTH that is allowed to land. It does not change mission waypoint transitions, manual transitions, RTH configured to loiter without landing, or the separate low-speed FW -> MC safety protection. The source FW profile must have `mixer_automated_switch = ON`, and the paired target profile must be a supported MC profile.
+
+It runs on the direct Home/SafeHome approach after the RTH climb/trackback stages. While following geozone avoidance waypoints, the early trigger is suspended. Loss of usable position, a route interruption, or a NAV state change clears its confirmation timer. Returning to the approach requires a fresh confirmation.
+
+Failsafe RTH uses the same approach when landing is allowed. `nav_rth_fs_landing_delay` still delays landing at Home; the earlier profile change can already have happened before this delay starts. Existing transition failure actions still apply if FW -> MC fails. Tailsitter autonomous-transition restrictions also remain in force.
+
+### RTH behavior after FW -> MC
+
+An airplane can pass Home or SafeHome while FW -> MC is still completing. INAV does not immediately command the new MC profile to fly backwards or sideways toward the landing point.
+
+After a navigation-owned FW -> MC switch during the RTH approach, INAV now performs these steps:
+
+1. It commands zero climb/descent and keeps the post-switch heading while the MC controller removes the remaining fixed-wing ground speed. The altitude target follows the current altitude during this step to avoid chasing a pre-transition height. The XY target follows the current position, so the aircraft is not pulled back toward the point where the profile switch happened.
+2. Once horizontal/vertical speed and roll/pitch remain stable, INAV holds that position and turns the nose toward Home. If already inside the stricter VTOL landing capture radius, it uses the configured Home landing heading instead.
+3. The heading and settle conditions must then remain acceptable continuously before normal RTH approach resumes.
+4. The aircraft approaches Home nose-first, enters the existing landing settle gate, and only then starts descent.
+
+During alignment, the direction toward Home is updated from the actual position. A substantial increase in horizontal speed or excessive roll/pitch returns the sequence to braking before attempting another turn. The existing RTH position-sensor timeout and `nav_rth_abort_threshold` checks remain active. There is no timer that forces the aircraft to approach Home while it still fails the settle/heading conditions.
+
+The braking/alignment stages pause ordinary RTH altitude targeting, including EXTRA climb or linear descent. After they finish, normal RTH altitude management resumes on the approach to Home. If the RTH safe altitude has not yet been reached, it may command a climb again. Changing to another navigation mode clears the old braking/alignment target.
+
+This sequence uses the existing VTOL settle limits and does not add another CLI setting. It is applied after the successful navigation-owned profile switch even when `vtol_mc_protection_mode = OFF`. When VTOL MC protection is `NAV` or `NAV_AND_STABILIZED`, its throttle reserve, altitude anti-windup bounds, and bailout protection remain active throughout the MC braking, alignment, approach, and landing states.
+
+The early prediction is intended to reduce overshoot. This post-switch sequence handles an inaccurate prediction by stopping and facing Home before the return approach. Validate the chosen timer values and the resulting stopping distance on the actual airframe; these calculations are not a model of its braking performance.
+
 ## 2. Manual switch auto transition with dynamic scaling
 
 Dynamic scaling is the optional smooth part of the new transition system. It lets INAV change motor power and stabilisation strength gradually instead of making one large step at the profile switch.
