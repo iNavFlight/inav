@@ -146,7 +146,7 @@ static CMS_Menu cmsx_menuBattSettings = {
     .entries = menuBattSettingsEntries
 };
 
-static OSD_Entry menuBatteryEntries[]=
+static const OSD_Entry menuBatteryEntries[]=
 {
     OSD_LABEL_ENTRY("-- BATTERY --"),
 
@@ -170,7 +170,7 @@ CMS_Menu cmsx_menuBattery = {
     .entries = menuBatteryEntries
 };
 
-static OSD_Entry menuBatteryInFlightEntries[]=
+static const OSD_Entry menuBatteryInFlightEntries[]=
 {
     OSD_LABEL_ENTRY("-- BATTERY --"),
 
