@@ -3505,6 +3505,14 @@ serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function)
     return NULL;
 }
 
+// No mixer-profile switching is configured in these tests, so nothing here is a VTOL and
+// the platform is whatever the fixture set on mixer profile 0.
+bool platformTypeConfigured(flyingPlatformType_e platformType)
+{
+    UNUSED(platformType);
+    return false;
+}
+
 portSharing_e determinePortSharing(const serialPortConfig_t *portConfig, serialPortFunction_e function)
 {
     UNUSED(portConfig);

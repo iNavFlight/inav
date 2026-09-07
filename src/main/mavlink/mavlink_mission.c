@@ -1,5 +1,8 @@
 #include "mavlink/mavlink_internal.h"
 
+#include "flight/mixer.h"
+#include "flight/mixer_profile.h"
+
 #include "mavlink/mavlink_guided.h"
 #include "mavlink/mavlink_mission.h"
 #include "mavlink/mavlink_runtime.h"
@@ -775,8 +778,18 @@ static bool mavlinkHandleMissionItemCommon(
              * outright - and INAV flies the approach leg with the waypoint altitude as its
              * target, so taking it literally descends all the way in from the previous
              * waypoint instead of arriving overhead and then landing. Approach at the
-             * altitude of the preceding waypoint and let the LAND action do the descent. */
-            if (wp.alt <= 0 && mavlinkMissionUploadWaypointCount > 0) {
+             * altitude of the preceding waypoint and let the LAND action do the descent.
+             *
+             * Rotary platforms only. A fixed wing cannot stop over the point and descend, so
+             * it keeps the altitude it was given: with an autoland approach configured the
+             * landing altitudes come from that config and the waypoint contributes only its
+             * position, and without one the existing descending approach is left alone. A
+             * VTOL counts as rotary here because it lands on its multirotor profile. */
+            const bool rotaryLanding = isMultirotorTypePlatform(mixerConfig()->platformType) ||
+                                       platformTypeConfigured(PLATFORM_MULTIROTOR) ||
+                                       platformTypeConfigured(PLATFORM_TRICOPTER);
+
+            if (rotaryLanding && wp.alt <= 0 && mavlinkMissionUploadWaypointCount > 0) {
                 const navWaypoint_t *previous = &mavlinkMissionUploadWaypoints[mavlinkMissionUploadWaypointCount - 1];
                 wp.alt = previous->alt;
                 wp.p3 = previous->p3;
