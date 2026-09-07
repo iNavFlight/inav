@@ -81,6 +81,12 @@
 #define ICM42688P_EXTI_PIN      PC4
 #define ICM42688P_SPI_BUS       BUS_SPI1
 
+#define USE_IMU_LSM6DXX
+#define IMU_LSM6DXX_ALIGN       CW90_DEG
+#define LSM6DXX_CS_PIN          PA4
+#define LSM6DXX_EXTI_PIN        PC4
+#define LSM6DXX_SPI_BUS         BUS_SPI1
+
 // M25P256 flash
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
