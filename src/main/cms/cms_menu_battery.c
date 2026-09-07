@@ -62,9 +62,17 @@ static long cmsx_menuBattery_onExit(const OSD_Entry *self)
     UNUSED(self);
 
     setConfigBatteryProfile(battProfileIndex);
-    activateBatteryProfile();
+
     if (ARMING_FLAG(ARMED)) {
+        // Do not call activateBatteryProfile() while armed: it runs batteryInit(),
+        // which clears the battery state, cell count and all voltage thresholds.
+        // The battery is then re-detected in flight under load, so the pack never
+        // looks "full when plugged in" and capacity based warnings and failsafes
+        // stay disabled for the rest of the flight. Just recompute the thresholds
+        // for the newly selected profile instead.
         batteryUpdateThresholdsAndCells();
+    } else {
+        activateBatteryProfile();
     }
 
     if (featureProfAutoswitchEnabled) {

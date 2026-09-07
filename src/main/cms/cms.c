@@ -841,6 +841,16 @@ STATIC_UNIT_TESTED long cmsMenuBack(displayPort_t *pDisplay)
     return 0;
 }
 
+long cmsMenuConfirmDone(displayPort_t *pDisplay)
+{
+    // Leave the confirmation submenu and tell the caller to leave its parent as
+    // well. The in-flight edit menus have no BACK entry - they are left through
+    // the confirmation only - so both YES and NO must land on the parent menu.
+    cmsMenuBack(pDisplay);
+
+    return MENU_CHAIN_BACK;
+}
+
 void cmsMenuOpen(void)
 {
     if (!cmsInMenu) {
