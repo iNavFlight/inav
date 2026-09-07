@@ -407,6 +407,10 @@ With this global option enabled, an armed manual switch from one VTOL mixer prof
 
 Leave `vtol_autotransition_always = OFF` if you want the pilot to keep the explicit choice between a direct profile switch and a separate `MIXER TRANSITION` request.
 
+After leaving a mission, RTH, or automatic landing while armed, the physical switch may disagree with the actual mixer profile. INAV keeps the actual profile until you move the switch to its matching endpoint with `MIXER TRANSITION` OFF. Passing through the middle position does not start a transition or confirm the switch, even if the profile bit happens to match there. This also applies if you interrupt an automatic transition: match the profile that is actually active, not the one the transition intended to reach. Output completion still in progress does not bypass this protection.
+
+Once the endpoint matches, subsequent switch movements work normally, including `vtol_autotransition_always = ON`. Starting another mission/RTH gives control back to navigation; disarming releases the switch-matching requirement for preflight checks. Active Modes reports the actual mixer profile and actual transition/mixing activity, not simply the physical switch position.
+
 Optional two-position layout with instant FW -> MC:
 
 Some pilots want an automated MC -> FW transition, but want FW -> MC to switch almost immediately when they request multicopter mode. This can still be done with `vtol_autotransition_always = ON` by making the FW -> MC transition complete by timer with a zero timer.
@@ -554,6 +558,12 @@ It runs on the direct Home/SafeHome approach after the RTH climb/trackback stage
 
 Failsafe RTH uses the same approach when landing is allowed. `nav_rth_fs_landing_delay` still delays landing at Home; the earlier profile change can already have happened before this delay starts. Existing transition failure actions still apply if FW -> MC fails. Tailsitter autonomous-transition restrictions also remain in force.
 
+An RTH-owned transition, including its retry wait/scan, is still part of the same RTH procedure even when the OSD shows altitude hold during the transition. An already selected SafeHome is not replaced with the arming point just because the transition starts. The established RTH altitude plan is retained too: EXTRA altitude is not added again, and the linear-descent plan is not recalculated as though RTH had been switched off. Normal SafeHome permissions and trackback restrictions still apply.
+
+A brief loss of the position estimate does not by itself deselect an RTH-owned transition. If the existing navigation position-failure timeout expires, or the heading estimate becomes unavailable, INAV aborts the transition and enters its existing emergency-landing procedure. A disabled position-failure timeout keeps its existing meaning; this change adds no new timeout. Pilot cancellation and higher-priority emergency requests still take precedence.
+
+RC `HOME RESET` is blocked during navigation-owned RTH, mission and LAND transitions, including retry, just as it is blocked during normal RTH/mission flight. This does not block Home reset solely because a manual transition is active, and does not change the separate rules for changing Home through other interfaces.
+
 ### RTH behavior after FW -> MC
 
 An airplane can pass Home or SafeHome while FW -> MC is still completing. INAV does not immediately command the new MC profile to fly backwards or sideways toward the landing point.
@@ -568,6 +578,8 @@ After a navigation-owned FW -> MC switch during the RTH approach, INAV now perfo
 During alignment, the direction toward Home is updated from the actual position. A substantial increase in horizontal speed or excessive roll/pitch returns the sequence to braking before attempting another turn. The existing RTH position-sensor timeout and `nav_rth_abort_threshold` checks remain active. There is no timer that forces the aircraft to approach Home while it still fails the settle/heading conditions.
 
 The braking/alignment stages pause ordinary RTH altitude targeting, including EXTRA climb or linear descent. After they finish, normal RTH altitude management resumes on the approach to Home. If the RTH safe altitude has not yet been reached, it may command a climb again. Changing to another navigation mode clears the old braking/alignment target.
+
+After RTH selects MC for the landing approach, it stays in MC for that RTH procedure rather than requesting FW again just because Home is still far away. Leaving RTH clears this normal landing choice: for example, RTH -> POSH -> mission can request FW again at a waypoint. This is separate from a genuine low-speed safety switch, whose existing protection continues to prevent automatic FW requests until navigation returns to idle. Changing to POSH alone does not clear that safety protection.
 
 This sequence uses the existing VTOL settle limits and does not add another CLI setting. It is applied after the successful navigation-owned profile switch even when `vtol_mc_protection_mode = OFF`. When VTOL MC protection is `NAV` or `NAV_AND_STABILIZED`, its throttle reserve, altitude anti-windup bounds, and bailout protection remain active throughout the MC braking, alignment, approach, and landing states.
 
