@@ -779,6 +779,11 @@ long cmsMenuChange(displayPort_t *pDisplay, const CMS_Menu *pMenu, const OSD_Ent
     if (pMenu != currentCtx.menu) {
         // Stack the current menu and move to a new menu.
 
+        if (menuStackIdx >= ARRAYLEN(menuStack)) {
+            // Stack is full - refuse to descend rather than write out of bounds
+            return 0;
+        }
+
         menuStack[menuStackIdx++] = currentCtx;
 
         currentCtx.menu = pMenu;
@@ -954,6 +959,13 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
     }
 
     cmsInMenu = false;
+
+    // Reset the menu stack. Without this it grows by one entry for every exit
+    // made from inside a submenu and is never emptied, so after a few
+    // open/close cycles menuStackIdx runs past the end of menuStack and both
+    // cmsMenuBack() and the onExit loops above read and dereference garbage.
+    menuStackIdx = 0;
+    pageTop = NULL;
 
     displayRelease(pDisplay);
     currentCtx.menu = NULL;
