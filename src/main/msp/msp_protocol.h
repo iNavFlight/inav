@@ -189,9 +189,6 @@
 #define MSP_TRANSPONDER_CONFIG          82 //out message         Get transponder settings
 #define MSP_SET_TRANSPONDER_CONFIG      83 //in message          Set transponder settings
 
-#define MSP_OSD_CONFIG                  84 //DEPRECATED in INAV 9.1 - use MSP2_INAV_OSD_* instead. Will be removed in INAV 10.0
-#define MSP_SET_OSD_CONFIG              85 //DEPRECATED in INAV 9.1 - use MSP2_INAV_OSD_* instead. Will be removed in INAV 10.0
-
 #define MSP_OSD_CHAR_READ               86 //out message         Get osd settings - betaflight
 #define MSP_OSD_CHAR_WRITE              87 //in message          Set osd settings - betaflight
 
