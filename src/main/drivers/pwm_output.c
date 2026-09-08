@@ -260,6 +260,15 @@ void pwmSetMotorDMACircular(bool circular)
         return;
     }
 
+    // Bidirectional DSHOT uses per-channel DMA with output/input direction
+    // switching: the burst path is never armed (dmaBurstBuffer stays NULL on
+    // USE_DSHOT_DMAR targets) and a port may currently be in the input-capture
+    // direction. Skip the circular keepalive and accept the frame gap during
+    // the flash write, matching Betaflight behaviour.
+    if (useDshotTelemetry) {
+        return;
+    }
+
     int motorCount = getMotorCount();
 
     if (circular) {
