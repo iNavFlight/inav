@@ -106,7 +106,7 @@ for sd in SUBDIRS:
     root = base_dir / sd
     if not root.is_dir():
         continue
-    for fn in root.rglob('*'):
+    for fn in sorted(root.rglob('*')):
         print(fn)
         if fn.suffix in ('.c', '.h'):
             txt = fn.read_text(errors='ignore')
