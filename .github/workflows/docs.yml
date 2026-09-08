@@ -4,10 +4,22 @@ on:
     paths:
       - src/main/fc/settings.yaml
       - docs/Settings.md
+      - src/utils/update_cli_docs.py
+      - 'src/main/**/*.c'
+      - 'src/main/**/*.h'
+      - CMakeLists.txt
+      - 'docs/development/msp/**'
+      - .github/workflows/docs.yml
   push:
     paths:
       - src/main/fc/settings.yaml
       - docs/Settings.md
+      - src/utils/update_cli_docs.py
+      - 'src/main/**/*.c'
+      - 'src/main/**/*.h'
+      - CMakeLists.txt
+      - 'docs/development/msp/**'
+      - .github/workflows/docs.yml
 
 jobs:
   settings_md:
@@ -23,5 +35,22 @@ jobs:
           python3 src/utils/update_cli_docs.py -q
           if ! diff -q docs/Settings.md{,.ci} >/dev/null; then
             echo "::error ::\"docs/Settings.md\" is not up to date, please run \"src/utils/update_cli_docs.py\""
+            exit 1
+          fi
+
+  msp_docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Check that MSP docs are up to date
+        working-directory: docs/development/msp
+        run: |
+          bash gen_docs.sh
+          if ! git diff --exit-code -- README.md inav_enums.json inav_enums_ref.md; then
+            echo "::error ::MSP docs are not up to date, please run 'cd docs/development/msp && bash gen_docs.sh'"
             exit 1
           fi
