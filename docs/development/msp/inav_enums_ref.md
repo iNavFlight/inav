@@ -239,6 +239,7 @@
 - [navWaypointFlags_e](#enum-navwaypointflags_e)
 - [navWaypointHeadings_e](#enum-navwaypointheadings_e)
 - [navWaypointP3Flags_e](#enum-navwaypointp3flags_e)
+- [oledControllerType_e](#enum-oledcontrollertype_e)
 - [opflowQuality_e](#enum-opflowquality_e)
 - [opticalFlowSensor_e](#enum-opticalflowsensor_e)
 - [osd_adsb_warning_style_e](#enum-osd_adsb_warning_style_e)
@@ -325,6 +326,7 @@
 - [simTxFlags_e](#enum-simtxflags_e)
 - [simulatorFlags_t](#enum-simulatorflags_t)
 - [sitlCANMode_e](#enum-sitlcanmode_e)
+- [sliceAssign_e](#enum-sliceassign_e)
 - [smartAudioVersion_e](#enum-smartaudioversion_e)
 - [smartportFuelUnit_e](#enum-smartportfuelunit_e)
 - [softSerialPortIndex_e](#enum-softserialportindex_e)
@@ -1200,7 +1202,8 @@
 | `BOXGIMBALHTRK` | 59 |  |
 | `BOXAUTOSPEED` | 60 |  |
 | `BOXTERRAINAGLHOLD` | 61 |  |
-| `CHECKBOX_ITEM_COUNT` | 62 |  |
+| `BOXINFLIGHTMENU` | 62 |  |
+| `CHECKBOX_ITEM_COUNT` | 63 |  |
 
 ---
 ## <a id="enum-busindex_e"></a>`busIndex_e`
@@ -1472,32 +1475,33 @@
 | `DEVHW_RM3100` | 32 |  |
 | `DEVHW_VCM5883` | 33 |  |
 | `DEVHW_MLX90393` | 34 |  |
-| `DEVHW_LM75_0` | 35 |  |
-| `DEVHW_LM75_1` | 36 |  |
-| `DEVHW_LM75_2` | 37 |  |
-| `DEVHW_LM75_3` | 38 |  |
-| `DEVHW_LM75_4` | 39 |  |
-| `DEVHW_LM75_5` | 40 |  |
-| `DEVHW_LM75_6` | 41 |  |
-| `DEVHW_LM75_7` | 42 |  |
-| `DEVHW_DS2482` | 43 |  |
-| `DEVHW_MAX7456` | 44 |  |
-| `DEVHW_SRF10` | 45 |  |
-| `DEVHW_VL53L0X` | 46 |  |
-| `DEVHW_VL53L1X` | 47 |  |
-| `DEVHW_US42` | 48 |  |
-| `DEVHW_TOF10120_I2C` | 49 |  |
-| `DEVHW_TERARANGER_EVO_I2C` | 50 |  |
-| `DEVHW_MS4525` | 51 |  |
-| `DEVHW_MS5525` | 52 |  |
-| `DEVHW_DLVR` | 53 |  |
-| `DEVHW_M25P16` | 54 |  |
-| `DEVHW_W25N` | 55 |  |
-| `DEVHW_UG2864` | 56 |  |
-| `DEVHW_SDCARD` | 57 |  |
-| `DEVHW_IRLOCK` | 58 |  |
-| `DEVHW_PCF8574` | 59 |  |
-| `DEVHW_INA226` | 60 |  |
+| `DEVHW_LIS2MDL` | 35 |  |
+| `DEVHW_LM75_0` | 36 |  |
+| `DEVHW_LM75_1` | 37 |  |
+| `DEVHW_LM75_2` | 38 |  |
+| `DEVHW_LM75_3` | 39 |  |
+| `DEVHW_LM75_4` | 40 |  |
+| `DEVHW_LM75_5` | 41 |  |
+| `DEVHW_LM75_6` | 42 |  |
+| `DEVHW_LM75_7` | 43 |  |
+| `DEVHW_DS2482` | 44 |  |
+| `DEVHW_MAX7456` | 45 |  |
+| `DEVHW_SRF10` | 46 |  |
+| `DEVHW_VL53L0X` | 47 |  |
+| `DEVHW_VL53L1X` | 48 |  |
+| `DEVHW_US42` | 49 |  |
+| `DEVHW_TOF10120_I2C` | 50 |  |
+| `DEVHW_TERARANGER_EVO_I2C` | 51 |  |
+| `DEVHW_MS4525` | 52 |  |
+| `DEVHW_MS5525` | 53 |  |
+| `DEVHW_DLVR` | 54 |  |
+| `DEVHW_M25P16` | 55 |  |
+| `DEVHW_W25N` | 56 |  |
+| `DEVHW_UG2864` | 57 |  |
+| `DEVHW_SDCARD` | 58 |  |
+| `DEVHW_IRLOCK` | 59 |  |
+| `DEVHW_PCF8574` | 60 |  |
+| `DEVHW_INA226` | 61 |  |
 
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
@@ -3506,7 +3510,8 @@
 | `MAG_RM3100` | 13 |  |
 | `MAG_VCM5883` | 14 |  |
 | `MAG_MLX90393` | 15 |  |
-| `MAG_FAKE` | 16 |  |
+| `MAG_LIS2MDL` | 16 |  |
+| `MAG_FAKE` | 17 |  |
 | `MAG_MAX` | MAG_FAKE |  |
 
 ---
@@ -4414,6 +4419,19 @@
 | `NAV_WP_USER4` | (1<<4) |  |
 
 ---
+## <a id="enum-oledcontrollertype_e"></a>`oledControllerType_e`
+
+> Source: ../../../src/main/drivers/display_ug2864hsweg01.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `OLED_CONTROLLER_UNKNOWN` | 0 |  |
+| `OLED_CONTROLLER_SSD1306` | 1 |  |
+| `OLED_CONTROLLER_SH1106` | 2 |  |
+| `OLED_CONTROLLER_SH1107` | 3 |  |
+| `OLED_CONTROLLER_SSD1309` | 4 |  |
+
+---
 ## <a id="enum-opflowquality_e"></a>`opflowQuality_e`
 
 > Source: ../../../src/main/sensors/opflow.h
@@ -4669,7 +4687,8 @@
 | `OSD_THROTTLE_GAUGE` | 168 |  |
 | `OSD_GPS_EXTRA_STATS` | 169 |  |
 | `OSD_AUTO_SPEED` | 170 |  |
-| `OSD_ITEM_COUNT` | 171 |  |
+| `OSD_TERRAIN_AGL` | 171 |  |
+| `OSD_ITEM_COUNT` | 172 |  |
 
 ---
 ## <a id="enum-osd_sidebar_arrow_e"></a>`osd_sidebar_arrow_e`
@@ -4871,6 +4890,7 @@
 | `PID_SHRINK_INTEGRATOR` | 1 << 2 |  |
 | `PID_LIMIT_INTEGRATOR` | 1 << 3 |  |
 | `PID_FREEZE_INTEGRATOR` | 1 << 4 |  |
+| `PID_USING_HEADING` | 1 << 5 |  |
 
 ---
 ## <a id="enum-pidindex_e"></a>`pidIndex_e`
@@ -5828,6 +5848,17 @@
 |---|---:|---|
 | `SITL_CAN_MODE_STUB` | 0 |  |
 | `SITL_CAN_MODE_SOCKETCAN` | 1 |  |
+
+---
+## <a id="enum-sliceassign_e"></a>`sliceAssign_e`
+
+> Source: ../../../src/main/drivers/pwm_output_rp2350.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SLICE_UNASSIGNED` | 0 |  |
+| `SLICE_AS_MOTOR` | 1 |  |
+| `SLICE_AS_SERVO` | 2 |  |
 
 ---
 ## <a id="enum-smartaudioversion_e"></a>`smartAudioVersion_e`
