@@ -14,6 +14,12 @@ set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
     "drivers/accgyro/accgyro_fake.c" "flight/imu.c" "sensors/boardalignment.c"
     "sensors/gyro.c")
 
+set_property(SOURCE imu_yaw_regression_unittest.cc PROPERTY depends     "build/debug.c"
+    "common/maths.c" "common/calibration.c" "common/filter.c" "common/lulu.c"
+    "drivers/accgyro/accgyro_fake.c" "flight/imu.c" "sensors/boardalignment.c"
+    "sensors/gyro.c")
+set_property(SOURCE imu_yaw_regression_unittest.cc PROPERTY definitions USE_GPS USE_MAG)
+
 set_property(SOURCE maths_unittest.cc PROPERTY depends "common/maths.c")
 
 set_property(SOURCE olc_unittest.cc PROPERTY depends "common/olc.c")
