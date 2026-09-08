@@ -32,6 +32,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
 #include "fc/settings.h"
 
 #include "sensors/battery.h"
@@ -62,6 +63,9 @@ static long cmsx_menuBattery_onExit(const OSD_Entry *self)
 
     setConfigBatteryProfile(battProfileIndex);
     activateBatteryProfile();
+    if (ARMING_FLAG(ARMED)) {
+        batteryUpdateThresholdsAndCells();
+    }
 
     if (featureProfAutoswitchEnabled) {
         featureSet(FEATURE_BAT_PROFILE_AUTOSWITCH);
@@ -93,6 +97,17 @@ static long cmsx_menuBattSettings_onEnter(const OSD_Entry *from)
     return 0;
 }
 
+static long cmsx_menuBattSettings_onExit(const OSD_Entry *self)
+{
+    UNUSED(self);
+
+    if (ARMING_FLAG(ARMED)) {
+        batteryUpdateThresholdsAndCells();
+    }
+
+    return 0;
+}
+
 static const OSD_Entry menuBattSettingsEntries[]=
 {
     OSD_LABEL_DATA_ENTRY("-- BATT SETTINGS --", battProfileIndexString),
@@ -118,7 +133,7 @@ static CMS_Menu cmsx_menuBattSettings = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_menuBattSettings_onEnter,
-    .onExit = NULL,
+    .onExit = cmsx_menuBattSettings_onExit,
     .onGlobalExit = NULL,
     .entries = menuBattSettingsEntries
 };
@@ -145,6 +160,27 @@ CMS_Menu cmsx_menuBattery = {
     .onExit = cmsx_menuBattery_onExit,
     .onGlobalExit = NULL,
     .entries = menuBatteryEntries
+};
+
+static OSD_Entry menuBatteryInFlightEntries[]=
+{
+    OSD_LABEL_ENTRY("-- BATTERY --"),
+
+    OSD_UINT8_CALLBACK_ENTRY("PROF", cmsx_onBatteryProfileIndexChange, (&(const OSD_UINT8_t){ &battDispProfileIndex, 1, MAX_BATTERY_PROFILE_COUNT, 1})),
+    OSD_SUBMENU_ENTRY("SETTINGS", &cmsx_menuBattSettings),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+const CMS_Menu cmsx_menuBatteryInFlight = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "XBATT_IF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = cmsx_menuBattery_onEnter,
+    .onExit = cmsx_menuBattery_onExit,
+    .onGlobalExit = NULL,
+    .entries = menuBatteryInFlightEntries
 };
 
 #endif // CMS

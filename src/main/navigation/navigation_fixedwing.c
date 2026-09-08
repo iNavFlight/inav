@@ -1439,13 +1439,14 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
     // Only allow PID integrator to shrink if error is decreasing over time.
     // Freeze the integrator while the arc drives the turn - the carrot error keeps one sign and winds it up
-    const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR
+    const pidControllerFlags_e pidFlags = PID_USING_HEADING
                                         | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0)
                                         | (fwArcActive ? PID_FREEZE_INTEGRATOR : 0);
 
     // Input error in (deg*100), output roll angle (deg*100)
     const float navBankLimit = getFwControlBankLimit();      // planning target on WP turns, guard ceiling in loiter
-    float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.cog + navHeadingError, posControl.actualState.cog, US2S(deltaMicros),
+    float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.cog + navHeadingError, posControl.actualState.cog,
+                                        US2S(deltaMicros),
                                        -DEGREES_TO_CENTIDEGREES(navBankLimit),
                                         DEGREES_TO_CENTIDEGREES(navBankLimit),
                                         pidFlags);

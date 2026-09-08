@@ -62,15 +62,23 @@ float navPidApply3(
         pid->reset = false;
     }
 
-    if (pidFlags & PID_DTERM_FROM_ERROR) {
-        /* Error-tracking D-term */
-        newDerivative = (error - pid->last_input) / dt;
-        pid->last_input = error;
-    } else {
-        /* Measurement tracking D-term */
-        newDerivative = -(measurement - pid->last_input) / dt;
-        pid->last_input = measurement;
+    /* Default to Measurement tracking D-term */
+    float trackingTerm = measurement;
+    int8_t sign = -1;
+
+    if (pidFlags & PID_DTERM_FROM_ERROR) {  /* Error-tracking D-term */
+        trackingTerm = error;
+        sign = 1;
     }
+
+    float trackingDelta = trackingTerm - pid->last_input;
+    pid->last_input = trackingTerm;
+
+    if (pidFlags & PID_USING_HEADING && fabsf(trackingDelta) > 18000) { // prevent D term kick around 360 heading
+        trackingDelta = wrap_18000(trackingDelta);
+    }
+
+    newDerivative = sign * trackingDelta / dt;
 
     if (pid->dTermLpfHz > 0.0f) {
         newDerivative = pid->param.kD * pt1FilterApply3(&pid->dterm_filter_state, newDerivative, dt);

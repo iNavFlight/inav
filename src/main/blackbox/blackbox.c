@@ -86,6 +86,9 @@
 #include "sensors/esc_sensor.h"
 #include "flight/wind_estimator.h"
 #include "sensors/temperature.h"
+#ifdef USE_DRONECAN
+#include "drivers/dronecan/dronecan.h"
+#endif
 
 #include "terrain/terrain.h"
 
@@ -523,6 +526,9 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
     {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
 #endif
+#ifdef USE_DRONECAN
+    {"droneCANBusOffCount",   -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+#endif
 #ifdef USE_TERRAIN
     {"terrainAGL",                -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
     {"terrainAMSL",               -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
@@ -640,6 +646,9 @@ typedef struct blackboxSlowState_s {
 #endif
     uint16_t rxUpdateRate;
     uint8_t activeWpNumber;
+#ifdef USE_DRONECAN
+    uint32_t droneCANBusOffCount;
+#endif
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -1430,6 +1439,10 @@ static void writeSlowFrame(void)
     blackboxWriteSignedVB(slowHistory.terrainAMSL);
 #endif
 
+#ifdef USE_DRONECAN
+    blackboxWriteUnsignedVB(slowHistory.droneCANBusOffCount);
+#endif
+
     blackboxSlowFrameIterationTimer = 0;
 }
 
@@ -1525,6 +1538,10 @@ static void loadSlowState(blackboxSlowState_t *slow)
     escSensorData_t * escSensor = escSensorGetData();
     slow->escRPM = escSensor->rpm;
     slow->escTemperature = escSensor->temperature;
+#endif
+
+#ifdef USE_DRONECAN
+    slow->droneCANBusOffCount = dronecanGetBusOffCount();
 #endif
 #ifdef USE_TERRAIN
     slow->terrainAGL = terrainGetLastDistanceCm();

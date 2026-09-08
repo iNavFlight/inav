@@ -131,7 +131,7 @@ bool throttleStickIsLow(void)
     return calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 }
 
-int16_t throttleStickMixedValue(void)
+int16_t RP2350_FAST_CODE throttleStickMixedValue(void)
 {
     int16_t throttleValue;
     uint16_t lowLimit = feature(FEATURE_REVERSIBLE_MOTORS) ? PWM_RANGE_MIN : rxConfig()->mincheck;

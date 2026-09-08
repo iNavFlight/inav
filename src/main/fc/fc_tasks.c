@@ -172,7 +172,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     if (feature(FEATURE_GPS)) {
         if (gpsUpdate()) {
 #ifdef USE_WIND_ESTIMATOR
-            if (STATE(AIRPLANE)) updateWindEstimator(currentTimeUs);
+            if (STATE(AIRPLANE)) updateWindEstimator(US2MS(currentTimeUs));
 #endif
         }
     }

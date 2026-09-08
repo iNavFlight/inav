@@ -35,7 +35,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1,  CH2N, PB0,  TIM_USE_OUTPUT_AUTO,               0, 1 ), // S3_OUT DMA2_ST6 DMA2_ST2
     DEF_TIM(TIM3,  CH2,  PB5,  TIM_USE_OUTPUT_AUTO,               0, 0 ), // S4_OUT DMA1_ST5 -- Used to have TIM_USE_LED
     DEF_TIM(TIM5,  CH1,  PA0,  TIM_USE_OUTPUT_AUTO,               0, 0 ), // S7_OUT DMA1_ST2
-    DEF_TIM(TIM1,  CH3N, PB1,  TIM_USE_OUTPUT_AUTO,               0, 0 ), // S8_OUT DMA2_ST6
+    DEF_TIM(TIM1,  CH3N, PB1,  TIM_USE_OUTPUT_AUTO,               0, 1 ), // S8_OUT DMA2_ST6
     DEF_TIM(TIM3,  CH1,  PB4,  TIM_USE_OUTPUT_AUTO,               0, 0 ), // S9_OUT DMA1_ST4
 
     // DEF_TIM(TIM12, CH1, PB14, TIM_USE_PWM | TIM_USE_PPM,   0, 0 ), // S1_IN
