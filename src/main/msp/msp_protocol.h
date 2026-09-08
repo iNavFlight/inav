@@ -202,8 +202,6 @@
 #define MSP_ADVANCED_CONFIG             90
 #define MSP_SET_ADVANCED_CONFIG         91
 
-#define MSP_FILTER_CONFIG               92      //DEPRECATED in INAV 9.1 - use settings system instead. Will be removed in INAV 10.0
-#define MSP_SET_FILTER_CONFIG           93      //DEPRECATED in INAV 9.1 - use settings system instead. Will be removed in INAV 10.0
 #define MSP_PID_ADVANCED                94      //DEPRECATED in INAV 9.1 - use MSP_INAV_PID instead. Will be removed in INAV 10.0
 #define MSP_SET_PID_ADVANCED            95      //DEPRECATED in INAV 9.1 - use MSP_SET_INAV_PID instead. Will be removed in INAV 10.0
 
