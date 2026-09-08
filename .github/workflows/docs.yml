@@ -50,7 +50,9 @@ jobs:
         working-directory: docs/development/msp
         run: |
           bash gen_docs.sh
-          if ! git diff --exit-code -- README.md inav_enums.json inav_enums_ref.md; then
+          if [ -n "$(git status --porcelain -- README.md inav_enums.json inav_enums_ref.md)" ]; then
+            git status --short -- README.md inav_enums.json inav_enums_ref.md
+            git diff -- README.md inav_enums.json inav_enums_ref.md
             echo "::error ::MSP docs are not up to date, please run 'cd docs/development/msp && bash gen_docs.sh'"
             exit 1
           fi
