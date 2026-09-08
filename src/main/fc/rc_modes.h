@@ -87,6 +87,7 @@ typedef enum {
     BOXGIMBALHTRK    = 59,
     BOXAUTOSPEED     = 60,
     BOXTERRAINAGLHOLD = 61,
+    BOXINFLIGHTMENU  = 62,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 

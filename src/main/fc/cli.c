@@ -4156,7 +4156,7 @@ static void cliStatus(char *cmdline)
         }
     }
     cliPrintLinefeed();
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
 #if defined(AT32F43x)
     cliPrintLine("AT32 system clocks:");
     crm_clocks_freq_type clocks;

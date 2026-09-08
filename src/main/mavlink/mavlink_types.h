@@ -25,8 +25,13 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 #ifndef MAVLINK_COMM_NUM_BUFFERS
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
+#endif
+/* Single external definition lives in mavlink/mavlink_helpers.c. */
+#ifndef MAVLINK_SEPARATE_HELPERS
+#define MAVLINK_SEPARATE_HELPERS
 #endif
 #include "storm32/mavlink.h"
 #pragma GCC diagnostic pop

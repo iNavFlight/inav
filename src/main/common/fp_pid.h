@@ -38,11 +38,12 @@ typedef struct {
 } pidControllerParam_t;
 
 typedef enum {
-    PID_DTERM_FROM_ERROR            = 1 << 0,
-    PID_ZERO_INTEGRATOR             = 1 << 1,
-    PID_SHRINK_INTEGRATOR           = 1 << 2,
-    PID_LIMIT_INTEGRATOR            = 1 << 3,
-    PID_FREEZE_INTEGRATOR           = 1 << 4,
+    PID_DTERM_FROM_ERROR    = 1 << 0,
+    PID_ZERO_INTEGRATOR     = 1 << 1,
+    PID_SHRINK_INTEGRATOR   = 1 << 2,
+    PID_LIMIT_INTEGRATOR    = 1 << 3,
+    PID_FREEZE_INTEGRATOR   = 1 << 4,
+    PID_USING_HEADING       = 1 << 5,
 } pidControllerFlags_e;
 
 typedef struct {

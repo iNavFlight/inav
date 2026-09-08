@@ -21,7 +21,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define EEPROM_CONF_VERSION 126
+#define EEPROM_CONF_VERSION 127
 
 bool isEEPROMContentValid(void);
 bool loadEEPROM(void);
