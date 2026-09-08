@@ -179,6 +179,10 @@ static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
+// osdOverrideLayout() is also called by MSP (a timed Configurator preview,
+// unrelated to whether the CMS menu is open) - only a menu-owned override may
+// be force-cleared when the menu goes away unexpectedly.
+static bool layoutOverrideOwnedByMenu = false;
 static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 
 // OSD Filters
@@ -6025,13 +6029,16 @@ void osdUpdate(timeUs_t currentTimeUs)
     unsigned activeLayout;
     if (layoutOverride >= 0) {
 #ifdef USE_CMS
-        // The layout override is only ever set by the CMS layout editor. Drop it
-        // as soon as the menu is gone, since the menu can be closed without the
-        // editor's onExit running (in-flight auto-close), which would otherwise
-        // leave the OSD stuck on the layout being edited.
-        if (!cmsInMenu) {
+        // Drop a menu-owned override as soon as the menu is gone, since the
+        // menu can be closed without the layout editor's onExit running
+        // (in-flight auto-close), which would otherwise leave the OSD stuck
+        // on the layout being edited. A timed override requested over MSP
+        // (Configurator preview) is unrelated to cmsInMenu and must not be
+        // cancelled here - it expires on its own via layoutOverrideUntil below.
+        if (!cmsInMenu && layoutOverrideOwnedByMenu) {
             layoutOverrideUntil = 0;
             layoutOverride = -1;
+            layoutOverrideOwnedByMenu = false;
         }
 #endif
     }
@@ -6112,6 +6119,11 @@ void osdOverrideLayout(int layout, timeMs_t duration)
     } else {
         layoutOverrideUntil = 0;
     }
+}
+
+void osdSetLayoutOverrideOwnedByMenu(bool owned)
+{
+    layoutOverrideOwnedByMenu = owned;
 }
 
 int osdGetActiveLayout(bool *overridden)
