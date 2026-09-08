@@ -74,6 +74,18 @@
 
 #include "scheduler/scheduler.h"
 
+#ifdef USE_MAVLINK_MSP_TUNNEL
+#define MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP 0x8001
+#define MAVLINK_TUNNEL_MSP_TIMEOUT_MS 1000
+// Independent of MSP_PORT_OUTBUF_SIZE, which is sized for full-page USE_FLASHFS
+// reads that self-clamp to available buffer space (serializeDataflashReadReply())
+// and so don't need it here. Sized instead off the largest MSP reply reachable
+// through the tunnel: MSP2_INAV_LED_STRIP_CONFIG_EX at LED_MAX_STRIP_LENGTH (128)
+// x sizeof(ledConfig_t) (5, packed bitfield) = 640 bytes. That one truncates
+// rather than overflows, but sbufWrite*() is not bounds-checked in general, so
+// re-audit the handlers in fc_msp.c before shrinking this.
+#define MAVLINK_TUNNEL_MSP_REPLY_BUF_SIZE 768
+#endif
 #define MAVLINK_MISSION_UPLOAD_RETRY_MS 1500
 #define MAVLINK_MISSION_UPLOAD_MAX_RETRIES 5
 #define MAVLINK_MISSION_DOWNLOAD_TIMEOUT_MS 5000
@@ -85,6 +97,12 @@ typedef struct mavlinkContext_s {
     uint8_t portCount;
     mavlinkRouteEntry_t routeTable[MAVLINK_MAX_ROUTES];
     uint8_t routeCount;
+#ifdef USE_MAVLINK_MSP_TUNNEL
+    mspPort_t tunnelMspPorts[MAX_MAVLINK_PORTS];
+    uint8_t tunnelRemoteSystemIds[MAX_MAVLINK_PORTS];
+    uint8_t tunnelRemoteComponentIds[MAX_MAVLINK_PORTS];
+    uint8_t tunnelReplyPayloadBuf[MAVLINK_TUNNEL_MSP_REPLY_BUF_SIZE];
+#endif
     uint8_t sendMask;
     mavlinkPortRuntime_t *activePort;
     const mavlinkTelemetryPortConfig_t *activeConfig;
@@ -110,6 +128,12 @@ extern mavlinkContext_t mavlinkContext;
 #define mavPortCount (mavlinkContext.portCount)
 #define mavRouteTable (mavlinkContext.routeTable)
 #define mavRouteCount (mavlinkContext.routeCount)
+#ifdef USE_MAVLINK_MSP_TUNNEL
+#define mavTunnelMspPorts (mavlinkContext.tunnelMspPorts)
+#define mavTunnelRemoteSystemIds (mavlinkContext.tunnelRemoteSystemIds)
+#define mavTunnelRemoteComponentIds (mavlinkContext.tunnelRemoteComponentIds)
+#define mavTunnelReplyPayloadBuf (mavlinkContext.tunnelReplyPayloadBuf)
+#endif
 #define mavSendMask (mavlinkContext.sendMask)
 #define mavActivePort (mavlinkContext.activePort)
 #define mavActiveConfig (mavlinkContext.activeConfig)

@@ -1,0 +1,275 @@
+name: CI Size Report
+
+# Uses workflow_run (rather than pull_request/push directly) so that
+# secrets are available even for PRs from forks — same reasoning as
+# pr-test-builds.yml.
+#
+# Listens to two different upstream workflows, for two different jobs:
+#  - publish-baseline listens for "Build pre-release" (nightly-build.yml),
+#    NOT "Build firmware" directly. ci.yml's own `on: push:` trigger is
+#    broken (a branches: list with only a negative pattern matches
+#    nothing — confirmed empirically, zero push-triggered "Build firmware"
+#    runs exist). "Build pre-release" is push-triggered correctly and
+#    already invokes ci.yml's jobs via `uses:` (workflow_call) as part of
+#    building nightly releases — piggybacking here costs nothing extra,
+#    no second build. Persists the size report as a release asset in the
+#    companion iNavFlight/pr-test-builds repo, so PR runs never need to
+#    rebuild the base branch to get a comparison point. Only fires for
+#    branches nightly-build.yml's own push trigger covers (currently
+#    master, maintenance-9.x, maintenance-10.x, release/9.1 — see that
+#    file). Stale baselines for since-deleted branches aren't cleaned up
+#    automatically (same known limitation pr-test-builds has for old PR
+#    releases).
+#  - pr-comment listens for "Build firmware" (ci.yml) directly — PR builds
+#    genuinely do trigger it via `pull_request`, that part isn't broken.
+#    Fetches the persisted baseline, diffs the 4 representative targets,
+#    and posts/updates a PR comment.
+#
+# Requires the same repository secret PR_BUILDS_TOKEN as pr-test-builds.yml
+# (Contents: write access to iNavFlight/pr-test-builds).
+on:
+  workflow_run:
+    workflows: ["Build firmware", "Build pre-release"]
+    types: [completed]
+
+jobs:
+  publish-baseline:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.name == 'Build pre-release' &&
+      github.event.workflow_run.event == 'push'
+    concurrency:
+      group: size-baseline-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: true
+    permissions:
+      actions: read   # to download artifacts and query job conclusions from the triggering workflow run
+    steps:
+      # Don't gate on github.event.workflow_run.conclusion: "Build
+      # pre-release" also runs a separate Release job (nightly upload to
+      # iNavFlight/inav-nightly) that can fail for reasons unrelated to the
+      # build itself (e.g. an expired NIGHTLY_TOKEN) and drags the whole
+      # run's conclusion to failure even when the build succeeded and
+      # produced the artifacts we actually need. Check the specific job
+      # that produces them instead.
+      - name: Check build job succeeded
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          CONCLUSION=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}/jobs" --paginate \
+            --jq '.jobs[] | select(.name == "build / upload-artifacts") | .conclusion')
+          if [ -z "$CONCLUSION" ]; then
+            # Job not found at all usually means the caller/callee job names
+            # changed (e.g. nightly-build.yml's "build" job or ci.yml's
+            # "upload-artifacts" job got renamed) — that's a workflow
+            # structure mismatch, not an expected build failure, and is
+            # exactly the kind of thing that silently broke baseline
+            # publishing before. Warn louder than a plain failed build.
+            echo "::warning::build / upload-artifacts job not found in run ${RUN_ID} — job name may have changed, skipping baseline publish"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          elif [ "$CONCLUSION" != "success" ]; then
+            echo "::notice::build / upload-artifacts did not succeed (conclusion: ${CONCLUSION}), skipping baseline publish"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download size report
+        if: steps.check.outputs.proceed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: size-report
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download branch name
+        if: steps.check.outputs.proceed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: branch-name
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish baseline
+        if: steps.check.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+        run: |
+          BRANCH=$(cat branch.txt)
+          TAG="size-baseline-${BRANCH}"
+          # Never delete+recreate the release: that leaves a window where
+          # the release doesn't exist at all, which a concurrent PR's
+          # "Fetch base branch baseline" step could hit and misreport as
+          # "no baseline available yet". Create it once, then only ever
+          # replace the asset in place (--clobber) on later pushes — the
+          # release/tag itself stays continuously resolvable.
+          if gh release view "$TAG" --repo iNavFlight/pr-test-builds >/dev/null 2>&1; then
+            gh release upload "$TAG" size-report.json --repo iNavFlight/pr-test-builds --clobber
+          else
+            gh release create "$TAG" size-report.json \
+              --repo iNavFlight/pr-test-builds \
+              --prerelease \
+              --title "Size baseline: ${BRANCH}" \
+              --notes "Latest per-target flash/RAM size report for ${BRANCH}. Auto-updated on every push. Not for human consumption."
+          fi
+
+  pr-comment:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.name == 'Build firmware' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    concurrency:
+      group: pr-size-report-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: true
+    permissions:
+      actions: read
+      issues: write
+      pull-requests: write
+      contents: read
+    steps:
+      # Checks out this workflow's own ref (the default branch — workflow_run
+      # always runs the workflow file from the default branch), NOT the PR's
+      # head. We only need our own trusted .github/scripts/ here; the PR's
+      # untrusted code is never checked out in this privileged context.
+      - uses: actions/checkout@v4
+
+      - name: Download PR number
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-number
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download base ref
+        uses: actions/download-artifact@v4
+        with:
+          name: base-ref
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download PR size report
+        uses: actions/download-artifact@v4
+        with:
+          name: size-report
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read PR number and base ref
+        id: pr
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          PR_NUM=$(tr -dc '0-9' < pr_number.txt)
+          if [ -z "$PR_NUM" ]; then
+            echo "::error::Invalid PR number in artifact"
+            exit 1
+          fi
+
+          # base_ref.txt round-trips through an artifact produced by the
+          # (less-trusted) PR build, so validate it against safe git-ref
+          # characters before it's ever used to build a shell command or
+          # release tag downstream — never trust artifact content blindly.
+          BASE_REF=$(head -n1 base_ref.txt | tr -d '\r\n')
+          if ! [[ "$BASE_REF" =~ ^[A-Za-z0-9._/-]{1,100}$ ]]; then
+            echo "::error::Invalid base ref in artifact: $BASE_REF"
+            exit 1
+          fi
+
+          echo "number=${PR_NUM}" >> "$GITHUB_OUTPUT"
+          echo "base_ref=${BASE_REF}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch base branch baseline
+        id: baseline
+        env:
+          GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+        run: |
+          TAG="size-baseline-${BASE_REF}"
+          mkdir -p baseline
+
+          # publish-baseline replaces the asset in place (--clobber) rather
+          # than deleting/recreating the release, but an individual asset
+          # replace still briefly deletes-then-uploads under the hood. A
+          # few short retries absorb that narrow window instead of a
+          # concurrent run misreporting "no baseline available yet" for a
+          # baseline that actually exists.
+          FOUND=false
+          for attempt in 1 2 3; do
+            if gh release download "$TAG" --repo iNavFlight/pr-test-builds --pattern size-report.json --dir baseline 2>/dev/null; then
+              FOUND=true
+              break
+            fi
+            sleep 3
+          done
+          echo "found=${FOUND}" >> "$GITHUB_OUTPUT"
+
+      - name: Check for doc on PR head commit
+        id: doc
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+        run: |
+          if gh api "repos/${HEAD_REPO}/contents/docs/development/ram-and-flash-optimization.md?ref=${HEAD_SHA}" >/dev/null 2>&1; then
+            echo "link=https://github.com/${HEAD_REPO}/blob/${HEAD_SHA}/docs/development/ram-and-flash-optimization.md" >> "$GITHUB_OUTPUT"
+          else
+            echo "link=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          SHORT_SHA: ${{ steps.pr.outputs.short_sha }}
+          BASELINE_FOUND: ${{ steps.baseline.outputs.found }}
+          DOC_LINK: ${{ steps.doc.outputs.link }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { renderComment } = require(
+              path.join(process.env.GITHUB_WORKSPACE, '.github', 'scripts', 'size-diff-comment.js')
+            );
+
+            const prNumber = parseInt(process.env.PR_NUMBER, 10);
+            if (isNaN(prNumber)) throw new Error(`Invalid PR number: ${process.env.PR_NUMBER}`);
+
+            const prReport = JSON.parse(fs.readFileSync('size-report.json', 'utf8'));
+            const baselineReport = process.env.BASELINE_FOUND === 'true'
+              ? JSON.parse(fs.readFileSync('baseline/size-report.json', 'utf8'))
+              : null;
+
+            const marker = '<!-- pr-size-diff -->';
+            const body = renderComment({
+              prReport,
+              baselineReport,
+              shortSha: process.env.SHORT_SHA,
+              docLink: process.env.DOC_LINK || null,
+              marker,
+            });
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber }
+            );
+
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }

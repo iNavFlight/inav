@@ -995,81 +995,95 @@ static bool djiFormatMessages(char *buff)
     bool haveMessage = false;
     char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
     if (ARMING_FLAG(ARMED)) {
-        // Aircraft is armed. We might have up to 6
-        // messages to show.
-        char *messages[6];
+        // Aircraft is armed. Keep this bounded because transition, navigation,
+        // failsafe and normal status messages can be active at the same time.
+        const char *messages[8];
         unsigned messageCount = 0;
+        #define ADD_DJI_MSG(msg) do { if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg); } while (0)
+
+        const char *vtolTransitionMessage = osdVtolTransitionMessage();
+        if (vtolTransitionMessage) {
+            ADD_DJI_MSG(vtolTransitionMessage);
+        }
 
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
             // In FS mode while being armed too
-            char *failsafePhaseMessage = osdFailsafePhaseMessage();
-            char *failsafeInfoMessage = osdFailsafeInfoMessage();
-            char *navStateFSMessage = navigationStateMessage();
+            const char *failsafePhaseMessage = osdFailsafePhaseMessage();
+            const char *failsafeInfoMessage = osdFailsafeInfoMessage();
+            const char *navStateFSMessage = navigationStateMessage();
 
             if (failsafePhaseMessage) {
-                messages[messageCount++] = failsafePhaseMessage;
+                ADD_DJI_MSG(failsafePhaseMessage);
             }
 
             if (failsafeInfoMessage) {
-                messages[messageCount++] = failsafeInfoMessage;
+                ADD_DJI_MSG(failsafeInfoMessage);
             }
 
             if (navStateFSMessage) {
-                messages[messageCount++] = navStateFSMessage;
+                ADD_DJI_MSG(navStateFSMessage);
             }
         } else {
 #ifdef USE_SERIALRX_CRSF
             if (djiOsdConfig()->rssi_source == DJI_CRSF_LQ && rxLinkStatistics.rfMode == 0) {
-                messages[messageCount++] = "CRSF LOW RF";
+                ADD_DJI_MSG("CRSF LOW RF");
             }
 #endif
             if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                char *navStateMessage = navigationStateMessage();
+                const char *navStateMessage = navigationStateMessage();
                 if (navStateMessage) {
-                    messages[messageCount++] = navStateMessage;
+                    ADD_DJI_MSG(navStateMessage);
                 }
             } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                messages[messageCount++] = "AUTOLAUNCH";
+                ADD_DJI_MSG("AUTOLAUNCH");
             } else {
                 if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                     // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
                     // when it doesn't require ANGLE mode (required only in FW
                     // right now). If if requires ANGLE, its display is handled
                     // by OSD_FLYMODE.
-                    messages[messageCount++] = "(ALT HOLD)";
+                    ADD_DJI_MSG("(ALT HOLD)");
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM) && !feature(FEATURE_FW_AUTOTRIM)) {
-                    messages[messageCount++] = "(AUTOTRIM)";
+                    ADD_DJI_MSG("(AUTOTRIM)");
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
-                    messages[messageCount++] = "(AUTOTUNE)";
+                    ADD_DJI_MSG("(AUTOTUNE)");
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
-                    messages[messageCount++] = "(AUTO LEVEL TRIM)";
+                    ADD_DJI_MSG("(AUTO LEVEL TRIM)");
                 }
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
-                    messages[messageCount++] = "(HEADFREE)";
+                    ADD_DJI_MSG("(HEADFREE)");
                 }
 
                 if (FLIGHT_MODE(MANUAL_MODE)) {
-                    messages[messageCount++] = "(MANUAL)";
+                    ADD_DJI_MSG("(MANUAL)");
                 }
 
                 if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
-                     messages[messageCount++] = "(LAND)";
+                     ADD_DJI_MSG("(LAND)");
                 }
             }
         }
         // Pick one of the available messages. Each message lasts
         // a second.
         if (messageCount > 0) {
-           strcpy(buff, messages[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, messageCount)]);
-           haveMessage = true;
+            const char *message = messages[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, messageCount)];
+            if (message == vtolTransitionMessage &&
+                osdVtolTransitionMessageShouldBlink() &&
+                OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT / 2, 2) == 0) {
+                buff[0] = '\0';
+            } else {
+                strcpy(buff, message);
+            }
+            haveMessage = true;
         }
+        #undef ADD_DJI_MSG
     } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
         unsigned invalidIndex;
         // Check if we're unable to arm for some reason

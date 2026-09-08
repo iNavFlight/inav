@@ -125,7 +125,7 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
 #endif
 
     /* DRONECAN GPS */
-#if defined(USE_GPS_PROTO_DRONECAN) && !defined(GPS_NULL_PORT_UNIT_TEST)
+#if defined(USE_DRONECAN) && !defined(GPS_NULL_PORT_UNIT_TEST)
     {true, 0, &gpsRestartDronecan, &gpsHandleDronecan },
 #else
     {false, 0, NULL, NULL },

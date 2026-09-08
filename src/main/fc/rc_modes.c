@@ -42,6 +42,10 @@ static uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
 static bool isUsingNAVModes = false;
 
 boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
+static boxBitmask_t rcModeRawActivationMask;
+static boxBitmask_t rcModeActivationOverrideMask;
+static boxBitmask_t rcModeActivationOverrideSnapshot;
+static bool rcModeActivationOverrideActive;
 
 // TODO(alberto): It looks like we can now safely remove this assert, since everything
 // but BB is able to handle more than 32 boxes and all the definitions use
@@ -141,9 +145,90 @@ bool IS_RC_MODE_ACTIVE(boxId_e boxId)
     return bitArrayGet(rcModeActivationMask.bits, boxId);
 }
 
+static boxBitmask_t rcModeFlightModeMask(const boxBitmask_t *source)
+{
+    boxBitmask_t mask;
+    memset(&mask, 0, sizeof(mask));
+
+    const boxId_e modeBoxes[] = {
+        BOXANGLE,
+        BOXHORIZON,
+        BOXNAVALTHOLD,
+        BOXHEADINGHOLD,
+        BOXNAVRTH,
+        BOXNAVPOSHOLD,
+        BOXMANUAL,
+        BOXNAVLAUNCH,
+        BOXNAVWP,
+        BOXTURNASSIST,
+        BOXSURFACE,
+        BOXNAVCOURSEHOLD,
+        BOXBRAKING,
+        BOXNAVCRUISE,
+        BOXSOARING,
+        BOXANGLEHOLD,
+    };
+
+    for (unsigned i = 0; i < ARRAYLEN(modeBoxes); i++) {
+        if (bitArrayGet(source->bits, modeBoxes[i])) {
+            bitArraySet(mask.bits, modeBoxes[i]);
+        }
+    }
+
+    return mask;
+}
+
+static void rcModeUpdateEffectiveActivationMask(void)
+{
+    rcModeActivationMask = rcModeRawActivationMask;
+
+    if (rcModeActivationOverrideActive && !ARMING_FLAG(ARMED)) {
+        BITARRAY_CLR_ALL(rcModeActivationOverrideMask.bits);
+        rcModeActivationOverrideActive = false;
+    }
+
+    if (!rcModeActivationOverrideActive) {
+        return;
+    }
+
+    const boxBitmask_t currentFlightModeMask = rcModeFlightModeMask(&rcModeRawActivationMask);
+    if (memcmp(&currentFlightModeMask, &rcModeActivationOverrideSnapshot, sizeof(currentFlightModeMask)) != 0) {
+        BITARRAY_CLR_ALL(rcModeActivationOverrideMask.bits);
+        rcModeActivationOverrideActive = false;
+        return;
+    }
+
+    for (unsigned i = 0; i < ARRAYLEN(rcModeActivationMask.bits); i++) {
+        rcModeActivationMask.bits[i] |= rcModeActivationOverrideMask.bits[i];
+    }
+}
+
 void rcModeUpdate(boxBitmask_t *newState)
 {
-    rcModeActivationMask = *newState;
+    rcModeRawActivationMask = *newState;
+    rcModeUpdateEffectiveActivationMask();
+}
+
+boxId_e rcModeSetActivationOverride(boxId_e boxId)
+{
+    const int previousOverride = rcModeActivationOverrideActive
+        ? BITARRAY_FIND_FIRST_SET(rcModeActivationOverrideMask.bits, 0)
+        : -1;
+
+    rcModeActivationOverrideSnapshot = rcModeFlightModeMask(&rcModeRawActivationMask);
+    BITARRAY_CLR_ALL(rcModeActivationOverrideMask.bits);
+    bitArraySet(rcModeActivationOverrideMask.bits, boxId);
+    rcModeActivationOverrideActive = true;
+    rcModeUpdateEffectiveActivationMask();
+
+    return previousOverride >= 0 ? (boxId_e)previousOverride : (boxId_e)BOXID_NONE;
+}
+
+void rcModeClearActivationOverride(boxId_e boxId)
+{
+    bitArrayClr(rcModeActivationOverrideMask.bits, boxId);
+    rcModeActivationOverrideActive = BITARRAY_FIND_FIRST_SET(rcModeActivationOverrideMask.bits, 0) >= 0;
+    rcModeUpdateEffectiveActivationMask();
 }
 
 bool isModeActivationConditionPresent(boxId_e modeId)

@@ -263,14 +263,9 @@ TEST_F(CanardTest, MemPool_PeakTracking)
 
 TEST_F(CanardTest, CRC_KnownValues)
 {
-    // CRC-16/CCITT (init 0xFFFF, poly 0x1021)
-    uint16_t crc = 0xFFFF;
-
-    // Single byte: CRC of "A" (0x41)
-    crc = crcAddByte(0xFFFF, 0x41);
-    // Verify it produces a non-trivial value
-    EXPECT_NE(crc, 0xFFFF);
-    EXPECT_NE(crc, 0x0000);
+    // CRC-16/CCITT-FALSE (init 0xFFFF, poly 0x1021), single byte 0x41 ('A')
+    uint16_t crc = crcAddByte(0xFFFF, 0x41);
+    EXPECT_EQ(crc, 0xB915);
 }
 
 TEST_F(CanardTest, CRC_AddString)

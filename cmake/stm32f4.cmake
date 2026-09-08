@@ -104,6 +104,7 @@ set(STM32F405_COMPILE_DEFINITIONS
     STM32F40_41xxx
     STM32F405xx
     MCU_FLASH_SIZE=1024
+    MCU_RAM_SIZE=192
 )
 
 function(target_stm32f405xg name)
@@ -144,6 +145,7 @@ endfunction()
 set(STM32F427_COMPILE_DEFINITIONS
     STM32F427_437xx
     MCU_FLASH_SIZE=1024
+    MCU_RAM_SIZE=256
 )
 function(target_stm32f427xg name)
     target_stm32f4xx(

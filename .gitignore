@@ -52,6 +52,7 @@ tokens.yaml
 
 # Build output directories (catch-all for ad-hoc build dirs)
 /build_*/
+/build-*/
 /build_hw/
 
 # Local development files

@@ -34,7 +34,8 @@ typedef enum {
     CURRENT_SENSOR_SMARTPORT,
     CURRENT_SENSOR_CRSF,
     CURRENT_SENSOR_CAN,
-    CURRENT_SENSOR_MAX = CURRENT_SENSOR_CAN
+    CURRENT_SENSOR_INA226,
+    CURRENT_SENSOR_MAX = CURRENT_SENSOR_INA226
 } currentSensor_e;
 
 typedef enum {
@@ -45,7 +46,8 @@ typedef enum {
     VOLTAGE_SENSOR_SMARTPORT,
     VOLTAGE_SENSOR_CRSF,
     VOLTAGE_SENSOR_CAN,
-    VOLTAGE_SENSOR_MAX = VOLTAGE_SENSOR_CAN
+    VOLTAGE_SENSOR_INA226,
+    VOLTAGE_SENSOR_MAX = VOLTAGE_SENSOR_INA226
 } voltageSensor_e;
 
 typedef enum {
@@ -72,6 +74,14 @@ typedef struct batteryMetersConfig_s {
         int16_t offset;                 // offset of the current sensor in millivolt steps
         currentSensor_e type;           // type of current meter used, either ADC or virtual
     } current;
+
+#ifdef USE_INA226
+    struct {
+        uint32_t shuntResistanceMicroOhm;
+        uint8_t i2cBus;                  // User-facing hardware I2C bus number (1-4)
+        uint8_t i2cAddress;              // 7-bit I2C address
+    } ina226;
+#endif
 
     batVoltageSource_e voltageSource;
 

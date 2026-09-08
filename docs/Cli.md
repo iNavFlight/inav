@@ -46,6 +46,12 @@ copy screen output to a file and save it.
 
 Alternatively, use the `diff` command to dump only those settings that differ from their default values (those that have been changed).
 
+Adding `showdefaults` to the Dump and Diff commands, e.g. `diff showdefaults`, will add a comment line showing the default value where it differs from the set value.
+
+```
+#default set fw_ff_pitch = 50
+set fw_ff_pitch = 120
+```
 
 ## Restore via CLI.
 

@@ -154,6 +154,12 @@
 #define SERIALRX_PROVIDER   SERIALRX_SBUS
 #define SERIALRX_UART       SERIAL_PORT_USART6
 
+// *************** CANBUS ****************************
+#define USE_DRONECAN
+#define CAN1_RX                 PD0
+#define CAN1_TX                 PD1
+// #define CAN1_STANDBY            PD3
+
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1

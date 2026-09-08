@@ -46,6 +46,8 @@ typedef struct {
 PG_DECLARE(osdCommonConfig_t, osdCommonConfig);
 
 int16_t osdGetSpeedFromSelectedSource(void);
+const char *osdVtolTransitionMessage(void);
+bool osdVtolTransitionMessageShouldBlink(void);
 
 #endif // defined(USE_OSD) || defined(USE_DJI_HD_OSD)
 

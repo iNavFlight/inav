@@ -97,7 +97,8 @@
 #define MSP2_INAV_ESC_TELEM                     0x2041
 
 #define MSP2_INAV_DRONECAN_NODES                0x2042
-#define MSP2_INAV_DRONECAN_NODE_INFO            0x2043 
+#define MSP2_INAV_DRONECAN_ASYNC_REQUEST        0x2043
+#define MSP2_INAV_DRONECAN_ASYNC_RESULT         0x2044
 
 #define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
 #define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
@@ -118,6 +119,8 @@
 #define MSP2_ADSB_VEHICLE_LIST                  0x2090
 #define MSP2_ADSB_LIMITS                        0x2091
 #define MSP2_ADSB_WARNING_VEHICLE_ICAO          0x2092
+#define MSP2_ADSB_VEHICLE                       0x2093
+#define MSP2_ADSB_VEHICLE_COUNT                 0x2094
 
 #define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
 #define MSP2_INAV_CUSTOM_OSD_ELEMENT            0x2101
@@ -146,6 +149,10 @@
 
 #define MSP2_INAV_SET_WP_INDEX                  0x2221  //in message  jump to waypoint N during active WP mission; payload: U8 wp_index (0-based, relative to mission start)
 #define MSP2_INAV_SET_CRUISE_HEADING            0x2223  //in message  set heading while in Cruise/Course Hold mode; payload: I32 heading_centidegrees (0-35999)
+#define MSP2_INAV_ACTIVATE_LANDING              0x2224  //in message  land at the current position through the normal waypoint LAND path; payload: none
+#define MSP2_INAV_ACTIVATE_RTH                  0x2225  //in message  trigger normal return-to-home mode; payload: none
+#define MSP2_INAV_ARM_DISARM                    0x2227  //in message  set armed state; payload: U8 arm
+#define MSP2_INAV_TIMESYNC                      0x2228  //out message local monotonic boot time in nanoseconds; payload: U64 time_ns
 
 #define MSP2_INAV_SET_AUX_RC                    0x2230
 

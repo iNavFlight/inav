@@ -41,6 +41,9 @@
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
 #include "sensors/boardalignment.h"
+#ifdef USE_CMS
+#include "cms/cms.h"
+#endif
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
@@ -74,6 +77,7 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_vtol_mc_protection.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -383,13 +387,31 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM), false) && emergencyArmingCanOverrideArmingDisabled();
 }
 
-static void processPilotAndFailSafeActions(float dT)
+static RP2350_FAST_CODE void processPilotAndFailSafeActions(float dT)
 {
     if (failsafeShouldApplyControlInput()) {
         // Failsafe will apply rcCommand for us
         failsafeApplyControlInput();
     }
     else {
+#ifdef USE_CMS
+        // In-flight CMS menu: override stick commands with neutral values
+        // so the aircraft continues flying in its current nav mode.
+        // Throttle passes through since nav modes manage it automatically.
+        // IMPORTANT: Do not skip failsafeUpdateRcCommandValues() - the failsafe
+        // system must keep receiving updates to detect RC link loss.
+        if (cmsInMenu && ARMING_FLAG(ARMED)) {
+            rcCommand[ROLL]  = 0;
+            rcCommand[PITCH] = 0;
+            rcCommand[YAW]   = 0;
+            rcCommand[THROTTLE] = throttleStickMixedValue();
+
+            if (isRXDataNew) {
+                failsafeUpdateRcCommandValues();
+            }
+            return;
+        }
+#endif
         // Compute ROLL PITCH and YAW command.
         // Only recompute when the RX task has delivered new data (~50 Hz).
         {
@@ -418,14 +440,17 @@ static void processPilotAndFailSafeActions(float dT)
         } else {
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
             rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
 
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 2, rcCommand[PITCH]);
             rcCommand[PITCH] = applyRateDynamics(rcCommand[PITCH], PITCH, dT);
-            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
 
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
             rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
+
+            navigationVtolMcProtectionApplyStabilizedCommandShaping(&rcCommand[ROLL], &rcCommand[PITCH], &rcCommand[YAW]);
+
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
+            DEBUG_SET(DEBUG_RATE_DYNAMICS, 3, rcCommand[PITCH]);
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
 
         }
@@ -464,6 +489,7 @@ void disarm(disarmReason_t disarmReason)
 #endif
         statsOnDisarm();
         logicConditionReset();
+        navigationVtolMcProtectionResetTransientStates();
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
@@ -617,6 +643,17 @@ void tryArm(void)
             beeperConfirmationBeeps(1);
         }
     }
+}
+
+bool fcSetArmState(bool arm)
+{
+    if (arm) {
+        tryArm();
+    } else {
+        disarm(DISARM_SWITCH);
+    }
+
+    return ARMING_FLAG(ARMED) == arm;
 }
 
 #define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)

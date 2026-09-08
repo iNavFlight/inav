@@ -399,10 +399,20 @@ TEST(SourceSync, Pass1CallSiteGatesOnFixedPeriodSiblingGuard)
     std::string normalizedSource;
     ASSERT_TRUE(loadNormalizedPinioSource(&normalizedSource));
 
-    // Pass 1 (pinioHardware[] loop): the condition guarding pinioInitTimerPWM().
+    // Pass 1 checks ownership before either timer-PWM or GPIO fallback can
+    // claim the target-defined pad, then guards the timer-PWM path.
+    const std::string expectedOwnerGuard = normalizeSource(
+        "const int slot = runtimeCount++; "
+        "IO_t io = IOGetByTag(pinioHardware[i].ioTag); "
+        "if (!io || IOGetOwner(io) != OWNER_FREE) { "
+        "continue; "
+        "}");
     const std::string expectedGuard = normalizeSource(
-        "if (timHw && IOGetOwner(io) == OWNER_FREE && !timerHasFixedPeriodSibling(timHw) && pinioInitTimerPWM(runtimeCount, io, timHw, inverted)) {");
+        "if (timHw && !timerHasFixedPeriodSibling(timHw) && pinioInitTimerPWM(slot, io, timHw, inverted)) {");
 
+    EXPECT_NE(normalizedSource.find(expectedOwnerGuard), std::string::npos)
+        << "pinioInit() Pass 1 must reject pads already owned by motors, "
+           "servos, ADC, or another subsystem before its GPIO fallback.";
     EXPECT_NE(normalizedSource.find(expectedGuard), std::string::npos)
         << "pinioInit()'s Pass 1 (pinioHardware[] target-defined pins) call "
            "site no longer gates pinioInitTimerPWM() on "
@@ -410,6 +420,23 @@ TEST(SourceSync, Pass1CallSiteGatesOnFixedPeriodSiblingGuard)
            "guard, a PINIO pad sharing a timer with an LED strip or BEEPER "
            "would silently corrupt that output's period again -- this test "
            "must fail loudly if that happens.";
+}
+
+TEST(SourceSync, EmptyReservedPinioSlotsCannotBeDriven)
+{
+    std::string normalizedSource;
+    ASSERT_TRUE(loadNormalizedPinioSource(&normalizedSource));
+
+    const std::string expectedGuard = normalizeSource(
+        "if ((unsigned)index >= (unsigned)pinioRuntimeCount || !pinioRuntime[index].io) { "
+        "return; "
+        "}");
+
+    const size_t firstGuard = normalizedSource.find(expectedGuard);
+    ASSERT_NE(firstGuard, std::string::npos)
+        << "pinioSetDuty() must ignore a reserved PINIO slot whose pad was already owned.";
+    EXPECT_NE(normalizedSource.find(expectedGuard, firstGuard + expectedGuard.size()), std::string::npos)
+        << "pinioSet() must ignore a reserved PINIO slot whose pad was already owned.";
 }
 
 TEST(SourceSync, Pass2CallSiteGatesOnFixedPeriodSiblingGuard)
