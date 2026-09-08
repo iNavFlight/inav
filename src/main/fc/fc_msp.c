@@ -3364,26 +3364,20 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 radar_pois[msp_radar_no].heading = sbufReadU16(src);                   // °
                 radar_pois[msp_radar_no].speed = sbufReadU16(src);                     // cm/s
                 radar_pois[msp_radar_no].lq = sbufReadU8(src);                         // Link quality, from 0 to 4
-            }else{
-                return MSP_RESULT_ERROR;
-            }
-        } else {
-            return MSP_RESULT_ERROR;
-        }
-        break;
-
-    case MSP2_COMMON_SET_RADAR_PEER_NAME:
-        if (dataSize > 3) {
-            const uint8_t msp_radar_no = sbufReadU8(src); // Radar poi number, 0 to 5
-            if (msp_radar_no < RADAR_MAX_POIS) {
-                const uint8_t msp_peer_max_length = sbufReadU8(src);
-                const uint8_t nameLength = MIN(msp_peer_max_length, (uint8_t)(sizeof(radar_pois[msp_radar_no].name)));
 
                 // clear current name, leaves the trailing '\0' in place regardless of nameLength
                 memset(radar_pois[msp_radar_no].name, 0, sizeof(radar_pois[msp_radar_no].name));
-                // ignored (no-op) if the peer's claimed length exceeds what was actually sent
-                sbufReadDataSafe(src, radar_pois[msp_radar_no].name, nameLength);
-            } else {
+
+                if (dataSize > 21) {                                                   // optional peer name extension
+                    const uint8_t msp_peer_max_length = sbufReadU8(src);
+                    if (sbufBytesRemaining(src) < msp_peer_max_length) {
+                        return MSP_RESULT_ERROR;
+                    }
+                    const uint8_t nameLength = MIN(msp_peer_max_length, (uint8_t)(sizeof(radar_pois[msp_radar_no].name)));
+
+                    sbufReadData(src, radar_pois[msp_radar_no].name, nameLength);
+                }
+            }else{
                 return MSP_RESULT_ERROR;
             }
         } else {

@@ -6329,12 +6329,26 @@
                         "ctype": "uint8_t",
                         "desc": "Link quality indicator",
                         "units": "0-4"
+                    },
+                    {
+                        "name": "peerNameLength",
+                        "ctype": "uint8_t",
+                        "desc": "Optional. Length of the peer name that follows",
+                        "units": "Bytes"
+                    },
+                    {
+                        "name": "peerName",
+                        "ctype": "char",
+                        "desc": "Optional. Peer name, copied into `radar_pois[i].name`, up to `RADAR_PEER_NAME_LENGTH` (3) bytes. The name is not null-terminated if all `RADAR_PEER_NAME_LENGTH` bytes are non-zero",
+                        "array": true,
+                        "array_size": 0
                     }
                 ]
             },
             "reply": null,
-            "notes": "Expects 19 bytes. POI index is clamped to `RADAR_MAX_POIS - 1`. Updates the `radar_pois` array.",
-            "description": "Sets the position and status information for a \"radar\" Point of Interest (POI). Used for displaying other craft/objects on the OSD map."
+            "variable_len": true,
+            "notes": "Expects at least 19 bytes. Returns an error if POI index is not less than `RADAR_MAX_POIS`. Updates the `radar_pois` array. If more than 21 bytes are sent, the payload is expected to also carry `peerNameLength` and `peerName`; an error is returned if fewer than `peerNameLength` name bytes follow. The peer name is displayed instead of the peer ID letter in the formation flight OSD element when `osdConfig()->show_radar_peer_name` (`MSP2_INAV_OSD_PREFERENCES` / `MSP2_INAV_OSD_SET_PREFERENCES`) is enabled.",
+            "description": "Sets the position and status information for a \"radar\" Point of Interest (POI), optionally including its display name. Used for displaying other craft/objects on the OSD map."
         },
         "MSP2_COMMON_SET_RADAR_ITD": {
             "code": 4108,
@@ -6468,31 +6482,6 @@
             },
             "notes": "Returns the stored GPS coordinates for all radar POIs (`radar_pois[i].gps`).",
             "description": "Provides the GPS positions (latitude, longitude, altitude) for each radar point of interest." 
-        },
-        "MSP2_COMMON_SET_RADAR_PEER_NAME": {
-            "code": 4112,
-            "mspv": 2,
-            "request": {
-                "payload": [
-                    {
-                        "name": "poiIndex",
-                        "ctype": "uint8_t",
-                        "desc": "Index of the POI slot (0 to `RADAR_MAX_POIS - 1`)",
-                        "units": "Index"
-                    },
-                    {
-                        "name": "peerName",
-                        "ctype": "char",
-                        "desc": "Peer name, copied verbatim into `radar_pois[i].name`, up to `RADAR_PEER_NAME_LENGTH` (3) bytes, length implied by the payload size. The name is not null-terminated if all `RADAR_PEER_NAME_LENGTH` bytes are non-zero",
-                        "array": true,
-                        "array_size": 0
-                    }
-                ]
-            },
-            "reply": null,
-            "variable_len": true,
-            "notes": "Expects 1 to `RADAR_PEER_NAME_LENGTH + 1` (4) bytes. Returns an error if POI index is not less than `RADAR_MAX_POIS`. Used to display the peer name instead of the peer ID letter in the formation flight OSD element when `osdConfig()->show_radar_peer_name` (`MSP2_INAV_OSD_PREFERENCES` / `MSP2_INAV_OSD_SET_PREFERENCES`) is enabled.",
-            "description": "Sets the display name for a \"radar\" Point of Interest (POI), used for the formation flight OSD element."
         },
         "MSP2_SENSOR_RANGEFINDER": {
             "code": 7937,
