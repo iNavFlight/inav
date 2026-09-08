@@ -102,6 +102,12 @@ static int cmsDeviceCount;
 static int cmsCurrentDevice = -1;
 static timeMs_t cmsYieldUntil = 0;
 
+// True while CMS actually holds a grab on pCurrentDisplay. cmsYieldUntil alone
+// cannot tell us this: it only records that *some* display was released for a
+// yield, not whether pCurrentDisplay - which can change mid-yield if the menu
+// switches displays - is the one that grab applies to.
+static bool cmsDisplayGrabbed = false;
+
 bool cmsDisplayPortRegister(displayPort_t *pDisplay)
 {
     if (cmsDeviceCount == CMS_MAX_DEVICE)
@@ -881,13 +887,20 @@ void cmsMenuOpen(void)
             // DisplayPort has been changed.
             // Convert cursorRow to absolute value
             currentCtx.cursorRow = cmsCursorAbsolute(pCurrentDisplay);
-            displayRelease(pCurrentDisplay);
+            if (cmsDisplayGrabbed) {
+                displayRelease(pCurrentDisplay);
+            }
             pCurrentDisplay = pNextDisplay;
         } else {
             return;
         }
     }
     displayGrab(pCurrentDisplay); // grab the display for use by the CMS
+    cmsDisplayGrabbed = true;
+    // Any yield in progress applied to whatever display was current before -
+    // we now hold a fresh grab on pCurrentDisplay (possibly a different
+    // display, if the menu switched while yielding), so it no longer applies.
+    cmsYieldUntil = 0;
 
     if (pCurrentDisplay->cols < NORMAL_SCREEN_MIN_COLS) {
         smallScreen = true;
@@ -996,9 +1009,13 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
     // Only release the display if we are still holding it. cmsYieldDisplay()
     // has already released it when a yield is in progress, and an exit can
     // happen during that window (in-flight auto-close), which would otherwise
-    // leave the display grab count unbalanced.
-    if (cmsYieldUntil == 0) {
+    // leave the display grab count unbalanced. cmsDisplayGrabbed - not the
+    // yield timer - is the source of truth: the menu can switch displays
+    // mid-yield, in which case pDisplay is grabbed even though a yield is
+    // still nominally pending.
+    if (cmsDisplayGrabbed) {
         displayRelease(pDisplay);
+        cmsDisplayGrabbed = false;
     }
     cmsYieldUntil = 0;
 
@@ -1040,8 +1057,9 @@ void cmsYieldDisplay(displayPort_t *pPort, timeMs_t duration)
     // Check if we're already yielding, in that case just extend
     // the yield time without releasing the display again, otherwise
     // the yield/grab become unbalanced.
-    if (cmsYieldUntil == 0) {
+    if (cmsDisplayGrabbed) {
         displayRelease(pPort);
+        cmsDisplayGrabbed = false;
     }
     cmsYieldUntil = millis() + duration;
 }
@@ -1567,6 +1585,7 @@ void cmsUpdate(uint32_t currentTimeUs)
         if (cmsYieldUntil > 0 && currentTimeMs > cmsYieldUntil) {
             cmsYieldUntil = 0;
             displayGrab(pCurrentDisplay);
+            cmsDisplayGrabbed = true;
             displayClearScreen(pCurrentDisplay);
         }
 
