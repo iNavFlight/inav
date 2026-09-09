@@ -92,6 +92,7 @@ struct {
     {0xEF7017, 128, 256}, // W25Q64JV-IM/JM*
     // Boya BY25Q64: 128 x 64 KiB blocks, 256-byte pages.
     {0x684017, 128, 256},
+    // Datasheet: https://www.boyamicro.com/storage/upload/pdf/BY25Q64ES.pdf
     // Winbond W25Q128
     // Datasheet: https://www.winbond.com/resource-files/w25q128fv%20rev.l%2008242015.pdf
     {0xEF4018, 256, 256},
