@@ -123,8 +123,8 @@ check_file_for_pg_changes() {
                 echo "    ⚠️  Struct definition modified in $struct_found_in"
 
                 # Check if version was incremented in PG_REGISTER
-                local old_version=$(echo "$diff_output" | grep "^-.*PG_REGISTER.*$struct_type" | grep -oP ',\s*\K\d+(?=\s*\))' || echo "")
-                local new_version=$(echo "$diff_output" | grep "^+.*PG_REGISTER.*$struct_type" | grep -oP ',\s*\K\d+(?=\s*\))' || echo "")
+                local old_version=$(echo "$diff_output" | grep "^-.*PG_REGISTER.*$struct_type" | sed -nE 's/.*,[[:space:]]*([0-9]+)[[:space:]]*\).*/\1/p' || echo "")
+                local new_version=$(echo "$diff_output" | grep "^+.*PG_REGISTER.*$struct_type" | sed -nE 's/.*,[[:space:]]*([0-9]+)[[:space:]]*\).*/\1/p' || echo "")
 
                 # Find line number of PG_REGISTER for error reporting
                 local line_num=$(git show $HEAD_COMMIT:"$file" | grep -n "PG_REGISTER.*$struct_type" | cut -d: -f1 | head -1)
