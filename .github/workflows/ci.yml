@@ -15,6 +15,7 @@ on:
       - 'docs/Settings.md'
       - 'CMakeLists.txt'
       - '*.sh'
+   workflow_dispatch:
 
   workflow_call:
     #inputs:
