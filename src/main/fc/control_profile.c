@@ -91,6 +91,16 @@ void setControlProfile(uint8_t profileIndex)
     currentControlProfile = controlProfiles(profileIndex);
 }
 
+uint8_t getCurrentControlProfile(void)
+{
+    for (uint8_t profileIndex = 0; profileIndex < MAX_CONTROL_PROFILE_COUNT; profileIndex++) {
+        if (currentControlProfile == controlProfiles(profileIndex)) {
+            return profileIndex;
+        }
+    }
+    return 0;
+}
+
 void activateControlConfig(void)
 {
     generateThrottleCurve(currentControlProfile);
