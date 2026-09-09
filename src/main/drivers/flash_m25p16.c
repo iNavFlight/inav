@@ -90,6 +90,8 @@ struct {
     // Datasheet: https://www.winbond.com/resource-files/w25q64jv%20spi%20%20%20revc%2006032016%20kms.pdf
     {0xEF4017, 128, 256}, // W25Q64JV-IQ/JQ
     {0xEF7017, 128, 256}, // W25Q64JV-IM/JM*
+    // Boya BY25Q64: 128 x 64 KiB blocks, 256-byte pages.
+    {0x684017, 128, 256},
     // Winbond W25Q128
     // Datasheet: https://www.winbond.com/resource-files/w25q128fv%20rev.l%2008242015.pdf
     {0xEF4018, 256, 256},
