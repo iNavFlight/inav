@@ -5491,7 +5491,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5502,7 +5502,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6074,7 +6074,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.h
+> Source: ../../../src/main/fc/fc_init.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6088,7 +6088,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.c
+> Source: ../../../src/main/fc/fc_init.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|

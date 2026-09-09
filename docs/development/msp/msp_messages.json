@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 0
+        "patch": 1
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -4935,7 +4935,7 @@
             "request": null,
             "reply": null,
             "name": "MSP_OSD_VIDEO_CONFIG",
-            "missing": true
+            "not_implemented": true
         },
         "MSP_SET_OSD_VIDEO_CONFIG": {
             "code": 181,
@@ -4943,15 +4943,34 @@
             "request": null,
             "reply": null,
             "name": "MSP_SET_OSD_VIDEO_CONFIG",
-            "missing": true
+            "not_implemented": true
         },
         "MSP_DISPLAYPORT": {
             "code": 182,
             "mspv": 1,
             "request": null,
-            "reply": null,
-            "name": "MSP_DISPLAYPORT",
-            "missing": true
+            "reply": {
+                "payload": [
+                    {
+                        "name": "subCommand",
+                        "ctype": "uint8_t",
+                        "desc": "DisplayPort sub-command (`displayportMspCommand_e` in `io/displayport_msp.h`)",
+                        "units": "",
+                        "enum": "displayportMspCommand_e"
+                    },
+                    {
+                        "name": "subCommandData",
+                        "ctype": "uint8_t",
+                        "desc": "Sub-command payload. Empty for `MSP_DP_HEARTBEAT`, `MSP_DP_RELEASE`, `MSP_DP_CLEAR_SCREEN` and `MSP_DP_DRAW_SCREEN`. For `MSP_DP_WRITE_STRING`: row, column, attributes (font page in bits 0-1, blink in bit 3), then the character bytes.",
+                        "units": "",
+                        "array": true,
+                        "array_size": 0
+                    }
+                ]
+            },
+            "variable_len": true,
+            "notes": "Requires an MSP DisplayPort OSD device. Sub-commands are emitted by `io/displayport_msp_osd.c`; `MSP_DP_OPTIONS` is reserved and unused by INAV.",
+            "description": "Drives an external MSP DisplayPort OSD (DJI, HDZero, Walksnail). Sent by the flight controller to the display device rather than requested from it, so it carries a reply payload with no request and expects no response."
         },
         "MSP_SET_TX_INFO": {
             "code": 186,
@@ -5800,7 +5819,7 @@
             "request": null,
             "reply": null,
             "name": "MSP_RESERVE_1",
-            "missing": true
+            "not_implemented": true
         },
         "MSP_RESERVE_2": {
             "code": 252,
@@ -5808,7 +5827,7 @@
             "request": null,
             "reply": null,
             "name": "MSP_RESERVE_2",
-            "missing": true
+            "not_implemented": true
         },
         "MSP_DEBUGMSG": {
             "code": 253,
@@ -6777,17 +6796,40 @@
             "request": {
                 "payload": [
                     {
-                        "name": "...",
-                        "ctype": "Varies",
-                        "desc": "",
-                        "polymorph": true,
-                        "units": "Head tracker angles (e.g., int16 Roll, Pitch, Yaw in deci-degrees)"
+                        "name": "version",
+                        "ctype": "uint8_t",
+                        "desc": "Message version. Currently 0.",
+                        "units": ""
+                    },
+                    {
+                        "name": "pan",
+                        "ctype": "int16_t",
+                        "desc": "-2048~2047. Scale is min/max angle for gimbal",
+                        "units": ""
+                    },
+                    {
+                        "name": "tilt",
+                        "ctype": "int16_t",
+                        "desc": "-2048~2047. Scale is min/max angle for gimbal",
+                        "units": ""
+                    },
+                    {
+                        "name": "roll",
+                        "ctype": "int16_t",
+                        "desc": "-2048~2047. Scale is min/max angle for gimbal",
+                        "units": ""
+                    },
+                    {
+                        "name": "sensitivity",
+                        "ctype": "int16_t",
+                        "desc": "-16~15. Scale is min/max angle for gimbal",
+                        "units": ""
                     }
                 ]
             },
             "reply": null,
-            "variable_len": true,
-            "notes": "Requires `USE_HEADTRACKER` and `USE_HEADTRACKER_MSP`. Calls `mspHeadTrackerReceiverNewData()`. Payload structure needs verification from `mspHeadTrackerReceiverNewData` implementation.",
+            "variable_len": false,
+            "notes": "Requires `USE_HEADTRACKER` and `USE_HEADTRACKER_MSP`. Calls `mspHeadTrackerReceiverNewData()`, which rejects any payload whose size is not exactly `sizeof(headtrackerMspMessage_t)` (9 bytes). Layout matches `headtrackerMspMessage_t` in `io/headtracker_msp.h`. `pan`, `tilt` and `roll` are constrained to `HEADTRACKER_RANGE_MIN`..`HEADTRACKER_RANGE_MAX` on receipt.",
             "description": "Provides head tracker orientation data."
         },
         "MSP2_INAV_STATUS": {
@@ -9772,6 +9814,29 @@
             "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Used by `mspFcLogicConditionCommand`.",
             "description": "Gets the configuration for a single Logic Condition by its index."
         },
+        "MSP2_INAV_LOGIC_CONDITIONS_CONFIGURED": {
+            "code": 8252,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "configuredMaskLow",
+                        "ctype": "uint32_t",
+                        "desc": "Bits 0-31 of the bitmask. Bit N is set when logic condition N differs from its default values.",
+                        "units": "Bitmask"
+                    },
+                    {
+                        "name": "configuredMaskHigh",
+                        "ctype": "uint32_t",
+                        "desc": "Bits 32-63 of the bitmask. Always 0 on targets where `MAX_LOGIC_CONDITIONS` is 32 or fewer.",
+                        "units": "Bitmask"
+                    }
+                ]
+            },
+            "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Fixed 8-byte reply carrying one 64-bit mask as two `uint32_t` halves, low half first. Only the first `MIN(MAX_LOGIC_CONDITIONS, 64)` bits are evaluated. A condition counts as configured when any of `enabled`, `activatorId` (default -1), `operation`, `operandA.type`, `operandA.value`, `operandB.type`, `operandB.value` or `flags` differs from its default.",
+            "description": "Returns a bitmask of which logic conditions are configured, so a client can fetch only the used slots instead of all of them."
+        },
         "MSP2_INAV_ESC_RPM": {
             "code": 8256,
             "mspv": 2,
@@ -9830,42 +9895,45 @@
                         "units": ""
                     },
                     {
-                        "name": "nodeID",
-                        "ctype": "uint8_t",
-                        "desc": "[per node] DroneCAN node ID (1-127)",
-                        "units": "",
-                        "array": true,
-                        "array_size": 0
-                    },
-                    {
-                        "name": "health",
-                        "ctype": "uint8_t",
-                        "desc": "[per node] Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL",
-                        "units": ""
-                    },
-                    {
-                        "name": "mode",
-                        "ctype": "uint8_t",
-                        "desc": "[per node] Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE",
-                        "units": ""
-                    },
-                    {
-                        "name": "last_seen_ms",
-                        "ctype": "uint32_t",
-                        "desc": "[per node] Milliseconds since this node was last seen (FC-local timestamp delta)",
-                        "units": "ms"
-                    },
-                    {
-                        "name": "uptime_sec",
-                        "ctype": "uint32_t",
-                        "desc": "[per node] Node uptime in seconds (from NodeStatus broadcast)",
-                        "units": "s"
-                    },
-                    {
-                        "name": "vendor_status_code",
-                        "ctype": "uint16_t",
-                        "desc": "[per node] Vendor-specific status code",
-                        "units": ""
+                        "repeating": "nodeCount",
+                        "payload": [
+                            {
+                                "name": "nodeID",
+                                "ctype": "uint8_t",
+                                "desc": "DroneCAN node ID (1-127)",
+                                "units": ""
+                            },
+                            {
+                                "name": "health",
+                                "ctype": "uint8_t",
+                                "desc": "Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL",
+                                "units": ""
+                            },
+                            {
+                                "name": "mode",
+                                "ctype": "uint8_t",
+                                "desc": "Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE",
+                                "units": ""
+                            },
+                            {
+                                "name": "last_seen_ms",
+                                "ctype": "uint32_t",
+                                "desc": "Milliseconds since this node was last seen (FC-local timestamp delta)",
+                                "units": "ms"
+                            },
+                            {
+                                "name": "uptime_sec",
+                                "ctype": "uint32_t",
+                                "desc": "Node uptime in seconds (from NodeStatus broadcast)",
+                                "units": "s"
+                            },
+                            {
+                                "name": "vendor_status_code",
+                                "ctype": "uint16_t",
+                                "desc": "Vendor-specific status code",
+                                "units": ""
+                            }
+                        ]
                     }
                 ]
             },
@@ -9957,14 +10025,14 @@
                     {
                         "name": "ledConfig",
                         "ctype": "ledConfig_t",
-                        "desc": "Raw `ledConfig_t` structure (6 bytes) holding position, function, overlay, color, direction, and params bitfields (`io/ledstrip.h`).",
+                        "desc": "Raw `ledConfig_t` structure (5 bytes) holding position, function, overlay, color, direction, and params bitfields (`io/ledstrip.h`).",
                         "units": ""
                     }
                 ],
                 "repeating": "LED_MAX_STRIP_LENGTH"
             },
             "variable_len": "LED_MAX_STRIP_LENGTH",
-            "notes": "Requires `USE_LED_STRIP`. See `ledConfig_t` in `io/ledstrip.h` for structure fields (position, function, overlay, color, direction, params).",
+            "notes": "Requires `USE_LED_STRIP`. See `ledConfig_t` in `io/ledstrip.h` for structure fields (position, function, overlay, color, direction, params). `ledConfig_t` is a packed bitfield struct of 40 bits = 5 bytes (led_position:8, led_function:8, led_overlay:8, led_color:4, led_direction:6, led_params:6); the reply is `LED_MAX_STRIP_LENGTH` consecutive 5-byte records.",
             "description": "Retrieves the full configuration for each LED on the strip using the `ledConfig_t` structure. Supersedes `MSP_LED_STRIP_CONFIG`."
         },
         "MSP2_INAV_SET_LED_STRIP_CONFIG_EX": {
@@ -10479,6 +10547,58 @@
             "notes": "Requires `USE_ADSB`. Only a subset of `adsbVehicle_t` is transmitted (callsign, core values, heading in whole degrees, TSLC, emitter type, TTL).",
             "description": "Retrieves the list of currently tracked ADSB (Automatic Dependent Surveillance–Broadcast) vehicles. See `adsbVehicle_t` and `adsbVehicleValues_t` in `io/adsb.h` for the exact structure fields."
         },
+        "MSP2_ADSB_LIMITS": {
+            "code": 8337,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "distanceWarning",
+                        "ctype": "uint16_t",
+                        "desc": "`osdConfig()->adsb_distance_warning` (setting `osd_adsb_distance_warning`). Distance within which an ADSB vehicle is displayed.",
+                        "units": "m"
+                    },
+                    {
+                        "name": "distanceAlert",
+                        "ctype": "uint16_t",
+                        "desc": "`osdConfig()->adsb_distance_alert` (setting `osd_adsb_distance_alert`). Distance inside which ADSB data flashes as a proximity warning.",
+                        "units": "m"
+                    },
+                    {
+                        "name": "ignorePlaneAboveMeLimit",
+                        "ctype": "uint16_t",
+                        "desc": "`osdConfig()->adsb_ignore_plane_above_me_limit` (setting `osd_adsb_ignore_plane_above_me_limit`). Vehicles higher than this above the craft are ignored; 0 disables the limit.",
+                        "units": "m"
+                    }
+                ]
+            },
+            "notes": "Requires `USE_ADSB`; all three fields are 0 when it is not compiled in.",
+            "description": "Retrieves the configured ADSB proximity distance limits used for OSD warnings and alerts."
+        },
+        "MSP2_ADSB_WARNING_VEHICLE_ICAO": {
+            "code": 8338,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "icao",
+                        "ctype": "uint32_t",
+                        "desc": "ICAO address of the vehicle currently triggering an alert or warning; 0 when none applies.",
+                        "units": ""
+                    },
+                    {
+                        "name": "isAlert",
+                        "ctype": "uint8_t",
+                        "desc": "1 when the vehicle matched the alert distance, 0 when it matched only the warning distance or when `icao` is 0.",
+                        "units": "Boolean"
+                    }
+                ]
+            },
+            "notes": "Requires `USE_ADSB`. Alert takes priority: `findVehicleForAlert()` is tried first using `osd_adsb_distance_alert`, then `findVehicleForWarning()` using `osd_adsb_distance_warning`, both bounded by `osd_adsb_ignore_plane_above_me_limit`. Replies 0/0 when `USE_ADSB` is not compiled in, when `isEnvironmentOkForCalculatingADSBDistanceBearing()` is false, or when no vehicle matches.",
+            "description": "Returns the ICAO address of the ADSB vehicle currently triggering a proximity warning or alert."
+        },
         "MSP2_ADSB_VEHICLE": {
             "code": 8339,
             "mspv": 2,
@@ -10773,6 +10893,164 @@
             "variable_len": "for each Motor/Servo timer",
             "notes": "Provides complete usage flags and helps identify pins repurposed for functions like LED strip.",
             "description": "Retrieves the full extended output mapping configuration (timer ID, full 32-bit usage flags, and pin label). Supersedes `MSP2_INAV_OUTPUT_MAPPING_EXT`."
+        },
+        "MSP2_INAV_OUTPUT_ASSIGNMENT": {
+            "code": 8462,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "repeating": "maxTimMotorCount + maxTimServoCount + beeperCount",
+                        "payload": [
+                            {
+                                "name": "outputIndex",
+                                "ctype": "uint8_t",
+                                "desc": "Index into the target's `timerHardware[]` array for this output.",
+                                "units": "Index"
+                            },
+                            {
+                                "name": "usageType",
+                                "ctype": "uint8_t",
+                                "desc": "Bit index of the `TIM_USE_*` flag, not the flag value itself: 2 = `TIM_USE_MOTOR`, 3 = `TIM_USE_SERVO`, 25 = `TIM_USE_BEEPER`. Derived in the firmware with `__builtin_ctz(TIM_USE_x)` and matching the `TIM_USE_*` constants in the configurator's `outputMapping.js`.",
+                                "units": ""
+                            },
+                            {
+                                "name": "functionIndex",
+                                "ctype": "uint8_t",
+                                "desc": "1-based ordinal within the usage type: motor 1..n, servo 1..n. Always 1 for the beeper entry.",
+                                "units": "Index"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "variable_len": true,
+            "notes": "Not available on SITL builds (`#ifndef SITL_BUILD`). The reply is 3 bytes per assigned output with no leading count field: motors first (`maxTimMotorCount`), then servos (`maxTimServoCount`), then at most one beeper record, emitted only when some timer override is set to `OUTPUT_MODE_BEEPER`. Reads the assignment finalized at boot via `pwmGetOutputAssignment()`.",
+            "description": "Returns the finalized post-boot mapping of timer outputs to motors, servos and the beeper."
+        },
+        "MSP2_INAV_QUERY_OUTPUT_ASSIGNMENT": {
+            "code": 8463,
+            "mspv": 2,
+            "request": null,
+            "reply": null,
+            "variable_len": true,
+            "notes": "Not available on SITL builds (`#ifndef SITL_BUILD`). Nothing is written to the configuration: `pwmCalculateAssignment()` is run against a proposed override array so a client can preview the effect of timer overrides before committing them with `MSP2_INAV_SET_TIMER_OUTPUT_MODE`. The reply has the same 3-byte record layout as `MSP2_INAV_OUTPUT_ASSIGNMENT`. Returns `MSP_RESULT_ERROR` if `timerCount` exceeds `HARDWARE_TIMER_DEFINITION_COUNT` or if the remaining request bytes are not exactly `timerCount * 2`. Pairs whose `timerId` is out of range are ignored rather than rejected.",
+            "description": "Previews the output assignment that would result from a proposed set of timer output-mode overrides, without applying them.",
+            "variants": {
+                "dataSize == 0": {
+                    "description": "Preview using the currently stored timer overrides",
+                    "request": null,
+                    "reply": {
+                        "payload": [
+                            {
+                                "repeating": "maxTimMotorCount + maxTimServoCount + beeperCount",
+                                "payload": [
+                                    {
+                                        "name": "outputIndex",
+                                        "ctype": "uint8_t",
+                                        "desc": "Index into the target's `timerHardware[]` array for this output.",
+                                        "units": "Index"
+                                    },
+                                    {
+                                        "name": "usageType",
+                                        "ctype": "uint8_t",
+                                        "desc": "Bit index of the `TIM_USE_*` flag, not the flag value itself: 2 = `TIM_USE_MOTOR`, 3 = `TIM_USE_SERVO`, 25 = `TIM_USE_BEEPER`. Derived in the firmware with `__builtin_ctz(TIM_USE_x)` and matching the `TIM_USE_*` constants in the configurator's `outputMapping.js`.",
+                                        "units": ""
+                                    },
+                                    {
+                                        "name": "functionIndex",
+                                        "ctype": "uint8_t",
+                                        "desc": "1-based ordinal within the usage type: motor 1..n, servo 1..n. Always 1 for the beeper entry.",
+                                        "units": "Index"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "dataSize >= 1": {
+                    "description": "Preview using proposed overrides layered over the stored ones",
+                    "request": {
+                        "payload": [
+                            {
+                                "name": "timerCount",
+                                "ctype": "uint8_t",
+                                "desc": "Number of override pairs that follow. Must be <= `HARDWARE_TIMER_DEFINITION_COUNT`.",
+                                "units": ""
+                            },
+                            {
+                                "repeating": "timerCount",
+                                "payload": [
+                                    {
+                                        "name": "timerId",
+                                        "ctype": "uint8_t",
+                                        "desc": "Hardware timer index (0 to `HARDWARE_TIMER_DEFINITION_COUNT - 1`). Out-of-range values are silently skipped.",
+                                        "units": "Index"
+                                    },
+                                    {
+                                        "name": "outputMode",
+                                        "ctype": "uint8_t",
+                                        "desc": "Proposed output mode override (`outputMode_e`) for that timer",
+                                        "units": "",
+                                        "enum": "outputMode_e"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "reply": {
+                        "payload": [
+                            {
+                                "repeating": "maxTimMotorCount + maxTimServoCount + beeperCount",
+                                "payload": [
+                                    {
+                                        "name": "outputIndex",
+                                        "ctype": "uint8_t",
+                                        "desc": "Index into the target's `timerHardware[]` array for this output.",
+                                        "units": "Index"
+                                    },
+                                    {
+                                        "name": "usageType",
+                                        "ctype": "uint8_t",
+                                        "desc": "Bit index of the `TIM_USE_*` flag, not the flag value itself: 2 = `TIM_USE_MOTOR`, 3 = `TIM_USE_SERVO`, 25 = `TIM_USE_BEEPER`. Derived in the firmware with `__builtin_ctz(TIM_USE_x)` and matching the `TIM_USE_*` constants in the configurator's `outputMapping.js`.",
+                                        "units": ""
+                                    },
+                                    {
+                                        "name": "functionIndex",
+                                        "ctype": "uint8_t",
+                                        "desc": "1-based ordinal within the usage type: motor 1..n, servo 1..n. Always 1 for the beeper entry.",
+                                        "units": "Index"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "MSP2_INAV_OSD_UPDATE_POSITION": {
+            "code": 8472,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "itemIndex",
+                        "ctype": "uint8_t",
+                        "desc": "OSD item index (0 to `OSD_ITEM_COUNT - 1`)",
+                        "units": "Index"
+                    },
+                    {
+                        "name": "itemPosition",
+                        "ctype": "uint16_t",
+                        "desc": "Packed X/Y position built with `OSD_POS(x, y)`. The firmware ORs in `OSD_VISIBLE_FLAG` (0x2000), so the item is always made visible regardless of the bit supplied.",
+                        "units": "Coordinates"
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_OSD`. Expects 3 bytes; returns `MSP_RESULT_ERROR` if fewer are supplied or if `itemIndex >= OSD_ITEM_COUNT`, otherwise `MSP_RESULT_ACK`. Writes to the currently active layout (`getCurrentLayout()`) and takes no layout argument; use `MSP2_INAV_OSD_SET_LAYOUT_ITEM` to address a specific layout. Erases the item at its old position and redraws it immediately rather than triggering a full OSD redraw; the erase step only clears custom elements (items 147-149 and 154-158), so moving other item types can leave the old glyphs on screen until the next full redraw.",
+            "description": "Moves a single OSD item within the active layout and redraws it immediately."
         },
         "MSP2_INAV_SERVO_CONFIG": {
             "code": 8704,
@@ -11366,7 +11644,8 @@
                         "name": "loiterRadius",
                         "ctype": "int32_t",
                         "desc": "Optional temporary fixed-wing PosHold loiter radius override. Appended field; omit to leave unchanged. `0` clears the override and uses `navConfig()->fw.loiter_radius`.",
-                        "units": "cm"
+                        "units": "cm",
+                        "optional": true
                     }
                 ]
             },

@@ -48,6 +48,7 @@
 ## Message fields:
 **name**: MSP message name\
 **code**: Integer message code\
+**mspv**: MSP protocol version carrying the message: `1` for MSPv1 (codes 0-254), `2` for MSPv2 (codes from 0x1000)\
 **description**: String with description of message\
 **request**: null or dict of data sent\
 **reply**: null or dict of data received\
@@ -67,13 +68,16 @@
 **ctype**: Base C type of the value. Arrays list their element type here as well\
 **desc**: Optional string with description and details of field\
 **units**: Optional defined units\
-**enum**: Optional string of enum struct if value is an enum
+**enum**: Optional string of enum struct if value is an enum\
 **array**: Optional boolean to denote field is array of more values\
 **array_size**: If array, integer count of elements. Use `0` when the length is indeterminate/variable\
 **array_size_define**: Optional string naming the source `#define` that provides the size (informational only)\
 **repeating**: Optional Special case, contains array of more payload fields that are added Times * Key\
 **payload**: If repeating, contains more payload fields\
-**polymorph**: Optional boolean special case, field does not have a defined C type and could be anything
+**polymorph**: Optional boolean special case, field does not have a defined C type and could be anything\
+**bitmask**: Optional boolean, value is a bit field rather than a scalar\
+**value**: Optional fixed value the field always carries, such as legacy padding that is always `0`\
+**optional**: Optional boolean, trailing field that may be omitted. The firmware accepts the shorter payload and substitutes a default; see the field `desc` for that default
 
 **Simple value**
 ```

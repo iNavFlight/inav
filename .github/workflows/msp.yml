@@ -1,0 +1,39 @@
+name: MSP consistency
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  msp-consistency:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Check MSP C/spec consistency
+        run: python3 docs/development/msp/check_msp.py
+
+      - name: Regenerate MSP documentation
+        working-directory: docs/development/msp
+        run: bash gen_docs.sh
+
+      - name: Check generated MSP files
+        run: |
+          if ! git diff --exit-code -- \
+            docs/development/msp/README.md \
+            docs/development/msp/inav_enums.json \
+            docs/development/msp/inav_enums_ref.md
+          then
+            echo "::error::MSP generated files are stale. Run: cd docs/development/msp && ./gen_docs.sh"
+            exit 1
+          fi

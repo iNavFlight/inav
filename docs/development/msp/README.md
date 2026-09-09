@@ -87,6 +87,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 ## Message fields:
 **name**: MSP message name\
 **code**: Integer message code\
+**mspv**: MSP protocol version carrying the message: `1` for MSPv1 (codes 0-254), `2` for MSPv2 (codes from 0x1000)\
 **description**: String with description of message\
 **request**: null or dict of data sent\
 **reply**: null or dict of data received\
@@ -106,13 +107,16 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **ctype**: Base C type of the value. Arrays list their element type here as well\
 **desc**: Optional string with description and details of field\
 **units**: Optional defined units\
-**enum**: Optional string of enum struct if value is an enum
+**enum**: Optional string of enum struct if value is an enum\
 **array**: Optional boolean to denote field is array of more values\
 **array_size**: If array, integer count of elements. Use `0` when the length is indeterminate/variable\
 **array_size_define**: Optional string naming the source `#define` that provides the size (informational only)\
 **repeating**: Optional Special case, contains array of more payload fields that are added Times * Key\
 **payload**: If repeating, contains more payload fields\
-**polymorph**: Optional boolean special case, field does not have a defined C type and could be anything
+**polymorph**: Optional boolean special case, field does not have a defined C type and could be anything\
+**bitmask**: Optional boolean, value is a bit field rather than a scalar\
+**value**: Optional fixed value the field always carries, such as legacy padding that is always `0`\
+**optional**: Optional boolean, trailing field that may be omitted. The firmware accepts the shorter payload and substitutes a default; see the field `desc` for that default
 
 **Simple value**
 ```
@@ -415,6 +419,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8249 - MSP2_INAV_SET_SAFEHOME](#msp2_inav_set_safehome)  
 [8250 - MSP2_INAV_MISC2](#msp2_inav_misc2)  
 [8251 - MSP2_INAV_LOGIC_CONDITIONS_SINGLE](#msp2_inav_logic_conditions_single)  
+[8252 - MSP2_INAV_LOGIC_CONDITIONS_CONFIGURED](#msp2_inav_logic_conditions_configured)  
 [8256 - MSP2_INAV_ESC_RPM](#msp2_inav_esc_rpm)  
 [8257 - MSP2_INAV_ESC_TELEM](#msp2_inav_esc_telem)  
 [8258 - MSP2_INAV_DRONECAN_NODES](#msp2_inav_dronecan_nodes)  
@@ -431,6 +436,8 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8305 - MSP2_INAV_EZ_TUNE_SET](#msp2_inav_ez_tune_set)  
 [8320 - MSP2_INAV_SELECT_MIXER_PROFILE](#msp2_inav_select_mixer_profile)  
 [8336 - MSP2_ADSB_VEHICLE_LIST](#msp2_adsb_vehicle_list)  
+[8337 - MSP2_ADSB_LIMITS](#msp2_adsb_limits)  
+[8338 - MSP2_ADSB_WARNING_VEHICLE_ICAO](#msp2_adsb_warning_vehicle_icao)  
 [8339 - MSP2_ADSB_VEHICLE](#msp2_adsb_vehicle)  
 [8340 - MSP2_ADSB_VEHICLE_COUNT](#msp2_adsb_vehicle_count)  
 [8448 - MSP2_INAV_CUSTOM_OSD_ELEMENTS](#msp2_inav_custom_osd_elements)  
@@ -438,6 +445,9 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8450 - MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS](#msp2_inav_set_custom_osd_elements)  
 [8451 - MSP2_INAV_GET_LINK_STATS](#msp2_inav_get_link_stats)  
 [8461 - MSP2_INAV_OUTPUT_MAPPING_EXT2](#msp2_inav_output_mapping_ext2)  
+[8462 - MSP2_INAV_OUTPUT_ASSIGNMENT](#msp2_inav_output_assignment)  
+[8463 - MSP2_INAV_QUERY_OUTPUT_ASSIGNMENT](#msp2_inav_query_output_assignment)  
+[8472 - MSP2_INAV_OSD_UPDATE_POSITION](#msp2_inav_osd_update_position)  
 [8704 - MSP2_INAV_SERVO_CONFIG](#msp2_inav_servo_config)  
 [8705 - MSP2_INAV_SET_SERVO_CONFIG](#msp2_inav_set_servo_config)  
 [8720 - MSP2_INAV_GEOZONE](#msp2_inav_geozone)  
@@ -2339,10 +2349,17 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 ## <a id="msp_displayport"></a>`MSP_DISPLAYPORT (182 / 0xb6)`
+**Description:** Drives an external MSP DisplayPort OSD (DJI, HDZero, Walksnail). Sent by the flight controller to the display device rather than requested from it, so it carries a reply payload with no request and expects no response.  
 
 **Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `subCommand` | `uint8_t` | 1 | [displayportMspCommand_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-displayportmspcommand_e) | DisplayPort sub-command (`displayportMspCommand_e` in `io/displayport_msp.h`) |
+| `subCommandData` | `uint8_t[]` | array | - | Sub-command payload. Empty for `MSP_DP_HEARTBEAT`, `MSP_DP_RELEASE`, `MSP_DP_CLEAR_SCREEN` and `MSP_DP_DRAW_SCREEN`. For `MSP_DP_WRITE_STRING`: row, column, attributes (font page in bits 0-1, blink in bit 3), then the character bytes. |
 
-**Reply Payload:** **None**  
+**Notes:** Requires an MSP DisplayPort OSD device. Sub-commands are emitted by `io/displayport_msp_osd.c`; `MSP_DP_OPTIONS` is reserved and unused by INAV.
 
 ## <a id="msp_set_tx_info"></a>`MSP_SET_TX_INFO (186 / 0xba)`
 **Description:** Allows a transmitter LUA script (or similar) to send runtime information (currently only RSSI) to the firmware.  
@@ -3131,13 +3148,17 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Description:** Provides head tracker orientation data.  
   
 **Request Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `...` | `Varies` | - | Head tracker angles (e.g., int16 Roll, Pitch, Yaw in deci-degrees) |  |
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `version` | `uint8_t` | 1 | Message version. Currently 0. |
+| `pan` | `int16_t` | 2 | -2048~2047. Scale is min/max angle for gimbal |
+| `tilt` | `int16_t` | 2 | -2048~2047. Scale is min/max angle for gimbal |
+| `roll` | `int16_t` | 2 | -2048~2047. Scale is min/max angle for gimbal |
+| `sensitivity` | `int16_t` | 2 | -16~15. Scale is min/max angle for gimbal |
 
 **Reply Payload:** **None**  
 
-**Notes:** Requires `USE_HEADTRACKER` and `USE_HEADTRACKER_MSP`. Calls `mspHeadTrackerReceiverNewData()`. Payload structure needs verification from `mspHeadTrackerReceiverNewData` implementation.
+**Notes:** Requires `USE_HEADTRACKER` and `USE_HEADTRACKER_MSP`. Calls `mspHeadTrackerReceiverNewData()`, which rejects any payload whose size is not exactly `sizeof(headtrackerMspMessage_t)` (9 bytes). Layout matches `headtrackerMspMessage_t` in `io/headtracker_msp.h`. `pan`, `tilt` and `roll` are constrained to `HEADTRACKER_RANGE_MIN`..`HEADTRACKER_RANGE_MAX` on receipt.
 
 ## <a id="msp2_inav_status"></a>`MSP2_INAV_STATUS (8192 / 0x2000)`
 **Description:** Provides comprehensive flight controller status, extending `MSP_STATUS_EX` with full arming flags, battery profile, and mixer profile.  
@@ -4142,6 +4163,19 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Used by `mspFcLogicConditionCommand`.
 
+## <a id="msp2_inav_logic_conditions_configured"></a>`MSP2_INAV_LOGIC_CONDITIONS_CONFIGURED (8252 / 0x203c)`
+**Description:** Returns a bitmask of which logic conditions are configured, so a client can fetch only the used slots instead of all of them.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `configuredMaskLow` | `uint32_t` | 4 | Bitmask | Bits 0-31 of the bitmask. Bit N is set when logic condition N differs from its default values. |
+| `configuredMaskHigh` | `uint32_t` | 4 | Bitmask | Bits 32-63 of the bitmask. Always 0 on targets where `MAX_LOGIC_CONDITIONS` is 32 or fewer. |
+
+**Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Fixed 8-byte reply carrying one 64-bit mask as two `uint32_t` halves, low half first. Only the first `MIN(MAX_LOGIC_CONDITIONS, 64)` bits are evaluated. A condition counts as configured when any of `enabled`, `activatorId` (default -1), `operation`, `operandA.type`, `operandA.value`, `operandB.type`, `operandB.value` or `flags` differs from its default.
+
 ## <a id="msp2_inav_esc_rpm"></a>`MSP2_INAV_ESC_RPM (8256 / 0x2040)`
 **Description:** Retrieves the RPM reported by each ESC via telemetry.  
 
@@ -4173,15 +4207,15 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Request Payload:** **None**  
   
 **Reply Payload:**
-|Field|C Type|Size (Bytes)|Units|Description|
-|---|---|---|---|---|
-| `nodeCount` | `uint8_t` | 1 | - | Number of detected DroneCAN nodes |
-| `nodeID` | `uint8_t[]` | array | - | [per node] DroneCAN node ID (1-127) |
-| `health` | `uint8_t` | 1 | - | [per node] Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL |
-| `mode` | `uint8_t` | 1 | - | [per node] Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE |
-| `last_seen_ms` | `uint32_t` | 4 | ms | [per node] Milliseconds since this node was last seen (FC-local timestamp delta) |
-| `uptime_sec` | `uint32_t` | 4 | s | [per node] Node uptime in seconds (from NodeStatus broadcast) |
-| `vendor_status_code` | `uint16_t` | 2 | - | [per node] Vendor-specific status code |
+|Field|C Type|Repeats|Size (Bytes)|Units|Description|
+|---|---|---|---|---|---|
+| `nodeCount` | `uint8_t` | - | 1 | - | Number of detected DroneCAN nodes |
+| `nodeID` | `uint8_t` | nodeCount | 1 | - | DroneCAN node ID (1-127) |
+| `health` | `uint8_t` | nodeCount | 1 | - | Node health: 0=OK, 1=WARNING, 2=ERROR, 3=CRITICAL |
+| `mode` | `uint8_t` | nodeCount | 1 | - | Node mode: 0=OPERATIONAL, 1=INITIALIZATION, 2=MAINTENANCE, 3=SOFTWARE_UPDATE, 7=OFFLINE |
+| `last_seen_ms` | `uint32_t` | nodeCount | 4 | ms | Milliseconds since this node was last seen (FC-local timestamp delta) |
+| `uptime_sec` | `uint32_t` | nodeCount | 4 | s | Node uptime in seconds (from NodeStatus broadcast) |
+| `vendor_status_code` | `uint16_t` | nodeCount | 2 | - | Vendor-specific status code |
 
 **Notes:** Requires `USE_DRONECAN`. Response is `nodeCount` followed by `nodeCount` records of 13 bytes each: nodeID(1)+health(1)+mode(1)+last_seen_ms(4)+uptime_sec(4)+vendor_status_code(2). Maximum payload 1 + (DRONECAN_MAX_NODES * 13) = 417 bytes. For full node detail (name, SW/HW version, unique ID) use MSP2_INAV_DRONECAN_ASYNC_REQUEST with service_id=DRONECAN_SERVICE_GETNODEINFO(1).
 
@@ -4225,9 +4259,9 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:**
 |Field|C Type|Size (Bytes)|Description|
 |---|---|---|---|
-| `ledConfig` | `ledConfig_t` | - | Raw `ledConfig_t` structure (6 bytes) holding position, function, overlay, color, direction, and params bitfields (`io/ledstrip.h`). |
+| `ledConfig` | `ledConfig_t` | - | Raw `ledConfig_t` structure (5 bytes) holding position, function, overlay, color, direction, and params bitfields (`io/ledstrip.h`). |
 
-**Notes:** Requires `USE_LED_STRIP`. See `ledConfig_t` in `io/ledstrip.h` for structure fields (position, function, overlay, color, direction, params).
+**Notes:** Requires `USE_LED_STRIP`. See `ledConfig_t` in `io/ledstrip.h` for structure fields (position, function, overlay, color, direction, params). `ledConfig_t` is a packed bitfield struct of 40 bits = 5 bytes (led_position:8, led_function:8, led_overlay:8, led_color:4, led_direction:6, led_params:6); the reply is `LED_MAX_STRIP_LENGTH` consecutive 5-byte records.
 
 ## <a id="msp2_inav_set_led_strip_config_ex"></a>`MSP2_INAV_SET_LED_STRIP_CONFIG_EX (8265 / 0x2049)`
 **Description:** Sets the configuration for a single LED on the strip using the `ledConfig_t` structure. Supersedes `MSP_SET_LED_STRIP_CONFIG`.  
@@ -4405,6 +4439,33 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Notes:** Requires `USE_ADSB`. Only a subset of `adsbVehicle_t` is transmitted (callsign, core values, heading in whole degrees, TSLC, emitter type, TTL).
 
+## <a id="msp2_adsb_limits"></a>`MSP2_ADSB_LIMITS (8337 / 0x2091)`
+**Description:** Retrieves the configured ADSB proximity distance limits used for OSD warnings and alerts.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `distanceWarning` | `uint16_t` | 2 | m | `osdConfig()->adsb_distance_warning` (setting `osd_adsb_distance_warning`). Distance within which an ADSB vehicle is displayed. |
+| `distanceAlert` | `uint16_t` | 2 | m | `osdConfig()->adsb_distance_alert` (setting `osd_adsb_distance_alert`). Distance inside which ADSB data flashes as a proximity warning. |
+| `ignorePlaneAboveMeLimit` | `uint16_t` | 2 | m | `osdConfig()->adsb_ignore_plane_above_me_limit` (setting `osd_adsb_ignore_plane_above_me_limit`). Vehicles higher than this above the craft are ignored; 0 disables the limit. |
+
+**Notes:** Requires `USE_ADSB`; all three fields are 0 when it is not compiled in.
+
+## <a id="msp2_adsb_warning_vehicle_icao"></a>`MSP2_ADSB_WARNING_VEHICLE_ICAO (8338 / 0x2092)`
+**Description:** Returns the ICAO address of the ADSB vehicle currently triggering a proximity warning or alert.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `icao` | `uint32_t` | 4 | - | ICAO address of the vehicle currently triggering an alert or warning; 0 when none applies. |
+| `isAlert` | `uint8_t` | 1 | Boolean | 1 when the vehicle matched the alert distance, 0 when it matched only the warning distance or when `icao` is 0. |
+
+**Notes:** Requires `USE_ADSB`. Alert takes priority: `findVehicleForAlert()` is tried first using `osd_adsb_distance_alert`, then `findVehicleForWarning()` using `osd_adsb_distance_warning`, both bounded by `osd_adsb_ignore_plane_above_me_limit`. Replies 0/0 when `USE_ADSB` is not compiled in, when `isEnvironmentOkForCalculatingADSBDistanceBearing()` is false, or when no vehicle matches.
+
 ## <a id="msp2_adsb_vehicle"></a>`MSP2_ADSB_VEHICLE (8339 / 0x2093)`
 **Description:** Retrieves a single tracked ADSB (Automatic Dependent Surveillance-Broadcast) vehicle by slot index. Intended for polling one slot at a time: query `MSP2_ADSB_VEHICLE_COUNT` for the iteration bound, then request indices `0 .. count-1`, skipping slots with `ttl == 0`, and identify each aircraft by its `icao`. See `adsbVehicle_t` / `adsbVehicleValues_t` in `io/adsb.h`.  
   
@@ -4518,6 +4579,69 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `pinLabel` | `uint8_t` | 1 | [pinLabel_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-pinlabel_e) | Label for special pin usage (`PIN_LABEL_*` enum, e.g., `PIN_LABEL_LED`). 0 (`PIN_LABEL_NONE`) otherwise |
 
 **Notes:** Provides complete usage flags and helps identify pins repurposed for functions like LED strip.
+
+## <a id="msp2_inav_output_assignment"></a>`MSP2_INAV_OUTPUT_ASSIGNMENT (8462 / 0x210e)`
+**Description:** Returns the finalized post-boot mapping of timer outputs to motors, servos and the beeper.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Repeats|Size (Bytes)|Units|Description|
+|---|---|---|---|---|---|
+| `outputIndex` | `uint8_t` | maxTimMotorCount + maxTimServoCount + beeperCount | 1 | Index | Index into the target's `timerHardware[]` array for this output. |
+| `usageType` | `uint8_t` | maxTimMotorCount + maxTimServoCount + beeperCount | 1 | - | Bit index of the `TIM_USE_*` flag, not the flag value itself: 2 = `TIM_USE_MOTOR`, 3 = `TIM_USE_SERVO`, 25 = `TIM_USE_BEEPER`. Derived in the firmware with `__builtin_ctz(TIM_USE_x)` and matching the `TIM_USE_*` constants in the configurator's `outputMapping.js`. |
+| `functionIndex` | `uint8_t` | maxTimMotorCount + maxTimServoCount + beeperCount | 1 | Index | 1-based ordinal within the usage type: motor 1..n, servo 1..n. Always 1 for the beeper entry. |
+
+**Notes:** Not available on SITL builds (`#ifndef SITL_BUILD`). The reply is 3 bytes per assigned output with no leading count field: motors first (`maxTimMotorCount`), then servos (`maxTimServoCount`), then at most one beeper record, emitted only when some timer override is set to `OUTPUT_MODE_BEEPER`. Reads the assignment finalized at boot via `pwmGetOutputAssignment()`.
+
+## <a id="msp2_inav_query_output_assignment"></a>`MSP2_INAV_QUERY_OUTPUT_ASSIGNMENT (8463 / 0x210f)`
+**Description:** Previews the output assignment that would result from a proposed set of timer output-mode overrides, without applying them.  
+#### Variant: `dataSize == 0`
+
+**Description:** Preview using the currently stored timer overrides  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Repeats|Size (Bytes)|Units|Description|
+|---|---|---|---|---|---|
+| `outputIndex` | `uint8_t` | maxTimMotorCount + maxTimServoCount + beeperCount | 1 | Index | Index into the target's `timerHardware[]` array for this output. |
+| `usageType` | `uint8_t` | maxTimMotorCount + maxTimServoCount + beeperCount | 1 | - | Bit index of the `TIM_USE_*` flag, not the flag value itself: 2 = `TIM_USE_MOTOR`, 3 = `TIM_USE_SERVO`, 25 = `TIM_USE_BEEPER`. Derived in the firmware with `__builtin_ctz(TIM_USE_x)` and matching the `TIM_USE_*` constants in the configurator's `outputMapping.js`. |
+| `functionIndex` | `uint8_t` | maxTimMotorCount + maxTimServoCount + beeperCount | 1 | Index | 1-based ordinal within the usage type: motor 1..n, servo 1..n. Always 1 for the beeper entry. |
+
+#### Variant: `dataSize >= 1`
+
+**Description:** Preview using proposed overrides layered over the stored ones  
+  
+**Request Payload:**
+|Field|C Type|Repeats|Size (Bytes)|Units|Description|
+|---|---|---|---|---|---|
+| `timerCount` | `uint8_t` | - | 1 | - | Number of override pairs that follow. Must be <= `HARDWARE_TIMER_DEFINITION_COUNT`. |
+| `timerId` | `uint8_t` | timerCount | 1 | Index | Hardware timer index (0 to `HARDWARE_TIMER_DEFINITION_COUNT - 1`). Out-of-range values are silently skipped. |
+| `outputMode` | `uint8_t` | timerCount | 1 | [outputMode_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-outputmode_e) | Proposed output mode override (`outputMode_e`) for that timer |
+  
+**Reply Payload:**
+|Field|C Type|Repeats|Size (Bytes)|Units|Description|
+|---|---|---|---|---|---|
+| `outputIndex` | `uint8_t` | maxTimMotorCount + maxTimServoCount + beeperCount | 1 | Index | Index into the target's `timerHardware[]` array for this output. |
+| `usageType` | `uint8_t` | maxTimMotorCount + maxTimServoCount + beeperCount | 1 | - | Bit index of the `TIM_USE_*` flag, not the flag value itself: 2 = `TIM_USE_MOTOR`, 3 = `TIM_USE_SERVO`, 25 = `TIM_USE_BEEPER`. Derived in the firmware with `__builtin_ctz(TIM_USE_x)` and matching the `TIM_USE_*` constants in the configurator's `outputMapping.js`. |
+| `functionIndex` | `uint8_t` | maxTimMotorCount + maxTimServoCount + beeperCount | 1 | Index | 1-based ordinal within the usage type: motor 1..n, servo 1..n. Always 1 for the beeper entry. |
+
+
+**Notes:** Not available on SITL builds (`#ifndef SITL_BUILD`). Nothing is written to the configuration: `pwmCalculateAssignment()` is run against a proposed override array so a client can preview the effect of timer overrides before committing them with `MSP2_INAV_SET_TIMER_OUTPUT_MODE`. The reply has the same 3-byte record layout as `MSP2_INAV_OUTPUT_ASSIGNMENT`. Returns `MSP_RESULT_ERROR` if `timerCount` exceeds `HARDWARE_TIMER_DEFINITION_COUNT` or if the remaining request bytes are not exactly `timerCount * 2`. Pairs whose `timerId` is out of range are ignored rather than rejected.
+
+## <a id="msp2_inav_osd_update_position"></a>`MSP2_INAV_OSD_UPDATE_POSITION (8472 / 0x2118)`
+**Description:** Moves a single OSD item within the active layout and redraws it immediately.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `itemIndex` | `uint8_t` | 1 | Index | OSD item index (0 to `OSD_ITEM_COUNT - 1`) |
+| `itemPosition` | `uint16_t` | 2 | Coordinates | Packed X/Y position built with `OSD_POS(x, y)`. The firmware ORs in `OSD_VISIBLE_FLAG` (0x2000), so the item is always made visible regardless of the bit supplied. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_OSD`. Expects 3 bytes; returns `MSP_RESULT_ERROR` if fewer are supplied or if `itemIndex >= OSD_ITEM_COUNT`, otherwise `MSP_RESULT_ACK`. Writes to the currently active layout (`getCurrentLayout()`) and takes no layout argument; use `MSP2_INAV_OSD_SET_LAYOUT_ITEM` to address a specific layout. Erases the item at its old position and redraws it immediately rather than triggering a full OSD redraw; the erase step only clears custom elements (items 147-149 and 154-158), so moving other item types can leave the old glyphs on screen until the next full redraw.
 
 ## <a id="msp2_inav_servo_config"></a>`MSP2_INAV_SERVO_CONFIG (8704 / 0x2200)`
 **Description:** Retrieves the configuration parameters for all supported servos (min, max, middle, rate). Supersedes `MSP_SERVO_CONFIGURATIONS`.  
