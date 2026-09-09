@@ -5506,6 +5506,11 @@ void resetWaypointList(void)
     posControl.geoWaypointCount = 0;
     posControl.startWpIndex = 0;
     posControl.wpReachedNotificationPending = false;
+    // The list no longer holds the mission planner's waypoints: an upload or
+    // clear (MSP, MAVLink, EEPROM) replaced it. Otherwise the planner would
+    // resume at its old index inside the new mission when re-enabled.
+    posControl.wpPlannerActiveWPIndex = 0;
+    posControl.wpMissionPlannerStatus = WP_PLAN_WAIT;
 #ifdef USE_MULTI_MISSION
     posControl.totalMultiMissionWpCount = 0;
     posControl.loadedMultiMissionIndex = 0;
