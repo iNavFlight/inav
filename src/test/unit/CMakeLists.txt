@@ -174,6 +174,12 @@ set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_T
 set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
     "../../lib/main/MAVLink")
 
+set_property(SOURCE vtx_pit_mode_unittest.cc PROPERTY definitions USE_VTX_CONTROL)
+set_property(SOURCE vtx_pit_mode_unittest.cc PROPERTY depends "io/vtx.c")
+
+set_property(SOURCE vtx_tramp_unittest.cc PROPERTY definitions USE_VTX_CONTROL USE_VTX_TRAMP)
+set_property(SOURCE vtx_tramp_unittest.cc PROPERTY depends "io/vtx_tramp.c" "io/vtx_string.c" "common/crc.c" "common/streambuf.c")
+
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
     string(REPLACE ".cc" "" name ${basename} )

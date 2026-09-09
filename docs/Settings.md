@@ -7580,6 +7580,56 @@ Enable the 3x shorter stopbit on softserial. Need for some IRC Tramp VTXes.
 
 ---
 
+### vtx_tramp_power_a
+
+Custom Tramp power level 1 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
+
+---
+
+### vtx_tramp_power_b
+
+Custom Tramp power level 2 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
+
+---
+
+### vtx_tramp_power_c
+
+Custom Tramp power level 3 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
+
+---
+
+### vtx_tramp_power_d
+
+Custom Tramp power level 4 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
+
+---
+
+### vtx_tramp_power_e
+
+Custom Tramp power level 5 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
+
+---
+
 ### yaw_deadband
 
 These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle.
