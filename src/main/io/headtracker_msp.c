@@ -55,7 +55,7 @@ void mspHeadTrackerInit(void)
 
 void mspHeadTrackerReceiverNewData(uint8_t *data, unsigned int dataSize)
 {
-    if(dataSize != sizeof(headtrackerMspMessage_t)) {
+    if(dataSize < sizeof(headtrackerMspMessage_t)) {
         SD(fprintf(stderr, "[headTracker]: invalid data size %d\n", dataSize));
         static int errorCount = 0;
         DEBUG_SET(DEBUG_HEADTRACKING, 7, errorCount++);
