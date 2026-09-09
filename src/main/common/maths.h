@@ -31,7 +31,10 @@
 // Use floating point M_PI instead explicitly.
 #define M_PIf   3.14159265358979323846f
 #define M_LN2f  0.69314718055994530942f
+// glibc's <cmath> also defines M_Ef (GNU extension); guard against the redefinition warning
+#ifndef M_Ef
 #define M_Ef    2.71828182845904523536f
+#endif
 
 #define RAD (M_PIf / 180.0f)
 
@@ -102,7 +105,17 @@
         lexpr, _CHOOSE_VAR(_left, __COUNTER__), \
         rexpr, _CHOOSE_VAR(_right, __COUNTER__) \
         )
+/* INAV's MIN/MAX are single-evaluation and type-safe; they must win over any
+ * earlier plain MIN/MAX definition (e.g. the Pico SDK's compiler.h, pulled in
+ * via build/atomic.h on RP2350, which defines guarded MIN/MAX when maths.h has
+ * not been included yet). Undef first so the definition here always applies. */
+#ifdef MIN
+#undef MIN
+#endif
 #define MIN(a, b) _CHOOSE(<, a, b)
+#ifdef MAX
+#undef MAX
+#endif
 #define MAX(a, b) _CHOOSE(>, a, b)
 #define SIGN(a) ((a >= 0) ? 1 : -1)
 

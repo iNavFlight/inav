@@ -448,7 +448,7 @@ HAL_StatusTypeDef HAL_ETHEx_GetRxVLANConfig(const ETH_HandleTypeDef *heth, ETH_R
   *         that contains VLAN filter configuration.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_ETHEx_SetRxVLANConfig(ETH_HandleTypeDef *heth, ETH_RxVLANConfigTypeDef *pVlanConfig)
+HAL_StatusTypeDef HAL_ETHEx_SetRxVLANConfig(ETH_HandleTypeDef *heth, const ETH_RxVLANConfigTypeDef *pVlanConfig)
 {
   if (pVlanConfig == NULL)
   {

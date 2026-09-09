@@ -111,7 +111,13 @@
 /** @addtogroup FLASH_Private_Variables
   * @{
   */
-FLASH_ProcessTypeDef pFlash;
+FLASH_ProcessTypeDef pFlash  = {.ProcedureOnGoing = FLASH_PROC_NONE,
+                                .NbSectorsToErase = 0U,
+                                .VoltageForErase= 0U,
+                                .Sector = 0U,
+                                .Address = 0U,
+                                .Lock = HAL_UNLOCKED,
+                                .ErrorCode = HAL_FLASH_ERROR_NONE};
 /**
   * @}
   */

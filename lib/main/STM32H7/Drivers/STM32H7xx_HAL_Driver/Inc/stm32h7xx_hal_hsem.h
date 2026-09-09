@@ -57,7 +57,7 @@ extern "C" {
                                             (HSEM->C1IER |= (__SEM_MASK__)) : \
                                             (HSEM->C2IER |= (__SEM_MASK__)))
 #else
-#define __HAL_HSEM_ENABLE_IT(__SEM_MASK__) (HSEM->IER |= (__SEM_MASK__))
+#define __HAL_HSEM_ENABLE_IT(__SEM_MASK__) (HSEM->C1IER |= (__SEM_MASK__))
 #endif /* DUAL_CORE */
 /**
   * @brief  Disables the specified HSEM interrupts.
@@ -69,7 +69,7 @@ extern "C" {
                                              (HSEM->C1IER &= ~(__SEM_MASK__)) :       \
                                              (HSEM->C2IER &= ~(__SEM_MASK__)))
 #else
-#define __HAL_HSEM_DISABLE_IT(__SEM_MASK__) (HSEM->IER &= ~(__SEM_MASK__))
+#define __HAL_HSEM_DISABLE_IT(__SEM_MASK__) (HSEM->C1IER &= ~(__SEM_MASK__))
 #endif /* DUAL_CORE */
 
 /**
@@ -80,9 +80,9 @@ extern "C" {
 #if defined(DUAL_CORE)
 #define __HAL_HSEM_GET_IT(__SEM_MASK__) ((((SCB->CPUID & 0x000000F0) >> 4 )== 0x7) ? \
                                          ((__SEM_MASK__) & HSEM->C1MISR) :        \
-                                         ((__SEM_MASK__) & HSEM->C2MISR1))
+                                         ((__SEM_MASK__) & HSEM->C2MISR))
 #else
-#define __HAL_HSEM_GET_IT(__SEM_MASK__) ((__SEM_MASK__) & HSEM->MISR)
+#define __HAL_HSEM_GET_IT(__SEM_MASK__) ((__SEM_MASK__) & HSEM->C1MISR)
 #endif /* DUAL_CORE */
 
 /**
@@ -95,7 +95,7 @@ extern "C" {
                                            (__SEM_MASK__) & HSEM->C1ISR :           \
                                            (__SEM_MASK__) & HSEM->C2ISR)
 #else
-#define __HAL_HSEM_GET_FLAG(__SEM_MASK__) ((__SEM_MASK__) & HSEM->ISR)
+#define __HAL_HSEM_GET_FLAG(__SEM_MASK__) ((__SEM_MASK__) & HSEM->C1ISR)
 #endif /* DUAL_CORE */
 
 /**
@@ -108,7 +108,7 @@ extern "C" {
                                              (HSEM->C1ICR |= (__SEM_MASK__)) :        \
                                              (HSEM->C2ICR |= (__SEM_MASK__)))
 #else
-#define __HAL_HSEM_CLEAR_FLAG(__SEM_MASK__) (HSEM->ICR |= (__SEM_MASK__))
+#define __HAL_HSEM_CLEAR_FLAG(__SEM_MASK__) (HSEM->C1ICR |= (__SEM_MASK__))
 #endif /* DUAL_CORE */
 
 /**

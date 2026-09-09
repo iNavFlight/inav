@@ -1,0 +1,61 @@
+sitl:
+  binary: cmake/build_SITL/inav_9.1.0_SITL
+  workdir: inav/cmake
+  eeprom_path: src/test/mavlink/sanity/results/eeprom.bin
+  runtime_log: src/test/mavlink/sanity/results/sitl_runtime_sanity.log
+
+ports:
+  msp: 5760
+  rc: 5761
+  gcs: 5762
+  mavproxy_out: 14550
+
+cli:
+  apply_count: 2
+  diff_path: src/test/mavlink/sanity/fc_diff.txt
+  rc_baud: 460800
+  telemetry_baud: 115200
+  mode_ranges:
+    - aux 0 9 0 1300 2100
+    - aux 1 22 1 1300 2100
+    - aux 2 10 2 1300 2100
+
+tests:
+  port_ready_timeout_s: 30
+  save_reboot_timeout_s: 45
+  heartbeat_timeout_s: 15
+  telemetry_timeout_s: 15
+  receiver_request_rate_hz: 5
+  rc_duration_s: 5
+  rc_tx_hz: 100
+  rc_min_rx_count: 20
+  target_system: 1
+  target_component: 1
+  mission_waypoint_count: 2
+  mission_timeout_s: 20
+  streamrate_hz: 10
+  streamrate_min_hz: 4
+  message_rate_hz: 7
+  message_rate_report_tolerance_hz: 0.2
+  message_rate_observed_tolerance_hz: 2.5
+  rate_measure_window_s: 3
+
+control_plane:
+  source_system: 245
+  source_component: 190
+  heartbeat_timeout_s: 15
+  timesync_timeout_s: 10
+  ack_timeout_s: 10
+  mode_timeout_s: 12
+  fbwa_custom_mode: 5
+  manual_custom_mode: 0
+  rc_hold_duration_s: 30
+  rc_warmup_s: 2
+
+paths:
+  rc_script: src/test/mavlink/sanity/mavlink_test_rc.py
+  control_plane_rc_log: src/test/mavlink/sanity/results/control_plane_rc.log
+  mission_file: tools/mavlink_sitl_sanity_mission.waypoints
+  mission_readback_file: src/test/mavlink/sanity/results/mavlink_sitl_sanity_readback.waypoints
+  mavproxy_log: src/test/mavlink/sanity/results/mavproxy_sanity.log
+  mavproxy_state_dir: src/test/mavlink/sanity/results/mavproxy_state

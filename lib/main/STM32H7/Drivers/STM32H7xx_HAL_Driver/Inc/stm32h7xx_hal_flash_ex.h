@@ -888,8 +888,8 @@ void              HAL_FLASHEx_DisableEccDetectionInterrupt_Bank2(void);
 void              HAL_FLASHEx_GetEccInfo(FLASH_EccInfoTypeDef *pData);
 void              HAL_FLASHEx_BusFault_IRQHandler(void);
 
-__weak void       HAL_FLASHEx_EccDetectionCallback(void);
-__weak void       HAL_FLASHEx_EccCorrectionCallback(void);
+void              HAL_FLASHEx_EccDetectionCallback(void);
+void              HAL_FLASHEx_EccCorrectionCallback(void);
 /**
   * @}
   */

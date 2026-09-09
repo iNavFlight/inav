@@ -7,6 +7,7 @@ set(STM32F7_HAL_SRC
     stm32f7xx_hal.c
     stm32f7xx_hal_adc.c
     stm32f7xx_hal_adc_ex.c
+    stm32f7xx_hal_can.c
     stm32f7xx_hal_cortex.c
     stm32f7xx_hal_dac.c
     stm32f7xx_hal_dac_ex.c
@@ -77,6 +78,9 @@ main_sources(STM32F7_SRC
     drivers/serial_uart_stm32f7xx.c
     drivers/serial_uart_hal.c
     drivers/sdcard/sdmmc_sdio_hal.c
+    drivers/dronecan/libcanard/canard_stm32f7xx_driver.c
+    drivers/dronecan/libcanard/canard_stm32_timing.c
+
 )
 
 main_sources(STM32F7_MSC_SRC
@@ -90,11 +94,19 @@ set(STM32F7_DEFINITIONS
 )
 
 function(target_stm32f7xx)
+    # Suppress unused-parameter warnings in vendor HAL source files we don't control.
+    # Must be set here (inside the function) so the property applies in the caller's
+    # directory scope, where add_executable() will be called.
+    set_source_files_properties(
+        "${STM32F7_HAL_DIR}/Src/stm32f7xx_ll_rcc.c"
+        DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        PROPERTIES COMPILE_OPTIONS "-Wno-unused-parameter"
+    )
     target_stm32(
         SOURCES ${STM32F7_HAL_SRC} ${STM32F7_SRC}
         COMPILE_DEFINITIONS ${STM32F7_DEFINITIONS}
         COMPILE_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_COMPILE_OPTIONS}
-        INCLUDE_DIRECTORIES ${STM32F7_INCLUDE_DIRS}
+        SYSTEM_INCLUDE_DIRECTORIES ${STM32F7_INCLUDE_DIRS}
         LINK_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_LINK_OPTIONS}
 
         MSC_SOURCES ${STM32F7_USBMSC_SRC} ${STM32F7_MSC_SRC}
@@ -109,7 +121,7 @@ function(target_stm32f7xx)
     )
 endfunction()
 
-macro(define_target_stm32f7 subfamily size)
+macro(define_target_stm32f7 subfamily size ram)
     function(target_stm32f7${subfamily}x${size} name)
         set(func_ARGV ARGV)
         string(TOUPPER ${size} upper_size)
@@ -124,6 +136,7 @@ macro(define_target_stm32f7 subfamily size)
             STM32F7${subfamily}xx
             STM32F7${subfamily}x${upper_size}
             MCU_FLASH_SIZE=${flash_size}
+            MCU_RAM_SIZE=${ram}
         )
         target_stm32f7xx(
             NAME ${name}
@@ -137,8 +150,8 @@ macro(define_target_stm32f7 subfamily size)
     endfunction()
 endmacro()
 
-define_target_stm32f7(22 e)
-define_target_stm32f7(45 g)
-define_target_stm32f7(46 g)
-define_target_stm32f7(65 g)
-define_target_stm32f7(65 i)
+define_target_stm32f7(22 e 256)
+define_target_stm32f7(45 g 320)
+define_target_stm32f7(46 g 320)
+define_target_stm32f7(65 g 512)
+define_target_stm32f7(65 i 512)

@@ -23,6 +23,7 @@
 #include "drivers/time.h"
 #include "drivers/io.h"
 
+#include "common/log.h"
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -78,13 +79,41 @@ void beeperInit(const beeperDevConfig_t *config)
 #if !defined(BEEPER)
     UNUSED(config);
 #else
+    // Runtime output assignment: scan for any pad explicitly set to OUTPUT_MODE_BEEPER.
+    // pwmBuildTimerOutputList() runs before beeperInit(), so TIM_USE_BEEPER is already
+    // set on the runtime-assigned pad by the time we get here.
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        const timerHardware_t *timHw = &timerHardware[idx];
+        if (timerOverrides(timer2id(timHw->tim))->outputMode == OUTPUT_MODE_BEEPER) {
+            if (!beeperPwmInit(timHw->tag, BEEPER_PWM_FREQUENCY)) {
+                LOG_ERROR(PWM, "Beeper PWM init failed on assigned pad, beeper disabled");
+                return;
+            }
+            beeperConfigMutable()->pwmMode = true;
+            systemBeep(false);
+            return;
+        }
+    }
+
+    // Skip compile-time beeper pad if the user has overridden it to another function.
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        if (timerHardware[idx].tag == config->ioTag) {
+            if (!(timerHardware[idx].usageFlags & TIM_USE_BEEPER)) {
+                return;
+            }
+            break;
+        }
+    }
+
     beeperIO = IOGetByTag(config->ioTag);
     beeperInverted = config->isInverted;
 
     if (beeperIO) {
         IOInit(beeperIO, OWNER_BEEPER, RESOURCE_OUTPUT, 0);
         if (beeperConfig()->pwmMode) {
-            beeperPwmInit(config->ioTag, BEEPER_PWM_FREQUENCY);
+            if (!beeperPwmInit(config->ioTag, BEEPER_PWM_FREQUENCY)) {
+                LOG_ERROR(PWM, "Beeper PWM init failed on compile-time pad, beeper disabled");
+            }
         } else {
             IOConfigGPIO(beeperIO, config->isOD ? IOCFG_OUT_OD : IOCFG_OUT_PP);
         }

@@ -65,6 +65,7 @@
 
 #define USE_IMU_ICM42605
 #define USE_IMU_BMI270
+#define USE_IMU_LSM6DXX
 
 // IMU_1 is verified to work on OBF4V6 and Omnibus Fireworks board
 # define IMU_1_CS_PIN            PA4
@@ -165,6 +166,14 @@
 
 // unkonw
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+// *************** CANBUS ****************************
+// CAN bus pins - sourced from ArduPilot board definition
+// Uncomment to enable DroneCAN support (requires custom build)
+// #define USE_DRONECAN
+// #define CAN1_RX                 PD0
+// #define CAN1_TX                 PD1
+// #define CAN1_STANDBY            PD2
 
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff

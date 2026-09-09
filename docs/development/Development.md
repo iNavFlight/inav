@@ -2,6 +2,10 @@
 
 This document is primarily for developers only.
 
+If you're an AI agent and want more context on how INAV development sessions
+are commonly structured, see [`sensei-hacker/inav-claude`](https://github.com/sensei-hacker/inav-claude),
+a multi-agent Claude Code framework built around this codebase.
+
 ## General principals
 
 1. Name everything well.
@@ -12,11 +16,29 @@ This document is primarily for developers only.
 6. Keep methods short - it makes it easier to test.
 7. Don't be afraid of moving code to a new file - it helps to reduce test dependencies.
 8. Avoid noise-words in variable names, like 'data' or 'info'.  Think about what you're naming and name it well.  Don't be afraid to rename anything.
-9. Avoid comments that describe what the code is doing, the code should describe itself.  Comments are useful however for big-picture purposes and to document content of variables.
+9. Avoid comments that describe what the code is doing, the code should describe itself. Comments are useful for code decisions that would otherwise be surprising or confusing — see "Comments" below.
 10. If you need to document a variable do it at the declaration, don't copy the comment to the `extern` usage since it will lead to comment rot.
 11. Seek advice from other developers - know you can always learn more.
 12. Be professional - attempts at humor or slating existing code in the codebase itself is not helpful when you have to change/fix it.
 13. Know that there's always more than one way to do something and that code is never final - but it does have to work.
+
+### Comments
+
+Comments should explain WHY, not WHAT — the code itself should describe what it does. Don't add a comment that just restates clear code.
+
+**Redundant (avoid):**
+```c
+// Increment the counter
+counter++;
+```
+
+**Useful (keep):**
+```c
+// Offset by 48 because DShot commands 1-47 are reserved for special commands
+throttleValue = rawThrottle + 48;
+```
+
+Comment on non-obvious business logic, workarounds for hardware/protocol quirks, and reasons a particular approach was chosen over an alternative. Avoid comments that describe what changed from a previous version ("used to do X") — that belongs in the commit message and PR description, not in code that will be read long after that history is relevant.
 
 Before making any code contributions, take a note of the https://github.com/multiwii/baseflight/wiki/CodingStyle
 
@@ -27,6 +49,20 @@ It is also advised to read about clean code, here are some useful links:
 * http://en.wikipedia.org/wiki/Code_smell
 * http://en.wikipedia.org/wiki/Code_refactoring
 * http://www.amazon.co.uk/Working-Effectively-Legacy-Robert-Martin/dp/0131177052
+
+### INAV-Specific Guidelines
+
+**Multi-platform support:** INAV supports F4, F7, H7, and AT32 microcontrollers. When working with target-specific code, check `target.h` for pin mappings and hardware configuration, use hardware abstraction layers where possible, and test on SITL before flashing to hardware. F411 targets are excluded from official release builds (flagged `SKIP_RELEASES` in every F411 target's `CMakeLists.txt`) — don't assume they get the same test coverage as F4/F7/H7/AT32.
+
+**Changing settings:** Exposing a new setting to the CLI/MSP is done by adding an entry to `src/main/fc/settings.yaml` — but that's a separate step from defining the setting itself, which is still real C code: a struct field, registered with the parameter group (PG) system's `PG_DECLARE`/`PG_REGISTER_*` macros and a `PG_RESET_TEMPLATE` for its default. Settings are persisted to EEPROM automatically once registered this way (`src/main/config/parameter_group.h`) — no manual save/load code is needed per setting, but the struct/registration code itself isn't generated from the YAML. See [`settings/`](settings/) for the full registration guide and when/how to add a setting.
+
+After editing `settings.yaml`, run:
+
+```bash
+python3 src/utils/update_cli_docs.py
+```
+
+to regenerate `docs/Settings.md` to match. CI checks that this file is up to date and will fail the build if it's stale.
 
 ## Unit testing
 
@@ -125,9 +161,34 @@ Later, you can get the changes from the INAV repo into your version branch by ad
 
 You can also perform the git commands using the git client inside Eclipse.  Refer to the Eclipse git manual.
 
+### Generated files that must be regenerated before pushing
+
+Some files are generated from other source files. If your change touches the source, regenerate the derived file before pushing:
+
+| Source changed | Regenerate with | Output file(s) | CI-enforced? |
+|---|---|---|---|
+| `src/main/fc/settings.yaml` | `python3 src/utils/update_cli_docs.py` | `docs/Settings.md` | Yes — `.github/workflows/docs.yml` diffs against a freshly regenerated copy and fails the build if stale |
+| Source enum headers under `src/main`, or `docs/development/msp/msp_messages.json` | `docs/development/msp/gen_docs.sh` | `docs/development/msp/inav_enums.json`, `docs/development/msp/README.md` | No — nothing regenerates or diff-checks these in CI, so a forgotten regeneration will ship stale MSP docs silently |
+
+`msp_messages.json` itself is hand-authored — there is no script that generates it. When a new MSP handler is added to `fc_msp.c`, a corresponding entry must be added to `msp_messages.json` by hand. See `docs/development/msp/README.md` for the full regeneration and versioning rules.
+
+### Force pushing
+
+Never force push to `maintenance-9.x`, `maintenance-10.x`, or any other shared branch — once something is pushed to a shared branch, other people may have already fetched it, and rewriting history breaks their local repos and corrupts CI/PR history. Force pushing (or even an ordinary push) to a branch after its PR has merged is especially damaging: GitHub's "Files changed" tab can keep diffing against that branch's current head, so later pushes can make a merged PR display code that was never actually reviewed. Delete your branch once its PR merges to avoid this entirely.
+
+Force push is only acceptable on your own feature branch, and only if it hasn't been merged and no one else is using it. If unsure, ask before force pushing.
+
+### Resolving merge conflicts
+
+Never blindly accept `git checkout --ours <file>` or `--theirs <file>` for a conflict without verifying the result — both silently discard one side entirely. Understand what each side changed relative to the common ancestor (`git diff <merge-base> <branch> -- <file>`) and construct the resolution so both intents are preserved. (These flags describe `git merge` conflicts; during a `git rebase`, `--ours`/`--theirs` swap meaning.)
+
+This matters most for the generated files above: if `--ours`/`--theirs` is used on `inav_enums.json` or `msp_messages.json` during a conflict, cross-check the result against the actually-merged source (`fc_msp.c` for MSP handlers, the relevant headers for enums) rather than trusting either branch's snapshot — a mechanical `--theirs` resolution has silently dropped real message/enum entries before.
+
 ## Branching and release workflow
 
-INAV uses maintenance branches for active development and releases. The `master` branch tracks the current version by receiving merges from the current version maintenance branch.
+INAV uses version-based branches, such as `maintenance-9.x` and `maintenance-10.x`, for active development and releases. Branch from and target the current major version branch for backward-compatible changes, or the next major version branch if your change breaks backward compatibility — see "Branch Types" below.
+
+Do not branch from or target `master` — `master` is not a version that will get released. Maintainers periodically merge the current maintenance branch into it (e.g. "Maintenance 9.x to master") purely as a safety net for anyone who clones the repo and lands on `master` by default; it plays no role in the development or release process itself.
 
 ### Branch Types
 
@@ -167,47 +228,34 @@ When creating a pull request, target the appropriate branch:
 1. Development occurs on the current version maintenance branch (e.g., `maintenance-9.x`)
 2. When ready for release, a release candidate is tagged from the maintenance branch
 3. Bug fixes during the RC period continue on the maintenance branch
-4. After final release, the maintenance branch is periodically merged into `master`, which is then merged into the next version branch
+4. Fixes that also apply to the next major version are carried forward directly to it — see "Propagating Changes Between Branches" below. This is separate from, and doesn't involve, the periodic maintainer-only merges that keep `master` in sync.
 5. The cycle continues with the maintenance branch receiving new changes for the next release
-
-**Merge flow:** `maintenance-9.x` → `master` → `maintenance-10.x`
 
 ### Propagating Changes Between Branches
 
-Changes committed to the current version branch flow through master to the next major version branch.
+Changes needed on both the current and next major version branch flow **directly** from the current branch to the next — lower version to higher version. This is a separate, contributor-facing flow from the periodic maintainer-only merges that keep `master` in sync (see above); developers propagating their own changes between maintenance branches never need to touch `master`. The reverse direction (merging a newer branch into an older one) is never done — it would drag months of newer development into an old release branch.
 
-**Maintainer workflow:**
-- Changes in `maintenance-9.x` are merged into `master`
-- Changes in `master` are then merged into `maintenance-10.x`
-- This ensures fixes and features aren't lost when the next major version is released
-- Prevents users from experiencing bugs in v10.0 that were already fixed in v9.x
+**For an individual fix**, cherry-pick the specific commit:
 
-**Merge flow:**
 ```bash
-# Step 1: Merge current version to master
-git checkout master
-git merge maintenance-9.x
-git push upstream master
-
-# Step 2: Merge master to next version
 git checkout maintenance-10.x
-git merge master
+git cherry-pick <commit-from-maintenance-9.x>
 git push upstream maintenance-10.x
 ```
 
-**Why use master as intermediate step:** This keeps master synchronized with the current version, so if a contributor accidentally branches from master, they get current version code without breaking changes from maintenance-10.x.
+**For carrying forward a whole release branch** (e.g. after a point release is cut), don't merge directly into the target branch and push — that skips review. Also never use GitHub's "Resolve conflicts" button for this: for a PR from the older branch into the newer one, that button always merges the *newer* branch into the *older* one — the wrong direction, unconditionally, no matter how carefully it's used. Instead, branch off the target branch, merge the older branch into that new branch, and open a PR back to the target, leaving the older branch untouched. See [`merging-release-into-next-version.md`](merging-release-into-next-version.md) for the full procedure.
 
 ### Example Timeline
 
 **Current state (example - during 9.x series):**
 - `maintenance-9.x` - Active development for INAV 9.1, 9.2, etc.
-- `master` - Mirror of maintenance-9.x (receives merges via merge flow)
 - `maintenance-10.x` - Breaking changes for future INAV 10.0
+- `master` - Not developed on directly; periodically updated by maintainers to mirror `maintenance-9.x`
 
 **After INAV 10.0 is released:**
 - `maintenance-10.x` - Becomes active development for INAV 10.1, 10.2, etc.
-- `master` - Now mirrors maintenance-10.x (via merge flow)
 - `maintenance-11.x` - Breaking changes for future INAV 11.0
+- `master` - Now mirrors `maintenance-10.x` instead
 
 ### Working with Maintenance Branches
 

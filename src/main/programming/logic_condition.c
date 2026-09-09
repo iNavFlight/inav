@@ -50,6 +50,7 @@
 #include "flight/wind_estimator.h"
 #include "drivers/io_port_expander.h"
 #include "drivers/gimbal_common.h"
+#include "rx/msp_override.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
 
@@ -58,7 +59,7 @@
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
-#include "drivers/light_ws2811strip.h"
+#include "drivers/pinio.h"
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 4);
 
@@ -404,6 +405,20 @@ static int logicConditionCompute(
             return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue;
         break;
 
+        case LOGIC_CONDITION_ACOS:
+            temporaryValue = (operandB == 0) ? 1000 : operandB;
+            return RADIANS_TO_DEGREES(acos_approx(constrainf((float)operandA / (float)temporaryValue, -1.0f, 1.0f)));
+        break;
+
+        case LOGIC_CONDITION_ASIN:
+            temporaryValue = (operandB == 0) ? 1000 : operandB;
+            return RADIANS_TO_DEGREES(asin_approx(constrainf((float)operandA / (float)temporaryValue, -1.0f, 1.0f)));
+        break;
+
+        case LOGIC_CONDITION_ATAN2:
+            return RADIANS_TO_DEGREES(atan2_approx((float)operandA, (float)operandB));
+        break;
+
         case LOGIC_CONDITION_MIN:
             return (operandA < operandB) ? operandA : operandB;
         break;
@@ -471,6 +486,18 @@ static int logicConditionCompute(
             return true;
             break;
 
+        case LOGIC_CONDITION_SET_ALTITUDE_TARGET:
+            return navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)operandA, operandB);
+            break;
+
+        case LOGIC_CONDITION_ACTIVATE_RTH:
+            return activateRTHMode();
+            break;
+
+        case LOGIC_CONDITION_ACTIVATE_LANDING:
+            return activateForcedLanding();
+            break;
+
         case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 
@@ -506,16 +533,11 @@ static int logicConditionCompute(
             }
             break;
 
-#ifdef USE_LED_STRIP
-        case LOGIC_CONDITION_LED_PIN_PWM:
-
-            if (operandA >=0 && operandA <= 100) {
-                ledPinStartPWM((uint8_t)operandA);
-            } else {
-                ledPinStopPWM();
-            }
+#ifdef USE_PINIO
+        case LOGIC_CONDITION_PINIO_PWM:
+            // operandA = duty cycle (0-100), operandB = channel (0=LED idle, 1-4=PINIO)
+            pinioSetDuty(operandB, (uint8_t)constrain(operandA, 0, 100));
             return operandA;
-            break;
 #endif
 #ifdef USE_GPS_FIX_ESTIMATION
         case LOGIC_CONDITION_DISABLE_GPS_FIX:
@@ -524,9 +546,17 @@ static int logicConditionCompute(
             } else {
                 LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
             }
-                return true;
+            return true;
             break;
 #endif
+        case LOGIC_CONDITION_DISABLE_AUTOSPEED_AIRSPEED:
+            if (operandA > 0) {
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED);
+            } else {
+                LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED);
+            }
+            return true;
+            break;
 
         default:
             return false;
@@ -569,6 +599,13 @@ void logicConditionProcess(uint8_t i) {
     }
 }
 
+static bool logicConditionMissionWaypointHasUserAction(int16_t relativeIndex, uint16_t userAction)
+{
+    navWaypoint_t waypoint;
+    return navGetMissionWaypointByRelativeIndex(relativeIndex, &waypoint) &&
+           (waypoint.p3 & userAction) == userAction;
+}
+
 static int logicConditionGetWaypointOperandValue(int operand) {
 
     switch (operand) {
@@ -586,9 +623,10 @@ static int logicConditionGetWaypointOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_NEXT_WAYPOINT_ACTION:
             {
-                uint8_t wpIndex = posControl.activeWaypointIndex + 1;
-                if ((wpIndex > 0) && (wpIndex < NAV_MAX_WAYPOINTS)) {
-                    return posControl.waypointList[wpIndex].action;
+                navWaypoint_t waypoint;
+                const int16_t relativeIndex = (int16_t)NAV_Status.activeWpIndex + 1;
+                if (navGetMissionWaypointByRelativeIndex(relativeIndex, &waypoint)) {
+                    return waypoint.action;
                 }
                 return false;
             }
@@ -600,10 +638,14 @@ static int logicConditionGetWaypointOperandValue(int operand) {
                 if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
                     fpVector3_t poi;
                     gpsLocation_t wp;
-                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex].lat;
-                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex].lon;
-                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex].alt;
-                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
+                    navWaypoint_t waypoint;
+                    if (!navGetMissionWaypointByRelativeIndex(NAV_Status.activeWpIndex, &waypoint)) {
+                        return 0;
+                    }
+                    wp.lat = waypoint.lat;
+                    wp.lon = waypoint.lon;
+                    wp.alt = waypoint.alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, waypointMissionAltConvMode(waypoint.p3));
 
                     distance = calculateDistanceToDestination(&poi) / 100;
                 }
@@ -618,10 +660,14 @@ static int logicConditionGetWaypointOperandValue(int operand) {
                 if ((navGetCurrentStateFlags() & NAV_AUTO_WP) && NAV_Status.activeWpIndex > 0) {
                     fpVector3_t poi;
                     gpsLocation_t wp;
-                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex-1].lat;
-                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex-1].lon;
-                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex-1].alt;
-                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
+                    navWaypoint_t waypoint;
+                    if (!navGetMissionWaypointByRelativeIndex((int16_t)NAV_Status.activeWpIndex - 1, &waypoint)) {
+                        return 0;
+                    }
+                    wp.lat = waypoint.lat;
+                    wp.lon = waypoint.lon;
+                    wp.alt = waypoint.alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, waypointMissionAltConvMode(waypoint.p3));
 
                     distance = calculateDistanceToDestination(&poi) / 100;
                 }
@@ -631,35 +677,35 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION:
-            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER1) == NAV_WP_USER1) : 0;
+            return logicConditionMissionWaypointHasUserAction((int16_t)NAV_Status.activeWpIndex - 1, NAV_WP_USER1);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION:
-            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER2) == NAV_WP_USER2) : 0;
+            return logicConditionMissionWaypointHasUserAction((int16_t)NAV_Status.activeWpIndex - 1, NAV_WP_USER2);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION:
-            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER3) == NAV_WP_USER3) : 0;
+            return logicConditionMissionWaypointHasUserAction((int16_t)NAV_Status.activeWpIndex - 1, NAV_WP_USER3);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION:
-            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER4) == NAV_WP_USER4) : 0;
+            return logicConditionMissionWaypointHasUserAction((int16_t)NAV_Status.activeWpIndex - 1, NAV_WP_USER4);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION_NEXT_WP:
-            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER1) == NAV_WP_USER1);
+            return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER1);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION_NEXT_WP:
-            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER2) == NAV_WP_USER2);
+            return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER2);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION_NEXT_WP:
-            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER3) == NAV_WP_USER3);
+            return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER3);
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION_NEXT_WP:
-            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER4) == NAV_WP_USER4);
+            return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER4);
             break;
 
         default:
@@ -667,6 +713,13 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             break;
     }
 }
+
+#ifdef USE_AUTO_TRANSITION
+static int logicConditionGetAutoTransitionTargetStabilizedOperandValue(flight_dynamics_index_t axis)
+{
+    return getAutoTransitionTargetStabilizedInput(axis);
+}
+#endif
 
 static int logicConditionGetFlightOperandValue(int operand) {
 
@@ -733,9 +786,8 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return getMinGroundSpeed(navConfig()->general.min_ground_speed);
             break;
 
-        //FIXME align with osdGet3DSpeed
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_SPEED: // cm/s
-            return osdGet3DSpeed();
+            return posControl.actualState.vel3D;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
@@ -767,7 +819,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
                 uint16_t windAngle;
                 getEstimatedHorizontalWindSpeed(&windAngle);
                 int32_t windHeading = (int32_t)windAngle + 18000; // Correct heading to display correctly.
-        
+
                 while (windHeading < 0) windHeading += 36000;
                 while (windHeading >= 36000) windHeading -= 36000;
 
@@ -787,10 +839,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
                 uint16_t windAngle;
                 getEstimatedHorizontalWindSpeed(&windAngle);
                 int32_t relativeWindHeading = (int32_t)windAngle + 18000 - DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw);
-        
+
                 while (relativeWindHeading < 0) relativeWindHeading += 36000;
                 while (relativeWindHeading >= 36000) relativeWindHeading -= 36000;
-                
+
                 relativeWindHeading = -relativeWindHeading;
                 if (relativeWindHeading <= -18000)
                     relativeWindHeading = 18000 + (relativeWindHeading + 18000);
@@ -802,7 +854,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 #else
         return 0;
 #endif
-        break;        
+        break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
             return constrain(getEstimatedActualPosition(Z), INT32_MIN, INT32_MAX);
@@ -877,6 +929,20 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return axisPID[PITCH];
             break;
 
+#ifdef USE_AUTO_TRANSITION
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_ROLL:
+            return logicConditionGetAutoTransitionTargetStabilizedOperandValue(FD_ROLL);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_PITCH:
+            return logicConditionGetAutoTransitionTargetStabilizedOperandValue(FD_PITCH);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_YAW:
+            return logicConditionGetAutoTransitionTargetStabilizedOperandValue(FD_YAW);
+            break;
+#endif
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
             return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT32_MAX);
             break;
@@ -894,7 +960,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return rxLinkStatistics.uplinkRSSI;
 #else
             return 0;
-#endif        
+#endif
             break;
 
 case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK:
@@ -1200,6 +1266,12 @@ uint32_t getMinGroundSpeed(uint32_t minGroundSpeed) {
 }
 
 float getFlightAxisAngleOverride(uint8_t axis, float angle) {
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    int mspAngleTarget;
+    if (mspOverrideFlightAxisAngleActive(axis, &mspAngleTarget)) {
+        return mspAngleTarget;
+    }
+#endif
     if (flightAxisOverride[axis].angleTargetActive) {
         return flightAxisOverride[axis].angleTarget;
     } else {
@@ -1208,6 +1280,12 @@ float getFlightAxisAngleOverride(uint8_t axis, float angle) {
 }
 
 float getFlightAxisRateOverride(uint8_t axis, float rate) {
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    int mspRateTarget;
+    if (mspOverrideFlightAxisRateActive(axis, &mspRateTarget)) {
+        return mspRateTarget;
+    }
+#endif
     if (flightAxisOverride[axis].rateTargetActive) {
         return flightAxisOverride[axis].rateTarget;
     } else {
@@ -1216,6 +1294,12 @@ float getFlightAxisRateOverride(uint8_t axis, float rate) {
 }
 
 bool isFlightAxisAngleOverrideActive(uint8_t axis) {
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    int mspAngleTarget;
+    if (mspOverrideFlightAxisAngleActive(axis, &mspAngleTarget)) {
+        return true;
+    }
+#endif
     if (flightAxisOverride[axis].angleTargetActive) {
         return true;
     } else {
@@ -1224,6 +1308,12 @@ bool isFlightAxisAngleOverrideActive(uint8_t axis) {
 }
 
 bool isFlightAxisRateOverrideActive(uint8_t axis) {
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    int mspRateTarget;
+    if (mspOverrideFlightAxisRateActive(axis, &mspRateTarget)) {
+        return true;
+    }
+#endif
     if (flightAxisOverride[axis].rateTargetActive) {
         return true;
     } else {

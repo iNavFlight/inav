@@ -233,6 +233,16 @@
 #define FDCAN_MESSAGE_RAM_SIZE 0x2800U
 #define FDCAN_MESSAGE_RAM_END_ADDRESS (SRAMCAN_BASE + FDCAN_MESSAGE_RAM_SIZE - 0x4U) /* Message RAM width is 4 Bytes */
 
+#define SRAMCAN_FLS_NBR          (128U)                  /* Max. Filter List Standard Number */
+#define SRAMCAN_FLE_NBR          (64U)                   /* Max. Filter List Extended Number */
+#define SRAMCAN_FLS_SIZE         (1U * 4U)               /* Filter Standard Element Size in bytes */
+#define SRAMCAN_FLE_SIZE         (2U * 4U)               /* Filter Extended Element Size in bytes */
+#define SRAMCAN_RF0_NBR          (64U)                   /* RX FIFO 0 Elements Number        */
+#define SRAMCAN_RF1_NBR          (64U)                   /* RX FIFO 1 Elements Number        */
+#define SRAMCAN_RB_NBR           (64U)                   /* RX Buffers Number                */
+#define SRAMCAN_TEF_NBR          (32U)                   /* TX Event FIFO Elements Number    */
+#define SRAMCAN_TFQ_NBR          (32U)                   /* TX FIFO/Queue Elements Number    */
+
 /**
   * @}
   */
@@ -251,7 +261,7 @@ static const uint8_t DLCtoBytes[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 
 /** @addtogroup FDCAN_Private_Functions_Prototypes
   * @{
   */
-static HAL_StatusTypeDef FDCAN_CalcultateRamBlockAddresses(FDCAN_HandleTypeDef *hfdcan);
+static HAL_StatusTypeDef FDCAN_CalculateRamBlockAddresses(FDCAN_HandleTypeDef *hfdcan);
 static void FDCAN_CopyMessageToRAM(const FDCAN_HandleTypeDef *hfdcan, const FDCAN_TxHeaderTypeDef *pTxHeader,
                                    const uint8_t *pTxData, uint32_t BufferIndex);
 /**
@@ -301,14 +311,12 @@ HAL_StatusTypeDef HAL_FDCAN_Init(FDCAN_HandleTypeDef *hfdcan)
     return HAL_ERROR;
   }
 
-  /* Check FDCAN instance */
+  /* Check function parameters */
+  assert_param(IS_FDCAN_ALL_INSTANCE(hfdcan->Instance));
   if (hfdcan->Instance == FDCAN1)
   {
     hfdcan->ttcan = (TTCAN_TypeDef *)((uint32_t)hfdcan->Instance + 0x100U);
   }
-
-  /* Check function parameters */
-  assert_param(IS_FDCAN_ALL_INSTANCE(hfdcan->Instance));
   assert_param(IS_FDCAN_FRAME_FORMAT(hfdcan->Init.FrameFormat));
   assert_param(IS_FDCAN_MODE(hfdcan->Init.Mode));
   assert_param(IS_FUNCTIONAL_STATE(hfdcan->Init.AutoRetransmission));
@@ -325,25 +333,25 @@ HAL_StatusTypeDef HAL_FDCAN_Init(FDCAN_HandleTypeDef *hfdcan)
     assert_param(IS_FDCAN_DATA_TSEG1(hfdcan->Init.DataTimeSeg1));
     assert_param(IS_FDCAN_DATA_TSEG2(hfdcan->Init.DataTimeSeg2));
   }
-  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.StdFiltersNbr, 128U));
-  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.ExtFiltersNbr, 64U));
-  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.RxFifo0ElmtsNbr, 64U));
+  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.StdFiltersNbr, SRAMCAN_FLS_NBR));
+  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.ExtFiltersNbr, SRAMCAN_FLE_NBR));
+  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.RxFifo0ElmtsNbr, SRAMCAN_RF0_NBR));
   if (hfdcan->Init.RxFifo0ElmtsNbr > 0U)
   {
     assert_param(IS_FDCAN_DATA_SIZE(hfdcan->Init.RxFifo0ElmtSize));
   }
-  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.RxFifo1ElmtsNbr, 64U));
+  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.RxFifo1ElmtsNbr, SRAMCAN_RF1_NBR));
   if (hfdcan->Init.RxFifo1ElmtsNbr > 0U)
   {
     assert_param(IS_FDCAN_DATA_SIZE(hfdcan->Init.RxFifo1ElmtSize));
   }
-  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.RxBuffersNbr, 64U));
+  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.RxBuffersNbr, SRAMCAN_RB_NBR));
   if (hfdcan->Init.RxBuffersNbr > 0U)
   {
     assert_param(IS_FDCAN_DATA_SIZE(hfdcan->Init.RxBufferSize));
   }
-  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.TxEventsNbr, 32U));
-  assert_param(IS_FDCAN_MAX_VALUE((hfdcan->Init.TxBuffersNbr + hfdcan->Init.TxFifoQueueElmtsNbr), 32U));
+  assert_param(IS_FDCAN_MAX_VALUE(hfdcan->Init.TxEventsNbr, SRAMCAN_TEF_NBR));
+  assert_param(IS_FDCAN_MAX_VALUE((hfdcan->Init.TxBuffersNbr + hfdcan->Init.TxFifoQueueElmtsNbr), SRAMCAN_TFQ_NBR));
   if (hfdcan->Init.TxFifoQueueElmtsNbr > 0U)
   {
     assert_param(IS_FDCAN_TX_FIFO_QUEUE_MODE(hfdcan->Init.TxFifoQueueMode));
@@ -585,7 +593,7 @@ HAL_StatusTypeDef HAL_FDCAN_Init(FDCAN_HandleTypeDef *hfdcan)
   hfdcan->State = HAL_FDCAN_STATE_READY;
 
   /* Calculate each RAM block address */
-  status = FDCAN_CalcultateRamBlockAddresses(hfdcan);
+  status = FDCAN_CalculateRamBlockAddresses(hfdcan);
 
   /* Return function status */
   return status;
@@ -1845,14 +1853,14 @@ HAL_StatusTypeDef HAL_FDCAN_ConfigFilter(FDCAN_HandleTypeDef *hfdcan, const FDCA
     assert_param(IS_FDCAN_FILTER_CFG(sFilterConfig->FilterConfig));
     if (sFilterConfig->FilterConfig == FDCAN_FILTER_TO_RXBUFFER)
     {
-      assert_param(IS_FDCAN_MAX_VALUE(sFilterConfig->RxBufferIndex, 63U));
+      assert_param(IS_FDCAN_MAX_VALUE(sFilterConfig->RxBufferIndex, (SRAMCAN_RB_NBR - 1U)));
       assert_param(IS_FDCAN_MAX_VALUE(sFilterConfig->IsCalibrationMsg, 1U));
     }
 
     if (sFilterConfig->IdType == FDCAN_STANDARD_ID)
     {
       /* Check function parameters */
-      assert_param(IS_FDCAN_MAX_VALUE(sFilterConfig->FilterIndex, (hfdcan->Init.StdFiltersNbr - 1U)));
+      assert_param(IS_FDCAN_MAX_VALUE((sFilterConfig->FilterIndex + 1U), hfdcan->Init.StdFiltersNbr));
       assert_param(IS_FDCAN_MAX_VALUE(sFilterConfig->FilterID1, 0x7FFU));
       if (sFilterConfig->FilterConfig != FDCAN_FILTER_TO_RXBUFFER)
       {
@@ -1877,7 +1885,7 @@ HAL_StatusTypeDef HAL_FDCAN_ConfigFilter(FDCAN_HandleTypeDef *hfdcan, const FDCA
       }
 
       /* Calculate filter address */
-      FilterAddress = (uint32_t *)(hfdcan->msgRam.StandardFilterSA + (sFilterConfig->FilterIndex * 4U));
+      FilterAddress = (uint32_t *)(hfdcan->msgRam.StandardFilterSA + (sFilterConfig->FilterIndex * SRAMCAN_FLS_SIZE));
 
       /* Write filter element to the message RAM */
       *FilterAddress = FilterElementW1;
@@ -1885,7 +1893,7 @@ HAL_StatusTypeDef HAL_FDCAN_ConfigFilter(FDCAN_HandleTypeDef *hfdcan, const FDCA
     else /* sFilterConfig->IdType == FDCAN_EXTENDED_ID */
     {
       /* Check function parameters */
-      assert_param(IS_FDCAN_MAX_VALUE(sFilterConfig->FilterIndex, (hfdcan->Init.ExtFiltersNbr - 1U)));
+      assert_param(IS_FDCAN_MAX_VALUE((sFilterConfig->FilterIndex + 1U), hfdcan->Init.ExtFiltersNbr));
       assert_param(IS_FDCAN_MAX_VALUE(sFilterConfig->FilterID1, 0x1FFFFFFFU));
       if (sFilterConfig->FilterConfig != FDCAN_FILTER_TO_RXBUFFER)
       {
@@ -1907,7 +1915,7 @@ HAL_StatusTypeDef HAL_FDCAN_ConfigFilter(FDCAN_HandleTypeDef *hfdcan, const FDCA
       }
 
       /* Calculate filter address */
-      FilterAddress = (uint32_t *)(hfdcan->msgRam.ExtendedFilterSA + (sFilterConfig->FilterIndex * 4U * 2U));
+      FilterAddress = (uint32_t *)(hfdcan->msgRam.ExtendedFilterSA + (sFilterConfig->FilterIndex * SRAMCAN_FLE_SIZE));
 
       /* Write filter element to the message RAM */
       *FilterAddress = FilterElementW1;
@@ -2973,18 +2981,19 @@ HAL_StatusTypeDef HAL_FDCAN_GetRxMessage(FDCAN_HandleTypeDef *hfdcan, uint32_t R
       }
       else
       {
+        /* Calculate Rx FIFO 0 element index */
+        GetIndex = ((hfdcan->Instance->RXF0S & FDCAN_RXF0S_F0GI) >> FDCAN_RXF0S_F0GI_Pos);
+
         /* Check that the Rx FIFO 0 is full & overwrite mode is on */
         if (((hfdcan->Instance->RXF0S & FDCAN_RXF0S_F0F) >> FDCAN_RXF0S_F0F_Pos) == 1U)
         {
           if (((hfdcan->Instance->RXF0C & FDCAN_RXF0C_F0OM) >> FDCAN_RXF0C_F0OM_Pos) == FDCAN_RX_FIFO_OVERWRITE)
           {
             /* When overwrite status is on discard first message in FIFO */
-            GetIndex = 1U;
+            /* GetIndex is incremented by one and wraps to 0 in case it overflows the FIFO size */
+            GetIndex = (GetIndex + 1U) & ((hfdcan->Instance->RXF0C & FDCAN_RXF0C_F0S) >> FDCAN_RXF0C_F0S_Pos);
           }
         }
-
-        /* Calculate Rx FIFO 0 element index */
-        GetIndex += ((hfdcan->Instance->RXF0S & FDCAN_RXF0S_F0GI) >> FDCAN_RXF0S_F0GI_Pos);
 
         /* Calculate Rx FIFO 0 element address */
         RxAddress = (uint32_t *)(hfdcan->msgRam.RxFIFO0SA + (GetIndex * hfdcan->Init.RxFifo0ElmtSize * 4U));
@@ -3011,18 +3020,19 @@ HAL_StatusTypeDef HAL_FDCAN_GetRxMessage(FDCAN_HandleTypeDef *hfdcan, uint32_t R
       }
       else
       {
+        /* Calculate Rx FIFO 1 element index */
+        GetIndex = ((hfdcan->Instance->RXF1S & FDCAN_RXF1S_F1GI) >> FDCAN_RXF1S_F1GI_Pos);
+
         /* Check that the Rx FIFO 1 is full & overwrite mode is on */
         if (((hfdcan->Instance->RXF1S & FDCAN_RXF1S_F1F) >> FDCAN_RXF1S_F1F_Pos) == 1U)
         {
           if (((hfdcan->Instance->RXF1C & FDCAN_RXF1C_F1OM) >> FDCAN_RXF1C_F1OM_Pos) == FDCAN_RX_FIFO_OVERWRITE)
           {
             /* When overwrite status is on discard first message in FIFO */
-            GetIndex = 1U;
+            /* GetIndex is incremented by one and wraps to 0 in case it overflows the FIFO size */
+            GetIndex = (GetIndex + 1U) & ((hfdcan->Instance->RXF1C & FDCAN_RXF1C_F1S) >> FDCAN_RXF1C_F1S_Pos);
           }
         }
-
-        /* Calculate Rx FIFO 1 element index */
-        GetIndex += ((hfdcan->Instance->RXF1S & FDCAN_RXF1S_F1GI) >> FDCAN_RXF1S_F1GI_Pos);
 
         /* Calculate Rx FIFO 1 element address */
         RxAddress = (uint32_t *)(hfdcan->msgRam.RxFIFO1SA + (GetIndex * hfdcan->Init.RxFifo1ElmtSize * 4U));
@@ -3314,7 +3324,7 @@ HAL_StatusTypeDef HAL_FDCAN_GetErrorCounters(const FDCAN_HandleTypeDef *hfdcan,
 uint32_t HAL_FDCAN_IsRxBufferMessageAvailable(FDCAN_HandleTypeDef *hfdcan, uint32_t RxBufferIndex)
 {
   /* Check function parameters */
-  assert_param(IS_FDCAN_MAX_VALUE(RxBufferIndex, 63U));
+  assert_param(IS_FDCAN_MAX_VALUE(RxBufferIndex, (SRAMCAN_RB_NBR - 1U)));
   uint32_t NewData1 = hfdcan->Instance->NDAT1;
   uint32_t NewData2 = hfdcan->Instance->NDAT2;
 
@@ -6088,7 +6098,7 @@ uint32_t HAL_FDCAN_GetError(const FDCAN_HandleTypeDef *hfdcan)
   *         the configuration information for the specified FDCAN.
   * @retval HAL status
  */
-static HAL_StatusTypeDef FDCAN_CalcultateRamBlockAddresses(FDCAN_HandleTypeDef *hfdcan)
+static HAL_StatusTypeDef FDCAN_CalculateRamBlockAddresses(FDCAN_HandleTypeDef *hfdcan)
 {
   uint32_t RAMcounter;
   uint32_t StartAddress;

@@ -72,7 +72,14 @@
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA4
 
-//Baro 
+#define USE_IMU_LSM6DXX
+#define IMU_LSM6DXX_ALIGN       CW90_DEG
+#define LSM6DXX_SPI_BUS         BUS_SPI1
+#define LSM6DXX_CS_PIN          PA4
+
+// LSM6DSV16X / LSM6DSK320X driver handled by USE_IMU_LSM6DXX above (shares WHO_AM_I detection)
+
+//Baro
 #define USE_BARO
 #define USE_BARO_BMP280
 #define BMP280_SPI_BUS          BUS_SPI2

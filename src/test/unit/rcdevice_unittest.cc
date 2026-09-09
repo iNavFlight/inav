@@ -34,6 +34,7 @@ extern "C" {
 
     #include "fc/rc_controls.h"
     #include "fc/rc_modes.h"
+    #include "fc/runtime_config.h"
 
 
 
@@ -124,12 +125,90 @@ static void resetRCDeviceStatus()
     clearResponseBuff();
 }
 
+static void resetRcModeActivationForTest()
+{
+    DISABLE_ARMING_FLAG(ARMED);
+
+    boxBitmask_t mask;
+    memset(&mask, 0, sizeof(mask));
+    rcModeUpdate(&mask);
+}
+
 static void addResponseData(uint8_t *data, uint8_t dataLen, bool withDataForFlushSerial)
 {
     UNUSED(withDataForFlushSerial);
     memcpy(testData.responesBufs[testData.responseBufCount], data, dataLen);
     testData.responseBufsLen[testData.responseBufCount] = dataLen;
     testData.responseBufCount++;
+}
+
+TEST(RCModeTest, ActivationOverrideSurvivesUnrelatedModeChange)
+{
+    resetRcModeActivationForTest();
+
+    boxBitmask_t mask;
+    memset(&mask, 0, sizeof(mask));
+    bitArraySet(mask.bits, BOXANGLE);
+    rcModeUpdate(&mask);
+
+    ENABLE_ARMING_FLAG(ARMED);
+    rcModeSetActivationOverride(BOXNAVRTH);
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXANGLE));
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXNAVRTH));
+
+    bitArraySet(mask.bits, BOXCAMERA1);
+    rcModeUpdate(&mask);
+
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXANGLE));
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXNAVRTH));
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXCAMERA1));
+
+    resetRcModeActivationForTest();
+}
+
+TEST(RCModeTest, ActivationOverrideClearsOnFlightModeChange)
+{
+    resetRcModeActivationForTest();
+
+    boxBitmask_t mask;
+    memset(&mask, 0, sizeof(mask));
+    bitArraySet(mask.bits, BOXANGLE);
+    rcModeUpdate(&mask);
+
+    ENABLE_ARMING_FLAG(ARMED);
+    rcModeSetActivationOverride(BOXNAVRTH);
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXNAVRTH));
+
+    bitArrayClr(mask.bits, BOXANGLE);
+    bitArraySet(mask.bits, BOXHORIZON);
+    rcModeUpdate(&mask);
+
+    EXPECT_FALSE(IS_RC_MODE_ACTIVE(BOXNAVRTH));
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXHORIZON));
+
+    resetRcModeActivationForTest();
+}
+
+TEST(RCModeTest, ActivationOverrideClearsWhenDisarmed)
+{
+    resetRcModeActivationForTest();
+
+    boxBitmask_t mask;
+    memset(&mask, 0, sizeof(mask));
+    bitArraySet(mask.bits, BOXANGLE);
+    rcModeUpdate(&mask);
+
+    ENABLE_ARMING_FLAG(ARMED);
+    rcModeSetActivationOverride(BOXNAVRTH);
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXNAVRTH));
+
+    DISABLE_ARMING_FLAG(ARMED);
+    rcModeUpdate(&mask);
+
+    EXPECT_FALSE(IS_RC_MODE_ACTIVE(BOXNAVRTH));
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXANGLE));
+
+    resetRcModeActivationForTest();
 }
 
 TEST(RCDeviceTest, TestRCSplitInitWithoutPortConfigurated)
@@ -947,9 +1026,9 @@ extern "C" {
     }
 
     uint32_t millis(void) { return testData.millis++; }
-    uint32_t micros(void) { return millis() * 1000; }
+    timeUs_t micros(void) { return millis() * 1000; }
     void beeper(beeperMode_e mode) { UNUSED(mode); }
-    uint8_t armingFlags = 0;
+    uint32_t armingFlags = 0;
     bool cmsInMenu;
     uint32_t resumeRefreshAt = 0;
     int getArmingDisableFlags(void) {return 0;}

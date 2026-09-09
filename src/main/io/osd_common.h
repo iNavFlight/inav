@@ -46,6 +46,8 @@ typedef struct {
 PG_DECLARE(osdCommonConfig_t, osdCommonConfig);
 
 int16_t osdGetSpeedFromSelectedSource(void);
+const char *osdVtolTransitionMessage(void);
+bool osdVtolTransitionMessageShouldBlink(void);
 
 #endif // defined(USE_OSD) || defined(USE_DJI_HD_OSD)
 
@@ -105,7 +107,3 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
 // grid slots.
 void osdDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading);
 void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas);
-
-#ifdef USE_GPS
-int16_t osdGet3DSpeed(void);
-#endif

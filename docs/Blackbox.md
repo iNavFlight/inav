@@ -70,7 +70,7 @@ First, tell the Blackbox to log using a serial port (rather than to an onboard d
 
 You need to let INAV know which of [your serial ports][] you connect your OpenLog to (i.e. the Blackbox port), which you can do on the Configurator's Ports tab.
 
-You should use a hardware serial port. SoftSerial ports can be used for the Blackbox. However, because they are limited to 19200 baud, your logging rate will need to be severely reduced to compensate. Therefore the use of SoftSerial is not recommended.
+You should use a hardware serial port. SoftSerial ports can be used for the Blackbox. However, because softserial is bit-banged and only reliably usable at low baud rates, your logging rate will need to be severely reduced to compensate. Therefore the use of SoftSerial is not recommended.
 
 When using a hardware serial port, Blackbox should be set to at least 115200 baud on that port. When using fast looptimes (<2500), a baud rate of 250000 should be used instead in order to reduce dropped frames.
 

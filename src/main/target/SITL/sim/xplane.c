@@ -56,6 +56,7 @@
 #include "platform.h"
 #include "rx/sim.h"
 #include "sensors/acceleration.h"
+#include "sensors/barometer.h"
 #include "sensors/battery_sensor_fake.h"
 #include "target.h"
 #include "target/SITL/sim/simHelper.h"
@@ -104,7 +105,6 @@ static float accel_z = 0;
 static float gyro_x = 0;
 static float gyro_y = 0;
 static float gyro_z = 0;
-static float barometer = 0;
 static bool hasJoystick = false;
 static float joystickRaw[XPLANE_JOYSTICK_AXIS_COUNT];
 
@@ -145,7 +145,6 @@ typedef enum
     DREF_POS_P,
     DREF_POS_Q,
     DREF_POS_R,
-    DREF_POS_BARO_CURRENT_INHG,
     DREF_COUNT,
     DREF_HAS_JOYSTICK,
     DREF_JOYSTICK_VALUES_ROll,
@@ -279,7 +278,6 @@ static void registerCommonDrefs(int32_t freq)
     registerDref(DREF_POS_Q, "sim/flightmodel/position/Q", freq);
     registerDref(DREF_POS_R, "sim/flightmodel/position/R", freq);
 
-    registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", freq);
     registerDref(DREF_HAS_JOYSTICK, "sim/joystick/has_joystick", freq);
     registerDref(DREF_JOYSTICK_VALUES_PITCH, "sim/joystick/joy_mapped_axis_value[1]", freq);
     registerDref(DREF_JOYSTICK_VALUES_ROll, "sim/joystick/joy_mapped_axis_value[2]", freq);
@@ -452,10 +450,6 @@ static void exchangeDataWithXPlane(void)
                 gyro_z = value;
                 break;
 
-            case DREF_POS_BARO_CURRENT_INHG:
-                barometer = value;
-                break;
-
             case DREF_HAS_JOYSTICK:
                 hasJoystick = value >= 1 ? true : false;
                 break;
@@ -559,16 +553,17 @@ static void exchangeDataWithXPlane(void)
         rxSimSetChannelValue(channelValues, XPLANE_JOYSTICK_AXIS_COUNT);
     }
 
+    const int32_t altitude = (int32_t)roundf(elevation * 100);
     gpsFakeSet(
         fixType,
         numSats,
         (int32_t)roundf(lattitude * 10000000),
         (int32_t)roundf(longitude * 10000000),
-        (int32_t)roundf(elevation * 100),
+        altitude,
         (int16_t)roundf(groundspeed * 100), (int16_t)roundf(hpath * 10),
-        0,  //(int16_t)roundf(-local_vz * 100),
-        0,  //(int16_t)roundf(local_vx * 100),
-        0,  //(int16_t)roundf(-local_vy * 100),
+        constrainToInt16(-local_vz * 100),
+        constrainToInt16(local_vx * 100),
+        constrainToInt16(-local_vy * 100),
         0
     );
 
@@ -612,7 +607,7 @@ static void exchangeDataWithXPlane(void)
 
     fakePitotSetAirspeed(airspeed * 100.0f);
 
-    fakeBaroSet((int32_t)roundf(barometer * 3386.39f),
+    fakeBaroSet(altitudeToPressure(altitude),
                 DEGREES_TO_CENTIDEGREES(21));
 
     if (inavXitlDrefVersion >= XITL_DREF_VERSION) {

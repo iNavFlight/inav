@@ -86,6 +86,7 @@ typedef enum {
     DEVHW_BMI270,
     DEVHW_LSM6D,
     DEVHW_ICM45686,
+    DEVHW_ICM40609D,
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,
 
@@ -149,6 +150,7 @@ typedef enum {
     DEVHW_SDCARD,       // Generic SD-Card
     DEVHW_IRLOCK,       // IR-Lock visual positioning hardware
     DEVHW_PCF8574,      // 8-bit I/O expander
+    DEVHW_INA226,       // I2C current and voltage monitor
 } devHardwareType_e;
 
 typedef enum {

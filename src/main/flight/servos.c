@@ -51,6 +51,8 @@
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
+#include "flight/mixer_transition_logic.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -106,6 +108,14 @@ int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
+#ifdef USE_AUTO_TRANSITION
+static uint32_t targetTransitionServoPreviewCaptureMask = 0;
+static int targetTransitionServoPreviewTargetProfileIndex = -1;
+static mixerProfileATDirection_e targetTransitionServoPreviewDirection = MIXERAT_DIRECTION_NONE;
+static int16_t targetTransitionServoPreviewCapturedOutput[MAX_SUPPORTED_SERVOS];
+static int16_t vtolTransitionServoDebugPreHandoff[MAX_SUPPORTED_SERVOS];
+static int16_t vtolTransitionServoDebugPostHandoff[MAX_SUPPORTED_SERVOS];
+#endif
 /*
 //Was used to keep track of servo rules in all mixer_profile, In order to Apply mixer speed limit when rules turn off
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];
@@ -123,6 +133,7 @@ static bool servoFilterIsSet;
 
 static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
 static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
+static bool carryOverServoSpeedLimitsOnNextLoad = true;
 
 STATIC_FASTRAM pt1Filter_t rotRateFilter;
 STATIC_FASTRAM pt1Filter_t targetRateFilter;
@@ -192,6 +203,10 @@ void servosInit(void)
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servoComputeScalingFactors(i);
     }
+
+    // Initialise filters
+    pt1FilterSetCutoff(&rotRateFilter, SERVO_AUTOTRIM_FILTER_CUTOFF);
+    pt1FilterSetCutoff(&targetRateFilter, SERVO_AUTOTRIM_FILTER_CUTOFF);
 }
 
 int getServoCount(void)
@@ -206,24 +221,30 @@ int getServoCount(void)
 
 void loadCustomServoMixer(void)
 {
-    
+
     //move the rate filter to new servo rules
     int movefilterCount = 0;
     static servoMixerSwitch_t servoMixerSwitchHelper[MAX_SERVO_RULES_SWITCH_CARRY]; // helper to keep track of servoSpeedLimitFilter of servo rules
     memset(servoMixerSwitchHelper, 0, sizeof(servoMixerSwitchHelper));
-    for (int i = 0; i < servoRuleCount; i++) {
-        if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
-            //will not carry over INPUT_MIXER_SWITCH_HELPER rules
-            break;
-        }
-        if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) > 0.01f) {
-            servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
-            servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
-            servoMixerSwitchHelper[movefilterCount].rate = currentServoMixer[i].rate;
-            servoMixerSwitchHelper[movefilterCount].speedLimitFilterState = servoSpeedLimitFilter[i].state;
-            movefilterCount++;
+    // Profile hot-switches normally preserve speed-limited rule outputs so old
+    // rules can decay smoothly. Direct switches can opt out for an immediate
+    // target-profile response.
+    if (carryOverServoSpeedLimitsOnNextLoad) {
+        for (int i = 0; i < servoRuleCount; i++) {
+            if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
+                //will not carry over INPUT_MIXER_SWITCH_HELPER rules
+                break;
+            }
+            if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) > 0.01f) {
+                servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
+                servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
+                servoMixerSwitchHelper[movefilterCount].rate = currentServoMixer[i].rate;
+                servoMixerSwitchHelper[movefilterCount].speedLimitFilterState = servoSpeedLimitFilter[i].state;
+                movefilterCount++;
+            }
         }
     }
+    carryOverServoSpeedLimitsOnNextLoad = true;
 
     servoRuleCount = 0;
     memset(currentServoMixer, 0, sizeof(currentServoMixer));
@@ -253,6 +274,11 @@ void loadCustomServoMixer(void)
     }
 }
 
+void servoMixerSetCarryoverOnNextLoad(bool enabled)
+{
+    carryOverServoSpeedLimitsOnNextLoad = enabled;
+}
+
 static void filterServos(void)
 {
     if (servoConfig()->servo_lowpass_freq) {
@@ -275,6 +301,303 @@ static void filterServos(void)
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
     }
 }
+
+#ifdef USE_AUTO_TRANSITION
+static bool isAutoTransitionTargetInputSource(const uint8_t inputSource)
+{
+    return inputSource >= INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL &&
+           inputSource <= INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS;
+}
+
+static uint16_t packServoDebugOutput(int16_t output)
+{
+    return constrain(output - 900, 0, 0x7FF);
+}
+
+static uint32_t packVtolTransitionServoDebug(const uint8_t servoIndex)
+{
+    uint8_t flags = 0;
+
+    if (vtolTransitionServoDebugPreHandoff[servoIndex] != vtolTransitionServoDebugPostHandoff[servoIndex]) {
+        flags |= 1 << 0;
+    }
+
+    if ((mixerProfileAT.servoHandoffMask & (1U << servoIndex)) != 0) {
+        flags |= 1 << 1;
+    }
+
+    if ((targetTransitionServoPreviewCaptureMask & (1U << servoIndex)) != 0) {
+        flags |= 1 << 2;
+    }
+
+    return ((uint32_t)servoIndex & 0xFU) |
+           ((uint32_t)packServoDebugOutput(vtolTransitionServoDebugPreHandoff[servoIndex]) << 4) |
+           ((uint32_t)packServoDebugOutput(vtolTransitionServoDebugPostHandoff[servoIndex]) << 15) |
+           ((uint32_t)flags << 26);
+}
+
+static int16_t vtolTransitionServoDebugActivity(const uint8_t servoIndex)
+{
+    const int16_t middle = servoParams(servoIndex)->middle;
+    const int16_t preDelta = ABS(vtolTransitionServoDebugPreHandoff[servoIndex] - middle);
+    const int16_t postDelta = ABS(vtolTransitionServoDebugPostHandoff[servoIndex] - middle);
+    const int16_t handoffDelta = ABS(vtolTransitionServoDebugPostHandoff[servoIndex] - vtolTransitionServoDebugPreHandoff[servoIndex]);
+
+    return MAX(MAX(preDelta, postDelta), handoffDelta);
+}
+
+int32_t servoMixerGetVtolTransitionDebug(const uint8_t slot)
+{
+    uint8_t bestIndex[2] = { 0, 0 };
+    int16_t bestActivity[2] = { -1, -1 };
+
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        const int16_t activity = vtolTransitionServoDebugActivity(i);
+
+        if (activity > bestActivity[0]) {
+            bestActivity[1] = bestActivity[0];
+            bestIndex[1] = bestIndex[0];
+            bestActivity[0] = activity;
+            bestIndex[0] = i;
+        } else if (activity > bestActivity[1]) {
+            bestActivity[1] = activity;
+            bestIndex[1] = i;
+        }
+    }
+
+    return (int32_t)packVtolTransitionServoDebug(bestIndex[slot > 0 ? 1 : 0]);
+}
+
+static bool isTransitionServoPreviewInputSource(const uint8_t inputSource)
+{
+    return inputSource == INPUT_MAX ||
+           inputSource == INPUT_MIXER_TRANSITION;
+}
+
+static bool servoRuleConditionIsActive(const servoMixer_t *rule)
+{
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    return logicConditionGetValue(rule->conditionId);
+#else
+    UNUSED(rule);
+    return true;
+#endif
+}
+
+static bool servoProfileHasTargetInputSource(const servoMixer_t *rules, const uint8_t targetChannel, const uint8_t inputSource)
+{
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        const servoMixer_t *rule = &rules[i];
+
+        if (rule->rate == 0) {
+            break;
+        }
+
+        if (rule->targetChannel == targetChannel &&
+            rule->inputSource == inputSource &&
+            servoRuleConditionIsActive(rule)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void resetTargetTransitionServoPreviewCapture(void)
+{
+    targetTransitionServoPreviewCaptureMask = 0;
+    targetTransitionServoPreviewTargetProfileIndex = -1;
+    targetTransitionServoPreviewDirection = MIXERAT_DIRECTION_NONE;
+    memset(targetTransitionServoPreviewCapturedOutput, 0, sizeof(targetTransitionServoPreviewCapturedOutput));
+}
+
+static void updateTargetTransitionServoPreviewSession(void)
+{
+    if (!isMixerTransitionMixing ||
+        !mixerATIsActive() ||
+        mixerProfileAT.phase != MIXERAT_PHASE_TRANSITIONING ||
+        nextMixerProfileIndex < 0 ||
+        nextMixerProfileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        resetTargetTransitionServoPreviewCapture();
+        return;
+    }
+
+    if (targetTransitionServoPreviewTargetProfileIndex != nextMixerProfileIndex ||
+        targetTransitionServoPreviewDirection != mixerProfileAT.direction) {
+        resetTargetTransitionServoPreviewCapture();
+        targetTransitionServoPreviewTargetProfileIndex = nextMixerProfileIndex;
+        targetTransitionServoPreviewDirection = mixerProfileAT.direction;
+    }
+}
+
+static bool servoNeedsTargetTransitionPreview(const uint8_t targetChannel)
+{
+    if (!currentMixerConfig.vtolTransitionDynamicMixer ||
+        currentMixerConfig.vtolTransitionScaleRampTimeMs == 0 ||
+        !isMixerTransitionMixing ||
+        !mixerATIsActive() ||
+        mixerProfileAT.phase != MIXERAT_PHASE_TRANSITIONING ||
+        mixerProfileAT.hotSwitchDone ||
+        mixerProfileAT.direction != MIXERAT_DIRECTION_TO_MC ||
+        nextMixerProfileIndex < 0 ||
+        nextMixerProfileIndex >= MAX_MIXER_PROFILE_COUNT ||
+        !isMultirotorTypePlatform(mixerConfigByIndex(nextMixerProfileIndex)->platformType) ||
+        targetChannel >= MAX_SUPPORTED_SERVOS) {
+        return false;
+    }
+
+    const servoMixer_t *currentRules = mixerServoMixersByIndex(currentMixerProfileIndex);
+    const servoMixer_t *targetRules = mixerServoMixersByIndex(nextMixerProfileIndex);
+
+    return !servoProfileHasTargetInputSource(currentRules, targetChannel, INPUT_MIXER_TRANSITION) &&
+           servoProfileHasTargetInputSource(targetRules, targetChannel, INPUT_MIXER_TRANSITION);
+}
+
+static int16_t applyServoOutputScaling(const uint8_t servoIndex, int32_t servoOutput)
+{
+    servoOutput = ((int32_t)servoParams(servoIndex)->rate * servoOutput) / 100L;
+
+    if (servoOutput > 0) {
+        servoOutput = (int16_t)(servoOutput * servoMetadata[servoIndex].scaleMax);
+    } else {
+        servoOutput = (int16_t)(servoOutput * servoMetadata[servoIndex].scaleMin);
+    }
+
+    servoOutput += servoParams(servoIndex)->middle;
+    return constrain(servoOutput, servoParams(servoIndex)->min, servoParams(servoIndex)->max);
+}
+
+static bool getTargetTransitionServoPreviewOutput(const uint8_t targetChannel, const int16_t input[INPUT_SOURCE_COUNT], int16_t *output)
+{
+    if (nextMixerProfileIndex < 0 ||
+        nextMixerProfileIndex >= MAX_MIXER_PROFILE_COUNT ||
+        targetChannel >= MAX_SUPPORTED_SERVOS) {
+        return false;
+    }
+
+    const servoMixer_t *targetRules = mixerServoMixersByIndex(nextMixerProfileIndex);
+    bool hasPreviewRule = false;
+    int32_t servoOutput = 0;
+
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        const servoMixer_t *rule = &targetRules[i];
+
+        if (rule->rate == 0) {
+            break;
+        }
+
+        if (rule->targetChannel != targetChannel ||
+            !isTransitionServoPreviewInputSource(rule->inputSource) ||
+            !servoRuleConditionIsActive(rule)) {
+            continue;
+        }
+
+        hasPreviewRule = true;
+        servoOutput += ((int32_t)input[rule->inputSource] * rule->rate) / 100;
+    }
+
+    if (!hasPreviewRule) {
+        return false;
+    }
+
+    *output = applyServoOutputScaling(targetChannel, servoOutput);
+    return true;
+}
+
+static float getTargetTransitionServoPreviewProgress(const int16_t transitionServoInput)
+{
+    return constrainf((500.0f - transitionServoInput) / 500.0f, 0.0f, 1.0f);
+}
+
+static bool getTargetTransitionServoPreviewMixedOutput(const uint8_t targetChannel, const int16_t input[INPUT_SOURCE_COUNT], const int16_t currentOutput, int16_t *output)
+{
+    if (!servoNeedsTargetTransitionPreview(targetChannel)) {
+        return false;
+    }
+
+    const uint32_t targetMask = 1U << targetChannel;
+    if ((targetTransitionServoPreviewCaptureMask & targetMask) == 0) {
+        targetTransitionServoPreviewCapturedOutput[targetChannel] = currentOutput;
+        targetTransitionServoPreviewCaptureMask |= targetMask;
+    }
+
+    int16_t targetOutput = 0;
+    if (!getTargetTransitionServoPreviewOutput(targetChannel, input, &targetOutput)) {
+        return false;
+    }
+
+    *output = mixerTransitionBlendCapturedServoOutput(
+        targetTransitionServoPreviewCapturedOutput[targetChannel],
+        targetOutput,
+        getTargetTransitionServoPreviewProgress(input[INPUT_MIXER_TRANSITION]));
+    return true;
+}
+
+static bool isStabilizedAxisInputSource(const uint8_t inputSource)
+{
+    switch (inputSource) {
+    case INPUT_STABILIZED_ROLL:
+    case INPUT_STABILIZED_PITCH:
+    case INPUT_STABILIZED_YAW:
+    case INPUT_STABILIZED_ROLL_PLUS:
+    case INPUT_STABILIZED_ROLL_MINUS:
+    case INPUT_STABILIZED_PITCH_PLUS:
+    case INPUT_STABILIZED_PITCH_MINUS:
+    case INPUT_STABILIZED_YAW_PLUS:
+    case INPUT_STABILIZED_YAW_MINUS:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static int getAutoTransitionServoProfileIndex(void)
+{
+    if (isMultirotorTypePlatform(currentMixerConfig.platformType)) {
+        return currentMixerProfileIndex;
+    }
+
+    if (nextMixerProfileIndex >= 0 &&
+        nextMixerProfileIndex < MAX_MIXER_PROFILE_COUNT &&
+        isMultirotorTypePlatform(mixerConfigByIndex(nextMixerProfileIndex)->platformType)) {
+        return nextMixerProfileIndex;
+    }
+
+    return -1;
+}
+
+static void collectAutoTransitionServoTargets(bool targets[MAX_SUPPORTED_SERVOS])
+{
+    memset(targets, 0, MAX_SUPPORTED_SERVOS * sizeof(targets[0]));
+
+    const int profileIndex = getAutoTransitionServoProfileIndex();
+    if (profileIndex < 0) {
+        return;
+    }
+
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        const servoMixer_t *rule = &mixerServoMixersByIndex(profileIndex)[i];
+
+        if (rule->rate == 0) {
+            break;
+        }
+
+        if (!isAutoTransitionTargetInputSource(rule->inputSource)) {
+            continue;
+        }
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        if (!logicConditionGetValue(rule->conditionId)) {
+            continue;
+        }
+#endif
+
+        if (rule->targetChannel < MAX_SUPPORTED_SERVOS) {
+            targets[rule->targetChannel] = true;
+        }
+    }
+}
+#endif
 
 void writeServos(void)
 {
@@ -304,6 +627,24 @@ void writeServos(void)
 void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
+#ifdef USE_AUTO_TRANSITION
+    const bool autoTransitionInputsActive = isMixerTransitionMixing &&
+                                            mixerATIsActive() &&
+                                            mixerProfileAT.direction != MIXERAT_DIRECTION_NONE;
+    const bool autoTransitionTargetPreviewActive = autoTransitionInputsActive &&
+                                                   mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW;
+    const bool scaleCurrentFwServoRules = autoTransitionInputsActive &&
+                                          mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC &&
+                                          !isMultirotorTypePlatform(currentMixerConfig.platformType);
+    const float currentFwServoScale = currentMixerConfig.vtolTransitionDynamicMixer ? mixerATGetFwAuthorityScale() : 1.0f;
+    bool autoTransitionServoTargets[MAX_SUPPORTED_SERVOS];
+
+    if (scaleCurrentFwServoRules) {
+        collectAutoTransitionServoTargets(autoTransitionServoTargets);
+    } else {
+        memset(autoTransitionServoTargets, 0, sizeof(autoTransitionServoTargets));
+    }
+#endif
 
     if (FLIGHT_MODE(MANUAL_MODE)) {
         input[INPUT_STABILIZED_ROLL] = rcCommand[ROLL];
@@ -322,12 +663,30 @@ void servoMixer(float dT)
         }
     }
 
+#ifdef USE_AUTO_TRANSITION
+    // These preview inputs are only for pre-switch FW servo handoff.
+    // In FW->MC the same marked rules are used only as identifiers so the
+    // currently active FW servo rules can fade out; they do not become MC
+    // lift-motor stabilisation sources.
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL] = autoTransitionTargetPreviewActive ? getAutoTransitionTargetStabilizedInput(FD_ROLL) : 0;
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH] = autoTransitionTargetPreviewActive ? getAutoTransitionTargetStabilizedInput(FD_PITCH) : 0;
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW] = autoTransitionTargetPreviewActive ? getAutoTransitionTargetStabilizedInput(FD_YAW) : 0;
+#endif
+
     input[INPUT_STABILIZED_ROLL_PLUS] = constrain(input[INPUT_STABILIZED_ROLL], 0, 1000);
     input[INPUT_STABILIZED_ROLL_MINUS] = constrain(input[INPUT_STABILIZED_ROLL], -1000, 0);
     input[INPUT_STABILIZED_PITCH_PLUS] = constrain(input[INPUT_STABILIZED_PITCH], 0, 1000);
     input[INPUT_STABILIZED_PITCH_MINUS] = constrain(input[INPUT_STABILIZED_PITCH], -1000, 0);
     input[INPUT_STABILIZED_YAW_PLUS] = constrain(input[INPUT_STABILIZED_YAW], 0, 1000);
     input[INPUT_STABILIZED_YAW_MINUS] = constrain(input[INPUT_STABILIZED_YAW], -1000, 0);
+#ifdef USE_AUTO_TRANSITION
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_PLUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL], 0, 1000);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_MINUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL], -1000, 0);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_PLUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH], 0, 1000);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_MINUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH], -1000, 0);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_PLUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW], 0, 1000);
+    input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS] = constrain(input[INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW], -1000, 0);
+#endif
 
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
 
@@ -353,8 +712,11 @@ void servoMixer(float dT)
 
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
 
-    input[INPUT_MIXER_TRANSITION] = isMixerTransitionMixing * 500; //fixed value
+    input[INPUT_MIXER_TRANSITION] = mixerATGetTransitionServoInput();
     input[INPUT_MIXER_SWITCH_HELPER] = 0; // no input, used to apply speed limit filter from previous servo rules
+#ifdef USE_AUTO_TRANSITION
+    updateTargetTransitionServoPreviewSession();
+#endif
 
     // center the RC input value around the RC middle value
     // by subtracting the RC middle value from the RC input value, we get:
@@ -454,6 +816,15 @@ void servoMixer(float dT)
             inputRaw = 0;
         }
     #endif
+
+#ifdef USE_AUTO_TRANSITION
+        if (scaleCurrentFwServoRules &&
+            autoTransitionServoTargets[target] &&
+            isStabilizedAxisInputSource(from)) {
+            inputRaw = lrintf(inputRaw * currentFwServoScale);
+        }
+#endif
+
         /*
          * Apply mixer speed limit. 1 [one] speed unit is defined as 10us/s:
          * 0 = no limiting
@@ -495,6 +866,22 @@ void servoMixer(float dT)
          * allowed the situation when smix weight sum for an output was above 100
          */
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
+
+#ifdef USE_AUTO_TRANSITION
+        vtolTransitionServoDebugPreHandoff[i] = servo[i];
+
+        int16_t targetPreviewOutput = 0;
+        if (getTargetTransitionServoPreviewMixedOutput(i, input, servo[i], &targetPreviewOutput)) {
+            servo[i] = constrain(targetPreviewOutput, servoParams(i)->min, servoParams(i)->max);
+        }
+
+        int16_t handoffOutput = 0;
+        if (mixerATGetServoHandoffOutput(i, servo[i], &handoffOutput)) {
+            servo[i] = constrain(handoffOutput, servoParams(i)->min, servoParams(i)->max);
+        }
+
+        vtolTransitionServoDebugPostHandoff[i] = servo[i];
+#endif
     }
 
 }
@@ -603,7 +990,6 @@ void processServoAutotrimMode(void)
     }
 }
 
-
 void processContinuousServoAutotrim(const float dT)
 {
     static timeMs_t lastUpdateTimeMs;
@@ -611,8 +997,8 @@ void processContinuousServoAutotrim(const float dT)
     static uint32_t servoMiddleUpdateCount;
     static float prevAxisIterm[2] = {0};  // Track previous I-term for rate-of-change calculation
 
-    const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
-    const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, getTotalRateTarget(), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
+    const float rotRateMagnitudeFiltered = pt1FilterApply3(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), dT);
+    const float targetRateMagnitudeFiltered = pt1FilterApply3(&targetRateFilter, getTotalRateTarget(), dT);
 
     if (ARMING_FLAG(ARMED)) {
         trimState = AUTOTRIM_COLLECTING;
