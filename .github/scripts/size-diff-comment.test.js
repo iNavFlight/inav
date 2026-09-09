@@ -13,7 +13,8 @@ const assert = require('node:assert/strict');
 
 const {
     REPRESENTATIVE_TARGETS,
-    NOISE_THRESHOLD_BYTES,
+    FLASH_NOISE_THRESHOLD_BYTES,
+    RAM_NOISE_THRESHOLD_BYTES,
     diffSizeReports,
     renderComment,
     formatDelta,
@@ -65,31 +66,49 @@ test('diffSizeReports: target present in both PR and baseline with a real delta 
     assert.equal(row.ramDelta, -200);
 });
 
-test('diffSizeReports: notable is gated at exactly NOISE_THRESHOLD_BYTES', () => {
+test('diffSizeReports: notable (flash) is gated at exactly FLASH_NOISE_THRESHOLD_BYTES', () => {
     const baseSizes = { flash: 100000, ram: 50000 };
 
-    const atThreshold = { MATEKF405: { flash: baseSizes.flash + NOISE_THRESHOLD_BYTES, ram: baseSizes.ram } };
-    const belowThreshold = { MATEKF405: { flash: baseSizes.flash + NOISE_THRESHOLD_BYTES - 1, ram: baseSizes.ram } };
+    const atThreshold = { MATEKF405: { flash: baseSizes.flash + FLASH_NOISE_THRESHOLD_BYTES, ram: baseSizes.ram } };
+    const belowThreshold = { MATEKF405: { flash: baseSizes.flash + FLASH_NOISE_THRESHOLD_BYTES - 1, ram: baseSizes.ram } };
     const base = { MATEKF405: baseSizes };
 
     const rowAtThreshold = diffSizeReports(atThreshold, base).find((r) => r.target === 'MATEKF405');
     const rowBelowThreshold = diffSizeReports(belowThreshold, base).find((r) => r.target === 'MATEKF405');
 
-    assert.equal(rowAtThreshold.flashDelta, NOISE_THRESHOLD_BYTES);
-    assert.equal(rowAtThreshold.notable, true, 'a delta of exactly NOISE_THRESHOLD_BYTES should be notable');
+    assert.equal(rowAtThreshold.flashDelta, FLASH_NOISE_THRESHOLD_BYTES);
+    assert.equal(rowAtThreshold.notable, true, 'a delta of exactly FLASH_NOISE_THRESHOLD_BYTES should be notable');
 
-    assert.equal(rowBelowThreshold.flashDelta, NOISE_THRESHOLD_BYTES - 1);
-    assert.equal(rowBelowThreshold.notable, false, 'a delta one byte below NOISE_THRESHOLD_BYTES should not be notable');
+    assert.equal(rowBelowThreshold.flashDelta, FLASH_NOISE_THRESHOLD_BYTES - 1);
+    assert.equal(rowBelowThreshold.notable, false, 'a delta one byte below FLASH_NOISE_THRESHOLD_BYTES should not be notable');
+});
+
+test('diffSizeReports: notable (ram) is gated at exactly RAM_NOISE_THRESHOLD_BYTES, independently of flash', () => {
+    const baseSizes = { flash: 100000, ram: 50000 };
+
+    const atThreshold = { MATEKF405: { flash: baseSizes.flash, ram: baseSizes.ram + RAM_NOISE_THRESHOLD_BYTES } };
+    const belowThreshold = { MATEKF405: { flash: baseSizes.flash, ram: baseSizes.ram + RAM_NOISE_THRESHOLD_BYTES - 1 } };
+    const base = { MATEKF405: baseSizes };
+
+    const rowAtThreshold = diffSizeReports(atThreshold, base).find((r) => r.target === 'MATEKF405');
+    const rowBelowThreshold = diffSizeReports(belowThreshold, base).find((r) => r.target === 'MATEKF405');
+
+    assert.equal(rowAtThreshold.ramDelta, RAM_NOISE_THRESHOLD_BYTES);
+    assert.equal(rowAtThreshold.notable, true, 'a ram delta of exactly RAM_NOISE_THRESHOLD_BYTES should be notable');
+
+    assert.equal(rowBelowThreshold.ramDelta, RAM_NOISE_THRESHOLD_BYTES - 1);
+    assert.equal(rowBelowThreshold.notable, false, 'a ram delta one byte below RAM_NOISE_THRESHOLD_BYTES should not be notable');
 });
 
 test('diffSizeReports: notable also triggers from ramDelta alone, and honors negative deltas via Math.abs', () => {
     const base = { MATEKF405: { flash: 100000, ram: 50000 } };
-    const pr = { MATEKF405: { flash: 100000, ram: 50000 - 300 } }; // flash unchanged, ram shrank by 300
+    const ramShrink = RAM_NOISE_THRESHOLD_BYTES + 300;
+    const pr = { MATEKF405: { flash: 100000, ram: 50000 - ramShrink } }; // flash unchanged, ram shrank
     const row = diffSizeReports(pr, base).find((r) => r.target === 'MATEKF405');
 
     assert.equal(row.flashDelta, 0);
-    assert.equal(row.ramDelta, -300);
-    assert.equal(row.notable, true, 'a -300 ram delta exceeds NOISE_THRESHOLD_BYTES in magnitude');
+    assert.equal(row.ramDelta, -ramShrink);
+    assert.equal(row.notable, true, 'a ram delta exceeding RAM_NOISE_THRESHOLD_BYTES in magnitude is notable');
 });
 
 test('diffSizeReports: target missing from PR report but present in baseline -> missing-from-pr', () => {
@@ -155,9 +174,9 @@ test('renderComment: baseline present, all 4 targets compared, mix of notable/no
         MATEKH743: [530000, 63000],
     });
     const prReport = fullReport({
-        MATEKF405: [500300, 60000], // +300 flash -> notable
+        MATEKF405: [504100, 60000], // +4100 flash -> notable
         MATEKF722: [510010, 61000], // +10 flash -> not notable
-        MATEKF765: [519700, 62000], // -300 flash -> notable
+        MATEKF765: [515700, 62000], // -4300 flash -> notable
         MATEKH743: [530000, 63000], // no change -> not notable
     });
 
@@ -179,9 +198,9 @@ test('renderComment: baseline present, all 4 targets compared, mix of notable/no
     const matekf765Line = lines.find((l) => l.startsWith('| MATEKF765'));
     const matekh743Line = lines.find((l) => l.startsWith('| MATEKH743'));
 
-    assert.ok(matekf405Line.includes('⚠️'), 'MATEKF405 (+300 flash) should be flagged notable');
+    assert.ok(matekf405Line.includes('⚠️'), 'MATEKF405 (+4100 flash) should be flagged notable');
     assert.ok(!matekf722Line.includes('⚠️'), 'MATEKF722 (+10 flash) should NOT be flagged notable');
-    assert.ok(matekf765Line.includes('⚠️'), 'MATEKF765 (-300 flash) should be flagged notable');
+    assert.ok(matekf765Line.includes('⚠️'), 'MATEKF765 (-4300 flash) should be flagged notable');
     assert.ok(!matekh743Line.includes('⚠️'), 'MATEKH743 (no change) should NOT be flagged notable');
 
     // No "no baseline available" note when a baseline was supplied.
@@ -354,4 +373,63 @@ test('renderComment: baselineCommit supplied but no baseline report -> graceful 
     assert.ok(body.includes('No size baseline is available yet'));
     assert.ok(!body.includes('vs. base commit `9e932ba`'), 'header must not name a baseline commit when no baseline exists');
     assert.ok(body.includes('vs. base branch'), 'header should fall back to the generic wording');
+});
+
+// ---------------------------------------------------------------------------
+// renderComment: per-region (RAM vs CCM/DTCM) breakdown
+// ---------------------------------------------------------------------------
+//
+// When both sides of a comparison carry a `regions` breakdown, renderComment
+// reports each region's own delta instead of one combined "RAM Δ" figure
+// that silently mixes growth across separate, non-fungible memory regions
+// (e.g. RAM vs. CCM on F4/F7, RAM vs. DTCM on H7).
+test('renderComment: RAM and CCM region deltas are reported separately, not combined into one RAM Δ', () => {
+    const baselineReport = {
+        MATEKF405: { flash: 500000, ram: 60000, regions: { RAM: 50000, CCM: 10000 } },
+    };
+    const prReport = {
+        // Combined ram grew by 3740 B (60000 -> 63740), matching the real CI
+        // report, but the regional breakdown shows RAM grew by only 608 B
+        // while CCM grew by 3132 B (608 + 3132 = 3740).
+        MATEKF405: { flash: 500000, ram: 63740, regions: { RAM: 50608, CCM: 13132 } },
+    };
+
+    const body = renderComment({
+        prReport,
+        baselineReport,
+        shortSha: 'abc1234',
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(
+        body.includes('RAM: +608 B'),
+        `expected the RAM region's own delta ("RAM: +608 B") to be reported separately, got:\n${body}`
+    );
+    assert.ok(
+        body.includes('CCM: +3132 B'),
+        `expected the CCM region's own delta ("CCM: +3132 B") to be reported separately, got:\n${body}`
+    );
+    assert.ok(
+        !body.includes('+3740 B'),
+        `RAM and CCM deltas must not be silently combined into one "+3740 B" figure, got:\n${body}`
+    );
+});
+
+test('renderComment: falls back to the combined RAM Δ when only one side has a regions breakdown', () => {
+    // A baseline captured before this field existed (or a target that lost
+    // its region info) must not produce a partial/misleading breakdown.
+    const baselineReport = { MATEKF405: { flash: 500000, ram: 60000 } };
+    const prReport = { MATEKF405: { flash: 500000, ram: 63740, regions: { RAM: 50608, CCM: 13132 } } };
+
+    const body = renderComment({
+        prReport,
+        baselineReport,
+        shortSha: 'abc1234',
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(body.includes('+3740 B'), `expected the combined RAM Δ fallback, got:\n${body}`);
+    assert.ok(!body.includes('RAM: +608 B'), `must not render a partial region breakdown, got:\n${body}`);
 });

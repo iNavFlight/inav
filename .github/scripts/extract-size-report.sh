@@ -6,7 +6,14 @@
 # Usage: extract-size-report.sh <build-dir> <output-json> [size-tool]
 #
 # flash = .text + .data (what's programmed into flash)
-# ram   = .data + .bss  (what's reserved in RAM at runtime)
+# ram   = .data + .bss  (what's reserved in RAM at runtime, summed across
+#         EVERY writable memory region the target has — e.g. RAM+CCM on
+#         F4/F7 parts, RAM+DTCM on H7. It's a total, not one region.)
+# regions = { "<name>": <bytes>, ... } — the same total broken out per
+#         linker memory region (RAM, CCM, DTCM, ...), computed from the
+#         build's own .map file via compute-region-sizes.py. Omitted for a
+#         target whose .map file is missing, so consumers must treat it as
+#         optional.
 #
 # Runs inside the (unprivileged) build job on the PR's own checkout, so a
 # PR could in principle modify this script to misreport its own numbers.
@@ -46,6 +53,8 @@ if [ "${#ELFS[@]}" -eq 0 ]; then
     exit 0
 fi
 
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+
 JQ_ARGS=()
 for elf in "${ELFS[@]}"; do
     target=$(basename "$elf" .elf)
@@ -56,13 +65,29 @@ for elf in "${ELFS[@]}"; do
     flash=$((text + data))
     ram=$((data + bss))
 
-    JQ_ARGS+=(--argjson "entry_${#JQ_ARGS[@]}" "{\"target\":\"${target}\",\"flash\":${flash},\"ram\":${ram}}")
+    # cmake's stm32.cmake/at32.cmake link every target with -Wl,-Map,<elf>.map
+    # (alongside -Wl,--print-memory-usage), so the per-region breakdown this
+    # script computes here matches exactly what the linker itself reported at
+    # build time. A missing map (e.g. a toolchain change that stops emitting
+    # one) degrades to just the flat flash/ram totals above, not a hard error.
+    map="${elf}.map"
+    regions='{}'
+    if [ -f "$map" ]; then
+        regions=$(python3 "${SCRIPT_DIR}/compute-region-sizes.py" "$elf" "$map" "$SIZE_TOOL") || regions='{}'
+    fi
+
+    JQ_ARGS+=(--argjson "entry_${#JQ_ARGS[@]}" "{\"target\":\"${target}\",\"flash\":${flash},\"ram\":${ram},\"regions\":${regions}}")
 done
 
 # Build via jq rather than manual string concatenation, so the target name
 # (an .elf basename, not otherwise validated) is JSON-escaped properly
-# instead of relying on it never containing a special character.
-jq -n "${JQ_ARGS[@]}" 'reduce $ARGS.named[] as $e ({}; .[$e.target] = {flash: $e.flash, ram: $e.ram})' \
-    > "$OUTPUT_JSON"
+# instead of relying on it never containing a special character. Omit
+# "regions" entirely when empty rather than storing a misleading {} that
+# would read as "this target has no writable memory regions".
+jq -n "${JQ_ARGS[@]}" '
+    reduce $ARGS.named[] as $e ({};
+        .[$e.target] = {flash: $e.flash, ram: $e.ram}
+            + (if ($e.regions | length) > 0 then {regions: $e.regions} else {} end)
+    )' > "$OUTPUT_JSON"
 
 echo "Wrote size report for ${#ELFS[@]} target(s) to $OUTPUT_JSON"
