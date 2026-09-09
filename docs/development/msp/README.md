@@ -430,6 +430,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8304 - MSP2_INAV_EZ_TUNE](#msp2_inav_ez_tune)  
 [8305 - MSP2_INAV_EZ_TUNE_SET](#msp2_inav_ez_tune_set)  
 [8320 - MSP2_INAV_SELECT_MIXER_PROFILE](#msp2_inav_select_mixer_profile)  
+[8321 - MSP2_INAV_COPY_PROFILE](#msp2_inav_copy_profile)  
 [8336 - MSP2_ADSB_VEHICLE_LIST](#msp2_adsb_vehicle_list)  
 [8339 - MSP2_ADSB_VEHICLE](#msp2_adsb_vehicle)  
 [8340 - MSP2_ADSB_VEHICLE_COUNT](#msp2_adsb_vehicle_count)  
@@ -4380,6 +4381,20 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Expects 1 byte. Will fail if armed. Calls `setConfigMixerProfileAndWriteEEPROM()`. Only applicable if `MAX_MIXER_PROFILE_COUNT` > 1.
+
+## <a id="msp2_inav_copy_profile"></a>`MSP2_INAV_COPY_PROFILE (8321 / 0x2081)`
+**Description:** Copies one control, battery or mixer profile onto another slot and saves configuration.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `profileType` | `uint8_t` | 1 | Which profile kind to copy: 0 = control profile (PID/rates/EZ-tune), 1 = battery profile, 2 = mixer profile (`configProfileType_e`) |
+| `fromIndex` | `uint8_t` | 1 | Source profile index (0-based) |
+| `toIndex` | `uint8_t` | 1 | Destination profile index (0-based); its contents are overwritten |
+
+**Reply Payload:** **None**  
+
+**Notes:** Expects 3 bytes. Will fail if armed, if the type is unknown, if an index is out of range or if source and destination are the same. Calls `copyConfigProfileAndWriteEEPROM()`, which saves and re-reads the EEPROM, so the copy is persistent and takes effect immediately when the destination is the active profile.
 
 ## <a id="msp2_adsb_vehicle_list"></a>`MSP2_ADSB_VEHICLE_LIST (8336 / 0x2090)`
 **Description:** Retrieves the list of currently tracked ADSB (Automatic Dependent Surveillance–Broadcast) vehicles. See `adsbVehicle_t` and `adsbVehicleValues_t` in `io/adsb.h` for the exact structure fields.  

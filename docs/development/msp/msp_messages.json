@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 0
+        "patch": 1
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -10380,6 +10380,35 @@
             "reply": null,
             "notes": "Expects 1 byte. Will fail if armed. Calls `setConfigMixerProfileAndWriteEEPROM()`. Only applicable if `MAX_MIXER_PROFILE_COUNT` > 1.",
             "description": "Selects the active mixer profile and saves configuration."
+        },
+        "MSP2_INAV_COPY_PROFILE": {
+            "code": 8321,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "profileType",
+                        "ctype": "uint8_t",
+                        "desc": "Which profile kind to copy: 0 = control profile (PID/rates/EZ-tune), 1 = battery profile, 2 = mixer profile (`configProfileType_e`)",
+                        "units": ""
+                    },
+                    {
+                        "name": "fromIndex",
+                        "ctype": "uint8_t",
+                        "desc": "Source profile index (0-based)",
+                        "units": ""
+                    },
+                    {
+                        "name": "toIndex",
+                        "ctype": "uint8_t",
+                        "desc": "Destination profile index (0-based); its contents are overwritten",
+                        "units": ""
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Expects 3 bytes. Will fail if armed, if the type is unknown, if an index is out of range or if source and destination are the same. Calls `copyConfigProfileAndWriteEEPROM()`, which saves and re-reads the EEPROM, so the copy is persistent and takes effect immediately when the destination is the active profile.",
+            "description": "Copies one control, battery or mixer profile onto another slot and saves configuration."
         },
         "MSP2_ADSB_VEHICLE_LIST": {
             "code": 8336,

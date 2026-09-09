@@ -3801,6 +3801,19 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
+    case MSP2_INAV_COPY_PROFILE:
+        if (!ARMING_FLAG(ARMED) && dataSize == 3) {
+            const uint8_t profileType = sbufReadU8(src);
+            const uint8_t fromIndex = sbufReadU8(src);
+            const uint8_t toIndex = sbufReadU8(src);
+            if (!copyConfigProfileAndWriteEEPROM(profileType, fromIndex, toIndex)) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
 #ifdef USE_TEMPERATURE_SENSOR
     case MSP2_INAV_SET_TEMP_SENSOR_CONFIG:
         if (dataSize >= sizeof(tempSensorConfig_t) * MAX_TEMP_SENSORS) {

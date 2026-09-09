@@ -145,9 +145,16 @@ void saveConfigAndNotify(void);
 void validateAndFixConfig(void);
 void validateAndFixTargetConfig(void);
 
+typedef enum {
+    CONFIG_PROFILE_TYPE_CONTROL = 0,
+    CONFIG_PROFILE_TYPE_BATTERY = 1,
+    CONFIG_PROFILE_TYPE_MIXER = 2,
+} configProfileType_e;
+
 uint8_t getConfigProfile(void);
 bool setConfigProfile(uint8_t profileIndex);
 void setConfigProfileAndWriteEEPROM(uint8_t profileIndex);
+bool copyConfigProfileAndWriteEEPROM(configProfileType_e type, uint8_t fromIndex, uint8_t toIndex);
 
 uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);

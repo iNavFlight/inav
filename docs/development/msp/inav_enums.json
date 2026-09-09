@@ -723,6 +723,12 @@
             "COLOR_MAGENTA": "12",
             "COLOR_DEEP_PINK": "13"
         },
+        "configProfileType_e": {
+            "_source": "inav/src/main/fc/config.h",
+            "CONFIG_PROFILE_TYPE_CONTROL": "0",
+            "CONFIG_PROFILE_TYPE_BATTERY": "1",
+            "CONFIG_PROFILE_TYPE_MIXER": "2"
+        },
         "crsfActiveAntenna_e": {
             "_source": "inav/src/main/telemetry/crsf.c",
             "CRSF_ACTIVE_ANTENNA1": "0",

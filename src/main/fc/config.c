@@ -60,6 +60,7 @@
 #include "rx/rx.h"
 
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -476,6 +477,50 @@ void setConfigProfileAndWriteEEPROM(uint8_t profileIndex)
         resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
+}
+
+// Copies one profile slot onto another (control = PID/rates/EZ-tune profile PGs plus the
+// control-rate profile, battery, mixer). Saves and re-reads the EEPROM so derived state
+// (throttle curve, PID gains, mixer) follows when the active profile was the target.
+bool copyConfigProfileAndWriteEEPROM(configProfileType_e type, uint8_t fromIndex, uint8_t toIndex)
+{
+    if (fromIndex == toIndex) {
+        return false;
+    }
+
+    switch (type) {
+        case CONFIG_PROFILE_TYPE_CONTROL:
+            if (fromIndex >= MAX_PROFILE_COUNT || toIndex >= MAX_PROFILE_COUNT) {
+                return false;
+            }
+            pgCopyProfile(fromIndex, toIndex);
+            *controlProfilesMutable(toIndex) = *controlProfiles(fromIndex);
+            break;
+
+        case CONFIG_PROFILE_TYPE_BATTERY:
+            if (fromIndex >= MAX_BATTERY_PROFILE_COUNT || toIndex >= MAX_BATTERY_PROFILE_COUNT) {
+                return false;
+            }
+            *batteryProfilesMutable(toIndex) = *batteryProfiles(fromIndex);
+            break;
+
+        case CONFIG_PROFILE_TYPE_MIXER:
+            if (fromIndex >= MAX_MIXER_PROFILE_COUNT || toIndex >= MAX_MIXER_PROFILE_COUNT) {
+                return false;
+            }
+            *mixerProfilesMutable(toIndex) = *mixerProfiles(fromIndex);
+            break;
+
+        default:
+            return false;
+    }
+
+    suspendRxSignal();
+    writeEEPROM();
+    readEEPROM();
+    resumeRxSignal();
+
+    return true;
 }
 
 uint8_t getConfigBatteryProfile(void)
