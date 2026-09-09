@@ -7,6 +7,14 @@
         }
     },
     "enums": {
+        "accel_fsr_e": {
+            "_source": "inav/src/main/drivers/accgyro/accgyro_mpu.h",
+            "INV_FSR_2G": "0",
+            "INV_FSR_4G": "1",
+            "INV_FSR_8G": "2",
+            "INV_FSR_16G": "3",
+            "NUM_ACCEL_FSR": "4"
+        },
         "accelerationSensor_e": {
             "_source": "inav/src/main/sensors/acceleration.h",
             "ACC_NONE": "0",
@@ -700,6 +708,12 @@
             "ROC_TO_ALT_CONSTANT": "1",
             "ROC_TO_ALT_TARGET": "2"
         },
+        "clock_sel_e": {
+            "_source": "inav/src/main/drivers/accgyro/accgyro_mpu.h",
+            "INV_CLK_INTERNAL": "0",
+            "INV_CLK_PLL": "1",
+            "NUM_CLK": "2"
+        },
         "colorComponent_e": {
             "_source": "inav/src/main/common/color.h",
             "RGB_RED": "0",
@@ -949,6 +963,21 @@
             "DJI_OSD_CN_ADJUSTEMNTS": "6",
             "DJI_OSD_CN_MAX_ELEMENTS": "7"
         },
+        "djiOsdProtoWorkarounds_e": {
+            "_source": "inav/src/main/io/osd_dji_hd.h",
+            "DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA": "1 << 0"
+        },
+        "djiOsdTempSource_e": {
+            "_source": "inav/src/main/io/osd_dji_hd.h",
+            "DJI_OSD_TEMP_ESC": "0",
+            "DJI_OSD_TEMP_CORE": "1",
+            "DJI_OSD_TEMP_BARO": "2"
+        },
+        "djiRssiSource_e": {
+            "_source": "inav/src/main/io/osd_dji_hd.h",
+            "DJI_RSSI": "0",
+            "DJI_CRSF_LQ": "1"
+        },
         "dronecanAsyncState_e": {
             "_source": "inav/src/main/drivers/dronecan/dronecan.h",
             "DRONECAN_ASYNC_IDLE": "0",
@@ -1011,6 +1040,71 @@
             "ESC_SENSOR_READY": "1",
             "ESC_SENSOR_WAITING": "2"
         },
+        "exBusHeader_e": {
+            "_source": "inav/src/main/rx/jetiexbus.h",
+            "EXBUS_HEADER_SYNC": "0",
+            "EXBUS_HEADER_REQ": "1",
+            "EXBUS_HEADER_MSG_LEN": "2",
+            "EXBUS_HEADER_PACKET_ID": "3",
+            "EXBUS_HEADER_DATA_ID": "4",
+            "EXBUS_HEADER_SUBLEN": "5",
+            "EXBUS_HEADER_DATA": "6"
+        },
+        "exDataType_e": {
+            "_source": "inav/src/main/telemetry/jetiexbus.c",
+            "EX_TYPE_6b": "0",
+            "EX_TYPE_14b": "1",
+            "EX_TYPE_22b": "4",
+            "EX_TYPE_DT": "5",
+            "EX_TYPE_30b": "8",
+            "EX_TYPE_GPS": "9",
+            "EX_TYPE_DES": "255"
+        },
+        "exSensors_e": {
+            "_source": "inav/src/main/telemetry/jetiexbus.c",
+            "EX_VOLTAGE": "1",
+            "EX_CURRENT": "2",
+            "EX_ALTITUDE": "3",
+            "EX_CAPACITY": "4",
+            "EX_POWER": "5",
+            "EX_ROLL_ANGLE": "6",
+            "EX_PITCH_ANGLE": "7",
+            "EX_HEADING": "8",
+            "EX_VARIO": "9",
+            "EX_GPS_SATS": "10",
+            "EX_GPS_LONG": "11",
+            "EX_GPS_LAT": "12",
+            "EX_GPS_SPEED": "13",
+            "EX_GPS_DISTANCE_TO_HOME": "14",
+            "EX_GPS_DIRECTION_TO_HOME": "15",
+            "EX_GPS_HEADING": "17",
+            "EX_GPS_ALTITUDE": "18",
+            "EX_GFORCE_X": "19",
+            "EX_GFORCE_Y": "20",
+            "EX_GFORCE_Z": "21",
+            "EX_RPM": "22",
+            "EX_TRIP_DISTANCE": "23",
+            "EX_DEBUG0": "24",
+            "EX_DEBUG1": "25",
+            "EX_DEBUG2": "26",
+            "EX_DEBUG3": "27",
+            "EX_DEBUG4": "28",
+            "EX_DEBUG5": "29",
+            "EX_DEBUG6": "30",
+            "EX_DEBUG7": "31"
+        },
+        "exTelHeader_e": {
+            "_source": "inav/src/main/telemetry/jetiexbus.c",
+            "EXTEL_HEADER_SYNC": "0",
+            "EXTEL_HEADER_TYPE_LEN": "1",
+            "EXTEL_HEADER_USN_LB": "2",
+            "EXTEL_HEADER_USN_HB": "3",
+            "EXTEL_HEADER_LSN_LB": "4",
+            "EXTEL_HEADER_LSN_HB": "5",
+            "EXTEL_HEADER_RES": "6",
+            "EXTEL_HEADER_ID": "7",
+            "EXTEL_HEADER_DATA": "8"
+        },
         "failsafeChannelBehavior_e": {
             "_source": "inav/src/main/flight/failsafe.c",
             "FAILSAFE_CHANNEL_HOLD": "0",
@@ -1057,6 +1151,12 @@
             "FAT_FILESYSTEM_TYPE_FAT16": "2",
             "FAT_FILESYSTEM_TYPE_FAT32": "3"
         },
+        "fchoice_b": {
+            "_source": "inav/src/main/drivers/accgyro/accgyro_mpu.h",
+            "FCB_DISABLED": "0",
+            "FCB_8800_32": "1",
+            "FCB_3600_32": "2"
+        },
         "features_e": {
             "_source": "inav/src/main/fc/config.h",
             "FEATURE_THR_VBAT_COMP": "1 << 0",
@@ -1091,6 +1191,13 @@
             "FEATURE_OSD": "1 << 29",
             "FEATURE_FW_LAUNCH": "1 << 30",
             "FEATURE_FW_AUTOTRIM": "1U << 31"
+        },
+        "fenceAction_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "GEOFENCE_ACTION_NONE": "0",
+            "GEOFENCE_ACTION_AVOID": "1",
+            "GEOFENCE_ACTION_POS_HOLD": "2",
+            "GEOFENCE_ACTION_RTH": "3"
         },
         "filterType_e": {
             "_source": "inav/src/main/common/filter.h",
@@ -1558,6 +1665,14 @@
             "GPS_INITIALIZING": "1",
             "GPS_RUNNING": "2",
             "GPS_LOST_COMMUNICATION": "3"
+        },
+        "gyro_fsr_e": {
+            "_source": "inav/src/main/drivers/accgyro/accgyro_mpu.h",
+            "INV_FSR_250DPS": "0",
+            "INV_FSR_500DPS": "1",
+            "INV_FSR_1000DPS": "2",
+            "INV_FSR_2000DPS": "3",
+            "NUM_GYRO_FSR": "4"
         },
         "gyroFilterMode_e": {
             "_source": "inav/src/main/sensors/gyro.h",
@@ -3000,6 +3115,11 @@
             "NAV_WP_USER3": "(1<<3)",
             "NAV_WP_USER4": "(1<<4)"
         },
+        "noWayHomeAction": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NO_WAY_HOME_ACTION_RTH": "0",
+            "NO_WAY_HOME_ACTION_EMRG_LAND": "1"
+        },
         "oledControllerType_e": {
             "_source": "inav/src/main/drivers/display_ug2864hsweg01.c",
             "OLED_CONTROLLER_UNKNOWN": "0",
@@ -3332,6 +3452,15 @@
             "PAGE_ARMED": "1",
             "PAGE_STATUS": "2"
         },
+        "parseState_e": {
+            "_source": "inav/src/main/io/ledstrip.c",
+            "X_COORDINATE": "0",
+            "Y_COORDINATE": "1",
+            "DIRECTIONS": "2",
+            "FUNCTIONS": "3",
+            "RING_COLORS": "4",
+            "PARSE_STATE_COUNT": "5"
+        },
         "persistentObjectId_e": {
             "_source": "inav/src/main/drivers/persistent.h",
             "PERSISTENT_OBJECT_MAGIC": "0",
@@ -3570,6 +3699,21 @@
                 "(33)",
                 "USE_34CHANNELS"
             ]
+        },
+        "rcc_reg": {
+            "_source": "inav/src/main/drivers/rcc.h",
+            "RCC_EMPTY": "0",
+            "RCC_AHB": "1",
+            "RCC_APB2": "2",
+            "RCC_APB1": "3",
+            "RCC_AHB1": "4",
+            "RCC_AHB2": "5",
+            "RCC_APB1L": "6",
+            "RCC_APB1H": "7",
+            "RCC_AHB3": "8",
+            "RCC_APB3": "9",
+            "RCC_AHB4": "10",
+            "RCC_APB4": "11"
         },
         "RCDEVICE_5key_connection_event_e": {
             "_source": "inav/src/main/io/rcdevice.h",
@@ -4364,6 +4508,12 @@
             "VcselPeriodPreRange": "0",
             "VcselPeriodFinalRange": "1"
         },
+        "VIDEO_TYPES": {
+            "_source": "inav/src/main/drivers/max7456.h",
+            "AUTO": "0",
+            "PAL": "1",
+            "NTSC": "2"
+        },
         "videoSystem_e": {
             "_source": "inav/src/main/drivers/osd.h",
             "VIDEO_SYSTEM_AUTO": "0",
@@ -4477,10 +4627,13 @@
             "WARNING_HW_ERROR": "3"
         },
         "warningLedState_e": {
-            "_source": "inav/src/main/io/statusindicator.c",
-            "WARNING_LED_OFF": "0",
-            "WARNING_LED_ON": "1",
-            "WARNING_LED_FLASH": "2"
+            "_source": "inav/src/main/io/vtx_smartaudio.c",
+            "S_WAITPRE1": "0",
+            "S_WAITPRE2": "1",
+            "S_WAITRESP": "2",
+            "S_WAITLEN": "3",
+            "S_DATA": "4",
+            "S_WAITCRC": "5"
         },
         "widgetAHIOptions_t": {
             "_source": "inav/src/main/drivers/display_widgets.h",

@@ -632,7 +632,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
-| `userControlMode` | `uint8_t` | 1 | [navUserControlMode_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-navusercontrolmode_e) | Sets `navConfigMutable()->general.flags.user_control_mode`. WARNING: uses unnamed enum in navigation.h 'NAV_GPS_ATTI/NAV_GPS_CRUISE' |
+| `userControlMode` | `uint8_t` | 1 | [nav_control_type_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-nav_control_type_e) | Sets `navConfigMutable()->general.flags.user_control_mode`. WARNING: uses unnamed enum in navigation.h 'NAV_GPS_ATTI/NAV_GPS_CRUISE' |
 | `maxAutoSpeed` | `uint16_t` | 2 | cm/s | Sets `navConfigMutable()->general.max_auto_speed`. |
 | `maxAutoClimbRate` | `uint16_t` | 2 | cm/s | Sets `navConfigMutable()->fw.max_auto_climb_rate` or `navConfigMutable()->mc.max_auto_climb_rate` based on `mixerConfig()->platformType`. |
 | `maxManualSpeed` | `uint16_t` | 2 | cm/s | Sets `navConfigMutable()->general.max_manual_speed`. |
@@ -778,7 +778,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `rthClimbIgnoreEmerg` | `uint8_t` | 1 | Boolean | Flag: Climb even in emergency RTH (`navConfig()->general.flags.rth_climb_ignore_emerg`) |
 | `rthTailFirst` | `uint8_t` | 1 | Boolean | Flag: Return tail-first during RTH (`navConfig()->general.flags.rth_tail_first`) |
 | `rthAllowLanding` | `uint8_t` | 1 | Boolean | Flag: Allow automatic landing after RTH (`navConfig()->general.flags.rth_allow_landing`) |
-| `rthAltControlMode` | `uint8_t` | 1 | [navRthAltControlMode_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-navrthaltcontrolmode_e) | RTH altitude control mode (`navConfig()->general.flags.rth_alt_control_mode`). WARNING: uses unnamed enum in navigation.h:253 'NAV_RTH_NO_ALT...' |
+| `rthAltControlMode` | `uint8_t` | 1 | [nav_rth_alt_profile_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-nav_rth_alt_profile_e) | RTH altitude control mode (`navConfig()->general.flags.rth_alt_control_mode`). WARNING: uses unnamed enum in navigation.h:253 'NAV_RTH_NO_ALT...' |
 | `rthAbortThreshold` | `uint16_t` | 2 | cm | Distance increase threshold to abort RTH (`navConfig()->general.rth_abort_threshold`) |
 | `rthAltitude` | `uint16_t` | 2 | cm | Target RTH altitude (`navConfig()->general.rth_altitude`) |
 | `landMinAltVspd` | `uint16_t` | 2 | cm/s | Landing vertical speed at minimum slowdown altitude (`navConfig()->general.land_minalt_vspd`) |
@@ -798,7 +798,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `rthClimbIgnoreEmerg` | `uint8_t` | 1 | Boolean | Sets `navConfigMutable()->general.flags.rth_climb_ignore_emerg`. |
 | `rthTailFirst` | `uint8_t` | 1 | Boolean | Sets `navConfigMutable()->general.flags.rth_tail_first`. |
 | `rthAllowLanding` | `uint8_t` | 1 | Boolean | Sets `navConfigMutable()->general.flags.rth_allow_landing`. |
-| `rthAltControlMode` | `uint8_t` | 1 | [navRthAltControlMode_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-navrthaltcontrolmode_e) | Sets `navConfigMutable()->general.flags.rth_alt_control_mode`. WARNING: uses unnamed enum in navigation.h:253 |
+| `rthAltControlMode` | `uint8_t` | 1 | [nav_rth_alt_profile_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-nav_rth_alt_profile_e) | Sets `navConfigMutable()->general.flags.rth_alt_control_mode`. WARNING: uses unnamed enum in navigation.h:253 |
 | `rthAbortThreshold` | `uint16_t` | 2 | cm | Sets `navConfigMutable()->general.rth_abort_threshold`. |
 | `rthAltitude` | `uint16_t` | 2 | cm | Sets `navConfigMutable()->general.rth_altitude`. |
 | `landMinAltVspd` | `uint16_t` | 2 | cm/s | Sets `navConfigMutable()->general.land_minalt_vspd`. |
@@ -3506,7 +3506,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `motorStopOnLow` | `uint8_t` | 1 | - | Boolean: 1 if motors stop at minimum throttle (`mixerConfig()->motorstopOnLow`) |
 | `platformType` | `uint8_t` | 1 | [flyingPlatformType_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-flyingplatformtype_e) | Enum (`mixerConfig()->platformType`) |
 | `hasFlaps` | `uint8_t` | 1 | - | Boolean: 1 if the current mixer configuration includes flaps (`mixerConfig()->hasFlaps`) |
-| `appliedMixerPreset` | `int16_t` | 2 | [mixerPreset_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-mixerpreset_e) | Enum (`mixerPreset_e`): Mixer preset currently applied (`mixerConfig()->appliedMixerPreset`) WARNING: cannot figure where this is |
+| `appliedMixerPreset` | `int16_t` | 2 | - | Mixer preset currently applied (`mixerConfig()->appliedMixerPreset`). Plain integer, not an enum: the firmware never interprets it and only stores whatever the configurator wrote, defaulting to `SETTING_MODEL_PREVIEW_TYPE_DEFAULT`. |
 | `maxMotors` | `uint8_t` | 1 | - | Constant: Maximum motors supported (`MAX_SUPPORTED_MOTORS`) |
 | `maxServos` | `uint8_t` | 1 | - | Constant: Maximum servos supported (`MAX_SUPPORTED_SERVOS`) |
 

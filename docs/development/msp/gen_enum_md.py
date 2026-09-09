@@ -66,8 +66,11 @@ def is_plain_int_literal(expr: str) -> Optional[int]:
 
 # ---------- Parsing regexes ----------
 
-RE_ENUM_START   = re.compile(r'^\s*typedef\s+enum(?:\s+[A-Za-z_]\w*)?\s*\{')
+# Matches both `typedef enum [Tag] {` and a plain `enum Tag {`. The latter closes
+# with a bare `};`, so its name comes from the tag rather than the closing line.
+RE_ENUM_START   = re.compile(r'^\s*(?:typedef\s+enum(?:\s+([A-Za-z_]\w*))?|enum\s+([A-Za-z_]\w*))\s*\{')
 RE_ENUM_END     = re.compile(r'^\s*\}\s*([A-Za-z_]\w*)\s*;')
+RE_ENUM_END_TAG = re.compile(r'^\s*\}\s*;')
 RE_LINE_COMMENT = re.compile(r'^\s*//\s*(.+?)\s*$')
 
 RE_IFDEF   = re.compile(r'^\s*#\s*ifdef\s+(\w+)')
@@ -196,17 +199,19 @@ def parse_files(paths: List[Path]) -> List[EnumDef]:
             if mcom:
                 recent_comment = mcom.group(1)
 
-            if RE_ENUM_START.match(line):
+            if m_start := RE_ENUM_START.match(line):
                 source_note = recent_comment or str(path)
                 recent_comment = None
+                enum_tag = m_start.group(1) or m_start.group(2)
 
                 body_lines: List[str] = []
                 i += 1
                 local_i = i
                 while local_i < len(lines):
                     ln = lines[local_i]
-                    if RE_ENUM_END.match(ln):
-                        enum_name = RE_ENUM_END.match(ln).group(1)
+                    m_end = RE_ENUM_END.match(ln)
+                    if m_end or (enum_tag and RE_ENUM_END_TAG.match(ln)):
+                        enum_name = m_end.group(1) if m_end else enum_tag
                         enum = EnumDef(enum_name, source_note)
 
                         # second pass: parse enumerators

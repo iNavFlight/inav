@@ -4,9 +4,11 @@
 
 ## Table of contents
 
+- [accel_fsr_e](#enum-accel_fsr_e)
 - [accelerationSensor_e](#enum-accelerationsensor_e)
 - [accEvent_t](#enum-accevent_t)
 - [adcChannel_e](#enum-adcchannel_e)
+- [ADCDevice](#enum-adcdevice)
 - [ADCDevice](#enum-adcdevice)
 - [adcFunction_e](#enum-adcfunction_e)
 - [adjustmentFunction_e](#enum-adjustmentfunction_e)
@@ -43,7 +45,9 @@
 - [biquadFilterType_e](#enum-biquadfiltertype_e)
 - [blackboxBufferReserveStatus_e](#enum-blackboxbufferreservestatus_e)
 - [BlackboxDevice](#enum-blackboxdevice)
+- [BlackboxDevice](#enum-blackboxdevice)
 - [blackboxFeatureMask_e](#enum-blackboxfeaturemask_e)
+- [BlackboxState](#enum-blackboxstate)
 - [BlackboxState](#enum-blackboxstate)
 - [bmi270Register_e](#enum-bmi270register_e)
 - [bootLogEventCode_e](#enum-bootlogeventcode_e)
@@ -54,6 +58,7 @@
 - [busType_e](#enum-bustype_e)
 - [channelType_t](#enum-channeltype_t)
 - [climbRateToAltitudeControllerMode_e](#enum-climbratetoaltitudecontrollermode_e)
+- [clock_sel_e](#enum-clock_sel_e)
 - [colorComponent_e](#enum-colorcomponent_e)
 - [colorId_e](#enum-colorid_e)
 - [crsfActiveAntenna_e](#enum-crsfactiveantenna_e)
@@ -66,6 +71,7 @@
 - [devHardwareType_e](#enum-devhardwaretype_e)
 - [deviceFlags_e](#enum-deviceflags_e)
 - [disarmReason_t](#enum-disarmreason_t)
+- [disarmReason_t](#enum-disarmreason_t)
 - [displayCanvasBitmapOption_t](#enum-displaycanvasbitmapoption_t)
 - [displayCanvasColor_e](#enum-displaycanvascolor_e)
 - [displayCanvasOutlineType_e](#enum-displaycanvasoutlinetype_e)
@@ -73,6 +79,9 @@
 - [displayTransactionOption_e](#enum-displaytransactionoption_e)
 - [displayWidgetType_e](#enum-displaywidgettype_e)
 - [DjiCraftNameElements_t](#enum-djicraftnameelements_t)
+- [djiOsdProtoWorkarounds_e](#enum-djiosdprotoworkarounds_e)
+- [djiOsdTempSource_e](#enum-djiosdtempsource_e)
+- [djiRssiSource_e](#enum-djirssisource_e)
 - [dronecanAsyncState_e](#enum-dronecanasyncstate_e)
 - [dronecanBitrate_e](#enum-dronecanbitrate_e)
 - [dronecanState_e](#enum-dronecanstate_e)
@@ -82,13 +91,19 @@
 - [emergLandState_e](#enum-emerglandstate_e)
 - [escSensorFrameStatus_t](#enum-escsensorframestatus_t)
 - [escSensorState_t](#enum-escsensorstate_t)
+- [exBusHeader_e](#enum-exbusheader_e)
+- [exDataType_e](#enum-exdatatype_e)
+- [exSensors_e](#enum-exsensors_e)
+- [exTelHeader_e](#enum-extelheader_e)
 - [failsafeChannelBehavior_e](#enum-failsafechannelbehavior_e)
 - [failsafePhase_e](#enum-failsafephase_e)
 - [failsafeProcedure_e](#enum-failsafeprocedure_e)
 - [failsafeRxLinkState_e](#enum-failsaferxlinkstate_e)
 - [failureMode_e](#enum-failuremode_e)
 - [fatFilesystemType_e](#enum-fatfilesystemtype_e)
+- [fchoice_b](#enum-fchoice_b)
 - [features_e](#enum-features_e)
+- [fenceAction_e](#enum-fenceaction_e)
 - [filterType_e](#enum-filtertype_e)
 - [fixedWingLaunchEvent_t](#enum-fixedwinglaunchevent_t)
 - [fixedWingLaunchMessage_t](#enum-fixedwinglaunchmessage_t)
@@ -97,9 +112,14 @@
 - [flashType_e](#enum-flashtype_e)
 - [flight_dynamics_index_t](#enum-flight_dynamics_index_t)
 - [FlightLogEvent](#enum-flightlogevent)
+- [FlightLogEvent](#enum-flightlogevent)
+- [FlightLogFieldCondition](#enum-flightlogfieldcondition)
 - [FlightLogFieldCondition](#enum-flightlogfieldcondition)
 - [FlightLogFieldEncoding](#enum-flightlogfieldencoding)
+- [FlightLogFieldEncoding](#enum-flightlogfieldencoding)
 - [FlightLogFieldPredictor](#enum-flightlogfieldpredictor)
+- [FlightLogFieldPredictor](#enum-flightlogfieldpredictor)
+- [FlightLogFieldSign](#enum-flightlogfieldsign)
 - [FlightLogFieldSign](#enum-flightlogfieldsign)
 - [flightModeFlags_e](#enum-flightmodeflags_e)
 - [flightModeForTelemetry_e](#enum-flightmodefortelemetry_e)
@@ -136,6 +156,7 @@
 - [gpsFixType_e](#enum-gpsfixtype_e)
 - [gpsProvider_e](#enum-gpsprovider_e)
 - [gpsState_e](#enum-gpsstate_e)
+- [gyro_fsr_e](#enum-gyro_fsr_e)
 - [gyroFilterMode_e](#enum-gyrofiltermode_e)
 - [gyroHardwareLpf_e](#enum-gyrohardwarelpf_e)
 - [gyroSensor_e](#enum-gyrosensor_e)
@@ -146,6 +167,7 @@
 - [hottEamAlarm2Flag_e](#enum-hotteamalarm2flag_e)
 - [hottState_e](#enum-hottstate_e)
 - [hsvColorComponent_e](#enum-hsvcolorcomponent_e)
+- [I2CDevice](#enum-i2cdevice)
 - [I2CDevice](#enum-i2cdevice)
 - [I2CSpeed](#enum-i2cspeed)
 - [i2cState_t](#enum-i2cstate_t)
@@ -166,6 +188,7 @@
 - [logicConditionsGlobalFlags_t](#enum-logicconditionsglobalflags_t)
 - [logicFlightModeOperands_e](#enum-logicflightmodeoperands_e)
 - [logicFlightOperands_e](#enum-logicflightoperands_e)
+- [logicOperandType_e](#enum-logicoperandtype_e)
 - [logicOperandType_e](#enum-logicoperandtype_e)
 - [logicOperation_e](#enum-logicoperation_e)
 - [logicWaypointOperands_e](#enum-logicwaypointoperands_e)
@@ -239,6 +262,7 @@
 - [navWaypointFlags_e](#enum-navwaypointflags_e)
 - [navWaypointHeadings_e](#enum-navwaypointheadings_e)
 - [navWaypointP3Flags_e](#enum-navwaypointp3flags_e)
+- [noWayHomeAction](#enum-nowayhomeaction)
 - [oledControllerType_e](#enum-oledcontrollertype_e)
 - [opflowQuality_e](#enum-opflowquality_e)
 - [opticalFlowSensor_e](#enum-opticalflowsensor_e)
@@ -260,6 +284,7 @@
 - [osdSpeedSource_e](#enum-osdspeedsource_e)
 - [outputMode_e](#enum-outputmode_e)
 - [pageId_e](#enum-pageid_e)
+- [parseState_e](#enum-parsestate_e)
 - [persistentObjectId_e](#enum-persistentobjectid_e)
 - [pidAutotuneState_e](#enum-pidautotunestate_e)
 - [pidControllerFlags_e](#enum-pidcontrollerflags_e)
@@ -269,15 +294,20 @@
 - [pitotSensor_e](#enum-pitotsensor_e)
 - [pollType_e](#enum-polltype_e)
 - [portMode_t](#enum-portmode_t)
+- [portMode_t](#enum-portmode_t)
+- [portOptions_t](#enum-portoptions_t)
 - [portOptions_t](#enum-portoptions_t)
 - [portSharing_e](#enum-portsharing_e)
 - [pwmInitError_e](#enum-pwminiterror_e)
 - [quadrant_e](#enum-quadrant_e)
 - [QUADSPIClockDivider_e](#enum-quadspiclockdivider_e)
 - [QUADSPIDevice](#enum-quadspidevice)
+- [QUADSPIDevice](#enum-quadspidevice)
 - [quadSpiMode_e](#enum-quadspimode_e)
 - [rangefinderType_e](#enum-rangefindertype_e)
 - [rc_alias_e](#enum-rc_alias_e)
+- [rc_alias_e](#enum-rc_alias_e)
+- [rcc_reg](#enum-rcc_reg)
 - [RCDEVICE_5key_connection_event_e](#enum-rcdevice_5key_connection_event_e)
 - [rcdevice_5key_simulation_operation_e](#enum-rcdevice_5key_simulation_operation_e)
 - [rcdevice_camera_control_opeation_e](#enum-rcdevice_camera_control_opeation_e)
@@ -332,6 +362,7 @@
 - [softSerialPortIndex_e](#enum-softserialportindex_e)
 - [SPIClockSpeed_e](#enum-spiclockspeed_e)
 - [SPIDevice](#enum-spidevice)
+- [SPIDevice](#enum-spidevice)
 - [Srxl2BindRequest](#enum-srxl2bindrequest)
 - [Srxl2BindType](#enum-srxl2bindtype)
 - [Srxl2ControlDataCommand](#enum-srxl2controldatacommand)
@@ -361,6 +392,7 @@
 - [ubx_nav_status_bits_t](#enum-ubx_nav_status_bits_t)
 - [ubx_protocol_bytes_t](#enum-ubx_protocol_bytes_t)
 - [vcselPeriodType_e](#enum-vcselperiodtype_e)
+- [VIDEO_TYPES](#enum-video_types)
 - [videoSystem_e](#enum-videosystem_e)
 - [voltageSensor_e](#enum-voltagesensor_e)
 - [vs600Band_e](#enum-vs600band_e)
@@ -380,6 +412,19 @@
 - [wpFwTurnSmoothing_e](#enum-wpfwturnsmoothing_e)
 - [wpMissionPlannerStatus_e](#enum-wpmissionplannerstatus_e)
 - [zeroCalibrationState_e](#enum-zerocalibrationstate_e)
+
+---
+## <a id="enum-accel_fsr_e"></a>`accel_fsr_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_mpu.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `INV_FSR_2G` | 0 |  |
+| `INV_FSR_4G` | 1 |  |
+| `INV_FSR_8G` | 2 |  |
+| `INV_FSR_16G` | 3 |  |
+| `NUM_ACCEL_FSR` | 4 |  |
 
 ---
 ## <a id="enum-accelerationsensor_e"></a>`accelerationSensor_e`
@@ -432,6 +477,21 @@
 | `ADC_CHN_6` | 6 |  |
 | `ADC_CHN_MAX` | ADC_CHN_6 |  |
 | `ADC_CHN_COUNT` |  |  |
+
+---
+## <a id="enum-adcdevice"></a>`ADCDevice`
+
+> Source: ../../../src/main/drivers/adc_impl.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `ADCINVALID` | -1 |  |
+| `ADCDEV_1` | 0 |  |
+| `ADCDEV_2` | (1) | STM32F4 || STM32F7 || STM32H7 |
+| `ADCDEV_3` | (2) | STM32F4 || STM32F7 || STM32H7 |
+| `ADCDEV_MAX` | ADCDEV_3 | STM32F4 || STM32F7 || STM32H7 |
+| `ADCDEV_MAX` | ADCDEV_1 | NOT(STM32F4 || STM32F7 || STM32H7) |
+| `ADCDEV_COUNT` | ADCDEV_MAX + 1 |  |
 
 ---
 ## <a id="enum-adcdevice"></a>`ADCDevice`
@@ -997,6 +1057,19 @@
 | `BLACKBOX_DEVICE_END` | 4 |  |
 
 ---
+## <a id="enum-blackboxdevice"></a>`BlackboxDevice`
+
+> Source: ../../../src/main/blackbox/blackbox_io.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BLACKBOX_DEVICE_SERIAL` | 0 |  |
+| `BLACKBOX_DEVICE_FLASH` | 1 | USE_FLASHFS |
+| `BLACKBOX_DEVICE_SDCARD` | 2 | USE_SDCARD |
+| `BLACKBOX_DEVICE_FILE` | 3 | SITL_BUILD |
+| `BLACKBOX_DEVICE_END` | 4 |  |
+
+---
 ## <a id="enum-blackboxfeaturemask_e"></a>`blackboxFeatureMask_e`
 
 > Source: ../../../src/main/blackbox/blackbox.h
@@ -1017,6 +1090,26 @@
 | `BLACKBOX_FEATURE_GYRO_PEAKS_PITCH` | 1 << 11 |  |
 | `BLACKBOX_FEATURE_GYRO_PEAKS_YAW` | 1 << 12 |  |
 | `BLACKBOX_FEATURE_SERVOS` | 1 << 13 |  |
+
+---
+## <a id="enum-blackboxstate"></a>`BlackboxState`
+
+> Source: ../../../src/main/blackbox/blackbox.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BLACKBOX_STATE_DISABLED` | 0 |  |
+| `BLACKBOX_STATE_STOPPED` | 1 |  |
+| `BLACKBOX_STATE_PREPARE_LOG_FILE` | 2 |  |
+| `BLACKBOX_STATE_SEND_HEADER` | 3 |  |
+| `BLACKBOX_STATE_SEND_MAIN_FIELD_HEADER` | 4 |  |
+| `BLACKBOX_STATE_SEND_GPS_H_HEADER` | 5 |  |
+| `BLACKBOX_STATE_SEND_GPS_G_HEADER` | 6 |  |
+| `BLACKBOX_STATE_SEND_SLOW_HEADER` | 7 |  |
+| `BLACKBOX_STATE_SEND_SYSINFO` | 8 |  |
+| `BLACKBOX_STATE_PAUSED` | 9 |  |
+| `BLACKBOX_STATE_RUNNING` | 10 |  |
+| `BLACKBOX_STATE_SHUTTING_DOWN` | 11 |  |
 
 ---
 ## <a id="enum-blackboxstate"></a>`BlackboxState`
@@ -1278,6 +1371,17 @@
 | `ROC_TO_ALT_TARGET` | 2 |  |
 
 ---
+## <a id="enum-clock_sel_e"></a>`clock_sel_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_mpu.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `INV_CLK_INTERNAL` | 0 |  |
+| `INV_CLK_PLL` | 1 |  |
+| `NUM_CLK` | 2 |  |
+
+---
 ## <a id="enum-colorcomponent_e"></a>`colorComponent_e`
 
 > Source: ../../../src/main/common/color.h
@@ -1533,6 +1637,23 @@
 | `DISARM_REASON_COUNT` | 9 |  |
 
 ---
+## <a id="enum-disarmreason_t"></a>`disarmReason_t`
+
+> Source: ../../../src/main/fc/fc_core.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISARM_NONE` | 0 |  |
+| `DISARM_TIMEOUT` | 1 |  |
+| `DISARM_STICKS` | 2 |  |
+| `DISARM_SWITCH_3D` | 3 |  |
+| `DISARM_SWITCH` | 4 |  |
+| `DISARM_FAILSAFE` | 6 |  |
+| `DISARM_NAVIGATION` | 7 |  |
+| `DISARM_LANDING` | 8 |  |
+| `DISARM_REASON_COUNT` | 9 |  |
+
+---
 ## <a id="enum-displaycanvasbitmapoption_t"></a>`displayCanvasBitmapOption_t`
 
 > Source: ../../../src/main/drivers/display_canvas.h
@@ -1620,6 +1741,36 @@
 | `DJI_OSD_CN_DISTANCE` | 5 |  |
 | `DJI_OSD_CN_ADJUSTEMNTS` | 6 |  |
 | `DJI_OSD_CN_MAX_ELEMENTS` | 7 |  |
+
+---
+## <a id="enum-djiosdprotoworkarounds_e"></a>`djiOsdProtoWorkarounds_e`
+
+> Source: ../../../src/main/io/osd_dji_hd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA` | 1 << 0 |  |
+
+---
+## <a id="enum-djiosdtempsource_e"></a>`djiOsdTempSource_e`
+
+> Source: ../../../src/main/io/osd_dji_hd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DJI_OSD_TEMP_ESC` | 0 |  |
+| `DJI_OSD_TEMP_CORE` | 1 |  |
+| `DJI_OSD_TEMP_BARO` | 2 |  |
+
+---
+## <a id="enum-djirssisource_e"></a>`djiRssiSource_e`
+
+> Source: ../../../src/main/io/osd_dji_hd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DJI_RSSI` | 0 |  |
+| `DJI_CRSF_LQ` | 1 |  |
 
 ---
 ## <a id="enum-dronecanasyncstate_e"></a>`dronecanAsyncState_e`
@@ -1729,6 +1880,91 @@
 | `ESC_SENSOR_WAITING` | 2 |  |
 
 ---
+## <a id="enum-exbusheader_e"></a>`exBusHeader_e`
+
+> Source: ../../../src/main/rx/jetiexbus.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `EXBUS_HEADER_SYNC` | 0 |  |
+| `EXBUS_HEADER_REQ` | 1 |  |
+| `EXBUS_HEADER_MSG_LEN` | 2 |  |
+| `EXBUS_HEADER_PACKET_ID` | 3 |  |
+| `EXBUS_HEADER_DATA_ID` | 4 |  |
+| `EXBUS_HEADER_SUBLEN` | 5 |  |
+| `EXBUS_HEADER_DATA` | 6 |  |
+
+---
+## <a id="enum-exdatatype_e"></a>`exDataType_e`
+
+> Source: ../../../src/main/telemetry/jetiexbus.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `EX_TYPE_6b` | 0 |  |
+| `EX_TYPE_14b` | 1 |  |
+| `EX_TYPE_22b` | 4 |  |
+| `EX_TYPE_DT` | 5 |  |
+| `EX_TYPE_30b` | 8 |  |
+| `EX_TYPE_GPS` | 9 |  |
+| `EX_TYPE_DES` | 255 |  |
+
+---
+## <a id="enum-exsensors_e"></a>`exSensors_e`
+
+> Source: ../../../src/main/telemetry/jetiexbus.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `EX_VOLTAGE` | 1 |  |
+| `EX_CURRENT` | 2 |  |
+| `EX_ALTITUDE` | 3 |  |
+| `EX_CAPACITY` | 4 |  |
+| `EX_POWER` | 5 |  |
+| `EX_ROLL_ANGLE` | 6 |  |
+| `EX_PITCH_ANGLE` | 7 |  |
+| `EX_HEADING` | 8 |  |
+| `EX_VARIO` | 9 |  |
+| `EX_GPS_SATS` | 10 |  |
+| `EX_GPS_LONG` | 11 |  |
+| `EX_GPS_LAT` | 12 |  |
+| `EX_GPS_SPEED` | 13 |  |
+| `EX_GPS_DISTANCE_TO_HOME` | 14 |  |
+| `EX_GPS_DIRECTION_TO_HOME` | 15 |  |
+| `EX_GPS_HEADING` | 17 |  |
+| `EX_GPS_ALTITUDE` | 18 |  |
+| `EX_GFORCE_X` | 19 |  |
+| `EX_GFORCE_Y` | 20 |  |
+| `EX_GFORCE_Z` | 21 |  |
+| `EX_RPM` | 22 |  |
+| `EX_TRIP_DISTANCE` | 23 |  |
+| `EX_DEBUG0` | 24 |  |
+| `EX_DEBUG1` | 25 |  |
+| `EX_DEBUG2` | 26 |  |
+| `EX_DEBUG3` | 27 |  |
+| `EX_DEBUG4` | 28 |  |
+| `EX_DEBUG5` | 29 |  |
+| `EX_DEBUG6` | 30 |  |
+| `EX_DEBUG7` | 31 |  |
+
+---
+## <a id="enum-extelheader_e"></a>`exTelHeader_e`
+
+> Source: ../../../src/main/telemetry/jetiexbus.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `EXTEL_HEADER_SYNC` | 0 |  |
+| `EXTEL_HEADER_TYPE_LEN` | 1 |  |
+| `EXTEL_HEADER_USN_LB` | 2 |  |
+| `EXTEL_HEADER_USN_HB` | 3 |  |
+| `EXTEL_HEADER_LSN_LB` | 4 |  |
+| `EXTEL_HEADER_LSN_HB` | 5 |  |
+| `EXTEL_HEADER_RES` | 6 |  |
+| `EXTEL_HEADER_ID` | 7 |  |
+| `EXTEL_HEADER_DATA` | 8 |  |
+
+---
 ## <a id="enum-failsafechannelbehavior_e"></a>`failsafeChannelBehavior_e`
 
 > Source: ../../../src/main/flight/failsafe.c
@@ -1805,6 +2041,17 @@
 | `FAT_FILESYSTEM_TYPE_FAT32` | 3 |  |
 
 ---
+## <a id="enum-fchoice_b"></a>`fchoice_b`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_mpu.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FCB_DISABLED` | 0 |  |
+| `FCB_8800_32` | 1 |  |
+| `FCB_3600_32` | 2 |  |
+
+---
 ## <a id="enum-features_e"></a>`features_e`
 
 > Source: ../../../src/main/fc/config.h
@@ -1843,6 +2090,18 @@
 | `FEATURE_OSD` | 1 << 29 |  |
 | `FEATURE_FW_LAUNCH` | 1 << 30 |  |
 | `FEATURE_FW_AUTOTRIM` | 1U << 31 |  |
+
+---
+## <a id="enum-fenceaction_e"></a>`fenceAction_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `GEOFENCE_ACTION_NONE` | 0 |  |
+| `GEOFENCE_ACTION_AVOID` | 1 |  |
+| `GEOFENCE_ACTION_POS_HOLD` | 2 |  |
+| `GEOFENCE_ACTION_RTH` | 3 |  |
 
 ---
 ## <a id="enum-filtertype_e"></a>`filterType_e`
@@ -1960,6 +2219,93 @@
 | `FLIGHT_LOG_EVENT_LOG_END` | 255 |  |
 
 ---
+## <a id="enum-flightlogevent"></a>`FlightLogEvent`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_EVENT_SYNC_BEEP` | 0 |  |
+| `FLIGHT_LOG_EVENT_INFLIGHT_ADJUSTMENT` | 13 |  |
+| `FLIGHT_LOG_EVENT_LOGGING_RESUME` | 14 |  |
+| `FLIGHT_LOG_EVENT_FLIGHTMODE` | 30 |  |
+| `FLIGHT_LOG_EVENT_IMU_FAILURE` | 40 |  |
+| `FLIGHT_LOG_EVENT_LOG_END` | 255 |  |
+
+---
+## <a id="enum-flightlogfieldcondition"></a>`FlightLogFieldCondition`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_FIELD_CONDITION_ALWAYS` | 0 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_MOTORS` | 1 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1` | 2 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_2` | 3 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_3` | 4 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_4` | 5 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_5` | 6 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_6` | 7 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_7` | 8 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_8` | 9 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_SERVOS` | 10 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1` | 11 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_2` | 12 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_3` | 13 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_4` | 14 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_5` | 15 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_6` | 16 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_7` | 17 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_8` | 18 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_9` | 19 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_10` | 20 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_11` | 21 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_12` | 22 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_13` | 23 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_14` | 24 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_15` | 25 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_16` | 26 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_17` | 27 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_18` | 28 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_19` | 29 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_20` | 30 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_21` | 31 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_22` | 32 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_23` | 33 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_24` | 34 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_25` | 35 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_26` | 36 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_MAG` | 37 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_BARO` | 38 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_PITOT` | 39 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_VBAT` | 40 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_AMPERAGE` | 41 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_SURFACE` | 42 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_FIXED_WING_NAV` | 43 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_MC_NAV` | 44 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_RSSI` | 45 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0` | 46 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1` | 47 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_2` | 48 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NOT_LOGGING_EVERY_FRAME` | 49 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_DEBUG` | 50 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NAV_ACC` | 51 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NAV_POS` | 52 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NAV_PID` | 53 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_ACC` | 54 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_ATTITUDE` | 55 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_RC_DATA` | 56 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND` | 57 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW` | 58 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL` | 59 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH` | 60 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW` | 61 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 62 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_FIRST` | FLIGHT_LOG_FIELD_CONDITION_ALWAYS |  |
+| `FLIGHT_LOG_FIELD_CONDITION_LAST` | FLIGHT_LOG_FIELD_CONDITION_NEVER |  |
+
+---
 ## <a id="enum-flightlogfieldcondition"></a>`FlightLogFieldCondition`
 
 > Source: ../../../src/main/blackbox/blackbox_fielddefs.h
@@ -2048,6 +2394,21 @@
 | `FLIGHT_LOG_FIELD_ENCODING_NULL` | 9 |  |
 
 ---
+## <a id="enum-flightlogfieldencoding"></a>`FlightLogFieldEncoding`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_FIELD_ENCODING_SIGNED_VB` | 0 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_UNSIGNED_VB` | 1 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_NEG_14BIT` | 3 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_TAG8_8SVB` | 6 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_TAG2_3S32` | 7 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_TAG8_4S16` | 8 |  |
+| `FLIGHT_LOG_FIELD_ENCODING_NULL` | 9 |  |
+
+---
 ## <a id="enum-flightlogfieldpredictor"></a>`FlightLogFieldPredictor`
 
 > Source: ../../../src/main/blackbox/blackbox_fielddefs.h
@@ -2065,6 +2426,35 @@
 | `FLIGHT_LOG_FIELD_PREDICTOR_1500` | 8 |  |
 | `FLIGHT_LOG_FIELD_PREDICTOR_VBATREF` | 9 |  |
 | `FLIGHT_LOG_FIELD_PREDICTOR_LAST_MAIN_FRAME_TIME` | 10 |  |
+
+---
+## <a id="enum-flightlogfieldpredictor"></a>`FlightLogFieldPredictor`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_FIELD_PREDICTOR_0` | 0 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_PREVIOUS` | 1 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_STRAIGHT_LINE` | 2 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_AVERAGE_2` | 3 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_MINTHROTTLE` | 4 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_MOTOR_0` | 5 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_INC` | 6 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_HOME_COORD` | 7 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_1500` | 8 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_VBATREF` | 9 |  |
+| `FLIGHT_LOG_FIELD_PREDICTOR_LAST_MAIN_FRAME_TIME` | 10 |  |
+
+---
+## <a id="enum-flightlogfieldsign"></a>`FlightLogFieldSign`
+
+> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLIGHT_LOG_FIELD_UNSIGNED` | 0 |  |
+| `FLIGHT_LOG_FIELD_SIGNED` | 1 |  |
 
 ---
 ## <a id="enum-flightlogfieldsign"></a>`FlightLogFieldSign`
@@ -2547,6 +2937,19 @@
 | `GPS_LOST_COMMUNICATION` | 3 |  |
 
 ---
+## <a id="enum-gyro_fsr_e"></a>`gyro_fsr_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_mpu.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `INV_FSR_250DPS` | 0 |  |
+| `INV_FSR_500DPS` | 1 |  |
+| `INV_FSR_1000DPS` | 2 |  |
+| `INV_FSR_2000DPS` | 3 |  |
+| `NUM_GYRO_FSR` | 4 |  |
+
+---
 ## <a id="enum-gyrofiltermode_e"></a>`gyroFilterMode_e`
 
 > Source: ../../../src/main/sensors/gyro.h
@@ -2685,6 +3088,21 @@
 | `HSV_HUE` | 0 |  |
 | `HSV_SATURATION` | 1 |  |
 | `HSV_VALUE` | 2 |  |
+
+---
+## <a id="enum-i2cdevice"></a>`I2CDevice`
+
+> Source: ../../../src/main/drivers/bus_i2c.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `I2CINVALID` | -1 |  |
+| `I2CDEV_EMULATED` | -1 |  |
+| `I2CDEV_1` | 0 |  |
+| `I2CDEV_2` | 1 |  |
+| `I2CDEV_3` | 2 |  |
+| `I2CDEV_4` | (3) | USE_I2C_DEVICE_4 |
+| `I2CDEV_COUNT` | 4 |  |
 
 ---
 ## <a id="enum-i2cdevice"></a>`I2CDevice`
@@ -3187,6 +3605,23 @@
 | `LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_ROLL` | (50) | USE_AUTO_TRANSITION |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_PITCH` | (51) | USE_AUTO_TRANSITION |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_YAW` | (52) | USE_AUTO_TRANSITION |
+
+---
+## <a id="enum-logicoperandtype_e"></a>`logicOperandType_e`
+
+> Source: ../../../src/main/programming/logic_condition.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `LOGIC_CONDITION_OPERAND_TYPE_VALUE` | 0 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL` | 1 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_FLIGHT` | 2 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_FLIGHT_MODE` | 3 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_LC` | 4 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_GVAR` | 5 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_PID` | 6 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS` | 7 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_LAST` | 8 |  |
 
 ---
 ## <a id="enum-logicoperandtype_e"></a>`logicOperandType_e`
@@ -4419,6 +4854,16 @@
 | `NAV_WP_USER4` | (1<<4) |  |
 
 ---
+## <a id="enum-nowayhomeaction"></a>`noWayHomeAction`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NO_WAY_HOME_ACTION_RTH` | 0 |  |
+| `NO_WAY_HOME_ACTION_EMRG_LAND` | 1 |  |
+
+---
 ## <a id="enum-oledcontrollertype_e"></a>`oledControllerType_e`
 
 > Source: ../../../src/main/drivers/display_ug2864hsweg01.c
@@ -4856,6 +5301,20 @@
 | `PAGE_STATUS` | 2 |  |
 
 ---
+## <a id="enum-parsestate_e"></a>`parseState_e`
+
+> Source: ../../../src/main/io/ledstrip.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `X_COORDINATE` | 0 |  |
+| `Y_COORDINATE` | 1 |  |
+| `DIRECTIONS` | 2 |  |
+| `FUNCTIONS` | 3 |  |
+| `RING_COLORS` | 4 |  |
+| `PARSE_STATE_COUNT` | 5 |  |
+
+---
 ## <a id="enum-persistentobjectid_e"></a>`persistentObjectId_e`
 
 > Source: ../../../src/main/drivers/persistent.h
@@ -4975,6 +5434,39 @@
 | `MODE_RXTX` | MODE_RX | MODE_TX |  |
 
 ---
+## <a id="enum-portmode_t"></a>`portMode_t`
+
+> Source: ../../../src/main/drivers/serial.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MODE_RX` | 1 << 0 |  |
+| `MODE_TX` | 1 << 1 |  |
+| `MODE_RXTX` | MODE_RX | MODE_TX |  |
+
+---
+## <a id="enum-portoptions_t"></a>`portOptions_t`
+
+> Source: ../../../src/main/drivers/serial.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SERIAL_NOT_INVERTED` | 0 << 0 |  |
+| `SERIAL_INVERTED` | 1 << 0 |  |
+| `SERIAL_STOPBITS_1` | 0 << 1 |  |
+| `SERIAL_STOPBITS_2` | 1 << 1 |  |
+| `SERIAL_PARITY_NO` | 0 << 2 |  |
+| `SERIAL_PARITY_EVEN` | 1 << 2 |  |
+| `SERIAL_UNIDIR` | 0 << 3 |  |
+| `SERIAL_BIDIR` | 1 << 3 |  |
+| `SERIAL_BIDIR_OD` | 0 << 4 |  |
+| `SERIAL_BIDIR_PP` | 1 << 4 |  |
+| `SERIAL_BIDIR_NOPULL` | 1 << 5 |  |
+| `SERIAL_BIDIR_UP` | 0 << 5 |  |
+| `SERIAL_LONGSTOP` | 0 << 6 |  |
+| `SERIAL_SHORTSTOP` | 1 << 6 |  |
+
+---
 ## <a id="enum-portoptions_t"></a>`portOptions_t`
 
 > Source: ../../../src/main/drivers/serial.h
@@ -5064,6 +5556,16 @@
 | `QUADSPIDEV_1` | 0 |  |
 
 ---
+## <a id="enum-quadspidevice"></a>`QUADSPIDevice`
+
+> Source: ../../../src/main/drivers/bus_quadspi.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `QUADSPIINVALID` | -1 |  |
+| `QUADSPIDEV_1` | 0 |  |
+
+---
 ## <a id="enum-quadspimode_e"></a>`quadSpiMode_e`
 
 > Source: ../../../src/main/drivers/bus_quadspi.h
@@ -5135,6 +5637,68 @@
 | `AUX28` | (31) | USE_34CHANNELS |
 | `AUX29` | (32) | USE_34CHANNELS |
 | `AUX30` | (33) | USE_34CHANNELS |
+
+---
+## <a id="enum-rc_alias_e"></a>`rc_alias_e`
+
+> Source: ../../../src/main/fc/rc_controls.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `ROLL` | 0 |  |
+| `PITCH` | 1 |  |
+| `YAW` | 2 |  |
+| `THROTTLE` | 3 |  |
+| `AUX1` | 4 |  |
+| `AUX2` | 5 |  |
+| `AUX3` | 6 |  |
+| `AUX4` | 7 |  |
+| `AUX5` | 8 |  |
+| `AUX6` | 9 |  |
+| `AUX7` | 10 |  |
+| `AUX8` | 11 |  |
+| `AUX9` | 12 |  |
+| `AUX10` | 13 |  |
+| `AUX11` | 14 |  |
+| `AUX12` | 15 |  |
+| `AUX13` | 16 |  |
+| `AUX14` | 17 |  |
+| `AUX15` | (18) | USE_34CHANNELS |
+| `AUX16` | (19) | USE_34CHANNELS |
+| `AUX17` | (20) | USE_34CHANNELS |
+| `AUX18` | (21) | USE_34CHANNELS |
+| `AUX19` | (22) | USE_34CHANNELS |
+| `AUX20` | (23) | USE_34CHANNELS |
+| `AUX21` | (24) | USE_34CHANNELS |
+| `AUX22` | (25) | USE_34CHANNELS |
+| `AUX23` | (26) | USE_34CHANNELS |
+| `AUX24` | (27) | USE_34CHANNELS |
+| `AUX25` | (28) | USE_34CHANNELS |
+| `AUX26` | (29) | USE_34CHANNELS |
+| `AUX27` | (30) | USE_34CHANNELS |
+| `AUX28` | (31) | USE_34CHANNELS |
+| `AUX29` | (32) | USE_34CHANNELS |
+| `AUX30` | (33) | USE_34CHANNELS |
+
+---
+## <a id="enum-rcc_reg"></a>`rcc_reg`
+
+> Source: ../../../src/main/drivers/rcc.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `RCC_EMPTY` | 0 |  |
+| `RCC_AHB` | 1 |  |
+| `RCC_APB2` | 2 |  |
+| `RCC_APB1` | 3 |  |
+| `RCC_AHB1` | 4 |  |
+| `RCC_AHB2` | 5 |  |
+| `RCC_APB1L` | 6 |  |
+| `RCC_APB1H` | 7 |  |
+| `RCC_AHB3` | 8 |  |
+| `RCC_APB3` | 9 |  |
+| `RCC_AHB4` | 10 |  |
+| `RCC_APB4` | 11 |  |
 
 ---
 ## <a id="enum-rcdevice_5key_connection_event_e"></a>`RCDEVICE_5key_connection_event_e`
@@ -5920,6 +6484,19 @@
 | `SPIDEV_4` | 3 |  |
 
 ---
+## <a id="enum-spidevice"></a>`SPIDevice`
+
+> Source: ../../../src/main/drivers/bus_spi.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SPIINVALID` | -1 |  |
+| `SPIDEV_1` | 0 |  |
+| `SPIDEV_2` | 1 |  |
+| `SPIDEV_3` | 2 |  |
+| `SPIDEV_4` | 3 |  |
+
+---
 ## <a id="enum-srxl2bindrequest"></a>`Srxl2BindRequest`
 
 > Source: ../../../src/main/rx/srxl2_types.h
@@ -6351,6 +6928,17 @@
 | `VcselPeriodFinalRange` | 1 |  |
 
 ---
+## <a id="enum-video_types"></a>`VIDEO_TYPES`
+
+> Source: ../../../src/main/drivers/max7456.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `AUTO` | 0 |  |
+| `PAL` | 1 |  |
+| `NTSC` | 2 |  |
+
+---
 ## <a id="enum-videosystem_e"></a>`videoSystem_e`
 
 > Source: ../../../src/main/drivers/osd.h
@@ -6530,13 +7118,16 @@
 ---
 ## <a id="enum-warningledstate_e"></a>`warningLedState_e`
 
-> Source: ../../../src/main/io/statusindicator.c
+> Source: ../../../src/main/io/vtx_smartaudio.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
-| `WARNING_LED_OFF` | 0 |  |
-| `WARNING_LED_ON` | 1 |  |
-| `WARNING_LED_FLASH` | 2 |  |
+| `S_WAITPRE1` | 0 |  |
+| `S_WAITPRE2` | 1 |  |
+| `S_WAITRESP` | 2 |  |
+| `S_WAITLEN` | 3 |  |
+| `S_DATA` | 4 |  |
+| `S_WAITCRC` | 5 |  |
 
 ---
 ## <a id="enum-widgetahioptions_t"></a>`widgetAHIOptions_t`

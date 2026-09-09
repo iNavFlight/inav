@@ -440,7 +440,7 @@
                         "ctype": "uint8_t",
                         "desc": "Sets `navConfigMutable()->general.flags.user_control_mode`. WARNING: uses unnamed enum in navigation.h 'NAV_GPS_ATTI/NAV_GPS_CRUISE'",
                         "units": "Enum",
-                        "enum": "navUserControlMode_e"
+                        "enum": "nav_control_type_e"
                     },
                     {
                         "name": "maxAutoSpeed",
@@ -896,7 +896,7 @@
                         "ctype": "uint8_t",
                         "desc": "RTH altitude control mode (`navConfig()->general.flags.rth_alt_control_mode`). WARNING: uses unnamed enum in navigation.h:253 'NAV_RTH_NO_ALT...'",
                         "units": "Enum",
-                        "enum": "navRthAltControlMode_e"
+                        "enum": "nav_rth_alt_profile_e"
                     },
                     {
                         "name": "rthAbortThreshold",
@@ -985,7 +985,7 @@
                         "ctype": "uint8_t",
                         "desc": "Sets `navConfigMutable()->general.flags.rth_alt_control_mode`. WARNING: uses unnamed enum in navigation.h:253",
                         "units": "Enum",
-                        "enum": "navRthAltControlMode_e"
+                        "enum": "nav_rth_alt_profile_e"
                     },
                     {
                         "name": "rthAbortThreshold",
@@ -7954,9 +7954,8 @@
                     {
                         "name": "appliedMixerPreset",
                         "ctype": "int16_t",
-                        "desc": "Enum (`mixerPreset_e`): Mixer preset currently applied (`mixerConfig()->appliedMixerPreset`) WARNING: cannot figure where this is",
-                        "units": "",
-                        "enum": "mixerPreset_e"
+                        "desc": "Mixer preset currently applied (`mixerConfig()->appliedMixerPreset`). Plain integer, not an enum: the firmware never interprets it and only stores whatever the configurator wrote, defaulting to `SETTING_MODEL_PREVIEW_TYPE_DEFAULT`.",
+                        "units": ""
                     },
                     {
                         "name": "maxMotors",
@@ -11351,9 +11350,7 @@
                             }
                         ]
                     },
-                    "reply": {
-                        "payload": null
-                    }
+                    "reply": null
                 },
                 "circle": {
                     "description": "Circular Geozone",
@@ -11391,9 +11388,7 @@
                             }
                         ]
                     },
-                    "reply": {
-                        "payload": null
-                    }
+                    "reply": null
                 }
             },
             "notes": "Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).",
@@ -11442,9 +11437,7 @@
                     }
                 ]
             },
-            "reply": {
-                "payload": null
-            },
+            "reply": null,
             "notes": "Set new altitude target. Requires 5-byte payload (datum + target) and is set-only. Valid only in NAV or ALTHOLD modes. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).",
             "description": "Set the active altitude hold target using updateClimbRateToAltitudeController."
         },
