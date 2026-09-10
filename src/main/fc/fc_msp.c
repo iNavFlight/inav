@@ -384,7 +384,10 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 
     // size will be lower than that requested if we reach end of volume
     const uint32_t flashfsSize = flashfsGetSize();
-    if (readLen > flashfsSize - address) {
+    if (address >= flashfsSize) {
+        // nothing left to read from this address
+        readLen = 0;
+    } else if (readLen > flashfsSize - address) {
         // truncate the request
         readLen = flashfsSize - address;
     }
@@ -392,9 +395,11 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
     // Write address
     sbufWriteU32(dst, address);
 
-    // Read into streambuf directly
-    const int bytesRead = flashfsReadAbs(address, sbufPtr(dst), readLen);
-    sbufAdvance(dst, bytesRead);
+    if (readLen > 0) {
+        // Read into streambuf directly
+        const int bytesRead = flashfsReadAbs(address, sbufPtr(dst), readLen);
+        sbufAdvance(dst, bytesRead);
+    }
 }
 #endif
 
