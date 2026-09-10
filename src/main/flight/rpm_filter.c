@@ -36,13 +36,13 @@
 #include "common/maths.h"
 #include "common/filter.h"
 #include "flight/mixer.h"
+#include "drivers/dshot.h"
 #include "sensors/esc_sensor.h"
 #include "fc/config.h"
 #include "fc/settings.h"
 
 #ifdef USE_RPM_FILTER
 
-#define HZ_TO_RPM 1/60.0f
 #define RPM_FILTER_RPM_LPF_HZ 150
 #define RPM_FILTER_HARMONICS 3
 
@@ -66,7 +66,9 @@ typedef struct
 typedef float (*rpmFilterApplyFnPtr)(rpmFilterBank_t *filter, uint8_t axis, float input);
 typedef void (*rpmFilterUpdateFnPtr)(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency);
 
+#ifdef USE_ESC_SENSOR
 static EXTENDED_FASTRAM pt1Filter_t motorFrequencyFilter[MAX_SUPPORTED_MOTORS];
+#endif
 static EXTENDED_FASTRAM rpmFilterBank_t gyroRpmFilters;
 static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmGyroApplyFn;
 static EXTENDED_FASTRAM rpmFilterUpdateFnPtr rpmGyroUpdateFn;
@@ -159,10 +161,11 @@ void rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequ
 
 void rpmFiltersInit(void)
 {
-    for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++)
-    {
+#ifdef USE_ESC_SENSOR
+    for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, US2S(RPM_FILTER_UPDATE_RATE_US));
     }
+#endif
 
     rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;
 
@@ -188,9 +191,17 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
      */
     for (uint8_t i = 0; i < motorCount; i++)
     {
-        const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
-        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * HZ_TO_RPM); //Filter motor frequency
-
+        float baseFrequency;
+        if (isDshotTelemetryActive()) {
+            baseFrequency = getMotorFrequencyHz(i);
+        } else {
+#ifdef USE_ESC_SENSOR
+            const escSensorData_t *escState = getEscTelemetry(i);
+            baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], (float)escState->rpm / 60.0f);
+#else
+            baseFrequency = 0.0f;
+#endif
+        }
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
     }
 }

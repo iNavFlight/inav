@@ -47,6 +47,7 @@
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "drivers/dshot.h"
 
 #include "io/gps.h"
 
@@ -64,7 +65,6 @@
 #include "telemetry/srxl.h"
 
 #include "drivers/vtx_common.h"
-//#include "drivers/dshot.h"
 
 #include "io/vtx_tramp.h"
 #include "io/vtx_smartaudio.h"
@@ -184,30 +184,14 @@ typedef struct
 uint16_t getMotorAveragePeriod(void)
 {
 
-#if defined( USE_ESC_SENSOR_TELEMETRY) || defined( USE_DSHOT_TELEMETRY)
+#if defined(USE_ESC_SENSOR) || defined(USE_DSHOT)
     uint32_t rpm = 0;
     uint16_t period_us = SPEKTRUM_RPM_UNUSED;
 
-#if defined( USE_ESC_SENSOR_TELEMETRY)
-    escSensorData_t *escData = getEscSensorData(ESC_SENSOR_COMBINED);
+    escSensorData_t *escData = escSensorGetData();
     if (escData != NULL) {
         rpm = escData->rpm;
     }
-#endif
-
-#if defined(USE_DSHOT_TELEMETRY)
-    if (useDshotTelemetry) {
-        uint16_t motors = getMotorCount();
-
-        if (motors > 0) {
-            for (int motor = 0; motor < motors; motor++) {
-                rpm += getDshotTelemetry(motor);
-            }
-            rpm = 100.0f / (motorConfig()->motorPoleCount / 2.0f) * rpm;  // convert erpm freq to RPM.
-            rpm /= motors;           // Average combined rpm
-        }
-    }
-#endif
 
     if (rpm > SPEKTRUM_MIN_RPM && rpm < SPEKTRUM_MAX_RPM) {
         period_us = MICROSEC_PER_MINUTE / rpm; // revs/minute -> microSeconds
