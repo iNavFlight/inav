@@ -3917,6 +3917,15 @@
             "SAFEHOME_USAGE_RTH": "1",
             "SAFEHOME_USAGE_RTH_FS": "2"
         },
+        "saFramerState_e": {
+            "_source": "inav/src/main/io/vtx_smartaudio.c",
+            "S_WAITPRE1": "0",
+            "S_WAITPRE2": "1",
+            "S_WAITRESP": "2",
+            "S_WAITLEN": "3",
+            "S_DATA": "4",
+            "S_WAITCRC": "5"
+        },
         "sbasMode_e": {
             "_source": "inav/src/main/io/gps.h",
             "SBAS_AUTO": "0",
@@ -4627,13 +4636,10 @@
             "WARNING_HW_ERROR": "3"
         },
         "warningLedState_e": {
-            "_source": "inav/src/main/io/vtx_smartaudio.c",
-            "S_WAITPRE1": "0",
-            "S_WAITPRE2": "1",
-            "S_WAITRESP": "2",
-            "S_WAITLEN": "3",
-            "S_DATA": "4",
-            "S_WAITCRC": "5"
+            "_source": "inav/src/main/io/statusindicator.c",
+            "WARNING_LED_OFF": "0",
+            "WARNING_LED_ON": "1",
+            "WARNING_LED_FLASH": "2"
         },
         "widgetAHIOptions_t": {
             "_source": "inav/src/main/drivers/display_widgets.h",

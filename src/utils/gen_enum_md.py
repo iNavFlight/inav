@@ -64,13 +64,21 @@ def is_plain_int_literal(expr: str) -> Optional[int]:
             return None
     return None
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
+MSP_DOCS = REPO_ROOT / 'docs/development/msp'
+ALL_ENUMS_H = SCRIPT_DIR / 'all_enums.h'
+
 # ---------- Parsing regexes ----------
 
 # Matches both `typedef enum [Tag] {` and a plain `enum Tag {`. The latter closes
 # with a bare `};`, so its name comes from the tag rather than the closing line.
 RE_ENUM_START   = re.compile(r'^\s*(?:typedef\s+enum(?:\s+([A-Za-z_]\w*))?|enum\s+([A-Za-z_]\w*))\s*\{')
 RE_ENUM_END     = re.compile(r'^\s*\}\s*([A-Za-z_]\w*)\s*;')
-RE_ENUM_END_TAG = re.compile(r'^\s*\}\s*;')
+# A tagged block closes on any '}' line: a bare '};', or a declaration such as
+# '} state = S_WAITPRE1;'. Without this the scan runs past the real end and
+# takes the following enum's closing name.
+RE_ENUM_END_TAG = re.compile(r'^\s*\}')
 RE_LINE_COMMENT = re.compile(r'^\s*//\s*(.+?)\s*$')
 
 RE_IFDEF   = re.compile(r'^\s*#\s*ifdef\s+(\w+)')
@@ -351,13 +359,16 @@ def render_markdown(enums: List[EnumDef], build: dict) -> str:
             jsonfile[e.name][name_md.strip('`')] = [val, cond] if len(cond)>0 else val
         # normalize source to a stable inav/src/... path
         if '_source' in jsonfile[e.name]:
-            jsonfile[e.name]['_source'] = jsonfile[e.name]['_source'].replace('../../../src', 'inav/src')
+            src = jsonfile[e.name]['_source']
+            if src.startswith('src/'):
+                src = 'inav/' + src
+            jsonfile[e.name]['_source'] = src
         out.append("")
     wrapped = {
         "build": build,
         "enums": jsonfile,
     }
-    Path("inav_enums.json").write_text(json.dumps(wrapped, indent=4), encoding="utf-8")
+    (MSP_DOCS / "inav_enums.json").write_text(json.dumps(wrapped, indent=4), encoding="utf-8")
     return "\n".join(out)
 
 # ---------- Main ----------
@@ -369,7 +380,7 @@ def main() -> int:
     parser.add_argument("--fc-version-patch-level", required=True, type=int)
     args = parser.parse_args()
 
-    path = Path("all_enums.h")
+    path = ALL_ENUMS_H
     if not path.exists():
         print(f"Error: {path} not found", file=sys.stderr)
         return 1
@@ -384,7 +395,7 @@ def main() -> int:
             },
         },
     )
-    Path("inav_enums_ref.md").write_text(md, encoding="utf-8")
+    (MSP_DOCS / "inav_enums_ref.md").write_text(md, encoding="utf-8")
     return 0
 
 if __name__ == "__main__":

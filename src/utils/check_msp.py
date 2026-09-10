@@ -30,9 +30,9 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parents[2]
+REPO_ROOT = SCRIPT_DIR.parents[1]
 
-MSP_JSON = SCRIPT_DIR / "msp_messages.json"
+MSP_JSON = REPO_ROOT / "docs/development/msp/msp_messages.json"
 
 MSP_HEADERS = [
     REPO_ROOT / "src/main/msp/msp_protocol.h",
