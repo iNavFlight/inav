@@ -121,8 +121,14 @@ for sd in SUBDIRS:
         if fn.suffix in ('.c', '.h'):
             txt = fn.read_text(errors='ignore')
             # Label enums with a repo-relative path so the generated output does
-            # not depend on where this script was run from.
-            ret = extract_enums(fn.relative_to(REPO_ROOT), txt)
+            # not depend on where this script was run from. --inav-root may point
+            # at a tree outside this checkout, in which case there is nothing to
+            # be relative to and the path is used as given.
+            try:
+                label = fn.relative_to(REPO_ROOT)
+            except ValueError:
+                label = fn
+            ret = extract_enums(label, txt)
             if ret: print(fn)
             all_enums.extend(ret)
 
