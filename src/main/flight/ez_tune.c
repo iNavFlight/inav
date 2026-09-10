@@ -140,8 +140,8 @@ void ezTuneUpdate(void) {
         ((controlConfig_t*)currentControlProfile)->stabilized.rates[FD_PITCH] = scaleRange(ezTune()->rate, 0, 200, 30, 90);
         ((controlConfig_t*)currentControlProfile)->stabilized.rates[FD_YAW] = scaleRange(ezTune()->rate, 0, 200, 30, 90) - 10;
 
-        ((controlConfig_t*)currentControlProfile)->stabilized.rcExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
-        ((controlConfig_t*)currentControlProfile)->stabilized.rcYawExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
+        ((controlConfig_t*)currentControlProfile)->stabilized.rcExpo8 = scaleRange(ezTune()->expo, 0, 200, 40, 100);
+        ((controlConfig_t*)currentControlProfile)->stabilized.rcYawExpo8 = scaleRange(ezTune()->expo, 0, 200, 40, 100);
 
         //D-Boost snappiness
         pidProfileMutable()->dBoostMin = scaleRangef(ezTune()->snappiness, 0, 100, 1.0f, 0.0f);
