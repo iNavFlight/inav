@@ -239,15 +239,15 @@ static inline bool mixerTransitionNavigationHandbackShouldHoldProfile(
     bool navigationOwnedProfileSwitchPreviousUpdate,
     bool navigationOwnsProfileSwitch,
     bool mixerProfileModePresent,
-    bool autoTransitionActive,
     bool transitionModeActive,
     int currentProfileIndex,
     int requestedProfileIndex)
 {
+    // Capture the ownership edge even if transition outputs are still finishing.
+    // Waiting for an idle transition would lose this edge on the next update.
     return navigationOwnedProfileSwitchPreviousUpdate &&
            !navigationOwnsProfileSwitch &&
            mixerProfileModePresent &&
-           !autoTransitionActive &&
            (transitionModeActive || currentProfileIndex != requestedProfileIndex);
 }
 
