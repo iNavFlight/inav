@@ -7187,7 +7187,7 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_pitch_compensation
 
-Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down.
+Fixed wing only. Pitch angle bias for the throttle value that throttle based TPA reads. It does not change the throttle sent to the motor, it only shifts the point on the TPA curve: nose up adds about this many microseconds per degree of pitch (the exact term is value * sin(pitch) * 180/pi, limited to +/-1000us), nose down subtracts them, so the PIDs get attenuated as if throttle were higher while climbing and lower while descending. You only need this if throttle based TPA is actually running, meaning `tpa_rate` is not 0 and `fw_tpa_time_constant` is above 0; leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active.
 
 | Default | Min | Max |
 | --- | --- | --- |
