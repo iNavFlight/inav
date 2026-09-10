@@ -175,15 +175,19 @@
 
 #if defined(USE_BARO_DPS310)
     #if defined(DPS310_SPI_BUS)
-    BUSDEV_REGISTER_SPI(busdev_dps310,      DEVHW_DPS310,       DPS310_SPI_BUS,     DPS310_CS_PIN,      NONE,           DEVFLAGS_NONE, 0);
+    BUSDEV_REGISTER_SPI(busdev_dps310_0,    DEVHW_DPS310_0,     DPS310_SPI_BUS,     DPS310_CS_PIN,      NONE,           DEVFLAGS_NONE, 0);
     #elif defined(DPS310_I2C_BUS) || defined(BARO_I2C_BUS)
     #if !defined(DPS310_I2C_BUS)
         #define DPS310_I2C_BUS BARO_I2C_BUS
     #endif
-    #if !defined(DPS310_I2C_ADDR)
-        #define DPS310_I2C_ADDR (0x76)
+    #if defined(DPS310_I2C_ADDR)
+    BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310_0,     DPS310_I2C_BUS,     DPS310_I2C_ADDR,    NONE,           DEVFLAGS_NONE, 0);
+    #else
+    // The DPS310 answers on 0x77 when SDO is pulled high and on 0x76 when it is pulled low.
+    // Both wirings are in use, so register both and let the driver probe them
+    BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310_0,     DPS310_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
+    BUSDEV_REGISTER_I2C(busdev_dps310_1,    DEVHW_DPS310_1,     DPS310_I2C_BUS,     0x77,               NONE,           DEVFLAGS_NONE, 0);
     #endif
-    BUSDEV_REGISTER_I2C(busdev_dps310,      DEVHW_DPS310,       DPS310_I2C_BUS,     DPS310_I2C_ADDR,    NONE,           DEVFLAGS_NONE, 0);
     #endif
 #endif
 
