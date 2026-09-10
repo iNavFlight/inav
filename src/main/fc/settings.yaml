@@ -4341,7 +4341,7 @@ groups:
         min: 100
         max: 5000
       - name: nav_fw_land_flare_alt
-        description: "Initial altitude of the flare phase"
+        description: "Initial altitude of the flare phase. Requires a healthy rangefinder; without one the aircraft stays in the glide phase (see nav_fw_land_glide_alt/nav_fw_land_glide_pitch) all the way to touchdown."
         default_value: 150
         field: flareAltitude
         min: 0
@@ -4353,7 +4353,7 @@ groups:
         min: -15
         max: 45
       - name: nav_fw_land_flare_pitch
-        description: "Pitch value for flare phase. In degrees"
+        description: "Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder; the flare phase never activates without one."
         default_value: 8
         field: flarePitch
         min: -15
