@@ -28,9 +28,9 @@ timerHardware_t timerHardware[] = {
       DEF_TIM(TIM3, CH3,  PB0, TIM_USE_OUTPUT_AUTO, 0, 0 ), // S2_OUT - D(1, 7, 5)
       DEF_TIM(TIM3, CH4,  PB1, TIM_USE_OUTPUT_AUTO, 0, 0 ), // S3_OUT - D(1, 2, 5)
       DEF_TIM(TIM2, CH3,  PA2, TIM_USE_OUTPUT_AUTO, 0, 0 ), // S4_OUT - D(1, 1, 3)
-      DEF_TIM(TIM2, CH3, PB10, TIM_USE_ANY, 0, 0),
-      DEF_TIM(TIM2, CH4, PB11, TIM_USE_ANY, 0, 0), 
-      DEF_TIM(TIM5, CH1, PA0, TIM_USE_LED, 0, 0 ), // LED_STRIP - DMA1_ST2_CH6
+      DEF_TIM(TIM2, CH3, PB10, TIM_USE_ANY, 0, 0), // Same (TIM2,CH3) as S4_OUT above: one compare register drives both pins, so this output can only ever mirror S4_OUT -- unusable as an independent output for ANY protocol, not just DSHOT
+      DEF_TIM(TIM2, CH4, PB11, TIM_USE_ANY, 0, 0),  // Same (TIM2,CH4) as S1_OUT above (not S2_OUT): one compare register drives both pins, so this output can only ever mirror S1_OUT -- unusable as an independent output for ANY protocol, not just DSHOT
+      DEF_TIM(TIM5, CH1, PA0, TIM_USE_LED, 0, 0 ), // LED_STRIP - DMA1_ST2_CH6 -- clash with S3_OUT's DMA stream; LED strip does not light
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

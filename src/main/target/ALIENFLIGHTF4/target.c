@@ -35,7 +35,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8, CH2, PC7,  TIM_USE_OUTPUT_AUTO,           0, 1), // PWM11 - PC7  OUT6 - DMA2_ST3
     DEF_TIM(TIM8, CH3, PC8,  TIM_USE_OUTPUT_AUTO,           0, 1), // PWM13 - PC8  OUT7 - DMA2_ST4
     DEF_TIM(TIM8, CH4, PC9,  TIM_USE_OUTPUT_AUTO,           0, 0), // PWM13 - PC9  OUT8 - DMA2_ST7
-    DEF_TIM(TIM1, CH3, PB15, TIM_USE_LED,                   0, 0), // PWM5  - PA15 RC5  - DMA2_ST6
+    DEF_TIM(TIM1, CH3N, PB15, TIM_USE_LED,                  0, 0), // LED_STRIP - PB15 - DMA2_ST6 -- PB15 carries TIM1_CH3N, not TIM1_CH3; the plain-CH3 form set CCxE instead of CCxNE, so this output never drove
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

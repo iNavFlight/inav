@@ -31,7 +31,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S4 - D(2, 4, 7)
 
 #ifdef FOXEERF722V4_X8
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S5
+    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S5 -- clash with S1, DSHOT does not work (FOXEERF722V4_X8 build only)
     DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S6
     DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S6
     DEF_TIM(TIM2,  CH3, PA2,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S6
