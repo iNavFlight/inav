@@ -260,6 +260,15 @@ void pwmSetMotorDMACircular(bool circular)
         return;
     }
 
+    // Bidirectional DSHOT uses per-channel DMA with output/input direction
+    // switching: the burst path is never armed (dmaBurstBuffer stays NULL on
+    // USE_DSHOT_DMAR targets) and a port may currently be in the input-capture
+    // direction. Skip the circular keepalive and accept the frame gap during
+    // the flash write, matching Betaflight behaviour.
+    if (useDshotTelemetry) {
+        return;
+    }
+
     int motorCount = getMotorCount();
 
     if (circular) {
@@ -449,15 +458,64 @@ static uint16_t dshotDecodeTelemetryPacket(const uint32_t buffer[], uint32_t cou
     return decodedValue >> 4;
 }
 
+#if defined(USE_HAL_DRIVER)
+// Betaflight-style direction switching: instead of poking DIR/addresses into a live
+// stream, every switch does a full LL_DMA_DeInit (which also clears all five stream
+// event flags - EN=1 is ignored while any of them is set, RM0433) followed by a
+// complete LL_DMA_Init built from scratch for the requested direction.
+static void dshotDmaInit(const pwmOutputPort_t *port, LL_DMA_InitTypeDef *init, uint32_t direction)
+{
+    LL_DMA_StructInit(init);
+#if defined(STM32H7) || defined(STM32G4)
+    init->PeriphRequest = DMATAG_GET_CHANNEL(port->tch->timHw->dmaTag);
+#else
+    static const uint32_t channels[] = {
+        LL_DMA_CHANNEL_0, LL_DMA_CHANNEL_1, LL_DMA_CHANNEL_2, LL_DMA_CHANNEL_3,
+        LL_DMA_CHANNEL_4, LL_DMA_CHANNEL_5, LL_DMA_CHANNEL_6, LL_DMA_CHANNEL_7
+    };
+    init->Channel = channels[DMATAG_GET_CHANNEL(port->tch->timHw->dmaTag)];
+#endif
+    init->PeriphOrM2MSrcAddress = (uint32_t)port->ccr;
+    init->MemoryOrM2MDstAddress = (uint32_t)port->dmaBuffer;
+    init->Direction = direction;
+    init->NbData = (direction == LL_DMA_DIRECTION_MEMORY_TO_PERIPH) ? DSHOT_DMA_BUFFER_SIZE : GCR_TELEMETRY_INPUT_LEN;
+    init->PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
+    init->MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
+    init->PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
+    init->MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
+    init->Mode = LL_DMA_MODE_NORMAL;
+    init->Priority = LL_DMA_PRIORITY_HIGH;
+    init->FIFOMode = LL_DMA_FIFOMODE_ENABLE;
+    // 1/4 threshold like Betaflight: each captured word is pushed to memory promptly
+    // instead of waiting for four, so a partial GCR frame isn't stuck in the FIFO.
+    init->FIFOThreshold = LL_DMA_FIFOTHRESHOLD_1_4;
+    init->MemBurst = LL_DMA_MBURST_SINGLE;
+    init->PeriphBurst = LL_DMA_PBURST_SINGLE;
+}
+#endif
+
 static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
 {
+    // Bidirectional DSHOT is carried on inverted (idle-high) signalling - flip the
+    // channel's normal polarity whenever telemetry is active, matching Betaflight.
+    const bool inverted = ((port->tch->timHw->output & TIMER_OUTPUT_INVERTED) != 0) ^ useDshotTelemetry;
+
 #if defined(USE_HAL_DRIVER)
+    // Telemetry input capture widens ARR to 0xffff (see pwmDshotSetDirectionInput);
+    // restore the DSHOT bit period now, bypassing the ARR preload shadow so it
+    // takes effect immediately instead of after the next update event.
+    TIM_TypeDef *tim = port->tch->timHw->tim;
+    CLEAR_BIT(tim->CR1, TIM_CR1_ARPE);
+    tim->ARR = DSHOT_MOTOR_BITLENGTH - 1;
+    SET_BIT(tim->CR1, TIM_CR1_ARPE);
+    tim->CNT = 0;
+
     TIM_OC_InitTypeDef init = {0};
     init.OCMode = TIM_OCMODE_PWM1;
     init.OCIdleState = TIM_OCIDLESTATE_SET;
-    init.OCPolarity = TIM_OCPOLARITY_LOW;
+    init.OCPolarity = inverted ? TIM_OCPOLARITY_LOW : TIM_OCPOLARITY_HIGH;
     init.OCNIdleState = TIM_OCNIDLESTATE_SET;
-    init.OCNPolarity = TIM_OCNPOLARITY_LOW;
+    init.OCNPolarity = inverted ? TIM_OCNPOLARITY_LOW : TIM_OCNPOLARITY_HIGH;
     init.Pulse = 0;
     init.OCFastMode = TIM_OCFAST_DISABLE;
     HAL_TIM_PWM_ConfigChannel(port->tch->timCtx->timHandle, &init, dshotTimChannel(port));
@@ -471,8 +529,10 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
     DMA_TypeDef *dmaBase = port->tch->dma->dma;
     LL_DMA_DisableStream(dmaBase, streamLL);
     while (LL_DMA_IsEnabledStream(dmaBase, streamLL)) { }
-    LL_DMA_ConfigAddresses(dmaBase, streamLL, (uint32_t)port->dmaBuffer, (uint32_t)port->ccr, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
-    LL_DMA_SetDataLength(dmaBase, streamLL, DSHOT_DMA_BUFFER_SIZE);
+    LL_DMA_DeInit(dmaBase, streamLL);
+    LL_DMA_InitTypeDef dmaInit;
+    dshotDmaInit(port, &dmaInit, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+    LL_DMA_Init(dmaBase, streamLL, &dmaInit);
     LL_DMA_EnableIT_TC(dmaBase, streamLL);
     port->telemetryInputActive = false;
 #elif defined(AT32F43x)
@@ -482,12 +542,12 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
     if (port->tch->timHw->output & TIMER_OUTPUT_N_CHANNEL) {
         output.oc_output_state = FALSE;
         output.occ_output_state = TRUE;
-        output.occ_polarity = TMR_OUTPUT_ACTIVE_LOW;
+        output.occ_polarity = inverted ? TMR_OUTPUT_ACTIVE_LOW : TMR_OUTPUT_ACTIVE_HIGH;
         output.occ_idle_state = FALSE;
     } else {
         output.oc_output_state = TRUE;
         output.occ_output_state = FALSE;
-        output.oc_polarity = TMR_OUTPUT_ACTIVE_LOW;
+        output.oc_polarity = inverted ? TMR_OUTPUT_ACTIVE_LOW : TMR_OUTPUT_ACTIVE_HIGH;
         output.oc_idle_state = TRUE;
     }
     tmr_output_channel_config(port->tch->timHw->tim, dshotTimChannel(port), &output);
@@ -509,12 +569,12 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
     if (port->tch->timHw->output & TIMER_OUTPUT_N_CHANNEL) {
         init.TIM_OutputState = TIM_OutputState_Disable;
         init.TIM_OutputNState = TIM_OutputNState_Enable;
-        init.TIM_OCNPolarity = TIM_OCPolarity_Low;
+        init.TIM_OCNPolarity = inverted ? TIM_OCPolarity_Low : TIM_OCPolarity_High;
         init.TIM_OCNIdleState = TIM_OCIdleState_Reset;
     } else {
         init.TIM_OutputState = TIM_OutputState_Enable;
         init.TIM_OutputNState = TIM_OutputNState_Disable;
-        init.TIM_OCPolarity = TIM_OCPolarity_Low;
+        init.TIM_OCPolarity = inverted ? TIM_OCPolarity_Low : TIM_OCPolarity_High;
         init.TIM_OCIdleState = TIM_OCIdleState_Set;
     }
     switch (port->tch->timHw->channelIndex) {
@@ -534,6 +594,29 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
 static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
 {
 #if defined(USE_HAL_DRIVER)
+    // Betaflight ordering: reset the stream first (DeInit also clears all five event
+    // flags), then reconfigure the timer channel for capture, then rebuild the stream
+    // for the capture direction and arm it.
+    const uint32_t streamLL = dshotDmaStream(port);
+    DMA_TypeDef *dmaBase = port->tch->dma->dma;
+    LL_DMA_DisableStream(dmaBase, streamLL);
+    while (LL_DMA_IsEnabledStream(dmaBase, streamLL)) { }
+    LL_DMA_DeInit(dmaBase, streamLL);
+
+    // Widen ARR so the free-running counter doesn't wrap every DSHOT bit period
+    // (20 ticks) while timing GCR edges, which span ~21 bits per telemetry frame.
+    SET_BIT(port->tch->timHw->tim->CR1, TIM_CR1_ARPE);
+    port->tch->timHw->tim->ARR = 0xffff;
+
+#if defined(STM32H7)
+    // H7 errata workaround (matches Betaflight): reconfiguring the channel from output
+    // compare to input capture can glitch the pin for a cycle while CCMR/CCER are mid-update.
+    // Disconnect the pin from the timer first so the ESC never sees the glitch, then
+    // reconnect it once the IC channel is safely configured.
+    const IO_t io = IOGetByTag(port->tch->timHw->tag);
+    IOConfigGPIO(io, IOCFG_OUT_PP);
+#endif
+
     TIM_IC_InitTypeDef init = {0};
     init.ICPolarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
     init.ICSelection = TIM_ICSELECTION_DIRECTTI;
@@ -542,12 +625,14 @@ static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
     HAL_TIM_IC_ConfigChannel(port->tch->timCtx->timHandle, &init, dshotTimChannel(port));
     HAL_TIM_IC_Start(port->tch->timCtx->timHandle, dshotTimChannel(port));
 
-    const uint32_t streamLL = dshotDmaStream(port);
-    DMA_TypeDef *dmaBase = port->tch->dma->dma;
-    LL_DMA_DisableStream(dmaBase, streamLL);
-    while (LL_DMA_IsEnabledStream(dmaBase, streamLL)) { }
-    LL_DMA_ConfigAddresses(dmaBase, streamLL, (uint32_t)port->ccr, (uint32_t)port->dmaBuffer, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-    LL_DMA_SetDataLength(dmaBase, streamLL, GCR_TELEMETRY_INPUT_LEN);
+#if defined(STM32H7)
+    const bool baseInverted = port->tch->timHw->output & TIMER_OUTPUT_INVERTED;
+    IOConfigGPIOAF(io, baseInverted ? IOCFG_AF_PP_PD : IOCFG_AF_PP_UP, port->tch->timHw->alternateFunction);
+#endif
+
+    LL_DMA_InitTypeDef dmaInit;
+    dshotDmaInit(port, &dmaInit, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+    LL_DMA_Init(dmaBase, streamLL, &dmaInit);
     LL_DMA_EnableIT_TC(dmaBase, streamLL);
     LL_DMA_EnableStream(dmaBase, streamLL);
     LL_TIM_EnableDMAReq_CCx(port->tch->timHw->tim, dshotDmaSource(port));
@@ -589,6 +674,34 @@ static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
 #endif
     port->telemetryInputStampUs = micros();
     port->telemetryInputActive = true;
+}
+
+// Set when bidir pins are held low as plain GPIO until the first frame
+static bool dshotPinsParkedLow = false;
+
+// Connect bidir DSHOT pins to their timer AF (idle-high). Called on the first
+// real motor update so the line only goes high microseconds before frames start,
+// keeping it low through the ESC's boot-time bootloader-entry window.
+static void dshotConnectOutputs(void)
+{
+    for (int index = 0; index < getMotorCount(); index++) {
+        pwmOutputPort_t *port = motors[index].pwmPort;
+        if (port && port->configured) {
+            const timerHardware_t *timHw = port->tch->timHw;
+            const IO_t io = IOGetByTag(timHw->tag);
+            // The pull must match this channel's *un-flipped* polarity
+            // (pwmDshotSetDirectionOutput flips OCPolarity for bidir, but the GCR
+            // listen phase still idles toward the same physical level either way).
+            const bool baseInverted = timHw->output & TIMER_OUTPUT_INVERTED;
+#if defined(STM32H7)
+            // Preset ODR to the bidir idle level once - the H7 OC->IC erratum workaround
+            // in pwmDshotSetDirectionInput() disconnects the pin from the timer and relies
+            // on this cached ODR bit (matches Betaflight) instead of redriving the level.
+            baseInverted ? IOLo(io) : IOHi(io);
+#endif
+            IOConfigGPIOAF(io, baseInverted ? IOCFG_AF_PP_PD : IOCFG_AF_PP_UP, timHw->alternateFunction);
+        }
+    }
 }
 
 static void pwmDshotDmaIrqHandler(DMA_t descriptor)
@@ -655,6 +768,13 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
 #endif
 
         if (edges > MIN_GCR_EDGES) {
+#if defined(STM32H7)
+            // port->dmaBuffer lives in the cacheable DMA_RAM region (write-through on the
+            // write side, but reads still need an explicit invalidate) - without this the
+            // CPU can read stale data instead of what the capture DMA just wrote.
+            uint32_t alignedAddr = (uint32_t)port->dmaBuffer & ~0x1F;
+            SCB_InvalidateDCache_by_Addr((uint32_t *)alignedAddr, edges * sizeof(port->dmaBuffer[0]) + ((uint32_t)port->dmaBuffer - alignedAddr));
+#endif
             const uint16_t rawValue = dshotDecodeTelemetryPacket((const uint32_t *)port->dmaBuffer, edges);
             const uint16_t processed = dshotProcessPacket(rawValue, motorIndex);
 
@@ -687,7 +807,19 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
     }
 
     if (enableOutput && useDshotTelemetry) {
-        IOConfigGPIOAF(IOGetByTag(timerHardware->tag), IOCFG_AF_PP_UP, timerHardware->alternateFunction);
+        // Bidir signalling idles high, but holding the line high with no edges
+        // during ESC boot triggers the BLHeli/Bluejay bootloader-entry check
+        // (~150ms of continuous high right after the ESC's startup melody). The
+        // first INAV frame goes out seconds after this pin is configured, so the
+        // ESC would enter its bootloader, time out and reset - replaying the
+        // startup melody. Park the pin so the ESC sees low, like normal DSHOT
+        // idle, and defer the AF connect until the first frame goes out
+        // (dshotConnectOutputs()). On TIMER_OUTPUT_INVERTED hardware the pin
+        // level is re-inverted downstream, so park high there.
+        const IO_t io = IOGetByTag(timerHardware->tag);
+        IOConfigGPIO(io, IOCFG_OUT_PP);
+        (timerHardware->output & TIMER_OUTPUT_INVERTED) ? IOHi(io) : IOLo(io);
+        dshotPinsParkedLow = true;
     }
 
     // Configure timer DMA
@@ -902,6 +1034,11 @@ void pwmCompleteMotorUpdate(void) {
 
 #ifdef USE_DSHOT
     if (isMotorProtocolDshot()) {
+
+        if (dshotPinsParkedLow) {
+            dshotConnectOutputs();
+            dshotPinsParkedLow = false;
+        }
 
         if (!executeDShotCommands()) {
             return;
