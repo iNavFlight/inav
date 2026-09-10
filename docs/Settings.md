@@ -591,6 +591,16 @@ If the remaining battery capacity goes below this threshold the beeper will emit
 
 ---
 
+### battery_profile_name
+
+Name shown for this battery profile next to its number in the configurator. Up to 12 characters, empty for none.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _empty_ |  | MAX_PROFILE_NAME_LENGTH |
+
+---
+
 ### beeper_pwm_mode
 
 Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if the external beeper sound is weak. Do not switch from OFF to ON without checking if the board supports PWM beeper mode
@@ -642,6 +652,16 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | 1 | 65535 |
+
+---
+
+### control_profile_name
+
+Name shown for this control profile next to its number in the configurator. Up to 12 characters, empty for none.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _empty_ |  | MAX_PROFILE_NAME_LENGTH |
 
 ---
 
@@ -3412,6 +3432,16 @@ If enabled, control_profile_index will follow mixer_profile index. Set to OFF(de
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### mixer_profile_name
+
+Name shown for this mixer profile next to its number in the configurator. Up to 12 characters, empty for none.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _empty_ |  | MAX_PROFILE_NAME_LENGTH |
 
 ---
 
