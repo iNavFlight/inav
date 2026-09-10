@@ -233,7 +233,8 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "OSD_REFRESH",
     "VTOL_TRANSITION",
     "VTOL_MC_PROTECT",
-    "TERRAIN_NAV"
+    "TERRAIN_NAV",
+    "MAG"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status

@@ -799,6 +799,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | VTOL_TRANSITION |  |
 | VTOL_MC_PROTECT |  |
 | TERRAIN_NAV |  |
+| MAG |  |
 
 ---
 
