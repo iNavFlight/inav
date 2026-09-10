@@ -27,6 +27,9 @@
 #define LED_DIRECTION_COUNT             6
 #define LED_BASEFUNCTION_COUNT          8
 #define LED_OVERLAY_COUNT               8
+
+// Longest CLI representation of one LED, e.g. "15,15:NESWUD:CTOBNIWEV:15" (25 characters) plus the terminator
+#define LED_CONFIG_STRING_LENGTH        32
 #define LED_SPECIAL_COLOR_COUNT         9
 
 #define LED_FUNCTION_OFFSET             8

@@ -92,7 +92,7 @@ static void ledStripDisable(void);
 const hsvColor_t hsv[] = {
     //                        H    S    V
     [COLOR_BLACK] =        {  0,   0,   0},
-    [COLOR_WHITE] =        {  0,   0, 255},
+    [COLOR_WHITE] =        {  0, 255, 255},
     [COLOR_RED] =          {  0,   0, 255},
     [COLOR_ORANGE] =       { 30,   0, 255},
     [COLOR_YELLOW] =       { 60,   0, 255},
@@ -342,8 +342,7 @@ void generateLedConfig(ledConfig_t *ledConfig, char *ledConfigBuffer, size_t buf
     }
     *fptr = 0;
 
-    // TODO - check buffer length
-    tfp_sprintf(ledConfigBuffer, "%u,%u:%s:%s:%u", ledGetX(ledConfig), ledGetY(ledConfig), directions, baseFunctionOverlays, ledGetColor(ledConfig));
+    tfp_snprintf(ledConfigBuffer, bufferSize, "%u,%u:%s:%s:%u", ledGetX(ledConfig), ledGetY(ledConfig), directions, baseFunctionOverlays, ledGetColor(ledConfig));
 }
 
 typedef enum {
@@ -871,11 +870,11 @@ static void applyLedRainbowLayer(bool updateNow, timeUs_t *timer)
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
 
         if (ledGetOverlayBit(ledConfig, LED_OVERLAY_RAINBOW)) {
-            hsvColor_t ledColor;
-            getLedHsv(i, &ledColor);
-            ledColor.h = (rainbowHue + (rainbowIndex * rainbowDelta)) % 360;
-            ledColor.s = 0;   // Force full color saturation (Required)
-            ledColor.v = 255; // Force full brightness (Required)
+            const hsvColor_t ledColor = {
+                .h = (rainbowHue + (rainbowIndex * rainbowDelta)) % 360,
+                .s = 0,   // full saturation (INAV stores saturation inverted)
+                .v = 255, // full brightness
+            };
             setLedHsv(i, &ledColor);
             rainbowIndex++;
         }
