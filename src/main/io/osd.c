@@ -933,6 +933,10 @@ static const char * osdArmingDisabledReasonMessage(void)
 
         case ARMING_DISABLED_GEOZONE:
 #ifdef USE_GEOZONE
+            // Check the exact reason
+            if (geozoneIsConfigInvalid()) {
+                return OSD_MESSAGE_STR(OSD_MSG_GEOZONE_MISCONFIG);
+            }
             return OSD_MESSAGE_STR(OSD_MSG_NFZ);
 #else
             FALLTHROUGH;
