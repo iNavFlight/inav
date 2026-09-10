@@ -143,6 +143,9 @@ bool handleMspFrame(uint8_t *const frameStart, const int payloadLength)
         uint16_t mspPayloadSize;
 
         if (lastRequestVersion == 1) { // MSPv1
+            if (payloadLength < MIN_LENGTH_REQUEST_V1) {
+                return false;   // prevent analyzing garbage data
+            }
 
             mspPayloadSize = frameStart[MSP_INDEX_SIZE_V1];
             requestPacket->cmd = frameStart[MSP_INDEX_ID_V1];
