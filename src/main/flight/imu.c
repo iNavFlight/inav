@@ -781,7 +781,11 @@ void imuUpdateTailSitter(void)
 static RP2350_FAST_CODE void imuCalculateEstimatedAttitude(float dT)
 {
 #if defined(USE_MAG)
-    const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy();
+    // Raw mag samples are not offset/gain corrected while a calibration spin is in
+    // progress (see compass.c) - fusing them would let mag hard-iron bias leak into
+    // the yaw estimate, which is also the attitude reference the calibration spin's
+    // own orientation-detection step depends on being bias-free.
+    const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy() && !compassIsCalibrating();
 #else
     const bool canUseMAG = false;
 #endif

@@ -486,17 +486,22 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, 0);
 #endif
-        // Board communication capabilities (uint8)
+        // Board capabilities (uint8)
         // Bit 0: 1 iff the board has VCP
         // Bit 1: 1 iff the board supports software serial
-        uint8_t commCapabilities = 0;
+        // Bit 2: 1 iff the board auto-detects compass mounting orientation during
+        // magnetometer calibration (USE_MAG_CALIBRATION_ORIENTATION)
+        uint8_t capabilities = 0;
 #ifdef USE_VCP
-        commCapabilities |= 1 << 0;
+        capabilities |= 1 << 0;
 #endif
 #if defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2)
-        commCapabilities |= 1 << 1;
+        capabilities |= 1 << 1;
 #endif
-        sbufWriteU8(dst, commCapabilities);
+#ifdef USE_MAG_CALIBRATION_ORIENTATION
+        capabilities |= 1 << 2;
+#endif
+        sbufWriteU8(dst, capabilities);
 
         sbufWriteU8(dst, strlen(targetName));
         sbufWriteData(dst, targetName, strlen(targetName));
