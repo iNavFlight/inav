@@ -41,9 +41,9 @@ jobs:
           # The output is captured and encoded to be passed between steps.
           output=$(bash .github/scripts/check-pg-versions.sh 2>&1)
           exit_code=$?
-          if [ "$exit_code" -gt 1 ]; then
+          if [ "$exit_code" -gt 1 ] || { [ "$exit_code" -eq 1 ] && ! grep -q '^### ' <<< "$output"; }; then
             printf '%s\n' "$output"
-            exit "$exit_code"
+            exit 2
           fi
           echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
           echo "output<<EOF" >> $GITHUB_OUTPUT
