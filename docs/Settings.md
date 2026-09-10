@@ -1445,7 +1445,7 @@ Minimum stick input [%], after applying deadband and expo, to start recording th
 
 ### fw_d_level
 
-Fixed-wing attitude stabilisation HORIZON transition point
+Fixed-wing HORIZON transition point, expressed as stick deflection in percent. At this deflection self-levelling is faded out completely and the axis behaves like ACRO; below it, ANGLE and ACRO are blended proportionally. Despite the 0-255 CLI range, which is shared with the other PID values, the number is not scaled to 255: it is clamped to 100 internally, so 75 really means 75% stick and any value above 100 acts the same as 100.
 
 | Default | Min | Max |
 | --- | --- | --- |
