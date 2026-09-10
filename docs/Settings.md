@@ -1445,7 +1445,7 @@ Minimum stick input [%], after applying deadband and expo, to start recording th
 
 ### fw_d_level
 
-Fixed-wing attitude stabilisation HORIZON transition point
+Fixed-wing HORIZON transition point, expressed as stick deflection in percent. At this deflection self-levelling is faded out completely and the axis behaves like ACRO; below it, ANGLE and ACRO are blended proportionally. Despite the 0-255 CLI range, which is shared with the other PID values, the number is not scaled to 255: it is clamped to 100 internally, so 75 really means 75% stick and any value above 100 acts the same as 100.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7187,7 +7187,7 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_pitch_compensation
 
-Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down.
+Fixed wing only. Pitch angle bias for the throttle value that throttle based TPA reads. It does not change the throttle sent to the motor, it only shifts the point on the TPA curve: nose up adds about this many microseconds per degree of pitch (the exact term is value * sin(pitch) * 180/pi, limited to +/-1000us), nose down subtracts them, so the PIDs get attenuated as if throttle were higher while climbing and lower while descending. You only need this if throttle based TPA is actually running, meaning `tpa_rate` is not 0 and `fw_tpa_time_constant` is above 0; leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active.
 
 | Default | Min | Max |
 | --- | --- | --- |
