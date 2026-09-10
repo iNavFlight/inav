@@ -101,6 +101,16 @@ static long cmsx_profileIndexOnChange(displayPort_t *displayPort, const void *pt
     profileIndex = tmpProfileIndex - 1;
     profileIndexString[1] = '0' + tmpProfileIndex;
     setConfigProfile(profileIndex);
+
+    return 0;
+}
+
+static long cmsx_profileIndexOnChangeInFlight(displayPort_t *displayPort, const void *ptr)
+{
+    // Same as above, but pushes the newly selected profile all the way into the
+    // running controllers so the change takes effect immediately while armed.
+    cmsx_profileIndexOnChange(displayPort, ptr);
+
     schedulePidGainsUpdate();
     navigationUsePIDs();
     activateControlConfig();
@@ -164,28 +174,6 @@ static const CMS_Menu cmsx_menuEzTune = {
     .entries = cmsx_menuEzTuneEntries
 };
 
-static long cmsx_PidWriteback_Confirm(displayPort_t *displayPort, const void *ptr)
-{
-    UNUSED(displayPort);
-    UNUSED(ptr);
-    cmsx_PidWriteback(NULL);
-    return MENU_CHAIN_BACK;
-}
-
-static const OSD_Entry cmsx_menuPidConfirmEntries[] = {
-    OSD_LABEL_ENTRY("--- CONFIRM ---"),
-    OSD_FUNC_CALL_ENTRY("YES", cmsx_PidWriteback_Confirm),
-    { "NO", {.func = NULL}, NULL, OME_Back, 0 },
-    OSD_END_ENTRY
-};
-
-static const CMS_Menu cmsx_menuPidConfirm = {
-    .onEnter = NULL,
-    .onExit = NULL,
-    .onGlobalExit = NULL,
-    .entries = cmsx_menuPidConfirmEntries,
-};
-
 static const OSD_Entry cmsx_menuPidEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
@@ -205,7 +193,6 @@ static const OSD_Entry cmsx_menuPidEntries[] =
     RPY_PIDFF_ENTRY("YAW   D", &cmsx_pidYaw.D),
     RPY_PIDFF_ENTRY("YAW   FF", &cmsx_pidYaw.FF),
 
-    OSD_SUBMENU_ENTRY("SET", &cmsx_menuPidConfirm),
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -215,7 +202,7 @@ static const CMS_Menu cmsx_menuPid = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_PidOnEnter,
-    .onExit = NULL,
+    .onExit = cmsx_PidWriteback,
     .onGlobalExit = NULL,
     .entries = cmsx_menuPidEntries
 };
@@ -244,28 +231,6 @@ static long cmsx_menuPidAltMag_onExit(const OSD_Entry *self)
     return 0;
 }
 
-static long cmsx_menuPidAltMag_onExit_Confirm(displayPort_t *displayPort, const void *ptr)
-{
-    UNUSED(displayPort);
-    UNUSED(ptr);
-    cmsx_menuPidAltMag_onExit(NULL);
-    return MENU_CHAIN_BACK;
-}
-
-static const OSD_Entry cmsx_menuPidAltMagConfirmEntries[] = {
-    OSD_LABEL_ENTRY("--- CONFIRM ---"),
-    OSD_FUNC_CALL_ENTRY("YES", cmsx_menuPidAltMag_onExit_Confirm),
-    { "NO", {.func = NULL}, NULL, OME_Back, 0 },
-    OSD_END_ENTRY
-};
-
-static const CMS_Menu cmsx_menuPidAltMagConfirm = {
-    .onEnter = NULL,
-    .onExit = NULL,
-    .onGlobalExit = NULL,
-    .entries = cmsx_menuPidAltMagConfirmEntries,
-};
-
 static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- ALT&MAG --", profileIndexString),
@@ -283,7 +248,6 @@ static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 
     OTHER_PIDFF_ENTRY("MAG P", &cmsx_pidHead.P),
 
-    OSD_SUBMENU_ENTRY("SET", &cmsx_menuPidAltMagConfirm),
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -293,7 +257,7 @@ static const CMS_Menu cmsx_menuPidAltMag = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_menuPidAltMag_onEnter,
-    .onExit = NULL,
+    .onExit = cmsx_menuPidAltMag_onExit,
     .onGlobalExit = NULL,
     .entries = cmsx_menuPidAltMagEntries,
 };
@@ -320,28 +284,6 @@ static long cmsx_menuPidGpsnav_onExit(const OSD_Entry *self)
     return 0;
 }
 
-static long cmsx_menuPidGpsnav_onExit_Confirm(displayPort_t *displayPort, const void *ptr)
-{
-    UNUSED(displayPort);
-    UNUSED(ptr);
-    cmsx_menuPidGpsnav_onExit(NULL);
-    return MENU_CHAIN_BACK;
-}
-
-static const OSD_Entry cmsx_menuPidGpsnavConfirmEntries[] = {
-    OSD_LABEL_ENTRY("--- CONFIRM ---"),
-    OSD_FUNC_CALL_ENTRY("YES", cmsx_menuPidGpsnav_onExit_Confirm),
-    { "NO", {.func = NULL}, NULL, OME_Back, 0 },
-    OSD_END_ENTRY
-};
-
-static const CMS_Menu cmsx_menuPidGpsnavConfirm = {
-    .onEnter = NULL,
-    .onExit = NULL,
-    .onGlobalExit = NULL,
-    .entries = cmsx_menuPidGpsnavConfirmEntries,
-};
-
 static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- GPSNAV --", profileIndexString),
@@ -355,7 +297,6 @@ static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
     OTHER_PIDFF_ENTRY("VEL D", &cmsx_pidVelXY.D),
     OTHER_PIDFF_ENTRY("VEL FF", &cmsx_pidVelXY.FF),
 
-    OSD_SUBMENU_ENTRY("SET", &cmsx_menuPidGpsnavConfirm),
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -365,7 +306,7 @@ static const CMS_Menu cmsx_menuPidGpsnav = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_menuPidGpsnav_onEnter,
-    .onExit = NULL,
+    .onExit = cmsx_menuPidGpsnav_onExit,
     .onGlobalExit = NULL,
     .entries = cmsx_menuPidGpsnavEntries,
 };
@@ -590,18 +531,187 @@ const CMS_Menu cmsx_menuImu = {
     .entries = cmsx_menuImuEntries,
 };
 
+//
+// In-flight PID menus
+//
+// Separate from the ground menus above on purpose. The ground CMS keeps its
+// original behaviour, where leaving a menu with BACK applies the pending edits.
+// In flight that is not acceptable: the menu can be closed at any moment by the
+// switch, the inactivity timeout or a safety trip, and a close must never change
+// anything. So these menus have no BACK entry at all - the only way out is SET,
+// which asks for an explicit confirmation and returns to the parent menu either
+// way. Nothing is committed unless YES is selected, and re-entering the menu
+// reloads the live values, so a discarded edit leaves no trace.
+//
+
+static long cmsx_PidInFlight_Apply(displayPort_t *displayPort, const void *ptr)
+{
+    UNUSED(ptr);
+
+    cmsx_PidWriteback(NULL);
+
+    return cmsMenuConfirmDone(displayPort);
+}
+
+static long cmsx_PidAltMagInFlight_Apply(displayPort_t *displayPort, const void *ptr)
+{
+    UNUSED(ptr);
+
+    cmsx_menuPidAltMag_onExit(NULL);
+
+    return cmsMenuConfirmDone(displayPort);
+}
+
+static long cmsx_PidGpsnavInFlight_Apply(displayPort_t *displayPort, const void *ptr)
+{
+    UNUSED(ptr);
+
+    cmsx_menuPidGpsnav_onExit(NULL);
+
+    return cmsMenuConfirmDone(displayPort);
+}
+
+static long cmsx_InFlight_Discard(displayPort_t *displayPort, const void *ptr)
+{
+    UNUSED(ptr);
+
+    return cmsMenuConfirmDone(displayPort);
+}
+
+#ifdef CMS_MENU_DEBUG
+#define CMS_MENU_GUARD(text) .GUARD_text = text, .GUARD_type = OME_MENU,
+#else
+#define CMS_MENU_GUARD(text)
+#endif
+
+#define CMSX_IN_FLIGHT_CONFIRM(name, applyFunc, guard)                  \
+    static const OSD_Entry name ## Entries[] = {                        \
+        OSD_LABEL_ENTRY("CONFIRM"),                                     \
+        OSD_FUNC_CALL_ENTRY("YES", applyFunc),                          \
+                                                                        \
+        OSD_FUNC_CALL_ENTRY("NO", cmsx_InFlight_Discard),               \
+        OSD_END_ENTRY                                                   \
+    };                                                                  \
+                                                                        \
+    static const CMS_Menu name = {                                      \
+        CMS_MENU_GUARD(guard)                                           \
+        .onEnter = NULL,                                                \
+        .onExit = NULL,                                                 \
+        .onGlobalExit = NULL,                                           \
+        .entries = name ## Entries,                                     \
+    }
+
+CMSX_IN_FLIGHT_CONFIRM(cmsx_menuPidInFlightConfirm, cmsx_PidInFlight_Apply, "XPIDC_IF");
+CMSX_IN_FLIGHT_CONFIRM(cmsx_menuPidAltMagInFlightConfirm, cmsx_PidAltMagInFlight_Apply, "XALTMAGC_IF");
+CMSX_IN_FLIGHT_CONFIRM(cmsx_menuPidGpsnavInFlightConfirm, cmsx_PidGpsnavInFlight_Apply, "XGPSNAVC_IF");
+
+static const OSD_Entry cmsx_menuPidInFlightEntries[] =
+{
+    OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
+
+    RPY_PIDFF_ENTRY("ROLL  P", &cmsx_pidRoll.P),
+    RPY_PIDFF_ENTRY("ROLL  I", &cmsx_pidRoll.I),
+    RPY_PIDFF_ENTRY("ROLL  D", &cmsx_pidRoll.D),
+    RPY_PIDFF_ENTRY("ROLL  FF", &cmsx_pidRoll.FF),
+
+    RPY_PIDFF_ENTRY("PITCH P", &cmsx_pidPitch.P),
+    RPY_PIDFF_ENTRY("PITCH I", &cmsx_pidPitch.I),
+    RPY_PIDFF_ENTRY("PITCH D", &cmsx_pidPitch.D),
+    RPY_PIDFF_ENTRY("PITCH FF", &cmsx_pidPitch.FF),
+
+    RPY_PIDFF_ENTRY("YAW   P", &cmsx_pidYaw.P),
+    RPY_PIDFF_ENTRY("YAW   I", &cmsx_pidYaw.I),
+    RPY_PIDFF_ENTRY("YAW   D", &cmsx_pidYaw.D),
+    RPY_PIDFF_ENTRY("YAW   FF", &cmsx_pidYaw.FF),
+
+    OSD_SUBMENU_ENTRY("SET", &cmsx_menuPidInFlightConfirm),
+    OSD_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuPidInFlight = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "XPID_IF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = cmsx_PidOnEnter,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuPidInFlightEntries,
+};
+
+static const OSD_Entry cmsx_menuPidAltMagInFlightEntries[] =
+{
+    OSD_LABEL_DATA_ENTRY("-- ALT&MAG --", profileIndexString),
+
+    OSD_SETTING_ENTRY("FW ALT RESPONSE", SETTING_NAV_FW_ALT_CONTROL_RESPONSE),
+
+    OTHER_PIDFF_ENTRY("ALT P", &cmsx_pidPosZ.P),
+    OTHER_PIDFF_ENTRY("ALT I", &cmsx_pidPosZ.I),
+    OTHER_PIDFF_ENTRY("ALT D", &cmsx_pidPosZ.D),
+    OTHER_PIDFF_ENTRY("ALT FF", &cmsx_pidPosZ.FF),
+
+    OTHER_PIDFF_ENTRY("VEL P", &cmsx_pidVelZ.P),
+    OTHER_PIDFF_ENTRY("VEL I", &cmsx_pidVelZ.I),
+    OTHER_PIDFF_ENTRY("VEL D", &cmsx_pidVelZ.D),
+
+    OTHER_PIDFF_ENTRY("MAG P", &cmsx_pidHead.P),
+
+    OSD_SUBMENU_ENTRY("SET", &cmsx_menuPidAltMagInFlightConfirm),
+    OSD_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuPidAltMagInFlight = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "XALTMAG_IF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = cmsx_menuPidAltMag_onEnter,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuPidAltMagInFlightEntries,
+};
+
+static const OSD_Entry cmsx_menuPidGpsnavInFlightEntries[] =
+{
+    OSD_LABEL_DATA_ENTRY("-- GPSNAV --", profileIndexString),
+
+    OTHER_PIDFF_ENTRY("POS P", &cmsx_pidPosXY.P),
+    OTHER_PIDFF_ENTRY("POS I", &cmsx_pidPosXY.I),
+    OTHER_PIDFF_ENTRY("POS D", &cmsx_pidPosXY.D),
+
+    OTHER_PIDFF_ENTRY("VEL P", &cmsx_pidVelXY.P),
+    OTHER_PIDFF_ENTRY("VEL I", &cmsx_pidVelXY.I),
+    OTHER_PIDFF_ENTRY("VEL D", &cmsx_pidVelXY.D),
+    OTHER_PIDFF_ENTRY("VEL FF", &cmsx_pidVelXY.FF),
+
+    OSD_SUBMENU_ENTRY("SET", &cmsx_menuPidGpsnavInFlightConfirm),
+    OSD_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuPidGpsnavInFlight = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "XGPSNAV_IF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = cmsx_menuPidGpsnav_onEnter,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuPidGpsnavInFlightEntries,
+};
+
 static const OSD_Entry cmsx_menuImuInFlightEntries[] =
 {
     OSD_LABEL_ENTRY("-- PID TUNING --"),
 
-    // Profile dependent
-    OSD_UINT8_CALLBACK_ENTRY("PID PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_PROFILE_COUNT, 1})),
-    OSD_SUBMENU_ENTRY("PID", &cmsx_menuPid),
-    OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMag),
-    OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnav),
+    // Profile dependent. Both profile selectors take effect as soon as they are
+    // changed, exactly as they do on the ground.
+    OSD_UINT8_CALLBACK_ENTRY("PID PROF", cmsx_profileIndexOnChangeInFlight, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_PROFILE_COUNT, 1})),
+    OSD_SUBMENU_ENTRY("PID", &cmsx_menuPidInFlight),
+    OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMagInFlight),
+    OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnavInFlight),
 
     // Rate profile dependent
-    OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_PROFILE_COUNT, 1})),
+    OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChangeInFlight, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_PROFILE_COUNT, 1})),
     OSD_SUBMENU_ENTRY("RATE", &cmsx_menuRateProfile),
     OSD_SUBMENU_ENTRY("MANU RATE", &cmsx_menuManualRateProfile),
 
