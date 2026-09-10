@@ -36,9 +36,9 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_OUTPUT_AUTO,   0, 0), // S1_OUT
     DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_OUTPUT_AUTO,   0, 0), // S2_OUT
     DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_OUTPUT_AUTO,   0, 0), // S3_OUT
-    DEF_TIM(TIM12, CH2, PB15, TIM_USE_OUTPUT_AUTO,   0, 0), // S4_OUT
+    DEF_TIM(TIM1, CH3N, PB15, TIM_USE_OUTPUT_AUTO,   0, 1), // S4_OUT -- was TIM12_CH2, which has no DMA request line on F405 (no DSHOT); dmavar 1 is TIM1_CH3's dedicated DMA2 Stream6 line
     DEF_TIM(TIM3,  CH2, PB5,  TIM_USE_OUTPUT_AUTO,   0, 0), // S5_OUT
-    DEF_TIM(TIM12, CH1, PB14, TIM_USE_OUTPUT_AUTO,   0, 0), // S6_OUT
+    DEF_TIM(TIM1, CH2N, PB14, TIM_USE_OUTPUT_AUTO,   0, 1), // S6_OUT -- was TIM12_CH1, which has no DMA request line on F405 (no DSHOT); dmavar 1 is TIM1_CH2's dedicated DMA2 Stream2 line. dmavar 0 is the combined TIM1 CH1-3 request, which would collide with S4_OUT now that both are live TIM1 channels
     DEF_TIM(TIM10, CH1, PB8,  TIM_USE_OUTPUT_AUTO,   0, 0), // S7_OUT
     DEF_TIM(TIM11, CH1, PB9,  TIM_USE_OUTPUT_AUTO,   0, 0), // S8_OUT
 

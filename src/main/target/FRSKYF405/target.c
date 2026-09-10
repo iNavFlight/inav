@@ -29,7 +29,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S4
     DEF_TIM(TIM8,  CH3,  PC8,  TIM_USE_OUTPUT_AUTO, 0, 1),  // S5
     DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S6
-    DEF_TIM(TIM12, CH1,  PB14, TIM_USE_OUTPUT_AUTO, 0, 0),  // S7 - no DShot (TIM12 has no DMA)
+    DEF_TIM(TIM8, CH2N,  PB14, TIM_USE_OUTPUT_AUTO, 0, 1),  // S7 -- was TIM12_CH1, which has no DMA request line on F405 (no DSHOT); TIM8_CH2N dmavar 1 is DMA2 Stream3
     DEF_TIM(TIM12, CH2,  PB15, TIM_USE_OUTPUT_AUTO, 0, 0),  // S8 - no DShot (TIM12 has no DMA)
     DEF_TIM(TIM1,  CH1,  PA8,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S9
 

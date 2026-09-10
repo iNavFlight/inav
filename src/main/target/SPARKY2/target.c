@@ -32,10 +32,10 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S1_OUT
     DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S2_OUT
-    DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S3_OUT
+    DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_OUTPUT_AUTO,   0, 1 ), // S3_OUT -- was TIM9_CH2, which has no DMA request line on F405 (no DSHOT); TIM2_CH4 dmavar 1 is DMA1 Stream6, free
     DEF_TIM(TIM2,  CH3, PA2,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S4_OUT
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S5_OUT - GPIO_PartialRemap_TIM3
-    DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S6_OUT
+    DEF_TIM(TIM2,  CH1, PA0,  TIM_USE_OUTPUT_AUTO,   0, 0 ), // S6_OUT -- was TIM5_CH1, which shared S2_OUT's DMA stream; TIM2_CH1 is DMA1 Stream5, free
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
