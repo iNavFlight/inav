@@ -23,9 +23,11 @@
 #if defined(AT32F43x) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
 
 
-#if defined(AT32F437ZMT7) || defined(AT32F437VMT7) || defined(AT32F435RMT7)
+#if defined(AT32F437ZMT7) || defined(AT32F437VMT7) || defined(AT32F435RMT7) || \
+    defined(AT32F435CMU7)
     #define FLASH_PAGE_SIZE ((uint32_t)0x1000)  
-#elif defined(AT32F437ZGT7) || defined(AT32F437VGT7) || defined(AT32F435RGT7)
+#elif defined(AT32F437ZGT7) || defined(AT32F437VGT7) || defined(AT32F435RGT7) || \
+      defined(AT32F435CGU7)
     #define FLASH_PAGE_SIZE ((uint32_t)0x800)  
 #endif
 
