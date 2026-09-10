@@ -88,8 +88,13 @@ check_file_for_pg_changes() {
             # Arrays have an extra count argument; the version is always last.
             local version=$(echo "$pg_line" | sed -nE 's/.*,[[:space:]]*([0-9]+)[[:space:]]*\).*/\1/p')
 
+            # Macro definitions and examples can contain PG_REGISTER too.
+            # A registration must have a literal numeric version.
+            [[ "$version" =~ ^[0-9]+$ ]] || continue
+
             # Clean up whitespace
-            struct_type=$(echo "$struct_type" | xargs)
+            struct_type=$(echo "$struct_type" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            [[ "$struct_type" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || continue
             version=$(echo "$version" | xargs)
 
             echo "    📋 Found: $struct_type (version $version)"
