@@ -412,6 +412,16 @@ void mavlinkSendExtendedSysState(void)
     mavlinkSendMessage();
 }
 
+// Running from USB without a battery leaves the battery state at
+// BATTERY_NOT_PRESENT, where voltage and remaining capacity are meaningless.
+// Reporting them as 0V/0% makes a GCS or radio announce a critical battery,
+// so they are reported as unknown instead. This matches the way the OSD and
+// HIGH_LATENCY2 only raise a battery warning for BATTERY_WARNING/CRITICAL.
+static bool mavlinkBatteryIsPresent(void)
+{
+    return feature(FEATURE_VBAT) && getBatteryState() != BATTERY_NOT_PRESENT;
+}
+
 void mavlinkSendSystemStatus(void)
 {
     // Receiver is assumed to be always present
@@ -529,9 +539,9 @@ void mavlinkSendSystemStatus(void)
         onboard_control_sensors_enabled,
         onboard_control_sensors_health,
         constrain(averageSystemLoadPercent * 10, 0, 1000),
-        feature(FEATURE_VBAT) ? getBatteryVoltage() * 10 : 0,
+        mavlinkBatteryIsPresent() ? getBatteryVoltage() * 10 : UINT16_MAX,
         isAmperageConfigured() ? getAmperage() : -1,
-        feature(FEATURE_VBAT) ? calculateBatteryPercentage() : 100,
+        mavlinkBatteryIsPresent() ? calculateBatteryPercentage() : -1,
         0,
         0,
         0,
@@ -821,7 +831,7 @@ void mavlinkSendBatteryStatus(void)
     uint16_t batteryVoltagesExt[MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_EXT_LEN];
     memset(batteryVoltages, UINT16_MAX, sizeof(batteryVoltages));
     memset(batteryVoltagesExt, 0, sizeof(batteryVoltagesExt));
-    if (feature(FEATURE_VBAT)) {
+    if (mavlinkBatteryIsPresent()) {
         uint8_t batteryCellCount = getBatteryCellCount();
         if (batteryCellCount > 0) {
             for (int cell = 0; cell < batteryCellCount && cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN + MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_EXT_LEN; cell++) {
@@ -836,9 +846,6 @@ void mavlinkSendBatteryStatus(void)
             batteryVoltages[0] = getBatteryVoltage() * 10;
         }
     }
-    else {
-        batteryVoltages[0] = 0;
-    }
 
     mavlink_msg_battery_status_pack(mavSystemId, mavComponentId, &mavSendMsg,
         0,
@@ -849,7 +856,7 @@ void mavlinkSendBatteryStatus(void)
         isAmperageConfigured() ? getAmperage() : -1,
         isAmperageConfigured() ? getMAhDrawn() : -1,
         isAmperageConfigured() ? getMWhDrawn() * 36 : -1,
-        feature(FEATURE_VBAT) ? calculateBatteryPercentage() : -1,
+        mavlinkBatteryIsPresent() ? calculateBatteryPercentage() : -1,
         0,
         0,
         batteryVoltagesExt,
@@ -1041,7 +1048,7 @@ void mavlinkSendHighLatency2(timeUs_t currentTimeUs)
     uint8_t epv = UINT8_MAX;
     int8_t temperatureAir = 0;
     int8_t climbRate = (int8_t)constrain(lrintf(getEstimatedActualVelocity(Z) / 10.0f), INT8_MIN, INT8_MAX);
-    int8_t battery = feature(FEATURE_VBAT) ? (int8_t)calculateBatteryPercentage() : -1;
+    int8_t battery = mavlinkBatteryIsPresent() ? (int8_t)calculateBatteryPercentage() : -1;
 
 #if defined(USE_GPS)
     if (sensors(SENSOR_GPS)
