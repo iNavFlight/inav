@@ -216,9 +216,20 @@ static bool w25n_waitForReadyInternal(void)
     return true;
 }
 
+/**
+ * Wait for the device to become ready.
+ *
+ * A timeout of zero means "wait for the deadline the pending operation has already armed",
+ * which is how flashPartitionErase() waits for a block erase to complete (see also
+ * m25p16_waitForReady). Arming a fresh zero length timeout instead would replace the erase
+ * timeout with a deadline that has already expired, and the wait would give up immediately.
+ */
 bool w25n_waitForReady(timeMs_t timeoutMillis)
 {
-    w25n_setTimeout(timeoutMillis);
+    if (timeoutMillis > 0) {
+        w25n_setTimeout(timeoutMillis);
+    }
+
     return w25n_waitForReadyInternal();
 }
 
