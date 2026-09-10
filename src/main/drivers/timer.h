@@ -55,14 +55,22 @@ typedef uint32_t timCNT_t;
 #error "Unknown CPU defined"
 #endif
 
+// TIMER_INDEX() maps a hardware timer number to its slot in timerDefinitions[] and
+// timerCtx[]. This is not always (n - 1): the tables are packed and not every MCU has
+// a contiguous range of timers (STM32H7 has no TIM9..TIM11, AT32F43x adds TMR20 after
+// TMR14). Timer tables and timer IRQ handlers must use this macro.
 #if defined(STM32F4)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
+#define TIMER_INDEX(n)                  ((n) - 1)                       // TIM1..TIM14
 #elif defined(STM32F7)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
+#define TIMER_INDEX(n)                  ((n) - 1)                       // TIM1..TIM14
 #elif defined(STM32H7)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
+#define TIMER_INDEX(n)                  ((n) < 9 ? (n) - 1 : (n) - 4)   // TIM1..TIM8, TIM12..TIM17
 #elif defined(AT32F43x)
 #define HARDWARE_TIMER_DEFINITION_COUNT 15
+#define TIMER_INDEX(n)                  ((n) < 20 ? (n) - 1 : 14)       // TMR1..TMR14, TMR20
 #elif defined(SITL_BUILD)
 #define HARDWARE_TIMER_DEFINITION_COUNT 0
 #elif defined(RP2350)

@@ -32,21 +32,24 @@
 #include "stm32h7xx.h"
 
 const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT] = {
-    [0] = { .tim = TIM1,  .rcc = RCC_APB2(TIM1),   .irq = TIM1_CC_IRQn},
-    [1] = { .tim = TIM2,  .rcc = RCC_APB1L(TIM2),  .irq = TIM2_IRQn},
-    [2] = { .tim = TIM3,  .rcc = RCC_APB1L(TIM3),  .irq = TIM3_IRQn},
-    [3] = { .tim = TIM4,  .rcc = RCC_APB1L(TIM4),  .irq = TIM4_IRQn},
-    [4] = { .tim = TIM5,  .rcc = RCC_APB1L(TIM5),  .irq = TIM5_IRQn},
-    [5] = { .tim = TIM6,  .rcc = RCC_APB1L(TIM6),  .irq = 0},
-    [6] = { .tim = TIM7,  .rcc = RCC_APB1L(TIM7),  .irq = 0},
-    [7] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),   .irq = TIM8_CC_IRQn},
-    [8] = { .tim = TIM12, .rcc = RCC_APB1L(TIM12), .irq = TIM8_BRK_TIM12_IRQn},
-    [9] = { .tim = TIM13, .rcc = RCC_APB1L(TIM13), .irq = TIM8_UP_TIM13_IRQn},
-    [10] = { .tim = TIM14, .rcc = RCC_APB1L(TIM14), .irq = TIM8_TRG_COM_TIM14_IRQn},
-    [11] = { .tim = TIM15, .rcc = RCC_APB2(TIM15),  .irq = TIM15_IRQn},
-    [12] = { .tim = TIM16, .rcc = RCC_APB2(TIM16),  .irq = TIM16_IRQn},
-    [13] = { .tim = TIM17, .rcc = RCC_APB2(TIM17),  .irq = TIM17_IRQn},
+    [TIMER_INDEX(1)] = { .tim = TIM1,  .rcc = RCC_APB2(TIM1),   .irq = TIM1_CC_IRQn},
+    [TIMER_INDEX(2)] = { .tim = TIM2,  .rcc = RCC_APB1L(TIM2),  .irq = TIM2_IRQn},
+    [TIMER_INDEX(3)] = { .tim = TIM3,  .rcc = RCC_APB1L(TIM3),  .irq = TIM3_IRQn},
+    [TIMER_INDEX(4)] = { .tim = TIM4,  .rcc = RCC_APB1L(TIM4),  .irq = TIM4_IRQn},
+    [TIMER_INDEX(5)] = { .tim = TIM5,  .rcc = RCC_APB1L(TIM5),  .irq = TIM5_IRQn},
+    [TIMER_INDEX(6)] = { .tim = TIM6,  .rcc = RCC_APB1L(TIM6),  .irq = 0},
+    [TIMER_INDEX(7)] = { .tim = TIM7,  .rcc = RCC_APB1L(TIM7),  .irq = 0},
+    [TIMER_INDEX(8)] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),   .irq = TIM8_CC_IRQn},
+    [TIMER_INDEX(12)] = { .tim = TIM12, .rcc = RCC_APB1L(TIM12), .irq = TIM8_BRK_TIM12_IRQn},
+    [TIMER_INDEX(13)] = { .tim = TIM13, .rcc = RCC_APB1L(TIM13), .irq = TIM8_UP_TIM13_IRQn},
+    [TIMER_INDEX(14)] = { .tim = TIM14, .rcc = RCC_APB1L(TIM14), .irq = TIM8_TRG_COM_TIM14_IRQn},
+    [TIMER_INDEX(15)] = { .tim = TIM15, .rcc = RCC_APB2(TIM15),  .irq = TIM15_IRQn},
+    [TIMER_INDEX(16)] = { .tim = TIM16, .rcc = RCC_APB2(TIM16),  .irq = TIM16_IRQn},
+    [TIMER_INDEX(17)] = { .tim = TIM17, .rcc = RCC_APB2(TIM17),  .irq = TIM17_IRQn},
 };
+
+// The timer table must cover every slot of timerCtx[] - see TIMER_INDEX() in timer.h
+STATIC_ASSERT(TIMER_INDEX(17) == HARDWARE_TIMER_DEFINITION_COUNT - 1, timer_definition_table_size_mismatch);
 
 uint32_t timerClock(TIM_TypeDef *tim)
 {
