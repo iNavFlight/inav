@@ -105,7 +105,17 @@
         lexpr, _CHOOSE_VAR(_left, __COUNTER__), \
         rexpr, _CHOOSE_VAR(_right, __COUNTER__) \
         )
+/* INAV's MIN/MAX are single-evaluation and type-safe; they must win over any
+ * earlier plain MIN/MAX definition (e.g. the Pico SDK's compiler.h, pulled in
+ * via build/atomic.h on RP2350, which defines guarded MIN/MAX when maths.h has
+ * not been included yet). Undef first so the definition here always applies. */
+#ifdef MIN
+#undef MIN
+#endif
 #define MIN(a, b) _CHOOSE(<, a, b)
+#ifdef MAX
+#undef MAX
+#endif
 #define MAX(a, b) _CHOOSE(>, a, b)
 #define SIGN(a) ((a >= 0) ? 1 : -1)
 

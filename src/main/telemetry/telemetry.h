@@ -79,7 +79,6 @@ typedef struct telemetryConfig_s {
     uint8_t telemetry_switch;               // Use aux channel to change serial output & baudrate( MSP / Telemetry ). It disables automatic switching to Telemetry when armed.
     uint8_t telemetry_inverted;             // Flip the default inversion of the protocol - Same as serialrx_inverted in rx.c, but for telemetry.
     uint8_t frsky_pitch_roll;
-    bool    frsky_use_legacy_gps_mode_sensor_ids;
     uint8_t report_cell_voltage;
     uint8_t hottAlarmSoundInterval;
     uint8_t halfDuplex;
@@ -98,8 +97,10 @@ typedef struct telemetryConfig_s {
     uint16_t accEventThresholdLow;
     uint16_t accEventThresholdNegX;
 #endif
+#ifdef USE_TELEMETRY_MAVLINK
     mavlinkTelemetryCommonConfig_t mavlink_common;
     mavlinkTelemetryPortConfig_t mavlink[MAX_MAVLINK_PORTS];
+#endif
     bool crsf_use_legacy_baro_packet;
 } telemetryConfig_t;
 

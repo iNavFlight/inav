@@ -86,6 +86,7 @@
 #include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/settings.h"
 
 #include "flight/imu.h"
@@ -98,6 +99,10 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+
+#ifdef USE_TERRAIN
+#include "terrain/terrain_nav_hold.h"
+#endif
 
 #include "rx/rx.h"
 #include "rx/msp_override.h"
@@ -117,6 +122,10 @@
 
 #ifdef USE_BLACKBOX
 #include "blackbox/blackbox_io.h"
+#endif
+
+#ifdef USE_TERRAIN
+#include "terrain/terrain.h"
 #endif
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
@@ -225,7 +234,7 @@ static bool osdDisplayHasCanvas;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 3);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 4);
 
 /* OSD formatting helpers replacing common tfp_sprintf patterns
  * for reduced code size and CPU overhead. */
@@ -1810,16 +1819,16 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CUSTOM_ELEMENT_1:
     case OSD_CUSTOM_ELEMENT_2:
     case OSD_CUSTOM_ELEMENT_3:
-        customElementDrawElement(buff, item - OSD_CUSTOM_ELEMENT_1);
-        break;
+        customElementDrawElement(osdDisplayPort, buff, item - OSD_CUSTOM_ELEMENT_1, elemPosX, elemPosY);
+        return true;
 
     case OSD_CUSTOM_ELEMENT_4:
     case OSD_CUSTOM_ELEMENT_5:
     case OSD_CUSTOM_ELEMENT_6:
     case OSD_CUSTOM_ELEMENT_7:
     case OSD_CUSTOM_ELEMENT_8:
-        customElementDrawElement(buff, item - OSD_CUSTOM_ELEMENT_4 + 3);
-        break;
+        customElementDrawElement(osdDisplayPort, buff, item - OSD_CUSTOM_ELEMENT_4 + 3, elemPosX, elemPosY);
+        return true;
     case OSD_RSSI_VALUE:
         {
             uint8_t osdRssi = osdConvertRSSI();
@@ -1992,7 +2001,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
      case OSD_AUTO_SPEED:
-        if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED)) {
+        if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED) || isFixedwingAutoSpeedActive()) {
             buff[0] = posControl.autoSpeedSpdSource == FW_AUTO_SPD_GROUND ? 'G' : 'A';
             strcpy(buff + 1, ": OFF");
             if (isFixedwingAutoSpeedActive()) {
@@ -2479,21 +2488,44 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-#ifdef USE_RANGEFINDER
-    case OSD_RANGEFINDER:
+#if defined(USE_RANGEFINDER) || defined(USE_TERRAIN)
+        case OSD_RANGEFINDER:
         {
-            int32_t range = rangefinderGetLatestRawAltitude();
+            int32_t range = -1;
+
+#if defined(USE_RANGEFINDER)
+            range = rangefinderGetLatestRawAltitude();
+#ifdef USE_TERRAIN
+            if (!rangefinderIsHealthy() || range == RANGEFINDER_OUT_OF_RANGE) {
+                range = terrainGetLastDistanceCm();
+            }
+#endif
+#elif defined(USE_TERRAIN)
+            range = terrainGetLastDistanceCm();
+#endif
             if (range < 0) {
-                buff[0] = '-';
-                buff[1] = '-';
-                buff[2] = '-';
+                buff[0] = buff[1] = buff[2] = '-';
             } else {
-                osdFormatDistanceSymbol(buff, range, 1, 3);
+                osdFormatDistanceSymbol(buff, range, 0, 3);
             }
         }
-        break;
+            break;
 #endif
-
+#ifdef USE_TERRAIN
+        case OSD_TERRAIN_AGL:
+        {
+            int32_t range =  terrainGetLastDistanceCm();
+            if (range < 0) {
+                for(uint8_t i = 1; i < osdConfig()->decimals_altitude + 1; i++){
+                    buff[i] = '-';
+                }
+            } else {
+                osdFormatAltitudeSymbol(buff, range);
+            }
+            buff[0] = SYM_TERRAIN_FOLLOWING;
+            break;
+        }
+#endif
     case OSD_ONTIME:
         {
             osdFormatOnTime(buff);
@@ -2623,10 +2655,16 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "TURT";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
                 p = isWaypointMissionRTHActive() ? "WRTH" : "RTH ";
+            else if (isGCSValid())
+                p = "GCSN";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE))
                 p = "LOTR";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
                 p = "HOLD";
+#ifdef USE_TERRAIN
+            else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE) && terrainNavHoldIsEngaged())
+                p = "TERR";
+#endif
             else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE))
                 p = "CRUZ";
             else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE))
@@ -5437,7 +5475,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 
                 int32_t logNumber = blackboxGetLogNumber();
                 if (logNumber >= 0) {
-                    tfp_sprintf(buff, ": %05ld ", logNumber);
+                    tfp_sprintf(buff, ": %05ld ", (long)logNumber);
                 } else {
                     strcat(buff, ": INVALID");
                 }
@@ -6118,11 +6156,23 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         const char *messages[8];
         unsigned messageCount = 0;
         #define ADD_MSG(msg) do { if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg); } while(0)
+#ifdef USE_TERRAIN
+        /* The terrain floor warnings are crash-avoidance class: they blink
+         * like the failsafe info text below. Remembering the stored pointer
+         * lets the blink decision match the exact message on display */
+        const char *terrainUrgentMessage = NULL;
+#endif
 
         const char *failsafeInfoMessage = NULL;
         const char *invertedInfoMessage = NULL;
+        const char *vtolTransitionMessage = NULL;
 
         if (ARMING_FLAG(ARMED)) {
+            vtolTransitionMessage = osdVtolTransitionMessage();
+            if (vtolTransitionMessage) {
+                ADD_MSG(vtolTransitionMessage);
+            }
+
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                 /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL NORMALLY, 5 MESSAGES DURING FAILSAFE */
                 if (navGetCurrentStateFlags() & NAV_AUTO_WP_DONE) {
@@ -6249,6 +6299,51 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         break;
                 }
 #endif
+#ifdef USE_TERRAIN
+                /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL: the worst warning, and -
+                 * while the hold is actually climbing to the minimum - the
+                 * auto-climb info alternating beneath it, so the pilot always
+                 * sees both the danger and the action being taken */
+                switch (terrainNavHoldGetWarning()) {
+                    case TERRAIN_NAV_HOLD_WARN_NOT_READY:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_NOT_READY));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_DATA_LOST:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_DATA_LOST));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_MAX_ALT:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_VS_MAX_ALT));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_PULL_UP:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_PULL_UP));
+                        if (messageCount) {
+                            terrainUrgentMessage = messages[messageCount - 1];
+                        }
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_TURN_AWAY:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_TURN_AWAY));
+                        if (messageCount) {
+                            terrainUrgentMessage = messages[messageCount - 1];
+                        }
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_NO_HEADING:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_NO_HEADING));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AUTO_CLIMB));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_TERRAIN_AHEAD:
+                        ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AHEAD));
+                        break;
+                    case TERRAIN_NAV_HOLD_WARN_NONE:
+                        break;
+                }
+                if (terrainNavHoldAutoClimbRunning()
+                        && terrainNavHoldGetWarning() != TERRAIN_NAV_HOLD_WARN_AUTO_CLIMB
+                        && terrainNavHoldGetWarning() != TERRAIN_NAV_HOLD_WARN_NONE) {
+                    ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_TERRAIN_AUTO_CLIMB));
+                }
+#endif
                 if (STATE(AIRPLANE)) {      /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
 #ifdef USE_FW_AUTOLAND
                     if (canFwLandingBeCancelled()) {
@@ -6317,6 +6412,23 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                 }
             }
+#ifdef USE_CMS
+            // In-flight CMS menu messages - shown alongside any active NAV messages
+            // (RTH, WP, etc.) via OSD message rotation. Uses a dedicated buffer
+            // to avoid overwriting messageBuf which may contain NAV state messages.
+            {
+                uint32_t menuCountdownMs = cmsGetOpenCountdownRemaining();
+                if (menuCountdownMs > 0) {
+                    static char cmsMenuBuf[16];
+                    unsigned sec = menuCountdownMs / 1000;
+                    unsigned dec = (menuCountdownMs % 1000) / 100;
+                    tfp_sprintf(cmsMenuBuf, "MENU IN %u.%u", sec, dec);
+                    ADD_MSG(cmsMenuBuf);
+                } else if (IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU) && !cmsInMenu && !cmsIsMenuSwitchLatched()) {
+                    ADD_MSG(OSD_MESSAGE_STR(OSD_MSG_MENU_NAV_REQ));
+                }
+            }
+#endif
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {    /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
             unsigned invalidIndex;
 
@@ -6371,10 +6483,19 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
-            if (message == failsafeInfoMessage) {
+            if (message == failsafeInfoMessage || message == OSD_MESSAGE_STR(OSD_MSG_MENU_NAV_REQ)) {
                 // failsafeInfoMessage is not useful for recovering
                 // a lost model, but might help avoiding a crash.
                 // Blink to grab user attention.
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+#ifdef USE_TERRAIN
+            } else if (terrainUrgentMessage && message == terrainUrgentMessage) {
+                // The terrain floor warnings are the same class: act NOW to
+                // avoid the terrain. The no-blink note below protects
+                // recovery info, not urgent warnings
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+#endif
+            } else if (message == vtolTransitionMessage && osdVtolTransitionMessageShouldBlink()) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             } else if (message == invertedInfoMessage) {
                 TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);

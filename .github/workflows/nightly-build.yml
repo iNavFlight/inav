@@ -8,6 +8,8 @@ on:
       - master
       - maintenance-8.x.x
       - maintenance-9.x
+      - maintenance-10.x
+      - release/9.1
     paths:
       - 'src/**'
       - '.github/**'

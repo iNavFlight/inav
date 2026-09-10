@@ -14,8 +14,13 @@ main_sources(SITL_COMMON_SRC_EXCLUDES
 main_sources(SITL_SRC
     config/config_streamer_file.c
     drivers/dronecan/libcanard/canard_sitl_driver.c
+    drivers/sdcard/sdcard.c
+    drivers/sdcard/sdcard_sitl.c
+    drivers/sdcard/sdcard_sitl.h
     drivers/serial_tcp.c
     drivers/serial_tcp.h
+    io/asyncfatfs/asyncfatfs.c
+    io/asyncfatfs/fat_standard.c
     target/SITL/sim/realFlight.c
     target/SITL/sim/realFlight.h
     target/SITL/sim/simHelper.c

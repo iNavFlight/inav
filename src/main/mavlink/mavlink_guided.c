@@ -59,4 +59,115 @@ MAV_RESULT mavlinkSetAltitudeTargetFromFrame(uint8_t frame, float altitudeMeters
 #endif
 }
 
+static bool mavlinkIsLocalTarget(uint8_t targetSystem, uint8_t targetComponent)
+{
+    if (targetSystem != 0 && targetSystem != mavSystemId) {
+        return false;
+    }
+
+    if (targetComponent != 0 && targetComponent != mavComponentId) {
+        return false;
+    }
+
+    return true;
+}
+
+bool mavlinkHandleIncomingSetPositionTargetGlobalInt(void)
+{
+    mavlink_set_position_target_global_int_t msg;
+    mavlink_msg_set_position_target_global_int_decode(&mavlinkContext.recvMsg, &msg);
+
+    if (!mavlinkIsLocalTarget(msg.target_system, msg.target_component)) {
+        return false;
+    }
+
+    uint8_t frame = msg.coordinate_frame;
+    if (!mavlinkFrameIsSupported(frame,
+        MAV_FRAME_SUPPORTED_GLOBAL |
+        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+        MAV_FRAME_SUPPORTED_GLOBAL_INT |
+        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+        return true;
+    }
+
+    const uint16_t typeMask = msg.type_mask;
+    const bool xIgnored = (typeMask & POSITION_TARGET_TYPEMASK_X_IGNORE) != 0;
+    const bool yIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Y_IGNORE) != 0;
+    const bool zIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Z_IGNORE) != 0;
+
+    // Altitude-only SET_POSITION_TARGET_GLOBAL_INT mirrors MAV_CMD_DO_CHANGE_ALTITUDE semantics.
+    if (xIgnored && yIgnored && !zIgnored) {
+        if (isGCSValid()) {
+            mavlinkSetAltitudeTargetFromFrame(frame, msg.alt);
+        }
+        return true;
+    }
+
+    if (xIgnored || yIgnored) {
+        return true;
+    }
+
+    if (!zIgnored && (!isfinite(msg.alt) ||
+        msg.alt < (float)INT32_MIN / 100.0f ||
+        msg.alt > (float)INT32_MAX / 100.0f)) {
+        return true;
+    }
+
+    if (isGCSValid()) {
+        navWaypoint_t wp = {0};
+        wp.action = NAV_WP_ACTION_WAYPOINT;
+        wp.lat = msg.lat_int;
+        wp.lon = msg.lon_int;
+        wp.alt = zIgnored ? 0 : (int32_t)lrintf(msg.alt * 100.0f);
+        wp.p1 = 0;
+        wp.p2 = 0;
+        wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+        wp.flag = 0;
+
+        setWaypoint(255, &wp);
+    }
+
+    return true;
+}
+
+bool mavlinkHandleIncomingSetPositionTargetLocalNed(void)
+{
+    mavlink_set_position_target_local_ned_t msg;
+    mavlink_msg_set_position_target_local_ned_decode(&mavlinkContext.recvMsg, &msg);
+
+    if (!mavlinkIsLocalTarget(msg.target_system, msg.target_component)) {
+        return false;
+    }
+
+    if (msg.coordinate_frame != MAV_FRAME_LOCAL_OFFSET_NED) {
+        return true;
+    }
+
+    const uint16_t typeMask = msg.type_mask;
+    const bool xIgnored = (typeMask & POSITION_TARGET_TYPEMASK_X_IGNORE) != 0;
+    const bool yIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Y_IGNORE) != 0;
+    const bool zIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Z_IGNORE) != 0;
+
+    if (!isGCSValid() || zIgnored) {
+        return true;
+    }
+
+    if ((!xIgnored && (!isfinite(msg.x) || fabsf(msg.x) > 0.01f)) ||
+        (!yIgnored && (!isfinite(msg.y) || fabsf(msg.y) > 0.01f)) ||
+        !isfinite(msg.z)) {
+        return true;
+    }
+
+    const float targetAltitudeCm = (float)getEstimatedActualPosition(Z) - (msg.z * 100.0f);
+    if (!isfinite(targetAltitudeCm) ||
+        targetAltitudeCm < (float)INT32_MIN ||
+        targetAltitudeCm > (float)INT32_MAX) {
+        return true;
+    }
+
+    navigationSetAltitudeTargetWithDatum(NAV_WP_TAKEOFF_DATUM, (int32_t)lrintf(targetAltitudeCm));
+
+    return true;
+}
+
 #endif

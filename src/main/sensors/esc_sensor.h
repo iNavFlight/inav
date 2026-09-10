@@ -51,3 +51,4 @@ uint32_t computeRpm(int16_t erpm);
 void escSensorInitData(void);
 void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16_t voltage, int32_t current);
 bool escSensorIsActive(void);
+int getTelemetryMotorCount(void);

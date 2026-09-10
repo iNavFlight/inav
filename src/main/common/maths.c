@@ -67,7 +67,7 @@ float cos_approx(float x)
 // http://http.developer.nvidia.com/Cg/atan2.html (not working correctly!)
 // Poly coefficients by @ledvinap (https://github.com/cleanflight/cleanflight/pull/1107)
 // Max absolute error 0,000027 degree
-float atan2_approx(float y, float x)
+float RP2350_FAST_CODE atan2_approx(float y, float x)
 {
     #define atanPolyCoef1  3.14551665884836e-07f
     #define atanPolyCoef2  0.99997356613987f
@@ -94,7 +94,7 @@ float atan2_approx(float y, float x)
 // Handbook of Mathematical Functions
 // M. Abramowitz and I.A. Stegun, Ed.
 // Absolute error <= 6.7e-5
-float acos_approx(float x)
+float RP2350_FAST_CODE acos_approx(float x)
 {
     float xa = fabsf(x);
     float result = fast_fsqrtf(1.0f - xa) * (1.5707288f + xa * (-0.2121144f + xa * (0.0742610f + (-0.0187293f * xa))));

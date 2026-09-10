@@ -58,13 +58,109 @@ static bool handleIncoming_COMMAND(
     float longitudeDeg, 
     float altitudeMeters) 
 {
-    UNUSED(param3);
-
     if (!mavlinkIsLocalTarget(targetSystem, targetComponent)) {
         return false;
     }
 
     switch (command) {
+        case MAV_CMD_COMPONENT_ARM_DISARM:
+            if (param1 != 0.0f && param1 != 1.0f) {
+                mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
+            mavlinkSendCommandAck(command, fcSetArmState(param1 == 1.0f) ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+            return true;
+        case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+            if (!ARMING_FLAG(ARMED)) {
+                mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
+            mavlinkSendCommandAck(command, activateRTHMode() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+            return true;
+        case MAV_CMD_DO_SET_MODE:
+            {
+                uint32_t modeFlags;
+                uint32_t customMode;
+                if (!mavlinkCommandParamToUint32(param1, UINT8_MAX, &modeFlags) ||
+                    !mavlinkCommandParamToUint32(param2, UINT8_MAX, &customMode) ||
+                    (modeFlags & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) == 0) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                const bool fixedWing = mavlinkIsFixedWingVehicle();
+                const uint8_t rthMode = fixedWing ? PLANE_MODE_RTL : COPTER_MODE_RTL;
+                const bool posHoldMode = fixedWing ?
+                    (customMode == PLANE_MODE_LOITER) :
+                    (customMode == COPTER_MODE_LOITER || customMode == COPTER_MODE_POSHOLD || customMode == COPTER_MODE_BRAKE);
+
+                if (customMode != rthMode && !posHoldMode) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                if (!ARMING_FLAG(ARMED)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                if (customMode == rthMode) {
+                    mavlinkSendCommandAck(command, activateRTHMode() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                mavlinkSendCommandAck(command, activatePositionHoldMode() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
+        case MAV_CMD_NAV_LAND:
+            mavlinkSendCommandAck(command, activateForcedLanding() ? MAV_RESULT_ACCEPTED : MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+            return true;
+        case MAV_CMD_NAV_TAKEOFF:
+            mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+            return true;
+        case MAV_CMD_DO_SET_HOME:
+            {
+                if ((param1 != 0.0f && param1 != 1.0f) ||
+                    !mavlinkFrameIsSupported(frame,
+                        MAV_FRAME_SUPPORTED_GLOBAL |
+                        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                        MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_UNSUPPORTED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                if (!navCanSetHome()) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                navWaypoint_t wp = {0};
+                wp.action = NAV_WP_ACTION_WAYPOINT;
+                if (param1 == 1.0f) {
+                    wp.lat = gpsSol.llh.lat;
+                    wp.lon = gpsSol.llh.lon;
+                    wp.alt = gpsSol.llh.alt - posControl.gpsOrigin.alt;
+                } else {
+                    if (!isfinite(latitudeDeg) || latitudeDeg < -90.0f || latitudeDeg > 90.0f ||
+                        !isfinite(longitudeDeg) || longitudeDeg < -180.0f || longitudeDeg > 180.0f ||
+                        !isfinite(altitudeMeters) ||
+                        altitudeMeters < (float)INT32_MIN / 100.0f ||
+                        altitudeMeters > (float)INT32_MAX / 100.0f) {
+                        mavlinkSendCommandAck(command, MAV_RESULT_FAILED, ackTargetSystem, ackTargetComponent);
+                        return true;
+                    }
+                    wp.lat = (int32_t)lrintf(latitudeDeg * 1e7f);
+                    wp.lon = (int32_t)lrintf(longitudeDeg * 1e7f);
+                    wp.alt = (int32_t)lrintf(altitudeMeters * 100.0f);
+                    if (mavlinkFrameUsesAbsoluteAltitude(frame)) {
+                        wp.alt -= posControl.gpsOrigin.alt;
+                    }
+                }
+                setWaypoint(0, &wp);
+                mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
         case MAV_CMD_DO_REPOSITION:
             if (!mavlinkFrameIsSupported(frame,
                 MAV_FRAME_SUPPORTED_GLOBAL |
@@ -85,6 +181,16 @@ static bool handleIncoming_COMMAND(
             }
 
             if (isGCSValid()) {
+                if (isfinite(param3)) {
+                    const float maxLoiterRadiusMeters = (float)(UINT32_MAX / 100U);
+
+                    if (param3 < 0.0f || param3 > maxLoiterRadiusMeters) {
+                        mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                        return true;
+                    }
+                    navigationSetLoiterRadiusOverride((uint32_t)lrintf(METERS_TO_CENTIMETERS(param3)));
+                }
+
                 navWaypoint_t wp = {0};
                 wp.action = NAV_WP_ACTION_WAYPOINT;
                 wp.lat = (int32_t)(latitudeDeg * 1e7f);
@@ -115,6 +221,39 @@ static bool handleIncoming_COMMAND(
                 }
                 const MAV_RESULT result = mavlinkSetAltitudeTargetFromFrame((uint8_t)frameValue, param1);
                 mavlinkSendCommandAck(command, result, ackTargetSystem, ackTargetComponent);
+                return true;
+            }
+        case MAV_CMD_CONDITION_YAW:
+            {
+                if (!isfinite(param1) || fabsf(param1) > 360.0f || !isfinite(param3) || !isfinite(param4)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+                const navigationFSMStateFlags_t navStateFlags = navGetCurrentStateFlags();
+                if (!(navStateFlags & NAV_CTL_YAW) || (navStateFlags & NAV_MIXERAT)) {
+                    mavlinkSendCommandAck(command, MAV_RESULT_DENIED, ackTargetSystem, ackTargetComponent);
+                    return true;
+                }
+
+                int32_t targetHeadingCd = wrap_36000((int32_t)lrintf(param1 * 100.0f));
+
+                if (param4 != 0.0f) {
+                    const int32_t currentHeadingCd = STATE(AIRPLANE) ? posControl.actualState.cog : posControl.actualState.yaw;
+                    const int32_t headingChangeCd = (int32_t)lrintf(fabsf(param1) * 100.0f);
+
+                    if (param3 < 0.0f) {
+                        targetHeadingCd = wrap_36000(currentHeadingCd - headingChangeCd);
+                    } else {
+                        targetHeadingCd = wrap_36000(currentHeadingCd + headingChangeCd);
+                    }
+                }
+
+                updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(targetHeadingCd));
+                posControl.desiredState.yaw = targetHeadingCd;
+                posControl.cruise.course = targetHeadingCd;
+                posControl.cruise.previousCourse = targetHeadingCd;
+
+                mavlinkSendCommandAck(command, MAV_RESULT_ACCEPTED, ackTargetSystem, ackTargetComponent);
                 return true;
             }
         case MAV_CMD_SET_MESSAGE_INTERVAL:
