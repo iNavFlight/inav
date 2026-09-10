@@ -9,6 +9,9 @@ on:
     paths:
       - 'src/**/*.c'
       - 'src/**/*.h'
+      - '.github/scripts/check-pg-versions.sh'
+      - '.github/scripts/test-check-pg-versions.py'
+      - '.github/workflows/pg-version-check.yml'
 
 jobs:
   check-pg-versions:
@@ -27,6 +30,9 @@ jobs:
         run: |
           git fetch origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
 
+      - name: Test PG version checker
+        run: python3 .github/scripts/test-check-pg-versions.py
+
       - name: Run PG version check script
         id: pg_check
         run: |
@@ -35,6 +41,10 @@ jobs:
           # The output is captured and encoded to be passed between steps.
           output=$(bash .github/scripts/check-pg-versions.sh 2>&1)
           exit_code=$?
+          if [ "$exit_code" -gt 1 ]; then
+            printf '%s\n' "$output"
+            exit "$exit_code"
+          fi
           echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
           echo "output<<EOF" >> $GITHUB_OUTPUT
           echo "$output" >> $GITHUB_OUTPUT
@@ -46,10 +56,14 @@ jobs:
       - name: Post comment if issues found
         if: steps.pg_check.outputs.exit_code == '1'
         uses: actions/github-script@v7
+        env:
+          # Passed through the environment: inlining the multi-line script output
+          # into the JavaScript source breaks the string literal (SyntaxError).
+          PG_CHECK_OUTPUT: ${{ steps.pg_check.outputs.output }}
         with:
           script: |
             // Use the captured output from the previous step
-            const output = '${{ steps.pg_check.outputs.output }}';
+            const output = process.env.PG_CHECK_OUTPUT || '';
             let issuesContent = '';
 
             try {

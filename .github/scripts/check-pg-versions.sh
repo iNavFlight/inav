@@ -85,7 +85,8 @@ check_file_for_pg_changes() {
             local struct_type="${BASH_REMATCH[1]}"
             local pg_name="${BASH_REMATCH[2]}"
             local pg_id="${BASH_REMATCH[3]}"
-            local version="${BASH_REMATCH[4]}"
+            # Arrays have an extra count argument; the version is always last.
+            local version=$(echo "$pg_line" | sed -nE 's/.*,[[:space:]]*([0-9]+)[[:space:]]*\).*/\1/p')
 
             # Clean up whitespace
             struct_type=$(echo "$struct_type" | xargs)
@@ -123,21 +124,36 @@ check_file_for_pg_changes() {
                 echo "    ⚠️  Struct definition modified in $struct_found_in"
 
                 # Check if version was incremented in PG_REGISTER
-                local old_version=$(echo "$diff_output" | grep "^-.*PG_REGISTER.*$struct_type" | grep -oP ',\s*\K\d+(?=\s*\))' || echo "")
-                local new_version=$(echo "$diff_output" | grep "^+.*PG_REGISTER.*$struct_type" | grep -oP ',\s*\K\d+(?=\s*\))' || echo "")
+                local old_version=$(git show "$BASE_COMMIT:$file" 2>/dev/null | grep "PG_REGISTER.*$struct_type" | sed -nE 's/.*,[[:space:]]*([0-9]+)[[:space:]]*\).*/\1/p' || echo "")
+                local new_version=$(git show "$HEAD_COMMIT:$file" 2>/dev/null | grep "PG_REGISTER.*$struct_type" | sed -nE 's/.*,[[:space:]]*([0-9]+)[[:space:]]*\).*/\1/p' || echo "")
 
                 # Find line number of PG_REGISTER for error reporting
                 local line_num=$(git show $HEAD_COMMIT:"$file" | grep -n "PG_REGISTER.*$struct_type" | cut -d: -f1 | head -1)
 
                 if [ -n "$old_version" ] && [ -n "$new_version" ]; then
-                    # PG_REGISTER was modified - check if version increased
-                    if [ "$new_version" -le "$old_version" ]; then
+                    # Conditional builds can register the same type several times.
+                    # Compare every registration, including unchanged alternatives.
+                    local old_versions=() new_versions=()
+                    read -r -a old_versions <<< "$(echo "$old_version" | tr '\n' ' ')"
+                    read -r -a new_versions <<< "$(echo "$new_version" | tr '\n' ' ')"
+                    local versions_increased=true
+                    local version_index
+                    if [ "${#old_versions[@]}" -ne "${#new_versions[@]}" ]; then
+                        versions_increased=false
+                    else
+                        for version_index in "${!old_versions[@]}"; do
+                            if [ "${new_versions[$version_index]}" -le "${old_versions[$version_index]}" ]; then
+                                versions_increased=false
+                            fi
+                        done
+                    fi
+                    if [ "$versions_increased" = false ]; then
                         echo "    ❌ Version NOT incremented ($old_version → $new_version)"
                         cat >> $ISSUES_FILE << EOF
 ### \`$struct_type\` ($file:$line_num)
 - **Struct modified:** Field changes detected in $struct_found_in
 - **Version status:** ❌ Not incremented (version $version)
-- **Recommendation:** Increment version from $old_version to $(($old_version + 1))
+- **Recommendation:** Verify that every conditional registration has its version incremented
 
 EOF
                     else
@@ -187,7 +203,8 @@ while IFS= read -r file; do
     fi
 
     # Determine companion file (.c <-> .h)
-    local companion=""
+    # (this loop runs at top level, so no "local" here: bash would abort the script)
+    companion=""
     if [[ "$file" == *.c ]]; then
         companion="${file%.c}.h"
     elif [[ "$file" == *.h ]]; then
