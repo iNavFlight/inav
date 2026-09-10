@@ -377,7 +377,11 @@ void gyroStartCalibration(void)
 #endif
 
     gyroCalibrationComplete = false;
-    zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, false);
+    // Zero calibration works on raw gyro readings, convert the movement threshold from dps into
+    // sensor LSB using the sensitivity of the detected gyro
+    const float movementThreshold = CALIBRATING_GYRO_MORON_THRESHOLD_DPS / gyroDev[0].scale;
+
+    zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, movementThreshold, false);
 }
 
 bool gyroIsCalibrationComplete(void)
