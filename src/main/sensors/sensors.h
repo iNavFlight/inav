@@ -43,7 +43,10 @@ typedef union flightDynamicsTrims_u {
 #define CALIBRATING_PITOT_TIME_MS           4000
 #define CALIBRATING_GYRO_TIME_MS            2000
 #define CALIBRATING_ACC_TIME_MS             500
-#define CALIBRATING_GYRO_MORON_THRESHOLD    32
+// Gyro zero calibration movement threshold, in dps. Expressed as a physical rotation rate so
+// that it does not depend on the gyro sensitivity. Equals the legacy threshold of 32 LSB at
+// the default scale of 16.4 LSB/dps
+#define CALIBRATING_GYRO_MORON_THRESHOLD_DPS (32.0f / 16.4f)
 
 // These bits have to be aligned with sensorIndex_e
 typedef enum {
