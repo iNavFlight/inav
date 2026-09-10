@@ -10,7 +10,7 @@ The **ALEX F722-V3** is a flight controller manufactured by **ALEX RC**, built a
 - **IMU:** ICM42688P / ICM42605 (SPI1, CW90_DEG)
 - **Barometer:** SPL06-001 (I2C1)
 - **OSD:** AT7456E / MAX7456 (SPI2)
-- **Blackbox:** SPI Flash 16MB (W25Q128FV / M25P16, SPI3)
+- **Blackbox:** SPI Flash on SPI3 (16MB W25Q128FV / 2MB M25P16)
 - **Compass:** External QMC5883P / IST8310 / HMC5883 on I2C1
 - **Camera Switch:** Onboard dual-camera switching (CAM1 / CAM2) via PINIO1 (PC0)
 - **BEC:** 5V and 12V outputs
