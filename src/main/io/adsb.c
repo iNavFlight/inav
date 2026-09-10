@@ -235,8 +235,9 @@ void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal) {
 
         if (vehicle != NULL) {
             memcpy(&(vehicle->vehicleValues), vehicleValuesLocal, sizeof(vehicle->vehicleValues));
-            recalculateVehicle(vehicle);
+            // ttl must be set first: recalculateVehicle() early-returns while ttl == 0
             vehicle->ttl = MAX(0, ADSB_MAX_SECONDS_KEEP_INACTIVE_PLANE_IN_LIST - vehicleValuesLocal->tslc);
+            recalculateVehicle(vehicle);
             return;
         }
     }
