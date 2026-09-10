@@ -370,6 +370,7 @@ function(target_stm32)
         LINKER_SCRIPT ${args_LINKER_SCRIPT}
         OPTIMIZATION ${args_OPTIMIZATION}
 
+        OUTPUT_BIN_FILENAME main_bin_filename
         OUTPUT_HEX_FILENAME main_hex_filename
         OUTPUT_TARGET_NAME main_target_name
     )
@@ -433,20 +434,14 @@ function(target_stm32)
     endif()
 
     # clean_<target>
-    set(generator_cmd "")
-    if (CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-        set(generator_cmd "make")
-    elseif(CMAKE_GENERATOR STREQUAL "Ninja")
-        set(generator_cmd "ninja")
+    set(clean_executables ${main_target_name})
+    set(clean_files ${main_hex_filename} ${main_bin_filename})
+    if(args_BOOTLOADER AND NOT args_NO_BOOTLOADER)
+        list(APPEND clean_executables ${bl_target_name} ${for_bl_target_name})
+        list(APPEND clean_files
+            ${bl_hex_filename} ${bl_bin_filename}
+            ${for_bl_hex_filename} ${for_bl_bin_filename}
+            ${combined_hex})
     endif()
-    if (NOT generator_cmd STREQUAL "")
-        set(clean_target "clean_${name}")
-        add_custom_target(${clean_target}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND ${generator_cmd} clean
-            COMMENT "Removing intermediate files for ${name}")
-        set_property(TARGET ${clean_target} PROPERTY
-            EXCLUDE_FROM_ALL 1
-            EXCLUDE_FROM_DEFAULT_BUILD 1)
-    endif()
+    add_clean_target(${name} EXECUTABLES ${clean_executables} FILES ${clean_files})
 endfunction()
