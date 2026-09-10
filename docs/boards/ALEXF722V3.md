@@ -1,10 +1,10 @@
 # ALEX F722-V3 Flight Controller
 
-The **ALEX F722-V3** is a flight controller manufactured by **ALEX RC**, built around the STM32F722RET6 MCU.
+The **ALEX F722-V3** is a flight controller manufactured by **INDIAN ROBOTICS SOLUTION PRIVATE LIMITED**, built around the STM32F722RET6 MCU.
 
 ## Hardware Specifications
 
-- **Manufacturer:** ALEX RC
+- **Manufacturer:** INDIAN ROBOTICS SOLUTION PRIVATE LIMITED
 - **Target Name:** ALEXF722V3
 - **MCU:** STM32F722RET6 (216MHz ARM Cortex-M7)
 - **IMU:** ICM42688P / ICM42605 (SPI1, CW90_DEG)
