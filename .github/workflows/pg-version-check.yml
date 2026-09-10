@@ -46,10 +46,14 @@ jobs:
       - name: Post comment if issues found
         if: steps.pg_check.outputs.exit_code == '1'
         uses: actions/github-script@v7
+        env:
+          # Passed through the environment: inlining the multi-line script output
+          # into the JavaScript source breaks the string literal (SyntaxError).
+          PG_CHECK_OUTPUT: ${{ steps.pg_check.outputs.output }}
         with:
           script: |
             // Use the captured output from the previous step
-            const output = '${{ steps.pg_check.outputs.output }}';
+            const output = process.env.PG_CHECK_OUTPUT || '';
             let issuesContent = '';
 
             try {

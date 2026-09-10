@@ -72,6 +72,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
 #endif
     .ibusTelemetryType = SETTING_IBUS_TELEMETRY_TYPE_DEFAULT,
     .ltmUpdateRate = SETTING_LTM_UPDATE_RATE_DEFAULT,
+    .crsfGpsAltSource = SETTING_CRSF_GPS_ALT_SOURCE_DEFAULT,
 
 #ifdef USE_TELEMETRY_SIM
     .simTransmitInterval = SETTING_SIM_TRANSMIT_INTERVAL_DEFAULT,
