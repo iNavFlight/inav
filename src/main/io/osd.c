@@ -137,6 +137,7 @@
 #define VIDEO_BUFFER_CHARS_DJIWTF 1320
 
 #define GFORCE_FILTER_T_CUT_HZ 0.8f
+#define BATTERY_PERCENT_FILTER_F_CUT_HZ 0.1f
 
 #define OSD_STATS_SINGLE_PAGE_MIN_ROWS 18
 #define IS_HI(X)  (rxGetChannelValue(X) > 1750)
@@ -180,11 +181,13 @@ static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
 static float GForce, GForceAxis[XYZ_AXIS_COUNT];
+static float batteryRemainingPercent;
 
 // OSD Filters
 static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
 static pt1Filter_t glideTimeFilterState, glideSlopeFilterState;
 static pt1Filter_t climbEffFilterState, mahEffFilterState, whEffFilterState;
+static pt1Filter_t batteryRemainingFilterState;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -1975,7 +1978,7 @@ static bool osdDrawSingleElement(uint8_t item)
     }
     case OSD_BATTERY_REMAINING_PERCENT:
         osdFormatBatteryChargeSymbol(buff);
-        tfp_sprintf(buff + 1, "%3d%%", calculateBatteryPercentage());
+        tfp_sprintf(buff + 1, "%3d%%", (int)lrintf(batteryRemainingPercent));
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
@@ -5818,6 +5821,7 @@ static void osdFilterData(timeUs_t currentTimeUs)
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             GForceAxis[axis] = pt1FilterApply3(&GForceFilterAxis[axis], GForceAxis[axis], refresh_dT);
         }
+        batteryRemainingPercent = pt1FilterApply3(&batteryRemainingFilterState, calculateBatteryPercentage(), refresh_dT);
     } else {   // init OSD filter f_cut values
         pt1FilterSetCutoff(&GForceFilter, GFORCE_FILTER_T_CUT_HZ);
         pt1FilterSetCutoff(&glideTimeFilterState, 0.5f);
@@ -5825,6 +5829,9 @@ static void osdFilterData(timeUs_t currentTimeUs)
         pt1FilterSetCutoff(&climbEffFilterState, 1.0f);
         pt1FilterSetCutoff(&mahEffFilterState, 1.0f);
         pt1FilterSetCutoff(&whEffFilterState, 1.0f);
+        pt1FilterSetCutoff(&batteryRemainingFilterState, BATTERY_PERCENT_FILTER_F_CUT_HZ);
+        batteryRemainingPercent = calculateBatteryPercentage();
+        pt1FilterReset(&batteryRemainingFilterState, batteryRemainingPercent);
 
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             pt1FilterSetCutoff(&GForceFilterAxis[axis], GFORCE_FILTER_T_CUT_HZ);
