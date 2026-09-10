@@ -31,15 +31,22 @@ extern "C" {
 
 #define GPS_CFG_CMD_TIMEOUT_MS              500
 #define GPS_VERSION_RETRY_TIMES             3
+// Number of UBX-NAV-SIG signals that are stored. Multi band receivers report two to three signals
+// per satellite and can send more than this, the surplus signals are dropped while receiving.
 #ifndef UBLOX_MAX_SIGNALS
 #define UBLOX_MAX_SIGNALS                   64
 #endif
 #define MAX_UBLOX_PAYLOAD_SIZE              ((UBLOX_MAX_SIGNALS * 16) + 8) // UBX-NAV-SIG info would be UBLOX_MAX_SIGNALS * 16 + 8
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
+// Longest UBX-NAV-SIG / UBX-NAV-SAT payload that is still read to the end (and checksummed) when it
+// does not fit in the buffer. numSigs and numSvs are U1, so this covers every such frame a receiver
+// can send. Anything longer is treated as garbage and the parser resyncs immediately.
+#define UBLOX_MAX_ACCEPTED_PAYLOAD_SIZE     ((255 * 16) + 8)
 #define UBLOX_SBAS_MESSAGE_LENGTH           16
 #define GPS_CAPA_INTERVAL                   5000
 
 STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
+STATIC_ASSERT(UBLOX_MAX_ACCEPTED_PAYLOAD_SIZE >= MAX_UBLOX_PAYLOAD_SIZE, ubx_accepted_size_too_small);
 
 #define UBX_DYNMODEL_PORTABLE   0
 #define UBX_DYNMODEL_STATIONARY 2
@@ -270,8 +277,12 @@ typedef struct {
     uint8_t version;            // We support version 0
     uint8_t numSigs;            // number of signals
     uint16_t reserved;
-    ubx_nav_sig_info sig[UBLOX_MAX_SIGNALS];  // 32 signals
+    ubx_nav_sig_info sig[UBLOX_MAX_SIGNALS];  // UBLOX_MAX_SIGNALS signals
 }  __attribute__((packed)) ubx_nav_sig;
+
+// The receive buffer has to be able to hold a complete UBLOX_MAX_SIGNALS frame, otherwise the copy
+// loop in gpsParseFrameUBLOX() would read past the data that was actually received.
+STATIC_ASSERT(sizeof(ubx_nav_sig) <= UBLOX_BUFFER_SIZE, ubx_nav_sig_exceeds_buffer);
 
 #define MAX_GNSS 7
 #define MAX_GNSS_SIZE_BYTES (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)*MAX_GNSS)
