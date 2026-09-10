@@ -4,6 +4,10 @@ import datetime
 import re
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
+ALL_ENUMS_H = SCRIPT_DIR / 'all_enums.h'
+
 SUBDIRS = [
     'common',
     'blackbox',
@@ -61,6 +65,12 @@ def extract_enums(fn: str, text: str):
         m = re.search(r'\benum\s+([A-Za-z_]\w*)\s*{', src[i:])
         if not m: break
         start = i + m.start()
+        # `typedef enum Tag { ... } Alias;` also matches here, but the typedef
+        # pass above already emitted it. Emitting it again produces duplicate
+        # sections and colliding anchors in the generated reference.
+        if src[:start].rstrip().endswith('typedef'):
+            i = i + m.end()
+            continue
         tag = m.group(1)
         lb = src.find('{', i + m.end() - 1)
         if lb == -1: break
@@ -94,28 +104,36 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Collect all enums from INAV sources.')
     parser.add_argument(
         '--inav-root',
-        default='../inav/src/main',
+        default=str(REPO_ROOT / 'src/main'),
         help="Path to the INAV 'src/main' directory (default: %(default)s)",
     )
     return parser.parse_args()
 
 
 args = parse_args()
-base_dir = Path(args.inav_root).expanduser()
+base_dir = Path(args.inav_root).expanduser().resolve()
 for sd in SUBDIRS:
     root = base_dir / sd
     if not root.is_dir():
         continue
-    for fn in root.rglob('*'):
+    for fn in sorted(root.rglob('*')):
         print(fn)
         if fn.suffix in ('.c', '.h'):
             txt = fn.read_text(errors='ignore')
-            ret = extract_enums(fn, txt)
+            # Label enums with a repo-relative path so the generated output does
+            # not depend on where this script was run from. --inav-root may point
+            # at a tree outside this checkout, in which case there is nothing to
+            # be relative to and the path is used as given.
+            try:
+                label = fn.relative_to(REPO_ROOT)
+            except ValueError:
+                label = fn
+            ret = extract_enums(label, txt)
             if ret: print(fn)
             all_enums.extend(ret)
 
-with open('all_enums.h', 'w') as out:
+with open(ALL_ENUMS_H, 'w') as out:
     out.write(f"// Consolidated enums — generated on {datetime.datetime.now()}\n\n")
     out.writelines(all_enums)
 
-print(f"Found {len(all_enums)} enums. Wrote all_enums.h.")
+print(f"Found {len(all_enums)} enums. Wrote {ALL_ENUMS_H}.")

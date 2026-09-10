@@ -10,7 +10,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 
 **When To Regenerate**
 
-Run `docs/development/msp/gen_docs.sh` whenever MSP docs inputs change:
+Run `src/utils/gen_msp_docs.sh` whenever MSP docs inputs change:
 - `msp_messages.json` message content/schema updates
 - source enum changes under `src/main` that affect `inav_enums.json`
 - `format.md` or this header template (`docs_v2_header.md`) changes

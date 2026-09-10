@@ -233,14 +233,14 @@ bool parseLedStripConfig(int ledIndex, const char *config)
     if (ledIndex >= LED_MAX_STRIP_LENGTH)
         return false;
 
-    enum parseState_e {
+    typedef enum {
         X_COORDINATE,
         Y_COORDINATE,
         DIRECTIONS,
         FUNCTIONS,
         RING_COLORS,
         PARSE_STATE_COUNT
-    };
+    } parseState_e;
     static const char chunkSeparators[PARSE_STATE_COUNT] = {',', ':', ':',':', '\0'};
 
     ledConfig_t *ledConfig = &ledStripConfigMutable()->ledConfigs[ledIndex];
@@ -251,7 +251,7 @@ bool parseLedStripConfig(int ledIndex, const char *config)
     int overlay_flags = 0;
     int direction_flags = 0;
 
-    for (enum parseState_e parseState = 0; parseState < PARSE_STATE_COUNT; parseState++) {
+    for (parseState_e parseState = 0; parseState < PARSE_STATE_COUNT; parseState++) {
         char chunk[CHUNK_BUFFER_SIZE];
         {
             char chunkSeparator = chunkSeparators[parseState];
