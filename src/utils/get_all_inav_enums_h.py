@@ -65,6 +65,12 @@ def extract_enums(fn: str, text: str):
         m = re.search(r'\benum\s+([A-Za-z_]\w*)\s*{', src[i:])
         if not m: break
         start = i + m.start()
+        # `typedef enum Tag { ... } Alias;` also matches here, but the typedef
+        # pass above already emitted it. Emitting it again produces duplicate
+        # sections and colliding anchors in the generated reference.
+        if src[:start].rstrip().endswith('typedef'):
+            i = i + m.end()
+            continue
         tag = m.group(1)
         lb = src.find('{', i + m.end() - 1)
         if lb == -1: break

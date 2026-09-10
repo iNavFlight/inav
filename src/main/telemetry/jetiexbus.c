@@ -71,7 +71,7 @@
 #define EXTEL_MAX_PAYLOAD   (EXTEL_MAX_LEN - EXTEL_OVERHEAD)
 #define EXBUS_MAX_REQUEST_BUFFER_SIZE   (EXBUS_OVERHEAD + EXTEL_MAX_LEN)
 
-enum exTelHeader_e {
+typedef enum {
     EXTEL_HEADER_SYNC = 0,
     EXTEL_HEADER_TYPE_LEN,
     EXTEL_HEADER_USN_LB,
@@ -81,7 +81,7 @@ enum exTelHeader_e {
     EXTEL_HEADER_RES,
     EXTEL_HEADER_ID,
     EXTEL_HEADER_DATA
-};
+} exTelHeader_e;
 
 enum {
     EXBUS_TRANS_ZERO = 0,
@@ -91,7 +91,7 @@ enum {
     EXBUS_TRANS_TX
 };
 
-enum exDataType_e {
+typedef enum {
     EX_TYPE_6b   = 0,                // int6_t  Data type 6b (-31 ¸31)
     EX_TYPE_14b  = 1,                // int14_t Data type 14b (-8191 ¸8191)
     EX_TYPE_22b  = 4,                // int22_t Data type 22b (-2097151 ¸2097151)
@@ -99,7 +99,7 @@ enum exDataType_e {
     EX_TYPE_30b  = 8,                // int30_t Data type 30b (-536870911 ¸536870911)
     EX_TYPE_GPS  = 9,                // int30_t Special data type – GPS coordinates:  lo/hi minute - lo/hi degree.
     EX_TYPE_DES  = 255               // only for devicedescription
-};
+} exDataType_e;
 
 const uint8_t exDataTypeLen[] = {
     [EX_TYPE_6b]  = 1,
@@ -157,7 +157,7 @@ const exBusSensor_t jetiExSensors[] = {
 };
 
 // after every 15 sensors increment the step by 2 (e.g. ...EX_VAL15, EX_VAL16 = 17) to skip the device description
-enum exSensors_e {
+typedef enum {
     EX_VOLTAGE = 1,
     EX_CURRENT,
     EX_ALTITUDE,
@@ -188,7 +188,7 @@ enum exSensors_e {
     EX_DEBUG5,
     EX_DEBUG6,
     EX_DEBUG7
-};
+} exSensors_e;
 
 union{
     int32_t vInt;

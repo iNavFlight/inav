@@ -71,14 +71,30 @@ ALL_ENUMS_H = SCRIPT_DIR / 'all_enums.h'
 
 # ---------- Parsing regexes ----------
 
-# Matches both `typedef enum [Tag] {` and a plain `enum Tag {`. The latter closes
-# with a bare `};`, so its name comes from the tag rather than the closing line.
-RE_ENUM_START   = re.compile(r'^\s*(?:typedef\s+enum(?:\s+([A-Za-z_]\w*))?|enum\s+([A-Za-z_]\w*))\s*\{')
+RE_ENUM_START   = re.compile(r'^\s*typedef\s+enum(?:\s+[A-Za-z_]\w*)?\s*\{')
 RE_ENUM_END     = re.compile(r'^\s*\}\s*([A-Za-z_]\w*)\s*;')
-# A tagged block closes on any '}' line: a bare '};', or a declaration such as
-# '} state = S_WAITPRE1;'. Without this the scan runs past the real end and
-# takes the following enum's closing name.
-RE_ENUM_END_TAG = re.compile(r'^\s*\}')
+
+# Allman brace style: `typedef enum` with the `{` alone on the next line. Common
+# in third-party sources we do not control, so join the two before parsing
+# rather than teaching every pattern below about it.
+RE_ENUM_HEAD    = re.compile(r'^(\s*(?:typedef\s+)?enum(?:\s+[A-Za-z_]\w*)?)\s*$')
+RE_OPEN_BRACE   = re.compile(r'^\s*\{\s*$')
+
+
+def join_allman_braces(lines: List[str]) -> List[str]:
+    out: List[str] = []
+    i = 0
+
+    while i < len(lines):
+        head = RE_ENUM_HEAD.match(lines[i])
+        if head and i + 1 < len(lines) and RE_OPEN_BRACE.match(lines[i + 1]):
+            out.append(head.group(1) + ' {')
+            i += 2
+            continue
+        out.append(lines[i])
+        i += 1
+
+    return out
 RE_LINE_COMMENT = re.compile(r'^\s*//\s*(.+?)\s*$')
 
 RE_IFDEF   = re.compile(r'^\s*#\s*ifdef\s+(\w+)')
@@ -187,7 +203,9 @@ def parse_files(paths: List[Path]) -> List[EnumDef]:
     outer_cond = ConditionStack()
 
     for path in paths:
-        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        lines = join_allman_braces(
+            path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        )
         i = 0
         recent_comment: Optional[str] = None
 
@@ -207,19 +225,17 @@ def parse_files(paths: List[Path]) -> List[EnumDef]:
             if mcom:
                 recent_comment = mcom.group(1)
 
-            if m_start := RE_ENUM_START.match(line):
+            if RE_ENUM_START.match(line):
                 source_note = recent_comment or str(path)
                 recent_comment = None
-                enum_tag = m_start.group(1) or m_start.group(2)
 
                 body_lines: List[str] = []
                 i += 1
                 local_i = i
                 while local_i < len(lines):
                     ln = lines[local_i]
-                    m_end = RE_ENUM_END.match(ln)
-                    if m_end or (enum_tag and RE_ENUM_END_TAG.match(ln)):
-                        enum_name = m_end.group(1) if m_end else enum_tag
+                    if RE_ENUM_END.match(ln):
+                        enum_name = RE_ENUM_END.match(ln).group(1)
                         enum = EnumDef(enum_name, source_note)
 
                         # second pass: parse enumerators
