@@ -377,6 +377,35 @@ static int16_t osdGetFlightDirection(void)
 }
 
 /**
+ * Writes the integer part, a two digit fraction and a unit symbol to buff.
+ * DJI systems get an explicit decimal separator, every other system embeds
+ * it into the surrounding digits, the same way osdFormatCentiNumber() does.
+ * @param symbol Unit symbol written after the fraction
+ */
+static void osdFormatDistanceFractionStr(char *buff, int integerPart, int fraction, uint8_t symbol)
+{
+    bool djiCompat = false;  // Assume DJICOMPAT mode is not enabled
+
+#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
+    if (isDJICompatibleVideoSystem(osdConfig())) {
+        djiCompat = true;
+    }
+#endif
+
+    int integerDigits = tfp_sprintf(buff, "%d", integerPart);
+
+    if (djiCompat) {
+        // DJICOMPAT mode enabled
+        tfp_sprintf(buff + integerDigits, ".%02d%c", fraction, symbol);
+    } else {
+        tfp_sprintf(buff + integerDigits, "%02d%c", fraction, symbol);
+        // Embed the decimal separator
+        buff[integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        buff[integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
+    }
+}
+
+/**
  * Converts distance into a string based on the current unit system.
  * @param dist Distance in centimeters
  */
@@ -393,7 +422,7 @@ static void osdFormatDistanceStr(char *buff, int32_t dist)
             tfp_sprintf(buff, "%d%c", (int)(centifeet / 100), SYM_FT);
         } else {
             // Show miles when dist >= 0.5mi
-            tfp_sprintf(buff, "%d.%02d%c", (int)(centifeet / (100*FEET_PER_MILE)),
+            osdFormatDistanceFractionStr(buff, (int)(centifeet / (100*FEET_PER_MILE)),
                 (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, SYM_MI);
         }
         break;
@@ -405,7 +434,7 @@ static void osdFormatDistanceStr(char *buff, int32_t dist)
             tfp_sprintf(buff, "%d%c", (int)(dist / 100), SYM_M);
         } else {
             // Show kilometers when dist >= 1km
-            tfp_sprintf(buff, "%d.%02d%c", (int)(dist / (100*METERS_PER_KILOMETER)),
+            osdFormatDistanceFractionStr(buff, (int)(dist / (100*METERS_PER_KILOMETER)),
                 (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, SYM_KM);
         }
         break;
@@ -416,7 +445,7 @@ static void osdFormatDistanceStr(char *buff, int32_t dist)
             tfp_sprintf(buff, "%d%c", (int)(centifeet / 100), SYM_FT);
         } else {
             // Show nautical miles when dist >= 1000ft
-            tfp_sprintf(buff, "%d.%02d%c", (int)(centifeet / (100 * FEET_PER_NAUTICALMILE)),
+            osdFormatDistanceFractionStr(buff, (int)(centifeet / (100 * FEET_PER_NAUTICALMILE)),
                 (int)((abs(centifeet) % (int)(100 * FEET_PER_NAUTICALMILE)) / FEET_PER_NAUTICALMILE), SYM_NM);
         }
         break;
@@ -791,7 +820,7 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 
     if (!djiCompat) {
         decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
-        // Embbed the decimal separator
+        // Embed the decimal separator
         buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
         buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
     } else {
