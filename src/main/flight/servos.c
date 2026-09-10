@@ -231,10 +231,12 @@ void loadCustomServoMixer(void)
     // target-profile response.
     if (carryOverServoSpeedLimitsOnNextLoad) {
         for (int i = 0; i < servoRuleCount; i++) {
-            if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
-                //will not carry over INPUT_MIXER_SWITCH_HELPER rules
-                break;
+            if (movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
+                break; // no room left to carry more filter states
             }
+            // INPUT_MIXER_SWITCH_HELPER rules are carried over as well. They hold the
+            // still decaying output of an earlier switch, so dropping them would make
+            // the servo jump when switching back before that decay has finished.
             if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) > 0.01f) {
                 servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
                 servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
