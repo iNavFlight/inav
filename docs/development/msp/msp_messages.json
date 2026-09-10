@@ -6329,12 +6329,26 @@
                         "ctype": "uint8_t",
                         "desc": "Link quality indicator",
                         "units": "0-4"
+                    },
+                    {
+                        "name": "peerNameLength",
+                        "ctype": "uint8_t",
+                        "desc": "Optional. Length of the peer name that follows",
+                        "units": "Bytes"
+                    },
+                    {
+                        "name": "peerName",
+                        "ctype": "char",
+                        "desc": "Optional. Peer name, copied into `radar_pois[i].name`, up to `RADAR_PEER_NAME_LENGTH` (3) bytes. The name is not null-terminated if all `RADAR_PEER_NAME_LENGTH` bytes are non-zero",
+                        "array": true,
+                        "array_size": 0
                     }
                 ]
             },
             "reply": null,
-            "notes": "Expects 19 bytes. POI index is clamped to `RADAR_MAX_POIS - 1`. Updates the `radar_pois` array.",
-            "description": "Sets the position and status information for a \"radar\" Point of Interest (POI). Used for displaying other craft/objects on the OSD map."
+            "variable_len": true,
+            "notes": "Expects at least 19 bytes. Returns an error if POI index is not less than `RADAR_MAX_POIS`. Updates the `radar_pois` array. If more than 21 bytes are sent, the payload is expected to also carry `peerNameLength` and `peerName`; an error is returned if fewer than `peerNameLength` name bytes follow. The peer name is displayed instead of the peer ID letter in the formation flight OSD element when `osdConfig()->show_radar_peer_name` (`MSP2_INAV_OSD_PREFERENCES` / `MSP2_INAV_OSD_SET_PREFERENCES`) is enabled.",
+            "description": "Sets the position and status information for a \"radar\" Point of Interest (POI), optionally including its display name. Used for displaying other craft/objects on the OSD map."
         },
         "MSP2_COMMON_SET_RADAR_ITD": {
             "code": 4108,
@@ -8355,10 +8369,23 @@
                         "desc": "Enum `osd_stats_energy_unit_e`: Unit for energy display in post-flight stats (`osdConfig()->stats_energy_unit`)",
                         "units": "",
                         "enum": "osd_stats_energy_unit_e"
+                    },
+                    {
+                        "name": "showRadarPeerName",
+                        "ctype": "uint8_t",
+                        "desc": "Boolean: Show the radar peer name instead of the peer ID letter in the formation flight OSD element (`osdConfig()->show_radar_peer_name`)",
+                        "units": ""
+                    },
+                    {
+                        "name": "adsbWarningStyle",
+                        "ctype": "uint8_t",
+                        "desc": "Enum `osd_adsb_warning_style_e`: ADSB warning element style, one or two lines (`osdConfig()->adsb_warning_style`). 0 if `USE_ADSB` disabled",
+                        "units": "",
+                        "enum": "osd_adsb_warning_style_e"
                     }
                 ]
             },
-            "notes": "Requires `USE_OSD`.",
+            "notes": "Requires `USE_OSD`. Expects 11 bytes.",
             "description": "Retrieves OSD display preferences (video system, units, styles, etc.)."
         },
         "MSP2_INAV_OSD_SET_PREFERENCES": {
@@ -8425,11 +8452,25 @@
                         "desc": "Sets `osdConfigMutable()->stats_energy_unit`",
                         "units": "",
                         "enum": "osd_stats_energy_unit_e"
+                    },
+                    {
+                        "name": "showRadarPeerName",
+                        "ctype": "uint8_t",
+                        "desc": "Sets `osdConfigMutable()->show_radar_peer_name`",
+                        "units": ""
+                    },
+                    {
+                        "name": "adsbWarningStyle",
+                        "ctype": "uint8_t",
+                        "desc": "Sets `osdConfigMutable()->adsb_warning_style`. Only read if `USE_ADSB` is compiled in and `dataSize` includes this trailing byte",
+                        "units": "",
+                        "enum": "osd_adsb_warning_style_e",
+                        "optional": true
                     }
                 ]
             },
             "reply": null,
-            "notes": "Requires `USE_OSD`. Expects 9 bytes. Triggers a full OSD redraw.",
+            "notes": "Requires `USE_OSD`. Expects 10 bytes, or 11 bytes if `USE_ADSB` is compiled in and `adsbWarningStyle` is included. Triggers a full OSD redraw.",
             "description": "Sets OSD display preferences."
         },
         "MSP2_INAV_SELECT_BATTERY_PROFILE": {
