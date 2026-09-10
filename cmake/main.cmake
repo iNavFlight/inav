@@ -116,6 +116,40 @@ function(exclude_from_all target)
         EXCLUDE_FROM_DEFAULT_BUILD ON)
 endfunction()
 
+# Adds a clean_<name> target which removes the artefacts of the firmware
+# target <name>. Neither "make clean" nor "ninja clean" can be limited to a
+# single target, so the artefacts are removed explicitly by cmake, which
+# behaves the same for the Makefile and the Ninja generator.
+#
+# EXECUTABLES: executable targets of <name>. Their binary, map file and
+#              object files are removed.
+# FILES: additional artefacts of <name>, e.g. the .hex and .bin files.
+function(add_clean_target name)
+    cmake_parse_arguments(args "" "" "EXECUTABLES;FILES" ${ARGN})
+
+    get_generated_files_dir(generated_dir ${name})
+    set(paths ${args_FILES}
+        ${generated_dir}/${SETTINGS_GENERATED_H}
+        ${generated_dir}/${SETTINGS_GENERATED_C})
+    foreach(exe ${args_EXECUTABLES})
+        list(APPEND paths $<TARGET_FILE:${exe}>)
+        # Same name as the map file added by generate_map_file()
+        if(CMAKE_VERSION VERSION_LESS 3.15)
+            list(APPEND paths $<TARGET_FILE:${exe}>.map)
+        else()
+            list(APPEND paths $<TARGET_FILE_DIR:${exe}>/$<TARGET_FILE_BASE_NAME:${exe}>.map)
+        endif()
+        # Object directory used by both generators for ${exe}
+        list(APPEND paths ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${exe}.dir)
+    endforeach()
+
+    set(clean_target clean_${name})
+    add_custom_target(${clean_target}
+        COMMAND ${CMAKE_COMMAND} -P ${MAIN_DIR}/cmake/clean_target.cmake ${paths}
+        COMMENT "Removing intermediate files for ${name}")
+    exclude_from_all(${clean_target})
+endfunction()
+
 function(collect_targets)
     get_property(targets GLOBAL PROPERTY VALID_TARGETS)
     list(SORT targets)
