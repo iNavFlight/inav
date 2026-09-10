@@ -168,7 +168,7 @@ Some files are generated from other source files. If your change touches the sou
 | Source changed | Regenerate with | Output file(s) | CI-enforced? |
 |---|---|---|---|
 | `src/main/fc/settings.yaml` | `python3 src/utils/update_cli_docs.py` | `docs/Settings.md` | Yes — `.github/workflows/docs.yml` diffs against a freshly regenerated copy and fails the build if stale |
-| Source enum headers under `src/main`, or `docs/development/msp/msp_messages.json` | `docs/development/msp/gen_docs.sh` | `docs/development/msp/inav_enums.json`, `docs/development/msp/README.md` | No — nothing regenerates or diff-checks these in CI, so a forgotten regeneration will ship stale MSP docs silently |
+| Source enums in `.c`/`.h` files under `src/main`, firmware version in `CMakeLists.txt`, or MSP docs inputs/scripts under `docs/development/msp` | `cd docs/development/msp && bash gen_docs.sh` | `docs/development/msp/inav_enums.json`, `docs/development/msp/inav_enums_ref.md`, `docs/development/msp/README.md` | Yes — `.github/workflows/docs.yml` regenerates these files and fails the build if stale |
 
 `msp_messages.json` itself is hand-authored — there is no script that generates it. When a new MSP handler is added to `fc_msp.c`, a corresponding entry must be added to `msp_messages.json` by hand. See `docs/development/msp/README.md` for the full regeneration and versioning rules.
 

@@ -3804,7 +3804,7 @@
             "SDCARD_OPERATION_FAILURE": "3"
         },
         "sdcardReceiveBlockStatus_e": {
-            "_source": "inav/src/main/drivers/sdcard/sdcard_sdio.c",
+            "_source": "inav/src/main/drivers/sdcard/sdcard_spi.c",
             "SDCARD_RECEIVE_SUCCESS": "0",
             "SDCARD_RECEIVE_BLOCK_IN_PROGRESS": "1",
             "SDCARD_RECEIVE_ERROR": "2"
@@ -4189,7 +4189,7 @@
             "THR_HI": "(2 << (2 * THROTTLE))"
         },
         "systemState_e": {
-            "_source": "inav/src/main/fc/fc_init.c",
+            "_source": "inav/src/main/fc/fc_init.h",
             "SYSTEM_STATE_INITIALISING": "0",
             "SYSTEM_STATE_CONFIG_LOADED": "(1 << 0)",
             "SYSTEM_STATE_SENSORS_READY": "(1 << 1)",
