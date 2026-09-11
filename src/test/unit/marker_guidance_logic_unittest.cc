@@ -16,8 +16,8 @@ TEST(MarkerGuidanceLogicTest, DecodesGoldenPayloadWordsWithSignedFields)
 {
     const markerGuidancePoseUpdate_t update = markerGuidanceDecodeMspWords(0xFF85, 0x01C8, 0xFC7C, 0x0141);
 
-    EXPECT_EQ(-123, update.offsetForwardCm);
-    EXPECT_EQ(456, update.offsetRightCm);
+    EXPECT_EQ(-123, update.offsetNorthCm);
+    EXPECT_EQ(456, update.offsetEastCm);
     EXPECT_EQ(-900, update.yawErrorDeciDeg);
     EXPECT_EQ(321, update.markerAglCm);
 }
@@ -48,6 +48,98 @@ TEST(MarkerGuidanceLogicTest, FreshnessUsesFcReceiveTimeAndHandlesTimerWrap)
     EXPECT_FALSE(markerGuidanceSampleIsFresh(true, 1101, 900, 200));
     EXPECT_TRUE(markerGuidanceSampleIsFresh(true, 1101, 900, 0));
     EXPECT_TRUE(markerGuidanceSampleIsFresh(true, 5, UINT32_MAX - 4, 10));
+}
+
+TEST(MarkerGuidanceLogicTest, TargetConsistencyToleranceUsesRadiusOrMarkerHeight)
+{
+    EXPECT_FLOAT_EQ(20.0f, markerGuidanceTargetConsistencyToleranceCm(100, 20));
+    EXPECT_FLOAT_EQ(50.0f, markerGuidanceTargetConsistencyToleranceCm(1000, 20));
+}
+
+TEST(MarkerGuidanceLogicTest, TargetRequiresThreeConsistentSamplesBeforeConfirmation)
+{
+    markerGuidanceTargetConfirmationState_t state = { };
+    float confirmedNorth = 0.0f;
+    float confirmedEast = 0.0f;
+
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 100.0f, 200.0f, 100, 20, 1000, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 110.0f, 190.0f, 100, 20, 1200, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_TRUE(markerGuidanceUpdateTargetConfirmation(
+        &state, 105.0f, 195.0f, 100, 20, 1400, 500, &confirmedNorth, &confirmedEast));
+
+    EXPECT_NEAR(105.0f, confirmedNorth, 0.001f);
+    EXPECT_NEAR(195.0f, confirmedEast, 0.001f);
+    EXPECT_FALSE(state.active);
+}
+
+TEST(MarkerGuidanceLogicTest, TargetJumpRestartsConfirmation)
+{
+    markerGuidanceTargetConfirmationState_t state = { };
+    float confirmedNorth = 0.0f;
+    float confirmedEast = 0.0f;
+
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 0.0f, 0.0f, 100, 20, 1000, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 10.0f, 0.0f, 100, 20, 1200, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 100.0f, 0.0f, 100, 20, 1400, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_EQ(1, state.sampleCount);
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 105.0f, 0.0f, 100, 20, 1600, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_TRUE(markerGuidanceUpdateTargetConfirmation(
+        &state, 110.0f, 0.0f, 100, 20, 1800, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_NEAR(105.0f, confirmedNorth, 0.001f);
+}
+
+TEST(MarkerGuidanceLogicTest, TargetConfirmationRestartsAfterSampleGap)
+{
+    markerGuidanceTargetConfirmationState_t state = { };
+    float confirmedNorth = 0.0f;
+    float confirmedEast = 0.0f;
+
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 100.0f, 100.0f, 100, 20, 1000, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 100.0f, 100.0f, 100, 20, 1600, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_EQ(1, state.sampleCount);
+}
+
+TEST(MarkerGuidanceLogicTest, RejectedPacketBreaksTargetConfirmationSequence)
+{
+    markerGuidanceTargetConfirmationState_t state = { };
+    float confirmedNorth = 0.0f;
+    float confirmedEast = 0.0f;
+
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 100.0f, 100.0f, 100, 20, 1000, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 100.0f, 100.0f, 100, 20, 1100, 500, &confirmedNorth, &confirmedEast));
+    ASSERT_EQ(2, state.sampleCount);
+
+    // The MSP handler calls this for malformed, out-of-range, or
+    // position-unavailable samples, so confirmation remains consecutive.
+    markerGuidanceResetTargetConfirmation(&state);
+
+    EXPECT_FALSE(markerGuidanceUpdateTargetConfirmation(
+        &state, 100.0f, 100.0f, 100, 20, 1200, 500, &confirmedNorth, &confirmedEast));
+    EXPECT_EQ(1, state.sampleCount);
+}
+
+TEST(MarkerGuidanceLogicTest, PrelandingReadinessRequiresConfirmedOwnedTargetAndLowSpeed)
+{
+    EXPECT_TRUE(markerGuidancePrelandingXyReady(
+        true, true, true, false, true, 50.0f, 75, 100, 20));
+    EXPECT_FALSE(markerGuidancePrelandingXyReady(
+        true, true, true, true, true, 50.0f, 75, 100, 20));
+    EXPECT_FALSE(markerGuidancePrelandingXyReady(
+        true, true, true, false, true, 76.0f, 75, 100, 20));
+    EXPECT_FALSE(markerGuidancePrelandingXyReady(
+        true, true, true, false, true, 50.0f, 75, 441, 20));
+    EXPECT_FALSE(markerGuidancePrelandingXyReady(
+        true, false, true, false, true, 50.0f, 75, 100, 20));
 }
 
 TEST(MarkerGuidanceLogicTest, RetrySettleUsesConservativeSpeedLimit)
@@ -109,33 +201,28 @@ TEST(MarkerGuidanceLogicTest, InvalidPoseDoesNotModifyResolvedOutput)
     const markerGuidancePoseUpdate_t invalidUpdate = { 10, 20, 1801, 100 };
     markerGuidanceResolvedPose_t resolved = { 1.0f, 2.0f, 300, 400 };
 
-    EXPECT_FALSE(markerGuidanceTryResolvePose(&invalidUpdate, 1000, 1.0f, 0.0f, 0, &resolved));
+    EXPECT_FALSE(markerGuidanceTryResolvePose(&invalidUpdate, 1000, 0, &resolved));
     EXPECT_FLOAT_EQ(1.0f, resolved.offsetNorthCm);
     EXPECT_FLOAT_EQ(2.0f, resolved.offsetEastCm);
     EXPECT_EQ(300, resolved.targetHeadingCd);
     EXPECT_EQ(400, resolved.markerAglCm);
 }
 
-static void expectNorthTarget(const markerGuidancePoseUpdate_t &update, float cosYaw, float sinYaw)
+TEST(MarkerGuidanceLogicTest, NorthEastOffsetsDoNotDependOnCurrentYaw)
 {
+    const markerGuidancePoseUpdate_t update = { 100, -50, 0, 100 };
     markerGuidanceResolvedPose_t resolved = { };
-    ASSERT_TRUE(markerGuidanceTryResolvePose(&update, 1000, cosYaw, sinYaw, 0, &resolved));
-    EXPECT_NEAR(100.0f, resolved.offsetNorthCm, 0.001f);
-    EXPECT_NEAR(0.0f, resolved.offsetEastCm, 0.001f);
-}
 
-TEST(MarkerGuidanceLogicTest, BodyOffsetsResolveToSameEarthTargetAtZeroNinetyAndOneEightyDegrees)
-{
-    expectNorthTarget({ 100, 0, 0, 100 }, 1.0f, 0.0f);
-    expectNorthTarget({ 0, -100, 0, 100 }, 0.0f, 1.0f);
-    expectNorthTarget({ -100, 0, 0, 100 }, -1.0f, 0.0f);
+    ASSERT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 27000, &resolved));
+    EXPECT_FLOAT_EQ(100.0f, resolved.offsetNorthCm);
+    EXPECT_FLOAT_EQ(-50.0f, resolved.offsetEastCm);
 }
 
 TEST(MarkerGuidanceLogicTest, PositionTargetUsesResolvedEarthOffsetWithoutCurrentYaw)
 {
     const markerGuidancePoseUpdate_t update = { 100, 0, 0, 100 };
     markerGuidanceResolvedPose_t resolved = { };
-    ASSERT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 1.0f, 0.0f, 0, &resolved));
+    ASSERT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 0, &resolved));
 
     float targetNorth = 0.0f;
     float targetEast = 0.0f;
@@ -178,6 +265,71 @@ TEST(MarkerGuidanceLogicTest, PositionTargetStopsAtCurrentPositionInsideRadius)
     EXPECT_FLOAT_EQ(-30.0f, targetEast);
 }
 
+TEST(MarkerGuidanceLogicTest, MarkerRetargetRemovesOnlyOpposingIntegratorComponent)
+{
+    float integratorNorth = -30.0f;
+    float integratorEast = 40.0f;
+
+    ASSERT_TRUE(markerGuidanceRemoveOpposingIntegratorComponent(
+        100.0f, 0.0f, &integratorNorth, &integratorEast));
+    EXPECT_NEAR(0.0f, integratorNorth, 0.001f);
+    EXPECT_FLOAT_EQ(40.0f, integratorEast);
+}
+
+TEST(MarkerGuidanceLogicTest, MarkerRetargetPreservesSupportingIntegrator)
+{
+    float integratorNorth = 30.0f;
+    float integratorEast = -10.0f;
+
+    EXPECT_FALSE(markerGuidanceRemoveOpposingIntegratorComponent(
+        100.0f, 0.0f, &integratorNorth, &integratorEast));
+    EXPECT_FLOAT_EQ(30.0f, integratorNorth);
+    EXPECT_FLOAT_EQ(-10.0f, integratorEast);
+}
+
+TEST(MarkerGuidanceLogicTest, MarkerRetargetHandlesDiagonalAndZeroCorrections)
+{
+    float integratorNorth = -30.0f;
+    float integratorEast = -10.0f;
+
+    ASSERT_TRUE(markerGuidanceRemoveOpposingIntegratorComponent(
+        100.0f, 100.0f, &integratorNorth, &integratorEast));
+    EXPECT_NEAR(-10.0f, integratorNorth, 0.001f);
+    EXPECT_NEAR(10.0f, integratorEast, 0.001f);
+
+    EXPECT_FALSE(markerGuidanceRemoveOpposingIntegratorComponent(
+        0.0f, 0.0f, &integratorNorth, &integratorEast));
+    EXPECT_FALSE(markerGuidanceRemoveOpposingIntegratorComponent(
+        0.05f, 0.0f, &integratorNorth, &integratorEast));
+    EXPECT_FALSE(markerGuidanceRemoveOpposingIntegratorComponent(
+        100.0f, 0.0f, nullptr, &integratorEast));
+}
+
+TEST(MarkerGuidanceLogicTest, LandingDescentIsFullWhenMarkerIsCentered)
+{
+    EXPECT_FLOAT_EQ(1.0f, markerGuidanceLandingDescentScale(20.0f, 200, 20));
+    EXPECT_FLOAT_EQ(1.0f, markerGuidanceLandingDescentScale(80.0f, 1000, 20));
+}
+
+TEST(MarkerGuidanceLogicTest, LandingDescentSlowsContinuouslyWithVisualOffset)
+{
+    EXPECT_NEAR(0.5f, markerGuidanceLandingDescentScale(200.0f, 1000, 20), 0.001f);
+    EXPECT_NEAR(0.75f, markerGuidanceLandingDescentScale(150.0f, 1000, 20), 0.001f);
+}
+
+TEST(MarkerGuidanceLogicTest, LandingDescentHoldsWhenMarkerApproachesViewEdge)
+{
+    EXPECT_FLOAT_EQ(0.0f, markerGuidanceLandingDescentScale(300.0f, 1000, 20));
+    EXPECT_FLOAT_EQ(0.0f, markerGuidanceLandingDescentScale(60.0f, 100, 20));
+}
+
+TEST(MarkerGuidanceLogicTest, LandingDescentUsesRadiusAndIgnoresMissingAgl)
+{
+    EXPECT_FLOAT_EQ(1.0f, markerGuidanceLandingDescentScale(50.0f, 100, 50));
+    EXPECT_NEAR(0.5f, markerGuidanceLandingDescentScale(100.0f, 100, 50), 0.001f);
+    EXPECT_FLOAT_EQ(1.0f, markerGuidanceLandingDescentScale(500.0f, 0, 20));
+}
+
 TEST(MarkerGuidanceLogicTest, ContainmentOffsetAndRadiusSelectNearestAllowedBoundary)
 {
     float targetNorth = 0.0f;
@@ -195,15 +347,15 @@ TEST(MarkerGuidanceLogicTest, ResolvesHeadingSignAndWrapExamples)
     markerGuidanceResolvedPose_t resolved = { };
     markerGuidancePoseUpdate_t update = { 0, 0, 900, 100 };
 
-    EXPECT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 1.0f, 0.0f, 1000, &resolved));
+    EXPECT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 1000, &resolved));
     EXPECT_EQ(10000, resolved.targetHeadingCd);
 
     update.yawErrorDeciDeg = 200;
-    EXPECT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 1.0f, 0.0f, 35000, &resolved));
+    EXPECT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 35000, &resolved));
     EXPECT_EQ(1000, resolved.targetHeadingCd);
 
     update.yawErrorDeciDeg = -200;
-    EXPECT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 1.0f, 0.0f, 1000, &resolved));
+    EXPECT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 1000, &resolved));
     EXPECT_EQ(35000, resolved.targetHeadingCd);
 }
 

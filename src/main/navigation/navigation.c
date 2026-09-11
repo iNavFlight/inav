@@ -2023,9 +2023,21 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
             posControl.landingDelay = 0;
     }
 
-    fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
     const bool landingAllowed = navigationRTHAllowsLanding();
-    const bool headingReached = ABS(wrap_18000(posControl.rthState.homePosition.heading - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15);
+    const fpVector3_t *landingTargetPos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
+    int32_t landingHeadingCd = posControl.rthState.homePosition.heading;
+    bool markerPrelandingReady = true;
+#ifdef USE_MARKER_GUIDANCE
+    fpVector3_t markerLandingTargetPos = *landingTargetPos;
+    if (landingAllowed) {
+        if (markerGuidanceGetActiveLandingPositionTarget(&markerLandingTargetPos)) {
+            landingTargetPos = &markerLandingTargetPos;
+        }
+        markerGuidanceGetActiveLandingHeading(&landingHeadingCd);
+        markerPrelandingReady = markerGuidanceRthPrelandingReady();
+    }
+#endif
+    const bool headingReached = ABS(wrap_18000(landingHeadingCd - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15);
     const bool vtolMcProtectionActive = navigationVtolMcProtectionIsNavActive();
     bool vtolLandingSettleReady = false;
     bool vtolLandingSettleConditionsMet = false;
@@ -2033,10 +2045,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
 
     if (!pauseLanding && landingAllowed && vtolMcProtectionActive) {
         if (headingReached) {
-            vtolLandingSettleReady = navigationVtolMcProtectionLandingSettleReady(tmpHomePos);
+            vtolLandingSettleReady = navigationVtolMcProtectionLandingSettleReady(landingTargetPos);
             vtolLandingSettleChecked = true;
         } else {
-            vtolLandingSettleConditionsMet = navigationVtolMcProtectionLandingSettleConditionsMet(tmpHomePos);
+            vtolLandingSettleConditionsMet = navigationVtolMcProtectionLandingSettleConditionsMet(landingTargetPos);
             navigationVtolMcProtectionResetLandingSettle();
         }
     }
@@ -2052,7 +2064,19 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
         // VTOL MC has already settled over the landing point, but yaw has not
         // reached the required heading yet. Hold the current XY/Z target so
         // position corrections do not keep competing with yaw authority.
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        setDesiredPosition(
+            &navGetCurrentActualPositionAndVelocity()->pos,
+            landingHeadingCd,
+            NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
+        return NAV_FSM_EVENT_NONE;
+    }
+
+    if (!pauseLanding && landingAllowed && !markerPrelandingReady) {
+        navigationVtolMcProtectionResetLandingSettle();
+        fpVector3_t markerHoldPos = *landingTargetPos;
+        markerHoldPos.z = navGetCurrentActualPositionAndVelocity()->pos.z;
+        setDesiredPosition(&markerHoldPos, landingHeadingCd, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
         updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
         return NAV_FSM_EVENT_NONE;
     }
@@ -2062,13 +2086,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
     if (!pauseLanding && (headingReached || STATE(FIXED_WING_LEGACY))) {
 
         if (landingAllowed && vtolLandingSettleChecked && !vtolLandingSettleReady) {
-            setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            setDesiredPosition(landingTargetPos, landingHeadingCd, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
             updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
             return NAV_FSM_EVENT_NONE;
         }
 
-        if (landingAllowed && !vtolLandingSettleChecked && !navigationVtolMcProtectionLandingSettleReady(tmpHomePos)) {
-            setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        if (landingAllowed && !vtolLandingSettleChecked && !navigationVtolMcProtectionLandingSettleReady(landingTargetPos)) {
+            setDesiredPosition(landingTargetPos, landingHeadingCd, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
             updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
             return NAV_FSM_EVENT_NONE;
         }
@@ -2077,7 +2101,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
         updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
         return landingAllowed ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME; // success = land
     } else {
-        setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        setDesiredPosition(landingTargetPos, landingHeadingCd, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
         return NAV_FSM_EVENT_NONE;
     }
 }
@@ -2222,9 +2246,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     }
 
     bool markerGuidanceVerticalOverride = false;
+    float markerGuidanceDescentScale = 1.0f;
 #ifdef USE_MARKER_GUIDANCE
     markerGuidanceLandControl_t markerGuidanceControl = { 0 };
     markerGuidanceGetLandControl(&markerGuidanceControl);
+    markerGuidanceDescentScale = markerGuidanceControl.descentScale;
 
     if (markerGuidanceControl.mode == MARKER_GUIDANCE_LAND_CTRL_HOLD) {
         updateClimbRateToAltitudeController(0.0f, 0.0f, ROC_TO_ALT_CONSTANT);
@@ -2235,7 +2261,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     }
 #endif
     if (!markerGuidanceVerticalOverride) {
-        updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
+        updateClimbRateToAltitudeController(-descentVelLimited * markerGuidanceDescentScale, 0, ROC_TO_ALT_CONSTANT);
     }
 
     return NAV_FSM_EVENT_NONE;
@@ -5969,7 +5995,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
 #ifdef USE_MARKER_GUIDANCE
-    markerGuidanceUpdate(navStateFlags, currentTimeUs);
+    markerGuidanceUpdate(navStateFlags);
 #endif
 
     if (STATE(ROVER) || STATE(BOAT)) {

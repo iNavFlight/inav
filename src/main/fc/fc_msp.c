@@ -4864,13 +4864,13 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             break;
         }
         {
-            const uint16_t offsetForwardRaw = sbufReadU16(src);
-            const uint16_t offsetRightRaw = sbufReadU16(src);
+            const uint16_t offsetNorthRaw = sbufReadU16(src);
+            const uint16_t offsetEastRaw = sbufReadU16(src);
             const uint16_t yawErrorRaw = sbufReadU16(src);
             const uint16_t markerAglRaw = sbufReadU16(src);
             const markerGuidanceTargetUpdate_t update = markerGuidanceDecodeMspWords(
-                offsetForwardRaw,
-                offsetRightRaw,
+                offsetNorthRaw,
+                offsetEastRaw,
                 yawErrorRaw,
                 markerAglRaw);
 

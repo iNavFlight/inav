@@ -47,6 +47,7 @@ typedef enum {
     MARKER_GUIDANCE_DEBUG_REASON_VTOL_RECOVERY,
     MARKER_GUIDANCE_DEBUG_REASON_POSITION_UNAVAILABLE,
     MARKER_GUIDANCE_DEBUG_REASON_WAIT_NEW_TARGET,
+    MARKER_GUIDANCE_DEBUG_REASON_TARGET_CONFIRMATION,
 } markerGuidanceDebugReason_e;
 
 typedef enum {
@@ -85,8 +86,8 @@ typedef enum {
 } markerGuidanceDebugFlag_e;
 
 typedef struct {
-    int16_t offsetForwardCm;
-    int16_t offsetRightCm;
+    int16_t receivedOffsetNorthCm;
+    int16_t receivedOffsetEastCm;
     float offsetNorthCm;
     float offsetEastCm;
     float markerPositionNorthCm;
@@ -113,6 +114,8 @@ typedef struct {
     bool lastFreshMarkerWasLow;
     uint32_t lastLandExitTargetSequence;
     markerGuidanceRetrySettleState_t retrySettle;
+    markerGuidanceRetrySettleState_t prelandingSettle;
+    markerGuidanceTargetConfirmationState_t targetConfirmation;
     float retryStartAltitudeCm;
     float lostHoldPositionNorthCm;
     float lostHoldPositionEastCm;
@@ -127,6 +130,8 @@ typedef struct {
     bool lostHoldPositionValid;
     bool resumePositionValid;
     bool positionTargetOwned;
+    bool positionControllerRetargetPending;
+    bool landingSettleRetargetPending;
     bool headingOverrideApplied;
     bool vtolRecoveryPaused;
     bool recoveryHeadingLatched;
@@ -170,7 +175,14 @@ static bool markerGuidanceIsPosholdContext(navigationFSMStateFlags_t navStateFla
 
 static bool markerGuidanceIsLandContext(navigationFSMStateFlags_t navStateFlags)
 {
-    return (navStateFlags & NAV_CTL_LAND) && !STATE(AIRPLANE);
+    return ((navStateFlags & NAV_CTL_LAND) ||
+            (posControl.navState == NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING && navigationRTHAllowsLanding())) &&
+           !STATE(AIRPLANE);
+}
+
+static bool markerGuidanceIsRthPrelandingContext(void)
+{
+    return posControl.navState == NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING;
 }
 
 static bool markerGuidancePositionTakeoverActiveNow(void)
@@ -221,8 +233,8 @@ static void setMarkerGuidanceState(markerGuidanceState_e state)
 
 static void clearTargetCache(void)
 {
-    markerGuidance.target.offsetForwardCm = 0;
-    markerGuidance.target.offsetRightCm = 0;
+    markerGuidance.target.receivedOffsetNorthCm = 0;
+    markerGuidance.target.receivedOffsetEastCm = 0;
     markerGuidance.target.offsetNorthCm = 0.0f;
     markerGuidance.target.offsetEastCm = 0.0f;
     markerGuidance.target.markerPositionNorthCm = 0.0f;
@@ -248,6 +260,8 @@ static void clearContextRuntime(void)
     markerGuidance.lastFreshMarkerWasLow = false;
     markerGuidance.lastLandExitTargetSequence = markerGuidance.target.sequence;
     markerGuidanceResetRetrySettle(&markerGuidance.retrySettle);
+    markerGuidanceResetRetrySettle(&markerGuidance.prelandingSettle);
+    markerGuidanceResetTargetConfirmation(&markerGuidance.targetConfirmation);
     markerGuidance.retryStartAltitudeCm = 0.0f;
     markerGuidance.retryStartAltitudeUsable = false;
     markerGuidance.lostHoldPositionNorthCm = 0.0f;
@@ -259,6 +273,8 @@ static void clearContextRuntime(void)
     markerGuidance.lostHoldPositionValid = false;
     markerGuidance.resumePositionValid = false;
     markerGuidance.positionTargetOwned = false;
+    markerGuidance.positionControllerRetargetPending = false;
+    markerGuidance.landingSettleRetargetPending = false;
     markerGuidance.requestedCorrectionNorthCm = 0.0f;
     markerGuidance.requestedCorrectionEastCm = 0.0f;
     markerGuidance.headingOverrideApplied = false;
@@ -293,6 +309,7 @@ static void updateContextRuntime(markerGuidanceContext_e newContext)
     }
     markerGuidance.lastFreshMarkerWasLow = false;
     markerGuidanceResetRetrySettle(&markerGuidance.retrySettle);
+    markerGuidanceResetRetrySettle(&markerGuidance.prelandingSettle);
     markerGuidance.retryStartAltitudeCm = 0.0f;
     markerGuidance.retryStartAltitudeUsable = false;
     markerGuidance.lostHoldPositionNorthCm = 0.0f;
@@ -304,6 +321,7 @@ static void updateContextRuntime(markerGuidanceContext_e newContext)
     markerGuidance.lostHoldPositionValid = false;
     markerGuidance.resumePositionValid = false;
     markerGuidance.positionTargetOwned = false;
+    markerGuidance.positionControllerRetargetPending = false;
     markerGuidance.requestedCorrectionNorthCm = 0.0f;
     markerGuidance.requestedCorrectionEastCm = 0.0f;
     markerGuidance.headingOverrideApplied = false;
@@ -437,6 +455,9 @@ static void applyGuidancePositionTarget(float targetNorthCm, float targetEastCm)
 
 static void releaseGuidancePositionTarget(void)
 {
+    const bool releasesLandingTarget = markerGuidance.positionTargetOwned &&
+        markerGuidance.activeContext == MARKER_GUIDANCE_CONTEXT_LAND;
+
     if (!markerGuidance.positionTargetOwned && !markerGuidance.resumePositionValid) {
         clearLostHoldPosition();
         return;
@@ -454,8 +475,14 @@ static void releaseGuidancePositionTarget(void)
     clearLostHoldPosition();
     markerGuidance.resumePositionValid = false;
     markerGuidance.positionTargetOwned = false;
+    markerGuidance.positionControllerRetargetPending = false;
     markerGuidance.requestedCorrectionNorthCm = 0.0f;
     markerGuidance.requestedCorrectionEastCm = 0.0f;
+
+    if (releasesLandingTarget) {
+        // A restored GPS Home/mission target needs its own VTOL settle pass.
+        navigationVtolMcProtectionResetLandingSettle();
+    }
 }
 
 static void suspendPositionAcquisitionUntilNewSample(void)
@@ -467,12 +494,14 @@ static void suspendPositionAcquisitionUntilNewSample(void)
     markerGuidance.retryCount = 0;
     markerGuidance.lastFreshMarkerWasLow = false;
     markerGuidanceResetRetrySettle(&markerGuidance.retrySettle);
+    markerGuidanceResetRetrySettle(&markerGuidance.prelandingSettle);
 }
 
 static void captureLostHoldPosition(void)
 {
     const fpVector3_t *actualPosition = &navGetCurrentActualPositionAndVelocity()->pos;
 
+    markerGuidance.positionControllerRetargetPending = false;
     markerGuidance.lostHoldPositionNorthCm = actualPosition->x;
     markerGuidance.lostHoldPositionEastCm = actualPosition->y;
     markerGuidance.lostHoldPositionValid = true;
@@ -540,6 +569,74 @@ static bool markerGuidanceRetryIsSettled(timeMs_t nowMs)
     return markerGuidanceUpdateRetrySettle(&markerGuidance.retrySettle, conditionsMet, nowMs);
 }
 
+static bool markerGuidanceTargetConfirmationPending(timeMs_t nowMs)
+{
+    if (!markerGuidance.targetConfirmation.active) {
+        return false;
+    }
+
+    if (!markerGuidanceSampleIsFresh(
+            true,
+            nowMs,
+            markerGuidance.targetConfirmation.lastSampleMs,
+            navConfig()->general.marker_guidance_max_target_age_ms)) {
+        markerGuidanceResetTargetConfirmation(&markerGuidance.targetConfirmation);
+        return false;
+    }
+
+    return true;
+}
+
+static bool markerGuidanceRthPrelandingXyReady(timeMs_t nowMs)
+{
+    if (!markerGuidanceIsRthPrelandingContext()) {
+        return true;
+    }
+
+    return markerGuidancePrelandingXyReady(
+        markerGuidanceTargetIsFresh(nowMs, NULL),
+        markerGuidance.targetAcquiredInContext,
+        markerGuidance.positionTargetOwned,
+        markerGuidanceTargetConfirmationPending(nowMs),
+        posControl.flags.estVelStatus == EST_TRUSTED,
+        posControl.actualState.velXY,
+        markerGuidanceRetrySettleSpeedLimit(navConfig()->mc.braking_disengage_speed),
+        markerGuidance.target.horizontalOffsetSquaredCm,
+        navConfig()->general.marker_guidance_radius_cm);
+}
+
+static bool markerGuidanceUpdateRthPrelandingSettle(timeMs_t nowMs)
+{
+    if (!markerGuidanceIsPlMode() || !markerGuidanceIsRthPrelandingContext()) {
+        markerGuidanceResetRetrySettle(&markerGuidance.prelandingSettle);
+        return true;
+    }
+
+    const bool confirmationPending = markerGuidanceTargetConfirmationPending(nowMs);
+    const bool targetFresh = markerGuidanceTargetIsFresh(nowMs, NULL);
+
+    // A partially confirmed target delays descent only while packets continue.
+    // Without a visible target, RTH retains its original landing behavior.
+    if (!targetFresh && !confirmationPending) {
+        markerGuidanceResetRetrySettle(&markerGuidance.prelandingSettle);
+        return true;
+    }
+
+    if (markerGuidanceAnyTakeoverActive()) {
+        markerGuidanceResetRetrySettle(&markerGuidance.prelandingSettle);
+        return true;
+    }
+
+    const bool xyReady = markerGuidanceRthPrelandingXyReady(nowMs);
+    const bool headingReady = markerGuidance.headingLatched &&
+        ABS(wrap_18000(markerGuidance.latchedHeadingCd - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15);
+
+    return markerGuidanceUpdateRetrySettle(
+        &markerGuidance.prelandingSettle,
+        xyReady && headingReady,
+        nowMs);
+}
+
 static markerGuidanceDebugReason_e markerGuidanceDebugReason(
     bool targetFresh,
     markerGuidanceReason_e freshnessReason,
@@ -552,7 +649,8 @@ static markerGuidanceDebugReason_e markerGuidanceDebugReason(
     bool vtolCaptureActive,
     bool vtolRecoveryActive,
     bool positionEstimateUsable,
-    bool positionSampleAllowed)
+    bool positionSampleAllowed,
+    bool targetConfirmationPending)
 {
     if (!markerGuidanceFeatureEnabled()) {
         return MARKER_GUIDANCE_DEBUG_REASON_DISABLED;
@@ -574,6 +672,9 @@ static markerGuidanceDebugReason_e markerGuidanceDebugReason(
     }
     if (!positionEstimateUsable) {
         return MARKER_GUIDANCE_DEBUG_REASON_POSITION_UNAVAILABLE;
+    }
+    if (targetConfirmationPending) {
+        return MARKER_GUIDANCE_DEBUG_REASON_TARGET_CONFIRMATION;
     }
     if (!markerGuidance.target.valid || freshnessReason == MARKER_GUIDANCE_REASON_INVALID_TARGET) {
         return MARKER_GUIDANCE_DEBUG_REASON_INVALID_TARGET;
@@ -653,10 +754,8 @@ void markerGuidanceReset(void)
     setMarkerGuidanceState(MARKER_GUIDANCE_IDLE);
 }
 
-void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
+void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags)
 {
-    UNUSED(currentTimeUs);
-
     const timeMs_t nowMs = millis();
     markerGuidance.requestedCorrectionNorthCm = 0.0f;
     markerGuidance.requestedCorrectionEastCm = 0.0f;
@@ -675,7 +774,7 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
     if (!isMcHoverCapableProfileActive()) {
         releaseGuidancePositionTarget();
         clearContextRuntime();
-        // A body-frame pose observed in FW must not become an MC guidance
+        // A pose observed in FW must not become an MC guidance
         // target after a profile switch without a new post-switch observation.
         markerGuidance.rejectedPositionTargetSequence = markerGuidance.target.sequence;
         markerGuidance.rejectedHeadingTargetSequence = markerGuidance.target.sequence;
@@ -724,6 +823,8 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
         (!markerGuidance.targetAcquiredInContext &&
          navigationVtolMcProtectionPositionCapturePending(navStateFlags));
     const bool navigationBlocksMarkerAcquisition = STATE(NAV_CRUISE_BRAKING) || vtolCaptureBlocksAcquisition;
+    const bool rthPrelandingHeadingReady = !markerGuidanceIsRthPrelandingContext() ||
+        markerGuidanceRthPrelandingXyReady(nowMs);
 
     // Position and heading ownership are independent. Roll/pitch releases XY,
     // while a fresh marker heading can still be acquired unless yaw itself is
@@ -732,6 +833,7 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
         (selectedContext == MARKER_GUIDANCE_CONTEXT_POSHOLD || selectedContext == MARKER_GUIDANCE_CONTEXT_LAND) &&
         targetFresh && targetBelongsToContext && !recoveryWasPaused && !vtolRecoveryRequested &&
         !navigationBlocksMarkerAcquisition && !posControl.flags.isAdjustingHeading &&
+        rthPrelandingHeadingReady &&
         markerGuidanceHeadingSampleAllowed(markerGuidance.target.sequence, markerGuidance.rejectedHeadingTargetSequence)) {
         markerGuidance.headingLatched = true;
         markerGuidance.latchedHeadingCd = markerGuidance.target.targetHeadingCd;
@@ -768,6 +870,7 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
 
         markerGuidance.stateDeadlineMs = 0;
         markerGuidanceResetRetrySettle(&markerGuidance.retrySettle);
+        markerGuidanceResetRetrySettle(&markerGuidance.prelandingSettle);
         setMarkerGuidanceState(MARKER_GUIDANCE_STANDBY);
         return;
     }
@@ -809,6 +912,15 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
             targetBelongsToContext,
             positionSampleAllowed,
             positionTargetAllowed)) {
+        const bool startsLandingTargetOwnership = selectedContext == MARKER_GUIDANCE_CONTEXT_LAND &&
+            !markerGuidance.positionTargetOwned;
+        const markerGuidanceState_e correctionState = selectedContext == MARKER_GUIDANCE_CONTEXT_LAND ?
+            MARKER_GUIDANCE_LAND_CORRECTION : MARKER_GUIDANCE_POSHOLD_CORRECTION;
+        const bool markerCorrectionAlreadyActive =
+            markerGuidance.targetAcquiredInContext &&
+            markerGuidance.positionTargetOwned &&
+            markerGuidance.state == correctionState;
+
         clearLostHoldPosition();
         markerGuidance.stateDeadlineMs = 0;
         markerGuidance.targetAcquiredInContext = true;
@@ -831,17 +943,33 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
         const fpVector3_t *actualPosition = &navGetCurrentActualPositionAndVelocity()->pos;
         markerGuidance.requestedCorrectionNorthCm = targetNorthCm - actualPosition->x;
         markerGuidance.requestedCorrectionEastCm = targetEastCm - actualPosition->y;
+
+        if (markerGuidanceIsPlMode() && correctionRequired && !markerCorrectionAlreadyActive) {
+            // Apply the one-shot transfer after the ordinary position loop has
+            // converted this target into a velocity request. That preserves
+            // useful braking when the aircraft already moves toward the marker.
+            markerGuidance.positionControllerRetargetPending = true;
+        } else if (!correctionRequired) {
+            markerGuidance.positionControllerRetargetPending = false;
+        }
+
         applyGuidancePositionTarget(targetNorthCm, targetEastCm);
 
+        if (selectedContext == MARKER_GUIDANCE_CONTEXT_LAND &&
+            (startsLandingTargetOwnership || markerGuidance.landingSettleRetargetPending)) {
+            // The VTOL settle approval may have been calculated against the
+            // previous Home/mission/marker point before PL changed XY ownership.
+            navigationVtolMcProtectionResetLandingSettle();
+            markerGuidanceResetRetrySettle(&markerGuidance.prelandingSettle);
+            markerGuidance.landingSettleRetargetPending = false;
+        }
+
         if (correctionRequired) {
-            if (selectedContext == MARKER_GUIDANCE_CONTEXT_LAND) {
-                setMarkerGuidanceState(MARKER_GUIDANCE_LAND_CORRECTION);
-            } else {
-                setMarkerGuidanceState(MARKER_GUIDANCE_POSHOLD_CORRECTION);
-            }
+            setMarkerGuidanceState(correctionState);
         } else {
             setMarkerGuidanceState(MARKER_GUIDANCE_STANDBY);
         }
+        markerGuidanceUpdateRthPrelandingSettle(nowMs);
         return;
     }
 
@@ -864,6 +992,20 @@ void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t curr
             releaseGuidancePositionTarget();
             setMarkerGuidanceState(MARKER_GUIDANCE_STANDBY);
         }
+        return;
+    }
+
+    if (markerGuidanceIsRthPrelandingContext()) {
+        // Before descent, losing the marker returns XY control to the normal
+        // RTH Home target. Retry climbs are meaningful only after LAND starts.
+        releaseGuidancePositionTarget();
+        markerGuidance.targetAcquiredInContext = false;
+        markerGuidance.rejectedPositionTargetSequence = markerGuidance.target.sequence;
+        markerGuidance.stateDeadlineMs = 0;
+        markerGuidance.retryCount = 0;
+        markerGuidanceResetRetrySettle(&markerGuidance.retrySettle);
+        markerGuidanceResetRetrySettle(&markerGuidance.prelandingSettle);
+        setMarkerGuidanceState(MARKER_GUIDANCE_STANDBY);
         return;
     }
 
@@ -945,8 +1087,10 @@ bool markerGuidanceApplyHeadingOverride(int32_t *desiredYawCd)
         return markerGuidance.headingOverrideApplied;
     }
 
-    const bool targetFresh = markerGuidanceTargetIsFresh(millis(), NULL) &&
-        markerGuidanceHeadingSampleAllowed(markerGuidance.target.sequence, markerGuidance.rejectedHeadingTargetSequence);
+    const timeMs_t nowMs = millis();
+    const bool targetFresh = markerGuidanceTargetIsFresh(nowMs, NULL) &&
+        markerGuidanceHeadingSampleAllowed(markerGuidance.target.sequence, markerGuidance.rejectedHeadingTargetSequence) &&
+        (!markerGuidanceIsRthPrelandingContext() || markerGuidanceRthPrelandingXyReady(nowMs));
 
     markerGuidance.headingOverrideApplied = markerGuidanceSelectHeadingOverride(
         markerGuidanceIsPlMode(),
@@ -973,6 +1117,37 @@ bool markerGuidanceOwnsHeading(void)
 bool markerGuidanceOwnsPositionTarget(void)
 {
     return markerGuidance.positionTargetOwned;
+}
+
+bool markerGuidanceConsumePositionControllerRetarget(void)
+{
+    const bool retargetPending =
+        markerGuidance.positionControllerRetargetPending &&
+        markerGuidance.positionTargetOwned &&
+        (markerGuidance.state == MARKER_GUIDANCE_POSHOLD_CORRECTION ||
+         markerGuidance.state == MARKER_GUIDANCE_LAND_CORRECTION);
+
+    markerGuidance.positionControllerRetargetPending = false;
+    return retargetPending;
+}
+
+bool markerGuidanceGetActiveLandingHeading(int32_t *headingCdOut)
+{
+    if (!headingCdOut ||
+        !markerGuidanceIsPlMode() ||
+        markerGuidance.activeContext != MARKER_GUIDANCE_CONTEXT_LAND ||
+        !markerGuidance.headingLatched ||
+        posControl.flags.isAdjustingHeading) {
+        return false;
+    }
+
+    *headingCdOut = markerGuidance.latchedHeadingCd;
+    return true;
+}
+
+bool markerGuidanceRthPrelandingReady(void)
+{
+    return markerGuidanceUpdateRthPrelandingSettle(millis());
 }
 
 bool markerGuidanceGetActiveLandingPositionTarget(fpVector3_t *targetOut)
@@ -1021,6 +1196,7 @@ void markerGuidanceUpdateDebug(void)
     const bool positionSampleAllowed = markerGuidanceHeadingSampleAllowed(
         markerGuidance.target.sequence,
         markerGuidance.rejectedPositionTargetSequence);
+    const bool targetConfirmationPending = markerGuidanceTargetConfirmationPending(nowMs);
 
     uint32_t flags = 0;
     if (markerGuidanceFeatureEnabled()) flags |= MARKER_GUIDANCE_DEBUG_FLAG_ENABLED;
@@ -1075,7 +1251,8 @@ void markerGuidanceUpdateDebug(void)
         vtolCaptureActive,
         markerGuidance.vtolRecoveryPaused,
         positionEstimateUsable,
-        positionSampleAllowed);
+        positionSampleAllowed,
+        targetConfirmationPending);
     const uint32_t packedStatus =
         ((uint32_t)markerGuidance.activeContext & 0xFFU) |
         (((uint32_t)debugReason & 0xFFU) << 8) |
@@ -1094,8 +1271,8 @@ void markerGuidanceUpdateDebug(void)
     // [1] flags bitmask
     // [2] context | (runtime reason << 8) | (retry count << 16) | (last MSP reason << 24)
     // [3] target age [ms], -1 when no valid cached target
-    // [4] raw forward offset [cm] | (raw right offset [cm] << 16), signed int16 values
-    // [5] resolved North offset [cm] | (resolved East offset [cm] << 16), signed int16 values
+    // [4] received North offset [cm] | (received East offset [cm] << 16), signed int16 values
+    // [5] pending/committed absolute local North | East marker position [cm], signed int16 values
     // [6] requested North displacement [cm] | (requested East displacement [cm] << 16), signed int16 values
     // [7] marker AGL [cm] | (absolute target heading [deci-degrees] << 16)
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 0, markerGuidance.state);
@@ -1103,11 +1280,15 @@ void markerGuidanceUpdateDebug(void)
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 2, (int32_t)packedStatus);
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 3, targetAgeDebug);
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 4, (int32_t)markerGuidancePackSigned16(
-        markerGuidance.target.offsetForwardCm,
-        markerGuidance.target.offsetRightCm));
+        markerGuidance.target.receivedOffsetNorthCm,
+        markerGuidance.target.receivedOffsetEastCm));
+    const float debugMarkerNorthCm = targetConfirmationPending ?
+        markerGuidance.targetConfirmation.candidateNorthCm : markerGuidance.target.markerPositionNorthCm;
+    const float debugMarkerEastCm = targetConfirmationPending ?
+        markerGuidance.targetConfirmation.candidateEastCm : markerGuidance.target.markerPositionEastCm;
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 5, (int32_t)markerGuidancePackSigned16(
-        lrintf(markerGuidance.target.offsetNorthCm),
-        lrintf(markerGuidance.target.offsetEastCm)));
+        lrintf(debugMarkerNorthCm),
+        lrintf(debugMarkerEastCm)));
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 6, (int32_t)markerGuidancePackSigned16(
         lrintf(markerGuidance.requestedCorrectionNorthCm),
         lrintf(markerGuidance.requestedCorrectionEastCm)));
@@ -1122,6 +1303,7 @@ void markerGuidanceGetLandControl(markerGuidanceLandControl_t *controlOut)
 
     controlOut->mode = MARKER_GUIDANCE_LAND_CTRL_NONE;
     controlOut->rateCmS = 0.0f;
+    controlOut->descentScale = 1.0f;
 
     if (!markerGuidanceIsPlMode() || markerGuidance.activeContext != MARKER_GUIDANCE_CONTEXT_LAND) {
         return;
@@ -1139,11 +1321,30 @@ void markerGuidanceGetLandControl(markerGuidanceLandControl_t *controlOut)
         return;
     }
 
+    if (markerGuidanceTargetConfirmationPending(millis())) {
+        // Do not continue a mission/RTH descent while a substantially moved
+        // marker target is still being checked.
+        controlOut->mode = MARKER_GUIDANCE_LAND_CTRL_HOLD;
+        return;
+    }
+
     if (markerGuidance.state == MARKER_GUIDANCE_TARGET_LOST_HOLD) {
         controlOut->mode = MARKER_GUIDANCE_LAND_CTRL_HOLD;
     } else if (markerGuidance.state == MARKER_GUIDANCE_CLIMB_AND_RETRY) {
         controlOut->mode = MARKER_GUIDANCE_LAND_CTRL_CLIMB;
         controlOut->rateCmS = getRetryClimbRateCmS();
+    } else if (markerGuidance.state == MARKER_GUIDANCE_LAND_CORRECTION &&
+               markerGuidance.positionTargetOwned &&
+               markerGuidanceTargetIsFresh(millis(), NULL)) {
+        const float horizontalOffsetCm = sqrtf(markerGuidance.target.horizontalOffsetSquaredCm);
+        controlOut->descentScale = markerGuidanceLandingDescentScale(
+            horizontalOffsetCm,
+            markerGuidance.target.markerAglCm,
+            navConfig()->general.marker_guidance_radius_cm);
+
+        if (controlOut->descentScale <= 0.0f) {
+            controlOut->mode = MARKER_GUIDANCE_LAND_CTRL_HOLD;
+        }
     }
 }
 
@@ -1186,12 +1387,14 @@ bool markerGuidanceHandleMspTargetUpdate(
     responseOut->retryCount = markerGuidance.retryCount;
 
     if (!markerGuidanceFeatureEnabled()) {
+        markerGuidanceResetTargetConfirmation(&markerGuidance.targetConfirmation);
         responseOut->reason = MARKER_GUIDANCE_REASON_NOT_ENABLED;
         markerGuidance.lastMspReason = responseOut->reason;
         return true;
     }
 
     if (!markerGuidancePoseIsValid(update, 0)) {
+        markerGuidanceResetTargetConfirmation(&markerGuidance.targetConfirmation);
         markerGuidance.lastMspReason = responseOut->reason;
         return true;
     }
@@ -1200,40 +1403,82 @@ bool markerGuidanceHandleMspTargetUpdate(
     if (!markerGuidanceTryResolvePose(
             update,
             navConfig()->general.marker_guidance_max_offset_cm,
-            posControl.actualState.cosYaw,
-            posControl.actualState.sinYaw,
             posControl.actualState.yaw,
             &resolved)) {
+        markerGuidanceResetTargetConfirmation(&markerGuidance.targetConfirmation);
         responseOut->reason = MARKER_GUIDANCE_REASON_OFFSET_TOO_LARGE;
         markerGuidance.lastMspReason = responseOut->reason;
         return true;
     }
 
     if (posControl.flags.estPosStatus < EST_USABLE) {
+        markerGuidanceResetTargetConfirmation(&markerGuidance.targetConfirmation);
         responseOut->reason = MARKER_GUIDANCE_REASON_POSITION_UNAVAILABLE;
         markerGuidance.lastMspReason = responseOut->reason;
         return true;
     }
 
     const fpVector3_t *actualPosition = &navGetCurrentActualPositionAndVelocity()->pos;
-    const markerGuidanceTargetCache_t newTarget = {
-        .offsetForwardCm = update->offsetForwardCm,
-        .offsetRightCm = update->offsetRightCm,
-        .offsetNorthCm = resolved.offsetNorthCm,
-        .offsetEastCm = resolved.offsetEastCm,
-        .markerPositionNorthCm = actualPosition->x + resolved.offsetNorthCm,
-        .markerPositionEastCm = actualPosition->y + resolved.offsetEastCm,
-        .targetHeadingCd = resolved.targetHeadingCd,
-        .markerAglCm = resolved.markerAglCm,
-        .horizontalOffsetSquaredCm = markerGuidanceHorizontalOffsetSquaredCm(update),
-        .lastUpdateMs = millis(),
-        .sequence = markerGuidanceNextSampleSequence(markerGuidance.target.sequence),
-        .valid = true,
-    };
-    markerGuidance.target = newTarget;
+    const timeMs_t nowMs = millis();
+    markerGuidance.target.receivedOffsetNorthCm = update->offsetNorthCm;
+    markerGuidance.target.receivedOffsetEastCm = update->offsetEastCm;
+    float markerPositionNorthCm = actualPosition->x + resolved.offsetNorthCm;
+    float markerPositionEastCm = actualPosition->y + resolved.offsetEastCm;
+    bool targetCommitted = true;
+    bool targetReferenceChanged = false;
+
+    if (markerGuidanceIsPlMode()) {
+        const float consistencyToleranceCm = markerGuidanceTargetConsistencyToleranceCm(
+            resolved.markerAglCm,
+            navConfig()->general.marker_guidance_radius_cm);
+        const bool consistentWithCommittedTarget = markerGuidance.target.valid &&
+            markerGuidanceTargetPositionIsConsistent(
+                markerGuidance.target.markerPositionNorthCm,
+                markerGuidance.target.markerPositionEastCm,
+                markerPositionNorthCm,
+                markerPositionEastCm,
+                consistencyToleranceCm);
+
+        if (consistentWithCommittedTarget) {
+            markerGuidanceResetTargetConfirmation(&markerGuidance.targetConfirmation);
+        } else {
+            targetCommitted = markerGuidanceUpdateTargetConfirmation(
+                &markerGuidance.targetConfirmation,
+                markerPositionNorthCm,
+                markerPositionEastCm,
+                resolved.markerAglCm,
+                navConfig()->general.marker_guidance_radius_cm,
+                nowMs,
+                navConfig()->general.marker_guidance_max_target_age_ms,
+                &markerPositionNorthCm,
+                &markerPositionEastCm);
+            targetReferenceChanged = targetCommitted;
+        }
+    } else {
+        markerGuidanceResetTargetConfirmation(&markerGuidance.targetConfirmation);
+    }
 
     responseOut->accepted = 1;
     responseOut->reason = MARKER_GUIDANCE_REASON_OK;
+
+    if (targetCommitted) {
+        const markerGuidanceTargetCache_t newTarget = {
+            .receivedOffsetNorthCm = update->offsetNorthCm,
+            .receivedOffsetEastCm = update->offsetEastCm,
+            .offsetNorthCm = resolved.offsetNorthCm,
+            .offsetEastCm = resolved.offsetEastCm,
+            .markerPositionNorthCm = markerPositionNorthCm,
+            .markerPositionEastCm = markerPositionEastCm,
+            .targetHeadingCd = resolved.targetHeadingCd,
+            .markerAglCm = resolved.markerAglCm,
+            .horizontalOffsetSquaredCm = markerGuidanceHorizontalOffsetSquaredCm(update),
+            .lastUpdateMs = nowMs,
+            .sequence = markerGuidanceNextSampleSequence(markerGuidance.target.sequence),
+            .valid = true,
+        };
+        markerGuidance.target = newTarget;
+        markerGuidance.landingSettleRetargetPending |= targetReferenceChanged;
+    }
 
     const bool mcProfileActive = isMcHoverCapableProfileActive();
     const navigationFSMStateFlags_t navStateFlags = navGetCurrentStateFlags();
@@ -1278,7 +1523,7 @@ bool markerGuidanceHandleMspTargetUpdate(
             markerGuidance.latchedHeadingCd,
             &headingCd);
 
-        responseOut->usedNow = horizontalCorrectionUsed || headingUsed;
+        responseOut->usedNow = targetCommitted && (horizontalCorrectionUsed || headingUsed);
         responseOut->reason = MARKER_GUIDANCE_REASON_OK;
     }
 

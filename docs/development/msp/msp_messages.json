@@ -1,6 +1,6 @@
 {
     "version": {
-        "major": 3,
+        "major": 4,
         "minor": 0,
         "patch": 0
     },
@@ -11509,15 +11509,15 @@
             "request": {
                 "payload": [
                     {
-                        "name": "offset_forward_cm",
+                        "name": "offset_north_cm",
                         "ctype": "int16_t",
-                        "desc": "Levelled horizontal offset from vehicle body origin to the touchdown point, forward in the yaw-only body frame at measurement time.",
+                        "desc": "Levelled horizontal offset from vehicle body origin to the touchdown point, North in INAV's local earth frame at measurement time.",
                         "units": "cm"
                     },
                     {
-                        "name": "offset_right_cm",
+                        "name": "offset_east_cm",
                         "ctype": "int16_t",
-                        "desc": "Levelled horizontal offset from vehicle body origin to the touchdown point, right in the yaw-only body frame at measurement time.",
+                        "desc": "Levelled horizontal offset from vehicle body origin to the touchdown point, East in INAV's local earth frame at measurement time.",
                         "units": "cm"
                     },
                     {
@@ -11539,7 +11539,7 @@
                     {
                         "name": "accepted",
                         "ctype": "uint8_t",
-                        "desc": "1 only when the complete pose passed validation and was atomically committed to the target cache.",
+                        "desc": "1 when the complete pose passed wire/range validation and entered the target confirmation path.",
                         "units": ""
                     },
                     {
@@ -11557,7 +11557,7 @@
                     {
                         "name": "reason",
                         "ctype": "uint8_t",
-                        "desc": "Result code: 0 OK, 1 NOT_ENABLED, 2 STALE, 3 OFFSET_TOO_LARGE, 4 NOT_MC_PROFILE, 5 NOT_IN_POSHOLD_OR_LAND, 6 FAILSAFE, 7 INVALID_TARGET, 8 NOT_ARMED.",
+                        "desc": "Result code: 0 OK, 1 NOT_ENABLED, 2 STALE, 3 OFFSET_TOO_LARGE, 4 NOT_MC_PROFILE, 5 NOT_IN_POSHOLD_OR_LAND, 6 FAILSAFE, 7 INVALID_TARGET, 8 NOT_ARMED, 9 POSITION_UNAVAILABLE.",
                         "units": "enum"
                     },
                     {
@@ -11568,7 +11568,7 @@
                     }
                 ]
             },
-            "notes": "Hard break: the request is exactly 8 little-endian bytes and the old 4-byte request is rejected. There is no version, validity, confidence, frame, identity or capture timestamp field. Forward/right are converted to local North/East once at FC receive time; yaw error is converted once to an absolute INAV heading; marker AGL is used only as an additional low-altitude retry suppression. Invalid or disabled requests do not refresh any cache field or timestamp. Freshness uses FC receive time. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD/LAND contexts. The command is 8754/0x2232 because current maintenance-10.x assigns 8753/0x2231 to MSP2_INAV_WIND.",
+            "notes": "Hard break: the request is exactly 8 little-endian bytes and North/East is the only supported XY frame. There is no version, validity, confidence, identity or capture timestamp field. INAV adds the relative North/East offset directly to current local position; yaw error is converted once to an absolute INAV heading; marker AGL is used for PL consistency and low-altitude retry suppression. In PL mode, the first target and a later discontinuous target require three consistent fresh packets before replacing navigation control. Invalid or disabled requests do not refresh the confirmed target or timestamp. Freshness uses FC receive time. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD, RTH pre-landing and LAND contexts. The command is 8754/0x2232 because current maintenance-10.x assigns 8753/0x2231 to MSP2_INAV_WIND.",
             "description": "Updates the complete marker-relative position, landing heading and marker AGL sample consumed by marker-guidance navigation."
         },
         "MSP2_INAV_SET_CRUISE_HEADING": {

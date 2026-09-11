@@ -52,14 +52,18 @@ typedef struct {
 typedef struct {
     markerGuidanceLandControlMode_e mode;
     float rateCmS;
+    float descentScale;
 } markerGuidanceLandControl_t;
 
 void markerGuidanceReset(void);
-void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
+void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags);
 void markerGuidanceUpdateDebug(void);
 bool markerGuidanceApplyHeadingOverride(int32_t *desiredYawCd);
 bool markerGuidanceOwnsHeading(void);
 bool markerGuidanceOwnsPositionTarget(void);
+bool markerGuidanceConsumePositionControllerRetarget(void);
+bool markerGuidanceGetActiveLandingHeading(int32_t *headingCdOut);
+bool markerGuidanceRthPrelandingReady(void);
 bool markerGuidanceGetActiveLandingPositionTarget(fpVector3_t *targetOut);
 void markerGuidanceGetLandControl(markerGuidanceLandControl_t *controlOut);
 navSystemStatus_State_e markerGuidanceOverrideNavStatusState(navSystemStatus_State_e defaultState);

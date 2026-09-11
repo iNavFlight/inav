@@ -431,6 +431,8 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8305 - MSP2_INAV_EZ_TUNE_SET](#msp2_inav_ez_tune_set)  
 [8320 - MSP2_INAV_SELECT_MIXER_PROFILE](#msp2_inav_select_mixer_profile)  
 [8336 - MSP2_ADSB_VEHICLE_LIST](#msp2_adsb_vehicle_list)  
+[8339 - MSP2_ADSB_VEHICLE](#msp2_adsb_vehicle)  
+[8340 - MSP2_ADSB_VEHICLE_COUNT](#msp2_adsb_vehicle_count)  
 [8448 - MSP2_INAV_CUSTOM_OSD_ELEMENTS](#msp2_inav_custom_osd_elements)  
 [8449 - MSP2_INAV_CUSTOM_OSD_ELEMENT](#msp2_inav_custom_osd_element)  
 [8450 - MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS](#msp2_inav_set_custom_osd_elements)  
@@ -4404,6 +4406,42 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Notes:** Requires `USE_ADSB`. Only a subset of `adsbVehicle_t` is transmitted (callsign, core values, heading in whole degrees, TSLC, emitter type, TTL).
 
+## <a id="msp2_adsb_vehicle"></a>`MSP2_ADSB_VEHICLE (8339 / 0x2093)`
+**Description:** Retrieves a single tracked ADSB (Automatic Dependent Surveillance-Broadcast) vehicle by slot index. Intended for polling one slot at a time: query `MSP2_ADSB_VEHICLE_COUNT` for the iteration bound, then request indices `0 .. count-1`, skipping slots with `ttl == 0`, and identify each aircraft by its `icao`. See `adsbVehicle_t` / `adsbVehicleValues_t` in `io/adsb.h`.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `index` | `uint8_t` | 1 | Slot index to read, `0 .. (MSP2_ADSB_VEHICLE_COUNT - 1)`. WARNING: this is an iteration cursor over fixed slots, NOT a stable identifier. The same index may return a different aircraft (or an empty slot) on a later poll. Always identify the aircraft by the `icao` field in the reply; never cache or correlate data by index. Returns an error result if the index is out of range. |
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `icao` | `uint32_t` | 4 | - | ICAO 24-bit address (`vehicleValues.icao`). This is the stable per-aircraft identifier; use it to correlate replies, not the request index. An empty slot reports `icao == 0` and `ttl == 0`. |
+| `lat` | `int32_t` | 4 | 1e-7 deg | Latitude (`vehicleValues.gps.lat`). |
+| `lon` | `int32_t` | 4 | 1e-7 deg | Longitude (`vehicleValues.gps.lon`). |
+| `alt` | `int32_t` | 4 | cm | Altitude above sea level (`vehicleValues.alt`). |
+| `heading` | `uint16_t` | 2 | 1e-2 deg | Course over ground at full resolution (`vehicleValues.heading`). Unlike `MSP2_ADSB_VEHICLE_LIST`, this is in centidegrees, not whole degrees. |
+| `horVelocity` | `uint16_t` | 2 | cm/s | Horizontal (ground) speed (`vehicleValues.horVelocity`). Not present in `MSP2_ADSB_VEHICLE_LIST`. |
+| `tslc` | `uint8_t` | 1 | s | Time since last communication (`vehicleValues.tslc`). |
+| `emitterType` | `uint8_t` | 1 | - | Emitter category (`vehicleValues.emitterType`). |
+| `ttl` | `uint8_t` | 1 | s | Remaining time-to-live for this slot (`adsbVehicle->ttl`). `ttl == 0` means the slot is empty/expired and its contents are stale; skip such entries. |
+| `callsign` | `char[ADSB_CALL_SIGN_MAX_LENGTH]` | 9 (ADSB_CALL_SIGN_MAX_LENGTH) | - | Fixed-length callsign (`vehicleValues.callsign`), padded with NULs if shorter. |
+
+**Notes:** Requires `USE_ADSB`. Reads a single ADSB vehicle slot by index. THE INDEX IS NOT A STABLE HANDLE: slots are reused, so a given index may hold a different aircraft (or be empty, `ttl == 0`) between polls. Correlate aircraft by the `icao` field in the reply, never by index. Compared with the bulk `MSP2_ADSB_VEHICLE_LIST`, this message adds horizontal velocity and reports heading at full (centidegree) resolution, and orders the callsign last. Returns an error result for an out-of-range index.
+
+## <a id="msp2_adsb_vehicle_count"></a>`MSP2_ADSB_VEHICLE_COUNT (8340 / 0x2094)`
+**Description:** Returns the number of ADSB vehicle slots available to iterate with `MSP2_ADSB_VEHICLE`.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `count` | `uint8_t` | 1 | Number of vehicle slots to iterate (`MAX_ADSB_VEHICLES`). This is the slot capacity / iteration bound, not the number of currently active aircraft - some slots may be empty (`ttl == 0`). 0 if `USE_ADSB` is disabled. |
+
+**Notes:** Requires `USE_ADSB`. Returns the iteration bound for `MSP2_ADSB_VEHICLE`: request indices `0 .. count-1` and skip any slot whose `ttl == 0`.
+
 ## <a id="msp2_inav_custom_osd_elements"></a>`MSP2_INAV_CUSTOM_OSD_ELEMENTS (8448 / 0x2100)`
 **Description:** Retrieves counts related to custom OSD elements defined by the programming framework.  
 
@@ -4847,21 +4885,21 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
-| `offset_forward_cm` | `int16_t` | 2 | cm | Levelled horizontal offset from vehicle body origin to the touchdown point, forward in the yaw-only body frame at measurement time. |
-| `offset_right_cm` | `int16_t` | 2 | cm | Levelled horizontal offset from vehicle body origin to the touchdown point, right in the yaw-only body frame at measurement time. |
+| `offset_north_cm` | `int16_t` | 2 | cm | Levelled horizontal offset from vehicle body origin to the touchdown point, North in INAV's local earth frame at measurement time. |
+| `offset_east_cm` | `int16_t` | 2 | cm | Levelled horizontal offset from vehicle body origin to the touchdown point, East in INAV's local earth frame at measurement time. |
 | `yaw_error_decideg` | `int16_t` | 2 | decidegrees | Signed shortest rotation from current vehicle heading to the requested landing heading. Valid range is -1800 to 1800. |
 | `marker_agl_cm` | `uint16_t` | 2 | cm | Positive vertical distance from vehicle body origin to the marker landing reference plane. |
   
 **Reply Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
-| `accepted` | `uint8_t` | 1 | - | 1 only when the complete pose passed validation and was atomically committed to the target cache. |
+| `accepted` | `uint8_t` | 1 | - | 1 when the complete pose passed wire/range validation and entered the target confirmation path. |
 | `used_now` | `uint8_t` | 1 | - | 1 when the accepted target is currently influencing an allowed marker-guidance navigation context. |
 | `nav_guidance_state` | `uint8_t` | 1 | enum | Current internal marker-guidance state. |
-| `reason` | `uint8_t` | 1 | enum | Result code: 0 OK, 1 NOT_ENABLED, 2 STALE, 3 OFFSET_TOO_LARGE, 4 NOT_MC_PROFILE, 5 NOT_IN_POSHOLD_OR_LAND, 6 FAILSAFE, 7 INVALID_TARGET, 8 NOT_ARMED. |
+| `reason` | `uint8_t` | 1 | enum | Result code: 0 OK, 1 NOT_ENABLED, 2 STALE, 3 OFFSET_TOO_LARGE, 4 NOT_MC_PROFILE, 5 NOT_IN_POSHOLD_OR_LAND, 6 FAILSAFE, 7 INVALID_TARGET, 8 NOT_ARMED, 9 POSITION_UNAVAILABLE. |
 | `retry_count` | `uint8_t` | 1 | - | Current retry-attempt counter in PL LAND retry flow. |
 
-**Notes:** Hard break: the request is exactly 8 little-endian bytes and the old 4-byte request is rejected. There is no version, validity, confidence, frame, identity or capture timestamp field. Forward/right are converted to local North/East once at FC receive time; yaw error is converted once to an absolute INAV heading; marker AGL is used only as an additional low-altitude retry suppression. Invalid or disabled requests do not refresh any cache field or timestamp. Freshness uses FC receive time. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD/LAND contexts. The command is 8754/0x2232 because current maintenance-10.x assigns 8753/0x2231 to MSP2_INAV_WIND.
+**Notes:** Hard break: the request is exactly 8 little-endian bytes and North/East is the only supported XY frame. There is no version, validity, confidence, identity or capture timestamp field. INAV adds the relative North/East offset directly to current local position; yaw error is converted once to an absolute INAV heading; marker AGL is used for PL consistency and low-altitude retry suppression. In PL mode, the first target and a later discontinuous target require three consistent fresh packets before replacing navigation control. Invalid or disabled requests do not refresh the confirmed target or timestamp. Freshness uses FC receive time. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD, RTH pre-landing and LAND contexts. The command is 8754/0x2232 because current maintenance-10.x assigns 8753/0x2231 to MSP2_INAV_WIND.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

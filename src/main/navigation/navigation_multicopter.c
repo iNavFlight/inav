@@ -703,6 +703,22 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float velErrorX = setpointX - measurementX;
     const float velErrorY = setpointY - measurementY;
 
+#ifdef USE_MARKER_GUIDANCE
+    if (markerGuidanceConsumePositionControllerRetarget()) {
+        float integratorX = posControl.pids.vel[X].integrator;
+        float integratorY = posControl.pids.vel[Y].integrator;
+
+        if (markerGuidanceRemoveOpposingIntegratorComponent(
+                velErrorX,
+                velErrorY,
+                &integratorX,
+                &integratorY)) {
+            posControl.pids.vel[X].integrator = integratorX;
+            posControl.pids.vel[Y].integrator = integratorY;
+        }
+    }
+#endif
+
     // Calculate XY-acceleration limit according to velocity error limit
     float accelLimitX, accelLimitY;
     const float velErrorMagnitude = calc_length_pythagorean_2D(velErrorX, velErrorY);

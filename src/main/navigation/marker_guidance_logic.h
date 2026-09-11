@@ -10,6 +10,13 @@
 #define MARKER_GUIDANCE_RETRY_SETTLE_TIME_MS 500U
 #define MARKER_GUIDANCE_RETRY_SETTLE_MAX_SPEED_CM_S 75U
 #define MARKER_GUIDANCE_RETRY_SETTLE_MAX_ATTITUDE_DECIDEG 100U
+#define MARKER_GUIDANCE_RETARGET_MIN_VELOCITY_ERROR_CM_S 0.1f
+#define MARKER_GUIDANCE_LAND_FULL_DESCENT_OFFSET_AGL_RATIO 0.10f
+#define MARKER_GUIDANCE_LAND_HOLD_DESCENT_OFFSET_AGL_RATIO 0.30f
+#define MARKER_GUIDANCE_TARGET_CONFIRMATION_SAMPLES 3U
+#define MARKER_GUIDANCE_TARGET_CONSISTENCY_AGL_RATIO 0.05f
+#define MARKER_GUIDANCE_TARGET_CONSISTENCY_MIN_CM 10.0f
+#define MARKER_GUIDANCE_PRELANDING_MIN_ALIGNMENT_RADIUS_CM 10U
 
 typedef enum {
     MARKER_GUIDANCE_CONTEXT_NONE = 0,
@@ -18,8 +25,8 @@ typedef enum {
 } markerGuidanceContext_e;
 
 typedef struct {
-    int16_t offsetForwardCm;
-    int16_t offsetRightCm;
+    int16_t offsetNorthCm;
+    int16_t offsetEastCm;
     int16_t yawErrorDeciDeg;
     uint16_t markerAglCm;
 } markerGuidancePoseUpdate_t;
@@ -36,20 +43,28 @@ typedef struct {
     bool active;
 } markerGuidanceRetrySettleState_t;
 
+typedef struct {
+    float candidateNorthCm;
+    float candidateEastCm;
+    uint32_t lastSampleMs;
+    uint8_t sampleCount;
+    bool active;
+} markerGuidanceTargetConfirmationState_t;
+
 static inline bool markerGuidanceMspPayloadSizeIsValid(size_t dataSize)
 {
     return dataSize == MARKER_GUIDANCE_MSP_PAYLOAD_SIZE;
 }
 
 static inline markerGuidancePoseUpdate_t markerGuidanceDecodeMspWords(
-    uint16_t offsetForwardRaw,
-    uint16_t offsetRightRaw,
+    uint16_t offsetNorthRaw,
+    uint16_t offsetEastRaw,
     uint16_t yawErrorRaw,
     uint16_t markerAglRaw)
 {
     const markerGuidancePoseUpdate_t update = {
-        .offsetForwardCm = (int16_t)offsetForwardRaw,
-        .offsetRightCm = (int16_t)offsetRightRaw,
+        .offsetNorthCm = (int16_t)offsetNorthRaw,
+        .offsetEastCm = (int16_t)offsetEastRaw,
         .yawErrorDeciDeg = (int16_t)yawErrorRaw,
         .markerAglCm = markerAglRaw,
     };
@@ -68,9 +83,9 @@ static inline uint32_t markerGuidanceHorizontalOffsetSquaredCm(const markerGuida
         return 0;
     }
 
-    const int64_t forward = update->offsetForwardCm;
-    const int64_t right = update->offsetRightCm;
-    return (uint32_t)((forward * forward) + (right * right));
+    const int64_t north = update->offsetNorthCm;
+    const int64_t east = update->offsetEastCm;
+    return (uint32_t)((north * north) + (east * east));
 }
 
 static inline bool markerGuidancePoseIsValid(const markerGuidancePoseUpdate_t *update, uint16_t maxOffsetCm)
@@ -158,8 +173,6 @@ static inline bool markerGuidanceRetryClimbFinished(
 static inline bool markerGuidanceTryResolvePose(
     const markerGuidancePoseUpdate_t *update,
     uint16_t maxOffsetCm,
-    float cosYaw,
-    float sinYaw,
     int32_t currentHeadingCd,
     markerGuidanceResolvedPose_t *resolvedOut)
 {
@@ -168,14 +181,111 @@ static inline bool markerGuidanceTryResolvePose(
     }
 
     const markerGuidanceResolvedPose_t resolved = {
-        .offsetNorthCm = update->offsetForwardCm * cosYaw - update->offsetRightCm * sinYaw,
-        .offsetEastCm = update->offsetForwardCm * sinYaw + update->offsetRightCm * cosYaw,
+        .offsetNorthCm = (float)update->offsetNorthCm,
+        .offsetEastCm = (float)update->offsetEastCm,
         .targetHeadingCd = markerGuidanceWrapHeadingCd(currentHeadingCd + ((int32_t)update->yawErrorDeciDeg * 10)),
         .markerAglCm = update->markerAglCm,
     };
 
     *resolvedOut = resolved;
     return true;
+}
+
+static inline void markerGuidanceResetTargetConfirmation(markerGuidanceTargetConfirmationState_t *state)
+{
+    if (state) {
+        state->candidateNorthCm = 0.0f;
+        state->candidateEastCm = 0.0f;
+        state->lastSampleMs = 0;
+        state->sampleCount = 0;
+        state->active = false;
+    }
+}
+
+static inline float markerGuidanceTargetConsistencyToleranceCm(uint16_t markerAglCm, uint16_t alignmentRadiusCm)
+{
+    return fmaxf(
+        MARKER_GUIDANCE_TARGET_CONSISTENCY_MIN_CM,
+        fmaxf(alignmentRadiusCm, markerAglCm * MARKER_GUIDANCE_TARGET_CONSISTENCY_AGL_RATIO));
+}
+
+static inline bool markerGuidanceTargetPositionIsConsistent(
+    float referenceNorthCm,
+    float referenceEastCm,
+    float sampleNorthCm,
+    float sampleEastCm,
+    float toleranceCm)
+{
+    const float deltaNorthCm = sampleNorthCm - referenceNorthCm;
+    const float deltaEastCm = sampleEastCm - referenceEastCm;
+    return (deltaNorthCm * deltaNorthCm) + (deltaEastCm * deltaEastCm) <= toleranceCm * toleranceCm;
+}
+
+static inline bool markerGuidanceUpdateTargetConfirmation(
+    markerGuidanceTargetConfirmationState_t *state,
+    float sampleNorthCm,
+    float sampleEastCm,
+    uint16_t markerAglCm,
+    uint16_t alignmentRadiusCm,
+    uint32_t nowMs,
+    uint16_t maxSampleGapMs,
+    float *confirmedNorthOut,
+    float *confirmedEastOut)
+{
+    if (!state || !confirmedNorthOut || !confirmedEastOut) {
+        return false;
+    }
+
+    const float toleranceCm = markerGuidanceTargetConsistencyToleranceCm(markerAglCm, alignmentRadiusCm);
+    const bool sampleGapExpired = state->active && maxSampleGapMs > 0 &&
+        (nowMs - state->lastSampleMs) > maxSampleGapMs;
+    const bool candidateConsistent = state->active && !sampleGapExpired &&
+        markerGuidanceTargetPositionIsConsistent(
+            state->candidateNorthCm,
+            state->candidateEastCm,
+            sampleNorthCm,
+            sampleEastCm,
+            toleranceCm);
+
+    if (!candidateConsistent) {
+        state->candidateNorthCm = sampleNorthCm;
+        state->candidateEastCm = sampleEastCm;
+        state->sampleCount = 1;
+        state->active = true;
+    } else {
+        state->sampleCount++;
+        const float sampleWeight = 1.0f / state->sampleCount;
+        state->candidateNorthCm += (sampleNorthCm - state->candidateNorthCm) * sampleWeight;
+        state->candidateEastCm += (sampleEastCm - state->candidateEastCm) * sampleWeight;
+    }
+    state->lastSampleMs = nowMs;
+
+    if (state->sampleCount < MARKER_GUIDANCE_TARGET_CONFIRMATION_SAMPLES) {
+        return false;
+    }
+
+    *confirmedNorthOut = state->candidateNorthCm;
+    *confirmedEastOut = state->candidateEastCm;
+    markerGuidanceResetTargetConfirmation(state);
+    return true;
+}
+
+static inline bool markerGuidancePrelandingXyReady(
+    bool targetFresh,
+    bool targetAcquired,
+    bool positionTargetOwned,
+    bool confirmationPending,
+    bool horizontalVelocityTrusted,
+    float horizontalSpeedCmS,
+    uint16_t speedLimitCmS,
+    uint32_t horizontalOffsetSquaredCm,
+    uint16_t alignmentRadiusCm)
+{
+    const uint16_t effectiveRadiusCm = alignmentRadiusCm > MARKER_GUIDANCE_PRELANDING_MIN_ALIGNMENT_RADIUS_CM ?
+        alignmentRadiusCm : MARKER_GUIDANCE_PRELANDING_MIN_ALIGNMENT_RADIUS_CM;
+    return targetFresh && targetAcquired && positionTargetOwned && !confirmationPending &&
+           horizontalVelocityTrusted && horizontalSpeedCmS <= speedLimitCmS &&
+           horizontalOffsetSquaredCm <= (uint32_t)effectiveRadiusCm * effectiveRadiusCm;
 }
 
 static inline bool markerGuidanceComputeHorizontalPositionTarget(
@@ -215,6 +325,64 @@ static inline bool markerGuidanceComputeHorizontalPositionTarget(
     *targetNorthOut = currentNorthCm + errorNorthCm;
     *targetEastOut = currentEastCm + errorEastCm;
     return true;
+}
+
+static inline bool markerGuidanceRemoveOpposingIntegratorComponent(
+    float velocityErrorNorthCmS,
+    float velocityErrorEastCmS,
+    float *integratorNorth,
+    float *integratorEast)
+{
+    if (!integratorNorth || !integratorEast) {
+        return false;
+    }
+
+    const float correctionMagnitudeSquared =
+        (velocityErrorNorthCmS * velocityErrorNorthCmS) + (velocityErrorEastCmS * velocityErrorEastCmS);
+    if (correctionMagnitudeSquared <=
+        (MARKER_GUIDANCE_RETARGET_MIN_VELOCITY_ERROR_CM_S * MARKER_GUIDANCE_RETARGET_MIN_VELOCITY_ERROR_CM_S)) {
+        return false;
+    }
+
+    const float opposingProjection =
+        ((*integratorNorth * velocityErrorNorthCmS) + (*integratorEast * velocityErrorEastCmS)) /
+        correctionMagnitudeSquared;
+    if (opposingProjection >= 0.0f) {
+        return false;
+    }
+
+    // Preserve cross-wind compensation and remove only the component that
+    // would initially drive the aircraft away from the newly acquired target.
+    *integratorNorth -= opposingProjection * velocityErrorNorthCmS;
+    *integratorEast -= opposingProjection * velocityErrorEastCmS;
+    return true;
+}
+
+static inline float markerGuidanceLandingDescentScale(
+    float horizontalOffsetCm,
+    uint16_t markerAglCm,
+    uint16_t alignmentRadiusCm)
+{
+    if (markerAglCm == 0) {
+        return 1.0f;
+    }
+
+    const float fullDescentOffsetCm = fmaxf(
+        alignmentRadiusCm,
+        markerAglCm * MARKER_GUIDANCE_LAND_FULL_DESCENT_OFFSET_AGL_RATIO);
+    const float holdDescentOffsetCm = fmaxf(
+        alignmentRadiusCm * 3.0f,
+        markerAglCm * MARKER_GUIDANCE_LAND_HOLD_DESCENT_OFFSET_AGL_RATIO);
+
+    if (horizontalOffsetCm <= fullDescentOffsetCm) {
+        return 1.0f;
+    }
+    if (horizontalOffsetCm >= holdDescentOffsetCm) {
+        return 0.0f;
+    }
+
+    return (holdDescentOffsetCm - horizontalOffsetCm) /
+        (holdDescentOffsetCm - fullDescentOffsetCm);
 }
 
 static inline bool markerGuidanceSelectHeadingOverride(

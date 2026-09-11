@@ -2887,7 +2887,7 @@ groups:
         table: nav_marker_guidance_source
         condition: USE_MARKER_GUIDANCE
       - name: nav_marker_guidance_mode
-        description: "Marker-guidance mode selector: OFF disables guidance, PL enables precision-centering for LAND/POSHOLD with retry-on-loss behavior in LAND, CONTAINMENT enables marker-relative POSHOLD containment using hold north/east and radius."
+        description: "Marker-guidance mode selector: OFF disables guidance, PL enables precision-centering for POSHOLD and landing, including RTH alignment before descent and retry-on-loss behavior after LAND starts; CONTAINMENT enables marker-relative POSHOLD containment using hold north/east and radius."
         default_value: "OFF"
         field: general.marker_guidance_mode
         table: nav_marker_guidance_mode

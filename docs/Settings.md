@@ -4377,7 +4377,7 @@ Maximum age of cached marker data [ms]. If no fresh packet arrives inside this w
 
 ### nav_marker_guidance_mode
 
-Marker-guidance mode selector: OFF disables guidance, PL enables precision-centering for LAND/POSHOLD with retry-on-loss behavior in LAND, CONTAINMENT enables marker-relative POSHOLD containment using hold north/east and radius.
+Marker-guidance mode selector: OFF disables guidance, PL enables precision-centering for POSHOLD and landing, including RTH alignment before descent and retry-on-loss behavior after LAND starts; CONTAINMENT enables marker-relative POSHOLD containment using hold north/east and radius.
 
 | Allowed Values |  |
 | --- | --- |
