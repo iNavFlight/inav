@@ -5468,17 +5468,17 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !FLIGHT_MODE(NAV_WP_MODE)) {
         // WP upload is not allowed why WP mode is active
         if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_JUMP || wpData->action == NAV_WP_ACTION_RTH || wpData->action == NAV_WP_ACTION_HOLD_TIME || wpData->action == NAV_WP_ACTION_LAND || wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD ) {
-            // JUMP target is a WP number, it has to reference another WP of the mission
-            if (wpData->action == NAV_WP_ACTION_JUMP && (wpData->p1 < 1 || wpData->p1 > NAV_MAX_WAYPOINTS)) {
-                return;
-            }
-
             // Only allow upload next waypoint (continue upload mission) or first waypoint (new mission)
             static int8_t nonGeoWaypointCount = 0;
 
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 if (wpNumber == 1) {
                     resetWaypointList();
+                    nonGeoWaypointCount = 0;
+                }
+                // Reject the new mission after clearing the previous one, before copying or converting the target.
+                if (wpData->action == NAV_WP_ACTION_JUMP && (wpData->p1 < 1 || wpData->p1 > NAV_MAX_WAYPOINTS)) {
+                    return;
                 }
                 posControl.waypointList[wpNumber - 1] = *wpData;
                 if(wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD || wpData->action == NAV_WP_ACTION_JUMP) {
