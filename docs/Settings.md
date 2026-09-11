@@ -1974,7 +1974,7 @@ Which SBAS mode to be used
 
 ### gps_ublox_assistnow_autonomous
 
-Enable AssistNow Autonomous on u-blox M8 and newer receivers. The receiver predicts satellite orbits from data it collected on earlier power-ups and uses them for a faster fix after a cold start, without any internet download. Needs the receiver's backup power (battery or supercapacitor) to keep the data between flights. OFF leaves the receiver at its own default (off) [OFF/ON].
+Enable AssistNow Autonomous on u-blox M8 and newer receivers. The receiver predicts satellite orbits from data it collected on earlier power-ups and uses them for a faster fix after a cold start, without any internet download. Needs the receiver's backup power (battery or supercapacitor) to keep the data between flights. OFF explicitly disables AssistNow Autonomous during receiver auto-configuration [OFF/ON].
 
 | Default | Min | Max |
 | --- | --- | --- |
