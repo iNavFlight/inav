@@ -10,6 +10,7 @@ on:
       - 'src/**/*.c'
       - 'src/**/*.h'
       - '.github/scripts/check-pg-versions.sh'
+      - '.github/scripts/check-pg-versions.py'
       - '.github/scripts/test-check-pg-versions.py'
       - '.github/workflows/pg-version-check.yml'
 
