@@ -820,11 +820,14 @@ static bool gpsParseFrameUBLOX(void)
 
             if(_buffer.navsig.numSigs > 0) 
             {
-                for(int i=0; i < MIN(UBLOX_MAX_SIGNALS, _buffer.navsig.numSigs); ++i)
+                // A multi band receiver can report more signals than we have room for, those were
+                // already dropped while the frame was received.
+                const int numSigs = MIN(_buffer.navsig.numSigs, UBLOX_MAX_SIGNALS);
+                for(int i=0; i < numSigs; ++i)
                 {
                     memcpy(&satelites[i], &_buffer.navsig.sig[i], sizeof(ubx_nav_sig_info));
                 }
-                for(int i = _buffer.navsig.numSigs; i < UBLOX_MAX_SIGNALS; ++i)
+                for(int i = numSigs; i < UBLOX_MAX_SIGNALS; ++i)
                 {
                     satelites[i].svId = 0xFF; // no used
                     satelites[i].gnssId = 0xFF;
@@ -897,11 +900,20 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             _step++;
             _ck_b += (_ck_a += data);       // checksum byte
             _payload_length |= (uint16_t)(data << 8);
-            if (_payload_length > MAX_UBLOX_PAYLOAD_SIZE ) {
-                // we can't receive the whole packet, just log the error and start searching for the next packet.
-                gpsStats.errors++;
-                _step = 0;
-                break;
+            if (_payload_length > MAX_UBLOX_PAYLOAD_SIZE) {
+                // Multi band receivers report more signals than fit in the buffer, so UBX-NAV-SIG
+                // and UBX-NAV-SAT are read to the end and checksummed anyway. Only the first
+                // MAX_UBLOX_PAYLOAD_SIZE bytes are kept, the signals that do not fit are dropped.
+                // That keeps the parser in sync and the rest of the frame usable. Anything else
+                // this long is garbage, just log the error and search for the next packet.
+                const bool truncatable = (_class == CLASS_NAV) &&
+                                         (_msg_id == MSG_NAV_SIG || _msg_id == MSG_NAV_SAT) &&
+                                         (_payload_length <= UBLOX_MAX_ACCEPTED_PAYLOAD_SIZE);
+                if (!truncatable) {
+                    gpsStats.errors++;
+                    _step = 0;
+                    break;
+                }
             }
             // prepare to receive payload
             _payload_counter = 0;
@@ -913,6 +925,17 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             _ck_b += (_ck_a += data);       // checksum byte
             if (_payload_counter < MAX_UBLOX_PAYLOAD_SIZE) {
                 _buffer.bytes[_payload_counter] = data;
+            }
+            if (_payload_length > MAX_UBLOX_PAYLOAD_SIZE && _payload_counter == 7) {
+                // Both NAV-SIG and NAV-SAT have an eight-byte header with the record count at byte 5.
+                // Reject inconsistent lengths before a damaged header consumes subsequent fixes.
+                const uint16_t recordSize = _msg_id == MSG_NAV_SIG ? sizeof(ubx_nav_sig_info) : sizeof(ubx_nav_svinfo_channel);
+                const uint16_t expectedLength = 8 + _buffer.bytes[5] * recordSize;
+                if (_payload_length != expectedLength) {
+                    gpsStats.errors++;
+                    _step = 0;
+                    break;
+                }
             }
             // NOTE: check counter BEFORE increasing so that a payload_size of 65535 is correctly handled.  This can happen if garbage data is received.
             if (_payload_counter ==  _payload_length - 1) {
@@ -940,6 +963,12 @@ static bool gpsNewFrameUBLOX(uint8_t data)
 
             if (_skip_packet) {
                 break;
+            }
+
+            // An oversized payload was truncated while being received, so the frame handlers must
+            // not look at anything beyond what is actually in the buffer.
+            if (_payload_length > MAX_UBLOX_PAYLOAD_SIZE) {
+                _payload_length = MAX_UBLOX_PAYLOAD_SIZE;
             }
 
             if (gpsParseFrameUBLOX()) {
