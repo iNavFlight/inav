@@ -1398,13 +1398,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, 0);
 #endif
-#ifdef USE_AOA
-        sbufWriteU8(dst, aoaConfig()->aoa_hardware);
+#ifdef USE_OPFLOW
+        sbufWriteU8(dst, opticalFlowConfig()->opflow_hardware);
 #else
         sbufWriteU8(dst, 0);
 #endif
-#ifdef USE_OPFLOW
-        sbufWriteU8(dst, opticalFlowConfig()->opflow_hardware);
+#ifdef USE_AOA
+        sbufWriteU8(dst, aoaConfig()->aoa_hardware);
 #else
         sbufWriteU8(dst, 0);
 #endif
@@ -2567,7 +2567,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_SENSOR_CONFIG:
-        if (dataSize == 6) {
+        // Accept both the legacy 6-byte layout (without AOA) and the 7-byte layout (AOA appended at the end)
+        if (dataSize == 6 || dataSize == 7) {
             accelerometerConfigMutable()->acc_hardware = sbufReadU8(src);
 #ifdef USE_BARO
             barometerConfigMutable()->baro_hardware = sbufReadU8(src);
@@ -2589,15 +2590,19 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #else
             sbufReadU8(src);        // rangefinder hardware
 #endif
-#ifdef USE_AOA
-            aoaConfigMutable()->aoa_hardware = sbufReadU8(src);
-#else
-            sbufReadU8(src);        // aoa hardware
-#endif
 #ifdef USE_OPFLOW
             opticalFlowConfigMutable()->opflow_hardware = sbufReadU8(src);
 #else
             sbufReadU8(src);        // optical flow hardware
+#endif
+#ifdef USE_AOA
+            if (dataSize == 7) {
+                aoaConfigMutable()->aoa_hardware = sbufReadU8(src);
+            }
+#else
+            if (dataSize == 7) {
+                sbufReadU8(src);    // aoa hardware
+            }
 #endif
         } else
             return MSP_RESULT_ERROR;
@@ -4481,7 +4486,7 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 
 #if defined(USE_AOA_MSP)
         case MSP2_SENSOR_AOA:
-            mspAoaReceiveNewData(sbufPtr(src));
+            mspAoaReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 

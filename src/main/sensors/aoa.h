@@ -43,9 +43,9 @@ typedef enum {
 
 typedef struct aoaConfig_s {
     uint8_t aoa_hardware;       // AOA sensor hardware type (NONE, MSP, FAKE)
-    int16_t aoa_offset;         // AOA sensor offset in decidegrees
-    int16_t aoa_max_angle;      // Maximum valid AOA angle in decidegrees
-    int16_t aoa_min_angle;      // Minimum valid AOA angle in decidegrees
+    int16_t aoa_offset;         // AOA sensor offset in degrees
+    int16_t aoa_max_angle;      // Maximum valid AOA angle in degrees
+    int16_t aoa_min_angle;      // Minimum valid AOA angle in degrees
 } aoaConfig_t;
 
 PG_DECLARE(aoaConfig_t, aoaConfig);
@@ -71,7 +71,7 @@ typedef struct aoa_s {
     aoaDev_t dev;
     int16_t aoa;
     int16_t sideslip;
-    timeMs_t lastValidResponseTimeMs;
+    timeMs_t lastValidResponseTimeMs;   // Timestamp of the last valid AOA response; 0 means none received yet
 } aoa_t;
 
 extern aoa_t aoaSensor;
@@ -82,4 +82,4 @@ timeDelta_t aoaUpdate(void);
 bool aoaProcess(void);
 bool aoaIsHealthy(void);
 bool aoaControlEnable(int8_t input_rc_channel);
-void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float newPTerm, float newDTerm, float newFFTerm, float errorGyroIf, float limit);
+void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float limit);

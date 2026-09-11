@@ -55,10 +55,10 @@ typedef enum {
     SENSOR_RANGEFINDER = 1 << 4,
     SENSOR_PITOT = 1 << 5,
     SENSOR_OPFLOW = 1 << 6,
-    SENSOR_GPS = 1 << 7,
-    SENSOR_GPSMAG = 1 << 8,
-    SENSOR_TEMP = 1 << 9,
-    SENSOR_AOA = 1 << 10
+    SENSOR_AOA = 1 << 7,
+    SENSOR_GPS = 1 << 8,
+    SENSOR_GPSMAG = 1 << 9,
+    SENSOR_TEMP = 1 << 10
 } sensors_e;
 
 typedef enum {

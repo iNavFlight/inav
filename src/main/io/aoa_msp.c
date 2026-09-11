@@ -69,8 +69,13 @@ virtualAoaVTable_t aoaMSPVtable = {
     .read = aoaMspRead,
 };
 
-void mspAoaReceiveNewData(uint8_t * bufferPtr)
+void mspAoaReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
+    // Reject malformed packets to avoid reading past the end of the buffer
+    if (dataSize != sizeof(mspSensorAoaDataMessage_t)) {
+        return;
+    }
+
     const mspSensorAoaDataMessage_t * pkt = (const mspSensorAoaDataMessage_t *)bufferPtr;
     sensorAoa = pkt->aoa;
     sensorSideslip = pkt->sideslip;

@@ -129,7 +129,7 @@ bool aoaInit(void)
 
     aoaSensor.dev.init(&aoaSensor.dev);
     aoaSensor.aoa = AOA_NO_NEW_DATA;
-    aoaSensor.lastValidResponseTimeMs = millis();
+    aoaSensor.lastValidResponseTimeMs = 0;      // No valid data received yet
 
     return true;
 }
@@ -148,11 +148,17 @@ bool aoaProcess(void)
     if (aoaSensor.dev.read) {
         int16_t rawAoa, rawSideslip;
         aoaSensor.dev.read(&aoaSensor.dev, &rawAoa, &rawSideslip);
-        int16_t aoaWithOffset = rawAoa + DEGREES_TO_DECIDEGREES(aoaConfig()->aoa_offset);
-        aoaSensor.aoa = constrain(aoaWithOffset, DEGREES_TO_DECIDEGREES(aoaConfig()->aoa_min_angle), DEGREES_TO_DECIDEGREES(aoaConfig()->aoa_max_angle));
-        aoaSensor.sideslip = rawSideslip;
-        aoaSensor.lastValidResponseTimeMs = millis();
-        DEBUG_SET(DEBUG_AOA, 0, aoaSensor.aoa);
+
+        // A sentinel (AOA_NO_NEW_DATA) means no valid reading is available yet.
+        // Do not store it as live data and do not refresh the health timestamp
+        // with it, otherwise the control loop would react to a bogus value.
+        if (rawAoa != AOA_NO_NEW_DATA && rawSideslip != AOA_NO_NEW_DATA) {
+            int16_t aoaWithOffset = rawAoa + DEGREES_TO_DECIDEGREES(aoaConfig()->aoa_offset);
+            aoaSensor.aoa = constrain(aoaWithOffset, DEGREES_TO_DECIDEGREES(aoaConfig()->aoa_min_angle), DEGREES_TO_DECIDEGREES(aoaConfig()->aoa_max_angle));
+            aoaSensor.sideslip = rawSideslip;
+            aoaSensor.lastValidResponseTimeMs = millis();
+            DEBUG_SET(DEBUG_AOA, 0, aoaSensor.aoa);
+        }
     } else {
         aoaSensor.aoa = AOA_OUT_OF_RANGE;
         aoaSensor.sideslip = AOA_OUT_OF_RANGE;
@@ -169,6 +175,11 @@ void aoaGetLatestData(int16_t *aoa, int16_t *sideslip)
 
 bool aoaIsHealthy(void)
 {
+    // lastValidResponseTimeMs == 0 means no valid data has ever been received
+    if (aoaSensor.lastValidResponseTimeMs == 0) {
+        return false;
+    }
+
     return (millis() - aoaSensor.lastValidResponseTimeMs) < AOA_HARDWARE_TIMEOUT_MS;
 }
 
@@ -186,12 +197,20 @@ bool aoaControlEnable(int8_t input_rc_channel)
     return rcValue > 1666;
 }
 
-void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float newPTerm, float newDTerm, float newFFTerm, float errorGyroIf, float limit)
+void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float limit)
 {
     isAoaControlEnabled = aoaControlEnable(aoaControlConfig()->fw_aoa_control_channel);
     
     int16_t currentAoa, unused;
     aoaGetLatestData(&currentAoa, &unused);
+
+    // Do not apply any AOA correction while no valid data is available.
+    // A sentinel or an expired health timeout must never drive the pitch output.
+    if (!aoaIsHealthy() || currentAoa == AOA_NO_NEW_DATA) {
+        aoaPidOutput = 0;
+        return;
+    }
+
     const int16_t filteredAoa = abs(currentAoa - prev_aoa) > 10 ? currentAoa : prev_aoa;
     prev_aoa = currentAoa;
 
@@ -208,9 +227,9 @@ void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float newPTerm, 
         const int16_t lowerThreshold = lowerLimitAngle * thresholdRatio;
         const int16_t aoaDeg = DECIDEGREES_TO_DEGREES(filteredAoa);
 
-        const int16_t lowerLimit = lowerLimitAngle * deg2pwm;
-        const int16_t upperLimit = upperLimitAngle * deg2pwm;
-        float constrainedPidOutput = constrainf(*pidPitchOutput, -upperLimit, -lowerLimit);
+        const float lowerLimit = lowerLimitAngle * deg2pwm;
+        const float upperLimit = upperLimitAngle * deg2pwm;
+        int16_t constrainedPidOutput = (int16_t)lrintf(constrainf((float)*pidPitchOutput, -upperLimit, -lowerLimit));
 
         float aoaError = 0.0f;
         if (aoaDeg > upperThreshold) {
@@ -221,7 +240,7 @@ void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float newPTerm, 
 
         float interventionOffset = aoaError * kp * deg2pwm;
         aoaServoOffset = (DECIDEGREES_TO_DEGREES(filteredAoa) - aoaControlConfig()->fw_aoa_trim_angle) * deg2pwm;
-        aoaPidOutput = isAoaControlEnabled ?  constrainedPidOutput + aoaServoOffset : constrainedPidOutput;
+        aoaPidOutput = isAoaControlEnabled ? constrainedPidOutput + (int16_t)lrintf(aoaServoOffset) : constrainedPidOutput;
         aoaPidOutput = constrainf(aoaPidOutput, -limit, +limit);
 
         if (isAoaControlEnabled && aoaError != 0.0f) {
@@ -252,7 +271,7 @@ void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float newPTerm, 
 
         aoaServoOffset = aoaError * kp * deg2pwm;
 
-        aoaPidOutput = isAoaControlEnabled ? *pidPitchOutput + aoaServoOffset : *pidPitchOutput;
+        aoaPidOutput = isAoaControlEnabled ? *pidPitchOutput + (int16_t)lrintf(aoaServoOffset) : *pidPitchOutput;
         aoaPidOutput = constrainf(aoaPidOutput, -limit, +limit);
 
         DEBUG_SET(DEBUG_AOA, 1, aoaError);

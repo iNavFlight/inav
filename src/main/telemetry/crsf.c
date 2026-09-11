@@ -441,11 +441,21 @@ uint8_t     0x01 (Parameter version 1)
 static void crsfFrameAoaMsp(sbuf_t *dst)
 {
     int16_t aoa = 0;
-    int16_t unused = 0;
-    aoaGetLatestData(&aoa, &unused);
+    int16_t sideslip = 0;
+    aoaGetLatestData(&aoa, &sideslip);
+    // Only AOA is transmitted in the payload below. Sideslip is intentionally
+    // left out to keep the MSP2_SENSOR_AOA payload layout stable; extend the
+    // message definition together with the ground station before adding it.
 
     static uint8_t aoaMspSeq = 0;
 
+    // MSP2 response payload carried inside the CRSF MSP frame:
+    // [0] = 0x50 (MSP response) | sequence number nibble
+    // [1] = 0x00 (reserved)
+    // [2..3] = 0x1F08 little-endian (MSP2_SENSOR_AOA message ID)
+    // [4] = 0x02 (data length in bytes)
+    // [5] = 0x00 (status, 0 = OK)
+    // [6..7] = AOA value as int16_t little-endian
     uint8_t mspPayload[8];
     mspPayload[0] = 0x50 | (aoaMspSeq & 0x0F);
     mspPayload[1] = 0x00;

@@ -31,4 +31,4 @@
 
 extern virtualAoaVTable_t aoaMSPVtable;
 
-void mspAoaReceiveNewData(uint8_t * bufferPtr);
+void mspAoaReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize);
