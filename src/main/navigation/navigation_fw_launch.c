@@ -416,6 +416,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeUs_t currentTimeUs)
 {
     if (throttleStickIsLow()) {
+        forwardAccelHighTimeUs = 0;
         return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
     }
 
@@ -428,7 +429,11 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeU
     }
     // The acceleration peak of a throw is over long before the GPS speed follows, so a peak seen shortly before still counts.
     // Without this the throw launch would trigger on accelerometer noise alone, or on a GPS speed glitch while the aircraft is held still.
-    const bool wasForwardAccelerationHigh = (forwardAccelHighTimeUs != 0) && (cmpTimeUs(currentTimeUs, forwardAccelHighTimeUs) < MS2US(THROW_LAUNCH_ACCEL_HOLD_TIME));
+    const timeDelta_t forwardAccelAgeUs = cmpTimeUs(currentTimeUs, forwardAccelHighTimeUs);
+    if (forwardAccelAgeUs < 0 || forwardAccelAgeUs >= MS2US(THROW_LAUNCH_ACCEL_HOLD_TIME)) {
+        forwardAccelHighTimeUs = 0;
+    }
+    const bool wasForwardAccelerationHigh = forwardAccelHighTimeUs != 0;
 
     const bool isBungeeLaunched = isForwardAccelerationHigh && isAircraftAlmostLevel;
     const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
