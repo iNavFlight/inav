@@ -926,6 +926,17 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             if (_payload_counter < MAX_UBLOX_PAYLOAD_SIZE) {
                 _buffer.bytes[_payload_counter] = data;
             }
+            if (_payload_length > MAX_UBLOX_PAYLOAD_SIZE && _payload_counter == 7) {
+                // Both NAV-SIG and NAV-SAT have an eight-byte header with the record count at byte 5.
+                // Reject inconsistent lengths before a damaged header consumes subsequent fixes.
+                const uint16_t recordSize = _msg_id == MSG_NAV_SIG ? sizeof(ubx_nav_sig_info) : sizeof(ubx_nav_svinfo_channel);
+                const uint16_t expectedLength = 8 + _buffer.bytes[5] * recordSize;
+                if (_payload_length != expectedLength) {
+                    gpsStats.errors++;
+                    _step = 0;
+                    break;
+                }
+            }
             // NOTE: check counter BEFORE increasing so that a payload_size of 65535 is correctly handled.  This can happen if garbage data is received.
             if (_payload_counter ==  _payload_length - 1) {
                 _step++;
