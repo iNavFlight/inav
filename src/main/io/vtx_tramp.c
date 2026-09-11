@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "platform.h"
 
@@ -92,6 +93,8 @@ typedef struct {
         // Actual settings to send to the VTX
         unsigned freq;
         unsigned power;
+        bool pitMode;
+        bool pitModeRequested; // do not override hardware-button state before a request
     } request;
 
     // Actual VTX state: updated from actual VTX
@@ -256,7 +259,8 @@ static vtxProtoResponseType_e vtxProtoProcessResponse(void)
 
 static void vtxProtoSetPitMode(uint16_t mode)
 {
-    vtxProtoSend(0x73, mode);
+    // IRC Tramp 'I': 0 enters pit mode, 1 exits (same polarity as Betaflight).
+    vtxProtoSend('I', mode ? 0 : 1);
 }
 
 static void vtxProtoSetPower(uint16_t power)
@@ -316,9 +320,8 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
             if (vtxState.updateReqMask != VTX_UPDATE_REQ_NONE) {
                 // Updates pending. Send an appropriate command
                 if (vtxState.updateReqMask & VTX_UPDATE_REQ_PITMODE) {
-                    // Only disabling PIT mode supported
                     vtxState.updateReqMask &= ~VTX_UPDATE_REQ_PITMODE;
-                    vtxProtoSetPitMode(0);
+                    vtxProtoSetPitMode(vtxState.request.pitMode);
                     vtxProtoSetState(VTX_STATE_QUERY_DELAY);
                 }
                 else if (vtxState.updateReqMask & VTX_UPDATE_REQ_FREQUENCY) {
@@ -365,6 +368,10 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 
                     if (!(vtxState.updateReqMask & VTX_UPDATE_REQ_POWER) && (vtxState.state.power != vtxState.request.power)) {
                         vtxState.updateReqMask |= VTX_UPDATE_REQ_POWER;
+                    }
+
+                    if (vtxState.request.pitModeRequested && vtxState.state.pitMode != vtxState.request.pitMode) {
+                        vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
                     }
 
                     // We got the status response - proceed to IDLE
@@ -446,9 +453,9 @@ static void impl_SetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
 {
     UNUSED(vtxDevice);
 
-    if (onoff == 0) {
-        vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
-    }
+    vtxState.request.pitMode = onoff != 0;
+    vtxState.request.pitModeRequested = true;
+    vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
 }
 
 static bool impl_GetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel)
@@ -578,6 +585,41 @@ const char * const trampPowerNames_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = 
 const uint16_t trampPowerTable_1G3_2000[VTX_TRAMP_1G3_MAX_POWER_COUNT]         = { 25, 200, 2000 };
 const char * const trampPowerNames_1G3_2000[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = { "---", "25 ", "200", "2000" };
 
+static char customPowerNames[VTX_TRAMP_5G8_MAX_POWER_COUNT][6];
+static char *customPowerNamePointers[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1];
+
+static bool vtxProtoUseCustomPowerTable(void)
+{
+    const uint16_t *levels = vtxSettingsConfig()->trampPowerLevels;
+    unsigned count = 0;
+    bool ended = false;
+    for (unsigned i = 0; i < VTX_TRAMP_5G8_MAX_POWER_COUNT; i++) {
+        if (levels[i] == 0) {
+            ended = true;
+        } else {
+            // Reject holes, duplicate/decreasing powers and out-of-range EEPROM values.
+            if (ended || levels[i] > 10000 || (i > 0 && levels[i] <= levels[i - 1])) {
+                return false;
+            }
+            count++;
+        }
+    }
+    if (!count) {
+        return false;
+    }
+
+    customPowerNamePointers[0] = "---";
+    for (unsigned i = 0; i < count; i++) {
+        snprintf(customPowerNames[i], sizeof(customPowerNames[i]), "%u", (unsigned)levels[i]);
+        customPowerNamePointers[i + 1] = customPowerNames[i];
+    }
+    vtxState.metadata.powerTablePtr = levels;
+    vtxState.metadata.powerTableCount = count;
+    impl_vtxDevice.capability.powerCount = count;
+    impl_vtxDevice.capability.powerNames = customPowerNamePointers;
+    return true;
+}
+
 static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
 {
     switch (vtxSettingsConfig()->frequencyGroup) {
@@ -644,10 +686,12 @@ static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
             }
             break;
     }
+    vtxProtoUseCustomPowerTable();
 }
 
 bool vtxTrampInit(void)
 {
+    memset(&vtxState, 0, sizeof(vtxState));
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_VTX_TRAMP);
 
     if (portConfig) {

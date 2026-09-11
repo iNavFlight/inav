@@ -117,6 +117,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXAUTOSPEED,        .boxName = "AUTO SPEED",        .permanentId = 69 },
     { .boxId = BOXTERRAINAGLHOLD,   .boxName = "TERRAIN AGL HOLD",  .permanentId = 70 },
     { .boxId = BOXINFLIGHTMENU,     .boxName = "IN FLIGHT MENU",    .permanentId = 71 },
+    { .boxId = BOXVTXPITMODE,       .boxName = "VTX PIT MODE",      .permanentId = 72 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -337,6 +338,12 @@ void initActiveBoxIds(void)
 
     ADD_ACTIVE_BOX(BOXFAILSAFE);
 
+#ifdef USE_VTX_CONTROL
+    if (feature(FEATURE_VTX)) {
+        ADD_ACTIVE_BOX(BOXVTXPITMODE);
+    }
+#endif
+
 #if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT)
     ADD_ACTIVE_BOX(BOXCAMERA1);
     ADD_ACTIVE_BOX(BOXCAMERA2);
@@ -448,6 +455,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),           BOXUSER2);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER3)),           BOXUSER3);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER4)),           BOXUSER4);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXVTXPITMODE)),       BOXVTXPITMODE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)),    BOXLOITERDIRCHN);
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);
