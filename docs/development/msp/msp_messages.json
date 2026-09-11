@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 0
+        "patch": 1
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -10380,6 +10380,59 @@
             "reply": null,
             "notes": "Expects 1 byte. Will fail if armed. Calls `setConfigMixerProfileAndWriteEEPROM()`. Only applicable if `MAX_MIXER_PROFILE_COUNT` > 1.",
             "description": "Selects the active mixer profile and saves configuration."
+        },
+        "MSP2_INAV_PROFILE_NAMES": {
+            "code": 8322,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "maxNameLength",
+                        "ctype": "uint8_t",
+                        "desc": "Maximum name length the firmware stores (`MAX_PROFILE_NAME_LENGTH`, 12)",
+                        "units": ""
+                    },
+                    {
+                        "name": "controlProfileCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of control profiles that follow (`MAX_CONTROL_PROFILE_COUNT`)",
+                        "units": ""
+                    },
+                    {
+                        "name": "controlProfileNames",
+                        "ctype": "uint8_t[]",
+                        "desc": "Per control profile: one length byte followed by that many name characters (no terminator); an unnamed profile sends length 0",
+                        "units": ""
+                    },
+                    {
+                        "name": "batteryProfileCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of battery profiles that follow (`MAX_BATTERY_PROFILE_COUNT`)",
+                        "units": ""
+                    },
+                    {
+                        "name": "batteryProfileNames",
+                        "ctype": "uint8_t[]",
+                        "desc": "Per battery profile: length byte plus name characters, as above",
+                        "units": ""
+                    },
+                    {
+                        "name": "mixerProfileCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of mixer profiles that follow (`MAX_MIXER_PROFILE_COUNT`, 1 or 2 depending on the target)",
+                        "units": ""
+                    },
+                    {
+                        "name": "mixerProfileNames",
+                        "ctype": "uint8_t[]",
+                        "desc": "Per mixer profile: length byte plus name characters, as above",
+                        "units": ""
+                    }
+                ]
+            },
+            "notes": "Names are set per profile through the string settings `control_profile_name`, `battery_profile_name` and `mixer_profile_name` (`MSP2_COMMON_SET_SETTING` acts on the active profile). Read-only; returns all slots at once so a client can label its profile selectors without switching profiles.",
+            "description": "Returns the user-defined names of all control, battery and mixer profiles."
         },
         "MSP2_ADSB_VEHICLE_LIST": {
             "code": 8336,

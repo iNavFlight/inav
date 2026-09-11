@@ -560,8 +560,8 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
         settingGetName(value, name);
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
-            // if the craftname has a leading space, then enclose the name in quotes
-            if (strcmp(name, "name") == 0 && ((const char *)defaultValuePointer)[0] == ' ') {
+            // Quoted string dumps preserve leading and trailing spaces on restore.
+            if (SETTING_TYPE(value) == VAR_STRING) {
                 cliPrintf("\"%s\"", (const char *)defaultValuePointer);
             } else {
                 printValuePointer(value, defaultValuePointer, 0);
@@ -569,7 +569,11 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
             cliPrintLinefeed();
         }
         cliPrintf(format, name);
-        printValuePointer(value, valuePointer, 0);
+        if (SETTING_TYPE(value) == VAR_STRING) {
+            cliPrintf("\"%s\"", (const char *)valuePointer);
+        } else {
+            printValuePointer(value, valuePointer, 0);
+        }
         cliPrintLinefeed();
     }
 }
@@ -4032,8 +4036,8 @@ static void cliSet(char *cmdline)
                 if (type == VAR_STRING) {
                     // Convert strings to uppercase. Lower case is not supported by the OSD.
                     sl_toupperptr(eqptr);
-                    // if setting the craftname, remove any quotes around the name.  This allows leading spaces in the name
-                    if ((strcmp(name, "name") == 0 || strcmp(name, "pilot_name") == 0) && (eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"')) {
+                    // All string settings accept the quoting emitted by dump/diff.
+                    if (strlen(eqptr) >= 2 && eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"') {
                         settingSetString(val, eqptr + 1, strlen(eqptr)-2);
                     } else {
                         settingSetString(val, eqptr, strlen(eqptr));
