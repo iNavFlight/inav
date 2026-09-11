@@ -448,6 +448,13 @@ static void mspSerializeServoMixer(sbuf_t *dst, const servoMixer_t *m)
  * Returns true if the command was processd, false otherwise.
  * May set mspPostProcessFunc to a function to be called once the command has been processed
  */
+static void mspWriteProfileName(sbuf_t *dst, const char *name)
+{
+    const uint8_t length = strnlen(name, MAX_PROFILE_NAME_LENGTH);
+    sbufWriteU8(dst, length);
+    sbufWriteData(dst, name, length);
+}
+
 static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
 {
     UNUSED(mspPostProcessFn);
@@ -1926,6 +1933,22 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 #endif
+
+    case MSP2_INAV_PROFILE_NAMES:
+        sbufWriteU8(dst, MAX_PROFILE_NAME_LENGTH);
+        sbufWriteU8(dst, MAX_CONTROL_PROFILE_COUNT);
+        for (int i = 0; i < MAX_CONTROL_PROFILE_COUNT; i++) {
+            mspWriteProfileName(dst, controlProfiles(i)->name);
+        }
+        sbufWriteU8(dst, MAX_BATTERY_PROFILE_COUNT);
+        for (int i = 0; i < MAX_BATTERY_PROFILE_COUNT; i++) {
+            mspWriteProfileName(dst, batteryProfiles(i)->name);
+        }
+        sbufWriteU8(dst, MAX_MIXER_PROFILE_COUNT);
+        for (int i = 0; i < MAX_MIXER_PROFILE_COUNT; i++) {
+            mspWriteProfileName(dst, mixerProfiles(i)->name);
+        }
+        break;
 
 #ifdef USE_DRONECAN
     case MSP2_INAV_DRONECAN_NODES:

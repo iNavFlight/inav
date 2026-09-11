@@ -25,6 +25,8 @@
 
 #include "platform.h"
 
+#include "config/profile_name.h"
+
 typedef enum {
     CURRENT_SENSOR_NONE = 0,
     CURRENT_SENSOR_ADC,
@@ -159,4 +161,5 @@ typedef struct batteryProfile_s {
     } powerLimits;
 #endif // USE_POWER_LIMITS
 
+    char name[MAX_PROFILE_NAME_LENGTH + 1];
 } batteryProfile_t;

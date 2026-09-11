@@ -201,6 +201,9 @@ Here are the OSD Elements provided by INAV.
 | 166 | OSD_NAV_FW_ALT_CONTROL_RESPONSE                  | 8.0.0  |       |
 | 167 | OSD_NAV_MIN_GROUND_SPEED                         | 9.0.0  |       |
 | 168 | OSD_THROTTLE_GAUGE                               | 9.0.0  |       |
+| 172 | OSD_CONTROL_PROFILE_NAME                         | 10.0.0 |       |
+| 173 | OSD_BATTERY_PROFILE_NAME                         | 10.0.0 |       |
+| 174 | OSD_MIXER_PROFILE_NAME                           | 10.0.0 |       |
 
 # Pilot Logos
 

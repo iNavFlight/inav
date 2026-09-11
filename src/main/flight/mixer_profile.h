@@ -4,6 +4,7 @@
 #include "flight/failsafe.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
+#include "config/profile_name.h"
 
 #ifndef MAX_MIXER_PROFILE_COUNT
 #define MAX_MIXER_PROFILE_COUNT 2
@@ -33,6 +34,7 @@ typedef struct mixerProfile_s {
     mixerConfig_t mixer_config;
     motorMixer_t MotorMixers[MAX_SUPPORTED_MOTORS];
     servoMixer_t ServoMixers[MAX_SERVO_RULES];
+    char name[MAX_PROFILE_NAME_LENGTH + 1];
 } mixerProfile_t;
 
 PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
