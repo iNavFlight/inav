@@ -71,6 +71,8 @@ static void flashfsSetTailAddress(uint32_t address)
 
 void flashfsEraseCompletely(void)
 {
+    // Drain the driver's page cache before erasing; the free-space scan reuses the chip buffer.
+    flashFlush();
     flashPartitionErase(flashPartition);
     flashfsClearBuffer();
 
