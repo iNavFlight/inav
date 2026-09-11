@@ -5809,6 +5809,8 @@ static void osdShowArmed(void)
 static void osdFilterData(timeUs_t currentTimeUs)
 {
     static timeUs_t lastRefresh = 0;
+    static bool batteryWasPresent = false;
+    const bool batteryPresent = getBatteryState() != BATTERY_NOT_PRESENT;
     float refresh_dT = US2S(cmpTimeUs(currentTimeUs, lastRefresh));
 
     GForce = fast_fsqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
@@ -5821,7 +5823,12 @@ static void osdFilterData(timeUs_t currentTimeUs)
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             GForceAxis[axis] = pt1FilterApply3(&GForceFilterAxis[axis], GForceAxis[axis], refresh_dT);
         }
-        batteryRemainingPercent = pt1FilterApply3(&batteryRemainingFilterState, calculateBatteryPercentage(), refresh_dT);
+        if (batteryPresent != batteryWasPresent) {
+            batteryRemainingPercent = calculateBatteryPercentage();
+            pt1FilterReset(&batteryRemainingFilterState, batteryRemainingPercent);
+        } else {
+            batteryRemainingPercent = pt1FilterApply3(&batteryRemainingFilterState, calculateBatteryPercentage(), refresh_dT);
+        }
     } else {   // init OSD filter f_cut values
         pt1FilterSetCutoff(&GForceFilter, GFORCE_FILTER_T_CUT_HZ);
         pt1FilterSetCutoff(&glideTimeFilterState, 0.5f);
@@ -5837,6 +5844,7 @@ static void osdFilterData(timeUs_t currentTimeUs)
             pt1FilterSetCutoff(&GForceFilterAxis[axis], GFORCE_FILTER_T_CUT_HZ);
         }
     }
+    batteryWasPresent = batteryPresent;
     lastRefresh = currentTimeUs;
 }
 
