@@ -217,6 +217,7 @@ void geozoneReset(int8_t idx);
 void geozoneResetVertices(int8_t zoneId, int16_t idx);
 void geozoneUpdate(timeUs_t curentTimeUs);
 bool geozoneIsBlockingArming(void);
+bool geozoneIsConfigInvalid(void);
 void geozoneAdvanceRthAvoidWaypoint(void);
 int8_t geozoneCheckForNFZAtCourse(bool isRTH);
 bool geoZoneIsLastRthWaypoint(void);
