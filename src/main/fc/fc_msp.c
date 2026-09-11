@@ -226,7 +226,7 @@ static void mspSerialPassthroughFn(serialPort_t *serialPort)
     }
 }
 
-static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
+static mspResult_e mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
 {
     const unsigned int dataSize = sbufBytesRemaining(src);  /* Payload size in Bytes */
 
@@ -254,6 +254,11 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
          break;
 #ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
     case MSP_PASSTHROUGH_ESC_4WAY:
+        // entering the 4way interface stops the motor outputs, refuse while armed
+        if (ARMING_FLAG(ARMED)) {
+            return MSP_RESULT_ERROR;
+        }
+
         // get channel number
         // switch all motor lines HI
         // reply with the count of ESC found
@@ -267,6 +272,8 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
     default:
         sbufWriteU8(dst, 0);
     }
+
+    return MSP_RESULT_ACK;
 }
 
 static void mspRebootNormalFn(serialPort_t *serialPort)
@@ -377,7 +384,10 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 
     // size will be lower than that requested if we reach end of volume
     const uint32_t flashfsSize = flashfsGetSize();
-    if (readLen > flashfsSize - address) {
+    if (address >= flashfsSize) {
+        // nothing left to read from this address
+        readLen = 0;
+    } else if (readLen > flashfsSize - address) {
         // truncate the request
         readLen = flashfsSize - address;
     }
@@ -385,9 +395,11 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
     // Write address
     sbufWriteU32(dst, address);
 
-    // Read into streambuf directly
-    const int bytesRead = flashfsReadAbs(address, sbufPtr(dst), readLen);
-    sbufAdvance(dst, bytesRead);
+    if (readLen > 0) {
+        // Read into streambuf directly
+        const int bytesRead = flashfsReadAbs(address, sbufPtr(dst), readLen);
+        sbufAdvance(dst, bytesRead);
+    }
 }
 #endif
 
@@ -5157,8 +5169,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
         ret = MSP_RESULT_ACK;
     } else if (cmdMSP == MSP_SET_PASSTHROUGH) {
-        mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
-        ret = MSP_RESULT_ACK;
+        ret = mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
     } else if (cmdMSP == MSP_REBOOT) {
         if (!ARMING_FLAG(ARMED)) {
             ret = mspFcRebootCommand(src, mspPostProcessFn);
