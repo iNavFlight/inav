@@ -490,7 +490,8 @@ bool copyConfigProfileAndWriteEEPROM(configProfileType_e type, uint8_t fromIndex
 
     switch (type) {
         case CONFIG_PROFILE_TYPE_CONTROL:
-            if (fromIndex >= MAX_PROFILE_COUNT || toIndex >= MAX_PROFILE_COUNT) {
+            if (fromIndex >= MAX_PROFILE_COUNT || toIndex >= MAX_PROFILE_COUNT ||
+                fromIndex >= MAX_CONTROL_PROFILE_COUNT || toIndex >= MAX_CONTROL_PROFILE_COUNT) {
                 return false;
             }
             pgCopyProfile(fromIndex, toIndex);
