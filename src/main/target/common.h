@@ -74,6 +74,8 @@
 #define USE_SERVO_SBUS
 #endif
 
+#define USE_MOTOR_SRXL2     // Spektrum Smart ESC (Smart Throttle) motor output
+
 #ifndef USE_ADC_AVERAGING
 #define USE_ADC_AVERAGING
 #endif
