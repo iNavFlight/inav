@@ -133,12 +133,23 @@
  * 0x8000, which the specification calls "Servo Center", and the shift leaves the
  * low two bits clear as the specification requires.
  *
- * Note this does not reach the extremes of the 0..65532 range: 1000 us lands on
- * 768 and 2000 us on 64768, because a Spektrum receiver's full travel decodes to
- * 988..2012 us rather than 1000..2000. Staying consistent with INAV's own
- * decoder is worth more than the last 1.2 percent, but if an ESC calibrated its
- * endpoints against a receiver at full stick and will not reach full throttle,
- * this is the constant to revisit.
+ * This deliberately does not reach the ends of the 0..65532 range: 1000 us lands
+ * on 768 and 2000 us on 64768, because a Spektrum receiver's full travel decodes
+ * to 988..2012 us rather than 1000..2000. That is the point - it makes us look
+ * like a receiver, which is what the ESC was calibrated against.
+ *
+ * Spektrum ESCs learn their endpoints from the signal during the ESC/Radio
+ * calibration in their manual, and INAV cannot perform that procedure: it wants
+ * full throttle present when the battery is connected, and INAV outputs
+ * mincommand while disarmed. So the calibration is done with a Spektrum
+ * transmitter, or left at the factory default, and the range the ESC remembers
+ * is a receiver's. Matching it is why this scaling is the right one.
+ *
+ * The cost is about 1.2 percent of travel at the top. That is the better half of
+ * the trade, because the alternative - stretching 1000..2000 us across the full
+ * range - moves the centre, and the centre is where an ESC in Reverse brake mode
+ * takes zero thrust. A slightly low maximum is a worse throttle curve; a
+ * misplaced centre is creeping thrust at neutral.
  */
 #define SRXL2_PULSE_OFFSET_US       988
 #define SRXL2_PULSE_SHIFT           6
