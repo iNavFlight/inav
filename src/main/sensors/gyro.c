@@ -79,6 +79,9 @@ FASTRAM gyro_t gyro; // gyro sensor object
 
 #ifdef USE_DUAL_GYRO
 #define MAX_GYRO_COUNT 2
+/* Highest bus tag any in-tree target gives an IMU position. Targets disagree:
+ * most use 0 and 1, AETH743Basic uses 0 and 2. */
+#define MAX_GYRO_SENSOR_TAG 2
 #else
 #define MAX_GYRO_COUNT 1
 #endif
@@ -348,13 +351,30 @@ bool gyroInit(void)
      */
     gyro.secondaryInitialized = false;
     if (gyroConfig()->gyro_secondary_enabled) {
-        gyroDev[1].imuSensorToUse = (gyroConfig()->gyro_to_use == 0) ? 1 : 0;
-        if (gyroDetect(&gyroDev[1], GYRO_AUTODETECT) != GYRO_NONE) {
+        /*
+         * Do not assume the two IMU positions are tagged 0 and 1. Most targets
+         * do, but AETH743Basic registers them as 0 and 2, and a few register
+         * both positions with tag 0 - where not even gyro_to_use can reach the
+         * second one. Probe the candidate tags instead, skipping the one the
+         * primary already claimed, and leave the feature disabled if nothing
+         * else answers.
+         */
+        for (uint8_t tag = 0; tag <= MAX_GYRO_SENSOR_TAG; tag++) {
+            if (tag == gyroConfig()->gyro_to_use) {
+                continue;
+            }
+
+            gyroDev[1].imuSensorToUse = tag;
+            if (gyroDetect(&gyroDev[1], GYRO_AUTODETECT) == GYRO_NONE) {
+                continue;
+            }
+
             gyroDev[1].lpf = GYRO_LPF_256HZ;
             gyroDev[1].requestedSampleIntervalUs = TASK_GYRO_LOOPTIME;
             gyroDev[1].sampleRateIntervalUs = TASK_GYRO_LOOPTIME;
             gyroDev[1].initFn(&gyroDev[1]);
             gyro.secondaryInitialized = true;
+            break;
         }
     }
 #endif
@@ -387,7 +407,15 @@ void gyroStartCalibration(void)
      * sensor and applying it here would bias the logged samples.
      */
     if (gyro.secondaryInitialized) {
-        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, false);
+        /*
+         * allowFailure is true here, unlike for the primary. Nothing gates
+         * arming on this sensor, so a calibration that keeps restarting on
+         * vibration would never finish and every logged sample would stay
+         * zero for the whole flight. Failing once and then logging the sensor
+         * with a zero offset keeps the channel useful: a constant bias can be
+         * removed in post-processing, a column of zeroes cannot.
+         */
+        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, true);
     }
 #endif
 
@@ -439,6 +467,8 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         if (persist) {
             setGyroCalibration(dev->gyroZero);
         }
+#else
+        UNUSED(persist);
 #endif
 
         LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", (int16_t) dev->gyroZero[X], (int16_t) dev->gyroZero[Y], (int16_t) dev->gyroZero[Z]);
