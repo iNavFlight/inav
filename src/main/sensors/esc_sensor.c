@@ -43,6 +43,9 @@
 #include "flight/mixer.h"
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
+#include "drivers/pwm_mapping.h"
+
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -212,6 +215,23 @@ bool escSensorInitialize(void)
         return false;
     }
 
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * An SRXL2 ESC reports telemetry back over the same wire that carries its
+     * throttle, so there is no separate telemetry port to open. Taking that
+     * source here rather than anywhere else means every existing consumer -
+     * the RPM filter, OSD, Blackbox, current estimation - is fed without
+     * knowing where the numbers came from.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+            escSensorData[i].dataAge = ESC_DATA_INVALID;
+        }
+        ENABLE_STATE(ESC_SENSOR_ENABLED);
+        return true;
+    }
+#endif
+
     // FUNCTION_ESCSERIAL is shared between SERIALSHOT and ESC_SENSOR telemetry
     // They are mutually exclusive
     serialPortConfig_t * portConfig = findSerialPortConfig(FUNCTION_ESCSERIAL);
@@ -235,6 +255,30 @@ bool escSensorInitialize(void)
 
 void escSensorUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_MOTOR_SRXL2
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        srxl2EscTelemetry_t t;
+        if (srxl2MotorGetTelemetry(0, &t)) {
+            escSensorData[0].dataAge     = 0;
+            escSensorData[0].temperature = t.temperatureFet / 10;   /* 0.1 degC -> degC */
+            escSensorData[0].voltage     = t.voltage;               /* both 0.01 V */
+            escSensorData[0].current     = t.current;               /* both 0.01 A */
+            /*
+             * The wire carries electrical rpm; everything downstream expects
+             * mechanical, which is what computeRpm() produces for the serial
+             * backends. Same division, done here because our value is already in
+             * rpm rather than the LSB units that function takes.
+             */
+            const uint8_t poles = motorConfig()->motorPoleCount;
+            escSensorData[0].rpm = poles ? (t.rpm / (poles / 2)) : 0;
+        } else if (escSensorData[0].dataAge < ESC_DATA_INVALID) {
+            escSensorData[0].dataAge++;
+        }
+        escSensorDataNeedsUpdate = true;
+        return;
+    }
+#endif
+
     if (!escSensorPort) {
         return;
     }

@@ -34,6 +34,7 @@
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
+#include "io/motor_srxl2.h"
 #include "io/servo_sbus.h"
 #include "sensors/esc_sensor.h"
 
@@ -614,6 +615,19 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT150:
             motorConfigDigitalUpdateInterval(getEscUpdateFrequency());
             motorWritePtr = pwmWriteDigital;
+            break;
+#endif
+
+#ifdef USE_MOTOR_SRXL2
+        case PWM_TYPE_SRXL2:
+            /* Nothing to fall back on if this fails: the pin is a UART pin, not a
+             * timer output, so there is no PWM to degrade to. Leaving
+             * motorWritePtr null keeps the motor unwritten, which is the honest
+             * outcome of a port that was never assigned. */
+            if (srxl2MotorInitialize()) {
+                srxl2MotorSetReverseChannel(motorConfig()->srxl2ReverseChannel);
+                motorWritePtr = srxl2MotorUpdate;
+            }
             break;
 #endif
     }
