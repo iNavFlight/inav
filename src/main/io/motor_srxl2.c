@@ -95,9 +95,26 @@
  * driver would be wrong to keep polling.
  */
 
-/* Control Data commands */
+/*
+ * Control Data commands.
+ *
+ * The protocol also has a failsafe channel-data command, 0x01, which a receiver
+ * sends when its RF link is gone so each device applies its own failsafe. This
+ * driver never sends it, and that is deliberate.
+ *
+ * On this bus the master is the flight controller and there is no RF link: the
+ * link is a wire. INAV owns failsafe, and it handles it by substituting channel
+ * values and continuing to fly - LAND and RTH actively command the motors all the
+ * way down. Telling the ESC the link had failed would hand throttle authority to
+ * the ESC's own behaviour in the middle of INAV's landing, which is the opposite
+ * of helpful.
+ *
+ * What does protect against this wire dying is the ESC's own receive timeout,
+ * which needs no cooperation from us: if the flight controller stops sending, the
+ * ESC falls back on its own, and that is the case where its failsafe is the right
+ * authority.
+ */
 #define SRXL2_CMD_CHANNEL_DATA      0x00
-#define SRXL2_CMD_CHANNEL_FAILSAFE  0x01
 
 /* Reply ID 0x00 means "no reply wanted" (specification 7.1.1). */
 #define SRXL2_REPLY_NONE            0x00
@@ -230,7 +247,6 @@ static bool      baudSwitchPending;         /* waiting for TX to drain */
 
 static uint16_t  channelValue[32];
 static uint32_t  channelMask;
-static bool      failsafeActive;
 static uint8_t   reverseChannel1Based = 5;  /* Avian "Thrust Rev." default: CH5 */
 static uint8_t   telemRequestCounter;
 
@@ -454,12 +470,9 @@ static void srxl2SendControlData(void)
     uint8_t buf[SRXL2_MAX_FRAME];
     uint8_t n = 0;
 
-    /* Request telemetry only occasionally - see SRXL2_TELEM_REQUEST_EVERY - and
-     * never while announcing failsafe: the reference implementation sets the
-     * reply ID to zero for failsafe channel data, since a device being told the
-     * link is gone has nothing useful to answer with. */
+    /* Request telemetry only occasionally - see SRXL2_TELEM_REQUEST_EVERY. */
     uint8_t replyId = SRXL2_REPLY_NONE;
-    if (!failsafeActive && ++telemRequestCounter >= SRXL2_TELEM_REQUEST_EVERY) {
+    if (++telemRequestCounter >= SRXL2_TELEM_REQUEST_EVERY) {
         telemRequestCounter = 0;
         replyId = escDeviceId;
     }
@@ -478,7 +491,7 @@ static void srxl2SendControlData(void)
     buf[n++] = SRXL2_MAGIC;
     buf[n++] = ControlData;
     buf[n++] = 0;                       /* length, patched below */
-    buf[n++] = failsafeActive ? SRXL2_CMD_CHANNEL_FAILSAFE : SRXL2_CMD_CHANNEL_DATA;
+    buf[n++] = SRXL2_CMD_CHANNEL_DATA;
     buf[n++] = replyId;
 
     /*
@@ -548,7 +561,6 @@ bool srxl2MotorInitialize(void)
     escBaudSupported = 0;
     agreedBaudBits = 0;
     baudSwitchPending = false;
-    failsafeActive = false;
     telemRequestCounter = 0;
 
     /* Start the throttle channel at its lowest value rather than zero, so the
@@ -589,11 +601,6 @@ void srxl2MotorSetReverse(bool armed)
 void srxl2MotorSetReverseChannel(uint8_t channel1Based)
 {
     reverseChannel1Based = channel1Based;
-}
-
-void srxl2MotorSetFailsafe(bool failsafe)
-{
-    failsafeActive = failsafe;
 }
 
 /* Checked on both sides rather than trusting the caller, because one of these
