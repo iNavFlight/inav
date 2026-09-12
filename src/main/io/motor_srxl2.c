@@ -48,6 +48,10 @@
 #include "drivers/serial.h"
 #include "drivers/time.h"
 
+#include "fc/runtime_config.h"
+
+#include "sensors/battery.h"
+
 #include "io/serial.h"
 #include "io/motor_srxl2.h"
 
@@ -128,6 +132,33 @@
 #define SRXL2_TELEM_STALE_MS        1000
 
 /*
+ * Calibration phases end themselves. The high phase has to outlast a human
+ * reaching for a battery lead; the low phase only has to outlast the ESC's
+ * cell-count tones. Neither may persist, because one of them commands full
+ * throttle.
+ */
+#define SRXL2_CAL_WAIT_TIMEOUT_MS   60000   /* time to walk over and plug the battery in */
+#define SRXL2_CAL_MANUAL_TIMEOUT_MS 30000
+
+/*
+ * How long to keep holding full throttle after the ESC gains power.
+ *
+ * The manual's window opens at the two short tones and lasts five seconds. Those
+ * tones follow the power-up sequence by a second or so, so dropping three
+ * seconds after power-up lands inside it with room on both sides. This is the
+ * one number in the sequence taken from the published tone timings rather than
+ * measured, and the first thing to adjust if an ESC refuses the calibration.
+ */
+#define SRXL2_CAL_SETTLE_MS         3000
+
+/* Long enough for the cell-count tones and the closing long tone. */
+#define SRXL2_CAL_LOW_MS            5000
+
+/* Endpoints presented during calibration, on INAV's usual motor scale. */
+#define SRXL2_CAL_HIGH_US           2000
+#define SRXL2_CAL_LOW_US            1000
+
+/*
  * Channel value scaling, the exact inverse of what rx/srxl2.c applies when it
  * decodes channel data: us = 988 + (value >> 6). 1500 us therefore maps onto
  * 0x8000, which the specification calls "Servo Center", and the shift leaves the
@@ -195,6 +226,9 @@ static uint8_t   reverseChannel1Based = 5;  /* Avian "Thrust Rev." default: CH5 
 static uint8_t   telemRequestCounter;
 
 static srxl2EscTelemetry_t escTelemetry;
+
+static srxl2CalPhase_e calPhase = SRXL2_CAL_OFF;
+static timeMs_t        calPhaseMs;      /* when the current phase began */
 
 static uint32_t  statTxFrames, statRxFrames, statCrcErrors, statHandshakes;
 
@@ -418,6 +452,17 @@ static void srxl2SendControlData(void)
         replyId = escDeviceId;
     }
 
+    /* Calibration overrides the throttle here rather than at staging time, so no
+     * mixer path can quietly write over it between the two. */
+    if (calPhase != SRXL2_CAL_OFF) {
+        const bool high = (calPhase == SRXL2_CAL_WAIT_BATTERY)
+                       || (calPhase == SRXL2_CAL_SETTLE)
+                       || (calPhase == SRXL2_CAL_HIGH_MANUAL);
+        channelValue[SRXL2_CHANNEL_THROTTLE] =
+            srxl2UsToValue(high ? SRXL2_CAL_HIGH_US : SRXL2_CAL_LOW_US);
+        channelMask |= (1u << SRXL2_CHANNEL_THROTTLE);
+    }
+
     buf[n++] = SRXL2_MAGIC;
     buf[n++] = ControlData;
     buf[n++] = 0;                       /* length, patched below */
@@ -533,6 +578,121 @@ void srxl2MotorSetFailsafe(bool failsafe)
     failsafeActive = failsafe;
 }
 
+/* Checked on both sides rather than trusting the caller, because one of these
+ * phases commands full throttle with the aircraft disarmed. */
+static srxl2CalResult_e srxl2CalCommonChecks(void)
+{
+    if (ARMING_FLAG(ARMED)) {
+        return SRXL2_CAL_REJECT_ARMED;
+    }
+    if (!srxl2Port) {
+        return SRXL2_CAL_REJECT_NO_PORT;
+    }
+    return SRXL2_CAL_ACCEPTED;
+}
+
+srxl2CalResult_e srxl2MotorCalibrationBegin(void)
+{
+    const srxl2CalResult_e common = srxl2CalCommonChecks();
+    if (common != SRXL2_CAL_ACCEPTED) {
+        return common;
+    }
+
+    /* Detecting the ESC powering up is the whole mechanism, so say so plainly
+     * instead of starting a sequence that can never advance. */
+    if (!isBatteryVoltageConfigured()) {
+        return SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR;
+    }
+
+    /*
+     * Refuse if the pack is already in. The ESC only reads its endpoints as it
+     * powers up, so starting with it already running would achieve nothing - and
+     * it would mean presenting full throttle to an ESC that can act on it.
+     */
+    if (getBatteryState() != BATTERY_NOT_PRESENT) {
+        return SRXL2_CAL_REJECT_BATTERY_PRESENT;
+    }
+
+    calPhase = SRXL2_CAL_WAIT_BATTERY;
+    calPhaseMs = millis();
+    return SRXL2_CAL_ACCEPTED;
+}
+
+srxl2CalResult_e srxl2MotorCalibrationManual(srxl2CalPhase_e phase)
+{
+    const srxl2CalResult_e common = srxl2CalCommonChecks();
+    if (common != SRXL2_CAL_ACCEPTED) {
+        return common;
+    }
+
+    calPhase = phase;
+    calPhaseMs = millis();
+    return SRXL2_CAL_ACCEPTED;
+}
+
+void srxl2MotorCalibrationAbort(void)
+{
+    calPhase = SRXL2_CAL_OFF;
+}
+
+srxl2CalPhase_e srxl2MotorCalibrationPhase(void)
+{
+    return calPhase;
+}
+
+/* Advance the unattended sequence. Every phase leaves on a deadline, so nothing
+ * here can strand the output at full throttle. */
+static void srxl2CalProcess(timeMs_t now)
+{
+    if (calPhase == SRXL2_CAL_OFF) {
+        return;
+    }
+
+    if (ARMING_FLAG(ARMED)) {
+        calPhase = SRXL2_CAL_OFF;
+        return;
+    }
+
+    const timeMs_t elapsed = now - calPhaseMs;
+
+    switch (calPhase) {
+    case SRXL2_CAL_WAIT_BATTERY:
+        /* The ESC gaining power is what opens the window. Either signal will do:
+         * the pack appearing, or the ESC announcing itself on the bus. */
+        if (getBatteryState() != BATTERY_NOT_PRESENT || escDeviceId != 0) {
+            calPhase = SRXL2_CAL_SETTLE;
+            calPhaseMs = now;
+        } else if (elapsed >= SRXL2_CAL_WAIT_TIMEOUT_MS) {
+            calPhase = SRXL2_CAL_OFF;
+        }
+        break;
+
+    case SRXL2_CAL_SETTLE:
+        if (elapsed >= SRXL2_CAL_SETTLE_MS) {
+            calPhase = SRXL2_CAL_LOW;
+            calPhaseMs = now;
+        }
+        break;
+
+    case SRXL2_CAL_LOW:
+        if (elapsed >= SRXL2_CAL_LOW_MS) {
+            calPhase = SRXL2_CAL_OFF;
+        }
+        break;
+
+    case SRXL2_CAL_HIGH_MANUAL:
+    case SRXL2_CAL_LOW_MANUAL:
+        if (elapsed >= SRXL2_CAL_MANUAL_TIMEOUT_MS) {
+            calPhase = SRXL2_CAL_OFF;
+        }
+        break;
+
+    default:
+        calPhase = SRXL2_CAL_OFF;
+        break;
+    }
+}
+
 void srxl2MotorSendUpdate(void)
 {
     /* Nothing to do: values are staged by srxl2MotorUpdate() and transmitted on
@@ -549,6 +709,8 @@ void srxl2MotorProcess(void)
     srxl2DrainRx();
 
     const timeMs_t now = millis();
+
+    srxl2CalProcess(now);
 
     /* A deferred baud change completes as soon as the broadcast has left. */
     if (baudSwitchPending && isSerialTransmitBufferEmpty(srxl2Port)) {
