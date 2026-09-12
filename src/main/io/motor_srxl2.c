@@ -130,7 +130,15 @@
 /*
  * Channel value scaling, the exact inverse of what rx/srxl2.c applies when it
  * decodes channel data: us = 988 + (value >> 6). 1500 us therefore maps onto
- * 0x8000, which the specification calls "Servo Center".
+ * 0x8000, which the specification calls "Servo Center", and the shift leaves the
+ * low two bits clear as the specification requires.
+ *
+ * Note this does not reach the extremes of the 0..65532 range: 1000 us lands on
+ * 768 and 2000 us on 64768, because a Spektrum receiver's full travel decodes to
+ * 988..2012 us rather than 1000..2000. Staying consistent with INAV's own
+ * decoder is worth more than the last 1.2 percent, but if an ESC calibrated its
+ * endpoints against a receiver at full stick and will not reach full throttle,
+ * this is the constant to revisit.
  */
 #define SRXL2_PULSE_OFFSET_US       988
 #define SRXL2_PULSE_SHIFT           6
@@ -405,7 +413,11 @@ static void srxl2SendControlData(void)
     buf[n++] = failsafeActive ? SRXL2_CMD_CHANNEL_FAILSAFE : SRXL2_CMD_CHANNEL_DATA;
     buf[n++] = replyId;
 
-    buf[n++] = 0;                       /* rssi: we are not an RF device */
+    /* RSSI has to read as a healthy link. The field is defined as "best RSSI
+     * when sending channel data", and an ESC is entitled to treat nothing as a
+     * dead link and fall back to its own failsafe, so reporting 0 here would be
+     * actively wrong even though we are not an RF device. */
+    buf[n++] = 100;
     buf[n++] = 0;                       /* frameLosses low */
     buf[n++] = 0;                       /* frameLosses high */
 
@@ -414,6 +426,16 @@ static void srxl2SendControlData(void)
     buf[n++] = (uint8_t)((channelMask >> 16) & 0xFF);
     buf[n++] = (uint8_t)((channelMask >> 24) & 0xFF);
 
+    /*
+     * Only the channels we actually mean, little-endian, lowest index first.
+     *
+     * Deliberately not padded with centred values on the channels we do not
+     * use. Doing that is reasonable for a surface ESC, where centre means
+     * stopped, and dangerous for an aircraft one, where 1500 us is half
+     * throttle: if the ESC turned out to read throttle on an index we did not
+     * expect, padding would spin the motor at 50 percent, while sending nothing
+     * there simply leaves it idle. Wrong guess, safe outcome.
+     */
     for (uint8_t ch = 0; ch < 32; ch++) {
         if (channelMask & (1u << ch)) {
             buf[n++] = (uint8_t)(channelValue[ch] & 0xFF);
