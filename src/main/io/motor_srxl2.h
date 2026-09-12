@@ -162,10 +162,6 @@ void srxl2MotorSendUpdate(void);
  */
 void srxl2MotorProcess(void);
 
-/* Mirror INAV's failsafe state onto the bus, so the ESC applies its own
- * failsafe behaviour rather than continuing with the last value. */
-void srxl2MotorSetFailsafe(bool failsafe);
-
 /* True once an ESC has answered the handshake and is still responding. */
 bool srxl2MotorIsConnected(void);
 
