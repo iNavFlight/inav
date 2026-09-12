@@ -430,7 +430,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
     if (!gyroConfig()->init_gyro_cal_enabled) {
         // marks that the gyro calibration has ended
-        gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE;
+        gyroCal->params.state = ZERO_CALIBRATION_DONE;
         // pass the calibration values
         gyroDev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
         gyroDev->gyroZero[Y] = gyroConfig()->gyro_zero_cal[Y];
