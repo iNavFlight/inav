@@ -62,6 +62,53 @@ typedef struct {
 } srxl2EscTelemetry_t;
 
 /*
+ * ESC throttle-range calibration.
+ *
+ * Spektrum ESCs learn their endpoints from the signal present as the battery is
+ * connected: full throttle first, then low within five seconds. A Spektrum
+ * transmitter does this with the stick, and INAV otherwise cannot, because it
+ * outputs mincommand while disarmed - which leaves anyone without a Spektrum
+ * radio unable to calibrate the ESC at all.
+ *
+ * These phases override the throttle channel so the sequence can be driven from
+ * the flight controller. HIGH and LOW both abort on their own after a timeout, so
+ * the output cannot be left commanding full throttle.
+ */
+typedef enum {
+    SRXL2_CAL_OFF = 0,
+    SRXL2_CAL_WAIT_BATTERY,     /* full throttle held, waiting for the ESC to power up */
+    SRXL2_CAL_SETTLE,           /* ESC powered: holding high while it accepts the endpoint */
+    SRXL2_CAL_LOW,              /* low throttle so it accepts the other endpoint */
+    SRXL2_CAL_HIGH_MANUAL,      /* fallback for boards with no voltage sensing */
+    SRXL2_CAL_LOW_MANUAL,
+} srxl2CalPhase_e;
+
+typedef enum {
+    SRXL2_CAL_ACCEPTED = 0,
+    SRXL2_CAL_REJECT_ARMED,
+    SRXL2_CAL_REJECT_NO_PORT,
+    SRXL2_CAL_REJECT_BATTERY_PRESENT,
+    SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR,
+} srxl2CalResult_e;
+
+/*
+ * Run the whole sequence unattended: refuses to start unless the battery is
+ * disconnected, then holds full throttle, waits for the ESC to power up, and
+ * times the drop to low itself. The five second window in the manual starts at
+ * the ESC's tones, which only a person standing there can hear, so timing it
+ * from the moment the ESC gains power is the only way to hit it without asking
+ * the operator to type against a stopwatch.
+ */
+srxl2CalResult_e srxl2MotorCalibrationBegin(void);
+
+/* Drive one endpoint by hand. For boards that cannot sense battery voltage and
+ * therefore cannot detect the ESC powering up. */
+srxl2CalResult_e srxl2MotorCalibrationManual(srxl2CalPhase_e phase);
+
+void            srxl2MotorCalibrationAbort(void);
+srxl2CalPhase_e srxl2MotorCalibrationPhase(void);
+
+/*
  * Open the serial port assigned FUNCTION_ESC_SRXL2 and start the handshake.
  * Returns false if no port is assigned or it could not be opened, in which case
  * the caller must fall back to leaving the motors unwritten - this protocol has
