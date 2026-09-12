@@ -35,7 +35,8 @@ The motor pad that would normally have driven this ESC is simply left unused.
 
 ## Setting it up
 
-1. **Ports tab** — assign `Spektrum Smart ESC (SRXL2)` to a spare UART.
+1. **Ports tab** — assign `Spektrum Smart ESC (SRXL2)` to a spare UART, one per
+   motor. They are matched to motors in port order; see below.
 2. **Outputs tab** — set the ESC protocol to `SRXL2`.
 3. **Outputs tab** — set **Motor poles** correctly. This matters more than usual; see
    the RPM filter section below.
@@ -50,18 +51,31 @@ If your firmware was not built with this support the protocol does not appear in
 list at all, and neither does the port function. It is enabled by default on H7 and
 AT32 targets; other targets can add `#define USE_MOTOR_SRXL2` to their `target.h`.
 
-## One ESC per port
+## One ESC per port, several ports
 
-A single SRXL2 bus can address several ESCs, at device IDs 0x40 to 0x43, but each
-needs a distinct unit ID and the specification states that setting a unit ID over
-SRXL2 "is not implemented" — it expects physical switches or jumpers, which Avian
-ESCs do not have. So in practice one ESC per bus.
+A single SRXL2 bus can address several ESCs, at device IDs 0x40 to 0x4F, but each
+would need a distinct unit ID and the specification states that setting a unit ID
+over SRXL2 "is not implemented" — it expects physical switches or jumpers, which
+Avian ESCs do not have. So it is one ESC per bus, and a model with several motors
+needs a port for each.
 
-This driver drives one ESC, on one port. Nothing in the protocol prevents a motor
-per port, and for a twin-engine fixed-wing that would be reasonable, but note that
-SRXL2 sends at tens of hertz by design, where DSHOT sends at kilohertz. That is
-ample for an aircraft holding a cruise throttle and nowhere near enough for a
-multirotor, whatever the wiring.
+Up to four are supported. **Motors are matched to ports in order:** motor 1 is the
+lowest-numbered assigned UART, motor 2 the next, and so on. Nothing on the wire
+says which motor an ESC drives, so the wiring order is what carries that.
+
+If there are fewer ports than the mixer has motors, the board **refuses to arm**
+and reports `Not enough motor outputs/timers`. A motor with no port has nowhere to
+send its command and no timer output to fall back on, so a twin that can only
+drive one side must not be allowed into the air. The Outputs tab says so before it
+gets that far.
+
+Each port is an independent bus: its own handshake, its own baud negotiation, its
+own telemetry. A twin with one ESC unplugged therefore reports the link as down
+rather than partly up.
+
+Note that SRXL2 sends at tens of hertz by design, where DSHOT sends at kilohertz.
+That is ample for an aircraft holding a cruise throttle and nowhere near enough
+for a multirotor, whatever the wiring.
 
 ## Throttle range calibration
 
@@ -87,10 +101,15 @@ detect the ESC powering up.
 Either phase ends on its own if left alone, and arming cancels a sequence in
 progress.
 
+With more than one ESC all of them are calibrated together. They share a battery,
+so they power up together and the window the sequence aims at is the same window
+for all of them.
+
 ## Telemetry and the RPM filter
 
 Telemetry is read from the SRXL2 link and feeds everything that consumes ESC
-telemetry: OSD, Blackbox, current estimation, and the gyro RPM filter. It can be
+telemetry: OSD, Blackbox, current estimation, and the gyro RPM filter. Each port's
+ESC reports as its own motor, so motor 2's telemetry is motor 2's. It can be
 switched off with `esc_srxl2_telemetry`, which exists because telemetry shares the
 throttle wire and so cannot be declined by leaving a port unassigned as it would be
 for a conventional ESC.
@@ -102,9 +121,9 @@ notch at all.
 
 Two things to weigh before turning `rpm_gyro_filter_enabled` on:
 
-* Telemetry arrives at roughly 10 Hz, not at the loop rate. On a single-motor
-  aircraft holding a cruise throttle, rpm and the vibration peak both move slowly
-  and that is adequate. It is not equivalent to bidirectional DSHOT.
+* Telemetry arrives at roughly 10 Hz, not at the loop rate. On an aircraft holding
+  a cruise throttle, rpm and the vibration peak both move slowly and that is
+  adequate. It is not equivalent to bidirectional DSHOT.
 * INAV's own advice for this setting applies unchanged: turn it on only once ESC
   telemetry is working and the reported rpm looks right.
 
@@ -123,9 +142,14 @@ Nothing on the wire advertises which channel the ESC is watching, so a mismatch
 simply means reverse never engages.
 
 INAV arms that channel from the mixer: when it has decided the motor should run
-backwards, reverse is armed. There is no separate switch to set, deliberately — a
-switch of its own could disagree with the direction INAV had chosen, and thrust
-reverse is the last place that should happen.
+backwards, reverse is armed, on every ESC at once. There is no separate switch to
+set, deliberately — a switch of its own could disagree with the direction INAV had
+chosen, and thrust reverse is the last place that should happen. For the same
+reason it is not per motor: reversing one side of a twin and not the other is
+worth engineering against.
+
+`esc_srxl2_reverse_channel` applies to all of them, so every ESC on the model has
+to be programmed with the same `Thrust Rev.` channel.
 
 Note that `Brake Type = Reverse` changes what the throttle range means to the ESC:
 centre becomes zero thrust. Configure INAV for reversible motors to match, or at

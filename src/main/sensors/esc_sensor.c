@@ -264,23 +264,31 @@ void escSensorUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_MOTOR_SRXL2
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
-        srxl2EscTelemetry_t t;
-        if (srxl2MotorGetTelemetry(0, &t)) {
-            escSensorData[0].dataAge     = 0;
-            escSensorData[0].temperature = t.temperatureFet / 10;   /* 0.1 degC -> degC */
-            escSensorData[0].voltage     = t.voltage;               /* both 0.01 V */
-            escSensorData[0].current     = t.current;               /* both 0.01 A */
-            /*
-             * The wire carries electrical rpm; everything downstream expects
-             * mechanical, which is what computeRpm() produces for the serial
-             * backends. Same division, done here because our value is already in
-             * rpm rather than the LSB units that function takes.
-             */
-            const uint8_t poles = motorConfig()->motorPoleCount;
-            escSensorData[0].rpm = poles ? (t.rpm / (poles / 2)) : 0;
-        } else if (escSensorData[0].dataAge < ESC_DATA_INVALID) {
-            escSensorData[0].dataAge++;
+        /* One ESC per port, so escSensorData[i] belongs to the i-th assigned
+         * port. Motors past the last assigned port have no telemetry for the
+         * same reason they have no throttle, and are left invalid. */
+        const uint8_t count = MIN(srxl2MotorCount(), (uint8_t)MAX_SUPPORTED_MOTORS);
+
+        for (uint8_t i = 0; i < count; i++) {
+            srxl2EscTelemetry_t t;
+            if (srxl2MotorGetTelemetry(i, &t)) {
+                escSensorData[i].dataAge     = 0;
+                escSensorData[i].temperature = t.temperatureFet / 10;   /* 0.1 degC -> degC */
+                escSensorData[i].voltage     = t.voltage;               /* both 0.01 V */
+                escSensorData[i].current     = t.current;               /* both 0.01 A */
+                /*
+                 * The wire carries electrical rpm; everything downstream expects
+                 * mechanical, which is what computeRpm() produces for the serial
+                 * backends. Same division, done here because our value is already
+                 * in rpm rather than the LSB units that function takes.
+                 */
+                const uint8_t poles = motorConfig()->motorPoleCount;
+                escSensorData[i].rpm = poles ? (t.rpm / (poles / 2)) : 0;
+            } else if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
+                escSensorData[i].dataAge++;
+            }
         }
+
         escSensorDataNeedsUpdate = true;
         return;
     }

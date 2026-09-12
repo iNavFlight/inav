@@ -76,7 +76,8 @@
 
 /*
  * Spektrum Smart ESC ("Smart Throttle") motor output. Needs a spare UART rather
- * than a motor pad, and drives one ESC, so it suits single-motor aircraft.
+ * than a motor pad - one ESC per port, so a model with several motors needs that
+ * many ports.
  *
  * On by default only where flash is plentiful, because it costs about 3.5 KB and
  * AIKONF7 for instance sits at 93.4% of its flash. Any other target can still
