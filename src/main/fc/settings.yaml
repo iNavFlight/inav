@@ -323,6 +323,12 @@ groups:
         min: 0
         max: 2
         default_value: 0
+      - name: gyro_secondary_enabled
+        description: "On multi-gyro targets, additionally sample the gyro NOT selected by `gyro_to_use`. The extra sample is exposed to Blackbox as `gyroRaw2` and is never used for attitude estimation or flight control. Intended for filter and estimator analysis. Costs one additional SPI transaction per gyro cycle."
+        default_value: OFF
+        condition: USE_DUAL_GYRO
+        field: gyro_secondary_enabled
+        type: bool
       - name: setpoint_kalman_enabled
         description: "Enable Kalman filter on the gyro data"
         default_value: ON
