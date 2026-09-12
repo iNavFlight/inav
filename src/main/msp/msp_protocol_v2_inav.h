@@ -157,3 +157,6 @@
 #define MSP2_INAV_SET_AUX_RC                    0x2230
 
 #define MSP2_INAV_WIND                          0x2231
+
+#define MSP2_INAV_ESC_SRXL2_STATUS              0x2232
+#define MSP2_INAV_ESC_SRXL2_CALIBRATE           0x2233
