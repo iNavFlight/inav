@@ -152,7 +152,13 @@ void srxl2MotorSendUpdate(void);
 /*
  * Drain the receive buffer and advance the master state machine: handshake,
  * baud negotiation, telemetry collection, timeout recovery. Must be called
- * regularly from task context, not from an ISR.
+ * from task context, not from an ISR.
+ *
+ * Wants roughly a 5 ms cadence: that is the tick Spektrum's own reference
+ * application advances its state machine with, and it has to run several times
+ * faster than the Control Data interval for received frames to be picked up
+ * promptly on a half-duplex wire. TASK_PWMDRIVER, which already exists for the
+ * SBUS servo output, runs at 200 Hz and fits exactly.
  */
 void srxl2MotorProcess(void);
 
