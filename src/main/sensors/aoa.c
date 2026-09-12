@@ -271,14 +271,14 @@ void aoaControlUpdate(int16_t *pidPitchOutput, float rateError, float limit)
 
         aoaServoOffset = aoaError * kp * deg2pwm;
 
-        aoaPidOutput = isAoaControlEnabled ? *pidPitchOutput + (int16_t)lrintf(aoaServoOffset) : *pidPitchOutput;
-        aoaPidOutput = constrainf(aoaPidOutput, -limit, +limit);
+        *pidPitchOutput = isAoaControlEnabled ? *pidPitchOutput + (int16_t)lrintf(aoaServoOffset) : *pidPitchOutput;
+        *pidPitchOutput = constrainf(*pidPitchOutput, -limit, +limit);
+        aoaPidOutput = isAoaControlEnabled ? constrainf(aoaServoOffset, -limit, +limit) : 0;
 
         DEBUG_SET(DEBUG_AOA, 1, aoaError);
         DEBUG_SET(DEBUG_AOA, 2, *pidPitchOutput);
         DEBUG_SET(DEBUG_AOA, 3, aoaControlConfig()->fw_aoa_kp);
         DEBUG_SET(DEBUG_AOA, 4, aoaServoOffset);
-        DEBUG_SET(DEBUG_AOA, 5, aoaServoOffset);
         DEBUG_SET(DEBUG_AOA, 6, aoaPidOutput);
         DEBUG_SET(DEBUG_AOA, 7, rateError);
     }
