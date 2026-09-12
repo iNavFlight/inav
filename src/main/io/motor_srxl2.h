@@ -35,12 +35,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* The spec assigns ESCs device IDs 0x40..0x4F, so a bus can carry several.
- * In practice the unit ID has to be set on the ESC by physical means and the
- * spec states that setting it over SRXL2 "is not implemented", so one ESC per
- * bus is the realistic case. Kept as a constant rather than a literal so the
- * limit is visible if that ever changes. */
-#define SRXL2_ESC_MAX_MOTORS        1
+/*
+ * One ESC per bus, several buses.
+ *
+ * The specification assigns ESCs device IDs 0x40..0x4F so a single bus could
+ * carry several, but each would need a distinct unit ID and the specification
+ * states that setting one over SRXL2 "is not implemented" - it expects physical
+ * switches, which Avian ESCs do not have. So each ESC gets its own port, and a
+ * multi-motor model needs as many ports as motors.
+ *
+ * Four is a practical ceiling: every instance costs a UART, and the protocol's
+ * update rate suits aircraft rather than multirotors anyway.
+ */
+#define SRXL2_ESC_MAX_MOTORS        4
 
 /* Decoded ESC telemetry, from STRU_TELE_ESC (X-Bus sensor ID 0x20).
  * Units are INAV's, not the wire's: the wire sends 10 rpm, 0.01 V, 10 mA and
@@ -162,7 +169,14 @@ void srxl2MotorSendUpdate(void);
  */
 void srxl2MotorProcess(void);
 
-/* True once an ESC has answered the handshake and is still responding. */
+/* How many ports were found and opened. Fewer than the model has motors means
+ * some motor has nowhere to send its command, which the caller must treat as a
+ * configuration error rather than carrying on. */
+uint8_t srxl2MotorCount(void);
+
+/* True once every opened ESC has answered the handshake and is still
+ * responding. One silent ESC on a twin is asymmetric thrust, so this is
+ * deliberately all of them rather than any. */
 bool srxl2MotorIsConnected(void);
 
 /*

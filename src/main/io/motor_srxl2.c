@@ -228,35 +228,50 @@ typedef enum {
     SRXL2_RUNNING,
 } srxl2State_e;
 
-static serialPort_t  *srxl2Port = NULL;
-static srxl2State_e   srxl2State = SRXL2_DISABLED;
+/*
+ * One of these per ESC.
+ *
+ * Each instance is an independent bus with its own handshake, baud negotiation,
+ * receive framing and telemetry. Nothing is shared between them except our own
+ * device ID, which is allowed precisely because they are separate buses and
+ * never hear each other.
+ */
+typedef struct {
+    serialPort_t  *port;
+    srxl2State_e   state;
 
-static uint8_t   rxBuf[SRXL2_MAX_FRAME];
-static uint8_t   rxLen;
-static uint8_t   rxExpected;
+    uint8_t   rxBuf[SRXL2_MAX_FRAME];
+    uint8_t   rxLen;
+    uint8_t   rxExpected;
 
-static timeMs_t  stateEnteredMs;
-static timeMs_t  lastRxMs;
-static timeMs_t  lastTxMs;
-static timeMs_t  lastControlMs;
+    timeMs_t  stateEnteredMs;
+    timeMs_t  lastRxMs;
+    timeMs_t  lastTxMs;
+    timeMs_t  lastControlMs;
 
-static uint8_t   escDeviceId;               /* 0 until discovered */
-static uint8_t   escBaudSupported;
-static uint8_t   agreedBaudBits;
-static bool      baudSwitchPending;         /* waiting for TX to drain */
+    uint8_t   deviceId;                 /* 0 until discovered */
+    uint8_t   baudSupported;
+    uint8_t   agreedBaudBits;
+    bool      baudSwitchPending;        /* waiting for TX to drain */
 
-static uint16_t  channelValue[32];
-static uint32_t  channelMask;
+    uint16_t  channelValue[32];
+    uint32_t  channelMask;
+    uint8_t   telemRequestCounter;
+
+    srxl2EscTelemetry_t telemetry;
+
+    uint32_t  statTxFrames, statRxFrames, statCrcErrors, statHandshakes;
+} srxl2Esc_t;
+
+static srxl2Esc_t esc[SRXL2_ESC_MAX_MOTORS];
+static uint8_t    escCount;                 /* ports successfully opened */
+
+/* Shared, because these describe the aircraft rather than one bus. */
 static uint8_t   reverseChannel1Based = 5;  /* Avian "Thrust Rev." default: CH5 */
-static uint8_t   telemRequestCounter;
-
-static srxl2EscTelemetry_t escTelemetry;
 
 static srxl2CalPhase_e calPhase = SRXL2_CAL_OFF;
-static timeMs_t        calPhaseMs;      /* when the current phase began */
-static uint32_t        calHandshakeMark; /* handshake count when the phase began */
-
-static uint32_t  statTxFrames, statRxFrames, statCrcErrors, statHandshakes;
+static timeMs_t        calPhaseMs;       /* when the current phase began */
+static uint32_t        calHandshakeMark; /* total handshakes when the phase began */
 
 /*---------------------------------------------------------------------------
  * Helpers
@@ -276,17 +291,31 @@ static inline uint16_t be16(const uint8_t *p)
     return (uint16_t)((p[0] << 8) | p[1]);
 }
 
-static void srxl2SetState(srxl2State_e next)
+static void srxl2SetState(srxl2Esc_t *e, srxl2State_e next)
 {
-    srxl2State = next;
-    stateEnteredMs = millis();
+    e->state = next;
+    e->stateEnteredMs = millis();
+}
+
+/*
+ * Handshakes seen across every bus. The calibration watches this to notice an
+ * ESC gaining power, and with more than one ESC the first to speak is signal
+ * enough - they are all being powered from the same pack.
+ */
+static uint32_t srxl2TotalHandshakes(void)
+{
+    uint32_t total = 0;
+    for (uint8_t i = 0; i < escCount; i++) {
+        total += esc[i].statHandshakes;
+    }
+    return total;
 }
 
 /* Append the CRC and push the frame. buf[2] must already hold the frame length
  * as the specification's framing requires. */
-static void srxl2SendFrame(uint8_t *buf, uint8_t len)
+static void srxl2SendFrame(srxl2Esc_t *e, uint8_t *buf, uint8_t len)
 {
-    if (!srxl2Port || len < SRXL2_MIN_FRAME || len > SRXL2_MAX_FRAME) {
+    if (!e->port || len < SRXL2_MIN_FRAME || len > SRXL2_MAX_FRAME) {
         return;
     }
 
@@ -294,12 +323,12 @@ static void srxl2SendFrame(uint8_t *buf, uint8_t len)
     buf[len - 2] = (uint8_t)(crc >> 8);
     buf[len - 1] = (uint8_t)(crc & 0xFF);
 
-    serialWriteBuf(srxl2Port, buf, len);
-    lastTxMs = millis();
-    statTxFrames++;
+    serialWriteBuf(e->port, buf, len);
+    e->lastTxMs = millis();
+    e->statTxFrames++;
 }
 
-static void srxl2SendHandshake(uint8_t destinationId, uint8_t baudField)
+static void srxl2SendHandshake(srxl2Esc_t *e, uint8_t destinationId, uint8_t baudField)
 {
     uint8_t buf[sizeof(Srxl2HandshakeFrame)];
     Srxl2HandshakeFrame *f = (Srxl2HandshakeFrame *)buf;
@@ -317,27 +346,29 @@ static void srxl2SendHandshake(uint8_t destinationId, uint8_t baudField)
     f->payload.info = 0;                    /* non-RF device, no RF telemetry */
     f->payload.uniqueId = 0x494E4156;       /* "INAV"; only has to make a
                                              * simultaneous-reply collision
-                                             * improbable */
+                                             * improbable. The same value on
+                                             * every bus is fine, because each
+                                             * bus has exactly one master. */
 
-    srxl2SendFrame(buf, sizeof(Srxl2HandshakeFrame));
+    srxl2SendFrame(e, buf, sizeof(Srxl2HandshakeFrame));
 }
 
 /* Tell the bus which rate everyone moves to, and arrange to follow once the
  * frame has actually left the port. Switching immediately would clock the tail
  * of that very frame out at the new rate and lose it. */
-static void srxl2Finalise(void)
+static void srxl2Finalise(srxl2Esc_t *e)
 {
-    agreedBaudBits = SRXL2_BAUD_BIT_400K & escBaudSupported;
-    srxl2SendHandshake(Broadcast, agreedBaudBits);
-    baudSwitchPending = (agreedBaudBits & SRXL2_BAUD_BIT_400K) != 0;
-    srxl2SetState(SRXL2_FINALISING);
+    e->agreedBaudBits = SRXL2_BAUD_BIT_400K & e->baudSupported;
+    srxl2SendHandshake(e, Broadcast, e->agreedBaudBits);
+    e->baudSwitchPending = (e->agreedBaudBits & SRXL2_BAUD_BIT_400K) != 0;
+    srxl2SetState(e, SRXL2_FINALISING);
 }
 
 /*---------------------------------------------------------------------------
  * Telemetry decoding: STRU_TELE_ESC, big-endian on the wire
  *-------------------------------------------------------------------------*/
 
-static void srxl2DecodeEscTelemetry(const uint8_t *payload)
+static void srxl2DecodeEscTelemetry(srxl2Esc_t *e, const uint8_t *payload)
 {
     /* payload[0] is the sensor id, payload[1] a secondary id. */
     const uint16_t rpm        = be16(&payload[2]);
@@ -350,29 +381,30 @@ static void srxl2DecodeEscTelemetry(const uint8_t *payload)
     const uint8_t  throttle   = payload[14];
     const uint8_t  powerOut   = payload[15];
 
-    memset(&escTelemetry, 0, sizeof(escTelemetry));
+    srxl2EscTelemetry_t *t = &e->telemetry;
+    memset(t, 0, sizeof(*t));
 
     /* 0xFFFF and 0xFF mean "no data" and must not be taken for readings -
      * 0xFFFF volts at 0.01 V per count would otherwise look like 655 V. */
-    if (rpm != 0xFFFF)        { escTelemetry.rpm = (uint32_t)rpm * 10; }
-    if (voltsIn != 0xFFFF)    { escTelemetry.voltage = voltsIn; }                 /* already 0.01 V */
-    if (currentMot != 0xFFFF) { escTelemetry.current = currentMot; }              /* 10 mA == 0.01 A */
-    if (tempFet != 0xFFFF)    { escTelemetry.temperatureFet = (int16_t)tempFet; } /* 0.1 degC */
-    if (tempBec != 0xFFFF)    { escTelemetry.temperatureBec = (int16_t)tempBec; }
-    if (currentBec != 0xFF)   { escTelemetry.currentBec = (uint16_t)currentBec * 10; } /* 100 mA -> 0.01 A */
-    if (voltsBec != 0xFF)     { escTelemetry.voltageBec = (uint16_t)voltsBec * 5; }    /* 0.05 V -> 0.01 V */
-    if (throttle != 0xFF)     { escTelemetry.throttlePercent = MIN((uint8_t)(throttle / 2), 100); }
-    if (powerOut != 0xFF)     { escTelemetry.powerPercent = MIN((uint8_t)(powerOut / 2), 100); }
+    if (rpm != 0xFFFF)        { t->rpm = (uint32_t)rpm * 10; }
+    if (voltsIn != 0xFFFF)    { t->voltage = voltsIn; }                 /* already 0.01 V */
+    if (currentMot != 0xFFFF) { t->current = currentMot; }              /* 10 mA == 0.01 A */
+    if (tempFet != 0xFFFF)    { t->temperatureFet = (int16_t)tempFet; } /* 0.1 degC */
+    if (tempBec != 0xFFFF)    { t->temperatureBec = (int16_t)tempBec; }
+    if (currentBec != 0xFF)   { t->currentBec = (uint16_t)currentBec * 10; } /* 100 mA -> 0.01 A */
+    if (voltsBec != 0xFF)     { t->voltageBec = (uint16_t)voltsBec * 5; }    /* 0.05 V -> 0.01 V */
+    if (throttle != 0xFF)     { t->throttlePercent = MIN((uint8_t)(throttle / 2), 100); }
+    if (powerOut != 0xFF)     { t->powerPercent = MIN((uint8_t)(powerOut / 2), 100); }
 
-    escTelemetry.lastUpdateMs = millis();
-    escTelemetry.valid = true;
+    t->lastUpdateMs = millis();
+    t->valid = true;
 }
 
 /*---------------------------------------------------------------------------
  * Received frame handling
  *-------------------------------------------------------------------------*/
 
-static void srxl2HandleHandshake(const uint8_t *buf)
+static void srxl2HandleHandshake(srxl2Esc_t *e, const uint8_t *buf)
 {
     const Srxl2HandshakeFrame *f = (const Srxl2HandshakeFrame *)buf;
     const uint8_t src = f->payload.sourceDeviceId;
@@ -382,22 +414,54 @@ static void srxl2HandleHandshake(const uint8_t *buf)
         return;
     }
 
-    escDeviceId = src;
-    escBaudSupported = f->payload.baudSupported;
-    statHandshakes++;
+    /*
+     * The negotiation is entered once, and only from the states that are still
+     * looking for an ESC. Re-entering it on every handshake that arrives is a trap:
+     * our own finalise broadcasts, the slave answers the broadcast with a
+     * handshake, and if that answer restarts the sequence the two ping-pong
+     * handshakes indefinitely. Two ways that bites -
+     *
+     *   - control data is sent on a timer reset on entering RUNNING, so a bus
+     *     looping back through FINALISING never reaches the first control frame:
+     *     the link looks established and the motor never turns;
+     *   - each restart queues another broadcast, so on a slow or busy port the
+     *     transmit buffer never drains and the bus never leaves FINALISING at all.
+     *
+     * A slave that genuinely reset is not missed by this. It comes back at 115200
+     * while we are at 400000, so nothing it says is intelligible, and the link
+     * timeout drops us to POLLING at the low rate to find it again.
+     */
+    if (e->state == SRXL2_FINALISING || e->state == SRXL2_RUNNING) {
+        /* Still answer a running ESC, so it knows the master is there - but say
+         * nothing mid-negotiation, where another broadcast is what causes the
+         * loop. */
+        if (e->state == SRXL2_RUNNING && e->deviceId == src) {
+            srxl2SendHandshake(e, src, SRXL2_BAUD_BIT_400K);
+        }
+        return;
+    }
+
+    e->deviceId = src;
+    e->baudSupported = f->payload.baudSupported;
+
+    /* Counted here rather than on every handshake frame, so it means "a
+     * negotiation started" and not merely "a handshake went past". The
+     * calibration uses it as the signal that an ESC has just gained power, and a
+     * running ESC answering our keepalive is not that. */
+    e->statHandshakes++;
 
     /* Answer the slave so it knows who the master is, then finalise.
      *
-     * This also covers the ESC being powered after the flight controller, which
-     * is the normal case on a bench: the board comes up on USB and the ESC only
-     * boots when the battery goes in, long after our listen window closed. Its
-     * handshake arrives while we are already RUNNING and has to be honoured, or
-     * the ESC is never found at all. */
-    srxl2SendHandshake(escDeviceId, SRXL2_BAUD_BIT_400K);
-    srxl2Finalise();
+     * This also covers the ESC being powered after the flight controller, which is
+     * the normal case on a bench: the board comes up on USB and the ESC only boots
+     * when the battery goes in, long after the listen window closed. By then we are
+     * in POLLING, which is one of the states that accepts a handshake, so the ESC
+     * is still found. */
+    srxl2SendHandshake(e, e->deviceId, SRXL2_BAUD_BIT_400K);
+    srxl2Finalise(e);
 }
 
-static void srxl2HandleTelemetry(const uint8_t *buf, uint8_t len)
+static void srxl2HandleTelemetry(srxl2Esc_t *e, const uint8_t *buf, uint8_t len)
 {
     /* header(3) + destDeviceId(1) + 16 byte payload + crc(2) */
     if (len < 3 + 1 + 16 + 2) {
@@ -405,59 +469,59 @@ static void srxl2HandleTelemetry(const uint8_t *buf, uint8_t len)
     }
     const uint8_t *payload = &buf[4];
     if (payload[0] == SRXL2_TELEM_SENSOR_ESC) {
-        srxl2DecodeEscTelemetry(payload);
+        srxl2DecodeEscTelemetry(e, payload);
     }
 }
 
-static void srxl2HandleFrame(const uint8_t *buf, uint8_t len)
+static void srxl2HandleFrame(srxl2Esc_t *e, const uint8_t *buf, uint8_t len)
 {
     const uint16_t crc = crc16_ccitt_update(0, buf, len - 2);
     if (buf[len - 2] != (uint8_t)(crc >> 8) || buf[len - 1] != (uint8_t)(crc & 0xFF)) {
-        statCrcErrors++;
+        e->statCrcErrors++;
         return;
     }
 
-    statRxFrames++;
-    lastRxMs = millis();
+    e->statRxFrames++;
+    e->lastRxMs = millis();
 
     switch (buf[1]) {
     case Handshake:
-        srxl2HandleHandshake(buf);
+        srxl2HandleHandshake(e, buf);
         break;
     case TelemetrySensorData:
-        srxl2HandleTelemetry(buf, len);
+        srxl2HandleTelemetry(e, buf, len);
         break;
     default:
         break;
     }
 }
 
-static void srxl2DrainRx(void)
+static void srxl2DrainRx(srxl2Esc_t *e)
 {
-    while (serialRxBytesWaiting(srxl2Port)) {
-        const uint8_t c = serialRead(srxl2Port);
+    while (serialRxBytesWaiting(e->port)) {
+        const uint8_t c = serialRead(e->port);
 
-        if (rxLen == 0) {
+        if (e->rxLen == 0) {
             if (c != SRXL2_MAGIC) {
                 continue;               /* resynchronise on the magic byte */
             }
-            rxExpected = 0;
+            e->rxExpected = 0;
         }
 
-        rxBuf[rxLen++] = c;
+        e->rxBuf[e->rxLen++] = c;
 
-        if (rxLen == 3) {
-            rxExpected = rxBuf[2];
-            if (rxExpected < SRXL2_MIN_FRAME || rxExpected > SRXL2_MAX_FRAME) {
-                rxLen = 0;              /* bogus length, drop and resynchronise */
+        if (e->rxLen == 3) {
+            e->rxExpected = e->rxBuf[2];
+            if (e->rxExpected < SRXL2_MIN_FRAME || e->rxExpected > SRXL2_MAX_FRAME) {
+                e->rxLen = 0;           /* bogus length, drop and resynchronise */
                 continue;
             }
         }
 
-        if (rxExpected && rxLen >= rxExpected) {
-            srxl2HandleFrame(rxBuf, rxLen);
-            rxLen = 0;
-            rxExpected = 0;
+        if (e->rxExpected && e->rxLen >= e->rxExpected) {
+            srxl2HandleFrame(e, e->rxBuf, e->rxLen);
+            e->rxLen = 0;
+            e->rxExpected = 0;
         }
     }
 }
@@ -466,27 +530,29 @@ static void srxl2DrainRx(void)
  * Control data
  *-------------------------------------------------------------------------*/
 
-static void srxl2SendControlData(void)
+static void srxl2SendControlData(srxl2Esc_t *e)
 {
     uint8_t buf[SRXL2_MAX_FRAME];
     uint8_t n = 0;
 
     /* Request telemetry only occasionally - see SRXL2_TELEM_REQUEST_EVERY. */
     uint8_t replyId = SRXL2_REPLY_NONE;
-    if (++telemRequestCounter >= SRXL2_TELEM_REQUEST_EVERY) {
-        telemRequestCounter = 0;
-        replyId = escDeviceId;
+    if (++e->telemRequestCounter >= SRXL2_TELEM_REQUEST_EVERY) {
+        e->telemRequestCounter = 0;
+        replyId = e->deviceId;
     }
 
     /* Calibration overrides the throttle here rather than at staging time, so no
-     * mixer path can quietly write over it between the two. */
+     * mixer path can quietly write over it between the two. Every ESC is
+     * calibrated at once: they share a battery, so they power up together, and
+     * the window the sequence aims at is the same window for all of them. */
     if (calPhase != SRXL2_CAL_OFF) {
         const bool high = (calPhase == SRXL2_CAL_WAIT_BATTERY)
                        || (calPhase == SRXL2_CAL_SETTLE)
                        || (calPhase == SRXL2_CAL_HIGH_MANUAL);
-        channelValue[SRXL2_CHANNEL_THROTTLE] =
+        e->channelValue[SRXL2_CHANNEL_THROTTLE] =
             srxl2UsToValue(high ? SRXL2_CAL_HIGH_US : SRXL2_CAL_LOW_US);
-        channelMask |= (1u << SRXL2_CHANNEL_THROTTLE);
+        e->channelMask |= (1u << SRXL2_CHANNEL_THROTTLE);
     }
 
     buf[n++] = SRXL2_MAGIC;
@@ -509,10 +575,10 @@ static void srxl2SendControlData(void)
     buf[n++] = 0;                       /* frameLosses low */
     buf[n++] = 0;                       /* frameLosses high */
 
-    buf[n++] = (uint8_t)(channelMask & 0xFF);
-    buf[n++] = (uint8_t)((channelMask >> 8) & 0xFF);
-    buf[n++] = (uint8_t)((channelMask >> 16) & 0xFF);
-    buf[n++] = (uint8_t)((channelMask >> 24) & 0xFF);
+    buf[n++] = (uint8_t)(e->channelMask & 0xFF);
+    buf[n++] = (uint8_t)((e->channelMask >> 8) & 0xFF);
+    buf[n++] = (uint8_t)((e->channelMask >> 16) & 0xFF);
+    buf[n++] = (uint8_t)((e->channelMask >> 24) & 0xFF);
 
     /*
      * Only the channels we actually mean, little-endian, lowest index first.
@@ -525,15 +591,15 @@ static void srxl2SendControlData(void)
      * there simply leaves it idle. Wrong guess, safe outcome.
      */
     for (uint8_t ch = 0; ch < 32; ch++) {
-        if (channelMask & (1u << ch)) {
-            buf[n++] = (uint8_t)(channelValue[ch] & 0xFF);
-            buf[n++] = (uint8_t)(channelValue[ch] >> 8);
+        if (e->channelMask & (1u << ch)) {
+            buf[n++] = (uint8_t)(e->channelValue[ch] & 0xFF);
+            buf[n++] = (uint8_t)(e->channelValue[ch] >> 8);
         }
     }
 
     n += 2;                             /* room for the CRC */
     buf[2] = n;
-    srxl2SendFrame(buf, n);
+    srxl2SendFrame(e, buf, n);
 }
 
 /*---------------------------------------------------------------------------
@@ -542,51 +608,59 @@ static void srxl2SendControlData(void)
 
 bool srxl2MotorInitialize(void)
 {
+    memset(esc, 0, sizeof(esc));
+    escCount = 0;
+
+    /*
+     * One ESC per port, so open every port that was assigned the function, up to
+     * the array size. The enumeration follows serialConfig's port order, which is
+     * UART order, so motor 1 is the lowest-numbered assigned UART, motor 2 the
+     * next, and so on. That is the only mapping available: nothing on an SRXL2
+     * bus says which motor an ESC drives, so the wiring order has to carry it.
+     */
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_ESC_SRXL2);
-    if (!portConfig) {
-        return false;
+
+    while (portConfig && escCount < SRXL2_ESC_MAX_MOTORS) {
+        serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_ESC_SRXL2,
+                                            NULL, NULL, SRXL2_BAUD_LOW, MODE_RXTX,
+                                            SRXL2_PORT_OPTIONS);
+        if (port) {
+            srxl2Esc_t *e = &esc[escCount++];
+
+            e->port = port;
+
+            /* Start the throttle channel at its lowest value rather than zero, so
+             * the first frame after a handshake cannot be read as something
+             * unexpected. */
+            e->channelValue[SRXL2_CHANNEL_THROTTLE] = srxl2UsToValue(1000);
+            e->channelMask = (1u << SRXL2_CHANNEL_THROTTLE);
+
+            const timeMs_t now = millis();
+            e->lastRxMs = now;
+            e->lastTxMs = now;
+            e->lastControlMs = now;
+
+            srxl2SetState(e, SRXL2_LISTENING);
+        }
+
+        portConfig = findNextSerialPortConfig(FUNCTION_ESC_SRXL2);
     }
 
-    srxl2Port = openSerialPort(portConfig->identifier, FUNCTION_ESC_SRXL2, NULL, NULL,
-                               SRXL2_BAUD_LOW, MODE_RXTX, SRXL2_PORT_OPTIONS);
-    if (!srxl2Port) {
-        return false;
-    }
-
-    rxLen = 0;
-    rxExpected = 0;
-    memset(&escTelemetry, 0, sizeof(escTelemetry));
-    memset(channelValue, 0, sizeof(channelValue));
-    channelMask = 0;
-    escDeviceId = 0;
-    escBaudSupported = 0;
-    agreedBaudBits = 0;
-    baudSwitchPending = false;
-    telemRequestCounter = 0;
-
-    /* Start the throttle channel at its lowest value rather than zero, so the
-     * first frame after a handshake cannot be read as something unexpected. */
-    channelValue[SRXL2_CHANNEL_THROTTLE] = srxl2UsToValue(1000);
-    channelMask |= (1u << SRXL2_CHANNEL_THROTTLE);
-
-    const timeMs_t now = millis();
-    lastRxMs = now;
-    lastTxMs = now;
-    lastControlMs = now;
-
-    srxl2SetState(SRXL2_LISTENING);
-    return true;
+    return escCount > 0;
 }
 
 void srxl2MotorUpdate(uint8_t index, uint16_t value)
 {
-    if (index >= SRXL2_ESC_MAX_MOTORS) {
+    if (index >= escCount) {
+        /* No port for this motor. There is nothing sensible to do here - no timer
+         * output to fall back on - so the shortfall is reported through
+         * srxl2MotorCount() and caught at arming rather than absorbed. */
         return;
     }
     /* Staging only. The wire is driven at its own rate from srxl2MotorProcess(),
      * not at whatever rate the mixer happens to run. */
-    channelValue[SRXL2_CHANNEL_THROTTLE] = srxl2UsToValue(value);
-    channelMask |= (1u << SRXL2_CHANNEL_THROTTLE);
+    esc[index].channelValue[SRXL2_CHANNEL_THROTTLE] = srxl2UsToValue(value);
+    esc[index].channelMask |= (1u << SRXL2_CHANNEL_THROTTLE);
 }
 
 void srxl2MotorSetReverse(bool armed)
@@ -595,8 +669,15 @@ void srxl2MotorSetReverse(bool armed)
         return;     /* reverse not configured */
     }
     const uint8_t idx = reverseChannel1Based - 1;
-    channelValue[idx] = srxl2UsToValue(armed ? 2000 : 1000);
-    channelMask |= (1u << idx);
+    const uint16_t v = srxl2UsToValue(armed ? 2000 : 1000);
+
+    /* Every ESC, because the mixer decides a direction for the aircraft rather
+     * than for one motor. Reversing one side of a twin and not the other is the
+     * one outcome here worth engineering against. */
+    for (uint8_t i = 0; i < escCount; i++) {
+        esc[i].channelValue[idx] = v;
+        esc[i].channelMask |= (1u << idx);
+    }
 }
 
 void srxl2MotorSetReverseChannel(uint8_t channel1Based)
@@ -611,7 +692,7 @@ static srxl2CalResult_e srxl2CalCommonChecks(void)
     if (ARMING_FLAG(ARMED)) {
         return SRXL2_CAL_REJECT_ARMED;
     }
-    if (!srxl2Port) {
+    if (escCount == 0) {
         return SRXL2_CAL_REJECT_NO_PORT;
     }
     return SRXL2_CAL_ACCEPTED;
@@ -641,7 +722,7 @@ srxl2CalResult_e srxl2MotorCalibrationBegin(void)
 
     calPhase = SRXL2_CAL_WAIT_BATTERY;
     calPhaseMs = millis();
-    calHandshakeMark = statHandshakes;
+    calHandshakeMark = srxl2TotalHandshakes();
     return SRXL2_CAL_ACCEPTED;
 }
 
@@ -687,12 +768,12 @@ static void srxl2CalProcess(timeMs_t now)
         /*
          * What opens the window is the ESC *gaining* power, which is an event, so
          * both signals have to be events too: the pack appearing, or a fresh
-         * handshake arriving. An earlier version tested escDeviceId != 0, which
-         * is persistent state left over from the last time the ESC was seen, so
-         * the wait was skipped outright on any board that had already talked to
-         * its ESC once.
+         * handshake arriving on any bus. An earlier version tested
+         * escDeviceId != 0, which is persistent state left over from the last
+         * time the ESC was seen, so the wait was skipped outright on any board
+         * that had already talked to its ESC once.
          */
-        if (getBatteryState() != BATTERY_NOT_PRESENT || statHandshakes != calHandshakeMark) {
+        if (getBatteryState() != BATTERY_NOT_PRESENT || srxl2TotalHandshakes() != calHandshakeMark) {
             calPhase = SRXL2_CAL_SETTLE;
             calPhaseMs = now;
         } else if (elapsed >= SRXL2_CAL_WAIT_TIMEOUT_MS) {
@@ -733,97 +814,139 @@ void srxl2MotorSendUpdate(void)
      * same hook it calls for every other protocol. */
 }
 
-void srxl2MotorProcess(void)
+/* One bus, advanced by one tick. */
+static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
 {
-    if (!srxl2Port || srxl2State == SRXL2_DISABLED) {
-        return;
-    }
-
-    srxl2DrainRx();
-
-    const timeMs_t now = millis();
-
-    srxl2CalProcess(now);
+    srxl2DrainRx(e);
 
     /* A deferred baud change completes as soon as the broadcast has left. */
-    if (baudSwitchPending && isSerialTransmitBufferEmpty(srxl2Port)) {
-        serialSetBaudRate(srxl2Port, SRXL2_BAUD_HIGH);
-        baudSwitchPending = false;
+    if (e->baudSwitchPending && isSerialTransmitBufferEmpty(e->port)) {
+        serialSetBaudRate(e->port, SRXL2_BAUD_HIGH);
+        e->baudSwitchPending = false;
     }
 
-    switch (srxl2State) {
+    switch (e->state) {
     case SRXL2_LISTENING:
         /* Silent on purpose; an auto-announcing ESC is handled in
          * srxl2HandleHandshake(), which moves us on. */
-        if (now - stateEnteredMs >= SRXL2_LISTEN_WINDOW_MS) {
-            srxl2SetState(SRXL2_POLLING);
+        if (now - e->stateEnteredMs >= SRXL2_LISTEN_WINDOW_MS) {
+            srxl2SetState(e, SRXL2_POLLING);
         }
         break;
 
     case SRXL2_POLLING:
-        if (now - lastTxMs >= SRXL2_HANDSHAKE_INTERVAL_MS) {
+        if (now - e->lastTxMs >= SRXL2_HANDSHAKE_INTERVAL_MS) {
             /* Poll the default ESC ID. An ESC with a non-zero unit ID never
-             * announces itself, so without this it would never be found. */
-            srxl2SendHandshake(SRXL2_ESC_ID_FIRST, SRXL2_BAUD_BIT_400K);
+             * announces itself, so without this it would never be found.
+             *
+             * Every bus is polled at the same ID, which is not a collision: each
+             * ESC is alone on its wire and hears only its own master. */
+            srxl2SendHandshake(e, SRXL2_ESC_ID_FIRST, SRXL2_BAUD_BIT_400K);
         }
         break;
 
     case SRXL2_FINALISING:
         /* Hold until the broadcast is out and any baud change has taken, then
          * start driving the ESC. */
-        if (!baudSwitchPending && isSerialTransmitBufferEmpty(srxl2Port)) {
-            lastRxMs = now;             /* do not time out on the handshake gap */
-            lastControlMs = now;
-            srxl2SetState(SRXL2_RUNNING);
+        if (!e->baudSwitchPending && isSerialTransmitBufferEmpty(e->port)) {
+            e->lastRxMs = now;          /* do not time out on the handshake gap */
+            e->lastControlMs = now;
+            srxl2SetState(e, SRXL2_RUNNING);
         }
         break;
 
     case SRXL2_RUNNING:
-        if (now - lastControlMs >= SRXL2_CONTROL_INTERVAL_MS) {
-            lastControlMs = now;
-            srxl2SendControlData();
+        if (now - e->lastControlMs >= SRXL2_CONTROL_INTERVAL_MS) {
+            e->lastControlMs = now;
+            srxl2SendControlData(e);
         }
 
-        if (escTelemetry.valid && (now - escTelemetry.lastUpdateMs) > SRXL2_TELEM_STALE_MS) {
-            escTelemetry.valid = false;
+        if (e->telemetry.valid && (now - e->telemetry.lastUpdateMs) > SRXL2_TELEM_STALE_MS) {
+            e->telemetry.valid = false;
         }
 
-        if (now - lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
+        if (now - e->lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
             /* Lost the ESC. Go back to 115200, where a slave that has just reset
              * will be listening, and look for it again. */
-            serialSetBaudRate(srxl2Port, SRXL2_BAUD_LOW);
-            baudSwitchPending = false;
-            agreedBaudBits = 0;
-            escDeviceId = 0;
-            escTelemetry.valid = false;
-            srxl2SetState(SRXL2_POLLING);
+            serialSetBaudRate(e->port, SRXL2_BAUD_LOW);
+            e->baudSwitchPending = false;
+            e->agreedBaudBits = 0;
+            e->deviceId = 0;
+            e->telemetry.valid = false;
+            srxl2SetState(e, SRXL2_POLLING);
         }
         break;
 
     default:
         break;
     }
+}
 
-    DEBUG_SET(DEBUG_ALWAYS, 0, srxl2State);
-    DEBUG_SET(DEBUG_ALWAYS, 1, escDeviceId);
-    DEBUG_SET(DEBUG_ALWAYS, 2, statRxFrames);
-    DEBUG_SET(DEBUG_ALWAYS, 3, statCrcErrors);
+void srxl2MotorProcess(void)
+{
+    if (escCount == 0) {
+        return;
+    }
+
+    const timeMs_t now = millis();
+
+    srxl2CalProcess(now);
+
+    for (uint8_t i = 0; i < escCount; i++) {
+        srxl2ProcessEsc(&esc[i], now);
+    }
+
+    /*
+     * The first two words carry a nibble per ESC, so a twin can be diagnosed
+     * without a debug channel per bus: which bus is stuck, and which has found
+     * its ESC. Both fit: the state enum is small, and ESC device IDs run
+     * 0x40..0x4F, so the low nibble identifies the unit. Bit 3 is set alongside
+     * it to distinguish unit 0 from "nothing found".
+     */
+    uint16_t states = 0, ids = 0;
+    uint32_t rxFrames = 0, crcErrors = 0;
+    for (uint8_t i = 0; i < escCount; i++) {
+        states |= (uint16_t)(esc[i].state & 0x07) << (4 * i);
+        if (esc[i].deviceId) {
+            ids |= (uint16_t)((esc[i].deviceId & 0x07) | 0x08) << (4 * i);
+        }
+        rxFrames += esc[i].statRxFrames;
+        crcErrors += esc[i].statCrcErrors;
+    }
+
+    DEBUG_SET(DEBUG_ALWAYS, 0, states);
+    DEBUG_SET(DEBUG_ALWAYS, 1, ids);
+    DEBUG_SET(DEBUG_ALWAYS, 2, rxFrames);
+    DEBUG_SET(DEBUG_ALWAYS, 3, crcErrors);
+}
+
+uint8_t srxl2MotorCount(void)
+{
+    return escCount;
 }
 
 bool srxl2MotorIsConnected(void)
 {
-    return srxl2State == SRXL2_RUNNING && escDeviceId != 0;
+    if (escCount == 0) {
+        return false;
+    }
+    for (uint8_t i = 0; i < escCount; i++) {
+        if (esc[i].state != SRXL2_RUNNING || esc[i].deviceId == 0) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool srxl2MotorGetTelemetry(uint8_t index, srxl2EscTelemetry_t *out)
 {
-    if (index >= SRXL2_ESC_MAX_MOTORS || !out || !escTelemetry.valid) {
+    if (index >= escCount || !out || !esc[index].telemetry.valid) {
         return false;
     }
-    if (millis() - escTelemetry.lastUpdateMs > SRXL2_TELEM_STALE_MS) {
+    if (millis() - esc[index].telemetry.lastUpdateMs > SRXL2_TELEM_STALE_MS) {
         return false;
     }
-    *out = escTelemetry;
+    *out = esc[index].telemetry;
     return true;
 }
 
