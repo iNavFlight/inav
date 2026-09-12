@@ -295,6 +295,11 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"gyroRaw",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW},
     {"gyroRaw",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW},
     {"gyroRaw",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW},
+#ifdef USE_DUAL_GYRO
+    {"gyroRaw2",    0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY},
+    {"gyroRaw2",    1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY},
+    {"gyroRaw2",    2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY},
+#endif
 
     {"gyroPeakRoll",    0, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL},
     {"gyroPeakRoll",    1, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL},
@@ -498,6 +503,9 @@ typedef struct blackboxMainState_s {
     int16_t rcCommand[4];
     int16_t gyroADC[XYZ_AXIS_COUNT];
     int16_t gyroRaw[XYZ_AXIS_COUNT];
+#ifdef USE_DUAL_GYRO
+    int16_t gyroRaw2[XYZ_AXIS_COUNT];
+#endif
 
     int16_t gyroPeaksRoll[DYN_NOTCH_PEAK_COUNT];
     int16_t gyroPeaksPitch[DYN_NOTCH_PEAK_COUNT];
@@ -600,7 +608,7 @@ static struct {
 // Cache for FLIGHT_LOG_FIELD_CONDITION_* test results:
 static uint64_t blackboxConditionCache;
 
-STATIC_ASSERT((sizeof(blackboxConditionCache) * 8) >= FLIGHT_LOG_FIELD_CONDITION_LAST, too_many_flight_log_conditions);
+STATIC_ASSERT((sizeof(blackboxConditionCache) * 8) > FLIGHT_LOG_FIELD_CONDITION_LAST, too_many_flight_log_conditions);
 
 static uint32_t blackboxIFrameInterval;
 static uint32_t blackboxIteration;
@@ -779,6 +787,11 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW:
         return blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_RAW);
 
+#ifdef USE_DUAL_GYRO
+    case FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY:
+        return gyro.secondaryInitialized && blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_SECONDARY);
+#endif
+
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL:
         return blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_PEAKS_ROLL);
 
@@ -955,6 +968,12 @@ static void writeIntraframe(void)
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW)) {
         blackboxWriteSigned16VBArray(blackboxCurrent->gyroRaw, XYZ_AXIS_COUNT);
     }
+
+#ifdef USE_DUAL_GYRO
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY)) {
+        blackboxWriteSigned16VBArray(blackboxCurrent->gyroRaw2, XYZ_AXIS_COUNT);
+    }
+#endif
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL)) {
         blackboxWriteUnsignedVB(blackboxCurrent->gyroPeaksRoll[0]);
@@ -1228,6 +1247,12 @@ static void writeInterframe(void)
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW)) {
         blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, gyroRaw), XYZ_AXIS_COUNT);
     }
+
+#ifdef USE_DUAL_GYRO
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY)) {
+        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, gyroRaw2), XYZ_AXIS_COUNT);
+    }
+#endif
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL)) {
         blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, gyroPeaksRoll), DYN_NOTCH_PEAK_COUNT);
@@ -1644,6 +1669,9 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i]);
         blackboxCurrent->accADC[i] = constrain(lrintf(acc.accADCf[i] * acc.dev.acc_1G), -32678, 32767);
         blackboxCurrent->gyroRaw[i] = lrintf(gyro.gyroRaw[i]);
+#ifdef USE_DUAL_GYRO
+        blackboxCurrent->gyroRaw2[i] = lrintf(gyro.gyroRaw2[i]);
+#endif
 
 #ifdef USE_DYNAMIC_FILTERS
         for (uint8_t i = 0; i < DYN_NOTCH_PEAK_COUNT ; i++) {

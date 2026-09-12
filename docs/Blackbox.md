@@ -167,6 +167,12 @@ The CLI command `blackbox` allows setting which Blackbox fields are recorded to 
 * `PEAKS_P` - Pitch axis noise peak
 * `PEAKS_Y` - Yaw axis noise peak
 * `SERVOS` - Servo outputs (for planes, tris, etc.)
+* `GYRO_2` - Raw Gyro data from the secondary IMU, on boards that carry two of them.
+  Requires `set gyro_secondary_enabled = ON`, which is what actually makes the flight
+  controller sample the second gyro; this flag only selects whether the samples are
+  logged. The secondary is instrumentation only: it never feeds attitude estimation
+  or the PID loops. Logged as `gyroRaw2[0..2]`, in deg/s, in the same body frame as
+  `gyroRaw`, with each sensor's own alignment already applied.
 
 Usage:
 
