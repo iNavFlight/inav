@@ -64,6 +64,12 @@ typedef struct gyro_s {
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
     float gyroRaw[XYZ_AXIS_COUNT];
+#ifdef USE_DUAL_GYRO
+    /* Secondary IMU. Sampled for logging and analysis only:
+     * never feeds attitude estimation or the PID loops. */
+    float gyroRaw2[XYZ_AXIS_COUNT];
+    bool  secondaryInitialized;
+#endif
 } gyro_t;
 
 extern gyro_t gyro;
@@ -106,6 +112,16 @@ typedef struct gyroConfig_s {
 
     uint8_t gyroLuluSampleCount;
     bool gyroLuluEnabled;
+#ifdef USE_DUAL_GYRO
+    /* Deliberately appended at the end of the struct. pgLoad() only compares the
+     * parameter group version, never the size, and then memcpy()s
+     * MIN(stored, current) bytes. A field added here is therefore purely
+     * additive: every pre-existing setting keeps its offset, the new one keeps
+     * the default installed by pgReset(), and no version bump is needed - so
+     * upgrading does not discard the user's gyro configuration. Inserting it
+     * mid-struct would silently shift every following field. */
+    bool     gyro_secondary_enabled;
+#endif
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

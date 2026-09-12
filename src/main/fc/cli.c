@@ -192,6 +192,9 @@ static const char * const blackboxIncludeFlagNames[] = {
     "PEAKS_P",
     "PEAKS_Y",
     "SERVOS",
+#ifdef USE_DUAL_GYRO
+    "GYRO_2",
+#endif
     NULL
 };
 #endif

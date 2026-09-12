@@ -1932,6 +1932,16 @@ Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
 
 ---
 
+### gyro_secondary_enabled
+
+On multi-gyro targets, additionally sample the gyro NOT selected by `gyro_to_use`. The extra sample is exposed to Blackbox as `gyroRaw2` and is never used for attitude estimation or flight control. Intended for filter and estimator analysis. Costs one additional SPI transaction per gyro cycle.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gyro_to_use
 
 On multi-gyro targets, allows to choose which gyro to use. 0 = first gyro, 1 = second gyro
