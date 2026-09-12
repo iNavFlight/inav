@@ -74,7 +74,15 @@
 #define USE_SERVO_SBUS
 #endif
 
-#define USE_MOTOR_SRXL2     // Spektrum Smart ESC (Smart Throttle) motor output
+/*
+ * Spektrum Smart ESC ("Smart Throttle") motor output. Costs around 3.5 KB, so it
+ * is on by default only where flash is plentiful; a tighter target that wants it
+ * can define it for itself. Needs a spare UART rather than a motor pad, and
+ * drives one ESC, so it suits single-motor aircraft.
+ */
+#if defined(STM32H7) || defined(AT32F43x)
+#define USE_MOTOR_SRXL2
+#endif
 
 #ifndef USE_ADC_AVERAGING
 #define USE_ADC_AVERAGING

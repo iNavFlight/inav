@@ -73,6 +73,7 @@
 #include "io/vtx_msp.h"
 #include "io/osd_dji_hd.h"
 #include "io/displayport_msp_osd.h"
+#include "io/motor_srxl2.h"
 #include "io/servo_sbus.h"
 #include "io/adsb.h"
 
@@ -317,6 +318,19 @@ void taskSyncServoDriver(timeUs_t currentTimeUs)
     sbusServoSendUpdate();
 #endif
 
+#if defined(USE_MOTOR_SRXL2)
+    /* 200 Hz is the cadence this wants: Spektrum's reference application advances
+     * its state machine on a 5 ms tick, and the master has to run several times
+     * faster than its own Control Data interval to collect replies promptly on a
+     * half-duplex wire. */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        /* Reverse follows the mixer rather than a mode of its own: when INAV has
+         * decided the motor should run backwards, the ESC's reverse channel is
+         * armed. Anything else would let the two disagree about direction. */
+        srxl2MotorSetReverse(getReversibleMotorsThrottleState() == MOTOR_DIRECTION_BACKWARD);
+        srxl2MotorProcess();
+    }
+#endif
 }
 
 #ifdef USE_OSD
@@ -418,7 +432,12 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
 #if defined(USE_SERVO_SBUS)
-    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM));
+    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SBUS)
+                                || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM)
+#ifdef USE_MOTOR_SRXL2
+                                || (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2)
+#endif
+                                  );
 #endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT

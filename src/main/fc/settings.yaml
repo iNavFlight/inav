@@ -27,7 +27,7 @@ tables:
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD", "FILE"]
   - name: motor_pwm_protocol
-    values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600"]
+    values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "SRXL2"]
   - name: servo_protocol
     values: ["PWM", "SBUS", "SBUS_PWM"]
   - name: failsafe_procedure
@@ -862,6 +862,13 @@ groups:
         default_value: "ONESHOT125"
         field: motorPwmProtocol
         table: motor_pwm_protocol
+      - name: esc_srxl2_reverse_channel
+        description: "For an SRXL2 Smart ESC, the 1-based auxiliary channel its \"Thrust Rev.\" setting selects to arm the Reverse Brake. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse."
+        default_value: 5
+        field: srxl2ReverseChannel
+        condition: USE_MOTOR_SRXL2
+        min: 0
+        max: 9
       - name: motor_poles
         field: motorPoleCount
         description: "The number of motor poles. Required to compute motor RPM"
