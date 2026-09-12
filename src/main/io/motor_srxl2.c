@@ -86,6 +86,15 @@
  */
 #define SRXL2_OUR_DEVICE_ID         0x31
 
+/*
+ * The bus arbitrates who is master by device ID, lowest wins: a device that sees
+ * a handshake from a lower ID stands down. We never implement that side of it,
+ * because this port is a dedicated link to an ESC rather than a shared bus, and
+ * an ESC at 0x40 cannot outrank 0x31. Worth knowing before anyone wires a
+ * Spektrum receiver onto the same pin, where it would be master at 0x21 and this
+ * driver would be wrong to keep polling.
+ */
+
 /* Control Data commands */
 #define SRXL2_CMD_CHANNEL_DATA      0x00
 #define SRXL2_CMD_CHANNEL_FAILSAFE  0x01
@@ -445,9 +454,12 @@ static void srxl2SendControlData(void)
     uint8_t buf[SRXL2_MAX_FRAME];
     uint8_t n = 0;
 
-    /* Request telemetry only occasionally - see SRXL2_TELEM_REQUEST_EVERY. */
+    /* Request telemetry only occasionally - see SRXL2_TELEM_REQUEST_EVERY - and
+     * never while announcing failsafe: the reference implementation sets the
+     * reply ID to zero for failsafe channel data, since a device being told the
+     * link is gone has nothing useful to answer with. */
     uint8_t replyId = SRXL2_REPLY_NONE;
-    if (++telemRequestCounter >= SRXL2_TELEM_REQUEST_EVERY) {
+    if (!failsafeActive && ++telemRequestCounter >= SRXL2_TELEM_REQUEST_EVERY) {
         telemRequestCounter = 0;
         replyId = escDeviceId;
     }
@@ -469,10 +481,16 @@ static void srxl2SendControlData(void)
     buf[n++] = failsafeActive ? SRXL2_CMD_CHANNEL_FAILSAFE : SRXL2_CMD_CHANNEL_DATA;
     buf[n++] = replyId;
 
-    /* RSSI has to read as a healthy link. The field is defined as "best RSSI
-     * when sending channel data", and an ESC is entitled to treat nothing as a
-     * dead link and fall back to its own failsafe, so reporting 0 here would be
-     * actively wrong even though we are not an RF device. */
+    /*
+     * RSSI has to read as a healthy link, even though we are not an RF device.
+     * This is not a guess: Spektrum's own receiver code treats a received zero
+     * as loss of link -
+     *
+     *     if (channelData->rssi == 0) { globalResult = RX_FRAME_FAILSAFE; }
+     *
+     * - so sending 0 would be telling the ESC that the link is gone on every
+     * frame.
+     */
     buf[n++] = 100;
     buf[n++] = 0;                       /* frameLosses low */
     buf[n++] = 0;                       /* frameLosses high */
