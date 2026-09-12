@@ -254,6 +254,7 @@ static srxl2EscTelemetry_t escTelemetry;
 
 static srxl2CalPhase_e calPhase = SRXL2_CAL_OFF;
 static timeMs_t        calPhaseMs;      /* when the current phase began */
+static uint32_t        calHandshakeMark; /* handshake count when the phase began */
 
 static uint32_t  statTxFrames, statRxFrames, statCrcErrors, statHandshakes;
 
@@ -640,6 +641,7 @@ srxl2CalResult_e srxl2MotorCalibrationBegin(void)
 
     calPhase = SRXL2_CAL_WAIT_BATTERY;
     calPhaseMs = millis();
+    calHandshakeMark = statHandshakes;
     return SRXL2_CAL_ACCEPTED;
 }
 
@@ -682,9 +684,15 @@ static void srxl2CalProcess(timeMs_t now)
 
     switch (calPhase) {
     case SRXL2_CAL_WAIT_BATTERY:
-        /* The ESC gaining power is what opens the window. Either signal will do:
-         * the pack appearing, or the ESC announcing itself on the bus. */
-        if (getBatteryState() != BATTERY_NOT_PRESENT || escDeviceId != 0) {
+        /*
+         * What opens the window is the ESC *gaining* power, which is an event, so
+         * both signals have to be events too: the pack appearing, or a fresh
+         * handshake arriving. An earlier version tested escDeviceId != 0, which
+         * is persistent state left over from the last time the ESC was seen, so
+         * the wait was skipped outright on any board that had already talked to
+         * its ESC once.
+         */
+        if (getBatteryState() != BATTERY_NOT_PRESENT || statHandshakes != calHandshakeMark) {
             calPhase = SRXL2_CAL_SETTLE;
             calPhaseMs = now;
         } else if (elapsed >= SRXL2_CAL_WAIT_TIMEOUT_MS) {
