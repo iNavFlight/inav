@@ -222,8 +222,15 @@ bool escSensorInitialize(void)
      * source here rather than anywhere else means every existing consumer -
      * the RPM filter, OSD, Blackbox, current estimation - is fed without
      * knowing where the numbers came from.
+     *
+     * esc_srxl2_telemetry can turn it off, which for a conventional ESC needs no
+     * setting at all - you leave the port unassigned. This wire has no port to
+     * leave unassigned, so saying no needs somewhere to say it.
      */
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        if (!motorConfig()->srxl2Telemetry) {
+            return false;
+        }
         for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
             escSensorData[i].dataAge = ESC_DATA_INVALID;
         }

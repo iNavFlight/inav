@@ -75,12 +75,20 @@
 #endif
 
 /*
- * Spektrum Smart ESC ("Smart Throttle") motor output. Costs around 3.5 KB, so it
- * is on by default only where flash is plentiful; a tighter target that wants it
- * can define it for itself. Needs a spare UART rather than a motor pad, and
- * drives one ESC, so it suits single-motor aircraft.
+ * Spektrum Smart ESC ("Smart Throttle") motor output. Needs a spare UART rather
+ * than a motor pad, and drives one ESC, so it suits single-motor aircraft.
+ *
+ * On by default only where flash is plentiful, because it costs about 3.5 KB and
+ * AIKONF7 for instance sits at 93.4% of its flash. Any other target can still
+ * have it with one line in its own target.h, which is included after this file:
+ *
+ *     #define USE_MOTOR_SRXL2
+ *
+ * Where the default should sit is a judgement call rather than a constraint - the
+ * alternative is enabling it everywhere and charging every tight target for a
+ * protocol it may never use.
  */
-#if defined(STM32H7) || defined(AT32F43x)
+#if !defined(USE_MOTOR_SRXL2) && (defined(STM32H7) || defined(AT32F43x))
 #define USE_MOTOR_SRXL2
 #endif
 

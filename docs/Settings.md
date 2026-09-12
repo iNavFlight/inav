@@ -1055,6 +1055,16 @@ For an SRXL2 Smart ESC, the 1-based auxiliary channel its "Thrust Rev." setting 
 
 ---
 
+### esc_srxl2_telemetry
+
+Read ESC telemetry off the SRXL2 link. Only applies when motor_pwm_protocol is SRXL2, where telemetry shares the throttle wire and so cannot be turned off by leaving a port unassigned as it would be for a conventional ESC.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### ez_aggressiveness
 
 EzTune aggressiveness
