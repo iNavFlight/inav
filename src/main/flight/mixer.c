@@ -96,7 +96,10 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmRate = SETTING_MOTOR_PWM_RATE_DEFAULT,
     .mincommand = SETTING_MIN_COMMAND_DEFAULT,
     .motorPoleCount = SETTING_MOTOR_POLES_DEFAULT,            // Most brushless motors that we use are 14 poles
+#ifdef USE_MOTOR_SRXL2
     .srxl2ReverseChannel = SETTING_ESC_SRXL2_REVERSE_CHANNEL_DEFAULT,
+    .srxl2Telemetry = SETTING_ESC_SRXL2_TELEMETRY_DEFAULT,
+#endif
 );
 PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
 

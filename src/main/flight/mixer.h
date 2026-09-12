@@ -95,10 +95,13 @@ typedef struct motorConfig_s {
     uint8_t  motorPwmProtocol;
     uint16_t digitalIdleOffsetValue;
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
+#ifdef USE_MOTOR_SRXL2
     /* Appended at the end on purpose: pgLoad() compares only the parameter group
      * version, never the size, so a field added here is additive and existing
      * saved settings keep their offsets. */
     uint8_t srxl2ReverseChannel;            // 1-based aux channel an SRXL2 ESC uses to arm reverse; 0 disables
+    uint8_t srxl2Telemetry;                 // read ESC telemetry off the SRXL2 link
+#endif
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
