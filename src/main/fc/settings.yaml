@@ -869,8 +869,8 @@ groups:
         condition: USE_MOTOR_SRXL2
         type: bool
       - name: esc_srxl2_reverse_channel
-        description: "For an SRXL2 Smart ESC, the 1-based auxiliary channel its \"Thrust Rev.\" setting selects to arm the Reverse Brake. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse."
-        default_value: 5
+        description: "For an SRXL2 Smart ESC, the 1-based auxiliary channel its \"Thrust Rev.\" setting selects to arm reverse. Spektrum allow channels 5 to 9 and ship channel 7 by default. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse."
+        default_value: 7
         field: srxl2ReverseChannel
         condition: USE_MOTOR_SRXL2
         min: 0
