@@ -341,6 +341,19 @@ void init(void)
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
         featureClear(FEATURE_REVERSIBLE_MOTORS);
     }
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * A Spektrum Smart ESC reverses on a switch and goes on reading the throttle
+     * normally - Spektrum put it plainly: "flipping the designated switch reverses
+     * motor rotation, throttle will still control motor speed". Reversible motors
+     * means the other arrangement, where the stick centre is zero thrust, and
+     * enabling it here would hand the ESC roughly half throttle at the point the
+     * pilot expects the motor stopped. Reverse is the THRUST REVERSE mode instead.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        featureClear(FEATURE_REVERSIBLE_MOTORS);
+    }
+#endif
     if (!STATE(ALTITUDE_CONTROL)) {
         featureClear(FEATURE_AIRMODE);
     }

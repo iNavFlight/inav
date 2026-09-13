@@ -600,11 +600,6 @@ void FAST_CODE writeMotors(void)
 #endif
 }
 
-reversibleMotorsThrottleState_e getReversibleMotorsThrottleState(void)
-{
-    return reversibleMotorsThrottleState;
-}
-
 void writeAllMotors(int16_t mc)
 {
     // Sends commands to all motors
