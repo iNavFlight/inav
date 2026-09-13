@@ -184,7 +184,12 @@ def check(base, head):
                 issues.append(f'{name}: changed layout without a version increase in {", ".join(sorted({r[3] for r in current}))}; conditions {values}')
                 break
     for issue in issues:
-        print('PG version issue: ' + issue)
+        # The '### ' heading is load-bearing, not decoration: the workflow gate in
+        # pg-version-check.yml only accepts an exit code of 1 when the output carries
+        # one, and the comment step starts capturing at the first line containing it.
+        name, _, detail = issue.partition(': ')
+        print('### `' + name + '`')
+        print(detail)
     if not issues:
         print('No PG version issues detected')
     return int(bool(issues))
