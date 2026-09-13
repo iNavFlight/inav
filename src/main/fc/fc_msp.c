@@ -1691,6 +1691,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_ESC_SRXL2_STATUS:
         sbufWriteU8(dst, srxl2MotorCalibrationPhase());
         sbufWriteU8(dst, srxl2MotorIsConnected() ? 1 : 0);
+        /* Why the last start was refused. MSP2_INAV_ESC_SRXL2_CALIBRATE is an IN
+         * command and so has nowhere to answer; without this a caller sees only
+         * that it failed, and can tell the operator nothing. */
+        sbufWriteU8(dst, srxl2MotorCalibrationLastResult());
+        sbufWriteU8(dst, srxl2MotorCount());
         break;
 #endif
 
