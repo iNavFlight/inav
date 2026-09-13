@@ -117,6 +117,7 @@
 #include "io/osd.h"
 #include "io/osd_dji_hd.h"
 #include "io/rcdevice_cam.h"
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/smartport_master.h"
@@ -353,6 +354,20 @@ void init(void)
     }
 #else
     DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * SITL has no motor output layer - the simulator reads the mixer's motor[]
+     * array directly, so pwmMotorPreconfigure() never runs and nothing would open
+     * the SRXL2 ports. Open them here instead: SITL maps every UART onto a TCP
+     * port, so this is what lets a simulated ESC be attached to the real driver
+     * and the handshake, telemetry and calibration paths be exercised - and the
+     * Configurator show its ESC block - without any hardware.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        srxl2MotorInitialize();
+        srxl2MotorSetReverseChannel(motorConfig()->srxl2ReverseChannel);
+    }
+#endif
 #endif
     systemState |= SYSTEM_STATE_MOTORS_READY;
 

@@ -1695,7 +1695,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
          * command and so has nowhere to answer; without this a caller sees only
          * that it failed, and can tell the operator nothing. */
         sbufWriteU8(dst, srxl2MotorCalibrationLastResult());
+        /* Ports opened, and motors the mixer wants. These are the two numbers
+         * pwmInitMotors() compares to decide whether the board may arm, so
+         * reporting both means a caller never has to infer either. In particular
+         * MSP2_INAV_MIXER does NOT carry the model motor count - its last two
+         * bytes are MAX_SUPPORTED_MOTORS and MAX_SUPPORTED_SERVOS, the ceilings. */
         sbufWriteU8(dst, srxl2MotorCount());
+        sbufWriteU8(dst, getMotorCount());
         break;
 #endif
 
