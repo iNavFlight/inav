@@ -5488,8 +5488,9 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
                 posControl.geoWaypointCount = posControl.waypointCount - nonGeoWaypointCount;
                 if (posControl.waypointListValid) {
                     nonGeoWaypointCount = 0;
-                    // If active WP index is bigger than total mission WP number, reset active WP index (Mission Upload mid flight with interrupted mission) if RESUME is enabled
-                    if (posControl.activeWaypointIndex > posControl.waypointCount) {
+                    // If active WP index is beyond the new mission, reset active WP index (Mission Upload mid flight with interrupted mission) if RESUME is enabled.
+                    // activeWaypointIndex is 0-based, so an index equal to waypointCount is already out of range.
+                    if (posControl.activeWaypointIndex >= posControl.waypointCount) {
                         posControl.activeWaypointIndex = 0;
                     }
                 }
@@ -5505,6 +5506,11 @@ void resetWaypointList(void)
     posControl.geoWaypointCount = 0;
     posControl.startWpIndex = 0;
     posControl.wpReachedNotificationPending = false;
+    // The list no longer holds the mission planner's waypoints: an upload or
+    // clear (MSP, MAVLink, EEPROM) replaced it. Otherwise the planner would
+    // resume at its old index inside the new mission when re-enabled.
+    posControl.wpPlannerActiveWPIndex = 0;
+    posControl.wpMissionPlannerStatus = WP_PLAN_WAIT;
 #ifdef USE_MULTI_MISSION
     posControl.totalMultiMissionWpCount = 0;
     posControl.loadedMultiMissionIndex = 0;
@@ -5515,6 +5521,11 @@ void resetWaypointList(void)
 bool isWaypointListValid(void)
 {
     return posControl.waypointListValid;
+}
+
+bool isWpMissionPlannerActive(void)
+{
+    return posControl.flags.wpMissionPlannerActive;
 }
 
 int getWaypointCount(void)
