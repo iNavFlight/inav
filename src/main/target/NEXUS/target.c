@@ -23,7 +23,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH2, PB3, TIM_USE_OUTPUT_AUTO, 0, 0),  // S4
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),  // M1/ESC
     DEF_TIM(TIM5, CH3, PA2, TIM_USE_OUTPUT_AUTO, 0, 0),  // shared w/ UART2 TX
-    DEF_TIM(TIM9, CH2, PA3, TIM_USE_OUTPUT_AUTO, 0, 0),  // shared w/ UART2 RX
+    DEF_TIM(TIM5, CH4, PA3, TIM_USE_OUTPUT_AUTO, 0, 0),  // shared w/ UART2 RX -- was TIM9_CH2, which has no DMA request line on F722 (no DSHOT)
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
