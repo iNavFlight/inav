@@ -266,7 +266,12 @@ void validateAndFixConfig(void)
 
     // Limitations of different protocols
 #if !defined(USE_DSHOT)
-    if (motorConfig()->motorPwmProtocol > PWM_TYPE_BRUSHED) {
+    // Named explicitly rather than tested as "above BRUSHED". This is a DSHOT
+    // check, and the enum has since grown a UART protocol above DSHOT600 that a
+    // build without DSHOT can still drive perfectly well - a range test would
+    // quietly rewrite it to MULTISHOT on every boot.
+    if (motorConfig()->motorPwmProtocol >= PWM_TYPE_DSHOT150 &&
+        motorConfig()->motorPwmProtocol <= PWM_TYPE_DSHOT600) {
         motorConfigMutable()->motorPwmProtocol = PWM_TYPE_MULTISHOT;
     }
 #endif
