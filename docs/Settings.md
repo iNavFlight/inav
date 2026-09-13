@@ -1047,11 +1047,11 @@ Enable when BLHeli32 Auto Telemetry function is used. Disable in every other cas
 
 ### esc_srxl2_reverse_channel
 
-For an SRXL2 Smart ESC, the 1-based auxiliary channel its "Thrust Rev." setting selects to arm the Reverse Brake. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse.
+For an SRXL2 Smart ESC, the 1-based auxiliary channel its "Thrust Rev." setting selects to arm reverse. Spektrum allow channels 5 to 9 and ship channel 7 by default. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 9 |
+| 7 | 0 | 9 |
 
 ---
 

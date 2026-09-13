@@ -40,8 +40,9 @@ The motor pad that would normally have driven this ESC is simply left unused.
 2. **Outputs tab** — set the ESC protocol to `SRXL2`.
 3. **Outputs tab** — set **Motor poles** correctly. This matters more than usual; see
    the RPM filter section below.
-4. If the ESC is programmed for reverse, set **Thrust Reverse channel** to the
-   channel its own `Thrust Rev.` parameter selects.
+4. If the ESC is programmed for reverse, set **Thrust Reverse: ESC channel** to the
+   channel its own `Thrust Rev.` parameter selects, then assign the **THRUST
+   REVERSE** mode to a switch in the Modes tab. See below.
 
 Both steps 1 and 2 are needed. This protocol has **no fallback to PWM**: the pin is
 a UART pin, not a timer output, so a motor protocol of `SRXL2` with no port assigned
@@ -129,38 +130,75 @@ Two things to weigh before turning `rpm_gyro_filter_enabled` on:
 
 ## Reverse
 
-Reverse on an Avian is not a throttle value below neutral. The ESC's `Thrust Rev.`
-parameter selects an auxiliary channel, named CH5 to CH9 on a Spektrum transmitter,
-that arms the Reverse Brake, and `Brake Type` must be set to `Reverse`.
+Reverse on a Smart ESC is a switch, not a throttle value below neutral. The ESC's
+`Thrust Rev.` parameter names an auxiliary channel; when that channel goes high the
+ESC reverses, and Spektrum describe the effect plainly — *"flipping the designated
+switch reverses motor rotation, throttle will still control motor speed"*. So the
+throttle goes on meaning throttle.
 
-So two things have to agree:
+Three things have to agree:
 
-* the ESC, programmed with `Brake Type = Reverse` and a `Thrust Rev.` channel;
-* INAV, with `esc_srxl2_reverse_channel` set to the same channel.
+* the ESC, programmed with a `Thrust Rev.` channel (and `Brake Type = Reverse` on
+  models that have it);
+* `esc_srxl2_reverse_channel`, set to that same channel;
+* a switch, assigned to the **THRUST REVERSE** mode in the Modes tab.
 
-Nothing on the wire advertises which channel the ESC is watching, so a mismatch
-simply means reverse never engages.
+Spektrum allow channels **5 to 9** for this and ship **channel 7** as the factory
+default. Nothing on the wire advertises which one the ESC is watching, so a
+mismatch simply means reverse never engages — silently. Check the channel against
+your own ESC's programming rather than trusting the default: the parameter is not
+present on every Avian model, and where it is present the range and default have
+varied.
 
-INAV arms that channel from the mixer: when it has decided the motor should run
-backwards, reverse is armed, on every ESC at once. There is no separate switch to
-set, deliberately — a switch of its own could disagree with the direction INAV had
-chosen, and thrust reverse is the last place that should happen. For the same
-reason it is not per motor: reversing one side of a twin and not the other is
-worth engineering against.
+The channel setting is not a transmitter channel. It selects a slot on the SRXL2
+wire between the flight controller and the ESC. The transmitter switch is chosen in
+the Modes tab like any other mode.
 
-`esc_srxl2_reverse_channel` applies to all of them, so every ESC on the model has
-to be programmed with the same `Thrust Rev.` channel.
+`esc_srxl2_reverse_channel` applies to every ESC on the model, so a twin needs both
+ESCs programmed with the same `Thrust Rev.` channel. Reverse is armed on all of
+them together and never on one alone: asymmetric reverse thrust on a twin is the
+outcome most worth engineering against.
 
-Note that `Brake Type = Reverse` changes what the throttle range means to the ESC:
-centre becomes zero thrust. Configure INAV for reversible motors to match, or at
-minimum throttle the aircraft will push backwards.
+Reverse is released whenever the aircraft is disarmed, so a machine that landed
+under reverse does not sit on the ground with it still armed.
+
+### If your ESC uses a centred throttle instead
+
+Some Spektrum documentation shows a bipolar throttle scale for the reverse brake
+mode, where centre is zero thrust and below centre is reverse. That is not what the
+switch-and-normal-throttle wording above describes, and the two cannot both be true
+of the same ESC, so this is worth checking on your own hardware before the first
+flight.
+
+If yours behaves that way, enable INAV's own `FEATURE_REVERSIBLE_MOTORS`. The
+driver honours that too: when the mixer decides the motor should run backwards, the
+reverse channel is armed, exactly as the THRUST REVERSE mode would. Either route
+works and neither masks the other.
+
+Be aware of what that feature does to an aeroplane, though, which is why it is not
+the default route:
+
+* the throttle stick becomes centre-zero, so forward thrust lives only in the top
+  half of the stick;
+* chopping the throttle on short final then commands reverse thrust in the air;
+* arming requires the throttle stick **centred** rather than down, and an ARM
+  switch becomes mandatory — INAV disarms continuously without one.
+
+For an aeroplane that wants reverse only on the landing roll, the mode is the right
+answer and the feature is not.
+
+### What reverse cannot do
+
+Reverse is a manual, stick-and-switch capability. INAV's automatic throttle paths —
+RTH, autoland, failsafe, launch — all clamp throttle to at least idle, so none of
+them can call for reverse thrust. An automatic landing will not use it.
 
 ## Settings
 
 | Setting | Meaning |
 |---|---|
 | `motor_pwm_protocol = SRXL2` | drive motors over SRXL2 |
-| `esc_srxl2_reverse_channel` | 1-based channel the ESC uses to arm reverse; 0 disables |
+| `esc_srxl2_reverse_channel` | SRXL2 channel the ESC watches for reverse, 5 to 9; Spektrum default 7, 0 disables |
 | `esc_srxl2_telemetry` | read telemetry from the SRXL2 link |
 | `motor_poles` | required for correct rpm, see above |
 

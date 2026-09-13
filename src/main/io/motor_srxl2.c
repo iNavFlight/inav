@@ -267,7 +267,7 @@ static srxl2Esc_t esc[SRXL2_ESC_MAX_MOTORS];
 static uint8_t    escCount;                 /* ports successfully opened */
 
 /* Shared, because these describe the aircraft rather than one bus. */
-static uint8_t   reverseChannel1Based = 5;  /* Avian "Thrust Rev." default: CH5 */
+static uint8_t   reverseChannel1Based = 7;  /* Spektrum ship "Thrust Rev." on CH7 */
 
 static srxl2CalPhase_e calPhase = SRXL2_CAL_OFF;
 static timeMs_t        calPhaseMs;       /* when the current phase began */
@@ -663,10 +663,34 @@ void srxl2MotorUpdate(uint8_t index, uint16_t value)
     esc[index].channelMask |= (1u << SRXL2_CHANNEL_THROTTLE);
 }
 
+/*
+ * Whether a configured reverse channel can actually be used.
+ *
+ * Zero means the model has no reverse. Anything that would land on the throttle
+ * channel is refused outright: srxl2MotorSetReverse() runs at task rate and
+ * writes its channel unconditionally, so a reverse channel aliased onto the
+ * throttle would overwrite the mixer's staged throttle several hundred times a
+ * second - holding the motor at idle whenever reverse was released, and
+ * commanding full throttle whenever it was armed. The setting's own range
+ * (0..9) cannot express "zero, or five to nine", so the check belongs here.
+ *
+ * The upper bound is the width of the channel array and of the wire's mask.
+ * Spektrum documents Smart ESC reverse as available on channels 5 to 9 only, but
+ * that is the ESC's restriction rather than the protocol's, so it is enforced by
+ * the setting and the Configurator rather than refused here.
+ */
+static bool srxl2ReverseChannelUsable(uint8_t channel1Based)
+{
+    if (channel1Based == 0 || channel1Based > 32) {
+        return false;
+    }
+    return (channel1Based - 1) != SRXL2_CHANNEL_THROTTLE;
+}
+
 void srxl2MotorSetReverse(bool armed)
 {
-    if (reverseChannel1Based == 0 || reverseChannel1Based > 32) {
-        return;     /* reverse not configured */
+    if (!srxl2ReverseChannelUsable(reverseChannel1Based)) {
+        return;     /* reverse not configured, or the channel is not usable */
     }
     const uint8_t idx = reverseChannel1Based - 1;
     const uint16_t v = srxl2UsToValue(armed ? 2000 : 1000);
@@ -682,7 +706,7 @@ void srxl2MotorSetReverse(bool armed)
 
 void srxl2MotorSetReverseChannel(uint8_t channel1Based)
 {
-    reverseChannel1Based = channel1Based;
+    reverseChannel1Based = srxl2ReverseChannelUsable(channel1Based) ? channel1Based : 0;
 }
 
 /* Checked on both sides rather than trusting the caller, because one of these

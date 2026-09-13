@@ -324,10 +324,27 @@ void taskSyncServoDriver(timeUs_t currentTimeUs)
      * faster than its own Control Data interval to collect replies promptly on a
      * half-duplex wire. */
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
-        /* Reverse follows the mixer rather than a mode of its own: when INAV has
-         * decided the motor should run backwards, the ESC's reverse channel is
-         * armed. Anything else would let the two disagree about direction. */
-        srxl2MotorSetReverse(getReversibleMotorsThrottleState() == MOTOR_DIRECTION_BACKWARD);
+        /*
+         * Two ways to ask for reverse, because there are two kinds of model.
+         *
+         * The THRUST REVERSE mode is the one an aeroplane uses: Spektrum describe
+         * the ESC's reverse channel as a switch that flips rotation while the
+         * throttle goes on meaning throttle, so a mode maps onto it exactly. The
+         * pilot arms it on the landing roll and the throttle still commands power.
+         *
+         * The mixer's reversible-motor state covers the other kind, where INAV
+         * itself decides direction from a recentred throttle stick. Honouring both
+         * costs nothing and neither can mask the other: either asking for reverse
+         * is reverse.
+         *
+         * Both are gated on being armed. The mixer stops updating its direction
+         * while disarmed - mixTable() returns early - so an aircraft that landed
+         * under reverse would otherwise sit on the ground with the ESC's reverse
+         * channel held armed until the throttle next went forward.
+         */
+        const bool reverseAsked = IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE)
+                               || getReversibleMotorsThrottleState() == MOTOR_DIRECTION_BACKWARD;
+        srxl2MotorSetReverse(ARMING_FLAG(ARMED) && reverseAsked);
         srxl2MotorProcess();
     }
 #endif
