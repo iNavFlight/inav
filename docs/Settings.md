@@ -1065,6 +1065,16 @@ Read ESC telemetry off the SRXL2 link. Only applies when motor_pwm_protocol is S
 
 ---
 
+### esc_srxl2_telemetry_rate
+
+How often an SRXL2 Smart ESC is asked for telemetry. The reply shares the throttle wire, so a faster rate leaves the bus less headroom; a slower one is steadier. Only the RPM filter really benefits from the faster settings.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10HZ |  |  |
+
+---
+
 ### ez_aggressiveness
 
 EzTune aggressiveness

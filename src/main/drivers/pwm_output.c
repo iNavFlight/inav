@@ -626,6 +626,7 @@ void pwmMotorPreconfigure(void)
              * outcome of a port that was never assigned. */
             if (srxl2MotorInitialize()) {
                 srxl2MotorSetReverseChannel(motorConfig()->srxl2ReverseChannel);
+                srxl2MotorSetTelemetryRate(motorConfig()->srxl2TelemetryRate);
                 motorWritePtr = srxl2MotorUpdate;
             }
             break;

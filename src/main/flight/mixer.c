@@ -98,6 +98,7 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPoleCount = SETTING_MOTOR_POLES_DEFAULT,            // Most brushless motors that we use are 14 poles
 #ifdef USE_MOTOR_SRXL2
     .srxl2ReverseChannel = SETTING_ESC_SRXL2_REVERSE_CHANNEL_DEFAULT,
+    .srxl2TelemetryRate = SETTING_ESC_SRXL2_TELEMETRY_RATE_DEFAULT,
     .srxl2Telemetry = SETTING_ESC_SRXL2_TELEMETRY_DEFAULT,
 #endif
 );

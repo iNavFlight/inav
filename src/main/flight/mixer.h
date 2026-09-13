@@ -101,6 +101,7 @@ typedef struct motorConfig_s {
      * saved settings keep their offsets. */
     uint8_t srxl2ReverseChannel;            // 1-based aux channel an SRXL2 ESC uses to arm reverse; 0 disables
     uint8_t srxl2Telemetry;                 // read ESC telemetry off the SRXL2 link
+    uint8_t srxl2TelemetryRate;             // how often to ask the ESC for telemetry, as srxl2TelemetryRate_e
 #endif
 } motorConfig_t;
 

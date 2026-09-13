@@ -159,6 +159,25 @@ void srxl2MotorSetReverse(bool armed);
 void srxl2MotorSetReverseChannel(uint8_t channel1Based);
 
 /*
+ * How often the ESC is asked for telemetry. Its reply shares the throttle wire, so
+ * this trades bus headroom against how promptly rpm and voltage move - which only
+ * matters to the RPM filter, everything else being a display.
+ */
+typedef enum {
+    /* 10 Hz is first so that it is zero. The setting lives in a field appended to
+     * motorConfig_t that fell inside existing padding, so a configuration saved
+     * before it existed loads index 0 rather than the reset default - which must
+     * therefore be the value we would have chosen anyway, not the fastest one. */
+    SRXL2_TELEM_10HZ = 0,
+    SRXL2_TELEM_50HZ,
+    SRXL2_TELEM_25HZ,
+    SRXL2_TELEM_5HZ,
+    SRXL2_TELEM_2HZ,
+} srxl2TelemetryRate_e;
+
+void srxl2MotorSetTelemetryRate(srxl2TelemetryRate_e rate);
+
+/*
  * Emit the staged values as an SRXL2 Control Data packet. Intended to be called
  * once per motor update from pwmCompleteMotorUpdate().
  */
