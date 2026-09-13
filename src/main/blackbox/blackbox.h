@@ -36,6 +36,7 @@ typedef enum {
     BLACKBOX_FEATURE_GYRO_PEAKS_PITCH   = 1 << 11,
     BLACKBOX_FEATURE_GYRO_PEAKS_YAW     = 1 << 12,
     BLACKBOX_FEATURE_SERVOS             = 1 << 13,
+    BLACKBOX_FEATURE_GYRO_SECONDARY     = 1 << 14,
 } blackboxFeatureMask_e;
 
 typedef enum BlackboxState {
