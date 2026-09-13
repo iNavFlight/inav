@@ -87,7 +87,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 - MSP_BOARD_INFO - Hardware identification
 - MSP_STATUS / MSP_STATUS_EX - Flight controller status
 - MSP_SENSOR_STATUS - Sensor health status
-- MSP_ANALOG - Battery/voltage readings
+- MSP2_INAV_ANALOG - Battery/voltage readings
 - MSP_ATTITUDE - Current attitude (roll/pitch/yaw)
 - MSP_ALTITUDE - Altitude readings
 - MSP_RAW_GPS - GPS data
