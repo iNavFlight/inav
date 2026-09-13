@@ -3721,7 +3721,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 );
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             }
-            break;
+            return true;
         }
 
     case OSD_IMU_TEMPERATURE:
