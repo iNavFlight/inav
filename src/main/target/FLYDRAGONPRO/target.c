@@ -31,7 +31,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH2, PC7,  TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "CH2"
     DEF_TIM(TIM3, CH1, PC6,  TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "CH1"
 
-    DEF_TIM(TIM2, CH1, PA0,  TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "ESC", clashes with UART4 TX
+    DEF_TIM(TIM2, CH1, PA0,  TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "ESC", clashes with UART4 TX -- also clashes with TIM3_CH2's DMA stream (burst-mode DMA), DSHOT does not work
     DEF_TIM(TIM2, CH2, PA1,  TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "RPM", clashes with UART4 RX
 
     DEF_TIM(TIM5, CH4, PA3,  TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "RX2", clashes with UART2 RX
@@ -39,7 +39,7 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM11, CH1, PB9,  TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "AUX"
 
-    DEF_TIM(TIM4, CH3, PB8, TIM_USE_LED, 0, 0),           // WS2812B
+    DEF_TIM(TIM4, CH3, PB8, TIM_USE_LED, 0, 0),           // WS2812B -- clash with TIM3_CH3's DMA stream; LED strip does not light
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
