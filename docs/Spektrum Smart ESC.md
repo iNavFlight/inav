@@ -165,30 +165,27 @@ outcome most worth engineering against.
 Reverse is released whenever the aircraft is disarmed, so a machine that landed
 under reverse does not sit on the ground with it still armed.
 
-### If your ESC uses a centred throttle instead
+### Check it on the bench before the first flight
 
 Some Spektrum documentation shows a bipolar throttle scale for the reverse brake
-mode, where centre is zero thrust and below centre is reverse. That is not what the
-switch-and-normal-throttle wording above describes, and the two cannot both be true
-of the same ESC, so this is worth checking on your own hardware before the first
-flight.
+mode, where centre is zero thrust and below centre is reverse. That contradicts the
+switch-and-normal-throttle behaviour above, and the two cannot both be true of the
+same ESC. INAV drives the switch arrangement, which is the one Spektrum state in
+words, so it is worth confirming your ESC is that kind.
 
-If yours behaves that way, enable INAV's own `FEATURE_REVERSIBLE_MOTORS`. The
-driver honours that too: when the mixer decides the motor should run backwards, the
-reverse channel is armed, exactly as the THRUST REVERSE mode would. Either route
-works and neither masks the other.
+**Propeller off.** Arm with THRUST REVERSE off and watch the motor at *minimum*
+throttle:
 
-Be aware of what that feature does to an aeroplane, though, which is why it is not
-the default route:
+* **stopped**, or idling gently forward — the switch arrangement, which is what
+  this driver expects. Nothing more to do.
+* **spinning backwards hard** — the other kind. Disarm. INAV does not drive that
+  arrangement over SRXL2: the throttle it sends would be read as reverse thrust
+  through most of the stick.
 
-* the throttle stick becomes centre-zero, so forward thrust lives only in the top
-  half of the stick;
-* chopping the throttle on short final then commands reverse thrust in the air;
-* arming requires the throttle stick **centred** rather than down, and an ARM
-  switch becomes mandatory — INAV disarms continuously without one.
-
-For an aeroplane that wants reverse only on the landing roll, the mode is the right
-answer and the feature is not.
+`FEATURE_REVERSIBLE_MOTORS` is not the answer to the second case and is cleared
+automatically when the protocol is SRXL2. It recentres INAV's own throttle output,
+which on a switch-type ESC means roughly half throttle at the point the stick says
+stop.
 
 ### What reverse cannot do
 

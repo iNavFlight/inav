@@ -325,26 +325,17 @@ void taskSyncServoDriver(timeUs_t currentTimeUs)
      * half-duplex wire. */
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
         /*
-         * Two ways to ask for reverse, because there are two kinds of model.
+         * Reverse is a mode, because on this ESC it is a switch: Spektrum describe
+         * the reverse channel as flipping rotation while the throttle goes on
+         * meaning throttle. There is deliberately no second route through the
+         * mixer's reversible-motor state - that models a centre-zero stick, which
+         * is a different kind of ESC, and FEATURE_REVERSIBLE_MOTORS is cleared for
+         * this protocol at startup for the same reason.
          *
-         * The THRUST REVERSE mode is the one an aeroplane uses: Spektrum describe
-         * the ESC's reverse channel as a switch that flips rotation while the
-         * throttle goes on meaning throttle, so a mode maps onto it exactly. The
-         * pilot arms it on the landing roll and the throttle still commands power.
-         *
-         * The mixer's reversible-motor state covers the other kind, where INAV
-         * itself decides direction from a recentred throttle stick. Honouring both
-         * costs nothing and neither can mask the other: either asking for reverse
-         * is reverse.
-         *
-         * Both are gated on being armed. The mixer stops updating its direction
-         * while disarmed - mixTable() returns early - so an aircraft that landed
-         * under reverse would otherwise sit on the ground with the ESC's reverse
-         * channel held armed until the throttle next went forward.
+         * Gated on being armed so that an aircraft which landed under reverse does
+         * not sit on the ground with the ESC's reverse channel still held.
          */
-        const bool reverseAsked = IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE)
-                               || getReversibleMotorsThrottleState() == MOTOR_DIRECTION_BACKWARD;
-        srxl2MotorSetReverse(ARMING_FLAG(ARMED) && reverseAsked);
+        srxl2MotorSetReverse(ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE));
         srxl2MotorProcess();
     }
 #endif

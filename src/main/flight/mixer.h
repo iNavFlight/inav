@@ -119,7 +119,6 @@ typedef enum {
     MOTOR_DIRECTION_DEADBAND
 } reversibleMotorsThrottleState_e;
 
-reversibleMotorsThrottleState_e getReversibleMotorsThrottleState(void);
 
 extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
