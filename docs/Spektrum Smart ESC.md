@@ -122,9 +122,12 @@ notch at all.
 
 Two things to weigh before turning `rpm_gyro_filter_enabled` on:
 
-* Telemetry arrives at roughly 10 Hz, not at the loop rate. On an aircraft holding
-  a cruise throttle, rpm and the vibration peak both move slowly and that is
-  adequate. It is not equivalent to bidirectional DSHOT.
+* Telemetry arrives at whatever `esc_srxl2_telemetry_rate` asks for, 10 Hz by
+  default, not at the loop rate. On an aircraft holding a cruise throttle, rpm and
+  the vibration peak both move slowly and that is adequate. Raising it to 50 Hz
+  tracks better and costs bus headroom, since the reply shares the throttle wire.
+  Even at 50 Hz this is not equivalent to bidirectional DSHOT, which reports every
+  loop.
 * INAV's own advice for this setting applies unchanged: turn it on only once ESC
   telemetry is working and the reported rpm looks right.
 
@@ -200,6 +203,7 @@ them can call for reverse thrust. An automatic landing will not use it.
 | `motor_pwm_protocol = SRXL2` | drive motors over SRXL2 |
 | `esc_srxl2_reverse_channel` | SRXL2 channel the ESC watches for reverse, 5 to 9; Spektrum default 7, 0 disables |
 | `esc_srxl2_telemetry` | read telemetry from the SRXL2 link |
+| `esc_srxl2_telemetry_rate` | how often the ESC is asked: 50, 25, 10, 5 or 2 Hz |
 | `motor_poles` | required for correct rpm, see above |
 
 ## Reference

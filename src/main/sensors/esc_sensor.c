@@ -159,7 +159,17 @@ escSensorData_t NOINLINE * getEscTelemetry(uint8_t esc)
 
 escSensorData_t * escSensorGetData(void)
 {
-    if (!escSensorPort) {
+    /*
+     * Asks whether there is ESC telemetry, not whether a serial port is open. The
+     * two used to be the same thing, but a Smart ESC reports over the throttle wire
+     * itself, handled by the motor driver, so escSensorPort stays NULL while the
+     * data is perfectly good. Testing the port left the OSD, Blackbox, current
+     * estimation and the telemetry backends with nothing on such a board - and the
+     * OSD inconsistent with itself, since it checks the state flag and then asks
+     * here. For a conventional ESC the state is only set once the port has opened,
+     * so nothing changes there.
+     */
+    if (!STATE(ESC_SENSOR_ENABLED)) {
         return NULL;
     }
 
