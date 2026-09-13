@@ -423,6 +423,7 @@ void compassUpdate(timeUs_t currentTimeUs)
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         mag.magADC[axis] = mag.dev.magADCRaw[axis];  // int32_t copy to work with
+        DEBUG_SET(DEBUG_MAG, axis, mag.dev.magADCRaw[axis]);
     }
 
     if (STATE(CALIBRATE_MAG)) {

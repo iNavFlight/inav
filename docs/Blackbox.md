@@ -185,6 +185,7 @@ Available debug modes include:
 - `POS_EST` - Position estimation debugging
 - `GPS` - GPS debugging
 - `ALTITUDE` - Altitude estimation debugging
+- `MAG` - Raw, uncalibrated magnetometer samples (useful for external compass calibration)
 - And 20+ other modes for specific subsystems
 
 To use debug mode logging:
