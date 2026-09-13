@@ -350,3 +350,16 @@ void assignFilterApplyFn(uint8_t filterType, float cutoffFrequency, filterApplyF
         }
     }
 }
+
+double ellipticFilterApply(const uint8_t filterOrder, double input, const double *a_coeffs, const double *b_coeffs, double *filterState) {
+    // Calculate the output
+    double output = b_coeffs[0] * input + filterState[0];
+    
+    // Update the state variables
+    for (int i = 0; i < filterOrder - 1; i++) {
+        filterState[i] = b_coeffs[i + 1] * input - a_coeffs[i + 1] * output + filterState[i + 1];
+    }
+    filterState[filterOrder - 1] = b_coeffs[filterOrder] * input - a_coeffs[filterOrder] * output;
+    
+    return output;
+}
