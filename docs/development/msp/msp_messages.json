@@ -1,7 +1,7 @@
 {
     "version": {
-        "major": 2,
-        "minor": 1,
+        "major": 3,
+        "minor": 0,
         "patch": 0
     },
     "messages": {
@@ -4183,27 +4183,6 @@
             "variable_len": true,
             "notes": "The exact set of names depends on compiled features and configuration. Due to the size of the payload, it is recommended that [`MSP_BOXIDS`](#msp_boxids-119--0x77) is used instead.",
             "description": "Provides a semicolon-separated string containing the names of all available flight modes (boxes)."
-        },
-        "MSP_PIDNAMES": {
-            "code": 117,
-            "mspv": 1,
-            "replaced_by": [],
-            "request": null,
-            "reply": {
-                "payload": [
-                    {
-                        "name": "pidNamesString",
-                        "desc": "String \"ROLL;PITCH;YAW;ALT;Pos;PosR;NavR;LEVEL;MAG;VEL;\". Null termination not guaranteed by MSP",
-                        "ctype": "char",
-                        "array": true,
-                        "array_size": 0,
-                        "units": ""
-                    }
-                ]
-            },
-            "variable_len": true,
-            "notes": "",
-            "description": "Provides a semicolon-separated string containing the names of the PID controllers."
         },
         "MSP_WP": {
             "code": 118,
