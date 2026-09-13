@@ -116,6 +116,14 @@ void            srxl2MotorCalibrationAbort(void);
 srxl2CalPhase_e srxl2MotorCalibrationPhase(void);
 
 /*
+ * Why the last request to start a calibration was refused, or SRXL2_CAL_ACCEPTED
+ * if it was not. MSP cannot carry a reason back on an IN command, so a caller that
+ * only saw the command fail could not tell the operator anything useful - and the
+ * useful thing here is precisely which precondition was not met.
+ */
+srxl2CalResult_e srxl2MotorCalibrationLastResult(void);
+
+/*
  * Open the serial port assigned FUNCTION_ESC_SRXL2 and start the handshake.
  * Returns false if no port is assigned or it could not be opened, in which case
  * the caller must fall back to leaving the motors unwritten - this protocol has

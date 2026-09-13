@@ -270,6 +270,7 @@ static uint8_t    escCount;                 /* ports successfully opened */
 static uint8_t   reverseChannel1Based = 7;  /* Spektrum ship "Thrust Rev." on CH7 */
 
 static srxl2CalPhase_e calPhase = SRXL2_CAL_OFF;
+static srxl2CalResult_e calLastResult = SRXL2_CAL_ACCEPTED;
 static timeMs_t        calPhaseMs;       /* when the current phase began */
 static uint32_t        calHandshakeMark; /* total handshakes when the phase began */
 
@@ -726,13 +727,13 @@ srxl2CalResult_e srxl2MotorCalibrationBegin(void)
 {
     const srxl2CalResult_e common = srxl2CalCommonChecks();
     if (common != SRXL2_CAL_ACCEPTED) {
-        return common;
+        return (calLastResult = common);
     }
 
     /* Detecting the ESC powering up is the whole mechanism, so say so plainly
      * instead of starting a sequence that can never advance. */
     if (!isBatteryVoltageConfigured()) {
-        return SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR;
+        return (calLastResult = SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR);
     }
 
     /*
@@ -741,25 +742,25 @@ srxl2CalResult_e srxl2MotorCalibrationBegin(void)
      * it would mean presenting full throttle to an ESC that can act on it.
      */
     if (getBatteryState() != BATTERY_NOT_PRESENT) {
-        return SRXL2_CAL_REJECT_BATTERY_PRESENT;
+        return (calLastResult = SRXL2_CAL_REJECT_BATTERY_PRESENT);
     }
 
     calPhase = SRXL2_CAL_WAIT_BATTERY;
     calPhaseMs = millis();
     calHandshakeMark = srxl2TotalHandshakes();
-    return SRXL2_CAL_ACCEPTED;
+    return (calLastResult = SRXL2_CAL_ACCEPTED);
 }
 
 srxl2CalResult_e srxl2MotorCalibrationManual(srxl2CalPhase_e phase)
 {
     const srxl2CalResult_e common = srxl2CalCommonChecks();
     if (common != SRXL2_CAL_ACCEPTED) {
-        return common;
+        return (calLastResult = common);
     }
 
     calPhase = phase;
     calPhaseMs = millis();
-    return SRXL2_CAL_ACCEPTED;
+    return (calLastResult = SRXL2_CAL_ACCEPTED);
 }
 
 void srxl2MotorCalibrationAbort(void)
@@ -770,6 +771,11 @@ void srxl2MotorCalibrationAbort(void)
 srxl2CalPhase_e srxl2MotorCalibrationPhase(void)
 {
     return calPhase;
+}
+
+srxl2CalResult_e srxl2MotorCalibrationLastResult(void)
+{
+    return calLastResult;
 }
 
 /* Advance the unattended sequence. Every phase leaves on a deadline, so nothing
