@@ -408,14 +408,25 @@ void gyroStartCalibration(void)
      */
     if (gyro.secondaryInitialized) {
         /*
-         * allowFailure is true here, unlike for the primary. Nothing gates
-         * arming on this sensor, so a calibration that keeps restarting on
-         * vibration would never finish and every logged sample would stay
-         * zero for the whole flight. Failing once and then logging the sensor
-         * with a zero offset keeps the channel useful: a constant bias can be
-         * removed in post-processing, a column of zeroes cannot.
+         * The threshold is a number of raw counts, and raw counts mean different
+         * rotation rates on different parts - a dual-IMU board is free to pair two
+         * unrelated sensors. Converting through both scales asks the secondary for
+         * the same physical stillness the primary is asked for, rather than for the
+         * same number. Where the two sensors are the same part the scales cancel and
+         * this is exactly the old constant.
          */
-        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, true);
+        const float secondaryThreshold =
+            CALIBRATING_GYRO_MORON_THRESHOLD * gyroDev[0].scale / gyroDev[1].scale;
+
+        /*
+         * allowFailure is true here, unlike for the primary. Nothing gates arming on
+         * this sensor, so a calibration that keeps restarting on vibration would
+         * never finish and every logged sample would stay zero for the whole flight.
+         * Failing once and then logging the sensor with a zero offset keeps the
+         * channel useful: a constant bias can be removed in post-processing, a
+         * column of zeroes cannot.
+         */
+        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, secondaryThreshold, true);
     }
 #endif
 
