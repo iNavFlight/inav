@@ -149,7 +149,7 @@
  * Every fifth frame at 50 Hz gives 10 Hz, which is in line with what INAV's
  * other ESC telemetry backends deliver.
  */
-#define SRXL2_TELEM_REQUEST_EVERY   5
+#define SRXL2_TELEM_REQUEST_DEFAULT 5
 
 /* Declare the link dead if the ESC stops answering for this long. */
 #define SRXL2_LINK_TIMEOUT_MS       500
@@ -268,6 +268,13 @@ static uint8_t    escCount;                 /* ports successfully opened */
 
 /* Shared, because these describe the aircraft rather than one bus. */
 static uint8_t   reverseChannel1Based = 7;  /* Spektrum ship "Thrust Rev." on CH7 */
+
+/*
+ * Control frames between telemetry requests. The control interval is 20 ms, so a
+ * divisor of 5 asks at 10 Hz. Held as a divisor rather than a rate because that is
+ * what the transmit path actually counts.
+ */
+static uint8_t   telemRequestEvery = SRXL2_TELEM_REQUEST_DEFAULT;
 
 static srxl2CalPhase_e calPhase = SRXL2_CAL_OFF;
 static srxl2CalResult_e calLastResult = SRXL2_CAL_ACCEPTED;
@@ -536,9 +543,11 @@ static void srxl2SendControlData(srxl2Esc_t *e)
     uint8_t buf[SRXL2_MAX_FRAME];
     uint8_t n = 0;
 
-    /* Request telemetry only occasionally - see SRXL2_TELEM_REQUEST_EVERY. */
+    /* Request telemetry only every so often: the reply shares the wire with the
+     * control data, so asking on every frame halves the headroom for no gain on a
+     * sensor whose values move slowly. */
     uint8_t replyId = SRXL2_REPLY_NONE;
-    if (++e->telemRequestCounter >= SRXL2_TELEM_REQUEST_EVERY) {
+    if (++e->telemRequestCounter >= telemRequestEvery) {
         e->telemRequestCounter = 0;
         replyId = e->deviceId;
     }
@@ -708,6 +717,15 @@ void srxl2MotorSetReverse(bool armed)
 void srxl2MotorSetReverseChannel(uint8_t channel1Based)
 {
     reverseChannel1Based = srxl2ReverseChannelUsable(channel1Based) ? channel1Based : 0;
+}
+
+void srxl2MotorSetTelemetryRate(srxl2TelemetryRate_e rate)
+{
+    /* Indexed by srxl2TelemetryRate_e, and derived from the 50 Hz control rate:
+     * every frame is 50 Hz, every 25th is 2 Hz. */
+    static const uint8_t divisor[] = { 5, 1, 2, 10, 25 };
+
+    telemRequestEvery = (rate < ARRAYLEN(divisor)) ? divisor[rate] : SRXL2_TELEM_REQUEST_DEFAULT;
 }
 
 /* Checked on both sides rather than trusting the caller, because one of these
