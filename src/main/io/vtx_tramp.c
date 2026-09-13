@@ -53,6 +53,11 @@
 #define VTX_UPDATE_REQ_POWER        0x02
 #define VTX_UPDATE_REQ_PITMODE      0x04
 
+// A Tramp-compatible device that will not enter pit mode must not be asked
+// forever: an unbounded requeue keeps the highest-priority request set and
+// starves every pending channel and power change.
+#define VTX_PITMODE_MAX_RETRIES     3
+
 typedef enum {
     VTX_STATE_RESET         = 0,
     VTX_STATE_OFFILE        = 1,    // Not detected
@@ -95,6 +100,7 @@ typedef struct {
         unsigned power;
         bool pitMode;
         bool pitModeRequested; // do not override hardware-button state before a request
+        uint8_t pitModeRetries;
     } request;
 
     // Actual VTX state: updated from actual VTX
@@ -319,12 +325,7 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
         case VTX_STATE_IDLE:
             if (vtxState.updateReqMask != VTX_UPDATE_REQ_NONE) {
                 // Updates pending. Send an appropriate command
-                if (vtxState.updateReqMask & VTX_UPDATE_REQ_PITMODE) {
-                    vtxState.updateReqMask &= ~VTX_UPDATE_REQ_PITMODE;
-                    vtxProtoSetPitMode(vtxState.request.pitMode);
-                    vtxProtoSetState(VTX_STATE_QUERY_DELAY);
-                }
-                else if (vtxState.updateReqMask & VTX_UPDATE_REQ_FREQUENCY) {
+                if (vtxState.updateReqMask & VTX_UPDATE_REQ_FREQUENCY) {
                     vtxState.updateReqMask &= ~VTX_UPDATE_REQ_FREQUENCY;
                     vtxProtoSetFrequency(vtxState.request.freq);
                     vtxProtoSetState(VTX_STATE_QUERY_DELAY);
@@ -332,6 +333,13 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
                 else if (vtxState.updateReqMask & VTX_UPDATE_REQ_POWER) {
                     vtxState.updateReqMask &= ~VTX_UPDATE_REQ_POWER;
                     vtxProtoSetPower(vtxState.request.power);
+                    vtxProtoSetState(VTX_STATE_QUERY_DELAY);
+                }
+                // Pit mode last: channel and power must go out even while a
+                // device keeps reporting a pit state we did not ask for.
+                else if (vtxState.updateReqMask & VTX_UPDATE_REQ_PITMODE) {
+                    vtxState.updateReqMask &= ~VTX_UPDATE_REQ_PITMODE;
+                    vtxProtoSetPitMode(vtxState.request.pitMode);
                     vtxProtoSetState(VTX_STATE_QUERY_DELAY);
                 }
             }
@@ -371,7 +379,13 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
                     }
 
                     if (vtxState.request.pitModeRequested && vtxState.state.pitMode != vtxState.request.pitMode) {
-                        vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
+                        if (vtxState.request.pitModeRetries < VTX_PITMODE_MAX_RETRIES) {
+                            vtxState.request.pitModeRetries++;
+                            vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
+                        }
+                    }
+                    else {
+                        vtxState.request.pitModeRetries = 0;
                     }
 
                     // We got the status response - proceed to IDLE
@@ -453,9 +467,16 @@ static void impl_SetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
 {
     UNUSED(vtxDevice);
 
-    vtxState.request.pitMode = onoff != 0;
-    vtxState.request.pitModeRequested = true;
-    vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
+    const bool newPitMode = onoff != 0;
+
+    // io/vtx.c re-issues the same request about twice a second, so the retry
+    // budget may only be refilled when the pilot actually flips the switch.
+    if (!vtxState.request.pitModeRequested || vtxState.request.pitMode != newPitMode) {
+        vtxState.request.pitMode = newPitMode;
+        vtxState.request.pitModeRequested = true;
+        vtxState.request.pitModeRetries = 0;
+        vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
+    }
 }
 
 static bool impl_GetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel)
