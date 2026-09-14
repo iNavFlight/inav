@@ -29,8 +29,8 @@ fire.
 ### Documentation
 
 #### `docs.yml` - Documentation Build
-**Triggers:** Pull requests affecting documentation
-**Purpose:** Validates documentation builds correctly
+**Triggers:** Pull requests and pushes affecting settings inputs, source `.c`/`.h` files, the firmware version in `CMakeLists.txt`, MSP docs inputs/outputs, or the workflow itself
+**Purpose:** Regenerates `docs/Settings.md` and the MSP Markdown/JSON references, failing if the checked-in files are stale
 
 ### Code Quality
 
