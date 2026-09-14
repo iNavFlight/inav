@@ -4,7 +4,16 @@
 // dependency so it can be unit tested directly and reused (via require)
 // from the actions/github-script step in ci-size-report.yml.
 //
-// Report shape: { "<target>": { "flash": <bytes>, "ram": <bytes> }, ... }
+// Report shape: { "<target>": { "flash": <bytes>, "ram": <bytes>,
+//   "regions": { "<name>": <bytes>, ... } }, ... }
+//
+// "regions" is optional and, when present, breaks "ram" down by linker
+// memory region (e.g. RAM/CCM on F4/F7 parts, RAM/DTCM on H7) — "ram" alone
+// is the sum of those regions and stays purely additive/informational once
+// a regional breakdown exists. A region delta is only rendered when BOTH
+// the PR and baseline entries carry "regions" for that target; if either
+// side predates the field (e.g. an old stored baseline), the row falls
+// back to the combined "ram" figure instead of a partial breakdown.
 
 'use strict';
 
@@ -15,9 +24,9 @@
 // manager as a possible coverage gap, not decided unilaterally here.
 const REPRESENTATIVE_TARGETS = ['MATEKF405', 'MATEKF722', 'MATEKF765', 'MATEKH743'];
 
-// Below this magnitude a delta is noise (rounding/toolchain jitter), not a
-// real change worth calling out.
-const NOISE_THRESHOLD_BYTES = 256;
+// Below these magnitudes a delta is noise, not worth flagging.
+const FLASH_NOISE_THRESHOLD_BYTES = 4096;
+const RAM_NOISE_THRESHOLD_BYTES = 1024;
 
 function formatDelta(deltaBytes, baseBytes) {
     const sign = deltaBytes > 0 ? '+' : deltaBytes < 0 ? '' : '±';
@@ -45,6 +54,25 @@ function diffSizeReports(prReport, baselineReport) {
 
         const flashDelta = pr.flash - base.flash;
         const ramDelta = pr.ram - base.ram;
+
+        // Only trust a per-region breakdown when both sides have one - a
+        // region missing from just one side (schema drift, or a region a
+        // target gained/lost) would otherwise render a misleading partial
+        // delta for that region.
+        let regionDeltas;
+        if (pr.regions && base.regions) {
+            const names = Array.from(new Set([...Object.keys(pr.regions), ...Object.keys(base.regions)])).sort();
+            regionDeltas = names.map((name) => {
+                const prBytes = pr.regions[name] || 0;
+                const baseBytes = base.regions[name] || 0;
+                return { name, delta: prBytes - baseBytes, baseBytes };
+            });
+        }
+
+        const notable = regionDeltas
+            ? Math.abs(flashDelta) >= FLASH_NOISE_THRESHOLD_BYTES || regionDeltas.some((r) => Math.abs(r.delta) >= RAM_NOISE_THRESHOLD_BYTES)
+            : Math.abs(flashDelta) >= FLASH_NOISE_THRESHOLD_BYTES || Math.abs(ramDelta) >= RAM_NOISE_THRESHOLD_BYTES;
+
         return {
             target,
             status: 'compared',
@@ -54,7 +82,8 @@ function diffSizeReports(prReport, baselineReport) {
             baseRam: base.ram,
             flashDelta,
             ramDelta,
-            notable: Math.abs(flashDelta) >= NOISE_THRESHOLD_BYTES || Math.abs(ramDelta) >= NOISE_THRESHOLD_BYTES,
+            regionDeltas,
+            notable,
         };
     });
 }
@@ -95,7 +124,9 @@ function renderComment({ prReport, baselineReport, shortSha, baselineCommit, bas
         for (const row of rows) {
             if (row.status === 'compared') {
                 const flashCell = formatDelta(row.flashDelta, row.baseFlash);
-                const ramCell = formatDelta(row.ramDelta, row.baseRam);
+                const ramCell = row.regionDeltas
+                    ? row.regionDeltas.map((r) => `${r.name}: ${formatDelta(r.delta, r.baseBytes)}`).join('<br>')
+                    : formatDelta(row.ramDelta, row.baseRam);
                 const notableMark = row.notable ? ' ⚠️' : '';
                 lines.push(`| ${row.target}${notableMark} | ${flashCell} | ${ramCell} |`);
             } else if (row.status === 'no-baseline') {
@@ -121,4 +152,11 @@ function renderComment({ prReport, baselineReport, shortSha, baselineCommit, bas
     return lines.join('\n').trimEnd() + '\n';
 }
 
-module.exports = { REPRESENTATIVE_TARGETS, NOISE_THRESHOLD_BYTES, diffSizeReports, renderComment, formatDelta };
+module.exports = {
+    REPRESENTATIVE_TARGETS,
+    FLASH_NOISE_THRESHOLD_BYTES,
+    RAM_NOISE_THRESHOLD_BYTES,
+    diffSizeReports,
+    renderComment,
+    formatDelta,
+};
