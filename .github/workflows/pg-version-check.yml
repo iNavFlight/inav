@@ -42,7 +42,7 @@ jobs:
           # The output is captured and encoded to be passed between steps.
           output=$(bash .github/scripts/check-pg-versions.sh 2>&1)
           exit_code=$?
-          if [ "$exit_code" -gt 1 ] || { [ "$exit_code" -eq 1 ] && ! grep -q '^### ' <<< "$output"; }; then
+          if [ "$exit_code" -gt 1 ] || { [ "$exit_code" -eq 1 ] && ! grep -q '^PG version issue:' <<< "$output"; }; then
             printf '%s\n' "$output"
             exit 2
           fi
@@ -74,7 +74,7 @@ jobs:
               let issues = [];
 
               for (const line of lines) {
-                if (line.includes('###')) {
+                if (line.includes('PG version issue:')) {
                   capturing = true;
                 }
                 if (capturing) {
