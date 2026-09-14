@@ -136,7 +136,7 @@ When `mavlink_port{1-4}_radio_type = MLRS`, INAV uses native receiver-emitted ML
 
 Messages are organized into MAVLink datastream groups. Each group sends one message per trigger at the configured rate.
 
-- `SYS_STATUS`: advertises detected sensors (gyro/accel/compass, baro, pitot, GPS, optical flow, rangefinder, RC, blackbox) and whether they are healthy. Includes main loop load, battery voltage/current/percentage, and logging capability.
+- `SYS_STATUS`: advertises detected sensors (gyro/accel/compass, baro, pitot, GPS, optical flow, rangefinder, RC, blackbox) and whether they are healthy. Includes main loop load, battery voltage/current/percentage, and logging capability. With no battery detected, or with `FEATURE_VBAT` off, voltage is sent as `UINT16_MAX` and remaining percentage as `-1`, the MAVLink unknown values, so a ground station shows no reading instead of 0 V or a full battery.
 - `RC_CHANNELS_RAW` (v1) / `RC_CHANNELS` (v2): up to 18 input channels plus RSSI mapped to MAVLink units.
 - `GPS_RAW_INT`: GNSS fix quality, HDOP/VDOP, velocity, satellite count, and receiver-native ellipsoid altitude and accuracy extensions when available.
 - `GLOBAL_POSITION_INT`: GPS position plus INAV altitude and velocity estimates.
@@ -145,7 +145,7 @@ Messages are organized into MAVLink datastream groups. Each group sends one mess
 - `VFR_HUD`: airspeed (if a healthy pitot is available), ground speed, throttle, altitude, and climb rate.
 - `HEARTBEAT`: arming state plus ArduPilot-style `custom_mode` mapping from INAV flight modes.
 - `EXTENDED_SYS_STATE`: landed-state reporting.
-- `BATTERY_STATUS`: per-cell voltages (cells 11-14 in `voltages_ext`), current draw, consumed mAh/Wh, and remaining percentage when available.
+- `BATTERY_STATUS`: per-cell voltages (cells 11-14 in `voltages_ext`), current draw, consumed mAh/Wh, and remaining percentage when available. Without a detected battery the cell voltages stay at `UINT16_MAX` and remaining percentage at `-1`.
 - `SCALED_PRESSURE`: baro pressure and temperature data.
 - `SYSTEM_TIME`: boot time plus RTC Unix time when the RTC is valid.
 - `STATUSTEXT`: pending OSD/system messages, changed arming-disable reasons, and flight-mode transitions. OSD/system messages carry a mapped severity (NOTICE by default, WARNING when the source OSD element is inverted, CRITICAL when it blinks); arming-disable and mode notices are always sent at NOTICE severity. Repeated OSD-derived status text is suppressed per MAVLink port; changed text is sent immediately, while unchanged notice/warning/critical messages are re-announced at progressively shorter severity-based intervals (30 s / 10 s / 5 s). Changed arming-disable reasons are broadcast to every enabled port as `Arming disabled: <reasons>`. INAV flight-mode transitions are broadcast as notices in the form `Notice: INAV: Entering <mode name>`, with explicit `Notice: INAV: Entering GCS NAV mode` / `Notice: INAV: Exiting GCS NAV mode` transitions while GCS-assisted navigation engages or ends. See [Reconnect and status re-announcement](#reconnect-and-status-re-announcement) for how these are re-sent when a peer (re)connects.
