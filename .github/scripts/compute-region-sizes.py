@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Compute per-linker-region byte usage for one .elf, from its companion
-.map file (Memory Configuration table) and `arm-none-eabi-size -A` output.
+.map file (Memory Configuration table) and `arm-none-eabi-objdump -h` output.
 
 Why: `arm-none-eabi-size -B` (Berkeley format, used for the flat flash/ram
 totals elsewhere in this pipeline) sums ALL writable sections into one
@@ -60,24 +60,48 @@ def parse_memory_regions(map_path):
 
 
 def parse_section_sizes(elf_path, size_tool):
-    """Returns [(section_name, size, addr), ...] via `size -A` (sysv), the
-    one format that reports per-section addresses needed for region
-    matching (Berkeley's -B only gives family totals, no addresses)."""
-    out = subprocess.run([size_tool, '-A', elf_path], capture_output=True, text=True, check=True).stdout
+    """Returns [(section_name, size, addr), ...] for allocated sections only
+    (the SHF_ALLOC ELF flag - i.e. sections that actually occupy memory at
+    runtime), via `objdump -h`'s two-line-per-section format. Filtering on
+    that flag, rather than on address, is what correctly tells apart
+    never-placed debug/symbol metadata (addr 0) from a real, zero-origin
+    section like F7/H7's ITCM-resident .tcm_code (FAST_CODE).
+
+    Derives the objdump binary from `size_tool` (same toolchain bin dir,
+    "-size" -> "-objdump") rather than taking a separate CLI argument, since
+    both are always installed side by side."""
+    objdump_tool = re.sub(r'-size$', '-objdump', size_tool)
+    out = subprocess.run([objdump_tool, '-h', elf_path], capture_output=True, text=True, check=True).stdout
+    lines = out.splitlines()
     sections = []
-    for line in out.splitlines():
-        parts = line.split()
-        if len(parts) != 3:
+    for i, line in enumerate(lines):
+        m = re.match(r'\s*\d+\s+(\S+)\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s+[0-9a-fA-F]+\s+[0-9a-fA-F]+', line)
+        if not m:
             continue
-        name, size_str, addr_str = parts
-        if name in ('section', 'Total'):
+        name, size_str, addr_str = m.groups()
+        flags_line = lines[i + 1] if i + 1 < len(lines) else ''
+        if 'ALLOC' not in flags_line:
             continue
-        try:
-            size, addr = int(size_str), int(addr_str)
-        except ValueError:
+        size, addr = int(size_str, 16), int(addr_str, 16)
+        if size <= 0:
             continue
         sections.append((name, size, addr))
     return sections
+
+
+def assign_sections(sections, regions):
+    """Sums (name, size, addr) `sections` into whichever of `regions`
+    [(name, start, end), ...] each falls within. Split out from `compute()`
+    so the matching logic can be unit tested without touching the
+    filesystem or spawning a subprocess."""
+    usage = {name: 0 for name, _, _ in regions}
+    for _name, size, addr in sections:
+        for name, start, end in regions:
+            if start <= addr < end:
+                usage[name] += size
+                break
+
+    return {name: bytes_ for name, bytes_ in usage.items() if bytes_ > 0}
 
 
 def compute(elf_path, map_path, size_tool):
@@ -85,22 +109,7 @@ def compute(elf_path, map_path, size_tool):
     if not regions:
         return {}
 
-    usage = {name: 0 for name, _, _ in regions}
-    for _section_name, size, addr in parse_section_sizes(elf_path, size_tool):
-        # Non-allocated sections (debug info, symbol/string tables, comments)
-        # report addr 0 - they're never actually placed in memory, so they
-        # must be excluded explicitly rather than relying on address-range
-        # matching alone: a region whose own origin is 0x0 (e.g. some parts'
-        # ITCM alias) would otherwise false-match every one of them and
-        # report several megabytes of phantom "usage".
-        if size <= 0 or addr == 0:
-            continue
-        for name, start, end in regions:
-            if start <= addr < end:
-                usage[name] += size
-                break
-
-    return {name: bytes_ for name, bytes_ in usage.items() if bytes_ > 0}
+    return assign_sections(parse_section_sizes(elf_path, size_tool), regions)
 
 
 def main():
