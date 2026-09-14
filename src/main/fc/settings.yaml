@@ -4392,6 +4392,36 @@ groups:
         field: maxPowerOverride
         min: 0
         max: 10000
+      - name: vtx_tramp_power_a
+        description: "Custom Tramp power level 1 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power."
+        field: trampPowerLevels[0]
+        min: 0
+        max: 10000
+        default_value: 0
+      - name: vtx_tramp_power_b
+        description: "Custom Tramp power level 2 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power."
+        field: trampPowerLevels[1]
+        min: 0
+        max: 10000
+        default_value: 0
+      - name: vtx_tramp_power_c
+        description: "Custom Tramp power level 3 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power."
+        field: trampPowerLevels[2]
+        min: 0
+        max: 10000
+        default_value: 0
+      - name: vtx_tramp_power_d
+        description: "Custom Tramp power level 4 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power."
+        field: trampPowerLevels[3]
+        min: 0
+        max: 10000
+        default_value: 0
+      - name: vtx_tramp_power_e
+        description: "Custom Tramp power level 5 in mW. Set consecutive ascending levels, then zeros; all zero keeps automatic tables. Reboot after changes. The reported maximum (or vtx_max_power_override) still limits power."
+        field: trampPowerLevels[4]
+        min: 0
+        max: 10000
+        default_value: 0
       - name: vtx_frequency_group
         field: frequencyGroup
         description: "VTx Frequency group to use. Frequency groups: FREQUENCYGROUP_5G8: 5.8GHz, FREQUENCYGROUP_2G4: 2.4GHz, FREQUENCYGROUP_1G3: 1.3GHz."

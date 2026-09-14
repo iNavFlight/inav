@@ -5072,7 +5072,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         sbufWriteU8(dst, powerLevel);
         sbufWriteU16(dst, 0);
 
-        const char *str = vtxDevice->capability.powerNames[powerLevel - 1];
+        // Tramp reserves label zero for the unselected "---" entry.
+        const uint8_t nameIndex = vtxCommonGetDeviceType(vtxDevice) == VTXDEV_TRAMP ? powerLevel : powerLevel - 1;
+        const char *str = vtxDevice->capability.powerNames[nameIndex];
         const uint32_t str_len = strnlen(str, 5);  // these _should_ all be null-terminated
         sbufWriteU8(dst, str_len);
         for (uint32_t i = 0; i < str_len; i++)
