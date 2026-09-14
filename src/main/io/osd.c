@@ -91,6 +91,7 @@
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/power_limits.h"
 #include "flight/rth_estimator.h"
@@ -234,7 +235,7 @@ static bool osdDisplayHasCanvas;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 4);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 5);
 
 /* OSD formatting helpers replacing common tfp_sprintf patterns
  * for reduced code size and CPU overhead. */
@@ -816,6 +817,24 @@ static void osdFormatCraftName(char *buff)
             buff[i] = sl_toupper((unsigned char)systemConfig()->craftName[i]);
             if (systemConfig()->craftName[i] == 0)
                 break;
+        }
+    }
+}
+
+// Name of a profile slot, upper-cased like the pilot name. An unnamed slot shows the
+// symbol and the slot number instead so the element never renders blank.
+static void osdFormatProfileName(char *buff, const char *name, char symbol, uint8_t slot)
+{
+    if (name[0] == '\0') {
+        tfp_sprintf(buff, "%c%u", symbol, slot);
+        return;
+    }
+
+    // name is MAX_PROFILE_NAME_LENGTH + 1 bytes and always terminated, so the loop copies the terminator too
+    for (int i = 0; i <= MAX_PROFILE_NAME_LENGTH; i++) {
+        buff[i] = sl_toupper((unsigned char)name[i]);
+        if (name[i] == 0) {
+            break;
         }
     }
 }
@@ -2695,6 +2714,18 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_PILOT_NAME:
         osdFormatPilotName(buff);
+        break;
+
+    case OSD_CONTROL_PROFILE_NAME:
+        osdFormatProfileName(buff, controlProfiles(getConfigProfile())->name, SYM_PROFILE, getConfigProfile() + 1);
+        break;
+
+    case OSD_BATTERY_PROFILE_NAME:
+        osdFormatProfileName(buff, batteryProfiles(getConfigBatteryProfile())->name, SYM_BATT_FULL, getConfigBatteryProfile() + 1);
+        break;
+
+    case OSD_MIXER_PROFILE_NAME:
+        osdFormatProfileName(buff, mixerProfiles(getConfigMixerProfile())->name, 'M', getConfigMixerProfile() + 1);
         break;
 
     case OSD_PILOT_LOGO:

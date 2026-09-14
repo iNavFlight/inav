@@ -1083,6 +1083,12 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     value_type: BATTERY_CONFIG_VALUE
     members:
+      - name: battery_profile_name
+        description: "Name shown for this battery profile next to its number in the configurator. Up to 12 characters, empty for none."
+        default_value: ""
+        type: string
+        field: name
+        max: MAX_PROFILE_NAME_LENGTH
       - name: bat_cells
         description: "Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected."
         default_value: 0
@@ -1275,6 +1281,12 @@ groups:
     headers: ["flight/mixer_profile.h"]
     value_type: MIXER_CONFIG_VALUE
     members:
+      - name: mixer_profile_name
+        description: "Name shown for this mixer profile next to its number in the configurator. Up to 12 characters, empty for none."
+        default_value: ""
+        type: string
+        field: name
+        max: MAX_PROFILE_NAME_LENGTH
       - name: motor_direction_inverted
         description: "Use if you need to inverse yaw motor direction."
         default_value: OFF
@@ -1437,6 +1449,12 @@ groups:
     headers: ["fc/control_profile_config_struct.h"]
     value_type: CONTROL_VALUE
     members:
+      - name: control_profile_name
+        description: "Name shown for this control profile next to its number in the configurator. Up to 12 characters, empty for none."
+        default_value: ""
+        type: string
+        field: name
+        max: MAX_PROFILE_NAME_LENGTH
       - name: thr_mid
         description: "Throttle value when the stick is set to mid-position. Used in the throttle curve calculation."
         default_value: 50
