@@ -805,7 +805,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return feature(FEATURE_VBAT);
 
     case FLIGHT_LOG_FIELD_CONDITION_AMPERAGE:
-        return feature(FEATURE_CURRENT_METER) && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC;
+        return isAmperageConfigured();
 
     case FLIGHT_LOG_FIELD_CONDITION_SURFACE:
 #ifdef USE_RANGEFINDER
