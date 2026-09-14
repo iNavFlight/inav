@@ -151,7 +151,7 @@
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
-// #define ADC1_DMA_STREAM             DMA2_Stream3
+
 #define ADC_CHANNEL_1_PIN           PC1
 #define ADC_CHANNEL_2_PIN           PC0
 
@@ -160,7 +160,7 @@
 
 #define VBAT_SCALE_DEFAULT              1090
 
-#define CURRENT_METER_SCALE 35 // for Allegro ACS758LCB-100U (40mV/A)
+#define CURRENT_METER_SCALE  35 
 #define CURRENT_METER_OFFSET 3.5
 
 //****************************************************
