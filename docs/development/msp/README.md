@@ -430,6 +430,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8304 - MSP2_INAV_EZ_TUNE](#msp2_inav_ez_tune)  
 [8305 - MSP2_INAV_EZ_TUNE_SET](#msp2_inav_ez_tune_set)  
 [8320 - MSP2_INAV_SELECT_MIXER_PROFILE](#msp2_inav_select_mixer_profile)  
+[8322 - MSP2_INAV_PROFILE_NAMES](#msp2_inav_profile_names)  
 [8336 - MSP2_ADSB_VEHICLE_LIST](#msp2_adsb_vehicle_list)  
 [8339 - MSP2_ADSB_VEHICLE](#msp2_adsb_vehicle)  
 [8340 - MSP2_ADSB_VEHICLE_COUNT](#msp2_adsb_vehicle_count)  
@@ -4380,6 +4381,24 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Expects 1 byte. Will fail if armed. Calls `setConfigMixerProfileAndWriteEEPROM()`. Only applicable if `MAX_MIXER_PROFILE_COUNT` > 1.
+
+## <a id="msp2_inav_profile_names"></a>`MSP2_INAV_PROFILE_NAMES (8322 / 0x2082)`
+**Description:** Returns the user-defined names of all control, battery and mixer profiles.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `maxNameLength` | `uint8_t` | 1 | Maximum name length the firmware stores (`MAX_PROFILE_NAME_LENGTH`, 12) |
+| `controlProfileCount` | `uint8_t` | 1 | Number of control profiles that follow (`MAX_CONTROL_PROFILE_COUNT`) |
+| `controlProfileNames` | `uint8_t[]` | array | Per control profile: one length byte followed by that many name characters (no terminator); an unnamed profile sends length 0 |
+| `batteryProfileCount` | `uint8_t` | 1 | Number of battery profiles that follow (`MAX_BATTERY_PROFILE_COUNT`) |
+| `batteryProfileNames` | `uint8_t[]` | array | Per battery profile: length byte plus name characters, as above |
+| `mixerProfileCount` | `uint8_t` | 1 | Number of mixer profiles that follow (`MAX_MIXER_PROFILE_COUNT`, 1 or 2 depending on the target) |
+| `mixerProfileNames` | `uint8_t[]` | array | Per mixer profile: length byte plus name characters, as above |
+
+**Notes:** Names are set per profile through the string settings `control_profile_name`, `battery_profile_name` and `mixer_profile_name` (`MSP2_COMMON_SET_SETTING` acts on the active profile). Read-only; returns all slots at once so a client can label its profile selectors without switching profiles.
 
 ## <a id="msp2_adsb_vehicle_list"></a>`MSP2_ADSB_VEHICLE_LIST (8336 / 0x2090)`
 **Description:** Retrieves the list of currently tracked ADSB (Automatic Dependent Surveillance–Broadcast) vehicles. See `adsbVehicle_t` and `adsbVehicleValues_t` in `io/adsb.h` for the exact structure fields.  
