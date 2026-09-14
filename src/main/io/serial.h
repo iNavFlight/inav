@@ -159,6 +159,7 @@ void serialRemovePort(serialPortIdentifier_e identifier);
 uint8_t serialGetAvailablePortCount(void);
 bool serialIsPortAvailable(serialPortIdentifier_e identifier);
 bool isSerialConfigValid(const serialConfig_t *serialConfig);
+uint32_t serialDuplicatedSinglePortFunctions(const serialPortConfig_t *portConfigToCheck);
 serialPortConfig_t *serialFindPortConfiguration(serialPortIdentifier_e identifier);
 bool doesConfigurationUsePort(serialPortIdentifier_e portIdentifier);
 serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function);

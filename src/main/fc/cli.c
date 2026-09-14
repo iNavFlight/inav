@@ -930,6 +930,12 @@ static void cliSerial(char *cmdline)
         return;
     }
 
+    const uint32_t duplicatedFunctions = serialDuplicatedSinglePortFunctions(&portConfig);
+    if (duplicatedFunctions) {
+        cliPrintErrorLinef("Function %d is already assigned to another port", (int)duplicatedFunctions);
+        return;
+    }
+
     memcpy(currentConfig, &portConfig, sizeof(portConfig));
 }
 
