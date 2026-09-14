@@ -6,6 +6,7 @@ on:
     branches:
       - maintenance-9.x
       - maintenance-10.x
+      - release/9.1
     paths:
       - 'src/**/*.c'
       - 'src/**/*.h'
