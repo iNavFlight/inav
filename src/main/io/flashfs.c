@@ -71,9 +71,25 @@ static void flashfsSetTailAddress(uint32_t address)
 
 void flashfsEraseCompletely(void)
 {
+    // Drain the driver's page cache before erasing; the free-space scan reuses the chip buffer.
+    flashFlush();
     flashPartitionErase(flashPartition);
     flashfsClearBuffer();
-    flashfsSetTailAddress(0);
+
+    /* Assuming the erase succeeded would report an empty device from RAM while the flash still
+     * holds the old log, which only becomes apparent after the next reboot. Locate the start of
+     * the free space on the chip instead, exactly as flashfsInit() does at boot.
+     *
+     * A chip that is still erasing cannot be examined, as reads would time out and the device
+     * would be taken for full. That is the case for a NOR chip erased with a single bulk erase
+     * instruction, which completes long after this function returns; there the erase is assumed
+     * to succeed as before, and the next boot corrects the offset if it did not.
+     */
+    if (flashIsReady()) {
+        flashfsSetTailAddress(flashfsIdentifyStartOfFreeSpace());
+    } else {
+        flashfsSetTailAddress(0);
+    }
 }
 
 void flashfsClose(void)
