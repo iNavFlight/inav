@@ -174,6 +174,9 @@ set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_T
 set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
     "../../lib/main/MAVLink")
 
+set_property(SOURCE servos_swap_roll_yaw_unittest.cc PROPERTY depends
+    "flight/servos.c" "common/maths.c" "common/filter.c" "common/lulu.c" "programming/logic_condition.c")
+
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
     string(REPLACE ".cc" "" name ${basename} )
