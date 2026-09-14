@@ -441,7 +441,7 @@ static void applyLedFixedLayers(void)
         hsvColor_t color = *getSC(LED_SCOLOR_BACKGROUND);
 
         int fn = ledGetFunction(ledConfig);
-        int hOffset = HSV_HUE_MAX;
+        int hOffset = HSV_HUE_MAX + 1;  // a full turn, so that negative offsets below stay positive
         uint8_t channel = 0;
 
         switch (fn) {
