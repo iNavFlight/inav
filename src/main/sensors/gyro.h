@@ -114,12 +114,20 @@ typedef struct gyroConfig_s {
     bool gyroLuluEnabled;
 #ifdef USE_DUAL_GYRO
     /* Deliberately appended at the end of the struct. pgLoad() only compares the
-     * parameter group version, never the size, and then memcpy()s
-     * MIN(stored, current) bytes. A field added here is therefore purely
-     * additive: every pre-existing setting keeps its offset, the new one keeps
-     * the default installed by pgReset(), and no version bump is needed - so
-     * upgrading does not discard the user's gyro configuration. Inserting it
-     * mid-struct would silently shift every following field. */
+     * parameter group version, never the size: it installs the defaults and
+     * then copies MIN(stored, current) bytes over them. Appending therefore
+     * leaves every pre-existing setting at its offset and needs no version
+     * bump, so upgrading does not discard the user's gyro configuration, while
+     * inserting mid-struct would silently shift every following field.
+     *
+     * Appending is not unconditionally free, though, and the exception is worth
+     * stating because it is invisible: if the new field lands inside the old
+     * struct's tail padding it is still within what an older configuration
+     * stored, and it is overwritten with the zero that padding holds -
+     * pgResetInstance() copies the reset template whole, padding included. This
+     * field defaults to OFF, so zero is the default and the overlap cannot
+     * matter. A field whose default were non-zero would need a filler byte
+     * ahead of it. */
     bool     gyro_secondary_enabled;
 #endif
 } gyroConfig_t;
