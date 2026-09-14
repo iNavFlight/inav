@@ -5474,6 +5474,11 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 if (wpNumber == 1) {
                     resetWaypointList();
+                    nonGeoWaypointCount = 0;
+                }
+                // Reject the new mission after clearing the previous one, before copying or converting the target.
+                if (wpData->action == NAV_WP_ACTION_JUMP && (wpData->p1 < 1 || wpData->p1 > NAV_MAX_WAYPOINTS)) {
+                    return;
                 }
                 posControl.waypointList[wpNumber - 1] = *wpData;
                 if(wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD || wpData->action == NAV_WP_ACTION_JUMP) {
@@ -6366,7 +6371,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     if (posControl.waypointCount) {
         for (uint8_t wp = posControl.startWpIndex; wp < posControl.waypointCount + posControl.startWpIndex; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
-                if (wp == posControl.startWpIndex || posControl.waypointList[wp].p1 >= posControl.waypointCount ||
+                if (wp == posControl.startWpIndex || posControl.waypointList[wp].p1 < 0 || posControl.waypointList[wp].p1 >= posControl.waypointCount ||
                 (posControl.waypointList[wp].p1 > (wp - posControl.startWpIndex - 2) && posControl.waypointList[wp].p1 < (wp - posControl.startWpIndex + 2)) || posControl.waypointList[wp].p2 < -1) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }
