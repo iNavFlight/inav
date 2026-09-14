@@ -433,3 +433,67 @@ test('renderComment: falls back to the combined RAM Δ when only one side has a 
     assert.ok(body.includes('+3740 B'), `expected the combined RAM Δ fallback, got:\n${body}`);
     assert.ok(!body.includes('RAM: +608 B'), `must not render a partial region breakdown, got:\n${body}`);
 });
+
+test('renderComment: falls back to the combined RAM Δ when the two sides name different regions', () => {
+    // A target whose regions were renamed/restructured between the two
+    // commits (e.g. a linker script splitting one region into two) has no
+    // real growth here - RAM 130000 -> SRAM1 60000 + SRAM2 70000 is the same
+    // total. Naively unioning region names would report RAM as -130000 and
+    // SRAM1/SRAM2 as +60000/+70000: a large, spurious, "notable" delta in
+    // both directions for a change that didn't happen.
+    const baselineReport = { MATEKF405: { flash: 500000, ram: 130000, regions: { RAM: 130000 } } };
+    const prReport = { MATEKF405: { flash: 500000, ram: 130000, regions: { SRAM1: 60000, SRAM2: 70000 } } };
+
+    const body = renderComment({
+        prReport,
+        baselineReport,
+        shortSha: 'abc1234',
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(body.includes('±0 B'), `expected the combined RAM Δ fallback (no growth), got:\n${body}`);
+    assert.ok(!body.includes('-130000'), `must not render a spurious per-region loss, got:\n${body}`);
+    assert.ok(!body.includes('+60000'), `must not render a spurious per-region gain (SRAM1), got:\n${body}`);
+    assert.ok(!body.includes('+70000'), `must not render a spurious per-region gain (SRAM2), got:\n${body}`);
+    assert.ok(!body.includes('⚠️'), `zero real growth must not be marked notable, got:\n${body}`);
+    assert.ok(
+        body.includes('region layout changed since baseline'),
+        `expected a note that the region set changed even though the breakdown fell back, got:\n${body}`
+    );
+});
+
+test('renderComment: real growth alongside a region rename still reports the combined delta and stays notable', () => {
+    // Same RAM->SRAM1+SRAM2 rename as above, but this time paired with a
+    // genuine +10000 B of real growth - confirms the fallback doesn't
+    // overcorrect into masking an actual regression just because the
+    // region names also changed.
+    const baselineReport = { MATEKF405: { flash: 500000, ram: 130000, regions: { RAM: 130000 } } };
+    const prReport = { MATEKF405: { flash: 500000, ram: 140000, regions: { SRAM1: 65000, SRAM2: 75000 } } };
+
+    const body = renderComment({
+        prReport,
+        baselineReport,
+        shortSha: 'abc1234',
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(body.includes('+10000 B'), `expected the real combined RAM Δ to still be reported, got:\n${body}`);
+    assert.ok(body.includes('⚠️'), `+10000 B growth must still be marked notable, got:\n${body}`);
+    assert.ok(
+        body.includes('region layout changed since baseline'),
+        `expected the region-changed note alongside the real delta, got:\n${body}`
+    );
+});
+
+test('diffSizeReports: differing region sets leave regionDeltas undefined even though both sides have regions', () => {
+    const baselineReport = { MATEKF405: { flash: 500000, ram: 130000, regions: { RAM: 130000 } } };
+    const prReport = { MATEKF405: { flash: 500000, ram: 130000, regions: { SRAM1: 60000, SRAM2: 70000 } } };
+
+    const row = diffSizeReports(prReport, baselineReport).find((r) => r.target === 'MATEKF405');
+
+    assert.strictEqual(row.regionDeltas, undefined, 'expected regionDeltas to be undefined for a mismatched region set');
+    assert.strictEqual(row.regionSetChanged, true);
+    assert.strictEqual(row.notable, false);
+});
