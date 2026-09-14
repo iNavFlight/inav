@@ -93,6 +93,7 @@ extern "C" {
     PG_REGISTER(rxConfig_t, rxConfig, PG_RX_CONFIG, 0);
     PG_REGISTER(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 0);
     PG_REGISTER_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 0);
+    PG_REGISTER(navConfig_t, navConfig, PG_NAV_CONFIG, 0);
 }
 
 #include "unittest_macros.h"
