@@ -85,6 +85,14 @@ up: full throttle first, then low within five seconds of the tones that acknowle
 it. That normally needs a Spektrum transmitter, so INAV can drive the sequence
 itself for anyone who does not own one.
 
+**Do this before the first flight.** It is not a convenience. Measured on an Avian
+70 A Smart Lite that had been calibrated against a Spektrum radio, an uncalibrated
+ESC ignored everything below 1238 us: the bottom quarter of INAV's throttle range
+did nothing at all, and nothing said so. After the calibration the same ESC
+responded from 1050 us, and the throttle it reported back matched the throttle
+commanded to within a point from 10 % upwards. A pilot who skips this finds out
+about it on the takeoff roll.
+
 **Outputs tab**, Throttle range calibration:
 
 1. Remove the propeller and disconnect the battery. The wizard refuses to start with
@@ -114,6 +122,18 @@ ESC reports as its own motor, so motor 2's telemetry is motor 2's. It can be
 switched off with `esc_srxl2_telemetry`, which exists because telemetry shares the
 throttle wire and so cannot be declined by leaving a port unassigned as it would be
 for a conventional ESC.
+
+**Current needs care until this is settled.** On the bench the ESC reported 2.85 A
+while the supply feeding it measured 0.999 A at the same instant, at about 40 %
+throttle. That is the relationship expected if the field is motor current rather
+than pack current, since an ESC is a converter and pack current is roughly motor
+current times duty. It is not proven: a plain scale error in the ESC's own sensor
+would look identical at a single operating point, and telling the two apart needs
+readings at several throttle settings. Until then, prefer the board's own sensor
+with `current_meter_type = ADC` wherever one exists. The two are alternatives
+rather than additive - INAV takes current from one source - and a shunt in the
+battery lead also sees what the servos and the video transmitter draw, which no
+ESC can report.
 
 **Set Motor poles correctly before enabling the RPM filter.** The wire carries
 electrical rpm, and INAV converts it to mechanical rpm using the pole count. A wrong
