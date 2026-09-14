@@ -141,10 +141,23 @@ throttle goes on meaning throttle.
 
 Three things have to agree:
 
-* the ESC, programmed with a `Thrust Rev.` channel (and `Brake Type = Reverse` on
-  models that have it);
+* the ESC, with **both** of its own parameters set: `Brake Type` to `Reverse`,
+  which is what enables reversing at all, and `Thrust Rev.`, which only chooses
+  the channel that arms it. Spektrum's programming instructions are explicit that
+  one does not work without the other - *"Thrust Rev - Use this option to select
+  the channel used to activate motor reversing. Reverse must set in the Brake Type
+  menu"*. They also recommend `Brake Force` of 7 alongside `Brake Type = Reverse`;
 * `esc_srxl2_reverse_channel`, set to that same channel;
 * a switch, assigned to the **THRUST REVERSE** mode in the Modes tab.
+
+Pick a channel nothing else uses. This is Spektrum's own warning about the
+parameter, and it is about flight behaviour rather than tidiness: *"Reverse mode
+needs to be assigned to an OPEN channel on your transmitter, this channel is
+selected in ESC menu item #15 using in conjunction with another function can cause
+unexpected behavior in flight."* On this link the channel is a slot between the
+flight controller and the ESC rather than a transmitter channel, so the flight
+controller is what has to leave it alone - which is why the setting refuses the
+throttle slot.
 
 Spektrum allow channels **5 to 9** for this and ship **channel 7** as the factory
 default. Nothing on the wire advertises which one the ESC is watching, so a
