@@ -490,7 +490,7 @@ class Generator
         foreach_enabled_group do |group|
             count = 0
             group["members"].each do |member|
-                if is_condition_enabled(member["condition"])
+                if is_condition_enabled(member)
                     count += 1
                 end
             end
@@ -665,16 +665,21 @@ class Generator
         return min, max
     end
 
-    def is_condition_enabled(cond)
-        return !cond || @true_conditions.include?(cond)
+    # Condition truth is resolved per group/member occurrence (see
+    # check_conditions), not by condition string, since the same condition
+    # string can appear on multiple groups at different header-inclusion
+    # positions and be true at one but not the other.
+    def is_condition_enabled(obj)
+        return true unless obj["condition"]
+        obj["_condition_enabled"]
     end
 
     def foreach_enabled_member &block
         enum = Enumerator.new do |yielder|
             groups.each do |group|
-                if is_condition_enabled(group["condition"])
+                if is_condition_enabled(group)
                     group["members"].each do |member|
-                        if is_condition_enabled(member["condition"])
+                        if is_condition_enabled(member)
                             yielder.yield group, member
                         end
                     end
@@ -763,10 +768,13 @@ class Generator
         value
     end
 
+    # cstddef for offsetof(). Shared by every probe so they all see the same
+    # base macro state.
+    BASE_HEADERS = ["platform.h", "cstddef"]
+
     def compile_test_file(prog)
         buf = StringIO.new
-        # cstddef for offsetof()
-        headers = ["platform.h", "cstddef"]
+        headers = BASE_HEADERS.dup
         @data["groups"].each do |group|
             gh = group["headers"]
             if gh
@@ -780,6 +788,10 @@ class Generator
         end
         buf << "\n"
         buf << prog.string
+        compile_raw(buf)
+    end
+
+    def compile_raw(buf)
         mktmpdir do |dir|
             file = File.join(dir, "test.cpp")
             File.open(file, 'w') {|file| file.write(buf.string)}
@@ -792,45 +804,72 @@ class Generator
 
     def check_conditions
         buf = StringIO.new
-        conditions = Set.new
-        add_condition = -> (c) {
-            if c && !conditions.include?(c)
-                conditions.add(c)
-                buf << "#if "
-                in_word = false
-                c.split('').each do |ch|
-                    if in_word
-                        if !ch.match(/^[a-zA-Z0-9_]$/)
-                            in_word = false
-                            buf << ")"
-                        end
-                        buf << ch
-                    else
-                        if ch.match(/^[a-zA-Z_]$/)
-                            in_word = true
-                            buf << "defined("
-                        end
-                        buf << ch
-                    end
-                end
-                if in_word
-                    buf << ")"
-                end
-                buf << "\n"
-                buf << "#pragma message(#{c.inspect})\n"
-                buf << "#endif\n"
-            end
-        }
-
-        foreach_member do |group, member|
-            add_condition.call(group["condition"])
-            add_condition.call(member["condition"])
+        BASE_HEADERS.each do |h|
+            buf << "#include \"#{h}\"\n"
         end
 
-        stderr = compile_test_file(buf)
-        @true_conditions = Set.new
+        # Tag each group/member occurrence with its own unique probe, rather
+        # than deduping by condition string: the same condition string can
+        # appear on multiple groups, and since a probe's truth now depends on
+        # its position (see comment below), one occurrence being true doesn't
+        # mean another occurrence of the same string is.
+        tags = {}
+        seq = 0
+        add_condition = -> (obj) {
+            c = obj["condition"]
+            next unless c
+            seq += 1
+            tag = "COND#{seq}"
+            tags[tag] = obj
+            buf << "#if "
+            in_word = false
+            c.split('').each do |ch|
+                if in_word
+                    if !ch.match(/^[a-zA-Z0-9_]$/)
+                        in_word = false
+                        buf << ")"
+                    end
+                    buf << ch
+                else
+                    if ch.match(/^[a-zA-Z_]$/)
+                        in_word = true
+                        buf << "defined("
+                    end
+                    buf << ch
+                end
+            end
+            if in_word
+                buf << ")"
+            end
+            buf << "\n"
+            buf << "#pragma message(#{tag.inspect})\n"
+            buf << "#endif\n"
+        }
+
+        # Check each condition right after that group's own headers, matching
+        # the position resolve_types() implicitly relies on: a header's own
+        # #ifdef guard only sees macros defined by headers earlier in this
+        # sequence.
+        @data["groups"].each do |group|
+            gh = group["headers"]
+            if gh
+                gh.each do |h|
+                    buf << "#include \"#{h}\"\n" if h
+                end
+            end
+            add_condition.call(group)
+            group["members"].each do |member|
+                add_condition.call(member)
+            end
+        end
+
+        stderr = compile_raw(buf)
+        true_tags = Set.new
         stderr.scan(/#pragma message\(\"(.*)\"\)/).each do |m|
-            @true_conditions << m[0]
+            true_tags << m[0]
+        end
+        tags.each do |tag, obj|
+            obj["_condition_enabled"] = true_tags.include?(tag)
         end
     end
 
