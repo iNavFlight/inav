@@ -1712,6 +1712,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         break;
 
+    case MSP2_INAV_MAG_UNALIGNED:
+        for (int i = 0; i < 3; i++) {
+#ifdef USE_MAG
+            sbufWriteU16(dst, (int16_t)lrintf(mag.magADCUnaligned[i]));
+#else
+            sbufWriteU16(dst, 0);
+#endif
+        }
+        break;
+
     case MSP2_INAV_MIXER:
         sbufWriteU8(dst, mixerConfig()->motorDirectionInverted);
         sbufWriteU8(dst, 0);

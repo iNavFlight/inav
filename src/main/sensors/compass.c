@@ -542,6 +542,13 @@ void compassUpdate(timeUs_t currentTimeUs)
         }
     }
 
+    // Snapshot before any alignment rotation is applied below, so the Configurator can
+    // read a value unaffected by the current align_mag/align_board settings (needed by the
+    // alignment wizard, which is trying to determine those settings in the first place).
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        mag.magADCUnaligned[axis] = mag.magADC[axis];
+    }
+
     if (mag.dev.magAlign.useExternal) {
         const fpVector3_t v = {
             .x = mag.magADC[X],

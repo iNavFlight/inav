@@ -51,6 +51,7 @@ typedef enum {
 typedef struct mag_s {
     magDev_t dev;
     float magADC[XYZ_AXIS_COUNT];
+    float magADCUnaligned[XYZ_AXIS_COUNT]; // calibrated (zero/gain), but not alignment-rotated
 } mag_t;
 
 extern mag_t mag;
