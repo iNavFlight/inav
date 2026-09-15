@@ -604,6 +604,7 @@ void osdStartFullRedraw(void);
 // the OSD after the given duration. Otherwise, the caller must
 // explicitely remove it.
 void osdOverrideLayout(int layout, timeMs_t duration);
+void osdSetLayoutOverrideOwnedByMenu(bool owned);
 // Returns the current current layout as well as wether its
 // set by the user configuration (modes, etc..) or by overriding it.
 int osdGetActiveLayout(bool *overridden);

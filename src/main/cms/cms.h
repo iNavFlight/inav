@@ -33,6 +33,7 @@ displayPort_t *cmsDisplayPortGetCurrent(void);
 void cmsMenuOpen(void);
 long cmsMenuChange(displayPort_t *pPort, const CMS_Menu *menu, const OSD_Entry *from);
 long cmsMenuExit(displayPort_t *pPort, const void *ptr);
+long cmsMenuConfirmDone(displayPort_t *pPort);
 
 uint32_t cmsGetOpenCountdownRemaining(void);
 uint32_t cmsGetInactivityCloseCountdownRemaining(void);
