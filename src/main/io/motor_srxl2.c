@@ -119,6 +119,30 @@
 /* Reply ID 0x00 means "no reply wanted" (specification 7.1.1). */
 #define SRXL2_REPLY_NONE            0x00
 
+/*
+ * How many channels every Control Data frame carries.
+ *
+ * Not one, which is what this driver used to send. An Avian will not arm from a
+ * frame carrying a single channel. It parses such a frame - it reports the
+ * throttle back over telemetry, correctly - and then refuses to drive the motor
+ * for as long as they keep arriving. Once armed by a wider frame it accepts
+ * single-channel ones happily, so the requirement is on arming rather than on
+ * running, which is exactly the shape of fault that reaches a field and not a
+ * bench: a link that comes up, reports plausible telemetry, and never turns the
+ * propeller.
+ *
+ * Measured on a 70 A Smart Lite: eight seconds of minimum throttle on one
+ * channel leaves the ESC reporting 0.0 % and drawing 58 mA, its own electronics
+ * and nothing else; the same minimum on eight channels arms it, and 1300 us
+ * then gives 30.0 % and 26400 eRPM at 840 mA. Two channels were enough in
+ * every combination tried, so eight is not a measured threshold but a margin,
+ * chosen to look like what a receiver actually sends.
+ *
+ * The block also has to reach the reverse channel, because that value has to
+ * travel in the frame anyway.
+ */
+#define SRXL2_CHANNELS_MIN          8
+
 /* X-Bus telemetry sensor IDs */
 #define SRXL2_TELEM_SENSOR_ESC      0x20
 
@@ -299,6 +323,21 @@ static inline uint16_t be16(const uint8_t *p)
     return (uint16_t)((p[0] << 8) | p[1]);
 }
 
+/*
+ * The block of channels this frame carries: wide enough to arm, and wide enough
+ * to reach the reverse channel when one is configured. Rebuilt rather than
+ * accumulated, so the frame does not change shape depending on what has been
+ * called since power-up.
+ */
+static void srxl2BuildChannelMask(srxl2Esc_t *e)
+{
+    uint8_t count = SRXL2_CHANNELS_MIN;
+    if (reverseChannel1Based > count) {
+        count = reverseChannel1Based;
+    }
+    e->channelMask = (count >= 32) ? 0xFFFFFFFFu : ((1u << count) - 1u);
+}
+
 static void srxl2SetState(srxl2Esc_t *e, srxl2State_e next)
 {
     e->state = next;
@@ -319,12 +358,28 @@ static uint32_t srxl2TotalHandshakes(void)
     return total;
 }
 
-/* Append the CRC and push the frame. buf[2] must already hold the frame length
- * as the specification's framing requires. */
-static void srxl2SendFrame(srxl2Esc_t *e, uint8_t *buf, uint8_t len)
+/*
+ * Append the CRC and push the frame. buf[2] must already hold the frame length
+ * as the specification's framing requires.
+ *
+ * Returns false when the frame did not go out, which the caller has to care
+ * about for the one frame where it matters. A port that has backed up - a slow
+ * link, a stalled DMA - drops whatever does not fit, and for Control Data that
+ * is of no consequence, since another follows in 20 ms and the ESC tolerates
+ * 250 ms of silence. For the broadcast that moves the bus to a new rate it is
+ * the difference between a working link and a dead one: raise the rate having
+ * only believed that frame was sent, and the ESC is left behind at the old rate
+ * with no way back short of a power cycle. That failure has been seen on real
+ * hardware, and it is not recoverable in flight.
+ */
+static bool srxl2SendFrame(srxl2Esc_t *e, uint8_t *buf, uint8_t len)
 {
     if (!e->port || len < SRXL2_MIN_FRAME || len > SRXL2_MAX_FRAME) {
-        return;
+        return false;
+    }
+
+    if (serialTxBytesFree(e->port) < len) {
+        return false;
     }
 
     const uint16_t crc = crc16_ccitt_update(0, buf, len - 2);
@@ -334,9 +389,10 @@ static void srxl2SendFrame(srxl2Esc_t *e, uint8_t *buf, uint8_t len)
     serialWriteBuf(e->port, buf, len);
     e->lastTxMs = millis();
     e->statTxFrames++;
+    return true;
 }
 
-static void srxl2SendHandshake(srxl2Esc_t *e, uint8_t destinationId, uint8_t baudField)
+static bool srxl2SendHandshake(srxl2Esc_t *e, uint8_t destinationId, uint8_t baudField)
 {
     uint8_t buf[sizeof(Srxl2HandshakeFrame)];
     Srxl2HandshakeFrame *f = (Srxl2HandshakeFrame *)buf;
@@ -358,7 +414,7 @@ static void srxl2SendHandshake(srxl2Esc_t *e, uint8_t destinationId, uint8_t bau
                                              * every bus is fine, because each
                                              * bus has exactly one master. */
 
-    srxl2SendFrame(e, buf, sizeof(Srxl2HandshakeFrame));
+    return srxl2SendFrame(e, buf, sizeof(Srxl2HandshakeFrame));
 }
 
 /* Tell the bus which rate everyone moves to, and arrange to follow once the
@@ -367,7 +423,14 @@ static void srxl2SendHandshake(srxl2Esc_t *e, uint8_t destinationId, uint8_t bau
 static void srxl2Finalise(srxl2Esc_t *e)
 {
     e->agreedBaudBits = SRXL2_BAUD_BIT_400K & e->baudSupported;
-    srxl2SendHandshake(e, Broadcast, e->agreedBaudBits);
+
+    /* Only arm the switch if the broadcast is actually on its way. If the port
+     * had no room, stay where we are and try again on the next pass: a rate the
+     * ESC was never told about is worse than a slow negotiation. */
+    if (!srxl2SendHandshake(e, Broadcast, e->agreedBaudBits)) {
+        return;
+    }
+
     e->baudSwitchPending = (e->agreedBaudBits & SRXL2_BAUD_BIT_400K) != 0;
     srxl2SetState(e, SRXL2_FINALISING);
 }
@@ -562,7 +625,6 @@ static void srxl2SendControlData(srxl2Esc_t *e)
                        || (calPhase == SRXL2_CAL_HIGH_MANUAL);
         e->channelValue[SRXL2_CHANNEL_THROTTLE] =
             srxl2UsToValue(high ? SRXL2_CAL_HIGH_US : SRXL2_CAL_LOW_US);
-        e->channelMask |= (1u << SRXL2_CHANNEL_THROTTLE);
     }
 
     buf[n++] = SRXL2_MAGIC;
@@ -591,14 +653,16 @@ static void srxl2SendControlData(srxl2Esc_t *e)
     buf[n++] = (uint8_t)((e->channelMask >> 24) & 0xFF);
 
     /*
-     * Only the channels we actually mean, little-endian, lowest index first.
+     * A contiguous block, little-endian, lowest index first. The channels this
+     * driver has nothing to say on are filled, and filled at their **minimum**.
      *
-     * Deliberately not padded with centred values on the channels we do not
-     * use. Doing that is reasonable for a surface ESC, where centre means
+     * Never at centre. That is reasonable for a surface ESC, where centre means
      * stopped, and dangerous for an aircraft one, where 1500 us is half
-     * throttle: if the ESC turned out to read throttle on an index we did not
-     * expect, padding would spin the motor at 50 percent, while sending nothing
-     * there simply leaves it idle. Wrong guess, safe outcome.
+     * throttle: were the ESC to read throttle on an index other than the one
+     * expected, centred padding would spin the motor at half power while
+     * minimum padding leaves it idle. Wrong guess, safe outcome - which is the
+     * same reasoning that used to argue for sending nothing at all, before an
+     * ESC made it clear that sending nothing means never arming.
      */
     for (uint8_t ch = 0; ch < 32; ch++) {
         if (e->channelMask & (1u << ch)) {
@@ -639,11 +703,13 @@ bool srxl2MotorInitialize(void)
 
             e->port = port;
 
-            /* Start the throttle channel at its lowest value rather than zero, so
-             * the first frame after a handshake cannot be read as something
-             * unexpected. */
-            e->channelValue[SRXL2_CHANNEL_THROTTLE] = srxl2UsToValue(1000);
-            e->channelMask = (1u << SRXL2_CHANNEL_THROTTLE);
+            /* Every channel starts at its lowest value rather than zero, so the
+             * first frame after a handshake cannot be read as something
+             * unexpected whichever index the ESC happens to care about. */
+            for (uint8_t ch = 0; ch < 32; ch++) {
+                e->channelValue[ch] = srxl2UsToValue(1000);
+            }
+            srxl2BuildChannelMask(e);
 
             const timeMs_t now = millis();
             e->lastRxMs = now;
@@ -670,7 +736,6 @@ void srxl2MotorUpdate(uint8_t index, uint16_t value)
     /* Staging only. The wire is driven at its own rate from srxl2MotorProcess(),
      * not at whatever rate the mixer happens to run. */
     esc[index].channelValue[SRXL2_CHANNEL_THROTTLE] = srxl2UsToValue(value);
-    esc[index].channelMask |= (1u << SRXL2_CHANNEL_THROTTLE);
 }
 
 /*
@@ -710,13 +775,17 @@ void srxl2MotorSetReverse(bool armed)
      * one outcome here worth engineering against. */
     for (uint8_t i = 0; i < escCount; i++) {
         esc[i].channelValue[idx] = v;
-        esc[i].channelMask |= (1u << idx);
     }
 }
 
 void srxl2MotorSetReverseChannel(uint8_t channel1Based)
 {
     reverseChannel1Based = srxl2ReverseChannelUsable(channel1Based) ? channel1Based : 0;
+
+    /* The block has to reach it, and this may be called after the ports opened. */
+    for (uint8_t i = 0; i < escCount; i++) {
+        srxl2BuildChannelMask(&esc[i]);
+    }
 }
 
 void srxl2MotorSetTelemetryRate(srxl2TelemetryRate_e rate)
