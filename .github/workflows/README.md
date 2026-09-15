@@ -40,14 +40,19 @@ fire.
 **Why:** Prevents settings corruption when struct layout changes without version bump
 
 **How it works:**
-1. Scans changed .c/.h files for `PG_REGISTER` entries
-2. Detects if associated struct typedefs were modified
-3. Checks if the PG version parameter was incremented
+1. Maps every `PG_REGISTER` in the repository's .c/.h files to its struct, so a registration in a
+   different file than the struct is still found
+2. Detects if associated struct typedefs were modified, comparing against the PR's merge base
+   so later changes on the base branch are not attributed to the PR
+3. Checks if the PG version parameter was incremented, per preprocessor condition: a struct
+   guarded by `#ifdef` is only compared under the conditions where it actually changes
 4. Posts helpful comment if version not incremented
 
 **Reference:** See `docs/development/parameter_groups/` for PG system documentation
 
-**Script:** `.github/scripts/check-pg-versions.sh`
+**Script:** `.github/scripts/check-pg-versions.sh`, a thin wrapper around
+`.github/scripts/check-pg-versions.py` (standard library only, python3 required). Its regression
+fixtures live in `.github/scripts/test-check-pg-versions.py` and run in CI.
 
 **When to increment PG versions:**
 - ✅ Adding/removing fields from struct
@@ -182,7 +187,10 @@ Scripts in `.github/scripts/` can be run locally:
 cd inav
 export GITHUB_BASE_REF=maintenance-9.x
 export GITHUB_HEAD_REF=feature-branch
-bash .github/scripts/check-pg-versions.sh
+bash .github/scripts/check-pg-versions.sh   # needs python3 on PATH
+
+# run the checker's own regression fixtures
+python3 .github/scripts/test-check-pg-versions.py
 ```
 
 ## References
