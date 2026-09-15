@@ -329,6 +329,20 @@ typedef struct navMixerATMissionCapture_s {
 } navMixerATMissionCapture_t;
 
 typedef enum {
+    NAV_MIXERAT_RTH_CAPTURE_IDLE = 0,
+    NAV_MIXERAT_RTH_CAPTURE_STOP,
+    NAV_MIXERAT_RTH_CAPTURE_ALIGN,
+} navMixerATRthCaptureStage_e;
+
+typedef struct navMixerATRthCapture_s {
+    navMixerATRthCaptureStage_e stage;
+    vtolMcProtectionSettleState_t settle;
+    vtolMcProtectionSettleState_t earlyTransitionTrigger;
+    fpVector3_t holdPos;
+    int32_t heading;
+} navMixerATRthCapture_t;
+
+typedef enum {
     NAV_MIXERAT_RETRY_STAGE_IDLE = 0,
     NAV_MIXERAT_RETRY_STAGE_SCAN,
     NAV_MIXERAT_RETRY_STAGE_ALIGN,
@@ -352,8 +366,10 @@ typedef enum {
 static navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
 static mixerProfileATRequest_e navMixerATRequestOverride = MIXERAT_REQUEST_NONE;
 static bool navVtolFwToMcProtectionLatched;
+static bool navRthLandingMcSelected;
 static navMixerATMissionTransition_t navMixerATMissionTransition;
 static navMixerATMissionCapture_t navMixerATMissionCapture;
+static navMixerATRthCapture_t navMixerATRthCapture;
 #else
 static navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
 #endif
@@ -391,6 +407,7 @@ static navigationFSMEvent_t nextForNonGeoStates(void);
 static bool isWaypointMissionValid(void);
 #ifdef USE_AUTO_TRANSITION
 static void clearMissionVTOLTransitionState(void);
+static navVtolMixerATMode_e navMixerATOwnerMode(void);
 static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const navWaypoint_t *waypoint);
 static void updateMissionTransitionGuidance(void);
 static bool isTransitionRetryToFixedWingRequest(const mixerProfileATRequest_e request);
@@ -453,6 +470,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigationFSMState_t previousState);
 #ifdef USE_AUTO_TRANSITION
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_MISSION_CAPTURE(navigationFSMState_t previousState);
+static bool updateRthVTOLTransitionCapture(void);
+static bool beginRthFwToMcLandingTransitionIfDue(const fpVector3_t *homePos);
 #endif
 #ifdef USE_AUTO_TRANSITION
 static bool beginNavigationFwToMcProtectionTransition(void);
@@ -1418,6 +1437,12 @@ static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
 #ifdef USE_AUTO_TRANSITION
     const bool mixerATState = (state == NAV_STATE_MIXERAT_INITIALIZE || state == NAV_STATE_MIXERAT_IN_PROGRESS);
 
+    if (state == NAV_STATE_RTH_HEAD_HOME && navMixerATRthCapture.stage != NAV_MIXERAT_RTH_CAPTURE_IDLE) {
+        // Let altitude protection recognize braking/alignment as a hold. RTH
+        // still owns XY, so the generic POSH capture cannot replace its target.
+        stateFlags |= NAV_CTL_HOLD;
+    }
+
     // During mission-authorized MC->FW transition, command heading only. The
     // pusher/tilt transition should build speed without the MC position
     // controller saturating pitch/roll toward a far-away target.
@@ -1450,6 +1475,16 @@ navigationFSMStateFlags_t navGetCurrentStateFlags(void)
     return navGetStateFlags(posControl.navState);
 }
 
+static bool navIsRthProcedureActive(void)
+{
+    const bool rthStateActive = (navGetCurrentStateFlags() & NAV_AUTO_RTH) != 0;
+#ifdef USE_AUTO_TRANSITION
+    return navVtolRthProcedureActive(rthStateActive, navMixerATOwnerMode());
+#else
+    return rthStateActive;
+#endif
+}
+
 static bool navTerrainFollowingRequested(void)
 {
     // Terrain following not supported on FIXED WING aircraft yet
@@ -1465,6 +1500,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState
     navMixerATPendingState = NAV_STATE_IDLE;
     navMixerATRequestOverride = MIXERAT_REQUEST_NONE;
     navVtolFwToMcProtectionLatched = false;
+    navRthLandingMcSelected = false;
     clearMissionVTOLTransitionState();
 #endif
     resetAltitudeController(false);
@@ -1870,12 +1906,27 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
 {
     UNUSED(previousState);
 
-    rthAltControlStickOverrideCheck(PITCH);
-
     /* If position sensors unavailable - land immediately */
-    if ((posControl.flags.estHeadingStatus == EST_NONE) || !validateRTHSanityChecker()) {
+    if (posControl.flags.estHeadingStatus == EST_NONE || !validateRTHSanityChecker()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
+
+#ifdef USE_AUTO_TRANSITION
+    if (posControl.flags.estPosStatus < EST_USABLE) {
+        navMixerATRthCapture.earlyTransitionTrigger = (vtolMcProtectionSettleState_t){0};
+    }
+    if (navMixerATRthCapture.stage != NAV_MIXERAT_RTH_CAPTURE_IDLE) {
+        if (checkForPositionSensorTimeout()) {
+            return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+        }
+
+        if (updateRthVTOLTransitionCapture()) {
+            return NAV_FSM_EVENT_NONE;
+        }
+    }
+#endif
+
+    rthAltControlStickOverrideCheck(PITCH);
 
 #ifdef USE_AUTO_TRANSITION
     if (beginNavigationFwToMcProtectionTransition()) {
@@ -1884,7 +1935,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
 #endif
 
 #ifdef USE_AUTO_TRANSITION
-    const bool allowRthMcToFwTransition = !navVtolFwToMcProtectionLatched;
+    const bool allowRthMcToFwTransition = navVtolAutomaticFwTransitionAllowed(
+        navVtolFwToMcProtectionLatched, navRthLandingMcSelected, NAV_VTOL_MIXERAT_MODE_RTH);
 #else
     const bool allowRthMcToFwTransition = true;
 #endif
@@ -1911,6 +1963,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
 #ifdef USE_GEOZONE
         // Check for NFZ in our way
         int8_t wpCount = geozoneCheckForNFZAtCourse(true);
+#ifdef USE_AUTO_TRANSITION
+        if (wpCount != 0 || geozone.avoidInRTHInProgress) {
+            navMixerATRthCapture.earlyTransitionTrigger = (vtolMcProtectionSettleState_t){0};
+        }
+#endif
         if (wpCount > 0) {
             calculateAndSetActiveWaypointToLocalPosition(geozoneGetCurrentRthAvoidWaypoint());
             return NAV_FSM_EVENT_NONE;
@@ -1939,6 +1996,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
         } else {
 #endif
             fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_PROPORTIONAL);
+
+#ifdef USE_AUTO_TRANSITION
+            if (beginRthFwToMcLandingTransitionIfDue(tmpHomePos)) {
+                return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
+            }
+#endif
 
             if (isWaypointReached(tmpHomePos, &posControl.activeWaypoint.bearing)) {
                 // Successfully reached position target - update XYZ-position
@@ -2502,6 +2565,11 @@ static void clearMissionVTOLTransitionState(void)
     navMixerATMissionCapture.active = false;
     navMixerATMissionCapture.settle.stableSinceMs = 0;
     navMixerATMissionCapture.settle.elapsedMs = 0;
+    navMixerATRthCapture.stage = NAV_MIXERAT_RTH_CAPTURE_IDLE;
+    navMixerATRthCapture.settle.stableSinceMs = 0;
+    navMixerATRthCapture.settle.elapsedMs = 0;
+    navMixerATRthCapture.earlyTransitionTrigger.stableSinceMs = 0;
+    navMixerATRthCapture.earlyTransitionTrigger.elapsedMs = 0;
 }
 
 static void startMissionVTOLTransitionCapture(void)
@@ -2520,7 +2588,7 @@ static uint16_t missionVTOLTransitionHorizontalSettleLimitCmS(void)
 #endif
 }
 
-static bool missionVTOLTransitionCaptureIsReady(void)
+static bool vtolTransitionCaptureIsReady(vtolMcProtectionSettleState_t *settle)
 {
     const bool horizontalVelocityUsable = posControl.flags.estVelStatus == EST_TRUSTED;
     const bool verticalVelocityUsable = posControl.flags.estAltStatus >= EST_USABLE;
@@ -2536,10 +2604,144 @@ static bool missionVTOLTransitionCaptureIsReady(void)
         vtolMcProtectionSettleAttitudeLimitDeciDeg(navConfig()->mc.max_bank_angle));
 
     return vtolMcProtectionUpdateSettleState(
-        &navMixerATMissionCapture.settle,
+        settle,
         conditionsMet,
         vtolMcProtectionSettleTimeMs(horizontalVelocityUsable),
         millis());
+}
+
+static void startRthVTOLTransitionCapture(void)
+{
+    navMixerATRthCapture.stage = NAV_MIXERAT_RTH_CAPTURE_STOP;
+    navMixerATRthCapture.settle.stableSinceMs = 0;
+    navMixerATRthCapture.settle.elapsedMs = 0;
+    navMixerATRthCapture.holdPos = navGetCurrentActualPositionAndVelocity()->pos;
+    navMixerATRthCapture.heading = posControl.actualState.yaw;
+    initializeRTHSanityChecker();
+
+    // Once RTH has selected MC for the landing approach, do not let the normal
+    // long-distance RTH optimization immediately request MC->FW again.
+    navRthLandingMcSelected = true;
+}
+
+static bool beginRthFwToMcLandingTransitionIfDue(const fpVector3_t *homePos)
+{
+    const bool transitionAvailable =
+        ARMING_FLAG(ARMED) &&
+        navigationRTHAllowsLanding() &&
+        STATE(FIXED_WING_LEGACY) &&
+        !mixerATIsActive() &&
+        checkMixerATRequired(MIXERAT_REQUEST_LAND);
+
+    if (!transitionAvailable) {
+        vtolMcProtectionUpdateSettleState(
+            &navMixerATRthCapture.earlyTransitionTrigger,
+            false,
+            VTOL_MC_RTH_TRANSITION_TRIGGER_CONFIRM_MS,
+            millis());
+        return false;
+    }
+
+    const navEstimatedPosVel_t *actual = navGetCurrentActualPositionAndVelocity();
+    const uint32_t closingSpeedCmS = vtolMcProtectionRthClosingSpeedCmS(
+        posControl.flags.estVelStatus == EST_TRUSTED,
+        homePos->x - actual->pos.x,
+        homePos->y - actual->pos.y,
+        actual->vel.x,
+        actual->vel.y);
+
+    const uint32_t transitionTimeBudgetMs = vtolMcProtectionRthTransitionTimeBudgetMs(
+        currentMixerConfig.switchTransitionTimer,
+        currentMixerConfig.vtolTransitionDynamicMixer,
+        currentMixerConfig.vtolTransitionScaleRampTimeMs);
+    const uint32_t startDistanceCm = vtolMcProtectionRthTransitionStartDistanceCm(
+        closingSpeedCmS,
+        transitionTimeBudgetMs,
+        navConfig()->fw.loiter_radius);
+    const bool insideStartDistance = calculateDistanceToDestination(homePos) <= startDistanceCm;
+
+    if (!vtolMcProtectionUpdateSettleState(
+            &navMixerATRthCapture.earlyTransitionTrigger,
+            insideStartDistance,
+            VTOL_MC_RTH_TRANSITION_TRIGGER_CONFIRM_MS,
+            millis())) {
+        return false;
+    }
+
+    navMixerATRequestOverride = MIXERAT_REQUEST_LAND;
+    return true;
+}
+
+static bool updateRthVTOLTransitionCapture(void)
+{
+    const fpVector3_t actualPos = navGetCurrentActualPositionAndVelocity()->pos;
+
+    if (!ARMING_FLAG(ARMED) || !STATE(MULTIROTOR)) {
+        navMixerATRthCapture.stage = NAV_MIXERAT_RTH_CAPTURE_IDLE;
+        return false;
+    }
+
+    if (navMixerATRthCapture.stage == NAV_MIXERAT_RTH_CAPTURE_ALIGN &&
+        vtolMcProtectionLandingDescentNeedsResettle(
+            true, true,
+            posControl.flags.estVelStatus == EST_TRUSTED,
+            posControl.actualState.velXY,
+            MAX(ABS(attitude.values.roll), ABS(attitude.values.pitch)),
+            missionVTOLTransitionHorizontalSettleLimitCmS(),
+            vtolMcProtectionSettleAttitudeLimitDeciDeg(navConfig()->mc.max_bank_angle))) {
+        // A gust during alignment requires braking again before another turn.
+        navMixerATRthCapture.stage = NAV_MIXERAT_RTH_CAPTURE_STOP;
+        navMixerATRthCapture.settle = (vtolMcProtectionSettleState_t){0};
+        navMixerATRthCapture.heading = posControl.actualState.yaw;
+    }
+
+    if (navMixerATRthCapture.stage == NAV_MIXERAT_RTH_CAPTURE_STOP) {
+        // Remove the remaining fixed-wing velocity without pulling back toward
+        // Home. Keep altitude and the post-switch heading while MC settles.
+        setDesiredPosition(&actualPos,
+            navMixerATRthCapture.heading,
+            NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
+
+        if (!vtolTransitionCaptureIsReady(&navMixerATRthCapture.settle)) {
+            return true;
+        }
+
+        navMixerATRthCapture.stage = NAV_MIXERAT_RTH_CAPTURE_ALIGN;
+        navMixerATRthCapture.settle.stableSinceMs = 0;
+        navMixerATRthCapture.settle.elapsedMs = 0;
+        navMixerATRthCapture.holdPos = actualPos;
+    }
+
+    // Re-evaluate against the real position: drift during the turn must not
+    // authorize an approach using a heading that now points away from Home.
+    const fpVector3_t *homePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
+    navMixerATRthCapture.heading = vtolMcProtectionRthPostSwitchHeading(
+        calculateDistanceToDestination(homePos),
+        vtolMcProtectionLandingCaptureRadiusCm(navConfig()->general.waypoint_radius),
+        calculateBearingToDestination(homePos),
+        posControl.rthState.homePosition.heading);
+    setDesiredPosition(&navMixerATRthCapture.holdPos,
+        navMixerATRthCapture.heading,
+        NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
+    updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
+
+    const bool headingReached = ABS(wrap_18000(navMixerATRthCapture.heading - posControl.actualState.yaw)) <=
+        VTOL_MC_RTH_APPROACH_HEADING_TOLERANCE_CD;
+    if (!headingReached) {
+        navMixerATRthCapture.settle.stableSinceMs = 0;
+        navMixerATRthCapture.settle.elapsedMs = 0;
+        return true;
+    }
+
+    if (!vtolTransitionCaptureIsReady(&navMixerATRthCapture.settle)) {
+        return true;
+    }
+
+    navMixerATRthCapture.stage = NAV_MIXERAT_RTH_CAPTURE_IDLE;
+    posControl.activeWaypoint.bearing = calculateBearingToDestination(&posControl.rthState.homePosition.pos);
+    initializeRTHSanityChecker();
+    return false;
 }
 
 static void rebaseMissionWaypointAfterTransition(void)
@@ -2832,7 +3034,8 @@ static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const 
 
     // If low-speed protection already selected MC as the safer fallback, do
     // not let later mission USER bits immediately send the aircraft back to FW.
-    if (transitionToFixedWing && navVtolFwToMcProtectionLatched) {
+    if (transitionToFixedWing && !navVtolAutomaticFwTransitionAllowed(
+            navVtolFwToMcProtectionLatched, navRthLandingMcSelected, NAV_VTOL_MIXERAT_MODE_WAYPOINT)) {
         return NAV_MISSION_VTOL_TRANSITION_CONTINUE;
     }
 
@@ -3511,6 +3714,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
         return NAV_FSM_EVENT_SWITCH_TO_IDLE;
     }
 
+    // Keep brief position-estimate losses inside RTH, but retain its normal
+    // timeout/heading-failure escape rather than leaving a transition orphaned.
+    if (navVtolRthTransitionHasSensorFailure(
+            navMixerATOwnerMode(),
+            posControl.flags.estHeadingStatus != EST_NONE,
+            checkForPositionSensorTimeout())) {
+        mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+        navMixerATRequestOverride = MIXERAT_REQUEST_NONE;
+        clearMissionVTOLTransitionState();
+        return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+    }
+
     if (navMixerATMissionTransition.retryStage != NAV_MIXERAT_RETRY_STAGE_IDLE) {
         const navMixerATRetryScanResult_e retryResult = updateMissionTransitionRetryScan();
         if (retryResult == NAV_MIXERAT_RETRY_SCAN_READY_TO_RETRY) {
@@ -3562,6 +3777,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
 
         navigationFSMEvent_t nextEvent = NAV_FSM_EVENT_SWITCH_TO_IDLE;
         bool startMissionCapture = false;
+        bool startRthCapture = false;
         bool rebaseMissionWaypoint = false;
         if (transitionAborted) {
             nextEvent = getTransitionFailEvent(required_action);
@@ -3581,6 +3797,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
                 case NAV_STATE_RTH_HEAD_HOME:
                 case NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING:
                     nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME;
+                    startRthCapture = STATE(MULTIROTOR);
                     break;
                 case NAV_STATE_RTH_LOITER_ABOVE_HOME:
                     nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH;
@@ -3599,9 +3816,15 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
                 {
                 case NAV_STATE_RTH_HEAD_HOME:
                     nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME;
+                    startRthCapture = required_action == MIXERAT_REQUEST_LAND && STATE(MULTIROTOR);
                     break;
                 case NAV_STATE_RTH_LANDING:
-                    nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING;
+                    if (STATE(MULTIROTOR)) {
+                        nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME;
+                        startRthCapture = true;
+                    } else {
+                        nextEvent = NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING;
+                    }
                     break;
                 case NAV_STATE_WAYPOINT_RTH_LAND:
                     nextEvent = NAV_FSM_EVENT_SWITCH_TO_LANDING;
@@ -3637,6 +3860,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(nav
         clearMissionVTOLTransitionState();
         if (startMissionCapture) {
             startMissionVTOLTransitionCapture();
+        } else if (startRthCapture) {
+            startRthVTOLTransitionCapture();
         } else if (rebaseMissionWaypoint) {
             rebaseMissionWaypointAfterTransition();
         }
@@ -3730,7 +3955,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_MISSION_CAPTURE
         posControl.actualState.yaw,
         NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
 
-    if (!missionVTOLTransitionCaptureIsReady()) {
+    if (!vtolTransitionCaptureIsReady(&navMixerATMissionCapture.settle)) {
         return NAV_FSM_EVENT_NONE;
     }
 
@@ -4042,6 +4267,29 @@ static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
 
     previousState = posControl.navState;
     if (posControl.navState != newState) {
+#ifdef USE_AUTO_TRANSITION
+        navVtolMixerATMode_e nextTransitionOwner = NAV_VTOL_MIXERAT_MODE_NONE;
+        if (newState == NAV_STATE_MIXERAT_INITIALIZE) {
+            // onEntry has not recorded navMixerATPendingState yet.
+            if (navGetStateFlags(previousState) & NAV_AUTO_RTH) {
+                nextTransitionOwner = NAV_VTOL_MIXERAT_MODE_RTH;
+            }
+        } else if (newState == NAV_STATE_MIXERAT_IN_PROGRESS) {
+            nextTransitionOwner = navMixerATOwnerMode();
+        }
+        // Clear at the state boundary, not just at the end of the FSM pass:
+        // another mode can fail back into RTH within this same pass.
+        navRthLandingMcSelected = navVtolRthLandingMcSelectionRetained(
+            navRthLandingMcSelected,
+            ARMING_FLAG(ARMED),
+            (navGetStateFlags(newState) & NAV_AUTO_RTH) != 0,
+            nextTransitionOwner);
+        navMixerATRthCapture.earlyTransitionTrigger = (vtolMcProtectionSettleState_t){0};
+        if (newState != NAV_STATE_RTH_HEAD_HOME) {
+            navMixerATRthCapture.stage = NAV_MIXERAT_RTH_CAPTURE_IDLE;
+            navMixerATRthCapture.settle = (vtolMcProtectionSettleState_t){0};
+        }
+#endif
         posControl.navState = newState;
         posControl.navPersistentId = navFSM[newState].persistentId;
     }
@@ -4090,6 +4338,10 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
     }
 
 #ifdef USE_AUTO_TRANSITION
+    if (!ARMING_FLAG(ARMED)) {
+        navRthLandingMcSelected = false;
+    }
+
     if (navMixerATMissionCapture.active && posControl.navState != NAV_STATE_MIXERAT_MISSION_CAPTURE) {
         // A mode/failsafe change interrupted capture. Never leak it into a
         // later mission or navigation session.
@@ -4530,7 +4782,7 @@ float getFinalRTHAltitude(void)
 static void updateDesiredRTHAltitude(void)
 {
     if (ARMING_FLAG(ARMED)) {
-        if (!((navGetStateFlags(posControl.navState) & NAV_AUTO_RTH)
+        if (!(navIsRthProcedureActive()
           || ((navGetStateFlags(posControl.navState) & NAV_AUTO_WP) && posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_RTH))) {
             switch (navConfig()->general.flags.rth_climb_first_stage_mode) {
                 case NAV_RTH_CLIMB_STAGE_AT_LEAST:
@@ -4800,7 +5052,12 @@ void updateHomePosition(void)
         static bool isHomeResetAllowed = false;
         // If pilot so desires he may reset home position to current position
         if (IS_RC_MODE_ACTIVE(BOXHOMERESET)) {
-            if (isHomeResetAllowed && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND) && !FLIGHT_MODE(NAV_WP_MODE) && (posControl.flags.estPosStatus >= EST_USABLE)) {
+#ifdef USE_AUTO_TRANSITION
+            const bool transitionBlocksHomeReset = navVtolTransitionBlocksHomeReset(navMixerATOwnerMode());
+#else
+            const bool transitionBlocksHomeReset = false;
+#endif
+            if (isHomeResetAllowed && !transitionBlocksHomeReset && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND) && !FLIGHT_MODE(NAV_WP_MODE) && (posControl.flags.estPosStatus >= EST_USABLE)) {
                 homeUpdateFlags = 0;
                 homeUpdateFlags = STATE(GPS_FIX_HOME) ? (NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING) : (NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
                 setHome = true;
@@ -6031,7 +6288,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         const bool canActivateAltHold    = canActivateAltHoldMode();
         const bool canActivatePosHold    = canActivatePosHoldMode();
         const bool canActivateNavigation = canActivateNavigationModes();
-        const bool isExecutingRTH        = navGetStateFlags(posControl.navState) & NAV_AUTO_RTH;
+        const bool isExecutingRTH        = navIsRthProcedureActive();
 #ifdef USE_AUTO_TRANSITION
         const navigationFSMEvent_t orphanedTransitionEvent = abortOrphanedNavigationMixerATTransition();
         if (orphanedTransitionEvent != NAV_FSM_EVENT_NONE) {
@@ -6117,7 +6374,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
          * This might switch to emergency landing controller if GPS is unavailable */
         if (posControl.flags.forcedRTHActivated) {
 #ifdef USE_AUTO_TRANSITION
-            if (navMixerATOwnsMode(NAV_VTOL_MIXERAT_MODE_RTH)) {
+            if (navMixerATOwnerMode() == NAV_VTOL_MIXERAT_MODE_RTH) {
                 return NAV_FSM_EVENT_NONE;
             }
 #endif
@@ -6183,7 +6440,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         if (IS_RC_MODE_ACTIVE(BOXNAVRTH) || wpRthFallbackIsActive) {
             if (isExecutingRTH || (canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME))) {
 #ifdef USE_AUTO_TRANSITION
-                if (navMixerATOwnsMode(NAV_VTOL_MIXERAT_MODE_RTH)) {
+                if (navMixerATOwnerMode() == NAV_VTOL_MIXERAT_MODE_RTH) {
                     return NAV_FSM_EVENT_NONE;
                 }
 #endif
@@ -6637,6 +6894,7 @@ void navigationInit(void)
     navMixerATPendingState = NAV_STATE_IDLE;
     navMixerATRequestOverride = MIXERAT_REQUEST_NONE;
     navVtolFwToMcProtectionLatched = false;
+    navRthLandingMcSelected = false;
     clearMissionVTOLTransitionState();
 #endif
 
