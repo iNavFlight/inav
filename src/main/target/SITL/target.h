@@ -54,6 +54,15 @@
 #define USE_UART8
 
 #define SERIAL_PORT_COUNT 8
+
+/*
+ * Spektrum Smart ESC. Not enabled by the flash-size rule in common.h, which only
+ * covers H7 and AT32, so SITL opts in explicitly - which is also the mechanism any
+ * other target uses. Worth having here because SITL exposes each UART on a TCP
+ * port, so a simulated ESC can be attached to the real driver and the whole path
+ * exercised without hardware.
+ */
+#define USE_MOTOR_SRXL2
 #define SITL_SERIAL_TASK_US (500)
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_MSP

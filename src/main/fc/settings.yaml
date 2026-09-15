@@ -27,7 +27,14 @@ tables:
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD", "FILE"]
   - name: motor_pwm_protocol
-    values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600"]
+    values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "SRXL2"]
+  # The default is FIRST on purpose, so that it is index 0. This field was appended
+  # to motorConfig_t and landed inside the struct's existing padding, so sizeof did
+  # not grow and pgLoad()'s memcpy copies the old zero over the reset default: an
+  # existing configuration reads whatever index 0 happens to be. Putting the default
+  # there makes that harmless instead of silently selecting the fastest rate.
+  - name: esc_srxl2_telemetry_rate
+    values: ["1HZ", "3HZ", "2HZ", "0_5HZ", "0_2HZ"]
   - name: servo_protocol
     values: ["PWM", "SBUS", "SBUS_PWM"]
   - name: failsafe_procedure
@@ -862,6 +869,25 @@ groups:
         default_value: "ONESHOT125"
         field: motorPwmProtocol
         table: motor_pwm_protocol
+      - name: esc_srxl2_telemetry
+        description: "Read ESC telemetry off the SRXL2 link. Only applies when motor_pwm_protocol is SRXL2, where telemetry shares the throttle wire and so cannot be turned off by leaving a port unassigned as it would be for a conventional ESC."
+        default_value: ON
+        field: srxl2Telemetry
+        condition: USE_MOTOR_SRXL2
+        type: bool
+      - name: esc_srxl2_telemetry_rate
+        description: "How often ESC telemetry arrives from an SRXL2 Smart ESC, in readings per second. The ESC answers about two requests in three and rotates its reply between three sensors, so it delivers roughly a ninth of what is asked for - these are the delivered rates, measured, not the request rate. The reply shares the throttle wire, so a faster rate leaves the bus less headroom; only the RPM filter benefits from it. Asking on every frame is not offered: an Avian keeps the link and stops obeying the throttle."
+        default_value: "1HZ"   # must stay index 0, see the table comment
+        field: srxl2TelemetryRate
+        condition: USE_MOTOR_SRXL2
+        table: esc_srxl2_telemetry_rate
+      - name: esc_srxl2_reverse_channel
+        description: "For an SRXL2 Smart ESC, the 1-based auxiliary channel its \"Thrust Rev.\" setting selects to arm reverse. Spektrum allow channels 5 to 9 and ship channel 7 by default. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse."
+        default_value: 7
+        field: srxl2ReverseChannel
+        condition: USE_MOTOR_SRXL2
+        min: 0
+        max: 9
       - name: motor_poles
         field: motorPoleCount
         description: "The number of motor poles. Required to compute motor RPM"

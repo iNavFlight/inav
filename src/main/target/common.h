@@ -74,6 +74,25 @@
 #define USE_SERVO_SBUS
 #endif
 
+/*
+ * Spektrum Smart ESC ("Smart Throttle") motor output. Needs a spare UART rather
+ * than a motor pad - one ESC per port, so a model with several motors needs that
+ * many ports.
+ *
+ * On by default only where flash is plentiful, because it costs about 3.5 KB and
+ * AIKONF7 for instance sits at 93.4% of its flash. Any other target can still
+ * have it with one line in its own target.h, which is included after this file:
+ *
+ *     #define USE_MOTOR_SRXL2
+ *
+ * Where the default should sit is a judgement call rather than a constraint - the
+ * alternative is enabling it everywhere and charging every tight target for a
+ * protocol it may never use.
+ */
+#if !defined(USE_MOTOR_SRXL2) && (defined(STM32H7) || defined(AT32F43x))
+#define USE_MOTOR_SRXL2
+#endif
+
 #ifndef USE_ADC_AVERAGING
 #define USE_ADC_AVERAGING
 #endif
