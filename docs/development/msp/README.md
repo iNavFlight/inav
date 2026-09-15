@@ -2695,7 +2695,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 |---|---|---|---|
 | `status` | `uint8_t` | 1 | 1 if passthrough started successfully, 0 on error (e.g., port not found). For 4way, returns number of ESCs found |
 
-**Notes:** Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough.
+**Notes:** Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough. ESC 4-way passthrough will fail if the craft is armed: the reply carries `MSP_RESULT_ERROR` and the serial port is not handed over. Serial passthrough to another device is unaffected.
 
 ## <a id="msp_rtc"></a>`MSP_RTC (246 / 0xf6)`
 **Description:** Retrieves the current Real-Time Clock time.  

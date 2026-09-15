@@ -5737,7 +5737,7 @@
                     }
                 ]
             },
-            "notes": "Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough.",
+            "notes": "Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough. ESC 4-way passthrough will fail if the craft is armed: the reply carries `MSP_RESULT_ERROR` and the serial port is not handed over. Serial passthrough to another device is unaffected.",
             "description": "Enables serial passthrough mode to peripherals like ESCs (BLHeli 4-way) or other serial devices."
         },
         "MSP_RTC": {
