@@ -516,8 +516,13 @@ static float calculateTPAThtrottle(void)
 
     if (usedPidControllerType == PID_TYPE_PIFF && (currentControlProfile->throttle.fixedWingTauMs > 0)) { //fixed wing TPA with filtering
         fpVector3_t vForward = { .v = { HeadVecEFFiltered.x, -HeadVecEFFiltered.y, -HeadVecEFFiltered.z } };
+        // vForward is in NED (see #11869); groundCos is its down-component, so it's
+        // positive when diving and negative when climbing. tpa_pitch_compensation
+        // is documented (and range-limited to >= 0) to *increase* throttle when
+        // climbing, so the sign must be flipped here rather than in groundCos
+        // itself, which wind_estimator.c's identical construction depends on.
         float groundCos = vectorDotProduct(&vForward, &vDown);
-        int16_t throttleAdjustment =  currentControlProfile->throttle.tpa_pitch_compensation * groundCos * 90.0f / 1.57079632679f; //when 1deg pitch up, increase throttle by pitch(deg)_to_throttle. cos(89 deg)*90/(pi/2)=0.99995,cos(80 deg)*90/(pi/2)=9.9493,
+        int16_t throttleAdjustment =  -currentControlProfile->throttle.tpa_pitch_compensation * groundCos * 90.0f / 1.57079632679f; //when 1deg pitch up, increase throttle by pitch(deg)_to_throttle. cos(89 deg)*90/(pi/2)=0.99995,cos(80 deg)*90/(pi/2)=9.9493,
         uint16_t throttleAdjusted = rcCommand[THROTTLE] + constrain(throttleAdjustment, -1000, 1000);
         tpaThrottle = pt1FilterApply(&fixedWingTpaFilter, constrain(throttleAdjusted, 1000, 2000));
     }
