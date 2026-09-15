@@ -137,6 +137,7 @@
 #define VIDEO_BUFFER_CHARS_DJIWTF 1320
 
 #define GFORCE_FILTER_T_CUT_HZ 0.8f
+#define BATTERY_PERCENT_FILTER_F_CUT_HZ 0.1f
 
 #define OSD_STATS_SINGLE_PAGE_MIN_ROWS 18
 #define IS_HI(X)  (rxGetChannelValue(X) > 1750)
@@ -180,11 +181,13 @@ static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
 static float GForce, GForceAxis[XYZ_AXIS_COUNT];
+static float batteryRemainingPercent;
 
 // OSD Filters
 static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
 static pt1Filter_t glideTimeFilterState, glideSlopeFilterState;
 static pt1Filter_t climbEffFilterState, mahEffFilterState, whEffFilterState;
+static pt1Filter_t batteryRemainingFilterState;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -377,6 +380,35 @@ static int16_t osdGetFlightDirection(void)
 }
 
 /**
+ * Writes the integer part, a two digit fraction and a unit symbol to buff.
+ * DJI systems get an explicit decimal separator, every other system embeds
+ * it into the surrounding digits, the same way osdFormatCentiNumber() does.
+ * @param symbol Unit symbol written after the fraction
+ */
+static void osdFormatDistanceFractionStr(char *buff, int integerPart, int fraction, uint8_t symbol)
+{
+    bool djiCompat = false;  // Assume DJICOMPAT mode is not enabled
+
+#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
+    if (isDJICompatibleVideoSystem(osdConfig())) {
+        djiCompat = true;
+    }
+#endif
+
+    int integerDigits = tfp_sprintf(buff, "%d", integerPart);
+
+    if (djiCompat) {
+        // DJICOMPAT mode enabled
+        tfp_sprintf(buff + integerDigits, ".%02d%c", fraction, symbol);
+    } else {
+        tfp_sprintf(buff + integerDigits, "%02d%c", fraction, symbol);
+        // Embed the decimal separator
+        buff[integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        buff[integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
+    }
+}
+
+/**
  * Converts distance into a string based on the current unit system.
  * @param dist Distance in centimeters
  */
@@ -393,7 +425,7 @@ static void osdFormatDistanceStr(char *buff, int32_t dist)
             tfp_sprintf(buff, "%d%c", (int)(centifeet / 100), SYM_FT);
         } else {
             // Show miles when dist >= 0.5mi
-            tfp_sprintf(buff, "%d.%02d%c", (int)(centifeet / (100*FEET_PER_MILE)),
+            osdFormatDistanceFractionStr(buff, (int)(centifeet / (100*FEET_PER_MILE)),
                 (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, SYM_MI);
         }
         break;
@@ -405,7 +437,7 @@ static void osdFormatDistanceStr(char *buff, int32_t dist)
             tfp_sprintf(buff, "%d%c", (int)(dist / 100), SYM_M);
         } else {
             // Show kilometers when dist >= 1km
-            tfp_sprintf(buff, "%d.%02d%c", (int)(dist / (100*METERS_PER_KILOMETER)),
+            osdFormatDistanceFractionStr(buff, (int)(dist / (100*METERS_PER_KILOMETER)),
                 (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, SYM_KM);
         }
         break;
@@ -416,7 +448,7 @@ static void osdFormatDistanceStr(char *buff, int32_t dist)
             tfp_sprintf(buff, "%d%c", (int)(centifeet / 100), SYM_FT);
         } else {
             // Show nautical miles when dist >= 1000ft
-            tfp_sprintf(buff, "%d.%02d%c", (int)(centifeet / (100 * FEET_PER_NAUTICALMILE)),
+            osdFormatDistanceFractionStr(buff, (int)(centifeet / (100 * FEET_PER_NAUTICALMILE)),
                 (int)((abs(centifeet) % (int)(100 * FEET_PER_NAUTICALMILE)) / FEET_PER_NAUTICALMILE), SYM_NM);
         }
         break;
@@ -791,7 +823,7 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 
     if (!djiCompat) {
         decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
-        // Embbed the decimal separator
+        // Embed the decimal separator
         buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
         buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
     } else {
@@ -1946,7 +1978,7 @@ static bool osdDrawSingleElement(uint8_t item)
     }
     case OSD_BATTERY_REMAINING_PERCENT:
         osdFormatBatteryChargeSymbol(buff);
-        tfp_sprintf(buff + 1, "%3d%%", calculateBatteryPercentage());
+        tfp_sprintf(buff + 1, "%3d%%", (int)lrintf(batteryRemainingPercent));
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
@@ -5777,6 +5809,8 @@ static void osdShowArmed(void)
 static void osdFilterData(timeUs_t currentTimeUs)
 {
     static timeUs_t lastRefresh = 0;
+    static bool batteryWasPresent = false;
+    const bool batteryPresent = getBatteryState() != BATTERY_NOT_PRESENT;
     float refresh_dT = US2S(cmpTimeUs(currentTimeUs, lastRefresh));
 
     GForce = fast_fsqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
@@ -5789,6 +5823,12 @@ static void osdFilterData(timeUs_t currentTimeUs)
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             GForceAxis[axis] = pt1FilterApply3(&GForceFilterAxis[axis], GForceAxis[axis], refresh_dT);
         }
+        if (batteryPresent != batteryWasPresent) {
+            batteryRemainingPercent = calculateBatteryPercentage();
+            pt1FilterReset(&batteryRemainingFilterState, batteryRemainingPercent);
+        } else {
+            batteryRemainingPercent = pt1FilterApply3(&batteryRemainingFilterState, calculateBatteryPercentage(), refresh_dT);
+        }
     } else {   // init OSD filter f_cut values
         pt1FilterSetCutoff(&GForceFilter, GFORCE_FILTER_T_CUT_HZ);
         pt1FilterSetCutoff(&glideTimeFilterState, 0.5f);
@@ -5796,11 +5836,15 @@ static void osdFilterData(timeUs_t currentTimeUs)
         pt1FilterSetCutoff(&climbEffFilterState, 1.0f);
         pt1FilterSetCutoff(&mahEffFilterState, 1.0f);
         pt1FilterSetCutoff(&whEffFilterState, 1.0f);
+        pt1FilterSetCutoff(&batteryRemainingFilterState, BATTERY_PERCENT_FILTER_F_CUT_HZ);
+        batteryRemainingPercent = calculateBatteryPercentage();
+        pt1FilterReset(&batteryRemainingFilterState, batteryRemainingPercent);
 
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             pt1FilterSetCutoff(&GForceFilterAxis[axis], GFORCE_FILTER_T_CUT_HZ);
         }
     }
+    batteryWasPresent = batteryPresent;
     lastRefresh = currentTimeUs;
 }
 
