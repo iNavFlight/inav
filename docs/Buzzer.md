@@ -26,22 +26,32 @@ Buzzer tone sequences (square wave generation) are made so that : 1st, 3rd, 5th,
 
 Sequences:
 
-    0    GYRO_CALIBRATED       20, 10, 20, 10, 20, 10	Gyro is calibrated
-    1    RX_LOST_LANDING       10, 10, 10, 10, 10, 40, 40, 10, 40, 10, 40, 40, 10, 10, 10, 10, 10, 70    SOS morse code
-    2    RX_LOST               50, 50		TX off or signal lost (repeats until TX is okay)
-    3    DISARMING             15, 5, 15, 5		Disarming the board
-    4    ARMING                30, 5, 5, 5		Arming the board
-    5    ARMING_GPS_FIX        5, 5, 15, 5, 5, 5, 15, 30	Arming and GPS has fix
-    6    BAT_CRIT_LOW          50, 2		Battery is critically low (repeats)
-    7    BAT_LOW               25, 50		Battery is getting low (repeats)
-    8    NULL                  multi beeps		GPS status (sat count)
-    9    RX_SET                10, 10		RX is set (when aux channel is set for beep or beep sequence how many satellites has found if GPS enabled)
-    10   ACC_CALIBRATION       5, 5, 5, 5		ACC inflight calibration completed
-    11   ACC_CALIBRATION_FAIL  20, 15, 35, 5	ACC inflight calibration failed
-    12   READY_BEEP            4, 5, 4, 5, 8, 5, 15, 5, 8, 5, 4, 5, 4, 5	GPS locked and copter ready   
-    13   NULL                  multi beeps		Variable # of beeps (confirmation, GPS sat count, etc)
-    14   DISARM_REPEAT         0, 100, 10		Stick held in disarm position (after pause)
-    15   ARMED                 0, 245, 10, 5	Board is armed (after pause ; repeats until board is disarmed or throttle is increased)
+    0    RUNTIME_CALIBRATION       	20, 10, 20, 10, 20, 10	Runtime calibration completed (gyro on power-up)
+    1    HW_FAILURE                	10, 10	A hardware failure was detected (repeats)
+    2    RX_LOST                   	50, 50	TX off or signal lost (repeats until TX is okay)
+    3    RX_LOST_LANDING           	10, 10, 10, 10, 10, 40, 40, 10, 40, 10, 40, 40, 10, 10, 10, 10, 10, 70	SOS morse code
+    4    DISARMING                 	15, 5, 15, 5	Disarming the board
+    5    ARMING                    	30, 5, 5, 5	Arming the board
+    6    ARMING_GPS_FIX            	5, 5, 15, 5, 5, 5, 15, 30	Arming and GPS has fix
+    7    BAT_CRIT_LOW              	50, 2	Battery is critically low (repeats)
+    8    BAT_LOW                   	25, 50	Battery is getting low (repeats)
+    9    GPS_STATUS                	multi beeps	GPS status (sat count)
+    10   RX_SET                    	10, 10	RX is set (aux channel set for beep, or GPS sat count)
+    11   ACTION_SUCCESS            	5, 5, 5, 5	An action succeeded: ACC or compass calibration, settings saved
+    12   ACTION_FAIL               	20, 15, 35, 5	An action failed, or a stick command could not be carried out
+    13   READY_BEEP                	4, 5, 4, 5, 8, 5, 15, 5, 8, 5, 4, 5, 4, 5	GPS locked and craft ready
+    14   MULTI_BEEPS               	multi beeps	Variable # of beeps (confirmation, GPS sat count, etc)
+    15   DISARM_REPEAT             	0, 100, 10	Stick held in disarm position (after pause)
+    16   ARMED                     	0, 245, 10, 5	Board is armed (after pause; repeats until disarmed or throttle raised)
+    17   SYSTEM_INIT               	none	System initialisation; the target's own startup tune plays instead
+    18   ON_USB                    	none	USB is connected; no sequence, used to silence the beeper
+    19   LAUNCH_MODE               	5, 5, 5, 100	Fixed wing launch mode active
+    20   LAUNCH_MODE_LOW_THROTTLE  	5, 5, 5, 5, 3, 100	Launch mode active, throttle below the launch threshold
+    21   LAUNCH_MODE_IDLE_START    	5, 5, 5, 5, 5, 5, 5, 80	Launch mode idle start
+    22   CAM_CONNECTION_OPEN       	5, 15, 10, 15, 20	Camera control connection opened
+    23   CAM_CONNECTION_CLOSED     	10, 8, 5	Camera control connection closed
+    24   ALL                       	none	Not a sequence: selects every source in the `beeper` CLI command
+    25   PREFERED                  	none	Not a sequence: selects the saved preference in the `beeper` CLI command
 
 You can use [this tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/helpful-inav-buzzer-code-checker/) to hear current buzzer sequences or enter custom sequences.
 
