@@ -1067,11 +1067,11 @@ Read ESC telemetry off the SRXL2 link. Only applies when motor_pwm_protocol is S
 
 ### esc_srxl2_telemetry_rate
 
-How often an SRXL2 Smart ESC is asked for telemetry. The reply shares the throttle wire, so a faster rate leaves the bus less headroom; a slower one is steadier. Only the RPM filter really benefits from the faster settings.
+How often ESC telemetry arrives from an SRXL2 Smart ESC, in readings per second. The ESC answers about two requests in three and rotates its reply between three sensors, so it delivers roughly a ninth of what is asked for - these are the delivered rates, measured, not the request rate. The reply shares the throttle wire, so a faster rate leaves the bus less headroom; only the RPM filter benefits from it. Asking on every frame is not offered: an Avian keeps the link and stops obeying the throttle.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10HZ |  |  |
+| 1HZ |  |  |
 
 ---
 

@@ -86,12 +86,21 @@ it. That normally needs a Spektrum transmitter, so INAV can drive the sequence
 itself for anyone who does not own one.
 
 **Do this before the first flight.** It is not a convenience. Measured on an Avian
-70 A Smart Lite that had been calibrated against a Spektrum radio, an uncalibrated
-ESC ignored everything below 1238 us: the bottom quarter of INAV's throttle range
-did nothing at all, and nothing said so. After the calibration the same ESC
-responded from 1050 us, and the throttle it reported back matched the throttle
-commanded to within a point from 10 % upwards. A pilot who skips this finds out
-about it on the takeoff roll.
+70 A, sweeping the channel value across its whole range and reading back the
+throttle the ESC reports:
+
+| | uncalibrated | after calibration |
+|---|---|---|
+| starts responding at | 12220 (1178 us) | 2687 (1029 us) |
+| saturates at | 50820 (1781 us) | 64307 (1993 us) |
+| share of the channel used | 59 % | 94 % |
+
+Uncalibrated, the bottom sixth of the throttle does nothing and the top fifth is
+already at full power, so the stick reaches everything it will ever reach at
+about three quarters travel - and nothing says so. Calibrated, what the ESC
+reports tracks what INAV commands to within a point across the whole range:
+1050 us gives 5 %, 1500 gives 50 %, 2000 gives 100 %. A pilot who skips this
+finds out about it on the takeoff roll.
 
 **Outputs tab**, Throttle range calibration:
 
@@ -142,12 +151,13 @@ notch at all.
 
 Two things to weigh before turning `rpm_gyro_filter_enabled` on:
 
-* Telemetry arrives at whatever `esc_srxl2_telemetry_rate` asks for, 10 Hz by
-  default, not at the loop rate. On an aircraft holding a cruise throttle, rpm and
-  the vibration peak both move slowly and that is adequate. Raising it to 50 Hz
-  tracks better and costs bus headroom, since the reply shares the throttle wire.
-  Even at 50 Hz this is not equivalent to bidirectional DSHOT, which reports every
-  loop.
+* Telemetry arrives far slower than the loop rate, and slower than the request
+  rate too: the ESC answers about two requests in three and rotates its reply
+  between a text page, a battery page and the ESC page, so rpm reaches the flight
+  controller at roughly a ninth of what is asked for. `esc_srxl2_telemetry_rate`
+  is named for what arrives - 1 Hz by default, 3 Hz at the fastest. On an aircraft
+  holding a cruise throttle, rpm and the vibration peak both move slowly and that
+  is adequate. This is nowhere near bidirectional DSHOT, which reports every loop.
 * INAV's own advice for this setting applies unchanged: turn it on only once ESC
   telemetry is working and the reported rpm looks right.
 
@@ -206,6 +216,13 @@ switch-and-normal-throttle behaviour above, and the two cannot both be true of t
 same ESC. INAV drives the switch arrangement, which is the one Spektrum state in
 words, so it is worth confirming your ESC is that kind.
 
+An Avian 70 A with `Brake Type = Reverse` and the factory `Thrust Rev.` channel
+was confirmed to be that kind: with channel 7 low and then high, against an
+unchanged 1250 us throttle, the motor ran counter-clockwise, clockwise,
+counter-clockwise, clockwise, reporting the same 14.0 % and about 6610 rpm in
+every case. The throttle never changed meaning, and telemetry says nothing about
+which way the shaft is turning - only an eye on the motor can tell you.
+
 **Propeller off.** Arm with THRUST REVERSE off and watch the motor at *minimum*
 throttle:
 
@@ -220,11 +237,53 @@ automatically when the protocol is SRXL2. It recentres INAV's own throttle outpu
 which on a switch-type ESC means roughly half throttle at the point the stick says
 stop.
 
+### Engaging it with the motor running
+
+Nothing stops the switch being thrown at speed, on the ESC's side or INAV's:
+`srxl2MotorSetReverse()` writes its channel whenever the mode is active, without
+consulting the throttle. Tried deliberately on the bench, with the motor turning
+at 2690 rpm under an unchanged 1200 us command, the Avian simply changed
+direction - one telemetry sample caught it passing through zero rpm, and the next
+had it back at the same speed the other way. No stall, no cutout, and no current
+step large enough to read at that load.
+
+That is the ESC behaving well, not a licence to do it. With a propeller loaded in
+flight the same reversal has to absorb the airflow driving the blades, which is
+a different question from a bare motor on a bench, and it is the reason Spektrum
+put reverse on a switch the pilot has to mean to throw.
+
 ### What reverse cannot do
 
 Reverse is a manual, stick-and-switch capability. INAV's automatic throttle paths —
 RTH, autoland, failsafe, launch — all clamp throttle to at least idle, so none of
 them can call for reverse thrust. An automatic landing will not use it.
+
+## If the motor does not come back after a reboot
+
+An Avian announces itself for about a third of a second after it powers up - six
+handshakes in 300 milliseconds, measured on a 70 A - and then never speaks again
+unless it is asked something it recognises. A flight controller that starts while
+the ESC is already running has missed that window, and the ESC will not answer it
+afterwards: polled by name, broadcast to, addressed on every ID from 0x40 to
+0x4F, or spoken to as though the link already existed, it stayed silent through
+every one.
+
+So the link is made at power-up or not at all. Connecting the battery powers both
+together and the announcement lands while the flight controller is listening,
+which is the normal case and needs nothing. The cases that bite are the other
+ones:
+
+* the flight controller reboots - a firmware update, a brownout, the Configurator
+  asking for a restart - while the battery stays connected. **Unplug the battery
+  and plug it in again**, or the motor will not respond.
+* bench work on USB with the ESC powered from a separate supply. Power the ESC
+  after the board has booted, not before.
+
+Nothing in the firmware can work around this, so it refuses to hide it instead:
+arming is blocked while an SRXL2 link is missing, and the OSD says the hardware
+is not there. Where ESC and board come up together the block clears in about a
+second and is never seen; where it does not clear, the throttle would have done
+nothing anyway.
 
 ## Settings
 
@@ -233,7 +292,7 @@ them can call for reverse thrust. An automatic landing will not use it.
 | `motor_pwm_protocol = SRXL2` | drive motors over SRXL2 |
 | `esc_srxl2_reverse_channel` | SRXL2 channel the ESC watches for reverse, 5 to 9; Spektrum default 7, 0 disables |
 | `esc_srxl2_telemetry` | read telemetry from the SRXL2 link |
-| `esc_srxl2_telemetry_rate` | how often the ESC is asked: 50, 25, 10, 5 or 2 Hz |
+| `esc_srxl2_telemetry_rate` | how often telemetry arrives: 3, 2, 1, 0.5 or 0.2 Hz |
 | `motor_poles` | required for correct rpm, see above |
 
 ## Reference

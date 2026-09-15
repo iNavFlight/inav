@@ -120,28 +120,23 @@
 #define SRXL2_REPLY_NONE            0x00
 
 /*
- * How many channels every Control Data frame carries.
+ * The frame carries the throttle, and the reverse channel when one is
+ * configured. Nothing else: the ESC reads CH1 for throttle and the channel its
+ * own Thrust Rev. parameter names, and has no use for the rest.
  *
- * Not one, which is what this driver used to send. An Avian will not arm from a
- * frame carrying a single channel. It parses such a frame - it reports the
- * throttle back over telemetry, correctly - and then refuses to drive the motor
- * for as long as they keep arriving. Once armed by a wider frame it accepts
- * single-channel ones happily, so the requirement is on arming rather than on
- * running, which is exactly the shape of fault that reaches a field and not a
- * bench: a link that comes up, reports plausible telemetry, and never turns the
- * propeller.
+ * An earlier version sent a block of eight, on the strength of a bench session
+ * where one channel gave 0.0 % and eight gave 30 % - read at the time as "an
+ * Avian will not arm from a single-channel frame". That reading was confounded:
+ * the two runs also asked for telemetry at different rates, and the rate was
+ * what mattered. Rerun with the request rate held fixed, masks of one, two
+ * adjacent, two spread, four and eight channels all gave the same 14.0 % and the
+ * same 6610 rpm from the same 1250 us command; rerun asking on every frame, all
+ * five gave 0.0 %, the single-channel mask included. See SRXL2_TELEM_REQUEST_MIN
+ * for what that rate does.
  *
- * Measured on a 70 A Smart Lite: eight seconds of minimum throttle on one
- * channel leaves the ESC reporting 0.0 % and drawing 58 mA, its own electronics
- * and nothing else; the same minimum on eight channels arms it, and 1300 us
- * then gives 30.0 % and 26400 eRPM at 840 mA. Two channels were enough in
- * every combination tried, so eight is not a measured threshold but a margin,
- * chosen to look like what a receiver actually sends.
- *
- * The block also has to reach the reverse channel, because that value has to
- * travel in the frame anyway.
+ * Two channels rather than eight is twelve bytes a frame less on a wire the
+ * telemetry reply has to share.
  */
-#define SRXL2_CHANNELS_MIN          8
 
 /* X-Bus telemetry sensor IDs */
 #define SRXL2_TELEM_SENSOR_ESC      0x20
@@ -170,10 +165,21 @@
  * Ask for telemetry on every Nth Control Data packet rather than on all of them.
  * Telemetry is a reply, so requesting it every frame doubles bus occupancy and
  * forces a half-duplex turnaround each time, for values that change slowly.
- * Every fifth frame at 50 Hz gives 10 Hz, which is in line with what INAV's
- * other ESC telemetry backends deliver.
+ * Every fifth frame at 50 Hz asks ten times a second, which reaches the flight
+ * controller as about 1.1 ESC readings a second once the ESC's own sensor
+ * rotation is accounted for.
  */
 #define SRXL2_TELEM_REQUEST_DEFAULT 5
+
+/*
+ * Never ask on every frame. An Avian keeps the link up when asked at 50 Hz - it
+ * answers, and its telemetry is correct - but it stops obeying the throttle and
+ * reports zero per cent from every stick position. Dropping back to every second
+ * frame restores it immediately, without a power cycle. Measured repeatedly on an
+ * Avian 70A, against a fixed 1250 us command: every 2nd, 3rd and 4th frame all
+ * gave 14 % and about 6600 rpm, every frame gave nothing at all.
+ */
+#define SRXL2_TELEM_REQUEST_MIN     2
 
 /* Declare the link dead if the ESC stops answering for this long. */
 #define SRXL2_LINK_TIMEOUT_MS       500
@@ -191,18 +197,30 @@
 #define SRXL2_CAL_MANUAL_TIMEOUT_MS 30000
 
 /*
- * How long to keep holding full throttle after the ESC gains power.
+ * How long to keep holding full throttle after the ESC gains power, and then how
+ * long to hold minimum.
  *
- * The manual's window opens at the two short tones and lasts five seconds. Those
- * tones follow the power-up sequence by a second or so, so dropping three
- * seconds after power-up lands inside it with room on both sides. This is the
- * one number in the sequence taken from the published tone timings rather than
- * measured, and the first thing to adjust if an ESC refuses the calibration.
+ * These were three and five seconds, read off the published tone timings: the
+ * manual's window opens at the two short tones and lasts five, and the tones
+ * follow power-up by a second or so. Measured against an Avian 70 A, that is not
+ * enough. The same ESC, calibrated twice in a row from the same state:
+ *
+ *   3 s high, 5 s low - the ESC sounds its tones and stores nothing. Throttle
+ *       still ignored below channel value 12220, saturated from 50820, so 41 %
+ *       of the range does nothing and the stick reaches full power at 78 %.
+ *   4 s high, 7 s low - stored. Responds from 2687 and saturates at 64307,
+ *       94 % of the channel used, and the throttle it reports back tracks the
+ *       throttle commanded to within a point across the whole range: 1050 us
+ *       gives 5 %, 1500 gives 50 %, 2000 gives 100 %.
+ *
+ * So the extra second either side is what lands inside the window rather than
+ * on its edge. They cost nothing - the sequence runs once, on a bench, with the
+ * propeller off.
  */
-#define SRXL2_CAL_SETTLE_MS         3000
+#define SRXL2_CAL_SETTLE_MS         4000
 
 /* Long enough for the cell-count tones and the closing long tone. */
-#define SRXL2_CAL_LOW_MS            5000
+#define SRXL2_CAL_LOW_MS            7000
 
 /* Endpoints presented during calibration, on INAV's usual motor scale. */
 #define SRXL2_CAL_HIGH_US           2000
@@ -323,19 +341,21 @@ static inline uint16_t be16(const uint8_t *p)
     return (uint16_t)((p[0] << 8) | p[1]);
 }
 
+static bool srxl2ReverseChannelUsable(uint8_t channel1Based);
+
 /*
- * The block of channels this frame carries: wide enough to arm, and wide enough
- * to reach the reverse channel when one is configured. Rebuilt rather than
- * accumulated, so the frame does not change shape depending on what has been
- * called since power-up.
+ * Which channels this frame carries: the throttle, plus the reverse channel when
+ * one is configured. Rebuilt rather than accumulated, so the frame does not
+ * change shape depending on what has been called since power-up - and so that
+ * clearing the reverse channel actually stops sending it.
  */
 static void srxl2BuildChannelMask(srxl2Esc_t *e)
 {
-    uint8_t count = SRXL2_CHANNELS_MIN;
-    if (reverseChannel1Based > count) {
-        count = reverseChannel1Based;
+    uint32_t mask = 1u << SRXL2_CHANNEL_THROTTLE;
+    if (srxl2ReverseChannelUsable(reverseChannel1Based)) {
+        mask |= 1u << (reverseChannel1Based - 1);
     }
-    e->channelMask = (count >= 32) ? 0xFFFFFFFFu : ((1u << count) - 1u);
+    e->channelMask = mask;
 }
 
 static void srxl2SetState(srxl2Esc_t *e, srxl2State_e next)
@@ -790,11 +810,17 @@ void srxl2MotorSetReverseChannel(uint8_t channel1Based)
 
 void srxl2MotorSetTelemetryRate(srxl2TelemetryRate_e rate)
 {
-    /* Indexed by srxl2TelemetryRate_e, and derived from the 50 Hz control rate:
-     * every frame is 50 Hz, every 25th is 2 Hz. */
-    static const uint8_t divisor[] = { 5, 1, 2, 10, 25 };
+    /* Indexed by srxl2TelemetryRate_e. Each entry is how many 50 Hz control
+     * frames pass between requests; the setting is named for what comes back,
+     * which is roughly a ninth of what is asked for. */
+    static const uint8_t divisor[] = { 5, 2, 3, 10, 25 };
 
-    telemRequestEvery = (rate < ARRAYLEN(divisor)) ? divisor[rate] : SRXL2_TELEM_REQUEST_DEFAULT;
+    uint8_t every = (rate < ARRAYLEN(divisor)) ? divisor[rate] : SRXL2_TELEM_REQUEST_DEFAULT;
+
+    /* Clamped here as well as in the table, so that no future entry - or a
+     * configuration written by an older build, where index 1 meant every
+     * frame - can ask at a rate the ESC answers but will not fly at. */
+    telemRequestEvery = (every < SRXL2_TELEM_REQUEST_MIN) ? SRXL2_TELEM_REQUEST_MIN : every;
 }
 
 /* Checked on both sides rather than trusting the caller, because one of these
@@ -957,7 +983,17 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
              * announces itself, so without this it would never be found.
              *
              * Every bus is polled at the same ID, which is not a collision: each
-             * ESC is alone on its wire and hears only its own master. */
+             * ESC is alone on its wire and hears only its own master.
+             *
+             * What finds an Avian is not this, though: it is the ESC's own
+             * announcement at power-up, caught here because polling is what we
+             * happen to be doing when the ESC boots. A running Avian answers
+             * none of this - measured, with the ESC alive and the bus otherwise
+             * quiet: 128 handshakes to 0x40, 128 broadcasts, 128 spread across
+             * 0x40..0x4F and 319 control frames asking for telemetry all drew
+             * exactly nothing. It announces six times in the 300 ms after reset
+             * and is mute from then on. A board that reboots under a powered ESC
+             * therefore never links, and no amount of asking changes that. */
             srxl2SendHandshake(e, SRXL2_ESC_ID_FIRST, SRXL2_BAUD_BIT_400K);
         }
         break;
