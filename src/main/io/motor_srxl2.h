@@ -159,20 +159,27 @@ void srxl2MotorSetReverse(bool armed);
 void srxl2MotorSetReverseChannel(uint8_t channel1Based);
 
 /*
- * How often the ESC is asked for telemetry. Its reply shares the throttle wire, so
- * this trades bus headroom against how promptly rpm and voltage move - which only
- * matters to the RPM filter, everything else being a display.
+ * How often ESC telemetry arrives. Named after the rate the ESC actually delivers,
+ * not the rate we ask at: an Avian answers roughly two requests in three and
+ * rotates its reply between three sensors - a text page, a battery page and the
+ * ESC page - so rpm and current land at about a ninth of the request rate.
+ * Measured on an Avian 70A: asking 25 times a second yields 2.7 ESC frames a
+ * second, 10 yields 1.1, 5 yields 0.5, 2 yields 0.2.
+ *
+ * The reply shares the throttle wire, so this trades bus headroom against how
+ * promptly rpm and voltage move - which only matters to the RPM filter,
+ * everything else being a display.
  */
 typedef enum {
-    /* 10 Hz is first so that it is zero. The setting lives in a field appended to
+    /* 1 Hz is first so that it is zero. The setting lives in a field appended to
      * motorConfig_t that fell inside existing padding, so a configuration saved
      * before it existed loads index 0 rather than the reset default - which must
      * therefore be the value we would have chosen anyway, not the fastest one. */
-    SRXL2_TELEM_10HZ = 0,
-    SRXL2_TELEM_50HZ,
-    SRXL2_TELEM_25HZ,
-    SRXL2_TELEM_5HZ,
+    SRXL2_TELEM_1HZ = 0,
+    SRXL2_TELEM_3HZ,
     SRXL2_TELEM_2HZ,
+    SRXL2_TELEM_0_5HZ,
+    SRXL2_TELEM_0_2HZ,
 } srxl2TelemetryRate_e;
 
 void srxl2MotorSetTelemetryRate(srxl2TelemetryRate_e rate);
