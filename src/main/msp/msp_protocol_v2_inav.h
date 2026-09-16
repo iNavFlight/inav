@@ -157,3 +157,5 @@
 #define MSP2_INAV_SET_AUX_RC                    0x2230
 
 #define MSP2_INAV_WIND                          0x2231
+
+#define MSP2_INAV_MAG_UNALIGNED                 0x2232  //out message  compass reading with zero/gain calibration applied but no alignment rotation; payload: 3x I16 (X,Y,Z)
