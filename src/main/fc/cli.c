@@ -4200,6 +4200,27 @@ static void cliStatus(char *cmdline)
         hardwareSensorStatusNames[getHwGPSStatus()]
     );
 
+#ifdef USE_DUAL_GYRO
+    if (gyro.secondaryInitialized) {
+        const float misalignment = accSecondaryMisalignmentDeg();
+        if (misalignment < 0.0f) {
+            cliPrintLine("Second IMU: sampled, alignment not checked yet (needs a gyro calibration)");
+        } else {
+            /*
+             * Reported rather than judged. What counts as too far apart depends
+             * on the board, and saying "5.2 degrees" lets someone decide;
+             * printing "OK" would be deciding for them on no evidence.
+             *
+             * This compares where the two accelerometers say gravity is, so it
+             * cannot see a second IMU rotated about the vertical - that one
+             * reads the same gravity as the first.
+             */
+            cliPrintLinef("Second IMU: %d.%02d degrees from the first, measured against gravity",
+                (int)misalignment, (int)(misalignment * 100) % 100);
+        }
+    }
+#endif
+
 #ifdef USE_ESC_SENSOR
     uint8_t motorCount = getMotorCount();
     if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {

@@ -63,6 +63,7 @@
 
 #include "scheduler/scheduler.h"
 
+#include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
@@ -507,6 +508,18 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
 
         // Cache completion status to avoid function call in hot path
         gyroCalibrationComplete = true;
+
+#ifdef USE_DUAL_GYRO
+        /*
+         * The aircraft has just been held still long enough to calibrate a gyro,
+         * which is the only moment the firmware can be sure of it - so this is
+         * where the two IMUs are asked whether they agree on which way is down.
+         * Done from the primary's completion, once, and never in flight.
+         */
+        if (persist && gyro.secondaryInitialized) {
+            accMeasureSecondaryMisalignment(gyroDev[1].imuSensorToUse);
+        }
+#endif
 
         LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", (int16_t) dev->gyroZero[X], (int16_t) dev->gyroZero[Y], (int16_t) dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
