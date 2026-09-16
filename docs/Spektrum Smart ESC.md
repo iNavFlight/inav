@@ -292,7 +292,16 @@ ones:
 
 Nothing in the firmware can work around this, so it refuses to hide it instead:
 arming is blocked while an SRXL2 link is missing, and the OSD says the hardware
-is not there. Where ESC and board come up together the block clears in about a
+is not there.
+
+What the firmware does not do is give up on an ESC that has gone quiet while it
+is being flown. Telemetry has nothing to do with the throttle on these ESCs:
+measured with a bench supply as the witness, an Avian held 0.30 A through ten
+seconds with no telemetry requested at all. What stops the motor is the absence
+of control frames - the current falls to the ESC's own 58 mA within about half a
+second - and it takes the throttle back up by itself when frames return, with no
+re-arm and no power cycle. So a silent ESC keeps being commanded, and only the
+telemetry goes stale. Where ESC and board come up together the block clears in about a
 second and is never seen; where it does not clear, the throttle would have done
 nothing anyway.
 

@@ -1067,14 +1067,36 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
         }
 
         if (now - e->lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
-            /* Lost the ESC. Go back to 115200, where a slave that has just reset
-             * will be listening, and look for it again. */
-            serialSetBaudRate(e->port, SRXL2_BAUD_LOW);
-            e->baudSwitchPending = false;
-            e->agreedBaudBits = 0;
-            e->deviceId = 0;
             e->telemetry.valid = false;
-            srxl2SetState(e, SRXL2_POLLING);
+
+            /*
+             * Silence from the ESC is not a reason to stop commanding it.
+             *
+             * An Avian ignores telemetry requests entirely as far as the
+             * throttle is concerned: measured with the bench supply as witness,
+             * the motor held 0.30 A through three seconds and then ten seconds
+             * with no request sent at all, never faltering. What does stop it is
+             * the absence of control frames - the current falls to the ESC's own
+             * 58 mA within about half a second - and it picks the throttle back
+             * up by itself as soon as frames return, with no re-arm.
+             *
+             * So giving up here would cause the outage it is meant to detect,
+             * and on this hardware it would be permanent: a running Avian
+             * answers no discovery, so POLLING never finds it again. Keep
+             * driving, and let the telemetry go stale.
+             *
+             * The one case that does need the teardown is a slave that reset:
+             * it comes back at 115200 and announces for 300 ms, which cannot be
+             * heard from 400000. That only applies where the baud was raised -
+             * which no Avian tested allows, since they advertise 115200 only.
+             */
+            if (e->agreedBaudBits != 0) {
+                serialSetBaudRate(e->port, SRXL2_BAUD_LOW);
+                e->baudSwitchPending = false;
+                e->agreedBaudBits = 0;
+                e->deviceId = 0;
+                srxl2SetState(e, SRXL2_POLLING);
+            }
         }
         break;
 
@@ -1126,13 +1148,29 @@ uint8_t srxl2MotorCount(void)
     return escCount;
 }
 
+/*
+ * Whether every ESC is not merely being driven, but answering.
+ *
+ * Deliberately stricter than "the driver is in RUNNING". Since a telemetry gap
+ * no longer tears the link down - it would cause the outage it detects - a board
+ * whose ESC has been unplugged stays in RUNNING, commanding a motor that is not
+ * there. That is right for a machine already flying and wrong for one about to
+ * arm, so this asks for a recent reply and the arming check asks this.
+ *
+ * Strict on the ground, forgiving in the air: two different questions that used
+ * to share one answer.
+ */
 bool srxl2MotorIsConnected(void)
 {
     if (escCount == 0) {
         return false;
     }
+    const timeMs_t now = millis();
     for (uint8_t i = 0; i < escCount; i++) {
         if (esc[i].state != SRXL2_RUNNING || esc[i].deviceId == 0) {
+            return false;
+        }
+        if (now - esc[i].lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
             return false;
         }
     }
