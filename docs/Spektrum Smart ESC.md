@@ -149,17 +149,26 @@ electrical rpm, and INAV converts it to mechanical rpm using the pole count. A w
 pole count puts the notch at the wrong frequency, which is worse than having no
 notch at all.
 
-Two things to weigh before turning `rpm_gyro_filter_enabled` on:
+**The rpm this delivers is too slow for the filter to track a changing throttle,
+and that is a hardware limit, not a tuning one.** Measured on an Avian 70 A: the
+ESC answers about two requests in three and rotates its reply between a text
+page, a battery page and the ESC page, so rpm arrives at roughly a ninth of the
+request rate - 2.7 readings a second at the fastest setting the link tolerates,
+1.1 at the default. There is no margin to recover, either: requesting on every
+frame makes the ESC stop obeying the throttle, and this ESC advertises no support
+for 400000 baud, so the wire cannot be made faster.
 
-* Telemetry arrives far slower than the loop rate, and slower than the request
-  rate too: the ESC answers about two requests in three and rotates its reply
-  between a text page, a battery page and the ESC page, so rpm reaches the flight
-  controller at roughly a ninth of what is asked for. `esc_srxl2_telemetry_rate`
-  is named for what arrives - 1 Hz by default, 3 Hz at the fastest, and nothing
-  slower, because the ESC only speaks when asked and its reply is what tells the
-  flight controller the link is alive. On an aircraft
-  holding a cruise throttle, rpm and the vibration peak both move slowly and that
-  is adequate. This is nowhere near bidirectional DSHOT, which reports every loop.
+For comparison, bidirectional DSHOT reports rpm every loop. Two to three orders
+of magnitude separate the two, so:
+
+* **On a multirotor, leave `rpm_gyro_filter_enabled` off.** The vibration peak
+  moves with the throttle several times a second, and a notch updated twice a
+  second spends most of its time in the wrong place - which is worse than no
+  notch, because it attenuates signal rather than noise.
+* **On a fixed wing holding a cruise throttle** the peak moves slowly and the
+  filter is arguably useful. Arguably: that the update rate is adequate there is
+  reasoning from how slowly cruise rpm changes, not something measured in flight.
+  If you try it, compare a logged flight with it on and off before trusting it.
 * INAV's own advice for this setting applies unchanged: turn it on only once ESC
   telemetry is working and the reported rpm looks right.
 
