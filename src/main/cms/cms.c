@@ -649,7 +649,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
     return cnt;
 }
 
-static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
+static void cmsDrawMenu(displayPort_t *pDisplay, timeUs_t currentTimeUs)
 {
     if (!pageTop)
         return;
@@ -661,7 +661,7 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
     // Polled (dynamic) value display denominator.
 
     bool drawPolled = false;
-    static uint32_t lastPolledUs = 0;
+    static timeUs_t lastPolledUs = 0;
 
     if (currentTimeUs > lastPolledUs + CMS_POLL_INTERVAL_US) {
         drawPolled = true;
@@ -1516,7 +1516,7 @@ static bool cmsDetectPanicStickMovement(timeMs_t currentTimeMs)
     return false;
 }
 
-void cmsUpdate(uint32_t currentTimeUs)
+void cmsUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_RCDEVICE
     if(rcdeviceInMenu) {
