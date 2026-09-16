@@ -93,6 +93,7 @@ extern "C" {
     PG_REGISTER(rxConfig_t, rxConfig, PG_RX_CONFIG, 0);
     PG_REGISTER(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 0);
     PG_REGISTER_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 0);
+    PG_REGISTER(navConfig_t, navConfig, PG_NAV_CONFIG, 0);
 }
 
 #include "unittest_macros.h"
@@ -3503,6 +3504,14 @@ serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function)
 {
     UNUSED(function);
     return NULL;
+}
+
+// No mixer-profile switching is configured in these tests, so nothing here is a VTOL and
+// the platform is whatever the fixture set on mixer profile 0.
+bool platformTypeConfigured(flyingPlatformType_e platformType)
+{
+    UNUSED(platformType);
+    return false;
 }
 
 portSharing_e determinePortSharing(const serialPortConfig_t *portConfig, serialPortFunction_e function)
