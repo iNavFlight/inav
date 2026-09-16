@@ -353,8 +353,8 @@ void accMeasureSecondaryMisalignment(uint8_t sensorTag)
     memset(&probe, 0, sizeof(probe));
     probe.imuSensorToUse = sensorTag;
 
-    const sensor_e requestedWas = requestedSensors[SENSOR_INDEX_ACC];
-    const sensor_e detectedWas = detectedSensors[SENSOR_INDEX_ACC];
+    const uint8_t requestedWas = requestedSensors[SENSOR_INDEX_ACC];
+    const uint8_t detectedWas = detectedSensors[SENSOR_INDEX_ACC];
     const bool found = accDetect(&probe, ACC_AUTODETECT);
     requestedSensors[SENSOR_INDEX_ACC] = requestedWas;
     detectedSensors[SENSOR_INDEX_ACC] = detectedWas;
