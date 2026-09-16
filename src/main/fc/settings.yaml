@@ -91,7 +91,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "TERRAIN_NAV"]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "TERRAIN_NAV", "ESC"]
   - name: vtol_mc_protection_mode
     values: ["OFF", "NAV", "NAV_AND_STABILIZED"]
   - name: aux_operator
@@ -882,7 +882,7 @@ groups:
         condition: USE_MOTOR_SRXL2
         table: esc_srxl2_telemetry_rate
       - name: esc_srxl2_reverse_channel
-        description: "For an SRXL2 Smart ESC, the 1-based auxiliary channel its \"Thrust Rev.\" setting selects to arm reverse. Spektrum allow channels 5 to 9 and ship channel 7 by default. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse."
+        description: "For an SRXL2 Smart ESC, the 1-based auxiliary channel its \"Thrust Rev.\" setting selects to arm reverse. Spektrum allow channels 5 to 9 and ship channel 7 by default. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse, and anything between 1 and 4 is treated as 0 at boot - the range cannot express the hole, and a channel the ESC cannot watch would offer a mode that does nothing."
         default_value: 7
         field: srxl2ReverseChannel
         condition: USE_MOTOR_SRXL2

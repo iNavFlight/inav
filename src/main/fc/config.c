@@ -287,12 +287,15 @@ void validateAndFixConfig(void)
         motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
     }
 #else
-    // Reverse on the throttle's own channel cannot work - the driver refuses it,
-    // because writing that channel at task rate would overwrite the throttle
-    // several hundred times a second. Refusing it silently left a mode the
-    // Configurator offered and nothing acted on, so the setting is corrected
-    // where the user can see it instead.
-    if (motorConfig()->srxl2ReverseChannel == 1) {
+    // Reverse is either off or one of the channels a Smart ESC can be programmed
+    // to watch, which Spektrum document as 5 to 9. The setting's range cannot
+    // express "zero, or five to nine", so anything between is normalised here:
+    // channel 1 aliases the throttle and the driver refuses it outright, and 2
+    // to 4 would be sent faithfully to an ESC with no way to act on them. Both
+    // used to leave a reverse mode the Configurator offered and nothing
+    // performed. Corrected to off, where it can be seen.
+    const uint8_t reverseChannel = motorConfig()->srxl2ReverseChannel;
+    if (reverseChannel != 0 && (reverseChannel < 5 || reverseChannel > 9)) {
         motorConfigMutable()->srxl2ReverseChannel = 0;
     }
 #endif
