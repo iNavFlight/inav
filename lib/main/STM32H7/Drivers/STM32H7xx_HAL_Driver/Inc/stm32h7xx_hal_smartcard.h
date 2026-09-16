@@ -724,13 +724,13 @@ typedef enum
   */
 #define __HAL_SMARTCARD_DISABLE_IT(__HANDLE__, __INTERRUPT__)  (((((__INTERRUPT__) & SMARTCARD_CR_MASK) >>\
                                                                   SMARTCARD_CR_POS) == 1U)?\
-                                                                ((__HANDLE__)->Instance->CR1 &= ~ (1U <<\
+                                                                ((__HANDLE__)->Instance->CR1 &= ~ (1UL <<\
                                                                     ((__INTERRUPT__) & SMARTCARD_IT_MASK))): \
                                                                 ((((__INTERRUPT__) & SMARTCARD_CR_MASK) >>\
                                                                   SMARTCARD_CR_POS) == 2U)?\
-                                                                ((__HANDLE__)->Instance->CR2 &= ~ (1U <<\
+                                                                ((__HANDLE__)->Instance->CR2 &= ~ (1UL <<\
                                                                     ((__INTERRUPT__) & SMARTCARD_IT_MASK))): \
-                                                                ((__HANDLE__)->Instance->CR3 &= ~ (1U <<\
+                                                                ((__HANDLE__)->Instance->CR3 &= ~ (1UL <<\
                                                                     ((__INTERRUPT__) & SMARTCARD_IT_MASK))))
 
 /** @brief  Check whether the specified SmartCard interrupt has occurred or not.

@@ -114,11 +114,17 @@ for complete documentation on using JavaScript to program your flight controller
 | 49            | Timer                         | A simple on - off timer. `true` for the duration of `Operand A` [ms]. Then `false` for the duration of `Operand B` [ms]. |
 | 50            | Delta             | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. ( \|ΔA\| >= B )  |
 | 51            | Approx Equals (A ~ B)         | `true` if `Operand B` is within 1% of `Operand A`. |
-| 52            | LED Pin PWM                   | Value `Operand A` from [`0` : `100`] PWM / PINIO generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes). |
+| 52            | PINIO PWM                     | `Operand A` = duty cycle (0-100). `Operand B` = channel (0 for LED strip idle level, 1-4 for PINIO channels). Channels 1-4 support full PWM; channel 0 is binary (>0 = HIGH). See [PINIO PWM](PINIO%20PWM.md). |
 | 53            | Disable GPS Sensor Fix        | Disables the GNSS sensor fix. For testing GNSS failure. |
 | 54            | Mag calibration               | Trigger a magnetometer calibration. |
 | 55            | Set Gimbal Sensitivity        | Scales `Operand A` from [`-16` : `15`]
 | 56            | Override Minimum Ground Speed | When active, sets the minimum ground speed to the value specified in `Operand A` [m/s]. Minimum allowed value is set in `nav_min_ground_speed`. Maximum value is `150` |
+| 57            | Set Altitude Target           | Sets the navigation altitude target. `Operand A` selects the altitude datum and `Operand B` supplies the target altitude in centimetres. |
+| 58            | Trigonometry: ACos            | Computes ACOS of (`Operand A` / `Operand B`) using the fast approximation. If `Operand B` is `0`, `1000` is used. Input is clamped to [-1, 1] and the result is returned in degrees. |
+| 59            | Trigonometry: ASin            | Computes ASIN of (`Operand A` / `Operand B`) using the fast approximation. If `Operand B` is `0`, `1000` is used. Input is clamped to [-1, 1] and the result is returned in degrees. |
+| 60            | Trigonometry: ATan2           | Computes ATAN2 using `Operand A` as Y and `Operand B` as X with the fast approximation. Returns a signed angle in degrees in `(-180, 180]`. |
+| 62            | Activate RTH                  | While armed, activates normal return-to-home mode through the same mode selector path as RC RTH. Returns true when RTH mode is accepted. |
+| 63            | Activate Landing              | While armed with usable navigation estimates, commands a normal landing at the current position through the waypoint LAND path. This is not emergency landing. |
 
 ### Operands
 
@@ -229,6 +235,8 @@ The flight mode operands return `true` when the mode is active. These are modes 
 | 11            | Next Waypoint User Action 2   | `true` when User Action 2 is active on the next waypoint leg [boolean `0`/`1`] |
 | 12            | Next Waypoint User Action 3   | `true` when User Action 3 is active on the next waypoint leg [boolean `0`/`1`] |
 | 13            | Next Waypoint User Action 4   | `true` when User Action 4 is active on the next waypoint leg [boolean `0`/`1`] |
+
+Waypoint operands are relative to the currently selected mission. This also applies when several missions share the stored waypoint list. A request before the first waypoint, after the last waypoint, or while the mission list is invalid returns `0` instead of reading a waypoint from another mission.
 
 
 #### ACTIVE_WAYPOINT_ACTION

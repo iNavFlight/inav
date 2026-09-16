@@ -10,7 +10,7 @@ typedef struct __mavlink_esc_info_t {
  uint16_t counter; /*<  Counter of data packets received.*/
  uint16_t failure_flags[4]; /*<  Bitmap of ESC failure flags.*/
  int16_t temperature[4]; /*< [cdegC] Temperature of each ESC. INT16_MAX: if data not supplied by ESC.*/
- uint8_t index; /*<  Index of the first ESC in this message. minValue = 0, maxValue = 60, increment = 4.*/
+ uint8_t index; /*<  Index of the first ESC in this message (ESC are indexed in motor order). minValue = 0, maxValue = 60, increment = 4.*/
  uint8_t count; /*<  Total number of ESCs in all messages of this type. Message fields with an index higher than this should be ignored because they contain invalid data.*/
  uint8_t connection_type; /*<  Connection type protocol for all ESC.*/
  uint8_t info; /*<  Information regarding online/offline status of each ESC.*/
@@ -67,7 +67,7 @@ typedef struct __mavlink_esc_info_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param index  Index of the first ESC in this message. minValue = 0, maxValue = 60, increment = 4.
+ * @param index  Index of the first ESC in this message (ESC are indexed in motor order). minValue = 0, maxValue = 60, increment = 4.
  * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude the number.
  * @param counter  Counter of data packets received.
  * @param count  Total number of ESCs in all messages of this type. Message fields with an index higher than this should be ignored because they contain invalid data.
@@ -118,7 +118,7 @@ static inline uint16_t mavlink_msg_esc_info_pack(uint8_t system_id, uint8_t comp
  * @param status MAVLink status structure
  * @param msg The MAVLink message to compress the data into
  *
- * @param index  Index of the first ESC in this message. minValue = 0, maxValue = 60, increment = 4.
+ * @param index  Index of the first ESC in this message (ESC are indexed in motor order). minValue = 0, maxValue = 60, increment = 4.
  * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude the number.
  * @param counter  Counter of data packets received.
  * @param count  Total number of ESCs in all messages of this type. Message fields with an index higher than this should be ignored because they contain invalid data.
@@ -172,7 +172,7 @@ static inline uint16_t mavlink_msg_esc_info_pack_status(uint8_t system_id, uint8
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param index  Index of the first ESC in this message. minValue = 0, maxValue = 60, increment = 4.
+ * @param index  Index of the first ESC in this message (ESC are indexed in motor order). minValue = 0, maxValue = 60, increment = 4.
  * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude the number.
  * @param counter  Counter of data packets received.
  * @param count  Total number of ESCs in all messages of this type. Message fields with an index higher than this should be ignored because they contain invalid data.
@@ -262,7 +262,7 @@ static inline uint16_t mavlink_msg_esc_info_encode_status(uint8_t system_id, uin
  * @brief Send a esc_info message
  * @param chan MAVLink channel to send the message
  *
- * @param index  Index of the first ESC in this message. minValue = 0, maxValue = 60, increment = 4.
+ * @param index  Index of the first ESC in this message (ESC are indexed in motor order). minValue = 0, maxValue = 60, increment = 4.
  * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude the number.
  * @param counter  Counter of data packets received.
  * @param count  Total number of ESCs in all messages of this type. Message fields with an index higher than this should be ignored because they contain invalid data.
@@ -363,7 +363,7 @@ static inline void mavlink_msg_esc_info_send_buf(mavlink_message_t *msgbuf, mavl
 /**
  * @brief Get field index from esc_info message
  *
- * @return  Index of the first ESC in this message. minValue = 0, maxValue = 60, increment = 4.
+ * @return  Index of the first ESC in this message (ESC are indexed in motor order). minValue = 0, maxValue = 60, increment = 4.
  */
 static inline uint8_t mavlink_msg_esc_info_get_index(const mavlink_message_t* msg)
 {

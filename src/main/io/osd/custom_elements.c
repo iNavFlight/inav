@@ -64,187 +64,253 @@ bool isCustomelementVisible(const osdCustomElement_t* customElement){
     return false;
 }
 
-uint8_t customElementDrawPart(char *buff, uint8_t customElementIndex, uint8_t customElementItemIndex){
+static void customElementWriteIcon(osdCustomElementScreenBuffer_t *buf, uint8_t partIndex, uint16_t iconValue)
+{
+    if (iconValue > UINT8_MAX) {
+        *buf->buff = SYM_BLANK;
+        buf->twoByteChar[partIndex].index = buf->totalSeek;
+        buf->twoByteChar[partIndex].icon = iconValue;
+    } else {
+        *buf->buff = (uint8_t)iconValue;
+    }
+}
+
+void customElementDrawPart(osdCustomElementScreenBuffer_t *osdCustomElementScreenBuffer, uint8_t customElementIndex, uint8_t customElementItemIndex){
     const osdCustomElement_t* customElement = osdCustomElements(customElementIndex);
     const int customPartType = osdCustomElements(customElementIndex)->part[customElementItemIndex].type;
     const int customPartValue = osdCustomElements(customElementIndex)->part[customElementItemIndex].value;
+    uint8_t currentSeek = 0;
 
     switch (customPartType) {
         case CUSTOM_ELEMENT_TYPE_GV_1:
         {
-            osdFormatCentiNumber(buff,(int32_t) (constrain(gvGet(customPartValue), -9, 9) * (int32_t) 100), 1, 0, 0, 2, false);
-            return 2;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff,(int32_t) (constrain(gvGet(customPartValue), -9, 9) * (int32_t) 100), 1, 0, 0, 2, false);
+            currentSeek = 2;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_2:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99, 99) * (int32_t) 100), 1, 0, 0, 3, false);
-            return 3;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(gvGet(customPartValue), -99, 99) * (int32_t) 100), 1, 0, 0, 3, false);
+            currentSeek = 3;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_3:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999) * (int32_t) 100), 1, 0, 0, 4, false);
-            return 4;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999) * (int32_t) 100), 1, 0, 0, 4, false);
+            currentSeek = 4;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_4:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -9999, 9999) * (int32_t) 100), 1, 0, 0, 5, false);
-            return 5;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(gvGet(customPartValue), -9999, 9999) * (int32_t) 100), 1, 0, 0, 5, false);
+            currentSeek = 5;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_5:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99999, 99999) * (int32_t) 100), 1, 0, 0, 6, false);
-            return 6;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(gvGet(customPartValue), -99999, 99999) * (int32_t) 100), 1, 0, 0, 6, false);
+            currentSeek = 6;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_FLOAT_1_1:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
-            return 3;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(gvGet(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
+            currentSeek = 3;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_FLOAT_1_2:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999)), 1, 2, 0, 4, false);
-            return 4;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999)), 1, 2, 0, 4, false);
+            currentSeek = 4;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_FLOAT_2_1:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999) * (int32_t) 10), 1, 1, 0, 4, false);
-            return 4;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999) * (int32_t) 10), 1, 1, 0, 4, false);
+            currentSeek = 4;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_FLOAT_2_2:
         {
-            osdFormatCentiNumber(buff, (int32_t) constrain(gvGet(customPartValue), -9999, 9999), 1, 2, 0, 5, false);
-            return 5;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) constrain(gvGet(customPartValue), -9999, 9999), 1, 2, 0, 5, false);
+            currentSeek = 5;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_FLOAT_3_1:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -9999, 9999) * (int32_t) 10), 1, 1, 0, 5, false);
-            return 5;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(gvGet(customPartValue), -9999, 9999) * (int32_t) 10), 1, 1, 0, 5, false);
+            currentSeek = 5;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_FLOAT_3_2:
         {
-            osdFormatCentiNumber(buff, (int32_t) constrain(gvGet(customPartValue), -99999, 99999), 1, 2, 0, 6, false);
-            return 6;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) constrain(gvGet(customPartValue), -99999, 99999), 1, 2, 0, 6, false);
+            currentSeek = 6;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_GV_FLOAT_4_1:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99999, 99999) * (int32_t) 10), 1, 1, 0, 6, false);
-            return 6;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(gvGet(customPartValue), -99999, 99999) * (int32_t) 10), 1, 1, 0, 6, false);
+            currentSeek = 6;
+            break;
         }
 
         case CUSTOM_ELEMENT_TYPE_LC_1:
         {
-            osdFormatCentiNumber(buff,(int32_t) (constrain(logicConditionGetValue(customPartValue), -9, 9) * (int32_t) 100), 1, 0, 0, 2, false);
-            return 2;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff,(int32_t) (constrain(logicConditionGetValue(customPartValue), -9, 9) * (int32_t) 100), 1, 0, 0, 2, false);
+            currentSeek = 2;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_2:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99, 99) * (int32_t) 100), 1, 0, 0, 3, false);
-            return 3;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99, 99) * (int32_t) 100), 1, 0, 0, 3, false);
+            currentSeek = 3;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_3:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999) * (int32_t) 100), 1, 0, 0, 4, false);
-            return 4;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999) * (int32_t) 100), 1, 0, 0, 4, false);
+            currentSeek = 4;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_4:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -9999, 9999) * (int32_t) 100), 1, 0, 0, 5, false);
-            return 5;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -9999, 9999) * (int32_t) 100), 1, 0, 0, 5, false);
+            currentSeek = 5;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_5:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99999, 99999) * (int32_t) 100), 1, 0, 0, 6, false);
-            return 6;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99999, 99999) * (int32_t) 100), 1, 0, 0, 6, false);
+            currentSeek = 6;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_FLOAT_1_1:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
-            return 3;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
+            currentSeek = 3;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_FLOAT_1_2:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999)), 1, 2, 0, 4, false);
-            return 4;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999)), 1, 2, 0, 4, false);
+            currentSeek = 4;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_FLOAT_2_1:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999) * (int32_t) 10), 1, 1, 0, 4, false);
-            return 4;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999) * (int32_t) 10), 1, 1, 0, 4, false);
+            currentSeek = 4;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_FLOAT_2_2:
         {
-            osdFormatCentiNumber(buff, (int32_t) constrain(logicConditionGetValue(customPartValue), -9999, 9999), 1, 2, 0, 5, false);
-            return 5;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) constrain(logicConditionGetValue(customPartValue), -9999, 9999), 1, 2, 0, 5, false);
+            currentSeek = 5;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_FLOAT_3_1:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -9999, 9999)  * (int32_t) 10), 1, 1, 0, 5, false);
-            return 5;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -9999, 9999)  * (int32_t) 10), 1, 1, 0, 5, false);
+            currentSeek = 5;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_FLOAT_3_2:
         {
-            osdFormatCentiNumber(buff, (int32_t) constrain(logicConditionGetValue(customPartValue), -99999, 99999), 1, 2, 0, 6, false);
-            return 6;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) constrain(logicConditionGetValue(customPartValue), -99999, 99999), 1, 2, 0, 6, false);
+            currentSeek = 6;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_LC_FLOAT_4_1:
         {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99999, 99999) * (int32_t) 10), 1, 1, 0, 6, false);
-            return 6;
+            osdFormatCentiNumber(osdCustomElementScreenBuffer->buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99999, 99999) * (int32_t) 10), 1, 1, 0, 6, false);
+            currentSeek = 6;
+            break;
         }
-        
-        
+
         case CUSTOM_ELEMENT_TYPE_ICON_GV:
         {
-            *buff = (uint8_t)gvGet(customPartValue);
-            return 1;
+            customElementWriteIcon(osdCustomElementScreenBuffer, customElementItemIndex, (uint16_t)gvGet(customPartValue));
+            currentSeek = 1;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_ICON_LC:
         {
-            *buff = (uint8_t)constrain(logicConditionGetValue(customPartValue), 1, 255);
-            return 1;
+            customElementWriteIcon(osdCustomElementScreenBuffer, customElementItemIndex, (uint16_t)logicConditionGetValue(customPartValue));
+            currentSeek = 1;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_ICON_STATIC:
         {
-            *buff = (uint8_t)customPartValue;
-            return 1;
+            customElementWriteIcon(osdCustomElementScreenBuffer, customElementItemIndex, (uint16_t)customPartValue);
+            currentSeek = 1;
+            break;
         }
         case CUSTOM_ELEMENT_TYPE_TEXT:
         {
-            for (int i = 0; i < OSD_CUSTOM_ELEMENT_TEXT_SIZE; i++) {
-                if (customElement->osdCustomElementText[i] == 0){
-                    return i;
+            uint8_t i;
+            for (i = 0; i < OSD_CUSTOM_ELEMENT_TEXT_SIZE; i++) {
+                if (customElement->osdCustomElementText[i] == 0) {
+                    break;
                 }
-                *buff = sl_toupper((unsigned char)customElement->osdCustomElementText[i]);
-                buff++;
+                osdCustomElementScreenBuffer->buff[i] = sl_toupper((unsigned char)customElement->osdCustomElementText[i]);
             }
-            return OSD_CUSTOM_ELEMENT_TEXT_SIZE;
+            currentSeek = i;
+            break;
         }
     }
 
-    return 0;
+    osdCustomElementScreenBuffer->totalSeek += currentSeek;
+    osdCustomElementScreenBuffer->buff += currentSeek;
 }
 
-void customElementDrawElement(char *buff, uint8_t customElementIndex){
+void customElementDrawElement(displayPort_t *osdDisplayPort, char *buff, uint8_t customElementIndex, uint8_t x, uint8_t y){
+
+    osdCustomElementScreenBuffer_t osdCustomElementScreenBuffer = {
+            .buffStart = buff,
+            .buff = buff,
+            .totalSeek = 0
+    };
 
     if(customElementIndex >= MAX_CUSTOM_ELEMENTS){
         return;
     }
 
-    uint8_t buffSeek = 0;
+    ////////////////////////////////////////////////////////////////////////////////////////
+    // prepare buffer
     const osdCustomElement_t* customElement = osdCustomElements(customElementIndex);
     if(isCustomelementVisible(customElement))
     {
         for (uint8_t i = 0; i < CUSTOM_ELEMENTS_PARTS; ++i) {
-            uint8_t currentSeek = customElementDrawPart(buff, customElementIndex, i);
-            buff += currentSeek;
-            buffSeek += currentSeek;
+            customElementDrawPart(&osdCustomElementScreenBuffer, customElementIndex, i);
         }
     }
+    ////////////////////////////////////////////////////////////////////////////////////////
 
-    for (uint8_t i = buffSeek; i < prevLength[customElementIndex]; i++) {
-        *buff++ = SYM_BLANK;
+    ////////////////////////////////////////////////////////////////////////////////////////
+    // add blank symbol to clear prev osd element symbols
+    for (uint8_t i = osdCustomElementScreenBuffer.totalSeek; i < prevLength[customElementIndex]; i++) {
+        *osdCustomElementScreenBuffer.buff++ = SYM_BLANK;
     }
-    prevLength[customElementIndex] = buffSeek;
+    prevLength[customElementIndex] = osdCustomElementScreenBuffer.totalSeek;
+    /////////////////////////////////////////////////////////////////////////////////////
+
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    // draw simple buffer
+    displayWrite(osdDisplayPort, x, y, osdCustomElementScreenBuffer.buffStart);
+    //////////////////////////////////////////////////////////////////////////////////
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    // draw 16 bit icons
+    for (int i = 0; i < CUSTOM_ELEMENTS_PARTS; ++i) {
+        twoByteChar_t *twoByteChar = &(osdCustomElementScreenBuffer.twoByteChar[i]);
+        if(twoByteChar->icon > UINT8_MAX){
+            displayWriteChar(osdDisplayPort, x + twoByteChar->index, y, twoByteChar->icon);
+        }
+    }
+    //////////////////////////////////////////////////////////////////////////////////
+
 }
 
 uint8_t customElementLength(uint8_t customElementIndex){

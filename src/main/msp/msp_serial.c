@@ -259,6 +259,11 @@ static bool mspSerialProcessReceivedData(mspPort_t *mspPort, uint8_t c)
     return true;
 }
 
+bool mspSerialProcessReceivedByte(mspPort_t *mspPort, uint8_t c)
+{
+    return mspSerialProcessReceivedData(mspPort, c);
+}
+
 static uint8_t mspSerialChecksumBuf(uint8_t checksum, const uint8_t *data, int len)
 {
     while (len-- > 0) {
@@ -299,96 +304,171 @@ static int mspSerialSendFrame(mspPort_t *msp, const uint8_t * hdr, int hdrLen, c
     return totalFrameLength;
 }
 
-static int mspSerialEncode(mspPort_t *msp, mspPacket_t *packet, mspVersion_e mspVersion)
+#define V1_CHECKSUM_STARTPOS 3
+
+bool mspSerialPrepareFrame(mspPacket_t *packet, mspVersion_e mspVersion, mspEncodedFrame_t *frame)
 {
     static const uint8_t mspMagic[MSP_VERSION_COUNT] = MSP_VERSION_MAGIC_INITIALIZER;
+
+    if (!packet || !frame || mspVersion >= MSP_VERSION_COUNT) {
+        return false;
+    }
+
     const int dataLen = sbufBytesRemaining(&packet->buf);
-    uint8_t hdrBuf[16] = { '$', mspMagic[mspVersion], packet->result == MSP_RESULT_ERROR ? '!' : '>'};
-    uint8_t crcBuf[2];
-    int hdrLen = 3;
-    int crcLen = 0;
+    if (dataLen < 0 || dataLen > UINT16_MAX) {
+        return false;
+    }
 
-    #define V1_CHECKSUM_STARTPOS 3
+    memset(frame, 0, sizeof(*frame));
+    frame->header[0] = '$';
+    frame->header[1] = mspMagic[mspVersion];
+    frame->header[2] = packet->result == MSP_RESULT_ERROR ? '!' : '>';
+
+    int headerLength = 3;
+    int trailerLength = 0;
+
     if (mspVersion == MSP_V1) {
-        mspHeaderV1_t * hdrV1 = (mspHeaderV1_t *)&hdrBuf[hdrLen];
-        hdrLen += sizeof(mspHeaderV1_t);
-        hdrV1->cmd = packet->cmd;
+        mspHeaderV1_t *headerV1 = (mspHeaderV1_t *)&frame->header[headerLength];
+        headerLength += sizeof(*headerV1);
+        headerV1->cmd = packet->cmd;
 
-        // Add JUMBO-frame header if necessary
         if (dataLen >= JUMBO_FRAME_SIZE_LIMIT) {
-            mspHeaderJUMBO_t * hdrJUMBO = (mspHeaderJUMBO_t *)&hdrBuf[hdrLen];
-            hdrLen += sizeof(mspHeaderJUMBO_t);
-
-            hdrV1->size = JUMBO_FRAME_SIZE_LIMIT;
-            hdrJUMBO->size = dataLen;
-        }
-        else {
-            hdrV1->size = dataLen;
+            mspHeaderJUMBO_t *headerJumbo = (mspHeaderJUMBO_t *)&frame->header[headerLength];
+            headerLength += sizeof(*headerJumbo);
+            headerV1->size = JUMBO_FRAME_SIZE_LIMIT;
+            headerJumbo->size = dataLen;
+        } else {
+            headerV1->size = dataLen;
         }
 
-        // Pre-calculate CRC
-        crcBuf[crcLen] = mspSerialChecksumBuf(0, hdrBuf + V1_CHECKSUM_STARTPOS, hdrLen - V1_CHECKSUM_STARTPOS);
-        crcBuf[crcLen] = mspSerialChecksumBuf(crcBuf[crcLen], sbufPtr(&packet->buf), dataLen);
-        crcLen++;
-    }
-    else if (mspVersion == MSP_V2_OVER_V1) {
-        mspHeaderV1_t * hdrV1 = (mspHeaderV1_t *)&hdrBuf[hdrLen];
+        frame->trailer[trailerLength] = mspSerialChecksumBuf(
+            0,
+            frame->header + V1_CHECKSUM_STARTPOS,
+            headerLength - V1_CHECKSUM_STARTPOS);
+        frame->trailer[trailerLength] = mspSerialChecksumBuf(
+            frame->trailer[trailerLength],
+            sbufPtr(&packet->buf),
+            dataLen);
+        trailerLength++;
+    } else if (mspVersion == MSP_V2_OVER_V1) {
+        mspHeaderV1_t *headerV1 = (mspHeaderV1_t *)&frame->header[headerLength];
+        headerLength += sizeof(*headerV1);
 
-        hdrLen += sizeof(mspHeaderV1_t);
+        mspHeaderV2_t *headerV2 = (mspHeaderV2_t *)&frame->header[headerLength];
+        headerLength += sizeof(*headerV2);
 
-        mspHeaderV2_t * hdrV2 = (mspHeaderV2_t *)&hdrBuf[hdrLen];
-        hdrLen += sizeof(mspHeaderV2_t);
+        const int v1PayloadSize = sizeof(*headerV2) + dataLen + 1;
+        headerV1->cmd = MSP_V2_FRAME_ID;
 
-        const int v1PayloadSize = sizeof(mspHeaderV2_t) + dataLen + 1;  // MSPv2 header + data payload + MSPv2 checksum
-        hdrV1->cmd = MSP_V2_FRAME_ID;
-
-        // Add JUMBO-frame header if necessary
         if (v1PayloadSize >= JUMBO_FRAME_SIZE_LIMIT) {
-            mspHeaderJUMBO_t * hdrJUMBO = (mspHeaderJUMBO_t *)&hdrBuf[hdrLen];
-            hdrLen += sizeof(mspHeaderJUMBO_t);
-
-            hdrV1->size = JUMBO_FRAME_SIZE_LIMIT;
-            hdrJUMBO->size = v1PayloadSize;
-        }
-        else {
-            hdrV1->size = v1PayloadSize;
+            mspHeaderJUMBO_t *headerJumbo = (mspHeaderJUMBO_t *)&frame->header[headerLength];
+            headerLength += sizeof(*headerJumbo);
+            headerV1->size = JUMBO_FRAME_SIZE_LIMIT;
+            headerJumbo->size = v1PayloadSize;
+        } else {
+            headerV1->size = v1PayloadSize;
         }
 
-        // Fill V2 header
-        hdrV2->flags = packet->flags;
-        hdrV2->cmd = packet->cmd;
-        hdrV2->size = dataLen;
+        headerV2->flags = packet->flags;
+        headerV2->cmd = packet->cmd;
+        headerV2->size = dataLen;
 
-        // V2 CRC: only V2 header + data payload
-        crcBuf[crcLen] = crc8_dvb_s2_update(0, (uint8_t *)hdrV2, sizeof(mspHeaderV2_t));
-        crcBuf[crcLen] = crc8_dvb_s2_update(crcBuf[crcLen], sbufPtr(&packet->buf), dataLen);
-        crcLen++;
+        frame->trailer[trailerLength] = crc8_dvb_s2_update(0, (uint8_t *)headerV2, sizeof(*headerV2));
+        frame->trailer[trailerLength] = crc8_dvb_s2_update(
+            frame->trailer[trailerLength],
+            sbufPtr(&packet->buf),
+            dataLen);
+        trailerLength++;
 
-        // V1 CRC: All headers + data payload + V2 CRC byte
-        crcBuf[crcLen] = mspSerialChecksumBuf(0, hdrBuf + V1_CHECKSUM_STARTPOS, hdrLen - V1_CHECKSUM_STARTPOS);
-        crcBuf[crcLen] = mspSerialChecksumBuf(crcBuf[crcLen], sbufPtr(&packet->buf), dataLen);
-        crcBuf[crcLen] = mspSerialChecksumBuf(crcBuf[crcLen], crcBuf, crcLen);
-        crcLen++;
+        frame->trailer[trailerLength] = mspSerialChecksumBuf(
+            0,
+            frame->header + V1_CHECKSUM_STARTPOS,
+            headerLength - V1_CHECKSUM_STARTPOS);
+        frame->trailer[trailerLength] = mspSerialChecksumBuf(
+            frame->trailer[trailerLength],
+            sbufPtr(&packet->buf),
+            dataLen);
+        frame->trailer[trailerLength] = mspSerialChecksumBuf(
+            frame->trailer[trailerLength],
+            frame->trailer,
+            trailerLength);
+        trailerLength++;
+    } else if (mspVersion == MSP_V2_NATIVE) {
+        mspHeaderV2_t *headerV2 = (mspHeaderV2_t *)&frame->header[headerLength];
+        headerLength += sizeof(*headerV2);
+
+        headerV2->flags = packet->flags;
+        headerV2->cmd = packet->cmd;
+        headerV2->size = dataLen;
+
+        frame->trailer[trailerLength] = crc8_dvb_s2_update(0, (uint8_t *)headerV2, sizeof(*headerV2));
+        frame->trailer[trailerLength] = crc8_dvb_s2_update(
+            frame->trailer[trailerLength],
+            sbufPtr(&packet->buf),
+            dataLen);
+        trailerLength++;
+    } else {
+        return false;
     }
-    else if (mspVersion == MSP_V2_NATIVE) {
-        mspHeaderV2_t * hdrV2 = (mspHeaderV2_t *)&hdrBuf[hdrLen];
-        hdrLen += sizeof(mspHeaderV2_t);
 
-        hdrV2->flags = packet->flags;
-        hdrV2->cmd = packet->cmd;
-        hdrV2->size = dataLen;
+    frame->headerLength = headerLength;
+    frame->payload = sbufPtr(&packet->buf);
+    frame->payloadLength = dataLen;
+    frame->trailerLength = trailerLength;
+    frame->totalLength = headerLength + dataLen + trailerLength;
+    return true;
+}
 
-        crcBuf[crcLen] = crc8_dvb_s2_update(0, (uint8_t *)hdrV2, sizeof(mspHeaderV2_t));
-        crcBuf[crcLen] = crc8_dvb_s2_update(crcBuf[crcLen], sbufPtr(&packet->buf), dataLen);
-        crcLen++;
-    }
-    else {
-        // Shouldn't get here
+int mspSerialFrameCopyRange(const mspEncodedFrame_t *frame, int offset, uint8_t *destination, int destinationSize)
+{
+    if (!frame || !destination || offset < 0 || destinationSize <= 0 || offset >= frame->totalLength) {
         return 0;
     }
 
-    // Send the frame
-    return mspSerialSendFrame(msp, hdrBuf, hdrLen, sbufPtr(&packet->buf), dataLen, crcBuf, crcLen);
+    int copied = 0;
+    while (copied < destinationSize && offset + copied < frame->totalLength) {
+        const int position = offset + copied;
+        const uint8_t *segment;
+        int segmentOffset;
+        int segmentRemaining;
+
+        if (position < frame->headerLength) {
+            segment = frame->header;
+            segmentOffset = position;
+            segmentRemaining = frame->headerLength - segmentOffset;
+        } else if (position < frame->headerLength + frame->payloadLength) {
+            segment = frame->payload;
+            segmentOffset = position - frame->headerLength;
+            segmentRemaining = frame->payloadLength - segmentOffset;
+        } else {
+            segment = frame->trailer;
+            segmentOffset = position - frame->headerLength - frame->payloadLength;
+            segmentRemaining = frame->trailerLength - segmentOffset;
+        }
+
+        const int copyLength = MIN(destinationSize - copied, segmentRemaining);
+        memcpy(destination + copied, segment + segmentOffset, copyLength);
+        copied += copyLength;
+    }
+
+    return copied;
+}
+
+static int mspSerialEncode(mspPort_t *msp, mspPacket_t *packet, mspVersion_e mspVersion)
+{
+    mspEncodedFrame_t frame;
+    if (!mspSerialPrepareFrame(packet, mspVersion, &frame)) {
+        return 0;
+    }
+
+    return mspSerialSendFrame(
+        msp,
+        frame.header,
+        frame.headerLength,
+        frame.payload,
+        frame.payloadLength,
+        frame.trailer,
+        frame.trailerLength);
 }
 
 static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspProcessCommandFnPtr mspProcessCommandFn)
@@ -420,6 +500,20 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
 
     msp->c_state = MSP_IDLE;
     return mspPostProcessFn;
+}
+
+mspResult_e mspSerialProcessCommand(mspPort_t *msp, mspProcessCommandFnPtr mspProcessCommandFn, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
+{
+    mspPacket_t command = {
+        .buf = { .ptr = msp->inBuf, .end = msp->inBuf + msp->dataSize, },
+        .cmd = msp->cmdMSP,
+        .flags = msp->cmdFlags,
+        .result = 0,
+    };
+
+    const mspResult_e status = mspProcessCommandFn(&command, reply, mspPostProcessFn);
+    msp->c_state = MSP_IDLE;
+    return status;
 }
 
 static void mspEvaluateNonMspData(mspPort_t * mspPort, uint8_t receivedChar)

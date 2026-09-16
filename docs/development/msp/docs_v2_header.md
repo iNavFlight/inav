@@ -8,8 +8,21 @@ For details on the structure of MSP, see [The wiki page](https://github.com/iNav
 For list of enums, see [Enum documentation page](https://github.com/iNavFlight/inav/wiki/Enums-reference)
 
 
+**When To Regenerate**
 
-**JSON file rev: <file_rev>**
+Run `docs/development/msp/gen_docs.sh` whenever MSP docs inputs change:
+- `msp_messages.json` message content/schema updates
+- source enum changes under `src/main` that affect `inav_enums.json`
+- `format.md` or this header template (`docs_v2_header.md`) changes
+
+By default the script removes temporary generated headers. Use `--keep_headers` only when you need them.
+
+**Versioning Rule**
+
+When the MSP JSON specification changes, bump `msp_messages.json` version:
+- breaking schema/compatibility change: increment `version.major`, reset `minor` and `patch`
+- backward-compatible schema extension: increment `version.minor`, reset `patch`
+- message/content/docs-only update inside current schema: increment `version.patch`
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 

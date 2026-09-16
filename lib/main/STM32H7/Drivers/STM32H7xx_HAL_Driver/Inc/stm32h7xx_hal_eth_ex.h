@@ -327,7 +327,7 @@ HAL_StatusTypeDef HAL_ETHEx_SetL4FilterConfig(ETH_HandleTypeDef *heth, uint32_t 
 void              HAL_ETHEx_EnableVLANProcessing(ETH_HandleTypeDef *heth);
 void              HAL_ETHEx_DisableVLANProcessing(ETH_HandleTypeDef *heth);
 HAL_StatusTypeDef HAL_ETHEx_GetRxVLANConfig(const ETH_HandleTypeDef *heth, ETH_RxVLANConfigTypeDef *pVlanConfig);
-HAL_StatusTypeDef HAL_ETHEx_SetRxVLANConfig(ETH_HandleTypeDef *heth, ETH_RxVLANConfigTypeDef *pVlanConfig);
+HAL_StatusTypeDef HAL_ETHEx_SetRxVLANConfig(ETH_HandleTypeDef *heth, const ETH_RxVLANConfigTypeDef *pVlanConfig);
 void              HAL_ETHEx_SetVLANHashTable(ETH_HandleTypeDef *heth, uint32_t VLANHashTable);
 HAL_StatusTypeDef HAL_ETHEx_GetTxVLANConfig(const ETH_HandleTypeDef *heth, uint32_t VLANTag,
                                             ETH_TxVLANConfigTypeDef *pVlanConfig);

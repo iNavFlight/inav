@@ -81,6 +81,17 @@ typedef struct __attribute__((packed)) {
 } mspHeaderV2_t;
 
 #define MSP_MAX_HEADER_SIZE     9
+#define MSP_MAX_TRAILER_SIZE    2
+
+typedef struct {
+    uint8_t header[16];
+    uint8_t headerLength;
+    const uint8_t *payload;
+    uint16_t payloadLength;
+    uint8_t trailer[MSP_MAX_TRAILER_SIZE];
+    uint8_t trailerLength;
+    uint16_t totalLength;
+} mspEncodedFrame_t;
 
 struct serialPort_s;
 typedef struct mspPort_s {
@@ -101,6 +112,10 @@ typedef struct mspPort_s {
 
 void mspSerialInit(void);
 void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort);
+bool mspSerialProcessReceivedByte(mspPort_t *mspPort, uint8_t c);
+bool mspSerialPrepareFrame(mspPacket_t *packet, mspVersion_e mspVersion, mspEncodedFrame_t *frame);
+int mspSerialFrameCopyRange(const mspEncodedFrame_t *frame, int offset, uint8_t *destination, int destinationSize);
+mspResult_e mspSerialProcessCommand(mspPort_t *msp, mspProcessCommandFnPtr mspProcessCommandFn, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn);
 void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn);
 void mspSerialProcessOnePort(mspPort_t * const mspPort, mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn);
 void mspSerialAllocatePorts(void);

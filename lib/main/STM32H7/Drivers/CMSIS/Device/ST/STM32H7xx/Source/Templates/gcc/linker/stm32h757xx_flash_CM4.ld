@@ -14,7 +14,7 @@
 **
 **  Target      : STMicroelectronics STM32
 **
-**  Distribution: The file is distributed “as is,” without any warranty
+**  Distribution: The file is distributed as is without any warranty
 **                of any kind.
 **
 *****************************************************************************
@@ -135,7 +135,7 @@ SECTIONS
   . = ALIGN(4);
   .bss :
   {
-    /* This is used by the startup in order to initialize the .bss secion */
+    /* This is used by the startup in order to initialize the .bss section */
     _sbss = .;         /* define a global symbol at bss start */
     __bss_start__ = _sbss;
     *(.bss)

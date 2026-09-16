@@ -44,9 +44,9 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH3,  PB10,   TIM_USE_OUTPUT_AUTO,    0, 0), // S6
     DEF_TIM(TIM2, CH4,  PB11,   TIM_USE_OUTPUT_AUTO,    0, 0), // S7
 
-    DEF_TIM(TIM8, CH3,  PC8,    TIM_USE_OUTPUT_AUTO,    0, 0), // S8
+    DEF_TIM(TIM8, CH3,  PC8,    TIM_USE_OUTPUT_AUTO,    0, 1), // S8
     DEF_TIM(TIM8, CH4,  PC9,    TIM_USE_OUTPUT_AUTO,    0, 0), // S9
-    DEF_TIM(TIM8, CH2N, PB14,   TIM_USE_OUTPUT_AUTO,          0, 0), // S10
+    DEF_TIM(TIM8, CH2N, PB14,   TIM_USE_OUTPUT_AUTO,          0, 1), // S10
 
     DEF_TIM(TIM1, CH3N, PB15,   TIM_USE_OUTPUT_AUTO,          0, 0), // S11   
 

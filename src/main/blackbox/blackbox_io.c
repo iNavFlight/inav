@@ -435,7 +435,16 @@ static bool blackboxSDCardBeginLog(void)
         if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY) {
             blackboxSDCard.state = BLACKBOX_SDCARD_WAITING;
 
-            afatfs_mkdir("logs", blackboxLogDirCreated);
+            if(afatfs_isCurrentDirRoot()){
+                //we are in root of SD card, we have to create or move to log directory
+                afatfs_mkdir("logs", blackboxLogDirCreated);
+            }
+            else
+            {
+                //we are already in log directory
+                blackboxSDCard.logDirectory = NULL;
+                blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            }
         }
         break;
 
@@ -444,6 +453,12 @@ static bool blackboxSDCardBeginLog(void)
         break;
 
     case BLACKBOX_SDCARD_ENUMERATE_FILES:
+
+        if (blackboxSDCard.logDirectory == NULL) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            break;
+        }
+
         while (afatfs_findNext(blackboxSDCard.logDirectory, &blackboxSDCard.logDirectoryFinder, &directoryEntry) == AFATFS_OPERATION_SUCCESS) {
             if (directoryEntry && !fat_isDirectoryEntryTerminator(directoryEntry)) {
                 // If this is a log file, parse the log number from the filename
@@ -469,6 +484,12 @@ static bool blackboxSDCardBeginLog(void)
         break;
 
     case BLACKBOX_SDCARD_CHANGE_INTO_LOG_DIRECTORY:
+        //if logDirectory is NULL, it would mean change directory to ROOT, we don't want to do that
+        if (blackboxSDCard.logDirectory == NULL) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            break;
+        }
+
         // Change into the log directory:
         if (afatfs_chdir(blackboxSDCard.logDirectory)) {
             // We no longer need our open handle on the log directory
@@ -535,7 +556,7 @@ bool blackboxDeviceEndLog(bool retainLog)
         ) {
             // Don't bother waiting the for the close to complete, it's queued now and will complete eventually
             blackboxSDCard.logFile = NULL;
-            blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            blackboxSDCard.state = BLACKBOX_SDCARD_INITIAL;
             return true;
         }
         return false;

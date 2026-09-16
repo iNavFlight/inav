@@ -42,6 +42,7 @@
 #include "drivers/barometer/barometer_dps310.h"
 #include "drivers/barometer/barometer_2smpb_02b.h"
 #include "drivers/barometer/barometer_msp.h"
+#include "drivers/barometer/barometer_crsf.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
@@ -201,6 +202,20 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         // Skip autodetection for MSP baro, only allow manual config
         if (baroHardwareToUse != BARO_AUTODETECT && mspBaroDetect(dev)) {
             baroHardware = BARO_MSP;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_CRSF:
+#ifdef USE_BARO_CRSF
+        // Skip autodetection for CRSF baro, only allow manual config
+        if (baroHardwareToUse != BARO_AUTODETECT && crsfBaroDetect(dev)) {
+            baroHardware = BARO_CRSF;
             break;
         }
 #endif

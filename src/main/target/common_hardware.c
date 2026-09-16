@@ -253,6 +253,13 @@
     BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG3110_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE,  0);
 #endif
 
+#if defined(USE_MAG_LIS2MDL)
+    #if !defined(LIS2MDL_I2C_BUS)
+        #define LIS2MDL_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_lis2mdl,     DEVHW_LIS2MDL,      LIS2MDL_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE,  0);
+#endif
+
 #if defined(USE_MAG_LIS3MDL)
     #if !defined(LIS3MDL_I2C_BUS)
         #define LIS3MDL_I2C_BUS MAG_I2C_BUS
@@ -456,7 +463,7 @@
        #endif
 
     #endif
-    BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE,  0);
+    BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
 #endif
 
 #if defined(USE_IRLOCK) && defined(USE_I2C)
@@ -486,3 +493,7 @@
 #endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS
+
+#if defined(USE_INA226) && defined(BATTERY_I2C_BUS)
+BUSDEV_REGISTER_I2C(busdev_ina226, DEVHW_INA226, BATTERY_I2C_BUS, INA226_I2C_ADDRESS, NONE, DEVFLAGS_NONE, 0);
+#endif

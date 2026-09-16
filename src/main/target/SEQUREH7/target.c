@@ -36,14 +36,14 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH4, PB1, TIM_USE_OUTPUT_AUTO, 0, 3),     // S4
     // DEF_TIM(TIM8, CH3N, PB1, TIM_USE_OUTPUT_AUTO, 0, 3), // S4
 
-    DEF_TIM(TIM16, CH1N, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),   // S5 // No DMA
-    ///DEF_TIM(TIM4, CH1, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),  // S5 - Timer used by beeper - BF Timer // No DMA 
+    DEF_TIM(TIM16, CH1N, PB6, TIM_USE_OUTPUT_AUTO, 0, 4),   // S5 (TIM16_CH1N aliases to TIM16_CH1's DMAMUX, is DMA-capable)
+    ///DEF_TIM(TIM4, CH1, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),  // S5 - Timer used by beeper - BF Timer // No DMA
     DEF_TIM(TIM17, CH1N, PB7, TIM_USE_OUTPUT_AUTO, 0, 0),   // S6 // No DMA
     ///DEF_TIM(TIM4, CH2, PB7, TIM_USE_OUTPUT_AUTO, 0, 0),  // S6 - Timer used by beeper - BF Timer // No DMA
-    DEF_TIM(TIM2, CH3, PB10, TIM_USE_OUTPUT_AUTO, 0, 0),    // S7 // No DMA
-    DEF_TIM(TIM2, CH4, PB11, TIM_USE_OUTPUT_AUTO, 0, 0),    // S8 // No DMA
+    DEF_TIM(TIM2, CH3, PB10, TIM_USE_OUTPUT_AUTO, 0, 5),    // S7
+    DEF_TIM(TIM2, CH4, PB11, TIM_USE_OUTPUT_AUTO, 0, 6),    // S8
 
-    DEF_TIM(TIM1, CH1, PA8, TIM_USE_LED, 0, 0),             // LED_2812
+    DEF_TIM(TIM1, CH1, PA8, TIM_USE_LED, 0, 7),             // LED_2812
     DEF_TIM(TIM4, CH4, PD15, TIM_USE_BEEPER, 0, 0),         // BEEPER PWM
 };
 

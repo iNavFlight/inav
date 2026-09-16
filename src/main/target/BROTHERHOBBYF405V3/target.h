@@ -152,4 +152,3 @@
 #define TARGET_IO_PORTF         0xffff
 
 #define USE_DSHOT_DMAR
-

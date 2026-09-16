@@ -25,10 +25,22 @@
 #ifdef USE_OLED_UG2864
 
 #include "drivers/bus.h"
-#include "drivers/bus_i2c.h"
 #include "drivers/time.h"
 
 #include "display_ug2864hsweg01.h"
+
+#include "common/log.h"
+
+// OLED controller types (based on ss_oled detection)
+typedef enum {
+    OLED_CONTROLLER_UNKNOWN = 0,
+    OLED_CONTROLLER_SSD1306,    // Most common 128x64/128x32
+    OLED_CONTROLLER_SH1106,     // 132x64 with 2-pixel offset
+    OLED_CONTROLLER_SH1107,     // 128x128 displays
+    OLED_CONTROLLER_SSD1309,    // Similar to SSD1306
+} oledControllerType_e;
+
+static oledControllerType_e detectedController = OLED_CONTROLLER_UNKNOWN;
 
 #define INVERSE_CHAR_FORMAT 0x7f // 0b01111111
 #define NORMAL_CHAR_FORMAT  0x00 // 0b00000000
@@ -194,47 +206,65 @@ bool i2c_OLED_send_byte(uint8_t val)
     return busWrite(busDev, 0x40, val);
 }
 
+// SH1106 has 132-wide GDDRAM but only 128 columns are visible; the first
+// 2 columns are hidden, so writes must start 2 columns in. Other controllers
+// use the full visible width and need no offset.
+static uint8_t oledColumnOffset(void)
+{
+    return (detectedController == OLED_CONTROLLER_SH1106) ? 2 : 0;
+}
+
 void i2c_OLED_clear_display(void)
 {
-    i2c_OLED_send_cmd(0xa6);              // Set Normal Display
-    i2c_OLED_send_cmd(0xae);              // Display OFF
-    i2c_OLED_send_cmd(0x20);              // Set Memory Addressing Mode
-    i2c_OLED_send_cmd(0x00);              // Set Memory Addressing Mode to Horizontal addressing mode
-    i2c_OLED_send_cmd(0xb0);              // set page address to 0
-    i2c_OLED_send_cmd(0x40);              // Display start line register to 0
-    i2c_OLED_send_cmd(0);                 // Set low col address to 0
-    i2c_OLED_send_cmd(0x10);              // Set high col address to 0
-    for (uint16_t i = 0; i < 1024; i++) {  // fill the display's RAM with graphic... 128*64 pixel picture
-        i2c_OLED_send_byte(0x00);  // clear
+    // SH1106 only supports page addressing mode; use page-by-page clear for all controllers
+    uint8_t startCol = oledColumnOffset();
+
+    i2c_OLED_send_cmd(0xa6);  // Set Normal Display
+    i2c_OLED_send_cmd(0xae);  // Display OFF
+    i2c_OLED_send_cmd(0x40);  // Display start line register to 0
+
+    for (uint8_t page = 0; page < 8; page++) {
+        i2c_OLED_send_cmd(0xb0 + page);                      // set page address
+        i2c_OLED_send_cmd(0x00 + (startCol & 0x0f));         // set low col address
+        i2c_OLED_send_cmd(0x10 + ((startCol >> 4) & 0x0f)); // set high col address
+        for (uint8_t col = 0; col < 128; col++) {
+            i2c_OLED_send_byte(0x00);
+        }
     }
-    i2c_OLED_send_cmd(0x81);              // Setup CONTRAST CONTROL, following byte is the contrast Value... always a 2 byte instruction
-    i2c_OLED_send_cmd(200);               // Here you can set the brightness 1 = dull, 255 is very bright
-    i2c_OLED_send_cmd(0xaf);              // display on
+
+    i2c_OLED_send_cmd(0x81);  // Setup CONTRAST CONTROL
+    i2c_OLED_send_cmd(200);   // Contrast value (1=dull, 255=very bright)
+    i2c_OLED_send_cmd(0xaf);  // display on
 }
 
 void i2c_OLED_clear_display_quick(void)
 {
-    i2c_OLED_send_cmd(0xb0);              // set page address to 0
-    i2c_OLED_send_cmd(0x40);              // Display start line register to 0
-    i2c_OLED_send_cmd(0);                 // Set low col address to 0
-    i2c_OLED_send_cmd(0x10);              // Set high col address to 0
-    for (uint16_t i = 0; i < 1024; i++) {      // fill the display's RAM with graphic... 128*64 pixel picture
-        i2c_OLED_send_byte(0x00);  // clear
+    uint8_t startCol = oledColumnOffset();
+
+    for (uint8_t page = 0; page < 8; page++) {
+        i2c_OLED_send_cmd(0xb0 + page);                      // set page address
+        i2c_OLED_send_cmd(0x00 + (startCol & 0x0f));         // set low col address
+        i2c_OLED_send_cmd(0x10 + ((startCol >> 4) & 0x0f)); // set high col address
+        for (uint8_t col = 0; col < 128; col++) {
+            i2c_OLED_send_byte(0x00);
+        }
     }
 }
 
 void i2c_OLED_set_xy(uint8_t col, uint8_t row)
 {
-    i2c_OLED_send_cmd(0xb0 + row);                      //set page address
-    i2c_OLED_send_cmd(0x00 + ((CHARACTER_WIDTH_TOTAL * col) & 0x0f));         //set low col address
-    i2c_OLED_send_cmd(0x10 + (((CHARACTER_WIDTH_TOTAL * col) >> 4) & 0x0f));  //set high col address
+    uint8_t pixelCol = CHARACTER_WIDTH_TOTAL * col + oledColumnOffset();
+    i2c_OLED_send_cmd(0xb0 + row);                           // set page address
+    i2c_OLED_send_cmd(0x00 + (pixelCol & 0x0f));             // set low col address
+    i2c_OLED_send_cmd(0x10 + ((pixelCol >> 4) & 0x0f));     // set high col address
 }
 
 void i2c_OLED_set_line(uint8_t row)
 {
-    i2c_OLED_send_cmd(0xb0 + row); //set page address
-    i2c_OLED_send_cmd(0);          //set low col address
-    i2c_OLED_send_cmd(0x10);       //set high col address
+    uint8_t startCol = oledColumnOffset();
+    i2c_OLED_send_cmd(0xb0 + row);                           // set page address
+    i2c_OLED_send_cmd(0x00 + (startCol & 0x0f));             // set low col address
+    i2c_OLED_send_cmd(0x10 + ((startCol >> 4) & 0x0f));     // set high col address
 }
 
 void i2c_OLED_send_char(unsigned char ascii)
@@ -259,6 +289,71 @@ void i2c_OLED_send_string(const char *string)
 }
 
 /**
+ * Detect OLED controller type by reading status register.
+ * Based on ss_oled library detection algorithm.
+ *
+ * The status register (0x00) returns different values for different controllers:
+ * - SSD1306: typically returns 0x03 or 0x06 (lower nibble)
+ * - SH1106:  typically returns 0x08 (lower nibble)
+ * - SH1107:  typically returns 0x07 or 0x0F (lower nibble)
+ *
+ * Returns the detected controller type.
+ */
+static oledControllerType_e detectOledController(void)
+{
+    uint8_t statusByte = 0;
+
+    // Raw status register read (0xFF = no register write phase before read)
+    if (!busRead(busDev, 0xFF, &statusByte)) {
+        LOG_ERROR(SYSTEM, "OLED: Failed to read status register at 0x3C");
+        return OLED_CONTROLLER_UNKNOWN;
+    }
+
+    // Mask off the upper bits - controller type is in lower nibble
+    uint8_t controllerBits = statusByte & 0x0F;
+
+    oledControllerType_e detected;
+    const char *controllerName;
+
+    // Detection logic based on ss_oled library
+    switch (controllerBits) {
+        case 0x07:
+        case 0x0F:
+            // SH1107 - 128x128 displays. Detection only: geometry code below
+            // still assumes the 128x64/8-page layout (SCREEN_HEIGHT is fixed
+            // at 64), so a true 128x128 panel will only get its top half
+            // addressed. Untested on real SH1107 hardware.
+            detected = OLED_CONTROLLER_SH1107;
+            controllerName = "SH1107";
+            break;
+
+        case 0x08:
+            // SH1106 - 132x64 (needs +2 pixel x offset)
+            detected = OLED_CONTROLLER_SH1106;
+            controllerName = "SH1106";
+            break;
+
+        case 0x03:
+        case 0x06:
+            // SSD1306 - most common 128x64/128x32
+            detected = OLED_CONTROLLER_SSD1306;
+            controllerName = "SSD1306";
+            break;
+
+        default:
+            // Assume SSD1306 for unknown values since it's most common
+            detected = OLED_CONTROLLER_SSD1306;
+            controllerName = "SSD1306 (assumed)";
+            LOG_DEBUG(SYSTEM, "OLED: Unknown controller bits 0x%02X, assuming SSD1306", controllerBits);
+            break;
+    }
+
+    LOG_DEBUG(SYSTEM, "OLED: Detected controller: %s", controllerName);
+
+    return detected;
+}
+
+/**
 * according to http://www.adafruit.com/datasheets/UG-2864HSWEG01.pdf Chapter 4.4 Page 15
 */
 bool ug2864hsweg01InitI2C(void)
@@ -266,11 +361,16 @@ bool ug2864hsweg01InitI2C(void)
     busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_UG2864, 0, OWNER_OLED_DISPLAY);
 
     if (!busDev) {
+        LOG_ERROR(SYSTEM, "OLED: Bus device init failed");
         return false;
     }
 
+    // Detect the OLED controller type before initialization
+    detectedController = detectOledController();
+
     // Set display OFF
     if (!i2c_OLED_send_cmd(0xAE)) {
+        LOG_ERROR(SYSTEM, "OLED: Failed to send display OFF command");
         return false;
     }
 
@@ -283,6 +383,7 @@ bool ug2864hsweg01InitI2C(void)
     i2c_OLED_send_cmd(0x40); // Set Display Start Line
     i2c_OLED_send_cmd(0x8D); // Set Charge Pump
     i2c_OLED_send_cmd(0x14); // Charge Pump (0x10 External, 0x14 Internal DC/DC)
+
     i2c_OLED_send_cmd(0xA1); // Set Segment Re-Map
     i2c_OLED_send_cmd(0xC8); // Set Com Output Scan Direction
     i2c_OLED_send_cmd(0xDA); // Set COM Hardware Configuration

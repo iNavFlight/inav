@@ -24,7 +24,7 @@
   ==============================================================================
                ##### UART peripheral extended features  #####
   ==============================================================================
-
+  [..]
     (#) Declare a UART_HandleTypeDef handle structure.
 
     (#) For the UART RS485 Driver Enable mode, initialize the UART registers
@@ -253,15 +253,13 @@ HAL_StatusTypeDef HAL_RS485Ex_Init(UART_HandleTypeDef *huart, uint32_t Polarity,
  ===============================================================================
                       ##### IO operation functions #####
  ===============================================================================
+    [..]
     This subsection provides a set of Wakeup and FIFO mode related callback functions.
-
     (#) Wakeup from Stop mode Callback:
-        (+) HAL_UARTEx_WakeupCallback()
-
+        (++) HAL_UARTEx_WakeupCallback()
     (#) TX/RX Fifos Callbacks:
-        (+) HAL_UARTEx_RxFifoFullCallback()
-        (+) HAL_UARTEx_TxFifoEmptyCallback()
-
+        (++) HAL_UARTEx_RxFifoFullCallback()
+        (++) HAL_UARTEx_TxFifoEmptyCallback()
 @endverbatim
   * @{
   */
@@ -341,19 +339,19 @@ __weak void HAL_UARTEx_TxFifoEmptyCallback(UART_HandleTypeDef *huart)
     (#) Compared to standard reception services which only consider number of received
         data elements as reception completion criteria, these functions also consider additional events
         as triggers for updating reception status to caller :
-       (+) Detection of inactivity period (RX line has not been active for a given period).
-          (++) RX inactivity detected by IDLE event, i.e. RX line has been in idle state (normally high state)
+       (++) Detection of inactivity period (RX line has not been active for a given period).
+          (+++) RX inactivity detected by IDLE event, i.e. RX line has been in idle state (normally high state)
                for 1 frame time, after last received byte.
-          (++) RX inactivity detected by RTO, i.e. line has been in idle state
+          (+++) RX inactivity detected by RTO, i.e. line has been in idle state
                for a programmable time, after last received byte.
-       (+) Detection that a specific character has been received.
+       (++) Detection that a specific character has been received.
 
-    (#) There are two mode of transfer:
-       (+) Blocking mode: The reception is performed in polling mode, until either expected number of data is received,
+    (#) There are two modes of transfer:
+       (++) Blocking mode: The reception is performed in polling mode, until either expected number of data is received,
            or till IDLE event occurs. Reception is handled only during function execution.
            When function exits, no data reception could occur. HAL status and number of actually received data elements,
            are returned by function after finishing transfer.
-       (+) Non-Blocking mode: The reception is performed using Interrupts or DMA.
+       (++) Non-Blocking mode: The reception is performed using Interrupts or DMA.
            These API's return the HAL status.
            The end of the data processing will be indicated through the
            dedicated UART IRQ when using Interrupt mode or the DMA IRQ when using DMA mode.
@@ -361,13 +359,13 @@ __weak void HAL_UARTEx_TxFifoEmptyCallback(UART_HandleTypeDef *huart)
            The HAL_UART_ErrorCallback()user callback will be executed when a reception error is detected.
 
     (#) Blocking mode API:
-        (+) HAL_UARTEx_ReceiveToIdle()
+        (++) HAL_UARTEx_ReceiveToIdle()
 
     (#) Non-Blocking mode API with Interrupt:
-        (+) HAL_UARTEx_ReceiveToIdle_IT()
+        (++) HAL_UARTEx_ReceiveToIdle_IT()
 
     (#) Non-Blocking mode API with DMA:
-        (+) HAL_UARTEx_ReceiveToIdle_DMA()
+        (++) HAL_UARTEx_ReceiveToIdle_DMA()
 
 @endverbatim
   * @{
@@ -942,17 +940,15 @@ HAL_StatusTypeDef HAL_UARTEx_ReceiveToIdle_DMA(UART_HandleTypeDef *huart, uint8_
   *        Half Transfer, or Transfer Complete), this function allows to retrieve the Rx Event type that has lead
   *        to Rx Event callback execution.
   * @note  This function is expected to be called within the user implementation of Rx Event Callback,
-  *        in order to provide the accurate value :
-  *        In Interrupt Mode :
-  *           - HAL_UART_RXEVENT_TC : when Reception has been completed (expected nb of data has been received)
-  *           - HAL_UART_RXEVENT_IDLE : when Idle event occurred prior reception has been completed (nb of
-  *             received data is lower than expected one)
-  *        In DMA Mode :
-  *           - HAL_UART_RXEVENT_TC : when Reception has been completed (expected nb of data has been received)
-  *           - HAL_UART_RXEVENT_HT : when half of expected nb of data has been received
-  *           - HAL_UART_RXEVENT_IDLE : when Idle event occurred prior reception has been completed (nb of
-  *             received data is lower than expected one).
-  *        In DMA mode, RxEvent callback could be called several times;
+  *        in order to provide the accurate value.
+  * @note  In Interrupt Mode:
+  *        - HAL_UART_RXEVENT_TC : when Reception has been completed (expected nb of data has been received).
+  *        - HAL_UART_RXEVENT_IDLE : when Idle event occurred prior reception has been completed.
+  * @note  In DMA Mode:
+  *        - HAL_UART_RXEVENT_TC : when Reception has been completed (expected nb of data has been received).
+  *        - HAL_UART_RXEVENT_HT : when half of expected nb of data has been received.
+  *        - HAL_UART_RXEVENT_IDLE : when Idle event occurred prior reception has been completed.
+  * @note  In DMA mode, RxEvent callback could be called several times;
   *        When DMA is configured in Normal Mode, HT event does not stop Reception process;
   *        When DMA is configured in Circular Mode, HT, TC or IDLE events don't stop Reception process;
   * @param  huart UART handle.

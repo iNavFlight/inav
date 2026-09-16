@@ -48,3 +48,4 @@ void escSensorUpdate(timeUs_t currentTimeUs);
 escSensorData_t * escSensorGetData(void);
 escSensorData_t * getEscTelemetry(uint8_t esc);
 uint32_t computeRpm(int16_t erpm);
+int getTelemetryMotorCount(void);

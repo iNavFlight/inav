@@ -12,6 +12,7 @@
 #define NVIC_PRIO_TIMER                     3
 #define NVIC_PRIO_TIMER_DMA                 3
 #define NVIC_PRIO_SDIO                      3
+#define NVIC_PRIO_CAN                       4
 #define NVIC_PRIO_USB                       5
 #define NVIC_PRIO_SERIALUART                5
 #define NVIC_PRIO_VCP                       7

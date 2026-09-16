@@ -65,6 +65,7 @@
 
 #define USE_IMU_ICM42605
 #define USE_IMU_BMI270
+#define USE_IMU_LSM6DXX
 
 // IMU_1 is verified to work on OBF4V6 and Omnibus Fireworks board
 # define IMU_1_CS_PIN            PC9

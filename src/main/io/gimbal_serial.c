@@ -83,7 +83,7 @@ static gimbalDevice_t serialGimbalDevice = {
     .currentPanPWM = PWM_RANGE_MIDDLE
 };
 
-#if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL))
+#if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL)) && !defined(GIMBAL_UNIT_TEST)
 
 static headTrackerVTable_t headTrackerVTable = {
     .process = headtrackerSerialProcess,

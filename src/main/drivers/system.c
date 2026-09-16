@@ -124,8 +124,8 @@ void checkForBootLoaderRequest(void)
     // Clear the reset reason before jumping
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 
-#if defined(STM32H7)
 
+    #if defined(STM32H7)
     // Enable SYSCFG clock (required for bootloader)
     __HAL_RCC_SYSCFG_CLK_ENABLE();
 
@@ -133,16 +133,15 @@ void checkForBootLoaderRequest(void)
     volatile isrVector_t *bootloaderVector = (isrVector_t *)systemBootloaderAddress();
     __set_MSP(bootloaderVector->stackEnd);
     bootloaderVector->resetHandler();
+        while (1);
+    #else
+        // On F4/F7, jump to bootloader
+        volatile isrVector_t *bootloaderVector = (isrVector_t *)systemBootloaderAddress();
+        __set_MSP(bootloaderVector->stackEnd);
+        bootloaderVector->resetHandler();
 
-    while (1);
-#else
-    // On F4/F7, jump to bootloader
-    volatile isrVector_t *bootloaderVector = (isrVector_t *)systemBootloaderAddress();
-    __set_MSP(bootloaderVector->stackEnd);
-    bootloaderVector->resetHandler();
-
-    while (1);
-#endif
+        while (1);
+    #endif
 }
 
 #define SHORT_FLASH_DURATION 50

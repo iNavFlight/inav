@@ -8,7 +8,7 @@ Strict + Index:
 - STRICT: If a code exists in one (MSPCodes vs JSON) but not the other, crash with details.
 - Index items link to headings via GitHub-style auto-anchors.
 - Tight layout; identical Request/Reply tables; skip complex=true with a stub.
-- Default input: msp_messages.json ; default output: MSP_Doc.md
+- Default input: msp_messages.json ; default output: README.md
 """
 
 import sys
@@ -414,24 +414,24 @@ def generate_markdown(defs: Dict[str, Any]) -> str:
     with open("format.md", "r", encoding="utf-8") as f:
         fmt = f.read()
 
-    with open("msp_messages.checksum", "r", encoding="utf-8") as f:
-        chksum = f.read().split(' ')[0]
-    with open("rev", "r", encoding="utf-8") as f:
-        rev = f.read()
-
-    header = header.replace('<format>',fmt)
-    header = header.replace('<file_rev>',rev)
-    header = header.replace('<file_hash>',chksum)
+    header = header.replace('<format>', fmt)
 
     index_md = build_index(json_by_code)
     return header + "\n" + index_md + "\n" + "".join(sections)
+
+
+def get_messages_definitions(payload: Dict[str, Any]) -> Dict[str, Any]:
+    if "messages" in payload:
+        return payload["messages"]
+    return payload
 
 def main():
     in_path = Path(sys.argv[1]) if len(sys.argv) >= 2 else Path("msp_messages.json")
     out_path = Path(sys.argv[2]) if len(sys.argv) >= 3 else Path("README.md")
 
     with in_path.open("r", encoding="utf-8") as f:
-        defs = json.load(f)
+        payload = json.load(f)
+    defs = get_messages_definitions(payload)
 
     md = generate_markdown(defs)
     out_path.write_text(md, encoding="utf-8")

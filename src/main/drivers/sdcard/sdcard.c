@@ -91,6 +91,8 @@ void sdcard_init(void)
     sdcardVTable = &sdcardSpiVTable;
 #elif defined(USE_SDCARD_SDIO)
     sdcardVTable = &sdcardSdioVTable;
+#elif defined(USE_SDCARD_SITL)
+    sdcardVTable = &sdcardSitlVTable;
 #endif
 
     if (sdcardVTable) {

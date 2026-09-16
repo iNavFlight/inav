@@ -41,6 +41,11 @@
 
 #include "navigation/navigation.h"
 
+#ifdef USE_TERRAIN
+#include "terrain/terrain.h"
+#include "terrain/terrain_nav_hold.h"
+#endif
+
 #include "telemetry/telemetry.h"
 
 #include "drivers/gimbal_common.h"
@@ -109,6 +114,9 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXGIMBALRLOCK,      .boxName = "GIMBAL LEVEL ROLL", .permanentId = 66 },
     { .boxId = BOXGIMBALCENTER,     .boxName = "GIMBAL CENTER",     .permanentId = 67 },
     { .boxId = BOXGIMBALHTRK,       .boxName = "GIMBAL HEADTRACKER", .permanentId = 68 },
+    { .boxId = BOXAUTOSPEED,        .boxName = "AUTO SPEED",        .permanentId = 69 },
+    { .boxId = BOXTERRAINAGLHOLD,   .boxName = "TERRAIN AGL HOLD",  .permanentId = 70 },
+    { .boxId = BOXINFLIGHTMENU,     .boxName = "IN FLIGHT MENU",    .permanentId = 71 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -248,6 +256,12 @@ void initActiveBoxIds(void)
 
         if (STATE(AIRPLANE) || platformTypeConfigured(PLATFORM_AIRPLANE)) {
             ADD_ACTIVE_BOX(BOXSOARING);
+            ADD_ACTIVE_BOX(BOXAUTOSPEED);
+#ifdef USE_TERRAIN
+            if (terrainConfig()->terrainEnabled) {
+                ADD_ACTIVE_BOX(BOXTERRAINAGLHOLD);
+            }
+#endif
         }
     }
 
@@ -376,6 +390,9 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXGIMBALHTRK);
     }
 #endif
+#ifdef USE_CMS
+    ADD_ACTIVE_BOX(BOXINFLIGHTMENU);
+#endif
 }
 
 #define IS_ENABLED(mask) ((mask) == 0 ? 0 : 1)
@@ -438,6 +455,9 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)),       BOXAUTOLEVEL);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)),   BOXPLANWPMISSION);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXSOARING)),         BOXSOARING);
+#ifdef USE_TERRAIN
+    CHECK_ACTIVE_BOX(IS_ENABLED(terrainNavHoldIsEngaged()),             BOXTERRAINAGLHOLD);
+#endif
 #ifdef USE_MULTI_MISSION
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION)),   BOXCHANGEMISSION);
 #endif
@@ -445,11 +465,15 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMULTIFUNCTION)),   BOXMULTIFUNCTION);
 #endif
 #if (MAX_MIXER_PROFILE_COUNT > 1)
+#ifdef USE_AUTO_TRANSITION
+    CHECK_ACTIVE_BOX(IS_ENABLED(isMixerProfile2ModeReportedActive()),   BOXMIXERPROFILE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(isMixerTransitionModeReportedActive()), BOXMIXERTRANSITION);
+#else
     CHECK_ACTIVE_BOX(IS_ENABLED(currentMixerProfileIndex),              BOXMIXERPROFILE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)), BOXMIXERTRANSITION);
 #endif
+#endif
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANGLEHOLD)),       BOXANGLEHOLD);
-
 #ifdef USE_SERIAL_GIMBAL
     if(IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
         CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)), BOXGIMBALCENTER);
@@ -462,6 +486,10 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
         CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALRLOCK) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)),     BOXGIMBALRLOCK);
         CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALHTRK) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)),     BOXGIMBALRLOCK);
     }
+#endif
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOSPEED)),    BOXAUTOSPEED);
+#ifdef USE_CMS
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU)), BOXINFLIGHTMENU);
 #endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
