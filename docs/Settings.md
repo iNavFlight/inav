@@ -3509,7 +3509,7 @@ The number of motor poles. Required to compute motor RPM
 
 ### motor_pwm_protocol
 
-Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED
+Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, MULTISHOT, BRUSHED, DSHOT150, DSHOT300, DSHOT600
 
 | Allowed Values |  |
 | --- | --- |
