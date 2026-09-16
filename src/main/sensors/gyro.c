@@ -424,6 +424,9 @@ bool gyroInit(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         gyroFusionDiff[axis] = 0.0f;
     }
+    /* Either switch is reason enough to read the sensor: one asks for it in the
+     * log, the other asks for it in the control path, and neither needs the
+     * other to be set. */
     if (gyroConfig()->gyro_secondary_enabled || gyroConfig()->gyro_fusion != GYRO_FUSION_OFF) {
         /*
          * Do not assume the two IMU positions are tagged 0 and 1. Most targets
