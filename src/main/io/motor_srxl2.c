@@ -200,6 +200,22 @@
 #define SRXL2_LINK_TIMEOUT_MS       500
 
 /*
+ * How long after the link comes up the ESC is actually ready to turn the motor.
+ *
+ * An Avian announces itself within 300 ms of gaining power, but it is not
+ * finished: it plays its startup tones for about five seconds afterwards, and
+ * only once the last of them - the one a pilot hears as "connected" - has
+ * sounded will it drive the motor. Timed on the bench against the tones
+ * themselves, with the announcement as the zero.
+ *
+ * Six seconds puts the flight controller a second past that. Arming waits for
+ * it rather than for the handshake alone, which costs nothing where a person
+ * powers the aircraft and then arms it: nobody arms within six seconds of
+ * connecting the battery.
+ */
+#define SRXL2_READY_DELAY_MS        6000
+
+/*
  * Telemetry older than this is reported as stale rather than current.
  *
  * Generous compared with the link timeout on purpose. The ESC rotates its reply
@@ -318,6 +334,7 @@ typedef struct {
     uint8_t   deviceId;                 /* 0 until discovered */
     uint8_t   baudSupported;
     uint8_t   pollId;           /* offset from SRXL2_ESC_ID_FIRST, while polling */
+    timeMs_t  runningSinceMs;   /* when the link came up, for SRXL2_READY_DELAY_MS */
     uint8_t   agreedBaudBits;
     bool      baudSwitchPending;        /* waiting for TX to drain */
 
@@ -1052,6 +1069,7 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
         if (!e->baudSwitchPending && isSerialTransmitBufferEmpty(e->port)) {
             e->lastRxMs = now;          /* do not time out on the handshake gap */
             e->lastControlMs = now;
+            e->runningSinceMs = now;
             srxl2SetState(e, SRXL2_RUNNING);
         }
         break;
@@ -1172,6 +1190,9 @@ bool srxl2MotorIsConnected(void)
         }
         if (now - esc[i].lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
             return false;
+        }
+        if (now - esc[i].runningSinceMs < SRXL2_READY_DELAY_MS) {
+            return false;       /* linked, but still sounding its startup tones */
         }
     }
     return true;
