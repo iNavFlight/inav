@@ -130,8 +130,31 @@ typedef struct gyroConfig_s {
      * matter. A field whose default were non-zero would need a filler byte
      * ahead of it. */
     bool     gyro_secondary_enabled;
+
+    /* Appended after gyro_secondary_enabled and defaulting to OFF, so the same
+     * reasoning about padding applies: zero is the default, and a configuration
+     * written before this field existed loads as OFF. */
+    uint8_t  gyro_fusion;
 #endif
 } gyroConfig_t;
+
+/*
+ * What to do with a second IMU once it is being sampled.
+ *
+ * OFF leaves it as the instrumentation channel it is: read, logged, and kept out
+ * of the control path. AVERAGE feeds the mean of the two into the filters, which
+ * is what two sensors buy without a state estimator to weight them - uncorrelated
+ * noise falls by about a third, and nothing else changes.
+ *
+ * Deliberately not a fault-tolerance feature. With two sensors a disagreement
+ * says one of them is wrong and cannot say which, so there is no vote to hold;
+ * telling them apart needs a third, or an estimator that can weigh them against
+ * an independent reference.
+ */
+typedef enum {
+    GYRO_FUSION_OFF = 0,
+    GYRO_FUSION_AVERAGE,
+} gyroFusion_e;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
 

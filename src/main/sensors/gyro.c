@@ -119,6 +119,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
 #ifdef USE_DUAL_GYRO
     .gyro_to_use = SETTING_GYRO_TO_USE_DEFAULT,
     .gyro_secondary_enabled = SETTING_GYRO_SECONDARY_ENABLED_DEFAULT,
+    .gyro_fusion = SETTING_GYRO_FUSION_DEFAULT,
 #endif
     .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,
     .gyroDynamicLpfMinHz = SETTING_GYRO_DYN_LPF_MIN_HZ_DEFAULT,
@@ -359,12 +360,19 @@ bool gyroInit(void)
 
 #ifdef USE_DUAL_GYRO
     /*
-     * Optional secondary IMU, sampled purely as an instrumentation channel.
-     * Its output reaches Blackbox as gyroRaw2 and nothing else: attitude
-     * estimation and the PID loops keep using gyroDev[0] exclusively.
+     * Optional secondary IMU. With gyro_fusion OFF it is an instrumentation
+     * channel and nothing else: its output reaches Blackbox as gyroRaw2 while
+     * attitude estimation and the PID loops keep using gyroDev[0] exclusively.
+     * With AVERAGE it also enters the control path, as the mean of the two.
+     */
+    /*
+     * Fusion needs the second sensor sampled, so asking for it is asking for
+     * both. Requiring the two settings to be set together would make one of
+     * them a switch that silently does nothing, which is the failure mode worth
+     * avoiding: a pilot who turns on averaging and gets none, with no error.
      */
     gyro.secondaryInitialized = false;
-    if (gyroConfig()->gyro_secondary_enabled) {
+    if (gyroConfig()->gyro_secondary_enabled || gyroConfig()->gyro_fusion != GYRO_FUSION_OFF) {
         /*
          * Do not assume the two IMU positions are tagged 0 and 1. Most targets
          * do, but AETH743Basic registers them as 0 and 2, and a few register
@@ -663,8 +671,10 @@ void FAST_CODE NOINLINE gyroUpdate(void)
      * Read the secondary before the primary's early return, so that a stalled
      * or uncalibrated secondary can never suppress the primary sample.
      */
+    bool secondaryFresh = false;
     if (gyro.secondaryInitialized) {
-        if (!gyroUpdateAndCalibrate(&gyroDev[1], &gyroCalibration[1], gyro.gyroRaw2, false)) {
+        secondaryFresh = gyroUpdateAndCalibrate(&gyroDev[1], &gyroCalibration[1], gyro.gyroRaw2, false);
+        if (!secondaryFresh) {
             gyro.gyroRaw2[X] = 0.0f;
             gyro.gyroRaw2[Y] = 0.0f;
             gyro.gyroRaw2[Z] = 0.0f;
@@ -676,12 +686,34 @@ void FAST_CODE NOINLINE gyroUpdate(void)
         return;
     }
 
+#ifdef USE_DUAL_GYRO
+    /*
+     * Averaging the two sensors is only safe while the second one is actually
+     * producing samples of its own zero. A stalled read leaves zeroes behind,
+     * and averaging those would halve the rate the controller sees - an
+     * attenuation that looks like a tuning problem rather than a failed sensor.
+     * An unfinished calibration is the same hazard with its bias still in.
+     */
+    const bool fuseSecondary = (gyroConfig()->gyro_fusion == GYRO_FUSION_AVERAGE)
+                               && secondaryFresh
+                               && zeroCalibrationIsCompleteV(&gyroCalibration[1]);
+#endif
+
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
         float gyroADCf = gyro.gyroADCf[axis];
 
-        // Set raw gyro for blackbox purposes
+        /* Set raw gyro for blackbox purposes. This stays the first sensor as
+         * measured, so that a log with both gyros reads as the same fields
+         * twice rather than as one sensor and one derived quantity. What the
+         * controller sees is their mean, which is recoverable from the pair. */
         gyro.gyroRaw[axis] = gyroADCf;
+
+#ifdef USE_DUAL_GYRO
+        if (fuseSecondary) {
+            gyroADCf = 0.5f * (gyroADCf + gyro.gyroRaw2[axis]);
+        }
+#endif
 
         /*
          * First gyro LPF is the only filter applied with the full gyro sampling speed

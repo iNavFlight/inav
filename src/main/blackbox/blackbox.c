@@ -863,7 +863,20 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
 #ifdef USE_DUAL_GYRO
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY:
-        return gyro.secondaryInitialized && blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_SECONDARY);
+        /*
+         * With the second gyro in the control path, its samples belong to the
+         * log wherever the first gyro's raw samples go: one aircraft with two
+         * sensors reads as the same field twice, not as a measurement and an
+         * optional extra. The separate flag is what asks for it when the sensor
+         * is being read for analysis alone.
+         */
+        if (!gyro.secondaryInitialized) {
+            return false;
+        }
+        if (gyroConfig()->gyro_fusion != GYRO_FUSION_OFF) {
+            return blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_RAW);
+        }
+        return blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_SECONDARY);
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL:
