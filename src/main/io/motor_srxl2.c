@@ -208,12 +208,13 @@
  * sounded will it drive the motor. Timed on the bench against the tones
  * themselves, with the announcement as the zero.
  *
- * Six seconds puts the flight controller a second past that. Arming waits for
- * it rather than for the handshake alone, which costs nothing where a person
- * powers the aircraft and then arms it: nobody arms within six seconds of
- * connecting the battery.
+ * Six and a half seconds puts the flight controller comfortably past that, and
+ * a motor commanded on that boundary spins up cleanly. Arming waits for it
+ * rather than for the handshake alone, which costs nothing where a person
+ * powers the aircraft and then arms it: nobody arms that soon after connecting
+ * the battery.
  */
-#define SRXL2_READY_DELAY_MS        6000
+#define SRXL2_READY_DELAY_MS        6500
 
 /*
  * Telemetry older than this is reported as stale rather than current.
