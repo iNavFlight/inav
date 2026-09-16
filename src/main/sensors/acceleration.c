@@ -122,35 +122,6 @@ static void updateAccCoefficients(void) {
 
 }
 
-#ifdef USE_DUAL_GYRO
-/*
- * How far the second IMU's frame is from the first one's, in degrees, or a
- * negative value while it has not been established.
- *
- * Averaging two gyros silently assumes they agree on which way is which. Each
- * device applies its own alignment before anything downstream sees it, so on a
- * correctly described board they do - but a board whose second IMU is described
- * wrongly would have two frames blended into one signal, and nothing about the
- * result would look wrong until it flew.
- *
- * Gravity settles it, and only gravity can: a gyro at rest reads zero whichever
- * way it is turned, so a still aircraft tells you nothing through it. Two
- * accelerometers at rest measure the same physical vector, so the angle between
- * their readings is the angle between their frames.
- *
- * With one blind spot, stated because it matters: rotations about the gravity
- * vector are invisible this way. A second IMU mounted 90 degrees out in yaw
- * measures the same gravity as the first. That case shows up only in rotation,
- * by comparing the two gyros, and is not what this measures.
- */
-static float secondaryAccMisalignmentDeg = -1.0f;
-
-float accSecondaryMisalignmentDeg(void)
-{
-    return secondaryAccMisalignmentDeg;
-}
-#endif
-
 static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
 {
     accelerationSensor_e accHardware = ACC_NONE;
@@ -329,68 +300,6 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     sensorsSet(SENSOR_ACC);
     return true;
 }
-
-#ifdef USE_DUAL_GYRO
-/*
- * Read the second IMU's accelerometer once and compare where it says down is.
- *
- * Called when the gyro calibration completes, because that is the one moment the
- * firmware knows the aircraft was held still: the calibration refuses to finish
- * otherwise. One sample is enough - the quantity being measured is an angle
- * between two mountings, which does not change.
- *
- * accDetect() records what it found in the global sensor tables, which describe
- * the accelerometer the aircraft actually flies on. This probe must not appear
- * there, so what it writes is put back.
- */
-void accMeasureSecondaryMisalignment(uint8_t sensorTag)
-{
-    if (secondaryAccMisalignmentDeg >= 0.0f) {
-        return;                     /* an angle between two mountings is measured once */
-    }
-
-    accDev_t probe;
-    memset(&probe, 0, sizeof(probe));
-    probe.imuSensorToUse = sensorTag;
-
-    const uint8_t requestedWas = requestedSensors[SENSOR_INDEX_ACC];
-    const uint8_t detectedWas = detectedSensors[SENSOR_INDEX_ACC];
-    const bool found = accDetect(&probe, ACC_AUTODETECT);
-    requestedSensors[SENSOR_INDEX_ACC] = requestedWas;
-    detectedSensors[SENSOR_INDEX_ACC] = detectedWas;
-
-    if (!found) {
-        return;
-    }
-
-    probe.acc_1G = 256;             /* only the direction is used, not the scale */
-    probe.initFn(&probe);
-    if (!probe.readFn(&probe)) {
-        return;
-    }
-
-    float secondary[XYZ_AXIS_COUNT] = { probe.ADCRaw[X], probe.ADCRaw[Y], probe.ADCRaw[Z] };
-    applySensorAlignment(secondary, secondary, probe.accAlign);
-
-    /*
-     * Board alignment is common to both and cancels in the angle, so the raw
-     * sensor frames are compared directly. The primary comes from accADCf,
-     * which at this moment is gravity: the aircraft has just been still long
-     * enough to calibrate a gyro.
-     */
-    const float primaryNorm = sqrtf(sq(acc.accADCf[X]) + sq(acc.accADCf[Y]) + sq(acc.accADCf[Z]));
-    const float secondaryNorm = sqrtf(sq(secondary[X]) + sq(secondary[Y]) + sq(secondary[Z]));
-    if (primaryNorm < 0.1f || secondaryNorm < 0.1f) {
-        return;                     /* one of them is not reading gravity at all */
-    }
-
-    const float dot = (acc.accADCf[X] * secondary[X]
-                     + acc.accADCf[Y] * secondary[Y]
-                     + acc.accADCf[Z] * secondary[Z]) / (primaryNorm * secondaryNorm);
-
-    secondaryAccMisalignmentDeg = RADIANS_TO_DEGREES(acos_approx(constrainf(dot, -1.0f, 1.0f)));
-}
-#endif
 
 bool accInit(uint32_t targetLooptime)
 {

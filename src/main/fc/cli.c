@@ -4202,21 +4202,20 @@ static void cliStatus(char *cmdline)
 
 #ifdef USE_DUAL_GYRO
     if (gyro.secondaryInitialized) {
-        const float misalignment = accSecondaryMisalignmentDeg();
-        if (misalignment < 0.0f) {
-            cliPrintLine("Second IMU: sampled, alignment not checked yet (needs a gyro calibration)");
+        /*
+         * The number is the attitude error the two gyros' disagreement has been
+         * worth so far, not their instantaneous difference: it sits at zero
+         * while they agree and climbs only once they persistently do not.
+         */
+        const float disagreement = gyroSecondaryDisagreementDeg();
+        if (gyroSecondaryAbandoned()) {
+            cliPrintLine("Second gyro: DISAGREES with the first - averaging off,"
+                " flying on the first alone");
+        } else if (gyroConfig()->gyro_fusion == GYRO_FUSION_AVERAGE) {
+            cliPrintLinef("Second gyro: averaged in, %d.%02d degrees of disagreement"
+                " accumulated", (int)disagreement, (int)(disagreement * 100) % 100);
         } else {
-            /*
-             * Reported rather than judged. What counts as too far apart depends
-             * on the board, and saying "5.2 degrees" lets someone decide;
-             * printing "OK" would be deciding for them on no evidence.
-             *
-             * This compares where the two accelerometers say gravity is, so it
-             * cannot see a second IMU rotated about the vertical - that one
-             * reads the same gravity as the first.
-             */
-            cliPrintLinef("Second IMU: %d.%02d degrees from the first, measured against gravity",
-                (int)misalignment, (int)(misalignment * 100) % 100);
+            cliPrintLine("Second gyro: sampled, not in the control path");
         }
     }
 #endif

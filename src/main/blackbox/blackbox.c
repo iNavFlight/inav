@@ -2167,20 +2167,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_min_hz", "%d",                 rpmFilterConfig()->gyro_min_hz);
         BLACKBOX_PRINT_HEADER_LINE("rpm_gyro_q", "%d",                      rpmFilterConfig()->gyro_q);
 #endif
-#ifdef USE_DUAL_GYRO
-        BLACKBOX_PRINT_HEADER_LINE("gyro_fusion", "%d",                     gyroConfig()->gyro_fusion);
-        /*
-         * Only when a second IMU is present and has been asked. Written in
-         * hundredths of a degree because the header carries integers, and as a
-         * header rather than a field because the angle between two mountings is
-         * one number for the whole flight. Negative means it was never
-         * established - no second sensor, or no calibration since boot.
-         */
-        BLACKBOX_PRINT_HEADER_LINE("secondary_imu_misalignment_cdeg", "%d",
-                                   gyro.secondaryInitialized
-                                       ? (int)lrintf(accSecondaryMisalignmentDeg() * 100.0f)
-                                       : -1);
-#endif
         default:
             return true;
     }

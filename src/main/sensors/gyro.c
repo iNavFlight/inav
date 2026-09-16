@@ -63,7 +63,6 @@
 
 #include "scheduler/scheduler.h"
 
-#include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
@@ -103,6 +102,53 @@ STATIC_FASTRAM bool gyroCalibrationComplete;
 
 STATIC_FASTRAM filterApplyFnPtr gyroLuluApplyFn;
 STATIC_FASTRAM filter_t gyroLuluState[XYZ_AXIS_COUNT];
+
+#ifdef USE_DUAL_GYRO
+/*
+ * Whether the two gyros still agree, and what to do when they stop.
+ *
+ * Averaging assumes a shared frame. Each device applies its own alignment from
+ * the target before anything downstream sees it, so on a correctly described
+ * board they do share one - but a board describing its second IMU wrongly, or a
+ * sensor drifting away, would have two frames blended into a single signal, and
+ * the result would not look wrong until it flew.
+ *
+ * The test is the one PX4 uses, because the shape of it is right. Comparing the
+ * two readings sample by sample says nothing: two gyros sampled at different
+ * instants always differ, and the difference is mostly noise. So the difference
+ * is low-passed first, which leaves only what persists - a bias, or a frame that
+ * is not the frame it claims - and then integrated through a dead band:
+ *
+ *     error += (|difference| - RATE_DEADBAND) * dt
+ *
+ * Below the dead band nothing accumulates, so ordinary disagreement can never
+ * raise an alarm. Above it, what accumulates is a rate integrated over time,
+ * which is an angle: the pair is tolerated until the disagreement would have
+ * cost ANGLE_LIMIT degrees of attitude. The threshold is stated in the quantity
+ * that actually matters rather than one that resembles it.
+ *
+ * The numbers are PX4's own defaults (EKF2_SEL_IMU_RAT and EKF2_SEL_IMU_ANG).
+ * Two gyros on one board see more nearly the same motion than two IMUs on
+ * separate mounts, so a tighter dead band is probably right - but that is a
+ * measurement on a dual-IMU board, and until someone makes it, conservative and
+ * field-proven beats tight and invented.
+ *
+ * With two sensors a disagreement cannot say which one is wrong; PX4 says so in
+ * as many words and stops there. So this gives up on the pair rather than
+ * choosing between them, and keeps the first gyro - the one every other board
+ * flies on. Giving up is final until the next boot, where PX4 lets its
+ * accumulator decay: a control signal that alternates between one sensor and
+ * two is a disturbance of its own, and a frame that is described wrongly will
+ * not describe itself correctly later.
+ */
+#define GYRO_FUSION_DIFF_ALPHA      0.05f   /* PX4 runs 0.95 old + 0.05 new */
+#define GYRO_FUSION_RATE_DEADBAND   7.0f    /* deg/s, EKF2_SEL_IMU_RAT */
+#define GYRO_FUSION_ANGLE_LIMIT     15.0f   /* deg,   EKF2_SEL_IMU_ANG */
+
+STATIC_FASTRAM float gyroFusionDiff[XYZ_AXIS_COUNT];
+STATIC_FASTRAM float gyroFusionErrorDeg;
+STATIC_FASTRAM bool  gyroFusionGaveUp;
+#endif
 
 #ifdef USE_DYNAMIC_FILTERS
 
@@ -373,6 +419,11 @@ bool gyroInit(void)
      * avoiding: a pilot who turns on averaging and gets none, with no error.
      */
     gyro.secondaryInitialized = false;
+    gyroFusionErrorDeg = 0.0f;
+    gyroFusionGaveUp = false;
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        gyroFusionDiff[axis] = 0.0f;
+    }
     if (gyroConfig()->gyro_secondary_enabled || gyroConfig()->gyro_fusion != GYRO_FUSION_OFF) {
         /*
          * Do not assume the two IMU positions are tagged 0 and 1. Most targets
@@ -508,18 +559,6 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
 
         // Cache completion status to avoid function call in hot path
         gyroCalibrationComplete = true;
-
-#ifdef USE_DUAL_GYRO
-        /*
-         * The aircraft has just been held still long enough to calibrate a gyro,
-         * which is the only moment the firmware can be sure of it - so this is
-         * where the two IMUs are asked whether they agree on which way is down.
-         * Done from the primary's completion, once, and never in flight.
-         */
-        if (persist && gyro.secondaryInitialized) {
-            accMeasureSecondaryMisalignment(gyroDev[1].imuSensorToUse);
-        }
-#endif
 
         LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", (int16_t) dev->gyroZero[X], (int16_t) dev->gyroZero[Y], (int16_t) dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
@@ -707,9 +746,32 @@ void FAST_CODE NOINLINE gyroUpdate(void)
      * attenuation that looks like a tuning problem rather than a failed sensor.
      * An unfinished calibration is the same hazard with its bias still in.
      */
-    const bool fuseSecondary = (gyroConfig()->gyro_fusion == GYRO_FUSION_AVERAGE)
-                               && secondaryFresh
-                               && zeroCalibrationIsCompleteV(&gyroCalibration[1]);
+    bool fuseSecondary = (gyroConfig()->gyro_fusion == GYRO_FUSION_AVERAGE)
+                         && secondaryFresh
+                         && zeroCalibrationIsCompleteV(&gyroCalibration[1])
+                         && !gyroFusionGaveUp;
+
+    if (fuseSecondary) {
+        /* Each sensor's distance from the pair's mean, which for two is half of
+         * what separates them - the same quantity PX4 thresholds. */
+        float sumOfSquares = 0.0f;
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            const float half = 0.5f * (gyro.gyroRaw2[axis] - gyro.gyroADCf[axis]);
+            gyroFusionDiff[axis] += GYRO_FUSION_DIFF_ALPHA * (half - gyroFusionDiff[axis]);
+            sumOfSquares += gyroFusionDiff[axis] * gyroFusionDiff[axis];
+        }
+
+        gyroFusionErrorDeg += (fast_fsqrtf(sumOfSquares) - GYRO_FUSION_RATE_DEADBAND)
+                              * US2S(gyro.targetLooptime);
+        if (gyroFusionErrorDeg < 0.0f) {
+            gyroFusionErrorDeg = 0.0f;
+        }
+
+        if (gyroFusionErrorDeg > GYRO_FUSION_ANGLE_LIMIT) {
+            gyroFusionGaveUp = true;
+            fuseSecondary = false;
+        }
+    }
 #endif
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -736,6 +798,18 @@ void FAST_CODE NOINLINE gyroUpdate(void)
         gyro.gyroADCf[axis] = gyroADCf;
     }
 }
+
+#ifdef USE_DUAL_GYRO
+float gyroSecondaryDisagreementDeg(void)
+{
+    return gyroFusionErrorDeg;
+}
+
+bool gyroSecondaryAbandoned(void)
+{
+    return gyroFusionGaveUp;
+}
+#endif
 
 bool gyroReadTemperature(void)
 {

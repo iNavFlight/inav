@@ -165,6 +165,13 @@ void gyroFilter(void);
 void gyroStartCalibration(void);
 bool gyroIsCalibrationComplete(void);
 bool gyroReadTemperature(void);
+#ifdef USE_DUAL_GYRO
+/* How far apart the two gyros have drifted, as the attitude error the
+ * disagreement has been worth so far, and whether that went far enough to stop
+ * trusting the pair. */
+float gyroSecondaryDisagreementDeg(void);
+bool gyroSecondaryAbandoned(void);
+#endif
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 void gyroUpdateDynamicLpf(float cutoffFreq);
