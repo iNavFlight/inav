@@ -80,9 +80,11 @@ typedef enum {
     DEBUG_LULU,
     DEBUG_SBUS2,
     DEBUG_OSD_REFRESH,
+    DEBUG_MAG_CALIB,
     DEBUG_VTOL_TRANSITION,
     DEBUG_VTOL_MC_PROTECT,
     DEBUG_TERRAIN_NAV,
+    DEBUG_ESC,
     DEBUG_COUNT // also update debugModeNames in cli.c
 } debugType_e;
 

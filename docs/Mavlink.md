@@ -6,6 +6,10 @@ INAV supports up to 4 concurrent MAVLink telemetry ports (`MAX_MAVLINK_PORTS`), 
 
 INAV builds against the checked-in generated `storm32` MAVLink headers/dialect bundle, which includes the native mLRS messages used by the implementation. The STorM32 dialect is a superset of the ArduPilot and common message sets.
 
+## Target support
+
+MAVLink is built only into targets with more than 512 KB of flash (STM32F405, STM32F745, STM32F765, STM32H743, AT32F435, etc.). On 512 KB targets, which includes every STM32F722 and STM32F411 board, the whole subsystem is absent: no MAVLink telemetry, no MAVLink serial RX, and no MSP-over-MAVLink tunnel. Everything described on this page applies only to the larger targets.
+
 ## What INAV currently supports
 
 - Multiport MAVLink telemetry on up to 4 serial ports, with per-port stream rates, radio type, and high-latency mode.
