@@ -155,7 +155,9 @@ Two things to weigh before turning `rpm_gyro_filter_enabled` on:
   rate too: the ESC answers about two requests in three and rotates its reply
   between a text page, a battery page and the ESC page, so rpm reaches the flight
   controller at roughly a ninth of what is asked for. `esc_srxl2_telemetry_rate`
-  is named for what arrives - 1 Hz by default, 3 Hz at the fastest. On an aircraft
+  is named for what arrives - 1 Hz by default, 3 Hz at the fastest, and nothing
+  slower, because the ESC only speaks when asked and its reply is what tells the
+  flight controller the link is alive. On an aircraft
   holding a cruise throttle, rpm and the vibration peak both move slowly and that
   is adequate. This is nowhere near bidirectional DSHOT, which reports every loop.
 * INAV's own advice for this setting applies unchanged: turn it on only once ESC
@@ -292,7 +294,7 @@ nothing anyway.
 | `motor_pwm_protocol = SRXL2` | drive motors over SRXL2 |
 | `esc_srxl2_reverse_channel` | SRXL2 channel the ESC watches for reverse, 5 to 9; Spektrum default 7, 0 disables |
 | `esc_srxl2_telemetry` | read telemetry from the SRXL2 link |
-| `esc_srxl2_telemetry_rate` | how often telemetry arrives: 3, 2, 1, 0.5 or 0.2 Hz |
+| `esc_srxl2_telemetry_rate` | how often telemetry arrives: 3, 2 or 1 Hz |
 | `motor_poles` | required for correct rpm, see above |
 
 ## Reference

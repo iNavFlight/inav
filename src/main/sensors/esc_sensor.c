@@ -282,18 +282,34 @@ void escSensorUpdate(timeUs_t currentTimeUs)
         for (uint8_t i = 0; i < count; i++) {
             srxl2EscTelemetry_t t;
             if (srxl2MotorGetTelemetry(i, &t)) {
-                escSensorData[i].dataAge     = 0;
-                escSensorData[i].temperature = t.temperatureFet / 10;   /* 0.1 degC -> degC */
-                escSensorData[i].voltage     = t.voltage;               /* both 0.01 V */
-                escSensorData[i].current     = t.current;               /* both 0.01 A */
+                escSensorData[i].dataAge = 0;
+                /*
+                 * Only what the frame actually carried. An ESC that reports no
+                 * current sends a "no data" code, and copying that through as
+                 * 0.00 A would be indistinguishable from a motor at rest - which
+                 * is a reading the battery estimate would happily believe. Where
+                 * a field is absent the last known value is left in place and
+                 * ages out with the rest.
+                 */
+                if (t.fields & SRXL2_TELEM_FIELD_TEMP_FET) {
+                    escSensorData[i].temperature = t.temperatureFet / 10;   /* 0.1 degC -> degC */
+                }
+                if (t.fields & SRXL2_TELEM_FIELD_VOLTAGE) {
+                    escSensorData[i].voltage = t.voltage;                   /* both 0.01 V */
+                }
+                if (t.fields & SRXL2_TELEM_FIELD_CURRENT) {
+                    escSensorData[i].current = t.current;                   /* both 0.01 A */
+                }
                 /*
                  * The wire carries electrical rpm; everything downstream expects
                  * mechanical, which is what computeRpm() produces for the serial
                  * backends. Same division, done here because our value is already
                  * in rpm rather than the LSB units that function takes.
                  */
-                const uint8_t poles = motorConfig()->motorPoleCount;
-                escSensorData[i].rpm = poles ? (t.rpm / (poles / 2)) : 0;
+                if (t.fields & SRXL2_TELEM_FIELD_RPM) {
+                    const uint8_t poles = motorConfig()->motorPoleCount;
+                    escSensorData[i].rpm = poles ? (t.rpm / (poles / 2)) : 0;
+                }
             } else if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
                 escSensorData[i].dataAge++;
             }

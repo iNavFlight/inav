@@ -34,7 +34,7 @@ tables:
   # existing configuration reads whatever index 0 happens to be. Putting the default
   # there makes that harmless instead of silently selecting the fastest rate.
   - name: esc_srxl2_telemetry_rate
-    values: ["1HZ", "3HZ", "2HZ", "0_5HZ", "0_2HZ"]
+    values: ["1HZ", "3HZ", "2HZ"]
   - name: servo_protocol
     values: ["PWM", "SBUS", "SBUS_PWM"]
   - name: failsafe_procedure
@@ -876,7 +876,7 @@ groups:
         condition: USE_MOTOR_SRXL2
         type: bool
       - name: esc_srxl2_telemetry_rate
-        description: "How often ESC telemetry arrives from an SRXL2 Smart ESC, in readings per second. The ESC answers about two requests in three and rotates its reply between three sensors, so it delivers roughly a ninth of what is asked for - these are the delivered rates, measured, not the request rate. The reply shares the throttle wire, so a faster rate leaves the bus less headroom; only the RPM filter benefits from it. Asking on every frame is not offered: an Avian keeps the link and stops obeying the throttle."
+        description: "How often ESC telemetry arrives from an SRXL2 Smart ESC, in readings per second. The ESC answers about two requests in three and rotates its reply between three sensors, so it delivers roughly a ninth of what is asked for - these are the delivered rates, measured, not the request rate. The reply shares the throttle wire, so a faster rate leaves the bus less headroom; only the RPM filter benefits from it. The range is bounded at both ends by the ESC: asking on every frame makes an Avian keep the link and stop obeying the throttle, and asking slower than 1 Hz makes the link time out on a healthy ESC, because its reply is the only thing that proves it is still there."
         default_value: "1HZ"   # must stay index 0, see the table comment
         field: srxl2TelemetryRate
         condition: USE_MOTOR_SRXL2

@@ -516,6 +516,11 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #ifdef USE_CMS
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU)), BOXINFLIGHTMENU);
 #endif
+#ifdef USE_MOTOR_SRXL2
+    /* Advertised in initActiveBoxIds() but never reported back, so the mode
+     * showed as off in the Configurator while the driver was acting on it. */
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE)), BOXTHRUSTREVERSE);
+#endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

@@ -276,6 +276,27 @@ void validateAndFixConfig(void)
     }
 #endif
 
+#if !defined(USE_MOTOR_SRXL2)
+    // A configuration restored onto a build without the driver would keep SRXL2
+    // selected, and nothing would drive the motors: the branch that installs the
+    // SRXL2 writer is compiled out, so the writer stays null, while the protocol
+    // is not timer-based and so escapes the "not enough outputs" check too. The
+    // result is a model that arms and does nothing, which is the one outcome
+    // worth spending a boot-time rewrite on.
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
+    }
+#else
+    // Reverse on the throttle's own channel cannot work - the driver refuses it,
+    // because writing that channel at task rate would overwrite the throttle
+    // several hundred times a second. Refusing it silently left a mode the
+    // Configurator offered and nothing acted on, so the setting is corrected
+    // where the user can see it instead.
+    if (motorConfig()->srxl2ReverseChannel == 1) {
+        motorConfigMutable()->srxl2ReverseChannel = 0;
+    }
+#endif
+
     // Call target-specific validation function
     validateAndFixTargetConfig();
 

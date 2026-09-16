@@ -4742,7 +4742,6 @@ static void cliDiff(char *cmdline)
     printConfig(cmdline, true);
 }
 
-#ifdef USE_USB_MSC
 #ifdef USE_MOTOR_SRXL2
 static void cliEscCalibratePrintResult(srxl2CalResult_e r)
 {
@@ -4825,6 +4824,7 @@ static void cliEscCalibrate(char *cmdline)
 }
 #endif
 
+#ifdef USE_USB_MSC
 static void cliMsc(char *cmdline)
 {
     UNUSED(cmdline);
@@ -5106,10 +5106,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
-#ifdef USE_USB_MSC
 #ifdef USE_MOTOR_SRXL2
     CLI_COMMAND_DEF("esc_calibrate", "teach a Spektrum Smart ESC its throttle range", "[start|high|low|off]", cliEscCalibrate),
 #endif
+#ifdef USE_USB_MSC
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
 #endif
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),

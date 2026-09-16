@@ -181,11 +181,35 @@
  */
 #define SRXL2_TELEM_REQUEST_MIN     2
 
-/* Declare the link dead if the ESC stops answering for this long. */
+/*
+ * Declare the link dead if the ESC stops answering for this long.
+ *
+ * This is the reason the telemetry table stops at one request every five frames.
+ * An Avian never speaks unprompted once it is running, so the only thing that
+ * refreshes this timer is a telemetry reply, and a request rate slower than the
+ * timeout disconnects a healthy ESC on schedule. Measured, it answers about two
+ * requests in three, so the margin has to cover consecutive misses as well:
+ * every fifth frame is a request every 100 ms and a reply typically every 150,
+ * so three misses in a row still land inside this window.
+ *
+ * Losing the link is not a recoverable event on this hardware - a running Avian
+ * answers no discovery of any kind - so a timeout that can fire on a healthy
+ * link would mean a motor that stops and cannot be brought back without
+ * removing power.
+ */
 #define SRXL2_LINK_TIMEOUT_MS       500
 
-/* Telemetry older than this is reported as stale rather than current. */
-#define SRXL2_TELEM_STALE_MS        1000
+/*
+ * Telemetry older than this is reported as stale rather than current.
+ *
+ * Generous compared with the link timeout on purpose. The ESC rotates its reply
+ * between three sensors and answers about two requests in three, so at the
+ * default rate its own readings arrive about once a second even though the link
+ * is being exercised ten times as often: a one-second window made a healthy
+ * sensor flicker between valid and absent. What notices an ESC that has actually
+ * stopped is SRXL2_LINK_TIMEOUT_MS, which invalidates the reading anyway.
+ */
+#define SRXL2_TELEM_STALE_MS        3000
 
 /*
  * Calibration phases end themselves. The high phase has to outlast a human
@@ -293,6 +317,7 @@ typedef struct {
 
     uint8_t   deviceId;                 /* 0 until discovered */
     uint8_t   baudSupported;
+    uint8_t   pollId;           /* offset from SRXL2_ESC_ID_FIRST, while polling */
     uint8_t   agreedBaudBits;
     bool      baudSwitchPending;        /* waiting for TX to drain */
 
@@ -477,11 +502,11 @@ static void srxl2DecodeEscTelemetry(srxl2Esc_t *e, const uint8_t *payload)
 
     /* 0xFFFF and 0xFF mean "no data" and must not be taken for readings -
      * 0xFFFF volts at 0.01 V per count would otherwise look like 655 V. */
-    if (rpm != 0xFFFF)        { t->rpm = (uint32_t)rpm * 10; }
-    if (voltsIn != 0xFFFF)    { t->voltage = voltsIn; }                 /* already 0.01 V */
-    if (currentMot != 0xFFFF) { t->current = currentMot; }              /* 10 mA == 0.01 A */
-    if (tempFet != 0xFFFF)    { t->temperatureFet = (int16_t)tempFet; } /* 0.1 degC */
-    if (tempBec != 0xFFFF)    { t->temperatureBec = (int16_t)tempBec; }
+    if (rpm != 0xFFFF)        { t->rpm = (uint32_t)rpm * 10; t->fields |= SRXL2_TELEM_FIELD_RPM; }
+    if (voltsIn != 0xFFFF)    { t->voltage = voltsIn; t->fields |= SRXL2_TELEM_FIELD_VOLTAGE; }
+    if (currentMot != 0xFFFF) { t->current = currentMot; t->fields |= SRXL2_TELEM_FIELD_CURRENT; }
+    if (tempFet != 0xFFFF)    { t->temperatureFet = (int16_t)tempFet; t->fields |= SRXL2_TELEM_FIELD_TEMP_FET; }
+    if (tempBec != 0xFFFF)    { t->temperatureBec = (int16_t)tempBec; t->fields |= SRXL2_TELEM_FIELD_TEMP_BEC; }
     if (currentBec != 0xFF)   { t->currentBec = (uint16_t)currentBec * 10; } /* 100 mA -> 0.01 A */
     if (voltsBec != 0xFF)     { t->voltageBec = (uint16_t)voltsBec * 5; }    /* 0.05 V -> 0.01 V */
     if (throttle != 0xFF)     { t->throttlePercent = MIN((uint8_t)(throttle / 2), 100); }
@@ -577,7 +602,12 @@ static void srxl2HandleFrame(srxl2Esc_t *e, const uint8_t *buf, uint8_t len)
 
     switch (buf[1]) {
     case Handshake:
-        srxl2HandleHandshake(e, buf);
+        /* Length checked before the payload is read: a short frame that happens
+         * to carry a valid CRC would otherwise have its device ID and baud
+         * fields taken from whatever the receive buffer held last. */
+        if (len >= sizeof(Srxl2HandshakeFrame)) {
+            srxl2HandleHandshake(e, buf);
+        }
         break;
     case TelemetrySensorData:
         srxl2HandleTelemetry(e, buf, len);
@@ -813,7 +843,7 @@ void srxl2MotorSetTelemetryRate(srxl2TelemetryRate_e rate)
     /* Indexed by srxl2TelemetryRate_e. Each entry is how many 50 Hz control
      * frames pass between requests; the setting is named for what comes back,
      * which is roughly a ninth of what is asked for. */
-    static const uint8_t divisor[] = { 5, 2, 3, 10, 25 };
+    static const uint8_t divisor[] = { 5, 2, 3 };
 
     uint8_t every = (rate < ARRAYLEN(divisor)) ? divisor[rate] : SRXL2_TELEM_REQUEST_DEFAULT;
 
@@ -869,6 +899,18 @@ srxl2CalResult_e srxl2MotorCalibrationManual(srxl2CalPhase_e phase)
     const srxl2CalResult_e common = srxl2CalCommonChecks();
     if (common != SRXL2_CAL_ACCEPTED) {
         return (calLastResult = common);
+    }
+
+    /*
+     * The high phase commands full throttle, so it may not start against an ESC
+     * that already has power. The unattended sequence refuses this and the
+     * manual one did not, which left the more dangerous of the two - a person
+     * typing a command, rather than a wizard that walks them through it -
+     * without the guard. Boards that cannot sense the pack report it absent and
+     * are unaffected, which is the case this manual path exists for.
+     */
+    if (phase == SRXL2_CAL_HIGH_MANUAL && getBatteryState() != BATTERY_NOT_PRESENT) {
+        return (calLastResult = SRXL2_CAL_REJECT_BATTERY_PRESENT);
     }
 
     calPhase = phase;
@@ -979,8 +1021,10 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
 
     case SRXL2_POLLING:
         if (now - e->lastTxMs >= SRXL2_HANDSHAKE_INTERVAL_MS) {
-            /* Poll the default ESC ID. An ESC with a non-zero unit ID never
-             * announces itself, so without this it would never be found.
+            /* Walk the whole ESC range rather than only the default ID. An ESC
+             * with a non-zero unit ID never announces itself, so polling is the
+             * only way it could be found - and polling one address was not
+             * that, it was polling the one address that does announce.
              *
              * Every bus is polled at the same ID, which is not a collision: each
              * ESC is alone on its wire and hears only its own master.
@@ -994,7 +1038,11 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
              * exactly nothing. It announces six times in the 300 ms after reset
              * and is mute from then on. A board that reboots under a powered ESC
              * therefore never links, and no amount of asking changes that. */
-            srxl2SendHandshake(e, SRXL2_ESC_ID_FIRST, SRXL2_BAUD_BIT_400K);
+            srxl2SendHandshake(e, SRXL2_ESC_ID_FIRST + e->pollId, SRXL2_BAUD_BIT_400K);
+            e->pollId++;
+            if (SRXL2_ESC_ID_FIRST + e->pollId > SRXL2_ESC_ID_LAST) {
+                e->pollId = 0;
+            }
         }
         break;
 

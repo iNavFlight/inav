@@ -49,11 +49,24 @@
  */
 #define SRXL2_ESC_MAX_MOTORS        4
 
+/* Which measurements a telemetry frame actually carried. The wire has a "no
+ * data" code per field (0xFFFF, or 0xFF for the byte-sized ones), and a missing
+ * measurement must not reach a consumer as a confident zero: nothing downstream
+ * can tell 0.00 A meaning "idle" from 0.00 A meaning "this ESC does not report
+ * current". */
+typedef enum {
+    SRXL2_TELEM_FIELD_RPM      = (1 << 0),
+    SRXL2_TELEM_FIELD_VOLTAGE  = (1 << 1),
+    SRXL2_TELEM_FIELD_CURRENT  = (1 << 2),
+    SRXL2_TELEM_FIELD_TEMP_FET = (1 << 3),
+    SRXL2_TELEM_FIELD_TEMP_BEC = (1 << 4),
+} srxl2TelemetryField_e;
+
 /* Decoded ESC telemetry, from STRU_TELE_ESC (X-Bus sensor ID 0x20).
  * Units are INAV's, not the wire's: the wire sends 10 rpm, 0.01 V, 10 mA and
  * 0.1 degree steps, and this struct is already converted.
- * A field the ESC reports as "no data" (0xFFFF / 0xFF) is left at 0 and the
- * matching valid bit is cleared. */
+ * A field the ESC reports as "no data" is left at 0 and its bit in `fields` is
+ * clear; `valid` says only that a frame arrived and is recent. */
 typedef struct {
     uint32_t rpm;               /* electrical rpm */
     uint16_t voltage;           /* 0.01 V */
@@ -65,6 +78,7 @@ typedef struct {
     uint8_t  throttlePercent;   /* 0..100 */
     uint8_t  powerPercent;      /* 0..100 */
     uint32_t lastUpdateMs;
+    uint8_t  fields;            /* srxl2TelemetryField_e bits actually reported */
     bool     valid;
 } srxl2EscTelemetry_t;
 
@@ -169,6 +183,11 @@ void srxl2MotorSetReverseChannel(uint8_t channel1Based);
  * The reply shares the throttle wire, so this trades bus headroom against how
  * promptly rpm and voltage move - which only matters to the RPM filter,
  * everything else being a display.
+ *
+ * Nothing slower than 1 Hz is offered, and that is a link-liveness limit rather
+ * than a taste: the ESC only ever speaks when asked, so the request rate is also
+ * the rate at which the master learns the ESC is still there. See
+ * SRXL2_LINK_TIMEOUT_MS.
  */
 typedef enum {
     /* 1 Hz is first so that it is zero. The setting lives in a field appended to
@@ -178,8 +197,6 @@ typedef enum {
     SRXL2_TELEM_1HZ = 0,
     SRXL2_TELEM_3HZ,
     SRXL2_TELEM_2HZ,
-    SRXL2_TELEM_0_5HZ,
-    SRXL2_TELEM_0_2HZ,
 } srxl2TelemetryRate_e;
 
 void srxl2MotorSetTelemetryRate(srxl2TelemetryRate_e rate);
