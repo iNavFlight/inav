@@ -267,20 +267,41 @@ void impl_timerChCaptureCompareEnable(TCH_t * tch, bool enable)
 // lookupDMASourceTable
 static void impl_timerDMA_IRQHandler(DMA_t descriptor)
 {
-    if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
-        TCH_t * tch = (TCH_t *)descriptor->userParam;
+    TCH_t * tch = (TCH_t *)descriptor->userParam;
 
-        // In circular mode, let DMA keep running - don't disable the channel
-        if (tch->dmaState == TCH_DMA_CIRCULAR) {
-            DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
-            return;
+    if (tch->dmaState == TCH_DMA_CIRCULAR) {
+        // Let DMA keep running - don't disable the channel. HT/TC are only
+        // enabled here when a refill callback is registered (see
+        // impl_timerPWMSetDMACircular); non-refilling circular consumers
+        // never reach this branch.
+        if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_HTIF)) {
+            DMA_CLEAR_FLAG(descriptor, DMA_IT_HTIF);
+            if (tch->dmaRefillCallback) {
+                tch->dmaRefillCallback(tch, false);
+            }
         }
 
+        if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
+            DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
+            if (tch->dmaRefillCallback) {
+                tch->dmaRefillCallback(tch, true);
+            }
+        }
+
+        return;
+    }
+
+    if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
         tch->dmaState = TCH_DMA_IDLE;
         dma_channel_enable(tch->dma->ref,FALSE);
         tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], FALSE);
         DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
     }
+}
+
+void impl_timerPWMSetDMARefillCallback(TCH_t * tch, timerDmaRefillFn * callback)
+{
+    tch->dmaRefillCallback = callback;
 }
 
 bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
@@ -411,6 +432,13 @@ void impl_timerPWMStopDMA(TCH_t * tch)
 {
     tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], FALSE);
     dma_channel_enable(tch->dma->ref,FALSE);
+
+    // AT32: poll enable bit until channel is actually disabled
+    uint32_t timeout = 10000; // ~40us at 288MHz, well above worst-case disable latency
+    while (tch->dma->ref->ctrl_bit.chen && timeout--) {
+        __NOP();
+    }
+
     tch->dmaState = TCH_DMA_IDLE;
     tmr_counter_enable(tch->timHw->tim, TRUE);
 }
@@ -442,12 +470,20 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferS
         if (circular) {
             tch->dma->ref->ctrl_bit.lm = TRUE;
             dma_data_number_set(tch->dma->ref, dmaBufferSize);
-            // Disable TC interrupt — in circular mode, TC fires every cycle
-            // and the IRQ handler would otherwise disable the channel
-            dma_interrupt_enable(tch->dma->ref, DMA_IT_TCIF, FALSE);
+            if (tch->dmaRefillCallback) {
+                // Refill consumer needs an IRQ every half-cycle to keep the
+                // buffer fed
+                dma_interrupt_enable(tch->dma->ref, DMA_IT_HTIF, TRUE);
+                dma_interrupt_enable(tch->dma->ref, DMA_IT_TCIF, TRUE);
+            } else {
+                // Disable TC interrupt — in circular mode, TC fires every cycle
+                // and the IRQ handler would otherwise disable the channel
+                dma_interrupt_enable(tch->dma->ref, DMA_IT_TCIF, FALSE);
+            }
             tch->dmaState = TCH_DMA_CIRCULAR;
         } else {
             tch->dma->ref->ctrl_bit.lm = FALSE;
+            dma_interrupt_enable(tch->dma->ref, DMA_IT_HTIF, FALSE);
             dma_interrupt_enable(tch->dma->ref, DMA_IT_TCIF, TRUE);
             tch->dmaState = TCH_DMA_IDLE;
         }

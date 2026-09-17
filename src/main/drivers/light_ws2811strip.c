@@ -37,10 +37,14 @@
 
 #include "common/color.h"
 #include "common/colorconversion.h"
+#include "common/maths.h"
+#include "common/time.h"
 
 #include "drivers/dma.h"
 #include "drivers/io.h"
+#include "drivers/time.h"
 #include "drivers/timer.h"
+#include "drivers/timer_impl.h"
 #include "drivers/light_ws2811strip.h"
 
 #include "fc/runtime_config.h"
@@ -49,7 +53,20 @@
 #define WS2811_BIT_COMPARE_1 ((WS2811_PERIOD * 2) / 3)
 #define WS2811_BIT_COMPARE_0 (WS2811_PERIOD / 3)
 
-static DMA_RAM timerDMASafeType_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
+// Circular DMA buffer: 2 halves, 1 LED group each. ws2811DMARefillCallback
+// refills whichever half DMA just finished sending, so this only needs to
+// hold a couple of LEDs regardless of strip length.
+#define WS2811_LEDS_PER_GROUP 4
+#define WS2811_GROUP_BITS (WS2811_LEDS_PER_GROUP * WS2811_BITS_PER_LED)
+#define WS2811_CHUNK_BUFFER_SIZE (2 * WS2811_GROUP_BITS)
+
+// WS2812 reset/latch is a *minimum* low duration with no upper bound, so
+// this is a threshold to check against, not a preamble to budget for.
+#define WS2811_RESET_US 60
+
+// timerDMASafeType_t, not a narrower type: DMA writes to CCR must be
+// word-width on every supported platform.
+static DMA_RAM timerDMASafeType_t ledStripDMABuffer[WS2811_CHUNK_BUFFER_SIZE];
 
 static IO_t ws2811IO = IO_NONE;
 static TCH_t * ws2811TCH = NULL;
@@ -93,6 +110,8 @@ void setStripColors(const hsvColor_t *colors)
     }
 }
 
+static void ws2811DMARefillCallback(TCH_t * tch, bool transferComplete);
+
 bool ledConfigureDMA(void) {
     /* Compute the prescaler value */
     uint8_t period = WS2811_TIMER_HZ / WS2811_CARRIER_HZ;
@@ -100,8 +119,31 @@ bool ledConfigureDMA(void) {
     timerConfigBase(ws2811TCH, period, WS2811_TIMER_HZ);
     timerPWMConfigChannel(ws2811TCH, 0);
 
-    return timerPWMConfigChannelDMA(ws2811TCH, ledStripDMABuffer, sizeof(ledStripDMABuffer[0]), WS2811_DMA_BUFFER_SIZE);
+    return timerPWMConfigChannelDMA(ws2811TCH, ledStripDMABuffer, sizeof(ledStripDMABuffer[0]), WS2811_CHUNK_BUFFER_SIZE);
 }
+
+// Written from both task context and the DMA refill ISR (never truly
+// concurrently — the ISR only runs while a transfer is active, and task
+// context only touches these once it isn't — but volatile documents that
+// and guards against the compiler assuming otherwise).
+
+// Number of LEDs in the most recent transfer; bounds the DMA transfer (and
+// ws2811SetIdleHigh's target) to what's actually configured.
+static volatile uint16_t activeLedCount = WS2811_LED_STRIP_LENGTH;
+
+// groupInHalf[i]: group index currently in half i, so the refill callback
+// can tell when the group it just finished sending was the last one.
+static volatile uint16_t totalGroups;
+static volatile uint16_t nextGroupToAssign;
+static volatile uint16_t groupInHalf[2];
+
+// Shared between normal transfer completion and ws2811SetIdleHigh (PINIO).
+static volatile bool lineIdleLow = true;
+static volatile timeUs_t lastLowAtUs = 0;
+
+// Idle level PINIO last asked for; persists across transfers so
+// ws2811StopTransfer() knows what to restore the line to.
+static volatile bool idleHighRequested = false;
 
 void ws2811LedStripInit(void)
 {
@@ -120,6 +162,8 @@ void ws2811LedStripInit(void)
         return;
     }
 
+    impl_timerPWMSetDMARefillCallback(ws2811TCH, ws2811DMARefillCallback);
+
     ws2811IO = IOGetByTag(timHw->tag); //IOGetByTag(IO_TAG(WS2811_PIN));
     IOInit(ws2811IO, OWNER_LED_STRIP, RESOURCE_OUTPUT, 0);
     IOConfigGPIOAF(ws2811IO, IOCFG_AF_PP_FAST, timHw->alternateFunction);
@@ -132,9 +176,11 @@ void ws2811LedStripInit(void)
 
     // Zero out DMA buffer — LED pin idles LOW between WS2812 bursts
     memset(&ledStripDMABuffer, 0, sizeof(ledStripDMABuffer));
+    lineIdleLow = true;
+    lastLowAtUs = micros();
     ws2811Initialised = true;
 
-    ws2811UpdateStrip();
+    ws2811UpdateStrip(WS2811_LED_STRIP_LENGTH);
 }
 
 bool isWS2811LedStripReady(void)
@@ -142,55 +188,142 @@ bool isWS2811LedStripReady(void)
     return !timerPWMDMAInProgress(ws2811TCH);
 }
 
-STATIC_UNIT_TESTED uint16_t dmaBufferOffset;
-static int16_t ledIndex;
-
-STATIC_UNIT_TESTED void fastUpdateLEDDMABuffer(rgbColor24bpp_t *color)
+static void writeLedBits(timerDMASafeType_t *dest, const rgbColor24bpp_t *color)
 {
     uint32_t grb = (color->rgb.g << 16) | (color->rgb.r << 8) | (color->rgb.b);
 
     for (int8_t index = 23; index >= 0; index--) {
-        ledStripDMABuffer[WS2811_DELAY_BUFFER_LENGTH + dmaBufferOffset++] = (grb & (1 << index)) ? WS2811_BIT_COMPARE_1 : WS2811_BIT_COMPARE_0;
+        *dest++ = (grb & (1 << index)) ? WS2811_BIT_COMPARE_1 : WS2811_BIT_COMPARE_0;
     }
 }
 
-/*
- * This method is non-blocking unless an existing LED update is in progress.
- * it does not wait until all the LEDs have been updated, that happens in the background.
- */
-void ws2811UpdateStrip(void)
+// Slots at or beyond activeLedCount get a direct "off" write instead of a
+// color lookup, so a group is self-contained regardless of where the
+// configured strip actually ends.
+static void ws2811FillGroup(uint8_t halfIndex, uint16_t groupIndex)
 {
-    static rgbColor24bpp_t *rgb24;
+    timerDMASafeType_t *half = &ledStripDMABuffer[halfIndex * WS2811_GROUP_BITS];
+    uint16_t baseLed = groupIndex * WS2811_LEDS_PER_GROUP;
+
+    for (uint8_t slot = 0; slot < WS2811_LEDS_PER_GROUP; slot++) {
+        timerDMASafeType_t *dest = &half[slot * WS2811_BITS_PER_LED];
+        uint16_t ledIdx = baseLed + slot;
+
+        if (ledIdx < activeLedCount) {
+            writeLedBits(dest, hsvToRgb24(&ledColorBuffer[ledIdx]));
+        } else {
+            for (uint8_t bit = 0; bit < WS2811_BITS_PER_LED; bit++) {
+                dest[bit] = WS2811_BIT_COMPARE_0;
+            }
+        }
+    }
+}
+
+static void ws2811RefillHalf(uint8_t halfIndex)
+{
+    ws2811FillGroup(halfIndex, nextGroupToAssign);
+    groupInHalf[halfIndex] = nextGroupToAssign;
+    nextGroupToAssign++;
+}
+
+// CCR is preload/shadow-buffered, so the direct write below takes effect
+// cleanly at the next period boundary without needing further DMA. Restores
+// whatever idle level PINIO last asked for, rather than always going low —
+// a transfer finishing shouldn't silently override that.
+static void ws2811StopTransfer(void)
+{
+    timerPWMStopDMA(ws2811TCH);
+    if (idleHighRequested) {
+        *timerCCR(ws2811TCH) = 255;
+        lineIdleLow = false;
+    } else {
+        *timerCCR(ws2811TCH) = 0;
+        lineIdleLow = true;
+        lastLowAtUs = micros();
+    }
+}
+
+// transferComplete: true = half 1 just finished (DMA wrapped to half 0),
+// false = half 0 just finished (DMA moved on to half 1).
+static void ws2811DMARefillCallback(TCH_t * tch, bool transferComplete)
+{
+    (void)tch;
+
+    uint8_t finishedHalf = transferComplete ? 1 : 0;
+
+    // Bounds-check nextGroupToAssign itself, not just the group that just
+    // finished — the other half may already hold the true last group, so
+    // checking groupInHalf[finishedHalf] alone lags by one refill and can
+    // assign a group index past totalGroups-1.
+    if (nextGroupToAssign < totalGroups) {
+        ws2811RefillHalf(finishedHalf);
+    } else if (groupInHalf[finishedHalf] == totalGroups - 1) {
+        ws2811StopTransfer();
+    }
+}
+
+static void ws2811EnsureResetGap(void)
+{
+    // A gap before real data is always safe regardless of length — only a
+    // mid-frame gap (prevented by true circular DMA) risks looking like a
+    // premature reset — so usually this is just a compare, not a wait.
+    if (!lineIdleLow || cmpTimeUs(micros(), lastLowAtUs) < WS2811_RESET_US) {
+        *timerCCR(ws2811TCH) = 0;
+        lineIdleLow = true;
+        delayMicroseconds(WS2811_RESET_US);
+        lastLowAtUs = micros();
+    }
+}
+
+// Non-blocking except when the line was left idle-high by PINIO or updates
+// are requested faster than the reset window allows. LEDs are transmitted
+// in the background via the DMA refill callback.
+void ws2811UpdateStrip(uint16_t usedLedCount)
+{
+    if (!ws2811Initialised || !ws2811TCH) {
+        return;
+    }
 
     // don't wait - risk of infinite block, just get an update next time round
     if (timerPWMDMAInProgress(ws2811TCH)) {
         return;
     }
 
-    dmaBufferOffset = 0;                // reset buffer memory index
-    ledIndex = 0;                       // reset led index
-
-    // fill transmit buffer with correct compare values to achieve
-    // correct pulse widths according to color values
-    while (ledIndex < WS2811_LED_STRIP_LENGTH)
-    {
-        rgb24 = hsvToRgb24(&ledColorBuffer[ledIndex]);
-        fastUpdateLEDDMABuffer(rgb24);
-        ledIndex++;
-    }
-
-    // Initiate hardware transfer
-    if (!ws2811Initialised || !ws2811TCH) {
+    activeLedCount = MIN(usedLedCount, (uint16_t)WS2811_LED_STRIP_LENGTH);
+    if (activeLedCount == 0) {
         return;
     }
 
-    timerPWMPrepareDMA(ws2811TCH, WS2811_DMA_BUFFER_SIZE);
-    timerPWMStartDMA(ws2811TCH);
+    ws2811EnsureResetGap();
+
+    totalGroups = (activeLedCount + WS2811_LEDS_PER_GROUP - 1) / WS2811_LEDS_PER_GROUP;
+    nextGroupToAssign = 0;
+    ws2811RefillHalf(0);
+    ws2811RefillHalf(1);
+
+    impl_timerPWMSetDMACircular(ws2811TCH, true, WS2811_CHUNK_BUFFER_SIZE);
 }
 
 void ws2811SetIdleHigh(bool high)
 {
-    ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE - 1] = high ? 255 : 0;
+    idleHighRequested = high;  // record even if not initialised yet
+
+    if (!ws2811Initialised || !ws2811TCH) {
+        return;
+    }
+
+    // DMA drives CCR directly during an active transfer; don't race it with
+    // a CPU write here. ws2811StopTransfer() applies idleHighRequested once
+    // the in-flight transfer finishes.
+    if (timerPWMDMAInProgress(ws2811TCH)) {
+        return;
+    }
+
+    lineIdleLow = !high;
+    *timerCCR(ws2811TCH) = high ? 255 : 0;
+    if (!high) {
+        lastLowAtUs = micros();
+    }
 }
 
 #endif
