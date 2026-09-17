@@ -16,19 +16,14 @@
  */
 
 /*
- * SRXL2 bus master for Spektrum Smart ESCs ("Smart Throttle").
+ * SRXL2 bus master for Spektrum Smart ESCs ("Smart Throttle"), following
+ * "Specification for Spektrum SRXL2" Rev K (https://github.com/SpektrumRC/SRXL2).
+ * Packet structures come from rx/srxl2_types.h, shared with the receiver side.
  *
- * Wire format and session handling follow "Specification for Spektrum SRXL2",
- * Rev K (https://github.com/SpektrumRC/SRXL2). Packet structures are the ones
- * INAV already carries in rx/srxl2_types.h for the receiver side, so both ends
- * of the protocol share a single definition.
- *
- * The specification describes the bus; it says nothing about any particular ESC.
- * Everything an individual ESC decides for itself - which channel it reads as
- * throttle, how an auxiliary channel arms reverse, whether it offers 400000 baud
- * - is deliberately confined to the named constants and the reverse-channel
- * setter below, so the places that need confirming against real hardware are
- * countable rather than scattered.
+ * The specification describes the bus and says nothing about any particular ESC.
+ * What an ESC decides for itself is kept to the named constants and the
+ * reverse-channel setter below, so what needs confirming against real hardware
+ * is countable. docs/Spektrum Smart ESC.md has the bench measurements.
  */
 
 #include <stdbool.h>
@@ -76,188 +71,84 @@
 #define SRXL2_ESC_ID_FIRST          0x40
 #define SRXL2_ESC_ID_LAST           0x4F
 
-/*
- * Our own device ID: flight controller type, unit ID 1.
- *
- * Not unit 0. Specification 7.1.1: a device whose lower nibble is 0 announces
- * itself with an unprompted handshake at startup. That behaviour belongs to the
- * slave, and a bus master that announced itself would both collide with the
- * ESC's own announcements and break the silence the next comment describes.
- */
+// Flight controller type, unit ID 1. Not unit 0: specification 7.1.1 has a device whose
+// lower nibble is 0 announce itself unprompted, which is the slave's behaviour, and a
+// master doing it would collide with the ESC's own announcements
 #define SRXL2_OUR_DEVICE_ID         0x31
 
-/*
- * The bus arbitrates who is master by device ID, lowest wins: a device that sees
- * a handshake from a lower ID stands down. We never implement that side of it,
- * because this port is a dedicated link to an ESC rather than a shared bus, and
- * an ESC at 0x40 cannot outrank 0x31. Worth knowing before anyone wires a
- * Spektrum receiver onto the same pin, where it would be master at 0x21 and this
- * driver would be wrong to keep polling.
- */
+// The bus picks its master by lowest device ID and we never implement standing down, since
+// this port is a dedicated link to one ESC, which cannot outrank us from 0x40. It would be
+// wrong on a bus shared with a Spektrum receiver, which is master at 0x21
 
-/*
- * Control Data commands.
- *
- * The protocol also has a failsafe channel-data command, 0x01, which a receiver
- * sends when its RF link is gone so each device applies its own failsafe. This
- * driver never sends it, and that is deliberate.
- *
- * On this bus the master is the flight controller and there is no RF link: the
- * link is a wire. INAV owns failsafe, and it handles it by substituting channel
- * values and continuing to fly - LAND and RTH actively command the motors all the
- * way down. Telling the ESC the link had failed would hand throttle authority to
- * the ESC's own behaviour in the middle of INAV's landing, which is the opposite
- * of helpful.
- *
- * What does protect against this wire dying is the ESC's own receive timeout,
- * which needs no cooperation from us: if the flight controller stops sending, the
- * ESC falls back on its own, and that is the case where its failsafe is the right
- * authority.
- */
+// The protocol's failsafe channel-data command, 0x01, is deliberately never sent: INAV owns
+// failsafe and keeps commanding the motors all the way down, so handing throttle authority
+// to the ESC mid-landing would be the opposite of helpful. A dead wire is covered by the
+// ESC's own receive timeout, which needs nothing from us
 #define SRXL2_CMD_CHANNEL_DATA      0x00
 
 /* Reply ID 0x00 means "no reply wanted" (specification 7.1.1). */
 #define SRXL2_REPLY_NONE            0x00
 
-/*
- * The frame carries the throttle, and the reverse channel when one is
- * configured. Nothing else: the ESC reads CH1 for throttle and the channel its
- * own Thrust Rev. parameter names, and has no use for the rest.
- *
- * An earlier version sent a block of eight, on the strength of a bench session
- * where one channel gave 0.0 % and eight gave 30 % - read at the time as "an
- * Avian will not arm from a single-channel frame". That reading was confounded:
- * the two runs also asked for telemetry at different rates, and the rate was
- * what mattered. Rerun with the request rate held fixed, masks of one, two
- * adjacent, two spread, four and eight channels all gave the same 14.0 % and the
- * same 6610 rpm from the same 1250 us command; rerun asking on every frame, all
- * five gave 0.0 %, the single-channel mask included. See SRXL2_TELEM_REQUEST_MIN
- * for what that rate does.
- *
- * Two channels rather than eight is twelve bytes a frame less on a wire the
- * telemetry reply has to share.
- */
+// The frame carries the throttle and, when configured, the reverse channel. Nothing else:
+// the ESC reads CH1 and the channel its own Thrust Rev. parameter names. How many channels
+// the mask holds makes no difference to the ESC, measured from one to eight; the telemetry
+// request rate does, see SRXL2_TELEM_REQUEST_MIN
 
 /* X-Bus telemetry sensor IDs */
 #define SRXL2_TELEM_SENSOR_ESC      0x20
 
-/*
- * Specification 7.2.1: an ESC with unit ID 0 repeats an unprompted handshake
- * every 50 ms for the first 200 ms after reset. Stay silent for slightly longer
- * than that so the common case is discovered without contending with those
- * announcements, then start polling - an ESC configured with a non-zero unit ID
- * never announces itself and would otherwise never be found.
- */
+// Specification 7.2.1: an ESC with unit ID 0 repeats an unprompted handshake every 50 ms
+// for the first 200 ms after reset, so listen a little longer than that before polling. An
+// ESC with a non-zero unit ID never announces itself and would otherwise never be found
 #define SRXL2_LISTEN_WINDOW_MS      250
 #define SRXL2_HANDSHAKE_INTERVAL_MS 50
 
-/*
- * Rate at which Control Data goes out once the link is up.
- *
- * Not the motor update rate. The specification has the master emit one Control
- * Data packet at the rate RF frames arrive, which is tens of hertz, and an ESC
- * is not expecting kilohertz. 115200 baud would not carry it either: an
- * eighteen-byte frame is about 1.6 ms on the wire.
- */
+// Rate at which Control Data goes out once the link is up, which is not the motor update
+// rate: the specification has the master emit one packet per RF frame, tens of hertz. 115200
+// baud would not carry more anyway, an eighteen-byte frame being about 1.6 ms on the wire
 #define SRXL2_CONTROL_INTERVAL_MS   20      /* 50 Hz */
 
-/*
- * Ask for telemetry on every Nth Control Data packet rather than on all of them.
- * Telemetry is a reply, so requesting it every frame doubles bus occupancy and
- * forces a half-duplex turnaround each time, for values that change slowly.
- * Every fifth frame at 50 Hz asks ten times a second, which reaches the flight
- * controller as about 1.1 ESC readings a second once the ESC's own sensor
- * rotation is accounted for.
- */
+// Ask for telemetry every Nth Control Data packet: a reply forces a half-duplex turnaround
+// for values that change slowly. Every fifth frame at 50 Hz asks ten times a second, which
+// arrives as about 1.1 ESC readings a second once the ESC's own sensor rotation is counted
 #define SRXL2_TELEM_REQUEST_DEFAULT 5
 
-/*
- * Never ask on every frame. An Avian keeps the link up when asked at 50 Hz - it
- * answers, and its telemetry is correct - but it stops obeying the throttle and
- * reports zero per cent from every stick position. Dropping back to every second
- * frame restores it immediately, without a power cycle. Measured repeatedly on an
- * Avian 70A, against a fixed 1250 us command: every 2nd, 3rd and 4th frame all
- * gave 14 % and about 6600 rpm, every frame gave nothing at all.
- */
+// Never ask on every frame. An Avian asked at 50 Hz answers, and its telemetry is correct,
+// but it stops obeying the throttle and reports zero per cent from every stick position.
+// Every 2nd, 3rd and 4th frame all behave, and dropping back recovers it without a power
+// cycle. Measured on an Avian 70A against a fixed 1250 us command
 #define SRXL2_TELEM_REQUEST_MIN     2
 
-/*
- * Declare the link dead if the ESC stops answering for this long.
- *
- * This is the reason the telemetry table stops at one request every five frames.
- * An Avian never speaks unprompted once it is running, so the only thing that
- * refreshes this timer is a telemetry reply, and a request rate slower than the
- * timeout disconnects a healthy ESC on schedule. Measured, it answers about two
- * requests in three, so the margin has to cover consecutive misses as well:
- * every fifth frame is a request every 100 ms and a reply typically every 150,
- * so three misses in a row still land inside this window.
- *
- * Losing the link is not a recoverable event on this hardware - a running Avian
- * answers no discovery of any kind - so a timeout that can fire on a healthy
- * link would mean a motor that stops and cannot be brought back without
- * removing power.
- */
+// Declare the link dead if the ESC stops answering for this long. A running Avian never
+// speaks unprompted, so only a telemetry reply refreshes this timer and a request rate
+// slower than the timeout would disconnect a healthy ESC on schedule. It answers about two
+// requests in three, so the margin also has to cover consecutive misses. This is why the
+// telemetry rate table stops at one request every five frames
 #define SRXL2_LINK_TIMEOUT_MS       500
 
-/*
- * How long after the link comes up the ESC is actually ready to turn the motor.
- *
- * An Avian announces itself within 300 ms of gaining power, but it is not
- * finished: it plays its startup tones for about five seconds afterwards, and
- * only once the last of them - the one a pilot hears as "connected" - has
- * sounded will it drive the motor. Timed on the bench against the tones
- * themselves, with the announcement as the zero.
- *
- * Six and a half seconds puts the flight controller comfortably past that, and
- * a motor commanded on that boundary spins up cleanly. Arming waits for it
- * rather than for the handshake alone, which costs nothing where a person
- * powers the aircraft and then arms it: nobody arms that soon after connecting
- * the battery.
- */
+// How long after the link comes up before the ESC will actually turn the motor. An Avian
+// announces itself within 300 ms of gaining power but then plays its startup tones for about
+// five seconds, and only drives the motor once the last of them has sounded. Timed on the
+// bench against the tones. Arming waits for this rather than for the handshake alone, which
+// costs nothing: nobody arms that soon after connecting the battery
 #define SRXL2_READY_DELAY_MS        6500
 
-/*
- * Telemetry older than this is reported as stale rather than current.
- *
- * Generous compared with the link timeout on purpose. The ESC rotates its reply
- * between three sensors and answers about two requests in three, so at the
- * default rate its own readings arrive about once a second even though the link
- * is being exercised ten times as often: a one-second window made a healthy
- * sensor flicker between valid and absent. What notices an ESC that has actually
- * stopped is SRXL2_LINK_TIMEOUT_MS, which invalidates the reading anyway.
- */
+// Telemetry older than this reads as stale. Generous next to the link timeout on purpose:
+// the ESC rotates its reply between three sensors, so its own readings arrive about once a
+// second and a tighter window made a healthy sensor flicker. An ESC that has actually
+// stopped is caught by SRXL2_LINK_TIMEOUT_MS, which invalidates the reading anyway
 #define SRXL2_TELEM_STALE_MS        3000
 
-/*
- * Calibration phases end themselves. The high phase has to outlast a human
- * reaching for a battery lead; the low phase only has to outlast the ESC's
- * cell-count tones. Neither may persist, because one of them commands full
- * throttle.
- */
+// Calibration phases end themselves: the high one has to outlast a person reaching for a
+// battery lead, the low one only the ESC's tones. Neither may persist, one is full throttle
 #define SRXL2_CAL_WAIT_TIMEOUT_MS   60000   /* time to walk over and plug the battery in */
 #define SRXL2_CAL_MANUAL_TIMEOUT_MS 30000
 
-/*
- * How long to keep holding full throttle after the ESC gains power, and then how
- * long to hold minimum.
- *
- * These were three and five seconds, read off the published tone timings: the
- * manual's window opens at the two short tones and lasts five, and the tones
- * follow power-up by a second or so. Measured against an Avian 70 A, that is not
- * enough. The same ESC, calibrated twice in a row from the same state:
- *
- *   3 s high, 5 s low - the ESC sounds its tones and stores nothing. Throttle
- *       still ignored below channel value 12220, saturated from 50820, so 41 %
- *       of the range does nothing and the stick reaches full power at 78 %.
- *   4 s high, 7 s low - stored. Responds from 2687 and saturates at 64307,
- *       94 % of the channel used, and the throttle it reports back tracks the
- *       throttle commanded to within a point across the whole range: 1050 us
- *       gives 5 %, 1500 gives 50 %, 2000 gives 100 %.
- *
- * So the extra second either side is what lands inside the window rather than
- * on its edge. They cost nothing - the sequence runs once, on a bench, with the
- * propeller off.
- */
+// How long to hold full throttle after the ESC gains power, then how long to hold minimum.
+// The published tone timings suggest three and five seconds; measured on an Avian 70A that
+// lands on the edge of the window and stores nothing, while four and seven store every time.
+// The extra second either side costs nothing: the sequence runs once, on a bench, with the
+// propeller off. docs/Spektrum Smart ESC.md has the before and after figures
 #define SRXL2_CAL_SETTLE_MS         4000
 
 /* Long enough for the cell-count tones and the closing long tone. */
@@ -267,37 +158,24 @@
 #define SRXL2_CAL_HIGH_US           2000
 #define SRXL2_CAL_LOW_US            1000
 
-/*
- * Channel value scaling, the exact inverse of what rx/srxl2.c applies when it
- * decodes channel data: us = 988 + (value >> 6). 1500 us therefore maps onto
- * 0x8000, which the specification calls "Servo Center", and the shift leaves the
- * low two bits clear as the specification requires.
- *
- * This deliberately does not reach the ends of the 0..65532 range: 1000 us lands
- * on 768 and 2000 us on 64768, because a Spektrum receiver's full travel decodes
- * to 988..2012 us rather than 1000..2000. That is the point - it makes us look
- * like a receiver, which is what the ESC was calibrated against.
- *
- * Spektrum ESCs learn their endpoints from the signal during the ESC/Radio
- * calibration in their manual, and INAV cannot perform that procedure: it wants
- * full throttle present when the battery is connected, and INAV outputs
- * mincommand while disarmed. So the calibration is done with a Spektrum
- * transmitter, or left at the factory default, and the range the ESC remembers
- * is a receiver's. Matching it is why this scaling is the right one.
- *
- * The cost is about 1.2 percent of travel at the top. That is the better half of
- * the trade, because the alternative - stretching 1000..2000 us across the full
- * range - moves the centre, and the centre is where an ESC in Reverse brake mode
- * takes zero thrust. A slightly low maximum is a worse throttle curve; a
- * misplaced centre is creeping thrust at neutral.
- */
+// Channel value scaling, the exact inverse of what rx/srxl2.c applies when it decodes:
+// us = 988 + (value >> 6). 1500 us lands on 0x8000, which the specification calls Servo
+// Center, and the shift leaves the low two bits clear as it requires. It deliberately stops
+// short of the ends of the 0..65532 range, because a Spektrum receiver's full travel decodes
+// to 988..2012 us, and looking like a receiver is what an ESC's stored endpoints expect.
+// The 1.2 % of travel this costs at the top beats stretching 1000..2000 over the full range,
+// which would move the centre, and the centre is where Reverse brake mode takes no thrust
 #define SRXL2_PULSE_OFFSET_US       988
 #define SRXL2_PULSE_SHIFT           6
 #define SRXL2_VALUE_MAX             0xFFFC  /* specification caps values here */
 
-/* Throttle is channel index 0 by Spektrum convention. Unverified against an
- * actual ESC: this is one of the constants to confirm on a bench. */
+// Throttle is channel index 0 by Spektrum convention, confirmed against an Avian 70A
 #define SRXL2_CHANNEL_THROTTLE      0
+
+// How many channels the driver keeps values for. The wire's mask is 32 bits wide, but only
+// the throttle and the reverse channel are ever written, and esc_srxl2_reverse_channel
+// cannot name anything above 9
+#define SRXL2_CHANNEL_COUNT         10
 
 /*---------------------------------------------------------------------------
  * State
@@ -311,14 +189,9 @@ typedef enum {
     SRXL2_RUNNING,
 } srxl2State_e;
 
-/*
- * One of these per ESC.
- *
- * Each instance is an independent bus with its own handshake, baud negotiation,
- * receive framing and telemetry. Nothing is shared between them except our own
- * device ID, which is allowed precisely because they are separate buses and
- * never hear each other.
- */
+// One per ESC. Each is an independent bus with its own handshake, baud negotiation, framing
+// and telemetry; nothing is shared but our own device ID, which is safe precisely because
+// the buses never hear each other
 typedef struct {
     serialPort_t  *port;
     srxl2State_e   state;
@@ -339,7 +212,7 @@ typedef struct {
     uint8_t   agreedBaudBits;
     bool      baudSwitchPending;        /* waiting for TX to drain */
 
-    uint16_t  channelValue[32];
+    uint16_t  channelValue[SRXL2_CHANNEL_COUNT];
     uint32_t  channelMask;
     uint8_t   telemRequestCounter;
 
@@ -354,11 +227,8 @@ static uint8_t    escCount;                 /* ports successfully opened */
 /* Shared, because these describe the aircraft rather than one bus. */
 static uint8_t   reverseChannel1Based = 7;  /* Spektrum ship "Thrust Rev." on CH7 */
 
-/*
- * Control frames between telemetry requests. The control interval is 20 ms, so a
- * divisor of 5 asks at 10 Hz. Held as a divisor rather than a rate because that is
- * what the transmit path actually counts.
- */
+// Control frames between telemetry requests: at a 20 ms interval, 5 asks at 10 Hz. Held as
+// a divisor rather than a rate because that is what the transmit path counts
 static uint8_t   telemRequestEvery = SRXL2_TELEM_REQUEST_DEFAULT;
 
 static srxl2CalPhase_e calPhase = SRXL2_CAL_OFF;
@@ -386,12 +256,8 @@ static inline uint16_t be16(const uint8_t *p)
 
 static bool srxl2ReverseChannelUsable(uint8_t channel1Based);
 
-/*
- * Which channels this frame carries: the throttle, plus the reverse channel when
- * one is configured. Rebuilt rather than accumulated, so the frame does not
- * change shape depending on what has been called since power-up - and so that
- * clearing the reverse channel actually stops sending it.
- */
+// Rebuilt rather than accumulated, so the frame does not change shape depending on what has
+// been called since power-up, and so that clearing the reverse channel stops sending it
 static void srxl2BuildChannelMask(srxl2Esc_t *e)
 {
     uint32_t mask = 1u << SRXL2_CHANNEL_THROTTLE;
@@ -407,11 +273,8 @@ static void srxl2SetState(srxl2Esc_t *e, srxl2State_e next)
     e->stateEnteredMs = millis();
 }
 
-/*
- * Handshakes seen across every bus. The calibration watches this to notice an
- * ESC gaining power, and with more than one ESC the first to speak is signal
- * enough - they are all being powered from the same pack.
- */
+// Handshakes seen across every bus. The calibration watches this to notice an ESC gaining
+// power, and the first to speak is signal enough: they all share a pack
 static uint32_t srxl2TotalHandshakes(void)
 {
     uint32_t total = 0;
@@ -421,20 +284,11 @@ static uint32_t srxl2TotalHandshakes(void)
     return total;
 }
 
-/*
- * Append the CRC and push the frame. buf[2] must already hold the frame length
- * as the specification's framing requires.
- *
- * Returns false when the frame did not go out, which the caller has to care
- * about for the one frame where it matters. A port that has backed up - a slow
- * link, a stalled DMA - drops whatever does not fit, and for Control Data that
- * is of no consequence, since another follows in 20 ms and the ESC tolerates
- * 250 ms of silence. For the broadcast that moves the bus to a new rate it is
- * the difference between a working link and a dead one: raise the rate having
- * only believed that frame was sent, and the ESC is left behind at the old rate
- * with no way back short of a power cycle. That failure has been seen on real
- * hardware, and it is not recoverable in flight.
- */
+// Append the CRC and push the frame; buf[2] must already hold the length. Returns false when
+// the frame did not go out, which matters for one frame only: a dropped Control Data is of
+// no consequence, another follows in 20 ms, but raising the baud rate while only believing
+// the broadcast was sent leaves the ESC behind at the old rate with no way back short of a
+// power cycle. Seen on real hardware, and not recoverable in flight
 static bool srxl2SendFrame(srxl2Esc_t *e, uint8_t *buf, uint8_t len)
 {
     if (!e->port || len < SRXL2_MIN_FRAME || len > SRXL2_MAX_FRAME) {
@@ -548,23 +402,11 @@ static void srxl2HandleHandshake(srxl2Esc_t *e, const uint8_t *buf)
         return;
     }
 
-    /*
-     * The negotiation is entered once, and only from the states that are still
-     * looking for an ESC. Re-entering it on every handshake that arrives is a trap:
-     * our own finalise broadcasts, the slave answers the broadcast with a
-     * handshake, and if that answer restarts the sequence the two ping-pong
-     * handshakes indefinitely. Two ways that bites -
-     *
-     *   - control data is sent on a timer reset on entering RUNNING, so a bus
-     *     looping back through FINALISING never reaches the first control frame:
-     *     the link looks established and the motor never turns;
-     *   - each restart queues another broadcast, so on a slow or busy port the
-     *     transmit buffer never drains and the bus never leaves FINALISING at all.
-     *
-     * A slave that genuinely reset is not missed by this. It comes back at 115200
-     * while we are at 400000, so nothing it says is intelligible, and the link
-     * timeout drops us to POLLING at the low rate to find it again.
-     */
+    // Enter the negotiation once, and only from the states still looking for an ESC.
+    // Restarting it on every handshake makes the two ends ping-pong: our broadcast draws a
+    // handshake, which would restart the sequence, and a bus looping through FINALISING
+    // never reaches its first control frame. A slave that genuinely reset is not missed,
+    // since it comes back at 115200 and the link timeout drops us to POLLING to find it
     if (e->state == SRXL2_FINALISING || e->state == SRXL2_RUNNING) {
         /* Still answer a running ESC, so it knows the master is there - but say
          * nothing mid-negotiation, where another broadcast is what causes the
@@ -578,19 +420,13 @@ static void srxl2HandleHandshake(srxl2Esc_t *e, const uint8_t *buf)
     e->deviceId = src;
     e->baudSupported = f->payload.baudSupported;
 
-    /* Counted here rather than on every handshake frame, so it means "a
-     * negotiation started" and not merely "a handshake went past". The
-     * calibration uses it as the signal that an ESC has just gained power, and a
-     * running ESC answering our keepalive is not that. */
+    // Counted here rather than on every handshake, so it means "a negotiation started". The
+    // calibration reads it as an ESC gaining power, which a keepalive answer is not
     e->statHandshakes++;
 
-    /* Answer the slave so it knows who the master is, then finalise.
-     *
-     * This also covers the ESC being powered after the flight controller, which is
-     * the normal case on a bench: the board comes up on USB and the ESC only boots
-     * when the battery goes in, long after the listen window closed. By then we are
-     * in POLLING, which is one of the states that accepts a handshake, so the ESC
-     * is still found. */
+    // Answer the slave so it knows who the master is, then finalise. This also covers the
+    // ESC being powered after the flight controller, the normal case on a bench: by then we
+    // are in POLLING, which accepts a handshake, so the ESC is still found
     srxl2SendHandshake(e, e->deviceId, SRXL2_BAUD_BIT_400K);
     srxl2Finalise(e);
 }
@@ -701,16 +537,9 @@ static void srxl2SendControlData(srxl2Esc_t *e)
     buf[n++] = SRXL2_CMD_CHANNEL_DATA;
     buf[n++] = replyId;
 
-    /*
-     * RSSI has to read as a healthy link, even though we are not an RF device.
-     * This is not a guess: Spektrum's own receiver code treats a received zero
-     * as loss of link -
-     *
-     *     if (channelData->rssi == 0) { globalResult = RX_FRAME_FAILSAFE; }
-     *
-     * - so sending 0 would be telling the ESC that the link is gone on every
-     * frame.
-     */
+    // RSSI has to read as a healthy link even though we are not an RF device: Spektrum's own
+    // receiver code takes a received zero as loss of link, so sending 0 would announce a
+    // failed link on every frame
     buf[n++] = 100;
     buf[n++] = 0;                       /* frameLosses low */
     buf[n++] = 0;                       /* frameLosses high */
@@ -720,19 +549,11 @@ static void srxl2SendControlData(srxl2Esc_t *e)
     buf[n++] = (uint8_t)((e->channelMask >> 16) & 0xFF);
     buf[n++] = (uint8_t)((e->channelMask >> 24) & 0xFF);
 
-    /*
-     * A contiguous block, little-endian, lowest index first. The channels this
-     * driver has nothing to say on are filled, and filled at their **minimum**.
-     *
-     * Never at centre. That is reasonable for a surface ESC, where centre means
-     * stopped, and dangerous for an aircraft one, where 1500 us is half
-     * throttle: were the ESC to read throttle on an index other than the one
-     * expected, centred padding would spin the motor at half power while
-     * minimum padding leaves it idle. Wrong guess, safe outcome - which is the
-     * same reasoning that used to argue for sending nothing at all, before an
-     * ESC made it clear that sending nothing means never arming.
-     */
-    for (uint8_t ch = 0; ch < 32; ch++) {
+    // A contiguous block, little-endian, lowest index first. Channels the driver has nothing
+    // to say on are padded at their minimum and never at centre: on an aircraft ESC 1500 us
+    // is half throttle, so if the ESC read throttle on an unexpected index, centred padding
+    // would spin the motor while minimum padding leaves it idle
+    for (uint8_t ch = 0; ch < SRXL2_CHANNEL_COUNT; ch++) {
         if (e->channelMask & (1u << ch)) {
             buf[n++] = (uint8_t)(e->channelValue[ch] & 0xFF);
             buf[n++] = (uint8_t)(e->channelValue[ch] >> 8);
@@ -753,13 +574,9 @@ bool srxl2MotorInitialize(void)
     memset(esc, 0, sizeof(esc));
     escCount = 0;
 
-    /*
-     * One ESC per port, so open every port that was assigned the function, up to
-     * the array size. The enumeration follows serialConfig's port order, which is
-     * UART order, so motor 1 is the lowest-numbered assigned UART, motor 2 the
-     * next, and so on. That is the only mapping available: nothing on an SRXL2
-     * bus says which motor an ESC drives, so the wiring order has to carry it.
-     */
+    // One ESC per port, so open every port assigned the function. The enumeration follows
+    // UART order, so motor 1 is the lowest-numbered assigned UART: nothing on an SRXL2 bus
+    // says which motor an ESC drives, so the wiring order has to carry it
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_ESC_SRXL2);
 
     while (portConfig && escCount < SRXL2_ESC_MAX_MOTORS) {
@@ -774,7 +591,7 @@ bool srxl2MotorInitialize(void)
             /* Every channel starts at its lowest value rather than zero, so the
              * first frame after a handshake cannot be read as something
              * unexpected whichever index the ESC happens to care about. */
-            for (uint8_t ch = 0; ch < 32; ch++) {
+            for (uint8_t ch = 0; ch < SRXL2_CHANNEL_COUNT; ch++) {
                 e->channelValue[ch] = srxl2UsToValue(1000);
             }
             srxl2BuildChannelMask(e);
@@ -806,25 +623,14 @@ void srxl2MotorUpdate(uint8_t index, uint16_t value)
     esc[index].channelValue[SRXL2_CHANNEL_THROTTLE] = srxl2UsToValue(value);
 }
 
-/*
- * Whether a configured reverse channel can actually be used.
- *
- * Zero means the model has no reverse. Anything that would land on the throttle
- * channel is refused outright: srxl2MotorSetReverse() runs at task rate and
- * writes its channel unconditionally, so a reverse channel aliased onto the
- * throttle would overwrite the mixer's staged throttle several hundred times a
- * second - holding the motor at idle whenever reverse was released, and
- * commanding full throttle whenever it was armed. The setting's own range
- * (0..9) cannot express "zero, or five to nine", so the check belongs here.
- *
- * The upper bound is the width of the channel array and of the wire's mask.
- * Spektrum documents Smart ESC reverse as available on channels 5 to 9 only, but
- * that is the ESC's restriction rather than the protocol's, so it is enforced by
- * the setting and the Configurator rather than refused here.
- */
+// Whether a configured reverse channel can be used. Zero means the model has no reverse, and
+// anything landing on the throttle channel is refused: srxl2MotorSetReverse() writes its
+// channel unconditionally at task rate, so an aliased one would overwrite the staged throttle
+// hundreds of times a second. The setting's own range cannot express the hole, so the check
+// belongs here; the upper bound is the width of the channel array
 static bool srxl2ReverseChannelUsable(uint8_t channel1Based)
 {
-    if (channel1Based == 0 || channel1Based > 32) {
+    if (channel1Based == 0 || channel1Based > SRXL2_CHANNEL_COUNT) {
         return false;
     }
     return (channel1Based - 1) != SRXL2_CHANNEL_THROTTLE;
@@ -919,14 +725,9 @@ srxl2CalResult_e srxl2MotorCalibrationManual(srxl2CalPhase_e phase)
         return (calLastResult = common);
     }
 
-    /*
-     * The high phase commands full throttle, so it may not start against an ESC
-     * that already has power. The unattended sequence refuses this and the
-     * manual one did not, which left the more dangerous of the two - a person
-     * typing a command, rather than a wizard that walks them through it -
-     * without the guard. Boards that cannot sense the pack report it absent and
-     * are unaffected, which is the case this manual path exists for.
-     */
+    // The high phase commands full throttle, so it may not start against an ESC that already
+    // has power. Boards that cannot sense the pack report it absent and are unaffected, which
+    // is the case this manual path exists for
     if (phase == SRXL2_CAL_HIGH_MANUAL && getBatteryState() != BATTERY_NOT_PRESENT) {
         return (calLastResult = SRXL2_CAL_REJECT_BATTERY_PRESENT);
     }
@@ -968,14 +769,10 @@ static void srxl2CalProcess(timeMs_t now)
 
     switch (calPhase) {
     case SRXL2_CAL_WAIT_BATTERY:
-        /*
-         * What opens the window is the ESC *gaining* power, which is an event, so
-         * both signals have to be events too: the pack appearing, or a fresh
-         * handshake arriving on any bus. An earlier version tested
-         * escDeviceId != 0, which is persistent state left over from the last
-         * time the ESC was seen, so the wait was skipped outright on any board
-         * that had already talked to its ESC once.
-         */
+        // What opens the window is the ESC gaining power, which is an event, so both signals
+        // have to be events too: the pack appearing, or a fresh handshake on any bus. A test
+        // on persistent state instead would skip the wait on any board that had already
+        // talked to its ESC once
         if (getBatteryState() != BATTERY_NOT_PRESENT || srxl2TotalHandshakes() != calHandshakeMark) {
             calPhase = SRXL2_CAL_SETTLE;
             calPhaseMs = now;
@@ -1039,23 +836,13 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
 
     case SRXL2_POLLING:
         if (now - e->lastTxMs >= SRXL2_HANDSHAKE_INTERVAL_MS) {
-            /* Walk the whole ESC range rather than only the default ID. An ESC
-             * with a non-zero unit ID never announces itself, so polling is the
-             * only way it could be found - and polling one address was not
-             * that, it was polling the one address that does announce.
-             *
-             * Every bus is polled at the same ID, which is not a collision: each
-             * ESC is alone on its wire and hears only its own master.
-             *
-             * What finds an Avian is not this, though: it is the ESC's own
-             * announcement at power-up, caught here because polling is what we
-             * happen to be doing when the ESC boots. A running Avian answers
-             * none of this - measured, with the ESC alive and the bus otherwise
-             * quiet: 128 handshakes to 0x40, 128 broadcasts, 128 spread across
-             * 0x40..0x4F and 319 control frames asking for telemetry all drew
-             * exactly nothing. It announces six times in the 300 ms after reset
-             * and is mute from then on. A board that reboots under a powered ESC
-             * therefore never links, and no amount of asking changes that. */
+            // Walk the whole ESC range rather than the default ID alone: an ESC with a
+            // non-zero unit ID never announces itself, and polling is the only way to find
+            // it. Polling the same ID on every bus is not a collision, each ESC hearing only
+            // its own master. What finds an Avian, though, is its own announcement at
+            // power-up: a running one answered none of 128 handshakes, 128 broadcasts and
+            // 319 telemetry requests, so a board that reboots under a powered ESC never
+            // links, and no amount of asking changes that
             srxl2SendHandshake(e, SRXL2_ESC_ID_FIRST + e->pollId, SRXL2_BAUD_BIT_400K);
             e->pollId++;
             if (SRXL2_ESC_ID_FIRST + e->pollId > SRXL2_ESC_ID_LAST) {
@@ -1088,27 +875,13 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
         if (now - e->lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
             e->telemetry.valid = false;
 
-            /*
-             * Silence from the ESC is not a reason to stop commanding it.
-             *
-             * An Avian ignores telemetry requests entirely as far as the
-             * throttle is concerned: measured with the bench supply as witness,
-             * the motor held 0.30 A through three seconds and then ten seconds
-             * with no request sent at all, never faltering. What does stop it is
-             * the absence of control frames - the current falls to the ESC's own
-             * 58 mA within about half a second - and it picks the throttle back
-             * up by itself as soon as frames return, with no re-arm.
-             *
-             * So giving up here would cause the outage it is meant to detect,
-             * and on this hardware it would be permanent: a running Avian
-             * answers no discovery, so POLLING never finds it again. Keep
-             * driving, and let the telemetry go stale.
-             *
-             * The one case that does need the teardown is a slave that reset:
-             * it comes back at 115200 and announces for 300 ms, which cannot be
-             * heard from 400000. That only applies where the baud was raised -
-             * which no Avian tested allows, since they advertise 115200 only.
-             */
+            // Silence from the ESC is not a reason to stop commanding it. An Avian holds
+            // throttle indefinitely with no telemetry request sent at all; what stops it is
+            // the absence of control frames, and it picks the throttle back up by itself
+            // when they return. Tearing the link down here would cause the outage it means
+            // to detect, and permanently, since a running Avian answers no discovery. The
+            // one case that does need it is a slave that reset, which comes back at 115200
+            // and cannot be heard from 400000
             if (e->agreedBaudBits != 0) {
                 serialSetBaudRate(e->port, SRXL2_BAUD_LOW);
                 e->baudSwitchPending = false;
@@ -1138,13 +911,9 @@ void srxl2MotorProcess(void)
         srxl2ProcessEsc(&esc[i], now);
     }
 
-    /*
-     * The first two words carry a nibble per ESC, so a twin can be diagnosed
-     * without a debug channel per bus: which bus is stuck, and which has found
-     * its ESC. Both fit: the state enum is small, and ESC device IDs run
-     * 0x40..0x4F, so the low nibble identifies the unit. Bit 3 is set alongside
-     * it to distinguish unit 0 from "nothing found".
-     */
+    // The first two words carry a nibble per ESC, so a twin can be diagnosed without a debug
+    // channel per bus. Both fit: the state enum is small, and ESC device IDs run 0x40..0x4F,
+    // so the low nibble identifies the unit, with bit 3 marking "found" against unit 0
     uint16_t states = 0, ids = 0;
     uint32_t rxFrames = 0, crcErrors = 0;
     for (uint8_t i = 0; i < escCount; i++) {
@@ -1167,18 +936,10 @@ uint8_t srxl2MotorCount(void)
     return escCount;
 }
 
-/*
- * Whether every ESC is not merely being driven, but answering.
- *
- * Deliberately stricter than "the driver is in RUNNING". Since a telemetry gap
- * no longer tears the link down - it would cause the outage it detects - a board
- * whose ESC has been unplugged stays in RUNNING, commanding a motor that is not
- * there. That is right for a machine already flying and wrong for one about to
- * arm, so this asks for a recent reply and the arming check asks this.
- *
- * Strict on the ground, forgiving in the air: two different questions that used
- * to share one answer.
- */
+// Whether every ESC is not merely being driven, but answering. Deliberately stricter than
+// being in RUNNING: since a telemetry gap no longer tears the link down, a board whose ESC
+// was unplugged stays in RUNNING and commands a motor that is not there. Right for a machine
+// already flying, wrong for one about to arm, so the arming check asks this instead
 bool srxl2MotorIsConnected(void)
 {
     if (escCount == 0) {
