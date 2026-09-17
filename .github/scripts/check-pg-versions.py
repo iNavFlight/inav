@@ -146,7 +146,7 @@ def layout(lines, values):
 
 def check(base, head):
     base = git('merge-base', base, head).strip()
-    changed = [path for path in git('diff', '--name-only', base + '..' + head).splitlines() if path.endswith(('.c', '.h'))]
+    changed = [path for path in git('diff', '--no-renames', '--name-only', base + '..' + head).splitlines() if path.endswith(('.c', '.h'))]
     if not changed:
         print('No C/H files changed')
         return 0
