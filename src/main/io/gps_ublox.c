@@ -87,6 +87,9 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
+// Set from the MON-VER extensions, where a dual band receiver names itself, as in FWVER=SPGL1L5
+static bool ubxDualBand = false;
+
 // MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
 static uint16_t monRfNoisePerMs = 0;
 static uint16_t monAgcCount = 0;
@@ -447,6 +450,10 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 
 static void configureGNSS10(void)
 {
+        // A dual band receiver has no B1I: its Beidou L1 signal is B1C, and it rejects a
+        // configuration that would leave one of the two bands enabled without the other
+        const bool useB1C = ubxDualBand || gpsState.gpsConfig->ubloxUseGlonass;
+
         ubx_config_data8_payload_t gnssConfigValues[] = {
             // SBAS
             {UBLOX_CFG_SIGNAL_SBAS_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
@@ -459,20 +466,25 @@ static void configureGNSS10(void)
             // Beidou
             // M10 can't use BDS_B1I and Glonass together. Instead, use BDS_B1C
             {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou && ! gpsState.gpsConfig->ubloxUseGlonass},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && gpsState.gpsConfig->ubloxUseGlonass},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou && !useB1C},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && useB1C},
 
             // Should be enabled with GPS
             {UBLOX_CFG_QZSS_ENA, 1},
             {UBLOX_CFG_QZSS_L1CA_ENA, 1},
             {UBLOX_CFG_QZSS_L1S_ENA, 1},
 
-            // Glonass
+            // Glonass, must stay last so it can be left out
             {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
             {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
         };
 
-        ubloxSendSetCfgBytes(gnssConfigValues, 12);
+        // A receiver without Glonass has no Glonass keys either, and one unknown key makes it
+        // reject the whole message, taking SBAS, Galileo, BeiDou and QZSS down with it. An
+        // empty mask means MON-GNSS never answered and nothing is known, so send them all.
+        const bool noGlonass = ubx_capabilities.supported && !gpsUbloxHasGlonass();
+
+        ubloxSendSetCfgBytes(gnssConfigValues, noGlonass ? 10 : 12);
 }
 
 static void configureGNSS(void)
@@ -762,6 +774,13 @@ static bool gpsParseFrameUBLOX(void)
                 for(int j = 40; j < _payload_length; j += 30) {
                     if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
                         gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
+                        break;
+                    }
+                }
+
+                for (int j = 40; j < _payload_length; j += 30) {
+                    if (strnstr((const char *)(_buffer.bytes + j), "L1L5", 30)) {
+                        ubxDualBand = true;
                         break;
                     }
                 }
@@ -1250,6 +1269,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Attempt to detect GPS hw version
     gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
+    ubxDualBand = false;
     gpsState.autoConfigStep = 0;
 
     // Configure GPS module if enabled
