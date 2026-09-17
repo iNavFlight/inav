@@ -132,14 +132,35 @@ switched off with `esc_srxl2_telemetry`, which exists because telemetry shares t
 throttle wire and so cannot be declined by leaving a port unassigned as it would be
 for a conventional ESC.
 
-**Current needs care until this is settled.** On the bench the ESC reported 2.85 A
-while the supply feeding it measured 0.999 A at the same instant, at about 40 %
-throttle. That is the relationship expected if the field is motor current rather
-than pack current, since an ESC is a converter and pack current is roughly motor
-current times duty. It is not proven: a plain scale error in the ESC's own sensor
-would look identical at a single operating point, and telling the two apart needs
-readings at several throttle settings. Until then, prefer the board's own sensor
-with `current_meter_type = ADC` wherever one exists. The two are alternatives
+**The current this ESC reports is the motor's, not the pack's.** Measured on the
+bench with both readings taken at the same instant:
+
+| throttle | ESC reports | supply delivers | ratio | 1/duty |
+| --- | --- | --- | --- | --- |
+| 15 % | 0.00 A | 0.305 A | | 6.67 |
+| 25 % | 2.62 A | 0.720 A | 3.64 | 4.00 |
+| 35 % | 2.75 A | 0.915 A | 3.00 | 2.86 |
+
+The ratio follows 1/duty rather than staying put, which is the converter
+relationship: an ESC trades voltage for current, so pack current is roughly motor
+current times duty. A scale error in the sensor would give the same ratio at both
+points. It shows without the arithmetic too, since what the ESC reports barely
+moves while pack current rises by a quarter.
+
+Two consequences. The figure runs high as a measure of what the battery is
+delivering, worst at low throttle and converging at full, so a capacity count fed
+from it counts down too fast. And below roughly 2 A the field reports 0.00 A
+outright: at 15 % throttle the motor was turning at 6900 rpm on 0.305 A from the
+supply and the ESC still called it zero.
+
+The driver passes the number through unscaled. Two operating points are not a
+curve, the multiplier that would be correct is the ESC's own modulation duty
+rather than the throttle it reports, and this is one ESC family rather than the
+protocol. A per-manufacturer scale belongs beside INAV's other current meters,
+not inside a driver.
+
+So prefer the board's own sensor with `current_meter_type = ADC` wherever one
+exists. The two are alternatives
 rather than additive - INAV takes current from one source - and a shunt in the
 battery lead also sees what the servos and the video transmitter draw, which no
 ESC can report.
