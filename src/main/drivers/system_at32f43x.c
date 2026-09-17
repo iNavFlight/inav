@@ -28,6 +28,79 @@
 #include "target/system.h"
 #include "at32f435_437_clock.h"
 
+// See RM_AT32F435_437_EN_V2.05.pdf reference manual table 5-6 for more info.
+#if 256 < TARGET_FLASH_SIZE
+#define USD_EOPB0_SRAM_CONFIG_MASK 0x7
+#else
+#define USD_EOPB0_SRAM_CONFIG_MASK 0x3
+#endif
+
+static flash_usd_eopb0_type get_sram_config(void)
+{
+    extern uint32_t _SRAM_SIZE; // Defined in linker file
+    switch ((uint32_t)&_SRAM_SIZE) {
+#if 256 == TARGET_FLASH_SIZE
+    case 448:
+        return FLASH_EOPB0_SRAM_448K;
+    case 512:
+        return FLASH_EOPB0_SRAM_512K;
+    case 384:
+    default:
+        return FLASH_EOPB0_SRAM_384K;
+#elif 448 == TARGET_FLASH_SIZE
+    case 256:
+        return FLASH_EOPB0_SRAM_256K;
+    case 320:
+        return FLASH_EOPB0_SRAM_320K;
+    case 384:
+        return FLASH_EOPB0_SRAM_384K;
+    case 448:
+        return FLASH_EOPB0_SRAM_448K;
+    case 512:
+        return FLASH_EOPB0_SRAM_512K;
+    case 192:
+    default:
+        return FLASH_EOPB0_SRAM_192K;
+#elif 1024 <= TARGET_FLASH_SIZE
+    case 128:
+        return FLASH_EOPB0_SRAM_128K;
+    case 256:
+        return FLASH_EOPB0_SRAM_256K;
+    case 320:
+        return FLASH_EOPB0_SRAM_320K;
+    case 384:
+        return FLASH_EOPB0_SRAM_384K;
+    case 448:
+        return FLASH_EOPB0_SRAM_448K;
+    case 512:
+        return FLASH_EOPB0_SRAM_512K;
+    case 192:
+    default:
+        return FLASH_EOPB0_SRAM_192K;
+#endif
+    }
+}
+
+static void init_sram_config(void)
+{
+    // Make sure the SRAM config is correct
+    const flash_usd_eopb0_type sram_cfg = get_sram_config();
+    if (((USD->eopb0) & USD_EOPB0_SRAM_CONFIG_MASK) != sram_cfg) {
+        flash_unlock();
+        flash_user_system_data_erase();
+        flash_eopb0_config(sram_cfg);
+        systemReset();
+    }
+}
+
+// void systemReset(void)
+// {
+//     __disable_irq();
+//     NVIC_SystemReset();
+// }
+
+
+
 void SetSysClock(void);
 
 void enableGPIOPowerUsageAndNoiseReductions(void)
@@ -116,6 +189,7 @@ uint32_t systemBootloaderAddress(void)
 
 void systemInit(void)
 {
+    init_sram_config();
     //config system clock to 288mhz usb 48mhz
     system_clock_config();
     // Configure NVIC preempt/priority groups
