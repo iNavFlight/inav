@@ -169,6 +169,9 @@ bool gyroReadTemperature(void);
 /* How far apart the two gyros have drifted, as the attitude error the
  * disagreement has been worth so far, and whether that went far enough to stop
  * trusting the pair. */
+/* Whether a gyro is alive: producing samples, on time, and not repeating one
+ * value while the other sensor moves. Says nothing about whether it is right. */
+bool gyroSensorIsHealthy(uint8_t index);
 float gyroSecondaryDisagreementDeg(void);
 bool gyroSecondaryAbandoned(void);
 #endif

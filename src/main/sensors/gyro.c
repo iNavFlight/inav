@@ -52,6 +52,7 @@
 #include "drivers/accgyro/accgyro_lsm6dxx.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/io.h"
+#include "drivers/time.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -148,6 +149,37 @@ STATIC_FASTRAM filter_t gyroLuluState[XYZ_AXIS_COUNT];
 STATIC_FASTRAM float gyroFusionDiff[XYZ_AXIS_COUNT];
 STATIC_FASTRAM float gyroFusionErrorDeg;
 STATIC_FASTRAM bool  gyroFusionGaveUp;
+
+/*
+ * Whether a gyro is alive, which is a different question from whether it is
+ * right.
+ *
+ * PX4 keeps these apart and it is worth keeping them apart here. A sensor can be
+ * judged alive on its own, while whether its numbers are correct can only be
+ * decided against another sensor, and with two the disagreement has no verdict.
+ * So this answers only the first question, and the checks are PX4's, minus the
+ * two that need a driver error counter INAV's accgyro layer does not keep.
+ *
+ * The frozen check needs one piece of care that PX4 does not need. A simulated
+ * gyro standing still reads exactly zero, sample after sample, so in HITL on the
+ * ground an identical-value test would condemn a healthy sensor. It is the same
+ * exact zero that makes the Kalman filter produce NaN in #11876. So a sensor
+ * counts as frozen only while the other one is moving: if neither is moving, the
+ * aircraft is not moving, which is not a fault.
+ */
+#define GYRO_HEALTH_TIMEOUT_MS      40      /* PX4's DataValidator timeout */
+#define GYRO_HEALTH_FROZEN_SAMPLES  100     /* PX4's VALUE_EQUAL_COUNT_DEFAULT */
+
+typedef struct {
+    timeMs_t lastSampleMs;
+    float    lastValue[XYZ_AXIS_COUNT];
+    uint16_t identicalSamples;
+    bool     everSampled;
+} gyroHealth_t;
+
+STATIC_FASTRAM gyroHealth_t gyroHealth[MAX_GYRO_COUNT];
+
+static void gyroHealthUpdate(uint8_t index, bool sampled, const float *value);
 #endif
 
 #ifdef USE_DYNAMIC_FILTERS
@@ -424,6 +456,7 @@ bool gyroInit(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         gyroFusionDiff[axis] = 0.0f;
     }
+    memset(gyroHealth, 0, sizeof(gyroHealth));
     /* Either switch is reason enough to read the sensor: one asks for it in the
      * log, the other asks for it in the control path, and neither needs the
      * other to be set. */
@@ -729,6 +762,7 @@ void FAST_CODE NOINLINE gyroUpdate(void)
     bool secondaryFresh = false;
     if (gyro.secondaryInitialized) {
         secondaryFresh = gyroUpdateAndCalibrate(&gyroDev[1], &gyroCalibration[1], gyro.gyroRaw2, false);
+        gyroHealthUpdate(1, secondaryFresh, gyro.gyroRaw2);
         if (!secondaryFresh) {
             gyro.gyroRaw2[X] = 0.0f;
             gyro.gyroRaw2[Y] = 0.0f;
@@ -737,7 +771,12 @@ void FAST_CODE NOINLINE gyroUpdate(void)
     }
 #endif
 
-    if (!gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0], gyro.gyroADCf, true)) {
+    const bool primaryFresh = gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0],
+                                                     gyro.gyroADCf, true);
+#ifdef USE_DUAL_GYRO
+    gyroHealthUpdate(0, primaryFresh, gyro.gyroADCf);
+#endif
+    if (!primaryFresh) {
         return;
     }
 
@@ -752,6 +791,8 @@ void FAST_CODE NOINLINE gyroUpdate(void)
     bool fuseSecondary = (gyroConfig()->gyro_fusion == GYRO_FUSION_AVERAGE)
                          && secondaryFresh
                          && zeroCalibrationIsCompleteV(&gyroCalibration[1])
+                         && gyroSensorIsHealthy(0)
+                         && gyroSensorIsHealthy(1)
                          && !gyroFusionGaveUp;
 
     if (fuseSecondary) {
@@ -803,6 +844,62 @@ void FAST_CODE NOINLINE gyroUpdate(void)
 }
 
 #ifdef USE_DUAL_GYRO
+static void gyroHealthUpdate(uint8_t index, bool sampled, const float *value)
+{
+    if (index >= MAX_GYRO_COUNT) {
+        return;
+    }
+    gyroHealth_t *h = &gyroHealth[index];
+
+    if (!sampled) {
+        /* A failed read leaves the timeout to notice. Counting failures
+         * separately would need the error counter the drivers do not keep. */
+        return;
+    }
+
+    h->lastSampleMs = millis();
+    h->everSampled = true;
+
+    if (value[X] == h->lastValue[X]
+        && value[Y] == h->lastValue[Y]
+        && value[Z] == h->lastValue[Z]) {
+        if (h->identicalSamples < UINT16_MAX) {
+            h->identicalSamples++;
+        }
+    } else {
+        h->identicalSamples = 0;
+        h->lastValue[X] = value[X];
+        h->lastValue[Y] = value[Y];
+        h->lastValue[Z] = value[Z];
+    }
+}
+
+bool gyroSensorIsHealthy(uint8_t index)
+{
+    if (index >= MAX_GYRO_COUNT) {
+        return false;
+    }
+    const gyroHealth_t *h = &gyroHealth[index];
+
+    if (!h->everSampled) {
+        return false;
+    }
+    if (millis() - h->lastSampleMs >= GYRO_HEALTH_TIMEOUT_MS) {
+        return false;
+    }
+    if (h->identicalSamples >= GYRO_HEALTH_FROZEN_SAMPLES) {
+        /* Frozen only while something else is moving. See the note on the
+         * constants: a still aircraft, and a simulated one in particular, gives
+         * every sensor the same number over and over quite legitimately. */
+        const uint8_t other = (index == 0) ? 1 : 0;
+        if (other < MAX_GYRO_COUNT
+            && gyroHealth[other].identicalSamples < GYRO_HEALTH_FROZEN_SAMPLES) {
+            return false;
+        }
+    }
+    return true;
+}
+
 float gyroSecondaryDisagreementDeg(void)
 {
     return gyroFusionErrorDeg;
