@@ -35,10 +35,10 @@ The motor pad that would normally have driven this ESC is simply left unused.
 
 ## Setting it up
 
-1. **Ports tab** — assign `Spektrum Smart ESC (SRXL2)` to a spare UART, one per
+1. **Ports tab**: assign `Spektrum Smart ESC (SRXL2)` to a spare UART, one per
    motor. They are matched to motors in port order; see below.
-2. **Outputs tab** — set the ESC protocol to `SRXL2`.
-3. **Outputs tab** — set **Motor poles** correctly. This matters more than usual; see
+2. **Outputs tab**: set the ESC protocol to `SRXL2`.
+3. **Outputs tab**: set **Motor poles** correctly. This matters more than usual; see
    the RPM filter section below.
 4. If the ESC is programmed for reverse, set **Thrust Reverse: ESC channel** to the
    channel its own `Thrust Rev.` parameter selects, then assign the **THRUST
@@ -56,7 +56,7 @@ AT32 targets; other targets can add `#define USE_MOTOR_SRXL2` to their `target.h
 
 A single SRXL2 bus can address several ESCs, at device IDs 0x40 to 0x4F, but each
 would need a distinct unit ID and the specification states that setting a unit ID
-over SRXL2 "is not implemented" — it expects physical switches or jumpers, which
+over SRXL2 "is not implemented", because it expects physical switches or jumpers, which
 Avian ESCs do not have. So it is one ESC per bus, and a model with several motors
 needs a port for each.
 
@@ -106,7 +106,7 @@ finds out about it on the takeoff roll.
 
 1. Remove the propeller and disconnect the battery. The wizard refuses to start with
    the battery connected, and the button stays inert until you confirm both.
-2. Press **Start calibration**. Full throttle goes on the wire — with no battery,
+2. Press **Start calibration**. Full throttle goes on the wire, and with no battery
    nothing can spin.
 3. Connect the battery. The ESC sounds its tones, and the throttle drops to minimum
    by itself about three seconds later.
@@ -198,7 +198,7 @@ of magnitude separate the two, so:
 
 Reverse on a Smart ESC is a switch, not a throttle value below neutral. The ESC's
 `Thrust Rev.` parameter names an auxiliary channel; when that channel goes high the
-ESC reverses, and Spektrum describe the effect plainly — *"flipping the designated
+ESC reverses, and Spektrum describe the effect plainly, *"flipping the designated
 switch reverses motor rotation, throttle will still control motor speed"*. So the
 throttle goes on meaning throttle.
 
@@ -224,7 +224,7 @@ throttle slot.
 
 Spektrum allow channels **5 to 9** for this and ship **channel 7** as the factory
 default. Nothing on the wire advertises which one the ESC is watching, so a
-mismatch simply means reverse never engages — silently. Check the channel against
+mismatch simply means reverse never engages, and does so silently. Check the channel against
 your own ESC's programming rather than trusting the default: the parameter is not
 present on every Avian model, and where it is present the range and default have
 varied.
@@ -259,9 +259,9 @@ which way the shaft is turning - only an eye on the motor can tell you.
 **Propeller off.** Arm with THRUST REVERSE off and watch the motor at *minimum*
 throttle:
 
-* **stopped**, or idling gently forward — the switch arrangement, which is what
+* **stopped**, or idling gently forward, the switch arrangement, which is what
   this driver expects. Nothing more to do.
-* **spinning backwards hard** — the other kind. Disarm. INAV does not drive that
+* **spinning backwards hard**, the other kind. Disarm. INAV does not drive that
   arrangement over SRXL2: the throttle it sends would be read as reverse thrust
   through most of the stick.
 
@@ -287,8 +287,8 @@ put reverse on a switch the pilot has to mean to throw.
 
 ### What reverse cannot do
 
-Reverse is a manual, stick-and-switch capability. INAV's automatic throttle paths —
-RTH, autoland, failsafe, launch — all clamp throttle to at least idle, so none of
+Reverse is a manual, stick-and-switch capability. INAV's automatic throttle paths,
+RTH, autoland, failsafe and launch, all clamp throttle to at least idle, so none of
 them can call for reverse thrust. An automatic landing will not use it.
 
 ## If the motor does not come back after a reboot
