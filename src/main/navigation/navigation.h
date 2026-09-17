@@ -540,9 +540,7 @@ typedef struct navConfig_s {
         uint8_t  wp_tracking_accuracy;       // fixed wing tracking accuracy response factor
         uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
         uint8_t  wp_turn_mode;               // WP mission turn mode (navFwWpTurnMode_e: DIRECT / COORD_FLYBY / COORD_FLYOVER / COORD_FLYINTO)
-        uint8_t  turn_ff_gain;               // turn coordination feed-forward gain [%] (0 = off; dev tuning, to be hardcoded)
         uint16_t wp_turn_max_lead_time;      // FLY_BY: cap on how early the turn may start before the WP [ms] (dev tuning)
-        uint16_t wp_turn_control_ease;       // unmodelled roll-response lag added to the computed turn ease time [ms]
     } fw;
 } navConfig_t;
 

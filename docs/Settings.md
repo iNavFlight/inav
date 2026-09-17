@@ -4225,16 +4225,6 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ---
 
-### nav_fw_turn_ff_gain
-
-Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 100 | 0 | 200 |
-
----
-
 ### nav_fw_wp_tracking_accuracy
 
 Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Setting adjusts tracking deadband distance fom waypoint courseline [m]. Tracking isn't actively controlled within the deadband providing smoother flight adjustments but less accurate tracking. A 2m deadband should work OK in most cases. Setting to 0 disables waypoint tracking accuracy.
@@ -4252,16 +4242,6 @@ Sets the maximum allowed alignment convergence angle to the waypoint course line
 | Default | Min | Max |
 | --- | --- | --- |
 | 60 | 30 | 80 |
-
----
-
-### nav_fw_wp_turn_control_ease
-
-Unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramps; increase for large or slow-responding airframes.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 100 | 0 | 500 |
 
 ---
 

@@ -2765,24 +2765,12 @@ groups:
         default_value: "COORD_FLYBY"
         field: fw.wp_turn_mode
         table: nav_fw_wp_turn_mode
-      - name: nav_fw_turn_ff_gain
-        description: "Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven."
-        default_value: 100
-        field: fw.turn_ff_gain
-        min: 0
-        max: 200
       - name: nav_fw_wp_turn_max_lead_time
         description: "COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint."
         default_value: 6000
         field: fw.wp_turn_max_lead_time
         min: 3000
         max: 12000
-      - name: nav_fw_wp_turn_control_ease
-        description: "Unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramps; increase for large or slow-responding airframes."
-        default_value: 100
-        field: fw.wp_turn_control_ease
-        min: 0
-        max: 500
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 500

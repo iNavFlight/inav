@@ -85,6 +85,7 @@
                                                 // (residual bank is bounded by the separate bank gate, not by this)
 #define NAV_FW_ARC_AWAY_TIMEOUT_FACTOR 1.5f     // half away-circle traverse times, before the away arc is abandoned
 #define NAV_FW_ARC_SHARP_TURN_CD     15000      // [centideg] beyond this the tangent points explode toward the 180 deg reversal -> capture-only turn
+#define NAV_FW_TURN_CONTROL_EASE_MS  100.0f     // [ms] unmodelled servo + airframe roll-response lag added to the arc ease time
 
 // FW energy/altitude bank guard thresholds (conservative; observable via DEBUG_FW_TURN)
 #define NAV_FW_GUARD_PHI_FLOOR_DEG       15.0f    // minimum effective bank limit
@@ -576,8 +577,7 @@ static float getFwCoordinatedTurnRadius(void)
 // Coordinated-turn feed-forward bank [centideg] for the active WP turn (loiter has its own circle controller).
 static float getFwTurnFeedForward(int32_t navHeadingError, timeDelta_t deltaMicros)
 {
-    const uint8_t ffGain = navConfig()->fw.turn_ff_gain;
-    if (ffGain == 0 || posControl.actualState.velXY <= NAV_FW_TURN_MIN_SPEED
+    if (posControl.actualState.velXY <= NAV_FW_TURN_MIN_SPEED
         || (navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_DIRECT && posControl.navState != NAV_STATE_FW_LANDING_APPROACH)) {
         return 0.0f;                                    // DIRECT = pure legacy PID (landing approach forces FLY_BY)
     }
@@ -608,7 +608,7 @@ static float getFwTurnFeedForward(int32_t navHeadingError, timeDelta_t deltaMicr
     if (ffRadius > 0.0f) {
         const float v = posControl.actualState.velXY;
         const float phiFFcd = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * ffRadius)));
-        rollFF = ffSign * phiFFcd * (ffGain / 100.0f);
+        rollFF = ffSign * phiFFcd;
     }
 
     // Slew limit, not a filter: heading error and velXY arrive at GPS rate while this runs at nav rate,
@@ -681,7 +681,7 @@ static float fwTurnEaseTimeMs(float phiNomDeg)
     const float rollRateDps = currentControlProfile->stabilized.rates[FD_ROLL] * 10.0f;
     const float rollMs = (rollRateDps > 1.0f) ? (1.5f * phiNomDeg / rollRateDps * 1000.0f) : 0.0f;
     const float csMs = MIN((float)navConfig()->fw.control_smoothness * NAV_FW_SMOOTH_TCONST_PER_STEP_MS, NAV_FW_SMOOTH_TCONST_MAX_MS);
-    return rollMs + csMs + (float)navConfig()->fw.wp_turn_control_ease;
+    return rollMs + csMs + NAV_FW_TURN_CONTROL_EASE_MS;
 }
 
 // Crossfade out of an arc handback: the arc leaves the wings near level while the PID and turn FF
@@ -1063,7 +1063,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     const float bankNowRad = CENTIDEGREES_TO_RADIANS((float)ABS(attitude.values.roll) * 10.0f);
     const float omegaCds = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(GRAVITY_CMSS * tan_approx(bankNowRad) / MAX(v, NAV_FW_TURN_MIN_SPEED)));
     const float levelGain = pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER;    // [1/s]
-    const float rollOutS = ((levelGain > 0.1f) ? (1.0f / levelGain) : 1.0f) + (float)navConfig()->fw.wp_turn_control_ease * 0.001f;
+    const float rollOutS = ((levelGain > 0.1f) ? (1.0f / levelGain) : 1.0f) + NAV_FW_TURN_CONTROL_EASE_MS * 0.001f;
     const float psiLeadCd = omegaCds * rollOutS + 0.5f * omegaCds * (tEaseMs / 1000.0f);
 
     switch (phase) {

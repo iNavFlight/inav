@@ -141,12 +141,12 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-// One above upstream's respective version in both variants: this branch adds unconditional
+// Above upstream's respective version in both variants: this branch changes unconditional
 // navConfig fields on top of either struct layout
 #ifdef USE_AUTO_TRANSITION
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 12);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 13);
 #else
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 9);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 10);
 #endif
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
@@ -283,9 +283,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .wp_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,                // 0, improves course tracking accuracy during FW WP missions
         .wp_tracking_max_angle = SETTING_NAV_FW_WP_TRACKING_MAX_ANGLE_DEFAULT,              // 60 degs
         .wp_turn_mode = SETTING_NAV_FW_WP_TURN_MODE_DEFAULT,                                // COORD_FLYBY, WP mission turn mode
-        .turn_ff_gain = SETTING_NAV_FW_TURN_FF_GAIN_DEFAULT,                                // 100, turn FF
         .wp_turn_max_lead_time = SETTING_NAV_FW_WP_TURN_MAX_LEAD_TIME_DEFAULT,              // 3000 ms
-        .wp_turn_control_ease = SETTING_NAV_FW_WP_TURN_CONTROL_EASE_DEFAULT,                // 100 ms
     }
 );
 
