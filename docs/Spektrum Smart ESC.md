@@ -170,11 +170,11 @@ electrical rpm, and INAV converts it to mechanical rpm using the pole count. A w
 pole count puts the notch at the wrong frequency, which is worse than having no
 notch at all.
 
-**The rpm this delivers is too slow for the filter to track a changing throttle,
-and that is a hardware limit, not a tuning one.** Measured on an Avian 70 A: the
-ESC answers about two requests in three and rotates its reply between a text
-page, a battery page and the ESC page, so rpm arrives at roughly a ninth of the
-request rate - 2.7 readings a second at the fastest setting the link tolerates,
+**The RPM filter is not recommended over this link.** The rpm it delivers is too
+slow for the filter to track a changing throttle, and that is a hardware limit
+rather than a tuning one. Measured on an Avian 70 A: the ESC answers about two
+requests in three and rotates its reply between a text page, a battery page and
+the ESC page, so rpm arrives at roughly a ninth of the request rate - 2.7 readings a second at the fastest setting the link tolerates,
 1.1 at the default. There is no margin to recover, either: requesting on every
 frame makes the ESC stop obeying the throttle, and this ESC advertises no support
 for 400000 baud, so the wire cannot be made faster.
@@ -186,10 +186,11 @@ of magnitude separate the two, so:
   moves with the throttle several times a second, and a notch updated twice a
   second spends most of its time in the wrong place - which is worse than no
   notch, because it attenuates signal rather than noise.
-* **On a fixed wing holding a cruise throttle** the peak moves slowly and the
-  filter is arguably useful. Arguably: that the update rate is adequate there is
-  reasoning from how slowly cruise rpm changes, not something measured in flight.
-  If you try it, compare a logged flight with it on and off before trusting it.
+* **On a fixed wing holding a cruise throttle** the peak moves slowly enough that
+  the update rate might be adequate. Might: that is reasoning from how slowly
+  cruise rpm changes, and nobody has flown it. Until somebody does and compares a
+  logged flight with the filter on and off, treat it as unproven rather than as a
+  milder version of the same recommendation.
 * INAV's own advice for this setting applies unchanged: turn it on only once ESC
   telemetry is working and the reported rpm looks right.
 
