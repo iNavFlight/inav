@@ -535,7 +535,21 @@ typedef enum {
     NAV_STATUS_FIX_VALID = 1
 } ubx_nav_status_bits_t;
 
+// Long enough for the names u-blox ships, such as NEO-F10N and ZED-F9P
+#define UBLOX_MODULE_NAME_LEN 16
+
+/* The augmentation and regional systems a receiver lists in its MON-VER extensions.
+ * UBX-MON-GNSS only reports the four major constellations, so these come from the
+ * version strings instead, where the list reads SBAS;QZSS and NAVIC. */
+#define UBLOX_EXT_GNSS_SBAS     (1 << 0)
+#define UBLOX_EXT_GNSS_QZSS     (1 << 1)
+#define UBLOX_EXT_GNSS_NAVIC    (1 << 2)
+
 uint8_t gpsUbloxMaxGnss(void);
+uint8_t gpsUbloxSupportedGnss(void);
+uint8_t gpsUbloxEnabledGnss(void);
+const char * gpsUbloxModuleName(void);
+uint8_t gpsUbloxExtendedGnss(void);
 timeMs_t gpsUbloxCapLastUpdate(void);
 
 bool gpsUbloxHasGalileo(void);

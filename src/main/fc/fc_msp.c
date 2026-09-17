@@ -1082,6 +1082,22 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, gpsSol.eph);
         sbufWriteU16(dst, gpsSol.epv);
         sbufWriteU8(dst, gpsState.hwVersion);
+        // Which constellations the receiver has, and which of them are running, so the
+        // configurator can stop offering the ones that are not there. Zero means unknown
+        sbufWriteU8(dst, isGpsUblox() ? gpsUbloxSupportedGnss() : 0);
+        sbufWriteU8(dst, isGpsUblox() ? gpsUbloxEnabledGnss() : 0);
+        // SBAS, QZSS and NavIC, which MON-GNSS does not report, and how many major
+        // constellations the receiver can run at once
+        sbufWriteU8(dst, isGpsUblox() ? gpsUbloxExtendedGnss() : 0);
+        sbufWriteU8(dst, isGpsUblox() ? gpsUbloxMaxGnss() : 0);
+        // The module's own name, as it reports it, so the configurator can say which
+        // receiver this is instead of guessing from the hardware version
+        {
+            const char * module = isGpsUblox() ? gpsUbloxModuleName() : "";
+            const uint8_t len = strlen(module);
+            sbufWriteU8(dst, len);
+            sbufWriteData(dst, module, len);
+        }
         break;
 #endif
     case MSP2_ADSB_VEHICLE_LIST:

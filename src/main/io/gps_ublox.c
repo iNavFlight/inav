@@ -87,6 +87,12 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
+// The module name from the MON-VER extensions, as in MOD=NEO-F10N. Empty when not reported
+static char ubxModuleName[UBLOX_MODULE_NAME_LEN] = "";
+
+// SBAS, QZSS and NavIC, which the receiver lists in MON-VER but not in MON-GNSS
+static uint8_t ubxExtendedGnss = 0;
+
 // MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
 static uint16_t monRfNoisePerMs = 0;
 static uint16_t monAgcCount = 0;
@@ -213,6 +219,27 @@ bool gpsUbloxGlonassEnabled(void)
 uint8_t gpsUbloxMaxGnss(void)
 {
     return ubx_capabilities.capMaxGnss;
+}
+
+// The MON-GNSS masks as the receiver reports them: bit 0 GPS, 1 Glonass, 2 Beidou, 3 Galileo
+uint8_t gpsUbloxSupportedGnss(void)
+{
+    return ubx_capabilities.supported;
+}
+
+uint8_t gpsUbloxEnabledGnss(void)
+{
+    return ubx_capabilities.enabledGnss;
+}
+
+const char * gpsUbloxModuleName(void)
+{
+    return ubxModuleName;
+}
+
+uint8_t gpsUbloxExtendedGnss(void)
+{
+    return ubxExtendedGnss;
 }
 
 timeMs_t gpsUbloxCapLastUpdate(void)
@@ -765,6 +792,27 @@ static bool gpsParseFrameUBLOX(void)
                         break;
                     }
                 }
+
+                for (int j = 40; j < _payload_length; j += 30) {
+                    const char * line = (const char *)(_buffer.bytes + j);
+
+                    const char * mod = strnstr(line, "MOD=", 30);
+                    if (mod) {
+                        strncpy(ubxModuleName, mod + 4, UBLOX_MODULE_NAME_LEN - 1);
+                        ubxModuleName[UBLOX_MODULE_NAME_LEN - 1] = '\0';
+                    }
+
+                    // The augmentation and regional systems, which MON-GNSS does not carry
+                    if (strnstr(line, "SBAS", 30)) {
+                        ubxExtendedGnss |= UBLOX_EXT_GNSS_SBAS;
+                    }
+                    if (strnstr(line, "QZSS", 30)) {
+                        ubxExtendedGnss |= UBLOX_EXT_GNSS_QZSS;
+                    }
+                    if (strnstr(line, "NAVIC", 30)) {
+                        ubxExtendedGnss |= UBLOX_EXT_GNSS_NAVIC;
+                    }
+                }
             }
         }
         break;
@@ -1250,6 +1298,8 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Attempt to detect GPS hw version
     gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
+    ubxModuleName[0] = '\0';
+    ubxExtendedGnss = 0;
     gpsState.autoConfigStep = 0;
 
     // Configure GPS module if enabled
