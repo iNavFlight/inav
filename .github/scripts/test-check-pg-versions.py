@@ -50,6 +50,23 @@ for label, header, conditional, versions, expected in [
   assert result.returncode==expected,result.stdout+result.stderr
 
 
+# A renamed + layout-changed struct header must still be checked: the old path's
+# definition is otherwise lost when git diff collapses the rename to the new name.
+with tempfile.TemporaryDirectory() as d:
+ def git(*a): return subprocess.run(['git','-c','user.name=CI Test','-c','user.email=ci@example.invalid',*a],cwd=d,check=True,capture_output=True,text=True).stdout.strip()
+ p=pathlib.Path(d);git('init')
+ (p/'config.h').write_text('typedef struct config_s {\n int old;\n} config_t;\n')
+ (p/'config.c').write_text('PG_REGISTER_WITH_RESET_FN(config_t, config, PG_CONFIG, 1);\n')
+ git('add','.');git('commit','-m','base')
+ git('mv','config.h','renamed_config.h')
+ (p/'renamed_config.h').write_text('typedef struct config_s {\n int old;\n int added;\n} config_t;\n')
+ git('add','.');git('commit','-m','head')
+ env={k:v for k,v in os.environ.items() if k not in ('GITHUB_BASE_REF','GITHUB_HEAD_REF')}
+ result=subprocess.run(['bash',script],cwd=d,capture_output=True,text=True,env=env)
+ print('renamed header missing bump','exit',result.returncode,'expected',1)
+ assert result.returncode==1,result.stdout+result.stderr
+
+
 # Advancing the base branch must not make changes outside the PR look like removals.
 with tempfile.TemporaryDirectory() as d:
  def git(*a): return subprocess.run(['git','-c','user.name=CI Test','-c','user.email=ci@example.invalid',*a],cwd=d,check=True,capture_output=True,text=True).stdout.strip()
