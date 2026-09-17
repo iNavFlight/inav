@@ -3304,7 +3304,7 @@ Modifier for pitch to throttle ratio at final approach. In Percent.
 
 ### nav_fw_land_flare_alt
 
-Initial altitude of the flare phase
+Initial altitude of the flare phase. Requires a healthy rangefinder; without one the aircraft stays in the glide phase (see nav_fw_land_glide_alt/nav_fw_land_glide_pitch) all the way to touchdown.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3314,7 +3314,7 @@ Initial altitude of the flare phase
 
 ### nav_fw_land_flare_pitch
 
-Pitch value for flare phase. In degrees
+Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder; the flare phase never activates without one.
 
 | Default | Min | Max |
 | --- | --- | --- |

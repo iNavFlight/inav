@@ -28,6 +28,14 @@ name: CI Size Report
 #    fetches the per-commit baseline for it (falling back to the nearest
 #    ancestor commit that has one), diffs the 4 representative targets,
 #    and posts/updates a PR comment showing which baseline was used.
+#    ci.yml's own `name: Build firmware` is also used, unmodified, by
+#    .github/workflows/non-code-change.yaml — a stub with the exact
+#    `paths-ignore:` complement of ci.yml's `paths:` filter, so exactly one
+#    of the two fires per PR and either satisfies the same required-status-
+#    check name. `workflow_run` can't tell the two apart by name (see
+#    github-actions-workflows.md), and the stub's only job is `test` — no
+#    `upload-artifacts`, none of the artifacts this job needs — so a guard
+#    step checks for that job directly before downloading anything.
 #
 # Requires the same repository secret PR_BUILDS_TOKEN as pr-test-builds.yml
 # (Contents: write access to iNavFlight/pr-test-builds).
@@ -146,7 +154,32 @@ jobs:
       # untrusted code is never checked out in this privileged context.
       - uses: actions/checkout@v4
 
+      # ci.yml's "Build firmware" name is shared with the non-code-change.yaml
+      # stub (see comment at the top of this file), whose only job is `test`
+      # — no upload-artifacts, none of the artifacts downloaded below. Check
+      # for that job directly rather than trusting the aggregate
+      # workflow_run.conclusion, which the job-level `if:` above already
+      # confirmed is 'success' for either workflow.
+      - name: Check upload-artifacts job succeeded
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          CONCLUSION=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}/jobs" --paginate \
+            --jq '.jobs[] | select(.name == "upload-artifacts") | .conclusion')
+          if [ -z "$CONCLUSION" ]; then
+            echo "::notice::upload-artifacts job not found in run ${RUN_ID} — likely the non-code-change.yaml stub (or the job was renamed), skipping size comment"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          elif [ "$CONCLUSION" != "success" ]; then
+            echo "::notice::upload-artifacts did not succeed (conclusion: ${CONCLUSION}), skipping size comment"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download PR number
+        if: steps.check.outputs.proceed == 'true'
         uses: actions/download-artifact@v4
         with:
           name: pr-number
@@ -154,6 +187,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download base ref
+        if: steps.check.outputs.proceed == 'true'
         uses: actions/download-artifact@v4
         with:
           name: base-ref
@@ -161,6 +195,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download PR size report
+        if: steps.check.outputs.proceed == 'true'
         uses: actions/download-artifact@v4
         with:
           name: size-report
@@ -168,6 +203,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Read PR number and base ref
+        if: steps.check.outputs.proceed == 'true'
         id: pr
         env:
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -193,6 +229,7 @@ jobs:
           echo "short_sha=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
       - name: Compute PR base commit (merge-base)
+        if: steps.check.outputs.proceed == 'true'
         id: mergebase
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -215,6 +252,7 @@ jobs:
           fi
 
       - name: Fetch size baseline for PR base commit
+        if: steps.check.outputs.proceed == 'true'
         id: baseline
         env:
           GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
@@ -237,6 +275,7 @@ jobs:
           fi
 
       - name: Check for doc on PR head commit
+        if: steps.check.outputs.proceed == 'true'
         id: doc
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -250,6 +289,7 @@ jobs:
           fi
 
       - name: Post or update PR comment
+        if: steps.check.outputs.proceed == 'true'
         uses: actions/github-script@v7
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
