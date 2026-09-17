@@ -30,7 +30,7 @@ timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM2,   CH4, PB11, TIM_USE_PWM,                 0, 0 ),
     // DEF_TIM(TIM1,   CH1, PA8,  TIM_USE_PWM,                 0, 0 ),
 
-    DEF_TIM(TIM12,  CH1, PB14,  TIM_USE_OUTPUT_AUTO,    0, 0 ),
+    DEF_TIM(TIM1,  CH2N, PB14,  TIM_USE_OUTPUT_AUTO,    0, 0 ), // was TIM12_CH1, which has no DMA request line on F405 (no DSHOT); TIM1_CH2N dmavar 0 is DMA2 Stream6. PB15 below cannot also be moved: TIM1_CH3 has only DMA2 Stream6 as well, and TIM1_CH2's other option (DMA2 Stream2) is held by TIM8_CH1/PC6
     DEF_TIM(TIM12,  CH2, PB15,  TIM_USE_OUTPUT_AUTO,    0, 0 ),
     DEF_TIM(TIM8,   CH1, PC6,   TIM_USE_OUTPUT_AUTO,    0, 1 ),
     DEF_TIM(TIM8,   CH2, PC7,   TIM_USE_OUTPUT_AUTO,    0, 1 ),
