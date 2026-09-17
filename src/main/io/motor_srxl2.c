@@ -519,16 +519,17 @@ static void srxl2SendControlData(srxl2Esc_t *e)
         replyId = e->deviceId;
     }
 
-    /* Calibration overrides the throttle here rather than at staging time, so no
-     * mixer path can quietly write over it between the two. Every ESC is
-     * calibrated at once: they share a battery, so they power up together, and
-     * the window the sequence aims at is the same window for all of them. */
+    // Calibration substitutes the throttle as the frame is built, rather than staging it,
+    // so no mixer path can write over it between the two. It substitutes rather than stores,
+    // so that the phase ending is enough to restore what the mixer staged: writing into
+    // channelValue would leave full throttle there until the mixer happened to run again.
+    // Every ESC is calibrated at once, sharing a battery and therefore a power-up window.
+    uint16_t throttle = e->channelValue[SRXL2_CHANNEL_THROTTLE];
     if (calPhase != SRXL2_CAL_OFF) {
         const bool high = (calPhase == SRXL2_CAL_WAIT_BATTERY)
                        || (calPhase == SRXL2_CAL_SETTLE)
                        || (calPhase == SRXL2_CAL_HIGH_MANUAL);
-        e->channelValue[SRXL2_CHANNEL_THROTTLE] =
-            srxl2UsToValue(high ? SRXL2_CAL_HIGH_US : SRXL2_CAL_LOW_US);
+        throttle = srxl2UsToValue(high ? SRXL2_CAL_HIGH_US : SRXL2_CAL_LOW_US);
     }
 
     buf[n++] = SRXL2_MAGIC;
@@ -555,8 +556,9 @@ static void srxl2SendControlData(srxl2Esc_t *e)
     // would spin the motor while minimum padding leaves it idle
     for (uint8_t ch = 0; ch < SRXL2_CHANNEL_COUNT; ch++) {
         if (e->channelMask & (1u << ch)) {
-            buf[n++] = (uint8_t)(e->channelValue[ch] & 0xFF);
-            buf[n++] = (uint8_t)(e->channelValue[ch] >> 8);
+            const uint16_t v = (ch == SRXL2_CHANNEL_THROTTLE) ? throttle : e->channelValue[ch];
+            buf[n++] = (uint8_t)(v & 0xFF);
+            buf[n++] = (uint8_t)(v >> 8);
         }
     }
 
