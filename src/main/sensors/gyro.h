@@ -66,8 +66,7 @@ typedef struct gyro_s {
     float gyroADCf[XYZ_AXIS_COUNT];
     float gyroRaw[XYZ_AXIS_COUNT];
 #ifdef USE_DUAL_GYRO
-    /* Secondary IMU. Sampled for logging and analysis only:
-     * never feeds attitude estimation or the PID loops. */
+    // Secondary IMU, for logging only: never feeds attitude estimation or the PID loops
     float gyroRaw2[XYZ_AXIS_COUNT];
     bool  secondaryInitialized;
 #endif
@@ -114,21 +113,9 @@ typedef struct gyroConfig_s {
     uint8_t gyroLuluSampleCount;
     bool gyroLuluEnabled;
 #ifdef USE_DUAL_GYRO
-    /* Deliberately appended at the end of the struct. pgLoad() only compares the
-     * parameter group version, never the size: it installs the defaults and
-     * then copies MIN(stored, current) bytes over them. Appending therefore
-     * leaves every pre-existing setting at its offset and needs no version
-     * bump, so upgrading does not discard the user's gyro configuration, while
-     * inserting mid-struct would silently shift every following field.
-     *
-     * Appending is not unconditionally free, though, and the exception is worth
-     * stating because it is invisible: if the new field lands inside the old
-     * struct's tail padding it is still within what an older configuration
-     * stored, and it is overwritten with the zero that padding holds -
-     * pgResetInstance() copies the reset template whole, padding included. This
-     * field defaults to OFF, so zero is the default and the overlap cannot
-     * matter. A field whose default were non-zero would need a filler byte
-     * ahead of it. */
+    // Appended at the end on purpose: pgLoad() copies MIN(stored, current) bytes over the
+    // defaults, so appending leaves existing settings at their offset and needs no version
+    // bump. A field added here must default to zero: it can land in the old struct's padding
     bool     gyro_secondary_enabled;
 #endif
 } gyroConfig_t;

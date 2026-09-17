@@ -863,7 +863,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
 #ifdef USE_DUAL_GYRO
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY:
-        return gyro.secondaryInitialized && blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_SECONDARY);
+        return gyro.secondaryInitialized;
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL:

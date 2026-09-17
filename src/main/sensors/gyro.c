@@ -80,8 +80,7 @@ FASTRAM gyro_t gyro; // gyro sensor object
 
 #ifdef USE_DUAL_GYRO
 #define MAX_GYRO_COUNT 2
-/* Highest bus tag any in-tree target gives an IMU position. Targets disagree:
- * most use 0 and 1, AETH743Basic uses 0 and 2. */
+// Highest IMU tag any in-tree target uses: most are 0 and 1, AETH743Basic is 0 and 2
 #define MAX_GYRO_SENSOR_TAG 2
 #else
 #define MAX_GYRO_COUNT 1
@@ -97,8 +96,8 @@ STATIC_FASTRAM filter_t gyroLpfState[XYZ_AXIS_COUNT];
 STATIC_FASTRAM filterApplyFnPtr gyroLpf2ApplyFn;
 STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
 
-// Cached calibration status to eliminate function call in hot path
-STATIC_FASTRAM bool gyroCalibrationComplete;
+// Cached calibration status to eliminate function call in hot path, one entry per sensor
+STATIC_FASTRAM bool gyroCalibrationComplete[MAX_GYRO_COUNT];
 
 STATIC_FASTRAM filterApplyFnPtr gyroLuluApplyFn;
 STATIC_FASTRAM filter_t gyroLuluState[XYZ_AXIS_COUNT];
@@ -324,7 +323,9 @@ static void gyroInitFilters(void)
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
-    gyroCalibrationComplete = false;
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        gyroCalibrationComplete[i] = false;
+    }
 
     // Set inertial sensor tag (for dual-gyro selection)
 #ifdef USE_DUAL_GYRO
@@ -358,21 +359,10 @@ bool gyroInit(void)
     gyroInitFilters();
 
 #ifdef USE_DUAL_GYRO
-    /*
-     * Optional secondary IMU, sampled purely as an instrumentation channel.
-     * Its output reaches Blackbox as gyroRaw2 and nothing else: attitude
-     * estimation and the PID loops keep using gyroDev[0] exclusively.
-     */
+    // Optional secondary IMU, logged as gyroRaw2 and read by nothing else
     gyro.secondaryInitialized = false;
     if (gyroConfig()->gyro_secondary_enabled) {
-        /*
-         * Do not assume the two IMU positions are tagged 0 and 1. Most targets
-         * do, but AETH743Basic registers them as 0 and 2, and a few register
-         * both positions with tag 0 - where not even gyro_to_use can reach the
-         * second one. Probe the candidate tags instead, skipping the one the
-         * primary already claimed, and leave the feature disabled if nothing
-         * else answers.
-         */
+        // Targets disagree on how they tag the second IMU, so probe rather than assume tag 1
         for (uint8_t tag = 0; tag <= MAX_GYRO_SENSOR_TAG; tag++) {
             if (tag == gyroConfig()->gyro_to_use) {
                 continue;
@@ -415,32 +405,16 @@ void gyroStartCalibration(void)
     }
 
 #ifdef USE_DUAL_GYRO
-    /*
-     * The secondary always measures its own zero offset. It deliberately
-     * ignores init_gyro_cal: the stored calibration belongs to the primary
-     * sensor and applying it here would bias the logged samples.
-     */
+    // The secondary measures its own zero and ignores init_gyro_cal: gyro_zero_cal is a
+    // single stored value, and it belongs to the gyro that flies
     if (gyro.secondaryInitialized) {
-        /*
-         * The threshold is a number of raw counts, and raw counts mean different
-         * rotation rates on different parts - a dual-IMU board is free to pair two
-         * unrelated sensors. Converting through both scales asks the secondary for
-         * the same physical stillness the primary is asked for, rather than for the
-         * same number. Where the two sensors are the same part the scales cancel and
-         * this is exactly the old constant.
-         */
+        // The threshold is in raw counts, so convert it into the secondary's own scale
         const float secondaryThreshold =
             CALIBRATING_GYRO_MORON_THRESHOLD * gyroDev[0].scale / gyroDev[1].scale;
 
-        /*
-         * allowFailure is true here, unlike for the primary. Nothing gates arming on
-         * this sensor, so a calibration that keeps restarting on vibration would
-         * never finish and every logged sample would stay zero for the whole flight.
-         * Failing once and then logging the sensor with a zero offset keeps the
-         * channel useful: a constant bias can be removed in post-processing, a
-         * column of zeroes cannot.
-         */
-        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, secondaryThreshold, true);
+        // Asked to succeed like the primary: a window ending on a moving aircraft restarts
+        gyroCalibrationComplete[1] = false;
+        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, secondaryThreshold, false);
     }
 #endif
 
@@ -450,7 +424,7 @@ void gyroStartCalibration(void)
     }
 #endif
 
-    gyroCalibrationComplete = false;
+    gyroCalibrationComplete[0] = false;
     zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, false);
 }
 
@@ -469,7 +443,7 @@ bool gyroIsCalibrationComplete(void)
     return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]);
 }
 
-STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration, bool persist)
+STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration, uint8_t index)
 {
     fpVector3_t v;
 
@@ -488,17 +462,14 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         dev->gyroZero[Z] = v.v[Z];
 
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
-        /* gyro_zero_cal is a single shared value: only the gyro that actually
-         * flies the aircraft is allowed to write it. */
-        if (persist) {
+        // gyro_zero_cal is a single shared value: only the gyro that flies may write it
+        if (index == 0) {
             setGyroCalibration(dev->gyroZero);
         }
-#else
-        UNUSED(persist);
 #endif
 
         // Cache completion status to avoid function call in hot path
-        gyroCalibrationComplete = true;
+        gyroCalibrationComplete[index] = true;
 
         LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", (int16_t) dev->gyroZero[X], (int16_t) dev->gyroZero[Y], (int16_t) dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
@@ -519,17 +490,16 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
     }
 }
 
-static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroCalibrationVector_t * gyroCal, float * gyroADCf, bool isPrimary)
+static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroCalibrationVector_t * gyroCal, float * gyroADCf, uint8_t index)
 {
-
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev->readFn(gyroDev)) {
 
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
-    if (isPrimary && !gyroConfig()->init_gyro_cal_enabled) {
+    if (index == 0 && !gyroConfig()->init_gyro_cal_enabled) {
         // marks that the gyro calibration has ended
         gyroCal->params.state = ZERO_CALIBRATION_DONE;
-        gyroCalibrationComplete = true;
+        gyroCalibrationComplete[0] = true;
         // pass the calibration values
         gyroDev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
         gyroDev->gyroZero[Y] = gyroConfig()->gyro_zero_cal[Y];
@@ -538,7 +508,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 #endif
 
         // Use cached status to avoid function call in hot path
-        if (gyroCalibrationComplete) {
+        if (gyroCalibrationComplete[index]) {
             float gyroADCtmp[XYZ_AXIS_COUNT];
 
             //Apply zero calibration with CMSIS DSP
@@ -553,7 +523,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 
             return true;
         } else {
-            performGyroCalibration(gyroDev, gyroCal, isPrimary);
+            performGyroCalibration(gyroDev, gyroCal, index);
 
             // Reset gyro values to zero to prevent other code from using uncalibrated data
             gyroADCf[X] = 0.0f;
@@ -659,12 +629,9 @@ void FAST_CODE NOINLINE gyroUpdate(void)
     }
 
 #ifdef USE_DUAL_GYRO
-    /*
-     * Read the secondary before the primary's early return, so that a stalled
-     * or uncalibrated secondary can never suppress the primary sample.
-     */
+    // Read the secondary first: the primary's path returns early on a failed read
     if (gyro.secondaryInitialized) {
-        if (!gyroUpdateAndCalibrate(&gyroDev[1], &gyroCalibration[1], gyro.gyroRaw2, false)) {
+        if (!gyroUpdateAndCalibrate(&gyroDev[1], &gyroCalibration[1], gyro.gyroRaw2, 1)) {
             gyro.gyroRaw2[X] = 0.0f;
             gyro.gyroRaw2[Y] = 0.0f;
             gyro.gyroRaw2[Z] = 0.0f;
@@ -672,7 +639,7 @@ void FAST_CODE NOINLINE gyroUpdate(void)
     }
 #endif
 
-    if (!gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0], gyro.gyroADCf, true)) {
+    if (!gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0], gyro.gyroADCf, 0)) {
         return;
     }
 

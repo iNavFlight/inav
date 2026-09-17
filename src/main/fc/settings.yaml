@@ -335,7 +335,7 @@ groups:
         max: 2
         default_value: 0
       - name: gyro_secondary_enabled
-        description: "On multi-gyro targets, additionally sample the gyro NOT selected by `gyro_to_use`. The extra sample is exposed to Blackbox as `gyroRaw2` and is never used for attitude estimation or flight control. Intended for filter and estimator analysis. Costs one additional SPI transaction per gyro cycle."
+        description: "On a board with two IMUs, also sample the one `gyro_to_use` did not select, and log it to Blackbox as `gyroRaw2`. Instrumentation only: it never reaches attitude estimation or the PID loops. While this is off the second IMU is not initialised at all, so nothing else about the board changes. While it is on it costs one extra SPI transaction per gyro cycle."
         default_value: OFF
         condition: USE_DUAL_GYRO
         field: gyro_secondary_enabled
