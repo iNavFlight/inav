@@ -56,6 +56,7 @@
 - [climbRateToAltitudeControllerMode_e](#enum-climbratetoaltitudecontrollermode_e)
 - [colorComponent_e](#enum-colorcomponent_e)
 - [colorId_e](#enum-colorid_e)
+- [configProfileType_e](#enum-configprofiletype_e)
 - [crsfActiveAntenna_e](#enum-crsfactiveantenna_e)
 - [crsfAddress_e](#enum-crsfaddress_e)
 - [crsfFrameType_e](#enum-crsfframetype_e)
@@ -1309,6 +1310,17 @@
 | `COLOR_DARK_VIOLET` | 11 |  |
 | `COLOR_MAGENTA` | 12 |  |
 | `COLOR_DEEP_PINK` | 13 |  |
+
+---
+## <a id="enum-configprofiletype_e"></a>`configProfileType_e`
+
+> Source: inav/src/main/fc/config.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `CONFIG_PROFILE_TYPE_CONTROL` | 0 |  |
+| `CONFIG_PROFILE_TYPE_BATTERY` | 1 |  |
+| `CONFIG_PROFILE_TYPE_MIXER` | 2 |  |
 
 ---
 ## <a id="enum-crsfactiveantenna_e"></a>`crsfActiveAntenna_e`

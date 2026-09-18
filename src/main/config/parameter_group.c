@@ -124,3 +124,19 @@ void pgActivateProfile(int profileIndex)
         }
     }
 }
+
+// Copies every profile-scoped parameter group from one profile slot to another.
+// The active-profile pointers set up by pgActivateProfile() keep pointing at
+// the same slots, so copying into the active profile takes effect immediately.
+void pgCopyProfile(int fromProfileIndex, int toProfileIndex)
+{
+    if (fromProfileIndex == toProfileIndex) {
+        return;
+    }
+
+    PG_FOREACH(reg) {
+        if (!pgIsSystem(reg)) {
+            memcpy(pgOffset(reg, toProfileIndex), pgOffset(reg, fromProfileIndex), pgSize(reg));
+        }
+    }
+}
