@@ -1308,7 +1308,7 @@ static int16_t tpaPitchThrottleAdjustment(void)
     const uint8_t tpaPitchCompensationValue = currentControlProfile->throttle.tpa_pitch_compensation;
 
     if (currentControlProfile->throttle.fixedWingTauMs && tpaPitchCompensationValue) {
-        tpaThrottleAdjustment = constrain(tpaPitchCompensationValue * RADIANS_TO_DEGREES(-HeadVecEFFiltered.z), -1000, 1000);
+        tpaThrottleAdjustment = constrain(tpaPitchCompensationValue * RADIANS_TO_DEGREES(-HeadVecEFFiltered.z), -PWM_RANGE_MIN, PWM_RANGE_MIN);
     }
 
     return tpaThrottleAdjustment;
@@ -1324,19 +1324,15 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
     // tpa_rate is amount of curve TPA applied to PIDs
     // tpa_breakpoint for fixed wing is cruise throttle value (value at which PIDs were tuned)
     if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(AUTO_TUNE) && dynamicPID && tpaBreakpoint > throttleIdleValue) {
-        const uint16_t pitchThrottleSpeedFactor = pt1FilterApply(&fixedWingTpaFilter, constrain(throttle + tpaPitchThrottleAdjustment(), 1000, 2000));
+        // throttleIdleValue + 1 to avoid div zero
+        uint16_t pitchThrottleSpeedFactor = constrain(throttle + tpaPitchThrottleAdjustment(), throttleIdleValue + 1, getMaxThrottle());
+        pitchThrottleSpeedFactor = pt1FilterApply(&fixedWingTpaFilter, pitchThrottleSpeedFactor);
 
-        if (pitchThrottleSpeedFactor > throttleIdleValue) {
-            // Calculate TPA according to throttle
-            tpaFactor = 0.5f + 0.5f * ((tpaBreakpoint - throttleIdleValue) / (float)(pitchThrottleSpeedFactor - throttleIdleValue));
-        }
-        else {
-            tpaFactor = 2.0f;
-        }
+        // Calculate TPA according to throttle with compensation for pitch attitude
+        tpaFactor = 0.5f + 0.5f * ((tpaBreakpoint - throttleIdleValue) / (float)(pitchThrottleSpeedFactor - throttleIdleValue));
 
         // Attenuate TPA curve according to configured amount
         tpaFactor = 1.0f + (tpaFactor - 1.0f) * (0.01f * dynamicPID);
-        // Limit to [0.3; 2] range
         tpaFactor = constrainf(tpaFactor, 0.3f, 2.0f);
     }
 
@@ -1347,12 +1343,11 @@ static float calculateMultirotorTPAFactor(uint16_t throttle)
 {
     const uint8_t dynamicPID = constrain(currentControlProfile->throttle.dynPID, 0, 100);
     const uint16_t tpaBreakpoint = currentControlProfile->throttle.tpa_breakpoint;
-    const uint16_t maxThrottleValue = getMaxThrottle();
     float tpaFactor = 1.0f;
 
     // TPA should be updated only when TPA is actually set
     if (dynamicPID && throttle > tpaBreakpoint) {
-        tpaFactor = 0.01f * (100.0f - (dynamicPID * (throttle - tpaBreakpoint) / (float)(maxThrottleValue - tpaBreakpoint)));
+        tpaFactor = 0.01f * (100.0f - (dynamicPID * (throttle - tpaBreakpoint) / (float)(getMaxThrottle() - tpaBreakpoint)));
     }
 
     return tpaFactor;
