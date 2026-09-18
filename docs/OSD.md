@@ -192,7 +192,7 @@ Here are the OSD Elements provided by INAV.
 | 157 | OSD_CUSTOM_ELEMENT_7                             | 8.0.0  |       |
 | 158 | OSD_CUSTOM_ELEMENT_8                             | 8.0.0  |       |
 | 159 | OSD_LQ_DOWNLINK                                  | 8.0.0  |       |
-| 160 | OSD_RX_POWER_DOWNLINK                            | 8.0.0  |       |
+| 160 | OSD_RX_POWER_DOWNLINK                            | 8.0.0  | The element will be hidden unless the RC link reports the transmit power of the receiver. CRSF does not send this value, it is available on MSP and MAVLink RC links. |
 | 161 | OSD_RX_BAND                                      | 8.0.0  |       |
 | 162 | OSD_RX_MODE                                      | 8.0.0  |       |
 | 163 | OSD_COURSE_TO_FENCE                              | 8.0.0  |       |
