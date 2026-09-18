@@ -343,18 +343,23 @@ static bool deviceDetect(busDevice_t * busDev)
 
 bool baroDPS310Detect(baroDev_t *baro)
 {
-    baro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_DPS310, 0, OWNER_BARO);
-    if (baro->busDev == NULL) {
-        return false;
+    // The sensor may sit on either of its two I2C addresses, depending on how SDO is wired
+    bool detected = false;
+
+    for (uint8_t index = 0; index < 2 && !detected; index++) {
+        baro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_DPS310_0 + index, 0, OWNER_BARO);
+        if (baro->busDev == NULL) {
+            continue;
+        }
+
+        if (deviceDetect(baro->busDev) && deviceConfigure(baro->busDev)) {
+            detected = true;
+        } else {
+            busDeviceDeInit(baro->busDev);
+        }
     }
 
-    if (!deviceDetect(baro->busDev)) {
-        busDeviceDeInit(baro->busDev);
-        return false;
-    }
-
-    if (!deviceConfigure(baro->busDev)) {
-        busDeviceDeInit(baro->busDev);
+    if (!detected) {
         return false;
     }
 
