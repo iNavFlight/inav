@@ -540,7 +540,7 @@ void impl_pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength
     LL_TIM_EnableDMAReq_CCx(burstDmaTimer->timer, burstDmaTimer->burstRequestSource);
 }
 
-void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, uint32_t dmaBufferSize)
+nemvoid impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, void * dmaBuffer, uint32_t dmaBufferSize)
 {
     if (!tch->dma || !tch->dma->dma) {
         return;
@@ -564,7 +564,6 @@ void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, b
 
         if (circular) {
             LL_DMA_SetMode(burstDmaTimer->dma, burstDmaTimer->streamLL, LL_DMA_MODE_CIRCULAR);
-            LL_DMA_SetDataLength(burstDmaTimer->dma, burstDmaTimer->streamLL, dmaBufferSize);
             LL_DMA_DisableIT_TC(burstDmaTimer->dma, burstDmaTimer->streamLL);
             tch->dmaState = TCH_DMA_CIRCULAR;
         } else {
@@ -573,10 +572,18 @@ void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, b
             tch->dmaState = TCH_DMA_IDLE;
         }
 
+        // M0AR/NDTR writes are only accepted while EN = 0 (checked above)
+        LL_DMA_SetMemoryAddress(burstDmaTimer->dma, burstDmaTimer->streamLL, (uint32_t)dmaBuffer);
+        LL_DMA_SetDataLength(burstDmaTimer->dma, burstDmaTimer->streamLL, dmaBufferSize);
+
         __DSB();
 
-        LL_DMA_EnableStream(burstDmaTimer->dma, burstDmaTimer->streamLL);
-        LL_TIM_EnableDMAReq_CCx(burstDmaTimer->timer, burstDmaTimer->burstRequestSource);
+        // Normal mode: leave the stream stopped, as after a completed frame;
+        // the next frame is started by impl_pwmBurstDMAStart()
+        if (circular) {
+            LL_DMA_EnableStream(burstDmaTimer->dma, burstDmaTimer->streamLL);
+            LL_TIM_EnableDMAReq_CCx(burstDmaTimer->timer, burstDmaTimer->burstRequestSource);
+        }
     }
 }
 #endif
@@ -669,7 +676,7 @@ void impl_timerPWMStopDMA(TCH_t * tch)
     HAL_TIM_Base_Start(tch->timCtx->timHandle);
 }
 
-void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferSize)
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, void * dmaBuffer, uint32_t dmaBufferSize)
 {
     if (!tch->dma || !tch->dma->dma) {
         return;
@@ -698,8 +705,6 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferS
 
         if (circular) {
             LL_DMA_SetMode(dmaBase, streamLL, LL_DMA_MODE_CIRCULAR);
-            // Circular mode requires non-zero NDTR (STM32H7 RM constraint)
-            LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferSize);
             if (tch->dmaRefillCallback) {
                 // Refill consumer needs an IRQ every half-cycle to keep the
                 // buffer fed
@@ -718,10 +723,19 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferS
             tch->dmaState = TCH_DMA_IDLE;
         }
 
+        // M0AR/NDTR writes are only accepted while EN = 0 (checked above);
+        // circular mode requires non-zero NDTR (STM32H7 RM constraint)
+        LL_DMA_SetMemoryAddress(dmaBase, streamLL, (uint32_t)dmaBuffer);
+        LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferSize);
+
         // Ensure register writes are visible to DMA before re-enabling
         __DSB();
 
-        LL_DMA_EnableStream(dmaBase, streamLL);
-        LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+        // Normal mode: leave the stream stopped, as after a completed frame; the next
+        // frame is started by impl_timerPWMPrepareDMA()/impl_timerPWMStartDMA()
+        if (circular) {
+            LL_DMA_EnableStream(dmaBase, streamLL);
+            LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+        }
     }
 }
