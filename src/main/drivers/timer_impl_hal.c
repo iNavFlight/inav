@@ -540,7 +540,7 @@ void impl_pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength
     LL_TIM_EnableDMAReq_CCx(burstDmaTimer->timer, burstDmaTimer->burstRequestSource);
 }
 
-nemvoid impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, void * dmaBuffer, uint32_t dmaBufferSize)
+void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, void * dmaBuffer, uint32_t dmaBufferSize)
 {
     if (!tch->dma || !tch->dma->dma) {
         return;
