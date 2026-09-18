@@ -43,7 +43,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TMR2, CH3, PB10, TIM_USE_OUTPUT_AUTO, 0,5),     //S7
     DEF_TIM(TMR2, CH4, PB11, TIM_USE_OUTPUT_AUTO, 0,6),     //S8
     
-    DEF_TIM(TMR1, CH1, PA8,   TIM_USE_LED, 0, 0),  // LED STRIP
+    DEF_TIM(TMR1, CH1, PA8,   TIM_USE_LED, 0, 0),  // LED STRIP -- clash with S4's DMA stream; LED strip does not light
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
