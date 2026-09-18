@@ -3806,7 +3806,7 @@ Modifier for pitch to throttle ratio at final approach. In Percent.
 
 ### nav_fw_land_flare_alt
 
-Initial altitude of the flare phase
+Initial altitude of the flare phase. Requires a healthy rangefinder; without one the aircraft stays in the glide phase (see nav_fw_land_glide_alt/nav_fw_land_glide_pitch) all the way to touchdown.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3816,7 +3816,7 @@ Initial altitude of the flare phase
 
 ### nav_fw_land_flare_pitch
 
-Pitch value for flare phase. In degrees
+Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder; the flare phase never activates without one.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7198,7 +7198,7 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_pitch_compensation
 
-Fixed wing only. Pitch angle bias for the throttle value that throttle based TPA reads. It does not change the throttle sent to the motor, it only shifts the point on the TPA curve: nose up adds about this many microseconds per degree of pitch (the exact term is value * sin(pitch) * 180/pi, limited to +/-1000us), nose down subtracts them, so the PIDs get attenuated as if throttle were higher while climbing and lower while descending. You only need this if throttle based TPA is actually running, meaning `tpa_rate` is not 0 and `fw_tpa_time_constant` is above 0; leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active.
+Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains) when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active.
 
 | Default | Min | Max |
 | --- | --- | --- |
