@@ -1446,7 +1446,7 @@ Minimum stick input [%], after applying deadband and expo, to start recording th
 
 ### fw_d_level
 
-Fixed-wing attitude stabilisation HORIZON transition point
+Fixed-wing HORIZON transition point, expressed as stick deflection in percent. At this deflection self-levelling is faded out completely and the axis behaves like ACRO; below it, ANGLE and ACRO are blended proportionally. Despite the 0-255 CLI range, which is shared with the other PID values, the number is not scaled to 255: it is clamped to 100 internally, so 75 really means 75% stick and any value above 100 acts the same as 100.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3806,7 +3806,7 @@ Modifier for pitch to throttle ratio at final approach. In Percent.
 
 ### nav_fw_land_flare_alt
 
-Initial altitude of the flare phase
+Initial altitude of the flare phase. Requires a healthy rangefinder; without one the aircraft stays in the glide phase (see nav_fw_land_glide_alt/nav_fw_land_glide_pitch) all the way to touchdown.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3816,7 +3816,7 @@ Initial altitude of the flare phase
 
 ### nav_fw_land_flare_pitch
 
-Pitch value for flare phase. In degrees
+Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder; the flare phase never activates without one.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7198,7 +7198,7 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_pitch_compensation
 
-Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down.
+Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains) when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active.
 
 | Default | Min | Max |
 | --- | --- | --- |
