@@ -944,6 +944,13 @@
             "DJI_OSD_CN_ADJUSTEMNTS": "6",
             "DJI_OSD_CN_MAX_ELEMENTS": "7"
         },
+        "dronecanAsyncState_e": {
+            "_source": "inav/src/main/drivers/dronecan/dronecan.h",
+            "DRONECAN_ASYNC_IDLE": "0",
+            "DRONECAN_ASYNC_PENDING": "1",
+            "DRONECAN_ASYNC_READY": "2",
+            "DRONECAN_ASYNC_ERROR": "3"
+        },
         "dronecanBitrate_e": {
             "_source": "inav/src/main/drivers/dronecan/dronecan.h",
             "DRONECAN_BITRATE_125KBPS": "0",
@@ -3203,7 +3210,8 @@
             "OSD_THROTTLE_GAUGE": "168",
             "OSD_GPS_EXTRA_STATS": "169",
             "OSD_AUTO_SPEED": "170",
-            "OSD_ITEM_COUNT": "171"
+            "OSD_MZTC_STATUS": "171",
+            "OSD_ITEM_COUNT": "172"
         },
         "osd_sidebar_arrow_e": {
             "_source": "inav/src/main/io/osd_grid.c",
@@ -3876,7 +3884,11 @@
             "FUNCTION_CRSF_SENSOR": "(1 << 24)",
             "FUNCTION_MSP_OSD": "(1 << 25)",
             "FUNCTION_GIMBAL": "(1 << 26)",
-            "FUNCTION_GIMBAL_HEADTRACKER": "(1 << 27)"
+            "FUNCTION_GIMBAL_HEADTRACKER": "(1 << 27)",
+            "FUNCTION_MZTC_CAMERA": [
+                "(1 << 28)",
+                "USE_MZTC"
+            ]
         },
         "serialPortIdentifier_e": {
             "_source": "inav/src/main/io/serial.h",

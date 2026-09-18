@@ -3519,26 +3519,6 @@ Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this r
 
 ---
 
-### mztc_alert_high_temp
-
-High temperature alert threshold
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 80.0 | -40 | 200 |
-
----
-
-### mztc_alert_low_temp
-
-Low temperature alert threshold
-
-| Default | Min | Max |
-| --- | --- | --- |
-| -10.0 | -40 | 200 |
-
----
-
 ### mztc_auto_shutter
 
 Auto shutter calibration mode
@@ -3548,26 +3528,6 @@ Auto shutter calibration mode
 | TEMP_ONLY |  |
 | TIME_ONLY |  |
 | TIME_AND_TEMP | Default |
-
----
-
-### mztc_bad_pixel_removal
-
-Enable bad pixel removal
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
-
----
-
-### mztc_baudrate
-
-Baud rate for MassZero Thermal Camera
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 6 | 0 | 10 |
 
 ---
 
@@ -3591,16 +3551,6 @@ Image contrast (0-100)
 
 ---
 
-### mztc_crosshair_enabled
-
-Enable crosshair overlay
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### mztc_digital_enhancement
 
 Digital enhancement level (0-100)
@@ -3611,23 +3561,13 @@ Digital enhancement level (0-100)
 
 ---
 
-### mztc_enabled
-
-Enable MassZero Thermal Camera
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### mztc_ffc_interval
 
-Flat Field Calibration interval in minutes (0=disabled)
+Automatic shutter interval in minutes. The camera runs the schedule itself. Set mztc_auto_shutter to TEMP_ONLY to stop it correcting on a timer.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 60 |
+| 5 | 1 | 60 |
 
 ---
 
@@ -3641,23 +3581,6 @@ Image mirroring mode
 | HORIZONTAL |  |
 | VERTICAL |  |
 | CENTRAL |  |
-
----
-
-### mztc_mode
-
-Operating mode for MassZero Thermal Camera
-
-| Allowed Values |  |
-| --- | --- |
-| DISABLED |  |
-| STANDBY | Default |
-| CONTINUOUS |  |
-| TRIGGERED |  |
-| ALERT |  |
-| RECORDING |  |
-| CALIBRATION |  |
-| SURVEILLANCE |  |
 
 ---
 
@@ -3684,13 +3607,19 @@ Color palette mode
 
 ---
 
-### mztc_port
+### mztc_preset
 
-Serial port for MassZero Thermal Camera
+Purpose preset for the MassZero Thermal Camera. Selecting one writes the palette, brightness, contrast, enhancement, denoise, shutter mode and correction interval. CUSTOM writes nothing and keeps hand-tuned values
 
-| Default | Min | Max |
-| --- | --- | --- |
-| 1 | 0 | 7 |
+| Allowed Values |  |
+| --- | --- |
+| CUSTOM | Default |
+| GENERAL |  |
+| FIRE |  |
+| SEARCH |  |
+| SURVEILLANCE |  |
+| INSPECTION |  |
+| MARITIME |  |
 
 ---
 
@@ -3704,28 +3633,6 @@ Spatial denoising level (0-100)
 
 ---
 
-### mztc_temperature_alerts
-
-Enable temperature alerts
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### mztc_temperature_unit
-
-Temperature unit (Celsius, Fahrenheit, Kelvin)
-
-| Allowed Values |  |
-| --- | --- |
-| CELSIUS | Default |
-| FAHRENHEIT |  |
-| KELVIN |  |
-
----
-
 ### mztc_temporal_denoise
 
 Temporal denoising level (0-100)
@@ -3733,26 +3640,6 @@ Temporal denoising level (0-100)
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 0 | 100 |
-
----
-
-### mztc_update_rate
-
-Frame update rate in Hz
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 9 | 1 | 30 |
-
----
-
-### mztc_vignetting_correction
-
-Enable vignetting correction
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
 
 ---
 

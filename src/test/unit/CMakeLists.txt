@@ -22,6 +22,10 @@ set_property(SOURCE maths_unittest.cc PROPERTY depends "common/maths.c")
 
 set_property(SOURCE olc_unittest.cc PROPERTY depends "common/olc.c")
 
+set_property(SOURCE mztc_camera_unittest.cc PROPERTY depends
+    "io/mztc_camera.c" "common/maths.c")
+set_property(SOURCE mztc_camera_unittest.cc PROPERTY definitions USE_MZTC)
+
 set_property(SOURCE rcdevice_unittest.cc PROPERTY definitions USE_RCDEVICE)
 set_property(SOURCE rcdevice_unittest.cc PROPERTY depends
     "common/bitarray.c" "common/crc.c" "io/rcdevice.c" "io/rcdevice_cam.c"
@@ -196,8 +200,3 @@ foreach(source ${TEST_PROGRAMS})
 endforeach()
 
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS ${test_targets})
-
-# Add our thermal camera test
-set_property(SOURCE mztc_camera_unittest.cc PROPERTY depends
-    "io/mztc_camera.c" "drivers/serial.c" "drivers/time.c" "common/parameter_group.c")
-set_property(SOURCE mztc_camera_unittest.cc PROPERTY definitions UNIT_TEST USE_MZTC)

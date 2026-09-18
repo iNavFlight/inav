@@ -437,7 +437,6 @@ main_sources(COMMON_SRC
 
     msp/msp_serial.c
     msp/msp_serial.h
-    msp/msp_mztc.c
     msp/msp_mztc.h
 
     programming/logic_condition.c

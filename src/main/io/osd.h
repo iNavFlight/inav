@@ -368,6 +368,7 @@ typedef enum {
     OSD_THROTTLE_GAUGE,
     OSD_GPS_EXTRA_STATS,
     OSD_AUTO_SPEED,  // 170
+    OSD_MZTC_STATUS,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

@@ -8,7 +8,7 @@
  *
  * INAV is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR ANY PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -20,132 +20,82 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "msp/msp.h"
 #include "config/mztc_camera.h"
 
 #ifdef USE_MZTC
 
-// MassZero Thermal Camera MSP V2 commands
-// Using INAV-specific range 0x3000-0x3FFF to avoid conflicts with existing INAV messages
-#define MSP2_MZTC_CONFIG                0x3000    // Get MassZero Thermal Camera configuration
-#define MSP2_SET_MZTC_CONFIG            0x3001    // Set MassZero Thermal Camera configuration
-#define MSP2_MZTC_STATUS                0x3002    // Get MassZero Thermal Camera status
-#define MSP2_MZTC_FRAME_DATA            0x3003    // Get thermal frame data
-#define MSP2_MZTC_CALIBRATE            0x3004    // Trigger calibration (FFC)
-#define MSP2_MZTC_MODE                 0x3005    // Set operating mode
-#define MSP2_SET_MZTC_MODE             0x3005    // Set operating mode (alias)
-#define MSP2_MZTC_PALETTE              0x3006    // Set color palette
-#define MSP2_SET_MZTC_PALETTE          0x3006    // Set color palette (alias)
-#define MSP2_MZTC_ZOOM                 0x3007    // Set zoom level
-#define MSP2_SET_MZTC_ZOOM             0x3007    // Set zoom level (alias)
-#define MSP2_MZTC_SHUTTER              0x3008    // Trigger manual shutter
-#define MSP2_SET_MZTC_SHUTTER          0x3010    // Set manual shutter trigger
-#define MSP2_MZTC_ALERTS               0x3009    // Configure temperature alerts
-#define MSP2_SET_MZTC_ALERTS           0x300D    // Set temperature alerts configuration
-#define MSP2_MZTC_IMAGE_PARAMS         0x300A    // Set image parameters (brightness, contrast, etc.)
-#define MSP2_SET_MZTC_IMAGE_PARAMS    0x300E    // Set image parameters
-#define MSP2_MZTC_CORRECTION           0x300B    // Set correction parameters (denoising, enhancement)
-#define MSP2_SET_MZTC_CORRECTION      0x300F    // Set correction parameters
+/*
+ * MassZero Thermal Camera MSP V2 commands.
+ *
+ * These live in INAV's own 0x2000-0x2FFF range. The 0x3000 block belongs to
+ * the Betaflight compatibility commands. MSP2_BETAFLIGHT_BIND is 0x3000.
+ * MSP2_RX_BIND is 0x3001. That block is out of reach here.
+ *
+ * Every command listed below is handled in fc_msp.c. There are no reserved or
+ * aliased identifiers: an ID exists only if something answers it.
+ *
+ * All payloads are little endian. Every field is read and written one at a
+ * time with the sbuf helpers. No C struct is cast over the stream buffer, which
+ * keeps compiler padding and alignment off the wire.
+ */
 
-// MSP message structures for MassZero Thermal Camera
+// Out (flight controller to host)
+#define MSP2_MZTC_CONFIG                0x2240
+#define MSP2_MZTC_STATUS                0x2241
 
-// MSP_MZTC_CONFIG (2000) - Get configuration
-typedef struct {
-    uint8_t enabled;
-    uint8_t port;
-    uint8_t baudrate;
-    uint8_t mode;
-    uint8_t update_rate;
-    uint8_t temperature_unit;
-    uint8_t palette_mode;
-    uint8_t auto_shutter;
-    uint8_t digital_enhancement;
-    uint8_t spatial_denoise;
-    uint8_t temporal_denoise;
-    uint8_t brightness;
-    uint8_t contrast;
-    uint8_t zoom_level;
-    uint8_t mirror_mode;
-    uint8_t crosshair_enabled;
-    uint8_t temperature_alerts;
-    float alert_high_temp;
-    float alert_low_temp;
-    uint8_t ffc_interval;
-    uint8_t bad_pixel_removal;
-    uint8_t vignetting_correction;
-} msp_mztc_config_t;
+// In (host to flight controller)
+#define MSP2_SET_MZTC_CONFIG            0x2242
+#define MSP2_SET_MZTC_PRESET            0x2243
+#define MSP2_SET_MZTC_PALETTE           0x2244
+#define MSP2_SET_MZTC_ZOOM              0x2245
+#define MSP2_SET_MZTC_SHUTTER           0x2246
+#define MSP2_SET_MZTC_IMAGE_PARAMS      0x2247
+#define MSP2_SET_MZTC_CORRECTION        0x2248
+#define MSP2_SET_MZTC_VIGNETTING        0x2249
 
-// MSP_MZTC_STATUS (2002) - Get status
-typedef struct {
-    uint8_t status;                     // Camera status
-    uint8_t mode;                       // Current mode
-    uint8_t connection_quality;         // Connection quality indicator
-    uint8_t last_calibration;           // Minutes since last calibration
-    float camera_temperature;           // Camera internal temperature
-    float ambient_temperature;          // Ambient temperature
-    uint32_t frame_count;               // Frame counter
-    uint8_t error_flags;                // Error status flags
-    uint32_t last_frame_time;           // Last frame timestamp
-} msp_mztc_status_t;
+/*
+ * Payload layouts
+ *
+ * MSP2_MZTC_CONFIG (out) and MSP2_SET_MZTC_CONFIG (in), 11 bytes.
+ * The port and its baud rate are not here. They come from the Ports tab.
+ *   u8  preset
+ *   u8  palette_mode
+ *   u8  auto_shutter
+ *   u8  digital_enhancement
+ *   u8  spatial_denoise
+ *   u8  temporal_denoise
+ *   u8  brightness
+ *   u8  contrast
+ *   u8  zoom_level
+ *   u8  mirror_mode
+ *   u8  ffc_interval
+ *
+ * MSP2_MZTC_STATUS (out), 7 bytes:
+ *   u8  status
+ *   u8  preset
+ *   u8  connected
+ *   u8  connection_quality
+ *   u16 last_calibration       (minutes)
+ *   u8  error_flags
+ *
+ * MSP2_SET_MZTC_PRESET   (in), 1 byte: u8 preset
+ * MSP2_SET_MZTC_PALETTE  (in), 1 byte: u8 palette
+ * MSP2_SET_MZTC_ZOOM     (in), 1 byte: u8 zoom_level
+ * MSP2_SET_MZTC_SHUTTER  (in), 0 or 1 bytes. Triggers a manual shutter cycle,
+ *                        which is the camera's flat field correction. Any
+ *                        payload byte is ignored.
+ * MSP2_SET_MZTC_IMAGE_PARAMS (in), 3 bytes: u8 brightness, u8 contrast,
+ *                        u8 enhancement
+ * MSP2_SET_MZTC_CORRECTION   (in), 2 bytes: u8 spatial, u8 temporal
+ * MSP2_SET_MZTC_VIGNETTING   (in), 0 or 1 bytes. Runs one vignetting
+ *                        correction. The camera manual requires the lens to be
+ *                        pointed at a uniform surface first, so this is an
+ *                        action and never a stored setting.
+ */
 
-// MSP_MZTC_FRAME_DATA (2003) - Get frame data
-typedef struct {
-    uint16_t width;                     // Frame width
-    uint16_t height;                    // Frame height
-    float min_temp;                     // Minimum temperature in frame
-    float max_temp;                     // Maximum temperature in frame
-    float center_temp;                  // Center point temperature
-    float hottest_temp;                 // Hottest point temperature
-    float coldest_temp;                 // Coldest point temperature
-    uint16_t hottest_x;                // Hottest point X coordinate
-    uint16_t hottest_y;                // Hottest point Y coordinate
-    uint16_t coldest_x;                // Coldest point X coordinate
-    uint16_t coldest_y;                // Coldest point Y coordinate
-    uint8_t data[256];                 // Raw thermal data (reduced size for MSP)
-} msp_mztc_frame_t;
-
-// MSP_MZTC_MODE (2005) - Set mode
-typedef struct {
-    uint8_t mode;                       // Operating mode
-} msp_mztc_mode_t;
-
-// MSP_MZTC_PALETTE (2006) - Set palette
-typedef struct {
-    uint8_t palette;                    // Color palette
-} msp_mztc_palette_t;
-
-// MSP_MZTC_ZOOM (3007) - Set zoom
-typedef struct {
-    uint8_t zoom_level;                 // Zoom level
-} msp_mztc_zoom_t;
-
-// MSP_MZTC_SHUTTER (2008) - Trigger manual shutter
-typedef struct {
-    uint8_t shutter_trigger;            // Shutter trigger command
-} msp_mztc_shutter_t;
-
-// MSP_MZTC_IMAGE_PARAMS (2010) - Set image parameters
-typedef struct {
-    uint8_t brightness;                 // Brightness (0-100)
-    uint8_t contrast;                   // Contrast (0-100)
-    uint8_t enhancement;                // Digital enhancement (0-100)
-} msp_mztc_image_params_t;
-
-// MSP_MZTC_CORRECTION (2011) - Set correction parameters
-typedef struct {
-    uint8_t spatial_denoise;            // Spatial denoising (0-100)
-    uint8_t temporal_denoise;           // Temporal denoising (0-100)
-} msp_mztc_correction_t;
-
-// MSP_MZTC_ALERTS (2009) - Configure alerts
-typedef struct {
-    uint8_t enabled;                    // Enable/disable alerts
-    float high_temp;                    // High temperature threshold
-    float low_temp;                     // Low temperature threshold
-} msp_mztc_alerts_t;
-
-// Function declarations
-mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply);
-void mspMztcInit(void);
+#define MSP2_MZTC_CONFIG_PAYLOAD_SIZE           11
+#define MSP2_MZTC_STATUS_PAYLOAD_SIZE           7
+#define MSP2_SET_MZTC_IMAGE_PARAMS_PAYLOAD_SIZE 3
+#define MSP2_SET_MZTC_CORRECTION_PAYLOAD_SIZE   2
 
 #endif // USE_MZTC

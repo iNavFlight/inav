@@ -78,6 +78,7 @@
 #include "io/vtx_string.h"
 
 #include "io/osd/custom_elements.h"
+#include "io/osd/mztc_camera_osd.h"
 
 #include "fc/config.h"
 #include "fc/control_profile.h"
@@ -229,7 +230,7 @@ static bool osdDisplayHasCanvas;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 3);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 4);
 
 /* OSD formatting helpers replacing common tfp_sprintf patterns
  * for reduced code size and CPU overhead. */
@@ -4091,6 +4092,12 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+#ifdef USE_MZTC
+    case OSD_MZTC_STATUS:
+        mztcOsdFormatStatus(buff, &elemAttr);
+        break;
+#endif
+
     default:
         return false;
     }
@@ -4553,6 +4560,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
 #ifdef USE_BLACKBOX
     osdLayoutsConfig->item_pos[0][OSD_BLACKBOX] = OSD_POS(2, 10);
+#endif
+
+#ifdef USE_MZTC
+    osdLayoutsConfig->item_pos[0][OSD_MZTC_STATUS] = OSD_POS(1, 4);
 #endif
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?

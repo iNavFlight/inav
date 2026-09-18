@@ -23,36 +23,13 @@
 
 #ifdef USE_MZTC
 
-// External variables for CLI access
-extern serialPort_t *mztcSerialPort;
-extern mztcStatus_t mztcStatus;
+// The driver API lives in config/mztc_camera.h alongside the data model. That
+// keeps the parameter group, the limits and the functions that enforce them in
+// one place. This header exists for the callers that only want the driver. It
+// adds the accessors that are outside the data model.
 
-// Function declarations
-void mztcInit(void);
-void mztcUpdate(timeUs_t currentTimeUs);
-// Check if MassZero Thermal Camera is enabled
-bool mztcIsEnabled(void);
-
-// Check if MassZero Thermal Camera is connected
-bool mztcIsConnected(void);
-
-// Get MassZero Thermal Camera status
-mztcStatus_t* mztcGetStatus(void);
-bool mztcTriggerCalibration(void);
-bool mztcSetMode(mztcMode_e mode);
-bool mztcSetPalette(mztcPaletteMode_e palette);
-bool mztcSetZoom(mztcZoomLevel_e zoom);
-bool mztcSetImageParams(uint8_t brightness, uint8_t contrast, uint8_t enhancement);
-bool mztcSetDenoising(uint8_t spatial, uint8_t temporal);
-bool mztcSetTemperatureAlerts(bool enabled, float high_temp, float low_temp);
-void mztcRequestReconnect(void);
-
-// Get thermal frame data from the camera
-bool mztcGetFrameData(mztcFrameData_t *frameData);
-
-// Camera management functions
-bool mztcGetInitStatus(void);
-bool mztcSaveConfiguration(void);
-bool mztcRestoreDefaults(void);
+// Identity bytes reported by the camera in its model or version reply. Returns
+// NULL until the camera has answered a probe. len receives the byte count.
+const uint8_t *mztcGetDeviceId(uint8_t *len);
 
 #endif // USE_MZTC

@@ -25,24 +25,21 @@
 #include "config/parameter_group.h"
 #include "drivers/time.h"
 
-// MassZero Thermal Camera operating modes
+// Purpose presets. A preset is a named bundle of the image settings below. It
+// is applied on the flight controller and writes ordinary camera commands. The
+// camera has no preset mechanism of its own.
+//
+// MZTC_PRESET_CUSTOM writes nothing, so a hand-tuned configuration survives.
+// Changing any setting a preset owns switches the selection back to it.
 typedef enum {
-    MZTC_MODE_DISABLED = 0,
-    MZTC_MODE_STANDBY,                 // Low power, periodic updates
-    MZTC_MODE_CONTINUOUS,              // Continuous frame capture
-    MZTC_MODE_TRIGGERED,               // Capture on demand
-    MZTC_MODE_ALERT,                   // Only capture when alerts triggered
-    MZTC_MODE_RECORDING,               // High-speed recording mode
-    MZTC_MODE_CALIBRATION,             // Calibration mode
-    MZTC_MODE_SURVEILLANCE             // Long-range surveillance mode
-} mztcMode_e;
-
-// MassZero Thermal Camera temperature units
-typedef enum {
-    MZTC_UNIT_CELSIUS = 0,
-    MZTC_UNIT_FAHRENHEIT = 1,
-    MZTC_UNIT_KELVIN = 2
-} mztcTemperatureUnit_e;
+    MZTC_PRESET_CUSTOM = 0,            // Leave every setting as the user left it
+    MZTC_PRESET_GENERAL,               // Balanced, for ordinary flying
+    MZTC_PRESET_FIRE,                  // Flat mid-tones so hot spikes dominate
+    MZTC_PRESET_SEARCH,                // Lift a small warm target out of ambient
+    MZTC_PRESET_SURVEILLANCE,          // Loiter work, where frame averaging helps
+    MZTC_PRESET_INSPECTION,            // Read gradients across a surface
+    MZTC_PRESET_MARITIME               // Warm target on a large uniform cold field
+} mztcPreset_e;
 
 // MassZero Thermal Camera color palettes
 typedef enum {
@@ -78,21 +75,37 @@ typedef enum {
     MZTC_MIRROR_CENTRAL = 3            // Both horizontal and vertical
 } mztcMirrorMode_e;
 
-// MassZero Thermal Camera auto shutter modes
+// MassZero Thermal Camera auto shutter modes.
+//
+// The camera expects 0x01 to 0x03 on the wire and rejects 0x00 as out of
+// range, so the driver adds MZTC_SHUTTER_WIRE_OFFSET when it sends the value.
+// These enum values stay zero-based because settings.yaml indexes its lookup
+// table from zero.
 typedef enum {
-    MZTC_SHUTTER_TEMP_ONLY = 0,        // Based on temperature difference only
-    MZTC_SHUTTER_TIME_ONLY = 1,        // Based on time interval only
-    MZTC_SHUTTER_TIME_AND_TEMP = 2     // Both time and temperature (default)
+    MZTC_SHUTTER_TEMP_ONLY = 0,        // Camera wire value 0x01
+    MZTC_SHUTTER_TIME_ONLY = 1,        // Camera wire value 0x02
+    MZTC_SHUTTER_TIME_AND_TEMP = 2     // Camera wire value 0x03, the default
 } mztcShutterMode_e;
 
+#define MZTC_SHUTTER_WIRE_OFFSET        1
+
+// MassZero Thermal Camera limits.
+//
+// These are the single source of truth for the valid ranges. settings.yaml
+// references them for the CLI bounds. The MSP handlers validate against them.
+// A value the CLI rejects cannot be smuggled in over MSP.
+#define MZTC_MIN_FFC_INTERVAL           1       // Minimum 1 minute
+#define MZTC_MAX_FFC_INTERVAL           60      // Maximum 60 minutes
+#define MZTC_MIN_PERCENT                0
+#define MZTC_MAX_PERCENT                100
+
 // MassZero Thermal Camera configuration structure
+// The serial port and its baud rate come from the Ports tab through
+// findSerialPortConfig(FUNCTION_MZTC_CAMERA), the same way every other serial
+// peripheral in INAV works. Assigning the function is what enables the camera,
+// so there is no separate enable, port or baudrate setting to keep in step.
 typedef struct mztcConfig_s {
-    uint8_t enabled;                    // Enable/disable MassZero Thermal Camera
-    uint8_t port;                       // Serial port (USART1-8, etc.)
-    uint8_t baudrate;                   // Baud rate index
-    uint8_t mode;                       // Operating mode
-    uint8_t update_rate;                // Frame update rate (Hz)
-    uint8_t temperature_unit;           // Temperature unit
+    uint8_t preset;                     // Purpose preset, see mztcPreset_e
     uint8_t palette_mode;               // Color palette
     uint8_t auto_shutter;               // Auto shutter mode
     uint8_t digital_enhancement;        // Digital enhancement (0-100)
@@ -102,50 +115,18 @@ typedef struct mztcConfig_s {
     uint8_t contrast;                   // Contrast (0-100)
     uint8_t zoom_level;                 // Digital zoom level
     uint8_t mirror_mode;                // Image mirroring
-    uint8_t crosshair_enabled;          // Enable crosshair overlay
-    uint8_t temperature_alerts;         // Enable temperature alerts
-    float alert_high_temp;              // High temperature alert threshold
-    float alert_low_temp;               // Low temperature alert threshold
-    uint8_t ffc_interval;               // Flat Field Calibration interval (minutes)
-    uint8_t bad_pixel_removal;          // Enable bad pixel removal
-    uint8_t vignetting_correction;      // Enable vignetting correction
-    // Channel control configuration
-    uint8_t zoom_channel;               // 0 = disabled, 1-18 = AUX1-18
-    uint8_t palette_channel;            // 0 = disabled, 1-18 = AUX1-18
-    uint8_t ffc_channel;                // 0 = disabled, 1-18 = AUX1-18
-    uint8_t brightness_channel;         // 0 = disabled, 1-18 = AUX1-18
-    uint8_t contrast_channel;           // 0 = disabled, 1-18 = AUX1-18
+    uint8_t ffc_interval;               // Automatic shutter interval, in minutes
 } mztcConfig_t;
 
 // MassZero Thermal Camera status structure
 typedef struct mztcStatus_s {
     uint8_t status;                     // Camera status
-    uint8_t mode;                       // Current mode
+    uint8_t preset;                     // Purpose preset in effect
     bool connected;                      // Connection status
     uint8_t connection_quality;         // Connection quality indicator
-    uint8_t last_calibration;           // Minutes since last calibration
-    float camera_temperature;           // Camera internal temperature
-    float ambient_temperature;          // Ambient temperature
-    uint32_t frame_count;               // Frame counter
+    uint16_t last_calibration;          // Minutes since last calibration (saturates at UINT16_MAX)
     uint8_t error_flags;                // Error status flags
-    uint32_t last_frame_time;           // Last frame timestamp
 } mztcStatus_t;
-
-// MassZero Thermal Camera frame data structure
-typedef struct mztcFrameData_s {
-    uint16_t width;                     // Frame width
-    uint16_t height;                    // Frame height
-    float min_temp;                     // Minimum temperature in frame
-    float max_temp;                     // Maximum temperature in frame
-    float center_temp;                  // Center point temperature
-    float hottest_temp;                 // Hottest point temperature
-    float coldest_temp;                 // Coldest point temperature
-    uint16_t hottest_x;                // Hottest point X coordinate
-    uint16_t hottest_y;                // Hottest point Y coordinate
-    uint16_t coldest_x;                // Coldest point X coordinate
-    uint16_t coldest_y;                // Coldest point Y coordinate
-    uint8_t data[256];                 // Raw thermal data (reduced size for MSP)
-} mztcFrameData_t;
 
 // MassZero Thermal Camera status values
 #define MZTC_STATUS_OFFLINE             0x00
@@ -165,11 +146,18 @@ typedef struct mztcFrameData_s {
 #define MZTC_ERROR_TIMEOUT              0x10
 #define MZTC_ERROR_INVALID_CONFIG       0x20
 
-// MassZero Thermal Camera limits
-#define MZTC_MAX_UPDATE_RATE            30      // Maximum 30 Hz
-#define MZTC_MIN_UPDATE_RATE            1       // Minimum 1 Hz
-#define MZTC_MAX_FFC_INTERVAL           60      // Maximum 60 minutes
-#define MZTC_MIN_FFC_INTERVAL           1       // Minimum 1 minute
+// Wire framing constants for the camera serial protocol.
+// Layout: begin(1) size(1) addr(1) class(1) subclass(1) flags(1) data(N)
+//         checksum(1) end(1). The size field is N+4 and covers addr through
+//         checksum. The total byte count on the wire is size+4.
+#define MZTC_PACKET_BEGIN               0xF0
+#define MZTC_PACKET_END                 0xFF
+#define MZTC_DEVICE_ADDR                0x36
+#define MZTC_MAX_DATA_LEN               14
+#define MZTC_PACKET_OVERHEAD            8       // Everything that is not payload
+#define MZTC_MIN_PACKET_LEN             MZTC_PACKET_OVERHEAD
+#define MZTC_MAX_PACKET_LEN             (MZTC_PACKET_OVERHEAD + MZTC_MAX_DATA_LEN)
+#define MZTC_SIZE_FIELD_OFFSET          4       // size = data_len + 4
 
 // Parameter group declaration
 PG_DECLARE(mztcConfig_t, mztcConfig);
@@ -180,13 +168,22 @@ void mztcUpdate(timeUs_t currentTimeUs);
 bool mztcIsEnabled(void);
 mztcStatus_t* mztcGetStatus(void);
 bool mztcTriggerCalibration(void);
-bool mztcSetMode(mztcMode_e mode);
+bool mztcSetPreset(mztcPreset_e preset);
 bool mztcSetPalette(mztcPaletteMode_e palette);
 bool mztcSetZoom(mztcZoomLevel_e zoom);
 bool mztcSetImageParams(uint8_t brightness, uint8_t contrast, uint8_t enhancement);
 bool mztcSetDenoising(uint8_t spatial, uint8_t temporal);
-bool mztcSetTemperatureAlerts(bool enabled, float high_temp, float low_temp);
 bool mztcIsConnected(void);
-void mztcSimulateDataReception(void);
+void mztcRequestReconnect(void);
+bool mztcSaveConfiguration(void);
+bool mztcRestoreDefaults(void);
+bool mztcTriggerVignettingCorrection(void);
+bool mztcConfigIsValid(const mztcConfig_t *cfg);
+
+// Serial framing helpers. Exposed so the unit test can exercise the wire
+// format without a serial port; see mztc_camera_unittest.cc.
+uint8_t mztcBuildPacket(uint8_t *out, uint8_t class_cmd, uint8_t subclass_cmd,
+                        uint8_t flags, const uint8_t *data, uint8_t data_len);
+bool mztcPacketIsValid(const uint8_t *packet, uint8_t len);
 
 #endif // USE_MZTC

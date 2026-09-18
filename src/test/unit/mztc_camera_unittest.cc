@@ -1,747 +1,819 @@
-#include <gtest/gtest.h>
+/*
+ * This file is part of INAV.
+ *
+ * INAV is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * INAV is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-#ifdef USE_MZTC
+#include <stdint.h>
+#include <string.h>
+#include <vector>
 
-// Include the thermal camera configuration header
+#include "gtest/gtest.h"
+#include "unittest_macros.h"
+
+extern "C" {
+#include "platform.h"
+#include "common/utils.h"
 #include "config/mztc_camera.h"
+#include "io/mztc_camera.h"
+// The driver reads the THERMAL CALIBRATE switch, so the test provides
+// IS_RC_MODE_ACTIVE and needs the box id enum.
+#include "fc/rc_modes.h"
 
-class MztcCameraTest : public ::testing::Test {
+// Driver internals the receive-path tests drive directly. These are static in
+// production builds and visible here through STATIC_UNIT_TESTED.
+void mztcSerialReceiveCallback(uint16_t c, void *rxCallbackData);
+void mztcSendConfiguration(void);
+
+// Test hooks defined in the driver under UNIT_TEST.
+void mztcTestReset(void);
+void mztcTestForceReinit(void);
+void mztcTestSetStatus(uint8_t status);
+void mztcTestSetLastCalibration(uint16_t minutes);
+}
+
+/*
+ * These tests exercise what can be checked without a camera attached: the
+ * serial wire format and the configuration validator that the MSP set handler
+ * relies on. The wire format is pinned against a packet captured from real
+ * hardware. A regression in the framing math fails here, before it reaches a
+ * bench.
+ */
+
+// Captured from a MassZero camera: read device model, no payload.
+// begin, size, address, class, subclass, flags, checksum, end.
+static const uint8_t READ_MODEL_PACKET[] = { 0xF0, 0x04, 0x36, 0x74, 0x02, 0x01, 0xAD, 0xFF };
+
+// Whether the Ports tab has MZTC_CAMERA assigned to a UART.
+static bool mztcPortAssigned;
+
+// Whether the THERMAL CALIBRATE switch is held. The driver triggers one flat
+// field correction on the rising edge.
+static bool mztcCalibrateBoxActive;
+
+class MztcFramingTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        // No setup needed for structure/enum tests
+    uint8_t packet[MZTC_MAX_PACKET_LEN];
+};
+
+TEST_F(MztcFramingTest, ZeroPayloadCommandMatchesHardwareCapture)
+{
+    const uint8_t len = mztcBuildPacket(packet, 0x74, 0x02, 0x01, NULL, 0);
+
+    ASSERT_EQ(sizeof(READ_MODEL_PACKET), len);
+    EXPECT_EQ(0, memcmp(READ_MODEL_PACKET, packet, len));
+}
+
+TEST_F(MztcFramingTest, TotalLengthIsPayloadPlusOverhead)
+{
+    const uint8_t payload[MZTC_MAX_DATA_LEN] = { 0 };
+
+    for (uint8_t dataLen = 0; dataLen <= MZTC_MAX_DATA_LEN; dataLen++) {
+        const uint8_t len = mztcBuildPacket(packet, 0x78, 0x02, 0x00, payload, dataLen);
+        EXPECT_EQ(MZTC_PACKET_OVERHEAD + dataLen, len) << "data_len " << (int)dataLen;
     }
-    
-    void TearDown() override {
-        // No cleanup needed
+}
+
+TEST_F(MztcFramingTest, SizeFieldIsPayloadPlusFour)
+{
+    const uint8_t payload[3] = { 0x11, 0x22, 0x33 };
+    const uint8_t len = mztcBuildPacket(packet, 0x78, 0x02, 0x00, payload, sizeof(payload));
+
+    ASSERT_NE(0, len);
+    EXPECT_EQ(sizeof(payload) + MZTC_SIZE_FIELD_OFFSET, packet[1]);
+    // The size field describes address through checksum. The wire length is the
+    // size field plus the begin and end markers plus the size byte itself.
+    EXPECT_EQ(packet[1] + 4, len);
+}
+
+TEST_F(MztcFramingTest, ChecksumAndTerminatorAreAlwaysPresent)
+{
+    const uint8_t payload[5] = { 0xF0, 0xFF, 0x00, 0xFF, 0xF0 };
+    const uint8_t len = mztcBuildPacket(packet, 0x7C, 0x04, 0x00, payload, sizeof(payload));
+
+    ASSERT_NE(0, len);
+    EXPECT_EQ(MZTC_PACKET_END, packet[len - 1]);
+
+    uint8_t expected = 0;
+    for (uint8_t i = 2; i < (uint8_t)(len - 2); i++) {
+        expected += packet[i];
+    }
+    EXPECT_EQ(expected, packet[len - 2]);
+}
+
+TEST_F(MztcFramingTest, PayloadBytesAreCopiedVerbatim)
+{
+    const uint8_t payload[4] = { 0xDE, 0xAD, 0xBE, 0xEF };
+    const uint8_t len = mztcBuildPacket(packet, 0x78, 0x10, 0x00, payload, sizeof(payload));
+
+    ASSERT_NE(0, len);
+    EXPECT_EQ(0, memcmp(payload, &packet[6], sizeof(payload)));
+}
+
+TEST_F(MztcFramingTest, OversizedPayloadIsRejected)
+{
+    const uint8_t payload[MZTC_MAX_DATA_LEN + 1] = { 0 };
+
+    EXPECT_EQ(0, mztcBuildPacket(packet, 0x78, 0x02, 0x00, payload, MZTC_MAX_DATA_LEN + 1));
+}
+
+TEST_F(MztcFramingTest, NullPayloadWithNonZeroLengthIsRejected)
+{
+    EXPECT_EQ(0, mztcBuildPacket(packet, 0x78, 0x02, 0x00, NULL, 4));
+}
+
+TEST_F(MztcFramingTest, BuiltPacketsValidate)
+{
+    const uint8_t payload[MZTC_MAX_DATA_LEN] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 };
+
+    for (uint8_t dataLen = 0; dataLen <= MZTC_MAX_DATA_LEN; dataLen++) {
+        const uint8_t len = mztcBuildPacket(packet, 0x74, 0x02, 0x03, payload, dataLen);
+        ASSERT_NE(0, len);
+        EXPECT_TRUE(mztcPacketIsValid(packet, len)) << "data_len " << (int)dataLen;
+    }
+}
+
+TEST_F(MztcFramingTest, HardwareCaptureValidates)
+{
+    EXPECT_TRUE(mztcPacketIsValid(READ_MODEL_PACKET, sizeof(READ_MODEL_PACKET)));
+}
+
+TEST_F(MztcFramingTest, CorruptChecksumIsRejected)
+{
+    memcpy(packet, READ_MODEL_PACKET, sizeof(READ_MODEL_PACKET));
+    packet[6] ^= 0xFF;
+
+    EXPECT_FALSE(mztcPacketIsValid(packet, sizeof(READ_MODEL_PACKET)));
+}
+
+TEST_F(MztcFramingTest, WrongDeviceAddressIsRejected)
+{
+    memcpy(packet, READ_MODEL_PACKET, sizeof(READ_MODEL_PACKET));
+    packet[2] = 0x37;
+    packet[6] += 1; // keep the checksum consistent so only the address is wrong
+
+    EXPECT_FALSE(mztcPacketIsValid(packet, sizeof(READ_MODEL_PACKET)));
+}
+
+TEST_F(MztcFramingTest, DeclaredLengthMustMatchReceivedLength)
+{
+    memcpy(packet, READ_MODEL_PACKET, sizeof(READ_MODEL_PACKET));
+    packet[1] = 0x05;
+
+    EXPECT_FALSE(mztcPacketIsValid(packet, sizeof(READ_MODEL_PACKET)));
+}
+
+TEST_F(MztcFramingTest, MissingMarkersAreRejected)
+{
+    memcpy(packet, READ_MODEL_PACKET, sizeof(READ_MODEL_PACKET));
+    packet[0] = 0x00;
+    EXPECT_FALSE(mztcPacketIsValid(packet, sizeof(READ_MODEL_PACKET)));
+
+    memcpy(packet, READ_MODEL_PACKET, sizeof(READ_MODEL_PACKET));
+    packet[sizeof(READ_MODEL_PACKET) - 1] = 0x00;
+    EXPECT_FALSE(mztcPacketIsValid(packet, sizeof(READ_MODEL_PACKET)));
+}
+
+TEST_F(MztcFramingTest, RuntPacketIsRejected)
+{
+    EXPECT_FALSE(mztcPacketIsValid(READ_MODEL_PACKET, MZTC_MIN_PACKET_LEN - 1));
+    EXPECT_FALSE(mztcPacketIsValid(NULL, MZTC_MIN_PACKET_LEN));
+}
+
+class MztcConfigValidationTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        memset(&config, 0, sizeof(config));
+        config.preset = MZTC_PRESET_CUSTOM;
+        config.palette_mode = MZTC_PALETTE_WHITE_HOT;
+        config.auto_shutter = MZTC_SHUTTER_TIME_AND_TEMP;
+        config.digital_enhancement = 50;
+        config.spatial_denoise = 50;
+        config.temporal_denoise = 50;
+        config.brightness = 50;
+        config.contrast = 50;
+        config.zoom_level = MZTC_ZOOM_1X;
+        config.mirror_mode = MZTC_MIRROR_NONE;
+        config.ffc_interval = 5;
+    }
+
+    mztcConfig_t config;
+};
+
+TEST_F(MztcConfigValidationTest, DefaultsAreAccepted)
+{
+    EXPECT_TRUE(mztcConfigIsValid(&config));
+}
+
+// Every preset value must round-trip the validator, since selecting one writes
+// these fields directly into the running configuration.
+TEST_F(MztcConfigValidationTest, EveryPresetProducesAValidConfig)
+{
+    for (int p = MZTC_PRESET_CUSTOM; p <= MZTC_PRESET_MARITIME; p++) {
+        mztcTestReset();
+        mztcPortAssigned = true;
+        // Start from the valid baseline the parameter group resets to. Custom
+        // writes nothing, so it cannot repair a configuration that was already
+        // out of range.
+        *mztcConfigMutable() = config;
+
+        ASSERT_TRUE(mztcSetPreset((mztcPreset_e)p)) << "preset " << p;
+        EXPECT_TRUE(mztcConfigIsValid(mztcConfig())) << "preset " << p;
+        EXPECT_EQ(p, mztcConfig()->preset) << "preset " << p;
+    }
+}
+
+// Custom deliberately writes nothing, so it does not rescue an invalid
+// configuration. This pins that behaviour rather than leaving it implied.
+TEST_F(MztcConfigValidationTest, CustomDoesNotRepairAnInvalidConfig)
+{
+    mztcTestReset();
+    mztcPortAssigned = true;
+    memset(mztcConfigMutable(), 0, sizeof(mztcConfig_t));
+
+    ASSERT_TRUE(mztcSetPreset(MZTC_PRESET_CUSTOM));
+    EXPECT_FALSE(mztcConfigIsValid(mztcConfig()));
+}
+
+// CUSTOM is the escape hatch. It must not overwrite a hand-tuned value.
+TEST_F(MztcConfigValidationTest, CustomPresetWritesNothing)
+{
+    mztcTestReset();
+    mztcPortAssigned = true;
+    *mztcConfigMutable() = config;
+    mztcConfigMutable()->brightness = 17;
+    mztcConfigMutable()->palette_mode = MZTC_PALETTE_SEPIA;
+
+    ASSERT_TRUE(mztcSetPreset(MZTC_PRESET_CUSTOM));
+
+    EXPECT_EQ(17, mztcConfig()->brightness);
+    EXPECT_EQ(MZTC_PALETTE_SEPIA, mztcConfig()->palette_mode);
+}
+
+// A named preset must actually change the owned settings, and must leave the
+// two it does not own alone.
+TEST_F(MztcConfigValidationTest, PresetWritesOwnedFieldsAndSparesTheRest)
+{
+    mztcTestReset();
+    mztcPortAssigned = true;
+    *mztcConfigMutable() = config;
+    mztcConfigMutable()->zoom_level = MZTC_ZOOM_4X;
+    mztcConfigMutable()->mirror_mode = MZTC_MIRROR_VERTICAL;
+
+    ASSERT_TRUE(mztcSetPreset(MZTC_PRESET_FIRE));
+
+    EXPECT_EQ(MZTC_PALETTE_IRON_RED_1, mztcConfig()->palette_mode);
+    EXPECT_EQ(75, mztcConfig()->contrast);
+    EXPECT_EQ(25, mztcConfig()->digital_enhancement);
+    EXPECT_EQ(10, mztcConfig()->ffc_interval);
+
+    // Zoom belongs to the pilot, mirror to the airframe.
+    EXPECT_EQ(MZTC_ZOOM_4X, mztcConfig()->zoom_level);
+    EXPECT_EQ(MZTC_MIRROR_VERTICAL, mztcConfig()->mirror_mode);
+}
+
+TEST_F(MztcConfigValidationTest, OutOfRangePresetIsRejected)
+{
+    mztcTestReset();
+    mztcPortAssigned = true;
+    EXPECT_FALSE(mztcSetPreset((mztcPreset_e)(MZTC_PRESET_MARITIME + 1)));
+}
+
+TEST_F(MztcConfigValidationTest, EnumsAreBounded)
+{
+    config.preset = MZTC_PRESET_MARITIME + 1;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+    config.preset = MZTC_PRESET_MARITIME;
+
+    config.palette_mode = MZTC_PALETTE_RED_HOT + 1;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+    config.palette_mode = MZTC_PALETTE_RED_HOT;
+
+    config.zoom_level = MZTC_ZOOM_8X + 1;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+    config.zoom_level = MZTC_ZOOM_8X;
+
+    config.mirror_mode = MZTC_MIRROR_CENTRAL + 1;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+    config.mirror_mode = MZTC_MIRROR_CENTRAL;
+
+    config.auto_shutter = MZTC_SHUTTER_TIME_AND_TEMP + 1;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+    config.auto_shutter = MZTC_SHUTTER_TIME_AND_TEMP;
+
+    EXPECT_TRUE(mztcConfigIsValid(&config));
+}
+
+TEST_F(MztcConfigValidationTest, PercentagesAreBounded)
+{
+    config.brightness = MZTC_MAX_PERCENT + 1;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+    config.brightness = MZTC_MAX_PERCENT;
+
+    config.contrast = MZTC_MAX_PERCENT + 1;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+    config.contrast = MZTC_MAX_PERCENT;
+
+    config.spatial_denoise = MZTC_MAX_PERCENT + 1;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+    config.spatial_denoise = MZTC_MAX_PERCENT;
+
+    EXPECT_TRUE(mztcConfigIsValid(&config));
+}
+
+TEST_F(MztcConfigValidationTest, FfcIntervalIsBounded)
+{
+    config.ffc_interval = 0;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+
+    config.ffc_interval = MZTC_MAX_FFC_INTERVAL + 1;
+    EXPECT_FALSE(mztcConfigIsValid(&config));
+
+    config.ffc_interval = MZTC_MIN_FFC_INTERVAL;
+    EXPECT_TRUE(mztcConfigIsValid(&config));
+
+    config.ffc_interval = MZTC_MAX_FFC_INTERVAL;
+    EXPECT_TRUE(mztcConfigIsValid(&config));
+}
+
+// The camera accepts 0x01 to 0x03 for the shutter mode and answers 0x00 with a
+// threshold error, so every setting value has to land inside that window once
+// the wire offset is applied.
+TEST_F(MztcConfigValidationTest, ShutterModeMapsIntoTheCameraWireRange)
+{
+    for (uint8_t mode = MZTC_SHUTTER_TEMP_ONLY; mode <= MZTC_SHUTTER_TIME_AND_TEMP; mode++) {
+        const uint8_t wire = (uint8_t)(mode + MZTC_SHUTTER_WIRE_OFFSET);
+        EXPECT_GE(wire, 0x01) << "mode " << (int)mode;
+        EXPECT_LE(wire, 0x03) << "mode " << (int)mode;
+    }
+}
+
+TEST_F(MztcConfigValidationTest, NullConfigIsRejected)
+{
+    EXPECT_FALSE(mztcConfigIsValid(NULL));
+}
+
+/*
+ * Receive path, response dispatch and transmit path.
+ *
+ * These drive the driver through its serial callback rather than calling the
+ * decoders directly, so the framing, the dispatch and the connection state
+ * machine are all exercised on the path the camera actually uses.
+ */
+
+// Bytes the driver has handed to the serial port since the last reset.
+static std::vector<uint8_t> txBytes;
+static timeMs_t fakeNow;
+
+
+class MztcLinkTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        txBytes.clear();
+        fakeNow = 1000;
+        mztcPortAssigned = true;
+        mztcCalibrateBoxActive = false;
+
+        mztcConfig_t *cfg = mztcConfigMutable();
+        memset(cfg, 0, sizeof(*cfg));
+        cfg->preset = MZTC_PRESET_CUSTOM;
+        cfg->palette_mode = MZTC_PALETTE_WHITE_HOT;
+        cfg->auto_shutter = MZTC_SHUTTER_TIME_AND_TEMP;
+        cfg->digital_enhancement = 50;
+        cfg->spatial_denoise = 50;
+        cfg->temporal_denoise = 50;
+        cfg->brightness = 50;
+        cfg->contrast = 50;
+        cfg->zoom_level = MZTC_ZOOM_1X;
+        cfg->mirror_mode = MZTC_MIRROR_NONE;
+        cfg->ffc_interval = 5;
+
+        mztcTestReset();
+    }
+
+    // Push a whole packet through the receive callback one byte at a time.
+    void feed(const uint8_t *bytes, size_t len)
+    {
+        for (size_t i = 0; i < len; i++) {
+            mztcSerialReceiveCallback(bytes[i], NULL);
+        }
+    }
+
+    void feedReply(uint8_t classCmd, uint8_t subCmd, uint8_t flags,
+                   const uint8_t *payload = NULL, uint8_t payloadLen = 0)
+    {
+        uint8_t packet[MZTC_MAX_PACKET_LEN];
+        const uint8_t len = mztcBuildPacket(packet, classCmd, subCmd, flags, payload, payloadLen);
+        ASSERT_NE(0, len);
+        feed(packet, len);
+    }
+
+    // Find a transmitted packet with the given class and subclass.
+    const uint8_t *findTx(uint8_t classCmd, uint8_t subCmd, uint8_t *lenOut) const
+    {
+        size_t i = 0;
+        while (i + MZTC_MIN_PACKET_LEN <= txBytes.size()) {
+            const uint8_t len = (uint8_t)(txBytes[i + 1] + 4);
+            if (i + len > txBytes.size()) {
+                return NULL;
+            }
+            if (txBytes[i + 3] == classCmd && txBytes[i + 4] == subCmd) {
+                if (lenOut) {
+                    *lenOut = len;
+                }
+                return &txBytes[i];
+            }
+            i += len;
+        }
+        return NULL;
+    }
+
+    // How many transmitted packets carry the given class and subclass. Used to
+    // prove an action fires once rather than on every task tick.
+    size_t countTx(uint8_t classCmd, uint8_t subCmd) const
+    {
+        size_t i = 0, found = 0;
+        while (i + MZTC_MIN_PACKET_LEN <= txBytes.size()) {
+            const uint8_t len = (uint8_t)(txBytes[i + 1] + 4);
+            if (i + len > txBytes.size()) {
+                break;
+            }
+            if (txBytes[i + 3] == classCmd && txBytes[i + 4] == subCmd) {
+                found++;
+            }
+            i += len;
+        }
+        return found;
     }
 };
 
-// Test enum definitions
-TEST_F(MztcCameraTest, EnumDefinitions) {
-    // Test mode enums
-    EXPECT_EQ(MZTC_MODE_DISABLED, 0);
-    EXPECT_EQ(MZTC_MODE_STANDBY, 1);
-    EXPECT_EQ(MZTC_MODE_CONTINUOUS, 2);
-    EXPECT_EQ(MZTC_MODE_TRIGGERED, 3);
-    EXPECT_EQ(MZTC_MODE_ALERT, 4);
-    EXPECT_EQ(MZTC_MODE_RECORDING, 5);
-    EXPECT_EQ(MZTC_MODE_CALIBRATION, 6);
-    EXPECT_EQ(MZTC_MODE_SURVEILLANCE, 7);
-    
-    // Test temperature unit enums
-    EXPECT_EQ(MZTC_UNIT_CELSIUS, 0);
-    EXPECT_EQ(MZTC_UNIT_FAHRENHEIT, 1);
-    EXPECT_EQ(MZTC_UNIT_KELVIN, 2);
-    
-    // Test palette enums
-    EXPECT_EQ(MZTC_PALETTE_WHITE_HOT, 0);
-    EXPECT_EQ(MZTC_PALETTE_BLACK_HOT, 1);
-    EXPECT_EQ(MZTC_PALETTE_FUSION_1, 2);
-    EXPECT_EQ(MZTC_PALETTE_RAINBOW, 3);
-    EXPECT_EQ(MZTC_PALETTE_FUSION_2, 4);
-    EXPECT_EQ(MZTC_PALETTE_IRON_RED_1, 5);
-    EXPECT_EQ(MZTC_PALETTE_IRON_RED_2, 6);
-    EXPECT_EQ(MZTC_PALETTE_SEPIA, 7);
-    EXPECT_EQ(MZTC_PALETTE_COLOR_1, 8);
-    EXPECT_EQ(MZTC_PALETTE_COLOR_2, 9);
-    EXPECT_EQ(MZTC_PALETTE_ICE_FIRE, 10);
-    EXPECT_EQ(MZTC_PALETTE_RAIN, 11);
-    EXPECT_EQ(MZTC_PALETTE_GREEN_HOT, 12);
-    EXPECT_EQ(MZTC_PALETTE_RED_HOT, 13);
-    
-    // Test zoom level enums
-    EXPECT_EQ(MZTC_ZOOM_1X, 0);
-    EXPECT_EQ(MZTC_ZOOM_2X, 1);
-    EXPECT_EQ(MZTC_ZOOM_4X, 2);
-    EXPECT_EQ(MZTC_ZOOM_8X, 3);
-    
-    // Test mirror mode enums
-    EXPECT_EQ(MZTC_MIRROR_NONE, 0);
-    EXPECT_EQ(MZTC_MIRROR_HORIZONTAL, 1);
-    EXPECT_EQ(MZTC_MIRROR_VERTICAL, 2);
-    EXPECT_EQ(MZTC_MIRROR_CENTRAL, 3);
-    
-    // Test shutter mode enums
-    EXPECT_EQ(MZTC_SHUTTER_TEMP_ONLY, 0);
-    EXPECT_EQ(MZTC_SHUTTER_TIME_ONLY, 1);
-    EXPECT_EQ(MZTC_SHUTTER_TIME_AND_TEMP, 2);
+TEST_F(MztcLinkTest, ValidReplyIsAccepted)
+{
+    const uint8_t model[3] = { 'M', 'Z', '1' };
+    feedReply(0x74, 0x02, 0x03, model, sizeof(model));
+
+    uint8_t idLen = 0;
+    const uint8_t *id = mztcGetDeviceId(&idLen);
+    ASSERT_NE(nullptr, id);
+    EXPECT_EQ(sizeof(model), idLen);
+    EXPECT_EQ(0, memcmp(model, id, idLen));
 }
 
-// Test status values
-TEST_F(MztcCameraTest, StatusValues) {
-    EXPECT_EQ(MZTC_STATUS_OFFLINE, 0x00);
-    EXPECT_EQ(MZTC_STATUS_INITIALIZING, 0x01);
-    EXPECT_EQ(MZTC_STATUS_READY, 0x02);
-    EXPECT_EQ(MZTC_STATUS_CAPTURING, 0x03);
-    EXPECT_EQ(MZTC_STATUS_CALIBRATING, 0x04);
-    EXPECT_EQ(MZTC_STATUS_ERROR, 0x05);
-    EXPECT_EQ(MZTC_STATUS_ALERT, 0x06);
-    EXPECT_EQ(MZTC_STATUS_RECORDING, 0x07);
+// The parser is length driven precisely so a payload byte that happens to equal
+// a framing marker cannot split or truncate the packet.
+TEST_F(MztcLinkTest, PayloadContainingFramingMarkersIsParsed)
+{
+    const uint8_t payload[4] = { 0xF0, 0xFF, 0xFF, 0xF0 };
+    feedReply(0x74, 0x02, 0x03, payload, sizeof(payload));
+
+    uint8_t idLen = 0;
+    const uint8_t *id = mztcGetDeviceId(&idLen);
+    ASSERT_NE(nullptr, id);
+    EXPECT_EQ(sizeof(payload), idLen);
+    EXPECT_EQ(0, memcmp(payload, id, idLen));
 }
 
-// Test error flags
-TEST_F(MztcCameraTest, ErrorFlags) {
-    EXPECT_EQ(MZTC_ERROR_COMMUNICATION, 0x01);
-    EXPECT_EQ(MZTC_ERROR_CALIBRATION, 0x02);
-    EXPECT_EQ(MZTC_ERROR_TEMPERATURE, 0x04);
-    EXPECT_EQ(MZTC_ERROR_MEMORY, 0x08);
-    EXPECT_EQ(MZTC_ERROR_TIMEOUT, 0x10);
-    EXPECT_EQ(MZTC_ERROR_INVALID_CONFIG, 0x20);
+TEST_F(MztcLinkTest, GarbageBeforeAFrameIsSkipped)
+{
+    const uint8_t noise[4] = { 0x11, 0x22, 0x33, 0x44 };
+    feed(noise, sizeof(noise));
+
+    const uint8_t model[1] = { 0x5A };
+    feedReply(0x74, 0x02, 0x03, model, sizeof(model));
+
+    uint8_t idLen = 0;
+    ASSERT_NE(nullptr, mztcGetDeviceId(&idLen));
+    EXPECT_EQ(1, idLen);
 }
 
-// Test limits
-TEST_F(MztcCameraTest, Limits) {
-    EXPECT_EQ(MZTC_MAX_UPDATE_RATE, 30);
-    EXPECT_EQ(MZTC_MIN_UPDATE_RATE, 1);
-    EXPECT_EQ(MZTC_MAX_FFC_INTERVAL, 60);
-    EXPECT_EQ(MZTC_MIN_FFC_INTERVAL, 1);
+TEST_F(MztcLinkTest, BadChecksumIsRejected)
+{
+    uint8_t packet[MZTC_MAX_PACKET_LEN];
+    const uint8_t model[1] = { 0x5A };
+    const uint8_t len = mztcBuildPacket(packet, 0x74, 0x02, 0x03, model, sizeof(model));
+    packet[len - 2] ^= 0xFF;
+    feed(packet, len);
+
+    uint8_t idLen = 0;
+    EXPECT_EQ(nullptr, mztcGetDeviceId(&idLen));
+    EXPECT_FALSE(mztcGetStatus()->connected);
 }
 
-// Test structure sizes
-TEST_F(MztcCameraTest, StructureSizes) {
-    // Test that structures have reasonable sizes
-    EXPECT_GT(sizeof(mztcConfig_t), 0);
-    EXPECT_GT(sizeof(mztcStatus_t), 0);
-    EXPECT_GT(sizeof(mztcFrameData_t), 0);
-    
-    // Test specific field sizes
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->enabled), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->port), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->baudrate), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->mode), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->update_rate), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->temperature_unit), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->palette_mode), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->auto_shutter), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->digital_enhancement), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->spatial_denoise), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->temporal_denoise), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->brightness), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->contrast), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->zoom_level), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->mirror_mode), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->crosshair_enabled), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->temperature_alerts), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->alert_high_temp), 4); // float
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->alert_low_temp), 4);  // float
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->ffc_interval), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->bad_pixel_removal), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->vignetting_correction), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->zoom_channel), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->palette_channel), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->ffc_channel), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->brightness_channel), 1);
-    EXPECT_EQ(sizeof(((mztcConfig_t*)0)->contrast_channel), 1);
+// A size byte outside the legal range must not wedge the parser. The next
+// well-formed packet has to be decoded.
+TEST_F(MztcLinkTest, BogusLengthResynchronises)
+{
+    const uint8_t bogus[2] = { MZTC_PACKET_BEGIN, 0xFE };
+    feed(bogus, sizeof(bogus));
+
+    const uint8_t model[1] = { 0x5A };
+    feedReply(0x74, 0x02, 0x03, model, sizeof(model));
+
+    uint8_t idLen = 0;
+    ASSERT_NE(nullptr, mztcGetDeviceId(&idLen));
+    EXPECT_EQ(1, idLen);
 }
 
-// Test status structure fields
-TEST_F(MztcCameraTest, StatusStructureFields) {
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->status), 1);
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->mode), 1);
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->connected), 1); // bool
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->connection_quality), 1);
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->last_calibration), 1);
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->camera_temperature), 4); // float
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->ambient_temperature), 4); // float
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->frame_count), 4); // uint32_t
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->error_flags), 1);
-    EXPECT_EQ(sizeof(((mztcStatus_t*)0)->last_frame_time), 4); // uint32_t
+TEST_F(MztcLinkTest, TruncatedPacketIsNotDecoded)
+{
+    uint8_t packet[MZTC_MAX_PACKET_LEN];
+    const uint8_t model[2] = { 0x5A, 0x5B };
+    const uint8_t len = mztcBuildPacket(packet, 0x74, 0x02, 0x03, model, sizeof(model));
+    feed(packet, len - 1);
+
+    uint8_t idLen = 0;
+    EXPECT_EQ(nullptr, mztcGetDeviceId(&idLen));
 }
 
-// Test frame data structure fields
-TEST_F(MztcCameraTest, FrameDataStructureFields) {
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->width), 2); // uint16_t
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->height), 2); // uint16_t
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->min_temp), 4); // float
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->max_temp), 4); // float
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->center_temp), 4); // float
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->hottest_temp), 4); // float
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->coldest_temp), 4); // float
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->hottest_x), 2); // uint16_t
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->hottest_y), 2); // uint16_t
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->coldest_x), 2); // uint16_t
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->coldest_y), 2); // uint16_t
-    EXPECT_EQ(sizeof(((mztcFrameData_t*)0)->data), 256); // uint8_t array
+// The camera answers the 0x7C/0x14 initialization request on class 0x7D
+// subclass 0x06. Decoding it on the request address instead never matches.
+TEST_F(MztcLinkTest, InitStatusReplyUsesItsOwnAddress)
+{
+    mztcTestSetStatus(MZTC_STATUS_INITIALIZING);
+
+    const uint8_t outputStage[1] = { 0x01 };
+    feedReply(0x7D, 0x06, 0x03, outputStage, sizeof(outputStage));
+    EXPECT_EQ(MZTC_STATUS_READY, mztcGetStatus()->status);
+
+    const uint8_t logoStage[1] = { 0x00 };
+    feedReply(0x7D, 0x06, 0x03, logoStage, sizeof(logoStage));
+    EXPECT_EQ(MZTC_STATUS_INITIALIZING, mztcGetStatus()->status);
 }
 
-// Test configuration validation
-TEST_F(MztcCameraTest, ConfigurationValidation) {
-    // Test that configuration ranges make sense
-    mztcConfig_t testConfig = {0};
-    
-    // Test boolean fields
-    testConfig.enabled = 1;
-    EXPECT_EQ(testConfig.enabled, 1);
-    testConfig.enabled = 0;
-    EXPECT_EQ(testConfig.enabled, 0);
-    
-    // Test port field (should be reasonable range)
-    testConfig.port = 1;
-    EXPECT_EQ(testConfig.port, 1);
-    testConfig.port = 8;
-    EXPECT_EQ(testConfig.port, 8);
-    
-    // Test baudrate field
-    testConfig.baudrate = 0;
-    EXPECT_EQ(testConfig.baudrate, 0);
-    testConfig.baudrate = 3;
-    EXPECT_EQ(testConfig.baudrate, 3);
-    
-    // Test mode field
-    testConfig.mode = MZTC_MODE_DISABLED;
-    EXPECT_EQ(testConfig.mode, MZTC_MODE_DISABLED);
-    testConfig.mode = MZTC_MODE_SURVEILLANCE;
-    EXPECT_EQ(testConfig.mode, MZTC_MODE_SURVEILLANCE);
-    
-    // Test update rate field
-    testConfig.update_rate = MZTC_MIN_UPDATE_RATE;
-    EXPECT_EQ(testConfig.update_rate, MZTC_MIN_UPDATE_RATE);
-    testConfig.update_rate = MZTC_MAX_UPDATE_RATE;
-    EXPECT_EQ(testConfig.update_rate, MZTC_MAX_UPDATE_RATE);
-    
-    // Test temperature unit field
-    testConfig.temperature_unit = MZTC_UNIT_CELSIUS;
-    EXPECT_EQ(testConfig.temperature_unit, MZTC_UNIT_CELSIUS);
-    testConfig.temperature_unit = MZTC_UNIT_KELVIN;
-    EXPECT_EQ(testConfig.temperature_unit, MZTC_UNIT_KELVIN);
-    
-    // Test palette mode field
-    testConfig.palette_mode = MZTC_PALETTE_WHITE_HOT;
-    EXPECT_EQ(testConfig.palette_mode, MZTC_PALETTE_WHITE_HOT);
-    testConfig.palette_mode = MZTC_PALETTE_RED_HOT;
-    EXPECT_EQ(testConfig.palette_mode, MZTC_PALETTE_RED_HOT);
-    
-    // Test auto shutter field
-    testConfig.auto_shutter = MZTC_SHUTTER_TEMP_ONLY;
-    EXPECT_EQ(testConfig.auto_shutter, MZTC_SHUTTER_TEMP_ONLY);
-    testConfig.auto_shutter = MZTC_SHUTTER_TIME_AND_TEMP;
-    EXPECT_EQ(testConfig.auto_shutter, MZTC_SHUTTER_TIME_AND_TEMP);
-    
-    // Test percentage fields (0-100)
-    testConfig.digital_enhancement = 0;
-    EXPECT_EQ(testConfig.digital_enhancement, 0);
-    testConfig.digital_enhancement = 50;
-    EXPECT_EQ(testConfig.digital_enhancement, 50);
-    testConfig.digital_enhancement = 100;
-    EXPECT_EQ(testConfig.digital_enhancement, 100);
-    
-    testConfig.spatial_denoise = 0;
-    EXPECT_EQ(testConfig.spatial_denoise, 0);
-    testConfig.spatial_denoise = 75;
-    EXPECT_EQ(testConfig.spatial_denoise, 75);
-    testConfig.spatial_denoise = 100;
-    EXPECT_EQ(testConfig.spatial_denoise, 100);
-    
-    testConfig.temporal_denoise = 0;
-    EXPECT_EQ(testConfig.temporal_denoise, 0);
-    testConfig.temporal_denoise = 25;
-    EXPECT_EQ(testConfig.temporal_denoise, 25);
-    testConfig.temporal_denoise = 100;
-    EXPECT_EQ(testConfig.temporal_denoise, 100);
-    
-    testConfig.brightness = 0;
-    EXPECT_EQ(testConfig.brightness, 0);
-    testConfig.brightness = 50;
-    EXPECT_EQ(testConfig.brightness, 50);
-    testConfig.brightness = 100;
-    EXPECT_EQ(testConfig.brightness, 100);
-    
-    testConfig.contrast = 0;
-    EXPECT_EQ(testConfig.contrast, 0);
-    testConfig.contrast = 60;
-    EXPECT_EQ(testConfig.contrast, 60);
-    testConfig.contrast = 100;
-    EXPECT_EQ(testConfig.contrast, 100);
-    
-    // Test zoom level field
-    testConfig.zoom_level = MZTC_ZOOM_1X;
-    EXPECT_EQ(testConfig.zoom_level, MZTC_ZOOM_1X);
-    testConfig.zoom_level = MZTC_ZOOM_4X;
-    EXPECT_EQ(testConfig.zoom_level, MZTC_ZOOM_4X);
-    testConfig.zoom_level = MZTC_ZOOM_8X;
-    EXPECT_EQ(testConfig.zoom_level, MZTC_ZOOM_8X);
-    
-    // Test mirror mode field
-    testConfig.mirror_mode = MZTC_MIRROR_NONE;
-    EXPECT_EQ(testConfig.mirror_mode, MZTC_MIRROR_NONE);
-    testConfig.mirror_mode = MZTC_MIRROR_HORIZONTAL;
-    EXPECT_EQ(testConfig.mirror_mode, MZTC_MIRROR_HORIZONTAL);
-    testConfig.mirror_mode = MZTC_MIRROR_VERTICAL;
-    EXPECT_EQ(testConfig.mirror_mode, MZTC_MIRROR_VERTICAL);
-    testConfig.mirror_mode = MZTC_MIRROR_CENTRAL;
-    EXPECT_EQ(testConfig.mirror_mode, MZTC_MIRROR_CENTRAL);
-    
-    // Test boolean fields
-    testConfig.crosshair_enabled = 1;
-    EXPECT_EQ(testConfig.crosshair_enabled, 1);
-    testConfig.crosshair_enabled = 0;
-    EXPECT_EQ(testConfig.crosshair_enabled, 0);
-    
-    testConfig.temperature_alerts = 1;
-    EXPECT_EQ(testConfig.temperature_alerts, 1);
-    testConfig.temperature_alerts = 0;
-    EXPECT_EQ(testConfig.temperature_alerts, 0);
-    
-    // Test float fields
-    testConfig.alert_high_temp = 50.0f;
-    EXPECT_EQ(testConfig.alert_high_temp, 50.0f);
-    testConfig.alert_high_temp = -20.0f;
-    EXPECT_EQ(testConfig.alert_high_temp, -20.0f);
-    
-    testConfig.alert_low_temp = -10.0f;
-    EXPECT_EQ(testConfig.alert_low_temp, -10.0f);
-    testConfig.alert_low_temp = 100.0f;
-    EXPECT_EQ(testConfig.alert_low_temp, 100.0f);
-    
-    // Test interval fields
-    testConfig.ffc_interval = MZTC_MIN_FFC_INTERVAL;
-    EXPECT_EQ(testConfig.ffc_interval, MZTC_MIN_FFC_INTERVAL);
-    testConfig.ffc_interval = MZTC_MAX_FFC_INTERVAL;
-    EXPECT_EQ(testConfig.ffc_interval, MZTC_MAX_FFC_INTERVAL);
-    
-    // Test boolean fields
-    testConfig.bad_pixel_removal = 1;
-    EXPECT_EQ(testConfig.bad_pixel_removal, 1);
-    testConfig.bad_pixel_removal = 0;
-    EXPECT_EQ(testConfig.bad_pixel_removal, 0);
-    
-    testConfig.vignetting_correction = 1;
-    EXPECT_EQ(testConfig.vignetting_correction, 1);
-    testConfig.vignetting_correction = 0;
-    EXPECT_EQ(testConfig.vignetting_correction, 0);
-    
-    // Test channel fields (0 = disabled, 1-18 = AUX1-18)
-    testConfig.zoom_channel = 0;
-    EXPECT_EQ(testConfig.zoom_channel, 0);
-    testConfig.zoom_channel = 1;
-    EXPECT_EQ(testConfig.zoom_channel, 1);
-    testConfig.zoom_channel = 18;
-    EXPECT_EQ(testConfig.zoom_channel, 18);
-    
-    testConfig.palette_channel = 0;
-    EXPECT_EQ(testConfig.palette_channel, 0);
-    testConfig.palette_channel = 5;
-    EXPECT_EQ(testConfig.palette_channel, 5);
-    testConfig.palette_channel = 18;
-    EXPECT_EQ(testConfig.palette_channel, 18);
-    
-    testConfig.ffc_channel = 0;
-    EXPECT_EQ(testConfig.ffc_channel, 0);
-    testConfig.ffc_channel = 10;
-    EXPECT_EQ(testConfig.ffc_channel, 10);
-    testConfig.ffc_channel = 18;
-    EXPECT_EQ(testConfig.ffc_channel, 18);
-    
-    testConfig.brightness_channel = 0;
-    EXPECT_EQ(testConfig.brightness_channel, 0);
-    testConfig.brightness_channel = 15;
-    EXPECT_EQ(testConfig.brightness_channel, 15);
-    testConfig.brightness_channel = 18;
-    EXPECT_EQ(testConfig.brightness_channel, 18);
-    
-    testConfig.contrast_channel = 0;
-    EXPECT_EQ(testConfig.contrast_channel, 0);
-    testConfig.contrast_channel = 12;
-    EXPECT_EQ(testConfig.contrast_channel, 12);
-    testConfig.contrast_channel = 18;
-    EXPECT_EQ(testConfig.contrast_channel, 18);
+TEST_F(MztcLinkTest, ShutterReplyRestartsTheCalibrationClock)
+{
+    mztcTestSetStatus(MZTC_STATUS_CALIBRATING);
+    mztcTestSetLastCalibration(42);
+
+    feedReply(0x7C, 0x02, 0x03);
+
+    EXPECT_EQ(0, mztcGetStatus()->last_calibration);
+    EXPECT_EQ(MZTC_STATUS_READY, mztcGetStatus()->status);
 }
 
-// Test status structure validation
-TEST_F(MztcCameraTest, StatusStructureValidation) {
-    // Test that status structure can be initialized
-    mztcStatus_t testStatus = {0};
-    
-    // Test status field
-    testStatus.status = MZTC_STATUS_OFFLINE;
-    EXPECT_EQ(testStatus.status, MZTC_STATUS_OFFLINE);
-    testStatus.status = MZTC_STATUS_READY;
-    EXPECT_EQ(testStatus.status, MZTC_STATUS_READY);
-    testStatus.status = MZTC_STATUS_ERROR;
-    EXPECT_EQ(testStatus.status, MZTC_STATUS_ERROR);
-    
-    // Test mode field
-    testStatus.mode = MZTC_MODE_DISABLED;
-    EXPECT_EQ(testStatus.mode, MZTC_MODE_DISABLED);
-    testStatus.mode = MZTC_MODE_CONTINUOUS;
-    EXPECT_EQ(testStatus.mode, MZTC_MODE_CONTINUOUS);
-    testStatus.mode = MZTC_MODE_SURVEILLANCE;
-    EXPECT_EQ(testStatus.mode, MZTC_MODE_SURVEILLANCE);
-    
-    // Test boolean field
-    testStatus.connected = false;
-    EXPECT_EQ(testStatus.connected, false);
-    testStatus.connected = true;
-    EXPECT_EQ(testStatus.connected, true);
-    
-    // Test connection quality field
-    testStatus.connection_quality = 0;
-    EXPECT_EQ(testStatus.connection_quality, 0);
-    testStatus.connection_quality = 100;
-    EXPECT_EQ(testStatus.connection_quality, 100);
-    
-    // Test last calibration field
-    testStatus.last_calibration = 0;
-    EXPECT_EQ(testStatus.last_calibration, 0);
-    testStatus.last_calibration = 60;
-    EXPECT_EQ(testStatus.last_calibration, 60);
-    
-    // Test temperature fields
-    testStatus.camera_temperature = 25.0f;
-    EXPECT_EQ(testStatus.camera_temperature, 25.0f);
-    testStatus.camera_temperature = -10.0f;
-    EXPECT_EQ(testStatus.camera_temperature, -10.0f);
-    
-    testStatus.ambient_temperature = 20.0f;
-    EXPECT_EQ(testStatus.ambient_temperature, 20.0f);
-    testStatus.ambient_temperature = 35.0f;
-    EXPECT_EQ(testStatus.ambient_temperature, 35.0f);
-    
-    // Test frame count field
-    testStatus.frame_count = 0;
-    EXPECT_EQ(testStatus.frame_count, 0);
-    testStatus.frame_count = 1000;
-    EXPECT_EQ(testStatus.frame_count, 1000);
-    testStatus.frame_count = 0xFFFFFFFF;
-    EXPECT_EQ(testStatus.frame_count, 0xFFFFFFFF);
-    
-    // Test error flags field
-    testStatus.error_flags = 0;
-    EXPECT_EQ(testStatus.error_flags, 0);
-    testStatus.error_flags = MZTC_ERROR_COMMUNICATION;
-    EXPECT_EQ(testStatus.error_flags, MZTC_ERROR_COMMUNICATION);
-    testStatus.error_flags = MZTC_ERROR_COMMUNICATION | MZTC_ERROR_CALIBRATION;
-    EXPECT_EQ(testStatus.error_flags, MZTC_ERROR_COMMUNICATION | MZTC_ERROR_CALIBRATION);
-    
-    // Test last frame time field
-    testStatus.last_frame_time = 0;
-    EXPECT_EQ(testStatus.last_frame_time, 0);
-    testStatus.last_frame_time = 1000000;
-    EXPECT_EQ(testStatus.last_frame_time, 1000000);
-    testStatus.last_frame_time = 0xFFFFFFFF;
-    EXPECT_EQ(testStatus.last_frame_time, 0xFFFFFFFF);
+TEST_F(MztcLinkTest, ErrorReplyRaisesTheCommunicationFlag)
+{
+    const uint8_t thresholdExceeded[1] = { 0x01 };
+    feedReply(0x78, 0x02, 0x04, thresholdExceeded, sizeof(thresholdExceeded));
+
+    EXPECT_TRUE((mztcGetStatus()->error_flags & MZTC_ERROR_COMMUNICATION) != 0);
 }
 
-// Test frame data structure validation
-TEST_F(MztcCameraTest, FrameDataStructureValidation) {
-    // Test that frame data structure can be initialized
-    mztcFrameData_t testFrame = {0};
-    
-    // Test dimension fields
-    testFrame.width = 160;
-    EXPECT_EQ(testFrame.width, 160);
-    testFrame.width = 320;
-    EXPECT_EQ(testFrame.width, 320);
-    
-    testFrame.height = 120;
-    EXPECT_EQ(testFrame.height, 120);
-    testFrame.height = 240;
-    EXPECT_EQ(testFrame.height, 240);
-    
-    // Test temperature fields
-    testFrame.min_temp = -20.0f;
-    EXPECT_EQ(testFrame.min_temp, -20.0f);
-    testFrame.min_temp = 100.0f;
-    EXPECT_EQ(testFrame.min_temp, 100.0f);
-    
-    testFrame.max_temp = 50.0f;
-    EXPECT_EQ(testFrame.max_temp, 50.0f);
-    testFrame.max_temp = 200.0f;
-    EXPECT_EQ(testFrame.max_temp, 200.0f);
-    
-    testFrame.center_temp = 25.0f;
-    EXPECT_EQ(testFrame.center_temp, 25.0f);
-    testFrame.center_temp = 75.0f;
-    EXPECT_EQ(testFrame.center_temp, 75.0f);
-    
-    testFrame.hottest_temp = 80.0f;
-    EXPECT_EQ(testFrame.hottest_temp, 80.0f);
-    testFrame.hottest_temp = 150.0f;
-    EXPECT_EQ(testFrame.hottest_temp, 150.0f);
-    
-    testFrame.coldest_temp = -30.0f;
-    EXPECT_EQ(testFrame.coldest_temp, -30.0f);
-    testFrame.coldest_temp = 10.0f;
-    EXPECT_EQ(testFrame.coldest_temp, 10.0f);
-    
-    // Test coordinate fields
-    testFrame.hottest_x = 0;
-    EXPECT_EQ(testFrame.hottest_x, 0);
-    testFrame.hottest_x = 159;
-    EXPECT_EQ(testFrame.hottest_x, 159);
-    
-    testFrame.hottest_y = 0;
-    EXPECT_EQ(testFrame.hottest_y, 0);
-    testFrame.hottest_y = 119;
-    EXPECT_EQ(testFrame.hottest_y, 119);
-    
-    testFrame.coldest_x = 0;
-    EXPECT_EQ(testFrame.coldest_x, 0);
-    testFrame.coldest_x = 159;
-    EXPECT_EQ(testFrame.coldest_x, 159);
-    
-    testFrame.coldest_y = 0;
-    EXPECT_EQ(testFrame.coldest_y, 0);
-    testFrame.coldest_y = 119;
-    EXPECT_EQ(testFrame.coldest_y, 119);
-    
-    // Test data array
-    for (int i = 0; i < 256; i++) {
-        testFrame.data[i] = i & 0xFF;
-        EXPECT_EQ(testFrame.data[i], i & 0xFF);
+TEST_F(MztcLinkTest, SuccessReplyClearsTheCommunicationFlag)
+{
+    const uint8_t thresholdExceeded[1] = { 0x01 };
+    feedReply(0x78, 0x02, 0x04, thresholdExceeded, sizeof(thresholdExceeded));
+    ASSERT_TRUE((mztcGetStatus()->error_flags & MZTC_ERROR_COMMUNICATION) != 0);
+
+    feedReply(0x78, 0x02, 0x03);
+    EXPECT_FALSE((mztcGetStatus()->error_flags & MZTC_ERROR_COMMUNICATION) != 0);
+}
+
+// Opening the port is not enough. The camera has to answer before the link
+// counts as up.
+TEST_F(MztcLinkTest, AnAnswerPromotesTheLinkToConnected)
+{
+    EXPECT_FALSE(mztcGetStatus()->connected);
+
+    feedReply(0x74, 0x02, 0x03);
+
+    EXPECT_TRUE(mztcGetStatus()->connected);
+}
+
+// Assigning the function in the Ports tab is what enables the camera. There is
+// no separate enable setting to fall out of step with it.
+// "set mztc_preset = SEARCH" writes the byte and nothing else. The task has to
+// notice and apply it, otherwise the setting records a label that does not
+// match the values in effect. That is the defect the old mode enum had.
+// The calibrate switch fires once per flip. Holding it must not stream shutter
+// commands at the camera on every task tick.
+TEST_F(MztcLinkTest, TheCalibrateSwitchFiresOnceOnTheRisingEdge)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+    txBytes.clear();
+
+    mztcCalibrateBoxActive = true;
+    mztcUpdate(0);
+    const size_t afterFirst = countTx(0x7C, 0x02);
+    EXPECT_EQ(1u, afterFirst);
+
+    // Still held. No further corrections.
+    mztcUpdate(0);
+    mztcUpdate(0);
+    EXPECT_EQ(afterFirst, countTx(0x7C, 0x02));
+
+    // Released and flipped again. One more.
+    mztcCalibrateBoxActive = false;
+    mztcUpdate(0);
+    mztcCalibrateBoxActive = true;
+    mztcUpdate(0);
+    EXPECT_EQ(afterFirst + 1, countTx(0x7C, 0x02));
+}
+
+TEST_F(MztcLinkTest, APresetWrittenAsASettingIsAppliedByTheTask)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    ASSERT_TRUE(mztcGetStatus()->connected);
+    mztcUpdate(0);
+
+    // Write the field directly, the way the settings framework does.
+    mztcConfigMutable()->preset = MZTC_PRESET_FIRE;
+    mztcUpdate(0);
+
+    EXPECT_EQ(MZTC_PALETTE_IRON_RED_1, mztcConfig()->palette_mode);
+    EXPECT_EQ(75, mztcConfig()->contrast);
+    EXPECT_EQ(25, mztcConfig()->digital_enhancement);
+    EXPECT_EQ(10, mztcConfig()->ffc_interval);
+}
+
+// Boot must not reapply. The saved values already reflect the saved preset, so
+// reapplying would discard hand tuning done after the preset was chosen.
+TEST_F(MztcLinkTest, BootDoesNotReapplyTheStoredPreset)
+{
+    mztcConfigMutable()->preset = MZTC_PRESET_FIRE;
+    mztcConfigMutable()->contrast = 33;      // hand tuned after picking FIRE
+
+    // Run the real boot path. mztcInit() returns early while the driver is
+    // already initialised, so without this the test would pass regardless.
+    mztcTestForceReinit();
+    mztcInit();
+
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+    mztcUpdate(0);
+
+    EXPECT_EQ(33, mztcConfig()->contrast) << "boot reapplied and lost the tuning";
+    EXPECT_EQ(MZTC_PRESET_FIRE, mztcConfig()->preset);
+}
+
+TEST_F(MztcLinkTest, ThePortAssignmentIsWhatEnablesTheCamera)
+{
+    mztcPortAssigned = true;
+    EXPECT_TRUE(mztcIsEnabled());
+
+    mztcPortAssigned = false;
+    EXPECT_FALSE(mztcIsEnabled());
+}
+
+/*
+ * Transmit path
+ */
+
+TEST_F(MztcLinkTest, ConfigurationBurstUsesTheCameraShutterWireValues)
+{
+    for (uint8_t mode = MZTC_SHUTTER_TEMP_ONLY; mode <= MZTC_SHUTTER_TIME_AND_TEMP; mode++) {
+        txBytes.clear();
+        mztcConfigMutable()->auto_shutter = mode;
+        mztcSendConfiguration();
+
+        uint8_t len = 0;
+        const uint8_t *packet = findTx(0x7C, 0x04, &len);
+        ASSERT_NE(nullptr, packet) << "no auto shutter command for mode " << (int)mode;
+        ASSERT_EQ(MZTC_PACKET_OVERHEAD + 1, len);
+
+        // The manual defines 0x01 temperature only, 0x02 time only and 0x03
+        // time and temperature. It answers 0x00 with a threshold error.
+        EXPECT_EQ(mode + 1, packet[6]) << "mode " << (int)mode;
+        EXPECT_GE(packet[6], 0x01);
+        EXPECT_LE(packet[6], 0x03);
     }
 }
 
-// Test enum combinations
-TEST_F(MztcCameraTest, EnumCombinations) {
-    // Test that enum values can be combined logically
-    uint8_t combinedFlags = MZTC_ERROR_COMMUNICATION | MZTC_ERROR_CALIBRATION;
-    EXPECT_EQ(combinedFlags, 0x03);
-    
-    combinedFlags |= MZTC_ERROR_TEMPERATURE;
-    EXPECT_EQ(combinedFlags, 0x07);
-    
-    combinedFlags |= MZTC_ERROR_MEMORY;
-    EXPECT_EQ(combinedFlags, 0x0F);
-    
-    // Test that we can check individual flags
-    EXPECT_TRUE(combinedFlags & MZTC_ERROR_COMMUNICATION);
-    EXPECT_TRUE(combinedFlags & MZTC_ERROR_CALIBRATION);
-    EXPECT_TRUE(combinedFlags & MZTC_ERROR_TEMPERATURE);
-    EXPECT_TRUE(combinedFlags & MZTC_ERROR_MEMORY);
-    EXPECT_FALSE(combinedFlags & MZTC_ERROR_TIMEOUT);
-    EXPECT_FALSE(combinedFlags & MZTC_ERROR_INVALID_CONFIG);
+// The camera owns the shutter schedule. The interval has to reach it.
+TEST_F(MztcLinkTest, ConfigurationBurstSendsTheShutterInterval)
+{
+    mztcConfigMutable()->ffc_interval = 7;
+    mztcSendConfiguration();
+
+    uint8_t len = 0;
+    const uint8_t *packet = findTx(0x7C, 0x05, &len);
+    ASSERT_NE(nullptr, packet);
+    ASSERT_EQ(MZTC_PACKET_OVERHEAD + 2, len);
+    EXPECT_EQ(0, packet[6]);
+    EXPECT_EQ(7, packet[7]);
 }
 
-// Test structure alignment
-TEST_F(MztcCameraTest, StructureAlignment) {
-    // Test that structures are properly aligned
-    mztcConfig_t config;
-    mztcStatus_t status;
-    mztcFrameData_t frame;
-    
-    // Test that we can create arrays
-    mztcConfig_t configArray[2];
-    mztcStatus_t statusArray[2];
-    mztcFrameData_t frameArray[2];
-    
-    // Test that we can access array elements
-    configArray[0] = config;
-    configArray[1] = config;
-    statusArray[0] = status;
-    statusArray[1] = status;
-    frameArray[0] = frame;
-    frameArray[1] = frame;
-    
-    EXPECT_TRUE(true); // If we get here, alignment is correct
+TEST_F(MztcLinkTest, ConfigurationBurstSendsEveryImageParameter)
+{
+    mztcConfigMutable()->brightness = 11;
+    mztcConfigMutable()->contrast = 22;
+    mztcConfigMutable()->digital_enhancement = 33;
+    mztcConfigMutable()->spatial_denoise = 44;
+    mztcConfigMutable()->temporal_denoise = 55;
+    mztcConfigMutable()->palette_mode = MZTC_PALETTE_IRON_RED_1;
+    mztcConfigMutable()->zoom_level = MZTC_ZOOM_4X;
+    mztcConfigMutable()->mirror_mode = MZTC_MIRROR_VERTICAL;
+    mztcSendConfiguration();
+
+    struct { uint8_t cls; uint8_t sub; uint8_t value; const char *name; } expected[] = {
+        { 0x78, 0x02, 11, "brightness" },
+        { 0x78, 0x03, 22, "contrast" },
+        { 0x78, 0x10, 33, "digital enhancement" },
+        { 0x78, 0x15, 44, "spatial denoise" },
+        { 0x78, 0x16, 55, "temporal denoise" },
+        { 0x78, 0x20, MZTC_PALETTE_IRON_RED_1, "palette" },
+        { 0x70, 0x12, MZTC_ZOOM_4X, "zoom" },
+        { 0x70, 0x11, MZTC_MIRROR_VERTICAL, "mirror" },
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(expected); i++) {
+        uint8_t len = 0;
+        const uint8_t *packet = findTx(expected[i].cls, expected[i].sub, &len);
+        ASSERT_NE(nullptr, packet) << expected[i].name << " was not sent";
+        ASSERT_EQ(MZTC_PACKET_OVERHEAD + 1, len) << expected[i].name;
+        EXPECT_EQ(expected[i].value, packet[6]) << expected[i].name;
+    }
 }
 
-// Test packet construction
-TEST_F(MztcCameraTest, PacketConstruction) {
-    // Test packet structure matches UART protocol
-    // This would test the mztcPacket_t structure
-    EXPECT_EQ(sizeof(mztcPacket_t), 20); // begin + size + addr + class + subclass + flags + data[14] + checksum + end
-    
-    // Test packet field sizes
-    mztcPacket_t packet = {0};
-    EXPECT_EQ(sizeof(packet.begin), 1);
-    EXPECT_EQ(sizeof(packet.size), 1);
-    EXPECT_EQ(sizeof(packet.device_addr), 1);
-    EXPECT_EQ(sizeof(packet.class_cmd), 1);
-    EXPECT_EQ(sizeof(packet.subclass_cmd), 1);
-    EXPECT_EQ(sizeof(packet.flags), 1);
-    EXPECT_EQ(sizeof(packet.data), 14);
-    EXPECT_EQ(sizeof(packet.checksum), 1);
-    EXPECT_EQ(sizeof(packet.end), 1);
+// Everything the driver puts on the wire has to survive its own validator.
+TEST_F(MztcLinkTest, EveryTransmittedPacketIsWellFormed)
+{
+    mztcSendConfiguration();
+    ASSERT_FALSE(txBytes.empty());
+
+    size_t i = 0;
+    int packets = 0;
+    while (i + MZTC_MIN_PACKET_LEN <= txBytes.size()) {
+        const uint8_t len = (uint8_t)(txBytes[i + 1] + 4);
+        ASSERT_LE(i + len, txBytes.size()) << "packet " << packets << " runs past the buffer";
+        EXPECT_TRUE(mztcPacketIsValid(&txBytes[i], len)) << "packet " << packets;
+        i += len;
+        packets++;
+    }
+    EXPECT_EQ(txBytes.size(), i) << "trailing bytes after the last packet";
+    EXPECT_GE(packets, 9);
 }
 
-// Test command definitions
-TEST_F(MztcCameraTest, CommandDefinitions) {
-    // Test that command arrays are properly defined
-    // These would be tested if we had access to the command arrays
-    EXPECT_TRUE(true); // Placeholder for command validation
+// Everything the driver needs from the rest of the firmware. No real serial
+// port is ever opened. serialWriteBufShim captures what the driver transmits so
+// the transmit tests can assert on the actual wire bytes.
+extern "C" {
+
+#include "build/debug.h"
+#include "drivers/serial.h"
+#include "io/serial.h"
+
+int32_t debug[DEBUG32_VALUE_COUNT];
+
+const uint32_t baudRates[] = { 0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200,
+                               230400, 250000, 460800, 921600, 1000000, 1500000, 2000000, 2470000 };
+
+timeMs_t millis(void)
+{
+    return fakeNow;
 }
 
-// Test error handling
-TEST_F(MztcCameraTest, ErrorHandling) {
-    // Test error flag definitions
-    EXPECT_EQ(MZTC_ERR_NO_COMMAND, 0x00);
-    EXPECT_EQ(MZTC_ERR_THRESHOLD, 0x01);
-    
-    // Test error flag combinations
-    uint8_t combined_errors = MZTC_ERR_NO_COMMAND | MZTC_ERR_THRESHOLD;
-    EXPECT_EQ(combined_errors, 0x01);
+// The Ports tab decides whether the camera exists. Returning a config here is
+// the test equivalent of assigning MZTC_CAMERA to a UART.
+static serialPortConfig_t fakePortConfig;
+
+bool IS_RC_MODE_ACTIVE(boxId_e boxId)
+{
+    return boxId == BOXMZTCCALIBRATE && mztcCalibrateBoxActive;
 }
 
-// Test configuration validation
-TEST_F(MztcCameraTest, ConfigurationValidation) {
-    mztcConfig_t config = {0};
-    
-    // Test valid ranges
-    config.brightness = 50;
-    EXPECT_GE(config.brightness, 0);
-    EXPECT_LE(config.brightness, 100);
-    
-    config.contrast = 75;
-    EXPECT_GE(config.contrast, 0);
-    EXPECT_LE(config.contrast, 100);
-    
-    config.digital_enhancement = 25;
-    EXPECT_GE(config.digital_enhancement, 0);
-    EXPECT_LE(config.digital_enhancement, 100);
-    
-    config.spatial_denoise = 60;
-    EXPECT_GE(config.spatial_denoise, 0);
-    EXPECT_LE(config.spatial_denoise, 100);
-    
-    config.temporal_denoise = 40;
-    EXPECT_GE(config.temporal_denoise, 0);
-    EXPECT_LE(config.temporal_denoise, 100);
+serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function)
+{
+    if (function != FUNCTION_MZTC_CAMERA || !mztcPortAssigned) {
+        return NULL;
+    }
+    fakePortConfig.identifier = SERIAL_PORT_USART2;
+    fakePortConfig.peripheral_baudrateIndex = 8;
+    return &fakePortConfig;
 }
 
-// Test status validation
-TEST_F(MztcCameraTest, StatusValidation) {
-    mztcStatus_t status = {0};
-    
-    // Test status field
-    status.status = MZTC_STATUS_READY;
-    EXPECT_GE(status.status, MZTC_STATUS_OFFLINE);
-    EXPECT_LE(status.status, MZTC_STATUS_RECORDING);
-    
-    // Test mode field
-    status.mode = MZTC_MODE_CONTINUOUS;
-    EXPECT_GE(status.mode, MZTC_MODE_DISABLED);
-    EXPECT_LE(status.mode, MZTC_MODE_SURVEILLANCE);
-    
-    // Test connection quality
-    status.connection_quality = 85;
-    EXPECT_GE(status.connection_quality, 0);
-    EXPECT_LE(status.connection_quality, 100);
-    
-    // Test temperature ranges
-    status.camera_temperature = 25.0f;
-    EXPECT_GE(status.camera_temperature, -40.0f);
-    EXPECT_LE(status.camera_temperature, 85.0f);
-    
-    status.ambient_temperature = 20.0f;
-    EXPECT_GE(status.ambient_temperature, -40.0f);
-    EXPECT_LE(status.ambient_temperature, 85.0f);
+serialPort_t *openSerialPort(serialPortIdentifier_e, serialPortFunction_e, serialReceiveCallbackPtr,
+                             void *, uint32_t, portMode_t, portOptions_t)
+{
+    return NULL;
 }
 
-// Test frame data validation
-TEST_F(MztcCameraTest, FrameDataValidation) {
-    mztcFrameData_t frame = {0};
-    
-    // Test frame dimensions
-    frame.width = 160;
-    frame.height = 120;
-    EXPECT_GT(frame.width, 0);
-    EXPECT_GT(frame.height, 0);
-    EXPECT_LE(frame.width, 640); // Reasonable max
-    EXPECT_LE(frame.height, 480); // Reasonable max
-    
-    // Test temperature ranges
-    frame.min_temp = -20.0f;
-    frame.max_temp = 100.0f;
-    EXPECT_LT(frame.min_temp, frame.max_temp);
-    EXPECT_GE(frame.min_temp, -50.0f);
-    EXPECT_LE(frame.max_temp, 200.0f);
-    
-    // Test coordinates
-    frame.hottest_x = 80;
-    frame.hottest_y = 60;
-    frame.coldest_x = 0;
-    frame.coldest_y = 0;
-    EXPECT_GE(frame.hottest_x, 0);
-    EXPECT_GE(frame.hottest_y, 0);
-    EXPECT_GE(frame.coldest_x, 0);
-    EXPECT_GE(frame.coldest_y, 0);
-    EXPECT_LT(frame.hottest_x, frame.width);
-    EXPECT_LT(frame.hottest_y, frame.height);
-    EXPECT_LT(frame.coldest_x, frame.width);
-    EXPECT_LT(frame.coldest_y, frame.height);
+void closeSerialPort(serialPort_t *)
+{
 }
 
-// Test enum boundary values
-TEST_F(MztcCameraTest, EnumBoundaryValues) {
-    // Test mode enum boundaries
-    EXPECT_EQ(MZTC_MODE_DISABLED, 0);
-    EXPECT_EQ(MZTC_MODE_SURVEILLANCE, 7);
-    
-    // Test temperature unit boundaries
-    EXPECT_EQ(MZTC_UNIT_CELSIUS, 0);
-    EXPECT_EQ(MZTC_UNIT_KELVIN, 2);
-    
-    // Test palette boundaries
-    EXPECT_EQ(MZTC_PALETTE_WHITE_HOT, 0);
-    EXPECT_EQ(MZTC_PALETTE_RED_HOT, 13);
-    
-    // Test zoom boundaries
-    EXPECT_EQ(MZTC_ZOOM_1X, 0);
-    EXPECT_EQ(MZTC_ZOOM_8X, 3);
-    
-    // Test mirror boundaries
-    EXPECT_EQ(MZTC_MIRROR_NONE, 0);
-    EXPECT_EQ(MZTC_MIRROR_CENTRAL, 3);
-    
-    // Test shutter boundaries
-    EXPECT_EQ(MZTC_SHUTTER_TEMP_ONLY, 0);
-    EXPECT_EQ(MZTC_SHUTTER_TIME_AND_TEMP, 2);
+void serialWriteBufShim(void *, const uint8_t *data, int count)
+{
+    for (int i = 0; i < count; i++) {
+        txBytes.push_back(data[i]);
+    }
 }
 
-// Test limits and constraints
-TEST_F(MztcCameraTest, LimitsAndConstraints) {
-    // Test update rate limits
-    EXPECT_GE(MZTC_MAX_UPDATE_RATE, MZTC_MIN_UPDATE_RATE);
-    EXPECT_GT(MZTC_MAX_UPDATE_RATE, 0);
-    EXPECT_GT(MZTC_MIN_UPDATE_RATE, 0);
-    
-    // Test FFC interval limits
-    EXPECT_GE(MZTC_MAX_FFC_INTERVAL, MZTC_MIN_FFC_INTERVAL);
-    EXPECT_GT(MZTC_MAX_FFC_INTERVAL, 0);
-    EXPECT_GT(MZTC_MIN_FFC_INTERVAL, 0);
-    
-    // Test reasonable limits
-    EXPECT_LE(MZTC_MAX_UPDATE_RATE, 60); // Max 60 Hz reasonable
-    EXPECT_LE(MZTC_MAX_FFC_INTERVAL, 120); // Max 2 hours reasonable
 }
-
-// Test data integrity
-TEST_F(MztcCameraTest, DataIntegrity) {
-    // Test that structures can be zeroed
-    mztcConfig_t config = {0};
-    mztcStatus_t status = {0};
-    mztcFrameData_t frame = {0};
-    
-    // Test that zeroing works
-    EXPECT_EQ(config.enabled, 0);
-    EXPECT_EQ(status.status, 0);
-    EXPECT_EQ(frame.width, 0);
-    
-    // Test that we can set and get values
-    config.enabled = 1;
-    EXPECT_EQ(config.enabled, 1);
-    
-    status.status = MZTC_STATUS_READY;
-    EXPECT_EQ(status.status, MZTC_STATUS_READY);
-    
-    frame.width = 160;
-    EXPECT_EQ(frame.width, 160);
-}
-
-// Test new function declarations exist
-TEST_F(MztcCameraTest, NewFunctionDeclarations) {
-    // Test that new functions are declared
-    // These would be tested if we had access to the function pointers
-    // For now, we just verify the test compiles with the new declarations
-    EXPECT_TRUE(true);
-}
-
-// Main function for running tests
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    
-    return RUN_ALL_TESTS();
-}
-
-#endif // USE_MZTC

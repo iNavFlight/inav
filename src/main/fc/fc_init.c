@@ -92,8 +92,6 @@
 #include "fc/stats.h"
 
 #include "io/mztc_camera.h"
-#include "io/osd/mztc_camera_osd.h"
-#include "msp/msp_mztc.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -564,11 +562,8 @@ void init(void)
     // to set the boxes up
     mspFcInit();
 
-    // Initialize MassZero Thermal Camera
 #ifdef USE_MZTC
     mztcInit();
-    mztcOsdInit();
-    mspMztcInit();
 #endif
 
     cliInit(serialConfig());

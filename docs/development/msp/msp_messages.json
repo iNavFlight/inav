@@ -1,7 +1,7 @@
 {
     "version": {
         "major": 2,
-        "minor": 1,
+        "minor": 7,
         "patch": 0
     },
     "messages": {
@@ -11674,6 +11674,344 @@
             },
             "notes": "Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.",
             "description": "Initiates binding for MSP receivers (mLRS)."
+        },
+        "MSP2_MZTC_CONFIG": {
+            "code": 8768,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "preset",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Purpose preset. See `mztcPreset_e`. 0 CUSTOM, 1 GENERAL, 2 FIRE, 3 SEARCH, 4 SURVEILLANCE, 5 INSPECTION, 6 MARITIME."
+                    },
+                    {
+                        "name": "palette_mode",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Colour palette. See `mztcPaletteMode_e`. 0-13."
+                    },
+                    {
+                        "name": "auto_shutter",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Automatic shutter policy. See `mztcShutterMode_e`. 0-2."
+                    },
+                    {
+                        "name": "digital_enhancement",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Digital enhancement level. 0-100."
+                    },
+                    {
+                        "name": "spatial_denoise",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Spatial denoising level. 0-100."
+                    },
+                    {
+                        "name": "temporal_denoise",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Temporal denoising level. 0-100."
+                    },
+                    {
+                        "name": "brightness",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Image brightness. 0-100."
+                    },
+                    {
+                        "name": "contrast",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Image contrast. 0-100."
+                    },
+                    {
+                        "name": "zoom_level",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Digital zoom. See `mztcZoomLevel_e`. 0-3."
+                    },
+                    {
+                        "name": "mirror_mode",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Image mirroring. See `mztcMirrorMode_e`. 0-3."
+                    },
+                    {
+                        "name": "ffc_interval",
+                        "ctype": "uint8_t",
+                        "units": "minutes",
+                        "desc": "Automatic shutter interval in minutes. 1-60. The camera runs the schedule itself."
+                    }
+                ]
+            },
+            "notes": "Requires `USE_MZTC`. Fixed 12 byte reply. The serial port and its baud rate are not in this payload. They come from the Ports tab. Each field is written with the `sbufWrite*` helpers. The layout never depends on compiler padding.",
+            "description": "Reads the MassZero thermal camera configuration."
+        },
+        "MSP2_MZTC_STATUS": {
+            "code": 8769,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "status",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Camera state. 0 offline, 1 initializing, 2 ready, 3 capturing, 4 calibrating, 5 error, 6 alert, 7 recording."
+                    },
+                    {
+                        "name": "preset",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Purpose preset currently in effect. See `mztcPreset_e`."
+                    },
+                    {
+                        "name": "connected",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Set once the camera has answered a command. Opening the serial port alone does not set it."
+                    },
+                    {
+                        "name": "connection_quality",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Share of recent identity probes the camera answered. 0-100."
+                    },
+                    {
+                        "name": "last_calibration",
+                        "ctype": "uint16_t",
+                        "units": "minutes",
+                        "desc": "Time since the last flat field correction. Saturates at 65535."
+                    },
+                    {
+                        "name": "error_flags",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Bit field. 0x01 communication, 0x02 calibration, 0x04 temperature, 0x08 memory, 0x10 timeout, 0x20 invalid config."
+                    }
+                ]
+            },
+            "notes": "Requires `USE_MZTC`. Fixed 7 byte reply.",
+            "description": "Reads the live state of the MassZero thermal camera link."
+        },
+        "MSP2_SET_MZTC_CONFIG": {
+            "code": 8770,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "preset",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Purpose preset. See `mztcPreset_e`. 0 CUSTOM, 1 GENERAL, 2 FIRE, 3 SEARCH, 4 SURVEILLANCE, 5 INSPECTION, 6 MARITIME."
+                    },
+                    {
+                        "name": "palette_mode",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Colour palette. See `mztcPaletteMode_e`. 0-13."
+                    },
+                    {
+                        "name": "auto_shutter",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Automatic shutter policy. See `mztcShutterMode_e`. 0-2."
+                    },
+                    {
+                        "name": "digital_enhancement",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Digital enhancement level. 0-100."
+                    },
+                    {
+                        "name": "spatial_denoise",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Spatial denoising level. 0-100."
+                    },
+                    {
+                        "name": "temporal_denoise",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Temporal denoising level. 0-100."
+                    },
+                    {
+                        "name": "brightness",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Image brightness. 0-100."
+                    },
+                    {
+                        "name": "contrast",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Image contrast. 0-100."
+                    },
+                    {
+                        "name": "zoom_level",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Digital zoom. See `mztcZoomLevel_e`. 0-3."
+                    },
+                    {
+                        "name": "mirror_mode",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Image mirroring. See `mztcMirrorMode_e`. 0-3."
+                    },
+                    {
+                        "name": "ffc_interval",
+                        "ctype": "uint8_t",
+                        "units": "minutes",
+                        "desc": "Automatic shutter interval in minutes. 1-60. The camera runs the schedule itself."
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_MZTC`. Expects 11 bytes. The serial port and its baud rate are not in this payload. They come from the Ports tab. The whole request is validated against the `MZTC_*` limits before any field is applied. A rejected request leaves the running configuration untouched.",
+            "description": "Writes the MassZero thermal camera configuration."
+        },
+        "MSP2_SET_MZTC_PRESET": {
+            "code": 8771,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "preset",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Purpose preset. See `mztcPreset_e`. 0 CUSTOM, 1 GENERAL, 2 FIRE, 3 SEARCH, 4 SURVEILLANCE, 5 INSPECTION, 6 MARITIME."
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_MZTC`. Expects 1 byte.",
+            "description": "Applies a purpose preset to the MassZero thermal camera. A preset writes the palette, brightness, contrast, digital enhancement, both denoise levels, the shutter mode and the correction interval. CUSTOM writes nothing."
+        },
+        "MSP2_SET_MZTC_PALETTE": {
+            "code": 8772,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "palette",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Colour palette. See `mztcPaletteMode_e`. 0-13."
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_MZTC`. Expects 1 byte. Returns an error if the camera is not connected.",
+            "description": "Sets the MassZero thermal camera colour palette."
+        },
+        "MSP2_SET_MZTC_ZOOM": {
+            "code": 8773,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "zoom_level",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Digital zoom. See `mztcZoomLevel_e`. 0-3."
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_MZTC`. Expects 1 byte. Returns an error if the camera is not connected.",
+            "description": "Sets the MassZero thermal camera digital zoom level."
+        },
+        "MSP2_SET_MZTC_SHUTTER": {
+            "code": 8774,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "trigger",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Ignored. The command itself is the trigger."
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_MZTC`. Accepts 0 or 1 bytes. A manual shutter cycle is the flat field correction on this camera. The `mztc_calibrate` CLI command performs the same operation.",
+            "description": "Triggers a manual shutter cycle for a flat field correction."
+        },
+        "MSP2_SET_MZTC_IMAGE_PARAMS": {
+            "code": 8775,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "brightness",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Image brightness. 0-100."
+                    },
+                    {
+                        "name": "contrast",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Image contrast. 0-100."
+                    },
+                    {
+                        "name": "enhancement",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Digital enhancement. 0-100."
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_MZTC`. Expects 3 bytes. Returns an error if the camera is not connected.",
+            "description": "Sets the MassZero thermal camera image parameters."
+        },
+        "MSP2_SET_MZTC_CORRECTION": {
+            "code": 8776,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "spatial_denoise",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Spatial denoising. 0-100."
+                    },
+                    {
+                        "name": "temporal_denoise",
+                        "ctype": "uint8_t",
+                        "units": "%",
+                        "desc": "Temporal denoising. 0-100."
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_MZTC`. Expects 2 bytes. Returns an error if the camera is not connected.",
+            "description": "Sets the MassZero thermal camera denoising parameters."
+        },
+        "MSP2_SET_MZTC_VIGNETTING": {
+            "code": 8777,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "trigger",
+                        "ctype": "uint8_t",
+                        "units": "",
+                        "desc": "Ignored. The command itself is the trigger."
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_MZTC`. Accepts 0 or 1 bytes. The camera manual requires the lens to be pointed at a uniform surface before this runs, so it is an action and never a stored setting.",
+            "description": "Runs one vignetting correction on the camera."
         }
     }
 }

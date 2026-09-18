@@ -34,6 +34,10 @@
 
 #include "io/osd.h"
 
+#ifdef USE_MZTC
+#include "io/mztc_camera.h"
+#endif
+
 #include "drivers/pwm_output.h"
 
 #include "sensors/diagnostics.h"
@@ -110,6 +114,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXGIMBALCENTER,     .boxName = "GIMBAL CENTER",     .permanentId = 67 },
     { .boxId = BOXGIMBALHTRK,       .boxName = "GIMBAL HEADTRACKER", .permanentId = 68 },
     { .boxId = BOXAUTOSPEED,        .boxName = "AUTO SPEED",        .permanentId = 69 },
+    { .boxId = BOXMZTCCALIBRATE,    .boxName = "THERMAL CALIBRATE", .permanentId = 70 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -252,6 +257,15 @@ void initActiveBoxIds(void)
             ADD_ACTIVE_BOX(BOXAUTOSPEED);
         }
     }
+
+#ifdef USE_MZTC
+    // Only offered when the camera has a UART assigned in the Ports tab. The
+    // flat field correction it triggers uses the camera's internal shutter as
+    // its reference, so the scene in front of the lens does not matter.
+    if (mztcIsEnabled()) {
+        ADD_ACTIVE_BOX(BOXMZTCCALIBRATE);
+    }
+#endif
 
 #ifdef USE_MR_BRAKING_MODE
     if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || platformTypeConfigured(PLATFORM_MULTIROTOR)) {
@@ -470,6 +484,9 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     }
 #endif
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOSPEED)),    BOXAUTOSPEED);
+#ifdef USE_MZTC
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMZTCCALIBRATE)), BOXMZTCCALIBRATE);
+#endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

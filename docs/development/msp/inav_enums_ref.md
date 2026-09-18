@@ -73,6 +73,7 @@
 - [displayTransactionOption_e](#enum-displaytransactionoption_e)
 - [displayWidgetType_e](#enum-displaywidgettype_e)
 - [DjiCraftNameElements_t](#enum-djicraftnameelements_t)
+- [dronecanAsyncState_e](#enum-dronecanasyncstate_e)
 - [dronecanBitrate_e](#enum-dronecanbitrate_e)
 - [dronecanState_e](#enum-dronecanstate_e)
 - [dshotCommands_e](#enum-dshotcommands_e)
@@ -1612,6 +1613,18 @@
 | `DJI_OSD_CN_DISTANCE` | 5 |  |
 | `DJI_OSD_CN_ADJUSTEMNTS` | 6 |  |
 | `DJI_OSD_CN_MAX_ELEMENTS` | 7 |  |
+
+---
+## <a id="enum-dronecanasyncstate_e"></a>`dronecanAsyncState_e`
+
+> Source: ../../../src/main/drivers/dronecan/dronecan.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DRONECAN_ASYNC_IDLE` | 0 |  |
+| `DRONECAN_ASYNC_PENDING` | 1 |  |
+| `DRONECAN_ASYNC_READY` | 2 |  |
+| `DRONECAN_ASYNC_ERROR` | 3 |  |
 
 ---
 ## <a id="enum-dronecanbitrate_e"></a>`dronecanBitrate_e`
@@ -4653,7 +4666,8 @@
 | `OSD_THROTTLE_GAUGE` | 168 |  |
 | `OSD_GPS_EXTRA_STATS` | 169 |  |
 | `OSD_AUTO_SPEED` | 170 |  |
-| `OSD_ITEM_COUNT` | 171 |  |
+| `OSD_MZTC_STATUS` | 171 |  |
+| `OSD_ITEM_COUNT` | 172 |  |
 
 ---
 ## <a id="enum-osd_sidebar_arrow_e"></a>`osd_sidebar_arrow_e`
@@ -5600,6 +5614,7 @@
 | `FUNCTION_MSP_OSD` | (1 << 25) |  |
 | `FUNCTION_GIMBAL` | (1 << 26) |  |
 | `FUNCTION_GIMBAL_HEADTRACKER` | (1 << 27) |  |
+| `FUNCTION_MZTC_CAMERA` | (1 << 28) | USE_MZTC |
 
 ---
 ## <a id="enum-serialportidentifier_e"></a>`serialPortIdentifier_e`

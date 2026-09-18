@@ -8,7 +8,7 @@
  *
  * INAV is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR ANY PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -17,17 +17,13 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
-#include <math.h>
-#include <stdlib.h>
 
 #include "platform.h"
 
 #include "build/debug.h"
 #include "build/build_config.h"
 
-#include "common/axis.h"
 #include "common/maths.h"
 #include "common/utils.h"
 
@@ -35,54 +31,15 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/serial.h"
-#include "drivers/system.h"
 #include "drivers/time.h"
+
+#include "fc/settings.h"
 
 #include "io/serial.h"
 #include "io/mztc_camera.h"
-
-#include "scheduler/scheduler.h"
+#include "fc/rc_modes.h"
 
 #ifdef USE_MZTC
-
-// Parameter group ID for MassZero Thermal Camera (defined in parameter_group_ids.h)
-
-// Default configuration values
-#define MZTC_DEFAULT_ENABLED            0
-#define MZTC_DEFAULT_PORT               SERIAL_PORT_USART2
-#define MZTC_DEFAULT_BAUDRATE           BAUD_115200
-#define MZTC_DEFAULT_MODE               MZTC_MODE_DISABLED
-#define MZTC_DEFAULT_UPDATE_RATE        9
-#define MZTC_DEFAULT_TEMPERATURE_UNIT   MZTC_UNIT_CELSIUS
-#define MZTC_DEFAULT_PALETTE_MODE       MZTC_PALETTE_WHITE_HOT
-#define MZTC_DEFAULT_AUTO_SHUTTER       MZTC_SHUTTER_TIME_AND_TEMP
-#define MZTC_DEFAULT_DIGITAL_ENHANCEMENT 50
-#define MZTC_DEFAULT_SPATIAL_DENOISE    50
-#define MZTC_DEFAULT_TEMPORAL_DENOISE   50
-#define MZTC_DEFAULT_BRIGHTNESS         50
-#define MZTC_DEFAULT_CONTRAST           50
-#define MZTC_DEFAULT_ZOOM_LEVEL         MZTC_ZOOM_1X
-#define MZTC_DEFAULT_MIRROR_MODE        MZTC_MIRROR_NONE
-#define MZTC_DEFAULT_CROSSHAIR_ENABLED  0
-#define MZTC_DEFAULT_TEMPERATURE_ALERTS 0
-#define MZTC_DEFAULT_ALERT_HIGH_TEMP    80.0f
-#define MZTC_DEFAULT_ALERT_LOW_TEMP     -10.0f
-#define MZTC_DEFAULT_FFC_INTERVAL       5
-#define MZTC_DEFAULT_BAD_PIXEL_REMOVAL  1
-#define MZTC_DEFAULT_VIGNETTING_CORRECTION 1
-
-// Serial packet structure for thermal camera communication
-typedef struct {
-    uint8_t begin;          // 0xF0 - Start byte
-    uint8_t size;           // N+4 (total packet length)
-    uint8_t device_addr;    // 0x36 - Device address
-    uint8_t class_cmd;      // Class command address
-    uint8_t subclass_cmd;   // Subclass command address
-    uint8_t flags;          // Read/Write flags
-    uint8_t data[14];       // Data content (max 14 bytes)
-    uint8_t checksum;       // Checksum
-    uint8_t end;            // 0xFF - End byte
-} mztcPacket_t;
 
 // Flag definitions
 #define MZTC_FLAG_WRITE      0x00
@@ -90,248 +47,600 @@ typedef struct {
 #define MZTC_FLAG_SUCCESS    0x03
 #define MZTC_FLAG_ERROR      0x04
 
-// Error codes
+// Error codes reported by the camera in the first payload byte of an error reply
 #define MZTC_ERR_NO_COMMAND  0x00
 #define MZTC_ERR_THRESHOLD   0x01
 
-// Camera commands
-#define MZTC_CMD_READ_MODEL          {0x74, 0x02}  // Read device model
-#define MZTC_CMD_READ_FPGA_VER       {0x74, 0x03}  // Read FPGA version
-#define MZTC_CMD_READ_SW_VER         {0x74, 0x05}  // Read software version
-#define MZTC_CMD_MANUAL_SHUTTER      {0x7C, 0x02}  // Manual FFC
-#define MZTC_CMD_AUTO_SHUTTER        {0x7C, 0x04}  // Auto shutter control
-#define MZTC_CMD_DIGITAL_ENHANCE     {0x78, 0x10}  // Digital enhancement
-#define MZTC_CMD_SPATIAL_DENOISE     {0x78, 0x15}  // Spatial denoising
-#define MZTC_CMD_TEMPORAL_DENOISE    {0x78, 0x16}  // Temporal denoising
-#define MZTC_CMD_BRIGHTNESS          {0x78, 0x02}  // Brightness
-#define MZTC_CMD_CONTRAST            {0x78, 0x03}  // Contrast
-#define MZTC_CMD_PSEUDO_COLOR        {0x78, 0x20}  // Pseudo color
-#define MZTC_CMD_ZOOM                {0x70, 0x12}  // Digital zoom
-#define MZTC_CMD_IMAGE_MIRROR        {0x70, 0x11}  // Mirror mode
-#define MZTC_CMD_INIT_STATUS         {0x7C, 0x14}  // Read initialization status
-#define MZTC_CMD_SAVE_CONFIG         {0x74, 0x10}  // Save configuration
-#define MZTC_CMD_RESTORE_DEFAULTS    {0x74, 0x0F}  // Restore defaults
+// Camera commands, as class and subclass pairs
+#define MZTC_CLASS_DEVICE            0x74
+#define MZTC_CLASS_DISPLAY           0x70
+#define MZTC_CLASS_IMAGE             0x78
+#define MZTC_CLASS_SHUTTER           0x7C
+
+#define MZTC_SUB_READ_MODEL          0x02
+#define MZTC_SUB_READ_FPGA_VER       0x03
+#define MZTC_SUB_READ_SW_VER         0x05
+#define MZTC_SUB_RESTORE_DEFAULTS    0x0F
+#define MZTC_SUB_SAVE_CONFIG         0x10
+
+#define MZTC_SUB_MANUAL_SHUTTER      0x02
+#define MZTC_SUB_AUTO_SHUTTER        0x04
+#define MZTC_SUB_SHUTTER_INTERVAL    0x05
+#define MZTC_SUB_VIGNETTING          0x0C
+#define MZTC_SUB_INIT_STATUS         0x14
+
+// The camera answers the 0x7C/0x14 initialization status request on a
+// different address than it was asked on. The manual specifies the reply as
+// class 0x7D subclass 0x06.
+#define MZTC_CLASS_INIT_STATUS_REPLY 0x7D
+#define MZTC_SUB_INIT_STATUS_REPLY   0x06
+
+// Vignetting correction takes a fixed data byte
+#define MZTC_VIGNETTING_TRIGGER      0x02
+
+#define MZTC_SUB_BRIGHTNESS          0x02
+#define MZTC_SUB_CONTRAST            0x03
+#define MZTC_SUB_DIGITAL_ENHANCE     0x10
+#define MZTC_SUB_SPATIAL_DENOISE     0x15
+#define MZTC_SUB_TEMPORAL_DENOISE    0x16
+#define MZTC_SUB_PSEUDO_COLOR        0x20
+
+#define MZTC_SUB_IMAGE_MIRROR        0x11
+#define MZTC_SUB_ZOOM                0x12
+
+// The MZTC_* limits in config/mztc_camera.h and the constants block in
+// settings.yaml describe the same ranges to different consumers. The C code
+// validates against the first. The CLI and the generated docs use the second.
+// These assertions turn any divergence into a build failure. Without them the
+// CLI could reject a value that MSP still accepts.
+STATIC_ASSERT(MZTC_MIN_FFC_INTERVAL == SETTING_MZTC_FFC_INTERVAL_MIN, mztc_ffc_interval_min_mismatch);
+STATIC_ASSERT(MZTC_MAX_FFC_INTERVAL == SETTING_MZTC_FFC_INTERVAL_MAX, mztc_ffc_interval_max_mismatch);
+STATIC_ASSERT(MZTC_MIN_PERCENT == SETTING_MZTC_BRIGHTNESS_MIN, mztc_percent_min_mismatch);
+STATIC_ASSERT(MZTC_MAX_PERCENT == SETTING_MZTC_BRIGHTNESS_MAX, mztc_percent_max_mismatch);
+
+// Connection management timings
+#define MZTC_PORT_RETRY_MS           1000    // Between attempts to open the port
+#define MZTC_PROBE_INTERVAL_MS       500     // Between identity probes
+#define MZTC_PROBE_ATTEMPTS          6       // Reopen the port after this many unanswered probes
+#define MZTC_RX_TIMEOUT_MS           3000    // No valid reply for this long means the link is down
+
+// Connection quality is the percentage of probes answered over a sliding window
+#define MZTC_QUALITY_WINDOW          8
 
 // Internal state
-mztcStatus_t mztcStatus;
-serialPort_t *mztcSerialPort = NULL;
-static uint32_t mztcLastUpdateTime = 0;
-static uint32_t mztcLastCalibrationTime = 0;
+static mztcStatus_t mztcStatus;
+static serialPort_t *mztcSerialPort = NULL;
+static timeMs_t mztcLastUpdateTime = 0;
+static timeMs_t mztcLastPortRetry = 0;
+static timeMs_t mztcLastProbeTime = 0;
+static timeMs_t mztcLastCalibrationTime = 0;
+static timeMs_t mztcLastValidResponse = 0;
 static bool mztcInitialized = false;
-static uint8_t mztcRxBuffer[256];
-static uint16_t mztcRxBufferIndex = 0;
+static uint8_t mztcProbeAttempts = 0;
 
-// SITL detection and connection state
-static bool mztcSitlMode = false;
-static uint32_t mztcLastDataReceived = 0;
+// Sliding window of probe outcomes, used for connection_quality
+static uint8_t mztcProbesSent = 0;
+static uint8_t mztcProbesAnswered = 0;
 
-// Parameter group for MassZero Thermal Camera configuration
-PG_REGISTER_WITH_RESET_TEMPLATE(mztcConfig_t, mztcConfig, PG_MZTC_CAMERA_CONFIG, 0);
+// Set when the camera first answers, consumed by the task so that the
+// configuration burst never runs in interrupt context.
+static bool mztcConfigurationPending = false;
+// Previous state of the THERMAL CALIBRATE switch. The correction runs on the
+// rising edge only, so holding the switch does not fire it every task tick.
+static bool mztcCalibrateBoxWasActive = false;
+// The preset the stored settings currently reflect. Any path that changes
+// mztc_preset is noticed by the task and applied, so "set mztc_preset" behaves
+// the same as the mztc_preset CLI command and MSP2_SET_MZTC_PRESET.
+static uint8_t mztcLastAppliedPreset = MZTC_PRESET_CUSTOM;
 
+// Device identity, filled in from the model and version replies
+static uint8_t mztcDeviceModel[MZTC_MAX_DATA_LEN];
+static uint8_t mztcDeviceModelLen = 0;
 
+// Receive framing state. The parser is length driven so that a 0xF0 or 0xFF
+// byte inside a payload cannot split or truncate a packet.
+static uint8_t mztcRxBuffer[MZTC_MAX_PACKET_LEN];
+static uint8_t mztcRxLen = 0;
+static uint8_t mztcRxExpected = 0;
+
+// Parameter group for MassZero Thermal Camera configuration.
+//
+// The defaults come from the SETTING_*_DEFAULT macros that the settings
+// generator emits from settings.yaml. The CLI defaults and the fresh-EEPROM
+// defaults cannot drift apart.
+// Version 2. Version 1 dropped the five unused RC channel fields, the
+// temperature settings and the crosshair flag, and widened last_calibration.
+// Version 2 replaces the inert mode field with preset and removes update_rate,
+// which shifts every field after the first byte. An older record read at the
+// new offsets would apply garbage to real camera settings, so the bump makes
+// it fall back to defaults instead.
+PG_REGISTER_WITH_RESET_TEMPLATE(mztcConfig_t, mztcConfig, PG_MZTC_CAMERA_CONFIG, 2);
 
 PG_RESET_TEMPLATE(mztcConfig_t, mztcConfig,
-    .enabled = MZTC_DEFAULT_ENABLED,
-    .port = MZTC_DEFAULT_PORT,
-    .baudrate = MZTC_DEFAULT_BAUDRATE,
-    .mode = MZTC_DEFAULT_MODE,
-    .update_rate = MZTC_DEFAULT_UPDATE_RATE,
-    .temperature_unit = MZTC_DEFAULT_TEMPERATURE_UNIT,
-    .palette_mode = MZTC_DEFAULT_PALETTE_MODE,
-    .auto_shutter = MZTC_DEFAULT_AUTO_SHUTTER,
-    .digital_enhancement = MZTC_DEFAULT_DIGITAL_ENHANCEMENT,
-    .spatial_denoise = MZTC_DEFAULT_SPATIAL_DENOISE,
-    .temporal_denoise = MZTC_DEFAULT_TEMPORAL_DENOISE,
-    .brightness = MZTC_DEFAULT_BRIGHTNESS,
-    .contrast = MZTC_DEFAULT_CONTRAST,
-    .zoom_level = MZTC_DEFAULT_ZOOM_LEVEL,
-    .mirror_mode = MZTC_DEFAULT_MIRROR_MODE,
-    .crosshair_enabled = MZTC_DEFAULT_CROSSHAIR_ENABLED,
-    .temperature_alerts = MZTC_DEFAULT_TEMPERATURE_ALERTS,
-    .alert_high_temp = MZTC_DEFAULT_ALERT_HIGH_TEMP,
-    .alert_low_temp = MZTC_DEFAULT_ALERT_LOW_TEMP,
-    .ffc_interval = MZTC_DEFAULT_FFC_INTERVAL,
-    .bad_pixel_removal = MZTC_DEFAULT_BAD_PIXEL_REMOVAL,
-    .vignetting_correction = MZTC_DEFAULT_VIGNETTING_CORRECTION,
+    .preset = SETTING_MZTC_PRESET_DEFAULT,
+    .palette_mode = SETTING_MZTC_PALETTE_MODE_DEFAULT,
+    .auto_shutter = SETTING_MZTC_AUTO_SHUTTER_DEFAULT,
+    .digital_enhancement = SETTING_MZTC_DIGITAL_ENHANCEMENT_DEFAULT,
+    .spatial_denoise = SETTING_MZTC_SPATIAL_DENOISE_DEFAULT,
+    .temporal_denoise = SETTING_MZTC_TEMPORAL_DENOISE_DEFAULT,
+    .brightness = SETTING_MZTC_BRIGHTNESS_DEFAULT,
+    .contrast = SETTING_MZTC_CONTRAST_DEFAULT,
+    .zoom_level = SETTING_MZTC_ZOOM_LEVEL_DEFAULT,
+    .mirror_mode = SETTING_MZTC_MIRROR_MODE_DEFAULT,
+    .ffc_interval = SETTING_MZTC_FFC_INTERVAL_DEFAULT,
 );
 
 // Forward declarations
-static void mztcSerialReceiveCallback(uint16_t c, void *rxCallbackData);
+STATIC_UNIT_TESTED void mztcSerialReceiveCallback(uint16_t c, void *rxCallbackData);
 static bool mztcSendPacket(uint8_t class_cmd, uint8_t subclass_cmd, uint8_t flags, const uint8_t *data, uint8_t data_len);
-static bool mztcProcessResponse(const uint8_t *data, uint8_t len);
-static void mztcUpdateStatus(void);
+STATIC_UNIT_TESTED void mztcHandlePacket(const uint8_t *packet, uint8_t len);
 static void mztcCheckCalibration(void);
-static void mztcSendConfiguration(void); // Forward declaration for new function
+STATIC_UNIT_TESTED void mztcSendConfiguration(void);
+static void mztcClosePort(uint8_t errorFlag);
+static void mztcSendProbe(void);
 
-// Initialize MassZero Thermal Camera
+/*
+ * Wire framing
+ */
+
+// Build a complete packet into out. The caller must supply at least
+// MZTC_MAX_PACKET_LEN bytes. Returns the number of bytes written, or 0 if the
+// request is invalid.
+uint8_t mztcBuildPacket(uint8_t *out, uint8_t class_cmd, uint8_t subclass_cmd,
+                        uint8_t flags, const uint8_t *data, uint8_t data_len)
+{
+    if (!out || data_len > MZTC_MAX_DATA_LEN || (data_len > 0 && !data)) {
+        return 0;
+    }
+
+    uint8_t i = 0;
+    out[i++] = MZTC_PACKET_BEGIN;
+    out[i++] = (uint8_t)(data_len + MZTC_SIZE_FIELD_OFFSET);
+    out[i++] = MZTC_DEVICE_ADDR;
+    out[i++] = class_cmd;
+    out[i++] = subclass_cmd;
+    out[i++] = flags;
+
+    uint8_t checksum = MZTC_DEVICE_ADDR + class_cmd + subclass_cmd + flags;
+    for (uint8_t d = 0; d < data_len; d++) {
+        out[i++] = data[d];
+        checksum += data[d];
+    }
+
+    out[i++] = checksum;
+    out[i++] = MZTC_PACKET_END;
+
+    return i;
+}
+
+// Validate a fully received packet: markers, declared length and checksum.
+bool mztcPacketIsValid(const uint8_t *packet, uint8_t len)
+{
+    if (!packet || len < MZTC_MIN_PACKET_LEN || len > MZTC_MAX_PACKET_LEN) {
+        return false;
+    }
+
+    if (packet[0] != MZTC_PACKET_BEGIN || packet[len - 1] != MZTC_PACKET_END) {
+        return false;
+    }
+
+    const uint8_t declaredSize = packet[1];
+    if (declaredSize < MZTC_SIZE_FIELD_OFFSET || (uint16_t)declaredSize + 4u != (uint16_t)len) {
+        return false;
+    }
+
+    if (packet[2] != MZTC_DEVICE_ADDR) {
+        return false;
+    }
+
+    // The checksum covers address, class, subclass, flags and payload.
+    uint8_t checksum = 0;
+    for (uint8_t i = 2; i < (uint8_t)(len - 2); i++) {
+        checksum += packet[i];
+    }
+
+    return checksum == packet[len - 2];
+}
+
+// Serial receive callback. Accumulates one packet at a time using the declared
+// length. Payload bytes that happen to equal the begin or end markers cannot
+// desynchronise the parser.
+STATIC_UNIT_TESTED void mztcSerialReceiveCallback(uint16_t c, void *rxCallbackData)
+{
+    UNUSED(rxCallbackData);
+
+    const uint8_t byte = (uint8_t)c;
+
+    if (mztcRxLen == 0) {
+        // Waiting for a start of frame
+        if (byte != MZTC_PACKET_BEGIN) {
+            return;
+        }
+        mztcRxBuffer[mztcRxLen++] = byte;
+        mztcRxExpected = 0;
+        return;
+    }
+
+    if (mztcRxLen == 1) {
+        // The size byte determines the length of the rest of the frame.
+        const uint16_t total = (uint16_t)byte + 4u;
+        if (byte < MZTC_SIZE_FIELD_OFFSET || total > MZTC_MAX_PACKET_LEN) {
+            // Bogus length. Resync on the next begin marker.
+            mztcRxLen = 0;
+            return;
+        }
+        mztcRxExpected = (uint8_t)total;
+        mztcRxBuffer[mztcRxLen++] = byte;
+        return;
+    }
+
+    mztcRxBuffer[mztcRxLen++] = byte;
+
+    if (mztcRxLen >= mztcRxExpected) {
+        if (mztcPacketIsValid(mztcRxBuffer, mztcRxLen)) {
+            mztcHandlePacket(mztcRxBuffer, mztcRxLen);
+        }
+        mztcRxLen = 0;
+        mztcRxExpected = 0;
+    }
+}
+
+// Send a packet to the camera
+static bool mztcSendPacket(uint8_t class_cmd, uint8_t subclass_cmd, uint8_t flags, const uint8_t *data, uint8_t data_len)
+{
+    if (!mztcSerialPort) {
+        return false;
+    }
+
+    uint8_t packet[MZTC_MAX_PACKET_LEN];
+    const uint8_t len = mztcBuildPacket(packet, class_cmd, subclass_cmd, flags, data, data_len);
+    if (len == 0) {
+        return false;
+    }
+
+    serialWriteBufShim(mztcSerialPort, packet, len);
+    return true;
+}
+
+/*
+ * Response handling
+ */
+
+// Decode the payload of a successful reply. payloadLen is the payload length,
+// which the caller derived from the validated frame.
+static void mztcDecodeSuccess(uint8_t class_cmd, uint8_t subclass_cmd, const uint8_t *payload, uint8_t payloadLen)
+{
+    switch (class_cmd) {
+    case MZTC_CLASS_DEVICE:
+        switch (subclass_cmd) {
+        case MZTC_SUB_READ_MODEL:
+        case MZTC_SUB_READ_FPGA_VER:
+        case MZTC_SUB_READ_SW_VER:
+            if (payloadLen > 0) {
+                mztcDeviceModelLen = MIN(payloadLen, (uint8_t)sizeof(mztcDeviceModel));
+                memcpy(mztcDeviceModel, payload, mztcDeviceModelLen);
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+
+    case MZTC_CLASS_INIT_STATUS_REPLY:
+        if (subclass_cmd == MZTC_SUB_INIT_STATUS_REPLY && payloadLen >= 1) {
+            // 0x00 is the logo loading stage. 0x01 is the image output stage.
+            if (payload[0] != 0) {
+                if (mztcStatus.status == MZTC_STATUS_INITIALIZING) {
+                    mztcStatus.status = MZTC_STATUS_READY;
+                }
+            } else {
+                mztcStatus.status = MZTC_STATUS_INITIALIZING;
+            }
+        }
+        break;
+
+    case MZTC_CLASS_SHUTTER:
+        switch (subclass_cmd) {
+        case MZTC_SUB_MANUAL_SHUTTER:
+            // The shutter cycle finished. The calibration clock restarts.
+            mztcLastCalibrationTime = millis();
+            mztcStatus.last_calibration = 0;
+            mztcStatus.error_flags &= (uint8_t)~MZTC_ERROR_CALIBRATION;
+            if (mztcStatus.status == MZTC_STATUS_CALIBRATING) {
+                mztcStatus.status = MZTC_STATUS_READY;
+            }
+            break;
+
+        default:
+            break;
+        }
+        break;
+
+    default:
+        // Image and display commands acknowledge without a payload we consume.
+        break;
+    }
+}
+
+// Handle one validated packet
+STATIC_UNIT_TESTED void mztcHandlePacket(const uint8_t *packet, uint8_t len)
+{
+    const uint8_t class_cmd = packet[3];
+    const uint8_t subclass_cmd = packet[4];
+    const uint8_t flags = packet[5];
+    const uint8_t *payload = &packet[6];
+    const uint8_t payloadLen = (uint8_t)(len - MZTC_PACKET_OVERHEAD);
+
+    mztcLastValidResponse = millis();
+
+    if (class_cmd == MZTC_CLASS_DEVICE && subclass_cmd == MZTC_SUB_READ_MODEL &&
+        mztcProbesAnswered < mztcProbesSent) {
+        mztcProbesAnswered++;
+    }
+
+    switch (flags) {
+    case MZTC_FLAG_SUCCESS:
+        mztcStatus.error_flags &= (uint8_t)~(MZTC_ERROR_COMMUNICATION | MZTC_ERROR_TIMEOUT);
+        mztcDecodeSuccess(class_cmd, subclass_cmd, payload, payloadLen);
+        break;
+
+    case MZTC_FLAG_ERROR:
+        mztcStatus.error_flags |= MZTC_ERROR_COMMUNICATION;
+        if (payloadLen >= 1) {
+            switch (payload[0]) {
+            case MZTC_ERR_NO_COMMAND:
+                debug[1] = 0x01;
+                break;
+            case MZTC_ERR_THRESHOLD:
+                debug[1] = 0x02;
+                break;
+            default:
+                debug[1] = 0x03;
+                break;
+            }
+        }
+        break;
+
+    default:
+        // Not a reply we decode, but the link is clearly alive.
+        break;
+    }
+
+    // The camera answered. The link is up regardless of which command it was.
+    // This runs in the serial receive interrupt. The configuration burst is
+    // deferred to the task.
+    if (!mztcStatus.connected) {
+        mztcStatus.connected = true;
+        mztcProbeAttempts = 0;
+        mztcConfigurationPending = true;
+        if (mztcStatus.status == MZTC_STATUS_INITIALIZING || mztcStatus.status == MZTC_STATUS_ERROR) {
+            mztcStatus.status = MZTC_STATUS_READY;
+        }
+    }
+}
+
+/*
+ * Connection management
+ */
+
+static void mztcResetLinkState(void)
+{
+    mztcRxLen = 0;
+    mztcRxExpected = 0;
+    mztcProbeAttempts = 0;
+    mztcProbesSent = 0;
+    mztcProbesAnswered = 0;
+    mztcConfigurationPending = false;
+    mztcCalibrateBoxWasActive = false;
+    mztcLastAppliedPreset = mztcConfig()->preset;
+    mztcDeviceModelLen = 0;
+    mztcStatus.connected = false;
+    mztcStatus.connection_quality = 0;
+}
+
+static void mztcClosePort(uint8_t errorFlag)
+{
+    if (mztcSerialPort) {
+        closeSerialPort(mztcSerialPort);
+        mztcSerialPort = NULL;
+    }
+    mztcResetLinkState();
+    mztcStatus.status = MZTC_STATUS_ERROR;
+    mztcStatus.error_flags |= errorFlag;
+}
+
+// Ask the camera to identify itself. A reply is what promotes the link from
+// "the port is open" to "a camera is present".
+static void mztcSendProbe(void)
+{
+    mztcLastProbeTime = millis();
+    if (mztcProbeAttempts < UINT8_MAX) {
+        mztcProbeAttempts++;
+    }
+    if (mztcProbesSent < MZTC_QUALITY_WINDOW) {
+        mztcProbesSent++;
+    } else {
+        // Slide the window so quality tracks recent traffic. Without this it
+        // would average everything since the port opened.
+        mztcProbesAnswered -= mztcProbesAnswered / MZTC_QUALITY_WINDOW;
+    }
+    mztcSendPacket(MZTC_CLASS_DEVICE, MZTC_SUB_READ_MODEL, MZTC_FLAG_READ, NULL, 0);
+}
+
+static void mztcUpdateConnectionQuality(void)
+{
+    if (mztcProbesSent == 0) {
+        mztcStatus.connection_quality = 0;
+        return;
+    }
+    mztcStatus.connection_quality = (uint8_t)((mztcProbesAnswered * 100u) / mztcProbesSent);
+}
+
+// Try to open the configured port. Opening it only means the UART is ours; it
+// says nothing about whether a camera is attached.
+static void mztcTryOpenPort(timeMs_t now)
+{
+    if ((now - mztcLastPortRetry) < MZTC_PORT_RETRY_MS) {
+        return;
+    }
+    mztcLastPortRetry = now;
+
+    // The Ports tab owns both the port and its baud rate. No assignment means
+    // no camera, which is how the feature is turned on and off.
+    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MZTC_CAMERA);
+    if (portConfig == NULL) {
+        mztcStatus.status = MZTC_STATUS_OFFLINE;
+        return;
+    }
+
+    mztcSerialPort = openSerialPort(portConfig->identifier,
+                                    FUNCTION_MZTC_CAMERA,
+                                    mztcSerialReceiveCallback,
+                                    NULL,
+                                    baudRates[portConfig->peripheral_baudrateIndex],
+                                    MODE_RXTX,
+                                    SERIAL_NOT_INVERTED);
+
+    if (mztcSerialPort == NULL) {
+        mztcStatus.status = MZTC_STATUS_ERROR;
+        mztcStatus.error_flags |= MZTC_ERROR_COMMUNICATION;
+        return;
+    }
+
+    mztcResetLinkState();
+    mztcStatus.status = MZTC_STATUS_INITIALIZING;
+    mztcStatus.error_flags = 0;
+    mztcLastValidResponse = now;
+    mztcSendProbe();
+}
+
+/*
+ * Public API
+ */
+
 void mztcInit(void)
 {
-    // DEBUG: Print initialization message
-    SD(fprintf(stderr, "[MZTC]: Initializing MassZero Thermal Camera\n"));
-    SD(fprintf(stderr, "[MZTC]: USE_MZTC is DEFINED and ACTIVE\n"));
-    
     if (mztcInitialized) {
         return;
     }
 
-    // Initialize status structure
     memset(&mztcStatus, 0, sizeof(mztcStatus));
     mztcStatus.status = MZTC_STATUS_OFFLINE;
-    mztcStatus.mode = mztcConfig()->mode;
-    mztcStatus.last_frame_time = 0;
-    mztcStatus.frame_count = 0;
-    mztcStatus.connected = false;  // Explicitly set to false
+    mztcStatus.preset = mztcConfig()->preset;
+    mztcLastAppliedPreset = mztcConfig()->preset;
+    mztcStatus.connected = false;
 
-    // Check if enabled
-    if (!mztcConfig()->enabled) {
-        mztcStatus.status = MZTC_STATUS_OFFLINE;
-        mztcInitialized = true;
-        return;
-    }
-
-    // Detect SITL mode (check if we're running in simulation)
-    #ifdef USE_SIMULATOR
-        mztcSitlMode = true;
-        SD(fprintf(stderr, "[MZTC]: Running in SITL mode\n"));
-    #else
-        mztcSitlMode = false;
-        SD(fprintf(stderr, "[MZTC]: Running on real hardware\n"));
-    #endif
-
-    // Don't try to open port immediately - let the update loop handle it
-    mztcStatus.status = MZTC_STATUS_INITIALIZING;
     mztcInitialized = true;
-    mztcLastUpdateTime = millis();
-    mztcLastCalibrationTime = millis();
 
-    debug[0] = 0xAA; // Debug indicator
+    // The port is opened from the update loop so that a missing or busy UART
+    // does not stall init.
+    mztcStatus.status = MZTC_STATUS_INITIALIZING;
+    mztcLastUpdateTime = millis();
+    mztcLastPortRetry = 0;
+    mztcLastCalibrationTime = millis();
 }
 
-// Update MassZero Thermal Camera (called from scheduler)
 void mztcUpdate(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-    if (!mztcInitialized || !mztcConfig()->enabled) {
+
+    if (!mztcInitialized) {
         return;
     }
 
-    uint32_t now = millis();
+    const timeMs_t now = millis();
 
-    // Check if we need to retry connection
-    if (!mztcStatus.connected && mztcSerialPort == NULL) {
-        if ((now - mztcLastUpdateTime) > 1000) { // Try every second
-            mztcLastUpdateTime = now;
-            
-            // Try to open serial port (works for both SITL TCP ports and real hardware)
-            mztcSerialPort = openSerialPort(mztcConfig()->port,
-                                           FUNCTION_MZTC_CAMERA,
-                                           mztcSerialReceiveCallback,
-                                           NULL,
-                                           baudRates[mztcConfig()->baudrate],
-                                           MODE_RXTX,
-                                           SERIAL_NOT_INVERTED);
-            
-            if (mztcSerialPort != NULL) {
-                // Successfully opened port
-                mztcStatus.connected = true;
-                mztcStatus.status = MZTC_STATUS_READY;
-                mztcStatus.error_flags = 0;
-                mztcStatus.last_frame_time = now;
-                mztcStatus.frame_count = 0;
-                
-                // Send initial configuration commands
-                SD(fprintf(stderr, "[MZTC]: Sending initial configuration...\n"));
-                mztcSendConfiguration();
-                
-                // Log successful connection
-                if (mztcSitlMode) {
-                    SD(fprintf(stderr, "[MZTC]: Connected via SITL TCP bridge on Serial %d\n", mztcConfig()->port));
-                } else {
-                    SD(fprintf(stderr, "[MZTC]: Connected to thermal camera on Serial %d\n", mztcConfig()->port));
-                }
-            } else {
-                // Failed to open port
-                mztcStatus.status = MZTC_STATUS_ERROR;
-                mztcStatus.error_flags |= MZTC_ERROR_COMMUNICATION;
-                SD(fprintf(stderr, "[MZTC]: Failed to open Serial %d, will retry...\n", mztcConfig()->port));
+    if (mztcSerialPort == NULL) {
+        mztcTryOpenPort(now);
+        return;
+    }
+
+    if (!mztcStatus.connected) {
+        // Still probing. Reopen the port after a bounded number of unanswered
+        // probes, in case the UART came up before the camera did. The receive
+        // timeout below does not apply here, because nothing has answered yet.
+        if ((now - mztcLastProbeTime) >= MZTC_PROBE_INTERVAL_MS) {
+            if (mztcProbeAttempts >= MZTC_PROBE_ATTEMPTS) {
+                mztcClosePort(MZTC_ERROR_COMMUNICATION);
+                return;
             }
+            mztcSendProbe();
         }
-        return; // Don't process further until connected
-    }
-
-    // Check if it's time for an update
-    if ((now - mztcLastUpdateTime) < (1000 / mztcConfig()->update_rate)) {
+        mztcUpdateConnectionQuality();
         return;
     }
 
-    // Update status
-    mztcUpdateStatus();
+    // An established link is only healthy while the camera keeps answering.
+    if ((now - mztcLastValidResponse) > MZTC_RX_TIMEOUT_MS) {
+        mztcClosePort(MZTC_ERROR_TIMEOUT);
+        return;
+    }
 
-    // Check calibration timing
-    mztcCheckCalibration();
-
-    // Process camera data based on mode
-    switch (mztcConfig()->mode) {
-        case MZTC_MODE_CONTINUOUS:
-            // Request frame data
-            // This would typically request the latest thermal frame
-            break;
-            
-        case MZTC_MODE_STANDBY:
-            // Periodic status check only
-            break;
-            
-        case MZTC_MODE_ALERT:
-            // Check for temperature alerts
-            if (mztcStatus.ambient_temperature > mztcConfig()->alert_high_temp ||
-                mztcStatus.ambient_temperature < mztcConfig()->alert_low_temp) {
-                mztcStatus.status = MZTC_STATUS_ALERT;
-            }
-            break;
-            
-        default:
-            break;
+    if (mztcConfigurationPending) {
+        mztcConfigurationPending = false;
+        mztcSendConfiguration();
     }
 
     mztcLastUpdateTime = now;
+
+    // A periodic probe both feeds the receive timeout and measures link quality.
+    if ((now - mztcLastProbeTime) >= MZTC_PROBE_INTERVAL_MS) {
+        mztcSendProbe();
+    }
+    mztcUpdateConnectionQuality();
+
+    // A rising edge on the switch triggers one flat field correction. The
+    // camera closes its own shutter as the reference, so this is safe to fire
+    // at any time and in any attitude.
+    const bool calibrateBoxActive = IS_RC_MODE_ACTIVE(BOXMZTCCALIBRATE);
+    if (calibrateBoxActive && !mztcCalibrateBoxWasActive) {
+        mztcTriggerCalibration();
+    }
+    mztcCalibrateBoxWasActive = calibrateBoxActive;
+
+    // A preset written through the settings framework or "set mztc_preset"
+    // only stores a byte. Applying it here is what makes every path agree.
+    if (mztcConfig()->preset != mztcLastAppliedPreset) {
+        mztcSetPreset((mztcPreset_e)mztcConfig()->preset);
+    }
+
+    mztcCheckCalibration();
+
+    mztcStatus.preset = mztcConfig()->preset;
 }
 
-// Check if MassZero Thermal Camera is connected
 bool mztcIsConnected(void)
 {
-    // For both SITL and real hardware, check if we have a valid serial port
     return mztcStatus.connected && (mztcSerialPort != NULL);
 }
 
-// Check if MassZero Thermal Camera is enabled
+// The camera is enabled by assigning its function to a UART in the Ports tab.
 bool mztcIsEnabled(void)
 {
-    return mztcConfig()->enabled && mztcInitialized;
+    return mztcInitialized && findSerialPortConfig(FUNCTION_MZTC_CAMERA) != NULL;
 }
 
-// Simulate data reception in SITL mode (for testing)
-void mztcSimulateDataReception(void)
-{
-    if (mztcSitlMode) {
-        mztcLastDataReceived = millis();
-        SD(fprintf(stderr, "[MZTC SITL]: Simulated data reception\n"));
-    }
-}
-
-// Get MassZero Thermal Camera status
 mztcStatus_t* mztcGetStatus(void)
 {
     return &mztcStatus;
 }
 
-// Trigger calibration (FFC)
+// Identity bytes from the camera model or version reply.
+const uint8_t *mztcGetDeviceId(uint8_t *len)
+{
+    if (len) {
+        *len = mztcDeviceModelLen;
+    }
+    return mztcDeviceModelLen > 0 ? mztcDeviceModel : NULL;
+}
+
 bool mztcTriggerCalibration(void)
 {
-    if (!mztcIsEnabled()) {
+    if (!mztcIsEnabled() || !mztcIsConnected()) {
         return false;
     }
 
-    if (mztcSendPacket(0x7C, 0x02, MZTC_FLAG_WRITE, NULL, 0)) {
+    if (mztcSendPacket(MZTC_CLASS_SHUTTER, MZTC_SUB_MANUAL_SHUTTER, MZTC_FLAG_WRITE, NULL, 0)) {
         mztcStatus.status = MZTC_STATUS_CALIBRATING;
         mztcLastCalibrationTime = millis();
         return true;
@@ -340,511 +649,339 @@ bool mztcTriggerCalibration(void)
     return false;
 }
 
-// Set operating mode
-bool mztcSetMode(mztcMode_e mode)
+// The settings a preset owns. Zoom and mirror are deliberately absent: zoom
+// belongs to the pilot and mirror describes how the camera is mounted, so a
+// preset that overwrote either would fight the operator.
+typedef struct mztcPresetValues_s {
+    uint8_t palette_mode;
+    uint8_t brightness;
+    uint8_t contrast;
+    uint8_t digital_enhancement;
+    uint8_t spatial_denoise;
+    uint8_t temporal_denoise;
+    uint8_t auto_shutter;
+    uint8_t ffc_interval;
+} mztcPresetValues_t;
+
+// Two constraints shape every row. Temporal denoising averages across frames,
+// so on a moving airframe it smears targets and leaves trails. Spatial
+// denoising trades noise for sharpness, and a person at search range is only a
+// few pixels wide. Both stay low wherever small distant targets matter.
+//
+// Indexed by mztcPreset_e. MZTC_PRESET_CUSTOM has no row because it writes
+// nothing.
+static const mztcPresetValues_t mztcPresets[] = {
+    [MZTC_PRESET_GENERAL] = {
+        MZTC_PALETTE_WHITE_HOT, 50, 50, 50, 40, 20, MZTC_SHUTTER_TIME_AND_TEMP, 5
+    },
+    [MZTC_PRESET_FIRE] = {
+        // Low enhancement is the important value here. Enhancement lifts
+        // mid-tones, and flat mid-tones are what let an extreme spike dominate.
+        MZTC_PALETTE_IRON_RED_1, 45, 75, 25, 30, 15, MZTC_SHUTTER_TIME_AND_TEMP, 10
+    },
+    [MZTC_PRESET_SEARCH] = {
+        // A clothed body sits a few degrees over ambient, so enhancement goes
+        // high. Both denoise values drop to keep a few-pixel target alive. The
+        // short correction interval matters more than it looks, because a
+        // drifting sensor grows fixed-pattern blobs that read as false targets.
+        MZTC_PALETTE_WHITE_HOT, 55, 60, 80, 20, 10, MZTC_SHUTTER_TIME_AND_TEMP, 3
+    },
+    [MZTC_PRESET_SURVEILLANCE] = {
+        // The one case where temporal denoising earns its keep. Loiter and
+        // hover mean little frame to frame motion, so averaging cleans rather
+        // than smears.
+        MZTC_PALETTE_GREEN_HOT, 50, 55, 60, 45, 45, MZTC_SHUTTER_TIME_AND_TEMP, 15
+    },
+    [MZTC_PRESET_INSPECTION] = {
+        // Comparing one panel cell against its neighbour is a uniformity
+        // problem, hence the shortest correction interval in the set.
+        MZTC_PALETTE_RAINBOW, 50, 45, 70, 55, 35, MZTC_SHUTTER_TIME_AND_TEMP, 2
+    },
+    [MZTC_PRESET_MARITIME] = {
+        // A uniform cold background takes high contrast well. Enhancement
+        // stays moderate because raising it amplifies wave texture into
+        // clutter.
+        MZTC_PALETTE_BLACK_HOT, 50, 70, 45, 25, 15, MZTC_SHUTTER_TIME_AND_TEMP, 5
+    },
+};
+
+bool mztcSetPreset(mztcPreset_e preset)
 {
-    if (!mztcIsEnabled() || mode >= MZTC_MODE_SURVEILLANCE + 1) {
+    if (!mztcIsEnabled() || preset > MZTC_PRESET_MARITIME) {
         return false;
     }
 
-    mztcConfigMutable()->mode = mode;
-    mztcStatus.mode = mode;
+    mztcConfig_t *cfg = mztcConfigMutable();
+    cfg->preset = preset;
+    mztcStatus.preset = preset;
+    mztcLastAppliedPreset = preset;
+
+    // Custom keeps whatever the user configured.
+    if (preset == MZTC_PRESET_CUSTOM) {
+        return true;
+    }
+
+    const mztcPresetValues_t *v = &mztcPresets[preset];
+    cfg->palette_mode = v->palette_mode;
+    cfg->brightness = v->brightness;
+    cfg->contrast = v->contrast;
+    cfg->digital_enhancement = v->digital_enhancement;
+    cfg->spatial_denoise = v->spatial_denoise;
+    cfg->temporal_denoise = v->temporal_denoise;
+    cfg->auto_shutter = v->auto_shutter;
+    cfg->ffc_interval = v->ffc_interval;
+
+    // Push the whole set on the next task run rather than writing here, so the
+    // burst stays out of whatever context called this.
+    mztcConfigurationPending = true;
     return true;
 }
 
-// Set color palette
 bool mztcSetPalette(mztcPaletteMode_e palette)
 {
-    if (!mztcIsEnabled() || palette >= MZTC_PALETTE_RED_HOT + 1) {
+    if (!mztcIsEnabled() || palette > MZTC_PALETTE_RED_HOT) {
         return false;
     }
 
-    if (mztcSendPacket(0x78, 0x20, MZTC_FLAG_WRITE, (uint8_t*)&palette, 1)) {
-        mztcConfigMutable()->palette_mode = palette;
+    const uint8_t value = (uint8_t)palette;
+    if (mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_PSEUDO_COLOR, MZTC_FLAG_WRITE, &value, 1)) {
+        mztcConfigMutable()->palette_mode = value;
         return true;
     }
 
     return false;
 }
 
-// Set zoom level
 bool mztcSetZoom(mztcZoomLevel_e zoom)
 {
-    if (!mztcIsEnabled() || zoom >= MZTC_ZOOM_8X + 1) {
+    if (!mztcIsEnabled() || zoom > MZTC_ZOOM_8X) {
         return false;
     }
 
-    if (mztcSendPacket(0x70, 0x12, MZTC_FLAG_WRITE, (uint8_t*)&zoom, 1)) {
-        mztcConfigMutable()->zoom_level = zoom;
+    const uint8_t value = (uint8_t)zoom;
+    if (mztcSendPacket(MZTC_CLASS_DISPLAY, MZTC_SUB_ZOOM, MZTC_FLAG_WRITE, &value, 1)) {
+        mztcConfigMutable()->zoom_level = value;
         return true;
     }
 
     return false;
 }
 
-// Set image parameters
 bool mztcSetImageParams(uint8_t brightness, uint8_t contrast, uint8_t enhancement)
 {
     if (!mztcIsEnabled()) {
         return false;
     }
 
-    bool success = true;
-    
-    if (brightness <= 100) {
-        success &= mztcSendPacket(0x78, 0x02, MZTC_FLAG_WRITE, &brightness, 1);
-        if (success) mztcConfigMutable()->brightness = brightness;
+    if (brightness > MZTC_MAX_PERCENT || contrast > MZTC_MAX_PERCENT || enhancement > MZTC_MAX_PERCENT) {
+        return false;
     }
-    
-    if (contrast <= 100) {
-        success &= mztcSendPacket(0x78, 0x03, MZTC_FLAG_WRITE, &contrast, 1);
-        if (success) mztcConfigMutable()->contrast = contrast;
-    }
-    
-    if (enhancement <= 100) {
-        success &= mztcSendPacket(0x78, 0x10, MZTC_FLAG_WRITE, &enhancement, 1);
-        if (success) mztcConfigMutable()->digital_enhancement = enhancement;
+
+    bool success = mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_BRIGHTNESS, MZTC_FLAG_WRITE, &brightness, 1);
+    success = mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_CONTRAST, MZTC_FLAG_WRITE, &contrast, 1) && success;
+    success = mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_DIGITAL_ENHANCE, MZTC_FLAG_WRITE, &enhancement, 1) && success;
+
+    if (success) {
+        mztcConfigMutable()->brightness = brightness;
+        mztcConfigMutable()->contrast = contrast;
+        mztcConfigMutable()->digital_enhancement = enhancement;
     }
 
     return success;
 }
 
-// Set denoising parameters
 bool mztcSetDenoising(uint8_t spatial, uint8_t temporal)
 {
     if (!mztcIsEnabled()) {
         return false;
     }
 
-    bool success = true;
-    
-    if (spatial <= 100) {
-        success &= mztcSendPacket(0x78, 0x15, MZTC_FLAG_WRITE, &spatial, 1);
-        if (success) mztcConfigMutable()->spatial_denoise = spatial;
+    if (spatial > MZTC_MAX_PERCENT || temporal > MZTC_MAX_PERCENT) {
+        return false;
     }
-    
-    if (temporal <= 100) {
-        success &= mztcSendPacket(0x78, 0x16, MZTC_FLAG_WRITE, &temporal, 1);
-        if (success) mztcConfigMutable()->temporal_denoise = temporal;
+
+    bool success = mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_SPATIAL_DENOISE, MZTC_FLAG_WRITE, &spatial, 1);
+    success = mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_TEMPORAL_DENOISE, MZTC_FLAG_WRITE, &temporal, 1) && success;
+
+    if (success) {
+        mztcConfigMutable()->spatial_denoise = spatial;
+        mztcConfigMutable()->temporal_denoise = temporal;
     }
 
     return success;
 }
 
-// Set temperature alerts
-bool mztcSetTemperatureAlerts(bool enabled, float high_temp, float low_temp)
+// Validate a candidate configuration in full. The MSP set handler uses this so
+// that a rejected request changes nothing at all.
+bool mztcConfigIsValid(const mztcConfig_t *cfg)
 {
-    if (!mztcIsEnabled()) {
+    if (!cfg) {
         return false;
     }
 
-    mztcConfigMutable()->temperature_alerts = enabled ? 1 : 0;
-    mztcConfigMutable()->alert_high_temp = high_temp;
-    mztcConfigMutable()->alert_low_temp = low_temp;
-
-    return true;
-}
-
-// Serial receive callback
-static void mztcSerialReceiveCallback(uint16_t c, void *rxCallbackData)
-{
-    UNUSED(rxCallbackData);
-
-    mztcLastDataReceived = millis();
-
-    if (c == 0xF0) {
-        mztcRxBufferIndex = 0;
-        mztcRxBuffer[mztcRxBufferIndex++] = c;
-        return;
-    }
-
-    if (mztcRxBufferIndex > 0 && mztcRxBufferIndex < sizeof(mztcRxBuffer)) {
-        mztcRxBuffer[mztcRxBufferIndex++] = c;
-
-        // Minimum packet: begin,size,addr,class,subclass,flags,checksum,end => 8 bytes
-        if (mztcRxBufferIndex >= 8 && c == 0xFF) {
-            const uint8_t *buf = mztcRxBuffer;
-            uint8_t declaredSize = buf[1]; // N+4 total length excluding begin/end
-            uint16_t totalLen = declaredSize + 4; // matches sender usage
-            
-            // Verify total length matches received length
-            if (mztcRxBufferIndex == totalLen && buf[0] == 0xF0 && buf[mztcRxBufferIndex - 1] == 0xFF) {
-                // Verify checksum
-                uint8_t calc = buf[2] + buf[3] + buf[4] + buf[5];
-                for (uint16_t i = 0; i < (uint16_t)(declaredSize - 4); i++) {
-                    calc += buf[6 + i];
-                }
-                uint8_t recvCks = buf[mztcRxBufferIndex - 2];
-                if (calc == recvCks) {
-                    mztcProcessResponse(buf, mztcRxBufferIndex);
-                }
-            }
-            mztcRxBufferIndex = 0;
-        }
-    } else {
-        // Overflow or out-of-sync, reset parser
-        mztcRxBufferIndex = 0;
-    }
-}
-
-// Send packet to thermal camera
-static bool mztcSendPacket(uint8_t class_cmd, uint8_t subclass_cmd, uint8_t flags, const uint8_t *data, uint8_t data_len)
-{
-    if (!mztcSerialPort) {
-        return false;
-    }
-    
-    // Validate data length to prevent buffer overflow
-    if (data_len > sizeof(((mztcPacket_t *)0)->data)) {
+    if (cfg->preset > MZTC_PRESET_MARITIME ||
+        cfg->palette_mode > MZTC_PALETTE_RED_HOT ||
+        cfg->auto_shutter > MZTC_SHUTTER_TIME_AND_TEMP ||
+        cfg->zoom_level > MZTC_ZOOM_8X ||
+        cfg->mirror_mode > MZTC_MIRROR_CENTRAL) {
         return false;
     }
 
-    mztcPacket_t packet;
-    packet.begin = 0xF0;
-    packet.device_addr = 0x36;
-    packet.class_cmd = class_cmd;
-    packet.subclass_cmd = subclass_cmd;
-    packet.flags = flags;
-
-    // Copy data
-    if (data && data_len > 0) {
-        memcpy(packet.data, data, data_len);
-    }
-    
-    // Calculate checksum over addr, class, subclass, flags and data
-    uint8_t checksum = packet.device_addr + packet.class_cmd + packet.subclass_cmd + packet.flags;
-    for (uint8_t i = 0; i < data_len; i++) {
-        checksum += packet.data[i];
-    }
-    packet.checksum = checksum;
-    packet.end = 0xFF;
-
-    // Size field is N+4 per protocol (addr..data..checksum), where N = 3(command bytes)+1(flags)+data_len
-    packet.size = (uint8_t)(4 + 3 + 1 + data_len);
-
-    // Total bytes on wire = 1(begin) + 1(size) + (size) + 1(end)
-    const uint8_t totalLen = (uint8_t)(1 + 1 + packet.size + 1);
-    serialWriteBufShim(mztcSerialPort, (const uint8_t *)&packet, totalLen);
-    
-    // Debug log
-    SD(fprintf(stderr, "[MZTC]: Sent packet - cmd:0x%02X/0x%02X size:%u\n", class_cmd, subclass_cmd, totalLen));
-    
-    return true;
-}
-
-// Process response from thermal camera
-static bool mztcProcessResponse(const uint8_t *data, uint8_t len)
-{
-    if (len < 8 || data[0] != 0xF0 || data[len-1] != 0xFF) {
+    if (cfg->ffc_interval < MZTC_MIN_FFC_INTERVAL || cfg->ffc_interval > MZTC_MAX_FFC_INTERVAL) {
         return false;
     }
 
-    // Check device address
-    if (data[2] != 0x36) {
+    if (cfg->digital_enhancement > MZTC_MAX_PERCENT || cfg->spatial_denoise > MZTC_MAX_PERCENT ||
+        cfg->temporal_denoise > MZTC_MAX_PERCENT || cfg->brightness > MZTC_MAX_PERCENT ||
+        cfg->contrast > MZTC_MAX_PERCENT) {
         return false;
-    }
-
-    // Check flags
-    uint8_t flags = data[5];
-    if (flags == MZTC_FLAG_SUCCESS) {
-        // Command executed successfully
-        mztcStatus.error_flags &= ~MZTC_ERROR_COMMUNICATION;
-    } else if (flags == MZTC_FLAG_ERROR) {
-        // Handle error
-        mztcStatus.error_flags |= MZTC_ERROR_COMMUNICATION;
-        if (len > 6) {
-            uint8_t error_code = data[6];
-            switch (error_code) {
-                case MZTC_ERR_NO_COMMAND:
-                    debug[1] = 0x01;
-                    break;
-                case MZTC_ERR_THRESHOLD:
-                    debug[1] = 0x02;
-                    break;
-                default:
-                    debug[1] = 0x03;
-                    break;
-            }
-        }
     }
 
     return true;
 }
 
-// Update camera status
-static void mztcUpdateStatus(void)
-{
-    if (!mztcSerialPort) {
-        mztcStatus.status = MZTC_STATUS_ERROR;
-        mztcStatus.error_flags |= MZTC_ERROR_COMMUNICATION;
-        return;
-    }
-
-    // Update connection quality (simple check)
-    mztcStatus.connection_quality = 100; // Assume good for now
-    
-    // Update frame count
-    if (mztcConfig()->mode == MZTC_MODE_CONTINUOUS) {
-        mztcStatus.frame_count++;
-    }
-    
-    // Update last frame time
-    mztcStatus.last_frame_time = millis();
-}
-
-// Check calibration timing
+// The camera runs its own shutter schedule from the interval we push to it
+// with MZTC_SUB_SHUTTER_INTERVAL, so this only tracks elapsed time for the
+// status and OSD surfaces. A host-side timer here would fight the camera.
 static void mztcCheckCalibration(void)
 {
-    uint32_t now = millis();
-    uint32_t minutes_since_calibration = (now - mztcLastCalibrationTime) / (60 * 1000);
-    
-    mztcStatus.last_calibration = minutes_since_calibration;
-    
-    // Auto-calibration if enabled and interval reached
-    if (mztcConfig()->ffc_interval > 0 && 
-        minutes_since_calibration >= mztcConfig()->ffc_interval &&
-        mztcConfig()->auto_shutter != MZTC_SHUTTER_TIME_ONLY) {
-        
-        mztcTriggerCalibration();
-    }
+    const uint32_t minutes = (millis() - mztcLastCalibrationTime) / (60u * 1000u);
+
+    mztcStatus.last_calibration = (uint16_t)MIN(minutes, (uint32_t)UINT16_MAX);
 }
 
-// Send initial configuration commands to the camera
-static void mztcSendConfiguration(void)
+STATIC_UNIT_TESTED void mztcSendConfiguration(void)
 {
-    if (!mztcIsEnabled() || !mztcIsConnected()) {
+    if (!mztcSerialPort) {
         return;
     }
 
-    // Send auto shutter command
-    if (mztcSendPacket(0x7C, 0x04, MZTC_FLAG_WRITE, &mztcConfig()->auto_shutter, 1)) {
-        // Send digital enhancement command
-        mztcSendPacket(0x78, 0x10, MZTC_FLAG_WRITE, &mztcConfig()->digital_enhancement, 1);
-        // Send spatial denoising command
-        mztcSendPacket(0x78, 0x15, MZTC_FLAG_WRITE, &mztcConfig()->spatial_denoise, 1);
-        // Send temporal denoising command
-        mztcSendPacket(0x78, 0x16, MZTC_FLAG_WRITE, &mztcConfig()->temporal_denoise, 1);
-        // Send brightness command
-        mztcSendPacket(0x78, 0x02, MZTC_FLAG_WRITE, &mztcConfig()->brightness, 1);
-        // Send contrast command
-        mztcSendPacket(0x78, 0x03, MZTC_FLAG_WRITE, &mztcConfig()->contrast, 1);
-        // Send pseudo color command
-        mztcSendPacket(0x78, 0x20, MZTC_FLAG_WRITE, &mztcConfig()->palette_mode, 1);
-        // Send zoom level command
-        mztcSendPacket(0x70, 0x12, MZTC_FLAG_WRITE, &mztcConfig()->zoom_level, 1);
-        // Send mirror mode command
-        mztcSendPacket(0x70, 0x11, MZTC_FLAG_WRITE, &mztcConfig()->mirror_mode, 1);
-    }
+    const mztcConfig_t *cfg = mztcConfig();
+
+    // The camera accepts 0x01 to 0x03 for the shutter mode and rejects 0x00 as
+    // out of range, so the zero-based setting is shifted before it goes out.
+    const uint8_t shutterMode = (uint8_t)(cfg->auto_shutter + MZTC_SHUTTER_WIRE_OFFSET);
+    mztcSendPacket(MZTC_CLASS_SHUTTER, MZTC_SUB_AUTO_SHUTTER, MZTC_FLAG_WRITE, &shutterMode, 1);
+
+    // Two byte interval in minutes, high byte first. Everything in the allowed
+    // range fits in the low byte, so the high byte is always zero here.
+    const uint8_t interval[2] = { 0, cfg->ffc_interval };
+    mztcSendPacket(MZTC_CLASS_SHUTTER, MZTC_SUB_SHUTTER_INTERVAL, MZTC_FLAG_WRITE, interval, 2);
+
+    mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_DIGITAL_ENHANCE, MZTC_FLAG_WRITE, &cfg->digital_enhancement, 1);
+    mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_SPATIAL_DENOISE, MZTC_FLAG_WRITE, &cfg->spatial_denoise, 1);
+    mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_TEMPORAL_DENOISE, MZTC_FLAG_WRITE, &cfg->temporal_denoise, 1);
+    mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_BRIGHTNESS, MZTC_FLAG_WRITE, &cfg->brightness, 1);
+    mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_CONTRAST, MZTC_FLAG_WRITE, &cfg->contrast, 1);
+    mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_PSEUDO_COLOR, MZTC_FLAG_WRITE, &cfg->palette_mode, 1);
+    mztcSendPacket(MZTC_CLASS_DISPLAY, MZTC_SUB_ZOOM, MZTC_FLAG_WRITE, &cfg->zoom_level, 1);
+    mztcSendPacket(MZTC_CLASS_DISPLAY, MZTC_SUB_IMAGE_MIRROR, MZTC_FLAG_WRITE, &cfg->mirror_mode, 1);
 }
 
-// Safe reconnection API for CLI use
 void mztcRequestReconnect(void)
 {
     if (mztcSerialPort != NULL) {
         closeSerialPort(mztcSerialPort);
         mztcSerialPort = NULL;
     }
-    mztcStatus.connected = false;
+    mztcResetLinkState();
+    mztcStatus.status = MZTC_STATUS_INITIALIZING;
     mztcStatus.error_flags = 0;
-    mztcLastUpdateTime = 0; // force immediate retry in update loop
+    mztcLastPortRetry = 0; // force an immediate retry in the update loop
 }
 
-// Read real thermal frame data from the camera hardware
-static bool mztcReadThermalFrame(mztcFrameData_t *frameData)
-{
-    UNUSED(frameData);
-    if (!mztcSerialPort) {
-        return false;
-    }
-    
-    // According to the thermal camera documentation, we need to:
-    // 1. Send commands to read the current thermal frame
-    // 2. Process the response to extract temperature data
-    
-    // Command to read current thermal frame data
-    // This would be a custom command not documented in the manual
-    // For now, we'll implement the framework for reading real data
-    
-    // Send a read command for thermal frame data
-    // The exact command would depend on the camera's firmware implementation
-    uint8_t read_cmd = 0x01;  // Read command flag
-    
-    if (mztcSendPacket(0x78, 0x30, MZTC_FLAG_READ, &read_cmd, 1)) {
-        // Wait for response with thermal data
-        // This would need to be handled in the response callback
-        
-        // For now, we'll simulate the response processing
-        // In a real implementation, this would parse the actual thermal data
-        
-        // The camera should respond with:
-        // - Frame dimensions (width, height)
-        // - Temperature range (min, max)
-        // - Raw thermal pixel data
-        
-        // Process the response data here
-        // This is where we'd extract the actual thermal information
-        
-        return true;
-    }
-    
-    return false;
-}
-
-// Get thermal frame data from the camera
-bool mztcGetFrameData(mztcFrameData_t *frameData)
-{
-    if (!mztcIsEnabled() || !mztcIsConnected() || !frameData) {
-        return false;
-    }
-
-    // First, try to read real thermal data from the camera
-    if (mztcReadThermalFrame(frameData)) {
-        return true;
-    }
-    
-    // If real data reading fails, fall back to realistic simulated data
-    // This provides a working fallback while we implement the real hardware interface
-    
-    // Get current status for temperature information
-    const mztcStatus_t *status = mztcGetStatus();
-    if (status) {
-        // Use the status data to get current temperature readings
-        // These come from the camera's internal sensors
-        float ambient_temp = status->ambient_temperature;
-        // float camera_temp = status->camera_temperature; // Unused for now
-        
-        // Use these as base temperatures for the frame
-        float base_temp = ambient_temp > 0.0f ? ambient_temp : 25.0f;
-        float temp_variation = 15.0f;  // Temperature variation range
-        
-        // Set frame dimensions (typical thermal camera resolution)
-        frameData->width = 160;
-        frameData->height = 120;
-        
-        // Find hottest and coldest points in the frame
-        float hottest_temp = base_temp + temp_variation;
-        float coldest_temp = base_temp - temp_variation;
-        
-        // Calculate center temperature (average of frame)
-        float center_temp = base_temp;
-        
-        // Find coordinates of hottest and coldest points
-        uint16_t hottest_x = 80;  // Center of frame
-        uint16_t hottest_y = 60;
-        uint16_t coldest_x = 0;   // Corner of frame
-        uint16_t coldest_y = 0;
-        
-        // Generate realistic thermal data based on typical thermal camera characteristics
-        // Each pixel represents a temperature value
-        for (int i = 0; i < 256; i++) {
-            // Create a realistic thermal pattern
-            // This would normally come from the actual thermal sensor
-            int x = i % 16;  // 16x16 reduced resolution for 256 bytes
-            int y = i / 16;
-            
-            // Create a thermal gradient pattern
-            float distance_from_center = sqrtf((x - 8) * (x - 8) + (y - 8) * (y - 8));
-            float temp_factor = 1.0f - (distance_from_center / 11.3f);  // Normalize to 0-1
-            
-            // Add some noise and variation
-            float noise = ((float)(rand() % 100) / 100.0f - 0.5f) * 2.0f;
-            float pixel_temp = base_temp + (temp_factor * temp_variation) + noise;
-            
-            // Convert temperature to 8-bit value (0-255)
-            // Assuming temperature range of -20°C to +100°C mapped to 0-255
-            uint8_t temp_byte = (uint8_t)((pixel_temp + 20.0f) * 255.0f / 120.0f);
-            frameData->data[i] = temp_byte;
-            
-            // Track hottest and coldest points
-            if (pixel_temp > hottest_temp) {
-                hottest_temp = pixel_temp;
-                hottest_x = x * 10;  // Scale back to full resolution
-                hottest_y = y * 7.5f;
-            }
-            if (pixel_temp < coldest_temp) {
-                coldest_temp = pixel_temp;
-                coldest_x = x * 10;
-                coldest_y = y * 7.5f;
-            }
-        }
-        
-        // Update frame data with calculated values
-        frameData->min_temp = coldest_temp;
-        frameData->max_temp = hottest_temp;
-        frameData->center_temp = center_temp;
-        frameData->hottest_temp = hottest_temp;
-        frameData->coldest_temp = coldest_temp;
-        frameData->hottest_x = hottest_x;
-        frameData->hottest_y = hottest_y;
-        frameData->coldest_x = coldest_x;
-        frameData->coldest_y = coldest_y;
-        
-        return true;
-    }
-    
-    // If we can't get status, return false
-    return false;
-}
-
-// Get camera initialization status
-bool mztcGetInitStatus(void)
-{
-    if (!mztcIsEnabled() || !mztcIsConnected()) {
-        return false;
-    }
-
-    // Send read command for initialization status
-    if (mztcSendPacket(0x7C, 0x14, MZTC_FLAG_READ, NULL, 0)) {
-        // The response will be processed in mztcProcessResponse
-        // Return true if command was sent successfully
-        return true;
-    }
-
-    return false;
-}
-
-// Save camera configuration to flash
 bool mztcSaveConfiguration(void)
 {
     if (!mztcIsEnabled() || !mztcIsConnected()) {
         return false;
     }
 
-    // Send save configuration command
-    if (mztcSendPacket(0x74, 0x10, MZTC_FLAG_WRITE, NULL, 0)) {
-        SD(fprintf(stderr, "[MZTC]: Configuration saved to camera flash\n"));
-        return true;
-    }
-
-    return false;
+    return mztcSendPacket(MZTC_CLASS_DEVICE, MZTC_SUB_SAVE_CONFIG, MZTC_FLAG_WRITE, NULL, 0);
 }
 
-// Restore camera to factory defaults
+// Vignetting correction is a one-shot action, not a stored setting. The camera
+// manual requires the lens to be pointed at a uniform surface first, so this is
+// only ever run on request.
+bool mztcTriggerVignettingCorrection(void)
+{
+    if (!mztcIsEnabled() || !mztcIsConnected()) {
+        return false;
+    }
+
+    const uint8_t trigger = MZTC_VIGNETTING_TRIGGER;
+    return mztcSendPacket(MZTC_CLASS_SHUTTER, MZTC_SUB_VIGNETTING, MZTC_FLAG_WRITE, &trigger, 1);
+}
+
 bool mztcRestoreDefaults(void)
 {
     if (!mztcIsEnabled() || !mztcIsConnected()) {
         return false;
     }
 
-    // Send restore defaults command
-    if (mztcSendPacket(0x74, 0x0F, MZTC_FLAG_WRITE, NULL, 0)) {
-        SD(fprintf(stderr, "[MZTC]: Camera restored to factory defaults\n"));
-        
-        // Reset our local configuration to defaults
-        mztcConfigMutable()->brightness = MZTC_DEFAULT_BRIGHTNESS;
-        mztcConfigMutable()->contrast = MZTC_DEFAULT_CONTRAST;
-        mztcConfigMutable()->digital_enhancement = MZTC_DEFAULT_DIGITAL_ENHANCEMENT;
-        mztcConfigMutable()->spatial_denoise = MZTC_DEFAULT_SPATIAL_DENOISE;
-        mztcConfigMutable()->temporal_denoise = MZTC_DEFAULT_TEMPORAL_DENOISE;
-        mztcConfigMutable()->palette_mode = MZTC_DEFAULT_PALETTE_MODE;
-        mztcConfigMutable()->zoom_level = MZTC_DEFAULT_ZOOM_LEVEL;
-        mztcConfigMutable()->mirror_mode = MZTC_DEFAULT_MIRROR_MODE;
-        mztcConfigMutable()->auto_shutter = MZTC_DEFAULT_AUTO_SHUTTER;
-        
-        return true;
+    if (!mztcSendPacket(MZTC_CLASS_DEVICE, MZTC_SUB_RESTORE_DEFAULTS, MZTC_FLAG_WRITE, NULL, 0)) {
+        return false;
     }
 
-    return false;
+    // Mirror the camera-side reset in our own copy of the settings.
+    mztcConfig_t *cfg = mztcConfigMutable();
+    cfg->brightness = SETTING_MZTC_BRIGHTNESS_DEFAULT;
+    cfg->contrast = SETTING_MZTC_CONTRAST_DEFAULT;
+    cfg->digital_enhancement = SETTING_MZTC_DIGITAL_ENHANCEMENT_DEFAULT;
+    cfg->spatial_denoise = SETTING_MZTC_SPATIAL_DENOISE_DEFAULT;
+    cfg->temporal_denoise = SETTING_MZTC_TEMPORAL_DENOISE_DEFAULT;
+    cfg->palette_mode = SETTING_MZTC_PALETTE_MODE_DEFAULT;
+    cfg->zoom_level = SETTING_MZTC_ZOOM_LEVEL_DEFAULT;
+    cfg->mirror_mode = SETTING_MZTC_MIRROR_MODE_DEFAULT;
+    cfg->auto_shutter = SETTING_MZTC_AUTO_SHUTTER_DEFAULT;
+
+    return true;
 }
+
+
+#ifdef UNIT_TEST
+/*
+ * Test hooks.
+ *
+ * The receive-path tests drive mztcSerialReceiveCallback() directly rather than
+ * opening a port, so they need a way to put the driver into the state a live
+ * link would have reached and to read back state the driver otherwise keeps to
+ * itself.
+ */
+void mztcTestReset(void)
+{
+    memset(&mztcStatus, 0, sizeof(mztcStatus));
+    mztcRxLen = 0;
+    mztcRxExpected = 0;
+    mztcProbeAttempts = 0;
+    mztcProbesSent = 0;
+    mztcProbesAnswered = 0;
+    mztcConfigurationPending = false;
+    mztcDeviceModelLen = 0;
+    mztcInitialized = true;
+    mztcLastCalibrationTime = 0;
+    mztcLastValidResponse = 0;
+
+    // Any non-null value. Nothing dereferences it, because serialWriteBufShim
+    // is stubbed in the test.
+    mztcSerialPort = (serialPort_t *)&mztcStatus;
+}
+
+// Clear the initialised flag so a test can run the real mztcInit() boot path.
+// Without this mztcInit() returns immediately and a boot test proves nothing.
+void mztcTestForceReinit(void)
+{
+    mztcInitialized = false;
+}
+
+void mztcTestSetStatus(uint8_t status)
+{
+    mztcStatus.status = status;
+}
+
+void mztcTestSetLastCalibration(uint16_t minutes)
+{
+    mztcStatus.last_calibration = minutes;
+}
+#endif
 
 #endif // USE_MZTC

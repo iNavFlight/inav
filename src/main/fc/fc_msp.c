@@ -1993,99 +1993,40 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
 #ifdef USE_MZTC
-    // MassZero Thermal Camera MSP V2 output commands
+    // MassZero Thermal Camera MSP V2 output commands.
+    // Every field is written individually so the wire layout is fixed by this
+    // code. Compiler struct padding never reaches the wire. See msp_mztc.h.
     case MSP2_MZTC_CONFIG:
         {
             const mztcConfig_t *cfg = mztcConfig();
-            msp_mztc_config_t *config = (msp_mztc_config_t*)sbufPtr(dst);
-            
-            config->enabled = cfg->enabled;
-            config->port = cfg->port;
-            config->baudrate = cfg->baudrate;
-            config->mode = cfg->mode;
-            config->update_rate = cfg->update_rate;
-            config->temperature_unit = cfg->temperature_unit;
-            config->palette_mode = cfg->palette_mode;
-            config->auto_shutter = cfg->auto_shutter;
-            config->digital_enhancement = cfg->digital_enhancement;
-            config->spatial_denoise = cfg->spatial_denoise;
-            config->temporal_denoise = cfg->temporal_denoise;
-            config->brightness = cfg->brightness;
-            config->contrast = cfg->contrast;
-            config->zoom_level = cfg->zoom_level;
-            config->mirror_mode = cfg->mirror_mode;
-            config->crosshair_enabled = cfg->crosshair_enabled;
-            config->temperature_alerts = cfg->temperature_alerts;
-            config->alert_high_temp = cfg->alert_high_temp;
-            config->alert_low_temp = cfg->alert_low_temp;
-            config->ffc_interval = cfg->ffc_interval;
-            config->bad_pixel_removal = cfg->bad_pixel_removal;
-            config->vignetting_correction = cfg->vignetting_correction;
-            
-            sbufAdvance(dst, sizeof(msp_mztc_config_t));
+
+            sbufWriteU8(dst, cfg->preset);
+            sbufWriteU8(dst, cfg->palette_mode);
+            sbufWriteU8(dst, cfg->auto_shutter);
+            sbufWriteU8(dst, cfg->digital_enhancement);
+            sbufWriteU8(dst, cfg->spatial_denoise);
+            sbufWriteU8(dst, cfg->temporal_denoise);
+            sbufWriteU8(dst, cfg->brightness);
+            sbufWriteU8(dst, cfg->contrast);
+            sbufWriteU8(dst, cfg->zoom_level);
+            sbufWriteU8(dst, cfg->mirror_mode);
+            sbufWriteU8(dst, cfg->ffc_interval);
         }
         break;
 
     case MSP2_MZTC_STATUS:
         {
-            msp_mztc_status_t *status = (msp_mztc_status_t*)sbufPtr(dst);
-            const mztcStatus_t *mztcStatus = mztcGetStatus();
+            const mztcStatus_t *status = mztcGetStatus();
 
-            if (mztcStatus) {
-                status->status = mztcStatus->status;
-                status->mode = mztcStatus->mode;
-                status->connection_quality = mztcStatus->connection_quality;
-                status->last_calibration = mztcStatus->last_calibration;
-                status->camera_temperature = mztcStatus->camera_temperature;
-                status->ambient_temperature = mztcStatus->ambient_temperature;
-                status->frame_count = mztcStatus->frame_count;
-                status->error_flags = mztcStatus->error_flags;
-                status->last_frame_time = mztcStatus->last_frame_time;
-            } else {
-                // Return default values if status is not available
-                status->status = 0;
-                status->mode = 0;
-                status->connection_quality = 0;
-                status->last_calibration = 0;
-                status->camera_temperature = 0.0f;
-                status->ambient_temperature = 0.0f;
-                status->frame_count = 0;
-                status->error_flags = 0;
-                status->last_frame_time = 0;
-            }
-            
-            sbufAdvance(dst, sizeof(msp_mztc_status_t));
+            sbufWriteU8(dst, status->status);
+            sbufWriteU8(dst, status->preset);
+            sbufWriteU8(dst, status->connected ? 1 : 0);
+            sbufWriteU8(dst, status->connection_quality);
+            sbufWriteU16(dst, status->last_calibration);
+            sbufWriteU8(dst, status->error_flags);
         }
         break;
 
-    case MSP2_MZTC_FRAME_DATA:
-        {
-            msp_mztc_frame_t *frame = (msp_mztc_frame_t*)sbufPtr(dst);
-            mztcFrameData_t thermalFrame;
-            
-            if (mztcGetFrameData(&thermalFrame)) {
-                frame->width = thermalFrame.width;
-                frame->height = thermalFrame.height;
-                frame->min_temp = thermalFrame.min_temp;
-                frame->max_temp = thermalFrame.max_temp;
-                frame->center_temp = thermalFrame.center_temp;
-                frame->hottest_temp = thermalFrame.hottest_temp;
-                frame->coldest_temp = thermalFrame.coldest_temp;
-                frame->hottest_x = thermalFrame.hottest_x;
-                frame->hottest_y = thermalFrame.hottest_y;
-                frame->coldest_x = thermalFrame.coldest_x;
-                frame->coldest_y = thermalFrame.coldest_y;
-                
-                // Copy reduced thermal data (first 256 bytes)
-                uint16_t dataSize = MIN(256, thermalFrame.width * thermalFrame.height);
-                memcpy(frame->data, thermalFrame.data, dataSize);
-                
-                sbufAdvance(dst, sizeof(msp_mztc_frame_t));
-            } else {
-                return false;
-            }
-        }
-        break;
 #endif
 
     default:
@@ -4071,43 +4012,41 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
 #ifdef USE_MZTC
-    // MassZero Thermal Camera MSP V2 commands
+    // MassZero Thermal Camera MSP V2 input commands.
+    // Each field is read individually and the whole request is validated
+    // before any of it is applied. A rejected request leaves the running
+    // configuration untouched. See msp_mztc.h for the payload layouts.
     case MSP2_SET_MZTC_CONFIG:
-        if (dataSize == sizeof(msp_mztc_config_t)) {
-            const msp_mztc_config_t *config = (const msp_mztc_config_t*)sbufPtr(src);
-            mztcConfig_t *cfgMutable = mztcConfigMutable();
-            
-            cfgMutable->enabled = config->enabled;
-            cfgMutable->port = config->port;
-            cfgMutable->baudrate = config->baudrate;
-            cfgMutable->mode = config->mode;
-            cfgMutable->update_rate = config->update_rate;
-            cfgMutable->temperature_unit = config->temperature_unit;
-            cfgMutable->palette_mode = config->palette_mode;
-            cfgMutable->auto_shutter = config->auto_shutter;
-            cfgMutable->digital_enhancement = config->digital_enhancement;
-            cfgMutable->spatial_denoise = config->spatial_denoise;
-            cfgMutable->temporal_denoise = config->temporal_denoise;
-            cfgMutable->brightness = config->brightness;
-            cfgMutable->contrast = config->contrast;
-            cfgMutable->zoom_level = config->zoom_level;
-            cfgMutable->mirror_mode = config->mirror_mode;
-            cfgMutable->crosshair_enabled = config->crosshair_enabled;
-            cfgMutable->temperature_alerts = config->temperature_alerts;
-            cfgMutable->alert_high_temp = config->alert_high_temp;
-            cfgMutable->alert_low_temp = config->alert_low_temp;
-            cfgMutable->ffc_interval = config->ffc_interval;
-            cfgMutable->bad_pixel_removal = config->bad_pixel_removal;
-            cfgMutable->vignetting_correction = config->vignetting_correction;
+        if (dataSize == MSP2_MZTC_CONFIG_PAYLOAD_SIZE) {
+            mztcConfig_t candidate;
+
+            candidate.preset = sbufReadU8(src);
+            candidate.palette_mode = sbufReadU8(src);
+            candidate.auto_shutter = sbufReadU8(src);
+            candidate.digital_enhancement = sbufReadU8(src);
+            candidate.spatial_denoise = sbufReadU8(src);
+            candidate.temporal_denoise = sbufReadU8(src);
+            candidate.brightness = sbufReadU8(src);
+            candidate.contrast = sbufReadU8(src);
+            candidate.zoom_level = sbufReadU8(src);
+            candidate.mirror_mode = sbufReadU8(src);
+            candidate.ffc_interval = sbufReadU8(src);
+
+            // Every enum and percentage is range checked here, so a value the
+            // CLI would reject cannot be smuggled in over MSP.
+            if (!mztcConfigIsValid(&candidate)) {
+                return MSP_RESULT_ERROR;
+            }
+
+            *mztcConfigMutable() = candidate;
         } else {
             return MSP_RESULT_ERROR;
         }
         break;
 
-    case MSP2_SET_MZTC_MODE:
-        if (dataSize == sizeof(msp_mztc_mode_t)) {
-            const msp_mztc_mode_t *mode = (const msp_mztc_mode_t*)sbufPtr(src);
-            if (!mztcSetMode(mode->mode)) {
+    case MSP2_SET_MZTC_PRESET:
+        if (dataSize == 1) {
+            if (!mztcSetPreset((mztcPreset_e)sbufReadU8(src))) {
                 return MSP_RESULT_ERROR;
             }
         } else {
@@ -4116,9 +4055,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_SET_MZTC_PALETTE:
-        if (dataSize == sizeof(msp_mztc_palette_t)) {
-            const msp_mztc_palette_t *palette = (const msp_mztc_palette_t*)sbufPtr(src);
-            if (!mztcSetPalette(palette->palette)) {
+        if (dataSize == 1) {
+            if (!mztcSetPalette((mztcPaletteMode_e)sbufReadU8(src))) {
                 return MSP_RESULT_ERROR;
             }
         } else {
@@ -4127,9 +4065,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_SET_MZTC_ZOOM:
-        if (dataSize == sizeof(msp_mztc_zoom_t)) {
-            const msp_mztc_zoom_t *zoom = (const msp_mztc_zoom_t*)sbufPtr(src);
-            if (!mztcSetZoom(zoom->zoom_level)) {
+        if (dataSize == 1) {
+            if (!mztcSetZoom((mztcZoomLevel_e)sbufReadU8(src))) {
                 return MSP_RESULT_ERROR;
             }
         } else {
@@ -4138,9 +4075,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_SET_MZTC_SHUTTER:
-        if (dataSize == sizeof(msp_mztc_shutter_t)) {
-            const msp_mztc_shutter_t *shutter = (const msp_mztc_shutter_t*)sbufPtr(src);
-            UNUSED(shutter);
+        // A manual shutter cycle is this camera's flat field correction, so
+        // this is the same operation the CLI exposes as mztc_calibrate.
+        if (dataSize <= 1) {
             if (!mztcTriggerCalibration()) {
                 return MSP_RESULT_ERROR;
             }
@@ -4149,21 +4086,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
-    case MSP2_SET_MZTC_ALERTS:
-        if (dataSize == sizeof(msp_mztc_alerts_t)) {
-            const msp_mztc_alerts_t *alerts = (const msp_mztc_alerts_t*)sbufPtr(src);
-            if (!mztcSetTemperatureAlerts(alerts->enabled, alerts->high_temp, alerts->low_temp)) {
-                return MSP_RESULT_ERROR;
-            }
-        } else {
-            return MSP_RESULT_ERROR;
-        }
-        break;
-
     case MSP2_SET_MZTC_IMAGE_PARAMS:
-        if (dataSize == sizeof(msp_mztc_image_params_t)) {
-            const msp_mztc_image_params_t *params = (const msp_mztc_image_params_t*)sbufPtr(src);
-            if (!mztcSetImageParams(params->brightness, params->contrast, params->enhancement)) {
+        if (dataSize == MSP2_SET_MZTC_IMAGE_PARAMS_PAYLOAD_SIZE) {
+            const uint8_t brightness = sbufReadU8(src);
+            const uint8_t contrast = sbufReadU8(src);
+            const uint8_t enhancement = sbufReadU8(src);
+            if (!mztcSetImageParams(brightness, contrast, enhancement)) {
                 return MSP_RESULT_ERROR;
             }
         } else {
@@ -4172,9 +4100,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_SET_MZTC_CORRECTION:
-        if (dataSize == sizeof(msp_mztc_correction_t)) {
-            const msp_mztc_correction_t *correction = (const msp_mztc_correction_t*)sbufPtr(src);
-            if (!mztcSetDenoising(correction->spatial_denoise, correction->temporal_denoise)) {
+        if (dataSize == MSP2_SET_MZTC_CORRECTION_PAYLOAD_SIZE) {
+            const uint8_t spatial = sbufReadU8(src);
+            const uint8_t temporal = sbufReadU8(src);
+            if (!mztcSetDenoising(spatial, temporal)) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_SET_MZTC_VIGNETTING:
+        // An action, not a setting. The lens has to be pointed at a uniform
+        // surface before this is worth running.
+        if (dataSize <= 1) {
+            if (!mztcTriggerVignettingCorrection()) {
                 return MSP_RESULT_ERROR;
             }
         } else {
