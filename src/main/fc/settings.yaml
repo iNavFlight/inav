@@ -1457,7 +1457,7 @@ groups:
         min: 0
         max: 200
       - name: tpa_rate
-        description: "Throttle based PID attenuation(TPA) reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. On multirotor, For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. for fixedwing modifies PIDFF. See **PID Attenuation and scaling** Wiki for full details."
+        description: "Throttle PID attenuation(TPA) changes affect of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL, PITCH and YAW of fixed_wing as throttle changes. On multirotor P is reduced by the TPA rate for every 1% throttle increase after the TPA breakpoint. For fixedwing it modifies PIDFF. See **PID Attenuation and scaling** Wiki for full details."
         default_value: 0
         field: throttle.dynPID
         min: 0
@@ -1465,7 +1465,7 @@ groups:
       - name: tpa_breakpoint
         description: "See tpa_rate."
         default_value: 1500
-        field: throttle.pa_breakpoint
+        field: throttle.tpa_breakpoint
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: tpa_pitch_compensation

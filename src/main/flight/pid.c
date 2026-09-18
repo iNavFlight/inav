@@ -673,11 +673,11 @@ static float calculateAutoTransitionTargetTPAFactor(const controlConfig_t *contr
     float tpaFactor;
 
     if (controlProfile->throttle.dynPID != 0 &&
-        controlProfile->throttle.pa_breakpoint > getThrottleIdleValue() &&
+        controlProfile->throttle.tpa_breakpoint > getThrottleIdleValue() &&
         !FLIGHT_MODE(AUTO_TUNE) &&
         ARMING_FLAG(ARMED)) {
         if (throttle > getThrottleIdleValue()) {
-            tpaFactor = 0.5f + ((float)(controlProfile->throttle.pa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
+            tpaFactor = 0.5f + ((float)(controlProfile->throttle.tpa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
         } else {
             tpaFactor = 2.0f;
         }
@@ -695,12 +695,12 @@ static float calculateAutoTransitionTargetMultirotorTPAFactor(const controlConfi
 {
     const uint16_t throttle = rcCommand[THROTTLE];
 
-    if (controlProfile->throttle.dynPID == 0 || throttle < controlProfile->throttle.pa_breakpoint) {
+    if (controlProfile->throttle.dynPID == 0 || throttle < controlProfile->throttle.tpa_breakpoint) {
         return 1.0f;
     }
 
     if (throttle < getMaxThrottle()) {
-        return (100 - (uint16_t)controlProfile->throttle.dynPID * (throttle - controlProfile->throttle.pa_breakpoint) / (float)(getMaxThrottle() - controlProfile->throttle.pa_breakpoint)) / 100.0f;
+        return (100 - (uint16_t)controlProfile->throttle.dynPID * (throttle - controlProfile->throttle.tpa_breakpoint) / (float)(getMaxThrottle() - controlProfile->throttle.tpa_breakpoint)) / 100.0f;
     }
 
     return (100 - constrain(controlProfile->throttle.dynPID, 0, 100)) / 100.0f;
@@ -1297,24 +1297,46 @@ static float calculateFixedWingAirspeedITermFactor(void){
     return iTermFactor;
 }
 
+static int16_t tpaPitchThrottleAdjustment(void)
+{
+    /* Applies correction to throttle input for throttle based tpa to compensate for speed decrease in climb or increase during descent.
+     * +ve correction during descent, -ve correction during climb.
+     * e.g. +ve correction during descent increases tpa throttle input attenuating PIDS for increased speed during descent */
+
+    int16_t tpaThrottleAdjustment = 0;
+
+    const uint8_t tpaPitchCompensationValue = currentControlProfile->throttle.tpa_pitch_compensation;
+
+    if (usedPidControllerType == PID_TYPE_PIFF && currentControlProfile->throttle.fixedWingTauMs && tpaPitchCompensationValue) {
+        tpaThrottleAdjustment = constrain(tpaPitchCompensationValue * RADIANS_TO_DEGREES(-HeadVecEFFiltered.z), -1000, 1000);
+        tpaThrottleAdjustment = pt1FilterApply(&fixedWingTpaFilter, tpaThrottleAdjustment);
+    }
+
+    return tpaThrottleAdjustment;
+}
+
 static float calculateFixedWingTPAFactor(uint16_t throttle)
 {
+    const uint8_t dynamicPID = currentControlProfile->throttle.dynPID;
+    const uint16_t tpaBreakpoint = currentControlProfile->throttle.tpa_breakpoint;
+    const uint16_t throttleIdleValue = getThrottleIdleValue();    
     float tpaFactor;
 
     // tpa_rate is amount of curve TPA applied to PIDs
     // tpa_breakpoint for fixed wing is cruise throttle value (value at which PIDs were tuned)
-    if (currentControlProfile->throttle.dynPID != 0 && currentControlProfile->throttle.pa_breakpoint > getThrottleIdleValue() && !FLIGHT_MODE(AUTO_TUNE) && ARMING_FLAG(ARMED)) {
-        if (throttle > getThrottleIdleValue()) {
+    if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(AUTO_TUNE) && dynamicPID && tpaBreakpoint > throttleIdleValue) {
+        const uint16_t pitchThrottleSpeedFactor = constrain(throttle + tpaPitchThrottleAdjustment(), 1000, 2000);
+        if (pitchThrottleSpeedFactor > throttleIdleValue) {
             // Calculate TPA according to throttle
-            tpaFactor = 0.5f + ((float)(currentControlProfile->throttle.pa_breakpoint - getThrottleIdleValue()) / (throttle - getThrottleIdleValue()) / 2.0f);
+            tpaFactor = 0.5f + 0.5f * ((tpaBreakpoint - throttleIdleValue) / (float)(pitchThrottleSpeedFactor - throttleIdleValue));
         }
         else {
             tpaFactor = 2.0f;
         }
 
         // Attenuate TPA curve according to configured amount
-        tpaFactor = 1.0f + (tpaFactor - 1.0f) * (currentControlProfile->throttle.dynPID / 100.0f);
-        // Limit to [0.5; 2] range
+        tpaFactor = 1.0f + (tpaFactor - 1.0f) * (0.01f * dynamicPID);
+        // Limit to [0.3; 2] range
         tpaFactor = constrainf(tpaFactor, 0.3f, 2.0f);
     }
     else {
@@ -1326,36 +1348,21 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
 
 static float calculateMultirotorTPAFactor(uint16_t throttle)
 {
+    const uint8_t dynamicPID = constrain(currentControlProfile->throttle.dynPID, 0, 100);
+    const uint16_t tpaBreakpoint = currentControlProfile->throttle.tpa_breakpoint;
+    const uint16_t maxThrottleValue = getMaxThrottle();
     float tpaFactor;
 
     // TPA should be updated only when TPA is actually set
-    if (currentControlProfile->throttle.dynPID == 0 || throttle < currentControlProfile->throttle.pa_breakpoint) {
+    if (dynamicPID == 0 || throttle < tpaBreakpoint) {
         tpaFactor = 1.0f;
-    } else if (throttle < getMaxThrottle()) {
-        tpaFactor = (100 - (uint16_t)currentControlProfile->throttle.dynPID * (throttle - currentControlProfile->throttle.pa_breakpoint) / (float)(getMaxThrottle() - currentControlProfile->throttle.pa_breakpoint)) / 100.0f;
+    } else if (throttle < maxThrottleValue) {
+        tpaFactor = 0.01f * (100.0f - (dynamicPID * (throttle - tpaBreakpoint) / (float)(maxThrottleValue - tpaBreakpoint)));
     } else {
-        tpaFactor = (100 - constrain(currentControlProfile->throttle.dynPID, 0, 100)) / 100.0f;
+        tpaFactor = 0.01f * (100.0f - dynamicPID);
     }
 
     return tpaFactor;
-}
-
-static float calculateTPAThtrottle(void)
-{
-    uint16_t tpaThrottle = 0;
-    static const fpVector3_t vDown = { .v = { 0.0f, 0.0f, 1.0f } };
-
-    if (usedPidControllerType == PID_TYPE_PIFF && (currentControlProfile->throttle.fixedWingTauMs > 0)) { //fixed wing TPA with filtering
-        fpVector3_t vForward = { .v = { HeadVecEFFiltered.x, -HeadVecEFFiltered.y, -HeadVecEFFiltered.z } };
-        float groundCos = vectorDotProduct(&vForward, &vDown);
-        int16_t throttleAdjustment =  currentControlProfile->throttle.tpa_pitch_compensation * groundCos * 90.0f / 1.57079632679f; //when 1deg pitch up, increase throttle by pitch(deg)_to_throttle. cos(89 deg)*90/(pi/2)=0.99995,cos(80 deg)*90/(pi/2)=9.9493,
-        uint16_t throttleAdjusted = rcCommand[THROTTLE] + constrain(throttleAdjustment, -1000, 1000);
-        tpaThrottle = pt1FilterApply(&fixedWingTpaFilter, constrain(throttleAdjusted, 1000, 2000));
-    }
-    else {
-        tpaThrottle = rcCommand[THROTTLE]; //multirotor TPA without filtering
-    }
-    return tpaThrottle;
 }
 
 void schedulePidGainsUpdate(void)
@@ -1381,31 +1388,30 @@ void updatePIDCoefficients(void)
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
 
-    float tpaFactor=1.0f;
-    float iTermFactor=1.0f;  // Separate factor for I-term scaling
-    if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
-        if(currentControlProfile->throttle.apa_pow>0 && pitotGetValidForAirspeed()){
+    float tpaFactor = 1.0f;
+    float iTermFactor = 1.0f;  // Separate factor for I-term scaling
+    if (usedPidControllerType == PID_TYPE_PIFF) { // Fixed wing TPA calculation
+        if (currentControlProfile->throttle.apa_pow > 0 && pitotGetValidForAirspeed()) {
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
             iTermFactor = calculateFixedWingAirspeedITermFactor();  // Less aggressive I-term scaling
-        }else{
-            tpaFactor = calculateFixedWingTPAFactor(calculateTPAThtrottle());
+        } else {
+            tpaFactor = calculateFixedWingTPAFactor(rcCommand[THROTTLE]);
             iTermFactor = tpaFactor;  // Use same factor for throttle-based TPA
         }
     } else {
-        tpaFactor = calculateMultirotorTPAFactor(calculateTPAThtrottle());
+        tpaFactor = calculateMultirotorTPAFactor(rcCommand[THROTTLE]);
         iTermFactor = tpaFactor;  // Multirotor uses same factor
     }
+
     if (tpaFactor != tpaFactorprev) {
         pidGainsUpdateRequired = true;
     }
     tpaFactorprev = tpaFactor;
 
-
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
         return;
     }
-
 
     // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change

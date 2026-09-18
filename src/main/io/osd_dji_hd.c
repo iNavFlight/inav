@@ -961,7 +961,7 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "TPA %3d", currentControlProfile->throttle.dynPID);
             break;
         case ADJUSTMENT_TPA_BREAKPOINT:
-            tfp_sprintf(buff, "TPABP %4d", currentControlProfile->throttle.pa_breakpoint);
+            tfp_sprintf(buff, "TPABP %4d", currentControlProfile->throttle.tpa_breakpoint);
             break;
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
             tfp_sprintf(buff, "CSM %3d", navConfigMutable()->fw.control_smoothness);
@@ -1443,7 +1443,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU8(dst, currentControlProfile->throttle.dynPID);
             sbufWriteU8(dst, currentControlProfile->throttle.rcMid8);
             sbufWriteU8(dst, currentControlProfile->throttle.rcExpo8);
-            sbufWriteU16(dst, currentControlProfile->throttle.pa_breakpoint);
+            sbufWriteU16(dst, currentControlProfile->throttle.tpa_breakpoint);
             sbufWriteU8(dst, currentControlProfile->stabilized.rcYawExpo8);
             sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate
             sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate
