@@ -7208,7 +7208,7 @@ Pitch angle based throttle compensation for fixed wing. Positive values will inc
 
 ### tpa_rate
 
-Throttle PID attenuation(TPA) changes affect of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL, PITCH and YAW of fixed_wing as throttle changes. On multirotor P is reduced by the TPA rate for every 1% throttle increase after the TPA breakpoint. For fixedwing it modifies PIDFF. See **PID Attenuation and scaling** Wiki for full details.
+Throttle PID attenuation (TPA) changes affect of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL, PITCH and YAW of fixed_wing as throttle changes. On multirotor P is reduced by the TPA rate for every 1% throttle increase after the TPA breakpoint. For fixedwing it modifies PIDFF. See **PID Attenuation and scaling** Wiki for full details.
 
 | Default | Min | Max |
 | --- | --- | --- |
