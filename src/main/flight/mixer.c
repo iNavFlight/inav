@@ -546,9 +546,13 @@ void FAST_CODE writeMotors(void)
                 }
             }
             else {
+                // While disarmed only the mixer stop value means motor off, so the
+                // motor test can drive a motor below the configured idle. Armed
+                // behaviour is unchanged: there the configured idle stays the
+                // threshold, so failsafe and turtle mode are not affected.
                 motorValue = handleOutputScaling(
                     motor[i],
-                    throttleIdleValue,
+                    ARMING_FLAG(ARMED) ? throttleIdleValue : (motorZeroCommand + 1),
                     DSHOT_DISARM_COMMAND,
                     motorConfig()->mincommand,
                     getMaxThrottle(),
