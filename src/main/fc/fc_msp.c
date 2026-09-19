@@ -342,7 +342,10 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
     sbufWriteU8(dst, afatfs_getLastError());
     // Write free space and total space in kilobytes
     sbufWriteU32(dst, afatfs_getContiguousFreeSpace() / 1024);
-    sbufWriteU32(dst, sdcard_getMetadata()->numBlocks / 2); // Block size is half a kilobyte
+    // NULL until a card driver has been bound, which is the normal state of a board whose
+    // blackbox does not use the SD card, and of SITL launched without --sdcard
+    const sdcardMetadata_t *metadata = sdcard_getMetadata();
+    sbufWriteU32(dst, metadata ? metadata->numBlocks / 2 : 0); // Block size is half a kilobyte
 #else
     sbufWriteU8(dst, 0);
     sbufWriteU8(dst, 0);
