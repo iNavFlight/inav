@@ -35,9 +35,11 @@ def gh_json(*args):
 
 
 def list_releases():
+    # Oldest first: if the backlog ever exceeds the 1000-release limit, the
+    # newest (least stale) releases drop off rather than the oldest (most overdue).
     return gh_json(
         "release", "list", "--repo", PR_TEST_BUILDS_REPO,
-        "--json", "tagName,publishedAt", "--limit", "1000",
+        "--json", "tagName,publishedAt", "--limit", "1000", "--order", "asc",
     )
 
 
