@@ -796,10 +796,12 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | LULU |  |
 | SBUS2 |  |
 | OSD_REFRESH |  |
+| MAG_CALIB |  |
 | VTOL_TRANSITION |  |
 | VTOL_MC_PROTECT |  |
 | TERRAIN_NAV |  |
 | ESC |  |
+| MAG |  |
 
 ---
 
