@@ -40,12 +40,13 @@
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
+#include "rx/rx.h"
 
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 #include "io/vtx_control.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig, PG_VTX_SETTINGS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig, PG_VTX_SETTINGS_CONFIG, 3);
 
 PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .band = SETTING_VTX_BAND_DEFAULT,
@@ -130,31 +131,21 @@ static bool vtxProcessPitMode(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t 
 {
     UNUSED(runtimeSettings);
 
+    // Leave button/MSP control alone unless the pilot assigned this mode.
+    if (!isModeActivationConditionPresent(BOXVTXPITMODE) || !rxIsReceivingSignal()) {
+        return false;
+    }
+
     uint8_t pitOnOff;
-
-    bool        currPmSwitchState = false;
-    static bool prevPmSwitchState = false;
-
     if (!vtxCommonGetPitMode(vtxDevice, &pitOnOff)) {
         return false;
     }
 
-    if (currPmSwitchState != prevPmSwitchState) {
-        prevPmSwitchState = currPmSwitchState;
-
-        if (currPmSwitchState) {
-            if (0) {
-                if (!pitOnOff) {
-                    vtxCommonSetPitMode(vtxDevice, true);
-                    return true;
-                }
-            }
-        } else {
-            if (pitOnOff) {
-                vtxCommonSetPitMode(vtxDevice, false);
-                return true;
-            }
-        }
+    // Never enter pit mode in flight; arming also exits a ground pit mode.
+    const bool requestedPitMode = IS_RC_MODE_ACTIVE(BOXVTXPITMODE) && !ARMING_FLAG(ARMED);
+    if ((pitOnOff != 0) != requestedPitMode) {
+        vtxCommonSetPitMode(vtxDevice, requestedPitMode);
+        return true;
     }
 
     return false;
