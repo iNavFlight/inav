@@ -2146,6 +2146,17 @@ Specifies the type of the software LPF of the gyro signals.
 
 ---
 
+### gyro_fusion
+
+On multi-gyro targets, what to do with the second gyro once `gyro_secondary_enabled` is sampling it. OFF keeps it out of the control path, as an instrumentation channel only. AVERAGE feeds the mean of the two gyros to the filters and the controller, which lowers uncorrelated sensor noise by about a third. It is not redundancy: two sensors that disagree cannot say which of them is wrong - and when they do disagree persistently, averaging stops and the first gyro flies alone until the next boot. Either this or `gyro_secondary_enabled` is reason enough to read the second gyro, so turning this on is sufficient by itself. A stalled or still-calibrating second gyro falls back to the first on its own.
+
+| Allowed Values |  |
+| --- | --- |
+| OFF | Default |
+| AVERAGE |  |
+
+---
+
 ### gyro_lulu_enabled
 
 Enable/disable gyro LULU filter
@@ -2173,6 +2184,16 @@ Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
 | Default | Min | Max |
 | --- | --- | --- |
 | 60 | 0 | 500 |
+
+---
+
+### gyro_secondary_enabled
+
+On multi-gyro targets, additionally sample the gyro NOT selected by `gyro_to_use`. The extra sample is exposed to Blackbox as `gyroRaw2` and is never used for attitude estimation or flight control. Intended for filter and estimator analysis. Costs one additional SPI transaction per gyro cycle.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

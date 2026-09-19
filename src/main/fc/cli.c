@@ -199,6 +199,9 @@ static const char * const blackboxIncludeFlagNames[] = {
     "PEAKS_P",
     "PEAKS_Y",
     "SERVOS",
+#ifdef USE_DUAL_GYRO
+    "GYRO_2",
+#endif
     NULL
 };
 #endif
@@ -4196,6 +4199,26 @@ static void cliStatus(char *cmdline)
         hardwareSensorStatusNames[getHwPitotmeterStatus()],
         hardwareSensorStatusNames[getHwGPSStatus()]
     );
+
+#ifdef USE_DUAL_GYRO
+    if (gyro.secondaryInitialized) {
+        /*
+         * The number is the attitude error the two gyros' disagreement has been
+         * worth so far, not their instantaneous difference: it sits at zero
+         * while they agree and climbs only once they persistently do not.
+         */
+        const float disagreement = gyroSecondaryDisagreementDeg();
+        if (gyroSecondaryAbandoned()) {
+            cliPrintLine("Second gyro: DISAGREES with the first - averaging off,"
+                " flying on the first alone");
+        } else if (gyroConfig()->gyro_fusion == GYRO_FUSION_AVERAGE) {
+            cliPrintLinef("Second gyro: averaged in, %d.%02d degrees of disagreement"
+                " accumulated", (int)disagreement, (int)(disagreement * 100) % 100);
+        } else {
+            cliPrintLine("Second gyro: sampled, not in the control path");
+        }
+    }
+#endif
 
 #ifdef USE_ESC_SENSOR
     uint8_t motorCount = getMotorCount();
