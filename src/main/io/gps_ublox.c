@@ -472,6 +472,18 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
+// NavIC goes out on its own. Its keys exist only on receivers that have it, and
+// one key a receiver does not know makes it refuse the whole message
+static void configureNAVIC(void)
+{
+    ubx_config_data8_payload_t navicValues[] = {
+        {UBLOX_CFG_NAVIC_ENA, gpsState.gpsConfig->ubloxUseNavic},
+        {UBLOX_CFG_NAVIC_L5_ENA, gpsState.gpsConfig->ubloxUseNavic}
+    };
+
+    ubloxSendSetCfgBytes(navicValues, 2);
+}
+
 static void configureGNSS10(void)
 {
         ubx_config_data8_payload_t gnssConfigValues[] = {
@@ -1218,6 +1230,14 @@ STATIC_PROTOTHREAD(gpsConfigure)
             gpsConfigMutable()->ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT;
             gpsConfigMutable()->ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT;
             gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
+        }
+
+        // Only a receiver that lists NavIC gets its keys, and only through the
+        // configuration interface, which is where those keys live
+        if (ubloxVersionGT(23, 1) && (ubxExtendedGnss & UBLOX_EXT_GNSS_NAVIC)) {
+            gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+            configureNAVIC();
+            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
         }
     }
 

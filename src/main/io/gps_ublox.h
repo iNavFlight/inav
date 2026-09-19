@@ -119,6 +119,10 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 #define UBLOX_CFG_GLO_ENA               0x10310025 // U1 default off - may conflict with other constelations
 #define UBLOX_CFG_GLO_L1_ENA            0x10310018 // U1 default off
 
+// Only on receivers that list NAVIC in their MON-VER extensions, such as the F10
+#define UBLOX_CFG_NAVIC_ENA             0x10310026 // U1 default off
+#define UBLOX_CFG_NAVIC_L5_ENA          0x1031001d // U1 default off
+
 #define UBLOX_CFG_SBAS_PRNSCANMASK      0x50360006 // 0 = auto // X8
 #define UBLOX_SBAS_ALL                  0x0000000000000000 //Enable search for all SBAS PRNs
 #define UBLOX_SBAS_PRN120               0x0000000000000001 //Enable search for SBAS PRN120
