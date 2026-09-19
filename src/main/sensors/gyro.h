@@ -122,6 +122,10 @@ typedef struct gyroConfig_s {
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
 
+#ifdef USE_DUAL_GYRO
+void gyroSetSecondaryLogging(bool logging);
+#endif
+
 bool gyroInit(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
 void gyroUpdate(void);

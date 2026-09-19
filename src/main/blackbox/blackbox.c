@@ -682,6 +682,8 @@ static struct {
 // Cache for FLIGHT_LOG_FIELD_CONDITION_* test results:
 static uint64_t blackboxConditionCache;
 
+// The cache holds a bit for every condition up to and including LAST, which is NEVER, so
+// it needs LAST + 1 bits. A dual-gyro target takes the 64th
 STATIC_ASSERT((sizeof(blackboxConditionCache) * 8) > FLIGHT_LOG_FIELD_CONDITION_LAST, too_many_flight_log_conditions);
 
 static uint32_t blackboxIFrameInterval;
@@ -934,6 +936,11 @@ static void blackboxSetState(BlackboxState newState)
         ;
     }
     blackboxState = newState;
+
+#ifdef USE_DUAL_GYRO
+    // The second gyro is read only for the log, so only while there is one
+    gyroSetSecondaryLogging(newState > BLACKBOX_STATE_STOPPED);
+#endif
 }
 
 static void writeIntraframe(void)
