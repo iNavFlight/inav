@@ -301,7 +301,7 @@ void ws2811UpdateStrip(uint16_t usedLedCount)
     ws2811RefillHalf(0);
     ws2811RefillHalf(1);
 
-    impl_timerPWMSetDMACircular(ws2811TCH, true, WS2811_CHUNK_BUFFER_SIZE);
+    impl_timerPWMSetDMACircular(ws2811TCH, true, ledStripDMABuffer, WS2811_CHUNK_BUFFER_SIZE);
 }
 
 void ws2811SetIdleHigh(bool high)

@@ -24,6 +24,7 @@
 
 #if !defined(SITL_BUILD) && !defined(RP2350)
 
+#include "build/atomic.h"
 #include "build/debug.h"
 
 #include "common/log.h"
@@ -31,6 +32,8 @@
 #include "common/circular_queue.h"
 
 #include "drivers/io.h"
+#include "drivers/nvic.h"
+#include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -49,9 +52,14 @@
 #define MULTISHOT_20US_MULT (MULTISHOT_TIMER_HZ * 20 / 1000000.0f / 1000.0f)
 
 #ifdef USE_DSHOT
+/* Timer clock per DSHOT rate: DSHOT_MOTOR_BITLENGTH (20) ticks make one bit, so
+ * 12 MHz / 20 = 600 kbit/s. */
 #define MOTOR_DSHOT600_HZ     12000000
 #define MOTOR_DSHOT300_HZ     6000000
 #define MOTOR_DSHOT150_HZ     3000000
+/* Fastest rate INAV supports; static buffers that depend on the bit period (keep-alive
+ * buffer) are sized from it, so update this when a faster rate is added. */
+#define MOTOR_DSHOT_FASTEST_HZ MOTOR_DSHOT600_HZ
 
 
 #define DSHOT_MOTOR_BIT_0       7
@@ -60,6 +68,18 @@
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 #define MAX_DMA_TIMERS          8
+
+/* Keep-alive frame replayed by circular DMA while the CPU is stalled by a flash write:
+ * 16 data bits followed by an idle (line low) gap of DSHOT_KEEPALIVE_GAP_US.
+ * One DMA slot is one DSHOT bit period, so the gap needs gapUs * dshotHz / bitLength slots. */
+#define DSHOT_KEEPALIVE_GAP_US      40
+#define DSHOT_KEEPALIVE_SLOTS(dshotHz)  (16 + (DSHOT_KEEPALIVE_GAP_US * ((dshotHz) / 1000000) + DSHOT_MOTOR_BITLENGTH - 1) / DSHOT_MOTOR_BITLENGTH)
+/* The buffer is static, so it is sized for the fastest rate: the shorter the bit period,
+ * the more slots a 40 us gap needs (40 slots at DSHOT600, 28 at DSHOT300, 22 at DSHOT150).
+ * Only DSHOT_KEEPALIVE_SLOTS(actual rate) slots are used at run time. */
+#define DSHOT_KEEPALIVE_BUFFER_SIZE     DSHOT_KEEPALIVE_SLOTS(MOTOR_DSHOT_FASTEST_HZ)
+/* Bound for the waits at the keep-alive transitions: two keep-alive cycles at DSHOT150 */
+#define DSHOT_KEEPALIVE_WAIT_TIMEOUT_US 400
 
 #define DSHOT_COMMAND_DELAY_US 1000
 #define DSHOT_COMMAND_INTERVAL_US 10000
@@ -71,6 +91,15 @@ typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function poi
 
 #ifdef USE_DSHOT_DMAR
     timerDMASafeType_t dmaBurstBuffer[MAX_DMA_TIMERS][DSHOT_DMA_BUFFER_SIZE * 4];
+#endif
+
+#ifdef USE_DSHOT
+// Every motor replays the same zero-throttle keep-alive frame, so one buffer feeds all DMA streams
+#ifdef USE_DSHOT_DMAR
+static DMA_RAM timerDMASafeType_t dshotKeepaliveBuffer[DSHOT_KEEPALIVE_BUFFER_SIZE * 4];
+#else
+static DMA_RAM timerDMASafeType_t dshotKeepaliveBuffer[DSHOT_KEEPALIVE_BUFFER_SIZE];
+#endif
 #endif
 
 typedef struct {
@@ -126,6 +155,7 @@ static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
 static currentExecutingCommand_t currentExecutingCommand;
 
 static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry);
+uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType);
 #ifndef USE_DSHOT_DMAR
 static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet);
 #else
@@ -238,6 +268,22 @@ void pwmEnableMotors(void)
     pwmMotorsEnabled = true;
 }
 
+#ifdef USE_DSHOT
+/*
+ * Wait (bounded) until the keep-alive stream of this port is sending its idle padding.
+ * CCR holds the slot last written by DMA: a bit length while a data bit is in flight,
+ * 0 in the padding. Waiting for the data -> padding transition leaves a full
+ * DSHOT_KEEPALIVE_GAP_US before the DMA wraps to the next frame, so the stream can be
+ * stopped with the last frame complete and the line low.
+ */
+static void dshotWaitForKeepalivePadding(const pwmOutputPort_t *port)
+{
+    const timeUs_t start = micros();
+    while (*port->ccr == 0 && (micros() - start) < DSHOT_KEEPALIVE_WAIT_TIMEOUT_US);
+    while (*port->ccr != 0 && (micros() - start) < DSHOT_KEEPALIVE_WAIT_TIMEOUT_US);
+}
+#endif
+
 void pwmSetMotorDMACircular(bool circular)
 {
 #ifdef USE_DSHOT
@@ -246,20 +292,28 @@ void pwmSetMotorDMACircular(bool circular)
     }
 
     int motorCount = getMotorCount();
+    const uint32_t dshotHz = getDshotHz(initMotorProtocol);
+    const uint32_t keepaliveSlots = DSHOT_KEEPALIVE_SLOTS(dshotHz);
 
     if (circular) {
-        // Load zero-throttle packets directly into DMA buffers,
-        // bypassing the rate limiter in pwmCompleteMotorUpdate()
+        // A frame started by pwmCompleteMotorUpdate() may still be in flight: let it finish
+        // and keep the line low for one full gap before the keep-alive stream starts
+        delayMicroseconds(DSHOT_DMA_BUFFER_SIZE * DSHOT_MOTOR_BITLENGTH * 1000000UL / dshotHz + DSHOT_KEEPALIVE_GAP_US);
+
+        // Load a zero-throttle packet into the shared keep-alive buffer. The padding slots
+        // must be zero (line low between frames); DMA_RAM is NOLOAD and not cleared at
+        // startup, so clear it explicitly.
         uint16_t packet = prepareDshotPacket(0, false);
+        ZERO_FARRAY(dshotKeepaliveBuffer);
+#ifdef USE_DSHOT_DMAR
         for (int i = 0; i < motorCount; i++) {
             if (motors[i].pwmPort && motors[i].pwmPort->configured) {
-#ifdef USE_DSHOT_DMAR
-                loadDmaBufferDshotStride(&motors[i].pwmPort->dmaBurstBuffer[motors[i].pwmPort->tch->timHw->channelIndex], 4, packet);
-#else
-                loadDmaBufferDshot(motors[i].pwmPort->dmaBuffer, packet);
-#endif
+                loadDmaBufferDshotStride(&dshotKeepaliveBuffer[motors[i].pwmPort->tch->timHw->channelIndex], 4, packet);
             }
         }
+#else
+        loadDmaBufferDshot(dshotKeepaliveBuffer, packet);
+#endif
     }
 
 #ifdef USE_DSHOT_DMAR
@@ -270,7 +324,15 @@ void pwmSetMotorDMACircular(bool circular)
         for (int m = 0; m < motorCount; m++) {
             if (motors[m].pwmPort && motors[m].pwmPort->configured && motors[m].pwmPort->tch
                 && motors[m].pwmPort->tch->timHw->tim == burstDmaTimer->timer) {
-                impl_pwmBurstDMASetCircular(burstDmaTimer, motors[m].pwmPort->tch, circular, DSHOT_DMA_BUFFER_SIZE * 4);
+                if (circular) {
+                    impl_pwmBurstDMASetCircular(burstDmaTimer, motors[m].pwmPort->tch, true, dshotKeepaliveBuffer, keepaliveSlots * 4);
+                } else {
+                    // Atomic so no ISR can delay the stop past the padding into the next frame
+                    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+                        dshotWaitForKeepalivePadding(motors[m].pwmPort);
+                        impl_pwmBurstDMASetCircular(burstDmaTimer, motors[m].pwmPort->tch, false, burstDmaTimer->dmaBurstBuffer, DSHOT_DMA_BUFFER_SIZE * 4);
+                    }
+                }
                 break;
             }
         }
@@ -279,10 +341,29 @@ void pwmSetMotorDMACircular(bool circular)
     // Per-channel DMA: one DMA stream per motor
     for (int i = 0; i < motorCount; i++) {
         if (motors[i].pwmPort && motors[i].pwmPort->configured && motors[i].pwmPort->tch) {
-            impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, circular, DSHOT_DMA_BUFFER_SIZE);
+            if (circular) {
+                impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, true, dshotKeepaliveBuffer, keepaliveSlots);
+            } else {
+                // Atomic so no ISR can delay the stop past the padding into the next frame
+                ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+                    dshotWaitForKeepalivePadding(motors[i].pwmPort);
+                    impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, false, motors[i].pwmPort->dmaBuffer, DSHOT_DMA_BUFFER_SIZE);
+                }
+            }
         }
     }
 #endif
+
+    if (!circular) {
+        // The streams were stopped while sending padding, so CCR is already 0 and the lines
+        // stay low until pwmCompleteMotorUpdate() sends the next frame. Enforce it in case a
+        // wait above timed out; the timer would otherwise keep repeating the last bit.
+        for (int i = 0; i < motorCount; i++) {
+            if (motors[i].pwmPort && motors[i].pwmPort->configured) {
+                *motors[i].pwmPort->ccr = 0;
+            }
+        }
+    }
 #else
     UNUSED(circular);
 #endif
