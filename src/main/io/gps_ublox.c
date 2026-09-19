@@ -805,12 +805,16 @@ static bool gpsParseFrameUBLOX(void)
                     }
                 }
 
-                for (int j = 40; j < _payload_length; j += 30) {
+                // Whole extensions only: a frame whose length is not a round number
+                // of them would have its last line read past the payload
+                for (int j = 40; j + 30 <= _payload_length; j += 30) {
                     const char * line = (const char *)(_buffer.bytes + j);
 
                     const char * mod = strnstr(line, "MOD=", 30);
                     if (mod) {
-                        strncpy(ubxModuleName, mod + 4, UBLOX_MODULE_NAME_LEN - 1);
+                        const char * name = mod + 4;
+                        const size_t room = (size_t)(line + 30 - name);
+                        strncpy(ubxModuleName, name, MIN(room, (size_t)(UBLOX_MODULE_NAME_LEN - 1)));
                         ubxModuleName[UBLOX_MODULE_NAME_LEN - 1] = '\0';
                     }
 
@@ -1331,7 +1335,10 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
 
         gpsState.autoConfigStep = 0;
+        // The limit goes with them: left over from a receiver that has been swapped out
+        // it would end the poll below before the new one has answered
         ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
+        ubx_capabilities.capMaxGnss = 0;
         // M7 and earlier will never get pass this step, so skip it (#9440).
         // UBLOX documents that this is M8N and later
         if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
