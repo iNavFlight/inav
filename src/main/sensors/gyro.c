@@ -78,7 +78,13 @@
 
 FASTRAM gyro_t gyro; // gyro sensor object
 
+#ifdef USE_DUAL_GYRO
+#define MAX_GYRO_COUNT 2
+// Highest IMU tag any in-tree target uses: most are 0 and 1, AETH743Basic is 0 and 2
+#define MAX_GYRO_SENSOR_TAG 2
+#else
 #define MAX_GYRO_COUNT 1
+#endif
 
 STATIC_UNIT_TESTED gyroDev_t gyroDev[MAX_GYRO_COUNT];  // Not in FASTRAM since it may hold DMA buffers
 STATIC_FASTRAM int16_t gyroTemperature[MAX_GYRO_COUNT];
@@ -90,8 +96,8 @@ STATIC_FASTRAM filter_t gyroLpfState[XYZ_AXIS_COUNT];
 STATIC_FASTRAM filterApplyFnPtr gyroLpf2ApplyFn;
 STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
 
-// Cached calibration status to eliminate function call in hot path
-STATIC_FASTRAM bool gyroCalibrationComplete;
+// Cached calibration status to eliminate function call in hot path, one entry per sensor
+STATIC_FASTRAM bool gyroCalibrationComplete[MAX_GYRO_COUNT];
 
 STATIC_FASTRAM filterApplyFnPtr gyroLuluApplyFn;
 STATIC_FASTRAM filter_t gyroLuluState[XYZ_AXIS_COUNT];
@@ -111,6 +117,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .looptime = SETTING_LOOPTIME_DEFAULT,
 #ifdef USE_DUAL_GYRO
     .gyro_to_use = SETTING_GYRO_TO_USE_DEFAULT,
+    .gyro_secondary_enabled = SETTING_GYRO_SECONDARY_ENABLED_DEFAULT,
 #endif
     .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,
     .gyroDynamicLpfMinHz = SETTING_GYRO_DYN_LPF_MIN_HZ_DEFAULT,
@@ -316,7 +323,9 @@ static void gyroInitFilters(void)
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
-    gyroCalibrationComplete = false;
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+        gyroCalibrationComplete[i] = false;
+    }
 
     // Set inertial sensor tag (for dual-gyro selection)
 #ifdef USE_DUAL_GYRO
@@ -349,6 +358,31 @@ bool gyroInit(void)
 
     gyroInitFilters();
 
+#ifdef USE_DUAL_GYRO
+    // Optional secondary IMU, logged as gyroRaw2 and read by nothing else
+    gyro.secondaryInitialized = false;
+    if (gyroConfig()->gyro_secondary_enabled) {
+        // Targets disagree on how they tag the second IMU, so probe rather than assume tag 1
+        for (uint8_t tag = 0; tag <= MAX_GYRO_SENSOR_TAG; tag++) {
+            if (tag == gyroConfig()->gyro_to_use) {
+                continue;
+            }
+
+            gyroDev[1].imuSensorToUse = tag;
+            if (gyroDetect(&gyroDev[1], GYRO_AUTODETECT) == GYRO_NONE) {
+                continue;
+            }
+
+            gyroDev[1].lpf = GYRO_LPF_256HZ;
+            gyroDev[1].requestedSampleIntervalUs = TASK_GYRO_LOOPTIME;
+            gyroDev[1].sampleRateIntervalUs = TASK_GYRO_LOOPTIME;
+            gyroDev[1].initFn(&gyroDev[1]);
+            gyro.secondaryInitialized = true;
+            break;
+        }
+    }
+#endif
+
 #ifdef USE_DYNAMIC_FILTERS
     // Dynamic notch running at PID frequency
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
@@ -370,13 +404,27 @@ void gyroStartCalibration(void)
         return;
     }
 
+#ifdef USE_DUAL_GYRO
+    // The secondary measures its own zero and ignores init_gyro_cal: gyro_zero_cal is a
+    // single stored value, and it belongs to the gyro that flies
+    if (gyro.secondaryInitialized) {
+        // The threshold is in raw counts, so convert it into the secondary's own scale
+        const float secondaryThreshold =
+            CALIBRATING_GYRO_MORON_THRESHOLD * gyroDev[0].scale / gyroDev[1].scale;
+
+        // Asked to succeed like the primary: a window ending on a moving aircraft restarts
+        gyroCalibrationComplete[1] = false;
+        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, secondaryThreshold, false);
+    }
+#endif
+
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
     if (!gyroConfig()->init_gyro_cal_enabled) {
         return;
     }
 #endif
 
-    gyroCalibrationComplete = false;
+    gyroCalibrationComplete[0] = false;
     zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, false);
 }
 
@@ -395,7 +443,7 @@ bool gyroIsCalibrationComplete(void)
     return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]);
 }
 
-STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
+STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration, uint8_t index)
 {
     fpVector3_t v;
 
@@ -414,11 +462,14 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         dev->gyroZero[Z] = v.v[Z];
 
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
-        setGyroCalibration(dev->gyroZero);
+        // gyro_zero_cal is a single shared value: only the gyro that flies may write it
+        if (index == 0) {
+            setGyroCalibration(dev->gyroZero);
+        }
 #endif
 
         // Cache completion status to avoid function call in hot path
-        gyroCalibrationComplete = true;
+        gyroCalibrationComplete[index] = true;
 
         LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", (int16_t) dev->gyroZero[X], (int16_t) dev->gyroZero[Y], (int16_t) dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
@@ -439,17 +490,16 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
     }
 }
 
-static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroCalibrationVector_t * gyroCal, float * gyroADCf)
+static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroCalibrationVector_t * gyroCal, float * gyroADCf, uint8_t index)
 {
-
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev->readFn(gyroDev)) {
 
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
-    if (!gyroConfig()->init_gyro_cal_enabled) {
+    if (index == 0 && !gyroConfig()->init_gyro_cal_enabled) {
         // marks that the gyro calibration has ended
-        gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE;
-        gyroCalibrationComplete = true;
+        gyroCal->params.state = ZERO_CALIBRATION_DONE;
+        gyroCalibrationComplete[0] = true;
         // pass the calibration values
         gyroDev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
         gyroDev->gyroZero[Y] = gyroConfig()->gyro_zero_cal[Y];
@@ -458,7 +508,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 #endif
 
         // Use cached status to avoid function call in hot path
-        if (gyroCalibrationComplete) {
+        if (gyroCalibrationComplete[index]) {
             float gyroADCtmp[XYZ_AXIS_COUNT];
 
             //Apply zero calibration with CMSIS DSP
@@ -473,7 +523,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 
             return true;
         } else {
-            performGyroCalibration(gyroDev, gyroCal);
+            performGyroCalibration(gyroDev, gyroCal, index);
 
             // Reset gyro values to zero to prevent other code from using uncalibrated data
             gyroADCf[X] = 0.0f;
@@ -578,7 +628,18 @@ void FAST_CODE NOINLINE gyroUpdate(void)
         return;
     }
 
-    if (!gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0], gyro.gyroADCf)) {
+#ifdef USE_DUAL_GYRO
+    // Read the secondary first: the primary's path returns early on a failed read
+    if (gyro.secondaryInitialized) {
+        if (!gyroUpdateAndCalibrate(&gyroDev[1], &gyroCalibration[1], gyro.gyroRaw2, 1)) {
+            gyro.gyroRaw2[X] = 0.0f;
+            gyro.gyroRaw2[Y] = 0.0f;
+            gyro.gyroRaw2[Z] = 0.0f;
+        }
+    }
+#endif
+
+    if (!gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0], gyro.gyroADCf, 0)) {
         return;
     }
 
