@@ -60,6 +60,18 @@ def delete_release(tag):
         raise RuntimeError(result.stderr.strip() or "delete failed")
 
 
+def get_release_published_at(tag):
+    try:
+        return gh_json(
+            "release", "view", tag, "--repo", PR_TEST_BUILDS_REPO,
+            "--json", "publishedAt",
+        )["publishedAt"]
+    except RuntimeError as exc:
+        if "not found" in str(exc):
+            return None
+        raise
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dry-run", action="store_true",
@@ -109,6 +121,20 @@ def main():
             continue
 
         if not args.dry_run:
+            # The publisher deletes and recreates a PR's release on every new
+            # build, so re-check the release wasn't replaced since listing.
+            try:
+                current_published_at = get_release_published_at(tag)
+            except RuntimeError as exc:
+                errors.append((tag, f"could not re-check release: {exc}"))
+                continue
+            if current_published_at is None:
+                skipped.append((tag, "release no longer exists, leaving alone"))
+                continue
+            if current_published_at != release["publishedAt"]:
+                skipped.append((tag, "release changed since listing, leaving alone"))
+                continue
+
             try:
                 delete_release(tag)
             except RuntimeError as exc:
