@@ -303,6 +303,11 @@ typedef struct {
     uint16_t value;
 } __attribute__((packed)) ubx_config_data16_payload_t;
 
+typedef struct {
+    uint32_t key;
+    uint64_t value;
+} __attribute__((packed)) ubx_config_data64_payload_t;
+
 
 
 
@@ -325,6 +330,18 @@ typedef struct {
         uint8_t buffer[(MAX_CONFIG_SET_VAL_VALUES * sizeof(ubx_config_data16_payload_t)) + 2]; // 12 key/value pairs + 2 checksum bytes
     } data;
 } __attribute__((packed)) ubx_config_data16_t;
+
+// Eight byte items are rare, a scan mask here and there, so this one only has room for a few
+#define MAX_CONFIG_SET_VAL_VALUES_64    4
+
+typedef struct {
+    ubx_header header;
+    ubx_config_data_header_v1_t configHeader;
+    union {
+        ubx_config_data64_payload_t payload[0];
+        uint8_t buffer[(MAX_CONFIG_SET_VAL_VALUES_64 * sizeof(ubx_config_data64_payload_t)) + 2]; // key/value pairs + 2 checksum bytes
+    } data;
+} __attribute__((packed)) ubx_config_data64_t;
 
 
 

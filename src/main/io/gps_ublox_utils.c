@@ -90,6 +90,35 @@ int ubloxCfgFillU2(ubx_config_data16_t *cfg, ubx_config_data16_payload_t *kvPair
     return count;
 }
 
+int ubloxCfgFillU8(ubx_config_data64_t *cfg, ubx_config_data64_payload_t *kvPairs, uint8_t count)
+{
+    if (count > MAX_CONFIG_SET_VAL_VALUES_64)
+        count = MAX_CONFIG_SET_VAL_VALUES_64;
+
+    cfg->header.preamble1 = 0xb5;
+    cfg->header.preamble2 = 0x62;
+    cfg->header.msg_class = 0x06;
+    cfg->header.msg_id = 0x8A;
+    cfg->header.length = sizeof(ubx_config_data_header_v1_t) + ((sizeof(ubx_config_data64_payload_t) * count));
+    cfg->configHeader.layers = 0x1;
+    cfg->configHeader.transaction = 0;
+    cfg->configHeader.reserved = 0;
+    cfg->configHeader.version = 1;
+
+    for (int i = 0; i < count; ++i) {
+        cfg->data.payload[i].key = kvPairs[i].key;
+        cfg->data.payload[i].value = kvPairs[i].value;
+    }
+
+    uint8_t *buf = (uint8_t *)cfg;
+    uint8_t ck_a, ck_b;
+    ublox_update_checksum(buf + 2, cfg->header.length + 4, &ck_a, &ck_b);
+    buf[cfg->header.length + 6] = ck_a;
+    buf[cfg->header.length + 7] = ck_b;
+
+    return count;
+}
+
 void ubloxNavSat2NavSig(const ubx_nav_svinfo_channel *navSat, ubx_nav_sig_info *navSig)
 {
     memset(navSig, 0, sizeof(ubx_nav_sig_info));

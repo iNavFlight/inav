@@ -564,10 +564,33 @@ static void configureRATE(uint16_t measRate)
     }
 }
 
+static void ubloxSendSetCfgU8(ubx_config_data64_payload_t *kvPairs, uint8_t count)
+{
+    ubx_config_data64_t cfg = {};
+
+    ubloxCfgFillU8(&cfg, kvPairs, count);
+
+    serialWriteBuf(gpsState.gpsPort, (uint8_t *)&cfg, cfg.header.length+8);
+    _ack_waiting_msg = cfg.header.msg_id;
+    _ack_state = UBX_ACK_WAITING;
+}
+
 /*
  */
 static void configureSBAS(void)
 {
+    // M10 and later have no UBX-CFG-SBAS, only the configuration interface, so the
+    // message below never took effect there: whatever service was selected, the
+    // receiver kept searching the PRN list it was shipped with
+    if (ubloxVersionGT(23, 1) && gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10) {
+        ubx_config_data64_payload_t scanValues[] = {
+            // Same layout as scanmode1: PRN120 is bit 0, and zero means all of them
+            {UBLOX_CFG_SBAS_PRNSCANMASK, ubloxScanMode1[gpsState.gpsConfig->sbasMode]}
+        };
+        ubloxSendSetCfgU8(scanValues, 1);
+        return;
+    }
+
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_SBAS;
     send_buffer.message.header.length = 8;
