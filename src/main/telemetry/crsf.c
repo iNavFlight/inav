@@ -241,7 +241,13 @@ static void crsfFrameGps(sbuf_t *dst)
     crsfSerialize32(dst, gpsSol.llh.lon);
     crsfSerialize16(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // gpsSol.groundSpeed is in cm/s
     crsfSerialize16(dst, DECIDEGREES_TO_CENTIDEGREES(gpsSol.groundCourse)); // gpsSol.groundCourse is 0.1 degrees, need 0.01 deg
-    crsfSerialize16(dst, (uint16_t)( (telemetryConfig()->crsf_use_legacy_baro_packet ? getEstimatedActualPosition(Z) : gpsSol.llh.alt ) / 100 + 1000) );
+    // The GPS frame's altitude: AUTO follows crsf_use_legacy_baro_packet (legacy packet ON
+    // sends the estimated altitude above the arming point, OFF the GNSS altitude above mean
+    // sea level as the CRSF spec intends); ESTIMATED and MSL force one source regardless of
+    // the baro packet format.
+    const bool sendEstimatedAltitude = telemetryConfig()->crsfGpsAltSource == CRSF_GPS_ALT_ESTIMATED ||
+        (telemetryConfig()->crsfGpsAltSource == CRSF_GPS_ALT_AUTO && telemetryConfig()->crsf_use_legacy_baro_packet);
+    crsfSerialize16(dst, (uint16_t)( (sendEstimatedAltitude ? getEstimatedActualPosition(Z) : gpsSol.llh.alt ) / 100 + 1000) );
     crsfSerialize8(dst, gpsSol.numSat);
 }
 

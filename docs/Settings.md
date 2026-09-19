@@ -645,6 +645,18 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### crsf_gps_alt_source
+
+CRSF telemetry: Altitude source for the GPS frame (GAlt sensor on EdgeTX/OpenTX radios). AUTO follows crsf_use_legacy_baro_packet (legacy packet ON = estimated altitude above the arming point, OFF = GNSS altitude above mean sea level as intended by the CRSF specification), ESTIMATED and MSL force one source regardless of the baro packet format. [AUTO/ESTIMATED/MSL]
+
+| Allowed Values |  |
+| --- | --- |
+| AUTO | Default |
+| ESTIMATED |  |
+| MSL |  |
+
+---
+
 ### crsf_use_legacy_baro_packet
 
 CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'
