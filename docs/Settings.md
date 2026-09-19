@@ -1046,6 +1046,38 @@ Enable when BLHeli32 Auto Telemetry function is used. Disable in every other cas
 
 ---
 
+### esc_srxl2_reverse_channel
+
+For an SRXL2 Smart ESC, the 1-based auxiliary channel its "Thrust Rev." setting selects to arm reverse. Spektrum allow channels 5 to 9 and ship channel 7 by default. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse, and anything between 1 and 4 is treated as 0 at boot - the range cannot express the hole, and a channel the ESC cannot watch would offer a mode that does nothing.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 7 | 0 | 9 |
+
+---
+
+### esc_srxl2_telemetry
+
+Read ESC telemetry off the SRXL2 link. Only applies when motor_pwm_protocol is SRXL2, where telemetry shares the throttle wire and so cannot be turned off by leaving a port unassigned as it would be for a conventional ESC.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
+### esc_srxl2_telemetry_rate
+
+How often ESC telemetry arrives from an SRXL2 Smart ESC, in readings per second. The ESC answers about two requests in three and rotates its reply between three sensors, so it delivers roughly a ninth of what is asked for - these are the delivered rates, measured, not the request rate. The reply shares the throttle wire, so a faster rate leaves the bus less headroom; only the RPM filter benefits from it. The range is bounded at both ends by the ESC: asking on every frame makes an Avian keep the link and stop obeying the throttle, and asking slower than 1 Hz makes the link time out on a healthy ESC, because its reply is the only thing that proves it is still there.
+
+| Allowed Values |  |
+| --- | --- |
+| 1HZ | Default |
+| 3HZ |  |
+| 2HZ |  |
+
+---
+
 ### ez_aggressiveness
 
 EzTune aggressiveness
@@ -3520,6 +3552,7 @@ Protocol that is used to send motor updates to ESCs. Possible values - STANDARD,
 | DSHOT150 |  |
 | DSHOT300 |  |
 | DSHOT600 |  |
+| SRXL2 |  |
 
 ---
 

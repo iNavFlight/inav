@@ -74,6 +74,13 @@
 #define USE_SERVO_SBUS
 #endif
 
+// Spektrum Smart ESC, one per spare UART. Default-on only where flash is plentiful: it
+// costs about 3.5 KB and AIKONF7 for one already sits at 93.4 %. Any other target can opt
+// in with a #define USE_MOTOR_SRXL2 in its own target.h, which is included after this file
+#if !defined(USE_MOTOR_SRXL2) && (defined(STM32H7) || defined(AT32F43x))
+#define USE_MOTOR_SRXL2
+#endif
+
 #ifndef USE_ADC_AVERAGING
 #define USE_ADC_AVERAGING
 #endif

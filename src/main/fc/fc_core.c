@@ -37,6 +37,7 @@
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -88,6 +89,8 @@
 
 #include "flight/mixer_profile.h"
 #include "flight/mixer.h"
+
+#include "io/motor_srxl2.h"
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -301,7 +304,29 @@ static void updateArmingStatus(void)
         }
 
         /* CHECK: */
-        if (!isHardwareHealthy()) {
+        bool escLinkMissing = false;
+#ifdef USE_MOTOR_SRXL2
+        /*
+         * An SRXL2 ESC announces itself in the third of a second after it gains
+         * power, and is silent from then on: if that announcement is missed the
+         * link never forms, and the throttle reaches nothing. Arming meanwhile
+         * commands a motor that is not listening - the model looks armed, the
+         * telemetry looks sane, and the propeller does not turn.
+         *
+         * Refuse to arm until the link is actually up. Where both come up on the
+         * same battery this costs about a second at power-up and is invisible;
+         * where it does not, it is the difference between finding out on the
+         * bench and finding out on the takeoff roll.
+         */
+        escLinkMissing = (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2)
+                         && !srxl2MotorIsConnected();
+#ifdef USE_SIMULATOR
+        // Not while a simulator flies the aircraft: HITL disables the outputs itself, so
+        // there is no motor to command and nothing this would protect
+        escLinkMissing = escLinkMissing && !ARMING_FLAG(SIMULATOR_MODE_HITL);
+#endif
+#endif
+        if (!isHardwareHealthy() || escLinkMissing) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
         }
         else {
