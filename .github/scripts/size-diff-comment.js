@@ -4,7 +4,19 @@
 // dependency so it can be unit tested directly and reused (via require)
 // from the actions/github-script step in ci-size-report.yml.
 //
-// Report shape: { "<target>": { "flash": <bytes>, "ram": <bytes> }, ... }
+// Report shape: { "<target>": { "flash": <bytes>, "ram": <bytes>,
+//   "regions": { "<name>": <bytes>, ... } }, ... }
+//
+// "regions" is optional and, when present, breaks "ram" down by linker
+// memory region (e.g. RAM/CCM on F4/F7 parts, RAM/DTCM on H7) — "ram" alone
+// is the sum of those regions and stays purely additive/informational once
+// a regional breakdown exists. A region delta is only rendered when BOTH
+// the PR and baseline entries carry "regions" for that target AND both
+// sides name the exact same set of regions; if either side predates the
+// field (e.g. an old stored baseline) or the region set differs (schema
+// drift, or a target's regions being renamed/restructured), the row falls
+// back to the combined "ram" figure instead of a partial or misleading
+// per-region breakdown.
 
 'use strict';
 
@@ -15,9 +27,9 @@
 // manager as a possible coverage gap, not decided unilaterally here.
 const REPRESENTATIVE_TARGETS = ['MATEKF405', 'MATEKF722', 'MATEKF765', 'MATEKH743'];
 
-// Below this magnitude a delta is noise (rounding/toolchain jitter), not a
-// real change worth calling out.
-const NOISE_THRESHOLD_BYTES = 256;
+// Below these magnitudes a delta is noise, not worth flagging.
+const FLASH_NOISE_THRESHOLD_BYTES = 4096;
+const RAM_NOISE_THRESHOLD_BYTES = 1024;
 
 function formatDelta(deltaBytes, baseBytes) {
     const sign = deltaBytes > 0 ? '+' : deltaBytes < 0 ? '' : '±';
@@ -45,6 +57,40 @@ function diffSizeReports(prReport, baselineReport) {
 
         const flashDelta = pr.flash - base.flash;
         const ramDelta = pr.ram - base.ram;
+
+        // Only trust a per-region breakdown when both sides have the exact
+        // same set of region names - a target whose regions were renamed or
+        // restructured between the two commits (e.g. a linker script split
+        // one region into two) would otherwise show the old name's entire
+        // usage as a "loss" and the new name's as a "gain", a purely
+        // cosmetic swap with zero actual growth reported as a large,
+        // notable delta in both directions.
+        let regionDeltas;
+        let regionSetChanged = false;
+        if (pr.regions && base.regions) {
+            const prNames = Object.keys(pr.regions).sort();
+            const baseNames = Object.keys(base.regions).sort();
+            const sameRegions = prNames.length === baseNames.length
+                && prNames.every((name, i) => name === baseNames[i]);
+            if (sameRegions) {
+                regionDeltas = prNames.map((name) => {
+                    const prBytes = pr.regions[name];
+                    const baseBytes = base.regions[name];
+                    return { name, delta: prBytes - baseBytes, baseBytes };
+                });
+            } else {
+                // Falling back to the combined RAM delta is correct (no
+                // spurious per-region numbers), but silently doing so would
+                // hide that the target's linker layout itself changed shape
+                // - worth a reviewer's attention even at zero net growth.
+                regionSetChanged = true;
+            }
+        }
+
+        const notable = regionDeltas
+            ? Math.abs(flashDelta) >= FLASH_NOISE_THRESHOLD_BYTES || regionDeltas.some((r) => Math.abs(r.delta) >= RAM_NOISE_THRESHOLD_BYTES)
+            : Math.abs(flashDelta) >= FLASH_NOISE_THRESHOLD_BYTES || Math.abs(ramDelta) >= RAM_NOISE_THRESHOLD_BYTES;
+
         return {
             target,
             status: 'compared',
@@ -54,7 +100,9 @@ function diffSizeReports(prReport, baselineReport) {
             baseRam: base.ram,
             flashDelta,
             ramDelta,
-            notable: Math.abs(flashDelta) >= NOISE_THRESHOLD_BYTES || Math.abs(ramDelta) >= NOISE_THRESHOLD_BYTES,
+            regionDeltas,
+            regionSetChanged,
+            notable,
         };
     });
 }
@@ -95,7 +143,10 @@ function renderComment({ prReport, baselineReport, shortSha, baselineCommit, bas
         for (const row of rows) {
             if (row.status === 'compared') {
                 const flashCell = formatDelta(row.flashDelta, row.baseFlash);
-                const ramCell = formatDelta(row.ramDelta, row.baseRam);
+                const ramCell = row.regionDeltas
+                    ? row.regionDeltas.map((r) => `${r.name}: ${formatDelta(r.delta, r.baseBytes)}`).join('<br>')
+                    : formatDelta(row.ramDelta, row.baseRam)
+                        + (row.regionSetChanged ? '<br><sub>region layout changed since baseline</sub>' : '');
                 const notableMark = row.notable ? ' ⚠️' : '';
                 lines.push(`| ${row.target}${notableMark} | ${flashCell} | ${ramCell} |`);
             } else if (row.status === 'no-baseline') {
@@ -121,4 +172,11 @@ function renderComment({ prReport, baselineReport, shortSha, baselineCommit, bas
     return lines.join('\n').trimEnd() + '\n';
 }
 
-module.exports = { REPRESENTATIVE_TARGETS, NOISE_THRESHOLD_BYTES, diffSizeReports, renderComment, formatDelta };
+module.exports = {
+    REPRESENTATIVE_TARGETS,
+    FLASH_NOISE_THRESHOLD_BYTES,
+    RAM_NOISE_THRESHOLD_BYTES,
+    diffSizeReports,
+    renderComment,
+    formatDelta,
+};

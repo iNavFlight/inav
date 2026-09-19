@@ -1495,7 +1495,7 @@ groups:
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: tpa_pitch_compensation
-        description: "Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down."
+        description: "Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains) when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active."
         default_value: 8
         field: throttle.tpa_pitch_compensation
         min: 0
@@ -2103,7 +2103,7 @@ groups:
         min: RPYL_PID_MIN
         max: RPYL_PID_MAX
       - name: fw_d_level
-        description: "Fixed-wing attitude stabilisation HORIZON transition point"
+        description: "Fixed-wing HORIZON transition point, expressed as stick deflection in percent. At this deflection self-levelling is faded out completely and the axis behaves like ACRO; below it, ANGLE and ACRO are blended proportionally. Despite the 0-255 CLI range, which is shared with the other PID values, the number is not scaled to 255: it is clamped to 100 internally, so 75 really means 75% stick and any value above 100 acts the same as 100."
         default_value: 75
         field: bank_fw.pid[PID_LEVEL].D
         min: RPYL_PID_MIN
@@ -2984,6 +2984,11 @@ groups:
         field: general.cruise_yaw_rate
         min: 0
         max: 120
+      - name: nav_cruise_lock_on_level
+        description: "Fixed wing only: when ON the COURSE HOLD/CRUISE course is locked only once the aircraft has rolled out level (below 10 deg bank) after a heading adjustment or a banked mode entry, following the actual course until then. Prevents overshooting the locked course during the level-off. OFF locks the course as soon as the sticks are centered (legacy behaviour)."
+        default_value: ON
+        field: general.cruise_lock_on_level
+        type: bool
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 35
@@ -3171,7 +3176,7 @@ groups:
         min: 1
         max: 10
       - name: nav_fw_control_smoothness
-        description: "How smoothly the autopilot controls the airplane to correct the navigation error"
+        description: "How smoothly the autopilot corrects the navigation error. Pitch uses a low-pass filter. Roll uses an S-curve easing window of n x 100 ms (max 900 ms) applied only when the commanded bank changes abruptly, so steady course tracking is never lagged. 0 = no roll smoothing."
         default_value: 0
         field: fw.control_smoothness
         min: 0
@@ -4658,7 +4663,7 @@ groups:
         min: 100
         max: 5000
       - name: nav_fw_land_flare_alt
-        description: "Initial altitude of the flare phase"
+        description: "Initial altitude of the flare phase. Requires a healthy rangefinder; without one the aircraft stays in the glide phase (see nav_fw_land_glide_alt/nav_fw_land_glide_pitch) all the way to touchdown."
         default_value: 150
         field: flareAltitude
         min: 0
@@ -4670,7 +4675,7 @@ groups:
         min: -15
         max: 45
       - name: nav_fw_land_flare_pitch
-        description: "Pitch value for flare phase. In degrees"
+        description: "Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder; the flare phase never activates without one."
         default_value: 8
         field: flarePitch
         min: -15
