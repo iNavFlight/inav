@@ -358,6 +358,49 @@ static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
+/*
+ * The major constellations to ask the receiver for: the ones selected, less any it
+ * does not have, cut down to as many as it says it can track at once. A receiver
+ * refuses a configuration it cannot run and carries on with the previous one, so a
+ * selection that does not fit would be lost whole. When it does not fit, the
+ * constellations INAV leaves off by default go first. The settings are left as they
+ * are, and apply in full on a receiver that can take them.
+ */
+static uint8_t ubloxGnssToEnable(void)
+{
+    static const uint8_t leaveOutFirst[] = {
+        UBX_MON_GNSS_GLONASS_MASK, UBX_MON_GNSS_BEIDOU_MASK, UBX_MON_GNSS_GALILEO_MASK
+    };
+
+    uint8_t gnss = UBX_MON_GNSS_GPS_MASK;
+    if (gpsState.gpsConfig->ubloxUseGalileo) {
+        gnss |= UBX_MON_GNSS_GALILEO_MASK;
+    }
+    if (gpsState.gpsConfig->ubloxUseBeidou) {
+        gnss |= UBX_MON_GNSS_BEIDOU_MASK;
+    }
+    if (gpsState.gpsConfig->ubloxUseGlonass) {
+        gnss |= UBX_MON_GNSS_GLONASS_MASK;
+    }
+
+    // Until MON-GNSS answers nothing is known, and the selection goes out as it is. The
+    // count is only trusted next to a fresh mask: it is not cleared between attempts
+    if (!ubx_capabilities.supported) {
+        return gnss;
+    }
+
+    gnss &= ubx_capabilities.supported;
+
+    for (unsigned i = 0; i < ARRAYLEN(leaveOutFirst); i++) {
+        if (ubx_capabilities.capMaxGnss <= 0 || __builtin_popcount(gnss) <= ubx_capabilities.capMaxGnss) {
+            break;
+        }
+        gnss &= ~leaveOutFirst[i];
+    }
+
+    return gnss;
+}
+
 static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
 {
     if (!gpsUbloxHasGalileo()) {
@@ -371,7 +414,7 @@ static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
     // 0x10 = Galileo E5a // off by default
     // 0x20 = Galileo E5b // off by default
     gnss_block->sigCfgMask = 0x01;
-    if (gpsState.gpsConfig->ubloxUseGalileo) {
+    if (ubloxGnssToEnable() & UBX_MON_GNSS_GALILEO_MASK) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
     } else {
@@ -395,7 +438,7 @@ static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
     // 0x10 = BeiDou B2I // off by default
     // 0x80 = BeiDou B2A // off by default
     gnss_block->sigCfgMask = 0x01;
-    if (gpsState.gpsConfig->ubloxUseBeidou) {
+    if (ubloxGnssToEnable() & UBX_MON_GNSS_BEIDOU_MASK) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
     } else {
@@ -437,7 +480,7 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
     // 0x01 = GLONASS L1
     // 0x10 = GLONASS L2 // off by default
     gnss_block->sigCfgMask = 0x01;
-    if (gpsState.gpsConfig->ubloxUseGlonass) {
+    if (ubloxGnssToEnable() & UBX_MON_GNSS_GLONASS_MASK) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
     } else {
@@ -450,9 +493,14 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 
 static void configureGNSS10(void)
 {
+        const uint8_t gnss = ubloxGnssToEnable();
+        const bool useGalileo = gnss & UBX_MON_GNSS_GALILEO_MASK;
+        const bool useBeidou = gnss & UBX_MON_GNSS_BEIDOU_MASK;
+        const bool useGlonass = gnss & UBX_MON_GNSS_GLONASS_MASK;
+
         // A dual band receiver has no B1I: its Beidou L1 signal is B1C, and it rejects a
         // configuration that would leave one of the two bands enabled without the other
-        const bool useB1C = ubxDualBand || gpsState.gpsConfig->ubloxUseGlonass;
+        const bool useB1C = ubxDualBand || useGlonass;
 
         ubx_config_data8_payload_t gnssConfigValues[] = {
             // SBAS
@@ -460,14 +508,14 @@ static void configureGNSS10(void)
             {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
 
             // Galileo
-            {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
-            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+            {UBLOX_CFG_SIGNAL_GAL_ENA, useGalileo},
+            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, useGalileo},
 
             // Beidou
             // M10 can't use BDS_B1I and Glonass together. Instead, use BDS_B1C
-            {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou && !useB1C},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && useB1C},
+            {UBLOX_CFG_SIGNAL_BDS_ENA, useBeidou},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, useBeidou && !useB1C},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, useBeidou && useB1C},
 
             // Should be enabled with GPS
             {UBLOX_CFG_QZSS_ENA, 1},
@@ -475,8 +523,8 @@ static void configureGNSS10(void)
             {UBLOX_CFG_QZSS_L1S_ENA, 1},
 
             // Glonass, must stay last so it can be left out
-            {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
-            {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
+            {UBLOX_CFG_GLO_ENA, useGlonass},
+            {UBLOX_CFG_GLO_L1_ENA, useGlonass}
         };
 
         // A receiver without Glonass has no Glonass keys either, and one unknown key makes it
