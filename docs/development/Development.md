@@ -168,9 +168,9 @@ Some files are generated from other source files. If your change touches the sou
 | Source changed | Regenerate with | Output file(s) | CI-enforced? |
 |---|---|---|---|
 | `src/main/fc/settings.yaml` | `python3 src/utils/update_cli_docs.py` | `docs/Settings.md` | Yes — `.github/workflows/docs.yml` diffs against a freshly regenerated copy and fails the build if stale |
-| Source enum headers under `src/main`, or `docs/development/msp/msp_messages.json` | `docs/development/msp/gen_docs.sh` | `docs/development/msp/inav_enums.json`, `docs/development/msp/README.md` | No — nothing regenerates or diff-checks these in CI, so a forgotten regeneration will ship stale MSP docs silently |
+| Source enum headers under `src/main`, or `docs/development/msp/msp_messages.json` | `src/utils/gen_msp_docs.sh` | `docs/development/msp/inav_enums.json`, `docs/development/msp/inav_enums_ref.md`, `docs/development/msp/README.md` | Partly — `.github/workflows/msp.yml` diffs `README.md` against a freshly regenerated copy and fails the build if stale. The enum files are not diffed, because they are rebuilt from every enum under `src/main` and would fail the job for unrelated changes |
 
-`msp_messages.json` itself is hand-authored — there is no script that generates it. When a new MSP handler is added to `fc_msp.c`, a corresponding entry must be added to `msp_messages.json` by hand. See `docs/development/msp/README.md` for the full regeneration and versioning rules.
+`msp_messages.json` itself is hand-authored — there is no script that generates it. When a new MSP handler is added to `fc_msp.c`, a corresponding entry must be added to `msp_messages.json` by hand; `src/utils/check_msp.py` runs in CI and fails the build when a command defined in the `src/main/msp/msp_protocol*.h` headers has no entry in the spec, or vice versa. See `docs/development/msp/README.md` for the full regeneration and versioning rules.
 
 ### Force pushing
 
