@@ -24,6 +24,7 @@
 
 #if !defined(SITL_BUILD) && !defined(RP2350)
 
+#include "build/atomic.h"
 #include "build/debug.h"
 
 #include "common/log.h"
@@ -31,6 +32,7 @@
 #include "common/circular_queue.h"
 
 #include "drivers/io.h"
+#include "drivers/nvic.h"
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
@@ -325,8 +327,11 @@ void pwmSetMotorDMACircular(bool circular)
                 if (circular) {
                     impl_pwmBurstDMASetCircular(burstDmaTimer, motors[m].pwmPort->tch, true, dshotKeepaliveBuffer, keepaliveSlots * 4);
                 } else {
-                    dshotWaitForKeepalivePadding(motors[m].pwmPort);
-                    impl_pwmBurstDMASetCircular(burstDmaTimer, motors[m].pwmPort->tch, false, burstDmaTimer->dmaBurstBuffer, DSHOT_DMA_BUFFER_SIZE * 4);
+                    // Atomic so no ISR can delay the stop past the padding into the next frame
+                    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+                        dshotWaitForKeepalivePadding(motors[m].pwmPort);
+                        impl_pwmBurstDMASetCircular(burstDmaTimer, motors[m].pwmPort->tch, false, burstDmaTimer->dmaBurstBuffer, DSHOT_DMA_BUFFER_SIZE * 4);
+                    }
                 }
                 break;
             }
@@ -339,8 +344,11 @@ void pwmSetMotorDMACircular(bool circular)
             if (circular) {
                 impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, true, dshotKeepaliveBuffer, keepaliveSlots);
             } else {
-                dshotWaitForKeepalivePadding(motors[i].pwmPort);
-                impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, false, motors[i].pwmPort->dmaBuffer, DSHOT_DMA_BUFFER_SIZE);
+                // Atomic so no ISR can delay the stop past the padding into the next frame
+                ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+                    dshotWaitForKeepalivePadding(motors[i].pwmPort);
+                    impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, false, motors[i].pwmPort->dmaBuffer, DSHOT_DMA_BUFFER_SIZE);
+                }
             }
         }
     }
