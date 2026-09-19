@@ -1,0 +1,122 @@
+name: Parameter Group Version Check Comment
+
+# Posts the PG version warning comment from a privileged context so it also works
+# for PRs opened from forks, whose pull_request GITHUB_TOKEN is read-only. The
+# unprivileged "Parameter Group Version Check" workflow uploads the checker output
+# and PR number as artifacts; this workflow only downloads them — it never executes
+# pull-request code.
+on:
+  workflow_run:
+    workflows: ["Parameter Group Version Check"]
+    types: [completed]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    # Only act on pull_request-triggered runs that succeeded (a checker error fails
+    # the check job, so its conclusion is not 'success').
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    permissions:
+      actions: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Download PG check result
+        uses: actions/download-artifact@v4
+        with:
+          name: pg-check-result
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post or update comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const prNumber = Number(fs.readFileSync('pr_number.txt', 'utf8').trim());
+            const output = fs.readFileSync('pg_output.txt', 'utf8');
+
+            if (!output.includes('PG version issue:')) {
+              console.log('No PG version issues to report; nothing to do.');
+              return;
+            }
+
+            let issuesContent = '';
+
+            try {
+              // Extract issues from output (everything after the warning line)
+              const lines = output.split('\n');
+              let capturing = false;
+              let issues = [];
+
+              for (const line of lines) {
+                if (line.includes('PG version issue:')) {
+                  capturing = true;
+                }
+                if (capturing) {
+                  issues.push(line);
+                }
+              }
+
+              issuesContent = issues.join('\n');
+            } catch (err) {
+              console.log('Error capturing issues:', err);
+              issuesContent = '*Unable to extract detailed issues*';
+            }
+
+            const commentBody = '## ⚠️ Parameter Group Version Check\n\n' +
+              'The following parameter groups may need version increments:\n\n' +
+              issuesContent + '\n\n' +
+              '**Why this matters:**\n' +
+              'Modifying PG struct fields without incrementing the version can cause settings corruption when users flash new firmware. The `pgLoad()` function validates versions and will use defaults if there\'s a mismatch, preventing corruption.\n\n' +
+              '**When to increment the version:**\n' +
+              '- ✅ Adding/removing fields\n' +
+              '- ✅ Changing field types or sizes\n' +
+              '- ✅ Reordering fields\n' +
+              '- ✅ Adding/removing packing attributes\n' +
+              '- ❌ Only changing default values in `PG_RESET_TEMPLATE`\n' +
+              '- ❌ Only changing comments\n\n' +
+              '**Reference:**\n' +
+              '- [Parameter Group Documentation](../docs/development/parameter_groups/)\n' +
+              '- Example: [PR #11236](https://github.com/iNavFlight/inav/pull/11236) (field removal requiring version increment)\n\n' +
+              '---\n' +
+              '*This is an automated check. False positives are possible. If you believe the version increment is not needed, please explain in a comment.*';
+
+            try {
+              // Check if we already commented
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              });
+
+              const botComment = comments.find(comment =>
+                comment.user.login === 'github-actions[bot]' &&
+                comment.body.includes('Parameter Group Version Check')
+              );
+
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: commentBody
+                });
+                console.log('Updated existing PG version check comment');
+              } else {
+                // Post new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: commentBody
+                });
+                console.log('Posted new PG version check comment');
+              }
+            } catch (err) {
+              core.setFailed(`Failed to post comment: ${err}`);
+            }
