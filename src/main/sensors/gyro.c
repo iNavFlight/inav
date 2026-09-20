@@ -409,6 +409,15 @@ bool gyroInit(void)
     return true;
 }
 
+/* Zero calibration works on raw gyro readings, so the movement threshold has to be
+ * expressed in that sensor's LSB. Each gyro is asked for its own scale: a dual-IMU
+ * board may pair two unrelated parts, and the primary's sensitivity would be the
+ * wrong reference for the secondary. */
+static float gyroMovementThreshold(uint8_t index)
+{
+    return CALIBRATING_GYRO_MORON_THRESHOLD_DPS / gyroDev[index].scale;
+}
+
 void gyroStartCalibration(void)
 {
     if (!gyro.initialized) {
@@ -419,13 +428,10 @@ void gyroStartCalibration(void)
     // The secondary measures its own zero and ignores init_gyro_cal: gyro_zero_cal is a
     // single stored value, and it belongs to the gyro that flies
     if (gyro.secondaryInitialized) {
-        // The threshold is in raw counts, so convert it into the secondary's own scale
-        const float secondaryThreshold = CALIBRATING_GYRO_MORON_THRESHOLD *
-            gyroDev[GYRO_PRIMARY].scale / gyroDev[GYRO_SECONDARY].scale;
-
         // Asked to succeed like the primary: a window ending on a moving aircraft restarts
         gyroCalibrationComplete[GYRO_SECONDARY] = false;
-        zeroCalibrationStartV(&gyroCalibration[GYRO_SECONDARY], CALIBRATING_GYRO_TIME_MS, secondaryThreshold, false);
+        zeroCalibrationStartV(&gyroCalibration[GYRO_SECONDARY], CALIBRATING_GYRO_TIME_MS,
+                              gyroMovementThreshold(GYRO_SECONDARY), false);
     }
 #endif
 
@@ -436,7 +442,7 @@ void gyroStartCalibration(void)
 #endif
 
     gyroCalibrationComplete[GYRO_PRIMARY] = false;
-    zeroCalibrationStartV(&gyroCalibration[GYRO_PRIMARY], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, false);
+    zeroCalibrationStartV(&gyroCalibration[GYRO_PRIMARY], CALIBRATING_GYRO_TIME_MS, gyroMovementThreshold(GYRO_PRIMARY), false);
 }
 
 #ifdef USE_DUAL_GYRO

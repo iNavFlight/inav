@@ -179,6 +179,10 @@ static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
+// osdOverrideLayout() is also called by MSP (a timed Configurator preview,
+// unrelated to whether the CMS menu is open) - only a menu-owned override may
+// be force-cleared when the menu goes away unexpectedly.
+static bool layoutOverrideOwnedByMenu = false;
 static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 
 // OSD Filters
@@ -1601,10 +1605,12 @@ static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_
     osdFormatCentiNumber(buff, voltage, 0, decimals, 0, digits, false);
     buff[digits] = SYM_VOLT;
     buff[digits+1] = '\0';
+#ifdef USE_ADC
     const batteryState_e batteryVoltageState = checkBatteryVoltageState();
     if (batteryVoltageState == BATTERY_CRITICAL || batteryVoltageState == BATTERY_WARNING) {
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
     }
+#endif
     displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
 }
 
@@ -3779,7 +3785,7 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[1] = SYM_BLANK;
             bool valid = isEstimatedWindSpeedValid();
             float verticalWindSpeed;
-            verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
+            verticalWindSpeed = getEstimatedWindSpeed(Z);  // NEU
             if (verticalWindSpeed < 0) {
                 buff[1] = SYM_AH_DECORATION_DOWN;
                 verticalWindSpeed = -verticalWindSpeed;
@@ -6024,6 +6030,22 @@ void osdUpdate(timeUs_t currentTimeUs)
     // boxes take priority.
     unsigned activeLayout;
     if (layoutOverride >= 0) {
+#ifdef USE_CMS
+        // Drop a menu-owned override as soon as the menu is gone, since the
+        // menu can be closed without the layout editor's onExit running
+        // (in-flight auto-close), which would otherwise leave the OSD stuck
+        // on the layout being edited. A timed override requested over MSP
+        // (Configurator preview) is unrelated to cmsInMenu and must not be
+        // cancelled here - it expires on its own via layoutOverrideUntil below.
+        if (!cmsInMenu && layoutOverrideOwnedByMenu) {
+            layoutOverrideUntil = 0;
+            layoutOverride = -1;
+            layoutOverrideOwnedByMenu = false;
+        }
+#endif
+    }
+
+    if (layoutOverride >= 0) {
         activeLayout = layoutOverride;
         // Check for timed override, it will go into effect on
         // the next OSD iteration
@@ -6099,6 +6121,11 @@ void osdOverrideLayout(int layout, timeMs_t duration)
     } else {
         layoutOverrideUntil = 0;
     }
+}
+
+void osdSetLayoutOverrideOwnedByMenu(bool owned)
+{
+    layoutOverrideOwnedByMenu = owned;
 }
 
 int osdGetActiveLayout(bool *overridden)

@@ -342,7 +342,10 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
     sbufWriteU8(dst, afatfs_getLastError());
     // Write free space and total space in kilobytes
     sbufWriteU32(dst, afatfs_getContiguousFreeSpace() / 1024);
-    sbufWriteU32(dst, sdcard_getMetadata()->numBlocks / 2); // Block size is half a kilobyte
+    // NULL until a card driver has been bound, which is the normal state of a board whose
+    // blackbox does not use the SD card, and of SITL launched without --sdcard
+    const sdcardMetadata_t *metadata = sdcard_getMetadata();
+    sbufWriteU32(dst, metadata ? metadata->numBlocks / 2 : 0); // Block size is half a kilobyte
 #else
     sbufWriteU8(dst, 0);
     sbufWriteU8(dst, 0);
@@ -5105,42 +5108,41 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     int dataSize = sbufBytesRemaining(src);
-    UNUSED(dataSize);
 
     switch (cmdMSP) {
 #if defined(USE_RANGEFINDER_MSP)
         case MSP2_SENSOR_RANGEFINDER:
-            mspRangefinderReceiveNewData(sbufPtr(src));
+            mspRangefinderReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_OPFLOW_MSP)
         case MSP2_SENSOR_OPTIC_FLOW:
-            mspOpflowReceiveNewData(sbufPtr(src));
+            mspOpflowReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_GPS_PROTO_MSP)
         case MSP2_SENSOR_GPS:
-            mspGPSReceiveNewData(sbufPtr(src));
+            mspGPSReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_MAG_MSP)
         case MSP2_SENSOR_COMPASS:
-            mspMagReceiveNewData(sbufPtr(src));
+            mspMagReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_BARO_MSP)
         case MSP2_SENSOR_BAROMETER:
-            mspBaroReceiveNewData(sbufPtr(src));
+            mspBaroReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_PITOT_MSP)
         case MSP2_SENSOR_AIRSPEED:
-            mspPitotmeterReceiveNewData(sbufPtr(src));
+            mspPitotmeterReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 

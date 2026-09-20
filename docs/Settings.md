@@ -1446,7 +1446,7 @@ Minimum stick input [%], after applying deadband and expo, to start recording th
 
 ### fw_d_level
 
-Fixed-wing attitude stabilisation HORIZON transition point
+Fixed-wing HORIZON transition point, expressed as stick deflection in percent. At this deflection self-levelling is faded out completely and the axis behaves like ACRO; below it, ANGLE and ACRO are blended proportionally. Despite the 0-255 CLI range, which is shared with the other PID values, the number is not scaled to 255: it is clamped to 100 internally, so 75 really means 75% stick and any value above 100 acts the same as 100.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3519,7 +3519,7 @@ The number of motor poles. Required to compute motor RPM
 
 ### motor_pwm_protocol
 
-Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED
+Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, MULTISHOT, BRUSHED, DSHOT150, DSHOT300, DSHOT600
 
 | Allowed Values |  |
 | --- | --- |
@@ -3590,6 +3590,16 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 | Default | Min | Max |
 | --- | --- | --- |
 | 500 | 10 | 2000 |
+
+---
+
+### nav_cruise_lock_on_level
+
+Fixed wing only: when ON the COURSE HOLD/CRUISE course is locked only once the aircraft has rolled out level (below 10 deg bank) after a heading adjustment or a banked mode entry, following the actual course until then. Prevents overshooting the locked course during the level-off. OFF locks the course as soon as the sticks are centered (legacy behaviour).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
 
 ---
 
@@ -3726,7 +3736,7 @@ Max pitch angle when climbing in GPS assisted modes, is also restrained by globa
 
 ### nav_fw_control_smoothness
 
-How smoothly the autopilot controls the airplane to correct the navigation error
+How smoothly the autopilot corrects the navigation error. Pitch uses a low-pass filter. Roll uses an S-curve easing window of n x 100 ms (max 900 ms) applied only when the commanded bank changes abruptly, so steady course tracking is never lagged. 0 = no roll smoothing.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3806,7 +3816,7 @@ Modifier for pitch to throttle ratio at final approach. In Percent.
 
 ### nav_fw_land_flare_alt
 
-Initial altitude of the flare phase
+Initial altitude of the flare phase. Requires a healthy rangefinder; without one the aircraft stays in the glide phase (see nav_fw_land_glide_alt/nav_fw_land_glide_pitch) all the way to touchdown.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3816,7 +3826,7 @@ Initial altitude of the flare phase
 
 ### nav_fw_land_flare_pitch
 
-Pitch value for flare phase. In degrees
+Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder; the flare phase never activates without one.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7198,7 +7208,7 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_pitch_compensation
 
-Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down.
+Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains) when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active.
 
 | Default | Min | Max |
 | --- | --- | --- |
