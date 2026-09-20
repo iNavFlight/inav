@@ -865,7 +865,9 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
 #ifdef USE_DUAL_GYRO
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY:
-        return gyro.secondaryInitialized;
+        // The setting that asks for the field, not merely a second sensor that is
+        // running: anything else that starts one would put it in the log as well
+        return gyroConfig()->gyro_secondary_enabled && gyro.secondaryInitialized;
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL:
