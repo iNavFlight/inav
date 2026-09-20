@@ -643,6 +643,26 @@ void FAST_CODE NOINLINE gyroFilter(void)
 
 }
 
+#ifdef USE_DUAL_GYRO
+/* Deliberately not in the fast section. The secondary only feeds the log, so it is read
+ * while it measures its zero and while a log is being written, and on a board with two
+ * IMUs the fast section is often the tightest part of the memory map: a GEPRCF745_BT_HD
+ * has under a hundred bytes of it to spare. */
+static void NOINLINE gyroUpdateSecondary(void)
+{
+    // It goes before the primary, whose path returns early on a failed read
+    if (!gyro.secondaryInitialized || (!gyroSecondaryLogging && gyroCalibrationComplete[GYRO_SECONDARY])) {
+        return;
+    }
+
+    if (!gyroUpdateAndCalibrate(GYRO_SECONDARY, gyro.gyroRaw2)) {
+        gyro.gyroRaw2[X] = 0.0f;
+        gyro.gyroRaw2[Y] = 0.0f;
+        gyro.gyroRaw2[Z] = 0.0f;
+    }
+}
+#endif
+
 void FAST_CODE NOINLINE gyroUpdate(void)
 {
 #ifdef USE_SIMULATOR
@@ -657,15 +677,7 @@ void FAST_CODE NOINLINE gyroUpdate(void)
     }
 
 #ifdef USE_DUAL_GYRO
-    // The secondary only feeds the log, so it is read while it measures its zero and while
-    // a log is being written. It goes first: the primary's path returns early on a failed read
-    if (gyro.secondaryInitialized && (gyroSecondaryLogging || !gyroCalibrationComplete[GYRO_SECONDARY])) {
-        if (!gyroUpdateAndCalibrate(GYRO_SECONDARY, gyro.gyroRaw2)) {
-            gyro.gyroRaw2[X] = 0.0f;
-            gyro.gyroRaw2[Y] = 0.0f;
-            gyro.gyroRaw2[Z] = 0.0f;
-        }
-    }
+    gyroUpdateSecondary();
 #endif
 
     if (!gyroUpdateAndCalibrate(GYRO_PRIMARY, gyro.gyroADCf)) {
