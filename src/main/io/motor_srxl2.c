@@ -219,6 +219,7 @@ typedef struct {
     srxl2EscTelemetry_t telemetry;
 
     uint32_t  statTxFrames, statRxFrames, statCrcErrors, statHandshakes;
+    uint32_t  statEchoFrames;           /* our own frames heard back on a single wire */
 } srxl2Esc_t;
 
 static srxl2Esc_t esc[SRXL2_ESC_MAX_MOTORS];
@@ -448,6 +449,23 @@ static void srxl2HandleFrame(srxl2Esc_t *e, const uint8_t *buf, uint8_t len)
     const uint16_t crc = crc16_ccitt_update(0, buf, len - 2);
     if (buf[len - 2] != (uint8_t)(crc >> 8) || buf[len - 1] != (uint8_t)(crc & 0xFF)) {
         e->statCrcErrors++;
+        return;
+    }
+
+    /* On a single wire the receiver hears what this driver has just transmitted, and
+     * the serial layer passes it up like anything else. Our own frames must not count
+     * as the ESC answering: with the control frame going out every 20 ms, the link
+     * timeout would never fire and an ESC that had been unplugged would still look
+     * connected. Which frames can only be ours is known: the control data this driver
+     * sends, and a handshake carrying our own source ID. */
+    if (buf[1] == ControlData) {
+        e->statEchoFrames++;
+        return;
+    }
+
+    if (buf[1] == Handshake && len >= sizeof(Srxl2HandshakeFrame)
+        && ((const Srxl2HandshakeFrame *)buf)->payload.sourceDeviceId == SRXL2_OUR_DEVICE_ID) {
+        e->statEchoFrames++;
         return;
     }
 
