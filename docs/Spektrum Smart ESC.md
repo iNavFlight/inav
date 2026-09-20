@@ -49,8 +49,11 @@ a UART pin, not a timer output, so a motor protocol of `SRXL2` with no port assi
 means the motor is never driven. The Outputs tab warns when that is the case.
 
 If your firmware was not built with this support the protocol does not appear in the
-list at all, and neither does the port function. It is enabled by default on H7 and
-AT32 targets; other targets can add `#define USE_MOTOR_SRXL2` to their `target.h`.
+list at all, and neither does the port function. It is enabled by default on F405, H7
+and AT32 targets, which is where the flash to spare is: the driver costs about 3.5 KB,
+and an F405 board typically uses three quarters of its flash. The F7 family is left out
+because some of its targets are close to full, so an F7 board with room can turn it on
+with a `#define USE_MOTOR_SRXL2` in its `target.h`, as can any other target.
 
 ## One ESC per port, several ports
 
