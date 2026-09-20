@@ -81,8 +81,8 @@
 #define NAV_FW_ARC_RADIAL_GAIN       0.5f       // [centideg bank / cm radial error] pull back onto the arc radius (TBD from flight)
 #define NAV_FW_ARC_HEADING_GAIN      0.3f       // [centideg bank / centideg tangent heading error] align to the arc (TBD from flight)
 #define NAV_FW_ARC_EXIT_GAIN         2.0f       // [centideg bank / centideg heading error] proportional roll-out capture: bank -> 0 as cog reaches the out-leg (no overshoot)
-#define NAV_FW_ARC_EXIT_HANDOFF_CD   300        // [centideg] hand back to the PID within this heading error of the out-leg
-                                                // (residual bank is bounded by the separate bank gate, not by this)
+#define NAV_FW_ARC_EXIT_HANDOFF_CD   500        // [centideg] hand back to the PID within this heading error of the out-leg
+#define NAV_FW_ARC_EXIT_BANK_CD      1000.0f    // [centideg] ... and below this arc bank command; the residual bank hands over into the tracker
 #define NAV_FW_ARC_AWAY_TIMEOUT_FACTOR 1.5f     // half away-circle traverse times, before the away arc is abandoned
 #define NAV_FW_ARC_SHARP_TURN_CD     15000      // [centideg] beyond this the tangent points explode toward the 180 deg reversal -> capture-only turn
 
@@ -1119,7 +1119,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         fwArcBankCmd += constrainf(cmd - fwArcBankCmd, -maxStepCd, maxStepCd);
         // Mid-S the gap between the arcs stays engaged: handing back there would give the PID and
         // path tracking a moment of control while we sit a full turn diameter off the leg.
-        if (ABS(hdgErrOut) <= NAV_FW_ARC_EXIT_HANDOFF_CD && fabsf(fwArcBankCmd) <= phiNomCd * 0.1f
+        if (ABS(hdgErrOut) <= NAV_FW_ARC_EXIT_HANDOFF_CD && fabsf(fwArcBankCmd) <= NAV_FW_ARC_EXIT_BANK_CD
             && intoStage != FW_INTO_AWAY) {                     // aligned and nearly level -> hand back
             fwArcEngaged = false;
             DEBUG_SET(DEBUG_FW_TURN, 1, 0);                     // released: don't leave stale values in the log
