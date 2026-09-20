@@ -106,14 +106,16 @@ float acos_approx(float x)
 #endif
 
 /**
- * Fast power approximation for positive base values.
+ * Fast power approximation for positive, finite base values.
  * Uses bit manipulation via the identity: x^y = 2^(y * log2(x))
  * Optimized for embedded systems - approximately 5-10x faster than powf().
- * 
- * Accuracy: ~1-3% error for typical ranges, sufficient for TPA calculations.
- * Note: Only valid for base > 0. Returns 0 for invalid inputs.
+ * Worst-case error is in the ~10% range, not a couple percent - don't use
+ * where accuracy matters more than speed.
+ * NaN inputs return 0 rather than propagating, matching fast_fsqrtf(). Base
+ * <= 0, or non-finite base/exp, fall back to real powf() since the bit-trick
+ * doesn't handle them.
  */
-float fast_powf(float base, float exp)
+float powf_approx(float base, float exp)
 {
     // Handle common special cases for maximum speed
     if (exp == 0.0f) {
@@ -122,8 +124,11 @@ float fast_powf(float base, float exp)
     if (exp == 1.0f) {
         return base;
     }
-    if (base <= 0.0f) {
-        return 0.0f;  // Invalid input
+    if (isnan(base) || isnan(exp)) {
+        return 0.0f;
+    }
+    if (base <= 0.0f || isinf(base) || isinf(exp)) {
+        return powf(base, exp);
     }
     if (exp == 2.0f) {
         return base * base;
@@ -131,7 +136,7 @@ float fast_powf(float base, float exp)
     if (exp == 0.5f) {
         return fast_fsqrtf(base);
     }
-    
+
     // For general case, use bit manipulation approximation
     // Based on: x^y = 2^(y * log2(x))
     // Using IEEE 754 floating point representation
