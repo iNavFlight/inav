@@ -108,6 +108,20 @@ RC version strings must use **lowercase `rc`** joined to the version with a **hy
 
 The Configurator firmware flasher uses a case-sensitive regex to parse firmware filenames. Uppercase `RC` or underscore separators cause the target board name to be misread, making the firmware invisible in the flasher even after a successful release upload.
 
+## Reserving the Previous Major's Patch Number (New Major Versions Only)
+
+**Applies only the first time a new major's version string is set** (e.g. first setting `10.0.0` on `maintenance-10.x`). Not needed for RC-to-RC or patch releases.
+
+**The hazard:** once the new major's version is set, a later patch fix on the previous major's release branch has to be merged forward into the new major's branch. If that forward-merge happens after the new version was set, it can carry the old branch's version-string commit along and silently overwrite it.
+
+**Before setting the new major's version number:**
+1. Bump the patch level on the previous major's release branch — even with no pending fix, to reserve the number. Check each repo's actual next-unused patch number rather than assuming firmware and configurator match (a configurator-only patch release can use up a number on one repo but not the other).
+2. Ensure a GitHub milestone exists for that version (and for the new major version) on both repos.
+3. Commit, then PR that bump forward into the new major's branch — **never use GitHub's "Resolve conflicts" button** on that PR (see [Maintenance Branches](#maintenance-branches) below for why).
+4. Only after that PR merges, set the new major's version number.
+
+The PR that sets the new major's version number should remind the maintainer of this merge order in its description, since GitHub won't enforce it. See the third-party repo linked above for the full procedure and rationale.
+
 ---
 
 ## Pre-Release Checklist
@@ -118,6 +132,7 @@ The Configurator firmware flasher uses a case-sensitive regex to parse firmware 
 - [ ] CI passing on target branch
 - [ ] No critical open issues blocking release
 - [ ] Version numbers updated in both repositories
+- [ ] **GitHub milestone for this version exists on both repos** (create if missing)
 - [ ] SITL binaries updated in configurator
 - [ ] WASM SITL built and added to configurator `js/web/WASM/` (10.x+)
 - [ ] **PG struct validation passed** (see [PG Validation](#pg-parameter-group-validation))
@@ -127,7 +142,7 @@ The Configurator firmware flasher uses a case-sensitive regex to parse firmware 
 - [ ] Release notes drafted
 - [ ] Breaking changes documented
 - [ ] New features documented
-- [ ] **Configurator migration profile created** for major version bumps (see [Backup Restore Architecture](Backup%20Restore%20Architecture.md#adding-a-new-migration-profile))
+- [ ] **Configurator migration profile created** for major version bumps (see [Backup Restore Architecture](Backup%20Restore%20Architecture.md#adding-a-new-migration-profile)) — must land in the same PR as the SITL update (step 3 below), **before** the RC configurator build; the prerequisite is the freeze point, not the GitHub draft release, which happens too late (artifacts already built by then)
 
 ## Release Workflow
 
@@ -140,6 +155,11 @@ The Configurator firmware flasher uses a case-sensitive regex to parse firmware 
    ├── CI passing on firmware target commit
    └── PG struct validation passed
 
+1.5. Open draft releases with auto-generated notes (both repos)
+   ├── gh release create <version> --target <freeze-commit> --draft --prerelease --generate-notes
+   ├── No tag required yet (drafts don't create a real tag until published)
+   └── This PR list is the source for the changelog (step 6) and the migration profile's settings cross-check
+
 2. Download firmware artifacts FIRST
    ├── Download firmware hex files from CI
    ├── Download SITL binaries from same CI run
@@ -149,6 +169,7 @@ The Configurator firmware flasher uses a case-sensitive regex to parse firmware 
 
 3. Update SITL (and WASM SITL) in configurator
    ├── Create PR with SITL binaries from step 2 (and WASM artifacts + SITL-Webassembly.js import fix for 10.x+)
+   ├── Add the migration profile here too, for major versions (see Pre-Release Checklist above)
    ├── Wait for configurator CI to pass
    └── Merge SITL update PR
 
@@ -593,6 +614,8 @@ When releasing a new major version, create maintenance branches:
 - **maintenance-X.x** - For bugfixes to version X
 - **maintenance-(X+1).x** - For breaking changes targeting the next major version
 
+**When to create the next major's branch:** the first RC of a new major version is a good time (e.g. create `maintenance-11.x` around `10.0.0-RC1`). Once a version enters RC/stabilization, its maintenance branch should take only fixes; new breaking work goes to the next major's branch instead.
+
 ### Creating Maintenance Branches
 
 ```bash
@@ -604,6 +627,10 @@ gh api repos/iNavFlight/inav/git/refs -f ref="refs/heads/maintenance-9.x" -f sha
 # inav-configurator
 gh api repos/iNavFlight/inav-configurator/git/refs -f ref="refs/heads/maintenance-9.x" -f sha="$COMMIT_SHA"
 ```
+
+**Also create a matching GitHub milestone** for the new major version on both repos if one doesn't already exist.
+
+**Also update the PR branch-suggestion workflow** in both repos (`.github/workflows/pr-branch-suggestion.yml`), which comments on PRs targeting `master` to suggest the right version branch — update the branch names it mentions to the current pair (compatible / breaking).
 
 ### Branch Usage
 
