@@ -443,7 +443,7 @@ void impl_timerPWMStopDMA(TCH_t * tch)
     tmr_counter_enable(tch->timHw->tim, TRUE);
 }
 
-void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferSize)
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, void * dmaBuffer, uint32_t dmaBufferSize)
 {
     if (!tch->dma || !tch->dma->ref) {
         return;
@@ -469,7 +469,6 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferS
 
         if (circular) {
             tch->dma->ref->ctrl_bit.lm = TRUE;
-            dma_data_number_set(tch->dma->ref, dmaBufferSize);
             if (tch->dmaRefillCallback) {
                 // Refill consumer needs an IRQ every half-cycle to keep the
                 // buffer fed
@@ -488,10 +487,18 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferS
             tch->dmaState = TCH_DMA_IDLE;
         }
 
+        // Memory address / data count are only writable while the channel is disabled (checked above)
+        tch->dma->ref->maddr = (uint32_t)dmaBuffer;
+        dma_data_number_set(tch->dma->ref, dmaBufferSize);
+
         // Ensure register writes are visible to DMA before re-enabling
         __DSB();
 
-        dma_channel_enable(tch->dma->ref, TRUE);
-        tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], TRUE);
+        // Normal mode: leave the channel stopped, as after a completed frame; the next
+        // frame is started by impl_timerPWMPrepareDMA()/impl_timerPWMStartDMA()
+        if (circular) {
+            dma_channel_enable(tch->dma->ref, TRUE);
+            tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], TRUE);
+        }
     }
 }
