@@ -235,7 +235,8 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "VTOL_TRANSITION",
     "VTOL_MC_PROTECT",
     "TERRAIN_NAV",
-    "ESC"
+    "ESC",
+    "FW_TURN"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
