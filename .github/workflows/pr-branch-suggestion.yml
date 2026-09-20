@@ -20,9 +20,9 @@ jobs:
 
             You've targeted the \`master\` branch with this PR. Please consider if a version branch might be more appropriate:
 
-            - **\`maintenance-9.x\`** - If your change is backward-compatible and won't create compatibility issues between INAV firmware and Configurator 9.x versions. This will allow your PR to be included in the next 9.x release.
+            - **\`maintenance-10.x\`** - If your change is backward-compatible and won't create compatibility issues between INAV firmware and Configurator 10.x versions. This will allow your PR to be included in the next 10.x release.
 
-            - **\`maintenance-10.x\`** - If your change introduces compatibility requirements between firmware and configurator that would break 9.x compatibility. This is for PRs which will be included in INAV 10.x
+            - **\`maintenance-11.x\`** - If your change introduces compatibility requirements between firmware and configurator that would break 10.x compatibility. This is for PRs which will be included in INAV 11.x
 
             If \`master\` is the correct target for this change, no action is needed.
 
