@@ -50,6 +50,9 @@
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
+#define USE_BARO_DPS310        // Enables the driver for your GEPRC module
+#define DPS310_I2C_ADDR 0x77   // Sets the specific address for the DPS310
+#define BARO_I2C_ADR    0x77   // General override for the I2C bus
 
 #define PITOT_I2C_BUS           I2C_EXT_BUS
 
