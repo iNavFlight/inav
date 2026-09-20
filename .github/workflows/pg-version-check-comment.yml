@@ -2,9 +2,11 @@ name: Parameter Group Version Check Comment
 
 # Posts the PG version warning comment from a privileged context so it also works
 # for PRs opened from forks, whose pull_request GITHUB_TOKEN is read-only. The
-# unprivileged "Parameter Group Version Check" workflow uploads the checker output
-# and PR number as artifacts; this workflow only downloads them — it never executes
-# pull-request code.
+# unprivileged "Parameter Group Version Check" workflow uploads its checker output
+# as an artifact; this workflow only downloads that text — it never executes
+# pull-request code. The target PR is identified from this workflow_run event's
+# own trusted metadata, never from anything the unprivileged (fork-editable)
+# workflow wrote.
 on:
   workflow_run:
     workflows: ["Parameter Group Version Check"]
@@ -36,7 +38,23 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const prNumber = Number(fs.readFileSync('pr_number.txt', 'utf8').trim());
+
+            // The PR number must come from workflow_run's own trusted metadata, not from
+            // anything the (fork-editable) checker workflow wrote into its artifact — a
+            // fork PR can rewrite that workflow's steps to stage an arbitrary pr_number.txt
+            // and redirect this privileged token's comment to any issue/PR.
+            const pullRequests = context.payload.workflow_run.pull_requests || [];
+            if (pullRequests.length !== 1) {
+              console.log(`Expected exactly one associated pull request, found ${pullRequests.length}; skipping comment.`);
+              return;
+            }
+            const pr = pullRequests[0];
+            if (pr.head.sha !== context.payload.workflow_run.head_sha) {
+              console.log('Associated pull request head SHA does not match the workflow run; skipping comment.');
+              return;
+            }
+            const prNumber = pr.number;
+
             const output = fs.readFileSync('pg_output.txt', 'utf8');
 
             if (!output.includes('PG version issue:')) {

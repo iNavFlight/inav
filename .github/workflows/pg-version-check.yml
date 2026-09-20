@@ -60,14 +60,11 @@ jobs:
           # metacharacters in it are not reinterpreted.
           PG_CHECK_OUTPUT: ${{ steps.pg_check.outputs.output }}
         run: |
-          echo "${{ github.event.pull_request.number }}" > pr_number.txt
           printf '%s\n' "$PG_CHECK_OUTPUT" > pg_output.txt
 
       - name: Upload PG check result
         uses: actions/upload-artifact@v4
         with:
           name: pg-check-result
-          path: |
-            pr_number.txt
-            pg_output.txt
+          path: pg_output.txt
           retention-days: 1
