@@ -3607,6 +3607,143 @@ Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this r
 
 ---
 
+### mztc_auto_shutter
+
+Auto shutter calibration mode
+
+| Allowed Values |  |
+| --- | --- |
+| TEMP_ONLY |  |
+| TIME_ONLY |  |
+| TIME_AND_TEMP | Default |
+
+---
+
+### mztc_brightness
+
+Image brightness (0-100)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 100 |
+
+---
+
+### mztc_contrast
+
+Image contrast (0-100)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 100 |
+
+---
+
+### mztc_digital_enhancement
+
+Digital enhancement level (0-100)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 100 |
+
+---
+
+### mztc_ffc_interval
+
+Automatic shutter interval in minutes. The camera runs the schedule itself. Set mztc_auto_shutter to TEMP_ONLY to stop it correcting on a timer.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 60 |
+
+---
+
+### mztc_mirror_mode
+
+Image mirroring mode
+
+| Allowed Values |  |
+| --- | --- |
+| NONE | Default |
+| HORIZONTAL |  |
+| VERTICAL |  |
+| CENTRAL |  |
+
+---
+
+### mztc_palette_mode
+
+Color palette mode
+
+| Allowed Values |  |
+| --- | --- |
+| WHITE_HOT | Default |
+| BLACK_HOT |  |
+| FUSION_1 |  |
+| RAINBOW |  |
+| FUSION_2 |  |
+| IRON_RED_1 |  |
+| IRON_RED_2 |  |
+| SEPIA |  |
+| COLOR_1 |  |
+| COLOR_2 |  |
+| ICE_FIRE |  |
+| RAIN |  |
+| GREEN_HOT |  |
+| RED_HOT |  |
+
+---
+
+### mztc_preset
+
+Purpose preset for the MassZero Thermal Camera. Selecting one writes the palette, brightness, contrast, enhancement, denoise, shutter mode and correction interval. CUSTOM writes nothing and keeps hand-tuned values
+
+| Allowed Values |  |
+| --- | --- |
+| CUSTOM | Default |
+| GENERAL |  |
+| FIRE |  |
+| SEARCH |  |
+| SURVEILLANCE |  |
+| INSPECTION |  |
+| MARITIME |  |
+
+---
+
+### mztc_spatial_denoise
+
+Spatial denoising level (0-100)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 100 |
+
+---
+
+### mztc_temporal_denoise
+
+Temporal denoising level (0-100)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 100 |
+
+---
+
+### mztc_zoom_level
+
+Digital zoom level
+
+| Allowed Values |  |
+| --- | --- |
+| 1X | Default |
+| 2X |  |
+| 4X |  |
+| 8X |  |
+
+---
+
 ### name
 
 Craft name

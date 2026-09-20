@@ -30,6 +30,10 @@ set_property(SOURCE maths_unittest.cc PROPERTY depends "common/maths.c")
 
 set_property(SOURCE olc_unittest.cc PROPERTY depends "common/olc.c")
 
+set_property(SOURCE mztc_camera_unittest.cc PROPERTY depends
+    "io/mztc_camera.c" "common/maths.c")
+set_property(SOURCE mztc_camera_unittest.cc PROPERTY definitions USE_MZTC)
+
 set_property(SOURCE rcdevice_unittest.cc PROPERTY definitions USE_RCDEVICE)
 set_property(SOURCE rcdevice_unittest.cc PROPERTY depends
     "common/bitarray.c" "common/crc.c" "io/rcdevice.c" "io/rcdevice_cam.c"

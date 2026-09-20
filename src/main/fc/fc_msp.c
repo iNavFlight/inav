@@ -103,6 +103,8 @@
 #include "io/serial_4way.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
+#include "io/mztc_camera.h"
+#include "msp/msp_mztc.h"
 #include "io/gps_private.h"  //for MSP_SIMULATOR
 #include "io/headtracker_msp.h"
 
@@ -2017,6 +2019,43 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteDataSafe(dst, &radar_pois[i].gps, sizeof(gpsLocation_t));
         }
         break;
+
+#ifdef USE_MZTC
+    // MassZero Thermal Camera MSP V2 output commands.
+    // Every field is written individually so the wire layout is fixed by this
+    // code. Compiler struct padding never reaches the wire. See msp_mztc.h.
+    case MSP2_MZTC_CONFIG:
+        {
+            const mztcConfig_t *cfg = mztcConfig();
+
+            sbufWriteU8(dst, cfg->preset);
+            sbufWriteU8(dst, cfg->palette_mode);
+            sbufWriteU8(dst, cfg->auto_shutter);
+            sbufWriteU8(dst, cfg->digital_enhancement);
+            sbufWriteU8(dst, cfg->spatial_denoise);
+            sbufWriteU8(dst, cfg->temporal_denoise);
+            sbufWriteU8(dst, cfg->brightness);
+            sbufWriteU8(dst, cfg->contrast);
+            sbufWriteU8(dst, cfg->zoom_level);
+            sbufWriteU8(dst, cfg->mirror_mode);
+            sbufWriteU8(dst, cfg->ffc_interval);
+        }
+        break;
+
+    case MSP2_MZTC_STATUS:
+        {
+            const mztcStatus_t *status = mztcGetStatus();
+
+            sbufWriteU8(dst, status->status);
+            sbufWriteU8(dst, status->preset);
+            sbufWriteU8(dst, status->connected ? 1 : 0);
+            sbufWriteU8(dst, status->connection_quality);
+            sbufWriteU16(dst, status->last_calibration);
+            sbufWriteU8(dst, status->error_flags);
+        }
+        break;
+
+#endif
 
     default:
         return false;
@@ -4098,6 +4137,119 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
+
+#ifdef USE_MZTC
+    // MassZero Thermal Camera MSP V2 input commands.
+    // Each field is read individually and the whole request is validated
+    // before any of it is applied. A rejected request leaves the running
+    // configuration untouched. See msp_mztc.h for the payload layouts.
+    case MSP2_SET_MZTC_CONFIG:
+        if (dataSize == MSP2_MZTC_CONFIG_PAYLOAD_SIZE) {
+            mztcConfig_t candidate;
+
+            candidate.preset = sbufReadU8(src);
+            candidate.palette_mode = sbufReadU8(src);
+            candidate.auto_shutter = sbufReadU8(src);
+            candidate.digital_enhancement = sbufReadU8(src);
+            candidate.spatial_denoise = sbufReadU8(src);
+            candidate.temporal_denoise = sbufReadU8(src);
+            candidate.brightness = sbufReadU8(src);
+            candidate.contrast = sbufReadU8(src);
+            candidate.zoom_level = sbufReadU8(src);
+            candidate.mirror_mode = sbufReadU8(src);
+            candidate.ffc_interval = sbufReadU8(src);
+
+            // Every enum and percentage is range checked here, so a value the
+            // CLI would reject cannot be smuggled in over MSP.
+            if (!mztcConfigIsValid(&candidate)) {
+                return MSP_RESULT_ERROR;
+            }
+
+            *mztcConfigMutable() = candidate;
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_SET_MZTC_PRESET:
+        if (dataSize == 1) {
+            if (!mztcSetPreset((mztcPreset_e)sbufReadU8(src))) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_SET_MZTC_PALETTE:
+        if (dataSize == 1) {
+            if (!mztcSetPalette((mztcPaletteMode_e)sbufReadU8(src))) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_SET_MZTC_ZOOM:
+        if (dataSize == 1) {
+            if (!mztcSetZoom((mztcZoomLevel_e)sbufReadU8(src))) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_SET_MZTC_SHUTTER:
+        // A manual shutter cycle is this camera's flat field correction, so
+        // this is the same operation the CLI exposes as mztc_calibrate.
+        if (dataSize <= 1) {
+            if (!mztcTriggerCalibration()) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_SET_MZTC_IMAGE_PARAMS:
+        if (dataSize == MSP2_SET_MZTC_IMAGE_PARAMS_PAYLOAD_SIZE) {
+            const uint8_t brightness = sbufReadU8(src);
+            const uint8_t contrast = sbufReadU8(src);
+            const uint8_t enhancement = sbufReadU8(src);
+            if (!mztcSetImageParams(brightness, contrast, enhancement)) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_SET_MZTC_CORRECTION:
+        if (dataSize == MSP2_SET_MZTC_CORRECTION_PAYLOAD_SIZE) {
+            const uint8_t spatial = sbufReadU8(src);
+            const uint8_t temporal = sbufReadU8(src);
+            if (!mztcSetDenoising(spatial, temporal)) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_SET_MZTC_VIGNETTING:
+        // An action, not a setting. The lens has to be pointed at a uniform
+        // surface before this is worth running.
+        if (dataSize <= 1) {
+            if (!mztcTriggerVignettingCorrection()) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
 
     case MSP2_INAV_SET_CRUISE_HEADING:
         // Set heading while Cruise / Course Hold is active.

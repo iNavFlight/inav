@@ -35,6 +35,10 @@
 
 #include "io/osd.h"
 
+#ifdef USE_MZTC
+#include "io/mztc_camera.h"
+#endif
+
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 
@@ -120,6 +124,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXTERRAINAGLHOLD,   .boxName = "TERRAIN AGL HOLD",  .permanentId = 70 },
     { .boxId = BOXINFLIGHTMENU,     .boxName = "IN FLIGHT MENU",    .permanentId = 71 },
     { .boxId = BOXTHRUSTREVERSE,    .boxName = "THRUST REVERSE",    .permanentId = 72 },
+    { .boxId = BOXMZTCCALIBRATE,    .boxName = "THERMAL CALIBRATE", .permanentId = 73 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -267,6 +272,15 @@ void initActiveBoxIds(void)
 #endif
         }
     }
+
+#ifdef USE_MZTC
+    // Only offered when the camera has a UART assigned in the Ports tab. The
+    // flat field correction it triggers uses the camera's internal shutter as
+    // its reference, so the scene in front of the lens does not matter.
+    if (mztcIsEnabled()) {
+        ADD_ACTIVE_BOX(BOXMZTCCALIBRATE);
+    }
+#endif
 
 #ifdef USE_MR_BRAKING_MODE
     if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || platformTypeConfigured(PLATFORM_MULTIROTOR)) {
@@ -520,6 +534,9 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     /* Advertised in initActiveBoxIds() but never reported back, so the mode
      * showed as off in the Configurator while the driver was acting on it. */
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE)), BOXTHRUSTREVERSE);
+#endif
+#ifdef USE_MZTC
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMZTCCALIBRATE)), BOXMZTCCALIBRATE);
 #endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));

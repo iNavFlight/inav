@@ -160,6 +160,9 @@ this reason ensure that you define enough ranges to cover the range channel's us
 | 56    | NAV_FW_CONTROL_SMOOTHNESS |
 | 57    | FW_TPA_TIME_CONSTANT |
 | 58    | FW_LEVEL_TRIM |
+| 59    | NAV_WP_MULTI_MISSION_INDEX |
+| 60    | NAV_FW_ALT_CONTROL_RESPONSE |
+| 61    | MZTC_ZOOM |
 
 ## Examples
 

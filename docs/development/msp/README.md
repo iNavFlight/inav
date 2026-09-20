@@ -461,6 +461,16 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8744 - MSP2_INAV_TIMESYNC](#msp2_inav_timesync)  
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [8753 - MSP2_INAV_WIND](#msp2_inav_wind)  
+[8768 - MSP2_MZTC_CONFIG](#msp2_mztc_config)  
+[8769 - MSP2_MZTC_STATUS](#msp2_mztc_status)  
+[8770 - MSP2_SET_MZTC_CONFIG](#msp2_set_mztc_config)  
+[8771 - MSP2_SET_MZTC_PRESET](#msp2_set_mztc_preset)  
+[8772 - MSP2_SET_MZTC_PALETTE](#msp2_set_mztc_palette)  
+[8773 - MSP2_SET_MZTC_ZOOM](#msp2_set_mztc_zoom)  
+[8774 - MSP2_SET_MZTC_SHUTTER](#msp2_set_mztc_shutter)  
+[8775 - MSP2_SET_MZTC_IMAGE_PARAMS](#msp2_set_mztc_image_params)  
+[8776 - MSP2_SET_MZTC_CORRECTION](#msp2_set_mztc_correction)  
+[8777 - MSP2_SET_MZTC_VIGNETTING](#msp2_set_mztc_vignetting)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -4877,6 +4887,154 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `flags` | `uint8_t` | 1 | - | Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved. |
 
 **Notes:** Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.
+
+## <a id="msp2_mztc_config"></a>`MSP2_MZTC_CONFIG (8768 / 0x2240)`
+**Description:** Reads the MassZero thermal camera configuration.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `preset` | `uint8_t` | 1 | - | Purpose preset. See `mztcPreset_e`. 0 CUSTOM, 1 GENERAL, 2 FIRE, 3 SEARCH, 4 SURVEILLANCE, 5 INSPECTION, 6 MARITIME. |
+| `palette_mode` | `uint8_t` | 1 | - | Colour palette. See `mztcPaletteMode_e`. 0-13. |
+| `auto_shutter` | `uint8_t` | 1 | - | Automatic shutter policy. See `mztcShutterMode_e`. 0-2. |
+| `digital_enhancement` | `uint8_t` | 1 | % | Digital enhancement level. 0-100. |
+| `spatial_denoise` | `uint8_t` | 1 | % | Spatial denoising level. 0-100. |
+| `temporal_denoise` | `uint8_t` | 1 | % | Temporal denoising level. 0-100. |
+| `brightness` | `uint8_t` | 1 | % | Image brightness. 0-100. |
+| `contrast` | `uint8_t` | 1 | % | Image contrast. 0-100. |
+| `zoom_level` | `uint8_t` | 1 | - | Digital zoom. See `mztcZoomLevel_e`. 0-3. |
+| `mirror_mode` | `uint8_t` | 1 | - | Image mirroring. See `mztcMirrorMode_e`. 0-3. |
+| `ffc_interval` | `uint8_t` | 1 | minutes | Automatic shutter interval in minutes. 1-60. The camera runs the schedule itself. |
+
+**Notes:** Requires `USE_MZTC`. Fixed 12 byte reply. The serial port and its baud rate are not in this payload. They come from the Ports tab. Each field is written with the `sbufWrite*` helpers. The layout never depends on compiler padding.
+
+## <a id="msp2_mztc_status"></a>`MSP2_MZTC_STATUS (8769 / 0x2241)`
+**Description:** Reads the live state of the MassZero thermal camera link.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `status` | `uint8_t` | 1 | - | Camera state. 0 offline, 1 initializing, 2 ready, 3 capturing, 4 calibrating, 5 error, 6 alert, 7 recording. |
+| `preset` | `uint8_t` | 1 | - | Purpose preset currently in effect. See `mztcPreset_e`. |
+| `connected` | `uint8_t` | 1 | - | Set once the camera has answered a command. Opening the serial port alone does not set it. |
+| `connection_quality` | `uint8_t` | 1 | % | Share of recent identity probes the camera answered. 0-100. |
+| `last_calibration` | `uint16_t` | 2 | minutes | Time since the last flat field correction. Saturates at 65535. |
+| `error_flags` | `uint8_t` | 1 | - | Bit field. 0x01 communication, 0x02 calibration, 0x04 temperature, 0x08 memory, 0x10 timeout, 0x20 invalid config. |
+
+**Notes:** Requires `USE_MZTC`. Fixed 7 byte reply.
+
+## <a id="msp2_set_mztc_config"></a>`MSP2_SET_MZTC_CONFIG (8770 / 0x2242)`
+**Description:** Writes the MassZero thermal camera configuration.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `preset` | `uint8_t` | 1 | - | Purpose preset. See `mztcPreset_e`. 0 CUSTOM, 1 GENERAL, 2 FIRE, 3 SEARCH, 4 SURVEILLANCE, 5 INSPECTION, 6 MARITIME. |
+| `palette_mode` | `uint8_t` | 1 | - | Colour palette. See `mztcPaletteMode_e`. 0-13. |
+| `auto_shutter` | `uint8_t` | 1 | - | Automatic shutter policy. See `mztcShutterMode_e`. 0-2. |
+| `digital_enhancement` | `uint8_t` | 1 | % | Digital enhancement level. 0-100. |
+| `spatial_denoise` | `uint8_t` | 1 | % | Spatial denoising level. 0-100. |
+| `temporal_denoise` | `uint8_t` | 1 | % | Temporal denoising level. 0-100. |
+| `brightness` | `uint8_t` | 1 | % | Image brightness. 0-100. |
+| `contrast` | `uint8_t` | 1 | % | Image contrast. 0-100. |
+| `zoom_level` | `uint8_t` | 1 | - | Digital zoom. See `mztcZoomLevel_e`. 0-3. |
+| `mirror_mode` | `uint8_t` | 1 | - | Image mirroring. See `mztcMirrorMode_e`. 0-3. |
+| `ffc_interval` | `uint8_t` | 1 | minutes | Automatic shutter interval in minutes. 1-60. The camera runs the schedule itself. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_MZTC`. Expects 11 bytes. The serial port and its baud rate are not in this payload. They come from the Ports tab. The whole request is validated against the `MZTC_*` limits before any field is applied. A rejected request leaves the running configuration untouched.
+
+## <a id="msp2_set_mztc_preset"></a>`MSP2_SET_MZTC_PRESET (8771 / 0x2243)`
+**Description:** Applies a purpose preset to the MassZero thermal camera. A preset writes the palette, brightness, contrast, digital enhancement, both denoise levels, the shutter mode and the correction interval. CUSTOM writes nothing.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `preset` | `uint8_t` | 1 | Purpose preset. See `mztcPreset_e`. 0 CUSTOM, 1 GENERAL, 2 FIRE, 3 SEARCH, 4 SURVEILLANCE, 5 INSPECTION, 6 MARITIME. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_MZTC`. Expects 1 byte.
+
+## <a id="msp2_set_mztc_palette"></a>`MSP2_SET_MZTC_PALETTE (8772 / 0x2244)`
+**Description:** Sets the MassZero thermal camera colour palette.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `palette` | `uint8_t` | 1 | Colour palette. See `mztcPaletteMode_e`. 0-13. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_MZTC`. Expects 1 byte. Returns an error if the camera is not connected.
+
+## <a id="msp2_set_mztc_zoom"></a>`MSP2_SET_MZTC_ZOOM (8773 / 0x2245)`
+**Description:** Sets the MassZero thermal camera digital zoom level.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `zoom_level` | `uint8_t` | 1 | Digital zoom. See `mztcZoomLevel_e`. 0-3. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_MZTC`. Expects 1 byte. Returns an error if the camera is not connected.
+
+## <a id="msp2_set_mztc_shutter"></a>`MSP2_SET_MZTC_SHUTTER (8774 / 0x2246)`
+**Description:** Triggers a manual shutter cycle for a flat field correction.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `trigger` | `uint8_t` | 1 | Ignored. The command itself is the trigger. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_MZTC`. Accepts 0 or 1 bytes. A manual shutter cycle is the flat field correction on this camera. The `mztc_calibrate` CLI command performs the same operation.
+
+## <a id="msp2_set_mztc_image_params"></a>`MSP2_SET_MZTC_IMAGE_PARAMS (8775 / 0x2247)`
+**Description:** Sets the MassZero thermal camera image parameters.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `brightness` | `uint8_t` | 1 | % | Image brightness. 0-100. |
+| `contrast` | `uint8_t` | 1 | % | Image contrast. 0-100. |
+| `enhancement` | `uint8_t` | 1 | % | Digital enhancement. 0-100. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_MZTC`. Expects 3 bytes. Returns an error if the camera is not connected.
+
+## <a id="msp2_set_mztc_correction"></a>`MSP2_SET_MZTC_CORRECTION (8776 / 0x2248)`
+**Description:** Sets the MassZero thermal camera denoising parameters.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `spatial_denoise` | `uint8_t` | 1 | % | Spatial denoising. 0-100. |
+| `temporal_denoise` | `uint8_t` | 1 | % | Temporal denoising. 0-100. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_MZTC`. Expects 2 bytes. Returns an error if the camera is not connected.
+
+## <a id="msp2_set_mztc_vignetting"></a>`MSP2_SET_MZTC_VIGNETTING (8777 / 0x2249)`
+**Description:** Runs one vignetting correction on the camera.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `trigger` | `uint8_t` | 1 | Ignored. The command itself is the trigger. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_MZTC`. Accepts 0 or 1 bytes. The camera manual requires the lens to be pointed at a uniform surface before this runs, so it is an action and never a stored setting.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

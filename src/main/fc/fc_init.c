@@ -91,6 +91,8 @@
 #include "fc/firmware_update.h"
 #include "fc/stats.h"
 
+#include "io/mztc_camera.h"
+
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -601,6 +603,10 @@ void init(void)
     // Sensors have now been detected, mspFcInit() can now be called
     // to set the boxes up
     mspFcInit();
+
+#ifdef USE_MZTC
+    mztcInit();
+#endif
 
     cliInit(serialConfig());
 

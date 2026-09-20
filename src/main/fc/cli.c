@@ -97,6 +97,7 @@ bool cliMode = false;
 #include "io/osd/custom_elements.h"
 #include "io/motor_srxl2.h"
 #include "io/serial.h"
+#include "io/mztc_camera.h"
 
 #include "fc/fc_msp_box.h"
 
@@ -155,6 +156,21 @@ static uint16_t cliDelayMs = 0;
 
 #if defined(USE_ASSERT)
 static void cliAssert(char *cmdline);
+#endif
+
+#ifdef USE_MZTC
+static void cliMztc(char *cmdline);
+static void cliMztcPreset(char *cmdline);
+static void cliMztcConfig(char *cmdline);
+static void cliMztcPalette(char *cmdline);
+static void cliMztcZoom(char *cmdline);
+static void cliMztcEnhancement(char *cmdline);
+static void cliMztcDenoise(char *cmdline);
+static void cliMztcCalibrate(char *cmdline);
+static void cliMztcReconnect(char *cmdline);
+static void cliMztcSave(char *cmdline);
+static void cliMztcDefaults(char *cmdline);
+static void cliMztcVignetting(char *cmdline);
 #endif
 
 #ifdef USE_CLI_BATCH
@@ -5030,6 +5046,270 @@ static void printBootLog(char *cmdline __attribute__((unused))) {
 }
 #endif
 
+#ifdef USE_MZTC
+// MassZero Thermal Camera CLI commands.
+//
+// Bounds come from the MZTC_* limits in config/mztc_camera.h. settings.yaml
+// and the MSP handlers use the same values. Every entry point accepts exactly
+// the same range.
+static const char * const mztcPresetNames[] = {
+    "CUSTOM", "GENERAL", "FIRE", "SEARCH", "SURVEILLANCE", "INSPECTION", "MARITIME"
+};
+
+static void cliMztc(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    if (!mztcIsEnabled()) {
+        cliPrintLine("MassZero Thermal Camera is disabled");
+        return;
+    }
+
+    const mztcStatus_t *status = mztcGetStatus();
+
+    cliPrintLine("MassZero Thermal Camera status:");
+    cliPrintLinef("  Connected: %s", status->connected ? "YES" : "NO");
+    cliPrintLinef("  State: %u", status->status);
+    cliPrintLinef("  Preset: %u (%s)", status->preset,
+                  status->preset < ARRAYLEN(mztcPresetNames) ? mztcPresetNames[status->preset] : "?");
+    cliPrintLinef("  Link quality: %u%%", status->connection_quality);
+
+    uint8_t idLen = 0;
+    const uint8_t *id = mztcGetDeviceId(&idLen);
+    if (id) {
+        cliPrintf("  Device ID:");
+        for (uint8_t i = 0; i < idLen; i++) {
+            cliPrintf(" %02X", id[i]);
+        }
+        cliPrintLinefeed();
+    } else {
+        cliPrintLine("  Device ID: not reported");
+    }
+
+    cliPrintLinef("  Minutes since calibration: %u", status->last_calibration);
+    cliPrintLinef("  Error flags: 0x%02X", status->error_flags);
+}
+
+static void cliMztcPreset(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        const uint8_t current = mztcGetStatus()->preset;
+        cliPrintLinef("Current preset: %u (%s)", current,
+                      current < ARRAYLEN(mztcPresetNames) ? mztcPresetNames[current] : "?");
+        for (unsigned i = 0; i < ARRAYLEN(mztcPresetNames); i++) {
+            cliPrintLinef("  %u %s", i, mztcPresetNames[i]);
+        }
+        return;
+    }
+
+    const int preset = fastA2I(cmdline);
+    if (preset < 0 || preset > MZTC_PRESET_MARITIME) {
+        cliPrintLinef("Invalid preset. Use 0-%d", MZTC_PRESET_MARITIME);
+        return;
+    }
+
+    if (mztcSetPreset((mztcPreset_e)preset)) {
+        cliPrintLinef("Preset set to %d (%s)", preset, mztcPresetNames[preset]);
+        if (preset != MZTC_PRESET_CUSTOM) {
+            cliPrintLine("Palette, brightness, contrast, enhancement, denoise, shutter and interval updated");
+        }
+    } else {
+        cliPrintLine("Failed to set preset");
+    }
+}
+
+static void cliMztcConfig(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        const mztcConfig_t *config = mztcConfig();
+        cliPrintLinef("brightness=%u contrast=%u enhancement=%u",
+                      config->brightness, config->contrast, config->digital_enhancement);
+        return;
+    }
+
+    char *brightnessStr = strtok(cmdline, " ");
+    char *contrastStr = strtok(NULL, " ");
+    char *enhancementStr = strtok(NULL, " ");
+
+    if (!brightnessStr || !contrastStr || !enhancementStr) {
+        cliPrintLine("Usage: mztc_config [brightness] [contrast] [enhancement]");
+        return;
+    }
+
+    const int brightness = fastA2I(brightnessStr);
+    const int contrast = fastA2I(contrastStr);
+    const int enhancement = fastA2I(enhancementStr);
+
+    if (brightness < MZTC_MIN_PERCENT || brightness > MZTC_MAX_PERCENT ||
+        contrast < MZTC_MIN_PERCENT || contrast > MZTC_MAX_PERCENT ||
+        enhancement < MZTC_MIN_PERCENT || enhancement > MZTC_MAX_PERCENT) {
+        cliPrintLinef("Values must be %d-%d", MZTC_MIN_PERCENT, MZTC_MAX_PERCENT);
+        return;
+    }
+
+    if (mztcSetImageParams(brightness, contrast, enhancement)) {
+        cliPrintLinef("brightness=%d contrast=%d enhancement=%d", brightness, contrast, enhancement);
+    } else {
+        cliPrintLine("Failed to set image parameters");
+    }
+}
+
+static void cliMztcPalette(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("Current palette: %u", mztcConfig()->palette_mode);
+        return;
+    }
+
+    const int palette = fastA2I(cmdline);
+    if (palette < 0 || palette > MZTC_PALETTE_RED_HOT) {
+        cliPrintLinef("Invalid palette. Use 0-%d", MZTC_PALETTE_RED_HOT);
+        return;
+    }
+
+    if (mztcSetPalette((mztcPaletteMode_e)palette)) {
+        cliPrintLinef("Palette set to %d", palette);
+    } else {
+        cliPrintLine("Failed to set palette");
+    }
+}
+
+static void cliMztcZoom(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("Current zoom: %u", mztcConfig()->zoom_level);
+        return;
+    }
+
+    const int zoom = fastA2I(cmdline);
+    if (zoom < 0 || zoom > MZTC_ZOOM_8X) {
+        cliPrintLinef("Invalid zoom level. Use 0-%d", MZTC_ZOOM_8X);
+        return;
+    }
+
+    if (mztcSetZoom((mztcZoomLevel_e)zoom)) {
+        cliPrintLinef("Zoom set to %d", zoom);
+    } else {
+        cliPrintLine("Failed to set zoom");
+    }
+}
+
+static void cliMztcEnhancement(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("Current enhancement: %u", mztcConfig()->digital_enhancement);
+        return;
+    }
+
+    const int value = fastA2I(cmdline);
+    if (value < MZTC_MIN_PERCENT || value > MZTC_MAX_PERCENT) {
+        cliPrintLinef("Value must be %d-%d", MZTC_MIN_PERCENT, MZTC_MAX_PERCENT);
+        return;
+    }
+
+    const mztcConfig_t *config = mztcConfig();
+    if (mztcSetImageParams(config->brightness, config->contrast, value)) {
+        cliPrintLinef("Enhancement set to %d", value);
+    } else {
+        cliPrintLine("Failed to set enhancement");
+    }
+}
+
+static void cliMztcDenoise(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        const mztcConfig_t *config = mztcConfig();
+        cliPrintLinef("spatial=%u temporal=%u", config->spatial_denoise, config->temporal_denoise);
+        return;
+    }
+
+    char *spatialStr = strtok(cmdline, " ");
+    char *temporalStr = strtok(NULL, " ");
+
+    if (!spatialStr || !temporalStr) {
+        cliPrintLine("Usage: mztc_denoise [spatial] [temporal]");
+        return;
+    }
+
+    const int spatial = fastA2I(spatialStr);
+    const int temporal = fastA2I(temporalStr);
+
+    if (spatial < MZTC_MIN_PERCENT || spatial > MZTC_MAX_PERCENT ||
+        temporal < MZTC_MIN_PERCENT || temporal > MZTC_MAX_PERCENT) {
+        cliPrintLinef("Values must be %d-%d", MZTC_MIN_PERCENT, MZTC_MAX_PERCENT);
+        return;
+    }
+
+    if (mztcSetDenoising(spatial, temporal)) {
+        cliPrintLinef("spatial=%d temporal=%d", spatial, temporal);
+    } else {
+        cliPrintLine("Failed to set denoising");
+    }
+}
+
+// A manual shutter cycle is the flat field correction on this camera. One
+// command covers both.
+static void cliMztcCalibrate(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    if (mztcTriggerCalibration()) {
+        cliPrintLine("Calibration (manual shutter) triggered");
+    } else {
+        cliPrintLine("Failed to trigger calibration");
+    }
+}
+
+static void cliMztcReconnect(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    if (mztcIsEnabled()) {
+        mztcRequestReconnect();
+        cliPrintLine("MZTC: forcing reconnection");
+    } else {
+        cliPrintLine("MZTC: camera is disabled");
+    }
+}
+
+// Both of these act on the camera's own flash. The INAV save command has no
+// effect on them.
+static void cliMztcSave(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    if (mztcSaveConfiguration()) {
+        cliPrintLine("Configuration saved to camera flash");
+    } else {
+        cliPrintLine("Failed to save configuration to the camera");
+    }
+}
+
+static void cliMztcDefaults(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    if (mztcRestoreDefaults()) {
+        cliPrintLine("Camera restored to factory defaults");
+    } else {
+        cliPrintLine("Failed to restore camera defaults");
+    }
+}
+
+// Point the lens at a uniform surface before running this. The camera
+// superimposes whatever it is looking at onto the correction otherwise.
+static void cliMztcVignetting(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    if (mztcTriggerVignettingCorrection()) {
+        cliPrintLine("Vignetting correction triggered. Point the lens at a uniform surface first.");
+    } else {
+        cliPrintLine("Failed to trigger vignetting correction");
+    }
+}
+#endif // USE_MZTC
+
 static void cliHelp(char *cmdline);
 
 // should be sorted a..z for bsearch()
@@ -5107,6 +5387,20 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
+#ifdef USE_MZTC
+    CLI_COMMAND_DEF("mztc", "MassZero Thermal Camera status", NULL, cliMztc),
+    CLI_COMMAND_DEF("mztc_calibrate", "trigger a manual shutter / flat field correction", NULL, cliMztcCalibrate),
+    CLI_COMMAND_DEF("mztc_config", "configure camera parameters, each 0-100", "[brightness] [contrast] [enhancement]", cliMztcConfig),
+    CLI_COMMAND_DEF("mztc_defaults", "restore the camera to its factory defaults", NULL, cliMztcDefaults),
+    CLI_COMMAND_DEF("mztc_denoise", "set denoising parameters", "[spatial] [temporal]", cliMztcDenoise),
+    CLI_COMMAND_DEF("mztc_enhancement", "set digital enhancement", "[value]", cliMztcEnhancement),
+    CLI_COMMAND_DEF("mztc_palette", "set color palette", "[palette]", cliMztcPalette),
+    CLI_COMMAND_DEF("mztc_preset", "apply a purpose preset", "[preset]", cliMztcPreset),
+    CLI_COMMAND_DEF("mztc_reconnect", "force a reconnect to the camera", NULL, cliMztcReconnect),
+    CLI_COMMAND_DEF("mztc_save", "save the current settings to the camera flash", NULL, cliMztcSave),
+    CLI_COMMAND_DEF("mztc_vignetting", "run one vignetting correction", NULL, cliMztcVignetting),
+    CLI_COMMAND_DEF("mztc_zoom", "set zoom level", "[level]", cliMztcZoom),
+#endif
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
 #ifdef USE_MOTOR_SRXL2
@@ -5168,6 +5462,8 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
     CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS|LED|PINIO|BEEPER>]]", cliTimerOutputMode),
+#ifdef USE_MZTC
+#endif
 };
 
 static void cliHelp(char *cmdline)

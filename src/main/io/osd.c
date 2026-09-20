@@ -78,6 +78,7 @@
 #include "io/vtx_string.h"
 
 #include "io/osd/custom_elements.h"
+#include "io/osd/mztc_camera_osd.h"
 
 #include "fc/config.h"
 #include "fc/control_profile.h"
@@ -4119,6 +4120,12 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+#ifdef USE_MZTC
+    case OSD_MZTC_STATUS:
+        mztcOsdFormatStatus(buff, &elemAttr);
+        break;
+#endif
+
     default:
         return false;
     }
@@ -4581,6 +4588,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
 #ifdef USE_BLACKBOX
     osdLayoutsConfig->item_pos[0][OSD_BLACKBOX] = OSD_POS(2, 10);
+#endif
+
+#ifdef USE_MZTC
+    osdLayoutsConfig->item_pos[0][OSD_MZTC_STATUS] = OSD_POS(1, 4);
 #endif
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?

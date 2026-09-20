@@ -1,4 +1,3 @@
-
 main_sources(COMMON_SRC
     main.c
 
@@ -64,6 +63,7 @@ main_sources(COMMON_SRC
     config/parameter_group.h
     config/general_settings.c
     config/general_settings.h
+    config/mztc_camera.h
 
     drivers/1-wire.c
     drivers/1-wire.h
@@ -422,6 +422,11 @@ main_sources(COMMON_SRC
 
     io/osd/custom_elements.c
 
+    io/mztc_camera.c
+    io/mztc_camera.h
+    io/osd/mztc_camera_osd.c
+    io/osd/mztc_camera_osd.h
+
     mavlink/mavlink_command.c
     mavlink/mavlink_command.h
     mavlink/mavlink_guided.c
@@ -444,6 +449,7 @@ main_sources(COMMON_SRC
 
     msp/msp_serial.c
     msp/msp_serial.h
+    msp/msp_mztc.h
 
     programming/logic_condition.c
     programming/logic_condition.h
@@ -489,7 +495,6 @@ main_sources(COMMON_SRC
     rx/sumd.h
     rx/sim.c
     rx/sim.h
-
 
     scheduler/scheduler.c
     scheduler/scheduler.h
