@@ -36,6 +36,28 @@
 #define DISPLAYPORT_MSP_ATTR_BLINK_MASK      (1 << DISPLAYPORT_MSP_ATTR_BLINK)
 #define DISPLAYPORT_MSP_ATTR_VERSION_MASK    (1 << DISPLAYPORT_MSP_ATTR_VERSION)
 
+// PAL screen size
+#define PAL_COLS 30
+#define PAL_ROWS 16
+// NTSC screen size
+#define NTSC_COLS 30
+#define NTSC_ROWS 13
+// HDZERO screen size
+#define HDZERO_COLS 50
+#define HDZERO_ROWS 18
+// Avatar screen size
+#define AVATAR_COLS 53
+#define AVATAR_ROWS 20
+// DJIWTF screen size
+#define DJI_COLS 60
+#define DJI_ROWS 22
+
+// set COLS and ROWS to largest size available
+#define MSP_DISPLAYPORT_MAX_COLS DJI_COLS
+#define MSP_DISPLAYPORT_MAX_ROWS DJI_ROWS
+
+
+
 typedef struct displayPort_s displayPort_t;
 
 displayPort_t *mspOsdDisplayPortInit(const videoSystem_e videoSystem);
