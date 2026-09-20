@@ -364,6 +364,15 @@ bool gyroInit(void)
     return true;
 }
 
+/* Zero calibration works on raw gyro readings, so the movement threshold has to be
+ * expressed in that sensor's LSB. Each gyro is asked for its own scale: a dual-IMU
+ * board may pair two unrelated parts, and the primary's sensitivity would be the
+ * wrong reference for the secondary. */
+static float gyroMovementThreshold(uint8_t index)
+{
+    return CALIBRATING_GYRO_MORON_THRESHOLD_DPS / gyroDev[index].scale;
+}
+
 void gyroStartCalibration(void)
 {
     if (!gyro.initialized) {
@@ -377,7 +386,7 @@ void gyroStartCalibration(void)
 #endif
 
     gyroCalibrationComplete = false;
-    zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, false);
+    zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, gyroMovementThreshold(0), false);
 }
 
 bool gyroIsCalibrationComplete(void)
