@@ -3,7 +3,7 @@
         "fc_version": {
             "major": 9,
             "minor": 1,
-            "patch": 0
+            "patch": 1
         }
     },
     "enums": {
@@ -133,7 +133,8 @@
             "ADJUSTMENT_FW_LEVEL_TRIM": "58",
             "ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX": "59",
             "ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE": "60",
-            "ADJUSTMENT_FUNCTION_COUNT": "61"
+            "ADJUSTMENT_MZTC_ZOOM": "61",
+            "ADJUSTMENT_FUNCTION_COUNT": "62"
         },
         "adjustmentMode_e": {
             "_source": "inav/src/main/fc/rc_adjustments.h",
@@ -649,7 +650,11 @@
             "BOXGIMBALCENTER": "58",
             "BOXGIMBALHTRK": "59",
             "BOXAUTOSPEED": "60",
-            "CHECKBOX_ITEM_COUNT": "61"
+            "BOXTERRAINAGLHOLD": "61",
+            "BOXINFLIGHTMENU": "62",
+            "BOXTHRUSTREVERSE": "63",
+            "BOXMZTCCALIBRATE": "64",
+            "CHECKBOX_ITEM_COUNT": "65"
         },
         "busIndex_e": {
             "_source": "inav/src/main/drivers/bus.h",
@@ -806,7 +811,8 @@
             "CURRENT_SENSOR_SMARTPORT": "5",
             "CURRENT_SENSOR_CRSF": "6",
             "CURRENT_SENSOR_CAN": "7",
-            "CURRENT_SENSOR_MAX": "CURRENT_SENSOR_CAN"
+            "CURRENT_SENSOR_INA226": "8",
+            "CURRENT_SENSOR_MAX": "CURRENT_SENSOR_INA226"
         },
         "devHardwareType_e": {
             "_source": "inav/src/main/drivers/bus.h",
@@ -845,31 +851,33 @@
             "DEVHW_RM3100": "32",
             "DEVHW_VCM5883": "33",
             "DEVHW_MLX90393": "34",
-            "DEVHW_LM75_0": "35",
-            "DEVHW_LM75_1": "36",
-            "DEVHW_LM75_2": "37",
-            "DEVHW_LM75_3": "38",
-            "DEVHW_LM75_4": "39",
-            "DEVHW_LM75_5": "40",
-            "DEVHW_LM75_6": "41",
-            "DEVHW_LM75_7": "42",
-            "DEVHW_DS2482": "43",
-            "DEVHW_MAX7456": "44",
-            "DEVHW_SRF10": "45",
-            "DEVHW_VL53L0X": "46",
-            "DEVHW_VL53L1X": "47",
-            "DEVHW_US42": "48",
-            "DEVHW_TOF10120_I2C": "49",
-            "DEVHW_TERARANGER_EVO_I2C": "50",
-            "DEVHW_MS4525": "51",
-            "DEVHW_MS5525": "52",
-            "DEVHW_DLVR": "53",
-            "DEVHW_M25P16": "54",
-            "DEVHW_W25N": "55",
-            "DEVHW_UG2864": "56",
-            "DEVHW_SDCARD": "57",
-            "DEVHW_IRLOCK": "58",
-            "DEVHW_PCF8574": "59"
+            "DEVHW_LIS2MDL": "35",
+            "DEVHW_LM75_0": "36",
+            "DEVHW_LM75_1": "37",
+            "DEVHW_LM75_2": "38",
+            "DEVHW_LM75_3": "39",
+            "DEVHW_LM75_4": "40",
+            "DEVHW_LM75_5": "41",
+            "DEVHW_LM75_6": "42",
+            "DEVHW_LM75_7": "43",
+            "DEVHW_DS2482": "44",
+            "DEVHW_MAX7456": "45",
+            "DEVHW_SRF10": "46",
+            "DEVHW_VL53L0X": "47",
+            "DEVHW_VL53L1X": "48",
+            "DEVHW_US42": "49",
+            "DEVHW_TOF10120_I2C": "50",
+            "DEVHW_TERARANGER_EVO_I2C": "51",
+            "DEVHW_MS4525": "52",
+            "DEVHW_MS5525": "53",
+            "DEVHW_DLVR": "54",
+            "DEVHW_M25P16": "55",
+            "DEVHW_W25N": "56",
+            "DEVHW_UG2864": "57",
+            "DEVHW_SDCARD": "58",
+            "DEVHW_IRLOCK": "59",
+            "DEVHW_PCF8574": "60",
+            "DEVHW_INA226": "61"
         },
         "deviceFlags_e": {
             "_source": "inav/src/main/drivers/bus.h",
@@ -1964,7 +1972,8 @@
             "LED_OVERLAY_LANDING_FLASH": "3",
             "LED_OVERLAY_INDICATOR": "4",
             "LED_OVERLAY_WARNING": "5",
-            "LED_OVERLAY_STROBE": "6"
+            "LED_OVERLAY_STROBE": "6",
+            "LED_OVERLAY_RAINBOW": "7"
         },
         "ledSpecialColorIds_e": {
             "_source": "inav/src/main/io/ledstrip.h",
@@ -2364,7 +2373,8 @@
             "MAG_RM3100": "13",
             "MAG_VCM5883": "14",
             "MAG_MLX90393": "15",
-            "MAG_FAKE": "16",
+            "MAG_LIS2MDL": "16",
+            "MAG_FAKE": "17",
             "MAG_MAX": "MAG_FAKE"
         },
         "mavlinkAutopilotType_e": {
@@ -2449,7 +2459,7 @@
                 "USE_AUTO_TRANSITION"
             ],
             "MIXERAT_PHASE_DONE": [
-                "(5)",
+                "(3)",
                 "!USE_AUTO_TRANSITION"
             ]
         },
@@ -2479,7 +2489,8 @@
             "PWM_TYPE_BRUSHED": "3",
             "PWM_TYPE_DSHOT150": "4",
             "PWM_TYPE_DSHOT300": "5",
-            "PWM_TYPE_DSHOT600": "6"
+            "PWM_TYPE_DSHOT600": "6",
+            "PWM_TYPE_SRXL2": "7"
         },
         "motorStatus_e": {
             "_source": "inav/src/main/flight/mixer.h",
@@ -2601,6 +2612,13 @@
             "FW_LAUNCH_DETECTED": "5",
             "FW_LAUNCH_ABORTED": "10",
             "FW_LAUNCH_FLYING": "11"
+        },
+        "navFwWpTurnMode_e": {
+            "_source": "inav/src/main/navigation/navigation.h",
+            "NAV_FW_WP_TURN_DIRECT": "0",
+            "NAV_FW_WP_TURN_COORD_FLY_BY": "1",
+            "NAV_FW_WP_TURN_COORD_FLY_OVER": "2",
+            "NAV_FW_WP_TURN_COORD_FLY_INTO": "3"
         },
         "navigationEstimateStatus_e": {
             "_source": "inav/src/main/navigation/navigation_private.h",
@@ -2994,6 +3012,14 @@
             "NAV_WP_USER3": "(1<<3)",
             "NAV_WP_USER4": "(1<<4)"
         },
+        "oledControllerType_e": {
+            "_source": "inav/src/main/drivers/display_ug2864hsweg01.c",
+            "OLED_CONTROLLER_UNKNOWN": "0",
+            "OLED_CONTROLLER_SSD1306": "1",
+            "OLED_CONTROLLER_SH1106": "2",
+            "OLED_CONTROLLER_SH1107": "3",
+            "OLED_CONTROLLER_SSD1309": "4"
+        },
         "opflowQuality_e": {
             "_source": "inav/src/main/sensors/opflow.h",
             "OPFLOW_QUALITY_INVALID": "0",
@@ -3210,8 +3236,9 @@
             "OSD_THROTTLE_GAUGE": "168",
             "OSD_GPS_EXTRA_STATS": "169",
             "OSD_AUTO_SPEED": "170",
-            "OSD_MZTC_STATUS": "171",
-            "OSD_ITEM_COUNT": "172"
+            "OSD_TERRAIN_AGL": "171",
+            "OSD_MZTC_STATUS": "172",
+            "OSD_ITEM_COUNT": "173"
         },
         "osd_sidebar_arrow_e": {
             "_source": "inav/src/main/io/osd_grid.c",
@@ -3337,7 +3364,8 @@
             "PID_ZERO_INTEGRATOR": "1 << 1",
             "PID_SHRINK_INTEGRATOR": "1 << 2",
             "PID_LIMIT_INTEGRATOR": "1 << 3",
-            "PID_FREEZE_INTEGRATOR": "1 << 4"
+            "PID_FREEZE_INTEGRATOR": "1 << 4",
+            "PID_USING_HEADING": "1 << 5"
         },
         "pidIndex_e": {
             "_source": "inav/src/main/flight/pid.h",
@@ -3658,7 +3686,8 @@
             "OWNER_PINIO": "32",
             "OWNER_IRLOCK": "33",
             "OWNER_DRONECAN": "34",
-            "OWNER_TOTAL_COUNT": "35"
+            "OWNER_CURRENT_METER": "35",
+            "OWNER_TOTAL_COUNT": "36"
         },
         "resourceType_e": {
             "_source": "inav/src/main/drivers/resource.h",
@@ -3888,7 +3917,8 @@
             "FUNCTION_MZTC_CAMERA": [
                 "(1 << 28)",
                 "USE_MZTC"
-            ]
+            ],
+            "FUNCTION_ESC_SRXL2": "(1 << 29)"
         },
         "serialPortIdentifier_e": {
             "_source": "inav/src/main/io/serial.h",
@@ -4026,6 +4056,12 @@
             "SITL_CAN_MODE_STUB": "0",
             "SITL_CAN_MODE_SOCKETCAN": "1"
         },
+        "sliceAssign_e": {
+            "_source": "inav/src/main/drivers/pwm_output_rp2350.c",
+            "SLICE_UNASSIGNED": "0",
+            "SLICE_AS_MOTOR": "1",
+            "SLICE_AS_SERVO": "2"
+        },
         "smartAudioVersion_e": {
             "_source": "inav/src/main/io/vtx_smartaudio.h",
             "SA_UNKNOWN": "0",
@@ -4079,6 +4115,23 @@
             "DSMR_11ms_22ms": "226",
             "DSMR_5_5ms": "228"
         },
+        "srxl2CalPhase_e": {
+            "_source": "inav/src/main/io/motor_srxl2.h",
+            "SRXL2_CAL_OFF": "0",
+            "SRXL2_CAL_WAIT_BATTERY": "1",
+            "SRXL2_CAL_SETTLE": "2",
+            "SRXL2_CAL_LOW": "3",
+            "SRXL2_CAL_HIGH_MANUAL": "4",
+            "SRXL2_CAL_LOW_MANUAL": "5"
+        },
+        "srxl2CalResult_e": {
+            "_source": "inav/src/main/io/motor_srxl2.h",
+            "SRXL2_CAL_ACCEPTED": "0",
+            "SRXL2_CAL_REJECT_ARMED": "1",
+            "SRXL2_CAL_REJECT_NO_PORT": "2",
+            "SRXL2_CAL_REJECT_BATTERY_PRESENT": "3",
+            "SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR": "4"
+        },
         "Srxl2ControlDataCommand": {
             "_source": "inav/src/main/rx/srxl2_types.h",
             "ChannelData": "0",
@@ -4119,6 +4172,28 @@
             "SendHandshake": "2",
             "ListenForHandshake": "3",
             "Running": "4"
+        },
+        "srxl2State_e": {
+            "_source": "inav/src/main/io/motor_srxl2.c",
+            "SRXL2_DISABLED": "0",
+            "SRXL2_LISTENING": "1",
+            "SRXL2_POLLING": "2",
+            "SRXL2_FINALISING": "3",
+            "SRXL2_RUNNING": "4"
+        },
+        "srxl2TelemetryField_e": {
+            "_source": "inav/src/main/io/motor_srxl2.h",
+            "SRXL2_TELEM_FIELD_RPM": "(1 << 0)",
+            "SRXL2_TELEM_FIELD_VOLTAGE": "(1 << 1)",
+            "SRXL2_TELEM_FIELD_CURRENT": "(1 << 2)",
+            "SRXL2_TELEM_FIELD_TEMP_FET": "(1 << 3)",
+            "SRXL2_TELEM_FIELD_TEMP_BEC": "(1 << 4)"
+        },
+        "srxl2TelemetryRate_e": {
+            "_source": "inav/src/main/io/motor_srxl2.h",
+            "SRXL2_TELEM_1HZ": "0",
+            "SRXL2_TELEM_3HZ": "1",
+            "SRXL2_TELEM_2HZ": "2"
         },
         "stateFlags_t": {
             "_source": "inav/src/main/fc/runtime_config.h",
@@ -4221,22 +4296,23 @@
         },
         "timId_e": {
             "_source": "inav/src/main/io/ledstrip.c",
-            "timBlink": "0",
-            "timLarson": "1",
-            "timBattery": "2",
-            "timRssi": "3",
+            "timRainbow": "0",
+            "timBlink": "1",
+            "timLarson": "2",
+            "timBattery": "3",
+            "timRssi": "4",
             "timGps": [
-                "(4)",
+                "(5)",
                 "USE_GPS"
             ],
-            "timWarning": "5",
-            "timIndicator": "6",
+            "timWarning": "6",
+            "timIndicator": "7",
             "timAnimation": [
-                "(7)",
+                "(8)",
                 "USE_LED_ANIMATION"
             ],
-            "timRing": "8",
-            "timTimerCount": "9"
+            "timRing": "9",
+            "timTimerCount": "10"
         },
         "tristate_e": {
             "_source": "inav/src/main/common/tristate.h",
@@ -4367,7 +4443,8 @@
             "VOLTAGE_SENSOR_SMARTPORT": "4",
             "VOLTAGE_SENSOR_CRSF": "5",
             "VOLTAGE_SENSOR_CAN": "6",
-            "VOLTAGE_SENSOR_MAX": "VOLTAGE_SENSOR_CAN"
+            "VOLTAGE_SENSOR_INA226": "7",
+            "VOLTAGE_SENSOR_MAX": "VOLTAGE_SENSOR_INA226"
         },
         "vs600Band_e": {
             "_source": "inav/src/main/io/smartport_master.h",
@@ -4471,12 +4548,6 @@
             "_source": "inav/src/main/drivers/display_widgets.h",
             "DISPLAY_WIDGET_AHI_STYLE_STAIRCASE": "0",
             "DISPLAY_WIDGET_AHI_STYLE_LINE": "1"
-        },
-        "wpFwTurnSmoothing_e": {
-            "_source": "inav/src/main/navigation/navigation.h",
-            "WP_TURN_SMOOTHING_OFF": "0",
-            "WP_TURN_SMOOTHING_ON": "1",
-            "WP_TURN_SMOOTHING_CUT": "2"
         },
         "wpMissionPlannerStatus_e": {
             "_source": "inav/src/main/navigation/navigation.h",

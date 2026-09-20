@@ -119,6 +119,7 @@
 #include "io/osd.h"
 #include "io/osd_dji_hd.h"
 #include "io/rcdevice_cam.h"
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/smartport_master.h"
@@ -216,7 +217,7 @@ void init(void)
     // Initialize system and CPU clocks to their initial values
     systemInit();
 
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
     __enable_irq();
 #endif
 
@@ -264,7 +265,7 @@ void init(void)
     latchActiveFeatures();
 
     ledInit(false);
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
     EXTIInit();
 #endif
 
@@ -283,8 +284,21 @@ void init(void)
 #endif
 
 #ifdef USE_VCP
-    // Early initialize USB hardware
+    // Early initialize USB hardware.
+#if defined(USE_USB_MSC)
+    // Skip when booting into MSC mode: mscStart() re-initializes the USB
+    // device library for mass storage, and re-initializing an already
+    // running PCD (as done since the STM32F7xx HAL v1.3.3 update, PR #11514)
+    // leaves the USB core in a broken state, breaking EP0 control transfers.
+    // Only the boot flag is checked here: mscCheckButton() cannot run until
+    // mscInit() configures the button pin (later in init), and no current
+    // target uses an MSC button.
+    if (!mscCheckBoot()) {
+        usbVcpInitHardware();
+    }
+#else
     usbVcpInitHardware();
+#endif
 #endif
 
     timerInit();  // timer must be initialized before any channel is allocated
@@ -329,6 +343,19 @@ void init(void)
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
         featureClear(FEATURE_REVERSIBLE_MOTORS);
     }
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * A Spektrum Smart ESC reverses on a switch and goes on reading the throttle
+     * normally - Spektrum put it plainly: "flipping the designated switch reverses
+     * motor rotation, throttle will still control motor speed". Reversible motors
+     * means the other arrangement, where the stick centre is zero thrust, and
+     * enabling it here would hand the ESC roughly half throttle at the point the
+     * pilot expects the motor stopped. Reverse is the THRUST REVERSE mode instead.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        featureClear(FEATURE_REVERSIBLE_MOTORS);
+    }
+#endif
     if (!STATE(ALTITUDE_CONTROL)) {
         featureClear(FEATURE_AIRMODE);
     }
@@ -342,6 +369,21 @@ void init(void)
     }
 #else
     DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * SITL has no motor output layer - the simulator reads the mixer's motor[]
+     * array directly, so pwmMotorPreconfigure() never runs and nothing would open
+     * the SRXL2 ports. Open them here instead: SITL maps every UART onto a TCP
+     * port, so this is what lets a simulated ESC be attached to the real driver
+     * and the handshake, telemetry and calibration paths be exercised - and the
+     * Configurator show its ESC block - without any hardware.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        srxl2MotorInitialize();
+        srxl2MotorSetReverseChannel(motorConfig()->srxl2ReverseChannel);
+        srxl2MotorSetTelemetryRate(motorConfig()->srxl2TelemetryRate);
+    }
+#endif
 #endif
     systemState |= SYSTEM_STATE_MOTORS_READY;
 

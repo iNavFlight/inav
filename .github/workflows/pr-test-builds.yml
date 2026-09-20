@@ -86,10 +86,17 @@ jobs:
           PR_URL="https://github.com/${REPO}/pull/${PR_NUMBER}"
           printf '%s\n\n%s\n\n%s\n' \
             "Test build for [PR #${PR_NUMBER}](${PR_URL}) — commit \`${SHORT_SHA}\`" \
-            "**${HEX_COUNT} targets built.** Find your board's \`.hex\` file by name (e.g. \`MATEKF405SE.hex\`)." \
+            "**${HEX_COUNT} targets built.** Find your board's \`.hex\` file by name (e.g. \`MATEKF405SE.hex\`); targets that also publish a \`.uf2\` (e.g. \`RP2350_PICO\`) attach it alongside for BOOTSEL drag-and-drop flashing." \
             "> Development build for testing only. Use Full Chip Erase when flashing." \
             > release-notes.md
-          gh release create "pr-${PR_NUMBER}" hexes/*.hex \
+          # Attach .uf2 images when present (RP2350 targets publish them for
+          # BOOTSEL drag-and-drop). Build an explicit asset list so a PR that
+          # produced no .uf2 doesn't pass a literal unmatched glob to gh.
+          ASSETS=(hexes/*.hex)
+          if compgen -G "hexes/*.uf2" > /dev/null; then
+            ASSETS+=(hexes/*.uf2)
+          fi
+          gh release create "pr-${PR_NUMBER}" "${ASSETS[@]}" \
             --repo iNavFlight/pr-test-builds \
             --prerelease \
             --title "PR #${PR_NUMBER} (${SHORT_SHA})" \

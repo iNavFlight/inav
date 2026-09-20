@@ -26,6 +26,7 @@
 typedef struct sbuf_s {
     uint8_t *ptr;          // data pointer must be first (sbuff_t* is equivalent to uint8_t **)
     uint8_t *end;
+    bool overrun;          // sticky: set by an unsafe sbufRead* call that ran past end
 } sbuf_t;
 
 sbuf_t *sbufInit(sbuf_t *sbuf, uint8_t *ptr, uint8_t *end);

@@ -62,6 +62,7 @@ typedef enum {
 #ifdef USE_MZTC
     FUNCTION_MZTC_CAMERA                = (1 << 28), // 268435456 - MassZero Thermal Camera
 #endif
+    FUNCTION_ESC_SRXL2                  = (1 << 29), // 536870912: Spektrum Smart ESC (Smart Throttle)
 } serialPortFunction_e;
 
 #define FUNCTION_VTX_MSP FUNCTION_MSP_OSD

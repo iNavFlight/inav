@@ -33,8 +33,14 @@ displayPort_t *cmsDisplayPortGetCurrent(void);
 void cmsMenuOpen(void);
 long cmsMenuChange(displayPort_t *pPort, const CMS_Menu *menu, const OSD_Entry *from);
 long cmsMenuExit(displayPort_t *pPort, const void *ptr);
+long cmsMenuConfirmDone(displayPort_t *pPort);
+
+uint32_t cmsGetOpenCountdownRemaining(void);
+uint32_t cmsGetInactivityCloseCountdownRemaining(void);
+bool cmsIsMenuSwitchLatched(void);
+
 void cmsYieldDisplay(displayPort_t *pPort, timeMs_t duration);
-void cmsUpdate(uint32_t currentTimeUs);
+void cmsUpdate(timeUs_t currentTimeUs);
 void cmsSetExternKey(cms_key_e extKey);
 
 #define CMS_STARTUP_HELP_TEXT1  "MENU: THR MID"

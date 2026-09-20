@@ -134,11 +134,13 @@
 #define PG_GEOZONES 1043
 #define PG_GEOZONE_VERTICES 1044
 #define PG_DRONECAN_CONFIG 1045
+#define PG_TERRAIN_NAV_CONFIG 1046
+#define PG_DRONECAN_DNA_SERVER 1047     // Separate PG so we don't wipe user settings if the allocation table changes
 #ifdef USE_MZTC
-#define PG_MZTC_CAMERA_CONFIG 1046
+#define PG_MZTC_CAMERA_CONFIG 1048
 #define PG_INAV_END PG_MZTC_CAMERA_CONFIG
 #else
-#define PG_INAV_END PG_DRONECAN_CONFIG
+#define PG_INAV_END PG_DRONECAN_DNA_SERVER
 #endif
 
 // OSD configuration (subject to change)

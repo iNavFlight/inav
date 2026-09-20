@@ -26,4 +26,4 @@
 
 struct baroDev_s;
 bool mspBaroDetect(struct baroDev_s *baro);
-void mspBaroReceiveNewData(uint8_t * bufferPtr);
+void mspBaroReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize);

@@ -95,6 +95,32 @@ typedef struct motorConfig_s {
     uint8_t  motorPwmProtocol;
     uint16_t digitalIdleOffsetValue;
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * Appended at the end, but not immediately after motorPoleCount.
+     *
+     * pgLoad() applies the reset defaults and then copies MIN(stored, current)
+     * bytes over them, comparing only the parameter group version and never the
+     * size. Before these fields the group was ten bytes: nine in use and one of
+     * tail padding, the struct being two-byte aligned. That tenth byte is inside
+     * what an older configuration stored, and it stored it as zero, because
+     * pgResetInstance() copies the reset template whole and a template's padding
+     * is zero. So a field placed there has its default overwritten with zero by
+     * any configuration saved before this firmware, which for the reverse
+     * channel means the feature comes up disabled on exactly the boards that
+     * already had settings worth keeping.
+     *
+     * This byte absorbs that overlap, so the fields after it begin past the end
+     * of the old record and keep their defaults. The alternative is bumping the
+     * group version, which would work by discarding every user's motor settings
+     * - protocol, rates, pole count - in order to add an optional field.
+     */
+    uint8_t srxl2PadOverlap;                // absorbs the old tail padding; never read
+
+    uint8_t srxl2ReverseChannel;            // 1-based aux channel an SRXL2 ESC uses to arm reverse; 0 disables
+    uint8_t srxl2Telemetry;                 // read ESC telemetry off the SRXL2 link
+    uint8_t srxl2TelemetryRate;             // how often to ask the ESC for telemetry, as srxl2TelemetryRate_e
+#endif
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);

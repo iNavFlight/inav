@@ -35,6 +35,7 @@ extern "C" {
     #include "drivers/serial.h"
     #include "drivers/system.h"
 
+    #include "fc/rc_modes.h"
     #include "fc/runtime_config.h"
 
     #include "flight/pid.h"
@@ -43,6 +44,7 @@ extern "C" {
     #include "io/serial.h"
 
     #include "navigation/navigation.h"
+    PG_REGISTER(navConfig_t, navConfig, PG_NAV_CONFIG, 0);
 
     #include "sensors/battery.h"
     #include "sensors/sensors.h"
@@ -56,6 +58,25 @@ extern "C" {
     uint16_t testBatteryVoltage = 0;
     int16_t testAmperage = 0;
     int32_t testMAhDrawn = 0;
+
+    uint32_t armingFlags = 0;
+    uint32_t flightModeFlags = 0;
+
+    bool IS_RC_MODE_ACTIVE(boxId_e boxId)
+    {
+        UNUSED(boxId);
+        return false;
+    }
+
+    bool isWaypointMissionRTHActive(void)
+    {
+        return false;
+    }
+
+    bool navigationRequiresAngleMode(void)
+    {
+        return false;
+    }
 }
 
 #include "unittest_macros.h"

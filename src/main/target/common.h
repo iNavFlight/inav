@@ -29,6 +29,12 @@
 #define NOINLINE
 #endif
 
+/* RP2350_FAST_CODE: marks large hot functions for SRAM placement on RP2350 only.
+ * These functions are too large for F7 ITCM (budget ~5 KB free before RP2350 port),
+ * so they cannot use plain FAST_CODE on all targets.  Overridden to FAST_CODE by
+ * the RP2350_PICO target.h.  No-op on all other targets. */
+#define RP2350_FAST_CODE
+
 #define DYNAMIC_HEAP_SIZE   2048
 
 #ifndef MAX_MAVLINK_PORTS
@@ -66,6 +72,15 @@
 
 #ifndef USE_SERVO_SBUS
 #define USE_SERVO_SBUS
+#endif
+
+// Spektrum Smart ESC, one per spare UART. It costs about 3.5 KB of flash and none of the
+// fast section, so it is on wherever there is room to spare: the F405 boards these ESCs
+// usually fly on sit around 77 % with some 200 KB free. The F7 family is not included
+// because parts of it are very tight, ZEEZF7V3 being at 98.1 %; any of those can opt in
+// with a #define USE_MOTOR_SRXL2 in its own target.h, which is included after this file
+#if !defined(USE_MOTOR_SRXL2) && (defined(STM32H7) || defined(AT32F43x) || defined(STM32F405xx))
+#define USE_MOTOR_SRXL2
 #endif
 
 #ifndef USE_ADC_AVERAGING

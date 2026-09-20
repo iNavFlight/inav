@@ -11,7 +11,15 @@ set_property(SOURCE adsb_unittest.cc PROPERTY extra_includes "../../lib/main/MAV
 set_property(SOURCE alignsensor_unittest.cc PROPERTY depends
     "common/maths.c" "sensors/boardalignment.c")
 
+set_property(SOURCE battery_ina226_unittest.cc PROPERTY depends
+    "sensors/battery.c" "drivers/ina226.c" "common/filter.c" "common/lulu.c" "common/maths.c")
+set_property(SOURCE battery_ina226_unittest.cc PROPERTY definitions USE_INA226 USE_I2C USE_I2C_DEVICE_1 BATTERY_I2C_BUS=BUS_I2C1 INA226_I2C_ADDRESS=0x40 USE_HEADTRACKER USE_STATS USE_ADC)
+
 set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
+
+set_property(SOURCE compass_orientation_unittest.cc PROPERTY depends
+    "common/maths.c" "sensors/compass_orientation.c")
+set_property(SOURCE compass_orientation_unittest.cc PROPERTY definitions USE_MAG USE_MAG_CALIBRATION_ORIENTATION)
 
 set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
     "common/maths.c" "common/calibration.c" "common/filter.c"
@@ -76,6 +84,8 @@ set_property(SOURCE dronecan_getnodeinfo_unittest.cc PROPERTY definitions USE_DR
 set_property(SOURCE dronecan_application_unittest.cc PROPERTY depends
     "drivers/dronecan/dronecan.c"
     "drivers/dronecan/dronecan_async.c"
+    "drivers/dronecan/dronecan_node_status.c"
+    "drivers/dronecan/dronecan_dna_server.c"
     "drivers/dronecan/libcanard/canard.c")
 set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_sources
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.NodeStatus.c"
@@ -98,7 +108,8 @@ set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_sources
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.RestartNode_res.c"
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Value.c"
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.NumericValue.c"
-    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Empty.c")
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.param.Empty.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.dynamic_node_id.Allocation.c")
 set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_includes
     "../../lib/main/Dronecan/dsdlc_generated/include")
 set_property(SOURCE dronecan_application_unittest.cc PROPERTY definitions
@@ -110,6 +121,17 @@ set_property(SOURCE dronecan_application_unittest.cc PROPERTY definitions
 set_property(SOURCE fc_msp_dronecan_unittest.cc PROPERTY depends
     "fc/fc_msp_dronecan.c" "common/streambuf.c")
 set_property(SOURCE fc_msp_dronecan_unittest.cc PROPERTY definitions USE_DRONECAN)
+
+# DroneCAN DNA server tests
+set_property(SOURCE dronecan_dna_server_unittest.cc PROPERTY depends
+    "drivers/dronecan/dronecan_dna_server.c"
+    "drivers/dronecan/libcanard/canard.c")
+set_property(SOURCE dronecan_dna_server_unittest.cc PROPERTY extra_sources
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.protocol.dynamic_node_id.Allocation.c")
+set_property(SOURCE dronecan_dna_server_unittest.cc PROPERTY extra_includes
+    "../../lib/main/Dronecan/dsdlc_generated/include")
+set_property(SOURCE dronecan_dna_server_unittest.cc PROPERTY definitions
+    USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0)
 
 # CAN bit-timing solver tests - links the real, HAL-free timing core shared
 # by the F7 (bxCAN) and H7 (FDCAN) drivers, so there is nothing to keep in sync
@@ -144,10 +166,18 @@ set_property(SOURCE vtol_mc_protection_logic_unittest.cc PROPERTY definitions US
 set_property(SOURCE terrain_unittest.cc PROPERTY depends "common/crc.c" "common/streambuf.c" "terrain/terrain_utils.c" "terrain/terrain_location.c" "drivers/time.c")
 set_property(SOURCE terrain_unittest.cc PROPERTY definitions TERRAIN_UNIT_TEST USE_TERRAIN USE_SDCARD USE_SDCARD_SDIO TERRAIN_GRID_BLOCK_CACHE_SIZE=8)
 
+set_property(SOURCE ina226_unittest.cc PROPERTY depends "drivers/ina226.c")
+set_property(SOURCE ina226_unittest.cc PROPERTY definitions USE_INA226 USE_I2C USE_I2C_DEVICE_1 USE_I2C_DEVICE_2 USE_HEADTRACKER)
+
 set_property(SOURCE mavlink_unittest.cc PROPERTY depends
     "fc/fc_mavlink.c" "mavlink/mavlink_command.c" "mavlink/mavlink_guided.c" "mavlink/mavlink_mission.c" "mavlink/mavlink_modes.c" "mavlink/mavlink_ports.c"
     "mavlink/mavlink_routing.c" "mavlink/mavlink_runtime.c" "mavlink/mavlink_streams.c" "telemetry/mavlink.c"
     "common/crc.c" "common/maths.c" "common/streambuf.c" "common/string_light.c" "msp/msp_serial.c")
+# mavlink_helpers.c has no sibling header in src/main (its header is the
+# vendored lib/main/MAVLink/mavlink_helpers.h), so it goes in extra_sources
+# to skip the depends .c -> .h transform.
+set_property(SOURCE mavlink_unittest.cc PROPERTY extra_sources
+    "mavlink/mavlink_helpers.c")
 set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK USE_MAVLINK_MSP_TUNNEL)
 set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
     "../../lib/main/MAVLink")

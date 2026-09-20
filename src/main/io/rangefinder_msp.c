@@ -72,8 +72,12 @@ static int32_t mspRangefinderGetDistance(void)
     }
 }
 
-void mspRangefinderReceiveNewData(uint8_t * bufferPtr)
+void mspRangefinderReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize)
 {
+    if (dataSize < sizeof(mspSensorRangefinderDataMessage_t)) {
+        return;
+    }
+
     const mspSensorRangefinderDataMessage_t * pkt = (const mspSensorRangefinderDataMessage_t *)bufferPtr;
 
     sensorData = pkt->distanceMm / 10;

@@ -105,7 +105,17 @@
         lexpr, _CHOOSE_VAR(_left, __COUNTER__), \
         rexpr, _CHOOSE_VAR(_right, __COUNTER__) \
         )
+/* INAV's MIN/MAX are single-evaluation and type-safe; they must win over any
+ * earlier plain MIN/MAX definition (e.g. the Pico SDK's compiler.h, pulled in
+ * via build/atomic.h on RP2350, which defines guarded MIN/MAX when maths.h has
+ * not been included yet). Undef first so the definition here always applies. */
+#ifdef MIN
+#undef MIN
+#endif
 #define MIN(a, b) _CHOOSE(<, a, b)
+#ifdef MAX
+#undef MAX
+#endif
 #define MAX(a, b) _CHOOSE(>, a, b)
 #define SIGN(a) ((a >= 0) ? 1 : -1)
 
@@ -208,6 +218,7 @@ float bellCurve(const float x, const float curveWidth);
 float attenuation(const float input, const float width);
 float gaussian(const float x, const float mu, const float sigma);
 float fast_fsqrtf(const float value);
+float powf_approx(float base, float exp);
 float calc_length_pythagorean_2D(const float firstElement, const float secondElement);
 float calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement);
 

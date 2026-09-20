@@ -52,6 +52,19 @@ extern uint8_t __config_end;
 
 #endif
 
+// Compile INA226 support for every target with a usable hardware I2C bus.
+#if defined(USE_I2C) && defined(DEFAULT_I2C_BUS)
+#define USE_INA226
+
+#ifndef BATTERY_I2C_BUS
+#define BATTERY_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
+#ifndef INA226_I2C_ADDRESS
+#define INA226_I2C_ADDRESS 0x40
+#endif
+#endif
+
 // Airspeed sensors
 #if defined(USE_PITOT) && defined(DEFAULT_I2C_BUS)
 
@@ -89,6 +102,7 @@ extern uint8_t __config_end;
 
 #define USE_MAG_HMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_LIS2MDL
 #define USE_MAG_LIS3MDL
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
@@ -149,6 +163,14 @@ extern uint8_t __config_end;
 #define TERRAIN_GRID_BLOCK_CACHE_SIZE 4
 #endif
 
+#endif
+
+// Compass mounting-orientation auto-detection keeps a ~1.8 KB sample buffer
+// (128 raw mag + attitude samples) for the duration of a calibration spin;
+// restrict it to MCUs with enough RAM headroom, same threshold as USE_TERRAIN
+// above. Falls back to manual mag_align configuration where undefined.
+#if defined(USE_MAG) && !defined(USE_MAG_CALIBRATION_ORIENTATION) && (MCU_RAM_SIZE > 256)
+#define USE_MAG_CALIBRATION_ORIENTATION
 #endif
 
 // CRSF sensor input on a dedicated UART

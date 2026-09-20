@@ -152,7 +152,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
         case PITOT_VIRTUAL:
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
-                if (STATE(AIRPLANE) && feature(FEATURE_GPS)) {
+                if (feature(FEATURE_GPS)) {
                     pitotHardware = PITOT_VIRTUAL;
                     break;
                 }
@@ -335,6 +335,7 @@ static float getWindEstimatedVirtualAirspeed(void)
         fpVector3_t windCorrectedVel;
 
         // Correct nav velocities with estimated wind velocities in earth frame
+        // Z: posControl.actualState.abs.vel.z and getEstimatedWindSpeed(Z) are both NEU
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             windCorrectedVel.v[axis] = posControl.actualState.abs.vel.v[axis] - getEstimatedWindSpeed(axis);
         }

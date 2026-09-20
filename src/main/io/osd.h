@@ -148,6 +148,7 @@
 #define OSD_MSG_VTOL_WAIT_MC_SPEED  "WAIT MC SPEED"
 #define OSD_MSG_VTOL_NO_SPEED       "NO SPEED"
 #define OSD_MSG_VTOL_MC_SPEED_HIGH  "MC SPEED HIGH"
+#define OSD_MSG_MENU_NAV_REQ        "USE NAV MODES FOR MENU"
 
 #ifdef USE_DEV_TOOLS
 #define OSD_MSG_GRD_TEST_MODE       "GRD TEST > MOTORS DISABLED"
@@ -169,6 +170,17 @@
 #define OSD_MSG_AVOIDING_ALT_BREACH "REACHED ZONE ALTITUDE LIMIT"
 #define OSD_MSG_AVOID_ZONES_RTH     "AVOIDING NO FLY ZONES"
 #define OSD_MSG_GEOZONE_ACTION      "PERFORM ACTION IN %s %s"
+#endif
+
+#if defined(USE_TERRAIN)
+#define OSD_MSG_TERRAIN_NOT_READY   "TERRAIN NOT READY"
+#define OSD_MSG_TERRAIN_DATA_LOST   "TERRAIN LOST - ALT FROZEN"
+#define OSD_MSG_TERRAIN_VS_MAX_ALT  "TERRAIN VS MAX ALT"
+#define OSD_MSG_TERRAIN_PULL_UP     "TERRAIN! PULL UP!"
+#define OSD_MSG_TERRAIN_TURN_AWAY   "TERRAIN! TURN AWAY!"
+#define OSD_MSG_TERRAIN_NO_HEADING  "TERRAIN LOOKAHEAD OFF"
+#define OSD_MSG_TERRAIN_AUTO_CLIMB  "TERRAIN AUTO CLIMB TO MIN"
+#define OSD_MSG_TERRAIN_AHEAD       "TERRAIN AHEAD!"
 #endif
 
 #ifdef USE_ADSB
@@ -368,6 +380,7 @@ typedef enum {
     OSD_THROTTLE_GAUGE,
     OSD_GPS_EXTRA_STATS,
     OSD_AUTO_SPEED,  // 170
+    OSD_TERRAIN_AGL, // 171,
     OSD_MZTC_STATUS,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
@@ -592,6 +605,7 @@ void osdStartFullRedraw(void);
 // the OSD after the given duration. Otherwise, the caller must
 // explicitely remove it.
 void osdOverrideLayout(int layout, timeMs_t duration);
+void osdSetLayoutOverrideOwnedByMenu(bool owned);
 // Returns the current current layout as well as wether its
 // set by the user configuration (modes, etc..) or by overriding it.
 int osdGetActiveLayout(bool *overridden);

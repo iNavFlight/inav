@@ -208,6 +208,7 @@
 - [navDefaultAltitudeSensor_e](#enum-navdefaultaltitudesensor_e)
 - [navExtraArmingSafety_e](#enum-navextraarmingsafety_e)
 - [navFwLaunchStatus_e](#enum-navfwlaunchstatus_e)
+- [navFwWpTurnMode_e](#enum-navfwwpturnmode_e)
 - [navigationEstimateStatus_e](#enum-navigationestimatestatus_e)
 - [navigationFSMEvent_t](#enum-navigationfsmevent_t)
 - [navigationFSMState_t](#enum-navigationfsmstate_t)
@@ -239,6 +240,7 @@
 - [navWaypointFlags_e](#enum-navwaypointflags_e)
 - [navWaypointHeadings_e](#enum-navwaypointheadings_e)
 - [navWaypointP3Flags_e](#enum-navwaypointp3flags_e)
+- [oledControllerType_e](#enum-oledcontrollertype_e)
 - [opflowQuality_e](#enum-opflowquality_e)
 - [opticalFlowSensor_e](#enum-opticalflowsensor_e)
 - [osd_adsb_warning_style_e](#enum-osd_adsb_warning_style_e)
@@ -325,6 +327,7 @@
 - [simTxFlags_e](#enum-simtxflags_e)
 - [simulatorFlags_t](#enum-simulatorflags_t)
 - [sitlCANMode_e](#enum-sitlcanmode_e)
+- [sliceAssign_e](#enum-sliceassign_e)
 - [smartAudioVersion_e](#enum-smartaudioversion_e)
 - [smartportFuelUnit_e](#enum-smartportfuelunit_e)
 - [softSerialPortIndex_e](#enum-softserialportindex_e)
@@ -332,11 +335,16 @@
 - [SPIDevice](#enum-spidevice)
 - [Srxl2BindRequest](#enum-srxl2bindrequest)
 - [Srxl2BindType](#enum-srxl2bindtype)
+- [srxl2CalPhase_e](#enum-srxl2calphase_e)
+- [srxl2CalResult_e](#enum-srxl2calresult_e)
 - [Srxl2ControlDataCommand](#enum-srxl2controldatacommand)
 - [Srxl2DeviceId](#enum-srxl2deviceid)
 - [Srxl2DeviceType](#enum-srxl2devicetype)
 - [Srxl2PacketType](#enum-srxl2packettype)
 - [Srxl2State](#enum-srxl2state)
+- [srxl2State_e](#enum-srxl2state_e)
+- [srxl2TelemetryField_e](#enum-srxl2telemetryfield_e)
+- [srxl2TelemetryRate_e](#enum-srxl2telemetryrate_e)
 - [stateFlags_t](#enum-stateflags_t)
 - [stickPositions_e](#enum-stickpositions_e)
 - [systemState_e](#enum-systemstate_e)
@@ -375,7 +383,6 @@
 - [warningLedState_e](#enum-warningledstate_e)
 - [widgetAHIOptions_t](#enum-widgetahioptions_t)
 - [widgetAHIStyle_e](#enum-widgetahistyle_e)
-- [wpFwTurnSmoothing_e](#enum-wpfwturnsmoothing_e)
 - [wpMissionPlannerStatus_e](#enum-wpmissionplannerstatus_e)
 - [zeroCalibrationState_e](#enum-zerocalibrationstate_e)
 
@@ -527,7 +534,8 @@
 | `ADJUSTMENT_FW_LEVEL_TRIM` | 58 |  |
 | `ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX` | 59 |  |
 | `ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE` | 60 |  |
-| `ADJUSTMENT_FUNCTION_COUNT` | 61 |  |
+| `ADJUSTMENT_MZTC_ZOOM` | 61 |  |
+| `ADJUSTMENT_FUNCTION_COUNT` | 62 |  |
 
 ---
 ## <a id="enum-adjustmentmode_e"></a>`adjustmentMode_e`
@@ -1199,7 +1207,11 @@
 | `BOXGIMBALCENTER` | 58 |  |
 | `BOXGIMBALHTRK` | 59 |  |
 | `BOXAUTOSPEED` | 60 |  |
-| `CHECKBOX_ITEM_COUNT` | 61 |  |
+| `BOXTERRAINAGLHOLD` | 61 |  |
+| `BOXINFLIGHTMENU` | 62 |  |
+| `BOXTHRUSTREVERSE` | 63 |  |
+| `BOXMZTCCALIBRATE` | 64 |  |
+| `CHECKBOX_ITEM_COUNT` | 65 |  |
 
 ---
 ## <a id="enum-busindex_e"></a>`busIndex_e`
@@ -1426,7 +1438,8 @@
 | `CURRENT_SENSOR_SMARTPORT` | 5 |  |
 | `CURRENT_SENSOR_CRSF` | 6 |  |
 | `CURRENT_SENSOR_CAN` | 7 |  |
-| `CURRENT_SENSOR_MAX` | CURRENT_SENSOR_CAN |  |
+| `CURRENT_SENSOR_INA226` | 8 |  |
+| `CURRENT_SENSOR_MAX` | CURRENT_SENSOR_INA226 |  |
 
 ---
 ## <a id="enum-devhardwaretype_e"></a>`devHardwareType_e`
@@ -1470,31 +1483,33 @@
 | `DEVHW_RM3100` | 32 |  |
 | `DEVHW_VCM5883` | 33 |  |
 | `DEVHW_MLX90393` | 34 |  |
-| `DEVHW_LM75_0` | 35 |  |
-| `DEVHW_LM75_1` | 36 |  |
-| `DEVHW_LM75_2` | 37 |  |
-| `DEVHW_LM75_3` | 38 |  |
-| `DEVHW_LM75_4` | 39 |  |
-| `DEVHW_LM75_5` | 40 |  |
-| `DEVHW_LM75_6` | 41 |  |
-| `DEVHW_LM75_7` | 42 |  |
-| `DEVHW_DS2482` | 43 |  |
-| `DEVHW_MAX7456` | 44 |  |
-| `DEVHW_SRF10` | 45 |  |
-| `DEVHW_VL53L0X` | 46 |  |
-| `DEVHW_VL53L1X` | 47 |  |
-| `DEVHW_US42` | 48 |  |
-| `DEVHW_TOF10120_I2C` | 49 |  |
-| `DEVHW_TERARANGER_EVO_I2C` | 50 |  |
-| `DEVHW_MS4525` | 51 |  |
-| `DEVHW_MS5525` | 52 |  |
-| `DEVHW_DLVR` | 53 |  |
-| `DEVHW_M25P16` | 54 |  |
-| `DEVHW_W25N` | 55 |  |
-| `DEVHW_UG2864` | 56 |  |
-| `DEVHW_SDCARD` | 57 |  |
-| `DEVHW_IRLOCK` | 58 |  |
-| `DEVHW_PCF8574` | 59 |  |
+| `DEVHW_LIS2MDL` | 35 |  |
+| `DEVHW_LM75_0` | 36 |  |
+| `DEVHW_LM75_1` | 37 |  |
+| `DEVHW_LM75_2` | 38 |  |
+| `DEVHW_LM75_3` | 39 |  |
+| `DEVHW_LM75_4` | 40 |  |
+| `DEVHW_LM75_5` | 41 |  |
+| `DEVHW_LM75_6` | 42 |  |
+| `DEVHW_LM75_7` | 43 |  |
+| `DEVHW_DS2482` | 44 |  |
+| `DEVHW_MAX7456` | 45 |  |
+| `DEVHW_SRF10` | 46 |  |
+| `DEVHW_VL53L0X` | 47 |  |
+| `DEVHW_VL53L1X` | 48 |  |
+| `DEVHW_US42` | 49 |  |
+| `DEVHW_TOF10120_I2C` | 50 |  |
+| `DEVHW_TERARANGER_EVO_I2C` | 51 |  |
+| `DEVHW_MS4525` | 52 |  |
+| `DEVHW_MS5525` | 53 |  |
+| `DEVHW_DLVR` | 54 |  |
+| `DEVHW_M25P16` | 55 |  |
+| `DEVHW_W25N` | 56 |  |
+| `DEVHW_UG2864` | 57 |  |
+| `DEVHW_SDCARD` | 58 |  |
+| `DEVHW_IRLOCK` | 59 |  |
+| `DEVHW_PCF8574` | 60 |  |
+| `DEVHW_INA226` | 61 |  |
 
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
@@ -3045,6 +3060,7 @@
 | `LED_OVERLAY_INDICATOR` | 4 |  |
 | `LED_OVERLAY_WARNING` | 5 |  |
 | `LED_OVERLAY_STROBE` | 6 |  |
+| `LED_OVERLAY_RAINBOW` | 7 |  |
 
 ---
 ## <a id="enum-ledspecialcolorids_e"></a>`ledSpecialColorIds_e`
@@ -3503,7 +3519,8 @@
 | `MAG_RM3100` | 13 |  |
 | `MAG_VCM5883` | 14 |  |
 | `MAG_MLX90393` | 15 |  |
-| `MAG_FAKE` | 16 |  |
+| `MAG_LIS2MDL` | 16 |  |
+| `MAG_FAKE` | 17 |  |
 | `MAG_MAX` | MAG_FAKE |  |
 
 ---
@@ -3606,7 +3623,7 @@
 | `MIXERAT_PHASE_TRANSITIONING` | 2 |  |
 | `MIXERAT_PHASE_POST_SWITCH_FADE` | (3) | USE_AUTO_TRANSITION |
 | `MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE` | (4) | USE_AUTO_TRANSITION |
-| `MIXERAT_PHASE_DONE` | (5) | !USE_AUTO_TRANSITION |
+| `MIXERAT_PHASE_DONE` | (3) | !USE_AUTO_TRANSITION |
 
 ---
 ## <a id="enum-mixerprofileatwaitreason_e"></a>`mixerProfileATWaitReason_e`
@@ -3655,6 +3672,7 @@
 | `PWM_TYPE_DSHOT150` | 4 |  |
 | `PWM_TYPE_DSHOT300` | 5 |  |
 | `PWM_TYPE_DSHOT600` | 6 |  |
+| `PWM_TYPE_SRXL2` | 7 |  |
 
 ---
 ## <a id="enum-motorstatus_e"></a>`motorStatus_e`
@@ -3871,6 +3889,18 @@
 | `FW_LAUNCH_DETECTED` | 5 |  |
 | `FW_LAUNCH_ABORTED` | 10 |  |
 | `FW_LAUNCH_FLYING` | 11 |  |
+
+---
+## <a id="enum-navfwwpturnmode_e"></a>`navFwWpTurnMode_e`
+
+> Source: ../../../src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_FW_WP_TURN_DIRECT` | 0 |  |
+| `NAV_FW_WP_TURN_COORD_FLY_BY` | 1 |  |
+| `NAV_FW_WP_TURN_COORD_FLY_OVER` | 2 |  |
+| `NAV_FW_WP_TURN_COORD_FLY_INTO` | 3 |  |
 
 ---
 ## <a id="enum-navigationestimatestatus_e"></a>`navigationEstimateStatus_e`
@@ -4411,6 +4441,19 @@
 | `NAV_WP_USER4` | (1<<4) |  |
 
 ---
+## <a id="enum-oledcontrollertype_e"></a>`oledControllerType_e`
+
+> Source: ../../../src/main/drivers/display_ug2864hsweg01.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `OLED_CONTROLLER_UNKNOWN` | 0 |  |
+| `OLED_CONTROLLER_SSD1306` | 1 |  |
+| `OLED_CONTROLLER_SH1106` | 2 |  |
+| `OLED_CONTROLLER_SH1107` | 3 |  |
+| `OLED_CONTROLLER_SSD1309` | 4 |  |
+
+---
 ## <a id="enum-opflowquality_e"></a>`opflowQuality_e`
 
 > Source: ../../../src/main/sensors/opflow.h
@@ -4666,8 +4709,9 @@
 | `OSD_THROTTLE_GAUGE` | 168 |  |
 | `OSD_GPS_EXTRA_STATS` | 169 |  |
 | `OSD_AUTO_SPEED` | 170 |  |
-| `OSD_MZTC_STATUS` | 171 |  |
-| `OSD_ITEM_COUNT` | 172 |  |
+| `OSD_TERRAIN_AGL` | 171 |  |
+| `OSD_MZTC_STATUS` | 172 |  |
+| `OSD_ITEM_COUNT` | 173 |  |
 
 ---
 ## <a id="enum-osd_sidebar_arrow_e"></a>`osd_sidebar_arrow_e`
@@ -4869,6 +4913,7 @@
 | `PID_SHRINK_INTEGRATOR` | 1 << 2 |  |
 | `PID_LIMIT_INTEGRATOR` | 1 << 3 |  |
 | `PID_FREEZE_INTEGRATOR` | 1 << 4 |  |
+| `PID_USING_HEADING` | 1 << 5 |  |
 
 ---
 ## <a id="enum-pidindex_e"></a>`pidIndex_e`
@@ -5261,7 +5306,8 @@
 | `OWNER_PINIO` | 32 |  |
 | `OWNER_IRLOCK` | 33 |  |
 | `OWNER_DRONECAN` | 34 |  |
-| `OWNER_TOTAL_COUNT` | 35 |  |
+| `OWNER_CURRENT_METER` | 35 |  |
+| `OWNER_TOTAL_COUNT` | 36 |  |
 
 ---
 ## <a id="enum-resourcetype_e"></a>`resourceType_e`
@@ -5615,6 +5661,7 @@
 | `FUNCTION_GIMBAL` | (1 << 26) |  |
 | `FUNCTION_GIMBAL_HEADTRACKER` | (1 << 27) |  |
 | `FUNCTION_MZTC_CAMERA` | (1 << 28) | USE_MZTC |
+| `FUNCTION_ESC_SRXL2` | (1 << 29) |  |
 
 ---
 ## <a id="enum-serialportidentifier_e"></a>`serialPortIdentifier_e`
@@ -5828,6 +5875,17 @@
 | `SITL_CAN_MODE_SOCKETCAN` | 1 |  |
 
 ---
+## <a id="enum-sliceassign_e"></a>`sliceAssign_e`
+
+> Source: ../../../src/main/drivers/pwm_output_rp2350.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SLICE_UNASSIGNED` | 0 |  |
+| `SLICE_AS_MOTOR` | 1 |  |
+| `SLICE_AS_SERVO` | 2 |  |
+
+---
 ## <a id="enum-smartaudioversion_e"></a>`smartAudioVersion_e`
 
 > Source: ../../../src/main/io/vtx_smartaudio.h
@@ -5916,6 +5974,33 @@
 | `DSMR_5_5ms` | 228 |  |
 
 ---
+## <a id="enum-srxl2calphase_e"></a>`srxl2CalPhase_e`
+
+> Source: ../../../src/main/io/motor_srxl2.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_CAL_OFF` | 0 |  |
+| `SRXL2_CAL_WAIT_BATTERY` | 1 |  |
+| `SRXL2_CAL_SETTLE` | 2 |  |
+| `SRXL2_CAL_LOW` | 3 |  |
+| `SRXL2_CAL_HIGH_MANUAL` | 4 |  |
+| `SRXL2_CAL_LOW_MANUAL` | 5 |  |
+
+---
+## <a id="enum-srxl2calresult_e"></a>`srxl2CalResult_e`
+
+> Source: ../../../src/main/io/motor_srxl2.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_CAL_ACCEPTED` | 0 |  |
+| `SRXL2_CAL_REJECT_ARMED` | 1 |  |
+| `SRXL2_CAL_REJECT_NO_PORT` | 2 |  |
+| `SRXL2_CAL_REJECT_BATTERY_PRESENT` | 3 |  |
+| `SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR` | 4 |  |
+
+---
 ## <a id="enum-srxl2controldatacommand"></a>`Srxl2ControlDataCommand`
 
 > Source: ../../../src/main/rx/srxl2_types.h
@@ -5980,6 +6065,43 @@
 | `SendHandshake` | 2 |  |
 | `ListenForHandshake` | 3 |  |
 | `Running` | 4 |  |
+
+---
+## <a id="enum-srxl2state_e"></a>`srxl2State_e`
+
+> Source: ../../../src/main/io/motor_srxl2.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_DISABLED` | 0 |  |
+| `SRXL2_LISTENING` | 1 |  |
+| `SRXL2_POLLING` | 2 |  |
+| `SRXL2_FINALISING` | 3 |  |
+| `SRXL2_RUNNING` | 4 |  |
+
+---
+## <a id="enum-srxl2telemetryfield_e"></a>`srxl2TelemetryField_e`
+
+> Source: ../../../src/main/io/motor_srxl2.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_TELEM_FIELD_RPM` | (1 << 0) |  |
+| `SRXL2_TELEM_FIELD_VOLTAGE` | (1 << 1) |  |
+| `SRXL2_TELEM_FIELD_CURRENT` | (1 << 2) |  |
+| `SRXL2_TELEM_FIELD_TEMP_FET` | (1 << 3) |  |
+| `SRXL2_TELEM_FIELD_TEMP_BEC` | (1 << 4) |  |
+
+---
+## <a id="enum-srxl2telemetryrate_e"></a>`srxl2TelemetryRate_e`
+
+> Source: ../../../src/main/io/motor_srxl2.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_TELEM_1HZ` | 0 |  |
+| `SRXL2_TELEM_3HZ` | 1 |  |
+| `SRXL2_TELEM_2HZ` | 2 |  |
 
 ---
 ## <a id="enum-stateflags_t"></a>`stateFlags_t`
@@ -6143,16 +6265,17 @@
 
 | Enumerator | Value | Condition |
 |---|---:|---|
-| `timBlink` | 0 |  |
-| `timLarson` | 1 |  |
-| `timBattery` | 2 |  |
-| `timRssi` | 3 |  |
-| `timGps` | (4) | USE_GPS |
-| `timWarning` | 5 |  |
-| `timIndicator` | 6 |  |
-| `timAnimation` | (7) | USE_LED_ANIMATION |
-| `timRing` | 8 |  |
-| `timTimerCount` | 9 |  |
+| `timRainbow` | 0 |  |
+| `timBlink` | 1 |  |
+| `timLarson` | 2 |  |
+| `timBattery` | 3 |  |
+| `timRssi` | 4 |  |
+| `timGps` | (5) | USE_GPS |
+| `timWarning` | 6 |  |
+| `timIndicator` | 7 |  |
+| `timAnimation` | (8) | USE_LED_ANIMATION |
+| `timRing` | 9 |  |
+| `timTimerCount` | 10 |  |
 
 ---
 ## <a id="enum-tristate_e"></a>`tristate_e`
@@ -6348,7 +6471,8 @@
 | `VOLTAGE_SENSOR_SMARTPORT` | 4 |  |
 | `VOLTAGE_SENSOR_CRSF` | 5 |  |
 | `VOLTAGE_SENSOR_CAN` | 6 |  |
-| `VOLTAGE_SENSOR_MAX` | VOLTAGE_SENSOR_CAN |  |
+| `VOLTAGE_SENSOR_INA226` | 7 |  |
+| `VOLTAGE_SENSOR_MAX` | VOLTAGE_SENSOR_INA226 |  |
 
 ---
 ## <a id="enum-vs600band_e"></a>`vs600Band_e`
@@ -6522,17 +6646,6 @@
 |---|---:|---|
 | `DISPLAY_WIDGET_AHI_STYLE_STAIRCASE` | 0 |  |
 | `DISPLAY_WIDGET_AHI_STYLE_LINE` | 1 |  |
-
----
-## <a id="enum-wpfwturnsmoothing_e"></a>`wpFwTurnSmoothing_e`
-
-> Source: ../../../src/main/navigation/navigation.h
-
-| Enumerator | Value | Condition |
-|---|---:|---|
-| `WP_TURN_SMOOTHING_OFF` | 0 |  |
-| `WP_TURN_SMOOTHING_ON` | 1 |  |
-| `WP_TURN_SMOOTHING_CUT` | 2 |  |
 
 ---
 ## <a id="enum-wpmissionplannerstatus_e"></a>`wpMissionPlannerStatus_e`

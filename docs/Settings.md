@@ -697,7 +697,7 @@ This sets the output voltage to current scaling for the current sensor in 0.1 mV
 
 ### current_meter_type
 
-ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
+ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, INA226, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
 
 | Allowed Values |  |
 | --- | --- |
@@ -709,6 +709,7 @@ ADC, VIRTUAL, FAKE, ESC, SMARTPORT, CAN, NONE. The virtual current sensor, once 
 | SMARTPORT |  |
 | CRSF |  |
 | CAN |  |
+| INA226 |  |
 
 ---
 
@@ -797,6 +798,9 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | OSD_REFRESH |  |
 | VTOL_TRANSITION |  |
 | VTOL_MC_PROTECT |  |
+| TERRAIN_NAV |  |
+| ESC |  |
+| FW_TURN |  |
 
 ---
 
@@ -905,6 +909,16 @@ Unique identifier for this device. Valid values are 1 to 127. 126 and 127 are re
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | 1 | 127 |
+
+---
+
+### dronecan_use_dna_server
+
+Enable the DNA server to manage plug and play dronecan devices
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
 
 ---
 
@@ -1030,6 +1044,38 @@ Enable when BLHeli32 Auto Telemetry function is used. Disable in every other cas
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### esc_srxl2_reverse_channel
+
+For an SRXL2 Smart ESC, the 1-based auxiliary channel its "Thrust Rev." setting selects to arm reverse. Spektrum allow channels 5 to 9 and ship channel 7 by default. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse, and anything between 1 and 4 is treated as 0 at boot - the range cannot express the hole, and a channel the ESC cannot watch would offer a mode that does nothing.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 7 | 0 | 9 |
+
+---
+
+### esc_srxl2_telemetry
+
+Read ESC telemetry off the SRXL2 link. Only applies when motor_pwm_protocol is SRXL2, where telemetry shares the throttle wire and so cannot be turned off by leaving a port unassigned as it would be for a conventional ESC.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
+### esc_srxl2_telemetry_rate
+
+How often ESC telemetry arrives from an SRXL2 Smart ESC, in readings per second. The ESC answers about two requests in three and rotates its reply between three sensors, so it delivers roughly a ninth of what is asked for - these are the delivered rates, measured, not the request rate. The reply shares the throttle wire, so a faster rate leaves the bus less headroom; only the RPM filter benefits from it. The range is bounded at both ends by the ESC: asking on every frame makes an Avian keep the link and stop obeying the throttle, and asking slower than 1 Hz makes the link time out on a healthy ESC, because its reply is the only thing that proves it is still there.
+
+| Allowed Values |  |
+| --- | --- |
+| 1HZ | Default |
+| 3HZ |  |
+| 2HZ |  |
 
 ---
 
@@ -1349,16 +1395,6 @@ S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer da
 
 ---
 
-### frsky_use_legacy_gps_mode_sensor_ids
-
-S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GNSS (Tmp2). These are old IDs, deprecated, and will be removed in INAV 10.0. Tools and scripts using these IDs should be updated to use the new IDs of **470** for Modes and **480** for GNSS. Default: 'OFF'
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### fw_auto_speed_channel
 
 Channel number used to set desired Auto Speed demand value. Defaults to throttle channel 4.
@@ -1443,7 +1479,7 @@ Minimum stick input [%], after applying deadband and expo, to start recording th
 
 ### fw_d_level
 
-Fixed-wing attitude stabilisation HORIZON transition point
+Fixed-wing HORIZON transition point, expressed as stick deflection in percent. At this deflection self-levelling is faded out completely and the axis behaves like ACRO; below it, ANGLE and ACRO are blended proportionally. Despite the 0-255 CLI range, which is shared with the other PID values, the number is not scaled to 255: it is clamped to 100 internally, so 75 really means 75% stick and any value above 100 acts the same as 100.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2318,6 +2354,36 @@ Power draw at zero throttle used for remaining flight time/distance estimation i
 
 ---
 
+### ina_address
+
+INA226 7-bit I2C address.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 64 | 79 |
+
+---
+
+### ina_bus
+
+Hardware I2C bus used by the INA226.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 1 | 4 |
+
+---
+
+### ina_shunt_res_uohm
+
+INA226 shunt resistor value in micro-ohms.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 1 | 4294967295 |
+
+---
+
 ### inav_allow_dead_reckoning
 
 Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation
@@ -2585,6 +2651,26 @@ Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened w
 
 ---
 
+### ledstrip_rainbow_delta_deg
+
+Hue offset in degrees between adjacent LEDs carrying the rainbow overlay. 0 makes every rainbow LED the same color; larger values spread more of the spectrum across the strip.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 0 | 359 |
+
+---
+
+### ledstrip_rainbow_sweep_rate
+
+Rainbow overlay sweep rate. Higher values sweep faster. 0 freezes the rainbow.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 255 |
+
+---
+
 ### limit_attn_filter_cutoff
 
 Throttle attenuation PI control output filter cutoff frequency
@@ -2783,6 +2869,7 @@ Selection of mag hardware. See Wiki Sensor auto detect and hardware failure dete
 | RM3100 |  |
 | VCM5883 |  |
 | MLX90393 |  |
+| LIS2MDL |  |
 | FAKE |  |
 
 ---
@@ -3475,7 +3562,7 @@ The number of motor poles. Required to compute motor RPM
 
 ### motor_pwm_protocol
 
-Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED
+Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, MULTISHOT, BRUSHED, DSHOT150, DSHOT300, DSHOT600
 
 | Allowed Values |  |
 | --- | --- |
@@ -3486,6 +3573,7 @@ Protocol that is used to send motor updates to ESCs. Possible values - STANDARD,
 | DSHOT150 |  |
 | DSHOT300 |  |
 | DSHOT600 |  |
+| SRXL2 |  |
 
 ---
 
@@ -3686,6 +3774,16 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 ---
 
+### nav_cruise_lock_on_level
+
+Fixed wing only: when ON the COURSE HOLD/CRUISE course is locked only once the aircraft has rolled out level (below 10 deg bank) after a heading adjustment or a banked mode entry, following the actual course until then. Prevents overshooting the locked course during the level-off. OFF locks the course as soon as the sticks are centered (legacy behaviour).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### nav_cruise_yaw_rate
 
 Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on fixed wing (Note: On multirotor setting to 0 will disable Course Hold/Cruise mode completely) [dps]
@@ -3799,7 +3897,7 @@ P gain of auto speed PID controller.
 
 ### nav_fw_bank_angle
 
-Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll
+Maximum sustained roll angle when turning in GPS assisted modes: the target bank that turn and loiter radii are planned for. Corrections may exceed it temporarily; the absolute ceiling remains max_angle_inclination_rll
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3819,7 +3917,7 @@ Max pitch angle when climbing in GPS assisted modes, is also restrained by globa
 
 ### nav_fw_control_smoothness
 
-How smoothly the autopilot controls the airplane to correct the navigation error
+How smoothly the autopilot corrects the navigation error. Pitch uses a low-pass filter. Roll uses an S-curve easing window of n x 100 ms (max 900 ms) applied only when the commanded bank changes abruptly, so steady course tracking is never lagged. 0 = no roll smoothing.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3899,7 +3997,7 @@ Modifier for pitch to throttle ratio at final approach. In Percent.
 
 ### nav_fw_land_flare_alt
 
-Initial altitude of the flare phase
+Initial altitude of the flare phase. Requires a healthy rangefinder; without one the aircraft stays in the glide phase (see nav_fw_land_glide_alt/nav_fw_land_glide_pitch) all the way to touchdown.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3909,7 +4007,7 @@ Initial altitude of the flare phase
 
 ### nav_fw_land_flare_pitch
 
-Pitch value for flare phase. In degrees
+Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder; the flare phase never activates without one.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4317,6 +4415,16 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ---
 
+### nav_fw_turn_ff_gain
+
+Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
 ### nav_fw_wp_tracking_accuracy
 
 Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Setting adjusts tracking deadband distance fom waypoint courseline [m]. Tracking isn't actively controlled within the deadband providing smoother flight adjustments but less accurate tracking. A 2m deadband should work OK in most cases. Setting to 0 disables waypoint tracking accuracy.
@@ -4337,15 +4445,36 @@ Sets the maximum allowed alignment convergence angle to the waypoint course line
 
 ---
 
-### nav_fw_wp_turn_smoothing
+### nav_fw_wp_turn_control_ease
 
-Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner).
+Unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramps; increase for large or slow-responding airframes.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 500 |
+
+---
+
+### nav_fw_wp_turn_max_lead_time
+
+COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 6000 | 3000 | 12000 |
+
+---
+
+### nav_fw_wp_turn_mode
+
+How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn. The COORD modes fly coordinated arcs of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY cuts the corner and passes the waypoint abeam, COORD_FLYOVER overflies the waypoint before turning onto the next leg, COORD_FLYINTO crosses the waypoint already aligned with the outbound leg (survey line entries).
 
 | Allowed Values |  |
 | --- | --- |
-| OFF | Default |
-| ON |  |
-| ON-CUT |  |
+| DIRECT |  |
+| COORD_FLYBY | Default |
+| COORD_FLYOVER |  |
+| COORD_FLYINTO |  |
 
 ---
 
@@ -7189,6 +7318,26 @@ Enable load terrain data from SD card
 
 ---
 
+### terrain_nav_lookahead
+
+TERRAIN AGL HOLD: check terrain up to this distance ahead along the flight path and climb early for rising ground [m]. 0 disables the lookahead. The effective distance is also limited by the terrain block cache of the flight controller
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 0 | 2000 |
+
+---
+
+### terrain_nav_min_agl
+
+TERRAIN AGL HOLD: minimum held height above ground [cm]. Engaging below it commands a gentle climb that levels off about 10 m above the floor. The floor absorbs worst-case terrain map error on steep slopes plus canopy - the minimum is the lowest value where that error budget still clears
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 6000 | 5000 | 12000 |
+
+---
+
 ### thr_comp_weight
 
 Weight used for the throttle compensation based on battery voltage. See the [battery documentation](Battery.md#automatic-throttle-compensation-based-on-battery-voltage)
@@ -7271,7 +7420,7 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_pitch_compensation
 
-Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down.
+Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains) when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7403,7 +7552,7 @@ Maximum voltage per cell in 0.01V units, default is 4.20V
 
 ### vbat_meter_type
 
-Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus.
+Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN', `INA226`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. 'CAN' requires requires dronecan running and a sensor on the bus. `INA226` requires an INA226 I2C sensor.
 
 | Allowed Values |  |
 | --- | --- |
@@ -7414,6 +7563,7 @@ Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, 'CAN'. 
 | SMARTPORT |  |
 | CRSF |  |
 | CAN |  |
+| INA226 |  |
 
 ---
 

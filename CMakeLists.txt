@@ -53,7 +53,7 @@ else()
 endif()
 
 
-project(INAV VERSION 9.1.0)
+project(INAV VERSION 9.1.1)
 
 
 enable_language(ASM)
@@ -93,6 +93,7 @@ endif()
 include(stm32)
 include(at32)
 include(sitl)
+include(rp2350)
 
 add_subdirectory(src)
 

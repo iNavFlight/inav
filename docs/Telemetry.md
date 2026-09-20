@@ -110,15 +110,11 @@ The following sensors are transmitted
   * **E** : 1 = heading hold, 2 = altitude hold, 4 = position hold
   * **F** : 1 = angle mode, 2 = horizon mode, 4 = passthru mode
   * **G** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
-  
-  _NOTE_ This sensor used to be **Tmp1**. The ID has been reassigned in INAV 8.0. The old ID of **Tmp1** can still be used, by using `set frsky_use_legacy_gps_mode_sensor_ids = ON`. This is deprecated and will be removed in INAV 10.0. All tools and scripts using the old IDs should be updated to use the new ID.
 * **480** : GPS lock status, accuracy, home reset trigger, and number of satellites. Number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
   * **A** : 1 = GPS fix, 2 = GPS home fix, 4 = home reset (numbers are additive)
   * **B** : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
   * **C** : number of satellites locked (digit C & D are the number of locked satellites)
   * **D** : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
-  
-  _NOTE_ This sensor used to be **Tmp2**. The ID has been reassigned in INAV 8.0. The old ID of **Tmp2** can still be used, by using `set frsky_use_legacy_gps_mode_sensor_ids = ON`. This is deprecated and will be removed in INAV 10.0. All tools and scripts using the old IDs should be updated to use the new ID.
 * **GAlt** : GPS altitude, sea level is zero.
 * **ASpd** : true air speed, from pitot sensor. This is _Knots * 10_
 * **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
@@ -206,7 +202,7 @@ More information about the fields, encoding and enumerations may be found [on th
 
 MAVLink is a lightweight header-only message marshalling library for micro air vehicles. INAV supports MAVLink for compatibility with ground stations, OSDs and antenna trackers built for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
 
-MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial (requires 19200 baud). MAVLink V1 and V2 are supported.
+MAVLink implementation in INAV is bidirectional: it sends telemetry to ground stations, OSDs and antenna trackers, and also parses incoming MAVLink messages (e.g. `RADIO_STATUS` link statistics). It works at low baud rates and can be used over softserial. MAVLink V1 and V2 are supported.
 
 
 ## Cellular telemetry via text messages
@@ -233,7 +229,7 @@ To receive acceleration event messages, set one or more of the acceleration even
 Ibus telemetry requires a single connection from the TX pin of a bidirectional serial port to the Ibus sens pin on an FlySky telemetry receiver. (tested with fs-iA6B receiver, iA10 should work)
 
 It shares 1 line for both TX and RX, the rx pin cannot be used for other serial port stuff.
-It runs at a fixed baud rate of 115200, so it need hardware uart (softserial is limit to 19200).
+It runs at a fixed baud rate of 115200, so it requires a hardware UART.
 ```
      _______
     /       \                                              /-------------\

@@ -105,6 +105,9 @@ main_sources(COMMON_SRC
     drivers/adc.c
     drivers/adc.h
 
+    drivers/ina226.c
+    drivers/ina226.h
+
     drivers/barometer/barometer.h
     drivers/barometer/barometer_bmp085.c
     drivers/barometer/barometer_bmp085.h
@@ -150,6 +153,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_ist8308.h
     drivers/compass/compass_ist8310.c
     drivers/compass/compass_ist8310.h
+    drivers/compass/compass_lis2mdl.c
+    drivers/compass/compass_lis2mdl.h
     drivers/compass/compass_lis3mdl.c
     drivers/compass/compass_lis3mdl.h
     drivers/compass/compass_mag3110.c
@@ -175,6 +180,10 @@ main_sources(COMMON_SRC
     drivers/dronecan/dronecan.c
     drivers/dronecan/dronecan_async.c
     drivers/dronecan/dronecan_async.h
+    drivers/dronecan/dronecan_dna_server.c
+    drivers/dronecan/dronecan_dna_server.h
+    drivers/dronecan/dronecan_node_status.c
+    drivers/dronecan/dronecan_node_status.h
     drivers/dronecan/dronecan.h
 
     drivers/display.c
@@ -380,6 +389,8 @@ main_sources(COMMON_SRC
     io/adsb.h
     io/beeper.c
     io/beeper.h
+    io/motor_srxl2.c
+    io/motor_srxl2.h
     io/servo_sbus.c
     io/servo_sbus.h
     io/frsky_osd.c
@@ -420,6 +431,7 @@ main_sources(COMMON_SRC
     mavlink/mavlink_command.h
     mavlink/mavlink_guided.c
     mavlink/mavlink_guided.h
+    mavlink/mavlink_helpers.c
     mavlink/mavlink_internal.h
     mavlink/mavlink_mission.c
     mavlink/mavlink_mission.h
@@ -498,6 +510,8 @@ main_sources(COMMON_SRC
     sensors/boardalignment.h
     sensors/compass.c
     sensors/compass.h
+    sensors/compass_orientation.c
+    sensors/compass_orientation.h
     sensors/diagnostics.c
     sensors/diagnostics.h
     sensors/gyro.c
@@ -690,6 +704,12 @@ main_sources(COMMON_SRC
     terrain/terrain_io.c
     terrain/terrain_location.h
     terrain/terrain_location.c
+    terrain/terrain_nav.h
+    terrain/terrain_nav.c
+    terrain/terrain_nav_hold_core.h
+    terrain/terrain_nav_hold_core.c
+    terrain/terrain_nav_hold.h
+    terrain/terrain_nav_hold.c
 )
 
 list(APPEND COMMON_SRC ${DSDLC_GENERATED_SRC})

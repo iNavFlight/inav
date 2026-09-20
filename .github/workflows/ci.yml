@@ -26,6 +26,35 @@ on:
 
 
 jobs:
+  verify-line-endings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check for Windows Line Endings
+        run: |
+          # Fetch the target branch so git diff can compare against it
+          git fetch origin ${{ github.base_ref }} --depth=1
+
+          # 1. Get files changed in this PR
+          # 2. Filter for extensions: .c, .txt, or .h (case-insensitive)
+          # 3. Only look at files that still exist (filter out deleted files via --diff-filter=d)
+          CHANGED_FILES=$(git diff --name-only --diff-filter=d origin/${{ github.base_ref }}...HEAD | grep -iE '(\.c|\.txt|\.h|Makefile)$' || true)
+
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Checking modified files for CRLF: "
+            echo "$CHANGED_FILES"
+            
+            # Use git grep on just the filtered list of modified files
+            # -I ignores binary files, -l lists files with matches, $'\r' looks for carriage returns
+            if echo "$CHANGED_FILES" | xargs git grep -I -l $'\r' --; then
+              echo "::error::Windows CRLF (^M) line endings detected in new/modified C or Text files!"
+              exit 1
+            fi
+          else
+            echo "No modified .c, .txt, or .h files found in this PR."
+          fi
   detect:
     runs-on: ubuntu-latest
     outputs:
@@ -127,7 +156,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: matrix-${{ env.BUILD_NAME }}.${{ matrix.id }}
-          path: ./build/*.hex
+          path: |
+            ./build/*.hex
+            ./build/*.uf2
           retention-days: 1
       - name: Upload size report
         uses: actions/upload-artifact@v4
@@ -167,7 +198,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: matrix-${{ env.BUILD_NAME }}.single
-          path: ./build/*.hex
+          path: |
+            ./build/*.hex
+            ./build/*.uf2
           retention-days: 1
       - name: Upload size report
         uses: actions/upload-artifact@v4

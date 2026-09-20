@@ -22,7 +22,7 @@ const char * const ownerNames[OWNER_TOTAL_COUNT] = {
     "RANGEFINDER", "SYSTEM", "SPI", "QUADSPI", "I2C", "SDCARD", "FLASH", "USB", "BEEPER", "OSD",
     "BARO", "MPU", "INVERTER", "LED STRIP", "LED", "RECEIVER", "TRANSMITTER",
     "VTX", "SPI_PREINIT", "COMPASS", "TEMPERATURE", "1-WIRE", "AIRSPEED", "OLED DISPLAY",
-    "PINIO", "IRLOCK", "DRONECAN"
+    "PINIO", "IRLOCK", "DRONECAN", "CURRENT METER"
 };
 
 const char * const resourceNames[RESOURCE_TOTAL_COUNT] = {

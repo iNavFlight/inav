@@ -74,6 +74,7 @@
 #include "io/vtx_msp.h"
 #include "io/osd_dji_hd.h"
 #include "io/displayport_msp_osd.h"
+#include "io/motor_srxl2.h"
 #include "io/servo_sbus.h"
 #include "io/adsb.h"
 
@@ -173,7 +174,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     if (feature(FEATURE_GPS)) {
         if (gpsUpdate()) {
 #ifdef USE_WIND_ESTIMATOR
-            if (STATE(AIRPLANE)) updateWindEstimator(currentTimeUs);
+            if (STATE(AIRPLANE)) updateWindEstimator(US2MS(currentTimeUs));
 #endif
         }
     }
@@ -318,6 +319,27 @@ void taskSyncServoDriver(timeUs_t currentTimeUs)
     sbusServoSendUpdate();
 #endif
 
+#if defined(USE_MOTOR_SRXL2)
+    /* 200 Hz is the cadence this wants: Spektrum's reference application advances
+     * its state machine on a 5 ms tick, and the master has to run several times
+     * faster than its own Control Data interval to collect replies promptly on a
+     * half-duplex wire. */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        /*
+         * Reverse is a mode, because on this ESC it is a switch: Spektrum describe
+         * the reverse channel as flipping rotation while the throttle goes on
+         * meaning throttle. There is deliberately no second route through the
+         * mixer's reversible-motor state - that models a centre-zero stick, which
+         * is a different kind of ESC, and FEATURE_REVERSIBLE_MOTORS is cleared for
+         * this protocol at startup for the same reason.
+         *
+         * Gated on being armed so that an aircraft which landed under reverse does
+         * not sit on the ground with the ESC's reverse channel still held.
+         */
+        srxl2MotorSetReverse(ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE));
+        srxl2MotorProcess();
+    }
+#endif
 }
 
 #ifdef USE_OSD
@@ -419,7 +441,12 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
 #if defined(USE_SERVO_SBUS)
-    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM));
+    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SBUS)
+                                || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM)
+#ifdef USE_MOTOR_SRXL2
+                                || (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2)
+#endif
+                                  );
 #endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
