@@ -52,6 +52,7 @@
 #include "drivers/accgyro/accgyro_lsm6dxx.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/io.h"
+#include "drivers/time.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -78,7 +79,14 @@
 
 FASTRAM gyro_t gyro; // gyro sensor object
 
+#ifdef USE_DUAL_GYRO
+#define MAX_GYRO_COUNT 2
+/* Highest bus tag any in-tree target gives an IMU position. Targets disagree:
+ * most use 0 and 1, AETH743Basic uses 0 and 2. */
+#define MAX_GYRO_SENSOR_TAG 2
+#else
 #define MAX_GYRO_COUNT 1
+#endif
 
 STATIC_UNIT_TESTED gyroDev_t gyroDev[MAX_GYRO_COUNT];  // Not in FASTRAM since it may hold DMA buffers
 STATIC_FASTRAM int16_t gyroTemperature[MAX_GYRO_COUNT];
@@ -96,6 +104,84 @@ STATIC_FASTRAM bool gyroCalibrationComplete;
 STATIC_FASTRAM filterApplyFnPtr gyroLuluApplyFn;
 STATIC_FASTRAM filter_t gyroLuluState[XYZ_AXIS_COUNT];
 
+#ifdef USE_DUAL_GYRO
+/*
+ * Whether the two gyros still agree, and what to do when they stop.
+ *
+ * Averaging assumes a shared frame. Each device applies its own alignment from
+ * the target before anything downstream sees it, so on a correctly described
+ * board they do share one - but a board describing its second IMU wrongly, or a
+ * sensor drifting away, would have two frames blended into a single signal, and
+ * the result would not look wrong until it flew.
+ *
+ * The test is the one PX4 uses, because the shape of it is right. Comparing the
+ * two readings sample by sample says nothing: two gyros sampled at different
+ * instants always differ, and the difference is mostly noise. So the difference
+ * is low-passed first, which leaves only what persists - a bias, or a frame that
+ * is not the frame it claims - and then integrated through a dead band:
+ *
+ *     error += (|difference| - RATE_DEADBAND) * dt
+ *
+ * Below the dead band nothing accumulates, so ordinary disagreement can never
+ * raise an alarm. Above it, what accumulates is a rate integrated over time,
+ * which is an angle: the pair is tolerated until the disagreement would have
+ * cost ANGLE_LIMIT degrees of attitude. The threshold is stated in the quantity
+ * that actually matters rather than one that resembles it.
+ *
+ * The numbers are PX4's own defaults (EKF2_SEL_IMU_RAT and EKF2_SEL_IMU_ANG).
+ * Two gyros on one board see more nearly the same motion than two IMUs on
+ * separate mounts, so a tighter dead band is probably right - but that is a
+ * measurement on a dual-IMU board, and until someone makes it, conservative and
+ * field-proven beats tight and invented.
+ *
+ * With two sensors a disagreement cannot say which one is wrong; PX4 says so in
+ * as many words and stops there. So this gives up on the pair rather than
+ * choosing between them, and keeps the first gyro - the one every other board
+ * flies on. Giving up is final until the next boot, where PX4 lets its
+ * accumulator decay: a control signal that alternates between one sensor and
+ * two is a disturbance of its own, and a frame that is described wrongly will
+ * not describe itself correctly later.
+ */
+#define GYRO_FUSION_DIFF_ALPHA      0.05f   /* PX4 runs 0.95 old + 0.05 new */
+#define GYRO_FUSION_RATE_DEADBAND   7.0f    /* deg/s, EKF2_SEL_IMU_RAT */
+#define GYRO_FUSION_ANGLE_LIMIT     15.0f   /* deg,   EKF2_SEL_IMU_ANG */
+
+STATIC_FASTRAM float gyroFusionDiff[XYZ_AXIS_COUNT];
+STATIC_FASTRAM float gyroFusionErrorDeg;
+STATIC_FASTRAM bool  gyroFusionGaveUp;
+
+/*
+ * Whether a gyro is alive, which is a different question from whether it is
+ * right.
+ *
+ * PX4 keeps these apart and it is worth keeping them apart here. A sensor can be
+ * judged alive on its own, while whether its numbers are correct can only be
+ * decided against another sensor, and with two the disagreement has no verdict.
+ * So this answers only the first question, and the checks are PX4's, minus the
+ * two that need a driver error counter INAV's accgyro layer does not keep.
+ *
+ * The frozen check needs one piece of care that PX4 does not need. A simulated
+ * gyro standing still reads exactly zero, sample after sample, so in HITL on the
+ * ground an identical-value test would condemn a healthy sensor. It is the same
+ * exact zero that makes the Kalman filter produce NaN in #11876. So a sensor
+ * counts as frozen only while the other one is moving: if neither is moving, the
+ * aircraft is not moving, which is not a fault.
+ */
+#define GYRO_HEALTH_TIMEOUT_MS      40      /* PX4's DataValidator timeout */
+#define GYRO_HEALTH_FROZEN_SAMPLES  100     /* PX4's VALUE_EQUAL_COUNT_DEFAULT */
+
+typedef struct {
+    timeMs_t lastSampleMs;
+    float    lastValue[XYZ_AXIS_COUNT];
+    uint16_t identicalSamples;
+    bool     everSampled;
+} gyroHealth_t;
+
+STATIC_FASTRAM gyroHealth_t gyroHealth[MAX_GYRO_COUNT];
+
+static void gyroHealthUpdate(uint8_t index, bool sampled, const float *value);
+#endif
+
 #ifdef USE_DYNAMIC_FILTERS
 
 EXTENDED_FASTRAM gyroAnalyseState_t gyroAnalyseState;
@@ -111,6 +197,8 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .looptime = SETTING_LOOPTIME_DEFAULT,
 #ifdef USE_DUAL_GYRO
     .gyro_to_use = SETTING_GYRO_TO_USE_DEFAULT,
+    .gyro_secondary_enabled = SETTING_GYRO_SECONDARY_ENABLED_DEFAULT,
+    .gyro_fusion = SETTING_GYRO_FUSION_DEFAULT,
 #endif
     .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,
     .gyroDynamicLpfMinHz = SETTING_GYRO_DYN_LPF_MIN_HZ_DEFAULT,
@@ -349,6 +437,58 @@ bool gyroInit(void)
 
     gyroInitFilters();
 
+#ifdef USE_DUAL_GYRO
+    /*
+     * Optional secondary IMU. With gyro_fusion OFF it is an instrumentation
+     * channel and nothing else: its output reaches Blackbox as gyroRaw2 while
+     * attitude estimation and the PID loops keep using gyroDev[0] exclusively.
+     * With AVERAGE it also enters the control path, as the mean of the two.
+     */
+    /*
+     * Fusion needs the second sensor sampled, so asking for it is asking for
+     * both. Requiring the two settings to be set together would make one of
+     * them a switch that silently does nothing, which is the failure mode worth
+     * avoiding: a pilot who turns on averaging and gets none, with no error.
+     */
+    gyro.secondaryInitialized = false;
+    gyroFusionErrorDeg = 0.0f;
+    gyroFusionGaveUp = false;
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        gyroFusionDiff[axis] = 0.0f;
+    }
+    memset(gyroHealth, 0, sizeof(gyroHealth));
+    /* Either switch is reason enough to read the sensor: one asks for it in the
+     * log, the other asks for it in the control path, and neither needs the
+     * other to be set. */
+    if (gyroConfig()->gyro_secondary_enabled || gyroConfig()->gyro_fusion != GYRO_FUSION_OFF) {
+        /*
+         * Do not assume the two IMU positions are tagged 0 and 1. Most targets
+         * do, but AETH743Basic registers them as 0 and 2, and a few register
+         * both positions with tag 0 - where not even gyro_to_use can reach the
+         * second one. Probe the candidate tags instead, skipping the one the
+         * primary already claimed, and leave the feature disabled if nothing
+         * else answers.
+         */
+        for (uint8_t tag = 0; tag <= MAX_GYRO_SENSOR_TAG; tag++) {
+            if (tag == gyroConfig()->gyro_to_use) {
+                continue;
+            }
+
+            gyroDev[1].imuSensorToUse = tag;
+            if (gyroDetect(&gyroDev[1], GYRO_AUTODETECT) == GYRO_NONE) {
+                continue;
+            }
+
+            gyroDev[1].lpf = GYRO_LPF_256HZ;
+            gyroDev[1].requestedSampleIntervalUs = TASK_GYRO_LOOPTIME;
+            gyroDev[1].sampleRateIntervalUs = TASK_GYRO_LOOPTIME;
+            gyroDev[1].initFn(&gyroDev[1]);
+            gyro.secondaryInitialized = true;
+            break;
+        }
+    }
+#endif
+
 #ifdef USE_DYNAMIC_FILTERS
     // Dynamic notch running at PID frequency
     dynamicGyroNotchFiltersInit(&dynamicGyroNotchState);
@@ -379,6 +519,36 @@ void gyroStartCalibration(void)
         return;
     }
 
+#ifdef USE_DUAL_GYRO
+    /*
+     * The secondary always measures its own zero offset. It deliberately
+     * ignores init_gyro_cal: the stored calibration belongs to the primary
+     * sensor and applying it here would bias the logged samples.
+     */
+    if (gyro.secondaryInitialized) {
+        /*
+         * The threshold is a number of raw counts, and raw counts mean different
+         * rotation rates on different parts - a dual-IMU board is free to pair two
+         * unrelated sensors. Converting through both scales asks the secondary for
+         * the same physical stillness the primary is asked for, rather than for the
+         * same number. Where the two sensors are the same part the scales cancel and
+         * this is exactly the old constant.
+         */
+        const float secondaryThreshold =
+            CALIBRATING_GYRO_MORON_THRESHOLD * gyroDev[0].scale / gyroDev[1].scale;
+
+        /*
+         * allowFailure is true here, unlike for the primary. Nothing gates arming on
+         * this sensor, so a calibration that keeps restarting on vibration would
+         * never finish and every logged sample would stay zero for the whole flight.
+         * Failing once and then logging the sensor with a zero offset keeps the
+         * channel useful: a constant bias can be removed in post-processing, a
+         * column of zeroes cannot.
+         */
+        zeroCalibrationStartV(&gyroCalibration[1], CALIBRATING_GYRO_TIME_MS, secondaryThreshold, true);
+    }
+#endif
+
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
     if (!gyroConfig()->init_gyro_cal_enabled) {
         return;
@@ -404,7 +574,7 @@ bool gyroIsCalibrationComplete(void)
     return zeroCalibrationIsCompleteV(&gyroCalibration[0]) && zeroCalibrationIsSuccessfulV(&gyroCalibration[0]);
 }
 
-STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
+STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration, bool persist)
 {
     fpVector3_t v;
 
@@ -423,7 +593,13 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         dev->gyroZero[Z] = v.v[Z];
 
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
-        setGyroCalibration(dev->gyroZero);
+        /* gyro_zero_cal is a single shared value: only the gyro that actually
+         * flies the aircraft is allowed to write it. */
+        if (persist) {
+            setGyroCalibration(dev->gyroZero);
+        }
+#else
+        UNUSED(persist);
 #endif
 
         // Cache completion status to avoid function call in hot path
@@ -448,16 +624,16 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
     }
 }
 
-static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroCalibrationVector_t * gyroCal, float * gyroADCf)
+static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroCalibrationVector_t * gyroCal, float * gyroADCf, bool isPrimary)
 {
 
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev->readFn(gyroDev)) {
 
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
-    if (!gyroConfig()->init_gyro_cal_enabled) {
+    if (isPrimary && !gyroConfig()->init_gyro_cal_enabled) {
         // marks that the gyro calibration has ended
-        gyroCalibration[0].params.state = ZERO_CALIBRATION_DONE;
+        gyroCal->params.state = ZERO_CALIBRATION_DONE;
         gyroCalibrationComplete = true;
         // pass the calibration values
         gyroDev->gyroZero[X] = gyroConfig()->gyro_zero_cal[X];
@@ -482,7 +658,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 
             return true;
         } else {
-            performGyroCalibration(gyroDev, gyroCal);
+            performGyroCalibration(gyroDev, gyroCal, isPrimary);
 
             // Reset gyro values to zero to prevent other code from using uncalibrated data
             gyroADCf[X] = 0.0f;
@@ -587,16 +763,85 @@ void FAST_CODE NOINLINE gyroUpdate(void)
         return;
     }
 
-    if (!gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0], gyro.gyroADCf)) {
+#ifdef USE_DUAL_GYRO
+    /*
+     * Read the secondary before the primary's early return, so that a stalled
+     * or uncalibrated secondary can never suppress the primary sample.
+     */
+    bool secondaryFresh = false;
+    if (gyro.secondaryInitialized) {
+        secondaryFresh = gyroUpdateAndCalibrate(&gyroDev[1], &gyroCalibration[1], gyro.gyroRaw2, false);
+        gyroHealthUpdate(1, secondaryFresh, gyro.gyroRaw2);
+        if (!secondaryFresh) {
+            gyro.gyroRaw2[X] = 0.0f;
+            gyro.gyroRaw2[Y] = 0.0f;
+            gyro.gyroRaw2[Z] = 0.0f;
+        }
+    }
+#endif
+
+    const bool primaryFresh = gyroUpdateAndCalibrate(&gyroDev[0], &gyroCalibration[0],
+                                                     gyro.gyroADCf, true);
+#ifdef USE_DUAL_GYRO
+    gyroHealthUpdate(0, primaryFresh, gyro.gyroADCf);
+#endif
+    if (!primaryFresh) {
         return;
     }
+
+#ifdef USE_DUAL_GYRO
+    /*
+     * Averaging the two sensors is only safe while the second one is actually
+     * producing samples of its own zero. A stalled read leaves zeroes behind,
+     * and averaging those would halve the rate the controller sees - an
+     * attenuation that looks like a tuning problem rather than a failed sensor.
+     * An unfinished calibration is the same hazard with its bias still in.
+     */
+    bool fuseSecondary = (gyroConfig()->gyro_fusion == GYRO_FUSION_AVERAGE)
+                         && secondaryFresh
+                         && zeroCalibrationIsCompleteV(&gyroCalibration[1])
+                         && gyroSensorIsHealthy(0)
+                         && gyroSensorIsHealthy(1)
+                         && !gyroFusionGaveUp;
+
+    if (fuseSecondary) {
+        /* Each sensor's distance from the pair's mean, which for two is half of
+         * what separates them - the same quantity PX4 thresholds. */
+        float sumOfSquares = 0.0f;
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            const float half = 0.5f * (gyro.gyroRaw2[axis] - gyro.gyroADCf[axis]);
+            gyroFusionDiff[axis] += GYRO_FUSION_DIFF_ALPHA * (half - gyroFusionDiff[axis]);
+            sumOfSquares += gyroFusionDiff[axis] * gyroFusionDiff[axis];
+        }
+
+        gyroFusionErrorDeg += (fast_fsqrtf(sumOfSquares) - GYRO_FUSION_RATE_DEADBAND)
+                              * US2S(gyro.targetLooptime);
+        if (gyroFusionErrorDeg < 0.0f) {
+            gyroFusionErrorDeg = 0.0f;
+        }
+
+        if (gyroFusionErrorDeg > GYRO_FUSION_ANGLE_LIMIT) {
+            gyroFusionGaveUp = true;
+            fuseSecondary = false;
+        }
+    }
+#endif
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
         float gyroADCf = gyro.gyroADCf[axis];
 
-        // Set raw gyro for blackbox purposes
+        /* Set raw gyro for blackbox purposes. This stays the first sensor as
+         * measured, so that a log with both gyros reads as the same fields
+         * twice rather than as one sensor and one derived quantity. What the
+         * controller sees is their mean, which is recoverable from the pair. */
         gyro.gyroRaw[axis] = gyroADCf;
+
+#ifdef USE_DUAL_GYRO
+        if (fuseSecondary) {
+            gyroADCf = 0.5f * (gyroADCf + gyro.gyroRaw2[axis]);
+        }
+#endif
 
         /*
          * First gyro LPF is the only filter applied with the full gyro sampling speed
@@ -606,6 +851,74 @@ void FAST_CODE NOINLINE gyroUpdate(void)
         gyro.gyroADCf[axis] = gyroADCf;
     }
 }
+
+#ifdef USE_DUAL_GYRO
+static void gyroHealthUpdate(uint8_t index, bool sampled, const float *value)
+{
+    if (index >= MAX_GYRO_COUNT) {
+        return;
+    }
+    gyroHealth_t *h = &gyroHealth[index];
+
+    if (!sampled) {
+        /* A failed read leaves the timeout to notice. Counting failures
+         * separately would need the error counter the drivers do not keep. */
+        return;
+    }
+
+    h->lastSampleMs = millis();
+    h->everSampled = true;
+
+    if (value[X] == h->lastValue[X]
+        && value[Y] == h->lastValue[Y]
+        && value[Z] == h->lastValue[Z]) {
+        if (h->identicalSamples < UINT16_MAX) {
+            h->identicalSamples++;
+        }
+    } else {
+        h->identicalSamples = 0;
+        h->lastValue[X] = value[X];
+        h->lastValue[Y] = value[Y];
+        h->lastValue[Z] = value[Z];
+    }
+}
+
+bool gyroSensorIsHealthy(uint8_t index)
+{
+    if (index >= MAX_GYRO_COUNT) {
+        return false;
+    }
+    const gyroHealth_t *h = &gyroHealth[index];
+
+    if (!h->everSampled) {
+        return false;
+    }
+    if (millis() - h->lastSampleMs >= GYRO_HEALTH_TIMEOUT_MS) {
+        return false;
+    }
+    if (h->identicalSamples >= GYRO_HEALTH_FROZEN_SAMPLES) {
+        /* Frozen only while something else is moving. See the note on the
+         * constants: a still aircraft, and a simulated one in particular, gives
+         * every sensor the same number over and over quite legitimately. */
+        const uint8_t other = (index == 0) ? 1 : 0;
+        if (other < MAX_GYRO_COUNT
+            && gyroHealth[other].identicalSamples < GYRO_HEALTH_FROZEN_SAMPLES) {
+            return false;
+        }
+    }
+    return true;
+}
+
+float gyroSecondaryDisagreementDeg(void)
+{
+    return gyroFusionErrorDeg;
+}
+
+bool gyroSecondaryAbandoned(void)
+{
+    return gyroFusionGaveUp;
+}
+#endif
 
 bool gyroReadTemperature(void)
 {

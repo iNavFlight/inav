@@ -65,6 +65,12 @@ typedef struct gyro_s {
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
     float gyroRaw[XYZ_AXIS_COUNT];
+#ifdef USE_DUAL_GYRO
+    /* Secondary IMU. Sampled for logging and analysis only:
+     * never feeds attitude estimation or the PID loops. */
+    float gyroRaw2[XYZ_AXIS_COUNT];
+    bool  secondaryInitialized;
+#endif
 } gyro_t;
 
 extern gyro_t gyro;
@@ -107,7 +113,48 @@ typedef struct gyroConfig_s {
 
     uint8_t gyroLuluSampleCount;
     bool gyroLuluEnabled;
+#ifdef USE_DUAL_GYRO
+    /* Deliberately appended at the end of the struct. pgLoad() only compares the
+     * parameter group version, never the size: it installs the defaults and
+     * then copies MIN(stored, current) bytes over them. Appending therefore
+     * leaves every pre-existing setting at its offset and needs no version
+     * bump, so upgrading does not discard the user's gyro configuration, while
+     * inserting mid-struct would silently shift every following field.
+     *
+     * Appending is not unconditionally free, though, and the exception is worth
+     * stating because it is invisible: if the new field lands inside the old
+     * struct's tail padding it is still within what an older configuration
+     * stored, and it is overwritten with the zero that padding holds -
+     * pgResetInstance() copies the reset template whole, padding included. This
+     * field defaults to OFF, so zero is the default and the overlap cannot
+     * matter. A field whose default were non-zero would need a filler byte
+     * ahead of it. */
+    bool     gyro_secondary_enabled;
+
+    /* Appended after gyro_secondary_enabled and defaulting to OFF, so the same
+     * reasoning about padding applies: zero is the default, and a configuration
+     * written before this field existed loads as OFF. */
+    uint8_t  gyro_fusion;
+#endif
 } gyroConfig_t;
+
+/*
+ * What to do with a second IMU once it is being sampled.
+ *
+ * OFF leaves it as the instrumentation channel it is: read, logged, and kept out
+ * of the control path. AVERAGE feeds the mean of the two into the filters, which
+ * is what two sensors buy without a state estimator to weight them - uncorrelated
+ * noise falls by about a third, and nothing else changes.
+ *
+ * Deliberately not a fault-tolerance feature. With two sensors a disagreement
+ * says one of them is wrong and cannot say which, so there is no vote to hold;
+ * telling them apart needs a third, or an estimator that can weigh them against
+ * an independent reference.
+ */
+typedef enum {
+    GYRO_FUSION_OFF = 0,
+    GYRO_FUSION_AVERAGE,
+} gyroFusion_e;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
 
@@ -118,6 +165,16 @@ void gyroFilter(void);
 void gyroStartCalibration(void);
 bool gyroIsCalibrationComplete(void);
 bool gyroReadTemperature(void);
+#ifdef USE_DUAL_GYRO
+/* How far apart the two gyros have drifted, as the attitude error the
+ * disagreement has been worth so far, and whether that went far enough to stop
+ * trusting the pair. */
+/* Whether a gyro is alive: producing samples, on time, and not repeating one
+ * value while the other sensor moves. Says nothing about whether it is right. */
+bool gyroSensorIsHealthy(uint8_t index);
+float gyroSecondaryDisagreementDeg(void);
+bool gyroSecondaryAbandoned(void);
+#endif
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 void gyroUpdateDynamicLpf(float cutoffFreq);
