@@ -98,6 +98,7 @@
 #include "io/rangefinder.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "io/serial_4way.h"
 #include "io/vtx.h"
@@ -1693,6 +1694,24 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, 0);
 #endif
         break;
+
+#ifdef USE_MOTOR_SRXL2
+    case MSP2_INAV_ESC_SRXL2_STATUS:
+        sbufWriteU8(dst, srxl2MotorCalibrationPhase());
+        sbufWriteU8(dst, srxl2MotorIsConnected() ? 1 : 0);
+        /* Why the last start was refused. MSP2_INAV_ESC_SRXL2_CALIBRATE is an IN
+         * command and so has nowhere to answer; without this a caller sees only
+         * that it failed, and can tell the operator nothing. */
+        sbufWriteU8(dst, srxl2MotorCalibrationLastResult());
+        /* Ports opened, and motors the mixer wants. These are the two numbers
+         * pwmInitMotors() compares to decide whether the board may arm, so
+         * reporting both means a caller never has to infer either. In particular
+         * MSP2_INAV_MIXER does NOT carry the model motor count - its last two
+         * bytes are MAX_SUPPORTED_MOTORS and MAX_SUPPORTED_SERVOS, the ceilings. */
+        sbufWriteU8(dst, srxl2MotorCount());
+        sbufWriteU8(dst, getMotorCount());
+        break;
+#endif
 
     case MSP2_INAV_WIND:
 #ifdef USE_WIND_ESTIMATOR
@@ -3810,6 +3829,32 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
+
+#ifdef USE_MOTOR_SRXL2
+    case MSP2_INAV_ESC_SRXL2_CALIBRATE:
+        /*
+         * One of these phases commands full throttle with the aircraft disarmed,
+         * so the refusals live in the driver and are not re-implemented here: a
+         * caller that skipped them would otherwise be trusted.
+         */
+        if (!sbufReadU8Safe(&tmp_u8, src)) {
+            return MSP_RESULT_ERROR;
+        }
+        if (tmp_u8 == SRXL2_CAL_OFF) {
+            srxl2MotorCalibrationAbort();
+        } else if (tmp_u8 == SRXL2_CAL_WAIT_BATTERY) {
+            if (srxl2MotorCalibrationBegin() != SRXL2_CAL_ACCEPTED) {
+                return MSP_RESULT_ERROR;
+            }
+        } else if (tmp_u8 == SRXL2_CAL_HIGH_MANUAL || tmp_u8 == SRXL2_CAL_LOW_MANUAL) {
+            if (srxl2MotorCalibrationManual(tmp_u8) != SRXL2_CAL_ACCEPTED) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
 
     case MSP2_INAV_SELECT_MIXER_PROFILE:
         if (!ARMING_FLAG(ARMED) && sbufReadU8Safe(&tmp_u8, src)) {

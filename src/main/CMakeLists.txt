@@ -389,6 +389,8 @@ main_sources(COMMON_SRC
     io/adsb.h
     io/beeper.c
     io/beeper.h
+    io/motor_srxl2.c
+    io/motor_srxl2.h
     io/servo_sbus.c
     io/servo_sbus.h
     io/frsky_osd.c
