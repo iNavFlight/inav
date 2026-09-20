@@ -20,6 +20,8 @@ This enables up to 4 different approach directions, based on the landing site an
 7. Flare: Only if a LIDAR/Rangefinder sensor is present: the motor remains switched off and the pitch angle of "Flare Pitch" is held
 8. Landing: As soon as INAV has detected the landing, it is automatically disarmed, see setting `nav_disarm_on_landing`.
 
+All turns between the approach legs are flown as coordinated FLY_BY corner cuts: the turn start is anticipated from the aircraft's actual turn radius (speed and `nav_fw_bank_angle`) so the plane rolls out already aligned on the next leg. This applies during the landing approach regardless of the configured `nav_fw_wp_turn_mode`.
+
 To activate the automatic landing, the parameter `nav_rth_allow_landing` must be set to `ALWAYS` or `FAILSAFE`. 
 
 > [!WARNING]
@@ -90,8 +92,8 @@ If WP-Tracking is not used, the Plane will head straight to the landiung locatio
 * `nav_fw_pitch2thr`: The navigation throttle modifier has to be tuned well to allow stable navigation during climbs and descents to prevent a stall. Make sure your plane maintains Ground or Airspeed, when climbing in any navigation mode. 
 The Craft should not get slower and not speed ub significantly during a navigation climb, if P2T is tuned properly. See `Fixed Wing Pitch To Throttle Tuning.md` for a full tuning procedure.
 
-* `nav_wp_radius`: This parameter might be too high if you have set up your craft with INAV 6 or INAV 7. With a too high value, the turning points for the Crosswind-Leg and Final Approach are hit too early and make it difficult for the plane to align to the runway or cut short the approach. 
-Make sure this parameter is not set greater than 1000 (cm). The better your craft and navigation system is tuned, the lower this value can be. We recommend to start with 1000 for flying wings and 800 for a Plane with Tail.
+* `nav_wp_radius`: The turning points for the Crosswind-Leg and Final Approach are calculated automatically from the aircraft's coordinated turn radius; `nav_wp_radius` does not shape the approach corners. 
+Make sure this parameter is not set greater than 1000 (cm) so approach waypoints are not detected as reached too early.
 
 * Test your Navigation-Tuning: A better Navigation-Tune will reward you with smoother and more reliable landings. To test your nav systems limit, we recommend to create a waypoint missions with many 90° turn angles with shorter and shorter tracks. 
 With this Method, you can find out how well your plane can follow a navigation path and how long it takes to align to a waypoint track. A well tuned plane should be able to pull of a WP Mission that looks like this, where the distance between WP6 and WP7 si recommended to be the minimum approach length: 
