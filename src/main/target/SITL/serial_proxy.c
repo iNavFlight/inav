@@ -46,6 +46,7 @@
 #include "drivers/time.h"
 #include "msp/msp_serial.h"
 #include "msp/msp_protocol.h"
+#include "msp/msp_protocol_v2_inav.h"
 #include "common/crc.h"
 #include "rx/sim.h"
 
@@ -524,7 +525,7 @@ static void mspRequestChannels(void)
 
 static void mspRequestRssi(void)
 {
-    mspSendCommand(MSP_ANALOG, NULL, 0);
+    mspSendCommand(MSP2_INAV_ANALOG, NULL, 0);
 }
 
 static void requestRXConfigState(void)
@@ -549,10 +550,11 @@ static void processMessage(void)
                 rxSimSetChannelValue(channels, count);
             }
         }
-    } else if ( code == MSP_ANALOG ) {
+    } else if ( code == MSP2_INAV_ANALOG ) {
         if ( reqCount > 0 ) reqCount--;
-        if ( message_length_received >= 7 ) {
-            rssi = *((uint16_t *)(&message_buffer[3]));
+        // RSSI is the last field of the MSP2_INAV_ANALOG reply payload (byte 22)
+        if ( message_length_received >= 24 ) {
+            rssi = *((uint16_t *)(&message_buffer[22]));
             rxSimSetRssi( rssi );
         }
     } else if ( code == MSP_RX_CONFIG ) {
