@@ -858,7 +858,7 @@ groups:
         min: 50
         max: 32000
       - name: motor_pwm_protocol
-        description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED"
+        description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, MULTISHOT, BRUSHED, DSHOT150, DSHOT300, DSHOT600"
         default_value: "ONESHOT125"
         field: motorPwmProtocol
         table: motor_pwm_protocol
