@@ -6454,7 +6454,7 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_pitch_compensation
 
-Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down.
+Pitch angle based throttle compensation for fixed wing, used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will increase this virtual throttle (attenuating PID gains) when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it.
 
 | Default | Min | Max |
 | --- | --- | --- |

@@ -92,11 +92,19 @@ fi
 # notes are multi-line, and without it ^/$ anchor to the whole string so
 # the capture never matches and every baseline collapses into the '?'
 # bucket, which would make pruning treat all branches as one.
+#
+# The `// "?"` fallback must guard capture() itself, not `.b` afterward:
+# on a non-matching body, capture() produces no output at all (jq 1.6/1.7;
+# it does not raise an error, so `try ... catch` never fires), so piping
+# straight into `.b` yields no output either and `.b // "?"` never even
+# runs. Applying `//` to the capture() call catches that empty-output case
+# (per jq's alternative-operator semantics) and substitutes the `?`
+# fallback object before `.b` extracts from it.
 list_per_commit_baselines() {
     gh api "repos/${BUILDS_REPO}/releases?per_page=100" --paginate \
         --jq '.[] | select(.tag_name | test("^size-baseline-[0-9a-f]{40}$")) |
               [.created_at, .tag_name,
-               ((.body // "") | capture("(?m)^branch: (?<b>[A-Za-z0-9._/-]+)$") | .b // "?")] | @tsv'
+               ((.body // "") | (capture("(?m)^branch: (?<b>[A-Za-z0-9._/-]+)$") // {b: "?"}) | .b)] | @tsv'
 }
 
 prune() {
