@@ -209,6 +209,7 @@ typedef struct {
     uint8_t   baudSupported;
     uint8_t   pollId;           /* offset from SRXL2_ESC_ID_FIRST, while polling */
     timeMs_t  runningSinceMs;   /* when the link came up, for SRXL2_READY_DELAY_MS */
+    timeMs_t  lastKeepaliveMs;  /* last handshake answered to a running ESC */
     uint8_t   agreedBaudBits;
     bool      baudSwitchPending;        /* waiting for TX to drain */
 
@@ -412,7 +413,12 @@ static void srxl2HandleHandshake(srxl2Esc_t *e, const uint8_t *buf)
         /* Still answer a running ESC, so it knows the master is there - but say
          * nothing mid-negotiation, where another broadcast is what causes the
          * loop. */
-        if (e->state == SRXL2_RUNNING && e->deviceId == src) {
+        /* At most one of these per link timeout. A slave that answers this answer,
+         * and the specification does not forbid one, would otherwise trade handshakes
+         * with us as fast as the wire allows, crowding out the control frames. */
+        if (e->state == SRXL2_RUNNING && e->deviceId == src
+            && (millis() - e->lastKeepaliveMs) >= SRXL2_LINK_TIMEOUT_MS) {
+            e->lastKeepaliveMs = millis();
             srxl2SendHandshake(e, src, SRXL2_BAUD_BIT_400K);
         }
         return;
