@@ -516,7 +516,11 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
     }
 }
 
-static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(uint8_t index, float * gyroADCf)
+/* One body, two copies. Written so the index folds away in each of them: the primary's
+ * copy keeps the constant addresses it had before this branch, which matters because a
+ * board with two IMUs can have very little of the fast section left, and the secondary's
+ * copy lives in ordinary flash where its speed is nobody's concern. */
+static inline __attribute__((always_inline)) bool gyroReadAndCalibrate(uint8_t index, float * gyroADCf)
 {
     gyroDev_t *dev = &gyroDev[index];
 
@@ -564,6 +568,11 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(uint8_t index, float * gyr
         // no gyro reading to process
         return false;
     }
+}
+
+static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(float * gyroADCf)
+{
+    return gyroReadAndCalibrate(GYRO_PRIMARY, gyroADCf);
 }
 
 void FAST_CODE NOINLINE gyroFilter(void)
@@ -655,7 +664,7 @@ static void NOINLINE gyroUpdateSecondary(void)
         return;
     }
 
-    if (!gyroUpdateAndCalibrate(GYRO_SECONDARY, gyro.gyroRaw2)) {
+    if (!gyroReadAndCalibrate(GYRO_SECONDARY, gyro.gyroRaw2)) {
         gyro.gyroRaw2[X] = 0.0f;
         gyro.gyroRaw2[Y] = 0.0f;
         gyro.gyroRaw2[Z] = 0.0f;
@@ -680,7 +689,7 @@ void FAST_CODE NOINLINE gyroUpdate(void)
     gyroUpdateSecondary();
 #endif
 
-    if (!gyroUpdateAndCalibrate(GYRO_PRIMARY, gyro.gyroADCf)) {
+    if (!gyroUpdateAndCalibrate(gyro.gyroADCf)) {
         return;
     }
 
