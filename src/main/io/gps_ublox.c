@@ -87,6 +87,11 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
+// Whatever says "a receiver is talking at this rate": a UBX frame that passed its checksum,
+// or the start of an NMEA sentence, which is what an unconfigured module sends. Only read
+// as a difference over a listening window, so it may wrap
+static uint32_t ubxTrafficSeen = 0;
+
 // MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
 static uint16_t monRfNoisePerMs = 0;
 static uint16_t monAgcCount = 0;
@@ -869,6 +874,33 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             if (PREAMBLE1 == data) {
                 _skip_packet = false;
                 _step++;
+            } else {
+                // A module still in its factory configuration speaks NMEA, which this
+                // parser does not read. The shape of a sentence is followed all the same,
+                // because it is what tells a receiver from the noise that arrives at a
+                // rate which is not its own. Two of them are asked for below, so the
+                // checksum does not have to be worked out here as well
+                static uint8_t nmeaStep = 0;    // 0 idle, 1 body, 2 and 3 the checksum digits
+
+                if (data == '$') {
+                    nmeaStep = 1;
+                } else if (nmeaStep == 1) {
+                    if (data == '*') {
+                        nmeaStep = 2;
+                    } else if (data < ' ' || data > '~') {
+                        nmeaStep = 0;
+                    }
+                } else if (nmeaStep >= 2) {
+                    const uint8_t lower = data | 0x20;
+                    if ((data >= '0' && data <= '9') || (lower >= 'a' && lower <= 'f')) {
+                        if (++nmeaStep > 3) {
+                            ubxTrafficSeen++;
+                            nmeaStep = 0;
+                        }
+                    } else {
+                        nmeaStep = 0;
+                    }
+                }
             }
             break;
         case 1: // Sync char 2 (0x62)
@@ -937,6 +969,9 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             }
 
             gpsStats.packetCount++;
+            // A frame that passed its checksum is proof enough on its own, where a single
+            // NMEA sentence is not: see the listening loop in the state thread
+            ubxTrafficSeen += 2;
 
             if (_skip_packet) {
                 break;
@@ -1216,24 +1251,78 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         //  0. Wait for TX buffer to be empty
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
-        // Try sending baud rate switch command at all common baud rates
-        gpsSetProtocolTimeout((GPS_BAUD_CHANGE_DELAY + 50) * (GPS_BAUDRATE_COUNT));
-        for (gpsState.autoBaudrateIndex = 0; gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT; gpsState.autoBaudrateIndex++) {
-            if (gpsBaudRateToInt(gpsState.autoBaudrateIndex) > gpsBaudRateToInt(gpsState.gpsConfig->autoBaudMax)) {
-                // trying higher baud rates fails on m8 gps
-                // autoBaudRateIndex is not sorted by baud rate
-                continue;
+        /*
+         * Listen before speaking. The baud rate command is an NMEA sentence, so at every
+         * rate that is not the receiver's it arrives as noise, and a u-blox takes no input
+         * for about a second after hearing it. In a blind sweep that silence falls exactly
+         * on the one rate where the command would have been understood, and the receiver
+         * is only reached when it happens to be the first rate tried. Measured on a
+         * NEO-F10N left at 230400: a blind sweep moved it 3 times out of 10, and listening
+         * first moved it 15 out of 15.
+         *
+         * The configured rate is listened to first, since a receiver that INAV has already
+         * set up is the common case. The first pass looks for UBX frames only, which is
+         * what such a receiver sends; the slow second pass also accepts NMEA, which is all
+         * a module still in its factory configuration sends, and at 1 Hz.
+         */
+        static bool baudFound;
+        static uint32_t trafficAtStart;
+        baudFound = false;
+
+        for (gpsState.autoBaudPass = 0; gpsState.autoBaudPass < 3 && !baudFound; gpsState.autoBaudPass++) {
+            for (gpsState.autoBaudrateIndex = 0; gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT; gpsState.autoBaudrateIndex++) {
+                // The configured rate is listened to first, the rest keep their order. Held
+                // in the state, not in a local, which would not survive ptDelayMs()
+                gpsState.autoBaudTry = (gpsState.autoBaudrateIndex == 0)
+                                     ? gpsState.baudrateIndex
+                                     : ((gpsState.autoBaudrateIndex <= gpsState.baudrateIndex)
+                                        ? gpsState.autoBaudrateIndex - 1 : gpsState.autoBaudrateIndex);
+
+                if (gpsBaudRateToInt(gpsState.autoBaudTry) > gpsBaudRateToInt(gpsState.gpsConfig->autoBaudMax)) {
+                    // trying higher baud rates fails on m8 gps
+                    // autoBaudRateIndex is not sorted by baud rate
+                    continue;
+                }
+
+                serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudTry]]);
+
+                // Nothing was heard at any rate in either pass: a receiver that says nothing
+                // until it is spoken to still has to be offered the command, so the last pass
+                // is the sweep this used to be
+                if (gpsState.autoBaudPass == 2) {
+                    serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
+                    ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+                    ptDelayMs(GPS_BAUD_CHANGE_DELAY);
+                    continue;
+                }
+
+                // Listened to in windows shorter than the timeout that declares the receiver
+                // lost, each announced through gpsSetProtocolTimeout(), so that waiting long
+                // enough for a module sending NMEA once per second does not restart the
+                // search before it has been heard. Two sentences, or one UBX frame, so that
+                // noise shaped like a sentence cannot pass for a receiver
+                trafficAtStart = ubxTrafficSeen;
+                for (gpsState.autoBaudWindow = 0;
+                     gpsState.autoBaudWindow < (gpsState.autoBaudPass ? GPS_BAUD_LISTEN_SLOW_WINDOWS : 1)
+                     && (ubxTrafficSeen - trafficAtStart) < 2;
+                     gpsState.autoBaudWindow++) {
+                    gpsSetProtocolTimeout(GPS_BAUD_LISTEN_MS + GPS_BAUD_CHANGE_DELAY);
+                    ptDelayMs(GPS_BAUD_LISTEN_MS);
+                }
+
+                if ((ubxTrafficSeen - trafficAtStart) >= 2) {
+                    baudFound = true;
+                    // Nothing to ask for when it is already where it belongs
+                    if (gpsState.autoBaudTry != gpsState.baudrateIndex) {
+                        serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
+                        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+                        ptDelayMs(GPS_BAUD_CHANGE_DELAY);
+                    }
+                    break;
+                }
             }
-            // 2. Set serial port to baud rate and send an $UBX command to switch the baud rate specified by portConfig [baudrateIndex]
-            serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
-            serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
-
-            // 3. Wait for serial port to finish transmitting
-            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
-
-            // 4. Extra wait to make sure GPS processed the command
-            ptDelayMs(GPS_BAUD_CHANGE_DELAY);
         }
+
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
     }
     else {
