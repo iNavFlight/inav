@@ -83,7 +83,6 @@ bool fwLineIntersect(float p1x, float p1y, float d1x, float d1y,
     return true;
 }
 
-// Smoothstep interpolation from -> to over the normalised progress p.
 // NOINLINE (F7/H7 only): measured smaller than letting LTO re-inline it at every call site
 NOINLINE float fwSmoothBlend(float from, float to, float p)
 {

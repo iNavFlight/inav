@@ -20,13 +20,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Shared turn-geometry primitives of the fixed-wing turn coordinator.
- *
- * The expressions below are frozen: navigation_fixedwing_turn_math_unittest.cc
- * checks them bit-exactly against the inline code they replaced, so operand
- * order, the (x / RAD) * 100 unit idiom and the lrintf placement are part of
- * the contract, not style. Changing any of them changes flight behaviour.
- */
+/* Shared turn-geometry primitives of the fixed-wing turn coordinator. The expressions are frozen -
+ * the unit test checks them bit-exactly, so operand order and unit idioms are contract, not style. */
 
 float fwBankForRadiusCd(float v, float radiusCm);
 int32_t fwRadToBearingCd(float rad);

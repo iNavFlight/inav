@@ -15,13 +15,8 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* Equivalence tests for the turn-geometry helpers extracted from
- * navigation_fixedwing.c. Every ref_* function below is a verbatim copy of the
- * inline expression the helper replaced (the comment gives the call site at
- * d1a87ed6c). The comparison is bit-exact, not approximate: the turn coordinator
- * latches on centidegree thresholds, so a 1 ulp drift can change a phase
- * transition. A failure here means the refactor changed flight behaviour.
- */
+/* Every ref_* function is a verbatim copy of the inline expression its helper replaced (the comment
+ * gives the call site at d1a87ed6c); bit-exact, because the coordinator latches on centidegree steps. */
 
 #include <stdint.h>
 #include <math.h>
