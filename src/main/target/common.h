@@ -77,7 +77,7 @@
 // Spektrum Smart ESC, one per spare UART. It costs about 3.5 KB of flash and none of the
 // fast section, so it is on wherever there is room to spare: the F405 boards these ESCs
 // usually fly on sit around 77 % with some 200 KB free. The F7 family is not included
-// because parts of it are very tight, ZEEZF7V3 being at 98.1 %; any of those can opt in
+// because parts of it are very tight, ZEEZF73030V3 being at 97.9 %; any of those can opt in
 // with a #define USE_MOTOR_SRXL2 in its own target.h, which is included after this file
 #if !defined(USE_MOTOR_SRXL2) && (defined(STM32H7) || defined(AT32F43x) || defined(STM32F405xx))
 #define USE_MOTOR_SRXL2
