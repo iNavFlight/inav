@@ -66,6 +66,9 @@ typedef struct {
         USART_TypeDef *USARTx;
     #endif
   
+#ifdef USE_UART_RX_DMA
+    struct dmaChannelDescriptor_s *rxDma;   // the stream filling rxBuffer, NULL where the byte interrupt does
+#endif
 } uartPort_t;
 
 void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins);

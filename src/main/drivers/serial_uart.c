@@ -147,7 +147,8 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
 
     uartReconfigure(s);
 
-    if (mode & MODE_RX) {
+    // A port with a DMA stream is emptied by it, and takes no interrupt per byte
+    if ((mode & MODE_RX) && !uartRxDmaStart(s)) {
         USART_ClearITPendingBit(s->USARTx, USART_IT_RXNE);
         USART_ITConfig(s->USARTx, USART_IT_RXNE, ENABLE);
     }
@@ -186,10 +187,12 @@ uint32_t uartTotalRxBytesWaiting(const serialPort_t *instance)
 {
     const uartPort_t *s = (const uartPort_t*)instance;
 
-    if (s->port.rxBufferHead >= s->port.rxBufferTail) {
-        return s->port.rxBufferHead - s->port.rxBufferTail;
+    const uint32_t head = uartRxBufferHead(s);
+
+    if (head >= s->port.rxBufferTail) {
+        return head - s->port.rxBufferTail;
     } else {
-        return s->port.rxBufferSize + s->port.rxBufferHead - s->port.rxBufferTail;
+        return s->port.rxBufferSize + head - s->port.rxBufferTail;
     }
 }
 

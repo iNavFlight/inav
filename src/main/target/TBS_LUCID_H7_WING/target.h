@@ -46,6 +46,8 @@
 #define USE_UART2
 #define UART2_TX_PIN            PD5
 #define UART2_RX_PIN            PD6
+// Outputs are mapped to DMA1 0-7 and DMA2 1-4, the ADC uses DMA2 0
+#define UART2_RX_DMA            DMA_TAG(2, 5, 0)
 
 #define USE_UART3
 #define UART3_TX_PIN            PD8
