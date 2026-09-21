@@ -440,6 +440,7 @@
 
 // Keep larger optional features off 512 KB targets to preserve flash space.
 #if (MCU_FLASH_SIZE > 512)
+#define USE_FW_TURN_PREDICTOR
 #define USE_AUTO_TRANSITION
 #define USE_TELEMETRY_MAVLINK
 #define USE_SERIALRX_MAVLINK

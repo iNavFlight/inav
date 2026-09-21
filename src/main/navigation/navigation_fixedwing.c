@@ -125,19 +125,24 @@ static timeUs_t fwLastNavRollCmdTimeUs = 0; // nav-to-nav transition apart from 
 static float fwEffectiveBankLimit = 0.0f;   // adaptive nav bank limit (energy guard), deg; 0 = not yet initialised
 static float fwActiveLoiterRadius = 0.0f;   // effective loiter radius in use (cm), for the loiter circle controller
 static bool fwArcActive = false;            // arc turn coordinator is driving the turn (-> bank headroom, suppress cross-track, roll override)
-static bool fwArcEngaged = false;           // arc coordinator latch across loops; must be cleared on controller reset or a stale arc resumes after a nav interruption
-static int32_t fwArcPrevLegBearing = -1;    // last seen WP leg bearing [centideg] for leg-change detection (-1 = unseeded)
-static bool fwFlyByCappedLatch = false;     // the pending FLY_BY turn hit the lead-time cap -> fly it direct, not as an arc
+static bool fwArcEngaged = false;           // arc coordinator latch across loops; also read by the loiter arc to avoid fighting an active WP-turn arc
 static float fwArcBankCmd = 0.0f;           // direct-radius arc bank command [centideg] (Approach B), applied to roll while fwArcActive
 static float fwArcHandbackCmdCd = 0.0f;     // arc command at release; the PID/FF command is faded in from it so the
 static float fwArcHandbackMs = 0.0f;        // seam is continuous regardless of nav_fw_control_smoothness (0 = no fade)
 static float fwArcHandbackDurMs = 0.0f;
 static float fwArcEaseMs = 0.0f;            // ease time of the arc in progress, sizes the handback fade
 static bool fwArcWasActive = false;         // arc drove the roll last frame, to catch the release edge
+#ifdef USE_FW_TURN_PREDICTOR
+// WP-turn arc coordinator + turn feed-forward state. Gated out on <=512KB flash targets, which fly
+// wp_turn_mode as if it were DIRECT (the arc coordinator's own no-op path for that mode) - see
+// updateFwTurnArc()/getFwTurnFeedForward() below.
+static int32_t fwArcPrevLegBearing = -1;    // last seen WP leg bearing [centideg] for leg-change detection (-1 = unseeded)
+static bool fwFlyByCappedLatch = false;     // the pending FLY_BY turn hit the lead-time cap -> fly it direct, not as an arc
 static float fwTurnFFCmdCd = 0.0f;          // slew-limited turn feed-forward command [centideg]
 static bool fwTurnFFArmed = false;          // FF assists the turn a leg change begins, not later tracking corrections
 static int32_t fwTurnFFPrevLegBearing = -1; // last leg bearing seen by the FF arming logic (-1 = unseeded)
 static float fwArcPickupAlong = 0.0f;       // along-track distance to the second-arc pickup [cm], for the log
+#endif
 static int8_t loiterDirYaw = 1;
 static bool needToCalculateCircularLoiter;
 static bool autoSpeedIsActive = false;
@@ -346,11 +351,13 @@ void resetFixedWingPositionController(void)
     fwArcEngaged = false;
     fwArcWasActive = false;
     fwArcHandbackDurMs = 0.0f;
+#ifdef USE_FW_TURN_PREDICTOR
     fwTurnFFCmdCd = 0.0f;
     fwTurnFFArmed = false;
     fwTurnFFPrevLegBearing = -1;
     fwArcPrevLegBearing = -1;
     fwFlyByCappedLatch = false;
+#endif
 
     navPidReset(&posControl.pids.fw_nav);
     navPidReset(&posControl.pids.fw_heading);
@@ -564,6 +571,7 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t autoThrottl
     DEBUG_SET(DEBUG_FW_TURN, 6, lrintf(fwEffectiveBankLimit));  // energy-guard bank ceiling [deg]
 }
 
+#ifdef USE_FW_TURN_PREDICTOR
 // Coordinated-turn radius R = V^2/(g*tan(phi)) [cm], clamped. Times the FLY_BY turn for any speed.
 static float getFwCoordinatedTurnRadius(void)
 {
@@ -620,6 +628,7 @@ static float getFwTurnFeedForward(int32_t navHeadingError, timeDelta_t deltaMicr
     DEBUG_SET(DEBUG_FW_TURN, 5, lrintf(fwTurnFFCmdCd));         // turn/loiter roll feed-forward [centideg]
     return fwTurnFFCmdCd;
 }
+#endif // USE_FW_TURN_PREDICTOR
 
 // Stabilised loiter-radius floor [cm]: the raw requirement swings with wind (v^2) and would make the
 // tracker thrash - ratchet up instantly, hold the peak one revolution, ease down at <= DECAY
@@ -703,6 +712,7 @@ static float applyFwArcHandbackFade(float rollTargetCd, timeDelta_t deltaMicros)
     return fwArcHandbackCmdCd + (rollTargetCd - fwArcHandbackCmdCd) * s;
 }
 
+#ifdef USE_FW_TURN_PREDICTOR
 // Arc turn coordinator: bank ramp -> coordinated arc (radius + tangent feedback) -> predictive
 // capture roll-out. Sets fwArcActive (drives the roll directly).
 static void updateFwTurnArc(timeDelta_t deltaMicros)
@@ -1146,6 +1156,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     }
     fwArcActive = true;
 }
+#endif // USE_FW_TURN_PREDICTOR
 
 // Loiter circle controller: once established on the hold circle, the steady arc law replaces the
 // carrot PID - live FF bank plus radial/tangent feedback hold the stabilised radius exactly
@@ -1237,9 +1248,13 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
     }
 
     /* FLY_BY corner cut: start the turn R*tan(angle/2) before the WP so the arc joins the next leg
-     * at any speed. FLY_BY legs only - the landing approach forces FLY_BY in every mode. */
-    int32_t waypointTurnAngle = posControl.activeWaypoint.nextTurnAngle == -1 ? -1 : ABS(posControl.activeWaypoint.nextTurnAngle);
+     * at any speed. FLY_BY legs only - the landing approach forces FLY_BY in every mode.
+     * Gated out with the arc coordinator on <=512KB flash targets: without it to fly the corner cut,
+     * there is nothing to anticipate the turn for, so wpTurnSmoothingActive simply never engages and
+     * the leg behaves as a plain DIRECT turn at the waypoint. */
     posControl.flags.wpTurnSmoothingActive = false;
+#ifdef USE_FW_TURN_PREDICTOR
+    int32_t waypointTurnAngle = posControl.activeWaypoint.nextTurnAngle == -1 ? -1 : ABS(posControl.activeWaypoint.nextTurnAngle);
     const bool flyByLeg = navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_COORD_FLY_BY
                           || posControl.navState == NAV_STATE_FW_LANDING_APPROACH;
     if (flyByLeg && waypointTurnAngle > 3000 && waypointTurnAngle < 16000 && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
@@ -1258,6 +1273,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
             fwFlyByCappedLatch = turnCapped;   // capped corner cut -> the arc coordinator flies it direct instead
         }
     }
+#endif // USE_FW_TURN_PREDICTOR
 
     // We are closing in on a waypoint, calculate circular loiter if required
     if (needToCalculateCircularLoiter) {
@@ -1272,7 +1288,9 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
     }
 
     // Arc turn coordinator: manages the turn state and commands the roll bank directly
+#ifdef USE_FW_TURN_PREDICTOR
     updateFwTurnArc(deltaMicros);
+#endif
     updateFwLoiterArc(deltaMicros);
 
     // Calculate virtual waypoint
@@ -1459,11 +1477,13 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
         fwRollSmoothReseed = true;
         fwArcHandbackDurMs = 0.0f;              // an arc that re-engages cancels a fade still in progress
         fwArcWasActive = true;
+#ifdef USE_FW_TURN_PREDICTOR
         // The FF is not called while the arc drives: clear and disarm it, and consume leg changes the
         // arc handles itself - the carrot error left at hand-back is a capture correction, not a turn
         fwTurnFFCmdCd = 0.0f;
         fwTurnFFArmed = false;
         fwTurnFFPrevLegBearing = posControl.activeWaypoint.bearing;
+#endif
     } else {
         if (fwArcWasActive) {                   // falling edge: arm the crossfade from the arc's last command
             fwArcHandbackCmdCd = fwLastNavRollCmdCd;
@@ -1471,8 +1491,10 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
             fwArcHandbackDurMs = fwArcEaseMs;
             fwArcWasActive = false;
         }
+#ifdef USE_FW_TURN_PREDICTOR
         // Coordinated-turn feed-forward: command the bank for the active turn radius so the PID only trims.
         rollAdjustment += getFwTurnFeedForward(navHeadingError, deltaMicros);
+#endif
         rollAdjustment = applyFwArcHandbackFade(rollAdjustment, deltaMicros);
         rollAdjustment = applyFwRollInSmoothing(rollAdjustment, deltaMicros, fwRollSmoothReseed);
         fwRollSmoothReseed = false;
