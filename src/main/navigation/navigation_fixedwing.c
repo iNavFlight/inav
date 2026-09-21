@@ -49,6 +49,7 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_fixedwing_autospeed_logic.h"
+#include "navigation/navigation_fixedwing_turn_math.h"
 #include "navigation/navigation_private.h"
 
 #include "programming/logic_condition.h"
@@ -450,8 +451,7 @@ static float applyFwRollInSmoothing(float rollTargetCd, timeDelta_t deltaMicros,
             active = false;                                      // window elapsed -> back to 1:1
         } else {
             const float p = elapsedMs / tConstMs;
-            const float s = p * p * (3.0f - 2.0f * p);          // smoothstep (S-curve)
-            out = rampStart + s * (rollTargetCd - rampStart);
+            out = fwSmoothBlend(rampStart, rollTargetCd, p);    // smoothstep (S-curve)
         }
     }
 
@@ -607,7 +607,7 @@ static float getFwTurnFeedForward(int32_t navHeadingError, timeDelta_t deltaMicr
     float rollFF = 0.0f;
     if (ffRadius > 0.0f) {
         const float v = posControl.actualState.velXY;
-        const float phiFFcd = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * ffRadius)));
+        const float phiFFcd = fwBankForRadiusCd(v, ffRadius);
         rollFF = ffSign * phiFFcd * (ffGain / 100.0f);
     }
 
@@ -615,7 +615,7 @@ static float getFwTurnFeedForward(int32_t navHeadingError, timeDelta_t deltaMicr
     // so the FF is a staircase. Rate limiting spreads the steps without lagging a settled command.
     const float maxStepCd = NAV_FW_FF_SLEW_FRACTION * (currentControlProfile->stabilized.rates[FD_ROLL] * 10.0f)
                           * 100.0f * US2S(deltaMicros);
-    fwTurnFFCmdCd += constrainf(rollFF - fwTurnFFCmdCd, -maxStepCd, maxStepCd);
+    fwTurnFFCmdCd = fwSlewToward(fwTurnFFCmdCd, rollFF, maxStepCd);
 
     DEBUG_SET(DEBUG_FW_TURN, 5, lrintf(fwTurnFFCmdCd));         // turn/loiter roll feed-forward [centideg]
     return fwTurnFFCmdCd;
@@ -632,9 +632,7 @@ static uint32_t getFwStableLoiterRadius(uint32_t configuredRadius, float bearing
     static float netAngle = 0.0f;
     static float prevBearing = 0.0f;
 
-    const float speed = MAX(posControl.actualState.velXY, NAV_FW_TURN_MIN_SPEED);
-    const float required = constrainf((speed * speed) / (GRAVITY_CMSS * tan_approx(DEGREES_TO_RADIANS(getFwPlanningBankDeg()))),
-                                      NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX);
+    const float required = getFwCoordinatedTurnRadius();
 
     if (!loiterActive) {
         active = false;
@@ -699,8 +697,7 @@ static float applyFwArcHandbackFade(float rollTargetCd, timeDelta_t deltaMicros)
         return rollTargetCd;
     }
 
-    const float s = p * p * (3.0f - 2.0f * p);
-    return fwArcHandbackCmdCd + (rollTargetCd - fwArcHandbackCmdCd) * s;
+    return fwSmoothBlend(fwArcHandbackCmdCd, rollTargetCd, p);
 }
 
 // Arc turn coordinator: bank ramp -> coordinated arc (radius + tangent feedback) -> predictive
@@ -772,45 +769,41 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                 // through the next WP; tracking ON: bounded-intercept S onto the new leg itself.
                 const float px = posControl.activeWaypoint.pos.x;
                 const float py = posControl.activeWaypoint.pos.y;
-                const int32_t brgToWp = wrap_36000(lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(py - pos->y, px - pos->x)))));
+                const int32_t brgToWp = fwRadToBearingCd(atan2_approx(py - pos->y, px - pos->x));
                 const int32_t toWpErr = wrap_18000(brgToWp - cog);
                 if (ABS(toWpErr) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
                     const float arcRtmp = getFwCoordinatedTurnRadius();
-                    const float phiTmp = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * arcRtmp)));
+                    const float phiTmp = fwBankForRadiusCd(v, arcRtmp);
                     const float tTmp = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiTmp));
                     const int8_t dirTmp = (toWpErr > 0) ? 1 : -1;
                     const float cogRad = CENTIDEGREES_TO_RADIANS((float)cog);
                     // Pin ahead by the roll-in drift so the ramp ends ON the circle
-                    const float leadDist = 1.5f * v * (tTmp / 1000.0f);
-                    const float cx = pos->x + leadDist * cos_approx(cogRad) + arcRtmp * cos_approx(cogRad + dirTmp * (M_PIf * 0.5f));
-                    const float cy = pos->y + leadDist * sin_approx(cogRad) + arcRtmp * sin_approx(cogRad + dirTmp * (M_PIf * 0.5f));
+                    const float leadDist = fwRollInLeadCm(v, tTmp);
+                    float leadX, leadY, cx, cy;
+                    fwPolarOffset(pos->x, pos->y, leadDist, cogRad, &leadX, &leadY);
+                    fwPerpOffset(leadX, leadY, arcRtmp, cogRad, dirTmp, &cx, &cy);
                     if (navConfig()->fw.wp_tracking_accuracy && (navGetCurrentStateFlags() & NAV_AUTO_WP)) {
                         // Tracking ON: exit the main arc onto a BOUNDED intercept course (<= 45 deg to the
                         // leg, gamma = half the turn for shallow corners), short straight for the reverse
                         // roll, then a standard corner-cut arc rolls out ON the line
                         const float legRad = CENTIDEGREES_TO_RADIANS((float)legBearing);
-                        const float ux = cos_approx(legRad), uy = sin_approx(legRad);
+                        float ux, uy;
+                        fwBearingUnit(legBearing, &ux, &uy);
                         const int32_t turnCd = wrap_18000(legBearing - cog);
                         const float gammaRad = CENTIDEGREES_TO_RADIANS(constrainf(0.5f * (float)ABS(turnCd), 2000.0f, 4500.0f));
                         const float icptRad = legRad + (float)dirTmp * gammaRad;
                         const float d1x = cos_approx(icptRad), d1y = sin_approx(icptRad);
                         const float nAng = icptRad - (float)dirTmp * (M_PIf * 0.5f);
-                        const float p1x = cx + 2.0f * arcRtmp * cos_approx(nAng);   // intercept line shifted R toward the counter side
-                        const float p1y = cy + 2.0f * arcRtmp * sin_approx(nAng);
-                        const float lAng = legRad - (float)dirTmp * (M_PIf * 0.5f);
-                        const float b0x = px + arcRtmp * cos_approx(lAng);
-                        const float b0y = py + arcRtmp * sin_approx(lAng);
-                        const float cross = d1x * uy - d1y * ux;
-                        if (fabsf(cross) > 0.17f) {             // gamma >= 20 deg keeps the lines well separated
-                            const float tt = ((b0x - p1x) * uy - (b0y - p1y) * ux) / cross;
-                            const float o2x = p1x + tt * d1x;
-                            const float o2y = p1y + tt * d1y;
+                        float p1x, p1y, b0x, b0y, o2x, o2y;
+                        fwPolarOffset(cx, cy, 2.0f * arcRtmp, nAng, &p1x, &p1y);   // intercept line shifted R toward the counter side
+                        fwPerpOffset(px, py, arcRtmp, legRad, -(float)dirTmp, &b0x, &b0y);
+                        // gamma >= 20 deg keeps the lines well separated
+                        if (fwLineIntersect(p1x, p1y, d1x, d1y, b0x, b0y, ux, uy, 0.17f, &o2x, &o2y)) {
                             const float rollAlong = (o2x - px) * ux + (o2y - py) * uy;
                             const float legLen = calc_length_pythagorean_2D(px - pos->x, py - pos->y);
                             // roll-out tangency must lie ahead of us and leave straight leg to the WP
                             if (rollAlong < 0.0f && -rollAlong < legLen && -rollAlong > 2.0f * arcRtmp) {
-                                intoEx = o2x - arcRtmp * cos_approx(nAng);      // pickup = tangency on the intercept line
-                                intoEy = o2y - arcRtmp * sin_approx(nAng);
+                                fwPolarOffset(o2x, o2y, -arcRtmp, nAng, &intoEx, &intoEy);   // pickup = tangency on the intercept line
                                 intoO2x = o2x; intoO2y = o2y;
                                 intoR = arcRtmp; intoBOut = legBearing; intoDir = -dirTmp;
                                 fwArcEngaged = true;
@@ -821,7 +814,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                                 arcDir = dirTmp;
                                 arcCx = cx;
                                 arcCy = cy;
-                                arcOutBearing = wrap_36000(lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(icptRad))));
+                                arcOutBearing = fwRadToBearingCd(icptRad);
                                 phiNomCd = phiTmp;
                                 tEaseMs = tTmp;
                                 intoStage = FW_INTO_AWAY;       // second arc staged: the shared pickup logic takes over
@@ -834,9 +827,10 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                         const float phiT = acos_approx(constrainf(arcRtmp / dCP, 0.0f, 1.0f));
                         for (int8_t s = -1; s <= 1; s += 2) {   // of the two tangent points, exit where the tangent points at the WP
                             const float th = alphaCP + (float)s * phiT;
-                            const float tx = cx + arcRtmp * cos_approx(th);
-                            const float ty = cy + arcRtmp * sin_approx(th);
-                            if ((px - tx) * (-dirTmp * sin_approx(th)) + (py - ty) * (dirTmp * cos_approx(th)) > 0.0f) {
+                            float tx, ty, tdx, tdy;
+                            fwPolarOffset(cx, cy, arcRtmp, th, &tx, &ty);
+                            fwTangentDir(th, dirTmp, &tdx, &tdy);
+                            if ((px - tx) * tdx + (py - ty) * tdy > 0.0f) {
                                 fwArcEngaged = true;
                                 phase = ARC_RAMP_IN;
                                 rampMs = 0.0f;
@@ -845,7 +839,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                                 arcDir = dirTmp;
                                 arcCx = cx;
                                 arcCy = cy;
-                                arcOutBearing = wrap_36000(lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(py - ty, px - tx)))));
+                                arcOutBearing = fwRadToBearingCd(atan2_approx(py - ty, px - tx));
                                 phiNomCd = phiTmp;
                                 tEaseMs = tTmp;
                             }
@@ -856,7 +850,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
             const int32_t hdgErr = wrap_18000(legBearing - cog);
             if (turnMode != NAV_FW_WP_TURN_COORD_FLY_OVER && ABS(hdgErr) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
                 const float arcRtmp = getFwCoordinatedTurnRadius();
-                const float phiTmp = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * arcRtmp)));
+                const float phiTmp = fwBankForRadiusCd(v, arcRtmp);
                 const float tTmp = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiTmp));
                 const float omegaNomCds = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(v / arcRtmp));   // v/R == g*tan(phi)/v
                 const float psiTmp = 0.5f * omegaNomCds * (tTmp / 1000.0f);
@@ -886,18 +880,14 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                     // Centre = intersection of both legs shifted R inside (inscribed circle), so the exit lands ON the out-leg
                     const float cogRad = CENTIDEGREES_TO_RADIANS((float)cog);
                     const float legRad = CENTIDEGREES_TO_RADIANS((float)legBearing);
-                    const float d1x = cos_approx(cogRad), d1y = sin_approx(cogRad);
-                    const float d2x = cos_approx(legRad), d2y = sin_approx(legRad);
-                    const float cross = d1x * d2y - d1y * d2x;
-                    const float p1x = pos->x + arcRtmp * cos_approx(cogRad + arcDir * (M_PIf * 0.5f));
-                    const float p1y = pos->y + arcRtmp * sin_approx(cogRad + arcDir * (M_PIf * 0.5f));
-                    if (fabsf(cross) > 0.087f) {                // legs not near-parallel (30..160 deg turn)
-                        const float p2x = posControl.activeWaypoint.pos.x + arcRtmp * cos_approx(legRad + arcDir * (M_PIf * 0.5f));
-                        const float p2y = posControl.activeWaypoint.pos.y + arcRtmp * sin_approx(legRad + arcDir * (M_PIf * 0.5f));
-                        const float tt = ((p2x - p1x) * d2y - (p2y - p1y) * d2x) / cross;
-                        arcCx = p1x + tt * d1x;
-                        arcCy = p1y + tt * d1y;
-                    } else {                                    // degenerate -> tangent at the entry point
+                    float d1x, d1y, d2x, d2y, p1x, p1y, p2x, p2y;
+                    fwBearingUnit(cog, &d1x, &d1y);
+                    fwBearingUnit(legBearing, &d2x, &d2y);
+                    fwPerpOffset(pos->x, pos->y, arcRtmp, cogRad, arcDir, &p1x, &p1y);
+                    fwPerpOffset(posControl.activeWaypoint.pos.x, posControl.activeWaypoint.pos.y,
+                                 arcRtmp, legRad, arcDir, &p2x, &p2y);
+                    // legs not near-parallel (30..160 deg turn); degenerate -> tangent at the entry point
+                    if (!fwLineIntersect(p1x, p1y, d1x, d1y, p2x, p2y, d2x, d2y, 0.087f, &arcCx, &arcCy)) {
                         arcCx = p1x;
                         arcCy = p1y;
                     }
@@ -913,34 +903,35 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                 const int32_t nta = posControl.activeWaypoint.nextTurnAngle;
                 if (nta != -1 && ABS(nta) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
                     const float arcRtmp = getFwCoordinatedTurnRadius();
-                    const float phiTmp = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * arcRtmp)));
+                    const float phiTmp = fwBankForRadiusCd(v, arcRtmp);
                     const float tTmp = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiTmp));
                     const int8_t dirM = (nta > 0) ? 1 : -1;
                     const int32_t bOut = wrap_36000(legBearing + nta);
                     const float bOutRad = CENTIDEGREES_TO_RADIANS((float)bOut);
                     const float bInRad = CENTIDEGREES_TO_RADIANS((float)legBearing);
-                    const float ux = cos_approx(bInRad), uy = sin_approx(bInRad);
+                    float ux, uy;
+                    fwBearingUnit(legBearing, &ux, &uy);
                     // Main circle pinned at the WP, counter circle on the inbound leg; centers
                     // sqrt((2R)^2+Ls^2) apart so an Ls gap gives the roll swing room
                     const float Ls = 2.0f * v * (tTmp / 1000.0f);
-                    const float o2x = posControl.activeWaypoint.pos.x + arcRtmp * cos_approx(bOutRad + dirM * (M_PIf * 0.5f));
-                    const float o2y = posControl.activeWaypoint.pos.y + arcRtmp * sin_approx(bOutRad + dirM * (M_PIf * 0.5f));
-                    const float ax = posControl.activeWaypoint.pos.x + arcRtmp * cos_approx(bInRad - dirM * (M_PIf * 0.5f));
-                    const float ay = posControl.activeWaypoint.pos.y + arcRtmp * sin_approx(bInRad - dirM * (M_PIf * 0.5f));
+                    float o2x, o2y, ax, ay;
+                    fwPerpOffset(posControl.activeWaypoint.pos.x, posControl.activeWaypoint.pos.y,
+                                 arcRtmp, bOutRad, dirM, &o2x, &o2y);
+                    fwPerpOffset(posControl.activeWaypoint.pos.x, posControl.activeWaypoint.pos.y,
+                                 arcRtmp, bInRad, -(float)dirM, &ax, &ay);
                     const float wx = o2x - ax, wy = o2y - ay;
                     const float wu = wx * ux + wy * uy;
                     const float disc = wu * wu - (wx * wx + wy * wy) + 4.0f * arcRtmp * arcRtmp + Ls * Ls;
                     if (disc > 0.0f) {
                         const float s = wu - fast_fsqrtf(disc); // signed along-leg offset of the S start from the WP
-                        const float triggerDist = -s + 1.5f * v * (tTmp / 1000.0f);
+                        const float triggerDist = -s + fwRollInLeadCm(v, tTmp);
                         if (s < 0.0f && posControl.wpDistance < triggerDist) {
                             const float o1x = ax + s * ux;
                             const float o1y = ay + s * uy;
                             const float cAng = atan2_approx(o2y - o1y, o2x - o1x);
                             const float beta = atan2_approx(Ls, 2.0f * arcRtmp);
                             const float nAng = cAng + (float)dirM * beta;
-                            intoEx = o2x - arcRtmp * cos_approx(nAng);          // main-arc pickup = internal-tangent touch on the main circle
-                            intoEy = o2y - arcRtmp * sin_approx(nAng);
+                            fwPolarOffset(o2x, o2y, -arcRtmp, nAng, &intoEx, &intoEy);   // main-arc pickup = internal-tangent touch on the main circle
                             intoO2x = o2x; intoO2y = o2y;
                             intoR = arcRtmp; intoBOut = bOut; intoDir = dirM;
                             fwArcEngaged = true;
@@ -951,8 +942,8 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                             arcDir = -dirM;                     // counter-arc first
                             arcCx = o1x;
                             arcCy = o1y;
-                            arcOutBearing = wrap_36000(lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(
-                                cAng - (float)dirM * (M_PIf * 0.5f - beta)))));  // internal-tangent course: the away arc rolls out onto it
+                            // internal-tangent course: the away arc rolls out onto it
+                            arcOutBearing = fwRadToBearingCd(cAng - (float)dirM * (M_PIf * 0.5f - beta));
                             phiNomCd = phiTmp;
                             tEaseMs = tTmp;
                             intoStage = FW_INTO_AWAY;
@@ -986,8 +977,9 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         // Pick up the second arc at its tangency point. Along-track distance so a lateral residual
         // cannot miss it; the heading gate blocks the trigger early in the first arc, where the
         // pickup point still lies behind the exit course.
-        const float outRadE = CENTIDEGREES_TO_RADIANS((float)arcOutBearing);
-        fwArcPickupAlong = (intoEx - pos->x) * cos_approx(outRadE) + (intoEy - pos->y) * sin_approx(outRadE);
+        float outUx, outUy;
+        fwBearingUnit(arcOutBearing, &outUx, &outUy);
+        fwArcPickupAlong = (intoEx - pos->x) * outUx + (intoEy - pos->y) * outUy;
 
         // The away arc blocks the hand-back, so a pickup that never triggers strands the aircraft with
         // path tracking suppressed. Bound it by the time to fly half the away circle.
@@ -1005,7 +997,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
 
         if (intoStage == FW_INTO_AWAY
             && ABS(wrap_18000(arcOutBearing - cog)) < 4500
-            && fwArcPickupAlong <= 1.5f * v * (tEaseMs / 1000.0f)) {
+            && fwArcPickupAlong <= fwRollInLeadCm(v, tEaseMs)) {
             phase = ARC_RAMP_IN;
             rampMs = 0.0f;
             rampStartCd = fwArcBankCmd;                         // blend from the current bank
@@ -1015,9 +1007,10 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
             // an along-track shift instead of a parallel roll-out offset
             const float r2 = getFwCoordinatedTurnRadius();
             const float legR2 = CENTIDEGREES_TO_RADIANS((float)intoBOut);
-            const float u2x = cos_approx(legR2), u2y = sin_approx(legR2);
-            const float b0x = posControl.activeWaypoint.pos.x + r2 * cos_approx(legR2 + (float)intoDir * (M_PIf * 0.5f));
-            const float b0y = posControl.activeWaypoint.pos.y + r2 * sin_approx(legR2 + (float)intoDir * (M_PIf * 0.5f));
+            float u2x, u2y, b0x, b0y;
+            fwBearingUnit(intoBOut, &u2x, &u2y);
+            fwPerpOffset(posControl.activeWaypoint.pos.x, posControl.activeWaypoint.pos.y,
+                         r2, legR2, (float)intoDir, &b0x, &b0y);
             const float w2x = pos->x - b0x, w2y = pos->y - b0y;
             const float w2u = w2x * u2x + w2y * u2y;
             const float disc2 = w2u * w2u - (w2x * w2x + w2y * w2y) + r2 * r2;
@@ -1026,7 +1019,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                 arcR = r2;
                 arcCx = b0x + t2 * u2x;
                 arcCy = b0y + t2 * u2y;
-                phiNomCd = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * r2)));
+                phiNomCd = fwBankForRadiusCd(v, r2);
                 tEaseMs = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiNomCd));
             } else {                                            // drifted beyond the line: keep the planned circle
                 arcR = intoR;
@@ -1048,9 +1041,10 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     // a reversal fallback otherwise ends a turn-diameter off the leg. Intercept angle tapers with
     // the cross-track offset (1 cd/cm), capped at the tracker's own convergence limit.
     if (arcToLegLine && navConfig()->fw.wp_tracking_accuracy) {
-        const float legRadT = CENTIDEGREES_TO_RADIANS((float)legBearing);
-        const float offLeg = (pos->x - posControl.activeWaypoint.pos.x) * (-sin_approx(legRadT))
-                           + (pos->y - posControl.activeWaypoint.pos.y) * cos_approx(legRadT);
+        float legUx, legUy;
+        fwBearingUnit(legBearing, &legUx, &legUy);
+        const float offLeg = fwOffLegCm(pos->x, pos->y,
+                                        posControl.activeWaypoint.pos.x, posControl.activeWaypoint.pos.y, legUx, legUy);
         const float gammaCd = constrainf(fabsf(offLeg), 0.0f, DEGREES_TO_CENTIDEGREES(navConfig()->fw.wp_tracking_max_angle));
         arcOutBearing = wrap_36000(legBearing - lrintf(SIGN(offLeg) * gammaCd));
     }
@@ -1072,8 +1066,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         const float rampSpanCd = fabsf((float)arcDir * phiNomCd - rampStartCd);
         const float rampDurMs = MAX(tEaseMs * rampSpanCd / MAX(phiNomCd, 1.0f), 0.5f * tEaseMs);
         const float p = (rampDurMs > 1.0f) ? constrainf(rampMs / rampDurMs, 0.0f, 1.0f) : 1.0f;
-        const float s = p * p * (3.0f - 2.0f * p);             // smoothstep up
-        fwArcBankCmd = rampStartCd + ((float)arcDir * phiNomCd - rampStartCd) * s;
+        fwArcBankCmd = fwSmoothBlend(rampStartCd, (float)arcDir * phiNomCd, p);   // smoothstep up
         if (p >= 1.0f) {                                       // roll-in done -> track the pre-placed tangent circle
             phase = ARC_STEADY;
             steadyMs = 0.0f;                                   // ramp-in does not steer onto the circle, so the arc
@@ -1086,19 +1079,20 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         const float dy = pos->y - arcCy;
         const float eR = calc_length_pythagorean_2D(dx, dy) - arcR;             // [cm], + = outside the arc
         const float alpha = atan2_approx(dy, dx);                               // azimuth on the arc
-        const int32_t tangentBearing = lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(arcDir * cos_approx(alpha), -arcDir * sin_approx(alpha)))));
+        float tgx, tgy;
+        fwTangentDir(alpha, arcDir, &tgx, &tgy);
+        const int32_t tangentBearing = lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(tgy, tgx))));
         const int32_t eH = wrap_18000(tangentBearing - cog);                    // [centideg] heading error to the arc tangent
         // FF from current groundspeed: wind changes v along the arc
-        const float phiLiveCd = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * arcR)));
+        const float phiLiveCd = fwBankForRadiusCd(v, arcR);
         const float steadyCd = arcDir * (phiLiveCd + NAV_FW_ARC_RADIAL_GAIN * eR) + NAV_FW_ARC_HEADING_GAIN * (float)eH;
         steadyMs += US2S(deltaMicros) * 1000.0f;
         const float q = (tEaseMs > 1.0f) ? constrainf(steadyMs / tEaseMs, 0.0f, 1.0f) : 1.0f;
-        const float s = q * q * (3.0f - 2.0f * q);
         // Two-sided slew limit: on a tight arc the tangent bearing is ill-conditioned near the centre
         // and eH can invert between two updates, which would otherwise go straight to the servos
-        const float blended = steadyStartCd + (steadyCd - steadyStartCd) * s;
-        const float maxStepCd = phiNomCd * (US2S(deltaMicros) * 1000.0f) / MAX(tEaseMs, 1.0f);
-        fwArcBankCmd += constrainf(blended - fwArcBankCmd, -maxStepCd, maxStepCd);
+        const float blended = fwSmoothBlend(steadyStartCd, steadyCd, q);
+        const float maxStepCd = fwArcMaxStepCd(phiNomCd, tEaseMs, US2S(deltaMicros) * 1000.0f);
+        fwArcBankCmd = fwSlewToward(fwArcBankCmd, blended, maxStepCd);
         if (NAV_FW_ARC_EXIT_GAIN * (float)ABS(hdgErrOut) <= ABS(fwArcBankCmd)
             || (float)ABS(hdgErrOut) <= psiLeadCd) {           // remaining heading fits the shaped roll-out -> start it
             phase = ARC_CAPTURE;
@@ -1115,8 +1109,8 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         }
         const float errLeadCd = MAX((float)ABS(captureErr) - psiLeadCd, 0.0f);
         const float cmd = constrainf(NAV_FW_ARC_EXIT_GAIN * ((captureErr > 0) ? errLeadCd : -errLeadCd), -phiNomCd, phiNomCd);
-        const float maxStepCd = phiNomCd * (US2S(deltaMicros) * 1000.0f) / MAX(tEaseMs, 1.0f);
-        fwArcBankCmd += constrainf(cmd - fwArcBankCmd, -maxStepCd, maxStepCd);
+        const float maxStepCd = fwArcMaxStepCd(phiNomCd, tEaseMs, US2S(deltaMicros) * 1000.0f);
+        fwArcBankCmd = fwSlewToward(fwArcBankCmd, cmd, maxStepCd);
         // Mid-S the gap between the arcs stays engaged: handing back there would give the PID and
         // path tracking a moment of control while we sit a full turn diameter off the leg.
         if (ABS(hdgErrOut) <= NAV_FW_ARC_EXIT_HANDOFF_CD && fabsf(fwArcBankCmd) <= NAV_FW_ARC_EXIT_BANK_CD
@@ -1165,7 +1159,9 @@ static void updateFwLoiterArc(timeDelta_t deltaMicros)
     const float arcRadius = MAX(fwActiveLoiterRadius, (float)NAV_FW_TURN_RADIUS_MIN);
     const int8_t dir = loiterDirection();
     const float alpha = atan2_approx(dcy, dcx);
-    const int32_t tangentBearing = lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(dir * cos_approx(alpha), -dir * sin_approx(alpha)))));
+    float tgx, tgy;
+    fwTangentDir(alpha, dir, &tgx, &tgy);
+    const int32_t tangentBearing = lrintf(DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(tgy, tgx))));
     const int32_t eH = wrap_18000(tangentBearing - posControl.actualState.cog);
     const float eR = dist - arcRadius;
 
@@ -1183,11 +1179,11 @@ static void updateFwLoiterArc(timeDelta_t deltaMicros)
     }
 
     const float v = posControl.actualState.velXY;
-    const float phiLiveCd = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(atan2_approx(v * v, GRAVITY_CMSS * arcRadius)));
+    const float phiLiveCd = fwBankForRadiusCd(v, arcRadius);
     const float targetCd = dir * (phiLiveCd + NAV_FW_ARC_RADIAL_GAIN * eR) + NAV_FW_ARC_HEADING_GAIN * (float)eH;
     const float tEase = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiLiveCd));
-    const float maxStepCd = phiLiveCd * (US2S(deltaMicros) * 1000.0f) / MAX(tEase, 1.0f);
-    fwArcBankCmd += constrainf(targetCd - fwArcBankCmd, -maxStepCd, maxStepCd);
+    const float maxStepCd = fwArcMaxStepCd(phiLiveCd, tEase, US2S(deltaMicros) * 1000.0f);
+    fwArcBankCmd = fwSlewToward(fwArcBankCmd, targetCd, maxStepCd);
     const float cmdLimitCd = DEGREES_TO_CENTIDEGREES(getFwEffectiveBankLimit());
     fwArcBankCmd = constrainf(fwArcBankCmd, -cmdLimitCd, cmdLimitCd);
 
@@ -1262,8 +1258,8 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
     // We are closing in on a waypoint, calculate circular loiter if required
     if (needToCalculateCircularLoiter) {
         float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(loiterTurnDirection * 45.0f);
-        float loiterTargetX = loiterCenterPos.x + navLoiterRadius * cos_approx(loiterAngle);
-        float loiterTargetY = loiterCenterPos.y + navLoiterRadius * sin_approx(loiterAngle);
+        float loiterTargetX, loiterTargetY;
+        fwPolarOffset(loiterCenterPos.x, loiterCenterPos.y, navLoiterRadius, loiterAngle, &loiterTargetX, &loiterTargetY);
 
         // We have temporary loiter target. Recalculate distance and position error
         posErrorX = loiterTargetX - navGetCurrentActualPositionAndVelocity()->pos.x;
@@ -1354,11 +1350,11 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
         /* Calculate cross track error */
         posControl.wpDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
 
+        float wpUx, wpUy;
+        fwBearingUnit(posControl.activeWaypoint.bearing, &wpUx, &wpUy);
         fpVector3_t virtualCoursePoint;
-        virtualCoursePoint.x = posControl.activeWaypoint.pos.x -
-                               posControl.wpDistance * cos_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.bearing));
-        virtualCoursePoint.y = posControl.activeWaypoint.pos.y -
-                               posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.bearing));
+        virtualCoursePoint.x = posControl.activeWaypoint.pos.x - posControl.wpDistance * wpUx;
+        virtualCoursePoint.y = posControl.activeWaypoint.pos.y - posControl.wpDistance * wpUy;
         navCrossTrackError = calculateDistanceToDestination(&virtualCoursePoint);
 
         /* If waypoint tracking enabled force craft toward and closely track along waypoint course line.
@@ -1399,9 +1395,10 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
             previousCrossTrackError = navCrossTrackError;
             previousCrossTrackErrorUpdateTime = currentTimeUs;
             const fpVector3_t *trackPos = &navGetCurrentActualPositionAndVelocity()->pos;
-            const float legRad = CENTIDEGREES_TO_RADIANS((float)posControl.activeWaypoint.bearing);
-            const float offLeg = (trackPos->x - virtualCoursePoint.x) * (-sin_approx(legRad))
-                               + (trackPos->y - virtualCoursePoint.y) * cos_approx(legRad);
+            float legUx, legUy;
+            fwBearingUnit(posControl.activeWaypoint.bearing, &legUx, &legUy);
+            const float offLeg = fwOffLegCm(trackPos->x, trackPos->y,
+                                            virtualCoursePoint.x, virtualCoursePoint.y, legUx, legUy);
             const float cogOffRad = CENTIDEGREES_TO_RADIANS((float)wrap_18000(posControl.actualState.cog - posControl.activeWaypoint.bearing));
             crossTrackErrorRate = -SIGN(offLeg) * posControl.actualState.velXY * sin_approx(cogOffRad);
             pt1FilterReset(&fwCrossTrackErrorRateFilterState, crossTrackErrorRate);
