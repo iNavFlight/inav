@@ -67,13 +67,14 @@ void fwPerpOffset(float px, float py, float r, float headingRad, float dirF, flo
     fwPolarOffset(px, py, r, headingRad + dirF * (M_PIf * 0.5f), ox, oy);
 }
 
-// Intersection of the lines p1 + t*d1 and p2 + s*d2; false (outputs untouched) when near-parallel
+// Intersection of the lines p1 + t*d1 and p2 + s*d2; false (outputs untouched) when near-parallel.
+// Written as the positive test so a NaN cross product also lands on the fallback, as at the call sites
 bool fwLineIntersect(float p1x, float p1y, float d1x, float d1y,
                      float p2x, float p2y, float d2x, float d2y,
                      float minAbsCross, float *ox, float *oy)
 {
     const float cross = d1x * d2y - d1y * d2x;
-    if (fabsf(cross) <= minAbsCross) {
+    if (!(fabsf(cross) > minAbsCross)) {
         return false;
     }
 

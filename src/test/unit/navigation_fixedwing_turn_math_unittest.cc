@@ -299,6 +299,10 @@ TEST(NavFwTurnMathUnittest, LineIntersectDegenerate)
     EXPECT_FALSE(fwLineIntersect(p1x, p1y, 1.0f, 0.0f, p2x, p2y, -1.0f, 0.0f, 0.087f, &ox, &oy));
     EXPECT_BITS_EQ(ox, 1.0f);           // outputs untouched on the degenerate path
     EXPECT_BITS_EQ(oy, 2.0f);
+    // NaN geometry must take the fallback, like the original `> threshold` guard
+    EXPECT_FALSE(fwLineIntersect(p1x, p1y, NAN, 0.0f, p2x, p2y, 0.0f, 1.0f, 0.087f, &ox, &oy));
+    EXPECT_BITS_EQ(ox, 1.0f);
+    EXPECT_BITS_EQ(oy, 2.0f);
 
     // cross exactly on / just below / just above each threshold
     for (float thr : { 0.087f, 0.17f }) {
