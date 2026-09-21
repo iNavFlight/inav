@@ -564,6 +564,13 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t autoThrottl
     DEBUG_SET(DEBUG_FW_TURN, 6, lrintf(fwEffectiveBankLimit));  // energy-guard bank ceiling [deg]
 }
 
+// Landing approach always flies coordinated FLY_BY turns, whatever mode is configured
+static navFwWpTurnMode_e fwEffectiveTurnMode(void)
+{
+    return (posControl.navState == NAV_STATE_FW_LANDING_APPROACH) ? NAV_FW_WP_TURN_COORD_FLY_BY
+                                                                  : navConfig()->fw.wp_turn_mode;
+}
+
 // Coordinated-turn radius R = V^2/(g*tan(phi)) [cm], clamped. Times the FLY_BY turn for any speed.
 static float getFwCoordinatedTurnRadius(void)
 {
@@ -578,8 +585,8 @@ static float getFwTurnFeedForward(int32_t navHeadingError, timeDelta_t deltaMicr
 {
     const uint8_t ffGain = navConfig()->fw.turn_ff_gain;
     if (ffGain == 0 || posControl.actualState.velXY <= NAV_FW_TURN_MIN_SPEED
-        || (navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_DIRECT && posControl.navState != NAV_STATE_FW_LANDING_APPROACH)) {
-        return 0.0f;                                    // DIRECT = pure legacy PID (landing approach forces FLY_BY)
+        || fwEffectiveTurnMode() == NAV_FW_WP_TURN_DIRECT) {
+        return 0.0f;                                    // DIRECT = pure legacy PID
     }
 
     // Turn-context gate: arm on a leg change, disarm once aligned. A later heading error on the same
@@ -700,6 +707,21 @@ static float applyFwArcHandbackFade(float rollTargetCd, timeDelta_t deltaMicros)
     return fwSmoothBlend(fwArcHandbackCmdCd, rollTargetCd, p);
 }
 
+// Clamp to the flyable ceiling: rate limits, handoff checks and the smoother seed must not
+// run on a command the airframe cannot reach (wind can drive the radial error arbitrarily large)
+static void fwArcClampBankCmd(void)
+{
+    const float cmdLimitCd = DEGREES_TO_CENTIDEGREES(getFwEffectiveBankLimit());
+    fwArcBankCmd = constrainf(fwArcBankCmd, -cmdLimitCd, cmdLimitCd);
+}
+
+// Clear on release, else the log keeps showing the last arc phase for minutes
+static void fwArcDebugRelease(void)
+{
+    DEBUG_SET(DEBUG_FW_TURN, 1, 0);
+    DEBUG_SET(DEBUG_FW_TURN, 3, 0);
+}
+
 // Arc turn coordinator: bank ramp -> coordinated arc (radius + tangent feedback) -> predictive
 // capture roll-out. Sets fwArcActive (drives the roll directly).
 static void updateFwTurnArc(timeDelta_t deltaMicros)
@@ -730,26 +752,23 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
 
     fwArcActive = false;
 
-    // Landing approach always flies coordinated FLY_BY turns, whatever mode is configured
-    navFwWpTurnMode_e turnMode = navConfig()->fw.wp_turn_mode;
-    if (posControl.navState == NAV_STATE_FW_LANDING_APPROACH) {
-        turnMode = NAV_FW_WP_TURN_COORD_FLY_BY;
-    }
+    const navFwWpTurnMode_e turnMode = fwEffectiveTurnMode();
 
     const bool wpTracking = isWaypointNavTrackingActive() && !needToCalculateCircularLoiter;
     if (turnMode == NAV_FW_WP_TURN_DIRECT || !wpTracking) {
         fwArcEngaged = false;
         fwArcPrevLegBearing = -1;
         intoStage = FW_INTO_IDLE;
-        DEBUG_SET(DEBUG_FW_TURN, 1, 0);     // clear, else the log keeps showing the last arc phase for minutes
-        DEBUG_SET(DEBUG_FW_TURN, 3, 0);
+        fwArcDebugRelease();
         return;
     }
 
     const int32_t legBearing = posControl.activeWaypoint.bearing;
     const int32_t cog = posControl.actualState.cog;
+    const int32_t hdgErrToLeg = wrap_18000(legBearing - cog);
     const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
     const float v = posControl.actualState.velXY;
+    const float dtMs = US2S(deltaMicros) * 1000.0f;
 
     if (!fwArcEngaged) {
         arcToLegLine = false;
@@ -758,7 +777,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
          * the whole turn unshaped. Unseeded + grossly off the leg course = a pending turn. */
         const bool legChanged = (fwArcPrevLegBearing >= 0)
             ? (ABS(wrap_18000(legBearing - fwArcPrevLegBearing)) > 500)
-            : (ABS(wrap_18000(legBearing - cog)) > NAV_FW_ARC_MIN_TURN_ANGLE_CD);
+            : (ABS(hdgErrToLeg) > NAV_FW_ARC_MIN_TURN_ANGLE_CD);
         fwArcPrevLegBearing = legBearing;
         if (legChanged) {
             intoStage = FW_INTO_IDLE;                           // a new leg invalidates any staged S geometry
@@ -789,8 +808,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                         const float legRad = CENTIDEGREES_TO_RADIANS((float)legBearing);
                         float ux, uy;
                         fwBearingUnit(legBearing, &ux, &uy);
-                        const int32_t turnCd = wrap_18000(legBearing - cog);
-                        const float gammaRad = CENTIDEGREES_TO_RADIANS(constrainf(0.5f * (float)ABS(turnCd), 2000.0f, 4500.0f));
+                        const float gammaRad = CENTIDEGREES_TO_RADIANS(constrainf(0.5f * (float)ABS(hdgErrToLeg), 2000.0f, 4500.0f));
                         const float icptRad = legRad + (float)dirTmp * gammaRad;
                         const float d1x = cos_approx(icptRad), d1y = sin_approx(icptRad);
                         const float nAng = icptRad - (float)dirTmp * (M_PIf * 0.5f);
@@ -847,14 +865,13 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                     }
                 }
             }
-            const int32_t hdgErr = wrap_18000(legBearing - cog);
-            if (turnMode != NAV_FW_WP_TURN_COORD_FLY_OVER && ABS(hdgErr) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
+            if (turnMode != NAV_FW_WP_TURN_COORD_FLY_OVER && ABS(hdgErrToLeg) > NAV_FW_ARC_MIN_TURN_ANGLE_CD) {
                 const float arcRtmp = getFwCoordinatedTurnRadius();
                 const float phiTmp = fwBankForRadiusCd(v, arcRtmp);
                 const float tTmp = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiTmp));
                 const float omegaNomCds = DEGREES_TO_CENTIDEGREES(RADIANS_TO_DEGREES(v / arcRtmp));   // v/R == g*tan(phi)/v
                 const float psiTmp = 0.5f * omegaNomCds * (tTmp / 1000.0f);
-                if (capped || ABS(hdgErr) > NAV_FW_ARC_SHARP_TURN_CD) {
+                if (capped || ABS(hdgErrToLeg) > NAV_FW_ARC_SHARP_TURN_CD) {
                     // Capped or near-reversal: no valid tangent circle - fly the bounded capture directly
                     fwArcEngaged = true;
                     phase = ARC_CAPTURE;
@@ -862,18 +879,18 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
                     rampMs = 0.0f;
                     rampStartCd = 0.0f;
                     arcR = arcRtmp;                             // capture ignores it, but the away timeout is sized from it
-                    arcDir = (hdgErr > 0) ? 1 : -1;
+                    arcDir = (hdgErrToLeg > 0) ? 1 : -1;
                     arcOutBearing = legBearing;
                     arcToLegLine = true;
                     phiNomCd = phiTmp;
                     tEaseMs = tTmp;
-                } else if (2.0f * psiTmp < (float)ABS(hdgErr)) {   // enough turn left for a steady arc between the ease ramps
+                } else if (2.0f * psiTmp < (float)ABS(hdgErrToLeg)) {   // enough turn left for a steady arc between the ease ramps
                     fwArcEngaged = true;
                     phase = ARC_RAMP_IN;
                     rampMs = 0.0f;
                     rampStartCd = fwLastNavRollCmdCd;
                     arcR = arcRtmp;
-                    arcDir = (hdgErr > 0) ? 1 : -1;
+                    arcDir = (hdgErrToLeg > 0) ? 1 : -1;
                     arcOutBearing = legBearing;
                     phiNomCd = phiTmp;
                     tEaseMs = tTmp;
@@ -984,7 +1001,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         // The away arc blocks the hand-back, so a pickup that never triggers strands the aircraft with
         // path tracking suppressed. Bound it by the time to fly half the away circle.
         if (intoStage == FW_INTO_AWAY) {
-            intoAwayMs += US2S(deltaMicros) * 1000.0f;
+            intoAwayMs += dtMs;
             if (intoAwayMs > NAV_FW_ARC_AWAY_TIMEOUT_FACTOR * 1000.0f * M_PIf * arcR / MAX(v, NAV_FW_TURN_MIN_SPEED)) {
                 intoStage = FW_INTO_DONE;                       // release the block; the capture finishes on the leg
                 arcOutBearing = legBearing;
@@ -1049,7 +1066,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         arcOutBearing = wrap_36000(legBearing - lrintf(SIGN(offLeg) * gammaCd));
     }
 
-    rampMs += US2S(deltaMicros) * 1000.0f;
+    rampMs += dtMs;
     fwArcEaseMs = tEaseMs;                                      // published for the handback fade
     const int32_t hdgErrOut = wrap_18000(arcOutBearing - cog);
 
@@ -1059,6 +1076,7 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
     const float levelGain = pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER;    // [1/s]
     const float rollOutS = ((levelGain > 0.1f) ? (1.0f / levelGain) : 1.0f) + (float)navConfig()->fw.wp_turn_control_ease * 0.001f;
     const float psiLeadCd = omegaCds * rollOutS + 0.5f * omegaCds * (tEaseMs / 1000.0f);
+    const float maxStepCd = fwArcMaxStepCd(phiNomCd, tEaseMs, dtMs);
 
     switch (phase) {
     case ARC_RAMP_IN: {
@@ -1086,12 +1104,11 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         // FF from current groundspeed: wind changes v along the arc
         const float phiLiveCd = fwBankForRadiusCd(v, arcR);
         const float steadyCd = arcDir * (phiLiveCd + NAV_FW_ARC_RADIAL_GAIN * eR) + NAV_FW_ARC_HEADING_GAIN * (float)eH;
-        steadyMs += US2S(deltaMicros) * 1000.0f;
+        steadyMs += dtMs;
         const float q = (tEaseMs > 1.0f) ? constrainf(steadyMs / tEaseMs, 0.0f, 1.0f) : 1.0f;
         // Two-sided slew limit: on a tight arc the tangent bearing is ill-conditioned near the centre
         // and eH can invert between two updates, which would otherwise go straight to the servos
         const float blended = fwSmoothBlend(steadyStartCd, steadyCd, q);
-        const float maxStepCd = fwArcMaxStepCd(phiNomCd, tEaseMs, US2S(deltaMicros) * 1000.0f);
         fwArcBankCmd = fwSlewToward(fwArcBankCmd, blended, maxStepCd);
         if (NAV_FW_ARC_EXIT_GAIN * (float)ABS(hdgErrOut) <= ABS(fwArcBankCmd)
             || (float)ABS(hdgErrOut) <= psiLeadCd) {           // remaining heading fits the shaped roll-out -> start it
@@ -1109,34 +1126,31 @@ static void updateFwTurnArc(timeDelta_t deltaMicros)
         }
         const float errLeadCd = MAX((float)ABS(captureErr) - psiLeadCd, 0.0f);
         const float cmd = constrainf(NAV_FW_ARC_EXIT_GAIN * ((captureErr > 0) ? errLeadCd : -errLeadCd), -phiNomCd, phiNomCd);
-        const float maxStepCd = fwArcMaxStepCd(phiNomCd, tEaseMs, US2S(deltaMicros) * 1000.0f);
         fwArcBankCmd = fwSlewToward(fwArcBankCmd, cmd, maxStepCd);
         // Mid-S the gap between the arcs stays engaged: handing back there would give the PID and
         // path tracking a moment of control while we sit a full turn diameter off the leg.
         if (ABS(hdgErrOut) <= NAV_FW_ARC_EXIT_HANDOFF_CD && fabsf(fwArcBankCmd) <= NAV_FW_ARC_EXIT_BANK_CD
             && intoStage != FW_INTO_AWAY) {                     // aligned and nearly level -> hand back
             fwArcEngaged = false;
-            DEBUG_SET(DEBUG_FW_TURN, 1, 0);                     // released: don't leave stale values in the log
-            DEBUG_SET(DEBUG_FW_TURN, 3, 0);
+            fwArcDebugRelease();
             return;
         }
         break;
     }
     }
 
-    // Clamp to the flyable ceiling: rate limits, handoff checks and the smoother seed must not
-    // run on a command the airframe cannot reach (wind can drive eR arbitrarily large)
-    const float cmdLimitCd = DEGREES_TO_CENTIDEGREES(getFwEffectiveBankLimit());
-    fwArcBankCmd = constrainf(fwArcBankCmd, -cmdLimitCd, cmdLimitCd);
+    fwArcClampBankCmd();
 
-    DEBUG_SET(DEBUG_FW_TURN, 0, lrintf(arcR));                  // active arc radius [cm]
-    DEBUG_SET(DEBUG_FW_TURN, 1, (phase + 1) * 10 + intoStage);  // coordinator state: (arc phase + 1)*10 + S stage
-    DEBUG_SET(DEBUG_FW_TURN, 2, arcOutBearing);                 // exit course [centideg]
-    DEBUG_SET(DEBUG_FW_TURN, 3, hdgErrOut);                     // remaining heading to the exit course [centideg]
-    DEBUG_SET(DEBUG_FW_TURN, 4, lrintf(fwArcBankCmd));          // arc bank command [centideg]
-    DEBUG_SET(DEBUG_FW_TURN, 7, lrintf(tEaseMs));               // roll ease time [ms] -> sizes the turn leads
-    if (intoStage == FW_INTO_AWAY) {
-        DEBUG_SET(DEBUG_FW_TURN, 6, lrintf(fwArcPickupAlong));  // away arc: along-track distance to the pickup [cm]
+    if (debugMode == DEBUG_FW_TURN) {
+        debug[0] = lrintf(arcR);                                // active arc radius [cm]
+        debug[1] = (phase + 1) * 10 + intoStage;                // coordinator state: (arc phase + 1)*10 + S stage
+        debug[2] = arcOutBearing;                               // exit course [centideg]
+        debug[3] = hdgErrOut;                                   // remaining heading to the exit course [centideg]
+        debug[4] = lrintf(fwArcBankCmd);                        // arc bank command [centideg]
+        debug[7] = lrintf(tEaseMs);                             // roll ease time [ms] -> sizes the turn leads
+        if (intoStage == FW_INTO_AWAY) {
+            debug[6] = lrintf(fwArcPickupAlong);                // away arc: along-track distance to the pickup [cm]
+        }
     }
     fwArcActive = true;
 }
@@ -1184,8 +1198,7 @@ static void updateFwLoiterArc(timeDelta_t deltaMicros)
     const float tEase = fwTurnEaseTimeMs(CENTIDEGREES_TO_DEGREES(phiLiveCd));
     const float maxStepCd = fwArcMaxStepCd(phiLiveCd, tEase, US2S(deltaMicros) * 1000.0f);
     fwArcBankCmd = fwSlewToward(fwArcBankCmd, targetCd, maxStepCd);
-    const float cmdLimitCd = DEGREES_TO_CENTIDEGREES(getFwEffectiveBankLimit());
-    fwArcBankCmd = constrainf(fwArcBankCmd, -cmdLimitCd, cmdLimitCd);
+    fwArcClampBankCmd();
 
     DEBUG_SET(DEBUG_FW_TURN, 1, 40);                // loiter circle controller engaged
     DEBUG_SET(DEBUG_FW_TURN, 4, lrintf(fwArcBankCmd));
@@ -1236,6 +1249,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
      * at any speed. FLY_BY legs only - the landing approach forces FLY_BY in every mode. */
     int32_t waypointTurnAngle = posControl.activeWaypoint.nextTurnAngle == -1 ? -1 : ABS(posControl.activeWaypoint.nextTurnAngle);
     posControl.flags.wpTurnSmoothingActive = false;
+    // not fwEffectiveTurnMode(): the call costs 448 B of flash here at -O2 (F405), none at -Os
     const bool flyByLeg = navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_COORD_FLY_BY
                           || posControl.navState == NAV_STATE_FW_LANDING_APPROACH;
     if (flyByLeg && waypointTurnAngle > 3000 && waypointTurnAngle < 16000 && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
