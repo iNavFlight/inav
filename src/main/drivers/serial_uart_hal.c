@@ -108,7 +108,11 @@ static void uartReconfigure(uartPort_t *uartPort)
         HAL_UART_Init(&uartPort->Handle);
     }
 
-    if (uartPort->port.mode & MODE_RX) {
+    if ((uartPort->port.mode & MODE_RX) && uartRxDmaRunning(uartPort)) {
+        /* The DMA stream empties the data register: it needs the request the de-init cleared, and no byte interrupt */
+        SET_BIT(uartPort->USARTx->CR3, USART_CR3_DMAR);
+    }
+    else if (uartPort->port.mode & MODE_RX) {
         /* Enable the UART Parity Error Interrupt */
         SET_BIT(uartPort->USARTx->CR1, USART_CR1_PEIE);
 
@@ -179,6 +183,8 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
     s->port.baudRate = baudRate;
     s->port.options = options;
 
+    // Before the UART itself, which then asks the stream for bytes instead of interrupting for each
+    uartRxDmaStart(s);
     uartReconfigure(s);
 
     return (serialPort_t *)s;
@@ -209,10 +215,12 @@ uint32_t uartTotalRxBytesWaiting(const serialPort_t *instance)
 {
     uartPort_t *s = (uartPort_t*)instance;
 
-    if (s->port.rxBufferHead >= s->port.rxBufferTail) {
-        return s->port.rxBufferHead - s->port.rxBufferTail;
+    const uint32_t head = uartRxBufferHead(s);
+
+    if (head >= s->port.rxBufferTail) {
+        return head - s->port.rxBufferTail;
     } else {
-        return s->port.rxBufferSize + s->port.rxBufferHead - s->port.rxBufferTail;
+        return s->port.rxBufferSize + head - s->port.rxBufferTail;
     }
 }
 

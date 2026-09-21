@@ -357,9 +357,105 @@ static uartDevice_t* uartHardwareMap[] = {
 #endif
     };
  
+#ifdef USE_UART_RX_DMA
+typedef struct {
+    dmaTag_t tag;
+    uint32_t request;               // this UART's receiver on the DMAMUX
+} uartRxDmaConfig_t;
+
+static const uartRxDmaConfig_t uartRxDmaConfig[UARTDEV_MAX] = {
+#ifdef UART1_RX_DMA
+    [UARTDEV_1] = { UART1_RX_DMA, DMAMUX_DMAREQ_ID_USART1_RX },
+#endif
+#ifdef UART2_RX_DMA
+    [UARTDEV_2] = { UART2_RX_DMA, DMAMUX_DMAREQ_ID_USART2_RX },
+#endif
+#ifdef UART3_RX_DMA
+    [UARTDEV_3] = { UART3_RX_DMA, DMAMUX_DMAREQ_ID_USART3_RX },
+#endif
+#ifdef UART4_RX_DMA
+    [UARTDEV_4] = { UART4_RX_DMA, DMAMUX_DMAREQ_ID_UART4_RX },
+#endif
+#ifdef UART5_RX_DMA
+    [UARTDEV_5] = { UART5_RX_DMA, DMAMUX_DMAREQ_ID_UART5_RX },
+#endif
+#ifdef UART6_RX_DMA
+    [UARTDEV_6] = { UART6_RX_DMA, DMAMUX_DMAREQ_ID_USART6_RX },
+#endif
+#ifdef UART7_RX_DMA
+    [UARTDEV_7] = { UART7_RX_DMA, DMAMUX_DMAREQ_ID_UART7_RX },
+#endif
+#ifdef UART8_RX_DMA
+    [UARTDEV_8] = { UART8_RX_DMA, DMAMUX_DMAREQ_ID_UART8_RX },
+#endif
+};
+
+static UARTDevice_e uartDeviceOf(const uartPort_t *s)
+{
+    for (int device = 0; device < UARTDEV_MAX; device++) {
+        if (uartHardwareMap[device] && &uartHardwareMap[device]->port == s) {
+            return device;
+        }
+    }
+    return UARTDEV_MAX;
+}
+
+static void uartRxDmaStop(uartPort_t *s)
+{
+    if (s->rxDma) {
+        usart_dma_receiver_enable(s->USARTx, FALSE);
+        dma_channel_enable(s->rxDma->ref, FALSE);
+        s->rxDma = NULL;
+    }
+}
+
+bool uartRxDmaStart(uartPort_t *s)
+{
+    uartRxDmaStop(s);
+
+    const UARTDevice_e device = uartDeviceOf(s);
+    if (device == UARTDEV_MAX || uartRxDmaConfig[device].tag == DMA_NONE || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
+        return false;
+    }
+
+    const DMA_t dma = dmaGetByTag(uartRxDmaConfig[device].tag);
+    if (!dma || !uartRxDmaAvailable(dma, device)) {
+        return false;
+    }
+
+    dmaInit(dma, OWNER_SERIAL, RESOURCE_INDEX(device));
+    dma_reset(dma->ref);
+
+    dma_init_type init;
+    dma_default_para_init(&init);
+    init.peripheral_base_addr = (uint32_t)&s->USARTx->dt;
+    init.memory_base_addr = (uint32_t)s->port.rxBuffer;
+    init.direction = DMA_DIR_PERIPHERAL_TO_MEMORY;
+    init.buffer_size = s->port.rxBufferSize;
+    init.peripheral_inc_enable = FALSE;
+    init.memory_inc_enable = TRUE;
+    init.peripheral_data_width = DMA_PERIPHERAL_DATA_WIDTH_BYTE;
+    init.memory_data_width = DMA_MEMORY_DATA_WIDTH_BYTE;
+    init.loop_mode_enable = TRUE;
+    init.priority = DMA_PRIORITY_MEDIUM;
+    dma_init(dma->ref, &init);
+    dmaMuxEnable(dma, uartRxDmaConfig[device].request);
+    dma_channel_enable(dma->ref, TRUE);
+
+    s->port.rxBufferHead = s->port.rxBufferTail = 0;
+    s->rxDma = dma;
+
+    usart_interrupt_enable(s->USARTx, USART_RDBF_INT, FALSE);
+    usart_dma_receiver_enable(s->USARTx, TRUE);
+    return true;
+}
+#endif
+
 void uartIrqHandler(uartPort_t *s)
 {
-    if (usart_flag_get(s->USARTx, USART_RDBF_FLAG) == SET) {
+    // This tests the flag alone, and a port receiving through DMA still takes interrupts
+    // for what it sends: a byte the stream has not collected yet is not ours to read
+    if (usart_flag_get(s->USARTx, USART_RDBF_FLAG) == SET && !uartRxDmaRunning(s)) {
         if (s->port.rxCallback) {
             s->port.rxCallback(s->USARTx->dt, s->port.rxCallbackData);
         } else {
