@@ -18,16 +18,24 @@
 #include <stdint.h>
 
 #include "platform.h"
-#include "drivers/io.h"
-#include "drivers/timer.h"
-#include "drivers/pwm_mapping.h"
+
 #include "drivers/bus.h"
+#include "drivers/io.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/timer.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM8,  CH1,  PC6,    TIM_USE_OUTPUT_AUTO,  0, 1),  // S1 - DMA2_S2_Ch7
-    DEF_TIM(TIM8,  CH2,  PC7,    TIM_USE_OUTPUT_AUTO,  0, 1),  // S2 - DMA2_S3_Ch7
-    DEF_TIM(TIM8,  CH3,  PC8,    TIM_USE_OUTPUT_AUTO,  0, 1),  // S3 - DMA2_S4_Ch7
-    DEF_TIM(TIM8,  CH4,  PC9,    TIM_USE_OUTPUT_AUTO,  0, 0),  // S4 - DMA2_S7_Ch7
+    DEF_TIM(TIM8,  CH1,  PC6,    TIM_USE_OUTPUT_AUTO,  0, 1),  // M1 DMA2_S2_Ch7
+    DEF_TIM(TIM8,  CH2,  PC7,    TIM_USE_OUTPUT_AUTO,  0, 1),  // M2 DMA2_S3_Ch7
+    DEF_TIM(TIM8,  CH3,  PC8,    TIM_USE_OUTPUT_AUTO,  0, 1),  // M3 DMA2_S4_Ch7
+    DEF_TIM(TIM8,  CH4,  PC9,    TIM_USE_OUTPUT_AUTO,  0, 0),  // M4 DMA2_S7_Ch7
+
+    DEF_TIM(TIM3, CH1, PB4,      TIM_USE_OUTPUT_AUTO, 0, 0),  // M5 DMA1_S4_Ch5
+    DEF_TIM(TIM3, CH2, PB5,      TIM_USE_OUTPUT_AUTO, 0, 0),  // M6 DMA1_S5_Ch5
+    DEF_TIM(TIM3, CH3, PB0,      TIM_USE_OUTPUT_AUTO, 0, 0),  // M7 DMA1_S7_Ch5
+    DEF_TIM(TIM3, CH4, PB1,      TIM_USE_OUTPUT_AUTO, 0, 0),  // M8 DMA1_S2_Ch5
+
+    DEF_TIM(TIM1, CH1, PA8,      TIM_USE_LED,         0, 1),  // LED strip DMA2_S1_Ch6
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

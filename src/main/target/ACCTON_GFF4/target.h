@@ -23,60 +23,12 @@
 #define USBD_PRODUCT_STRING     "ACCT"
 
 // ******** Board LEDs **********************
-#define LED0                    PB14
-#define LED0_INVERTED
-#define LED1                    PB3
-#define LED1_INVERTED
+#define LED0                    PB3
+#define LED1                    PC4
 
 // ******* Beeper ***********
 #define BEEPER                          PB15
 #define BEEPER_INVERTED
-
-// ******* GYRO and ACC ********
-#define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN              CW0_DEG
-#define ICM42605_SPI_BUS                BUS_SPI1
-#define ICM42605_CS_PIN                 PA4
-
-// *************** I2C ***************************
-#define USE_I2C
-#define USE_I2C_DEVICE_1
-
-#define I2C1_SCL                        PB6
-#define I2C1_SDA                        PB7
-#define DEFAULT_I2C_BUS                 BUS_I2C1
-
-// *************** Baro **************************
-#define USE_BARO
-#define BARO_I2C_BUS                    DEFAULT_I2C_BUS
-#define USE_BARO_DPS310
-#define DPS310_I2C_ADDR                 (0x77)
-
-// *********** Magnetometer / Compass *************
-#define USE_MAG
-#define MAG_I2C_BUS                     DEFAULT_I2C_BUS
-#define USE_MAG_IST8310
-
-// ******* SERIAL ********
-#define USE_VCP
-
-#define USE_UART1
-#define UART1_TX_PIN                    PA9
-#define UART1_RX_PIN                    PA10
-
-#define USE_UART2
-#define UART2_TX_PIN                    PA2
-#define UART2_RX_PIN                    PA3
-
-#define USE_UART3
-#define UART3_TX_PIN                    PB10
-#define UART3_RX_PIN                    PB11
-
-#define USE_UART4
-#define UART4_TX_PIN                    PA0
-#define UART4_RX_PIN                    PA1
-
-#define SERIAL_PORT_COUNT               5
 
 // ******* SPI ********
 #define USE_SPI
@@ -99,22 +51,75 @@
 #define SPI3_MISO_PIN                   PC11
 #define SPI3_MOSI_PIN                   PC12
 
-// ******* ADC ********
+// ************ IMU ******************************
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN              CW0_DEG
+#define ICM42605_SPI_BUS                BUS_SPI1
+#define ICM42605_CS_PIN                 PA4
+#define GYRO_1_EXTI_PIN                 PC15
+
+// ************** OSD ****************************
+#define USE_MAX7456
+#define MAX7456_SPI_BUS                 BUS_SPI2
+#define MAX7456_CS_PIN                  PB12
+
+// *************** I2C ***************************
+#define USE_I2C
+
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL                        PB6
+#define I2C1_SDA                        PB7
+
+#define USE_BARO
+#define BARO_I2C_BUS                    BUS_I2C1
+#define USE_BARO_DPS310
+#define DPS310_I2C_ADDR                 (0x77)
+
+#define USE_MAG
+#define MAG_I2C_BUS                     BUS_I2C1
+#define USE_MAG_IST8310
+
+// *************** Serial ports *******************
+#define USE_VCP
+
+#define USE_UART1
+#define UART1_TX_PIN                    PA9
+#define UART1_RX_PIN                    PA10
+
+#define USE_UART2
+#define UART2_TX_PIN                    PA2
+#define UART2_RX_PIN                    PA3
+
+#define USE_UART3
+#define UART3_TX_PIN                    PB10
+#define UART3_RX_PIN                    PB11
+
+#define USE_UART4
+#define UART4_TX_PIN                    PA0
+#define UART4_RX_PIN                    PA1
+
+#define USE_UART5
+#define UART5_RX_PIN                    PD2
+#define UART5_TX_PIN                    NONE
+
+#define SERIAL_PORT_COUNT               6
+
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
+#define SERIALRX_UART           SERIAL_PORT_USART4
+#define SERIALRX_PROVIDER       SERIALRX_CRSF
+
+// *************** ADC ****************************
 #define USE_ADC
-#define ADC_CHANNEL_1_PIN               PC4
-#define ADC_CHANNEL_2_PIN               PC5
+#define ADC_INSTANCE                    ADC1
+#define ADC_CHANNEL_1_PIN               PC0
+#define ADC_CHANNEL_2_PIN               PC1
 
 #define VBAT_ADC_CHANNEL                ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 
-#define VBAT_SCALE_DEFAULT              841
-#define CURRENT_METER_SCALE             250
-
-// ******* OSD ********
-#define USE_OSD
-#define USE_MAX7456
-#define MAX7456_SPI_BUS                 BUS_SPI2
-#define MAX7456_CS_PIN                  PB12
+// *************** LED strip **********************
+#define USE_LED_STRIP
+#define WS2811_PIN              PA8
 
 // ******* FLASH ********
 #define USE_FLASHFS
@@ -124,21 +129,21 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // ******* FEATURES ********
-#define DEFAULT_RX_TYPE                 RX_TYPE_SERIAL
-#define SERIALRX_UART                   SERIAL_PORT_USART4
-#define SERIALRX_PROVIDER               SERIALRX_CRSF
+#define TARGET_IO_PORTA         (0xffff & ~(BIT(13) | BIT(14)))
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         0xffff
 
-#define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL)
+#define MAX_PWM_OUTPUT_PORTS            8
 
-#define TARGET_IO_PORTA                 0xffff
-#define TARGET_IO_PORTB                 0xffff
-#define TARGET_IO_PORTC                 0xffff
-#define TARGET_IO_PORTD                 (BIT(2))
-
-#define MAX_PWM_OUTPUT_PORTS            4
+#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 
 // ESC-related features
 #define USE_DSHOT
-#define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+// *************** VTX ************
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN          PB2 // 9V_EN Switch
